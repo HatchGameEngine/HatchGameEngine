@@ -11423,7 +11423,7 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Resources.LoadVideo
- * \desc Loads a Video resource.
+ * \desc Loads a Media resource.
  * \param filename (String): Filename of the resource.
  * \param unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the resource.
  * \return Returns a resource.
