@@ -1045,11 +1045,12 @@ void Application::PollEvents() {
 
 					for (size_t i = 0; i < list->size(); i++) {
 						ResourceType* resource = (*list)[i];
-						Log::Print(Log::LOG_IMPORTANT,
-							"- %d: %s (%s)",
+						Log::Print(Log::LOG_VERBOSE,
+							"- %d: %s (Type: %s, Scope: %s)",
 							i,
 							resource->Filename,
-							GetResourceTypeString(resource->Type));
+							GetResourceTypeString(resource->Type),
+							GetResourceScopeString(resource->UnloadPolicy));
 					}
 					break;
 				}

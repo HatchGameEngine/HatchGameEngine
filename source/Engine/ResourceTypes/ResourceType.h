@@ -43,6 +43,19 @@ inline const char* GetResourceTypeString(Uint8 type) {
 	return "unknown";
 }
 
+inline const char* GetResourceScopeString(Uint8 scope) {
+	switch (scope) {
+	case SCOPE_GAME:
+		return "game";
+	case SCOPE_SCENE:
+		return "scene";
+	default:
+		break;
+	}
+
+	return "unknown";
+}
+
 struct MediaBag {
 	Texture* VideoTexture;
 	MediaSource* Source;
