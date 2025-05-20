@@ -1,4 +1,5 @@
 #include <Engine/Audio/AudioIncludes.h>
+#include <Engine/Audio/AudioManager.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>

@@ -3,6 +3,7 @@
 #include <Engine/Rendering/3D.h>
 #include <Engine/Rendering/Material.h>
 #include <Engine/Rendering/Mesh.h>
+#include <Engine/ResourceTypes/ResourceType.h>
 #include <Engine/ResourceTypes/ModelFormats/MD3Model.h>
 
 #define MD3_MODEL_MAGIC 0x49445033 // IDP3
@@ -315,7 +316,7 @@ bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
 				Material::LoadForModel(MaterialNames[i], parentDirectory);
 			if (material->TextureDiffuse) {
 				material->TextureDiffuseName =
-					StringUtils::Duplicate(material->TextureDiffuse->Filename);
+					StringUtils::Duplicate(((ResourceType*)material->TextureDiffuse)->Filename);
 			}
 			model->AddUniqueMaterial(material);
 		}

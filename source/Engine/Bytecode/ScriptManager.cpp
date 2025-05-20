@@ -8,6 +8,7 @@
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/Values.h>
 #include <Engine/Diagnostics/Log.h>
@@ -124,10 +125,11 @@ void ScriptManager::Init() {
 	ThreadCount = 1;
 
 	ArrayImpl::Init();
-	MapImpl::Init();
 	FunctionImpl::Init();
-	StringImpl::Init();
+	MapImpl::Init();
 	MaterialImpl::Init();
+	ResourceImpl::Init();
+	StringImpl::Init();
 }
 #ifdef VM_DEBUG
 Uint32 ScriptManager::GetBranchLimit() {
@@ -625,9 +627,17 @@ void ScriptManager::FreeValue(VMValue value) {
 		case OBJ_MATERIAL: {
 			ObjMaterial* material = AS_MATERIAL(value);
 
-			Material::Remove(material->MaterialPtr);
+			((Material*)material->MaterialPtr)->VMObject = nullptr;
 
 			FREE_OBJ(material, ObjMaterial);
+			break;
+		}
+		case OBJ_RESOURCE: {
+			ObjResource* resource = AS_RESOURCE(value);
+
+			((ResourceType*)resource->ResourcePtr)->VMObject = nullptr;
+
+			FREE_OBJ(resource, ObjResource);
 			break;
 		}
 		default:

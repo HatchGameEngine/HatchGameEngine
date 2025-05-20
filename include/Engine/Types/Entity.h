@@ -64,7 +64,7 @@ public:
 	float Depth = 0.0f;
 	float OldDepth = 0.0f;
 	float ZDepth = 0.0;
-	int Sprite = -1;
+	void* Sprite = nullptr;
 	int CurrentAnimation = -1;
 	int CurrentFrame = -1;
 	int CurrentFrameCount = 0;

@@ -16,8 +16,8 @@ public:
 	Texture* TexturePtr = NULL;
 
 	Image(const char* filename);
-	void AddRef();
-	bool TakeRef();
+	void TakeRef();
+	bool ReleaseRef();
 	void Dispose();
 	~Image();
 

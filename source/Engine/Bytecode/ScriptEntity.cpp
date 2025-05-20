@@ -1,6 +1,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/StandardLibrary.h>
+#include <Engine/ResourceTypes/Resource.h>
 #include <Engine/Scene.h>
 
 bool ScriptEntity::DisableAutoAnimate = false;
@@ -23,6 +24,7 @@ Uint32 Hash_OnSceneLoad = 0;
 Uint32 Hash_OnSceneRestart = 0;
 Uint32 Hash_GameStart = 0;
 Uint32 Hash_Dispose = 0;
+Uint32 Hash_Sprite = 0;
 Uint32 Hash_HitboxLeft = 0;
 Uint32 Hash_HitboxTop = 0;
 Uint32 Hash_HitboxRight = 0;
@@ -47,6 +49,7 @@ void ScriptEntity::Link(ObjInstance* instance) {
 		Hash_OnSceneRestart = Murmur::EncryptString("OnSceneRestart");
 		Hash_GameStart = Murmur::EncryptString("GameStart");
 		Hash_Dispose = Murmur::EncryptString("Dispose");
+		Hash_Sprite = Murmur::EncryptString("Sprite");
 		Hash_HitboxLeft = Murmur::EncryptString("HitboxLeft");
 		Hash_HitboxTop = Murmur::EncryptString("HitboxTop");
 		Hash_HitboxRight = Murmur::EncryptString("HitboxRight");
@@ -207,12 +210,12 @@ void ScriptEntity::LinkFields() {
 
 	/***
     * \field Sprite
-    * \type Integer (Resource)
-    * \default -1
+    * \type Resource
+    * \default null
     * \ns Instance
-    * \desc The sprite index of the entity.
+    * \desc The sprite Resource of the entity.
     */
-	LINK_INT(Sprite);
+	// See ScriptEntity::VM_Getter and ScriptEntity::VM_Setter
 	/***
     * \field CurrentAnimation
     * \type Integer
@@ -951,7 +954,10 @@ void ScriptEntity::Initialize() {
 	PriorityListIndex = -1;
 	PriorityOld = -1;
 
-	Sprite = -1;
+	if (Sprite != nullptr) {
+		Resource::Release((ResourceType*)Sprite);
+		Sprite = nullptr;
+	}
 	CurrentAnimation = -1;
 	CurrentFrame = -1;
 	CurrentFrameCount = 0;
@@ -987,7 +993,7 @@ void ScriptEntity::Create(VMValue flag) {
 	Created = true;
 
 	RunCreateFunction(flag);
-	if (Sprite >= 0 && CurrentAnimation < 0) {
+	if (Sprite != nullptr && CurrentAnimation < 0) {
 		SetAnimation(0, 0);
 	}
 }
@@ -1136,7 +1142,18 @@ bool ScriptEntity::VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 t
 		return false;
 	}
 
-	if (hash == Hash_HitboxLeft) {
+	if (hash == Hash_Sprite) {
+		if (result) {
+			if (self->Sprite) {
+				*result = OBJECT_VAL(Resource::GetVMObject((ResourceType*)self->Sprite));
+			}
+			else {
+				*result = NULL_VAL;
+			}
+		}
+		return true;
+	}
+	else if (hash == Hash_HitboxLeft) {
 		if (result) {
 			*result = DECIMAL_VAL(self->Hitbox.GetLeft());
 		}
@@ -1169,7 +1186,27 @@ bool ScriptEntity::VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 thr
 		return false;
 	}
 
-	if (hash == Hash_HitboxLeft) {
+	if (hash == Hash_Sprite) {
+		if (IS_NULL(value)) {
+			Resource::Release((ResourceType*)self->Sprite);
+			self->Sprite = nullptr;
+			return true;
+		}
+		else if (!IS_RESOURCE(value)) {
+			StandardLibrary::ExpectedObjectTypeError(value, OBJ_RESOURCE, threadID);
+			return true;
+		}
+
+		ObjResource* resourceObj = AS_RESOURCE(value);
+		void* resource = resourceObj->ResourcePtr;
+		if (StandardLibrary::ValidateResource(resource, RESOURCE_SPRITE, threadID)) {
+			Resource::TakeRef((ResourceType*)resource);
+			self->Sprite = resource;
+		}
+
+		return true;
+	}
+	else if (hash == Hash_HitboxLeft) {
 		if (ScriptManager::DoDecimalConversion(value, threadID)) {
 			self->Hitbox.SetLeft(AS_DECIMAL(value));
 		}
@@ -1213,7 +1250,7 @@ VMValue ScriptEntity::VM_SetAnimation(int argCount, VMValue* args, Uint32 thread
 		return NULL_VAL;
 	}
 
-	ResourceType* resource = Scene::GetSpriteResource(self->Sprite);
+	ResourceType* resource = (ResourceType*)self->Sprite;
 	if (!resource) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Sprite is not set!", animation);
@@ -1223,7 +1260,7 @@ VMValue ScriptEntity::VM_SetAnimation(int argCount, VMValue* args, Uint32 thread
 	ISprite* sprite = resource->AsSprite;
 	if (!sprite) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite is not set!", animation);
+			false, "Sprite is no longer valid!", animation);
 		return NULL_VAL;
 	}
 
@@ -1258,17 +1295,17 @@ VMValue ScriptEntity::VM_ResetAnimation(int argCount, VMValue* args, Uint32 thre
 		return NULL_VAL;
 	}
 
-	ResourceType* resource = Scene::GetSpriteResource(self->Sprite);
+	ResourceType* resource = (ResourceType*)self->Sprite;
 	if (!resource) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite %d does not exist!", self->Sprite);
+			false, "Sprite is not set!");
 		return NULL_VAL;
 	}
 
 	ISprite* sprite = resource->AsSprite;
 	if (!sprite) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite %d does not exist!", self->Sprite);
+			false, "Sprite is no longer valid!");
 		return NULL_VAL;
 	}
 
@@ -1553,27 +1590,19 @@ VMValue ScriptEntity::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 thread
 		return NULL_VAL;
 	}
 
-	ISprite* sprite;
+	ISprite* sprite = nullptr;
 	int animationID = 0, frameID = 0, hitboxID = 0;
 
 	switch (argCount) {
 	case 1:
 	case 2:
-		if (self->Sprite < 0 || self->Sprite >= (int)Scene::SpriteList.size()) {
-			if (ScriptManager::Threads[threadID].ThrowRuntimeError(false,
-				    "Sprite index \"%d\" outside bounds of list.",
-				    self->Sprite) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-
-			return NULL_VAL;
+		if (self->Sprite == nullptr) {
+			ScriptManager::Threads[threadID].ThrowRuntimeError(
+				false, "Sprite is not set!");
+			break;
 		}
 
-		if (!Scene::SpriteList[self->Sprite]) {
-			return NULL_VAL;
-		}
-
-		sprite = Scene::SpriteList[self->Sprite]->AsSprite;
+		sprite = ((ResourceType*)self->Sprite)->AsSprite;
 		animationID = self->CurrentAnimation;
 		frameID = self->CurrentFrame;
 		hitboxID = argCount == 2 ? GET_ARG(1, GetInteger) : 0;
@@ -1588,8 +1617,6 @@ VMValue ScriptEntity::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 thread
 	}
 
 	if (!sprite) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite %d does not exist!", self->Sprite);
 		return NULL_VAL;
 	}
 
@@ -1850,7 +1877,7 @@ VMValue ScriptEntity::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32
 VMValue ScriptEntity::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
-	ISound* audio = GET_ARG(1, GetSound);
+	ISound* audio = GET_ARG(1, GetAudio);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
@@ -1876,7 +1903,7 @@ VMValue ScriptEntity::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID)
 VMValue ScriptEntity::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
-	ISound* audio = GET_ARG(1, GetSound);
+	ISound* audio = GET_ARG(1, GetAudio);
 	int loopPoint = GET_ARG_OPT(2, GetInteger, 0);
 	float panning = GET_ARG_OPT(3, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
@@ -1898,7 +1925,7 @@ VMValue ScriptEntity::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID)
 VMValue ScriptEntity::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
-	ISound* audio = GET_ARG(1, GetSound);
+	ISound* audio = GET_ARG(1, GetAudio);
 	if (IsValidEntity(self)) {
 		AudioManager::StopOriginSound((void*)self, audio);
 	}

@@ -5,8 +5,6 @@
 
 #include <Engine/IO/Stream.h>
 
-#include <Engine/Rendering/Material.h>
-
 #define FRAMES_MAX 64
 #define STACK_SIZE_MAX (FRAMES_MAX * 256)
 #define THREAD_NAME_MAX 64
@@ -172,6 +170,7 @@ typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threa
 #define IS_ENUM(value) IsObjectType(value, OBJ_ENUM)
 #define IS_MODULE(value) IsObjectType(value, OBJ_MODULE)
 #define IS_MATERIAL(value) IsObjectType(value, OBJ_MATERIAL)
+#define IS_RESOURCE(value) IsObjectType(value, OBJ_RESOURCE)
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))
@@ -188,6 +187,7 @@ typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threa
 #define AS_ENUM(value) ((ObjEnum*)AS_OBJECT(value))
 #define AS_MODULE(value) ((ObjModule*)AS_OBJECT(value))
 #define AS_MATERIAL(value) ((ObjMaterial*)AS_OBJECT(value))
+#define AS_RESOURCE(value) ((ObjResource*)AS_OBJECT(value))
 
 enum ObjType {
 	OBJ_BOUND_METHOD,
@@ -204,10 +204,11 @@ enum ObjType {
 	OBJ_NAMESPACE,
 	OBJ_ENUM,
 	OBJ_MODULE,
-	OBJ_MATERIAL
-};
+	OBJ_MATERIAL,
+	OBJ_RESOURCE,
 
-#define MAX_OBJ_TYPE (OBJ_MATERIAL + 1)
+	MAX_OBJ_TYPE
+};
 
 typedef HashMap<VMValue> Table;
 
@@ -313,7 +314,11 @@ struct ObjEnum {
 };
 struct ObjMaterial {
 	Obj Object;
-	Material* MaterialPtr;
+	void* MaterialPtr;
+};
+struct ObjResource {
+	Obj Object;
+	void* ResourcePtr;
 };
 
 ObjString* TakeString(char* chars, size_t length);
@@ -336,7 +341,8 @@ ObjStream* NewStream(Stream* streamPtr, bool writable);
 ObjNamespace* NewNamespace(Uint32 hash);
 ObjEnum* NewEnum(Uint32 hash);
 ObjModule* NewModule();
-ObjMaterial* NewMaterial(Material* material);
+ObjMaterial* NewMaterial(void* material);
+ObjResource* NewResource(void* resourcePtr);
 
 #define FREE_OBJ(obj, type) \
 	assert(GarbageCollector::GarbageSize >= sizeof(type)); \

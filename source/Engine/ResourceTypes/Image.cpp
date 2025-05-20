@@ -15,16 +15,16 @@
 #include <Engine/Utilities/StringUtils.h>
 
 Image::Image(const char* filename) {
-	AddRef();
+	TakeRef();
 	Filename = StringUtils::Duplicate(filename);
 	TexturePtr = Image::LoadTextureFromResource(Filename);
 }
 
-void Image::AddRef() {
+void Image::TakeRef() {
 	References++;
 }
 
-bool Image::TakeRef() {
+bool Image::ReleaseRef() {
 	if (References == 0) {
 		abort();
 	}

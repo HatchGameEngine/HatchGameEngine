@@ -2,6 +2,7 @@
 #include <Engine/Math/Vector.h>
 #include <Engine/ResourceTypes/IModel.h>
 
+#include <Engine/Application.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/IO/MemoryStream.h>

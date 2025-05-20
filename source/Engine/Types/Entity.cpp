@@ -6,14 +6,12 @@ void Entity::ApplyMotion() {
 	Y += YSpeed;
 }
 void Entity::Animate() {
-	ResourceType* resource = Scene::GetSpriteResource(Sprite);
-	if (!resource) {
+	if (!Sprite) {
 		return;
 	}
 
-	ISprite* sprite = resource->AsSprite;
-	if (!sprite || CurrentAnimation < 0 ||
-		(size_t)CurrentAnimation >= sprite->Animations.size()) {
+	ISprite* sprite = ((ResourceType*)Sprite)->AsSprite;
+	if (CurrentAnimation < 0 || (size_t)CurrentAnimation >= sprite->Animations.size()) {
 		return;
 	}
 
@@ -41,11 +39,9 @@ void Entity::Animate() {
 				CurrentFrame = AnimationLoopIndex;
 				OnAnimationFinish();
 
-				// Sprite may have changed after a call
-				// to OnAnimationFinish
-				ResourceType* resource = Scene::GetSpriteResource(Sprite);
-				if (resource) {
-					sprite = Scene::GetSpriteResource(Sprite)->AsSprite;
+				// Sprite may have changed after a call to OnAnimationFinish
+				if (Sprite) {
+					sprite = ((ResourceType*)Sprite)->AsSprite;
 				}
 				else {
 					sprite = nullptr;
@@ -80,13 +76,12 @@ void Entity::SetAnimation(int animation, int frame) {
 	}
 }
 void Entity::ResetAnimation(int animation, int frame) {
-	ResourceType* resource = Scene::GetSpriteResource(Sprite);
-	if (!resource) {
+	if (!Sprite) {
 		return;
 	}
 
-	ISprite* sprite = resource->AsSprite;
-	if (!sprite || animation < 0 || (size_t)animation >= sprite->Animations.size()) {
+	ISprite* sprite = ((ResourceType*)Sprite)->AsSprite;
+	if (animation < 0 || (size_t)animation >= sprite->Animations.size()) {
 		return;
 	}
 

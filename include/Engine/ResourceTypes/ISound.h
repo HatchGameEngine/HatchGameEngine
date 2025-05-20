@@ -1,7 +1,6 @@
 #ifndef ENGINE_RESOURCETYPES_ISOUND_H
 #define ENGINE_RESOURCETYPES_ISOUND_H
 
-#include <Engine/Application.h>
 #include <Engine/Audio/AudioPlayback.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>

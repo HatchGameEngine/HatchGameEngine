@@ -1,8 +1,8 @@
 #include <Engine/Bytecode/Values.h>
-
 #include <Engine/Diagnostics/Log.h>
-
 #include <Engine/Includes/PrintBuffer.h>
+#include <Engine/Rendering/Material.h>
+#include <Engine/ResourceTypes/ResourceType.h>
 
 // NOTE: This is for printing, not string conversion
 void Values::PrintValue(VMValue value) {
@@ -78,13 +78,16 @@ void Values::PrintObject(PrintBuffer* buffer, VMValue value, int indent, bool pr
 	case OBJ_STREAM:
 		buffer_printf(buffer, "<stream>");
 		break;
-	case OBJ_MATERIAL:
+	case OBJ_RESOURCE: {
+		ResourceType* resource = (ResourceType*)AS_RESOURCE(value)->ResourcePtr;
 		buffer_printf(buffer,
-			"<material %s>",
-			(AS_MATERIAL(value)->MaterialPtr != nullptr &&
-				AS_MATERIAL(value)->MaterialPtr->Name != nullptr)
-				? AS_MATERIAL(value)->MaterialPtr->Name
-				: "(null)");
+			"<%s \"%s\">",
+			GetResourceTypeString(resource->Type),
+			resource->Filename);
+		break;
+	}
+	case OBJ_MATERIAL:
+		buffer_printf(buffer, "<material %s>", ((Material*)AS_MATERIAL(value)->MaterialPtr)->Name);
 		break;
 	case OBJ_NAMESPACE:
 		buffer_printf(buffer,

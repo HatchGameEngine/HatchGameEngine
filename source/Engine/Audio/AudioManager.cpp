@@ -558,6 +558,11 @@ void AudioManager::AudioStopAll() {
 	AudioManager::Unlock();
 }
 
+void AudioManager::Unload(ISound* audio) {
+	RemoveMusic(audio);
+	AudioRemove(audio);
+}
+
 bool AudioManager::IsOriginPlaying(void* origin, ISound* audio) {
 	bool isPlaying = false;
 	AudioManager::Lock();

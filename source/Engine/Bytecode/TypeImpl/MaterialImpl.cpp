@@ -2,6 +2,7 @@
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Rendering/Material.h>
+#include <Engine/ResourceTypes/Resource.h>
 
 ObjClass* MaterialImpl::Class = nullptr;
 
@@ -84,7 +85,7 @@ Obj* MaterialImpl::VM_New() {
 
 VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 	ObjMaterial* objMaterial = AS_MATERIAL(args[0]);
-	Material* material = objMaterial->MaterialPtr;
+	Material* material = (Material*)objMaterial->MaterialPtr;
 
 	StandardLibrary::CheckArgCount(argCount, 2);
 
@@ -109,9 +110,9 @@ VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 #define GET_TEXTURE(type) \
 	{ \
 		if (hash == Hash_##type##Texture) { \
-			Image* image = material->Texture##type; \
-			if (image != nullptr) { \
-				*result = INTEGER_VAL(image->ID); \
+			ResourceType* resource = (ResourceType*)material->Texture##type; \
+			if (resource != nullptr) { \
+				*result = OBJECT_VAL(Resource::GetVMObject(resource)); \
 			} \
 			else { \
 				*result = NULL_VAL; \
@@ -122,12 +123,7 @@ VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 
 bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
 	ObjMaterial* objMaterial = (ObjMaterial*)object;
-	Material* material = objMaterial->MaterialPtr;
-	if (material == nullptr) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Material is no longer valid!");
-		return false;
-	}
+	Material* material = (Material*)objMaterial->MaterialPtr;
 
 	if (hash == Hash_Name) {
 		if (ScriptManager::Lock()) {
@@ -181,29 +177,27 @@ bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 		} \
 	}
 
-static void DoTextureRemoval(Image** image) {
-	if (*image) {
-		if ((*image)->TakeRef()) {
-			abort();
-		}
+static void DoTextureRemoval(void** resource) {
+	if (*resource) {
+		Resource::Release(*((ResourceType**)resource));
 
-		(*image) = nullptr;
+		(*resource) = nullptr;
 	}
 }
 
-static void DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
-	ResourceType* resource = Scene::GetImageResource(imageID);
-	if (!resource) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Image index \"%d\" is not valid!", imageID);
+static void DoTextureReplacement(VMValue value, void** resource, Uint32 threadID) {
+	if (!IS_RESOURCE(value)) {
+		StandardLibrary::ExpectedObjectTypeError(value, OBJ_RESOURCE, threadID);
 		return;
 	}
 
-	DoTextureRemoval(image);
+	ObjResource* obj = AS_RESOURCE(value);
 
-	Image* newImage = resource->AsImage;
-	newImage->AddRef();
-	(*image) = newImage;
+	DoTextureRemoval(resource);
+
+	void* newResource = (ResourceType*)obj->ResourcePtr;
+	Resource::TakeRef((ResourceType*)newResource);
+	(*resource) = newResource;
 }
 
 #define SET_TEXTURE(type) \
@@ -212,9 +206,9 @@ static void DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
 			if (IS_NULL(value)) { \
 				DoTextureRemoval(&material->Texture##type); \
 			} \
-			else if (ScriptManager::DoIntegerConversion(value, threadID)) { \
+			else { \
 				DoTextureReplacement( \
-					AS_INTEGER(value), &material->Texture##type, threadID); \
+					value, &material->Texture##type, threadID); \
 			} \
 			return true; \
 		} \
@@ -222,12 +216,7 @@ static void DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
 
 bool MaterialImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
 	ObjMaterial* objMaterial = (ObjMaterial*)object;
-	Material* material = objMaterial->MaterialPtr;
-	if (material == nullptr) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Material is no longer valid!");
-		return false;
-	}
+	Material* material = (Material*)objMaterial->MaterialPtr;
 
 	if (hash == Hash_Name) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(

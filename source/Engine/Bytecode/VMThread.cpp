@@ -3289,6 +3289,9 @@ VMValue VMThread::Value_TypeOf() {
 		case OBJ_MATERIAL:
 			valueType = "material";
 			break;
+		case OBJ_RESOURCE:
+			valueType = "resource";
+			break;
 		}
 	}
 	}

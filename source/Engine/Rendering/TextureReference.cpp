@@ -3,14 +3,14 @@
 TextureReference::TextureReference(Texture* ptr) {
 	TexturePtr = ptr;
 	References = 0;
-	AddRef();
+	TakeRef();
 }
 
-void TextureReference::AddRef() {
+void TextureReference::TakeRef() {
 	References++;
 }
 
-bool TextureReference::TakeRef() {
+bool TextureReference::ReleaseRef() {
 	if (References == 0) {
 		abort();
 	}

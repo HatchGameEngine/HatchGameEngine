@@ -11,8 +11,6 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
 #include <Engine/Filesystem/File.h>
-#include <Engine/FontFace.h>
-#include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/Hashing/MD5.h>
@@ -23,7 +21,7 @@
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Math/Math.h>
 #include <Engine/Rendering/SDL2/SDL2Renderer.h>
-#include <Engine/ResourceTypes/ISound.h>
+#include <Engine/ResourceTypes/Resource.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneReader.h>
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
@@ -123,12 +121,7 @@ int Scene::ActiveCategory;
 int Scene::DebugMode;
 
 // Resource managing variables
-vector<ResourceType*> Scene::SpriteList;
-vector<ResourceType*> Scene::ImageList;
-vector<ResourceType*> Scene::SoundList;
-vector<ResourceType*> Scene::MusicList;
-vector<ResourceType*> Scene::ModelList;
-vector<ResourceType*> Scene::MediaList;
+vector<ResourceType*> Scene::ResourceList;
 vector<GameTexture*> Scene::TextureList;
 vector<Animator*> Scene::AnimatorList;
 
@@ -748,12 +741,12 @@ void Scene::Update() {
 	Uint8 audio_buffer[0x8000]; // <-- Should be larger than
 	// AudioManager::AudioQueueMaxSize
 	int needed = 0x8000; // AudioManager::AudioQueueMaxSize;
-	for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
-		if (!Scene::MediaList[i]) {
+	for (size_t i = 0, i_sz = Scene::ResourceList.size(); i < i_sz; i++) {
+		if (Scene::ResourceList[i]->Type != RESOURCE_MEDIA) {
 			continue;
 		}
 
-		MediaBag* media = Scene::MediaList[i]->AsMedia;
+		MediaBag* media = Scene::ResourceList[i]->AsMedia;
 		int queued = (int)AudioManager::AudioQueueSize;
 		if (queued < needed) {
 			int ready_bytes =
@@ -2579,402 +2572,18 @@ void Scene::UnloadTileCollisions() {
 }
 
 // Resource Management
-// return true if we found it in the list
-bool Scene::GetResourceListSpace(vector<ResourceType*>* list,
-	ResourceType* resource,
-	size_t& index,
-	bool& foundEmpty) {
-	foundEmpty = false;
-	index = list->size();
-	for (size_t i = 0, listSz = list->size(); i < listSz; i++) {
-		if (!(*list)[i]) {
-			if (!foundEmpty) {
-				foundEmpty = true;
-				index = i;
-			}
-			continue;
-		}
-		if ((*list)[i]->FilenameHash == resource->FilenameHash) {
-			index = i;
-			delete resource;
-			return true;
-		}
-	}
-	return false;
-}
-
-bool Scene::GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index) {
-	bool foundEmpty = false;
-	if (GetResourceListSpace(list, resource, index, foundEmpty)) {
-		return true;
-	}
-	else if (foundEmpty) {
-		(*list)[index] = resource;
-	}
-	else {
-		list->push_back(resource);
-	}
-	return false;
-}
-
-int Scene::LoadSpriteResource(const char* filename, int unloadPolicy) {
-	ResourceType* resource = new (std::nothrow) ResourceType();
-	resource->FilenameHash = CRC32::EncryptString(filename);
-	resource->UnloadPolicy = unloadPolicy;
-
-	size_t index = 0;
-	vector<ResourceType*>* list = &Scene::SpriteList;
-	if (Scene::GetResource(list, resource, index)) {
-		return (int)index;
-	}
-
-	resource->AsSprite = new (std::nothrow) ISprite(filename);
-	if (resource->AsSprite->LoadFailed) {
-		delete resource->AsSprite;
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	return (int)index;
-}
-int Scene::LoadImageResource(const char* filename, int unloadPolicy) {
-	ResourceType* resource = new (std::nothrow) ResourceType();
-	resource->FilenameHash = CRC32::EncryptString(filename);
-	resource->UnloadPolicy = unloadPolicy;
-
-	size_t index = 0;
-	vector<ResourceType*>* list = &Scene::ImageList;
-	if (Scene::GetResource(list, resource, index)) {
-		return (int)index;
-	}
-
-	resource->AsImage = new (std::nothrow) Image(filename);
-	if (!resource->AsImage->TexturePtr) {
-		delete resource->AsImage;
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	resource->AsImage->ID = (int)index;
-
-	return (int)index;
-}
-int Scene::LoadFontResource(const char* filename, int pixel_sz, int unloadPolicy) {
-	ResourceType* resource = new (std::nothrow) ResourceType();
-	resource->FilenameHash = CRC32::EncryptString(filename);
-	resource->FilenameHash = CRC32::EncryptData(&pixel_sz, sizeof(int), resource->FilenameHash);
-	resource->UnloadPolicy = unloadPolicy;
-
-	size_t index = 0;
-	vector<ResourceType*>* list = &Scene::SpriteList;
-	if (Scene::GetResource(list, resource, index)) {
-		return (int)index;
-	}
-
-	ResourceStream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	resource->AsSprite = FontFace::SpriteFromFont(stream, pixel_sz, filename);
-
-	stream->Close();
-
-	if (resource->AsSprite->LoadFailed) {
-		delete resource->AsSprite;
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	return (int)index;
-}
-int Scene::LoadModelResource(const char* filename, int unloadPolicy) {
-	ResourceType* resource = new (std::nothrow) ResourceType();
-	resource->FilenameHash = CRC32::EncryptString(filename);
-	resource->UnloadPolicy = unloadPolicy;
-
-	size_t index = 0;
-	vector<ResourceType*>* list = &Scene::ModelList;
-	if (Scene::GetResource(list, resource, index)) {
-		return (int)index;
-	}
-
-	ResourceStream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Could not read resource \"%s\"!", filename);
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	resource->AsModel = new (std::nothrow) IModel();
-
-	if (!resource->AsModel->Load(stream, filename)) {
-		delete resource->AsModel;
-		delete resource;
-		list->pop_back();
-		stream->Close();
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	stream->Close();
-
-	return (int)index;
-}
-int Scene::LoadMusicResource(const char* filename, int unloadPolicy) {
-	ResourceType* resource = new (std::nothrow) ResourceType();
-	resource->FilenameHash = CRC32::EncryptString(filename);
-	resource->UnloadPolicy = unloadPolicy;
-
-	size_t index = 0;
-	vector<ResourceType*>* list = &Scene::MusicList;
-	if (Scene::GetResource(list, resource, index)) {
-		return (int)index;
-	}
-
-	resource->AsMusic = new (std::nothrow) ISound(filename);
-	if (resource->AsMusic->LoadFailed) {
-		delete resource->AsMusic;
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	return (int)index;
-}
-int Scene::LoadSoundResource(const char* filename, int unloadPolicy) {
-	ResourceType* resource = new (std::nothrow) ResourceType();
-	resource->FilenameHash = CRC32::EncryptString(filename);
-	resource->UnloadPolicy = unloadPolicy;
-
-	size_t index = 0;
-	vector<ResourceType*>* list = &Scene::SoundList;
-	if (Scene::GetResource(list, resource, index)) {
-		return (int)index;
-	}
-
-	resource->AsSound = new (std::nothrow) ISound(filename);
-	if (resource->AsSound->LoadFailed) {
-		delete resource->AsSound;
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	return (int)index;
-}
-int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
-#ifdef USING_FFMPEG
-	ResourceType* resource = new (std::nothrow) ResourceType();
-	resource->FilenameHash = CRC32::EncryptString(filename);
-	resource->UnloadPolicy = unloadPolicy;
-
-	size_t index = 0;
-	vector<ResourceType*>* list = &Scene::MediaList;
-	if (Scene::GetResource(list, resource, index)) {
-		return (int)index;
-	}
-
-	Texture* VideoTexture = NULL;
-	MediaSource* Source = NULL;
-	MediaPlayer* Player = NULL;
-
-	Stream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	Source = MediaSource::CreateSourceFromStream(stream);
-	if (!Source) {
-		delete resource;
-		stream->Close();
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	Player = MediaPlayer::Create(Source,
-		Source->GetBestStream(MediaSource::STREAMTYPE_VIDEO),
-		Source->GetBestStream(MediaSource::STREAMTYPE_AUDIO),
-		Source->GetBestStream(MediaSource::STREAMTYPE_SUBTITLE),
-		Scene::Views[0].Width,
-		Scene::Views[0].Height);
-	if (!Player) {
-		Source->Close();
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	PlayerInfo playerInfo;
-	Player->GetInfo(&playerInfo);
-	VideoTexture = Graphics::CreateTexture(playerInfo.Video.Output.Format,
-		SDL_TEXTUREACCESS_STATIC,
-		playerInfo.Video.Output.Width,
-		playerInfo.Video.Output.Height);
-	if (!VideoTexture) {
-		Player->Close();
-		Source->Close();
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	if (Player->GetVideoStream() > -1) {
-		Log::Print(Log::LOG_WARN, "VIDEO STREAM:");
-		Log::Print(Log::LOG_INFO,
-			"    Resolution:  %d x %d",
-			playerInfo.Video.Output.Width,
-			playerInfo.Video.Output.Height);
-	}
-	if (Player->GetAudioStream() > -1) {
-		Log::Print(Log::LOG_WARN, "AUDIO STREAM:");
-		Log::Print(
-			Log::LOG_INFO, "    Sample Rate: %d", playerInfo.Audio.Output.SampleRate);
-		Log::Print(Log::LOG_INFO,
-			"    Bit Depth:   %d-bit",
-			playerInfo.Audio.Output.Format & 0xFF);
-		Log::Print(Log::LOG_INFO, "    Channels:    %d", playerInfo.Audio.Output.Channels);
-	}
-
-	MediaBag* newMediaBag = new (std::nothrow) MediaBag;
-	newMediaBag->Source = Source;
-	newMediaBag->Player = Player;
-	newMediaBag->VideoTexture = VideoTexture;
-
-	resource->AsMedia = newMediaBag;
-	return (int)index;
-#else
-	return -1;
-#endif
-}
-
-ResourceType* Scene::GetSpriteResource(int index) {
-	if (index < 0 || index >= (int)Scene::SpriteList.size()) {
-		return NULL;
-	}
-
-	if (!Scene::SpriteList[index]) {
-		return NULL;
-	}
-
-	return Scene::SpriteList[index];
-}
-ResourceType* Scene::GetImageResource(int index) {
-	if (index < 0 || index >= (int)Scene::ImageList.size()) {
-		return NULL;
-	}
-
-	if (!Scene::ImageList[index]) {
-		return NULL;
-	}
-
-	return Scene::ImageList[index];
-}
-
 void Scene::DisposeInScope(Uint32 scope) {
-	// Models
-	for (size_t i = 0, i_sz = Scene::ModelList.size(); i < i_sz; i++) {
-		if (!Scene::ModelList[i]) {
+	// Resources
+	for (size_t i = 0; i < ResourceList.size();) {
+		ResourceType* resource = ResourceList[i];
+		if (resource->UnloadPolicy > scope) {
+			i++;
 			continue;
 		}
-		if (Scene::ModelList[i]->UnloadPolicy > scope) {
-			continue;
-		}
-
-		delete Scene::ModelList[i]->AsModel;
-		delete Scene::ModelList[i];
-		Scene::ModelList[i] = NULL;
+		Resource::Unload(resource);
+		Resource::Release(resource);
+		ResourceList.erase(ResourceList.begin() + i);
 	}
-	// Images
-	for (size_t i = 0, i_sz = Scene::ImageList.size(); i < i_sz; i++) {
-		if (!Scene::ImageList[i]) {
-			continue;
-		}
-		if (Scene::ImageList[i]->UnloadPolicy > scope) {
-			continue;
-		}
-		if (Scene::ImageList[i]->AsImage->References > 1) {
-			continue;
-		}
-
-		delete Scene::ImageList[i]->AsImage;
-		delete Scene::ImageList[i];
-		Scene::ImageList[i] = NULL;
-	}
-	// Sprites
-	for (size_t i = 0, i_sz = Scene::SpriteList.size(); i < i_sz; i++) {
-		if (!Scene::SpriteList[i]) {
-			continue;
-		}
-		if (Scene::SpriteList[i]->UnloadPolicy > scope) {
-			continue;
-		}
-
-		delete Scene::SpriteList[i]->AsSprite;
-		delete Scene::SpriteList[i];
-		Scene::SpriteList[i] = NULL;
-	}
-	// Sounds
-	for (size_t i = 0, i_sz = Scene::SoundList.size(); i < i_sz; i++) {
-		if (!Scene::SoundList[i]) {
-			continue;
-		}
-		if (Scene::SoundList[i]->UnloadPolicy > scope) {
-			continue;
-		}
-
-		AudioManager::AudioRemove(Scene::SoundList[i]->AsSound);
-
-		Scene::SoundList[i]->AsSound->Dispose();
-		delete Scene::SoundList[i]->AsSound;
-		delete Scene::SoundList[i];
-		Scene::SoundList[i] = NULL;
-	}
-	// Music
-	for (size_t i = 0, i_sz = Scene::MusicList.size(); i < i_sz; i++) {
-		if (!Scene::MusicList[i]) {
-			continue;
-		}
-		if (Scene::MusicList[i]->UnloadPolicy > scope) {
-			continue;
-		}
-
-		AudioManager::RemoveMusic(Scene::MusicList[i]->AsMusic);
-
-		Scene::MusicList[i]->AsMusic->Dispose();
-		delete Scene::MusicList[i]->AsMusic;
-		delete Scene::MusicList[i];
-		Scene::MusicList[i] = NULL;
-	}
-	// Media
-	AudioManager::Lock();
-	for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
-		if (!Scene::MediaList[i]) {
-			continue;
-		}
-		if (Scene::MediaList[i]->UnloadPolicy > scope) {
-			continue;
-		}
-
-#ifdef USING_FFMPEG
-		Scene::MediaList[i]->AsMedia->Player->Close();
-		Scene::MediaList[i]->AsMedia->Source->Close();
-#endif
-		delete Scene::MediaList[i]->AsMedia;
-
-		delete Scene::MediaList[i];
-		Scene::MediaList[i] = NULL;
-	}
-	AudioManager::Unlock();
 	// Textures
 	for (size_t i = 0, i_sz = Scene::TextureList.size(); i < i_sz; i++) {
 		if (!Scene::TextureList[i]) {
@@ -3024,12 +2633,7 @@ void Scene::Dispose() {
 
 	Scene::DisposeInScope(SCOPE_GAME);
 	// Dispose of all resources
-	Scene::ImageList.clear();
-	Scene::SpriteList.clear();
-	Scene::SoundList.clear();
-	Scene::MusicList.clear();
-	Scene::ModelList.clear();
-	Scene::MediaList.clear();
+	Scene::ResourceList.clear();
 	Scene::TextureList.clear();
 	Scene::AnimatorList.clear();
 

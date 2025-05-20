@@ -2065,10 +2065,10 @@
         <div style="margin-top: 8px; font-size: 14px;">Creates a new animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The index of the sprite.</li>
+        <li>sprite (Resource): The index of the sprite.</li>
         <li>animationID (Integer): Which animation to use.</li>
         <li>frameID (Integer): Which frame to use.</li>
-        <li>unloadPolicy (Integer): When to unload the animator.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the animator.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the index of the Animator.</div>
@@ -2089,7 +2089,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The index of the animator.</li>
-        <li>sprite (Integer): The index of the sprite.</li>
+        <li>sprite (Resource): The index of the sprite.</li>
         <li>animationID (Integer): The animator's changed animation ID.</li>
         <li>frameID (Integer): The animator's changed frame ID.</li>
         <li>forceApply (Boolean): Whether to force the animation to go back to the frame if the animation is the same as the current animation.</li>
@@ -2107,13 +2107,13 @@
         <p id="Reference_functions_Animator_GetSprite">
         <h2 style="margin-bottom: 8px;">Animator.GetSprite</h2>
         <code>Animator.GetSprite(animator)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the sprite index of an animator.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the sprite of an animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The index of the animator.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Integer value.</div>
+        <div style="font-size: 14px;">Returns a Resource.</div>
         </p>
         <p id="Reference_functions_Animator_GetCurrentAnimation">
         <h2 style="margin-bottom: 8px;">Animator.GetCurrentAnimation</h2>
@@ -2228,12 +2228,12 @@
         </p>
         <p id="Reference_functions_Animator_SetSprite">
         <h2 style="margin-bottom: 8px;">Animator.SetSprite</h2>
-        <code>Animator.SetSprite(animator, spriteID)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the sprite index of an animator.</div>
+        <code>Animator.SetSprite(animator, sprite)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the sprite of an animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
-        <li>spriteID (Integer): The sprite ID.</li>
+        <li>sprite (Resource): A sprite resource, or <code>null</code>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_SetCurrentAnimation">
@@ -3226,7 +3226,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): Index of the loaded sprite.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): Index of the animation entry.</li>
         <li>frame (Integer): Index of the frame in the animation entry.</li>
         <li>x (Number): X position of where to draw the sprite.</li>
@@ -3285,7 +3285,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws part of a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): Index of the loaded sprite.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): Index of the animation entry.</li>
         <li>frame (Integer): Index of the frame in the animation entry.</li>
         <li>x (Number): X position of where to draw the sprite.</li>
@@ -3309,7 +3309,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws an image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
+        <li>image (Resoure): An image resource.</li>
         <li>x (Number): X position of where to draw the image.</li>
         <li>y (Number): Y position of where to draw the image.</li>
         </ul>
@@ -3320,7 +3320,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws part of an image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
+        <li>image (Resource): An image resource.</li>
         <li>partX (Integer): X coordinate of part of image to draw.</li>
         <li>partY (Integer): Y coordinate of part of image to draw.</li>
         <li>partW (Integer): Width of part of image to draw.</li>
@@ -3335,7 +3335,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws an image, but sized.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
+        <li>image (Resource): An image resource.</li>
         <li>x (Number): X position of where to draw the image.</li>
         <li>y (Number): Y position of where to draw the image.</li>
         <li>width (Number): Width to draw the image.</li>
@@ -3348,7 +3348,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws part of an image, but sized.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
+        <li>image (Resource): An image resource.</li>
         <li>partX (Integer): X coordinate of part of image to draw.</li>
         <li>partY (Integer): Y coordinate of part of image to draw.</li>
         <li>partW (Integer): Width of part of image to draw.</li>
@@ -3541,7 +3541,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>outArray (Array): Array to output size values to.</li>
-        <li>sprite (Integer): Index of the loaded sprite to be used as text.</li>
+        <li>sprite (Resource): The sprite resource to be used as text.</li>
         <li>text (String): Text to measure.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -3554,7 +3554,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>outArray (Array): Array to output size values to.</li>
-        <li>sprite (Integer): Index of the loaded sprite to be used as text.</li>
+        <li>sprite (Resource): The sprite resource to be used as text.</li>
         <li>text (String): Text to measure.</li>
         <li>maxWidth (Number): Max width that a line can be.</li>
         <li>maxLines (Integer): Max number of lines to measure.</li>
@@ -3568,7 +3568,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws Extended UTF8 text using a sprite or font.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): Index of the loaded sprite to be used as text.</li>
+        <li>sprite (Resource): The sprite resource to be used as text.</li>
         <li>text (String): Text to draw.</li>
         <li>x (Number): X position of where to draw the text.</li>
         <li>y (Number): Y position of where to draw the text.</li>
@@ -3580,7 +3580,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws wrapped Extended UTF8 text using a sprite or font.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): Index of the loaded sprite to be used as text.</li>
+        <li>sprite (Resource): The sprite resource to be used as text.</li>
         <li>text (String): Text to draw.</li>
         <li>x (Number): X position of where to draw the tile.</li>
         <li>y (Number): Y position of where to draw the tile.</li>
@@ -3900,7 +3900,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws a textured triangle.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Image to draw triangle with.</li>
+        <li>image (Resource): Image to draw triangle with.</li>
         <li>x1 (Number): X position of the first vertex.</li>
         <li>y1 (Number): Y position of the first vertex.</li>
         <li>x2 (Number): X position of the second vertex.</li>
@@ -3924,7 +3924,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws a textured quad.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Image to draw quad with.</li>
+        <li>image (Resource): Image to draw quad with.</li>
         <li>x1 (Number): X position of the first vertex.</li>
         <li>y1 (Number): Y position of the first vertex.</li>
         <li>x2 (Number): X position of the second vertex.</li>
@@ -4173,11 +4173,11 @@
         </p>
         <p id="Reference_functions_Draw3D_Model">
         <h2 style="margin-bottom: 8px;">Draw3D.Model</h2>
-        <code>Draw3D.Model(modelIndex, animation, frame[, matrixModel, matrixNormal])</code>
+        <code>Draw3D.Model(model, animation, frame[, matrixModel, matrixNormal])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>modelIndex (Integer): Index of loaded model.</li>
+        <li>model (Resource): A model resource.</li>
         <li>animation (Integer): Animation of model to draw.</li>
         <li>frame (Decimal): Frame of model to draw.</li>
         <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
@@ -4186,11 +4186,11 @@
         </p>
         <p id="Reference_functions_Draw3D_ModelSkinned">
         <h2 style="margin-bottom: 8px;">Draw3D.ModelSkinned</h2>
-        <code>Draw3D.ModelSkinned(modelIndex, armatureIndex[, matrixModel, matrixNormal])</code>
+        <code>Draw3D.ModelSkinned(model, armatureIndex[, matrixModel, matrixNormal])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a skinned model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>modelIndex (Integer): Index of loaded model.</li>
+        <li>model (Resource): A model resource.</li>
         <li>armatureIndex (Integer): Armature index to skin the model.</li>
         <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
         <li>matrixNormal (Matrix): Matrix for transforming model normals.</li>
@@ -4198,11 +4198,11 @@
         </p>
         <p id="Reference_functions_Draw3D_ModelSimple">
         <h2 style="margin-bottom: 8px;">Draw3D.ModelSimple</h2>
-        <code>Draw3D.ModelSimple(modelIndex, animation, frame, x, y, scale, rx, ry, rz)</code>
+        <code>Draw3D.ModelSimple(model, animation, frame, x, y, scale, rx, ry, rz)</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a model without using matrices.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>modelIndex (Integer): Index of loaded model.</li>
+        <li>model (Resource): A model resource.</li>
         <li>animation (Integer): Animation of model to draw.</li>
         <li>frame (Integer): Frame of model to draw.</li>
         <li>x (Number): X position</li>
@@ -4267,7 +4267,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws a sprite in 3D space.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): Index of the loaded sprite.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): Index of the animation entry.</li>
         <li>frame (Integer): Index of the frame in the animation entry.</li>
         <li>x (Number): X position of where to draw the sprite.</li>
@@ -4287,7 +4287,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws part of a sprite in 3D space.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): Index of the loaded sprite.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): Index of the animation entry.</li>
         <li>frame (Integer): Index of the frame in the animation entry.</li>
         <li>x (Number): X position of where to draw the sprite.</li>
@@ -4311,7 +4311,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws an image in 3D space.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
+        <li>image (Resource): Index of the loaded image.</li>
         <li>x (Number): X position of where to draw the image.</li>
         <li>y (Number): Y position of where to draw the image.</li>
         <li>z (Number): Z position of where to draw the image.</li>
@@ -4325,7 +4325,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws part of an image in 3D space.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
+        <li>image (Resource): Index of the loaded image.</li>
         <li>x (Number): X position of where to draw the image.</li>
         <li>y (Number): Y position of where to draw the image.</li>
         <li>z (Number): Z position of where to draw the image.</li>
@@ -4359,7 +4359,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws a textured triangle in 3D space. The texture source should be an image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
+        <li>image (Resource): Index of the loaded image.</li>
         <li>x1 (Number): X position of the first vertex.</li>
         <li>y1 (Number): Y position of the first vertex.</li>
         <li>z1 (Number): Z position of the first vertex.</li>
@@ -4388,7 +4388,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws a textured quad in 3D space. The texture source should be an image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): Index of the loaded image.</li>
+        <li>image (Resource): Index of the loaded image.</li>
         <li>x1 (Number): X position of the first vertex.</li>
         <li>y1 (Number): Y position of the first vertex.</li>
         <li>z1 (Number): Z position of the first vertex.</li>
@@ -4423,7 +4423,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Draws a textured rectangle in 3D space. The texture source should be a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): Index of the loaded sprite.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): Index of the animation entry.</li>
         <li>frame (Integer): Index of the frame in the animation entry.</li>
         <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
@@ -4967,7 +4967,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the width of the specified image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): The image index to check.</li>
+        <li>image (Resource): An image resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
@@ -4978,7 +4978,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the height of the specified image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Integer): The image index to check.</li>
+        <li>image (Resource): An image resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
@@ -5997,7 +5997,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Returns how many vertices are in the model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index to check.</li>
+        <li>model (Resource): A model resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The vertex count.</div>
@@ -6008,7 +6008,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Returns how many animations exist in the model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index to check.</li>
+        <li>model (Resource): A model resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
@@ -6019,7 +6019,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the name of the model animation with the specified index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index to check.</li>
+        <li>model (Resource): A model resource.</li>
         <li>animation (Integer): Index of the animation.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -6031,7 +6031,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the index of the model animation with the specified name.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index to check.</li>
+        <li>model (Resource): A model resource.</li>
         <li>animationName (String): Name of the animation to find.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -6043,7 +6043,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Returns how many frames exist in the model. (Deprecated; use <code><a href="#Reference_functions_Model_GetAnimationLength">Model.GetAnimationLength</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index to check.</li>
+        <li>model (Resource): A model resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
@@ -6054,7 +6054,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Returns the length of the animation.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index to check.</li>
+        <li>model (Resource): A model resource.</li>
         <li>animation (Integer): The animation index to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -6066,7 +6066,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Checks to see if the model has materials.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index to check.</li>
+        <li>model (Resource): A model resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the model has materials, <code>false</code> if otherwise. (Deprecated; use <code><a href="#Reference_functions_Model_GetMaterialCount">Model.GetMaterialCount</a></code> instead.)</div>
@@ -6077,7 +6077,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Checks to see if the model has bones.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index to check.</li>
+        <li>model (Resource): A model resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the model has bones, <code>false</code> if otherwise.</div>
@@ -6088,7 +6088,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Returns the amount of materials in the model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index to check.</li>
+        <li>model (Resource): A model resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
@@ -6099,7 +6099,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets a material from a model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index to check.</li>
+        <li>model (Resource): A model resource.</li>
         <li>material (String or Integer): The material name or ID to get.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -6111,7 +6111,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Creates an armature from the model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index.</li>
+        <li>model (Resource): A model resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the index of the armature.</div>
@@ -6122,7 +6122,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Poses an armature.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index.</li>
+        <li>model (Resource): A model resource.</li>
         <li>armature (Integer): The armature index to pose.</li>
         <li>animation (Integer): Animation to pose the armature.</li>
         <li>frame (Decimal): Frame to pose the armature.</li>
@@ -6134,7 +6134,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Resets an armature to its default pose.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index.</li>
+        <li>model (Resource): A model resource.</li>
         <li>armature (Integer): The armature index to reset.</li>
         </ul>
         </p>
@@ -6144,7 +6144,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Deletes an armature from the model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Integer): The model index.</li>
+        <li>model (Resource): A model resource.</li>
         <li>armature (Integer): The armature index to delete.</li>
         </ul>
         </p>
@@ -6154,7 +6154,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Integer): The music index to play.</li>
+        <li>music (Resource): The audio resource to play as music.</li>
         <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the track once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default).</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default).</li>
@@ -6169,7 +6169,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Removes the music from the music stack, stopping it if currently playing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Integer): The music index to stop.</li>
+        <li>music (Resource): The music to stop.</li>
         </ul>
         </p>
         <p id="Reference_functions_Music_StopWithFadeOut">
@@ -6202,7 +6202,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Checks to see if the specified music is currently playing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Integer): The music index to play.</li>
+        <li>music (Resource): The music to play.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
@@ -6213,7 +6213,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the position of the current track playing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Integer): The music index to get the current position (in seconds) of.</li>
+        <li>music (Resource): The music to get the current position (in seconds) of.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
@@ -6232,10 +6232,10 @@
         <p id="Reference_functions_Music_GetLoopPoint">
         <h2 style="margin-bottom: 8px;">Music.GetLoopPoint</h2>
         <code>Music.GetLoopPoint(music)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of a music index, if it has one.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of an audio resource, if it has one.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Integer): The music index to get the loop point.</li>
+        <li>music (Resource): The audio resource to get the loop point of.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.</div>
@@ -6243,10 +6243,10 @@
         <p id="Reference_functions_Music_SetLoopPoint">
         <h2 style="margin-bottom: 8px;">Music.SetLoopPoint</h2>
         <code>Music.SetLoopPoint(music, loopPoint)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of a music index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of an audio resource.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Integer): The music index to set the loop point.</li>
+        <li>music (Resource): The audio resource to set the loop point of.</li>
         <li>loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.</li>
         </ul>
         </p>
@@ -6343,7 +6343,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>paletteIndex (Integer): Index of palette to load to.</li>
-        <li>image (Integer): Index of the loaded image.</li>
+        <li>image (Resource): An image resource.</li>
         </ul>
         </p>
         <p id="Reference_functions_Palette_GetColor">
@@ -6825,14 +6825,14 @@
         <p id="Reference_functions_Resources_LoadSprite">
         <h2 style="margin-bottom: 8px;">Resources.LoadSprite</h2>
         <code>Resources.LoadSprite(filename, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads a Sprite resource, returning its Sprite index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads a Sprite resource.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of the resource.</li>
-        <li>unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the index of the Resource.</div>
+        <div style="font-size: 14px;">Returns a resource.</div>
         </p>
         <p id="Reference_functions_Resources_LoadDynamicSprite">
         <h2 style="margin-bottom: 8px;">Resources.LoadDynamicSprite</h2>
@@ -6842,92 +6842,92 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>fallbackFolder (String): Folder to check if the sprite does not exist in the current Scene's resource folder.</li>
         <li>name (String): Name of the animation file within the resource folder.</li>
-        <li>unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the index of the Resource.</div>
+        <div style="font-size: 14px;">Returns a resource.</div>
         </p>
         <p id="Reference_functions_Resources_LoadImage">
         <h2 style="margin-bottom: 8px;">Resources.LoadImage</h2>
         <code>Resources.LoadImage(filename, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads an Image resource, returning its Image index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads an Image resource.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of the resource.</li>
-        <li>unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the index of the Resource.</div>
+        <div style="font-size: 14px;">Returns a resource.</div>
         </p>
         <p id="Reference_functions_Resources_LoadFont">
         <h2 style="margin-bottom: 8px;">Resources.LoadFont</h2>
         <code>Resources.LoadFont(filename, pixelSize, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads a Font resource, returning its Font index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads a Font resource.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>filename (String):</li>
-        <li>pixelSize (Number):</li>
-        <li>unloadPolicy (Integer):</li>
+        <li>filename (String): Filename of the resource.</li>
+        <li>pixelSize (Number): The size of the font.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
         </ul>
         </p>
         <p id="Reference_functions_Resources_LoadModel">
         <h2 style="margin-bottom: 8px;">Resources.LoadModel</h2>
         <code>Resources.LoadModel(filename, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads Model resource, returning its Model index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads Model resource.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of the resource.</li>
-        <li>unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the index of the Resource.</div>
+        <div style="font-size: 14px;">Returns a resource.</div>
         </p>
         <p id="Reference_functions_Resources_LoadMusic">
         <h2 style="margin-bottom: 8px;">Resources.LoadMusic</h2>
         <code>Resources.LoadMusic(filename, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads a Music resource, returning its Music index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads an Audio resource.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of the resource.</li>
-        <li>unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the index of the Resource.</div>
+        <div style="font-size: 14px;">Returns a resource.</div>
         </p>
         <p id="Reference_functions_Resources_LoadSound">
         <h2 style="margin-bottom: 8px;">Resources.LoadSound</h2>
         <code>Resources.LoadSound(filename, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads a Sound resource, returning its Sound index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads an Audio resource.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of the resource.</li>
-        <li>unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the index of the Resource.</div>
+        <div style="font-size: 14px;">Returns a resource.</div>
         </p>
         <p id="Reference_functions_Resources_LoadVideo">
         <h2 style="margin-bottom: 8px;">Resources.LoadVideo</h2>
         <code>Resources.LoadVideo(filename, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads a Video resource, returning its Video index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads a Video resource.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of the resource.</li>
-        <li>unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the index of the Resource.</div>
+        <div style="font-size: 14px;">Returns a resource.</div>
         </p>
         <p id="Reference_functions_Resources_FileExists">
         <h2 style="margin-bottom: 8px;">Resources.FileExists</h2>
         <code>Resources.FileExists(filename)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks to see if a Resource exists with the given filename.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if a resource with the given filename exists.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): The given filename.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns <code>true</code> if the Resource exists, <code>false</code> if otherwise.</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the resource exists, <code>false</code> if otherwise.</div>
         </p>
         <p id="Reference_functions_Resources_ReadAllText">
         <h2 style="margin-bottom: 8px;">Resources.ReadAllText</h2>
@@ -7612,12 +7612,12 @@
         </p>
         <p id="Reference_functions_Scene_SetTileAnimSequenceFromSprite">
         <h2 style="margin-bottom: 8px;">Scene.SetTileAnimSequenceFromSprite</h2>
-        <code>Scene.SetTileAnimSequenceFromSprite(tileID, spriteIndex, animationIndex)</code>
+        <code>Scene.SetTileAnimSequenceFromSprite(tileID, sprite, animationIndex)</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets an animation sequence for a tile ID.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>tileID (Integer): Which tile ID to add an animated sequence to.</li>
-        <li>spriteIndex (Integer): Sprite index. (<code>null</code> to disable)</li>
+        <li>sprite (Resource): A sprite resource. (<code>null</code> to disable)</li>
         <li>animationIndex (Integer): Animation index in sprite.</li>
         </ul>
         </p>
@@ -7970,7 +7970,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Creates a 3D scene.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>unloadPolicy (Integer): Whether or not to delete the 3D scene at the end of the current Scene, or the game end.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the 3D scene.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The index of the created 3D scene.</div>
@@ -8564,7 +8564,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Plays a sound either once or in a loop.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index to play.</li>
+        <li>sound (Resource): The audio resource to play as a sound.</li>
         <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the sound once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
@@ -8579,7 +8579,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Stops an actively playing sound.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index to stop.</li>
+        <li>sound (Resource): The sound to stop.</li>
         </ul>
         </p>
         <p id="Reference_functions_Sound_Pause">
@@ -8588,7 +8588,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Pauses an actively playing sound.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index to pause.</li>
+        <li>sound (Resource): The sound to pause.</li>
         </ul>
         </p>
         <p id="Reference_functions_Sound_Resume">
@@ -8597,7 +8597,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Unpauses a paused sound.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index to resume.</li>
+        <li>sound (Resource): The sound to resume.</li>
         </ul>
         </p>
         <p id="Reference_functions_Sound_StopAll">
@@ -8621,7 +8621,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Checks whether a sound is currently playing or not.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index.</li>
+        <li>sound (Resource): An audio resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
@@ -8632,7 +8632,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Plays a sound once or loops it, without interrupting channels playing the same sound.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index to play.</li>
+        <li>sound (Resource): The audio resource to play as a sound.</li>
         <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the sound once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
@@ -8648,7 +8648,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>channel (Integer): The channel index.</li>
-        <li>sound (Integer): The sound index to play.</li>
+        <li>sound (Resource): The audio resource to play as a sound.</li>
         <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the sound once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
@@ -8713,10 +8713,10 @@
         <p id="Reference_functions_Sound_GetLoopPoint">
         <h2 style="margin-bottom: 8px;">Sound.GetLoopPoint</h2>
         <code>Sound.GetLoopPoint(sound)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of a sound index, if it has one.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of an audio resource, if it has one.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index to get the loop point.</li>
+        <li>sound (Resource): The audio resource to get the loop point of.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.</div>
@@ -8724,10 +8724,10 @@
         <p id="Reference_functions_Sound_SetLoopPoint">
         <h2 style="margin-bottom: 8px;">Sound.SetLoopPoint</h2>
         <code>Sound.SetLoopPoint(sound, loopPoint)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of a sound index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of an audio resource.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Integer): The sound index to set the loop point.</li>
+        <li>sound (Resource): The audio resource to set the loop point of.</li>
         <li>loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.</li>
         </ul>
         </p>
@@ -8737,7 +8737,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the amount of animations in the sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the amount of animations in the sprite.</div>
@@ -8748,7 +8748,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the name of the specified animation index in the sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animationIndex (Integer): The animation index.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -8760,7 +8760,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the first animation in the sprite which matches the specified name.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>name (String): The animation name to search for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -8772,9 +8772,9 @@
         <div style="margin-top: 8px; font-size: 14px;">Checks if an animation and frame is valid within a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): The animation index to check.</li>
-        <li>frame (Integer): The sprite index to check.</li>
+        <li>frame (Integer): The frame index to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the frame is valid.</div>
@@ -8785,7 +8785,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the index of the frame that the specified animation will loop back to when it finishes.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -8797,7 +8797,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the amount of frames in the specified animation.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -8809,7 +8809,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the frame duration of the specified sprite frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
@@ -8822,7 +8822,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the animation speed of the specified animation.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -8834,7 +8834,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the frame width of the specified sprite frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
@@ -8847,7 +8847,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the frame height of the specified sprite frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
@@ -8860,7 +8860,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the frame ID of the specified sprite frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
@@ -8873,7 +8873,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the X offset of the specified sprite frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
@@ -8886,7 +8886,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the Y offset of the specified sprite frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
@@ -8899,7 +8899,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of an animation and frame of a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index to check.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>animationID (Integer): The animation index of the sprite to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         <li>hitboxID (Integer): The hitbox index of the animation to check. Defaults to <code>0</code>.</li>
@@ -8911,7 +8911,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Converts a sprite's colors to the ones in the specified palette index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         <li>paletteIndex (Integer): The palette index.</li>
         </ul>
         </p>
@@ -8921,7 +8921,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Removes a sprite's palette.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Integer): The sprite index.</li>
+        <li>sprite (Resource): A sprite resource.</li>
         </ul>
         </p>
         <p id="Reference_functions_Stream_FromResource">
@@ -9506,12 +9506,12 @@
         </p>
         <p id="Reference_functions_TileInfo_SetSpriteInfo">
         <h2 style="margin-bottom: 8px;">TileInfo.SetSpriteInfo</h2>
-        <code>TileInfo.SetSpriteInfo(tileID, spriteIndex, animationIndex, frameIndex)</code>
+        <code>TileInfo.SetSpriteInfo(tileID, sprite, animationIndex, frameIndex)</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets the sprite, animation, and frame to use for specified tile.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>tileID (Integer): ID of tile to check.</li>
-        <li>spriteIndex (Integer): Sprite index. (<code>-1</code> for default tile sprite)</li>
+        <li>sprite (Resource): A sprite resource. (<code>null</code> for default tile sprite)</li>
         <li>animationIndex (Integer): Animation index.</li>
         <li>frameIndex (Integer): Frame index. (<code>-1</code> for default tile frame)</li>
         </ul>
@@ -9652,7 +9652,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>numVertices (Integer): The initial capacity of this vertex buffer.</li>
-        <li>unloadPolicy (Integer): Whether or not to delete the vertex buffer at the end of the current Scene, or the game end.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the vertex buffer.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The index of the created vertex buffer.</div>
@@ -10646,9 +10646,9 @@
         </p>
         <p id="Reference_fields_instance_Sprite">
         <h3 style="margin-bottom: 8px;"><code>instance.Sprite</code></h2>
-        <div style="font-size: 14px;"><b>Type: </b>Integer (Resource)</div>
-        <div style="font-size: 14px;"><b>Default: </b><code>-1</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The sprite index of the entity.</div>
+        <div style="font-size: 14px;"><b>Type: </b>Resource</div>
+        <div style="font-size: 14px;"><b>Default: </b><code>null</code></div>
+        <div style="margin-top: 8px; font-size: 14px;">The sprite Resource of the entity.</div>
         </p>
         <p id="Reference_fields_instance_CurrentAnimation">
         <h3 style="margin-bottom: 8px;"><code>instance.CurrentAnimation</code></h2>
@@ -12395,7 +12395,7 @@
         </p>
         <p id="Reference_globals_LowPassFilter">
         <h3 style="margin-bottom: 8px;"><code>LowPassFilter</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The low pass filter of the audio.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The audio low pass filter value.</div>
         </p>
         <p id="Reference_globals_CurrentView">
         <h3 style="margin-bottom: 8px;"><code>CurrentView</code></h2>

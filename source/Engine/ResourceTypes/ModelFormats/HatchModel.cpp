@@ -4,6 +4,7 @@
 #include <Engine/Rendering/3D.h>
 #include <Engine/Rendering/Material.h>
 #include <Engine/Rendering/Mesh.h>
+#include <Engine/ResourceTypes/ResourceType.h>
 #include <Engine/ResourceTypes/ModelFormats/HatchModel.h>
 #include <Engine/Utilities/ColorUtils.h>
 
@@ -58,7 +59,7 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char* parentDirectory) 
 		material->TextureDiffuse = Material::LoadForModel(diffuseTexture, parentDirectory);
 		if (material->TextureDiffuse) {
 			material->TextureDiffuseName =
-				StringUtils::Duplicate(material->TextureDiffuse->Filename);
+				StringUtils::Duplicate(((ResourceType*)material->TextureDiffuse)->Filename);
 		}
 
 		Memory::Free(diffuseTexture);
@@ -77,7 +78,7 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char* parentDirectory) 
 			Material::LoadForModel(specularTexture, parentDirectory);
 		if (material->TextureSpecular) {
 			material->TextureSpecularName =
-				StringUtils::Duplicate(material->TextureSpecular->Filename);
+				StringUtils::Duplicate(((ResourceType*)material->TextureSpecular)->Filename);
 		}
 
 		Memory::Free(specularTexture);
@@ -95,7 +96,7 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char* parentDirectory) 
 		material->TextureAmbient = Material::LoadForModel(ambientTexture, parentDirectory);
 		if (material->TextureAmbient) {
 			material->TextureAmbientName =
-				StringUtils::Duplicate(material->TextureAmbient->Filename);
+				StringUtils::Duplicate(((ResourceType*)material->TextureAmbient)->Filename);
 		}
 
 		Memory::Free(ambientTexture);
@@ -114,7 +115,7 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char* parentDirectory) 
 			Material::LoadForModel(emissiveTexture, parentDirectory);
 		if (material->TextureEmissive) {
 			material->TextureEmissiveName =
-				StringUtils::Duplicate(material->TextureEmissive->Filename);
+				StringUtils::Duplicate(((ResourceType*)material->TextureEmissive)->Filename);
 		}
 
 		Memory::Free(emissiveTexture);

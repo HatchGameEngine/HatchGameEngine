@@ -88,9 +88,6 @@ void GarbageCollector::Collect() {
 		GrayObject(ScriptManager::ClassImplList[i]);
 	}
 
-	// Mark resources
-	CollectResources();
-
 	grayElapsed = Clock::GetTicks() - grayElapsed;
 
 	double blackenElapsed = Clock::GetTicks();
@@ -149,20 +146,17 @@ void GarbageCollector::Collect() {
 	GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
 }
 
-void GarbageCollector::CollectResources() {
+void GarbageCollector::GrayResource(void* ptr) {
+	ResourceType* resource = (ResourceType*)ptr;
+	if (!resource || !resource->Loaded) {
+		return;
+	}
+
 	// Mark model materials
-	for (size_t i = 0; i < Scene::ModelList.size(); i++) {
-		if (!Scene::ModelList[i]) {
-			continue;
-		}
-
-		IModel* model = Scene::ModelList[i]->AsModel;
-		if (!model) {
-			continue;
-		}
-
+	if (resource->Type == RESOURCE_MODEL) {
+		IModel* model = resource->AsModel;
 		for (size_t ii = 0; ii < model->Materials.size(); ii++) {
-			GrayObject(model->Materials[ii]->Object);
+			GrayObject(model->Materials[ii]->VMObject);
 		}
 	}
 }
@@ -280,6 +274,22 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		map->Values->ForAll([](Uint32, VMValue v) -> void {
 			GrayValue(v);
 		});
+		break;
+	}
+	case OBJ_MATERIAL: {
+		ObjMaterial* material = (ObjMaterial*)object;
+		if (material->MaterialPtr) {
+			Material* materialPtr = (Material*)material->MaterialPtr;
+			GrayResource(materialPtr->TextureDiffuse);
+			GrayResource(materialPtr->TextureSpecular);
+			GrayResource(materialPtr->TextureAmbient);
+			GrayResource(materialPtr->TextureEmissive);
+		}
+		break;
+	}
+	case OBJ_RESOURCE: {
+		ObjResource* resource = (ObjResource*)object;
+		GrayResource(resource->ResourcePtr);
 		break;
 	}
 	default:

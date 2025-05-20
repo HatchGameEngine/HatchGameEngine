@@ -1,7 +1,6 @@
 #ifndef ENGINE_RESOURCETYPES_IMODEL_H
 #define ENGINE_RESOURCETYPES_IMODEL_H
 
-#include <Engine/Graphics.h>
 #include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>

@@ -1,4 +1,5 @@
 #include <Engine/Rendering/FaceInfo.h>
+#include <Engine/ResourceTypes/ResourceType.h>
 
 void FaceInfo::SetMaterial(Material* material) {
 	if (!material) {
@@ -9,9 +10,9 @@ void FaceInfo::SetMaterial(Material* material) {
 	UseMaterial = true;
 	MaterialInfo.Texture = NULL;
 
-	Image* image = material->TextureDiffuse;
-	if (image && image->TexturePtr) {
-		MaterialInfo.Texture = (Texture*)image->TexturePtr;
+	ResourceType* resource = (ResourceType*)(material->TextureDiffuse);
+	if (resource && resource->Loaded && resource->AsImage->TexturePtr) {
+		MaterialInfo.Texture = (Texture*)resource->AsImage->TexturePtr;
 	}
 
 	for (unsigned i = 0; i < 4; i++) {

@@ -1,6 +1,7 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/FontFace.h>
+#include <Engine/IO/ResourceStream.h>
 
 #ifdef USING_FREETYPE
 #include <ft2build.h>
@@ -153,7 +154,6 @@ FT_Package* PackBoxes(FT_GlyphBox* boxes, int boxCount, int defWidth, int defHei
 
 ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, const char* filename) {
 #ifdef USING_FREETYPE
-
 	if (!ftInitialized) {
 		if (FT_Init_FreeType(&ftLib)) {
 			Log::Print(Log::LOG_ERROR, "FREETYPE: Could not init FreeType Library.");
@@ -304,4 +304,15 @@ ISprite* FontFace::SpriteFromFont(Stream* stream, int pixelSize, const char* fil
 
 #endif
 	return NULL;
+}
+
+ISprite* FontFace::SpriteFromFont(const char* filename, int pixelSize) {
+	ResourceStream* stream = ResourceStream::New(filename);
+	if (!stream) {
+		return nullptr;
+	}
+
+	ISprite* sprite = SpriteFromFont(stream, pixelSize, filename);
+	stream->Close();
+	return sprite;
 }
