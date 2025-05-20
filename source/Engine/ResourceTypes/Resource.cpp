@@ -48,6 +48,13 @@ void* Resource::GetVMObject(ResourceType* resource) {
 	return resource->VMObject;
 }
 
+void Resource::ReleaseVMObject(ResourceType* resource) {
+	if (resource->VMObject != nullptr) {
+		resource->VMObject = nullptr;
+		Resource::Release(resource);
+	}
+}
+
 void Resource::AddRef(ResourceType* resource) {
 	resource->RefCount++;
 }

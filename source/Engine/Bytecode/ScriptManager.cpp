@@ -15,6 +15,7 @@
 #include <Engine/Filesystem/File.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/FNV1A.h>
+#include <Engine/ResourceTypes/Resource.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 
@@ -635,7 +636,7 @@ void ScriptManager::FreeValue(VMValue value) {
 		case OBJ_RESOURCE: {
 			ObjResource* resource = AS_RESOURCE(value);
 
-			((ResourceType*)resource->ResourcePtr)->VMObject = nullptr;
+			Resource::ReleaseVMObject((ResourceType*)resource->ResourcePtr);
 
 			FREE_OBJ(resource, ObjResource);
 			break;
