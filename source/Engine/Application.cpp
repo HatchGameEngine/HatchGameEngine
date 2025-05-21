@@ -2288,7 +2288,9 @@ void Application::DevMenu_MainMenu() {
 	DevMenu_DrawMainMenu();
 	View view = Scene::Views[0];
 
-	DrawDevString(DevMenu.ModsChanged ? "Application must restart upon resume." : GameVersion, (int)view.Width / 2, 56, ALIGN_CENTER, true);
+	char versionDisplay[544];
+	snprintf(versionDisplay, sizeof(versionDisplay), "Engine version %s, game version %s", Application::EngineVersion, Application::GameVersion);
+	DrawDevString(DevMenu.ModsChanged ? "Application must restart upon resume." : versionDisplay, (int)view.Width / 2, 56, ALIGN_CENTER, true);
 
 	const char* tooltips[] = {
 		"Resume the game.", "Restart the current scene.", "Navigate to a certain scene.",
@@ -2474,7 +2476,6 @@ void Application::DevMenu_SettingsMenu() {
 	View view = Scene::Views[0];
 
 	DrawDevString("Change settings...", (int)view.Width / 2, 56, ALIGN_CENTER, true);
-	DrawRectangle((view.Width / 2.0) - 140.0, 82.0, 280.0, 113.0, 0x000000, 0xFF, true);
 
 	const char* labels[] = { "Video Settings", "Audio Settings", "Input Settings", "Debug Settings" };
 	for (size_t i = 0, y = 93; i < std::size(labels); i++, y += 15)
@@ -2665,86 +2666,32 @@ void Application::DevMenu_DebugMenu() {
 }
 
 void Application::DevMenu_ModsMenu() {
-	/***
 	DevMenu_DrawMainMenu();
-
 	View view = Scene::Views[0];
-
-	int selectedMod[] = { false, false, false, false, false, false, false, };
-
-	selectedMod[DevMenu.SubSelection - DevMenu.SubScrollPos] = true;
 
 	DrawDevString("Select Mod...", (int)view.Width / 2, 56, ALIGN_CENTER, true);
 
-	int y = 93;
-	ModInfo* mod = &ResourceManager::Mods[DevMenu.ListPos];
-	for (int i = 0; i < 7; i++) {
-		if (DevMenu.SubScrollPos + i < ResourceManager::Mods.size()) {
-			DrawDevString(ResourceManager::Mods[DevMenu.SubScrollPos + i].Name.c_str(), 160, y, ALIGN_LEFT, selectedMod[(int)i]);
-			y += 15;
+	// for (size_t i = 0, y = 93; i < 7 && DevMenu.SubScrollPos + i < ResourceManager::Mods.size(); i++, y += 15)
+		//DrawDevString(ResourceManager::Mods[DevMenu.SubScrollPos + i].Name.c_str(), 160, y, ALIGN_LEFT, DevMenu.SubSelection - DevMenu.SubScrollPos == i);
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		// DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + ResourceManager::Mods.size()) % ResourceManager::Mods.size();
+
+		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
+			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
+				DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
 		}
+		else {
+			DevMenu.SubScrollPos = DevMenu.SubSelection;
+		}
+
+		DevMenu.Timer = 8;
 	}
 
-	if (InputManager::GetActionID("Up") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
-			if (--DevMenu.SubSelection < 0)
-				DevMenu.SubSelection = ResourceManager::Mods.size() - 1;
-
-			if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-				if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-					DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
-			}
-			else {
-				DevMenu.SubScrollPos = DevMenu.SubSelection;
-			}
-
-			DevMenu.Timer = 1;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
-			if (!DevMenu.Timer && --DevMenu.SubSelection < 0)
-				DevMenu.SubSelection = ResourceManager::Mods.size() - 1;
-
-			DevMenu.Timer = (DevMenu.Timer + 1) & 7;
-
-			if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-				if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-					DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
-			}
-			else {
-				DevMenu.SubScrollPos = DevMenu.SubSelection;
-			}
-		}
-	}
-
-	if (InputManager::GetActionID("Down") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
-			if (++DevMenu.SubSelection >= ResourceManager::Mods.size())
-				DevMenu.SubSelection = 0;
-
-			if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-				if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-					DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
-			}
-			else {
-				DevMenu.SubScrollPos = DevMenu.SubSelection;
-			}
-
-			DevMenu.Timer = 1;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
-			if (!DevMenu.Timer && ++DevMenu.SubSelection >= ResourceManager::Mods.size())
-				DevMenu.SubSelection = 0;
-
-			DevMenu.Timer = (DevMenu.Timer + 1) & 7;
-
-			if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-				if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-					DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
-			}
-			else {
-				DevMenu.SubScrollPos = DevMenu.SubSelection;
-			}
-		}
-	}
-	*/
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
 }
