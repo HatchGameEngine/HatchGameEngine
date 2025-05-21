@@ -1943,9 +1943,8 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 	Scene::CurrentSceneInList = currentSceneNum;
 
 	XMLNode* sceneConfig = nullptr;
-	int startSceneNum = currentSceneNum; // Default to provided value
+	int startSceneNum = currentSceneNum;
 
-	// If keepScene is true, skip parsing SceneConfig.xml
 	if (!keepScene) {
 		if (ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
 			sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
@@ -1959,7 +1958,6 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 				if (Application::GameConfig) {
 					XMLNode* node = Application::GameConfig->children[0];
 					if (node) {
-						// Parse active category only if not overridden
 						if (!ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory)) {
 							char* text = ParseGameConfigText(node, "activeCategory");
 							if (text) {
@@ -1971,7 +1969,6 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 							}
 						}
 
-						// Parse starting scene only if not overridden
 						ParseGameConfigInt(node, "startSceneNum", startSceneNum);
 						char* text = ParseGameConfigText(node, "startscene");
 						if (text) {
@@ -1987,12 +1984,10 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 		}
 	}
 
-	// Check for scene entry validity (preserves TODO logic)
 	if (SceneInfo::IsEntryValid(Scene::ActiveCategory, startSceneNum)) {
 		Scene::CurrentSceneInList = startSceneNum;
 	}
 
-	// Ensure StartingScene is set correctly
 	if (StartingScene[0] == '\0' && SceneInfo::CategoryHasEntries(Scene::ActiveCategory)) {
 		Scene::SetInfoFromCurrentID();
 		StringUtils::Copy(StartingScene,
@@ -2137,20 +2132,19 @@ Uint16* Application::UTF8toUTF16(const char* utf8String) {
 	size_t len = strlen(utf8String);
 	Uint16* utf16String = (Uint16*)malloc((len + 1) * sizeof(Uint16));
 	size_t i = 0, j = 0;
+
 	while (utf8String[i]) {
-		if ((utf8String[i] & 0x80) == 0) { // 1-byte
+		if ((utf8String[i] & 0x80) == 0)
 			utf16String[j++] = utf8String[i];
-		}
-		else if ((utf8String[i] & 0xE0) == 0xC0) { // 2-byte
-			utf16String[j++] = ((utf8String[i] & 0x1F) << 6) | (utf8String[i + 1] & 0x3F);
-			i++;
-		}
-		else if ((utf8String[i] & 0xF0) == 0xE0) { // 3-byte
-			utf16String[j++] = ((utf8String[i] & 0x0F) << 12) | ((utf8String[i + 1] & 0x3F) << 6) | (utf8String[i + 2] & 0x3F);
-			i += 2;
+		else {
+			Uint16 val = 0;
+			if ((utf8String[i] & 0xE0) == 0xC0) { val = (utf8String[i] & 0x1F) << 6; i++; }
+			else if ((utf8String[i] & 0xF0) == 0xE0) { val = (utf8String[i] & 0x0F) << 12; i += 2; }
+			utf16String[j++] = val | (utf8String[i] & 0x3F);
 		}
 		i++;
 	}
+
 	utf16String[j] = 0;
 	return utf16String;
 }
@@ -2168,132 +2162,40 @@ void Application::DrawDevString(const char* string, int x, int y, int align, boo
 	y += Scene::Views[0].Y;
 
 	int sprite = isSelected ? Application::DeveloperLightFont : Application::DeveloperDarkFont;
+	if (sprite < 0 || !string || !Scene::SpriteList[sprite]) return;
 
-	if (sprite < 0) return;
-	ISprite* font = (!Scene::SpriteList[sprite]) ? NULL : Scene::SpriteList[sprite]->AsSprite;
-	if (!font || !string)
-		return;
-
+	ISprite* font = Scene::SpriteList[sprite]->AsSprite;
 	std::vector<int> spriteString;
 
-	// Decode UTF-8 string and populate spriteString
-	const char* ptr = string;
-	while (*ptr) {
-		// Decode UTF-8 character to Unicode
-		Uint32 unicodeChar = 0;
-		int bytes = 1;
-
-		if ((*ptr & 0x80) == 0) {
-			// 1-byte character (ASCII)
-			unicodeChar = *ptr;
-		}
-		else if ((*ptr & 0xE0) == 0xC0) {
-			// 2-byte character
-			unicodeChar = (*ptr & 0x1F) << 6;
-			unicodeChar |= (*(ptr + 1) & 0x3F);
-			bytes = 2;
-		}
-		else if ((*ptr & 0xF0) == 0xE0) {
-			// 3-byte character
-			unicodeChar = (*ptr & 0x0F) << 12;
-			unicodeChar |= (*(ptr + 1) & 0x3F) << 6;
-			unicodeChar |= (*(ptr + 2) & 0x3F);
-			bytes = 3;
-		}
-		else if ((*ptr & 0xF8) == 0xF0) {
-			// 4-byte character
-			unicodeChar = (*ptr & 0x07) << 18;
-			unicodeChar |= (*(ptr + 1) & 0x3F) << 12;
-			unicodeChar |= (*(ptr + 2) & 0x3F) << 6;
-			unicodeChar |= (*(ptr + 3) & 0x3F);
-			bytes = 4;
-		}
-
-		// Find the corresponding sprite frame for the Unicode character
-		bool found = false;
-		for (int f = 0; f < (int)font->Animations[0].Frames.size(); f++) {
-			if (font->Animations[0].Frames[f].Advance == (int)unicodeChar) {
-				spriteString.push_back(f);
-				found = true;
-				break;
-			}
-		}
-
-		// If not found, push -1
-		if (!found) {
-			spriteString.push_back(-1);
-		}
-
+	for (const char* ptr = string; *ptr;) {
+		Uint32 unicodeChar = *ptr;
+		int bytes = (*ptr & 0x80) == 0 ? 1 : ((*ptr & 0xE0) == 0xC0) ? 2 : ((*ptr & 0xF0) == 0xE0) ? 3 : 4;
+		unicodeChar = (unicodeChar & (0xFF >> bytes)) << ((bytes - 1) * 6);
+		for (int i = 1; i < bytes; ++i) unicodeChar |= (ptr[i] & 0x3F) << ((bytes - i - 1) * 6);
 		ptr += bytes;
+
+		auto it = std::find_if(font->Animations[0].Frames.begin(), font->Animations[0].Frames.end(),
+			[unicodeChar](const AnimFrame& frame) { return frame.Advance == (int)unicodeChar; });
+
+		spriteString.push_back(it != font->Animations[0].Frames.end() ? std::distance(font->Animations[0].Frames.begin(), it) : -1);
 	}
 
-	if (y >= 0 && y < (int)Scene::Views[0].Height + (int)Scene::Views[0].Y) {
-		int offset = 0;
-		switch (align) {
-		default:
-		case ALIGN_LEFT:
-			for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
-				if (spriteString[pos] != -1) {
-					AnimFrame frame = font->Animations[0].Frames[spriteString[pos]];
-					Graphics::DrawSprite(font, 0, spriteString[pos], x, y, false, false, 1.0f, 1.0f, 0.0f);
-					x += frame.Width + 1;
-				}
-				else {
-					x += 8;
-				}
-			}
-			break;
+	if (y < 0 || y >= (int)Scene::Views[0].Height + (int)Scene::Views[0].Y) return;
 
-		case ALIGN_CENTER: {
-			int totalWidth = 0;
-			for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
-				if (spriteString[pos] < font->Animations[0].Frames.size() && spriteString[pos] >= 0) {
-					totalWidth += font->Animations[0].Frames[spriteString[pos]].Width;
-				}
-				else {
-					totalWidth += 8;
-				}
-			}
-			x -= totalWidth / 2;
+	int totalWidth = 0;
+	for (int index : spriteString)
+		totalWidth += (index >= 0) ? font->Animations[0].Frames[index].Width : 8;
 
-			for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
-				if (spriteString[pos] < font->Animations[0].Frames.size() && spriteString[pos] >= 0) {
-					AnimFrame frame = font->Animations[0].Frames[spriteString[pos]];
-					Graphics::DrawSprite(font, 0, spriteString[pos], x, y, false, false, 1.0f, 1.0f, 0.0f);
-					x += frame.Width;
-				}
-				else {
-					x += 8;
-				}
-			}
-			break;
+	if (align == ALIGN_CENTER) x -= totalWidth / 2;
+	else if (align == ALIGN_RIGHT) x -= totalWidth;
+
+	for (int index : spriteString) {
+		if (index >= 0) {
+			const AnimFrame& frame = font->Animations[0].Frames[index];
+			Graphics::DrawSprite(font, 0, index, x, y, false, false, 1.0f, 1.0f, 0.0f);
+			x += frame.Width + (align == ALIGN_LEFT ? 1 : 0);
 		}
-
-		case ALIGN_RIGHT: {
-			int totalWidth = 0;
-			for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
-				if (spriteString[pos] < font->Animations[0].Frames.size() && spriteString[pos] >= 0) {
-					totalWidth += font->Animations[0].Frames[spriteString[pos]].Width;
-				}
-				else {
-					totalWidth += 8;
-				}
-			}
-			x -= totalWidth;
-
-			for (int pos = 0; pos < (int)spriteString.size(); ++pos) {
-				if (spriteString[pos] != -1) {
-					AnimFrame frame = font->Animations[0].Frames[spriteString[pos]];
-					Graphics::DrawSprite(font, 0, spriteString[pos], x, y, false, false, 1.0f, 1.0f, 0.0f);
-					x += frame.Width + 1;
-				}
-				else {
-					x += 8;
-				}
-			}
-			break;
-		}
-		}
+		else x += 8;
 	}
 }
 
@@ -2364,23 +2266,14 @@ void Application::DrawRectangle(float x, float y, float width, float height, int
 }
 
 void Application::DevMenu_DrawMainMenu() {
-	const int selectionCount = 6;
-	bool isSelected[] = { false, false, false, false, false, false };
 	const char* selectionNames[] = { "Resume", "Restart", "Stage Select", "Settings", "Mods", "Exit" };
-	isSelected[DevMenu.Selection] = true;
-
-	View view = Scene::Views[0];
 
 	DevMenu_DrawTitleBar();
+	DrawRectangle(0, 82, 128, 113, 0x000000, 0xFF, true);
+	DrawRectangle(144, 82, Scene::Views[0].Width - 144, 113, 0x000000, 0xFF, true);
 
-	DrawRectangle(0, 82.0, 128.0, 113.0, 0x000000, 0xFF, true);
-	DrawRectangle(144.0, 82.0, view.Width - 144.0, 113.0, 0x000000, 0xFF, true);
-
-	int y = 100;
-	for (int i = 0; i < selectionCount; ++i) {
-		DrawDevString(selectionNames[i], 16.0, y, ALIGN_LEFT, isSelected[i]);
-		y += 15;
-	}
+	for (size_t i = 0, y = 100; i < std::size(selectionNames); ++i, y += 15)
+		DrawDevString(selectionNames[i], 16, y, ALIGN_LEFT, DevMenu.Selection == i);
 }
 
 void Application::DevMenu_DrawTitleBar() {
@@ -2392,253 +2285,121 @@ void Application::DevMenu_DrawTitleBar() {
 }
 
 void Application::DevMenu_MainMenu() {
-	const int selectionCount = 6;
 	DevMenu_DrawMainMenu();
-
 	View view = Scene::Views[0];
 
-	if (DevMenu.ModsChanged)
-		DrawDevString("Application must restart upon resume.", (int)view.Width / 2, 56, ALIGN_CENTER, true);
-	else
-		DrawDevString(GameVersion, (int)view.Width / 2, 56, ALIGN_CENTER, true);
+	DrawDevString(DevMenu.ModsChanged ? "Application must restart upon resume." : GameVersion, (int)view.Width / 2, 56, ALIGN_CENTER, true);
 
-	const char* tooltip;
-	switch (DevMenu.Selection) {
-	case 0: tooltip = "Resume the game."; break;
-	case 1: tooltip = "Restart the current scene."; break;
-	case 2: tooltip = "Navigate to a certain scene."; break;
-	case 3: tooltip = "Adjust the application's settings."; break;
-	case 4: tooltip = "Change the mods to load."; break;
-	case 5: tooltip = "Close the appliation."; break;
+	const char* tooltips[] = {
+		"Resume the game.", "Restart the current scene.", "Navigate to a certain scene.",
+		"Adjust the application's settings.", "Change the mods to load.", "Close the application."
+	};
+	DrawDevString(tooltips[DevMenu.Selection], 160, 93, ALIGN_LEFT, true);
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		DevMenu.Selection = (DevMenu.Selection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)std::size(tooltips)) % (int)std::size(tooltips);
+		DevMenu.Timer = 8;
 	}
 
-	DrawDevString(tooltip, 160, 93, ALIGN_LEFT, true);
-
-	if (InputManager::GetActionID("Up") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
-			DevMenu.Selection--;
-			DevMenu.Timer = 1;
-
-			if (DevMenu.Selection < 0)
-				DevMenu.Selection += selectionCount;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
-			if (DevMenu.Timer) {
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-			}
-			else {
-				DevMenu.Selection--;
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-
-				if (DevMenu.Selection < 0)
-					DevMenu.Selection += selectionCount;
-			}
-		}
-	}
-
-	if (InputManager::GetActionID("Down") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
-			DevMenu.Selection++;
-			DevMenu.Timer = 1;
-
-			if (DevMenu.Selection >= selectionCount)
-				DevMenu.Selection -= selectionCount;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
-			if (DevMenu.Timer) {
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-			}
-			else {
-				DevMenu.Selection++;
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-
-				if (DevMenu.Selection >= selectionCount)
-					DevMenu.Selection -= selectionCount;
-			}
-		}
-	}
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
 
 	bool confirm = false;
-	if (InputManager::GetActionID("A") != -1) {
-		confirm = InputManager::IsActionPressedByAny(InputManager::GetActionID("A"));
-	}
-
-	if ((InputManager::GetActionID("Start") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("Start")) : false) || confirm) {
-		switch (DevMenu.Selection) {
-		case 0: CloseDevMenu(); break;
-
-		case 1:
-			CloseDevMenu();
-			// Reset FPS timer
-			BenchmarkFrameCount = 0;
-
-			InputManager::ControllerStopRumble();
-
-			Scene::Restart();
-			UpdateWindowTitle();
+	for (const char* action : { "A", "Start" }) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
 			break;
-
-		case 2:
-			DevMenu.State = Application::DevMenu_CategorySelectMenu;
-			DevMenu.SubSelection = 0;
-			DevMenu.Timer = 1;
-			break;
-
-		case 3:
-			DevMenu.State = Application::DevMenu_SettingsMenu;
-			DevMenu.SubSelection = 0;
-			DevMenu.Timer = 1;
-			break;
-
-		case 4:
-			DevMenu.State = Application::DevMenu_ModsMenu;
-			DevMenu.SubSelection = 0;
-			DevMenu.Timer = 1;
-			break;
-
-		case 5: Running = false; break;
 		}
 	}
-	else if ((InputManager::GetActionID("B") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("B")) : false)) {
+
+	if (confirm) {
+		switch (DevMenu.Selection) {
+			case 0: CloseDevMenu(); break;
+			case 1:
+				CloseDevMenu();
+				BenchmarkFrameCount = 0;
+				InputManager::ControllerStopRumble();
+				Scene::Restart();
+				UpdateWindowTitle();
+				break;
+			case 2: DevMenu.State = Application::DevMenu_CategorySelectMenu; break;
+			case 3: DevMenu.State = Application::DevMenu_SettingsMenu; break;
+			case 4: DevMenu.State = Application::DevMenu_ModsMenu; break;
+			case 5: Running = false; break;
+		}
+		DevMenu.SubSelection = 0;
+		DevMenu.Timer = 1;
+	}
+	else if (InputManager::IsActionPressedByAny(InputManager::GetActionID("B"))) {
 		CloseDevMenu();
 	}
 }
 
 void Application::DevMenu_CategorySelectMenu() {
-	const int selectionCount = 6;
 	DevMenu_DrawMainMenu();
 
 	if (!ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
 		DrawDevString("No SceneConfig is loaded!", 160, 93, ALIGN_LEFT, true);
-		if ((InputManager::GetActionID("B") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("B")) : false)) {
+
+		int actionB = InputManager::GetActionID("B");
+		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
 			DevMenu.State = DevMenu_MainMenu;
 			DevMenu.SubSelection = 0;
 			DevMenu.Timer = 1;
 		}
-
 		return;
 	}
 
-	std::vector<int> selectedCategory;
 	View view = Scene::Views[0];
-	for (size_t i = 0; i < SceneInfo::Categories.size(); i++) {
-		selectedCategory.push_back(false);
-	}
-	selectedCategory[DevMenu.SubSelection] = true;
-
 	DrawDevString("Select Scene Category...", (int)view.Width / 2, 56, ALIGN_CENTER, true);
 
-	int y = 93;
-	for (size_t i = 0; i < 7; i++) {
-		if (DevMenu.SubScrollPos + i < SceneInfo::Categories.size()) {
-			DrawDevString(SceneInfo::Categories[DevMenu.SubScrollPos + (int)i].Name, 160, y, ALIGN_LEFT, selectedCategory[(int)i]);
-			y += 15;
+	for (size_t i = 0, y = 93; i < 7 && DevMenu.SubScrollPos + i < SceneInfo::Categories.size(); i++, y += 15)
+		DrawDevString(SceneInfo::Categories[DevMenu.SubScrollPos + i].Name, 160, y, ALIGN_LEFT, (DevMenu.SubSelection - DevMenu.SubScrollPos) == i);
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)SceneInfo::Categories.size()) % (int)SceneInfo::Categories.size();
+
+		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
+			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
+				DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
 		}
+		else {
+			DevMenu.SubScrollPos = DevMenu.SubSelection;
+		}
+
+		DevMenu.Timer = 8;
 	}
 
-	if (InputManager::GetActionID("Up") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
-			if (--DevMenu.SubSelection < 0)
-				DevMenu.SubSelection += (int)SceneInfo::Categories.size();
-
-			if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-				if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-					DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
-			}
-			else {
-				DevMenu.SubScrollPos = DevMenu.SubSelection;
-			}
-
-			DevMenu.Timer = 1;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
-			if (DevMenu.Timer) {
-				DevMenu.Timer = (DevMenu.Timer + 1) & 7;
-
-				if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-					if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-						DevMenu.ScrollPos = DevMenu.SubSelection - 6;
-				}
-				else {
-					DevMenu.SubScrollPos = DevMenu.SubSelection;
-				}
-			}
-			else {
-				if (--DevMenu.SubSelection < 0)
-					DevMenu.SubSelection += (int)SceneInfo::Categories.size();
-
-				DevMenu.Timer = (DevMenu.Timer + 1) & 7;
-
-				if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-					if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-						DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
-				}
-				else {
-					DevMenu.SubScrollPos = DevMenu.SubSelection;
-				}
-			}
-		}
-	}
-
-	if (InputManager::GetActionID("Down") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
-			if (++DevMenu.SubSelection == (int)SceneInfo::Categories.size())
-				DevMenu.SubSelection = 0;
-
-			if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-				if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-					DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
-			}
-			else {
-				DevMenu.SubScrollPos = DevMenu.SubSelection;
-			}
-
-			DevMenu.Timer = 1;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
-			if (DevMenu.Timer) {
-				DevMenu.Timer = (DevMenu.Timer + 1) & 7;
-
-				if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-					if (DevMenu.SubSelection > DevMenu.SubScrollPos + 7)
-						DevMenu.ScrollPos = DevMenu.SubSelection - 7;
-				}
-				else {
-					DevMenu.SubScrollPos = DevMenu.SubSelection;
-				}
-			}
-			else {
-				if (++DevMenu.SubSelection == (int)SceneInfo::Categories.size())
-					DevMenu.SubSelection = 0;
-
-				DevMenu.Timer = (DevMenu.Timer + 1) & 7;
-
-				if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-					if (DevMenu.SubSelection > DevMenu.SubScrollPos + 7)
-						DevMenu.SubScrollPos = DevMenu.SubSelection - 7;
-				}
-				else {
-					DevMenu.SubScrollPos = DevMenu.SubSelection;
-				}
-			}
-		}
-	}
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
 
 	bool confirm = false;
-	if (InputManager::GetActionID("A") != -1) {
-		confirm = InputManager::IsActionPressedByAny(InputManager::GetActionID("A"));
-	}
-
-	if ((InputManager::GetActionID("Start") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("Start")) : false) || confirm) {
-		SceneListCategory* list = &SceneInfo::Categories[DevMenu.SubSelection];
-		if ((int)list->Entries.size()) {
-			DevMenu.State = DevMenu_SceneSelectMenu;
-			DevMenu.ListPos = DevMenu.SubSelection;
-			DevMenu.SubScrollPos = 0;
-			DevMenu.SubSelection = 0;
+	for (const char* action : { "A", "Start" }) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
+			break;
 		}
 	}
-	else if ((InputManager::GetActionID("B") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("B")) : false)) {
+
+	if (confirm) {
+		SceneListCategory* list = &SceneInfo::Categories[DevMenu.SubSelection];
+		if (!list->Entries.empty()) {
+			DevMenu.State = DevMenu_SceneSelectMenu;
+			DevMenu.ListPos = DevMenu.SubSelection;
+			DevMenu.SubScrollPos = DevMenu.SubSelection = 0;
+		}
+	}
+	else if (InputManager::IsActionPressedByAny(InputManager::GetActionID("B"))) {
 		DevMenu.State = DevMenu_MainMenu;
 		DevMenu.SubSelection = 0;
 		DevMenu.Timer = 1;
@@ -2647,93 +2408,47 @@ void Application::DevMenu_CategorySelectMenu() {
 
 void Application::DevMenu_SceneSelectMenu() {
 	DevMenu_DrawMainMenu();
-
 	View view = Scene::Views[0];
-	int selectedScene[] = { false, false, false, false, false, false, false, };
-
-	selectedScene[DevMenu.SubSelection - DevMenu.SubScrollPos] = true;
 
 	DrawDevString("Select Scene...", (int)view.Width / 2, 56, ALIGN_CENTER, true);
 
-	int y = 93;
 	SceneListCategory* list = &SceneInfo::Categories[DevMenu.ListPos];
-	for (int i = 0; i < 7; i++) {
-		if (DevMenu.SubScrollPos + i < list->Entries.size()) {
-			DrawDevString(list->Entries[DevMenu.SubScrollPos + i].Name, 160, y, ALIGN_LEFT, selectedScene[(int)i]);
-			y += 15;
+
+	for (size_t i = 0, y = 93; i < 7 && DevMenu.SubScrollPos + i < list->Entries.size(); i++, y += 15)
+		DrawDevString(list->Entries[DevMenu.SubScrollPos + i].Name, 160, y, ALIGN_LEFT, DevMenu.SubSelection - DevMenu.SubScrollPos == i);
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)list->Entries.size()) % (int)list->Entries.size();
+
+		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
+			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
+				DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
 		}
+		else {
+			DevMenu.SubScrollPos = DevMenu.SubSelection;
+		}
+
+		DevMenu.Timer = 8;
 	}
 
-	if (InputManager::GetActionID("Up") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
-			if (--DevMenu.SubSelection < 0)
-				DevMenu.SubSelection = list->Entries.size() - 1;
-
-			if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-				if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-					DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
-			}
-			else {
-				DevMenu.SubScrollPos = DevMenu.SubSelection;
-			}
-
-			DevMenu.Timer = 1;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
-			if (!DevMenu.Timer && --DevMenu.SubSelection < 0)
-				DevMenu.SubSelection = list->Entries.size() - 1;
-
-			DevMenu.Timer = (DevMenu.Timer + 1) & 7;
-
-			if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-				if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-					DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
-			}
-			else {
-				DevMenu.SubScrollPos = DevMenu.SubSelection;
-			}
-		}
-	}
-
-	if (InputManager::GetActionID("Down") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
-			if (++DevMenu.SubSelection >= list->Entries.size())
-				DevMenu.SubSelection = 0;
-
-			if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-				if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-					DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
-			}
-			else {
-				DevMenu.SubScrollPos = DevMenu.SubSelection;
-			}
-
-			DevMenu.Timer = 1;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
-			if (!DevMenu.Timer && ++DevMenu.SubSelection >= list->Entries.size())
-				DevMenu.SubSelection = 0;
-
-			DevMenu.Timer = (DevMenu.Timer + 1) & 7;
-
-			if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-				if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-					DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
-			}
-			else {
-				DevMenu.SubScrollPos = DevMenu.SubSelection;
-			}
-		}
-	}
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
 
 	bool confirm = false;
-	if (InputManager::GetActionID("A") != -1) {
-		confirm = InputManager::IsActionPressedByAny(InputManager::GetActionID("A"));
+	for (const char* action : { "A", "Start" }) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
+			break;
+		}
 	}
 
-	if ((InputManager::GetActionID("Start") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("Start")) : false) || confirm) {
+	if (confirm) {
 		CloseDevMenu();
-
 		AudioManager::AudioStopAll();
 		AudioManager::ClearMusic();
 
@@ -2741,103 +2456,58 @@ void Application::DevMenu_SceneSelectMenu() {
 		const char* sceneName = list->Entries[DevMenu.SubSelection].Name;
 
 		int categoryID = SceneInfo::GetCategoryID(categoryName);
-		if (categoryID < 0)
-			return;
 		int entryID = SceneInfo::GetEntryID(categoryName, sceneName);
-		if (entryID < 0)
-			return;
+		if (categoryID < 0 || entryID < 0) return;
 
 		Scene::SetCurrent(categoryName, sceneName);
-
-		std::string path = SceneInfo::GetFilename(categoryID, DevMenu.SubSelection);
-
-		StringUtils::Copy(Scene::NextScene, path.c_str(), sizeof(Scene::NextScene));
+		StringUtils::Copy(Scene::NextScene, SceneInfo::GetFilename(categoryID, DevMenu.SubSelection).c_str(), sizeof(Scene::NextScene));
 	}
-	else if ((InputManager::GetActionID("B") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("B")) : false)) {
+	else if (InputManager::IsActionPressedByAny(InputManager::GetActionID("B"))) {
 		DevMenu.State = DevMenu_CategorySelectMenu;
-		DevMenu.SubScrollPos = 0;
-		DevMenu.SubSelection = 0;
+		DevMenu.SubScrollPos = DevMenu.SubSelection = 0;
 		DevMenu.ListPos = 1;
 	}
 }
 
 void Application::DevMenu_SettingsMenu() {
 	DevMenu_DrawMainMenu();
-
-	int selectionCount = 4;
-	bool isSelected[] = { false, false, false, false };
-	const char* selectionNames[] = { "Video Settings", "Audio Settings", "Input Settings", "Debug Settings" };
-	isSelected[DevMenu.SubSelection] = true;
-
 	View view = Scene::Views[0];
 
 	DrawDevString("Change settings...", (int)view.Width / 2, 56, ALIGN_CENTER, true);
+	DrawRectangle((view.Width / 2.0) - 140.0, 82.0, 280.0, 113.0, 0x000000, 0xFF, true);
 
-	int y = 93;
-	for (int i = 0; i < 4; i++) {
-		DrawDevString(selectionNames[i], 160, y, ALIGN_LEFT, isSelected[i]);
-		y += 15;
+	const char* labels[] = { "Video Settings", "Audio Settings", "Input Settings", "Debug Settings" };
+	for (size_t i = 0, y = 93; i < std::size(labels); i++, y += 15)
+		DrawDevString(labels[i], 160, y, ALIGN_LEFT, DevMenu.SubSelection == i);
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)std::size(labels)) % (int)std::size(labels);
+		DevMenu.Timer = 8;
 	}
 
-	if (InputManager::GetActionID("Up") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
-			DevMenu.SubSelection--;
-			DevMenu.Timer = 1;
-
-			if (DevMenu.SubSelection < 0)
-				DevMenu.SubSelection += selectionCount;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
-			if (DevMenu.Timer) {
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-			}
-			else {
-				DevMenu.SubSelection--;
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-
-				if (DevMenu.SubSelection < 0)
-					DevMenu.SubSelection += selectionCount;
-			}
-		}
-	}
-
-	if (InputManager::GetActionID("Down") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
-			DevMenu.SubSelection++;
-			DevMenu.Timer = 1;
-
-			if (DevMenu.SubSelection >= selectionCount)
-				DevMenu.SubSelection -= selectionCount;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
-			if (DevMenu.Timer) {
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-			}
-			else {
-				DevMenu.SubSelection++;
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-
-				if (DevMenu.SubSelection >= selectionCount)
-					DevMenu.SubSelection -= selectionCount;
-			}
-		}
-	}
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
 
 	bool confirm = false;
-	if (InputManager::GetActionID("A") != -1) {
-		confirm = InputManager::IsActionPressedByAny(InputManager::GetActionID("A"));
+	for (const char* action : { "A", "Start" }) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
+			break;
+		}
 	}
 
-	if ((InputManager::GetActionID("Start") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("Start")) : false) || confirm) {
-		switch (DevMenu.SubSelection) {
-		case 0: DevMenu.State = DevMenu_VideoMenu; break;
-		case 1: DevMenu.State = DevMenu_AudioMenu; break;
-		case 2: DevMenu.State = DevMenu_InputMenu; break;
-		case 3: DevMenu.State = DevMenu_DebugMenu; break;
-		}
+	if (confirm) {
+		DevMenu.State = (DevMenu.SubSelection == 0) ? DevMenu_VideoMenu :
+			(DevMenu.SubSelection == 1) ? DevMenu_AudioMenu :
+			(DevMenu.SubSelection == 2) ? DevMenu_InputMenu : DevMenu_DebugMenu;
 		DevMenu.SubSelection = 0;
 	}
-	else if ((InputManager::GetActionID("B") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("B")) : false)) {
+	else if (InputManager::IsActionPressedByAny(InputManager::GetActionID("B"))) {
 		DevMenu.State = DevMenu_MainMenu;
 		DevMenu.SubSelection = 0;
 	}
@@ -2845,124 +2515,55 @@ void Application::DevMenu_SettingsMenu() {
 
 void Application::DevMenu_VideoMenu() {
 	DevMenu_DrawTitleBar();
-
-	int selectionCount = 5;
-
 	View view = Scene::Views[0];
 
 	DrawDevString("Change video settings...", (int)view.Width / 2, 56, ALIGN_CENTER, true);
-
 	DrawRectangle((view.Width / 2.0) - 140.0, 82.0, 280.0, 113.0, 0x000000, 0xFF, true);
 
-	DrawDevString("Window Scale", ((int)view.Width / 2) - 124, 105, ALIGN_LEFT, DevMenu.SubSelection == 0);
+	const char* labels[] = { "Window Scale", "Fullscreen", "Borderless" };
+	for (size_t i = 0; i < std::size(labels); i++)
+		DrawDevString(labels[i], ((int)view.Width / 2) - 124, 105 + (i * 16), ALIGN_LEFT, DevMenu.SubSelection == i);
+
+	DrawDevString("Confirm", (int)view.Width / 2, 161, ALIGN_CENTER, DevMenu.SubSelection == std::size(labels));
+	DrawDevString("Cancel", (int)view.Width / 2, 177, ALIGN_CENTER, DevMenu.SubSelection == std::size(labels) + 1);
+
 	char scale[2];
 	snprintf(scale, sizeof scale, "%d", DevMenu.WindowScale);
 	DrawDevString(scale, ((int)view.Width / 2) + 80, 105, ALIGN_CENTER, DevMenu.SubSelection == 0);
-
-	DrawDevString("Fullscreen", ((int)view.Width / 2) - 124, 121, ALIGN_LEFT, DevMenu.SubSelection == 1);
 	DrawDevString(DevMenu.Fullscreen ? "YES" : "NO", ((int)view.Width / 2) + 80, 121, ALIGN_CENTER, DevMenu.SubSelection == 1);
-
-	DrawDevString("Borderless", ((int)view.Width / 2) - 124, 137, ALIGN_LEFT, DevMenu.SubSelection == 2);
 	DrawDevString(DevMenu.WindowBorderless ? "YES" : "NO", ((int)view.Width / 2) + 80, 137, ALIGN_CENTER, DevMenu.SubSelection == 2);
 
-	DrawDevString("Confirm", (int)view.Width / 2, 161, ALIGN_CENTER, DevMenu.SubSelection == 3);
-	DrawDevString("Cancel", (int)view.Width / 2, 177, ALIGN_CENTER, DevMenu.SubSelection == 4);
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
 
-	if (InputManager::GetActionID("Up") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
-			DevMenu.SubSelection--;
-			DevMenu.Timer = 1;
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
 
-			if (DevMenu.SubSelection < 0)
-				DevMenu.SubSelection += selectionCount;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
-			if (DevMenu.Timer) {
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-			}
-			else {
-				DevMenu.SubSelection--;
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-
-				if (DevMenu.SubSelection < 0)
-					DevMenu.SubSelection += selectionCount;
-			}
-		}
+		DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)std::size(labels) + 2) % ((int)std::size(labels) + 2);
+		DevMenu.Timer = 8;
 	}
 
-	if (InputManager::GetActionID("Down") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
-			DevMenu.SubSelection++;
-			DevMenu.Timer = 1;
-
-			if (DevMenu.SubSelection >= selectionCount)
-				DevMenu.SubSelection -= selectionCount;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
-			if (DevMenu.Timer) {
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-			}
-			else {
-				DevMenu.SubSelection++;
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-
-				if (DevMenu.SubSelection >= selectionCount)
-					DevMenu.SubSelection -= selectionCount;
-			}
-		}
-	}
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
 
 	switch (DevMenu.SubSelection) {
 		case 0: { // Scale
-			for (const char* direction : { "Left", "Right" }) {
-				int actionID = InputManager::GetActionID(direction);
-				if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
-					DevMenu.WindowScale += (direction[0] == 'L') ? -1 : 1;
-					DevMenu.WindowScale = (DevMenu.WindowScale + 4) % 5 + 1;
-				}
+			const char* dir = InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) ? "Left" :
+				InputManager::IsActionPressedByAny(InputManager::GetActionID("Right")) ? "Right" : nullptr;
+			if (dir) {
+				DevMenu.WindowScale += (dir[0] == 'L') ? -1 : 1;
+				DevMenu.WindowScale = (DevMenu.WindowScale + 4) % 5 + 1;
 			}
 			break;
 		}
-		case 1: { // Fullscreen
-			if (InputManager::GetActionID("Left") != -1 || InputManager::GetActionID("Right") != -1) {
-				if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) ||
-					InputManager::IsActionPressedByAny(InputManager::GetActionID("Right"))) {
-					DevMenu.Fullscreen ^= 1;
-				}
+		case 1: // Fullscreen
+		case 2: { // Borderless 
+			if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) ||
+				InputManager::IsActionPressedByAny(InputManager::GetActionID("Right"))) {
+				DevMenu.SubSelection == 1 ? DevMenu.Fullscreen ^= 1 : DevMenu.WindowBorderless ^= 1;
 			}
 			break;
 		}
-		case 2: { // Borderless
-			if (InputManager::GetActionID("Left") != -1 || InputManager::GetActionID("Right") != -1) {
-				if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) ||
-					InputManager::IsActionPressedByAny(InputManager::GetActionID("Right"))) {
-					DevMenu.WindowBorderless ^= 1;
-				}
-			}
-			break;
-		}
-		case 3: { // Confirm
-			bool confirm = false;
-			for (const char* action : { "A", "Start" }) {
-				int actionID = InputManager::GetActionID(action);
-				if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
-					confirm = true;
-					break;
-				}
-			}
-			if (confirm) {
-				Application::SetWindowFullscreen(DevMenu.Fullscreen);
-				Application::SetWindowBorderless(DevMenu.WindowBorderless);
-				if (Application::IsWindowResizeable()) {
-					Application::WindowScale = DevMenu.WindowScale;
-					Application::Settings->SetInteger("display", "scale", Application::WindowScale);
-					Application::SetWindowSize(Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale);
-				}
-				DevMenu.State = DevMenu_SettingsMenu;
-				DevMenu.SubSelection = 0;
-			}
-			break;
-		}
+		case 3: // Confirm
 		case 4: { // Cancel
 			bool confirm = false;
 			for (const char* action : { "A", "Start" }) {
@@ -2972,10 +2573,22 @@ void Application::DevMenu_VideoMenu() {
 					break;
 				}
 			}
+
 			if (confirm) {
-				DevMenu.WindowScale = Application::WindowScale;
-				DevMenu.Fullscreen = Application::WindowFullscreen;
-				DevMenu.WindowBorderless = Application::WindowBorderless;
+				if (DevMenu.SubSelection == 3) { // Confirm
+					Application::SetWindowFullscreen(DevMenu.Fullscreen);
+					Application::SetWindowBorderless(DevMenu.WindowBorderless);
+					if (Application::IsWindowResizeable()) {
+						Application::WindowScale = DevMenu.WindowScale;
+						Application::Settings->SetInteger("display", "scale", Application::WindowScale);
+						Application::SetWindowSize(Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale);
+					}
+				}
+				else { // Cancel
+					DevMenu.WindowScale = Application::WindowScale;
+					DevMenu.Fullscreen = Application::WindowFullscreen;
+					DevMenu.WindowBorderless = Application::WindowBorderless;
+				}
 				DevMenu.State = DevMenu_SettingsMenu;
 				DevMenu.SubSelection = 0;
 			}
@@ -2986,126 +2599,57 @@ void Application::DevMenu_VideoMenu() {
 
 void Application::DevMenu_AudioMenu() {
 	DevMenu_DrawTitleBar();
-
-	int selectionCount = 4;
-
 	View view = Scene::Views[0];
 
 	DrawDevString("Change audio settings...", (int)view.Width / 2, 56, ALIGN_CENTER, true);
-
 	DrawRectangle((view.Width / 2.0) - 140.0, 82.0, 280.0, 113.0, 0x000000, 0xFF, true);
 
-	DrawDevString("Master Volume", ((int)view.Width / 2) - 124, 105, ALIGN_LEFT, DevMenu.SubSelection == 0);
-	DrawDevString("Music Volume", ((int)view.Width / 2) - 124, 121, ALIGN_LEFT, DevMenu.SubSelection == 1);
-	DrawDevString("Sound Volume", ((int)view.Width / 2) - 124, 137, ALIGN_LEFT, DevMenu.SubSelection == 2);
-	DrawDevString("Confirm", (int)view.Width / 2, 169, ALIGN_CENTER, DevMenu.SubSelection == 3);
+	const char* labels[] = { "Master Volume", "Music Volume", "Sound Volume" };
+	for (size_t i = 0; i < std::size(labels); i++)
+		DrawDevString(labels[i], ((int)view.Width / 2) - 124, 105 + (i * 16), ALIGN_LEFT, DevMenu.SubSelection == i);
 
-	float y = 98.0;
-	for (int i = 0; i < 3; i++) {
+	DrawDevString("Confirm", (int)view.Width / 2, 169, ALIGN_CENTER, DevMenu.SubSelection == std::size(labels));
+
+	for (size_t i = 0, y = 98; i < std::size(labels); i++, y += 16) {
 		DrawRectangle((view.Width / 2.0) + 22.0, y, 104.0, 15.0, 0x303030, 0xFF, true);
-		y += 16.0;
+		DrawRectangle((view.Width / 2.0) + 24.0, y + 2, (float)((int*)&Application::MasterVolume)[i], 11.0, 0xFFFFFF, 0xFF, true);
 	}
 
-	DrawRectangle((view.Width / 2.0) + 24.0, 100.0, (float)Application::MasterVolume, 11.0, 0xFFFFFF, 0xFF, true);
-	DrawRectangle((view.Width / 2.0) + 24.0, 116.0, (float)Application::MusicVolume, 11.0, 0xFFFFFF, 0xFF, true);
-	DrawRectangle((view.Width / 2.0) + 24.0, 132.0, (float)Application::SoundVolume, 11.0, 0xFFFFFF, 0xFF, true);
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
 
-	if (InputManager::GetActionID("Up") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Up"))) {
-			DevMenu.SubSelection--;
-			DevMenu.Timer = 1;
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
 
-			if (DevMenu.SubSelection < 0)
-				DevMenu.SubSelection += selectionCount;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Up"))) {
-			if (DevMenu.Timer) {
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-			}
-			else {
-				DevMenu.SubSelection--;
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-
-				if (DevMenu.SubSelection < 0)
-					DevMenu.SubSelection += selectionCount;
-			}
-		}
+		DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)std::size(labels) + 1) % ((int)std::size(labels) + 1);
+		DevMenu.Timer = 8;
 	}
 
-	if (InputManager::GetActionID("Down") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Down"))) {
-			DevMenu.SubSelection++;
-			DevMenu.Timer = 1;
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
 
-			if (DevMenu.SubSelection >= selectionCount)
-				DevMenu.SubSelection -= selectionCount;
-		}
-		else if (InputManager::IsActionHeldByAny(InputManager::GetActionID("Down"))) {
-			if (DevMenu.Timer) {
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-			}
-			else {
-				DevMenu.SubSelection++;
-				DevMenu.Timer = ++DevMenu.Timer & 7;
-
-				if (DevMenu.SubSelection >= selectionCount)
-					DevMenu.SubSelection -= selectionCount;
-			}
-		}
-	}
-
-	if (InputManager::GetActionID("Left") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) || InputManager::IsActionHeldByAny(InputManager::GetActionID("Left"))) {
-			switch (DevMenu.SubSelection) {
-			case 0:
-				if (Application::MasterVolume > 0) Application::MasterVolume--;
-				Application::SetMasterVolume(Application::MasterVolume);
-				Application::Settings->SetInteger("audio", "masterVolume", Application::MasterVolume);
-				break;
-			case 1:
-				if (Application::MusicVolume > 0) Application::MusicVolume--;
-				Application::SetMusicVolume(Application::MusicVolume);
-				Application::Settings->SetInteger("audio", "musicVolume", Application::MusicVolume);
-				break;
-			case 2:
-				if (Application::SoundVolume > 0) Application::SoundVolume--;
-				Application::SetSoundVolume(Application::SoundVolume);
-				Application::Settings->SetInteger("audio", "soundVolume", Application::SoundVolume);
-				break;
-			default: break;
-			}
-		}
-	}
-
-	if (InputManager::GetActionID("Right") != -1) {
-		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Right")) || InputManager::IsActionHeldByAny(InputManager::GetActionID("Right"))) {
-			switch (DevMenu.SubSelection) {
-			case 0:
-				if (Application::MasterVolume < 100) Application::MasterVolume++;
-				Application::SetMasterVolume(Application::MasterVolume);
-				Application::Settings->SetInteger("audio", "masterVolume", Application::MasterVolume);
-				break;
-			case 1:
-				if (Application::MusicVolume < 100) Application::MusicVolume++;
-				Application::SetMusicVolume(Application::MusicVolume);
-				Application::Settings->SetInteger("audio", "musicVolume", Application::MusicVolume);
-				break;
-			case 2:
-				if (Application::SoundVolume < 100) Application::SoundVolume++;
-				Application::SetSoundVolume(Application::SoundVolume);
-				Application::Settings->SetInteger("audio", "soundVolume", Application::SoundVolume);
-				break;
-			default: break;
+	const char* volumeDirs[] = { "Left", "Right" };
+	for (const char* dir : volumeDirs) {
+		int actionID = InputManager::GetActionID(dir);
+		if (actionID != -1 && (InputManager::IsActionPressedByAny(actionID) || (InputManager::IsActionHeldByAny(actionID) && DevMenu.Timer == 0))) {
+			if (DevMenu.SubSelection < std::size(labels)) {
+				int& volume = ((int*)&Application::MasterVolume)[DevMenu.SubSelection];
+				volume = std::clamp(volume + (dir[0] == 'L' ? -1 : 1), 0, 100);
+				DevMenu.Timer = 8;
+				Application::Settings->SetInteger("audio", labels[DevMenu.SubSelection], volume);
 			}
 		}
 	}
 
 	bool confirm = false;
-	if (InputManager::GetActionID("A") != -1) {
-		confirm = InputManager::IsActionPressedByAny(InputManager::GetActionID("A"));
+	for (const char* action : { "A", "Start" }) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
+			break;
+		}
 	}
 
-	if (DevMenu.SubSelection == 3 && ((InputManager::GetActionID("Start") != -1 ? InputManager::IsActionPressedByAny(InputManager::GetActionID("Start")) : false) || confirm)) {
+	if (DevMenu.SubSelection == std::size(labels) && confirm) {
 		DevMenu.State = DevMenu_SettingsMenu;
 		DevMenu.SubSelection = 1;
 		DevMenu.Timer = 1;
