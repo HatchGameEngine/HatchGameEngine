@@ -105,8 +105,7 @@ public:
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
 
-	static ViewableVariable ViewableVariableList[64];
-	static int ViewableVariableCount;
+	static vector<ViewableVariable*> ViewableVariableList;
 	static DeveloperMenu DevMenu;
 	static int DeveloperDarkFont;
 	static int DeveloperLightFont;

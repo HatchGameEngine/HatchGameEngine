@@ -106,8 +106,7 @@ int Application::MusicVolume = 100;
 int Application::SoundVolume = 100;
 
 bool Application::DevMenuActivated = false;
-int Application::ViewableVariableCount = 0;
-ViewableVariable Application::ViewableVariableList[64];
+vector<ViewableVariable*> Application::ViewableVariableList;
 DeveloperMenu Application::DevMenu;
 int Application::DeveloperDarkFont = -1;
 int Application::DeveloperLightFont = -1;
@@ -1508,6 +1507,10 @@ void Application::StartGame(const char* startingScene) {
 
 	// Start scene
 	Scene::Restart();
+
+	Application::AddViewableVariable("Tile Collisions", &Scene::ShowTileCollisionFlag, VIEWVAR_UINT8, 0, 2);
+	Application::AddViewableVariable("Update Regions", &Scene::ShowObjectRegions, VIEWVAR_BOOL, false, true);
+	Application::AddViewableVariable("Filter", &Scene::Filter, VIEWVAR_UINT8, 0, 256);
 }
 void Application::Run(int argc, char* args[]) {
 	Application::Init(argc, args);
@@ -1945,39 +1948,37 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 	XMLNode* sceneConfig = nullptr;
 	int startSceneNum = currentSceneNum;
 
-	if (!keepScene) {
-		if (ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
-			sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
-		}
-		else if (ResourceManager::ResourceExists("SceneConfig.xml")) {
-			sceneConfig = XMLParser::ParseFromResource("SceneConfig.xml");
-		}
+	if (ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
+		sceneConfig = XMLParser::ParseFromResource("Game/SceneConfig.xml");
+	}
+	else if (ResourceManager::ResourceExists("SceneConfig.xml")) {
+		sceneConfig = XMLParser::ParseFromResource("SceneConfig.xml");
+	}
 
-		if (sceneConfig) {
-			if (SceneInfo::Load(sceneConfig->children[0])) {
-				if (Application::GameConfig) {
-					XMLNode* node = Application::GameConfig->children[0];
-					if (node) {
-						if (!ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory)) {
-							char* text = ParseGameConfigText(node, "activeCategory");
-							if (text) {
-								int id = SceneInfo::GetCategoryID(text);
-								if (id >= 0) {
-									Scene::ActiveCategory = id;
-								}
-								Memory::Free(text);
-							}
-						}
-
-						ParseGameConfigInt(node, "startSceneNum", startSceneNum);
-						char* text = ParseGameConfigText(node, "startscene");
+	if (sceneConfig) {
+		if (SceneInfo::Load(sceneConfig->children[0]) && keepScene) {
+			if (Application::GameConfig) {
+				XMLNode* node = Application::GameConfig->children[0];
+				if (node) {
+					if (!ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory)) {
+						char* text = ParseGameConfigText(node, "activeCategory");
 						if (text) {
-							int id = SceneInfo::GetEntryID(Scene::ActiveCategory, text);
+							int id = SceneInfo::GetCategoryID(text);
 							if (id >= 0) {
-								startSceneNum = id;
+								Scene::ActiveCategory = id;
 							}
 							Memory::Free(text);
 						}
+					}
+
+					ParseGameConfigInt(node, "startSceneNum", startSceneNum);
+					char* text = ParseGameConfigText(node, "startscene");
+					if (text) {
+						int id = SceneInfo::GetEntryID(Scene::ActiveCategory, text);
+						if (id >= 0) {
+							startSceneNum = id;
+						}
+						Memory::Free(text);
 					}
 				}
 			}
@@ -2108,24 +2109,43 @@ int Application::HandleAppEvents(void* data, SDL_Event* event) {
 }
 
 void Application::AddViewableVariable(const char* name, void* value, int type, int min, int max) {
-	if (Application::ViewableVariableCount < VIEWABLEVARIABLE_COUNT) {
-		ViewableVariable* viewVar = &Application::ViewableVariableList[Application::ViewableVariableCount++];
+	if (Application::ViewableVariableList.size() >= VIEWABLEVARIABLE_COUNT)
+		return;
 
-		StringUtils::Copy(viewVar->Name, name, 0x10);
-		viewVar->Value = value;
+	auto* viewVar = new ViewableVariable();
 
-		// TODO: Finish this for VMValue type
-		switch (type) {
+	StringUtils::Copy(viewVar->Name, name, sizeof(viewVar->Name));
+	viewVar->Value = value;
+
+	switch (type) {
 		case VIEWVAR_BOOL:
 			viewVar->Type = VIEWVAR_DISPLAY_BOOL;
 			viewVar->Size = sizeof(bool);
 			break;
 
-		}
+		case VIEWVAR_UINT8:
+		case VIEWVAR_INT8:
+			viewVar->Type = (type == VIEWVAR_INT8) ? VIEWVAR_DISPLAY_SIGNED : VIEWVAR_DISPLAY_UNSIGNED;
+			viewVar->Size = sizeof(Uint8);
+			break;
 
-		viewVar->Min = min;
-		viewVar->Max = max;
+		case VIEWVAR_UINT16:
+		case VIEWVAR_INT16:
+			viewVar->Type = (type == VIEWVAR_INT16) ? VIEWVAR_DISPLAY_SIGNED : VIEWVAR_DISPLAY_UNSIGNED;
+			viewVar->Size = sizeof(Uint16);
+			break;
+
+		case VIEWVAR_UINT32:
+		case VIEWVAR_INT32:
+			viewVar->Type = (type == VIEWVAR_INT32) ? VIEWVAR_DISPLAY_SIGNED : VIEWVAR_DISPLAY_UNSIGNED;
+			viewVar->Size = sizeof(Uint32);
+			break;
 	}
+
+	viewVar->Min = min;
+	viewVar->Max = max;
+
+	Application::ViewableVariableList.push_back(viewVar);
 }
 
 Uint16* Application::UTF8toUTF16(const char* utf8String) {
@@ -2134,7 +2154,7 @@ Uint16* Application::UTF8toUTF16(const char* utf8String) {
 	size_t i = 0, j = 0;
 
 	while (utf8String[i]) {
-		if ((utf8String[i] & 0x80) == 0)
+		if (!(utf8String[i] & 0x80))
 			utf16String[j++] = utf8String[i];
 		else {
 			Uint16 val = 0;
@@ -2210,6 +2230,16 @@ void Application::OpenDevMenu() {
 	DevMenu.WindowScale = Application::WindowScale;
 	DevMenu.Fullscreen = Application::WindowFullscreen;
 	DevMenu.WindowBorderless = Application::WindowBorderless;
+
+	for (auto var = Application::ViewableVariableList.begin(); var != Application::ViewableVariableList.end();) {
+		if ((*var)->Value == nullptr) {
+			delete* var;
+			var = Application::ViewableVariableList.erase(var);
+		}
+		else {
+			++var;
+		}
+	}
 
 	AudioManager::AudioPauseAll();
 	AudioManager::Lock();
@@ -2662,7 +2692,105 @@ void Application::DevMenu_InputMenu() {
 }
 
 void Application::DevMenu_DebugMenu() {
-	DevMenu_DrawTitleBar();
+	DevMenu_DrawMainMenu();
+	View view = Scene::Views[0];
+
+	DrawDevString("Configure debug flags...", (int)view.Width / 2, 56, ALIGN_CENTER, true);
+
+	size_t viewableVarCount = Application::ViewableVariableList.size();
+
+	int actionB = InputManager::GetActionID("B");
+	if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
+		DevMenu.State = DevMenu_SettingsMenu;
+		DevMenu.SubSelection = 3;
+		return;
+	}
+
+	if (!viewableVarCount) {
+		DrawDevString("No viewable variables loaded!", 160, 93, ALIGN_LEFT, true);
+		return;
+	}
+
+	for (size_t i = 0, y = 93; i < 7 && DevMenu.SubScrollPos + i < viewableVarCount; i++, y += 15) {
+		ViewableVariable* value = Application::ViewableVariableList[DevMenu.SubScrollPos + i];
+		DrawDevString(value->Name, 160, y, ALIGN_LEFT, DevMenu.SubSelection - DevMenu.SubScrollPos == i);
+
+		char valueStr[16] = "--------";
+		if (value->Value) {
+			if (value->Type == VIEWVAR_DISPLAY_BOOL) {
+				snprintf(valueStr, sizeof(valueStr), "%s", *(bool*)value->Value ? "Y" : "N");
+			}
+			else {
+				switch (value->Size) {
+					case sizeof(Uint8) :
+						snprintf(valueStr, sizeof(valueStr), "%s%02X", value->Type == VIEWVAR_DISPLAY_SIGNED && *(Uint8*)value->Value > 0x7F ? "-" : "", *(Uint8*)value->Value & 0x7F);
+						break;
+					case sizeof(Uint16) :
+						snprintf(valueStr, sizeof(valueStr), "%s%04X", value->Type == VIEWVAR_DISPLAY_SIGNED && *(Uint16*)value->Value > 0x7FFF ? "-" : "", *(Uint16*)value->Value & 0x7FFF);
+						break;
+					case sizeof(Uint32) :
+						snprintf(valueStr, sizeof(valueStr), "%s%08X", value->Type == VIEWVAR_DISPLAY_SIGNED && *(Uint32*)value->Value > 0x7FFFFFFF ? "-" : "", *(Uint32*)value->Value & 0x7FFFFFFF);
+						break;
+				}
+			}
+			DrawDevString(valueStr, (int)view.Width - 16, y, ALIGN_RIGHT, DevMenu.SubSelection - DevMenu.SubScrollPos == i);
+		}
+	}
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		DevMenu.SubSelection = (DevMenu.SubSelection + (InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp) ? -1 : 1) + viewableVarCount) % viewableVarCount;
+
+		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
+			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
+				DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
+		}
+		else {
+			DevMenu.SubScrollPos = DevMenu.SubSelection;
+		}
+
+		DevMenu.Timer = 8;
+	}
+
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+
+	bool confirm = false;
+	for (const char* action : { "A", "Start" }) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
+			break;
+		}
+	}
+
+	if (DevMenu.SubSelection < viewableVarCount) {
+		ViewableVariable* var = Application::ViewableVariableList[DevMenu.SubSelection];
+
+		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) || InputManager::IsActionPressedByAny(InputManager::GetActionID("Right"))) {
+			int* value = static_cast<int*>(var->Value);
+			if (var->Type == VIEWVAR_DISPLAY_BOOL) {
+				*value ^= 1;
+			}
+			else {
+				int increment = InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) ? -1 : 1;
+				*value += increment;
+
+				if (*value > var->Max)
+					*value = var->Min;
+				else if (*value < var->Min)
+					*value = var->Max;
+			}
+		}
+	}
+
+	if (confirm) {
+		DevMenu.State = DevMenu_SettingsMenu;
+		DevMenu.SubSelection = 3;
+	}
 }
 
 void Application::DevMenu_ModsMenu() {
