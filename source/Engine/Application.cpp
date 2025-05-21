@@ -1956,7 +1956,7 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 	}
 
 	if (sceneConfig) {
-		if (SceneInfo::Load(sceneConfig->children[0]) && keepScene) {
+		if (SceneInfo::Load(sceneConfig->children[0]) && !keepScene) {
 			if (Application::GameConfig) {
 				XMLNode* node = Application::GameConfig->children[0];
 				if (node) {
