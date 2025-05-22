@@ -1204,21 +1204,6 @@ VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Application
 /***
- * Application.AddViewableVariable
- * \desc Adds a variable to interface with in the developer menu.
- * \param name
- * \param variable
- * \param type
- * \param min
- * \param max
- * \ns Application
- */
-VMValue Application_AddViewableVariable(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
-
-	return NULL_VAL;
-}
-/***
  * Application.GetCommandLineArguments
  * \desc Gets a list of the command line arguments passed to the application.
  * \return Returns an Array of String values.
@@ -18000,7 +17985,6 @@ void StandardLibrary::Link() {
 
 	// #region Application
 	INIT_CLASS(Application);
-	DEF_NATIVE(Application, AddViewableVariable);
 	DEF_NATIVE(Application, GetCommandLineArguments);
 	DEF_NATIVE(Application, GetEngineVersionString);
 	DEF_NATIVE(Application, GetEngineVersionMajor);
