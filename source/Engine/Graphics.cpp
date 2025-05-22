@@ -416,7 +416,7 @@ void Graphics::DisposeTexture(Texture* texture) {
 TextureReference* Graphics::GetSpriteSheet(string sheetPath) {
 	if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
 		TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
-		textureRef->AddRef();
+		textureRef->TakeRef();
 		return textureRef;
 	}
 
@@ -433,7 +433,7 @@ TextureReference* Graphics::AddSpriteSheet(string sheetPath, Texture* texture) {
 void Graphics::DisposeSpriteSheet(string sheetPath) {
 	if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
 		TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
-		if (textureRef->TakeRef()) {
+		if (textureRef->ReleaseRef()) {
 			Graphics::DisposeTexture(textureRef->TexturePtr);
 			Graphics::SpriteSheetTextureMap.erase(sheetPath);
 			delete textureRef;

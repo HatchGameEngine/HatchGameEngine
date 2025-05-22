@@ -507,6 +507,40 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 }
 #endif
 
+int ModelImporter::GetConversionFlags() {
+#ifdef USING_ASSIMP
+	return aiProcessPreset_TargetRealtime_Fast | aiProcess_ConvertToLeftHanded;
+#else
+	return 0;
+#endif
+}
+bool ModelImporter::IsValid(Stream* stream) {
+	bool success = false;
+
+#ifdef USING_ASSIMP
+	size_t size = stream->Length();
+	void* data = Memory::Malloc(size);
+	if (data) {
+		stream->ReadBytes(data, size);
+	}
+	else {
+		return false;
+	}
+
+	Assimp::Importer importer;
+
+	int flags = GetConversionFlags();
+
+	const struct aiScene* scene = importer.ReadFileFromMemory(data, size, flags);
+	if (scene != nullptr) {
+		success = scene->mRootNode && (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 0;
+	}
+
+	Memory::Free(data);
+#endif
+
+	return success;
+}
 bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
 #ifdef USING_ASSIMP
 	size_t size = stream->Length();
@@ -521,8 +555,7 @@ bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
 
 	Assimp::Importer importer;
 
-	int flags = aiProcessPreset_TargetRealtime_Fast;
-	flags |= aiProcess_ConvertToLeftHanded;
+	int flags = GetConversionFlags();
 
 	const struct aiScene* scene =
 		importer.ReadFileFromMemory(data, size, flags, StringUtils::GetExtension(path));

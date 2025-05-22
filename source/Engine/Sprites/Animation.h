@@ -33,7 +33,7 @@ struct Animation {
 };
 struct Animator {
 	vector<AnimFrame> Frames;
-	int Sprite = -1;
+	void* Sprite = nullptr;
 	int CurrentAnimation = -1;
 	int CurrentFrame = -1;
 	int PrevAnimation = 0;

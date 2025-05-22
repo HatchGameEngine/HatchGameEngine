@@ -3,12 +3,10 @@
 
 #include <Engine/Includes/Standard.h>
 
-#include <Engine/ResourceTypes/Image.h>
-
 class Material {
 private:
-	static Image* TryLoadForModel(std::string imagePath, const char* parentDirectory);
-	void ReleaseImage(Image* imagePtr);
+	static void* TryLoadForModel(std::string imagePath, const char* parentDirectory);
+	void ReleaseImage(void* imagePtr);
 
 public:
 	char* Name = nullptr;
@@ -23,18 +21,18 @@ public:
 	char* TextureSpecularName = nullptr;
 	char* TextureAmbientName = nullptr;
 	char* TextureEmissiveName = nullptr;
-	Image* TextureDiffuse = nullptr;
-	Image* TextureSpecular = nullptr;
-	Image* TextureAmbient = nullptr;
-	Image* TextureEmissive = nullptr;
-	void* Object = nullptr;
+	void* TextureDiffuse = nullptr;
+	void* TextureSpecular = nullptr;
+	void* TextureAmbient = nullptr;
+	void* TextureEmissive = nullptr;
+	void* VMObject = nullptr;
 
 	static Material* Create(char* name);
 	static void Remove(Material* material);
 	static std::vector<Material*> List;
 
-	static Image* LoadForModel(string imagePath, const char* parentDirectory);
-	static Image* LoadForModel(const char* imagePath, const char* parentDirectory);
+	static void* LoadForModel(string imagePath, const char* parentDirectory);
+	static void* LoadForModel(const char* imagePath, const char* parentDirectory);
 
 	Material(char* name);
 	void Dispose();

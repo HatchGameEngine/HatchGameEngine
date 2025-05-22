@@ -7,14 +7,20 @@
 
 class StandardLibrary {
 public:
+	static int ExpectedTypeError(VMValue value, Uint32 expectedType, Uint32 threadID);
+	static int ExpectedObjectTypeError(VMValue value, Uint32 expectedType, Uint32 threadID);
+	static int ExpectedTypeError(int index, VMValue value, Uint32 expectedType, Uint32 threadID);
+	static int ExpectedObjectTypeError(int index, VMValue value, Uint32 expectedType, Uint32 threadID);
+	static bool ValidateResource(void* ptr, Uint8 type, Uint32 threadID);
 	static int GetInteger(VMValue* args, int index, Uint32 threadID);
 	static float GetDecimal(VMValue* args, int index, Uint32 threadID);
 	static char* GetString(VMValue* args, int index, Uint32 threadID);
 	static ObjString* GetVMString(VMValue* args, int index, Uint32 threadID);
 	static ObjArray* GetArray(VMValue* args, int index, Uint32 threadID);
 	static ObjMap* GetMap(VMValue* args, int index, Uint32 threadID);
+	static void* GetResource(VMValue* args, int index, Uint32 threadID);
 	static ISprite* GetSprite(VMValue* args, int index, Uint32 threadID);
-	static ISound* GetSound(VMValue* args, int index, Uint32 threadID);
+	static ISound* GetAudio(VMValue* args, int index, Uint32 threadID);
 	static ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID);
 	static ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID);
 	static void CheckArgCount(int argCount, int expects);

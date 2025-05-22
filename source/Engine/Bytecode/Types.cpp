@@ -7,6 +7,7 @@
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
@@ -198,12 +199,19 @@ ObjModule* NewModule() {
 	module->SourceFilename = NULL;
 	return module;
 }
-ObjMaterial* NewMaterial(Material* materialPtr) {
+ObjMaterial* NewMaterial(void* materialPtr) {
 	ObjMaterial* material = ALLOCATE_OBJ(ObjMaterial, OBJ_MATERIAL);
 	Memory::Track(material, "NewMaterial");
 	material->Object.Class = MaterialImpl::Class;
 	material->MaterialPtr = materialPtr;
 	return material;
+}
+ObjResource* NewResource(void* resourcePtr) {
+	ObjResource* resource = ALLOCATE_OBJ(ObjResource, OBJ_RESOURCE);
+	Memory::Track(resource, "NewResource");
+	resource->Object.Class = ResourceImpl::Class;
+	resource->ResourcePtr = resourcePtr;
+	return resource;
 }
 
 bool ValuesEqual(VMValue a, VMValue b) {
@@ -269,6 +277,8 @@ const char* GetObjectTypeString(Uint32 type) {
 		return "Module";
 	case OBJ_MATERIAL:
 		return "Material";
+	case OBJ_RESOURCE:
+		return "Resource";
 	}
 	return "Unknown Object Type";
 }

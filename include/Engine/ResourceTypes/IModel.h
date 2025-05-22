@@ -1,7 +1,6 @@
 #ifndef ENGINE_RESOURCETYPES_IMODEL_H
 #define ENGINE_RESOURCETYPES_IMODEL_H
 
-#include <Engine/Graphics.h>
 #include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
@@ -23,9 +22,10 @@ public:
 	bool UseVertexAnimation;
 	Armature* BaseArmature;
 	Matrix4x4* GlobalInverseMatrix;
+	bool LoadFailed;
 
-	IModel();
 	IModel(const char* filename);
+	static bool IsFile(Stream* stream);
 	bool Load(Stream* stream, const char* filename);
 	size_t FindMaterial(const char* name);
 	size_t AddMaterial(Material* material);

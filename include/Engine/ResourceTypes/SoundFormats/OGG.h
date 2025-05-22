@@ -3,6 +3,7 @@
 
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
+#include <Engine/IO/Stream.h>
 #include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
 
 class OGG : public SoundFormat {
@@ -17,7 +18,7 @@ private:
 	static long StaticTell(void* ptr);
 
 public:
-	static SoundFormat* Load(const char* filename);
+	static SoundFormat* Load(Stream* stream);
 	size_t SeekSample(int index);
 	int LoadSamples(size_t count);
 	int GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex);

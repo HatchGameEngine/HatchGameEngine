@@ -39,6 +39,9 @@
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MaterialImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -348,6 +351,9 @@
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\RSDKModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\resourcetypes\Resource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\ResourceManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -528,6 +534,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\resourcetypes\modelformats\Importer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\engine\resourcetypes\Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h">
