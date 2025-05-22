@@ -1508,9 +1508,10 @@ void Application::StartGame(const char* startingScene) {
 	// Start scene
 	Scene::Restart();
 
-	Application::AddViewableVariable("Tile Collisions", &Scene::ShowTileCollisionFlag, VIEWVAR_UINT8, 0, 2);
-	Application::AddViewableVariable("Update Regions", &Scene::ShowObjectRegions, VIEWVAR_BOOL, false, true);
-	Application::AddViewableVariable("Filter", &Scene::Filter, VIEWVAR_UINT8, 0, 256);
+	for (auto var : ViewableVariableList) {
+		delete var;
+	}
+	ViewableVariableList.clear();
 }
 void Application::Run(int argc, char* args[]) {
 	Application::Init(argc, args);
