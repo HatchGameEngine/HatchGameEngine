@@ -5,6 +5,7 @@
 #include <Engine/IO/Stream.h>
 #include <Engine/Rendering/GameTexture.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/ResourceTypes/Resourceable.h>
 
 enum {
 	IMAGE_FORMAT_UNKNOWN,
@@ -13,12 +14,11 @@ enum {
 	IMAGE_FORMAT_JPEG
 };
 
-class Image {
+class Image : public Resourceable {
 private:
 	static Image* New(const char* filename);
 
 public:
-	char* Filename;
 	Texture* TexturePtr = NULL;
 
 	Image(const char* filename);

@@ -1,6 +1,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
+#include <Engine/Bytecode/Types.h>
 #include <Engine/ResourceTypes/Resource.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 
@@ -10,20 +11,24 @@ Uint32 Hash_Type = 0;
 Uint32 Hash_Filename = 0;
 Uint32 Hash_Loaded = 0;
 Uint32 Hash_Scope = 0;
+Uint32 Hash_Data = 0;
+
+#define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
 
 void ResourceImpl::Init() {
 	const char* className = "Resource";
 
-	Class = NewClass(Murmur::EncryptString(className));
-	Class->Name = CopyString(className);
+	Class = NewClass(className);
 	Class->NewFn = VM_New;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 	Class->PropertyGet = VM_PropertyGet;
+	Class->PropertySet = VM_PropertySet;
 
 	Hash_Type = Murmur::EncryptString("Type");
 	Hash_Filename = Murmur::EncryptString("Filename");
 	Hash_Loaded = Murmur::EncryptString("Loaded");
 	Hash_Scope = Murmur::EncryptString("Scope");
+	Hash_Data = Murmur::EncryptString("Data");
 
 	ScriptManager::DefineNative(Class, "Reload", ResourceImpl::VM_Reload);
 	ScriptManager::DefineNative(Class, "Unload", ResourceImpl::VM_Unload);
@@ -85,11 +90,27 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	else if (hash == Hash_Scope) {
 		*result = INTEGER_VAL((int)resource->UnloadPolicy);
 	}
+	else if (hash == Hash_Data) {
+		*result = OBJECT_VAL(resource->AsResourceable->GetVMObject());
+	}
 	else {
 		return false;
 	}
 
 	return true;
+}
+
+bool ResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
+	if (hash == Hash_Type
+		|| hash == Hash_Filename
+		|| hash == Hash_Loaded
+		|| hash == Hash_Scope
+		|| hash == Hash_Data) {
+		THROW_ERROR("Field cannot be written to!");
+		return true;
+	}
+
+	return false;
 }
 
 VMValue ResourceImpl::VM_Reload(int argCount, VMValue* args, Uint32 threadID) {
@@ -120,3 +141,8 @@ VMValue ResourceImpl::VM_Unload(int argCount, VMValue* args, Uint32 threadID) {
 
 #undef GET_ARG
 #undef GET_ARG_OPT
+
+void* ResourceImpl::NewResourceableObject(void* ptr) {
+	ObjResourceable* obj = NewResourceable(ptr);
+	return (void*)obj;
+}

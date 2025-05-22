@@ -7,8 +7,7 @@ ObjClass* MapImpl::Class = nullptr;
 void MapImpl::Init() {
 	const char* name = "$$MapImpl";
 
-	Class = NewClass(Murmur::EncryptString(name));
-	Class->Name = CopyString(name);
+	Class = NewClass(name);
 
 	ScriptManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
 	ScriptManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);

@@ -3292,6 +3292,9 @@ VMValue VMThread::Value_TypeOf() {
 		case OBJ_RESOURCE:
 			valueType = "resource";
 			break;
+		case OBJ_RESOURCEABLE:
+			valueType = "resourceable";
+			break;
 		}
 	}
 	}

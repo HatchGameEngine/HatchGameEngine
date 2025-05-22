@@ -37,8 +37,7 @@ Uint32 MaterialImpl::Hash_EmissiveTexture = 0;
 void MaterialImpl::Init() {
 	const char* className = "Material";
 
-	Class = NewClass(Murmur::EncryptString(className));
-	Class->Name = CopyString(className);
+	Class = NewClass(className);
 	Class->NewFn = VM_New;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 	Class->PropertyGet = VM_PropertyGet;

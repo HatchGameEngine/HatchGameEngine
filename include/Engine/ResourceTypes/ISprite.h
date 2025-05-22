@@ -4,12 +4,11 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/IO/Stream.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/ResourceTypes/Resourceable.h>
 #include <Engine/Sprites/Animation.h>
 
-class ISprite {
+class ISprite : public Resourceable {
 public:
-	char* Filename = nullptr;
-	bool LoadFailed = true;
 	vector<Texture*> Spritesheets;
 	vector<string> SpritesheetFilenames;
 	int CollisionBoxCount = 0;

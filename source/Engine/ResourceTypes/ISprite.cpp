@@ -14,20 +14,18 @@
 #include <Engine/Utilities/StringUtils.h>
 
 ISprite::ISprite() {
+	Type = RESOURCE_SPRITE;
+	LoadFailed = false;
+
 	Spritesheets.clear();
 	Spritesheets.shrink_to_fit();
 	SpritesheetFilenames.clear();
 	SpritesheetFilenames.shrink_to_fit();
-	LoadFailed = true;
-	Filename = nullptr;
 }
 ISprite::ISprite(const char* filename) {
-	Spritesheets.clear();
-	Spritesheets.shrink_to_fit();
-	SpritesheetFilenames.clear();
-	SpritesheetFilenames.shrink_to_fit();
-	Filename = StringUtils::NormalizePath(filename);
-	LoadFailed = !LoadAnimation(Filename);
+	ISprite();
+
+	LoadFailed = !LoadAnimation(filename);
 }
 
 size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
@@ -477,9 +475,6 @@ void ISprite::Dispose() {
 	SpritesheetFilenames.shrink_to_fit();
 
 	Graphics::DeleteFrameBufferID(this);
-
-	Memory::Free(Filename);
-	Filename = nullptr;
 }
 
 ISprite::~ISprite() {

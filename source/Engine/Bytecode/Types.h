@@ -171,6 +171,7 @@ typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threa
 #define IS_MODULE(value) IsObjectType(value, OBJ_MODULE)
 #define IS_MATERIAL(value) IsObjectType(value, OBJ_MATERIAL)
 #define IS_RESOURCE(value) IsObjectType(value, OBJ_RESOURCE)
+#define IS_RESOURCEABLE(value) IsObjectType(value, OBJ_RESOURCEABLE)
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))
@@ -188,6 +189,7 @@ typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threa
 #define AS_MODULE(value) ((ObjModule*)AS_OBJECT(value))
 #define AS_MATERIAL(value) ((ObjMaterial*)AS_OBJECT(value))
 #define AS_RESOURCE(value) ((ObjResource*)AS_OBJECT(value))
+#define AS_RESOURCEABLE(value) ((ObjResourceable*)AS_OBJECT(value))
 
 enum ObjType {
 	OBJ_BOUND_METHOD,
@@ -206,6 +208,7 @@ enum ObjType {
 	OBJ_MODULE,
 	OBJ_MATERIAL,
 	OBJ_RESOURCE,
+	OBJ_RESOURCEABLE,
 
 	MAX_OBJ_TYPE
 };
@@ -320,6 +323,10 @@ struct ObjResource {
 	Obj Object;
 	void* ResourcePtr;
 };
+struct ObjResourceable {
+	Obj Object;
+	void* ResourceablePtr;
+};
 
 ObjString* TakeString(char* chars, size_t length);
 ObjString* TakeString(char* chars);
@@ -333,6 +340,7 @@ ObjNative* NewNative(NativeFn function);
 ObjUpvalue* NewUpvalue(VMValue* slot);
 ObjClosure* NewClosure(ObjFunction* function);
 ObjClass* NewClass(Uint32 hash);
+ObjClass* NewClass(const char* name);
 ObjInstance* NewInstance(ObjClass* klass);
 ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method);
 ObjArray* NewArray();
@@ -343,6 +351,7 @@ ObjEnum* NewEnum(Uint32 hash);
 ObjModule* NewModule();
 ObjMaterial* NewMaterial(void* material);
 ObjResource* NewResource(void* resourcePtr);
+ObjResourceable* NewResourceable(void* resourceablePtr);
 
 #define FREE_OBJ(obj, type) \
 	assert(GarbageCollector::GarbageSize >= sizeof(type)); \

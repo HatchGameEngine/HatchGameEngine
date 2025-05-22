@@ -8,6 +8,8 @@
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/ResourceTypes/Image.h>
+#include <Engine/ResourceTypes/MediaBag.h>
+#include <Engine/ResourceTypes/Resourceable.h>
 
 enum {
 	RESOURCE_NONE,
@@ -56,13 +58,6 @@ inline const char* GetResourceScopeString(Uint8 scope) {
 	return "unknown";
 }
 
-struct MediaBag {
-	Texture* VideoTexture;
-	MediaSource* Source;
-	MediaPlayer* Player;
-	bool Dirty;
-};
-
 struct ResourceType {
 	Uint8 Type = RESOURCE_NONE;
 	char* Filename = nullptr;
@@ -79,6 +74,7 @@ struct ResourceType {
 		void* AsShader;
 		IModel* AsModel;
 		MediaBag* AsMedia;
+		Resourceable* AsResourceable;
 		void* AsAny;
 	};
 };

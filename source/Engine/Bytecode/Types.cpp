@@ -134,6 +134,11 @@ ObjClass* NewClass(Uint32 hash) {
 	klass->Parent = NULL;
 	return klass;
 }
+ObjClass* NewClass(const char* name) {
+	ObjClass* klass = NewClass(Murmur::EncryptString(name));
+	klass->Name = CopyString(name);
+	return klass;
+}
 ObjInstance* NewInstance(ObjClass* klass) {
 	ObjInstance* instance = ALLOCATE_OBJ(ObjInstance, OBJ_INSTANCE);
 	Memory::Track(instance, "NewInstance");
@@ -213,6 +218,13 @@ ObjResource* NewResource(void* resourcePtr) {
 	resource->ResourcePtr = resourcePtr;
 	return resource;
 }
+ObjResourceable* NewResourceable(void* resourceablePtr) {
+	ObjResourceable* resource = ALLOCATE_OBJ(ObjResourceable, OBJ_RESOURCEABLE);
+	Memory::Track(resource, "NewResourceable");
+	resource->Object.Class = nullptr; // To be set by the caller.
+	resource->ResourceablePtr = resourceablePtr;
+	return resource;
+}
 
 bool ValuesEqual(VMValue a, VMValue b) {
 	if (a.Type != b.Type) {
@@ -279,6 +291,8 @@ const char* GetObjectTypeString(Uint32 type) {
 		return "Material";
 	case OBJ_RESOURCE:
 		return "Resource";
+	case OBJ_RESOURCEABLE:
+		return "Resourceable";
 	}
 	return "Unknown Object Type";
 }

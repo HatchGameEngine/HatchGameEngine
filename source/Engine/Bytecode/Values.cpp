@@ -86,6 +86,9 @@ void Values::PrintObject(PrintBuffer* buffer, VMValue value, int indent, bool pr
 			resource->Filename);
 		break;
 	}
+	case OBJ_RESOURCEABLE:
+		buffer_printf(buffer, "<resourceable>");
+		break;
 	case OBJ_MATERIAL:
 		buffer_printf(buffer, "<material %s>", ((Material*)AS_MATERIAL(value)->MaterialPtr)->Name);
 		break;

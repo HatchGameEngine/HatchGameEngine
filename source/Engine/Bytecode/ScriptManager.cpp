@@ -641,6 +641,16 @@ void ScriptManager::FreeValue(VMValue value) {
 			FREE_OBJ(resource, ObjResource);
 			break;
 		}
+		case OBJ_RESOURCEABLE: {
+			ObjResourceable* resourceable = AS_RESOURCEABLE(value);
+
+			if (resourceable->ResourceablePtr) {
+				((Resourceable*)resourceable->ResourceablePtr)->ReleaseVMObject();
+			}
+
+			FREE_OBJ(resourceable, ObjResourceable);
+			break;
+		}
 		default:
 			break;
 		}

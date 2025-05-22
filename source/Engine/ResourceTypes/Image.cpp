@@ -15,15 +15,13 @@
 #include <Engine/Utilities/StringUtils.h>
 
 Image::Image(const char* filename) {
-	Filename = StringUtils::Duplicate(filename);
-	TexturePtr = Image::LoadTextureFromResource(Filename);
+	Type = RESOURCE_IMAGE;
+
+	TexturePtr = Image::LoadTextureFromResource(filename);
+	LoadFailed = TexturePtr == nullptr;
 }
 
 void Image::Dispose() {
-	if (Filename) {
-		Memory::Free(Filename);
-		Filename = NULL;
-	}
 	if (TexturePtr) {
 		Graphics::DisposeTexture(TexturePtr);
 		TexturePtr = NULL;
@@ -58,7 +56,6 @@ bool Image::IsFile(Stream* stream) {
 }
 
 Texture* Image::LoadTextureFromResource(const char* filename) {
-	Texture* texture = NULL;
 	Uint32* data = NULL;
 	Uint32 width = 0;
 	Uint32 height = 0;
@@ -174,16 +171,18 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			height,
 			Graphics::MaxTextureWidth,
 			Graphics::MaxTextureHeight);
-		// return NULL;
 	}
 
-	texture = Graphics::CreateTextureFromPixels(width, height, data, width * sizeof(Uint32));
+	Texture* texture = Graphics::CreateTextureFromPixels(width, height, data, width * sizeof(Uint32));
+	if (texture != nullptr) {
+		Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
 
-	Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
+		Memory::Free(data);
+	}
 
-	Graphics::NoInternalTextures = false;
-
-	Memory::Free(data);
+	if (forceSoftwareTextures) {
+		Graphics::NoInternalTextures = false;
+	}
 
 	return texture;
 }

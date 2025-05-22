@@ -3,7 +3,6 @@
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/Resource.h>
-#include <Engine/Scene.h>
 #include <Engine/Utilities/StringUtils.h>
 
 static vector<ResourceType*> List;
@@ -78,10 +77,10 @@ bool Resource::Reload(ResourceType* resource) {
 	}
 
 	// Try loading it.
-	void* resData = LoadData(resource->Type, resource->Filename);
-	if (resData != nullptr) {
+	Resourceable* data = LoadData(resource->Type, resource->Filename);
+	if (data != nullptr) {
 		UnloadData(resource); // Unload only if loading succeeded
-		resource->AsAny = resData;
+		resource->AsResourceable = data;
 		resource->Loaded = true;
 	}
 
@@ -159,14 +158,14 @@ ResourceType* Resource::LoadInternal(Uint8 type, const char* filename, int unloa
 	}
 
 	// Try loading it.
-	void* resData = LoadData(type, filename);
-	if (resData == nullptr) {
+	Resourceable* data = LoadData(type, filename);
+	if (data == nullptr) {
 		return nullptr;
 	}
 
 	// Allocate a new resource.
 	ResourceType* resource = New(type, filename, hash, unloadPolicy);
-	resource->AsAny = resData;
+	resource->AsResourceable = data;
 	resource->Loaded = true;
 
 	// Add it to the list.
@@ -186,14 +185,14 @@ ResourceType* Resource::LoadFont(const char* filename, int pixel_sz, int unloadP
 	}
 
 	// Try loading it.
-	ISprite* resData = LoadFontData(filename, pixel_sz);
-	if (!resData) {
+	ISprite* data = LoadFontData(filename, pixel_sz);
+	if (!data) {
 		return nullptr;
 	}
 
 	// Allocate a new resource.
 	ResourceType* resource = New(RESOURCE_FONT, filename, hash, unloadPolicy);
-	resource->AsSprite = resData;
+	resource->AsSprite = data;
 	resource->Loaded = true;
 
 	// Add it to the list.
@@ -241,114 +240,39 @@ Uint8 Resource::GuessType(const char* filename) {
 	return RESOURCE_NONE;
 }
 
-void* Resource::LoadData(Uint8 type, const char* filename) {
-	switch (type) {
-	case RESOURCE_SPRITE: {
-		ISprite* resData = new (std::nothrow) ISprite(filename);
-		if (resData->LoadFailed) {
-			delete resData;
-			return nullptr;
-		}
-		return resData;
-	}
-	case RESOURCE_IMAGE: {
-		Image* resData = new (std::nothrow) Image(filename);
-		if (!resData->TexturePtr) {
-			delete resData;
-			return nullptr;
-		}
-		return resData;
-	}
-	case RESOURCE_AUDIO: {
-		ISound* resData = new (std::nothrow) ISound(filename);
-		if (resData->LoadFailed) {
-			delete resData;
-			return nullptr;
-		}
-		return resData;
-	}
-	case RESOURCE_MODEL: {
-		IModel* resData = new (std::nothrow) IModel(filename);
-		if (resData->LoadFailed) {
-			delete resData;
-			return nullptr;
-		}
+Resourceable* Resource::LoadData(Uint8 type, const char* filename) {
+	Resourceable* data = nullptr;
 
-		return resData;
-	}
+	switch (type) {
+	case RESOURCE_SPRITE:
+		data = new (std::nothrow) ISprite(filename);
+		break;
+	case RESOURCE_IMAGE:
+		data = new (std::nothrow) Image(filename);
+		break;
+	case RESOURCE_AUDIO:
+		data = new (std::nothrow) ISound(filename);
+		break;
+	case RESOURCE_MODEL:
+		data = new (std::nothrow) IModel(filename);
+		break;
 	case RESOURCE_MEDIA:
-		return LoadMediaBag(filename);
+		data = new (std::nothrow) MediaBag(filename);
+		break;
 	default:
 		break;
 	}
 
-	return nullptr;
+	if (data && !data->Loaded()) {
+		delete data;
+		return nullptr;
+	}
+
+	return data;
 }
 
 ISprite* Resource::LoadFontData(const char* filename, int pixel_sz) {
 	return FontFace::SpriteFromFont(filename, pixel_sz);
-}
-
-MediaBag* Resource::LoadMediaBag(const char* filename) {
-#ifdef USING_FFMPEG
-	Stream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		return nullptr;
-	}
-
-	MediaSource* Source = MediaSource::CreateSourceFromStream(stream);
-	if (!Source) {
-		return nullptr;
-	}
-
-	MediaPlayer* Player = MediaPlayer::Create(Source,
-		Source->GetBestStream(MediaSource::STREAMTYPE_VIDEO),
-		Source->GetBestStream(MediaSource::STREAMTYPE_AUDIO),
-		Source->GetBestStream(MediaSource::STREAMTYPE_SUBTITLE),
-		Scene::Views[0].Width,
-		Scene::Views[0].Height);
-	if (!Player) {
-		Source->Close();
-		return nullptr;
-	}
-
-	PlayerInfo playerInfo;
-	Player->GetInfo(&playerInfo);
-	Texture* VideoTexture = Graphics::CreateTexture(playerInfo.Video.Output.Format,
-		SDL_TEXTUREACCESS_STATIC,
-		playerInfo.Video.Output.Width,
-		playerInfo.Video.Output.Height);
-	if (!VideoTexture) {
-		Player->Close();
-		Source->Close();
-		return nullptr;
-	}
-
-	if (Player->GetVideoStream() > -1) {
-		Log::Print(Log::LOG_WARN, "VIDEO STREAM:");
-		Log::Print(Log::LOG_INFO,
-			"    Resolution:  %d x %d",
-			playerInfo.Video.Output.Width,
-			playerInfo.Video.Output.Height);
-	}
-	if (Player->GetAudioStream() > -1) {
-		Log::Print(Log::LOG_WARN, "AUDIO STREAM:");
-		Log::Print(
-			Log::LOG_INFO, "    Sample Rate: %d", playerInfo.Audio.Output.SampleRate);
-		Log::Print(Log::LOG_INFO,
-			"    Bit Depth:   %d-bit",
-			playerInfo.Audio.Output.Format & 0xFF);
-		Log::Print(Log::LOG_INFO, "    Channels:    %d", playerInfo.Audio.Output.Channels);
-	}
-
-	MediaBag* newMediaBag = new (std::nothrow) MediaBag;
-	newMediaBag->Source = Source;
-	newMediaBag->Player = Player;
-	newMediaBag->VideoTexture = VideoTexture;
-	return newMediaBag;
-#else
-	return nullptr;
-#endif
 }
 
 bool Resource::UnloadData(ResourceType* resource) {
@@ -385,12 +309,6 @@ bool Resource::UnloadData(ResourceType* resource) {
 		break;
 	case RESOURCE_MEDIA:
 		if (resource->AsMedia != nullptr) {
-#ifdef USING_FFMPEG
-			AudioManager::Lock();
-			resource->AsMedia->Player->Close();
-			resource->AsMedia->Source->Close();
-			AudioManager::Unlock();
-#endif
 			delete resource->AsMedia;
 			resource->AsMedia = nullptr;
 			return true;

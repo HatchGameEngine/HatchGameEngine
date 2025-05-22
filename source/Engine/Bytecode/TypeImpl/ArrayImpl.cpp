@@ -7,8 +7,7 @@ ObjClass* ArrayImpl::Class = nullptr;
 void ArrayImpl::Init() {
 	const char* name = "$$ArrayImpl";
 
-	Class = NewClass(Murmur::EncryptString(name));
-	Class->Name = CopyString(name);
+	Class = NewClass(name);
 
 	ScriptManager::DefineNative(Class, "iterate", ArrayImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", ArrayImpl::VM_IteratorValue);

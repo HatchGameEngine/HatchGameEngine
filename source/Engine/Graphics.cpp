@@ -1829,18 +1829,20 @@ bool Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {
 		return true;
 	}
 	if (animation < 0 || animation >= (int)sprite->Animations.size()) {
+#if 0
 		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Animation %d does not exist in sprite %s!",
-			animation,
-			sprite->Filename);
+			"Animation %d does not exist in sprite!",
+			animation);
+#endif
 		return true;
 	}
 	if (frame < 0 || frame >= (int)sprite->Animations[animation].Frames.size()) {
+#if 0
 		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Frame %d in animation \"%s\" does not exist in sprite %s!",
+			"Frame %d in animation \"%s\" does not exist in sprite!",
 			frame,
-			sprite->Animations[animation].Name,
-			sprite->Filename);
+			sprite->Animations[animation].Name);
+#endif
 		return true;
 	}
 	// #endif

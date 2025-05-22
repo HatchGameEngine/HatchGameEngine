@@ -319,7 +319,7 @@ void AudioManager::PushMusicAt(ISound* music,
 	float speed,
 	float volume,
 	double fadeInAfterFinished) {
-	if (music->LoadFailed) {
+	if (!music->Loaded()) {
 		return;
 	}
 

@@ -14,6 +14,8 @@
 #include <Engine/Utilities/StringUtils.h>
 
 IModel::IModel(const char* filename) {
+	Type = RESOURCE_MODEL;
+
 	VertexCount = 0;
 	VertexIndexCount = 0;
 	VertexPerFace = 0;
@@ -26,7 +28,6 @@ IModel::IModel(const char* filename) {
 	BaseArmature = nullptr;
 	GlobalInverseMatrix = nullptr;
 	UseVertexAnimation = false;
-	LoadFailed = true;
 
 	ResourceStream* resourceStream = ResourceStream::New(filename);
 	if (!resourceStream) {

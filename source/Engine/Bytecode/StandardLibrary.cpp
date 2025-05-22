@@ -16916,13 +16916,10 @@ VMValue Video_Close(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-#ifdef USING_FFMPEG
 	MediaBag* video = ((ResourceType*)resource)->AsMedia;
 	if (video) {
-		video->Source->Close();
-		video->Player->Close();
+		video->Close();
 	}
-#endif
 
 	Resource::Unload((ResourceType*)resource);
 
