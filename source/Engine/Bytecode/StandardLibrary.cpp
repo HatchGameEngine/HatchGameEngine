@@ -20017,6 +20017,34 @@ void StandardLibrary::Link() {
 #undef ALIAS_NATIVE
 #undef INIT_CLASS
 
+	// #region Resource Types
+	/***
+    * \enum RESOURCETYPE_SPRITE
+    * \desc Sprite resource.
+    */
+	DEF_CONST_INT("RESOURCETYPE_SPRITE", RESOURCE_SPRITE);
+	/***
+    * \enum RESOURCETYPE_IMAGE
+    * \desc Image resource.
+    */
+	DEF_CONST_INT("RESOURCETYPE_IMAGE", RESOURCE_IMAGE);
+    /***
+    * \enum RESOURCETYPE_AUDIO
+    * \desc Audio resource.
+    */
+	DEF_CONST_INT("RESOURCETYPE_AUDIO", RESOURCE_AUDIO);
+    /***
+    * \enum RESOURCETYPE_MODEL
+    * \desc Model resource.
+    */
+	DEF_CONST_INT("RESOURCETYPE_MODEL", RESOURCE_MODEL);
+    /***
+    * \enum RESOURCETYPE_MEDIA
+    * \desc Media resource.
+    */
+	DEF_CONST_INT("RESOURCETYPE_MEDIA", RESOURCE_MEDIA);
+	// #endregion
+
 	// #region Tile Collision States
 	/***
     * \enum TILECOLLISION_NONE
