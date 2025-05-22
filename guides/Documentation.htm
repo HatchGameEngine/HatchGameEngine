@@ -926,6 +926,7 @@
                     <li><a href="#Reference_functions_Resources_LoadImage">Resources.LoadImage</a></li>
                     <li><a href="#Reference_functions_Resources_LoadFont">Resources.LoadFont</a></li>
                     <li><a href="#Reference_functions_Resources_LoadModel">Resources.LoadModel</a></li>
+                    <li><a href="#Reference_functions_Resources_LoadAudio">Resources.LoadAudio</a></li>
                     <li><a href="#Reference_functions_Resources_LoadMusic">Resources.LoadMusic</a></li>
                     <li><a href="#Reference_functions_Resources_LoadSound">Resources.LoadSound</a></li>
                     <li><a href="#Reference_functions_Resources_LoadVideo">Resources.LoadVideo</a></li>
@@ -6894,10 +6895,22 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a resource.</div>
         </p>
+        <p id="Reference_functions_Resources_LoadAudio">
+        <h2 style="margin-bottom: 8px;">Resources.LoadAudio</h2>
+        <code>Resources.LoadAudio(filename, unloadPolicy)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Loads an Audio resource.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>filename (String): Filename of the resource.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a resource.</div>
+        </p>
         <p id="Reference_functions_Resources_LoadMusic">
         <h2 style="margin-bottom: 8px;">Resources.LoadMusic</h2>
         <code>Resources.LoadMusic(filename, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads an Audio resource.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads an Audio resource. (Deprecated; use <code><a href="#Reference_functions_Resources_LoadAudio">Resources.LoadAudio</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of the resource.</li>
@@ -6909,7 +6922,7 @@
         <p id="Reference_functions_Resources_LoadSound">
         <h2 style="margin-bottom: 8px;">Resources.LoadSound</h2>
         <code>Resources.LoadSound(filename, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads an Audio resource.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads an Audio resource. (Deprecated; use <code><a href="#Reference_functions_Resources_LoadAudio">Resources.LoadAudio</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of the resource.</li>
@@ -10279,7 +10292,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>739 out of 798 functions have descriptions. </p>
+        <p>740 out of 799 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

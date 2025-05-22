@@ -11380,14 +11380,14 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
- * Resources.LoadMusic
+ * Resources.LoadAudio
  * \desc Loads an Audio resource.
  * \param filename (String): Filename of the resource.
  * \param unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the resource.
  * \return Returns a resource.
  * \ns Resources
  */
-VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Resources_LoadAudio(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
@@ -11399,23 +11399,26 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Resources.LoadMusic
+ * \desc Loads an Audio resource. (Deprecated; use <linkto ref="Resources.LoadAudio"></linkto> instead.)
+ * \param filename (String): Filename of the resource.
+ * \param unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the resource.
+ * \return Returns a resource.
+ * \ns Resources
+ */
+VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
+	return Resources_LoadAudio(argCount, args, threadID);
+}
+/***
  * Resources.LoadSound
- * \desc Loads an Audio resource.
+ * \desc Loads an Audio resource. (Deprecated; use <linkto ref="Resources.LoadAudio"></linkto> instead.)
  * \param filename (String): Filename of the resource.
  * \param unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the resource.
  * \return Returns a resource.
  * \ns Resources
  */
 VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	char* filename = GET_ARG(0, GetString);
-	int unloadPolicy = GET_ARG(1, GetInteger);
-
-	ObjResource* object = LoadResource(RESOURCE_AUDIO, filename, unloadPolicy);
-	if (object != nullptr) {
-		return OBJECT_VAL(object);
-	}
-	return NULL_VAL;
+	return Resources_LoadAudio(argCount, args, threadID);
 }
 /***
  * Resources.LoadVideo
@@ -19463,6 +19466,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Resources, LoadImage);
 	DEF_NATIVE(Resources, LoadFont);
 	DEF_NATIVE(Resources, LoadModel);
+	DEF_NATIVE(Resources, LoadAudio);
 	DEF_NATIVE(Resources, LoadMusic);
 	DEF_NATIVE(Resources, LoadSound);
 	DEF_NATIVE(Resources, LoadVideo);
