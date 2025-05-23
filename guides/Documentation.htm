@@ -102,7 +102,6 @@
         <h3>Instance methods</h3>
         <ul>
             <li><a href="#Reference_Instance">Instance</a></li>
-            <li><a href="#Reference_Sprite">Sprite</a></li>
         </ul>
         <h3>Enums</h3>
         <ul>
@@ -632,6 +631,7 @@
                     <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
                     <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
                     <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
+                    <li><a href="#Reference_methods_instance_ReturnHitbox">instance.ReturnHitbox</a></li>
                     <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
@@ -1190,10 +1190,6 @@
                     <li><a href="#Reference_functions_Sprite_MakePalettized">Sprite.MakePalettized</a></li>
                     <li><a href="#Reference_functions_Sprite_MakeNonPalettized">Sprite.MakeNonPalettized</a></li>
                 </ul>
-                <i>Instance methods:</i>
-                <ul>
-                    <li><a href="#Reference_methods_sprite_ReturnHitbox">sprite.ReturnHitbox</a></li>
-                </ul>
             </p>
             <p id="Reference_Stream">
                 <h2>Stream</h2>
@@ -1441,6 +1437,7 @@
                     <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
                     <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
                     <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
+                    <li><a href="#Reference_methods_instance_ReturnHitbox">instance.ReturnHitbox</a></li>
                     <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
                     <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
@@ -1540,32 +1537,6 @@
                     <li><a href="#Reference_fields_instance_Persistent">instance.Persistent</a></li>
                     <li><a href="#Reference_fields_instance_Interactable">instance.Interactable</a></li>
                     <li><a href="#Reference_fields_instance_Persistence">instance.Persistence</a></li>
-                </ul>
-            </p>
-            <p id="Reference_Sprite">
-                <h2>Sprite</h2>
-                <i>Class methods:</i>
-                <ul>
-                    <li><a href="#Reference_functions_Sprite_GetAnimationCount">Sprite.GetAnimationCount</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetAnimationName">Sprite.GetAnimationName</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetAnimationIndexByName">Sprite.GetAnimationIndexByName</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameExists">Sprite.GetFrameExists</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameLoopIndex">Sprite.GetFrameLoopIndex</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameCount">Sprite.GetFrameCount</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameDuration">Sprite.GetFrameDuration</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameSpeed">Sprite.GetFrameSpeed</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameWidth">Sprite.GetFrameWidth</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameHeight">Sprite.GetFrameHeight</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameID">Sprite.GetFrameID</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameOffsetX">Sprite.GetFrameOffsetX</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameOffsetY">Sprite.GetFrameOffsetY</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetHitbox">Sprite.GetHitbox</a></li>
-                    <li><a href="#Reference_functions_Sprite_MakePalettized">Sprite.MakePalettized</a></li>
-                    <li><a href="#Reference_functions_Sprite_MakeNonPalettized">Sprite.MakeNonPalettized</a></li>
-                </ul>
-                <i>Instance methods:</i>
-                <ul>
-                    <li><a href="#Reference_methods_sprite_ReturnHitbox">sprite.ReturnHitbox</a></li>
                 </ul>
             </p>
         <h3>Enums</h3>
@@ -1815,7 +1786,7 @@
                     <li><a href="#Reference_enums_KeyBind_DevRestartScene">KeyBind_DevRestartScene</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevRecompile">KeyBind_DevRecompile</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevPerfSnapshot">KeyBind_DevPerfSnapshot</a></li>
-                    <li><a href="#Reference_enums_KeyBind_Fullscreen">KeyBind_Fullscreen</a></li>
+                    <li><a href="#Reference_enums_KeyBind_DevLayerInfo">KeyBind_DevLayerInfo</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevFastForward">KeyBind_DevFastForward</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevFrameStepper">KeyBind_DevFrameStepper</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevStepFrame">KeyBind_DevStepFrame</a></li>
@@ -2061,7 +2032,7 @@
         <h3>Class methods</h3>
         <p id="Reference_functions_Animator_Create">
         <h2 style="margin-bottom: 8px;">Animator.Create</h2>
-        <code>Animator.Create(sprite, animationID, frameID, unloadPolicy)</code>
+        <code>Animator.Create([sprite, animationID, frameID, unloadPolicy])</code>
         <div style="margin-top: 8px; font-size: 14px;">Creates a new animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -3442,7 +3413,7 @@
         </p>
         <p id="Reference_functions_Draw_Tile">
         <h2 style="margin-bottom: 8px;">Draw.Tile</h2>
-        <code>Draw.Tile(ID, x, y, flipX, flipY[, scaleX, scaleY])</code>
+        <code>Draw.Tile(ID, x, y[, flipX, flipY, scaleX, scaleY])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a tile.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -3451,8 +3422,8 @@
         <li>y (Number): Y position of where to draw the tile.</li>
         <li>flipX (Integer): Whether or not to flip the tile horizontally.</li>
         <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
-        <li>scaleX (Number): Scale multiplier of the tile horizontally.</li>
-        <li>scaleY (Number): Scale multiplier of the tile vertically.</li>
+        <li>scaleX (Number): Horizontal scale multiplier of the tile.</li>
+        <li>scaleY (Number): Vertical scale multiplier of the tile.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_Texture">
@@ -10374,6 +10345,21 @@
         <li>hitbox (Integer): The hitbox ID.</li>
         </ul>
         </p>
+        <p id="Reference_methods_instance_ReturnHitbox">
+        <h2 style="margin-bottom: 8px;">instance.ReturnHitbox</h2>
+        <code>instance.ReturnHitbox(instance, sprite, animationID, frameID, hitboxID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>instance (Instance): An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).</li>
+        <li>sprite (Integer): The sprite index to check (if an entity is not provided).</li>
+        <li>animationID (Integer): The animation index of the sprite to check (if an entity is not provided).</li>
+        <li>frameID (Integer): The frame index of the animation to check (if an entity is not provided).</li>
+        <li>hitboxID (Integer): The index number of the hitbox.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
+        </p>
         <p id="Reference_methods_instance_CollideWithObject">
         <h2 style="margin-bottom: 8px;">instance.CollideWithObject</h2>
         <code>instance.CollideWithObject(other)</code>
@@ -10520,21 +10506,6 @@
         <h2 style="margin-bottom: 8px;">instance.StopAllSounds</h2>
         <code>instance.StopAllSounds()</code>
         <div style="margin-top: 8px; font-size: 14px;">Stops all sounds the entity is playing.</div>
-        </p>
-        <p id="Reference_methods_sprite_ReturnHitbox">
-        <h2 style="margin-bottom: 8px;">sprite.ReturnHitbox</h2>
-        <code>sprite.ReturnHitbox(instance, sprite, animationID, frameID, hitboxID)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>instance (Instance): An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).</li>
-        <li>sprite (Integer): The sprite index to check (if an entity is not provided).</li>
-        <li>animationID (Integer): The animation index of the sprite to check (if an entity is not provided).</li>
-        <li>frameID (Integer): The frame index of the animation to check (if an entity is not provided).</li>
-        <li>hitboxID (Integer): The index number of the hitbox.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
         </p>
         <p>26 out of 26 methods have descriptions. </p>
         <hr/>
@@ -11579,8 +11550,8 @@
         <h3 style="margin-bottom: 8px;"><code>KeyBind_DevPerfSnapshot</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Performance snapshot keybind. (dev)</div>
         </p>
-        <p id="Reference_enums_KeyBind_Fullscreen">
-        <h3 style="margin-bottom: 8px;"><code>KeyBind_Fullscreen</code></h2>
+        <p id="Reference_enums_KeyBind_DevLayerInfo">
+        <h3 style="margin-bottom: 8px;"><code>KeyBind_DevLayerInfo</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Scene layer info keybind. (dev)</div>
         </p>
         <p id="Reference_enums_KeyBind_DevFastForward">

@@ -1545,7 +1545,7 @@ VMValue ScriptEntity::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32
  * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
  * \param hitboxID (Integer): The index number of the hitbox.
  * \return Returns a reference value to a hitbox array.
- * \ns Sprite
+ * \ns Instance
  */
 VMValue ScriptEntity::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	ScriptEntity* self = GET_ENTITY(0);

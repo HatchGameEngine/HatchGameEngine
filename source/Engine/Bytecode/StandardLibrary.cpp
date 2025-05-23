@@ -597,10 +597,10 @@ bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) 
 /***
  * Animator.Create
  * \desc Creates a new animator.
- * \param sprite (Integer): The index of the sprite.
- * \param animationID (Integer): Which animation to use.
- * \param frameID (Integer): Which frame to use.
- * \param unloadPolicy (Integer): When to unload the animator.
+ * \paramOpt sprite (Integer): The index of the sprite.
+ * \paramOpt animationID (Integer): Which animation to use.
+ * \paramOpt frameID (Integer): Which frame to use.
+ * \paramOpt unloadPolicy (Integer): When to unload the animator.
  * \return Returns the index of the Animator.
  * \ns Animator
  */
@@ -3617,10 +3617,10 @@ VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param ID (Integer): ID of the tile to draw.
  * \param x (Number): X position of where to draw the tile.
  * \param y (Number): Y position of where to draw the tile.
- * \param flipX (Integer): Whether or not to flip the tile horizontally.
- * \param flipY (Integer): Whether or not to flip the tile vertically.
- * \paramOpt scaleX (Number): Scale multiplier of the tile horizontally.
- * \paramOpt scaleY (Number): Scale multiplier of the tile vertically.
+ * \paramOpt flipX (Integer): Whether or not to flip the tile horizontally.
+ * \paramOpt flipY (Integer): Whether or not to flip the tile vertically.
+ * \paramOpt scaleX (Number): Horizontal scale multiplier of the tile.
+ * \paramOpt scaleY (Number): Vertical scale multiplier of the tile.
  * \ns Draw
  */
 VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
@@ -18086,7 +18086,7 @@ void StandardLibrary::Link() {
     */
 	DEF_ENUM_CLASS(KeyBind, DevPerfSnapshot);
 	/***
-    * \enum KeyBind_Fullscreen
+    * \enum KeyBind_DevLayerInfo
     * \desc Scene layer info keybind. (dev)
     */
 	DEF_ENUM_CLASS(KeyBind, DevLayerInfo);
