@@ -14847,7 +14847,7 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (audio) {
-		AudioManager::SetSound(channel & AudioManager::SoundArrayLength,
+		AudioManager::SetSound(channel % AudioManager::SoundArrayLength,
 			audio,
 			loopPoint >= 0,
 			loopPoint >= 0 ? loopPoint : 0,
