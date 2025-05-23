@@ -31,20 +31,6 @@ struct Animation {
 	int FrameListOffset;
 	int FrameCount;
 };
-struct Animator {
-	vector<AnimFrame> Frames;
-	void* Sprite = nullptr;
-	int CurrentAnimation = -1;
-	int CurrentFrame = -1;
-	int PrevAnimation = 0;
-	int AnimationSpeed = 0;
-	int AnimationTimer = 0;
-	int Duration = 0;
-	int FrameCount = 0;
-	int LoopIndex = 0;
-	int RotationStyle = 0;
-	Uint32 UnloadPolicy = 0;
-};
 
 enum {
 	ROTSTYLE_NONE = 0,

@@ -2,6 +2,7 @@
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/Rendering/3D.h>
 #include <Engine/ResourceTypes/ModelFormats/Importer.h>
+#include <Engine/ResourceTypes/ResourceType.h>
 #include <Engine/Utilities/StringUtils.h>
 
 vector<int> ModelImporter::MeshIDs;
@@ -209,20 +210,28 @@ Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, un
 	Material* material = Material::Create(name);
 
 	if (mat->GetTexture(aiTextureType_DIFFUSE, 0, &texDiffuse) == AI_SUCCESS) {
-		material->TextureDiffuse =
-			Material::LoadForModel(texDiffuse.data, ModelImporter::ParentDirectory);
+		void* resource = Material::LoadForModel(texDiffuse.data, ModelImporter::ParentDirectory);
+		if (resource != nullptr) {
+			material->TextureDiffuse = (void*)(((ResourceType*)resource)->AsImage);
+		}
 	}
 	if (mat->GetTexture(aiTextureType_SPECULAR, 0, &texSpecular) == AI_SUCCESS) {
-		material->TextureSpecular =
-			Material::LoadForModel(texSpecular.data, ModelImporter::ParentDirectory);
+		void* resource = Material::LoadForModel(texSpecular.data, ModelImporter::ParentDirectory);
+		if (resource != nullptr) {
+			material->TextureSpecular = (void*)(((ResourceType*)resource)->AsImage);
+		}
 	}
 	if (mat->GetTexture(aiTextureType_AMBIENT, 0, &texAmbient) == AI_SUCCESS) {
-		material->TextureAmbient =
-			Material::LoadForModel(texAmbient.data, ModelImporter::ParentDirectory);
+		void* resource = Material::LoadForModel(texAmbient.data, ModelImporter::ParentDirectory);
+		if (resource != nullptr) {
+			material->TextureAmbient = (void*)(((ResourceType*)resource)->AsImage);
+		}
 	}
 	if (mat->GetTexture(aiTextureType_EMISSIVE, 0, &texEmissive) == AI_SUCCESS) {
-		material->TextureEmissive =
-			Material::LoadForModel(texEmissive.data, ModelImporter::ParentDirectory);
+		void* resource = Material::LoadForModel(texEmissive.data, ModelImporter::ParentDirectory);
+		if (resource != nullptr) {
+			material->TextureEmissive = (void*)(((ResourceType*)resource)->AsImage);
+		}
 	}
 
 	if (mat->Get(AI_MATKEY_COLOR_DIFFUSE, colorDiffuse) == AI_SUCCESS) {

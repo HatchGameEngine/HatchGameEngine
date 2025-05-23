@@ -31,7 +31,8 @@ public:
 	static bool IsFile(Stream* stream);
 	bool Load(const char* filename, bool streamFromFile);
 	AudioPlayback* CreatePlayer();
-	void Dispose();
+	void Unload();
+	~ISound();
 };
 
 #endif /* ENGINE_RESOURCETYPES_ISOUND_H */

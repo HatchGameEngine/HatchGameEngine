@@ -17,6 +17,7 @@ class Entity;
 #include <Engine/Scene/TileConfig.h>
 #include <Engine/Scene/TileSpriteInfo.h>
 #include <Engine/Scene/View.h>
+#include <Engine/Sprites/Animator.h>
 #include <Engine/Types/DrawGroupList.h>
 #include <Engine/Types/EntityTypes.h>
 #include <Engine/Types/ObjectList.h>

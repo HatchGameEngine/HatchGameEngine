@@ -61,7 +61,7 @@ public:
 	int FindAnimation(const char* animname);
 	void LinkAnimation(vector<Animation> ani);
 	bool SaveAnimation(const char* filename);
-	void Dispose();
+	void Unload();
 	~ISprite();
 };
 

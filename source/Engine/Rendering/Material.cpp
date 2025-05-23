@@ -41,8 +41,6 @@ void* Material::TryLoadForModel(std::string imagePath, const char* parentDirecto
 
 	ResourceType* resource = Resource::Load(RESOURCE_IMAGE, filename.c_str(), SCOPE_GAME);
 	if (resource) {
-		Resource::TakeRef(resource);
-
 		return (void*)resource;
 	}
 
@@ -87,17 +85,31 @@ void* Material::LoadForModel(const char* imagePath, const char* parentDirectory)
 	return LoadForModel(std::string(imagePath), parentDirectory);
 }
 
-void Material::ReleaseImage(void* imagePtr) {
-	if (imagePtr) {
-		Resource::Release((ResourceType*)imagePtr);
+void Material::SetTexture(void** resourceable, void* newImage) {
+	Image* image = (Image*)newImage;
+
+	ReleaseTexture(resourceable);
+
+	if (image) {
+		image->TakeRef();
+		(*resourceable) = image;
+	}
+}
+
+void Material::ReleaseTexture(void** resourceable) {
+	Image* image = *((Image**)resourceable);
+	if (image) {
+		image->Release();
+
+		(*resourceable) = nullptr;
 	}
 }
 
 void Material::Dispose() {
-	ReleaseImage(TextureDiffuse);
-	ReleaseImage(TextureSpecular);
-	ReleaseImage(TextureAmbient);
-	ReleaseImage(TextureEmissive);
+	ReleaseTexture(&TextureDiffuse);
+	ReleaseTexture(&TextureSpecular);
+	ReleaseTexture(&TextureAmbient);
+	ReleaseTexture(&TextureEmissive);
 
 	Memory::Free(Name);
 

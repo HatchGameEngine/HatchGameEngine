@@ -75,7 +75,6 @@ struct ResourceType {
 		IModel* AsModel;
 		MediaBag* AsMedia;
 		Resourceable* AsResourceable;
-		void* AsAny;
 	};
 };
 

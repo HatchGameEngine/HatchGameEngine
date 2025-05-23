@@ -13,12 +13,12 @@
 ISound::ISound(const char* filename) {
 	Type = RESOURCE_AUDIO;
 
-	LoadFailed = !Load(filename, true);
+	Loaded = Load(filename, true);
 }
 ISound::ISound(const char* filename, bool streamFromFile) {
 	Type = RESOURCE_AUDIO;
 
-	LoadFailed = !Load(filename, streamFromFile);
+	Loaded = Load(filename, streamFromFile);
 }
 
 Uint8 ISound::DetectFormat(Stream* stream) {
@@ -126,10 +126,22 @@ AudioPlayback* ISound::CreatePlayer() {
 	return playback;
 }
 
-void ISound::Dispose() {
+void ISound::Unload() {
+	if (!Loaded) {
+		return;
+	}
+
+	AudioManager::Unload(this);
+
 	if (SoundData) {
 		SoundData->Dispose();
 		delete SoundData;
 		SoundData = nullptr;
 	}
+
+	Loaded = false;
+}
+
+ISound::~ISound() {
+	Unload();
 }

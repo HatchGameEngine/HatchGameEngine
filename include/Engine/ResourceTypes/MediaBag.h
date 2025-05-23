@@ -15,8 +15,7 @@ public:
 	bool Dirty;
 
 	MediaBag(const char* filename);
-	void Close();
-	void Dispose();
+	void Unload();
 	~MediaBag();
 };
 

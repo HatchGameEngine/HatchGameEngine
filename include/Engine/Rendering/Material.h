@@ -6,7 +6,7 @@
 class Material {
 private:
 	static void* TryLoadForModel(std::string imagePath, const char* parentDirectory);
-	void ReleaseImage(void* imagePtr);
+	void ReleaseTexture(void** resourceable);
 
 public:
 	char* Name = nullptr;
@@ -35,6 +35,7 @@ public:
 	static void* LoadForModel(const char* imagePath, const char* parentDirectory);
 
 	Material(char* name);
+	void SetTexture(void** resourceable, void* newImage);
 	void Dispose();
 	~Material();
 };

@@ -2420,6 +2420,7 @@ bool Scene::AddTileset(char* path) {
 	int cols = spriteSheet->Width / Scene::TileWidth;
 	int rows = spriteSheet->Height / Scene::TileHeight;
 
+	tileSprite->TakeRef();
 	tileSprite->ReserveAnimationCount(1);
 	tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
 
@@ -2667,7 +2668,7 @@ void Scene::Dispose() {
 void Scene::UnloadTilesets() {
 	for (size_t i = 0; i < Scene::Tilesets.size(); i++) {
 		if (Scene::Tilesets[i].Sprite) {
-			delete Scene::Tilesets[i].Sprite;
+			Scene::Tilesets[i].Sprite->Release();
 		}
 		if (Scene::Tilesets[i].Filename) {
 			Memory::Free(Scene::Tilesets[i].Filename);

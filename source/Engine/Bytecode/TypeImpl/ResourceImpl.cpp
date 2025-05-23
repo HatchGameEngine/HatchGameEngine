@@ -91,7 +91,12 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 		*result = INTEGER_VAL((int)resource->UnloadPolicy);
 	}
 	else if (hash == Hash_Data) {
-		*result = OBJECT_VAL(resource->AsResourceable->GetVMObject());
+		if (resource->AsResourceable) {
+			*result = OBJECT_VAL(resource->AsResourceable->GetVMObject());
+		}
+		else {
+			*result = NULL_VAL;
+		}
 	}
 	else {
 		return false;

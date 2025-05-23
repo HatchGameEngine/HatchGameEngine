@@ -1147,7 +1147,7 @@ bool ScriptEntity::VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 t
 	if (hash == Hash_Sprite) {
 		if (result) {
 			if (self->Sprite) {
-				*result = OBJECT_VAL(Resource::GetVMObject((ResourceType*)self->Sprite));
+				*result = OBJECT_VAL(self->Sprite->GetVMObject());
 			}
 			else {
 				*result = NULL_VAL;
@@ -1194,16 +1194,10 @@ bool ScriptEntity::VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 thr
 			return true;
 		}
 
-		if (!IS_RESOURCE(value)) {
-			StandardLibrary::ExpectedObjectTypeError(value, OBJ_RESOURCE, threadID);
-			return true;
-		}
+		void* resourceable = StandardLibrary::GetResourceable(RESOURCE_SPRITE, value, threadID);
+		ISprite* sprite = (ISprite *)resourceable;
 
-		ObjResource* resourceObj = AS_RESOURCE(value);
-		void* resource = resourceObj->ResourcePtr;
-		if (StandardLibrary::ValidateResource(resource, RESOURCE_SPRITE, threadID)) {
-			self->SetSprite(resource);
-		}
+		self->SetSprite(sprite);
 
 		return true;
 	}
@@ -1251,17 +1245,16 @@ VMValue ScriptEntity::VM_SetAnimation(int argCount, VMValue* args, Uint32 thread
 		return NULL_VAL;
 	}
 
-	ResourceType* resource = (ResourceType*)self->Sprite;
-	if (!resource) {
+	ISprite* sprite = self->Sprite;
+	if (!sprite) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Sprite is not set!", animation);
 		return NULL_VAL;
 	}
 
-	ISprite* sprite = resource->AsSprite;
-	if (!sprite) {
+	if (!sprite->IsLoaded()) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite is no longer valid!", animation);
+			false, "Sprite is no longer valid!");
 		return NULL_VAL;
 	}
 
@@ -1296,15 +1289,14 @@ VMValue ScriptEntity::VM_ResetAnimation(int argCount, VMValue* args, Uint32 thre
 		return NULL_VAL;
 	}
 
-	ResourceType* resource = (ResourceType*)self->Sprite;
-	if (!resource) {
+	ISprite* sprite = self->Sprite;
+	if (!sprite) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite is not set!");
+			false, "Sprite is not set!", animation);
 		return NULL_VAL;
 	}
 
-	ISprite* sprite = resource->AsSprite;
-	if (!sprite) {
+	if (!sprite->IsLoaded()) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Sprite is no longer valid!");
 		return NULL_VAL;
@@ -1603,7 +1595,7 @@ VMValue ScriptEntity::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 thread
 			break;
 		}
 
-		sprite = ((ResourceType*)self->Sprite)->AsSprite;
+		sprite = self->Sprite;
 		animationID = self->CurrentAnimation;
 		frameID = self->CurrentFrame;
 		hitboxID = argCount == 2 ? GET_ARG(1, GetInteger) : 0;

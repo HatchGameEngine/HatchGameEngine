@@ -80,6 +80,7 @@ bool Resource::Reload(ResourceType* resource) {
 	Resourceable* data = LoadData(resource->Type, resource->Filename);
 	if (data != nullptr) {
 		UnloadData(resource); // Unload only if loading succeeded
+		data->TakeRef();
 		resource->AsResourceable = data;
 		resource->Loaded = true;
 	}
@@ -192,6 +193,7 @@ ResourceType* Resource::LoadFont(const char* filename, int pixel_sz, int unloadP
 
 	// Allocate a new resource.
 	ResourceType* resource = New(RESOURCE_FONT, filename, hash, unloadPolicy);
+	data->TakeRef();
 	resource->AsSprite = data;
 	resource->Loaded = true;
 
@@ -263,10 +265,12 @@ Resourceable* Resource::LoadData(Uint8 type, const char* filename) {
 		break;
 	}
 
-	if (data && !data->Loaded()) {
+	if (data && !data->IsLoaded()) {
 		delete data;
 		return nullptr;
 	}
+
+	data->TakeRef();
 
 	return data;
 }
@@ -276,46 +280,13 @@ ISprite* Resource::LoadFontData(const char* filename, int pixel_sz) {
 }
 
 bool Resource::UnloadData(ResourceType* resource) {
-	switch (resource->Type) {
-	case RESOURCE_SPRITE:
-	case RESOURCE_FONT:
-		if (resource->AsSprite != nullptr) {
-			delete resource->AsSprite;
-			resource->AsSprite = nullptr;
-			return true;
-		}
-		break;
-	case RESOURCE_IMAGE:
-		if (resource->AsImage != nullptr) {
-			delete resource->AsImage;
-			resource->AsImage = nullptr;
-			return true;
-		}
-		break;
-	case RESOURCE_AUDIO:
-		if (resource->AsAudio != nullptr) {
-			AudioManager::Unload(resource->AsAudio);
-			delete resource->AsAudio;
-			resource->AsModel = nullptr;
-			return true;
-		}
-		break;
-	case RESOURCE_MODEL:
-		if (resource->AsModel != nullptr) {
-			delete resource->AsModel;
-			resource->AsModel = nullptr;
-			return true;
-		}
-		break;
-	case RESOURCE_MEDIA:
-		if (resource->AsMedia != nullptr) {
-			delete resource->AsMedia;
-			resource->AsMedia = nullptr;
-			return true;
-		}
-		break;
-	default:
-		break;
+	Resourceable* resourceable = resource->AsResourceable;
+
+	if (resourceable != nullptr) {
+		resourceable->Unload();
+		resourceable->Release();
+		resource->AsResourceable = nullptr;
+		return true;
 	}
 
 	return false;

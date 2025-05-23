@@ -5,7 +5,7 @@
 MediaBag::MediaBag(const char* filename) {
 	Type = RESOURCE_MEDIA;
 
-	LoadFailed = !Load(filename);
+	Loaded = Load(filename);
 }
 
 bool MediaBag::Load(const char* filename) {
@@ -69,7 +69,11 @@ bool MediaBag::Load(const char* filename) {
 #endif
 }
 
-void MediaBag::Close() {
+void MediaBag::Unload() {
+	if (!Loaded) {
+		return;
+	}
+
 #ifdef USING_FFMPEG
 	AudioManager::Lock();
 
@@ -85,12 +89,10 @@ void MediaBag::Close() {
 
 	AudioManager::Unlock();
 #endif
-}
 
-void MediaBag::Dispose() {
-	Close();
+	Loaded = false;
 }
 
 MediaBag::~MediaBag() {
-	Dispose();
+	Unload();
 }

@@ -312,11 +312,11 @@ bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
 		for (size_t i = 0; i < numMaterials; i++) {
 			char* name = StringUtils::Create(MaterialNames[i]);
 			Material* material = Material::Create(name);
-			material->TextureDiffuse =
-				Material::LoadForModel(MaterialNames[i], parentDirectory);
-			if (material->TextureDiffuse) {
-				material->TextureDiffuseName =
-					StringUtils::Duplicate(((ResourceType*)material->TextureDiffuse)->Filename);
+			void* resource = Material::LoadForModel(MaterialNames[i], parentDirectory);
+			ResourceType* diffuse = (ResourceType*)resource;
+			if (diffuse) {
+				material->TextureDiffuse = (void*)diffuse->AsImage;
+				material->TextureDiffuseName = StringUtils::Duplicate(diffuse->Filename);
 			}
 			model->AddUniqueMaterial(material);
 		}

@@ -109,9 +109,9 @@ VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 #define GET_TEXTURE(type) \
 	{ \
 		if (hash == Hash_##type##Texture) { \
-			ResourceType* resource = (ResourceType*)material->Texture##type; \
+			Image* resource = (Image*)material->Texture##type; \
 			if (resource != nullptr) { \
-				*result = OBJECT_VAL(Resource::GetVMObject(resource)); \
+				*result = OBJECT_VAL(resource->GetVMObject()); \
 			} \
 			else { \
 				*result = NULL_VAL; \
@@ -176,38 +176,15 @@ bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 		} \
 	}
 
-static void DoTextureRemoval(void** resource) {
-	if (*resource) {
-		Resource::Release(*((ResourceType**)resource));
-
-		(*resource) = nullptr;
-	}
-}
-
-static void DoTextureReplacement(VMValue value, void** resource, Uint32 threadID) {
-	if (!IS_RESOURCE(value)) {
-		StandardLibrary::ExpectedObjectTypeError(value, OBJ_RESOURCE, threadID);
-		return;
-	}
-
-	ObjResource* obj = AS_RESOURCE(value);
-
-	DoTextureRemoval(resource);
-
-	void* newResource = (ResourceType*)obj->ResourcePtr;
-	Resource::TakeRef((ResourceType*)newResource);
-	(*resource) = newResource;
-}
-
 #define SET_TEXTURE(type) \
 	{ \
 		if (hash == Hash_##type##Texture) { \
 			if (IS_NULL(value)) { \
-				DoTextureRemoval(&material->Texture##type); \
+				material->SetTexture(&material->Texture##type, nullptr); \
 			} \
 			else { \
-				DoTextureReplacement( \
-					value, &material->Texture##type, threadID); \
+				Image* image = (Image*)StandardLibrary::GetResourceable(RESOURCE_IMAGE, value, threadID); \
+				material->SetTexture(&material->Texture##type, (void*)image); \
 			} \
 			return true; \
 		} \

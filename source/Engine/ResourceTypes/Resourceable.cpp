@@ -1,9 +1,31 @@
 #include <Engine/ResourceTypes/Resourceable.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
 
-bool Resourceable::Loaded() {
-	return !LoadFailed;
+bool Resourceable::IsLoaded() {
+	return Loaded;
 }
+
+void Resourceable::TakeRef() {
+	RefCount++;
+}
+
+bool Resourceable::Release() {
+	if (RefCount == 0) {
+		abort();
+	}
+
+	RefCount--;
+
+	if (RefCount == 0) {
+		delete this;
+
+		return true;
+	}
+
+	return false;
+}
+
+void Resourceable::Unload() {}
 
 void* Resourceable::GetVMObject() {
 	if (VMObject == nullptr) {

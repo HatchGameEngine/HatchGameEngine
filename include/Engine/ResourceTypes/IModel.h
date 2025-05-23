@@ -51,7 +51,7 @@ public:
 	int GetAnimationIndex(const char* animationName);
 	int NewArmature();
 	void DeleteArmature(size_t index);
-	void Dispose();
+	void Unload();
 	~IModel();
 };
 

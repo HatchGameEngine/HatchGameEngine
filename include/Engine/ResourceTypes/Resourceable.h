@@ -5,16 +5,20 @@
 
 class Resourceable {
 protected:
-	bool LoadFailed = true;
+	bool Loaded = false;
 	void* VMObject = nullptr;
+	int RefCount = 0;
 
 public:
 	Uint8 Type = 0;
 
-	bool Loaded();
+	bool IsLoaded();
+	void TakeRef();
+	bool Release();
 	void* GetVMObject();
 	void* GetVMObjectPtr();
 	void ReleaseVMObject();
+	virtual void Unload();
 	virtual ~Resourceable();
 };
 

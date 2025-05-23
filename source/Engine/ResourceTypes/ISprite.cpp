@@ -15,7 +15,7 @@
 
 ISprite::ISprite() {
 	Type = RESOURCE_SPRITE;
-	LoadFailed = false;
+	Loaded = true;
 
 	Spritesheets.clear();
 	Spritesheets.shrink_to_fit();
@@ -23,9 +23,14 @@ ISprite::ISprite() {
 	SpritesheetFilenames.shrink_to_fit();
 }
 ISprite::ISprite(const char* filename) {
-	ISprite();
+	Type = RESOURCE_SPRITE;
 
-	LoadFailed = !LoadAnimation(filename);
+	Spritesheets.clear();
+	Spritesheets.shrink_to_fit();
+	SpritesheetFilenames.clear();
+	SpritesheetFilenames.shrink_to_fit();
+
+	Loaded = LoadAnimation(filename);
 }
 
 size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
@@ -441,7 +446,11 @@ bool ISprite::SaveAnimation(const char* filename) {
 	return true;
 }
 
-void ISprite::Dispose() {
+void ISprite::Unload() {
+	if (!Loaded) {
+		return;
+	}
+
 	for (size_t a = 0; a < Animations.size(); a++) {
 		for (size_t i = 0; i < Animations[a].Frames.size(); i++) {
 			AnimFrame* anfrm = &Animations[a].Frames[i];
@@ -475,8 +484,10 @@ void ISprite::Dispose() {
 	SpritesheetFilenames.shrink_to_fit();
 
 	Graphics::DeleteFrameBufferID(this);
+
+	Loaded = false;
 }
 
 ISprite::~ISprite() {
-	Dispose();
+	Unload();
 }

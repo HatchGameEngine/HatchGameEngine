@@ -15,14 +15,11 @@ enum {
 };
 
 class Image : public Resourceable {
-private:
-	static Image* New(const char* filename);
-
 public:
 	Texture* TexturePtr = NULL;
 
 	Image(const char* filename);
-	void Dispose();
+	void Unload();
 	~Image();
 
 	static Uint8 DetectFormat(Stream* stream);

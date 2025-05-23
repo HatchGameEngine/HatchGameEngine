@@ -37,6 +37,7 @@
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneInfo.h>
+#include <Engine/Sprites/Animator.h>
 #include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -81,18 +82,32 @@
 // Get$1($2, $3, threadID)
 
 namespace LOCAL {
-inline bool ValidateResource(void* ptr, Uint8 type, Uint32 threadID) {
-	ResourceType* resource = (ResourceType*)ptr;
+inline bool ValidateResource(ResourceType* resource, Uint8 type, Uint32 threadID) {
 	if (!resource || !resource->Loaded) {
 		THROW_ERROR("Resource is not loaded!");
 		return false;
 	}
 
-	// Validate if type != RESOURCE_NONE
-	if (type != RESOURCE_NONE && resource->Type != type) {
+	if (resource->Type != type) {
 		THROW_ERROR("Expected resource to be of type '%s' instead of '%s'.",
 		    GetResourceTypeString(type),
 		    GetResourceTypeString(resource->Type));
+		return false;
+	}
+
+	return true;
+}
+inline bool ValidateResourceable(void* ptr, Uint8 type, Uint32 threadID) {
+	Resourceable* resourceable = (Resourceable*)ptr;
+	if (!resourceable) {
+		THROW_ERROR("Resourceable is no longer valid!");
+		return false;
+	}
+
+	if (resourceable->Type != type) {
+		THROW_ERROR("Expected resourceable to be of type '%s' instead of '%s'.",
+		    GetResourceTypeString(type),
+		    GetResourceTypeString(resourceable->Type));
 		return false;
 	}
 
@@ -256,72 +271,99 @@ inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
-inline void* GetResource(VMValue* args, int index, Uint32 threadID) {
-	ObjResource* resourceObj = nullptr;
-
-	if (ScriptManager::Lock()) {
-		if (IS_RESOURCE(args[index])) {
-			resourceObj = (ObjResource*)(AS_OBJECT(args[index]));
-		}
-		else {
-			ExpectedObjectTypeError(index, args[index], OBJ_RESOURCE, threadID);
-		}
-		ScriptManager::Unlock();
+inline ResourceType* GetResource(VMValue* args, int index, Uint32 threadID) {
+	if (IS_RESOURCE(args[index])) {
+		void* ptr = ((ObjResource*)(AS_OBJECT(args[index])))->ResourcePtr;
+		return (ResourceType*)ptr;
 	}
 
-	if (resourceObj) {
-		return resourceObj->ResourcePtr;
-	}
+	ExpectedObjectTypeError(index, args[index], OBJ_RESOURCE, threadID);
 
 	return nullptr;
 }
 inline void* GetResource(Uint8 type, VMValue* args, int index, Uint32 threadID) {
-	void* resource = GetResource(args, index, threadID);
+	ResourceType* resource = GetResource(args, index, threadID);
 	if (ValidateResource(resource, type, threadID)) {
 		return resource;
 	}
 
 	return nullptr;
 }
-inline ISprite* GetSprite(VMValue* args, int index, Uint32 threadID) {
-	void* resource = GetResource(RESOURCE_SPRITE, args, index, threadID);
-	if (resource != nullptr) {
-		return ((ResourceType*)resource)->AsSprite;
+inline Resourceable* GetValueAsResourceable(Uint8 type, VMValue value, Uint32 threadID) {
+	if (IS_RESOURCE(value)) {
+		ObjResource* obj = AS_RESOURCE(value);
+		ResourceType* resourcePtr = (ResourceType*)obj->ResourcePtr;
+		if (ValidateResource(resourcePtr, type, threadID)) {
+			return (Resourceable*)resourcePtr->AsResourceable;
+		}
 	}
-	return nullptr;
-}
-inline ISprite* GetSprite(ResourceType* resource, Uint32 threadID) {
-	if (ValidateResource((void*)resource, RESOURCE_SPRITE, threadID)) {
-		return resource->AsSprite;
+	else if (IS_RESOURCEABLE(value)) {
+		ObjResourceable* obj = AS_RESOURCEABLE(value);
+		if (ValidateResourceable(obj->ResourceablePtr, type, threadID)) {
+			return (Resourceable*)obj->ResourceablePtr;
+		}
 	}
 
 	return nullptr;
 }
-inline Image* GetImage(VMValue* args, int index, Uint32 threadID) {
-	void* resource = GetResource(RESOURCE_IMAGE, args, index, threadID);
+inline Resourceable* GetResourceable(Uint8 type, VMValue value, Uint32 threadID) {
+	Resourceable* resourceable = GetValueAsResourceable(type, value, threadID);
+	if (resourceable != nullptr) {
+		return resourceable;
+	}
+
+	if (!(IS_RESOURCE(value) || IS_RESOURCEABLE(value))) {
+		ExpectedObjectTypeError(value, OBJ_RESOURCEABLE, threadID);
+	}
+
+	return nullptr;
+}
+inline Resourceable* GetResourceable(Uint8 type, VMValue* args, int index, Uint32 threadID) {
+	VMValue value = args[index];
+
+	Resourceable* resourceable = GetValueAsResourceable(type, value, threadID);
+	if (resourceable != nullptr) {
+		return resourceable;
+	}
+
+	if (!(IS_RESOURCE(value) || IS_RESOURCEABLE(value))) {
+		ExpectedObjectTypeError(index, value, OBJ_RESOURCEABLE, threadID);
+	}
+
+	return nullptr;
+}
+inline ISprite* GetSprite(VMValue* args, int index, Uint32 threadID) {
+	Resourceable* resource = GetResourceable(RESOURCE_SPRITE, args, index, threadID);
 	if (resource != nullptr) {
-		return ((ResourceType*)resource)->AsImage;
+		return (ISprite*)resource;
+	}
+	return nullptr;
+}
+inline Image* GetImage(VMValue* args, int index, Uint32 threadID) {
+	Resourceable* resource = GetResourceable(RESOURCE_IMAGE, args, index, threadID);
+	if (resource != nullptr) {
+		return (Image*)resource;
 	}
 	return nullptr;
 }
 inline ISound* GetAudio(VMValue* args, int index, Uint32 threadID) {
-	void* resource = GetResource(RESOURCE_AUDIO, args, index, threadID);
+	Resourceable* resource = GetResourceable(RESOURCE_AUDIO, args, index, threadID);
 	if (resource != nullptr) {
-		return ((ResourceType*)resource)->AsAudio;
+		return (ISound*)resource;
 	}
 	return nullptr;
 }
 inline IModel* GetModel(VMValue* args, int index, Uint32 threadID) {
-	void* resource = GetResource(RESOURCE_MODEL, args, index, threadID);
+	Resourceable* resource = GetResourceable(RESOURCE_MODEL, args, index, threadID);
 	if (resource != nullptr) {
-		return ((ResourceType*)resource)->AsModel;
+		return (IModel*)resource;
 	}
 	return nullptr;
 }
 inline MediaBag* GetVideo(VMValue* args, int index, Uint32 threadID) {
-	void* resource = GetResource(RESOURCE_MEDIA, args, index, threadID);
+	Resourceable* resource = GetResourceable(RESOURCE_MEDIA, args, index, threadID);
 	if (resource != nullptr) {
-		return ((ResourceType*)resource)->AsMedia;
+		return (MediaBag*)resource;
 	}
 	return nullptr;
 }
@@ -361,9 +403,6 @@ inline Animator* GetAnimator(VMValue* args, int index, Uint32 threadID) {
 }
 } // namespace LOCAL
 
-bool StandardLibrary::ValidateResource(void* ptr, Uint8 type, Uint32 threadID) {
-	return LOCAL::ValidateResource(ptr, type, threadID);
-}
 int StandardLibrary::ExpectedTypeError(VMValue value, Uint32 expectedType, Uint32 threadID) {
 	return LOCAL::ExpectedTypeError(value, expectedType, threadID);
 }
@@ -375,6 +414,9 @@ int StandardLibrary::ExpectedTypeError(int index, VMValue value, Uint32 expected
 }
 int StandardLibrary::ExpectedObjectTypeError(int index, VMValue value, Uint32 expectedType, Uint32 threadID) {
 	return LOCAL::ExpectedObjectTypeError(index, value, expectedType, threadID);
+}
+void* StandardLibrary::GetResourceable(Uint8 type, VMValue value, Uint32 threadID) {
+	return (void*)LOCAL::GetResourceable(type, value, threadID);
 }
 // NOTE:
 // Integers specifically need to be whole integers.
@@ -397,11 +439,11 @@ ObjArray* StandardLibrary::GetArray(VMValue* args, int index, Uint32 threadID) {
 ObjMap* StandardLibrary::GetMap(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetMap(args, index, threadID);
 }
-void* StandardLibrary::GetResource(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetResource(args, index, threadID);
-}
 ISprite* StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetSprite(args, index, threadID);
+}
+void* StandardLibrary::GetResource(VMValue* args, int index, Uint32 threadID) {
+	return (void*)LOCAL::GetResource(args, index, threadID);
 }
 ISound* StandardLibrary::GetAudio(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetAudio(args, index, threadID);
@@ -580,24 +622,13 @@ bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) 
 VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(0);
 
-	void* spritePtr = nullptr;
+	ISprite* sprite = nullptr;
 	if (argCount >= 1) {
-		VMValue value = args[0];
-		if (!IS_RESOURCE(value)) {
-			ExpectedObjectTypeError(0, value, OBJ_RESOURCE, threadID);
-			return NULL_VAL;
-		}
-
-		ObjResource* resourceObj = AS_RESOURCE(value);
-		void* resource = resourceObj->ResourcePtr;
-		if (ValidateResource(resource, RESOURCE_SPRITE, threadID)) {
-			Resource::TakeRef((ResourceType*)resource);
-			spritePtr = resource;
-		}
+		sprite = GET_ARG(1, GetSprite);
 	}
 
 	Animator* animator = new Animator();
-	animator->Sprite = spritePtr;
+	animator->SetSprite(sprite);
 	animator->CurrentAnimation = argCount >= 2 ? GET_ARG(1, GetInteger) : -1;
 	animator->CurrentFrame = argCount >= 3 ? GET_ARG(2, GetInteger) : -1;
 	animator->UnloadPolicy = argCount >= 4 ? GET_ARG(3, GetInteger) : SCOPE_SCENE;
@@ -649,44 +680,26 @@ VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	VMValue spriteValue = args[1];
+	ISprite* sprite = nullptr; // Arg 1 is the sprite.
 	int animationID = GET_ARG(2, GetInteger);
 	int frameID = GET_ARG(3, GetInteger);
 	int forceApply = GET_ARG(4, GetInteger);
-
-	ResourceType* resource = nullptr;
-	ISprite* sprite = nullptr;
 
 	if (!animator) {
 		return NULL_VAL;
 	}
 
-	if (IS_NULL(spriteValue)) {
+	if (IS_NULL(args[1])) {
 		if (animator) {
 			animator->Frames.clear();
-			if (animator->Sprite != nullptr) {
-				Resource::Release((ResourceType*)animator->Sprite);
-				animator->Sprite = nullptr;
-			}
+			animator->SetSprite(nullptr);
 			animator->CurrentAnimation = -1;
 			animator->CurrentFrame = -1;
 		}
 		return NULL_VAL;
 	}
 	else {
-		if (!IS_RESOURCE(spriteValue)) {
-			ExpectedObjectTypeError(1, spriteValue, OBJ_RESOURCE, threadID);
-			return NULL_VAL;
-		}
-
-		ObjResource* resourceObj = AS_RESOURCE(spriteValue);
-		resource = (ResourceType*)resourceObj->ResourcePtr;
-		if (ValidateResource((void*)resource, RESOURCE_SPRITE, threadID)) {
-			sprite = resource->AsSprite;
-		}
-		else {
-			return NULL_VAL;
-		}
+		sprite = GET_ARG(1, GetSprite);
 	}
 
 	if (animationID < 0 || animationID >= (int)sprite->Animations.size()) {
@@ -706,12 +719,7 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	Resource::TakeRef(resource);
-	if (animator->Sprite != nullptr) {
-		Resource::Release((ResourceType*)animator->Sprite);
-		animator->Sprite = nullptr;
-	}
-	animator->Sprite = (void*)resource;
+	animator->SetSprite(sprite);
 	animator->Frames = frames;
 	animator->AnimationTimer = 0;
 	animator->CurrentFrame = frameID;
@@ -837,8 +845,9 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	// Do not throw errors here because Animators are allowed to have negative animation and frame indexes
 	if (animator && animator->Sprite != nullptr && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		ISprite* sprite = GetSprite((ResourceType*)animator->Sprite, threadID);
-		if (!sprite) {
+		ISprite* sprite = animator->Sprite;
+		if (!sprite->IsLoaded()) {
+			THROW_ERROR("Sprite is no longer valid!");
 			return NULL_VAL;
 		}
 
@@ -988,26 +997,15 @@ VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
 VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	VMValue spriteValue = args[1];
 	if (!animator) {
 		return NULL_VAL;
 	}
-	if (animator->Sprite != nullptr) {
-		Resource::Release((ResourceType*)animator->Sprite);
-		animator->Sprite = nullptr;
+	if (IS_NULL(args[1])) {
+		animator->SetSprite(nullptr);
 	}
-	if (!IS_NULL(spriteValue)) {
-		if (!IS_RESOURCE(spriteValue)) {
-			ExpectedObjectTypeError(1, spriteValue, OBJ_RESOURCE, threadID);
-			return NULL_VAL;
-		}
-
-		ObjResource* resourceObj = AS_RESOURCE(spriteValue);
-		void* resource = resourceObj->ResourcePtr;
-		if (ValidateResource(resource, RESOURCE_SPRITE, threadID)) {
-			Resource::TakeRef((ResourceType*)resource);
-			animator->Sprite = resource;
-		}
+	else {
+		ISprite* sprite = GET_ARG(1, GetSprite);
+		animator->SetSprite(sprite);
 	}
 	return NULL_VAL;
 }
@@ -2877,10 +2875,10 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 	Entity* entity = (Entity*)instance->EntityPtr;
 	int x = (int)GET_ARG_OPT(1, GetDecimal, entity->X);
 	int y = (int)GET_ARG_OPT(2, GetDecimal, entity->Y);
-	ISprite* sprite = GetSprite((ResourceType*)entity->Sprite, threadID);
+	ISprite* sprite = entity->Sprite;
 	float rotation = 0.0f;
 
-	if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
+	if (entity && sprite && sprite->IsLoaded() && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
 		int rot = (int)entity->Rotation;
 		int frame = entity->CurrentFrame;
 		switch (entity->RotationStyle) {
@@ -3010,8 +3008,9 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (animator->Sprite != nullptr && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		ISprite* sprite = GetSprite((ResourceType*)animator->Sprite, threadID);
-		if (!sprite) {
+		ISprite* sprite = animator->Sprite;
+		if (!sprite->IsLoaded()) {
+			THROW_ERROR("Sprite is no longer valid!");
 			return NULL_VAL;
 		}
 
@@ -3077,8 +3076,9 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (entity && animator->Sprite != nullptr && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		ISprite* sprite = GetSprite((ResourceType*)animator->Sprite, threadID);
-		if (!sprite) {
+		ISprite* sprite = animator->Sprite;
+		if (!sprite->IsLoaded()) {
+			THROW_ERROR("Sprite is no longer valid!");
 			return NULL_VAL;
 		}
 
@@ -16911,17 +16911,11 @@ VMValue Video_Stop(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Video_Close(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	void* resource = GetResource(RESOURCE_MEDIA, args, 0, threadID);
-	if (!resource) {
-		return NULL_VAL;
-	}
 
-	MediaBag* video = ((ResourceType*)resource)->AsMedia;
+	MediaBag* video = GET_ARG(0, GetVideo);
 	if (video) {
-		video->Close();
+		video->Unload();
 	}
-
-	Resource::Unload((ResourceType*)resource);
 
 	return NULL_VAL;
 }

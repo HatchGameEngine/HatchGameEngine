@@ -56,10 +56,11 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char* parentDirectory) 
 
 		ColorUtils::Separate(material->ColorDiffuse, diffuseColor);
 
-		material->TextureDiffuse = Material::LoadForModel(diffuseTexture, parentDirectory);
-		if (material->TextureDiffuse) {
-			material->TextureDiffuseName =
-				StringUtils::Duplicate(((ResourceType*)material->TextureDiffuse)->Filename);
+		void* resource = Material::LoadForModel(diffuseTexture, parentDirectory);
+		ResourceType* diffuse = (ResourceType*)resource;
+		if (diffuse) {
+			material->TextureDiffuse = (void*)diffuse->AsImage;
+			material->TextureDiffuseName = StringUtils::Duplicate(diffuse->Filename);
 		}
 
 		Memory::Free(diffuseTexture);
@@ -74,11 +75,11 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char* parentDirectory) 
 
 		ColorUtils::Separate(material->ColorSpecular, specularColor);
 
-		material->TextureSpecular =
-			Material::LoadForModel(specularTexture, parentDirectory);
-		if (material->TextureSpecular) {
-			material->TextureSpecularName =
-				StringUtils::Duplicate(((ResourceType*)material->TextureSpecular)->Filename);
+		void* resource = Material::LoadForModel(specularTexture, parentDirectory);
+		ResourceType* specular = (ResourceType*)resource;
+		if (specular) {
+			material->TextureSpecular = (void*)specular->AsImage;
+			material->TextureSpecularName = StringUtils::Duplicate(specular->Filename);
 		}
 
 		Memory::Free(specularTexture);
@@ -93,10 +94,11 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char* parentDirectory) 
 
 		ColorUtils::Separate(material->ColorAmbient, ambientColor);
 
-		material->TextureAmbient = Material::LoadForModel(ambientTexture, parentDirectory);
-		if (material->TextureAmbient) {
-			material->TextureAmbientName =
-				StringUtils::Duplicate(((ResourceType*)material->TextureAmbient)->Filename);
+		void* resource = Material::LoadForModel(ambientTexture, parentDirectory);
+		ResourceType* ambient = (ResourceType*)resource;
+		if (ambient) {
+			material->TextureAmbient = (void*)ambient->AsImage;
+			material->TextureAmbientName = StringUtils::Duplicate(ambient->Filename);
 		}
 
 		Memory::Free(ambientTexture);
@@ -111,11 +113,11 @@ Material* HatchModel::ReadMaterial(Stream* stream, const char* parentDirectory) 
 
 		ColorUtils::Separate(material->ColorEmissive, emissiveColor);
 
-		material->TextureEmissive =
-			Material::LoadForModel(emissiveTexture, parentDirectory);
-		if (material->TextureEmissive) {
-			material->TextureEmissiveName =
-				StringUtils::Duplicate(((ResourceType*)material->TextureEmissive)->Filename);
+		void* resource = Material::LoadForModel(emissiveTexture, parentDirectory);
+		ResourceType* emissive = (ResourceType*)resource;
+		if (emissive) {
+			material->TextureEmissive = (void*)emissive->AsImage;
+			material->TextureEmissiveName = StringUtils::Duplicate(emissive->Filename);
 		}
 
 		Memory::Free(emissiveTexture);

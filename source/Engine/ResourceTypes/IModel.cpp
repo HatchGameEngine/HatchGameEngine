@@ -34,7 +34,7 @@ IModel::IModel(const char* filename) {
 		return;
 	}
 
-	LoadFailed = !Load(resourceStream, filename);
+	Loaded = Load(resourceStream, filename);
 
 	if (resourceStream) {
 		resourceStream->Close();
@@ -475,7 +475,11 @@ void IModel::DeleteArmature(size_t index) {
 	}
 }
 
-void IModel::Dispose() {
+void IModel::Unload() {
+	if (!Loaded) {
+		return;
+	}
+
 	// Models don't own their materials, so they do not delete
 	// them.
 	for (size_t i = 0; i < Meshes.size(); i++) {
@@ -498,8 +502,10 @@ void IModel::Dispose() {
 
 	BaseArmature = nullptr;
 	GlobalInverseMatrix = nullptr;
+
+	Loaded = false;
 }
 
 IModel::~IModel() {
-	Dispose();
+	Unload();
 }

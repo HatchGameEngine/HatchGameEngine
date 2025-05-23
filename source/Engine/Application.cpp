@@ -744,7 +744,6 @@ void Application::UpdateWindowTitle() {
 
 void Application::Restart() {
 	if (DEBUG_fontSprite) {
-		DEBUG_fontSprite->Dispose();
 		delete DEBUG_fontSprite;
 		DEBUG_fontSprite = NULL;
 	}
@@ -1242,6 +1241,7 @@ DO_NOTHING:
 			Graphics::SetTextureInterpolation(true);
 
 			DEBUG_fontSprite = new ISprite();
+			DEBUG_fontSprite->TakeRef();
 
 			int cols, rows;
 			Texture* spriteSheet = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
@@ -1625,7 +1625,6 @@ void Application::Run(int argc, char* args[]) {
 
 void Application::Cleanup() {
 	if (DEBUG_fontSprite) {
-		DEBUG_fontSprite->Dispose();
 		delete DEBUG_fontSprite;
 		DEBUG_fontSprite = NULL;
 	}

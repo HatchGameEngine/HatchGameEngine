@@ -18,18 +18,7 @@ Image::Image(const char* filename) {
 	Type = RESOURCE_IMAGE;
 
 	TexturePtr = Image::LoadTextureFromResource(filename);
-	LoadFailed = TexturePtr == nullptr;
-}
-
-void Image::Dispose() {
-	if (TexturePtr) {
-		Graphics::DisposeTexture(TexturePtr);
-		TexturePtr = NULL;
-	}
-}
-
-Image::~Image() {
-	Dispose();
+	Loaded = TexturePtr != nullptr;
 }
 
 Uint8 Image::DetectFormat(Stream* stream) {
@@ -185,4 +174,21 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 	}
 
 	return texture;
+}
+
+void Image::Unload() {
+	if (!Loaded) {
+		return;
+	}
+
+	if (TexturePtr) {
+		Graphics::DisposeTexture(TexturePtr);
+		TexturePtr = nullptr;
+	}
+
+	Loaded = false;
+}
+
+Image::~Image() {
+	Unload();
 }
