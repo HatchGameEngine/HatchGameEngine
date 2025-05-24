@@ -15,6 +15,59 @@ Uint32 Hash_Data = 0;
 
 #define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
 
+namespace ImageResource {
+	ObjClass* Class = nullptr;
+
+	Uint32 Hash_Width = 0;
+	Uint32 Hash_Height = 0;
+
+	bool VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
+		Resourceable* resourceable = (Resourceable*)(((ObjResourceable*)object)->ResourceablePtr);
+		if (!resourceable || !resourceable->IsLoaded()) {
+			THROW_ERROR("Image is no longer loaded!");
+			return true;
+		}
+
+		Image* image = (Image*)resourceable;
+
+		if (hash == Hash_Width) {
+			*result = INTEGER_VAL((int)image->TexturePtr->Width);
+		}
+		else if (hash == Hash_Height) {
+			*result = INTEGER_VAL((int)image->TexturePtr->Height);
+		}
+		else {
+			return false;
+		}
+
+		return true;
+	}
+
+	bool VM_PropertySet(Obj* object, Uint32 hash, VMValue result, Uint32 threadID) {
+		if (hash == Hash_Width || hash == Hash_Height) {
+			THROW_ERROR("Field cannot be written to!");
+		}
+		else {
+			return false;
+		}
+
+		return true;
+	}
+
+	void Init() {
+		const char* className = "ImageResource";
+
+		Class = NewClass(className);
+		Class->PropertyGet = VM_PropertyGet;
+		Class->PropertySet = VM_PropertySet;
+
+		Hash_Width = Murmur::EncryptString("Width");
+		Hash_Height = Murmur::EncryptString("Height");
+
+		ScriptManager::ClassImplList.push_back(Class);
+	}
+};
+
 void ResourceImpl::Init() {
 	const char* className = "Resource";
 
@@ -36,6 +89,8 @@ void ResourceImpl::Init() {
 	ScriptManager::ClassImplList.push_back(Class);
 
 	ScriptManager::Globals->Put(className, OBJECT_VAL(Class));
+
+	ImageResource::Init();
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
@@ -149,5 +204,14 @@ VMValue ResourceImpl::VM_Unload(int argCount, VMValue* args, Uint32 threadID) {
 
 void* ResourceImpl::NewResourceableObject(void* ptr) {
 	ObjResourceable* obj = NewResourceable(ptr);
+	Resourceable* resourceable = (Resourceable*)ptr;
+
+	switch (resourceable->Type) {
+	case RESOURCE_IMAGE:
+		obj->Object.Class = ImageResource::Class;
+	default:
+		break;
+	}
+
 	return (void*)obj;
 }
