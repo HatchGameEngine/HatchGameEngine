@@ -137,7 +137,7 @@ void GarbageCollector::Collect() {
 	Log::Print(Log::LOG_VERBOSE, "Sweep: Freeing took %.1f ms", freeElapsed);
 
 	for (size_t i = 0; i < MAX_OBJ_TYPE; i++) {
-		if (objectTypeCounts[i]) {
+		if (objectTypeFreed[i] && objectTypeCounts[i]) {
 			Log::Print(Log::LOG_VERBOSE,
 				"Freed %d %s objects out of %d.",
 				objectTypeFreed[i],
