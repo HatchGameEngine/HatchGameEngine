@@ -23,6 +23,7 @@ public:
 	static void DisposeAll();
 	static void* GetVMObject(ResourceType* resource);
 	static void ReleaseVMObject(ResourceType* resource);
+	static bool CompareVMObjects(void* a, void* b);
 	static ResourceType* Load(Uint8 type, const char* filename, int unloadPolicy);
 	static ResourceType* LoadFont(const char* filename, int pixel_sz, int unloadPolicy);
 	static void TakeRef(ResourceType* resource);

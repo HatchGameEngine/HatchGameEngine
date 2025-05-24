@@ -54,6 +54,17 @@ void Resource::ReleaseVMObject(ResourceType* resource) {
 	}
 }
 
+bool Resource::CompareVMObjects(void* a, void* b) {
+	ObjResource* resource = resource = (ObjResource*)a;
+	ObjResourceable* resourceable = (ObjResourceable*)b;
+
+	if (!resource->ResourcePtr || !resourceable->ResourceablePtr) {
+		return false;
+	}
+
+	return ((ResourceType*)resource->ResourcePtr)->AsResourceable == resourceable->ResourceablePtr;
+}
+
 void Resource::AddRef(ResourceType* resource) {
 	resource->RefCount++;
 }

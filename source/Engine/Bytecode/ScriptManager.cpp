@@ -469,6 +469,13 @@ bool ScriptManager::ValuesSortaEqual(VMValue a, VMValue b) {
 		return ValuesEqual(abm->Receiver, bbm->Receiver) && abm->Method == bbm->Method;
 	}
 
+	if (IS_RESOURCE(a) && IS_RESOURCEABLE(b)) {
+		return Resource::CompareVMObjects(AS_OBJECT(a), AS_OBJECT(b));
+	}
+	else if (IS_RESOURCEABLE(a) && IS_RESOURCE(b)) {
+		return Resource::CompareVMObjects(AS_OBJECT(b), AS_OBJECT(a));
+	}
+
 	return ScriptManager::ValuesEqual(a, b);
 }
 bool ScriptManager::ValuesEqual(VMValue a, VMValue b) {
