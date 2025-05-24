@@ -1,18 +1,24 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 ObjClass* FunctionImpl::Class = nullptr;
 
 void FunctionImpl::Init() {
-	const char* name = "$$FunctionImpl";
-
-	Class = NewClass(Murmur::EncryptString(name));
-	Class->Name = CopyString(name);
+	Class = NewClass(CLASS_FUNCTION);
 
 	ScriptManager::DefineNative(Class, "bind", FunctionImpl::VM_Bind);
 
-	ScriptManager::ClassImplList.push_back(Class);
+	TypeImpl::RegisterClass(Class);
+}
+
+Obj* FunctionImpl::New() {
+	ObjFunction* function = (ObjFunction*)AllocateObject(sizeof(ObjFunction), OBJ_FUNCTION);
+	Memory::Track(function, "NewFunction");
+	function->Object.Class = Class;
+	function->Chunk.Init();
+	return (Obj*)function;
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))

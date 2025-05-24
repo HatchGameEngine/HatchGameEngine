@@ -11,10 +11,10 @@ private:
 
 public:
 	static bool DisableAutoAnimate;
-	ObjInstance* Instance = NULL;
+	ObjEntity* Instance = NULL;
 	HashMap<VMValue>* Properties;
 
-	void Link(ObjInstance* instance);
+	void Link(ObjEntity* entity);
 	void LinkFields();
 	bool RunFunction(Uint32 hash);
 	bool RunCreateFunction(VMValue flag);
@@ -39,8 +39,7 @@ public:
 	void GameStart();
 	void Remove();
 	void Dispose();
-	static bool VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
-	static bool VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
+	bool IsValid();
 	static VMValue VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Animate(int argCount, VMValue* args, Uint32 threadID);
