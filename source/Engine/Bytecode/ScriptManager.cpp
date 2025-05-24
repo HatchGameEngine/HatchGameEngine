@@ -12,7 +12,8 @@
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
-#include <Engine/Bytecode/Values.h>
+#include <Engine/Bytecode/Value.h>
+#include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Hashing/CombinedHash.h>
@@ -236,162 +237,8 @@ void ScriptManager::FreeModules() {
 // #endregion
 
 // #region ValueFuncs
-VMValue ScriptManager::CastValueAsString(VMValue v, bool prettyPrint) {
-	if (IS_STRING(v)) {
-		return v;
-	}
-
-	char* buffer = (char*)malloc(512);
-	PrintBuffer buffer_info;
-	buffer_info.Buffer = &buffer;
-	buffer_info.WriteIndex = 0;
-	buffer_info.BufferSize = 512;
-	Values::PrintValue(&buffer_info, v, prettyPrint);
-	v = OBJECT_VAL(CopyString(buffer, buffer_info.WriteIndex));
-	free(buffer);
-	return v;
-}
-VMValue ScriptManager::CastValueAsString(VMValue v) {
-	return CastValueAsString(v, false);
-}
-VMValue ScriptManager::CastValueAsInteger(VMValue v) {
-	float a;
-	switch (v.Type) {
-	case VAL_DECIMAL:
-	case VAL_LINKED_DECIMAL:
-		a = AS_DECIMAL(v);
-		return INTEGER_VAL((int)a);
-	case VAL_INTEGER:
-		return v;
-	case VAL_LINKED_INTEGER:
-		return INTEGER_VAL(AS_INTEGER(v));
-	default:
-		// NOTE: Should error here instead.
-		break;
-	}
-	return NULL_VAL;
-}
-VMValue ScriptManager::CastValueAsDecimal(VMValue v) {
-	int a;
-	switch (v.Type) {
-	case VAL_DECIMAL:
-		return v;
-	case VAL_LINKED_DECIMAL:
-		return DECIMAL_VAL(AS_DECIMAL(v));
-	case VAL_INTEGER:
-	case VAL_LINKED_INTEGER:
-		a = AS_INTEGER(v);
-		return DECIMAL_VAL((float)a);
-	default:
-		// NOTE: Should error here instead.
-		break;
-	}
-	return NULL_VAL;
-}
-VMValue ScriptManager::Concatenate(VMValue va, VMValue vb) {
-	ObjString* a = AS_STRING(va);
-	ObjString* b = AS_STRING(vb);
-
-	size_t length = a->Length + b->Length;
-	ObjString* result = AllocString(length);
-
-	memcpy(result->Chars, a->Chars, a->Length);
-	memcpy(result->Chars + a->Length, b->Chars, b->Length);
-	result->Chars[length] = 0;
-	return OBJECT_VAL(result);
-}
-
-bool ScriptManager::ValuesSortaEqual(VMValue a, VMValue b) {
-	if ((a.Type == VAL_DECIMAL && b.Type == VAL_INTEGER) ||
-		(a.Type == VAL_INTEGER && b.Type == VAL_DECIMAL)) {
-		float a_d = AS_DECIMAL(CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(CastValueAsDecimal(b));
-		return (a_d == b_d);
-	}
-
-	if (IS_STRING(a) && IS_STRING(b)) {
-		ObjString* astr = AS_STRING(a);
-		ObjString* bstr = AS_STRING(b);
-		return astr->Length == bstr->Length &&
-			!memcmp(astr->Chars, bstr->Chars, astr->Length);
-	}
-
-	if (IS_BOUND_METHOD(a) && IS_BOUND_METHOD(b)) {
-		ObjBoundMethod* abm = AS_BOUND_METHOD(a);
-		ObjBoundMethod* bbm = AS_BOUND_METHOD(b);
-		return ValuesEqual(abm->Receiver, bbm->Receiver) && abm->Method == bbm->Method;
-	}
-
-	return ScriptManager::ValuesEqual(a, b);
-}
-bool ScriptManager::ValuesEqual(VMValue a, VMValue b) {
-	if (a.Type == VAL_LINKED_INTEGER) {
-		goto SKIP_CHECK;
-	}
-	if (a.Type == VAL_LINKED_DECIMAL) {
-		goto SKIP_CHECK;
-	}
-	if (b.Type == VAL_LINKED_INTEGER) {
-		goto SKIP_CHECK;
-	}
-	if (b.Type == VAL_LINKED_DECIMAL) {
-		goto SKIP_CHECK;
-	}
-
-	if (a.Type != b.Type) {
-		return false;
-	}
-
-SKIP_CHECK:
-
-	switch (a.Type) {
-	case VAL_LINKED_INTEGER:
-	case VAL_INTEGER:
-		return AS_INTEGER(a) == AS_INTEGER(b);
-
-	case VAL_LINKED_DECIMAL:
-	case VAL_DECIMAL:
-		return AS_DECIMAL(a) == AS_DECIMAL(b);
-
-	case VAL_OBJECT:
-		return AS_OBJECT(a) == AS_OBJECT(b);
-
-	case VAL_NULL:
-		return true;
-	}
-	return false;
-}
-bool ScriptManager::ValueFalsey(VMValue a) {
-	if (a.Type == VAL_NULL) {
-		return true;
-	}
-
-	switch (a.Type) {
-	case VAL_LINKED_INTEGER:
-	case VAL_INTEGER:
-		return AS_INTEGER(a) == 0;
-	case VAL_LINKED_DECIMAL:
-	case VAL_DECIMAL:
-		return AS_DECIMAL(a) == 0.0f;
-	case VAL_OBJECT:
-		return false;
-	}
-	return false;
-}
-
-VMValue ScriptManager::DelinkValue(VMValue val) {
-	if (IS_LINKED_DECIMAL(val)) {
-		return DECIMAL_VAL(AS_DECIMAL(val));
-	}
-	if (IS_LINKED_INTEGER(val)) {
-		return INTEGER_VAL(AS_INTEGER(val));
-	}
-
-	return val;
-}
-
 bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 threadID) {
-	VMValue result = ScriptManager::CastValueAsInteger(value);
+	VMValue result = Value::CastAsInteger(value);
 	if (IS_NULL(result)) {
 		// Conversion failed
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
@@ -404,7 +251,7 @@ bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 threadID) {
 	return true;
 }
 bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
-	VMValue result = ScriptManager::CastValueAsDecimal(value);
+	VMValue result = Value::CastAsDecimal(value);
 	if (IS_NULL(result)) {
 		// Conversion failed
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
@@ -420,6 +267,7 @@ bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
 void ScriptManager::DestroyObject(Obj* object) {
 	if (object->Destructor != nullptr) {
 		object->Destructor(object);
+
 	}
 
 	FREE_OBJ(object);

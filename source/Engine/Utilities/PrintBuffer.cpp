@@ -1,13 +1,7 @@
-#ifndef ENGINE_PRINTBUFFER_H
-#define ENGINE_PRINTBUFFER_H
+#include <Engine/Diagnostics/Log.h>
+#include <Engine/Utilities/PrintBuffer.h>
 
-struct PrintBuffer {
-	char** Buffer;
-	int WriteIndex;
-	int BufferSize;
-};
-
-inline int buffer_printf(PrintBuffer* printBuffer, const char* format, ...) {
+int buffer_printf(PrintBuffer* printBuffer, const char* format, ...) {
 	va_list args;
 	va_list argsCopy;
 	va_start(args, format);
@@ -51,7 +45,7 @@ inline int buffer_printf(PrintBuffer* printBuffer, const char* format, ...) {
 	return 0;
 }
 
-inline int buffer_write(PrintBuffer* printBuffer, const char* string) {
+int buffer_write(PrintBuffer* printBuffer, const char* string) {
 	if (!printBuffer || !printBuffer->Buffer) {
 		return 0;
 	}
@@ -80,7 +74,7 @@ inline int buffer_write(PrintBuffer* printBuffer, const char* string) {
 	return count;
 }
 
-inline int buffer_write(PrintBuffer* printBuffer, char chr) {
+int buffer_write(PrintBuffer* printBuffer, char chr) {
 	if (!printBuffer || !printBuffer->Buffer) {
 		return 0;
 	}
@@ -106,4 +100,3 @@ inline int buffer_write(PrintBuffer* printBuffer, char chr) {
 
 	return 1;
 }
-#endif

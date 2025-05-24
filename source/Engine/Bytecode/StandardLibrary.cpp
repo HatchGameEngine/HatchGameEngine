@@ -6,7 +6,8 @@
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
-#include <Engine/Bytecode/Values.h>
+#include <Engine/Bytecode/Value.h>
+#include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
@@ -107,7 +108,7 @@ inline float GetDecimal(VMValue* args, int index, Uint32 threadID) {
 		break;
 	case VAL_INTEGER:
 	case VAL_LINKED_INTEGER:
-		value = AS_DECIMAL(ScriptManager::CastValueAsDecimal(args[index]));
+		value = AS_DECIMAL(Value::CastAsDecimal(args[index]));
 		break;
 	default:
 		if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
@@ -1815,11 +1816,8 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
 						return false;
 					}
 					else if (IS_DECIMAL(a) || IS_DECIMAL(b)) {
-						return AS_DECIMAL(ScriptManager::CastValueAsDecimal(
-							       a)) <
-							AS_DECIMAL(
-								ScriptManager::CastValueAsDecimal(
-									b));
+						return AS_DECIMAL(Value::CastAsDecimal(a)) <
+							AS_DECIMAL(Value::CastAsDecimal(b));
 					}
 					else {
 						return AS_INTEGER(a) < AS_INTEGER(b);
@@ -8834,15 +8832,26 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * JSON.ToString
- * \desc Converts a Map value into a String value.
- * \param json (Map): Map value.
+ * \desc Converts a value into a JSON string.
+ * \param json (Any type): The value to convert.
  * \paramOpt prettyPrint (Boolean): Whether or not to use spacing and newlines in the text.
- * \return Returns a JSON string based on the Map value.
+ * \return Returns a JSON string based on the value.
  * \ns JSON
  */
 VMValue JSON_ToString(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	return ScriptManager::CastValueAsString(args[0], !!GET_ARG_OPT(1, GetInteger, false));
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	VMValue value = args[0];
+	bool prettyPrint = !!GET_ARG_OPT(1, GetInteger, false);
+
+	char* buffer = (char*)malloc(512);
+	PrintBuffer buffer_info;
+	buffer_info.Buffer = &buffer;
+	buffer_info.WriteIndex = 0;
+	buffer_info.BufferSize = 512;
+	ValuePrinter::Print(&buffer_info, value, prettyPrint, true);
+	value = OBJECT_VAL(CopyString(buffer, buffer_info.WriteIndex));
+	free(buffer);
+	return value;
 }
 // #endregion
 
@@ -16685,7 +16694,7 @@ VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (callback == NULL) {
-		Values::PrintValue(args[0]);
+		ValuePrinter::Print(args[0]);
 		printf("\n");
 		Log::Print(Log::LOG_ERROR, "No callback.");
 		return NULL_VAL;
