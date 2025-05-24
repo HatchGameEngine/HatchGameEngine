@@ -2,7 +2,8 @@
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/VMThread.h>
-#include <Engine/Bytecode/Values.h>
+#include <Engine/Bytecode/Value.h>
+#include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
 
 #ifndef _MSC_VER
@@ -257,7 +258,7 @@ void VMThread::PrintStack() {
 	printf("Stack:\n");
 	for (VMValue* v = StackTop - 1; v >= Stack; v--) {
 		printf("%4d '", i);
-		Values::PrintValue(*v);
+		ValuePrinter::Print(*v);
 		printf("'\n");
 		i--;
 	}
@@ -720,7 +721,7 @@ int VMThread::RunInstruction() {
 				return INTERPRET_GLOBAL_DOES_NOT_EXIST;
 			}
 
-			Push(ScriptManager::DelinkValue(result));
+			Push(Value::Delink(result));
 			ScriptManager::Unlock();
 		}
 		VM_BREAK;
@@ -756,7 +757,7 @@ int VMThread::RunInstruction() {
 			VMValue value = Peek(0);
 			switch (LHS.Type) {
 			case VAL_LINKED_INTEGER: {
-				VMValue result = ScriptManager::CastValueAsInteger(value);
+				VMValue result = Value::CastAsInteger(value);
 				if (IS_NULL(result)) {
 					// Conversion failed
 					if (ThrowRuntimeError(false,
@@ -771,7 +772,7 @@ int VMThread::RunInstruction() {
 				break;
 			}
 			case VAL_LINKED_DECIMAL: {
-				VMValue result = ScriptManager::CastValueAsDecimal(value);
+				VMValue result = Value::CastAsDecimal(value);
 				if (IS_NULL(result)) {
 					// Conversion failed
 					if (ThrowRuntimeError(false,
@@ -852,7 +853,7 @@ int VMThread::RunInstruction() {
 				// Can't do that UNLESS it's the same
 				// exact value, in which case we do
 				// nothing
-				else if (!ValuesEqual(value, originalValue)) {
+				else if (!Value::ExactlyEqual(value, originalValue)) {
 					ThrowRuntimeError(false,
 						"Cannot redefine constant %s!",
 						GetVariableOrMethodName(hash));
@@ -898,7 +899,7 @@ int VMThread::RunInstruction() {
 				// Fields have priority over methods
 				if (instance->Fields->GetIfExists(hash, &result)) {
 					Pop();
-					Push(ScriptManager::DelinkValue(result));
+					Push(Value::Delink(result));
 					ScriptManager::Unlock();
 					VM_BREAK;
 				}
@@ -942,7 +943,7 @@ int VMThread::RunInstruction() {
 			if (ScriptManager::Lock()) {
 				if (ns->Fields->GetIfExists(hash, &result)) {
 					Pop();
-					Push(ScriptManager::DelinkValue(result));
+					Push(Value::Delink(result));
 					ScriptManager::Unlock();
 					VM_BREAK;
 				}
@@ -1412,7 +1413,7 @@ int VMThread::RunInstruction() {
 			else {
 				VMValue constant =
 					(*frame->Function->Chunk.Constants)[constant_index];
-				if (ScriptManager::ValuesSortaEqual(switch_value, constant)) {
+				if (Value::SortaEqual(switch_value, constant)) {
 					frame->IP = end + offset;
 					goto JUMPED;
 				}
@@ -1455,7 +1456,7 @@ int VMThread::RunInstruction() {
 				Uint8 constant_index = ReadByte(frame);
 				VMValue constant =
 					(*frame->Function->Chunk.Constants)[constant_index];
-				if (ScriptManager::ValuesSortaEqual(switch_value, constant)) {
+				if (Value::SortaEqual(switch_value, constant)) {
 					frame->IP = end + offset;
 					goto JUMPED2;
 				}
@@ -1464,7 +1465,7 @@ int VMThread::RunInstruction() {
 			case SWITCH_CASE_TYPE_LOCAL: {
 				Uint8 slot = ReadByte(frame);
 				VMValue local_value = frame->Slots[slot];
-				if (ScriptManager::ValuesSortaEqual(switch_value, local_value)) {
+				if (Value::SortaEqual(switch_value, local_value)) {
 					frame->IP = end + offset;
 					goto JUMPED2;
 				}
@@ -1474,21 +1475,18 @@ int VMThread::RunInstruction() {
 				Uint32 hash = ReadUInt32(frame);
 				VMValue global_value = NULL_VAL;
 				if (ScriptManager::Lock()) {
-					if (!ScriptManager::Globals->GetIfExists(
-						    hash, &global_value) &&
-						!ScriptManager::Constants->GetIfExists(
-							hash, &global_value)) {
+					if (!ScriptManager::Globals->GetIfExists(hash, &global_value) &&
+						!ScriptManager::Constants->GetIfExists(hash, &global_value)) {
 						ThrowRuntimeError(false,
 							"Variable %s does not exist.",
 							GetVariableOrMethodName(hash));
 					}
 					else {
-						global_value =
-							ScriptManager::DelinkValue(global_value);
+						global_value = Value::Delink(global_value);
 					}
 					ScriptManager::Unlock();
 				}
-				if (ScriptManager::ValuesSortaEqual(switch_value, global_value)) {
+				if (Value::SortaEqual(switch_value, global_value)) {
 					frame->IP = end + offset;
 					goto JUMPED2;
 				}
@@ -1542,7 +1540,7 @@ int VMThread::RunInstruction() {
 		buffer.Buffer = &textBuffer;
 		buffer.WriteIndex = 0;
 		buffer.BufferSize = 64;
-		Values::PrintValue(&buffer, v);
+		ValuePrinter::Print(&buffer, v);
 
 		Log::Print(Log::LOG_INFO, textBuffer);
 
@@ -1578,7 +1576,7 @@ int VMThread::RunInstruction() {
 	}
 	VM_CASE(OP_JUMP_IF_FALSE) {
 		Sint32 offset = ReadSInt16(frame);
-		if (ScriptManager::ValueFalsey(Peek(0))) {
+		if (Value::Falsey(Peek(0))) {
 			JUMP(offset);
 		}
 		VM_BREAK;
@@ -1658,11 +1656,11 @@ int VMThread::RunInstruction() {
 	}
 	// Equality and Comparison Operators
 	VM_CASE(OP_EQUAL) {
-		Push(INTEGER_VAL(ScriptManager::ValuesSortaEqual(Pop(), Pop())));
+		Push(INTEGER_VAL(Value::SortaEqual(Pop(), Pop())));
 		VM_BREAK;
 	}
 	VM_CASE(OP_EQUAL_NOT) {
-		Push(INTEGER_VAL(!ScriptManager::ValuesSortaEqual(Pop(), Pop())));
+		Push(INTEGER_VAL(!Value::SortaEqual(Pop(), Pop())));
 		VM_BREAK;
 	}
 	VM_CASE(OP_LESS) {
@@ -2484,7 +2482,7 @@ bool VMThread::GetProperty(Obj* object,
 		if (checkFields && klass->Fields->GetIfExists(hash, &value)) {
 			// Fields have priority over methods
 			Pop();
-			Push(ScriptManager::DelinkValue(value));
+			Push(Value::Delink(value));
 			ScriptManager::Unlock();
 			return true;
 		}
@@ -2880,8 +2878,8 @@ VMValue VMThread::Values_Multiply() {
 	Pop();
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 		return DECIMAL_VAL(a_d * b_d);
 	}
 	int a_d = AS_INTEGER(a);
@@ -2896,8 +2894,8 @@ VMValue VMThread::Values_Division() {
 	CHECK_IS_NUM(b, "division", DECIMAL_VAL(1.0f));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 		if (b_d == 0.0) {
 			if (ThrowRuntimeError(false, "Cannot divide decimal by zero.") ==
 				ERROR_RES_CONTINUE) {
@@ -2924,8 +2922,8 @@ VMValue VMThread::Values_Modulo() {
 	CHECK_IS_NUM(b, "modulo", DECIMAL_VAL(1.0f));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 		return DECIMAL_VAL(fmod(a_d, b_d));
 	}
 	int a_d = AS_INTEGER(a);
@@ -2937,9 +2935,9 @@ VMValue VMThread::Values_Plus() {
 	VMValue a = Peek(1);
 	if (IS_STRING(a) || IS_STRING(b)) {
 		if (ScriptManager::Lock()) {
-			VMValue str_b = ScriptManager::CastValueAsString(b);
-			VMValue str_a = ScriptManager::CastValueAsString(a);
-			VMValue out = ScriptManager::Concatenate(str_a, str_b);
+			VMValue str_b = Value::CastAsString(b);
+			VMValue str_a = Value::CastAsString(a);
+			VMValue out = Value::Concatenate(str_a, str_b);
 			Pop();
 			Pop();
 			ScriptManager::Unlock();
@@ -2951,8 +2949,8 @@ VMValue VMThread::Values_Plus() {
 	CHECK_IS_NUM(b, "plus", DECIMAL_VAL(0.0f));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 		Pop();
 		Pop();
 		return DECIMAL_VAL(a_d + b_d);
@@ -2974,8 +2972,8 @@ VMValue VMThread::Values_Minus() {
 	Pop();
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 		return DECIMAL_VAL(a_d - b_d);
 	}
 	int a_d = AS_INTEGER(a);
@@ -2990,9 +2988,9 @@ VMValue VMThread::Values_BitwiseLeft() {
 	CHECK_IS_NUM(b, "bitwise left", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-		return DECIMAL_VAL((float)((int)a_d << (int)b_d));
+		int a_d = AS_INTEGER(Value::CastAsInteger(a));
+		int b_d = AS_INTEGER(Value::CastAsInteger(b));
+		return DECIMAL_VAL((float)(a_d << b_d));
 	}
 	int a_d = AS_INTEGER(a);
 	int b_d = AS_INTEGER(b);
@@ -3006,9 +3004,9 @@ VMValue VMThread::Values_BitwiseRight() {
 	CHECK_IS_NUM(b, "bitwise right", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-		return DECIMAL_VAL((float)((int)a_d >> (int)b_d));
+		int a_d = AS_INTEGER(Value::CastAsInteger(a));
+		int b_d = AS_INTEGER(Value::CastAsInteger(b));
+		return DECIMAL_VAL((float)(a_d >> b_d));
 	}
 	int a_d = AS_INTEGER(a);
 	int b_d = AS_INTEGER(b);
@@ -3022,9 +3020,9 @@ VMValue VMThread::Values_BitwiseAnd() {
 	CHECK_IS_NUM(b, "bitwise and", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-		return DECIMAL_VAL((float)((int)a_d & (int)b_d));
+		int a_d = AS_INTEGER(Value::CastAsInteger(a));
+		int b_d = AS_INTEGER(Value::CastAsInteger(b));
+		return DECIMAL_VAL((float)(a_d & b_d));
 	}
 	int a_d = AS_INTEGER(a);
 	int b_d = AS_INTEGER(b);
@@ -3038,9 +3036,9 @@ VMValue VMThread::Values_BitwiseXor() {
 	CHECK_IS_NUM(b, "xor", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-		return DECIMAL_VAL((float)((int)a_d ^ (int)b_d));
+		int a_d = AS_INTEGER(Value::CastAsInteger(a));
+		int b_d = AS_INTEGER(Value::CastAsInteger(b));
+		return DECIMAL_VAL((float)(a_d ^ b_d));
 	}
 	int a_d = AS_INTEGER(a);
 	int b_d = AS_INTEGER(b);
@@ -3054,9 +3052,9 @@ VMValue VMThread::Values_BitwiseOr() {
 	CHECK_IS_NUM(b, "bitwise or", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-		return DECIMAL_VAL((float)((int)a_d | (int)b_d));
+		int a_d = AS_INTEGER(Value::CastAsInteger(a));
+		int b_d = AS_INTEGER(Value::CastAsInteger(b));
+		return DECIMAL_VAL((float)(a_d | b_d));
 	}
 	int a_d = AS_INTEGER(a);
 	int b_d = AS_INTEGER(b);
@@ -3070,11 +3068,6 @@ VMValue VMThread::Values_LogicalAND() {
 	CHECK_IS_NUM(b, "logical and", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		// float a_d =
-		// AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		// float b_d =
-		// AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-		// return DECIMAL_VAL((float)((int)a_d & (int)b_d));
 		return INTEGER_VAL(0);
 	}
 	int a_d = AS_INTEGER(a);
@@ -3089,11 +3082,6 @@ VMValue VMThread::Values_LogicalOR() {
 	CHECK_IS_NUM(b, "logical or", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		// float a_d =
-		// AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		// float b_d =
-		// AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-		// return DECIMAL_VAL((float)((int)a_d & (int)b_d));
 		return INTEGER_VAL(0);
 	}
 	int a_d = AS_INTEGER(a);
@@ -3108,8 +3096,8 @@ VMValue VMThread::Values_LessThan() {
 	CHECK_IS_NUM(b, "less than", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 		return INTEGER_VAL(a_d < b_d);
 	}
 	int a_d = AS_INTEGER(a);
@@ -3124,8 +3112,8 @@ VMValue VMThread::Values_GreaterThan() {
 	CHECK_IS_NUM(b, "greater than", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 		return INTEGER_VAL(a_d > b_d);
 	}
 	int a_d = AS_INTEGER(a);
@@ -3140,8 +3128,8 @@ VMValue VMThread::Values_LessThanOrEqual() {
 	CHECK_IS_NUM(b, "less than or equal", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 		return INTEGER_VAL(a_d <= b_d);
 	}
 	int a_d = AS_INTEGER(a);
@@ -3156,8 +3144,8 @@ VMValue VMThread::Values_GreaterThanOrEqual() {
 	CHECK_IS_NUM(b, "greater than or equal", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-		float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 		return INTEGER_VAL(a_d >= b_d);
 	}
 	int a_d = AS_INTEGER(a);
@@ -3227,71 +3215,56 @@ VMValue VMThread::Values_BitwiseNOT() {
 	}
 	return INTEGER_VAL(~AS_INTEGER(a));
 }
-VMValue VMThread::Value_TypeOf() {
-	const char* valueType = "unknown";
-
-	VMValue value = Pop();
-
+static const char* GetTypeOfValue(VMValue value) {
 	switch (value.Type) {
 	case VAL_NULL:
-		valueType = "null";
-		break;
+		return "null";
 	case VAL_INTEGER:
 	case VAL_LINKED_INTEGER:
-		valueType = "integer";
-		break;
+		return "integer";
 	case VAL_DECIMAL:
 	case VAL_LINKED_DECIMAL:
-		valueType = "decimal";
-		break;
-	case VAL_OBJECT: {
+		return "decimal";
+	case VAL_OBJECT:
 		switch (OBJECT_TYPE(value)) {
-		case OBJ_BOUND_METHOD:
 		case OBJ_FUNCTION:
-			valueType = "event";
-			break;
+		case OBJ_BOUND_METHOD:
+			return "function";
 		case OBJ_CLASS:
-			valueType = "class";
-			break;
+			return "class";
 		case OBJ_CLOSURE:
-			valueType = "closure";
-			break;
+			return "closure";
 		case OBJ_INSTANCE:
-			valueType = "instance";
-			break;
+			return "instance";
 		case OBJ_NATIVE:
-			valueType = "native";
-			break;
+			return "native function";
 		case OBJ_STRING:
-			valueType = "string";
-			break;
+			return "string";
 		case OBJ_UPVALUE:
-			valueType = "upvalue";
-			break;
+			return "upvalue";
 		case OBJ_ARRAY:
-			valueType = "array";
-			break;
+			return "array";
 		case OBJ_MAP:
-			valueType = "map";
-			break;
+			return "map";
 		case OBJ_STREAM:
-			valueType = "stream";
-			break;
+			return "stream";
 		case OBJ_NAMESPACE:
-			valueType = "namespace";
-			break;
+			return "namespace";
 		case OBJ_ENUM:
-			valueType = "enum";
-			break;
+			return "enum";
 		case OBJ_MODULE:
-			valueType = "module";
-			break;
+			return "module";
 		case OBJ_MATERIAL:
-			valueType = "material";
-			break;
+			return "material";
 		}
 	}
-	}
+
+	return "unknown";
+}
+VMValue VMThread::Value_TypeOf() {
+	VMValue value = Pop();
+
+	const char* valueType = GetTypeOfValue(value);
 
 	return OBJECT_VAL(CopyString(valueType));
 }
