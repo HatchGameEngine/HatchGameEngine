@@ -259,8 +259,8 @@ void PolygonRasterizer::DrawBasic(Vector2* positions,
 
 	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
-	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
+	int multTableAt = (opacity << 8);
+	int multSubTableAt = (opacity << 8);
 	int dst_strideY = dst_y1 * dstStride;
 	if (!SoftwareRenderer::IsStencilEnabled() &&
 		((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
@@ -352,8 +352,8 @@ void PolygonRasterizer::DrawBasicBlend(Vector2* positions,
 
 	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
-	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
+	int multTableAt = (opacity << 8);
+	int multSubTableAt = (opacity << 8);
 	int dst_strideY = dst_y1 * dstStride;
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
 		Contour contour = ContourField[dst_y];
@@ -476,8 +476,8 @@ void PolygonRasterizer::DrawShaded(Vector3* positions,
 
 	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
-	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
+	int multTableAt = (opacity << 8);
+	int multSubTableAt = (opacity << 8);
 	int dst_strideY = dst_y1 * dstStride;
 
 	if (UseFog) {
@@ -593,8 +593,8 @@ void PolygonRasterizer::DrawBlendShaded(Vector3* positions,
 
 	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
-	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
+	int multTableAt = (opacity << 8);
+	int multSubTableAt = (opacity << 8);
 	int dst_strideY = dst_y1 * dstStride;
 
 	if (UseFog) {
@@ -757,8 +757,8 @@ void PolygonRasterizer::DrawAffine(Texture* texture,
 	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	Uint32* index;
-	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
+	int multTableAt = (opacity << 8);
+	int multSubTableAt = (opacity << 8);
 	int dst_strideY = dst_y1 * dstStride;
 
 	POLYGON_SCANLINE_DEPTH(DRAW_POLYGONAFFINE);
@@ -931,8 +931,8 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	Uint32* index;
-	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
+	int multTableAt = (opacity << 8);
+	int multSubTableAt = (opacity << 8);
 	int dst_strideY = dst_y1 * dstStride;
 
 	POLYGON_SCANLINE_DEPTH(DRAW_POLYGONBLENDAFFINE);
@@ -1148,8 +1148,8 @@ void PolygonRasterizer::DrawPerspective(Texture* texture,
 	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	Uint32* index;
-	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
+	int multTableAt = (opacity << 8);
+	int multSubTableAt = (opacity << 8);
 	int dst_strideY = dst_y1 * dstStride;
 
 	POLYGON_SCANLINE_DEPTH(DRAW_POLYGONPERSP);
@@ -1307,8 +1307,8 @@ void PolygonRasterizer::DrawBlendPerspective(Texture* texture,
 	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
 	Uint32* index;
-	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
+	int multTableAt = (opacity << 8);
+	int multSubTableAt = (opacity << 8);
 	int dst_strideY = dst_y1 * dstStride;
 
 	POLYGON_SCANLINE_DEPTH(DRAW_POLYGONBLENDPERSP);
@@ -1418,8 +1418,8 @@ void PolygonRasterizer::DrawDepth(Vector3* positions,
 
 	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
-	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
+	int multTableAt = (opacity << 8);
+	int multSubTableAt = (opacity << 8);
 	int dst_strideY = dst_y1 * dstStride;
 
 	if (UseFog) {
@@ -1544,8 +1544,8 @@ void PolygonRasterizer::DrawBlendDepth(Vector3* positions,
 
 	PixelFunction pixelFunction = SoftwareRenderer::GetPixelFunction(blendFlag);
 
-	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
-	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
+	int multTableAt = (opacity << 8);
+	int multSubTableAt = (opacity << 8);
 	int dst_strideY = dst_y1 * dstStride;
 
 	if (UseFog) {

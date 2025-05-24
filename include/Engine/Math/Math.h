@@ -6,8 +6,12 @@
 class Math {
 public:
 	static void Init();
-	static float Cos(float n);
-	static float Sin(float n);
+	static float Cos(float n){
+		return std::cos(n);
+	}
+	static float Sin(float n){
+		return std::sin(n);
+	}
 	static float Tan(float n);
 	static float Asin(float x);
 	static float Acos(float x);
