@@ -1,13 +1,14 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 ObjClass* InstanceImpl::Class = nullptr;
 
 void InstanceImpl::Init() {
 	Class = NewClass(CLASS_INSTANCE);
 
-	ScriptManager::ClassImplList.push_back(Class);
+	TypeImpl::RegisterClass(Class);
 }
 
 Obj* InstanceImpl::New(size_t size, ObjType type) {

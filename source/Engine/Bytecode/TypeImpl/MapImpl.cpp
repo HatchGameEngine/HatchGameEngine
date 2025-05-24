@@ -1,6 +1,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 ObjClass* MapImpl::Class = nullptr;
 
@@ -11,7 +12,7 @@ void MapImpl::Init() {
 	ScriptManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", MapImpl::VM_IteratorValue);
 
-	ScriptManager::ClassImplList.push_back(Class);
+	TypeImpl::RegisterClass(Class);
 }
 
 Obj* MapImpl::New() {

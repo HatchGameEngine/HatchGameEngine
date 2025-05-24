@@ -257,7 +257,7 @@ inline ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID) {
 		else {
 			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
 				    index + 1,
-				    "Entity", // TODO: Don't do this
+				    GetObjectTypeString(OBJ_ENTITY),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
 				ScriptManager::Threads[threadID].ReturnFromNative();
 			}
@@ -275,7 +275,7 @@ inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
 		else {
 			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
 				    index + 1,
-				    "Stream", // TODO: Don't do this
+				    Value::GetObjectTypeName(StreamImpl::Class),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
 				ScriptManager::Threads[threadID].ReturnFromNative();
 			}

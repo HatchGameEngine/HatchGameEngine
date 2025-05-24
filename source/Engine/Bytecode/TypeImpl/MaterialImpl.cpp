@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Rendering/Material.h>
 
 ObjClass* MaterialImpl::Class = nullptr;
@@ -68,9 +69,9 @@ void MaterialImpl::Init() {
 	Hash_EmissiveTexture = Murmur::EncryptString("EmissiveTexture");
 #endif
 
-	ScriptManager::ClassImplList.push_back(Class);
-
-	ScriptManager::Globals->Put(CLASS_MATERIAL, OBJECT_VAL(Class));
+	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(CLASS_MATERIAL, Class);
+	TypeImpl::DefinePrintableName(Class, "material");
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))

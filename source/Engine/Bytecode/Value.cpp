@@ -1,5 +1,6 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 const char* Value::GetObjectTypeName(Uint32 type) {
 	switch (type) {
@@ -38,7 +39,20 @@ const char* Value::GetObjectTypeName(Uint32 type) {
 	return "unknown object type";
 }
 
+const char* Value::GetObjectTypeName(ObjClass* klass) {
+	const char* printableName = TypeImpl::GetPrintableName(klass);
+	if (printableName != nullptr) {
+		return printableName;
+	}
+	return "unknown";
+}
+
 const char* Value::GetObjectTypeName(VMValue value) {
+	Obj* object = AS_OBJECT(value);
+	const char* printableName = TypeImpl::GetPrintableName(object->Class);
+	if (printableName != nullptr) {
+		return printableName;
+	}
 	return GetObjectTypeName(OBJECT_TYPE(value));
 }
 

@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/IO/Stream.h>
 
 ObjClass* StreamImpl::Class = nullptr;
@@ -10,7 +11,8 @@ ObjClass* StreamImpl::Class = nullptr;
 void StreamImpl::Init() {
 	Class = NewClass(CLASS_STREAM);
 
-	ScriptManager::ClassImplList.push_back(Class);
+	TypeImpl::RegisterClass(Class);
+	TypeImpl::DefinePrintableName(Class, "stream");
 }
 
 ObjStream* StreamImpl::New(void* streamPtr, bool writable) {

@@ -1,6 +1,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 ObjClass* FunctionImpl::Class = nullptr;
 
@@ -9,7 +10,7 @@ void FunctionImpl::Init() {
 
 	ScriptManager::DefineNative(Class, "bind", FunctionImpl::VM_Bind);
 
-	ScriptManager::ClassImplList.push_back(Class);
+	TypeImpl::RegisterClass(Class);
 }
 
 Obj* FunctionImpl::New() {

@@ -1,6 +1,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 ObjClass* ArrayImpl::Class = nullptr;
 
@@ -10,7 +11,7 @@ void ArrayImpl::Init() {
 	ScriptManager::DefineNative(Class, "iterate", ArrayImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", ArrayImpl::VM_IteratorValue);
 
-	ScriptManager::ClassImplList.push_back(Class);
+	TypeImpl::RegisterClass(Class);
 }
 
 Obj* ArrayImpl::New() {

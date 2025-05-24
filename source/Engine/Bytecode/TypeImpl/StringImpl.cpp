@@ -1,13 +1,14 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 ObjClass* StringImpl::Class = nullptr;
 
 void StringImpl::Init() {
 	Class = NewClass(CLASS_STRING);
 
-	ScriptManager::ClassImplList.push_back(Class);
+	TypeImpl::RegisterClass(Class);
 }
 
 Obj* StringImpl::New(char* chars, size_t length, Uint32 hash) {

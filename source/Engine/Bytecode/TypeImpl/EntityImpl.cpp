@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/IO/Stream.h>
 
 ObjClass* EntityImpl::Class = nullptr;
@@ -20,7 +21,7 @@ void EntityImpl::Init() {
 	Hash_HitboxRight = Murmur::EncryptString("HitboxRight");
 	Hash_HitboxBottom = Murmur::EncryptString("HitboxBottom");
 
-	ScriptManager::ClassImplList.push_back(Class);
+	TypeImpl::RegisterClass(Class);
 }
 
 Obj* EntityImpl::New(ObjClass* klass) {
