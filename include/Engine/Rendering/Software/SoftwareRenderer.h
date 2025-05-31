@@ -40,7 +40,6 @@ private:
 public:
 	static GraphicsFunctions BackendFunctions;
 	static Uint32 CompareColor;
-	static TileScanLine TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static Sint32 SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static bool UseSpriteDeform;
 	static Contour ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
@@ -320,7 +319,6 @@ public:
 		float rotation,
 		unsigned paletteID);
 	static void DrawTile(int tile, int x, int y, bool flipX, bool flipY);
-	static void DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView);

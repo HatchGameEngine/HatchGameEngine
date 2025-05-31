@@ -56,6 +56,7 @@ public:
 	static int StencilOpFail;
 	static void* FramebufferPixels;
 	static size_t FramebufferSize;
+	static TileScanLine TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static Uint32 PaletteColors[MAX_PALETTE_COUNT][0x100];
 	static Uint8 PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 	static bool PaletteUpdated;
@@ -228,8 +229,9 @@ public:
 		float scaleH,
 		float rotation);
 	static void DrawTile(int tile, int x, int y, bool flipX, bool flipY);
+	static void DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
+	static void DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer(SceneLayer* layer,
 		View* currentView,
 		int layerIndex,

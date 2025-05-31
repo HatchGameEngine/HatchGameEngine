@@ -13141,7 +13141,6 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 	SceneLayer* layer = &Scene::Layers[BufferedScrollSetupLayer];
 	Memory::Free(layer->ScrollInfos);
 	Memory::Free(layer->ScrollIndexes);
-	Memory::Free(layer->ScrollInfosSplitIndexes);
 
 	layer->ScrollInfoCount = (int)BufferedScrollInfos.size();
 	layer->ScrollInfos =
@@ -13157,6 +13156,7 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 		length16 = layer->WidthData * 16;
 	}
 
+	layer->UsingScrollIndexes = true;
 	layer->ScrollIndexes = (Uint8*)Memory::Calloc(length16, sizeof(Uint8));
 	memcpy(layer->ScrollIndexes, BufferedScrollLines, BufferedScrollLinesMax);
 
@@ -13291,7 +13291,7 @@ VMValue Scene_SetTileScanline(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 	int scanlineIndex = GET_ARG(0, GetInteger);
 
-	TileScanLine* scanLine = &SoftwareRenderer::TileScanLineBuffer[scanlineIndex];
+	TileScanLine* scanLine = &Graphics::TileScanLineBuffer[scanlineIndex];
 	scanLine->SrcX = (Sint64)(GET_ARG(1, GetDecimal) * 0x10000);
 	scanLine->SrcY = (Sint64)(GET_ARG(2, GetDecimal) * 0x10000);
 	scanLine->DeltaX = (Sint64)(GET_ARG(3, GetDecimal) * 0x10000);
