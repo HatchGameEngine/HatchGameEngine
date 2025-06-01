@@ -1234,6 +1234,10 @@ void Scene::SetupView3D(View* currentView) {
 		currentView->NearPlane,
 		currentView->FarPlane);
 
+	currentView->ProjectionMatrix->Values[5] *= -1.0f;
+
+	Matrix4x4::Copy(currentView->BaseProjectionMatrix, currentView->ProjectionMatrix);
+
 	// Translate
 	Matrix4x4::Translate(currentView->ViewMatrix,
 		currentView->ViewMatrix,
