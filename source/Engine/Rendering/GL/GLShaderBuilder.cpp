@@ -92,8 +92,8 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 	std::string paletteLookupText =
 		"float paletteLine;\n"
 		"if (u_paletteLine == -1) {\n"
-		"    int paletteLineIdx = int(gl_FragCoord.y);\n"
-		"    paletteLine = float(u_paletteIndexTable[clamp(paletteLineIdx, 0, 4095)]) / 256.0;\n"
+		"    int screenLine = clamp(int(gl_FragCoord.y), 0, 4095);\n"
+		"    paletteLine = float(u_paletteIndexTable[screenLine]) / 256.0;\n"
 		"} else {\n"
 		"    paletteLine = float(u_paletteLine) / 256.0;\n"
 		"}\n";
