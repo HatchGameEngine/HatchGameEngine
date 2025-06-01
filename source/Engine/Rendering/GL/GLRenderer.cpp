@@ -364,18 +364,32 @@ void GL_SetProjectionMatrix(Matrix4x4* projMat) {
 			GLRenderer::CurrentShader->CachedProjectionMatrix->Values);
 	}
 }
-void GL_SetModelViewMatrix(Matrix4x4* modelViewMatrix) {
-	if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedModelViewMatrix, modelViewMatrix)) {
-		if (!GLRenderer::CurrentShader->CachedModelViewMatrix) {
-			GLRenderer::CurrentShader->CachedModelViewMatrix = Matrix4x4::Create();
+void GL_SetViewMatrix(Matrix4x4* viewMatrix) {
+	if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedViewMatrix, viewMatrix)) {
+		if (!GLRenderer::CurrentShader->CachedViewMatrix) {
+			GLRenderer::CurrentShader->CachedViewMatrix = Matrix4x4::Create();
 		}
 
-		Matrix4x4::Copy(GLRenderer::CurrentShader->CachedModelViewMatrix, modelViewMatrix);
+		Matrix4x4::Copy(GLRenderer::CurrentShader->CachedViewMatrix, viewMatrix);
 
-		glUniformMatrix4fv(GLRenderer::CurrentShader->LocModelViewMatrix,
+		glUniformMatrix4fv(GLRenderer::CurrentShader->LocViewMatrix,
 			1,
 			false,
-			GLRenderer::CurrentShader->CachedModelViewMatrix->Values);
+			GLRenderer::CurrentShader->CachedViewMatrix->Values);
+	}
+}
+void GL_SetModelMatrix(Matrix4x4* modelMatrix) {
+	if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedModelMatrix, modelMatrix)) {
+		if (!GLRenderer::CurrentShader->CachedModelMatrix) {
+			GLRenderer::CurrentShader->CachedModelMatrix = Matrix4x4::Create();
+		}
+
+		Matrix4x4::Copy(GLRenderer::CurrentShader->CachedModelMatrix, modelMatrix);
+
+		glUniformMatrix4fv(GLRenderer::CurrentShader->LocModelMatrix,
+			1,
+			false,
+			GLRenderer::CurrentShader->CachedModelMatrix->Values);
 	}
 }
 void GL_Predraw(Texture* texture) {
@@ -398,7 +412,8 @@ void GL_Predraw(Texture* texture) {
 
 	// Update matrices
 	GL_SetProjectionMatrix(Scene::Views[Scene::ViewCurrent].ProjectionMatrix);
-	GL_SetModelViewMatrix(Graphics::ModelViewMatrix);
+	GL_SetViewMatrix(Graphics::ViewMatrix);
+	GL_SetModelMatrix(Graphics::ModelMatrix);
 }
 void GL_DrawTextureBuffered(Texture* texture, GLuint buffer, int offset, int flip) {
 	GL_Predraw(texture);
@@ -899,13 +914,15 @@ void GL_SetState(GL_State& state,
 	GL_VertexBuffer* driverData,
 	Matrix4x4* projMat,
 	Matrix4x4* viewMat,
+	Matrix4x4* modelMat,
 	GL_State* lastState = NULL) {
 	bool changeShader = false;
 	if (GLRenderer::CurrentShader != state.Shader) {
 		GLRenderer::UseShader(state.Shader);
 		changeShader = true;
 		GL_SetProjectionMatrix(projMat);
-		GL_SetModelViewMatrix(viewMat);
+		GL_SetViewMatrix(viewMat);
+		GL_SetModelMatrix(modelMat);
 	}
 
 	GLShader* shader = GLRenderer::CurrentShader;
@@ -2390,13 +2407,16 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
 	Matrix4x4 projMat = scene->ProjectionMatrix;
 	Matrix4x4 viewMat = scene->ViewMatrix;
+	Matrix4x4 modelMat;
 
-	Matrix4x4* out = Graphics::ModelViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	float cx = (float)(out->Values[12] - currentView->X) / currentView->Width;
 	float cy = (float)(out->Values[13] - currentView->Y) / currentView->Height;
 
 	Matrix4x4 identity;
 	Matrix4x4::Identity(&identity);
+	modelMat = identity;
+
 	Matrix4x4::Translate(&identity, &identity, cx, cy, 0.0f);
 	if (currentView->UseDrawTarget) {
 		Matrix4x4::Scale(&identity, &identity, 1.0f, -1.0f, 1.0f);
@@ -2409,7 +2429,8 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	// Prepare the shader now
 	GLRenderer::UseShader(GLRenderer::ShaderShape3D->Get(true));
 	GL_SetProjectionMatrix(&projMat);
-	GL_SetModelViewMatrix(&viewMat);
+	GL_SetViewMatrix(&viewMat);
+	GL_SetModelMatrix(&modelMat);
 
 	// Begin drawing
 	GL_State state = {0};
@@ -2426,7 +2447,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	// Draw it all in one go if we can
 	if (useBatching && driverData->UseVertexIndices) {
 		GL_UpdateStateFromFace(state, (*driverData->Faces)[0], scene, cullWindingOrder);
-		GL_SetState(state, driverData, &projMat, &viewMat);
+		GL_SetState(state, driverData, &projMat, &viewMat, &modelMat);
 		PERF_STATE_CHANGE(perf);
 
 		size_t numBatches = driverData->VertexIndexList.size();
@@ -2457,7 +2478,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 			// face
 			if (f == 0) {
 				memcpy(&lastState, &state, sizeof(GL_State));
-				GL_SetState(state, driverData, &projMat, &viewMat);
+				GL_SetState(state, driverData, &projMat, &viewMat, &modelMat);
 				PERF_STATE_CHANGE(perf);
 			}
 			else if (memcmp(&lastState, &state, sizeof(GL_State))) {
@@ -2483,6 +2504,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 							driverData,
 							&projMat,
 							&viewMat,
+							&modelMat,
 							lastStateCMP.VertexAtrribs == NULL
 								? NULL
 								: &lastStateCMP);
@@ -2522,6 +2544,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 						driverData,
 						&projMat,
 						&viewMat,
+						&modelMat,
 						lastStateCMP.VertexAtrribs == NULL ? NULL
 										   : &lastStateCMP);
 					PERF_STATE_CHANGE(perf);
@@ -2560,6 +2583,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 					driverData,
 					&projMat,
 					&viewMat,
+					&modelMat,
 					lastStateCMP.VertexAtrribs == NULL ? NULL : &lastStateCMP);
 				PERF_STATE_CHANGE(perf);
 			}
