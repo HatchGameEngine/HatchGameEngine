@@ -145,6 +145,7 @@ void GLShader::AttachAndLink() {
 	LocTextureV = GetUniformLocation("u_textureV");
 	LocPalette = GetUniformLocation("u_paletteTexture");
 	LocPaletteLine = GetUniformLocation("u_paletteLine");
+	LocPaletteIndexTable = GetUniformLocation("u_paletteIndexTable");
 
 	LocFogColor = GetUniformLocation("u_fogColor");
 	LocFogLinearStart = GetUniformLocation("u_fogLinearStart");

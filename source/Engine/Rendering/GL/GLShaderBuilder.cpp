@@ -21,6 +21,7 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 	if (uniforms.u_palette) {
 		shaderText += "uniform sampler2D u_paletteTexture;\n";
 		shaderText += "uniform int u_paletteLine;\n";
+		shaderText += "uniform int u_paletteIndexTable[4096];\n";
 	}
 	if (uniforms.u_yuv) {
 		shaderText += "uniform sampler2D u_texture;\n";
@@ -88,6 +89,15 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			"}\n";
 	}
 
+	std::string paletteLookupText =
+		"float paletteLine;\n"
+		"if (u_paletteLine == -1) {\n"
+		"    int paletteLineIdx = int(gl_FragCoord.y);\n"
+		"    paletteLine = float(u_paletteIndexTable[clamp(paletteLineIdx, 0, 4095)]) / 256.0;\n"
+		"} else {\n"
+		"    paletteLine = float(u_paletteLine) / 256.0;\n"
+		"}\n";
+
 	shaderText += "void main() {\n";
 	shaderText += "vec4 finalColor;\n";
 
@@ -97,8 +107,9 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			shaderText += "vec4 base = texture2D(u_texture, o_uv);\n";
 			if (uniforms.u_palette) {
 				shaderText += "if (base.r == 0.0) discard;\n";
+				shaderText += paletteLookupText;
 				shaderText +=
-					"base = texture2D(u_paletteTexture, vec2(base.r, float(u_paletteLine) / 256.0));\n";
+					"base = texture2D(u_paletteTexture, vec2(base.r, paletteLine));\n";
 			}
 			shaderText += "if (base.a == 0.0) discard;\n";
 			shaderText += "finalColor = base * o_color;\n";
@@ -110,8 +121,9 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			shaderText += "vec4 base = texture2D(u_texture, o_uv);\n";
 			if (uniforms.u_palette) {
 				shaderText += "if (base.r == 0.0) discard;\n";
+				shaderText += paletteLookupText;
 				shaderText +=
-					"base = texture2D(u_paletteTexture, vec2(base.r, float(u_paletteLine) / 256.0));\n";
+					"base = texture2D(u_paletteTexture, vec2(base.r, paletteLine));\n";
 			}
 			else {
 				shaderText += "if (base.a == 0.0) discard;\n";
