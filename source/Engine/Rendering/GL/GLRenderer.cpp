@@ -2201,27 +2201,16 @@ void GLRenderer::DrawSprite(ISprite* sprite,
 		return;
 	}
 
-	// /*
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 	Graphics::Save();
-	// Graphics::Rotate(0.0f, 0.0f, rotation);
 	Graphics::Translate(x, y, 0.0f);
+	Graphics::Rotate(0.0f, 0.0f, rotation);
+	Graphics::Scale(scaleW, scaleH, 0.0f);
 	GL_DrawTextureBuffered(sprite->Spritesheets[animframe.SheetNumber],
 		sprite->ID,
 		animframe.BufferOffset,
 		((int)flipY << 1) | (int)flipX);
 	Graphics::Restore();
-	//*/
-
-	// AnimFrame animframe =
-	// sprite->Animations[animation].Frames[frame]; float fX =
-	// flipX ? -1.0 : 1.0; float fY = flipY ? -1.0 : 1.0; float sw
-	// = animframe.Width; float sh  = animframe.Height;
-	//
-	// GLRenderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
-	//     animframe.X, animframe.Y, sw, sh,
-	//     x + fX * animframe.OffsetX,
-	//     y + fY * animframe.OffsetY, fX * sw, fY * sh);
 }
 void GLRenderer::DrawSpritePart(ISprite* sprite,
 	int animation,
@@ -2259,15 +2248,22 @@ void GLRenderer::DrawSpritePart(ISprite* sprite,
 		sh = animframe.Height - sy;
 	}
 
+	Graphics::Save();
+	Graphics::Translate(x, y, 0.0f);
+	Graphics::Rotate(0.0f, 0.0f, rotation);
+	Graphics::Scale(scaleW, scaleH, 0.0f);
+
 	GLRenderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
 		animframe.X + sx,
 		animframe.Y + sy,
 		sw,
 		sh,
-		x + fX * (sx + animframe.OffsetX),
-		y + fY * (sy + animframe.OffsetY),
+		fX * (sx + animframe.OffsetX),
+		fY * (sy + animframe.OffsetY),
 		fX * sw,
 		fY * sh);
+
+	Graphics::Restore();
 }
 // 3D drawing functions
 void GLRenderer::DrawPolygon3D(void* data,
