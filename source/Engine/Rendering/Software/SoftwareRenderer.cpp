@@ -1011,7 +1011,7 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	int cx = (int)std::floor(currentView->X);
 	int cy = (int)std::floor(currentView->Y);
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	int x = out->Values[12];
 	int y = out->Values[13];
 	x -= cx;
@@ -1781,7 +1781,7 @@ void SoftwareRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
 	int cx = (int)std::floor(currentView->X);
 	int cy = (int)std::floor(currentView->Y);
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -1848,7 +1848,7 @@ void SoftwareRenderer::StrokeCircle(float x, float y, float rad, float thickness
 	int cx = (int)std::floor(currentView->X);
 	int cy = (int)std::floor(currentView->Y);
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -2008,7 +2008,7 @@ void SoftwareRenderer::StrokeThickCircle(float x, float y, float rad, float thic
 	int cx = (int)std::floor(currentView->X);
 	int cy = (int)std::floor(currentView->Y);
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -2199,7 +2199,7 @@ void SoftwareRenderer::StrokeRectangle(float x, float y, float w, float h) {
 	int cx = (int)std::floor(currentView->X);
 	int cy = (int)std::floor(currentView->Y);
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -2319,7 +2319,7 @@ void SoftwareRenderer::FillCircle(float x, float y, float rad) {
 	int cx = (int)std::floor(currentView->X);
 	int cy = (int)std::floor(currentView->Y);
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -2442,7 +2442,7 @@ void SoftwareRenderer::FillRectangle(float x, float y, float w, float h) {
 	int cx = (int)std::floor(currentView->X);
 	int cy = (int)std::floor(currentView->Y);
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -2531,7 +2531,7 @@ void SoftwareRenderer::FillTriangle(float x1, float y1, float x2, float y2, floa
 
 	int x = 0, y = 0;
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -2570,7 +2570,7 @@ void SoftwareRenderer::FillTriangleBlend(float x1,
 
 	int x = 0, y = 0;
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -2612,7 +2612,7 @@ void SoftwareRenderer::FillQuad(float x1,
 
 	int x = 0, y = 0;
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -2656,7 +2656,7 @@ void SoftwareRenderer::FillQuadBlend(float x1,
 
 	int x = 0, y = 0;
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -2700,7 +2700,7 @@ void SoftwareRenderer::DrawShapeTextured(Texture* texturePtr,
 
 	int x = 0, y = 0;
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -3481,7 +3481,7 @@ void SoftwareRenderer::DrawTexture(Texture* texture,
 	int cx = (int)std::floor(currentView->X);
 	int cy = (int)std::floor(currentView->Y);
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -3532,7 +3532,7 @@ void SoftwareRenderer::DrawSprite(ISprite* sprite,
 	int cx = (int)std::floor(currentView->X);
 	int cy = (int)std::floor(currentView->Y);
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
@@ -3641,7 +3641,7 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 	int cx = (int)std::floor(currentView->X);
 	int cy = (int)std::floor(currentView->Y);
 
-	Matrix4x4* out = Graphics::ViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	x += out->Values[12];
 	y += out->Values[13];
 	x -= cx;
