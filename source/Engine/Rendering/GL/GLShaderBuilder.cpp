@@ -21,7 +21,8 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 	if (uniforms.u_palette) {
 		shaderText += "uniform sampler2D u_paletteTexture;\n";
 		shaderText += "uniform int u_paletteLine;\n";
-		shaderText += "uniform int u_paletteIndexTable[4096];\n";
+		shaderText += "uniform int u_paletteIndexTable[" +
+			std::to_string(MAX_FRAMEBUFFER_HEIGHT) + "];\n";
 	}
 	if (uniforms.u_yuv) {
 		shaderText += "uniform sampler2D u_texture;\n";
@@ -69,7 +70,8 @@ void GLShaderBuilder::AddInputsToFragmentShaderText(std::string& shaderText,
 }
 string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 	GLShaderUniforms& uniforms) {
-	std::string shaderText = "";
+	std::string shaderText;
+	std::string paletteLookupText;
 
 	if (uniforms.u_fog_linear) {
 		shaderText +=
@@ -89,14 +91,18 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			"}\n";
 	}
 
-	std::string paletteLookupText =
-		"float paletteLine;\n"
-		"if (u_paletteLine == -1) {\n"
-		"    int screenLine = clamp(int(gl_FragCoord.y), 0, 4095);\n"
-		"    paletteLine = float(u_paletteIndexTable[screenLine]) / 256.0;\n"
-		"} else {\n"
-		"    paletteLine = float(u_paletteLine) / 256.0;\n"
-		"}\n";
+	if (uniforms.u_palette) {
+		paletteLookupText =
+			"float paletteLine;\n"
+			"if (u_paletteLine == -1) {\n"
+			"    int screenLine = clamp(int(gl_FragCoord.y), 0, " +
+			std::to_string(MAX_FRAMEBUFFER_HEIGHT) +
+			");\n"
+			"    paletteLine = float(u_paletteIndexTable[screenLine]) / 256.0;\n"
+			"} else {\n"
+			"    paletteLine = float(u_paletteLine) / 256.0;\n"
+			"}\n";
+	}
 
 	shaderText += "void main() {\n";
 	shaderText += "vec4 finalColor;\n";
