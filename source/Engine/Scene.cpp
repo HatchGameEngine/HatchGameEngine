@@ -662,7 +662,6 @@ void Scene::Init() {
 			Scene::Views[i].Height);
 		Scene::Views[i].UseDrawTarget = true;
 		Scene::Views[i].ProjectionMatrix = Matrix4x4::Create();
-		Scene::Views[i].BaseProjectionMatrix = Matrix4x4::Create();
 		Scene::Views[i].ViewMatrix = Matrix4x4::Create();
 	}
 	Scene::Views[0].Active = true;
@@ -1233,10 +1232,6 @@ void Scene::SetupView3D(View* currentView) {
 		currentView->Width / currentView->Height,
 		currentView->NearPlane,
 		currentView->FarPlane);
-
-	currentView->ProjectionMatrix->Values[5] *= -1.0f;
-
-	Matrix4x4::Copy(currentView->BaseProjectionMatrix, currentView->ProjectionMatrix);
 
 	// Translate
 	Matrix4x4::Translate(currentView->ViewMatrix,
@@ -3051,11 +3046,6 @@ void Scene::Dispose() {
 		if (Scene::Views[i].ProjectionMatrix) {
 			delete Scene::Views[i].ProjectionMatrix;
 			Scene::Views[i].ProjectionMatrix = NULL;
-		}
-
-		if (Scene::Views[i].BaseProjectionMatrix) {
-			delete Scene::Views[i].BaseProjectionMatrix;
-			Scene::Views[i].BaseProjectionMatrix = NULL;
 		}
 
 		if (Scene::Views[i].ViewMatrix) {

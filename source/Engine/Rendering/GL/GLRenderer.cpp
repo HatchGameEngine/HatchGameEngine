@@ -1838,26 +1838,20 @@ void GLRenderer::UpdateClipRect() {
 	}
 }
 void GLRenderer::UpdateOrtho(float left, float top, float right, float bottom) {
-	// if (Graphics::CurrentRenderTarget)
-	//     Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix,
-	//     left, right, bottom, top, -500.0f, 500.0f);
-	// else
-	Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix,
+	Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent].ProjectionMatrix,
 		left,
 		right,
 		top,
 		bottom,
 		-500.0f,
 		500.0f);
-
-	Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix,
-		Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
 }
 void GLRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
-	MakePerspectiveMatrix(
-		Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, fovy, nearv, farv, aspect);
-	Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix,
-		Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
+	Matrix4x4* matrix = Scene::Views[Scene::ViewCurrent].ProjectionMatrix;
+
+	MakePerspectiveMatrix(matrix, fovy, nearv, farv, aspect);
+
+	matrix->Values[5] *= -1.0f;
 }
 void GLRenderer::UpdateProjectionMatrix() {}
 void GLRenderer::MakePerspectiveMatrix(Matrix4x4* out,

@@ -34,7 +34,6 @@ public:
 	Uint8* StencilBuffer = NULL;
 	size_t StencilBufferSize = 0;
 	Matrix4x4* ProjectionMatrix = NULL;
-	Matrix4x4* BaseProjectionMatrix = NULL;
 	Matrix4x4* ViewMatrix = NULL;
 
 	void SetSize(float w, float h);
