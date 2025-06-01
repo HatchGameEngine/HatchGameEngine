@@ -32,6 +32,7 @@ public:
 	GLint LocTextureU;
 	GLint LocTextureV;
 	GLint LocPalette;
+	GLint LocPaletteLine;
 	GLint LocColor;
 	GLint LocDiffuseColor;
 	GLint LocSpecularColor;

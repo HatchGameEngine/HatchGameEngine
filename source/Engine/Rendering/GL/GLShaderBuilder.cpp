@@ -20,6 +20,7 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 	}
 	if (uniforms.u_palette) {
 		shaderText += "uniform sampler2D u_paletteTexture;\n";
+		shaderText += "uniform int u_paletteLine;\n";
 	}
 	if (uniforms.u_yuv) {
 		shaderText += "uniform sampler2D u_texture;\n";
@@ -97,7 +98,7 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			if (uniforms.u_palette) {
 				shaderText += "if (base.r == 0.0) discard;\n";
 				shaderText +=
-					"base = texture2D(u_paletteTexture, vec2(base.r, 0.0));\n";
+					"base = texture2D(u_paletteTexture, vec2(base.r, float(u_paletteLine) / 256.0));\n";
 			}
 			shaderText += "if (base.a == 0.0) discard;\n";
 			shaderText += "finalColor = base * o_color;\n";
@@ -110,7 +111,7 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			if (uniforms.u_palette) {
 				shaderText += "if (base.r == 0.0) discard;\n";
 				shaderText +=
-					"base = texture2D(u_paletteTexture, vec2(base.r, 0.0));\n";
+					"base = texture2D(u_paletteTexture, vec2(base.r, float(u_paletteLine) / 256.0));\n";
 			}
 			else {
 				shaderText += "if (base.a == 0.0) discard;\n";
