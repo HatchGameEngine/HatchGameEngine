@@ -96,7 +96,7 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			"float paletteLine;\n"
 			"if (u_paletteLine == -1) {\n"
 			"    int screenLine = clamp(int(gl_FragCoord.y), 0, " +
-			std::to_string(MAX_FRAMEBUFFER_HEIGHT) +
+			std::to_string(MAX_FRAMEBUFFER_HEIGHT - 1) +
 			");\n"
 			"    paletteLine = float(u_paletteIndexTable[screenLine]) / 256.0;\n"
 			"} else {\n"
