@@ -36,6 +36,8 @@ GLuint GLRenderer::BufferCircleFill;
 GLuint GLRenderer::BufferCircleStroke;
 GLuint GLRenderer::BufferSquareFill;
 
+GLint GL_PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
+
 bool UseDepthTesting = true;
 float RetinaScale = 1.0;
 Texture* GL_LastTexture = nullptr;
@@ -285,9 +287,15 @@ void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 	}
 	GL_LastTexture = texture;
 }
-void GL_PreparePaletteShader() {
+void GL_PreparePaletteShader(unsigned paletteID = 0) {
 	glActiveTexture(GL_ActiveTexture = GL_TEXTURE1);
 	glUniform1i(GLRenderer::CurrentShader->LocPalette, 1);
+	if (Graphics::UsePaletteIndexLines) {
+		glUniform1i(GLRenderer::CurrentShader->LocPaletteLine, -1);
+	}
+	else {
+		glUniform1i(GLRenderer::CurrentShader->LocPaletteLine, (int)paletteID);
+	}
 
 	if (Graphics::PaletteTexture && Graphics::PaletteTexture->DriverData) {
 		GL_TextureData* paletteTexture =
@@ -300,7 +308,7 @@ void GL_PreparePaletteShader() {
 
 	glActiveTexture(GL_ActiveTexture = GL_TEXTURE0);
 }
-void GL_SetTexture(Texture* texture) {
+void GL_SetTexture(Texture* texture, unsigned paletteID = 0) {
 	// Use appropriate shader if changed
 	if (texture) {
 		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
@@ -322,7 +330,7 @@ void GL_SetTexture(Texture* texture) {
 		else {
 			if (texture->Paletted && Graphics::UsePalettes) {
 				GLRenderer::UseShader(GLRenderer::ShaderShape->Get(true, true));
-				GL_PreparePaletteShader();
+				GL_PreparePaletteShader(paletteID);
 			}
 			else {
 				GLRenderer::UseShader(GLRenderer::ShaderShape->Get(true));
@@ -378,8 +386,8 @@ void GL_SetModelViewMatrix(Matrix4x4* modelViewMatrix) {
 			GLRenderer::CurrentShader->CachedModelViewMatrix->Values);
 	}
 }
-void GL_Predraw(Texture* texture) {
-	GL_SetTexture(texture);
+void GL_Predraw(Texture* texture, unsigned paletteID = 0) {
+	GL_SetTexture(texture, paletteID);
 
 	// Update color if needed
 	if (memcmp(&GLRenderer::CurrentShader->CachedBlendColors[0],
@@ -400,8 +408,12 @@ void GL_Predraw(Texture* texture) {
 	GL_SetProjectionMatrix(Scene::Views[Scene::ViewCurrent].ProjectionMatrix);
 	GL_SetModelViewMatrix(Graphics::ModelViewMatrix);
 }
-void GL_DrawTextureBuffered(Texture* texture, GLuint buffer, int offset, int flip) {
-	GL_Predraw(texture);
+void GL_DrawTextureBuffered(Texture* texture,
+	GLuint buffer,
+	int offset,
+	int flip,
+	unsigned paletteID = 0) {
+	GL_Predraw(texture, paletteID);
 
 	if (!Graphics::TextureBlend) {
 		GLRenderer::CurrentShader->CachedBlendColors[0] =
@@ -436,8 +448,9 @@ void GL_DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
-	GL_Predraw(texture);
+	float h,
+	unsigned paletteID = 0) {
+	GL_Predraw(texture, paletteID);
 
 	if (!Graphics::TextureBlend) {
 		GLRenderer::CurrentShader->CachedBlendColors[0] =
@@ -1875,8 +1888,10 @@ void GLRenderer::MakePerspectiveMatrix(Matrix4x4* out,
 }
 
 // Shader-related functions
-void GLRenderer::UseShader(void* shader) {
-	if (GLRenderer::CurrentShader != (GLShader*)shader) {
+void GLRenderer::UseShader(void* shaderPtr) {
+	GLShader* shader = (GLShader*)shaderPtr;
+
+	if (GLRenderer::CurrentShader != shader) {
 		if (GLRenderer::CurrentShader) {
 			if (GLRenderer::CurrentShader->LocPosition != -1) {
 				glDisableVertexAttribArray(GLRenderer::CurrentShader->LocPosition);
@@ -1890,24 +1905,38 @@ void GLRenderer::UseShader(void* shader) {
 			}
 		}
 
-		GLRenderer::CurrentShader = (GLShader*)shader;
+		GLRenderer::CurrentShader = shader;
+		shader->Use();
 
-		GLRenderer::CurrentShader->Use();
+		if (shader->LocPosition != -1) {
+			glEnableVertexAttribArray(shader->LocPosition);
+		}
+		if (shader->LocTexCoord != -1) {
+			glEnableVertexAttribArray(shader->LocTexCoord);
+		}
+		if (shader->LocVaryingColor != -1) {
+			glEnableVertexAttribArray(shader->LocVaryingColor);
+		}
 
-		if (GLRenderer::CurrentShader->LocPosition != -1) {
-			glEnableVertexAttribArray(GLRenderer::CurrentShader->LocPosition);
-		}
-		if (GLRenderer::CurrentShader->LocTexCoord != -1) {
-			glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
-		}
-		if (GLRenderer::CurrentShader->LocVaryingColor != -1) {
-			glEnableVertexAttribArray(GLRenderer::CurrentShader->LocVaryingColor);
+		if (shader->LocPaletteIndexTable != -1) {
+			unsigned maxHeight = MAX_FRAMEBUFFER_HEIGHT;
+			if (Graphics::CurrentView != nullptr) {
+				maxHeight = Graphics::CurrentView->Height;
+			}
+
+			for (unsigned i = 0; i < maxHeight; i++) {
+				GL_PaletteIndexLines[i] = Graphics::PaletteIndexLines[i];
+			}
+
+			glUniform1iv(shader->LocPaletteIndexTable,
+				MAX_FRAMEBUFFER_HEIGHT,
+				GL_PaletteIndexLines);
 		}
 
 		if (GL_ActiveTexture != GL_TEXTURE0) {
 			glActiveTexture(GL_ActiveTexture = GL_TEXTURE0);
 		}
-		glUniform1i(GLRenderer::CurrentShader->LocTexture, 0);
+		glUniform1i(shader->LocTexture, 0);
 	}
 }
 void GLRenderer::SetUniformF(int location, int count, float* values) {
@@ -2184,7 +2213,6 @@ void GLRenderer::DrawSprite(ISprite* sprite,
 		return;
 	}
 
-	// /*
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 	Graphics::Save();
 	// Graphics::Rotate(0.0f, 0.0f, rotation);
@@ -2192,19 +2220,9 @@ void GLRenderer::DrawSprite(ISprite* sprite,
 	GL_DrawTextureBuffered(sprite->Spritesheets[animframe.SheetNumber],
 		sprite->ID,
 		animframe.BufferOffset,
-		((int)flipY << 1) | (int)flipX);
+		((int)flipY << 1) | (int)flipX,
+		paletteID);
 	Graphics::Restore();
-	//*/
-
-	// AnimFrame animframe =
-	// sprite->Animations[animation].Frames[frame]; float fX =
-	// flipX ? -1.0 : 1.0; float fY = flipY ? -1.0 : 1.0; float sw
-	// = animframe.Width; float sh  = animframe.Height;
-	//
-	// GLRenderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
-	//     animframe.X, animframe.Y, sw, sh,
-	//     x + fX * animframe.OffsetX,
-	//     y + fY * animframe.OffsetY, fX * sw, fY * sh);
 }
 void GLRenderer::DrawSpritePart(ISprite* sprite,
 	int animation,
@@ -2242,15 +2260,26 @@ void GLRenderer::DrawSpritePart(ISprite* sprite,
 		sh = animframe.Height - sy;
 	}
 
-	GLRenderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
+	float textureX = x + fX * (sx + animframe.OffsetX);
+	float textureY = y + fY * (sy + animframe.OffsetY);
+	float textureW = fX * sw;
+	float textureH = fY * sh;
+
+	textureX *= RetinaScale;
+	textureY *= RetinaScale;
+	textureW *= RetinaScale;
+	textureH *= RetinaScale;
+
+	GL_DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
 		animframe.X + sx,
 		animframe.Y + sy,
 		sw,
 		sh,
-		x + fX * (sx + animframe.OffsetX),
-		y + fY * (sy + animframe.OffsetY),
-		fX * sw,
-		fY * sh);
+		textureX,
+		textureY,
+		textureW,
+		textureH,
+		paletteID);
 }
 // 3D drawing functions
 void GLRenderer::DrawPolygon3D(void* data,
