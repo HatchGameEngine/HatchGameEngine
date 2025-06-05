@@ -275,7 +275,10 @@ void UpdateObject(Entity* ent) {
 	case ACTIVE_BOUNDS:
 		ent->InRange = false;
 
-		for (int i = 0; i < Scene::ViewsActive; i++) {
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
+			}
 			if (onScreenX && onScreenY) {
 				break;
 			}
@@ -298,7 +301,10 @@ void UpdateObject(Entity* ent) {
 	case ACTIVE_XBOUNDS:
 		ent->InRange = false;
 
-		for (int i = 0; i < Scene::ViewsActive; i++) {
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
+			}
 			if (onScreenX) {
 				break;
 			}
@@ -315,7 +321,10 @@ void UpdateObject(Entity* ent) {
 	case ACTIVE_YBOUNDS:
 		ent->InRange = false;
 
-		for (int i = 0; i < Scene::ViewsActive; i++) {
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
+			}
 			if (onScreenY) {
 				break;
 			}
@@ -333,7 +342,10 @@ void UpdateObject(Entity* ent) {
 		ent->InRange = false;
 
 		// TODO: Double check this works properly
-		for (int v = 0; v < Scene::ViewsActive; v++) {
+		for (int v = 0; v < MAX_SCENE_VIEWS; v++) {
+			if (!Scene::Views[v].Active) {
+				continue;
+			}
 			float sx = abs(ent->X - Scene::Views[v].X);
 			float sy = abs(ent->Y - Scene::Views[v].Y);
 
