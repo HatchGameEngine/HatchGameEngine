@@ -76,7 +76,8 @@ struct GraphicsFunctions {
 		float x,
 		float y,
 		float w,
-		float h);
+		float h,
+		int paletteID);
 	void (*DrawSprite)(ISprite* sprite,
 		int animation,
 		int frame,
@@ -87,7 +88,7 @@ struct GraphicsFunctions {
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
+		int paletteID);
 	void (*DrawSpritePart)(ISprite* sprite,
 		int animation,
 		int frame,
@@ -102,7 +103,7 @@ struct GraphicsFunctions {
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
+		int paletteID);
 
 	void (*DrawPolygon3D)(void* data,
 		int vertexCount,

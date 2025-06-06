@@ -287,15 +287,10 @@ void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 	}
 	GL_LastTexture = texture;
 }
-void GL_PreparePaletteShader(unsigned paletteID = 0) {
+void GL_PreparePaletteShader(int paletteID = 0) {
 	glActiveTexture(GL_ActiveTexture = GL_TEXTURE1);
 	glUniform1i(GLRenderer::CurrentShader->LocPalette, 1);
-	if (Graphics::UsePaletteIndexLines) {
-		glUniform1i(GLRenderer::CurrentShader->LocPaletteLine, -1);
-	}
-	else {
-		glUniform1i(GLRenderer::CurrentShader->LocPaletteLine, (int)paletteID);
-	}
+	glUniform1i(GLRenderer::CurrentShader->LocPaletteLine, paletteID);
 
 	if (Graphics::PaletteTexture && Graphics::PaletteTexture->DriverData) {
 		GL_TextureData* paletteTexture =
@@ -308,7 +303,7 @@ void GL_PreparePaletteShader(unsigned paletteID = 0) {
 
 	glActiveTexture(GL_ActiveTexture = GL_TEXTURE0);
 }
-void GL_SetTexture(Texture* texture, unsigned paletteID = 0) {
+void GL_SetTexture(Texture* texture, int paletteID = 0) {
 	// Use appropriate shader if changed
 	if (texture) {
 		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
@@ -386,7 +381,7 @@ void GL_SetModelViewMatrix(Matrix4x4* modelViewMatrix) {
 			GLRenderer::CurrentShader->CachedModelViewMatrix->Values);
 	}
 }
-void GL_Predraw(Texture* texture, unsigned paletteID = 0) {
+void GL_Predraw(Texture* texture, int paletteID = 0) {
 	GL_SetTexture(texture, paletteID);
 
 	// Update color if needed
@@ -412,7 +407,7 @@ void GL_DrawTextureBuffered(Texture* texture,
 	GLuint buffer,
 	int offset,
 	int flip,
-	unsigned paletteID = 0) {
+	int paletteID = 0) {
 	GL_Predraw(texture, paletteID);
 
 	if (!Graphics::TextureBlend) {
@@ -449,7 +444,7 @@ void GL_DrawTexture(Texture* texture,
 	float y,
 	float w,
 	float h,
-	unsigned paletteID = 0) {
+	int paletteID = 0) {
 	GL_Predraw(texture, paletteID);
 
 	if (!Graphics::TextureBlend) {
@@ -2191,12 +2186,13 @@ void GLRenderer::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
+	float h,
+	int paletteID) {
 	x *= RetinaScale;
 	y *= RetinaScale;
 	w *= RetinaScale;
 	h *= RetinaScale;
-	GL_DrawTexture(texture, sx, sy, sw, sh, x, y, w, h);
+	GL_DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
 }
 void GLRenderer::DrawSprite(ISprite* sprite,
 	int animation,
@@ -2208,7 +2204,7 @@ void GLRenderer::DrawSprite(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -2238,7 +2234,7 @@ void GLRenderer::DrawSpritePart(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}

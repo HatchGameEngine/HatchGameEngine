@@ -2829,7 +2829,7 @@ void DrawSpriteImage(Texture* texture,
 	int sx,
 	int sy,
 	int flipFlag,
-	unsigned paletteID,
+	int paletteID,
 	BlendState blendState) {
 	Uint32* srcPx = (Uint32*)texture->Pixels;
 	Uint32 srcStride = texture->Width;
@@ -2919,7 +2919,7 @@ void DrawSpriteImage(Texture* texture,
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
 		srcPxLine = srcPx + src_strideY; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; \
@@ -2941,7 +2941,7 @@ void DrawSpriteImage(Texture* texture,
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
 		srcPxLine = srcPx + src_strideY; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; \
@@ -2962,7 +2962,7 @@ void DrawSpriteImage(Texture* texture,
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
 		srcPxLine = srcPx + src_strideY; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; \
@@ -2983,7 +2983,7 @@ void DrawSpriteImage(Texture* texture,
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
 		srcPxLine = srcPx + src_strideY; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; \
@@ -3013,7 +3013,7 @@ void DrawSpriteImage(Texture* texture,
 	Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
 
 	if (Graphics::UsePalettes && texture->Paletted) {
-		if (!Graphics::UsePaletteIndexLines) {
+		if (paletteID != PALETTE_INDEX_TABLE_ID) {
 			index = &Graphics::PaletteColors[paletteID][0];
 		}
 
@@ -3085,7 +3085,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 	int sh,
 	int flipFlag,
 	int rotation,
-	unsigned paletteID,
+	int paletteID,
 	BlendState blendState) {
 	Uint32* srcPx = (Uint32*)texture->Pixels;
 	Uint32 srcStride = texture->Width;
@@ -3258,7 +3258,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 		i_y_rsin = -i_y * rsin; \
 		i_y_rcos = i_y * rcos; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; \
@@ -3294,7 +3294,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 		i_y_rsin = -i_y * rsin; \
 		i_y_rcos = i_y * rcos; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; \
@@ -3330,7 +3330,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 		i_y_rsin = -i_y * rsin; \
 		i_y_rcos = i_y * rcos; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; \
@@ -3366,7 +3366,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 		i_y_rsin = -i_y * rsin; \
 		i_y_rcos = i_y * rcos; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; \
@@ -3411,7 +3411,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 	Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
 
 	if (Graphics::UsePalettes && texture->Paletted) {
-		if (!Graphics::UsePaletteIndexLines) {
+		if (paletteID != PALETTE_INDEX_TABLE_ID) {
 			index = &Graphics::PaletteColors[paletteID][0];
 		}
 
@@ -3471,7 +3471,8 @@ void SoftwareRenderer::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
+	float h,
+	int paletteID) {
 	View* currentView = Graphics::CurrentView;
 	if (!currentView) {
 		return;
@@ -3499,10 +3500,10 @@ void SoftwareRenderer::DrawTexture(Texture* texture,
 	BlendState blendState = GetBlendState();
 	if (w != textureWidth || h != textureHeight) {
 		DrawSpriteImageTransformed(
-			texture, x, y, sx, sy, w, h, sx, sy, sw, sh, 0, 0, 0, blendState);
+			texture, x, y, sx, sy, w, h, sx, sy, sw, sh, 0, 0, paletteID, blendState);
 	}
 	else {
-		DrawSpriteImage(texture, x, y, sw, sh, sx, sy, 0, 0, blendState);
+		DrawSpriteImage(texture, x, y, sw, sh, sx, sy, 0, paletteID, blendState);
 	}
 }
 void SoftwareRenderer::DrawSprite(ISprite* sprite,
@@ -3515,7 +3516,7 @@ void SoftwareRenderer::DrawSprite(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -3624,7 +3625,7 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -3728,7 +3729,6 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 }
 
 // Default Tile Display Line setup
-void SoftwareRenderer::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {}
 void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;

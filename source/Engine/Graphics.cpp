@@ -947,8 +947,13 @@ void Graphics::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
-	Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h);
+	float h,
+	int paletteID) {
+	if (Graphics::UsePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+
+	Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
 }
 void Graphics::DrawSprite(ISprite* sprite,
 	int animation,
@@ -960,7 +965,11 @@ void Graphics::DrawSprite(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
+	if (Graphics::UsePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+
 	Graphics::GfxFunctions->DrawSprite(
 		sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
 }
@@ -978,7 +987,11 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
+	if (Graphics::UsePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+
 	Graphics::GfxFunctions->DrawSpritePart(sprite,
 		animation,
 		frame,
@@ -995,6 +1008,18 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 		rotation,
 		paletteID);
 }
+void Graphics::DrawTexture(Texture* texture,
+	float sx,
+	float sy,
+	float sw,
+	float sh,
+	float x,
+	float y,
+	float w,
+	float h) {
+	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
+	Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
+}
 void Graphics::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
@@ -1005,7 +1030,9 @@ void Graphics::DrawSprite(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation) {
-	DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, 0);
+	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
+	DrawSprite(
+		sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
 }
 void Graphics::DrawSpritePart(ISprite* sprite,
 	int animation,
@@ -1021,6 +1048,7 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation) {
+	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
 	DrawSpritePart(sprite,
 		animation,
 		frame,
@@ -1035,7 +1063,7 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 		scaleW,
 		scaleH,
 		rotation,
-		0);
+		paletteID);
 }
 
 void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
@@ -1179,9 +1207,18 @@ void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* current
 	}
 }
 
-void Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {
+void Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
 	TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-	DrawSprite(info.Sprite,
+
+	int paletteID;
+	if (usePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+	else {
+		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+	}
+
+	Graphics::GfxFunctions->DrawSprite(info.Sprite,
 		info.AnimationIndex,
 		info.FrameIndex,
 		x,
@@ -1190,7 +1227,44 @@ void Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {
 		flipY,
 		1.0f,
 		1.0f,
-		0.0f);
+		0.0,
+		(int)paletteID);
+}
+void Graphics::DrawTilePart(int tile,
+	int sx,
+	int sy,
+	int sw,
+	int sh,
+	int x,
+	int y,
+	bool flipX,
+	bool flipY,
+	bool usePaletteIndexLines) {
+	TileSpriteInfo info = Scene::TileSpriteInfos[tile];
+
+	int paletteID;
+	if (usePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+	else {
+		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+	}
+
+	Graphics::GfxFunctions->DrawSpritePart(info.Sprite,
+		info.AnimationIndex,
+		info.FrameIndex,
+		sx,
+		sy,
+		sw,
+		sh,
+		x,
+		y,
+		flipX,
+		flipY,
+		1.0f,
+		1.0f,
+		0.0,
+		(int)paletteID);
 }
 void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
 	int viewX = (int)currentView->X;
@@ -1206,27 +1280,14 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	int layerHeightInPixels = layer->Height * tileHeight;
 	int layerWidthTileMask = layer->WidthMask;
 	int layerHeightTileMask = layer->HeightMask;
-	TileSpriteInfo info;
-	AnimFrame frameStr;
-	Texture* texture;
-
-	vector<Uint8> isPalettedSources;
-	vector<unsigned> paletteIDs;
-	isPalettedSources.resize(Scene::TileSpriteInfos.size());
-	paletteIDs.resize(Scene::TileSpriteInfos.size());
-	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-		info = Scene::TileSpriteInfos[i];
-		frameStr = info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
-		texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
-		isPalettedSources[i] = Graphics::UsePalettes && texture->Paletted;
-		paletteIDs[i] = Scene::Tilesets[info.TilesetID].PaletteID;
-	}
 
 	int layerOffsetX = layer->OffsetX;
 	int layerOffsetY = layer->OffsetY;
 
 	int scrollOffset = Scene::Frame * layer->ConstantY;
 	int srcY = (scrollOffset + ((viewY + layerOffsetY) * layer->RelativeY)) >> 8;
+
+	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
 	for (int dst_y = 0; dst_y < (int)currentView->Height + 16; dst_y += 16, srcY += 16) {
 		bool isInLayer = srcY >= 0 && srcY < layerHeightInPixels;
@@ -1270,28 +1331,16 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 				int tileID = tile & TILE_IDENT_MASK;
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
-				unsigned paletteIndex = paletteIDs[tileID];
-
-				info = Scene::TileSpriteInfos[tileID];
 
 				int srcTX = srcX & 15;
 				int srcTY = srcY & 15;
 
-				Graphics::DrawSpritePart(info.Sprite,
-					info.AnimationIndex,
-					info.FrameIndex,
-					0,
-					0,
-					tileWidth,
-					tileHeight,
+				Graphics::DrawTile(tileID,
 					(dst_x - srcTX) + tileWidthHalf,
 					(dst_y - srcTY) + tileHeightHalf,
 					flipX,
 					flipY,
-					1.0f,
-					1.0f,
-					0.0f,
-					paletteIndex);
+					usePaletteIndexLines);
 			}
 		}
 	}
@@ -1308,21 +1357,6 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 	int layerWidthInPixels = layer->Width * tileWidth;
 	int layerWidthTileMask = layer->WidthMask;
 	int layerHeightTileMask = layer->HeightMask;
-	TileSpriteInfo info;
-	AnimFrame frameStr;
-	Texture* texture;
-
-	vector<Uint8> isPalettedSources;
-	vector<unsigned> paletteIDs;
-	isPalettedSources.resize(Scene::TileSpriteInfos.size());
-	paletteIDs.resize(Scene::TileSpriteInfos.size());
-	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-		info = Scene::TileSpriteInfos[i];
-		frameStr = info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
-		texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
-		isPalettedSources[i] = Graphics::UsePalettes && texture->Paletted;
-		paletteIDs[i] = Scene::Tilesets[info.TilesetID].PaletteID;
-	}
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
@@ -1336,13 +1370,6 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 		while (check_y < max_y) {
 			if (srcX != TileScanLineBuffer[check_y].SrcX >> 16) {
 				break;
-			}
-
-			if (usePaletteIndexLines) {
-				unsigned linePaletteIndex = Graphics::PaletteIndexLines[dst_y];
-				if (linePaletteIndex != Graphics::PaletteIndexLines[check_y]) {
-					break;
-				}
 			}
 
 			if ((srcY + tileDrawHeight) % tileHeight == 0) {
@@ -1378,16 +1405,6 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 				int tileID = tile & TILE_IDENT_MASK;
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
-				unsigned paletteIndex;
-
-				if (usePaletteIndexLines) {
-					paletteIndex = Graphics::PaletteIndexLines[dst_y];
-				}
-				else {
-					paletteIndex = paletteIDs[tileID];
-				}
-
-				info = Scene::TileSpriteInfos[tileID];
 
 				int srcTX = srcX & 15;
 				int srcTY = srcY & 15;
@@ -1397,9 +1414,7 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 					partY = tileHeight - partY - 1;
 				}
 
-				Graphics::DrawSpritePart(info.Sprite,
-					info.AnimationIndex,
-					info.FrameIndex,
+				Graphics::DrawTilePart(tileID,
 					0,
 					partY,
 					tileWidth,
@@ -1408,10 +1423,7 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 					(dst_y - srcTY) + tileHeightHalf,
 					flipX,
 					flipY,
-					1.0f,
-					1.0f,
-					0.0f,
-					paletteIndex);
+					usePaletteIndexLines);
 			}
 		}
 

@@ -13188,6 +13188,7 @@ VMValue Scene_SetLayerTileDeforms(int argCount, VMValue* args, Uint32 threadID) 
 	lineIndex &= maxDeformLineMask;
 	Scene::Layers[index].DeformSetA[lineIndex] = deformA;
 	Scene::Layers[index].DeformSetB[lineIndex] = deformB;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13203,6 +13204,7 @@ VMValue Scene_SetLayerTileDeformSplitLine(int argCount, VMValue* args, Uint32 th
 	int deformPosition = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformSplitLine = deformPosition;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13221,6 +13223,7 @@ VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 thre
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformAOffset;
 	Scene::Layers[index].DeformOffsetB = deformBOffset;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13236,6 +13239,7 @@ VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 	int deformA = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformA;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13251,6 +13255,7 @@ VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 	int deformB = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformB;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***

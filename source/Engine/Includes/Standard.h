@@ -76,6 +76,8 @@ enum class KeyBind {
 #define SCOPE_SCENE 0
 #define SCOPE_GAME 1
 
+#define PALETTE_INDEX_TABLE_ID -1
+
 typedef uint8_t Uint8;
 typedef uint16_t Uint16;
 typedef uint32_t Uint32;

@@ -291,7 +291,8 @@ public:
 		float x,
 		float y,
 		float w,
-		float h);
+		float h,
+		int paletteID);
 	static void DrawSprite(ISprite* sprite,
 		int animation,
 		int frame,
@@ -302,7 +303,7 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
+		int paletteID);
 	static void DrawSpritePart(ISprite* sprite,
 		int animation,
 		int frame,
@@ -317,8 +318,7 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
-	static void DrawTile(int tile, int x, int y, bool flipX, bool flipY);
+		int paletteID);
 	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView);
