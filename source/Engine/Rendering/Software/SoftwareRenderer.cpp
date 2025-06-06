@@ -15,7 +15,6 @@
 
 GraphicsFunctions SoftwareRenderer::BackendFunctions;
 Uint32 SoftwareRenderer::CompareColor = 0xFF000000U;
-TileScanLine SoftwareRenderer::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 Sint32 SoftwareRenderer::SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 bool SoftwareRenderer::UseSpriteDeform = false;
 Contour SoftwareRenderer::ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
@@ -2830,7 +2829,7 @@ void DrawSpriteImage(Texture* texture,
 	int sx,
 	int sy,
 	int flipFlag,
-	unsigned paletteID,
+	int paletteID,
 	BlendState blendState) {
 	Uint32* srcPx = (Uint32*)texture->Pixels;
 	Uint32 srcStride = texture->Width;
@@ -2920,7 +2919,7 @@ void DrawSpriteImage(Texture* texture,
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
 		srcPxLine = srcPx + src_strideY; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; \
@@ -2942,7 +2941,7 @@ void DrawSpriteImage(Texture* texture,
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
 		srcPxLine = srcPx + src_strideY; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; \
@@ -2963,7 +2962,7 @@ void DrawSpriteImage(Texture* texture,
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
 		srcPxLine = srcPx + src_strideY; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, src_x = src_x1; dst_x < dst_x2; \
@@ -2984,7 +2983,7 @@ void DrawSpriteImage(Texture* texture,
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) { \
 		srcPxLine = srcPx + src_strideY; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, src_x = src_x2; dst_x < dst_x2; \
@@ -3014,7 +3013,7 @@ void DrawSpriteImage(Texture* texture,
 	Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
 
 	if (Graphics::UsePalettes && texture->Paletted) {
-		if (!Graphics::UsePaletteIndexLines) {
+		if (paletteID != PALETTE_INDEX_TABLE_ID) {
 			index = &Graphics::PaletteColors[paletteID][0];
 		}
 
@@ -3086,7 +3085,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 	int sh,
 	int flipFlag,
 	int rotation,
-	unsigned paletteID,
+	int paletteID,
 	BlendState blendState) {
 	Uint32* srcPx = (Uint32*)texture->Pixels;
 	Uint32 srcStride = texture->Width;
@@ -3259,7 +3258,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 		i_y_rsin = -i_y * rsin; \
 		i_y_rcos = i_y * rcos; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; \
@@ -3295,7 +3294,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 		i_y_rsin = -i_y * rsin; \
 		i_y_rcos = i_y * rcos; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; \
@@ -3331,7 +3330,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 		i_y_rsin = -i_y * rsin; \
 		i_y_rcos = i_y * rcos; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; \
@@ -3367,7 +3366,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 		i_y_rsin = -i_y * rsin; \
 		i_y_rcos = i_y * rcos; \
 		dstPxLine = dstPx + dst_strideY; \
-		if (Graphics::UsePaletteIndexLines) \
+		if (paletteID == PALETTE_INDEX_TABLE_ID) \
 			index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]][0]; \
 		if (SoftwareRenderer::UseSpriteDeform) \
 			for (int dst_x = dst_x1, i_x = dst_x1 - x; dst_x < dst_x2; \
@@ -3412,7 +3411,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 	Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
 
 	if (Graphics::UsePalettes && texture->Paletted) {
-		if (!Graphics::UsePaletteIndexLines) {
+		if (paletteID != PALETTE_INDEX_TABLE_ID) {
 			index = &Graphics::PaletteColors[paletteID][0];
 		}
 
@@ -3472,7 +3471,8 @@ void SoftwareRenderer::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
+	float h,
+	int paletteID) {
 	View* currentView = Graphics::CurrentView;
 	if (!currentView) {
 		return;
@@ -3500,10 +3500,10 @@ void SoftwareRenderer::DrawTexture(Texture* texture,
 	BlendState blendState = GetBlendState();
 	if (w != textureWidth || h != textureHeight) {
 		DrawSpriteImageTransformed(
-			texture, x, y, sx, sy, w, h, sx, sy, sw, sh, 0, 0, 0, blendState);
+			texture, x, y, sx, sy, w, h, sx, sy, sw, sh, 0, 0, paletteID, blendState);
 	}
 	else {
-		DrawSpriteImage(texture, x, y, sw, sh, sx, sy, 0, 0, blendState);
+		DrawSpriteImage(texture, x, y, sw, sh, sx, sy, 0, paletteID, blendState);
 	}
 }
 void SoftwareRenderer::DrawSprite(ISprite* sprite,
@@ -3516,7 +3516,7 @@ void SoftwareRenderer::DrawSprite(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -3625,7 +3625,7 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -3729,154 +3729,6 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 }
 
 // Default Tile Display Line setup
-void SoftwareRenderer::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {}
-void SoftwareRenderer::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
-	switch (layer->DrawBehavior) {
-	case DrawBehavior_PGZ1_BG:
-	case DrawBehavior_HorizontalParallax: {
-		int viewX = (int)currentView->X;
-		int viewY = (int)currentView->Y;
-		// int viewWidth = (int)currentView->Width;
-		int viewHeight = (int)currentView->Height;
-		int layerWidth = layer->Width * 16;
-		int layerHeight = layer->Height * 16;
-		int layerOffsetX = layer->OffsetX;
-		int layerOffsetY = layer->OffsetY;
-
-		// Set parallax positions
-		ScrollingInfo* info = &layer->ScrollInfos[0];
-		for (int i = 0; i < layer->ScrollInfoCount; i++) {
-			info->Offset = Scene::Frame * info->ConstantParallax;
-			info->Position =
-				(info->Offset +
-					((viewX + layerOffsetX) * info->RelativeParallax)) >>
-				8;
-			if (layer->Flags & SceneLayer::FLAGS_REPEAT_Y) {
-				info->Position %= layerWidth;
-				if (info->Position < 0) {
-					info->Position += layerWidth;
-				}
-			}
-			info++;
-		}
-
-		// Create scan lines
-		Sint64 scrollOffset = Scene::Frame * layer->ConstantY;
-		Sint64 scrollLine =
-			(scrollOffset + ((viewY + layerOffsetY) * layer->RelativeY)) >> 8;
-		scrollLine %= layerHeight;
-		if (scrollLine < 0) {
-			scrollLine += layerHeight;
-		}
-
-		int* deformValues;
-		Uint8* parallaxIndex;
-		TileScanLine* scanLine;
-		const int maxDeformLineMask = (MAX_DEFORM_LINES >> 1) - 1;
-
-		scanLine = &TileScanLineBuffer[0];
-		parallaxIndex = &layer->ScrollIndexes[scrollLine];
-		deformValues =
-			&layer->DeformSetA[(scrollLine + layer->DeformOffsetA) & maxDeformLineMask];
-		for (int i = 0; i < layer->DeformSplitLine; i++) {
-			// Set scan line start positions
-			info = &layer->ScrollInfos[*parallaxIndex];
-			scanLine->SrcX = info->Position;
-			if (info->CanDeform) {
-				scanLine->SrcX += *deformValues;
-			}
-			scanLine->SrcX <<= 16;
-			scanLine->SrcY = scrollLine << 16;
-
-			scanLine->DeltaX = 0x10000;
-			scanLine->DeltaY = 0x0000;
-
-			// Iterate lines
-			// NOTE: There is no protection from
-			// over-reading deform indexes past 512 here.
-			scanLine++;
-			scrollLine++;
-			deformValues++;
-
-			// If we've reach the last line of the layer,
-			// return to the first.
-			if (scrollLine == layerHeight) {
-				scrollLine = 0;
-				parallaxIndex = &layer->ScrollIndexes[scrollLine];
-			}
-			else {
-				parallaxIndex++;
-			}
-		}
-
-		deformValues =
-			&layer->DeformSetB[(scrollLine + layer->DeformOffsetB) & maxDeformLineMask];
-		for (int i = layer->DeformSplitLine; i < viewHeight; i++) {
-			// Set scan line start positions
-			info = &layer->ScrollInfos[*parallaxIndex];
-			scanLine->SrcX = info->Position;
-			if (info->CanDeform) {
-				scanLine->SrcX += *deformValues;
-			}
-			scanLine->SrcX <<= 16;
-			scanLine->SrcY = scrollLine << 16;
-
-			scanLine->DeltaX = 0x10000;
-			scanLine->DeltaY = 0x0000;
-
-			// Iterate lines
-			// NOTE: There is no protection from
-			// over-reading deform indexes past 512 here.
-			scanLine++;
-			scrollLine++;
-			deformValues++;
-
-			// If we've reach the last line of the layer,
-			// return to the first.
-			if (scrollLine == layerHeight) {
-				scrollLine = 0;
-				parallaxIndex = &layer->ScrollIndexes[scrollLine];
-			}
-			else {
-				parallaxIndex++;
-			}
-		}
-		break;
-	}
-	case DrawBehavior_VerticalParallax: {
-		break;
-	}
-	case DrawBehavior_CustomTileScanLines: {
-		Sint64 scrollOffset = Scene::Frame * layer->ConstantY;
-		Sint64 scrollPositionX =
-			((scrollOffset +
-				 (((int)currentView->X + layer->OffsetX) * layer->RelativeY)) >>
-				8);
-		scrollPositionX %= layer->Width * 16;
-		scrollPositionX <<= 16;
-		Sint64 scrollPositionY =
-			((scrollOffset +
-				 (((int)currentView->Y + layer->OffsetY) * layer->RelativeY)) >>
-				8);
-		scrollPositionY %= layer->Height * 16;
-		scrollPositionY <<= 16;
-
-		TileScanLine* scanLine = &TileScanLineBuffer[0];
-		for (int i = 0; i < currentView->Height; i++) {
-			scanLine->SrcX = scrollPositionX;
-			scanLine->SrcY = scrollPositionY;
-			scanLine->DeltaX = 0x10000;
-			scanLine->DeltaY = 0x0;
-
-			scrollPositionY += 0x10000;
-			scanLine++;
-		}
-
-		break;
-	}
-	}
-}
-
 void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
@@ -3988,7 +3840,7 @@ void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View
 	PixelFunction pixelFunction = GetPixelFunction(blendFlag);
 
 	int j;
-	TileScanLine* tScanLine = &TileScanLineBuffer[dst_y1];
+	TileScanLine* tScanLine = &Graphics::TileScanLineBuffer[dst_y1];
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++, tScanLine++, dst_strideY += dstStride) {
 		tScanLine->SrcX >>= 16;
 		tScanLine->SrcY >>= 16;
@@ -4574,7 +4426,7 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
-	TileScanLine* scanLine = &TileScanLineBuffer[dst_y1];
+	TileScanLine* scanLine = &Graphics::TileScanLineBuffer[dst_y1];
 	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
 		dstPxLine = dstPx + dst_strideY;
 
@@ -4701,11 +4553,10 @@ void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
 		Graphics::RunCustomSceneLayerFunction(&layer->CustomScanlineFunction, layerIndex);
 	}
 	else {
-		SoftwareRenderer::DrawSceneLayer_InitTileScanLines(layer, currentView);
+		Graphics::DrawSceneLayer_InitTileScanLines(layer, currentView);
 	}
 
 	switch (layer->DrawBehavior) {
-	case DrawBehavior_PGZ1_BG:
 	case DrawBehavior_HorizontalParallax:
 		SoftwareRenderer::DrawSceneLayer_HorizontalParallax(layer, currentView);
 		break;

@@ -8,7 +8,7 @@
 
 class SceneLayer {
 public:
-	char Name[50];
+	char* Name;
 	bool Visible = true;
 	int Width = 0;
 	int Height = 0;
@@ -46,9 +46,8 @@ public:
 	ObjFunction CustomRenderFunction;
 	int ScrollInfoCount = 0;
 	ScrollingInfo* ScrollInfos = NULL;
-	int ScrollInfosSplitIndexesCount = 0;
-	Uint16* ScrollInfosSplitIndexes = NULL;
 	Uint8* ScrollIndexes = NULL;
+	bool UsingScrollIndexes = false;
 	Uint32 BufferID = 0;
 	int VertexCount = 0;
 	void* TileBatches = NULL;
