@@ -1344,8 +1344,8 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 				int srcTY = srcY & 15;
 
 				Graphics::DrawTile(tileID,
-					(dst_x - srcTX) + tileWidthHalf,
-					(dst_y - srcTY) + tileHeightHalf,
+					viewX + ((dst_x - srcTX) + tileWidthHalf),
+					viewY + ((dst_y - srcTY) + tileHeightHalf),
 					flipX,
 					flipY,
 					usePaletteIndexLines);
@@ -1427,8 +1427,8 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 					partY,
 					tileWidth,
 					tileDrawHeight,
-					(dst_x - srcTX) + tileWidthHalf,
-					(dst_y - srcTY) + tileHeightHalf,
+					currentView->X + ((dst_x - srcTX) + tileWidthHalf),
+					currentView->Y + ((dst_y - srcTY) + tileHeightHalf),
 					flipX,
 					flipY,
 					usePaletteIndexLines);
