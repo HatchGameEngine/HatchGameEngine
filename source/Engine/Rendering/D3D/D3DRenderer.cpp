@@ -1547,7 +1547,7 @@ void D3DRenderer::DrawSprite(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -1593,7 +1593,7 @@ void D3DRenderer::DrawSpritePart(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
