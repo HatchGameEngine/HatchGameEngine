@@ -409,7 +409,7 @@ CXXFLAGS := \
 	-Wno-unused-variable
 
 # the linker has to care about this too, unfortunately
-LDFLAGS := -std=c++17
+LDFLAGS := -std=c++17 -fuse-ld=lld
 
 # Hatch uses meta/ instead of etc/
 FMTFLAGS := -style=file:meta/clang-format.yml
