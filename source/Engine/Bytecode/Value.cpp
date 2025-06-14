@@ -51,22 +51,20 @@ const char* Value::GetPrintableObjectName(VMValue value) {
 			? AS_BOUND_METHOD(value)->Method->Name->Chars
 			: "(null)";
 	case OBJ_CLOSURE:
-		return AS_CLOSURE(value)->Function->Name
-			? AS_CLOSURE(value)->Function->Name->Chars
-			: "(null)";
+		return AS_CLOSURE(value)->Function->Name ? AS_CLOSURE(value)->Function->Name->Chars
+							 : "(null)";
 	case OBJ_FUNCTION:
 		return AS_FUNCTION(value)->Name ? AS_FUNCTION(value)->Name->Chars : "(null)";
 	case OBJ_MODULE:
-		return AS_MODULE(value)->SourceFilename
-			? AS_MODULE(value)->SourceFilename->Chars
-			: "(null)";
+		return AS_MODULE(value)->SourceFilename ? AS_MODULE(value)->SourceFilename->Chars
+							: "(null)";
 	case OBJ_INSTANCE:
 		return AS_INSTANCE(value)->Object.Class->Name
 			? AS_INSTANCE(value)->Object.Class->Name->Chars
 			: "(null)";
 	case OBJ_MATERIAL:
 		return (AS_MATERIAL(value)->MaterialPtr != nullptr &&
-			AS_MATERIAL(value)->MaterialPtr->Name != nullptr)
+			       AS_MATERIAL(value)->MaterialPtr->Name != nullptr)
 			? AS_MATERIAL(value)->MaterialPtr->Name
 			: "(null)";
 	case OBJ_NAMESPACE:
@@ -158,16 +156,15 @@ bool Value::SortaEqual(VMValue a, VMValue b) {
 	if (IS_BOUND_METHOD(a) && IS_BOUND_METHOD(b)) {
 		ObjBoundMethod* abm = AS_BOUND_METHOD(a);
 		ObjBoundMethod* bbm = AS_BOUND_METHOD(b);
-		return Value::ExactlyEqual(abm->Receiver, bbm->Receiver) && abm->Method == bbm->Method;
+		return Value::ExactlyEqual(abm->Receiver, bbm->Receiver) &&
+			abm->Method == bbm->Method;
 	}
 
 	return Value::Equal(a, b);
 }
 bool Value::Equal(VMValue a, VMValue b) {
-	if (!(a.Type == VAL_LINKED_INTEGER
-	|| a.Type == VAL_LINKED_DECIMAL
-	|| b.Type == VAL_LINKED_INTEGER
-	|| b.Type == VAL_LINKED_DECIMAL)) {
+	if (!(a.Type == VAL_LINKED_INTEGER || a.Type == VAL_LINKED_DECIMAL ||
+		    b.Type == VAL_LINKED_INTEGER || b.Type == VAL_LINKED_DECIMAL)) {
 		if (a.Type != b.Type) {
 			return false;
 		}
