@@ -1317,57 +1317,52 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
 	for (int dst_y = startY; dst_y < endY; dst_y += tileHeight, srcY += tileHeight) {
-		bool isInLayer = srcY >= 0 && srcY < layerHeightInPixels;
-		if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_Y) {
+		if (srcY < 0 || srcY >= layerHeightInPixels) {
+			if ((layer->Flags & SceneLayer::FLAGS_REPEAT_Y) == 0) {
+				continue;
+			}
+
 			if (srcY < 0) {
 				srcY = -(srcY % layerHeightInPixels);
 			}
 			else {
 				srcY %= layerHeightInPixels;
 			}
-			isInLayer = true;
-		}
-
-		if (!isInLayer) {
-			continue;
 		}
 
 		int srcX = rowStartX;
 		for (int dst_x = startX; dst_x < endX; dst_x += tileWidth, srcX += tileWidth) {
-			isInLayer = srcX >= 0 && srcX < layerWidthInPixels;
-			if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
+			if (srcX < 0 || srcX >= layerWidthInPixels) {
+				if ((layer->Flags & SceneLayer::FLAGS_REPEAT_X) == 0) {
+					continue;
+				}
+
 				if (srcX < 0) {
 					srcX = -(srcX % layerWidthInPixels);
 				}
 				else {
 					srcX %= layerWidthInPixels;
 				}
-				isInLayer = true;
-			}
-
-			if (!isInLayer) {
-				continue;
 			}
 
 			int sourceTileCellX = (srcX / tileWidth) & layerWidthTileMask;
 			int sourceTileCellY = (srcY / tileHeight) & layerHeightTileMask;
 			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
 
-			if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
-				int tileID = tile & TILE_IDENT_MASK;
-				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
-				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
-
-				int srcTX = srcX & (tileWidth - 1);
-				int srcTY = srcY & (tileHeight - 1);
-
-				Graphics::DrawTile(tileID,
-					viewX + ((dst_x - srcTX) + tileWidthHalf),
-					viewY + ((dst_y - srcTY) + tileHeightHalf),
-					flipX,
-					flipY,
-					usePaletteIndexLines);
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID == Scene::EmptyTile) {
+				continue;
 			}
+
+			int srcTX = srcX & (tileWidth - 1);
+			int srcTY = srcY & (tileHeight - 1);
+
+			Graphics::DrawTile(tileID,
+				viewX + ((dst_x - srcTX) + tileWidthHalf),
+				viewY + ((dst_y - srcTY) + tileHeightHalf),
+				(tile & TILE_FLIPX_MASK) != 0,
+				(tile & TILE_FLIPY_MASK) != 0,
+				usePaletteIndexLines);
 		}
 	}
 }
