@@ -1292,12 +1292,30 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	int layerOffsetX = layer->OffsetX;
 	int layerOffsetY = layer->OffsetY;
 
+	int startX = 0, startY = 0;
+	int endX = 0, endY = 0;
+
 	int scrollOffset = Scene::Frame * layer->ConstantY;
 	int srcY = (scrollOffset + ((viewY + layerOffsetY) * layer->RelativeY)) >> 8;
+	int rowStartX = viewX + layerOffsetX;
+
+	// Draw more of the view if it is being rotated on the Z axis
+	if (currentView->RotateZ != 0.0f) {
+		endY = currentView->Height / 2;
+		endX = currentView->Width / 2;
+		startY = -endY;
+		startX = -endX;
+	}
+
+	srcY += startY;
+	rowStartX += startX;
+
+	endY = (int)currentView->Height + tileHeight + endY;
+	endX = (int)currentView->Width + tileWidth + endX;
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
-	for (int dst_y = 0; dst_y < (int)currentView->Height + 16; dst_y += 16, srcY += 16) {
+	for (int dst_y = startY; dst_y < endY; dst_y += tileHeight, srcY += tileHeight) {
 		bool isInLayer = srcY >= 0 && srcY < layerHeightInPixels;
 		if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_Y) {
 			if (srcY < 0) {
@@ -1313,8 +1331,8 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 			continue;
 		}
 
-		int srcX = viewX + layerOffsetX;
-		for (int dst_x = 0; dst_x < (int)currentView->Width + 16; dst_x += 16, srcX += 16) {
+		int srcX = rowStartX;
+		for (int dst_x = startX; dst_x < endX; dst_x += tileWidth, srcX += tileWidth) {
 			isInLayer = srcX >= 0 && srcX < layerWidthInPixels;
 			if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 				if (srcX < 0) {
@@ -1330,18 +1348,17 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 				continue;
 			}
 
-			int sourceTileCellX = (srcX >> 4) & layerWidthTileMask;
-			int sourceTileCellY = (srcY >> 4) & layerHeightTileMask;
-			int tile = layer->Tiles[sourceTileCellX +
-				(sourceTileCellY << layerWidthInBits)];
+			int sourceTileCellX = (srcX / tileWidth) & layerWidthTileMask;
+			int sourceTileCellY = (srcY / tileHeight) & layerHeightTileMask;
+			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
 
 			if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
 				int tileID = tile & TILE_IDENT_MASK;
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
 
-				int srcTX = srcX & 15;
-				int srcTY = srcY & 15;
+				int srcTX = srcX & (tileWidth - 1);
+				int srcTY = srcY & (tileHeight - 1);
 
 				Graphics::DrawTile(tileID,
 					viewX + ((dst_x - srcTX) + tileWidthHalf),
