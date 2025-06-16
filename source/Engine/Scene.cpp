@@ -1245,13 +1245,6 @@ void Scene::SetupView3D(View* currentView) {
 		currentView->NearPlane,
 		currentView->FarPlane);
 
-	// Translate
-	Matrix4x4::Translate(currentView->ViewMatrix,
-		currentView->ViewMatrix,
-		-currentView->X,
-		-currentView->Y,
-		-currentView->Z);
-
 	// Rotate
 	Matrix4x4::Rotate(currentView->ViewMatrix,
 		currentView->ViewMatrix,
@@ -1271,6 +1264,13 @@ void Scene::SetupView3D(View* currentView) {
 		0.0,
 		0.0,
 		1.0);
+
+	// Translate
+	Matrix4x4::Translate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		-currentView->X,
+		-currentView->Y,
+		-currentView->Z);
 }
 
 void Scene::Render() {
