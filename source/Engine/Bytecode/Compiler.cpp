@@ -3491,8 +3491,7 @@ void Compiler::EndSwitchJumpList() {
 int Compiler::FindConstant(VMValue value) {
 	for (size_t i = 0; i < CurrentChunk()->Constants->size(); i++) {
 		VMValue constant = (*CurrentChunk()->Constants)[i];
-		if (IS_STRING(constant) && IS_STRING(value) &&
-			Value::SortaEqual(constant, value)) {
+		if (IS_STRING(constant) && IS_STRING(value) && Value::SortaEqual(constant, value)) {
 			return (int)i;
 		}
 		if (Value::ExactlyEqual(value, constant)) {

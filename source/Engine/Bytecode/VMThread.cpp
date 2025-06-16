@@ -1475,8 +1475,10 @@ int VMThread::RunInstruction() {
 				Uint32 hash = ReadUInt32(frame);
 				VMValue global_value = NULL_VAL;
 				if (ScriptManager::Lock()) {
-					if (!ScriptManager::Globals->GetIfExists(hash, &global_value) &&
-						!ScriptManager::Constants->GetIfExists(hash, &global_value)) {
+					if (!ScriptManager::Globals->GetIfExists(
+						    hash, &global_value) &&
+						!ScriptManager::Constants->GetIfExists(
+							hash, &global_value)) {
 						ThrowRuntimeError(false,
 							"Variable %s does not exist.",
 							GetVariableOrMethodName(hash));
