@@ -1293,7 +1293,8 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	int layerOffsetY = layer->OffsetY;
 
 	int startX = 0, startY = 0;
-	int endX = 0, endY = 0;
+	int endX = (int)currentView->Width + tileWidth;
+	int endY = (int)currentView->Height + tileHeight;
 
 	int scrollOffset = Scene::Frame * layer->ConstantY;
 	int srcY = (scrollOffset + ((viewY + layerOffsetY) * layer->RelativeY)) >> 8;
@@ -1301,17 +1302,17 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 
 	// Draw more of the view if it is being rotated on the Z axis
 	if (currentView->RotateZ != 0.0f) {
-		endY = currentView->Height / 2;
-		endX = currentView->Width / 2;
-		startY = -endY;
-		startX = -endX;
+		int offsetY = currentView->Height / 2;
+		int offsetX = currentView->Width / 2;
+
+		startY = -offsetY;
+		endY += offsetY;
+		srcY -= offsetY;
+
+		startX = -offsetX;
+		endX += offsetX;
+		rowStartX -= offsetX;
 	}
-
-	srcY += startY;
-	rowStartX += startX;
-
-	endY = (int)currentView->Height + tileHeight + endY;
-	endX = (int)currentView->Width + tileWidth + endX;
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
