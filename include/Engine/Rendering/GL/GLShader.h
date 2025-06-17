@@ -25,7 +25,8 @@ public:
 	GLuint VertexProgramID = 0;
 	GLuint FragmentProgramID = 0;
 	GLint LocProjectionMatrix;
-	GLint LocModelViewMatrix;
+	GLint LocViewMatrix;
+	GLint LocModelMatrix;
 	GLint LocPosition;
 	GLint LocTexCoord;
 	GLint LocTexture;
@@ -49,7 +50,8 @@ public:
 	// Cache stuff
 	float CachedBlendColors[4];
 	Matrix4x4* CachedProjectionMatrix = NULL;
-	Matrix4x4* CachedModelViewMatrix = NULL;
+	Matrix4x4* CachedViewMatrix = NULL;
+	Matrix4x4* CachedModelMatrix = NULL;
 
 	GLShader(std::string vertexShaderSource, std::string fragmentShaderSource);
 	GLShader(Stream* streamVS, Stream* streamFS);

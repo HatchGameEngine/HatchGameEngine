@@ -34,10 +34,12 @@ vector<VertexBuffer*> Graphics::VertexBuffers;
 Scene3D Graphics::Scene3Ds[MAX_3D_SCENES];
 
 stack<GraphicsState> Graphics::StateStack;
-Matrix4x4 Graphics::MatrixStack[MATRIX_STACK_SIZE];
+Matrix4x4 Graphics::ViewMatrixStack[MATRIX_STACK_SIZE];
+Matrix4x4 Graphics::ModelMatrixStack[MATRIX_STACK_SIZE];
 size_t Graphics::MatrixStackID;
 
-Matrix4x4* Graphics::ModelViewMatrix;
+Matrix4x4* Graphics::ViewMatrix;
+Matrix4x4* Graphics::ModelMatrix;
 
 Viewport Graphics::CurrentViewport;
 Viewport Graphics::BackupViewport;
@@ -92,9 +94,11 @@ void Graphics::Init() {
 	Graphics::TextureMap = new HashMap<Texture*>(NULL, 32);
 
 	for (size_t i = 0; i < MATRIX_STACK_SIZE; i++) {
-		Matrix4x4::Identity(&Graphics::MatrixStack[i]);
+		Matrix4x4::Identity(&Graphics::ViewMatrixStack[i]);
+		Matrix4x4::Identity(&Graphics::ModelMatrixStack[i]);
 	}
-	Graphics::ModelViewMatrix = &Graphics::MatrixStack[0];
+	Graphics::ViewMatrix = &Graphics::ViewMatrixStack[0];
+	Graphics::ModelMatrix = &Graphics::ModelMatrixStack[0];
 	Graphics::MatrixStackID = 1;
 
 	Graphics::CurrentClip.Enabled = false;
@@ -257,7 +261,7 @@ Point Graphics::ProjectToScreen(float x, float y, float z) {
 	float vec4[4];
 	Matrix4x4* matrix;
 
-	matrix = &Graphics::MatrixStack[MatrixStackID - 1];
+	matrix = &Graphics::ViewMatrixStack[MatrixStackID - 1];
 
 	vec4[0] = x;
 	vec4[1] = y;
@@ -742,36 +746,40 @@ void Graphics::ClearClip() {
 	Graphics::GfxFunctions->UpdateClipRect();
 }
 
+Matrix4x4* SaveMatrix(Matrix4x4* matrixStack, size_t pos) {
+	Matrix4x4* top = &matrixStack[pos - 1];
+	Matrix4x4* push = &matrixStack[pos];
+	Matrix4x4::Copy(push, top);
+	return push;
+}
 void Graphics::Save() {
 	if (MatrixStackID >= MATRIX_STACK_SIZE) {
 		Log::Print(Log::LOG_ERROR, "Draw.Save stack too big!");
 		exit(-1);
 	}
 
-	Matrix4x4* top = &MatrixStack[MatrixStackID - 1];
-	Matrix4x4* push = &MatrixStack[MatrixStackID];
-	Matrix4x4::Copy(push, top);
+	ViewMatrix = SaveMatrix(ViewMatrixStack, MatrixStackID);
+	ModelMatrix = SaveMatrix(ModelMatrixStack, MatrixStackID);
 	MatrixStackID++;
-
-	ModelViewMatrix = push;
 }
 void Graphics::Translate(float x, float y, float z) {
-	Matrix4x4::Translate(ModelViewMatrix, ModelViewMatrix, x, y, z);
+	Matrix4x4::Translate(ModelMatrix, ModelMatrix, x, y, z);
 }
 void Graphics::Rotate(float x, float y, float z) {
-	Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, x, 1.0, 0.0, 0.0);
-	Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, y, 0.0, 1.0, 0.0);
-	Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, z, 0.0, 0.0, 1.0);
+	Matrix4x4::Rotate(ModelMatrix, ModelMatrix, x, 1.0, 0.0, 0.0);
+	Matrix4x4::Rotate(ModelMatrix, ModelMatrix, y, 0.0, 1.0, 0.0);
+	Matrix4x4::Rotate(ModelMatrix, ModelMatrix, z, 0.0, 0.0, 1.0);
 }
 void Graphics::Scale(float x, float y, float z) {
-	Matrix4x4::Scale(ModelViewMatrix, ModelViewMatrix, x, y, z);
+	Matrix4x4::Scale(ModelMatrix, ModelMatrix, x, y, z);
 }
 void Graphics::Restore() {
 	if (MatrixStackID == 1) {
 		return;
 	}
 	MatrixStackID--;
-	ModelViewMatrix = &MatrixStack[MatrixStackID - 1];
+	ViewMatrix = &ViewMatrixStack[MatrixStackID - 1];
+	ModelMatrix = &ModelMatrixStack[MatrixStackID - 1];
 }
 
 BlendState Graphics::GetBlendState() {
@@ -1284,64 +1292,78 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	int layerOffsetX = layer->OffsetX;
 	int layerOffsetY = layer->OffsetY;
 
+	int startX = 0, startY = 0;
+	int endX = (int)currentView->Width + tileWidth;
+	int endY = (int)currentView->Height + tileHeight;
+
 	int scrollOffset = Scene::Frame * layer->ConstantY;
 	int srcY = (scrollOffset + ((viewY + layerOffsetY) * layer->RelativeY)) >> 8;
+	int rowStartX = viewX + layerOffsetX;
+
+	// Draw more of the view if it is being rotated on the Z axis
+	if (currentView->RotateZ != 0.0f) {
+		int offsetY = currentView->Height / 2;
+		int offsetX = currentView->Width / 2;
+
+		startY = -offsetY;
+		endY += offsetY;
+		srcY -= offsetY;
+
+		startX = -offsetX;
+		endX += offsetX;
+		rowStartX -= offsetX;
+	}
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
-	for (int dst_y = 0; dst_y < (int)currentView->Height + 16; dst_y += 16, srcY += 16) {
-		bool isInLayer = srcY >= 0 && srcY < layerHeightInPixels;
-		if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_Y) {
+	for (int dst_y = startY; dst_y < endY; dst_y += tileHeight, srcY += tileHeight) {
+		if (srcY < 0 || srcY >= layerHeightInPixels) {
+			if ((layer->Flags & SceneLayer::FLAGS_REPEAT_Y) == 0) {
+				continue;
+			}
+
 			if (srcY < 0) {
 				srcY = -(srcY % layerHeightInPixels);
 			}
 			else {
 				srcY %= layerHeightInPixels;
 			}
-			isInLayer = true;
 		}
 
-		if (!isInLayer) {
-			continue;
-		}
+		int srcX = rowStartX;
+		for (int dst_x = startX; dst_x < endX; dst_x += tileWidth, srcX += tileWidth) {
+			if (srcX < 0 || srcX >= layerWidthInPixels) {
+				if ((layer->Flags & SceneLayer::FLAGS_REPEAT_X) == 0) {
+					continue;
+				}
 
-		int srcX = viewX + layerOffsetX;
-		for (int dst_x = 0; dst_x < (int)currentView->Width + 16; dst_x += 16, srcX += 16) {
-			isInLayer = srcX >= 0 && srcX < layerWidthInPixels;
-			if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 				if (srcX < 0) {
 					srcX = -(srcX % layerWidthInPixels);
 				}
 				else {
 					srcX %= layerWidthInPixels;
 				}
-				isInLayer = true;
 			}
 
-			if (!isInLayer) {
-				continue;
-			}
-
-			int sourceTileCellX = (srcX >> 4) & layerWidthTileMask;
-			int sourceTileCellY = (srcY >> 4) & layerHeightTileMask;
+			int sourceTileCellX = (srcX / tileWidth) & layerWidthTileMask;
+			int sourceTileCellY = (srcY / tileHeight) & layerHeightTileMask;
 			int tile = layer->Tiles[sourceTileCellX +
 				(sourceTileCellY << layerWidthInBits)];
 
-			if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
-				int tileID = tile & TILE_IDENT_MASK;
-				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
-				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
-
-				int srcTX = srcX & 15;
-				int srcTY = srcY & 15;
-
-				Graphics::DrawTile(tileID,
-					(dst_x - srcTX) + tileWidthHalf,
-					(dst_y - srcTY) + tileHeightHalf,
-					flipX,
-					flipY,
-					usePaletteIndexLines);
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID == Scene::EmptyTile) {
+				continue;
 			}
+
+			int srcTX = srcX & (tileWidth - 1);
+			int srcTY = srcY & (tileHeight - 1);
+
+			Graphics::DrawTile(tileID,
+				viewX + ((dst_x - srcTX) + tileWidthHalf),
+				viewY + ((dst_y - srcTY) + tileHeightHalf),
+				(tile & TILE_FLIPX_MASK) != 0,
+				(tile & TILE_FLIPY_MASK) != 0,
+				usePaletteIndexLines);
 		}
 	}
 }
@@ -1419,8 +1441,8 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 					partY,
 					tileWidth,
 					tileDrawHeight,
-					(dst_x - srcTX) + tileWidthHalf,
-					(dst_y - srcTY) + tileHeightHalf,
+					currentView->X + ((dst_x - srcTX) + tileWidthHalf),
+					currentView->Y + ((dst_y - srcTY) + tileHeightHalf),
 					flipX,
 					flipY,
 					usePaletteIndexLines);

@@ -5,7 +5,8 @@
 void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderUniforms uniforms) {
 	if (uniforms.u_matrix) {
 		shaderText += "uniform mat4 u_projectionMatrix;\n";
-		shaderText += "uniform mat4 u_modelViewMatrix;\n";
+		shaderText += "uniform mat4 u_viewMatrix;\n";
+		shaderText += "uniform mat4 u_modelMatrix;\n";
 	}
 	if (uniforms.u_color) {
 		shaderText += "uniform vec4 u_color;\n";
@@ -174,18 +175,19 @@ string GLShaderBuilder::Vertex(GLShaderLinkage& inputs,
 	std::string shaderText = "";
 
 #ifdef GL_ES
-	shaderText += "precision mediump float;\n"
+	shaderText += "precision mediump float;\n";
 #endif
 
-		AddInputsToVertexShaderText(shaderText, inputs);
+	AddInputsToVertexShaderText(shaderText, inputs);
 	AddOutputsToVertexShaderText(shaderText, outputs);
 	AddUniformsToShaderText(shaderText, uniforms);
 
 	shaderText += "void main() {\n";
+	shaderText += "mat4 modelViewMatrix = u_viewMatrix * u_modelMatrix;\n";
 	shaderText +=
-		"gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(i_position, 1.0);\n";
+		"gl_Position = u_projectionMatrix * modelViewMatrix * vec4(i_position, 1.0);\n";
 	if (outputs.link_position) {
-		shaderText += "o_position = u_modelViewMatrix * vec4(i_position, 1.0);\n";
+		shaderText += "o_position = modelViewMatrix * vec4(i_position, 1.0);\n";
 	}
 	if (outputs.link_color) {
 		shaderText += "o_color = i_color;\n";
@@ -203,10 +205,10 @@ string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
 	std::string shaderText = "";
 
 #ifdef GL_ES
-	shaderText += "precision mediump float;\n"
+	shaderText += "precision mediump float;\n";
 #endif
 
-		AddInputsToFragmentShaderText(shaderText, inputs);
+	AddInputsToFragmentShaderText(shaderText, inputs);
 	AddUniformsToShaderText(shaderText, uniforms);
 
 	shaderText += mainText;
