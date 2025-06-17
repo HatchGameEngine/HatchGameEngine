@@ -175,7 +175,7 @@ string GLShaderBuilder::Vertex(GLShaderLinkage& inputs,
 	std::string shaderText = "";
 
 #ifdef GL_ES
-	shaderText += "precision mediump float;\n"
+	shaderText += "precision mediump float;\n";
 #endif
 
 	AddInputsToVertexShaderText(shaderText, inputs);
@@ -183,8 +183,7 @@ string GLShaderBuilder::Vertex(GLShaderLinkage& inputs,
 	AddUniformsToShaderText(shaderText, uniforms);
 
 	shaderText += "void main() {\n";
-	shaderText +=
-		"mat4 modelViewMatrix = u_viewMatrix * u_modelMatrix;\n";
+	shaderText += "mat4 modelViewMatrix = u_viewMatrix * u_modelMatrix;\n";
 	shaderText +=
 		"gl_Position = u_projectionMatrix * modelViewMatrix * vec4(i_position, 1.0);\n";
 	if (outputs.link_position) {
@@ -206,10 +205,10 @@ string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
 	std::string shaderText = "";
 
 #ifdef GL_ES
-	shaderText += "precision mediump float;\n"
+	shaderText += "precision mediump float;\n";
 #endif
 
-		AddInputsToFragmentShaderText(shaderText, inputs);
+	AddInputsToFragmentShaderText(shaderText, inputs);
 	AddUniformsToShaderText(shaderText, uniforms);
 
 	shaderText += mainText;

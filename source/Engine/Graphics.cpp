@@ -1347,7 +1347,8 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 
 			int sourceTileCellX = (srcX / tileWidth) & layerWidthTileMask;
 			int sourceTileCellY = (srcY / tileHeight) & layerHeightTileMask;
-			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
+			int tile = layer->Tiles[sourceTileCellX +
+				(sourceTileCellY << layerWidthInBits)];
 
 			int tileID = tile & TILE_IDENT_MASK;
 			if (tileID == Scene::EmptyTile) {

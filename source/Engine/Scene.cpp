@@ -1232,11 +1232,7 @@ void Scene::SetupView2D(View* currentView) {
 	float cy = std::floor(currentView->Y);
 	float cz = std::floor(currentView->Z);
 
-	Matrix4x4::Translate(currentView->ViewMatrix,
-		currentView->ViewMatrix,
-		-cx,
-		-cy,
-		-cz);
+	Matrix4x4::Translate(currentView->ViewMatrix, currentView->ViewMatrix, -cx, -cy, -cz);
 }
 
 void Scene::SetupView3D(View* currentView) {
