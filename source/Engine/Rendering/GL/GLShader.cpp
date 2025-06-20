@@ -1,67 +1,22 @@
 #ifdef USING_OPENGL
 
+#include <Engine/Diagnostics/Log.h>
+#include <Engine/IO/TextStream.h>
+#include <Engine/Rendering/GL/GLRenderer.h>
 #include <Engine/Rendering/GL/GLShader.h>
 
-#include <Engine/Diagnostics/Log.h>
-
-GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
+void GLShader::AddVertexProgram(Stream* stream) {
 	GLint compiled = GL_FALSE;
-	ProgramID = glCreateProgram();
 
-	const char* vertexShaderSourceStr = vertexShaderSource.c_str();
+	size_t lenVS = stream->Length();
 
-	VertexProgramID = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(VertexProgramID, 1, &vertexShaderSourceStr, NULL);
-	glCompileShader(VertexProgramID);
-	CHECK_GL();
-	glGetShaderiv(VertexProgramID, GL_COMPILE_STATUS, &compiled);
-	if (compiled != GL_TRUE) {
-		Log::Print(Log::LOG_ERROR, "Unable to compile vertex shader %d!", VertexProgramID);
-		CheckShaderError(VertexProgramID);
-		return;
+	char* sourceVS = (char*)Memory::Malloc(lenVS + 1);
+	if (sourceVS == nullptr) {
+		throw std::runtime_error("No free memory to allocate vertex shader text!");
 	}
 
-	const char* fragmentShaderSourceStr = fragmentShaderSource.c_str();
-
-	FragmentProgramID = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(FragmentProgramID, 1, &fragmentShaderSourceStr, NULL);
-	glCompileShader(FragmentProgramID);
-	CHECK_GL();
-	glGetShaderiv(FragmentProgramID, GL_COMPILE_STATUS, &compiled);
-	if (compiled != GL_TRUE) {
-		Log::Print(
-			Log::LOG_ERROR, "Unable to compile fragment shader %d!", FragmentProgramID);
-		CheckShaderError(FragmentProgramID);
-		return;
-	}
-
-	AttachAndLink();
-}
-GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
-	GLint compiled = GL_FALSE;
-	ProgramID = glCreateProgram();
-
-	size_t lenVS = streamVS->Length();
-	size_t lenFS = streamFS->Length();
-
-	char* sourceVS = (char*)malloc(lenVS);
-	char* sourceFS = (char*)malloc(lenFS);
-
-	// const char* sourceVSMod[2];
-	const char* sourceFSMod[2];
-
-	streamVS->ReadBytes(sourceVS, lenVS);
-	sourceVS[lenVS] = 0;
-
-	streamFS->ReadBytes(sourceFS, lenFS);
-	sourceFS[lenFS] = 0;
-
-#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
-	sourceFSMod[0] = "precision mediump float;\n";
-#else
-	sourceFSMod[0] = "\n";
-#endif
-	sourceFSMod[1] = sourceFS;
+	stream->ReadBytes(sourceVS, lenVS);
+	sourceVS[lenVS] = '\0';
 
 	VertexProgramID = glCreateShader(GL_VERTEX_SHADER);
 
@@ -69,50 +24,155 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 	glCompileShader(VertexProgramID);
 	CHECK_GL();
 	glGetShaderiv(VertexProgramID, GL_COMPILE_STATUS, &compiled);
+
+	Memory::Free(sourceVS);
+
 	if (compiled != GL_TRUE) {
-		Log::Print(Log::LOG_ERROR, "Unable to compile vertex shader %d!", VertexProgramID);
-		CheckShaderError(VertexProgramID);
+		std::string error = CheckShaderError(VertexProgramID);
 
-		glDeleteProgram(ProgramID);
 		glDeleteShader(VertexProgramID);
-
-		ProgramID = 0;
 		VertexProgramID = 0;
 
-		free(sourceVS);
-		free(sourceFS);
-		return;
+		throw std::runtime_error("Unable to compile vertex shader!\n" + error);
+	}
+}
+
+void GLShader::AddFragmentProgram(Stream* stream) {
+	GLint compiled = GL_FALSE;
+
+	size_t lenFS = stream->Length();
+
+	char* sourceFS = (char*)Memory::Malloc(lenFS + 1);
+	if (sourceFS == nullptr) {
+		throw std::runtime_error("No free memory to allocate fragment shader text!");
 	}
 
+	stream->ReadBytes(sourceFS, lenFS);
+	sourceFS[lenFS] = '\0';
+
+#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
+	const char* sourceFSMod[2];
+	sourceFSMod[0] = "precision mediump float;\n";
+	sourceFSMod[1] = sourceFS;
+#endif
+
 	FragmentProgramID = glCreateShader(GL_FRAGMENT_SHADER);
+#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
 	glShaderSource(FragmentProgramID, 2, sourceFSMod, NULL);
+#else
+	glShaderSource(FragmentProgramID, 1, &sourceFS, NULL);
+#endif
 	glCompileShader(FragmentProgramID);
 	CHECK_GL();
 	glGetShaderiv(FragmentProgramID, GL_COMPILE_STATUS, &compiled);
+
+	Memory::Free(sourceFS);
+
 	if (compiled != GL_TRUE) {
-		Log::Print(
-			Log::LOG_ERROR, "Unable to compile fragment shader %d!", FragmentProgramID);
-		CheckShaderError(FragmentProgramID);
+		std::string error = CheckShaderError(FragmentProgramID);
 
-		glDeleteProgram(ProgramID);
-		glDeleteShader(VertexProgramID);
 		glDeleteShader(FragmentProgramID);
-
-		ProgramID = 0;
-		VertexProgramID = 0;
 		FragmentProgramID = 0;
 
-		free(sourceVS);
-		free(sourceFS);
-		return;
+		throw std::runtime_error("Unable to compile fragment shader!\n" + error);
+	}
+}
+
+void GLShader::AddProgram(int program, Stream* stream) {
+	if (HasProgram(program)) {
+		throw std::runtime_error("Shader already has program!");
 	}
 
-	free(sourceVS);
-	free(sourceFS);
-
-	AttachAndLink();
+	switch (program) {
+	case Shader::PROGRAM_VERTEX:
+		AddVertexProgram(stream);
+		break;
+	case Shader::PROGRAM_FRAGMENT:
+		AddFragmentProgram(stream);
+		break;
+	default:
+		throw std::runtime_error("Unsupported shader program!");
+	}
 }
-void GLShader::AttachAndLink() {
+
+bool GLShader::HasProgram(int program) {
+	switch (program) {
+	case Shader::PROGRAM_VERTEX:
+		return VertexProgramID != 0;
+	case Shader::PROGRAM_FRAGMENT:
+		return FragmentProgramID != 0;
+	default:
+		return false;
+	}
+}
+
+bool GLShader::IsValid() {
+	return HasProgram(PROGRAM_VERTEX) && HasProgram(PROGRAM_FRAGMENT) && ProgramID != 0;
+}
+
+void GLShader::Compile() {
+	ProgramID = glCreateProgram();
+
+	if (!AttachAndLink()) {
+		std::string error = CheckProgramError(ProgramID);
+
+		glDeleteProgram(ProgramID);
+		ProgramID = 0;
+
+		throw std::runtime_error("Unable to link shader program!\n" + error);
+	}
+}
+
+GLShader::GLShader() {}
+GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
+	TextStream* streamVS = TextStream::New(vertexShaderSource);
+	try {
+		AddVertexProgram(streamVS);
+	} catch (const std::runtime_error& error) {
+		Delete();
+		throw;
+	}
+	streamVS->Close();
+
+	TextStream* streamFS = TextStream::New(fragmentShaderSource);
+	try {
+		AddFragmentProgram(streamFS);
+	} catch (const std::runtime_error& error) {
+		Delete();
+		throw;
+	}
+	streamFS->Close();
+
+	try {
+		Compile();
+	} catch (const std::runtime_error& error) {
+		Delete();
+		throw;
+	}
+}
+GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
+	try {
+		AddVertexProgram(streamVS);
+	} catch (const std::runtime_error& error) {
+		Delete();
+		throw;
+	}
+
+	try {
+		AddFragmentProgram(streamFS);
+	} catch (const std::runtime_error& error) {
+		Delete();
+		throw;
+	}
+
+	try {
+		Compile();
+	} catch (const std::runtime_error& error) {
+		Delete();
+		throw;
+	}
+}
+bool GLShader::AttachAndLink() {
 	glAttachShader(ProgramID, VertexProgramID);
 	glAttachShader(ProgramID, FragmentProgramID);
 
@@ -126,7 +186,7 @@ void GLShader::AttachAndLink() {
 	GLint isLinked = GL_FALSE;
 	glGetProgramiv(ProgramID, GL_LINK_STATUS, (int*)&isLinked);
 	if (isLinked != GL_TRUE) {
-		CheckProgramError(ProgramID);
+		return false;
 	}
 
 	LocProjectionMatrix = GetUniformLocation("u_projectionMatrix");
@@ -142,9 +202,14 @@ void GLShader::AttachAndLink() {
 	LocSpecularColor = GetUniformLocation("u_specularColor");
 	LocAmbientColor = GetUniformLocation("u_ambientColor");
 	LocTexture = GetUniformLocation("u_texture");
+	LocTextureSize = GetUniformLocation("u_textureSize");
+	LocSpriteFrameCoords = GetUniformLocation("u_spriteFrameCoords");
+	LocSpriteFrameSize = GetUniformLocation("u_spriteFrameSize");
+#ifdef GL_HAVE_YUV
 	LocTextureU = GetUniformLocation("u_textureU");
 	LocTextureV = GetUniformLocation("u_textureV");
-	LocPalette = GetUniformLocation("u_paletteTexture");
+#endif
+	LocPaletteTexture = GetUniformLocation("u_paletteTexture");
 	LocPaletteLine = GetUniformLocation("u_paletteLine");
 	LocPaletteIndexTable = GetUniformLocation("u_paletteIndexTable");
 
@@ -156,9 +221,11 @@ void GLShader::AttachAndLink() {
 
 	CachedBlendColors[0] = CachedBlendColors[1] = CachedBlendColors[2] = CachedBlendColors[3] =
 		0.0;
+
+	return true;
 }
 
-bool GLShader::CheckShaderError(GLuint shader) {
+std::string GLShader::CheckShaderError(GLuint shader) {
 	int infoLogLength = 0;
 	int maxLength = infoLogLength;
 
@@ -169,14 +236,15 @@ bool GLShader::CheckShaderError(GLuint shader) {
 	glGetShaderInfoLog(shader, maxLength, &infoLogLength, infoLog);
 	infoLog[strlen(infoLog) - 1] = 0;
 
+	std::string infoLogString;
 	if (infoLogLength > 0) {
-		Log::Print(Log::LOG_ERROR, "%s", infoLog);
+		infoLogString = std::string(infoLog);
 	}
 
 	delete[] infoLog;
-	return false;
+	return infoLogString;
 }
-bool GLShader::CheckProgramError(GLuint prog) {
+std::string GLShader::CheckProgramError(GLuint prog) {
 	int infoLogLength = 0;
 	int maxLength = infoLogLength;
 
@@ -187,20 +255,155 @@ bool GLShader::CheckProgramError(GLuint prog) {
 	glGetProgramInfoLog(prog, maxLength, &infoLogLength, infoLog);
 	infoLog[strlen(infoLog) - 1] = 0;
 
+	std::string infoLogString;
 	if (infoLogLength > 0) {
-		Log::Print(Log::LOG_ERROR, "%s", infoLog);
+		infoLogString = std::string(infoLog);
 	}
 
 	delete[] infoLog;
-	return false;
+	return infoLogString;
 }
 
-GLuint GLShader::Use() {
+void GLShader::Use() {
+	if (!IsValid()) {
+		throw std::runtime_error("Shader is not valid!");
+	}
+
 	glUseProgram(ProgramID);
 	CHECK_GL();
+}
 
-	// glEnableVertexAttribArray(1); CHECK_GL();
-	return ProgramID;
+void GLShader::Validate() {
+	if (!HasProgram(PROGRAM_VERTEX)) {
+		throw std::runtime_error("Shader has no vertex program!");
+	}
+	else if (!HasProgram(PROGRAM_FRAGMENT)) {
+		throw std::runtime_error("Shader has no fragment program!");
+	}
+	else if (ProgramID == 0) {
+		throw std::runtime_error("Shader has not been compiled!");
+	}
+}
+
+bool GLShader::HasUniform(const char* name) {
+	GLint location = GetUniformLocation(name);
+	return location != -1;
+}
+void GLShader::SetUniform(const char* name, size_t count, int* values) {
+	if (name == nullptr || name[0] == '\0') {
+		throw std::runtime_error("Invalid uniform name!");
+	}
+
+	GLint location = GetUniformLocation(name);
+	if (location == -1) {
+		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
+	}
+
+	switch (count) {
+	case 1:
+		glUniform1i(location, values[0]);
+		break;
+	case 2:
+		glUniform2i(location, values[0], values[1]);
+		break;
+	case 3:
+		glUniform3i(location, values[0], values[1], values[2]);
+		break;
+	case 4:
+		glUniform4i(location, values[0], values[1], values[2], values[3]);
+		break;
+	}
+}
+void GLShader::SetUniform(const char* name, size_t count, float* values) {
+	if (name == nullptr || name[0] == '\0') {
+		throw std::runtime_error("Invalid uniform name!");
+	}
+
+	GLint location = GetUniformLocation(name);
+	if (location == -1) {
+		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
+	}
+
+	switch (count) {
+	case 1:
+		glUniform1f(location, values[0]);
+		break;
+	case 2:
+		glUniform2f(location, values[0], values[1]);
+		break;
+	case 3:
+		glUniform3f(location, values[0], values[1], values[2]);
+		break;
+	case 4:
+		glUniform4f(location, values[0], values[1], values[2], values[3]);
+		break;
+	}
+}
+void GLShader::SetUniformArray(const char* name, size_t count, int* values, size_t numValues) {
+	if (name == nullptr || name[0] == '\0') {
+		throw std::runtime_error("Invalid uniform name!");
+	}
+
+	GLint location = GetUniformLocation(name);
+	if (location == -1) {
+		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
+	}
+
+	switch (count) {
+	case 1:
+		glUniform1iv(location, numValues, values);
+		break;
+	case 2:
+		glUniform2iv(location, numValues, values);
+		break;
+	case 3:
+		glUniform3iv(location, numValues, values);
+		break;
+	case 4:
+		glUniform4iv(location, numValues, values);
+		break;
+	}
+}
+void GLShader::SetUniformArray(const char* name, size_t count, float* values, size_t numValues) {
+	if (name == nullptr || name[0] == '\0') {
+		throw std::runtime_error("Invalid uniform name!");
+	}
+
+	GLint location = GetUniformLocation(name);
+	if (location == -1) {
+		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
+	}
+
+	switch (count) {
+	case 1:
+		glUniform1fv(location, numValues, values);
+		break;
+	case 2:
+		glUniform2fv(location, numValues, values);
+		break;
+	case 3:
+		glUniform3fv(location, numValues, values);
+		break;
+	case 4:
+		glUniform4fv(location, numValues, values);
+		break;
+	}
+}
+void GLShader::SetUniformTexture(const char* name, Texture* texture, int textureUnit) {
+	if (name == nullptr || name[0] == '\0') {
+		throw std::runtime_error("Invalid uniform name!");
+	}
+
+	GLint location = GetUniformLocation(name);
+	if (location == -1) {
+		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
+	}
+
+	if (texture == nullptr || texture->DriverData == nullptr) {
+		throw std::runtime_error("Invalid texture!");
+	}
+
+	GLRenderer::BindTexture(texture, textureUnit, (int)location);
 }
 
 GLint GLShader::GetAttribLocation(const GLchar* identifier) {
@@ -208,91 +411,30 @@ GLint GLShader::GetAttribLocation(const GLchar* identifier) {
 	return value;
 }
 GLint GLShader::GetUniformLocation(const GLchar* identifier) {
+	// TODO: Optimize.
 	GLint value = glGetUniformLocation(ProgramID, identifier);
 	return value;
 }
 
-GLShader::~GLShader() {
-	if (CachedProjectionMatrix) {
-		delete CachedProjectionMatrix;
-	}
-	if (CachedViewMatrix) {
-		delete CachedViewMatrix;
-	}
-	if (CachedModelMatrix) {
-		delete CachedModelMatrix;
-	}
+void GLShader::Delete() {
 	if (VertexProgramID) {
 		glDeleteShader(VertexProgramID);
+		VertexProgramID = 0;
 	}
 	if (FragmentProgramID) {
 		glDeleteShader(FragmentProgramID);
+		FragmentProgramID = 0;
 	}
 	if (ProgramID) {
 		glDeleteProgram(ProgramID);
+		ProgramID = 0;
 	}
+
+	Shader::Delete();
 }
 
-bool GLShader::CheckGLError(int line) {
-	GLenum error = glGetError();
-	if (error == GL_NO_ERROR) {
-		return false;
-	}
-	const char* errstr = NULL;
-	switch (error) {
-	case GL_NO_ERROR:
-		errstr = "no error";
-		break;
-	case GL_INVALID_ENUM:
-		errstr = "invalid enumerant";
-		break;
-	case GL_INVALID_VALUE:
-		errstr = "invalid value";
-		break;
-	case GL_INVALID_OPERATION:
-		errstr = "invalid operation";
-		break;
-	case GL_OUT_OF_MEMORY:
-		errstr = "out of memory";
-		break;
-#ifdef GL_STACK_OVERFLOW
-	case GL_STACK_OVERFLOW:
-		errstr = "stack overflow";
-		break;
-	case GL_STACK_UNDERFLOW:
-		errstr = "stack underflow";
-		break;
-	case GL_TABLE_TOO_LARGE:
-		errstr = "table too large";
-		break;
-#endif
-#ifdef GL_EXT_framebuffer_object
-	case GL_INVALID_FRAMEBUFFER_OPERATION_EXT:
-		errstr = "invalid framebuffer operation";
-		break;
-#endif
-#if GLU_H
-	case GLU_INVALID_ENUM:
-		errstr = "invalid enumerant";
-		break;
-	case GLU_INVALID_VALUE:
-		errstr = "invalid value";
-		break;
-	case GLU_OUT_OF_MEMORY:
-		errstr = "out of memory";
-		break;
-	case GLU_INCOMPATIBLE_GL_VERSION:
-		errstr = "incompatible OpenGL version";
-		break;
-// case GLU_INVALID_OPERATION: errstr = "invalid operation"; break;
-#endif
-	default:
-		errstr = "unknown error";
-		break;
-	}
-	Log::Print(Log::LOG_ERROR, "OpenGL error on line %d: %s", line, errstr);
-	return true;
+GLShader::~GLShader() {
+	Delete();
 }
-#undef CHECK_GL
 
 #endif /* USING_OPENGL */

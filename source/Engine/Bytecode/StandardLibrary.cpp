@@ -4404,6 +4404,74 @@ VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Draw.SetShader
+ * \desc Sets a shader.
+ * \param shaderIndex (Integer): The shader index, or <code>null</code> to unset the shader.
+ * \ns Draw
+ */
+VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	if (IS_NULL(args[0])) {
+		Graphics::SetUserShader(nullptr);
+		return NULL_VAL;
+	}
+
+	int shaderIndex = GET_ARG(0, GetInteger);
+
+	Shader* shader = Graphics::Shaders[shaderIndex];
+	if (shader == nullptr) {
+		return NULL_VAL;
+	}
+
+	try {
+		Graphics::SetUserShader(shader);
+	}
+	catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Draw.SetShaderUniform
+ * \desc Sets an uniform for the current shader.
+ * \param uniform (String): The name of the uniform.
+ * \param value (Number or Array): The value to send to the shader.
+ * \ns Draw
+ */
+VMValue Draw_SetShaderUniform(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+
+	char* uniform = GET_ARG(0, GetString);
+	float value = GET_ARG(1, GetDecimal);
+	// VMValue value = args[1];
+
+	Shader* shader = Graphics::CurrentShader;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader is not set!");
+		return NULL_VAL;
+	}
+
+	void* values;
+	values = Memory::Malloc(sizeof(int) * 1);
+
+	float* valuesFloat = (float*)values;
+	valuesFloat[0] = value;
+	// valuesFloat[0] = AS_DECIMAL(value);
+
+	try {
+		shader->SetUniform(uniform, 1, valuesFloat);
+	}
+	catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	Memory::Free(values);
+
+	return NULL_VAL;
+}
+/***
  * Draw.SetFilter
  * \desc Sets a <linkto ref="Filter_*">filter type</linkto>.
  * \param filterType (Enum): The <linkto ref="Filter_*">filter type</linkto>.
@@ -4416,7 +4484,7 @@ VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
 		OUT_OF_RANGE_ERROR("Filter", filterType, 0, Filter_INVERT);
 		return NULL_VAL;
 	}
-	SoftwareRenderer::SetFilter(filterType);
+	Graphics::SetFilter(filterType);
 	return NULL_VAL;
 }
 /***
@@ -14443,26 +14511,146 @@ VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) 
 
 // #region Shader
 /***
+ * Shader.Create
+ * \desc Creates a shader.
+ * \ns Shader
+ */
+VMValue Shader_Create(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	Shader* shader = Graphics::CreateShader();
+	if (shader == nullptr) {
+		THROW_ERROR("Could not create shader!");
+		return NULL_VAL;
+	}
+
+	size_t pos = Graphics::Shaders.size() - 1;
+	return INTEGER_VAL((int)pos);
+}
+/***
+ * Shader.AddProgram
+ * \desc Adds a program to a shader.
+ * \param shader (Integer): The shader index.
+ * \param program (Enum): <linkto ref="SHADERPROGRAM_*">Shader program type</linkto>.
+ * \param filename (String): Filename of the resource.
+ * \ns Shader
+ */
+VMValue Shader_AddProgram(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+
+	int shaderIndex = GET_ARG(0, GetInteger);
+	int program = GET_ARG(1, GetInteger);
+	char* filename = GET_ARG(2, GetString);
+
+	Shader* shader = Graphics::Shaders[shaderIndex];
+	if (shader == nullptr) {
+		return NULL_VAL;
+	}
+
+	Stream* stream = ResourceStream::New(filename);
+	if (!stream) {
+		THROW_ERROR("Resource \"%s\" does not exist!", filename);
+		return NULL_VAL;
+	}
+
+	try {
+		shader->AddProgram(program, stream);
+	}
+	catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	stream->Close();
+
+	return NULL_VAL;
+}
+/***
+ * Shader.Compile
+ * \desc Compiles a shader.
+ * \param shader (Integer): The shader index.
+ * \ns Shader
+ */
+VMValue Shader_Compile(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	int shaderIndex = GET_ARG(0, GetInteger);
+
+	Shader* shader = Graphics::Shaders[shaderIndex];
+	if (shader == nullptr) {
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Compile();
+	}
+	catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Shader.Delete
+ * \desc Deletes a shader.
+ * \ns Shader
+ */
+VMValue Shader_Delete(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	return NULL_VAL;
+}
+/***
  * Shader.Set
- * \desc
- * \return
+ * \desc Do not use.
  * \ns Shader
  */
 VMValue Shader_Set(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
+
 	ObjArray* array = GET_ARG(0, GetArray);
-	Graphics::UseShader(array);
+
+	size_t numValues = array->Values->size();
+	if (numValues != FILTER_TABLE_SIZE) {
+		THROW_ERROR("Expected array to have exactly %d indices, but it had %d.", FILTER_TABLE_SIZE, numValues);
+		return NULL_VAL;
+	}
+
+	Uint32* filterTable = (Uint32*)Memory::Malloc(numValues * sizeof(Uint32));
+
+	for (size_t i = 0; i < numValues; i++) {
+		VMValue value = (*array->Values)[i];
+
+		Uint32 colorVal = 0;
+
+		if (IS_INTEGER(value)) {
+			colorVal = AS_INTEGER(value);
+		}
+		else {
+			if (THROW_ERROR("Expected value at array index %d to be of type %s instead of %s.",
+				    i,
+				    GetTypeString(VAL_INTEGER),
+				    GetValueTypeString(value)) != ERROR_RES_CONTINUE) {
+				return NULL_VAL;
+			}
+		}
+
+		filterTable[i] = colorVal;
+	}
+
+	Graphics::SetFilterTable(filterTable, numValues);
+
+	Memory::Free(filterTable);
+
 	return NULL_VAL;
 }
 /***
  * Shader.Unset
- * \desc
- * \return
+ * \desc Do not use.
  * \ns Shader
  */
 VMValue Shader_Unset(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	Graphics::UseShader(NULL);
+	Graphics::SetFilterTable(nullptr, 0);
 	return NULL_VAL;
 }
 // #endregion
@@ -17972,6 +18160,12 @@ ObjNamespace* InitNamespace(const char* nsName) {
 	return ns;
 }
 
+ObjClass* AddClass(const char* className) {
+	ObjClass* klass = InitClass(className);
+	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
+	return klass;
+}
+
 void StandardLibrary::Link() {
 	ObjClass* klass;
 
@@ -17995,8 +18189,12 @@ void StandardLibrary::Link() {
 	String_CaseMapBind(L'ç', L'Ç');
 
 #define INIT_CLASS(className) \
-	klass = InitClass(#className); \
-	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
+	klass = AddClass(#className)
+#define GET_OR_INIT_CLASS(className) \
+	klass = ScriptManager::GetObjectClass(#className); \
+	if (klass == nullptr) { \
+		klass = AddClass(#className); \
+	}
 #define DEF_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
 #define ALIAS_NATIVE(className, funcName, oldClassName, oldFuncName) \
@@ -18624,6 +18822,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, SetTintColor);
 	DEF_NATIVE(Draw, SetTintMode);
 	DEF_NATIVE(Draw, UseTinting);
+	DEF_NATIVE(Draw, SetShader);
+	DEF_NATIVE(Draw, SetShaderUniform);
 	DEF_NATIVE(Draw, SetFilter);
 	DEF_NATIVE(Draw, UseStencil);
 	DEF_NATIVE(Draw, SetStencilTestFunction);
@@ -19677,9 +19877,22 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Shader
-	INIT_CLASS(Shader);
+	GET_OR_INIT_CLASS(Shader);
+	DEF_NATIVE(Shader, Create);
+	DEF_NATIVE(Shader, AddProgram);
+	DEF_NATIVE(Shader, Compile);
 	DEF_NATIVE(Shader, Set);
 	DEF_NATIVE(Shader, Unset);
+	/***
+    * \enum SHADERPROGRAM_VERTEX
+    * \desc Vertex shader program.
+    */
+	DEF_CONST_INT("SHADERPROGRAM_VERTEX", Shader::PROGRAM_VERTEX);
+	/***
+    * \enum SHADERPROGRAM_FRAGMENT
+    * \desc Fragment shader program.
+    */
+	DEF_CONST_INT("SHADERPROGRAM_FRAGMENT", Shader::PROGRAM_FRAGMENT);
 	// #endregion
 
 	// #region SocketClient

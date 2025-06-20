@@ -30,7 +30,9 @@ Uint32 Graphics::MaxTextureWidth = 1;
 Uint32 Graphics::MaxTextureHeight = 1;
 Texture* Graphics::TextureHead = NULL;
 
-vector<VertexBuffer*> Graphics::VertexBuffers;
+std::vector<Shader*> Graphics::Shaders;
+
+std::vector<VertexBuffer*> Graphics::VertexBuffers;
 Scene3D Graphics::Scene3Ds[MAX_3D_SCENES];
 
 stack<GraphicsState> Graphics::StateStack;
@@ -72,7 +74,7 @@ Texture* Graphics::CurrentRenderTarget = NULL;
 Sint32 Graphics::CurrentScene3D = -1;
 Sint32 Graphics::CurrentVertexBuffer = -1;
 
-void* Graphics::CurrentShader = NULL;
+Shader* Graphics::CurrentShader = NULL;
 bool Graphics::SmoothFill = false;
 bool Graphics::SmoothStroke = false;
 
@@ -233,6 +235,12 @@ void Graphics::Dispose() {
 		Graphics::DeleteVertexBuffer(i);
 	}
 	Graphics::VertexBuffers.clear();
+
+	Graphics::CurrentShader = nullptr;
+	for (Uint32 i = 0; i < Graphics::Shaders.size(); i++) {
+		delete Shaders[i];
+	}
+	Graphics::Shaders.clear();
 
 	for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
 		Graphics::DeleteScene3D(i);
@@ -507,10 +515,45 @@ void Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
 	Graphics::VertexBuffers[vertexBufferIndex] = NULL;
 }
 
-void Graphics::UseShader(void* shader) {
-	Graphics::CurrentShader = shader;
-	Graphics::GfxFunctions->UseShader(shader);
+Shader* Graphics::CreateShader() {
+	if (!Graphics::GfxFunctions->CreateShader) {
+		return nullptr;
+	}
+
+	Shader* shader = Graphics::GfxFunctions->CreateShader();
+	if (shader == nullptr) {
+		return nullptr;
+	}
+
+	Shaders.push_back(shader);
+
+	return shader;
 }
+void Graphics::SetUserShader(Shader* shader) {
+	if (!Graphics::GfxFunctions->SetUserShader) {
+		return;
+	}
+
+	try {
+		Graphics::CurrentShader = shader;
+		Graphics::GfxFunctions->SetUserShader(shader);
+	} catch (const std::runtime_error& error) {
+		Graphics::CurrentShader = nullptr;
+		throw;
+	}
+}
+
+void Graphics::SetFilter(int filter) {
+	if (Graphics::GfxFunctions->SetFilter) {
+		Graphics::GfxFunctions->SetFilter(filter);
+	}
+}
+void Graphics::SetFilterTable(Uint32* table, size_t size) {
+	if (Graphics::GfxFunctions->SetFilterTable) {
+		Graphics::GfxFunctions->SetFilterTable(table, size);
+	}
+}
+
 void Graphics::SetTextureInterpolation(bool interpolate) {
 	Graphics::TextureInterpolate = interpolate;
 }

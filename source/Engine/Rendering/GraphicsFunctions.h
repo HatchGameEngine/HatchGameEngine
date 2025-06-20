@@ -1,6 +1,7 @@
 #ifndef ENGINE_RENDERING_GRAPHICSFUNCTIONS
 #define ENGINE_RENDERING_GRAPHICSFUNCTIONS
 
+#include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/Texture.h>
 
 struct GraphicsFunctions {
@@ -27,11 +28,13 @@ struct GraphicsFunctions {
 	void (*UnlockTexture)(Texture* texture);
 	void (*DisposeTexture)(Texture* texture);
 
-	void (*UseShader)(void* shader);
+	Shader* (*CreateShader)();
+	void (*SetUserShader)(Shader* shader);
+
+	void (*SetFilter)(int filter);
+	void (*SetFilterTable)(Uint32* table, size_t size);
+
 	void (*SetTextureInterpolation)(bool interpolate);
-	void (*SetUniformTexture)(Texture* texture, int uniform_index, int slot);
-	void (*SetUniformF)(int location, int count, float* values);
-	void (*SetUniformI)(int location, int count, int* values);
 
 	void (*UpdateGlobalPalette)();
 

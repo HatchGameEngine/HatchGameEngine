@@ -29,33 +29,35 @@ GLShaderContainer::GLShaderContainer(GLShaderLinkage vsIn,
 	fsUni.u_texture = true;
 	vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
 	fs = GLShaderBuilder::Fragment(fsIn, fsUni);
-	Textured = new GLShader(vs, fs);
+	try {
+		Textured = new GLShader(vs, fs);
+	} catch (const std::runtime_error& error) {
+		delete Base;
+
+		throw;
+	}
 
 	fsUni.u_palette = true;
 	vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
 	fs = GLShaderBuilder::Fragment(fsIn, fsUni);
-	PalettizedTextured = new GLShader(vs, fs);
-}
+	try {
+		PalettizedTextured = new GLShader(vs, fs);
+	} catch (const std::runtime_error& error) {
+		delete Textured;
+		delete Base;
 
-GLShader* GLShaderContainer::Get(bool useTexturing, bool usePalette) {
-	if (useTexturing) {
-		if (usePalette) {
-			return PalettizedTextured;
-		}
-		else {
-			return Textured;
-		}
+		throw;
 	}
-
-	return Base;
-}
-
-GLShader* GLShaderContainer::Get(bool useTexturing) {
-	return Get(useTexturing, false);
 }
 
 GLShader* GLShaderContainer::Get() {
-	return Get(false, false);
+	return Base;
+}
+GLShader* GLShaderContainer::GetWithTexturing() {
+	return Textured;
+}
+GLShader* GLShaderContainer::GetWithPalette() {
+	return PalettizedTextured;
 }
 
 GLShaderContainer* GLShaderContainer::Make(bool useMaterial, bool useVertexColors) {
@@ -100,6 +102,7 @@ GLShaderContainer* GLShaderContainer::MakeFog(int fogType) {
 }
 
 GLShaderContainer* GLShaderContainer::MakeYUV() {
+#ifdef GL_HAVE_YUV
 	GLShaderLinkage vsIn = {0};
 	GLShaderLinkage vsOut = {0};
 	GLShaderLinkage fsIn = {0};
@@ -141,6 +144,9 @@ GLShaderContainer* GLShaderContainer::MakeYUV() {
 	GLShaderContainer* container = new GLShaderContainer();
 	container->Textured = new GLShader(vs, fs);
 	return container;
+#else
+	return nullptr;
+#endif
 }
 
 GLShaderContainer::~GLShaderContainer() {

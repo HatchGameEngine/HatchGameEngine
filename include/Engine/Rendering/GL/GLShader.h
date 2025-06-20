@@ -1,24 +1,16 @@
 #ifndef ENGINE_RENDERING_GL_GLSHADER_H
 #define ENGINE_RENDERING_GL_GLSHADER_H
 
-#include <Engine/IO/Stream.h>
-#include <Engine/Includes/Standard.h>
-#include <Engine/Math/Matrix4x4.h>
+#include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/GL/Includes.h>
 
-#ifdef DEBUG
-#define GL_DO_ERROR_CHECKING
-#endif
-
-#ifdef GL_DO_ERROR_CHECKING
-#define CHECK_GL() GLShader::CheckGLError(__LINE__)
-#else
-#define CHECK_GL()
-#endif
-
-class GLShader {
+class GLShader : public Shader {
 private:
-	void AttachAndLink();
+	void AddVertexProgram(Stream* stream);
+	void AddFragmentProgram(Stream* stream);
+	bool AttachAndLink();
+	std::string CheckShaderError(GLuint shader);
+	std::string CheckProgramError(GLuint prog);
 
 public:
 	GLuint ProgramID = 0;
@@ -30,9 +22,14 @@ public:
 	GLint LocPosition;
 	GLint LocTexCoord;
 	GLint LocTexture;
+	GLint LocTextureSize;
+	GLint LocSpriteFrameCoords;
+	GLint LocSpriteFrameSize;
+#ifdef GL_HAVE_YUV
 	GLint LocTextureU;
 	GLint LocTextureV;
-	GLint LocPalette;
+#endif
+	GLint LocPaletteTexture;
 	GLint LocPaletteLine;
 	GLint LocPaletteIndexTable;
 	GLint LocColor;
@@ -45,23 +42,31 @@ public:
 	GLint LocFogLinearEnd;
 	GLint LocFogDensity;
 	GLint LocFogTable;
-	char FilenameV[256];
-	char FilenameF[256];
-	// Cache stuff
-	float CachedBlendColors[4];
-	Matrix4x4* CachedProjectionMatrix = NULL;
-	Matrix4x4* CachedViewMatrix = NULL;
-	Matrix4x4* CachedModelMatrix = NULL;
 
+	GLShader();
 	GLShader(std::string vertexShaderSource, std::string fragmentShaderSource);
 	GLShader(Stream* streamVS, Stream* streamFS);
-	bool CheckShaderError(GLuint shader);
-	bool CheckProgramError(GLuint prog);
-	GLuint Use();
+
 	GLint GetAttribLocation(const GLchar* identifier);
 	GLint GetUniformLocation(const GLchar* identifier);
-	~GLShader();
-	static bool CheckGLError(int line);
+
+	void Compile();
+	void AddProgram(int program, Stream* stream);
+	bool HasProgram(int program);
+	bool IsValid();
+
+	bool HasUniform(const char* name);
+	void SetUniform(const char* name, size_t count, int* values);
+	void SetUniform(const char* name, size_t count, float* values);
+	void SetUniformArray(const char* name, size_t count, int* values, size_t numValues);
+	void SetUniformArray(const char* name, size_t count, float* values, size_t numValues);
+	void SetUniformTexture(const char* name, Texture* texture, int slot);
+
+	void Use();
+	void Validate();
+	void Delete();
+
+	virtual ~GLShader();
 };
 
 #endif /* ENGINE_RENDERING_GL_GLSHADER_H */

@@ -12,6 +12,7 @@ class IModel;
 #include <Engine/Rendering/Enums.h>
 #include <Engine/Rendering/GraphicsFunctions.h>
 #include <Engine/Rendering/Scene3D.h>
+#include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/TextureReference.h>
 #include <Engine/Rendering/VertexBuffer.h>
 #include <Engine/ResourceTypes/IModel.h>
@@ -36,7 +37,8 @@ public:
 	static Uint32 MaxTextureWidth;
 	static Uint32 MaxTextureHeight;
 	static Texture* TextureHead;
-	static vector<VertexBuffer*> VertexBuffers;
+	static std::vector<Shader*> Shaders;
+	static std::vector<VertexBuffer*> VertexBuffers;
 	static Scene3D Scene3Ds[MAX_3D_SCENES];
 	static stack<GraphicsState> StateStack;
 	static Matrix4x4 ViewMatrixStack[MATRIX_STACK_SIZE];
@@ -66,7 +68,7 @@ public:
 	static Texture* CurrentRenderTarget;
 	static Sint32 CurrentScene3D;
 	static Sint32 CurrentVertexBuffer;
-	static void* CurrentShader;
+	static Shader* CurrentShader;
 	static bool SmoothFill;
 	static bool SmoothStroke;
 	static float PixelOffset;
@@ -114,7 +116,10 @@ public:
 	static void DeleteSpriteSheetMap();
 	static Uint32 CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy);
 	static void DeleteVertexBuffer(Uint32 vertexBufferIndex);
-	static void UseShader(void* shader);
+	static Shader* CreateShader();
+	static void SetUserShader(Shader* shader);
+	static void SetFilter(int filter);
+	static void SetFilterTable(Uint32* table, size_t size);
 	static void SetTextureInterpolation(bool interpolate);
 	static void Clear();
 	static void Present();

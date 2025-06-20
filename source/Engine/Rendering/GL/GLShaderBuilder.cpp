@@ -25,11 +25,13 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 		shaderText += "uniform int u_paletteIndexTable[" +
 			std::to_string(MAX_FRAMEBUFFER_HEIGHT) + "];\n";
 	}
+#ifdef GL_HAVE_YUV
 	if (uniforms.u_yuv) {
 		shaderText += "uniform sampler2D u_texture;\n";
 		shaderText += "uniform sampler2D u_textureU;\n";
 		shaderText += "uniform sampler2D u_textureV;\n";
 	}
+#endif
 	if (uniforms.u_fog_exp || uniforms.u_fog_linear) {
 		shaderText += "uniform vec4 u_fogColor;\n";
 		shaderText += "uniform float u_fogTable[256];\n";
