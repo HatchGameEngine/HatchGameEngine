@@ -278,7 +278,7 @@ void GL_SetTextureWrap(GL_TextureData* textureData,
 
 	glBindTexture(textureData->TextureTarget, bound);
 }
-void GL_SetActiveTexture(int textureUnit, int uniform, int textureID) {
+void GL_SetTextureUnit(int textureUnit) {
 	if (textureUnit < 0) {
 		textureUnit = 0;
 	}
@@ -290,55 +290,57 @@ void GL_SetActiveTexture(int textureUnit, int uniform, int textureID) {
 	if (GL_ActiveTexture != activeTexture) {
 		glActiveTexture(GL_ActiveTexture = activeTexture);
 	}
-
-	glUniform1i(uniform, textureUnit);
-	glBindTexture(GL_TEXTURE_2D, textureID);
 }
 void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 	// Do texture (re-)binding if necessary
-	if (GL_LastTexture != texture) {
-		GL_TextureData* textureData = nullptr;
-		if (texture) {
-			textureData = (GL_TextureData*)texture->DriverData;
-		}
+	if (GL_LastTexture == texture) {
+		return;
+	}
 
-		if (GL_ActiveTexture != GL_TEXTURE0) {
-			glActiveTexture(GL_ActiveTexture = GL_TEXTURE0);
-		}
+	GL_TextureData* textureData = nullptr;
+	if (texture) {
+		textureData = (GL_TextureData*)texture->DriverData;
+	}
 
-		if (textureData) {
-			glBindTexture(GL_TEXTURE_2D, textureData->TextureID);
+	GLShader* shader = GLRenderer::CurrentShader;
+	int textureUnit = shader->GetTextureUnit(shader->LocTexture);
+	GL_SetTextureUnit(textureUnit);
 
-			if (!textureData->Accessed) {
-				if (wrapS && wrapS != GL_REPEAT) { // GL_REPEAT
-					// is the
-					// default
-					GL_SetTextureWrap(textureData, wrapS, wrapT);
-				}
+	if (textureData) {
+		glBindTexture(GL_TEXTURE_2D, textureData->TextureID);
 
-				textureData->Accessed = true;
+		if (!textureData->Accessed) {
+			// GL_REPEAT is the default
+			if (wrapS && wrapS != GL_REPEAT) {
+				GL_SetTextureWrap(textureData, wrapS, wrapT);
 			}
-		}
-		else {
-			glBindTexture(GL_TEXTURE_2D, 0);
+
+			textureData->Accessed = true;
 		}
 	}
+	else {
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
 	GL_LastTexture = texture;
 }
 void GL_PreparePaletteShader(int paletteID) {
 	int textureID = GL_PaletteTexture ? GL_PaletteTexture->TextureID : 0;
 
-	GL_SetActiveTexture(1, GLRenderer::CurrentShader->LocPaletteTexture, textureID);
-	glUniform1i(GLRenderer::CurrentShader->LocPaletteLine, paletteID);
+	GLShader* shader = GLRenderer::CurrentShader;
+
+	shader->SetUniformTexture(shader->LocPaletteTexture, textureID);
+
+	glUniform1i(shader->LocPaletteLine, paletteID);
 }
-void GL_SetShader(GLShader* shader) {
+GLShader* GL_SetShader(GLShader* shader) {
 	if (shader == nullptr) {
-		return;
+		return nullptr;
 	}
 
 	GLShader* currentShader = GLRenderer::CurrentShader;
 	if (currentShader == shader) {
-		return;
+		return currentShader;
 	}
 	else if (currentShader != nullptr) {
 		if (currentShader->LocPosition != -1) {
@@ -379,10 +381,11 @@ void GL_SetShader(GLShader* shader) {
 			shader->LocPaletteIndexTable, MAX_FRAMEBUFFER_HEIGHT, GL_PaletteIndexLines);
 	}
 
-	if (GL_ActiveTexture != GL_TEXTURE0) {
-		glActiveTexture(GL_ActiveTexture = GL_TEXTURE0);
-	}
+	int textureUnit = shader->GetTextureUnit(shader->LocTexture);
+	GL_SetTextureUnit(textureUnit);
 	glUniform1i(shader->LocTexture, 0);
+
+	return shader;
 }
 GLShader* GL_GetUserShader() {
 	return (GLShader*)Graphics::CurrentShader;
@@ -413,14 +416,11 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
 #ifdef GL_HAVE_YUV
 		if (textureData && textureData->YUV) {
-			GL_SetShader(GLRenderer::ShaderYUV->Textured);
+			GLShader* shader = GL_SetShader(GLRenderer::ShaderYUV->Textured);
 
-			GL_SetActiveTexture(
-				0, GLRenderer::CurrentShader->LocTexture, textureData->TextureID);
-			GL_SetActiveTexture(
-				1, GLRenderer::CurrentShader->LocTextureU, textureData->TextureU);
-			GL_SetActiveTexture(
-				2, GLRenderer::CurrentShader->LocTextureV, textureData->TextureV);
+			shader->SetUniformTexture(shader->LocTexture, textureData->TextureID);
+			shader->SetUniformTexture(shader->LocTextureU, textureData->TextureU);
+			shader->SetUniformTexture(shader->LocTextureV, textureData->TextureV);
 		}
 		else
 #endif
@@ -2074,7 +2074,16 @@ void GLRenderer::SetUserShader(Shader* shaderPtr) {
 }
 void GLRenderer::BindTexture(Texture* texture, int textureUnit, int uniform) {
 	GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
-	GL_SetActiveTexture(textureUnit, uniform, textureData->TextureID);
+	int textureID = textureData->TextureID;
+
+	GL_SetTextureUnit(textureUnit);
+	glUniform1i(uniform, textureUnit);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+}
+void GLRenderer::BindTexture(int textureID, int textureUnit, int uniform) {
+	GL_SetTextureUnit(textureUnit);
+	glUniform1i(uniform, textureUnit);
+	glBindTexture(GL_TEXTURE_2D, textureID);
 }
 
 // Filter-related functions

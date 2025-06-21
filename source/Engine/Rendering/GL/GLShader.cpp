@@ -113,17 +113,19 @@ bool GLShader::IsValid() {
 void GLShader::Compile() {
 	ProgramID = glCreateProgram();
 
-	if (!AttachAndLink()) {
-		std::string error = CheckProgramError(ProgramID);
-
+	try {
+		AttachAndLink();
+	} catch (const std::runtime_error& error) {
 		glDeleteProgram(ProgramID);
 		ProgramID = 0;
 
-		throw std::runtime_error("Unable to link shader program!\n" + error);
+		throw;
 	}
 }
 
-GLShader::GLShader() {}
+GLShader::GLShader() {
+	InitTextureUniforms();
+}
 GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
 	TextStream* streamVS = TextStream::New(vertexShaderSource);
 	try {
@@ -142,6 +144,8 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 		throw;
 	}
 	streamFS->Close();
+
+	InitTextureUniforms();
 
 	try {
 		Compile();
@@ -165,6 +169,8 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 		throw;
 	}
 
+	InitTextureUniforms();
+
 	try {
 		Compile();
 	} catch (const std::runtime_error& error) {
@@ -172,7 +178,7 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 		throw;
 	}
 }
-bool GLShader::AttachAndLink() {
+void GLShader::AttachAndLink() {
 	glAttachShader(ProgramID, VertexProgramID);
 	glAttachShader(ProgramID, FragmentProgramID);
 
@@ -186,43 +192,44 @@ bool GLShader::AttachAndLink() {
 	GLint isLinked = GL_FALSE;
 	glGetProgramiv(ProgramID, GL_LINK_STATUS, (int*)&isLinked);
 	if (isLinked != GL_TRUE) {
-		return false;
+		std::string error = CheckProgramError(ProgramID);
+
+		throw std::runtime_error("Unable to link shader program!\n" + error);
 	}
 
-	LocProjectionMatrix = GetUniformLocation("u_projectionMatrix");
-	LocViewMatrix = GetUniformLocation("u_viewMatrix");
-	LocModelMatrix = GetUniformLocation("u_modelMatrix");
+	LocProjectionMatrix = AddBuiltinUniform("u_projectionMatrix");
+	LocViewMatrix = AddBuiltinUniform("u_viewMatrix");
+	LocModelMatrix = AddBuiltinUniform("u_modelMatrix");
 
 	LocPosition = GetAttribLocation("i_position");
 	LocTexCoord = GetAttribLocation("i_uv");
 	LocVaryingColor = GetAttribLocation("i_color");
 
-	LocColor = GetUniformLocation("u_color");
-	LocDiffuseColor = GetUniformLocation("u_diffuseColor");
-	LocSpecularColor = GetUniformLocation("u_specularColor");
-	LocAmbientColor = GetUniformLocation("u_ambientColor");
-	LocTexture = GetUniformLocation("u_texture");
-	LocTextureSize = GetUniformLocation("u_textureSize");
-	LocSpriteFrameCoords = GetUniformLocation("u_spriteFrameCoords");
-	LocSpriteFrameSize = GetUniformLocation("u_spriteFrameSize");
+	LocColor = AddBuiltinUniform("u_color");
+	LocDiffuseColor = AddBuiltinUniform("u_diffuseColor");
+	LocSpecularColor = AddBuiltinUniform("u_specularColor");
+	LocAmbientColor = AddBuiltinUniform("u_ambientColor");
+	LocTexture = AddBuiltinUniform(UNIFORM_TEXTURE);
+	LocTextureSize = AddBuiltinUniform("u_textureSize");
+	LocSpriteFrameCoords = AddBuiltinUniform("u_spriteFrameCoords");
+	LocSpriteFrameSize = AddBuiltinUniform("u_spriteFrameSize");
 #ifdef GL_HAVE_YUV
-	LocTextureU = GetUniformLocation("u_textureU");
-	LocTextureV = GetUniformLocation("u_textureV");
+	LocTextureU = AddBuiltinUniform(UNIFORM_TEXTUREU);
+	LocTextureV = AddBuiltinUniform(UNIFORM_TEXTUREV);
 #endif
-	LocPaletteTexture = GetUniformLocation("u_paletteTexture");
-	LocPaletteLine = GetUniformLocation("u_paletteLine");
-	LocPaletteIndexTable = GetUniformLocation("u_paletteIndexTable");
+	LocPaletteTexture = AddBuiltinUniform(UNIFORM_PALETTETEXTURE);
+	LocPaletteLine = AddBuiltinUniform("u_paletteLine");
+	LocPaletteIndexTable = AddBuiltinUniform("u_paletteIndexTable");
 
-	LocFogColor = GetUniformLocation("u_fogColor");
-	LocFogLinearStart = GetUniformLocation("u_fogLinearStart");
-	LocFogLinearEnd = GetUniformLocation("u_fogLinearEnd");
-	LocFogDensity = GetUniformLocation("u_fogDensity");
-	LocFogTable = GetUniformLocation("u_fogTable");
+	LocFogColor = AddBuiltinUniform("u_fogColor");
+	LocFogLinearStart = AddBuiltinUniform("u_fogLinearStart");
+	LocFogLinearEnd = AddBuiltinUniform("u_fogLinearEnd");
+	LocFogDensity = AddBuiltinUniform("u_fogDensity");
+	LocFogTable = AddBuiltinUniform("u_fogTable");
 
-	CachedBlendColors[0] = CachedBlendColors[1] = CachedBlendColors[2] = CachedBlendColors[3] =
-		0.0;
+	InitTextureUnitMap();
 
-	return true;
+	memset(CachedBlendColors, 0, sizeof(CachedBlendColors));
 }
 
 std::string GLShader::CheckShaderError(GLuint shader) {
@@ -286,31 +293,30 @@ void GLShader::Validate() {
 }
 
 bool GLShader::HasUniform(const char* name) {
-	GLint location = GetUniformLocation(name);
-	return location != -1;
+	return GetUniformLocation(name) != -1;
 }
 void GLShader::SetUniform(const char* name, size_t count, int* values) {
 	if (name == nullptr || name[0] == '\0') {
 		throw std::runtime_error("Invalid uniform name!");
 	}
 
-	GLint location = GetUniformLocation(name);
-	if (location == -1) {
+	int uniform = GetUniformLocation(name);
+	if (uniform == -1) {
 		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
 	}
 
 	switch (count) {
 	case 1:
-		glUniform1i(location, values[0]);
+		glUniform1i(uniform, values[0]);
 		break;
 	case 2:
-		glUniform2i(location, values[0], values[1]);
+		glUniform2i(uniform, values[0], values[1]);
 		break;
 	case 3:
-		glUniform3i(location, values[0], values[1], values[2]);
+		glUniform3i(uniform, values[0], values[1], values[2]);
 		break;
 	case 4:
-		glUniform4i(location, values[0], values[1], values[2], values[3]);
+		glUniform4i(uniform, values[0], values[1], values[2], values[3]);
 		break;
 	}
 }
@@ -319,23 +325,23 @@ void GLShader::SetUniform(const char* name, size_t count, float* values) {
 		throw std::runtime_error("Invalid uniform name!");
 	}
 
-	GLint location = GetUniformLocation(name);
-	if (location == -1) {
+	int uniform = GetUniformLocation(name);
+	if (uniform == -1) {
 		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
 	}
 
 	switch (count) {
 	case 1:
-		glUniform1f(location, values[0]);
+		glUniform1f(uniform, values[0]);
 		break;
 	case 2:
-		glUniform2f(location, values[0], values[1]);
+		glUniform2f(uniform, values[0], values[1]);
 		break;
 	case 3:
-		glUniform3f(location, values[0], values[1], values[2]);
+		glUniform3f(uniform, values[0], values[1], values[2]);
 		break;
 	case 4:
-		glUniform4f(location, values[0], values[1], values[2], values[3]);
+		glUniform4f(uniform, values[0], values[1], values[2], values[3]);
 		break;
 	}
 }
@@ -344,23 +350,23 @@ void GLShader::SetUniformArray(const char* name, size_t count, int* values, size
 		throw std::runtime_error("Invalid uniform name!");
 	}
 
-	GLint location = GetUniformLocation(name);
-	if (location == -1) {
+	int uniform = GetUniformLocation(name);
+	if (uniform == -1) {
 		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
 	}
 
 	switch (count) {
 	case 1:
-		glUniform1iv(location, numValues, values);
+		glUniform1iv(uniform, numValues, values);
 		break;
 	case 2:
-		glUniform2iv(location, numValues, values);
+		glUniform2iv(uniform, numValues, values);
 		break;
 	case 3:
-		glUniform3iv(location, numValues, values);
+		glUniform3iv(uniform, numValues, values);
 		break;
 	case 4:
-		glUniform4iv(location, numValues, values);
+		glUniform4iv(uniform, numValues, values);
 		break;
 	}
 }
@@ -369,33 +375,33 @@ void GLShader::SetUniformArray(const char* name, size_t count, float* values, si
 		throw std::runtime_error("Invalid uniform name!");
 	}
 
-	GLint location = GetUniformLocation(name);
-	if (location == -1) {
+	int uniform = GetUniformLocation(name);
+	if (uniform == -1) {
 		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
 	}
 
 	switch (count) {
 	case 1:
-		glUniform1fv(location, numValues, values);
+		glUniform1fv(uniform, numValues, values);
 		break;
 	case 2:
-		glUniform2fv(location, numValues, values);
+		glUniform2fv(uniform, numValues, values);
 		break;
 	case 3:
-		glUniform3fv(location, numValues, values);
+		glUniform3fv(uniform, numValues, values);
 		break;
 	case 4:
-		glUniform4fv(location, numValues, values);
+		glUniform4fv(uniform, numValues, values);
 		break;
 	}
 }
-void GLShader::SetUniformTexture(const char* name, Texture* texture, int textureUnit) {
+void GLShader::SetUniformTexture(const char* name, Texture* texture) {
 	if (name == nullptr || name[0] == '\0') {
 		throw std::runtime_error("Invalid uniform name!");
 	}
 
-	GLint location = GetUniformLocation(name);
-	if (location == -1) {
+	int uniform = GetUniformLocation(name);
+	if (uniform == -1) {
 		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
 	}
 
@@ -403,10 +409,27 @@ void GLShader::SetUniformTexture(const char* name, Texture* texture, int texture
 		throw std::runtime_error("Invalid texture!");
 	}
 
-	GLRenderer::BindTexture(texture, textureUnit, (int)location);
+	int textureUnit = GetTextureUnit(uniform);
+	if (textureUnit == -1) {
+		throw std::runtime_error("No texture unit for uniform \"" + std::string(name) + "\"!");
+	}
+
+	GLRenderer::BindTexture(texture, textureUnit, uniform);
+}
+void GLShader::SetUniformTexture(int uniform, int textureID) {
+	if (uniform == -1) {
+		throw std::runtime_error("Invalid uniform!");
+	}
+
+	int textureUnit = GetTextureUnit(uniform);
+	if (textureUnit == -1) {
+		throw std::runtime_error("No texture unit for this uniform!");
+	}
+
+	GLRenderer::BindTexture(textureID, textureUnit, uniform);
 }
 
-GLint GLShader::GetAttribLocation(std::string identifier) {
+int GLShader::GetAttribLocation(std::string identifier) {
 	GLVariableMap::iterator it = AttribMap.find(identifier);
 	if (it != AttribMap.end()) {
 		return it->second;
@@ -419,9 +442,9 @@ GLint GLShader::GetAttribLocation(std::string identifier) {
 
 	AttribMap[identifier] = (int)value;
 
-	return value;
+	return (int)value;
 }
-GLint GLShader::GetUniformLocation(std::string identifier) {
+int GLShader::GetUniformLocation(std::string identifier) {
 	GLVariableMap::iterator it = UniformMap.find(identifier);
 	if (it != UniformMap.end()) {
 		return it->second;
@@ -434,7 +457,7 @@ GLint GLShader::GetUniformLocation(std::string identifier) {
 
 	UniformMap[identifier] = (int)value;
 
-	return value;
+	return (int)value;
 }
 
 void GLShader::Delete() {
@@ -452,6 +475,15 @@ void GLShader::Delete() {
 	}
 
 	Shader::Delete();
+}
+
+void GLShader::InitTextureUniforms() {
+	TextureUniformMap[UNIFORM_TEXTURE] = 0;
+	TextureUniformMap[UNIFORM_PALETTETEXTURE] = 1;
+#ifdef GL_HAVE_YUV
+	TextureUniformMap[UNIFORM_TEXTUREU] = 1;
+	TextureUniformMap[UNIFORM_TEXTUREV] = 2;
+#endif
 }
 
 GLShader::~GLShader() {

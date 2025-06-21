@@ -23,13 +23,27 @@ public:
 	virtual void SetUniform(const char* name, size_t count, float* values);
 	virtual void SetUniformArray(const char* name, size_t count, int* values, size_t numValues);
 	virtual void SetUniformArray(const char* name, size_t count, float* values, size_t numValues);
-	virtual void SetUniformTexture(const char* name, Texture* texture, int slot);
+	virtual void SetUniformTexture(const char* name, Texture* texture);
 
 	virtual void Use();
 	virtual void Validate();
-	virtual void Delete();
 
+	virtual int GetAttribLocation(std::string identifier);
+	virtual int GetUniformLocation(std::string identifier);
+
+	int AddBuiltinUniform(std::string identifier);
+	bool IsBuiltinUniform(std::string identifier);
+
+	virtual void InitTextureUniforms();
+	void InitTextureUnitMap();
+	int GetTextureUnit(int uniform);
+
+	virtual void Delete();
 	virtual ~Shader();
+
+	std::unordered_map<std::string, int> TextureUniformMap;
+	std::unordered_map<int, int> TextureUnitMap;
+	std::vector<std::string> BuiltinUniforms;
 
 	// Cache stuff
 	float CachedBlendColors[4];

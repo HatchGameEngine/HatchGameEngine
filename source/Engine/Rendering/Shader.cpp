@@ -31,7 +31,7 @@ void Shader::SetUniformArray(const char* name, size_t count, int* values, size_t
 void Shader::SetUniformArray(const char* name, size_t count, float* values, size_t numValues) {
 	throw std::runtime_error("Shader::SetUniformArray() called without an implementation");
 }
-void Shader::SetUniformTexture(const char* name, Texture* texture, int slot) {
+void Shader::SetUniformTexture(const char* name, Texture* texture) {
 	throw std::runtime_error("Shader::SetUniformTexture() called without an implementation");
 }
 
@@ -41,6 +41,62 @@ void Shader::Use() {
 void Shader::Validate() {
 	throw std::runtime_error("Shader::Validate() called without an implementation");
 }
+
+int Shader::GetAttribLocation(std::string identifier) {
+	return -1;
+}
+int Shader::GetUniformLocation(std::string identifier) {
+	return -1;
+}
+
+int Shader::AddBuiltinUniform(std::string identifier) {
+	int uniform = GetUniformLocation(identifier);
+
+	if (!IsBuiltinUniform(identifier)) {
+		BuiltinUniforms.push_back(identifier);
+	}
+
+	return uniform;
+}
+bool Shader::IsBuiltinUniform(std::string identifier) {
+	auto it = std::find(BuiltinUniforms.begin(), BuiltinUniforms.end(), identifier);
+	return it != BuiltinUniforms.end();
+}
+
+void Shader::InitTextureUniforms() {
+	throw std::runtime_error("Shader::InitTextureUniforms() called without an implementation");
+}
+void Shader::InitTextureUnitMap() {
+	for (auto it = TextureUniformMap.begin(); it != TextureUniformMap.end(); it++) {
+		std::string uniformName = it->first;
+
+		int uniform = GetUniformLocation(uniformName);
+		if (uniform != -1) {
+			int unit = it->second;
+
+			TextureUnitMap[uniform] = unit;
+		}
+		else if (!IsBuiltinUniform(uniformName)) {
+			throw std::runtime_error("No uniform named \"" + uniformName + "\"!");
+		}
+	}
+
+	TextureUniformMap.clear();
+}
+
+int Shader::GetTextureUnit(int uniform) {
+	if (uniform == -1) {
+		return -1;
+	}
+
+	std::unordered_map<int, int>::iterator it = TextureUnitMap.find(uniform);
+	if (it != TextureUnitMap.end()) {
+		return it->second;
+	}
+
+	return -1;
+}
+
 void Shader::Delete() {
 	if (CachedProjectionMatrix) {
 		delete CachedProjectionMatrix;

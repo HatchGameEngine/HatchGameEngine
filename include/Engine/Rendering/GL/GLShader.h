@@ -6,11 +6,18 @@
 
 typedef std::unordered_map<std::string, GLint> GLVariableMap;
 
+#define UNIFORM_TEXTURE "u_texture"
+#define UNIFORM_PALETTETEXTURE "u_paletteTexture"
+#ifdef GL_HAVE_YUV
+#define UNIFORM_TEXTUREU "u_textureU"
+#define UNIFORM_TEXTUREV "u_textureV"
+#endif
+
 class GLShader : public Shader {
 private:
 	void AddVertexProgram(Stream* stream);
 	void AddFragmentProgram(Stream* stream);
-	bool AttachAndLink();
+	void AttachAndLink();
 	std::string CheckShaderError(GLuint shader);
 	std::string CheckProgramError(GLuint prog);
 
@@ -52,9 +59,6 @@ public:
 	GLShader(std::string vertexShaderSource, std::string fragmentShaderSource);
 	GLShader(Stream* streamVS, Stream* streamFS);
 
-	GLint GetAttribLocation(std::string identifier);
-	GLint GetUniformLocation(std::string identifier);
-
 	void Compile();
 	void AddProgram(int program, Stream* stream);
 	bool HasProgram(int program);
@@ -65,12 +69,19 @@ public:
 	void SetUniform(const char* name, size_t count, float* values);
 	void SetUniformArray(const char* name, size_t count, int* values, size_t numValues);
 	void SetUniformArray(const char* name, size_t count, float* values, size_t numValues);
-	void SetUniformTexture(const char* name, Texture* texture, int slot);
+	void SetUniformTexture(const char* name, Texture* texture);
+	void SetUniformTexture(int uniform, Texture* texture);
+	void SetUniformTexture(int uniform, int textureID);
 
 	void Use();
 	void Validate();
-	void Delete();
 
+	int GetAttribLocation(std::string identifier);
+	int GetUniformLocation(std::string identifier);
+
+	void InitTextureUniforms();
+
+	void Delete();
 	virtual ~GLShader();
 };
 

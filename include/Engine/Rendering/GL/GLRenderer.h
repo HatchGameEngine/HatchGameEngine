@@ -70,6 +70,7 @@ public:
 	static Shader* CreateShader();
 	static void SetUserShader(Shader* shader);
 	static void BindTexture(Texture* texture, int textureUnit, int uniform);
+	static void BindTexture(int textureID, int textureUnit, int uniform);
 	static void SetFilter(int filter);
 	static void UpdateGlobalPalette();
 	static void Clear();
