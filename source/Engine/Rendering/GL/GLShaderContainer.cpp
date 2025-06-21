@@ -130,9 +130,9 @@ GLShaderContainer* GLShaderContainer::MakeYUV() {
 		"    vec3 yuv, rgb;\n"
 		"    vec2 uv = o_uv;\n"
 
-		"    yuv.x = texture2D(u_texture,  uv).r;\n"
-		"    yuv.y = texture2D(u_textureU, uv).r;\n"
-		"    yuv.z = texture2D(u_textureV, uv).r;\n"
+		"    yuv.x = texture2D(" UNIFORM_TEXTURE ",  uv).r;\n"
+		"    yuv.y = texture2D(" UNIFORM_TEXTUREU ", uv).r;\n"
+		"    yuv.z = texture2D(" UNIFORM_TEXTUREV ", uv).r;\n"
 		"    yuv += offset;\n"
 
 		"    rgb.r = dot(yuv, Rcoeff);\n"

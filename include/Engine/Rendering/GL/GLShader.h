@@ -6,6 +6,10 @@
 
 typedef std::unordered_map<std::string, GLint> GLVariableMap;
 
+#define ATTRIB_POSITION "i_position"
+#define ATTRIB_UV "i_uv"
+#define ATTRIB_COLOR "i_color"
+
 #define UNIFORM_TEXTURE "u_texture"
 #define UNIFORM_PALETTETEXTURE "u_paletteTexture"
 #ifdef GL_HAVE_YUV
@@ -25,6 +29,41 @@ private:
 	GLVariableMap UniformMap;
 
 public:
+	GLShader();
+	GLShader(std::string vertexShaderSource, std::string fragmentShaderSource);
+	GLShader(Stream* streamVS, Stream* streamFS);
+
+	void Compile();
+	void AddProgram(int program, Stream* stream);
+	bool HasProgram(int program);
+	bool IsValid();
+
+	bool HasUniform(const char* name);
+	void SetUniform(const char* name, size_t count, int* values);
+	void SetUniform(const char* name, size_t count, float* values);
+	void SetUniformArray(const char* name, size_t count, int* values, size_t numValues);
+	void SetUniformArray(const char* name, size_t count, float* values, size_t numValues);
+	void SetUniformTexture(const char* name, Texture* texture);
+	void SetUniformTexture(int uniform, Texture* texture);
+	void SetUniformTexture(int uniform, int textureID);
+
+	void Use();
+	void Validate();
+
+	int GetAttribLocation(std::string identifier);
+	int GetRequiredAttrib(std::string identifier);
+	int GetUniformLocation(std::string identifier);
+
+	void InitTextureUniforms();
+
+#if GL_USING_ATTRIB_LOCATIONS
+	void InitAttributes();
+	void BindAttribLocations();
+#endif
+
+	void Delete();
+	virtual ~GLShader();
+
 	GLuint ProgramID = 0;
 	GLuint VertexProgramID = 0;
 	GLuint FragmentProgramID = 0;
@@ -55,34 +94,9 @@ public:
 	GLint LocFogDensity;
 	GLint LocFogTable;
 
-	GLShader();
-	GLShader(std::string vertexShaderSource, std::string fragmentShaderSource);
-	GLShader(Stream* streamVS, Stream* streamFS);
-
-	void Compile();
-	void AddProgram(int program, Stream* stream);
-	bool HasProgram(int program);
-	bool IsValid();
-
-	bool HasUniform(const char* name);
-	void SetUniform(const char* name, size_t count, int* values);
-	void SetUniform(const char* name, size_t count, float* values);
-	void SetUniformArray(const char* name, size_t count, int* values, size_t numValues);
-	void SetUniformArray(const char* name, size_t count, float* values, size_t numValues);
-	void SetUniformTexture(const char* name, Texture* texture);
-	void SetUniformTexture(int uniform, Texture* texture);
-	void SetUniformTexture(int uniform, int textureID);
-
-	void Use();
-	void Validate();
-
-	int GetAttribLocation(std::string identifier);
-	int GetUniformLocation(std::string identifier);
-
-	void InitTextureUniforms();
-
-	void Delete();
-	virtual ~GLShader();
+#if GL_USING_ATTRIB_LOCATIONS
+	std::unordered_map<std::string, int> AttribLocationMap;
+#endif
 };
 
 #endif /* ENGINE_RENDERING_GL_GLSHADER_H */

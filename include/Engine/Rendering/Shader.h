@@ -41,9 +41,10 @@ public:
 	virtual void Delete();
 	virtual ~Shader();
 
+	std::vector<std::string> BuiltinUniforms;
+
 	std::unordered_map<std::string, int> TextureUniformMap;
 	std::unordered_map<int, int> TextureUnitMap;
-	std::vector<std::string> BuiltinUniforms;
 
 	// Cache stuff
 	float CachedBlendColors[4];

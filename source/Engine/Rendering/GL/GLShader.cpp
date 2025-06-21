@@ -124,6 +124,9 @@ void GLShader::Compile() {
 }
 
 GLShader::GLShader() {
+#if GL_USING_ATTRIB_LOCATIONS
+	InitAttributes();
+#endif
 	InitTextureUniforms();
 }
 GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
@@ -145,6 +148,9 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 	}
 	streamFS->Close();
 
+#if GL_USING_ATTRIB_LOCATIONS
+	InitAttributes();
+#endif
 	InitTextureUniforms();
 
 	try {
@@ -169,6 +175,9 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 		throw;
 	}
 
+#if GL_USING_ATTRIB_LOCATIONS
+	InitAttributes();
+#endif
 	InitTextureUniforms();
 
 	try {
@@ -182,9 +191,9 @@ void GLShader::AttachAndLink() {
 	glAttachShader(ProgramID, VertexProgramID);
 	glAttachShader(ProgramID, FragmentProgramID);
 
-	glBindAttribLocation(ProgramID, 0, "i_position");
-	glBindAttribLocation(ProgramID, 1, "i_uv");
-	glBindAttribLocation(ProgramID, 2, "i_color");
+#if GL_USING_ATTRIB_LOCATIONS
+	BindAttribLocations();
+#endif
 
 	glLinkProgram(ProgramID);
 	CHECK_GL();
@@ -197,13 +206,13 @@ void GLShader::AttachAndLink() {
 		throw std::runtime_error("Unable to link shader program!\n" + error);
 	}
 
+	LocPosition = GetRequiredAttrib(ATTRIB_POSITION);
+	LocTexCoord = GetAttribLocation(ATTRIB_UV);
+	LocVaryingColor = GetAttribLocation(ATTRIB_COLOR);
+
 	LocProjectionMatrix = AddBuiltinUniform("u_projectionMatrix");
 	LocViewMatrix = AddBuiltinUniform("u_viewMatrix");
 	LocModelMatrix = AddBuiltinUniform("u_modelMatrix");
-
-	LocPosition = GetAttribLocation("i_position");
-	LocTexCoord = GetAttribLocation("i_uv");
-	LocVaryingColor = GetAttribLocation("i_color");
 
 	LocColor = AddBuiltinUniform("u_color");
 	LocDiffuseColor = AddBuiltinUniform("u_diffuseColor");
@@ -430,6 +439,14 @@ void GLShader::SetUniformTexture(int uniform, int textureID) {
 }
 
 int GLShader::GetAttribLocation(std::string identifier) {
+#if GL_USING_ATTRIB_LOCATIONS
+	std::unordered_map<std::string, int>::iterator it = AttribLocationMap.find(identifier);
+	if (it != AttribLocationMap.end()) {
+		return it->second;
+	}
+
+	return -1;
+#else
 	GLVariableMap::iterator it = AttribMap.find(identifier);
 	if (it != AttribMap.end()) {
 		return it->second;
@@ -443,6 +460,14 @@ int GLShader::GetAttribLocation(std::string identifier) {
 	AttribMap[identifier] = (int)value;
 
 	return (int)value;
+#endif
+}
+int GLShader::GetRequiredAttrib(std::string identifier) {
+	int location = GetAttribLocation(identifier);
+	if (location == -1) {
+		throw std::runtime_error("Unable to find attribute \"" + identifier + "\"!");
+	}
+	return location;
 }
 int GLShader::GetUniformLocation(std::string identifier) {
 	GLVariableMap::iterator it = UniformMap.find(identifier);
@@ -477,6 +502,14 @@ void GLShader::Delete() {
 	Shader::Delete();
 }
 
+#if GL_USING_ATTRIB_LOCATIONS
+void GLShader::InitAttributes() {
+	AttribLocationMap[ATTRIB_POSITION] = 0;
+	AttribLocationMap[ATTRIB_UV] = 1;
+	AttribLocationMap[ATTRIB_COLOR] = 2;
+}
+#endif
+
 void GLShader::InitTextureUniforms() {
 	TextureUniformMap[UNIFORM_TEXTURE] = 0;
 	TextureUniformMap[UNIFORM_PALETTETEXTURE] = 1;
@@ -485,6 +518,19 @@ void GLShader::InitTextureUniforms() {
 	TextureUniformMap[UNIFORM_TEXTUREV] = 2;
 #endif
 }
+
+#if GL_USING_ATTRIB_LOCATIONS
+void GLShader::BindAttribLocations() {
+	for (auto it = AttribLocationMap.begin(); it != AttribLocationMap.end(); it++) {
+		std::string attribName = it->first;
+		int location = it->second;
+
+		glBindAttribLocation(ProgramID, location, attribName.c_str());
+	}
+
+	AttribLocationMap.clear();
+}
+#endif
 
 GLShader::~GLShader() {
 	Delete();
