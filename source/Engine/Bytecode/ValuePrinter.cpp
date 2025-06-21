@@ -72,10 +72,10 @@ void ValuePrinter::PrintObject(VMValue value, int indent) {
 	case OBJ_STREAM:
 	case OBJ_UPVALUE:
 		if (IsJSON) {
-			buffer_printf(Buffer, "<%s>", Value::GetObjectTypeName(value));
+			buffer_printf(Buffer, "\"%s\"", Value::GetObjectTypeName(value));
 		}
 		else {
-			buffer_printf(Buffer, "\"%s\"", Value::GetObjectTypeName(value));
+			buffer_printf(Buffer, "<%s>", Value::GetObjectTypeName(value));
 		}
 		break;
 	case OBJ_INSTANCE:
