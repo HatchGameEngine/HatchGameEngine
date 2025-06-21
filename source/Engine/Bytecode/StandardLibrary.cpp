@@ -4441,7 +4441,7 @@ VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	Shader* shader = (Shader*)objShader->ShaderPtr;
 	if (shader == nullptr) {
-		THROW_ERROR("Shader is no longer valid!");
+		THROW_ERROR("Shader has been deleted!");
 		return NULL_VAL;
 	}
 

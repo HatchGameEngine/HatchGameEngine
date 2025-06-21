@@ -105,12 +105,24 @@ bool GLShader::HasProgram(int program) {
 		return false;
 	}
 }
+bool GLShader::CanCompile() {
+	if (WasCompiled()) {
+		return false;
+	}
 
+	return HasProgram(PROGRAM_VERTEX) && HasProgram(PROGRAM_FRAGMENT);
+}
 bool GLShader::IsValid() {
 	return HasProgram(PROGRAM_VERTEX) && HasProgram(PROGRAM_FRAGMENT) && ProgramID != 0;
 }
 
 void GLShader::Compile() {
+	if (WasCompiled()) {
+		throw std::runtime_error("Shader has already been compiled!");
+	}
+
+	ValidatePrograms();
+
 	ProgramID = glCreateProgram();
 
 	try {
@@ -121,15 +133,21 @@ void GLShader::Compile() {
 
 		throw;
 	}
+
+	Compiled = true;
 }
 
 GLShader::GLShader() {
+	Compiled = false;
+
 #if GL_USING_ATTRIB_LOCATIONS
 	InitAttributes();
 #endif
 	InitTextureUniformUnits();
 }
 GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
+	Compiled = false;
+
 	TextStream* streamVS = TextStream::New(vertexShaderSource);
 	try {
 		AddVertexProgram(streamVS);
@@ -161,6 +179,8 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 	}
 }
 GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
+	Compiled = false;
+
 	try {
 		AddVertexProgram(streamVS);
 	} catch (const std::runtime_error& error) {
@@ -290,18 +310,27 @@ void GLShader::Use() {
 }
 
 void GLShader::Validate() {
+	ValidatePrograms();
+
+	if (ProgramID == 0) {
+		throw std::runtime_error("Shader has not been compiled!");
+	}
+}
+
+void GLShader::ValidatePrograms() {
 	if (!HasProgram(PROGRAM_VERTEX)) {
 		throw std::runtime_error("Shader has no vertex program!");
 	}
 	else if (!HasProgram(PROGRAM_FRAGMENT)) {
 		throw std::runtime_error("Shader has no fragment program!");
 	}
-	else if (ProgramID == 0) {
-		throw std::runtime_error("Shader has not been compiled!");
-	}
 }
 
 bool GLShader::HasUniform(const char* name) {
+	if (!WasCompiled()) {
+		return false;
+	}
+
 	return GetUniformLocation(name) != -1;
 }
 void GLShader::SetUniform(const char* name, size_t count, int* values) {

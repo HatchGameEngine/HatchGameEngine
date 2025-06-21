@@ -11,9 +11,14 @@ void Shader::AddProgram(int program, Stream* stream) {
 bool Shader::HasProgram(int program) {
 	return false;
 }
-
+bool Shader::CanCompile() {
+	return false;
+}
 bool Shader::IsValid() {
 	return false;
+}
+bool Shader::WasCompiled() {
+	return Compiled;
 }
 
 bool Shader::HasUniform(const char* name) {

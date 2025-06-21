@@ -36,6 +36,7 @@ public:
 	void Compile();
 	void AddProgram(int program, Stream* stream);
 	bool HasProgram(int program);
+	bool CanCompile();
 	bool IsValid();
 
 	bool HasUniform(const char* name);
@@ -49,6 +50,7 @@ public:
 
 	void Use();
 	void Validate();
+	void ValidatePrograms();
 
 	int GetAttribLocation(std::string identifier);
 	int GetRequiredAttrib(std::string identifier);

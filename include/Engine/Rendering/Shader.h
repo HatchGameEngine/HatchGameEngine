@@ -7,6 +7,9 @@
 #include <Engine/Rendering/Texture.h>
 
 class Shader {
+protected:
+	bool Compiled = false;
+
 public:
 	enum {
 		PROGRAM_VERTEX,
@@ -16,7 +19,9 @@ public:
 	virtual void Compile();
 	virtual void AddProgram(int program, Stream* stream);
 	virtual bool HasProgram(int program);
+	virtual bool CanCompile();
 	virtual bool IsValid();
+	bool WasCompiled();
 
 	virtual bool HasUniform(const char* name);
 	virtual void SetUniform(const char* name, size_t count, int* values);
