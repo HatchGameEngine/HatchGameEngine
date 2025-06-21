@@ -4510,9 +4510,9 @@ VMValue Draw_SetShaderTexture(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (!IS_NULL(args[1])) {
-		GameTexture* gameTexture = GET_ARG(1, GetTexture);
-		if (gameTexture != nullptr) {
-			texture = gameTexture->GetTexture();
+		Image* image = GET_ARG(1, GetImage);
+		if (image != nullptr) {
+			texture = image->TexturePtr;
 		}
 	}
 
