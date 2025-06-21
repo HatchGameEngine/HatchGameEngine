@@ -34,7 +34,8 @@ public:
 	int AddBuiltinUniform(std::string identifier);
 	bool IsBuiltinUniform(std::string identifier);
 
-	virtual void InitTextureUniforms();
+	virtual void InitTextureUniformUnits();
+	virtual void SetTextureUniformUnit(std::string identifier, int unit);
 	void InitTextureUnitMap();
 	int GetTextureUnit(int uniform);
 

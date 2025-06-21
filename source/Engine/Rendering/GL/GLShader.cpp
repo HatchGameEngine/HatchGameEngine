@@ -127,7 +127,7 @@ GLShader::GLShader() {
 #if GL_USING_ATTRIB_LOCATIONS
 	InitAttributes();
 #endif
-	InitTextureUniforms();
+	InitTextureUniformUnits();
 }
 GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
 	TextStream* streamVS = TextStream::New(vertexShaderSource);
@@ -151,7 +151,7 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 #if GL_USING_ATTRIB_LOCATIONS
 	InitAttributes();
 #endif
-	InitTextureUniforms();
+	InitTextureUniformUnits();
 
 	try {
 		Compile();
@@ -178,7 +178,7 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 #if GL_USING_ATTRIB_LOCATIONS
 	InitAttributes();
 #endif
-	InitTextureUniforms();
+	InitTextureUniformUnits();
 
 	try {
 		Compile();
@@ -414,7 +414,7 @@ void GLShader::SetUniformTexture(const char* name, Texture* texture) {
 		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
 	}
 
-	if (texture == nullptr || texture->DriverData == nullptr) {
+	if (texture != nullptr && texture->DriverData == nullptr) {
 		throw std::runtime_error("Invalid texture!");
 	}
 
@@ -510,13 +510,24 @@ void GLShader::InitAttributes() {
 }
 #endif
 
-void GLShader::InitTextureUniforms() {
-	TextureUniformMap[UNIFORM_TEXTURE] = 0;
-	TextureUniformMap[UNIFORM_PALETTETEXTURE] = 1;
+void GLShader::InitTextureUniformUnits() {
+	SetTextureUniformUnit(UNIFORM_TEXTURE, 0);
+	SetTextureUniformUnit(UNIFORM_PALETTETEXTURE, 1);
+
 #ifdef GL_HAVE_YUV
-	TextureUniformMap[UNIFORM_TEXTUREU] = 1;
-	TextureUniformMap[UNIFORM_TEXTUREV] = 2;
+	SetTextureUniformUnit(UNIFORM_TEXTUREU, 1);
+	SetTextureUniformUnit(UNIFORM_TEXTUREV, 2);
 #endif
+}
+void GLShader::SetTextureUniformUnit(std::string identifier, int unit) {
+	int maxTextureUnit = GLRenderer::GetMaxTextureImageUnits();
+	if (unit < 0 || unit >= maxTextureUnit) {
+		char buffer[64];
+		snprintf(buffer, sizeof buffer, "Invalid texture unit %d! (0 - %d)", unit, maxTextureUnit - 1);
+		throw std::runtime_error(std::string(buffer));
+	}
+
+	TextureUniformMap[identifier] = unit;
 }
 
 #if GL_USING_ATTRIB_LOCATIONS

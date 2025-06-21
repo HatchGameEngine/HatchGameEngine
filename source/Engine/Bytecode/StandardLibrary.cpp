@@ -4491,6 +4491,40 @@ VMValue Draw_SetShaderUniform(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Draw.SetShaderTexture
+ * \desc Binds a texture to the current shader.
+ * \param uniform (String): The name of the uniform.
+ * \param texture (Texture): The texture to bind to the uniform.
+ * \ns Draw
+ */
+VMValue Draw_SetShaderTexture(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+
+	char* uniform = GET_ARG(0, GetString);
+	Texture* texture = nullptr;
+
+	Shader* shader = Graphics::CurrentShader;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader is not set!");
+		return NULL_VAL;
+	}
+
+	if (!IS_NULL(args[1])) {
+		GameTexture* gameTexture = GET_ARG(1, GetTexture);
+		if (gameTexture != nullptr) {
+			texture = gameTexture->GetTexture();
+		}
+	}
+
+	try {
+		shader->SetUniformTexture(uniform, texture);
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	return NULL_VAL;
+}
+/***
  * Draw.SetFilter
  * \desc Sets a <linkto ref="Filter_*">filter type</linkto>.
  * \param filterType (Enum): The <linkto ref="Filter_*">filter type</linkto>.
@@ -18754,6 +18788,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, UseTinting);
 	DEF_NATIVE(Draw, SetShader);
 	DEF_NATIVE(Draw, SetShaderUniform);
+	DEF_NATIVE(Draw, SetShaderTexture);
 	DEF_NATIVE(Draw, SetFilter);
 	DEF_NATIVE(Draw, UseStencil);
 	DEF_NATIVE(Draw, SetStencilTestFunction);

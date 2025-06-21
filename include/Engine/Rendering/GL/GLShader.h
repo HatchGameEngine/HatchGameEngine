@@ -54,7 +54,8 @@ public:
 	int GetRequiredAttrib(std::string identifier);
 	int GetUniformLocation(std::string identifier);
 
-	void InitTextureUniforms();
+	void InitTextureUniformUnits();
+	void SetTextureUniformUnit(std::string identifier, int unit);
 
 #if GL_USING_ATTRIB_LOCATIONS
 	void InitAttributes();

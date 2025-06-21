@@ -1637,7 +1637,7 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 #endif
 
 #ifdef GL_SUPPORTS_MULTISAMPLING
-// textureData->TextureTarget = GL_TEXTURE_2D_MULTISAMPLE;
+		// textureData->TextureTarget = GL_TEXTURE_2D_MULTISAMPLE;
 #endif
 
 		width *= RetinaScale;
@@ -2073,8 +2073,11 @@ void GLRenderer::SetUserShader(Shader* shaderPtr) {
 	GL_SetShader(shader);
 }
 void GLRenderer::BindTexture(Texture* texture, int textureUnit, int uniform) {
-	GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
-	int textureID = textureData->TextureID;
+	int textureID = 0;
+	if (texture != nullptr) {
+		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
+		textureID = textureData->TextureID;
+	}
 
 	GL_SetTextureUnit(textureUnit);
 	glUniform1i(uniform, textureUnit);
@@ -2084,6 +2087,9 @@ void GLRenderer::BindTexture(int textureID, int textureUnit, int uniform) {
 	GL_SetTextureUnit(textureUnit);
 	glUniform1i(uniform, textureUnit);
 	glBindTexture(GL_TEXTURE_2D, textureID);
+}
+int GLRenderer::GetMaxTextureImageUnits() {
+	return GL_MaxTextureImageUnits;
 }
 
 // Filter-related functions
@@ -2657,14 +2663,12 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 								: &lastStateCMP);
 						PERF_STATE_CHANGE(perf);
 					}
-					else { // literally just a
-						// texture change,
-						// rebind it
+					else {
+						// literally just a texture change, rebind it
 						GL_BindTexture(lastState.TexturePtr, GL_REPEAT);
 					}
 
-					// Draw the current batch, then
-					// start the next
+					// Draw the current batch, then start the next
 					if (batch.ShouldDraw) {
 						GL_DrawBatchedScene3D(driverData,
 							&batch.VertexIndices,
@@ -2734,8 +2738,8 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 					lastStateCMP.VertexAtrribs == NULL ? NULL : &lastStateCMP);
 				PERF_STATE_CHANGE(perf);
 			}
-			else { // literally just a texture change,
-				// rebind it
+			else {
+				// literally just a texture change, rebind it
 				GL_BindTexture(lastState.TexturePtr, GL_REPEAT);
 			}
 

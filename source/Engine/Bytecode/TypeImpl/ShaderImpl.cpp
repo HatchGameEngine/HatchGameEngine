@@ -14,6 +14,7 @@ void ShaderImpl::Init() {
 	Class->NewFn = VM_New;
 
 	ScriptManager::DefineNative(Class, "AddProgram", VM_AddProgram);
+	ScriptManager::DefineNative(Class, "AddTextureUnit", VM_AddTextureUnit);
 	ScriptManager::DefineNative(Class, "Compile", VM_Compile);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
@@ -80,6 +81,31 @@ VMValue ShaderImpl::VM_AddProgram(int argCount, VMValue* args, Uint32 threadID) 
 	}
 
 	stream->Close();
+
+	return NULL_VAL;
+}
+/***
+ * \method AddTextureUnit
+ * \desc Adds a texture unit to a shader.
+ * \param uniform (String): The name of the uniform.
+ * \param unit (Integer): The texture unit.
+ * \ns Shader
+ */
+VMValue ShaderImpl::VM_AddTextureUnit(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ObjShader* objShader = GET_ARG(0, GetShader);
+	if (objShader == nullptr) {
+		return NULL_VAL;
+	}
+
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	CHECK_VALID(shader);
+
+	char* uniform = GET_ARG(1, GetString);
+	int unit = GET_ARG(2, GetInteger);
+
+	shader->SetTextureUniformUnit(std::string(uniform), unit);
 
 	return NULL_VAL;
 }

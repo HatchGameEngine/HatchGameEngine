@@ -63,8 +63,11 @@ bool Shader::IsBuiltinUniform(std::string identifier) {
 	return it != BuiltinUniforms.end();
 }
 
-void Shader::InitTextureUniforms() {
-	throw std::runtime_error("Shader::InitTextureUniforms() called without an implementation");
+void Shader::InitTextureUniformUnits() {
+	throw std::runtime_error("Shader::InitTextureUniformUnits() called without an implementation");
+}
+void Shader::SetTextureUniformUnit(std::string identifier, int unit) {
+	throw std::runtime_error("Shader::SetTextureUniformUnit() called without an implementation");
 }
 void Shader::InitTextureUnitMap() {
 	for (auto it = TextureUniformMap.begin(); it != TextureUniformMap.end(); it++) {

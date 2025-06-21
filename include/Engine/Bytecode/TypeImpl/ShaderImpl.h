@@ -12,6 +12,7 @@ public:
 	static Obj* VM_New(void);
 
 	static VMValue VM_AddProgram(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_AddTextureUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Compile(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Delete(int argCount, VMValue* args, Uint32 threadID);
 };
