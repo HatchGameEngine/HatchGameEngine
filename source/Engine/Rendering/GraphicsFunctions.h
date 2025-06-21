@@ -36,7 +36,7 @@ struct GraphicsFunctions {
 
 	void (*SetTextureInterpolation)(bool interpolate);
 
-	void (*UpdateGlobalPalette)();
+	void (*UpdateGlobalPalette)(Texture* texture);
 
 	void (*UpdateViewport)();
 	void (*UpdateClipRect)();

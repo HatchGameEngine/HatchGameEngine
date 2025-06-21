@@ -474,7 +474,10 @@ void GLShader::SetUniformTexture(const char* name, Texture* texture) {
 	}
 
 	Use();
+
 	GLRenderer::BindTexture(texture, textureUnit, uniform);
+
+	GLRenderer::SetTextureUnit(0);
 	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 }
 void GLShader::SetUniformTexture(int uniform, int textureID) {
@@ -488,7 +491,10 @@ void GLShader::SetUniformTexture(int uniform, int textureID) {
 	}
 
 	Use();
+
 	GLRenderer::BindTexture(textureID, textureUnit, uniform);
+
+	GLRenderer::SetTextureUnit(0);
 	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 }
 

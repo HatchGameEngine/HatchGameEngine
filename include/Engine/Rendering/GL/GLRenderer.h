@@ -71,11 +71,13 @@ public:
 	static void SetUserShader(Shader* shader);
 	static void BindTexture(Texture* texture, int textureUnit, int uniform);
 	static void BindTexture(int textureID, int textureUnit, int uniform);
+	static int GetTextureUnit();
+	static void SetTextureUnit(int textureUnit);
 	static int GetCurrentProgram();
 	static void SetCurrentProgram(int program);
 	static int GetMaxTextureImageUnits();
 	static void SetFilter(int filter);
-	static void UpdateGlobalPalette();
+	static void UpdateGlobalPalette(Texture* texture);
 	static void Clear();
 	static void Present();
 	static void SetBlendColor(float r, float g, float b, float a);

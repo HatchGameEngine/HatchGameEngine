@@ -615,7 +615,7 @@ void Graphics::UpdateGlobalPalette() {
 		PALETTE_ROW_SIZE * sizeof(Uint32));
 
 	if (Graphics::GfxFunctions->UpdateGlobalPalette) {
-		Graphics::GfxFunctions->UpdateGlobalPalette();
+		Graphics::GfxFunctions->UpdateGlobalPalette(Graphics::PaletteTexture);
 	}
 }
 

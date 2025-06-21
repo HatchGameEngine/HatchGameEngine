@@ -127,6 +127,7 @@ GLenum GL_ActiveTexture;
 GLenum GL_ActiveCullMode;
 bool GL_ClippingEnabled;
 
+int GL_CurrentTextureUnit = 0;
 int GL_MaxTextureImageUnits = 1;
 
 #ifdef HAVE_GL_PERFSTATS
@@ -278,19 +279,6 @@ void GL_SetTextureWrap(GL_TextureData* textureData,
 
 	glBindTexture(textureData->TextureTarget, bound);
 }
-void GL_SetTextureUnit(int textureUnit) {
-	if (textureUnit < 0) {
-		textureUnit = 0;
-	}
-	else if (textureUnit >= GL_MaxTextureImageUnits) {
-		textureUnit = GL_MaxTextureImageUnits - 1;
-	}
-
-	GLenum activeTexture = GL_TEXTURE0 + textureUnit;
-	if (GL_ActiveTexture != activeTexture) {
-		glActiveTexture(GL_ActiveTexture = activeTexture);
-	}
-}
 void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 	// Do texture (re-)binding if necessary
 	if (GL_LastTexture == texture) {
@@ -303,8 +291,8 @@ void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 	}
 
 	GLShader* shader = GLRenderer::CurrentShader;
-	int textureUnit = shader->GetTextureUnit(shader->LocTexture);
-	GL_SetTextureUnit(textureUnit);
+
+	GLRenderer::SetTextureUnit(shader->GetTextureUnit(shader->LocTexture));
 
 	if (textureData) {
 		glBindTexture(GL_TEXTURE_2D, textureData->TextureID);
@@ -324,10 +312,8 @@ void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 
 	GL_LastTexture = texture;
 }
-void GL_PreparePaletteShader(int paletteID) {
+void GL_PreparePaletteShader(GLShader* shader, int paletteID) {
 	int textureID = GL_PaletteTexture ? GL_PaletteTexture->TextureID : 0;
-
-	GLShader* shader = GLRenderer::CurrentShader;
 
 	shader->SetUniformTexture(shader->LocPaletteTexture, textureID);
 
@@ -381,7 +367,7 @@ GLShader* GL_SetShader(GLShader* shader) {
 			shader->LocPaletteIndexTable, MAX_FRAMEBUFFER_HEIGHT, GL_PaletteIndexLines);
 	}
 
-	GL_SetTextureUnit(shader->GetTextureUnit(shader->LocTexture));
+	GLRenderer::SetTextureUnit(shader->GetTextureUnit(shader->LocTexture));
 
 	return shader;
 }
@@ -406,7 +392,7 @@ void GL_SetPaletteShader(int paletteID) {
 		GL_SetShader(GLRenderer::ShaderShape->GetWithPalette());
 	}
 
-	GL_PreparePaletteShader(paletteID);
+	GL_PreparePaletteShader(GLRenderer::CurrentShader, paletteID);
 }
 void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 	// Use appropriate shader if changed
@@ -1055,7 +1041,7 @@ void GL_SetState(GL_State& state,
 	GL_BindTexture(state.TexturePtr, GL_REPEAT);
 
 	if (state.UsePalette) {
-		GL_PreparePaletteShader(0);
+		GL_PreparePaletteShader(GLRenderer::CurrentShader, 0);
 	}
 
 	if (shader->LocDiffuseColor != -1 &&
@@ -2077,12 +2063,29 @@ void GLRenderer::BindTexture(Texture* texture, int textureUnit, int uniform) {
 		textureID = textureData->TextureID;
 	}
 
-	GL_SetTextureUnit(textureUnit);
-	glBindTexture(GL_TEXTURE_2D, textureID);
+	BindTexture(textureID, textureUnit, uniform);
 }
 void GLRenderer::BindTexture(int textureID, int textureUnit, int uniform) {
-	GL_SetTextureUnit(textureUnit);
+	SetTextureUnit(textureUnit);
 	glBindTexture(GL_TEXTURE_2D, textureID);
+}
+int GLRenderer::GetTextureUnit() {
+	return GL_CurrentTextureUnit;
+}
+void GLRenderer::SetTextureUnit(int textureUnit) {
+	if (textureUnit < 0) {
+		textureUnit = 0;
+	}
+	else if (textureUnit >= GL_MaxTextureImageUnits) {
+		textureUnit = GL_MaxTextureImageUnits - 1;
+	}
+
+	if (GL_CurrentTextureUnit != textureUnit) {
+		GL_ActiveTexture = GL_TEXTURE0 + textureUnit;
+		GL_CurrentTextureUnit = textureUnit;
+
+		glActiveTexture(GL_ActiveTexture);
+	}
 }
 int GLRenderer::GetCurrentProgram() {
 	if (CurrentShader) {
@@ -2103,9 +2106,9 @@ int GLRenderer::GetMaxTextureImageUnits() {
 void GLRenderer::SetFilter(int filter) {}
 
 // Palette-related functions
-void GLRenderer::UpdateGlobalPalette() {
-	if (Graphics::PaletteTexture != nullptr) {
-		GL_PaletteTexture = (GL_TextureData*)Graphics::PaletteTexture->DriverData;
+void GLRenderer::UpdateGlobalPalette(Texture* texture) {
+	if (texture != nullptr) {
+		GL_PaletteTexture = (GL_TextureData*)texture->DriverData;
 	}
 	else {
 		GL_PaletteTexture = nullptr;
