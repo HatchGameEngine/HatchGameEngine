@@ -68,6 +68,7 @@ enum class KeyBind {
 
 #define MATRIX_STACK_SIZE 256
 #define FILTER_TABLE_SIZE 0x8000
+#define PALETTE_ROW_SIZE 0x100
 
 #define MAX_SCENE_VIEWS 8
 #define MAX_PALETTE_COUNT 256

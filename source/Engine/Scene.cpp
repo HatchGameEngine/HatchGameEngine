@@ -3045,6 +3045,8 @@ void Scene::DisposeInScope(Uint32 scope) {
 	}
 }
 void Scene::Dispose() {
+	Graphics::UnloadData();
+
 	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
 		if (Scene::Views[i].DrawTarget) {
 			Graphics::DisposeTexture(Scene::Views[i].DrawTarget);

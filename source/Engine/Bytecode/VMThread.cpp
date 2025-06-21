@@ -2609,8 +2609,8 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 			VMValue returnValue = NULL_VAL;
 			try {
 				returnValue = nativeFn(argCount, StackTop - argCount, ID);
-			} catch (const char* err) {
-				(void)err;
+			} catch (const std::runtime_error& error) {
+				ThrowRuntimeError(false, "%s", error.what());
 			}
 
 			StackTop -= argCount; // Pop arguments
@@ -2661,45 +2661,55 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 	return false;
 }
 bool VMThread::InstantiateClass(VMValue callee, int argCount) {
-	if (ScriptManager::Lock()) {
-		bool result = false;
-		if (!IS_OBJECT(callee) || OBJECT_TYPE(callee) != OBJ_CLASS) {
-			ThrowRuntimeError(false, "Cannot instantiate non-class.");
-		}
-		else {
-			ObjClass* klass = AS_CLASS(callee);
-
-			// Create the instance.
-			Obj* instance;
-			if (klass->NewFn) {
-				instance = klass->NewFn();
-			}
-			else {
-				instance = (Obj*)NewInstance(klass);
-			}
-			StackTop[-argCount - 1] = OBJECT_VAL(instance);
-
-			// Call the initializer, if there is one.
-			if (HasInitializer(klass)) {
-				// Handles native functions correctly!
-				result = CallForObject(klass->Initializer, argCount);
-			}
-			else if (argCount != 0) {
-				ThrowRuntimeError(false,
-					"Expected no arguments to initializer, got %d.",
-					argCount);
-				result = false;
-			}
-			else {
-				result = true;
-			}
-		}
-
-		ScriptManager::Unlock();
-		return result;
+	if (!ScriptManager::Lock()) {
+		return false;
 	}
 
-	return false;
+	if (!IS_OBJECT(callee) || OBJECT_TYPE(callee) != OBJ_CLASS) {
+		ThrowRuntimeError(false, "Cannot instantiate non-class.");
+		ScriptManager::Unlock();
+		return false;
+	}
+
+	ObjClass* klass = AS_CLASS(callee);
+
+	// Create the instance.
+	Obj* instance;
+	if (klass->NewFn) {
+		try {
+			instance = klass->NewFn();
+		} catch (const std::runtime_error& error) {
+			ThrowRuntimeError(false, "%s", error.what());
+			ScriptManager::Unlock();
+			return false;
+		}
+	}
+	else {
+		instance = (Obj*)NewInstance(klass);
+	}
+
+	if (instance == nullptr) {
+		StackTop[-argCount - 1] = NULL_VAL;
+		ScriptManager::Unlock();
+		return false;
+	}
+
+	StackTop[-argCount - 1] = OBJECT_VAL(instance);
+
+	// Call the initializer, if there is one.
+	if (HasInitializer(klass)) {
+		// Handles native functions correctly!
+		ScriptManager::Unlock();
+		return CallForObject(klass->Initializer, argCount);
+	}
+	else if (argCount != 0) {
+		ThrowRuntimeError(false, "Expected no arguments to initializer, got %d.", argCount);
+		ScriptManager::Unlock();
+		return false;
+	}
+
+	ScriptManager::Unlock();
+	return true;
 }
 bool VMThread::Call(ObjFunction* function, int argCount) {
 	if (function->MinArity < function->Arity) {
@@ -3258,6 +3268,8 @@ static const char* GetTypeOfValue(VMValue value) {
 			return "module";
 		case OBJ_MATERIAL:
 			return "material";
+		case OBJ_SHADER:
+			return "shader";
 		}
 	}
 

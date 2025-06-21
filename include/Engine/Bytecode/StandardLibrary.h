@@ -17,6 +17,7 @@ public:
 	static ISound* GetSound(VMValue* args, int index, Uint32 threadID);
 	static ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID);
 	static ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID);
+	static ObjShader* GetShader(VMValue* args, int index, Uint32 threadID);
 	static void CheckArgCount(int argCount, int expects);
 	static void CheckAtLeastArgCount(int argCount, int expects);
 	static void Link();

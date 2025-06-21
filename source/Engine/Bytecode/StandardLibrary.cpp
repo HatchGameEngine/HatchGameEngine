@@ -248,10 +248,10 @@ inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 	return value;
 }
 inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
-	ObjStream* value = NULL;
+	ObjStream* obj = nullptr;
 	if (ScriptManager::Lock()) {
 		if (IS_STREAM(args[index])) {
-			value = (ObjStream*)(AS_OBJECT(args[index]));
+			obj = AS_STREAM(args[index]);
 		}
 		else {
 			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
@@ -263,7 +263,25 @@ inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
 		}
 		ScriptManager::Unlock();
 	}
-	return value;
+	return obj;
+}
+inline ObjShader* GetShader(VMValue* args, int index, Uint32 threadID) {
+	ObjShader* obj = nullptr;
+	if (ScriptManager::Lock()) {
+		if (IS_SHADER(args[index])) {
+			obj = AS_SHADER(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    GetObjectTypeString(OBJ_SHADER),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return obj;
 }
 
 inline ISprite* GetSpriteIndex(int where, Uint32 threadID) {
@@ -439,6 +457,9 @@ ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threa
 }
 ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetFunction(args, index, threadID);
+}
+ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetShader(args, index, threadID);
 }
 
 void StandardLibrary::CheckArgCount(int argCount, int expects) {
@@ -4406,7 +4427,7 @@ VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetShader
  * \desc Sets a shader.
- * \param shaderIndex (Integer): The shader index, or <code>null</code> to unset the shader.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
  * \ns Draw
  */
 VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
@@ -4417,17 +4438,16 @@ VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	int shaderIndex = GET_ARG(0, GetInteger);
-
-	Shader* shader = Graphics::Shaders[shaderIndex];
+	ObjShader* objShader = GET_ARG(0, GetShader);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
 	if (shader == nullptr) {
+		THROW_ERROR("Shader is no longer valid!");
 		return NULL_VAL;
 	}
 
 	try {
 		Graphics::SetUserShader(shader);
-	}
-	catch (const std::runtime_error& error) {
+	} catch (const std::runtime_error& error) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
 	}
 
@@ -4462,8 +4482,7 @@ VMValue Draw_SetShaderUniform(int argCount, VMValue* args, Uint32 threadID) {
 
 	try {
 		shader->SetUniform(uniform, 1, valuesFloat);
-	}
-	catch (const std::runtime_error& error) {
+	} catch (const std::runtime_error& error) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
 	}
 
@@ -14511,95 +14530,6 @@ VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) 
 
 // #region Shader
 /***
- * Shader.Create
- * \desc Creates a shader.
- * \ns Shader
- */
-VMValue Shader_Create(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-
-	Shader* shader = Graphics::CreateShader();
-	if (shader == nullptr) {
-		THROW_ERROR("Could not create shader!");
-		return NULL_VAL;
-	}
-
-	size_t pos = Graphics::Shaders.size() - 1;
-	return INTEGER_VAL((int)pos);
-}
-/***
- * Shader.AddProgram
- * \desc Adds a program to a shader.
- * \param shader (Integer): The shader index.
- * \param program (Enum): <linkto ref="SHADERPROGRAM_*">Shader program type</linkto>.
- * \param filename (String): Filename of the resource.
- * \ns Shader
- */
-VMValue Shader_AddProgram(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-
-	int shaderIndex = GET_ARG(0, GetInteger);
-	int program = GET_ARG(1, GetInteger);
-	char* filename = GET_ARG(2, GetString);
-
-	Shader* shader = Graphics::Shaders[shaderIndex];
-	if (shader == nullptr) {
-		return NULL_VAL;
-	}
-
-	Stream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		THROW_ERROR("Resource \"%s\" does not exist!", filename);
-		return NULL_VAL;
-	}
-
-	try {
-		shader->AddProgram(program, stream);
-	}
-	catch (const std::runtime_error& error) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
-	}
-
-	stream->Close();
-
-	return NULL_VAL;
-}
-/***
- * Shader.Compile
- * \desc Compiles a shader.
- * \param shader (Integer): The shader index.
- * \ns Shader
- */
-VMValue Shader_Compile(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-
-	int shaderIndex = GET_ARG(0, GetInteger);
-
-	Shader* shader = Graphics::Shaders[shaderIndex];
-	if (shader == nullptr) {
-		return NULL_VAL;
-	}
-
-	try {
-		shader->Compile();
-	}
-	catch (const std::runtime_error& error) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
-	}
-
-	return NULL_VAL;
-}
-/***
- * Shader.Delete
- * \desc Deletes a shader.
- * \ns Shader
- */
-VMValue Shader_Delete(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-
-	return NULL_VAL;
-}
-/***
  * Shader.Set
  * \desc Do not use.
  * \ns Shader
@@ -19878,9 +19808,6 @@ void StandardLibrary::Link() {
 
 	// #region Shader
 	GET_OR_INIT_CLASS(Shader);
-	DEF_NATIVE(Shader, Create);
-	DEF_NATIVE(Shader, AddProgram);
-	DEF_NATIVE(Shader, Compile);
 	DEF_NATIVE(Shader, Set);
 	DEF_NATIVE(Shader, Unset);
 	/***

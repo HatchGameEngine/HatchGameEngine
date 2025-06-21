@@ -406,13 +406,34 @@ void GLShader::SetUniformTexture(const char* name, Texture* texture, int texture
 	GLRenderer::BindTexture(texture, textureUnit, (int)location);
 }
 
-GLint GLShader::GetAttribLocation(const GLchar* identifier) {
-	GLint value = glGetAttribLocation(ProgramID, identifier);
+GLint GLShader::GetAttribLocation(std::string identifier) {
+	GLVariableMap::iterator it = AttribMap.find(identifier);
+	if (it != AttribMap.end()) {
+		return it->second;
+	}
+
+	GLint value = glGetAttribLocation(ProgramID, (const GLchar*)identifier.c_str());
+	if (value == -1) {
+		return -1;
+	}
+
+	AttribMap[identifier] = (int)value;
+
 	return value;
 }
-GLint GLShader::GetUniformLocation(const GLchar* identifier) {
-	// TODO: Optimize.
-	GLint value = glGetUniformLocation(ProgramID, identifier);
+GLint GLShader::GetUniformLocation(std::string identifier) {
+	GLVariableMap::iterator it = UniformMap.find(identifier);
+	if (it != UniformMap.end()) {
+		return it->second;
+	}
+
+	GLint value = glGetUniformLocation(ProgramID, (const GLchar*)identifier.c_str());
+	if (value == -1) {
+		return -1;
+	}
+
+	UniformMap[identifier] = (int)value;
+
 	return value;
 }
 

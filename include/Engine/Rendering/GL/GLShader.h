@@ -4,6 +4,8 @@
 #include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/GL/Includes.h>
 
+typedef std::unordered_map<std::string, GLint> GLVariableMap;
+
 class GLShader : public Shader {
 private:
 	void AddVertexProgram(Stream* stream);
@@ -11,6 +13,9 @@ private:
 	bool AttachAndLink();
 	std::string CheckShaderError(GLuint shader);
 	std::string CheckProgramError(GLuint prog);
+
+	GLVariableMap AttribMap;
+	GLVariableMap UniformMap;
 
 public:
 	GLuint ProgramID = 0;
@@ -47,8 +52,8 @@ public:
 	GLShader(std::string vertexShaderSource, std::string fragmentShaderSource);
 	GLShader(Stream* streamVS, Stream* streamFS);
 
-	GLint GetAttribLocation(const GLchar* identifier);
-	GLint GetUniformLocation(const GLchar* identifier);
+	GLint GetAttribLocation(std::string identifier);
+	GLint GetUniformLocation(std::string identifier);
 
 	void Compile();
 	void AddProgram(int program, Stream* stream);

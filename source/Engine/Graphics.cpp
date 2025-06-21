@@ -231,22 +231,7 @@ void Graphics::Reset() {
 	Graphics::StencilOpFail = StencilOp_Keep;
 }
 void Graphics::Dispose() {
-	for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
-		Graphics::DeleteVertexBuffer(i);
-	}
-	Graphics::VertexBuffers.clear();
-
-	Graphics::CurrentShader = nullptr;
-	for (Uint32 i = 0; i < Graphics::Shaders.size(); i++) {
-		delete Shaders[i];
-	}
-	Graphics::Shaders.clear();
-
-	for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
-		Graphics::DeleteScene3D(i);
-	}
-
-	Graphics::DeleteSpriteSheetMap();
+	Graphics::UnloadData();
 
 	for (Texture *texture = Graphics::TextureHead, *next; texture != NULL; texture = next) {
 		next = texture->Next;
@@ -262,6 +247,31 @@ void Graphics::Dispose() {
 	if (Graphics::FramebufferPixels) {
 		Memory::Free(Graphics::FramebufferPixels);
 	}
+}
+void Graphics::UnloadData() {
+	Graphics::UnloadSceneData();
+
+	Graphics::DeleteShaders();
+	Graphics::DeleteVertexBuffers();
+
+	for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
+		Graphics::DeleteScene3D(i);
+	}
+
+	Graphics::DeleteSpriteSheetMap();
+}
+void Graphics::DeleteShaders() {
+	Graphics::CurrentShader = nullptr;
+	for (Uint32 i = 0; i < Graphics::Shaders.size(); i++) {
+		delete Shaders[i];
+	}
+	Graphics::Shaders.clear();
+}
+void Graphics::DeleteVertexBuffers() {
+	for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
+		Graphics::DeleteVertexBuffer(i);
+	}
+	Graphics::VertexBuffers.clear();
 }
 
 Point Graphics::ProjectToScreen(float x, float y, float z) {
@@ -529,6 +539,14 @@ Shader* Graphics::CreateShader() {
 
 	return shader;
 }
+void Graphics::DeleteShader(Shader* shader) {
+	auto it = std::find(Shaders.begin(), Shaders.end(), shader);
+	if (it != Shaders.end()) {
+		delete shader;
+
+		Shaders.erase(it);
+	}
+}
 void Graphics::SetUserShader(Shader* shader) {
 	if (!Graphics::GfxFunctions->SetUserShader) {
 		return;
@@ -580,26 +598,25 @@ void Graphics::SoftwareEnd() {
 }
 
 void Graphics::UpdateGlobalPalette() {
-	if (!Graphics::GfxFunctions->UpdateGlobalPalette) {
-		return;
-	}
-
-	if (Graphics::PaletteTexture == NULL) {
-		Graphics::PaletteTexture = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888,
+	if (Graphics::PaletteTexture == nullptr) {
+		Graphics::PaletteTexture = CreateTexture(SDL_PIXELFORMAT_ARGB8888,
 			SDL_TEXTUREACCESS_STATIC,
-			0x100,
+			PALETTE_ROW_SIZE,
 			MAX_PALETTE_COUNT);
+
+		if (Graphics::PaletteTexture == nullptr) {
+			return;
+		}
 	}
 
-	if (Graphics::PaletteTexture == NULL) {
-		Log::Print(Log::LOG_ERROR, "Couldn't create palette texture!");
-		abort();
+	Graphics::UpdateTexture(Graphics::PaletteTexture,
+		nullptr,
+		(Uint32*)Graphics::PaletteColors,
+		PALETTE_ROW_SIZE * sizeof(Uint32));
+
+	if (Graphics::GfxFunctions->UpdateGlobalPalette) {
+		Graphics::GfxFunctions->UpdateGlobalPalette();
 	}
-
-	Graphics::UpdateTexture(
-		Graphics::PaletteTexture, NULL, (Uint32*)Graphics::PaletteColors, 0x100 * 4);
-
-	Graphics::GfxFunctions->UpdateGlobalPalette();
 }
 
 void Graphics::UnloadSceneData() {

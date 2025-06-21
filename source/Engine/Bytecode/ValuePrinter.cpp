@@ -71,6 +71,7 @@ void ValuePrinter::PrintObject(VMValue value, int indent) {
 	case OBJ_NATIVE:
 	case OBJ_STREAM:
 	case OBJ_UPVALUE:
+	case OBJ_SHADER:
 		if (IsJSON) {
 			buffer_printf(Buffer, "<%s>", Value::GetObjectTypeName(value));
 		}

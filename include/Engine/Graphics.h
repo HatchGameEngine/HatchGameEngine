@@ -23,6 +23,11 @@ class IModel;
 #include <Engine/Utilities/ColorUtils.h>
 
 class Graphics {
+private:
+	static void DeleteSpriteSheetMap();
+	static void DeleteShaders();
+	static void DeleteVertexBuffers();
+
 public:
 	static bool Initialized;
 	static HashMap<Texture*>* TextureMap;
@@ -113,10 +118,11 @@ public:
 	static TextureReference* GetSpriteSheet(string sheetPath);
 	static TextureReference* AddSpriteSheet(string sheetPath, Texture* texture);
 	static void DisposeSpriteSheet(string sheetPath);
-	static void DeleteSpriteSheetMap();
+	static void UnloadData();
 	static Uint32 CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy);
 	static void DeleteVertexBuffer(Uint32 vertexBufferIndex);
 	static Shader* CreateShader();
+	static void DeleteShader(Shader* shader);
 	static void SetUserShader(Shader* shader);
 	static void SetFilter(int filter);
 	static void SetFilterTable(Uint32* table, size_t size);

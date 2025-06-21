@@ -8,6 +8,7 @@
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
@@ -127,6 +128,7 @@ void ScriptManager::Init() {
 	ArrayImpl::Init();
 	MapImpl::Init();
 	FunctionImpl::Init();
+	ShaderImpl::Init();
 	StringImpl::Init();
 	MaterialImpl::Init();
 }
@@ -474,6 +476,12 @@ void ScriptManager::FreeValue(VMValue value) {
 			Material::Remove(material->MaterialPtr);
 
 			FREE_OBJ(material, ObjMaterial);
+			break;
+		}
+		case OBJ_SHADER: {
+			// Yes, this leaks memory.
+			// Use Delete() in your script for a shader you no longer need!
+			FREE_OBJ(objectPointer, ObjShader);
 			break;
 		}
 		default:

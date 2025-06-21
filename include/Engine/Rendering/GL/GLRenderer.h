@@ -71,6 +71,7 @@ public:
 	static void SetUserShader(Shader* shader);
 	static void BindTexture(Texture* texture, int textureUnit, int uniform);
 	static void SetFilter(int filter);
+	static void UpdateGlobalPalette();
 	static void Clear();
 	static void Present();
 	static void SetBlendColor(float r, float g, float b, float a);

@@ -39,11 +39,13 @@ GLuint GLRenderer::BufferCircleFill;
 GLuint GLRenderer::BufferCircleStroke;
 GLuint GLRenderer::BufferSquareFill;
 
+Texture* GL_LastTexture = nullptr;
+
+GL_TextureData* GL_PaletteTexture = nullptr;
 GLint GL_PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 
 bool UseDepthTesting = true;
 float RetinaScale = 1.0;
-Texture* GL_LastTexture = nullptr;
 
 float FogTable[256];
 float FogSmoothness = -1.0f;
@@ -323,13 +325,8 @@ void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 	}
 	GL_LastTexture = texture;
 }
-void GL_PreparePaletteShader(int paletteID = 0) {
-	int textureID = 0;
-	if (Graphics::PaletteTexture && Graphics::PaletteTexture->DriverData) {
-		GL_TextureData* paletteTexture =
-			(GL_TextureData*)Graphics::PaletteTexture->DriverData;
-		textureID = paletteTexture->TextureID;
-	}
+void GL_PreparePaletteShader(int paletteID) {
+	int textureID = GL_PaletteTexture ? GL_PaletteTexture->TextureID : 0;
 
 	GL_SetActiveTexture(1, GLRenderer::CurrentShader->LocPaletteTexture, textureID);
 	glUniform1i(GLRenderer::CurrentShader->LocPaletteLine, paletteID);
@@ -1060,7 +1057,7 @@ void GL_SetState(GL_State& state,
 	GL_BindTexture(state.TexturePtr, GL_REPEAT);
 
 	if (state.UsePalette) {
-		GL_PreparePaletteShader();
+		GL_PreparePaletteShader(0);
 	}
 
 	if (shader->LocDiffuseColor != -1 &&
@@ -1531,6 +1528,9 @@ void GLRenderer::SetGraphicsFunctions() {
 
 	// Filter-related functions
 	Graphics::Internal.SetFilter = GLRenderer::SetFilter;
+
+	// Palette-related funcrions
+	Graphics::Internal.UpdateGlobalPalette = GLRenderer::UpdateGlobalPalette;
 
 	// These guys
 	Graphics::Internal.Clear = GLRenderer::Clear;
@@ -2079,6 +2079,16 @@ void GLRenderer::BindTexture(Texture* texture, int textureUnit, int uniform) {
 
 // Filter-related functions
 void GLRenderer::SetFilter(int filter) {}
+
+// Palette-related functions
+void GLRenderer::UpdateGlobalPalette() {
+	if (Graphics::PaletteTexture != nullptr) {
+		GL_PaletteTexture = (GL_TextureData*)Graphics::PaletteTexture->DriverData;
+	}
+	else {
+		GL_PaletteTexture = nullptr;
+	}
+}
 
 // These guys
 void GLRenderer::Clear() {

@@ -753,7 +753,7 @@ void Application::Restart() {
 
 	Scene::Dispose();
 	SceneInfo::Dispose();
-	Graphics::DeleteSpriteSheetMap();
+	Graphics::UnloadData();
 
 	ScriptManager::LoadAllClasses = false;
 	ScriptEntity::DisableAutoAnimate = false;

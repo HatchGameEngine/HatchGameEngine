@@ -48,6 +48,7 @@ CPPFILES := \
 	source/Engine/Bytecode/TypeImpl/FunctionImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MapImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MaterialImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/ShaderImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
 	source/Engine/Bytecode/Types.cpp \
 	source/Engine/Bytecode/Value.cpp \
@@ -268,6 +269,7 @@ PUBHFILES := \
 	include/Engine/Bytecode/TypeImpl/FunctionImpl.h \
 	include/Engine/Bytecode/TypeImpl/MapImpl.h \
 	include/Engine/Bytecode/TypeImpl/MaterialImpl.h \
+	include/Engine/Bytecode/TypeImpl/ShaderImpl.h \
 	include/Engine/Bytecode/TypeImpl/StringImpl.h \
 	include/Engine/Bytecode/Value.h \
 	include/Engine/Bytecode/ValuePrinter.h \
