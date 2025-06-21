@@ -449,6 +449,9 @@ ObjMap* StandardLibrary::GetMap(VMValue* args, int index, Uint32 threadID) {
 ISprite* StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetSprite(args, index, threadID);
 }
+Image* StandardLibrary::GetImage(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetImage(args, index, threadID);
+}
 ISound* StandardLibrary::GetSound(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetSound(args, index, threadID);
 }
@@ -4426,7 +4429,7 @@ VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetShader
- * \desc Sets a shader.
+ * \desc Sets the current shader.
  * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
  * \ns Draw
  */
@@ -4447,77 +4450,6 @@ VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
 
 	try {
 		Graphics::SetUserShader(shader);
-	} catch (const std::runtime_error& error) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
-	}
-
-	return NULL_VAL;
-}
-/***
- * Draw.SetShaderUniform
- * \desc Sets an uniform for the current shader.
- * \param uniform (String): The name of the uniform.
- * \param value (Number or Array): The value to send to the shader.
- * \ns Draw
- */
-VMValue Draw_SetShaderUniform(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-
-	char* uniform = GET_ARG(0, GetString);
-	float value = GET_ARG(1, GetDecimal);
-	// VMValue value = args[1];
-
-	Shader* shader = Graphics::CurrentShader;
-	if (shader == nullptr) {
-		THROW_ERROR("Shader is not set!");
-		return NULL_VAL;
-	}
-
-	void* values;
-	values = Memory::Malloc(sizeof(int) * 1);
-
-	float* valuesFloat = (float*)values;
-	valuesFloat[0] = value;
-	// valuesFloat[0] = AS_DECIMAL(value);
-
-	try {
-		shader->SetUniform(uniform, 1, valuesFloat);
-	} catch (const std::runtime_error& error) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
-	}
-
-	Memory::Free(values);
-
-	return NULL_VAL;
-}
-/***
- * Draw.SetShaderTexture
- * \desc Binds a texture to the current shader.
- * \param uniform (String): The name of the uniform.
- * \param texture (Texture): The texture to bind to the uniform.
- * \ns Draw
- */
-VMValue Draw_SetShaderTexture(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-
-	char* uniform = GET_ARG(0, GetString);
-	Texture* texture = nullptr;
-
-	Shader* shader = Graphics::CurrentShader;
-	if (shader == nullptr) {
-		THROW_ERROR("Shader is not set!");
-		return NULL_VAL;
-	}
-
-	if (!IS_NULL(args[1])) {
-		Image* image = GET_ARG(1, GetImage);
-		if (image != nullptr) {
-			texture = image->TexturePtr;
-		}
-	}
-
-	try {
-		shader->SetUniformTexture(uniform, texture);
 	} catch (const std::runtime_error& error) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
 	}
@@ -18730,8 +18662,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, SetTintMode);
 	DEF_NATIVE(Draw, UseTinting);
 	DEF_NATIVE(Draw, SetShader);
-	DEF_NATIVE(Draw, SetShaderUniform);
-	DEF_NATIVE(Draw, SetShaderTexture);
 	DEF_NATIVE(Draw, SetFilter);
 	DEF_NATIVE(Draw, UseStencil);
 	DEF_NATIVE(Draw, SetStencilTestFunction);

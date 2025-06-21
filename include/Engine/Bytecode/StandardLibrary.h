@@ -14,6 +14,7 @@ public:
 	static ObjArray* GetArray(VMValue* args, int index, Uint32 threadID);
 	static ObjMap* GetMap(VMValue* args, int index, Uint32 threadID);
 	static ISprite* GetSprite(VMValue* args, int index, Uint32 threadID);
+	static Image* GetImage(VMValue* args, int index, Uint32 threadID);
 	static ISound* GetSound(VMValue* args, int index, Uint32 threadID);
 	static ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID);
 	static ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID);

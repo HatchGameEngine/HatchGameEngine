@@ -20,6 +20,8 @@ void ShaderImpl::Init() {
 	ScriptManager::DefineNative(Class, "SetTextureUnit", VM_SetTextureUnit);
 	ScriptManager::DefineNative(Class, "GetTextureUnit", VM_GetTextureUnit);
 	ScriptManager::DefineNative(Class, "Compile", VM_Compile);
+	ScriptManager::DefineNative(Class, "SetUniform", VM_SetUniform);
+	ScriptManager::DefineNative(Class, "SetTexture", VM_SetTexture);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
 	ScriptManager::ClassImplList.push_back(Class);
@@ -249,6 +251,75 @@ VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	return INTEGER_VAL(success);
+}
+/***
+ * \method SetUniform
+ * \desc Sets the value of an uniform.
+ * \param uniform (String): The name of the uniform.
+ * \param value (Number or Array): The value to send to the shader.
+ * \ns Shader
+ */
+VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ObjShader* objShader = AS_SHADER(args[0]);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+
+	CHECK_EXISTS(shader);
+
+	char* uniform = GET_ARG(1, GetString);
+	float value = GET_ARG(2, GetDecimal);
+	// VMValue value = args[1];
+
+	void* values;
+	values = Memory::Malloc(sizeof(int) * 1);
+
+	float* valuesFloat = (float*)values;
+	valuesFloat[0] = value;
+	// valuesFloat[0] = AS_DECIMAL(value);
+
+	try {
+		shader->SetUniform(uniform, 1, valuesFloat);
+	} catch (const std::runtime_error& error) {
+		throw ScriptException(error.what());
+	}
+
+	Memory::Free(values);
+
+	return NULL_VAL;
+}
+/***
+ * \method SetTexture
+ * \desc Binds a texture to an uniform.
+ * \param uniform (String): The name of the uniform.
+ * \param texture (Texture): The texture to bind to the uniform.
+ * \ns Shader
+ */
+VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ObjShader* objShader = AS_SHADER(args[0]);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+
+	CHECK_EXISTS(shader);
+
+	char* uniform = GET_ARG(1, GetString);
+	Texture* texture = nullptr;
+
+	if (!IS_NULL(args[2])) {
+		Image* image = GET_ARG(2, GetImage);
+		if (image != nullptr) {
+			texture = image->TexturePtr;
+		}
+	}
+
+	try {
+		shader->SetUniformTexture(uniform, texture);
+	} catch (const std::runtime_error& error) {
+		throw ScriptException(error.what());
+	}
+
+	return NULL_VAL;
 }
 /***
  * \method Delete

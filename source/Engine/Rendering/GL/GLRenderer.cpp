@@ -381,9 +381,7 @@ GLShader* GL_SetShader(GLShader* shader) {
 			shader->LocPaletteIndexTable, MAX_FRAMEBUFFER_HEIGHT, GL_PaletteIndexLines);
 	}
 
-	int textureUnit = shader->GetTextureUnit(shader->LocTexture);
-	GL_SetTextureUnit(textureUnit);
-	glUniform1i(shader->LocTexture, 0);
+	GL_SetTextureUnit(shader->GetTextureUnit(shader->LocTexture));
 
 	return shader;
 }
@@ -2080,13 +2078,22 @@ void GLRenderer::BindTexture(Texture* texture, int textureUnit, int uniform) {
 	}
 
 	GL_SetTextureUnit(textureUnit);
-	glUniform1i(uniform, textureUnit);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 }
 void GLRenderer::BindTexture(int textureID, int textureUnit, int uniform) {
 	GL_SetTextureUnit(textureUnit);
-	glUniform1i(uniform, textureUnit);
 	glBindTexture(GL_TEXTURE_2D, textureID);
+}
+int GLRenderer::GetCurrentProgram() {
+	if (CurrentShader) {
+		return CurrentShader->ProgramID;
+	}
+
+	return 0;
+}
+void GLRenderer::SetCurrentProgram(int program) {
+	glUseProgram(program);
+	CHECK_GL();
 }
 int GLRenderer::GetMaxTextureImageUnits() {
 	return GL_MaxTextureImageUnits;

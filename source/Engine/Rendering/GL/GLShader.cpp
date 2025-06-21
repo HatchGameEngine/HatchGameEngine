@@ -258,6 +258,12 @@ void GLShader::AttachAndLink() {
 
 	InitTextureUnitMap();
 
+	Use();
+	for (auto it = TextureUnitMap.begin(); it != TextureUnitMap.end(); it++) {
+		glUniform1i(it->first, it->second);
+	}
+	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
+
 	memset(CachedBlendColors, 0, sizeof(CachedBlendColors));
 }
 
@@ -305,8 +311,7 @@ void GLShader::Use() {
 		throw std::runtime_error("Shader is not valid!");
 	}
 
-	glUseProgram(ProgramID);
-	CHECK_GL();
+	GLRenderer::SetCurrentProgram(ProgramID);
 }
 
 void GLShader::Validate() {
@@ -343,6 +348,8 @@ void GLShader::SetUniform(const char* name, size_t count, int* values) {
 		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
 	}
 
+	Use();
+
 	switch (count) {
 	case 1:
 		glUniform1i(uniform, values[0]);
@@ -357,6 +364,8 @@ void GLShader::SetUniform(const char* name, size_t count, int* values) {
 		glUniform4i(uniform, values[0], values[1], values[2], values[3]);
 		break;
 	}
+
+	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 }
 void GLShader::SetUniform(const char* name, size_t count, float* values) {
 	if (name == nullptr || name[0] == '\0') {
@@ -367,6 +376,8 @@ void GLShader::SetUniform(const char* name, size_t count, float* values) {
 	if (uniform == -1) {
 		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
 	}
+
+	Use();
 
 	switch (count) {
 	case 1:
@@ -382,6 +393,8 @@ void GLShader::SetUniform(const char* name, size_t count, float* values) {
 		glUniform4f(uniform, values[0], values[1], values[2], values[3]);
 		break;
 	}
+
+	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 }
 void GLShader::SetUniformArray(const char* name, size_t count, int* values, size_t numValues) {
 	if (name == nullptr || name[0] == '\0') {
@@ -392,6 +405,8 @@ void GLShader::SetUniformArray(const char* name, size_t count, int* values, size
 	if (uniform == -1) {
 		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
 	}
+
+	Use();
 
 	switch (count) {
 	case 1:
@@ -407,6 +422,8 @@ void GLShader::SetUniformArray(const char* name, size_t count, int* values, size
 		glUniform4iv(uniform, numValues, values);
 		break;
 	}
+
+	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 }
 void GLShader::SetUniformArray(const char* name, size_t count, float* values, size_t numValues) {
 	if (name == nullptr || name[0] == '\0') {
@@ -417,6 +434,8 @@ void GLShader::SetUniformArray(const char* name, size_t count, float* values, si
 	if (uniform == -1) {
 		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
 	}
+
+	Use();
 
 	switch (count) {
 	case 1:
@@ -432,6 +451,8 @@ void GLShader::SetUniformArray(const char* name, size_t count, float* values, si
 		glUniform4fv(uniform, numValues, values);
 		break;
 	}
+
+	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 }
 void GLShader::SetUniformTexture(const char* name, Texture* texture) {
 	if (name == nullptr || name[0] == '\0') {
@@ -452,7 +473,9 @@ void GLShader::SetUniformTexture(const char* name, Texture* texture) {
 		throw std::runtime_error("No texture unit for uniform \"" + std::string(name) + "\"!");
 	}
 
+	Use();
 	GLRenderer::BindTexture(texture, textureUnit, uniform);
+	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 }
 void GLShader::SetUniformTexture(int uniform, int textureID) {
 	if (uniform == -1) {
@@ -464,7 +487,9 @@ void GLShader::SetUniformTexture(int uniform, int textureID) {
 		throw std::runtime_error("No texture unit for this uniform!");
 	}
 
+	Use();
 	GLRenderer::BindTexture(textureID, textureUnit, uniform);
+	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 }
 
 int GLShader::GetAttribLocation(std::string identifier) {

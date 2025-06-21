@@ -18,6 +18,8 @@ public:
 	static VMValue VM_SetTextureUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetTextureUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Compile(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetUniform(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetTexture(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Delete(int argCount, VMValue* args, Uint32 threadID);
 };
 
