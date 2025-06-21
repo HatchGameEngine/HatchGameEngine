@@ -82,7 +82,6 @@
             <li><a href="#Reference_SceneList">SceneList</a></li>
             <li><a href="#Reference_Serializer">Serializer</a></li>
             <li><a href="#Reference_Settings">Settings</a></li>
-            <li><a href="#Reference_Shader">Shader</a></li>
             <li><a href="#Reference_SocketClient">SocketClient</a></li>
             <li><a href="#Reference_Sound">Sound</a></li>
             <li><a href="#Reference_Sprite">Sprite</a></li>
@@ -133,6 +132,7 @@
             <li><a href="#Reference_ROTSTYLE_*">ROTSTYLE_*</a></li>
             <li><a href="#Reference_SCENETYPE_*">SCENETYPE_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
+            <li><a href="#Reference_SHADERPROGRAM_*">SHADERPROGRAM_*</a></li>
             <li><a href="#Reference_SensorDirection_*">SensorDirection_*</a></li>
             <li><a href="#Reference_StencilOp_*">StencilOp_*</a></li>
             <li><a href="#Reference_StencilTest_*">StencilTest_*</a></li>
@@ -407,6 +407,9 @@
                     <li><a href="#Reference_functions_Draw_SetTintColor">Draw.SetTintColor</a></li>
                     <li><a href="#Reference_functions_Draw_SetTintMode">Draw.SetTintMode</a></li>
                     <li><a href="#Reference_functions_Draw_UseTinting">Draw.UseTinting</a></li>
+                    <li><a href="#Reference_functions_Draw_SetShader">Draw.SetShader</a></li>
+                    <li><a href="#Reference_functions_Draw_SetShaderUniform">Draw.SetShaderUniform</a></li>
+                    <li><a href="#Reference_functions_Draw_SetShaderTexture">Draw.SetShaderTexture</a></li>
                     <li><a href="#Reference_functions_Draw_SetFilter">Draw.SetFilter</a></li>
                     <li><a href="#Reference_functions_Draw_UseStencil">Draw.UseStencil</a></li>
                     <li><a href="#Reference_functions_Draw_SetStencilTestFunction">Draw.SetStencilTestFunction</a></li>
@@ -1118,14 +1121,6 @@
                     <li><a href="#Reference_functions_Settings_PropertyExists">Settings.PropertyExists</a></li>
                     <li><a href="#Reference_functions_Settings_RemoveProperty">Settings.RemoveProperty</a></li>
                     <li><a href="#Reference_functions_Settings_GetPropertyCount">Settings.GetPropertyCount</a></li>
-                </ul>
-            </p>
-            <p id="Reference_Shader">
-                <h2>Shader</h2>
-                <i>Class methods:</i>
-                <ul>
-                    <li><a href="#Reference_functions_Shader_Set">Shader.Set</a></li>
-                    <li><a href="#Reference_functions_Shader_Unset">Shader.Unset</a></li>
                 </ul>
             </p>
             <p id="Reference_SocketClient">
@@ -1951,6 +1946,13 @@
                 <ul>
                     <li><a href="#Reference_enums_SCOPE_SCENE">SCOPE_SCENE</a></li>
                     <li><a href="#Reference_enums_SCOPE_GAME">SCOPE_GAME</a></li>
+                </ul>
+            </p>
+            <p id="Reference_SHADERPROGRAM_*">
+                <h2><code>SHADERPROGRAM_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_SHADERPROGRAM_VERTEX">SHADERPROGRAM_VERTEX</a></li>
+                    <li><a href="#Reference_enums_SHADERPROGRAM_FRAGMENT">SHADERPROGRAM_FRAGMENT</a></li>
                 </ul>
             </p>
             <p id="Reference_SensorDirection_*">
@@ -3648,6 +3650,35 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>useTinting (Boolean): Whether or not to use color tinting when drawing.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetShader">
+        <h2 style="margin-bottom: 8px;">Draw.SetShader</h2>
+        <code>Draw.SetShader(shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a shader.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetShaderUniform">
+        <h2 style="margin-bottom: 8px;">Draw.SetShaderUniform</h2>
+        <code>Draw.SetShaderUniform(uniform, value)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets an uniform for the current shader.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>uniform (String): The name of the uniform.</li>
+        <li>value (Number or Array): The value to send to the shader.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetShaderTexture">
+        <h2 style="margin-bottom: 8px;">Draw.SetShaderTexture</h2>
+        <code>Draw.SetShaderTexture(uniform, texture)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Binds a texture to the current shader.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>uniform (String): The name of the uniform.</li>
+        <li>texture (Texture): The texture to bind to the uniform.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetFilter">
@@ -8477,14 +8508,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The total section count, as an integer.</div>
         </p>
-        <p id="Reference_functions_Shader_Set">
-        <h2 style="margin-bottom: 8px; color: red;">Shader.Set</h2>
-        <code>Shader.Set()</code>
-        </p>
-        <p id="Reference_functions_Shader_Unset">
-        <h2 style="margin-bottom: 8px; color: red;">Shader.Unset</h2>
-        <code>Shader.Unset()</code>
-        </p>
         <p id="Reference_functions_SocketClient_Open">
         <h2 style="margin-bottom: 8px; color: red;">SocketClient.Open</h2>
         <code>SocketClient.Open()</code>
@@ -10238,7 +10261,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>739 out of 798 functions have descriptions. </p>
+        <p>742 out of 799 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -12090,6 +12113,14 @@
         <h3 style="margin-bottom: 8px;"><code>SCOPE_GAME</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Game scope.</div>
         </p>
+        <p id="Reference_enums_SHADERPROGRAM_VERTEX">
+        <h3 style="margin-bottom: 8px;"><code>SHADERPROGRAM_VERTEX</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Vertex shader program.</div>
+        </p>
+        <p id="Reference_enums_SHADERPROGRAM_FRAGMENT">
+        <h3 style="margin-bottom: 8px;"><code>SHADERPROGRAM_FRAGMENT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Fragment shader program.</div>
+        </p>
         <p id="Reference_enums_SensorDirection_Down">
         <h3 style="margin-bottom: 8px;"><code>SensorDirection_Down</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Down sensor direction.</div>
@@ -12242,7 +12273,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>311 out of 311 enums have descriptions. </p>
+        <p>313 out of 313 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">
