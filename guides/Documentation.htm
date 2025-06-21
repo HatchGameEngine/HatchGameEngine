@@ -408,8 +408,6 @@
                     <li><a href="#Reference_functions_Draw_SetTintMode">Draw.SetTintMode</a></li>
                     <li><a href="#Reference_functions_Draw_UseTinting">Draw.UseTinting</a></li>
                     <li><a href="#Reference_functions_Draw_SetShader">Draw.SetShader</a></li>
-                    <li><a href="#Reference_functions_Draw_SetShaderUniform">Draw.SetShaderUniform</a></li>
-                    <li><a href="#Reference_functions_Draw_SetShaderTexture">Draw.SetShaderTexture</a></li>
                     <li><a href="#Reference_functions_Draw_SetFilter">Draw.SetFilter</a></li>
                     <li><a href="#Reference_functions_Draw_UseStencil">Draw.UseStencil</a></li>
                     <li><a href="#Reference_functions_Draw_SetStencilTestFunction">Draw.SetStencilTestFunction</a></li>
@@ -3655,30 +3653,10 @@
         <p id="Reference_functions_Draw_SetShader">
         <h2 style="margin-bottom: 8px;">Draw.SetShader</h2>
         <code>Draw.SetShader(shader)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets a shader.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current shader.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetShaderUniform">
-        <h2 style="margin-bottom: 8px;">Draw.SetShaderUniform</h2>
-        <code>Draw.SetShaderUniform(uniform, value)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets an uniform for the current shader.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>uniform (String): The name of the uniform.</li>
-        <li>value (Number or Array): The value to send to the shader.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Draw_SetShaderTexture">
-        <h2 style="margin-bottom: 8px;">Draw.SetShaderTexture</h2>
-        <code>Draw.SetShaderTexture(uniform, texture)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Binds a texture to the current shader.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>uniform (String): The name of the uniform.</li>
-        <li>texture (Texture): The texture to bind to the uniform.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetFilter">
@@ -10261,7 +10239,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>742 out of 799 functions have descriptions. </p>
+        <p>740 out of 797 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
