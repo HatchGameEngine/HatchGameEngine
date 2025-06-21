@@ -2643,8 +2643,8 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 				// receiver, which is the reason these
 				// +1 and -1 are here.
 				returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
-			} catch (const char* err) {
-				(void)err;
+			} catch (const std::runtime_error& error) {
+				ThrowRuntimeError(false, "%s", error.what());
 			}
 
 			StackTop -= argCount; // Pop arguments
