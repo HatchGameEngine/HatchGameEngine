@@ -530,7 +530,7 @@ void GL_SetSpriteData(Texture* texture, float sx, float sy, float sw, float sh) 
 
 	if (shader->LocSpriteFrameCoords != -1) {
 		glUniform2f(
-			shader->LocSpriteFrameCoords, sx / texture->Width, sx / texture->Height);
+			shader->LocSpriteFrameCoords, sx / texture->Width, sy / texture->Height);
 	}
 
 	if (shader->LocSpriteFrameSize != -1) {
