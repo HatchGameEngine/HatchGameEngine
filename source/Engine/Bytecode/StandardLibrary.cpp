@@ -14562,63 +14562,6 @@ VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) 
 }
 // #endregion
 
-// #region Shader
-/***
- * Shader.Set
- * \desc Do not use.
- * \ns Shader
- */
-VMValue Shader_Set(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-
-	ObjArray* array = GET_ARG(0, GetArray);
-
-	size_t numValues = array->Values->size();
-	if (numValues != FILTER_TABLE_SIZE) {
-		THROW_ERROR("Expected array to have exactly %d indices, but it had %d.", FILTER_TABLE_SIZE, numValues);
-		return NULL_VAL;
-	}
-
-	Uint32* filterTable = (Uint32*)Memory::Malloc(numValues * sizeof(Uint32));
-
-	for (size_t i = 0; i < numValues; i++) {
-		VMValue value = (*array->Values)[i];
-
-		Uint32 colorVal = 0;
-
-		if (IS_INTEGER(value)) {
-			colorVal = AS_INTEGER(value);
-		}
-		else {
-			if (THROW_ERROR("Expected value at array index %d to be of type %s instead of %s.",
-				    i,
-				    GetTypeString(VAL_INTEGER),
-				    GetValueTypeString(value)) != ERROR_RES_CONTINUE) {
-				return NULL_VAL;
-			}
-		}
-
-		filterTable[i] = colorVal;
-	}
-
-	Graphics::SetFilterTable(filterTable, numValues);
-
-	Memory::Free(filterTable);
-
-	return NULL_VAL;
-}
-/***
- * Shader.Unset
- * \desc Do not use.
- * \ns Shader
- */
-VMValue Shader_Unset(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	Graphics::SetFilterTable(nullptr, 0);
-	return NULL_VAL;
-}
-// #endregion
-
 // #region SocketClient
 WebSocketClient* client = NULL;
 /***
@@ -19842,9 +19785,6 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Shader
-	GET_OR_INIT_CLASS(Shader);
-	DEF_NATIVE(Shader, Set);
-	DEF_NATIVE(Shader, Unset);
 	/***
     * \enum SHADERPROGRAM_VERTEX
     * \desc Vertex shader program.
