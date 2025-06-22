@@ -10,6 +10,8 @@ class Shader {
 protected:
 	bool Compiled = false;
 
+	void ValidateTextureUniformNames();
+
 public:
 	enum {
 		PROGRAM_VERTEX,

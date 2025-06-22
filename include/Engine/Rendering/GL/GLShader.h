@@ -24,11 +24,15 @@ private:
 	void AddVertexProgram(Stream* stream);
 	void AddFragmentProgram(Stream* stream);
 	void AttachAndLink();
+
 	std::string CheckShaderError(GLuint shader);
 	std::string CheckProgramError(GLuint prog);
 
-	GLVariableMap AttribMap;
 	GLVariableMap UniformMap;
+
+#ifndef GL_USING_ATTRIB_LOCATIONS
+	GLVariableMap AttribMap;
+#endif
 
 public:
 	GLShader();

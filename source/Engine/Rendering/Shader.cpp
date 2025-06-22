@@ -1,4 +1,5 @@
 #include <Engine/Graphics.h>
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Rendering/Shader.h>
 
 void Shader::Compile() {
@@ -78,6 +79,24 @@ void Shader::AddTextureUniformName(std::string identifier) {
 		TextureUniformNames.push_back(identifier);
 	}
 }
+void Shader::ValidateTextureUniformNames() {
+	for (size_t i = 0; i < TextureUniformNames.size();) {
+		std::string uniformName = TextureUniformNames[i];
+
+		int uniform = GetUniformLocation(uniformName);
+		if (uniform == -1) {
+			if (!IsBuiltinUniform(uniformName)) {
+				Log::Print(Log::LOG_WARN, "No uniform named \"%s\"!", uniformName.c_str());
+			}
+
+			TextureUniformNames.erase(TextureUniformNames.begin() + i);
+			continue;
+		}
+
+		i++;
+	}
+}
+
 void Shader::InitTextureUnitMap() {
 	int maxTextureUnit = Graphics::GetMaxTextureUnits();
 	int unit = 0;

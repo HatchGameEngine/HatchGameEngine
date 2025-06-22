@@ -1,6 +1,5 @@
 #ifdef USING_OPENGL
 
-#include <Engine/Diagnostics/Log.h>
 #include <Engine/IO/TextStream.h>
 #include <Engine/Rendering/GL/GLRenderer.h>
 #include <Engine/Rendering/GL/GLShader.h>
@@ -256,6 +255,7 @@ void GLShader::AttachAndLink() {
 	LocFogDensity = AddBuiltinUniform("u_fogDensity");
 	LocFogTable = AddBuiltinUniform("u_fogTable");
 
+	ValidateTextureUniformNames();
 	InitTextureUnitMap();
 
 	Use();
