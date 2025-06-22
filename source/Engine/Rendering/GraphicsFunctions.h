@@ -34,7 +34,7 @@ struct GraphicsFunctions {
 	void (*SetFilter)(int filter);
 	void (*SetFilterTable)(Uint32* table, size_t size);
 
-	void (*SetTextureInterpolation)(bool interpolate);
+	int (*GetMaxTextureUnits)();
 
 	void (*UpdateGlobalPalette)(Texture* texture);
 

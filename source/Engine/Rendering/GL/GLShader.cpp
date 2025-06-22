@@ -143,7 +143,7 @@ GLShader::GLShader() {
 #if GL_USING_ATTRIB_LOCATIONS
 	InitAttributes();
 #endif
-	InitTextureUniformUnits();
+	InitTextureUniforms();
 }
 GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSource) {
 	Compiled = false;
@@ -169,7 +169,7 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 #if GL_USING_ATTRIB_LOCATIONS
 	InitAttributes();
 #endif
-	InitTextureUniformUnits();
+	InitTextureUniforms();
 
 	try {
 		Compile();
@@ -198,7 +198,7 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 #if GL_USING_ATTRIB_LOCATIONS
 	InitAttributes();
 #endif
-	InitTextureUniformUnits();
+	InitTextureUniforms();
 
 	try {
 		Compile();
@@ -470,7 +470,7 @@ void GLShader::SetUniformTexture(const char* name, Texture* texture) {
 
 	int textureUnit = GetTextureUnit(uniform);
 	if (textureUnit == -1) {
-		throw std::runtime_error("No texture unit for uniform \"" + std::string(name) + "\"!");
+		throw std::runtime_error("No texture unit assigned to uniform \"" + std::string(name) + "\"!");
 	}
 
 	Use();
@@ -487,7 +487,7 @@ void GLShader::SetUniformTexture(int uniform, int textureID) {
 
 	int textureUnit = GetTextureUnit(uniform);
 	if (textureUnit == -1) {
-		throw std::runtime_error("No texture unit for this uniform!");
+		throw std::runtime_error("No texture unit assigned to uniform!");
 	}
 
 	Use();
@@ -570,24 +570,14 @@ void GLShader::InitAttributes() {
 }
 #endif
 
-void GLShader::InitTextureUniformUnits() {
-	SetTextureUniformUnit(UNIFORM_TEXTURE, 0);
-	SetTextureUniformUnit(UNIFORM_PALETTETEXTURE, 1);
+void GLShader::InitTextureUniforms() {
+	AddTextureUniformName(UNIFORM_TEXTURE);
+	AddTextureUniformName(UNIFORM_PALETTETEXTURE);
 
 #ifdef GL_HAVE_YUV
-	SetTextureUniformUnit(UNIFORM_TEXTUREU, 1);
-	SetTextureUniformUnit(UNIFORM_TEXTUREV, 2);
+	AddTextureUniformName(UNIFORM_TEXTUREU);
+	AddTextureUniformName(UNIFORM_TEXTUREV);
 #endif
-}
-void GLShader::SetTextureUniformUnit(std::string identifier, int unit) {
-	int maxTextureUnit = GLRenderer::GetMaxTextureImageUnits();
-	if (unit < 0 || unit >= maxTextureUnit) {
-		char buffer[64];
-		snprintf(buffer, sizeof buffer, "Invalid texture unit %d! (0 - %d)", unit, maxTextureUnit - 1);
-		throw std::runtime_error(std::string(buffer));
-	}
-
-	TextureUniformMap[identifier] = unit;
 }
 
 #if GL_USING_ATTRIB_LOCATIONS

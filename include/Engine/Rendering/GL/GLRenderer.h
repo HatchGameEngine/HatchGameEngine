@@ -73,9 +73,9 @@ public:
 	static void BindTexture(int textureID, int textureUnit, int uniform);
 	static int GetTextureUnit();
 	static void SetTextureUnit(int textureUnit);
+	static int GetMaxTextureUnits();
 	static int GetCurrentProgram();
 	static void SetCurrentProgram(int program);
-	static int GetMaxTextureImageUnits();
 	static void SetFilter(int filter);
 	static void UpdateGlobalPalette(Texture* texture);
 	static void Clear();

@@ -582,6 +582,14 @@ void Graphics::SetTextureInterpolation(bool interpolate) {
 	Graphics::TextureInterpolate = interpolate;
 }
 
+int Graphics::GetMaxTextureUnits() {
+	if (Graphics::GfxFunctions->GetMaxTextureUnits) {
+		return Graphics::GfxFunctions->GetMaxTextureUnits();
+	}
+
+	return 1;
+}
+
 void Graphics::Clear() {
 	Graphics::GfxFunctions->Clear();
 }

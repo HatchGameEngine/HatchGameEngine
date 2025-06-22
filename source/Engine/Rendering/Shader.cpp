@@ -1,3 +1,4 @@
+#include <Engine/Graphics.h>
 #include <Engine/Rendering/Shader.h>
 
 void Shader::Compile() {
@@ -68,28 +69,43 @@ bool Shader::IsBuiltinUniform(std::string identifier) {
 	return it != BuiltinUniforms.end();
 }
 
-void Shader::InitTextureUniformUnits() {
-	throw std::runtime_error("Shader::InitTextureUniformUnits() called without an implementation");
+void Shader::InitTextureUniforms() {
+	throw std::runtime_error("Shader::InitTextureUniforms() called without an implementation");
 }
-void Shader::SetTextureUniformUnit(std::string identifier, int unit) {
-	throw std::runtime_error("Shader::SetTextureUniformUnit() called without an implementation");
+void Shader::AddTextureUniformName(std::string identifier) {
+	auto it = std::find(TextureUniformNames.begin(), TextureUniformNames.end(), identifier);
+	if (it == TextureUniformNames.end()) {
+		TextureUniformNames.push_back(identifier);
+	}
 }
 void Shader::InitTextureUnitMap() {
-	for (auto it = TextureUniformMap.begin(); it != TextureUniformMap.end(); it++) {
-		std::string uniformName = it->first;
+	int maxTextureUnit = Graphics::GetMaxTextureUnits();
+	int unit = 0;
+
+	for (size_t i = 0, iSz = TextureUniformNames.size(); i < iSz; i++) {
+		std::string uniformName = TextureUniformNames[i];
 
 		int uniform = GetUniformLocation(uniformName);
-		if (uniform != -1) {
-			int unit = it->second;
+		if (uniform == -1) {
+			if (!IsBuiltinUniform(uniformName)) {
+				throw std::runtime_error("No uniform named \"" + uniformName + "\"!");
+			}
 
-			TextureUnitMap[uniform] = unit;
+			continue;
 		}
-		else if (!IsBuiltinUniform(uniformName)) {
-			throw std::runtime_error("No uniform named \"" + uniformName + "\"!");
+
+		if (unit >= maxTextureUnit) {
+			char buffer[64];
+			snprintf(buffer, sizeof buffer, "Too many texture units in use! (Maximum supported is %d)", maxTextureUnit);
+			throw std::runtime_error(std::string(buffer));
 		}
+
+		TextureUnitMap[uniform] = unit;
+
+		unit++;
 	}
 
-	TextureUniformMap.clear();
+	TextureUniformNames.clear();
 }
 
 int Shader::GetTextureUnit(int uniform) {

@@ -39,8 +39,8 @@ public:
 	int AddBuiltinUniform(std::string identifier);
 	bool IsBuiltinUniform(std::string identifier);
 
-	virtual void InitTextureUniformUnits();
-	virtual void SetTextureUniformUnit(std::string identifier, int unit);
+	virtual void InitTextureUniforms();
+	void AddTextureUniformName(std::string identifier);
 	void InitTextureUnitMap();
 	int GetTextureUnit(int uniform);
 
@@ -49,7 +49,7 @@ public:
 
 	std::vector<std::string> BuiltinUniforms;
 
-	std::unordered_map<std::string, int> TextureUniformMap;
+	std::vector<std::string> TextureUniformNames;
 	std::unordered_map<int, int> TextureUnitMap;
 
 	void* Object = nullptr;

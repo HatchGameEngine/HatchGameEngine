@@ -17,7 +17,7 @@ void ShaderImpl::Init() {
 	ScriptManager::DefineNative(Class, "CanCompile", VM_CanCompile);
 	ScriptManager::DefineNative(Class, "IsValid", VM_IsValid);
 	ScriptManager::DefineNative(Class, "AddProgram", VM_AddProgram);
-	ScriptManager::DefineNative(Class, "SetTextureUnit", VM_SetTextureUnit);
+	ScriptManager::DefineNative(Class, "AssignTextureUnit", VM_AssignTextureUnit);
 	ScriptManager::DefineNative(Class, "GetTextureUnit", VM_GetTextureUnit);
 	ScriptManager::DefineNative(Class, "Compile", VM_Compile);
 	ScriptManager::DefineNative(Class, "SetUniform", VM_SetUniform);
@@ -53,7 +53,7 @@ Obj* ShaderImpl::VM_New() {
 }
 /***
  * \method HasProgram
- * \desc Checks if the shader has a program.
+ * \desc Checks if the shader has a program of a given type.
  * \param program (Enum): <linkto ref="SHADERPROGRAM_*">Shader program type</linkto>.
  * \return Returns <code>true</code> if there is a program of the given type, <code>false</code> if otherwise.
  * \ns Shader
@@ -67,9 +67,9 @@ VMValue ShaderImpl::VM_HasProgram(int argCount, VMValue* args, Uint32 threadID) 
 	}
 
 	Shader* shader = (Shader*)objShader->ShaderPtr;
-	CHECK_EXISTS(shader);
-
 	int program = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(shader);
 
 	bool hasProgram = shader->HasProgram(program);
 
@@ -120,7 +120,7 @@ VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * \method AddProgram
- * \desc Adds a program.
+ * \desc Adds a program. This should not be called multiple times for the same shader program type.
  * \param program (Enum): <linkto ref="SHADERPROGRAM_*">Shader program type</linkto>.
  * \param filename (String): Filename of the resource.
  * \ns Shader
@@ -134,10 +134,10 @@ VMValue ShaderImpl::VM_AddProgram(int argCount, VMValue* args, Uint32 threadID) 
 	}
 
 	Shader* shader = (Shader*)objShader->ShaderPtr;
-	CHECK_EXISTS(shader);
-
 	int program = GET_ARG(1, GetInteger);
 	char* filename = GET_ARG(2, GetString);
+
+	CHECK_EXISTS(shader);
 
 	Stream* stream = ResourceStream::New(filename);
 	if (!stream) {
@@ -163,14 +163,13 @@ VMValue ShaderImpl::VM_AddProgram(int argCount, VMValue* args, Uint32 threadID) 
 	return INTEGER_VAL(success);
 }
 /***
- * \method SetTextureUnit
- * \desc Assigns a texture unit to a texture uniform.
+ * \method AssignTextureUnit
+ * \desc Assigns a texture unit to a texture uniform. This is safe to call multiple times for the same uniform name.
  * \param uniform (String): The name of the uniform.
- * \param unit (Integer): The texture unit.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_SetTextureUnit(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 3);
+VMValue ShaderImpl::VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -178,20 +177,15 @@ VMValue ShaderImpl::VM_SetTextureUnit(int argCount, VMValue* args, Uint32 thread
 	}
 
 	Shader* shader = (Shader*)objShader->ShaderPtr;
-	CHECK_EXISTS(shader);
-
 	char* uniform = GET_ARG(1, GetString);
-	int unit = GET_ARG(2, GetInteger);
+
+	CHECK_EXISTS(shader);
 
 	if (shader->WasCompiled()) {
 		throw ScriptException("Cannot set texture unit after compilation!");
 	}
 
-	try {
-		shader->SetTextureUniformUnit(std::string(uniform), unit);
-	} catch (const std::runtime_error& error) {
-		throw ScriptException(error.what());
-	}
+	shader->AddTextureUniformName(std::string(uniform));
 
 	return NULL_VAL;
 }
@@ -211,23 +205,32 @@ VMValue ShaderImpl::VM_GetTextureUnit(int argCount, VMValue* args, Uint32 thread
 	}
 
 	Shader* shader = (Shader*)objShader->ShaderPtr;
-	CHECK_EXISTS(shader);
-
 	char* uniformName = GET_ARG(1, GetString);
 
-	std::string key = std::string(uniformName);
-	std::unordered_map<std::string, int>::iterator it = shader->TextureUniformMap.find(key);
-	if (it == shader->TextureUniformMap.end()) {
-		return NULL_VAL;
+	CHECK_EXISTS(shader);
+
+	if (!shader->WasCompiled()) {
+		throw ScriptException("Cannot get texture unit before compilation!");
 	}
 
-	int textureUnit = it->second;
+	std::string identifier(uniformName);
+
+	int uniform = shader->GetUniformLocation(identifier);
+	if (uniform == -1) {
+		throw ScriptException("No uniform named \"" + identifier + "\"!");
+	}
+
+	int textureUnit = shader->GetTextureUnit(uniform);
+	if (textureUnit == -1) {
+		return NULL_VAL;
+	}
 
 	return INTEGER_VAL(textureUnit);
 }
 /***
  * \method Compile
  * \desc Compiles a shader.
+ * \return Returns <code>true</code> if the shader was compiled, <code>false</code> if otherwise.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
@@ -256,9 +259,9 @@ VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * \method SetUniform
- * \desc Sets the value of an uniform.
+ * \desc Sets the value of an uniform variable. The value passed to the uniform persists between different invocations, and can be set at any time, as long as the shader is valid. This can only be called after the shader has been compiled.
  * \param uniform (String): The name of the uniform.
- * \param value (Number or Array): The value to send to the shader.
+ * \param value (Number or Array): The value.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) {
@@ -266,12 +269,15 @@ VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) 
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;
-
-	CHECK_EXISTS(shader);
-
 	char* uniform = GET_ARG(1, GetString);
 	float value = GET_ARG(2, GetDecimal);
 	// VMValue value = args[1];
+
+	CHECK_EXISTS(shader);
+
+	if (!shader->WasCompiled()) {
+		throw ScriptException("Cannot set uniform before compilation!");
+	}
 
 	void* values;
 	values = Memory::Malloc(sizeof(int) * 1);
@@ -292,9 +298,9 @@ VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) 
 }
 /***
  * \method SetTexture
- * \desc Binds a texture to an uniform.
+ * \desc Assigns an Image to a specific texture unit linked to an uniform variable. The texture unit must have been defined using <linkto ref="shader.AssignTextureUnit"></linkto> for this function to succeed.
  * \param uniform (String): The name of the uniform.
- * \param texture (Texture): The texture to bind to the uniform.
+ * \param image (Image): The image to bind to the uniform.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) {
@@ -302,11 +308,10 @@ VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) 
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;
-
-	CHECK_EXISTS(shader);
-
 	char* uniform = GET_ARG(1, GetString);
 	Texture* texture = nullptr;
+
+	CHECK_EXISTS(shader);
 
 	if (!IS_NULL(args[2])) {
 		Image* image = GET_ARG(2, GetImage);
@@ -325,7 +330,7 @@ VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) 
 }
 /***
  * \method Delete
- * \desc Deletes a shader.
+ * \desc Deletes a shader. It can no longer be used after this function is called.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {

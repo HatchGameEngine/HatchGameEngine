@@ -313,11 +313,15 @@ void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 	GL_LastTexture = texture;
 }
 void GL_PreparePaletteShader(GLShader* shader, int paletteID) {
-	int textureID = GL_PaletteTexture ? GL_PaletteTexture->TextureID : 0;
+	if (shader->LocPaletteTexture != -1) {
+		int textureID = GL_PaletteTexture ? GL_PaletteTexture->TextureID : 0;
 
-	shader->SetUniformTexture(shader->LocPaletteTexture, textureID);
+		shader->SetUniformTexture(shader->LocPaletteTexture, textureID);
+	}
 
-	glUniform1i(shader->LocPaletteLine, paletteID);
+	if (shader->LocPaletteLine != -1) {
+		glUniform1i(shader->LocPaletteLine, paletteID);
+	}
 }
 GLShader* GL_SetShader(GLShader* shader) {
 	if (shader == nullptr) {
@@ -387,12 +391,10 @@ void GL_SetTexturedShader() {
 		GL_SetShader(GLRenderer::ShaderShape->GetWithTexturing());
 	}
 }
-void GL_SetPaletteShader(int paletteID) {
+void GL_SetPaletteShader() {
 	if (!GL_UserShaderActive()) {
 		GL_SetShader(GLRenderer::ShaderShape->GetWithPalette());
 	}
-
-	GL_PreparePaletteShader(GLRenderer::CurrentShader, paletteID);
 }
 void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 	// Use appropriate shader if changed
@@ -410,10 +412,14 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 #endif
 		{
 			if (texture->Paletted && Graphics::UsePalettes) {
-				GL_SetPaletteShader(paletteID);
+				GL_SetPaletteShader();
 			}
 			else {
 				GL_SetTexturedShader();
+			}
+
+			if (Graphics::UsePalettes) {
+				GL_PreparePaletteShader(GLRenderer::CurrentShader, paletteID);
 			}
 		}
 
@@ -1519,6 +1525,7 @@ void GLRenderer::SetGraphicsFunctions() {
 	// These guys
 	Graphics::Internal.Clear = GLRenderer::Clear;
 	Graphics::Internal.Present = GLRenderer::Present;
+	Graphics::Internal.GetMaxTextureUnits = GLRenderer::GetMaxTextureUnits;
 
 	// Draw mode setting functions
 	Graphics::Internal.SetBlendColor = GLRenderer::SetBlendColor;
@@ -2085,6 +2092,10 @@ void GLRenderer::SetTextureUnit(int textureUnit) {
 		glActiveTexture(GL_ActiveTexture);
 	}
 }
+int GLRenderer::GetMaxTextureUnits() {
+	return GL_MaxTextureImageUnits;
+}
+
 int GLRenderer::GetCurrentProgram() {
 	if (CurrentShader) {
 		return CurrentShader->ProgramID;
@@ -2095,9 +2106,6 @@ int GLRenderer::GetCurrentProgram() {
 void GLRenderer::SetCurrentProgram(int program) {
 	glUseProgram(program);
 	CHECK_GL();
-}
-int GLRenderer::GetMaxTextureImageUnits() {
-	return GL_MaxTextureImageUnits;
 }
 
 // Filter-related functions

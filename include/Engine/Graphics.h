@@ -129,6 +129,7 @@ public:
 	static void SetFilter(int filter);
 	static void SetFilterTable(Uint32* table, size_t size);
 	static void SetTextureInterpolation(bool interpolate);
+	static int GetMaxTextureUnits();
 	static void Clear();
 	static void Present();
 	static void SoftwareStart();
