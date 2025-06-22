@@ -17854,6 +17854,38 @@ VMValue Window_SetTitle(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Window.SetPostProcessingShader
+ * \desc Sets a post-processing shader for the active window.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns Window
+ */
+VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	if (IS_NULL(args[0])) {
+		Graphics::PostProcessShader = nullptr;
+		return NULL_VAL;
+	}
+
+	ObjShader* objShader = GET_ARG(0, GetShader);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader has been deleted!");
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Validate();
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+		return NULL_VAL;
+	}
+
+	Graphics::PostProcessShader = shader;
+
+	return NULL_VAL;
+}
+/***
  * Window.GetWidth
  * \desc Gets the width of the active window.
  * \return Returns the width of the active window.
@@ -20050,6 +20082,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Window, SetPosition);
 	DEF_NATIVE(Window, SetPositionCentered);
 	DEF_NATIVE(Window, SetTitle);
+	DEF_NATIVE(Window, SetPostProcessingShader);
 	DEF_NATIVE(Window, GetWidth);
 	DEF_NATIVE(Window, GetHeight);
 	DEF_NATIVE(Window, GetFullscreen);

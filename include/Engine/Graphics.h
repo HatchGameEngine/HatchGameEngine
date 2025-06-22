@@ -63,8 +63,9 @@ public:
 	static int StencilTest;
 	static int StencilOpPass;
 	static int StencilOpFail;
-	static void* FramebufferPixels;
-	static size_t FramebufferSize;
+	static Texture* FramebufferTexture;
+	static int FramebufferWidth;
+	static int FramebufferHeight;
 	static TileScanLine TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static Uint32 PaletteColors[MAX_PALETTE_COUNT][0x100];
 	static Uint8 PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
@@ -74,6 +75,7 @@ public:
 	static Sint32 CurrentScene3D;
 	static Sint32 CurrentVertexBuffer;
 	static Shader* CurrentShader;
+	static Shader* PostProcessShader;
 	static bool SmoothFill;
 	static bool SmoothStroke;
 	static float PixelOffset;
@@ -134,6 +136,9 @@ public:
 	static void UpdateGlobalPalette();
 	static void UnloadSceneData();
 	static void SetRenderTarget(Texture* texture);
+	static bool CreateFramebufferTexture();
+	static bool UpdateFramebufferTexture();
+	static void DoScreenPostProcess();
 	static void CopyScreen(int source_x,
 		int source_y,
 		int source_w,
@@ -153,6 +158,7 @@ public:
 		Matrix4x4* modelMatrix,
 		Matrix4x4* viewMatrix,
 		Matrix4x4* projMatrix);
+	static void GetScreenSize(int& outWidth, int& outHeight);
 	static void SetViewport(float x, float y, float w, float h);
 	static void ResetViewport();
 	static void Resize(int width, int height);

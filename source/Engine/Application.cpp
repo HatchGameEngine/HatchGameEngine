@@ -527,6 +527,7 @@ double MetricPollTime = -1;
 double MetricUpdateTime = -1;
 double MetricClearTime = -1;
 double MetricRenderTime = -1;
+double MetricPostProcessTime = -1;
 double MetricFPSCounterTime = -1;
 double MetricPresentTime = -1;
 double MetricFrameTime = 0.0;
@@ -540,6 +541,7 @@ void Application::GetPerformanceSnapshot() {
 			MetricUpdateTime,
 			MetricClearTime,
 			MetricRenderTime,
+			MetricPostProcessTime,
 			MetricPresentTime,
 			0.0,
 			MetricFrameTime,
@@ -551,6 +553,7 @@ void Application::GetPerformanceSnapshot() {
 			"Entity Update:         %8.3f ms",
 			"Clear Time:            %8.3f ms",
 			"World Render Commands: %8.3f ms",
+			"Render Post-Process:   %8.3f ms",
 			"Frame Present Time:    %8.3f ms",
 			"==================================",
 			"Frame Total Time:      %8.3f ms",
@@ -1186,6 +1189,10 @@ void Application::RunFrame(int runFrames) {
 	Scene::Render();
 	MetricRenderTime = Clock::GetTicks() - MetricRenderTime;
 
+	MetricPostProcessTime = Clock::GetTicks();
+	Graphics::DoScreenPostProcess();
+	MetricPostProcessTime = Clock::GetTicks() - MetricPostProcessTime;
+
 DO_NOTHING:
 
 	// Show FPS counter
@@ -1251,6 +1258,7 @@ DO_NOTHING:
 			MetricUpdateTime,
 			MetricClearTime,
 			MetricRenderTime,
+			MetricPostProcessTime,
 			MetricPresentTime,
 		};
 		const char* typeNames[] = {
@@ -1260,6 +1268,7 @@ DO_NOTHING:
 			"Entity Update: %3.3f ms",
 			"Clear Time: %3.3f ms",
 			"World Render Commands: %3.3f ms",
+			"Render Post-Process: %3.3f ms",
 			"Frame Present Time: %3.3f ms",
 		};
 		struct {
