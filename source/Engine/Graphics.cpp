@@ -262,9 +262,15 @@ void Graphics::UnloadData() {
 }
 void Graphics::DeleteShaders() {
 	Graphics::CurrentShader = nullptr;
+
+	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+		Scene::Views[i].CurrentShader = nullptr;
+	}
+
 	for (Uint32 i = 0; i < Graphics::Shaders.size(); i++) {
 		delete Shaders[i];
 	}
+
 	Graphics::Shaders.clear();
 }
 void Graphics::DeleteVertexBuffers() {
@@ -862,6 +868,7 @@ void Graphics::PushState() {
 
 	GraphicsState state;
 
+	state.CurrentShader = (void*)Graphics::CurrentShader;
 	state.CurrentViewport = Graphics::CurrentViewport;
 	state.CurrentClip = Graphics::CurrentClip;
 	state.BlendMode = Graphics::BlendMode;
@@ -885,6 +892,8 @@ void Graphics::PopState() {
 	}
 
 	GraphicsState state = StateStack.top();
+
+	Graphics::SetUserShader((Shader*)state.CurrentShader);
 
 	Graphics::SetBlendMode(state.BlendMode);
 	Graphics::SetBlendColor(state.BlendColors[0],

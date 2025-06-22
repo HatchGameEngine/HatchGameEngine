@@ -1360,6 +1360,8 @@
                     <li><a href="#Reference_functions_View_IsUsingDrawTarget">View.IsUsingDrawTarget</a></li>
                     <li><a href="#Reference_functions_View_SetUseDrawTarget">View.SetUseDrawTarget</a></li>
                     <li><a href="#Reference_functions_View_GetDrawTarget">View.GetDrawTarget</a></li>
+                    <li><a href="#Reference_functions_View_SetShader">View.SetShader</a></li>
+                    <li><a href="#Reference_functions_View_GetShader">View.GetShader</a></li>
                     <li><a href="#Reference_functions_View_IsUsingSoftwareRenderer">View.IsUsingSoftwareRenderer</a></li>
                     <li><a href="#Reference_functions_View_SetUseSoftwareRenderer">View.SetUseSoftwareRenderer</a></li>
                     <li><a href="#Reference_functions_View_SetUsePerspective">View.SetUsePerspective</a></li>
@@ -9999,6 +10001,27 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
+        <p id="Reference_functions_View_SetShader">
+        <h2 style="margin-bottom: 8px;">View.SetShader</h2>
+        <code>View.SetShader(viewIndex, shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a shader for the specified camera.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_View_GetShader">
+        <h2 style="margin-bottom: 8px;">View.GetShader</h2>
+        <code>View.GetShader(viewIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the shader of the specified camera.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a shader, or <code>null</code>.</div>
+        </p>
         <p id="Reference_functions_View_IsUsingSoftwareRenderer">
         <h2 style="margin-bottom: 8px;">View.IsUsingSoftwareRenderer</h2>
         <code>View.IsUsingSoftwareRenderer(viewIndex)</code>
@@ -10239,7 +10262,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>740 out of 797 functions have descriptions. </p>
+        <p>742 out of 799 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

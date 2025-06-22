@@ -479,9 +479,16 @@ void ScriptManager::FreeValue(VMValue value) {
 			break;
 		}
 		case OBJ_SHADER: {
+			ObjShader* objShader = AS_SHADER(value);
+
 			// Yes, this leaks memory.
 			// Use Delete() in your script for a shader you no longer need!
-			FREE_OBJ(objectPointer, ObjShader);
+			Shader* shader = (Shader*)objShader->ShaderPtr;
+			if (shader != nullptr) {
+				shader->Object = nullptr;
+			}
+
+			FREE_OBJ(objShader, ObjShader);
 			break;
 		}
 		default:

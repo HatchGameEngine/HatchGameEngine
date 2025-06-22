@@ -675,6 +675,7 @@ void Scene::Init() {
 		Scene::Views[i].UseDrawTarget = true;
 		Scene::Views[i].ProjectionMatrix = Matrix4x4::Create();
 		Scene::Views[i].ViewMatrix = Matrix4x4::Create();
+		Scene::Views[i].CurrentShader = nullptr;
 	}
 	Scene::Views[0].Active = true;
 	Scene::ViewsActive = 1;
@@ -935,6 +936,12 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		PERF_END(RenderSetupTime);
 		return;
 	}
+
+	// If a shader is active before rendering the view, for some reason.
+	if (Graphics::CurrentShader != nullptr) {
+		Graphics::SetUserShader(nullptr);
+	}
+
 	Scene::SetView(viewIndex);
 	PERF_END(RenderSetupTime);
 
@@ -1172,6 +1179,11 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		Graphics::SoftwareEnd();
 	}
 	PERF_END(RenderFinishTime);
+
+	// If a shader is still active after rendering the view, for some reason.
+	if (Graphics::CurrentShader != nullptr) {
+		Graphics::SetUserShader(nullptr);
+	}
 }
 
 void Scene::SetupViewMatrices(View* currentView) {
@@ -1369,8 +1381,11 @@ void Scene::Render() {
 					break;
 				}
 
+				Shader* shader = Scene::Views[i].CurrentShader;
+
 				Graphics::TextureBlend = false;
 				Graphics::SetBlendMode(BlendMode_NORMAL);
+				Graphics::SetUserShader(shader);
 				Graphics::DrawTexture(currentView->DrawTarget,
 					0.0,
 					0.0,
@@ -1380,6 +1395,9 @@ void Scene::Render() {
 					out_y + Graphics::PixelOffset,
 					out_w,
 					out_h + Graphics::PixelOffset);
+				if (Graphics::CurrentShader != nullptr) {
+					Graphics::SetUserShader(nullptr);
+				}
 				Graphics::SetDepthTesting(Graphics::UseDepthTesting);
 			}
 		}

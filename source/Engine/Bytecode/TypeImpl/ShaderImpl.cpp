@@ -47,7 +47,9 @@ Obj* ShaderImpl::VM_New() {
 		throw ScriptException("Could not create shader!");
 	}
 
-	return (Obj*)NewShader((void*)shader);
+	ObjShader* obj = NewShader((void*)shader);
+	shader->Object = (void*)obj;
+	return (Obj*)obj;
 }
 /***
  * \method HasProgram

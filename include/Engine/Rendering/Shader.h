@@ -52,11 +52,13 @@ public:
 	std::unordered_map<std::string, int> TextureUniformMap;
 	std::unordered_map<int, int> TextureUnitMap;
 
+	void* Object = nullptr;
+
 	// Cache stuff
 	float CachedBlendColors[4];
-	Matrix4x4* CachedProjectionMatrix = NULL;
-	Matrix4x4* CachedViewMatrix = NULL;
-	Matrix4x4* CachedModelMatrix = NULL;
+	Matrix4x4* CachedProjectionMatrix = nullptr;
+	Matrix4x4* CachedViewMatrix = nullptr;
+	Matrix4x4* CachedModelMatrix = nullptr;
 };
 
 #endif /* ENGINE_RENDERING_SHADER_H */

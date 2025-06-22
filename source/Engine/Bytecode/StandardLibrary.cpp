@@ -17485,6 +17485,53 @@ VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)i);
 }
 /***
+ * View.SetShader
+ * \desc Sets a shader for the specified camera.
+ * \param viewIndex (Integer): Index of the view.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns View
+ */
+VMValue View_SetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	Shader* shader = nullptr;
+
+	CHECK_VIEW_INDEX();
+
+	if (!IS_NULL(args[1])) {
+		ObjShader* objShader = GET_ARG(1, GetShader);
+		shader = (Shader*)objShader->ShaderPtr;
+
+		if (shader == nullptr) {
+			THROW_ERROR("Shader has been deleted!");
+			return NULL_VAL;
+		}
+	}
+
+	Scene::Views[view_index].CurrentShader = shader;
+	return NULL_VAL;
+}
+/***
+ * View.GetShader
+ * \desc Gets the shader of the specified camera.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a shader, or <code>null</code>.
+ * \ns View
+ */
+VMValue View_GetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+
+	CHECK_VIEW_INDEX();
+
+	Shader* shader = Scene::Views[view_index].CurrentShader;
+	if (shader != nullptr) {
+		return OBJECT_VAL(shader->Object);
+	}
+
+	return NULL_VAL;
+}
+/***
  * View.IsUsingSoftwareRenderer
  * \desc Gets whether the specified camera is using the software renderer or not.
  * \param viewIndex (Integer): Index of the view.
@@ -19975,6 +20022,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, IsUsingDrawTarget);
 	DEF_NATIVE(View, SetUseDrawTarget);
 	DEF_NATIVE(View, GetDrawTarget);
+	DEF_NATIVE(View, SetShader);
+	DEF_NATIVE(View, GetShader);
 	DEF_NATIVE(View, IsUsingSoftwareRenderer);
 	DEF_NATIVE(View, SetUseSoftwareRenderer);
 	DEF_NATIVE(View, SetUsePerspective);
