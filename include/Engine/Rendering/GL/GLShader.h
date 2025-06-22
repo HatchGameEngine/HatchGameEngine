@@ -91,6 +91,7 @@ public:
 	GLint LocPaletteTexture;
 	GLint LocPaletteID;
 	GLint LocPaletteIndexTable;
+	GLint LocNumTexturePaletteIndices;
 	GLint LocColor;
 	GLint LocDiffuseColor;
 	GLint LocSpecularColor;

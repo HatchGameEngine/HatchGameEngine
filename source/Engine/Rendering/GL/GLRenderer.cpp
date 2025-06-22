@@ -312,7 +312,7 @@ void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 
 	GL_LastTexture = texture;
 }
-void GL_PreparePaletteShader(GLShader* shader, int paletteID) {
+void GL_PreparePaletteShader(GLShader* shader, Texture* texture, int paletteID) {
 	if (shader->LocPaletteTexture != -1) {
 		int textureID = GL_PaletteTexture ? GL_PaletteTexture->TextureID : 0;
 
@@ -321,6 +321,15 @@ void GL_PreparePaletteShader(GLShader* shader, int paletteID) {
 
 	if (shader->LocPaletteID != -1) {
 		glUniform1i(shader->LocPaletteID, paletteID);
+	}
+
+	if (shader->LocNumTexturePaletteIndices != -1) {
+		if (texture && texture->Paletted) {
+			glUniform1i(shader->LocNumTexturePaletteIndices, texture->NumPaletteColors);
+		}
+		else {
+			glUniform1i(shader->LocNumTexturePaletteIndices, 0);
+		}
 	}
 }
 GLShader* GL_SetShader(GLShader* shader) {
@@ -417,10 +426,6 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 			else {
 				GL_SetTexturedShader();
 			}
-
-			if (Graphics::UsePalettes) {
-				GL_PreparePaletteShader(GLRenderer::CurrentShader, paletteID);
-			}
 		}
 
 		GLint active;
@@ -444,6 +449,10 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 		}
 
 		GL_SetBasicShader();
+	}
+
+	if (Graphics::UsePalettes) {
+		GL_PreparePaletteShader(GLRenderer::CurrentShader, texture, paletteID);
 	}
 }
 void GL_SetTexture(Texture* texture, int paletteID = 0) {
@@ -1047,7 +1056,7 @@ void GL_SetState(GL_State& state,
 	GL_BindTexture(state.TexturePtr, GL_REPEAT);
 
 	if (state.UsePalette) {
-		GL_PreparePaletteShader(GLRenderer::CurrentShader, 0);
+		GL_PreparePaletteShader(GLRenderer::CurrentShader, state.TexturePtr, 0);
 	}
 
 	if (shader->LocDiffuseColor != -1 &&

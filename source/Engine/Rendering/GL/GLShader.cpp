@@ -248,6 +248,7 @@ void GLShader::AttachAndLink() {
 	LocPaletteTexture = AddBuiltinUniform(UNIFORM_PALETTETEXTURE);
 	LocPaletteID = AddBuiltinUniform(UNIFORM_PALETTEID);
 	LocPaletteIndexTable = AddBuiltinUniform("u_paletteIndexTable");
+	LocNumTexturePaletteIndices = AddBuiltinUniform("u_numTexturePaletteIndices");
 
 	LocFogColor = AddBuiltinUniform("u_fogColor");
 	LocFogLinearStart = AddBuiltinUniform("u_fogLinearStart");
