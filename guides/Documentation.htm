@@ -949,6 +949,7 @@
                     <li><a href="#Reference_functions_Scene_GetLayerIndex">Scene.GetLayerIndex</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerVisible">Scene.GetLayerVisible</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerOpacity">Scene.GetLayerOpacity</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLayerShader">Scene.GetLayerShader</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerUsePaletteIndexLines">Scene.GetLayerUsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerProperty">Scene.GetLayerProperty</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerExists">Scene.GetLayerExists</a></li>
@@ -1029,6 +1030,7 @@
                     <li><a href="#Reference_functions_Scene_SetDrawGroupEntityDepthSorting">Scene.SetDrawGroupEntityDepthSorting</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerBlend">Scene.SetLayerBlend</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerOpacity">Scene.SetLayerOpacity</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerShader">Scene.SetLayerShader</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerUsePaletteIndexLines">Scene.SetLayerUsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerScroll">Scene.SetLayerScroll</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerSetParallaxLinesBegin">Scene.SetLayerSetParallaxLinesBegin</a></li>
@@ -7038,6 +7040,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
+        <p id="Reference_functions_Scene_GetLayerShader">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerShader</h2>
+        <code>Scene.GetLayerShader(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the shader of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a shader, or <code>null</code>.</div>
+        </p>
         <p id="Reference_functions_Scene_GetLayerUsePaletteIndexLines">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerUsePaletteIndexLines</h2>
         <code>Scene.GetLayerUsePaletteIndexLines(layerIndex)</code>
@@ -7788,6 +7801,16 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
         <li>opacity (Decimal): Opacity from 0.0 to 1.0.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Scene_SetLayerShader">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerShader</h2>
+        <code>Scene.SetLayerShader(layerIndex, shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a shader for the layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerUsePaletteIndexLines">
@@ -10272,7 +10295,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>743 out of 800 functions have descriptions. </p>
+        <p>745 out of 802 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">

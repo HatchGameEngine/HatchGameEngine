@@ -2052,8 +2052,6 @@ void GLRenderer::SetUserShader(Shader* shaderPtr) {
 		return;
 	}
 
-	shader->Validate();
-
 	GL_SetShader(shader);
 }
 void GLRenderer::BindTexture(Texture* texture, int textureUnit, int uniform) {

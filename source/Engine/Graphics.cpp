@@ -1654,13 +1654,24 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 
 	if (layer->UsingCustomRenderFunction && useCustomFunction) {
 		Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
+		return;
 	}
-	else if (layer->UsingScrollIndexes) {
+
+	Shader* shader = (Shader*)layer->CurrentShader;
+	if (shader) {
+		Graphics::SetUserShader(shader);
+	}
+
+	if (layer->UsingScrollIndexes) {
 		Graphics::DrawSceneLayer_InitTileScanLines(layer, currentView);
 		Graphics::DrawSceneLayer_HorizontalScrollIndexes(layer, currentView);
 	}
 	else {
 		Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView);
+	}
+
+	if (shader) {
+		Graphics::SetUserShader(nullptr);
 	}
 }
 void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {

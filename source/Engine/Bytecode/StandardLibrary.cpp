@@ -4449,6 +4449,8 @@ VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	try {
+		shader->Validate();
+
 		Graphics::SetUserShader(shader);
 	} catch (const std::runtime_error& error) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
@@ -11682,6 +11684,25 @@ VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 	return DECIMAL_VAL(Scene::Layers[index].Opacity);
 }
 /***
+ * Scene.GetLayerShader
+ * \desc Gets the shader of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a shader, or <code>null</code>.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+
+	Shader* shader = (Shader*)Scene::Layers[index].CurrentShader;
+	if (shader != nullptr) {
+		return OBJECT_VAL(shader->Object);
+	}
+
+	return NULL_VAL;
+}
+/***
  * Scene.GetLayerUsePaletteIndexLines
  * \desc Gets whether the layer is using the global palette index table.
  * \param layerIndex (Integer): Index of layer.
@@ -13056,6 +13077,42 @@ VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 		THROW_ERROR("Opacity cannot be higher than 1.0.");
 	}
 	Scene::Layers[index].Opacity = opacity;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerShader
+ * \desc Sets a shader for the layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	ObjShader* objShader = GET_ARG(1, GetShader);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+
+	if (IS_NULL(args[1])) {
+		Scene::Layers[index].CurrentShader = nullptr;
+		return NULL_VAL;
+	}
+
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader has been deleted!");
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Validate();
+
+		Scene::Layers[index].CurrentShader = shader;
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+		return NULL_VAL;
+	}
+
 	return NULL_VAL;
 }
 /***
@@ -17876,12 +17933,11 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
 
 	try {
 		shader->Validate();
+
+		Graphics::PostProcessShader = shader;
 	} catch (const std::runtime_error& error) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
-		return NULL_VAL;
 	}
-
-	Graphics::PostProcessShader = shader;
 
 	return NULL_VAL;
 }
@@ -19566,6 +19622,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetLayerIndex);
 	DEF_NATIVE(Scene, GetLayerVisible);
 	DEF_NATIVE(Scene, GetLayerOpacity);
+	DEF_NATIVE(Scene, GetLayerShader);
 	DEF_NATIVE(Scene, GetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, GetLayerProperty);
 	DEF_NATIVE(Scene, GetLayerExists); // deprecated
@@ -19646,6 +19703,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);
 	DEF_NATIVE(Scene, SetLayerBlend);
 	DEF_NATIVE(Scene, SetLayerOpacity);
+	DEF_NATIVE(Scene, SetLayerShader);
 	DEF_NATIVE(Scene, SetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, SetLayerScroll);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesBegin);
