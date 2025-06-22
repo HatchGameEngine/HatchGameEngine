@@ -20,6 +20,7 @@ void ShaderImpl::Init() {
 	ScriptManager::DefineNative(Class, "AssignTextureUnit", VM_AssignTextureUnit);
 	ScriptManager::DefineNative(Class, "GetTextureUnit", VM_GetTextureUnit);
 	ScriptManager::DefineNative(Class, "Compile", VM_Compile);
+	ScriptManager::DefineNative(Class, "HasUniform", VM_HasUniform);
 	ScriptManager::DefineNative(Class, "SetUniform", VM_SetUniform);
 	ScriptManager::DefineNative(Class, "SetTexture", VM_SetTexture);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
@@ -182,7 +183,7 @@ VMValue ShaderImpl::VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 thr
 	CHECK_EXISTS(shader);
 
 	if (shader->WasCompiled()) {
-		throw ScriptException("Cannot set texture unit after compilation!");
+		throw ScriptException("Cannot assign texture unit after compilation!");
 	}
 
 	shader->AddTextureUniformName(std::string(uniform));
@@ -258,6 +259,28 @@ VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(success);
 }
 /***
+ * \method HasUniform
+ * \desc Checks if the shader has an uniform with the given name. This can only be called after the shader has been compiled.
+ * \param uniform (String): The name of the uniform.
+ * \return Returns <code>true</code> if there is an uniform with the given name, <code>false</code> if otherwise.
+ * \ns Shader
+ */
+VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjShader* objShader = AS_SHADER(args[0]);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	char* uniform = GET_ARG(1, GetString);
+
+	CHECK_EXISTS(shader);
+
+	if (!shader->WasCompiled()) {
+		throw ScriptException("Cannot check for uniform existence before compilation!");
+	}
+
+	return INTEGER_VAL(shader->HasUniform(uniform));
+}
+/***
  * \method SetUniform
  * \desc Sets the value of an uniform variable. The value passed to the uniform persists between different invocations, and can be set at any time, as long as the shader is valid. This can only be called after the shader has been compiled.
  * \param uniform (String): The name of the uniform.
@@ -312,6 +335,10 @@ VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) 
 	Texture* texture = nullptr;
 
 	CHECK_EXISTS(shader);
+
+	if (!shader->WasCompiled()) {
+		throw ScriptException("Cannot set texture before compilation!");
+	}
 
 	if (!IS_NULL(args[2])) {
 		Image* image = GET_ARG(2, GetImage);

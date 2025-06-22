@@ -17,6 +17,7 @@ public:
 	static VMValue VM_AddProgram(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetTextureUnit(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_HasUniform(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Compile(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetUniform(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetTexture(int argCount, VMValue* args, Uint32 threadID);
