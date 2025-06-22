@@ -319,8 +319,8 @@ void GL_PreparePaletteShader(GLShader* shader, int paletteID) {
 		shader->SetUniformTexture(shader->LocPaletteTexture, textureID);
 	}
 
-	if (shader->LocPaletteLine != -1) {
-		glUniform1i(shader->LocPaletteLine, paletteID);
+	if (shader->LocPaletteID != -1) {
+		glUniform1i(shader->LocPaletteID, paletteID);
 	}
 }
 GLShader* GL_SetShader(GLShader* shader) {

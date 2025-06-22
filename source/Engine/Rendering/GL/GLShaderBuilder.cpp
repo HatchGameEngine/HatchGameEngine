@@ -21,7 +21,7 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 	}
 	if (uniforms.u_palette) {
 		shaderText += "uniform sampler2D " UNIFORM_PALETTETEXTURE ";\n";
-		shaderText += "uniform int u_paletteLine;\n";
+		shaderText += "uniform int " UNIFORM_PALETTEID ";\n";
 		shaderText += "uniform int u_paletteIndexTable[" +
 			std::to_string(MAX_FRAMEBUFFER_HEIGHT) + "];\n";
 	}
@@ -97,13 +97,13 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 	if (uniforms.u_palette) {
 		paletteLookupText =
 			"float paletteLine;\n"
-			"if (u_paletteLine == -1) {\n"
+			"if (" UNIFORM_PALETTEID " == -1) {\n"
 			"    int screenLine = clamp(int(gl_FragCoord.y), 0, " +
 			std::to_string(MAX_FRAMEBUFFER_HEIGHT - 1) +
 			");\n"
 			"    paletteLine = float(u_paletteIndexTable[screenLine]) / 256.0;\n"
 			"} else {\n"
-			"    paletteLine = float(u_paletteLine) / 256.0;\n"
+			"    paletteLine = float(" UNIFORM_PALETTEID ") / 256.0;\n"
 			"}\n";
 	}
 

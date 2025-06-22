@@ -17,6 +17,8 @@ typedef std::unordered_map<std::string, GLint> GLVariableMap;
 #define UNIFORM_TEXTUREV "u_textureV"
 #endif
 
+#define UNIFORM_PALETTEID "u_paletteID"
+
 class GLShader : public Shader {
 private:
 	void AddVertexProgram(Stream* stream);
@@ -83,7 +85,7 @@ public:
 	GLint LocTextureV;
 #endif
 	GLint LocPaletteTexture;
-	GLint LocPaletteLine;
+	GLint LocPaletteID;
 	GLint LocPaletteIndexTable;
 	GLint LocColor;
 	GLint LocDiffuseColor;
