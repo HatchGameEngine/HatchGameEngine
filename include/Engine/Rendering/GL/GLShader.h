@@ -17,10 +17,17 @@ typedef std::unordered_map<std::string, GLint> GLVariableMap;
 #define UNIFORM_TEXTUREV "u_textureV"
 #endif
 
-#define UNIFORM_PALETTEID "u_paletteID"
+struct GL_ProcessedShader {
+	char* SourceText;
+	std::vector<std::string> Defines;
+};
 
 class GLShader : public Shader {
 private:
+	static char* FindInclude(std::string identifier);
+	static GL_ProcessedShader ProcessFragmentShaderText(char* text);
+	static std::vector<char*> GetShaderSources(GL_ProcessedShader processed);
+
 	void AddVertexProgram(Stream* stream);
 	void AddFragmentProgram(Stream* stream);
 	void AttachAndLink();
@@ -35,6 +42,8 @@ private:
 #endif
 
 public:
+	static void InitIncludes();
+
 	GLShader();
 	GLShader(std::string vertexShaderSource, std::string fragmentShaderSource);
 	GLShader(Stream* streamVS, Stream* streamFS);

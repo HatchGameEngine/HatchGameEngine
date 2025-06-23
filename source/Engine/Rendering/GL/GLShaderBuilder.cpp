@@ -18,12 +18,10 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 	}
 	if (uniforms.u_texture) {
 		shaderText += "uniform sampler2D " UNIFORM_TEXTURE ";\n";
-	}
-	if (uniforms.u_palette) {
-		shaderText += "uniform sampler2D " UNIFORM_PALETTETEXTURE ";\n";
-		shaderText += "uniform int " UNIFORM_PALETTEID ";\n";
-		shaderText += "uniform int u_paletteIndexTable[" +
-			std::to_string(MAX_FRAMEBUFFER_HEIGHT) + "];\n";
+		if (uniforms.u_palette) {
+			shaderText += "#define TEXTURE_SAMPLING_FUNCTIONS\n";
+			shaderText += "uniform int u_numTexturePaletteIndices;\n";
+		}
 	}
 #ifdef GL_HAVE_YUV
 	if (uniforms.u_yuv) {
@@ -94,50 +92,34 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			"}\n";
 	}
 
-	if (uniforms.u_palette) {
-		paletteLookupText =
-			"float paletteLine;\n"
-			"if (" UNIFORM_PALETTEID " == -1) {\n"
-			"    int screenLine = clamp(int(gl_FragCoord.y), 0, " +
-			std::to_string(MAX_FRAMEBUFFER_HEIGHT - 1) +
-			");\n"
-			"    paletteLine = float(u_paletteIndexTable[screenLine]) / 256.0;\n"
-			"} else {\n"
-			"    paletteLine = float(" UNIFORM_PALETTEID ") / 256.0;\n"
-			"}\n";
-	}
-
 	shaderText += "void main() {\n";
 	shaderText += "vec4 finalColor;\n";
 
 	if (uniforms.u_texture) {
 		if (inputs.link_color) {
 			shaderText += "if (o_color.a == 0.0) discard;\n";
-			shaderText += "vec4 base = texture2D(" UNIFORM_TEXTURE ", o_uv);\n";
-			if (uniforms.u_palette) {
-				shaderText += "if (base.r == 0.0) discard;\n";
-				shaderText += paletteLookupText;
-				shaderText +=
-					"base = texture2D(" UNIFORM_PALETTETEXTURE ", vec2(base.r, paletteLine));\n";
-			}
-			shaderText += "if (base.a == 0.0) discard;\n";
-			shaderText += "finalColor = base * o_color;\n";
+		}
+
+		shaderText += "vec4 texel = ";
+		if (uniforms.u_palette) {
+			shaderText += "hatch_sampleTexture2D(";
+			shaderText += UNIFORM_TEXTURE;
+			shaderText += ", o_uv, u_numTexturePaletteIndices);\n";
+		}
+		else {
+			shaderText += "texture2D(" UNIFORM_TEXTURE ", o_uv);\n";
+		}
+
+		shaderText += "if (texel.a == 0.0) discard;\n";
+
+		if (inputs.link_color) {
+			shaderText += "finalColor = texel * o_color;\n";
 			if (uniforms.u_materialColors) {
 				shaderText += "finalColor *= u_diffuseColor;\n";
 			}
 		}
 		else {
-			shaderText += "vec4 base = texture2D(" UNIFORM_TEXTURE ", o_uv);\n";
-			if (uniforms.u_palette) {
-				shaderText += "if (base.r == 0.0) discard;\n";
-				shaderText += paletteLookupText;
-				shaderText +=
-					"base = texture2D(" UNIFORM_PALETTETEXTURE ", vec2(base.r, paletteLine));\n";
-			}
-			else {
-				shaderText += "if (base.a == 0.0) discard;\n";
-			}
-			shaderText += "finalColor = base * u_color;\n";
+			shaderText += "finalColor = texel * u_color;\n";
 		}
 	}
 	else {
@@ -186,8 +168,9 @@ string GLShaderBuilder::Vertex(GLShaderLinkage& inputs,
 
 	shaderText += "void main() {\n";
 	shaderText += "mat4 modelViewMatrix = u_viewMatrix * u_modelMatrix;\n";
-	shaderText +=
-		"gl_Position = u_projectionMatrix * modelViewMatrix * vec4(" ATTRIB_POSITION ", 1.0);\n";
+	shaderText += "gl_Position = u_projectionMatrix * modelViewMatrix * vec4(";
+	shaderText += ATTRIB_POSITION;
+	shaderText += ", 1.0);\n";
 	if (outputs.link_position) {
 		shaderText += "o_position = modelViewMatrix * vec4(" ATTRIB_POSITION ", 1.0);\n";
 	}

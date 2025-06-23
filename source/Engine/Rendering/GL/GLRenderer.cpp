@@ -156,6 +156,8 @@ int GL_MaxTextureImageUnits = 1;
 #endif
 
 void GL_MakeShaders() {
+	GLShader::InitIncludes();
+
 	try {
 		GLRenderer::ShaderShape = GLShaderContainer::Make();
 	} catch (const std::runtime_error& error) {

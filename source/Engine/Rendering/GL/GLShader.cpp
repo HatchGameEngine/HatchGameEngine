@@ -3,6 +3,63 @@
 #include <Engine/IO/TextStream.h>
 #include <Engine/Rendering/GL/GLRenderer.h>
 #include <Engine/Rendering/GL/GLShader.h>
+#include <Engine/Utilities/StringUtils.h>
+
+std::unordered_map<std::string, const char*> shaderIncludes;
+
+void GLShader::InitIncludes() {
+	shaderIncludes["TEXTURE_SAMPLING_FUNCTIONS"] = R"(
+#define PALETTE_INDEX_TABLE_ID -1
+#define MAX_PALETTE_INDEX_LINES 4096
+
+uniform sampler2D u_paletteTexture;
+uniform int u_paletteID;
+uniform int u_paletteIndexTable[MAX_PALETTE_INDEX_LINES];
+
+int hatch_getPaletteLine(int paletteID) {
+    if (paletteID == PALETTE_INDEX_TABLE_ID) {
+        int screenLine = clamp(int(gl_FragCoord.y), 0, MAX_PALETTE_INDEX_LINES - 1);
+        return u_paletteIndexTable[screenLine];
+    }
+
+    return paletteID;
+}
+
+vec4 hatch_getColorFromPalette(int paletteIndex, sampler2D paletteTexture, int paletteLine) {
+    if (paletteIndex == 0) {
+        return vec4(0.0, 0.0, 0.0, 0.0);
+    }
+
+    vec2 paletteTextureCoords = vec2(float(paletteIndex) / 255.0, float(paletteLine) / 255.0);
+
+    return texture2D(paletteTexture, paletteTextureCoords);
+}
+
+vec4 hatch_sampleTexture2D(sampler2D texture, vec2 textureCoords, int numPaletteIndices) {
+    vec4 finalColor = texture2D(texture, textureCoords);
+
+    if (numPaletteIndices != 0) {
+        int paletteIndex = int(finalColor.r * 255.0);
+        int paletteLine = hatch_getPaletteLine(u_paletteID);
+
+        paletteIndex = clamp(paletteIndex, 0, numPaletteIndices - 1);
+
+        return hatch_getColorFromPalette(paletteIndex, u_paletteTexture, paletteLine);
+    }
+
+    return finalColor;
+}
+)";
+}
+
+char* GLShader::FindInclude(std::string identifier) {
+	std::unordered_map<std::string, const char*>::iterator it = shaderIncludes.find(identifier);
+	if (it != shaderIncludes.end()) {
+		return StringUtils::Duplicate(it->second);
+	}
+
+	return nullptr;
+}
 
 void GLShader::AddVertexProgram(Stream* stream) {
 	GLint compiled = GL_FALSE;
@@ -36,6 +93,116 @@ void GLShader::AddVertexProgram(Stream* stream) {
 	}
 }
 
+GL_ProcessedShader GLShader::ProcessFragmentShaderText(char* text) {
+	GL_ProcessedShader output;
+	output.SourceText = text;
+
+	char* ptr = text;
+
+	while (*ptr != '\0') {
+		// Skip comments
+		if (ptr[0] == '/' && ptr[1] == '/') {
+			ptr += 2;
+
+			while (*ptr != '\0' && *ptr != '\n') {
+				ptr++;
+			}
+
+			if (*ptr == '\0') {
+				break;
+			}
+			else if (*ptr == '\n') {
+				ptr++;
+				continue;
+			}
+		}
+		// Skip multiline comments
+		else if (ptr[0] == '/' && ptr[1] == '*') {
+			ptr += 2;
+
+			char* end = strstr(ptr, "*/");
+			if (!end) {
+				break;
+			}
+
+			ptr = end + 2;
+
+			if (*ptr == '\0') {
+				break;
+			}
+			else if (*ptr == '\n') {
+				ptr++;
+				continue;
+			}
+		}
+
+		if (*ptr != '#') {
+			int spn = strspn(ptr, " \r\t");
+			if (spn == 0) {
+				while (*ptr != '\0' && *ptr != '\n') {
+					ptr++;
+				}
+			}
+
+			if (*ptr == '\0') {
+				break;
+			}
+			else if (*ptr == '\n') {
+				ptr++;
+				continue;
+			}
+
+			ptr += spn;
+		}
+
+		if (StringUtils::StartsWith(ptr, "#define ")) {
+			char* start = ptr + 8;
+			ptr = start;
+			while (*ptr != ' ' && *ptr != '\r' && *ptr != '\t' && *ptr != '\n' &&
+				*ptr != '\0') {
+				ptr++;
+			}
+
+			size_t length = ptr - start;
+			std::string found = std::string(start, length);
+			output.Defines.push_back(found);
+		}
+
+		while (*ptr != '\0' && *ptr != '\n') {
+			ptr++;
+		}
+
+		if (*ptr == '\n') {
+			ptr++;
+		}
+	}
+
+	return output;
+}
+
+std::vector<char*> GLShader::GetShaderSources(GL_ProcessedShader processed) {
+	std::vector<char*> shaderSources;
+
+#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
+	std::string precision = "precision mediump float;\n";
+	shaderSources.push_back(StringUtils::Create(precision));
+#endif
+
+	for (size_t i = 0; i < processed.Defines.size(); i++) {
+		char* includeText = GLShader::FindInclude(processed.Defines[i]);
+		if (includeText != nullptr) {
+			shaderSources.push_back(includeText);
+		}
+	}
+
+	std::string lineText = "#line 0\n"; // TODO: Handle different GLSL versions properly here.
+	shaderSources.push_back(StringUtils::Create(lineText));
+
+	shaderSources.push_back(processed.SourceText);
+
+	return shaderSources;
+}
+
 void GLShader::AddFragmentProgram(Stream* stream) {
 	GLint compiled = GL_FALSE;
 
@@ -49,24 +216,19 @@ void GLShader::AddFragmentProgram(Stream* stream) {
 	stream->ReadBytes(sourceFS, lenFS);
 	sourceFS[lenFS] = '\0';
 
-#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
-	const char* sourceFSMod[2];
-	sourceFSMod[0] = "precision mediump float;\n";
-	sourceFSMod[1] = sourceFS;
-#endif
+	GL_ProcessedShader processed = ProcessFragmentShaderText(sourceFS);
+	std::vector<char*> shaderSources = GetShaderSources(processed);
 
 	FragmentProgramID = glCreateShader(GL_FRAGMENT_SHADER);
-#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
-	glShaderSource(FragmentProgramID, 2, sourceFSMod, NULL);
-#else
-	glShaderSource(FragmentProgramID, 1, &sourceFS, NULL);
-#endif
+	glShaderSource(FragmentProgramID, shaderSources.size(), shaderSources.data(), NULL);
 	glCompileShader(FragmentProgramID);
 	CHECK_GL();
+
+	for (size_t i = 0; i < shaderSources.size(); i++) {
+		Memory::Free(shaderSources[i]);
+	}
+
 	glGetShaderiv(FragmentProgramID, GL_COMPILE_STATUS, &compiled);
-
-	Memory::Free(sourceFS);
-
 	if (compiled != GL_TRUE) {
 		std::string error = CheckShaderError(FragmentProgramID);
 
@@ -246,7 +408,7 @@ void GLShader::AttachAndLink() {
 	LocTextureV = AddBuiltinUniform(UNIFORM_TEXTUREV);
 #endif
 	LocPaletteTexture = AddBuiltinUniform(UNIFORM_PALETTETEXTURE);
-	LocPaletteID = AddBuiltinUniform(UNIFORM_PALETTEID);
+	LocPaletteID = AddBuiltinUniform("u_paletteID");
 	LocPaletteIndexTable = AddBuiltinUniform("u_paletteIndexTable");
 	LocNumTexturePaletteIndices = AddBuiltinUniform("u_numTexturePaletteIndices");
 
@@ -471,7 +633,8 @@ void GLShader::SetUniformTexture(const char* name, Texture* texture) {
 
 	int textureUnit = GetTextureUnit(uniform);
 	if (textureUnit == -1) {
-		throw std::runtime_error("No texture unit assigned to uniform \"" + std::string(name) + "\"!");
+		throw std::runtime_error(
+			"No texture unit assigned to uniform \"" + std::string(name) + "\"!");
 	}
 
 	Use();
