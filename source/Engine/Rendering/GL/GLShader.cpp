@@ -508,43 +508,43 @@ void GLShader::SendUniformValues(int location, size_t count, void* values, Uint8
 	float* valuesFloat = (float*)values;
 
 	switch (type) {
-	case Shader::UNIFORM_INT:
-	case Shader::UNIFORM_BOOL:
-	case Shader::UNIFORM_SAMPLER_2D:
-	case Shader::UNIFORM_SAMPLER_CUBE:
+	case Shader::DATATYPE_INT:
+	case Shader::DATATYPE_BOOL:
+	case Shader::DATATYPE_SAMPLER_2D:
+	case Shader::DATATYPE_SAMPLER_CUBE:
 		glUniform1iv(location, count, valuesInt);
 		break;
-	case Shader::UNIFORM_INT_VEC2:
-	case Shader::UNIFORM_BOOL_VEC2:
+	case Shader::DATATYPE_INT_VEC2:
+	case Shader::DATATYPE_BOOL_VEC2:
 		glUniform2iv(location, count, valuesInt);
 		break;
-	case Shader::UNIFORM_INT_VEC3:
-	case Shader::UNIFORM_BOOL_VEC3:
+	case Shader::DATATYPE_INT_VEC3:
+	case Shader::DATATYPE_BOOL_VEC3:
 		glUniform3iv(location, count, valuesInt);
 		break;
-	case Shader::UNIFORM_INT_VEC4:
-	case Shader::UNIFORM_BOOL_VEC4:
+	case Shader::DATATYPE_INT_VEC4:
+	case Shader::DATATYPE_BOOL_VEC4:
 		glUniform4iv(location, count, valuesInt);
 		break;
-	case Shader::UNIFORM_FLOAT:
+	case Shader::DATATYPE_FLOAT:
 		glUniform1fv(location, count, valuesFloat);
 		break;
-	case Shader::UNIFORM_FLOAT_VEC2:
+	case Shader::DATATYPE_FLOAT_VEC2:
 		glUniform2fv(location, count, valuesFloat);
 		break;
-	case Shader::UNIFORM_FLOAT_VEC3:
+	case Shader::DATATYPE_FLOAT_VEC3:
 		glUniform3fv(location, count, valuesFloat);
 		break;
-	case Shader::UNIFORM_FLOAT_VEC4:
+	case Shader::DATATYPE_FLOAT_VEC4:
 		glUniform4fv(location, count, valuesFloat);
 		break;
-	case Shader::UNIFORM_FLOAT_MAT2:
+	case Shader::DATATYPE_FLOAT_MAT2:
 		glUniformMatrix2fv(location, count, false, valuesFloat);
 		break;
-	case Shader::UNIFORM_FLOAT_MAT3:
+	case Shader::DATATYPE_FLOAT_MAT3:
 		glUniformMatrix3fv(location, count, false, valuesFloat);
 		break;
-	case Shader::UNIFORM_FLOAT_MAT4:
+	case Shader::DATATYPE_FLOAT_MAT4:
 		glUniformMatrix4fv(location, count, false, valuesFloat);
 		break;
 	}
@@ -555,7 +555,7 @@ void GLShader::SetUniform(ShaderUniform* uniform, size_t count, void* values, Ui
 	}
 
 	if (count > 1) {
-		if (type == Shader::UNIFORM_SAMPLER_2D || type == Shader::UNIFORM_SAMPLER_CUBE) {
+		if (Shader::DataTypeIsSampler(type)) {
 			throw std::runtime_error("Cannot send array to uniform of sampler type!");
 		}
 		else if (!uniform->IsArray) {
@@ -673,44 +673,44 @@ void GLShader::Delete() {
 	Shader::Delete();
 }
 
-Uint8 GLShader::ConvertUniformTypeToEnum(GLenum type) {
+Uint8 GLShader::ConvertDataTypeToEnum(GLenum type) {
 	switch (type) {
 	case GL_FLOAT:
-		return Shader::UNIFORM_FLOAT;
+		return Shader::DATATYPE_FLOAT;
 	case GL_FLOAT_VEC2:
-		return Shader::UNIFORM_FLOAT_VEC2;
+		return Shader::DATATYPE_FLOAT_VEC2;
 	case GL_FLOAT_VEC3:
-		return Shader::UNIFORM_FLOAT_VEC3;
+		return Shader::DATATYPE_FLOAT_VEC3;
 	case GL_FLOAT_VEC4:
-		return Shader::UNIFORM_FLOAT_VEC4;
+		return Shader::DATATYPE_FLOAT_VEC4;
 	case GL_INT:
-		return Shader::UNIFORM_INT;
+		return Shader::DATATYPE_INT;
 	case GL_INT_VEC2:
-		return Shader::UNIFORM_INT_VEC2;
+		return Shader::DATATYPE_INT_VEC2;
 	case GL_INT_VEC3:
-		return Shader::UNIFORM_INT_VEC3;
+		return Shader::DATATYPE_INT_VEC3;
 	case GL_INT_VEC4:
-		return Shader::UNIFORM_INT_VEC4;
+		return Shader::DATATYPE_INT_VEC4;
 	case GL_BOOL:
-		return Shader::UNIFORM_BOOL;
+		return Shader::DATATYPE_BOOL;
 	case GL_BOOL_VEC2:
-		return Shader::UNIFORM_BOOL_VEC2;
+		return Shader::DATATYPE_BOOL_VEC2;
 	case GL_BOOL_VEC3:
-		return Shader::UNIFORM_BOOL_VEC3;
+		return Shader::DATATYPE_BOOL_VEC3;
 	case GL_BOOL_VEC4:
-		return Shader::UNIFORM_BOOL_VEC4;
+		return Shader::DATATYPE_BOOL_VEC4;
 	case GL_FLOAT_MAT2:
-		return Shader::UNIFORM_FLOAT_MAT2;
+		return Shader::DATATYPE_FLOAT_MAT2;
 	case GL_FLOAT_MAT3:
-		return Shader::UNIFORM_FLOAT_MAT3;
+		return Shader::DATATYPE_FLOAT_MAT3;
 	case GL_FLOAT_MAT4:
-		return Shader::UNIFORM_FLOAT_MAT4;
+		return Shader::DATATYPE_FLOAT_MAT4;
 	case GL_SAMPLER_2D:
-		return Shader::UNIFORM_SAMPLER_2D;
+		return Shader::DATATYPE_SAMPLER_2D;
 	case GL_SAMPLER_CUBE:
-		return Shader::UNIFORM_SAMPLER_CUBE;
+		return Shader::DATATYPE_SAMPLER_CUBE;
 	default:
-		return Shader::UNIFORM_UNKNOWN;
+		return Shader::DATATYPE_UNKNOWN;
 	}
 }
 
@@ -748,7 +748,7 @@ void GLShader::InitUniforms() {
 
 		ShaderUniform uniform;
 		uniform.Name = std::string(uniformName, nameLength);
-		uniform.Type = ConvertUniformTypeToEnum(type);
+		uniform.Type = ConvertDataTypeToEnum(type);
 		uniform.Location =
 			glGetUniformLocation(ProgramID, (const GLchar*)uniform.Name.c_str());
 		uniform.IsArray = isArray;

@@ -23,24 +23,24 @@ public:
 	enum { PROGRAM_VERTEX, PROGRAM_FRAGMENT };
 
 	enum {
-		UNIFORM_UNKNOWN,
-		UNIFORM_FLOAT,
-		UNIFORM_FLOAT_VEC2,
-		UNIFORM_FLOAT_VEC3,
-		UNIFORM_FLOAT_VEC4,
-		UNIFORM_INT,
-		UNIFORM_INT_VEC2,
-		UNIFORM_INT_VEC3,
-		UNIFORM_INT_VEC4,
-		UNIFORM_BOOL,
-		UNIFORM_BOOL_VEC2,
-		UNIFORM_BOOL_VEC3,
-		UNIFORM_BOOL_VEC4,
-		UNIFORM_FLOAT_MAT2,
-		UNIFORM_FLOAT_MAT3,
-		UNIFORM_FLOAT_MAT4,
-		UNIFORM_SAMPLER_2D,
-		UNIFORM_SAMPLER_CUBE
+		DATATYPE_UNKNOWN = -1,
+		DATATYPE_FLOAT,
+		DATATYPE_FLOAT_VEC2,
+		DATATYPE_FLOAT_VEC3,
+		DATATYPE_FLOAT_VEC4,
+		DATATYPE_INT,
+		DATATYPE_INT_VEC2,
+		DATATYPE_INT_VEC3,
+		DATATYPE_INT_VEC4,
+		DATATYPE_BOOL,
+		DATATYPE_BOOL_VEC2,
+		DATATYPE_BOOL_VEC3,
+		DATATYPE_BOOL_VEC4,
+		DATATYPE_FLOAT_MAT2,
+		DATATYPE_FLOAT_MAT3,
+		DATATYPE_FLOAT_MAT4,
+		DATATYPE_SAMPLER_2D,
+		DATATYPE_SAMPLER_CUBE
 	};
 
 	virtual void Compile();
@@ -75,9 +75,10 @@ public:
 	virtual void Delete();
 	virtual ~Shader();
 
-	static size_t GetUniformTypeElementCount(Uint8 type);
-	static size_t GetMatrixUniformTypeSize(Uint8 type);
-	static bool UniformTypeIsMatrix(Uint8 type);
+	static size_t GetDataTypeElementCount(Uint8 type);
+	static size_t GetMatrixDataTypeSize(Uint8 type);
+	static bool DataTypeIsMatrix(Uint8 type);
+	static bool DataTypeIsSampler(Uint8 type);
 
 	std::unordered_map<std::string, ShaderUniform> UniformMap;
 	std::vector<std::string> BuiltinUniforms;

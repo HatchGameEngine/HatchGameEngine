@@ -33,41 +33,50 @@ void Shader::SetUniformTexture(const char* name, Texture* texture) {
 	throw std::runtime_error("Shader::SetUniformTexture() called without an implementation");
 }
 
-size_t Shader::GetUniformTypeElementCount(Uint8 type) {
+size_t Shader::GetDataTypeElementCount(Uint8 type) {
 	switch (type) {
-	case Shader::UNIFORM_INT_VEC2:
-	case Shader::UNIFORM_FLOAT_VEC2:
-	case Shader::UNIFORM_BOOL_VEC2:
+	case DATATYPE_INT_VEC2:
+	case DATATYPE_FLOAT_VEC2:
+	case DATATYPE_BOOL_VEC2:
 		return 2;
-	case Shader::UNIFORM_INT_VEC3:
-	case Shader::UNIFORM_FLOAT_VEC3:
-	case Shader::UNIFORM_BOOL_VEC3:
+	case DATATYPE_INT_VEC3:
+	case DATATYPE_FLOAT_VEC3:
+	case DATATYPE_BOOL_VEC3:
 		return 3;
-	case Shader::UNIFORM_INT_VEC4:
-	case Shader::UNIFORM_FLOAT_VEC4:
-	case Shader::UNIFORM_BOOL_VEC4:
+	case DATATYPE_INT_VEC4:
+	case DATATYPE_FLOAT_VEC4:
+	case DATATYPE_BOOL_VEC4:
 		return 4;
 	default:
 		return 1;
 	}
 }
-size_t Shader::GetMatrixUniformTypeSize(Uint8 type) {
+size_t Shader::GetMatrixDataTypeSize(Uint8 type) {
 	switch (type) {
-	case Shader::UNIFORM_FLOAT_MAT2:
+	case DATATYPE_FLOAT_MAT2:
 		return 2 * 4;
-	case Shader::UNIFORM_FLOAT_MAT3:
+	case DATATYPE_FLOAT_MAT3:
 		return 3 * 4;
-	case Shader::UNIFORM_FLOAT_MAT4:
+	case DATATYPE_FLOAT_MAT4:
 		return 4 * 4;
 	default:
 		return 0;
 	}
 }
-bool Shader::UniformTypeIsMatrix(Uint8 type) {
+bool Shader::DataTypeIsMatrix(Uint8 type) {
 	switch (type) {
-	case Shader::UNIFORM_FLOAT_MAT2:
-	case Shader::UNIFORM_FLOAT_MAT3:
-	case Shader::UNIFORM_FLOAT_MAT4:
+	case DATATYPE_FLOAT_MAT2:
+	case DATATYPE_FLOAT_MAT3:
+	case DATATYPE_FLOAT_MAT4:
+		return true;
+	}
+
+	return false;
+}
+bool Shader::DataTypeIsSampler(Uint8 type) {
+	switch (type) {
+	case DATATYPE_SAMPLER_2D:
+	case DATATYPE_SAMPLER_CUBE:
 		return true;
 	}
 

@@ -35,7 +35,7 @@ private:
 	std::string CheckShaderError(GLuint shader);
 	std::string CheckProgramError(GLuint prog);
 
-	static Uint8 ConvertUniformTypeToEnum(GLenum type);
+	static Uint8 ConvertDataTypeToEnum(GLenum type);
 
 	static void SendUniformValues(int location, size_t count, void* values, Uint8 type);
 

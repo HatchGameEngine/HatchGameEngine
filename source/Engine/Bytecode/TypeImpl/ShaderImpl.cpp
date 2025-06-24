@@ -5,7 +5,7 @@
 #include <Engine/Graphics.h>
 #include <Engine/Rendering/Shader.h>
 
-static size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 uniformType);
+static size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType);
 static void
 ThrowElementTypeMismatchError(size_t element, const char* expected, const char* elementType);
 
@@ -36,8 +36,6 @@ void ShaderImpl::Init() {
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
-#define GET_ARG_OPT(argIndex, argFunction, argDefault) \
-	(argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
 
 #define CHECK_EXISTS(ptr) \
 	if (ptr == nullptr) { \
@@ -292,7 +290,7 @@ VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, Uint32 threadID) 
  * \desc Sets the value of an uniform variable. The value passed to the uniform persists between different invocations, and can be set at any time, as long as the shader is valid. This can only be called after the shader has been compiled.
  * \param uniform (String): The name of the uniform.
  * \param value (Number or Array): The value.
- * \paramOpt type (Enum): The type of the value being sent. This is required if the value being passed is an Array.
+ * \paramOpt dataType (Enum): The <linkto ref="SHADERDATATYPE_*">data type</linkto> of the value being sent. This is required if the value being passed is an Array.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) {
@@ -301,7 +299,7 @@ VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	char* uniformName = GET_ARG(1, GetString);
 	VMValue value = args[2];
-	int uniformType = GET_ARG_OPT(3, GetInteger, Shader::UNIFORM_UNKNOWN);
+	int dataType = Shader::DATATYPE_UNKNOWN;
 
 	Shader* shader = (Shader*)objShader->ShaderPtr;
 	CHECK_EXISTS(shader);
@@ -320,8 +318,24 @@ VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) 
 		throw ScriptException("No uniform named \"" + std::string(uniformName) + "\"!");
 	}
 
-	if (uniformType == Shader::UNIFORM_SAMPLER_2D ||
-		uniformType == Shader::UNIFORM_SAMPLER_CUBE) {
+	if (argCount >= 4) {
+		int type = GET_ARG(3, GetInteger);
+		if (type < Shader::DATATYPE_FLOAT || type > Shader::DATATYPE_SAMPLER_CUBE) {
+			char errorString[64];
+
+			snprintf(errorString,
+				sizeof errorString,
+				"Data type %d out of range. (0 - %d)",
+				type,
+				Shader::DATATYPE_SAMPLER_CUBE);
+
+			throw ScriptException(std::string(errorString));
+		}
+
+		dataType = (Uint8)type;
+	}
+
+	if (Shader::DataTypeIsSampler(dataType)) {
 		throw ScriptException(
 			"Cannot change texture unit! Use AssignTextureUnit before compilation.");
 	}
@@ -334,16 +348,16 @@ VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) 
 
 	if (IS_INTEGER(value)) {
 		// Lets you pass an int to an uniform that is expecting a float.
-		if (uniform->Type == Shader::UNIFORM_FLOAT) {
-			type = Shader::UNIFORM_FLOAT;
+		if (uniform->Type == Shader::DATATYPE_FLOAT) {
+			type = Shader::DATATYPE_FLOAT;
 			value = Value::CastAsDecimal(value);
 		}
 		else {
-			type = Shader::UNIFORM_INT;
+			type = Shader::DATATYPE_INT;
 		}
 
-		if (uniformType != Shader::UNIFORM_UNKNOWN && uniformType != Shader::UNIFORM_INT) {
-			if (uniformType == Shader::UNIFORM_FLOAT) {
+		if (dataType != Shader::DATATYPE_UNKNOWN && dataType != Shader::DATATYPE_INT) {
+			if (dataType == Shader::DATATYPE_FLOAT) {
 				value = Value::CastAsDecimal(value);
 			}
 			else {
@@ -352,11 +366,10 @@ VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) 
 		}
 	}
 	else if (IS_DECIMAL(value)) {
-		type = Shader::UNIFORM_FLOAT;
+		type = Shader::DATATYPE_FLOAT;
 
-		if (uniformType != Shader::UNIFORM_UNKNOWN &&
-			uniformType != Shader::UNIFORM_FLOAT) {
-			if (uniformType == Shader::UNIFORM_INT) {
+		if (dataType != Shader::DATATYPE_UNKNOWN && dataType != Shader::DATATYPE_FLOAT) {
+			if (dataType == Shader::DATATYPE_INT) {
 				value = Value::CastAsInteger(value);
 			}
 			else {
@@ -365,28 +378,28 @@ VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) 
 		}
 	}
 	else if (isArrayType) {
-		if (uniformType == Shader::UNIFORM_UNKNOWN) {
+		if (dataType == Shader::DATATYPE_UNKNOWN) {
 			throw ScriptException("Must specify uniform type if value is an array!");
 		}
 
-		switch (uniformType) {
-		case Shader::UNIFORM_FLOAT:
-		case Shader::UNIFORM_FLOAT_VEC2:
-		case Shader::UNIFORM_FLOAT_VEC3:
-		case Shader::UNIFORM_FLOAT_VEC4:
-		case Shader::UNIFORM_INT:
-		case Shader::UNIFORM_INT_VEC2:
-		case Shader::UNIFORM_INT_VEC3:
-		case Shader::UNIFORM_INT_VEC4:
-		case Shader::UNIFORM_BOOL:
-		case Shader::UNIFORM_BOOL_VEC2:
-		case Shader::UNIFORM_BOOL_VEC3:
-		case Shader::UNIFORM_BOOL_VEC4:
-		case Shader::UNIFORM_FLOAT_MAT2:
-		case Shader::UNIFORM_FLOAT_MAT3:
-		case Shader::UNIFORM_FLOAT_MAT4:
+		switch (dataType) {
+		case Shader::DATATYPE_FLOAT:
+		case Shader::DATATYPE_FLOAT_VEC2:
+		case Shader::DATATYPE_FLOAT_VEC3:
+		case Shader::DATATYPE_FLOAT_VEC4:
+		case Shader::DATATYPE_INT:
+		case Shader::DATATYPE_INT_VEC2:
+		case Shader::DATATYPE_INT_VEC3:
+		case Shader::DATATYPE_INT_VEC4:
+		case Shader::DATATYPE_BOOL:
+		case Shader::DATATYPE_BOOL_VEC2:
+		case Shader::DATATYPE_BOOL_VEC3:
+		case Shader::DATATYPE_BOOL_VEC4:
+		case Shader::DATATYPE_FLOAT_MAT2:
+		case Shader::DATATYPE_FLOAT_MAT3:
+		case Shader::DATATYPE_FLOAT_MAT4:
 			// Okay.
-			type = uniformType;
+			type = dataType;
 			break;
 		default:
 			throw ScriptException("Invalid uniform type!");
@@ -406,15 +419,15 @@ VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) 
 	size_t count = 1;
 
 	if (isArrayType) {
-		count = GetArrayUniformValues(AS_ARRAY(value), &values, uniformType);
+		count = GetArrayUniformValues(AS_ARRAY(value), &values, dataType);
 	}
-	else if (type == Shader::UNIFORM_INT) {
+	else if (type == Shader::DATATYPE_INT) {
 		values = Memory::Malloc(sizeof(int) * count);
 
 		int* valuesInt = (int*)values;
 		valuesInt[0] = AS_INTEGER(value);
 	}
-	else if (type == Shader::UNIFORM_FLOAT) {
+	else if (type == Shader::DATATYPE_FLOAT) {
 		values = Memory::Malloc(sizeof(float) * count);
 
 		float* valuesFloat = (float*)values;
@@ -434,14 +447,14 @@ VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) 
 
 	return NULL_VAL;
 }
-size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 uniformType) {
+size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 	size_t arrayLength = array->Values->size();
 	size_t numElements = 1;
 
 	char errorString[128];
 
-	if (Shader::UniformTypeIsMatrix(uniformType)) {
-		size_t expectedCount = Shader::GetMatrixUniformTypeSize(uniformType);
+	if (Shader::DataTypeIsMatrix(dataType)) {
+		size_t expectedCount = Shader::GetMatrixDataTypeSize(dataType);
 
 		if (arrayLength != expectedCount) {
 			snprintf(errorString,
@@ -454,7 +467,7 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 uniformType) 
 		}
 	}
 	else {
-		numElements = Shader::GetUniformTypeElementCount(uniformType);
+		numElements = Shader::GetDataTypeElementCount(dataType);
 
 		if (numElements > 1 && (arrayLength % numElements) != 0) {
 			snprintf(errorString,
@@ -470,8 +483,8 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 uniformType) 
 	int* valuesInt = nullptr;
 	float* valuesFloat = nullptr;
 
-	switch (uniformType) {
-	case Shader::UNIFORM_FLOAT:
+	switch (dataType) {
+	case Shader::DATATYPE_FLOAT:
 		*values = Memory::Malloc(sizeof(float) * arrayLength);
 		valuesFloat = (float*)(*values);
 
@@ -489,7 +502,7 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 uniformType) 
 			valuesFloat[i] = AS_DECIMAL(result);
 		}
 		break;
-	case Shader::UNIFORM_INT:
+	case Shader::DATATYPE_INT:
 		*values = Memory::Malloc(sizeof(int) * arrayLength);
 		valuesInt = (int*)(*values);
 
@@ -507,20 +520,20 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 uniformType) 
 			valuesInt[i] = AS_INTEGER(result);
 		}
 		break;
-	case Shader::UNIFORM_FLOAT_VEC2:
-	case Shader::UNIFORM_FLOAT_VEC3:
-	case Shader::UNIFORM_FLOAT_VEC4:
+	case Shader::DATATYPE_FLOAT_VEC2:
+	case Shader::DATATYPE_FLOAT_VEC3:
+	case Shader::DATATYPE_FLOAT_VEC4:
 		UNIMPLEMENTED_EXCEPTION(ScriptException);
-	case Shader::UNIFORM_INT_VEC2:
-	case Shader::UNIFORM_INT_VEC3:
-	case Shader::UNIFORM_INT_VEC4:
-	case Shader::UNIFORM_BOOL_VEC2:
-	case Shader::UNIFORM_BOOL_VEC3:
-	case Shader::UNIFORM_BOOL_VEC4:
+	case Shader::DATATYPE_INT_VEC2:
+	case Shader::DATATYPE_INT_VEC3:
+	case Shader::DATATYPE_INT_VEC4:
+	case Shader::DATATYPE_BOOL_VEC2:
+	case Shader::DATATYPE_BOOL_VEC3:
+	case Shader::DATATYPE_BOOL_VEC4:
 		UNIMPLEMENTED_EXCEPTION(ScriptException);
-	case Shader::UNIFORM_FLOAT_MAT2:
-	case Shader::UNIFORM_FLOAT_MAT3:
-	case Shader::UNIFORM_FLOAT_MAT4:
+	case Shader::DATATYPE_FLOAT_MAT2:
+	case Shader::DATATYPE_FLOAT_MAT3:
+	case Shader::DATATYPE_FLOAT_MAT4:
 		UNIMPLEMENTED_EXCEPTION(ScriptException);
 	default:
 		UNREACHABLE_EXCEPTION(ScriptException);

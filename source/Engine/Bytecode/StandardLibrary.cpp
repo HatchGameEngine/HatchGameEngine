@@ -19862,6 +19862,91 @@ void StandardLibrary::Link() {
     * \desc Fragment shader program.
     */
 	DEF_CONST_INT("SHADERPROGRAM_FRAGMENT", Shader::PROGRAM_FRAGMENT);
+	/***
+    * \enum SHADERDATATYPE_FLOAT
+    * \desc <code>float</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_FLOAT", Shader::DATATYPE_FLOAT);
+	/***
+    * \enum SHADERDATATYPE_VEC2
+    * \desc <code>vec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC2", Shader::DATATYPE_FLOAT_VEC2);
+	/***
+    * \enum SHADERDATATYPE_VEC3
+    * \desc <code>vec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC3", Shader::DATATYPE_FLOAT_VEC3);
+	/***
+    * \enum SHADERDATATYPE_VEC4
+    * \desc <code>vec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC4", Shader::DATATYPE_FLOAT_VEC4);
+	/***
+    * \enum SHADERDATATYPE_INT
+    * \desc <code>int</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_INT", Shader::DATATYPE_INT);
+	/***
+    * \enum SHADERDATATYPE_IVEC2
+    * \desc <code>ivec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC2", Shader::DATATYPE_INT_VEC2);
+	/***
+    * \enum SHADERDATATYPE_IVEC3
+    * \desc <code>ivec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC3", Shader::DATATYPE_INT_VEC3);
+	/***
+    * \enum SHADERDATATYPE_IVEC4
+    * \desc <code>ivec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC4", Shader::DATATYPE_INT_VEC4);
+	/***
+    * \enum SHADERDATATYPE_BOOL
+    * \desc <code>bool</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BOOL", Shader::DATATYPE_BOOL);
+	/***
+    * \enum SHADERDATATYPE_BVEC2
+    * \desc <code>bvec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC2", Shader::DATATYPE_BOOL_VEC2);
+	/***
+    * \enum SHADERDATATYPE_BVEC3
+    * \desc <code>bvec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC3", Shader::DATATYPE_BOOL_VEC3);
+	/***
+    * \enum SHADERDATATYPE_BVEC4
+    * \desc <code>bvec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC4", Shader::DATATYPE_BOOL_VEC4);
+	/***
+    * \enum SHADERDATATYPE_MAT2
+    * \desc <code>mat2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT2", Shader::DATATYPE_FLOAT_MAT2);
+	/***
+    * \enum SHADERDATATYPE_MAT3
+    * \desc <code>mat3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT3", Shader::DATATYPE_FLOAT_MAT3);
+	/***
+    * \enum SHADERDATATYPE_MAT4
+    * \desc <code>mat4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT4", Shader::DATATYPE_FLOAT_MAT4);
+	/***
+    * \enum SHADERDATATYPE_SAMPLER_2D
+    * \desc <code>sampler2D</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_SAMPLER_2D", Shader::DATATYPE_SAMPLER_2D);
+	/***
+    * \enum SHADERDATATYPE_SAMPLER_CUBE
+    * \desc <code>samplerCube</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_SAMPLER_CUBE", Shader::DATATYPE_SAMPLER_CUBE);
 	// #endregion
 
 	// #region SocketClient
