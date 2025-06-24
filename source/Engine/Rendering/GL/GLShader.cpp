@@ -391,6 +391,8 @@ void GLShader::AttachAndLink() {
 	LocTexCoord = GetAttribLocation(ATTRIB_UV);
 	LocVaryingColor = GetAttribLocation(ATTRIB_COLOR);
 
+	InitUniforms();
+
 	LocProjectionMatrix = AddBuiltinUniform("u_projectionMatrix");
 	LocViewMatrix = AddBuiltinUniform("u_viewMatrix");
 	LocModelMatrix = AddBuiltinUniform("u_modelMatrix");
@@ -501,119 +503,71 @@ bool GLShader::HasUniform(const char* name) {
 
 	return GetUniformLocation(name) != -1;
 }
-void GLShader::SetUniform(const char* name, size_t count, int* values) {
-	if (name == nullptr || name[0] == '\0') {
-		throw std::runtime_error("Invalid uniform name!");
+void GLShader::SendUniformValues(int location, size_t count, void* values, Uint8 type) {
+	int* valuesInt = (int*)values;
+	float* valuesFloat = (float*)values;
+
+	switch (type) {
+	case Shader::UNIFORM_INT:
+	case Shader::UNIFORM_BOOL:
+	case Shader::UNIFORM_SAMPLER_2D:
+	case Shader::UNIFORM_SAMPLER_CUBE:
+		glUniform1iv(location, count, valuesInt);
+		break;
+	case Shader::UNIFORM_INT_VEC2:
+	case Shader::UNIFORM_BOOL_VEC2:
+		glUniform2iv(location, count, valuesInt);
+		break;
+	case Shader::UNIFORM_INT_VEC3:
+	case Shader::UNIFORM_BOOL_VEC3:
+		glUniform3iv(location, count, valuesInt);
+		break;
+	case Shader::UNIFORM_INT_VEC4:
+	case Shader::UNIFORM_BOOL_VEC4:
+		glUniform4iv(location, count, valuesInt);
+		break;
+	case Shader::UNIFORM_FLOAT:
+		glUniform1fv(location, count, valuesFloat);
+		break;
+	case Shader::UNIFORM_FLOAT_VEC2:
+		glUniform2fv(location, count, valuesFloat);
+		break;
+	case Shader::UNIFORM_FLOAT_VEC3:
+		glUniform3fv(location, count, valuesFloat);
+		break;
+	case Shader::UNIFORM_FLOAT_VEC4:
+		glUniform4fv(location, count, valuesFloat);
+		break;
+	case Shader::UNIFORM_FLOAT_MAT2:
+		glUniformMatrix2fv(location, count, false, valuesFloat);
+		break;
+	case Shader::UNIFORM_FLOAT_MAT3:
+		glUniformMatrix3fv(location, count, false, valuesFloat);
+		break;
+	case Shader::UNIFORM_FLOAT_MAT4:
+		glUniformMatrix4fv(location, count, false, valuesFloat);
+		break;
 	}
-
-	int uniform = GetUniformLocation(name);
-	if (uniform == -1) {
-		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
-	}
-
-	Use();
-
-	switch (count) {
-	case 1:
-		glUniform1i(uniform, values[0]);
-		break;
-	case 2:
-		glUniform2i(uniform, values[0], values[1]);
-		break;
-	case 3:
-		glUniform3i(uniform, values[0], values[1], values[2]);
-		break;
-	case 4:
-		glUniform4i(uniform, values[0], values[1], values[2], values[3]);
-		break;
-	}
-
-	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 }
-void GLShader::SetUniform(const char* name, size_t count, float* values) {
-	if (name == nullptr || name[0] == '\0') {
-		throw std::runtime_error("Invalid uniform name!");
+void GLShader::SetUniform(ShaderUniform* uniform, size_t count, void* values, Uint8 type) {
+	if (type != uniform->Type) {
+		throw std::runtime_error("Uniform type mismatch!");
 	}
 
-	int uniform = GetUniformLocation(name);
-	if (uniform == -1) {
-		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
-	}
-
-	Use();
-
-	switch (count) {
-	case 1:
-		glUniform1f(uniform, values[0]);
-		break;
-	case 2:
-		glUniform2f(uniform, values[0], values[1]);
-		break;
-	case 3:
-		glUniform3f(uniform, values[0], values[1], values[2]);
-		break;
-	case 4:
-		glUniform4f(uniform, values[0], values[1], values[2], values[3]);
-		break;
-	}
-
-	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
-}
-void GLShader::SetUniformArray(const char* name, size_t count, int* values, size_t numValues) {
-	if (name == nullptr || name[0] == '\0') {
-		throw std::runtime_error("Invalid uniform name!");
-	}
-
-	int uniform = GetUniformLocation(name);
-	if (uniform == -1) {
-		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
+	if (count > 1) {
+		if (type == Shader::UNIFORM_SAMPLER_2D || type == Shader::UNIFORM_SAMPLER_CUBE) {
+			throw std::runtime_error("Cannot send array to uniform of sampler type!");
+		}
+		else if (!uniform->IsArray) {
+			throw std::runtime_error(
+				"Cannot send array to uniform that is not an array!");
+		}
 	}
 
 	Use();
 
-	switch (count) {
-	case 1:
-		glUniform1iv(uniform, numValues, values);
-		break;
-	case 2:
-		glUniform2iv(uniform, numValues, values);
-		break;
-	case 3:
-		glUniform3iv(uniform, numValues, values);
-		break;
-	case 4:
-		glUniform4iv(uniform, numValues, values);
-		break;
-	}
-
-	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
-}
-void GLShader::SetUniformArray(const char* name, size_t count, float* values, size_t numValues) {
-	if (name == nullptr || name[0] == '\0') {
-		throw std::runtime_error("Invalid uniform name!");
-	}
-
-	int uniform = GetUniformLocation(name);
-	if (uniform == -1) {
-		throw std::runtime_error("No uniform named \"" + std::string(name) + "\"!");
-	}
-
-	Use();
-
-	switch (count) {
-	case 1:
-		glUniform1fv(uniform, numValues, values);
-		break;
-	case 2:
-		glUniform2fv(uniform, numValues, values);
-		break;
-	case 3:
-		glUniform3fv(uniform, numValues, values);
-		break;
-	case 4:
-		glUniform4fv(uniform, numValues, values);
-		break;
-	}
+	SendUniformValues(uniform->Location, count, values, type);
+	CHECK_GL();
 
 	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 }
@@ -694,19 +648,12 @@ int GLShader::GetRequiredAttrib(std::string identifier) {
 	return location;
 }
 int GLShader::GetUniformLocation(std::string identifier) {
-	GLVariableMap::iterator it = UniformMap.find(identifier);
-	if (it != UniformMap.end()) {
-		return it->second;
+	ShaderUniform* uniform = GetUniform(identifier);
+	if (uniform != nullptr) {
+		return uniform->Location;
 	}
 
-	GLint value = glGetUniformLocation(ProgramID, (const GLchar*)identifier.c_str());
-	if (value == -1) {
-		return -1;
-	}
-
-	UniformMap[identifier] = (int)value;
-
-	return (int)value;
+	return -1;
 }
 
 void GLShader::Delete() {
@@ -726,13 +673,91 @@ void GLShader::Delete() {
 	Shader::Delete();
 }
 
-#if GL_USING_ATTRIB_LOCATIONS
-void GLShader::InitAttributes() {
-	AttribLocationMap[ATTRIB_POSITION] = 0;
-	AttribLocationMap[ATTRIB_UV] = 1;
-	AttribLocationMap[ATTRIB_COLOR] = 2;
+Uint8 GLShader::ConvertUniformTypeToEnum(GLenum type) {
+	switch (type) {
+	case GL_FLOAT:
+		return Shader::UNIFORM_FLOAT;
+	case GL_FLOAT_VEC2:
+		return Shader::UNIFORM_FLOAT_VEC2;
+	case GL_FLOAT_VEC3:
+		return Shader::UNIFORM_FLOAT_VEC3;
+	case GL_FLOAT_VEC4:
+		return Shader::UNIFORM_FLOAT_VEC4;
+	case GL_INT:
+		return Shader::UNIFORM_INT;
+	case GL_INT_VEC2:
+		return Shader::UNIFORM_INT_VEC2;
+	case GL_INT_VEC3:
+		return Shader::UNIFORM_INT_VEC3;
+	case GL_INT_VEC4:
+		return Shader::UNIFORM_INT_VEC4;
+	case GL_BOOL:
+		return Shader::UNIFORM_BOOL;
+	case GL_BOOL_VEC2:
+		return Shader::UNIFORM_BOOL_VEC2;
+	case GL_BOOL_VEC3:
+		return Shader::UNIFORM_BOOL_VEC3;
+	case GL_BOOL_VEC4:
+		return Shader::UNIFORM_BOOL_VEC4;
+	case GL_FLOAT_MAT2:
+		return Shader::UNIFORM_FLOAT_MAT2;
+	case GL_FLOAT_MAT3:
+		return Shader::UNIFORM_FLOAT_MAT3;
+	case GL_FLOAT_MAT4:
+		return Shader::UNIFORM_FLOAT_MAT4;
+	case GL_SAMPLER_2D:
+		return Shader::UNIFORM_SAMPLER_2D;
+	case GL_SAMPLER_CUBE:
+		return Shader::UNIFORM_SAMPLER_CUBE;
+	default:
+		return Shader::UNIFORM_UNKNOWN;
+	}
 }
-#endif
+
+void GLShader::InitUniforms() {
+	GLint numUniforms;
+	glGetProgramiv(ProgramID, GL_ACTIVE_UNIFORMS, &numUniforms);
+
+	GLint maxUniformNameLength;
+	glGetProgramiv(ProgramID, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxUniformNameLength);
+
+	if (maxUniformNameLength == 0) {
+		throw std::runtime_error(
+			"GL_ACTIVE_UNIFORM_MAX_LENGTH returned an invalid length!");
+	}
+
+	GLchar* uniformName = (GLchar*)Memory::Calloc(maxUniformNameLength, sizeof(GLchar));
+	GLsizei nameLength;
+	GLint size;
+	GLenum type;
+
+	for (GLint i = 0; i < numUniforms; i++) {
+		glGetActiveUniform(
+			ProgramID, i, maxUniformNameLength, &nameLength, &size, &type, uniformName);
+		if (nameLength == 0) {
+			continue;
+		}
+
+		bool isArray = false;
+
+		char* leftSquareBracket = strchr(uniformName, '[');
+		if (leftSquareBracket != nullptr) {
+			*leftSquareBracket = '\0';
+			isArray = true;
+		}
+
+		ShaderUniform uniform;
+		uniform.Name = std::string(uniformName, nameLength);
+		uniform.Type = ConvertUniformTypeToEnum(type);
+		uniform.Location =
+			glGetUniformLocation(ProgramID, (const GLchar*)uniform.Name.c_str());
+		uniform.IsArray = isArray;
+
+		UniformMap[uniformName] = uniform;
+	}
+
+	Memory::Free(uniformName);
+}
 
 void GLShader::InitTextureUniforms() {
 	AddTextureUniformName(UNIFORM_TEXTURE);
@@ -745,6 +770,12 @@ void GLShader::InitTextureUniforms() {
 }
 
 #if GL_USING_ATTRIB_LOCATIONS
+void GLShader::InitAttributes() {
+	AttribLocationMap[ATTRIB_POSITION] = 0;
+	AttribLocationMap[ATTRIB_UV] = 1;
+	AttribLocationMap[ATTRIB_COLOR] = 2;
+}
+
 void GLShader::BindAttribLocations() {
 	for (auto it = AttribLocationMap.begin(); it != AttribLocationMap.end(); it++) {
 		std::string attribName = it->first;

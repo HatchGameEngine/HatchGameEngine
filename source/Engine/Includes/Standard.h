@@ -105,4 +105,7 @@ typedef int64_t Sint64;
 #define NEW_STRUCT_MACRO(n) n
 #endif
 
+#define UNREACHABLE_EXCEPTION(exc) throw exc("This should not have been reached.")
+#define UNIMPLEMENTED_EXCEPTION(exc) throw exc("Unimplemented!")
+
 #endif // STANDARDLIBS_H

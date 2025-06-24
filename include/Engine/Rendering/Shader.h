@@ -1,10 +1,17 @@
 #ifndef ENGINE_RENDERING_SHADER_H
 #define ENGINE_RENDERING_SHADER_H
 
-#include <Engine/Includes/Standard.h>
 #include <Engine/IO/Stream.h>
+#include <Engine/Includes/Standard.h>
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/Rendering/Texture.h>
+
+struct ShaderUniform {
+	std::string Name;
+	Uint8 Type;
+	bool IsArray;
+	int Location;
+};
 
 class Shader {
 protected:
@@ -13,9 +20,27 @@ protected:
 	void ValidateTextureUniformNames();
 
 public:
+	enum { PROGRAM_VERTEX, PROGRAM_FRAGMENT };
+
 	enum {
-		PROGRAM_VERTEX,
-		PROGRAM_FRAGMENT
+		UNIFORM_UNKNOWN,
+		UNIFORM_FLOAT,
+		UNIFORM_FLOAT_VEC2,
+		UNIFORM_FLOAT_VEC3,
+		UNIFORM_FLOAT_VEC4,
+		UNIFORM_INT,
+		UNIFORM_INT_VEC2,
+		UNIFORM_INT_VEC3,
+		UNIFORM_INT_VEC4,
+		UNIFORM_BOOL,
+		UNIFORM_BOOL_VEC2,
+		UNIFORM_BOOL_VEC3,
+		UNIFORM_BOOL_VEC4,
+		UNIFORM_FLOAT_MAT2,
+		UNIFORM_FLOAT_MAT3,
+		UNIFORM_FLOAT_MAT4,
+		UNIFORM_SAMPLER_2D,
+		UNIFORM_SAMPLER_CUBE
 	};
 
 	virtual void Compile();
@@ -26,14 +51,13 @@ public:
 	bool WasCompiled();
 
 	virtual bool HasUniform(const char* name);
-	virtual void SetUniform(const char* name, size_t count, int* values);
-	virtual void SetUniform(const char* name, size_t count, float* values);
-	virtual void SetUniformArray(const char* name, size_t count, int* values, size_t numValues);
-	virtual void SetUniformArray(const char* name, size_t count, float* values, size_t numValues);
+	virtual void SetUniform(ShaderUniform* uniform, size_t count, void* values, Uint8 type);
 	virtual void SetUniformTexture(const char* name, Texture* texture);
 
 	virtual void Use();
 	virtual void Validate();
+
+	ShaderUniform* GetUniform(std::string identifier);
 
 	virtual int GetAttribLocation(std::string identifier);
 	virtual int GetUniformLocation(std::string identifier);
@@ -41,7 +65,9 @@ public:
 	int AddBuiltinUniform(std::string identifier);
 	bool IsBuiltinUniform(std::string identifier);
 
+	virtual void InitUniforms();
 	virtual void InitTextureUniforms();
+
 	void AddTextureUniformName(std::string identifier);
 	void InitTextureUnitMap();
 	int GetTextureUnit(int uniform);
@@ -49,6 +75,11 @@ public:
 	virtual void Delete();
 	virtual ~Shader();
 
+	static size_t GetUniformTypeElementCount(Uint8 type);
+	static size_t GetMatrixUniformTypeSize(Uint8 type);
+	static bool UniformTypeIsMatrix(Uint8 type);
+
+	std::unordered_map<std::string, ShaderUniform> UniformMap;
 	std::vector<std::string> BuiltinUniforms;
 
 	std::vector<std::string> TextureUniformNames;

@@ -35,7 +35,9 @@ private:
 	std::string CheckShaderError(GLuint shader);
 	std::string CheckProgramError(GLuint prog);
 
-	GLVariableMap UniformMap;
+	static Uint8 ConvertUniformTypeToEnum(GLenum type);
+
+	static void SendUniformValues(int location, size_t count, void* values, Uint8 type);
 
 #ifndef GL_USING_ATTRIB_LOCATIONS
 	GLVariableMap AttribMap;
@@ -55,10 +57,7 @@ public:
 	bool IsValid();
 
 	bool HasUniform(const char* name);
-	void SetUniform(const char* name, size_t count, int* values);
-	void SetUniform(const char* name, size_t count, float* values);
-	void SetUniformArray(const char* name, size_t count, int* values, size_t numValues);
-	void SetUniformArray(const char* name, size_t count, float* values, size_t numValues);
+	void SetUniform(ShaderUniform* uniform, size_t count, void* values, Uint8 type);
 	void SetUniformTexture(const char* name, Texture* texture);
 	void SetUniformTexture(int uniform, Texture* texture);
 	void SetUniformTexture(int uniform, int textureID);
@@ -71,6 +70,7 @@ public:
 	int GetRequiredAttrib(std::string identifier);
 	int GetUniformLocation(std::string identifier);
 
+	void InitUniforms();
 	void InitTextureUniforms();
 
 #if GL_USING_ATTRIB_LOCATIONS

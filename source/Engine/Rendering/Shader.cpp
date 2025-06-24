@@ -1,5 +1,5 @@
-#include <Engine/Graphics.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Graphics.h>
 #include <Engine/Rendering/Shader.h>
 
 void Shader::Compile() {
@@ -26,20 +26,52 @@ bool Shader::WasCompiled() {
 bool Shader::HasUniform(const char* name) {
 	return false;
 }
-void Shader::SetUniform(const char* name, size_t count, int* values) {
+void Shader::SetUniform(ShaderUniform* uniform, size_t count, void* values, Uint8 type) {
 	throw std::runtime_error("Shader::SetUniform() called without an implementation");
-}
-void Shader::SetUniform(const char* name, size_t count, float* values) {
-	throw std::runtime_error("Shader::SetUniform() called without an implementation");
-}
-void Shader::SetUniformArray(const char* name, size_t count, int* values, size_t numValues) {
-	throw std::runtime_error("Shader::SetUniformArray() called without an implementation");
-}
-void Shader::SetUniformArray(const char* name, size_t count, float* values, size_t numValues) {
-	throw std::runtime_error("Shader::SetUniformArray() called without an implementation");
 }
 void Shader::SetUniformTexture(const char* name, Texture* texture) {
 	throw std::runtime_error("Shader::SetUniformTexture() called without an implementation");
+}
+
+size_t Shader::GetUniformTypeElementCount(Uint8 type) {
+	switch (type) {
+	case Shader::UNIFORM_INT_VEC2:
+	case Shader::UNIFORM_FLOAT_VEC2:
+	case Shader::UNIFORM_BOOL_VEC2:
+		return 2;
+	case Shader::UNIFORM_INT_VEC3:
+	case Shader::UNIFORM_FLOAT_VEC3:
+	case Shader::UNIFORM_BOOL_VEC3:
+		return 3;
+	case Shader::UNIFORM_INT_VEC4:
+	case Shader::UNIFORM_FLOAT_VEC4:
+	case Shader::UNIFORM_BOOL_VEC4:
+		return 4;
+	default:
+		return 1;
+	}
+}
+size_t Shader::GetMatrixUniformTypeSize(Uint8 type) {
+	switch (type) {
+	case Shader::UNIFORM_FLOAT_MAT2:
+		return 2 * 4;
+	case Shader::UNIFORM_FLOAT_MAT3:
+		return 3 * 4;
+	case Shader::UNIFORM_FLOAT_MAT4:
+		return 4 * 4;
+	default:
+		return 0;
+	}
+}
+bool Shader::UniformTypeIsMatrix(Uint8 type) {
+	switch (type) {
+	case Shader::UNIFORM_FLOAT_MAT2:
+	case Shader::UNIFORM_FLOAT_MAT3:
+	case Shader::UNIFORM_FLOAT_MAT4:
+		return true;
+	}
+
+	return false;
 }
 
 void Shader::Use() {
@@ -47,6 +79,15 @@ void Shader::Use() {
 }
 void Shader::Validate() {
 	throw std::runtime_error("Shader::Validate() called without an implementation");
+}
+
+ShaderUniform* Shader::GetUniform(std::string identifier) {
+	std::unordered_map<std::string, ShaderUniform>::iterator it = UniformMap.find(identifier);
+	if (it != UniformMap.end()) {
+		return &UniformMap[identifier];
+	}
+
+	return nullptr;
 }
 
 int Shader::GetAttribLocation(std::string identifier) {
@@ -70,9 +111,13 @@ bool Shader::IsBuiltinUniform(std::string identifier) {
 	return it != BuiltinUniforms.end();
 }
 
+void Shader::InitUniforms() {
+	throw std::runtime_error("Shader::InitUniforms() called without an implementation");
+}
 void Shader::InitTextureUniforms() {
 	throw std::runtime_error("Shader::InitTextureUniforms() called without an implementation");
 }
+
 void Shader::AddTextureUniformName(std::string identifier) {
 	auto it = std::find(TextureUniformNames.begin(), TextureUniformNames.end(), identifier);
 	if (it == TextureUniformNames.end()) {
@@ -86,7 +131,9 @@ void Shader::ValidateTextureUniformNames() {
 		int uniform = GetUniformLocation(uniformName);
 		if (uniform == -1) {
 			if (!IsBuiltinUniform(uniformName)) {
-				Log::Print(Log::LOG_WARN, "No uniform named \"%s\"!", uniformName.c_str());
+				Log::Print(Log::LOG_WARN,
+					"No uniform named \"%s\"!",
+					uniformName.c_str());
 			}
 
 			TextureUniformNames.erase(TextureUniformNames.begin() + i);
@@ -107,7 +154,8 @@ void Shader::InitTextureUnitMap() {
 		int uniform = GetUniformLocation(uniformName);
 		if (uniform == -1) {
 			if (!IsBuiltinUniform(uniformName)) {
-				throw std::runtime_error("No uniform named \"" + uniformName + "\"!");
+				throw std::runtime_error(
+					"No uniform named \"" + uniformName + "\"!");
 			}
 
 			continue;
@@ -115,7 +163,10 @@ void Shader::InitTextureUnitMap() {
 
 		if (unit >= maxTextureUnit) {
 			char buffer[64];
-			snprintf(buffer, sizeof buffer, "Too many texture units in use! (Maximum supported is %d)", maxTextureUnit);
+			snprintf(buffer,
+				sizeof buffer,
+				"Too many texture units in use! (Maximum supported is %d)",
+				maxTextureUnit);
 			throw std::runtime_error(std::string(buffer));
 		}
 
