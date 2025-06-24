@@ -208,6 +208,7 @@ PRVHFILES := \
 	source/Engine/Media/Includes/SWScale.h \
 	source/Engine/Media/Utils/Codec.h \
 	source/Engine/Network/WebSocketIncludes.h \
+	source/Engine/Platforms/Capability.h \
 	source/Engine/Platforms/iOS/MediaPlayer.h \
 	source/Engine/Platforms/MacOS/Filesystem.h \
 	source/Engine/Rendering/3D.h \

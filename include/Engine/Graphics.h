@@ -24,6 +24,7 @@ class IModel;
 
 class Graphics {
 private:
+	static void InitCapabilities();
 	static void DeleteSpriteSheetMap();
 	static void DeleteShaders();
 	static void DeleteVertexBuffers();
@@ -35,12 +36,14 @@ public:
 	static bool VsyncEnabled;
 	static int MultisamplingEnabled;
 	static int FontDPI;
+	static bool SupportsShaders;
 	static bool SupportsBatching;
 	static bool TextureBlend;
 	static bool TextureInterpolate;
 	static Uint32 PreferredPixelFormat;
 	static Uint32 MaxTextureWidth;
 	static Uint32 MaxTextureHeight;
+	static Uint32 MaxTextureUnits;
 	static Texture* TextureHead;
 	static std::vector<Shader*> Shaders;
 	static std::vector<VertexBuffer*> VertexBuffers;
@@ -129,7 +132,6 @@ public:
 	static void SetFilter(int filter);
 	static void SetFilterTable(Uint32* table, size_t size);
 	static void SetTextureInterpolation(bool interpolate);
-	static int GetMaxTextureUnits();
 	static void Clear();
 	static void Present();
 	static void SoftwareStart();

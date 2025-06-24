@@ -22,12 +22,14 @@ std::map<std::string, TextureReference*> Graphics::SpriteSheetTextureMap;
 bool Graphics::VsyncEnabled = true;
 int Graphics::MultisamplingEnabled = 0;
 int Graphics::FontDPI = 1;
+bool Graphics::SupportsShaders = false;
 bool Graphics::SupportsBatching = false;
 bool Graphics::TextureBlend = false;
 bool Graphics::TextureInterpolate = false;
 Uint32 Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
 Uint32 Graphics::MaxTextureWidth = 1;
 Uint32 Graphics::MaxTextureHeight = 1;
+Uint32 Graphics::MaxTextureUnits = 1;
 Texture* Graphics::TextureHead = NULL;
 
 std::vector<Shader*> Graphics::Shaders;
@@ -137,7 +139,15 @@ void Graphics::Init() {
 		Graphics::MaxTextureWidth,
 		Graphics::MaxTextureHeight);
 
+	InitCapabilities();
+
 	Graphics::Initialized = true;
+}
+void Graphics::InitCapabilities() {
+	Application::AddCapability("graphics_shaders", Graphics::SupportsShaders);
+	Application::AddCapability("gpu_maxTextureWidth", (int)Graphics::MaxTextureWidth);
+	Application::AddCapability("gpu_maxTextureHeight", (int)Graphics::MaxTextureHeight);
+	Application::AddCapability("gpu_maxTextureUnits", (int)Graphics::MaxTextureUnits);
 }
 void Graphics::ChooseBackend() {
 	char renderer[64];
@@ -582,14 +592,6 @@ void Graphics::SetTextureInterpolation(bool interpolate) {
 	Graphics::TextureInterpolate = interpolate;
 }
 
-int Graphics::GetMaxTextureUnits() {
-	if (Graphics::GfxFunctions->GetMaxTextureUnits) {
-		return Graphics::GfxFunctions->GetMaxTextureUnits();
-	}
-
-	return 1;
-}
-
 void Graphics::Clear() {
 	Graphics::GfxFunctions->Clear();
 }
@@ -693,10 +695,8 @@ bool Graphics::CreateFramebufferTexture() {
 	}
 
 	if (createTexture) {
-		FramebufferTexture = CreateTexture(SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_STREAMING,
-			maxWidth,
-			maxHeight);
+		FramebufferTexture = CreateTexture(
+			SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, maxWidth, maxHeight);
 
 		if (FramebufferTexture == nullptr) {
 			return false;
@@ -709,8 +709,7 @@ bool Graphics::CreateFramebufferTexture() {
 	return true;
 }
 bool Graphics::UpdateFramebufferTexture() {
-	if (!Graphics::GfxFunctions->ReadFramebuffer ||
-		!Graphics::GfxFunctions->UpdateTexture ||
+	if (!Graphics::GfxFunctions->ReadFramebuffer || !Graphics::GfxFunctions->UpdateTexture ||
 		!Graphics::CreateFramebufferTexture()) {
 		return false;
 	}

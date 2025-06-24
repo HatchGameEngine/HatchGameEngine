@@ -128,7 +128,6 @@ GLenum GL_ActiveCullMode;
 bool GL_ClippingEnabled;
 
 int GL_CurrentTextureUnit = 0;
-int GL_MaxTextureImageUnits = 1;
 
 #ifdef HAVE_GL_PERFSTATS
 #define PERF_START(p) (p).Time = Clock::GetTicks()
@@ -1340,6 +1339,7 @@ PolygonRenderer* GL_GetPolygonRenderer() {
 
 // Initialization and disposal functions
 void GLRenderer::Init() {
+	Graphics::SupportsShaders = true;
 	Graphics::SupportsBatching = true;
 	Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ABGR8888;
 
@@ -1367,13 +1367,16 @@ void GLRenderer::Init() {
 		GLRenderer::SetVSync(true);
 	}
 
-	int max, w, h, ww, wh;
-	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max);
-	glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &GL_MaxTextureImageUnits);
+	int maxTextureSize;
+	int maxTextureImageUnits;
+	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+	glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureImageUnits);
 
-	Graphics::MaxTextureWidth = max;
-	Graphics::MaxTextureHeight = max;
+	Graphics::MaxTextureWidth = maxTextureSize;
+	Graphics::MaxTextureHeight = maxTextureSize;
+	Graphics::MaxTextureUnits = maxTextureImageUnits;
 
+	int w, h, ww, wh;
 	SDL_GL_GetDrawableSize(Application::Window, &w, &h);
 	SDL_GetWindowSize(Application::Window, &ww, &wh);
 
@@ -1536,7 +1539,6 @@ void GLRenderer::SetGraphicsFunctions() {
 	// These guys
 	Graphics::Internal.Clear = GLRenderer::Clear;
 	Graphics::Internal.Present = GLRenderer::Present;
-	Graphics::Internal.GetMaxTextureUnits = GLRenderer::GetMaxTextureUnits;
 
 	// Draw mode setting functions
 	Graphics::Internal.SetBlendColor = GLRenderer::SetBlendColor;
@@ -2089,11 +2091,12 @@ int GLRenderer::GetTextureUnit() {
 	return GL_CurrentTextureUnit;
 }
 void GLRenderer::SetTextureUnit(int textureUnit) {
+	int maxTextureUnits = (int)Graphics::MaxTextureUnits;
 	if (textureUnit < 0) {
 		textureUnit = 0;
 	}
-	else if (textureUnit >= GL_MaxTextureImageUnits) {
-		textureUnit = GL_MaxTextureImageUnits - 1;
+	else if (textureUnit >= maxTextureUnits) {
+		textureUnit = maxTextureUnits - 1;
 	}
 
 	if (GL_CurrentTextureUnit != textureUnit) {
@@ -2102,9 +2105,6 @@ void GLRenderer::SetTextureUnit(int textureUnit) {
 
 		glActiveTexture(GL_ActiveTexture);
 	}
-}
-int GLRenderer::GetMaxTextureUnits() {
-	return GL_MaxTextureImageUnits;
 }
 
 int GLRenderer::GetCurrentProgram() {

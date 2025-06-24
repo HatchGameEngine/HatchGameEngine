@@ -27,6 +27,7 @@
 #include <Engine/Math/Random.h>
 #include <Engine/Network/HTTP.h>
 #include <Engine/Network/WebSocketClient.h>
+#include <Engine/Platforms/Capability.h>
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
 #include <Engine/Rendering/ViewTexture.h>
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
@@ -2639,7 +2640,7 @@ VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Device.IsPC
  * \desc Determines whether or not the application is running on a personal computer OS (Windows, MacOS, Linux).
- * \return Returns 1 if the device is on a PC, 0 if otherwise.
+ * \return Returns <code>true</code> if the device is on a PC, <code>false</code> if otherwise.
  * \ns Device
  */
 VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
@@ -2650,13 +2651,47 @@ VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Device.IsMobile
  * \desc Determines whether or not the application is running on a mobile device.
- * \return Returns 1 if the device is on a mobile device, 0 if otherwise.
+ * \return Returns <code>true</code> if the device is on a mobile device, <code>false</code> if otherwise.
  * \ns Device
  */
 VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	bool isMobile = Application::IsMobile();
 	return INTEGER_VAL((int)isMobile);
+}
+/***
+ * Device.GetCapability
+ * \desc Checks a capability of the device the application is running on.
+ * \param capability (String): The capability.
+ * \return The return value of this function depends on the capability being queried; however, if the capability is not present, this function returns <code>null</code>.
+ * \ns Device
+ */
+VMValue Device_GetCapability(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	char* capType = GET_ARG(0, GetString);
+
+	Capability capability = Application::GetCapability(capType);
+
+	switch (capability.Type) {
+	case Capability::TYPE_INTEGER:
+		return INTEGER_VAL(capability.AsInteger);
+	case Capability::TYPE_DECIMAL:
+		return DECIMAL_VAL(capability.AsDecimal);
+	case Capability::TYPE_BOOL:
+		return INTEGER_VAL(capability.AsBoolean ? 1 : 0);
+	case Capability::TYPE_STRING:
+		if (ScriptManager::Lock()) {
+			VMValue value = OBJECT_VAL(TakeString(capability.AsString));
+			ScriptManager::Unlock();
+			return value;
+		}
+		else {
+			Memory::Free(capability.AsString); // Oh, okay...
+		}
+		break;
+	}
+
+	return NULL_VAL;
 }
 // #endregion
 
@@ -2665,7 +2700,7 @@ VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
  * Directory.Create
  * \desc Creates a folder at the path.
  * \param path (String): The path of the folder to create.
- * \return Returns 1 if the folder creation was successful, 0 if otherwise
+ * \return Returns <code>true</code> if the folder creation was successful, <code>false</code> if otherwise.
  * \ns Directory
  */
 VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -2677,7 +2712,7 @@ VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
  * Directory.Exists
  * \desc Determines if the folder at the path exists.
  * \param path (String): The path of the folder to check for existence.
- * \return Returns 1 if the folder exists, 0 if otherwise
+ * \return Returns <code>true</code> if the folder exists, <code>false</code> if otherwise.
  * \ns Directory
  */
 VMValue Directory_Exists(int argCount, VMValue* args, Uint32 threadID) {
@@ -6626,7 +6661,7 @@ VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  * File.Exists
  * \desc Determines if the file at the path exists.
  * \param path (String): The path of the file to check for existence.
- * \return Returns 1 if the file exists, 0 if otherwise
+ * \return Returns <code>true</code> if the file exists, <code>false</code> if otherwise.
  * \ns File
  */
 VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
@@ -18692,6 +18727,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Device, GetPlatform);
 	DEF_NATIVE(Device, IsPC);
 	DEF_NATIVE(Device, IsMobile);
+	DEF_NATIVE(Device, GetCapability);
 	/***
     * \enum Platform_Windows
     * \desc Windows platform.

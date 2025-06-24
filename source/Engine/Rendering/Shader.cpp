@@ -156,7 +156,7 @@ void Shader::ValidateTextureUniformNames() {
 }
 
 void Shader::InitTextureUnitMap() {
-	int maxTextureUnit = Graphics::GetMaxTextureUnits();
+	int maxTextureUnits = (int)Graphics::MaxTextureUnits;
 	int unit = 0;
 
 	for (size_t i = 0, iSz = TextureUniformNames.size(); i < iSz; i++) {
@@ -172,12 +172,12 @@ void Shader::InitTextureUnitMap() {
 			continue;
 		}
 
-		if (unit >= maxTextureUnit) {
+		if (unit >= maxTextureUnits) {
 			char buffer[64];
 			snprintf(buffer,
 				sizeof buffer,
 				"Too many texture units in use! (Maximum supported is %d)",
-				maxTextureUnit);
+				maxTextureUnits);
 			throw std::runtime_error(std::string(buffer));
 		}
 

@@ -46,6 +46,7 @@ void SDL2Renderer::Init() {
 	SDL_RendererInfo rendererInfo;
 	SDL_GetRendererInfo(Renderer, &rendererInfo);
 
+	Graphics::SupportsShaders = false;
 	Graphics::SupportsBatching = false;
 	Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
 

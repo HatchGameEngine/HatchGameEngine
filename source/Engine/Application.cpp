@@ -92,6 +92,8 @@ char Application::DeveloperIdentifier[256];
 char Application::SavesDir[256];
 char Application::PreferencesDir[256];
 
+std::unordered_map<std::string, Capability> Application::CapabilityMap;
+
 int Application::UpdatesPerFrame = 1;
 int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
 bool Application::Stepper = false;
@@ -363,6 +365,50 @@ bool Application::IsPC() {
 bool Application::IsMobile() {
 	return Application::Platform == Platforms::iOS ||
 		Application::Platform == Platforms::Android;
+}
+
+void Application::AddCapability(std::string capability, int value) {
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(value);
+}
+void Application::AddCapability(std::string capability, float value) {
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(value);
+}
+void Application::AddCapability(std::string capability, bool value) {
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(value);
+}
+void Application::AddCapability(std::string capability, std::string value) {
+	char* string = StringUtils::Create(value);
+
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(string);
+}
+Capability Application::GetCapability(std::string capability) {
+	std::unordered_map<std::string, Capability>::iterator it = CapabilityMap.find(capability);
+	if (it != CapabilityMap.end()) {
+		return it->second;
+	}
+
+	return Capability();
+}
+bool Application::HasCapability(std::string capability) {
+	std::unordered_map<std::string, Capability>::iterator it = CapabilityMap.find(capability);
+	return it != CapabilityMap.end();
+}
+void Application::RemoveCapability(std::string capability) {
+	if (HasCapability(capability)) {
+		Capability cap = CapabilityMap[capability];
+
+		cap.Dispose();
+
+		CapabilityMap.erase(capability);
+	}
 }
 
 bool IsIdentifierBody(char c) {
@@ -1608,6 +1654,13 @@ void Application::Cleanup() {
 		Memory::Free(Application::CmdLineArgs[i]);
 	}
 	Application::CmdLineArgs.clear();
+
+	for (std::unordered_map<std::string, Capability>::iterator it = CapabilityMap.begin();
+		it != CapabilityMap.end();
+		it++) {
+		it->second.Dispose();
+	}
+	CapabilityMap.clear();
 
 	Memory::PrintLeak();
 	Memory::ClearTrackedMemory();
