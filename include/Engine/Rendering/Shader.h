@@ -20,7 +20,7 @@ protected:
 	void ValidateTextureUniformNames();
 
 public:
-	enum { PROGRAM_VERTEX, PROGRAM_FRAGMENT };
+	enum { STAGE_VERTEX, STAGE_FRAGMENT };
 
 	enum {
 		DATATYPE_UNKNOWN = -1,
@@ -44,8 +44,9 @@ public:
 	};
 
 	virtual void Compile();
-	virtual void AddProgram(int program, Stream* stream);
-	virtual bool HasProgram(int program);
+	virtual void AddStage(int stage, Stream* stream);
+	virtual bool HasStage(int stage);
+	virtual bool HasRequiredStages();
 	virtual bool CanCompile();
 	virtual bool IsValid();
 	bool WasCompiled();

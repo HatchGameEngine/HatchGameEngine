@@ -11,10 +11,10 @@ public:
 	static void Init();
 	static Obj* VM_New(void);
 
-	static VMValue VM_HasProgram(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_HasStage(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_CanCompile(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_IsValid(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_AddProgram(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_AddStage(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetTextureUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_HasUniform(int argCount, VMValue* args, Uint32 threadID);

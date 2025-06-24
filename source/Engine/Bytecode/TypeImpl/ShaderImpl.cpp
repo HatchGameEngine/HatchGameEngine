@@ -18,10 +18,10 @@ void ShaderImpl::Init() {
 	Class->Name = CopyString(className);
 	Class->NewFn = VM_New;
 
-	ScriptManager::DefineNative(Class, "HasProgram", VM_HasProgram);
+	ScriptManager::DefineNative(Class, "HasStage", VM_HasStage);
 	ScriptManager::DefineNative(Class, "CanCompile", VM_CanCompile);
 	ScriptManager::DefineNative(Class, "IsValid", VM_IsValid);
-	ScriptManager::DefineNative(Class, "AddProgram", VM_AddProgram);
+	ScriptManager::DefineNative(Class, "AddStage", VM_AddStage);
 	ScriptManager::DefineNative(Class, "AssignTextureUnit", VM_AssignTextureUnit);
 	ScriptManager::DefineNative(Class, "GetTextureUnit", VM_GetTextureUnit);
 	ScriptManager::DefineNative(Class, "Compile", VM_Compile);
@@ -44,7 +44,7 @@ void ShaderImpl::Init() {
 
 /***
  * \constructor
- * \desc Creates a shader.
+ * \desc Creates a shader program.
  * \ns Shader
  */
 Obj* ShaderImpl::VM_New() {
@@ -58,13 +58,13 @@ Obj* ShaderImpl::VM_New() {
 	return (Obj*)obj;
 }
 /***
- * \method HasProgram
- * \desc Checks if the shader has a program of a given type.
- * \param program (Enum): <linkto ref="SHADERPROGRAM_*">Shader program type</linkto>.
- * \return Returns <code>true</code> if there is a program of the given type, <code>false</code> if otherwise.
+ * \method HasStage
+ * \desc Checks if the shader program has a shader stage.
+ * \param stage (Enum): The <linkto ref="SHADERSTAGE_*">shader stage</linkto>.
+ * \return Returns <code>true</code> if there is a shader stage of the given type, <code>false</code> if otherwise.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_HasProgram(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ShaderImpl::VM_HasStage(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
@@ -73,13 +73,13 @@ VMValue ShaderImpl::VM_HasProgram(int argCount, VMValue* args, Uint32 threadID) 
 	}
 
 	Shader* shader = (Shader*)objShader->ShaderPtr;
-	int program = GET_ARG(1, GetInteger);
+	int stage = GET_ARG(1, GetInteger);
 
 	CHECK_EXISTS(shader);
 
-	bool hasProgram = shader->HasProgram(program);
+	bool hasStage = shader->HasStage(stage);
 
-	return INTEGER_VAL(hasProgram);
+	return INTEGER_VAL(hasStage);
 }
 /***
  * \method CanCompile
@@ -98,14 +98,13 @@ VMValue ShaderImpl::VM_CanCompile(int argCount, VMValue* args, Uint32 threadID) 
 	Shader* shader = (Shader*)objShader->ShaderPtr;
 	CHECK_EXISTS(shader);
 
-	bool hasProgram = shader->CanCompile();
+	bool canCompile = shader->CanCompile();
 
-	return INTEGER_VAL(hasProgram);
+	return INTEGER_VAL(canCompile);
 }
 /***
  * \method IsValid
  * \desc Checks if the shader can be used.
- * \param program (Enum): <linkto ref="SHADERPROGRAM_*">Shader program type</linkto>.
  * \return Returns <code>true</code> if the shader can be used, <code>false</code> if otherwise.
  * \ns Shader
  */
@@ -120,18 +119,18 @@ VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, Uint32 threadID) {
 	Shader* shader = (Shader*)objShader->ShaderPtr;
 	CHECK_EXISTS(shader);
 
-	bool hasProgram = shader->IsValid();
+	bool isValid = shader->IsValid();
 
-	return INTEGER_VAL(hasProgram);
+	return INTEGER_VAL(isValid);
 }
 /***
- * \method AddProgram
- * \desc Adds a program. This should not be called multiple times for the same shader program type.
- * \param program (Enum): <linkto ref="SHADERPROGRAM_*">Shader program type</linkto>.
+ * \method AddStage
+ * \desc Adds a stage to the shader program. This should not be called multiple times for the same stage.
+ * \param stage (Enum): The <linkto ref="SHADERSTAGE_*">shader stage</linkto>.
  * \param filename (String): Filename of the resource.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_AddProgram(int argCount, VMValue* args, Uint32 threadID) {
+VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
@@ -140,7 +139,7 @@ VMValue ShaderImpl::VM_AddProgram(int argCount, VMValue* args, Uint32 threadID) 
 	}
 
 	Shader* shader = (Shader*)objShader->ShaderPtr;
-	int program = GET_ARG(1, GetInteger);
+	int stage = GET_ARG(1, GetInteger);
 	char* filename = GET_ARG(2, GetString);
 
 	CHECK_EXISTS(shader);
@@ -153,11 +152,11 @@ VMValue ShaderImpl::VM_AddProgram(int argCount, VMValue* args, Uint32 threadID) 
 	bool success = false;
 
 	try {
-		shader->AddProgram(program, stream);
+		shader->AddStage(stage, stream);
 
 		success = true;
 	} catch (const std::runtime_error& error) {
-		std::string errorMessage = "Error adding shader program: ";
+		std::string errorMessage = "Error adding shader stage: ";
 
 		errorMessage += std::string(error.what());
 

@@ -6,11 +6,13 @@ void Shader::Compile() {
 	throw std::runtime_error("Shader::Compile() called without an implementation");
 }
 
-void Shader::AddProgram(int program, Stream* stream) {
-	throw std::runtime_error("Shader::AddProgram() called without an implementation");
+void Shader::AddStage(int stage, Stream* stream) {
+	throw std::runtime_error("Shader::AddStage() called without an implementation");
 }
-
-bool Shader::HasProgram(int program) {
+bool Shader::HasStage(int stage) {
+	return false;
+}
+bool Shader::HasRequiredStages() {
 	return false;
 }
 bool Shader::CanCompile() {

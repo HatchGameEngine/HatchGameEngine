@@ -61,7 +61,7 @@ char* GLShader::FindInclude(std::string identifier) {
 	return nullptr;
 }
 
-void GLShader::AddVertexProgram(Stream* stream) {
+void GLShader::AddVertexShader(Stream* stream) {
 	GLint compiled = GL_FALSE;
 
 	size_t lenVS = stream->Length();
@@ -203,7 +203,7 @@ std::vector<char*> GLShader::GetShaderSources(GL_ProcessedShader processed) {
 	return shaderSources;
 }
 
-void GLShader::AddFragmentProgram(Stream* stream) {
+void GLShader::AddFragmentShader(Stream* stream) {
 	GLint compiled = GL_FALSE;
 
 	size_t lenFS = stream->Length();
@@ -239,42 +239,45 @@ void GLShader::AddFragmentProgram(Stream* stream) {
 	}
 }
 
-void GLShader::AddProgram(int program, Stream* stream) {
-	if (HasProgram(program)) {
-		throw std::runtime_error("Shader already has program!");
+void GLShader::AddStage(int stage, Stream* stream) {
+	if (HasStage(stage)) {
+		throw std::runtime_error("Shader already has stage!");
 	}
 
-	switch (program) {
-	case Shader::PROGRAM_VERTEX:
-		AddVertexProgram(stream);
+	switch (stage) {
+	case STAGE_VERTEX:
+		AddVertexShader(stream);
 		break;
-	case Shader::PROGRAM_FRAGMENT:
-		AddFragmentProgram(stream);
+	case STAGE_FRAGMENT:
+		AddFragmentShader(stream);
 		break;
 	default:
-		throw std::runtime_error("Unsupported shader program!");
+		throw std::runtime_error("Unsupported shader stage!");
 	}
 }
 
-bool GLShader::HasProgram(int program) {
-	switch (program) {
-	case Shader::PROGRAM_VERTEX:
+bool GLShader::HasStage(int stage) {
+	switch (stage) {
+	case STAGE_VERTEX:
 		return VertexProgramID != 0;
-	case Shader::PROGRAM_FRAGMENT:
+	case STAGE_FRAGMENT:
 		return FragmentProgramID != 0;
 	default:
 		return false;
 	}
+}
+bool GLShader::HasRequiredStages() {
+	return HasStage(STAGE_VERTEX) && HasStage(STAGE_FRAGMENT);
 }
 bool GLShader::CanCompile() {
 	if (WasCompiled()) {
 		return false;
 	}
 
-	return HasProgram(PROGRAM_VERTEX) && HasProgram(PROGRAM_FRAGMENT);
+	return HasRequiredStages();
 }
 bool GLShader::IsValid() {
-	return HasProgram(PROGRAM_VERTEX) && HasProgram(PROGRAM_FRAGMENT) && ProgramID != 0;
+	return HasRequiredStages() && ProgramID != 0;
 }
 
 void GLShader::Compile() {
@@ -282,7 +285,7 @@ void GLShader::Compile() {
 		throw std::runtime_error("Shader has already been compiled!");
 	}
 
-	ValidatePrograms();
+	ValidateStages();
 
 	ProgramID = glCreateProgram();
 
@@ -311,7 +314,7 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 
 	TextStream* streamVS = TextStream::New(vertexShaderSource);
 	try {
-		AddVertexProgram(streamVS);
+		AddVertexShader(streamVS);
 	} catch (const std::runtime_error& error) {
 		Delete();
 		throw;
@@ -320,7 +323,7 @@ GLShader::GLShader(std::string vertexShaderSource, std::string fragmentShaderSou
 
 	TextStream* streamFS = TextStream::New(fragmentShaderSource);
 	try {
-		AddFragmentProgram(streamFS);
+		AddFragmentShader(streamFS);
 	} catch (const std::runtime_error& error) {
 		Delete();
 		throw;
@@ -343,14 +346,14 @@ GLShader::GLShader(Stream* streamVS, Stream* streamFS) {
 	Compiled = false;
 
 	try {
-		AddVertexProgram(streamVS);
+		AddVertexShader(streamVS);
 	} catch (const std::runtime_error& error) {
 		Delete();
 		throw;
 	}
 
 	try {
-		AddFragmentProgram(streamFS);
+		AddFragmentShader(streamFS);
 	} catch (const std::runtime_error& error) {
 		Delete();
 		throw;
@@ -480,19 +483,18 @@ void GLShader::Use() {
 }
 
 void GLShader::Validate() {
-	ValidatePrograms();
+	ValidateStages();
 
 	if (ProgramID == 0) {
 		throw std::runtime_error("Shader has not been compiled!");
 	}
 }
-
-void GLShader::ValidatePrograms() {
-	if (!HasProgram(PROGRAM_VERTEX)) {
-		throw std::runtime_error("Shader has no vertex program!");
+void GLShader::ValidateStages() {
+	if (!HasStage(STAGE_VERTEX)) {
+		throw std::runtime_error("Shader has no vertex stage!");
 	}
-	else if (!HasProgram(PROGRAM_FRAGMENT)) {
-		throw std::runtime_error("Shader has no fragment program!");
+	else if (!HasStage(STAGE_FRAGMENT)) {
+		throw std::runtime_error("Shader has no fragment stage!");
 	}
 }
 
@@ -508,43 +510,43 @@ void GLShader::SendUniformValues(int location, size_t count, void* values, Uint8
 	float* valuesFloat = (float*)values;
 
 	switch (type) {
-	case Shader::DATATYPE_INT:
-	case Shader::DATATYPE_BOOL:
-	case Shader::DATATYPE_SAMPLER_2D:
-	case Shader::DATATYPE_SAMPLER_CUBE:
+	case DATATYPE_INT:
+	case DATATYPE_BOOL:
+	case DATATYPE_SAMPLER_2D:
+	case DATATYPE_SAMPLER_CUBE:
 		glUniform1iv(location, count, valuesInt);
 		break;
-	case Shader::DATATYPE_INT_VEC2:
-	case Shader::DATATYPE_BOOL_VEC2:
+	case DATATYPE_INT_VEC2:
+	case DATATYPE_BOOL_VEC2:
 		glUniform2iv(location, count, valuesInt);
 		break;
-	case Shader::DATATYPE_INT_VEC3:
-	case Shader::DATATYPE_BOOL_VEC3:
+	case DATATYPE_INT_VEC3:
+	case DATATYPE_BOOL_VEC3:
 		glUniform3iv(location, count, valuesInt);
 		break;
-	case Shader::DATATYPE_INT_VEC4:
-	case Shader::DATATYPE_BOOL_VEC4:
+	case DATATYPE_INT_VEC4:
+	case DATATYPE_BOOL_VEC4:
 		glUniform4iv(location, count, valuesInt);
 		break;
-	case Shader::DATATYPE_FLOAT:
+	case DATATYPE_FLOAT:
 		glUniform1fv(location, count, valuesFloat);
 		break;
-	case Shader::DATATYPE_FLOAT_VEC2:
+	case DATATYPE_FLOAT_VEC2:
 		glUniform2fv(location, count, valuesFloat);
 		break;
-	case Shader::DATATYPE_FLOAT_VEC3:
+	case DATATYPE_FLOAT_VEC3:
 		glUniform3fv(location, count, valuesFloat);
 		break;
-	case Shader::DATATYPE_FLOAT_VEC4:
+	case DATATYPE_FLOAT_VEC4:
 		glUniform4fv(location, count, valuesFloat);
 		break;
-	case Shader::DATATYPE_FLOAT_MAT2:
+	case DATATYPE_FLOAT_MAT2:
 		glUniformMatrix2fv(location, count, false, valuesFloat);
 		break;
-	case Shader::DATATYPE_FLOAT_MAT3:
+	case DATATYPE_FLOAT_MAT3:
 		glUniformMatrix3fv(location, count, false, valuesFloat);
 		break;
-	case Shader::DATATYPE_FLOAT_MAT4:
+	case DATATYPE_FLOAT_MAT4:
 		glUniformMatrix4fv(location, count, false, valuesFloat);
 		break;
 	}
@@ -676,41 +678,41 @@ void GLShader::Delete() {
 Uint8 GLShader::ConvertDataTypeToEnum(GLenum type) {
 	switch (type) {
 	case GL_FLOAT:
-		return Shader::DATATYPE_FLOAT;
+		return DATATYPE_FLOAT;
 	case GL_FLOAT_VEC2:
-		return Shader::DATATYPE_FLOAT_VEC2;
+		return DATATYPE_FLOAT_VEC2;
 	case GL_FLOAT_VEC3:
-		return Shader::DATATYPE_FLOAT_VEC3;
+		return DATATYPE_FLOAT_VEC3;
 	case GL_FLOAT_VEC4:
-		return Shader::DATATYPE_FLOAT_VEC4;
+		return DATATYPE_FLOAT_VEC4;
 	case GL_INT:
-		return Shader::DATATYPE_INT;
+		return DATATYPE_INT;
 	case GL_INT_VEC2:
-		return Shader::DATATYPE_INT_VEC2;
+		return DATATYPE_INT_VEC2;
 	case GL_INT_VEC3:
-		return Shader::DATATYPE_INT_VEC3;
+		return DATATYPE_INT_VEC3;
 	case GL_INT_VEC4:
-		return Shader::DATATYPE_INT_VEC4;
+		return DATATYPE_INT_VEC4;
 	case GL_BOOL:
-		return Shader::DATATYPE_BOOL;
+		return DATATYPE_BOOL;
 	case GL_BOOL_VEC2:
-		return Shader::DATATYPE_BOOL_VEC2;
+		return DATATYPE_BOOL_VEC2;
 	case GL_BOOL_VEC3:
-		return Shader::DATATYPE_BOOL_VEC3;
+		return DATATYPE_BOOL_VEC3;
 	case GL_BOOL_VEC4:
-		return Shader::DATATYPE_BOOL_VEC4;
+		return DATATYPE_BOOL_VEC4;
 	case GL_FLOAT_MAT2:
-		return Shader::DATATYPE_FLOAT_MAT2;
+		return DATATYPE_FLOAT_MAT2;
 	case GL_FLOAT_MAT3:
-		return Shader::DATATYPE_FLOAT_MAT3;
+		return DATATYPE_FLOAT_MAT3;
 	case GL_FLOAT_MAT4:
-		return Shader::DATATYPE_FLOAT_MAT4;
+		return DATATYPE_FLOAT_MAT4;
 	case GL_SAMPLER_2D:
-		return Shader::DATATYPE_SAMPLER_2D;
+		return DATATYPE_SAMPLER_2D;
 	case GL_SAMPLER_CUBE:
-		return Shader::DATATYPE_SAMPLER_CUBE;
+		return DATATYPE_SAMPLER_CUBE;
 	default:
-		return Shader::DATATYPE_UNKNOWN;
+		return DATATYPE_UNKNOWN;
 	}
 }
 

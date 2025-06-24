@@ -19853,15 +19853,15 @@ void StandardLibrary::Link() {
 
 	// #region Shader
 	/***
-    * \enum SHADERPROGRAM_VERTEX
-    * \desc Vertex shader program.
+    * \enum SHADERSTAGE_VERTEX
+    * \desc Vertex shader stage.
     */
-	DEF_CONST_INT("SHADERPROGRAM_VERTEX", Shader::PROGRAM_VERTEX);
+	DEF_CONST_INT("SHADERSTAGE_VERTEX", Shader::STAGE_VERTEX);
 	/***
-    * \enum SHADERPROGRAM_FRAGMENT
-    * \desc Fragment shader program.
+    * \enum SHADERSTAGE_FRAGMENT
+    * \desc Fragment shader stage.
     */
-	DEF_CONST_INT("SHADERPROGRAM_FRAGMENT", Shader::PROGRAM_FRAGMENT);
+	DEF_CONST_INT("SHADERSTAGE_FRAGMENT", Shader::STAGE_FRAGMENT);
 	/***
     * \enum SHADERDATATYPE_FLOAT
     * \desc <code>float</code> data type.

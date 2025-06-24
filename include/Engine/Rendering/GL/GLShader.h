@@ -28,8 +28,8 @@ private:
 	static GL_ProcessedShader ProcessFragmentShaderText(char* text);
 	static std::vector<char*> GetShaderSources(GL_ProcessedShader processed);
 
-	void AddVertexProgram(Stream* stream);
-	void AddFragmentProgram(Stream* stream);
+	void AddVertexShader(Stream* stream);
+	void AddFragmentShader(Stream* stream);
 	void AttachAndLink();
 
 	std::string CheckShaderError(GLuint shader);
@@ -51,8 +51,9 @@ public:
 	GLShader(Stream* streamVS, Stream* streamFS);
 
 	void Compile();
-	void AddProgram(int program, Stream* stream);
-	bool HasProgram(int program);
+	void AddStage(int stage, Stream* stream);
+	bool HasStage(int stage);
+	bool HasRequiredStages();
 	bool CanCompile();
 	bool IsValid();
 
@@ -64,7 +65,7 @@ public:
 
 	void Use();
 	void Validate();
-	void ValidatePrograms();
+	void ValidateStages();
 
 	int GetAttribLocation(std::string identifier);
 	int GetRequiredAttrib(std::string identifier);
