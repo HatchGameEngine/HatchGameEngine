@@ -1439,16 +1439,6 @@ VMValue Application_SetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
- * Application.Quit
- * \desc Closes the application.
- * \ns Application
- */
-VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	Application::Running = false;
-	return NULL_VAL;
-}
-/***
  * Application.GetGameTitle
  * \desc Gets the game title of the application.
  * \ns Application
@@ -1557,6 +1547,30 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 		return INTEGER_VAL(1);
 	}
 	return INTEGER_VAL(0);
+}
+/***
+ * Application.ChangeGame
+ * \desc Changes the current game.
+ * \return Returns <code>true</code> if the path to the resource file exists, <code>false</code> if otherwise.
+ * \ns Application
+ */
+VMValue Application_ChangeGame(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	char* path = GET_ARG(0, GetString);
+
+	bool exists = Application::SetNextGame(path);
+
+	return INTEGER_VAL(exists);
+}
+/***
+ * Application.Quit
+ * \desc Closes the application.
+ * \ns Application
+ */
+VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	Application::Running = false;
+	return NULL_VAL;
 }
 // #endregion
 
@@ -18286,6 +18300,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
 	/***
     * \enum KeyBind_Fullscreen

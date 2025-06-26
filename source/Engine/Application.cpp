@@ -9,6 +9,7 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
+#include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
@@ -108,7 +109,8 @@ bool Application::DevConvertModels = false;
 
 bool Application::AllowCmdLineSceneLoad = false;
 
-char StartingScene[256];
+char StartingScene[MAX_RESOURCE_PATH_LENGTH];
+char NextGame[MAX_PATH_LENGTH];
 char LogFilename[MAX_PATH_LENGTH];
 
 bool UseMemoryFileCache = false;
@@ -788,7 +790,7 @@ void Application::UpdateWindowTitle() {
 	SDL_SetWindowTitle(Application::Window, titleText.c_str());
 }
 
-void Application::Restart() {
+void Application::EndGame() {
 	if (DEBUG_fontSprite) {
 		DEBUG_fontSprite->Dispose();
 		delete DEBUG_fontSprite;
@@ -808,6 +810,18 @@ void Application::Restart() {
 	ScriptEntity::DisableAutoAnimate = false;
 
 	Graphics::Reset();
+}
+
+void Application::UnloadGame() {
+	Application::EndGame();
+
+	MemoryCache::Dispose();
+	ResourceManager::Dispose();
+	InputManager::Dispose();
+}
+
+void Application::Restart() {
+	Application::EndGame();
 
 	Application::LoadGameConfig();
 	Application::LoadGameInfo();
@@ -816,6 +830,49 @@ void Application::Restart() {
 	Application::DisposeGameConfig();
 
 	FirstFrame = true;
+}
+
+bool Application::ChangeGame(const char* path) {
+	Application::UnloadGame();
+
+	ResourceManager::Dispose();
+
+	if (!ResourceManager::Init(path)) {
+		return false;
+	}
+
+	if (UseMemoryFileCache) {
+		MemoryCache::Init();
+	}
+
+	InputManager::Init();
+
+	Application::LoadGameConfig();
+	Application::LoadGameInfo();
+	Application::ReloadSettings();
+
+	Application::LoadSceneInfo();
+	Application::InitPlayerControls();
+	Application::DisposeGameConfig();
+
+	FirstFrame = true;
+
+	Application::StartGame(StartingScene);
+	Application::UpdateWindowTitle();
+
+	return true;
+}
+
+bool Application::SetNextGame(const char* path) {
+	std::string resolved = "";
+
+	if (Path::FromURL(path, resolved) && File::Exists(resolved.c_str())) {
+		StringUtils::Copy(NextGame, resolved.c_str(), sizeof NextGame);
+
+		return true;
+	}
+
+	return false;
 }
 
 void Application::LoadVideoSettings() {
@@ -1630,6 +1687,14 @@ void Application::Run(int argc, char* args[]) {
 		if (TakeSnapshot) {
 			TakeSnapshot = false;
 			Application::GetPerformanceSnapshot();
+		}
+
+		if (NextGame[0] != '\0') {
+			char gamePath[MAX_PATH_LENGTH];
+			StringUtils::Copy(gamePath, NextGame, sizeof gamePath);
+			NextGame[0] = '\0';
+
+			ChangeGame(gamePath);
 		}
 	}
 

@@ -41,6 +41,8 @@ private:
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
 	static void CreateWindow();
+	static void EndGame();
+	static void UnloadGame();
 	static void Restart();
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
@@ -107,6 +109,8 @@ public:
 	static void GetPerformanceSnapshot();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();
+	static bool SetNextGame(const char* path);
+	static bool ChangeGame(const char* path);
 	static void SetMasterVolume(int volume);
 	static void SetMusicVolume(int volume);
 	static void SetSoundVolume(int volume);
