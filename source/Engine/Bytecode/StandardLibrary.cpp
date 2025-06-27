@@ -8,6 +8,7 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
+#include <Engine/Error.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Graphics.h>
@@ -17896,8 +17897,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
 			attrNameSize = length;
 			attrName = (char*)realloc(attrName, attrNameSize);
 			if (!attrName) {
-				Log::Print(Log::LOG_ERROR, "Out of memory parsing XML!");
-				abort();
+				Error::Fatal("Out of memory parsing XML!");
 			}
 		}
 
