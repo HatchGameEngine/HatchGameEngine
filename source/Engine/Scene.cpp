@@ -10,6 +10,7 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
+#include <Engine/Error.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/FontFace.h>
 #include <Engine/Hashing/CRC32.h>
@@ -442,8 +443,7 @@ void Scene::Add(Entity** first, Entity** last, int* count, Entity* obj) {
 
 	// Add to proper list
 	if (!obj->List) {
-		Log::Print(Log::LOG_ERROR, "Entity %p has no list!", obj);
-		abort();
+		Error::Fatal("Entity has no list!");
 	}
 	obj->List->Add(obj);
 
@@ -1970,8 +1970,7 @@ void Scene::InitPriorityLists() {
 		Scene::PriorityLists = (DrawGroupList*)Memory::TrackedCalloc(
 			"Scene::PriorityLists", Scene::PriorityPerLayer, sizeof(DrawGroupList));
 		if (!Scene::PriorityLists) {
-			Log::Print(Log::LOG_ERROR, "Out of memory for priority lists!");
-			exit(-1);
+			Error::Fatal("Out of memory in Scene::InitPriorityLists!");
 		}
 	}
 

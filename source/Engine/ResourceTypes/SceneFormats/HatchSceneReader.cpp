@@ -7,6 +7,7 @@
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Error.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/MD5.h>
@@ -138,8 +139,7 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 		(ScrollingInfo*)Memory::Malloc(layer.ScrollInfoCount * sizeof(ScrollingInfo));
 
 	if (!layer.ScrollInfos) {
-		Log::Print(Log::LOG_ERROR, "Out of memory!");
-		exit(-1);
+		Error::Fatal("Out of memory in HatchSceneReader::ReadLayer!");
 	}
 
 	layer.UsingScrollIndexes = true;
@@ -558,8 +558,7 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 					strLength = r->ReadUInt16();
 					strVar = (char*)malloc(strLength);
 					if (!strVar) {
-						Log::Print(Log::LOG_ERROR, "Out of memory!");
-						exit(-1);
+						Error::Fatal("Out of memory in HatchSceneReader::ReadEntities!");
 					}
 
 					for (size_t i = 0; i < strLength; i++) {

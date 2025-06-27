@@ -2,6 +2,7 @@
 
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Error.h>
 #include <Engine/Math/Math.h>
 
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
@@ -754,8 +755,7 @@ Matrix4x4* SaveMatrix(Matrix4x4* matrixStack, size_t pos) {
 }
 void Graphics::Save() {
 	if (MatrixStackID >= MATRIX_STACK_SIZE) {
-		Log::Print(Log::LOG_ERROR, "Draw.Save stack too big!");
-		exit(-1);
+		Error::Fatal("Draw.Save stack too big!");
 	}
 
 	ViewMatrix = SaveMatrix(ViewMatrixStack, MatrixStackID);
@@ -796,8 +796,7 @@ BlendState Graphics::GetBlendState() {
 
 void Graphics::PushState() {
 	if (StateStack.size() == 256) {
-		Log::Print(Log::LOG_ERROR, "Graphics::PushState stack too big!");
-		exit(-1);
+		Error::Fatal("Graphics::PushState stack too big!");
 	}
 
 	GraphicsState state;

@@ -1,6 +1,7 @@
 #include <Engine/ResourceTypes/ISprite.h>
 
 #include <Engine/Application.h>
+#include <Engine/Error.h>
 #include <Engine/Graphics.h>
 
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
@@ -166,8 +167,7 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 	texture = Graphics::CreateTextureFromPixels(width, height, data, width * sizeof(Uint32));
 
 	if (texture == NULL) {
-		Log::Print(Log::LOG_ERROR, "Couldn't create sprite sheet texture!");
-		abort();
+		Error::Fatal("Couldn't create sprite sheet texture!");
 	}
 
 	Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
