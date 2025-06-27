@@ -93,6 +93,9 @@
     <ClCompile Include="..\source\engine\diagnostics\RemoteDebug.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\Error.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\extensions\Discord.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

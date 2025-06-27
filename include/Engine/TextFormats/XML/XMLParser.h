@@ -9,6 +9,9 @@
 #include <Engine/TextFormats/XML/XMLNode.h>
 
 class XMLParser {
+private:
+	static void DoParsing();
+
 public:
 	static bool MatchToken(Token tok, const char* string);
 	static float TokenToNumber(Token tok);

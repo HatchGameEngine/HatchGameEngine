@@ -9,6 +9,7 @@
 
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Error.h>
 #include <Engine/Rendering/3D.h>
 #include <Engine/Rendering/ModelRenderer.h>
 #include <Engine/Rendering/Scene3D.h>
@@ -160,11 +161,7 @@ void GL_MakeShaders() {
 	try {
 		GLRenderer::ShaderShape = GLShaderContainer::Make();
 	} catch (const std::runtime_error& error) {
-		// This is fatal.
-		// TODO: Handle this more gracefully.
-		Log::Print(
-			Log::LOG_ERROR, "Could not compile base shader! Error:\n%s", error.what());
-		abort();
+		Error::Fatal("Could not compile base shader! Error:\n%s", error.what());
 	}
 
 #ifdef GL_HAVE_YUV
@@ -1348,18 +1345,16 @@ void GLRenderer::Init() {
 	Context = SDL_GL_CreateContext(Application::Window);
 	CHECK_GL();
 	if (!Context) {
-		Log::Print(Log::LOG_ERROR, "Could not create OpenGL context: %s", SDL_GetError());
-		exit(-1);
+		Error::Fatal("Could not create OpenGL context: %s", SDL_GetError());
 	}
 
 #ifdef USING_GLEW
 	glewExperimental = GL_TRUE;
 	GLenum res = glewInit();
 	if (res != GLEW_OK && res != GLEW_ERROR_NO_GLX_DISPLAY) {
-		Log::Print(Log::LOG_ERROR,
+		Error::Fatal(
 			"Could not create GLEW context: %s",
 			glewGetErrorString(res));
-		exit(-1);
 	}
 #endif
 
