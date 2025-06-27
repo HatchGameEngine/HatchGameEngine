@@ -2510,11 +2510,25 @@ bool VMThread::GetProperty(Obj* object,
 			return true;
 		}
 
-		if (getter && getter(object, hash, &value, this->ID)) {
-			Pop();
-			Push(value);
-			ScriptManager::Unlock();
-			return true;
+		if (getter) {
+			try {
+				if (getter(object, hash, &value, this->ID)) {
+					Pop();
+					Push(value);
+					ScriptManager::Unlock();
+					return true;
+				}
+			} catch (const ScriptException& error) {
+				Pop(); // Instance.
+				Push(NULL_VAL);
+
+				ThrowRuntimeError(false, "%s", error.what());
+
+				ScriptManager::Unlock();
+
+				// This already pushes to the stack, so it has to return true.
+				return true;
+			}
 		}
 
 		ObjClass* parentClass = klass->Parent;
@@ -2554,9 +2568,17 @@ bool VMThread::HasProperty(Obj* object,
 			return true;
 		}
 
-		if (getter && getter(object, hash, nullptr, this->ID)) {
-			ScriptManager::Unlock();
-			return true;
+		if (getter) {
+			try {
+				if (getter(object, hash, nullptr, this->ID)) {
+					ScriptManager::Unlock();
+					return true;
+				}
+			} catch (const ScriptException& error) {
+				ThrowRuntimeError(false, "%s", error.what());
+				ScriptManager::Unlock();
+				return false;
+			}
 		}
 
 		ObjClass* parentClass = klass->Parent;

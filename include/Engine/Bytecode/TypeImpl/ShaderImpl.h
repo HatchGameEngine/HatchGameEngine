@@ -10,6 +10,7 @@ public:
 
 	static void Init();
 	static Obj* VM_New(void);
+	static bool VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
 
 	static VMValue VM_HasStage(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_CanCompile(int argCount, VMValue* args, Uint32 threadID);
@@ -19,6 +20,7 @@ public:
 	static VMValue VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetTextureUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_HasUniform(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetUniformType(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Compile(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetUniform(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetTexture(int argCount, VMValue* args, Uint32 threadID);

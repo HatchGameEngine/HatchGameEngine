@@ -13,12 +13,17 @@ void ThrowElementTypeMismatchError(size_t element, const char* expected, const c
 
 ObjClass* ShaderImpl::Class = nullptr;
 
+Uint32 Hash_Uniforms = 0;
+
 void ShaderImpl::Init() {
 	const char* className = "Shader";
 
 	Class = NewClass(Murmur::EncryptString(className));
 	Class->Name = CopyString(className);
 	Class->NewFn = VM_New;
+	Class->PropertyGet = VM_PropertyGet;
+
+	Hash_Uniforms = Murmur::EncryptString("Uniforms");
 
 	ScriptManager::DefineNative(Class, "HasStage", VM_HasStage);
 	ScriptManager::DefineNative(Class, "CanCompile", VM_CanCompile);
@@ -29,6 +34,7 @@ void ShaderImpl::Init() {
 	ScriptManager::DefineNative(Class, "GetTextureUnit", VM_GetTextureUnit);
 	ScriptManager::DefineNative(Class, "Compile", VM_Compile);
 	ScriptManager::DefineNative(Class, "HasUniform", VM_HasUniform);
+	ScriptManager::DefineNative(Class, "GetUniformType", VM_GetUniformType);
 	ScriptManager::DefineNative(Class, "SetUniform", VM_SetUniform);
 	ScriptManager::DefineNative(Class, "SetTexture", VM_SetTexture);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
@@ -38,12 +44,43 @@ void ShaderImpl::Init() {
 	ScriptManager::Globals->Put(className, OBJECT_VAL(Class));
 }
 
-#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
-
 #define CHECK_EXISTS(ptr) \
 	if (ptr == nullptr) { \
 		throw ScriptException("Shader has been deleted!"); \
 	}
+
+bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
+	ObjShader* objShader = (ObjShader*)object;
+	if (objShader == nullptr) {
+		return false;
+	}
+
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	CHECK_EXISTS(shader);
+
+	if (hash == Hash_Uniforms) {
+		if (!shader->WasCompiled()) {
+			throw ScriptException("Cannot access this field before compilation!");
+		}
+
+		if (ScriptManager::Lock()) {
+			ObjArray* array = NewArray();
+
+			for (auto it = shader->UniformMap.begin(); it != shader->UniformMap.end(); it++) {
+				ObjString* name = CopyString(it->first.c_str());
+				array->Values->push_back(OBJECT_VAL(name));
+			}
+
+			*result = OBJECT_VAL(array);
+			ScriptManager::Unlock();
+			return true;
+		}
+	}
+
+	return false;
+}
+
+#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
 /***
  * \constructor
@@ -352,6 +389,33 @@ VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, Uint32 threadID) 
 	}
 
 	return INTEGER_VAL(shader->HasUniform(uniform));
+}
+/***
+ * \method GetUniformType
+ * \desc Gets the type of the uniform with the given name. This can only be called after the shader has been compiled.
+ * \param uniform (String): The name of the uniform.
+ * \return Returns the <linkto ref="SHADERDATATYPE_*">data type</linkto> of the uniform, or <code>null</code> if there is no uniform with that name.
+ * \ns Shader
+ */
+VMValue ShaderImpl::VM_GetUniformType(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjShader* objShader = AS_SHADER(args[0]);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	char* uniformName = GET_ARG(1, GetString);
+
+	CHECK_EXISTS(shader);
+
+	if (!shader->WasCompiled()) {
+		throw ScriptException("Cannot get uniform type before compilation!");
+	}
+
+	ShaderUniform* uniform = shader->GetUniform(uniformName);
+	if (uniform == nullptr) {
+		throw ScriptException("No uniform named \"" + std::string(uniformName) + "\"!");
+	}
+
+	return INTEGER_VAL(uniform->Type);
 }
 /***
  * \method SetUniform
