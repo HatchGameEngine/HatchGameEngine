@@ -6,7 +6,7 @@ GameTexture::GameTexture() {}
 
 GameTexture::GameTexture(Uint32 width, Uint32 height, int unloadPolicy) {
 	TexturePtr =
-		Texture::New(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
+		Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
 	UnloadPolicy = unloadPolicy;
 }
 

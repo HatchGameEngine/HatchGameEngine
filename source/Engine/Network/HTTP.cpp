@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Error.h>
 
 #ifdef USING_CURL
 
@@ -23,7 +24,7 @@ size_t CurlWriteFunction(void* ptr, size_t size, size_t n, CurlData* data) {
 
 	data->Ptr = (Uint8*)realloc(data->Ptr, len + 1);
 	if (data->Ptr == NULL) {
-		exit(EXIT_FAILURE);
+		Error::Fatal("Out of memory in CurlWriteFunction!");
 	}
 
 	memcpy(data->Ptr + data->Length, ptr, size * n);

@@ -7,6 +7,7 @@
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
@@ -205,6 +206,13 @@ ObjMaterial* NewMaterial(Material* materialPtr) {
 	material->Object.Class = MaterialImpl::Class;
 	material->MaterialPtr = materialPtr;
 	return material;
+}
+ObjShader* NewShader(void* shaderPtr) {
+	ObjShader* shader = ALLOCATE_OBJ(ObjShader, OBJ_SHADER);
+	Memory::Track(shader, "NewShader");
+	shader->Object.Class = ShaderImpl::Class;
+	shader->ShaderPtr = shaderPtr;
+	return shader;
 }
 
 const char* GetTypeString(Uint32 type) {

@@ -10,6 +10,7 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
+#include <Engine/Error.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/FontFace.h>
 #include <Engine/Hashing/CRC32.h>
@@ -442,8 +443,7 @@ void Scene::Add(Entity** first, Entity** last, int* count, Entity* obj) {
 
 	// Add to proper list
 	if (!obj->List) {
-		Log::Print(Log::LOG_ERROR, "Entity %p has no list!", obj);
-		abort();
+		Error::Fatal("Entity has no list!");
 	}
 	obj->List->Add(obj);
 
@@ -675,6 +675,7 @@ void Scene::Init() {
 		Scene::Views[i].UseDrawTarget = true;
 		Scene::Views[i].ProjectionMatrix = Matrix4x4::Create();
 		Scene::Views[i].ViewMatrix = Matrix4x4::Create();
+		Scene::Views[i].CurrentShader = nullptr;
 	}
 	Scene::Views[0].Active = true;
 	Scene::ViewsActive = 1;
@@ -935,6 +936,12 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		PERF_END(RenderSetupTime);
 		return;
 	}
+
+	// If a shader is active before rendering the view, for some reason.
+	if (Graphics::CurrentShader != nullptr) {
+		Graphics::SetUserShader(nullptr);
+	}
+
 	Scene::SetView(viewIndex);
 	PERF_END(RenderSetupTime);
 
@@ -1172,6 +1179,11 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		Graphics::SoftwareEnd();
 	}
 	PERF_END(RenderFinishTime);
+
+	// If a shader is still active after rendering the view, for some reason.
+	if (Graphics::CurrentShader != nullptr) {
+		Graphics::SetUserShader(nullptr);
+	}
 }
 
 void Scene::SetupViewMatrices(View* currentView) {
@@ -1369,8 +1381,11 @@ void Scene::Render() {
 					break;
 				}
 
+				Shader* shader = Scene::Views[i].CurrentShader;
+
 				Graphics::TextureBlend = false;
 				Graphics::SetBlendMode(BlendMode_NORMAL);
+				Graphics::SetUserShader(shader);
 				Graphics::DrawTexture(currentView->DrawTarget,
 					0.0,
 					0.0,
@@ -1380,6 +1395,9 @@ void Scene::Render() {
 					out_y + Graphics::PixelOffset,
 					out_w,
 					out_h + Graphics::PixelOffset);
+				if (Graphics::CurrentShader != nullptr) {
+					Graphics::SetUserShader(nullptr);
+				}
 				Graphics::SetDepthTesting(Graphics::UseDepthTesting);
 			}
 		}
@@ -1970,8 +1988,7 @@ void Scene::InitPriorityLists() {
 		Scene::PriorityLists = (DrawGroupList*)Memory::TrackedCalloc(
 			"Scene::PriorityLists", Scene::PriorityPerLayer, sizeof(DrawGroupList));
 		if (!Scene::PriorityLists) {
-			Log::Print(Log::LOG_ERROR, "Out of memory for priority lists!");
-			exit(-1);
+			Error::Fatal("Out of memory in Scene::InitPriorityLists!");
 		}
 	}
 
@@ -3045,6 +3062,8 @@ void Scene::DisposeInScope(Uint32 scope) {
 	}
 }
 void Scene::Dispose() {
+	Graphics::UnloadData();
+
 	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
 		if (Scene::Views[i].DrawTarget) {
 			Graphics::DisposeTexture(Scene::Views[i].DrawTarget);

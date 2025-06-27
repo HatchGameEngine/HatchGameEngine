@@ -33,6 +33,8 @@ const char* Value::GetObjectTypeName(Uint32 type) {
 		return "module";
 	case OBJ_MATERIAL:
 		return "material";
+	case OBJ_SHADER:
+		return "shader";
 	}
 
 	return "unknown object type";

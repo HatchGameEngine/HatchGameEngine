@@ -20,9 +20,9 @@ public:
 		GLShaderUniforms vsUni,
 		GLShaderUniforms fsUni,
 		bool useMaterial);
-	GLShader* Get(bool useTexturing, bool usePalette);
-	GLShader* Get(bool useTexturing);
 	GLShader* Get();
+	GLShader* GetWithTexturing();
+	GLShader* GetWithPalette();
 	static GLShaderContainer* Make();
 	static GLShaderContainer* Make(bool useMaterial, bool useVertexColors);
 	static GLShaderContainer* MakeFog(int fogType);

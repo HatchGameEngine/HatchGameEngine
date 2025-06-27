@@ -82,9 +82,9 @@ int CosTable[TRIG_TABLE_SIZE];
 
 PolygonRenderer polygonRenderer;
 
-int FilterCurrent[0x8000];
-int FilterInvert[0x8000];
-int FilterBlackAndWhite[0x8000];
+int FilterCurrent[FILTER_TABLE_SIZE];
+int FilterInvert[FILTER_TABLE_SIZE];
+int FilterBlackAndWhite[FILTER_TABLE_SIZE];
 
 // Initialization and disposal functions
 void SoftwareRenderer::Init() {
@@ -114,7 +114,7 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 		SinTable[a] = (int)(Math::Sin(ang) * TRIG_TABLE_SIZE);
 		CosTable[a] = (int)(Math::Cos(ang) * TRIG_TABLE_SIZE);
 	}
-	for (int a = 0; a < 0x8000; a++) {
+	for (int a = 0; a < FILTER_TABLE_SIZE; a++) {
 		int r = (a >> 10) & 0x1F;
 		int g = (a >> 5) & 0x1F;
 		int b = (a) & 0x1F;
@@ -153,11 +153,9 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 	SoftwareRenderer::BackendFunctions.MakePerspectiveMatrix =
 		SoftwareRenderer::MakePerspectiveMatrix;
 
-	// Shader-related functions
-	SoftwareRenderer::BackendFunctions.UseShader = SoftwareRenderer::UseShader;
-	SoftwareRenderer::BackendFunctions.SetUniformF = SoftwareRenderer::SetUniformF;
-	SoftwareRenderer::BackendFunctions.SetUniformI = SoftwareRenderer::SetUniformI;
-	SoftwareRenderer::BackendFunctions.SetUniformTexture = SoftwareRenderer::SetUniformTexture;
+	// Filter-related functions
+	SoftwareRenderer::BackendFunctions.SetFilter = SoftwareRenderer::SetFilter;
+	SoftwareRenderer::BackendFunctions.SetFilterTable = SoftwareRenderer::SetFilterTable;
 
 	// These guys
 	SoftwareRenderer::BackendFunctions.Clear = SoftwareRenderer::Clear;
@@ -325,37 +323,7 @@ bool CheckClipRegion(int clip_x1, int clip_y1, int clip_x2, int clip_y2) {
 	return true;
 }
 
-// Shader-related functions
-void SoftwareRenderer::UseShader(void* shader) {
-	if (!shader) {
-		CurrentBlendState.FilterTable = nullptr;
-		return;
-	}
-
-	ObjArray* array = (ObjArray*)shader;
-
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ARGB8888) {
-		for (Uint32 i = 0, iSz = (Uint32)array->Values->size(); i < 0x8000 && i < iSz;
-			i++) {
-			FilterCurrent[i] = AS_INTEGER((*array->Values)[i]) | 0xFF000000U;
-		}
-	}
-	else {
-		Uint8 px[4];
-		Uint32 newI;
-		for (Uint32 i = 0, iSz = (Uint32)array->Values->size(); i < 0x8000 && i < iSz;
-			i++) {
-			*(Uint32*)&px[0] = AS_INTEGER((*array->Values)[i]);
-			newI = (i & 0x1F) << 10 | (i & 0x3E0) | (i & 0x7C00) >> 10;
-			FilterCurrent[newI] = px[0] << 16 | px[1] << 8 | px[2] | 0xFF000000U;
-		}
-	}
-	CurrentBlendState.FilterTable = &FilterCurrent[0];
-}
-void SoftwareRenderer::SetUniformF(int location, int count, float* values) {}
-void SoftwareRenderer::SetUniformI(int location, int count, int* values) {}
-void SoftwareRenderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {}
-
+// Filter-related functions
 void SoftwareRenderer::SetFilter(int filter) {
 	switch (filter) {
 	case Filter_NONE:
@@ -368,6 +336,28 @@ void SoftwareRenderer::SetFilter(int filter) {
 		CurrentBlendState.FilterTable = &FilterInvert[0];
 		break;
 	}
+}
+void SoftwareRenderer::SetFilterTable(Uint32* table, size_t size) {
+	if (!table) {
+		CurrentBlendState.FilterTable = nullptr;
+		return;
+	}
+
+	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ARGB8888) {
+		for (size_t i = 0; i < FILTER_TABLE_SIZE && i < size; i++) {
+			FilterCurrent[i] = table[i] | 0xFF000000U;
+		}
+	}
+	else {
+		Uint8 px[4];
+		Uint32 newI;
+		for (size_t i = 0; i < FILTER_TABLE_SIZE && i < size; i++) {
+			*(Uint32*)&px[0] = table[i];
+			newI = (i & 0x1F) << 10 | (i & 0x3E0) | (i & 0x7C00) >> 10;
+			FilterCurrent[newI] = px[0] << 16 | px[1] << 8 | px[2] | 0xFF000000U;
+		}
+	}
+	CurrentBlendState.FilterTable = &FilterCurrent[0];
 }
 
 // These guys

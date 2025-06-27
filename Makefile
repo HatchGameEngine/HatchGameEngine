@@ -48,6 +48,7 @@ CPPFILES := \
 	source/Engine/Bytecode/TypeImpl/FunctionImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MapImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MaterialImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/ShaderImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
 	source/Engine/Bytecode/Types.cpp \
 	source/Engine/Bytecode/Value.cpp \
@@ -59,6 +60,7 @@ CPPFILES := \
 	source/Engine/Diagnostics/MemoryPools.cpp \
 	source/Engine/Diagnostics/PerformanceMeasure.cpp \
 	source/Engine/Diagnostics/RemoteDebug.cpp \
+	source/Engine/Error.cpp \
 	source/Engine/Extensions/Discord.cpp \
 	source/Engine/Filesystem/Directory.cpp \
 	source/Engine/Filesystem/File.cpp \
@@ -207,6 +209,7 @@ PRVHFILES := \
 	source/Engine/Media/Includes/SWScale.h \
 	source/Engine/Media/Utils/Codec.h \
 	source/Engine/Network/WebSocketIncludes.h \
+	source/Engine/Platforms/Capability.h \
 	source/Engine/Platforms/iOS/MediaPlayer.h \
 	source/Engine/Platforms/MacOS/Filesystem.h \
 	source/Engine/Rendering/3D.h \
@@ -268,6 +271,7 @@ PUBHFILES := \
 	include/Engine/Bytecode/TypeImpl/FunctionImpl.h \
 	include/Engine/Bytecode/TypeImpl/MapImpl.h \
 	include/Engine/Bytecode/TypeImpl/MaterialImpl.h \
+	include/Engine/Bytecode/TypeImpl/ShaderImpl.h \
 	include/Engine/Bytecode/TypeImpl/StringImpl.h \
 	include/Engine/Bytecode/Value.h \
 	include/Engine/Bytecode/ValuePrinter.h \
@@ -277,6 +281,7 @@ PUBHFILES := \
 	include/Engine/Diagnostics/Memory.h \
 	include/Engine/Diagnostics/PerformanceMeasure.h \
 	include/Engine/Diagnostics/RemoteDebug.h \
+	include/Engine/Error.h \
 	include/Engine/Extensions/Discord.h \
 	include/Engine/Filesystem/Directory.h \
 	include/Engine/Filesystem/File.h \

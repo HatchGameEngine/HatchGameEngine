@@ -3,6 +3,7 @@
 
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Error.h>
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/Hashing/Murmur.h>
 #include <Engine/Includes/Standard.h>
@@ -52,8 +53,7 @@ public:
 		Data = (HashMapElement<T>*)Memory::TrackedCalloc(
 			"HashMap::Data", Capacity, sizeof(HashMapElement<T>));
 		if (!Data) {
-			Log::Print(Log::LOG_ERROR, "Could not allocate memory for HashMap data!");
-			exit(-1);
+			Error::Fatal("Could not allocate memory for HashMap data!");
 		}
 	}
 
@@ -340,8 +340,7 @@ private:
 		newData = (HashMapElement<T>*)Memory::TrackedCalloc(
 			oldTrack, Capacity, sizeof(HashMapElement<T>));
 		if (!newData) {
-			Log::Print(Log::LOG_ERROR, "Could not allocate memory for HashMap data!");
-			exit(-1);
+			Error::Fatal("Could not allocate memory for HashMap data!");
 		}
 
 		Data = newData;

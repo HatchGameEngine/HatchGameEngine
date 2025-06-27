@@ -82,7 +82,6 @@
             <li><a href="#Reference_SceneList">SceneList</a></li>
             <li><a href="#Reference_Serializer">Serializer</a></li>
             <li><a href="#Reference_Settings">Settings</a></li>
-            <li><a href="#Reference_Shader">Shader</a></li>
             <li><a href="#Reference_SocketClient">SocketClient</a></li>
             <li><a href="#Reference_Sound">Sound</a></li>
             <li><a href="#Reference_Sprite">Sprite</a></li>
@@ -133,6 +132,8 @@
             <li><a href="#Reference_ROTSTYLE_*">ROTSTYLE_*</a></li>
             <li><a href="#Reference_SCENETYPE_*">SCENETYPE_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
+            <li><a href="#Reference_SHADERDATATYPE_*">SHADERDATATYPE_*</a></li>
+            <li><a href="#Reference_SHADERSTAGE_*">SHADERSTAGE_*</a></li>
             <li><a href="#Reference_SensorDirection_*">SensorDirection_*</a></li>
             <li><a href="#Reference_StencilOp_*">StencilOp_*</a></li>
             <li><a href="#Reference_StencilTest_*">StencilTest_*</a></li>
@@ -342,6 +343,7 @@
                     <li><a href="#Reference_functions_Device_GetPlatform">Device.GetPlatform</a></li>
                     <li><a href="#Reference_functions_Device_IsPC">Device.IsPC</a></li>
                     <li><a href="#Reference_functions_Device_IsMobile">Device.IsMobile</a></li>
+                    <li><a href="#Reference_functions_Device_GetCapability">Device.GetCapability</a></li>
                 </ul>
             </p>
             <p id="Reference_Directory">
@@ -407,6 +409,7 @@
                     <li><a href="#Reference_functions_Draw_SetTintColor">Draw.SetTintColor</a></li>
                     <li><a href="#Reference_functions_Draw_SetTintMode">Draw.SetTintMode</a></li>
                     <li><a href="#Reference_functions_Draw_UseTinting">Draw.UseTinting</a></li>
+                    <li><a href="#Reference_functions_Draw_SetShader">Draw.SetShader</a></li>
                     <li><a href="#Reference_functions_Draw_SetFilter">Draw.SetFilter</a></li>
                     <li><a href="#Reference_functions_Draw_UseStencil">Draw.UseStencil</a></li>
                     <li><a href="#Reference_functions_Draw_SetStencilTestFunction">Draw.SetStencilTestFunction</a></li>
@@ -948,6 +951,7 @@
                     <li><a href="#Reference_functions_Scene_GetLayerIndex">Scene.GetLayerIndex</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerVisible">Scene.GetLayerVisible</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerOpacity">Scene.GetLayerOpacity</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLayerShader">Scene.GetLayerShader</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerUsePaletteIndexLines">Scene.GetLayerUsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerProperty">Scene.GetLayerProperty</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerExists">Scene.GetLayerExists</a></li>
@@ -1028,6 +1032,7 @@
                     <li><a href="#Reference_functions_Scene_SetDrawGroupEntityDepthSorting">Scene.SetDrawGroupEntityDepthSorting</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerBlend">Scene.SetLayerBlend</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerOpacity">Scene.SetLayerOpacity</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerShader">Scene.SetLayerShader</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerUsePaletteIndexLines">Scene.SetLayerUsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerScroll">Scene.SetLayerScroll</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerSetParallaxLinesBegin">Scene.SetLayerSetParallaxLinesBegin</a></li>
@@ -1118,14 +1123,6 @@
                     <li><a href="#Reference_functions_Settings_PropertyExists">Settings.PropertyExists</a></li>
                     <li><a href="#Reference_functions_Settings_RemoveProperty">Settings.RemoveProperty</a></li>
                     <li><a href="#Reference_functions_Settings_GetPropertyCount">Settings.GetPropertyCount</a></li>
-                </ul>
-            </p>
-            <p id="Reference_Shader">
-                <h2>Shader</h2>
-                <i>Class methods:</i>
-                <ul>
-                    <li><a href="#Reference_functions_Shader_Set">Shader.Set</a></li>
-                    <li><a href="#Reference_functions_Shader_Unset">Shader.Unset</a></li>
                 </ul>
             </p>
             <p id="Reference_SocketClient">
@@ -1367,6 +1364,8 @@
                     <li><a href="#Reference_functions_View_IsUsingDrawTarget">View.IsUsingDrawTarget</a></li>
                     <li><a href="#Reference_functions_View_SetUseDrawTarget">View.SetUseDrawTarget</a></li>
                     <li><a href="#Reference_functions_View_GetDrawTarget">View.GetDrawTarget</a></li>
+                    <li><a href="#Reference_functions_View_SetShader">View.SetShader</a></li>
+                    <li><a href="#Reference_functions_View_GetShader">View.GetShader</a></li>
                     <li><a href="#Reference_functions_View_IsUsingSoftwareRenderer">View.IsUsingSoftwareRenderer</a></li>
                     <li><a href="#Reference_functions_View_SetUseSoftwareRenderer">View.SetUseSoftwareRenderer</a></li>
                     <li><a href="#Reference_functions_View_SetUsePerspective">View.SetUsePerspective</a></li>
@@ -1395,6 +1394,7 @@
                     <li><a href="#Reference_functions_Window_SetPosition">Window.SetPosition</a></li>
                     <li><a href="#Reference_functions_Window_SetPositionCentered">Window.SetPositionCentered</a></li>
                     <li><a href="#Reference_functions_Window_SetTitle">Window.SetTitle</a></li>
+                    <li><a href="#Reference_functions_Window_SetPostProcessingShader">Window.SetPostProcessingShader</a></li>
                     <li><a href="#Reference_functions_Window_GetWidth">Window.GetWidth</a></li>
                     <li><a href="#Reference_functions_Window_GetHeight">Window.GetHeight</a></li>
                     <li><a href="#Reference_functions_Window_GetFullscreen">Window.GetFullscreen</a></li>
@@ -1951,6 +1951,35 @@
                 <ul>
                     <li><a href="#Reference_enums_SCOPE_SCENE">SCOPE_SCENE</a></li>
                     <li><a href="#Reference_enums_SCOPE_GAME">SCOPE_GAME</a></li>
+                </ul>
+            </p>
+            <p id="Reference_SHADERDATATYPE_*">
+                <h2><code>SHADERDATATYPE_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_FLOAT">SHADERDATATYPE_FLOAT</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_VEC2">SHADERDATATYPE_VEC2</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_VEC3">SHADERDATATYPE_VEC3</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_VEC4">SHADERDATATYPE_VEC4</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_INT">SHADERDATATYPE_INT</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_IVEC2">SHADERDATATYPE_IVEC2</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_IVEC3">SHADERDATATYPE_IVEC3</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_IVEC4">SHADERDATATYPE_IVEC4</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_BOOL">SHADERDATATYPE_BOOL</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_BVEC2">SHADERDATATYPE_BVEC2</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_BVEC3">SHADERDATATYPE_BVEC3</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_BVEC4">SHADERDATATYPE_BVEC4</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_MAT2">SHADERDATATYPE_MAT2</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_MAT3">SHADERDATATYPE_MAT3</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_MAT4">SHADERDATATYPE_MAT4</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_SAMPLER_2D">SHADERDATATYPE_SAMPLER_2D</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_SAMPLER_CUBE">SHADERDATATYPE_SAMPLER_CUBE</a></li>
+                </ul>
+            </p>
+            <p id="Reference_SHADERSTAGE_*">
+                <h2><code>SHADERSTAGE_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_SHADERSTAGE_VERTEX">SHADERSTAGE_VERTEX</a></li>
+                    <li><a href="#Reference_enums_SHADERSTAGE_FRAGMENT">SHADERSTAGE_FRAGMENT</a></li>
                 </ul>
             </p>
             <p id="Reference_SensorDirection_*">
@@ -3112,14 +3141,25 @@
         <code>Device.IsPC()</code>
         <div style="margin-top: 8px; font-size: 14px;">Determines whether or not the application is running on a personal computer OS (Windows, MacOS, Linux).</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns 1 if the device is on a PC, 0 if otherwise.</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the device is on a PC, <code>false</code> if otherwise.</div>
         </p>
         <p id="Reference_functions_Device_IsMobile">
         <h2 style="margin-bottom: 8px;">Device.IsMobile</h2>
         <code>Device.IsMobile()</code>
         <div style="margin-top: 8px; font-size: 14px;">Determines whether or not the application is running on a mobile device.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns 1 if the device is on a mobile device, 0 if otherwise.</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the device is on a mobile device, <code>false</code> if otherwise.</div>
+        </p>
+        <p id="Reference_functions_Device_GetCapability">
+        <h2 style="margin-bottom: 8px;">Device.GetCapability</h2>
+        <code>Device.GetCapability(capability)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks a capability of the device the application is running on.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>capability (String): The capability.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The return value of this function depends on the capability being queried; however, if the capability is not present, this function returns <code>null</code>.</div>
         </p>
         <p id="Reference_functions_Directory_Create">
         <h2 style="margin-bottom: 8px;">Directory.Create</h2>
@@ -3130,7 +3170,7 @@
         <li>path (String): The path of the folder to create.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns 1 if the folder creation was successful, 0 if otherwise</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the folder creation was successful, <code>false</code> if otherwise.</div>
         </p>
         <p id="Reference_functions_Directory_Exists">
         <h2 style="margin-bottom: 8px;">Directory.Exists</h2>
@@ -3141,7 +3181,7 @@
         <li>path (String): The path of the folder to check for existence.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns 1 if the folder exists, 0 if otherwise</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the folder exists, <code>false</code> if otherwise.</div>
         </p>
         <p id="Reference_functions_Directory_GetFiles">
         <h2 style="margin-bottom: 8px;">Directory.GetFiles</h2>
@@ -3648,6 +3688,15 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>useTinting (Boolean): Whether or not to use color tinting when drawing.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetShader">
+        <h2 style="margin-bottom: 8px;">Draw.SetShader</h2>
+        <code>Draw.SetShader(shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current shader.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetFilter">
@@ -4845,7 +4894,7 @@
         <li>path (String): The path of the file to check for existence.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns 1 if the file exists, 0 if otherwise</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the file exists, <code>false</code> if otherwise.</div>
         </p>
         <p id="Reference_functions_File_ReadAllText">
         <h2 style="margin-bottom: 8px;">File.ReadAllText</h2>
@@ -7026,6 +7075,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
+        <p id="Reference_functions_Scene_GetLayerShader">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerShader</h2>
+        <code>Scene.GetLayerShader(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the shader of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a shader, or <code>null</code>.</div>
+        </p>
         <p id="Reference_functions_Scene_GetLayerUsePaletteIndexLines">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerUsePaletteIndexLines</h2>
         <code>Scene.GetLayerUsePaletteIndexLines(layerIndex)</code>
@@ -7778,6 +7838,16 @@
         <li>opacity (Decimal): Opacity from 0.0 to 1.0.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Scene_SetLayerShader">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerShader</h2>
+        <code>Scene.SetLayerShader(layerIndex, shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a shader for the layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Scene_SetLayerUsePaletteIndexLines">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerUsePaletteIndexLines</h2>
         <code>Scene.SetLayerUsePaletteIndexLines(layerIndex, usePaletteIndexLines)</code>
@@ -8476,14 +8546,6 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The total section count, as an integer.</div>
-        </p>
-        <p id="Reference_functions_Shader_Set">
-        <h2 style="margin-bottom: 8px; color: red;">Shader.Set</h2>
-        <code>Shader.Set()</code>
-        </p>
-        <p id="Reference_functions_Shader_Unset">
-        <h2 style="margin-bottom: 8px; color: red;">Shader.Unset</h2>
-        <code>Shader.Unset()</code>
         </p>
         <p id="Reference_functions_SocketClient_Open">
         <h2 style="margin-bottom: 8px; color: red;">SocketClient.Open</h2>
@@ -9998,6 +10060,27 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
+        <p id="Reference_functions_View_SetShader">
+        <h2 style="margin-bottom: 8px;">View.SetShader</h2>
+        <code>View.SetShader(viewIndex, shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a shader for the specified camera.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_View_GetShader">
+        <h2 style="margin-bottom: 8px;">View.GetShader</h2>
+        <code>View.GetShader(viewIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the shader of the specified camera.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a shader, or <code>null</code>.</div>
+        </p>
         <p id="Reference_functions_View_IsUsingSoftwareRenderer">
         <h2 style="margin-bottom: 8px;">View.IsUsingSoftwareRenderer</h2>
         <code>View.IsUsingSoftwareRenderer(viewIndex)</code>
@@ -10199,6 +10282,15 @@
         <li>title (String): Window title</li>
         </ul>
         </p>
+        <p id="Reference_functions_Window_SetPostProcessingShader">
+        <h2 style="margin-bottom: 8px;">Window.SetPostProcessingShader</h2>
+        <code>Window.SetPostProcessingShader(shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a post-processing shader for the active window.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Window_GetWidth">
         <h2 style="margin-bottom: 8px;">Window.GetWidth</h2>
         <code>Window.GetWidth()</code>
@@ -10238,7 +10330,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>739 out of 798 functions have descriptions. </p>
+        <p>746 out of 803 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_instance_SetAnimation">
@@ -12090,6 +12182,82 @@
         <h3 style="margin-bottom: 8px;"><code>SCOPE_GAME</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Game scope.</div>
         </p>
+        <p id="Reference_enums_SHADERDATATYPE_FLOAT">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_FLOAT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>float</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_VEC2">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_VEC2</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>vec2</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_VEC3">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_VEC3</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>vec3</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_VEC4">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_VEC4</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>vec4</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_INT">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_INT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>int</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_IVEC2">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_IVEC2</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>ivec2</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_IVEC3">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_IVEC3</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>ivec3</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_IVEC4">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_IVEC4</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>ivec4</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_BOOL">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_BOOL</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>bool</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_BVEC2">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_BVEC2</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>bvec2</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_BVEC3">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_BVEC3</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>bvec3</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_BVEC4">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_BVEC4</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>bvec4</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_MAT2">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_MAT2</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>mat2</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_MAT3">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_MAT3</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>mat3</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_MAT4">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_MAT4</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>mat4</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_SAMPLER_2D">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_SAMPLER_2D</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>sampler2D</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_SAMPLER_CUBE">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_SAMPLER_CUBE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>samplerCube</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERSTAGE_VERTEX">
+        <h3 style="margin-bottom: 8px;"><code>SHADERSTAGE_VERTEX</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Vertex shader stage.</div>
+        </p>
+        <p id="Reference_enums_SHADERSTAGE_FRAGMENT">
+        <h3 style="margin-bottom: 8px;"><code>SHADERSTAGE_FRAGMENT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Fragment shader stage.</div>
+        </p>
         <p id="Reference_enums_SensorDirection_Down">
         <h3 style="margin-bottom: 8px;"><code>SensorDirection_Down</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Down sensor direction.</div>
@@ -12242,7 +12410,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>311 out of 311 enums have descriptions. </p>
+        <p>330 out of 330 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

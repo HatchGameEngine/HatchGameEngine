@@ -92,6 +92,8 @@ char Application::DeveloperIdentifier[256];
 char Application::SavesDir[256];
 char Application::PreferencesDir[256];
 
+std::unordered_map<std::string, Capability> Application::CapabilityMap;
+
 int Application::UpdatesPerFrame = 1;
 int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
 bool Application::Stepper = false;
@@ -365,6 +367,50 @@ bool Application::IsMobile() {
 		Application::Platform == Platforms::Android;
 }
 
+void Application::AddCapability(std::string capability, int value) {
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(value);
+}
+void Application::AddCapability(std::string capability, float value) {
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(value);
+}
+void Application::AddCapability(std::string capability, bool value) {
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(value);
+}
+void Application::AddCapability(std::string capability, std::string value) {
+	char* string = StringUtils::Create(value);
+
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(string);
+}
+Capability Application::GetCapability(std::string capability) {
+	std::unordered_map<std::string, Capability>::iterator it = CapabilityMap.find(capability);
+	if (it != CapabilityMap.end()) {
+		return it->second;
+	}
+
+	return Capability();
+}
+bool Application::HasCapability(std::string capability) {
+	std::unordered_map<std::string, Capability>::iterator it = CapabilityMap.find(capability);
+	return it != CapabilityMap.end();
+}
+void Application::RemoveCapability(std::string capability) {
+	if (HasCapability(capability)) {
+		Capability cap = CapabilityMap[capability];
+
+		cap.Dispose();
+
+		CapabilityMap.erase(capability);
+	}
+}
+
 bool IsIdentifierBody(char c) {
 	switch (c) {
 	case '.':
@@ -527,6 +573,7 @@ double MetricPollTime = -1;
 double MetricUpdateTime = -1;
 double MetricClearTime = -1;
 double MetricRenderTime = -1;
+double MetricPostProcessTime = -1;
 double MetricFPSCounterTime = -1;
 double MetricPresentTime = -1;
 double MetricFrameTime = 0.0;
@@ -540,6 +587,7 @@ void Application::GetPerformanceSnapshot() {
 			MetricUpdateTime,
 			MetricClearTime,
 			MetricRenderTime,
+			MetricPostProcessTime,
 			MetricPresentTime,
 			0.0,
 			MetricFrameTime,
@@ -551,6 +599,7 @@ void Application::GetPerformanceSnapshot() {
 			"Entity Update:         %8.3f ms",
 			"Clear Time:            %8.3f ms",
 			"World Render Commands: %8.3f ms",
+			"Render Post-Process:   %8.3f ms",
 			"Frame Present Time:    %8.3f ms",
 			"==================================",
 			"Frame Total Time:      %8.3f ms",
@@ -753,7 +802,7 @@ void Application::Restart() {
 
 	Scene::Dispose();
 	SceneInfo::Dispose();
-	Graphics::DeleteSpriteSheetMap();
+	Graphics::UnloadData();
 
 	ScriptManager::LoadAllClasses = false;
 	ScriptEntity::DisableAutoAnimate = false;
@@ -1186,6 +1235,10 @@ void Application::RunFrame(int runFrames) {
 	Scene::Render();
 	MetricRenderTime = Clock::GetTicks() - MetricRenderTime;
 
+	MetricPostProcessTime = Clock::GetTicks();
+	Graphics::DoScreenPostProcess();
+	MetricPostProcessTime = Clock::GetTicks() - MetricPostProcessTime;
+
 DO_NOTHING:
 
 	// Show FPS counter
@@ -1251,6 +1304,7 @@ DO_NOTHING:
 			MetricUpdateTime,
 			MetricClearTime,
 			MetricRenderTime,
+			MetricPostProcessTime,
 			MetricPresentTime,
 		};
 		const char* typeNames[] = {
@@ -1260,6 +1314,7 @@ DO_NOTHING:
 			"Entity Update: %3.3f ms",
 			"Clear Time: %3.3f ms",
 			"World Render Commands: %3.3f ms",
+			"Render Post-Process: %3.3f ms",
 			"Frame Present Time: %3.3f ms",
 		};
 		struct {
@@ -1599,6 +1654,13 @@ void Application::Cleanup() {
 		Memory::Free(Application::CmdLineArgs[i]);
 	}
 	Application::CmdLineArgs.clear();
+
+	for (std::unordered_map<std::string, Capability>::iterator it = CapabilityMap.begin();
+		it != CapabilityMap.end();
+		it++) {
+		it->second.Dispose();
+	}
+	CapabilityMap.clear();
 
 	Memory::PrintLeak();
 	Memory::ClearTrackedMemory();

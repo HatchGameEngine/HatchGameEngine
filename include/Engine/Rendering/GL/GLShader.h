@@ -1,26 +1,87 @@
 #ifndef ENGINE_RENDERING_GL_GLSHADER_H
 #define ENGINE_RENDERING_GL_GLSHADER_H
 
-#include <Engine/IO/Stream.h>
-#include <Engine/Includes/Standard.h>
-#include <Engine/Math/Matrix4x4.h>
+#include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/GL/Includes.h>
 
-#ifdef DEBUG
-#define GL_DO_ERROR_CHECKING
+typedef std::unordered_map<std::string, GLint> GLVariableMap;
+
+#define ATTRIB_POSITION "i_position"
+#define ATTRIB_UV "i_uv"
+#define ATTRIB_COLOR "i_color"
+
+#define UNIFORM_TEXTURE "u_texture"
+#define UNIFORM_PALETTETEXTURE "u_paletteTexture"
+#ifdef GL_HAVE_YUV
+#define UNIFORM_TEXTUREU "u_textureU"
+#define UNIFORM_TEXTUREV "u_textureV"
 #endif
 
-#ifdef GL_DO_ERROR_CHECKING
-#define CHECK_GL() GLShader::CheckGLError(__LINE__)
-#else
-#define CHECK_GL()
-#endif
+struct GL_ProcessedShader {
+	char* SourceText;
+	std::vector<std::string> Defines;
+};
 
-class GLShader {
+class GLShader : public Shader {
 private:
+	static char* FindInclude(std::string identifier);
+	static GL_ProcessedShader ProcessFragmentShaderText(char* text);
+	static std::vector<char*> GetShaderSources(GL_ProcessedShader processed);
+
+	void AddVertexShader(Stream* stream);
+	void AddFragmentShader(Stream* stream);
 	void AttachAndLink();
 
+	std::string CheckShaderError(GLuint shader);
+	std::string CheckProgramError(GLuint prog);
+
+	static Uint8 ConvertDataTypeToEnum(GLenum type);
+
+	static void SendUniformValues(int location, size_t count, void* values, Uint8 type);
+
+#ifndef GL_USING_ATTRIB_LOCATIONS
+	GLVariableMap AttribMap;
+#endif
+
 public:
+	static void InitIncludes();
+
+	GLShader();
+	GLShader(std::string vertexShaderSource, std::string fragmentShaderSource);
+	GLShader(Stream* streamVS, Stream* streamFS);
+
+	void Compile();
+	void AddStage(int stage, Stream* stream);
+	bool HasStage(int stage);
+	bool HasRequiredStages();
+	bool CanCompile();
+	bool IsValid();
+
+	bool HasUniform(const char* name);
+	void SetUniform(ShaderUniform* uniform, size_t count, void* values, Uint8 type);
+	void SetUniformTexture(const char* name, Texture* texture);
+	void SetUniformTexture(int uniform, Texture* texture);
+	void SetUniformTexture(int uniform, int textureID);
+
+	void Use();
+	void Validate();
+	void ValidateStages();
+
+	int GetAttribLocation(std::string identifier);
+	int GetRequiredAttrib(std::string identifier);
+	int GetUniformLocation(std::string identifier);
+
+	void InitUniforms();
+	void InitTextureUniforms();
+
+#if GL_USING_ATTRIB_LOCATIONS
+	void InitAttributes();
+	void BindAttribLocations();
+#endif
+
+	void Delete();
+	virtual ~GLShader();
+
 	GLuint ProgramID = 0;
 	GLuint VertexProgramID = 0;
 	GLuint FragmentProgramID = 0;
@@ -30,11 +91,17 @@ public:
 	GLint LocPosition;
 	GLint LocTexCoord;
 	GLint LocTexture;
+	GLint LocTextureSize;
+	GLint LocSpriteFrameCoords;
+	GLint LocSpriteFrameSize;
+#ifdef GL_HAVE_YUV
 	GLint LocTextureU;
 	GLint LocTextureV;
-	GLint LocPalette;
-	GLint LocPaletteLine;
+#endif
+	GLint LocPaletteTexture;
+	GLint LocPaletteID;
 	GLint LocPaletteIndexTable;
+	GLint LocNumTexturePaletteIndices;
 	GLint LocColor;
 	GLint LocDiffuseColor;
 	GLint LocSpecularColor;
@@ -45,23 +112,10 @@ public:
 	GLint LocFogLinearEnd;
 	GLint LocFogDensity;
 	GLint LocFogTable;
-	char FilenameV[256];
-	char FilenameF[256];
-	// Cache stuff
-	float CachedBlendColors[4];
-	Matrix4x4* CachedProjectionMatrix = NULL;
-	Matrix4x4* CachedViewMatrix = NULL;
-	Matrix4x4* CachedModelMatrix = NULL;
 
-	GLShader(std::string vertexShaderSource, std::string fragmentShaderSource);
-	GLShader(Stream* streamVS, Stream* streamFS);
-	bool CheckShaderError(GLuint shader);
-	bool CheckProgramError(GLuint prog);
-	GLuint Use();
-	GLint GetAttribLocation(const GLchar* identifier);
-	GLint GetUniformLocation(const GLchar* identifier);
-	~GLShader();
-	static bool CheckGLError(int line);
+#if GL_USING_ATTRIB_LOCATIONS
+	std::unordered_map<std::string, int> AttribLocationMap;
+#endif
 };
 
 #endif /* ENGINE_RENDERING_GL_GLSHADER_H */

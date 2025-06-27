@@ -4,6 +4,7 @@ class ScriptEntity;
 
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/VMThread.h>
+#include <Engine/Exceptions/ScriptException.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/IO/Stream.h>

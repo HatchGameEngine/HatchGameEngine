@@ -1,6 +1,7 @@
 #include <Engine/ResourceTypes/Image.h>
 
 #include <Engine/Application.h>
+#include <Engine/Error.h>
 #include <Engine/Graphics.h>
 
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
@@ -26,7 +27,7 @@ void Image::AddRef() {
 
 bool Image::TakeRef() {
 	if (References == 0) {
-		abort();
+		Error::Fatal("Tried to release reference of Image when it had none!");
 	}
 
 	References--;

@@ -110,7 +110,9 @@ struct Point {
 	float Y;
 	float Z;
 };
+// TODO: Graphics should have a pointer to a GraphicsState.
 struct GraphicsState {
+	void* CurrentShader;
 	Viewport CurrentViewport;
 	ClipArea CurrentClip;
 	float BlendColors[4];

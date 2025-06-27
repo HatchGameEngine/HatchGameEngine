@@ -68,11 +68,8 @@ public:
 	static void UpdateProjectionMatrix();
 	static void
 	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
-	static void UseShader(void* shader);
-	static void SetUniformF(int location, int count, float* values);
-	static void SetUniformI(int location, int count, int* values);
-	static void SetUniformTexture(Texture* texture, int uniform_index, int slot);
 	static void SetFilter(int filter);
+	static void SetFilterTable(Uint32* table, size_t size);
 	static void Clear();
 	static void Present();
 	static void SetBlendColor(float r, float g, float b, float a);

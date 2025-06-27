@@ -7,6 +7,7 @@
 #include <Engine/Includes/Version.h>
 #include <Engine/InputManager.h>
 #include <Engine/Math/Math.h>
+#include <Engine/Platforms/Capability.h>
 #include <Engine/Scene.h>
 #include <Engine/TextFormats/INI/INI.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
@@ -29,9 +30,12 @@ private:
 	static char SavesDir[256];
 	static char PreferencesDir[256];
 
+	static std::unordered_map<std::string, Capability> CapabilityMap;
+
 	static void LogEngineVersion();
 	static void LogSystemInfo();
 	static void MakeEngineVersion();
+	static void RemoveCapability(std::string capability);
 	static bool ValidateIdentifier(const char* string);
 	static char* GenerateIdentifier(const char* string);
 	static bool
@@ -90,6 +94,12 @@ public:
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();
 	static bool IsMobile();
+	static void AddCapability(std::string capability, int value);
+	static void AddCapability(std::string capability, float value);
+	static void AddCapability(std::string capability, bool value);
+	static void AddCapability(std::string capability, std::string value);
+	static Capability GetCapability(std::string capability);
+	static bool HasCapability(std::string capability);
 	static const char* GetDeveloperIdentifier();
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();
