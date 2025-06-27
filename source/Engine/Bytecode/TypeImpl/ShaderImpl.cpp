@@ -6,6 +6,8 @@
 #include <Engine/Rendering/Shader.h>
 
 static size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType);
+void ReadFloatVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, void* values);
+void ReadIntVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, void* values);
 static void
 ThrowElementTypeMismatchError(size_t element, const char* expected, const char* elementType);
 
@@ -432,8 +434,9 @@ VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) 
 		float* valuesFloat = (float*)values;
 		valuesFloat[0] = AS_DECIMAL(value);
 	}
-	else {
-		UNREACHABLE_EXCEPTION(ScriptException);
+
+	if (values == nullptr || count == 0) {
+		throw ScriptException("Could not allocate memory for sending data to shader!");
 	}
 
 	try {
@@ -448,6 +451,7 @@ VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) 
 }
 size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 	size_t arrayLength = array->Values->size();
+	size_t count = arrayLength;
 	size_t numElements = 1;
 
 	char errorString[128];
@@ -464,6 +468,9 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 
 			throw ScriptException(std::string(errorString));
 		}
+
+		// Yes, this means you can't send arrays of matrices... Yet.
+		count = 1;
 	}
 	else {
 		numElements = Shader::GetDataTypeElementCount(dataType);
@@ -484,8 +491,14 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 
 	switch (dataType) {
 	case Shader::DATATYPE_FLOAT:
+	case Shader::DATATYPE_FLOAT_MAT2:
+	case Shader::DATATYPE_FLOAT_MAT3:
+	case Shader::DATATYPE_FLOAT_MAT4:
 		*values = Memory::Malloc(sizeof(float) * arrayLength);
 		valuesFloat = (float*)(*values);
+		if (valuesFloat == nullptr) {
+			return 0;
+		}
 
 		for (size_t i = 0; i < arrayLength; i++) {
 			VMValue element = (*array->Values)[i];
@@ -504,6 +517,9 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 	case Shader::DATATYPE_INT:
 		*values = Memory::Malloc(sizeof(int) * arrayLength);
 		valuesInt = (int*)(*values);
+		if (valuesInt == nullptr) {
+			return 0;
+		}
 
 		for (size_t i = 0; i < arrayLength; i++) {
 			VMValue element = (*array->Values)[i];
@@ -522,23 +538,133 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 	case Shader::DATATYPE_FLOAT_VEC2:
 	case Shader::DATATYPE_FLOAT_VEC3:
 	case Shader::DATATYPE_FLOAT_VEC4:
-		UNIMPLEMENTED_EXCEPTION(ScriptException);
+		*values = Memory::Malloc(sizeof(float) * arrayLength * numElements);
+		if (*values == nullptr) {
+			return 0;
+		}
+
+		for (size_t i = 0; i < arrayLength; i++) {
+			ReadFloatVectorArray(array, i, numElements, *values);
+		}
+		break;
 	case Shader::DATATYPE_INT_VEC2:
 	case Shader::DATATYPE_INT_VEC3:
 	case Shader::DATATYPE_INT_VEC4:
 	case Shader::DATATYPE_BOOL_VEC2:
 	case Shader::DATATYPE_BOOL_VEC3:
 	case Shader::DATATYPE_BOOL_VEC4:
-		UNIMPLEMENTED_EXCEPTION(ScriptException);
-	case Shader::DATATYPE_FLOAT_MAT2:
-	case Shader::DATATYPE_FLOAT_MAT3:
-	case Shader::DATATYPE_FLOAT_MAT4:
-		UNIMPLEMENTED_EXCEPTION(ScriptException);
+		*values = Memory::Malloc(sizeof(int) * arrayLength * numElements);
+		if (*values == nullptr) {
+			return 0;
+		}
+
+		for (size_t i = 0; i < arrayLength; i++) {
+			ReadIntVectorArray(array, i, numElements, *values);
+		}
+		break;
 	default:
-		UNREACHABLE_EXCEPTION(ScriptException);
+		return 0;
 	}
 
-	return arrayLength / numElements;
+	return count;
+}
+void ReadFloatVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, void* values) {
+	char errorString[128];
+
+	VMValue element = (*array->Values)[arrIndex];
+	if (!IS_ARRAY(element)) {
+		Memory::Free(values);
+
+		ThrowElementTypeMismatchError(
+			arrIndex, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(element));
+	}
+
+	ObjArray* vecArray = AS_ARRAY(element);
+	size_t vecArraySize = vecArray->Values->size();
+	if (vecArraySize != numElements) {
+		snprintf(errorString,
+			sizeof errorString,
+			"Expected vector array to have exactly %d elements, but it had %d elements instead!",
+			numElements,
+			vecArraySize);
+
+		Memory::Free(values);
+
+		throw ScriptException(std::string(errorString));
+	}
+
+	float* valuesFloat = (float*)values;
+	size_t offset = arrIndex * numElements;
+
+	for (size_t i = 0; i < numElements; i++) {
+		VMValue vecElement = (*vecArray->Values)[i];
+		VMValue result = Value::CastAsDecimal(vecElement);
+
+		if (IS_NULL(result)) {
+			Memory::Free(values);
+
+			snprintf(errorString,
+				sizeof errorString,
+				"Uniform type mismatch in vector array at index %d! Expected value at index %d to be of type %s; value was of type %s.",
+				arrIndex,
+				i,
+				GetTypeString(VAL_INTEGER),
+				GetValueTypeString(vecElement));
+
+			throw ScriptException(std::string(errorString));
+		}
+
+		valuesFloat[offset + i] = AS_DECIMAL(result);
+	}
+}
+void ReadIntVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, void* values) {
+	char errorString[128];
+
+	VMValue element = (*array->Values)[arrIndex];
+	if (!IS_ARRAY(element)) {
+		Memory::Free(values);
+
+		ThrowElementTypeMismatchError(
+			arrIndex, GetObjectTypeString(OBJ_ARRAY), GetValueTypeString(element));
+	}
+
+	ObjArray* vecArray = AS_ARRAY(element);
+	size_t vecArraySize = vecArray->Values->size();
+	if (vecArraySize != numElements) {
+		snprintf(errorString,
+			sizeof errorString,
+			"Expected vector array to have exactly %d elements, but it had %d elements instead!",
+			numElements,
+			vecArraySize);
+
+		Memory::Free(values);
+
+		throw ScriptException(std::string(errorString));
+	}
+
+	int* valuesInt = (int*)values;
+	size_t offset = arrIndex * numElements;
+
+	for (size_t i = 0; i < numElements; i++) {
+		VMValue vecElement = (*vecArray->Values)[i];
+		VMValue result = Value::CastAsInteger(vecElement);
+
+		if (IS_NULL(result)) {
+			Memory::Free(values);
+
+			snprintf(errorString,
+				sizeof errorString,
+				"Uniform type mismatch in vector array at index %d! Expected value at index %d to be of type %s; value was of type %s.",
+				arrIndex,
+				i,
+				GetTypeString(VAL_INTEGER),
+				GetValueTypeString(vecElement));
+
+			throw ScriptException(std::string(errorString));
+		}
+
+		valuesInt[offset + i] = AS_INTEGER(result);
+	}
 }
 void ThrowElementTypeMismatchError(size_t element, const char* expected, const char* elementType) {
 	char errorString[256];

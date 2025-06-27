@@ -76,6 +76,7 @@ public:
 	virtual void Delete();
 	virtual ~Shader();
 
+	const char* GetUniformTypeName(Uint8 type);
 	static size_t GetDataTypeElementCount(Uint8 type);
 	static size_t GetMatrixDataTypeSize(Uint8 type);
 	static bool DataTypeIsMatrix(Uint8 type);

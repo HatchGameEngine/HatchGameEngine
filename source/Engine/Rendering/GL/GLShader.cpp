@@ -506,54 +506,59 @@ bool GLShader::HasUniform(const char* name) {
 	return GetUniformLocation(name) != -1;
 }
 void GLShader::SendUniformValues(int location, size_t count, void* values, Uint8 type) {
-	int* valuesInt = (int*)values;
-	float* valuesFloat = (float*)values;
-
 	switch (type) {
 	case DATATYPE_INT:
 	case DATATYPE_BOOL:
 	case DATATYPE_SAMPLER_2D:
 	case DATATYPE_SAMPLER_CUBE:
-		glUniform1iv(location, count, valuesInt);
+		glUniform1iv(location, count, (const GLint*)values);
 		break;
 	case DATATYPE_INT_VEC2:
 	case DATATYPE_BOOL_VEC2:
-		glUniform2iv(location, count, valuesInt);
+		glUniform2iv(location, count, (const GLint*)values);
 		break;
 	case DATATYPE_INT_VEC3:
 	case DATATYPE_BOOL_VEC3:
-		glUniform3iv(location, count, valuesInt);
+		glUniform3iv(location, count, (const GLint*)values);
 		break;
 	case DATATYPE_INT_VEC4:
 	case DATATYPE_BOOL_VEC4:
-		glUniform4iv(location, count, valuesInt);
+		glUniform4iv(location, count, (const GLint*)values);
 		break;
 	case DATATYPE_FLOAT:
-		glUniform1fv(location, count, valuesFloat);
+		glUniform1fv(location, count, (const GLfloat*)values);
 		break;
 	case DATATYPE_FLOAT_VEC2:
-		glUniform2fv(location, count, valuesFloat);
+		glUniform2fv(location, count, (const GLfloat*)values);
 		break;
 	case DATATYPE_FLOAT_VEC3:
-		glUniform3fv(location, count, valuesFloat);
+		glUniform3fv(location, count, (const GLfloat*)values);
 		break;
 	case DATATYPE_FLOAT_VEC4:
-		glUniform4fv(location, count, valuesFloat);
+		glUniform4fv(location, count, (const GLfloat*)values);
 		break;
 	case DATATYPE_FLOAT_MAT2:
-		glUniformMatrix2fv(location, count, false, valuesFloat);
+		glUniformMatrix2fv(location, count, false, (const GLfloat*)values);
 		break;
 	case DATATYPE_FLOAT_MAT3:
-		glUniformMatrix3fv(location, count, false, valuesFloat);
+		glUniformMatrix3fv(location, count, false, (const GLfloat*)values);
 		break;
 	case DATATYPE_FLOAT_MAT4:
-		glUniformMatrix4fv(location, count, false, valuesFloat);
+		glUniformMatrix4fv(location, count, false, (const GLfloat*)values);
 		break;
 	}
 }
 void GLShader::SetUniform(ShaderUniform* uniform, size_t count, void* values, Uint8 type) {
 	if (type != uniform->Type) {
-		throw std::runtime_error("Uniform type mismatch!");
+		char errorString[128];
+
+		snprintf(errorString,
+			sizeof errorString,
+			"Cannot send '%s' value to an uniform of type '%s'!",
+			GetUniformTypeName(type),
+			GetUniformTypeName(uniform->Type));
+
+		throw std::runtime_error(std::string(errorString));
 	}
 
 	if (count > 1) {

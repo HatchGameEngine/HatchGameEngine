@@ -35,6 +35,47 @@ void Shader::SetUniformTexture(const char* name, Texture* texture) {
 	throw std::runtime_error("Shader::SetUniformTexture() called without an implementation");
 }
 
+const char* Shader::GetUniformTypeName(Uint8 type) {
+	switch (type) {
+	case DATATYPE_FLOAT:
+		return "float";
+	case DATATYPE_FLOAT_VEC2:
+		return "vec2";
+	case DATATYPE_FLOAT_VEC3:
+		return "vec3";
+	case DATATYPE_FLOAT_VEC4:
+		return "vec4";
+	case DATATYPE_INT:
+		return "int";
+	case DATATYPE_INT_VEC2:
+		return "ivec2";
+	case DATATYPE_INT_VEC3:
+		return "ivec3";
+	case DATATYPE_INT_VEC4:
+		return "ivec4";
+	case DATATYPE_BOOL:
+		return "bool";
+	case DATATYPE_BOOL_VEC2:
+		return "bvec2";
+	case DATATYPE_BOOL_VEC3:
+		return "bvec3";
+	case DATATYPE_BOOL_VEC4:
+		return "bvec4";
+	case DATATYPE_FLOAT_MAT2:
+		return "mat2";
+	case DATATYPE_FLOAT_MAT3:
+		return "mat3";
+	case DATATYPE_FLOAT_MAT4:
+		return "mat4";
+	case DATATYPE_SAMPLER_2D:
+		return "sampler2D";
+	case DATATYPE_SAMPLER_CUBE:
+		return "samplerCube";
+	default:
+		return "unknown";
+	}
+}
+
 size_t Shader::GetDataTypeElementCount(Uint8 type) {
 	switch (type) {
 	case DATATYPE_INT_VEC2:
@@ -56,9 +97,9 @@ size_t Shader::GetDataTypeElementCount(Uint8 type) {
 size_t Shader::GetMatrixDataTypeSize(Uint8 type) {
 	switch (type) {
 	case DATATYPE_FLOAT_MAT2:
-		return 2 * 4;
+		return 2 * 2;
 	case DATATYPE_FLOAT_MAT3:
-		return 3 * 4;
+		return 3 * 3;
 	case DATATYPE_FLOAT_MAT4:
 		return 4 * 4;
 	default:
