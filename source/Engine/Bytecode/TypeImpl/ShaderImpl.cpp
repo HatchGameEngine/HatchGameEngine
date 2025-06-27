@@ -129,7 +129,7 @@ VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, Uint32 threadID) {
  * \method AddStage
  * \desc Adds a stage to the shader program. This should not be called multiple times for the same stage.
  * \param stage (Enum): The <linkto ref="SHADERSTAGE_*">shader stage</linkto>.
- * \param filename (String): Filename of the resource.
+ * \param shader (String or Stream): Filename of the resource containing shader code, or a Stream containing shader code.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
@@ -142,13 +142,36 @@ VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
 
 	Shader* shader = (Shader*)objShader->ShaderPtr;
 	int stage = GET_ARG(1, GetInteger);
-	char* filename = GET_ARG(2, GetString);
+	Stream* stream = nullptr;
+	bool closeStream = false;
 
 	CHECK_EXISTS(shader);
 
-	Stream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		throw ScriptException("Resource \"" + std::string(filename) + "\" does not exist!");
+	if (IS_STREAM(args[2])) {
+		ObjStream* objStream = AS_STREAM(args[2]);
+		if (!objStream || !objStream->StreamPtr) {
+			return NULL_VAL;
+		}
+
+		if (objStream->Closed) {
+			throw ScriptException("Cannot read closed stream!");
+		}
+		if (objStream->Writable) {
+			throw ScriptException("Stream is not readable!");
+		}
+
+		stream = objStream->StreamPtr;
+	}
+	else {
+		char* filename = GET_ARG(2, GetString);
+
+		stream = ResourceStream::New(filename);
+
+		if (!stream) {
+			throw ScriptException("Resource \"" + std::string(filename) + "\" does not exist!");
+		}
+
+		closeStream = true;
 	}
 
 	bool success = false;
@@ -165,7 +188,9 @@ VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
 		ScriptManager::Threads[threadID].ShowErrorLocation(errorMessage.c_str());
 	}
 
-	stream->Close();
+	if (closeStream) {
+		stream->Close();
+	}
 
 	return INTEGER_VAL(success);
 }
