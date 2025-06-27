@@ -24,6 +24,7 @@ void ShaderImpl::Init() {
 	ScriptManager::DefineNative(Class, "CanCompile", VM_CanCompile);
 	ScriptManager::DefineNative(Class, "IsValid", VM_IsValid);
 	ScriptManager::DefineNative(Class, "AddStage", VM_AddStage);
+	ScriptManager::DefineNative(Class, "AddStageFromString", VM_AddStageFromString);
 	ScriptManager::DefineNative(Class, "AssignTextureUnit", VM_AssignTextureUnit);
 	ScriptManager::DefineNative(Class, "GetTextureUnit", VM_GetTextureUnit);
 	ScriptManager::DefineNative(Class, "Compile", VM_Compile);
@@ -191,6 +192,47 @@ VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
 	if (closeStream) {
 		stream->Close();
 	}
+
+	return INTEGER_VAL(success);
+}
+/***
+ * \method AddStageFromString
+ * \desc Adds a stage to the shader program, from a String containing the shader code. This should not be called multiple times for the same stage.
+ * \param stage (Enum): The <linkto ref="SHADERSTAGE_*">shader stage</linkto>.
+ * \param shader (String): A String that contains shader code.
+ * \ns Shader
+ */
+VMValue ShaderImpl::VM_AddStageFromString(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ObjShader* objShader = GET_ARG(0, GetShader);
+	if (objShader == nullptr) {
+		return NULL_VAL;
+	}
+
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	int stage = GET_ARG(1, GetInteger);
+	char* shaderCode = GET_ARG(2, GetString);
+
+	CHECK_EXISTS(shader);
+
+	TextStream* stream = TextStream::New(shaderCode);
+
+	bool success = false;
+
+	try {
+		shader->AddStage(stage, stream);
+
+		success = true;
+	} catch (const std::runtime_error& error) {
+		std::string errorMessage = "Error adding shader stage: ";
+
+		errorMessage += std::string(error.what());
+
+		ScriptManager::Threads[threadID].ShowErrorLocation(errorMessage.c_str());
+	}
+
+	stream->Close();
 
 	return INTEGER_VAL(success);
 }

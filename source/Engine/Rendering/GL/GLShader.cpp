@@ -64,24 +64,27 @@ char* GLShader::FindInclude(std::string identifier) {
 void GLShader::AddVertexShader(Stream* stream) {
 	GLint compiled = GL_FALSE;
 
-	size_t lenVS = stream->Length();
+	size_t length = stream->Length() - stream->Position();
+	if (length == 0) {
+		throw std::runtime_error("No vertex shader text!");
+	}
 
-	char* sourceVS = (char*)Memory::Malloc(lenVS + 1);
-	if (sourceVS == nullptr) {
+	char* source = (char*)Memory::Malloc(length + 1);
+	if (source == nullptr) {
 		throw std::runtime_error("No free memory to allocate vertex shader text!");
 	}
 
-	stream->ReadBytes(sourceVS, lenVS);
-	sourceVS[lenVS] = '\0';
+	stream->ReadBytes(source, length);
+	source[length] = '\0';
 
 	VertexProgramID = glCreateShader(GL_VERTEX_SHADER);
 
-	glShaderSource(VertexProgramID, 1, &sourceVS, NULL);
+	glShaderSource(VertexProgramID, 1, &source, NULL);
 	glCompileShader(VertexProgramID);
 	CHECK_GL();
 	glGetShaderiv(VertexProgramID, GL_COMPILE_STATUS, &compiled);
 
-	Memory::Free(sourceVS);
+	Memory::Free(source);
 
 	if (compiled != GL_TRUE) {
 		std::string error = CheckShaderError(VertexProgramID);
@@ -206,17 +209,20 @@ std::vector<char*> GLShader::GetShaderSources(GL_ProcessedShader processed) {
 void GLShader::AddFragmentShader(Stream* stream) {
 	GLint compiled = GL_FALSE;
 
-	size_t lenFS = stream->Length();
+	size_t length = stream->Length() - stream->Position();
+	if (length == 0) {
+		throw std::runtime_error("No fragment shader text!");
+	}
 
-	char* sourceFS = (char*)Memory::Malloc(lenFS + 1);
-	if (sourceFS == nullptr) {
+	char* source = (char*)Memory::Malloc(length + 1);
+	if (source == nullptr) {
 		throw std::runtime_error("No free memory to allocate fragment shader text!");
 	}
 
-	stream->ReadBytes(sourceFS, lenFS);
-	sourceFS[lenFS] = '\0';
+	stream->ReadBytes(source, length);
+	source[length] = '\0';
 
-	GL_ProcessedShader processed = ProcessFragmentShaderText(sourceFS);
+	GL_ProcessedShader processed = ProcessFragmentShaderText(source);
 	std::vector<char*> shaderSources = GetShaderSources(processed);
 
 	FragmentProgramID = glCreateShader(GL_FRAGMENT_SHADER);

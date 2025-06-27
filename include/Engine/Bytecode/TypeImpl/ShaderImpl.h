@@ -15,6 +15,7 @@ public:
 	static VMValue VM_CanCompile(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_IsValid(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_AddStage(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_AddStageFromString(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetTextureUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_HasUniform(int argCount, VMValue* args, Uint32 threadID);
