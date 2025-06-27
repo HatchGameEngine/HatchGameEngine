@@ -17933,11 +17933,14 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 			XMLNode* xmlRoot = XMLParser::ParseFromStream(stream);
 			if (xmlRoot) {
 				mapValue = XML_FillMap(xmlRoot);
-			}
 
-			// XMLParser will realloc text, so the stream needs to free it.
-			stream->owns_memory = true;
-			XMLParser::Free(xmlRoot);
+				// XMLParser will realloc text, so the stream needs to free it.
+				stream->owns_memory = true;
+				XMLParser::Free(xmlRoot);
+			}
+			else {
+				stream->Close();
+			}
 		}
 		else {
 			Memory::Free(text);
