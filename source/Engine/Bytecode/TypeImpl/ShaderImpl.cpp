@@ -5,11 +5,11 @@
 #include <Engine/Graphics.h>
 #include <Engine/Rendering/Shader.h>
 
-static size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType);
+size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType);
+bool IsArrayOfMatrices(ObjArray* array, size_t arrayLength, size_t expectedCount);
 void ReadFloatVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, void* values);
 void ReadIntVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, void* values);
-static void
-ThrowElementTypeMismatchError(size_t element, const char* expected, const char* elementType);
+void ThrowElementTypeMismatchError(size_t element, const char* expected, const char* elementType);
 
 ObjClass* ShaderImpl::Class = nullptr;
 
@@ -454,23 +454,27 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 	size_t count = arrayLength;
 	size_t numElements = 1;
 
+	bool isArrayOfMatrices = false;
+
 	char errorString[128];
 
 	if (Shader::DataTypeIsMatrix(dataType)) {
-		size_t expectedCount = Shader::GetMatrixDataTypeSize(dataType);
+		numElements = Shader::GetMatrixDataTypeSize(dataType);
+		isArrayOfMatrices = IsArrayOfMatrices(array, arrayLength, numElements);
 
-		if (arrayLength != expectedCount) {
-			snprintf(errorString,
-				sizeof errorString,
-				"Expected array to have exactly %d elements, but it had %d elements instead!",
-				expectedCount,
-				arrayLength);
+		if (!isArrayOfMatrices) {
+			count = 1;
 
-			throw ScriptException(std::string(errorString));
+			if (arrayLength != numElements) {
+				snprintf(errorString,
+					sizeof errorString,
+					"Expected array to have exactly %d elements, but it had %d elements instead!",
+					numElements,
+					arrayLength);
+
+				throw ScriptException(std::string(errorString));
+			}
 		}
-
-		// Yes, this means you can't send arrays of matrices... Yet.
-		count = 1;
 	}
 	else {
 		numElements = Shader::GetDataTypeElementCount(dataType);
@@ -486,20 +490,56 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 		}
 	}
 
-	int* valuesInt = nullptr;
-	float* valuesFloat = nullptr;
+	// Allocate the memory
+	size_t totalDataSize = arrayLength * numElements;
 
 	switch (dataType) {
 	case Shader::DATATYPE_FLOAT:
 	case Shader::DATATYPE_FLOAT_MAT2:
 	case Shader::DATATYPE_FLOAT_MAT3:
 	case Shader::DATATYPE_FLOAT_MAT4:
-		*values = Memory::Malloc(sizeof(float) * arrayLength);
-		valuesFloat = (float*)(*values);
-		if (valuesFloat == nullptr) {
-			return 0;
-		}
+	case Shader::DATATYPE_FLOAT_VEC2:
+	case Shader::DATATYPE_FLOAT_VEC3:
+	case Shader::DATATYPE_FLOAT_VEC4:
+		totalDataSize *= sizeof(float);
+		break;
+	case Shader::DATATYPE_INT:
+	case Shader::DATATYPE_INT_VEC2:
+	case Shader::DATATYPE_INT_VEC3:
+	case Shader::DATATYPE_INT_VEC4:
+	case Shader::DATATYPE_BOOL_VEC2:
+	case Shader::DATATYPE_BOOL_VEC3:
+	case Shader::DATATYPE_BOOL_VEC4:
+		totalDataSize *= sizeof(int);
+		break;
+	}
 
+	*values = Memory::Malloc(totalDataSize);
+	if (*values == nullptr) {
+		return 0;
+	}
+
+	// Read the values
+	switch (dataType) {
+	case Shader::DATATYPE_FLOAT_MAT2:
+	case Shader::DATATYPE_FLOAT_MAT3:
+	case Shader::DATATYPE_FLOAT_MAT4:
+		if (isArrayOfMatrices) {
+			float* buf = (float*)(*values);
+			for (size_t i = 0; i < arrayLength; i++) {
+				ObjArray* matArray = AS_ARRAY((*array->Values)[i]);
+
+				// Assumed to be of the correct size (because it was validated.)
+				for (size_t j = 0; j < numElements; j++) {
+					VMValue result =
+						Value::CastAsDecimal((*matArray->Values)[j]);
+					*buf++ = AS_DECIMAL(result);
+				}
+			}
+			break;
+		}
+		// Intentional fallthrough.
+	case Shader::DATATYPE_FLOAT:
 		for (size_t i = 0; i < arrayLength; i++) {
 			VMValue element = (*array->Values)[i];
 			VMValue result = Value::CastAsDecimal(element);
@@ -511,16 +551,10 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 					i, GetTypeString(VAL_DECIMAL), GetValueTypeString(element));
 			}
 
-			valuesFloat[i] = AS_DECIMAL(result);
+			((float*)(*values))[i] = AS_DECIMAL(result);
 		}
 		break;
 	case Shader::DATATYPE_INT:
-		*values = Memory::Malloc(sizeof(int) * arrayLength);
-		valuesInt = (int*)(*values);
-		if (valuesInt == nullptr) {
-			return 0;
-		}
-
 		for (size_t i = 0; i < arrayLength; i++) {
 			VMValue element = (*array->Values)[i];
 			VMValue result = Value::CastAsInteger(element);
@@ -532,17 +566,12 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 					i, GetTypeString(VAL_INTEGER), GetValueTypeString(element));
 			}
 
-			valuesInt[i] = AS_INTEGER(result);
+			((int*)(*values))[i] = AS_INTEGER(result);
 		}
 		break;
 	case Shader::DATATYPE_FLOAT_VEC2:
 	case Shader::DATATYPE_FLOAT_VEC3:
 	case Shader::DATATYPE_FLOAT_VEC4:
-		*values = Memory::Malloc(sizeof(float) * arrayLength * numElements);
-		if (*values == nullptr) {
-			return 0;
-		}
-
 		for (size_t i = 0; i < arrayLength; i++) {
 			ReadFloatVectorArray(array, i, numElements, *values);
 		}
@@ -553,11 +582,6 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 	case Shader::DATATYPE_BOOL_VEC2:
 	case Shader::DATATYPE_BOOL_VEC3:
 	case Shader::DATATYPE_BOOL_VEC4:
-		*values = Memory::Malloc(sizeof(int) * arrayLength * numElements);
-		if (*values == nullptr) {
-			return 0;
-		}
-
 		for (size_t i = 0; i < arrayLength; i++) {
 			ReadIntVectorArray(array, i, numElements, *values);
 		}
@@ -567,6 +591,49 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 	}
 
 	return count;
+}
+bool IsArrayOfMatrices(ObjArray* array, size_t arrayLength, size_t expectedCount) {
+	if (arrayLength == 0) {
+		return false;
+	}
+
+	for (size_t i = 0; i < arrayLength; i++) {
+		VMValue element = (*array->Values)[i];
+
+		if (!IS_ARRAY(element)) {
+			// Not an array of arrays
+			return false;
+		}
+	}
+
+	// They are all arrays, so continue validations.
+	for (size_t i = 0; i < arrayLength; i++) {
+		ObjArray* matArray = AS_ARRAY((*array->Values)[i]);
+		size_t matArraySize = matArray->Values->size();
+
+		if (matArraySize != expectedCount) {
+			char errorString[128];
+
+			snprintf(errorString,
+				sizeof errorString,
+				"Expected matrix at array index %d to have exactly %d elements, but it had %d elements instead!",
+				i,
+				expectedCount,
+				matArraySize);
+
+			throw ScriptException(std::string(errorString));
+		}
+
+		for (size_t j = 0; j < matArraySize; j++) {
+			VMValue result = Value::CastAsDecimal((*matArray->Values)[j]);
+
+			if (IS_NULL(result)) {
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 void ReadFloatVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, void* values) {
 	char errorString[128];
