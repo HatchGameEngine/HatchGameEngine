@@ -1090,7 +1090,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 				elapsed = Clock::GetTicks();
 
-				ent->Render(_vx, _vy);
+				ent->Render();
 
 				elapsed = Clock::GetTicks() - elapsed;
 
@@ -1846,7 +1846,7 @@ void Scene::ProcessSceneTimer() {
 
 ObjectList* Scene::NewObjectList(const char* objectName) {
 	ObjectList* objectList = new (std::nothrow) ObjectList(objectName);
-	if (objectList && ScriptManager::LoadObjectClass(objectName, true)) {
+	if (objectList && ScriptManager::LoadObjectClass(objectName)) {
 		objectList->SpawnFunction = ScriptManager::ObjectSpawnFunction;
 	}
 	return objectList;

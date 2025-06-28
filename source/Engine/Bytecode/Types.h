@@ -203,13 +203,14 @@ enum ObjType {
 #define IS_NATIVE_INSTANCE(value) IsObjectType(value, OBJ_NATIVE_INSTANCE)
 #define IS_ENTITY(value) IsObjectType(value, OBJ_ENTITY)
 #define IS_INSTANCEABLE(value) (IS_INSTANCE(value) || IS_NATIVE_INSTANCE(value) || IS_ENTITY(value))
+#define IS_CALLABLE(value) (IS_FUNCTION(value) || IS_NATIVE_FUNCTION(value) || IS_BOUND_METHOD(value))
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))
 #define AS_CLOSURE(value) ((ObjClosure*)AS_OBJECT(value))
 #define AS_FUNCTION(value) ((ObjFunction*)AS_OBJECT(value))
 #define AS_INSTANCE(value) ((ObjInstance*)AS_OBJECT(value))
-#define AS_NATIVE(value) (((ObjNative*)AS_OBJECT(value))->Function)
+#define AS_NATIVE_FUNCTION(value) (((ObjNative*)AS_OBJECT(value))->Function)
 #define AS_STRING(value) ((ObjString*)AS_OBJECT(value))
 #define AS_CSTRING(value) (((ObjString*)AS_OBJECT(value))->Chars)
 #define AS_ARRAY(value) ((ObjArray*)AS_OBJECT(value))
@@ -253,7 +254,7 @@ struct ObjFunction {
 	struct Chunk Chunk;
 	ObjModule* Module;
 	ObjString* Name;
-	ObjString* ClassName;
+	struct ObjClass* Class;
 	Uint32 NameHash;
 };
 struct ObjNative {
