@@ -228,6 +228,22 @@ void Application::Init(int argc, char* args[]) {
 
 	Running = true;
 }
+void Application::InitScripting() {
+	GarbageCollector::Init();
+
+	Compiler::Init();
+
+	ScriptManager::Init();
+	ScriptManager::ResetStack();
+	ScriptManager::LinkStandardLibrary();
+	ScriptManager::LinkExtensions();
+
+	Compiler::GetStandardConstants();
+
+	if (SourceFileMap::CheckForUpdate()) {
+		ScriptManager::ForceGarbageCollection();
+	}
+}
 void Application::LogEngineVersion() {
 #ifdef GIT_COMMIT_HASH
 	Log::Print(Log::LOG_INFO,
@@ -754,9 +770,7 @@ void Application::EndGame() {
 	Scene::Dispose();
 	SceneInfo::Dispose();
 	Graphics::DeleteSpriteSheetMap();
-
-	ScriptManager::LoadAllClasses = false;
-	ScriptEntity::DisableAutoAnimate = false;
+	Application::TerminateScripting();
 }
 
 void Application::UnloadGame() {
@@ -765,7 +779,6 @@ void Application::UnloadGame() {
 	MemoryCache::Dispose();
 	ResourceManager::Dispose();
 
-	InputManager::ControllerStopRumble();
 	InputManager::ClearPlayers();
 	InputManager::ClearInputs();
 }
@@ -1540,6 +1553,8 @@ void Application::DelayFrame() {
 	}
 }
 void Application::StartGame(const char* startingScene) {
+	Application::InitScripting();
+
 	Scene::Init();
 	Scene::Prepare();
 
@@ -1673,6 +1688,8 @@ void Application::Run(int argc, char* args[]) {
 }
 
 void Application::Cleanup() {
+	Application::TerminateScripting();
+
 	if (DEBUG_fontSprite) {
 		DEBUG_fontSprite->Dispose();
 		delete DEBUG_fontSprite;
@@ -1707,6 +1724,15 @@ void Application::Cleanup() {
 #ifdef MSYS
 	FreeConsole();
 #endif
+}
+void Application::TerminateScripting() {
+	ScriptManager::Dispose();
+	SourceFileMap::Dispose();
+	Compiler::Dispose();
+	GarbageCollector::Dispose();
+
+	ScriptManager::LoadAllClasses = false;
+	ScriptEntity::DisableAutoAnimate = false;
 }
 
 static char* ParseGameConfigText(XMLNode* parent, const char* option) {
