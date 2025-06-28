@@ -46,6 +46,8 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 		return false;
 	}
 
+	Scene::SceneType = SCENETYPE_HATCH;
+
 	// Read scene version
 	Uint8 verMajor = r->ReadByte();
 	Uint8 verMinor = r->ReadByte();
@@ -69,7 +71,7 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 	r->ReadUInt32(); // Editor background color 1
 	r->ReadUInt32(); // Editor background color 2
 	if (verPatch >= 1) {
-		r->ReadByte(); // ?
+		r->ReadByte(); // completely unused value
 	}
 
 	// Unused (number of kits)
@@ -115,22 +117,9 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 
 	SceneLayer layer(width, height);
 
-	size_t nameBufLen = sizeof(layer.Name);
-	memset(layer.Name, 0x00, nameBufLen);
-
+	layer.Name = name;
 	layer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
 	layer.Visible = true;
-
-	// Copy its name
-	if (strlen(name) >= nameBufLen) {
-		Log::Print(Log::LOG_WARN,
-			"Layer name '%s' is longer than max size of %u, truncating",
-			name,
-			nameBufLen);
-	}
-
-	StringUtils::Copy(layer.Name, name, nameBufLen);
-	Memory::Free(name);
 
 	// Set draw group and behavior
 	if (drawGroup & 0x10) {
@@ -152,6 +141,8 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 		Log::Print(Log::LOG_ERROR, "Out of memory!");
 		exit(-1);
 	}
+
+	layer.UsingScrollIndexes = true;
 
 	// Read scroll data
 	HatchSceneReader::ReadScrollData(r, &layer);
@@ -464,6 +455,11 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		Uint32 objectHash = CRC32::EncryptData(&classHash.A, 16);
 		char* objectName = scnClass->Name;
 
+		if (!(filter & Scene::Filter)) {
+			HatchSceneReader::SkipEntityProperties(r, numProps);
+			continue;
+		}
+
 		// Spawn the object, if the class exists
 		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
 		if (objectList->SpawnFunction) {
@@ -478,10 +474,11 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 			obj->InitialX = posX;
 			obj->InitialY = posY;
 			obj->List = objectList;
-			obj->SlotID = (int)i;
+			obj->SlotID = (int)i + Scene::ReservedSlotIDs;
 			Scene::AddStatic(objectList, obj);
 
 			// Add "filter" property
+			obj->Filter = filter;
 			obj->Properties->Put("filter", INTEGER_VAL(filter));
 
 			// Add all properties

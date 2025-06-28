@@ -5,7 +5,8 @@
 void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderUniforms uniforms) {
 	if (uniforms.u_matrix) {
 		shaderText += "uniform mat4 u_projectionMatrix;\n";
-		shaderText += "uniform mat4 u_modelViewMatrix;\n";
+		shaderText += "uniform mat4 u_viewMatrix;\n";
+		shaderText += "uniform mat4 u_modelMatrix;\n";
 	}
 	if (uniforms.u_color) {
 		shaderText += "uniform vec4 u_color;\n";
@@ -20,6 +21,9 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 	}
 	if (uniforms.u_palette) {
 		shaderText += "uniform sampler2D u_paletteTexture;\n";
+		shaderText += "uniform int u_paletteLine;\n";
+		shaderText += "uniform int u_paletteIndexTable[" +
+			std::to_string(MAX_FRAMEBUFFER_HEIGHT) + "];\n";
 	}
 	if (uniforms.u_yuv) {
 		shaderText += "uniform sampler2D u_texture;\n";
@@ -67,7 +71,8 @@ void GLShaderBuilder::AddInputsToFragmentShaderText(std::string& shaderText,
 }
 string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 	GLShaderUniforms& uniforms) {
-	std::string shaderText = "";
+	std::string shaderText;
+	std::string paletteLookupText;
 
 	if (uniforms.u_fog_linear) {
 		shaderText +=
@@ -87,6 +92,19 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			"}\n";
 	}
 
+	if (uniforms.u_palette) {
+		paletteLookupText =
+			"float paletteLine;\n"
+			"if (u_paletteLine == -1) {\n"
+			"    int screenLine = clamp(int(gl_FragCoord.y), 0, " +
+			std::to_string(MAX_FRAMEBUFFER_HEIGHT - 1) +
+			");\n"
+			"    paletteLine = float(u_paletteIndexTable[screenLine]) / 256.0;\n"
+			"} else {\n"
+			"    paletteLine = float(u_paletteLine) / 256.0;\n"
+			"}\n";
+	}
+
 	shaderText += "void main() {\n";
 	shaderText += "vec4 finalColor;\n";
 
@@ -96,8 +114,9 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			shaderText += "vec4 base = texture2D(u_texture, o_uv);\n";
 			if (uniforms.u_palette) {
 				shaderText += "if (base.r == 0.0) discard;\n";
+				shaderText += paletteLookupText;
 				shaderText +=
-					"base = texture2D(u_paletteTexture, vec2(base.r, 0.0));\n";
+					"base = texture2D(u_paletteTexture, vec2(base.r, paletteLine));\n";
 			}
 			shaderText += "if (base.a == 0.0) discard;\n";
 			shaderText += "finalColor = base * o_color;\n";
@@ -109,8 +128,9 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			shaderText += "vec4 base = texture2D(u_texture, o_uv);\n";
 			if (uniforms.u_palette) {
 				shaderText += "if (base.r == 0.0) discard;\n";
+				shaderText += paletteLookupText;
 				shaderText +=
-					"base = texture2D(u_paletteTexture, vec2(base.r, 0.0));\n";
+					"base = texture2D(u_paletteTexture, vec2(base.r, paletteLine));\n";
 			}
 			else {
 				shaderText += "if (base.a == 0.0) discard;\n";
@@ -155,18 +175,19 @@ string GLShaderBuilder::Vertex(GLShaderLinkage& inputs,
 	std::string shaderText = "";
 
 #ifdef GL_ES
-	shaderText += "precision mediump float;\n"
+	shaderText += "precision mediump float;\n";
 #endif
 
-		AddInputsToVertexShaderText(shaderText, inputs);
+	AddInputsToVertexShaderText(shaderText, inputs);
 	AddOutputsToVertexShaderText(shaderText, outputs);
 	AddUniformsToShaderText(shaderText, uniforms);
 
 	shaderText += "void main() {\n";
+	shaderText += "mat4 modelViewMatrix = u_viewMatrix * u_modelMatrix;\n";
 	shaderText +=
-		"gl_Position = u_projectionMatrix * u_modelViewMatrix * vec4(i_position, 1.0);\n";
+		"gl_Position = u_projectionMatrix * modelViewMatrix * vec4(i_position, 1.0);\n";
 	if (outputs.link_position) {
-		shaderText += "o_position = u_modelViewMatrix * vec4(i_position, 1.0);\n";
+		shaderText += "o_position = modelViewMatrix * vec4(i_position, 1.0);\n";
 	}
 	if (outputs.link_color) {
 		shaderText += "o_color = i_color;\n";
@@ -184,10 +205,10 @@ string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
 	std::string shaderText = "";
 
 #ifdef GL_ES
-	shaderText += "precision mediump float;\n"
+	shaderText += "precision mediump float;\n";
 #endif
 
-		AddInputsToFragmentShaderText(shaderText, inputs);
+	AddInputsToFragmentShaderText(shaderText, inputs);
 	AddUniformsToShaderText(shaderText, uniforms);
 
 	shaderText += mainText;

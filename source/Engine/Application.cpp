@@ -771,7 +771,7 @@ void Application::Restart() {
 
 void Application::LoadVideoSettings() {
 	bool vsyncEnabled;
-	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
+	Application::Settings->GetBool("display", "vsync", &vsyncEnabled);
 	Application::Settings->GetInteger("display", "frameSkip", &Application::FrameSkip);
 
 	if (Application::FrameSkip > DEFAULT_MAX_FRAMESKIP) {
@@ -1974,7 +1974,9 @@ void Application::LoadSceneInfo() {
 				Scene::SetInfoFromCurrentID();
 
 				StringUtils::Copy(StartingScene,
-					SceneInfo::GetFilename(Scene::ActiveCategory, Scene::CurrentSceneInList).c_str(),
+					SceneInfo::GetFilename(
+						Scene::ActiveCategory, Scene::CurrentSceneInList)
+						.c_str(),
 					sizeof(StartingScene));
 			}
 

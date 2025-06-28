@@ -39,9 +39,11 @@ public:
 	static vector<VertexBuffer*> VertexBuffers;
 	static Scene3D Scene3Ds[MAX_3D_SCENES];
 	static stack<GraphicsState> StateStack;
-	static Matrix4x4 MatrixStack[MATRIX_STACK_SIZE];
+	static Matrix4x4 ViewMatrixStack[MATRIX_STACK_SIZE];
+	static Matrix4x4 ModelMatrixStack[MATRIX_STACK_SIZE];
 	static size_t MatrixStackID;
-	static Matrix4x4* ModelViewMatrix;
+	static Matrix4x4* ViewMatrix;
+	static Matrix4x4* ModelMatrix;
 	static Viewport CurrentViewport;
 	static Viewport BackupViewport;
 	static ClipArea CurrentClip;
@@ -56,6 +58,7 @@ public:
 	static int StencilOpFail;
 	static void* FramebufferPixels;
 	static size_t FramebufferSize;
+	static TileScanLine TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static Uint32 PaletteColors[MAX_PALETTE_COUNT][0x100];
 	static Uint8 PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 	static bool PaletteUpdated;
@@ -176,6 +179,42 @@ public:
 		float x,
 		float y,
 		float w,
+		float h,
+		int paletteID);
+	static void DrawSprite(ISprite* sprite,
+		int animation,
+		int frame,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		float rotation,
+		int paletteID);
+	static void DrawSpritePart(ISprite* sprite,
+		int animation,
+		int frame,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		float rotation,
+		int paletteID);
+	static void DrawTexture(Texture* texture,
+		float sx,
+		float sy,
+		float sw,
+		float sh,
+		float x,
+		float y,
+		float w,
 		float h);
 	static void DrawSprite(ISprite* sprite,
 		int animation,
@@ -186,32 +225,6 @@ public:
 		bool flipY,
 		float scaleW,
 		float scaleH,
-		float rotation,
-		unsigned paletteID);
-	static void DrawSpritePart(ISprite* sprite,
-		int animation,
-		int frame,
-		int sx,
-		int sy,
-		int sw,
-		int sh,
-		int x,
-		int y,
-		bool flipX,
-		bool flipY,
-		float scaleW,
-		float scaleH,
-		float rotation,
-		unsigned paletteID);
-	static void DrawSprite(ISprite* sprite,
-		int animation,
-		int frame,
-		int x,
-		int y,
-		bool flipX,
-		bool flipY,
-		float scaleW,
-		float scaleH,
 		float rotation);
 	static void DrawSpritePart(ISprite* sprite,
 		int animation,
@@ -227,9 +240,21 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation);
-	static void DrawTile(int tile, int x, int y, bool flipX, bool flipY);
+	static void
+	DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines);
+	static void DrawTilePart(int tile,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
+	static void DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer(SceneLayer* layer,
 		View* currentView,
 		int layerIndex,

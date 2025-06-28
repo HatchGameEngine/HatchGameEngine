@@ -2,8 +2,8 @@
 #define ENGINE_BYTECODE_VMTHREAD_H
 
 #include <Engine/Bytecode/Types.h>
-#include <Engine/Includes/PrintBuffer.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/Utilities/PrintBuffer.h>
 
 class VMThread {
 private:
@@ -14,12 +14,14 @@ private:
 	bool DoJumpBack(CallFrame* frame, int offset);
 	bool
 	GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
-	bool GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields);
-	bool GetProperty(Obj* object, ObjClass* klass, Uint32 hash);
+	bool GetProperty(Obj* object, Uint32 hash, ValueGetFn getter);
+	bool GetProperty(ObjClass* klass, Uint32 hash, bool checkFields);
+	bool GetProperty(ObjClass* klass, Uint32 hash);
 	bool
 	HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
-	bool HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields);
-	bool HasProperty(Obj* object, ObjClass* klass, Uint32 hash);
+	bool HasProperty(Obj* object, Uint32 hash, ValueGetFn getter);
+	bool HasProperty(ObjClass* klass, Uint32 hash, bool checkFields);
+	bool HasProperty(ObjClass* klass, Uint32 hash);
 	bool SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value);
 	bool BindMethod(VMValue receiver, VMValue method);
 	bool CallBoundMethod(ObjBoundMethod* bound, int argCount);
@@ -74,13 +76,14 @@ public:
 	void RunInstructionSet();
 	void RunValue(VMValue value, int argCount);
 	void RunFunction(ObjFunction* func, int argCount);
+	int Invoke(VMValue receiver, Uint8 argCount, Uint32 hash);
+	int SuperInvoke(VMValue receiver, ObjClass* klass, Uint8 argCount, Uint32 hash);
 	void InvokeForEntity(VMValue value, int argCount);
 	VMValue RunEntityFunction(ObjFunction* function, int argCount);
 	void CallInitializer(VMValue value);
 	bool Call(ObjFunction* function, int argCount);
 	bool InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount);
 	bool InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount);
-	bool DoSuperInvocation(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount);
 	bool Import(VMValue value);
 	bool ImportModule(VMValue value);
 	VMValue Values_Multiply();
@@ -126,7 +129,7 @@ public:
 	VM_ADD_OPFUNC(OP_CLASS);
 	VM_ADD_OPFUNC(OP_CALL);
 	VM_ADD_OPFUNC(OP_SUPER);
-	VM_ADD_OPFUNC(OP_INVOKE);
+	VM_ADD_OPFUNC(OP_INVOKE_V3);
 	VM_ADD_OPFUNC(OP_JUMP);
 	VM_ADD_OPFUNC(OP_JUMP_IF_FALSE);
 	VM_ADD_OPFUNC(OP_JUMP_BACK);
@@ -187,6 +190,8 @@ public:
 	VM_ADD_OPFUNC(OP_DEFINE_CONSTANT);
 	VM_ADD_OPFUNC(OP_INTEGER);
 	VM_ADD_OPFUNC(OP_DECIMAL);
+	VM_ADD_OPFUNC(OP_INVOKE);
+	VM_ADD_OPFUNC(OP_SUPER_INVOKE);
 #endif
 };
 

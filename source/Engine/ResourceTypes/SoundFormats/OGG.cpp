@@ -230,6 +230,33 @@ SoundFormat* OGG::Load(const char* filename) {
 
 		auto info = stb_vorbis_get_info(vorbis->VorbisSTB);
 
+		stb_vorbis_comment comment = stb_vorbis_get_comment(vorbis->VorbisSTB);
+
+		for (int i = 0; i < comment.comment_list_length; i++) {
+			const char* entry = (const char*)comment.comment_list[i];
+
+			if (StringUtils::StartsWith(entry, "LOOPPOINT=")) {
+				const char* valueStr = entry + 10;
+
+				int loopPoint = -1;
+				if (StringUtils::ToNumber(&loopPoint, valueStr) && loopPoint >= 0) {
+					ogg->LoopPoint = loopPoint;
+				}
+
+				break;
+			}
+			if (StringUtils::StartsWith(entry, "Loop Point=")) {
+				const char* valueStr = entry + 11;
+
+				int loopPoint = -1;
+				if (StringUtils::ToNumber(&loopPoint, valueStr) && loopPoint >= 0) {
+					ogg->LoopPoint = loopPoint;
+				}
+
+				break;
+			}
+		}
+
 		memset(&ogg->InputFormat, 0, sizeof(SDL_AudioSpec));
 		ogg->InputFormat.format = AUDIO_S16SYS;
 		ogg->InputFormat.channels = info.channels;
@@ -386,6 +413,7 @@ int OGG::GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex) {
 	total /= SampleSize;
 
 	SampleIndex += total;
+
 	return total;
 #endif
 	return 0;

@@ -19,11 +19,7 @@
 	ENTITY_FIELD(OnSceneLoad)\
 	ENTITY_FIELD(OnSceneRestart)\
 	ENTITY_FIELD(GameStart)\
-	ENTITY_FIELD(Dispose)\
-	ENTITY_FIELD(HitboxLeft)\
-	ENTITY_FIELD(HitboxTop)\
-	ENTITY_FIELD(HitboxRight)\
-	ENTITY_FIELD(HitboxBottom)
+	ENTITY_FIELD(Dispose)
 
 class ScriptEntity : public Entity {
 private:
@@ -31,10 +27,10 @@ private:
 
 public:
 	static bool DisableAutoAnimate;
-	ObjInstance* Instance = NULL;
+	ObjEntity* Instance = NULL;
 	HashMap<VMValue>* Properties;
 
-	void Link(ObjInstance* instance);
+	void Link(ObjEntity* entity);
 	void LinkFields();
 	void AddEntityClassMethods();
 	bool RunFunction(Uint32 hash);
@@ -62,8 +58,7 @@ public:
 	void GameStart();
 	void Remove();
 	void Dispose();
-	static bool VM_Getter(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
-	static bool VM_Setter(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
+	bool IsValid();
 	static VMValue VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Animate(int argCount, VMValue* args, Uint32 threadID);
