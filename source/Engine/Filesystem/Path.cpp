@@ -489,7 +489,7 @@ std::string Path::GetLocationFromRealPath(const char* filename, PathLocation loc
 		return "";
 	}
 
-	if (!StringUtils::StartsWith(pathFs.c_str(), locFs.c_str())) {
+	if (!StringUtils::StartsWith(pathFs.u8string(), locFs.u8string())) {
 		return "";
 	}
 
