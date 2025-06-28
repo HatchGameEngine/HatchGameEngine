@@ -13163,7 +13163,6 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 	SceneLayer* layer = &Scene::Layers[BufferedScrollSetupLayer];
 	Memory::Free(layer->ScrollInfos);
 	Memory::Free(layer->ScrollIndexes);
-	Memory::Free(layer->ScrollInfosSplitIndexes);
 
 	layer->ScrollInfoCount = (int)BufferedScrollInfos.size();
 	layer->ScrollInfos =
@@ -13179,6 +13178,7 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 		length16 = layer->WidthData * 16;
 	}
 
+	layer->UsingScrollIndexes = true;
 	layer->ScrollIndexes = (Uint8*)Memory::Calloc(length16, sizeof(Uint8));
 	memcpy(layer->ScrollIndexes, BufferedScrollLines, BufferedScrollLinesMax);
 
@@ -13210,6 +13210,7 @@ VMValue Scene_SetLayerTileDeforms(int argCount, VMValue* args, Uint32 threadID) 
 	lineIndex &= maxDeformLineMask;
 	Scene::Layers[index].DeformSetA[lineIndex] = deformA;
 	Scene::Layers[index].DeformSetB[lineIndex] = deformB;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13225,6 +13226,7 @@ VMValue Scene_SetLayerTileDeformSplitLine(int argCount, VMValue* args, Uint32 th
 	int deformPosition = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformSplitLine = deformPosition;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13243,6 +13245,7 @@ VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 thre
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformAOffset;
 	Scene::Layers[index].DeformOffsetB = deformBOffset;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13258,6 +13261,7 @@ VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 	int deformA = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformA;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13273,6 +13277,7 @@ VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 	int deformB = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformB;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13313,7 +13318,7 @@ VMValue Scene_SetTileScanline(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 	int scanlineIndex = GET_ARG(0, GetInteger);
 
-	TileScanLine* scanLine = &SoftwareRenderer::TileScanLineBuffer[scanlineIndex];
+	TileScanLine* scanLine = &Graphics::TileScanLineBuffer[scanlineIndex];
 	scanLine->SrcX = (Sint64)(GET_ARG(1, GetDecimal) * 0x10000);
 	scanLine->SrcY = (Sint64)(GET_ARG(2, GetDecimal) * 0x10000);
 	scanLine->DeltaX = (Sint64)(GET_ARG(3, GetDecimal) * 0x10000);

@@ -275,7 +275,10 @@ void UpdateObject(Entity* ent) {
 	case ACTIVE_BOUNDS:
 		ent->InRange = false;
 
-		for (int i = 0; i < Scene::ViewsActive; i++) {
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
+			}
 			if (onScreenX && onScreenY) {
 				break;
 			}
@@ -298,7 +301,10 @@ void UpdateObject(Entity* ent) {
 	case ACTIVE_XBOUNDS:
 		ent->InRange = false;
 
-		for (int i = 0; i < Scene::ViewsActive; i++) {
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
+			}
 			if (onScreenX) {
 				break;
 			}
@@ -315,7 +321,10 @@ void UpdateObject(Entity* ent) {
 	case ACTIVE_YBOUNDS:
 		ent->InRange = false;
 
-		for (int i = 0; i < Scene::ViewsActive; i++) {
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
+			}
 			if (onScreenY) {
 				break;
 			}
@@ -333,7 +342,10 @@ void UpdateObject(Entity* ent) {
 		ent->InRange = false;
 
 		// TODO: Double check this works properly
-		for (int v = 0; v < Scene::ViewsActive; v++) {
+		for (int v = 0; v < MAX_SCENE_VIEWS; v++) {
+			if (!Scene::Views[v].Active) {
+				continue;
+			}
 			float sx = abs(ent->X - Scene::Views[v].X);
 			float sy = abs(ent->Y - Scene::Views[v].Y);
 
@@ -662,7 +674,7 @@ void Scene::Init() {
 			Scene::Views[i].Height);
 		Scene::Views[i].UseDrawTarget = true;
 		Scene::Views[i].ProjectionMatrix = Matrix4x4::Create();
-		Scene::Views[i].BaseProjectionMatrix = Matrix4x4::Create();
+		Scene::Views[i].ViewMatrix = Matrix4x4::Create();
 	}
 	Scene::Views[0].Active = true;
 	Scene::ViewsActive = 1;
@@ -938,67 +950,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	// Adjust projection
 	PERF_START(ProjectionSetupTime);
-	if (currentView->UsePerspective) {
-		Graphics::UpdatePerspective(currentView->FOV,
-			currentView->Width / currentView->Height,
-			currentView->NearPlane,
-			currentView->FarPlane);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateX,
-			1.0,
-			0.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateY,
-			0.0,
-			1.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateZ,
-			0.0,
-			0.0,
-			1.0);
-		Matrix4x4::Translate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			-currentView->X,
-			-currentView->Y,
-			-currentView->Z);
-		Matrix4x4::Copy(currentView->BaseProjectionMatrix, currentView->ProjectionMatrix);
-	}
-	else {
-		Graphics::UpdateOrtho(currentView->Width, currentView->Height);
-		if (!currentView->UseDrawTarget) {
-			Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
-		}
-
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateX,
-			1.0,
-			0.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateY,
-			0.0,
-			1.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateZ,
-			0.0,
-			0.0,
-			1.0);
-		Matrix4x4::Translate(currentView->ProjectionMatrix,
-			currentView->BaseProjectionMatrix,
-			-cx,
-			-cy,
-			-cz);
-	}
-	Graphics::UpdateProjectionMatrix();
+	SetupViewMatrices(currentView);
 	PERF_END(ProjectionSetupTime);
 
 	// RenderEarly
@@ -1175,9 +1127,6 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			if (layer->Visible) {
 				PERF_START(LayerTileRenderTime[li]);
 
-				Graphics::Save();
-				Graphics::Translate(cx, cy, cz);
-
 				Graphics::TextureBlend = layer->Blending;
 				if (Graphics::TextureBlend) {
 					Graphics::SetBlendColor(1.0, 1.0, 1.0, layer->Opacity);
@@ -1189,8 +1138,6 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 				Graphics::DrawSceneLayer(layer, currentView, (int)li, true);
 				Graphics::ClearClip();
-
-				Graphics::Restore();
 
 				PERF_END(LayerTileRenderTime[li]);
 			}
@@ -1227,6 +1174,101 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	PERF_END(RenderFinishTime);
 }
 
+void Scene::SetupViewMatrices(View* currentView) {
+	Matrix4x4::Identity(currentView->ViewMatrix);
+
+	if (currentView->UsePerspective) {
+		Scene::SetupView3D(currentView);
+	}
+	else {
+		Scene::SetupView2D(currentView);
+	}
+
+	Matrix4x4::Copy(Graphics::ViewMatrix, currentView->ViewMatrix);
+
+	Graphics::UpdateProjectionMatrix();
+}
+
+void Scene::SetupView2D(View* currentView) {
+	Graphics::UpdateOrtho(currentView->Width, currentView->Height);
+	if (!currentView->UseDrawTarget) {
+		Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
+	}
+
+	// Rotate
+	if (currentView->RotateX || currentView->RotateY || currentView->RotateZ) {
+		Matrix4x4::Translate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->Width / 2.0,
+			currentView->Height / 2.0,
+			0.0);
+		Matrix4x4::Rotate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->RotateX,
+			1.0,
+			0.0,
+			0.0);
+		Matrix4x4::Rotate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->RotateY,
+			0.0,
+			1.0,
+			0.0);
+		Matrix4x4::Rotate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->RotateZ,
+			0.0,
+			0.0,
+			1.0);
+		Matrix4x4::Translate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			-currentView->Width / 2.0,
+			-currentView->Height / 2.0,
+			0.0);
+	}
+
+	// Translate
+	float cx = std::floor(currentView->X);
+	float cy = std::floor(currentView->Y);
+	float cz = std::floor(currentView->Z);
+
+	Matrix4x4::Translate(currentView->ViewMatrix, currentView->ViewMatrix, -cx, -cy, -cz);
+}
+
+void Scene::SetupView3D(View* currentView) {
+	Graphics::UpdatePerspective(currentView->FOV,
+		currentView->Width / currentView->Height,
+		currentView->NearPlane,
+		currentView->FarPlane);
+
+	// Rotate
+	Matrix4x4::Rotate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		currentView->RotateX,
+		1.0,
+		0.0,
+		0.0);
+	Matrix4x4::Rotate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		currentView->RotateY,
+		0.0,
+		1.0,
+		0.0);
+	Matrix4x4::Rotate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		currentView->RotateZ,
+		0.0,
+		0.0,
+		1.0);
+
+	// Translate
+	Matrix4x4::Translate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		-currentView->X,
+		-currentView->Y,
+		-currentView->Z);
+}
+
 void Scene::Render() {
 	if (!Scene::PriorityLists) {
 		return;
@@ -1260,6 +1302,7 @@ void Scene::Render() {
 		if (currentView->UseDrawTarget && currentView->DrawTarget) {
 			Graphics::SetRenderTarget(NULL);
 			if (currentView->Visible) {
+				Matrix4x4::Identity(Graphics::ViewMatrix);
 				Graphics::UpdateOrthoFlipped(win_w, win_h);
 				Graphics::UpdateProjectionMatrix();
 				Graphics::SetDepthTesting(false);
@@ -1344,6 +1387,8 @@ void Scene::Render() {
 		viewPerf->RenderFinishTime += renderFinishTime;
 		PERF_END(RenderTime);
 	}
+
+	Matrix4x4::Identity(Graphics::ViewMatrix);
 
 	Graphics::CurrentView = NULL;
 
@@ -3011,9 +3056,9 @@ void Scene::Dispose() {
 			Scene::Views[i].ProjectionMatrix = NULL;
 		}
 
-		if (Scene::Views[i].BaseProjectionMatrix) {
-			delete Scene::Views[i].BaseProjectionMatrix;
-			Scene::Views[i].BaseProjectionMatrix = NULL;
+		if (Scene::Views[i].ViewMatrix) {
+			delete Scene::Views[i].ViewMatrix;
+			Scene::Views[i].ViewMatrix = NULL;
 		}
 
 		if (Scene::Views[i].UseStencil) {

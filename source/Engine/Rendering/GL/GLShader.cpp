@@ -130,7 +130,8 @@ void GLShader::AttachAndLink() {
 	}
 
 	LocProjectionMatrix = GetUniformLocation("u_projectionMatrix");
-	LocModelViewMatrix = GetUniformLocation("u_modelViewMatrix");
+	LocViewMatrix = GetUniformLocation("u_viewMatrix");
+	LocModelMatrix = GetUniformLocation("u_modelMatrix");
 
 	LocPosition = GetAttribLocation("i_position");
 	LocTexCoord = GetAttribLocation("i_uv");
@@ -144,6 +145,8 @@ void GLShader::AttachAndLink() {
 	LocTextureU = GetUniformLocation("u_textureU");
 	LocTextureV = GetUniformLocation("u_textureV");
 	LocPalette = GetUniformLocation("u_paletteTexture");
+	LocPaletteLine = GetUniformLocation("u_paletteLine");
+	LocPaletteIndexTable = GetUniformLocation("u_paletteIndexTable");
 
 	LocFogColor = GetUniformLocation("u_fogColor");
 	LocFogLinearStart = GetUniformLocation("u_fogLinearStart");
@@ -213,8 +216,11 @@ GLShader::~GLShader() {
 	if (CachedProjectionMatrix) {
 		delete CachedProjectionMatrix;
 	}
-	if (CachedModelViewMatrix) {
-		delete CachedModelViewMatrix;
+	if (CachedViewMatrix) {
+		delete CachedViewMatrix;
+	}
+	if (CachedModelMatrix) {
+		delete CachedModelMatrix;
 	}
 	if (VertexProgramID) {
 		glDeleteShader(VertexProgramID);

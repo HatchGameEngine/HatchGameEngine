@@ -46,7 +46,7 @@ jobs:
 
     - name: Setup libraries
       if: startsWith(matrix.os, 'ubuntu')
-      run: sudo apt-get install libsdl2-dev libassimp5 libglew2.2 libglew-dev
+      run: sudo apt-get update && sudo apt-get install -y libsdl2-dev libassimp5 libglew2.2 libglew-dev
 
     - name: Configure CMake
       run: >

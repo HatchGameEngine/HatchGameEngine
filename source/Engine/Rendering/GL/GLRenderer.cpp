@@ -36,6 +36,8 @@ GLuint GLRenderer::BufferCircleFill;
 GLuint GLRenderer::BufferCircleStroke;
 GLuint GLRenderer::BufferSquareFill;
 
+GLint GL_PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
+
 bool UseDepthTesting = true;
 float RetinaScale = 1.0;
 Texture* GL_LastTexture = nullptr;
@@ -285,9 +287,10 @@ void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 	}
 	GL_LastTexture = texture;
 }
-void GL_PreparePaletteShader() {
+void GL_PreparePaletteShader(int paletteID = 0) {
 	glActiveTexture(GL_ActiveTexture = GL_TEXTURE1);
 	glUniform1i(GLRenderer::CurrentShader->LocPalette, 1);
+	glUniform1i(GLRenderer::CurrentShader->LocPaletteLine, paletteID);
 
 	if (Graphics::PaletteTexture && Graphics::PaletteTexture->DriverData) {
 		GL_TextureData* paletteTexture =
@@ -300,7 +303,7 @@ void GL_PreparePaletteShader() {
 
 	glActiveTexture(GL_ActiveTexture = GL_TEXTURE0);
 }
-void GL_SetTexture(Texture* texture) {
+void GL_SetTexture(Texture* texture, int paletteID = 0) {
 	// Use appropriate shader if changed
 	if (texture) {
 		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
@@ -322,7 +325,7 @@ void GL_SetTexture(Texture* texture) {
 		else {
 			if (texture->Paletted && Graphics::UsePalettes) {
 				GLRenderer::UseShader(GLRenderer::ShaderShape->Get(true, true));
-				GL_PreparePaletteShader();
+				GL_PreparePaletteShader(paletteID);
 			}
 			else {
 				GLRenderer::UseShader(GLRenderer::ShaderShape->Get(true));
@@ -364,22 +367,36 @@ void GL_SetProjectionMatrix(Matrix4x4* projMat) {
 			GLRenderer::CurrentShader->CachedProjectionMatrix->Values);
 	}
 }
-void GL_SetModelViewMatrix(Matrix4x4* modelViewMatrix) {
-	if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedModelViewMatrix, modelViewMatrix)) {
-		if (!GLRenderer::CurrentShader->CachedModelViewMatrix) {
-			GLRenderer::CurrentShader->CachedModelViewMatrix = Matrix4x4::Create();
+void GL_SetViewMatrix(Matrix4x4* viewMatrix) {
+	if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedViewMatrix, viewMatrix)) {
+		if (!GLRenderer::CurrentShader->CachedViewMatrix) {
+			GLRenderer::CurrentShader->CachedViewMatrix = Matrix4x4::Create();
 		}
 
-		Matrix4x4::Copy(GLRenderer::CurrentShader->CachedModelViewMatrix, modelViewMatrix);
+		Matrix4x4::Copy(GLRenderer::CurrentShader->CachedViewMatrix, viewMatrix);
 
-		glUniformMatrix4fv(GLRenderer::CurrentShader->LocModelViewMatrix,
+		glUniformMatrix4fv(GLRenderer::CurrentShader->LocViewMatrix,
 			1,
 			false,
-			GLRenderer::CurrentShader->CachedModelViewMatrix->Values);
+			GLRenderer::CurrentShader->CachedViewMatrix->Values);
 	}
 }
-void GL_Predraw(Texture* texture) {
-	GL_SetTexture(texture);
+void GL_SetModelMatrix(Matrix4x4* modelMatrix) {
+	if (!Matrix4x4::Equals(GLRenderer::CurrentShader->CachedModelMatrix, modelMatrix)) {
+		if (!GLRenderer::CurrentShader->CachedModelMatrix) {
+			GLRenderer::CurrentShader->CachedModelMatrix = Matrix4x4::Create();
+		}
+
+		Matrix4x4::Copy(GLRenderer::CurrentShader->CachedModelMatrix, modelMatrix);
+
+		glUniformMatrix4fv(GLRenderer::CurrentShader->LocModelMatrix,
+			1,
+			false,
+			GLRenderer::CurrentShader->CachedModelMatrix->Values);
+	}
+}
+void GL_Predraw(Texture* texture, int paletteID = 0) {
+	GL_SetTexture(texture, paletteID);
 
 	// Update color if needed
 	if (memcmp(&GLRenderer::CurrentShader->CachedBlendColors[0],
@@ -398,10 +415,15 @@ void GL_Predraw(Texture* texture) {
 
 	// Update matrices
 	GL_SetProjectionMatrix(Scene::Views[Scene::ViewCurrent].ProjectionMatrix);
-	GL_SetModelViewMatrix(Graphics::ModelViewMatrix);
+	GL_SetViewMatrix(Graphics::ViewMatrix);
+	GL_SetModelMatrix(Graphics::ModelMatrix);
 }
-void GL_DrawTextureBuffered(Texture* texture, GLuint buffer, int offset, int flip) {
-	GL_Predraw(texture);
+void GL_DrawTextureBuffered(Texture* texture,
+	GLuint buffer,
+	int offset,
+	int flip,
+	int paletteID = 0) {
+	GL_Predraw(texture, paletteID);
 
 	if (!Graphics::TextureBlend) {
 		GLRenderer::CurrentShader->CachedBlendColors[0] =
@@ -436,8 +458,9 @@ void GL_DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
-	GL_Predraw(texture);
+	float h,
+	int paletteID = 0) {
+	GL_Predraw(texture, paletteID);
 
 	if (!Graphics::TextureBlend) {
 		GLRenderer::CurrentShader->CachedBlendColors[0] =
@@ -899,13 +922,15 @@ void GL_SetState(GL_State& state,
 	GL_VertexBuffer* driverData,
 	Matrix4x4* projMat,
 	Matrix4x4* viewMat,
+	Matrix4x4* modelMat,
 	GL_State* lastState = NULL) {
 	bool changeShader = false;
 	if (GLRenderer::CurrentShader != state.Shader) {
 		GLRenderer::UseShader(state.Shader);
 		changeShader = true;
 		GL_SetProjectionMatrix(projMat);
-		GL_SetModelViewMatrix(viewMat);
+		GL_SetViewMatrix(viewMat);
+		GL_SetModelMatrix(modelMat);
 	}
 
 	GLShader* shader = GLRenderer::CurrentShader;
@@ -1821,26 +1846,20 @@ void GLRenderer::UpdateClipRect() {
 	}
 }
 void GLRenderer::UpdateOrtho(float left, float top, float right, float bottom) {
-	// if (Graphics::CurrentRenderTarget)
-	//     Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix,
-	//     left, right, bottom, top, -500.0f, 500.0f);
-	// else
-	Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix,
+	Matrix4x4::Ortho(Scene::Views[Scene::ViewCurrent].ProjectionMatrix,
 		left,
 		right,
 		top,
 		bottom,
 		-500.0f,
 		500.0f);
-
-	Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix,
-		Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
 }
 void GLRenderer::UpdatePerspective(float fovy, float aspect, float nearv, float farv) {
-	MakePerspectiveMatrix(
-		Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix, fovy, nearv, farv, aspect);
-	Matrix4x4::Copy(Scene::Views[Scene::ViewCurrent].ProjectionMatrix,
-		Scene::Views[Scene::ViewCurrent].BaseProjectionMatrix);
+	Matrix4x4* matrix = Scene::Views[Scene::ViewCurrent].ProjectionMatrix;
+
+	MakePerspectiveMatrix(matrix, fovy, nearv, farv, aspect);
+
+	matrix->Values[5] *= -1.0f;
 }
 void GLRenderer::UpdateProjectionMatrix() {}
 void GLRenderer::MakePerspectiveMatrix(Matrix4x4* out,
@@ -1875,8 +1894,10 @@ void GLRenderer::MakePerspectiveMatrix(Matrix4x4* out,
 }
 
 // Shader-related functions
-void GLRenderer::UseShader(void* shader) {
-	if (GLRenderer::CurrentShader != (GLShader*)shader) {
+void GLRenderer::UseShader(void* shaderPtr) {
+	GLShader* shader = (GLShader*)shaderPtr;
+
+	if (GLRenderer::CurrentShader != shader) {
 		if (GLRenderer::CurrentShader) {
 			if (GLRenderer::CurrentShader->LocPosition != -1) {
 				glDisableVertexAttribArray(GLRenderer::CurrentShader->LocPosition);
@@ -1890,24 +1911,38 @@ void GLRenderer::UseShader(void* shader) {
 			}
 		}
 
-		GLRenderer::CurrentShader = (GLShader*)shader;
+		GLRenderer::CurrentShader = shader;
+		shader->Use();
 
-		GLRenderer::CurrentShader->Use();
+		if (shader->LocPosition != -1) {
+			glEnableVertexAttribArray(shader->LocPosition);
+		}
+		if (shader->LocTexCoord != -1) {
+			glEnableVertexAttribArray(shader->LocTexCoord);
+		}
+		if (shader->LocVaryingColor != -1) {
+			glEnableVertexAttribArray(shader->LocVaryingColor);
+		}
 
-		if (GLRenderer::CurrentShader->LocPosition != -1) {
-			glEnableVertexAttribArray(GLRenderer::CurrentShader->LocPosition);
-		}
-		if (GLRenderer::CurrentShader->LocTexCoord != -1) {
-			glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
-		}
-		if (GLRenderer::CurrentShader->LocVaryingColor != -1) {
-			glEnableVertexAttribArray(GLRenderer::CurrentShader->LocVaryingColor);
+		if (shader->LocPaletteIndexTable != -1) {
+			unsigned maxHeight = MAX_FRAMEBUFFER_HEIGHT;
+			if (Graphics::CurrentView != nullptr) {
+				maxHeight = Graphics::CurrentView->Height;
+			}
+
+			for (unsigned i = 0; i < maxHeight; i++) {
+				GL_PaletteIndexLines[i] = Graphics::PaletteIndexLines[i];
+			}
+
+			glUniform1iv(shader->LocPaletteIndexTable,
+				MAX_FRAMEBUFFER_HEIGHT,
+				GL_PaletteIndexLines);
 		}
 
 		if (GL_ActiveTexture != GL_TEXTURE0) {
 			glActiveTexture(GL_ActiveTexture = GL_TEXTURE0);
 		}
-		glUniform1i(GLRenderer::CurrentShader->LocTexture, 0);
+		glUniform1i(shader->LocTexture, 0);
 	}
 }
 void GLRenderer::SetUniformF(int location, int count, float* values) {
@@ -2162,12 +2197,13 @@ void GLRenderer::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
+	float h,
+	int paletteID) {
 	x *= RetinaScale;
 	y *= RetinaScale;
 	w *= RetinaScale;
 	h *= RetinaScale;
-	GL_DrawTexture(texture, sx, sy, sw, sh, x, y, w, h);
+	GL_DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
 }
 void GLRenderer::DrawSprite(ISprite* sprite,
 	int animation,
@@ -2179,32 +2215,22 @@ void GLRenderer::DrawSprite(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
 
-	// /*
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 	Graphics::Save();
-	// Graphics::Rotate(0.0f, 0.0f, rotation);
 	Graphics::Translate(x, y, 0.0f);
+	Graphics::Rotate(0.0f, 0.0f, rotation);
+	Graphics::Scale(scaleW, scaleH, 0.0f);
 	GL_DrawTextureBuffered(sprite->Spritesheets[animframe.SheetNumber],
 		sprite->ID,
 		animframe.BufferOffset,
-		((int)flipY << 1) | (int)flipX);
+		((int)flipY << 1) | (int)flipX,
+		paletteID);
 	Graphics::Restore();
-	//*/
-
-	// AnimFrame animframe =
-	// sprite->Animations[animation].Frames[frame]; float fX =
-	// flipX ? -1.0 : 1.0; float fY = flipY ? -1.0 : 1.0; float sw
-	// = animframe.Width; float sh  = animframe.Height;
-	//
-	// GLRenderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
-	//     animframe.X, animframe.Y, sw, sh,
-	//     x + fX * animframe.OffsetX,
-	//     y + fY * animframe.OffsetY, fX * sw, fY * sh);
 }
 void GLRenderer::DrawSpritePart(ISprite* sprite,
 	int animation,
@@ -2220,7 +2246,7 @@ void GLRenderer::DrawSpritePart(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -2242,15 +2268,23 @@ void GLRenderer::DrawSpritePart(ISprite* sprite,
 		sh = animframe.Height - sy;
 	}
 
+	Graphics::Save();
+	Graphics::Translate(x, y, 0.0f);
+	Graphics::Rotate(0.0f, 0.0f, rotation);
+	Graphics::Scale(scaleW, scaleH, 0.0f);
+
 	GLRenderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
 		animframe.X + sx,
 		animframe.Y + sy,
 		sw,
 		sh,
-		x + fX * (sx + animframe.OffsetX),
-		y + fY * (sy + animframe.OffsetY),
+		fX * (sx + animframe.OffsetX),
+		fY * (sy + animframe.OffsetY),
 		fX * sw,
-		fY * sh);
+		fY * sh,
+		paletteID);
+
+	Graphics::Restore();
 }
 // 3D drawing functions
 void GLRenderer::DrawPolygon3D(void* data,
@@ -2390,13 +2424,16 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 
 	Matrix4x4 projMat = scene->ProjectionMatrix;
 	Matrix4x4 viewMat = scene->ViewMatrix;
+	Matrix4x4 modelMat;
 
-	Matrix4x4* out = Graphics::ModelViewMatrix;
+	Matrix4x4* out = Graphics::ModelMatrix;
 	float cx = (float)(out->Values[12] - currentView->X) / currentView->Width;
 	float cy = (float)(out->Values[13] - currentView->Y) / currentView->Height;
 
 	Matrix4x4 identity;
 	Matrix4x4::Identity(&identity);
+	modelMat = identity;
+
 	Matrix4x4::Translate(&identity, &identity, cx, cy, 0.0f);
 	if (currentView->UseDrawTarget) {
 		Matrix4x4::Scale(&identity, &identity, 1.0f, -1.0f, 1.0f);
@@ -2409,7 +2446,8 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	// Prepare the shader now
 	GLRenderer::UseShader(GLRenderer::ShaderShape3D->Get(true));
 	GL_SetProjectionMatrix(&projMat);
-	GL_SetModelViewMatrix(&viewMat);
+	GL_SetViewMatrix(&viewMat);
+	GL_SetModelMatrix(&modelMat);
 
 	// Begin drawing
 	GL_State state = {0};
@@ -2426,7 +2464,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	// Draw it all in one go if we can
 	if (useBatching && driverData->UseVertexIndices) {
 		GL_UpdateStateFromFace(state, (*driverData->Faces)[0], scene, cullWindingOrder);
-		GL_SetState(state, driverData, &projMat, &viewMat);
+		GL_SetState(state, driverData, &projMat, &viewMat, &modelMat);
 		PERF_STATE_CHANGE(perf);
 
 		size_t numBatches = driverData->VertexIndexList.size();
@@ -2457,7 +2495,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 			// face
 			if (f == 0) {
 				memcpy(&lastState, &state, sizeof(GL_State));
-				GL_SetState(state, driverData, &projMat, &viewMat);
+				GL_SetState(state, driverData, &projMat, &viewMat, &modelMat);
 				PERF_STATE_CHANGE(perf);
 			}
 			else if (memcmp(&lastState, &state, sizeof(GL_State))) {
@@ -2483,6 +2521,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 							driverData,
 							&projMat,
 							&viewMat,
+							&modelMat,
 							lastStateCMP.VertexAtrribs == NULL
 								? NULL
 								: &lastStateCMP);
@@ -2522,6 +2561,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 						driverData,
 						&projMat,
 						&viewMat,
+						&modelMat,
 						lastStateCMP.VertexAtrribs == NULL ? NULL
 										   : &lastStateCMP);
 					PERF_STATE_CHANGE(perf);
@@ -2560,6 +2600,7 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 					driverData,
 					&projMat,
 					&viewMat,
+					&modelMat,
 					lastStateCMP.VertexAtrribs == NULL ? NULL : &lastStateCMP);
 				PERF_STATE_CHANGE(perf);
 			}

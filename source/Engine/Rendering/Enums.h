@@ -54,8 +54,7 @@ enum {
 enum {
 	DrawBehavior_HorizontalParallax = 0,
 	DrawBehavior_VerticalParallax = 1,
-	DrawBehavior_CustomTileScanLines = 2,
-	DrawBehavior_PGZ1_BG = 3,
+	DrawBehavior_CustomTileScanLines = 2
 };
 
 enum {
