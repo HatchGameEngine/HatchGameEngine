@@ -48,6 +48,7 @@ CPPFILES := \
 	source/Engine/Bytecode/TypeImpl/FunctionImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MapImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MaterialImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/ResourceImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
 	source/Engine/Bytecode/Types.cpp \
 	source/Engine/Bytecode/Value.cpp \
@@ -147,6 +148,7 @@ CPPFILES := \
 	source/Engine/ResourceTypes/ModelFormats/Importer.cpp \
 	source/Engine/ResourceTypes/ModelFormats/MD3Model.cpp \
 	source/Engine/ResourceTypes/ModelFormats/RSDKModel.cpp \
+	source/Engine/ResourceTypes/Resource.cpp \
 	source/Engine/ResourceTypes/ResourceManager.cpp \
 	source/Engine/ResourceTypes/SceneFormats/HatchSceneReader.cpp \
 	source/Engine/ResourceTypes/SceneFormats/RSDKSceneReader.cpp \
@@ -221,6 +223,7 @@ PRVHFILES := \
 	source/Engine/Rendering/SDL2/SDL2MetalFunc.h \
 	source/Engine/Rendering/Software/Contour.h \
 	source/Engine/Rendering/Software/SoftwareEnums.h \
+	source/Engine/ResourceTypes/Resource.h \
 	source/Engine/ResourceTypes/ResourceType.h \
 	source/Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h \
 	source/Engine/Scene/SceneConfig.h \
@@ -268,6 +271,7 @@ PUBHFILES := \
 	include/Engine/Bytecode/TypeImpl/FunctionImpl.h \
 	include/Engine/Bytecode/TypeImpl/MapImpl.h \
 	include/Engine/Bytecode/TypeImpl/MaterialImpl.h \
+	include/Engine/Bytecode/TypeImpl/ResourceImpl.h \
 	include/Engine/Bytecode/TypeImpl/StringImpl.h \
 	include/Engine/Bytecode/Value.h \
 	include/Engine/Bytecode/ValuePrinter.h \

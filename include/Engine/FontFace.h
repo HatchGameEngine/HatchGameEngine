@@ -10,6 +10,7 @@
 class FontFace {
 public:
 	static ISprite* SpriteFromFont(Stream* stream, int pixelSize, const char* filename);
+	static ISprite* SpriteFromFont(const char* filename, int pixelSize);
 };
 
 #endif /* ENGINE_FONTFACE_H */

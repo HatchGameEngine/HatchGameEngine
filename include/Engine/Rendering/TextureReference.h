@@ -10,8 +10,8 @@ public:
 	unsigned References;
 
 	TextureReference(Texture* ptr);
-	void AddRef();
-	bool TakeRef();
+	void TakeRef();
+	bool ReleaseRef();
 };
 
 #endif /* ENGINE_RENDERING_TEXTUREREFERENCE_H */

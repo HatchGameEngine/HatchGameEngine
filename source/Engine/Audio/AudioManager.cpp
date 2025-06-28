@@ -319,7 +319,7 @@ void AudioManager::PushMusicAt(ISound* music,
 	float speed,
 	float volume,
 	double fadeInAfterFinished) {
-	if (music->LoadFailed) {
+	if (!music->IsLoaded()) {
 		return;
 	}
 
@@ -557,6 +557,11 @@ void AudioManager::AudioStopAll() {
 		SoundArray[i].Stopped = true;
 	}
 	AudioManager::Unlock();
+}
+
+void AudioManager::Unload(ISound* audio) {
+	RemoveMusic(audio);
+	AudioRemove(audio);
 }
 
 bool AudioManager::IsOriginPlaying(void* origin, ISound* audio) {

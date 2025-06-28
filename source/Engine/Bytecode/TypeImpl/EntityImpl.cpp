@@ -8,6 +8,7 @@
 
 ObjClass* EntityImpl::Class = nullptr;
 
+Uint32 Hash_Sprite = 0;
 Uint32 Hash_HitboxLeft = 0;
 Uint32 Hash_HitboxTop = 0;
 Uint32 Hash_HitboxRight = 0;
@@ -16,6 +17,7 @@ Uint32 Hash_HitboxBottom = 0;
 void EntityImpl::Init() {
 	Class = NewClass(CLASS_ENTITY);
 
+	Hash_Sprite = Murmur::EncryptString("Sprite");
 	Hash_HitboxLeft = Murmur::EncryptString("HitboxLeft");
 	Hash_HitboxTop = Murmur::EncryptString("HitboxTop");
 	Hash_HitboxRight = Murmur::EncryptString("HitboxRight");
@@ -38,7 +40,18 @@ bool EntityImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 	ObjEntity* objEntity = (ObjEntity*)object;
 	Entity* entity = (Entity*)objEntity->EntityPtr;
 
-	if (hash == Hash_HitboxLeft) {
+	if (hash == Hash_Sprite) {
+		if (result) {
+			if (entity->Sprite) {
+				*result = OBJECT_VAL(entity->Sprite->GetVMObject());
+			}
+			else {
+				*result = NULL_VAL;
+			}
+		}
+		return true;
+	}
+	else if (hash == Hash_HitboxLeft) {
 		if (result) {
 			*result = DECIMAL_VAL(entity->Hitbox.GetLeft());
 		}
@@ -69,7 +82,20 @@ bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 	ObjEntity* objEntity = (ObjEntity*)object;
 	Entity* entity = (Entity*)objEntity->EntityPtr;
 
-	if (hash == Hash_HitboxLeft) {
+	if (hash == Hash_Sprite) {
+		if (IS_NULL(value)) {
+			entity->SetSprite(nullptr);
+			return true;
+		}
+
+		void* resourceable = StandardLibrary::GetResourceable(RESOURCE_SPRITE, value, threadID);
+		ISprite* sprite = (ISprite *)resourceable;
+
+		entity->SetSprite(sprite);
+
+		return true;
+	}
+	else if (hash == Hash_HitboxLeft) {
 		if (ScriptManager::DoDecimalConversion(value, threadID)) {
 			entity->Hitbox.SetLeft(AS_DECIMAL(value));
 		}

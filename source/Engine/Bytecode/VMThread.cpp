@@ -3365,6 +3365,10 @@ static const char* GetTypeOfValue(VMValue value) {
 			return "enum";
 		case OBJ_MODULE:
 			return "module";
+		case OBJ_RESOURCE:
+			return "resource";
+		case OBJ_RESOURCEABLE:
+			return "resourceable";
 		default:
 			if (IS_INSTANCEABLE(value)) {
 				return "instance";

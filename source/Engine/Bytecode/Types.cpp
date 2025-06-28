@@ -9,7 +9,8 @@
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
-#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceableImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
@@ -114,9 +115,9 @@ ObjClass* NewClass(Uint32 hash) {
 	klass->Type = CLASS_TYPE_NORMAL;
 	return klass;
 }
-ObjClass* NewClass(const char* className) {
-	ObjClass* klass = NewClass(GetClassHash(className));
-	klass->Name = CopyString(className);
+ObjClass* NewClass(const char* name) {
+	ObjClass* klass = NewClass(GetClassHash(name));
+	klass->Name = CopyString(name);
 	return klass;
 }
 ObjInstance* NewInstance(ObjClass* klass) {
