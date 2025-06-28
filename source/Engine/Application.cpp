@@ -9,8 +9,8 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
-#include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Directory.h>
+#include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
@@ -62,7 +62,7 @@ Platforms Application::Platform = Platforms::iOS;
 Platforms Application::Platform = Platforms::Unknown;
 #endif
 
-vector<char*> Application::CmdLineArgs;
+vector<std::string> Application::CmdLineArgs;
 
 INI* Application::Settings = NULL;
 char Application::SettingsFile[MAX_PATH_LENGTH];
@@ -109,6 +109,8 @@ bool Application::AllowCmdLineSceneLoad = false;
 
 char StartingScene[MAX_RESOURCE_PATH_LENGTH];
 char NextGame[MAX_PATH_LENGTH];
+char NextGameStartingScene[MAX_RESOURCE_PATH_LENGTH];
+std::vector<std::string>* NextGameCmdLineArgs;
 char LogFilename[MAX_PATH_LENGTH];
 
 bool UseMemoryFileCache = false;
@@ -178,7 +180,7 @@ void Application::Init(int argc, char* args[]) {
 	Application::SetTargetFrameRate(DEFAULT_TARGET_FRAMERATE);
 
 	for (int i = 1; i < argc; i++) {
-		Application::CmdLineArgs.push_back(StringUtils::Duplicate(args[i]));
+		Application::CmdLineArgs.push_back(std::string(args[i]));
 	}
 
 	// Initialize a few needed subsystems
@@ -799,13 +801,28 @@ void Application::Restart() {
 }
 
 bool Application::ChangeGame(const char* path) {
+	char startingScene[MAX_PATH_LENGTH];
 	char lastSettingsPath[MAX_PATH_LENGTH];
 	char currentSettingsPath[MAX_PATH_LENGTH];
+
 	Path::FromURL(SettingsFile, lastSettingsPath, sizeof lastSettingsPath);
+
+	if (NextGameStartingScene[0] != '\0') {
+		StringUtils::Copy(startingScene, NextGameStartingScene, sizeof startingScene);
+		NextGameStartingScene[0] = '\0';
+	}
+	else {
+		startingScene[0] = '\0';
+	}
 
 	Application::UnloadGame();
 
 	if (!ResourceManager::Init(path)) {
+		if (NextGameCmdLineArgs) {
+			delete NextGameCmdLineArgs;
+			NextGameCmdLineArgs = nullptr;
+		}
+
 		return false;
 	}
 
@@ -835,23 +852,36 @@ bool Application::ChangeGame(const char* path) {
 
 	SourceFileMap::AllowCompilation = false;
 
-	Application::StartGame(StartingScene);
+	if (startingScene[0] == '\0') {
+		StringUtils::Copy(startingScene, StartingScene, sizeof startingScene);
+	}
+
+	if (NextGameCmdLineArgs) {
+		Application::CmdLineArgs.clear();
+		for (size_t i = 0, iSz = NextGameCmdLineArgs->size(); i < iSz; i++) {
+			Application::CmdLineArgs.push_back((*NextGameCmdLineArgs)[i]);
+		}
+
+		delete NextGameCmdLineArgs;
+		NextGameCmdLineArgs = nullptr;
+	}
+
+	Application::StartGame(startingScene);
 	Application::UpdateWindowTitle();
 
 	return true;
 }
 
-bool Application::SetNextGame(const char* path) {
+bool Application::SetNextGame(const char* path,
+	const char* startingScene,
+	std::vector<std::string>* cmdLineArgs) {
 	bool exists = false;
 
 	std::string resolved = "";
 	PathLocation location;
 
-	if (Path::FromURL(path, resolved, location, false)) {
-		if (location != PathLocation::GAME && location != PathLocation::USER) {
-			return false;
-		}
-
+	if (Path::FromURL(path, resolved, location, false) &&
+		(location == PathLocation::GAME || location == PathLocation::USER)) {
 		if (path[strlen(path) - 1] == '/') {
 			exists = Directory::Exists(resolved.c_str());
 		}
@@ -863,8 +893,17 @@ bool Application::SetNextGame(const char* path) {
 	if (exists) {
 		StringUtils::Copy(NextGame, resolved.c_str(), sizeof NextGame);
 
+		if (startingScene != nullptr) {
+			StringUtils::Copy(
+				NextGameStartingScene, startingScene, sizeof NextGameStartingScene);
+		}
+
+		NextGameCmdLineArgs = cmdLineArgs;
+
 		return true;
 	}
+
+	Log::Print(Log::LOG_ERROR, "Path \"%s\" is not valid!", path);
 
 	return false;
 }
@@ -1708,10 +1747,12 @@ void Application::Cleanup() {
 
 	Graphics::Dispose();
 
-	for (size_t i = 0; i < Application::CmdLineArgs.size(); i++) {
-		Memory::Free(Application::CmdLineArgs[i]);
-	}
 	Application::CmdLineArgs.clear();
+
+	if (NextGameCmdLineArgs) {
+		delete NextGameCmdLineArgs;
+		NextGameCmdLineArgs = nullptr;
+	}
 
 	Memory::PrintLeak();
 	Memory::ClearTrackedMemory();
@@ -2132,7 +2173,8 @@ bool Application::LoadSettings(const char* filename) {
 	}
 
 	if (filename != Application::SettingsFile) {
-		StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
+		StringUtils::Copy(
+			Application::SettingsFile, filename, sizeof(Application::SettingsFile));
 	}
 
 	Application::DisposeSettings();
@@ -2152,7 +2194,9 @@ void Application::ReloadSettings() {
 	// First time load
 	if (Application::Settings == nullptr) {
 		if (Application::SettingsFile[0] == '\0') {
-			StringUtils::Copy(Application::SettingsFile, DEFAULT_SETTINGS_FILENAME, sizeof(Application::SettingsFile));
+			StringUtils::Copy(Application::SettingsFile,
+				DEFAULT_SETTINGS_FILENAME,
+				sizeof(Application::SettingsFile));
 		}
 
 		Application::InitSettings();

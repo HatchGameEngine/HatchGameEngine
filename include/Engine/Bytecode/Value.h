@@ -11,6 +11,7 @@ public:
 	static const char* GetObjectTypeName(VMValue value);
 	static const char* GetObjectTypeName(Uint32 type);
 
+	static std::string ToString(VMValue v);
 	static VMValue CastAsString(VMValue v);
 	static VMValue CastAsInteger(VMValue v);
 	static VMValue CastAsDecimal(VMValue v);
