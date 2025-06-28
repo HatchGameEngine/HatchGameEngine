@@ -463,6 +463,29 @@ std::string Path::GetForLocation(PathLocation location) {
 	return finalPath;
 }
 
+std::string Path::GetLocationFromRealPath(const char* filename, PathLocation location) {
+	std::string pathForLocation = GetForLocation(location);
+	if (pathForLocation == "") {
+		return "";
+	}
+
+	std::filesystem::path locFs = std::filesystem::u8path(pathForLocation);
+	std::filesystem::path pathFs = std::filesystem::u8path(std::string(filename));
+
+	locFs = locFs.lexically_normal();
+	pathFs = pathFs.lexically_normal();
+
+	if (locFs == pathFs) {
+		return "";
+	}
+
+	if (!StringUtils::StartsWith(pathFs.c_str(), locFs.c_str())) {
+		return "";
+	}
+
+	return pathFs.u8string().substr(locFs.u8string().size());
+}
+
 std::string Path::StripLocationFromURL(const char* filename, PathLocation& location) {
 	std::string startingString = "";
 
@@ -476,6 +499,14 @@ std::string Path::StripLocationFromURL(const char* filename, PathLocation& locat
 			location = pair.second;
 			break;
 		}
+		else {
+			std::string fromRealPath = GetLocationFromRealPath(filename, pair.second);
+
+			if (fromRealPath != "") {
+				location = pair.second;
+				return fromRealPath;
+			}
+		}
 	}
 
 	if (location == PathLocation::DEFAULT) {
@@ -487,13 +518,21 @@ std::string Path::StripLocationFromURL(const char* filename, PathLocation& locat
 	return std::string(pathAfterURL);
 }
 
+bool Path::IsAbsolute(const char* filename) {
+	if (filename[0] == '/' || StringUtils::StartsWith(&filename[1], ":\\") ||
+		StringUtils::StartsWith(&filename[1], ":/")) {
+		return true;
+	}
+
+	return false;
+}
+
 bool Path::IsValidDefaultLocation(const char* filename) {
 	if (!IsInCurrentDir(filename)) {
 		return false;
 	}
 
-	if (filename[0] == '/' || StringUtils::StartsWith(&filename[1], ":\\") ||
-		StringUtils::StartsWith(&filename[1], ":/")) {
+	if (Path::IsAbsolute(filename)) {
 		return false;
 	}
 
@@ -594,6 +633,20 @@ bool Path::FromURL(const char* filename, std::string& result) {
 	std::string detectedPath = StripLocationFromURL(filename, location);
 
 	return FromLocation(detectedPath, location, result, false);
+}
+
+void Path::FromURL(const char* filename, char* buf, size_t bufSize) {
+	if (buf == nullptr) {
+		return;
+	}
+
+	std::string resolved = "";
+	if (Path::FromURL(filename, resolved)) {
+		StringUtils::Copy(buf, resolved.c_str(), bufSize);
+	}
+	else {
+		buf[0] = '\0';
+	}
 }
 
 std::string Path::StripURL(const char* filename) {

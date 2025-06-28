@@ -53,7 +53,9 @@ private:
 	static void LoadGameConfig();
 	static void DisposeGameConfig();
 	static string ParseGameVersion(XMLNode* versionNode);
+	static void InitGameInfo();
 	static void LoadGameInfo();
+	static void DisposeSettings();
 	static int HandleAppEvents(void* data, SDL_Event* event);
 
 public:
@@ -119,7 +121,7 @@ public:
 	static void ReadSettings();
 	static void ReloadSettings();
 	static void ReloadSettings(const char* filename);
-	static void InitSettings(const char* filename);
+	static void InitSettings();
 	static void SaveSettings();
 	static void SaveSettings(const char* filename);
 	static void SetSettingsFilename(const char* filename);

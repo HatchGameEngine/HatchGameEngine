@@ -3140,6 +3140,7 @@ void Scene::Dispose() {
 	ScriptManager::Dispose();
 	SourceFileMap::Dispose();
 	Compiler::Dispose();
+	GarbageCollector::Dispose();
 }
 
 void Scene::UnloadTilesets() {

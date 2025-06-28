@@ -1,3 +1,4 @@
+#include <Engine/Filesystem/Directory.h>
 #include <Engine/IO/StandardIOStream.h>
 
 FILE* StandardIOStream::OpenFile(const char* filename, Uint32 access) {
@@ -19,20 +20,26 @@ FILE* StandardIOStream::OpenFile(const char* filename, Uint32 access) {
 }
 
 StandardIOStream* StandardIOStream::New(const char* filename, Uint32 access) {
+	// Cannot open file stream if there is a directory with that name.
+	if (Directory::Exists(filename)) {
+		return nullptr;
+	}
+
+	FILE* file = OpenFile(filename, access);
+	if (!file) {
+		return nullptr;
+	}
+
 	StandardIOStream* stream = new (std::nothrow) StandardIOStream;
 	if (!stream) {
 		return nullptr;
 	}
 
-	stream->f = OpenFile(filename, access);
+	stream->FilePtr = file;
 
-	if (!stream->f) {
-		goto FREE;
-	}
-
-	fseek(stream->f, 0, SEEK_END);
-	stream->size = ftell(stream->f);
-	fseek(stream->f, 0, SEEK_SET);
+	fseek(file, 0, SEEK_END);
+	stream->Filesize = ftell(file);
+	fseek(file, 0, SEEK_SET);
 
 	stream->Filename = std::string(filename);
 	stream->CurrentAccess = access;
@@ -54,8 +61,10 @@ bool StandardIOStream::Reopen(Uint32 newAccess) {
 		return false;
 	}
 
-	fclose(f);
-	f = newFile;
+	if (FilePtr) {
+		fclose(FilePtr);
+	}
+	FilePtr = newFile;
 
 	CurrentAccess = newAccess;
 
@@ -84,30 +93,30 @@ bool StandardIOStream::MakeWritable(bool writable) {
 }
 
 void StandardIOStream::Close() {
-	fclose(f);
-	f = nullptr;
+	fclose(FilePtr);
+	FilePtr = nullptr;
 	Stream::Close();
 }
 void StandardIOStream::Seek(Sint64 offset) {
-	fseek(f, offset, SEEK_SET);
+	fseek(FilePtr, offset, SEEK_SET);
 }
 void StandardIOStream::SeekEnd(Sint64 offset) {
-	fseek(f, offset, SEEK_END);
+	fseek(FilePtr, offset, SEEK_END);
 }
 void StandardIOStream::Skip(Sint64 offset) {
-	fseek(f, offset, SEEK_CUR);
+	fseek(FilePtr, offset, SEEK_CUR);
 }
 size_t StandardIOStream::Position() {
-	return ftell(f);
+	return ftell(FilePtr);
 }
 size_t StandardIOStream::Length() {
-	return size;
+	return Filesize;
 }
 
 size_t StandardIOStream::ReadBytes(void* data, size_t n) {
-	return fread(data, 1, n, f);
+	return fread(data, 1, n, FilePtr);
 }
 
 size_t StandardIOStream::WriteBytes(void* data, size_t n) {
-	return fwrite(data, 1, n, f);
+	return fwrite(data, 1, n, FilePtr);
 }

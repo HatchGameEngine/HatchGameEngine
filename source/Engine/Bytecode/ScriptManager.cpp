@@ -212,7 +212,10 @@ void ScriptManager::Dispose() {
 		Tokens = NULL;
 	}
 
-	SDL_DestroyMutex(GlobalLock);
+	if (GlobalLock) {
+		SDL_DestroyMutex(GlobalLock);
+		GlobalLock = NULL;
+	}
 }
 void ScriptManager::RemoveNonGlobalableValue(Uint32 hash, VMValue value) {
 	if (IS_OBJECT(value)) {
@@ -777,10 +780,8 @@ bool ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFuncti
 
 			if (fn == 0) {
 				Log::Print(Log::LOG_VERBOSE,
-					"Loading class %s%s%s, %d filename(s)...",
-					Log::WriteToFile ? "" : FG_YELLOW,
+					"Loading class %s, %d filename(s)...",
 					objectName,
-					Log::WriteToFile ? "" : FG_RESET,
 					(int)filenameHashList->size());
 			}
 
