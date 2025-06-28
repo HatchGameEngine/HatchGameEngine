@@ -63,7 +63,7 @@ private:
 	static int HandleAppEvents(void* data, SDL_Event* event);
 
 public:
-	static vector<char*> CmdLineArgs;
+	static vector<std::string> CmdLineArgs;
 	static INI* Settings;
 	static char SettingsFile[MAX_PATH_LENGTH];
 	static XMLNode* GameConfig;
@@ -112,7 +112,9 @@ public:
 	static void GetPerformanceSnapshot();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();
-	static bool SetNextGame(const char* path);
+	static bool SetNextGame(const char* path,
+		const char* startingScene,
+		std::vector<std::string>* cmdLineArgs);
 	static bool ChangeGame(const char* path);
 	static void SetMasterVolume(int volume);
 	static void SetMusicVolume(int volume);

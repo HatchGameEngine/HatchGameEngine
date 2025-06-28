@@ -65,6 +65,9 @@ ObjString* CopyString(ObjString* string) {
 
 	return AllocateString(heapChars, string->Length, string->Hash);
 }
+ObjString* CopyString(std::string string) {
+	return CopyString(string.c_str());
+}
 ObjString* CopyString(std::filesystem::path path) {
 	std::string asStr = Path::ToString(path);
 	const char* cStr = asStr.c_str();

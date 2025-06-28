@@ -1300,8 +1300,8 @@ VMValue Application_GetCommandLineArguments(int argCount, VMValue* args, Uint32 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = NewArray();
 		for (size_t i = 0; i < Application::CmdLineArgs.size(); i++) {
-			array->Values->push_back(
-				OBJECT_VAL(CopyString(Application::CmdLineArgs[i])));
+			ObjString* argString = CopyString(Application::CmdLineArgs[i]);
+			array->Values->push_back(OBJECT_VAL(argString));
 		}
 		ScriptManager::Unlock();
 		return OBJECT_VAL(array);
@@ -1573,17 +1573,39 @@ The following <b>cannot</b> be changed between games:<ul>\
 <li>Log file path</li>\
 <li>Graphics rendering backend</li>\
 </ul>
- * \param path (String): The path of the resources file to load.
- * \return Returns <code>true</code> if the path to the resource file exists, <code>false</code> if otherwise.
+ * \param path (String): The path of the data file to load.
+ * \paramOpt startingScene (String): The filename of the scene file to load upon changing the game. Note that restarting the game will load the starting scene defined in its GameConfig instead. Passing <code>null</code> to this argument is equivalent to not passing it at all.
+ * \paramOpt cmdLineArgs (Array): An Array of Strings containing the command line arguments to pass to the new game. If any of the values are not Strings, they will be converted to a String representation. If this argument is not given, the current command line arguments will be passed to the new game.
+ * \return Returns <code>true</code> if the game will change, <code>false</code> if otherwise.
  * \ns Application
  */
 VMValue Application_ChangeGame(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_AT_LEAST_ARGCOUNT(1);
 	char* path = GET_ARG(0, GetString);
+	char* startingScene = nullptr;
+	ObjArray* cmdLineArgsArray = GET_ARG_OPT(2, GetArray, nullptr);
+	std::vector<std::string>* cmdLineArgs = nullptr;
 
-	bool exists = Application::SetNextGame(path);
+	if (argCount >= 2 && !IS_NULL(args[1])) {
+		startingScene = GET_ARG(1, GetString);
+	}
 
-	return INTEGER_VAL(exists);
+	if (cmdLineArgsArray) {
+		cmdLineArgs = new std::vector<std::string>();
+
+		for (size_t i = 0; i < cmdLineArgsArray->Values->size(); i++) {
+			std::string arg = Value::ToString((*cmdLineArgsArray->Values)[i]);
+			cmdLineArgs->push_back(arg);
+		}
+	}
+
+	bool exists = Application::SetNextGame(path, startingScene, cmdLineArgs);
+	if (!exists) {
+		delete cmdLineArgs;
+		return INTEGER_VAL(false);
+	}
+
+	return INTEGER_VAL(true);
 }
 /***
  * Application.Quit
@@ -2803,7 +2825,7 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		array = NewArray();
 		for (size_t i = 0; i < fileList.size(); i++) {
-			ObjString* part = CopyString(fileList[i]);
+			ObjString* part = CopyString(fileList[i].u8string());
 			array->Values->push_back(OBJECT_VAL(part));
 		}
 		ScriptManager::Unlock();
@@ -2833,7 +2855,7 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		array = NewArray();
 		for (size_t i = 0; i < fileList.size(); i++) {
-			ObjString* part = CopyString(fileList[i]);
+			ObjString* part = CopyString(fileList[i].u8string());
 			array->Values->push_back(OBJECT_VAL(part));
 		}
 		ScriptManager::Unlock();
@@ -7415,7 +7437,7 @@ VMValue Input_GetActionList(int argCount, VMValue* args, Uint32 threadID) {
 	for (size_t i = 0; i < count; i++) {
 		InputAction& action = InputManager::Actions[i];
 
-		ObjString* actionName = CopyString(action.Name.c_str());
+		ObjString* actionName = CopyString(action.Name);
 
 		array->Values->push_back(OBJECT_VAL(actionName));
 	}
