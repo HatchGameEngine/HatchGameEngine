@@ -4553,5 +4553,8 @@ void Compiler::Dispose() {
 		delete StandardConstants;
 		StandardConstants = NULL;
 	}
-	Memory::Free(Rules);
+	if (Rules) {
+		Memory::Free(Rules);
+		Rules = NULL;
+	}
 }

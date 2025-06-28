@@ -1550,7 +1550,30 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * Application.ChangeGame
- * \desc Changes the current game.
+ * \desc Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead.<br/><br/>\
+This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>\
+The change only takes effect after a frame completes.<br/><br/>\
+Note that certain game configurations will persist between games if not set by the new GameConfig. Those are:<ul>\
+<li>Game title (including the short game title)</li>\
+<li>Game version</li>\
+<li>Game description</li>\
+<li>Game developer</li>\
+<li>Game identifier</li>\
+<li>Developer identifier</li>\
+<li>Saves directory</li>\
+<li>Preferences directory</li>\
+<li>Palette colors</li>\
+<li>Whether palette rendering is enabled</li>\
+<li>Whether software rendering was enabled with <code>useSoftwareRenderer</code></li>\
+<li>Current settings file</li>\
+<li>Window size</li>\
+<li>Audio volume</li>\
+</ul>\
+The following <b>cannot</b> be changed between games:<ul>\
+<li>Log file path</li>\
+<li>Graphics rendering backend</li>\
+</ul>
+ * \param path (String): The path of the resources file to load.
  * \return Returns <code>true</code> if the path to the resource file exists, <code>false</code> if otherwise.
  * \ns Application
  */

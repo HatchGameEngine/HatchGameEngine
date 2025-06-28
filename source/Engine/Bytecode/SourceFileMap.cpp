@@ -16,6 +16,7 @@
 #define OBJECTS_HCM_NAME OBJECTS_DIR_NAME "Objects.hcm"
 
 bool SourceFileMap::Initialized = false;
+bool SourceFileMap::AllowCompilation = false;
 HashMap<Uint32>* SourceFileMap::Checksums = NULL;
 HashMap<vector<Uint32>*>* SourceFileMap::ClassMap = NULL;
 Uint32 SourceFileMap::DirectoryChecksum = 0;
@@ -70,6 +71,8 @@ void SourceFileMap::CheckInit() {
 	}
 
 #ifndef NO_SCRIPT_COMPILING
+	SourceFileMap::AllowCompilation = true;
+
 	if (File::ProtectedExists(SOURCEFILEMAP_NAME, true)) {
 		char* bytes;
 		size_t len = File::ReadAllBytes(SOURCEFILEMAP_NAME, &bytes, true);
@@ -86,6 +89,10 @@ bool SourceFileMap::CheckForUpdate() {
 	SourceFileMap::CheckInit();
 
 #ifndef NO_SCRIPT_COMPILING
+	if (!SourceFileMap::AllowCompilation) {
+		return false;
+	}
+
 	VFSProvider* mainVfs = ResourceManager::GetMainResource();
 	if (!mainVfs || !mainVfs->IsWritable()) {
 		return false;

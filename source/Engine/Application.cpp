@@ -197,6 +197,7 @@ void Application::Init(int argc, char* args[]) {
 		ResourceManager::Init(NULL);
 
 	Application::LoadGameConfig();
+	Application::InitGameInfo();
 	Application::LoadGameInfo();
 	Application::ReloadSettings();
 
@@ -760,9 +761,6 @@ void Application::UpdateWindowTitle() {
 		if (ResourceManager::UsingDataFolder) {
 			ADD_TEXT("using Resources folder");
 		}
-		if (ResourceManager::UsingModPack) {
-			ADD_TEXT("using Modpack");
-		}
 	}
 
 	if (UpdatesPerFrame != 1) {
@@ -808,8 +806,6 @@ void Application::EndGame() {
 
 	ScriptManager::LoadAllClasses = false;
 	ScriptEntity::DisableAutoAnimate = false;
-
-	Graphics::Reset();
 }
 
 void Application::UnloadGame() {
@@ -817,13 +813,19 @@ void Application::UnloadGame() {
 
 	MemoryCache::Dispose();
 	ResourceManager::Dispose();
-	InputManager::Dispose();
+
+	InputManager::ControllerStopRumble();
+	InputManager::ClearPlayers();
+	InputManager::ClearInputs();
 }
 
 void Application::Restart() {
 	Application::EndGame();
 
+	Graphics::Reset();
+
 	Application::LoadGameConfig();
+	Application::InitGameInfo();
 	Application::LoadGameInfo();
 	Application::ReloadSettings();
 	Application::LoadSceneInfo();
@@ -833,29 +835,41 @@ void Application::Restart() {
 }
 
 bool Application::ChangeGame(const char* path) {
-	Application::UnloadGame();
+	char lastSettingsPath[MAX_PATH_LENGTH];
+	char currentSettingsPath[MAX_PATH_LENGTH];
+	Path::FromURL(SettingsFile, lastSettingsPath, sizeof lastSettingsPath);
 
-	ResourceManager::Dispose();
+	Application::UnloadGame();
 
 	if (!ResourceManager::Init(path)) {
 		return false;
+	}
+
+	Application::LoadGameConfig();
+	Application::LoadGameInfo();
+
+	// Reload settings file if the path to it changed.
+	Path::FromURL(SettingsFile, currentSettingsPath, sizeof currentSettingsPath);
+	if (strcmp(currentSettingsPath, lastSettingsPath) != 0) {
+		Application::DisposeSettings();
+
+		if (!Application::LoadSettings(Application::SettingsFile)) {
+			// Couldn't load new settings file, so use a default one.
+			Application::InitSettings();
+		}
 	}
 
 	if (UseMemoryFileCache) {
 		MemoryCache::Init();
 	}
 
-	InputManager::Init();
-
-	Application::LoadGameConfig();
-	Application::LoadGameInfo();
-	Application::ReloadSettings();
-
 	Application::LoadSceneInfo();
 	Application::InitPlayerControls();
 	Application::DisposeGameConfig();
 
 	FirstFrame = true;
+
+	SourceFileMap::AllowCompilation = false;
 
 	Application::StartGame(StartingScene);
 	Application::UpdateWindowTitle();
@@ -864,9 +878,25 @@ bool Application::ChangeGame(const char* path) {
 }
 
 bool Application::SetNextGame(const char* path) {
-	std::string resolved = "";
+	bool exists = false;
 
-	if (Path::FromURL(path, resolved) && File::Exists(resolved.c_str())) {
+	std::string resolved = "";
+	PathLocation location;
+
+	if (Path::FromURL(path, resolved, location, false)) {
+		if (location != PathLocation::GAME && location != PathLocation::USER) {
+			return false;
+		}
+
+		if (path[strlen(path) - 1] == '/') {
+			exists = Directory::Exists(resolved.c_str());
+		}
+		else {
+			exists = File::Exists(resolved.c_str());
+		}
+	}
+
+	if (exists) {
 		StringUtils::Copy(NextGame, resolved.c_str(), sizeof NextGame);
 
 		return true;
@@ -1711,9 +1741,7 @@ void Application::Cleanup() {
 		DEBUG_fontSprite = NULL;
 	}
 
-	if (Application::Settings) {
-		Application::Settings->Dispose();
-	}
+	Application::DisposeSettings();
 
 	MemoryCache::Dispose();
 	ResourceManager::Dispose();
@@ -1793,7 +1821,10 @@ static bool ParseGameConfigBool(XMLNode* node, const char* option, bool& val) {
 
 void Application::LoadGameConfig() {
 	StartingScene[0] = '\0';
-	LogFilename[0] = '\0';
+
+	if (!Running) {
+		LogFilename[0] = '\0';
+	}
 
 	Application::GameConfig = nullptr;
 
@@ -1821,8 +1852,12 @@ void Application::LoadGameConfig() {
 		ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
 		ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
 		ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
-		ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
-		ParseGameConfigText(node, "logFilename", LogFilename, sizeof LogFilename);
+		ParseGameConfigText(node, "settingsFile", SettingsFile, sizeof SettingsFile);
+
+		if (!Running) {
+			ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
+			ParseGameConfigText(node, "logFilename", LogFilename, sizeof LogFilename);
+		}
 	}
 
 	// Read display defaults
@@ -1921,7 +1956,7 @@ string Application::ParseGameVersion(XMLNode* versionNode) {
 	return versionText;
 }
 
-void Application::LoadGameInfo() {
+void Application::InitGameInfo() {
 	StringUtils::Copy(GameTitle, DEFAULT_GAME_TITLE, sizeof(GameTitle));
 	StringUtils::Copy(GameTitleShort, DEFAULT_GAME_SHORT_TITLE, sizeof(GameTitleShort));
 	StringUtils::Copy(GameVersion, DEFAULT_GAME_VERSION, sizeof(GameVersion));
@@ -1929,7 +1964,9 @@ void Application::LoadGameInfo() {
 
 	StringUtils::Copy(GameIdentifier, DEFAULT_GAME_IDENTIFIER, sizeof(GameIdentifier));
 	StringUtils::Copy(SavesDir, DEFAULT_SAVES_DIR, sizeof(SavesDir));
+}
 
+void Application::LoadGameInfo() {
 	bool shouldSetGameId = false;
 	bool shouldSetGameDevId = false;
 
@@ -2134,11 +2171,11 @@ bool Application::LoadSettings(const char* filename) {
 		return false;
 	}
 
-	StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
-
-	if (Application::Settings) {
-		Application::Settings->Dispose();
+	if (filename != Application::SettingsFile) {
+		StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
 	}
+
+	Application::DisposeSettings();
 	Application::Settings = ini;
 
 	return true;
@@ -2154,7 +2191,11 @@ void Application::ReadSettings() {
 void Application::ReloadSettings() {
 	// First time load
 	if (Application::Settings == nullptr) {
-		Application::InitSettings(DEFAULT_SETTINGS_FILENAME);
+		if (Application::SettingsFile[0] == '\0') {
+			StringUtils::Copy(Application::SettingsFile, DEFAULT_SETTINGS_FILENAME, sizeof(Application::SettingsFile));
+		}
+
+		Application::InitSettings();
 	}
 
 	if (Application::Settings->Reload()) {
@@ -2168,10 +2209,8 @@ void Application::ReloadSettings(const char* filename) {
 	}
 }
 
-void Application::InitSettings(const char* filename) {
+void Application::InitSettings() {
 	// Create settings with default values.
-	StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
-
 	Application::Settings = INI::New(Application::SettingsFile);
 
 	Application::Settings->SetBool("display", "fullscreen", false);
@@ -2192,6 +2231,13 @@ void Application::SetSettingsFilename(const char* filename) {
 	StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
 	if (Application::Settings) {
 		Application::Settings->SetFilename(filename);
+	}
+}
+
+void Application::DisposeSettings() {
+	if (Application::Settings) {
+		Application::Settings->Dispose();
+		Application::Settings = nullptr;
 	}
 }
 
