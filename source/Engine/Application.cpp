@@ -1048,14 +1048,17 @@ void Application::LoadKeyBinds() {
 void Application::LoadDevSettings() {
 #ifdef DEVELOPER_MODE
 	Application::Settings->GetBool("dev", "devMenu", &DevMenu);
-	Application::Settings->GetBool("dev", "writeToFile", &Log::WriteToFile);
 	Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
 	Application::Settings->GetBool("dev", "donothing", &DoNothing);
 	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
 	Application::Settings->GetBool("dev", "convertModels", &Application::DevConvertModels);
 	Application::Settings->GetBool("dev", "useMemoryFileCache", &UseMemoryFileCache);
 	Application::Settings->GetBool("dev", "loadAllClasses", &ScriptManager::LoadAllClasses);
-	Application::Settings->GetBool("dev", "trackMemory", &Memory::IsTracking);
+
+	if (!Running) {
+		Application::Settings->GetBool("dev", "writeToFile", &Log::WriteToFile);
+		Application::Settings->GetBool("dev", "trackMemory", &Memory::IsTracking);
+	}
 
 	int logLevel = 0;
 #ifdef DEBUG
