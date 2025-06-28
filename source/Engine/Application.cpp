@@ -1056,7 +1056,7 @@ void Application::LoadDevSettings() {
 	Application::Settings->GetBool("dev", "loadAllClasses", &ScriptManager::LoadAllClasses);
 
 	if (!Running) {
-		Application::Settings->GetBool("dev", "writeToFile", &Log::WriteToFile);
+		Application::Settings->GetBool("dev", "writeLogFile", &Log::WriteToFile);
 		Application::Settings->GetBool("dev", "trackMemory", &Memory::IsTracking);
 	}
 
