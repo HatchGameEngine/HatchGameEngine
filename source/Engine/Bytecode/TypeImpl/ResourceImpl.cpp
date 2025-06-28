@@ -121,11 +121,8 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 }
 
 bool ResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
-	if (hash == Hash_Type
-		|| hash == Hash_Filename
-		|| hash == Hash_Loaded
-		|| hash == Hash_Scope
-		|| hash == Hash_Data) {
+	if (hash == Hash_Type || hash == Hash_Filename || hash == Hash_Loaded ||
+		hash == Hash_Scope || hash == Hash_Data) {
 		THROW_ERROR("Field cannot be written to!");
 		return true;
 	}

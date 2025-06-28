@@ -1,9 +1,9 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
-#include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/Bytecode/Types.h>
 #include <Engine/Rendering/Material.h>
 #include <Engine/ResourceTypes/Resource.h>
 
@@ -200,7 +200,8 @@ bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 				material->SetTexture(&material->Texture##type, nullptr); \
 			} \
 			else { \
-				Image* image = (Image*)StandardLibrary::GetResourceable(RESOURCE_IMAGE, value, threadID); \
+				Image* image = (Image*)StandardLibrary::GetResourceable( \
+					RESOURCE_IMAGE, value, threadID); \
 				material->SetTexture(&material->Texture##type, (void*)image); \
 			} \
 			return true; \

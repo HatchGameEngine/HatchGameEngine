@@ -1,9 +1,9 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
-#include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/Bytecode/Types.h>
 #include <Engine/IO/Stream.h>
 
 ObjClass* EntityImpl::Class = nullptr;
@@ -88,8 +88,9 @@ bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 			return true;
 		}
 
-		void* resourceable = StandardLibrary::GetResourceable(RESOURCE_SPRITE, value, threadID);
-		ISprite* sprite = (ISprite *)resourceable;
+		void* resourceable =
+			StandardLibrary::GetResourceable(RESOURCE_SPRITE, value, threadID);
+		ISprite* sprite = (ISprite*)resourceable;
 
 		entity->SetSprite(sprite);
 
