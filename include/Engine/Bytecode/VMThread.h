@@ -2,8 +2,8 @@
 #define ENGINE_BYTECODE_VMTHREAD_H
 
 #include <Engine/Bytecode/Types.h>
-#include <Engine/Includes/PrintBuffer.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/Utilities/PrintBuffer.h>
 
 class VMThread {
 private:
@@ -14,12 +14,14 @@ private:
 	bool DoJumpBack(CallFrame* frame, int offset);
 	bool
 	GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
-	bool GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields);
-	bool GetProperty(Obj* object, ObjClass* klass, Uint32 hash);
+	bool GetProperty(Obj* object, Uint32 hash, ValueGetFn getter);
+	bool GetProperty(ObjClass* klass, Uint32 hash, bool checkFields);
+	bool GetProperty(ObjClass* klass, Uint32 hash);
 	bool
 	HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
-	bool HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields);
-	bool HasProperty(Obj* object, ObjClass* klass, Uint32 hash);
+	bool HasProperty(Obj* object, Uint32 hash, ValueGetFn getter);
+	bool HasProperty(ObjClass* klass, Uint32 hash, bool checkFields);
+	bool HasProperty(ObjClass* klass, Uint32 hash);
 	bool SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value);
 	bool BindMethod(VMValue receiver, VMValue method);
 	bool CallBoundMethod(ObjBoundMethod* bound, int argCount);

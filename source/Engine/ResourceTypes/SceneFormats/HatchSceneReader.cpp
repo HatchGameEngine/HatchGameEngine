@@ -117,22 +117,9 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 
 	SceneLayer layer(width, height);
 
-	size_t nameBufLen = sizeof(layer.Name);
-	memset(layer.Name, 0x00, nameBufLen);
-
+	layer.Name = name;
 	layer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
 	layer.Visible = true;
-
-	// Copy its name
-	if (strlen(name) >= nameBufLen) {
-		Log::Print(Log::LOG_WARN,
-			"Layer name '%s' is longer than max size of %u, truncating",
-			name,
-			nameBufLen);
-	}
-
-	StringUtils::Copy(layer.Name, name, nameBufLen);
-	Memory::Free(name);
 
 	// Set draw group and behavior
 	if (drawGroup & 0x10) {
@@ -154,6 +141,8 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 		Log::Print(Log::LOG_ERROR, "Out of memory!");
 		exit(-1);
 	}
+
+	layer.UsingScrollIndexes = true;
 
 	// Read scroll data
 	HatchSceneReader::ReadScrollData(r, &layer);

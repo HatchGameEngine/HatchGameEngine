@@ -1,3 +1,4 @@
+#include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/FontFace.h>
 #include <Engine/Hashing/CRC32.h>
@@ -40,7 +41,8 @@ void Resource::DisposeAll() {
 
 void* Resource::GetVMObject(ResourceType* resource) {
 	if (resource->VMObject == nullptr) {
-		resource->VMObject = (void*)(NewResource(resource));
+		Obj* resourceObj = ResourceImpl::New((void*)resource);
+		resource->VMObject = (void*)resourceObj;
 		Resource::TakeRef(resource);
 	}
 

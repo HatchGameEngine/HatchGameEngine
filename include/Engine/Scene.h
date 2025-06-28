@@ -48,6 +48,9 @@ private:
 	static void ClearTileCollisions(TileConfig* cfg, size_t numTiles);
 	static void SetTileCount(size_t tileCount);
 	static bool GetTextureListSpace(size_t* out);
+	static void SetupViewMatrices(View* currentView);
+	static void SetupView2D(View* currentView);
+	static void SetupView3D(View* currentView);
 
 public:
 	static int ShowTileCollisionFlag;

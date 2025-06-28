@@ -342,7 +342,8 @@ void SDL2Renderer::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
+	float h,
+	int paletteID) {
 	x *= RenderScale;
 	y *= RenderScale;
 	w *= RenderScale;
@@ -381,7 +382,7 @@ void SDL2Renderer::DrawSprite(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -392,7 +393,7 @@ void SDL2Renderer::DrawSprite(ISprite* sprite,
 	float sw = animframe.Width;
 	float sh = animframe.Height;
 
-	SDL2Renderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
+	DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
 		animframe.X,
 		animframe.Y,
 		sw,
@@ -400,7 +401,8 @@ void SDL2Renderer::DrawSprite(ISprite* sprite,
 		x + fX * animframe.OffsetX,
 		y + fY * animframe.OffsetY,
 		fX * sw,
-		fY * sh);
+		fY * sh,
+		paletteID);
 }
 void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 	int animation,
@@ -416,7 +418,7 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -438,7 +440,7 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 		sh = animframe.Height - sy;
 	}
 
-	SDL2Renderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
+	DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
 		animframe.X + sx,
 		animframe.Y + sy,
 		sw,
@@ -446,7 +448,8 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 		x + fX * (sx + animframe.OffsetX),
 		y + fY * (sy + animframe.OffsetY),
 		fX * sw,
-		fY * sh);
+		fY * sh,
+		paletteID);
 }
 
 void SDL2Renderer::MakeFrameBufferID(ISprite* sprite) {

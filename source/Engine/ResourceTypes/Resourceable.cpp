@@ -1,5 +1,5 @@
 #include <Engine/ResourceTypes/Resourceable.h>
-#include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceableImpl.h>
 
 bool Resourceable::IsLoaded() {
 	return Loaded;
@@ -29,7 +29,7 @@ void Resourceable::Unload() {}
 
 void* Resourceable::GetVMObject() {
 	if (VMObject == nullptr) {
-		VMObject = ResourceImpl::NewResourceableObject(this);
+		VMObject = ResourceableImpl::New(this);
 	}
 
 	return VMObject;

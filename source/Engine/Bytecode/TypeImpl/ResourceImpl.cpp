@@ -1,6 +1,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Types.h>
 #include <Engine/ResourceTypes/Resource.h>
 #include <Engine/ResourceTypes/ResourceType.h>
@@ -15,67 +16,10 @@ Uint32 Hash_Data = 0;
 
 #define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
 
-namespace ImageResource {
-	ObjClass* Class = nullptr;
-
-	Uint32 Hash_Width = 0;
-	Uint32 Hash_Height = 0;
-
-	bool VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
-		Resourceable* resourceable = (Resourceable*)(((ObjResourceable*)object)->ResourceablePtr);
-		if (!resourceable || !resourceable->IsLoaded()) {
-			THROW_ERROR("Image is no longer loaded!");
-			return true;
-		}
-
-		Image* image = (Image*)resourceable;
-
-		if (hash == Hash_Width) {
-			*result = INTEGER_VAL((int)image->TexturePtr->Width);
-		}
-		else if (hash == Hash_Height) {
-			*result = INTEGER_VAL((int)image->TexturePtr->Height);
-		}
-		else {
-			return false;
-		}
-
-		return true;
-	}
-
-	bool VM_PropertySet(Obj* object, Uint32 hash, VMValue result, Uint32 threadID) {
-		if (hash == Hash_Width || hash == Hash_Height) {
-			THROW_ERROR("Field cannot be written to!");
-		}
-		else {
-			return false;
-		}
-
-		return true;
-	}
-
-	void Init() {
-		const char* className = "ImageResource";
-
-		Class = NewClass(className);
-		Class->PropertyGet = VM_PropertyGet;
-		Class->PropertySet = VM_PropertySet;
-
-		Hash_Width = Murmur::EncryptString("Width");
-		Hash_Height = Murmur::EncryptString("Height");
-
-		ScriptManager::ClassImplList.push_back(Class);
-	}
-};
-
 void ResourceImpl::Init() {
-	const char* className = "Resource";
-
-	Class = NewClass(className);
-	Class->NewFn = VM_New;
+	Class = NewClass(CLASS_RESOURCE);
+	Class->NewFn = DummyNew;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
-	Class->PropertyGet = VM_PropertyGet;
-	Class->PropertySet = VM_PropertySet;
 
 	Hash_Type = Murmur::EncryptString("Type");
 	Hash_Filename = Murmur::EncryptString("Filename");
@@ -86,20 +30,36 @@ void ResourceImpl::Init() {
 	ScriptManager::DefineNative(Class, "Reload", ResourceImpl::VM_Reload);
 	ScriptManager::DefineNative(Class, "Unload", ResourceImpl::VM_Unload);
 
-	ScriptManager::ClassImplList.push_back(Class);
-
-	ScriptManager::Globals->Put(className, OBJECT_VAL(Class));
-
-	ImageResource::Init();
+	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(CLASS_RESOURCE, Class);
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
 	(argIndex < argCount ? GET_ARG(argIndex, argFunction) : argDefault)
 
-Obj* ResourceImpl::VM_New() {
+Obj* ResourceImpl::New(void* resourcePtr) {
+	ObjResource* resource = (ObjResource*)AllocateObject(sizeof(ObjResource), OBJ_RESOURCE);
+	Memory::Track(resource, "NewResource");
+	resource->Object.Class = Class;
+	resource->Object.Destructor = Dispose;
+	resource->Object.PropertyGet = VM_PropertyGet;
+	resource->Object.PropertySet = VM_PropertySet;
+	resource->ResourcePtr = resourcePtr;
+	return (Obj*)resource;
+}
+
+Obj* ResourceImpl::DummyNew() {
 	// Don't worry about it.
 	return nullptr;
+}
+
+void ResourceImpl::Dispose(Obj* object) {
+	ObjResource* resource = (ObjResource*)object;
+
+	if (resource->ResourcePtr != nullptr) {
+		Resource::ReleaseVMObject((ResourceType*)resource->ResourcePtr);
+	}
 }
 
 VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
@@ -201,17 +161,3 @@ VMValue ResourceImpl::VM_Unload(int argCount, VMValue* args, Uint32 threadID) {
 
 #undef GET_ARG
 #undef GET_ARG_OPT
-
-void* ResourceImpl::NewResourceableObject(void* ptr) {
-	ObjResourceable* obj = NewResourceable(ptr);
-	Resourceable* resourceable = (Resourceable*)ptr;
-
-	switch (resourceable->Type) {
-	case RESOURCE_IMAGE:
-		obj->Object.Class = ImageResource::Class;
-	default:
-		break;
-	}
-
-	return (void*)obj;
-}

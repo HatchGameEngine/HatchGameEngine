@@ -148,6 +148,7 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 
 typedef Obj* (*ClassNewFn)(void);
+typedef void (*ObjectDestructor)(Obj*);
 
 typedef bool (*ValueGetFn)(Obj* object, Uint32 hash, VMValue* value, Uint32 threadID);
 typedef bool (*ValueSetFn)(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
@@ -155,23 +156,57 @@ typedef bool (*ValueSetFn)(Obj* object, Uint32 hash, VMValue value, Uint32 threa
 typedef bool (*StructGetFn)(Obj* object, VMValue at, VMValue* value, Uint32 threadID);
 typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threadID);
 
+enum ObjType {
+	OBJ_STRING,
+	OBJ_ARRAY,
+	OBJ_MAP,
+	OBJ_FUNCTION,
+	OBJ_BOUND_METHOD,
+	OBJ_MODULE,
+	OBJ_CLOSURE,
+	OBJ_UPVALUE,
+	OBJ_CLASS,
+	OBJ_NAMESPACE,
+	OBJ_ENUM,
+	OBJ_RESOURCE,
+	OBJ_RESOURCEABLE,
+	OBJ_INSTANCE,
+	OBJ_ENTITY,
+	OBJ_NATIVE_FUNCTION,
+	OBJ_NATIVE_INSTANCE,
+
+	MAX_OBJ_TYPE
+};
+
+#define CLASS_ARRAY "$$ArrayImpl"
+#define CLASS_ENTITY "$$EntityImpl"
+#define CLASS_FUNCTION "$$FunctionImpl"
+#define CLASS_INSTANCE "$$InstanceImpl"
+#define CLASS_MAP "$$MapImpl"
+#define CLASS_MATERIAL "Material"
+#define CLASS_RESOURCE "Resource"
+#define CLASS_RESOURCEABLE "Resourceable"
+#define CLASS_STREAM "$$StreamImpl"
+#define CLASS_STRING "$$StringImpl"
+
 #define OBJECT_TYPE(value) (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value) IsObjectType(value, OBJ_BOUND_METHOD)
 #define IS_CLASS(value) IsObjectType(value, OBJ_CLASS)
 #define IS_CLOSURE(value) IsObjectType(value, OBJ_CLOSURE)
 #define IS_FUNCTION(value) IsObjectType(value, OBJ_FUNCTION)
+#define IS_NATIVE_FUNCTION(value) IsObjectType(value, OBJ_NATIVE_FUNCTION)
 #define IS_INSTANCE(value) IsObjectType(value, OBJ_INSTANCE)
-#define IS_NATIVE(value) IsObjectType(value, OBJ_NATIVE)
 #define IS_STRING(value) IsObjectType(value, OBJ_STRING)
 #define IS_ARRAY(value) IsObjectType(value, OBJ_ARRAY)
 #define IS_MAP(value) IsObjectType(value, OBJ_MAP)
-#define IS_STREAM(value) IsObjectType(value, OBJ_STREAM)
 #define IS_NAMESPACE(value) IsObjectType(value, OBJ_NAMESPACE)
 #define IS_ENUM(value) IsObjectType(value, OBJ_ENUM)
 #define IS_MODULE(value) IsObjectType(value, OBJ_MODULE)
-#define IS_MATERIAL(value) IsObjectType(value, OBJ_MATERIAL)
 #define IS_RESOURCE(value) IsObjectType(value, OBJ_RESOURCE)
 #define IS_RESOURCEABLE(value) IsObjectType(value, OBJ_RESOURCEABLE)
+#define IS_NATIVE_INSTANCE(value) IsObjectType(value, OBJ_NATIVE_INSTANCE)
+#define IS_ENTITY(value) IsObjectType(value, OBJ_ENTITY)
+#define IS_INSTANCEABLE(value) (IS_INSTANCE(value) || IS_NATIVE_INSTANCE(value) || IS_ENTITY(value))
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))
@@ -183,42 +218,25 @@ typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threa
 #define AS_CSTRING(value) (((ObjString*)AS_OBJECT(value))->Chars)
 #define AS_ARRAY(value) ((ObjArray*)AS_OBJECT(value))
 #define AS_MAP(value) ((ObjMap*)AS_OBJECT(value))
-#define AS_STREAM(value) ((ObjStream*)AS_OBJECT(value))
 #define AS_NAMESPACE(value) ((ObjNamespace*)AS_OBJECT(value))
 #define AS_ENUM(value) ((ObjEnum*)AS_OBJECT(value))
 #define AS_MODULE(value) ((ObjModule*)AS_OBJECT(value))
-#define AS_MATERIAL(value) ((ObjMaterial*)AS_OBJECT(value))
 #define AS_RESOURCE(value) ((ObjResource*)AS_OBJECT(value))
 #define AS_RESOURCEABLE(value) ((ObjResourceable*)AS_OBJECT(value))
-
-enum ObjType {
-	OBJ_BOUND_METHOD,
-	OBJ_CLASS,
-	OBJ_CLOSURE,
-	OBJ_FUNCTION,
-	OBJ_INSTANCE,
-	OBJ_NATIVE,
-	OBJ_STRING,
-	OBJ_UPVALUE,
-	OBJ_ARRAY,
-	OBJ_MAP,
-	OBJ_STREAM,
-	OBJ_NAMESPACE,
-	OBJ_ENUM,
-	OBJ_MODULE,
-	OBJ_MATERIAL,
-	OBJ_RESOURCE,
-	OBJ_RESOURCEABLE,
-
-	MAX_OBJ_TYPE
-};
+#define AS_ENTITY(value) ((ObjEntity*)AS_OBJECT(value))
 
 typedef HashMap<VMValue> Table;
 
 struct Obj {
 	ObjType Type;
+	size_t Size;
 	bool IsDark;
 	struct ObjClass* Class;
+	ValueGetFn PropertyGet;
+	ValueSetFn PropertySet;
+	StructGetFn ElementGet;
+	StructSetFn ElementSet;
+	ObjectDestructor Destructor;
 	struct Obj* Next;
 };
 struct ObjString {
@@ -266,10 +284,6 @@ struct ObjClass {
 	Uint32 Hash;
 	Table* Methods;
 	Table* Fields;
-	ValueGetFn PropertyGet;
-	ValueSetFn PropertySet;
-	StructGetFn ElementGet;
-	StructSetFn ElementSet;
 	VMValue Initializer;
 	ClassNewFn NewFn;
 	Uint8 Type;
@@ -278,9 +292,6 @@ struct ObjClass {
 struct ObjInstance {
 	Obj Object;
 	Table* Fields;
-	void* EntityPtr;
-	ValueGetFn PropertyGet;
-	ValueSetFn PropertySet;
 };
 struct ObjBoundMethod {
 	Obj Object;
@@ -296,12 +307,6 @@ struct ObjMap {
 	HashMap<VMValue>* Values;
 	HashMap<char*>* Keys;
 };
-struct ObjStream {
-	Obj Object;
-	Stream* StreamPtr;
-	bool Writable;
-	bool Closed;
-};
 struct ObjNamespace {
 	Obj Object;
 	ObjString* Name;
@@ -315,10 +320,6 @@ struct ObjEnum {
 	Uint32 Hash;
 	Table* Fields;
 };
-struct ObjMaterial {
-	Obj Object;
-	void* MaterialPtr;
-};
 struct ObjResource {
 	Obj Object;
 	void* ResourcePtr;
@@ -328,6 +329,30 @@ struct ObjResourceable {
 	void* ResourceablePtr;
 };
 
+#define UNION_INSTANCEABLE \
+	union { \
+		ObjInstance InstanceObj; \
+		Obj Object; \
+	}
+
+struct ObjEntity {
+	UNION_INSTANCEABLE;
+	void* EntityPtr;
+};
+struct ObjStream {
+	UNION_INSTANCEABLE;
+	Stream* StreamPtr;
+	bool Writable;
+	bool Closed;
+};
+struct ObjMaterial {
+	UNION_INSTANCEABLE;
+	void* MaterialPtr;
+};
+
+#undef UNION_INSTANCEABLE
+
+Obj* AllocateObject(size_t size, ObjType type);
 ObjString* TakeString(char* chars, size_t length);
 ObjString* TakeString(char* chars);
 ObjString* CopyString(const char* chars, size_t length);
@@ -342,28 +367,46 @@ ObjClosure* NewClosure(ObjFunction* function);
 ObjClass* NewClass(Uint32 hash);
 ObjClass* NewClass(const char* name);
 ObjInstance* NewInstance(ObjClass* klass);
+ObjEntity* NewEntity(ObjClass* klass);
 ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method);
 ObjArray* NewArray();
 ObjMap* NewMap();
-ObjStream* NewStream(Stream* streamPtr, bool writable);
 ObjNamespace* NewNamespace(Uint32 hash);
+ObjNamespace* NewNamespace(const char* nsName);
 ObjEnum* NewEnum(Uint32 hash);
 ObjModule* NewModule();
-ObjMaterial* NewMaterial(void* material);
-ObjResource* NewResource(void* resourcePtr);
-ObjResourceable* NewResourceable(void* resourceablePtr);
+Obj* NewNativeInstance(size_t size);
 
-#define FREE_OBJ(obj, type) \
-	assert(GarbageCollector::GarbageSize >= sizeof(type)); \
-	GarbageCollector::GarbageSize -= sizeof(type); \
+#define FREE_OBJ(obj) \
+	assert(GarbageCollector::GarbageSize >= ((Obj*)(obj))->Size); \
+	GarbageCollector::GarbageSize -= ((Obj*)(obj))->Size; \
 	Memory::Free(obj)
 
 bool ValuesEqual(VMValue a, VMValue b);
+Uint32 GetClassHash(const char* name);
 
 static inline bool IsObjectType(VMValue value, ObjType type) {
 	return IS_OBJECT(value) && AS_OBJECT(value)->Type == type;
 }
+static inline bool IsNativeInstance(Obj* object, const char* className) {
+	if (object->Type != OBJ_NATIVE_INSTANCE) {
+		return false;
+	}
 
+	ObjClass* klass = object->Class;
+	if (klass != nullptr && klass->Hash == GetClassHash(className)) {
+		return true;
+	}
+
+	return false;
+}
+static inline bool IsNativeInstance(VMValue value, const char* className) {
+	if (!IS_OBJECT(value)) {
+		return false;
+	}
+
+	return IsNativeInstance(AS_OBJECT(value), className);
+}
 static inline bool HasInitializer(ObjClass* klass) {
 	return !IS_NULL(klass->Initializer);
 }

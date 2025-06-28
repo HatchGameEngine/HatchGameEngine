@@ -5,7 +5,10 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/Values.h>
+#include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
+#include <Engine/Bytecode/Value.h>
+#include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
@@ -156,7 +159,7 @@ inline float GetDecimal(VMValue* args, int index, Uint32 threadID) {
 		break;
 	case VAL_INTEGER:
 	case VAL_LINKED_INTEGER:
-		value = AS_DECIMAL(ScriptManager::CastValueAsDecimal(args[index]));
+		value = AS_DECIMAL(Value::CastAsDecimal(args[index]));
 		break;
 	default:
 		ExpectedTypeError(index, args[index], VAL_DECIMAL, threadID);
@@ -248,11 +251,24 @@ inline ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
 inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 	ObjInstance* value = NULL;
 	if (ScriptManager::Lock()) {
-		if (IS_INSTANCE(args[index])) {
-			value = (ObjInstance*)(AS_OBJECT(args[index]));
+		if (IS_INSTANCEABLE(args[index])) {
+			value = AS_INSTANCE(args[index]);
 		}
 		else {
 			ExpectedObjectTypeError(index, args[index], OBJ_INSTANCE, threadID);
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
+inline ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID) {
+	ObjEntity* value = NULL;
+	if (ScriptManager::Lock()) {
+		if (IS_ENTITY(args[index])) {
+			value = AS_ENTITY(args[index]);
+		}
+		else {
+			ExpectedObjectTypeError(index, args[index], OBJ_ENTITY, threadID);
 		}
 		ScriptManager::Unlock();
 	}
@@ -262,10 +278,15 @@ inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
 	ObjStream* value = NULL;
 	if (ScriptManager::Lock()) {
 		if (IS_STREAM(args[index])) {
-			value = (ObjStream*)(AS_OBJECT(args[index]));
+			value = AS_STREAM(args[index]);
 		}
 		else {
-			ExpectedObjectTypeError(index, args[index], OBJ_STREAM, threadID);
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(StreamImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
 		}
 		ScriptManager::Unlock();
 	}
@@ -450,6 +471,9 @@ ISound* StandardLibrary::GetAudio(VMValue* args, int index, Uint32 threadID) {
 }
 ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetInstance(args, index, threadID);
+}
+ObjEntity* StandardLibrary::GetEntity(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetEntity(args, index, threadID);
 }
 ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetFunction(args, index, threadID);
@@ -1822,11 +1846,8 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
 						return false;
 					}
 					else if (IS_DECIMAL(a) || IS_DECIMAL(b)) {
-						return AS_DECIMAL(ScriptManager::CastValueAsDecimal(
-							       a)) <
-							AS_DECIMAL(
-								ScriptManager::CastValueAsDecimal(
-									b));
+						return AS_DECIMAL(Value::CastAsDecimal(a)) <
+							AS_DECIMAL(Value::CastAsDecimal(b));
 					}
 					else {
 						return AS_INTEGER(a) < AS_INTEGER(b);
@@ -1947,7 +1968,7 @@ VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
+	ObjEntity* entity = GET_ARG(0, GetEntity);
 	ObjArray* outer = GET_ARG(1, GetArray);
 	ObjArray* inner = GET_ARG(2, GetArray);
 
@@ -1985,7 +2006,7 @@ VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 thre
  */
 VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(7);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
+	ObjEntity* entity = GET_ARG(0, GetEntity);
 	int cLayers = GET_ARG(1, GetInteger);
 	int cMode = GET_ARG(2, GetInteger);
 	int cPlane = GET_ARG(3, GetInteger);
@@ -2013,7 +2034,7 @@ VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(7);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
+	ObjEntity* entity = GET_ARG(0, GetEntity);
 	int cLayers = GET_ARG(1, GetInteger);
 	int cMode = GET_ARG(2, GetInteger);
 	int cPlane = GET_ARG(3, GetInteger);
@@ -2038,9 +2059,9 @@ VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Collision_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	ObjArray* otherHitbox = GET_ARG(3, GetArray);
 
 	auto thisEnt = (Entity*)thisEntity->EntityPtr;
@@ -2089,9 +2110,9 @@ VMValue Collision_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 
  */
 VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	float thisRadius = GET_ARG(1, GetDecimal);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	float otherRadius = GET_ARG(3, GetDecimal);
 
 	auto thisEnt = (Entity*)thisEntity->EntityPtr;
@@ -2113,9 +2134,9 @@ VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32
  */
 VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	ObjArray* otherHitbox = GET_ARG(3, GetArray);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
@@ -2166,9 +2187,9 @@ VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 th
  */
 VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	ObjArray* otherHitbox = GET_ARG(3, GetArray);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
@@ -2871,7 +2892,7 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* entity = (Entity*)instance->EntityPtr;
 	int x = (int)GET_ARG_OPT(1, GetDecimal, entity->X);
 	int y = (int)GET_ARG_OPT(2, GetDecimal, entity->Y);
@@ -3064,7 +3085,7 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 
 	Animator* animator = GET_ARG(0, GetAnimator);
-	ObjInstance* instance = GET_ARG(1, GetInstance);
+	ObjEntity* instance = GET_ARG(1, GetEntity);
 	Entity* entity = (Entity*)instance->EntityPtr;
 	int x = (int)GET_ARG_OPT(2, GetDecimal, entity->X);
 	int y = (int)GET_ARG_OPT(3, GetDecimal, entity->Y);
@@ -3648,10 +3669,10 @@ VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param ID (Integer): ID of the tile to draw.
  * \param x (Number): X position of where to draw the tile.
  * \param y (Number): Y position of where to draw the tile.
- * \param flipX (Integer): Whether or not to flip the tile horizontally.
- * \param flipY (Integer): Whether or not to flip the tile vertically.
- * \paramOpt scaleX (Number): Scale multiplier of the tile horizontally.
- * \paramOpt scaleY (Number): Scale multiplier of the tile vertically.
+ * \paramOpt flipX (Integer): Whether or not to flip the tile horizontally.
+ * \paramOpt flipY (Integer): Whether or not to flip the tile vertically.
+ * \paramOpt scaleX (Number): Horizontal scale multiplier of the tile.
+ * \paramOpt scaleY (Number): Vertical scale multiplier of the tile.
  * \ns Draw
  */
 VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
@@ -8289,7 +8310,7 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	obj->List = objectList;
 	Scene::AddDynamic(objectList, obj);
 
-	ObjInstance* instance = obj->Instance;
+	ObjEntity* instance = obj->Instance;
 
 	// Call the initializer, if there is one.
 	if (HasInitializer(instance->Object.Class)) {
@@ -8343,7 +8364,7 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 		return INTEGER_VAL(false);
 	}
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	char* objectName = GET_ARG(1, GetString);
 
 	Entity* self = (Entity*)instance->EntityPtr;
@@ -8372,7 +8393,7 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 
 	Entity* self = (Entity*)instance->EntityPtr;
 	if (!self || !self->List) {
@@ -8411,7 +8432,7 @@ VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* self = (Entity*)instance->EntityPtr;
 	int n = GET_ARG(1, GetInteger);
 
@@ -8489,8 +8510,8 @@ VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID
  */
 VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
-	ObjInstance* destInstance = GET_ARG(0, GetInstance);
-	ObjInstance* srcInstance = GET_ARG(1, GetInstance);
+	ObjEntity* destInstance = GET_ARG(0, GetEntity);
+	ObjEntity* srcInstance = GET_ARG(1, GetEntity);
 	bool copyClass = !!GET_ARG_OPT(2, GetInteger, true);
 
 	ScriptEntity* destEntity = (ScriptEntity*)destInstance->EntityPtr;
@@ -8512,7 +8533,7 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	char* className = GET_ARG(1, GetString);
 
 	ScriptEntity* self = (ScriptEntity*)instance->EntityPtr;
@@ -8521,7 +8542,7 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (self->ChangeClass(className)) {
-		self->Instance->Fields->Clear();
+		self->Instance->InstanceObj.Fields->Clear();
 		self->LinkFields();
 		self->Initialize();
 		return INTEGER_VAL(true);
@@ -8843,15 +8864,26 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * JSON.ToString
- * \desc Converts a Map value into a String value.
- * \param json (Map): Map value.
+ * \desc Converts a value into a JSON string.
+ * \param json (Any type): The value to convert.
  * \paramOpt prettyPrint (Boolean): Whether or not to use spacing and newlines in the text.
- * \return Returns a JSON string based on the Map value.
+ * \return Returns a JSON string based on the value.
  * \ns JSON
  */
 VMValue JSON_ToString(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	return ScriptManager::CastValueAsString(args[0], !!GET_ARG_OPT(1, GetInteger, false));
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	VMValue value = args[0];
+	bool prettyPrint = !!GET_ARG_OPT(1, GetInteger, false);
+
+	char* buffer = (char*)malloc(512);
+	PrintBuffer buffer_info;
+	buffer_info.Buffer = &buffer;
+	buffer_info.WriteIndex = 0;
+	buffer_info.BufferSize = 512;
+	ValuePrinter::Print(&buffer_info, value, prettyPrint, true);
+	value = OBJECT_VAL(CopyString(buffer, buffer_info.WriteIndex));
+	free(buffer);
+	return value;
 }
 // #endregion
 
@@ -10228,7 +10260,7 @@ VMValue Model_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (material->VMObject == nullptr) {
-		material->VMObject = (void*)NewMaterial((void*)material);
+		material->VMObject = (void*)MaterialImpl::New((void*)material);
 	}
 
 	return OBJECT_VAL(material->VMObject);
@@ -13195,7 +13227,6 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 	SceneLayer* layer = &Scene::Layers[BufferedScrollSetupLayer];
 	Memory::Free(layer->ScrollInfos);
 	Memory::Free(layer->ScrollIndexes);
-	Memory::Free(layer->ScrollInfosSplitIndexes);
 
 	layer->ScrollInfoCount = (int)BufferedScrollInfos.size();
 	layer->ScrollInfos =
@@ -13211,6 +13242,7 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 		length16 = layer->WidthData * 16;
 	}
 
+	layer->UsingScrollIndexes = true;
 	layer->ScrollIndexes = (Uint8*)Memory::Calloc(length16, sizeof(Uint8));
 	memcpy(layer->ScrollIndexes, BufferedScrollLines, BufferedScrollLinesMax);
 
@@ -13242,6 +13274,7 @@ VMValue Scene_SetLayerTileDeforms(int argCount, VMValue* args, Uint32 threadID) 
 	lineIndex &= maxDeformLineMask;
 	Scene::Layers[index].DeformSetA[lineIndex] = deformA;
 	Scene::Layers[index].DeformSetB[lineIndex] = deformB;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13257,6 +13290,7 @@ VMValue Scene_SetLayerTileDeformSplitLine(int argCount, VMValue* args, Uint32 th
 	int deformPosition = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformSplitLine = deformPosition;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13275,6 +13309,7 @@ VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 thre
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformAOffset;
 	Scene::Layers[index].DeformOffsetB = deformBOffset;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13290,6 +13325,7 @@ VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 	int deformA = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformA;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13305,6 +13341,7 @@ VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 	int deformB = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformB;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13345,7 +13382,7 @@ VMValue Scene_SetTileScanline(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 	int scanlineIndex = GET_ARG(0, GetInteger);
 
-	TileScanLine* scanLine = &SoftwareRenderer::TileScanLineBuffer[scanlineIndex];
+	TileScanLine* scanLine = &Graphics::TileScanLineBuffer[scanlineIndex];
 	scanLine->SrcX = (Sint64)(GET_ARG(1, GetDecimal) * 0x10000);
 	scanLine->SrcY = (Sint64)(GET_ARG(2, GetDecimal) * 0x10000);
 	scanLine->DeltaX = (Sint64)(GET_ARG(3, GetDecimal) * 0x10000);
@@ -14910,7 +14947,7 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (audio) {
-		AudioManager::SetSound(channel & AudioManager::SoundArrayLength,
+		AudioManager::SetSound(channel % AudioManager::SoundArrayLength,
 			audio,
 			loopPoint >= 0,
 			loopPoint >= 0 ? loopPoint : 0,
@@ -15409,7 +15446,7 @@ VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open resource stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = NewStream(streamPtr, false);
+		ObjStream* stream = StreamImpl::New((void*)streamPtr, false);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -15434,7 +15471,7 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = NewStream(streamPtr, access == FileStream::WRITE_ACCESS);
+		ObjStream* stream = StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -16415,7 +16452,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 	int length = (int)GET_ARG(3, GetDecimal);
 	int collisionField = GET_ARG(4, GetInteger);
 	int compareAngle = GET_ARG(5, GetInteger);
-	ObjInstance* entity = GET_ARG(6, GetInstance);
+	ObjEntity* entity = GET_ARG(6, GetEntity);
 
 	Sensor sensor;
 	sensor.X = x;
@@ -16728,7 +16765,7 @@ VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (callback == NULL) {
-		Values::PrintValue(args[0]);
+		ValuePrinter::Print(args[0]);
 		printf("\n");
 		Log::Print(Log::LOG_ERROR, "No callback.");
 		return NULL_VAL;
@@ -17678,7 +17715,7 @@ VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* self = (Entity*)instance->EntityPtr;
 	float rangeX = 0.0;
 	float rangeY = 0.0;
@@ -17996,17 +18033,6 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 #define DEF_ENUM_CLASS(a, b) DEF_CONST_INT(#a "_" #b, (int)a::b)
 #define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(a "_" #c, (int)b::c)
 
-ObjClass* InitClass(const char* className) {
-	ObjClass* klass = NewClass(Murmur::EncryptString(className));
-	klass->Name = CopyString(className);
-	return klass;
-}
-ObjNamespace* InitNamespace(const char* nsName) {
-	ObjNamespace* ns = NewNamespace(Murmur::EncryptString(nsName));
-	ns->Name = CopyString(nsName);
-	return ns;
-}
-
 void StandardLibrary::Link() {
 	ObjClass* klass;
 
@@ -18030,7 +18056,7 @@ void StandardLibrary::Link() {
 	String_CaseMapBind(L'ç', L'Ç');
 
 #define INIT_CLASS(className) \
-	klass = InitClass(#className); \
+	klass = NewClass(#className); \
 	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
 #define DEF_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
@@ -18038,11 +18064,11 @@ void StandardLibrary::Link() {
 	ScriptManager::DefineNative(klass, #funcName, oldClassName##_##oldFuncName)
 
 #define INIT_NAMESPACE(nsName) \
-	ObjNamespace* ns_##nsName = InitNamespace(#nsName); \
+	ObjNamespace* ns_##nsName = NewNamespace(#nsName); \
 	ScriptManager::Constants->Put(ns_##nsName->Hash, OBJECT_VAL(ns_##nsName)); \
 	ScriptManager::AllNamespaces.push_back(ns_##nsName)
 #define INIT_NAMESPACED_CLASS(nsName, className) \
-	klass = InitClass(#className); \
+	klass = NewClass(#className); \
 	ns_##nsName->Fields->Put(klass->Hash, OBJECT_VAL(klass))
 #define DEF_NAMESPACED_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)

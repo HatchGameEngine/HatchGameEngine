@@ -774,7 +774,7 @@ void Application::Restart() {
 
 void Application::LoadVideoSettings() {
 	bool vsyncEnabled;
-	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
+	Application::Settings->GetBool("display", "vsync", &vsyncEnabled);
 	Application::Settings->GetInteger("display", "frameSkip", &Application::FrameSkip);
 
 	if (Application::FrameSkip > DEFAULT_MAX_FRAMESKIP) {

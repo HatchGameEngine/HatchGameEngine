@@ -88,6 +88,9 @@ void GarbageCollector::Collect() {
 		GrayObject(ScriptManager::ClassImplList[i]);
 	}
 
+	// Mark resources
+	GrayInstanceables();
+
 	grayElapsed = Clock::GetTicks() - grayElapsed;
 
 	double blackenElapsed = Clock::GetTicks();
@@ -117,7 +120,7 @@ void GarbageCollector::Collect() {
 			Obj* unreached = *object;
 			*object = unreached->Next;
 
-			GarbageCollector::FreeValue(OBJECT_VAL(unreached));
+			GarbageCollector::FreeObject(unreached);
 		}
 		else {
 			// This object was reached, so unmark it (for
@@ -134,7 +137,7 @@ void GarbageCollector::Collect() {
 	Log::Print(Log::LOG_VERBOSE, "Sweep: Freeing took %.1f ms", freeElapsed);
 
 	for (size_t i = 0; i < MAX_OBJ_TYPE; i++) {
-		if (objectTypeCounts[i]) {
+		if (objectTypeFreed[i] && objectTypeCounts[i]) {
 			Log::Print(Log::LOG_VERBOSE,
 				"Freed %d %s objects out of %d.",
 				objectTypeFreed[i],
@@ -144,6 +147,31 @@ void GarbageCollector::Collect() {
 	}
 
 	GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
+}
+
+void GarbageCollector::GrayInstanceables() {
+	// Mark model materials
+	for (size_t i = 0; i < Material::List.size(); i++) {
+		GrayMaterial(Material::List[i]->VMObject);
+	}
+}
+
+void GarbageCollector::GrayMaterial(void* obj) {
+	Obj* object = (Obj*)obj;
+	if (!object) {
+		return;
+	}
+
+	GrayObject(object);
+
+	ObjMaterial* material = (ObjMaterial*)object;
+	if (material->MaterialPtr) {
+		Material* materialPtr = (Material*)material->MaterialPtr;
+		GrayResource(materialPtr->TextureDiffuse);
+		GrayResource(materialPtr->TextureSpecular);
+		GrayResource(materialPtr->TextureAmbient);
+		GrayResource(materialPtr->TextureEmissive);
+	}
 }
 
 void GarbageCollector::GrayResource(void* ptr) {
@@ -158,33 +186,19 @@ void GarbageCollector::GrayResource(void* ptr) {
 	if (resource->Type == RESOURCE_MODEL) {
 		IModel* model = resource->AsModel;
 		for (size_t ii = 0; ii < model->Materials.size(); ii++) {
-			GrayObject(model->Materials[ii]->VMObject);
+			GrayMaterial(model->Materials[ii]->VMObject);
 		}
 	}
 }
 
-void GarbageCollector::FreeValue(VMValue value) {
-	if (!IS_OBJECT(value)) {
-		return;
-	}
-
-	// If this object is an instance associated with an entity,
-	// then delete the latter
-	if (OBJECT_TYPE(value) == OBJ_INSTANCE) {
-		ObjInstance* instance = AS_INSTANCE(value);
-		if (instance->EntityPtr) {
-			Scene::DeleteRemoved((Entity*)instance->EntityPtr);
-		}
-	}
-
-	ScriptManager::FreeValue(value);
+void GarbageCollector::FreeObject(Obj* object) {
+	ScriptManager::DestroyObject(object);
 }
 
 void GarbageCollector::GrayValue(VMValue value) {
-	if (!IS_OBJECT(value)) {
-		return;
+	if (IS_OBJECT(value)) {
+		GrayObject(AS_OBJECT(value));
 	}
-	GrayObject(AS_OBJECT(value));
 }
 void GarbageCollector::GrayObject(void* obj) {
 	if (obj == NULL) {
@@ -259,7 +273,8 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		}
 		break;
 	}
-	case OBJ_INSTANCE: {
+	case OBJ_INSTANCE:
+	case OBJ_ENTITY: {
 		ObjInstance* instance = (ObjInstance*)object;
 		GrayHashMap(instance->Fields);
 		break;
@@ -276,17 +291,6 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		map->Values->ForAll([](Uint32, VMValue v) -> void {
 			GrayValue(v);
 		});
-		break;
-	}
-	case OBJ_MATERIAL: {
-		ObjMaterial* material = (ObjMaterial*)object;
-		if (material->MaterialPtr) {
-			Material* materialPtr = (Material*)material->MaterialPtr;
-			GrayResource(materialPtr->TextureDiffuse);
-			GrayResource(materialPtr->TextureSpecular);
-			GrayResource(materialPtr->TextureAmbient);
-			GrayResource(materialPtr->TextureEmissive);
-		}
 		break;
 	}
 	case OBJ_RESOURCE: {

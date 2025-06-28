@@ -51,7 +51,8 @@ CPPFILES := \
 	source/Engine/Bytecode/TypeImpl/ResourceImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
 	source/Engine/Bytecode/Types.cpp \
-	source/Engine/Bytecode/Values.cpp \
+	source/Engine/Bytecode/Value.cpp \
+	source/Engine/Bytecode/ValuePrinter.cpp \
 	source/Engine/Bytecode/VMThread.cpp \
 	source/Engine/Diagnostics/Clock.cpp \
 	source/Engine/Diagnostics/Log.cpp \
@@ -167,6 +168,7 @@ CPPFILES := \
 	source/Engine/Types/ObjectRegistry.cpp \
 	source/Engine/Types/Tileset.cpp \
 	source/Engine/Utilities/ColorUtils.cpp \
+	source/Engine/Utilities/PrintBuffer.cpp \
 	source/Engine/Utilities/StringUtils.cpp \
 	source/Libraries/Clipper2/clipper.engine.cpp \
 	source/Libraries/Clipper2/clipper.offset.cpp \
@@ -190,7 +192,6 @@ PRVHFILES := \
 	source/Engine/Includes/DateTime.h \
 	source/Engine/Includes/Endian.h \
 	source/Engine/Includes/HashMap.h \
-	source/Engine/Includes/PrintBuffer.h \
 	source/Engine/Includes/Standard.h \
 	source/Engine/Includes/StandardSDL2.h \
 	source/Engine/Includes/Token.h \
@@ -272,7 +273,8 @@ PUBHFILES := \
 	include/Engine/Bytecode/TypeImpl/MaterialImpl.h \
 	include/Engine/Bytecode/TypeImpl/ResourceImpl.h \
 	include/Engine/Bytecode/TypeImpl/StringImpl.h \
-	include/Engine/Bytecode/Values.h \
+	include/Engine/Bytecode/Value.h \
+	include/Engine/Bytecode/ValuePrinter.h \
 	include/Engine/Bytecode/VMThread.h \
 	include/Engine/Diagnostics/Clock.h \
 	include/Engine/Diagnostics/Log.h \
@@ -388,6 +390,7 @@ PUBHFILES := \
 	include/Engine/Types/ObjectRegistry.h \
 	include/Engine/Types/Tileset.h \
 	include/Engine/Utilities/ColorUtils.h \
+	include/Engine/Utilities/PrintBuffer.h \
 	include/Engine/Utilities/StringUtils.h
 
 DEFINES := \
@@ -410,7 +413,7 @@ CXXFLAGS := \
 	-Wno-unused-variable
 
 # the linker has to care about this too, unfortunately
-LDFLAGS := -std=c++17
+LDFLAGS := -std=c++17 -fuse-ld=lld
 
 # Hatch uses meta/ instead of etc/
 FMTFLAGS := -style=file:meta/clang-format.yml

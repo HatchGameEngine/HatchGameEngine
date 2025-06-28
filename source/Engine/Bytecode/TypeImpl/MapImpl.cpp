@@ -1,19 +1,43 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 ObjClass* MapImpl::Class = nullptr;
 
 void MapImpl::Init() {
-	const char* name = "$$MapImpl";
-
-	Class = NewClass(name);
+	Class = NewClass(CLASS_MAP);
 
 	ScriptManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
 	ScriptManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", MapImpl::VM_IteratorValue);
 
-	ScriptManager::ClassImplList.push_back(Class);
+	TypeImpl::RegisterClass(Class);
+}
+
+Obj* MapImpl::New() {
+	ObjMap* map = (ObjMap*)AllocateObject(sizeof(ObjMap), OBJ_MAP);
+	Memory::Track(map, "NewMap");
+	map->Object.Class = Class;
+	map->Object.Destructor = Dispose;
+	map->Values = new HashMap<VMValue>(NULL, 4);
+	map->Keys = new HashMap<char*>(NULL, 4);
+	return (Obj*)map;
+}
+
+void MapImpl::Dispose(Obj* object) {
+	ObjMap* map = (ObjMap*)object;
+
+	// Free keys
+	map->Keys->WithAll([](Uint32, char* ptr) -> void {
+		Memory::Free(ptr);
+	});
+
+	// Free Keys table
+	delete map->Keys;
+
+	// Free Values table
+	delete map->Values;
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))

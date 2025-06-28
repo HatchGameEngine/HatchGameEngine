@@ -1,5 +1,6 @@
 #include <Engine/Rendering/Material.h>
 
+#include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Filesystem/Path.h>
