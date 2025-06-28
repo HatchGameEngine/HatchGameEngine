@@ -42,6 +42,9 @@
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceableImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
