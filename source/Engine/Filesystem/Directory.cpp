@@ -27,10 +27,9 @@ bool Directory::Exists(const char* path) {
 		return true;
 	}
 #else
-	DIR* dir = opendir(path);
-	if (dir) {
-		closedir(dir);
-		return true;
+	struct stat pathStat;
+	if (stat(path, &pathStat) == 0) {
+		return S_ISDIR(pathStat.st_mode);
 	}
 #endif
 	return false;

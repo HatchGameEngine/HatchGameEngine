@@ -87,6 +87,21 @@ const char* Value::GetPrintableObjectName(VMValue value) {
 	}
 }
 
+std::string Value::ToString(VMValue v) {
+	if (IS_STRING(v)) {
+		return std::string(AS_CSTRING(v));
+	}
+
+	char* buffer = (char*)malloc(512);
+	PrintBuffer buffer_info;
+	buffer_info.Buffer = &buffer;
+	buffer_info.WriteIndex = 0;
+	buffer_info.BufferSize = 512;
+	ValuePrinter::Print(&buffer_info, v, false);
+	std::string result(buffer, buffer_info.WriteIndex);
+	free(buffer);
+	return result;
+}
 VMValue Value::CastAsString(VMValue v) {
 	if (IS_STRING(v)) {
 		return v;
