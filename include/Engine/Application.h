@@ -95,6 +95,7 @@ public:
 	static bool AllowCmdLineSceneLoad;
 
 	static void Init(int argc, char* args[]);
+	static void InitScripting();
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();
 	static bool IsMobile();
@@ -125,6 +126,7 @@ public:
 	static void SetKeyBind(int bind, int key);
 	static void Run(int argc, char* args[]);
 	static void Cleanup();
+	static void TerminateScripting();
 	static void LoadSceneInfo();
 	static void InitPlayerControls();
 	static bool LoadSettings(const char* filename);

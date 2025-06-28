@@ -1,11 +1,8 @@
 #include <Engine/Scene.h>
 
 #include <Engine/Audio/AudioManager.h>
-#include <Engine/Bytecode/Compiler.h>
-#include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
@@ -633,22 +630,6 @@ void Scene::Init() {
 	Scene::CurrentScene[0] = '\0';
 
 	Scene::ReservedSlotIDs = 0;
-
-	GarbageCollector::Init();
-
-	Compiler::Init();
-
-	ScriptManager::Init();
-	ScriptManager::ResetStack();
-	ScriptManager::LinkStandardLibrary();
-	ScriptManager::LinkExtensions();
-
-	Compiler::GetStandardConstants();
-
-	if (SourceFileMap::CheckForUpdate()) {
-		// Force garbage collect
-		ScriptManager::ForceGarbageCollection();
-	}
 
 	Application::Settings->GetBool("dev", "notiles", &DEV_NoTiles);
 	Application::Settings->GetBool("dev", "noobjectrender", &DEV_NoObjectRender);
@@ -3160,11 +3141,6 @@ void Scene::Dispose() {
 		delete Scene::Properties;
 	}
 	Scene::Properties = NULL;
-
-	ScriptManager::Dispose();
-	SourceFileMap::Dispose();
-	Compiler::Dispose();
-	GarbageCollector::Dispose();
 }
 
 void Scene::UnloadTilesets() {
