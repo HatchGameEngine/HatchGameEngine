@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
@@ -233,8 +234,8 @@ inline ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
 inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 	ObjInstance* value = NULL;
 	if (ScriptManager::Lock()) {
-		if (IS_INSTANCE(args[index])) {
-			value = (ObjInstance*)(AS_OBJECT(args[index]));
+		if (IS_INSTANCEABLE(args[index])) {
+			value = AS_INSTANCE(args[index]);
 		}
 		else {
 			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
@@ -248,16 +249,34 @@ inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
-inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
-	ObjStream* value = NULL;
+inline ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID) {
+	ObjEntity* value = NULL;
 	if (ScriptManager::Lock()) {
-		if (IS_STREAM(args[index])) {
-			value = (ObjStream*)(AS_OBJECT(args[index]));
+		if (IS_ENTITY(args[index])) {
+			value = AS_ENTITY(args[index]);
 		}
 		else {
 			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
 				    index + 1,
-				    GetObjectTypeString(OBJ_STREAM),
+				    GetObjectTypeString(OBJ_ENTITY),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
+inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
+	ObjStream* value = NULL;
+	if (ScriptManager::Lock()) {
+		if (IS_STREAM(args[index])) {
+			value = AS_STREAM(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(StreamImpl::Class),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
 				ScriptManager::Threads[threadID].ReturnFromNative();
 			}
@@ -437,6 +456,9 @@ ISound* StandardLibrary::GetSound(VMValue* args, int index, Uint32 threadID) {
 }
 ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetInstance(args, index, threadID);
+}
+ObjEntity* StandardLibrary::GetEntity(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetEntity(args, index, threadID);
 }
 ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetFunction(args, index, threadID);
@@ -1917,7 +1939,7 @@ VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
+	ObjEntity* entity = GET_ARG(0, GetEntity);
 	ObjArray* outer = GET_ARG(1, GetArray);
 	ObjArray* inner = GET_ARG(2, GetArray);
 
@@ -1955,7 +1977,7 @@ VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 thre
  */
 VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(7);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
+	ObjEntity* entity = GET_ARG(0, GetEntity);
 	int cLayers = GET_ARG(1, GetInteger);
 	int cMode = GET_ARG(2, GetInteger);
 	int cPlane = GET_ARG(3, GetInteger);
@@ -1983,7 +2005,7 @@ VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(7);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
+	ObjEntity* entity = GET_ARG(0, GetEntity);
 	int cLayers = GET_ARG(1, GetInteger);
 	int cMode = GET_ARG(2, GetInteger);
 	int cPlane = GET_ARG(3, GetInteger);
@@ -2008,9 +2030,9 @@ VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Collision_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	ObjArray* otherHitbox = GET_ARG(3, GetArray);
 
 	auto thisEnt = (Entity*)thisEntity->EntityPtr;
@@ -2059,9 +2081,9 @@ VMValue Collision_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 
  */
 VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	float thisRadius = GET_ARG(1, GetDecimal);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	float otherRadius = GET_ARG(3, GetDecimal);
 
 	auto thisEnt = (Entity*)thisEntity->EntityPtr;
@@ -2083,9 +2105,9 @@ VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32
  */
 VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	ObjArray* otherHitbox = GET_ARG(3, GetArray);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
@@ -2136,9 +2158,9 @@ VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 th
  */
 VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	ObjArray* otherHitbox = GET_ARG(3, GetArray);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
@@ -2841,7 +2863,7 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* entity = (Entity*)instance->EntityPtr;
 	int x = (int)GET_ARG_OPT(1, GetDecimal, entity->X);
 	int y = (int)GET_ARG_OPT(2, GetDecimal, entity->Y);
@@ -3033,7 +3055,7 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 
 	Animator* animator = GET_ARG(0, GetAnimator);
-	ObjInstance* instance = GET_ARG(1, GetInstance);
+	ObjEntity* instance = GET_ARG(1, GetEntity);
 	Entity* entity = (Entity*)instance->EntityPtr;
 	int x = (int)GET_ARG_OPT(2, GetDecimal, entity->X);
 	int y = (int)GET_ARG_OPT(3, GetDecimal, entity->Y);
@@ -8257,7 +8279,7 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	obj->List = objectList;
 	Scene::AddDynamic(objectList, obj);
 
-	ObjInstance* instance = obj->Instance;
+	ObjEntity* instance = obj->Instance;
 
 	// Call the initializer, if there is one.
 	if (HasInitializer(instance->Object.Class)) {
@@ -8311,7 +8333,7 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 		return INTEGER_VAL(false);
 	}
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	char* objectName = GET_ARG(1, GetString);
 
 	Entity* self = (Entity*)instance->EntityPtr;
@@ -8340,7 +8362,7 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 
 	Entity* self = (Entity*)instance->EntityPtr;
 	if (!self || !self->List) {
@@ -8379,7 +8401,7 @@ VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* self = (Entity*)instance->EntityPtr;
 	int n = GET_ARG(1, GetInteger);
 
@@ -8457,8 +8479,8 @@ VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID
  */
 VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
-	ObjInstance* destInstance = GET_ARG(0, GetInstance);
-	ObjInstance* srcInstance = GET_ARG(1, GetInstance);
+	ObjEntity* destInstance = GET_ARG(0, GetEntity);
+	ObjEntity* srcInstance = GET_ARG(1, GetEntity);
 	bool copyClass = !!GET_ARG_OPT(2, GetInteger, true);
 
 	ScriptEntity* destEntity = (ScriptEntity*)destInstance->EntityPtr;
@@ -8480,7 +8502,7 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	char* className = GET_ARG(1, GetString);
 
 	ScriptEntity* self = (ScriptEntity*)instance->EntityPtr;
@@ -8489,7 +8511,7 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (self->ChangeClass(className)) {
-		self->Instance->Fields->Clear();
+		self->Instance->InstanceObj.Fields->Clear();
 		self->LinkFields();
 		self->Initialize();
 		return INTEGER_VAL(true);
@@ -15359,7 +15381,7 @@ VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open resource stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = NewStream(streamPtr, false);
+		ObjStream* stream = StreamImpl::New((void*)streamPtr, false);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -15384,7 +15406,7 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = NewStream(streamPtr, access == FileStream::WRITE_ACCESS);
+		ObjStream* stream = StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -16365,7 +16387,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 	int length = (int)GET_ARG(3, GetDecimal);
 	int collisionField = GET_ARG(4, GetInteger);
 	int compareAngle = GET_ARG(5, GetInteger);
-	ObjInstance* entity = GET_ARG(6, GetInstance);
+	ObjEntity* entity = GET_ARG(6, GetEntity);
 
 	Sensor sensor;
 	sensor.X = x;
@@ -17644,7 +17666,7 @@ VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* self = (Entity*)instance->EntityPtr;
 	float rangeX = 0.0;
 	float rangeY = 0.0;
@@ -17964,17 +17986,6 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 #define DEF_ENUM_CLASS(a, b) DEF_CONST_INT(#a "_" #b, (int)a::b)
 #define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(a "_" #c, (int)b::c)
 
-ObjClass* InitClass(const char* className) {
-	ObjClass* klass = NewClass(Murmur::EncryptString(className));
-	klass->Name = CopyString(className);
-	return klass;
-}
-ObjNamespace* InitNamespace(const char* nsName) {
-	ObjNamespace* ns = NewNamespace(Murmur::EncryptString(nsName));
-	ns->Name = CopyString(nsName);
-	return ns;
-}
-
 void StandardLibrary::Link() {
 	ObjClass* klass;
 
@@ -17998,7 +18009,7 @@ void StandardLibrary::Link() {
 	String_CaseMapBind(L'ç', L'Ç');
 
 #define INIT_CLASS(className) \
-	klass = InitClass(#className); \
+	klass = NewClass(#className); \
 	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
 #define DEF_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
@@ -18006,11 +18017,11 @@ void StandardLibrary::Link() {
 	ScriptManager::DefineNative(klass, #funcName, oldClassName##_##oldFuncName)
 
 #define INIT_NAMESPACE(nsName) \
-	ObjNamespace* ns_##nsName = InitNamespace(#nsName); \
+	ObjNamespace* ns_##nsName = NewNamespace(#nsName); \
 	ScriptManager::Constants->Put(ns_##nsName->Hash, OBJECT_VAL(ns_##nsName)); \
 	ScriptManager::AllNamespaces.push_back(ns_##nsName)
 #define INIT_NAMESPACED_CLASS(nsName, className) \
-	klass = InitClass(#className); \
+	klass = NewClass(#className); \
 	ns_##nsName->Fields->Put(klass->Hash, OBJECT_VAL(klass))
 #define DEF_NAMESPACED_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)

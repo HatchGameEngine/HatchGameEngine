@@ -6,7 +6,7 @@
 
 class GarbageCollector {
 private:
-	static void FreeValue(VMValue value);
+	static void FreeObject(Obj* object);
 	static void GrayValue(VMValue value);
 	static void GrayObject(void* obj);
 	static void GrayHashMapItem(Uint32, VMValue value);

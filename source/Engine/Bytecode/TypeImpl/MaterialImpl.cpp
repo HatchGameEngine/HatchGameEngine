@@ -1,48 +1,46 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
+#include <Engine/Bytecode/Types.h>
+#include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Error.h>
 #include <Engine/Rendering/Material.h>
 
 ObjClass* MaterialImpl::Class = nullptr;
 
-Uint32 MaterialImpl::Hash_Name = 0;
+Uint32 Hash_Name = 0;
 
-Uint32 MaterialImpl::Hash_DiffuseRed = 0;
-Uint32 MaterialImpl::Hash_DiffuseGreen = 0;
-Uint32 MaterialImpl::Hash_DiffuseBlue = 0;
-Uint32 MaterialImpl::Hash_DiffuseAlpha = 0;
-Uint32 MaterialImpl::Hash_DiffuseTexture = 0;
+Uint32 Hash_DiffuseRed = 0;
+Uint32 Hash_DiffuseGreen = 0;
+Uint32 Hash_DiffuseBlue = 0;
+Uint32 Hash_DiffuseAlpha = 0;
+Uint32 Hash_DiffuseTexture = 0;
 
-Uint32 MaterialImpl::Hash_SpecularRed = 0;
-Uint32 MaterialImpl::Hash_SpecularGreen = 0;
-Uint32 MaterialImpl::Hash_SpecularBlue = 0;
-Uint32 MaterialImpl::Hash_SpecularAlpha = 0;
-Uint32 MaterialImpl::Hash_SpecularTexture = 0;
+Uint32 Hash_SpecularRed = 0;
+Uint32 Hash_SpecularGreen = 0;
+Uint32 Hash_SpecularBlue = 0;
+Uint32 Hash_SpecularAlpha = 0;
+Uint32 Hash_SpecularTexture = 0;
 
-Uint32 MaterialImpl::Hash_AmbientRed = 0;
-Uint32 MaterialImpl::Hash_AmbientGreen = 0;
-Uint32 MaterialImpl::Hash_AmbientBlue = 0;
-Uint32 MaterialImpl::Hash_AmbientAlpha = 0;
-Uint32 MaterialImpl::Hash_AmbientTexture = 0;
+Uint32 Hash_AmbientRed = 0;
+Uint32 Hash_AmbientGreen = 0;
+Uint32 Hash_AmbientBlue = 0;
+Uint32 Hash_AmbientAlpha = 0;
+Uint32 Hash_AmbientTexture = 0;
 
 #ifdef MATERIAL_EXPOSE_EMISSIVE
-Uint32 MaterialImpl::Hash_EmissiveRed = 0;
-Uint32 MaterialImpl::Hash_EmissiveGreen = 0;
-Uint32 MaterialImpl::Hash_EmissiveBlue = 0;
-Uint32 MaterialImpl::Hash_EmissiveAlpha = 0;
-Uint32 MaterialImpl::Hash_EmissiveTexture = 0;
+Uint32 Hash_EmissiveRed = 0;
+Uint32 Hash_EmissiveGreen = 0;
+Uint32 Hash_EmissiveBlue = 0;
+Uint32 Hash_EmissiveAlpha = 0;
+Uint32 Hash_EmissiveTexture = 0;
 #endif
 
 void MaterialImpl::Init() {
-	const char* className = "Material";
-
-	Class = NewClass(Murmur::EncryptString(className));
-	Class->Name = CopyString(className);
-	Class->NewFn = VM_New;
+	Class = NewClass(CLASS_MATERIAL);
+	Class->NewFn = New;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
-	Class->PropertyGet = VM_PropertyGet;
-	Class->PropertySet = VM_PropertySet;
 
 	Hash_Name = Murmur::EncryptString("Name");
 
@@ -72,15 +70,33 @@ void MaterialImpl::Init() {
 	Hash_EmissiveTexture = Murmur::EncryptString("EmissiveTexture");
 #endif
 
-	ScriptManager::ClassImplList.push_back(Class);
-
-	ScriptManager::Globals->Put(className, OBJECT_VAL(Class));
+	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(CLASS_MATERIAL, Class);
+	TypeImpl::DefinePrintableName(Class, "material");
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
-Obj* MaterialImpl::VM_New() {
-	return (Obj*)NewMaterial(Material::Create(nullptr));
+Obj* MaterialImpl::New() {
+	Material* materialPtr = Material::Create(nullptr);
+	return (Obj*)New((void*)materialPtr);
+}
+ObjMaterial* MaterialImpl::New(void* materialPtr) {
+	ObjMaterial* material = (ObjMaterial*)NewNativeInstance(sizeof(ObjMaterial));
+	Memory::Track(material, "NewMaterial");
+	material->Object.Class = Class;
+	material->Object.PropertyGet = VM_PropertyGet;
+	material->Object.PropertySet = VM_PropertySet;
+	material->Object.Destructor = Dispose;
+	material->MaterialPtr = (Material*)materialPtr;
+	return material;
+}
+void MaterialImpl::Dispose(Obj* object) {
+	ObjMaterial* material = (ObjMaterial*)object;
+
+	Material::Remove(material->MaterialPtr);
+
+	InstanceImpl::Dispose(object);
 }
 
 VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
