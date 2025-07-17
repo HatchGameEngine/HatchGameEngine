@@ -4,6 +4,7 @@
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/Error.h>
 #include <Engine/Rendering/Material.h>
 
 ObjClass* MaterialImpl::Class = nullptr;
@@ -200,7 +201,7 @@ bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 static void DoTextureRemoval(Image** image) {
 	if (*image) {
 		if ((*image)->TakeRef()) {
-			abort();
+			Error::Fatal("Unexpected reference count for Image!");
 		}
 
 		(*image) = nullptr;
