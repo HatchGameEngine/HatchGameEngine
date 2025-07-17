@@ -77,13 +77,13 @@ public:
 	void RunValue(VMValue value, int argCount);
 	void RunFunction(ObjFunction* func, int argCount);
 	int Invoke(VMValue receiver, Uint8 argCount, Uint32 hash);
-	int SuperInvoke(VMValue receiver, Uint8 argCount, Uint32 hash);
+	int SuperInvoke(VMValue receiver, ObjClass* klass, Uint8 argCount, Uint32 hash);
 	void InvokeForEntity(VMValue value, int argCount);
 	VMValue RunEntityFunction(ObjFunction* function, int argCount);
 	void CallInitializer(VMValue value);
 	bool Call(ObjFunction* function, int argCount);
 	bool InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount);
-	bool InvokeForInstance(ObjInstance* instance, Uint32 hash, int argCount);
+	bool InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount);
 	bool Import(VMValue value);
 	bool ImportModule(VMValue value);
 	VMValue Values_Multiply();

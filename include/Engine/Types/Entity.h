@@ -105,17 +105,17 @@ public:
 	Entity* NextSceneEntity = NULL;
 
 	virtual ~Entity() = default;
-	void ApplyMotion();
-	void Animate();
-	void SetAnimation(int animation, int frame);
-	void ResetAnimation(int animation, int frame);
-	bool BasicCollideWithObject(Entity* other);
-	bool CollideWithObject(Entity* other);
-	int SolidCollideWithObject(Entity* other, int flag);
-	bool TopSolidCollideWithObject(Entity* other, int flag);
 	void Copy(Entity* other);
 	void CopyFields(Entity* other);
-	void ApplyPhysics();
+	virtual void ApplyMotion();
+	virtual void Animate();
+	virtual void SetAnimation(int animation, int frame);
+	virtual void ResetAnimation(int animation, int frame);
+	virtual bool BasicCollideWithObject(Entity* other);
+	virtual bool CollideWithObject(Entity* other);
+	virtual int SolidCollideWithObject(Entity* other, int flag);
+	virtual bool TopSolidCollideWithObject(Entity* other, int flag);
+	virtual void ApplyPhysics();
 	virtual void Initialize();
 	virtual void Create();
 	virtual void PostCreate();
@@ -127,7 +127,7 @@ public:
 	virtual void OnSceneRestart();
 	virtual void GameStart();
 	virtual void RenderEarly();
-	virtual void Render(int CamX, int CamY);
+	virtual void Render();
 	virtual void RenderLate();
 	virtual void Remove();
 	virtual void Dispose();
