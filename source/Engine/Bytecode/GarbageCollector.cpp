@@ -263,3 +263,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		break;
 	}
 }
+
+void GarbageCollector::Dispose() {
+	Init();
+}

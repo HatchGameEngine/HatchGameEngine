@@ -2,6 +2,7 @@
 
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/IO/FileStream.h>
@@ -14,7 +15,6 @@ VirtualFileSystem* vfs = nullptr;
 VFSProvider* mainResource = nullptr;
 
 bool ResourceManager::UsingDataFolder = false;
-bool ResourceManager::UsingModPack = false;
 
 const char* data_files[] = {PATHLOCATION_GAME_URL "Data.hatch",
 	PATHLOCATION_GAME_URL "Game.hatch",
@@ -55,6 +55,7 @@ char* GetDataFileCandidate(std::vector<DataFileCandidate> candidates) {
 
 bool ResourceManager::Init(const char* dataFilePath) {
 	bool foundDataFile = false;
+	bool isDirectory = false;
 	char* filename = nullptr;
 
 	std::vector<DataFileCandidate> candidates = FindDataFiles();
@@ -63,15 +64,28 @@ bool ResourceManager::Init(const char* dataFilePath) {
 	bool useResourcesFolder = true;
 #endif
 
+	UsingDataFolder = false;
+
 	vfs = new VirtualFileSystem();
 
 	// Note that in this case, the filename should not be an URL.
 	if (dataFilePath != nullptr) {
+		bool found = false;
+
 #ifdef DEVELOPER_MODE
 		useResourcesFolder = false;
 #endif
 
-		if (File::Exists(dataFilePath)) {
+		if (dataFilePath[strlen(dataFilePath) - 1] == '/' &&
+			Directory::Exists(dataFilePath)) {
+			found = true;
+			isDirectory = true;
+		}
+		else if (File::Exists(dataFilePath)) {
+			found = true;
+		}
+
+		if (found) {
 			filename = StringUtils::Duplicate(dataFilePath);
 			foundDataFile = true;
 		}
@@ -90,11 +104,36 @@ bool ResourceManager::Init(const char* dataFilePath) {
 		Log::Print(Log::LOG_ERROR, "No valid location to access data file!");
 	}
 
-	if (foundDataFile) {
-		Log::Print(Log::LOG_VERBOSE, "Loading \"%s\"...", filename);
+	if (isDirectory) {
+		size_t filenameLength = strlen(filename);
+		if (filename[filenameLength - 1] == '/') {
+			filename[filenameLength - 1] = '\0';
+		}
 
-		ResourceManager::Mount(
-			RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
+		const char* filenameOnly = StringUtils::GetFilename(filename);
+
+		Log::Print(Log::LOG_VERBOSE, "Loading \"%s\"...", filenameOnly);
+
+		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME,
+				filename,
+				nullptr,
+				VFSType::FILESYSTEM,
+				VFS_READABLE);
+
+		if (status != VFSMountStatus::MOUNTED) {
+			Log::Print(Log::LOG_ERROR, "Could not access \"%s\"!", filename);
+		}
+	}
+	else if (foundDataFile) {
+		const char* filenameOnly = StringUtils::GetFilename(filename);
+
+		Log::Print(Log::LOG_VERBOSE, "Loading \"%s\"...", filenameOnly);
+
+		ResourceManager::Mount(RESOURCES_VFS_NAME,
+			filename,
+			nullptr,
+			VFSType::HATCH,
+			VFS_READABLE);
 	}
 #ifdef DEVELOPER_MODE
 	else if (useResourcesFolder) {
@@ -110,9 +149,7 @@ bool ResourceManager::Init(const char* dataFilePath) {
 			ResourceManager::UsingDataFolder = true;
 		}
 		else {
-			Log::Print(Log::LOG_ERROR,
-				"Could not access \"%s\" folder!",
-				RESOURCES_DIR_PATH);
+			Log::Print(Log::LOG_ERROR, "Could not access \"%s\"!", RESOURCES_DIR_PATH);
 		}
 	}
 #endif
