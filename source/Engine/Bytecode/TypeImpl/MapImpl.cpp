@@ -9,6 +9,7 @@ void MapImpl::Init() {
 	Class = NewClass(CLASS_MAP);
 
 	ScriptManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
+	ScriptManager::DefineNative(Class, "remove", MapImpl::VM_RemoveKey);
 	ScriptManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", MapImpl::VM_IteratorValue);
 
@@ -54,6 +55,18 @@ VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 threadID) {
 	});
 
 	return OBJECT_VAL(array);
+}
+
+VMValue MapImpl::VM_RemoveKey(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjMap* map = GET_ARG(0, GetMap);
+	const char* key = GET_ARG(1, GetString);
+
+	map->Keys->Remove(key);
+	map->Values->Remove(key);
+
+	return NULL_VAL;
 }
 
 VMValue MapImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
