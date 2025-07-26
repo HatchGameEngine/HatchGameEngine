@@ -517,7 +517,7 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_PRINT_STACK),
 		VM_ADD_DISPATCH(OP_INHERIT),
 		VM_ADD_DISPATCH(OP_RETURN),
-		VM_ADD_DISPATCH(OP_METHOD),
+		VM_ADD_DISPATCH(OP_METHOD_V4),
 		VM_ADD_DISPATCH(OP_CLASS),
 		VM_ADD_DISPATCH(OP_CALL),
 		VM_ADD_DISPATCH_NULL(OP_SUPER),
@@ -564,7 +564,7 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_NEW_MAP),
 		VM_ADD_DISPATCH(OP_SWITCH_TABLE),
 		VM_ADD_DISPATCH(OP_FAILSAFE),
-		VM_ADD_DISPATCH(OP_EVENT),
+		VM_ADD_DISPATCH(OP_EVENT_V4),
 		VM_ADD_DISPATCH(OP_TYPEOF),
 		VM_ADD_DISPATCH(OP_NEW),
 		VM_ADD_DISPATCH(OP_IMPORT),
@@ -584,6 +584,8 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_DECIMAL),
 		VM_ADD_DISPATCH(OP_INVOKE),
 		VM_ADD_DISPATCH(OP_SUPER_INVOKE),
+		VM_ADD_DISPATCH(OP_EVENT),
+		VM_ADD_DISPATCH(OP_METHOD),
 	};
 #define VM_START(ins) \
 	goto* dispatch_table[(ins)]; \
@@ -629,7 +631,7 @@ int VMThread::RunInstruction() {
 			PRINT_CASE(OP_PRINT_STACK)
 			PRINT_CASE(OP_INHERIT)
 			PRINT_CASE(OP_RETURN)
-			PRINT_CASE(OP_METHOD)
+			PRINT_CASE(OP_METHOD_V4)
 			PRINT_CASE(OP_CLASS)
 			PRINT_CASE(OP_CALL)
 			PRINT_CASE(OP_SUPER)
@@ -694,6 +696,8 @@ int VMThread::RunInstruction() {
 			PRINT_CASE(OP_DECIMAL)
 			PRINT_CASE(OP_INVOKE)
 			PRINT_CASE(OP_SUPER_INVOKE)
+			PRINT_CASE(OP_EVENT)
+			PRINT_CASE(OP_METHOD)
 
 		default:
 			Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP);
@@ -2032,7 +2036,7 @@ int VMThread::RunInstruction() {
 		VM_BREAK;
 	}
 	VM_CASE(OP_EVENT) {
-		int index = ReadByte(frame);
+		Uint16 index = ReadUInt16(frame);
 		if ((unsigned)index < frame->Module->Functions->size()) {
 			VMValue method = OBJECT_VAL((*frame->Module->Functions)[index]);
 			Push(method);
@@ -2040,7 +2044,23 @@ int VMThread::RunInstruction() {
 		VM_BREAK;
 	}
 	VM_CASE(OP_METHOD) {
-		int index = ReadByte(frame);
+		Uint16 index = ReadUInt16(frame);
+		Uint32 hash = ReadUInt32(frame);
+		if ((unsigned)index < frame->Module->Functions->size()) {
+			ScriptManager::DefineMethod(this, (*frame->Module->Functions)[index], hash);
+		}
+		VM_BREAK;
+	}
+	VM_CASE(OP_EVENT_V4) {
+		Uint8 index = ReadByte(frame);
+		if ((unsigned)index < frame->Module->Functions->size()) {
+			VMValue method = OBJECT_VAL((*frame->Module->Functions)[index]);
+			Push(method);
+		}
+		VM_BREAK;
+	}
+	VM_CASE(OP_METHOD_V4) {
+		Uint8 index = ReadByte(frame);
 		Uint32 hash = ReadUInt32(frame);
 		if ((unsigned)index < frame->Module->Functions->size()) {
 			ScriptManager::DefineMethod(this, (*frame->Module->Functions)[index], hash);

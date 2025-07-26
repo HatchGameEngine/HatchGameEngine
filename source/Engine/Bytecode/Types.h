@@ -445,7 +445,7 @@ enum OpCode : uint8_t {
 	//
 	OP_INHERIT,
 	OP_RETURN,
-	OP_METHOD,
+	OP_METHOD_V4,
 	OP_CLASS,
 	// Function Operations
 	OP_CALL,
@@ -503,7 +503,7 @@ enum OpCode : uint8_t {
 	//
 	OP_SWITCH_TABLE,
 	OP_FAILSAFE,
-	OP_EVENT,
+	OP_EVENT_V4,
 	OP_TYPEOF,
 	OP_NEW,
 	OP_IMPORT,
@@ -523,6 +523,8 @@ enum OpCode : uint8_t {
 	OP_DECIMAL,
 	OP_INVOKE,
 	OP_SUPER_INVOKE,
+	OP_EVENT,
+	OP_METHOD,
 
 	OP_LAST
 };
