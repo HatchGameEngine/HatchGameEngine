@@ -116,6 +116,7 @@ private:
 	static bool ValidateForLocation(const char* path);
 
 public:
+	static std::string ToString(std::filesystem::path path);
 	static bool Create(const char* path);
 	static std::string Concat(std::string pathA, std::string pathB);
 	static bool GetCurrentWorkingDirectory(char* out, size_t sz);
