@@ -301,7 +301,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_PRINT_STACK);
 			OPCASE(OP_INHERIT);
 			OPCASE(OP_RETURN);
-			OPCASE(OP_METHOD);
+			OPCASE(OP_METHOD_V4);
 			OPCASE(OP_CLASS);
 			OPCASE(OP_CALL);
 			OPCASE(OP_SUPER);
@@ -348,7 +348,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_NEW_MAP);
 			OPCASE(OP_SWITCH_TABLE);
 			OPCASE(OP_FAILSAFE);
-			OPCASE(OP_EVENT);
+			OPCASE(OP_EVENT_V4);
 			OPCASE(OP_TYPEOF);
 			OPCASE(OP_NEW);
 			OPCASE(OP_IMPORT);
@@ -368,6 +368,8 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_DECIMAL);
 			OPCASE(OP_INVOKE);
 			OPCASE(OP_SUPER_INVOKE);
+			OPCASE(OP_EVENT);
+			OPCASE(OP_METHOD);
 		}
 		assert((func != NULL));
 		OpcodeFuncs[i] = func;

@@ -47,7 +47,7 @@ static const char* opcodeNames[] = {"OP_ERROR",
 	"OP_PRINT_STACK",
 	"OP_INHERIT",
 	"OP_RETURN",
-	"OP_METHOD",
+	"OP_METHOD_V4",
 	"OP_CLASS",
 	"OP_CALL",
 	"OP_SUPER",
@@ -94,7 +94,7 @@ static const char* opcodeNames[] = {"OP_ERROR",
 	"OP_NEW_MAP",
 	"OP_SWITCH_TABLE",
 	"OP_FAILSAFE",
-	"OP_EVENT",
+	"OP_EVENT_V4",
 	"OP_TYPEOF",
 	"OP_NEW",
 	"OP_IMPORT",
@@ -113,7 +113,9 @@ static const char* opcodeNames[] = {"OP_ERROR",
 	"OP_INTEGER",
 	"OP_DECIMAL",
 	"OP_INVOKE",
-	"OP_SUPER_INVOKE"};
+	"OP_SUPER_INVOKE",
+	"OP_EVENT",
+	"OP_METHOD"};
 
 // Order these by C/C++ precedence operators
 enum TokenTYPE {
@@ -2788,10 +2790,17 @@ void Compiler::GetMethod(Token className) {
 		type = TYPE_CONSTRUCTOR;
 	}
 
+	// Compile the old instruction if it fits under uint8.
 	int index = GetFunction(type, className.ToString());
+	if (index <= UINT8_MAX) {
+		EmitByte(OP_METHOD_V4);
+		EmitByte(index);
+	}
+	else {
+		EmitByte(OP_METHOD);
+		EmitUint16(index);
+	}
 
-	EmitByte(OP_METHOD);
-	EmitByte(index);
 	EmitStringHash(constantToken);
 }
 void Compiler::GetVariableDeclaration(bool constant) {
@@ -3106,10 +3115,16 @@ void Compiler::GetEventDeclaration() {
 	//     MarkInitialized();
 	// }
 
+	// Compile the old instruction if it fits under uint8.
 	int index = GetFunction(TYPE_FUNCTION);
-
-	EmitByte(OP_EVENT);
-	EmitByte(index);
+	if (index <= UINT8_MAX) {
+		EmitByte(OP_EVENT_V4);
+		EmitByte(index);
+	}
+	else {
+		EmitByte(OP_EVENT);
+		EmitUint16(index);
+	}
 
 	// if (ScopeDepth == 0) {
 	EmitByte(OP_DEFINE_GLOBAL);
@@ -4023,9 +4038,11 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_COPY:
 	case OP_CALL:
 	case OP_NEW:
-	case OP_EVENT:
+	case OP_EVENT_V4:
 	case OP_POPN:
 		return 2;
+	case OP_EVENT:
+		return 3;
 	case OP_GET_LOCAL:
 	case OP_SET_LOCAL:
 		return 2;
@@ -4065,6 +4082,8 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_NEW_ENUM:
 		return 5;
 	case OP_METHOD:
+		return 8;
+	case OP_METHOD_V4:
 		return 6;
 	}
 	return 1;
@@ -4126,8 +4145,8 @@ int Compiler::LocalInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int Compiler::MethodInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	uint8_t slot = chunk->Code[offset + 1];
-	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
+	uint16_t slot = (uint16_t)(chunk->Code[offset + 1]);
+	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 3];
 	Log::PrintSimple("%-13s %2d", opcodeNames[opcode], slot);
 	Log::PrintSimple(" #%08X", hash);
 	if (TokenMap->Exists(hash)) {
@@ -4140,8 +4159,20 @@ int Compiler::MethodInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 int Compiler::InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	return Compiler::MethodInstruction(opcode, chunk, offset);
 }
+int Compiler::MethodInstructionV4(uint8_t opcode, Chunk* chunk, int offset) {
+	uint8_t slot = chunk->Code[offset + 1];
+	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
+	Log::PrintSimple("%-13s %2d", opcodeNames[opcode], slot);
+	Log::PrintSimple(" #%08X", hash);
+	if (TokenMap->Exists(hash)) {
+		Token t = TokenMap->Get(hash);
+		Log::PrintSimple(" (%.*s)", (int)t.Length, t.Start);
+	}
+	Log::PrintSimple("\n");
+	return offset + GetTotalOpcodeSize(chunk->Code + offset);
+}
 int Compiler::InvokeInstructionV3(uint8_t opcode, Chunk* chunk, int offset) {
-	return Compiler::MethodInstruction(opcode, chunk, offset);
+	return Compiler::MethodInstructionV4(opcode, chunk, offset);
 }
 int Compiler::JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset) {
 	uint16_t jump = (uint16_t)(chunk->Code[offset + 1]);
@@ -4235,9 +4266,11 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_COPY:
 	case OP_CALL:
 	case OP_NEW:
-	case OP_EVENT:
+	case OP_EVENT_V4:
 	case OP_POPN:
 		return ByteInstruction(instruction, chunk, offset);
+	case OP_EVENT:
+		return ShortInstruction(instruction, chunk, offset);
 	case OP_GET_LOCAL:
 	case OP_SET_LOCAL:
 		return LocalInstruction(instruction, chunk, offset);
@@ -4296,6 +4329,8 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 		return EnumInstruction(instruction, chunk, offset);
 	case OP_METHOD:
 		return MethodInstruction(instruction, chunk, offset);
+	case OP_METHOD_V4:
+		return MethodInstructionV4(instruction, chunk, offset);
 	default:
 		if (instruction < OP_LAST) {
 			Log::PrintSimple("No viewer for opcode %s\n", opcodeNames[instruction]);
