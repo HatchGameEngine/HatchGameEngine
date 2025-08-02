@@ -19,6 +19,16 @@ std::pair<std::string, PathLocation> urlToLocationType[] = {
 	std::make_pair(PATHLOCATION_PREFERENCES_URL, PathLocation::PREFERENCES),
 	std::make_pair(PATHLOCATION_CACHE_URL, PathLocation::CACHE)};
 
+std::string Path::ToString(std::filesystem::path path) {
+#if __cplusplus >= 202002L
+	std::u8string string = path.u8string();
+
+	return std::string(string.begin(), string.end());
+#else
+	return path.u8string();
+#endif
+}
+
 // Creates a path recursively.
 // The path MUST end with '/' if it's meant to create a path to a folder.
 bool Path::Create(const char* path) {
@@ -79,7 +89,7 @@ std::string Path::Concat(std::string pathA, std::string pathB) {
 
 	std::filesystem::path fsResult = fsPathA / fsPathB;
 
-	std::string result = fsResult.u8string();
+	std::string result = ToString(fsResult);
 
 #if WIN32
 	std::replace(result.begin(), result.end(), '\\', '/');
@@ -122,7 +132,7 @@ bool Path::IsInDir(const char* dirPath, const char* path) {
 	std::filesystem::path normBase = basePath.lexically_normal();
 	std::filesystem::path finalPath = (normBase / fsPath).lexically_normal();
 
-	if (!AreMatching(normBase.u8string(), finalPath.u8string())) {
+	if (!AreMatching(ToString(normBase), ToString(finalPath))) {
 		return false;
 	}
 
@@ -172,7 +182,7 @@ bool Path::HasRelativeComponents(const char* path) {
 std::string Path::Normalize(std::string path) {
 	std::filesystem::path fsPath = std::filesystem::u8path(path);
 
-	std::string result = fsPath.lexically_normal().u8string();
+	std::string result = ToString(fsPath.lexically_normal());
 
 #if WIN32
 	std::replace(result.begin(), result.end(), '\\', '/');
@@ -324,7 +334,7 @@ std::string Path::GetBaseConfigPath() {
 	if (SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &winPath) == S_OK) {
 		std::filesystem::path fsPath = std::filesystem::path(winPath);
 
-		basePath = fsPath.u8string();
+		basePath = ToString(fsPath);
 		std::replace(basePath.begin(), basePath.end(), '\\', '/');
 
 		CoTaskMemFree(winPath);
@@ -554,7 +564,7 @@ bool Path::FromLocation(std::string path,
 	detectedPathFs = detectedPathFs.lexically_normal();
 
 	std::filesystem::path combined = pathForLocationFs / detectedPathFs;
-	std::string finalPath = combined.lexically_normal().u8string();
+	std::string finalPath = ToString(combined.lexically_normal());
 
 	if (finalPath.size() == 0) {
 		return false;
@@ -568,7 +578,7 @@ bool Path::FromLocation(std::string path,
 		return false;
 	}
 
-	if (!AreMatching(pathForLocationFs.u8string(), finalPath)) {
+	if (!AreMatching(ToString(pathForLocationFs), finalPath)) {
 		return false;
 	}
 

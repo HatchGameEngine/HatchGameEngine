@@ -480,10 +480,6 @@ bool SoftwareRenderer::AlterBlendState(BlendState& state) {
 }
 
 // Filterless versions
-#define ISOLATE_R(color) (color & 0xFF0000)
-#define ISOLATE_G(color) (color & 0x00FF00)
-#define ISOLATE_B(color) (color & 0x0000FF)
-
 void SoftwareRenderer::PixelNoFiltSetOpaque(Uint32* src,
 	Uint32* dst,
 	BlendState& state,
@@ -506,28 +502,28 @@ void SoftwareRenderer::PixelNoFiltSetAdditive(Uint32* src,
 	BlendState& state,
 	int* multTableAt,
 	int* multSubTableAt) {
-	Uint32 R = (multTableAt[GET_R(*src)] << 16) + ISOLATE_R(*dst);
-	Uint32 G = (multTableAt[GET_G(*src)] << 8) + ISOLATE_G(*dst);
-	Uint32 B = (multTableAt[GET_B(*src)]) + ISOLATE_B(*dst);
-	if (R > 0xFF0000) {
-		R = 0xFF0000;
+	Uint32 R = multTableAt[GET_R(*src)] + GET_R(*dst);
+	Uint32 G = multTableAt[GET_G(*src)] + GET_G(*dst);
+	Uint32 B = multTableAt[GET_B(*src)] + GET_B(*dst);
+	if (R > 0xFF) {
+		R = 0xFF;
 	}
-	if (G > 0x00FF00) {
-		G = 0x00FF00;
+	if (G > 0xFF) {
+		G = 0xFF;
 	}
-	if (B > 0x0000FF) {
-		B = 0x0000FF;
+	if (B > 0xFF) {
+		B = 0xFF;
 	}
-	*dst = 0xFF000000U | R | G | B;
+	*dst = 0xFF000000U | (R << 16) | (G << 8) | B;
 }
 void SoftwareRenderer::PixelNoFiltSetSubtract(Uint32* src,
 	Uint32* dst,
 	BlendState& state,
 	int* multTableAt,
 	int* multSubTableAt) {
-	Sint32 R = (multSubTableAt[GET_R(*src)] << 16) + ISOLATE_R(*dst);
-	Sint32 G = (multSubTableAt[GET_G(*src)] << 8) + ISOLATE_G(*dst);
-	Sint32 B = (multSubTableAt[GET_B(*src)]) + ISOLATE_B(*dst);
+	Sint32 R = multTableAt[GET_R(*dst)] - GET_R(*src);
+	Sint32 G = multTableAt[GET_G(*dst)] - GET_G(*src);
+	Sint32 B = multTableAt[GET_B(*dst)] - GET_B(*src);
 	if (R < 0) {
 		R = 0;
 	}
@@ -537,7 +533,7 @@ void SoftwareRenderer::PixelNoFiltSetSubtract(Uint32* src,
 	if (B < 0) {
 		B = 0;
 	}
-	*dst = 0xFF000000U | R | G | B;
+	*dst = 0xFF000000U | (R << 16) | (G << 8) | B;
 }
 void SoftwareRenderer::PixelNoFiltSetMatchEqual(Uint32* src,
 	Uint32* dst,

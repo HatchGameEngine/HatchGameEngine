@@ -53,7 +53,6 @@ void ValuePrinter::PrintObject(VMValue value, int indent) {
 	case OBJ_CLOSURE:
 	case OBJ_FUNCTION:
 	case OBJ_MODULE:
-	case OBJ_MATERIAL:
 	case OBJ_NAMESPACE:
 		if (IsJSON) {
 			buffer_printf(Buffer,
@@ -68,18 +67,18 @@ void ValuePrinter::PrintObject(VMValue value, int indent) {
 				Value::GetPrintableObjectName(value));
 		}
 		break;
-	case OBJ_NATIVE:
-	case OBJ_STREAM:
+	case OBJ_NATIVE_FUNCTION:
 	case OBJ_UPVALUE:
-	case OBJ_SHADER:
 		if (IsJSON) {
-			buffer_printf(Buffer, "<%s>", Value::GetObjectTypeName(value));
+			buffer_printf(Buffer, "\"%s\"", Value::GetObjectTypeName(value));
 		}
 		else {
-			buffer_printf(Buffer, "\"%s\"", Value::GetObjectTypeName(value));
+			buffer_printf(Buffer, "<%s>", Value::GetObjectTypeName(value));
 		}
 		break;
 	case OBJ_INSTANCE:
+	case OBJ_NATIVE_INSTANCE:
+	case OBJ_ENTITY:
 		if (IsJSON) {
 			buffer_printf(
 				Buffer, "\"%s instance\"", Value::GetPrintableObjectName(value));

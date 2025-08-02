@@ -1,6 +1,9 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
+#include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
+#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Graphics.h>
 #include <Engine/Rendering/Shader.h>
@@ -16,12 +19,8 @@ ObjClass* ShaderImpl::Class = nullptr;
 Uint32 Hash_Uniforms = 0;
 
 void ShaderImpl::Init() {
-	const char* className = "Shader";
-
-	Class = NewClass(Murmur::EncryptString(className));
-	Class->Name = CopyString(className);
-	Class->NewFn = VM_New;
-	Class->PropertyGet = VM_PropertyGet;
+	Class = NewClass(CLASS_SHADER);
+	Class->NewFn = New;
 
 	Hash_Uniforms = Murmur::EncryptString("Uniforms");
 
@@ -39,9 +38,9 @@ void ShaderImpl::Init() {
 	ScriptManager::DefineNative(Class, "SetTexture", VM_SetTexture);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
-	ScriptManager::ClassImplList.push_back(Class);
-
-	ScriptManager::Globals->Put(className, OBJECT_VAL(Class));
+	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(CLASS_SHADER, Class);
+	TypeImpl::DefinePrintableName(Class, "shader");
 }
 
 #define CHECK_EXISTS(ptr) \
@@ -87,15 +86,36 @@ bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
  * \desc Creates a shader program.
  * \ns Shader
  */
-Obj* ShaderImpl::VM_New() {
+Obj* ShaderImpl::New() {
 	Shader* shader = Graphics::CreateShader();
 	if (shader == nullptr) {
 		throw ScriptException("Could not create shader!");
 	}
 
-	ObjShader* obj = NewShader((void*)shader);
+	ObjShader* obj = New((void*)shader);
 	shader->Object = (void*)obj;
 	return (Obj*)obj;
+}
+ObjShader* ShaderImpl::New(void* shaderPtr) {
+	ObjShader* shader = (ObjShader*)NewNativeInstance(sizeof(ObjShader));
+	Memory::Track(shader, "NewShader");
+	shader->Object.Class = Class;
+	shader->Object.PropertyGet = VM_PropertyGet;
+	shader->Object.Destructor = Dispose;
+	shader->ShaderPtr = shaderPtr;
+	return shader;
+}
+void ShaderImpl::Dispose(Obj* object) {
+	ObjShader* objShader = (ObjShader*)object;
+
+	// Yes, this leaks memory.
+	// Use Delete() in your script for a shader you no longer need!
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader != nullptr) {
+		shader->Object = nullptr;
+	}
+
+	InstanceImpl::Dispose(object);
 }
 /***
  * \method HasStage

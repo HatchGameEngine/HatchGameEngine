@@ -1,19 +1,35 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 ObjClass* ArrayImpl::Class = nullptr;
 
 void ArrayImpl::Init() {
-	const char* name = "$$ArrayImpl";
-
-	Class = NewClass(Murmur::EncryptString(name));
-	Class->Name = CopyString(name);
+	Class = NewClass(CLASS_ARRAY);
 
 	ScriptManager::DefineNative(Class, "iterate", ArrayImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", ArrayImpl::VM_IteratorValue);
 
-	ScriptManager::ClassImplList.push_back(Class);
+	TypeImpl::RegisterClass(Class);
+}
+
+Obj* ArrayImpl::New() {
+	ObjArray* array = (ObjArray*)AllocateObject(sizeof(ObjArray), OBJ_ARRAY);
+	Memory::Track(array, "NewArray");
+	array->Object.Class = Class;
+	array->Object.Destructor = Dispose;
+	array->Values = new vector<VMValue>();
+	return (Obj*)array;
+}
+
+void ArrayImpl::Dispose(Obj* object) {
+	ObjArray* array = (ObjArray*)object;
+
+	// An array does not own its values, so it's not allowed to free them.
+	array->Values->clear();
+
+	delete array->Values;
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))

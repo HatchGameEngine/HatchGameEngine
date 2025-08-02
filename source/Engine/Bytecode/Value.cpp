@@ -1,5 +1,6 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 const char* Value::GetObjectTypeName(Uint32 type) {
 	switch (type) {
@@ -13,8 +14,12 @@ const char* Value::GetObjectTypeName(Uint32 type) {
 		return "closure";
 	case OBJ_INSTANCE:
 		return "instance";
-	case OBJ_NATIVE:
+	case OBJ_ENTITY:
+		return "entity";
+	case OBJ_NATIVE_FUNCTION:
 		return "native function";
+	case OBJ_NATIVE_INSTANCE:
+		return "native instance";
 	case OBJ_STRING:
 		return "string";
 	case OBJ_UPVALUE:
@@ -23,24 +28,31 @@ const char* Value::GetObjectTypeName(Uint32 type) {
 		return "array";
 	case OBJ_MAP:
 		return "map";
-	case OBJ_STREAM:
-		return "stream";
 	case OBJ_NAMESPACE:
 		return "namespace";
 	case OBJ_ENUM:
 		return "enum";
 	case OBJ_MODULE:
 		return "module";
-	case OBJ_MATERIAL:
-		return "material";
-	case OBJ_SHADER:
-		return "shader";
 	}
 
 	return "unknown object type";
 }
 
+const char* Value::GetObjectTypeName(ObjClass* klass) {
+	const char* printableName = TypeImpl::GetPrintableName(klass);
+	if (printableName != nullptr) {
+		return printableName;
+	}
+	return "unknown";
+}
+
 const char* Value::GetObjectTypeName(VMValue value) {
+	Obj* object = AS_OBJECT(value);
+	const char* printableName = TypeImpl::GetPrintableName(object->Class);
+	if (printableName != nullptr) {
+		return printableName;
+	}
 	return GetObjectTypeName(OBJECT_TYPE(value));
 }
 
@@ -61,13 +73,10 @@ const char* Value::GetPrintableObjectName(VMValue value) {
 		return AS_MODULE(value)->SourceFilename ? AS_MODULE(value)->SourceFilename->Chars
 							: "(null)";
 	case OBJ_INSTANCE:
+	case OBJ_NATIVE_INSTANCE:
+	case OBJ_ENTITY:
 		return AS_INSTANCE(value)->Object.Class->Name
 			? AS_INSTANCE(value)->Object.Class->Name->Chars
-			: "(null)";
-	case OBJ_MATERIAL:
-		return (AS_MATERIAL(value)->MaterialPtr != nullptr &&
-			       AS_MATERIAL(value)->MaterialPtr->Name != nullptr)
-			? AS_MATERIAL(value)->MaterialPtr->Name
 			: "(null)";
 	case OBJ_NAMESPACE:
 		return AS_NAMESPACE(value)->Name ? AS_NAMESPACE(value)->Name->Chars : "(null)";
