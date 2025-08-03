@@ -91,7 +91,7 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			"    if (u_fogSmoothness != 1.0) {\n"
 			"        float fogSmoothness = 1.0 - u_fogSmoothness;\n"
 			"        float inv = 1.0 / fogSmoothness;\n"
-			"        float recip = 1.0 / 254.0;\n"
+			"        float recip = 1.0 / 255.0;\n"
 			"        float fogValueScaled = fogValue * 255.0;\n"
 			"        fogValue = (fogValueScaled * recip) * inv;\n"
 			"        fogValue = floor(fogValue) * fogSmoothness;\n"
