@@ -424,7 +424,7 @@ void GLShader::AttachAndLink() {
 	LocFogLinearStart = AddBuiltinUniform("u_fogLinearStart");
 	LocFogLinearEnd = AddBuiltinUniform("u_fogLinearEnd");
 	LocFogDensity = AddBuiltinUniform("u_fogDensity");
-	LocFogTable = AddBuiltinUniform("u_fogTable");
+	LocFogSmoothness = AddBuiltinUniform("u_fogSmoothness");
 
 	ValidateTextureUniformNames();
 	InitTextureUnitMap();

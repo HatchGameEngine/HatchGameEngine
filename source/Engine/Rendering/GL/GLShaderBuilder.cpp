@@ -32,6 +32,7 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 #endif
 	if (uniforms.u_fog_exp || uniforms.u_fog_linear) {
 		shaderText += "uniform vec4 u_fogColor;\n";
+		shaderText += "uniform float u_fogSmoothness;\n";
 	}
 	if (uniforms.u_fog_linear) {
 		shaderText += "uniform float u_fogLinearStart;\n";
@@ -73,18 +74,28 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 	std::string shaderText;
 	std::string paletteLookupText;
 
-	if (uniforms.u_fog_linear) {
+	if (uniforms.u_fog_linear || uniforms.u_fog_exp) {
+		if (uniforms.u_fog_linear) {
+			shaderText +=
+				"float doFogCalc(float coord, float start, float end) {\n"
+				"    float invZ = 1.0 / (coord / 192.0);\n"
+				"    float fogValue = (end - (1.0 - invZ)) / (end - start);\n";
+		}
+		else {
+			shaderText +=
+				"float doFogCalc(float coord, float density) {\n"
+				"    float fogValue = exp(-density * (coord / 192.0));\n";
+		}
+
 		shaderText +=
-			"float doFogCalc(float coord, float start, float end) {\n"
-			"    float invZ = 1.0 / (coord / 192.0);\n"
-			"    float fogValue = (end - (1.0 - invZ)) / (end - start);\n"
-			"    return 1.0 - clamp(fogValue, 0.0, 1.0);\n"
-			"}\n";
-	}
-	else if (uniforms.u_fog_exp) {
-		shaderText +=
-			"float doFogCalc(float coord, float density) {\n"
-			"    float fogValue = exp(-density * (coord / 192.0));\n"
+			"    if (u_fogSmoothness != 1.0) {\n"
+			"        float fogSmoothness = 1.0 - u_fogSmoothness;\n"
+			"        float inv = 1.0 / fogSmoothness;\n"
+			"        float recip = 1.0 / 254.0;\n"
+			"        float fogValueScaled = fogValue * 255.0;\n"
+			"        fogValue = (fogValueScaled * recip) * inv;\n"
+			"        fogValue = floor(fogValue) * fogSmoothness;\n"
+			"    }\n"
 			"    return 1.0 - clamp(fogValue, 0.0, 1.0);\n"
 			"}\n";
 	}
