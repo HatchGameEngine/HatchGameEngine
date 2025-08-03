@@ -35,6 +35,7 @@ struct GraphicsFunctions {
 	void (*SetFilterTable)(Uint32* table, size_t size);
 
 	void (*UpdateGlobalPalette)(Texture* texture);
+	void (*UpdatePaletteIndexTable)(Texture* texture);
 
 	void (*UpdateViewport)();
 	void (*UpdateClipRect)();

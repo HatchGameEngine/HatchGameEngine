@@ -12,11 +12,16 @@ void GLShader::InitIncludes() {
 #define PALETTE_INDEX_TABLE_ID -1
 
 uniform sampler2D u_paletteTexture;
+uniform sampler2D u_paletteIndexTexture;
 uniform int u_paletteID;
 
 int hatch_getPaletteLine(int paletteID) {
     if (paletteID == PALETTE_INDEX_TABLE_ID) {
-        return 0;
+        int screenLine = int(gl_FragCoord.y);
+
+        vec2 coords = vec2(float(screenLine % 64) / 64.0, float(screenLine / 64) / 64.0);
+
+        return int(texture2D(u_paletteIndexTexture, coords).r * 255.0);
     }
 
     return paletteID;
@@ -27,9 +32,9 @@ vec4 hatch_getColorFromPalette(int paletteIndex, sampler2D paletteTexture, int p
         return vec4(0.0, 0.0, 0.0, 0.0);
     }
 
-    vec2 paletteTextureCoords = vec2(float(paletteIndex) / 255.0, float(paletteLine) / 255.0);
+    vec2 coords = vec2(float(paletteIndex) / 255.0, float(paletteLine) / 255.0);
 
-    return texture2D(paletteTexture, paletteTextureCoords);
+    return texture2D(paletteTexture, coords);
 }
 
 vec4 hatch_sampleTexture2D(sampler2D texture, vec2 textureCoords, int numPaletteIndices) {
@@ -183,9 +188,12 @@ GL_ProcessedShader GLShader::ProcessFragmentShaderText(char* text) {
 std::vector<char*> GLShader::GetShaderSources(GL_ProcessedShader processed) {
 	std::vector<char*> shaderSources;
 
+	std::string versionString = "#version 130\n";
+	shaderSources.push_back(StringUtils::Create(versionString));
+
 #if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
-	std::string precision = "precision mediump float;\n";
-	shaderSources.push_back(StringUtils::Create(precision));
+	std::string precisionString = "precision mediump float;\n";
+	shaderSources.push_back(StringUtils::Create(precisionString));
 #endif
 
 	for (size_t i = 0; i < processed.Defines.size(); i++) {
@@ -416,8 +424,8 @@ void GLShader::AttachAndLink() {
 	LocTextureV = AddBuiltinUniform(UNIFORM_TEXTUREV);
 #endif
 	LocPaletteTexture = AddBuiltinUniform(UNIFORM_PALETTETEXTURE);
+	LocPaletteIndexTexture = AddBuiltinUniform(UNIFORM_PALETTEINDEXTEXTURE);
 	LocPaletteID = AddBuiltinUniform("u_paletteID");
-	LocPaletteIndexTable = AddBuiltinUniform("u_paletteIndexTable");
 	LocNumTexturePaletteIndices = AddBuiltinUniform("u_numTexturePaletteIndices");
 
 	LocFogColor = AddBuiltinUniform("u_fogColor");
@@ -772,6 +780,7 @@ void GLShader::InitUniforms() {
 void GLShader::InitTextureUniforms() {
 	AddTextureUniformName(UNIFORM_TEXTURE);
 	AddTextureUniformName(UNIFORM_PALETTETEXTURE);
+	AddTextureUniformName(UNIFORM_PALETTEINDEXTEXTURE);
 
 #ifdef GL_HAVE_YUV
 	AddTextureUniformName(UNIFORM_TEXTUREU);

@@ -43,7 +43,7 @@ GLuint GLRenderer::BufferSquareFill;
 Texture* GL_LastTexture = nullptr;
 
 GL_TextureData* GL_PaletteTexture = nullptr;
-GLint GL_PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
+GL_TextureData* GL_PaletteIndexTexture = nullptr;
 
 bool UseDepthTesting = true;
 float RetinaScale = 1.0;
@@ -307,12 +307,21 @@ void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 
 	GL_LastTexture = texture;
 }
-void GL_PreparePaletteShader(GLShader* shader, Texture* texture, int paletteID) {
+void GL_PreparePaletteShaderTextures(GLShader* shader) {
 	if (shader->LocPaletteTexture != -1) {
 		int textureID = GL_PaletteTexture ? GL_PaletteTexture->TextureID : 0;
 
 		shader->SetUniformTexture(shader->LocPaletteTexture, textureID);
 	}
+
+	if (shader->LocPaletteIndexTexture != -1) {
+		int textureID = GL_PaletteIndexTexture ? GL_PaletteIndexTexture->TextureID : 0;
+
+		shader->SetUniformTexture(shader->LocPaletteIndexTexture, textureID);
+	}
+}
+void GL_PreparePaletteShader(GLShader* shader, Texture* texture, int paletteID) {
+	GL_PreparePaletteShaderTextures(shader);
 
 	if (shader->LocPaletteID != -1) {
 		glUniform1i(shader->LocPaletteID, paletteID);
@@ -359,20 +368,6 @@ GLShader* GL_SetShader(GLShader* shader) {
 	}
 	if (shader->LocVaryingColor != -1) {
 		glEnableVertexAttribArray(shader->LocVaryingColor);
-	}
-
-	if (shader->LocPaletteIndexTable != -1) {
-		unsigned maxHeight = MAX_FRAMEBUFFER_HEIGHT;
-		if (Graphics::CurrentView != nullptr) {
-			maxHeight = Graphics::CurrentView->Height;
-		}
-
-		for (unsigned i = 0; i < maxHeight; i++) {
-			GL_PaletteIndexLines[i] = Graphics::PaletteIndexLines[i];
-		}
-
-		glUniform1iv(
-			shader->LocPaletteIndexTable, MAX_FRAMEBUFFER_HEIGHT, GL_PaletteIndexLines);
 	}
 
 	GLRenderer::SetTextureUnit(shader->GetTextureUnit(shader->LocTexture));
@@ -496,8 +491,48 @@ void GL_SetModelMatrix(Matrix4x4* modelMatrix) {
 			GLRenderer::CurrentShader->CachedModelMatrix->Values);
 	}
 }
+void GL_CheckPaletteUpdate() {
+	if (!Graphics::UsePalettes) {
+		return;
+	}
+
+	if (!(Graphics::PaletteUpdated || Graphics::PaletteIndexLinesUpdated)) {
+		return;
+	}
+
+	if (GLRenderer::CurrentShader->LocPaletteTexture != -1 ||
+		GLRenderer::CurrentShader->LocPaletteIndexTexture != -1) {
+		bool updatedPalette = false;
+
+		if (GLRenderer::CurrentShader->LocPaletteTexture != -1 &&
+			Graphics::PaletteUpdated) {
+			Graphics::UpdateGlobalPalette();
+			Graphics::PaletteUpdated = false;
+			updatedPalette = true;
+		}
+
+		if (GLRenderer::CurrentShader->LocPaletteIndexTexture != -1 &&
+			Graphics::PaletteIndexLinesUpdated) {
+			Graphics::UpdatePaletteIndexTable();
+			Graphics::PaletteIndexLinesUpdated = false;
+			updatedPalette = true;
+		}
+
+		if (updatedPalette) {
+			GL_PreparePaletteShaderTextures(GLRenderer::CurrentShader);
+
+			if (GL_LastTexture != nullptr) {
+				GL_TextureData* textureData =
+					(GL_TextureData*)GL_LastTexture->DriverData;
+
+				glBindTexture(GL_TEXTURE_2D, textureData->TextureID);
+			}
+		}
+	}
+}
 void GL_Predraw(Texture* texture, int paletteID = 0) {
 	GL_SetTexture(texture, paletteID);
+	GL_CheckPaletteUpdate();
 
 	// Update color if needed
 	if (memcmp(&GLRenderer::CurrentShader->CachedBlendColors[0],
@@ -1322,9 +1357,7 @@ void GLRenderer::Init() {
 	glewExperimental = GL_TRUE;
 	GLenum res = glewInit();
 	if (res != GLEW_OK && res != GLEW_ERROR_NO_GLX_DISPLAY) {
-		Error::Fatal(
-			"Could not create GLEW context: %s",
-			glewGetErrorString(res));
+		Error::Fatal("Could not create GLEW context: %s", glewGetErrorString(res));
 	}
 #endif
 
@@ -1500,6 +1533,7 @@ void GLRenderer::SetGraphicsFunctions() {
 
 	// Palette-related funcrions
 	Graphics::Internal.UpdateGlobalPalette = GLRenderer::UpdateGlobalPalette;
+	Graphics::Internal.UpdatePaletteIndexTable = GLRenderer::UpdatePaletteIndexTable;
 
 	// These guys
 	Graphics::Internal.Clear = GLRenderer::Clear;
@@ -2094,6 +2128,14 @@ void GLRenderer::UpdateGlobalPalette(Texture* texture) {
 	}
 	else {
 		GL_PaletteTexture = nullptr;
+	}
+}
+void GLRenderer::UpdatePaletteIndexTable(Texture* texture) {
+	if (texture != nullptr) {
+		GL_PaletteIndexTexture = (GL_TextureData*)texture->DriverData;
+	}
+	else {
+		GL_PaletteIndexTexture = nullptr;
 	}
 }
 

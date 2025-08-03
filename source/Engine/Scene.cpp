@@ -1293,6 +1293,11 @@ void Scene::Render() {
 		Graphics::PaletteUpdated = false;
 	}
 
+	if (Graphics::PaletteIndexLinesUpdated) {
+		Graphics::UpdatePaletteIndexTable();
+		Graphics::PaletteIndexLinesUpdated = false;
+	}
+
 	int win_w, win_h, ren_w, ren_h;
 	SDL_GetWindowSize(Application::Window, &win_w, &win_h);
 	SDL_GL_GetDrawableSize(Application::Window, &ren_w, &ren_h);
