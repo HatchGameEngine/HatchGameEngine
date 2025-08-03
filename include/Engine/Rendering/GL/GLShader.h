@@ -23,6 +23,14 @@ struct GL_ProcessedShader {
 	std::vector<std::string> Defines;
 };
 
+#define SHADER_FEATURE_TEXTURE (1 << 0)
+#define SHADER_FEATURE_PALETTE (1 << 1)
+#define SHADER_FEATURE_MATERIALS (1 << 2)
+#define SHADER_FEATURE_VERTEXCOLORS (1 << 3)
+#define SHADER_FEATURE_FOG_LINEAR (1 << 4)
+#define SHADER_FEATURE_FOG_EXP (1 << 5)
+#define SHADER_FEATURE_ALL ((1 << 6) - 1)
+
 class GLShader : public Shader {
 private:
 	static char* FindInclude(std::string identifier);

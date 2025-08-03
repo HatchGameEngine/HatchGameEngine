@@ -1,33 +1,27 @@
 #ifndef ENGINE_RENDERING_GL_GLSHADERCONTAINER_H
 #define ENGINE_RENDERING_GL_GLSHADERCONTAINER_H
 class GLShader;
-class GLShader;
-class GLShader;
 
 #include <Engine/Rendering/GL/GLShader.h>
 #include <Engine/Rendering/GL/ShaderIncludes.h>
 
 class GLShaderContainer {
 public:
-	GLShader* Base = nullptr;
-	GLShader* Textured = nullptr;
-	GLShader* PalettizedTextured = nullptr;
-
 	GLShaderContainer();
-	GLShaderContainer(GLShaderLinkage vsIn,
-		GLShaderLinkage vsOut,
-		GLShaderLinkage fsIn,
-		GLShaderUniforms vsUni,
-		GLShaderUniforms fsUni,
-		bool useMaterial);
+	GLShaderContainer(Uint32 features);
 	GLShader* Get();
-	GLShader* GetWithTexturing();
-	GLShader* GetWithPalette();
-	static GLShaderContainer* Make();
-	static GLShaderContainer* Make(bool useMaterial, bool useVertexColors);
-	static GLShaderContainer* MakeFog(int fogType);
-	static GLShaderContainer* MakeYUV();
+	GLShader* Get(Uint32 features);
 	~GLShaderContainer();
+
+private:
+	std::unordered_map<Uint32, GLShader*> ShaderMap;
+
+	GLShader* BaseShader = nullptr;
+	Uint32 BaseFeatures = 0;
+
+	void Init();
+
+	static GLShader* Generate(Uint32 features);
 };
 
 #endif /* ENGINE_RENDERING_GL_GLSHADERCONTAINER_H */

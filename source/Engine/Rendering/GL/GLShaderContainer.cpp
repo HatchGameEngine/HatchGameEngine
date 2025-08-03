@@ -1,163 +1,99 @@
 #ifdef USING_OPENGL
 
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Rendering/3D.h>
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
 #include <Engine/Rendering/GL/GLShaderContainer.h>
 
-GLShaderContainer::GLShaderContainer() {}
+GLShaderContainer::GLShaderContainer() {
+	BaseFeatures = 0;
 
-GLShaderContainer::GLShaderContainer(GLShaderLinkage vsIn,
-	GLShaderLinkage vsOut,
-	GLShaderLinkage fsIn,
-	GLShaderUniforms vsUni,
-	GLShaderUniforms fsUni,
-	bool useMaterial) {
-	std::string vs, fs;
+	Init();
+}
+GLShaderContainer::GLShaderContainer(Uint32 baseFeatures) {
+	BaseFeatures = baseFeatures & SHADER_FEATURE_ALL;
+
+	Init();
+}
+
+void GLShaderContainer::Init() {
+	BaseShader = Generate(BaseFeatures);
+}
+
+GLShader* GLShaderContainer::Generate(Uint32 features) {
+	GLShaderLinkage vsIn = {0};
+	GLShaderLinkage vsOut = {0};
+	GLShaderLinkage fsIn = {0};
+	GLShaderUniforms vsUni = {0};
+	GLShaderUniforms fsUni = {0};
+
+	bool useTexturing = features & SHADER_FEATURE_TEXTURE;
+	bool usePalette = features & SHADER_FEATURE_PALETTE;
+	bool useVertexColors = features & SHADER_FEATURE_VERTEXCOLORS;
+	bool useMaterials = features & SHADER_FEATURE_MATERIALS;
 
 	vsIn.link_position = true;
 	vsUni.u_matrix = true;
-	fsUni.u_color = !fsIn.link_color;
-	fsUni.u_materialColors = useMaterial;
+	fsUni.u_color = !useVertexColors;
+	fsUni.u_materialColors = useMaterials;
 
-	vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
-	fs = GLShaderBuilder::Fragment(fsIn, fsUni);
-	Base = new GLShader(vs, fs);
+	vsIn.link_color = vsOut.link_color = fsIn.link_color = useVertexColors;
+	vsIn.link_uv = vsOut.link_uv = fsIn.link_uv = useTexturing;
+	fsUni.u_texture = useTexturing;
+	fsUni.u_palette = usePalette;
 
-	vsIn.link_uv = true;
-	vsOut.link_uv = true;
-	fsIn.link_uv = true;
-	fsUni.u_texture = true;
-	vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
-	fs = GLShaderBuilder::Fragment(fsIn, fsUni);
-	try {
-		Textured = new GLShader(vs, fs);
-	} catch (const std::runtime_error& error) {
-		delete Base;
-
-		throw;
+	if (features & SHADER_FEATURE_FOG_LINEAR) {
+		fsUni.u_fog_linear = true;
+		vsOut.link_position = fsIn.link_position = true;
+	}
+	else if (features & SHADER_FEATURE_FOG_EXP) {
+		fsUni.u_fog_exp = true;
+		vsOut.link_position = fsIn.link_position = true;
 	}
 
-	fsUni.u_palette = true;
-	vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
-	fs = GLShaderBuilder::Fragment(fsIn, fsUni);
-	try {
-		PalettizedTextured = new GLShader(vs, fs);
-	} catch (const std::runtime_error& error) {
-		delete Textured;
-		delete Base;
+	std::string vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
+	std::string fs = GLShaderBuilder::Fragment(fsIn, fsUni);
 
-		throw;
-	}
+	// Be aware that this may throw an exception.
+	GLShader* shader = new GLShader(vs, fs);
+
+	return shader;
 }
 
 GLShader* GLShaderContainer::Get() {
-	return Base;
+	return Get(0);
 }
-GLShader* GLShaderContainer::GetWithTexturing() {
-	return Textured;
-}
-GLShader* GLShaderContainer::GetWithPalette() {
-	return PalettizedTextured;
-}
-
-GLShaderContainer* GLShaderContainer::Make(bool useMaterial, bool useVertexColors) {
-	GLShaderLinkage vsIn = {0};
-	GLShaderLinkage vsOut = {0};
-	GLShaderLinkage fsIn = {0};
-	GLShaderUniforms vsUni = {0};
-	GLShaderUniforms fsUni = {0};
-
-	vsIn.link_color = useVertexColors;
-	vsOut.link_color = useVertexColors;
-	fsIn.link_color = useVertexColors;
-
-	return new GLShaderContainer(vsIn, vsOut, fsIn, vsUni, fsUni, useMaterial);
-}
-
-GLShaderContainer* GLShaderContainer::Make() {
-	return Make(false, false);
-}
-
-GLShaderContainer* GLShaderContainer::MakeFog(int fogType) {
-	GLShaderLinkage vsIn = {0};
-	GLShaderLinkage vsOut = {0};
-	GLShaderLinkage fsIn = {0};
-	GLShaderUniforms vsUni = {0};
-	GLShaderUniforms fsUni = {0};
-
-	vsIn.link_color = true;
-	vsOut.link_position = true;
-	vsOut.link_color = true;
-	fsIn.link_color = true;
-	fsIn.link_position = true;
-
-	if (fogType == FogEquation_Linear) {
-		fsUni.u_fog_linear = true;
-	}
-	else {
-		fsUni.u_fog_exp = true;
+GLShader* GLShaderContainer::Get(Uint32 features) {
+	features &= SHADER_FEATURE_ALL;
+	if (features == 0) {
+		return BaseShader;
 	}
 
-	return new GLShaderContainer(vsIn, vsOut, fsIn, vsUni, fsUni, true);
-}
+	features |= BaseFeatures;
 
-GLShaderContainer* GLShaderContainer::MakeYUV() {
-#ifdef GL_HAVE_YUV
-	GLShaderLinkage vsIn = {0};
-	GLShaderLinkage vsOut = {0};
-	GLShaderLinkage fsIn = {0};
-	GLShaderUniforms vsUni = {0};
-	GLShaderUniforms fsUni = {0};
+	std::unordered_map<Uint32, GLShader*>::iterator it = ShaderMap.find(features);
+	if (it != ShaderMap.end()) {
+		return it->second;
+	}
 
-	vsIn.link_position = true;
-	vsIn.link_uv = true;
-	vsOut.link_uv = true;
-	fsIn.link_uv = true;
-	vsUni.u_matrix = true;
-	fsUni.u_color = true;
-	fsUni.u_materialColors = false;
-	fsUni.u_yuv = true;
+	try {
+		GLShader* shader = Generate(features);
 
-	std::string vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
-	std::string fs = GLShaderBuilder::Fragment(fsIn,
-		fsUni,
-		"const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n"
-		"const vec3 Rcoeff = vec3(1.164,  0.000,  1.596);\n"
-		"const vec3 Gcoeff = vec3(1.164, -0.391, -0.813);\n"
-		"const vec3 Bcoeff = vec3(1.164,  2.018,  0.000);\n"
+		ShaderMap[features] = shader;
 
-		"void main() {\n"
-		"    vec3 yuv, rgb;\n"
-		"    vec2 uv = o_uv;\n"
+		return shader;
+	} catch (const std::runtime_error& error) {
+		Log::Print(Log::LOG_ERROR, "Could not compile shader! Error:\n%s", error.what());
 
-		"    yuv.x = texture2D(" UNIFORM_TEXTURE ",  uv).r;\n"
-		"    yuv.y = texture2D(" UNIFORM_TEXTUREU ", uv).r;\n"
-		"    yuv.z = texture2D(" UNIFORM_TEXTUREV ", uv).r;\n"
-		"    yuv += offset;\n"
+		ShaderMap[features] = BaseShader;
+	}
 
-		"    rgb.r = dot(yuv, Rcoeff);\n"
-		"    rgb.g = dot(yuv, Gcoeff);\n"
-		"    rgb.b = dot(yuv, Bcoeff);\n"
-		"    gl_FragColor = vec4(rgb, 1.0) * u_color;\n"
-		"}");
-
-	GLShaderContainer* container = new GLShaderContainer();
-	container->Textured = new GLShader(vs, fs);
-	return container;
-#else
-	return nullptr;
-#endif
+	return BaseShader;
 }
 
 GLShaderContainer::~GLShaderContainer() {
-	if (Base) {
-		delete Base;
-	}
-	if (Textured) {
-		delete Textured;
-	}
-	if (PalettizedTextured) {
-		delete PalettizedTextured;
+	for (auto it = ShaderMap.begin(); it != ShaderMap.end(); it++) {
+		delete it->second;
 	}
 }
 
