@@ -137,7 +137,7 @@ ScriptEntity* GetScriptEntity(VMValue* args, int index, Uint32 threadID) {
  * \desc Changes the current animation of the entity, if the animation index differs from the entity's current animation index.
  * \param animation (Integer): The animation index.
  * \param frame (Integer): The frame index.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
@@ -182,7 +182,7 @@ VMValue EntityImpl::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID
  * \desc Changes the current animation of the entity.
  * \param animation (Integer): The animation index.
  * \param frame (Integer): The frame index.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
@@ -225,7 +225,7 @@ VMValue EntityImpl::VM_ResetAnimation(int argCount, VMValue* args, Uint32 thread
 /***
  * \method Animate
  * \desc Animates the entity.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
@@ -240,7 +240,7 @@ VMValue EntityImpl::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
  * \method GetIDWithinClass
  * \desc Gets the ordered ID of the entity amongst other entities of the same type.
  * \return Returns an Integer value.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
@@ -268,7 +268,7 @@ VMValue EntityImpl::VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 thre
  * \method AddToRegistry
  * \desc Adds the entity to a registry.
  * \param registry (String): The registry name.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
@@ -297,7 +297,7 @@ VMValue EntityImpl::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadI
  * \desc Checks if the entity is in a registry.
  * \param registry (String): The registry name.
  * \return Returns a Boolean value.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
@@ -316,7 +316,7 @@ VMValue EntityImpl::VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID
  * \method RemoveFromRegistry
  * \desc Removes the entity from a registry.
  * \param registry (String): The registry name.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
@@ -336,7 +336,7 @@ VMValue EntityImpl::VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 th
 /***
  * \method ApplyMotion
  * \desc Applies gravity and velocities to the entity.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
@@ -355,7 +355,7 @@ VMValue EntityImpl::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID)
  * \param w (Decimal): The width.
  * \param h (Decimal): The height.
  * \return Returns <code>true</code> if the specified positions and ranges are within the specified view, <code>false</code> if otherwise.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 6);
@@ -379,7 +379,7 @@ VMValue EntityImpl::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Checks if the entity collided with another entity, or any entity of the specified class name.
  * \param other (Instance/String): The entity or class to collide with.
  * \return Returns the entity that was collided with, or <code>null</code> if it did not collide with any entity.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
@@ -435,7 +435,7 @@ VMValue EntityImpl::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 th
  * \param animation (Integer): The animation index.
  * \param frame (Integer): The frame index.
  * \param hitbox (Integer): The hitbox ID.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 5);
@@ -481,7 +481,7 @@ VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 t
  * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
  * \param hitboxID (Integer): The index number of the hitbox.
  * \return Returns a reference value to a hitbox array.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	ScriptEntity* self = GET_ENTITY(0);
@@ -562,7 +562,7 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
  * \desc Does collision with another entity.
  * \param other (Instance): The other entity to check collision for.
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_CollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
@@ -578,7 +578,7 @@ VMValue EntityImpl::VM_CollideWithObject(int argCount, VMValue* args, Uint32 thr
  * \desc Does solid collision with another entity.
  * \param other (Instance): The other entity to check collision for.
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
@@ -595,7 +595,7 @@ VMValue EntityImpl::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint3
  * \desc Does solid collision with another entity's top.
  * \param other (Instance): The other entity to check collision for.
  * \return Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_TopSolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
@@ -622,7 +622,7 @@ VMValue EntityImpl::VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID
  * \desc Checks if a property exists in the entity.
  * \param property (String): The property name.
  * \return Returns <code>true</code> if the property exists, <code>false</code> if otherwise.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
@@ -638,7 +638,7 @@ VMValue EntityImpl::VM_PropertyExists(int argCount, VMValue* args, Uint32 thread
  * \desc Gets a property exists from the entity.
  * \param property (String): The property name.
  * \return Returns the property if it exists, and <code>null</code> if the property does not exist.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
@@ -655,7 +655,7 @@ VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID)
  * \desc Sets whether the entity is visible on a specific view.
  * \param viewIndex (Integer): The view index.
  * \param visible (Boolean): Whether the entity will be visible or not on the specified view.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_SetViewVisibility(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
@@ -678,7 +678,7 @@ VMValue EntityImpl::VM_SetViewVisibility(int argCount, VMValue* args, Uint32 thr
  * \desc Toggles the bypass for each view's entity rendering toggle set by <linkto ref="Scene.SetObjectViewRender"></linkto>.
  * \param viewIndex (Integer): The view index.
  * \param visible (Boolean): Whether the entity will always be visible or not on the specified view.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_SetViewOverride(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
@@ -701,7 +701,7 @@ VMValue EntityImpl::VM_SetViewOverride(int argCount, VMValue* args, Uint32 threa
  * \method AddToDrawGroup
  * \desc Adds the entity into the specified draw group.
  * \param drawGroup (Integer): The draw group.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
@@ -728,7 +728,7 @@ VMValue EntityImpl::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 thread
  * \desc Checks if the entity is in the specified draw group.
  * \param drawGroup (Integer): The draw group.
  * \return Returns <code>true</code> if the entity is in the specified draw group, <code>false</code> if otherwise.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
@@ -752,7 +752,7 @@ VMValue EntityImpl::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadI
  * \method RemoveFromDrawGroup
  * \desc Removes the entity from the specified draw group.
  * \param drawGroup (Integer): The draw group.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
@@ -781,7 +781,7 @@ VMValue EntityImpl::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 t
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
  * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
@@ -807,7 +807,7 @@ VMValue EntityImpl::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
  * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
@@ -829,7 +829,7 @@ VMValue EntityImpl::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
  * \method StopSound
  * \desc Stops a specific sound that is being played from the entity.
  * \param sound (Integer): The sound index to interrupt.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
@@ -843,7 +843,7 @@ VMValue EntityImpl::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method StopAllSounds
  * \desc Stops all sounds the entity is playing.
- * \ns Instance
+ * \ns Entity
  */
 VMValue EntityImpl::VM_StopAllSounds(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
