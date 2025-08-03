@@ -1,5 +1,6 @@
 #ifdef USING_OPENGL
 
+#include <Engine/Rendering/Enums.h>
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
 
 void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderUniforms uniforms) {
@@ -10,6 +11,9 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 	}
 	if (uniforms.u_color) {
 		shaderText += "uniform vec4 u_color;\n";
+	}
+	if (uniforms.u_tintColor) {
+		shaderText += "uniform vec4 u_tintColor;\n";
 	}
 	if (uniforms.u_materialColors) {
 		shaderText += "uniform vec4 u_diffuseColor;\n";
@@ -153,6 +157,16 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			shaderText += "u_fogDensity";
 		}
 		shaderText += "));\n";
+	}
+
+	if (uniforms.u_tintColor) {
+		if (uniforms.u_tintMode == TintMode_SRC_NORMAL) {
+			shaderText += "vec3 tintColor = finalColor.rgb * u_tintColor.rgb;\n";
+			shaderText += "finalColor = mix(finalColor, vec4(tintColor, 1.0), u_tintColor.a);\n";
+		}
+		else if (uniforms.u_tintMode == TintMode_SRC_BLEND) {
+			shaderText += "finalColor = mix(finalColor, vec4(u_tintColor.rgb, 1.0), u_tintColor.a);\n";
+		}
 	}
 
 	shaderText += "gl_FragColor = finalColor;\n";

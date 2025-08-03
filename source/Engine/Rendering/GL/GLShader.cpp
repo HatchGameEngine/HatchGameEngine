@@ -412,6 +412,7 @@ void GLShader::AttachAndLink() {
 	LocModelMatrix = AddBuiltinUniform("u_modelMatrix");
 
 	LocColor = AddBuiltinUniform("u_color");
+	LocTintColor = AddBuiltinUniform("u_tintColor");
 	LocDiffuseColor = AddBuiltinUniform("u_diffuseColor");
 	LocSpecularColor = AddBuiltinUniform("u_specularColor");
 	LocAmbientColor = AddBuiltinUniform("u_ambientColor");
@@ -444,6 +445,7 @@ void GLShader::AttachAndLink() {
 	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 
 	memset(CachedBlendColors, 0, sizeof(CachedBlendColors));
+	memset(CachedTintColors, 0, sizeof(CachedTintColors));
 }
 
 std::string GLShader::CheckShaderError(GLuint shader) {

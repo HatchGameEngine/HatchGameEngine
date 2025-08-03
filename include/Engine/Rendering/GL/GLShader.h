@@ -29,7 +29,12 @@ struct GL_ProcessedShader {
 #define SHADER_FEATURE_VERTEXCOLORS (1 << 3)
 #define SHADER_FEATURE_FOG_LINEAR (1 << 4)
 #define SHADER_FEATURE_FOG_EXP (1 << 5)
-#define SHADER_FEATURE_ALL ((1 << 6) - 1)
+#define SHADER_FEATURE_TINTING (1 << 6)
+#define SHADER_FEATURE_TINT_DEST (1 << 7)
+#define SHADER_FEATURE_TINT_BLEND (1 << 8)
+
+#define SHADER_FEATURE_TINT_FLAGS (SHADER_FEATURE_TINTING | SHADER_FEATURE_TINT_DEST | SHADER_FEATURE_TINT_BLEND)
+#define SHADER_FEATURE_ALL ((1 << 9) - 1)
 
 class GLShader : public Shader {
 private:
@@ -112,6 +117,7 @@ public:
 	GLint LocPaletteID;
 	GLint LocNumTexturePaletteIndices;
 	GLint LocColor;
+	GLint LocTintColor;
 	GLint LocDiffuseColor;
 	GLint LocSpecularColor;
 	GLint LocAmbientColor;

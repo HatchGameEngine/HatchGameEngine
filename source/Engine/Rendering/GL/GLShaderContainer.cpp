@@ -28,19 +28,35 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 	GLShaderUniforms fsUni = {0};
 
 	bool useTexturing = features & SHADER_FEATURE_TEXTURE;
-	bool usePalette = features & SHADER_FEATURE_PALETTE;
 	bool useVertexColors = features & SHADER_FEATURE_VERTEXCOLORS;
 	bool useMaterials = features & SHADER_FEATURE_MATERIALS;
+	Uint32 tintFlags = features & SHADER_FEATURE_TINT_FLAGS;
 
 	vsIn.link_position = true;
 	vsUni.u_matrix = true;
 	fsUni.u_color = !useVertexColors;
+	fsUni.u_tintColor = tintFlags != 0;
 	fsUni.u_materialColors = useMaterials;
+
+	switch (tintFlags) {
+	case SHADER_FEATURE_TINTING:
+		fsUni.u_tintMode = TintMode_SRC_NORMAL;
+		break;
+	case SHADER_FEATURE_TINTING | SHADER_FEATURE_TINT_DEST:
+		fsUni.u_tintMode = TintMode_DST_NORMAL;
+		break;
+	case SHADER_FEATURE_TINTING | SHADER_FEATURE_TINT_BLEND:
+		fsUni.u_tintMode = TintMode_SRC_BLEND;
+		break;
+	case SHADER_FEATURE_TINTING | SHADER_FEATURE_TINT_BLEND | SHADER_FEATURE_TINT_DEST:
+		fsUni.u_tintMode = TintMode_DST_BLEND;
+		break;
+	}
 
 	vsIn.link_color = vsOut.link_color = fsIn.link_color = useVertexColors;
 	vsIn.link_uv = vsOut.link_uv = fsIn.link_uv = useTexturing;
 	fsUni.u_texture = useTexturing;
-	fsUni.u_palette = usePalette;
+	fsUni.u_palette = features & SHADER_FEATURE_PALETTE;
 
 	if (features & SHADER_FEATURE_FOG_LINEAR) {
 		fsUni.u_fog_linear = true;

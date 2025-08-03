@@ -458,6 +458,18 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 		}
 	}
 
+	if (Graphics::UseTinting) {
+		features |= SHADER_FEATURE_TINTING;
+
+		Uint8 tintMode = Graphics::TintMode;
+		if (tintMode == TintMode_DST_NORMAL || tintMode == TintMode_DST_BLEND) {
+			features |= SHADER_FEATURE_TINT_DEST;
+		}
+		if (tintMode == TintMode_SRC_BLEND || tintMode == TintMode_DST_BLEND) {
+			features |= SHADER_FEATURE_TINT_BLEND;
+		}
+	}
+
 #ifdef GL_HAVE_YUV
 	if (!isYUV)
 #endif
@@ -558,7 +570,7 @@ void GL_Predraw(Texture* texture, int paletteID = 0) {
 	GL_SetTexture(texture, paletteID);
 	GL_CheckPaletteUpdate();
 
-	// Update color if needed
+	// Update colors if needed
 	if (memcmp(&GLRenderer::CurrentShader->CachedBlendColors[0],
 		    &Graphics::BlendColors[0],
 		    sizeof(float) * 4) != 0) {
@@ -571,6 +583,20 @@ void GL_Predraw(Texture* texture, int paletteID = 0) {
 			Graphics::BlendColors[1],
 			Graphics::BlendColors[2],
 			Graphics::BlendColors[3]);
+	}
+
+	if (memcmp(&GLRenderer::CurrentShader->CachedTintColors[0],
+		    &Graphics::TintColors[0],
+		    sizeof(float) * 4) != 0) {
+		memcpy(&GLRenderer::CurrentShader->CachedTintColors[0],
+			&Graphics::TintColors[0],
+			sizeof(float) * 4);
+
+		glUniform4f(GLRenderer::CurrentShader->LocTintColor,
+			Graphics::TintColors[0],
+			Graphics::TintColors[1],
+			Graphics::TintColors[2],
+			Graphics::TintColors[3]);
 	}
 
 	// Update matrices
