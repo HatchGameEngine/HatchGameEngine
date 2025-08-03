@@ -32,7 +32,6 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 #endif
 	if (uniforms.u_fog_exp || uniforms.u_fog_linear) {
 		shaderText += "uniform vec4 u_fogColor;\n";
-		shaderText += "uniform float u_fogTable[256];\n";
 	}
 	if (uniforms.u_fog_linear) {
 		shaderText += "uniform float u_fogLinearStart;\n";
@@ -79,16 +78,14 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 			"float doFogCalc(float coord, float start, float end) {\n"
 			"    float invZ = 1.0 / (coord / 192.0);\n"
 			"    float fogValue = (end - (1.0 - invZ)) / (end - start);\n"
-			"    int result = int(clamp(fogValue * 255.0, 0.0, 255.0));\n"
-			"    return 1.0 - clamp(u_fogTable[result], 0.0, 1.0);\n"
+			"    return 1.0 - clamp(fogValue, 0.0, 1.0);\n"
 			"}\n";
 	}
 	else if (uniforms.u_fog_exp) {
 		shaderText +=
 			"float doFogCalc(float coord, float density) {\n"
 			"    float fogValue = exp(-density * (coord / 192.0));\n"
-			"    int result = int(clamp(fogValue * 255.0, 0.0, 255.0));\n"
-			"    return 1.0 - clamp(u_fogTable[result], 0.0, 1.0);\n"
+			"    return 1.0 - clamp(fogValue, 0.0, 1.0);\n"
 			"}\n";
 	}
 

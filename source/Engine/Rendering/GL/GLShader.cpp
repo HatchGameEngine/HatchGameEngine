@@ -10,16 +10,13 @@ std::unordered_map<std::string, const char*> shaderIncludes;
 void GLShader::InitIncludes() {
 	shaderIncludes["TEXTURE_SAMPLING_FUNCTIONS"] = R"(
 #define PALETTE_INDEX_TABLE_ID -1
-#define MAX_PALETTE_INDEX_LINES 4096
 
 uniform sampler2D u_paletteTexture;
 uniform int u_paletteID;
-uniform int u_paletteIndexTable[MAX_PALETTE_INDEX_LINES];
 
 int hatch_getPaletteLine(int paletteID) {
     if (paletteID == PALETTE_INDEX_TABLE_ID) {
-        int screenLine = clamp(int(gl_FragCoord.y), 0, MAX_PALETTE_INDEX_LINES - 1);
-        return u_paletteIndexTable[screenLine];
+        return 0;
     }
 
     return paletteID;
