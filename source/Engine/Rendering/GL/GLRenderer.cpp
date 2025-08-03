@@ -358,14 +358,14 @@ void GL_PreparePaletteShader(GLShader* shader, Texture* texture, int paletteID) 
 		}
 	}
 }
-GLShader* GL_SetShader(GLShader* shader) {
+void GL_SetShader(GLShader* shader) {
 	if (shader == nullptr) {
-		return nullptr;
+		return;
 	}
 
 	GLShader* currentShader = GLRenderer::CurrentShader;
 	if (currentShader == shader) {
-		return currentShader;
+		return;
 	}
 	else if (currentShader != nullptr) {
 		if (currentShader->LocPosition != -1) {
@@ -393,8 +393,6 @@ GLShader* GL_SetShader(GLShader* shader) {
 	}
 
 	GLRenderer::SetTextureUnit(shader->GetTextureUnit(shader->LocTexture));
-
-	return shader;
 }
 GLShader* GL_GetUserShader() {
 	return (GLShader*)Graphics::CurrentShader;
@@ -402,41 +400,40 @@ GLShader* GL_GetUserShader() {
 bool GL_UserShaderActive() {
 	return GL_GetUserShader() != nullptr;
 }
-void GL_SetBasicShader(GLShaderContainer* container) {
+void GL_SetShapeShader(Uint32 features) {
 	if (!GL_UserShaderActive()) {
-		GL_SetShader(container->Get());
-	}
-}
-void GL_SetTexturedShader(GLShaderContainer* container) {
-	if (!GL_UserShaderActive()) {
-		GL_SetShader(container->Get(SHADER_FEATURE_TEXTURE));
-	}
-}
-void GL_SetPaletteShader(GLShaderContainer* container) {
-	if (!GL_UserShaderActive()) {
-		GL_SetShader(container->Get(SHADER_FEATURE_TEXTURE | SHADER_FEATURE_PALETTE));
+		GL_SetShader(GLRenderer::ShaderShape->Get(features));
 	}
 }
 void GL_PrepareShader(Texture* texture, int paletteID = 0) {
-	// Use appropriate shader if changed
+	Uint32 features = 0;
+
+#ifdef GL_HAVE_YUV
+	bool isYUV = false;
+#endif
+
 	if (texture) {
 		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
 #ifdef GL_HAVE_YUV
 		if (textureData && textureData->YUV) {
-			GLShader* shader = GL_SetShader(GLRenderer::ShaderYUV);
+			GLShader* shader = GLRenderer::ShaderYUV;
+			if (shader) {
+				GL_SetShader(shader);
 
-			shader->SetUniformTexture(shader->LocTexture, textureData->TextureID);
-			shader->SetUniformTexture(shader->LocTextureU, textureData->TextureU);
-			shader->SetUniformTexture(shader->LocTextureV, textureData->TextureV);
+				shader->SetUniformTexture(shader->LocTexture, textureData->TextureID);
+				shader->SetUniformTexture(shader->LocTextureU, textureData->TextureU);
+				shader->SetUniformTexture(shader->LocTextureV, textureData->TextureV);
+
+				isYUV = true;
+			}
 		}
 		else
 #endif
 		{
+			features |= SHADER_FEATURE_TEXTURE;
+
 			if (texture->Paletted && Graphics::UsePalettes) {
-				GL_SetPaletteShader(GLRenderer::ShaderShape);
-			}
-			else {
-				GL_SetTexturedShader(GLRenderer::ShaderShape);
+				features |= SHADER_FEATURE_PALETTE;
 			}
 		}
 
@@ -459,12 +456,17 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 		if (GLRenderer::CurrentShader->LocTexCoord != -1) {
 			glDisableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
 		}
-
-		GL_SetBasicShader(GLRenderer::ShaderShape);
 	}
 
-	if (Graphics::UsePalettes) {
-		GL_PreparePaletteShader(GLRenderer::CurrentShader, texture, paletteID);
+#ifdef GL_HAVE_YUV
+	if (!isYUV)
+#endif
+	{
+		GL_SetShapeShader(features);
+
+		if (Graphics::UsePalettes) {
+			GL_PreparePaletteShader(GLRenderer::CurrentShader, texture, paletteID);
+		}
 	}
 }
 void GL_SetTexture(Texture* texture, int paletteID = 0) {
