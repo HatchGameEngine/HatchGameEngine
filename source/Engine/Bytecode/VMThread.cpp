@@ -29,60 +29,6 @@ bool VMThread::InstructionIgnoreMap[0x100];
 std::jmp_buf VMThread::JumpBuffer;
 
 // #region Error Handling & Debug Info
-#define THROW_ERROR_START() \
-	va_list args; \
-	char errorString[2048]; \
-	va_start(args, errorMessage); \
-	vsnprintf(errorString, sizeof(errorString), errorMessage, args); \
-	va_end(args); \
-	char* textBuffer = (char*)malloc(512); \
-	PrintBuffer buffer; \
-	buffer.Buffer = &textBuffer; \
-	buffer.WriteIndex = 0; \
-	buffer.BufferSize = 512
-#define THROW_ERROR_END(showMessageBox) \
-	Log::Print(Log::LOG_ERROR, textBuffer); \
-	PrintStack(); \
-	if (!showMessageBox) { \
-		free(textBuffer); \
-		return ERROR_RES_CONTINUE; \
-	} \
-	const SDL_MessageBoxButtonData buttonsError[] = { \
-		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"}, \
-		{0, 2, "Ignore All"}, \
-		{SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Continue"}, \
-	}; \
-	const SDL_MessageBoxButtonData buttonsFatal[] = { \
-		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"}, \
-	}; \
-	const SDL_MessageBoxData messageBoxData = { \
-		SDL_MESSAGEBOX_ERROR, \
-		NULL, \
-		"Script Error", \
-		textBuffer, \
-		(int)(fatal ? SDL_arraysize(buttonsFatal) : SDL_arraysize(buttonsError)), \
-		fatal ? buttonsFatal : buttonsError, \
-		NULL, \
-	}; \
-	int buttonClicked; \
-	if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) { \
-		buttonClicked = 2; \
-	} \
-	free(textBuffer); \
-	switch (buttonClicked) { \
-	/* Exit Game */ \
-	case 1: \
-		Application::Cleanup(); \
-		exit(-1); \
-		/* NOTE: This is for later, this doesn't actually \
-		 * execute. */ \
-		return ERROR_RES_EXIT; \
-	/* Ignore All */ \
-	case 2: \
-		VMThread::InstructionIgnoreMap[000000000] = true; \
-		return ERROR_RES_CONTINUE; \
-	}
-
 string VMThread::GetFunctionName(ObjFunction* function) {
 	std::string functionName(GetToken(function->NameHash));
 
@@ -132,38 +78,31 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 	CallFrame* frame = &Frames[FrameCount - 1];
 	ObjFunction* function = frame->Function;
 
-	if (function) {
-		if (function->Chunk.Lines) {
-			size_t bpos = (frame->IPLast - frame->IPStart);
-			line = function->Chunk.Lines[bpos] & 0xFFFF;
+	if (function && function->Chunk.Lines) {
+		size_t bpos = (frame->IPLast - frame->IPStart);
+		line = function->Chunk.Lines[bpos] & 0xFFFF;
 
-			std::string functionName = GetFunctionName(function);
-			if (function->Module->SourceFilename) {
-				buffer_printf(buffer,
-					"In %s of %s, line %d:\n\n    %s\n",
-					functionName.c_str(),
-					function->Module->SourceFilename->Chars,
-					line,
-					errorString);
-			}
-			else {
-				buffer_printf(buffer,
-					"In %s, line %d:\n\n    %s\n",
-					functionName.c_str(),
-					line,
-					errorString);
-			}
+		std::string functionName = GetFunctionName(function);
+		if (function->Module->SourceFilename) {
+			buffer_printf(buffer,
+				"In %s of %s, line %d",
+				functionName.c_str(),
+				function->Module->SourceFilename->Chars,
+				line);
 		}
 		else {
-			buffer_printf(buffer,
-				"On line %d:\n    %s\n",
-				(int)(frame->IP - frame->IPStart),
-				errorString);
+			buffer_printf(buffer, "In %s, line %d", functionName.c_str(), line);
 		}
 	}
 	else {
-		buffer_printf(
-			buffer, "In %d:\n    %s\n", (int)(frame->IP - frame->IPStart), errorString);
+		buffer_printf(buffer, "In %d", (int)(frame->IP - frame->IPStart));
+	}
+
+	if (errorString) {
+		buffer_printf(buffer, ":\n\n    %s\n", errorString);
+	}
+	else {
+		buffer_printf(buffer, ".\n");
 	}
 
 	buffer_printf(buffer, "\nCall Trace (Thread %d):\n", ID);
@@ -218,25 +157,31 @@ void VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
 				std::string functionName = GetFunctionName(function);
 				if (function->Module->SourceFilename) {
 					buffer_printf(buffer,
-						"While calling %s of %s:\n\n    %s\n",
+						"While calling %s of %s",
 						functionName.c_str(),
-						function->Module->SourceFilename->Chars,
-						errorString);
+						function->Module->SourceFilename->Chars);
 				}
 				else {
-					buffer_printf(buffer,
-						"While calling %s:\n\n    %s\n",
-						functionName.c_str(),
-						errorString);
+					buffer_printf(buffer, "While calling %s", functionName.c_str());
 				}
 			}
 			else {
-				buffer_printf(buffer, "While calling value: %s\n", errorString);
+				buffer_printf(buffer, "While calling value");
 			}
 		}
+
+		if (errorString) {
+			buffer_printf(buffer, ":\n\n    %s\n", errorString);
+		}
+		else {
+			buffer_printf(buffer, ".\n");
+		}
+	}
+	else if (errorString) {
+		buffer_printf(buffer, "%s\n", errorString);
 	}
 	else {
-		buffer_printf(buffer, "%s\n", errorString);
+		buffer_printf(buffer, "Something went wrong in a script.");
 	}
 }
 int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
@@ -245,13 +190,84 @@ int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
 		showMessageBox = false;
 	}
 
-	THROW_ERROR_START();
+	va_list args;
+	char errorString[2048];
+	va_start(args, errorMessage);
+	vsnprintf(errorString, sizeof(errorString), errorMessage, args);
+	va_end(args);
+	char* textBuffer = (char*)malloc(512);
+	PrintBuffer buffer;
+	buffer.Buffer = &textBuffer;
+	buffer.WriteIndex = 0;
+	buffer.BufferSize = 512;
 
 	MakeErrorMessage(&buffer, errorString);
 
-	THROW_ERROR_END(showMessageBox);
+	Log::Print(Log::LOG_ERROR, textBuffer);
+
+	PrintStack();
+
+	if (!showMessageBox) {
+		free(textBuffer);
+		return ERROR_RES_CONTINUE;
+	}
+
+	const SDL_MessageBoxButtonData buttonsError[] = {
+		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"},
+		{0, 2, "Ignore All"},
+		{SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Continue"},
+	};
+	const SDL_MessageBoxButtonData buttonsFatal[] = {
+		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"},
+	};
+	const SDL_MessageBoxData messageBoxData = {
+		SDL_MESSAGEBOX_ERROR,
+		nullptr,
+		"Script Error",
+		textBuffer,
+		(int)(fatal ? SDL_arraysize(buttonsFatal) : SDL_arraysize(buttonsError)),
+		fatal ? buttonsFatal : buttonsError,
+		nullptr
+	};
+
+	int buttonClicked;
+	if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) {
+		buttonClicked = 2;
+	}
+	free(textBuffer);
+
+	switch (buttonClicked) {
+	// Exit Game
+	case 1:
+		Application::Cleanup();
+		exit(-1);
+		// NOTE: This is for later, this doesn't actually execute.
+		return ERROR_RES_EXIT;
+	// Ignore All
+	case 2:
+		VMThread::InstructionIgnoreMap[000000000] = true;
+		return ERROR_RES_CONTINUE;
+	}
 
 	return ERROR_RES_CONTINUE;
+}
+void VMThread::ShowErrorLocation(const char* errorMessage) {
+	char* textBuffer = (char*)malloc(512);
+	PrintBuffer buffer;
+	buffer.Buffer = &textBuffer;
+	buffer.WriteIndex = 0;
+	buffer.BufferSize = 512;
+
+	MakeErrorMessage(&buffer, errorMessage);
+
+	Log::Print(Log::LOG_ERROR, textBuffer);
+
+	free(textBuffer);
+
+	PrintStack();
+}
+void VMThread::ShowErrorLocation() {
+	ShowErrorLocation(nullptr);
 }
 void VMThread::PrintStack() {
 	int i = 0;
@@ -2524,11 +2540,25 @@ bool VMThread::GetProperty(Obj* object,
 			return true;
 		}
 
-		if (getter && getter(object, hash, &value, this->ID)) {
-			Pop();
-			Push(value);
-			ScriptManager::Unlock();
-			return true;
+		if (getter) {
+			try {
+				if (getter(object, hash, &value, this->ID)) {
+					Pop();
+					Push(value);
+					ScriptManager::Unlock();
+					return true;
+				}
+			} catch (const ScriptException& error) {
+				Pop(); // Instance.
+				Push(NULL_VAL);
+
+				ThrowRuntimeError(false, "%s", error.what());
+
+				ScriptManager::Unlock();
+
+				// This already pushes to the stack, so it has to return true.
+				return true;
+			}
 		}
 
 		ObjClass* parentClass = ScriptManager::GetClassParent(object, klass);
@@ -2647,9 +2677,17 @@ bool VMThread::HasProperty(Obj* object,
 			return true;
 		}
 
-		if (getter && getter(object, hash, nullptr, this->ID)) {
-			ScriptManager::Unlock();
-			return true;
+		if (getter) {
+			try {
+				if (getter(object, hash, nullptr, this->ID)) {
+					ScriptManager::Unlock();
+					return true;
+				}
+			} catch (const ScriptException& error) {
+				ThrowRuntimeError(false, "%s", error.what());
+				ScriptManager::Unlock();
+				return false;
+			}
 		}
 
 		ObjClass* parentClass = klass->Parent;
@@ -2754,8 +2792,8 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 			VMValue returnValue = NULL_VAL;
 			try {
 				returnValue = nativeFn(argCount, StackTop - argCount, ID);
-			} catch (const char* err) {
-				(void)err;
+			} catch (const ScriptException& error) {
+				ThrowRuntimeError(false, "%s", error.what());
 			}
 
 			StackTop -= argCount; // Pop arguments
@@ -2786,8 +2824,8 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 				// Calling a native function for an object needs to correctly pass the receiver,
 				// which is the reason these +1 and -1 are here.
 				returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
-			} catch (const char* err) {
-				(void)err;
+			} catch (const ScriptException& error) {
+				ThrowRuntimeError(false, "%s", error.what());
 			}
 
 			StackTop -= argCount; // Pop arguments
@@ -2804,45 +2842,55 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 	return false;
 }
 bool VMThread::InstantiateClass(VMValue callee, int argCount) {
-	if (ScriptManager::Lock()) {
-		bool result = false;
-		if (!IS_OBJECT(callee) || OBJECT_TYPE(callee) != OBJ_CLASS) {
-			ThrowRuntimeError(false, "Cannot instantiate non-class.");
-		}
-		else {
-			ObjClass* klass = AS_CLASS(callee);
-
-			// Create the instance.
-			Obj* instance;
-			if (klass->NewFn) {
-				instance = klass->NewFn();
-			}
-			else {
-				instance = (Obj*)NewInstance(klass);
-			}
-			StackTop[-argCount - 1] = OBJECT_VAL(instance);
-
-			// Call the initializer, if there is one.
-			if (HasInitializer(klass)) {
-				// Handles native functions correctly!
-				result = CallForObject(klass->Initializer, argCount);
-			}
-			else if (argCount != 0) {
-				ThrowRuntimeError(false,
-					"Expected no arguments to initializer, got %d.",
-					argCount);
-				result = false;
-			}
-			else {
-				result = true;
-			}
-		}
-
-		ScriptManager::Unlock();
-		return result;
+	if (!ScriptManager::Lock()) {
+		return false;
 	}
 
-	return false;
+	if (!IS_OBJECT(callee) || OBJECT_TYPE(callee) != OBJ_CLASS) {
+		ThrowRuntimeError(false, "Cannot instantiate non-class.");
+		ScriptManager::Unlock();
+		return false;
+	}
+
+	ObjClass* klass = AS_CLASS(callee);
+
+	// Create the instance.
+	Obj* instance;
+	if (klass->NewFn) {
+		try {
+			instance = klass->NewFn();
+		} catch (const ScriptException& error) {
+			ThrowRuntimeError(false, "%s", error.what());
+			ScriptManager::Unlock();
+			return false;
+		}
+	}
+	else {
+		instance = (Obj*)NewInstance(klass);
+	}
+
+	if (instance == nullptr) {
+		StackTop[-argCount - 1] = NULL_VAL;
+		ScriptManager::Unlock();
+		return false;
+	}
+
+	StackTop[-argCount - 1] = OBJECT_VAL(instance);
+
+	// Call the initializer, if there is one.
+	if (HasInitializer(klass)) {
+		// Handles native functions correctly!
+		ScriptManager::Unlock();
+		return CallForObject(klass->Initializer, argCount);
+	}
+	else if (argCount != 0) {
+		ThrowRuntimeError(false, "Expected no arguments to initializer, got %d.", argCount);
+		ScriptManager::Unlock();
+		return false;
+	}
+
+	ScriptManager::Unlock();
+	return true;
 }
 bool VMThread::Call(ObjFunction* function, int argCount) {
 	if (function->MinArity < function->Arity) {

@@ -12,6 +12,16 @@
 #include <Engine/Rendering/Texture.h>
 #include <Engine/ResourceTypes/ISprite.h>
 
+#ifdef DEBUG
+#define GL_DO_ERROR_CHECKING
+#endif
+
+#ifdef GL_DO_ERROR_CHECKING
+#define CHECK_GL() GLRenderer::CheckError(__LINE__)
+#else
+#define CHECK_GL()
+#endif
+
 class GLRenderer {
 public:
 	static SDL_GLContext Context;
@@ -20,7 +30,9 @@ public:
 	static GLShaderContainer* ShaderShape3D;
 	static GLShaderContainer* ShaderFogLinear;
 	static GLShaderContainer* ShaderFogExp;
+#ifdef GL_HAVE_YUV
 	static GLShaderContainer* ShaderYUV;
+#endif
 	static GLint DefaultFramebuffer;
 	static GLint DefaultRenderbuffer;
 	static GLuint BufferCircleFill;
@@ -55,11 +67,16 @@ public:
 	static void UpdateProjectionMatrix();
 	static void
 	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
-	static void UseShader(void* shader);
-	static void SetUniformF(int location, int count, float* values);
-	static void SetUniformI(int location, int count, int* values);
-	static void SetUniformTexture(Texture* texture, int uniform_index, int slot);
-	static void UpdateGlobalPalette();
+	static Shader* CreateShader();
+	static void SetUserShader(Shader* shader);
+	static void BindTexture(Texture* texture, int textureUnit, int uniform);
+	static void BindTexture(int textureID, int textureUnit, int uniform);
+	static int GetTextureUnit();
+	static void SetTextureUnit(int textureUnit);
+	static int GetCurrentProgram();
+	static void SetCurrentProgram(int program);
+	static void SetFilter(int filter);
+	static void UpdateGlobalPalette(Texture* texture);
 	static void Clear();
 	static void Present();
 	static void SetBlendColor(float r, float g, float b, float a);
@@ -147,6 +164,7 @@ public:
 	static void MakeFrameBufferID(ISprite* sprite);
 	static void DeleteFrameBufferID(ISprite* sprite);
 	static void SetDepthTesting(bool enable);
+	static bool CheckError(int line);
 };
 
 #endif /* ENGINE_RENDERING_GL_GLRENDERER_H */

@@ -164,6 +164,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\InstanceImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MapImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MaterialImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StreamImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\TypeImpl.cpp" />

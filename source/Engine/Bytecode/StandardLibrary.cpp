@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
@@ -29,6 +30,7 @@
 #include <Engine/Math/Random.h>
 #include <Engine/Network/HTTP.h>
 #include <Engine/Network/WebSocketClient.h>
+#include <Engine/Platforms/Capability.h>
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
 #include <Engine/Rendering/ViewTexture.h>
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
@@ -285,6 +287,24 @@ inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline ObjShader* GetShader(VMValue* args, int index, Uint32 threadID) {
+	ObjShader* value = nullptr;
+	if (ScriptManager::Lock()) {
+		if (IS_SHADER(args[index])) {
+			value = AS_SHADER(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(ShaderImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 
 inline ISprite* GetSpriteIndex(int where, Uint32 threadID) {
 	if (where < 0 || where >= (int)Scene::SpriteList.size()) {
@@ -451,6 +471,9 @@ ObjMap* StandardLibrary::GetMap(VMValue* args, int index, Uint32 threadID) {
 ISprite* StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetSprite(args, index, threadID);
 }
+Image* StandardLibrary::GetImage(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetImage(args, index, threadID);
+}
 ISound* StandardLibrary::GetSound(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetSound(args, index, threadID);
 }
@@ -462,6 +485,9 @@ ObjEntity* StandardLibrary::GetEntity(VMValue* args, int index, Uint32 threadID)
 }
 ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetFunction(args, index, threadID);
+}
+ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetShader(args, index, threadID);
 }
 
 void StandardLibrary::CheckArgCount(int argCount, int expects) {
@@ -2638,7 +2664,7 @@ VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Device.IsPC
  * \desc Determines whether or not the application is running on a personal computer OS (Windows, MacOS, Linux).
- * \return Returns 1 if the device is on a PC, 0 if otherwise.
+ * \return Returns <code>true</code> if the device is on a PC, <code>false</code> if otherwise.
  * \ns Device
  */
 VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
@@ -2649,13 +2675,47 @@ VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Device.IsMobile
  * \desc Determines whether or not the application is running on a mobile device.
- * \return Returns 1 if the device is on a mobile device, 0 if otherwise.
+ * \return Returns <code>true</code> if the device is on a mobile device, <code>false</code> if otherwise.
  * \ns Device
  */
 VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	bool isMobile = Application::IsMobile();
 	return INTEGER_VAL((int)isMobile);
+}
+/***
+ * Device.GetCapability
+ * \desc Checks a capability of the device the application is running on.
+ * \param capability (String): The capability.
+ * \return The return value of this function depends on the capability being queried; however, if the capability is not present, this function returns <code>null</code>.
+ * \ns Device
+ */
+VMValue Device_GetCapability(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	char* capType = GET_ARG(0, GetString);
+
+	Capability capability = Application::GetCapability(capType);
+
+	switch (capability.Type) {
+	case Capability::TYPE_INTEGER:
+		return INTEGER_VAL(capability.AsInteger);
+	case Capability::TYPE_DECIMAL:
+		return DECIMAL_VAL(capability.AsDecimal);
+	case Capability::TYPE_BOOL:
+		return INTEGER_VAL(capability.AsBoolean ? 1 : 0);
+	case Capability::TYPE_STRING:
+		if (ScriptManager::Lock()) {
+			VMValue value = OBJECT_VAL(TakeString(capability.AsString));
+			ScriptManager::Unlock();
+			return value;
+		}
+		else {
+			Memory::Free(capability.AsString); // Oh, okay...
+		}
+		break;
+	}
+
+	return NULL_VAL;
 }
 // #endregion
 
@@ -2664,7 +2724,7 @@ VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
  * Directory.Create
  * \desc Creates a folder at the path.
  * \param path (String): The path of the folder to create.
- * \return Returns 1 if the folder creation was successful, 0 if otherwise
+ * \return Returns <code>true</code> if the folder creation was successful, <code>false</code> if otherwise.
  * \ns Directory
  */
 VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -2676,7 +2736,7 @@ VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
  * Directory.Exists
  * \desc Determines if the folder at the path exists.
  * \param path (String): The path of the folder to check for existence.
- * \return Returns 1 if the folder exists, 0 if otherwise
+ * \return Returns <code>true</code> if the folder exists, <code>false</code> if otherwise.
  * \ns Directory
  */
 VMValue Directory_Exists(int argCount, VMValue* args, Uint32 threadID) {
@@ -4427,6 +4487,37 @@ VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Draw.SetShader
+ * \desc Sets the current shader.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns Draw
+ */
+VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	if (IS_NULL(args[0])) {
+		Graphics::SetUserShader(nullptr);
+		return NULL_VAL;
+	}
+
+	ObjShader* objShader = GET_ARG(0, GetShader);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader has been deleted!");
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Validate();
+
+		Graphics::SetUserShader(shader);
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	return NULL_VAL;
+}
+/***
  * Draw.SetFilter
  * \desc Sets a <linkto ref="Filter_*">filter type</linkto>.
  * \param filterType (Enum): The <linkto ref="Filter_*">filter type</linkto>.
@@ -4439,7 +4530,7 @@ VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
 		OUT_OF_RANGE_ERROR("Filter", filterType, 0, Filter_INVERT);
 		return NULL_VAL;
 	}
-	SoftwareRenderer::SetFilter(filterType);
+	Graphics::SetFilter(filterType);
 	return NULL_VAL;
 }
 /***
@@ -6594,7 +6685,7 @@ VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  * File.Exists
  * \desc Determines if the file at the path exists.
  * \param path (String): The path of the file to check for existence.
- * \return Returns 1 if the file exists, 0 if otherwise
+ * \return Returns <code>true</code> if the file exists, <code>false</code> if otherwise.
  * \ns File
  */
 VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
@@ -11652,6 +11743,25 @@ VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 	return DECIMAL_VAL(Scene::Layers[index].Opacity);
 }
 /***
+ * Scene.GetLayerShader
+ * \desc Gets the shader of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a shader, or <code>null</code>.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+
+	Shader* shader = (Shader*)Scene::Layers[index].CurrentShader;
+	if (shader != nullptr) {
+		return OBJECT_VAL(shader->Object);
+	}
+
+	return NULL_VAL;
+}
+/***
  * Scene.GetLayerUsePaletteIndexLines
  * \desc Gets whether the layer is using the global palette index table.
  * \param layerIndex (Integer): Index of layer.
@@ -13026,6 +13136,42 @@ VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 		THROW_ERROR("Opacity cannot be higher than 1.0.");
 	}
 	Scene::Layers[index].Opacity = opacity;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerShader
+ * \desc Sets a shader for the layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	ObjShader* objShader = GET_ARG(1, GetShader);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+
+	if (IS_NULL(args[1])) {
+		Scene::Layers[index].CurrentShader = nullptr;
+		return NULL_VAL;
+	}
+
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader has been deleted!");
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Validate();
+
+		Scene::Layers[index].CurrentShader = shader;
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+		return NULL_VAL;
+	}
+
 	return NULL_VAL;
 }
 /***
@@ -14461,32 +14607,6 @@ VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) 
 	}
 
 	return INTEGER_VAL(Application::Settings->GetPropertyCount(section));
-}
-// #endregion
-
-// #region Shader
-/***
- * Shader.Set
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_Set(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	ObjArray* array = GET_ARG(0, GetArray);
-	Graphics::UseShader(array);
-	return NULL_VAL;
-}
-/***
- * Shader.Unset
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_Unset(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	Graphics::UseShader(NULL);
-	return NULL_VAL;
 }
 // #endregion
 
@@ -17481,6 +17601,53 @@ VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)i);
 }
 /***
+ * View.SetShader
+ * \desc Sets a shader for the specified camera.
+ * \param viewIndex (Integer): Index of the view.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns View
+ */
+VMValue View_SetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	Shader* shader = nullptr;
+
+	CHECK_VIEW_INDEX();
+
+	if (!IS_NULL(args[1])) {
+		ObjShader* objShader = GET_ARG(1, GetShader);
+		shader = (Shader*)objShader->ShaderPtr;
+
+		if (shader == nullptr) {
+			THROW_ERROR("Shader has been deleted!");
+			return NULL_VAL;
+		}
+	}
+
+	Scene::Views[view_index].CurrentShader = shader;
+	return NULL_VAL;
+}
+/***
+ * View.GetShader
+ * \desc Gets the shader of the specified camera.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a shader, or <code>null</code>.
+ * \ns View
+ */
+VMValue View_GetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+
+	CHECK_VIEW_INDEX();
+
+	Shader* shader = Scene::Views[view_index].CurrentShader;
+	if (shader != nullptr) {
+		return OBJECT_VAL(shader->Object);
+	}
+
+	return NULL_VAL;
+}
+/***
  * View.IsUsingSoftwareRenderer
  * \desc Gets whether the specified camera is using the software renderer or not.
  * \param viewIndex (Integer): Index of the view.
@@ -17800,6 +17967,37 @@ VMValue Window_SetTitle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
 	Application::SetWindowTitle(string);
+	return NULL_VAL;
+}
+/***
+ * Window.SetPostProcessingShader
+ * \desc Sets a post-processing shader for the active window.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns Window
+ */
+VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	if (IS_NULL(args[0])) {
+		Graphics::PostProcessShader = nullptr;
+		return NULL_VAL;
+	}
+
+	ObjShader* objShader = GET_ARG(0, GetShader);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader has been deleted!");
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Validate();
+
+		Graphics::PostProcessShader = shader;
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+	}
+
 	return NULL_VAL;
 }
 /***
@@ -18534,6 +18732,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Device, GetPlatform);
 	DEF_NATIVE(Device, IsPC);
 	DEF_NATIVE(Device, IsMobile);
+	DEF_NATIVE(Device, GetCapability);
 	/***
     * \enum Platform_Windows
     * \desc Windows platform.
@@ -18638,6 +18837,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, SetTintColor);
 	DEF_NATIVE(Draw, SetTintMode);
 	DEF_NATIVE(Draw, UseTinting);
+	DEF_NATIVE(Draw, SetShader);
 	DEF_NATIVE(Draw, SetFilter);
 	DEF_NATIVE(Draw, UseStencil);
 	DEF_NATIVE(Draw, SetStencilTestFunction);
@@ -19463,6 +19663,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetLayerIndex);
 	DEF_NATIVE(Scene, GetLayerVisible);
 	DEF_NATIVE(Scene, GetLayerOpacity);
+	DEF_NATIVE(Scene, GetLayerShader);
 	DEF_NATIVE(Scene, GetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, GetLayerProperty);
 	DEF_NATIVE(Scene, GetLayerExists); // deprecated
@@ -19543,6 +19744,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);
 	DEF_NATIVE(Scene, SetLayerBlend);
 	DEF_NATIVE(Scene, SetLayerOpacity);
+	DEF_NATIVE(Scene, SetLayerShader);
 	DEF_NATIVE(Scene, SetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, SetLayerScroll);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesBegin);
@@ -19691,9 +19893,101 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Shader
-	INIT_CLASS(Shader);
-	DEF_NATIVE(Shader, Set);
-	DEF_NATIVE(Shader, Unset);
+	/***
+    * \enum SHADERSTAGE_VERTEX
+    * \desc Vertex shader stage.
+    */
+	DEF_CONST_INT("SHADERSTAGE_VERTEX", Shader::STAGE_VERTEX);
+	/***
+    * \enum SHADERSTAGE_FRAGMENT
+    * \desc Fragment shader stage.
+    */
+	DEF_CONST_INT("SHADERSTAGE_FRAGMENT", Shader::STAGE_FRAGMENT);
+	/***
+    * \enum SHADERDATATYPE_FLOAT
+    * \desc <code>float</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_FLOAT", Shader::DATATYPE_FLOAT);
+	/***
+    * \enum SHADERDATATYPE_VEC2
+    * \desc <code>vec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC2", Shader::DATATYPE_FLOAT_VEC2);
+	/***
+    * \enum SHADERDATATYPE_VEC3
+    * \desc <code>vec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC3", Shader::DATATYPE_FLOAT_VEC3);
+	/***
+    * \enum SHADERDATATYPE_VEC4
+    * \desc <code>vec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC4", Shader::DATATYPE_FLOAT_VEC4);
+	/***
+    * \enum SHADERDATATYPE_INT
+    * \desc <code>int</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_INT", Shader::DATATYPE_INT);
+	/***
+    * \enum SHADERDATATYPE_IVEC2
+    * \desc <code>ivec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC2", Shader::DATATYPE_INT_VEC2);
+	/***
+    * \enum SHADERDATATYPE_IVEC3
+    * \desc <code>ivec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC3", Shader::DATATYPE_INT_VEC3);
+	/***
+    * \enum SHADERDATATYPE_IVEC4
+    * \desc <code>ivec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC4", Shader::DATATYPE_INT_VEC4);
+	/***
+    * \enum SHADERDATATYPE_BOOL
+    * \desc <code>bool</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BOOL", Shader::DATATYPE_BOOL);
+	/***
+    * \enum SHADERDATATYPE_BVEC2
+    * \desc <code>bvec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC2", Shader::DATATYPE_BOOL_VEC2);
+	/***
+    * \enum SHADERDATATYPE_BVEC3
+    * \desc <code>bvec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC3", Shader::DATATYPE_BOOL_VEC3);
+	/***
+    * \enum SHADERDATATYPE_BVEC4
+    * \desc <code>bvec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC4", Shader::DATATYPE_BOOL_VEC4);
+	/***
+    * \enum SHADERDATATYPE_MAT2
+    * \desc <code>mat2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT2", Shader::DATATYPE_FLOAT_MAT2);
+	/***
+    * \enum SHADERDATATYPE_MAT3
+    * \desc <code>mat3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT3", Shader::DATATYPE_FLOAT_MAT3);
+	/***
+    * \enum SHADERDATATYPE_MAT4
+    * \desc <code>mat4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT4", Shader::DATATYPE_FLOAT_MAT4);
+	/***
+    * \enum SHADERDATATYPE_SAMPLER_2D
+    * \desc <code>sampler2D</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_SAMPLER_2D", Shader::DATATYPE_SAMPLER_2D);
+	/***
+    * \enum SHADERDATATYPE_SAMPLER_CUBE
+    * \desc <code>samplerCube</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_SAMPLER_CUBE", Shader::DATATYPE_SAMPLER_CUBE);
 	// #endregion
 
 	// #region SocketClient
@@ -19944,6 +20238,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, IsUsingDrawTarget);
 	DEF_NATIVE(View, SetUseDrawTarget);
 	DEF_NATIVE(View, GetDrawTarget);
+	DEF_NATIVE(View, SetShader);
+	DEF_NATIVE(View, GetShader);
 	DEF_NATIVE(View, IsUsingSoftwareRenderer);
 	DEF_NATIVE(View, SetUseSoftwareRenderer);
 	DEF_NATIVE(View, SetUsePerspective);
@@ -19970,6 +20266,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Window, SetPosition);
 	DEF_NATIVE(Window, SetPositionCentered);
 	DEF_NATIVE(Window, SetTitle);
+	DEF_NATIVE(Window, SetPostProcessingShader);
 	DEF_NATIVE(Window, GetWidth);
 	DEF_NATIVE(Window, GetHeight);
 	DEF_NATIVE(Window, GetFullscreen);

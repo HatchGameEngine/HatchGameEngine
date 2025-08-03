@@ -56,6 +56,8 @@ public:
 	static char* GetVariableOrMethodName(Uint32 hash);
 	void MakeErrorMessage(PrintBuffer* buffer, const char* errorString);
 	int ThrowRuntimeError(bool fatal, const char* errorMessage, ...);
+	void ShowErrorLocation(const char* errorMessage);
+	void ShowErrorLocation();
 	void PrintStack();
 	void ReturnFromNative() throw();
 	void Push(VMValue value);

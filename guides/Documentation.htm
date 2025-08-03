@@ -82,7 +82,6 @@
             <li><a href="#Reference_SceneList">SceneList</a></li>
             <li><a href="#Reference_Serializer">Serializer</a></li>
             <li><a href="#Reference_Settings">Settings</a></li>
-            <li><a href="#Reference_Shader">Shader</a></li>
             <li><a href="#Reference_SocketClient">SocketClient</a></li>
             <li><a href="#Reference_Sound">Sound</a></li>
             <li><a href="#Reference_Sprite">Sprite</a></li>
@@ -101,7 +100,8 @@
         </ul>
         <h3>Instance methods</h3>
         <ul>
-            <li><a href="#Reference_Instance">Instance</a></li>
+            <li><a href="#Reference_Entity">Entity</a></li>
+            <li><a href="#Reference_Shader">Shader</a></li>
         </ul>
         <h3>Enums</h3>
         <ul>
@@ -133,6 +133,8 @@
             <li><a href="#Reference_ROTSTYLE_*">ROTSTYLE_*</a></li>
             <li><a href="#Reference_SCENETYPE_*">SCENETYPE_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
+            <li><a href="#Reference_SHADERDATATYPE_*">SHADERDATATYPE_*</a></li>
+            <li><a href="#Reference_SHADERSTAGE_*">SHADERSTAGE_*</a></li>
             <li><a href="#Reference_SensorDirection_*">SensorDirection_*</a></li>
             <li><a href="#Reference_StencilOp_*">StencilOp_*</a></li>
             <li><a href="#Reference_StencilTest_*">StencilTest_*</a></li>
@@ -342,6 +344,7 @@
                     <li><a href="#Reference_functions_Device_GetPlatform">Device.GetPlatform</a></li>
                     <li><a href="#Reference_functions_Device_IsPC">Device.IsPC</a></li>
                     <li><a href="#Reference_functions_Device_IsMobile">Device.IsMobile</a></li>
+                    <li><a href="#Reference_functions_Device_GetCapability">Device.GetCapability</a></li>
                 </ul>
             </p>
             <p id="Reference_Directory">
@@ -407,6 +410,7 @@
                     <li><a href="#Reference_functions_Draw_SetTintColor">Draw.SetTintColor</a></li>
                     <li><a href="#Reference_functions_Draw_SetTintMode">Draw.SetTintMode</a></li>
                     <li><a href="#Reference_functions_Draw_UseTinting">Draw.UseTinting</a></li>
+                    <li><a href="#Reference_functions_Draw_SetShader">Draw.SetShader</a></li>
                     <li><a href="#Reference_functions_Draw_SetFilter">Draw.SetFilter</a></li>
                     <li><a href="#Reference_functions_Draw_UseStencil">Draw.UseStencil</a></li>
                     <li><a href="#Reference_functions_Draw_SetStencilTestFunction">Draw.SetStencilTestFunction</a></li>
@@ -617,35 +621,6 @@
                     <li><a href="#Reference_functions_Instance_DisableAutoAnimate">Instance.DisableAutoAnimate</a></li>
                     <li><a href="#Reference_functions_Instance_Copy">Instance.Copy</a></li>
                     <li><a href="#Reference_functions_Instance_ChangeClass">Instance.ChangeClass</a></li>
-                </ul>
-                <i>Instance methods:</i>
-                <ul>
-                    <li><a href="#Reference_methods_instance_SetAnimation">instance.SetAnimation</a></li>
-                    <li><a href="#Reference_methods_instance_ResetAnimation">instance.ResetAnimation</a></li>
-                    <li><a href="#Reference_methods_instance_Animate">instance.Animate</a></li>
-                    <li><a href="#Reference_methods_instance_GetIDWithinClass">instance.GetIDWithinClass</a></li>
-                    <li><a href="#Reference_methods_instance_AddToRegistry">instance.AddToRegistry</a></li>
-                    <li><a href="#Reference_methods_instance_IsInRegistry">instance.IsInRegistry</a></li>
-                    <li><a href="#Reference_methods_instance_RemoveFromRegistry">instance.RemoveFromRegistry</a></li>
-                    <li><a href="#Reference_methods_instance_ApplyMotion">instance.ApplyMotion</a></li>
-                    <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
-                    <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
-                    <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
-                    <li><a href="#Reference_methods_instance_ReturnHitbox">instance.ReturnHitbox</a></li>
-                    <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
-                    <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
-                    <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
-                    <li><a href="#Reference_methods_instance_PropertyExists">instance.PropertyExists</a></li>
-                    <li><a href="#Reference_methods_instance_PropertyGet">instance.PropertyGet</a></li>
-                    <li><a href="#Reference_methods_instance_SetViewVisibility">instance.SetViewVisibility</a></li>
-                    <li><a href="#Reference_methods_instance_SetViewOverride">instance.SetViewOverride</a></li>
-                    <li><a href="#Reference_methods_instance_AddToDrawGroup">instance.AddToDrawGroup</a></li>
-                    <li><a href="#Reference_methods_instance_IsInDrawGroup">instance.IsInDrawGroup</a></li>
-                    <li><a href="#Reference_methods_instance_RemoveFromDrawGroup">instance.RemoveFromDrawGroup</a></li>
-                    <li><a href="#Reference_methods_instance_PlaySound">instance.PlaySound</a></li>
-                    <li><a href="#Reference_methods_instance_LoopSound">instance.LoopSound</a></li>
-                    <li><a href="#Reference_methods_instance_StopSound">instance.StopSound</a></li>
-                    <li><a href="#Reference_methods_instance_StopAllSounds">instance.StopAllSounds</a></li>
                 </ul>
                 <i>Instance fields:</i>
                 <ul>
@@ -948,6 +923,7 @@
                     <li><a href="#Reference_functions_Scene_GetLayerIndex">Scene.GetLayerIndex</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerVisible">Scene.GetLayerVisible</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerOpacity">Scene.GetLayerOpacity</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLayerShader">Scene.GetLayerShader</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerUsePaletteIndexLines">Scene.GetLayerUsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerProperty">Scene.GetLayerProperty</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerExists">Scene.GetLayerExists</a></li>
@@ -1028,6 +1004,7 @@
                     <li><a href="#Reference_functions_Scene_SetDrawGroupEntityDepthSorting">Scene.SetDrawGroupEntityDepthSorting</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerBlend">Scene.SetLayerBlend</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerOpacity">Scene.SetLayerOpacity</a></li>
+                    <li><a href="#Reference_functions_Scene_SetLayerShader">Scene.SetLayerShader</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerUsePaletteIndexLines">Scene.SetLayerUsePaletteIndexLines</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerScroll">Scene.SetLayerScroll</a></li>
                     <li><a href="#Reference_functions_Scene_SetLayerSetParallaxLinesBegin">Scene.SetLayerSetParallaxLinesBegin</a></li>
@@ -1118,14 +1095,6 @@
                     <li><a href="#Reference_functions_Settings_PropertyExists">Settings.PropertyExists</a></li>
                     <li><a href="#Reference_functions_Settings_RemoveProperty">Settings.RemoveProperty</a></li>
                     <li><a href="#Reference_functions_Settings_GetPropertyCount">Settings.GetPropertyCount</a></li>
-                </ul>
-            </p>
-            <p id="Reference_Shader">
-                <h2>Shader</h2>
-                <i>Class methods:</i>
-                <ul>
-                    <li><a href="#Reference_functions_Shader_Set">Shader.Set</a></li>
-                    <li><a href="#Reference_functions_Shader_Unset">Shader.Unset</a></li>
                 </ul>
             </p>
             <p id="Reference_SocketClient">
@@ -1367,6 +1336,8 @@
                     <li><a href="#Reference_functions_View_IsUsingDrawTarget">View.IsUsingDrawTarget</a></li>
                     <li><a href="#Reference_functions_View_SetUseDrawTarget">View.SetUseDrawTarget</a></li>
                     <li><a href="#Reference_functions_View_GetDrawTarget">View.GetDrawTarget</a></li>
+                    <li><a href="#Reference_functions_View_SetShader">View.SetShader</a></li>
+                    <li><a href="#Reference_functions_View_GetShader">View.GetShader</a></li>
                     <li><a href="#Reference_functions_View_IsUsingSoftwareRenderer">View.IsUsingSoftwareRenderer</a></li>
                     <li><a href="#Reference_functions_View_SetUseSoftwareRenderer">View.SetUseSoftwareRenderer</a></li>
                     <li><a href="#Reference_functions_View_SetUsePerspective">View.SetUsePerspective</a></li>
@@ -1395,6 +1366,7 @@
                     <li><a href="#Reference_functions_Window_SetPosition">Window.SetPosition</a></li>
                     <li><a href="#Reference_functions_Window_SetPositionCentered">Window.SetPositionCentered</a></li>
                     <li><a href="#Reference_functions_Window_SetTitle">Window.SetTitle</a></li>
+                    <li><a href="#Reference_functions_Window_SetPostProcessingShader">Window.SetPostProcessingShader</a></li>
                     <li><a href="#Reference_functions_Window_GetWidth">Window.GetWidth</a></li>
                     <li><a href="#Reference_functions_Window_GetHeight">Window.GetHeight</a></li>
                     <li><a href="#Reference_functions_Window_GetFullscreen">Window.GetFullscreen</a></li>
@@ -1409,134 +1381,59 @@
                 </ul>
             </p>
         <h3>Instance methods</h3>
-            <p id="Reference_Instance">
-                <h2>Instance</h2>
-                <i>Class methods:</i>
-                <ul>
-                    <li><a href="#Reference_functions_Instance_Create">Instance.Create</a></li>
-                    <li><a href="#Reference_functions_Instance_GetNth">Instance.GetNth</a></li>
-                    <li><a href="#Reference_functions_Instance_IsClass">Instance.IsClass</a></li>
-                    <li><a href="#Reference_functions_Instance_GetClass">Instance.GetClass</a></li>
-                    <li><a href="#Reference_functions_Instance_GetCount">Instance.GetCount</a></li>
-                    <li><a href="#Reference_functions_Instance_GetNextInstance">Instance.GetNextInstance</a></li>
-                    <li><a href="#Reference_functions_Instance_GetBySlotID">Instance.GetBySlotID</a></li>
-                    <li><a href="#Reference_functions_Instance_DisableAutoAnimate">Instance.DisableAutoAnimate</a></li>
-                    <li><a href="#Reference_functions_Instance_Copy">Instance.Copy</a></li>
-                    <li><a href="#Reference_functions_Instance_ChangeClass">Instance.ChangeClass</a></li>
-                </ul>
+            <p id="Reference_Entity">
+                <h2>Entity</h2>
                 <i>Instance methods:</i>
                 <ul>
-                    <li><a href="#Reference_methods_instance_SetAnimation">instance.SetAnimation</a></li>
-                    <li><a href="#Reference_methods_instance_ResetAnimation">instance.ResetAnimation</a></li>
-                    <li><a href="#Reference_methods_instance_Animate">instance.Animate</a></li>
-                    <li><a href="#Reference_methods_instance_GetIDWithinClass">instance.GetIDWithinClass</a></li>
-                    <li><a href="#Reference_methods_instance_AddToRegistry">instance.AddToRegistry</a></li>
-                    <li><a href="#Reference_methods_instance_IsInRegistry">instance.IsInRegistry</a></li>
-                    <li><a href="#Reference_methods_instance_RemoveFromRegistry">instance.RemoveFromRegistry</a></li>
-                    <li><a href="#Reference_methods_instance_ApplyMotion">instance.ApplyMotion</a></li>
-                    <li><a href="#Reference_methods_instance_InView">instance.InView</a></li>
-                    <li><a href="#Reference_methods_instance_CollidedWithObject">instance.CollidedWithObject</a></li>
-                    <li><a href="#Reference_methods_instance_GetHitboxFromSprite">instance.GetHitboxFromSprite</a></li>
-                    <li><a href="#Reference_methods_instance_ReturnHitbox">instance.ReturnHitbox</a></li>
-                    <li><a href="#Reference_methods_instance_CollideWithObject">instance.CollideWithObject</a></li>
-                    <li><a href="#Reference_methods_instance_SolidCollideWithObject">instance.SolidCollideWithObject</a></li>
-                    <li><a href="#Reference_methods_instance_TopSolidCollideWithObject">instance.TopSolidCollideWithObject</a></li>
-                    <li><a href="#Reference_methods_instance_PropertyExists">instance.PropertyExists</a></li>
-                    <li><a href="#Reference_methods_instance_PropertyGet">instance.PropertyGet</a></li>
-                    <li><a href="#Reference_methods_instance_SetViewVisibility">instance.SetViewVisibility</a></li>
-                    <li><a href="#Reference_methods_instance_SetViewOverride">instance.SetViewOverride</a></li>
-                    <li><a href="#Reference_methods_instance_AddToDrawGroup">instance.AddToDrawGroup</a></li>
-                    <li><a href="#Reference_methods_instance_IsInDrawGroup">instance.IsInDrawGroup</a></li>
-                    <li><a href="#Reference_methods_instance_RemoveFromDrawGroup">instance.RemoveFromDrawGroup</a></li>
-                    <li><a href="#Reference_methods_instance_PlaySound">instance.PlaySound</a></li>
-                    <li><a href="#Reference_methods_instance_LoopSound">instance.LoopSound</a></li>
-                    <li><a href="#Reference_methods_instance_StopSound">instance.StopSound</a></li>
-                    <li><a href="#Reference_methods_instance_StopAllSounds">instance.StopAllSounds</a></li>
+                    <li><a href="#Reference_methods_entity_SetAnimation">entity.SetAnimation</a></li>
+                    <li><a href="#Reference_methods_entity_ResetAnimation">entity.ResetAnimation</a></li>
+                    <li><a href="#Reference_methods_entity_Animate">entity.Animate</a></li>
+                    <li><a href="#Reference_methods_entity_GetIDWithinClass">entity.GetIDWithinClass</a></li>
+                    <li><a href="#Reference_methods_entity_AddToRegistry">entity.AddToRegistry</a></li>
+                    <li><a href="#Reference_methods_entity_IsInRegistry">entity.IsInRegistry</a></li>
+                    <li><a href="#Reference_methods_entity_RemoveFromRegistry">entity.RemoveFromRegistry</a></li>
+                    <li><a href="#Reference_methods_entity_ApplyMotion">entity.ApplyMotion</a></li>
+                    <li><a href="#Reference_methods_entity_InView">entity.InView</a></li>
+                    <li><a href="#Reference_methods_entity_CollidedWithObject">entity.CollidedWithObject</a></li>
+                    <li><a href="#Reference_methods_entity_GetHitboxFromSprite">entity.GetHitboxFromSprite</a></li>
+                    <li><a href="#Reference_methods_entity_ReturnHitbox">entity.ReturnHitbox</a></li>
+                    <li><a href="#Reference_methods_entity_CollideWithObject">entity.CollideWithObject</a></li>
+                    <li><a href="#Reference_methods_entity_SolidCollideWithObject">entity.SolidCollideWithObject</a></li>
+                    <li><a href="#Reference_methods_entity_TopSolidCollideWithObject">entity.TopSolidCollideWithObject</a></li>
+                    <li><a href="#Reference_methods_entity_PropertyExists">entity.PropertyExists</a></li>
+                    <li><a href="#Reference_methods_entity_PropertyGet">entity.PropertyGet</a></li>
+                    <li><a href="#Reference_methods_entity_SetViewVisibility">entity.SetViewVisibility</a></li>
+                    <li><a href="#Reference_methods_entity_SetViewOverride">entity.SetViewOverride</a></li>
+                    <li><a href="#Reference_methods_entity_AddToDrawGroup">entity.AddToDrawGroup</a></li>
+                    <li><a href="#Reference_methods_entity_IsInDrawGroup">entity.IsInDrawGroup</a></li>
+                    <li><a href="#Reference_methods_entity_RemoveFromDrawGroup">entity.RemoveFromDrawGroup</a></li>
+                    <li><a href="#Reference_methods_entity_PlaySound">entity.PlaySound</a></li>
+                    <li><a href="#Reference_methods_entity_LoopSound">entity.LoopSound</a></li>
+                    <li><a href="#Reference_methods_entity_StopSound">entity.StopSound</a></li>
+                    <li><a href="#Reference_methods_entity_StopAllSounds">entity.StopAllSounds</a></li>
                 </ul>
-                <i>Instance fields:</i>
+            </p>
+            <p id="Reference_Shader">
+                <h2>Shader</h2>
+                <i>Instance methods:</i>
                 <ul>
-                    <li><a href="#Reference_fields_instance_X">instance.X</a></li>
-                    <li><a href="#Reference_fields_instance_Y">instance.Y</a></li>
-                    <li><a href="#Reference_fields_instance_Z">instance.Z</a></li>
-                    <li><a href="#Reference_fields_instance_XSpeed">instance.XSpeed</a></li>
-                    <li><a href="#Reference_fields_instance_YSpeed">instance.YSpeed</a></li>
-                    <li><a href="#Reference_fields_instance_GroundSpeed">instance.GroundSpeed</a></li>
-                    <li><a href="#Reference_fields_instance_Gravity">instance.Gravity</a></li>
-                    <li><a href="#Reference_fields_instance_AutoPhysics">instance.AutoPhysics</a></li>
-                    <li><a href="#Reference_fields_instance_Angle">instance.Angle</a></li>
-                    <li><a href="#Reference_fields_instance_AngleMode">instance.AngleMode</a></li>
-                    <li><a href="#Reference_fields_instance_Ground">instance.Ground</a></li>
-                    <li><a href="#Reference_fields_instance_ScaleX">instance.ScaleX</a></li>
-                    <li><a href="#Reference_fields_instance_ScaleY">instance.ScaleY</a></li>
-                    <li><a href="#Reference_fields_instance_Rotation">instance.Rotation</a></li>
-                    <li><a href="#Reference_fields_instance_Alpha">instance.Alpha</a></li>
-                    <li><a href="#Reference_fields_instance_BlendMode">instance.BlendMode</a></li>
-                    <li><a href="#Reference_fields_instance_Priority">instance.Priority</a></li>
-                    <li><a href="#Reference_fields_instance_Depth">instance.Depth</a></li>
-                    <li><a href="#Reference_fields_instance_Sprite">instance.Sprite</a></li>
-                    <li><a href="#Reference_fields_instance_CurrentAnimation">instance.CurrentAnimation</a></li>
-                    <li><a href="#Reference_fields_instance_CurrentFrame">instance.CurrentFrame</a></li>
-                    <li><a href="#Reference_fields_instance_CurrentFrameCount">instance.CurrentFrameCount</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationSpeed">instance.AnimationSpeed</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationTimer">instance.AnimationTimer</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationFrameDuration">instance.AnimationFrameDuration</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationLoopIndex">instance.AnimationLoopIndex</a></li>
-                    <li><a href="#Reference_fields_instance_RotationStyle">instance.RotationStyle</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationSpeedMult">instance.AnimationSpeedMult</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationSpeedAdd">instance.AnimationSpeedAdd</a></li>
-                    <li><a href="#Reference_fields_instance_PrevAnimation">instance.PrevAnimation</a></li>
-                    <li><a href="#Reference_fields_instance_AutoAnimate">instance.AutoAnimate</a></li>
-                    <li><a href="#Reference_fields_instance_OnScreen">instance.OnScreen</a></li>
-                    <li><a href="#Reference_fields_instance_WasOffScreen">instance.WasOffScreen</a></li>
-                    <li><a href="#Reference_fields_instance_OnScreenHitboxW">instance.OnScreenHitboxW</a></li>
-                    <li><a href="#Reference_fields_instance_OnScreenHitboxH">instance.OnScreenHitboxH</a></li>
-                    <li><a href="#Reference_fields_instance_Visible">instance.Visible</a></li>
-                    <li><a href="#Reference_fields_instance_ViewRenderFlag">instance.ViewRenderFlag</a></li>
-                    <li><a href="#Reference_fields_instance_ViewOverrideFlag">instance.ViewOverrideFlag</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionW">instance.UpdateRegionW</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionH">instance.UpdateRegionH</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionTop">instance.UpdateRegionTop</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionLeft">instance.UpdateRegionLeft</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionRight">instance.UpdateRegionRight</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionBottom">instance.UpdateRegionBottom</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionW">instance.RenderRegionW</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionH">instance.RenderRegionH</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionTop">instance.RenderRegionTop</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionLeft">instance.RenderRegionLeft</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionRight">instance.RenderRegionRight</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionBottom">instance.RenderRegionBottom</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxW">instance.HitboxW</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxH">instance.HitboxH</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxOffX">instance.HitboxOffX</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxOffY">instance.HitboxOffY</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxLeft">instance.HitboxLeft</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxTop">instance.HitboxTop</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxRight">instance.HitboxRight</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxBottom">instance.HitboxBottom</a></li>
-                    <li><a href="#Reference_fields_instance_FlipFlag">instance.FlipFlag</a></li>
-                    <li><a href="#Reference_fields_instance_VelocityX">instance.VelocityX</a></li>
-                    <li><a href="#Reference_fields_instance_VelocityX">instance.VelocityX</a></li>
-                    <li><a href="#Reference_fields_instance_GroundVel">instance.GroundVel</a></li>
-                    <li><a href="#Reference_fields_instance_Direction">instance.Direction</a></li>
-                    <li><a href="#Reference_fields_instance_OnGround">instance.OnGround</a></li>
-                    <li><a href="#Reference_fields_instance_SlotID">instance.SlotID</a></li>
-                    <li><a href="#Reference_fields_instance_Filter">instance.Filter</a></li>
-                    <li><a href="#Reference_fields_instance_ZDepth">instance.ZDepth</a></li>
-                    <li><a href="#Reference_fields_instance_CollisionLayers">instance.CollisionLayers</a></li>
-                    <li><a href="#Reference_fields_instance_CollisionPlane">instance.CollisionPlane</a></li>
-                    <li><a href="#Reference_fields_instance_CollisionMode">instance.CollisionMode</a></li>
-                    <li><a href="#Reference_fields_instance_TileCollisions">instance.TileCollisions</a></li>
-                    <li><a href="#Reference_fields_instance_Activity">instance.Activity</a></li>
-                    <li><a href="#Reference_fields_instance_InRange">instance.InRange</a></li>
-                    <li><a href="#Reference_fields_instance_SensorX">instance.SensorX</a></li>
-                    <li><a href="#Reference_fields_instance_SensorY">instance.SensorY</a></li>
-                    <li><a href="#Reference_fields_instance_SensorAngle">instance.SensorAngle</a></li>
-                    <li><a href="#Reference_fields_instance_SensorAngle">instance.SensorAngle</a></li>
-                    <li><a href="#Reference_fields_instance_Active">instance.Active</a></li>
-                    <li><a href="#Reference_fields_instance_Pauseable">instance.Pauseable</a></li>
-                    <li><a href="#Reference_fields_instance_Persistent">instance.Persistent</a></li>
-                    <li><a href="#Reference_fields_instance_Interactable">instance.Interactable</a></li>
-                    <li><a href="#Reference_fields_instance_Persistence">instance.Persistence</a></li>
+                    <li><a href="#Reference_methods_shader_HasStage">shader.HasStage</a></li>
+                    <li><a href="#Reference_methods_shader_CanCompile">shader.CanCompile</a></li>
+                    <li><a href="#Reference_methods_shader_IsValid">shader.IsValid</a></li>
+                    <li><a href="#Reference_methods_shader_AddStage">shader.AddStage</a></li>
+                    <li><a href="#Reference_methods_shader_AddStageFromString">shader.AddStageFromString</a></li>
+                    <li><a href="#Reference_methods_shader_AssignTextureUnit">shader.AssignTextureUnit</a></li>
+                    <li><a href="#Reference_methods_shader_GetTextureUnit">shader.GetTextureUnit</a></li>
+                    <li><a href="#Reference_methods_shader_Compile">shader.Compile</a></li>
+                    <li><a href="#Reference_methods_shader_HasUniform">shader.HasUniform</a></li>
+                    <li><a href="#Reference_methods_shader_GetUniformType">shader.GetUniformType</a></li>
+                    <li><a href="#Reference_methods_shader_SetUniform">shader.SetUniform</a></li>
+                    <li><a href="#Reference_methods_shader_SetTexture">shader.SetTexture</a></li>
+                    <li><a href="#Reference_methods_shader_Delete">shader.Delete</a></li>
+                </ul>
+                <i>Instance constructors:</i>
+                <ul>
+                    <li><a href="#Reference_constructors_Shader">Shader</a></li>
                 </ul>
             </p>
         <h3>Enums</h3>
@@ -1951,6 +1848,35 @@
                 <ul>
                     <li><a href="#Reference_enums_SCOPE_SCENE">SCOPE_SCENE</a></li>
                     <li><a href="#Reference_enums_SCOPE_GAME">SCOPE_GAME</a></li>
+                </ul>
+            </p>
+            <p id="Reference_SHADERDATATYPE_*">
+                <h2><code>SHADERDATATYPE_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_FLOAT">SHADERDATATYPE_FLOAT</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_VEC2">SHADERDATATYPE_VEC2</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_VEC3">SHADERDATATYPE_VEC3</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_VEC4">SHADERDATATYPE_VEC4</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_INT">SHADERDATATYPE_INT</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_IVEC2">SHADERDATATYPE_IVEC2</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_IVEC3">SHADERDATATYPE_IVEC3</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_IVEC4">SHADERDATATYPE_IVEC4</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_BOOL">SHADERDATATYPE_BOOL</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_BVEC2">SHADERDATATYPE_BVEC2</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_BVEC3">SHADERDATATYPE_BVEC3</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_BVEC4">SHADERDATATYPE_BVEC4</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_MAT2">SHADERDATATYPE_MAT2</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_MAT3">SHADERDATATYPE_MAT3</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_MAT4">SHADERDATATYPE_MAT4</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_SAMPLER_2D">SHADERDATATYPE_SAMPLER_2D</a></li>
+                    <li><a href="#Reference_enums_SHADERDATATYPE_SAMPLER_CUBE">SHADERDATATYPE_SAMPLER_CUBE</a></li>
+                </ul>
+            </p>
+            <p id="Reference_SHADERSTAGE_*">
+                <h2><code>SHADERSTAGE_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_SHADERSTAGE_VERTEX">SHADERSTAGE_VERTEX</a></li>
+                    <li><a href="#Reference_enums_SHADERSTAGE_FRAGMENT">SHADERSTAGE_FRAGMENT</a></li>
                 </ul>
             </p>
             <p id="Reference_SensorDirection_*">
@@ -3112,14 +3038,25 @@
         <code>Device.IsPC()</code>
         <div style="margin-top: 8px; font-size: 14px;">Determines whether or not the application is running on a personal computer OS (Windows, MacOS, Linux).</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns 1 if the device is on a PC, 0 if otherwise.</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the device is on a PC, <code>false</code> if otherwise.</div>
         </p>
         <p id="Reference_functions_Device_IsMobile">
         <h2 style="margin-bottom: 8px;">Device.IsMobile</h2>
         <code>Device.IsMobile()</code>
         <div style="margin-top: 8px; font-size: 14px;">Determines whether or not the application is running on a mobile device.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns 1 if the device is on a mobile device, 0 if otherwise.</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the device is on a mobile device, <code>false</code> if otherwise.</div>
+        </p>
+        <p id="Reference_functions_Device_GetCapability">
+        <h2 style="margin-bottom: 8px;">Device.GetCapability</h2>
+        <code>Device.GetCapability(capability)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks a capability of the device the application is running on.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>capability (String): The capability.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">The return value of this function depends on the capability being queried; however, if the capability is not present, this function returns <code>null</code>.</div>
         </p>
         <p id="Reference_functions_Directory_Create">
         <h2 style="margin-bottom: 8px;">Directory.Create</h2>
@@ -3130,7 +3067,7 @@
         <li>path (String): The path of the folder to create.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns 1 if the folder creation was successful, 0 if otherwise</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the folder creation was successful, <code>false</code> if otherwise.</div>
         </p>
         <p id="Reference_functions_Directory_Exists">
         <h2 style="margin-bottom: 8px;">Directory.Exists</h2>
@@ -3141,7 +3078,7 @@
         <li>path (String): The path of the folder to check for existence.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns 1 if the folder exists, 0 if otherwise</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the folder exists, <code>false</code> if otherwise.</div>
         </p>
         <p id="Reference_functions_Directory_GetFiles">
         <h2 style="margin-bottom: 8px;">Directory.GetFiles</h2>
@@ -3648,6 +3585,15 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>useTinting (Boolean): Whether or not to use color tinting when drawing.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_SetShader">
+        <h2 style="margin-bottom: 8px;">Draw.SetShader</h2>
+        <code>Draw.SetShader(shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current shader.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetFilter">
@@ -4845,7 +4791,7 @@
         <li>path (String): The path of the file to check for existence.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns 1 if the file exists, 0 if otherwise</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the file exists, <code>false</code> if otherwise.</div>
         </p>
         <p id="Reference_functions_File_ReadAllText">
         <h2 style="margin-bottom: 8px;">File.ReadAllText</h2>
@@ -7026,6 +6972,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
+        <p id="Reference_functions_Scene_GetLayerShader">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerShader</h2>
+        <code>Scene.GetLayerShader(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the shader of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a shader, or <code>null</code>.</div>
+        </p>
         <p id="Reference_functions_Scene_GetLayerUsePaletteIndexLines">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerUsePaletteIndexLines</h2>
         <code>Scene.GetLayerUsePaletteIndexLines(layerIndex)</code>
@@ -7778,6 +7735,16 @@
         <li>opacity (Decimal): Opacity from 0.0 to 1.0.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Scene_SetLayerShader">
+        <h2 style="margin-bottom: 8px;">Scene.SetLayerShader</h2>
+        <code>Scene.SetLayerShader(layerIndex, shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a shader for the layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Scene_SetLayerUsePaletteIndexLines">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerUsePaletteIndexLines</h2>
         <code>Scene.SetLayerUsePaletteIndexLines(layerIndex, usePaletteIndexLines)</code>
@@ -8476,14 +8443,6 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The total section count, as an integer.</div>
-        </p>
-        <p id="Reference_functions_Shader_Set">
-        <h2 style="margin-bottom: 8px; color: red;">Shader.Set</h2>
-        <code>Shader.Set()</code>
-        </p>
-        <p id="Reference_functions_Shader_Unset">
-        <h2 style="margin-bottom: 8px; color: red;">Shader.Unset</h2>
-        <code>Shader.Unset()</code>
         </p>
         <p id="Reference_functions_SocketClient_Open">
         <h2 style="margin-bottom: 8px; color: red;">SocketClient.Open</h2>
@@ -9998,6 +9957,27 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
+        <p id="Reference_functions_View_SetShader">
+        <h2 style="margin-bottom: 8px;">View.SetShader</h2>
+        <code>View.SetShader(viewIndex, shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a shader for the specified camera.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_View_GetShader">
+        <h2 style="margin-bottom: 8px;">View.GetShader</h2>
+        <code>View.GetShader(viewIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the shader of the specified camera.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a shader, or <code>null</code>.</div>
+        </p>
         <p id="Reference_functions_View_IsUsingSoftwareRenderer">
         <h2 style="margin-bottom: 8px;">View.IsUsingSoftwareRenderer</h2>
         <code>View.IsUsingSoftwareRenderer(viewIndex)</code>
@@ -10199,6 +10179,15 @@
         <li>title (String): Window title</li>
         </ul>
         </p>
+        <p id="Reference_functions_Window_SetPostProcessingShader">
+        <h2 style="margin-bottom: 8px;">Window.SetPostProcessingShader</h2>
+        <code>Window.SetPostProcessingShader(shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets a post-processing shader for the active window.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>shader (Shader): The shader, or <code>null</code> to unset the shader.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Window_GetWidth">
         <h2 style="margin-bottom: 8px;">Window.GetWidth</h2>
         <code>Window.GetWidth()</code>
@@ -10238,12 +10227,12 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>739 out of 798 functions have descriptions. </p>
+        <p>746 out of 803 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
-        <p id="Reference_methods_instance_SetAnimation">
-        <h2 style="margin-bottom: 8px;">instance.SetAnimation</h2>
-        <code>instance.SetAnimation(animation, frame)</code>
+        <p id="Reference_methods_entity_SetAnimation">
+        <h2 style="margin-bottom: 8px;">entity.SetAnimation</h2>
+        <code>entity.SetAnimation(animation, frame)</code>
         <div style="margin-top: 8px; font-size: 14px;">Changes the current animation of the entity, if the animation index differs from the entity's current animation index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10251,9 +10240,9 @@
         <li>frame (Integer): The frame index.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_ResetAnimation">
-        <h2 style="margin-bottom: 8px;">instance.ResetAnimation</h2>
-        <code>instance.ResetAnimation(animation, frame)</code>
+        <p id="Reference_methods_entity_ResetAnimation">
+        <h2 style="margin-bottom: 8px;">entity.ResetAnimation</h2>
+        <code>entity.ResetAnimation(animation, frame)</code>
         <div style="margin-top: 8px; font-size: 14px;">Changes the current animation of the entity.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10261,30 +10250,30 @@
         <li>frame (Integer): The frame index.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_Animate">
-        <h2 style="margin-bottom: 8px;">instance.Animate</h2>
-        <code>instance.Animate()</code>
+        <p id="Reference_methods_entity_Animate">
+        <h2 style="margin-bottom: 8px;">entity.Animate</h2>
+        <code>entity.Animate()</code>
         <div style="margin-top: 8px; font-size: 14px;">Animates the entity.</div>
         </p>
-        <p id="Reference_methods_instance_GetIDWithinClass">
-        <h2 style="margin-bottom: 8px;">instance.GetIDWithinClass</h2>
-        <code>instance.GetIDWithinClass()</code>
+        <p id="Reference_methods_entity_GetIDWithinClass">
+        <h2 style="margin-bottom: 8px;">entity.GetIDWithinClass</h2>
+        <code>entity.GetIDWithinClass()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the ordered ID of the entity amongst other entities of the same type.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
-        <p id="Reference_methods_instance_AddToRegistry">
-        <h2 style="margin-bottom: 8px;">instance.AddToRegistry</h2>
-        <code>instance.AddToRegistry(registry)</code>
+        <p id="Reference_methods_entity_AddToRegistry">
+        <h2 style="margin-bottom: 8px;">entity.AddToRegistry</h2>
+        <code>entity.AddToRegistry(registry)</code>
         <div style="margin-top: 8px; font-size: 14px;">Adds the entity to a registry.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>registry (String): The registry name.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_IsInRegistry">
-        <h2 style="margin-bottom: 8px;">instance.IsInRegistry</h2>
-        <code>instance.IsInRegistry(registry)</code>
+        <p id="Reference_methods_entity_IsInRegistry">
+        <h2 style="margin-bottom: 8px;">entity.IsInRegistry</h2>
+        <code>entity.IsInRegistry(registry)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if the entity is in a registry.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10293,23 +10282,23 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
-        <p id="Reference_methods_instance_RemoveFromRegistry">
-        <h2 style="margin-bottom: 8px;">instance.RemoveFromRegistry</h2>
-        <code>instance.RemoveFromRegistry(registry)</code>
+        <p id="Reference_methods_entity_RemoveFromRegistry">
+        <h2 style="margin-bottom: 8px;">entity.RemoveFromRegistry</h2>
+        <code>entity.RemoveFromRegistry(registry)</code>
         <div style="margin-top: 8px; font-size: 14px;">Removes the entity from a registry.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>registry (String): The registry name.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_ApplyMotion">
-        <h2 style="margin-bottom: 8px;">instance.ApplyMotion</h2>
-        <code>instance.ApplyMotion()</code>
+        <p id="Reference_methods_entity_ApplyMotion">
+        <h2 style="margin-bottom: 8px;">entity.ApplyMotion</h2>
+        <code>entity.ApplyMotion()</code>
         <div style="margin-top: 8px; font-size: 14px;">Applies gravity and velocities to the entity.</div>
         </p>
-        <p id="Reference_methods_instance_InView">
-        <h2 style="margin-bottom: 8px;">instance.InView</h2>
-        <code>instance.InView(viewIndex, x, y, w, h)</code>
+        <p id="Reference_methods_entity_InView">
+        <h2 style="margin-bottom: 8px;">entity.InView</h2>
+        <code>entity.InView(viewIndex, x, y, w, h)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if the specified positions and ranges are within the specified view.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10322,9 +10311,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the specified positions and ranges are within the specified view, <code>false</code> if otherwise.</div>
         </p>
-        <p id="Reference_methods_instance_CollidedWithObject">
-        <h2 style="margin-bottom: 8px;">instance.CollidedWithObject</h2>
-        <code>instance.CollidedWithObject(other)</code>
+        <p id="Reference_methods_entity_CollidedWithObject">
+        <h2 style="margin-bottom: 8px;">entity.CollidedWithObject</h2>
+        <code>entity.CollidedWithObject(other)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if the entity collided with another entity, or any entity of the specified class name.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10333,9 +10322,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the entity that was collided with, or <code>null</code> if it did not collide with any entity.</div>
         </p>
-        <p id="Reference_methods_instance_GetHitboxFromSprite">
-        <h2 style="margin-bottom: 8px;">instance.GetHitboxFromSprite</h2>
-        <code>instance.GetHitboxFromSprite(sprite, animation, frame, hitbox)</code>
+        <p id="Reference_methods_entity_GetHitboxFromSprite">
+        <h2 style="margin-bottom: 8px;">entity.GetHitboxFromSprite</h2>
+        <code>entity.GetHitboxFromSprite(sprite, animation, frame, hitbox)</code>
         <div style="margin-top: 8px; font-size: 14px;">Updates the entity's hitbox with the hitbox in the specified sprite's animation, frame and hitbox ID.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10345,9 +10334,9 @@
         <li>hitbox (Integer): The hitbox ID.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_ReturnHitbox">
-        <h2 style="margin-bottom: 8px;">instance.ReturnHitbox</h2>
-        <code>instance.ReturnHitbox(instance, sprite, animationID, frameID, hitboxID)</code>
+        <p id="Reference_methods_entity_ReturnHitbox">
+        <h2 style="margin-bottom: 8px;">entity.ReturnHitbox</h2>
+        <code>entity.ReturnHitbox(instance, sprite, animationID, frameID, hitboxID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10360,9 +10349,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
         </p>
-        <p id="Reference_methods_instance_CollideWithObject">
-        <h2 style="margin-bottom: 8px;">instance.CollideWithObject</h2>
-        <code>instance.CollideWithObject(other)</code>
+        <p id="Reference_methods_entity_CollideWithObject">
+        <h2 style="margin-bottom: 8px;">entity.CollideWithObject</h2>
+        <code>entity.CollideWithObject(other)</code>
         <div style="margin-top: 8px; font-size: 14px;">Does collision with another entity.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10371,9 +10360,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.</div>
         </p>
-        <p id="Reference_methods_instance_SolidCollideWithObject">
-        <h2 style="margin-bottom: 8px;">instance.SolidCollideWithObject</h2>
-        <code>instance.SolidCollideWithObject(other)</code>
+        <p id="Reference_methods_entity_SolidCollideWithObject">
+        <h2 style="margin-bottom: 8px;">entity.SolidCollideWithObject</h2>
+        <code>entity.SolidCollideWithObject(other)</code>
         <div style="margin-top: 8px; font-size: 14px;">Does solid collision with another entity.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10382,9 +10371,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.</div>
         </p>
-        <p id="Reference_methods_instance_TopSolidCollideWithObject">
-        <h2 style="margin-bottom: 8px;">instance.TopSolidCollideWithObject</h2>
-        <code>instance.TopSolidCollideWithObject(other)</code>
+        <p id="Reference_methods_entity_TopSolidCollideWithObject">
+        <h2 style="margin-bottom: 8px;">entity.TopSolidCollideWithObject</h2>
+        <code>entity.TopSolidCollideWithObject(other)</code>
         <div style="margin-top: 8px; font-size: 14px;">Does solid collision with another entity's top.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10393,9 +10382,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the entity collided, <code>false</code> if otherwise.</div>
         </p>
-        <p id="Reference_methods_instance_PropertyExists">
-        <h2 style="margin-bottom: 8px;">instance.PropertyExists</h2>
-        <code>instance.PropertyExists(property)</code>
+        <p id="Reference_methods_entity_PropertyExists">
+        <h2 style="margin-bottom: 8px;">entity.PropertyExists</h2>
+        <code>entity.PropertyExists(property)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if a property exists in the entity.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10404,9 +10393,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the property exists, <code>false</code> if otherwise.</div>
         </p>
-        <p id="Reference_methods_instance_PropertyGet">
-        <h2 style="margin-bottom: 8px;">instance.PropertyGet</h2>
-        <code>instance.PropertyGet(property)</code>
+        <p id="Reference_methods_entity_PropertyGet">
+        <h2 style="margin-bottom: 8px;">entity.PropertyGet</h2>
+        <code>entity.PropertyGet(property)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets a property exists from the entity.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10415,9 +10404,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the property if it exists, and <code>null</code> if the property does not exist.</div>
         </p>
-        <p id="Reference_methods_instance_SetViewVisibility">
-        <h2 style="margin-bottom: 8px;">instance.SetViewVisibility</h2>
-        <code>instance.SetViewVisibility(viewIndex, visible)</code>
+        <p id="Reference_methods_entity_SetViewVisibility">
+        <h2 style="margin-bottom: 8px;">entity.SetViewVisibility</h2>
+        <code>entity.SetViewVisibility(viewIndex, visible)</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets whether the entity is visible on a specific view.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10425,9 +10414,9 @@
         <li>visible (Boolean): Whether the entity will be visible or not on the specified view.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_SetViewOverride">
-        <h2 style="margin-bottom: 8px;">instance.SetViewOverride</h2>
-        <code>instance.SetViewOverride(viewIndex, visible)</code>
+        <p id="Reference_methods_entity_SetViewOverride">
+        <h2 style="margin-bottom: 8px;">entity.SetViewOverride</h2>
+        <code>entity.SetViewOverride(viewIndex, visible)</code>
         <div style="margin-top: 8px; font-size: 14px;">Toggles the bypass for each view's entity rendering toggle set by <code><a href="#Reference_functions_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></code>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10435,18 +10424,18 @@
         <li>visible (Boolean): Whether the entity will always be visible or not on the specified view.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_AddToDrawGroup">
-        <h2 style="margin-bottom: 8px;">instance.AddToDrawGroup</h2>
-        <code>instance.AddToDrawGroup(drawGroup)</code>
+        <p id="Reference_methods_entity_AddToDrawGroup">
+        <h2 style="margin-bottom: 8px;">entity.AddToDrawGroup</h2>
+        <code>entity.AddToDrawGroup(drawGroup)</code>
         <div style="margin-top: 8px; font-size: 14px;">Adds the entity into the specified draw group.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>drawGroup (Integer): The draw group.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_IsInDrawGroup">
-        <h2 style="margin-bottom: 8px;">instance.IsInDrawGroup</h2>
-        <code>instance.IsInDrawGroup(drawGroup)</code>
+        <p id="Reference_methods_entity_IsInDrawGroup">
+        <h2 style="margin-bottom: 8px;">entity.IsInDrawGroup</h2>
+        <code>entity.IsInDrawGroup(drawGroup)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if the entity is in the specified draw group.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10455,18 +10444,18 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the entity is in the specified draw group, <code>false</code> if otherwise.</div>
         </p>
-        <p id="Reference_methods_instance_RemoveFromDrawGroup">
-        <h2 style="margin-bottom: 8px;">instance.RemoveFromDrawGroup</h2>
-        <code>instance.RemoveFromDrawGroup(drawGroup)</code>
+        <p id="Reference_methods_entity_RemoveFromDrawGroup">
+        <h2 style="margin-bottom: 8px;">entity.RemoveFromDrawGroup</h2>
+        <code>entity.RemoveFromDrawGroup(drawGroup)</code>
         <div style="margin-top: 8px; font-size: 14px;">Removes the entity from the specified draw group.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>drawGroup (Integer): The draw group.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_PlaySound">
-        <h2 style="margin-bottom: 8px;">instance.PlaySound</h2>
-        <code>instance.PlaySound(sound[, panning, speed, volume])</code>
+        <p id="Reference_methods_entity_PlaySound">
+        <h2 style="margin-bottom: 8px;">entity.PlaySound</h2>
+        <code>entity.PlaySound(sound[, panning, speed, volume])</code>
         <div style="margin-top: 8px; font-size: 14px;">Plays a sound once from the entity.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10478,9 +10467,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
-        <p id="Reference_methods_instance_LoopSound">
-        <h2 style="margin-bottom: 8px;">instance.LoopSound</h2>
-        <code>instance.LoopSound(sound[, loopPoint, panning, speed, volume])</code>
+        <p id="Reference_methods_entity_LoopSound">
+        <h2 style="margin-bottom: 8px;">entity.LoopSound</h2>
+        <code>entity.LoopSound(sound[, loopPoint, panning, speed, volume])</code>
         <div style="margin-top: 8px; font-size: 14px;">Plays a sound from the entity, looping back when it ends.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -10493,21 +10482,149 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.</div>
         </p>
-        <p id="Reference_methods_instance_StopSound">
-        <h2 style="margin-bottom: 8px;">instance.StopSound</h2>
-        <code>instance.StopSound(sound)</code>
+        <p id="Reference_methods_entity_StopSound">
+        <h2 style="margin-bottom: 8px;">entity.StopSound</h2>
+        <code>entity.StopSound(sound)</code>
         <div style="margin-top: 8px; font-size: 14px;">Stops a specific sound that is being played from the entity.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The sound index to interrupt.</li>
         </ul>
         </p>
-        <p id="Reference_methods_instance_StopAllSounds">
-        <h2 style="margin-bottom: 8px;">instance.StopAllSounds</h2>
-        <code>instance.StopAllSounds()</code>
+        <p id="Reference_methods_entity_StopAllSounds">
+        <h2 style="margin-bottom: 8px;">entity.StopAllSounds</h2>
+        <code>entity.StopAllSounds()</code>
         <div style="margin-top: 8px; font-size: 14px;">Stops all sounds the entity is playing.</div>
         </p>
-        <p>26 out of 26 methods have descriptions. </p>
+        <p id="Reference_methods_shader_HasStage">
+        <h2 style="margin-bottom: 8px;">shader.HasStage</h2>
+        <code>shader.HasStage(stage)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if the shader program has a shader stage.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stage (Enum): The <a href="#Reference_SHADERSTAGE_*">shader stage</a>.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if there is a shader stage of the given type, <code>false</code> if otherwise.</div>
+        </p>
+        <p id="Reference_methods_shader_CanCompile">
+        <h2 style="margin-bottom: 8px;">shader.CanCompile</h2>
+        <code>shader.CanCompile()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if the shader can be compiled.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the shader can be compiled, <code>false</code> if otherwise.</div>
+        </p>
+        <p id="Reference_methods_shader_IsValid">
+        <h2 style="margin-bottom: 8px;">shader.IsValid</h2>
+        <code>shader.IsValid()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if the shader can be used.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the shader can be used, <code>false</code> if otherwise.</div>
+        </p>
+        <p id="Reference_methods_shader_AddStage">
+        <h2 style="margin-bottom: 8px;">shader.AddStage</h2>
+        <code>shader.AddStage(stage, shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adds a stage to the shader program. This should not be called multiple times for the same stage.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stage (Enum): The <a href="#Reference_SHADERSTAGE_*">shader stage</a>.</li>
+        <li>shader (String or Stream): Filename of the resource containing shader code, or a Stream containing shader code.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_shader_AddStageFromString">
+        <h2 style="margin-bottom: 8px;">shader.AddStageFromString</h2>
+        <code>shader.AddStageFromString(stage, shader)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adds a stage to the shader program, from a String containing the shader code. This should not be called multiple times for the same stage.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>stage (Enum): The <a href="#Reference_SHADERSTAGE_*">shader stage</a>.</li>
+        <li>shader (String): A String that contains shader code.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_shader_AssignTextureUnit">
+        <h2 style="margin-bottom: 8px;">shader.AssignTextureUnit</h2>
+        <code>shader.AssignTextureUnit(uniform)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Assigns a texture unit to a texture uniform. This is safe to call multiple times for the same uniform name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>uniform (String): The name of the uniform.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_shader_GetTextureUnit">
+        <h2 style="margin-bottom: 8px;">shader.GetTextureUnit</h2>
+        <code>shader.GetTextureUnit(uniform)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the texture unit assigned to a texture uniform.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>uniform (String): The name of the uniform.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value, or <code>null</code> if no texture unit was assigned.</div>
+        </p>
+        <p id="Reference_methods_shader_Compile">
+        <h2 style="margin-bottom: 8px;">shader.Compile</h2>
+        <code>shader.Compile()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Compiles a shader.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the shader was compiled, <code>false</code> if otherwise.</div>
+        </p>
+        <p id="Reference_methods_shader_HasUniform">
+        <h2 style="margin-bottom: 8px;">shader.HasUniform</h2>
+        <code>shader.HasUniform(uniform)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if the shader has an uniform with the given name. This can only be called after the shader has been compiled.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>uniform (String): The name of the uniform.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if there is an uniform with the given name, <code>false</code> if otherwise.</div>
+        </p>
+        <p id="Reference_methods_shader_GetUniformType">
+        <h2 style="margin-bottom: 8px;">shader.GetUniformType</h2>
+        <code>shader.GetUniformType(uniform)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the type of the uniform with the given name. This can only be called after the shader has been compiled.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>uniform (String): The name of the uniform.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the <a href="#Reference_SHADERDATATYPE_*">data type</a> of the uniform, or <code>null</code> if there is no uniform with that name.</div>
+        </p>
+        <p id="Reference_methods_shader_SetUniform">
+        <h2 style="margin-bottom: 8px;">shader.SetUniform</h2>
+        <code>shader.SetUniform(uniform, value[, dataType])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the value of an uniform variable. The value passed to the uniform persists between different invocations, and can be set at any time, as long as the shader is valid. This can only be called after the shader has been compiled.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>uniform (String): The name of the uniform.</li>
+        <li>value (Number or Array): The value.</li>
+        <li>dataType (Enum): The <a href="#Reference_SHADERDATATYPE_*">data type</a> of the value being sent. This is required if the value being passed is an Array.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_shader_SetTexture">
+        <h2 style="margin-bottom: 8px;">shader.SetTexture</h2>
+        <code>shader.SetTexture(uniform, image)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Assigns an Image to a specific texture unit linked to an uniform variable. The texture unit must have been defined using <code><a href="#Reference_methods_shader_AssignTextureUnit">shader.AssignTextureUnit</a></code> for this function to succeed.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>uniform (String): The name of the uniform.</li>
+        <li>image (Image): The image to bind to the uniform.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_shader_Delete">
+        <h2 style="margin-bottom: 8px;">shader.Delete</h2>
+        <code>shader.Delete()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Deletes a shader. It can no longer be used after this function is called.</div>
+        </p>
+        <p>39 out of 39 methods have descriptions. </p>
+        <hr/>
+        <h3>Instance constructors</h3>
+        <p id="Reference_constructors_Shader">
+        <h2 style="margin-bottom: 8px;">Shader</h2>
+        <code>Shader()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a shader program.</div>
+        </p>
+        <p>1 out of 1 constructors have descriptions. </p>
         <hr/>
         <h3>Instance fields</h3>
         <p id="Reference_fields_instance_X">
@@ -10553,7 +10670,7 @@
         <h3 style="margin-bottom: 8px;"><code>instance.AutoPhysics</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>false</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Whether <code><a href="#Reference_methods_instance_ApplyMotion">instance.ApplyMotion</a></code> is automatically called for this entity.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Whether <code>instance.ApplyMotion</code> is automatically called for this entity.</div>
         </p>
         <p id="Reference_fields_instance_Angle">
         <h3 style="margin-bottom: 8px;"><code>instance.Angle</code></h2>
@@ -10691,7 +10808,7 @@
         <h3 style="margin-bottom: 8px;"><code>instance.AutoAnimate</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>true</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Whether <code><a href="#Reference_methods_instance_Animate">instance.Animate</a></code> is automatically called for this entity.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Whether <code>instance.Animate</code> is automatically called for this entity.</div>
         </p>
         <p id="Reference_fields_instance_OnScreen">
         <h3 style="margin-bottom: 8px;"><code>instance.OnScreen</code></h2>
@@ -12090,6 +12207,82 @@
         <h3 style="margin-bottom: 8px;"><code>SCOPE_GAME</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Game scope.</div>
         </p>
+        <p id="Reference_enums_SHADERDATATYPE_FLOAT">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_FLOAT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>float</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_VEC2">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_VEC2</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>vec2</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_VEC3">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_VEC3</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>vec3</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_VEC4">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_VEC4</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>vec4</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_INT">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_INT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>int</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_IVEC2">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_IVEC2</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>ivec2</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_IVEC3">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_IVEC3</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>ivec3</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_IVEC4">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_IVEC4</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>ivec4</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_BOOL">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_BOOL</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>bool</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_BVEC2">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_BVEC2</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>bvec2</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_BVEC3">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_BVEC3</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>bvec3</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_BVEC4">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_BVEC4</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>bvec4</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_MAT2">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_MAT2</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>mat2</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_MAT3">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_MAT3</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>mat3</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_MAT4">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_MAT4</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>mat4</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_SAMPLER_2D">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_SAMPLER_2D</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>sampler2D</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERDATATYPE_SAMPLER_CUBE">
+        <h3 style="margin-bottom: 8px;"><code>SHADERDATATYPE_SAMPLER_CUBE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;"><code>samplerCube</code> data type.</div>
+        </p>
+        <p id="Reference_enums_SHADERSTAGE_VERTEX">
+        <h3 style="margin-bottom: 8px;"><code>SHADERSTAGE_VERTEX</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Vertex shader stage.</div>
+        </p>
+        <p id="Reference_enums_SHADERSTAGE_FRAGMENT">
+        <h3 style="margin-bottom: 8px;"><code>SHADERSTAGE_FRAGMENT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Fragment shader stage.</div>
+        </p>
         <p id="Reference_enums_SensorDirection_Down">
         <h3 style="margin-bottom: 8px;"><code>SensorDirection_Down</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Down sensor direction.</div>
@@ -12242,7 +12435,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>311 out of 311 enums have descriptions. </p>
+        <p>330 out of 330 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

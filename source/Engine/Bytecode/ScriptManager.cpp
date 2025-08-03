@@ -254,7 +254,6 @@ bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
 void ScriptManager::DestroyObject(Obj* object) {
 	if (object->Destructor != nullptr) {
 		object->Destructor(object);
-
 	}
 
 	FREE_OBJ(object);

@@ -23,15 +23,19 @@ std::map<std::string, TextureReference*> Graphics::SpriteSheetTextureMap;
 bool Graphics::VsyncEnabled = true;
 int Graphics::MultisamplingEnabled = 0;
 int Graphics::FontDPI = 1;
+bool Graphics::SupportsShaders = false;
 bool Graphics::SupportsBatching = false;
 bool Graphics::TextureBlend = false;
 bool Graphics::TextureInterpolate = false;
 Uint32 Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
 Uint32 Graphics::MaxTextureWidth = 1;
 Uint32 Graphics::MaxTextureHeight = 1;
+Uint32 Graphics::MaxTextureUnits = 1;
 Texture* Graphics::TextureHead = NULL;
 
-vector<VertexBuffer*> Graphics::VertexBuffers;
+std::vector<Shader*> Graphics::Shaders;
+
+std::vector<VertexBuffer*> Graphics::VertexBuffers;
 Scene3D Graphics::Scene3Ds[MAX_3D_SCENES];
 
 stack<GraphicsState> Graphics::StateStack;
@@ -59,8 +63,9 @@ int Graphics::StencilTest = StencilTest_Always;
 int Graphics::StencilOpPass = StencilOp_Keep;
 int Graphics::StencilOpFail = StencilOp_Keep;
 
-void* Graphics::FramebufferPixels = NULL;
-size_t Graphics::FramebufferSize = 0;
+Texture* Graphics::FramebufferTexture = NULL;
+int Graphics::FramebufferWidth = 0;
+int Graphics::FramebufferHeight = 0;
 
 TileScanLine Graphics::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 Uint32 Graphics::PaletteColors[MAX_PALETTE_COUNT][0x100];
@@ -73,7 +78,8 @@ Texture* Graphics::CurrentRenderTarget = NULL;
 Sint32 Graphics::CurrentScene3D = -1;
 Sint32 Graphics::CurrentVertexBuffer = -1;
 
-void* Graphics::CurrentShader = NULL;
+Shader* Graphics::CurrentShader = NULL;
+Shader* Graphics::PostProcessShader = NULL;
 bool Graphics::SmoothFill = false;
 bool Graphics::SmoothStroke = false;
 
@@ -134,7 +140,15 @@ void Graphics::Init() {
 		Graphics::MaxTextureWidth,
 		Graphics::MaxTextureHeight);
 
+	InitCapabilities();
+
 	Graphics::Initialized = true;
+}
+void Graphics::InitCapabilities() {
+	Application::AddCapability("graphics_shaders", Graphics::SupportsShaders);
+	Application::AddCapability("gpu_maxTextureWidth", (int)Graphics::MaxTextureWidth);
+	Application::AddCapability("gpu_maxTextureHeight", (int)Graphics::MaxTextureHeight);
+	Application::AddCapability("gpu_maxTextureUnits", (int)Graphics::MaxTextureUnits);
 }
 void Graphics::ChooseBackend() {
 	char renderer[64];
@@ -230,16 +244,7 @@ void Graphics::Reset() {
 	Graphics::StencilOpFail = StencilOp_Keep;
 }
 void Graphics::Dispose() {
-	for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
-		Graphics::DeleteVertexBuffer(i);
-	}
-	Graphics::VertexBuffers.clear();
-
-	for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
-		Graphics::DeleteScene3D(i);
-	}
-
-	Graphics::DeleteSpriteSheetMap();
+	Graphics::UnloadData();
 
 	for (Texture *texture = Graphics::TextureHead, *next; texture != NULL; texture = next) {
 		next = texture->Next;
@@ -247,14 +252,43 @@ void Graphics::Dispose() {
 	}
 	Graphics::TextureHead = NULL;
 	Graphics::PaletteTexture = NULL;
+	Graphics::FramebufferTexture = NULL;
 
 	Graphics::GfxFunctions->Dispose();
 
 	delete Graphics::TextureMap;
+}
+void Graphics::UnloadData() {
+	Graphics::UnloadSceneData();
 
-	if (Graphics::FramebufferPixels) {
-		Memory::Free(Graphics::FramebufferPixels);
+	Graphics::DeleteShaders();
+	Graphics::DeleteVertexBuffers();
+
+	for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
+		Graphics::DeleteScene3D(i);
 	}
+
+	Graphics::DeleteSpriteSheetMap();
+}
+void Graphics::DeleteShaders() {
+	Graphics::CurrentShader = nullptr;
+	Graphics::PostProcessShader = nullptr;
+
+	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+		Scene::Views[i].CurrentShader = nullptr;
+	}
+
+	for (Uint32 i = 0; i < Graphics::Shaders.size(); i++) {
+		delete Shaders[i];
+	}
+
+	Graphics::Shaders.clear();
+}
+void Graphics::DeleteVertexBuffers() {
+	for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
+		Graphics::DeleteVertexBuffer(i);
+	}
+	Graphics::VertexBuffers.clear();
 }
 
 Point Graphics::ProjectToScreen(float x, float y, float z) {
@@ -508,10 +542,53 @@ void Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
 	Graphics::VertexBuffers[vertexBufferIndex] = NULL;
 }
 
-void Graphics::UseShader(void* shader) {
-	Graphics::CurrentShader = shader;
-	Graphics::GfxFunctions->UseShader(shader);
+Shader* Graphics::CreateShader() {
+	if (!Graphics::GfxFunctions->CreateShader) {
+		return nullptr;
+	}
+
+	Shader* shader = Graphics::GfxFunctions->CreateShader();
+	if (shader == nullptr) {
+		return nullptr;
+	}
+
+	Shaders.push_back(shader);
+
+	return shader;
 }
+void Graphics::DeleteShader(Shader* shader) {
+	auto it = std::find(Shaders.begin(), Shaders.end(), shader);
+	if (it != Shaders.end()) {
+		delete shader;
+
+		Shaders.erase(it);
+	}
+}
+void Graphics::SetUserShader(Shader* shader) {
+	if (!Graphics::GfxFunctions->SetUserShader) {
+		return;
+	}
+
+	try {
+		Graphics::CurrentShader = shader;
+		Graphics::GfxFunctions->SetUserShader(shader);
+	} catch (const std::runtime_error& error) {
+		Graphics::CurrentShader = nullptr;
+		throw;
+	}
+}
+
+void Graphics::SetFilter(int filter) {
+	if (Graphics::GfxFunctions->SetFilter) {
+		Graphics::GfxFunctions->SetFilter(filter);
+	}
+}
+void Graphics::SetFilterTable(Uint32* table, size_t size) {
+	if (Graphics::GfxFunctions->SetFilterTable) {
+		Graphics::GfxFunctions->SetFilterTable(table, size);
+	}
+}
+
 void Graphics::SetTextureInterpolation(bool interpolate) {
 	Graphics::TextureInterpolate = interpolate;
 }
@@ -538,26 +615,25 @@ void Graphics::SoftwareEnd() {
 }
 
 void Graphics::UpdateGlobalPalette() {
-	if (!Graphics::GfxFunctions->UpdateGlobalPalette) {
-		return;
-	}
-
-	if (Graphics::PaletteTexture == NULL) {
-		Graphics::PaletteTexture = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_STATIC,
-			0x100,
+	if (Graphics::PaletteTexture == nullptr) {
+		Graphics::PaletteTexture = CreateTexture(SDL_PIXELFORMAT_ARGB8888,
+			SDL_TEXTUREACCESS_STREAMING,
+			PALETTE_ROW_SIZE,
 			MAX_PALETTE_COUNT);
+
+		if (Graphics::PaletteTexture == nullptr) {
+			return;
+		}
 	}
 
-	if (Graphics::PaletteTexture == NULL) {
-		Log::Print(Log::LOG_ERROR, "Couldn't create palette texture!");
-		abort();
+	Graphics::UpdateTexture(Graphics::PaletteTexture,
+		nullptr,
+		(Uint32*)Graphics::PaletteColors,
+		PALETTE_ROW_SIZE * sizeof(Uint32));
+
+	if (Graphics::GfxFunctions->UpdateGlobalPalette) {
+		Graphics::GfxFunctions->UpdateGlobalPalette(Graphics::PaletteTexture);
 	}
-
-	Graphics::UpdateTexture(
-		Graphics::PaletteTexture, NULL, (Uint32*)Graphics::PaletteColors, 0x100 * 4);
-
-	Graphics::GfxFunctions->UpdateGlobalPalette();
 }
 
 void Graphics::UnloadSceneData() {
@@ -605,6 +681,80 @@ void Graphics::SetRenderTarget(Texture* texture) {
 	Graphics::GfxFunctions->UpdateViewport();
 	Graphics::GfxFunctions->UpdateClipRect();
 }
+bool Graphics::CreateFramebufferTexture() {
+	int maxWidth, maxHeight;
+	GetScreenSize(maxWidth, maxHeight);
+
+	bool createTexture = FramebufferTexture == nullptr;
+
+	if (!createTexture) {
+		if (FramebufferWidth != maxWidth || FramebufferHeight != maxHeight) {
+			DisposeTexture(FramebufferTexture);
+
+			createTexture = true;
+		}
+	}
+
+	if (createTexture) {
+		FramebufferTexture = CreateTexture(
+			SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, maxWidth, maxHeight);
+
+		if (FramebufferTexture == nullptr) {
+			return false;
+		}
+
+		FramebufferWidth = maxWidth;
+		FramebufferHeight = maxHeight;
+	}
+
+	return true;
+}
+bool Graphics::UpdateFramebufferTexture() {
+	if (!Graphics::GfxFunctions->ReadFramebuffer || !Graphics::GfxFunctions->UpdateTexture ||
+		!Graphics::CreateFramebufferTexture()) {
+		return false;
+	}
+
+	Graphics::GfxFunctions->ReadFramebuffer(Graphics::FramebufferTexture->Pixels,
+		Graphics::FramebufferTexture->Width,
+		Graphics::FramebufferTexture->Height);
+	Graphics::GfxFunctions->UpdateTexture(Graphics::FramebufferTexture,
+		nullptr,
+		(Uint32*)Graphics::FramebufferTexture->Pixels,
+		Graphics::FramebufferTexture->Width * sizeof(Uint32));
+
+	return true;
+}
+void Graphics::DoScreenPostProcess() {
+	if (Graphics::PostProcessShader == nullptr) {
+		return;
+	}
+
+	if (!Graphics::UpdateFramebufferTexture()) {
+		return;
+	}
+
+	int ww, wh;
+	SDL_GetWindowSize(Application::Window, &ww, &wh);
+	Graphics::SetViewport(0.0, 0.0, ww, wh);
+	Graphics::UpdateOrthoFlipped(ww, wh);
+	Graphics::SetDepthTesting(false);
+	Graphics::SetBlendMode(BlendMode_NORMAL);
+	Graphics::SetBlendColor(1.0, 0.0, 0.0, 1.0);
+	Graphics::TextureBlend = false;
+
+	Graphics::SetUserShader(Graphics::PostProcessShader);
+	Graphics::DrawTexture(Graphics::FramebufferTexture,
+		0.0,
+		0.0,
+		Graphics::FramebufferTexture->Width,
+		Graphics::FramebufferTexture->Height,
+		0.0,
+		0.0,
+		Application::WindowWidth,
+		Application::WindowHeight);
+	Graphics::SetUserShader(nullptr);
+}
 void Graphics::CopyScreen(int source_x,
 	int source_y,
 	int source_w,
@@ -618,47 +768,84 @@ void Graphics::CopyScreen(int source_x,
 		return;
 	}
 
+	if (texture == nullptr) {
+		return;
+	}
+
+	int maxWidth, maxHeight;
+	Graphics::GetScreenSize(maxWidth, maxHeight);
+
+	if (source_x < 0) {
+		source_x = 0;
+	}
+	if (source_y < 0) {
+		source_y = 0;
+	}
+	if (source_w > maxWidth) {
+		source_w = maxWidth;
+	}
+	if (source_h > maxHeight) {
+		source_h = maxHeight;
+	}
+	if (source_x >= source_w || source_y >= source_h) {
+		return;
+	}
+	if (source_w <= 0 || source_h <= 0) {
+		return;
+	}
+
+	if (dest_x < 0) {
+		dest_x = 0;
+	}
+	if (dest_y < 0) {
+		dest_y = 0;
+	}
+	if (dest_w > texture->Width) {
+		dest_w = texture->Width;
+	}
+	if (dest_h > texture->Height) {
+		dest_h = texture->Height;
+	}
+	if (dest_x >= dest_w || dest_y >= source_h) {
+		return;
+	}
+	if (dest_w <= 0 || dest_h <= 0) {
+		return;
+	}
+
 	if (source_x == 0 && source_y == 0 && dest_x == 0 && dest_y == 0 && dest_w == source_w &&
 		dest_h == source_h) {
 		Graphics::GfxFunctions->ReadFramebuffer(texture->Pixels, dest_w, dest_h);
+		return;
 	}
-	else {
-		size_t sz = source_w * source_h * 4;
 
-		if (Graphics::FramebufferPixels == NULL) {
-			Graphics::FramebufferPixels = (Uint32*)Memory::TrackedCalloc(
-				"Graphics::FramebufferPixels", 1, sz);
+	if (!Graphics::CreateFramebufferTexture()) {
+		return;
+	}
+
+	void* fbPixels = FramebufferTexture->Pixels;
+
+	Graphics::GfxFunctions->ReadFramebuffer(fbPixels, source_w, source_h);
+
+	Uint32* d = (Uint32*)texture->Pixels;
+	Uint32* s = (Uint32*)fbPixels;
+
+	int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_w << 16, source_w << 16));
+	int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_h << 16, source_h << 16));
+
+	for (int read_y = source_y << 16, write_y = dest_y; write_y < dest_h;
+		write_y++, read_y += ys) {
+		int isy = read_y >> 16;
+		if (isy >= source_h) {
+			return;
 		}
-		else if (sz != Graphics::FramebufferSize) {
-			Graphics::FramebufferPixels =
-				(Uint32*)Memory::Realloc(Graphics::FramebufferPixels, sz);
-		}
-
-		Graphics::FramebufferSize = sz;
-
-		Graphics::GfxFunctions->ReadFramebuffer(
-			Graphics::FramebufferPixels, source_w, source_h);
-
-		Uint32* d = (Uint32*)texture->Pixels;
-		Uint32* s = (Uint32*)Graphics::FramebufferPixels;
-
-		int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_w << 16, source_w << 16));
-		int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_h << 16, source_h << 16));
-
-		for (int read_y = source_y << 16, write_y = dest_y; write_y < dest_h;
-			write_y++, read_y += ys) {
-			int isy = read_y >> 16;
-			if (isy >= source_h) {
-				return;
+		for (int read_x = source_x << 16, write_x = dest_x; write_x < dest_w;
+			write_x++, read_x += xs) {
+			int isx = read_x >> 16;
+			if (isx >= source_w) {
+				break;
 			}
-			for (int read_x = source_x << 16, write_x = dest_x; write_x < dest_w;
-				write_x++, read_x += xs) {
-				int isx = read_x >> 16;
-				if (isx >= source_w) {
-					break;
-				}
-				d[(write_y * texture->Width) + write_x] = s[(isy * source_w) + isx];
-			}
+			d[(write_y * texture->Width) + write_x] = s[(isy * source_w) + isx];
 		}
 	}
 }
@@ -703,21 +890,27 @@ void Graphics::CalculateMVPMatrix(Matrix4x4* output,
 		Matrix4x4::Identity(output);
 	}
 }
+void Graphics::GetScreenSize(int& outWidth, int& outHeight) {
+	if (Graphics::CurrentRenderTarget) {
+		outWidth = Graphics::CurrentRenderTarget->Width;
+		outHeight = Graphics::CurrentRenderTarget->Height;
+	}
+	else {
+		int w, h;
+		SDL_GetWindowSize(Application::Window, &w, &h);
+		outWidth = w;
+		outHeight = h;
+	}
+}
 void Graphics::SetViewport(float x, float y, float w, float h) {
 	Viewport* vp = &Graphics::CurrentViewport;
 	if (x < 0) {
+		int w, h;
 		vp->X = 0.0;
 		vp->Y = 0.0;
-		if (Graphics::CurrentRenderTarget) {
-			vp->Width = Graphics::CurrentRenderTarget->Width;
-			vp->Height = Graphics::CurrentRenderTarget->Height;
-		}
-		else {
-			int w, h;
-			SDL_GetWindowSize(Application::Window, &w, &h);
-			vp->Width = w;
-			vp->Height = h;
-		}
+		Graphics::GetScreenSize(w, h);
+		vp->Width = w;
+		vp->Height = h;
 	}
 	else {
 		vp->X = x;
@@ -801,6 +994,7 @@ void Graphics::PushState() {
 
 	GraphicsState state;
 
+	state.CurrentShader = (void*)Graphics::CurrentShader;
 	state.CurrentViewport = Graphics::CurrentViewport;
 	state.CurrentClip = Graphics::CurrentClip;
 	state.BlendMode = Graphics::BlendMode;
@@ -824,6 +1018,8 @@ void Graphics::PopState() {
 	}
 
 	GraphicsState state = StateStack.top();
+
+	Graphics::SetUserShader((Shader*)state.CurrentShader);
 
 	Graphics::SetBlendMode(state.BlendMode);
 	Graphics::SetBlendColor(state.BlendColors[0],
@@ -1464,13 +1660,24 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 
 	if (layer->UsingCustomRenderFunction && useCustomFunction) {
 		Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
+		return;
 	}
-	else if (layer->UsingScrollIndexes) {
+
+	Shader* shader = (Shader*)layer->CurrentShader;
+	if (shader) {
+		Graphics::SetUserShader(shader);
+	}
+
+	if (layer->UsingScrollIndexes) {
 		Graphics::DrawSceneLayer_InitTileScanLines(layer, currentView);
 		Graphics::DrawSceneLayer_HorizontalScrollIndexes(layer, currentView);
 	}
 	else {
 		Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView);
+	}
+
+	if (shader) {
+		Graphics::SetUserShader(nullptr);
 	}
 }
 void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {

@@ -39,6 +39,9 @@
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MaterialImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

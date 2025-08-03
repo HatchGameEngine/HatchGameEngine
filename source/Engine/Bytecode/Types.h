@@ -184,6 +184,7 @@ enum ObjType {
 #define CLASS_INSTANCE "$$InstanceImpl"
 #define CLASS_MAP "$$MapImpl"
 #define CLASS_MATERIAL "Material"
+#define CLASS_SHADER "Shader"
 #define CLASS_STREAM "$$StreamImpl"
 #define CLASS_STRING "$$StringImpl"
 
@@ -335,6 +336,10 @@ struct ObjStream {
 struct ObjMaterial {
 	UNION_INSTANCEABLE;
 	Material* MaterialPtr;
+};
+struct ObjShader {
+	UNION_INSTANCEABLE;
+	void* ShaderPtr;
 };
 
 #undef UNION_INSTANCEABLE
