@@ -22,6 +22,8 @@ class IModel;
 #include <Engine/Scene/View.h>
 #include <Engine/Utilities/ColorUtils.h>
 
+#define PALETTE_INDEX_TEXTURE_SIZE 64
+
 class Graphics {
 private:
 	static void InitCapabilities();
@@ -73,7 +75,10 @@ public:
 	static Uint32 PaletteColors[MAX_PALETTE_COUNT][0x100];
 	static Uint8 PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 	static bool PaletteUpdated;
+	static bool PaletteIndexLinesUpdated;
 	static Texture* PaletteTexture;
+	static Texture* PaletteIndexTexture;
+	static Uint32* PaletteIndexTextureData;
 	static Texture* CurrentRenderTarget;
 	static Sint32 CurrentScene3D;
 	static Sint32 CurrentVertexBuffer;
@@ -137,6 +142,7 @@ public:
 	static void SoftwareStart();
 	static void SoftwareEnd();
 	static void UpdateGlobalPalette();
+	static void UpdatePaletteIndexTable();
 	static void UnloadSceneData();
 	static void SetRenderTarget(Texture* texture);
 	static bool CreateFramebufferTexture();

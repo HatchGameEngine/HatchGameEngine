@@ -71,8 +71,11 @@ TileScanLine Graphics::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 Uint32 Graphics::PaletteColors[MAX_PALETTE_COUNT][0x100];
 Uint8 Graphics::PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 bool Graphics::PaletteUpdated = false;
+bool Graphics::PaletteIndexLinesUpdated = false;
 
 Texture* Graphics::PaletteTexture = NULL;
+Texture* Graphics::PaletteIndexTexture = NULL;
+Uint32* Graphics::PaletteIndexTextureData = NULL;
 
 Texture* Graphics::CurrentRenderTarget = NULL;
 Sint32 Graphics::CurrentScene3D = -1;
@@ -237,7 +240,7 @@ void Graphics::Reset() {
 		}
 	}
 	memset(Graphics::PaletteIndexLines, 0, sizeof(Graphics::PaletteIndexLines));
-	Graphics::PaletteUpdated = true;
+	Graphics::PaletteUpdated = Graphics::PaletteIndexLinesUpdated = true;
 
 	Graphics::StencilTest = StencilTest_Always;
 	Graphics::StencilOpPass = StencilOp_Keep;
@@ -252,7 +255,13 @@ void Graphics::Dispose() {
 	}
 	Graphics::TextureHead = NULL;
 	Graphics::PaletteTexture = NULL;
+	Graphics::PaletteIndexTexture = NULL;
 	Graphics::FramebufferTexture = NULL;
+
+	if (Graphics::PaletteIndexTextureData != NULL) {
+		Memory::Free(Graphics::PaletteIndexTextureData);
+		Graphics::PaletteIndexTextureData = NULL;
+	}
 
 	Graphics::GfxFunctions->Dispose();
 
@@ -633,6 +642,36 @@ void Graphics::UpdateGlobalPalette() {
 
 	if (Graphics::GfxFunctions->UpdateGlobalPalette) {
 		Graphics::GfxFunctions->UpdateGlobalPalette(Graphics::PaletteTexture);
+	}
+}
+void Graphics::UpdatePaletteIndexTable() {
+	if (Graphics::PaletteIndexTexture == nullptr) {
+		Graphics::PaletteIndexTexture = CreateTexture(SDL_PIXELFORMAT_ARGB8888,
+			SDL_TEXTUREACCESS_STREAMING,
+			PALETTE_INDEX_TEXTURE_SIZE,
+			PALETTE_INDEX_TEXTURE_SIZE);
+
+		if (Graphics::PaletteIndexTexture == nullptr) {
+			return;
+		}
+	}
+
+	if (Graphics::PaletteIndexTextureData == nullptr) {
+		Graphics::PaletteIndexTextureData = (Uint32*)Memory::Calloc(
+			PALETTE_INDEX_TEXTURE_SIZE * PALETTE_INDEX_TEXTURE_SIZE, sizeof(Uint32));
+	}
+
+	for (size_t i = 0; i < MAX_FRAMEBUFFER_HEIGHT; i++) {
+		Graphics::PaletteIndexTextureData[i] = 0xFF000000 | PaletteIndexLines[i];
+	}
+
+	Graphics::UpdateTexture(Graphics::PaletteIndexTexture,
+		nullptr,
+		Graphics::PaletteIndexTextureData,
+		PALETTE_INDEX_TEXTURE_SIZE * sizeof(Uint32));
+
+	if (Graphics::GfxFunctions->UpdatePaletteIndexTable) {
+		Graphics::GfxFunctions->UpdatePaletteIndexTable(Graphics::PaletteIndexTexture);
 	}
 }
 

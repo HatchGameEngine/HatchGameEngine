@@ -77,6 +77,7 @@ public:
 	static void SetCurrentProgram(int program);
 	static void SetFilter(int filter);
 	static void UpdateGlobalPalette(Texture* texture);
+	static void UpdatePaletteIndexTable(Texture* texture);
 	static void Clear();
 	static void Present();
 	static void SetBlendColor(float r, float g, float b, float a);

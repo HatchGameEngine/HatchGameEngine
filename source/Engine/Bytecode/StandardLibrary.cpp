@@ -11293,6 +11293,7 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
 	for (Sint32 i = lineStart; i < lineEnd; i++) {
 		Graphics::PaletteIndexLines[i] = (Uint8)palIndex;
 	}
+	Graphics::PaletteIndexLinesUpdated = true;
 	return NULL_VAL;
 }
 #undef CHECK_COLOR_INDEX
