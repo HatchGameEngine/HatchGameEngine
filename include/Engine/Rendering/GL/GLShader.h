@@ -111,7 +111,7 @@ public:
 	GLint LocFogLinearStart;
 	GLint LocFogLinearEnd;
 	GLint LocFogDensity;
-	GLint LocFogTable;
+	GLint LocFogSmoothness;
 
 #if GL_USING_ATTRIB_LOCATIONS
 	std::unordered_map<std::string, int> AttribLocationMap;

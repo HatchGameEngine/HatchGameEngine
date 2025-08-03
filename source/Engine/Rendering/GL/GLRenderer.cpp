@@ -48,9 +48,6 @@ GLint GL_PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 bool UseDepthTesting = true;
 float RetinaScale = 1.0;
 
-float FogTable[256];
-float FogSmoothness = -1.0f;
-
 PolygonRenderer polyRenderer;
 
 // TODO:
@@ -1007,26 +1004,6 @@ void GL_SetVertexAttribPointers(void* vertexAtrribs, bool checkActive) {
 	// glVertexAttribPointer(shader->LocNormal, 3, GL_FLOAT,
 	// GL_FALSE, stride, (float*)vertexAtrribs + 9);
 }
-void GL_BuildFogTable() {
-	float value = Math::Clamp(1.0f - FogSmoothness, 0.0f, 1.0f);
-	if (value <= 0.0) {
-		for (size_t i = 0; i < 256; i++) {
-			FogTable[i] = (float)i / 255.0f;
-		}
-		return;
-	}
-
-	float fog = 0.0f;
-	float inv = 1.0f / value;
-
-	const float recip = 1.0f / 254.0f;
-
-	for (size_t i = 0; i < 256; i++) {
-		float result = (int)(floor(fog) * value * 256.0f);
-		FogTable[i] = Math::Clamp(result / 256.0f, 0.0, 1.0f);
-		fog += recip * inv;
-	}
-}
 #define SETSTATE_COMPARE_LAST(prop) \
 	(!lastState || memcmp(&state.prop, &lastState->prop, sizeof(state.prop)))
 #define SETSTATE_COMPARE_LAST_VAL(prop) (!lastState || state.prop != lastState->prop)
@@ -1124,16 +1101,9 @@ void GL_SetState(GL_State& state,
 			(changeShader || SETSTATE_COMPARE_LAST_VAL(FogParams[2]))) {
 			glUniform1f(shader->LocFogDensity, state.FogParams[2]);
 		}
-
-		bool fogChanged = false;
-		if (state.FogParams[3] != FogSmoothness) {
-			FogSmoothness = state.FogParams[3];
-			fogChanged = true;
-			GL_BuildFogTable();
-		}
-
-		if (changeShader || fogChanged) {
-			glUniform1fv(shader->LocFogTable, 256, FogTable);
+		if (shader->LocFogSmoothness != -1 &&
+			(changeShader || SETSTATE_COMPARE_LAST_VAL(FogParams[3]))) {
+			glUniform1f(shader->LocFogSmoothness, state.FogParams[3]);
 		}
 	}
 }
