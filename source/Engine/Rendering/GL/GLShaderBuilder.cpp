@@ -177,15 +177,29 @@ void GLShaderBuilder::BuildFragmentShaderMainFunc() {
 		AddText("vec4(1.0, 1.0, 1.0, 1.0);\n");
 	}
 
-	// Multiply with color variable if available
-	if (hasColor) {
-		AddText("finalColor *= " + colorVariable + ";\n");
+	// Apply filter if enabled
+	if (Options.Filter != Filter_NONE) {
+		switch (Options.Filter) {
+		case Filter_BLACK_AND_WHITE:
+			AddText("float luminance = (finalColor.r * 0.2126) + (finalColor.g * 0.7152) + (finalColor.b * 0.0722);\n");
+			AddText("finalColor = vec4(vec3(luminance), finalColor.a);\n");
+			break;
+		case Filter_INVERT:
+			AddText("vec3 inverted = 1.0 - finalColor.rgb;\n");
+			AddText("finalColor = vec4(inverted, finalColor.a);\n");
+			break;
+		}
 	}
 
 	// Multiply with diffuse color if available
 	if (Uniforms.u_materialColors) {
 		AddText("if (u_diffuseColor.a == 0.0) discard;\n");
 		AddText("finalColor *= u_diffuseColor;\n");
+	}
+
+	// Multiply with color variable if available
+	if (hasColor) {
+		AddText("finalColor *= " + colorVariable + ";\n");
 	}
 
 	// Apply tint color if enabled

@@ -53,6 +53,8 @@ Uint32* GL_ReadPixelsResult = nullptr;
 bool UseDepthTesting = true;
 float RetinaScale = 1.0;
 
+int CurrentFilter = Filter_NONE;
+
 PolygonRenderer polyRenderer;
 
 // TODO:
@@ -449,6 +451,17 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 	else {
 		if (GLRenderer::CurrentShader->LocTexCoord != -1) {
 			glDisableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
+		}
+	}
+
+	if (CurrentFilter != Filter_NONE) {
+		switch (CurrentFilter) {
+		case Filter_BLACK_AND_WHITE:
+			features |= SHADER_FEATURE_FILTER_BW;
+			break;
+		case Filter_INVERT:
+			features |= SHADER_FEATURE_FILTER_INVERT;
+			break;
 		}
 	}
 
@@ -2232,7 +2245,9 @@ void GLRenderer::SetCurrentProgram(int program) {
 }
 
 // Filter-related functions
-void GLRenderer::SetFilter(int filter) {}
+void GLRenderer::SetFilter(int filter) {
+	CurrentFilter = filter;
+}
 
 // Palette-related functions
 void GLRenderer::UpdateGlobalPalette(Texture* texture) {
