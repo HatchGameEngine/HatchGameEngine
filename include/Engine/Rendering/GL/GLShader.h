@@ -29,7 +29,11 @@ struct GL_ProcessedShader {
 #define SHADER_FEATURE_VERTEXCOLORS (1 << 3)
 #define SHADER_FEATURE_FOG_LINEAR (1 << 4)
 #define SHADER_FEATURE_FOG_EXP (1 << 5)
+
+#define SHADER_FEATURE_FOG_FLAGS (SHADER_FEATURE_FOG_LINEAR | SHADER_FEATURE_FOG_EXP)
 #define SHADER_FEATURE_ALL ((1 << 6) - 1)
+
+#define NUM_SHADER_FEATURES (SHADER_FEATURE_ALL + 1)
 
 class GLShader : public Shader {
 private:

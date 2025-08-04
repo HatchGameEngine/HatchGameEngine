@@ -1100,6 +1100,14 @@ void GL_SetState(GL_State& state,
 		GL_PreparePaletteShader(GLRenderer::CurrentShader, state.TexturePtr, 0);
 	}
 
+	if (shader->LocColor != -1 && changeShader) {
+		glUniform4f(shader->LocColor,
+			Graphics::BlendColors[0],
+			Graphics::BlendColors[1],
+			Graphics::BlendColors[2],
+			Graphics::BlendColors[3]);
+	}
+
 	if (shader->LocDiffuseColor != -1 &&
 		(changeShader || SETSTATE_COMPARE_LAST(DiffuseColor))) {
 		glUniform4f(shader->LocDiffuseColor,
