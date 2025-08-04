@@ -1,183 +1,228 @@
 #ifdef USING_OPENGL
 
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
+#include <Engine/Rendering/Shader.h>
 
-void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderUniforms uniforms) {
-	if (uniforms.u_matrix) {
-		shaderText += "uniform mat4 u_projectionMatrix;\n";
-		shaderText += "uniform mat4 u_viewMatrix;\n";
-		shaderText += "uniform mat4 u_modelMatrix;\n";
+std::unordered_map<Uint8, std::string> DataTypeMap = {{Shader::DATATYPE_FLOAT, "float"},
+	{Shader::DATATYPE_FLOAT_VEC2, "vec2"},
+	{Shader::DATATYPE_FLOAT_VEC3, "vec3"},
+	{Shader::DATATYPE_FLOAT_VEC4, "vec4"},
+	{Shader::DATATYPE_INT, "int"},
+	{Shader::DATATYPE_FLOAT_MAT4, "mat4"},
+	{Shader::DATATYPE_SAMPLER_2D, "sampler2D"}};
+
+void GLShaderBuilder::AddText(std::string text) {
+	Text += text;
+}
+void GLShaderBuilder::AddDefine(std::string name) {
+	AddText("#define " + name + "\n");
+}
+
+void GLShaderBuilder::AddUniform(std::string name, Uint8 type) {
+	AddText("uniform " + DataTypeMap[type] + " " + name + ";\n");
+}
+void GLShaderBuilder::AddAttribute(std::string name, Uint8 type) {
+	AddText("attribute " + DataTypeMap[type] + " " + name + ";\n");
+}
+void GLShaderBuilder::AddVarying(std::string name, Uint8 type) {
+	AddText("varying " + DataTypeMap[type] + " " + name + ";\n");
+}
+
+void GLShaderBuilder::AddUniformsToShaderText() {
+	if (Uniforms.u_matrix) {
+		AddUniform("u_projectionMatrix", Shader::DATATYPE_FLOAT_MAT4);
+		AddUniform("u_viewMatrix", Shader::DATATYPE_FLOAT_MAT4);
+		AddUniform("u_modelMatrix", Shader::DATATYPE_FLOAT_MAT4);
 	}
-	if (uniforms.u_color) {
-		shaderText += "uniform vec4 u_color;\n";
+	if (Uniforms.u_color) {
+		AddUniform("u_color", Shader::DATATYPE_FLOAT_VEC4);
 	}
-	if (uniforms.u_materialColors) {
-		shaderText += "uniform vec4 u_diffuseColor;\n";
-		shaderText += "uniform vec4 u_specularColor;\n";
-		shaderText += "uniform vec4 u_ambientColor;\n";
+	if (Uniforms.u_materialColors) {
+		AddUniform("u_diffuseColor", Shader::DATATYPE_FLOAT_VEC4);
+		AddUniform("u_specularColor", Shader::DATATYPE_FLOAT_VEC4);
+		AddUniform("u_ambientColor", Shader::DATATYPE_FLOAT_VEC4);
 	}
-	if (uniforms.u_texture) {
-		shaderText += "uniform sampler2D " UNIFORM_TEXTURE ";\n";
-		if (uniforms.u_palette) {
-			shaderText += "uniform int u_numTexturePaletteIndices;\n";
+	if (Uniforms.u_texture) {
+		AddUniform(UNIFORM_TEXTURE, Shader::DATATYPE_SAMPLER_2D);
+		if (Uniforms.u_palette) {
+			AddUniform("u_numTexturePaletteIndices", Shader::DATATYPE_INT);
 		}
 	}
 #ifdef GL_HAVE_YUV
-	if (uniforms.u_yuv) {
-		shaderText += "uniform sampler2D " UNIFORM_TEXTURE ";\n";
-		shaderText += "uniform sampler2D " UNIFORM_TEXTUREU ";\n";
-		shaderText += "uniform sampler2D " UNIFORM_TEXTUREV ";\n";
+	if (Uniforms.u_yuv) {
+		AddUniform(UNIFORM_TEXTUREU, Shader::DATATYPE_SAMPLER_2D);
+		AddUniform(UNIFORM_TEXTUREV, Shader::DATATYPE_SAMPLER_2D);
 	}
 #endif
-	if (uniforms.u_fog_exp || uniforms.u_fog_linear) {
-		shaderText += "uniform vec4 u_fogColor;\n";
-		shaderText += "uniform float u_fogSmoothness;\n";
-		if (uniforms.u_fog_linear) {
-			shaderText += "uniform float u_fogLinearStart;\n";
-			shaderText += "uniform float u_fogLinearEnd;\n";
+	if (Uniforms.u_fog_exp || Uniforms.u_fog_linear) {
+		AddUniform("u_fogColor", Shader::DATATYPE_FLOAT_VEC4);
+		AddUniform("u_fogSmoothness", Shader::DATATYPE_FLOAT);
+
+		if (Uniforms.u_fog_linear) {
+			AddUniform("u_fogLinearStart", Shader::DATATYPE_FLOAT);
+			AddUniform("u_fogLinearEnd", Shader::DATATYPE_FLOAT);
 		}
 		else {
-			shaderText += "uniform float u_fogDensity;\n";
+			AddUniform("u_fogDensity", Shader::DATATYPE_FLOAT);
 		}
 	}
 }
-void GLShaderBuilder::AddInputsToVertexShaderText(std::string& shaderText, GLShaderLinkage inputs) {
-	if (inputs.link_position) {
-		shaderText += "attribute vec3 " ATTRIB_POSITION ";\n";
+void GLShaderBuilder::AddInputsToVertexShaderText() {
+	if (Inputs.link_position) {
+		AddAttribute(ATTRIB_POSITION, Shader::DATATYPE_FLOAT_VEC3);
 	}
-	if (inputs.link_uv) {
-		shaderText += "attribute vec2 " ATTRIB_UV ";\n";
+	if (Inputs.link_uv) {
+		AddAttribute(ATTRIB_UV, Shader::DATATYPE_FLOAT_VEC2);
 	}
-	if (inputs.link_color) {
-		shaderText += "attribute vec4 " ATTRIB_COLOR ";\n";
-	}
-}
-void GLShaderBuilder::AddOutputsToVertexShaderText(std::string& shaderText,
-	GLShaderLinkage outputs) {
-	if (outputs.link_position) {
-		shaderText += "varying vec4 o_position;\n";
-	}
-	if (outputs.link_uv) {
-		shaderText += "varying vec2 o_uv;\n";
-	}
-	if (outputs.link_color) {
-		shaderText += "varying vec4 o_color;\n";
+	if (Inputs.link_color) {
+		AddAttribute(ATTRIB_COLOR, Shader::DATATYPE_FLOAT_VEC4);
 	}
 }
-void GLShaderBuilder::AddInputsToFragmentShaderText(std::string& shaderText,
-	GLShaderLinkage& inputs) {
-	AddOutputsToVertexShaderText(shaderText, inputs);
+void GLShaderBuilder::AddOutputsToVertexShaderText() {
+	if (Outputs.link_position) {
+		AddVarying("o_position", Shader::DATATYPE_FLOAT_VEC4);
+	}
+	if (Outputs.link_uv) {
+		AddVarying("o_uv", Shader::DATATYPE_FLOAT_VEC2);
+	}
+	if (Outputs.link_color) {
+		AddVarying("o_color", Shader::DATATYPE_FLOAT_VEC4);
+	}
 }
-string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
-	GLShaderUniforms& uniforms) {
-	std::string shaderText;
-	std::string colorVariable = inputs.link_color ? "o_color" : "u_color";
+void GLShaderBuilder::AddInputsToFragmentShaderText() {
+	if (Inputs.link_position) {
+		AddVarying("o_position", Shader::DATATYPE_FLOAT_VEC4);
+	}
+	if (Inputs.link_uv) {
+		AddVarying("o_uv", Shader::DATATYPE_FLOAT_VEC2);
+	}
+	if (Inputs.link_color) {
+		AddVarying("o_color", Shader::DATATYPE_FLOAT_VEC4);
+	}
+}
 
-	shaderText += "void main() {\n";
-	shaderText += "if (" + colorVariable + ".a == 0.0) discard;\n";
+void GLShaderBuilder::BuildVertexShaderMainFunc() {
+	AddText("void main() {\n");
+	AddText("mat4 modelViewMatrix = u_viewMatrix * u_modelMatrix;\n");
+	AddText("gl_Position = u_projectionMatrix * modelViewMatrix * vec4(");
+	AddText(ATTRIB_POSITION);
+	AddText(", 1.0);\n");
+	if (Outputs.link_position) {
+		AddText("o_position = modelViewMatrix * vec4(" ATTRIB_POSITION ", 1.0);\n");
+	}
+	if (Outputs.link_color) {
+		AddText("o_color = " ATTRIB_COLOR ";\n");
+	}
+	if (Outputs.link_uv) {
+		AddText("o_uv = " ATTRIB_UV ";\n");
+	}
+	AddText("}");
+}
+void GLShaderBuilder::BuildFragmentShaderMainFunc() {
+	std::string colorVariable = Inputs.link_color ? "o_color" : "u_color";
 
-	if (uniforms.u_texture) {
-		shaderText += "vec4 texel = ";
-		if (uniforms.u_palette) {
-			shaderText += "hatch_sampleTexture2D(" UNIFORM_TEXTURE
-				      ", o_uv, u_numTexturePaletteIndices);\n";
+	AddText("void main() {\n");
+	AddText("if (" + colorVariable + ".a == 0.0) discard;\n");
+
+	if (Uniforms.u_texture) {
+		AddText("vec4 texel = ");
+		if (Uniforms.u_palette) {
+			AddText("hatch_sampleTexture2D(" UNIFORM_TEXTURE
+				", o_uv, u_numTexturePaletteIndices);\n");
 		}
 		else {
-			shaderText += "texture2D(" UNIFORM_TEXTURE ", o_uv);\n";
+			AddText("texture2D(" UNIFORM_TEXTURE ", o_uv);\n");
 		}
 
-		shaderText += "if (texel.a == 0.0) discard;\n";
-		shaderText += "vec4 finalColor = texel * ";
+		AddText("if (texel.a == 0.0) discard;\n");
+		AddText("vec4 finalColor = texel * ");
 	}
 	else {
-		shaderText += "vec4 finalColor = ";
+		AddText("vec4 finalColor = ");
 	}
 
-	shaderText += colorVariable + ";\n";
+	AddText(colorVariable + ";\n");
 
-	if (uniforms.u_materialColors) {
-		shaderText += "if (u_diffuseColor.a == 0.0) discard;\n";
-		shaderText += "finalColor *= u_diffuseColor;\n";
+	if (Uniforms.u_materialColors) {
+		AddText("if (u_diffuseColor.a == 0.0) discard;\n");
+		AddText("finalColor *= u_diffuseColor;\n");
 	}
 
-	if (uniforms.u_fog_linear || uniforms.u_fog_exp) {
-		shaderText += "float fogCoord = abs(o_position.z / o_position.w);\n";
-		shaderText += "float fogValue = ";
-		if (uniforms.u_fog_linear) {
-			shaderText +=
-				"hatch_fogCalcLinear(fogCoord, u_fogLinearStart, u_fogLinearEnd);\n";
+	if (Uniforms.u_fog_linear || Uniforms.u_fog_exp) {
+		AddText("float fogCoord = abs(o_position.z / o_position.w);\n");
+		AddText("float fogValue = ");
+		if (Uniforms.u_fog_linear) {
+			AddText("hatch_fogCalcLinear(fogCoord, u_fogLinearStart, u_fogLinearEnd);\n");
 		}
 		else {
-			shaderText += "hatch_fogCalcExp(fogCoord, u_fogDensity);\n";
+			AddText("hatch_fogCalcExp(fogCoord, u_fogDensity);\n");
 		}
-		shaderText += "if (u_fogSmoothness != 1.0) {\n";
-		shaderText += "fogValue = hatch_applyFogSmoothness(fogValue, u_fogSmoothness);\n";
-		shaderText += "}\n";
-		shaderText += "finalColor = mix(finalColor, u_fogColor, fogValue);\n";
+		AddText("\
+			if (u_fogSmoothness != 1.0) {\n\
+				fogValue = hatch_applyFogSmoothness(fogValue, u_fogSmoothness);\n\
+			}\n\
+			finalColor = mix(finalColor, u_fogColor, fogValue);\n\
+		");
 	}
 
-	shaderText += "gl_FragColor = finalColor;\n";
-	shaderText += "}";
-
-	return shaderText;
+	AddText("gl_FragColor = finalColor;\n");
+	AddText("}");
 }
 
-string GLShaderBuilder::Vertex(GLShaderLinkage& inputs,
-	GLShaderLinkage& outputs,
-	GLShaderUniforms& uniforms) {
-	std::string shaderText = "";
+std::string GLShaderBuilder::GetText() {
+	return Text;
+}
+
+GLShaderBuilder GLShaderBuilder::Vertex(GLShaderLinkage inputs,
+	GLShaderLinkage outputs,
+	GLShaderUniforms uniforms) {
+	GLShaderBuilder builder;
+	builder.Inputs = inputs;
+	builder.Outputs = outputs;
+	builder.Uniforms = uniforms;
 
 #ifdef GL_ES
-	shaderText += "precision mediump float;\n";
+	builder.AddText("precision mediump float;\n");
 #endif
 
-	AddInputsToVertexShaderText(shaderText, inputs);
-	AddOutputsToVertexShaderText(shaderText, outputs);
-	AddUniformsToShaderText(shaderText, uniforms);
+	builder.AddInputsToVertexShaderText();
+	builder.AddOutputsToVertexShaderText();
+	builder.AddUniformsToShaderText();
+	builder.BuildVertexShaderMainFunc();
 
-	shaderText += "void main() {\n";
-	shaderText += "mat4 modelViewMatrix = u_viewMatrix * u_modelMatrix;\n";
-	shaderText += "gl_Position = u_projectionMatrix * modelViewMatrix * vec4(";
-	shaderText += ATTRIB_POSITION;
-	shaderText += ", 1.0);\n";
-	if (outputs.link_position) {
-		shaderText += "o_position = modelViewMatrix * vec4(" ATTRIB_POSITION ", 1.0);\n";
-	}
-	if (outputs.link_color) {
-		shaderText += "o_color = " ATTRIB_COLOR ";\n";
-	}
-	if (outputs.link_uv) {
-		shaderText += "o_uv = " ATTRIB_UV ";\n";
-	}
-	shaderText += "}";
-
-	return shaderText;
+	return builder;
 }
-string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
-	GLShaderUniforms& uniforms,
-	std::string mainText) {
-	std::string shaderText = "";
+GLShaderBuilder
+GLShaderBuilder::Fragment(GLShaderLinkage inputs, GLShaderUniforms uniforms, std::string mainText) {
+	GLShaderBuilder builder;
+	builder.Inputs = inputs;
+	builder.Uniforms = uniforms;
 
 #ifdef GL_ES
-	shaderText += "precision mediump float;\n";
+	builder.AddText("precision mediump float;\n");
 #endif
 
 	if (uniforms.u_palette) {
-		shaderText += "#define TEXTURE_SAMPLING_FUNCTIONS\n";
+		builder.AddDefine("TEXTURE_SAMPLING_FUNCTIONS");
 	}
 	if (uniforms.u_fog_linear || uniforms.u_fog_exp) {
-		shaderText += "#define FOG_FUNCTIONS\n";
+		builder.AddDefine("FOG_FUNCTIONS");
 	}
 
-	AddInputsToFragmentShaderText(shaderText, inputs);
-	AddUniformsToShaderText(shaderText, uniforms);
+	builder.AddInputsToFragmentShaderText();
+	builder.AddUniformsToShaderText();
 
-	shaderText += mainText;
+	if (mainText != "") {
+		builder.AddText(mainText);
+	}
+	else {
+		builder.BuildFragmentShaderMainFunc();
+	}
 
-	return shaderText;
+	return builder;
 }
-string GLShaderBuilder::Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms) {
-	return Fragment(inputs, uniforms, BuildFragmentShaderMainFunc(inputs, uniforms));
+GLShaderBuilder GLShaderBuilder::Fragment(GLShaderLinkage inputs, GLShaderUniforms uniforms) {
+	return Fragment(inputs, uniforms, "");
 }
 
 #endif /* USING_OPENGL */

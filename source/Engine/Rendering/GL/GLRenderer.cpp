@@ -197,8 +197,8 @@ GLShader* GL_MakeYUVShader() {
 	fsUni.u_color = true;
 	fsUni.u_yuv = true;
 
-	std::string vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
-	std::string fs = GLShaderBuilder::Fragment(fsIn,
+	GLShaderBuilder vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
+	GLShaderBuilder fs = GLShaderBuilder::Fragment(fsIn,
 		fsUni,
 		"const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n"
 		"const vec3 Rcoeff = vec3(1.164,  0.000,  1.596);\n"
@@ -220,7 +220,7 @@ GLShader* GL_MakeYUVShader() {
 		"    gl_FragColor = vec4(rgb, 1.0) * u_color;\n"
 		"}");
 
-	return new GLShader(vs, fs);
+	return new GLShader(vs.GetText(), fs.GetText());
 }
 #endif
 void GL_MakeShapeBuffers() {

@@ -57,11 +57,11 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 		vsOut.link_position = fsIn.link_position = true;
 	}
 
-	std::string vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
-	std::string fs = GLShaderBuilder::Fragment(fsIn, fsUni);
+	GLShaderBuilder vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
+	GLShaderBuilder fs = GLShaderBuilder::Fragment(fsIn, fsUni);
 
 	// Be aware that this may throw an exception.
-	GLShader* shader = new GLShader(vs, fs);
+	GLShader* shader = new GLShader(vs.GetText(), fs.GetText());
 
 	return shader;
 }
