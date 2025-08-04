@@ -6,22 +6,40 @@
 
 class GLShaderBuilder {
 private:
-	static void AddUniformsToShaderText(std::string& shaderText, GLShaderUniforms uniforms);
-	static void AddInputsToVertexShaderText(std::string& shaderText, GLShaderLinkage inputs);
-	static void AddOutputsToVertexShaderText(std::string& shaderText, GLShaderLinkage outputs);
-	static void AddInputsToFragmentShaderText(std::string& shaderText, GLShaderLinkage& inputs);
-	static std::string BuildTextureSampleCode(GLShaderUniforms& uniforms);
-	static std::string BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
-		GLShaderUniforms& uniforms,
-		GLShaderOptions& options);
+	std::string Text;
+
+	GLShaderLinkage Inputs;
+	GLShaderLinkage Outputs;
+	GLShaderUniforms Uniforms;
+	GLShaderOptions Options;
 
 public:
-	static std::string
-	Vertex(GLShaderLinkage& inputs, GLShaderLinkage& outputs, GLShaderUniforms& uniforms);
-	static std::string
-	Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms, std::string mainText);
-	static std::string
-	Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms, GLShaderOptions& options);
+	void AddText(std::string text);
+	void AddDefine(std::string name);
+
+	void AddUniform(std::string name, Uint8 type);
+	void AddAttribute(std::string name, Uint8 type);
+	void AddVarying(std::string name, Uint8 type);
+
+	void AddUniformsToShaderText();
+	void AddInputsToVertexShaderText();
+	void AddOutputsToVertexShaderText();
+	void AddInputsToFragmentShaderText();
+
+	void BuildVertexShaderMainFunc();
+	void BuildFragmentShaderMainFunc();
+#ifdef GL_HAVE_YUV
+	void BuildFragmentShaderMainFuncYUV();
+#endif
+
+	std::string GetText();
+
+	static GLShaderBuilder Vertex(GLShaderLinkage inputs,
+		GLShaderLinkage outputs,
+		GLShaderUniforms uniforms,
+		GLShaderOptions options);
+	static GLShaderBuilder
+	Fragment(GLShaderLinkage inputs, GLShaderUniforms uniforms, GLShaderOptions options);
 };
 
 #endif /* ENGINE_RENDERING_GL_GLSHADERBUILDER_H */

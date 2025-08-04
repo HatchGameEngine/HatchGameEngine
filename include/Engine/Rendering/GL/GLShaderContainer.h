@@ -10,17 +10,19 @@ public:
 	GLShaderContainer();
 	GLShaderContainer(Uint32 features);
 	GLShader* Get();
-	GLShader* Get(Uint32 features);
+	GLShader* Get(Uint32 featureFlags);
 	~GLShaderContainer();
 
 private:
-	std::unordered_map<Uint32, GLShader*> ShaderMap;
+	GLShader* ShaderList[NUM_SHADER_FEATURES];
+	int Translation[NUM_SHADER_FEATURES];
 
-	GLShader* BaseShader = nullptr;
 	Uint32 BaseFeatures = 0;
 
 	void Init();
 
+	static GLShader* Compile(Uint32& features);
+	static GLShader* CompileNoFeatures();
 	static GLShader* Generate(Uint32 features);
 };
 

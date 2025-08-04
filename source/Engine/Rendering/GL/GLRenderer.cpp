@@ -197,40 +197,19 @@ GLShader* GL_MakeYUVShader() {
 	GLShaderLinkage fsIn = {0};
 	GLShaderUniforms vsUni = {0};
 	GLShaderUniforms fsUni = {0};
+	GLShaderOptions options = {0};
 
 	vsIn.link_position = true;
 	vsIn.link_uv = vsOut.link_uv = fsIn.link_uv = true;
 	vsUni.u_matrix = true;
 	fsUni.u_color = true;
 	fsUni.u_yuv = true;
+	options.IsYUV = true;
 
-	std::string vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
-	std::string fs = GLShaderBuilder::Fragment(fsIn,
-		fsUni,
-		/* clang-format off */
-		"const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n"
-		"const vec3 Rcoeff = vec3(1.164,  0.000,  1.596);\n"
-		"const vec3 Gcoeff = vec3(1.164, -0.391, -0.813);\n"
-		"const vec3 Bcoeff = vec3(1.164,  2.018,  0.000);\n"
+	GLShaderBuilder vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni, options);
+	GLShaderBuilder fs = GLShaderBuilder::Fragment(fsIn, fsUni, options);
 
-		"void main() {\n"
-		"    vec3 yuv, rgb;\n"
-		"    vec2 uv = o_uv;\n"
-
-		"    yuv.x = texture2D(" UNIFORM_TEXTURE ",  uv).r;\n"
-		"    yuv.y = texture2D(" UNIFORM_TEXTUREU ", uv).r;\n"
-		"    yuv.z = texture2D(" UNIFORM_TEXTUREV ", uv).r;\n"
-		"    yuv += offset;\n"
-
-		"    rgb.r = dot(yuv, Rcoeff);\n"
-		"    rgb.g = dot(yuv, Gcoeff);\n"
-		"    rgb.b = dot(yuv, Bcoeff);\n"
-		"    gl_FragColor = vec4(rgb, 1.0) * u_color;\n"
-		"}"
-		/* clang-format on */
-	);
-
-	return new GLShader(vs, fs);
+	return new GLShader(vs.GetText(), fs.GetText());
 }
 #endif
 void GL_MakeShapeBuffers() {
@@ -1157,6 +1136,14 @@ void GL_SetState(GL_State& state,
 
 	if (state.UsePalette) {
 		GL_PreparePaletteShader(GLRenderer::CurrentShader, state.TexturePtr, 0);
+	}
+
+	if (shader->LocColor != -1 && changeShader) {
+		glUniform4f(shader->LocColor,
+			Graphics::BlendColors[0],
+			Graphics::BlendColors[1],
+			Graphics::BlendColors[2],
+			Graphics::BlendColors[3]);
 	}
 
 	if (shader->LocDiffuseColor != -1 &&

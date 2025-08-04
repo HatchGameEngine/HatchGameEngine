@@ -17,7 +17,13 @@ GLShaderContainer::GLShaderContainer(Uint32 baseFeatures) {
 }
 
 void GLShaderContainer::Init() {
-	BaseShader = Generate(BaseFeatures);
+	for (size_t i = 0; i < NUM_SHADER_FEATURES; i++) {
+		ShaderList[i] = nullptr;
+		Translation[i] = -1;
+	}
+
+	Translation[BaseFeatures] = BaseFeatures;
+	ShaderList[BaseFeatures] = Generate(BaseFeatures);
 }
 
 GLShader* GLShaderContainer::Generate(Uint32 features) {
@@ -76,47 +82,88 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 		vsOut.link_position = fsIn.link_position = true;
 	}
 
-	std::string vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
-	std::string fs = GLShaderBuilder::Fragment(fsIn, fsUni, options);
+	GLShaderBuilder vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni, options);
+	GLShaderBuilder fs = GLShaderBuilder::Fragment(fsIn, fsUni, options);
 
 	// Be aware that this may throw an exception.
-	GLShader* shader = new GLShader(vs, fs);
+	GLShader* shader = new GLShader(vs.GetText(), fs.GetText());
 
 	return shader;
+}
+
+GLShader* GLShaderContainer::Compile(Uint32& features) {
+	do {
+		try {
+			return Generate(features);
+		} catch (const std::runtime_error& error) {
+			Log::Print(Log::LOG_ERROR,
+				"Could not compile shader! Error:\n%s",
+				error.what());
+
+#define REMOVE(flags) \
+	if (features & flags) { \
+		features &= ~flags; \
+		continue; \
+	}
+
+			// Attempt to remove problematic features until the shader compiles.
+			REMOVE(SHADER_FEATURE_FOG_FLAGS)
+			REMOVE(SHADER_FEATURE_VERTEXCOLORS)
+			REMOVE(SHADER_FEATURE_MATERIALS)
+			REMOVE(SHADER_FEATURE_PALETTE)
+			REMOVE(SHADER_FEATURE_TEXTURE)
+
+#undef REMOVE
+
+			throw;
+		}
+	} while (true);
+}
+GLShader* GLShaderContainer::CompileNoFeatures() {
+	try {
+		return Generate(0);
+	} catch (const std::runtime_error& error) {
+		Log::Print(Log::LOG_ERROR, "Could not compile shader! Error:\n%s", error.what());
+	}
+
+	return nullptr;
 }
 
 GLShader* GLShaderContainer::Get() {
 	return Get(0);
 }
-GLShader* GLShaderContainer::Get(Uint32 features) {
-	features &= SHADER_FEATURE_ALL;
-	if (features == 0) {
-		return BaseShader;
+GLShader* GLShaderContainer::Get(Uint32 featureFlags) {
+	Uint32 features = (featureFlags & SHADER_FEATURE_ALL) | BaseFeatures;
+	int index = Translation[features];
+	if (index != -1) {
+		return ShaderList[index];
 	}
 
-	features |= BaseFeatures;
-
-	std::unordered_map<Uint32, GLShader*>::iterator it = ShaderMap.find(features);
-	if (it != ShaderMap.end()) {
-		return it->second;
-	}
+	GLShader* shader = nullptr;
+	Uint32 actualFeatures = features;
 
 	try {
-		GLShader* shader = Generate(features);
-
-		ShaderMap[features] = shader;
-
-		return shader;
+		shader = Compile(actualFeatures);
 	} catch (const std::runtime_error& error) {
-		Log::Print(Log::LOG_ERROR, "Could not compile shader! Error:\n%s", error.what());
+		shader = CompileNoFeatures();
+		actualFeatures = 0;
+
+		if (shader == nullptr) {
+			Log::Print(Log::LOG_ERROR, "No variant of this shader was valid!");
+		}
 	}
 
-	return BaseShader;
+	ShaderList[actualFeatures] = shader;
+	Translation[features] = actualFeatures;
+
+	return shader;
 }
 
 GLShaderContainer::~GLShaderContainer() {
-	for (auto it = ShaderMap.begin(); it != ShaderMap.end(); it++) {
-		delete it->second;
+	for (size_t i = 0; i < NUM_SHADER_FEATURES; i++) {
+		if (ShaderList[i]) {
+			delete ShaderList[i];
+		}
 	}
 }
 
