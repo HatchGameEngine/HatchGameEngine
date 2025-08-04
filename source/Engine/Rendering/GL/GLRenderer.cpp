@@ -2195,15 +2195,6 @@ void GLRenderer::BindTexture(Texture* texture, int textureUnit) {
 
 	BindTexture(textureID, textureUnit);
 }
-void GLRenderer::BindTexture(Texture* texture) {
-	int textureID = 0;
-	if (texture != nullptr) {
-		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
-		textureID = textureData->TextureID;
-	}
-
-	glBindTexture(GL_TEXTURE_2D, textureID);
-}
 void GLRenderer::BindTexture(int textureID, int textureUnit) {
 	SetTextureUnit(textureUnit);
 	glBindTexture(GL_TEXTURE_2D, textureID);
