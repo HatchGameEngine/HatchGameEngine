@@ -11,19 +11,14 @@ GLShaderContainer::GLShaderContainer() {
 	Init();
 }
 GLShaderContainer::GLShaderContainer(Uint32 baseFeatures) {
-	BaseFeatures = baseFeatures & SHADER_FEATURE_ALL;
+	BaseFeatures = baseFeatures & SHADER_FEATURE_ALL_MASK;
 
 	Init();
 }
 
 void GLShaderContainer::Init() {
-	for (size_t i = 0; i < NUM_SHADER_FEATURES; i++) {
-		ShaderList[i] = nullptr;
-		Translation[i] = -1;
-	}
-
 	Translation[BaseFeatures] = BaseFeatures;
-	ShaderList[BaseFeatures] = Generate(BaseFeatures);
+	Shaders[BaseFeatures] = Generate(BaseFeatures);
 }
 
 GLShader* GLShaderContainer::Generate(Uint32 features) {
@@ -137,10 +132,11 @@ GLShader* GLShaderContainer::Get() {
 	return Get(0);
 }
 GLShader* GLShaderContainer::Get(Uint32 featureFlags) {
-	Uint32 features = (featureFlags & SHADER_FEATURE_ALL) | BaseFeatures;
-	int index = Translation[features];
-	if (index != -1) {
-		return ShaderList[index];
+	Uint32 features = (featureFlags & SHADER_FEATURE_ALL_MASK) | BaseFeatures;
+
+	std::unordered_map<Uint32, Uint32>::iterator it = Translation.find(features);
+	if (it != Translation.end()) {
+		return Shaders[it->second];
 	}
 
 	GLShader* shader = nullptr;
@@ -157,17 +153,15 @@ GLShader* GLShaderContainer::Get(Uint32 featureFlags) {
 		}
 	}
 
-	ShaderList[actualFeatures] = shader;
+	Shaders[actualFeatures] = shader;
 	Translation[features] = actualFeatures;
 
 	return shader;
 }
 
 GLShaderContainer::~GLShaderContainer() {
-	for (size_t i = 0; i < NUM_SHADER_FEATURES; i++) {
-		if (ShaderList[i]) {
-			delete ShaderList[i];
-		}
+	for (auto it = Shaders.begin(); it != Shaders.end(); it++) {
+		delete it->second;
 	}
 }
 
