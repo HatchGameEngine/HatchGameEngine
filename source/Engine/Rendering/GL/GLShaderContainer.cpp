@@ -26,6 +26,7 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 	GLShaderLinkage fsIn = {0};
 	GLShaderUniforms vsUni = {0};
 	GLShaderUniforms fsUni = {0};
+	GLShaderOptions options = {0};
 
 	bool useTexturing = features & SHADER_FEATURE_TEXTURE;
 	bool useVertexColors = features & SHADER_FEATURE_VERTEXCOLORS;
@@ -40,17 +41,25 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 
 	switch (tintFlags) {
 	case SHADER_FEATURE_TINTING:
-		fsUni.u_tintMode = TintMode_SRC_NORMAL;
+		options.TintMode = TintMode_SRC_NORMAL;
 		break;
 	case SHADER_FEATURE_TINTING | SHADER_FEATURE_TINT_DEST:
-		fsUni.u_tintMode = TintMode_DST_NORMAL;
+		options.TintMode = TintMode_DST_NORMAL;
 		break;
 	case SHADER_FEATURE_TINTING | SHADER_FEATURE_TINT_BLEND:
-		fsUni.u_tintMode = TintMode_SRC_BLEND;
+		options.TintMode = TintMode_SRC_BLEND;
 		break;
 	case SHADER_FEATURE_TINTING | SHADER_FEATURE_TINT_BLEND | SHADER_FEATURE_TINT_DEST:
-		fsUni.u_tintMode = TintMode_DST_BLEND;
+		options.TintMode = TintMode_DST_BLEND;
 		break;
+	}
+
+	if (tintFlags & SHADER_FEATURE_TINT_DEST) {
+		options.SampleScreenTexture = SCREENTEXTURESAMPLE_WITH_MASK;
+	}
+
+	if (options.SampleScreenTexture != SCREENTEXTURESAMPLE_DISABLED) {
+		fsUni.u_screenTexture = true;
 	}
 
 	vsIn.link_color = vsOut.link_color = fsIn.link_color = useVertexColors;
@@ -68,7 +77,7 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 	}
 
 	std::string vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
-	std::string fs = GLShaderBuilder::Fragment(fsIn, fsUni);
+	std::string fs = GLShaderBuilder::Fragment(fsIn, fsUni, options);
 
 	// Be aware that this may throw an exception.
 	GLShader* shader = new GLShader(vs, fs);
@@ -100,8 +109,6 @@ GLShader* GLShaderContainer::Get(Uint32 features) {
 		return shader;
 	} catch (const std::runtime_error& error) {
 		Log::Print(Log::LOG_ERROR, "Could not compile shader! Error:\n%s", error.what());
-
-		ShaderMap[features] = BaseShader;
 	}
 
 	return BaseShader;

@@ -14,10 +14,19 @@ struct GLShaderUniforms {
 	bool u_materialColors;
 	bool u_texture;
 	bool u_palette;
+	bool u_screenTexture;
 	bool u_yuv;
 	bool u_fog_linear;
 	bool u_fog_exp;
-	Uint8 u_tintMode;
+};
+
+#define SCREENTEXTURESAMPLE_DISABLED 0
+#define SCREENTEXTURESAMPLE_ENABLED 1
+#define SCREENTEXTURESAMPLE_WITH_MASK 2
+
+struct GLShaderOptions {
+	Uint8 SampleScreenTexture;
+	Uint8 TintMode;
 };
 
 #endif

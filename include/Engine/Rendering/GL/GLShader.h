@@ -1,8 +1,8 @@
 #ifndef ENGINE_RENDERING_GL_GLSHADER_H
 #define ENGINE_RENDERING_GL_GLSHADER_H
 
-#include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/GL/Includes.h>
+#include <Engine/Rendering/Shader.h>
 
 typedef std::unordered_map<std::string, GLint> GLVariableMap;
 
@@ -13,6 +13,7 @@ typedef std::unordered_map<std::string, GLint> GLVariableMap;
 #define UNIFORM_TEXTURE "u_texture"
 #define UNIFORM_PALETTETEXTURE "u_paletteTexture"
 #define UNIFORM_PALETTEINDEXTEXTURE "u_paletteIndexTexture"
+#define UNIFORM_SCREENTEXTURE "u_screenTexture"
 #ifdef GL_HAVE_YUV
 #define UNIFORM_TEXTUREU "u_textureU"
 #define UNIFORM_TEXTUREV "u_textureV"
@@ -33,7 +34,8 @@ struct GL_ProcessedShader {
 #define SHADER_FEATURE_TINT_DEST (1 << 7)
 #define SHADER_FEATURE_TINT_BLEND (1 << 8)
 
-#define SHADER_FEATURE_TINT_FLAGS (SHADER_FEATURE_TINTING | SHADER_FEATURE_TINT_DEST | SHADER_FEATURE_TINT_BLEND)
+#define SHADER_FEATURE_TINT_FLAGS \
+	(SHADER_FEATURE_TINTING | SHADER_FEATURE_TINT_DEST | SHADER_FEATURE_TINT_BLEND)
 #define SHADER_FEATURE_ALL ((1 << 9) - 1)
 
 class GLShader : public Shader {
@@ -116,6 +118,8 @@ public:
 	GLint LocPaletteIndexTexture;
 	GLint LocPaletteID;
 	GLint LocNumTexturePaletteIndices;
+	GLint LocScreenTexture;
+	GLint LocScreenTextureSize;
 	GLint LocColor;
 	GLint LocTintColor;
 	GLint LocDiffuseColor;

@@ -23,7 +23,6 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 	if (uniforms.u_texture) {
 		shaderText += "uniform sampler2D " UNIFORM_TEXTURE ";\n";
 		if (uniforms.u_palette) {
-			shaderText += "#define TEXTURE_SAMPLING_FUNCTIONS\n";
 			shaderText += "uniform int u_numTexturePaletteIndices;\n";
 		}
 	}
@@ -73,8 +72,25 @@ void GLShaderBuilder::AddInputsToFragmentShaderText(std::string& shaderText,
 	GLShaderLinkage& inputs) {
 	AddOutputsToVertexShaderText(shaderText, inputs);
 }
-string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
-	GLShaderUniforms& uniforms) {
+std::string GLShaderBuilder::BuildTextureSampleCode(GLShaderUniforms& uniforms) {
+	std::string shaderText = "vec4 texel = ";
+
+	if (uniforms.u_palette) {
+		shaderText += "hatch_sampleTexture2D(";
+		shaderText += UNIFORM_TEXTURE;
+		shaderText += ", o_uv, u_numTexturePaletteIndices);\n";
+	}
+	else {
+		shaderText += "texture2D(" UNIFORM_TEXTURE ", o_uv);\n";
+	}
+
+	shaderText += "if (texel.a == 0.0) discard;\n";
+
+	return shaderText;
+}
+std::string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
+	GLShaderUniforms& uniforms,
+	GLShaderOptions& options) {
 	std::string shaderText;
 	std::string paletteLookupText;
 
@@ -107,22 +123,34 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 	shaderText += "void main() {\n";
 	shaderText += "vec4 finalColor;\n";
 
-	if (uniforms.u_texture) {
+	Uint8 screenSample = options.SampleScreenTexture;
+	if (screenSample != SCREENTEXTURESAMPLE_DISABLED) {
+		shaderText += "vec4 screenPixel = hatch_sampleScreenTexture();\n";
+		shaderText += "if (screenPixel.a == 0.0) discard;\n";
+
+		if (screenSample == SCREENTEXTURESAMPLE_WITH_MASK) {
+			if (inputs.link_color) {
+				shaderText += "if (o_color.a == 0.0) discard;\n";
+			}
+
+			if (uniforms.u_texture) {
+				shaderText += BuildTextureSampleCode(uniforms);
+				shaderText += "screenPixel.a *= texel.a;\n";
+			}
+
+			if (inputs.link_color) {
+				shaderText += "screenPixel.a *= o_color.a\n";
+			}
+		}
+
+		shaderText += "finalColor = screenPixel;\n";
+	}
+	else if (uniforms.u_texture) {
 		if (inputs.link_color) {
 			shaderText += "if (o_color.a == 0.0) discard;\n";
 		}
 
-		shaderText += "vec4 texel = ";
-		if (uniforms.u_palette) {
-			shaderText += "hatch_sampleTexture2D(";
-			shaderText += UNIFORM_TEXTURE;
-			shaderText += ", o_uv, u_numTexturePaletteIndices);\n";
-		}
-		else {
-			shaderText += "texture2D(" UNIFORM_TEXTURE ", o_uv);\n";
-		}
-
-		shaderText += "if (texel.a == 0.0) discard;\n";
+		shaderText += BuildTextureSampleCode(uniforms);
 
 		if (inputs.link_color) {
 			shaderText += "finalColor = texel * o_color;\n";
@@ -160,12 +188,18 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 	}
 
 	if (uniforms.u_tintColor) {
-		if (uniforms.u_tintMode == TintMode_SRC_NORMAL) {
+		switch (options.TintMode) {
+		case TintMode_SRC_NORMAL:
+		case TintMode_DST_NORMAL:
 			shaderText += "vec3 tintColor = finalColor.rgb * u_tintColor.rgb;\n";
-			shaderText += "finalColor = mix(finalColor, vec4(tintColor, 1.0), u_tintColor.a);\n";
-		}
-		else if (uniforms.u_tintMode == TintMode_SRC_BLEND) {
-			shaderText += "finalColor = mix(finalColor, vec4(u_tintColor.rgb, 1.0), u_tintColor.a);\n";
+			shaderText +=
+				"finalColor = mix(finalColor, vec4(tintColor, 1.0), u_tintColor.a);\n";
+			break;
+		case TintMode_SRC_BLEND:
+		case TintMode_DST_BLEND:
+			shaderText +=
+				"finalColor = mix(finalColor, vec4(u_tintColor.rgb, 1.0), u_tintColor.a);\n";
+			break;
 		}
 	}
 
@@ -175,7 +209,7 @@ string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 	return shaderText;
 }
 
-string GLShaderBuilder::Vertex(GLShaderLinkage& inputs,
+std::string GLShaderBuilder::Vertex(GLShaderLinkage& inputs,
 	GLShaderLinkage& outputs,
 	GLShaderUniforms& uniforms) {
 	std::string shaderText = "";
@@ -206,7 +240,7 @@ string GLShaderBuilder::Vertex(GLShaderLinkage& inputs,
 
 	return shaderText;
 }
-string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
+std::string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
 	GLShaderUniforms& uniforms,
 	std::string mainText) {
 	std::string shaderText = "";
@@ -215,6 +249,13 @@ string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
 	shaderText += "precision mediump float;\n";
 #endif
 
+	if (uniforms.u_palette) {
+		shaderText += "#define TEXTURE_SAMPLING_FUNCTIONS\n";
+	}
+	if (uniforms.u_screenTexture) {
+		shaderText += "#define SCREEN_TEXTURE_INCLUDES\n";
+	}
+
 	AddInputsToFragmentShaderText(shaderText, inputs);
 	AddUniformsToShaderText(shaderText, uniforms);
 
@@ -222,8 +263,10 @@ string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
 
 	return shaderText;
 }
-string GLShaderBuilder::Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms) {
-	return Fragment(inputs, uniforms, BuildFragmentShaderMainFunc(inputs, uniforms));
+std::string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
+	GLShaderUniforms& uniforms,
+	GLShaderOptions& options) {
+	return Fragment(inputs, uniforms, BuildFragmentShaderMainFunc(inputs, uniforms, options));
 }
 
 #endif /* USING_OPENGL */

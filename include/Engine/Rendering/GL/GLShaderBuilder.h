@@ -10,15 +10,18 @@ private:
 	static void AddInputsToVertexShaderText(std::string& shaderText, GLShaderLinkage inputs);
 	static void AddOutputsToVertexShaderText(std::string& shaderText, GLShaderLinkage outputs);
 	static void AddInputsToFragmentShaderText(std::string& shaderText, GLShaderLinkage& inputs);
-	static string BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
-		GLShaderUniforms& uniforms);
+	static std::string BuildTextureSampleCode(GLShaderUniforms& uniforms);
+	static std::string BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
+		GLShaderUniforms& uniforms,
+		GLShaderOptions& options);
 
 public:
-	static string
+	static std::string
 	Vertex(GLShaderLinkage& inputs, GLShaderLinkage& outputs, GLShaderUniforms& uniforms);
-	static string
+	static std::string
 	Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms, std::string mainText);
-	static string Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms);
+	static std::string
+	Fragment(GLShaderLinkage& inputs, GLShaderUniforms& uniforms, GLShaderOptions& options);
 };
 
 #endif /* ENGINE_RENDERING_GL_GLSHADERBUILDER_H */
