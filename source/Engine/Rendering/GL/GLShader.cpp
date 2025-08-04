@@ -52,6 +52,31 @@ vec4 hatch_sampleTexture2D(sampler2D texture, vec2 textureCoords, int numPalette
     return finalColor;
 }
 )";
+
+	shaderIncludes["FOG_FUNCTIONS"] = R"(
+float hatch_applyFogSmoothness(float fogValue, float smoothness) {
+    smoothness = 1.0 - smoothness;
+
+    if (smoothness == 0.0) {
+        return 0.0;
+    }
+
+    return floor(fogValue / smoothness) * smoothness;
+}
+
+float hatch_fogCalcLinear(float coord, float start, float end) {
+    float invZ = 1.0 / (coord / 192.0);
+    float fogValue = (end - (1.0 - invZ)) / (end - start);
+
+    return 1.0 - clamp(fogValue, 0.0, 1.0);
+}
+
+float hatch_fogCalcExp(float coord, float density) {
+    float fogValue = exp(-density * (coord / 192.0));
+
+    return 1.0 - clamp(fogValue, 0.0, 1.0);
+}
+)";
 }
 
 char* GLShader::FindInclude(std::string identifier) {
