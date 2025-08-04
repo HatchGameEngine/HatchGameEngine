@@ -14,8 +14,8 @@ public:
 	~GLShaderContainer();
 
 private:
-	GLShader* ShaderList[NUM_SHADER_FEATURES];
-	int Translation[NUM_SHADER_FEATURES];
+	std::unordered_map<Uint32, GLShader*> Shaders;
+	std::unordered_map<Uint32, Uint32> Translation;
 
 	Uint32 BaseFeatures = 0;
 

@@ -1,5 +1,6 @@
 #ifdef USING_OPENGL
 
+#include <Engine/Rendering/Enums.h>
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
 #include <Engine/Rendering/Shader.h>
 
@@ -37,6 +38,9 @@ void GLShaderBuilder::AddUniformsToShaderText() {
 	if (Uniforms.u_color) {
 		AddUniform("u_color", Shader::DATATYPE_FLOAT_VEC4);
 	}
+	if (Uniforms.u_tintColor) {
+		AddUniform("u_tintColor", Shader::DATATYPE_FLOAT_VEC4);
+	}
 	if (Uniforms.u_materialColors) {
 		AddUniform("u_diffuseColor", Shader::DATATYPE_FLOAT_VEC4);
 		AddUniform("u_specularColor", Shader::DATATYPE_FLOAT_VEC4);
@@ -45,7 +49,7 @@ void GLShaderBuilder::AddUniformsToShaderText() {
 	if (Uniforms.u_texture) {
 		AddUniform(UNIFORM_TEXTURE, Shader::DATATYPE_SAMPLER_2D);
 		if (Uniforms.u_palette) {
-			AddUniform("u_numTexturePaletteIndices", Shader::DATATYPE_INT);
+			AddUniform(UNIFORM_NUMPALETTECOLORS, Shader::DATATYPE_INT);
 		}
 	}
 #ifdef GL_HAVE_YUV
@@ -54,16 +58,16 @@ void GLShaderBuilder::AddUniformsToShaderText() {
 		AddUniform(UNIFORM_TEXTUREV, Shader::DATATYPE_SAMPLER_2D);
 	}
 #endif
-	if (Uniforms.u_fog_exp || Uniforms.u_fog_linear) {
+	if (Options.FogEnabled) {
 		AddUniform("u_fogColor", Shader::DATATYPE_FLOAT_VEC4);
 		AddUniform("u_fogSmoothness", Shader::DATATYPE_FLOAT);
 
-		if (Uniforms.u_fog_linear) {
-			AddUniform("u_fogLinearStart", Shader::DATATYPE_FLOAT);
-			AddUniform("u_fogLinearEnd", Shader::DATATYPE_FLOAT);
+		if (Uniforms.u_fog_exp) {
+			AddUniform("u_fogDensity", Shader::DATATYPE_FLOAT);
 		}
 		else {
-			AddUniform("u_fogDensity", Shader::DATATYPE_FLOAT);
+			AddUniform("u_fogLinearStart", Shader::DATATYPE_FLOAT);
+			AddUniform("u_fogLinearEnd", Shader::DATATYPE_FLOAT);
 		}
 	}
 }
@@ -119,43 +123,95 @@ void GLShaderBuilder::BuildVertexShaderMainFunc() {
 	AddText("}");
 }
 void GLShaderBuilder::BuildFragmentShaderMainFunc() {
+	bool hasColor = Inputs.link_color || Uniforms.u_color;
 	std::string colorVariable = Inputs.link_color ? "o_color" : "u_color";
 
 	AddText("void main() {\n");
-	AddText("if (" + colorVariable + ".a == 0.0) discard;\n");
 
-	if (Uniforms.u_texture) {
+	if (hasColor) {
+		AddText("if (" + colorVariable + ".a == 0.0) discard;\n");
+	}
+
+	// Sample screen texture if enabled
+	bool sampleScreenTexel = Options.SampleScreenTexture != SCREENTEXTURESAMPLE_DISABLED;
+	bool sampleTexel = Uniforms.u_texture;
+
+	if (sampleScreenTexel) {
+		AddText("vec4 screenPixel = hatch_sampleScreenTexture();\n");
+		AddText("if (screenPixel.a == 0.0) discard;\n");
+
+		// Don't sample texel if not using the main texture as a mask
+		if (Options.SampleScreenTexture != SCREENTEXTURESAMPLE_WITH_MASK) {
+			sampleTexel = false;
+		}
+	}
+
+	// Sample main texture if enabled
+	if (sampleTexel) {
 		AddText("vec4 texel = ");
+
 		if (Uniforms.u_palette) {
-			AddText("hatch_sampleTexture2D(" UNIFORM_TEXTURE
-				", o_uv, u_numTexturePaletteIndices);\n");
+			AddText("hatch_sampleTexture2D(");
+			AddText(UNIFORM_TEXTURE ", o_uv, " UNIFORM_NUMPALETTECOLORS);
+			AddText(");\n");
 		}
 		else {
 			AddText("texture2D(" UNIFORM_TEXTURE ", o_uv);\n");
 		}
 
 		AddText("if (texel.a == 0.0) discard;\n");
-		AddText("vec4 finalColor = texel * ");
+	}
+
+	// Determine final color
+	AddText("vec4 finalColor = ");
+	if (sampleScreenTexel) {
+		AddText("screenPixel;\n");
+		if (sampleTexel) {
+			AddText("finalColor.a *= texel.a;\n");
+		}
+	}
+	else if (sampleTexel) {
+		AddText("texel;\n");
 	}
 	else {
-		AddText("vec4 finalColor = ");
+		AddText("vec4(1.0, 1.0, 1.0, 1.0);\n");
 	}
 
-	AddText(colorVariable + ";\n");
+	// Multiply with color variable if available
+	if (hasColor) {
+		AddText("finalColor *= " + colorVariable + ";\n");
+	}
 
+	// Multiply with diffuse color if available
 	if (Uniforms.u_materialColors) {
 		AddText("if (u_diffuseColor.a == 0.0) discard;\n");
 		AddText("finalColor *= u_diffuseColor;\n");
 	}
 
-	if (Uniforms.u_fog_linear || Uniforms.u_fog_exp) {
+	// Apply tint color if enabled
+	if (Uniforms.u_tintColor) {
+		switch (Options.TintMode) {
+		case TintMode_SRC_NORMAL:
+		case TintMode_DST_NORMAL:
+			AddText("vec3 tintColor = finalColor.rgb * u_tintColor.rgb;\n");
+			AddText("finalColor = mix(finalColor, vec4(tintColor, 1.0), u_tintColor.a);\n");
+			break;
+		case TintMode_SRC_BLEND:
+		case TintMode_DST_BLEND:
+			AddText("finalColor = mix(finalColor, vec4(u_tintColor.rgb, 1.0), u_tintColor.a);\n");
+			break;
+		}
+	}
+
+	// Do fog calculation if enabled
+	if (Options.FogEnabled) {
 		AddText("float fogCoord = abs(o_position.z / o_position.w);\n");
 		AddText("float fogValue = ");
-		if (Uniforms.u_fog_linear) {
-			AddText("hatch_fogCalcLinear(fogCoord, u_fogLinearStart, u_fogLinearEnd);\n");
+		if (Uniforms.u_fog_exp) {
+			AddText("hatch_fogCalcExp(fogCoord, u_fogDensity);\n");
 		}
 		else {
-			AddText("hatch_fogCalcExp(fogCoord, u_fogDensity);\n");
+			AddText("hatch_fogCalcLinear(fogCoord, u_fogLinearStart, u_fogLinearEnd);\n");
 		}
 		AddText("\
 			if (u_fogSmoothness != 1.0) {\n\
@@ -168,6 +224,32 @@ void GLShaderBuilder::BuildFragmentShaderMainFunc() {
 	AddText("gl_FragColor = finalColor;\n");
 	AddText("}");
 }
+#ifdef GL_HAVE_YUV
+void GLShaderBuilder::BuildFragmentShaderMainFuncYUV() {
+	AddText(R"(
+const vec3 offset = vec3(-0.0625, -0.5, -0.5);
+const vec3 Rcoeff = vec3(1.164,  0.000,  1.596);
+const vec3 Gcoeff = vec3(1.164, -0.391, -0.813);
+const vec3 Bcoeff = vec3(1.164,  2.018,  0.000);
+
+void main() {
+    vec3 yuv, rgb;
+    vec2 uv = o_uv;
+
+    yuv.x = texture2D(u_texture,  uv).r;
+    yuv.y = texture2D(u_textureU, uv).r;
+    yuv.z = texture2D(u_textureV, uv).r;
+    yuv += offset;
+
+    rgb.r = dot(yuv, Rcoeff);
+    rgb.g = dot(yuv, Gcoeff);
+    rgb.b = dot(yuv, Bcoeff);
+
+    gl_FragColor = vec4(rgb, 1.0) * u_color;
+}
+)");
+}
+#endif
 
 std::string GLShaderBuilder::GetText() {
 	return Text;
@@ -175,11 +257,13 @@ std::string GLShaderBuilder::GetText() {
 
 GLShaderBuilder GLShaderBuilder::Vertex(GLShaderLinkage inputs,
 	GLShaderLinkage outputs,
-	GLShaderUniforms uniforms) {
+	GLShaderUniforms uniforms,
+	GLShaderOptions options) {
 	GLShaderBuilder builder;
 	builder.Inputs = inputs;
 	builder.Outputs = outputs;
 	builder.Uniforms = uniforms;
+	builder.Options = options;
 
 #ifdef GL_ES
 	builder.AddText("precision mediump float;\n");
@@ -192,11 +276,13 @@ GLShaderBuilder GLShaderBuilder::Vertex(GLShaderLinkage inputs,
 
 	return builder;
 }
-GLShaderBuilder
-GLShaderBuilder::Fragment(GLShaderLinkage inputs, GLShaderUniforms uniforms, std::string mainText) {
+GLShaderBuilder GLShaderBuilder::Fragment(GLShaderLinkage inputs,
+	GLShaderUniforms uniforms,
+	GLShaderOptions options) {
 	GLShaderBuilder builder;
 	builder.Inputs = inputs;
 	builder.Uniforms = uniforms;
+	builder.Options = options;
 
 #ifdef GL_ES
 	builder.AddText("precision mediump float;\n");
@@ -205,24 +291,27 @@ GLShaderBuilder::Fragment(GLShaderLinkage inputs, GLShaderUniforms uniforms, std
 	if (uniforms.u_palette) {
 		builder.AddDefine("TEXTURE_SAMPLING_FUNCTIONS");
 	}
-	if (uniforms.u_fog_linear || uniforms.u_fog_exp) {
+	if (uniforms.u_screenTexture) {
+		builder.AddDefine("SCREEN_TEXTURE_INCLUDES");
+	}
+	if (options.FogEnabled) {
 		builder.AddDefine("FOG_FUNCTIONS");
 	}
 
 	builder.AddInputsToFragmentShaderText();
 	builder.AddUniformsToShaderText();
 
-	if (mainText != "") {
-		builder.AddText(mainText);
+#ifdef GL_HAVE_YUV
+	if (options.IsYUV) {
+		builder.BuildFragmentShaderMainFuncYUV();
 	}
-	else {
+	else
+#endif
+	{
 		builder.BuildFragmentShaderMainFunc();
 	}
 
 	return builder;
-}
-GLShaderBuilder GLShaderBuilder::Fragment(GLShaderLinkage inputs, GLShaderUniforms uniforms) {
-	return Fragment(inputs, uniforms, "");
 }
 
 #endif /* USING_OPENGL */

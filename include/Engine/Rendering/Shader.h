@@ -92,6 +92,7 @@ public:
 
 	// Cache stuff
 	float CachedBlendColors[4];
+	float CachedTintColors[4];
 	Matrix4x4* CachedProjectionMatrix = nullptr;
 	Matrix4x4* CachedViewMatrix = nullptr;
 	Matrix4x4* CachedModelMatrix = nullptr;

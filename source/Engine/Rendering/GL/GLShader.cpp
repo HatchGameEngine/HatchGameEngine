@@ -53,6 +53,16 @@ vec4 hatch_sampleTexture2D(sampler2D texture, vec2 textureCoords, int numPalette
 }
 )";
 
+	shaderIncludes["SCREEN_TEXTURE_INCLUDES"] = R"(
+uniform sampler2D u_screenTexture;
+uniform vec2 u_screenTextureSize;
+
+vec4 hatch_sampleScreenTexture(void) {
+    vec2 coords = gl_FragCoord.xy / u_screenTextureSize;
+    return texture2D(u_screenTexture, coords);
+}
+)";
+
 	shaderIncludes["FOG_FUNCTIONS"] = R"(
 float hatch_applyFogSmoothness(float fogValue, float smoothness) {
     smoothness = 1.0 - smoothness;
@@ -437,6 +447,7 @@ void GLShader::AttachAndLink() {
 	LocModelMatrix = AddBuiltinUniform("u_modelMatrix");
 
 	LocColor = AddBuiltinUniform("u_color");
+	LocTintColor = AddBuiltinUniform("u_tintColor");
 	LocDiffuseColor = AddBuiltinUniform("u_diffuseColor");
 	LocSpecularColor = AddBuiltinUniform("u_specularColor");
 	LocAmbientColor = AddBuiltinUniform("u_ambientColor");
@@ -451,7 +462,9 @@ void GLShader::AttachAndLink() {
 	LocPaletteTexture = AddBuiltinUniform(UNIFORM_PALETTETEXTURE);
 	LocPaletteIndexTexture = AddBuiltinUniform(UNIFORM_PALETTEINDEXTEXTURE);
 	LocPaletteID = AddBuiltinUniform("u_paletteID");
-	LocNumTexturePaletteIndices = AddBuiltinUniform("u_numTexturePaletteIndices");
+	LocNumTexturePaletteIndices = AddBuiltinUniform(UNIFORM_NUMPALETTECOLORS);
+	LocScreenTexture = AddBuiltinUniform(UNIFORM_SCREENTEXTURE);
+	LocScreenTextureSize = AddBuiltinUniform("u_screenTextureSize");
 
 	LocFogColor = AddBuiltinUniform("u_fogColor");
 	LocFogLinearStart = AddBuiltinUniform("u_fogLinearStart");
@@ -469,6 +482,7 @@ void GLShader::AttachAndLink() {
 	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
 
 	memset(CachedBlendColors, 0, sizeof(CachedBlendColors));
+	memset(CachedTintColors, 0, sizeof(CachedTintColors));
 }
 
 std::string GLShader::CheckShaderError(GLuint shader) {
@@ -636,7 +650,7 @@ void GLShader::SetUniformTexture(const char* name, Texture* texture) {
 
 	Use();
 
-	GLRenderer::BindTexture(texture, textureUnit, uniform);
+	GLRenderer::BindTexture(texture, textureUnit);
 
 	GLRenderer::SetTextureUnit(0);
 	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
@@ -653,7 +667,7 @@ void GLShader::SetUniformTexture(int uniform, int textureID) {
 
 	Use();
 
-	GLRenderer::BindTexture(textureID, textureUnit, uniform);
+	GLRenderer::BindTexture(textureID, textureUnit);
 
 	GLRenderer::SetTextureUnit(0);
 	GLRenderer::SetCurrentProgram(GLRenderer::GetCurrentProgram());
@@ -806,6 +820,7 @@ void GLShader::InitTextureUniforms() {
 	AddTextureUniformName(UNIFORM_TEXTURE);
 	AddTextureUniformName(UNIFORM_PALETTETEXTURE);
 	AddTextureUniformName(UNIFORM_PALETTEINDEXTEXTURE);
+	AddTextureUniformName(UNIFORM_SCREENTEXTURE);
 
 #ifdef GL_HAVE_YUV
 	AddTextureUniformName(UNIFORM_TEXTUREU);

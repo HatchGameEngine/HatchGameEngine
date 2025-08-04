@@ -44,6 +44,12 @@ Texture* GL_LastTexture = nullptr;
 GL_TextureData* GL_PaletteTexture = nullptr;
 GL_TextureData* GL_PaletteIndexTexture = nullptr;
 
+unsigned GL_ScreenTextureWidth = 0;
+unsigned GL_ScreenTextureHeight = 0;
+
+Texture* GL_ScreenTexture = nullptr;
+Uint32* GL_ReadPixelsResult = nullptr;
+
 bool UseDepthTesting = true;
 float RetinaScale = 1.0;
 
@@ -126,6 +132,7 @@ bool GL_ClippingEnabled;
 
 int GL_CurrentTextureUnit = 0;
 
+void GL_PrepareScreenTexture();
 void GL_MakeYUVShader();
 
 #ifdef HAVE_GL_PERFSTATS
@@ -190,35 +197,17 @@ GLShader* GL_MakeYUVShader() {
 	GLShaderLinkage fsIn = {0};
 	GLShaderUniforms vsUni = {0};
 	GLShaderUniforms fsUni = {0};
+	GLShaderOptions options = {0};
 
 	vsIn.link_position = true;
 	vsIn.link_uv = vsOut.link_uv = fsIn.link_uv = true;
 	vsUni.u_matrix = true;
 	fsUni.u_color = true;
 	fsUni.u_yuv = true;
+	options.IsYUV = true;
 
-	GLShaderBuilder vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni);
-	GLShaderBuilder fs = GLShaderBuilder::Fragment(fsIn,
-		fsUni,
-		"const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n"
-		"const vec3 Rcoeff = vec3(1.164,  0.000,  1.596);\n"
-		"const vec3 Gcoeff = vec3(1.164, -0.391, -0.813);\n"
-		"const vec3 Bcoeff = vec3(1.164,  2.018,  0.000);\n"
-
-		"void main() {\n"
-		"    vec3 yuv, rgb;\n"
-		"    vec2 uv = o_uv;\n"
-
-		"    yuv.x = texture2D(" UNIFORM_TEXTURE ",  uv).r;\n"
-		"    yuv.y = texture2D(" UNIFORM_TEXTUREU ", uv).r;\n"
-		"    yuv.z = texture2D(" UNIFORM_TEXTUREV ", uv).r;\n"
-		"    yuv += offset;\n"
-
-		"    rgb.r = dot(yuv, Rcoeff);\n"
-		"    rgb.g = dot(yuv, Gcoeff);\n"
-		"    rgb.b = dot(yuv, Bcoeff);\n"
-		"    gl_FragColor = vec4(rgb, 1.0) * u_color;\n"
-		"}");
+	GLShaderBuilder vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni, options);
+	GLShaderBuilder fs = GLShaderBuilder::Fragment(fsIn, fsUni, options);
 
 	return new GLShader(vs.GetText(), fs.GetText());
 }
@@ -420,9 +409,12 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 			if (shader) {
 				GL_SetShader(shader);
 
-				shader->SetUniformTexture(shader->LocTexture, textureData->TextureID);
-				shader->SetUniformTexture(shader->LocTextureU, textureData->TextureU);
-				shader->SetUniformTexture(shader->LocTextureV, textureData->TextureV);
+				shader->SetUniformTexture(
+					shader->LocTexture, textureData->TextureID);
+				shader->SetUniformTexture(
+					shader->LocTextureU, textureData->TextureU);
+				shader->SetUniformTexture(
+					shader->LocTextureV, textureData->TextureV);
 
 				isYUV = true;
 			}
@@ -437,13 +429,15 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 			}
 		}
 
-		GLint active;
+		if (GLRenderer::CurrentShader->LocTexCoord != -1) {
+			GLint active;
 
-		glGetVertexAttribiv(GLRenderer::CurrentShader->LocTexCoord,
-			GL_VERTEX_ATTRIB_ARRAY_ENABLED,
-			&active);
-		if (!active) {
-			glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
+			glGetVertexAttribiv(GLRenderer::CurrentShader->LocTexCoord,
+				GL_VERTEX_ATTRIB_ARRAY_ENABLED,
+				&active);
+			if (!active) {
+				glEnableVertexAttribArray(GLRenderer::CurrentShader->LocTexCoord);
+			}
 		}
 
 		if (GLRenderer::CurrentShader->LocTextureSize != -1) {
@@ -458,15 +452,28 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 		}
 	}
 
-#ifdef GL_HAVE_YUV
-	if (!isYUV)
-#endif
-	{
-		GL_SetShapeShader(features);
+	if (Graphics::UseTinting) {
+		features |= SHADER_FEATURE_TINTING;
 
-		if (Graphics::UsePalettes) {
-			GL_PreparePaletteShader(GLRenderer::CurrentShader, texture, paletteID);
+		Uint8 tintMode = Graphics::TintMode;
+		if (tintMode == TintMode_DST_NORMAL || tintMode == TintMode_DST_BLEND) {
+			features |= SHADER_FEATURE_TINT_DEST;
 		}
+		if (tintMode == TintMode_SRC_BLEND || tintMode == TintMode_DST_BLEND) {
+			features |= SHADER_FEATURE_TINT_BLEND;
+		}
+	}
+
+#ifdef GL_HAVE_YUV
+	if (isYUV) {
+		return;
+	}
+#endif
+
+	GL_SetShapeShader(features);
+
+	if (Graphics::UsePalettes) {
+		GL_PreparePaletteShader(GLRenderer::CurrentShader, texture, paletteID);
 	}
 }
 void GL_SetTexture(Texture* texture, int paletteID = 0) {
@@ -558,25 +565,52 @@ void GL_Predraw(Texture* texture, int paletteID = 0) {
 	GL_SetTexture(texture, paletteID);
 	GL_CheckPaletteUpdate();
 
-	// Update color if needed
-	if (memcmp(&GLRenderer::CurrentShader->CachedBlendColors[0],
-		    &Graphics::BlendColors[0],
-		    sizeof(float) * 4) != 0) {
-		memcpy(&GLRenderer::CurrentShader->CachedBlendColors[0],
-			&Graphics::BlendColors[0],
-			sizeof(float) * 4);
+	GLShader* shader = GLRenderer::CurrentShader;
 
-		glUniform4f(GLRenderer::CurrentShader->LocColor,
+	// Update colors if needed
+	if (shader->LocColor != -1 &&
+		memcmp(&shader->CachedBlendColors[0],
+			&Graphics::BlendColors[0],
+			sizeof(float) * 4)) {
+		memcpy(&shader->CachedBlendColors[0], &Graphics::BlendColors[0], sizeof(float) * 4);
+
+		glUniform4f(shader->LocColor,
 			Graphics::BlendColors[0],
 			Graphics::BlendColors[1],
 			Graphics::BlendColors[2],
 			Graphics::BlendColors[3]);
 	}
 
+	if (shader->LocTintColor != -1 &&
+		memcmp(&shader->CachedTintColors[0], &Graphics::TintColors[0], sizeof(float) * 4)) {
+		memcpy(&shader->CachedTintColors[0], &Graphics::TintColors[0], sizeof(float) * 4);
+
+		glUniform4f(shader->LocTintColor,
+			Graphics::TintColors[0],
+			Graphics::TintColors[1],
+			Graphics::TintColors[2],
+			Graphics::TintColors[3]);
+	}
+
 	// Update matrices
 	GL_SetProjectionMatrix(Scene::Views[Scene::ViewCurrent].ProjectionMatrix);
 	GL_SetViewMatrix(Graphics::ViewMatrix);
 	GL_SetModelMatrix(Graphics::ModelMatrix);
+
+	// Prepare screen texture
+	if (shader->LocScreenTexture != -1) {
+		GLRenderer::SetTextureUnit(shader->GetTextureUnit(shader->LocScreenTexture));
+
+		GL_PrepareScreenTexture();
+	}
+
+	if (shader->LocScreenTextureSize != -1) {
+		int screenWidth, screenHeight;
+
+		Graphics::GetScreenSize(screenWidth, screenHeight);
+
+		glUniform2f(shader->LocScreenTextureSize, screenWidth, screenHeight);
+	}
 }
 void GL_SetSpriteData(Texture* texture, float sx, float sy, float sw, float sh) {
 	GLShader* shader = GLRenderer::CurrentShader;
@@ -1051,8 +1085,12 @@ void GL_SetVertexAttribPointers(void* vertexAtrribs, bool checkActive) {
 			}
 		}
 
-		glVertexAttribPointer(
-			shader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, stride, (float*)vertexAtrribs + 5);
+		glVertexAttribPointer(shader->LocVaryingColor,
+			4,
+			GL_FLOAT,
+			GL_FALSE,
+			stride,
+			(float*)vertexAtrribs + 5);
 	}
 
 #if 0
@@ -1598,6 +1636,13 @@ void GLRenderer::Dispose() {
 	glDeleteBuffers(1, &BufferCircleStroke);
 	glDeleteBuffers(1, &BufferSquareFill);
 
+	GL_ScreenTexture = nullptr;
+
+	if (GL_ReadPixelsResult) {
+		Memory::Free(GL_ReadPixelsResult);
+		GL_ReadPixelsResult = nullptr;
+	}
+
 	delete ShaderShape;
 	delete ShaderShape3D;
 #ifdef GL_HAVE_YUV
@@ -1952,15 +1997,72 @@ void GLRenderer::ReadFramebuffer(void* pixels, int width, int height) {
 	}
 
 	Uint32* data = (Uint32*)pixels;
-	Uint32* temp = new Uint32[width];
-
-	for (int i = 0; i < height / 2; i++) {
-		memcpy(temp, &data[i * width], width * 4);
-		memcpy(&data[i * width], &data[(height - 1 - i) * width], width * 4);
-		memcpy(&data[(height - 1 - i) * width], temp, width * 4);
+	Uint32* row = (Uint32*)Memory::Malloc(width * sizeof(Uint32));
+	if (!row) {
+		return;
 	}
 
-	delete[] temp;
+	for (int i = 0; i < height / 2; i++) {
+		memcpy(row, &data[i * width], width * 4);
+		memcpy(&data[i * width], &data[(height - 1 - i) * width], width * 4);
+		memcpy(&data[(height - 1 - i) * width], row, width * 4);
+	}
+
+	Memory::Free(row);
+}
+void GL_PrepareScreenTexture() {
+	int maxWidth, maxHeight;
+	Graphics::GetScreenSize(maxWidth, maxHeight);
+
+	bool allocTexture = false;
+
+	if (GL_ScreenTexture == nullptr) {
+		allocTexture = true;
+
+		GL_ScreenTextureWidth = maxWidth;
+		GL_ScreenTextureHeight = maxHeight;
+	}
+	else if (maxWidth > GL_ScreenTextureWidth || maxHeight > GL_ScreenTextureHeight) {
+		if (GL_ScreenTexture != nullptr) {
+			GLRenderer::DisposeTexture(GL_ScreenTexture);
+		}
+
+		allocTexture = true;
+
+		GL_ScreenTextureWidth = maxWidth;
+		GL_ScreenTextureHeight = maxHeight;
+	}
+
+	if (allocTexture) {
+		size_t size = GL_ScreenTextureWidth * GL_ScreenTextureHeight;
+
+		if (GL_ReadPixelsResult) {
+			GL_ReadPixelsResult = (Uint32*)Memory::Realloc(
+				GL_ReadPixelsResult, size * sizeof(Uint32));
+		}
+		else {
+			GL_ReadPixelsResult = (Uint32*)Memory::Calloc(size, sizeof(Uint32));
+		}
+	}
+
+	GLRenderer::ReadFramebuffer(GL_ReadPixelsResult, maxWidth, maxHeight);
+
+	if (allocTexture) {
+		GL_ScreenTexture = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888,
+			SDL_TEXTUREACCESS_STREAMING,
+			GL_ScreenTextureWidth,
+			GL_ScreenTextureHeight);
+	}
+
+	Uint32* pixels = (Uint32*)GL_ScreenTexture->Pixels;
+	for (size_t i = 0; i < GL_ScreenTextureHeight; i++) {
+		memcpy(&pixels[GL_ScreenTextureWidth * i],
+			&GL_ReadPixelsResult[maxWidth * i],
+			maxWidth * sizeof(Uint32));
+	}
+
+	Graphics::UpdateTexture(
+		GL_ScreenTexture, nullptr, pixels, GL_ScreenTextureWidth * sizeof(Uint32));
 }
 void GLRenderer::UpdateWindowSize(int width, int height) {
 	GLRenderer::UpdateViewport();
@@ -2084,16 +2186,16 @@ void GLRenderer::SetUserShader(Shader* shaderPtr) {
 
 	GL_SetShader(shader);
 }
-void GLRenderer::BindTexture(Texture* texture, int textureUnit, int uniform) {
+void GLRenderer::BindTexture(Texture* texture, int textureUnit) {
 	int textureID = 0;
 	if (texture != nullptr) {
 		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
 		textureID = textureData->TextureID;
 	}
 
-	BindTexture(textureID, textureUnit, uniform);
+	BindTexture(textureID, textureUnit);
 }
-void GLRenderer::BindTexture(int textureID, int textureUnit, int uniform) {
+void GLRenderer::BindTexture(int textureID, int textureUnit) {
 	SetTextureUnit(textureUnit);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 }

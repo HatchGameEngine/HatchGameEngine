@@ -11,6 +11,7 @@ private:
 	GLShaderLinkage Inputs;
 	GLShaderLinkage Outputs;
 	GLShaderUniforms Uniforms;
+	GLShaderOptions Options;
 
 public:
 	void AddText(std::string text);
@@ -27,14 +28,18 @@ public:
 
 	void BuildVertexShaderMainFunc();
 	void BuildFragmentShaderMainFunc();
+#ifdef GL_HAVE_YUV
+	void BuildFragmentShaderMainFuncYUV();
+#endif
 
 	std::string GetText();
 
+	static GLShaderBuilder Vertex(GLShaderLinkage inputs,
+		GLShaderLinkage outputs,
+		GLShaderUniforms uniforms,
+		GLShaderOptions options);
 	static GLShaderBuilder
-	Vertex(GLShaderLinkage inputs, GLShaderLinkage outputs, GLShaderUniforms uniforms);
-	static GLShaderBuilder
-	Fragment(GLShaderLinkage inputs, GLShaderUniforms uniforms, std::string mainText);
-	static GLShaderBuilder Fragment(GLShaderLinkage inputs, GLShaderUniforms uniforms);
+	Fragment(GLShaderLinkage inputs, GLShaderUniforms uniforms, GLShaderOptions options);
 };
 
 #endif /* ENGINE_RENDERING_GL_GLSHADERBUILDER_H */
