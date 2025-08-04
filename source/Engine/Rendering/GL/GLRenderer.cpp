@@ -170,6 +170,13 @@ void GL_MakeShaders() {
 		Error::Fatal("Could not compile base shader! Error:\n%s", error.what());
 	}
 
+	if (Graphics::PrecompileShaders) {
+		GLRenderer::ShaderShape->Precompile();
+	}
+	else {
+		GLRenderer::ShaderShape->Init();
+	}
+
 #ifdef GL_HAVE_YUV
 	try {
 		GLRenderer::ShaderYUV = GL_MakeYUVShader();

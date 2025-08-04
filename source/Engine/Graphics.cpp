@@ -21,6 +21,7 @@ bool Graphics::Initialized = false;
 HashMap<Texture*>* Graphics::TextureMap = NULL;
 std::map<std::string, TextureReference*> Graphics::SpriteSheetTextureMap;
 bool Graphics::VsyncEnabled = true;
+bool Graphics::PrecompileShaders = false;
 int Graphics::MultisamplingEnabled = 0;
 int Graphics::FontDPI = 1;
 bool Graphics::SupportsShaders = false;
@@ -160,6 +161,8 @@ void Graphics::ChooseBackend() {
 
 	// Set renderers
 	Graphics::Renderer = NULL;
+
+#ifdef DEVELOPER_MODE
 	if (Application::Settings->GetString("dev", "renderer", renderer, sizeof renderer)) {
 #ifdef USING_OPENGL
 		if (!strcmp(renderer, "opengl")) {
@@ -186,6 +189,7 @@ void Graphics::ChooseBackend() {
 				renderer);
 		}
 	}
+#endif
 
 // Compiler-directed renderer
 #ifdef USING_DIRECT3D

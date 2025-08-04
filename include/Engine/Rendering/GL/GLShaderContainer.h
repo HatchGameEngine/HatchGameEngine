@@ -7,8 +7,9 @@ class GLShader;
 
 class GLShaderContainer {
 public:
-	GLShaderContainer();
-	GLShaderContainer(Uint32 features);
+	void Init();
+	void Precompile();
+
 	GLShader* Get();
 	GLShader* Get(Uint32 featureFlags);
 	~GLShaderContainer();
@@ -17,9 +18,7 @@ private:
 	std::unordered_map<Uint32, GLShader*> Shaders;
 	std::unordered_map<Uint32, Uint32> Translation;
 
-	Uint32 BaseFeatures = 0;
-
-	void Init();
+	unsigned NumShaders = 0;
 
 	static GLShader* Compile(Uint32& features);
 	static GLShader* CompileNoFeatures();
