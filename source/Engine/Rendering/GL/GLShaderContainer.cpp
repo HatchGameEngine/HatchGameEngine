@@ -32,6 +32,8 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 	bool useTexturing = features & SHADER_FEATURE_TEXTURE;
 	bool useVertexColors = features & SHADER_FEATURE_VERTEXCOLORS;
 	bool useMaterials = features & SHADER_FEATURE_MATERIALS;
+
+	Uint32 filterFlags = features & SHADER_FEATURE_FILTER_FLAGS;
 	Uint32 tintFlags = features & SHADER_FEATURE_TINT_FLAGS;
 
 	vsIn.link_position = true;
@@ -39,6 +41,15 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 	fsUni.u_color = !useVertexColors;
 	fsUni.u_tintColor = tintFlags != 0;
 	fsUni.u_materialColors = useMaterials;
+
+	switch (filterFlags) {
+	case SHADER_FEATURE_FILTER_BW:
+		options.Filter = Filter_BLACK_AND_WHITE;
+		break;
+	case SHADER_FEATURE_FILTER_INVERT:
+		options.Filter = Filter_INVERT;
+		break;
+	}
 
 	switch (tintFlags) {
 	case SHADER_FEATURE_TINTING:
@@ -106,6 +117,10 @@ GLShader* GLShaderContainer::Compile(Uint32& features) {
 	}
 
 			// Attempt to remove problematic features until the shader compiles.
+			REMOVE(SHADER_FEATURE_TINT_DEST)
+			REMOVE(SHADER_FEATURE_TINT_BLEND)
+			REMOVE(SHADER_FEATURE_TINTING)
+			REMOVE(SHADER_FEATURE_FILTER_FLAGS)
 			REMOVE(SHADER_FEATURE_FOG_FLAGS)
 			REMOVE(SHADER_FEATURE_VERTEXCOLORS)
 			REMOVE(SHADER_FEATURE_MATERIALS)

@@ -29,6 +29,7 @@ struct GLShaderUniforms {
 struct GLShaderOptions {
 	Uint8 SampleScreenTexture;
 	Uint8 TintMode;
+	Uint8 Filter;
 	bool FogEnabled;
 #ifdef GL_HAVE_YUV
 	bool IsYUV;
