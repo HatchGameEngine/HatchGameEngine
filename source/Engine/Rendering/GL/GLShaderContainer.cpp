@@ -84,8 +84,6 @@ GLShader* GLShaderContainer::Get(Uint32 features) {
 		return shader;
 	} catch (const std::runtime_error& error) {
 		Log::Print(Log::LOG_ERROR, "Could not compile shader! Error:\n%s", error.what());
-
-		ShaderMap[features] = BaseShader;
 	}
 
 	return BaseShader;
