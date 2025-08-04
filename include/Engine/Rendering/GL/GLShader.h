@@ -13,6 +13,7 @@ typedef std::unordered_map<std::string, GLint> GLVariableMap;
 #define UNIFORM_TEXTURE "u_texture"
 #define UNIFORM_PALETTETEXTURE "u_paletteTexture"
 #define UNIFORM_PALETTEINDEXTEXTURE "u_paletteIndexTexture"
+#define UNIFORM_NUMPALETTECOLORS "u_numTexturePaletteIndices"
 #define UNIFORM_SCREENTEXTURE "u_screenTexture"
 #ifdef GL_HAVE_YUV
 #define UNIFORM_TEXTUREU "u_textureU"

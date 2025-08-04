@@ -462,7 +462,7 @@ void GLShader::AttachAndLink() {
 	LocPaletteTexture = AddBuiltinUniform(UNIFORM_PALETTETEXTURE);
 	LocPaletteIndexTexture = AddBuiltinUniform(UNIFORM_PALETTEINDEXTEXTURE);
 	LocPaletteID = AddBuiltinUniform("u_paletteID");
-	LocNumTexturePaletteIndices = AddBuiltinUniform("u_numTexturePaletteIndices");
+	LocNumTexturePaletteIndices = AddBuiltinUniform(UNIFORM_NUMPALETTECOLORS);
 	LocScreenTexture = AddBuiltinUniform(UNIFORM_SCREENTEXTURE);
 	LocScreenTextureSize = AddBuiltinUniform("u_screenTextureSize");
 

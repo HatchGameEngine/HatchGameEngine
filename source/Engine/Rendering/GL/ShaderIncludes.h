@@ -15,11 +15,11 @@ struct GLShaderUniforms {
 	bool u_texture;
 	bool u_palette;
 	bool u_screenTexture;
+	bool u_fog_linear;
+	bool u_fog_exp;
 #ifdef GL_HAVE_YUV
 	bool u_yuv;
 #endif
-	bool u_fog_linear;
-	bool u_fog_exp;
 };
 
 #define SCREENTEXTURESAMPLE_DISABLED 0
@@ -27,11 +27,12 @@ struct GLShaderUniforms {
 #define SCREENTEXTURESAMPLE_WITH_MASK 2
 
 struct GLShaderOptions {
+	Uint8 SampleScreenTexture;
+	Uint8 TintMode;
+	bool FogEnabled;
 #ifdef GL_HAVE_YUV
 	bool IsYUV;
 #endif
-	Uint8 SampleScreenTexture;
-	Uint8 TintMode;
 };
 
 #endif

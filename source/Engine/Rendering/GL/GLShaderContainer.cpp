@@ -73,13 +73,17 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 	fsUni.u_texture = useTexturing;
 	fsUni.u_palette = features & SHADER_FEATURE_PALETTE;
 
-	if (features & SHADER_FEATURE_FOG_LINEAR) {
-		fsUni.u_fog_linear = true;
+	if (features & SHADER_FEATURE_FOG_FLAGS) {
+		options.FogEnabled = true;
+
 		vsOut.link_position = fsIn.link_position = true;
-	}
-	else if (features & SHADER_FEATURE_FOG_EXP) {
-		fsUni.u_fog_exp = true;
-		vsOut.link_position = fsIn.link_position = true;
+
+		if (features & SHADER_FEATURE_FOG_LINEAR) {
+			fsUni.u_fog_linear = true;
+		}
+		else if (features & SHADER_FEATURE_FOG_EXP) {
+			fsUni.u_fog_exp = true;
+		}
 	}
 
 	GLShaderBuilder vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni, options);

@@ -49,7 +49,7 @@ void GLShaderBuilder::AddUniformsToShaderText() {
 	if (Uniforms.u_texture) {
 		AddUniform(UNIFORM_TEXTURE, Shader::DATATYPE_SAMPLER_2D);
 		if (Uniforms.u_palette) {
-			AddUniform("u_numTexturePaletteIndices", Shader::DATATYPE_INT);
+			AddUniform(UNIFORM_NUMPALETTECOLORS, Shader::DATATYPE_INT);
 		}
 	}
 #ifdef GL_HAVE_YUV
@@ -58,16 +58,16 @@ void GLShaderBuilder::AddUniformsToShaderText() {
 		AddUniform(UNIFORM_TEXTUREV, Shader::DATATYPE_SAMPLER_2D);
 	}
 #endif
-	if (Uniforms.u_fog_exp || Uniforms.u_fog_linear) {
+	if (Options.FogEnabled) {
 		AddUniform("u_fogColor", Shader::DATATYPE_FLOAT_VEC4);
 		AddUniform("u_fogSmoothness", Shader::DATATYPE_FLOAT);
 
-		if (Uniforms.u_fog_linear) {
-			AddUniform("u_fogLinearStart", Shader::DATATYPE_FLOAT);
-			AddUniform("u_fogLinearEnd", Shader::DATATYPE_FLOAT);
+		if (Uniforms.u_fog_exp) {
+			AddUniform("u_fogDensity", Shader::DATATYPE_FLOAT);
 		}
 		else {
-			AddUniform("u_fogDensity", Shader::DATATYPE_FLOAT);
+			AddUniform("u_fogLinearStart", Shader::DATATYPE_FLOAT);
+			AddUniform("u_fogLinearEnd", Shader::DATATYPE_FLOAT);
 		}
 	}
 }
@@ -149,9 +149,11 @@ void GLShaderBuilder::BuildFragmentShaderMainFunc() {
 	// Sample main texture if enabled
 	if (sampleTexel) {
 		AddText("vec4 texel = ");
+
 		if (Uniforms.u_palette) {
-			AddText("hatch_sampleTexture2D(" UNIFORM_TEXTURE
-				", o_uv, u_numTexturePaletteIndices);\n");
+			AddText("hatch_sampleTexture2D(");
+			AddText(UNIFORM_TEXTURE ", o_uv, " UNIFORM_NUMPALETTECOLORS);
+			AddText(");\n");
 		}
 		else {
 			AddText("texture2D(" UNIFORM_TEXTURE ", o_uv);\n");
@@ -202,14 +204,14 @@ void GLShaderBuilder::BuildFragmentShaderMainFunc() {
 	}
 
 	// Do fog calculation if enabled
-	if (Uniforms.u_fog_linear || Uniforms.u_fog_exp) {
+	if (Options.FogEnabled) {
 		AddText("float fogCoord = abs(o_position.z / o_position.w);\n");
 		AddText("float fogValue = ");
-		if (Uniforms.u_fog_linear) {
-			AddText("hatch_fogCalcLinear(fogCoord, u_fogLinearStart, u_fogLinearEnd);\n");
+		if (Uniforms.u_fog_exp) {
+			AddText("hatch_fogCalcExp(fogCoord, u_fogDensity);\n");
 		}
 		else {
-			AddText("hatch_fogCalcExp(fogCoord, u_fogDensity);\n");
+			AddText("hatch_fogCalcLinear(fogCoord, u_fogLinearStart, u_fogLinearEnd);\n");
 		}
 		AddText("\
 			if (u_fogSmoothness != 1.0) {\n\
@@ -292,7 +294,7 @@ GLShaderBuilder GLShaderBuilder::Fragment(GLShaderLinkage inputs,
 	if (uniforms.u_screenTexture) {
 		builder.AddDefine("SCREEN_TEXTURE_INCLUDES");
 	}
-	if (uniforms.u_fog_linear || uniforms.u_fog_exp) {
+	if (options.FogEnabled) {
 		builder.AddDefine("FOG_FUNCTIONS");
 	}
 
