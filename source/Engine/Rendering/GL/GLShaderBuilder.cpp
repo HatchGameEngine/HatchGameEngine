@@ -19,7 +19,6 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 	if (uniforms.u_texture) {
 		shaderText += "uniform sampler2D " UNIFORM_TEXTURE ";\n";
 		if (uniforms.u_palette) {
-			shaderText += "#define TEXTURE_SAMPLING_FUNCTIONS\n";
 			shaderText += "uniform int u_numTexturePaletteIndices;\n";
 		}
 	}
@@ -33,13 +32,13 @@ void GLShaderBuilder::AddUniformsToShaderText(std::string& shaderText, GLShaderU
 	if (uniforms.u_fog_exp || uniforms.u_fog_linear) {
 		shaderText += "uniform vec4 u_fogColor;\n";
 		shaderText += "uniform float u_fogSmoothness;\n";
-	}
-	if (uniforms.u_fog_linear) {
-		shaderText += "uniform float u_fogLinearStart;\n";
-		shaderText += "uniform float u_fogLinearEnd;\n";
-	}
-	if (uniforms.u_fog_exp) {
-		shaderText += "uniform float u_fogDensity;\n";
+		if (uniforms.u_fog_linear) {
+			shaderText += "uniform float u_fogLinearStart;\n";
+			shaderText += "uniform float u_fogLinearEnd;\n";
+		}
+		else {
+			shaderText += "uniform float u_fogDensity;\n";
+		}
 	}
 }
 void GLShaderBuilder::AddInputsToVertexShaderText(std::string& shaderText, GLShaderLinkage inputs) {
@@ -72,87 +71,49 @@ void GLShaderBuilder::AddInputsToFragmentShaderText(std::string& shaderText,
 string GLShaderBuilder::BuildFragmentShaderMainFunc(GLShaderLinkage& inputs,
 	GLShaderUniforms& uniforms) {
 	std::string shaderText;
-	std::string paletteLookupText;
-
-	if (uniforms.u_fog_linear || uniforms.u_fog_exp) {
-		if (uniforms.u_fog_linear) {
-			shaderText +=
-				"float doFogCalc(float coord, float start, float end) {\n"
-				"    float invZ = 1.0 / (coord / 192.0);\n"
-				"    float fogValue = (end - (1.0 - invZ)) / (end - start);\n";
-		}
-		else {
-			shaderText +=
-				"float doFogCalc(float coord, float density) {\n"
-				"    float fogValue = exp(-density * (coord / 192.0));\n";
-		}
-
-		shaderText +=
-			"    if (u_fogSmoothness != 1.0) {\n"
-			"        float fogSmoothness = 1.0 - u_fogSmoothness;\n"
-			"        float inv = 1.0 / fogSmoothness;\n"
-			"        float recip = 1.0 / 255.0;\n"
-			"        float fogValueScaled = fogValue * 255.0;\n"
-			"        fogValue = (fogValueScaled * recip) * inv;\n"
-			"        fogValue = floor(fogValue) * fogSmoothness;\n"
-			"    }\n"
-			"    return 1.0 - clamp(fogValue, 0.0, 1.0);\n"
-			"}\n";
-	}
+	std::string colorVariable = inputs.link_color ? "o_color" : "u_color";
 
 	shaderText += "void main() {\n";
-	shaderText += "vec4 finalColor;\n";
+	shaderText += "if (" + colorVariable + ".a == 0.0) discard;\n";
 
 	if (uniforms.u_texture) {
-		if (inputs.link_color) {
-			shaderText += "if (o_color.a == 0.0) discard;\n";
-		}
-
 		shaderText += "vec4 texel = ";
 		if (uniforms.u_palette) {
-			shaderText += "hatch_sampleTexture2D(";
-			shaderText += UNIFORM_TEXTURE;
-			shaderText += ", o_uv, u_numTexturePaletteIndices);\n";
+			shaderText += "hatch_sampleTexture2D(" UNIFORM_TEXTURE
+				      ", o_uv, u_numTexturePaletteIndices);\n";
 		}
 		else {
 			shaderText += "texture2D(" UNIFORM_TEXTURE ", o_uv);\n";
 		}
 
 		shaderText += "if (texel.a == 0.0) discard;\n";
-
-		if (inputs.link_color) {
-			shaderText += "finalColor = texel * o_color;\n";
-			if (uniforms.u_materialColors) {
-				shaderText += "finalColor *= u_diffuseColor;\n";
-			}
-		}
-		else {
-			shaderText += "finalColor = texel * u_color;\n";
-		}
+		shaderText += "vec4 finalColor = texel * ";
 	}
 	else {
-		if (inputs.link_color) {
-			shaderText += "if (o_color.a == 0.0) discard;\n";
-			shaderText += "finalColor = o_color;\n";
-			if (uniforms.u_materialColors) {
-				shaderText += "finalColor *= u_diffuseColor;\n";
-			}
-		}
-		else {
-			shaderText += "finalColor = u_color;\n";
-		}
+		shaderText += "vec4 finalColor = ";
+	}
+
+	shaderText += colorVariable + ";\n";
+
+	if (uniforms.u_materialColors) {
+		shaderText += "if (u_diffuseColor.a == 0.0) discard;\n";
+		shaderText += "finalColor *= u_diffuseColor;\n";
 	}
 
 	if (uniforms.u_fog_linear || uniforms.u_fog_exp) {
-		shaderText +=
-			"finalColor = mix(finalColor, u_fogColor, doFogCalc(abs(o_position.z / o_position.w), ";
+		shaderText += "float fogCoord = abs(o_position.z / o_position.w);\n";
+		shaderText += "float fogValue = ";
 		if (uniforms.u_fog_linear) {
-			shaderText += "u_fogLinearStart, u_fogLinearEnd";
+			shaderText +=
+				"hatch_fogCalcLinear(fogCoord, u_fogLinearStart, u_fogLinearEnd);\n";
 		}
-		else if (uniforms.u_fog_exp) {
-			shaderText += "u_fogDensity";
+		else {
+			shaderText += "hatch_fogCalcExp(fogCoord, u_fogDensity);\n";
 		}
-		shaderText += "));\n";
+		shaderText += "if (u_fogSmoothness != 1.0) {\n";
+		shaderText += "fogValue = hatch_applyFogSmoothness(fogValue, u_fogSmoothness);\n";
+		shaderText += "}\n";
+		shaderText += "finalColor = mix(finalColor, u_fogColor, fogValue);\n";
 	}
 
 	shaderText += "gl_FragColor = finalColor;\n";
@@ -200,6 +161,13 @@ string GLShaderBuilder::Fragment(GLShaderLinkage& inputs,
 #ifdef GL_ES
 	shaderText += "precision mediump float;\n";
 #endif
+
+	if (uniforms.u_palette) {
+		shaderText += "#define TEXTURE_SAMPLING_FUNCTIONS\n";
+	}
+	if (uniforms.u_fog_linear || uniforms.u_fog_exp) {
+		shaderText += "#define FOG_FUNCTIONS\n";
+	}
 
 	AddInputsToFragmentShaderText(shaderText, inputs);
 	AddUniformsToShaderText(shaderText, uniforms);
