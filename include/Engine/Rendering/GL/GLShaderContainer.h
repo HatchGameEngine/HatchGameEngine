@@ -22,6 +22,7 @@ private:
 	void Init();
 
 	static GLShader* Compile(Uint32& features);
+	static GLShader* CompileNoFeatures();
 	static GLShader* Generate(Uint32 features);
 };
 

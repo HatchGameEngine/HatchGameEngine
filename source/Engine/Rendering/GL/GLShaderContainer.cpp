@@ -73,28 +73,34 @@ GLShader* GLShaderContainer::Compile(Uint32& features) {
 		} catch (const std::runtime_error& error) {
 			Log::Print(Log::LOG_ERROR, "Could not compile shader! Error:\n%s", error.what());
 
+#define REMOVE(flags) \
+	if (features & flags) { \
+		features &= ~flags; \
+		continue; \
+	}
+
 			// Attempt to remove problematic features until the shader compiles.
-			if (features & SHADER_FEATURE_FOG_FLAGS) {
-				features &= ~SHADER_FEATURE_FOG_FLAGS;
-				continue;
-			}
-			if (features & SHADER_FEATURE_VERTEXCOLORS) {
-				features &= ~SHADER_FEATURE_VERTEXCOLORS;
-				continue;
-			}
-			if (features & SHADER_FEATURE_MATERIALS) {
-				features &= ~SHADER_FEATURE_MATERIALS;
-				continue;
-			}
-			if (features & SHADER_FEATURE_PALETTE) {
-				features &= ~SHADER_FEATURE_PALETTE;
-				continue;
-			}
+			REMOVE(SHADER_FEATURE_FOG_FLAGS)
+			REMOVE(SHADER_FEATURE_VERTEXCOLORS)
+			REMOVE(SHADER_FEATURE_MATERIALS)
+			REMOVE(SHADER_FEATURE_PALETTE)
+			REMOVE(SHADER_FEATURE_TEXTURE)
+
+#undef REMOVE
 
 			throw;
 		}
 	}
 	while (true);
+}
+GLShader* GLShaderContainer::CompileNoFeatures() {
+	try {
+		return Generate(0);
+	} catch (const std::runtime_error& error) {
+		Log::Print(Log::LOG_ERROR, "Could not compile shader! Error:\n%s", error.what());
+	}
+
+	return nullptr;
 }
 
 GLShader* GLShaderContainer::Get() {
@@ -107,20 +113,24 @@ GLShader* GLShaderContainer::Get(Uint32 featureFlags) {
 		return ShaderList[index];
 	}
 
+	GLShader* shader = nullptr;
 	Uint32 actualFeatures = features;
 
 	try {
-		GLShader* shader = Compile(actualFeatures);
-
-		ShaderList[actualFeatures] = shader;
-		Translation[features] = actualFeatures;
-
-		return shader;
+		shader = Compile(actualFeatures);
 	} catch (const std::runtime_error& error) {
-		Translation[features] = BaseFeatures;
+		shader = CompileNoFeatures();
+		actualFeatures = 0;
+
+		if (shader == nullptr) {
+			Log::Print(Log::LOG_ERROR, "No variant of this shader was valid!");
+		}
 	}
 
-	return ShaderList[BaseFeatures];
+	ShaderList[actualFeatures] = shader;
+	Translation[features] = actualFeatures;
+
+	return shader;
 }
 
 GLShaderContainer::~GLShaderContainer() {
