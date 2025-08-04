@@ -123,13 +123,14 @@ void GLShaderBuilder::BuildVertexShaderMainFunc() {
 	AddText("}");
 }
 void GLShaderBuilder::BuildFragmentShaderMainFunc() {
-	bool hasColor = Inputs.link_color || Uniforms.u_color;
-	std::string colorVariable = Inputs.link_color ? "o_color" : "u_color";
-
 	AddText("void main() {\n");
 
-	if (hasColor) {
-		AddText("if (" + colorVariable + ".a == 0.0) discard;\n");
+	if (Inputs.link_color) {
+		AddText("if (o_color.a == 0.0) discard;\n");
+	}
+
+	if (Uniforms.u_color) {
+		AddText("if (u_color.a == 0.0) discard;\n");
 	}
 
 	// Sample screen texture if enabled
@@ -197,9 +198,14 @@ void GLShaderBuilder::BuildFragmentShaderMainFunc() {
 		AddText("finalColor *= u_diffuseColor;\n");
 	}
 
-	// Multiply with color variable if available
-	if (hasColor) {
-		AddText("finalColor *= " + colorVariable + ";\n");
+	// Multiply with color input
+	if (Inputs.link_color) {
+		AddText("finalColor *= o_color;\n");
+	}
+
+	// Multiply with blend color
+	if (Uniforms.u_color) {
+		AddText("finalColor *= u_color;\n");
 	}
 
 	// Apply tint color if enabled

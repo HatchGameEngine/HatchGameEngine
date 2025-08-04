@@ -454,6 +454,10 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 		}
 	}
 
+	if (Graphics::TextureBlend || !texture) {
+		features |= SHADER_FEATURE_BLENDING;
+	}
+
 	if (CurrentFilter != Filter_NONE) {
 		switch (CurrentFilter) {
 		case Filter_BLACK_AND_WHITE:
@@ -638,14 +642,6 @@ void GL_SetSpriteData(Texture* texture, float sx, float sy, float sw, float sh) 
 	}
 }
 void GL_DrawTextureBuffered(GLuint buffer, int offset, int flip) {
-	if (!Graphics::TextureBlend) {
-		GLRenderer::CurrentShader->CachedBlendColors[0] =
-			GLRenderer::CurrentShader->CachedBlendColors[1] =
-				GLRenderer::CurrentShader->CachedBlendColors[2] =
-					GLRenderer::CurrentShader->CachedBlendColors[3] = 1.0;
-		glUniform4f(GLRenderer::CurrentShader->LocColor, 1.0, 1.0, 1.0, 1.0);
-	}
-
 	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition,
 		2,
@@ -674,14 +670,6 @@ void GL_DrawTexture(Texture* texture,
 	float h,
 	int paletteID = 0) {
 	GL_Predraw(texture, paletteID);
-
-	if (!Graphics::TextureBlend) {
-		GLRenderer::CurrentShader->CachedBlendColors[0] =
-			GLRenderer::CurrentShader->CachedBlendColors[1] =
-				GLRenderer::CurrentShader->CachedBlendColors[2] =
-					GLRenderer::CurrentShader->CachedBlendColors[3] = 1.0;
-		glUniform4f(GLRenderer::CurrentShader->LocColor, 1.0, 1.0, 1.0, 1.0);
-	}
 
 	GL_Vec2 v[4];
 	v[0] = GL_Vec2{x, y};

@@ -29,6 +29,7 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 	GLShaderUniforms fsUni = {0};
 	GLShaderOptions options = {0};
 
+	bool useBlending = features & SHADER_FEATURE_BLENDING;
 	bool useTexturing = features & SHADER_FEATURE_TEXTURE;
 	bool useVertexColors = features & SHADER_FEATURE_VERTEXCOLORS;
 	bool useMaterials = features & SHADER_FEATURE_MATERIALS;
@@ -38,7 +39,7 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 
 	vsIn.link_position = true;
 	vsUni.u_matrix = true;
-	fsUni.u_color = !useVertexColors;
+	fsUni.u_color = useBlending;
 	fsUni.u_tintColor = tintFlags != 0;
 	fsUni.u_materialColors = useMaterials;
 
@@ -126,6 +127,7 @@ GLShader* GLShaderContainer::Compile(Uint32& features) {
 			REMOVE(SHADER_FEATURE_MATERIALS)
 			REMOVE(SHADER_FEATURE_PALETTE)
 			REMOVE(SHADER_FEATURE_TEXTURE)
+			REMOVE(SHADER_FEATURE_BLENDING)
 
 #undef REMOVE
 
