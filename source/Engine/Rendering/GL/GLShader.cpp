@@ -41,7 +41,9 @@ vec4 hatch_sampleTexture2D(sampler2D texture, vec2 textureCoords, int numPalette
     vec4 finalColor = texture2D(texture, textureCoords);
 
     if (numPaletteIndices != 0) {
-        int paletteIndex = int(finalColor.r * 255.0);
+        float fPaletteIndex = (finalColor.r * 255.0) + 0.5;
+
+        int paletteIndex = int(fPaletteIndex);
         int paletteLine = hatch_getPaletteLine(u_paletteID);
 
         paletteIndex = clamp(paletteIndex, 0, numPaletteIndices - 1);
