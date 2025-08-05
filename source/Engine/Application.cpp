@@ -834,9 +834,16 @@ void Application::LoadVideoSettings() {
 		Graphics::VsyncEnabled = vsyncEnabled;
 
 		Application::Settings->GetInteger(
-			"display", "multisample", &Graphics::MultisamplingEnabled);
-		Application::Settings->GetInteger(
 			"display", "defaultMonitor", &Application::DefaultMonitor);
+
+		Application::Settings->GetInteger(
+			"graphics", "multisample", &Graphics::MultisamplingEnabled);
+		Application::Settings->GetBool(
+			"graphics", "precompileShaders", &Graphics::PrecompileShaders);
+
+		if (Graphics::MultisamplingEnabled < 0) {
+			Graphics::MultisamplingEnabled = 0;
+		}
 	}
 }
 

@@ -27,7 +27,6 @@ SDL_GLContext GLRenderer::Context = NULL;
 GLShader* GLRenderer::CurrentShader = NULL;
 
 GLShaderContainer* GLRenderer::ShaderShape = NULL;
-GLShaderContainer* GLRenderer::ShaderShape3D = NULL;
 #ifdef GL_HAVE_YUV
 GLShader* GLRenderer::ShaderYUV = NULL;
 #endif
@@ -171,6 +170,13 @@ void GL_MakeShaders() {
 		Error::Fatal("Could not compile base shader! Error:\n%s", error.what());
 	}
 
+	if (Graphics::PrecompileShaders) {
+		GLRenderer::ShaderShape->Precompile();
+	}
+	else {
+		GLRenderer::ShaderShape->Init();
+	}
+
 #ifdef GL_HAVE_YUV
 	try {
 		GLRenderer::ShaderYUV = GL_MakeYUVShader();
@@ -180,17 +186,6 @@ void GL_MakeShaders() {
 		Log::Print(Log::LOG_ERROR, "Video rendering will be disabled.");
 	}
 #endif
-
-	try {
-		Uint32 features = SHADER_FEATURE_MATERIALS | SHADER_FEATURE_VERTEXCOLORS;
-
-		GLRenderer::ShaderShape3D = new GLShaderContainer(features);
-	} catch (const std::runtime_error& error) {
-		Log::Print(Log::LOG_ERROR,
-			"Could not compile Scene3D shader! Error:\n%s",
-			error.what());
-		Log::Print(Log::LOG_ERROR, "Scene3D rendering will be disabled.");
-	}
 }
 #ifdef GL_HAVE_YUV
 GLShader* GL_MakeYUVShader() {
@@ -1226,8 +1221,6 @@ void GL_UpdateStateFromFace(GL_State& state,
 	GL_VertexBufferFace& face,
 	Scene3D* scene,
 	GLenum cullWindingOrder) {
-	GLShader* fogShader = nullptr;
-
 	state.UseMaterial = false;
 	state.UseTexture = false;
 	state.UsePalette = false;
@@ -1272,7 +1265,7 @@ void GL_UpdateStateFromFace(GL_State& state,
 		state.TexturePtr = nullptr;
 	}
 
-	Uint32 shaderFeatures = 0;
+	Uint32 shaderFeatures = SHADER_FEATURE_MATERIALS | SHADER_FEATURE_VERTEXCOLORS;
 	if (state.UseTexture) {
 		shaderFeatures |= SHADER_FEATURE_TEXTURE;
 	}
@@ -1281,20 +1274,12 @@ void GL_UpdateStateFromFace(GL_State& state,
 	}
 
 	if (face.DrawFlags & DrawMode_FOG) {
-		Uint32 fogShaderFeatures = shaderFeatures;
-
 		if (scene->Fog.Equation == FogEquation_Exp) {
-			fogShaderFeatures |= SHADER_FEATURE_FOG_EXP;
+			shaderFeatures |= SHADER_FEATURE_FOG_EXP;
 		}
 		else {
-			fogShaderFeatures |= SHADER_FEATURE_FOG_LINEAR;
+			shaderFeatures |= SHADER_FEATURE_FOG_LINEAR;
 		}
-
-		fogShader = GLRenderer::ShaderShape3D->Get(fogShaderFeatures);
-	}
-
-	if (fogShader) {
-		state.Shader = fogShader;
 
 		state.FogMode = scene->Fog.Equation;
 
@@ -1308,9 +1293,8 @@ void GL_UpdateStateFromFace(GL_State& state,
 		state.FogParams[2] = scene->Fog.Density * scene->Fog.Density;
 		state.FogParams[3] = scene->Fog.Smoothness;
 	}
-	else {
-		state.Shader = GLRenderer::ShaderShape3D->Get(shaderFeatures);
-	}
+
+	state.Shader = GLRenderer::ShaderShape->Get(shaderFeatures);
 
 	if (face.UseCulling) {
 		state.CullFace = true;
@@ -1645,7 +1629,6 @@ void GLRenderer::Dispose() {
 	}
 
 	delete ShaderShape;
-	delete ShaderShape3D;
 #ifdef GL_HAVE_YUV
 	delete ShaderYUV;
 #endif
@@ -2662,10 +2645,6 @@ void GLRenderer::ClearScene3D(Uint32 sceneIndex) {
 	driverData->Changed = true;
 }
 void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
-	if (!GL_UserShaderActive() && GLRenderer::ShaderShape3D == nullptr) {
-		return;
-	}
-
 	if (sceneIndex < 0 || sceneIndex >= MAX_3D_SCENES) {
 		return;
 	}
@@ -2730,7 +2709,8 @@ void GLRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	Matrix4x4::Transpose(&viewMat);
 
 	// Prepare the shader now
-	GL_SetShader(GLRenderer::ShaderShape3D->Get(SHADER_FEATURE_TEXTURE));
+	Uint32 shaderFeatures = SHADER_FEATURE_MATERIALS | SHADER_FEATURE_VERTEXCOLORS;
+	GL_SetShader(GLRenderer::ShaderShape->Get(shaderFeatures));
 	GL_SetProjectionMatrix(&projMat);
 	GL_SetViewMatrix(&viewMat);
 	GL_SetModelMatrix(&modelMat);

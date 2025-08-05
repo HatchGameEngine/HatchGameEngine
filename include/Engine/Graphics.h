@@ -36,6 +36,7 @@ public:
 	static HashMap<Texture*>* TextureMap;
 	static map<string, TextureReference*> SpriteSheetTextureMap;
 	static bool VsyncEnabled;
+	static bool PrecompileShaders;
 	static int MultisamplingEnabled;
 	static int FontDPI;
 	static bool SupportsShaders;
