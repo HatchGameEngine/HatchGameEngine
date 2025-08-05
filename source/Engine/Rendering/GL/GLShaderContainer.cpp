@@ -6,6 +6,19 @@
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
 #include <Engine/Rendering/GL/GLShaderContainer.h>
 
+std::unordered_map<Uint32, std::string> FeatureNames = {{SHADER_FEATURE_BLENDING, "blending"},
+	{SHADER_FEATURE_TEXTURE, "texture"},
+	{SHADER_FEATURE_PALETTE, "palette"},
+	{SHADER_FEATURE_MATERIALS, "materials"},
+	{SHADER_FEATURE_VERTEXCOLORS, "vertex_colors"},
+	{SHADER_FEATURE_FOG_LINEAR, "fog_linear"},
+	{SHADER_FEATURE_FOG_EXP, "fog_exp"},
+	{SHADER_FEATURE_FILTER_BW, "filter_bw"},
+	{SHADER_FEATURE_FILTER_INVERT, "filter_invert"},
+	{SHADER_FEATURE_TINTING, "tinting"},
+	{SHADER_FEATURE_TINT_DEST, "tint_dest"},
+	{SHADER_FEATURE_TINT_BLEND, "tint_blend"}};
+
 void GLShaderContainer::Init() {
 	Translation[0] = 0;
 	Shaders[0] = Generate(0);
@@ -17,16 +30,20 @@ void GLShaderContainer::Precompile() {
 	double elapsed = Clock::GetTicks();
 
 	for (size_t flags = 0; flags <= SHADER_FEATURE_ALL_MASK; flags++) {
-		// Some flags make no sense when combined together, so they are skipped.
+		// Some features make no sense when combined, so those combinations are skipped.
 		if ((flags & SHADER_FEATURE_FILTER_FLAGS) == SHADER_FEATURE_FILTER_FLAGS) {
 			continue;
 		}
 		if ((flags & SHADER_FEATURE_FOG_FLAGS) == SHADER_FEATURE_FOG_FLAGS) {
 			continue;
 		}
+
+		// SHADER_FEATURE_PALETTE isn't very useful without SHADER_FEATURE_TEXTURE
 		if ((flags & (SHADER_FEATURE_TEXTURE | SHADER_FEATURE_PALETTE)) == SHADER_FEATURE_PALETTE) {
 			continue;
 		}
+
+		// Likewise, tint flags without SHADER_FEATURE_TINTING don't do anything useful
 		if ((flags & SHADER_FEATURE_TINT_FLAGS) != 0 && (flags & SHADER_FEATURE_TINTING) == 0) {
 			continue;
 		}
@@ -120,6 +137,19 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 	return shader;
 }
 
+void GLShaderContainer::PrintFeaturesWarning(Uint32 oldFeatures, Uint32 newFeatures) {
+	std::string text;
+	Log::Print(Log::LOG_WARN, "The following shader feature combination:");
+
+	text = GetFeaturesString(oldFeatures);
+	Log::Print(Log::LOG_WARN, "    %s", text.c_str());
+
+	Log::Print(Log::LOG_WARN, "was not valid. Compiling the shader with the following features instead:");
+
+	text = GetFeaturesString(newFeatures);
+	Log::Print(Log::LOG_WARN, "    %s", text.c_str());
+}
+
 GLShader* GLShaderContainer::Compile(Uint32& features) {
 	do {
 		try {
@@ -131,7 +161,9 @@ GLShader* GLShaderContainer::Compile(Uint32& features) {
 
 #define REMOVE(flags) \
 	if (features & flags) { \
-		features &= ~flags; \
+		Uint32 newFeatures = features & ~flags; \
+		PrintFeaturesWarning(features, newFeatures); \
+		features = newFeatures; \
 		continue; \
 	}
 
@@ -163,6 +195,53 @@ GLShader* GLShaderContainer::CompileNoFeatures() {
 	return nullptr;
 }
 
+Uint32 GLShaderContainer::ValidateFeatures(Uint32 features) {
+	if ((features & SHADER_FEATURE_FILTER_FLAGS) == SHADER_FEATURE_FILTER_FLAGS) {
+		features &= ~SHADER_FEATURE_FILTER_FLAGS;
+	}
+	if ((features & SHADER_FEATURE_FOG_FLAGS) == SHADER_FEATURE_FOG_FLAGS) {
+		features &= ~SHADER_FEATURE_FOG_FLAGS;
+	}
+	if ((features & (SHADER_FEATURE_TEXTURE | SHADER_FEATURE_PALETTE)) == SHADER_FEATURE_PALETTE) {
+		features &= ~SHADER_FEATURE_PALETTE;
+	}
+	if ((features & SHADER_FEATURE_TINT_FLAGS) != 0 && (features & SHADER_FEATURE_TINTING) == 0) {
+		features &= ~SHADER_FEATURE_TINT_FLAGS;
+	}
+
+	return features;
+}
+
+std::string GLShaderContainer::GetFeatureName(Uint32 featureFlags) {
+	std::unordered_map<Uint32, std::string>::iterator it = FeatureNames.find(featureFlags);
+	if (it != FeatureNames.end()) {
+		return it->second;
+	}
+
+	return "unknown";
+}
+
+std::string GLShaderContainer::GetFeaturesString(Uint32 features) {
+	std::string text = "";
+
+	for (size_t i = 0, j = 0; i < NUM_SHADER_FEATURES; i++) {
+		Uint32 featureFlags = 1 << i;
+		if ((features & featureFlags) == 0) {
+			continue;
+		}
+
+		if (j > 0) {
+			text += ", ";
+		}
+
+		text += GetFeatureName(featureFlags);
+
+		j++;
+	}
+
+	return text;
+}
+
 GLShader* GLShaderContainer::Get() {
 	return Get(0);
 }
@@ -174,8 +253,17 @@ GLShader* GLShaderContainer::Get(Uint32 featureFlags) {
 		return Shaders[it->second];
 	}
 
+#ifdef SHADER_DEBUG
+	std::string featuresText = GetFeaturesString(features);
+	Log::Print(Log::LOG_VERBOSE, "Compiling shader \"%s\"...", featuresText.c_str());
+#endif
+
 	GLShader* shader = nullptr;
-	Uint32 actualFeatures = features;
+	Uint32 actualFeatures = ValidateFeatures(features);
+
+	if (actualFeatures != features) {
+		PrintFeaturesWarning(features, actualFeatures);
+	}
 
 	try {
 		shader = Compile(actualFeatures);
