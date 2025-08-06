@@ -613,18 +613,14 @@ static Uint32 FilterBWDestARGB(Uint32* src, Uint32* dst, Uint32 tintColor, Uint3
 static Uint32 FilterBWSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
 	Uint32 color = *src;
 
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
-		ColorUtils::ConvertFromABGRtoARGB(&color, 1);
-	}
+	Graphics::ConvertFromNativeToARGB(&color, 1);
 
 	return FilterBW(color);
 }
 static Uint32 FilterBWDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
 	Uint32 color = *dst;
 
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
-		ColorUtils::ConvertFromABGRtoARGB(&color, 1);
-	}
+	Graphics::ConvertFromNativeToARGB(&color, 1);
 
 	return FilterBW(color);
 }
