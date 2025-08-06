@@ -1444,7 +1444,7 @@ int Scene::GetPersistenceScopeForObjectDeletion() {
 	return Scene::NoPersistency ? Persistence_SCENE : Persistence_NONE;
 }
 
-void Scene::Restart() {
+void Scene::Initialize() {
 	Scene::ViewCurrent = 0;
 	Graphics::CurrentView = NULL;
 
@@ -1467,6 +1467,10 @@ void Scene::Restart() {
 
 	Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
 	Scene::TileViewRenderFlag = 0xFFFFFFFF;
+}
+
+void Scene::Restart() {
+	Initialize();
 
 	Graphics::UnloadSceneData();
 
@@ -1582,6 +1586,9 @@ void Scene::Restart() {
 		}
 	});
 
+	FinishLoad();
+}
+void Scene::FinishLoad() {
 	// Run "OnSceneLoad" or "OnSceneRestart" on all objects
 	Scene::IterateAll(Scene::ObjectFirst, [](Entity* ent) -> void {
 		if (Scene::Loaded) {
@@ -1722,8 +1729,10 @@ void Scene::Unload() {
 void Scene::Prepare() {
 	Scene::TileWidth = Scene::TileHeight = 16;
 	Scene::EmptyTile = 0;
+	Scene::PriorityPerLayer = 0;
 
 	Scene::InitObjectListsAndRegistries();
+	Scene::InitPriorityLists();
 
 	memset(Scene::CurrentScene, '\0', sizeof Scene::CurrentScene);
 }

@@ -1682,7 +1682,13 @@ void Application::StartGame(const char* startingScene) {
 	Scene::CallGameStart();
 
 	// Start scene
-	Scene::Restart();
+	if (Scene::CurrentScene[0] != '\0') {
+		Scene::Restart();
+	}
+	else {
+		Scene::Initialize();
+		Scene::FinishLoad();
+	}
 }
 void Application::Run(int argc, char* args[]) {
 	Application::Init(argc, args);

@@ -162,7 +162,9 @@ public:
 	static void RenderView(int viewIndex, bool doPerf);
 	static void Render();
 	static void AfterScene();
+	static void Initialize();
 	static void Restart();
+	static void FinishLoad();
 	static void Unload();
 	static void Prepare();
 	static void LoadScene(const char* filename);
