@@ -2839,7 +2839,7 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		array = NewArray();
 		for (size_t i = 0; i < fileList.size(); i++) {
-			ObjString* part = CopyString(fileList[i].u8string());
+			ObjString* part = CopyString(fileList[i]);
 			array->Values->push_back(OBJECT_VAL(part));
 		}
 		ScriptManager::Unlock();
@@ -2869,7 +2869,7 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		array = NewArray();
 		for (size_t i = 0; i < fileList.size(); i++) {
-			ObjString* part = CopyString(fileList[i].u8string());
+			ObjString* part = CopyString(fileList[i]);
 			array->Values->push_back(OBJECT_VAL(part));
 		}
 		ScriptManager::Unlock();
