@@ -597,8 +597,9 @@ static Uint32 FilterBW(Uint32 color) {
 	Uint8 green = GET_G(color);
 	Uint8 blue = GET_B(color);
 
-	int bw = (red + green + blue) / 3;
+	float luminance = ((float)red * 0.2126) + ((float)green * 0.7152) + ((float)blue * 0.0722);
 
+	int bw = (int)luminance;
 	return bw << 16 | bw << 8 | bw | 0xFF000000U;
 }
 
