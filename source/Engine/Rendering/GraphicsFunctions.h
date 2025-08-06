@@ -32,7 +32,6 @@ struct GraphicsFunctions {
 	void (*SetUserShader)(Shader* shader);
 
 	void (*SetFilter)(int filter);
-	void (*SetFilterTable)(Uint32* table, size_t size);
 
 	void (*UpdateGlobalPalette)(Texture* texture);
 	void (*UpdatePaletteIndexTable)(Texture* texture);

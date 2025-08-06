@@ -136,7 +136,6 @@ public:
 	static void DeleteShader(Shader* shader);
 	static void SetUserShader(Shader* shader);
 	static void SetFilter(int filter);
-	static void SetFilterTable(Uint32* table, size_t size);
 	static void SetTextureInterpolation(bool interpolate);
 	static void Clear();
 	static void Present();
