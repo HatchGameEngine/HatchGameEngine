@@ -4423,7 +4423,7 @@ void Compiler::Initialize(Compiler* enclosing, int scope, int type) {
 		Function->Name = CopyString(parser.Previous.Start, parser.Previous.Length);
 		break;
 	case TYPE_TOP_LEVEL:
-		Function->Name = CopyString("main", 4);
+		Function->Name = CopyString("main");
 		break;
 	}
 
@@ -4553,5 +4553,8 @@ void Compiler::Dispose() {
 		delete StandardConstants;
 		StandardConstants = NULL;
 	}
-	Memory::Free(Rules);
+	if (Rules) {
+		Memory::Free(Rules);
+		Rules = NULL;
+	}
 }

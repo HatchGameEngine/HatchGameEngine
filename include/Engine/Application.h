@@ -41,6 +41,8 @@ private:
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
 	static void CreateWindow();
+	static void EndGame();
+	static void UnloadGame();
 	static void Restart();
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
@@ -55,11 +57,13 @@ private:
 	static void LoadGameConfig();
 	static void DisposeGameConfig();
 	static string ParseGameVersion(XMLNode* versionNode);
+	static void InitGameInfo();
 	static void LoadGameInfo();
+	static void DisposeSettings();
 	static int HandleAppEvents(void* data, SDL_Event* event);
 
 public:
-	static vector<char*> CmdLineArgs;
+	static vector<std::string> CmdLineArgs;
 	static INI* Settings;
 	static char SettingsFile[MAX_PATH_LENGTH];
 	static XMLNode* GameConfig;
@@ -91,6 +95,7 @@ public:
 	static bool AllowCmdLineSceneLoad;
 
 	static void Init(int argc, char* args[]);
+	static void InitScripting();
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();
 	static bool IsMobile();
@@ -107,6 +112,10 @@ public:
 	static void GetPerformanceSnapshot();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();
+	static bool SetNextGame(const char* path,
+		const char* startingScene,
+		std::vector<std::string>* cmdLineArgs);
+	static bool ChangeGame(const char* path);
 	static void SetMasterVolume(int volume);
 	static void SetMusicVolume(int volume);
 	static void SetSoundVolume(int volume);
@@ -119,13 +128,14 @@ public:
 	static void SetKeyBind(int bind, int key);
 	static void Run(int argc, char* args[]);
 	static void Cleanup();
+	static void TerminateScripting();
 	static void LoadSceneInfo();
 	static void InitPlayerControls();
 	static bool LoadSettings(const char* filename);
 	static void ReadSettings();
 	static void ReloadSettings();
 	static void ReloadSettings(const char* filename);
-	static void InitSettings(const char* filename);
+	static void InitSettings();
 	static void SaveSettings();
 	static void SaveSettings(const char* filename);
 	static void SetSettingsFilename(const char* filename);

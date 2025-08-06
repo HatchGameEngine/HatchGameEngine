@@ -26,6 +26,7 @@ public:
 
 	static void Init();
 	static void Collect();
+	static void Dispose();
 };
 
 #endif /* ENGINE_BYTECODE_GARBAGECOLLECTOR_H */

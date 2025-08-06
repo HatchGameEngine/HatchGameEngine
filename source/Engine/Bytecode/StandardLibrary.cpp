@@ -1300,8 +1300,8 @@ VMValue Application_GetCommandLineArguments(int argCount, VMValue* args, Uint32 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = NewArray();
 		for (size_t i = 0; i < Application::CmdLineArgs.size(); i++) {
-			array->Values->push_back(
-				OBJECT_VAL(CopyString(Application::CmdLineArgs[i])));
+			ObjString* argString = CopyString(Application::CmdLineArgs[i]);
+			array->Values->push_back(OBJECT_VAL(argString));
 		}
 		ScriptManager::Unlock();
 		return OBJECT_VAL(array);
@@ -1439,16 +1439,6 @@ VMValue Application_SetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
- * Application.Quit
- * \desc Closes the application.
- * \ns Application
- */
-VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	Application::Running = false;
-	return NULL_VAL;
-}
-/***
  * Application.GetGameTitle
  * \desc Gets the game title of the application.
  * \ns Application
@@ -1557,6 +1547,89 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 		return INTEGER_VAL(1);
 	}
 	return INTEGER_VAL(0);
+}
+/***
+ * Application.ChangeGame
+ * \desc Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead. Only <code>game://</code> and <code>user://</code> URLs are supported (or an absolute path that resolves to those locations).<br/><br/>\
+This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>\
+The change only takes effect after a frame completes.<br/><br/>\
+Note that certain game configurations will persist between games if not set by the new GameConfig:<ul>\
+<li>Game-identifying configurations:</li><ul>\
+<li>Game title (including the short game title)</li>\
+<li>Game version</li>\
+<li>Game description</li>\
+<li>Game developer</li>\
+<li>Game identifier</li>\
+<li>Developer identifier</li>\
+</ul>\
+<li>Paths:</li><ul>\
+<li>Saves directory</li>\
+<li>Preferences directory</li>\
+</ul>\
+<li>Engine configurations:</li><ul>\
+<li>Window size</li>\
+<li>Audio volume</li>\
+<li>Settings filename</li>\
+<ul>If this is changed, the current settings are discarded (not saved) and the new settings file is loaded. If the file does not exist, however, default settings will be loaded.</ul>\
+</ul></ul>\
+Some of the game's current state also persists between games:<ul>\
+<li>Command line arguments (unless <code>cmdLineArgs</code> is passed to this function)</li>\
+<li>Palette colors</li>\
+<li>Whether palette rendering is enabled</li>\
+<li>Whether software rendering was enabled with <code>useSoftwareRenderer</code></li>\
+</ul>\
+The following <b>does not</b> persist between games:<ul>\
+<li>Any loaded resources</li>\
+<li>Any persistent entities</li>\
+<li>Scripting state</li>\
+</ul>\
+The following <b>cannot</b> be changed between games:<ul>\
+<li>Log file name</li>\
+<li>Graphics rendering backend</li>\
+</ul>
+ * \param path (String): The path of the data file to load.
+ * \paramOpt startingScene (String): The filename of the scene file to load upon changing the game. Note that restarting the game will load the starting scene defined in its GameConfig instead. Passing <code>null</code> to this argument is equivalent to not passing it at all.
+ * \paramOpt cmdLineArgs (Array): An Array of Strings containing the command line arguments to pass to the new game. If any of the values are not Strings, they will be converted to a String representation. If this argument is not given, the current command line arguments will be passed to the new game.
+ * \return Returns <code>true</code> if the game will change, <code>false</code> if otherwise.
+ * \ns Application
+ */
+VMValue Application_ChangeGame(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* path = GET_ARG(0, GetString);
+	char* startingScene = nullptr;
+	ObjArray* cmdLineArgsArray = GET_ARG_OPT(2, GetArray, nullptr);
+	std::vector<std::string>* cmdLineArgs = nullptr;
+
+	if (argCount >= 2 && !IS_NULL(args[1])) {
+		startingScene = GET_ARG(1, GetString);
+	}
+
+	if (cmdLineArgsArray) {
+		cmdLineArgs = new std::vector<std::string>();
+
+		for (size_t i = 0; i < cmdLineArgsArray->Values->size(); i++) {
+			std::string arg = Value::ToString((*cmdLineArgsArray->Values)[i]);
+			cmdLineArgs->push_back(arg);
+		}
+	}
+
+	bool exists = Application::SetNextGame(path, startingScene, cmdLineArgs);
+	if (!exists) {
+		delete cmdLineArgs;
+		return INTEGER_VAL(false);
+	}
+
+	return INTEGER_VAL(true);
+}
+/***
+ * Application.Quit
+ * \desc Closes the application.
+ * \ns Application
+ */
+VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	Application::Running = false;
+	return NULL_VAL;
 }
 // #endregion
 
@@ -7378,7 +7451,7 @@ VMValue Input_GetActionList(int argCount, VMValue* args, Uint32 threadID) {
 	for (size_t i = 0; i < count; i++) {
 		InputAction& action = InputManager::Actions[i];
 
-		ObjString* actionName = CopyString(action.Name.c_str());
+		ObjString* actionName = CopyString(action.Name);
 
 		array->Values->push_back(OBJECT_VAL(actionName));
 	}
@@ -18286,6 +18359,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
 	/***
     * \enum KeyBind_Fullscreen

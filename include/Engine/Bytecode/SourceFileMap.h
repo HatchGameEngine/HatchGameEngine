@@ -11,6 +11,7 @@ private:
 
 public:
 	static bool Initialized;
+	static bool AllowCompilation;
 	static HashMap<Uint32>* Checksums;
 	static HashMap<vector<Uint32>*>* ClassMap;
 	static Uint32 DirectoryChecksum;
