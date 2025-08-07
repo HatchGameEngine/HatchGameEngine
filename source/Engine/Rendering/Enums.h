@@ -135,7 +135,7 @@ struct BlendState {
 	int Opacity;
 	int Mode;
 	TintState Tint;
-	int* FilterTable;
+	int FilterMode;
 };
 
 typedef void (*PixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*);

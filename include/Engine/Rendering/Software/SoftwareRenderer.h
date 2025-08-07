@@ -69,7 +69,6 @@ public:
 	static void
 	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
 	static void SetFilter(int filter);
-	static void SetFilterTable(Uint32* table, size_t size);
 	static void Clear();
 	static void Present();
 	static void SetBlendColor(float r, float g, float b, float a);

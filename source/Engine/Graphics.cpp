@@ -596,11 +596,6 @@ void Graphics::SetFilter(int filter) {
 		Graphics::GfxFunctions->SetFilter(filter);
 	}
 }
-void Graphics::SetFilterTable(Uint32* table, size_t size) {
-	if (Graphics::GfxFunctions->SetFilterTable) {
-		Graphics::GfxFunctions->SetFilterTable(table, size);
-	}
-}
 
 void Graphics::SetTextureInterpolation(bool interpolate) {
 	Graphics::TextureInterpolate = interpolate;
@@ -1026,7 +1021,7 @@ BlendState Graphics::GetBlendState() {
 	state.Tint.Color = ColorUtils::ToRGB(Graphics::TintColors);
 	state.Tint.Amount = (int)(Graphics::TintColors[3] * 0xFF);
 	state.Tint.Mode = Graphics::TintMode;
-	state.FilterTable = NULL;
+	state.FilterMode = 0;
 	return state;
 }
 

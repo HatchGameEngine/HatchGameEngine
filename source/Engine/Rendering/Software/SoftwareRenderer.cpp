@@ -82,10 +82,6 @@ int CosTable[TRIG_TABLE_SIZE];
 
 PolygonRenderer polygonRenderer;
 
-int FilterCurrent[FILTER_TABLE_SIZE];
-int FilterInvert[FILTER_TABLE_SIZE];
-int FilterBlackAndWhite[FILTER_TABLE_SIZE];
-
 // Initialization and disposal functions
 void SoftwareRenderer::Init() {
 	SoftwareRenderer::BackendFunctions.Init();
@@ -114,20 +110,10 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 		SinTable[a] = (int)(Math::Sin(ang) * TRIG_TABLE_SIZE);
 		CosTable[a] = (int)(Math::Cos(ang) * TRIG_TABLE_SIZE);
 	}
-	for (int a = 0; a < FILTER_TABLE_SIZE; a++) {
-		int r = (a >> 10) & 0x1F;
-		int g = (a >> 5) & 0x1F;
-		int b = (a) & 0x1F;
-
-		int bw = ((r + g + b) / 3) << 3;
-		int hex = r << 19 | g << 11 | b << 3;
-		FilterBlackAndWhite[a] = bw << 16 | bw << 8 | bw | 0xFF000000U;
-		FilterInvert[a] = (hex ^ 0xFFFFFF) | 0xFF000000U;
-	}
 
 	CurrentBlendState.Mode = BlendMode_NORMAL;
 	CurrentBlendState.Opacity = 0xFF;
-	CurrentBlendState.FilterTable = nullptr;
+	CurrentBlendState.FilterMode = 0;
 
 	SoftwareRenderer::BackendFunctions.Init = SoftwareRenderer::Init;
 	SoftwareRenderer::BackendFunctions.GetWindowFlags = SoftwareRenderer::GetWindowFlags;
@@ -155,7 +141,6 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 
 	// Filter-related functions
 	SoftwareRenderer::BackendFunctions.SetFilter = SoftwareRenderer::SetFilter;
-	SoftwareRenderer::BackendFunctions.SetFilterTable = SoftwareRenderer::SetFilterTable;
 
 	// These guys
 	SoftwareRenderer::BackendFunctions.Clear = SoftwareRenderer::Clear;
@@ -325,39 +310,7 @@ bool CheckClipRegion(int clip_x1, int clip_y1, int clip_x2, int clip_y2) {
 
 // Filter-related functions
 void SoftwareRenderer::SetFilter(int filter) {
-	switch (filter) {
-	case Filter_NONE:
-		CurrentBlendState.FilterTable = nullptr;
-		break;
-	case Filter_BLACK_AND_WHITE:
-		CurrentBlendState.FilterTable = &FilterBlackAndWhite[0];
-		break;
-	case Filter_INVERT:
-		CurrentBlendState.FilterTable = &FilterInvert[0];
-		break;
-	}
-}
-void SoftwareRenderer::SetFilterTable(Uint32* table, size_t size) {
-	if (!table) {
-		CurrentBlendState.FilterTable = nullptr;
-		return;
-	}
-
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ARGB8888) {
-		for (size_t i = 0; i < FILTER_TABLE_SIZE && i < size; i++) {
-			FilterCurrent[i] = table[i] | 0xFF000000U;
-		}
-	}
-	else {
-		Uint8 px[4];
-		Uint32 newI;
-		for (size_t i = 0; i < FILTER_TABLE_SIZE && i < size; i++) {
-			*(Uint32*)&px[0] = table[i];
-			newI = (i & 0x1F) << 10 | (i & 0x3E0) | (i & 0x7C00) >> 10;
-			FilterCurrent[newI] = px[0] << 16 | px[1] << 8 | px[2] | 0xFF000000U;
-		}
-	}
-	CurrentBlendState.FilterTable = &FilterCurrent[0];
+	CurrentBlendState.FilterMode = filter;
 }
 
 // These guys
@@ -472,7 +425,7 @@ bool SoftwareRenderer::AlterBlendState(BlendState& state) {
 	if (state.Tint.Enabled) {
 		state.Mode |= BlendFlag_TINT_BIT;
 	}
-	if (state.FilterTable != nullptr) {
+	if (state.FilterMode != 0) {
 		state.Mode |= BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT;
 	}
 
@@ -638,25 +591,74 @@ static Uint32 TintBlendSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32
 static Uint32 TintBlendDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
 	return ColorUtils::Blend(*dst, tintColor, tintAmount);
 }
-static Uint32 TintFilterSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
-	return CurrentBlendState.FilterTable[GET_FILTER_COLOR(*src)];
+
+static Uint32 FilterBW(Uint32 color) {
+	Uint8 red = GET_R(color);
+	Uint8 green = GET_G(color);
+	Uint8 blue = GET_B(color);
+
+	float luminance = ((float)red * 0.2126) + ((float)green * 0.7152) + ((float)blue * 0.0722);
+
+	int bw = (int)luminance;
+	return bw << 16 | bw << 8 | bw | 0xFF000000U;
 }
-static Uint32 TintFilterDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
-	return CurrentBlendState.FilterTable[GET_FILTER_COLOR(*dst)];
+
+static Uint32 FilterBWSourceARGB(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+	return FilterBW(*src);
+}
+static Uint32 FilterBWDestARGB(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+	return FilterBW(*dst);
+}
+
+static Uint32 FilterBWSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+	Uint32 color = *src;
+
+	Graphics::ConvertFromNativeToARGB(&color, 1);
+
+	return FilterBW(color);
+}
+static Uint32 FilterBWDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+	Uint32 color = *dst;
+
+	Graphics::ConvertFromNativeToARGB(&color, 1);
+
+	return FilterBW(color);
+}
+
+static Uint32 FilterInvertSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+	return (*src & 0xFF000000U) | (*src ^ 0xFFFFFF);
+}
+static Uint32 FilterInvertDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+	return (*dst & 0xFF000000U) | (*dst ^ 0xFFFFFF);
+}
+
+static TintFunction GetTintFunction(int blendFlags) {
+	if (blendFlags & BlendFlag_FILTER_BIT) {
+		bool isDest = CurrentBlendState.Tint.Mode & 1;
+
+		switch (CurrentBlendState.FilterMode) {
+		case Filter_BLACK_AND_WHITE:
+			if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ARGB8888) {
+				return isDest ? FilterBWDestARGB : FilterBWSourceARGB;
+			}
+			else {
+				return isDest ? FilterBWDest : FilterBWSource;
+			}
+		case Filter_INVERT:
+			return isDest ? FilterInvertDest : FilterInvertSource;
+		}
+	}
+	else if (blendFlags & BlendFlag_TINT_BIT) {
+		TintFunction tintFunctions[] = {TintNormalSource, TintNormalDest, TintBlendSource, TintBlendDest};
+
+		return tintFunctions[CurrentBlendState.Tint.Mode];
+	}
+
+	return nullptr;
 }
 
 void SoftwareRenderer::SetTintFunction(int blendFlags) {
-	TintFunction tintFunctions[] = {
-		TintNormalSource, TintNormalDest, TintBlendSource, TintBlendDest};
-
-	TintFunction filterFunctions[] = {TintFilterSource, TintFilterDest};
-
-	if (blendFlags & BlendFlag_FILTER_BIT) {
-		CurrentTintFunction = filterFunctions[CurrentBlendState.Tint.Mode & 1];
-	}
-	else if (blendFlags & BlendFlag_TINT_BIT) {
-		CurrentTintFunction = tintFunctions[CurrentBlendState.Tint.Mode];
-	}
+	CurrentTintFunction = GetTintFunction(blendFlags);
 }
 
 // Stencil ops (test)
