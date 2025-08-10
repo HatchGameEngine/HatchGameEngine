@@ -3820,7 +3820,7 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 	int paletteID = -1;
 
 	if (argCount >= 9) {
-		paletteID = GET_ARG_OPT(8, GetInteger, 0);
+		paletteID = GET_ARG(8, GetInteger);
 
 		CHECK_PALETTE_INDEX(paletteID);
 	}
