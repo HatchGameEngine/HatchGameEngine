@@ -948,6 +948,8 @@ void ScriptEntity::Initialize() {
 	Persistence = Persistence_NONE;
 	Interactable = true;
 
+	SetUpdatePriority(0);
+
 	RunInitializer();
 }
 void ScriptEntity::Create(VMValue flag) {

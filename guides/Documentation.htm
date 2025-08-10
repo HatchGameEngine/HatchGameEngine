@@ -1389,6 +1389,8 @@
                     <li><a href="#Reference_methods_entity_SetAnimation">entity.SetAnimation</a></li>
                     <li><a href="#Reference_methods_entity_ResetAnimation">entity.ResetAnimation</a></li>
                     <li><a href="#Reference_methods_entity_Animate">entity.Animate</a></li>
+                    <li><a href="#Reference_methods_entity_GetUpdatePriority">entity.GetUpdatePriority</a></li>
+                    <li><a href="#Reference_methods_entity_SetUpdatePriority">entity.SetUpdatePriority</a></li>
                     <li><a href="#Reference_methods_entity_GetIDWithinClass">entity.GetIDWithinClass</a></li>
                     <li><a href="#Reference_methods_entity_AddToRegistry">entity.AddToRegistry</a></li>
                     <li><a href="#Reference_methods_entity_IsInRegistry">entity.IsInRegistry</a></li>
@@ -10275,6 +10277,22 @@
         <code>entity.Animate()</code>
         <div style="margin-top: 8px; font-size: 14px;">Animates the entity.</div>
         </p>
+        <p id="Reference_methods_entity_GetUpdatePriority">
+        <h2 style="margin-bottom: 8px;">entity.GetUpdatePriority</h2>
+        <code>entity.GetUpdatePriority()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the update priority of the entity.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_methods_entity_SetUpdatePriority">
+        <h2 style="margin-bottom: 8px;">entity.SetUpdatePriority</h2>
+        <code>entity.SetUpdatePriority(priority)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the update priority of the entity. Higher numbers cause entities to be updated sooner, and lower numbers cause entities to be updated later. If multiple entities have the same update priority, they are sorted by spawn order; ascending for positive priority values, and descending for negative priority values.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>priority (Integer): The priority value.</li>
+        </ul>
+        </p>
         <p id="Reference_methods_entity_GetIDWithinClass">
         <h2 style="margin-bottom: 8px;">entity.GetIDWithinClass</h2>
         <code>entity.GetIDWithinClass()</code>
@@ -10636,7 +10654,7 @@
         <code>shader.Delete()</code>
         <div style="margin-top: 8px; font-size: 14px;">Deletes a shader. It can no longer be used after this function is called.</div>
         </p>
-        <p>39 out of 39 methods have descriptions. </p>
+        <p>41 out of 41 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
         <p id="Reference_constructors_Shader">

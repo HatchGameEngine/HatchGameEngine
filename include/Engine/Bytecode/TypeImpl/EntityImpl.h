@@ -8,6 +8,8 @@
 	ENTITY_NATIVE_FN(SetAnimation)\
 	ENTITY_NATIVE_FN(ResetAnimation)\
 	ENTITY_NATIVE_FN(Animate)\
+	ENTITY_NATIVE_FN(GetUpdatePriority)\
+	ENTITY_NATIVE_FN(SetUpdatePriority)\
 	ENTITY_NATIVE_FN(GetIDWithinClass)\
 	ENTITY_NATIVE_FN(AddToRegistry)\
 	ENTITY_NATIVE_FN(IsInRegistry)\
@@ -49,6 +51,8 @@ public:
 	static VMValue VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Animate(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetUpdatePriority(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID);

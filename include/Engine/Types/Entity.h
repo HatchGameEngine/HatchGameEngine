@@ -22,9 +22,11 @@ public:
 	int Interactable = true;
 	int Persistence = Persistence_NONE;
 	int Activity = ACTIVE_BOUNDS;
+	int UpdatePriority = 0;
 	int InRange = false;
 	bool Created = false;
 	bool PostCreated = false;
+	bool Dynamic = false;
 	float X = 0.0f;
 	float Y = 0.0f;
 	float Z = 0.0f;
@@ -107,10 +109,12 @@ public:
 	virtual ~Entity() = default;
 	void Copy(Entity* other);
 	void CopyFields(Entity* other);
+	int GetIDWithinClass();
 	virtual void ApplyMotion();
 	virtual void Animate();
 	virtual void SetAnimation(int animation, int frame);
 	virtual void ResetAnimation(int animation, int frame);
+	virtual void SetUpdatePriority(int priority);
 	virtual bool BasicCollideWithObject(Entity* other);
 	virtual bool CollideWithObject(Entity* other);
 	virtual int SolidCollideWithObject(Entity* other, int flag);

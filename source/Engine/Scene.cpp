@@ -38,6 +38,8 @@
 int Scene::Frame = 0;
 bool Scene::Paused = false;
 bool Scene::Loaded = false;
+bool Scene::Initializing = false;
+bool Scene::NeedEntitySort = false;
 int Scene::TileAnimationEnabled = 1;
 
 // Layering variables
@@ -438,12 +440,6 @@ void Scene::Add(Entity** first, Entity** last, int* count, Entity* obj) {
 
 	(*count)++;
 
-	// Add to proper list
-	if (!obj->List) {
-		Error::Fatal("Entity has no list!");
-	}
-	obj->List->Add(obj);
-
 	Scene::AddToScene(obj);
 }
 void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
@@ -475,20 +471,67 @@ void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
 	Scene::RemoveObject(obj);
 }
 void Scene::AddToScene(Entity* obj) {
-	obj->PrevSceneEntity = Scene::ObjectLast;
-	obj->NextSceneEntity = NULL;
+	// When the scene is loading, all entities are added to the end, because they will be sorted later.
+	// Also added to the end if NeedEntitySort is already set anyway.
+	if (NeedEntitySort || Initializing || Scene::ObjectFirst == nullptr ||
+		(Scene::ObjectLast != nullptr &&
+			Scene::ObjectLast->UpdatePriority == obj->UpdatePriority)) {
+		obj->PrevSceneEntity = Scene::ObjectLast;
+		obj->NextSceneEntity = nullptr;
 
-	if (obj->PrevSceneEntity) {
-		obj->PrevSceneEntity->NextSceneEntity = obj;
+		if (obj->PrevSceneEntity) {
+			obj->PrevSceneEntity->NextSceneEntity = obj;
+		}
+		if (!Scene::ObjectFirst) {
+			Scene::ObjectFirst = obj;
+		}
+
+		Scene::ObjectLast = obj;
 	}
-	if (!Scene::ObjectFirst) {
-		Scene::ObjectFirst = obj;
+	else {
+		Entity* prevObj = Scene::ObjectLast;
+
+		// Special case for a priority of zero (which is the default)
+		if (obj->UpdatePriority == 0) {
+			while (prevObj->PrevSceneEntity != nullptr && prevObj->UpdatePriority < 0) {
+				prevObj = prevObj->PrevSceneEntity;
+			}
+		}
+		else if (obj->UpdatePriority > 0) {
+			prevObj = Scene::ObjectFirst;
+
+			while (prevObj->NextSceneEntity != nullptr &&
+				prevObj->NextSceneEntity->UpdatePriority > obj->UpdatePriority) {
+				prevObj = prevObj->NextSceneEntity;
+			}
+		}
+		else {
+			while (prevObj->PrevSceneEntity != nullptr &&
+				prevObj->PrevSceneEntity->UpdatePriority < obj->UpdatePriority) {
+				prevObj = prevObj->PrevSceneEntity;
+			}
+		}
+
+		if (prevObj->NextSceneEntity) {
+			obj->NextSceneEntity = prevObj->NextSceneEntity;
+			prevObj->NextSceneEntity->PrevSceneEntity = obj;
+		}
+		else {
+			Scene::ObjectLast = obj;
+			obj->NextSceneEntity = nullptr;
+		}
+
+		prevObj->NextSceneEntity = obj;
+		obj->PrevSceneEntity = prevObj;
 	}
 
-	Scene::ObjectLast = obj;
 	Scene::ObjectCount++;
 }
 void Scene::RemoveFromScene(Entity* obj) {
+	if (obj->NextSceneEntity == nullptr && obj->PrevSceneEntity == nullptr) {
+		return;
+	}
+
 	if (Scene::ObjectFirst == obj) {
 		Scene::ObjectFirst = obj->NextSceneEntity;
 	}
@@ -544,17 +587,38 @@ void Scene::Clear(Entity** first, Entity** last, int* count) {
 }
 
 // Object management
-void Scene::AddStatic(ObjectList* objectList, Entity* obj) {
+bool Scene::AddStatic(ObjectList* objectList, Entity* obj) {
 	Scene::Add(&Scene::StaticObjectFirst,
 		&Scene::StaticObjectLast,
 		&Scene::StaticObjectCount,
 		obj);
+
+	obj->Dynamic = false;
+
+	// Add to proper list
+	if (obj->List) {
+		obj->List->Add(obj);
+	}
+	else {
+		Log::Print(Log::LOG_ERROR, "Entity %d has no list!", obj->SlotID);
+
+		Scene::Remove(&Scene::StaticObjectFirst,
+			&Scene::StaticObjectLast,
+			&Scene::StaticObjectCount,
+			obj);
+
+		return false;
+	}
+
+	return true;
 }
 void Scene::AddDynamic(ObjectList* objectList, Entity* obj) {
 	Scene::Add(&Scene::DynamicObjectFirst,
 		&Scene::DynamicObjectLast,
 		&Scene::DynamicObjectCount,
 		obj);
+
+	obj->Dynamic = true;
 }
 void Scene::DeleteRemoved(Entity* obj) {
 	if (!obj->Removed) {
@@ -693,75 +757,38 @@ void Scene::Update() {
 		Scene::ObjectLists->ForAllOrdered(ObjectList_CallGlobalUpdates);
 	}
 
+	// Sort entities if needed
+	Scene::SortEntities();
+
 	// Early Update
-	for (Entity *ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
-		UpdateObjectEarly(ent);
-	}
-	for (Entity *ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
+		next = ent->NextSceneEntity;
 		UpdateObjectEarly(ent);
 	}
 
 	// Update objects
-	for (Entity *ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-		// Store the "next" so that when/if the current is
-		// removed, it can still be used to point at the end of
-		// the loop.
-		next = ent->NextEntity;
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
+		// Store the "next" so that when/if the current is removed,
+		// it can still be used to point at the end of the loop.
+		next = ent->NextSceneEntity;
 
 		// Execute whatever on object
 		UpdateObject(ent);
 	}
-	for (Entity *ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
-		UpdateObject(ent);
-	}
 
 	// Late Update
-	for (Entity *ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
-		UpdateObjectLate(ent);
-	}
-	for (Entity *ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
+		next = ent->NextSceneEntity;
 		UpdateObjectLate(ent);
 
-		// Removes the object from the scene, but doesn't
-		// delete it yet.
-		if (!ent->Active) {
+		// Removes the object from the scene, but doesn't delete it yet.
+		if (ent->Dynamic && !ent->Active) {
 			Scene::Remove(&Scene::DynamicObjectFirst,
 				&Scene::DynamicObjectLast,
 				&Scene::DynamicObjectCount,
 				ent);
 		}
 	}
-
-#ifdef USING_FFMPEG
-	AudioManager::Lock();
-	Uint8 audio_buffer[0x8000]; // <-- Should be larger than
-	// AudioManager::AudioQueueMaxSize
-	int needed = 0x8000; // AudioManager::AudioQueueMaxSize;
-	for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
-		if (!Scene::MediaList[i]) {
-			continue;
-		}
-
-		MediaBag* media = Scene::MediaList[i]->AsMedia;
-		int queued = (int)AudioManager::AudioQueueSize;
-		if (queued < needed) {
-			int ready_bytes =
-				media->Player->GetAudioData(audio_buffer, needed - queued);
-			if (ready_bytes > 0) {
-				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize,
-					audio_buffer,
-					ready_bytes);
-				AudioManager::AudioQueueSize += ready_bytes;
-			}
-		}
-	}
-	AudioManager::Unlock();
-#endif
 
 	if (!Scene::Paused) {
 		Scene::Frame++;
@@ -1440,6 +1467,88 @@ void Scene::ResetPriorityListIndex(Entity* first) {
 	});
 }
 
+void Scene::SortEntities() {
+	if (!Scene::NeedEntitySort) {
+		return;
+	}
+
+	Scene::ObjectFirst = SortEntityList(ObjectFirst);
+	Scene::ObjectLast = nullptr;
+
+	// Tail points to nowhere, but we'll fix that here.
+	for (Entity* ent = Scene::ObjectFirst; ent != nullptr; ent = ent->NextSceneEntity) {
+		Scene::ObjectLast = ent;
+	}
+
+	Scene::NeedEntitySort = false;
+}
+Entity* Scene::SortEntityList(Entity* head) {
+	Entity *left, *right;
+
+	if (head == nullptr || head->NextSceneEntity == nullptr) {
+		return head;
+	}
+
+	SplitEntityList(head, &left, &right);
+
+	return MergeEntityList(SortEntityList(left), SortEntityList(right));
+}
+bool Scene::SplitEntityList(Entity* head, Entity** left, Entity** right) {
+	Entity *a = head, *b;
+
+	if (a == nullptr || a->NextSceneEntity == nullptr) {
+		*left = a;
+		*right = nullptr;
+		return false;
+	}
+
+	b = head->NextSceneEntity;
+	while (b != nullptr) {
+		b = b->NextSceneEntity;
+		if (b != nullptr) {
+			b = b->NextSceneEntity;
+			a = a->NextSceneEntity;
+		}
+	}
+
+	*left = head;
+	*right = a->NextSceneEntity;
+
+	a->NextSceneEntity = nullptr;
+
+	return true;
+}
+Entity* Scene::MergeEntityList(Entity* left, Entity* right) {
+	if (left == nullptr) {
+		return right;
+	}
+	else if (right == nullptr) {
+		return left;
+	}
+
+	// Left side
+	if (left->UpdatePriority >= right->UpdatePriority) {
+		left->NextSceneEntity = MergeEntityList(left->NextSceneEntity, right);
+
+		if (left->NextSceneEntity) {
+			left->NextSceneEntity->PrevSceneEntity = left;
+		}
+		left->PrevSceneEntity = nullptr;
+
+		return left;
+	}
+
+	// Right side
+	right->NextSceneEntity = MergeEntityList(left, right->NextSceneEntity);
+
+	if (right->NextSceneEntity) {
+		right->NextSceneEntity->PrevSceneEntity = right;
+	}
+	right->PrevSceneEntity = nullptr;
+
+	return right;
+}
+
 int Scene::GetPersistenceScopeForObjectDeletion() {
 	return Scene::NoPersistency ? Persistence_SCENE : Persistence_NONE;
 }
@@ -1454,6 +1563,7 @@ void Scene::Initialize() {
 	currentView->Z = 0.0f;
 	Scene::Frame = 0;
 	Scene::Paused = false;
+	Scene::Initializing = true;
 	Scene::TileAnimationEnabled = 1;
 
 	Scene::TimeCounter = 0;
@@ -1578,7 +1688,7 @@ void Scene::Restart() {
 	}
 
 	// Run "PostCreate" on all objects
-	Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
+	Scene::IterateAll(Scene::ObjectFirst, [](Entity* ent) -> void {
 		if (!ent->PostCreated) {
 			// ent->PostCreated gets set when
 			// PostCreate() is called.
@@ -1600,6 +1710,7 @@ void Scene::FinishLoad() {
 	});
 
 	Scene::Loaded = true;
+	Scene::Initializing = false;
 
 	ScriptManager::ResetStack();
 	ScriptManager::RequestGarbageCollection();

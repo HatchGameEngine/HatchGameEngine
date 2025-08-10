@@ -8484,7 +8484,7 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	obj->InitialX = x;
 	obj->InitialY = y;
 	obj->List = objectList;
-	Scene::AddDynamic(objectList, obj);
+	obj->List->Add(obj);
 
 	ObjEntity* instance = obj->Instance;
 
@@ -8493,8 +8493,13 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 		obj->Initialize();
 	}
 
+	// Add it to the scene
+	Scene::AddDynamic(objectList, obj);
+
 	obj->Create(flag);
-	obj->PostCreate();
+	if (!Scene::Initializing) {
+		obj->PostCreate();
+	}
 
 	return OBJECT_VAL(instance);
 }

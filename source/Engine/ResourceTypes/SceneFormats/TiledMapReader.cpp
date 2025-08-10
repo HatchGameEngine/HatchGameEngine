@@ -629,7 +629,10 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 			obj->InitialY = obj->Y;
 			obj->List = objectList;
 			obj->Filter = filter;
-			Scene::AddStatic(objectList, obj);
+
+			if (!Scene::AddStatic(objectList, obj)) {
+				continue;
+			}
 
 			if (!object->attributes.Exists("filter")) {
 				obj->Properties->Put("filter", INTEGER_VAL(filter));
