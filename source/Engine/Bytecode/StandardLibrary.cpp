@@ -3397,14 +3397,18 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
  * \param image (Integer): Index of the loaded image.
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	Image* image = GET_ARG(0, GetImage);
 	float x = GET_ARG(1, GetDecimal);
 	float y = GET_ARG(2, GetDecimal);
+	int paletteID = GET_ARG_OPT(3, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
 		Graphics::DrawTexture(image->TexturePtr,
@@ -3415,7 +3419,8 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
 			x,
 			y,
 			image->TexturePtr->Width,
-			image->TexturePtr->Height);
+			image->TexturePtr->Height,
+			paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3429,10 +3434,11 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
  * \param partH (Integer): Height of part of image to draw.
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(7);
+	CHECK_AT_LEAST_ARGCOUNT(7);
 
 	Image* image = GET_ARG(0, GetImage);
 	float sx = GET_ARG(1, GetDecimal);
@@ -3441,9 +3447,21 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 	float sh = GET_ARG(4, GetDecimal);
 	float x = GET_ARG(5, GetDecimal);
 	float y = GET_ARG(6, GetDecimal);
+	int paletteID = GET_ARG_OPT(7, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
-		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, sw, sh);
+		Graphics::DrawTexture(image->TexturePtr,
+			sx,
+			sy,
+			sw,
+			sh,
+			x,
+			y,
+			sw,
+			sh,
+			paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3455,16 +3473,20 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (Number): Y position of where to draw the image.
  * \param width (Number): Width to draw the image.
  * \param height (Number): Height to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(5);
 
 	Image* image = GET_ARG(0, GetImage);
 	float x = GET_ARG(1, GetDecimal);
 	float y = GET_ARG(2, GetDecimal);
 	float w = GET_ARG(3, GetDecimal);
 	float h = GET_ARG(4, GetDecimal);
+	int paletteID = GET_ARG_OPT(5, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
 		Graphics::DrawTexture(image->TexturePtr,
@@ -3475,7 +3497,8 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
 			x,
 			y,
 			w,
-			h);
+			h,
+			paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3491,10 +3514,11 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (Number): Y position of where to draw the image.
  * \param width (Number): Width to draw the image.
  * \param height (Number): Height to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(9);
+	CHECK_AT_LEAST_ARGCOUNT(9);
 
 	Image* image = GET_ARG(0, GetImage);
 	float sx = GET_ARG(1, GetDecimal);
@@ -3505,9 +3529,12 @@ VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
 	float y = GET_ARG(6, GetDecimal);
 	float w = GET_ARG(7, GetDecimal);
 	float h = GET_ARG(8, GetDecimal);
+	int paletteID = GET_ARG_OPT(9, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
-		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, w, h);
+		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, w, h, paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3775,6 +3802,8 @@ VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt flipY (Integer): Whether or not to flip the tile vertically.
  * \paramOpt scaleX (Number): Horizontal scale multiplier of the tile.
  * \paramOpt scaleY (Number): Vertical scale multiplier of the tile.
+ * \paramOpt rotation (Number): Rotation of the drawn tile in radians.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
@@ -3787,10 +3816,23 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 	int flipY = GET_ARG_OPT(4, GetInteger, false);
 	float scaleX = GET_ARG_OPT(5, GetDecimal, 1.0f);
 	float scaleY = GET_ARG_OPT(6, GetDecimal, 1.0f);
+	float rotation = GET_ARG_OPT(7, GetDecimal, 0.0f);
+	int paletteID = -1;
+
+	if (argCount >= 9) {
+		paletteID = GET_ARG_OPT(8, GetInteger, 0);
+
+		CHECK_PALETTE_INDEX(paletteID);
+	}
 
 	TileSpriteInfo info;
 	if (id < Scene::TileSpriteInfos.size() &&
 		(info = Scene::TileSpriteInfos[id]).Sprite != NULL) {
+
+		if (paletteID == -1) {
+			paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+		}
+
 		Graphics::DrawSprite(info.Sprite,
 			info.AnimationIndex,
 			info.FrameIndex,
@@ -3800,7 +3842,8 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 			flipY,
 			scaleX,
 			scaleY,
-			0.0f);
+			rotation,
+			paletteID);
 	}
 	return NULL_VAL;
 }
