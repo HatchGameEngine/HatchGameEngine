@@ -1,5 +1,12 @@
 #include <Engine/Types/Entity.h>
 
+int Entity::GetIDWithinClass() {
+	if (!List) {
+		return 0;
+	}
+
+	return List->GetID(this);
+}
 void Entity::ApplyMotion() {
 	YSpeed += Gravity;
 	X += XSpeed;

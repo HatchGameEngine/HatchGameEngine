@@ -1684,6 +1684,7 @@ void Application::StartGame(const char* startingScene) {
 
 	Scene::Init();
 	Scene::Prepare();
+	Scene::Initialize();
 
 	// Load initial scripts
 	ScriptManager::LoadScript("init.hsl");
@@ -1708,7 +1709,6 @@ void Application::StartGame(const char* startingScene) {
 		Scene::Restart();
 	}
 	else {
-		Scene::Initialize();
 		Scene::FinishLoad();
 	}
 }

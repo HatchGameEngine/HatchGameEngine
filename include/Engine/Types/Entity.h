@@ -109,6 +109,7 @@ public:
 	virtual ~Entity() = default;
 	void Copy(Entity* other);
 	void CopyFields(Entity* other);
+	int GetIDWithinClass();
 	virtual void ApplyMotion();
 	virtual void Animate();
 	virtual void SetAnimation(int animation, int frame);

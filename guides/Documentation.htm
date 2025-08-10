@@ -10287,10 +10287,10 @@
         <p id="Reference_methods_entity_SetUpdatePriority">
         <h2 style="margin-bottom: 8px;">entity.SetUpdatePriority</h2>
         <code>entity.SetUpdatePriority(priority)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the update priority of the entity.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the update priority of the entity. Higher numbers cause entities to be updated sooner, and lower numbers cause entities to be updated later. If multiple entities have the same update priority, they are sorted by spawn order; ascending for positive priority values, and descending for negative priority values.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>priority (Integer): The priority value. Lower numbers cause entities to be updated earlier, and higher numbers cause entities to be updated later.</li>
+        <li>priority (Integer): The priority value.</li>
         </ul>
         </p>
         <p id="Reference_methods_entity_GetIDWithinClass">

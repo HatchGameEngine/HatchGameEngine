@@ -243,35 +243,36 @@ VMValue EntityImpl::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Entity
  */
 VMValue EntityImpl::VM_GetUpdatePriority(int argCount, VMValue* args, Uint32 threadID) {
-    StandardLibrary::CheckArgCount(argCount, 1);
-    ScriptEntity* self = GET_ENTITY(0);
-    if (self) {
-        return INTEGER_VAL(self->UpdatePriority);
-    }
-    return NULL_VAL;
+	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptEntity* self = GET_ENTITY(0);
+	if (self) {
+		return INTEGER_VAL(self->UpdatePriority);
+	}
+	return NULL_VAL;
 }
 /***
  * \method SetUpdatePriority
- * \desc Sets the update priority of the entity.
- * \param priority (Integer): The priority value. Lower numbers cause entities to be updated earlier, and higher numbers cause entities to be updated later.
+ * \desc Sets the update priority of the entity. Higher numbers cause entities to be updated sooner, and lower numbers cause entities to be updated later. If multiple entities have the same update priority, they are sorted by spawn order; ascending for positive priority values, and descending for negative priority values.
+ * \param priority (Integer): The priority value.
  * \ns Entity
  */
 VMValue EntityImpl::VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 threadID) {
-    StandardLibrary::CheckArgCount(argCount, 2);
-    ScriptEntity* self = GET_ENTITY(0);
-    int priority = GET_ARG(1, GetInteger);
+	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	int priority = GET_ARG(1, GetInteger);
 
-    if (self && self->UpdatePriority != priority) {
-        self->UpdatePriority = priority;
+	if (self && self->UpdatePriority != priority) {
+		self->UpdatePriority = priority;
 
-        // If the scene is loading, NeedEntitySort is set to true,
-        // so that the entities are sorted always and Scene::AddToScene
-        // doesn't have to insert the entities in a sorted manner.
-        if (Scene::Initializing || self->Created)
-            Scene::NeedEntitySort = true;
-    }
+		// If the scene is loading, NeedEntitySort is set to true,
+		// so that the entities are sorted always and Scene::AddToScene
+		// doesn't have to insert the entities in a sorted manner.
+		if (Scene::Initializing || self->PostCreated) {
+			Scene::NeedEntitySort = true;
+		}
+	}
 
-    return NULL_VAL;
+	return NULL_VAL;
 }
 
 /***
@@ -283,23 +284,11 @@ VMValue EntityImpl::VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 thr
 VMValue EntityImpl::VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 	ScriptEntity* self = GET_ENTITY(0);
-	if (!self || !self->List) {
+	if (!self) {
 		return NULL_VAL;
 	}
 
-	Entity* other = self->List->EntityFirst;
-	int num = 0;
-
-	while (other) {
-		if (self == other) {
-			break;
-		}
-
-		num++;
-		other = other->NextEntityInList;
-	}
-
-	return INTEGER_VAL(num);
+	return INTEGER_VAL(self->GetIDWithinClass());
 }
 
 /***

@@ -473,11 +473,11 @@ void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
 void Scene::AddToScene(Entity* obj) {
 	// When the scene is loading, all entities are added to the end, because they will be sorted later.
 	// Also added to the end if NeedEntitySort is already set anyway.
-	if (NeedEntitySort || Initializing || Scene::ObjectFirst == NULL ||
-		(Scene::ObjectLast != NULL &&
+	if (NeedEntitySort || Initializing || Scene::ObjectFirst == nullptr ||
+		(Scene::ObjectLast != nullptr &&
 			Scene::ObjectLast->UpdatePriority == obj->UpdatePriority)) {
 		obj->PrevSceneEntity = Scene::ObjectLast;
-		obj->NextSceneEntity = NULL;
+		obj->NextSceneEntity = nullptr;
 
 		if (obj->PrevSceneEntity) {
 			obj->PrevSceneEntity->NextSceneEntity = obj;
@@ -489,21 +489,25 @@ void Scene::AddToScene(Entity* obj) {
 		Scene::ObjectLast = obj;
 	}
 	else {
-		Entity* prevObj;
+		Entity* prevObj = Scene::ObjectLast;
 
-		if (obj->UpdatePriority < 0) {
+		// Special case for a priority of zero (which is the default)
+		if (obj->UpdatePriority == 0) {
+			while (prevObj->PrevSceneEntity != nullptr && prevObj->UpdatePriority < 0) {
+				prevObj = prevObj->PrevSceneEntity;
+			}
+		}
+		else if (obj->UpdatePriority > 0) {
 			prevObj = Scene::ObjectFirst;
 
-			while (prevObj->NextSceneEntity != NULL &&
-				prevObj->NextSceneEntity->UpdatePriority < obj->UpdatePriority) {
+			while (prevObj->NextSceneEntity != nullptr &&
+				prevObj->NextSceneEntity->UpdatePriority > obj->UpdatePriority) {
 				prevObj = prevObj->NextSceneEntity;
 			}
 		}
 		else {
-			prevObj = Scene::ObjectLast;
-
-			while (prevObj->PrevSceneEntity != NULL &&
-				prevObj->PrevSceneEntity->UpdatePriority > obj->UpdatePriority) {
+			while (prevObj->PrevSceneEntity != nullptr &&
+				prevObj->PrevSceneEntity->UpdatePriority < obj->UpdatePriority) {
 				prevObj = prevObj->PrevSceneEntity;
 			}
 		}
@@ -1523,7 +1527,7 @@ Entity* Scene::MergeEntityList(Entity* left, Entity* right) {
 	}
 
 	// Left side
-	if (left->UpdatePriority <= right->UpdatePriority) {
+	if (left->UpdatePriority >= right->UpdatePriority) {
 		left->NextSceneEntity = MergeEntityList(left->NextSceneEntity, right);
 
 		if (left->NextSceneEntity) {
