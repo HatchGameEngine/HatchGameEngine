@@ -888,7 +888,6 @@ void ScriptEntity::Initialize() {
 	Pauseable = true;
 	Activity = ACTIVE_BOUNDS;
 	InRange = false;
-	UpdatePriority = 0;
 
 	XSpeed = 0.0f;
 	YSpeed = 0.0f;
@@ -948,6 +947,8 @@ void ScriptEntity::Initialize() {
 
 	Persistence = Persistence_NONE;
 	Interactable = true;
+
+	SetUpdatePriority(0);
 
 	RunInitializer();
 }

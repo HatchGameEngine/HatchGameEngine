@@ -114,6 +114,7 @@ public:
 	virtual void Animate();
 	virtual void SetAnimation(int animation, int frame);
 	virtual void ResetAnimation(int animation, int frame);
+	virtual void SetUpdatePriority(int priority);
 	virtual bool BasicCollideWithObject(Entity* other);
 	virtual bool CollideWithObject(Entity* other);
 	virtual int SolidCollideWithObject(Entity* other, int flag);

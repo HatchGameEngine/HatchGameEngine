@@ -114,6 +114,20 @@ void Entity::ResetAnimation(int animation, int frame) {
 		CurrentFrameCount >>= 1;
 	}
 }
+void Entity::SetUpdatePriority(int priority) {
+	if (UpdatePriority == priority) {
+		return;
+	}
+
+	UpdatePriority = priority;
+
+	// If the scene is loading, NeedEntitySort is set to true,
+	// so that the entities are sorted always and Scene::AddToScene
+	// doesn't have to insert the entities in a sorted manner.
+	if (Scene::Initializing || Created) {
+		Scene::NeedEntitySort = true;
+	}
+}
 bool Entity::BasicCollideWithObject(Entity* other) {
 	float otherHitboxW = other->Hitbox.Width;
 	float otherHitboxH = other->Hitbox.Height;

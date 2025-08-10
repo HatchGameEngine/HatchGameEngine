@@ -261,15 +261,8 @@ VMValue EntityImpl::VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 thr
 	ScriptEntity* self = GET_ENTITY(0);
 	int priority = GET_ARG(1, GetInteger);
 
-	if (self && self->UpdatePriority != priority) {
-		self->UpdatePriority = priority;
-
-		// If the scene is loading, NeedEntitySort is set to true,
-		// so that the entities are sorted always and Scene::AddToScene
-		// doesn't have to insert the entities in a sorted manner.
-		if (Scene::Initializing || self->Created) {
-			Scene::NeedEntitySort = true;
-		}
+	if (self) {
+		self->SetUpdatePriority(priority);
 	}
 
 	return NULL_VAL;
