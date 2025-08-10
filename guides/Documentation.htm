@@ -3227,18 +3227,19 @@
         </p>
         <p id="Reference_functions_Draw_Image">
         <h2 style="margin-bottom: 8px;">Draw.Image</h2>
-        <code>Draw.Image(image, x, y)</code>
+        <code>Draw.Image(image, x, y[, paletteID])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws an image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>image (Integer): Index of the loaded image.</li>
         <li>x (Number): X position of where to draw the image.</li>
         <li>y (Number): Y position of where to draw the image.</li>
+        <li>paletteID (Integer): Which palette index to use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_ImagePart">
         <h2 style="margin-bottom: 8px;">Draw.ImagePart</h2>
-        <code>Draw.ImagePart(image, partX, partY, partW, partH, x, y)</code>
+        <code>Draw.ImagePart(image, partX, partY, partW, partH, x, y[, paletteID])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws part of an image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -3249,11 +3250,12 @@
         <li>partH (Integer): Height of part of image to draw.</li>
         <li>x (Number): X position of where to draw the image.</li>
         <li>y (Number): Y position of where to draw the image.</li>
+        <li>paletteID (Integer): Which palette index to use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_ImageSized">
         <h2 style="margin-bottom: 8px;">Draw.ImageSized</h2>
-        <code>Draw.ImageSized(image, x, y, width, height)</code>
+        <code>Draw.ImageSized(image, x, y, width, height[, paletteID])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws an image, but sized.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -3262,11 +3264,12 @@
         <li>y (Number): Y position of where to draw the image.</li>
         <li>width (Number): Width to draw the image.</li>
         <li>height (Number): Height to draw the image.</li>
+        <li>paletteID (Integer): Which palette index to use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_ImagePartSized">
         <h2 style="margin-bottom: 8px;">Draw.ImagePartSized</h2>
-        <code>Draw.ImagePartSized(image, partX, partY, partW, partH, x, y, width, height)</code>
+        <code>Draw.ImagePartSized(image, partX, partY, partW, partH, x, y, width, height[, paletteID])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws part of an image, but sized.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -3279,6 +3282,7 @@
         <li>y (Number): Y position of where to draw the image.</li>
         <li>width (Number): Width to draw the image.</li>
         <li>height (Number): Height to draw the image.</li>
+        <li>paletteID (Integer): Which palette index to use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_Layer">
@@ -3364,7 +3368,7 @@
         </p>
         <p id="Reference_functions_Draw_Tile">
         <h2 style="margin-bottom: 8px;">Draw.Tile</h2>
-        <code>Draw.Tile(ID, x, y[, flipX, flipY, scaleX, scaleY])</code>
+        <code>Draw.Tile(ID, x, y[, flipX, flipY, scaleX, scaleY, rotation, paletteID])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a tile.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -3375,6 +3379,8 @@
         <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
         <li>scaleX (Number): Horizontal scale multiplier of the tile.</li>
         <li>scaleY (Number): Vertical scale multiplier of the tile.</li>
+        <li>rotation (Number): Rotation of the drawn tile in radians.</li>
+        <li>paletteID (Integer): Which palette index to use.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_Texture">
