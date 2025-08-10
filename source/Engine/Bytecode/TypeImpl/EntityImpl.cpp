@@ -267,7 +267,7 @@ VMValue EntityImpl::VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 thr
 		// If the scene is loading, NeedEntitySort is set to true,
 		// so that the entities are sorted always and Scene::AddToScene
 		// doesn't have to insert the entities in a sorted manner.
-		if (Scene::Initializing || self->PostCreated) {
+		if (Scene::Initializing || self->Created) {
 			Scene::NeedEntitySort = true;
 		}
 	}

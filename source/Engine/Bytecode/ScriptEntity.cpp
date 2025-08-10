@@ -1103,7 +1103,6 @@ void ScriptEntity::Dispose() {
 		Instance = NULL;
 	}
 }
-
 bool ScriptEntity::IsValid() {
 	return Active && !Removed;
 }
