@@ -253,7 +253,7 @@ VMValue EntityImpl::VM_GetUpdatePriority(int argCount, VMValue* args, Uint32 thr
 /***
  * \method SetUpdatePriority
  * \desc Sets the update priority of the entity.
- * \param priority (Integer): The update priority.
+ * \param priority (Integer): The priority value. Lower numbers cause entities to be updated earlier, and higher numbers cause entities to be updated later.
  * \ns Entity
  */
 VMValue EntityImpl::VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 threadID) {
