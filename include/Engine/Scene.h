@@ -50,6 +50,9 @@ private:
 	static void ClearTileCollisions(TileConfig* cfg, size_t numTiles);
 	static void SetTileCount(size_t tileCount);
 	static bool GetTextureListSpace(size_t* out);
+	static void SetupViewMatrices(View* currentView);
+	static void SetupView2D(View* currentView);
+	static void SetupView3D(View* currentView);
 
 public:
 	static int ShowTileCollisionFlag;
@@ -165,7 +168,9 @@ public:
 	static void RenderView(int viewIndex, bool doPerf);
 	static void Render();
 	static void AfterScene();
+	static void Initialize();
 	static void Restart();
+	static void FinishLoad();
 	static void Unload();
 	static void Prepare();
 	static void LoadScene(const char* filename);

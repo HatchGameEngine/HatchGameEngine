@@ -1,15 +1,13 @@
 #include <Engine/Scene.h>
 
 #include <Engine/Audio/AudioManager.h>
-#include <Engine/Bytecode/Compiler.h>
-#include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
+#include <Engine/Error.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/FontFace.h>
 #include <Engine/Hashing/CRC32.h>
@@ -277,7 +275,10 @@ void UpdateObject(Entity* ent) {
 	case ACTIVE_BOUNDS:
 		ent->InRange = false;
 
-		for (int i = 0; i < Scene::ViewsActive; i++) {
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
+			}
 			if (onScreenX && onScreenY) {
 				break;
 			}
@@ -300,7 +301,10 @@ void UpdateObject(Entity* ent) {
 	case ACTIVE_XBOUNDS:
 		ent->InRange = false;
 
-		for (int i = 0; i < Scene::ViewsActive; i++) {
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
+			}
 			if (onScreenX) {
 				break;
 			}
@@ -317,7 +321,10 @@ void UpdateObject(Entity* ent) {
 	case ACTIVE_YBOUNDS:
 		ent->InRange = false;
 
-		for (int i = 0; i < Scene::ViewsActive; i++) {
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
+			}
 			if (onScreenY) {
 				break;
 			}
@@ -335,7 +342,10 @@ void UpdateObject(Entity* ent) {
 		ent->InRange = false;
 
 		// TODO: Double check this works properly
-		for (int v = 0; v < Scene::ViewsActive; v++) {
+		for (int v = 0; v < MAX_SCENE_VIEWS; v++) {
+			if (!Scene::Views[v].Active) {
+				continue;
+			}
 			float sx = abs(ent->X - Scene::Views[v].X);
 			float sy = abs(ent->Y - Scene::Views[v].Y);
 
@@ -681,22 +691,6 @@ void Scene::Init() {
 
 	Scene::ReservedSlotIDs = 0;
 
-	GarbageCollector::Init();
-
-	Compiler::Init();
-
-	ScriptManager::Init();
-	ScriptManager::ResetStack();
-	ScriptManager::LinkStandardLibrary();
-	ScriptManager::LinkExtensions();
-
-	Compiler::GetStandardConstants();
-
-	if (SourceFileMap::CheckForUpdate()) {
-		// Force garbage collect
-		ScriptManager::ForceGarbageCollection();
-	}
-
 	Application::Settings->GetBool("dev", "notiles", &DEV_NoTiles);
 	Application::Settings->GetBool("dev", "noobjectrender", &DEV_NoObjectRender);
 	Application::Settings->GetInteger("dev", "viewCollision", &ShowTileCollisionFlag);
@@ -721,7 +715,8 @@ void Scene::Init() {
 			Scene::Views[i].Height);
 		Scene::Views[i].UseDrawTarget = true;
 		Scene::Views[i].ProjectionMatrix = Matrix4x4::Create();
-		Scene::Views[i].BaseProjectionMatrix = Matrix4x4::Create();
+		Scene::Views[i].ViewMatrix = Matrix4x4::Create();
+		Scene::Views[i].CurrentShader = nullptr;
 	}
 	Scene::Views[0].Active = true;
 	Scene::ViewsActive = 1;
@@ -945,6 +940,12 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		PERF_END(RenderSetupTime);
 		return;
 	}
+
+	// If a shader is active before rendering the view, for some reason.
+	if (Graphics::CurrentShader != nullptr) {
+		Graphics::SetUserShader(nullptr);
+	}
+
 	Scene::SetView(viewIndex);
 	PERF_END(RenderSetupTime);
 
@@ -960,67 +961,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	// Adjust projection
 	PERF_START(ProjectionSetupTime);
-	if (currentView->UsePerspective) {
-		Graphics::UpdatePerspective(currentView->FOV,
-			currentView->Width / currentView->Height,
-			currentView->NearPlane,
-			currentView->FarPlane);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateX,
-			1.0,
-			0.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateY,
-			0.0,
-			1.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateZ,
-			0.0,
-			0.0,
-			1.0);
-		Matrix4x4::Translate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			-currentView->X,
-			-currentView->Y,
-			-currentView->Z);
-		Matrix4x4::Copy(currentView->BaseProjectionMatrix, currentView->ProjectionMatrix);
-	}
-	else {
-		Graphics::UpdateOrtho(currentView->Width, currentView->Height);
-		if (!currentView->UseDrawTarget) {
-			Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
-		}
-
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateX,
-			1.0,
-			0.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateY,
-			0.0,
-			1.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateZ,
-			0.0,
-			0.0,
-			1.0);
-		Matrix4x4::Translate(currentView->ProjectionMatrix,
-			currentView->BaseProjectionMatrix,
-			-cx,
-			-cy,
-			-cz);
-	}
-	Graphics::UpdateProjectionMatrix();
+	SetupViewMatrices(currentView);
 	PERF_END(ProjectionSetupTime);
 
 	// RenderEarly
@@ -1160,7 +1101,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 				elapsed = Clock::GetTicks();
 
-				ent->Render(_vx, _vy);
+				ent->Render();
 
 				elapsed = Clock::GetTicks() - elapsed;
 
@@ -1197,9 +1138,6 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			if (layer->Visible) {
 				PERF_START(LayerTileRenderTime[li]);
 
-				Graphics::Save();
-				Graphics::Translate(cx, cy, cz);
-
 				Graphics::TextureBlend = layer->Blending;
 				if (Graphics::TextureBlend) {
 					Graphics::SetBlendColor(1.0, 1.0, 1.0, layer->Opacity);
@@ -1211,8 +1149,6 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 				Graphics::DrawSceneLayer(layer, currentView, (int)li, true);
 				Graphics::ClearClip();
-
-				Graphics::Restore();
 
 				PERF_END(LayerTileRenderTime[li]);
 			}
@@ -1247,6 +1183,106 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		Graphics::SoftwareEnd();
 	}
 	PERF_END(RenderFinishTime);
+
+	// If a shader is still active after rendering the view, for some reason.
+	if (Graphics::CurrentShader != nullptr) {
+		Graphics::SetUserShader(nullptr);
+	}
+}
+
+void Scene::SetupViewMatrices(View* currentView) {
+	Matrix4x4::Identity(currentView->ViewMatrix);
+
+	if (currentView->UsePerspective) {
+		Scene::SetupView3D(currentView);
+	}
+	else {
+		Scene::SetupView2D(currentView);
+	}
+
+	Matrix4x4::Copy(Graphics::ViewMatrix, currentView->ViewMatrix);
+
+	Graphics::UpdateProjectionMatrix();
+}
+
+void Scene::SetupView2D(View* currentView) {
+	Graphics::UpdateOrtho(currentView->Width, currentView->Height);
+	if (!currentView->UseDrawTarget) {
+		Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
+	}
+
+	// Rotate
+	if (currentView->RotateX || currentView->RotateY || currentView->RotateZ) {
+		Matrix4x4::Translate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->Width / 2.0,
+			currentView->Height / 2.0,
+			0.0);
+		Matrix4x4::Rotate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->RotateX,
+			1.0,
+			0.0,
+			0.0);
+		Matrix4x4::Rotate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->RotateY,
+			0.0,
+			1.0,
+			0.0);
+		Matrix4x4::Rotate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->RotateZ,
+			0.0,
+			0.0,
+			1.0);
+		Matrix4x4::Translate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			-currentView->Width / 2.0,
+			-currentView->Height / 2.0,
+			0.0);
+	}
+
+	// Translate
+	float cx = std::floor(currentView->X);
+	float cy = std::floor(currentView->Y);
+	float cz = std::floor(currentView->Z);
+
+	Matrix4x4::Translate(currentView->ViewMatrix, currentView->ViewMatrix, -cx, -cy, -cz);
+}
+
+void Scene::SetupView3D(View* currentView) {
+	Graphics::UpdatePerspective(currentView->FOV,
+		currentView->Width / currentView->Height,
+		currentView->NearPlane,
+		currentView->FarPlane);
+
+	// Rotate
+	Matrix4x4::Rotate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		currentView->RotateX,
+		1.0,
+		0.0,
+		0.0);
+	Matrix4x4::Rotate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		currentView->RotateY,
+		0.0,
+		1.0,
+		0.0);
+	Matrix4x4::Rotate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		currentView->RotateZ,
+		0.0,
+		0.0,
+		1.0);
+
+	// Translate
+	Matrix4x4::Translate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		-currentView->X,
+		-currentView->Y,
+		-currentView->Z);
 }
 
 void Scene::Render() {
@@ -1259,6 +1295,11 @@ void Scene::Render() {
 	if (Graphics::PaletteUpdated) {
 		Graphics::UpdateGlobalPalette();
 		Graphics::PaletteUpdated = false;
+	}
+
+	if (Graphics::PaletteIndexLinesUpdated) {
+		Graphics::UpdatePaletteIndexTable();
+		Graphics::PaletteIndexLinesUpdated = false;
 	}
 
 	int win_w, win_h, ren_w, ren_h;
@@ -1282,6 +1323,7 @@ void Scene::Render() {
 		if (currentView->UseDrawTarget && currentView->DrawTarget) {
 			Graphics::SetRenderTarget(NULL);
 			if (currentView->Visible) {
+				Matrix4x4::Identity(Graphics::ViewMatrix);
 				Graphics::UpdateOrthoFlipped(win_w, win_h);
 				Graphics::UpdateProjectionMatrix();
 				Graphics::SetDepthTesting(false);
@@ -1348,8 +1390,11 @@ void Scene::Render() {
 					break;
 				}
 
+				Shader* shader = Scene::Views[i].CurrentShader;
+
 				Graphics::TextureBlend = false;
 				Graphics::SetBlendMode(BlendMode_NORMAL);
+				Graphics::SetUserShader(shader);
 				Graphics::DrawTexture(currentView->DrawTarget,
 					0.0,
 					0.0,
@@ -1359,6 +1404,9 @@ void Scene::Render() {
 					out_y + Graphics::PixelOffset,
 					out_w,
 					out_h + Graphics::PixelOffset);
+				if (Graphics::CurrentShader != nullptr) {
+					Graphics::SetUserShader(nullptr);
+				}
 				Graphics::SetDepthTesting(Graphics::UseDepthTesting);
 			}
 		}
@@ -1366,6 +1414,8 @@ void Scene::Render() {
 		viewPerf->RenderFinishTime += renderFinishTime;
 		PERF_END(RenderTime);
 	}
+
+	Matrix4x4::Identity(Graphics::ViewMatrix);
 
 	Graphics::CurrentView = NULL;
 
@@ -1499,7 +1549,7 @@ int Scene::GetPersistenceScopeForObjectDeletion() {
 	return Scene::NoPersistency ? Persistence_SCENE : Persistence_NONE;
 }
 
-void Scene::Restart() {
+void Scene::Initialize() {
 	Scene::ViewCurrent = 0;
 	Graphics::CurrentView = NULL;
 
@@ -1523,6 +1573,10 @@ void Scene::Restart() {
 
 	Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
 	Scene::TileViewRenderFlag = 0xFFFFFFFF;
+}
+
+void Scene::Restart() {
+	Initialize();
 
 	Graphics::UnloadSceneData();
 
@@ -1638,6 +1692,9 @@ void Scene::Restart() {
 		}
 	});
 
+	FinishLoad();
+}
+void Scene::FinishLoad() {
 	// Run "OnSceneLoad" or "OnSceneRestart" on all objects
 	Scene::IterateAll(Scene::ObjectFirst, [](Entity* ent) -> void {
 		if (Scene::Loaded) {
@@ -1779,8 +1836,10 @@ void Scene::Unload() {
 void Scene::Prepare() {
 	Scene::TileWidth = Scene::TileHeight = 16;
 	Scene::EmptyTile = 0;
+	Scene::PriorityPerLayer = 0;
 
 	Scene::InitObjectListsAndRegistries();
+	Scene::InitPriorityLists();
 
 	memset(Scene::CurrentScene, '\0', sizeof Scene::CurrentScene);
 }
@@ -1907,7 +1966,7 @@ void Scene::ProcessSceneTimer() {
 
 ObjectList* Scene::NewObjectList(const char* objectName) {
 	ObjectList* objectList = new (std::nothrow) ObjectList(objectName);
-	if (objectList && ScriptManager::LoadObjectClass(objectName, true)) {
+	if (objectList && ScriptManager::LoadObjectClass(objectName)) {
 		objectList->SpawnFunction = ScriptManager::ObjectSpawnFunction;
 	}
 	return objectList;
@@ -2031,8 +2090,7 @@ void Scene::InitPriorityLists() {
 		Scene::PriorityLists = (DrawGroupList*)Memory::TrackedCalloc(
 			"Scene::PriorityLists", Scene::PriorityPerLayer, sizeof(DrawGroupList));
 		if (!Scene::PriorityLists) {
-			Log::Print(Log::LOG_ERROR, "Out of memory for priority lists!");
-			exit(-1);
+			Error::Fatal("Out of memory in Scene::InitPriorityLists!");
 		}
 	}
 
@@ -3106,6 +3164,8 @@ void Scene::DisposeInScope(Uint32 scope) {
 	}
 }
 void Scene::Dispose() {
+	Graphics::UnloadData();
+
 	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
 		if (Scene::Views[i].DrawTarget) {
 			Graphics::DisposeTexture(Scene::Views[i].DrawTarget);
@@ -3117,9 +3177,9 @@ void Scene::Dispose() {
 			Scene::Views[i].ProjectionMatrix = NULL;
 		}
 
-		if (Scene::Views[i].BaseProjectionMatrix) {
-			delete Scene::Views[i].BaseProjectionMatrix;
-			Scene::Views[i].BaseProjectionMatrix = NULL;
+		if (Scene::Views[i].ViewMatrix) {
+			delete Scene::Views[i].ViewMatrix;
+			Scene::Views[i].ViewMatrix = NULL;
 		}
 
 		if (Scene::Views[i].UseStencil) {
@@ -3197,10 +3257,6 @@ void Scene::Dispose() {
 		delete Scene::Properties;
 	}
 	Scene::Properties = NULL;
-
-	ScriptManager::Dispose();
-	SourceFileMap::Dispose();
-	Compiler::Dispose();
 }
 
 void Scene::UnloadTilesets() {

@@ -543,8 +543,7 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 	Token name = layer->attributes.Get("name");
 
 	SceneLayer scenelayer(layer_width, layer_height);
-	strncpy(scenelayer.Name, name.Start, name.Length);
-	scenelayer.Name[name.Length] = 0;
+	scenelayer.Name = StringUtils::Duplicate(name.Start, name.Length);
 
 	scenelayer.RelativeY = 0x100;
 	scenelayer.ConstantY = 0x00;

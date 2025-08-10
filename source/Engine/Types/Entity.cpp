@@ -493,7 +493,7 @@ void Entity::GameStart() {}
 
 void Entity::RenderEarly() {}
 
-void Entity::Render(int CamX, int CamY) {}
+void Entity::Render() {}
 
 void Entity::RenderLate() {}
 

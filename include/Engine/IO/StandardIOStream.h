@@ -9,12 +9,13 @@ private:
 	std::string Filename;
 	Uint32 CurrentAccess;
 
+	FILE* FilePtr;
+	size_t Filesize;
+
 	static FILE* OpenFile(const char* filename, Uint32 access);
 	bool Reopen(Uint32 newAccess);
 
 public:
-	FILE* f;
-	size_t size;
 	enum { READ_ACCESS, WRITE_ACCESS, APPEND_ACCESS };
 
 	static StandardIOStream* New(const char* filename, Uint32 access);

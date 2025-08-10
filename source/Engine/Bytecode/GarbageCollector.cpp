@@ -110,7 +110,7 @@ void GarbageCollector::Collect() {
 			Obj* unreached = *object;
 			*object = unreached->Next;
 
-			GarbageCollector::FreeValue(OBJECT_VAL(unreached));
+			GarbageCollector::FreeObject(unreached);
 		}
 		else {
 			// This object was reached, so unmark it (for
@@ -127,7 +127,7 @@ void GarbageCollector::Collect() {
 	Log::Print(Log::LOG_VERBOSE, "Sweep: Freeing took %.1f ms", freeElapsed);
 
 	for (size_t i = 0; i < MAX_OBJ_TYPE; i++) {
-		if (objectTypeCounts[i]) {
+		if (objectTypeFreed[i] && objectTypeCounts[i]) {
 			Log::Print(Log::LOG_VERBOSE,
 				"Freed %d %s objects out of %d.",
 				objectTypeFreed[i],
@@ -141,44 +141,19 @@ void GarbageCollector::Collect() {
 
 void GarbageCollector::CollectResources() {
 	// Mark model materials
-	for (size_t i = 0; i < Scene::ModelList.size(); i++) {
-		if (!Scene::ModelList[i]) {
-			continue;
-		}
-
-		IModel* model = Scene::ModelList[i]->AsModel;
-		if (!model) {
-			continue;
-		}
-
-		for (size_t ii = 0; ii < model->Materials.size(); ii++) {
-			GrayObject(model->Materials[ii]->Object);
-		}
+	for (size_t i = 0; i < Material::List.size(); i++) {
+		GrayObject(Material::List[i]->Object);
 	}
 }
 
-void GarbageCollector::FreeValue(VMValue value) {
-	if (!IS_OBJECT(value)) {
-		return;
-	}
-
-	// If this object is an instance associated with an entity,
-	// then delete the latter
-	if (OBJECT_TYPE(value) == OBJ_INSTANCE) {
-		ObjInstance* instance = AS_INSTANCE(value);
-		if (instance->EntityPtr) {
-			Scene::DeleteRemoved((Entity*)instance->EntityPtr);
-		}
-	}
-
-	ScriptManager::FreeValue(value);
+void GarbageCollector::FreeObject(Obj* object) {
+	ScriptManager::DestroyObject(object);
 }
 
 void GarbageCollector::GrayValue(VMValue value) {
-	if (!IS_OBJECT(value)) {
-		return;
+	if (IS_OBJECT(value)) {
+		GrayObject(AS_OBJECT(value));
 	}
-	GrayObject(AS_OBJECT(value));
 }
 void GarbageCollector::GrayObject(void* obj) {
 	if (obj == NULL) {
@@ -236,7 +211,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	case OBJ_FUNCTION: {
 		ObjFunction* function = (ObjFunction*)object;
 		GrayObject(function->Name);
-		GrayObject(function->ClassName);
+		GrayObject(function->Class);
 		for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
 			GrayValue((*function->Chunk.Constants)[i]);
 		}
@@ -253,7 +228,8 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		}
 		break;
 	}
-	case OBJ_INSTANCE: {
+	case OBJ_INSTANCE:
+	case OBJ_ENTITY: {
 		ObjInstance* instance = (ObjInstance*)object;
 		GrayHashMap(instance->Fields);
 		break;
@@ -276,4 +252,8 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		// No references
 		break;
 	}
+}
+
+void GarbageCollector::Dispose() {
+	Init();
 }
