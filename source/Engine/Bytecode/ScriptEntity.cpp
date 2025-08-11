@@ -15,6 +15,10 @@ bool SavedHashes = false;
 ENTITY_FIELDS_LIST
 #undef ENTITY_FIELD
 
+Uint32 CurrentFixedUpdateEarly = 0;
+Uint32 CurrentFixedUpdate = 0;
+Uint32 CurrentFixedUpdateLate = 0;
+
 void ScriptEntity::Link(ObjEntity* entity) {
 	Instance = entity;
 	Instance->EntityPtr = this;
@@ -24,6 +28,10 @@ void ScriptEntity::Link(ObjEntity* entity) {
 #define ENTITY_FIELD(name) Hash_##name = Murmur::EncryptString(#name);
 		ENTITY_FIELDS_LIST
 #undef ENTITY_FIELD
+
+		CurrentFixedUpdateEarly = Hash_UpdateEarly;
+		CurrentFixedUpdate = Hash_Update;
+		CurrentFixedUpdateLate = Hash_UpdateLate;
 
 		SavedHashes = true;
 	}
@@ -718,6 +726,19 @@ void ScriptEntity::AddEntityClassMethods() {
 	});
 }
 
+void ScriptEntity::SetUseFixedTimestep(bool useFixedTimestep) {
+	if (useFixedTimestep) {
+		CurrentFixedUpdateEarly = Hash_UpdateEarly;
+		CurrentFixedUpdate = Hash_Update;
+		CurrentFixedUpdateLate = Hash_UpdateLate;
+	}
+	else {
+		CurrentFixedUpdateEarly = Hash_FixedUpdateEarly;
+		CurrentFixedUpdate = Hash_FixedUpdate;
+		CurrentFixedUpdateLate = Hash_FixedUpdateLate;
+	}
+}
+
 bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value) {
 	VMValue result;
 
@@ -996,6 +1017,27 @@ void ScriptEntity::UpdateLate() {
 	}
 
 	RunFunction(Hash_UpdateLate);
+}
+void ScriptEntity::FixedUpdateEarly() {
+	if (!Active) {
+		return;
+	}
+
+	RunFunction(CurrentFixedUpdateEarly);
+}
+void ScriptEntity::FixedUpdate() {
+	if (!Active) {
+		return;
+	}
+
+	RunFunction(CurrentFixedUpdate);
+}
+void ScriptEntity::FixedUpdateLate() {
+	if (!Active) {
+		return;
+	}
+
+	RunFunction(CurrentFixedUpdateLate);
 
 	if (AutoAnimate) {
 		Animate();

@@ -504,6 +504,10 @@ void Entity::UpdateEarly() {}
 void Entity::Update() {}
 void Entity::UpdateLate() {}
 
+void Entity::FixedUpdateEarly() {}
+void Entity::FixedUpdate() {}
+void Entity::FixedUpdateLate() {}
+
 void Entity::OnAnimationFinish() {}
 
 void Entity::OnSceneLoad() {}

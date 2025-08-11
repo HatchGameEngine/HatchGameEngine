@@ -53,6 +53,7 @@ private:
 	static void RunFrame(int runFrames);
 	static void RunFrameCallback(void* p);
 	static void DelayFrame();
+	static void SetUseFixedTimestep(bool useFixedTimestep);
 	static void StartGame(const char* startingScene);
 	static void LoadGameConfig();
 	static void DisposeGameConfig();
@@ -83,6 +84,11 @@ public:
 	static char GameVersion[256];
 	static char GameDescription[256];
 	static char GameDeveloper[256];
+	static bool UseFixedTimestep;
+	static bool ShouldUseFixedTimestep;
+	static float DeltaTime;
+	static float ActualDeltaTime;
+	static float FixedUpdateCounter;
 	static int UpdatesPerFrame;
 	static int FrameSkip;
 	static bool Stepper;

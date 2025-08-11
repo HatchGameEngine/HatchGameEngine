@@ -175,6 +175,7 @@
                     <li><a href="#Reference_globals_LowPassFilter">LowPassFilter</a></li>
                     <li><a href="#Reference_globals_CurrentView">CurrentView</a></li>
                     <li><a href="#Reference_globals_Scene_Frame">Scene_Frame</a></li>
+                    <li><a href="#Reference_globals_DeltaTime">DeltaTime</a></li>
                     <li><a href="#Reference_globals_Scene_TimeEnabled">Scene_TimeEnabled</a></li>
                     <li><a href="#Reference_globals_Scene_TimeCounter">Scene_TimeCounter</a></li>
                     <li><a href="#Reference_globals_Scene_Minutes">Scene_Minutes</a></li>
@@ -237,6 +238,7 @@
                     <li><a href="#Reference_functions_Application_GetEngineVersionCodename">Application.GetEngineVersionCodename</a></li>
                     <li><a href="#Reference_functions_Application_GetTargetFrameRate">Application.GetTargetFrameRate</a></li>
                     <li><a href="#Reference_functions_Application_SetTargetFrameRate">Application.SetTargetFrameRate</a></li>
+                    <li><a href="#Reference_functions_Application_UseFixedTimestep">Application.UseFixedTimestep</a></li>
                     <li><a href="#Reference_functions_Application_GetFPS">Application.GetFPS</a></li>
                     <li><a href="#Reference_functions_Application_GetKeyBind">Application.GetKeyBind</a></li>
                     <li><a href="#Reference_functions_Application_SetKeyBind">Application.SetKeyBind</a></li>
@@ -2348,17 +2350,26 @@
         <p id="Reference_functions_Application_GetTargetFrameRate">
         <h2 style="margin-bottom: 8px;">Application.GetTargetFrameRate</h2>
         <code>Application.GetTargetFrameRate()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the target frame rate.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the target frame rate of the fixed timestep.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Application_SetTargetFrameRate">
         <h2 style="margin-bottom: 8px;">Application.SetTargetFrameRate</h2>
         <code>Application.SetTargetFrameRate(framerate)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the target frame rate.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the target frame rate of the fixed timestep.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>framerate (Integer): The target frame rate.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Application_UseFixedTimestep">
+        <h2 style="margin-bottom: 8px;">Application.UseFixedTimestep</h2>
+        <code>Application.UseFixedTimestep(useFixedTimestep)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables fixed timestep. This is enabled by default.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>useFixedTimestep (Boolean): Whether or not to use fixed timestep.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_GetFPS">
@@ -10249,7 +10260,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>747 out of 804 functions have descriptions. </p>
+        <p>748 out of 805 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -12607,6 +12618,10 @@
         <h3 style="margin-bottom: 8px;"><code>Scene_Frame</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The current scene frame.</div>
         </p>
+        <p id="Reference_globals_DeltaTime">
+        <h3 style="margin-bottom: 8px;"><code>DeltaTime</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The delta time.</div>
+        </p>
         <p id="Reference_globals_Scene_TimeEnabled">
         <h3 style="margin-bottom: 8px;"><code>Scene_TimeEnabled</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Whether the scene timer is enabled or not.</div>
@@ -12639,7 +12654,7 @@
         <h3 style="margin-bottom: 8px;"><code>Scene_DebugMode</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Whether nor not Debug Mode has been turned on in the current scene</div>
         </p>
-        <p>13 out of 13 globals have descriptions. </p>
+        <p>14 out of 14 globals have descriptions. </p>
         <hr/>
     </body>
 </html>
