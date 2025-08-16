@@ -51,8 +51,8 @@ public:
 	static Uint32 GetWindowFlags();
 	static void SetGraphicsFunctions();
 	static void Dispose();
-	static void RenderStart();
-	static void RenderEnd();
+	static void RenderStart(int viewIndex);
+	static void RenderEnd(int viewIndex);
 	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
@@ -149,7 +149,6 @@ public:
 		int* multSubTableAt);
 	static void SetTintFunction(int blendFlags);
 	static void SetStencilEnabled(bool enabled);
-	static bool IsStencilEnabled();
 	static void SetStencilTestFunc(int stencilTest);
 	static void SetStencilPassFunc(int stencilOp);
 	static void SetStencilFailFunc(int stencilOp);

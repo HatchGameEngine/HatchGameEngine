@@ -895,7 +895,7 @@ void Scene::SetView(int viewIndex) {
 		Graphics::SetRenderTarget(currentView->DrawTarget);
 
 		if (currentView->Software) {
-			Graphics::SoftwareStart();
+			Graphics::SoftwareStart(viewIndex);
 		}
 		else {
 			Graphics::Clear();
@@ -1184,7 +1184,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	PERF_START(RenderFinishTime);
 	if (useDrawTarget && currentView->Software) {
-		Graphics::SoftwareEnd();
+		Graphics::SoftwareEnd(viewIndex);
 	}
 	PERF_END(RenderFinishTime);
 

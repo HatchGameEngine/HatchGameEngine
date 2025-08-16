@@ -86,6 +86,13 @@ public:
 	static void SetTintMode(int mode);
 	static void SetTintEnabled(bool enabled);
 	static void SetLineWidth(float n);
+	static void SetStencilEnabled(bool enabled);
+	static void SetStencilTestFunc(int stencilTest);
+	static void SetStencilPassFunc(int stencilOp);
+	static void SetStencilFailFunc(int stencilOp);
+	static void SetStencilValue(int value);
+	static void SetStencilMask(int mask);
+	static void ClearStencil();
 	static void StrokeLine(float x1, float y1, float x2, float y2);
 	static void StrokeCircle(float x, float y, float rad, float thickness);
 	static void StrokeEllipse(float x, float y, float w, float h);

@@ -143,7 +143,6 @@ struct GraphicsFunctions {
 	void (*DeleteFrameBufferID)(ISprite* sprite);
 
 	void (*SetStencilEnabled)(bool enabled);
-	bool (*IsStencilEnabled)();
 	void (*SetStencilTestFunc)(int stencilTest);
 	void (*SetStencilPassFunc)(int stencilOp);
 	void (*SetStencilFailFunc)(int stencilOp);

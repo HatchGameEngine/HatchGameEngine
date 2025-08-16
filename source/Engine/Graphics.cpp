@@ -60,6 +60,7 @@ float Graphics::TintColors[4];
 int Graphics::BlendMode = BlendMode_NORMAL;
 int Graphics::TintMode = TintMode_SRC_NORMAL;
 
+bool Graphics::StencilEnabled = false;
 int Graphics::StencilTest = StencilTest_Always;
 int Graphics::StencilOpPass = StencilOp_Keep;
 int Graphics::StencilOpFail = StencilOp_Keep;
@@ -246,6 +247,7 @@ void Graphics::Reset() {
 	memset(Graphics::PaletteIndexLines, 0, sizeof(Graphics::PaletteIndexLines));
 	Graphics::PaletteUpdated = Graphics::PaletteIndexLinesUpdated = true;
 
+	Graphics::StencilEnabled = false;
 	Graphics::StencilTest = StencilTest_Always;
 	Graphics::StencilOpPass = StencilOp_Keep;
 	Graphics::StencilOpFail = StencilOp_Keep;
@@ -609,12 +611,12 @@ void Graphics::Present() {
 	Graphics::CurrentFrame++;
 }
 
-void Graphics::SoftwareStart() {
+void Graphics::SoftwareStart(int viewIndex) {
 	Graphics::GfxFunctions = &SoftwareRenderer::BackendFunctions;
-	SoftwareRenderer::RenderStart();
+	SoftwareRenderer::RenderStart(viewIndex);
 }
-void Graphics::SoftwareEnd() {
-	SoftwareRenderer::RenderEnd();
+void Graphics::SoftwareEnd(int viewIndex) {
+	SoftwareRenderer::RenderEnd(viewIndex);
 	Graphics::GfxFunctions = &Graphics::Internal;
 	Graphics::UpdateTexture(Graphics::CurrentRenderTarget,
 		NULL,
@@ -2035,16 +2037,11 @@ void Graphics::ConvertFromNativeToARGB(Uint32* argb, int count) {
 }
 
 void Graphics::SetStencilEnabled(bool enabled) {
+	Graphics::StencilEnabled = enabled;
+
 	if (Graphics::GfxFunctions->SetStencilEnabled) {
 		Graphics::GfxFunctions->SetStencilEnabled(enabled);
 	}
-}
-bool Graphics::GetStencilEnabled() {
-	if (Graphics::GfxFunctions->IsStencilEnabled) {
-		return Graphics::GfxFunctions->IsStencilEnabled();
-	}
-
-	return false;
 }
 void Graphics::SetStencilTestFunc(int stencilTest) {
 	if (stencilTest >= StencilTest_Never && stencilTest <= StencilTest_GEqual) {
