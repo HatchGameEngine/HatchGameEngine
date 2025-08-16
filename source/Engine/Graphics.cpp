@@ -1100,7 +1100,7 @@ void Graphics::SetBlendMode(int blendMode) {
 	case BlendMode_NORMAL:
 		Graphics::SetBlendMode(BlendFactor_SRC_ALPHA,
 			BlendFactor_INV_SRC_ALPHA,
-			BlendFactor_SRC_ALPHA,
+			BlendFactor_ONE,
 			BlendFactor_INV_SRC_ALPHA);
 		break;
 	case BlendMode_ADD:

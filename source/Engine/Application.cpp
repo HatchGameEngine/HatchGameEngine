@@ -1458,7 +1458,7 @@ DO_NOTHING:
 
 		Graphics::SetBlendMode(BlendFactor_SRC_ALPHA,
 			BlendFactor_INV_SRC_ALPHA,
-			BlendFactor_SRC_ALPHA,
+			BlendFactor_ONE,
 			BlendFactor_INV_SRC_ALPHA);
 
 		float infoW = 400.0;
