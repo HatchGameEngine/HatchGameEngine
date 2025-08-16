@@ -126,6 +126,9 @@ public:
 	virtual void UpdateEarly();
 	virtual void Update();
 	virtual void UpdateLate();
+	virtual void FixedUpdateEarly();
+	virtual void FixedUpdate();
+	virtual void FixedUpdateLate();
 	virtual void OnAnimationFinish();
 	virtual void OnSceneLoad();
 	virtual void OnSceneRestart();

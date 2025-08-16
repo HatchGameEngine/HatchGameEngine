@@ -29,6 +29,7 @@ class Scene {
 private:
 	static void RemoveObject(Entity* obj);
 	static void RunTileAnimations();
+	static void SortEntities();
 	static void ResetViews();
 	static void Iterate(Entity* first, std::function<void(Entity* e)> func);
 	static void IterateAll(Entity* first, std::function<void(Entity* e)> func);
@@ -156,8 +157,9 @@ public:
 	static void Init();
 	static void InitObjectListsAndRegistries();
 	static void ResetPerf();
+	static void FrameUpdate();
 	static void Update();
-	static void SortEntities();
+	static void FixedUpdate();
 	static Tileset* GetTileset(int tileID);
 	static TileAnimator* GetTileAnimator(int tileID);
 	static void SetViewActive(int viewIndex, bool active);
