@@ -503,7 +503,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 			if (!obj->Filter)
 				obj->Filter = 0xFF;
 
-			if (!(obj->Filter & Scene::Filter))
+			if (!(obj->Filter & Scene::Filter)) {
 				doAdd = false;
 			}
 

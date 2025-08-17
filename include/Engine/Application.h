@@ -43,7 +43,7 @@ private:
 	static void CreateWindow();
 	static void EndGame();
 	static void UnloadGame();
-	static void Restart();
+	static void Restart(bool keepScene);
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();

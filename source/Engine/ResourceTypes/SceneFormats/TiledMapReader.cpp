@@ -614,7 +614,7 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 		if (!filter)
 			filter = 0xFF;
 
-		if (!(filter & Scene::Filter))
+		if (!(filter & Scene::Filter)) {
 			continue;
 		}
 

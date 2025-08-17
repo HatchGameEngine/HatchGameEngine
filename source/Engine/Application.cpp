@@ -849,7 +849,7 @@ void Application::UnloadGame() {
 	InputManager::ClearInputs();
 }
 
-void Application::Restart(keepScene) {
+void Application::Restart(bool keepScene) {
 	Application::EndGame();
 
 	Graphics::Reset();
@@ -1100,7 +1100,7 @@ void Application::LoadKeyBinds() {
 
 void Application::LoadDevSettings() {
 #ifdef DEVELOPER_MODE
-	Application::Settings->GetBool("dev", "devMenu", &DevMenu);
+	Application::Settings->GetBool("dev", "devMenu", &DevMode);
 	Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
 	Application::Settings->GetBool("dev", "donothing", &DoNothing);
 	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
@@ -2407,20 +2407,20 @@ void Application::AddViewableVariable(const char* name, void* value, int type, i
 			break;
 
 		case VIEWVAR_UINT8:
-		case VIEWVAR_INT8:
-			viewVar->Type = (type == VIEWVAR_INT8) ? VIEWVAR_DISPLAY_SIGNED : VIEWVAR_DISPLAY_UNSIGNED;
+		case VIEWVAR_SINT8:
+			viewVar->Type = (type == VIEWVAR_SINT8) ? VIEWVAR_DISPLAY_SIGNED : VIEWVAR_DISPLAY_UNSIGNED;
 			viewVar->Size = sizeof(Uint8);
 			break;
 
 		case VIEWVAR_UINT16:
-		case VIEWVAR_INT16:
-			viewVar->Type = (type == VIEWVAR_INT16) ? VIEWVAR_DISPLAY_SIGNED : VIEWVAR_DISPLAY_UNSIGNED;
+		case VIEWVAR_SINT16:
+			viewVar->Type = (type == VIEWVAR_SINT16) ? VIEWVAR_DISPLAY_SIGNED : VIEWVAR_DISPLAY_UNSIGNED;
 			viewVar->Size = sizeof(Uint16);
 			break;
 
 		case VIEWVAR_UINT32:
-		case VIEWVAR_INT32:
-			viewVar->Type = (type == VIEWVAR_INT32) ? VIEWVAR_DISPLAY_SIGNED : VIEWVAR_DISPLAY_UNSIGNED;
+		case VIEWVAR_SINT32:
+			viewVar->Type = (type == VIEWVAR_SINT32) ? VIEWVAR_DISPLAY_SIGNED : VIEWVAR_DISPLAY_UNSIGNED;
 			viewVar->Size = sizeof(Uint32);
 			break;
 	}
