@@ -37,6 +37,7 @@ SceneLayer::SceneLayer(int w, int h) {
 	TilesBackup =
 		(Uint32*)Memory::TrackedCalloc("SceneLayer::TilesBackup", w * h, sizeof(Uint32));
 	ScrollIndexes = (Uint8*)Memory::Calloc(ScrollIndexCount * 16, sizeof(Uint8));
+	UsingScrollIndexes = false;
 }
 bool SceneLayer::PropertyExists(char* property) {
 	return Properties && Properties->Exists(property);
@@ -48,14 +49,14 @@ VMValue SceneLayer::PropertyGet(char* property) {
 	return Properties->Get(property);
 }
 void SceneLayer::Dispose() {
+	if (Name) {
+		Memory::Free(Name);
+	}
 	if (Properties) {
 		delete Properties;
 	}
 	if (ScrollInfos) {
 		Memory::Free(ScrollInfos);
-	}
-	if (ScrollInfosSplitIndexes) {
-		Memory::Free(ScrollInfosSplitIndexes);
 	}
 
 	Memory::Free(Tiles);

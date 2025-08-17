@@ -284,8 +284,9 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
 	// Filter
 	if (node->attributes.Exists("filter")) {
 		entry.Filter = XMLParser::TokenToNumber(node->attributes.Get("filter"));
-		if (entry.Filter == 0x00)
+		if (entry.Filter == 0x00) {
 			entry.Filter = 0xFF;
+		}
 	}
 
 	// Filetype

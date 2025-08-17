@@ -7,7 +7,8 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/Values.h>
+#include <Engine/Bytecode/Value.h>
+#include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/IO/FileStream.h>
 
@@ -46,11 +47,11 @@ static const char* opcodeNames[] = {"OP_ERROR",
 	"OP_PRINT_STACK",
 	"OP_INHERIT",
 	"OP_RETURN",
-	"OP_METHOD",
+	"OP_METHOD_V4",
 	"OP_CLASS",
 	"OP_CALL",
 	"OP_SUPER",
-	"OP_INVOKE",
+	"OP_INVOKE_V3",
 	"OP_JUMP",
 	"OP_JUMP_IF_FALSE",
 	"OP_JUMP_BACK",
@@ -93,7 +94,7 @@ static const char* opcodeNames[] = {"OP_ERROR",
 	"OP_NEW_MAP",
 	"OP_SWITCH_TABLE",
 	"OP_FAILSAFE",
-	"OP_EVENT",
+	"OP_EVENT_V4",
 	"OP_TYPEOF",
 	"OP_NEW",
 	"OP_IMPORT",
@@ -110,7 +111,11 @@ static const char* opcodeNames[] = {"OP_ERROR",
 	"OP_USE_NAMESPACE",
 	"OP_DEFINE_CONSTANT",
 	"OP_INTEGER",
-	"OP_DECIMAL"};
+	"OP_DECIMAL",
+	"OP_INVOKE",
+	"OP_SUPER_INVOKE",
+	"OP_EVENT",
+	"OP_METHOD"};
 
 // Order these by C/C++ precedence operators
 enum TokenTYPE {
@@ -1221,14 +1226,16 @@ void Compiler::EmitCopy(Uint8 count) {
 }
 
 void Compiler::EmitCall(const char* name, int argCount, bool isSuper) {
-	EmitBytes(OP_INVOKE, argCount);
+	EmitCallOpcode(argCount, isSuper);
 	EmitStringHash(name);
-	EmitByte(isSuper ? 1 : 0);
 }
 void Compiler::EmitCall(Token name, int argCount, bool isSuper) {
-	EmitBytes(OP_INVOKE, argCount);
+	EmitCallOpcode(argCount, isSuper);
 	EmitStringHash(name);
-	EmitByte(isSuper ? 1 : 0);
+}
+void Compiler::EmitCallOpcode(int argCount, bool isSuper) {
+	EmitByte(isSuper ? OP_SUPER_INVOKE : OP_INVOKE);
+	EmitByte(argCount);
 }
 
 void Compiler::NamedVariable(Token name, bool canAssign) {
@@ -2783,10 +2790,17 @@ void Compiler::GetMethod(Token className) {
 		type = TYPE_CONSTRUCTOR;
 	}
 
+	// Compile the old instruction if it fits under uint8.
 	int index = GetFunction(type, className.ToString());
+	if (index <= UINT8_MAX) {
+		EmitByte(OP_METHOD_V4);
+		EmitByte(index);
+	}
+	else {
+		EmitByte(OP_METHOD);
+		EmitUint16(index);
+	}
 
-	EmitByte(OP_METHOD);
-	EmitByte(index);
 	EmitStringHash(constantToken);
 }
 void Compiler::GetVariableDeclaration(bool constant) {
@@ -3101,10 +3115,16 @@ void Compiler::GetEventDeclaration() {
 	//     MarkInitialized();
 	// }
 
+	// Compile the old instruction if it fits under uint8.
 	int index = GetFunction(TYPE_FUNCTION);
-
-	EmitByte(OP_EVENT);
-	EmitByte(index);
+	if (index <= UINT8_MAX) {
+		EmitByte(OP_EVENT_V4);
+		EmitByte(index);
+	}
+	else {
+		EmitByte(OP_EVENT);
+		EmitUint16(index);
+	}
 
 	// if (ScopeDepth == 0) {
 	EmitByte(OP_DEFINE_GLOBAL);
@@ -3486,11 +3506,10 @@ void Compiler::EndSwitchJumpList() {
 int Compiler::FindConstant(VMValue value) {
 	for (size_t i = 0; i < CurrentChunk()->Constants->size(); i++) {
 		VMValue constant = (*CurrentChunk()->Constants)[i];
-		if (IS_STRING(constant) && IS_STRING(value) &&
-			ScriptManager::ValuesSortaEqual(constant, value)) {
+		if (IS_STRING(constant) && IS_STRING(value) && Value::SortaEqual(constant, value)) {
 			return (int)i;
 		}
-		if (ValuesEqual(value, constant)) {
+		if (Value::ExactlyEqual(value, constant)) {
 			return (int)i;
 		}
 	}
@@ -3670,12 +3689,12 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		VMValue out;
 
 		switch (opB) {
-			// Numeric Operations
+		// Numeric Operations
 		case OP_ADD: {
 			if (IS_STRING(a) || IS_STRING(b)) {
-				VMValue str_b = ScriptManager::CastValueAsString(b);
-				VMValue str_a = ScriptManager::CastValueAsString(a);
-				out = ScriptManager::Concatenate(str_a, str_b);
+				VMValue str_b = Value::CastAsString(b);
+				VMValue str_a = Value::CastAsString(a);
+				out = Value::Concatenate(str_a, str_b);
 				break;
 			}
 			else if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b)) {
@@ -3683,8 +3702,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = DECIMAL_VAL(a_d + b_d);
 			}
 			else {
@@ -3701,8 +3720,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = DECIMAL_VAL(a_d - b_d);
 			}
 			else {
@@ -3719,8 +3738,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = DECIMAL_VAL(a_d * b_d);
 			}
 			else {
@@ -3737,8 +3756,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 
 				if (b_d == 0) {
 					return preConstant;
@@ -3763,8 +3782,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = DECIMAL_VAL(fmod(a_d, b_d));
 			}
 			else {
@@ -3775,16 +3794,16 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 
 			break;
 		}
-			// Bitwise Operations
+		// Bitwise Operations
 		case OP_BITSHIFT_LEFT: {
 			if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b)) {
 				return preConstant;
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-				out = DECIMAL_VAL((float)((int)a_d << (int)b_d));
+				int a_d = AS_INTEGER(Value::CastAsInteger(a));
+				int b_d = AS_INTEGER(Value::CastAsInteger(b));
+				out = DECIMAL_VAL((float)(a_d << b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -3800,9 +3819,9 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-				out = DECIMAL_VAL((float)((int)a_d >> (int)b_d));
+				int a_d = AS_INTEGER(Value::CastAsInteger(a));
+				int b_d = AS_INTEGER(Value::CastAsInteger(b));
+				out = DECIMAL_VAL((float)(a_d >> b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -3818,9 +3837,9 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-				out = DECIMAL_VAL((float)((int)a_d | (int)b_d));
+				int a_d = AS_INTEGER(Value::CastAsInteger(a));
+				int b_d = AS_INTEGER(Value::CastAsInteger(b));
+				out = DECIMAL_VAL((float)(a_d | b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -3836,9 +3855,9 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-				out = DECIMAL_VAL((float)((int)a_d & (int)b_d));
+				int a_d = AS_INTEGER(Value::CastAsInteger(a));
+				int b_d = AS_INTEGER(Value::CastAsInteger(b));
+				out = DECIMAL_VAL((float)(a_d & b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -3854,9 +3873,9 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
-				out = DECIMAL_VAL((float)((int)a_d ^ (int)b_d));
+				int a_d = AS_INTEGER(Value::CastAsInteger(a));
+				int b_d = AS_INTEGER(Value::CastAsInteger(b));
+				out = DECIMAL_VAL((float)(a_d ^ b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
@@ -3866,10 +3885,10 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 
 			break;
 		}
-			// Equality and Comparison Operators
+		// Equality and Comparison Operators
 		case OP_EQUAL_NOT:
 		case OP_EQUAL: {
-			bool equal = ScriptManager::ValuesSortaEqual(a, b);
+			bool equal = Value::SortaEqual(a, b);
 			if (opB == OP_EQUAL_NOT) {
 				equal = !equal;
 			}
@@ -3882,8 +3901,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = INTEGER_VAL(a_d > b_d);
 			}
 			else {
@@ -3900,8 +3919,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = INTEGER_VAL(a_d >= b_d);
 			}
 			else {
@@ -3918,8 +3937,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = INTEGER_VAL(a_d < b_d);
 			}
 			else {
@@ -3936,8 +3955,8 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
-				float a_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(a));
-				float b_d = AS_DECIMAL(ScriptManager::CastValueAsDecimal(b));
+				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
+				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 				out = INTEGER_VAL(a_d <= b_d);
 			}
 			else {
@@ -3957,8 +3976,6 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		if (checkConstantB >= preConstant && checkConstantA != checkConstantB) {
 			CurrentChunk()->Constants->pop_back();
 		}
-		// Log::PrintSimple("Constants eaten: %d %d\n",
-		// checkConstantA, checkConstantB);
 
 		preConstant = CurrentChunk()->Constants->size();
 		EmitConstant(out);
@@ -3968,13 +3985,6 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		}
 	}
 
-	///////////
-	// printf("------AFTER : @ %d %d\n", preCount,
-	// CurrentChunk()->Constants->size()); for (int i = preCount; i
-	// < CurrentChunk()->Count;)
-	//     i = DebugInstruction(CurrentChunk(), i);
-	// printf("----------------- @ %d\n", preCount);
-	///////////
 	return preConstant;
 }
 
@@ -4028,9 +4038,11 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_COPY:
 	case OP_CALL:
 	case OP_NEW:
-	case OP_EVENT:
+	case OP_EVENT_V4:
 	case OP_POPN:
 		return 2;
+	case OP_EVENT:
+		return 3;
 	case OP_GET_LOCAL:
 	case OP_SET_LOCAL:
 		return 2;
@@ -4055,6 +4067,9 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_JUMP_BACK:
 		return 3;
 	case OP_INVOKE:
+	case OP_SUPER_INVOKE:
+		return 6;
+	case OP_INVOKE_V3:
 		return 7;
 	case OP_WITH:
 		if (*(op + 1) == 3) {
@@ -4067,6 +4082,8 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_NEW_ENUM:
 		return 5;
 	case OP_METHOD:
+		return 8;
+	case OP_METHOD_V4:
 		return 6;
 	}
 	return 1;
@@ -4099,7 +4116,7 @@ int Compiler::ConstantInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 		value = (*chunk->Constants)[constant];
 		Log::PrintSimple("%-16s %9d '", opcodeNames[opcode], constant);
 	}
-	Values::PrintValue(NULL, value);
+	ValuePrinter::Print(value);
 	Log::PrintSimple("'\n");
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
@@ -4128,8 +4145,8 @@ int Compiler::LocalInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int Compiler::MethodInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	uint8_t slot = chunk->Code[offset + 1];
-	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
+	uint16_t slot = (uint16_t)(chunk->Code[offset + 1]);
+	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 3];
 	Log::PrintSimple("%-13s %2d", opcodeNames[opcode], slot);
 	Log::PrintSimple(" #%08X", hash);
 	if (TokenMap->Exists(hash)) {
@@ -4141,6 +4158,21 @@ int Compiler::MethodInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 }
 int Compiler::InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	return Compiler::MethodInstruction(opcode, chunk, offset);
+}
+int Compiler::MethodInstructionV4(uint8_t opcode, Chunk* chunk, int offset) {
+	uint8_t slot = chunk->Code[offset + 1];
+	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
+	Log::PrintSimple("%-13s %2d", opcodeNames[opcode], slot);
+	Log::PrintSimple(" #%08X", hash);
+	if (TokenMap->Exists(hash)) {
+		Token t = TokenMap->Get(hash);
+		Log::PrintSimple(" (%.*s)", (int)t.Length, t.Start);
+	}
+	Log::PrintSimple("\n");
+	return offset + GetTotalOpcodeSize(chunk->Code + offset);
+}
+int Compiler::InvokeInstructionV3(uint8_t opcode, Chunk* chunk, int offset) {
+	return Compiler::MethodInstructionV4(opcode, chunk, offset);
 }
 int Compiler::JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset) {
 	uint16_t jump = (uint16_t)(chunk->Code[offset + 1]);
@@ -4234,9 +4266,11 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_COPY:
 	case OP_CALL:
 	case OP_NEW:
-	case OP_EVENT:
+	case OP_EVENT_V4:
 	case OP_POPN:
 		return ByteInstruction(instruction, chunk, offset);
+	case OP_EVENT:
+		return ShortInstruction(instruction, chunk, offset);
 	case OP_GET_LOCAL:
 	case OP_SET_LOCAL:
 		return LocalInstruction(instruction, chunk, offset);
@@ -4262,13 +4296,16 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_JUMP_BACK:
 		return JumpInstruction(instruction, -1, chunk, offset);
 	case OP_INVOKE:
+	case OP_SUPER_INVOKE:
 		return InvokeInstruction(instruction, chunk, offset);
+	case OP_INVOKE_V3:
+		return InvokeInstructionV3(instruction, chunk, offset);
 
 	case OP_PRINT_STACK: {
 		offset++;
 		uint8_t constant = chunk->Code[offset++];
 		Log::PrintSimple("%-16s %4d ", opcodeNames[instruction], constant);
-		Values::PrintValue(NULL, (*chunk->Constants)[constant]);
+		ValuePrinter::Print((*chunk->Constants)[constant]);
 		Log::PrintSimple("\n");
 
 		ObjFunction* function = AS_FUNCTION((*chunk->Constants)[constant]);
@@ -4292,6 +4329,8 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 		return EnumInstruction(instruction, chunk, offset);
 	case OP_METHOD:
 		return MethodInstruction(instruction, chunk, offset);
+	case OP_METHOD_V4:
+		return MethodInstructionV4(instruction, chunk, offset);
 	default:
 		if (instruction < OP_LAST) {
 			Log::PrintSimple("No viewer for opcode %s\n", opcodeNames[instruction]);
@@ -4319,7 +4358,7 @@ void Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int maxA
 	Log::PrintSimple("\nConstants: (%d count)\n", (int)(*chunk->Constants).size());
 	for (size_t i = 0; i < (*chunk->Constants).size(); i++) {
 		Log::PrintSimple(" %2d '", (int)i);
-		Values::PrintValue(NULL, (*chunk->Constants)[i]);
+		ValuePrinter::Print((*chunk->Constants)[i]);
 		Log::PrintSimple("'\n");
 	}
 }
@@ -4384,7 +4423,7 @@ void Compiler::Initialize(Compiler* enclosing, int scope, int type) {
 		Function->Name = CopyString(parser.Previous.Start, parser.Previous.Length);
 		break;
 	case TYPE_TOP_LEVEL:
-		Function->Name = CopyString("main", 4);
+		Function->Name = CopyString("main");
 		break;
 	}
 
@@ -4514,5 +4553,8 @@ void Compiler::Dispose() {
 		delete StandardConstants;
 		StandardConstants = NULL;
 	}
-	Memory::Free(Rules);
+	if (Rules) {
+		Memory::Free(Rules);
+		Rules = NULL;
+	}
 }

@@ -4,6 +4,7 @@ class ScriptEntity;
 
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/VMThread.h>
+#include <Engine/Exceptions/ScriptException.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/IO/Stream.h>
@@ -15,21 +16,15 @@ class ScriptEntity;
 
 class ScriptManager {
 private:
+#ifdef VM_DEBUG
 	static Uint32 GetBranchLimit();
-	static void RemoveNonGlobalableValue(Uint32 hash, VMValue value);
-	static void FreeNativeValue(Uint32 hash, VMValue value);
-	static void FreeFunction(ObjFunction* function);
-	static void FreeModule(ObjModule* module);
-	static void FreeClass(ObjClass* klass);
-	static void FreeEnumeration(ObjEnum* enumeration);
-	static void FreeNamespace(ObjNamespace* ns);
+#endif
 	static void FreeModules();
 
 public:
 	static bool LoadAllClasses;
 	static HashMap<VMValue>* Globals;
 	static HashMap<VMValue>* Constants;
-	static std::set<Obj*> FreedGlobals;
 	static VMThread Threads[8];
 	static Uint32 ThreadCount;
 	static vector<ObjModule*> ModuleList;
@@ -40,26 +35,19 @@ public:
 	static vector<ObjClass*> ClassImplList;
 	static SDL_mutex* GlobalLock;
 
+	static void DestroyObject(Obj* object);
+	static void FreeFunction(Obj* object);
+	static void FreeModule(Obj* object);
+	static void FreeClass(Obj* object);
+	static void FreeEnumeration(Obj* object);
+	static void FreeNamespace(Obj* object);
 	static void RequestGarbageCollection();
 	static void ForceGarbageCollection();
 	static void ResetStack();
 	static void Init();
-	static void DisposeGlobalValueTable(HashMap<VMValue>* globals);
 	static void Dispose();
-	static void FreeString(ObjString* string);
-	static void FreeGlobalValue(Uint32 hash, VMValue value);
-	static VMValue CastValueAsString(VMValue v, bool prettyPrint);
-	static VMValue CastValueAsString(VMValue v);
-	static VMValue CastValueAsInteger(VMValue v);
-	static VMValue CastValueAsDecimal(VMValue v);
-	static VMValue Concatenate(VMValue va, VMValue vb);
-	static bool ValuesSortaEqual(VMValue a, VMValue b);
-	static bool ValuesEqual(VMValue a, VMValue b);
-	static bool ValueFalsey(VMValue a);
-	static VMValue DelinkValue(VMValue val);
 	static bool DoIntegerConversion(VMValue& value, Uint32 threadID);
 	static bool DoDecimalConversion(VMValue& value, Uint32 threadID);
-	static void FreeValue(VMValue value);
 	static bool Lock();
 	static void Unlock();
 	static void DefineMethod(VMThread* thread, ObjFunction* function, Uint32 hash);
@@ -68,8 +56,10 @@ public:
 	static void GlobalLinkDecimal(ObjClass* klass, const char* name, float* value);
 	static void GlobalConstInteger(ObjClass* klass, const char* name, int value);
 	static void GlobalConstDecimal(ObjClass* klass, const char* name, float value);
-	static ObjClass* GetClassParent(ObjClass* klass);
-	static VMValue GetClassMethod(ObjClass* klass, Uint32 hash);
+	static ObjClass* GetClassParent(Obj* object, ObjClass* klass);
+	static bool GetClassMethod(ObjClass* klass, Uint32 hash, VMValue* callable);
+	static bool GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, VMValue* callable);
+	static bool ClassHasMethod(ObjClass* klass, Uint32 hash);
 	static void LinkStandardLibrary();
 	static void LinkExtensions();
 	static bool RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash);
@@ -79,12 +69,12 @@ public:
 	static std::string GetBytecodeFilenameForHash(Uint32 filenameHash);
 	static BytecodeContainer GetBytecodeFromFilenameHash(Uint32 filenameHash);
 	static bool ClassExists(const char* objectName);
+	static bool ClassExists(Uint32 hash);
 	static bool IsStandardLibraryClass(const char* className);
 	static bool LoadScript(char* filename);
 	static bool LoadScript(const char* filename);
 	static bool LoadScript(Uint32 hash);
-	static bool LoadObjectClass(const char* objectName, bool addNativeFunctions);
-	static void AddNativeObjectFunctions(ObjClass* klass);
+	static bool LoadObjectClass(const char* objectName);
 	static ObjClass* GetObjectClass(const char* className);
 	static Entity* ObjectSpawnFunction(ObjectList* list);
 	static void LoadClasses();

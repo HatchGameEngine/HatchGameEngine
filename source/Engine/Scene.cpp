@@ -1,15 +1,13 @@
 #include <Engine/Scene.h>
 
 #include <Engine/Audio/AudioManager.h>
-#include <Engine/Bytecode/Compiler.h>
-#include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
+#include <Engine/Error.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/FontFace.h>
 #include <Engine/Hashing/CRC32.h>
@@ -40,6 +38,8 @@
 int Scene::Frame = 0;
 bool Scene::Paused = false;
 bool Scene::Loaded = false;
+bool Scene::Initializing = false;
+bool Scene::NeedEntitySort = false;
 int Scene::TileAnimationEnabled = 1;
 
 // Layering variables
@@ -258,90 +258,103 @@ void UpdateObject(Entity* ent) {
 	}
 
 	switch (ent->Activity) {
-		default:
-		case ACTIVE_DISABLED: break;
+	default:
+	case ACTIVE_DISABLED:
+		break;
 
-		case ACTIVE_NEVER:
-		case ACTIVE_PAUSED:
-			ent->InRange = false;
-			break;
+	case ACTIVE_NEVER:
+	case ACTIVE_PAUSED:
+		ent->InRange = false;
+		break;
 
-		case ACTIVE_ALWAYS:
-		case ACTIVE_NORMAL:
-			ent->InRange = true;
-			break;
+	case ACTIVE_ALWAYS:
+	case ACTIVE_NORMAL:
+		ent->InRange = true;
+		break;
 
-		case ACTIVE_BOUNDS:
-			ent->InRange = false;
+	case ACTIVE_BOUNDS:
+		ent->InRange = false;
 
-			for (int i = 0; i < Scene::ViewsActive; i++) {
-				if (onScreenX && onScreenY) {
-					break;
-				}
-				if (!onScreenX) {
-					onScreenX = entX2 >= Scene::Views[i].X &&
-						entX1 < Scene::Views[i].X + Scene::Views[i].Width;
-				}
-				if (!onScreenY) {
-					onScreenY = entY2 >= Scene::Views[i].Y &&
-						entY1 < Scene::Views[i].Y + Scene::Views[i].Height;
-				}
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
 			}
-
 			if (onScreenX && onScreenY) {
-				ent->InRange = true;
+				break;
 			}
-
-			break;
-
-		case ACTIVE_XBOUNDS:
-			ent->InRange = false;
-
-			for (int i = 0; i < Scene::ViewsActive; i++) {
-				if (onScreenX) {
-					break;
-				}
+			if (!onScreenX) {
 				onScreenX = entX2 >= Scene::Views[i].X &&
 					entX1 < Scene::Views[i].X + Scene::Views[i].Width;
 			}
-
-			if (onScreenX) {
-				ent->InRange = true;
-			}
-
-			break;
-
-		case ACTIVE_YBOUNDS:
-			ent->InRange = false;
-
-			for (int i = 0; i < Scene::ViewsActive; i++) {
-				if (onScreenY) {
-					break;
-				}
+			if (!onScreenY) {
 				onScreenY = entY2 >= Scene::Views[i].Y &&
 					entY1 < Scene::Views[i].Y + Scene::Views[i].Height;
 			}
+		}
 
+		if (onScreenX && onScreenY) {
+			ent->InRange = true;
+		}
+
+		break;
+
+	case ACTIVE_XBOUNDS:
+		ent->InRange = false;
+
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
+			}
+			if (onScreenX) {
+				break;
+			}
+			onScreenX = entX2 >= Scene::Views[i].X &&
+				entX1 < Scene::Views[i].X + Scene::Views[i].Width;
+		}
+
+		if (onScreenX) {
+			ent->InRange = true;
+		}
+
+		break;
+
+	case ACTIVE_YBOUNDS:
+		ent->InRange = false;
+
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			if (!Scene::Views[i].Active) {
+				continue;
+			}
 			if (onScreenY) {
+				break;
+			}
+			onScreenY = entY2 >= Scene::Views[i].Y &&
+				entY1 < Scene::Views[i].Y + Scene::Views[i].Height;
+		}
+
+		if (onScreenY) {
+			ent->InRange = true;
+		}
+
+		break;
+
+	case ACTIVE_RBOUNDS:
+		ent->InRange = false;
+
+		// TODO: Double check this works properly
+		for (int v = 0; v < MAX_SCENE_VIEWS; v++) {
+			if (!Scene::Views[v].Active) {
+				continue;
+			}
+			float sx = abs(ent->X - Scene::Views[v].X);
+			float sy = abs(ent->Y - Scene::Views[v].Y);
+
+			if (sx * sx + sy * sy <= ent->OnScreenHitboxW || onScreenX || onScreenY) {
 				ent->InRange = true;
+				break;
 			}
-
-			break;
-
-		case ACTIVE_RBOUNDS:
-			ent->InRange = false;
-
-			// TODO: Double check this works properly
-			for (int v = 0; v < Scene::ViewsActive; v++) {
-				float sx = abs(ent->X - Scene::Views[v].X);
-				float sy = abs(ent->Y - Scene::Views[v].Y);
-
-				if (sx * sx + sy * sy <= ent->OnScreenHitboxW || onScreenX || onScreenY) {
-					ent->InRange = true;
-					break;
-				}
-			}
-			break;
+		}
+		break;
 	}
 
 	if (ent->InRange) {
@@ -427,13 +440,6 @@ void Scene::Add(Entity** first, Entity** last, int* count, Entity* obj) {
 
 	(*count)++;
 
-	// Add to proper list
-	if (!obj->List) {
-		Log::Print(Log::LOG_ERROR, "Entity %p has no list!", obj);
-		abort();
-	}
-	obj->List->Add(obj);
-
 	Scene::AddToScene(obj);
 }
 void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
@@ -465,20 +471,67 @@ void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
 	Scene::RemoveObject(obj);
 }
 void Scene::AddToScene(Entity* obj) {
-	obj->PrevSceneEntity = Scene::ObjectLast;
-	obj->NextSceneEntity = NULL;
+	// When the scene is loading, all entities are added to the end, because they will be sorted later.
+	// Also added to the end if NeedEntitySort is already set anyway.
+	if (NeedEntitySort || Initializing || Scene::ObjectFirst == nullptr ||
+		(Scene::ObjectLast != nullptr &&
+			Scene::ObjectLast->UpdatePriority == obj->UpdatePriority)) {
+		obj->PrevSceneEntity = Scene::ObjectLast;
+		obj->NextSceneEntity = nullptr;
 
-	if (obj->PrevSceneEntity) {
-		obj->PrevSceneEntity->NextSceneEntity = obj;
+		if (obj->PrevSceneEntity) {
+			obj->PrevSceneEntity->NextSceneEntity = obj;
+		}
+		if (!Scene::ObjectFirst) {
+			Scene::ObjectFirst = obj;
+		}
+
+		Scene::ObjectLast = obj;
 	}
-	if (!Scene::ObjectFirst) {
-		Scene::ObjectFirst = obj;
+	else {
+		Entity* prevObj = Scene::ObjectLast;
+
+		// Special case for a priority of zero (which is the default)
+		if (obj->UpdatePriority == 0) {
+			while (prevObj->PrevSceneEntity != nullptr && prevObj->UpdatePriority < 0) {
+				prevObj = prevObj->PrevSceneEntity;
+			}
+		}
+		else if (obj->UpdatePriority > 0) {
+			prevObj = Scene::ObjectFirst;
+
+			while (prevObj->NextSceneEntity != nullptr &&
+				prevObj->NextSceneEntity->UpdatePriority > obj->UpdatePriority) {
+				prevObj = prevObj->NextSceneEntity;
+			}
+		}
+		else {
+			while (prevObj->PrevSceneEntity != nullptr &&
+				prevObj->PrevSceneEntity->UpdatePriority < obj->UpdatePriority) {
+				prevObj = prevObj->PrevSceneEntity;
+			}
+		}
+
+		if (prevObj->NextSceneEntity) {
+			obj->NextSceneEntity = prevObj->NextSceneEntity;
+			prevObj->NextSceneEntity->PrevSceneEntity = obj;
+		}
+		else {
+			Scene::ObjectLast = obj;
+			obj->NextSceneEntity = nullptr;
+		}
+
+		prevObj->NextSceneEntity = obj;
+		obj->PrevSceneEntity = prevObj;
 	}
 
-	Scene::ObjectLast = obj;
 	Scene::ObjectCount++;
 }
 void Scene::RemoveFromScene(Entity* obj) {
+	if (obj->NextSceneEntity == nullptr && obj->PrevSceneEntity == nullptr) {
+		return;
+	}
+
 	if (Scene::ObjectFirst == obj) {
 		Scene::ObjectFirst = obj->NextSceneEntity;
 	}
@@ -534,17 +587,38 @@ void Scene::Clear(Entity** first, Entity** last, int* count) {
 }
 
 // Object management
-void Scene::AddStatic(ObjectList* objectList, Entity* obj) {
+bool Scene::AddStatic(ObjectList* objectList, Entity* obj) {
 	Scene::Add(&Scene::StaticObjectFirst,
 		&Scene::StaticObjectLast,
 		&Scene::StaticObjectCount,
 		obj);
+
+	obj->Dynamic = false;
+
+	// Add to proper list
+	if (obj->List) {
+		obj->List->Add(obj);
+	}
+	else {
+		Log::Print(Log::LOG_ERROR, "Entity %d has no list!", obj->SlotID);
+
+		Scene::Remove(&Scene::StaticObjectFirst,
+			&Scene::StaticObjectLast,
+			&Scene::StaticObjectCount,
+			obj);
+
+		return false;
+	}
+
+	return true;
 }
 void Scene::AddDynamic(ObjectList* objectList, Entity* obj) {
 	Scene::Add(&Scene::DynamicObjectFirst,
 		&Scene::DynamicObjectLast,
 		&Scene::DynamicObjectCount,
 		obj);
+
+	obj->Dynamic = true;
 }
 void Scene::DeleteRemoved(Entity* obj) {
 	if (!obj->Removed) {
@@ -621,22 +695,6 @@ void Scene::Init() {
 
 	Scene::ReservedSlotIDs = 0;
 
-	GarbageCollector::Init();
-
-	Compiler::Init();
-
-	ScriptManager::Init();
-	ScriptManager::ResetStack();
-	ScriptManager::LinkStandardLibrary();
-	ScriptManager::LinkExtensions();
-
-	Compiler::GetStandardConstants();
-
-	if (SourceFileMap::CheckForUpdate()) {
-		// Force garbage collect
-		ScriptManager::ForceGarbageCollection();
-	}
-
 	Application::Settings->GetBool("dev", "notiles", &DEV_NoTiles);
 	Application::Settings->GetBool("dev", "noobjectrender", &DEV_NoObjectRender);
 	Application::Settings->GetInteger("dev", "viewCollision", &ShowTileCollisionFlag);
@@ -661,7 +719,8 @@ void Scene::Init() {
 			Scene::Views[i].Height);
 		Scene::Views[i].UseDrawTarget = true;
 		Scene::Views[i].ProjectionMatrix = Matrix4x4::Create();
-		Scene::Views[i].BaseProjectionMatrix = Matrix4x4::Create();
+		Scene::Views[i].ViewMatrix = Matrix4x4::Create();
+		Scene::Views[i].CurrentShader = nullptr;
 	}
 	Scene::Views[0].Active = true;
 	Scene::ViewsActive = 1;
@@ -698,75 +757,38 @@ void Scene::Update() {
 		Scene::ObjectLists->ForAllOrdered(ObjectList_CallGlobalUpdates);
 	}
 
+	// Sort entities if needed
+	Scene::SortEntities();
+
 	// Early Update
-	for (Entity *ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
-		UpdateObjectEarly(ent);
-	}
-	for (Entity *ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
+		next = ent->NextSceneEntity;
 		UpdateObjectEarly(ent);
 	}
 
 	// Update objects
-	for (Entity *ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-		// Store the "next" so that when/if the current is
-		// removed, it can still be used to point at the end of
-		// the loop.
-		next = ent->NextEntity;
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
+		// Store the "next" so that when/if the current is removed,
+		// it can still be used to point at the end of the loop.
+		next = ent->NextSceneEntity;
 
 		// Execute whatever on object
 		UpdateObject(ent);
 	}
-	for (Entity *ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
-		UpdateObject(ent);
-	}
 
 	// Late Update
-	for (Entity *ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
-		UpdateObjectLate(ent);
-	}
-	for (Entity *ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
+		next = ent->NextSceneEntity;
 		UpdateObjectLate(ent);
 
-		// Removes the object from the scene, but doesn't
-		// delete it yet.
-		if (!ent->Active) {
+		// Removes the object from the scene, but doesn't delete it yet.
+		if (ent->Dynamic && !ent->Active) {
 			Scene::Remove(&Scene::DynamicObjectFirst,
 				&Scene::DynamicObjectLast,
 				&Scene::DynamicObjectCount,
 				ent);
 		}
 	}
-
-#ifdef USING_FFMPEG
-	AudioManager::Lock();
-	Uint8 audio_buffer[0x8000]; // <-- Should be larger than
-	// AudioManager::AudioQueueMaxSize
-	int needed = 0x8000; // AudioManager::AudioQueueMaxSize;
-	for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
-		if (!Scene::MediaList[i]) {
-			continue;
-		}
-
-		MediaBag* media = Scene::MediaList[i]->AsMedia;
-		int queued = (int)AudioManager::AudioQueueSize;
-		if (queued < needed) {
-			int ready_bytes =
-				media->Player->GetAudioData(audio_buffer, needed - queued);
-			if (ready_bytes > 0) {
-				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize,
-					audio_buffer,
-					ready_bytes);
-				AudioManager::AudioQueueSize += ready_bytes;
-			}
-		}
-	}
-	AudioManager::Unlock();
-#endif
 
 	if (!Scene::Paused) {
 		Scene::Frame++;
@@ -922,6 +944,12 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		PERF_END(RenderSetupTime);
 		return;
 	}
+
+	// If a shader is active before rendering the view, for some reason.
+	if (Graphics::CurrentShader != nullptr) {
+		Graphics::SetUserShader(nullptr);
+	}
+
 	Scene::SetView(viewIndex);
 	PERF_END(RenderSetupTime);
 
@@ -937,67 +965,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	// Adjust projection
 	PERF_START(ProjectionSetupTime);
-	if (currentView->UsePerspective) {
-		Graphics::UpdatePerspective(currentView->FOV,
-			currentView->Width / currentView->Height,
-			currentView->NearPlane,
-			currentView->FarPlane);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateX,
-			1.0,
-			0.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateY,
-			0.0,
-			1.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateZ,
-			0.0,
-			0.0,
-			1.0);
-		Matrix4x4::Translate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			-currentView->X,
-			-currentView->Y,
-			-currentView->Z);
-		Matrix4x4::Copy(currentView->BaseProjectionMatrix, currentView->ProjectionMatrix);
-	}
-	else {
-		Graphics::UpdateOrtho(currentView->Width, currentView->Height);
-		if (!currentView->UseDrawTarget) {
-			Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
-		}
-
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateX,
-			1.0,
-			0.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateY,
-			0.0,
-			1.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ProjectionMatrix,
-			currentView->ProjectionMatrix,
-			currentView->RotateZ,
-			0.0,
-			0.0,
-			1.0);
-		Matrix4x4::Translate(currentView->ProjectionMatrix,
-			currentView->BaseProjectionMatrix,
-			-cx,
-			-cy,
-			-cz);
-	}
-	Graphics::UpdateProjectionMatrix();
+	SetupViewMatrices(currentView);
 	PERF_END(ProjectionSetupTime);
 
 	// RenderEarly
@@ -1137,7 +1105,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 				elapsed = Clock::GetTicks();
 
-				ent->Render(_vx, _vy);
+				ent->Render();
 
 				elapsed = Clock::GetTicks() - elapsed;
 
@@ -1174,9 +1142,6 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			if (layer->Visible) {
 				PERF_START(LayerTileRenderTime[li]);
 
-				Graphics::Save();
-				Graphics::Translate(cx, cy, cz);
-
 				Graphics::TextureBlend = layer->Blending;
 				if (Graphics::TextureBlend) {
 					Graphics::SetBlendColor(1.0, 1.0, 1.0, layer->Opacity);
@@ -1188,8 +1153,6 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 				Graphics::DrawSceneLayer(layer, currentView, (int)li, true);
 				Graphics::ClearClip();
-
-				Graphics::Restore();
 
 				PERF_END(LayerTileRenderTime[li]);
 			}
@@ -1232,6 +1195,106 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		Graphics::SoftwareEnd();
 	}
 	PERF_END(RenderFinishTime);
+
+	// If a shader is still active after rendering the view, for some reason.
+	if (Graphics::CurrentShader != nullptr) {
+		Graphics::SetUserShader(nullptr);
+	}
+}
+
+void Scene::SetupViewMatrices(View* currentView) {
+	Matrix4x4::Identity(currentView->ViewMatrix);
+
+	if (currentView->UsePerspective) {
+		Scene::SetupView3D(currentView);
+	}
+	else {
+		Scene::SetupView2D(currentView);
+	}
+
+	Matrix4x4::Copy(Graphics::ViewMatrix, currentView->ViewMatrix);
+
+	Graphics::UpdateProjectionMatrix();
+}
+
+void Scene::SetupView2D(View* currentView) {
+	Graphics::UpdateOrtho(currentView->Width, currentView->Height);
+	if (!currentView->UseDrawTarget) {
+		Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
+	}
+
+	// Rotate
+	if (currentView->RotateX || currentView->RotateY || currentView->RotateZ) {
+		Matrix4x4::Translate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->Width / 2.0,
+			currentView->Height / 2.0,
+			0.0);
+		Matrix4x4::Rotate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->RotateX,
+			1.0,
+			0.0,
+			0.0);
+		Matrix4x4::Rotate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->RotateY,
+			0.0,
+			1.0,
+			0.0);
+		Matrix4x4::Rotate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->RotateZ,
+			0.0,
+			0.0,
+			1.0);
+		Matrix4x4::Translate(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			-currentView->Width / 2.0,
+			-currentView->Height / 2.0,
+			0.0);
+	}
+
+	// Translate
+	float cx = std::floor(currentView->X);
+	float cy = std::floor(currentView->Y);
+	float cz = std::floor(currentView->Z);
+
+	Matrix4x4::Translate(currentView->ViewMatrix, currentView->ViewMatrix, -cx, -cy, -cz);
+}
+
+void Scene::SetupView3D(View* currentView) {
+	Graphics::UpdatePerspective(currentView->FOV,
+		currentView->Width / currentView->Height,
+		currentView->NearPlane,
+		currentView->FarPlane);
+
+	// Rotate
+	Matrix4x4::Rotate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		currentView->RotateX,
+		1.0,
+		0.0,
+		0.0);
+	Matrix4x4::Rotate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		currentView->RotateY,
+		0.0,
+		1.0,
+		0.0);
+	Matrix4x4::Rotate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		currentView->RotateZ,
+		0.0,
+		0.0,
+		1.0);
+
+	// Translate
+	Matrix4x4::Translate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		-currentView->X,
+		-currentView->Y,
+		-currentView->Z);
 }
 
 void Scene::Render() {
@@ -1244,6 +1307,11 @@ void Scene::Render() {
 	if (Graphics::PaletteUpdated) {
 		Graphics::UpdateGlobalPalette();
 		Graphics::PaletteUpdated = false;
+	}
+
+	if (Graphics::PaletteIndexLinesUpdated) {
+		Graphics::UpdatePaletteIndexTable();
+		Graphics::PaletteIndexLinesUpdated = false;
 	}
 
 	int win_w, win_h, ren_w, ren_h;
@@ -1267,6 +1335,7 @@ void Scene::Render() {
 		if (currentView->UseDrawTarget && currentView->DrawTarget) {
 			Graphics::SetRenderTarget(NULL);
 			if (currentView->Visible) {
+				Matrix4x4::Identity(Graphics::ViewMatrix);
 				Graphics::UpdateOrthoFlipped(win_w, win_h);
 				Graphics::UpdateProjectionMatrix();
 				Graphics::SetDepthTesting(false);
@@ -1333,8 +1402,11 @@ void Scene::Render() {
 					break;
 				}
 
+				Shader* shader = Scene::Views[i].CurrentShader;
+
 				Graphics::TextureBlend = false;
 				Graphics::SetBlendMode(BlendMode_NORMAL);
+				Graphics::SetUserShader(shader);
 				Graphics::DrawTexture(currentView->DrawTarget,
 					0.0,
 					0.0,
@@ -1344,6 +1416,9 @@ void Scene::Render() {
 					out_y + Graphics::PixelOffset,
 					out_w,
 					out_h + Graphics::PixelOffset);
+				if (Graphics::CurrentShader != nullptr) {
+					Graphics::SetUserShader(nullptr);
+				}
 				Graphics::SetDepthTesting(Graphics::UseDepthTesting);
 			}
 		}
@@ -1351,6 +1426,8 @@ void Scene::Render() {
 		viewPerf->RenderFinishTime += renderFinishTime;
 		PERF_END(RenderTime);
 	}
+
+	Matrix4x4::Identity(Graphics::ViewMatrix);
 
 	Graphics::CurrentView = NULL;
 
@@ -1398,11 +1475,93 @@ void Scene::ResetPriorityListIndex(Entity* first) {
 	});
 }
 
+void Scene::SortEntities() {
+	if (!Scene::NeedEntitySort) {
+		return;
+	}
+
+	Scene::ObjectFirst = SortEntityList(ObjectFirst);
+	Scene::ObjectLast = nullptr;
+
+	// Tail points to nowhere, but we'll fix that here.
+	for (Entity* ent = Scene::ObjectFirst; ent != nullptr; ent = ent->NextSceneEntity) {
+		Scene::ObjectLast = ent;
+	}
+
+	Scene::NeedEntitySort = false;
+}
+Entity* Scene::SortEntityList(Entity* head) {
+	Entity *left, *right;
+
+	if (head == nullptr || head->NextSceneEntity == nullptr) {
+		return head;
+	}
+
+	SplitEntityList(head, &left, &right);
+
+	return MergeEntityList(SortEntityList(left), SortEntityList(right));
+}
+bool Scene::SplitEntityList(Entity* head, Entity** left, Entity** right) {
+	Entity *a = head, *b;
+
+	if (a == nullptr || a->NextSceneEntity == nullptr) {
+		*left = a;
+		*right = nullptr;
+		return false;
+	}
+
+	b = head->NextSceneEntity;
+	while (b != nullptr) {
+		b = b->NextSceneEntity;
+		if (b != nullptr) {
+			b = b->NextSceneEntity;
+			a = a->NextSceneEntity;
+		}
+	}
+
+	*left = head;
+	*right = a->NextSceneEntity;
+
+	a->NextSceneEntity = nullptr;
+
+	return true;
+}
+Entity* Scene::MergeEntityList(Entity* left, Entity* right) {
+	if (left == nullptr) {
+		return right;
+	}
+	else if (right == nullptr) {
+		return left;
+	}
+
+	// Left side
+	if (left->UpdatePriority >= right->UpdatePriority) {
+		left->NextSceneEntity = MergeEntityList(left->NextSceneEntity, right);
+
+		if (left->NextSceneEntity) {
+			left->NextSceneEntity->PrevSceneEntity = left;
+		}
+		left->PrevSceneEntity = nullptr;
+
+		return left;
+	}
+
+	// Right side
+	right->NextSceneEntity = MergeEntityList(left, right->NextSceneEntity);
+
+	if (right->NextSceneEntity) {
+		right->NextSceneEntity->PrevSceneEntity = right;
+	}
+	right->PrevSceneEntity = nullptr;
+
+	return right;
+}
+
 int Scene::GetPersistenceScopeForObjectDeletion() {
 	return Scene::NoPersistency ? Persistence_SCENE : Persistence_NONE;
 }
 
-void Scene::Restart() {
+void Scene::Initialize() {
 	Scene::ViewCurrent = 0;
 	Graphics::CurrentView = NULL;
 
@@ -1412,6 +1571,7 @@ void Scene::Restart() {
 	currentView->Z = 0.0f;
 	Scene::Frame = 0;
 	Scene::Paused = false;
+	Scene::Initializing = true;
 	Scene::TileAnimationEnabled = 1;
 
 	Scene::TimeCounter = 0;
@@ -1425,6 +1585,10 @@ void Scene::Restart() {
 
 	Scene::ObjectViewRenderFlag = 0xFFFFFFFF;
 	Scene::TileViewRenderFlag = 0xFFFFFFFF;
+}
+
+void Scene::Restart() {
+	Initialize();
 
 	Graphics::UnloadSceneData();
 
@@ -1535,7 +1699,7 @@ void Scene::Restart() {
 	}
 
 	// Run "PostCreate" on all objects
-	Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
+	Scene::IterateAll(Scene::ObjectFirst, [](Entity* ent) -> void {
 		if (!ent->PostCreated) {
 			// ent->PostCreated gets set when
 			// PostCreate() is called.
@@ -1543,6 +1707,9 @@ void Scene::Restart() {
 		}
 	});
 
+	FinishLoad();
+}
+void Scene::FinishLoad() {
 	// Run "OnSceneLoad" or "OnSceneRestart" on all objects
 	Scene::IterateAll(Scene::ObjectFirst, [](Entity* ent) -> void {
 		if (Scene::Loaded) {
@@ -1554,6 +1721,7 @@ void Scene::Restart() {
 	});
 
 	Scene::Loaded = true;
+	Scene::Initializing = false;
 
 	ScriptManager::ResetStack();
 	ScriptManager::RequestGarbageCollection();
@@ -1683,8 +1851,10 @@ void Scene::Unload() {
 void Scene::Prepare() {
 	Scene::TileWidth = Scene::TileHeight = 16;
 	Scene::EmptyTile = 0;
+	Scene::PriorityPerLayer = 0;
 
 	Scene::InitObjectListsAndRegistries();
+	Scene::InitPriorityLists();
 
 	memset(Scene::CurrentScene, '\0', sizeof Scene::CurrentScene);
 }
@@ -1811,7 +1981,7 @@ void Scene::ProcessSceneTimer() {
 
 ObjectList* Scene::NewObjectList(const char* objectName) {
 	ObjectList* objectList = new (std::nothrow) ObjectList(objectName);
-	if (objectList && ScriptManager::LoadObjectClass(objectName, true)) {
+	if (objectList && ScriptManager::LoadObjectClass(objectName)) {
 		objectList->SpawnFunction = ScriptManager::ObjectSpawnFunction;
 	}
 	return objectList;
@@ -1935,8 +2105,7 @@ void Scene::InitPriorityLists() {
 		Scene::PriorityLists = (DrawGroupList*)Memory::TrackedCalloc(
 			"Scene::PriorityLists", Scene::PriorityPerLayer, sizeof(DrawGroupList));
 		if (!Scene::PriorityLists) {
-			Log::Print(Log::LOG_ERROR, "Out of memory for priority lists!");
-			exit(-1);
+			Error::Fatal("Out of memory in Scene::InitPriorityLists!");
 		}
 	}
 
@@ -3010,6 +3179,8 @@ void Scene::DisposeInScope(Uint32 scope) {
 	}
 }
 void Scene::Dispose() {
+	Graphics::UnloadData();
+
 	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
 		if (Scene::Views[i].DrawTarget) {
 			Graphics::DisposeTexture(Scene::Views[i].DrawTarget);
@@ -3021,9 +3192,9 @@ void Scene::Dispose() {
 			Scene::Views[i].ProjectionMatrix = NULL;
 		}
 
-		if (Scene::Views[i].BaseProjectionMatrix) {
-			delete Scene::Views[i].BaseProjectionMatrix;
-			Scene::Views[i].BaseProjectionMatrix = NULL;
+		if (Scene::Views[i].ViewMatrix) {
+			delete Scene::Views[i].ViewMatrix;
+			Scene::Views[i].ViewMatrix = NULL;
 		}
 
 		if (Scene::Views[i].UseStencil) {
@@ -3101,10 +3272,6 @@ void Scene::Dispose() {
 		delete Scene::Properties;
 	}
 	Scene::Properties = NULL;
-
-	ScriptManager::Dispose();
-	SourceFileMap::Dispose();
-	Compiler::Dispose();
 }
 
 void Scene::UnloadTilesets() {

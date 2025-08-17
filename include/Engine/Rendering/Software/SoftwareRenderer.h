@@ -40,7 +40,6 @@ private:
 public:
 	static GraphicsFunctions BackendFunctions;
 	static Uint32 CompareColor;
-	static TileScanLine TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static Sint32 SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static bool UseSpriteDeform;
 	static Contour ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
@@ -69,10 +68,6 @@ public:
 	static void UpdateProjectionMatrix();
 	static void
 	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
-	static void UseShader(void* shader);
-	static void SetUniformF(int location, int count, float* values);
-	static void SetUniformI(int location, int count, int* values);
-	static void SetUniformTexture(Texture* texture, int uniform_index, int slot);
 	static void SetFilter(int filter);
 	static void Clear();
 	static void Present();
@@ -292,7 +287,8 @@ public:
 		float x,
 		float y,
 		float w,
-		float h);
+		float h,
+		int paletteID);
 	static void DrawSprite(ISprite* sprite,
 		int animation,
 		int frame,
@@ -303,7 +299,7 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
+		int paletteID);
 	static void DrawSpritePart(ISprite* sprite,
 		int animation,
 		int frame,
@@ -318,9 +314,7 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
-	static void DrawTile(int tile, int x, int y, bool flipX, bool flipY);
-	static void DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView);
+		int paletteID);
 	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView);

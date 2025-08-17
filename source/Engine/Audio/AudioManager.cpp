@@ -367,6 +367,7 @@ void AudioManager::RemoveMusic(ISound* music) {
 		if (MusicStack[i]->Audio == music) {
 			delete MusicStack[i];
 			MusicStack.erase(MusicStack.begin() + i);
+			i--;
 		}
 	}
 	AudioManager::Unlock();

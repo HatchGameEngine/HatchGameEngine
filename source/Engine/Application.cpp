@@ -10,6 +10,7 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
 #include <Engine/Filesystem/Directory.h>
+#include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
@@ -61,7 +62,7 @@ Platforms Application::Platform = Platforms::iOS;
 Platforms Application::Platform = Platforms::Unknown;
 #endif
 
-vector<char*> Application::CmdLineArgs;
+vector<std::string> Application::CmdLineArgs;
 
 INI* Application::Settings = NULL;
 char Application::SettingsFile[MAX_PATH_LENGTH];
@@ -96,6 +97,8 @@ char Application::DeveloperIdentifier[256];
 char Application::SavesDir[256];
 char Application::PreferencesDir[256];
 
+std::unordered_map<std::string, Capability> Application::CapabilityMap;
+
 int Application::UpdatesPerFrame = 1;
 int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
 bool Application::Stepper = false;
@@ -115,7 +118,10 @@ bool Application::DevConvertModels = false;
 
 bool Application::AllowCmdLineSceneLoad = false;
 
-char StartingScene[256];
+char StartingScene[MAX_RESOURCE_PATH_LENGTH];
+char NextGame[MAX_PATH_LENGTH];
+char NextGameStartingScene[MAX_RESOURCE_PATH_LENGTH];
+std::vector<std::string>* NextGameCmdLineArgs;
 char LogFilename[MAX_PATH_LENGTH];
 
 bool UseMemoryFileCache = false;
@@ -185,7 +191,7 @@ void Application::Init(int argc, char* args[]) {
 	Application::SetTargetFrameRate(DEFAULT_TARGET_FRAMERATE);
 
 	for (int i = 1; i < argc; i++) {
-		Application::CmdLineArgs.push_back(StringUtils::Duplicate(args[i]));
+		Application::CmdLineArgs.push_back(std::string(args[i]));
 	}
 
 	// Initialize a few needed subsystems
@@ -202,6 +208,7 @@ void Application::Init(int argc, char* args[]) {
 		ResourceManager::Init(NULL);
 
 	Application::LoadGameConfig();
+	Application::InitGameInfo();
 	Application::LoadGameInfo();
 	Application::ReloadSettings();
 
@@ -233,6 +240,22 @@ void Application::Init(int argc, char* args[]) {
 	AudioManager::Init();
 
 	Running = true;
+}
+void Application::InitScripting() {
+	GarbageCollector::Init();
+
+	Compiler::Init();
+
+	ScriptManager::Init();
+	ScriptManager::ResetStack();
+	ScriptManager::LinkStandardLibrary();
+	ScriptManager::LinkExtensions();
+
+	Compiler::GetStandardConstants();
+
+	if (SourceFileMap::CheckForUpdate()) {
+		ScriptManager::ForceGarbageCollection();
+	}
 }
 void Application::LogEngineVersion() {
 #ifdef GIT_COMMIT_HASH
@@ -377,6 +400,50 @@ bool Application::IsPC() {
 bool Application::IsMobile() {
 	return Application::Platform == Platforms::iOS ||
 		Application::Platform == Platforms::Android;
+}
+
+void Application::AddCapability(std::string capability, int value) {
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(value);
+}
+void Application::AddCapability(std::string capability, float value) {
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(value);
+}
+void Application::AddCapability(std::string capability, bool value) {
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(value);
+}
+void Application::AddCapability(std::string capability, std::string value) {
+	char* string = StringUtils::Create(value);
+
+	RemoveCapability(capability);
+
+	Application::CapabilityMap[capability] = Capability(string);
+}
+Capability Application::GetCapability(std::string capability) {
+	std::unordered_map<std::string, Capability>::iterator it = CapabilityMap.find(capability);
+	if (it != CapabilityMap.end()) {
+		return it->second;
+	}
+
+	return Capability();
+}
+bool Application::HasCapability(std::string capability) {
+	std::unordered_map<std::string, Capability>::iterator it = CapabilityMap.find(capability);
+	return it != CapabilityMap.end();
+}
+void Application::RemoveCapability(std::string capability) {
+	if (HasCapability(capability)) {
+		Capability cap = CapabilityMap[capability];
+
+		cap.Dispose();
+
+		CapabilityMap.erase(capability);
+	}
 }
 
 bool IsIdentifierBody(char c) {
@@ -541,6 +608,7 @@ double MetricPollTime = -1;
 double MetricUpdateTime = -1;
 double MetricClearTime = -1;
 double MetricRenderTime = -1;
+double MetricPostProcessTime = -1;
 double MetricFPSCounterTime = -1;
 double MetricPresentTime = -1;
 double MetricFrameTime = 0.0;
@@ -554,6 +622,7 @@ void Application::GetPerformanceSnapshot() {
 			MetricUpdateTime,
 			MetricClearTime,
 			MetricRenderTime,
+			MetricPostProcessTime,
 			MetricPresentTime,
 			0.0,
 			MetricFrameTime,
@@ -565,6 +634,7 @@ void Application::GetPerformanceSnapshot() {
 			"Entity Update:         %8.3f ms",
 			"Clear Time:            %8.3f ms",
 			"World Render Commands: %8.3f ms",
+			"Render Post-Process:   %8.3f ms",
 			"Frame Present Time:    %8.3f ms",
 			"==================================",
 			"Frame Total Time:      %8.3f ms",
@@ -723,9 +793,6 @@ void Application::UpdateWindowTitle() {
 		if (ResourceManager::UsingDataFolder) {
 			ADD_TEXT("using Resources folder");
 		}
-		if (ResourceManager::UsingModPack) {
-			ADD_TEXT("using Modpack");
-		}
 	}
 
 	if (UpdatesPerFrame != 1) {
@@ -753,7 +820,7 @@ void Application::UpdateWindowTitle() {
 	SDL_SetWindowTitle(Application::Window, titleText.c_str());
 }
 
-void Application::Restart(bool keepScene) {
+void Application::EndGame() {
 	if (DEBUG_fontSprite) {
 		DEBUG_fontSprite->Dispose();
 		delete DEBUG_fontSprite;
@@ -767,14 +834,28 @@ void Application::Restart(bool keepScene) {
 
 	Scene::Dispose();
 	SceneInfo::Dispose();
-	Graphics::DeleteSpriteSheetMap();
+	Graphics::UnloadData();
 
-	ScriptManager::LoadAllClasses = false;
-	ScriptEntity::DisableAutoAnimate = false;
+	Application::TerminateScripting();
+}
+
+void Application::UnloadGame() {
+	Application::EndGame();
+
+	MemoryCache::Dispose();
+	ResourceManager::Dispose();
+
+	InputManager::ClearPlayers();
+	InputManager::ClearInputs();
+}
+
+void Application::Restart(keepScene) {
+	Application::EndGame();
 
 	Graphics::Reset();
 
 	Application::LoadGameConfig();
+	Application::InitGameInfo();
 	Application::LoadGameInfo();
 	Application::ReloadSettings();
 	keepScene ? Application::LoadSceneInfo(Scene::ActiveCategory, Scene::CurrentSceneInList, true) : Application::LoadSceneInfo(0, 0, false);
@@ -783,9 +864,117 @@ void Application::Restart(bool keepScene) {
 	FirstFrame = true;
 }
 
+bool Application::ChangeGame(const char* path) {
+	char startingScene[MAX_PATH_LENGTH];
+	char lastSettingsPath[MAX_PATH_LENGTH];
+	char currentSettingsPath[MAX_PATH_LENGTH];
+
+	Path::FromURL(SettingsFile, lastSettingsPath, sizeof lastSettingsPath);
+
+	if (NextGameStartingScene[0] != '\0') {
+		StringUtils::Copy(startingScene, NextGameStartingScene, sizeof startingScene);
+		NextGameStartingScene[0] = '\0';
+	}
+	else {
+		startingScene[0] = '\0';
+	}
+
+	Application::UnloadGame();
+
+	if (!ResourceManager::Init(path)) {
+		if (NextGameCmdLineArgs) {
+			delete NextGameCmdLineArgs;
+			NextGameCmdLineArgs = nullptr;
+		}
+
+		return false;
+	}
+
+	Application::LoadGameConfig();
+	Application::LoadGameInfo();
+
+	// Reload settings file if the path to it changed.
+	Path::FromURL(SettingsFile, currentSettingsPath, sizeof currentSettingsPath);
+	if (strcmp(currentSettingsPath, lastSettingsPath) != 0) {
+		Application::DisposeSettings();
+
+		if (!Application::LoadSettings(Application::SettingsFile)) {
+			// Couldn't load new settings file, so use a default one.
+			Application::InitSettings();
+		}
+	}
+
+	if (UseMemoryFileCache) {
+		MemoryCache::Init();
+	}
+
+	Application::LoadSceneInfo(0, 0, false);
+	Application::InitPlayerControls();
+	Application::DisposeGameConfig();
+
+	FirstFrame = true;
+
+	SourceFileMap::AllowCompilation = false;
+
+	if (startingScene[0] == '\0') {
+		StringUtils::Copy(startingScene, StartingScene, sizeof startingScene);
+	}
+
+	if (NextGameCmdLineArgs) {
+		Application::CmdLineArgs.clear();
+		for (size_t i = 0, iSz = NextGameCmdLineArgs->size(); i < iSz; i++) {
+			Application::CmdLineArgs.push_back((*NextGameCmdLineArgs)[i]);
+		}
+
+		delete NextGameCmdLineArgs;
+		NextGameCmdLineArgs = nullptr;
+	}
+
+	Application::StartGame(startingScene);
+	Application::UpdateWindowTitle();
+
+	return true;
+}
+
+bool Application::SetNextGame(const char* path,
+	const char* startingScene,
+	std::vector<std::string>* cmdLineArgs) {
+	bool exists = false;
+
+	std::string resolved = "";
+	PathLocation location;
+
+	if (Path::FromURL(path, resolved, location, false) &&
+		(location == PathLocation::GAME || location == PathLocation::USER)) {
+		if (path[strlen(path) - 1] == '/') {
+			exists = Directory::Exists(resolved.c_str());
+		}
+		else {
+			exists = File::Exists(resolved.c_str());
+		}
+	}
+
+	if (exists) {
+		StringUtils::Copy(NextGame, resolved.c_str(), sizeof NextGame);
+
+		if (startingScene != nullptr) {
+			StringUtils::Copy(
+				NextGameStartingScene, startingScene, sizeof NextGameStartingScene);
+		}
+
+		NextGameCmdLineArgs = cmdLineArgs;
+
+		return true;
+	}
+
+	Log::Print(Log::LOG_ERROR, "Path \"%s\" is not valid!", path);
+
+	return false;
+}
+
 void Application::LoadVideoSettings() {
 	bool vsyncEnabled;
-	Application::Settings->GetBool("display", "vsync", &Graphics::VsyncEnabled);
+	Application::Settings->GetBool("display", "vsync", &vsyncEnabled);
 	Application::Settings->GetInteger("display", "frameSkip", &Application::FrameSkip);
 
 	if (Application::FrameSkip > DEFAULT_MAX_FRAMESKIP) {
@@ -799,9 +988,16 @@ void Application::LoadVideoSettings() {
 		Graphics::VsyncEnabled = vsyncEnabled;
 
 		Application::Settings->GetInteger(
-			"display", "multisample", &Graphics::MultisamplingEnabled);
-		Application::Settings->GetInteger(
 			"display", "defaultMonitor", &Application::DefaultMonitor);
+
+		Application::Settings->GetInteger(
+			"graphics", "multisample", &Graphics::MultisamplingEnabled);
+		Application::Settings->GetBool(
+			"graphics", "precompileShaders", &Graphics::PrecompileShaders);
+
+		if (Graphics::MultisamplingEnabled < 0) {
+			Graphics::MultisamplingEnabled = 0;
+		}
 	}
 }
 
@@ -904,8 +1100,7 @@ void Application::LoadKeyBinds() {
 
 void Application::LoadDevSettings() {
 #ifdef DEVELOPER_MODE
-	Application::Settings->GetBool("dev", "devMenu", &DevMode);
-	Application::Settings->GetBool("dev", "writeToFile", &Log::WriteToFile);
+	Application::Settings->GetBool("dev", "devMenu", &DevMenu);
 	Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
 	Application::Settings->GetBool("dev", "donothing", &DoNothing);
 	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
@@ -913,16 +1108,20 @@ void Application::LoadDevSettings() {
 	Application::Settings->GetBool("dev", "useMemoryFileCache", &UseMemoryFileCache);
 	Application::Settings->GetBool("dev", "loadAllClasses", &ScriptManager::LoadAllClasses);
 
+	if (!Running) {
+		Application::Settings->GetBool("dev", "writeLogFile", &Log::WriteToFile);
+		Application::Settings->GetBool("dev", "trackMemory", &Memory::IsTracking);
+	}
+
 	int logLevel = 0;
 #ifdef DEBUG
 	logLevel = -1;
 #endif
-#ifdef ANDROID
-	logLevel = -1;
-#endif
-	Application::Settings->GetInteger("dev", "logLevel", &logLevel);
-	Application::Settings->GetBool("dev", "trackMemory", &Memory::IsTracking);
-	Log::SetLogLevel(logLevel);
+
+	bool hasLogLevelSetting = Application::Settings->GetInteger("dev", "logLevel", &logLevel);
+	if (!Running || hasLogLevelSetting) {
+		Log::SetLogLevel(logLevel);
+	}
 
 	Application::Settings->GetBool("dev", "autoPerfSnapshots", &AutomaticPerformanceSnapshots);
 	int apsFrameTimeThreshold = 20, apsMinInterval = 5;
@@ -1208,6 +1407,28 @@ void Application::RunFrame(int runFrames) {
 		}
 	}
 
+#ifdef USING_FFMPEG
+	AudioManager::Lock();
+	Uint8 audio_buffer[0x8000]; // <-- Should be larger than AudioManager::AudioQueueMaxSize
+	int needed = 0x8000; // AudioManager::AudioQueueMaxSize;
+	for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
+		if (!Scene::MediaList[i]) {
+			continue;
+		}
+
+		MediaBag* media = Scene::MediaList[i]->AsMedia;
+		int queued = (int)AudioManager::AudioQueueSize;
+		if (queued < needed) {
+			int ready_bytes = media->Player->GetAudioData(audio_buffer, needed - queued);
+			if (ready_bytes > 0) {
+				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize, audio_buffer, ready_bytes);
+				AudioManager::AudioQueueSize += ready_bytes;
+			}
+		}
+	}
+	AudioManager::Unlock();
+#endif
+
 	// Rendering
 	MetricClearTime = Clock::GetTicks();
 	Graphics::Clear();
@@ -1216,6 +1437,10 @@ void Application::RunFrame(int runFrames) {
 	MetricRenderTime = Clock::GetTicks();
 	Scene::Render();
 	MetricRenderTime = Clock::GetTicks() - MetricRenderTime;
+
+	MetricPostProcessTime = Clock::GetTicks();
+	Graphics::DoScreenPostProcess();
+	MetricPostProcessTime = Clock::GetTicks() - MetricPostProcessTime;
 
 DO_NOTHING:
 
@@ -1264,7 +1489,7 @@ DO_NOTHING:
 
 		Graphics::SetBlendMode(BlendFactor_SRC_ALPHA,
 			BlendFactor_INV_SRC_ALPHA,
-			BlendFactor_SRC_ALPHA,
+			BlendFactor_ONE,
 			BlendFactor_INV_SRC_ALPHA);
 
 		float infoW = 400.0;
@@ -1282,6 +1507,7 @@ DO_NOTHING:
 			MetricUpdateTime,
 			MetricClearTime,
 			MetricRenderTime,
+			MetricPostProcessTime,
 			MetricPresentTime,
 		};
 		const char* typeNames[] = {
@@ -1291,6 +1517,7 @@ DO_NOTHING:
 			"Entity Update: %3.3f ms",
 			"Clear Time: %3.3f ms",
 			"World Render Commands: %3.3f ms",
+			"Render Post-Process: %3.3f ms",
 			"Frame Present Time: %3.3f ms",
 		};
 		struct {
@@ -1484,8 +1711,11 @@ void Application::DelayFrame() {
 	}
 }
 void Application::StartGame(const char* startingScene) {
+	Application::InitScripting();
+
 	Scene::Init();
 	Scene::Prepare();
+	Scene::Initialize();
 
 	// Load initial scripts
 	ScriptManager::LoadScript("init.hsl");
@@ -1506,9 +1736,14 @@ void Application::StartGame(const char* startingScene) {
 	Scene::CallGameStart();
 
 	// Start scene
-	Scene::Restart();
-
-	for (auto var : ViewableVariableList) {
+	if (Scene::CurrentScene[0] != '\0') {
+		Scene::Restart();
+	}
+	else {
+		Scene::FinishLoad();
+	}
+    
+    for (auto var : ViewableVariableList) {
 		delete var;
 	}
 	ViewableVariableList.clear();
@@ -1605,6 +1840,14 @@ void Application::Run(int argc, char* args[]) {
 			TakeSnapshot = false;
 			Application::GetPerformanceSnapshot();
 		}
+
+		if (NextGame[0] != '\0') {
+			char gamePath[MAX_PATH_LENGTH];
+			StringUtils::Copy(gamePath, NextGame, sizeof gamePath);
+			NextGame[0] = '\0';
+
+			ChangeGame(gamePath);
+		}
 	}
 
 	Scene::Dispose();
@@ -1614,15 +1857,15 @@ void Application::Run(int argc, char* args[]) {
 }
 
 void Application::Cleanup() {
+	Application::TerminateScripting();
+
 	if (DEBUG_fontSprite) {
 		DEBUG_fontSprite->Dispose();
 		delete DEBUG_fontSprite;
 		DEBUG_fontSprite = NULL;
 	}
 
-	if (Application::Settings) {
-		Application::Settings->Dispose();
-	}
+	Application::DisposeSettings();
 
 	MemoryCache::Dispose();
 	ResourceManager::Dispose();
@@ -1631,10 +1874,19 @@ void Application::Cleanup() {
 
 	Graphics::Dispose();
 
-	for (size_t i = 0; i < Application::CmdLineArgs.size(); i++) {
-		Memory::Free(Application::CmdLineArgs[i]);
-	}
 	Application::CmdLineArgs.clear();
+
+	if (NextGameCmdLineArgs) {
+		delete NextGameCmdLineArgs;
+		NextGameCmdLineArgs = nullptr;
+	}
+
+	for (std::unordered_map<std::string, Capability>::iterator it = CapabilityMap.begin();
+		it != CapabilityMap.end();
+		it++) {
+		it->second.Dispose();
+	}
+	CapabilityMap.clear();
 
 	Memory::PrintLeak();
 	Memory::ClearTrackedMemory();
@@ -1650,6 +1902,15 @@ void Application::Cleanup() {
 #ifdef MSYS
 	FreeConsole();
 #endif
+}
+void Application::TerminateScripting() {
+	ScriptManager::Dispose();
+	SourceFileMap::Dispose();
+	Compiler::Dispose();
+	GarbageCollector::Dispose();
+
+	ScriptManager::LoadAllClasses = false;
+	ScriptEntity::DisableAutoAnimate = false;
 }
 
 static char* ParseGameConfigText(XMLNode* parent, const char* option) {
@@ -1695,7 +1956,10 @@ static bool ParseGameConfigBool(XMLNode* node, const char* option, bool& val) {
 
 void Application::LoadGameConfig() {
 	StartingScene[0] = '\0';
-	LogFilename[0] = '\0';
+
+	if (!Running) {
+		LogFilename[0] = '\0';
+	}
 
 	Application::GameConfig = nullptr;
 
@@ -1723,8 +1987,12 @@ void Application::LoadGameConfig() {
 		ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
 		ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
 		ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
-		ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
-		ParseGameConfigText(node, "logFilename", LogFilename, sizeof LogFilename);
+		ParseGameConfigText(node, "settingsFile", SettingsFile, sizeof SettingsFile);
+
+		if (!Running) {
+			ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
+			ParseGameConfigText(node, "logFilename", LogFilename, sizeof LogFilename);
+		}
 	}
 
 	// Read display defaults
@@ -1823,7 +2091,7 @@ string Application::ParseGameVersion(XMLNode* versionNode) {
 	return versionText;
 }
 
-void Application::LoadGameInfo() {
+void Application::InitGameInfo() {
 	StringUtils::Copy(GameTitle, DEFAULT_GAME_TITLE, sizeof(GameTitle));
 	StringUtils::Copy(GameTitleShort, DEFAULT_GAME_SHORT_TITLE, sizeof(GameTitleShort));
 	StringUtils::Copy(GameVersion, DEFAULT_GAME_VERSION, sizeof(GameVersion));
@@ -1831,7 +2099,9 @@ void Application::LoadGameInfo() {
 
 	StringUtils::Copy(GameIdentifier, DEFAULT_GAME_IDENTIFIER, sizeof(GameIdentifier));
 	StringUtils::Copy(SavesDir, DEFAULT_SAVES_DIR, sizeof(SavesDir));
+}
 
+void Application::LoadGameInfo() {
 	bool shouldSetGameId = false;
 	bool shouldSetGameDevId = false;
 
@@ -2017,11 +2287,12 @@ bool Application::LoadSettings(const char* filename) {
 		return false;
 	}
 
-	StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
-
-	if (Application::Settings) {
-		Application::Settings->Dispose();
+	if (filename != Application::SettingsFile) {
+		StringUtils::Copy(
+			Application::SettingsFile, filename, sizeof(Application::SettingsFile));
 	}
+
+	Application::DisposeSettings();
 	Application::Settings = ini;
 
 	return true;
@@ -2037,7 +2308,13 @@ void Application::ReadSettings() {
 void Application::ReloadSettings() {
 	// First time load
 	if (Application::Settings == nullptr) {
-		Application::InitSettings(DEFAULT_SETTINGS_FILENAME);
+		if (Application::SettingsFile[0] == '\0') {
+			StringUtils::Copy(Application::SettingsFile,
+				DEFAULT_SETTINGS_FILENAME,
+				sizeof(Application::SettingsFile));
+		}
+
+		Application::InitSettings();
 	}
 
 	if (Application::Settings->Reload()) {
@@ -2051,10 +2328,8 @@ void Application::ReloadSettings(const char* filename) {
 	}
 }
 
-void Application::InitSettings(const char* filename) {
+void Application::InitSettings() {
 	// Create settings with default values.
-	StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
-
 	Application::Settings = INI::New(Application::SettingsFile);
 
 	Application::Settings->SetBool("display", "fullscreen", false);
@@ -2075,6 +2350,13 @@ void Application::SetSettingsFilename(const char* filename) {
 	StringUtils::Copy(Application::SettingsFile, filename, sizeof(Application::SettingsFile));
 	if (Application::Settings) {
 		Application::Settings->SetFilename(filename);
+	}
+}
+
+void Application::DisposeSettings() {
+	if (Application::Settings) {
+		Application::Settings->Dispose();
+		Application::Settings = nullptr;
 	}
 }
 

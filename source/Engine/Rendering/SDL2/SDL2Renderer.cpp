@@ -46,6 +46,7 @@ void SDL2Renderer::Init() {
 	SDL_RendererInfo rendererInfo;
 	SDL_GetRendererInfo(Renderer, &rendererInfo);
 
+	Graphics::SupportsShaders = false;
 	Graphics::SupportsBatching = false;
 	Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
 
@@ -94,12 +95,6 @@ void SDL2Renderer::SetGraphicsFunctions() {
 	Graphics::Internal.UpdatePerspective = SDL2Renderer::UpdatePerspective;
 	Graphics::Internal.UpdateProjectionMatrix = SDL2Renderer::UpdateProjectionMatrix;
 	Graphics::Internal.MakePerspectiveMatrix = SDL2Renderer::MakePerspectiveMatrix;
-
-	// Shader-related functions
-	Graphics::Internal.UseShader = SDL2Renderer::UseShader;
-	Graphics::Internal.SetUniformF = SDL2Renderer::SetUniformF;
-	Graphics::Internal.SetUniformI = SDL2Renderer::SetUniformI;
-	Graphics::Internal.SetUniformTexture = SDL2Renderer::SetUniformTexture;
 
 	// These guys
 	Graphics::Internal.Clear = SDL2Renderer::Clear;
@@ -245,19 +240,6 @@ void SDL2Renderer::MakePerspectiveMatrix(Matrix4x4* out,
 	Matrix4x4::Perspective(out, fov, aspect, near, far);
 }
 
-void SDL2Renderer::GetMetalSize(int* width, int* height) {
-	// #ifdef IOS
-	//     SDL2MetalFunc_GetMetalSize(width, height, Renderer);
-	// #endif
-	SDL_GetRendererOutputSize(Renderer, width, height);
-}
-
-// Shader-related functions
-void SDL2Renderer::UseShader(void* shader) {}
-void SDL2Renderer::SetUniformF(int location, int count, float* values) {}
-void SDL2Renderer::SetUniformI(int location, int count, int* values) {}
-void SDL2Renderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {}
-
 // These guys
 void SDL2Renderer::Clear() {
 	SDL_RenderClear(Renderer);
@@ -342,7 +324,8 @@ void SDL2Renderer::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
+	float h,
+	int paletteID) {
 	x *= RenderScale;
 	y *= RenderScale;
 	w *= RenderScale;
@@ -381,7 +364,7 @@ void SDL2Renderer::DrawSprite(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -392,7 +375,7 @@ void SDL2Renderer::DrawSprite(ISprite* sprite,
 	float sw = animframe.Width;
 	float sh = animframe.Height;
 
-	SDL2Renderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
+	DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
 		animframe.X,
 		animframe.Y,
 		sw,
@@ -400,7 +383,8 @@ void SDL2Renderer::DrawSprite(ISprite* sprite,
 		x + fX * animframe.OffsetX,
 		y + fY * animframe.OffsetY,
 		fX * sw,
-		fY * sh);
+		fY * sh,
+		paletteID);
 }
 void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 	int animation,
@@ -416,7 +400,7 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -438,7 +422,7 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 		sh = animframe.Height - sy;
 	}
 
-	SDL2Renderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
+	DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
 		animframe.X + sx,
 		animframe.Y + sy,
 		sw,
@@ -446,7 +430,8 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 		x + fX * (sx + animframe.OffsetX),
 		y + fY * (sy + animframe.OffsetY),
 		fX * sw,
-		fY * sh);
+		fY * sh,
+		paletteID);
 }
 
 void SDL2Renderer::MakeFrameBufferID(ISprite* sprite) {

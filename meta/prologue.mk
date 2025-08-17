@@ -26,9 +26,14 @@
 # Check Make version; we need at least GNU Make 3.82. Fortunately,
 # 'undefine' directive has been introduced exactly in GNU Make 3.82.
 ifeq ($(filter undefine,$(value .FEATURES)),)
-$(error Unsupported Make version. \
+ifneq ($(strip $(MAKE_VERSION)),)
+$(error Unsupported GNU Make version. \
 The build system does not work properly with GNU Make $(MAKE_VERSION). \
 Please use GNU Make 3.82 or later)
+else
+$(error Unsupported Make utility. \
+Please use GNU Make 3.82 or later)
+endif
 endif
 
 # INB_OVERRIDE : If set, epilogue.mk will take user-set *FLAGS
@@ -785,6 +790,8 @@ override INSTALL := $(INSTALL.O_$(.O_INSTALL))
 override ECHO    := $(ECHO.O_$(.O_ECHO))
 override CP      := $(CP.O_$(.O_CP))
 
+BITBOUND := $(shell $(ECHO) -e '\n#include <stdio.h>\nstatic const char*const s="_BB_CSZ=%lu _BB_SSZ=%lu _BB_ISZ=%lu _BB_LSZ=%lu _BB_PSZ=%lu _BB_FSZ=%lu _BB_DSZ=%lu _BB_LDSZ=%lu \\n";int main(int ac,char*av[]){(void)ac;(void)av;printf(s,sizeof(char),sizeof(short),sizeof(int),sizeof(long),sizeof(void*),sizeof(float),sizeof(double),sizeof(long double));return 0;}' > bitbound.c ; cc -obitbound.tmp bitbound.c && ./bitbound.tmp && $(RM) bitbound.c && $(RM) bitbound.tmp)
+
 ## Suffixes.
 
 # Shared libraries.
@@ -958,37 +965,37 @@ CFLAGS.ANY.WINNT32  := -ansi -fPIC -frandom-seed=69420 -march=i386 \
 CFLAGS.ANY.WINNT64  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
 	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 
-CFLAGS.DEBUG.AGBHB    := -O0 -g3 -Wall
-CFLAGS.DEBUG.AGBSP    := -O0 -g3 -Wall
-CFLAGS.DEBUG.DARWIN86 := -O0 -g3 -Wall
-CFLAGS.DEBUG.DARWINM1 := -O0 -g3 -Wall
-CFLAGS.DEBUG.FREEBSD  := -O0 -g3 -Wall
-CFLAGS.DEBUG.IBMPC    := -d2 -hd -wx
-CFLAGS.DEBUG.ILLUMOS  := -O0 -g3 -Wall
-CFLAGS.DEBUG.LINUX32  := -O0 -g3 -Wall
-CFLAGS.DEBUG.LINUX64  := -O0 -g3 -Wall
-CFLAGS.DEBUG.OPENBSD  := -O0 -g3 -Wall
-CFLAGS.DEBUG.PCDOS    := -d2 -hd -wx
-CFLAGS.DEBUG.WIN311   := -d2 -hd -wx
-CFLAGS.DEBUG.WIN95    := -O0 -g3 -Wall
-CFLAGS.DEBUG.WINNT32  := -O0 -g3 -Wall
-CFLAGS.DEBUG.WINNT64  := -O0 -g3 -Wall
+CFLAGS.DEBUG.AGBHB    := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.AGBSP    := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.DARWIN86 := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.DARWINM1 := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.FREEBSD  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.IBMPC    := -c -d2 -hd -wx
+CFLAGS.DEBUG.ILLUMOS  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.LINUX32  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.LINUX64  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.OPENBSD  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.PCDOS    := -c -d2 -hd -wx
+CFLAGS.DEBUG.WIN311   := -c -d2 -hd -wx
+CFLAGS.DEBUG.WIN95    := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.WINNT32  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.WINNT64  := -c -O0 -g3 -Wall
 
-CFLAGS.RELEASE.AGBHB    := -O3 -w
-CFLAGS.RELEASE.AGBSP    := -O3 -w
-CFLAGS.RELEASE.DARWIN86 := -O3 -w
-CFLAGS.RELEASE.DARWINM1 := -O3 -w
-CFLAGS.RELEASE.FREEBSD  := -O3 -w
-CFLAGS.RELEASE.IBMPC    := -d0 -ox -w=0
-CFLAGS.RELEASE.ILLUMOS  := -O3 -w
-CFLAGS.RELEASE.LINUX32  := -O3 -w
-CFLAGS.RELEASE.LINUX64  := -O3 -w
-CFLAGS.RELEASE.OPENBSD  := -O3 -w
-CFLAGS.RELEASE.PCDOS    := -d0 -ox -w=0
-CFLAGS.RELEASE.WIN311   := -d0 -ox -w=0
-CFLAGS.RELEASE.WIN95    := -O3 -w
-CFLAGS.RELEASE.WINNT32  := -O3 -w
-CFLAGS.RELEASE.WINNT64  := -O3 -w
+CFLAGS.RELEASE.AGBHB    := -c -O3 -w
+CFLAGS.RELEASE.AGBSP    := -c -O3 -w
+CFLAGS.RELEASE.DARWIN86 := -c -O3 -w
+CFLAGS.RELEASE.DARWINM1 := -c -O3 -w
+CFLAGS.RELEASE.FREEBSD  := -c -O3 -w
+CFLAGS.RELEASE.IBMPC    := -c -d0 -ox -w=0
+CFLAGS.RELEASE.ILLUMOS  := -c -O3 -w
+CFLAGS.RELEASE.LINUX32  := -c -O3 -w
+CFLAGS.RELEASE.LINUX64  := -c -O3 -w
+CFLAGS.RELEASE.OPENBSD  := -c -O3 -w
+CFLAGS.RELEASE.PCDOS    := -c -d0 -ox -w=0
+CFLAGS.RELEASE.WIN311   := -c -d0 -ox -w=0
+CFLAGS.RELEASE.WIN95    := -c -O3 -w
+CFLAGS.RELEASE.WINNT32  := -c -O3 -w
+CFLAGS.RELEASE.WINNT64  := -c -O3 -w
 
 CFLAGS.CHECK.AGBHB    := -E -Wextra -Werror -Wno-unused-variable
 CFLAGS.CHECK.AGBSP    := -E -Wextra -Werror -Wno-unused-variable
@@ -1043,37 +1050,37 @@ CXXFLAGS.ANY.WINNT32  := -std=c++11 -fPIC -frandom-seed=69420 \
 CXXFLAGS.ANY.WINNT64  := -std=c++11 -fPIC -frandom-seed=69420 \
 	-march=x86-64 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 
-CXXFLAGS.DEBUG.AGBHB    := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.AGBSP    := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.DARWIN86 := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.DARWINM1 := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.FREEBSD  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.IBMPC    := -d2 -hd -wx
-CXXFLAGS.DEBUG.ILLUMOS  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.LINUX32  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.LINUX64  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.OPENBSD  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.PCDOS    := -d2 -hd -wx
-CXXFLAGS.DEBUG.WIN311   := -d2 -hd -wx
-CXXFLAGS.DEBUG.WIN95    := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.WINNT32  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.WINNT64  := -O0 -g3 -Wall
+CXXFLAGS.DEBUG.AGBHB    := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.AGBSP    := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.DARWIN86 := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.DARWINM1 := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.FREEBSD  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.IBMPC    := -c -d2 -hd -wx
+CXXFLAGS.DEBUG.ILLUMOS  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.LINUX32  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.LINUX64  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.OPENBSD  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.PCDOS    := -c -d2 -hd -wx
+CXXFLAGS.DEBUG.WIN311   := -c -d2 -hd -wx
+CXXFLAGS.DEBUG.WIN95    := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.WINNT32  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.WINNT64  := -c -O0 -g3 -Wall
 
-CXXFLAGS.RELEASE.AGBHB    := -O3 -w
-CXXFLAGS.RELEASE.AGBSP    := -O3 -w
-CXXFLAGS.RELEASE.DARWIN86 := -O3 -w
-CXXFLAGS.RELEASE.DARWINM1 := -O3 -w
-CXXFLAGS.RELEASE.FREEBSD  := -O3 -w
-CXXFLAGS.RELEASE.IBMPC    := -d0 -ox -w=0
-CXXFLAGS.RELEASE.ILLUMOS  := -O3 -w
-CXXFLAGS.RELEASE.LINUX32  := -O3 -w
-CXXFLAGS.RELEASE.LINUX64  := -O3 -w
-CXXFLAGS.RELEASE.OPENBSD  := -O3 -w
-CXXFLAGS.RELEASE.PCDOS    := -d0 -ox -w=0
-CXXFLAGS.RELEASE.WIN311   := -d0 -ox -w=0
-CXXFLAGS.RELEASE.WIN95    := -O3 -w
-CXXFLAGS.RELEASE.WINNT32  := -O3 -w
-CXXFLAGS.RELEASE.WINNT64  := -O3 -w
+CXXFLAGS.RELEASE.AGBHB    := -c -O3 -w
+CXXFLAGS.RELEASE.AGBSP    := -c -O3 -w
+CXXFLAGS.RELEASE.DARWIN86 := -c -O3 -w
+CXXFLAGS.RELEASE.DARWINM1 := -c -O3 -w
+CXXFLAGS.RELEASE.FREEBSD  := -c -O3 -w
+CXXFLAGS.RELEASE.IBMPC    := -c -d0 -ox -w=0
+CXXFLAGS.RELEASE.ILLUMOS  := -c -O3 -w
+CXXFLAGS.RELEASE.LINUX32  := -c -O3 -w
+CXXFLAGS.RELEASE.LINUX64  := -c -O3 -w
+CXXFLAGS.RELEASE.OPENBSD  := -c -O3 -w
+CXXFLAGS.RELEASE.PCDOS    := -c -d0 -ox -w=0
+CXXFLAGS.RELEASE.WIN311   := -c -d0 -ox -w=0
+CXXFLAGS.RELEASE.WIN95    := -c -O3 -w
+CXXFLAGS.RELEASE.WINNT32  := -c -O3 -w
+CXXFLAGS.RELEASE.WINNT64  := -c -O3 -w
 
 CXXFLAGS.CHECK.AGBHB    := -E -Wextra -Werror -Wno-unused-variable
 CXXFLAGS.CHECK.AGBSP    := -E -Wextra -Werror -Wno-unused-variable
@@ -1124,31 +1131,31 @@ OBJCFLAGS.ANY.WINNT32  := -ansi -fPIC -frandom-seed=69420 -march=i386 \
 OBJCFLAGS.ANY.WINNT64  := -ansi -fPIC -frandom-seed=69420 \
 	-march=x86-64 -mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 
-OBJCFLAGS.DEBUG.AGBHB    := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.AGBSP    := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.DARWIN86 := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.DARWINM1 := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.FREEBSD  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.ILLUMOS  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.LINUX32  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.LINUX64  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.OPENBSD  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.WIN95    := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.WINNT32  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.WINNT64  := -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.AGBHB    := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.AGBSP    := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.DARWIN86 := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.DARWINM1 := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.FREEBSD  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.ILLUMOS  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.LINUX32  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.LINUX64  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.OPENBSD  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.WIN95    := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.WINNT32  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.WINNT64  := -c -O0 -g3 -Wall
 
-OBJCFLAGS.RELEASE.AGBHB    := -O3 -w
-OBJCFLAGS.RELEASE.AGBSP    := -O3 -w
-OBJCFLAGS.RELEASE.DARWIN86 := -O3 -w
-OBJCFLAGS.RELEASE.DARWINM1 := -O3 -w
-OBJCFLAGS.RELEASE.FREEBSD  := -O3 -w
-OBJCFLAGS.RELEASE.ILLUMOS  := -O3 -w
-OBJCFLAGS.RELEASE.LINUX32  := -O3 -w
-OBJCFLAGS.RELEASE.LINUX64  := -O3 -w
-OBJCFLAGS.RELEASE.OPENBSD  := -O3 -w
-OBJCFLAGS.RELEASE.WIN95    := -O3 -w
-OBJCFLAGS.RELEASE.WINNT32  := -O3 -w
-OBJCFLAGS.RELEASE.WINNT64  := -O3 -w
+OBJCFLAGS.RELEASE.AGBHB    := -c -O3 -w
+OBJCFLAGS.RELEASE.AGBSP    := -c -O3 -w
+OBJCFLAGS.RELEASE.DARWIN86 := -c -O3 -w
+OBJCFLAGS.RELEASE.DARWINM1 := -c -O3 -w
+OBJCFLAGS.RELEASE.FREEBSD  := -c -O3 -w
+OBJCFLAGS.RELEASE.ILLUMOS  := -c -O3 -w
+OBJCFLAGS.RELEASE.LINUX32  := -c -O3 -w
+OBJCFLAGS.RELEASE.LINUX64  := -c -O3 -w
+OBJCFLAGS.RELEASE.OPENBSD  := -c -O3 -w
+OBJCFLAGS.RELEASE.WIN95    := -c -O3 -w
+OBJCFLAGS.RELEASE.WINNT32  := -c -O3 -w
+OBJCFLAGS.RELEASE.WINNT64  := -c -O3 -w
 
 OBJCFLAGS.CHECK.AGBHB    := -E -Wextra -Werror -Wno-unused-variable
 OBJCFLAGS.CHECK.AGBSP    := -E -Wextra -Werror -Wno-unused-variable

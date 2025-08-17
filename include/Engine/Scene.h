@@ -33,6 +33,9 @@ private:
 	static void Iterate(Entity* first, std::function<void(Entity* e)> func);
 	static void IterateAll(Entity* first, std::function<void(Entity* e)> func);
 	static void ResetPriorityListIndex(Entity* first);
+	static Entity* SortEntityList(Entity* head);
+	static bool SplitEntityList(Entity* head, Entity** left, Entity** right);
+	static Entity* MergeEntityList(Entity* left, Entity* right);
 	static int GetPersistenceScopeForObjectDeletion();
 	static void ClearPriorityLists();
 	static void DeleteObjects(Entity** first, Entity** last, int* count);
@@ -47,6 +50,9 @@ private:
 	static void ClearTileCollisions(TileConfig* cfg, size_t numTiles);
 	static void SetTileCount(size_t tileCount);
 	static bool GetTextureListSpace(size_t* out);
+	static void SetupViewMatrices(View* currentView);
+	static void SetupView2D(View* currentView);
+	static void SetupView3D(View* currentView);
 
 public:
 	static int ShowTileCollisionFlag;
@@ -91,6 +97,8 @@ public:
 	static int Frame;
 	static bool Paused;
 	static bool Loaded;
+	static bool Initializing;
+	static bool NeedEntitySort;
 	static int TileAnimationEnabled;
 	static View Views[MAX_SCENE_VIEWS];
 	static int ViewCurrent;
@@ -139,7 +147,7 @@ public:
 	static void AddToScene(Entity* obj);
 	static void RemoveFromScene(Entity* obj);
 	static void Clear(Entity** first, Entity** last, int* count);
-	static void AddStatic(ObjectList* objectList, Entity* obj);
+	static bool AddStatic(ObjectList* objectList, Entity* obj);
 	static void AddDynamic(ObjectList* objectList, Entity* obj);
 	static void DeleteRemoved(Entity* obj);
 	static void OnEvent(Uint32 event);
@@ -149,6 +157,7 @@ public:
 	static void InitObjectListsAndRegistries();
 	static void ResetPerf();
 	static void Update();
+	static void SortEntities();
 	static Tileset* GetTileset(int tileID);
 	static TileAnimator* GetTileAnimator(int tileID);
 	static void SetViewActive(int viewIndex, bool active);
@@ -159,7 +168,9 @@ public:
 	static void RenderView(int viewIndex, bool doPerf);
 	static void Render();
 	static void AfterScene();
+	static void Initialize();
 	static void Restart();
+	static void FinishLoad();
 	static void Unload();
 	static void Prepare();
 	static void LoadScene(const char* filename);

@@ -112,6 +112,8 @@ struct ViewableVariable {
 #define MAX_TARGET_FRAMERATE 240
 
 #define MATRIX_STACK_SIZE 256
+#define FILTER_TABLE_SIZE 0x8000
+#define PALETTE_ROW_SIZE 0x100
 
 #define MAX_SCENE_VIEWS 8
 #define MAX_PALETTE_COUNT 256
@@ -120,6 +122,8 @@ struct ViewableVariable {
 
 #define SCOPE_SCENE 0
 #define SCOPE_GAME 1
+
+#define PALETTE_INDEX_TABLE_ID -1
 
 typedef uint8_t Uint8;
 typedef uint16_t Uint16;

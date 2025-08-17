@@ -12,6 +12,7 @@ class IModel;
 #include <Engine/Rendering/Enums.h>
 #include <Engine/Rendering/GraphicsFunctions.h>
 #include <Engine/Rendering/Scene3D.h>
+#include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/TextureReference.h>
 #include <Engine/Rendering/VertexBuffer.h>
 #include <Engine/ResourceTypes/IModel.h>
@@ -21,27 +22,41 @@ class IModel;
 #include <Engine/Scene/View.h>
 #include <Engine/Utilities/ColorUtils.h>
 
+#define PALETTE_INDEX_TEXTURE_SIZE 64
+
 class Graphics {
+private:
+	static void InitCapabilities();
+	static void DeleteSpriteSheetMap();
+	static void DeleteShaders();
+	static void DeleteVertexBuffers();
+
 public:
 	static bool Initialized;
 	static HashMap<Texture*>* TextureMap;
 	static map<string, TextureReference*> SpriteSheetTextureMap;
 	static bool VsyncEnabled;
+	static bool PrecompileShaders;
 	static int MultisamplingEnabled;
 	static int FontDPI;
+	static bool SupportsShaders;
 	static bool SupportsBatching;
 	static bool TextureBlend;
 	static bool TextureInterpolate;
 	static Uint32 PreferredPixelFormat;
 	static Uint32 MaxTextureWidth;
 	static Uint32 MaxTextureHeight;
+	static Uint32 MaxTextureUnits;
 	static Texture* TextureHead;
-	static vector<VertexBuffer*> VertexBuffers;
+	static std::vector<Shader*> Shaders;
+	static std::vector<VertexBuffer*> VertexBuffers;
 	static Scene3D Scene3Ds[MAX_3D_SCENES];
 	static stack<GraphicsState> StateStack;
-	static Matrix4x4 MatrixStack[MATRIX_STACK_SIZE];
+	static Matrix4x4 ViewMatrixStack[MATRIX_STACK_SIZE];
+	static Matrix4x4 ModelMatrixStack[MATRIX_STACK_SIZE];
 	static size_t MatrixStackID;
-	static Matrix4x4* ModelViewMatrix;
+	static Matrix4x4* ViewMatrix;
+	static Matrix4x4* ModelMatrix;
 	static Viewport CurrentViewport;
 	static Viewport BackupViewport;
 	static ClipArea CurrentClip;
@@ -54,16 +69,22 @@ public:
 	static int StencilTest;
 	static int StencilOpPass;
 	static int StencilOpFail;
-	static void* FramebufferPixels;
-	static size_t FramebufferSize;
+	static Texture* FramebufferTexture;
+	static int FramebufferWidth;
+	static int FramebufferHeight;
+	static TileScanLine TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static Uint32 PaletteColors[MAX_PALETTE_COUNT][0x100];
 	static Uint8 PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 	static bool PaletteUpdated;
+	static bool PaletteIndexLinesUpdated;
 	static Texture* PaletteTexture;
+	static Texture* PaletteIndexTexture;
+	static Uint32* PaletteIndexTextureData;
 	static Texture* CurrentRenderTarget;
 	static Sint32 CurrentScene3D;
 	static Sint32 CurrentVertexBuffer;
-	static void* CurrentShader;
+	static Shader* CurrentShader;
+	static Shader* PostProcessShader;
 	static bool SmoothFill;
 	static bool SmoothStroke;
 	static float PixelOffset;
@@ -108,18 +129,25 @@ public:
 	static TextureReference* GetSpriteSheet(string sheetPath);
 	static TextureReference* AddSpriteSheet(string sheetPath, Texture* texture);
 	static void DisposeSpriteSheet(string sheetPath);
-	static void DeleteSpriteSheetMap();
+	static void UnloadData();
 	static Uint32 CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy);
 	static void DeleteVertexBuffer(Uint32 vertexBufferIndex);
-	static void UseShader(void* shader);
+	static Shader* CreateShader();
+	static void DeleteShader(Shader* shader);
+	static void SetUserShader(Shader* shader);
+	static void SetFilter(int filter);
 	static void SetTextureInterpolation(bool interpolate);
 	static void Clear();
 	static void Present();
 	static void SoftwareStart();
 	static void SoftwareEnd();
 	static void UpdateGlobalPalette();
+	static void UpdatePaletteIndexTable();
 	static void UnloadSceneData();
 	static void SetRenderTarget(Texture* texture);
+	static bool CreateFramebufferTexture();
+	static bool UpdateFramebufferTexture();
+	static void DoScreenPostProcess();
 	static void CopyScreen(int source_x,
 		int source_y,
 		int source_w,
@@ -139,6 +167,7 @@ public:
 		Matrix4x4* modelMatrix,
 		Matrix4x4* viewMatrix,
 		Matrix4x4* projMatrix);
+	static void GetScreenSize(int& outWidth, int& outHeight);
 	static void SetViewport(float x, float y, float w, float h);
 	static void ResetViewport();
 	static void Resize(int width, int height);
@@ -176,6 +205,42 @@ public:
 		float x,
 		float y,
 		float w,
+		float h,
+		int paletteID);
+	static void DrawSprite(ISprite* sprite,
+		int animation,
+		int frame,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		float rotation,
+		int paletteID);
+	static void DrawSpritePart(ISprite* sprite,
+		int animation,
+		int frame,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		float rotation,
+		int paletteID);
+	static void DrawTexture(Texture* texture,
+		float sx,
+		float sy,
+		float sw,
+		float sh,
+		float x,
+		float y,
+		float w,
 		float h);
 	static void DrawSprite(ISprite* sprite,
 		int animation,
@@ -186,32 +251,6 @@ public:
 		bool flipY,
 		float scaleW,
 		float scaleH,
-		float rotation,
-		unsigned paletteID);
-	static void DrawSpritePart(ISprite* sprite,
-		int animation,
-		int frame,
-		int sx,
-		int sy,
-		int sw,
-		int sh,
-		int x,
-		int y,
-		bool flipX,
-		bool flipY,
-		float scaleW,
-		float scaleH,
-		float rotation,
-		unsigned paletteID);
-	static void DrawSprite(ISprite* sprite,
-		int animation,
-		int frame,
-		int x,
-		int y,
-		bool flipX,
-		bool flipY,
-		float scaleW,
-		float scaleH,
 		float rotation);
 	static void DrawSpritePart(ISprite* sprite,
 		int animation,
@@ -227,9 +266,21 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation);
-	static void DrawTile(int tile, int x, int y, bool flipX, bool flipY);
+	static void
+	DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines);
+	static void DrawTilePart(int tile,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
+	static void DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer(SceneLayer* layer,
 		View* currentView,
 		int layerIndex,

@@ -255,11 +255,12 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 	int Height = (int)r->ReadUInt16();
 
 	SceneLayer layer(Width, Height);
+	if (layerDrawBehavior == 3) {
+		layerDrawBehavior = DrawBehavior_HorizontalParallax;
+	}
 	layer.DrawBehavior = layerDrawBehavior;
 
-	memset(layer.Name, 0, 50);
-	strcpy(layer.Name, Name);
-	Memory::Free(Name);
+	layer.Name = Name;
 
 	layer.RelativeY = r->ReadInt16();
 	layer.ConstantY = (short)r->ReadInt16();
@@ -279,6 +280,7 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 		layer.Visible = false;
 	}
 
+	layer.UsingScrollIndexes = true;
 	layer.ScrollInfoCount = (int)r->ReadUInt16();
 	layer.ScrollInfos =
 		(ScrollingInfo*)Memory::Malloc(layer.ScrollInfoCount * sizeof(ScrollingInfo));
@@ -307,9 +309,7 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 			sizeof(Uint16) * Width * Height);
 	}
 
-	layer.ScrollInfosSplitIndexesCount = 0;
-
-	// Convert to HatchTiles
+	// Convert to Hatch tiles
 	int t = 0;
 	Uint32* tileRow = &layer.Tiles[0];
 	for (int y = 0; y < layer.Height; y++) {
@@ -492,16 +492,20 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 				}
 			}
 
-			if (PropertyHashes->Exists(FilterHash))
-				obj->Filter = ((ScriptEntity*)obj)->Properties->Get("filter").as.Integer;
-			else
+			if (PropertyHashes->Exists(FilterHash)) {
+				obj->Filter =
+					((ScriptEntity*)obj)->Properties->Get("filter").as.Integer;
+			}
+			else {
 				obj->Filter = 0xFF;
-
+			}
+            
 			if (!obj->Filter)
 				obj->Filter = 0xFF;
 
 			if (!(obj->Filter & Scene::Filter))
 				doAdd = false;
+			}
 
 			// HACK: This is so Player ends up in the current SlotID, since this currently cannot be changed during runtime.
 			if (objectNameHash2 == HACK_PlayerNameHash) {

@@ -7,6 +7,7 @@
 #include <Engine/Includes/Version.h>
 #include <Engine/InputManager.h>
 #include <Engine/Math/Math.h>
+#include <Engine/Platforms/Capability.h>
 #include <Engine/Scene.h>
 #include <Engine/TextFormats/INI/INI.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
@@ -29,15 +30,20 @@ private:
 	static char SavesDir[256];
 	static char PreferencesDir[256];
 
+	static std::unordered_map<std::string, Capability> CapabilityMap;
+
 	static void LogEngineVersion();
 	static void LogSystemInfo();
 	static void MakeEngineVersion();
+	static void RemoveCapability(std::string capability);
 	static bool ValidateIdentifier(const char* string);
 	static char* GenerateIdentifier(const char* string);
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
 	static void CreateWindow();
-	static void Restart(bool keepScene);
+	static void EndGame();
+	static void UnloadGame();
+	static void Restart();
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
@@ -51,7 +57,9 @@ private:
 	static void LoadGameConfig();
 	static void DisposeGameConfig();
 	static string ParseGameVersion(XMLNode* versionNode);
+	static void InitGameInfo();
 	static void LoadGameInfo();
+	static void DisposeSettings();
 	static int HandleAppEvents(void* data, SDL_Event* event);
 	static void DrawDevString(const char* string, int x, int y, int align, bool isSelected);
 	static void OpenDevMenu();
@@ -71,7 +79,7 @@ private:
 	static void DevMenu_ModsMenu();
 
 public:
-	static vector<char*> CmdLineArgs;
+	static vector<std::string> CmdLineArgs;
 	static INI* Settings;
 	static char SettingsFile[MAX_PATH_LENGTH];
 	static XMLNode* GameConfig;
@@ -111,9 +119,16 @@ public:
 	static int DeveloperLightFont;
 
 	static void Init(int argc, char* args[]);
+	static void InitScripting();
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();
 	static bool IsMobile();
+	static void AddCapability(std::string capability, int value);
+	static void AddCapability(std::string capability, float value);
+	static void AddCapability(std::string capability, bool value);
+	static void AddCapability(std::string capability, std::string value);
+	static Capability GetCapability(std::string capability);
+	static bool HasCapability(std::string capability);
 	static const char* GetDeveloperIdentifier();
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();
@@ -121,6 +136,10 @@ public:
 	static void GetPerformanceSnapshot();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();
+	static bool SetNextGame(const char* path,
+		const char* startingScene,
+		std::vector<std::string>* cmdLineArgs);
+	static bool ChangeGame(const char* path);
 	static void SetMasterVolume(int volume);
 	static void SetMusicVolume(int volume);
 	static void SetSoundVolume(int volume);
@@ -133,13 +152,14 @@ public:
 	static void SetKeyBind(int bind, int key);
 	static void Run(int argc, char* args[]);
 	static void Cleanup();
-	static void LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene);
+	static void TerminateScripting();
+    static void LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene);
 	static void InitPlayerControls();
 	static bool LoadSettings(const char* filename);
 	static void ReadSettings();
 	static void ReloadSettings();
 	static void ReloadSettings(const char* filename);
-	static void InitSettings(const char* filename);
+	static void InitSettings();
 	static void SaveSettings();
 	static void SaveSettings(const char* filename);
 	static void SetSettingsFilename(const char* filename);

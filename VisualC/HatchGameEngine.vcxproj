@@ -159,10 +159,15 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\audio\AudioManager.cpp" />
     <ClCompile Include="..\source\engine\audio\AudioPlayback.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ArrayImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\EntityImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\FunctionImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\InstanceImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MapImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MaterialImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\StreamImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\TypeImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Bytecode.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Compiler.cpp" />
     <ClCompile Include="..\source\engine\bytecode\GarbageCollector.cpp" />
@@ -171,7 +176,8 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\bytecode\SourceFileMap.cpp" />
     <ClCompile Include="..\source\engine\bytecode\StandardLibrary.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Types.cpp" />
-    <ClCompile Include="..\source\engine\bytecode\Values.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\Value.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\ValuePrinter.cpp" />
     <ClCompile Include="..\source\engine\bytecode\VMThread.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\Clock.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\Log.cpp" />
@@ -179,6 +185,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\diagnostics\MemoryPools.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\PerformanceMeasure.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\RemoteDebug.cpp" />
+    <ClCompile Include="..\source\engine\Error.cpp" />
     <ClCompile Include="..\source\engine\extensions\Discord.cpp" />
     <ClCompile Include="..\source\engine\filesystem\Directory.cpp" />
     <ClCompile Include="..\source\engine\filesystem\File.cpp" />
@@ -286,6 +293,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\types\ObjectRegistry.cpp" />
     <ClCompile Include="..\source\engine\types\Tileset.cpp" />
     <ClCompile Include="..\source\engine\utilities\ColorUtils.cpp" />
+    <ClCompile Include="..\source\engine\utilities\PrintBuffer.cpp" />
     <ClCompile Include="..\source\engine\utilities\StringUtils.cpp" />
     <ClCompile Include="..\source\Libraries\miniz.c" />
     <ClCompile Include="..\source\Libraries\stb_vorbis.c" />

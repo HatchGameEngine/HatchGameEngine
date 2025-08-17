@@ -7,6 +7,7 @@
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Error.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/MD5.h>
@@ -117,22 +118,9 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 
 	SceneLayer layer(width, height);
 
-	size_t nameBufLen = sizeof(layer.Name);
-	memset(layer.Name, 0x00, nameBufLen);
-
+	layer.Name = name;
 	layer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
 	layer.Visible = true;
-
-	// Copy its name
-	if (strlen(name) >= nameBufLen) {
-		Log::Print(Log::LOG_WARN,
-			"Layer name '%s' is longer than max size of %u, truncating",
-			name,
-			nameBufLen);
-	}
-
-	StringUtils::Copy(layer.Name, name, nameBufLen);
-	Memory::Free(name);
 
 	// Set draw group and behavior
 	if (drawGroup & 0x10) {
@@ -151,9 +139,10 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 		(ScrollingInfo*)Memory::Malloc(layer.ScrollInfoCount * sizeof(ScrollingInfo));
 
 	if (!layer.ScrollInfos) {
-		Log::Print(Log::LOG_ERROR, "Out of memory!");
-		exit(-1);
+		Error::Fatal("Out of memory in HatchSceneReader::ReadLayer!");
 	}
+
+	layer.UsingScrollIndexes = true;
 
 	// Read scroll data
 	HatchSceneReader::ReadScrollData(r, &layer);
@@ -572,8 +561,7 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 					strLength = r->ReadUInt16();
 					strVar = (char*)malloc(strLength);
 					if (!strVar) {
-						Log::Print(Log::LOG_ERROR, "Out of memory!");
-						exit(-1);
+						Error::Fatal("Out of memory in HatchSceneReader::ReadEntities!");
 					}
 
 					for (size_t i = 0; i < strLength; i++) {
