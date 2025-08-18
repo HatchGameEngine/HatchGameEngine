@@ -70,7 +70,7 @@ char Application::SettingsFile[MAX_PATH_LENGTH];
 XMLNode* Application::GameConfig = NULL;
 
 int Application::TargetFPS = DEFAULT_TARGET_FRAMERATE;
-float Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
+float Application::CurrentFPS = 0.0f;
 bool Application::Running = false;
 bool Application::FirstFrame = true;
 
@@ -95,6 +95,11 @@ char Application::PreferencesDir[256];
 
 std::unordered_map<std::string, Capability> Application::CapabilityMap;
 
+bool Application::UseFixedTimestep = true;
+bool Application::ShouldUseFixedTimestep = true;
+float Application::DeltaTime = 0.0f;
+float Application::ActualDeltaTime = 0.0f;
+float Application::FixedUpdateCounter = 0.0f;
 int Application::UpdatesPerFrame = 1;
 int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
 bool Application::Stepper = false;
@@ -123,12 +128,13 @@ bool TakeSnapshot = false;
 bool DoNothing = false;
 int UpdatesPerFastForward = 4;
 
-int BenchmarkFrameCount = 0;
-double BenchmarkTickStart = 0.0;
+int BenchmarkFrame = 0;
+float BenchmarkCounter = 0;
 
 double Overdelay = 0.0;
 double FrameTimeStart = 0.0;
 double FrameTimeDesired = 1000.0 / Application::TargetFPS;
+double FixedFrameTimeDesired;
 
 int KeyBinds[(int)KeyBind::Max];
 
@@ -814,7 +820,7 @@ void Application::EndGame() {
 	}
 
 	// Reset FPS timer
-	BenchmarkFrameCount = 0;
+	BenchmarkCounter = 0.0f;
 
 	InputManager::ControllerStopRumble();
 
@@ -1253,7 +1259,7 @@ void Application::PollEvents() {
 				// Restart scene (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevRestartScene]) {
 					// Reset FPS timer
-					BenchmarkFrameCount = 0;
+					BenchmarkCounter = 0.0f;
 
 					InputManager::ControllerStopRumble();
 
@@ -1367,8 +1373,25 @@ void Application::RunFrame(int runFrames) {
 
 			// Update scene
 			MetricUpdateTime = Clock::GetTicks();
-			Scene::Update();
+			Scene::FrameUpdate();
+			if (Application::UseFixedTimestep) {
+				Scene::FixedUpdate();
+			}
+			else {
+				Scene::Update();
+
+				while (FixedUpdateCounter >= FixedFrameTimeDesired) {
+					Scene::FixedUpdate();
+
+					FixedUpdateCounter -= FixedFrameTimeDesired;
+				}
+			}
 			MetricUpdateTime = Clock::GetTicks() - MetricUpdateTime;
+		}
+		else {
+			while (FixedUpdateCounter >= FixedFrameTimeDesired) {
+				FixedUpdateCounter -= FixedFrameTimeDesired;
+			}
 		}
 		Step = false;
 		if (runFrames != 1 && (*Scene::NextScene || Scene::DoRestart)) {
@@ -1679,6 +1702,11 @@ void Application::DelayFrame() {
 			;
 	}
 }
+void Application::SetUseFixedTimestep(bool useFixedTimestep) {
+	UseFixedTimestep = useFixedTimestep;
+
+	ScriptEntity::SetUseFixedTimestep(useFixedTimestep);
+}
 void Application::StartGame(const char* startingScene) {
 	Application::InitScripting();
 
@@ -1760,42 +1788,51 @@ void Application::Run(int argc, char* args[]) {
 	float lastTick = Clock::GetTicks();
 	while (Running) {
 		float tickStart = Clock::GetTicks();
-		float timeTaken = tickStart - lastTick;
+
+		int adjustedUpdateFrames = UpdatesPerFrame;
+
+		DeltaTime = tickStart - lastTick;
 		lastTick = tickStart;
 
-		int updateFrames = UpdatesPerFrame;
-		if (updateFrames == 1) {
+		if (UseFixedTimestep) {
 			// Compensate for lag
-			int lagFrames = ((int)round(timeTaken / FrameTimeDesired)) - 1;
-			if (lagFrames > Application::FrameSkip) {
-				lagFrames = Application::FrameSkip;
-			}
+			if (UpdatesPerFrame == 1) {
+				int lagFrames = ((int)round(DeltaTime / FrameTimeDesired)) - 1;
+				if (lagFrames > Application::FrameSkip) {
+					lagFrames = Application::FrameSkip;
+				}
 
-			if (!FirstFrame && lagFrames > 0) {
-				updateFrames += lagFrames;
+				if (!FirstFrame && lagFrames > 0) {
+					adjustedUpdateFrames += lagFrames;
+				}
 			}
 		}
-
-		if (BenchmarkFrameCount == 0) {
-			BenchmarkTickStart = tickStart;
+		else {
+			ActualDeltaTime = DeltaTime / 1000.0;
+			FixedFrameTimeDesired = 1000.0 / (Application::TargetFPS * UpdatesPerFrame);
+			FixedUpdateCounter += DeltaTime;
 		}
 
-		Application::RunFrame(updateFrames);
-		Application::DelayFrame();
+		Application::RunFrame(adjustedUpdateFrames);
+
+		if (UseFixedTimestep) {
+			Application::DelayFrame();
+		}
 
 		// Do benchmarking stuff
-		BenchmarkFrameCount++;
-		if (BenchmarkFrameCount == TargetFPS) {
-			double measuredSecond = Clock::GetTicks() - BenchmarkTickStart;
-			CurrentFPS = 1000.0 / floor(measuredSecond) * TargetFPS;
-			BenchmarkFrameCount = 0;
+		BenchmarkFrame++;
+		BenchmarkCounter += DeltaTime;
+		if (BenchmarkCounter >= 1000.0f) {
+			CurrentFPS = BenchmarkFrame;
+			BenchmarkFrame = 0;
+			BenchmarkCounter = 0.0f;
 		}
 
 		if (AutomaticPerformanceSnapshots &&
 			MetricFrameTime > AutomaticPerformanceSnapshotFrameTimeThreshold) {
-			if (Clock::GetTicks() - AutomaticPerformanceSnapshotLastTime >
+			if (tickStart - AutomaticPerformanceSnapshotLastTime >
 				AutomaticPerformanceSnapshotMinInterval) {
-				AutomaticPerformanceSnapshotLastTime = Clock::GetTicks();
+				AutomaticPerformanceSnapshotLastTime = tickStart;
 				TakeSnapshot = true;
 			}
 		}
@@ -1803,6 +1840,10 @@ void Application::Run(int argc, char* args[]) {
 		if (TakeSnapshot) {
 			TakeSnapshot = false;
 			Application::GetPerformanceSnapshot();
+		}
+
+		if (ShouldUseFixedTimestep != UseFixedTimestep) {
+			SetUseFixedTimestep(ShouldUseFixedTimestep);
 		}
 
 		if (NextGame[0] != '\0') {
