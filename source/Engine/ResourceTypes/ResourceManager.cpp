@@ -169,6 +169,7 @@ bool ResourceManager::Init(const char* dataFilePath) {
 			}
 		}
 #endif
+	}
 
 
 	//ERROR_IS_NULL_RET_VAL(GetMainResource(), false, "No data files loaded!");
