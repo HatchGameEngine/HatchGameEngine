@@ -54,8 +54,7 @@ enum {
 enum {
 	DrawBehavior_HorizontalParallax = 0,
 	DrawBehavior_VerticalParallax = 1,
-	DrawBehavior_CustomTileScanLines = 2,
-	DrawBehavior_PGZ1_BG = 3,
+	DrawBehavior_CustomTileScanLines = 2
 };
 
 enum {
@@ -111,7 +110,9 @@ struct Point {
 	float Y;
 	float Z;
 };
+// TODO: Graphics should have a pointer to a GraphicsState.
 struct GraphicsState {
+	void* CurrentShader;
 	Viewport CurrentViewport;
 	ClipArea CurrentClip;
 	float BlendColors[4];
@@ -134,7 +135,7 @@ struct BlendState {
 	int Opacity;
 	int Mode;
 	TintState Tint;
-	int* FilterTable;
+	int FilterMode;
 };
 
 typedef void (*PixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*);

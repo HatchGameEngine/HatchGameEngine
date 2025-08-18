@@ -12,12 +12,7 @@
 ## This Makefile prologue provides multi-platform build normalisation.
 ## It explicates paths for toolchain executables, libraries, utility
 ## programs, and platform-specific errata for an exaustive matrix of
-## compilation hosts and targets. It also provides 'synthetic
-## definitions', or syndefs for short, that expose platform-specific
-## details in a portable way to C code in projects using Inbound. It
-## also provides a similar mechanism for 'configuration options', or
-## cfgopts, which allow the user building the project to modify the
-## compilation in a fully declarative way.
+## compilation hosts and targets.
 ##
 ## Inbound was originally the v2.0 rewrite of the Slick Makefiles, a
 ## proof-of-concept created to show that meta-build tools such as CMake,
@@ -31,9 +26,14 @@
 # Check Make version; we need at least GNU Make 3.82. Fortunately,
 # 'undefine' directive has been introduced exactly in GNU Make 3.82.
 ifeq ($(filter undefine,$(value .FEATURES)),)
-$(error Unsupported Make version. \
+ifneq ($(strip $(MAKE_VERSION)),)
+$(error Unsupported GNU Make version. \
 The build system does not work properly with GNU Make $(MAKE_VERSION). \
 Please use GNU Make 3.82 or later)
+else
+$(error Unsupported Make utility. \
+Please use GNU Make 3.82 or later)
+endif
 endif
 
 # INB_OVERRIDE : If set, epilogue.mk will take user-set *FLAGS
@@ -790,6 +790,8 @@ override INSTALL := $(INSTALL.O_$(.O_INSTALL))
 override ECHO    := $(ECHO.O_$(.O_ECHO))
 override CP      := $(CP.O_$(.O_CP))
 
+BITBOUND := $(shell $(ECHO) -e '\n#include <stdio.h>\nstatic const char*const s="_BB_CSZ=%lu _BB_SSZ=%lu _BB_ISZ=%lu _BB_LSZ=%lu _BB_PSZ=%lu _BB_FSZ=%lu _BB_DSZ=%lu _BB_LDSZ=%lu \\n";int main(int ac,char*av[]){(void)ac;(void)av;printf(s,sizeof(char),sizeof(short),sizeof(int),sizeof(long),sizeof(void*),sizeof(float),sizeof(double),sizeof(long double));return 0;}' > bitbound.c ; cc -obitbound.tmp bitbound.c && ./bitbound.tmp && $(RM) bitbound.c && $(RM) bitbound.tmp)
+
 ## Suffixes.
 
 # Shared libraries.
@@ -911,87 +913,89 @@ override EXE := $(EXE.O_$(.O_EXE))
 
 ASFLAGS.AGBHB    := -EL -march=armv4t -mcpu=arm7tdmi -mthumb-interwork
 ASFLAGS.AGBSP    := -EL -march=armv4t -mcpu=arm7tdmi
-ASFLAGS.DARWIN86 := -march=x86-64 -mtune=x86-64
+ASFLAGS.DARWIN86 := -march=x86-64 -mtune=k8
 ASFLAGS.DARWINM1 := -march=armv8.4-a -mcpu=apple-m1
-ASFLAGS.FREEBSD  := -march=x86-64 -mtune=x86-64
+ASFLAGS.FREEBSD  := -march=x86-64 -mtune=k8
 ASFLAGS.IBMPC    := -2
 ASFLAGS.ILLUMOS  := -mcpu=v9 -mtune=niagara
-ASFLAGS.LINUX32  := -march=i686 -mtune=x86-64
-ASFLAGS.LINUX64  := -march=x86-64 -mtune=x86-64
-ASFLAGS.OPENBSD  := -march=x86-64 -mtune=x86-64
+ASFLAGS.LINUX32  := -march=i686 -mtune=k8
+ASFLAGS.LINUX64  := -march=x86-64 -mtune=k8
+ASFLAGS.OPENBSD  := -march=x86-64 -mtune=k8
 ASFLAGS.PCDOS    := -2 -bt=dos
 ASFLAGS.WIN311   := -2p -bt=windows
 ASFLAGS.WIN95    := -march=i386 -mtune=i486
 ASFLAGS.WINNT32  := -march=i386 -mtune=i686
-ASFLAGS.WINNT64  := -march=x86-64 -mtune=x86-64
+ASFLAGS.WINNT64  := -march=x86-64 -mtune=k8
 
 # C compiler flags.
 # Form: CFLAGS.<RECIPE>.<TP>
 
+.K_CFLAGS_W := -Wpedantic -Wno-long-long -Wno-empty-translation-unit
+
 CFLAGS.ANY.AGBHB    := -ansi -frandom-seed=69420 -march=armv4t \
-	-mcpu=arm7tdmi -mthumb-interwork -pipe -Wpedantic \
-	-Wno-builtin-declaration-mismatch -Wno-long-long -x c
+	-mcpu=arm7tdmi -mthumb-interwork -pipe \
+	-Wno-builtin-declaration-mismatch $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.AGBSP    := -ansi -ffreestanding -fno-pie -fPIC \
 	-frandom-seed=69420 -march=armv4t -mcpu=arm7tdmi -nostdinc -pipe \
-	-Wpedantic -Wno-long-long -x c
+	$(.K_CFLAGS_W) -x c
 CFLAGS.ANY.DARWIN86 := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.DARWINM1 := -ansi -fPIC -frandom-seed=69420 \
-	-march=armv8.4-a -mcpu=apple-m1 -pipe -Wpedantic -Wno-long-long -x c
+	-march=armv8.4-a -mcpu=apple-m1 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.FREEBSD  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.IBMPC    := -2 -aa -ecw -ml -zA -zastd=c89 -zku8 -zl -zld \
 	-zls -zp2 -zu
 CFLAGS.ANY.ILLUMOS  := -ansi -fPIC -frandom-seed=69420 -mcpu=v9 \
-	-mtune=niagara -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=niagara -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.LINUX32  := -ansi -fPIC -frandom-seed=69420 -march=i686 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.LINUX64  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.OPENBSD  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.PCDOS    := -2 -aa -bt=dos -ecp -ml -zastd=c89 -zku8 -zl \
 	-zld -zls -zp2 -zu
 CFLAGS.ANY.WIN311   := -2 -aa -bt=windows -ecp -ml -zastd=c89 -zku8 \
 	-zl -zld -zls -zp2 -zu -zW -zw -zws
 CFLAGS.ANY.WIN95    := -ansi -fPIC -frandom-seed=69420 -march=i386 \
-	-mtune=i486 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=i486 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.WINNT32  := -ansi -fPIC -frandom-seed=69420 -march=i386 \
-	-mtune=i686 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=i686 -pipe $(.K_CFLAGS_W) -x c
 CFLAGS.ANY.WINNT64  := -ansi -fPIC -frandom-seed=69420 -march=x86-64 \
-	-mtune=x86-64 -pipe -Wpedantic -Wno-long-long -x c
+	-mtune=k8 -pipe $(.K_CFLAGS_W) -x c
 
-CFLAGS.DEBUG.AGBHB    := -O0 -g3 -Wall
-CFLAGS.DEBUG.AGBSP    := -O0 -g3 -Wall
-CFLAGS.DEBUG.DARWIN86 := -O0 -g3 -Wall
-CFLAGS.DEBUG.DARWINM1 := -O0 -g3 -Wall
-CFLAGS.DEBUG.FREEBSD  := -O0 -g3 -Wall
-CFLAGS.DEBUG.IBMPC    := -d2 -hd -wx
-CFLAGS.DEBUG.ILLUMOS  := -O0 -g3 -Wall
-CFLAGS.DEBUG.LINUX32  := -O0 -g3 -Wall
-CFLAGS.DEBUG.LINUX64  := -O0 -g3 -Wall
-CFLAGS.DEBUG.OPENBSD  := -O0 -g3 -Wall
-CFLAGS.DEBUG.PCDOS    := -d2 -hd -wx
-CFLAGS.DEBUG.WIN311   := -d2 -hd -wx
-CFLAGS.DEBUG.WIN95    := -O0 -g3 -Wall
-CFLAGS.DEBUG.WINNT32  := -O0 -g3 -Wall
-CFLAGS.DEBUG.WINNT64  := -O0 -g3 -Wall
+CFLAGS.DEBUG.AGBHB    := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.AGBSP    := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.DARWIN86 := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.DARWINM1 := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.FREEBSD  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.IBMPC    := -c -d2 -hd -wx
+CFLAGS.DEBUG.ILLUMOS  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.LINUX32  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.LINUX64  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.OPENBSD  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.PCDOS    := -c -d2 -hd -wx
+CFLAGS.DEBUG.WIN311   := -c -d2 -hd -wx
+CFLAGS.DEBUG.WIN95    := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.WINNT32  := -c -O0 -g3 -Wall
+CFLAGS.DEBUG.WINNT64  := -c -O0 -g3 -Wall
 
-CFLAGS.RELEASE.AGBHB    := -O3 -w
-CFLAGS.RELEASE.AGBSP    := -O3 -w
-CFLAGS.RELEASE.DARWIN86 := -O3 -w
-CFLAGS.RELEASE.DARWINM1 := -O3 -w
-CFLAGS.RELEASE.FREEBSD  := -O3 -w
-CFLAGS.RELEASE.IBMPC    := -d0 -ox -w=0
-CFLAGS.RELEASE.ILLUMOS  := -O3 -w
-CFLAGS.RELEASE.LINUX32  := -O3 -w
-CFLAGS.RELEASE.LINUX64  := -O3 -w
-CFLAGS.RELEASE.OPENBSD  := -O3 -w
-CFLAGS.RELEASE.PCDOS    := -d0 -ox -w=0
-CFLAGS.RELEASE.WIN311   := -d0 -ox -w=0
-CFLAGS.RELEASE.WIN95    := -O3 -w
-CFLAGS.RELEASE.WINNT32  := -O3 -w
-CFLAGS.RELEASE.WINNT64  := -O3 -w
+CFLAGS.RELEASE.AGBHB    := -c -O3 -w
+CFLAGS.RELEASE.AGBSP    := -c -O3 -w
+CFLAGS.RELEASE.DARWIN86 := -c -O3 -w
+CFLAGS.RELEASE.DARWINM1 := -c -O3 -w
+CFLAGS.RELEASE.FREEBSD  := -c -O3 -w
+CFLAGS.RELEASE.IBMPC    := -c -d0 -ox -w=0
+CFLAGS.RELEASE.ILLUMOS  := -c -O3 -w
+CFLAGS.RELEASE.LINUX32  := -c -O3 -w
+CFLAGS.RELEASE.LINUX64  := -c -O3 -w
+CFLAGS.RELEASE.OPENBSD  := -c -O3 -w
+CFLAGS.RELEASE.PCDOS    := -c -d0 -ox -w=0
+CFLAGS.RELEASE.WIN311   := -c -d0 -ox -w=0
+CFLAGS.RELEASE.WIN95    := -c -O3 -w
+CFLAGS.RELEASE.WINNT32  := -c -O3 -w
+CFLAGS.RELEASE.WINNT64  := -c -O3 -w
 
 CFLAGS.CHECK.AGBHB    := -E -Wextra -Werror -Wno-unused-variable
 CFLAGS.CHECK.AGBSP    := -E -Wextra -Werror -Wno-unused-variable
@@ -1012,69 +1016,71 @@ CFLAGS.CHECK.WINNT64  := -E -Wextra -Werror -Wno-unused-variable
 # C++ compiler flags.
 # Form: CXXFLAGS.<RECIPE>.<TP>
 
+.K_CXXFLAGS_W := -Wpedantic -Wno-long-long
+
 CXXFLAGS.ANY.AGBHB    := -std=c++11 -frandom-seed=69420 -march=armv4t \
-	-mcpu=arm7tdmi -mthumb-interwork -pipe -Wpedantic -x c++
+	-mcpu=arm7tdmi -mthumb-interwork -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.AGBSP    := -std=c++11 -ffreestanding -fno-pie -fPIC \
 	-frandom-seed=69420 -march=armv4t -mcpu=arm7tdmi -nostdinc -pipe \
-	-Wpedantic -x c++
+	$(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.DARWIN86 := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=x86-64 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.DARWINM1 := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=armv8.4-a -mcpu=apple-m1 -pipe -Wpedantic -x c++
+	-march=armv8.4-a -mcpu=apple-m1 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.FREEBSD  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=x86-64 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.IBMPC    := -2 -aa -ecw -ml -zA -zastd=c89 -zku8 -zl \
 	-zld -zls -zp2 -zu
 CXXFLAGS.ANY.ILLUMOS  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-mcpu=v9 -mtune=niagara -pipe -Wpedantic -x c++
+	-mcpu=v9 -mtune=niagara -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.LINUX32  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=i686 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=i686 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.LINUX64  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=x86-64 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.OPENBSD  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=x86-64 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.PCDOS    := -2 -aa -bt=dos -ecp -ml -zastd=c89 -zku8 -zl \
 	-zld -zls -zp2 -zu
 CXXFLAGS.ANY.WIN311   := -2 -aa -bt=windows -ecp -ml -zastd=c89 -zku8 \
 	-zl -zld -zls -zp2 -zu -zW -zw -zws
 CXXFLAGS.ANY.WIN95    := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=i386 -mtune=i486 -pipe -Wpedantic -x c++
+	-march=i386 -mtune=i486 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.WINNT32  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=i386 -mtune=i686 -pipe -Wpedantic -x c++
+	-march=i386 -mtune=i686 -pipe $(.K_CXXFLAGS_W) -x c++
 CXXFLAGS.ANY.WINNT64  := -std=c++11 -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x c++
+	-march=x86-64 -mtune=k8 -pipe $(.K_CXXFLAGS_W) -x c++
 
-CXXFLAGS.DEBUG.AGBHB    := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.AGBSP    := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.DARWIN86 := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.DARWINM1 := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.FREEBSD  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.IBMPC    := -d2 -hd -wx
-CXXFLAGS.DEBUG.ILLUMOS  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.LINUX32  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.LINUX64  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.OPENBSD  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.PCDOS    := -d2 -hd -wx
-CXXFLAGS.DEBUG.WIN311   := -d2 -hd -wx
-CXXFLAGS.DEBUG.WIN95    := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.WINNT32  := -O0 -g3 -Wall
-CXXFLAGS.DEBUG.WINNT64  := -O0 -g3 -Wall
+CXXFLAGS.DEBUG.AGBHB    := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.AGBSP    := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.DARWIN86 := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.DARWINM1 := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.FREEBSD  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.IBMPC    := -c -d2 -hd -wx
+CXXFLAGS.DEBUG.ILLUMOS  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.LINUX32  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.LINUX64  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.OPENBSD  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.PCDOS    := -c -d2 -hd -wx
+CXXFLAGS.DEBUG.WIN311   := -c -d2 -hd -wx
+CXXFLAGS.DEBUG.WIN95    := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.WINNT32  := -c -O0 -g3 -Wall
+CXXFLAGS.DEBUG.WINNT64  := -c -O0 -g3 -Wall
 
-CXXFLAGS.RELEASE.AGBHB    := -O3 -w
-CXXFLAGS.RELEASE.AGBSP    := -O3 -w
-CXXFLAGS.RELEASE.DARWIN86 := -O3 -w
-CXXFLAGS.RELEASE.DARWINM1 := -O3 -w
-CXXFLAGS.RELEASE.FREEBSD  := -O3 -w
-CXXFLAGS.RELEASE.IBMPC    := -d0 -ox -w=0
-CXXFLAGS.RELEASE.ILLUMOS  := -O3 -w
-CXXFLAGS.RELEASE.LINUX32  := -O3 -w
-CXXFLAGS.RELEASE.LINUX64  := -O3 -w
-CXXFLAGS.RELEASE.OPENBSD  := -O3 -w
-CXXFLAGS.RELEASE.PCDOS    := -d0 -ox -w=0
-CXXFLAGS.RELEASE.WIN311   := -d0 -ox -w=0
-CXXFLAGS.RELEASE.WIN95    := -O3 -w
-CXXFLAGS.RELEASE.WINNT32  := -O3 -w
-CXXFLAGS.RELEASE.WINNT64  := -O3 -w
+CXXFLAGS.RELEASE.AGBHB    := -c -O3 -w
+CXXFLAGS.RELEASE.AGBSP    := -c -O3 -w
+CXXFLAGS.RELEASE.DARWIN86 := -c -O3 -w
+CXXFLAGS.RELEASE.DARWINM1 := -c -O3 -w
+CXXFLAGS.RELEASE.FREEBSD  := -c -O3 -w
+CXXFLAGS.RELEASE.IBMPC    := -c -d0 -ox -w=0
+CXXFLAGS.RELEASE.ILLUMOS  := -c -O3 -w
+CXXFLAGS.RELEASE.LINUX32  := -c -O3 -w
+CXXFLAGS.RELEASE.LINUX64  := -c -O3 -w
+CXXFLAGS.RELEASE.OPENBSD  := -c -O3 -w
+CXXFLAGS.RELEASE.PCDOS    := -c -d0 -ox -w=0
+CXXFLAGS.RELEASE.WIN311   := -c -d0 -ox -w=0
+CXXFLAGS.RELEASE.WIN95    := -c -O3 -w
+CXXFLAGS.RELEASE.WINNT32  := -c -O3 -w
+CXXFLAGS.RELEASE.WINNT64  := -c -O3 -w
 
 CXXFLAGS.CHECK.AGBHB    := -E -Wextra -Werror -Wno-unused-variable
 CXXFLAGS.CHECK.AGBSP    := -E -Wextra -Werror -Wno-unused-variable
@@ -1095,57 +1101,61 @@ CXXFLAGS.CHECK.WINNT64  := -E -Wextra -Werror -Wno-unused-variable
 # Objective-C compiler flags.
 # Form: OBJCFLAGS.<RECIPE>.<TP>
 
+.K_OBJCFLAGS_W := -Wpedantic -Wno-long-long
+
 OBJCFLAGS.ANY.AGBHB    := -ansi -frandom-seed=69420 -march=armv4t \
-	-mcpu=arm7tdmi -mthumb-interwork -pipe -Wpedantic -x objective-c
+	-mcpu=arm7tdmi -mthumb-interwork -pipe $(.K_OBJCFLAGS_W) \
+	-x objective-c
 OBJCFLAGS.ANY.AGBSP    := -ansi -ffreestanding -fno-pie -fPIC \
 	-frandom-seed=69420 -march=armv4t -mcpu=arm7tdmi -nostdinc -pipe \
-	-Wpedantic -x objective-c
+	$(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.DARWIN86 := -ansi -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-march=x86-64 -mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.DARWINM1 := -ansi -fPIC -frandom-seed=69420 \
-	-march=armv8.4-a -mcpu=apple-m1 -pipe -Wpedantic -x objective-c
+	-march=armv8.4-a -mcpu=apple-m1 -pipe $(.K_OBJCFLAGS_W) \
+	-x objective-c
 OBJCFLAGS.ANY.FREEBSD  := -ansi -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-march=x86-64 -mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.ILLUMOS  := -ansi -fPIC -frandom-seed=69420 -mcpu=v9 \
-	-mtune=niagara -pipe -Wpedantic -x objective-c
+	-mtune=niagara -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.LINUX32  := -ansi -fPIC -frandom-seed=69420 -march=i686 \
-	-mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.LINUX64  := -ansi -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-march=x86-64 -mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.OPENBSD  := -ansi -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-march=x86-64 -mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.WIN95    := -ansi -fPIC -frandom-seed=69420 -march=i386 \
-	-mtune=i486 -pipe -Wpedantic -x objective-c
+	-mtune=i486 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.WINNT32  := -ansi -fPIC -frandom-seed=69420 -march=i386 \
-	-mtune=i686 -pipe -Wpedantic -x objective-c
+	-mtune=i686 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 OBJCFLAGS.ANY.WINNT64  := -ansi -fPIC -frandom-seed=69420 \
-	-march=x86-64 -mtune=x86-64 -pipe -Wpedantic -x objective-c
+	-march=x86-64 -mtune=k8 -pipe $(.K_OBJCFLAGS_W) -x objective-c
 
-OBJCFLAGS.DEBUG.AGBHB    := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.AGBSP    := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.DARWIN86 := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.DARWINM1 := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.FREEBSD  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.ILLUMOS  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.LINUX32  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.LINUX64  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.OPENBSD  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.WIN95    := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.WINNT32  := -O0 -g3 -Wall
-OBJCFLAGS.DEBUG.WINNT64  := -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.AGBHB    := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.AGBSP    := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.DARWIN86 := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.DARWINM1 := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.FREEBSD  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.ILLUMOS  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.LINUX32  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.LINUX64  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.OPENBSD  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.WIN95    := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.WINNT32  := -c -O0 -g3 -Wall
+OBJCFLAGS.DEBUG.WINNT64  := -c -O0 -g3 -Wall
 
-OBJCFLAGS.RELEASE.AGBHB    := -O3 -w
-OBJCFLAGS.RELEASE.AGBSP    := -O3 -w
-OBJCFLAGS.RELEASE.DARWIN86 := -O3 -w
-OBJCFLAGS.RELEASE.DARWINM1 := -O3 -w
-OBJCFLAGS.RELEASE.FREEBSD  := -O3 -w
-OBJCFLAGS.RELEASE.ILLUMOS  := -O3 -w
-OBJCFLAGS.RELEASE.LINUX32  := -O3 -w
-OBJCFLAGS.RELEASE.LINUX64  := -O3 -w
-OBJCFLAGS.RELEASE.OPENBSD  := -O3 -w
-OBJCFLAGS.RELEASE.WIN95    := -O3 -w
-OBJCFLAGS.RELEASE.WINNT32  := -O3 -w
-OBJCFLAGS.RELEASE.WINNT64  := -O3 -w
+OBJCFLAGS.RELEASE.AGBHB    := -c -O3 -w
+OBJCFLAGS.RELEASE.AGBSP    := -c -O3 -w
+OBJCFLAGS.RELEASE.DARWIN86 := -c -O3 -w
+OBJCFLAGS.RELEASE.DARWINM1 := -c -O3 -w
+OBJCFLAGS.RELEASE.FREEBSD  := -c -O3 -w
+OBJCFLAGS.RELEASE.ILLUMOS  := -c -O3 -w
+OBJCFLAGS.RELEASE.LINUX32  := -c -O3 -w
+OBJCFLAGS.RELEASE.LINUX64  := -c -O3 -w
+OBJCFLAGS.RELEASE.OPENBSD  := -c -O3 -w
+OBJCFLAGS.RELEASE.WIN95    := -c -O3 -w
+OBJCFLAGS.RELEASE.WINNT32  := -c -O3 -w
+OBJCFLAGS.RELEASE.WINNT64  := -c -O3 -w
 
 OBJCFLAGS.CHECK.AGBHB    := -E -Wextra -Werror -Wno-unused-variable
 OBJCFLAGS.CHECK.AGBSP    := -E -Wextra -Werror -Wno-unused-variable
@@ -1295,7 +1305,7 @@ SYNDEFS.WINNT32  := WINDOWS IA32 WINNT LILENDIAN PTRSZ_32 HAVE_I64 \
 SYNDEFS.WINNT64  := WINDOWS AMD64 WINNT LILENDIAN PTRSZ_64 HAVE_I64 \
 	HAVE_I32 HAVE_FP FP_SOFT LONGSZ_32
 
-FMTFLAGS := -style=file:meta/clang-format.yml
+FMTFLAGS := -style=file:etc/clang-format.yml
 
 # Make builds deterministic when using LLVM or GNU C/C++ compilers.
 # These are the environment variables necessary; see CFLAGS and

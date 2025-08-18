@@ -33,6 +33,8 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 
 		Format = SoundData->InputFormat;
 
+		LoopPoint = SoundData->LoopPoint;
+
 		Log::Print(Log::LOG_VERBOSE,
 			"OGG load took %.3f ms (%s)",
 			Clock::GetTicks() - ticks,

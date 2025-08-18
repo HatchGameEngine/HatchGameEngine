@@ -3,6 +3,7 @@
 
 #include <Engine/Includes/Standard.h>
 #include <Engine/Math/Matrix4x4.h>
+#include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/Texture.h>
 
 class View {
@@ -34,7 +35,8 @@ public:
 	Uint8* StencilBuffer = NULL;
 	size_t StencilBufferSize = 0;
 	Matrix4x4* ProjectionMatrix = NULL;
-	Matrix4x4* BaseProjectionMatrix = NULL;
+	Matrix4x4* ViewMatrix = NULL;
+	Shader* CurrentShader = NULL;
 
 	void SetSize(float w, float h);
 	void SetStencilEnabled(bool enabled);

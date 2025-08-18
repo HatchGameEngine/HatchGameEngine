@@ -8,9 +8,8 @@
 class ResourceManager {
 public:
 	static bool UsingDataFolder;
-	static bool UsingModPack;
 
-	static bool Init(const char* filename);
+	static bool Init(const char* dataFilePath);
 	static bool Mount(const char* name,
 		const char* filename,
 		const char* mountPoint,

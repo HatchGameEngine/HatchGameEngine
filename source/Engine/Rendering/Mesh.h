@@ -160,7 +160,7 @@ struct Skeleton {
 	Vector3* TransformedNormals;
 
 	Matrix4x4* GlobalInverseMatrix; // Pointer to the model's
-		// GlobalInverseMatrix
+	// GlobalInverseMatrix
 
 	Skeleton() {
 		Bones = nullptr;

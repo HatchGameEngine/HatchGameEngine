@@ -42,7 +42,7 @@ else
 endif # $(origin INB_DEBUGLOG)
 
 # Set the origin-dependent values of the new variable.
-INB_DEBUGLOG.O_DEFAULT := debug.log
+INB_DEBUGLOG.O_DEFAULT := build.log
 INB_DEBUGLOG.O_CUSTOM := $(INB_DEBUGLOG)
 
 # Finally, set the variable.
@@ -131,17 +131,6 @@ else ifeq ($(origin LDFLAGS),default)
 else
 # environment [override], file, command line, override, automatic
 .L_LDFLAGS += $(LDFLAGS)
-endif
-
-# SYNDEFS
-.L_SYNDEFS := $(SYNDEFS.$(TP))
-ifeq ($(origin SYNDEFS),undefined)
-# nop
-else ifeq ($(origin SYNDEFS),default)
-# nop
-else
-# environment [override], file, command line, override, automatic
-.L_SYNDEFS += $(SYNDEFS)
 endif
 
 ## Override the *FLAGS variables if requested and such *FLAGS are
@@ -242,7 +231,6 @@ CXXFLAGS  := $(.L_CXXFLAGS)
 OBJCFLAGS := $(.L_OBJCFLAGS)
 ARFLAGS   := $(.L_ARFLAGS)
 LDFLAGS   := $(.L_LDFLAGS)
-SYNDEFS   := $(.L_SYNDEFS)
 
 ## Add built-in libs and #includes
 
@@ -403,22 +391,19 @@ ifeq ($(TP),IBMPC)
 .K_INCLUDE := -i=$(SYSROOT)/include $(patsubst %,-i=%,$(INCLUDES) \
 	$(SYSROOT)/lib $(.K_INCLUDES.$(HP).$(TP)) $(INCLUDEL))
 .K_ASINCLUDE := $(.K_INCLUDE)
-.K_DEFINE := $(patsubst %,-d%,$(DEFINES) _CFGOPT_FOO) \
-	$(patsubst %,-d_SYNDEF_%,$(SYNDEFS))
+.K_DEFINE := $(patsubst %,-d%,$(DEFINES)) $(patsubst %,-d%,$(BITBOUND))
 .K_ASDEFINE := $(.K_DEFINE)
 else ifeq ($(TP),PCDOS)
 .K_INCLUDE := -i=$(SYSROOT)/include $(patsubst %,-i=%,$(INCLUDES) \
 	$(SYSROOT)/lib $(.K_INCLUDES.$(HP).$(TP)) $(INCLUDEL))
 .K_ASINCLUDE := $(.K_INCLUDE)
-.K_DEFINE := $(patsubst %,-d%,$(DEFINES) _CFGOPT_FOO) \
-	$(patsubst %,-d_SYNDEF_%,$(SYNDEFS))
+.K_DEFINE := $(patsubst %,-d%,$(DEFINES)) $(patsubst %,-d%,$(BITBOUND))
 .K_ASDEFINE := $(.K_DEFINE)
 else ifeq ($(TP),WIN311)
 .K_INCLUDE := -i=$(SYSROOT)/include $(patsubst %,-i=%,$(INCLUDES) \
 	$(SYSROOT)/lib $(.K_INCLUDES.$(HP).$(TP)) $(INCLUDEL))
 .K_ASINCLUDE := $(.K_INCLUDE)
-.K_DEFINE := $(patsubst %,-d%,$(DEFINES) _CFGOPT_FOO) \
-	$(patsubst %,-d_SYNDEF_%,$(SYNDEFS))
+.K_DEFINE := $(patsubst %,-d%,$(DEFINES)) $(patsubst %,-d%,$(BITBOUND))
 .K_ASDEFINE := $(.K_DEFINE)
 else
 .K_INCLUDE := -isystem $(TROOT)/include $(patsubst %,-isystem \
@@ -426,12 +411,8 @@ else
 	$(patsubst %,-iquote %,$(INCLUDEL))
 .K_ASINCLUDE := -I$(TROOT)/include $(patsubst %,-I%,$(INCLUDES) \
 	$(SYSROOT)/lib $(.K_INCLUDES.$(HP).$(TP)) $(INCLUDEL))
-.K_DEFINE := \
-	$(patsubst %,-D%,$(DEFINES) _CFGOPT_FOO) \
-	$(patsubst %,-D_SYNDEF_%,$(SYNDEFS) FOO)
-.K_ASDEFINE := \
-	$(patsubst %,--defsym %=1,$(DEFINES) _CFGOPT_FOO) \
-	$(patsubst %,--defsym _SYNDEF_%=1,$(SYNDEFS) FOO)
+.K_DEFINE := $(patsubst %,-D%,$(DEFINES)) $(patsubst %,-D%,$(BITBOUND))
+.K_ASDEFINE := $(patsubst %,--defsym %=1,$(DEFINES))
 endif
 
 ## Name the targets.
@@ -649,6 +630,24 @@ endif
 
 .L_OFILES := $(.L_OFILES.COMMON) $(.L_OFILES.$(TP))
 
+# IntelliSense schematic temporary artefacts.
+SCHFILES := $(patsubst %,%.sch,$(CFILES) $(CPPFILES) $(MFILES) \
+	$(PUBHFILES) $(PRVHFILES) $(CFILES.AGBHB) $(CPPFILES.AGBHB) \
+	$(CFILES.AGBSP) $(CPPFILES.AGBSP) \
+	$(CFILES.DARWIN86) $(CPPFILES.DARWIN86) $(MFILES.DARWIN86) \
+	$(CFILES.DARWINM1) $(CPPFILES.DARWINM1) $(MFILES.DARWINM1) \
+	$(CFILES.FREEBSD) $(CPPFILES.FREEBSD) \
+	$(CFILES.IBMPC) $(CPPFILES.IBMPC) \
+	$(CFILES.ILLUMOS) $(CPPFILES.ILLUMOS) \
+	$(CFILES.LINUX32) $(CPPFILES.LINUX32) \
+	$(CFILES.LINUX64) $(CPPFILES.LINUX64) \
+	$(CFILES.OPENBSD) $(CPPFILES.OPENBSD) \
+	$(CFILES.PCDOS) $(CPPFILES.PCDOS) \
+	$(CFILES.WIN311) $(CPPFILES.WIN311) \
+	$(CFILES.WIN95) $(CPPFILES.WIN95) \
+	$(CFILES.WINNT32) $(CPPFILES.WINNT32) \
+	$(CFILES.WINNT64) $(CPPFILES.WINNT64))
+
 # Auto-formatter temporary artefacts.
 FMTFILES := $(patsubst %,%.fmt,$(CFILES) $(CPPFILES) $(MFILES) \
 	$(PUBHFILES) $(PRVHFILES) $(CFILES.AGBHB) $(CPPFILES.AGBHB) \
@@ -676,11 +675,14 @@ endif
 
 ## Define the target recipes.
 
-.PHONY: debug release check clean format
+.PHONY: debug release check schema clean format
 # Remove all default implicit rules by emptying the suffixes builtin
 # This causes false circular dependencies with multi-dotted file
-# extensionsif we don't do this
+# extensions if we don't do this
 .SUFFIXES:
+
+# schema generation uses stdio so it can't be parallelised easily
+.NOTPARALLEL: schema
 
 ## Debug build
 ## useful for: normal testing, valgrind, LLDB
@@ -746,7 +748,7 @@ check: OBJCFLAGS := $(OBJCFLAGS.CHECK.$(TP)) $(OBJCFLAGS)
 check: LDFLAGS := $(LDFLAGS.CHECK.$(TP)) $(LDFLAGS)
 # nop out when not used, as $(REALSTRIP) is called unconditionally
 check: REALSTRIP := ':' ; # : is a no-op
-check: $(.L_TARGETS)
+check: $(.L_OFILES)
 
 ## Define recipes.
 
@@ -764,6 +766,21 @@ check: $(.L_TARGETS)
 	@cat $< | $(FMT) $(FMTFLAGS) > $@
 	@mv $@ $<
 
+%.cc.fmt: %.cc
+	$(call .FN_FILE,FMT,$<)
+	@cat $< | $(FMT) $(FMTFLAGS) > $@
+	@mv $@ $<
+
+%.cxx.fmt: %.cxx
+	$(call .FN_FILE,FMT,$<)
+	@cat $< | $(FMT) $(FMTFLAGS) > $@
+	@mv $@ $<
+
+%.c++.fmt: %.c++
+	$(call .FN_FILE,FMT,$<)
+	@cat $< | $(FMT) $(FMTFLAGS) > $@
+	@mv $@ $<
+
 # Objective-C
 %.m.fmt: %.m
 	$(call .FN_FILE,FMT,$<)
@@ -775,34 +792,118 @@ check: $(.L_TARGETS)
 	@cat $< | $(FMT) $(FMTFLAGS) > $@
 	@mv $@ $<
 
+# C
+%.c.sch: %.c
+	$(call .FN_FILE,SCH,$<)
+	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
+	@$(ECHO) -n '"command":"' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
+	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
+
+# C++
+%.cpp.sch: %.cpp
+	$(call .FN_FILE,SCH,$<)
+	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
+	@$(ECHO) -n '"command":"' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
+	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
+
+%.cc.sch: %.cc
+	$(call .FN_FILE,SCH,$<)
+	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
+	@$(ECHO) -n '"command":"' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
+	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
+
+%.cxx.sch: %.cxx
+	$(call .FN_FILE,SCH,$<)
+	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
+	@$(ECHO) -n '"command":"' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
+	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
+
+%.c++.sch: %.c++
+	$(call .FN_FILE,SCH,$<)
+	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
+	@$(ECHO) -n '"command":"' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
+	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
+
+# Objective-C
+%.m.sch: %.m
+	$(call .FN_FILE,SCH,$<)
+	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
+	@$(ECHO) -n '"command":"' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
+	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
+
+%.h.sch: %.h
+	$(call .FN_FILE,SCH,$<)
+	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
+	@$(ECHO) -n '"command":"' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
+	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
+
 # Ofile recipes.
 
 # Assembly
 %.s.o: %.s
 	$(call .FN_FILE,S,$@)
-	@$(AS) -o $@ $(ASFLAGS) $(.K_ASDEFINE) $(.K_ASINCLUDE) $<
+	@$(AS) -o $@ $(ASFLAGS) $(.K_ASDEFINE) $(.K_ASINCLUDE) $< \
+		2>>$(INB_DEBUGLOG)
+
+%.asm.o: $.asm
+	$(call .FN_FILE,S,$@)
+	@$(AS) -o $@ $(ASFLAGS) $(.K_ASDEFINE) $(.K_ASINCLUDE) $< \
+		2>>$(INB_DEBUGLOG)
 
 # C
 %.c.o: %.c
 	$(call .FN_FILE,C,$@)
-	@$(CC) -c -o $@ $(CFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $<
+	@$(CC) -o $@ $(CFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $< \
+		2>>$(INB_DEBUGLOG)
 
 # C++
 %.cpp.o: %.cpp
 	$(call .FN_FILE,CXX,$@)
-	@$(CXX) -c -o $@ $(CXXFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $<
+	@$(CXX) -o $@ $(CXXFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $< \
+		2>>$(INB_DEBUGLOG)
+
+%.cc.o: %.cc
+	$(call .FN_FILE,CXX,$@)
+	@$(CXX) -o $@ $(CXXFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $< \
+		2>>$(INB_DEBUGLOG)
+
+%.cxx.o: %.cxx
+	$(call .FN_FILE,CXX,$@)
+	@$(CXX) -o $@ $(CXXFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $< \
+		2>>$(INB_DEBUGLOG)
+
+%.c++.o: $.c++
+	$(call .FN_FILE,CXX,$@)
+	@$(CXX) -o $@ $(CXXFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $< \
+		2>>$(INB_DEBUGLOG)
 
 # Objective-C
 %.m.o: %.m
 	$(call .FN_FILE,OBJC,$@)
-	@$(CC) -c -o $@ $(OBJCFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $<
+	@$(CC) -o $@ $(OBJCFLAGS) $(.K_DEFINE) $(.K_INCLUDE) $< \
+		2>>$(INB_DEBUGLOG)
 
 # Static library recipe.
 
 $(.L_ATARGET): $(.L_OFILES)
 ifneq ($(strip $(.L_OFILES)),)
 	$(call .FN_FILE,AR,$@)
-	@$(AR) $(ARFLAGS) $@ $^
+	@$(AR) $(ARFLAGS) $@ $^ \
+		2>&1 >>$(INB_DEBUGLOG)
 endif
 
 # Shared library recipe.
@@ -810,9 +911,11 @@ endif
 $(.L_SOTARGET): $(.L_OFILES)
 ifneq ($(strip $(.L_OFILES)),)
 	$(call .FN_FILE,LD,$@)
-	@$(LD) $(LDFLAGS) -shared -o $@ $^ $(.K_LIB) $(.K_FWORK)
+	@$(LD) $(LDFLAGS) -shared -o $@ $^ $(.K_LIB) $(.K_FWORK) \
+		2>&1 >>$(INB_DEBUGLOG)
 	$(call .FN_FILE,STRIP,$@)
-	@$(REALSTRIP) -s $@
+	@$(REALSTRIP) -s $@ \
+		2>&1 >>$(INB_DEBUGLOG)
 endif
 
 # Executable recipe.
@@ -821,10 +924,23 @@ $(.L_EXETARGET): $(.L_OFILES)
 ifneq ($(strip $(.L_OFILES)),)
 	$(call .FN_FILE,LD,$@)
 #	@$(ECHO) $^
-	@$(LD) $(LDFLAGS) -o $@ $^ $(.K_LIB) $(.K_FWORK)
+	@$(LD) $(LDFLAGS) -o $@ $^ $(.K_LIB) $(.K_FWORK) \
+		2>&1 >>$(INB_DEBUGLOG)
 	$(call .FN_FILE,STRIP,$@)
-	@$(REALSTRIP) -s $@
+	@$(REALSTRIP) -s $@ \
+		2>&1 >>$(INB_DEBUGLOG)
 endif
+
+# Generate compile_commands.json for clangd.
+
+schema-start:
+	@$(ECHO) -n '[' > compile_commands.json
+
+schema: schema-start $(SCHFILES) schema-end
+
+schema-end:
+	@truncate -s-1 compile_commands.json
+	@$(ECHO) -n ']' >> compile_commands.json
 
 # Clean the repository.
 
@@ -848,6 +964,7 @@ clean:
 	@$(RM) $(.L_OFILES.WINNT32)
 	@$(RM) $(.L_OFILES.WINNT64)
 	@$(RM) $(FMTFILES)
+	@$(RM) $(INB_DEBUGLOG)
 
 # Auto-format the sources.
 

@@ -5,8 +5,12 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/Values.h>
+#include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
+#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
+#include <Engine/Bytecode/Value.h>
+#include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
+#include <Engine/Error.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Graphics.h>
@@ -26,6 +30,7 @@
 #include <Engine/Math/Random.h>
 #include <Engine/Network/HTTP.h>
 #include <Engine/Network/WebSocketClient.h>
+#include <Engine/Platforms/Capability.h>
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
 #include <Engine/Rendering/ViewTexture.h>
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
@@ -106,7 +111,7 @@ inline float GetDecimal(VMValue* args, int index, Uint32 threadID) {
 		break;
 	case VAL_INTEGER:
 	case VAL_LINKED_INTEGER:
-		value = AS_DECIMAL(ScriptManager::CastValueAsDecimal(args[index]));
+		value = AS_DECIMAL(Value::CastAsDecimal(args[index]));
 		break;
 	default:
 		if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
@@ -231,8 +236,8 @@ inline ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
 inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 	ObjInstance* value = NULL;
 	if (ScriptManager::Lock()) {
-		if (IS_INSTANCE(args[index])) {
-			value = (ObjInstance*)(AS_OBJECT(args[index]));
+		if (IS_INSTANCEABLE(args[index])) {
+			value = AS_INSTANCE(args[index]);
 		}
 		else {
 			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
@@ -246,16 +251,52 @@ inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
-inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
-	ObjStream* value = NULL;
+inline ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID) {
+	ObjEntity* value = NULL;
 	if (ScriptManager::Lock()) {
-		if (IS_STREAM(args[index])) {
-			value = (ObjStream*)(AS_OBJECT(args[index]));
+		if (IS_ENTITY(args[index])) {
+			value = AS_ENTITY(args[index]);
 		}
 		else {
 			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
 				    index + 1,
-				    GetObjectTypeString(OBJ_STREAM),
+				    GetObjectTypeString(OBJ_ENTITY),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
+inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
+	ObjStream* value = NULL;
+	if (ScriptManager::Lock()) {
+		if (IS_STREAM(args[index])) {
+			value = AS_STREAM(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(StreamImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
+inline ObjShader* GetShader(VMValue* args, int index, Uint32 threadID) {
+	ObjShader* value = nullptr;
+	if (ScriptManager::Lock()) {
+		if (IS_SHADER(args[index])) {
+			value = AS_SHADER(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(ShaderImpl::Class),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
 				ScriptManager::Threads[threadID].ReturnFromNative();
 			}
@@ -430,14 +471,23 @@ ObjMap* StandardLibrary::GetMap(VMValue* args, int index, Uint32 threadID) {
 ISprite* StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetSprite(args, index, threadID);
 }
+Image* StandardLibrary::GetImage(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetImage(args, index, threadID);
+}
 ISound* StandardLibrary::GetSound(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetSound(args, index, threadID);
 }
 ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetInstance(args, index, threadID);
 }
+ObjEntity* StandardLibrary::GetEntity(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetEntity(args, index, threadID);
+}
 ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetFunction(args, index, threadID);
+}
+ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetShader(args, index, threadID);
 }
 
 void StandardLibrary::CheckArgCount(int argCount, int expects) {
@@ -597,10 +647,10 @@ bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) 
 /***
  * Animator.Create
  * \desc Creates a new animator.
- * \param sprite (Integer): The index of the sprite.
- * \param animationID (Integer): The animator's changed animation ID.
- * \param frameID (Integer): The animator's changed frame ID.
- * \param unloadPolicy (Integer): When to unload the animator.
+ * \paramOpt sprite (Integer): The index of the sprite.
+ * \paramOpt animationID (Integer): Which animation to use.
+ * \paramOpt frameID (Integer): Which frame to use.
+ * \paramOpt unloadPolicy (Integer): When to unload the animator.
  * \return Returns the index of the Animator.
  * \ns Animator
  */
@@ -709,6 +759,10 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	animator->PrevAnimation = animator->CurrentAnimation;
 	animator->CurrentAnimation = animationID;
 
+	if (animator->RotationStyle == ROTSTYLE_STATICFRAMES) {
+		animator->FrameCount >>= 1;
+	}
+
 	return NULL_VAL;
 }
 /***
@@ -768,7 +822,11 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->Sprite);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return INTEGER_VAL(0);
+	}
+	return INTEGER_VAL(animator->Sprite);
 }
 /***
  * Animator.GetCurrentAnimation
@@ -779,7 +837,11 @@ VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL((int)Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentAnimation);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return INTEGER_VAL(0);
+	}
+	return INTEGER_VAL(animator->CurrentAnimation);
 }
 /***
  * Animator.GetCurrentFrame
@@ -790,36 +852,57 @@ VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
  */
 VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentFrame);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return INTEGER_VAL(0);
+	}
+	return INTEGER_VAL(animator->CurrentFrame);
 }
 /***
  * Animator.GetHitbox
  * \desc Gets the hitbox of an animation and frame of an animator.
  * \param animator (Integer): The index of the animator.
- * \param hitboxID (Integer): The index number of the hitbox.
+ * \paramOpt hitboxID (Integer): The index number of the hitbox. Default to <code>0</code>.
  * \return Returns a reference value to a hitbox array.
  * \ns Animator
  */
 VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	Animator* animator = Scene::AnimatorList[GET_ARG(0, GetInteger)];
-	int hitboxID = GET_ARG(1, GetInteger);
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	int hitboxID = GET_ARG_OPT(1, GetInteger, 0);
+	// Do not throw errors here because Animators are allowed to have negative sprite, animation, and frame indexes
 	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		AnimFrame frame = Scene::SpriteList[animator->Sprite]
-					  ->AsSprite->Animations[animator->CurrentAnimation]
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
+		if (!sprite) {
+			return NULL_VAL;
+		}
+
+		if (animator->CurrentAnimation > sprite->Animations.size()) {
+			return NULL_VAL;
+		}
+
+		if (animator->CurrentFrame >
+			sprite->Animations[animator->CurrentFrame].Frames.size()) {
+			return NULL_VAL;
+		}
+
+		AnimFrame frame = sprite->Animations[animator->CurrentAnimation]
 					  .Frames[animator->CurrentFrame];
 
 		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+			THROW_ERROR("Hitbox %d is not in bounds of frame %d.",
+				hitboxID,
+				animator->CurrentFrame);
 			return NULL_VAL;
 		}
 
 		CollisionBox box = frame.Boxes[hitboxID];
 		ObjArray* array = NewArray();
-		array->Values->push_back(DECIMAL_VAL((float)box.Top));
-		array->Values->push_back(DECIMAL_VAL((float)box.Left));
-		array->Values->push_back(DECIMAL_VAL((float)box.Right));
-		array->Values->push_back(DECIMAL_VAL((float)box.Bottom));
+		array->Values->push_back(INTEGER_VAL(box.Left));
+		array->Values->push_back(INTEGER_VAL(box.Top));
+		array->Values->push_back(INTEGER_VAL(box.Right));
+		array->Values->push_back(INTEGER_VAL(box.Bottom));
 		return OBJECT_VAL(array);
 	}
 	else {
@@ -827,15 +910,19 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	}
 }
 /***
- * Animator.GetPreviousAnimation
+ * Animator.GetPrevAnimation
  * \desc Gets the previous animation value of an animator.
  * \param animator (Integer): The index of the animator.
  * \return Returns an Integer value.
  * \ns Animator
  */
-VMValue Animator_GetPreviousAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->PrevAnimation);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return INTEGER_VAL(0);
+	}
+	return INTEGER_VAL(animator->PrevAnimation);
 }
 /***
  * Animator.GetAnimationSpeed
@@ -846,7 +933,11 @@ VMValue Animator_GetPreviousAnimation(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationSpeed);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return INTEGER_VAL(0);
+	}
+	return INTEGER_VAL(animator->AnimationSpeed);
 }
 /***
  * Animator.GetAnimationTimer
@@ -857,7 +948,11 @@ VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationTimer);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return INTEGER_VAL(0);
+	}
+	return INTEGER_VAL(animator->AnimationTimer);
 }
 /***
  * Animator.GetDuration
@@ -868,7 +963,11 @@ VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return INTEGER_VAL(0);
+	}
+	return INTEGER_VAL(animator->Duration);
 }
 /***
  * Animator.GetFrameCount
@@ -879,7 +978,11 @@ VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->FrameCount);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return INTEGER_VAL(0);
+	}
+	return INTEGER_VAL(animator->FrameCount);
 }
 /***
  * Animator.GetLoopIndex
@@ -890,7 +993,11 @@ VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->LoopIndex);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return INTEGER_VAL(0);
+	}
+	return INTEGER_VAL(animator->LoopIndex);
 }
 /***
  * Animator.GetRotationStyle
@@ -901,7 +1008,11 @@ VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	return INTEGER_VAL(Scene::AnimatorList[GET_ARG(0, GetInteger)]->RotationStyle);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return INTEGER_VAL(0);
+	}
+	return INTEGER_VAL(animator->RotationStyle);
 }
 /***
  * Animator.SetSprite
@@ -912,7 +1023,11 @@ VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->Sprite = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->Sprite = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -924,7 +1039,11 @@ VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentAnimation = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->CurrentAnimation = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -936,19 +1055,27 @@ VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
  */
 VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentFrame = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->CurrentFrame = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
- * Animator.SetPreviousAnimation
+ * Animator.SetPrevAnimation
  * \desc Sets the previous animation of an animator.
  * \param animator (Integer): The animator index to change.
  * \param prevAnimationID (Integer): The animation ID.
  * \ns Animator
  */
-VMValue Animator_SetPreviousAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->PrevAnimation = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->PrevAnimation = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -960,7 +1087,11 @@ VMValue Animator_SetPreviousAnimation(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationSpeed = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->AnimationSpeed = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -972,7 +1103,11 @@ VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationTimer = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->AnimationTimer = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -984,7 +1119,11 @@ VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
  */
 VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->Duration = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -996,7 +1135,11 @@ VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->FrameCount = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->FrameCount = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1008,7 +1151,11 @@ VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->LoopIndex = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->LoopIndex = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1020,7 +1167,11 @@ VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->RotationStyle = GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->RotationStyle = GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1032,7 +1183,11 @@ VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentAnimation += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->CurrentAnimation += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1044,7 +1199,11 @@ VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 thre
  */
 VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->CurrentFrame += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->CurrentFrame += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1056,7 +1215,11 @@ VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID
  */
 VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationSpeed += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->AnimationSpeed += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1068,7 +1231,11 @@ VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->AnimationTimer += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->AnimationTimer += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1080,7 +1247,11 @@ VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 thread
  */
 VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->Duration += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->Duration += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1092,7 +1263,11 @@ VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->FrameCount += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->FrameCount += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -1104,7 +1279,11 @@ VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) 
  */
 VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	Scene::AnimatorList[GET_ARG(0, GetInteger)]->LoopIndex += GET_ARG(1, GetInteger);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (!animator) {
+		return NULL_VAL;
+	}
+	animator->LoopIndex += GET_ARG(1, GetInteger);
 	return NULL_VAL;
 }
 // #endregion
@@ -1121,8 +1300,8 @@ VMValue Application_GetCommandLineArguments(int argCount, VMValue* args, Uint32 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = NewArray();
 		for (size_t i = 0; i < Application::CmdLineArgs.size(); i++) {
-			array->Values->push_back(
-				OBJECT_VAL(CopyString(Application::CmdLineArgs[i])));
+			ObjString* argString = CopyString(Application::CmdLineArgs[i]);
+			array->Values->push_back(OBJECT_VAL(argString));
 		}
 		ScriptManager::Unlock();
 		return OBJECT_VAL(array);
@@ -1260,16 +1439,6 @@ VMValue Application_SetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
- * Application.Quit
- * \desc Closes the application.
- * \ns Application
- */
-VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	Application::Running = false;
-	return NULL_VAL;
-}
-/***
  * Application.GetGameTitle
  * \desc Gets the game title of the application.
  * \ns Application
@@ -1379,100 +1548,87 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 	}
 	return INTEGER_VAL(0);
 }
-// #endregion
-
-// #region Audio
 /***
- * Audio.GetMasterVolume
- * \desc Gets the master volume of the audio mixer.
- * \return The master volume, from 0 to 100.
- * \ns Audio
+ * Application.ChangeGame
+ * \desc Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead. Only <code>game://</code> and <code>user://</code> URLs are supported (or an absolute path that resolves to those locations).<br/><br/>\
+This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>\
+The change only takes effect after a frame completes.<br/><br/>\
+Note that certain game configurations will persist between games if not set by the new GameConfig:<ul>\
+<li>Game-identifying configurations:</li><ul>\
+<li>Game title (including the short game title)</li>\
+<li>Game version</li>\
+<li>Game description</li>\
+<li>Game developer</li>\
+<li>Game identifier</li>\
+<li>Developer identifier</li>\
+</ul>\
+<li>Paths:</li><ul>\
+<li>Saves directory</li>\
+<li>Preferences directory</li>\
+</ul>\
+<li>Engine configurations:</li><ul>\
+<li>Window size</li>\
+<li>Audio volume</li>\
+<li>Settings filename</li>\
+<ul>If this is changed, the current settings are discarded (not saved) and the new settings file is loaded. If the file does not exist, however, default settings will be loaded.</ul>\
+</ul></ul>\
+Some of the game's current state also persists between games:<ul>\
+<li>Command line arguments (unless <code>cmdLineArgs</code> is passed to this function)</li>\
+<li>Palette colors</li>\
+<li>Whether palette rendering is enabled</li>\
+<li>Whether software rendering was enabled with <code>useSoftwareRenderer</code></li>\
+</ul>\
+The following <b>does not</b> persist between games:<ul>\
+<li>Any loaded resources</li>\
+<li>Any persistent entities</li>\
+<li>Scripting state</li>\
+</ul>\
+The following <b>cannot</b> be changed between games:<ul>\
+<li>Log file name</li>\
+<li>Graphics rendering backend</li>\
+</ul>
+ * \param path (String): The path of the data file to load.
+ * \paramOpt startingScene (String): The filename of the scene file to load upon changing the game. Note that restarting the game will load the starting scene defined in its GameConfig instead. Passing <code>null</code> to this argument is equivalent to not passing it at all.
+ * \paramOpt cmdLineArgs (Array): An Array of Strings containing the command line arguments to pass to the new game. If any of the values are not Strings, they will be converted to a String representation. If this argument is not given, the current command line arguments will be passed to the new game.
+ * \return Returns <code>true</code> if the game will change, <code>false</code> if otherwise.
+ * \ns Application
  */
-VMValue Audio_GetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_ChangeGame(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* path = GET_ARG(0, GetString);
+	char* startingScene = nullptr;
+	ObjArray* cmdLineArgsArray = GET_ARG_OPT(2, GetArray, nullptr);
+	std::vector<std::string>* cmdLineArgs = nullptr;
+
+	if (argCount >= 2 && !IS_NULL(args[1])) {
+		startingScene = GET_ARG(1, GetString);
+	}
+
+	if (cmdLineArgsArray) {
+		cmdLineArgs = new std::vector<std::string>();
+
+		for (size_t i = 0; i < cmdLineArgsArray->Values->size(); i++) {
+			std::string arg = Value::ToString((*cmdLineArgsArray->Values)[i]);
+			cmdLineArgs->push_back(arg);
+		}
+	}
+
+	bool exists = Application::SetNextGame(path, startingScene, cmdLineArgs);
+	if (!exists) {
+		delete cmdLineArgs;
+		return INTEGER_VAL(false);
+	}
+
+	return INTEGER_VAL(true);
+}
+/***
+ * Application.Quit
+ * \desc Closes the application.
+ * \ns Application
+ */
+VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Application::MasterVolume);
-}
-/***
- * Audio.GetMusicVolume
- * \desc Gets the music volume of the audio mixer.
- * \return The music volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_GetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Application::MusicVolume);
-}
-/***
- * Audio.GetSoundVolume
- * \desc Gets the sound effect volume of the audio mixer.
- * \return The sound effect volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_GetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Application::SoundVolume);
-}
-/***
- * Audio.SetMasterVolume
- * \desc Sets the master volume of the audio mixer.
- * \param volume (Integer): The master volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	int volume = GET_ARG(0, GetInteger);
-	if (volume < 0) {
-		THROW_ERROR("Volume cannot be lower than 0.");
-	}
-	else if (volume > 100) {
-		THROW_ERROR("Volume cannot be higher than 100.");
-	}
-	else {
-		Application::SetMasterVolume(volume);
-	}
-
-	return NULL_VAL;
-}
-/***
- * Audio.SetMusicVolume
- * \desc Sets the music volume of the audio mixer.
- * \param volume (Integer): The music volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	int volume = GET_ARG(0, GetInteger);
-	if (volume < 0) {
-		THROW_ERROR("Volume cannot be lower than 0.");
-	}
-	else if (volume > 100) {
-		THROW_ERROR("Volume cannot be higher than 100.");
-	}
-	else {
-		Application::SetMusicVolume(volume);
-	}
-
-	return NULL_VAL;
-}
-/***
- * Audio.SetSoundVolume
- * \desc Sets the sound effect volume of the audio mixer.
- * \param volume (Integer): The sound effect volume, from 0 to 100.
- * \ns Audio
- */
-VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	int volume = GET_ARG(0, GetInteger);
-	if (volume < 0) {
-		THROW_ERROR("Volume cannot be lower than 0.");
-	}
-	else if (volume > 100) {
-		THROW_ERROR("Volume cannot be higher than 100.");
-	}
-	else {
-		Application::SetSoundVolume(volume);
-	}
-
+	Application::Running = false;
 	return NULL_VAL;
 }
 // #endregion
@@ -1760,11 +1916,8 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
 						return false;
 					}
 					else if (IS_DECIMAL(a) || IS_DECIMAL(b)) {
-						return AS_DECIMAL(ScriptManager::CastValueAsDecimal(
-							       a)) <
-							AS_DECIMAL(
-								ScriptManager::CastValueAsDecimal(
-									b));
+						return AS_DECIMAL(Value::CastAsDecimal(a)) <
+							AS_DECIMAL(Value::CastAsDecimal(b));
 					}
 					else {
 						return AS_INTEGER(a) < AS_INTEGER(b);
@@ -1775,6 +1928,374 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
 		ScriptManager::Unlock();
 	}
 	return NULL_VAL;
+}
+// #endregion
+
+// #region Audio
+/***
+ * Audio.GetMasterVolume
+ * \desc Gets the master volume of the audio mixer.
+ * \return The master volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::MasterVolume);
+}
+/***
+ * Audio.GetMusicVolume
+ * \desc Gets the music volume of the audio mixer.
+ * \return The music volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::MusicVolume);
+}
+/***
+ * Audio.GetSoundVolume
+ * \desc Gets the sound effect volume of the audio mixer.
+ * \return The sound effect volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_GetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::SoundVolume);
+}
+/***
+ * Audio.SetMasterVolume
+ * \desc Sets the master volume of the audio mixer.
+ * \param volume (Integer): The master volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int volume = GET_ARG(0, GetInteger);
+	if (volume < 0) {
+		THROW_ERROR("Volume cannot be lower than 0.");
+	}
+	else if (volume > 100) {
+		THROW_ERROR("Volume cannot be higher than 100.");
+	}
+	else {
+		Application::SetMasterVolume(volume);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Audio.SetMusicVolume
+ * \desc Sets the music volume of the audio mixer.
+ * \param volume (Integer): The music volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int volume = GET_ARG(0, GetInteger);
+	if (volume < 0) {
+		THROW_ERROR("Volume cannot be lower than 0.");
+	}
+	else if (volume > 100) {
+		THROW_ERROR("Volume cannot be higher than 100.");
+	}
+	else {
+		Application::SetMusicVolume(volume);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Audio.SetSoundVolume
+ * \desc Sets the sound effect volume of the audio mixer.
+ * \param volume (Integer): The sound effect volume, from 0 to 100.
+ * \ns Audio
+ */
+VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int volume = GET_ARG(0, GetInteger);
+	if (volume < 0) {
+		THROW_ERROR("Volume cannot be lower than 0.");
+	}
+	else if (volume > 100) {
+		THROW_ERROR("Volume cannot be higher than 100.");
+	}
+	else {
+		Application::SetSoundVolume(volume);
+	}
+
+	return NULL_VAL;
+}
+// #endregion
+
+// #region Collision
+/***
+ * Collision.ProcessObjectMovement
+ * \desc Processes movement of an instance with an outer hitbox and an inner hitboxes.
+ * \param entity (Instance): The instance to move.
+ * \param outer (Array): Array containing the outer hitbox.
+ * \param inner (Array): Array containing the inner hitbox.
+ * \ns Collision
+ */
+VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	ObjEntity* entity = GET_ARG(0, GetEntity);
+	ObjArray* outer = GET_ARG(1, GetArray);
+	ObjArray* inner = GET_ARG(2, GetArray);
+
+	CollisionBox outerBox;
+	CollisionBox innerBox;
+
+	if (entity && outer && inner) {
+		auto ent = (Entity*)entity->EntityPtr;
+
+		outerBox.Left = (int)AS_DECIMAL((*outer->Values)[0]);
+		outerBox.Top = (int)AS_DECIMAL((*outer->Values)[1]);
+		outerBox.Right = (int)AS_DECIMAL((*outer->Values)[2]);
+		outerBox.Bottom = (int)AS_DECIMAL((*outer->Values)[3]);
+
+		innerBox.Left = (int)AS_DECIMAL((*inner->Values)[0]);
+		innerBox.Top = (int)AS_DECIMAL((*inner->Values)[1]);
+		innerBox.Right = (int)AS_DECIMAL((*inner->Values)[2]);
+		innerBox.Bottom = (int)AS_DECIMAL((*inner->Values)[3]);
+		Scene::ProcessObjectMovement(ent, &outerBox, &innerBox);
+	}
+	return NULL_VAL;
+}
+/***
+ * Collision.ObjectTileCollision
+ * \desc Checks tile collision based on where an instance should check.
+ * \param entity (Instance): The instance to base the values on.
+ * \param cLayers (Bitfield): Which layers the entity can collide with.
+ * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
+ * \param cPlane (Integer): Collision plane to get the collision of (A or B).
+ * \param xOffset (Number): How far from the entity's X value to start from.
+ * \param yOffset (Number): How far from the entity's Y value to start from.
+ * \param setPos (Boolean): Whether to set the entity's position if collision is found.
+ * \return Returns whether the instance has collided with a tile.
+ * \ns Collision
+ */
+VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(7);
+	ObjEntity* entity = GET_ARG(0, GetEntity);
+	int cLayers = GET_ARG(1, GetInteger);
+	int cMode = GET_ARG(2, GetInteger);
+	int cPlane = GET_ARG(3, GetInteger);
+	int xOffset = GET_ARG(4, GetDecimal);
+	int yOffset = GET_ARG(5, GetDecimal);
+	int setPos = GET_ARG(6, GetInteger);
+
+	auto ent = (Entity*)entity->EntityPtr;
+
+	return INTEGER_VAL(
+		Scene::ObjectTileCollision(ent, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
+}
+/***
+ * Collision.ObjectTileGrip
+ * \desc Keeps an instance gripped to tile collision based on where an instance should check.
+ * \param entity (Instance): The instance to move.
+ * \param cLayers (Bitfield): Which layers the entity can collide with.
+ * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
+ * \param cPlane (Integer): Collision plane to get the collision of (A or B).
+ * \param xOffset (Decimal): How far from the entity's X value to start from.
+ * \param yOffset (Decimal): How far from the entity's Y value to start from.
+ * \param tolerance (Decimal): How far of a tolerance the entity should check for.
+ * \return Returns whether to grip the instance.
+ * \ns Collision
+ */
+VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(7);
+	ObjEntity* entity = GET_ARG(0, GetEntity);
+	int cLayers = GET_ARG(1, GetInteger);
+	int cMode = GET_ARG(2, GetInteger);
+	int cPlane = GET_ARG(3, GetInteger);
+	float xOffset = GET_ARG(4, GetDecimal);
+	float yOffset = GET_ARG(5, GetDecimal);
+	float tolerance = GET_ARG(6, GetDecimal);
+
+	auto ent = (Entity*)entity->EntityPtr;
+
+	return INTEGER_VAL(
+		Scene::ObjectTileGrip(ent, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
+}
+/***
+ * Collision.CheckObjectCollisionTouch
+ * \desc Checks if an instance is touching another instance with their respective hitboxes.
+ * \param thisEntity (Instance): The first instance to check.
+ * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param otherEntity (Instance): The other instance to check.
+ * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \return Returns a Boolean value whether the entities are touching.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(4);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
+	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
+	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+
+	auto thisEnt = (Entity*)thisEntity->EntityPtr;
+	auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+	CollisionBox thisBox;
+	CollisionBox otherBox;
+
+	if (IS_INTEGER((*thisHitbox->Values)[0])) {
+		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
+		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
+		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
+		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
+	}
+	else {
+		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
+		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
+		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
+		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
+	}
+
+	if (IS_INTEGER((*otherHitbox->Values)[0])) {
+		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
+		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
+		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
+		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
+	}
+	else {
+		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
+		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
+		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
+		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
+	}
+	return INTEGER_VAL(
+		!!Scene::CheckObjectCollisionTouch(thisEnt, &thisBox, otherEnt, &otherBox));
+}
+/***
+ * Collision.CheckObjectCollisionCircle
+ * \desc Checks if an instance is touching another instance with within their respective radii.
+ * \param thisEnity (Instance): The first instance to check.
+ * \param thisRadius (Decimal): Radius of the first entity to check.
+ * \param otherEntity (Instance): The other instance to check.
+ * \param otherRadius (Array): Radius of the other entity to check.
+ * \return Returns a Boolean value whether the entities have collided.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(4);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
+	float thisRadius = GET_ARG(1, GetDecimal);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
+	float otherRadius = GET_ARG(3, GetDecimal);
+
+	auto thisEnt = (Entity*)thisEntity->EntityPtr;
+	auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+	return INTEGER_VAL(
+		!!Scene::CheckObjectCollisionCircle(thisEnt, thisRadius, otherEnt, otherRadius));
+}
+/***
+ * Collision.CheckObjectCollisionBox
+ * \desc Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.
+ * \param thisEnity (Instance): The first instance to check.
+ * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param otherEntity (Instance): The other instance to check.
+ * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \param setValues (Boolean): Whether to set the values of the other entity.
+ * \return Returns the side the entities are colliding on.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(5);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
+	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
+	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+	bool setValues = !!GET_ARG(4, GetInteger);
+
+	auto thisEnt = (Entity*)thisEntity->EntityPtr;
+	auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+	CollisionBox thisBox;
+	CollisionBox otherBox;
+
+	if (IS_INTEGER((*thisHitbox->Values)[0])) {
+		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
+		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
+		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
+		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
+	}
+	else {
+		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
+		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
+		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
+		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
+	}
+
+	if (IS_INTEGER((*otherHitbox->Values)[0])) {
+		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
+		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
+		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
+		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
+	}
+	else {
+		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
+		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
+		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
+		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
+	}
+	return INTEGER_VAL(
+		Scene::CheckObjectCollisionBox(thisEnt, &thisBox, otherEnt, &otherBox, setValues));
+}
+/***
+ * Collision.CheckObjectCollisionPlatform
+ * \desc Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.
+ * \param thisEnity (Instance): The first instance to check.
+ * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param otherEntity (Instance): The other instance to check whether it is on top of the first instance.
+ * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \param setValues (Boolean): Whether to set the values of the other entity.
+ * \return Returns a Boolean value whether the entities have collided.
+ * \ns Collision
+ */
+VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(5);
+	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
+	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
+	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+	bool setValues = !!GET_ARG(4, GetInteger);
+
+	auto thisEnt = (Entity*)thisEntity->EntityPtr;
+	auto otherEnt = (Entity*)otherEntity->EntityPtr;
+
+	CollisionBox thisBox;
+	CollisionBox otherBox;
+
+	if (IS_INTEGER((*thisHitbox->Values)[0])) {
+		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
+		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
+		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
+		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
+	}
+	else {
+		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
+		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
+		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
+		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
+	}
+
+	if (IS_INTEGER((*otherHitbox->Values)[0])) {
+		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
+		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
+		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
+		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
+	}
+	else {
+		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
+		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
+		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
+		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
+	}
+	return INTEGER_VAL(!!Scene::CheckObjectCollisionPlatform(
+		thisEnt, &thisBox, otherEnt, &otherBox, setValues));
 }
 // #endregion
 
@@ -2216,7 +2737,7 @@ VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Device.IsPC
  * \desc Determines whether or not the application is running on a personal computer OS (Windows, MacOS, Linux).
- * \return Returns 1 if the device is on a PC, 0 if otherwise.
+ * \return Returns <code>true</code> if the device is on a PC, <code>false</code> if otherwise.
  * \ns Device
  */
 VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
@@ -2227,13 +2748,47 @@ VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Device.IsMobile
  * \desc Determines whether or not the application is running on a mobile device.
- * \return Returns 1 if the device is on a mobile device, 0 if otherwise.
+ * \return Returns <code>true</code> if the device is on a mobile device, <code>false</code> if otherwise.
  * \ns Device
  */
 VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	bool isMobile = Application::IsMobile();
 	return INTEGER_VAL((int)isMobile);
+}
+/***
+ * Device.GetCapability
+ * \desc Checks a capability of the device the application is running on.
+ * \param capability (String): The capability.
+ * \return The return value of this function depends on the capability being queried; however, if the capability is not present, this function returns <code>null</code>.
+ * \ns Device
+ */
+VMValue Device_GetCapability(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	char* capType = GET_ARG(0, GetString);
+
+	Capability capability = Application::GetCapability(capType);
+
+	switch (capability.Type) {
+	case Capability::TYPE_INTEGER:
+		return INTEGER_VAL(capability.AsInteger);
+	case Capability::TYPE_DECIMAL:
+		return DECIMAL_VAL(capability.AsDecimal);
+	case Capability::TYPE_BOOL:
+		return INTEGER_VAL(capability.AsBoolean ? 1 : 0);
+	case Capability::TYPE_STRING:
+		if (ScriptManager::Lock()) {
+			VMValue value = OBJECT_VAL(TakeString(capability.AsString));
+			ScriptManager::Unlock();
+			return value;
+		}
+		else {
+			Memory::Free(capability.AsString); // Oh, okay...
+		}
+		break;
+	}
+
+	return NULL_VAL;
 }
 // #endregion
 
@@ -2242,7 +2797,7 @@ VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
  * Directory.Create
  * \desc Creates a folder at the path.
  * \param path (String): The path of the folder to create.
- * \return Returns 1 if the folder creation was successful, 0 if otherwise
+ * \return Returns <code>true</code> if the folder creation was successful, <code>false</code> if otherwise.
  * \ns Directory
  */
 VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -2254,7 +2809,7 @@ VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
  * Directory.Exists
  * \desc Determines if the folder at the path exists.
  * \param path (String): The path of the folder to check for existence.
- * \return Returns 1 if the folder exists, 0 if otherwise
+ * \return Returns <code>true</code> if the folder exists, <code>false</code> if otherwise.
  * \ns Directory
  */
 VMValue Directory_Exists(int argCount, VMValue* args, Uint32 threadID) {
@@ -2409,7 +2964,7 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 				rot = (rot + 0x80) & 0x100;
 				break;
 			case ROTSTYLE_STATICFRAMES:
-				break;
+				break; // Not implemented here because it requires extra fields from an entity
 			default:
 				break;
 			}
@@ -2434,20 +2989,24 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.SpriteBasic
  * \desc Draws a sprite based on an entity's current values (Sprite, CurrentAnimation, CurrentFrame, X, Y, Direction, ScaleX, ScaleY, Rotation).
  * \param instance (Instance): The instance to draw.
- * \paramOpt sprite (Integer): The sprite index to use if not using the entity's sprite index.
+ * \paramOpt x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.
+ * \paramOpt y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \ns Draw
  */
 VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* entity = (Entity*)instance->EntityPtr;
-	ISprite* sprite = GET_ARG_OPT(1, GetSprite, GetSpriteIndex(entity->Sprite, threadID));
+	int x = (int)GET_ARG_OPT(1, GetDecimal, entity->X);
+	int y = (int)GET_ARG_OPT(2, GetDecimal, entity->Y);
+	ISprite* sprite = GetSpriteIndex(entity->Sprite, threadID);
 	float rotation = 0.0f;
 
 	if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
 		int rot = (int)entity->Rotation;
-		switch (sprite->Animations[entity->CurrentAnimation].Flags) {
+		int frame = entity->CurrentFrame;
+		switch (entity->RotationStyle) {
 		case ROTSTYLE_NONE:
 			rot = 0;
 			break;
@@ -2464,6 +3023,66 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 			rot = (rot + 0x80) & 0x100;
 			break;
 		case ROTSTYLE_STATICFRAMES:
+			if (rot >= 0x100) {
+				rot = 0x08 - ((0x214 - rot) >> 6);
+			}
+			else {
+				rot = (rot + 20) >> 6;
+			}
+
+			switch (rot) {
+			case 0: // 0 degrees
+			case 8: // 360 degrees
+				rot = 0x00;
+				break;
+
+			case 1: // 45 degrees
+				rot = 0x80;
+				frame += entity->CurrentFrameCount;
+				if (entity->Direction) {
+					rot = 0x00;
+				}
+				break;
+
+			case 2: // 90 degrees
+				rot = 0x80;
+				break;
+
+			case 3: // 135 degrees
+				rot = 0x100;
+				frame += entity->CurrentFrameCount;
+				if (entity->Direction) {
+					rot = 0x80;
+				}
+				break;
+
+			case 4: // 180 degrees
+				rot = 0x100;
+				break;
+
+			case 5: // 225 degrees
+				rot = 0x180;
+				frame += entity->CurrentFrameCount;
+				if (entity->Direction) {
+					rot = 0x100;
+				}
+				break;
+
+			case 6: // 270 degrees
+				rot = 0x180;
+				break;
+
+			case 7: // 315 degrees
+				rot = 0x180;
+				frame += entity->CurrentFrameCount;
+				if (!entity->Direction) {
+					rot = 0x00;
+				}
+				break;
+
+			default:
+				break;
+			}
 			break;
 		default:
 			break;
@@ -2472,11 +3091,11 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 		Graphics::DrawSprite(sprite,
 			entity->CurrentAnimation,
-			entity->CurrentFrame,
-			(int)entity->X,
-			(int)entity->Y,
-			entity->Direction & 1,
-			entity->Direction & 2,
+			frame,
+			x,
+			y,
+			entity->Direction & FLIP_X,
+			entity->Direction & FLIP_Y,
 			entity->ScaleX,
 			entity->ScaleY,
 			rotation);
@@ -2520,7 +3139,7 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		int rot = (int)rotation;
-		switch (sprite->Animations[animator->CurrentAnimation].Flags) {
+		switch (animator->RotationStyle) {
 		case ROTSTYLE_NONE:
 			rot = 0;
 			break;
@@ -2537,7 +3156,7 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 			rot = (rot + 0x80) & 0x100;
 			break;
 		case ROTSTYLE_STATICFRAMES:
-			break;
+			break; // Not implemented here because it requires extra fields from an entity
 		default:
 			break;
 		}
@@ -2561,17 +3180,18 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and an entity's other values (X, Y, Direction, ScaleX, ScaleY, Rotation).
  * \param animator (Animator): The animator to draw.
  * \param instance (Instance): The instance to pull other values from.
- * \paramOpt sprite (Integer): The sprite index to use if not using the entity's sprite index.
+ * \paramOpt x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.
+ * \paramOpt y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \ns Draw
  */
 VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 
 	Animator* animator = GET_ARG(0, GetAnimator);
-	ObjInstance* instance = GET_ARG(1, GetInstance);
+	ObjEntity* instance = GET_ARG(1, GetEntity);
 	Entity* entity = (Entity*)instance->EntityPtr;
-	ISprite* sprite =
-		(argCount > 2) ? GET_ARG(2, GetSprite) : GetSpriteIndex(animator->Sprite, threadID);
+	int x = (int)GET_ARG_OPT(2, GetDecimal, entity->X);
+	int y = (int)GET_ARG_OPT(3, GetDecimal, entity->Y);
 	float rotation = 0.0f;
 
 	if (!animator || !animator->Frames.size()) {
@@ -2580,17 +3200,14 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		ISprite* animatorSprite = GetSpriteIndex(animator->Sprite, threadID);
-		if (animatorSprite) {
-			sprite = animatorSprite;
-		}
-
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
 		if (!sprite) {
 			return NULL_VAL;
 		}
 
-		int rot = (int)rotation;
-		switch (sprite->Animations[animator->CurrentAnimation].Flags) {
+		int rot = (int)entity->Rotation;
+		int frame = animator->CurrentFrame;
+		switch (animator->RotationStyle) {
 		case ROTSTYLE_NONE:
 			rot = 0;
 			break;
@@ -2607,6 +3224,66 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 			rot = (rot + 0x80) & 0x100;
 			break;
 		case ROTSTYLE_STATICFRAMES:
+			if (rot >= 0x100) {
+				rot = 0x08 - ((0x214 - rot) >> 6);
+			}
+			else {
+				rot = (rot + 20) >> 6;
+			}
+
+			switch (rot) {
+			case 0: // 0 degrees
+			case 8: // 360 degrees
+				rot = 0x00;
+				break;
+
+			case 1: // 45 degrees
+				rot = 0x80;
+				frame += animator->FrameCount;
+				if (entity->Direction) {
+					rot = 0x00;
+				}
+				break;
+
+			case 2: // 90 degrees
+				rot = 0x80;
+				break;
+
+			case 3: // 135 degrees
+				rot = 0x100;
+				frame += animator->FrameCount;
+				if (entity->Direction) {
+					rot = 0x80;
+				}
+				break;
+
+			case 4: // 180 degrees
+				rot = 0x100;
+				break;
+
+			case 5: // 225 degrees
+				rot = 0x180;
+				frame += animator->FrameCount;
+				if (entity->Direction) {
+					rot = 0x100;
+				}
+				break;
+
+			case 6: // 270 degrees
+				rot = 0x180;
+				break;
+
+			case 7: // 315 degrees
+				rot = 0x180;
+				frame += animator->FrameCount;
+				if (!entity->Direction) {
+					rot = 0x00;
+				}
+				break;
+
+			default:
+				break;
+			}
 			break;
 		default:
 			break;
@@ -2615,11 +3292,11 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 		Graphics::DrawSprite(sprite,
 			animator->CurrentAnimation,
-			animator->CurrentFrame,
-			(int)entity->X,
-			(int)entity->Y,
-			entity->Direction & 1,
-			entity->Direction & 2,
+			frame,
+			x,
+			y,
+			entity->Direction & FLIP_X,
+			entity->Direction & FLIP_Y,
 			entity->ScaleX,
 			entity->ScaleY,
 			rotation);
@@ -2720,14 +3397,18 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
  * \param image (Integer): Index of the loaded image.
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	Image* image = GET_ARG(0, GetImage);
 	float x = GET_ARG(1, GetDecimal);
 	float y = GET_ARG(2, GetDecimal);
+	int paletteID = GET_ARG_OPT(3, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
 		Graphics::DrawTexture(image->TexturePtr,
@@ -2738,7 +3419,8 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
 			x,
 			y,
 			image->TexturePtr->Width,
-			image->TexturePtr->Height);
+			image->TexturePtr->Height,
+			paletteID);
 	}
 	return NULL_VAL;
 }
@@ -2752,10 +3434,11 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
  * \param partH (Integer): Height of part of image to draw.
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(7);
+	CHECK_AT_LEAST_ARGCOUNT(7);
 
 	Image* image = GET_ARG(0, GetImage);
 	float sx = GET_ARG(1, GetDecimal);
@@ -2764,9 +3447,21 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 	float sh = GET_ARG(4, GetDecimal);
 	float x = GET_ARG(5, GetDecimal);
 	float y = GET_ARG(6, GetDecimal);
+	int paletteID = GET_ARG_OPT(7, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
-		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, sw, sh);
+		Graphics::DrawTexture(image->TexturePtr,
+			sx,
+			sy,
+			sw,
+			sh,
+			x,
+			y,
+			sw,
+			sh,
+			paletteID);
 	}
 	return NULL_VAL;
 }
@@ -2778,16 +3473,20 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (Number): Y position of where to draw the image.
  * \param width (Number): Width to draw the image.
  * \param height (Number): Height to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(5);
 
 	Image* image = GET_ARG(0, GetImage);
 	float x = GET_ARG(1, GetDecimal);
 	float y = GET_ARG(2, GetDecimal);
 	float w = GET_ARG(3, GetDecimal);
 	float h = GET_ARG(4, GetDecimal);
+	int paletteID = GET_ARG_OPT(5, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
 		Graphics::DrawTexture(image->TexturePtr,
@@ -2798,7 +3497,8 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
 			x,
 			y,
 			w,
-			h);
+			h,
+			paletteID);
 	}
 	return NULL_VAL;
 }
@@ -2814,10 +3514,11 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (Number): Y position of where to draw the image.
  * \param width (Number): Width to draw the image.
  * \param height (Number): Height to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(9);
+	CHECK_AT_LEAST_ARGCOUNT(9);
 
 	Image* image = GET_ARG(0, GetImage);
 	float sx = GET_ARG(1, GetDecimal);
@@ -2828,9 +3529,12 @@ VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
 	float y = GET_ARG(6, GetDecimal);
 	float w = GET_ARG(7, GetDecimal);
 	float h = GET_ARG(8, GetDecimal);
+	int paletteID = GET_ARG_OPT(9, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
-		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, w, h);
+		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, w, h, paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3094,22 +3798,41 @@ VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param ID (Integer): ID of the tile to draw.
  * \param x (Number): X position of where to draw the tile.
  * \param y (Number): Y position of where to draw the tile.
- * \param flipX (Integer): Whether or not to flip the tile horizontally.
- * \param flipY (Integer): Whether or not to flip the tile vertically.
+ * \paramOpt flipX (Integer): Whether or not to flip the tile horizontally.
+ * \paramOpt flipY (Integer): Whether or not to flip the tile vertically.
+ * \paramOpt scaleX (Number): Horizontal scale multiplier of the tile.
+ * \paramOpt scaleY (Number): Vertical scale multiplier of the tile.
+ * \paramOpt rotation (Number): Rotation of the drawn tile in radians.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	Uint32 id = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal) + 8;
 	int y = (int)GET_ARG(2, GetDecimal) + 8;
-	int flipX = GET_ARG(3, GetInteger);
-	int flipY = GET_ARG(4, GetInteger);
+	int flipX = GET_ARG_OPT(3, GetInteger, false);
+	int flipY = GET_ARG_OPT(4, GetInteger, false);
+	float scaleX = GET_ARG_OPT(5, GetDecimal, 1.0f);
+	float scaleY = GET_ARG_OPT(6, GetDecimal, 1.0f);
+	float rotation = GET_ARG_OPT(7, GetDecimal, 0.0f);
+	int paletteID = -1;
+
+	if (argCount >= 9) {
+		paletteID = GET_ARG(8, GetInteger);
+
+		CHECK_PALETTE_INDEX(paletteID);
+	}
 
 	TileSpriteInfo info;
 	if (id < Scene::TileSpriteInfos.size() &&
 		(info = Scene::TileSpriteInfos[id]).Sprite != NULL) {
+
+		if (paletteID == -1) {
+			paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+		}
+
 		Graphics::DrawSprite(info.Sprite,
 			info.AnimationIndex,
 			info.FrameIndex,
@@ -3117,9 +3840,10 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 			y,
 			flipX,
 			flipY,
-			1.0f,
-			1.0f,
-			0.0f);
+			scaleX,
+			scaleY,
+			rotation,
+			paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3879,6 +4603,37 @@ VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Draw.SetShader
+ * \desc Sets the current shader.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns Draw
+ */
+VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	if (IS_NULL(args[0])) {
+		Graphics::SetUserShader(nullptr);
+		return NULL_VAL;
+	}
+
+	ObjShader* objShader = GET_ARG(0, GetShader);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader has been deleted!");
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Validate();
+
+		Graphics::SetUserShader(shader);
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	return NULL_VAL;
+}
+/***
  * Draw.SetFilter
  * \desc Sets a <linkto ref="Filter_*">filter type</linkto>.
  * \param filterType (Enum): The <linkto ref="Filter_*">filter type</linkto>.
@@ -3891,7 +4646,7 @@ VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
 		OUT_OF_RANGE_ERROR("Filter", filterType, 0, Filter_INVERT);
 		return NULL_VAL;
 	}
-	SoftwareRenderer::SetFilter(filterType);
+	Graphics::SetFilter(filterType);
 	return NULL_VAL;
 }
 /***
@@ -4432,10 +5187,12 @@ VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_SetClip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	Graphics::SetClip((int)GET_ARG(0, GetDecimal),
-		(int)GET_ARG(1, GetDecimal),
-		(int)GET_ARG(2, GetDecimal),
-		(int)GET_ARG(3, GetDecimal));
+	if (GET_ARG(2, GetDecimal) >= 0.0 && GET_ARG(3, GetDecimal) >= 0.0) {
+		Graphics::SetClip((int)GET_ARG(0, GetDecimal),
+			(int)GET_ARG(1, GetDecimal),
+			(int)GET_ARG(2, GetDecimal),
+			(int)GET_ARG(3, GetDecimal));
+	}
 	return NULL_VAL;
 }
 /***
@@ -4447,6 +5204,50 @@ VMValue Draw_ClearClip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	Graphics::ClearClip();
 	return NULL_VAL;
+}
+/***
+  * Draw.GetClipX
+  * \desc Gets the X position in which drawing starts to occur.
+  * \return The X position if clipping is enabled, else 0.
+  * \ns Draw
+  */
+VMValue Draw_GetClipX(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.X)
+					     : INTEGER_VAL(0);
+}
+/***
+ * Draw.GetClipY
+ * \desc Gets the Y position in which drawing starts to occur.
+ * \return The Y position if clipping is enabled, else 0.
+ * \ns Draw
+ */
+VMValue Draw_GetClipY(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Y)
+					     : INTEGER_VAL(0);
+}
+/***
+ * Draw.GetClipWidth
+ * \desc Gets the width in which drawing occurs.
+ * \return The width if clipping is enabled, else 0.
+ * \ns Draw
+ */
+VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Width)
+					     : INTEGER_VAL((int)Graphics::CurrentView->Width);
+}
+/***
+ * Draw.GetClipHeight
+ * \desc Gets the height in which drawing occurs.
+ * \return The height if clipping is enabled, else 0.
+ * \ns Draw
+ */
+VMValue Draw_GetClipHeight(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height)
+					     : INTEGER_VAL((int)Graphics::CurrentView->Height);
 }
 
 /***
@@ -6000,13 +6801,13 @@ VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  * File.Exists
  * \desc Determines if the file at the path exists.
  * \param path (String): The path of the file to check for existence.
- * \return Returns 1 if the file exists, 0 if otherwise
+ * \return Returns <code>true</code> if the file exists, <code>false</code> if otherwise.
  * \ns File
  */
 VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* filePath = GET_ARG(0, GetString);
-	return INTEGER_VAL(File::Exists(filePath, true));
+	return INTEGER_VAL(File::ProtectedExists(filePath, true));
 }
 /***
  * File.ReadAllText
@@ -6693,7 +7494,7 @@ VMValue Input_GetActionList(int argCount, VMValue* args, Uint32 threadID) {
 	for (size_t i = 0; i < count; i++) {
 		InputAction& action = InputManager::Actions[i];
 
-		ObjString* actionName = CopyString(action.Name.c_str());
+		ObjString* actionName = CopyString(action.Name);
 
 		array->Values->push_back(OBJECT_VAL(actionName));
 	}
@@ -7683,17 +8484,22 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	obj->InitialX = x;
 	obj->InitialY = y;
 	obj->List = objectList;
-	Scene::AddDynamic(objectList, obj);
+	obj->List->Add(obj);
 
-	ObjInstance* instance = obj->Instance;
+	ObjEntity* instance = obj->Instance;
 
 	// Call the initializer, if there is one.
 	if (HasInitializer(instance->Object.Class)) {
 		obj->Initialize();
 	}
 
+	// Add it to the scene
+	Scene::AddDynamic(objectList, obj);
+
 	obj->Create(flag);
-	obj->PostCreate();
+	if (!Scene::Initializing) {
+		obj->PostCreate();
+	}
 
 	return OBJECT_VAL(instance);
 }
@@ -7727,7 +8533,7 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Instance.IsClass
  * \desc Determines whether or not the instance is of a specified object class.
- * \param instance (Instance): The instance to check.
+ * \param instance (Instance): The instance to check. If there is no instance, this automatically returns false.
  * \param className (String): Name of the object class.
  * \return Returns whether or not the instance is of a specified object class.
  * \ns Instance
@@ -7735,7 +8541,11 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	if (IS_NULL(args[0])) {
+		return INTEGER_VAL(false);
+	}
+
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	char* objectName = GET_ARG(1, GetString);
 
 	Entity* self = (Entity*)instance->EntityPtr;
@@ -7764,7 +8574,7 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 
 	Entity* self = (Entity*)instance->EntityPtr;
 	if (!self || !self->List) {
@@ -7803,7 +8613,7 @@ VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* self = (Entity*)instance->EntityPtr;
 	int n = GET_ARG(1, GetInteger);
 
@@ -7881,8 +8691,8 @@ VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID
  */
 VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
-	ObjInstance* destInstance = GET_ARG(0, GetInstance);
-	ObjInstance* srcInstance = GET_ARG(1, GetInstance);
+	ObjEntity* destInstance = GET_ARG(0, GetEntity);
+	ObjEntity* srcInstance = GET_ARG(1, GetEntity);
 	bool copyClass = !!GET_ARG_OPT(2, GetInteger, true);
 
 	ScriptEntity* destEntity = (ScriptEntity*)destInstance->EntityPtr;
@@ -7904,7 +8714,7 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	char* className = GET_ARG(1, GetString);
 
 	ScriptEntity* self = (ScriptEntity*)instance->EntityPtr;
@@ -7913,6 +8723,9 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (self->ChangeClass(className)) {
+		self->Instance->InstanceObj.Fields->Clear();
+		self->LinkFields();
+		self->Initialize();
 		return INTEGER_VAL(true);
 	}
 
@@ -8232,15 +9045,26 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * JSON.ToString
- * \desc Converts a Map value into a String value.
- * \param json (Map): Map value.
+ * \desc Converts a value into a JSON string.
+ * \param json (Any type): The value to convert.
  * \paramOpt prettyPrint (Boolean): Whether or not to use spacing and newlines in the text.
- * \return Returns a JSON string based on the Map value.
+ * \return Returns a JSON string based on the value.
  * \ns JSON
  */
 VMValue JSON_ToString(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	return ScriptManager::CastValueAsString(args[0], !!GET_ARG_OPT(1, GetInteger, false));
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	VMValue value = args[0];
+	bool prettyPrint = !!GET_ARG_OPT(1, GetInteger, false);
+
+	char* buffer = (char*)malloc(512);
+	PrintBuffer buffer_info;
+	buffer_info.Buffer = &buffer;
+	buffer_info.WriteIndex = 0;
+	buffer_info.BufferSize = 512;
+	ValuePrinter::Print(&buffer_info, value, prettyPrint, true);
+	value = OBJECT_VAL(CopyString(buffer, buffer_info.WriteIndex));
+	free(buffer);
+	return value;
 }
 // #endregion
 
@@ -8353,12 +9177,8 @@ VMValue Math_Direction(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Abs(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	if (IS_INTEGER(args[0])) {
-		return INTEGER_VAL((int)Math::Abs(GET_ARG(0, GetInteger)));
-	}
-	else {
-		return DECIMAL_VAL(Math::Abs(GET_ARG(0, GetDecimal)));
-	}
+	return IS_INTEGER(args[0]) ? INTEGER_VAL((int)Math::Abs(GET_ARG(0, GetDecimal)))
+				   : DECIMAL_VAL(Math::Abs(GET_ARG(0, GetDecimal)));
 }
 /***
  * Math.Min
@@ -8414,6 +9234,7 @@ VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
 			GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
 	}
 }
+
 /***
  * Math.Sign
  * \desc Gets the sign associated with a Decimal value.
@@ -8424,6 +9245,50 @@ VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Math_Sign(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Math::Sign(GET_ARG(0, GetDecimal)));
+}
+/***
+ * Math.Uint8
+ * \desc Converts an integer to an 8-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint8(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)(Uint8)GET_ARG(0, GetInteger));
+}
+/***
+ * Math.Uint16
+ * \desc Converts an integer to a 16-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint16(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)(Uint16)GET_ARG(0, GetInteger));
+}
+/***
+ * Math.Uint32
+ * \desc Converts an integer to a 32-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint32(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)(Uint32)GET_ARG(0, GetInteger));
+}
+/***
+ * Math.Uint64
+ * \desc Converts an integer to a 64-bit unsigned value.
+ * \param n (Integer): Integer value to convert.
+ * \return Returns the converted value.
+ * \ns Math
+ */
+VMValue Math_Uint64(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)(Uint64)GET_ARG(0, GetInteger));
 }
 /***
  * Math.Random
@@ -8765,6 +9630,19 @@ VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(Math::ACos256(GET_ARG(0, GetInteger)));
 }
 /***
+  * RSDK.Math.ATan2
+  * \desc Returns the arc tangent of a position.
+  * \param x (Decimal): X value of the position.
+  * \param y (Decimal): Y value of the position.
+  * \return The arc tangent of the position.
+  * \ns RSDK.Math
+  */
+VMValue Math_ATan2(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)Math::ArcTanLookup((int)(GET_ARG(0, GetDecimal) * 65536.0f),
+		(int)(GET_ARG(1, GetDecimal) * 65536.0f)));
+}
+/***
  * RSDK.Math.RadianToInteger
  * \desc Gets the integer conversion of a radian, based on 256.
  * \param radian (Decimal): Radian value to convert.
@@ -8777,7 +9655,7 @@ VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * RSDK.Math.IntegerToRadian
- * \desc Gets the radia Decimal conversion of an integer, based on 256.
+ * \desc Gets the radian Decimal conversion of an integer, based on 256.
  * \param integer (Integer): Integer value to convert.
  * \return A radia Decimal value of the converted integer.
  * \ns RSDK.Math
@@ -8785,6 +9663,28 @@ VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL((float)(GET_ARG(0, GetInteger) * M_PI / 256.0));
+}
+/***
+ * RSDK.Math.ToFixed
+ * \desc Converts a decimal number to its fixed-point equivalent.
+ * \param n (Number): Number value.
+ * \return Returns the converted fixed-point Number value.
+ * \ns Math
+ */
+VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return INTEGER_VAL((int)(GET_ARG(0, GetDecimal) * 65536.0f));
+}
+/***
+ * RSDK.Math.FromFixed
+ * \desc Converts a fixed-point number to its decimal equivalent.
+ * \param n (Number): Number value.
+ * \return Returns the converted decimal Number value.
+ * \ns Math
+ */
+VMValue Math_FromFixed(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	return DECIMAL_VAL((float)GET_ARG(0, GetInteger) / 65536.0f);
 }
 // #endregion
 
@@ -9644,60 +10544,57 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
  * Music.Play
  * \desc Places the music onto the music stack and plays it.
  * \param music (Integer): The music index to play.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 disables this.)
+ * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the track once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
+ * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default).
+ * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default).
+ * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default).
+ * \paramOpt startPoint (Decimal): The time (in seconds) to start the music at. (0.0 is the default).
+ * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 is the default, which disables it).
  * \ns Music
  */
 VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
-	float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
-	float fadeInAfterFinished = GET_ARG_OPT(4, GetDecimal, 0.0f);
-	if (fadeInAfterFinished < 0.f) {
-		fadeInAfterFinished = 0.f;
-	}
-	if (audio) {
-		AudioManager::PushMusicAt(
-			audio, 0.0, false, 0, panning, speed, volume, fadeInAfterFinished);
-	}
-	return NULL_VAL;
-}
-/***
- * Music.PlayAtTime
- * \desc Places the music onto the music stack and plays it at a time (in seconds).
- * \param music (Integer): The music index to play.
- * \param startPoint (Decimal): The time (in seconds) to start the music at.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 disables this.)
- * \ns Music
- */
-VMValue Music_PlayAtTime(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(2);
-	ISound* audio = GET_ARG(0, GetMusic);
-	double start_point = GET_ARG(1, GetDecimal);
+	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
+					 : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
-	float fadeInAfterFinished = GET_ARG_OPT(5, GetDecimal, 0.0f);
+	double startPoint = GET_ARG_OPT(5, GetDecimal, 0.0);
+	float fadeInAfterFinished = GET_ARG_OPT(6, GetDecimal, 0.0f);
+
 	if (fadeInAfterFinished < 0.f) {
 		fadeInAfterFinished = 0.f;
 	}
-	if (audio) {
-		AudioManager::PushMusicAt(
-			audio, start_point, false, 0, panning, speed, volume, fadeInAfterFinished);
+
+	if (loopPoint < AUDIO_LOOP_NONE) {
+		THROW_ERROR(
+			"Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d",
+			loopPoint);
+		return NULL_VAL;
 	}
+
+	if (loopPoint == AUDIO_LOOP_DEFAULT) {
+		loopPoint = audio->LoopPoint;
+	}
+
+	if (audio) {
+		AudioManager::PushMusicAt(audio,
+			startPoint,
+			loopPoint >= 0,
+			loopPoint >= 0 ? loopPoint : 0,
+			panning,
+			speed,
+			volume,
+			fadeInAfterFinished);
+	}
+
 	return NULL_VAL;
 }
 /***
  * Music.Stop
  * \desc Removes the music from the music stack, stopping it if currently playing.
- * \param music (Integer): The music index to play.
+ * \param music (Integer): The music index to stop.
  * \ns Music
  */
 VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
@@ -9764,74 +10661,6 @@ VMValue Music_Clear(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
- * Music.Loop
- * \desc Places the music onto the music stack and plays it, looping back to the specified sample index if it reaches the end of playback.
- * \param music (Integer): The music index to play.
- * \param loop (Boolean): Unused.
- * \param loopPoint (Integer): The sample index to loop back to.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track is interrupted, in seconds. (0.0 disables this.)
- * \ns Music
- */
-VMValue Music_Loop(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(3);
-	ISound* audio = GET_ARG(0, GetMusic);
-	// int loop = GET_ARG(1, GetInteger);
-	int loop_point = GET_ARG(2, GetInteger);
-	float panning = GET_ARG_OPT(3, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(5, GetDecimal, 1.0f);
-	float fadeInAfterFinished = GET_ARG_OPT(6, GetDecimal, 0.0f);
-	if (fadeInAfterFinished < 0.f) {
-		fadeInAfterFinished = 0.f;
-	}
-	if (audio) {
-		AudioManager::PushMusic(
-			audio, true, loop_point, panning, speed, volume, fadeInAfterFinished);
-	}
-	return NULL_VAL;
-}
-/***
- * Music.LoopAtTime
- * \desc Places the music onto the music stack and plays it, looping back to the specified sample index if it reaches the end of playback.
- * \param music (Integer): The music index to play.
- * \param startPoint (Decimal): The time (in seconds) to start the music at.
- * \param loop (Boolean): Unused.
- * \param loopPoint (Integer): The sample index to loop back to.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track is interrupted, in seconds. (0.0 disables this.)
- * \ns Music
- */
-VMValue Music_LoopAtTime(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(4);
-	ISound* audio = GET_ARG(0, GetMusic);
-	double start_point = GET_ARG(1, GetDecimal);
-	// int loop = GET_ARG(2, GetInteger);
-	int loop_point = GET_ARG(3, GetInteger);
-	float panning = GET_ARG_OPT(4, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(5, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(6, GetDecimal, 1.0f);
-	float fadeInAfterFinished = GET_ARG_OPT(7, GetDecimal, 0.0f);
-	if (fadeInAfterFinished < 0.f) {
-		fadeInAfterFinished = 0.f;
-	}
-	if (audio) {
-		AudioManager::PushMusicAt(audio,
-			start_point,
-			true,
-			loop_point,
-			panning,
-			speed,
-			volume,
-			fadeInAfterFinished);
-	}
-	return NULL_VAL;
-}
-/***
  * Music.IsPlaying
  * \desc Checks to see if the specified music is currently playing.
  * \param music (Integer): The music index to play.
@@ -9876,6 +10705,40 @@ VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
 	float volume = GET_ARG(2, GetDecimal);
 
 	AudioManager::AlterMusic(panning, speed, volume);
+	return NULL_VAL;
+}
+/***
+ * Music.GetLoopPoint
+ * \desc Gets the loop point of a music index, if it has one.
+ * \param music (Integer): The music index to get the loop point.
+ * \return Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.
+ * \ns Music
+ */
+VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetMusic);
+	if (!audio || audio->LoopPoint == -1) {
+		return NULL_VAL;
+	}
+	return INTEGER_VAL(audio->LoopPoint);
+}
+/***
+ * Music.SetLoopPoint
+ * \desc Sets the loop point of a music index.
+ * \param music (Integer): The music index to set the loop point.
+ * \param loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.
+ * \ns Music
+ */
+VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetMusic);
+	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
+	if (!audio) {
+		return NULL_VAL;
+	}
+	if (loopPoint >= -1) {
+		audio->LoopPoint = loopPoint;
+	}
 	return NULL_VAL;
 }
 // #endregion
@@ -10551,6 +11414,7 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
 	for (Sint32 i = lineStart; i < lineEnd; i++) {
 		Graphics::PaletteIndexLines[i] = (Uint8)palIndex;
 	}
+	Graphics::PaletteIndexLinesUpdated = true;
 	return NULL_VAL;
 }
 #undef CHECK_COLOR_INDEX
@@ -10617,6 +11481,35 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
+
+	int result = Scene::LoadSpriteResource(filename, unloadPolicy);
+
+	return INTEGER_VAL(result);
+}
+/***
+ * Resources.LoadDynamicSprite
+ * \desc Loads a Sprite resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.
+ * \param fallbackFolder (String): Folder to check if the sprite does not exist in the current Scene's resource folder.
+ * \param name (String): Name of the animation file within the resource folder.
+ * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \return Returns the index of the Resource.
+ * \ns Resources
+ */
+VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	char* fallbackFolder = GET_ARG(0, GetString);
+	char* name = GET_ARG(1, GetString);
+	int unloadPolicy = GET_ARG(2, GetInteger);
+
+	char filename[4096];
+	snprintf(filename,
+		sizeof(filename),
+		"Sprites/%s/%s.bin",
+		Scene::CurrentResourceFolder,
+		name);
+	if (!ResourceManager::ResourceExists(filename)) {
+		snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", fallbackFolder, name);
+	}
 
 	int result = Scene::LoadSpriteResource(filename, unloadPolicy);
 
@@ -10775,275 +11668,6 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 
 /***
- * Scene.ProcessObjectMovement
- * \desc Processes movement of an instance with an outer hitbox and an inner hitboxe.
- * \param entity (Instance): The instance to move.
- * \param outer (Array): Array containing the outer hitbox.
- * \param inner (Array): Array containing the inner hitbox.
- * \ns Scene
- */
-VMValue Scene_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
-	ObjArray* outer = GET_ARG(1, GetArray);
-	ObjArray* inner = GET_ARG(2, GetArray);
-
-	CollisionBox outerBox;
-	CollisionBox innerBox;
-
-	if (entity && outer && inner) {
-		auto ent = (Entity*)entity->EntityPtr;
-
-		outerBox.Left = (int)AS_DECIMAL((*outer->Values)[0]);
-		outerBox.Top = (int)AS_DECIMAL((*outer->Values)[1]);
-		outerBox.Right = (int)AS_DECIMAL((*outer->Values)[2]);
-		outerBox.Bottom = (int)AS_DECIMAL((*outer->Values)[3]);
-
-		innerBox.Left = (int)AS_DECIMAL((*inner->Values)[0]);
-		innerBox.Top = (int)AS_DECIMAL((*inner->Values)[1]);
-		innerBox.Right = (int)AS_DECIMAL((*inner->Values)[2]);
-		innerBox.Bottom = (int)AS_DECIMAL((*inner->Values)[3]);
-		Scene::ProcessObjectMovement(ent, &outerBox, &innerBox);
-	}
-	return NULL_VAL;
-}
-/***
- * Scene.ObjectTileCollision
- * \desc Checks tile collision based on where an instance should check.
- * \param entity (Instance): The instance to base the values on.
- * \param cLayers (Bitfield): Which layers the entity can collide with.
- * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
- * \param cPlane (Integer): Collision plane to get the collision of (A or B).
- * \param xOffset (Number): How far from the entity's X value to start from.
- * \param yOffset (Number): How far from the entity's Y value to start from.
- * \param setPos (Boolean): Whether to set the entity's position if collision is found.
- * \return Returns whether the instance has collided with a tile.
- * \ns Scene
- */
-VMValue Scene_ObjectTileCollision(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(7);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
-	int cLayers = GET_ARG(1, GetInteger);
-	int cMode = GET_ARG(2, GetInteger);
-	int cPlane = GET_ARG(3, GetInteger);
-	int xOffset = GET_ARG(4, GetDecimal);
-	int yOffset = GET_ARG(5, GetDecimal);
-	int setPos = GET_ARG(6, GetInteger);
-
-	auto ent = (Entity*)entity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::ObjectTileCollision(ent, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
-}
-/***
- * Scene.ObjectTileGrip
- * \desc Keeps an instance gripped to tile collision based on where an instance should check.
- * \param entity (Instance): The instance to move.
- * \param cLayers (Bitfield): Which layers the entity can collide with.
- * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
- * \param cPlane (Integer): Collision plane to get the collision of (A or B).
- * \param xOffset (Decimal): How far from the entity's X value to start from.
- * \param yOffset (Decimal): How far from the entity's Y value to start from.
- * \param tolerance (Decimal): How far of a tolerance the entity should check for.
- * \return Returns whether to grip the instance.
- * \ns Scene
- */
-VMValue Scene_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(7);
-	ObjInstance* entity = GET_ARG(0, GetInstance);
-	int cLayers = GET_ARG(1, GetInteger);
-	int cMode = GET_ARG(2, GetInteger);
-	int cPlane = GET_ARG(3, GetInteger);
-	float xOffset = GET_ARG(4, GetDecimal);
-	float yOffset = GET_ARG(5, GetDecimal);
-	float tolerance = GET_ARG(6, GetDecimal);
-
-	auto ent = (Entity*)entity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::ObjectTileGrip(ent, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
-}
-/***
- * Scene.CheckObjectCollisionTouch
- * \desc Checks if an instance is touching another instance with their respective hitboxes.
- * \param thisEntity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
- * \param otherEntity (Instance): The other instance to check.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
- * \return Returns a Boolean value whether the entities are touching.
- * \ns Scene
- */
-VMValue Scene_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
-
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
-	return INTEGER_VAL(
-		!!Scene::CheckObjectCollisionTouch(thisEnt, &thisBox, otherEnt, &otherBox));
-}
-/***
- * Scene.CheckObjectCollisionCircle
- * \desc Checks if an instance is touching another instance with within their respective radii.
- * \param thisEnity (Instance): The first instance to check.
- * \param thisRadius (Decimal): Radius of the first entity to check.
- * \param otherEntity (Instance): The other instance to check.
- * \param otherRadius (Array): Radius of the other entity to check.
- * \return Returns a Boolean value whether the entities have collided.
- * \ns Scene
- */
-VMValue Scene_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
-	float thisRadius = GET_ARG(1, GetDecimal);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
-	float otherRadius = GET_ARG(3, GetDecimal);
-
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	return INTEGER_VAL(
-		!!Scene::CheckObjectCollisionCircle(thisEnt, thisRadius, otherEnt, otherRadius));
-}
-/***
- * Scene.CheckObjectCollisionBox
- * \desc Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.
- * \param thisEnity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
- * \param otherEntity (Instance): The other instance to check.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
- * \param setValues (Boolean): Whether to set the values of the other entity.
- * \return Returns the side the entities are colliding on.
- * \ns Scene
- */
-VMValue Scene_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
-	bool setValues = !!GET_ARG(4, GetInteger);
-
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
-	return INTEGER_VAL(
-		Scene::CheckObjectCollisionBox(thisEnt, &thisBox, otherEnt, &otherBox, setValues));
-}
-/***
- * Scene.CheckObjectCollisionPlatform
- * \desc Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.
- * \param thisEnity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
- * \param otherEntity (Instance): The other instance to check whether it is on top of the first instance.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
- * \param setValues (Boolean): Whether to set the values of the other entity.
- * \return Returns a Boolean value whether the entities have collided.
- * \ns Scene
- */
-VMValue Scene_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
-	ObjInstance* thisEntity = GET_ARG(0, GetInstance);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
-	ObjInstance* otherEntity = GET_ARG(2, GetInstance);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
-	bool setValues = !!GET_ARG(4, GetInteger);
-
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
-	return INTEGER_VAL(!!Scene::CheckObjectCollisionPlatform(
-		thisEnt, &thisBox, otherEnt, &otherBox, setValues));
-}
-/***
  * Scene.Load
  * \desc Changes the active scene. If a path to a resource is provided, the active scene is changed to the one in the specified resource file. Otherwise, the active scene is changed to the currently set entry in the scene list, if it exists (see <linkto ref="SceneList"></linkto>.)
  * \paramOpt filename (String): Filename of scene.
@@ -11088,41 +11712,6 @@ VMValue Scene_Load(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	Scene::NoPersistency = noPersistency;
-
-	return NULL_VAL;
-}
-/***
- * Scene.LoadNoPersistency
- * \desc Changes active scene to the one in the specified resource file, without keeping any persistent objects. (Deprecated; use <linkto ref="Scene.Load"></linkto> instead.)
- * \param filename (String): Filename of scene.
- * \ns Scene
- */
-VMValue Scene_LoadNoPersistency(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	char* filename = GET_ARG(0, GetString);
-
-	strcpy(Scene::NextScene, filename);
-	Scene::NextScene[strlen(filename)] = 0;
-	Scene::NoPersistency = true;
-
-	return NULL_VAL;
-}
-/***
- * Scene.LoadPosition
- * \desc Loads the scene located in the scene list's position slot, if a scene list is loaded. (Deprecated; use <linkto ref="Scene.Load"></linkto> instead.)
- * \paramOpt persistency (Boolean): Whether or not the scene should load with persistency.
- * \ns Scene
- */
-VMValue Scene_LoadPosition(int argCount, VMValue* args, Uint32 threadID) {
-	if (!SceneInfo::IsEntryValid(Scene::ActiveCategory, Scene::CurrentSceneInList)) {
-		return NULL_VAL;
-	}
-
-	std::string path = SceneInfo::GetFilename(Scene::ActiveCategory, Scene::CurrentSceneInList);
-
-	StringUtils::Copy(Scene::NextScene, path.c_str(), sizeof(Scene::NextScene));
-
-	Scene::NoPersistency = !!GET_ARG_OPT(1, GetInteger, false);
 
 	return NULL_VAL;
 }
@@ -11276,6 +11865,25 @@ VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 	return DECIMAL_VAL(Scene::Layers[index].Opacity);
 }
 /***
+ * Scene.GetLayerShader
+ * \desc Gets the shader of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a shader, or <code>null</code>.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+
+	Shader* shader = (Shader*)Scene::Layers[index].CurrentShader;
+	if (shader != nullptr) {
+		return OBJECT_VAL(shader->Object);
+	}
+
+	return NULL_VAL;
+}
+/***
  * Scene.GetLayerUsePaletteIndexLines
  * \desc Gets whether the layer is using the global palette index table.
  * \param layerIndex (Integer): Index of layer.
@@ -11379,6 +11987,26 @@ VMValue Scene_LayerPropertyExists(int argCount, VMValue* args, Uint32 threadID) 
 VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	return ReturnString(Scene::CurrentScene);
+}
+/***
+ * Scene.GetType
+ * \desc Gets the type of the active scene.
+ * \return Returns the type of the active scene, see <linkto ref="SCENETYPE_*"></linkto>.
+ * \ns Scene
+ */
+VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Scene::SceneType);
+}
+/***
+ * Scene.GetFilter
+ * \desc Gets the filter of the active scene.
+ * \return Returns an Integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetFilter(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Scene::Filter);
 }
 /***
  * Scene.GetWidth
@@ -11720,16 +12348,6 @@ VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
 	return INTEGER_VAL(!!Scene::PriorityLists[drawg].EntityDepthSortingEnabled);
 }
 /***
- * Scene.GetListPos
- * \desc Gets the current list position of the scene. (Deprecated; use <linkto ref="Scene_ListPos"></linkto> instead.)
- * \return Returns an Integer value.
- * \ns Scene
- */
-VMValue Scene_GetListPos(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Scene::CurrentSceneInList);
-}
-/***
  * Scene.GetCurrentFolder
  * \desc Gets the current folder of the scene.
  * \return Returns a String value.
@@ -11760,16 +12378,6 @@ VMValue Scene_GetCurrentResourceFolder(int argCount, VMValue* args, Uint32 threa
 	return ReturnString(Scene::CurrentResourceFolder);
 }
 /***
- * Scene.GetCurrentSpriteFolder
- * \desc Gets the current sprite folder of the scene. (Deprecated; use <linkto ref="Scene.GetCurrentResourceFolder"></linkto> instead.)
- * \return Returns a String value.
- * \ns Scene
- */
-VMValue Scene_GetCurrentSpriteFolder(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return ReturnString(Scene::CurrentResourceFolder);
-}
-/***
  * Scene.GetCurrentCategory
  * \desc Gets the current category name of the scene.
  * \return Returns a String value.
@@ -11778,36 +12386,6 @@ VMValue Scene_GetCurrentSpriteFolder(int argCount, VMValue* args, Uint32 threadI
 VMValue Scene_GetCurrentCategory(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	return ReturnString(Scene::CurrentCategory);
-}
-/***
- * Scene.GetActiveCategory
- * \desc Gets the current category number of the scene. (Deprecated; use <linkto ref="Scene_ActiveCategory"></linkto> instead.)
- * \return Returns an Integer value.
- * \ns Scene
- */
-VMValue Scene_GetActiveCategory(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Scene::ActiveCategory);
-}
-/***
- * Scene.GetCategoryCount
- * \desc Gets the amount of categories in the scene list. (Deprecated; use <linkto ref="SceneList.GetCategoryCount"></linkto> instead.)
- * \return Returns an Integer value.
- * \ns Scene
- */
-VMValue Scene_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL((int)SceneInfo::Categories.size());
-}
-/***
- * Scene.GetStageCount
- * \desc Gets the amount of stages in the scene list. (Deprecated; use <linkto ref="SceneList.GetSceneCount"></linkto> instead.)
- * \return Returns an Integer value.
- * \ns Scene
- */
-VMValue Scene_GetStageCount(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(SceneInfo::NumTotalScenes);
 }
 /***
  * Scene.GetDebugMode
@@ -11850,6 +12428,16 @@ VMValue Scene_GetLastInstance(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	return NULL_VAL;
+}
+/***
+ * Scene.GetReservedSlotIDs
+ * \desc Gets the number of reserved slot IDs to account for before creating instances.
+ * \return Returns how many reserved slot IDs are being used.
+ * \ns Scene
+ */
+VMValue Scene_GetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Scene::ReservedSlotIDs);
 }
 /***
  * Scene.GetInstanceCount
@@ -12082,35 +12670,6 @@ VMValue Scene_IsUsingID(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(false);
 }
 /***
- * Scene.CheckValidScene
- * \desc Checks whether the scene list's position is within the list's size, if a scene list is loaded. (Deprecated; use <linkto ref="Scene.IsCurrentEntryValid"></linkto> instead.)
- * \return Returns a Boolean value.
- * \ns Scene
- */
-VMValue Scene_CheckValidScene(int argCount, VMValue* args, Uint32 threadID) {
-	return Scene_IsCurrentEntryValid(argCount, args, threadID);
-}
-/***
- * Scene.CheckSceneFolder
- * \desc Checks whether the current scene's folder matches the string to check, if a scene list is loaded. (Deprecated; use <linkto ref="Scene.IsUsingFolder"></linkto> instead.)
- * \param folder (String): Folder name to compare.
- * \return Returns a Boolean value.
- * \ns Scene
- */
-VMValue Scene_CheckSceneFolder(int argCount, VMValue* args, Uint32 threadID) {
-	return Scene_IsUsingFolder(argCount, args, threadID);
-}
-/***
- * Scene.CheckSceneID
- * \desc Checks whether the current scene's ID matches the string to check, if a scene list is loaded. (Deprecated; use <linkto ref="Scene.IsUsingID"></linkto> instead.)
- * \param id (String): ID to compare.
- * \return Returns a Boolean value.
- * \ns Scene
- */
-VMValue Scene_CheckSceneID(int argCount, VMValue* args, Uint32 threadID) {
-	return Scene_IsUsingID(argCount, args, threadID);
-}
-/***
  * Scene.IsPaused
  * \desc Gets whether or not the scene is paused.
  * \return Returns a Boolean value.
@@ -12120,25 +12679,14 @@ VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)Scene::Paused);
 }
 /***
- * Scene.SetListPos
- * \desc Sets the current list position of the scene. (Deprecated; use <linkto ref="Scene_ListPos"></linkto> instead.)
- * \param sceneNum (Integer): Scene number to use.
+ * Scene.SetReservedSlotIDs
+ * \desc Sets the number of reserved slot IDs to account for before creating instances.
+ * \param amount (Integer): How many reserved slot IDs to use.
  * \ns Scene
  */
-VMValue Scene_SetListPos(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	Scene::CurrentSceneInList = GET_ARG(0, GetInteger);
-	return NULL_VAL;
-}
-/***
- * Scene.SetActiveCategory
- * \desc Sets the current category number of the scene. (Deprecated; use <linkto ref="Scene_ActiveCategory"></linkto> instead.)
- * \param categoryNum (Integer): Scene category number to use.
- * \ns Scene
- */
-VMValue Scene_SetActiveCategory(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	Scene::ActiveCategory = GET_ARG(0, GetInteger);
+	Scene::ReservedSlotIDs = GET_ARG(0, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -12150,16 +12698,6 @@ VMValue Scene_SetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Scene::DebugMode = GET_ARG(0, GetInteger);
 	return NULL_VAL;
-}
-/***
- * Scene.SetScene
- * \desc Sets the scene if the category and scene names exist within the scene list. (Deprecated; use <linkto ref="Scene.Change"></linkto> instead.)
- * \param category (String): Category name.
- * \param scene (String): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.
- * \ns Scene
- */
-VMValue Scene_SetScene(int argCount, VMValue* args, Uint32 threadID) {
-	return Scene_Change(argCount, args, threadID);
 }
 /***
  * Scene.SetTile
@@ -12723,6 +13261,42 @@ VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Scene.SetLayerShader
+ * \desc Sets a shader for the layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	ObjShader* objShader = GET_ARG(1, GetShader);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+
+	if (IS_NULL(args[1])) {
+		Scene::Layers[index].CurrentShader = nullptr;
+		return NULL_VAL;
+	}
+
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader has been deleted!");
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Validate();
+
+		Scene::Layers[index].CurrentShader = shader;
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+		return NULL_VAL;
+	}
+
+	return NULL_VAL;
+}
+/***
  * Scene.SetLayerUsePaletteIndexLines
  * \desc Enables or disables the use of the global palette index table for the specified layer.
  * \param layerIndex (Integer): Index of layer.
@@ -12858,7 +13432,6 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 	SceneLayer* layer = &Scene::Layers[BufferedScrollSetupLayer];
 	Memory::Free(layer->ScrollInfos);
 	Memory::Free(layer->ScrollIndexes);
-	Memory::Free(layer->ScrollInfosSplitIndexes);
 
 	layer->ScrollInfoCount = (int)BufferedScrollInfos.size();
 	layer->ScrollInfos =
@@ -12874,6 +13447,7 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 		length16 = layer->WidthData * 16;
 	}
 
+	layer->UsingScrollIndexes = true;
 	layer->ScrollIndexes = (Uint8*)Memory::Calloc(length16, sizeof(Uint8));
 	memcpy(layer->ScrollIndexes, BufferedScrollLines, BufferedScrollLinesMax);
 
@@ -12905,6 +13479,7 @@ VMValue Scene_SetLayerTileDeforms(int argCount, VMValue* args, Uint32 threadID) 
 	lineIndex &= maxDeformLineMask;
 	Scene::Layers[index].DeformSetA[lineIndex] = deformA;
 	Scene::Layers[index].DeformSetB[lineIndex] = deformB;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -12920,6 +13495,7 @@ VMValue Scene_SetLayerTileDeformSplitLine(int argCount, VMValue* args, Uint32 th
 	int deformPosition = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformSplitLine = deformPosition;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -12938,6 +13514,7 @@ VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 thre
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformAOffset;
 	Scene::Layers[index].DeformOffsetB = deformBOffset;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -12953,6 +13530,7 @@ VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 	int deformA = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformA;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -12968,6 +13546,7 @@ VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 	int deformB = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].DeformOffsetA = deformB;
+	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -13008,7 +13587,7 @@ VMValue Scene_SetTileScanline(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 	int scanlineIndex = GET_ARG(0, GetInteger);
 
-	TileScanLine* scanLine = &SoftwareRenderer::TileScanLineBuffer[scanlineIndex];
+	TileScanLine* scanLine = &Graphics::TileScanLineBuffer[scanlineIndex];
 	scanLine->SrcX = (Sint64)(GET_ARG(1, GetDecimal) * 0x10000);
 	scanLine->SrcY = (Sint64)(GET_ARG(2, GetDecimal) * 0x10000);
 	scanLine->DeltaX = (Sint64)(GET_ARG(3, GetDecimal) * 0x10000);
@@ -14153,32 +14732,6 @@ VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) 
 }
 // #endregion
 
-// #region Shader
-/***
- * Shader.Set
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_Set(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	ObjArray* array = GET_ARG(0, GetArray);
-	Graphics::UseShader(array);
-	return NULL_VAL;
-}
-/***
- * Shader.Unset
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_Unset(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	Graphics::UseShader(NULL);
-	return NULL_VAL;
-}
-// #endregion
-
 // #region SocketClient
 WebSocketClient* client = NULL;
 /***
@@ -14362,8 +14915,9 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 // #region Sound
 /***
  * Sound.Play
- * \desc Plays a sound once.
+ * \desc Plays a sound either once or in a loop.
  * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
@@ -14373,39 +14927,33 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
-	float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
-	int channel = -1;
-	if (audio) {
-		AudioManager::AudioStop(audio);
-		channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
-	}
-	return INTEGER_VAL(channel);
-}
-/***
- * Sound.Loop
- * \desc Plays a sound, looping back when it ends.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
- * \ns Sound
- */
-VMValue Sound_Loop(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
-	int loopPoint = GET_ARG_OPT(1, GetInteger, 0);
+	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
+					 : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	int channel = -1;
+
+	if (loopPoint < AUDIO_LOOP_NONE) {
+		THROW_ERROR(
+			"Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d",
+			loopPoint);
+		return NULL_VAL;
+	}
+
+	if (loopPoint == AUDIO_LOOP_DEFAULT) {
+		loopPoint = audio->LoopPoint;
+	}
+
 	if (audio) {
 		AudioManager::AudioStop(audio);
-		channel = AudioManager::PlaySound(
-			audio, true, loopPoint, panning, speed, volume, nullptr);
+		channel = AudioManager::PlaySound(audio,
+			loopPoint >= 0,
+			loopPoint >= 0 ? loopPoint : 0,
+			panning,
+			speed,
+			volume,
+			nullptr);
 	}
 	return INTEGER_VAL(channel);
 }
@@ -14498,8 +15046,9 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.PlayMultiple
- * \desc Plays a sound once, without interrupting channels playing the same sound.
+ * \desc Plays a sound once or loops it, without interrupting channels playing the same sound.
  * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
@@ -14509,45 +15058,41 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
-	float panning = GET_ARG_OPT(1, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(2, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(3, GetDecimal, 1.0f);
-	int channel = -1;
-	if (audio) {
-		channel = AudioManager::PlaySound(audio, false, 0, panning, speed, volume, nullptr);
-	}
-	return INTEGER_VAL(channel);
-}
-/***
- * Sound.LoopMultiple
- * \desc Plays a sound, looping back when it ends, without interrupting channels playing the same sound.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
- * \ns Sound
- */
-VMValue Sound_LoopMultiple(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
-	int loopPoint = GET_ARG_OPT(1, GetInteger, 0);
+	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
+					 : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	int channel = -1;
+
+	if (loopPoint < AUDIO_LOOP_NONE) {
+		THROW_ERROR(
+			"Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d",
+			loopPoint);
+		return NULL_VAL;
+	}
+
+	if (loopPoint == AUDIO_LOOP_DEFAULT) {
+		loopPoint = audio->LoopPoint;
+	}
+
 	if (audio) {
-		channel = AudioManager::PlaySound(
-			audio, true, loopPoint, panning, speed, volume, nullptr);
+		channel = AudioManager::PlaySound(audio,
+			loopPoint >= 0,
+			loopPoint >= 0 ? loopPoint : 0,
+			panning,
+			speed,
+			volume,
+			nullptr);
 	}
 	return INTEGER_VAL(channel);
 }
 /***
  * Sound.PlayAtChannel
- * \desc Plays a sound at the specified channel.
+ * \desc Plays or loops a sound at the specified channel.
  * \param channel (Integer): The channel index.
  * \param sound (Integer): The sound index to play.
+ * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
  * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
@@ -14558,54 +15103,33 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int channel = GET_ARG(0, GetInteger);
 	ISound* audio = GET_ARG(1, GetSound);
-	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
-	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
-	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
-	if (channel < 0) {
-		THROW_ERROR("Invalid channel index %d.", channel);
-		return NULL_VAL;
-	}
-	if (audio) {
-		AudioManager::SetSound(channel % AudioManager::SoundArrayLength,
-			audio,
-			false,
-			0,
-			panning,
-			speed,
-			volume,
-			nullptr);
-	}
-	return NULL_VAL;
-}
-/***
- * Sound.LoopAtChannel
- * \desc Plays a sound at the specified channel, looping back when it ends.
- * \param channel (Integer): The channel index.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples.
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return
- * \ns Sound
- */
-VMValue Sound_LoopAtChannel(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(2);
-	int channel = GET_ARG(0, GetInteger);
-	ISound* audio = GET_ARG(1, GetSound);
-	int loopPoint = GET_ARG_OPT(2, GetInteger, 0);
-	float panning = GET_ARG_OPT(3, GetDecimal, 0.0f);
+	int loopPoint = IS_NULL(args[2]) ? AUDIO_LOOP_DEFAULT
+					 : GET_ARG_OPT(2, GetInteger, AUDIO_LOOP_DEFAULT);
+	float panning = GET_ARG_OPT(3, GetDecimal, 0.0);
 	float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(5, GetDecimal, 1.0f);
+
 	if (channel < 0) {
 		THROW_ERROR("Invalid channel index %d.", channel);
 		return NULL_VAL;
 	}
+
+	if (loopPoint < AUDIO_LOOP_NONE) {
+		THROW_ERROR(
+			"Audio loop point value should be AUDIO_LOOP_DEFAULT, AUDIO_LOOP_NONE, or a number higher than zero, received %d",
+			loopPoint);
+		return NULL_VAL;
+	}
+
+	if (loopPoint == AUDIO_LOOP_DEFAULT) {
+		loopPoint = audio->LoopPoint;
+	}
+
 	if (audio) {
 		AudioManager::SetSound(channel % AudioManager::SoundArrayLength,
 			audio,
-			true,
-			loopPoint,
+			loopPoint >= 0,
+			loopPoint >= 0 ? loopPoint : 0,
 			panning,
 			speed,
 			volume,
@@ -14713,6 +15237,40 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
 	}
 	return INTEGER_VAL(AudioManager::AudioIsPlaying(channel % AudioManager::SoundArrayLength));
 }
+/***
+ * Sound.GetLoopPoint
+ * \desc Gets the loop point of a sound index, if it has one.
+ * \param sound (Integer): The sound index to get the loop point.
+ * \return Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.
+ * \ns Sound
+ */
+VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetSound);
+	if (!audio || audio->LoopPoint == -1) {
+		return NULL_VAL;
+	}
+	return INTEGER_VAL(audio->LoopPoint);
+}
+/***
+ * Sound.SetLoopPoint
+ * \desc Sets the loop point of a sound index.
+ * \param sound (Integer): The sound index to set the loop point.
+ * \param loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.
+ * \ns Sound
+ */
+VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetSound);
+	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
+	if (!audio) {
+		return NULL_VAL;
+	}
+	if (loopPoint >= -1) {
+		audio->LoopPoint = loopPoint;
+	}
+	return NULL_VAL;
+}
 // #endregion
 
 // #region Sprite
@@ -14782,6 +15340,26 @@ VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threa
 		}
 	}
 	return INTEGER_VAL(-1);
+}
+/***
+ * Sprite.GetFrameExists
+ * \desc Checks if an animation and frame is valid within a sprite.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The sprite index to check.
+ * \return Returns whether the frame is valid.
+ * \ns Sprite
+ */
+VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
+	if (!sprite) {
+		return INTEGER_VAL(false);
+	}
+	return (INTEGER_VAL((animation >= 0 && animation < (int)sprite->Animations.size()) &&
+		(frame >= 0 && frame < (int)sprite->Animations[animation].Frames.size())));
 }
 /***
  * Sprite.GetFrameLoopIndex
@@ -14958,45 +15536,38 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetY);
 }
 /***
- * Sprite.GetFrameHitbox
+ * Sprite.GetHitbox
  * \desc Gets the hitbox of an animation and frame of a sprite.
  * \param sprite (Integer): The sprite index to check.
  * \param animationID (Integer): The animation index of the sprite to check.
  * \param frame (Integer): The frame index of the animation to check.
- * \param hitboxID (Integer): The index number of the hitbox.
- * \return Returns a reference value to a hitbox array.
+ * \paramOpt hitboxID (Integer): The hitbox index of the animation to check. Defaults to <code>0</code>.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
+VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animationID = GET_ARG(1, GetInteger);
 	int frameID = GET_ARG(2, GetInteger);
-	int hitboxID = GET_ARG(3, GetInteger);
+	int hitboxID = GET_ARG_OPT(3, GetInteger, 0);
 
-	ObjArray* array = NewArray();
-	for (int i = 0; i < 4; i++) {
-		array->Values->push_back(DECIMAL_VAL(0.0f));
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+	if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+		THROW_ERROR("Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
+		return NULL_VAL;
 	}
 
-	if (sprite && animationID >= 0 && frameID >= 0) {
-		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
-
-		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-			return OBJECT_VAL(array);
-		}
-
-		CollisionBox box = frame.Boxes[hitboxID];
-		ObjArray* hitbox = NewArray();
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Top));
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Left));
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Right));
-		hitbox->Values->push_back(DECIMAL_VAL((float)box.Bottom));
-		return OBJECT_VAL(hitbox);
-	}
-	else {
-		return OBJECT_VAL(array);
-	}
+	CollisionBox box = frame.Boxes[hitboxID];
+	ObjArray* hitbox = NewArray();
+	hitbox->Values->push_back(INTEGER_VAL(box.Left));
+	hitbox->Values->push_back(INTEGER_VAL(box.Top));
+	hitbox->Values->push_back(INTEGER_VAL(box.Right));
+	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
+	return OBJECT_VAL(hitbox);
 }
 /***
  * Sprite.MakePalettized
@@ -15052,7 +15623,7 @@ VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open resource stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = NewStream(streamPtr, false);
+		ObjStream* stream = StreamImpl::New((void*)streamPtr, false);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -15077,7 +15648,7 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = NewStream(streamPtr, access == FileStream::WRITE_ACCESS);
+		ObjStream* stream = StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -16058,7 +16629,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 	int length = (int)GET_ARG(3, GetDecimal);
 	int collisionField = GET_ARG(4, GetInteger);
 	int compareAngle = GET_ARG(5, GetInteger);
-	ObjInstance* entity = GET_ARG(6, GetInstance);
+	ObjEntity* entity = GET_ARG(6, GetEntity);
 
 	Sensor sensor;
 	sensor.X = x;
@@ -16371,7 +16942,7 @@ VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (callback == NULL) {
-		Values::PrintValue(args[0]);
+		ValuePrinter::Print(args[0]);
 		printf("\n");
 		Log::Print(Log::LOG_ERROR, "No callback.");
 		return NULL_VAL;
@@ -16866,6 +17437,48 @@ VMValue View_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * View.AdjustX
+ * \desc Adjusts the x-axis position of the camera for the specified view by an amount.
+ * \param viewIndex(Integer) : Index of the view.
+ * \param x(Number) : Desired X adjust amount.
+ * \ns View
+ */
+VMValue View_AdjustX(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].X += GET_ARG(1, GetDecimal);
+	return NULL_VAL;
+}
+/***
+* View.AdjustY
+* \desc Adjusts the y-axis position of the camera for the specified view by an amount.
+* \param viewIndex (Integer): Index of the view.
+* \param y (Number): Desired Y adjust amount.
+* \ns View
+*/
+VMValue View_AdjustY(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].Y += GET_ARG(1, GetDecimal);
+	return NULL_VAL;
+}
+/***
+* View.AdjustZ
+* \desc Adjusts the z-axis position of the camera for the specified view by an amount.
+* \param viewIndex (Integer): Index of the view.
+* \param z (Number): Desired Z adjust amount.
+* \ns View
+*/
+VMValue View_AdjustZ(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].Z += GET_ARG(1, GetDecimal);
+	return NULL_VAL;
+}
+/***
  * View.SetAngle
  * \desc Sets the angle of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
@@ -17110,6 +17723,53 @@ VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)i);
 }
 /***
+ * View.SetShader
+ * \desc Sets a shader for the specified camera.
+ * \param viewIndex (Integer): Index of the view.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns View
+ */
+VMValue View_SetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	Shader* shader = nullptr;
+
+	CHECK_VIEW_INDEX();
+
+	if (!IS_NULL(args[1])) {
+		ObjShader* objShader = GET_ARG(1, GetShader);
+		shader = (Shader*)objShader->ShaderPtr;
+
+		if (shader == nullptr) {
+			THROW_ERROR("Shader has been deleted!");
+			return NULL_VAL;
+		}
+	}
+
+	Scene::Views[view_index].CurrentShader = shader;
+	return NULL_VAL;
+}
+/***
+ * View.GetShader
+ * \desc Gets the shader of the specified camera.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a shader, or <code>null</code>.
+ * \ns View
+ */
+VMValue View_GetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+
+	CHECK_VIEW_INDEX();
+
+	Shader* shader = Scene::Views[view_index].CurrentShader;
+	if (shader != nullptr) {
+		return OBJECT_VAL(shader->Object);
+	}
+
+	return NULL_VAL;
+}
+/***
  * View.IsUsingSoftwareRenderer
  * \desc Gets whether the specified camera is using the software renderer or not.
  * \param viewIndex (Integer): Index of the view.
@@ -17295,7 +17955,7 @@ VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
-	ObjInstance* instance = GET_ARG(0, GetInstance);
+	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* self = (Entity*)instance->EntityPtr;
 	float rangeX = 0.0;
 	float rangeY = 0.0;
@@ -17432,6 +18092,37 @@ VMValue Window_SetTitle(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Window.SetPostProcessingShader
+ * \desc Sets a post-processing shader for the active window.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns Window
+ */
+VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	if (IS_NULL(args[0])) {
+		Graphics::PostProcessShader = nullptr;
+		return NULL_VAL;
+	}
+
+	ObjShader* objShader = GET_ARG(0, GetShader);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader has been deleted!");
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Validate();
+
+		Graphics::PostProcessShader = shader;
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	return NULL_VAL;
+}
+/***
  * Window.GetWidth
  * \desc Gets the width of the active window.
  * \return Returns the width of the active window.
@@ -17548,8 +18239,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
 			attrNameSize = length;
 			attrName = (char*)realloc(attrName, attrNameSize);
 			if (!attrName) {
-				Log::Print(Log::LOG_ERROR, "Out of memory parsing XML!");
-				abort();
+				Error::Fatal("Out of memory parsing XML!");
 			}
 		}
 
@@ -17585,11 +18275,14 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 			XMLNode* xmlRoot = XMLParser::ParseFromStream(stream);
 			if (xmlRoot) {
 				mapValue = XML_FillMap(xmlRoot);
-			}
 
-			// XMLParser will realloc text, so the stream needs to free it.
-			stream->owns_memory = true;
-			XMLParser::Free(xmlRoot);
+				// XMLParser will realloc text, so the stream needs to free it.
+				stream->owns_memory = true;
+				XMLParser::Free(xmlRoot);
+			}
+			else {
+				stream->Close();
+			}
 		}
 		else {
 			Memory::Free(text);
@@ -17612,17 +18305,6 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 #define DEF_ENUM(a) DEF_CONST_INT(#a, a)
 #define DEF_ENUM_CLASS(a, b) DEF_CONST_INT(#a "_" #b, (int)a::b)
 #define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(a "_" #c, (int)b::c)
-
-ObjClass* InitClass(const char* className) {
-	ObjClass* klass = NewClass(Murmur::EncryptString(className));
-	klass->Name = CopyString(className);
-	return klass;
-}
-ObjNamespace* InitNamespace(const char* nsName) {
-	ObjNamespace* ns = NewNamespace(Murmur::EncryptString(nsName));
-	ns->Name = CopyString(nsName);
-	return ns;
-}
 
 void StandardLibrary::Link() {
 	ObjClass* klass;
@@ -17647,7 +18329,7 @@ void StandardLibrary::Link() {
 	String_CaseMapBind(L'ç', L'Ç');
 
 #define INIT_CLASS(className) \
-	klass = InitClass(#className); \
+	klass = NewClass(#className); \
 	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
 #define DEF_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
@@ -17655,11 +18337,11 @@ void StandardLibrary::Link() {
 	ScriptManager::DefineNative(klass, #funcName, oldClassName##_##oldFuncName)
 
 #define INIT_NAMESPACE(nsName) \
-	ObjNamespace* ns_##nsName = InitNamespace(#nsName); \
+	ObjNamespace* ns_##nsName = NewNamespace(#nsName); \
 	ScriptManager::Constants->Put(ns_##nsName->Hash, OBJECT_VAL(ns_##nsName)); \
 	ScriptManager::AllNamespaces.push_back(ns_##nsName)
 #define INIT_NAMESPACED_CLASS(nsName, className) \
-	klass = InitClass(#className); \
+	klass = NewClass(#className); \
 	ns_##nsName->Fields->Put(klass->Hash, OBJECT_VAL(klass))
 #define DEF_NAMESPACED_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
@@ -17676,7 +18358,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, GetCurrentAnimation);
 	DEF_NATIVE(Animator, GetCurrentFrame);
 	DEF_NATIVE(Animator, GetHitbox);
-	DEF_NATIVE(Animator, GetPreviousAnimation);
+	DEF_NATIVE(Animator, GetPrevAnimation);
 	DEF_NATIVE(Animator, GetAnimationSpeed);
 	DEF_NATIVE(Animator, GetAnimationTimer);
 	DEF_NATIVE(Animator, GetDuration);
@@ -17685,7 +18367,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, SetSprite);
 	DEF_NATIVE(Animator, SetCurrentAnimation);
 	DEF_NATIVE(Animator, SetCurrentFrame);
-	DEF_NATIVE(Animator, SetPreviousAnimation);
+	DEF_NATIVE(Animator, SetPrevAnimation);
 	DEF_NATIVE(Animator, SetAnimationSpeed);
 	DEF_NATIVE(Animator, SetAnimationTimer);
 	DEF_NATIVE(Animator, SetDuration);
@@ -17725,6 +18407,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
 	/***
     * \enum KeyBind_Fullscreen
@@ -17752,7 +18435,7 @@ void StandardLibrary::Link() {
     */
 	DEF_ENUM_CLASS(KeyBind, DevPerfSnapshot);
 	/***
-    * \enum KeyBind_Fullscreen
+    * \enum KeyBind_DevLayerInfo
     * \desc Scene layer info keybind. (dev)
     */
 	DEF_ENUM_CLASS(KeyBind, DevLayerInfo);
@@ -17788,16 +18471,6 @@ void StandardLibrary::Link() {
 	DEF_ENUM_CLASS(KeyBind, DevQuit);
 	// #endregion
 
-	// #region Audio
-	INIT_CLASS(Audio);
-	DEF_NATIVE(Audio, GetMasterVolume);
-	DEF_NATIVE(Audio, GetMusicVolume);
-	DEF_NATIVE(Audio, GetSoundVolume);
-	DEF_NATIVE(Audio, SetMasterVolume);
-	DEF_NATIVE(Audio, SetMusicVolume);
-	DEF_NATIVE(Audio, SetSoundVolume);
-	// #endregion
-
 	// #region Array
 	INIT_CLASS(Array);
 	DEF_NATIVE(Array, Create);
@@ -17811,6 +18484,27 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Array, SetAll);
 	DEF_NATIVE(Array, Reverse);
 	DEF_NATIVE(Array, Sort);
+	// #endregion
+
+	// #region Audio
+	INIT_CLASS(Audio);
+	DEF_NATIVE(Audio, GetMasterVolume);
+	DEF_NATIVE(Audio, GetMusicVolume);
+	DEF_NATIVE(Audio, GetSoundVolume);
+	DEF_NATIVE(Audio, SetMasterVolume);
+	DEF_NATIVE(Audio, SetMusicVolume);
+	DEF_NATIVE(Audio, SetSoundVolume);
+	// #endregion
+
+	// #region Collision
+	INIT_CLASS(Collision);
+	DEF_NATIVE(Collision, ProcessObjectMovement);
+	DEF_NATIVE(Collision, ObjectTileCollision);
+	DEF_NATIVE(Collision, ObjectTileGrip);
+	DEF_NATIVE(Collision, CheckObjectCollisionTouch);
+	DEF_NATIVE(Collision, CheckObjectCollisionCircle);
+	DEF_NATIVE(Collision, CheckObjectCollisionBox);
+	DEF_NATIVE(Collision, CheckObjectCollisionPlatform);
 	// #endregion
 
 	// #region Controller
@@ -18096,63 +18790,63 @@ void StandardLibrary::Link() {
 
 	// #region Weekdays
 	/***
-    * \enum Weekday_SUNDAY
-    * \desc The first day of the week.
-    */
-	DEF_CONST_INT("Weekday_SUNDAY", (int)Weekday::SUNDAY);
+	* \enum WEEKDAY_SUNDAY
+	* \desc The first day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_SUNDAY", (int)Weekday::SUNDAY);
 	/***
-    * \enum Weekday_MONDAY
-    * \desc The second day of the week.
-    */
-	DEF_CONST_INT("Weekday_MONDAY", (int)Weekday::MONDAY);
+	* \enum WEEKDAY_MONDAY
+	* \desc The second day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_MONDAY", (int)Weekday::MONDAY);
 	/***
-    * \enum Weekday_TUESDAY
-    * \desc The third day of the week.
-    */
-	DEF_CONST_INT("Weekday_TUESDAY", (int)Weekday::TUESDAY);
+	* \enum WEEKDAY_TUESDAY
+	* \desc The third day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_TUESDAY", (int)Weekday::TUESDAY);
 	/***
-    * \enum Weekday_WEDNESDAY
-    * \desc The fourth day of the week.
-    */
-	DEF_CONST_INT("Weekday_WEDNESDAY", (int)Weekday::WEDNESDAY);
+	* \enum WEEKDAY_WEDNESDAY
+	* \desc The fourth day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_WEDNESDAY", (int)Weekday::WEDNESDAY);
 	/***
-    * \enum Weekday_THURSDAY
-    * \desc The fifth day of the week.
-    */
-	DEF_CONST_INT("Weekday_THURSDAY", (int)Weekday::THURSDAY);
+	* \enum WEEKDAY_THURSDAY
+	* \desc The fifth day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_THURSDAY", (int)Weekday::THURSDAY);
 	/***
-    * \enum Weekday_FRIDAY
-    * \desc The sixth day of the week.
-    */
-	DEF_CONST_INT("Weekday_FRIDAY", (int)Weekday::FRIDAY);
+	* \enum WEEKDAY_FRIDAY
+	* \desc The sixth day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_FRIDAY", (int)Weekday::FRIDAY);
 	/***
-    * \enum Weekday_SATURDAY
-    * \desc The seventh day of the week.
-    */
-	DEF_CONST_INT("Weekday_SATURDAY", (int)Weekday::SATURDAY);
+	* \enum WEEKDAY_SATURDAY
+	* \desc The seventh day of the week.
+	*/
+	DEF_CONST_INT("WEEKDAY_SATURDAY", (int)Weekday::SATURDAY);
 	// #endregion
 
 	// #region TimesOfDay
 	/***
-    * \enum TimeOfDay_MORNING
-    * \desc The early hours of the day (5AM to 11AM, or 05:00 to 11:00).
-    */
-	DEF_CONST_INT("TimeOfDay_MORNING", (int)TimeOfDay::MORNING);
+	* \enum TIMEOFDAY_MORNING
+	* \desc The early hours of the day (5AM to 11AM, or 05:00 to 11:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_MORNING", (int)TimeOfDay::MORNING);
 	/***
-    * \enum TimeOfDay_MIDDAY
-    * \desc The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).
-    */
-	DEF_CONST_INT("TimeOfDay_MIDDAY", (int)TimeOfDay::MIDDAY);
+	* \enum TIMEOFDAY_MIDDAY
+	* \desc The middle hours of the day (12PM to 4PM, or 12:00 to 16:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_MIDDAY", (int)TimeOfDay::MIDDAY);
 	/***
-    * \enum TimeOfDay_EVENING
-    * \desc The later hours of the day (5PM to 8PM, or 17:00 to 20:00).
-    */
-	DEF_CONST_INT("TimeOfDay_EVENING", (int)TimeOfDay::EVENING);
+	* \enum TIMEOFDAY_EVENING
+	* \desc The later hours of the day (5PM to 8PM, or 17:00 to 20:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_EVENING", (int)TimeOfDay::EVENING);
 	/***
-    * \enum TimeOfDay_NIGHT
-    * \desc The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).
-    */
-	DEF_CONST_INT("TimeOfDay_NIGHT", (int)TimeOfDay::NIGHT);
+	* \enum TIMEOFDAY_NIGHT
+	* \desc The very late and very early hours of the day (9PM to 4AM, or 21:00 to 4:00).
+	*/
+	DEF_CONST_INT("TIMEOFDAY_NIGHT", (int)TimeOfDay::NIGHT);
 	// #endregion
 	// #endregion
 
@@ -18161,6 +18855,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Device, GetPlatform);
 	DEF_NATIVE(Device, IsPC);
 	DEF_NATIVE(Device, IsMobile);
+	DEF_NATIVE(Device, GetCapability);
 	/***
     * \enum Platform_Windows
     * \desc Windows platform.
@@ -18265,6 +18960,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, SetTintColor);
 	DEF_NATIVE(Draw, SetTintMode);
 	DEF_NATIVE(Draw, UseTinting);
+	DEF_NATIVE(Draw, SetShader);
 	DEF_NATIVE(Draw, SetFilter);
 	DEF_NATIVE(Draw, UseStencil);
 	DEF_NATIVE(Draw, SetStencilTestFunction);
@@ -18296,6 +18992,10 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, UseStrokeSmoothing);
 	DEF_NATIVE(Draw, SetClip);
 	DEF_NATIVE(Draw, ClearClip);
+	DEF_NATIVE(Draw, GetClipX);
+	DEF_NATIVE(Draw, GetClipY);
+	DEF_NATIVE(Draw, GetClipWidth);
+	DEF_NATIVE(Draw, GetClipHeight);
 	DEF_NATIVE(Draw, Save);
 	DEF_NATIVE(Draw, Scale);
 	DEF_NATIVE(Draw, Rotate);
@@ -18601,6 +19301,36 @@ void StandardLibrary::Link() {
     * \desc Blend factor: (1-Ad, 1-Ad, 1-Ad, 1-Ad)
     */
 	DEF_ENUM(BlendFactor_INV_DST_ALPHA);
+	/***
+	* \enum ROTSTYLE_NONE
+	* \desc Does not rotate the sprite in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_NONE);
+	/***
+	* \enum ROTSTYLE_FULL
+	* \desc Allows the sprite 256 angles of rotation in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_FULL);
+	/***
+	* \enum ROTSTYLE_45DEG
+	* \desc Allows the sprite to rotate in intervals of 45 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_45DEG);
+	/***
+	* \enum ROTSTYLE_90DEG
+	* \desc Allows the sprite to rotate in intervals of 90 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_90DEG);
+	/***
+	* \enum ROTSTYLE_180DEG
+	* \desc Allows the sprite to rotate in intervals of 180 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_180DEG);
+	/***
+	* \enum ROTSTYLE_STATICFRAMES
+	* \desc Uses extra frames to rotate the sprite in <linkto ref="Draw.SpriteBasic"></linkto> and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	*/
+	DEF_ENUM(ROTSTYLE_STATICFRAMES);
 	// #endregion
 
 	// #region Draw3D
@@ -18865,6 +19595,10 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Math, Max);
 	DEF_NATIVE(Math, Clamp);
 	DEF_NATIVE(Math, Sign);
+	DEF_NATIVE(Math, Uint8);
+	DEF_NATIVE(Math, Uint16);
+	DEF_NATIVE(Math, Uint32);
+	DEF_NATIVE(Math, Uint64);
 	DEF_NATIVE(Math, Random);
 	DEF_NATIVE(Math, RandomMax);
 	DEF_NATIVE(Math, RandomRange);
@@ -18895,8 +19629,11 @@ void StandardLibrary::Link() {
 	DEF_NAMESPACED_NATIVE(Math, Tan256);
 	DEF_NAMESPACED_NATIVE(Math, ASin256);
 	DEF_NAMESPACED_NATIVE(Math, ACos256);
+	DEF_NAMESPACED_NATIVE(Math, ATan2);
 	DEF_NAMESPACED_NATIVE(Math, RadianToInteger);
 	DEF_NAMESPACED_NATIVE(Math, IntegerToRadian);
+	DEF_NAMESPACED_NATIVE(Math, ToFixed);
+	DEF_NAMESPACED_NATIVE(Math, FromFixed);
 	DEF_NAMESPACED_NATIVE(Math, GetRandSeed);
 	DEF_NAMESPACED_NATIVE(Math, SetRandSeed);
 	DEF_NAMESPACED_NATIVE(Math, RandomInteger);
@@ -18949,17 +19686,26 @@ void StandardLibrary::Link() {
 	// #region Music
 	INIT_CLASS(Music);
 	DEF_NATIVE(Music, Play);
-	DEF_NATIVE(Music, PlayAtTime);
 	DEF_NATIVE(Music, Stop);
 	DEF_NATIVE(Music, StopWithFadeOut);
 	DEF_NATIVE(Music, Pause);
 	DEF_NATIVE(Music, Resume);
 	DEF_NATIVE(Music, Clear);
-	DEF_NATIVE(Music, Loop);
-	DEF_NATIVE(Music, LoopAtTime);
 	DEF_NATIVE(Music, IsPlaying);
 	DEF_NATIVE(Music, GetPosition);
 	DEF_NATIVE(Music, Alter);
+	DEF_NATIVE(Music, GetLoopPoint);
+	DEF_NATIVE(Music, SetLoopPoint);
+	/***
+	* \enum AUDIO_LOOP_NONE
+	* \desc When used as the `loopPoint` argument in <linkto ref="Music.Play"></linkto> or <linkto ref="Sound.Play"></linkto>, specifies that the audio should not loop, even if the audio file has a loop point.
+	*/
+	DEF_CONST_INT("AUDIO_LOOP_NONE", AUDIO_LOOP_NONE);
+	/***
+	* \enum AUDIO_LOOP_DEFAULT
+	* \desc When used as the `loopPoint` argument in <linkto ref="Music.Play"></linkto> or <linkto ref="Sound.Play"></linkto>, specifies that the audio should use loop point defined in the metadata of the audio file.
+	*/
+	DEF_CONST_INT("AUDIO_LOOP_DEFAULT", AUDIO_LOOP_DEFAULT);
 	// #endregion
 
 	// #region Number
@@ -19004,6 +19750,7 @@ void StandardLibrary::Link() {
 	// #region Resources
 	INIT_CLASS(Resources);
 	DEF_NATIVE(Resources, LoadSprite);
+	DEF_NATIVE(Resources, LoadDynamicSprite);
 	DEF_NATIVE(Resources, LoadImage);
 	DEF_NATIVE(Resources, LoadFont);
 	DEF_NATIVE(Resources, LoadModel);
@@ -19027,17 +19774,8 @@ void StandardLibrary::Link() {
 
 	// #region Scene
 	INIT_CLASS(Scene);
-	DEF_NATIVE(Scene, ProcessObjectMovement);
-	DEF_NATIVE(Scene, ObjectTileCollision);
-	DEF_NATIVE(Scene, ObjectTileGrip);
-	DEF_NATIVE(Scene, CheckObjectCollisionTouch);
-	DEF_NATIVE(Scene, CheckObjectCollisionCircle);
-	DEF_NATIVE(Scene, CheckObjectCollisionBox);
-	DEF_NATIVE(Scene, CheckObjectCollisionPlatform);
 	DEF_NATIVE(Scene, Load);
-	DEF_NATIVE(Scene, LoadNoPersistency); // deprecated
 	DEF_NATIVE(Scene, Change);
-	DEF_NATIVE(Scene, LoadPosition); // deprecated
 	DEF_NATIVE(Scene, LoadTileCollisions);
 	DEF_NATIVE(Scene, AreTileCollisionsLoaded);
 	DEF_NATIVE(Scene, AddTileset);
@@ -19048,6 +19786,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetLayerIndex);
 	DEF_NATIVE(Scene, GetLayerVisible);
 	DEF_NATIVE(Scene, GetLayerOpacity);
+	DEF_NATIVE(Scene, GetLayerShader);
 	DEF_NATIVE(Scene, GetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, GetLayerProperty);
 	DEF_NATIVE(Scene, GetLayerExists); // deprecated
@@ -19056,6 +19795,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetLayerDeformOffsetB);
 	DEF_NATIVE(Scene, LayerPropertyExists);
 	DEF_NATIVE(Scene, GetName);
+	DEF_NATIVE(Scene, GetType);
+	DEF_NATIVE(Scene, GetFilter);
 	DEF_NATIVE(Scene, GetWidth);
 	DEF_NATIVE(Scene, GetHeight);
 	DEF_NATIVE(Scene, GetLayerWidth);
@@ -19078,18 +19819,14 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetTilesetPaletteIndex);
 	DEF_NATIVE(Scene, GetDrawGroupCount);
 	DEF_NATIVE(Scene, GetDrawGroupEntityDepthSorting);
-	DEF_NATIVE(Scene, GetListPos); // deprecated
 	DEF_NATIVE(Scene, GetCurrentFolder);
 	DEF_NATIVE(Scene, GetCurrentID);
 	DEF_NATIVE(Scene, GetCurrentResourceFolder);
-	DEF_NATIVE(Scene, GetCurrentSpriteFolder); // deprecated
 	DEF_NATIVE(Scene, GetCurrentCategory);
-	DEF_NATIVE(Scene, GetActiveCategory);
-	DEF_NATIVE(Scene, GetCategoryCount); // deprecated
-	DEF_NATIVE(Scene, GetStageCount); // deprecated
 	DEF_NATIVE(Scene, GetDebugMode);
 	DEF_NATIVE(Scene, GetFirstInstance);
 	DEF_NATIVE(Scene, GetLastInstance);
+	DEF_NATIVE(Scene, GetReservedSlotIDs);
 	DEF_NATIVE(Scene, GetInstanceCount);
 	DEF_NATIVE(Scene, GetStaticInstanceCount);
 	DEF_NATIVE(Scene, GetDynamicInstanceCount);
@@ -19102,14 +19839,9 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, IsCurrentEntryValid);
 	DEF_NATIVE(Scene, IsUsingFolder);
 	DEF_NATIVE(Scene, IsUsingID);
-	DEF_NATIVE(Scene, CheckValidScene); // deprecated
-	DEF_NATIVE(Scene, CheckSceneFolder); // deprecated
-	DEF_NATIVE(Scene, CheckSceneID); // deprecated
 	DEF_NATIVE(Scene, IsPaused);
-	DEF_NATIVE(Scene, SetListPos); // deprecated
-	DEF_NATIVE(Scene, SetActiveCategory); // deprecated
+	DEF_NATIVE(Scene, SetReservedSlotIDs);
 	DEF_NATIVE(Scene, SetDebugMode);
-	DEF_NATIVE(Scene, SetScene); // deprecated
 	DEF_NATIVE(Scene, SetTile);
 	DEF_NATIVE(Scene, SetTileCollisionSides);
 	DEF_NATIVE(Scene, SetPaused);
@@ -19135,6 +19867,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);
 	DEF_NATIVE(Scene, SetLayerBlend);
 	DEF_NATIVE(Scene, SetLayerOpacity);
+	DEF_NATIVE(Scene, SetLayerShader);
 	DEF_NATIVE(Scene, SetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, SetLayerScroll);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesBegin);
@@ -19152,6 +19885,26 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, SetTileViewRender);
 
 	/***
+	* \enum SCENETYPE_NONE
+	* \desc The current scene loaded in the game is not a scene.
+	*/
+	DEF_ENUM(SCENETYPE_NONE);
+	/***
+	* \enum SCENETYPE_HATCH
+	* \desc The current scene loaded in the game is a Hatch scene.
+	*/
+	DEF_ENUM(SCENETYPE_HATCH);
+	/***
+	* \enum SCENETYPE_TILED
+	* \desc The current scene loaded in the game is a Tiled map.
+	*/
+	DEF_ENUM(SCENETYPE_TILED);
+	/***
+	* \enum SCENETYPE_RSDK
+	* \desc The current scene loaded in the game is an RSDK scene.
+	*/
+	DEF_ENUM(SCENETYPE_RSDK);
+	/***
     * \enum DrawBehavior_HorizontalParallax
     * \desc Horizontal parallax.
     */
@@ -19168,7 +19921,7 @@ void StandardLibrary::Link() {
 	DEF_ENUM(DrawBehavior_CustomTileScanLines);
 	// #endregion
 
-	// #region Scene
+	// #region SceneList
 	INIT_CLASS(SceneList);
 	DEF_NATIVE(SceneList, Get);
 	DEF_NATIVE(SceneList, GetEntryID);
@@ -19263,9 +20016,101 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Shader
-	INIT_CLASS(Shader);
-	DEF_NATIVE(Shader, Set);
-	DEF_NATIVE(Shader, Unset);
+	/***
+    * \enum SHADERSTAGE_VERTEX
+    * \desc Vertex shader stage.
+    */
+	DEF_CONST_INT("SHADERSTAGE_VERTEX", Shader::STAGE_VERTEX);
+	/***
+    * \enum SHADERSTAGE_FRAGMENT
+    * \desc Fragment shader stage.
+    */
+	DEF_CONST_INT("SHADERSTAGE_FRAGMENT", Shader::STAGE_FRAGMENT);
+	/***
+    * \enum SHADERDATATYPE_FLOAT
+    * \desc <code>float</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_FLOAT", Shader::DATATYPE_FLOAT);
+	/***
+    * \enum SHADERDATATYPE_VEC2
+    * \desc <code>vec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC2", Shader::DATATYPE_FLOAT_VEC2);
+	/***
+    * \enum SHADERDATATYPE_VEC3
+    * \desc <code>vec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC3", Shader::DATATYPE_FLOAT_VEC3);
+	/***
+    * \enum SHADERDATATYPE_VEC4
+    * \desc <code>vec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC4", Shader::DATATYPE_FLOAT_VEC4);
+	/***
+    * \enum SHADERDATATYPE_INT
+    * \desc <code>int</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_INT", Shader::DATATYPE_INT);
+	/***
+    * \enum SHADERDATATYPE_IVEC2
+    * \desc <code>ivec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC2", Shader::DATATYPE_INT_VEC2);
+	/***
+    * \enum SHADERDATATYPE_IVEC3
+    * \desc <code>ivec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC3", Shader::DATATYPE_INT_VEC3);
+	/***
+    * \enum SHADERDATATYPE_IVEC4
+    * \desc <code>ivec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC4", Shader::DATATYPE_INT_VEC4);
+	/***
+    * \enum SHADERDATATYPE_BOOL
+    * \desc <code>bool</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BOOL", Shader::DATATYPE_BOOL);
+	/***
+    * \enum SHADERDATATYPE_BVEC2
+    * \desc <code>bvec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC2", Shader::DATATYPE_BOOL_VEC2);
+	/***
+    * \enum SHADERDATATYPE_BVEC3
+    * \desc <code>bvec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC3", Shader::DATATYPE_BOOL_VEC3);
+	/***
+    * \enum SHADERDATATYPE_BVEC4
+    * \desc <code>bvec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC4", Shader::DATATYPE_BOOL_VEC4);
+	/***
+    * \enum SHADERDATATYPE_MAT2
+    * \desc <code>mat2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT2", Shader::DATATYPE_FLOAT_MAT2);
+	/***
+    * \enum SHADERDATATYPE_MAT3
+    * \desc <code>mat3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT3", Shader::DATATYPE_FLOAT_MAT3);
+	/***
+    * \enum SHADERDATATYPE_MAT4
+    * \desc <code>mat4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT4", Shader::DATATYPE_FLOAT_MAT4);
+	/***
+    * \enum SHADERDATATYPE_SAMPLER_2D
+    * \desc <code>sampler2D</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_SAMPLER_2D", Shader::DATATYPE_SAMPLER_2D);
+	/***
+    * \enum SHADERDATATYPE_SAMPLER_CUBE
+    * \desc <code>samplerCube</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_SAMPLER_CUBE", Shader::DATATYPE_SAMPLER_CUBE);
 	// #endregion
 
 	// #region SocketClient
@@ -19286,7 +20131,6 @@ void StandardLibrary::Link() {
 	// #region Sound
 	INIT_CLASS(Sound);
 	DEF_NATIVE(Sound, Play);
-	DEF_NATIVE(Sound, Loop);
 	DEF_NATIVE(Sound, Stop);
 	DEF_NATIVE(Sound, Pause);
 	DEF_NATIVE(Sound, Resume);
@@ -19295,15 +20139,15 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sound, ResumeAll);
 	DEF_NATIVE(Sound, IsPlaying);
 	DEF_NATIVE(Sound, PlayMultiple);
-	DEF_NATIVE(Sound, LoopMultiple);
 	DEF_NATIVE(Sound, PlayAtChannel);
-	DEF_NATIVE(Sound, LoopAtChannel);
 	DEF_NATIVE(Sound, StopChannel);
 	DEF_NATIVE(Sound, PauseChannel);
 	DEF_NATIVE(Sound, ResumeChannel);
 	DEF_NATIVE(Sound, AlterChannel);
 	DEF_NATIVE(Sound, GetFreeChannel);
 	DEF_NATIVE(Sound, IsChannelFree);
+	DEF_NATIVE(Sound, GetLoopPoint);
+	DEF_NATIVE(Sound, SetLoopPoint);
 	// #endregion
 
 	// #region Sprite
@@ -19311,6 +20155,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sprite, GetAnimationCount);
 	DEF_NATIVE(Sprite, GetAnimationName);
 	DEF_NATIVE(Sprite, GetAnimationIndexByName);
+	DEF_NATIVE(Sprite, GetFrameExists);
 	DEF_NATIVE(Sprite, GetFrameLoopIndex);
 	DEF_NATIVE(Sprite, GetFrameCount);
 	DEF_NATIVE(Sprite, GetFrameDuration);
@@ -19320,7 +20165,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sprite, GetFrameID);
 	DEF_NATIVE(Sprite, GetFrameOffsetX);
 	DEF_NATIVE(Sprite, GetFrameOffsetY);
-	DEF_NATIVE(Sprite, GetFrameHitbox);
+	DEF_NATIVE(Sprite, GetHitbox);
 	DEF_NATIVE(Sprite, MakePalettized);
 	DEF_NATIVE(Sprite, MakeNonPalettized);
 	// #endregion
@@ -19497,6 +20342,9 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, SetY);
 	DEF_NATIVE(View, SetZ);
 	DEF_NATIVE(View, SetPosition);
+	DEF_NATIVE(View, AdjustX);
+	DEF_NATIVE(View, AdjustY);
+	DEF_NATIVE(View, AdjustZ);
 	DEF_NATIVE(View, SetAngle);
 	DEF_NATIVE(View, SetSize);
 	DEF_NATIVE(View, SetOutputX);
@@ -19513,6 +20361,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, IsUsingDrawTarget);
 	DEF_NATIVE(View, SetUseDrawTarget);
 	DEF_NATIVE(View, GetDrawTarget);
+	DEF_NATIVE(View, SetShader);
+	DEF_NATIVE(View, GetShader);
 	DEF_NATIVE(View, IsUsingSoftwareRenderer);
 	DEF_NATIVE(View, SetUseSoftwareRenderer);
 	DEF_NATIVE(View, SetUsePerspective);
@@ -19539,6 +20389,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Window, SetPosition);
 	DEF_NATIVE(Window, SetPositionCentered);
 	DEF_NATIVE(Window, SetTitle);
+	DEF_NATIVE(Window, SetPostProcessingShader);
 	DEF_NATIVE(Window, GetWidth);
 	DEF_NATIVE(Window, GetHeight);
 	DEF_NATIVE(Window, GetFullscreen);
@@ -19687,29 +20538,34 @@ void StandardLibrary::Link() {
     * \desc Entity updates within a radius. (uses UpdateRegionW)
     */
 	DEF_ENUM(ACTIVE_RBOUNDS);
+	/***
+	* \enum ACTIVE_DISABLED
+	* \desc Entity will not even reach a point where it would check for an update.
+	*/
+	DEF_ENUM(ACTIVE_DISABLED);
 	// #endregion
 
 	// #region Hitbox Sides
 	/***
-    * \enum HitboxSide_LEFT
+    * \enum HITBOX_LEFT
     * \desc Left side, slot 0 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_LEFT);
+	DEF_ENUM(HITBOX_LEFT);
 	/***
-    * \enum HitboxSide_TOP
+    * \enum HITBOX_TOP
     * \desc Top side, slot 1 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_TOP);
+	DEF_ENUM(HITBOX_TOP);
 	/***
-    * \enum HitboxSide_RIGHT
+    * \enum HITBOX_RIGHT
     * \desc Right side, slot 2 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_RIGHT);
+	DEF_ENUM(HITBOX_RIGHT);
 	/***
-    * \enum HitboxSide_BOTTOM
+    * \enum HITBOX_BOTTOM
     * \desc Bottom side, slot 3 of a hitbox array.
     */
-	DEF_ENUM(HitboxSide_BOTTOM);
+	DEF_ENUM(HITBOX_BOTTOM);
 	// #endregion
 
 	/***
@@ -19773,12 +20629,6 @@ void StandardLibrary::Link() {
     * \desc The milliseconds value of the scene timer.
     */
 	DEF_LINK_INT("Scene_Milliseconds", &Scene::Milliseconds);
-	/***
-    * \global Scene_Filter
-    * \type Integer
-    * \desc The scene's entity filter value.
-    */
-	DEF_LINK_INT("Scene_Filter", &Scene::Filter);
 	/***
     * \global Scene_ListPos
     * \type Integer

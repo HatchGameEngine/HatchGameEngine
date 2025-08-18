@@ -4699,7 +4699,7 @@ static int start_decoder(vorb* f) {
 			}
 			residue_cascade[j] = high_bits * 8 + low_bits;
 		}
-		r->residue_books = (short(*)[8])setup_malloc(
+		r->residue_books = (short (*)[8])setup_malloc(
 			f, sizeof(r->residue_books[0]) * r->classifications);
 		if (r->residue_books == NULL) {
 			return error(f, VORBIS_outofmem);
@@ -5094,7 +5094,7 @@ static int vorbis_search_for_page_pushdata(vorb* f, uint8* data, int data_len) {
 			return 0;
 		}
 		data_len -= 3; // need to look for 4-byte sequence, so don't miss
-			// one that straddles a boundary
+		// one that straddles a boundary
 		for (i = 0; i < data_len; ++i) {
 			if (data[i] == 0x4f) {
 				if (0 == memcmp(data + i, ogg_page_header, 4)) {

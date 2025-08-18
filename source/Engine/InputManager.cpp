@@ -299,7 +299,9 @@ void InputManager::InitControllers() {
 		}
 	}
 
-	Log::Print(Log::LOG_VERBOSE, "Opening controllers... (%d count)", numControllers);
+	if (numControllers != 0) {
+		Log::Print(Log::LOG_VERBOSE, "Opening controllers... (%d count)", numControllers);
+	}
 
 	InputManager::Controllers.resize(0);
 	InputManager::NumControllers = 0;
@@ -1277,4 +1279,8 @@ void InputManager::Dispose() {
 
 	InputManager::ClearPlayers();
 	InputManager::ClearInputs();
+
+	delete NameMap::Keys;
+	delete NameMap::Buttons;
+	delete NameMap::Axes;
 }

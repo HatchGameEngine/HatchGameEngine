@@ -543,8 +543,7 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 	Token name = layer->attributes.Get("name");
 
 	SceneLayer scenelayer(layer_width, layer_height);
-	strncpy(scenelayer.Name, name.Start, name.Length);
-	scenelayer.Name[name.Length] = 0;
+	scenelayer.Name = StringUtils::Duplicate(name.Start, name.Length);
 
 	scenelayer.RelativeY = 0x100;
 	scenelayer.ConstantY = 0x00;
@@ -610,6 +609,13 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 		float object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
 		float object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
 
+		int filter = object->attributes.Exists("filter")
+			? (int)XMLParser::TokenToNumber(object->attributes.Get("filter"))
+			: 0xFF;
+		if (!(filter & Scene::Filter)) {
+			continue;
+		}
+
 		ObjectList* objectList = Scene::GetStaticObjectList(object_type.ToString().c_str());
 		if (objectList->SpawnFunction) {
 			ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
@@ -622,11 +628,20 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 			obj->InitialX = obj->X;
 			obj->InitialY = obj->Y;
 			obj->List = objectList;
-			Scene::AddStatic(objectList, obj);
+			obj->Filter = filter;
+
+			if (!Scene::AddStatic(objectList, obj)) {
+				continue;
+			}
+
+			if (!object->attributes.Exists("filter")) {
+				obj->Properties->Put("filter", INTEGER_VAL(filter));
+			}
 
 			if (object->attributes.Exists("id")) {
-				obj->SlotID =
-					(int)XMLParser::TokenToNumber(object->attributes.Get("id"));
+				obj->SlotID = (int)XMLParser::TokenToNumber(
+						      object->attributes.Get("id")) +
+					Scene::ReservedSlotIDs;
 			}
 
 			if (object->attributes.Exists("width") &&
@@ -740,6 +755,8 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 		XMLParser::Free(tileMapXML);
 		return;
 	}
+
+	Scene::SceneType = SCENETYPE_TILED;
 
 	Scene::EmptyTile = 0;
 	Scene::TileWidth = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
