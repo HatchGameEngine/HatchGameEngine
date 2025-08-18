@@ -7,21 +7,16 @@ void View::SetSize(float w, float h) {
 	Height = h;
 	Stride = Math::CeilPOT(w);
 
-	if (UseStencil) {
+	if (Software) {
 		ReallocStencil();
 	}
 }
 
 void View::SetStencilEnabled(bool enabled) {
 	UseStencil = enabled;
-	if (!UseStencil) {
-		return;
-	}
-
-	ReallocStencil();
 }
 void View::ReallocStencil() {
-	if (DrawTarget == nullptr) {
+	if (!UseStencil || DrawTarget == nullptr) {
 		return;
 	}
 

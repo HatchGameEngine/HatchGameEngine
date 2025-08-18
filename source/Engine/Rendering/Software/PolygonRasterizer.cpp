@@ -262,7 +262,7 @@ void PolygonRasterizer::DrawBasic(Vector2* positions,
 	int* multTableAt = &SoftwareRenderer::MultTable[opacity << 8];
 	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
-	if (!SoftwareRenderer::IsStencilEnabled() &&
+	if (!Graphics::StencilEnabled &&
 		((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
 		for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
 			Contour contour = ContourField[dst_y];

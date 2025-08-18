@@ -24,6 +24,7 @@ struct GL_TextureData {
 	bool Framebuffer;
 	GLuint FBO;
 	GLuint RBO;
+	GLuint StencilRBO;
 	GLenum TextureTarget;
 	GLenum TextureStorageFormat;
 	GLenum PixelDataFormat;

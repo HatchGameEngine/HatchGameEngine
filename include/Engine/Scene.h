@@ -163,7 +163,7 @@ public:
 	static void SetViewActive(int viewIndex, bool active);
 	static void SetViewPriority(int viewIndex, int priority);
 	static void SortViews();
-	static void SetView(int viewIndex);
+	static bool SetView(int viewIndex);
 	static bool CheckPosOnScreen(float posX, float posY, float rangeX, float rangeY);
 	static void RenderView(int viewIndex, bool doPerf);
 	static void Render();

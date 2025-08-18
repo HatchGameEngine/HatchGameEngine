@@ -180,13 +180,14 @@ void SDL2Renderer::DisposeTexture(Texture* texture) {
 }
 
 // Viewport and view-related functions
-void SDL2Renderer::SetRenderTarget(Texture* texture) {
+bool SDL2Renderer::SetRenderTarget(Texture* texture) {
 	if (texture == NULL) {
 		SDL_SetRenderTarget(Renderer, NULL);
+
+		return true;
 	}
-	else {
-		SDL_SetRenderTarget(Renderer, *(SDL_Texture**)texture->DriverData);
-	}
+
+	return SDL_SetRenderTarget(Renderer, *(SDL_Texture**)texture->DriverData) == 0;
 }
 void SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
 	Viewport* vp = &Graphics::CurrentViewport;

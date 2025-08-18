@@ -66,6 +66,7 @@ public:
 	static float TintColors[4];
 	static int BlendMode;
 	static int TintMode;
+	static bool StencilEnabled;
 	static int StencilTest;
 	static int StencilOpPass;
 	static int StencilOpFail;
@@ -139,12 +140,12 @@ public:
 	static void SetTextureInterpolation(bool interpolate);
 	static void Clear();
 	static void Present();
-	static void SoftwareStart();
-	static void SoftwareEnd();
+	static void SoftwareStart(int viewIndex);
+	static void SoftwareEnd(int viewIndex);
 	static void UpdateGlobalPalette();
 	static void UpdatePaletteIndexTable();
 	static void UnloadSceneData();
-	static void SetRenderTarget(Texture* texture);
+	static bool SetRenderTarget(Texture* texture);
 	static bool CreateFramebufferTexture();
 	static bool UpdateFramebufferTexture();
 	static void DoScreenPostProcess();
@@ -346,7 +347,6 @@ public:
 	static void ConvertFromARGBtoNative(Uint32* argb, int count);
 	static void ConvertFromNativeToARGB(Uint32* argb, int count);
 	static void SetStencilEnabled(bool enabled);
-	static bool GetStencilEnabled();
 	static void SetStencilTestFunc(int stencilTest);
 	static void SetStencilPassFunc(int stencilOp);
 	static void SetStencilFailFunc(int stencilOp);

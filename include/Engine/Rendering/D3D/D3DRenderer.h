@@ -21,7 +21,7 @@ public:
 	static int UpdateTexture(Texture* texture, SDL_Rect* r, void* pixels, int pitch);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
-	static void SetRenderTarget(Texture* texture);
+	static bool SetRenderTarget(Texture* texture);
 	static void UpdateWindowSize(int width, int height);
 	static void UpdateViewport();
 	static void UpdateClipRect();
