@@ -223,7 +223,9 @@ void SoftwareRenderer::UnlockTexture(Texture* texture) {}
 void SoftwareRenderer::DisposeTexture(Texture* texture) {}
 
 // Viewport and view-related functions
-void SoftwareRenderer::SetRenderTarget(Texture* texture) {}
+bool SoftwareRenderer::SetRenderTarget(Texture* texture) {
+	return true;
+}
 void SoftwareRenderer::ReadFramebuffer(void* pixels, int width, int height) {
 	if (Graphics::Internal.ReadFramebuffer) {
 		Graphics::Internal.ReadFramebuffer(pixels, width, height);

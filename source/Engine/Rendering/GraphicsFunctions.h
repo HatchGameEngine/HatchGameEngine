@@ -49,7 +49,7 @@ struct GraphicsFunctions {
 
 	void (*Clear)();
 	void (*Present)();
-	void (*SetRenderTarget)(Texture* texture);
+	bool (*SetRenderTarget)(Texture* texture);
 	void (*ReadFramebuffer)(void* pixels, int width, int height);
 	void (*UpdateWindowSize)(int width, int height);
 

@@ -16,6 +16,29 @@
 #define GL_DO_ERROR_CHECKING
 #endif
 
+#define USE_USHORT_VTXBUFFER
+#define USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
+
+#define GL_SUPPORTS_MULTISAMPLING
+#define GL_SUPPORTS_SMOOTHING
+#define GL_SUPPORTS_RENDERBUFFER
+#define GL_MONOCHROME_PIXELFORMAT GL_RED
+
+#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
+#define GL_ES
+#undef GL_SUPPORTS_MULTISAMPLING
+#undef GL_SUPPORTS_SMOOTHING
+#undef GL_MONOCHROME_PIXELFORMAT
+#undef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
+#define GL_MONOCHROME_PIXELFORMAT GL_LUMINANCE
+#endif
+
+#ifdef GL_ES
+#undef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
+#endif
+
+// #define HAVE_GL_PERFSTATS
+
 #ifdef GL_DO_ERROR_CHECKING
 #define CHECK_GL() GLRenderer::CheckError(__LINE__)
 #else
@@ -57,7 +80,7 @@ public:
 		int pitchV);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
-	static void SetRenderTarget(Texture* texture);
+	static bool SetRenderTarget(Texture* texture);
 	static void ReadFramebuffer(void* pixels, int width, int height);
 	static void UpdateWindowSize(int width, int height);
 	static void UpdateViewport();

@@ -145,7 +145,7 @@ public:
 	static void UpdateGlobalPalette();
 	static void UpdatePaletteIndexTable();
 	static void UnloadSceneData();
-	static void SetRenderTarget(Texture* texture);
+	static bool SetRenderTarget(Texture* texture);
 	static bool CreateFramebufferTexture();
 	static bool UpdateFramebufferTexture();
 	static void DoScreenPostProcess();

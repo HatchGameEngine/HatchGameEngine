@@ -696,15 +696,17 @@ void Graphics::UnloadSceneData() {
 	}
 }
 
-void Graphics::SetRenderTarget(Texture* texture) {
+bool Graphics::SetRenderTarget(Texture* texture) {
 	if (texture && !Graphics::CurrentRenderTarget) {
 		Graphics::BackupViewport = Graphics::CurrentViewport;
 		Graphics::BackupClip = Graphics::CurrentClip;
 	}
 
-	Graphics::CurrentRenderTarget = texture;
+	if (!Graphics::GfxFunctions->SetRenderTarget(texture)) {
+		return false;
+	}
 
-	Graphics::GfxFunctions->SetRenderTarget(texture);
+	Graphics::CurrentRenderTarget = texture;
 
 	Viewport* vp = &Graphics::CurrentViewport;
 	if (texture) {
@@ -720,6 +722,8 @@ void Graphics::SetRenderTarget(Texture* texture) {
 
 	Graphics::GfxFunctions->UpdateViewport();
 	Graphics::GfxFunctions->UpdateClipRect();
+
+	return true;
 }
 bool Graphics::CreateFramebufferTexture() {
 	int maxWidth, maxHeight;
