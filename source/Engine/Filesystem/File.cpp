@@ -1,7 +1,7 @@
-#include <Engine/Filesystem/File.h>
-
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Filesystem/File.h>
 #include <Engine/IO/FileStream.h>
+#include <Engine/IO/StandardIOStream.h>
 
 #if WIN32
 #include <io.h>
@@ -9,11 +9,38 @@
 #include <unistd.h>
 #endif
 
-#if MACOSX || ANDROID
-#include <Engine/Includes/StandardSDL2.h>
-#endif
+Stream* File::Open(const char* filename, Uint32 access) {
+	// TODO: On Android, retry with SDLStream.
+	Uint32 streamAccess;
+	switch (access) {
+	case File::READ_ACCESS:
+		streamAccess = StandardIOStream::READ_ACCESS;
+		break;
+	case File::WRITE_ACCESS:
+		streamAccess = StandardIOStream::WRITE_ACCESS;
+		break;
+	case File::APPEND_ACCESS:
+		streamAccess = StandardIOStream::APPEND_ACCESS;
+		break;
+	default:
+		return nullptr;
+	}
 
-bool File::Exists(const char* path, bool allowURLs) {
+	return StandardIOStream::New(filename, streamAccess);
+}
+
+// Do not expose to HSL.
+bool File::Exists(const char* path) {
+	Stream* stream = Open(path, READ_ACCESS);
+	if (stream) {
+		stream->Close();
+		return true;
+	}
+
+	return false;
+}
+
+bool File::ProtectedExists(const char* path, bool allowURLs) {
 	if (path == nullptr) {
 		return false;
 	}
@@ -25,10 +52,6 @@ bool File::Exists(const char* path, bool allowURLs) {
 	}
 
 	return false;
-}
-
-bool File::Exists(const char* path) {
-	return Exists(path, false);
 }
 
 size_t File::ReadAllBytes(const char* path, char** out, bool allowURLs) {

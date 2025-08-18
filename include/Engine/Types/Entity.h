@@ -8,6 +8,7 @@ class DrawGroupList;
 #include <Engine/Graphics.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/Rendering/Enums.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene.h>
 #include <Engine/Types/EntityTypes.h>
@@ -21,9 +22,11 @@ public:
 	int Interactable = true;
 	int Persistence = Persistence_NONE;
 	int Activity = ACTIVE_BOUNDS;
+	int UpdatePriority = 0;
 	int InRange = false;
 	bool Created = false;
 	bool PostCreated = false;
+	bool Dynamic = false;
 	float X = 0.0f;
 	float Y = 0.0f;
 	float Z = 0.0f;
@@ -55,6 +58,7 @@ public:
 	float ScaleY = 1.0;
 	float Rotation = 0.0;
 	float Alpha = 1.0;
+	int BlendMode = BlendMode_NORMAL;
 	int AutoPhysics = false;
 	int Priority = 0;
 	int PriorityListIndex = -1;
@@ -68,11 +72,13 @@ public:
 	int CurrentFrameCount = 0;
 	float AnimationSpeedMult = 1.0;
 	int AnimationSpeedAdd = 0;
+	int PrevAnimation = -1;
 	int AutoAnimate = true;
 	float AnimationSpeed = 0.0;
 	float AnimationTimer = 0.0;
 	int AnimationFrameDuration = 0;
 	int AnimationLoopIndex = 0;
+	int RotationStyle = ROTSTYLE_NONE;
 	EntityHitbox Hitbox;
 	int FlipFlag = 0;
 	float SensorX = 0.0f;
@@ -90,6 +96,7 @@ public:
 	int CollisionPlane = 0;
 	int CollisionMode = 0;
 	int SlotID = -1;
+	int Filter = 0xFF;
 	bool Removed = false;
 	Entity* PrevEntity = NULL;
 	Entity* NextEntity = NULL;
@@ -100,17 +107,19 @@ public:
 	Entity* NextSceneEntity = NULL;
 
 	virtual ~Entity() = default;
-	void ApplyMotion();
-	void Animate();
-	void SetAnimation(int animation, int frame);
-	void ResetAnimation(int animation, int frame);
-	bool BasicCollideWithObject(Entity* other);
-	bool CollideWithObject(Entity* other);
-	int SolidCollideWithObject(Entity* other, int flag);
-	bool TopSolidCollideWithObject(Entity* other, int flag);
 	void Copy(Entity* other);
 	void CopyFields(Entity* other);
-	void ApplyPhysics();
+	int GetIDWithinClass();
+	virtual void ApplyMotion();
+	virtual void Animate();
+	virtual void SetAnimation(int animation, int frame);
+	virtual void ResetAnimation(int animation, int frame);
+	virtual void SetUpdatePriority(int priority);
+	virtual bool BasicCollideWithObject(Entity* other);
+	virtual bool CollideWithObject(Entity* other);
+	virtual int SolidCollideWithObject(Entity* other, int flag);
+	virtual bool TopSolidCollideWithObject(Entity* other, int flag);
+	virtual void ApplyPhysics();
 	virtual void Initialize();
 	virtual void Create();
 	virtual void PostCreate();
@@ -122,7 +131,7 @@ public:
 	virtual void OnSceneRestart();
 	virtual void GameStart();
 	virtual void RenderEarly();
-	virtual void Render(int CamX, int CamY);
+	virtual void Render();
 	virtual void RenderLate();
 	virtual void Remove();
 	virtual void Dispose();

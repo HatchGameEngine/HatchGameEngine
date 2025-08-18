@@ -443,7 +443,7 @@ void WebSocketClient::Dispatch(void (*callback)(void* mem, size_t size)) {
 		}
 
 		const uint8_t* data = (uint8_t*)&rxbuf[0]; // peek, but don't
-			// consume
+		// consume
 		ws.fin = (data[0] & 0x80) == 0x80;
 		ws.opcode = (opcode_type)(data[0] & 0x0f);
 		ws.mask = (data[1] & 0x80) == 0x80;
@@ -824,8 +824,8 @@ void WebSocketClient::Close() {
 	readyState = WebSocketClient::CLOSING;
 	printf("readyState = WebSocketClient::CLOSING\n");
 	uint8_t closeFrame[6] = {0x88, 0x80, 0x00, 0x00, 0x00, 0x00}; // last 4 bytes
-		// are a masking
-		// key
+	// are a masking
+	// key
 	std::vector<uint8_t> header(closeFrame, closeFrame + 6);
 	txbuf.insert(txbuf.end(), header.begin(), header.end());
 

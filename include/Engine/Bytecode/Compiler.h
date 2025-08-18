@@ -87,6 +87,7 @@ public:
 	void EmitCopy(Uint8 count);
 	void EmitCall(const char* name, int argCount, bool isSuper);
 	void EmitCall(Token name, int argCount, bool isSuper);
+	void EmitCallOpcode(int argCount, bool isSuper);
 	void NamedVariable(Token name, bool canAssign);
 	void ScopeBegin();
 	void ScopeEnd();
@@ -206,7 +207,9 @@ public:
 	static int ShortInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int LocalInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int MethodInstruction(uint8_t opcode, Chunk* chunk, int offset);
+	static int MethodInstructionV4(uint8_t opcode, Chunk* chunk, int offset);
 	static int InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset);
+	static int InvokeInstructionV3(uint8_t opcode, Chunk* chunk, int offset);
 	static int JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset);
 	static int ClassInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int EnumInstruction(uint8_t opcode, Chunk* chunk, int offset);

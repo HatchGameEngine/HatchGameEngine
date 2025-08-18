@@ -8,7 +8,7 @@
 struct WAVheader {
 	Uint32 FMTSize; // Size of the fmt chunk
 	Uint16 AudioFormat; // Audio format 1=PCM,6=mulaw,7=alaw,
-		// 257=IBM Mu-Law, 258=IBM A-Law, 259=ADPCM
+	// 257=IBM Mu-Law, 258=IBM A-Law, 259=ADPCM
 	Uint16 Channels;
 	Uint32 Frequency;
 	Uint16 BitsPerSample;

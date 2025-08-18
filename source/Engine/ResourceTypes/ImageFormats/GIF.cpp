@@ -354,10 +354,10 @@ GIF* GIF::Load(const char* filename) {
 				// [short] //
 				stream->Skip(0x04);
 				transparentColorIndex = stream->ReadByte(); // Transparent
-					// Color
-					// Index?
-					// [byte]
-					// //
+				// Color
+				// Index?
+				// [byte]
+				// //
 				stream->Skip(0x01);
 				// temp = stream->ReadByte();  // Block
 				// Terminator [byte] //
@@ -369,12 +369,12 @@ GIF* GIF::Load(const char* filename) {
 			// Application Extension
 			case 0xFF:
 				temp = stream->ReadByte(); // Block
-					// Size
+				// Size
 				// Continue until we run out of blocks
 				while (temp) {
 					// Read block
 					stream->Skip(temp); // stream->ReadBytes(buffer,
-						// temp);
+					// temp);
 					temp = stream->ReadByte(); // next block Size
 				}
 				break;
@@ -395,14 +395,14 @@ GIF* GIF::Load(const char* filename) {
 			// Destination Height
 			stream->Skip(8);
 			temp = stream->ReadByte(); // Packed Field
-				// [byte]
+			// [byte]
 
 			// If a local color table exists,
 			if (temp & 0x80) {
 				int size = 2 << (temp & 0x07);
 				// Load all colors
 				stream->Skip(3 * size); // stream->ReadBytes(buffer,
-					// 3 * size);
+				// 3 * size);
 			}
 
 			interlaced = (temp & 0x40) == 0x40;

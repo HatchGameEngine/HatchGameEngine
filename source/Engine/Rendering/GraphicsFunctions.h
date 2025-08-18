@@ -1,6 +1,7 @@
 #ifndef ENGINE_RENDERING_GRAPHICSFUNCTIONS
 #define ENGINE_RENDERING_GRAPHICSFUNCTIONS
 
+#include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/Texture.h>
 
 struct GraphicsFunctions {
@@ -27,13 +28,13 @@ struct GraphicsFunctions {
 	void (*UnlockTexture)(Texture* texture);
 	void (*DisposeTexture)(Texture* texture);
 
-	void (*UseShader)(void* shader);
-	void (*SetTextureInterpolation)(bool interpolate);
-	void (*SetUniformTexture)(Texture* texture, int uniform_index, int slot);
-	void (*SetUniformF)(int location, int count, float* values);
-	void (*SetUniformI)(int location, int count, int* values);
+	Shader* (*CreateShader)();
+	void (*SetUserShader)(Shader* shader);
 
-	void (*UpdateGlobalPalette)();
+	void (*SetFilter)(int filter);
+
+	void (*UpdateGlobalPalette)(Texture* texture);
+	void (*UpdatePaletteIndexTable)(Texture* texture);
 
 	void (*UpdateViewport)();
 	void (*UpdateClipRect)();
@@ -48,7 +49,7 @@ struct GraphicsFunctions {
 
 	void (*Clear)();
 	void (*Present)();
-	void (*SetRenderTarget)(Texture* texture);
+	bool (*SetRenderTarget)(Texture* texture);
 	void (*ReadFramebuffer)(void* pixels, int width, int height);
 	void (*UpdateWindowSize)(int width, int height);
 
@@ -76,7 +77,8 @@ struct GraphicsFunctions {
 		float x,
 		float y,
 		float w,
-		float h);
+		float h,
+		int paletteID);
 	void (*DrawSprite)(ISprite* sprite,
 		int animation,
 		int frame,
@@ -87,7 +89,7 @@ struct GraphicsFunctions {
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
+		int paletteID);
 	void (*DrawSpritePart)(ISprite* sprite,
 		int animation,
 		int frame,
@@ -102,7 +104,7 @@ struct GraphicsFunctions {
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
+		int paletteID);
 
 	void (*DrawPolygon3D)(void* data,
 		int vertexCount,
@@ -141,7 +143,6 @@ struct GraphicsFunctions {
 	void (*DeleteFrameBufferID)(ISprite* sprite);
 
 	void (*SetStencilEnabled)(bool enabled);
-	bool (*IsStencilEnabled)();
 	void (*SetStencilTestFunc)(int stencilTest);
 	void (*SetStencilPassFunc)(int stencilOp);
 	void (*SetStencilFailFunc)(int stencilOp);

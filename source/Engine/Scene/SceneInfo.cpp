@@ -190,6 +190,16 @@ std::string SceneInfo::GetID(int categoryID, int entryID) {
 	return std::string(entry.ID);
 }
 
+int SceneInfo::GetFilter(int categoryID, int entryID) {
+	if (!SceneInfo::IsEntryValid(categoryID, entryID)) {
+		return 0xFF;
+	}
+
+	SceneListEntry& entry = Categories[categoryID].Entries[entryID];
+
+	return entry.Filter;
+}
+
 std::string SceneInfo::GetTileConfigFilename(int categoryID, int entryID) {
 	return GetParentPath(categoryID, entryID) + "TileConfig.bin";
 }
@@ -271,10 +281,12 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
 		entry.ResourceFolder = StringUtils::Duplicate(entry.Folder);
 	}
 
-	// Sprite folder (backwards compat)
-	if (node->attributes.Exists("spriteFolder")) {
-		entry.ResourceFolder =
-			XMLParser::TokenToString(node->attributes.Get("spriteFolder"));
+	// Filter
+	if (node->attributes.Exists("filter")) {
+		entry.Filter = XMLParser::TokenToNumber(node->attributes.Get("filter"));
+		if (entry.Filter == 0x00) {
+			entry.Filter = 0xFF;
+		}
 	}
 
 	// Filetype
@@ -305,8 +317,6 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
 	entry.Properties->Put("folder", entry.Folder);
 	entry.Properties->Put("id", entry.ID);
 	entry.Properties->Put("resourceFolder", entry.ResourceFolder);
-	entry.Properties->Put("spriteFolder",
-		StringUtils::Duplicate(entry.ResourceFolder)); // backwards compat
 	entry.Properties->Put("fileExtension", entry.Filetype);
 
 	FillAttributesHashMap(&node->attributes, entry.Properties);

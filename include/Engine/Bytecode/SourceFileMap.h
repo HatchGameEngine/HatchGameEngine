@@ -11,6 +11,7 @@ private:
 
 public:
 	static bool Initialized;
+	static bool AllowCompilation;
 	static HashMap<Uint32>* Checksums;
 	static HashMap<vector<Uint32>*>* ClassMap;
 	static Uint32 DirectoryChecksum;
@@ -18,7 +19,7 @@ public:
 	static bool DoLogging;
 
 	static void CheckInit();
-	static void CheckForUpdate();
+	static bool CheckForUpdate();
 	static void Dispose();
 };
 

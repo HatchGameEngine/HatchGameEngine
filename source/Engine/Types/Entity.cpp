@@ -1,5 +1,12 @@
 #include <Engine/Types/Entity.h>
 
+int Entity::GetIDWithinClass() {
+	if (!List) {
+		return 0;
+	}
+
+	return List->GetID(this);
+}
 void Entity::ApplyMotion() {
 	YSpeed += Gravity;
 	X += XSpeed;
@@ -94,6 +101,7 @@ void Entity::ResetAnimation(int animation, int frame) {
 		return;
 	}
 
+	PrevAnimation = CurrentAnimation;
 	CurrentAnimation = animation;
 	AnimationTimer = 0.0;
 	CurrentFrame = frame;
@@ -101,6 +109,24 @@ void Entity::ResetAnimation(int animation, int frame) {
 	AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
 	AnimationSpeed = sprite->Animations[CurrentAnimation].AnimationSpeed;
 	AnimationLoopIndex = sprite->Animations[CurrentAnimation].FrameToLoop;
+	RotationStyle = sprite->Animations[CurrentAnimation].Flags;
+	if (RotationStyle == ROTSTYLE_STATICFRAMES) {
+		CurrentFrameCount >>= 1;
+	}
+}
+void Entity::SetUpdatePriority(int priority) {
+	if (UpdatePriority == priority) {
+		return;
+	}
+
+	UpdatePriority = priority;
+
+	// If the scene is loading, NeedEntitySort is set to true,
+	// so that the entities are sorted always and Scene::AddToScene
+	// doesn't have to insert the entities in a sorted manner.
+	if (Scene::Initializing || Created) {
+		Scene::NeedEntitySort = true;
+	}
 }
 bool Entity::BasicCollideWithObject(Entity* other) {
 	float otherHitboxW = other->Hitbox.Width;
@@ -346,8 +372,11 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 
 void Entity::Copy(Entity* other) {
 	// Add the other entity to this object's list
-	if (other->List != List) {
-		other->List->Remove(other);
+	if (List != nullptr && other->List != List) {
+		if (other->List != nullptr) {
+			other->List->Remove(other);
+		}
+
 		other->List = List;
 		other->List->Add(other);
 	}
@@ -414,6 +443,7 @@ void Entity::CopyFields(Entity* other) {
 	COPY(ScaleY);
 	COPY(Rotation);
 	COPY(Alpha);
+	COPY(BlendMode);
 	COPY(AutoPhysics);
 
 	COPY(Priority);
@@ -430,11 +460,13 @@ void Entity::CopyFields(Entity* other) {
 	COPY(CurrentFrameCount);
 	COPY(AnimationSpeedMult);
 	COPY(AnimationSpeedAdd);
+	COPY(PrevAnimation);
 	COPY(AutoAnimate);
 	COPY(AnimationSpeed);
 	COPY(AnimationTimer);
 	COPY(AnimationFrameDuration);
 	COPY(AnimationLoopIndex);
+	COPY(RotationStyle);
 
 	COPY(Hitbox);
 	COPY(FlipFlag);
@@ -455,6 +487,8 @@ void Entity::CopyFields(Entity* other) {
 	COPY(CollisionMode);
 
 	COPY(SlotID);
+
+	COPY(Filter);
 
 	COPY(Removed);
 #undef COPY
@@ -480,7 +514,7 @@ void Entity::GameStart() {}
 
 void Entity::RenderEarly() {}
 
-void Entity::Render(int CamX, int CamY) {}
+void Entity::Render() {}
 
 void Entity::RenderLate() {}
 

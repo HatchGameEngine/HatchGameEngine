@@ -2,7 +2,7 @@
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
-#define BYTECODE_VERSION 0x0003
+#define BYTECODE_VERSION 0x0005
 
 const char* Bytecode::Magic = "HTVM";
 Uint32 Bytecode::LatestVersion = BYTECODE_VERSION;
@@ -90,13 +90,13 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 		for (int c = 0; c < constantCount; c++) {
 			Uint8 type = stream->ReadByte();
 			switch (type) {
-			case VAL_INTEGER:
+			case Bytecode::VALUE_TYPE_INTEGER:
 				function->Chunk.AddConstant(INTEGER_VAL(stream->ReadInt32()));
 				break;
-			case VAL_DECIMAL:
+			case Bytecode::VALUE_TYPE_DECIMAL:
 				function->Chunk.AddConstant(DECIMAL_VAL(stream->ReadFloat()));
 				break;
-			case VAL_OBJECT:
+			case Bytecode::VALUE_TYPE_STRING:
 				function->Chunk.AddConstant(
 					OBJECT_VAL(TakeString(stream->ReadString())));
 				break;
@@ -184,24 +184,26 @@ void Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>*
 		for (int i = 0; i < constSize; i++) {
 			VMValue constt = (*chunk->Constants)[i];
 			Uint8 type = (Uint8)constt.Type;
-			stream->WriteByte(type);
 
 			switch (type) {
 			case VAL_INTEGER:
+				stream->WriteByte(Bytecode::VALUE_TYPE_INTEGER);
 				stream->WriteBytes(&AS_INTEGER(constt), sizeof(int));
 				break;
 			case VAL_DECIMAL:
+				stream->WriteByte(Bytecode::VALUE_TYPE_DECIMAL);
 				stream->WriteBytes(&AS_DECIMAL(constt), sizeof(float));
 				break;
 			case VAL_OBJECT:
 				if (OBJECT_TYPE(constt) == OBJ_STRING) {
 					ObjString* str = AS_STRING(constt);
+					stream->WriteByte(Bytecode::VALUE_TYPE_STRING);
 					stream->WriteBytes(str->Chars, str->Length + 1);
 				}
 				else {
 					printf("Unsupported object type...Chief. (%s)\n",
 						GetObjectTypeString(OBJECT_TYPE(constt)));
-					stream->WriteByte(0);
+					stream->WriteByte(Bytecode::VALUE_TYPE_NULL);
 				}
 				break;
 			}

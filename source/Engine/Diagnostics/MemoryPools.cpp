@@ -178,8 +178,8 @@ void RunGC(int pool) {
 		BlockHeader* header = (BlockHeader*)block;
 
 		int blockSizeInBytes = header->dataSize + 3 * sizeof(Uint32); // 3 =
-			// sizeof(BlockHeader) /
-			// sizeof(Uint32)
+		// sizeof(BlockHeader) /
+		// sizeof(Uint32)
 		int blockSize = blockSizeInBytes / sizeof(Uint32);
 		int nextBlockIndex = i + blockSize;
 
@@ -241,9 +241,9 @@ void RunGC(int pool) {
 				BlockHeader* header = (BlockHeader*)block;
 
 				int blockSizeInBytes = header->dataSize + 3 * sizeof(Uint32); // 3 =
-					// sizeof(BlockHeader)
-					// /
-					// sizeof(Uint32)
+				// sizeof(BlockHeader)
+				// /
+				// sizeof(Uint32)
 				int blockSize = blockSizeInBytes / sizeof(Uint32);
 				int nextBlockIndex = i + blockSize;
 
@@ -261,7 +261,7 @@ void RunGC(int pool) {
 				}
 
 				header->dataStartIndex = i + 3; // 3 = sizeof(BlockHeader) /
-					// sizeof(Uint32)
+				// sizeof(Uint32)
 
 				// Next block
 				i = nextBlockIndex;

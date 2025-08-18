@@ -258,7 +258,7 @@ bool MD3Model::Convert(IModel* model, Stream* stream, const char* path) {
 	}
 
 	stream->ReadInt32(); // Skin count. Apparently a leftover from
-		// the previous MD2 format.
+	// the previous MD2 format.
 
 	Sint32 frameDataOffset = stream->ReadInt32();
 	Sint32 tagDataOffset = stream->ReadInt32();

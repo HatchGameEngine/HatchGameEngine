@@ -23,6 +23,8 @@ class Entity;
 #include <Engine/Types/ObjectRegistry.h>
 #include <Engine/Types/Tileset.h>
 
+enum { SCENETYPE_NONE = 0, SCENETYPE_HATCH = 1, SCENETYPE_TILED = 2, SCENETYPE_RSDK = 3 };
+
 class Scene {
 private:
 	static void RemoveObject(Entity* obj);
@@ -31,13 +33,15 @@ private:
 	static void Iterate(Entity* first, std::function<void(Entity* e)> func);
 	static void IterateAll(Entity* first, std::function<void(Entity* e)> func);
 	static void ResetPriorityListIndex(Entity* first);
+	static Entity* SortEntityList(Entity* head);
+	static bool SplitEntityList(Entity* head, Entity** left, Entity** right);
+	static Entity* MergeEntityList(Entity* left, Entity* right);
 	static int GetPersistenceScopeForObjectDeletion();
 	static void ClearPriorityLists();
 	static void DeleteObjects(Entity** first, Entity** last, int* count);
 	static void RemoveNonPersistentObjects(Entity** first, Entity** last, int* count);
 	static void DeleteAllObjects();
-	static void AddStaticClass();
-	static void CallGameStart();
+	static void ReadSceneFile(const char* filename);
 	static void SpawnStaticObject(const char* objectName);
 	static void ReadRSDKTile(TileConfig* tile, Uint8* line);
 	static void LoadRSDKTileConfig(int tilesetID, Stream* tileColReader);
@@ -46,6 +50,9 @@ private:
 	static void ClearTileCollisions(TileConfig* cfg, size_t numTiles);
 	static void SetTileCount(size_t tileCount);
 	static bool GetTextureListSpace(size_t* out);
+	static void SetupViewMatrices(View* currentView);
+	static void SetupView2D(View* currentView);
+	static void SetupView3D(View* currentView);
 
 public:
 	static int ShowTileCollisionFlag;
@@ -54,6 +61,7 @@ public:
 	static HashMap<ObjectList*>* ObjectLists;
 	static HashMap<ObjectRegistry*>* ObjectRegistries;
 	static HashMap<ObjectList*>* StaticObjectLists;
+	static int ReservedSlotIDs;
 	static int StaticObjectCount;
 	static Entity* StaticObjectFirst;
 	static Entity* StaticObjectLast;
@@ -89,6 +97,8 @@ public:
 	static int Frame;
 	static bool Paused;
 	static bool Loaded;
+	static bool Initializing;
+	static bool NeedEntitySort;
 	static int TileAnimationEnabled;
 	static View Views[MAX_SCENE_VIEWS];
 	static int ViewCurrent;
@@ -97,8 +107,9 @@ public:
 	static int ObjectViewRenderFlag;
 	static int TileViewRenderFlag;
 	static Perf_ViewRender PERF_ViewRender[MAX_SCENE_VIEWS];
-	static char NextScene[256];
-	static char CurrentScene[256];
+	static char NextScene[MAX_RESOURCE_PATH_LENGTH];
+	static char CurrentScene[MAX_RESOURCE_PATH_LENGTH];
+	static int SceneType;
 	static bool DoRestart;
 	static bool NoPersistency;
 	static int TimeEnabled;
@@ -136,7 +147,7 @@ public:
 	static void AddToScene(Entity* obj);
 	static void RemoveFromScene(Entity* obj);
 	static void Clear(Entity** first, Entity** last, int* count);
-	static void AddStatic(ObjectList* objectList, Entity* obj);
+	static bool AddStatic(ObjectList* objectList, Entity* obj);
 	static void AddDynamic(ObjectList* objectList, Entity* obj);
 	static void DeleteRemoved(Entity* obj);
 	static void OnEvent(Uint32 event);
@@ -146,18 +157,25 @@ public:
 	static void InitObjectListsAndRegistries();
 	static void ResetPerf();
 	static void Update();
+	static void SortEntities();
 	static Tileset* GetTileset(int tileID);
 	static TileAnimator* GetTileAnimator(int tileID);
 	static void SetViewActive(int viewIndex, bool active);
 	static void SetViewPriority(int viewIndex, int priority);
 	static void SortViews();
-	static void SetView(int viewIndex);
+	static bool SetView(int viewIndex);
 	static bool CheckPosOnScreen(float posX, float posY, float rangeX, float rangeY);
 	static void RenderView(int viewIndex, bool doPerf);
 	static void Render();
 	static void AfterScene();
+	static void Initialize();
 	static void Restart();
+	static void FinishLoad();
+	static void Unload();
+	static void Prepare();
 	static void LoadScene(const char* filename);
+	static void AddStaticClass();
+	static void CallGameStart();
 	static void ProcessSceneTimer();
 	static ObjectList* NewObjectList(const char* objectName);
 	static ObjectList* GetObjectList(const char* objectName, bool callListLoadFunction);
@@ -214,7 +232,7 @@ public:
 		float thisRadius,
 		Entity* otherEntity,
 		float otherRadius);
-	static bool CheckObjectCollisionBox(Entity* thisEntity,
+	static int CheckObjectCollisionBox(Entity* thisEntity,
 		CollisionBox* thisHitbox,
 		Entity* otherEntity,
 		CollisionBox* otherHitbox,
