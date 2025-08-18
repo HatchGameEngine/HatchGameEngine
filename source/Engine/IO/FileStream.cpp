@@ -96,10 +96,11 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 		isPathValid = false;
 	}
 
-	if (!isPathValid) {
-		Log::Print(Log::LOG_ERROR, "Path \"%s\" is not valid!", filename);
-		return nullptr;
-	}
+	ERROR_RET_VAL(isPathValid, nullptr, "Path \"%s\" is not valid!", filename);
+// 	if (!isPathValid) {
+// 		Log::Print(Log::LOG_ERROR, "Path \"%s\" is not valid!", filename);
+// 		return nullptr;
+// 	}
 
 	// If using a cache:// URL, and the in-memory cache is enabled:
 	if (location == PathLocation::CACHE && MemoryCache::Using) {
