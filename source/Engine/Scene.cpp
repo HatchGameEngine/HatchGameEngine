@@ -873,7 +873,7 @@ void Scene::SortViews() {
 	}
 }
 
-void Scene::SetView(int viewIndex) {
+bool Scene::SetView(int viewIndex) {
 	View* currentView = &Scene::Views[viewIndex];
 
 	Graphics::CurrentView = currentView;
@@ -892,10 +892,12 @@ void Scene::SetView(int viewIndex) {
 				SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, stride, view_h);
 		}
 
-		Graphics::SetRenderTarget(currentView->DrawTarget);
+		if (!Graphics::SetRenderTarget(currentView->DrawTarget)) {
+			return false;
+		}
 
 		if (currentView->Software) {
-			Graphics::SoftwareStart();
+			Graphics::SoftwareStart(viewIndex);
 		}
 		else {
 			Graphics::Clear();
@@ -903,6 +905,8 @@ void Scene::SetView(int viewIndex) {
 	}
 
 	Scene::ViewCurrent = viewIndex;
+
+	return true;
 }
 
 bool Scene::CheckPosOnScreen(float posX, float posY, float rangeX, float rangeY) {
@@ -933,6 +937,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		viewPerf->RecreatedDrawTarget = false;
 	}
 
+	bool viewValid;
 	bool useDrawTarget = false;
 	Texture* drawTarget = currentView->DrawTarget;
 
@@ -950,8 +955,12 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		Graphics::SetUserShader(nullptr);
 	}
 
-	Scene::SetView(viewIndex);
+	viewValid = Scene::SetView(viewIndex);
 	PERF_END(RenderSetupTime);
+
+	if (!viewValid) {
+		return;
+	}
 
 	if (viewPerf && drawTarget != currentView->DrawTarget) {
 		viewPerf->RecreatedDrawTarget = true;
@@ -1184,7 +1193,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	PERF_START(RenderFinishTime);
 	if (useDrawTarget && currentView->Software) {
-		Graphics::SoftwareEnd();
+		Graphics::SoftwareEnd(viewIndex);
 	}
 	PERF_END(RenderFinishTime);
 

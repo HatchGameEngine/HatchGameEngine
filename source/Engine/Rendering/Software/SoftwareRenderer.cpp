@@ -59,8 +59,6 @@ Uint32 ColRGB;
 PixelFunction CurrentPixelFunction = NULL;
 TintFunction CurrentTintFunction = NULL;
 
-bool UseStencil = false;
-
 Uint8 StencilValue = 0x00;
 Uint8 StencilMask = 0xFF;
 
@@ -86,7 +84,6 @@ PolygonRenderer polygonRenderer;
 void SoftwareRenderer::Init() {
 	SoftwareRenderer::BackendFunctions.Init();
 
-	UseStencil = false;
 	UseSpriteDeform = false;
 
 	SetDotMask(0);
@@ -154,6 +151,18 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 	SoftwareRenderer::BackendFunctions.SetTintEnabled = SoftwareRenderer::SetTintEnabled;
 	SoftwareRenderer::BackendFunctions.SetLineWidth = SoftwareRenderer::SetLineWidth;
 
+	// Stencil functions
+	SoftwareRenderer::BackendFunctions.SetStencilEnabled = SoftwareRenderer::SetStencilEnabled;
+	SoftwareRenderer::BackendFunctions.SetStencilTestFunc =
+		SoftwareRenderer::SetStencilTestFunc;
+	SoftwareRenderer::BackendFunctions.SetStencilPassFunc =
+		SoftwareRenderer::SetStencilPassFunc;
+	SoftwareRenderer::BackendFunctions.SetStencilFailFunc =
+		SoftwareRenderer::SetStencilFailFunc;
+	SoftwareRenderer::BackendFunctions.SetStencilValue = SoftwareRenderer::SetStencilValue;
+	SoftwareRenderer::BackendFunctions.SetStencilMask = SoftwareRenderer::SetStencilMask;
+	SoftwareRenderer::BackendFunctions.ClearStencil = SoftwareRenderer::ClearStencil;
+
 	// Primitive drawing functions
 	SoftwareRenderer::BackendFunctions.StrokeLine = SoftwareRenderer::StrokeLine;
 	SoftwareRenderer::BackendFunctions.StrokeCircle = SoftwareRenderer::StrokeCircle;
@@ -181,28 +190,21 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 	SoftwareRenderer::BackendFunctions.BindScene3D = SoftwareRenderer::BindScene3D;
 	SoftwareRenderer::BackendFunctions.DrawScene3D = SoftwareRenderer::DrawScene3D;
 
-	SoftwareRenderer::BackendFunctions.SetStencilEnabled = SoftwareRenderer::SetStencilEnabled;
-	SoftwareRenderer::BackendFunctions.IsStencilEnabled = SoftwareRenderer::IsStencilEnabled;
-	SoftwareRenderer::BackendFunctions.SetStencilTestFunc =
-		SoftwareRenderer::SetStencilTestFunc;
-	SoftwareRenderer::BackendFunctions.SetStencilPassFunc =
-		SoftwareRenderer::SetStencilPassFunc;
-	SoftwareRenderer::BackendFunctions.SetStencilFailFunc =
-		SoftwareRenderer::SetStencilFailFunc;
-	SoftwareRenderer::BackendFunctions.SetStencilValue = SoftwareRenderer::SetStencilValue;
-	SoftwareRenderer::BackendFunctions.SetStencilMask = SoftwareRenderer::SetStencilMask;
-	SoftwareRenderer::BackendFunctions.ClearStencil = SoftwareRenderer::ClearStencil;
-
 	SoftwareRenderer::BackendFunctions.MakeFrameBufferID = SoftwareRenderer::MakeFrameBufferID;
 }
 void SoftwareRenderer::Dispose() {}
 
-void SoftwareRenderer::RenderStart() {
+void SoftwareRenderer::RenderStart(int viewIndex) {
 	for (int i = 0; i < MAX_PALETTE_COUNT; i++) {
 		Graphics::PaletteColors[i][0] &= 0xFFFFFF;
 	}
+
+	View* view = &Scene::Views[viewIndex];
+	if (view->UseStencil) {
+		view->ReallocStencil();
+	}
 }
-void SoftwareRenderer::RenderEnd() {}
+void SoftwareRenderer::RenderEnd(int viewIndex) {}
 
 // Texture management functions
 Texture*
@@ -221,7 +223,9 @@ void SoftwareRenderer::UnlockTexture(Texture* texture) {}
 void SoftwareRenderer::DisposeTexture(Texture* texture) {}
 
 // Viewport and view-related functions
-void SoftwareRenderer::SetRenderTarget(Texture* texture) {}
+bool SoftwareRenderer::SetRenderTarget(Texture* texture) {
+	return true;
+}
 void SoftwareRenderer::ReadFramebuffer(void* pixels, int width, int height) {
 	if (Graphics::Internal.ReadFramebuffer) {
 		Graphics::Internal.ReadFramebuffer(pixels, width, height);
@@ -317,7 +321,10 @@ void SoftwareRenderer::SetFilter(int filter) {
 void SoftwareRenderer::Clear() {
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
+
 	memset(dstPx, 0, dstStride * Graphics::CurrentRenderTarget->Height * 4);
+
+	ClearStencil();
 }
 void SoftwareRenderer::Present() {}
 
@@ -742,12 +749,11 @@ StencilOpFunction StencilFuncFail = StencilOpKeep;
 
 void SoftwareRenderer::SetStencilEnabled(bool enabled) {
 	if (Scene::ViewCurrent >= 0) {
-		UseStencil = enabled;
-		Scene::Views[Scene::ViewCurrent].SetStencilEnabled(enabled);
+		View* view = &Scene::Views[Scene::ViewCurrent];
+
+		view->SetStencilEnabled(enabled);
+		view->ReallocStencil();
 	}
-}
-bool SoftwareRenderer::IsStencilEnabled() {
-	return UseStencil;
 }
 void SoftwareRenderer::SetStencilTestFunc(int stencilTest) {
 	StencilTestFunction funcList[] = {StencilTestNever,
@@ -780,7 +786,7 @@ void SoftwareRenderer::SetStencilMask(int mask) {
 	StencilMask = mask;
 }
 void SoftwareRenderer::ClearStencil() {
-	if (UseStencil && Graphics::CurrentView) {
+	if (Graphics::StencilEnabled && Graphics::CurrentView) {
 		Graphics::CurrentView->ClearStencil();
 	}
 }
@@ -846,7 +852,7 @@ void SoftwareRenderer::PixelDotMaskH(Uint32* src,
 		return;
 	}
 
-	if (UseStencil) {
+	if (Graphics::StencilEnabled) {
 		PixelStencil(src, dst, state, multTableAt, multSubTableAt);
 	}
 	else {
@@ -865,7 +871,7 @@ void SoftwareRenderer::PixelDotMaskV(Uint32* src,
 		return;
 	}
 
-	if (UseStencil) {
+	if (Graphics::StencilEnabled) {
 		PixelStencil(src, dst, state, multTableAt, multSubTableAt);
 	}
 	else {
@@ -885,7 +891,7 @@ void SoftwareRenderer::PixelDotMaskHV(Uint32* src,
 		return;
 	}
 
-	if (UseStencil) {
+	if (Graphics::StencilEnabled) {
 		PixelStencil(src, dst, state, multTableAt, multSubTableAt);
 	}
 	else {
@@ -1644,7 +1650,7 @@ PixelFunction SoftwareRenderer::GetPixelFunction(int blendFlag) {
 			return SoftwareRenderer::PixelDotMaskV;
 		}
 	}
-	else if (UseStencil) {
+	else if (Graphics::StencilEnabled && Graphics::CurrentView->StencilBuffer) {
 		return SoftwareRenderer::PixelStencil;
 	}
 
@@ -2079,7 +2085,7 @@ void SoftwareRenderer::StrokeThickCircle(float x, float y, float rad, float thic
 
 	int dst_strideY = dst_y1 * dstStride;
 
-	if (!UseStencil &&
+	if (!Graphics::StencilEnabled &&
 		((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
 		for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++, dst_strideY += dstStride) {
 			Contour contourA = contourBufferA[dst_y];
@@ -2369,7 +2375,7 @@ void SoftwareRenderer::FillCircle(float x, float y, float rad) {
 	int* multSubTableAt = &MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 
-	if (!UseStencil &&
+	if (!Graphics::StencilEnabled &&
 		((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
 		for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
 			Contour contour = ContourBuffer[dst_y];
@@ -2480,7 +2486,7 @@ void SoftwareRenderer::FillRectangle(float x, float y, float w, float h) {
 	int* multSubTableAt = &MultSubTable[opacity << 8];
 	int dst_strideY = dst_y1 * dstStride;
 
-	if (!UseStencil &&
+	if (!Graphics::StencilEnabled &&
 		((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
 		for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
 			Memory::Memset4(&dstPx[dst_x1 + dst_strideY], col, dst_x2 - dst_x1);

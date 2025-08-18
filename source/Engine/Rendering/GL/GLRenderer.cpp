@@ -1,9 +1,5 @@
 #ifdef USING_OPENGL
 
-// #define HAVE_GL_PERFSTATS
-
-#define USE_USHORT_VTXBUFFER
-
 #include <Engine/Rendering/GL/GLRenderer.h>
 #include <Engine/Rendering/GL/GLShaderBuilder.h>
 #include <Engine/Rendering/GL/Structs.h>
@@ -48,6 +44,12 @@ unsigned GL_ScreenTextureHeight = 0;
 
 Texture* GL_ScreenTexture = nullptr;
 Uint32* GL_ReadPixelsResult = nullptr;
+
+GLenum GL_StencilOpFail = GL_KEEP;
+GLenum GL_StencilOpPass = GL_KEEP;
+GLenum GL_StencilFuncTest = GL_ALWAYS;
+int GL_StencilValue = 0;
+int GL_StencilMask = 0xFF;
 
 bool UseDepthTesting = true;
 float RetinaScale = 1.0;
@@ -146,19 +148,6 @@ void GL_MakeYUVShader();
 #define PERF_STATE_CHANGE(p)
 #define PERF_DRAW_CALL(p)
 #define PERF_END(p)
-#endif
-
-#define GL_SUPPORTS_MULTISAMPLING
-#define GL_SUPPORTS_SMOOTHING
-#define GL_SUPPORTS_RENDERBUFFER
-#define GL_MONOCHROME_PIXELFORMAT GL_RED
-
-#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
-#define GL_ES
-#undef GL_SUPPORTS_MULTISAMPLING
-#undef GL_SUPPORTS_SMOOTHING
-#undef GL_MONOCHROME_PIXELFORMAT
-#define GL_MONOCHROME_PIXELFORMAT GL_LUMINANCE
 #endif
 
 void GL_MakeShaders() {
@@ -1447,6 +1436,9 @@ void GLRenderer::Init() {
 	glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
 	glDepthFunc(GL_LEQUAL);
 
+	glDisable(GL_STENCIL_TEST);
+	glStencilMask(0xFF);
+
 #ifdef GL_SUPPORTS_SMOOTHING
 	glEnable(GL_LINE_SMOOTH);
 	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
@@ -1486,6 +1478,7 @@ void GLRenderer::Init() {
 	Log::Print(Log::LOG_INFO, "Default Renderbuffer: %d", DefaultRenderbuffer);
 
 	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glClearStencil(0);
 }
 Uint32 GLRenderer::GetWindowFlags() {
 #ifndef MACOSX
@@ -1508,7 +1501,11 @@ Uint32 GLRenderer::GetWindowFlags() {
 		SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0);
 	}
 
+#ifdef USE_DEPTH_COMPONENT16
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+#else
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+#endif
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
 #ifdef GL_SUPPORTS_MULTISAMPLING
@@ -1581,6 +1578,15 @@ void GLRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.SetTintMode = GLRenderer::SetTintMode;
 	Graphics::Internal.SetTintEnabled = GLRenderer::SetTintEnabled;
 	Graphics::Internal.SetLineWidth = GLRenderer::SetLineWidth;
+
+	// Stencil functions
+	Graphics::Internal.SetStencilEnabled = GLRenderer::SetStencilEnabled;
+	Graphics::Internal.SetStencilTestFunc = GLRenderer::SetStencilTestFunc;
+	Graphics::Internal.SetStencilPassFunc = GLRenderer::SetStencilPassFunc;
+	Graphics::Internal.SetStencilFailFunc = GLRenderer::SetStencilFailFunc;
+	Graphics::Internal.SetStencilValue = GLRenderer::SetStencilValue;
+	Graphics::Internal.SetStencilMask = GLRenderer::SetStencilMask;
+	Graphics::Internal.ClearStencil = GLRenderer::ClearStencil;
 
 	// Primitive drawing functions
 	Graphics::Internal.StrokeLine = GLRenderer::StrokeLine;
@@ -1671,11 +1677,28 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		textureData->Framebuffer = true;
 		glGenFramebuffers(1, &textureData->FBO);
 
+		textureData->RBO = 0;
+		textureData->StencilRBO = 0;
+
 #ifdef GL_SUPPORTS_RENDERBUFFER
 		glGenRenderbuffers(1, &textureData->RBO);
 		glBindRenderbuffer(GL_RENDERBUFFER, textureData->RBO);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
+#ifdef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
 		CHECK_GL();
+#else
+#ifdef USE_DEPTH_COMPONENT16
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
+#else
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+#endif
+		CHECK_GL();
+
+		glGenRenderbuffers(1, &textureData->StencilRBO);
+		glBindRenderbuffer(GL_RENDERBUFFER, textureData->StencilRBO);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, width, height);
+		CHECK_GL();
+#endif
 #endif
 
 #ifdef GL_SUPPORTS_MULTISAMPLING
@@ -1785,6 +1808,54 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		CHECK_GL();
 #else
 		Log::Print(Log::LOG_ERROR, "YUV textures are not supported in this build!");
+#endif
+	}
+
+	// Setup framebuffer texture
+	if (textureData->Framebuffer) {
+		glBindFramebuffer(GL_FRAMEBUFFER, textureData->FBO);
+		glFramebufferTexture2D(GL_FRAMEBUFFER,
+			GL_COLOR_ATTACHMENT0,
+			textureData->TextureTarget,
+			textureData->TextureID,
+			0);
+
+#ifdef GL_SUPPORTS_RENDERBUFFER
+		glBindRenderbuffer(GL_RENDERBUFFER, textureData->RBO);
+#ifdef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
+		glFramebufferRenderbuffer(
+			GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, textureData->RBO);
+#else
+		glFramebufferRenderbuffer(
+			GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, textureData->RBO);
+		CHECK_GL();
+
+		glFramebufferRenderbuffer(
+			GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, textureData->StencilRBO);
+#endif
+		CHECK_GL();
+#endif
+
+		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+			Log::Print(Log::LOG_ERROR, "glFramebufferRenderbuffer() failed!");
+			CHECK_GL();
+
+			textureData->Framebuffer = false;
+
+			glDeleteFramebuffers(1, &textureData->FBO);
+#ifdef GL_SUPPORTS_RENDERBUFFER
+			if (textureData->RBO) {
+				glDeleteRenderbuffers(1, &textureData->RBO);
+			}
+			if (textureData->StencilRBO) {
+				glDeleteRenderbuffers(1, &textureData->StencilRBO);
+			}
+#endif
+		}
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#ifdef GL_SUPPORTS_RENDERBUFFER
+		glBindRenderbuffer(GL_RENDERBUFFER, 0);
 #endif
 	}
 
@@ -1916,10 +1987,15 @@ void GLRenderer::DisposeTexture(Texture* texture) {
 		return;
 	}
 
-	if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
+	if (textureData->Framebuffer) {
 		glDeleteFramebuffers(1, &textureData->FBO);
 #ifdef GL_SUPPORTS_RENDERBUFFER
-		glDeleteRenderbuffers(1, &textureData->RBO);
+		if (textureData->RBO) {
+			glDeleteRenderbuffers(1, &textureData->RBO);
+		}
+		if (textureData->StencilRBO) {
+			glDeleteRenderbuffers(1, &textureData->StencilRBO);
+		}
 #endif
 	}
 	else if (texture->Access == SDL_TEXTUREACCESS_STREAMING) {
@@ -1938,7 +2014,7 @@ void GLRenderer::DisposeTexture(Texture* texture) {
 }
 
 // Viewport and view-related functions
-void GLRenderer::SetRenderTarget(Texture* texture) {
+bool GLRenderer::SetRenderTarget(Texture* texture) {
 	if (texture == NULL) {
 		glBindFramebuffer(GL_FRAMEBUFFER, DefaultFramebuffer);
 
@@ -1950,27 +2026,17 @@ void GLRenderer::SetRenderTarget(Texture* texture) {
 		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
 		if (!textureData->Framebuffer) {
 			Log::Print(Log::LOG_WARN, "Cannot render to non-framebuffer texture!");
-			return;
+			return false;
 		}
 
 		glBindFramebuffer(GL_FRAMEBUFFER, textureData->FBO);
-		glFramebufferTexture2D(GL_FRAMEBUFFER,
-			GL_COLOR_ATTACHMENT0,
-			textureData->TextureTarget,
-			textureData->TextureID,
-			0);
 
 #ifdef GL_SUPPORTS_RENDERBUFFER
 		glBindRenderbuffer(GL_RENDERBUFFER, textureData->RBO);
-		glFramebufferRenderbuffer(
-			GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, textureData->RBO);
 #endif
-
-		if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-			Log::Print(Log::LOG_ERROR, "glFramebufferTexture2D() failed: ");
-			CHECK_GL();
-		}
 	}
+
+	return true;
 }
 void GLRenderer::ReadFramebuffer(void* pixels, int width, int height) {
 	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
@@ -2239,17 +2305,23 @@ void GLRenderer::UpdatePaletteIndexTable(Texture* texture) {
 
 // These guys
 void GLRenderer::Clear() {
+	GLenum bits = GL_COLOR_BUFFER_BIT;
+
+	if (Graphics::StencilEnabled) {
+		bits |= GL_STENCIL_BUFFER_BIT;
+	}
+
 	if (UseDepthTesting) {
 #ifdef GL_ES
 		glClearDepthf(1.0f);
 #else
 		glClearDepth(1.0f);
 #endif
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		bits |= GL_DEPTH_BUFFER_BIT;
 	}
-	else {
-		glClear(GL_COLOR_BUFFER_BIT);
-	}
+
+	glClear(bits);
 }
 void GLRenderer::Present() {
 	SDL_GL_SwapWindow(Application::Window);
@@ -2269,6 +2341,111 @@ void GLRenderer::SetTintMode(int mode) {}
 void GLRenderer::SetTintEnabled(bool enabled) {}
 void GLRenderer::SetLineWidth(float n) {
 	glLineWidth(n);
+}
+
+// Stencil functions
+void GLRenderer::SetStencilEnabled(bool enabled) {
+	if (enabled) {
+		glEnable(GL_STENCIL_TEST);
+	}
+	else {
+		glDisable(GL_STENCIL_TEST);
+	}
+}
+void GLRenderer::SetStencilTestFunc(int stencilTest) {
+	GLenum funcTest = GL_ALWAYS;
+
+	switch (stencilTest) {
+	case StencilTest_Never:
+		funcTest = GL_NEVER;
+		break;
+	case StencilTest_Always:
+		funcTest = GL_ALWAYS;
+		break;
+	case StencilTest_Equal:
+		funcTest = GL_EQUAL;
+		break;
+	case StencilTest_NotEqual:
+		funcTest = GL_NOTEQUAL;
+		break;
+	case StencilTest_Less:
+		funcTest = GL_LESS;
+		break;
+	case StencilTest_Greater:
+		funcTest = GL_GREATER;
+		break;
+	case StencilTest_LEqual:
+		funcTest = GL_LEQUAL;
+		break;
+	case StencilTest_GEqual:
+		funcTest = GL_GEQUAL;
+		break;
+	default:
+		return;
+	}
+
+	if (funcTest != GL_StencilFuncTest) {
+		GL_StencilFuncTest = funcTest;
+
+		glStencilFunc(GL_StencilFuncTest, GL_StencilValue, 0xFF);
+	}
+}
+GLenum GL_StencilOpToEnum(int stencilOp) {
+	switch (stencilOp) {
+	case StencilOp_Keep:
+		return GL_KEEP;
+	case StencilOp_Zero:
+		return GL_ZERO;
+	case StencilOp_Incr:
+		return GL_INCR;
+	case StencilOp_Decr:
+		return GL_DECR;
+	case StencilOp_Invert:
+		return GL_INVERT;
+	case StencilOp_Replace:
+		return GL_REPLACE;
+	case StencilOp_IncrWrap:
+		return GL_INCR_WRAP;
+	case StencilOp_DecrWrap:
+		return GL_DECR_WRAP;
+	}
+
+	return GL_KEEP;
+}
+void GLRenderer::SetStencilPassFunc(int stencilOp) {
+	GLenum opPass = GL_StencilOpToEnum(stencilOp);
+
+	if (opPass != GL_StencilOpPass) {
+		GL_StencilOpPass = opPass;
+
+		glStencilOp(GL_StencilOpFail, GL_KEEP, GL_StencilOpPass);
+	}
+}
+void GLRenderer::SetStencilFailFunc(int stencilOp) {
+	GLenum opFail = GL_StencilOpToEnum(stencilOp);
+
+	if (opFail != GL_StencilOpFail) {
+		GL_StencilOpFail = opFail;
+
+		glStencilOp(GL_StencilOpFail, GL_KEEP, GL_StencilOpPass);
+	}
+}
+void GLRenderer::SetStencilValue(int value) {
+	if (value != GL_StencilValue) {
+		GL_StencilValue = value;
+
+		glStencilFunc(GL_StencilFuncTest, GL_StencilValue, 0xFF);
+	}
+}
+void GLRenderer::SetStencilMask(int mask) {
+	if (mask != GL_StencilMask) {
+		GL_StencilMask = mask;
+
+		glStencilMask(GL_StencilMask);
+	}
+}
+void GLRenderer::ClearStencil() {
+	glClear(GL_STENCIL_BUFFER_BIT);
 }
 
 // Primitive drawing functions

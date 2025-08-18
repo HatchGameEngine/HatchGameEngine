@@ -16,6 +16,42 @@
 #define GL_DO_ERROR_CHECKING
 #endif
 
+#define USE_USHORT_VTXBUFFER
+#define USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
+
+#define GL_SUPPORTS_MULTISAMPLING
+#define GL_SUPPORTS_SMOOTHING
+#define GL_SUPPORTS_RENDERBUFFER
+#define GL_MONOCHROME_PIXELFORMAT GL_RED
+
+#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
+#define GL_ES
+#undef GL_SUPPORTS_MULTISAMPLING
+#undef GL_SUPPORTS_SMOOTHING
+#undef GL_MONOCHROME_PIXELFORMAT
+#undef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
+#define GL_MONOCHROME_PIXELFORMAT GL_LUMINANCE
+#endif
+
+#ifdef GL_ES
+#undef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
+#endif
+
+#if GL_ES_VERSION_2_0
+#define USE_DEPTH_COMPONENT16
+#endif
+
+#ifdef USE_OES_PACKED_DEPTH_STENCIL
+#define GL_DEPTH24_STENCIL8 GL_DEPTH24_STENCIL8_OES
+#define GL_DEPTH_STENCIL_ATTACHMENT GL_DEPTH_STENCIL_ATTACHMENT_OES
+#endif
+
+#ifdef USE_OES_DEPTH_COMPONENT24
+#define GL_DEPTH_COMPONENT24 GL_DEPTH_COMPONENT24_OES
+#endif
+
+// #define HAVE_GL_PERFSTATS
+
 #ifdef GL_DO_ERROR_CHECKING
 #define CHECK_GL() GLRenderer::CheckError(__LINE__)
 #else
@@ -57,7 +93,7 @@ public:
 		int pitchV);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
-	static void SetRenderTarget(Texture* texture);
+	static bool SetRenderTarget(Texture* texture);
 	static void ReadFramebuffer(void* pixels, int width, int height);
 	static void UpdateWindowSize(int width, int height);
 	static void UpdateViewport();
@@ -86,6 +122,13 @@ public:
 	static void SetTintMode(int mode);
 	static void SetTintEnabled(bool enabled);
 	static void SetLineWidth(float n);
+	static void SetStencilEnabled(bool enabled);
+	static void SetStencilTestFunc(int stencilTest);
+	static void SetStencilPassFunc(int stencilOp);
+	static void SetStencilFailFunc(int stencilOp);
+	static void SetStencilValue(int value);
+	static void SetStencilMask(int mask);
+	static void ClearStencil();
 	static void StrokeLine(float x1, float y1, float x2, float y2);
 	static void StrokeCircle(float x, float y, float rad, float thickness);
 	static void StrokeEllipse(float x, float y, float w, float h);
