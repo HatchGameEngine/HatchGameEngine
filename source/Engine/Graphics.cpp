@@ -1313,6 +1313,55 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 		paletteID);
 }
 
+void Graphics::DrawText(Font* font, const char* text, float x, float y, float fontSize) {
+	float currX = x;
+	float currY = y;
+
+	size_t textLength = strlen(text);
+
+	float scale = fontSize / font->Size;
+	float baseline = font->Ascent * scale;
+
+	float xyScale = scale / font->Oversampling;
+
+	for (size_t i = 0; i < textLength; i++) {
+		unsigned char letter = text[i];
+		if (letter == '\n') {
+			currX = x;
+			currY += font->Ascent - font->Descent + font->LineGap;
+			continue;
+		}
+		else if (letter < font->StartChar || letter > font->EndChar) {
+			// Not a valid character
+			continue;
+		}
+
+		// TODO: Handle UTF-8 here...
+		// Currently, we just assume a letter directly corresponds to a codepoint minus StartChar.
+		int codepoint = (int)letter - font->StartChar;
+
+		FontGlyph* glyph = &font->Glyphs[codepoint];
+
+		float glyphX = currX + (glyph->OffsetX * xyScale);
+		float glyphY = currY + (glyph->OffsetY * xyScale);
+
+		glyphY += baseline;
+
+		Graphics::DrawSprite(font->Sprite,
+			0,
+			codepoint,
+			glyphX,
+			glyphY,
+			false,
+			false,
+			xyScale,
+			xyScale,
+			0.0f);
+
+		currX += glyph->Advance * scale;
+	}
+}
+
 void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
 	switch (layer->DrawBehavior) {
 	case DrawBehavior_HorizontalParallax: {

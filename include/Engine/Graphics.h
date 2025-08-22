@@ -15,6 +15,7 @@ class IModel;
 #include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/TextureReference.h>
 #include <Engine/Rendering/VertexBuffer.h>
+#include <Engine/ResourceTypes/Font.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene/SceneEnums.h>
@@ -267,6 +268,7 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation);
+	static void DrawText(Font* font, const char *text, float x, float y, float fontSize);
 	static void
 	DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines);
 	static void DrawTilePart(int tile,

@@ -8,6 +8,7 @@
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/ResourceTypes/Image.h>
+#include <Engine/ResourceTypes/Font.h>
 
 struct MediaBag {
 	Texture* VideoTexture;
@@ -23,7 +24,7 @@ struct ResourceType {
 		Image* AsImage;
 		ISound* AsSound;
 		ISound* AsMusic;
-		void* AsFont;
+		Font* AsFont;
 		void* AsShader;
 		IModel* AsModel;
 		MediaBag* AsMedia;

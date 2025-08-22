@@ -90,6 +90,7 @@ public:
 	static vector<ResourceType*> ImageList;
 	static vector<ResourceType*> SoundList;
 	static vector<ResourceType*> MusicList;
+	static vector<ResourceType*> FontList;
 	static vector<ResourceType*> ModelList;
 	static vector<ResourceType*> MediaList;
 	static vector<GameTexture*> TextureList;
@@ -195,7 +196,7 @@ public:
 	static bool GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index);
 	static int LoadSpriteResource(const char* filename, int unloadPolicy);
 	static int LoadImageResource(const char* filename, int unloadPolicy);
-	static int LoadFontResource(const char* filename, int pixel_sz, int unloadPolicy);
+	static int LoadFontResource(const char* filename, int unloadPolicy);
 	static int LoadModelResource(const char* filename, int unloadPolicy);
 	static int LoadMusicResource(const char* filename, int unloadPolicy);
 	static int LoadSoundResource(const char* filename, int unloadPolicy);

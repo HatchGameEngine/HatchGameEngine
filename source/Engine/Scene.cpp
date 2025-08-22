@@ -9,7 +9,6 @@
 #include <Engine/Diagnostics/MemoryPools.h>
 #include <Engine/Error.h>
 #include <Engine/Filesystem/File.h>
-#include <Engine/FontFace.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -127,6 +126,7 @@ vector<ResourceType*> Scene::SpriteList;
 vector<ResourceType*> Scene::ImageList;
 vector<ResourceType*> Scene::SoundList;
 vector<ResourceType*> Scene::MusicList;
+vector<ResourceType*> Scene::FontList;
 vector<ResourceType*> Scene::ModelList;
 vector<ResourceType*> Scene::MediaList;
 vector<GameTexture*> Scene::TextureList;
@@ -2838,31 +2838,21 @@ int Scene::LoadImageResource(const char* filename, int unloadPolicy) {
 
 	return (int)index;
 }
-int Scene::LoadFontResource(const char* filename, int pixel_sz, int unloadPolicy) {
+int Scene::LoadFontResource(const char* filename, int unloadPolicy) {
 	ResourceType* resource = new (std::nothrow) ResourceType();
 	resource->FilenameHash = CRC32::EncryptString(filename);
-	resource->FilenameHash = CRC32::EncryptData(&pixel_sz, sizeof(int), resource->FilenameHash);
 	resource->UnloadPolicy = unloadPolicy;
 
 	size_t index = 0;
-	vector<ResourceType*>* list = &Scene::SpriteList;
+	vector<ResourceType*>* list = &Scene::FontList;
 	if (Scene::GetResource(list, resource, index)) {
 		return (int)index;
 	}
 
-	ResourceStream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
+	resource->AsFont = new (std::nothrow) Font(filename);
 
-	resource->AsSprite = FontFace::SpriteFromFont(stream, pixel_sz, filename);
-
-	stream->Close();
-
-	if (resource->AsSprite->LoadFailed) {
-		delete resource->AsSprite;
+	if (resource->AsFont->LoadFailed) {
+		delete resource->AsFont;
 		delete resource;
 		(*list)[index] = NULL;
 		return -1;
@@ -3132,6 +3122,19 @@ void Scene::DisposeInScope(Uint32 scope) {
 		delete Scene::MusicList[i];
 		Scene::MusicList[i] = NULL;
 	}
+	// Fonts
+	for (size_t i = 0, i_sz = Scene::FontList.size(); i < i_sz; i++) {
+		if (!Scene::FontList[i]) {
+			continue;
+		}
+		if (Scene::FontList[i]->UnloadPolicy > scope) {
+			continue;
+		}
+
+		delete Scene::FontList[i]->AsFont;
+		delete Scene::FontList[i];
+		Scene::FontList[i] = NULL;
+	}
 	// Media
 	AudioManager::Lock();
 	for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
@@ -3207,6 +3210,7 @@ void Scene::Dispose() {
 	Scene::SpriteList.clear();
 	Scene::SoundList.clear();
 	Scene::MusicList.clear();
+	Scene::FontList.clear();
 	Scene::ModelList.clear();
 	Scene::MediaList.clear();
 	Scene::TextureList.clear();

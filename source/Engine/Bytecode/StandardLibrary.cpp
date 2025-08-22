@@ -46,11 +46,6 @@
 
 #include <Libraries/jsmn.h>
 
-#ifdef USING_FREETYPE
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#endif
-
 #define NANOPRINTF_IMPLEMENTATION
 #define NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS 1
 #define NANOPRINTF_USE_PRECISION_FORMAT_SPECIFIERS 1
@@ -393,6 +388,23 @@ inline ISound* GetMusic(VMValue* args, int index, Uint32 threadID) {
 	}
 
 	return Scene::MusicList[where]->AsMusic;
+}
+inline Font* GetFont(VMValue* args, int index, Uint32 threadID) {
+	int where = GetInteger(args, index, threadID);
+	if (where < 0 || where >= (int)Scene::FontList.size()) {
+		if (THROW_ERROR("Font index \"%d\" outside bounds of list.", where) ==
+			ERROR_RES_CONTINUE) {
+			ScriptManager::Threads[threadID].ReturnFromNative();
+		}
+
+		return NULL;
+	}
+
+	if (!Scene::FontList[where]) {
+		return NULL;
+	}
+
+	return Scene::FontList[where]->AsFont;
 }
 inline IModel* GetModel(VMValue* args, int index, Uint32 threadID) {
 	int where = GetInteger(args, index, threadID);
@@ -3954,15 +3966,6 @@ int _Text_GetLetter(int l) {
 	return l;
 }
 /***
- * Draw.SetFont
- * \desc
- * \return
- * \ns Draw
- */
-VMValue Draw_SetFont(int argCount, VMValue* args, Uint32 threadID) {
-	return NULL_VAL;
-}
-/***
  * Draw.SetTextAlign
  * \desc Sets the text drawing horizontal alignment. (default: left)
  * \param baseline (Integer): 0 for left, 1 for center, 2 for right.
@@ -4167,25 +4170,46 @@ FINISH:
 }
 /***
  * Draw.Text
- * \desc Draws Extended UTF8 text using a sprite or font.
- * \param sprite (Integer): Index of the loaded sprite to be used as text.
+ * \desc Draws UTF-8 text using a font.
+ * \param font (Font): Index of the loaded font to be used as text.
  * \param text (String): Text to draw.
  * \param x (Number): X position of where to draw the text.
  * \param y (Number): Y position of where to draw the text.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
+	CHECK_AT_LEAST_ARGCOUNT(4);
 
-	ISprite* sprite = GET_ARG(0, GetSprite);
+	ISprite* sprite = nullptr;
 	char* text = GET_ARG(1, GetString);
 	float basex = GET_ARG(2, GetDecimal);
 	float basey = GET_ARG(3, GetDecimal);
+	float fontSize = 0.0f;
 
 	float x = basex;
 	float y = basey;
 	float* lineWidths;
 	int line = 0;
+
+#if 1
+	// Temporary code.
+	Font* font = GET_ARG(0, GetFont);
+	if (!font) {
+		return NULL_VAL;
+	}
+
+	if (argCount >= 5) {
+		fontSize = GET_ARG(4, GetDecimal);
+	}
+	else {
+		fontSize = font->Size;
+	}
+
+	Graphics::DrawText(font, text, basex, basey, fontSize);
+#else
+	sprite = GET_ARG(0, GetSprite);
+#endif
 
 	if (!sprite) {
 		return NULL_VAL;
@@ -11535,19 +11559,17 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Resources.LoadFont
  * \desc Loads a Font resource, returning its Font index.
- * \param filename (String):
- * \param pixelSize (Number):
- * \param unloadPolicy (Integer):
+ * \param filename (String): Filename of the resource.
+ * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
  * \return
  * \ns Resources
  */
 VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
+	CHECK_ARGCOUNT(2);
 	char* filename = GET_ARG(0, GetString);
-	int pixel_sz = (int)GET_ARG(1, GetDecimal);
-	int unloadPolicy = GET_ARG(2, GetInteger);
+	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	int result = Scene::LoadFontResource(filename, pixel_sz, unloadPolicy);
+	int result = Scene::LoadFontResource(filename, unloadPolicy);
 
 	return INTEGER_VAL(result);
 }
@@ -18941,7 +18963,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, Texture);
 	DEF_NATIVE(Draw, TextureSized);
 	DEF_NATIVE(Draw, TexturePart);
-	DEF_NATIVE(Draw, SetFont);
 	DEF_NATIVE(Draw, SetTextAlign);
 	DEF_NATIVE(Draw, SetTextBaseline);
 	DEF_NATIVE(Draw, SetTextAdvance);
