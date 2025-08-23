@@ -31,6 +31,7 @@ private:
 	static void DeleteSpriteSheetMap();
 	static void DeleteShaders();
 	static void DeleteVertexBuffers();
+	static std::vector<Uint32> GetTextCodepoints(Font* font, const char* text);
 
 public:
 	static bool Initialized;

@@ -451,6 +451,10 @@ void Graphics::UnlockTexture(Texture* texture) {
 	Graphics::GfxFunctions->UnlockTexture(texture);
 }
 void Graphics::DisposeTexture(Texture* texture) {
+	if (texture == nullptr) {
+		return;
+	}
+
 	Graphics::GfxFunctions->DisposeTexture(texture);
 
 	if (texture->Next) {
@@ -1313,21 +1317,16 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 		paletteID);
 }
 
-void Graphics::DrawText(Font* font, const char* text, float x, float y, float fontSize) {
-	float currX = x;
-	float currY = y;
-
+// Handles UTF-8 text and obtains UCS codepoints
+std::vector<Uint32> Graphics::GetTextCodepoints(Font* font, const char* text) {
 	size_t textLength = strlen(text);
 
-	float scale = fontSize / font->Size;
-	float baseline = font->Ascent * scale;
-
-	float xyScale = scale / font->Oversampling;
+	std::vector<Uint32> codepoints;
+	codepoints.reserve(textLength);
 
 	for (size_t i = 0; i < textLength;) {
 		if (text[i] == '\n') {
-			currX = x;
-			currY += (font->Ascent - font->Descent + font->LineGap) * scale;
+			codepoints.push_back((Uint32)text[i]);
 			i++;
 			continue;
 		}
@@ -1344,13 +1343,52 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, float fo
 			continue;
 		}
 
-		// Codepoint is valid, but glyph might not be yet
-		if (!font->RequestGlyph(codepoint)) {
-			i += numBytes;
+		// If the glyph is valid
+		if (font->RequestGlyph(codepoint)) {
+			codepoints.push_back(codepoint);
+		}
+
+		i += numBytes;
+	}
+
+	return codepoints;
+}
+
+void Graphics::DrawText(Font* font, const char* text, float x, float y, float fontSize) {
+	// Obtain codepoints and check if the font needs to be updated
+	std::vector<Uint32> codepoints = GetTextCodepoints(font, text);
+
+	size_t numCodepoints = codepoints.size();
+	if (numCodepoints == 0) {
+		return;
+	}
+
+	font->Refresh();
+
+	if (font->Sprite == nullptr || font->Sprite->Spritesheets.size() == 0) {
+		return;
+	}
+
+	// Draw the codepoints
+	float currX = x;
+	float currY = y;
+
+	float scale = fontSize / font->Size;
+	float baseline = font->Ascent * scale;
+
+	float xyScale = scale / font->Oversampling;
+
+	for (size_t i = 0; i < numCodepoints; i++) {
+		Uint32 codepoint = codepoints[i];
+		if (codepoints[i] == '\n') {
+			currX = x;
+			currY += (font->Ascent - font->Descent + font->LineGap) * scale;
 			continue;
 		}
 
-		FontGlyph& glyph = font->Glyphs[codepoint];
+		Uint32 glyphIndex = font->GetGlyphIndex(codepoint);
+
+		FontGlyph& glyph = font->Glyphs[glyphIndex];
 
 		float glyphX = currX + (glyph.OffsetX * xyScale);
 		float glyphY = currY + (glyph.OffsetY * xyScale);
@@ -1358,7 +1396,7 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, float fo
 		glyphY += baseline;
 
 		Graphics::DrawSprite(font->Sprite,
-			glyph.AtlasID,
+			0,
 			glyph.FrameID,
 			glyphX,
 			glyphY,
@@ -1369,8 +1407,6 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, float fo
 			0.0f);
 
 		currX += glyph.Advance * scale;
-
-		i += numBytes;
 	}
 }
 
