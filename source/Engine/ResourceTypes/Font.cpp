@@ -34,22 +34,27 @@ bool Font::Load(Stream* stream) {
 
 	Context = Memory::Calloc(1, sizeof(stbtt_fontinfo));
 	Oversampling = 1;
-	StartChar = 32;
-	EndChar = 127;
+
+	InitCodepoints();
 
 	// Load font
-	// FIXME: I don't think using stbtt_GetFontOffsetForIndex is necessary, since Hatch doesn't
-	// have a way of handling font collections...
-	int fontOffset = stbtt_GetFontOffsetForIndex((Uint8*)Data, 0);
-	if (stbtt_InitFont((stbtt_fontinfo*)Context, (Uint8*)Data, fontOffset) == 0) {
+	if (stbtt_InitFont((stbtt_fontinfo*)Context, (Uint8*)Data, 0) == 0) {
 		return false;
 	}
 
-	if (LoadFontSize(40)) {
+	if (LoadFontSize(DEFAULT_FONT_SIZE)) {
 		LoadFailed = false;
 	}
 
 	return !LoadFailed;
+}
+
+void Font::InitCodepoints() {
+	// Load Basic Latin codepoints (except C0 controls)
+	// U+0020 to U+007F
+	for (int i = 32; i < 128; i++) {
+		Codepoints.push_back(i);
+	}
 }
 
 bool Font::LoadFontSize(float fontSize, unsigned atlasSize) {
@@ -65,7 +70,7 @@ bool Font::LoadFontSize(float fontSize, unsigned atlasSize) {
 
 	// Allocate the grayscale buffer
 	if (atlasSize == 0) {
-		atlasSize = 128;
+		atlasSize = DEFAULT_FONT_ATLAS_SIZE;
 	}
 
 	if (atlasSize > GlyphTextureSize || GlyphBuffer == nullptr) {
@@ -75,8 +80,6 @@ bool Font::LoadFontSize(float fontSize, unsigned atlasSize) {
 	if (!GlyphBuffer) {
 		return false;
 	}
-
-	GlyphTextureSize = atlasSize;
 
 	// Init packing if needed
 	stbtt_pack_context* packContext = (stbtt_pack_context*)PackContext;
@@ -96,21 +99,25 @@ bool Font::LoadFontSize(float fontSize, unsigned atlasSize) {
 	stbtt_PackSetOversampling(packContext, Oversampling, Oversampling);
 
 	// Pack glyphs
-	unsigned numCharsInRange = (EndChar - StartChar) + 1;
+	unsigned numCodepoints = Codepoints.size();
+	if (numCodepoints == 0) {
+		return false;
+	}
 
 	stbtt_packedchar* packedChars =
-		(stbtt_packedchar*)Memory::Calloc(numCharsInRange, sizeof(stbtt_packedchar));
+		(stbtt_packedchar*)Memory::Calloc(numCodepoints, sizeof(stbtt_packedchar));
 	if (!packedChars) {
 		return false;
 	}
 
-	if (stbtt_PackFontRange(packContext,
-		    (Uint8*)Data,
-		    0,
-		    fontSize,
-		    StartChar,
-		    numCharsInRange,
-		    packedChars) == 0) {
+	stbtt_pack_range range;
+	range.first_unicode_codepoint_in_range = 0;
+	range.array_of_unicode_codepoints = Codepoints.data();
+	range.num_chars = numCodepoints;
+	range.chardata_for_range = packedChars;
+	range.font_size = fontSize;
+
+	if (stbtt_PackFontRanges(packContext, (Uint8*)Data, 0, &range, 1) == 0) {
 		// Didn't work... So we try to increase the size of the texture atlas
 		// But it can't exceed the max texture size of the GPU.
 		int maxTextureSize =
@@ -125,27 +132,45 @@ bool Font::LoadFontSize(float fontSize, unsigned atlasSize) {
 		return LoadFontSize(fontSize, atlasSize);
 	}
 
-	Glyphs = (FontGlyph*)Memory::Realloc(Glyphs, numCharsInRange * sizeof(FontGlyph));
-	if (!Glyphs) {
-		return false;
-	}
-
 	// Load the glyphs
-	for (unsigned i = 0; i < numCharsInRange; i++) {
-		FontGlyph* glyph = &Glyphs[i];
+	for (size_t i = 0; i < numCodepoints; i++) {
+		int codepoint = Codepoints[i];
 		stbtt_packedchar* packedChar = &packedChars[i];
 
-		glyph->Width = packedChar->x1 - packedChar->x0;
-		glyph->Height = packedChar->y1 - packedChar->y0;
-		glyph->SourceX = packedChar->x0;
-		glyph->SourceY = packedChar->y0;
-		glyph->OffsetX = packedChar->xoff * Oversampling;
-		glyph->OffsetY = packedChar->yoff * Oversampling;
-		glyph->Advance = packedChar->xadvance;
+		FontGlyph glyph;
+		glyph.Codepoint = codepoint;
+		glyph.AtlasID = 0;
+		glyph.Width = packedChar->x1 - packedChar->x0;
+		glyph.Height = packedChar->y1 - packedChar->y0;
+		glyph.SourceX = packedChar->x0;
+		glyph.SourceY = packedChar->y0;
+		glyph.OffsetX = packedChar->xoff * Oversampling;
+		glyph.OffsetY = packedChar->yoff * Oversampling;
+		glyph.Advance = packedChar->xadvance;
+
+		Glyphs[codepoint] = glyph;
 	}
 
 	Memory::Free(packedChars);
 
+	// Create the texture atlas
+	// Eventually, this may need to handle multiple textures. For now, there is only one atlas.
+	if (!CreateTextureAtlas(width, height)) {
+		return false;
+	}
+
+	// Create the sprite
+	if (!LoadSprite()) {
+		return false;
+	}
+
+	GlyphTextureSize = atlasSize;
+	Size = fontSize;
+
+	return true;
+}
+
+bool Font::CreateTextureAtlas(unsigned width, unsigned height) {
 	// Convert texture to RGBA
 	Uint32* textureData = (Uint32*)Memory::Malloc(width * height * sizeof(Uint32));
 	if (!textureData) {
@@ -157,50 +182,50 @@ bool Font::LoadFontSize(float fontSize, unsigned atlasSize) {
 		textureData[i] = (GlyphBuffer[i] << 24) | 0xFFFFFF;
 	}
 
-	// Create the texture
-	// TODO: A better way to define texture interpolation.
+	if (Atlas) {
+		Graphics::DisposeTexture(Atlas);
+		Atlas = nullptr;
+	}
+
+	// TODO: A better way to toggle texture interpolation.
 	bool original = Graphics::TextureInterpolate;
 	Graphics::SetTextureInterpolation(true);
 
-	Texture* textureAtlas = Graphics::CreateTextureFromPixels(
+	Atlas = Graphics::CreateTextureFromPixels(
 		width, height, textureData, width * sizeof(Uint32));
-
-	Memory::Free(textureData);
 
 	Graphics::SetTextureInterpolation(original);
 
-	if (!textureAtlas) {
-		return false;
-	}
+	Memory::Free(textureData);
 
-	// Delete the previous sprite, if it exists
+	return Atlas != nullptr;
+}
+
+bool Font::LoadSprite() {
+	// TODO: No need to delete the entire sprite in most cases, just update it
 	if (Sprite) {
 		delete Sprite;
 	}
 
-	// Create the sprite
 	Sprite = new ISprite();
 	Sprite->Filename = StringUtils::Duplicate("Font Sprite");
 	Sprite->AddAnimation("Font", 0, 0);
-	Sprite->Spritesheets.push_back(textureAtlas);
-
-	// We own this spritesheet, so we don't name it
-	// TODO: Find a better way to do this
+	Sprite->Spritesheets.push_back(Atlas);
 	Sprite->SpritesheetFilenames.push_back("");
 
 	// Add the glyphs to the sprite
-	NumChars = numCharsInRange;
+	for (size_t i = 0; i < Codepoints.size(); i++) {
+		FontGlyph& glyph = Glyphs[Codepoints[i]];
 
-	for (unsigned i = 0; i < NumChars; i++) {
-		FontGlyph* glyph = &Glyphs[i];
+		glyph.FrameID = i;
 
 		// Offsets are handled when rendering
 		Sprite->AddFrame(0,
 			0,
-			glyph->SourceX,
-			glyph->SourceY,
-			glyph->Width,
-			glyph->Height,
+			glyph.SourceX,
+			glyph.SourceY,
+			glyph.Width,
+			glyph.Height,
 			0,
 			0,
 			0,
@@ -209,13 +234,30 @@ bool Font::LoadFontSize(float fontSize, unsigned atlasSize) {
 
 	Sprite->RefreshGraphicsID();
 
-	Size = fontSize;
-
 	return true;
 }
 
 bool Font::LoadFontSize(float fontSize) {
 	return LoadFontSize(fontSize, 0);
+}
+
+bool Font::IsValidCodepoint(Uint32 codepoint) {
+	return codepoint >= 32 && codepoint < 0x110000;
+}
+
+bool Font::IsGlyphLoaded(Uint32 codepoint) {
+	auto it = std::find(Codepoints.begin(), Codepoints.end(), (int)codepoint);
+	return it != Codepoints.end();
+}
+
+bool Font::RequestGlyph(Uint32 codepoint) {
+	if (IsGlyphLoaded(codepoint)) {
+		return true;
+	}
+
+	Codepoints.push_back((int)codepoint);
+
+	return LoadFontSize(Size, GlyphTextureSize);
 }
 
 void Font::Dispose() {
@@ -228,13 +270,13 @@ void Font::Dispose() {
 		Memory::Free(PackContext);
 		PackContext = nullptr;
 	}
-	if (Glyphs) {
-		Memory::Free(Glyphs);
-		Glyphs = nullptr;
-	}
 	if (GlyphBuffer) {
 		Memory::Free(GlyphBuffer);
 		GlyphBuffer = nullptr;
+	}
+	if (Atlas) {
+		Graphics::DisposeTexture(Atlas);
+		Atlas = nullptr;
 	}
 	if (Sprite) {
 		delete Sprite;

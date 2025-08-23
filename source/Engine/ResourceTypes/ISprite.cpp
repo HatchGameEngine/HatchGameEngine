@@ -581,9 +581,6 @@ void ISprite::Dispose() {
 		if (sheetFilename.size() > 0) {
 			Graphics::DisposeSpriteSheet(sheetFilename);
 		}
-		else {
-			Graphics::DisposeTexture(Spritesheets[i]);
-		}
 	}
 
 	Spritesheets.clear();

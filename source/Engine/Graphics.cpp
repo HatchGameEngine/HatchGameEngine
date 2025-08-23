@@ -1324,32 +1324,42 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, float fo
 
 	float xyScale = scale / font->Oversampling;
 
-	for (size_t i = 0; i < textLength; i++) {
-		unsigned char letter = text[i];
-		if (letter == '\n') {
+	for (size_t i = 0; i < textLength;) {
+		if (text[i] == '\n') {
 			currX = x;
-			currY += font->Ascent - font->Descent + font->LineGap;
-			continue;
-		}
-		else if (letter < font->StartChar || letter > font->EndChar) {
-			// Not a valid character
+			currY += (font->Ascent - font->Descent + font->LineGap) * scale;
+			i++;
 			continue;
 		}
 
-		// TODO: Handle UTF-8 here...
-		// Currently, we just assume a letter directly corresponds to a codepoint minus StartChar.
-		int codepoint = (int)letter - font->StartChar;
+		int numBytes = 1;
+		int decoded = StringUtils::DecodeUTF8Char(&text[i], numBytes);
+		if (decoded == -1) {
+			decoded = 0;
+		}
 
-		FontGlyph* glyph = &font->Glyphs[codepoint];
+		Uint32 codepoint = (Uint32)decoded;
+		if (!font->IsValidCodepoint(codepoint)) {
+			i += numBytes;
+			continue;
+		}
 
-		float glyphX = currX + (glyph->OffsetX * xyScale);
-		float glyphY = currY + (glyph->OffsetY * xyScale);
+		// Codepoint is valid, but glyph might not be yet
+		if (!font->RequestGlyph(codepoint)) {
+			i += numBytes;
+			continue;
+		}
+
+		FontGlyph& glyph = font->Glyphs[codepoint];
+
+		float glyphX = currX + (glyph.OffsetX * xyScale);
+		float glyphY = currY + (glyph.OffsetY * xyScale);
 
 		glyphY += baseline;
 
 		Graphics::DrawSprite(font->Sprite,
-			0,
-			codepoint,
+			glyph.AtlasID,
+			glyph.FrameID,
 			glyphX,
 			glyphY,
 			false,
@@ -1358,7 +1368,9 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, float fo
 			xyScale,
 			0.0f);
 
-		currX += glyph->Advance * scale;
+		currX += glyph.Advance * scale;
+
+		i += numBytes;
 	}
 }
 

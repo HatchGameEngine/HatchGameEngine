@@ -3,9 +3,16 @@
 
 #include <Engine/Includes/Standard.h>
 #include <Engine/IO/Stream.h>
+#include <Engine/Rendering/Texture.h>
 #include <Engine/ResourceTypes/ISprite.h>
 
+#define DEFAULT_FONT_SIZE 40
+#define DEFAULT_FONT_ATLAS_SIZE 128
+
 struct FontGlyph {
+    int Codepoint;
+    int AtlasID;
+    int FrameID;
     unsigned Width;
     unsigned Height;
     unsigned SourceX;
@@ -23,15 +30,19 @@ private:
     void* Context = nullptr;
     void* PackContext = nullptr;
 
+    Texture* Atlas = nullptr;
     Uint8 *GlyphBuffer = nullptr;
     unsigned GlyphTextureSize = 0;
 
-    unsigned NumChars;
+    void InitCodepoints();
 
     bool LoadFontSize(float fontSize, unsigned atlasSize);
+    bool CreateTextureAtlas(unsigned width, unsigned height);
+    bool LoadSprite();
 
 public:
-    FontGlyph* Glyphs = nullptr;
+    std::vector<int> Codepoints;
+    std::unordered_map<Uint32, FontGlyph> Glyphs;
 
     ISprite* Sprite = nullptr;
 
@@ -50,6 +61,11 @@ public:
 
     bool Load(Stream* stream);
     bool LoadFontSize(float fontSize);
+
+    bool IsValidCodepoint(Uint32 codepoint);
+    bool IsGlyphLoaded(Uint32 codepoint);
+    bool RequestGlyph(Uint32 codepoint);
+
     void Dispose();
     ~Font();
 };
