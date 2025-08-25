@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/FontImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/Value.h>
@@ -300,6 +301,24 @@ inline ObjShader* GetShader(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline ObjFont* GetFont(VMValue* args, int index, Uint32 threadID) {
+	ObjFont* value = nullptr;
+	if (ScriptManager::Lock()) {
+		if (IS_FONT(args[index])) {
+			value = AS_FONT(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(FontImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 
 inline ISprite* GetSpriteIndex(int where, Uint32 threadID) {
 	if (where < 0 || where >= (int)Scene::SpriteList.size()) {
@@ -388,23 +407,6 @@ inline ISound* GetMusic(VMValue* args, int index, Uint32 threadID) {
 	}
 
 	return Scene::MusicList[where]->AsMusic;
-}
-inline Font* GetFont(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::FontList.size()) {
-		if (THROW_ERROR("Font index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::FontList[where]) {
-		return NULL;
-	}
-
-	return Scene::FontList[where]->AsFont;
 }
 inline IModel* GetModel(VMValue* args, int index, Uint32 threadID) {
 	int where = GetInteger(args, index, threadID);
@@ -500,6 +502,9 @@ ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threa
 }
 ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetShader(args, index, threadID);
+}
+ObjFont* StandardLibrary::GetFont(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetFont(args, index, threadID);
 }
 
 void StandardLibrary::CheckArgCount(int argCount, int expects) {
@@ -4185,31 +4190,26 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 	char* text = GET_ARG(1, GetString);
 	float basex = GET_ARG(2, GetDecimal);
 	float basey = GET_ARG(3, GetDecimal);
-	float fontSize = 0.0f;
+	float fontSize = GET_ARG_OPT(4, GetDecimal, 0.0f);
 
 	float x = basex;
 	float y = basey;
 	float* lineWidths;
 	int line = 0;
 
-#if 1
-	// Temporary code.
-	Font* font = GET_ARG(0, GetFont);
-	if (!font) {
-		return NULL_VAL;
-	}
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
 
-	if (argCount >= 5) {
-		fontSize = GET_ARG(4, GetDecimal);
+		if (argCount < 5) {
+			fontSize = font->Size;
+		}
+
+		Graphics::DrawText(font, text, basex, basey, fontSize);
 	}
 	else {
-		fontSize = font->Size;
+		sprite = GET_ARG(0, GetSprite);
 	}
-
-	Graphics::DrawText(font, text, basex, basey, fontSize);
-#else
-	sprite = GET_ARG(0, GetSprite);
-#endif
 
 	if (!sprite) {
 		return NULL_VAL;

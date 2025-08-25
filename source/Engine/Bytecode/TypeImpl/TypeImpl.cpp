@@ -2,6 +2,7 @@
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
+#include <Engine/Bytecode/TypeImpl/FontImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
@@ -16,6 +17,7 @@ std::unordered_map<ObjClass*, const char*> PrintableNames;
 void TypeImpl::Init() {
 	ArrayImpl::Init();
 	EntityImpl::Init();
+	FontImpl::Init();
 	FunctionImpl::Init();
 	InstanceImpl::Init();
 	MaterialImpl::Init();
