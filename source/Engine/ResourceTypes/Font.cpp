@@ -3,6 +3,7 @@
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/Font.h>
 
+// FIXME: Move to another file
 #define STBTT_malloc(x, u) Memory::Malloc(x)
 #define STBTT_free(x, u) Memory::Free(x)
 
@@ -11,41 +12,96 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <Libraries/stb_truetype.h>
 
-Font::Font(const char* filename) {
+Font::Font() {
 	LoadFailed = true;
 
-	Stream* stream = ResourceStream::New(filename);
-	if (stream) {
-		Load(stream);
-		stream->Close();
+	Init();
+}
+
+Font::Font(Stream* stream) {
+	LoadFailed = true;
+
+	Init();
+
+	if (Load(stream) && LoadSize(DEFAULT_FONT_SIZE)) {
+		LoadFailed = false;
 	}
 }
 
-bool Font::Load(Stream* stream) {
-	// stb_truetype needs this data allocated for as long as it's used, so it can only be freed
-	// when the Font itself is.
-	DataSize = stream->Length();
-	Data = (Uint8*)Memory::Malloc(DataSize);
-	if (!Data) {
-		return false;
-	}
+Font::Font(std::vector<Stream*> streamList) {
+	LoadFailed = true;
 
-	stream->ReadBytes(Data, DataSize);
+	Init();
 
-	Context = Memory::Calloc(1, sizeof(stbtt_fontinfo));
-	Oversampling = 1;
-	FontIndex = 0;
-
-	// Load font
-	if (stbtt_InitFont((stbtt_fontinfo*)Context, (Uint8*)Data, 0) == 0) {
-		return false;
-	}
-
-	if (LoadSize(DEFAULT_FONT_SIZE)) {
+	if (Load(streamList) && LoadSize(DEFAULT_FONT_SIZE)) {
 		LoadFailed = false;
 	}
+}
 
-	return !LoadFailed;
+void Font::Init() {
+	Oversampling = 1;
+	FontIndex = 0;
+}
+
+bool Font::Load(Stream* stream) {
+	FontFamily* family = FontFamily::New(stream);
+	if (!family) {
+		return false;
+	}
+
+	Families.push_back(family);
+
+	return true;
+}
+
+bool Font::Load(std::vector<Stream*> streamList) {
+	for (size_t i = 0; i < streamList.size(); i++) {
+		FontFamily* family = FontFamily::New(streamList[i]);
+		if (!family) {
+			return false;
+		}
+
+		Families.push_back(family);
+	}
+
+	return true;
+}
+
+FontFamily* FontFamily::New(Stream* stream) {
+	size_t dataSize = stream->Length() - stream->Position();
+	if (dataSize == 0) {
+		return nullptr;
+	}
+
+	void* data = (Uint8*)Memory::Malloc(dataSize);
+	if (!data) {
+		return nullptr;
+	}
+
+	stream->ReadBytes(data, dataSize);
+
+	void* context = Memory::Calloc(1, sizeof(stbtt_fontinfo));
+	if (context == nullptr) {
+		Memory::Free(data);
+		return nullptr;
+	}
+
+	if (stbtt_InitFont((stbtt_fontinfo*)context, (Uint8*)data, 0) == 0) {
+		Memory::Free(data);
+		return nullptr;
+	}
+
+	FontFamily* family = new FontFamily();
+	family->Data = data;
+	family->DataSize = dataSize;
+	family->Context = context;
+
+	return family;
+}
+
+FontFamily::~FontFamily() {
+	Memory::Free(Context);
+	Memory::Free(Data);
 }
 
 void Font::InitCodepoints() {
@@ -61,11 +117,6 @@ void Font::InitCodepoints() {
 FontGlyphRange::FontGlyphRange(unsigned id) {
 	ID = id;
 	AtlasSize = DEFAULT_FONT_ATLAS_SIZE;
-}
-
-void FontGlyphRange::SetFontData(void* fontData, float fontSize) {
-	FontData = fontData;
-	FontSize = fontSize;
 }
 
 bool FontGlyphRange::Init() {
@@ -94,34 +145,27 @@ bool FontGlyphRange::Init() {
 	return true;
 }
 
-void FontGlyphRange::AddGlyph(void* fontInfo, Uint32 codepoint) {
-	Uint32 glyphIndex = stbtt_FindGlyphIndex((stbtt_fontinfo*)fontInfo, codepoint);
-
+void FontGlyphRange::AddGlyph(Uint32 codepoint) {
 	// Glyph is already present
-	std::unordered_map<Uint32, FontGlyph>::iterator it = Glyphs.find(glyphIndex);
+	std::unordered_map<Uint32, FontGlyph>::iterator it = Glyphs.find(codepoint);
 	if (it != Glyphs.end()) {
 		return;
 	}
 
-	AddGlyph(codepoint, glyphIndex);
-}
-
-void FontGlyphRange::AddGlyph(Uint32 codepoint, Uint32 glyphIndex) {
 	FontGlyph glyph;
 	glyph.Exists = false;
 	glyph.FrameID = 0;
 	glyph.Codepoint = codepoint;
-	Glyphs[glyphIndex] = glyph;
-	CodepointToGlyphIndex[codepoint] = glyphIndex;
+	Glyphs[codepoint] = glyph;
 
 	NeedUpdate = true;
 }
 
-bool FontGlyphRange::Refresh() {
+bool FontGlyphRange::Refresh(Font* font) {
 	bool success = true;
 
 	if (NeedUpdate) {
-		success = PackGlyphs();
+		success = PackGlyphs(font);
 
 		NeedUpdate = false;
 	}
@@ -129,21 +173,47 @@ bool FontGlyphRange::Refresh() {
 	return success;
 }
 
-size_t FontGlyphRange::InitCodepointList() {
-	// This is a little unnecessary, since stb_truetype will just get the glyphs from the codepoints.
-	// TODO: Reimplement stb_truetype's packing so that this is not necessary
-	Codepoints.clear();
+void FontGlyphRange::FreeGlyphMap() {
+	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin();
+		it != GlyphsPerFamily.end();
+		it++) {
+		Memory::Free(GlyphsPerFamily[it->first].PackedChars);
+	}
+
+	GlyphsPerFamily.clear();
+}
+
+bool FontGlyphRange::InitGlyphMap(Font* font) {
+	FreeGlyphMap();
 
 	for (std::unordered_map<Uint32, FontGlyph>::iterator it = Glyphs.begin();
 		it != Glyphs.end();
 		it++) {
-		Codepoints.push_back(it->second.Codepoint);
+		Uint32 codepoint = it->second.Codepoint;
+
+		FontFamily* family = font->FindFamilyForCodepoint(codepoint);
+
+		GlyphsPerFamily[family].Codepoints.push_back(codepoint);
 	}
 
-	return Codepoints.size();
+	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin();
+		it != GlyphsPerFamily.end();
+		it++) {
+		PackedGlyphs& packedGlyphs = GlyphsPerFamily[it->first];
+
+		void* packedChars =
+			Memory::Malloc(packedGlyphs.Codepoints.size() * sizeof(stbtt_packedchar));
+		if (packedChars == nullptr) {
+			return false;
+		}
+
+		packedGlyphs.PackedChars = packedChars;
+	}
+
+	return true;
 }
 
-bool FontGlyphRange::PackGlyphs() {
+bool FontGlyphRange::PackGlyphs(Font* font) {
 	stbtt_pack_context* context = (stbtt_pack_context*)Context;
 	if (context == nullptr) {
 		return false;
@@ -153,23 +223,64 @@ bool FontGlyphRange::PackGlyphs() {
 		return false;
 	}
 
-	size_t numCodepoints = InitCodepointList();
+	if (!InitGlyphMap(font)) {
+		FreeGlyphMap();
 
-	PackedChars = Memory::Realloc(PackedChars, numCodepoints * sizeof(stbtt_packedchar));
-	if (PackedChars == nullptr) {
 		return false;
 	}
 
-	stbtt_packedchar* packedChars = (stbtt_packedchar*)PackedChars;
+	stbrp_rect* rects = nullptr;
+	size_t lastNumCodepoints = 0;
 
-	stbtt_pack_range range;
-	range.first_unicode_codepoint_in_range = 0;
-	range.array_of_unicode_codepoints = Codepoints.data();
-	range.num_chars = numCodepoints;
-	range.chardata_for_range = packedChars;
-	range.font_size = FontSize;
+	bool packedAll = true;
 
-	if (stbtt_PackFontRanges(context, (Uint8*)FontData, FontIndex, &range, 1) == 0) {
+	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin();
+		it != GlyphsPerFamily.end();
+		it++) {
+		FontFamily* family = it->first;
+		PackedGlyphs& packedGlyphs = GlyphsPerFamily[family];
+
+		int* codepoints = packedGlyphs.Codepoints.data();
+		size_t numCodepoints = packedGlyphs.Codepoints.size();
+		if (numCodepoints == 0) {
+			continue;
+		}
+
+		stbtt_pack_range range;
+		range.first_unicode_codepoint_in_range = 0;
+		range.array_of_unicode_codepoints = codepoints;
+		range.num_chars = numCodepoints;
+		range.chardata_for_range = (stbtt_packedchar*)packedGlyphs.PackedChars;
+		range.font_size = FontSize;
+
+		if (numCodepoints > lastNumCodepoints) {
+			rects = (stbrp_rect*)Memory::Realloc(
+				rects, sizeof(stbrp_rect) * numCodepoints);
+			if (rects == nullptr) {
+				packedAll = false;
+				break;
+			}
+		}
+
+		stbtt_fontinfo* info = (stbtt_fontinfo*)family->Context;
+		if (info == nullptr) {
+			packedAll = false;
+			break;
+		}
+
+		int numRects = stbtt_PackFontRangesGatherRects(context, info, &range, 1, rects);
+
+		stbtt_PackFontRangesPackRects(context, rects, numRects);
+
+		if (stbtt_PackFontRangesRenderIntoRects(context, info, &range, 1, rects) == 0) {
+			packedAll = false;
+			break;
+		}
+	}
+
+	Memory::Free(rects);
+
+	if (!packedAll) {
 		int maxTextureSize =
 			std::min(Graphics::MaxTextureWidth, Graphics::MaxTextureHeight);
 		if (AtlasSize > maxTextureSize) {
@@ -178,7 +289,7 @@ bool FontGlyphRange::PackGlyphs() {
 
 		AtlasSize *= 2;
 
-		return PackGlyphs();
+		return PackGlyphs(font);
 	}
 
 	Texture* atlas = Font::CreateAtlas(Buffer, AtlasSize);
@@ -196,37 +307,39 @@ bool FontGlyphRange::PackGlyphs() {
 }
 
 void FontGlyphRange::LoadGlyphs() {
-	stbtt_packedchar* packedChars = (stbtt_packedchar*)PackedChars;
-	if (packedChars == nullptr) {
-		return;
-	}
+	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin();
+		it != GlyphsPerFamily.end();
+		it++) {
+		PackedGlyphs& packedGlyphs = GlyphsPerFamily[it->first];
 
-	for (size_t i = 0; i < Codepoints.size(); i++) {
-		int codepoint = Codepoints[i];
+		stbtt_packedchar* packedChars = (stbtt_packedchar*)packedGlyphs.PackedChars;
+		if (packedChars == nullptr) {
+			continue;
+		}
 
-		stbtt_packedchar* packedChar = &packedChars[i];
+		for (size_t i = 0; i < packedGlyphs.Codepoints.size(); i++) {
+			int codepoint = packedGlyphs.Codepoints[i];
 
-		Uint32 glyphIndex = CodepointToGlyphIndex[codepoint];
+			stbtt_packedchar* packedChar = &packedChars[i];
 
-		FontGlyph& glyph = Glyphs[glyphIndex];
-		glyph.Exists = true;
-		glyph.Width = packedChar->x1 - packedChar->x0;
-		glyph.Height = packedChar->y1 - packedChar->y0;
-		glyph.SourceX = packedChar->x0;
-		glyph.SourceY = packedChar->y0;
-		glyph.OffsetX = packedChar->xoff * Oversampling;
-		glyph.OffsetY = packedChar->yoff * Oversampling;
-		glyph.Advance = packedChar->xadvance;
+			FontGlyph& glyph = Glyphs[codepoint];
+			glyph.Exists = true;
+			glyph.Width = packedChar->x1 - packedChar->x0;
+			glyph.Height = packedChar->y1 - packedChar->y0;
+			glyph.SourceX = packedChar->x0;
+			glyph.SourceY = packedChar->y0;
+			glyph.OffsetX = packedChar->xoff * Oversampling;
+			glyph.OffsetY = packedChar->yoff * Oversampling;
+			glyph.Advance = packedChar->xadvance;
+		}
 	}
 }
 
 FontGlyphRange::~FontGlyphRange() {
+	FreeGlyphMap();
 	if (Context) {
 		stbtt_PackEnd((stbtt_pack_context*)Context);
 		Memory::Free(Context);
-	}
-	if (PackedChars) {
-		Memory::Free(PackedChars);
 	}
 	if (Buffer) {
 		Memory::Free(Buffer);
@@ -236,10 +349,33 @@ FontGlyphRange::~FontGlyphRange() {
 	}
 }
 
+FontFamily* Font::FindFamilyForCodepoint(Uint32 codepoint) {
+	if (Families.size() == 0) {
+		return nullptr;
+	}
+
+	for (size_t i = 0; i < Families.size(); i++) {
+		FontFamily* family = Families[i];
+
+		int glyphIndex = stbtt_FindGlyphIndex((stbtt_fontinfo*)family->Context, codepoint);
+		if (glyphIndex != 0) {
+			return family;
+		}
+	}
+
+	return Families[0];
+}
+
 bool Font::LoadSize(float fontSize) {
+	if (Families.size() == 0) {
+		return false;
+	}
+
+	stbtt_fontinfo* fontInfo = (stbtt_fontinfo*)(Families[0]->Context);
+
 	int ascent, descent, lineGap;
-	float scale = stbtt_ScaleForPixelHeight((stbtt_fontinfo*)Context, fontSize);
-	stbtt_GetFontVMetrics((stbtt_fontinfo*)Context, &ascent, &descent, &lineGap);
+	float scale = stbtt_ScaleForPixelHeight(fontInfo, fontSize);
+	stbtt_GetFontVMetrics(fontInfo, &ascent, &descent, &lineGap);
 
 	Ascent = ascent * scale;
 	Descent = descent * scale;
@@ -254,10 +390,10 @@ bool Font::LoadSize(float fontSize) {
 	FontGlyphRange* range = NewRange();
 
 	for (size_t i = 0; i < Codepoints.size(); i++) {
-		range->AddGlyph(Context, Codepoints[i]);
+		range->AddGlyph(Codepoints[i]);
 	}
 
-	bool packed = range->PackGlyphs();
+	bool packed = range->PackGlyphs(this);
 
 	LoadGlyphsFromRange(range);
 
@@ -278,11 +414,7 @@ void Font::LoadGlyphsFromRange(FontGlyphRange* range) {
 	for (std::unordered_map<Uint32, FontGlyph>::iterator it = range->Glyphs.begin();
 		it != range->Glyphs.end();
 		it++) {
-		Uint32 glyphIndex = it->first;
-
-		Glyphs[glyphIndex] = range->Glyphs[glyphIndex];
-
-		CodepointToGlyphIndex[it->second.Codepoint] = glyphIndex;
+		Glyphs[it->first] = it->second;
 	}
 }
 
@@ -333,7 +465,7 @@ void Font::Refresh() {
 	if (NeedUpdate) {
 		for (size_t i = 0; i < GlyphRanges.size(); i++) {
 			FontGlyphRange* range = GlyphRanges[i];
-			if (range->Refresh()) {
+			if (range->Refresh(this)) {
 				LoadGlyphsFromRange(range);
 			}
 		}
@@ -381,14 +513,14 @@ bool Font::IsValidCodepoint(Uint32 codepoint) {
 	return codepoint >= 32 && codepoint < 0x110000;
 }
 
-FontGlyphRange* Font::FindGlyphInRange(Uint32 glyphIndex) {
+FontGlyphRange* Font::FindGlyphInRange(Uint32 codepoint) {
 	size_t numRanges = GlyphRanges.size();
 	if (numRanges == 0) {
 		return nullptr;
 	}
 
 	FontGlyphRange* range = GlyphRanges[numRanges - 1];
-	std::unordered_map<Uint32, FontGlyph>::iterator it = range->Glyphs.find(glyphIndex);
+	std::unordered_map<Uint32, FontGlyph>::iterator it = range->Glyphs.find(codepoint);
 	if (it != range->Glyphs.end()) {
 		return range;
 	}
@@ -398,7 +530,7 @@ FontGlyphRange* Font::FindGlyphInRange(Uint32 glyphIndex) {
 
 FontGlyphRange* Font::NewRange() {
 	FontGlyphRange* range = new FontGlyphRange(GlyphRanges.size());
-	range->SetFontData(Data, Size);
+	range->FontSize = Size;
 	range->Oversampling = Oversampling;
 	range->FontIndex = FontIndex;
 	range->Init();
@@ -426,43 +558,31 @@ FontGlyphRange* Font::GetRangeForNewGlyph() {
 }
 
 bool Font::RequestGlyph(Uint32 codepoint) {
-	std::unordered_map<Uint32, Uint32>::iterator it = CodepointToGlyphIndex.find(codepoint);
-	if (it != CodepointToGlyphIndex.end()) {
+	std::unordered_map<Uint32, FontGlyph>::iterator it = Glyphs.find(codepoint);
+	if (it != Glyphs.end()) {
 		// Glyph is already present in the font
-		return Glyphs[it->second].Exists;
+		return it->second.Exists;
 	}
 
 	// Add codepoint
 	Codepoints.push_back((int)codepoint);
 
-	// Get glyph index
-	Uint32 glyphIndex = stbtt_FindGlyphIndex((stbtt_fontinfo*)Context, codepoint);
-
 	// Check if a given range has this glyph
-	FontGlyphRange* range = FindGlyphInRange(glyphIndex);
+	FontGlyphRange* range = FindGlyphInRange(codepoint);
 	if (range) {
 		// Copy it if so
-		Glyphs[glyphIndex] = range->Glyphs[glyphIndex];
-		CodepointToGlyphIndex[codepoint] = glyphIndex;
+		Glyphs[codepoint] = range->Glyphs[codepoint];
 
 		return true;
 	}
 
 	// Add to last range or create a new one
 	range = GetRangeForNewGlyph();
-	range->AddGlyph(codepoint, glyphIndex);
+	range->AddGlyph(codepoint);
 
 	NeedUpdate = true;
 
 	return true;
-}
-
-Uint32 Font::GetGlyphIndex(Uint32 codepoint) {
-	std::unordered_map<Uint32, Uint32>::iterator it = CodepointToGlyphIndex.find(codepoint);
-	if (it != CodepointToGlyphIndex.end()) {
-		return it->second;
-	}
-	return 0;
 }
 
 void Font::Unload() {
@@ -480,13 +600,8 @@ void Font::Unload() {
 void Font::Dispose() {
 	Unload();
 
-	if (Context) {
-		Memory::Free(Context);
-		Context = nullptr;
-	}
-	if (Data) {
-		Memory::Free(Data);
-		Data = nullptr;
+	for (size_t i = 0; i < Families.size(); i++) {
+		delete Families[i];
 	}
 }
 

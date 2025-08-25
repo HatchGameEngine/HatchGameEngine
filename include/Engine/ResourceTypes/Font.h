@@ -23,41 +23,55 @@ struct FontGlyph {
 	float Advance;
 };
 
-// Each glyph range corresponds to a font atlas, which cannot exceed MAX_FONT_ATLAS_SIZE in size.
+class FontFamily {
+public:
+	void* Data = nullptr;
+	size_t DataSize = 0;
+
+	void* Context = nullptr;
+
+	static FontFamily* New(Stream* stream);
+
+	~FontFamily();
+};
+
+struct PackedGlyphs {
+	std::vector<int> Codepoints;
+
+	void* PackedChars = nullptr;
+};
+
+class Font;
+
+// Each glyph range uniquely corresponds to a font atlas
 struct FontGlyphRange {
 private:
 	void* Context = nullptr;
-
-	void* FontData = nullptr;
-	float FontSize;
-
 	Uint8* Buffer = nullptr;
 
 	bool NeedUpdate = false;
 
-	size_t InitCodepointList();
+	bool InitGlyphMap(Font* font);
+	void FreeGlyphMap();
 	void LoadGlyphs();
 
 public:
 	unsigned ID = 0;
 	unsigned AtlasSize = 0;
 	int Oversampling = 1;
+	float FontSize = 0.0f;
 	int FontIndex = 0;
 
-	std::vector<int> Codepoints;
+	std::unordered_map<FontFamily*, PackedGlyphs> GlyphsPerFamily;
 	std::unordered_map<Uint32, FontGlyph> Glyphs;
-	std::unordered_map<Uint32, Uint32> CodepointToGlyphIndex;
 
 	void* PackedChars = nullptr;
-
 	Texture* Atlas = nullptr;
 
 	bool Init();
-	bool PackGlyphs();
-	bool Refresh();
-	void SetFontData(void* fontData, float fontSize);
-	void AddGlyph(void* fontInfo, Uint32 codepoint);
-	void AddGlyph(Uint32 codepoint, Uint32 glyphIndex);
+	bool PackGlyphs(Font* font);
+	bool Refresh(Font* font);
+	void AddGlyph(Uint32 codepoint);
 
 	FontGlyphRange(unsigned id);
 	~FontGlyphRange();
@@ -65,20 +79,19 @@ public:
 
 class Font {
 private:
-	void* Data = nullptr;
-	size_t DataSize = 0;
-
-	void* Context = nullptr;
-
+	std::vector<FontFamily*> Families;
 	std::vector<FontGlyphRange*> GlyphRanges;
 
 	bool NeedUpdate = false;
 
 	void InitCodepoints();
-	FontGlyphRange* FindGlyphInRange(Uint32 glyphIndex);
+
+	FontGlyphRange* FindGlyphInRange(Uint32 codepoint);
 	FontGlyphRange* NewRange();
 	FontGlyphRange* GetRangeForNewGlyph();
+
 	void LoadGlyphsFromRange(FontGlyphRange* range);
+
 	void InitSprite();
 	void UpdateSprite();
 	void Unload();
@@ -86,7 +99,6 @@ private:
 public:
 	std::vector<int> Codepoints;
 	std::unordered_map<Uint32, FontGlyph> Glyphs;
-	std::unordered_map<Uint32, Uint32> CodepointToGlyphIndex;
 
 	ISprite* Sprite = nullptr;
 
@@ -99,16 +111,21 @@ public:
 
 	bool LoadFailed;
 
-	Font(const char* filename);
+	Font();
+	Font(Stream* stream);
+	Font(std::vector<Stream*> streamList);
 
+	void Init();
 	bool Load(Stream* stream);
+	bool Load(std::vector<Stream*> streamList);
 	bool LoadSize(float fontSize);
 	bool Reload();
 
 	bool IsValidCodepoint(Uint32 codepoint);
 	bool RequestGlyph(Uint32 codepoint);
-	Uint32 GetGlyphIndex(Uint32 codepoint);
 	void Refresh();
+
+	FontFamily* FindFamilyForCodepoint(Uint32 codepoint);
 
 	static Texture* CreateAtlas(Uint8* data, unsigned size);
 

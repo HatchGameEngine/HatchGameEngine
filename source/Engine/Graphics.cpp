@@ -1386,9 +1386,7 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, float fo
 			continue;
 		}
 
-		Uint32 glyphIndex = font->GetGlyphIndex(codepoint);
-
-		FontGlyph& glyph = font->Glyphs[glyphIndex];
+		FontGlyph& glyph = font->Glyphs[codepoint];
 
 		float glyphX = currX + (glyph.OffsetX * xyScale);
 		float glyphY = currY + (glyph.OffsetY * xyScale);

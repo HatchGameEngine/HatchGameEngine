@@ -2849,7 +2849,16 @@ int Scene::LoadFontResource(const char* filename, int unloadPolicy) {
 		return (int)index;
 	}
 
-	resource->AsFont = new (std::nothrow) Font(filename);
+	Stream* stream = ResourceStream::New(filename);
+	if (!stream) {
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	resource->AsFont = new (std::nothrow) Font(stream);
+
+	stream->Close();
 
 	if (resource->AsFont->LoadFailed) {
 		delete resource->AsFont;
