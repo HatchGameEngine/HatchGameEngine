@@ -127,6 +127,8 @@ public:
 	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
 	static int ConvertTextureToRGBA(Texture* texture);
 	static int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);
+	static void SetTextureMinFilter(Texture* texture, int filterMode);
+	static void SetTextureMagFilter(Texture* texture, int filterMode);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
 	static TextureReference* GetSpriteSheet(string sheetPath);

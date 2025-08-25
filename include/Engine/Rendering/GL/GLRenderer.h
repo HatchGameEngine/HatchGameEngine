@@ -91,6 +91,8 @@ public:
 		int pitchU,
 		void* pixelsV,
 		int pitchV);
+	static void SetTextureMinFilter(Texture* texture, int filterMode);
+	static void SetTextureMagFilter(Texture* texture, int filterMode);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
 	static bool SetRenderTarget(Texture* texture);

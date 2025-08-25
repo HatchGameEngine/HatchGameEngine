@@ -134,6 +134,7 @@ public:
 	bool LoadSize(float fontSize);
 	bool Reload();
 	void ReloadAtlas();
+	void SetTextureFilter(int filterMode);
 
 	bool IsValidCodepoint(Uint32 codepoint);
 	bool HasGlyph(Uint32 codepoint);

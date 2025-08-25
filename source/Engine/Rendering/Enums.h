@@ -4,6 +4,15 @@
 #include "Engine/Includes/Standard.h"
 
 enum {
+	TextureFilter_NEAREST,
+	TextureFilter_LINEAR,
+	TextureFilter_NEAREST_MIPMAP_NEAREST,
+	TextureFilter_LINEAR_MIPMAP_NEAREST,
+	TextureFilter_NEAREST_MIPMAP_LINEAR,
+	TextureFilter_LINEAR_MIPMAP_LINEAR
+};
+
+enum {
 	BlendMode_NORMAL = 0,
 	BlendMode_ADD = 1,
 	BlendMode_MAX = 2,

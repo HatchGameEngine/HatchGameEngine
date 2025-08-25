@@ -300,6 +300,11 @@ bool FontGlyphRange::PackGlyphs(Font* font) {
 		return false;
 	}
 
+	if (atlas) {
+		Graphics::SetTextureMagFilter(atlas, TextureFilter_LINEAR);
+		Graphics::SetTextureMinFilter(atlas, TextureFilter_LINEAR);
+	}
+
 	Graphics::DisposeTexture(Atlas);
 
 	Atlas = atlas;
@@ -512,6 +517,17 @@ void Font::ReloadAtlas() {
 	}
 }
 
+void Font::SetTextureFilter(int filterMode) {
+	for (size_t i = 0; i < GlyphRanges.size(); i++) {
+		FontGlyphRange* range = GlyphRanges[i];
+
+		if (range->Atlas) {
+			Graphics::SetTextureMagFilter(range->Atlas, filterMode);
+			Graphics::SetTextureMinFilter(range->Atlas, filterMode);
+		}
+	}
+}
+
 Uint32* Font::GenerateAtlas(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold) {
 	if (!data) {
 		return nullptr;
@@ -544,7 +560,6 @@ Texture* Font::CreateAtlasTexture(Uint8* data, unsigned size, bool useAntialias,
 		return nullptr;
 	}
 
-	// This may return nullptr.
 	Texture* atlas =
 		Graphics::CreateTextureFromPixels(size, size, dataRgba, size * sizeof(Uint32));
 

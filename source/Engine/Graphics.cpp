@@ -447,6 +447,16 @@ int Graphics::ConvertTextureToPalette(Texture* texture, unsigned paletteNumber) 
 
 	return ok;
 }
+void Graphics::SetTextureMinFilter(Texture* texture, int filterMode) {
+	if (Graphics::GfxFunctions->SetTextureMinFilter) {
+		Graphics::GfxFunctions->SetTextureMinFilter(texture, filterMode);
+	}
+}
+void Graphics::SetTextureMagFilter(Texture* texture, int filterMode) {
+	if (Graphics::GfxFunctions->SetTextureMagFilter) {
+		Graphics::GfxFunctions->SetTextureMagFilter(texture, filterMode);
+	}
+}
 void Graphics::UnlockTexture(Texture* texture) {
 	Graphics::GfxFunctions->UnlockTexture(texture);
 }

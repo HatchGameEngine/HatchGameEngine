@@ -1542,6 +1542,8 @@ void GLRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.LockTexture = GLRenderer::LockTexture;
 	Graphics::Internal.UpdateTexture = GLRenderer::UpdateTexture;
 	Graphics::Internal.UpdateYUVTexture = GLRenderer::UpdateTextureYUV;
+	Graphics::Internal.SetTextureMinFilter = GLRenderer::SetTextureMinFilter;
+	Graphics::Internal.SetTextureMagFilter = GLRenderer::SetTextureMagFilter;
 	Graphics::Internal.UnlockTexture = GLRenderer::UnlockTexture;
 	Graphics::Internal.DisposeTexture = GLRenderer::DisposeTexture;
 
@@ -1979,6 +1981,50 @@ int GLRenderer::UpdateTextureYUV(Texture* texture,
 	CHECK_GL();
 #endif
 	return 0;
+}
+GLenum GL_GetTextureMinFilterMode(int filterMode) {
+	switch (filterMode) {
+	case TextureFilter_NEAREST:
+		return GL_NEAREST;
+	case TextureFilter_LINEAR:
+		return GL_LINEAR;
+	case TextureFilter_NEAREST_MIPMAP_NEAREST:
+		return GL_NEAREST_MIPMAP_NEAREST;
+	case TextureFilter_LINEAR_MIPMAP_NEAREST:
+		return GL_LINEAR_MIPMAP_NEAREST;
+	case TextureFilter_NEAREST_MIPMAP_LINEAR:
+		return GL_NEAREST_MIPMAP_LINEAR;
+	case TextureFilter_LINEAR_MIPMAP_LINEAR:
+		return GL_LINEAR_MIPMAP_LINEAR;
+	default:
+		return GL_NEAREST;
+	}
+}
+GLenum GL_GetTextureMagFilterMode(int filterMode) {
+	switch (filterMode) {
+	case TextureFilter_NEAREST:
+		return GL_NEAREST;
+	case TextureFilter_LINEAR:
+		return GL_LINEAR;
+	default:
+		return GL_NEAREST;
+	}
+}
+void GLRenderer::SetTextureMinFilter(Texture* texture, int filterMode) {
+	GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
+
+	GLenum textureFilter = GL_GetTextureMinFilterMode(filterMode);
+
+	glBindTexture(textureData->TextureTarget, textureData->TextureID);
+	glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MIN_FILTER, textureFilter);
+}
+void GLRenderer::SetTextureMagFilter(Texture* texture, int filterMode) {
+	GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
+
+	GLenum textureFilter = GL_GetTextureMagFilterMode(filterMode);
+
+	glBindTexture(textureData->TextureTarget, textureData->TextureID);
+	glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MAG_FILTER, textureFilter);
 }
 void GLRenderer::UnlockTexture(Texture* texture) {}
 void GLRenderer::DisposeTexture(Texture* texture) {
