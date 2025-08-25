@@ -1447,10 +1447,24 @@ DO_NOTHING:
 
 	// Show FPS counter
 	MetricFPSCounterTime = Clock::GetTicks();
-	if (ShowFPS && DEBUG_HasFontSprite && !DEBUG_fontSprite) {
-		LoadDebugFont();
-	}
+	DrawPerformance();
+	MetricFPSCounterTime = Clock::GetTicks() - MetricFPSCounterTime;
+
+	MetricPresentTime = Clock::GetTicks();
+	Graphics::Present();
+	MetricPresentTime = Clock::GetTicks() - MetricPresentTime;
+
+	MetricFrameTime = Clock::GetTicks() - FrameTimeStart;
+}
+void Application::DrawPerformance() {
 	if (ShowFPS && DEBUG_HasFontSprite) {
+		if (!DEBUG_fontSprite) {
+			LoadDebugFont();
+		}
+		if (!DEBUG_HasFontSprite) {
+			return;
+		}
+
 		LegacyTextDrawParams textParams;
 		textParams.Align = 0.0f;
 		textParams.Baseline = 0.0f;
@@ -1660,13 +1674,6 @@ DO_NOTHING:
 		}
 		Graphics::Restore();
 	}
-	MetricFPSCounterTime = Clock::GetTicks() - MetricFPSCounterTime;
-
-	MetricPresentTime = Clock::GetTicks();
-	Graphics::Present();
-	MetricPresentTime = Clock::GetTicks() - MetricPresentTime;
-
-	MetricFrameTime = Clock::GetTicks() - FrameTimeStart;
 }
 void Application::DelayFrame() {
 	double frameTime = Clock::GetTicks() - FrameTimeStart;

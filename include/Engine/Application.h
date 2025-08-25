@@ -52,6 +52,7 @@ private:
 	static void PollEvents();
 	static void RunFrame(int runFrames);
 	static void RunFrameCallback(void* p);
+	static void DrawPerformance();
 	static void DelayFrame();
 	static void StartGame(const char* startingScene);
 	static void LoadGameConfig();
