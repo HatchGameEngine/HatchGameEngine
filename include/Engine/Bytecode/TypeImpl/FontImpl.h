@@ -18,7 +18,19 @@ public:
 	static void Dispose(Obj* object);
 
 	static VMValue VM_Initializer(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetPixelsPerUnit(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetAscent(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetDescent(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetLeading(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetSpaceWidth(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetOversampling(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_HasGlyph(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetPixelsPerUnit(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetAscent(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetDescent(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetLeading(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetSpaceWidth(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetOversampling(int argCount, VMValue* args, Uint32 threadID);
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_FONTIMPL_H */

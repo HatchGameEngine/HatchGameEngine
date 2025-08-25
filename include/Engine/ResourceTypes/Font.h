@@ -7,6 +7,7 @@
 #include <Engine/ResourceTypes/ISprite.h>
 
 #define DEFAULT_FONT_SIZE 40
+#define DEFAULT_FONT_SPACE_WIDTH 6.0
 #define DEFAULT_FONT_ATLAS_SIZE 128
 #define MAX_FONT_ATLAS_SIZE 2048
 
@@ -92,6 +93,8 @@ private:
 
 	void LoadGlyphsFromRange(FontGlyphRange* range);
 
+	bool IsGlyphLoaded(Uint32 codepoint);
+
 	void InitSprite();
 	void UpdateSprite();
 	void Unload();
@@ -105,7 +108,9 @@ public:
 	float Size;
 	float Ascent;
 	float Descent;
-	float LineGap;
+	float Leading;
+	float SpaceWidth;
+	float ScaleFactor;
 	int Oversampling;
 	int FontIndex;
 
@@ -122,6 +127,7 @@ public:
 	bool Reload();
 
 	bool IsValidCodepoint(Uint32 codepoint);
+	bool HasGlyph(Uint32 codepoint);
 	bool RequestGlyph(Uint32 codepoint);
 	void Refresh();
 

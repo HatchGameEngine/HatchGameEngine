@@ -1373,16 +1373,22 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, float fo
 	float currX = x;
 	float currY = y;
 
-	float scale = fontSize / font->Size;
-	float baseline = font->Ascent * scale;
+	float ascent = font->Ascent;
+	float descent = font->Descent;
+	float leading = font->Leading;
 
+	float scale = fontSize / font->Size;
 	float xyScale = scale / font->Oversampling;
 
 	for (size_t i = 0; i < numCodepoints; i++) {
 		Uint32 codepoint = codepoints[i];
 		if (codepoints[i] == '\n') {
 			currX = x;
-			currY += (font->Ascent - font->Descent + font->LineGap) * scale;
+			currY += (ascent - descent + leading) * scale;
+			continue;
+		}
+		else if (codepoints[i] == ' ') {
+			currX += font->SpaceWidth * scale;
 			continue;
 		}
 
@@ -1391,7 +1397,7 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, float fo
 		float glyphX = currX + (glyph.OffsetX * xyScale);
 		float glyphY = currY + (glyph.OffsetY * xyScale);
 
-		glyphY += baseline;
+		glyphY += ascent * scale;
 
 		Graphics::DrawSprite(font->Sprite,
 			0,

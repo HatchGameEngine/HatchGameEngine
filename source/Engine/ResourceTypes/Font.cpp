@@ -374,12 +374,14 @@ bool Font::LoadSize(float fontSize) {
 	stbtt_fontinfo* fontInfo = (stbtt_fontinfo*)(Families[0]->Context);
 
 	int ascent, descent, lineGap;
-	float scale = stbtt_ScaleForPixelHeight(fontInfo, fontSize);
 	stbtt_GetFontVMetrics(fontInfo, &ascent, &descent, &lineGap);
 
-	Ascent = ascent * scale;
-	Descent = descent * scale;
-	LineGap = lineGap * scale;
+	ScaleFactor = stbtt_ScaleForPixelHeight(fontInfo, fontSize);
+
+	Ascent = ascent * ScaleFactor;
+	Descent = descent * ScaleFactor;
+	Leading = lineGap * ScaleFactor;
+	SpaceWidth = DEFAULT_FONT_SPACE_WIDTH;
 	Size = fontSize;
 
 	Unload();
@@ -396,6 +398,12 @@ bool Font::LoadSize(float fontSize) {
 	bool packed = range->PackGlyphs(this);
 
 	LoadGlyphsFromRange(range);
+
+	// Set space width
+	const Uint32 spaceCodepoint = 0x0020;
+	if (HasGlyph(spaceCodepoint) && IsGlyphLoaded(spaceCodepoint)) {
+		SpaceWidth = Glyphs[spaceCodepoint].Advance;
+	}
 
 	if (packed) {
 		UpdateSprite();
@@ -440,6 +448,11 @@ void Font::UpdateSprite() {
 			it != range->Glyphs.end();
 			it++) {
 			FontGlyph& glyph = Glyphs[it->first];
+
+			// Skips empty glyphs (like space characters)
+			if (glyph.Width == 0 || glyph.Height == 0) {
+				continue;
+			}
 
 			glyph.FrameID = Sprite->Animations[0].Frames.size();
 
@@ -555,6 +568,25 @@ FontGlyphRange* Font::GetRangeForNewGlyph() {
 	}
 
 	return NewRange();
+}
+
+bool Font::HasGlyph(Uint32 codepoint) {
+	if (!IsValidCodepoint(codepoint)) {
+		return false;
+	}
+
+	return FindFamilyForCodepoint(codepoint) != nullptr;
+}
+
+bool Font::IsGlyphLoaded(Uint32 codepoint) {
+	if (IsValidCodepoint(codepoint)) {
+		std::unordered_map<Uint32, FontGlyph>::iterator it = Glyphs.find(codepoint);
+		if (it != Glyphs.end()) {
+			return it->second.Exists;
+		}
+	}
+
+	return false;
 }
 
 bool Font::RequestGlyph(Uint32 codepoint) {
