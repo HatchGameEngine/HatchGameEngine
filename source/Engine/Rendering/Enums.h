@@ -152,4 +152,22 @@ typedef Uint32 (*TintFunction)(Uint32*, Uint32*, Uint32, Uint32);
 typedef bool (*StencilTestFunction)(Uint8*, Uint8, Uint8);
 typedef void (*StencilOpFunction)(Uint8*, Uint8);
 
+struct TextDrawParams {
+	float FontSize;
+	float Ascent;
+	float Descent;
+	float Leading;
+	int MaxWidth;
+	int MaxLines;
+};
+
+struct LegacyTextDrawParams {
+	float Align;
+	float Baseline;
+	float Ascent;
+	float Advance;
+	int MaxWidth;
+	int MaxLines;
+};
+
 #endif /* ENGINE_RENDERING_ENUMS */
