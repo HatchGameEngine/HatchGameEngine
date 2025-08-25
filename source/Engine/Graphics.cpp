@@ -1390,6 +1390,9 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, float fo
 	float scale = fontSize / font->Size;
 	float xyScale = scale / font->Oversampling;
 
+	bool texBlend = Graphics::TextureBlend;
+	Graphics::TextureBlend = true;
+
 	for (size_t i = 0; i < numCodepoints; i++) {
 		Uint32 codepoint = codepoints[i];
 		if (codepoints[i] == '\n') {
@@ -1422,6 +1425,8 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, float fo
 
 		currX += glyph.Advance * scale;
 	}
+
+	Graphics::TextureBlend = texBlend;
 }
 
 void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
