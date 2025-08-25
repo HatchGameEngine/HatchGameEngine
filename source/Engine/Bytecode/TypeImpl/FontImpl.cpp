@@ -20,6 +20,8 @@ void FontImpl::Init() {
 	ScriptManager::DefineNative(Class, "GetLeading", VM_GetLeading);
 	ScriptManager::DefineNative(Class, "GetSpaceWidth", VM_GetSpaceWidth);
 	ScriptManager::DefineNative(Class, "GetOversampling", VM_GetOversampling);
+	ScriptManager::DefineNative(Class, "GetPixelCoverageThreshold", VM_GetPixelCoverageThreshold);
+	ScriptManager::DefineNative(Class, "IsAntialiasingEnabled", VM_IsAntialiasingEnabled);
 	ScriptManager::DefineNative(Class, "HasGlyph", VM_HasGlyph);
 	ScriptManager::DefineNative(Class, "SetPixelsPerUnit", VM_SetPixelsPerUnit);
 	ScriptManager::DefineNative(Class, "SetAscent", VM_SetAscent);
@@ -27,6 +29,8 @@ void FontImpl::Init() {
 	ScriptManager::DefineNative(Class, "SetLeading", VM_SetLeading);
 	ScriptManager::DefineNative(Class, "SetSpaceWidth", VM_SetSpaceWidth);
 	ScriptManager::DefineNative(Class, "SetOversampling", VM_SetOversampling);
+	ScriptManager::DefineNative(Class, "SetPixelCoverageThreshold", VM_SetPixelCoverageThreshold);
+	ScriptManager::DefineNative(Class, "SetAntialiasing", VM_SetAntialiasing);
 
 	TypeImpl::RegisterClass(Class);
 	TypeImpl::ExposeClass(CLASS_FONT, Class);
@@ -169,7 +173,7 @@ void FontImpl::Dispose(Obj* object) {
 /***
  * \method GetPixelsPerUnit
  * \desc Gets the pixels per unit value of the font. The default for all fonts is 40.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetPixelsPerUnit(int argCount, VMValue* args, Uint32 threadID) {
@@ -187,7 +191,7 @@ VMValue FontImpl::VM_GetPixelsPerUnit(int argCount, VMValue* args, Uint32 thread
 /***
  * \method GetAscent
  * \desc Gets the distance in pixels above the baseline.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetAscent(int argCount, VMValue* args, Uint32 threadID) {
@@ -205,7 +209,7 @@ VMValue FontImpl::VM_GetAscent(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method GetDescent
  * \desc Gets the distance in pixels below the baseline.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetDescent(int argCount, VMValue* args, Uint32 threadID) {
@@ -223,7 +227,7 @@ VMValue FontImpl::VM_GetDescent(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method GetLeading
  * \desc Gets the distance between lines in pixels.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetLeading(int argCount, VMValue* args, Uint32 threadID) {
@@ -241,7 +245,7 @@ VMValue FontImpl::VM_GetLeading(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method GetSpaceWidth
  * \desc Gets the width of the space character.
- * \return Returns a Number value.
+ * \return Returns a Decimal value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetSpaceWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -258,8 +262,8 @@ VMValue FontImpl::VM_GetSpaceWidth(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * \method GetOversampling
- * \desc Gets the oversampling value. The default is 1 for all fonts.
- * \return Returns a Number value.
+ * \desc Gets the oversampling value. The default is <code>1</code> for all fonts.
+ * \return Returns an Integer value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetOversampling(int argCount, VMValue* args, Uint32 threadID) {
@@ -273,6 +277,42 @@ VMValue FontImpl::VM_GetOversampling(int argCount, VMValue* args, Uint32 threadI
 	Font* font = (Font*)objFont->FontPtr;
 
 	return INTEGER_VAL(font->Oversampling);
+}
+/***
+ * \method GetPixelCoverageThreshold
+ * \desc Gets the pixel coverage threshold value. Pixels with coverage under this value become transparent. The default is <code>0</code> for all fonts.
+ * \return Returns a Decimal value.
+ * \ns Font
+ */
+VMValue FontImpl::VM_GetPixelCoverageThreshold(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjFont* objFont = GET_ARG(0, GetFont);
+	if (objFont == nullptr) {
+		return NULL_VAL;
+	}
+
+	Font* font = (Font*)objFont->FontPtr;
+
+	return DECIMAL_VAL((float)font->PixelCoverageThreshold / 255.0f);
+}
+/***
+ * \method IsAntialiasingEnabled
+ * \desc Gets whether the font has anti-aliasing enabled.
+ * \return Returns <code>true</code> is anti-aliasing is enabled, <code>false</code> if otherwise.
+ * \ns Font
+ */
+VMValue FontImpl::VM_IsAntialiasingEnabled(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjFont* objFont = GET_ARG(0, GetFont);
+	if (objFont == nullptr) {
+		return NULL_VAL;
+	}
+
+	Font* font = (Font*)objFont->FontPtr;
+
+	return INTEGER_VAL(font->UseAntialiasing);
 }
 /***
  * \method HasGlyph
@@ -424,6 +464,61 @@ VMValue FontImpl::VM_SetOversampling(int argCount, VMValue* args, Uint32 threadI
 	if (oversampling != font->Oversampling) {
 		font->Oversampling = oversampling;
 		font->Reload();
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method SetPixelCoverageThreshold
+ * \desc Sets the pixel coverage threshold value. Pixels with coverage under this value become transparent. You may want to increase this value if antialiasing is disabled.
+ * \param threshold (Decimal): The threshold value, from <code>0.0</code> to <code>1.0</code>.
+ * \ns Font
+ */
+VMValue FontImpl::VM_SetPixelCoverageThreshold(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjFont* objFont = GET_ARG(0, GetFont);
+	float threshold = GET_ARG(1, GetDecimal);
+
+	if (objFont == nullptr) {
+		return NULL_VAL;
+	}
+
+	if (threshold < 0.0 || threshold > 1.0) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Threshold %f out of range. (0.0 - 1.0)", threshold);
+		return NULL_VAL;
+	}
+
+	int thresholdValue = threshold * 255;
+
+	Font* font = (Font*)objFont->FontPtr;
+	if (thresholdValue != font->PixelCoverageThreshold) {
+		font->PixelCoverageThreshold = thresholdValue;
+		font->ReloadAtlas();
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method SetAntialiasing
+ * \desc Enables or disables anti-aliasing on the font. If disabling, you may want to increase the pixel coverage value with <linkto ref="font.SetPixelCoverageThreshold"></linkto>.
+ * \param useAntialiasing (Boolean): Whether or not to use antialiasing.
+ * \ns Font
+ */
+VMValue FontImpl::VM_SetAntialiasing(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjFont* objFont = GET_ARG(0, GetFont);
+	bool useAntialiasing = GET_ARG(1, GetInteger);
+
+	if (objFont == nullptr) {
+		return NULL_VAL;
+	}
+
+	Font* font = (Font*)objFont->FontPtr;
+	if (useAntialiasing != font->UseAntialiasing) {
+		font->UseAntialiasing = useAntialiasing;
+		font->ReloadAtlas();
 	}
 
 	return NULL_VAL;

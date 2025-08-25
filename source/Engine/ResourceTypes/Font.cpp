@@ -40,6 +40,8 @@ Font::Font(std::vector<Stream*> streamList) {
 
 void Font::Init() {
 	Oversampling = 1;
+	UseAntialiasing = true;
+	PixelCoverageThreshold = 0;
 	FontIndex = 0;
 }
 
@@ -161,7 +163,7 @@ void FontGlyphRange::AddGlyph(Uint32 codepoint) {
 	NeedUpdate = true;
 }
 
-bool FontGlyphRange::Refresh(Font* font) {
+bool FontGlyphRange::Update(Font* font) {
 	bool success = true;
 
 	if (NeedUpdate) {
@@ -292,7 +294,8 @@ bool FontGlyphRange::PackGlyphs(Font* font) {
 		return PackGlyphs(font);
 	}
 
-	Texture* atlas = Font::CreateAtlas(Buffer, AtlasSize);
+	Texture* atlas = Font::CreateAtlasTexture(
+		Buffer, AtlasSize, UseAntialiasing, PixelCoverageThreshold);
 	if (!atlas) {
 		return false;
 	}
@@ -332,6 +335,15 @@ void FontGlyphRange::LoadGlyphs() {
 			glyph.OffsetY = packedChar->yoff * Oversampling;
 			glyph.Advance = packedChar->xadvance;
 		}
+	}
+}
+
+void FontGlyphRange::ReloadAtlas() {
+	Uint32* dataRgba =
+		Font::GenerateAtlas(Buffer, AtlasSize, UseAntialiasing, PixelCoverageThreshold);
+	if (dataRgba) {
+		Graphics::UpdateTexture(Atlas, nullptr, dataRgba, AtlasSize * sizeof(Uint32));
+		Memory::Free(dataRgba);
 	}
 }
 
@@ -474,11 +486,11 @@ void Font::UpdateSprite() {
 }
 
 // Font updating is done lazily, which helps if multiple glyphs needed to be loaded at once.
-void Font::Refresh() {
+void Font::Update() {
 	if (NeedUpdate) {
 		for (size_t i = 0; i < GlyphRanges.size(); i++) {
 			FontGlyphRange* range = GlyphRanges[i];
-			if (range->Refresh(this)) {
+			if (range->Update(this)) {
 				LoadGlyphsFromRange(range);
 			}
 		}
@@ -489,27 +501,52 @@ void Font::Refresh() {
 	}
 }
 
-Texture* Font::CreateAtlas(Uint8* data, unsigned size) {
-	// Convert texture to RGBA
+void Font::ReloadAtlas() {
+	for (size_t i = 0; i < GlyphRanges.size(); i++) {
+		FontGlyphRange* range = GlyphRanges[i];
+
+		range->UseAntialiasing = UseAntialiasing;
+		range->PixelCoverageThreshold = PixelCoverageThreshold;
+
+		range->ReloadAtlas();
+	}
+}
+
+Uint32* Font::GenerateAtlas(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold) {
+	if (!data) {
+		return nullptr;
+	}
+
 	Uint32* dataRgba = (Uint32*)Memory::Malloc(size * size * sizeof(Uint32));
 	if (!dataRgba) {
 		return nullptr;
 	}
 
 	for (size_t i = 0; i < size * size; i++) {
-		// No reordering needed because alpha is always first!
-		dataRgba[i] = (data[i] << 24) | 0xFFFFFF;
+		Uint8 value = data[i];
+
+		if (value < threshold) {
+			value = 0;
+		}
+		else if (!useAntialias && value > 0) {
+			value = 255;
+		}
+
+		dataRgba[i] = (value << 24) | 0xFFFFFF;
 	}
 
-	// TODO: A better way to toggle texture interpolation.
-	bool original = Graphics::TextureInterpolate;
-	Graphics::SetTextureInterpolation(true);
+	return dataRgba;
+}
+
+Texture* Font::CreateAtlasTexture(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold) {
+	Uint32* dataRgba = GenerateAtlas(data, size, useAntialias, threshold);
+	if (dataRgba == nullptr) {
+		return nullptr;
+	}
 
 	// This may return nullptr.
 	Texture* atlas =
 		Graphics::CreateTextureFromPixels(size, size, dataRgba, size * sizeof(Uint32));
-
-	Graphics::SetTextureInterpolation(original);
 
 	Memory::Free(dataRgba);
 
@@ -544,8 +581,10 @@ FontGlyphRange* Font::FindGlyphInRange(Uint32 codepoint) {
 FontGlyphRange* Font::NewRange() {
 	FontGlyphRange* range = new FontGlyphRange(GlyphRanges.size());
 	range->FontSize = Size;
-	range->Oversampling = Oversampling;
 	range->FontIndex = FontIndex;
+	range->Oversampling = Oversampling;
+	range->UseAntialiasing = UseAntialiasing;
+	range->PixelCoverageThreshold = PixelCoverageThreshold;
 	range->Init();
 
 	GlyphRanges.push_back(range);

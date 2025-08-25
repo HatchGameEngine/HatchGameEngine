@@ -24,6 +24,8 @@ public:
 	static VMValue VM_GetLeading(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetSpaceWidth(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetOversampling(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetPixelCoverageThreshold(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_IsAntialiasingEnabled(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_HasGlyph(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetPixelsPerUnit(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetAscent(int argCount, VMValue* args, Uint32 threadID);
@@ -31,6 +33,8 @@ public:
 	static VMValue VM_SetLeading(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetSpaceWidth(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetOversampling(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetPixelCoverageThreshold(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetAntialiasing(int argCount, VMValue* args, Uint32 threadID);
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_FONTIMPL_H */

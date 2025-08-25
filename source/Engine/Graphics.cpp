@@ -1363,7 +1363,7 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, float fo
 		return;
 	}
 
-	font->Refresh();
+	font->Update();
 
 	if (font->Sprite == nullptr || font->Sprite->Spritesheets.size() == 0) {
 		return;

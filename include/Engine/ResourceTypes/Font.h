@@ -59,9 +59,13 @@ private:
 public:
 	unsigned ID = 0;
 	unsigned AtlasSize = 0;
-	int Oversampling = 1;
-	float FontSize = 0.0f;
-	int FontIndex = 0;
+
+	float FontSize;
+	int FontIndex;
+
+	int Oversampling;
+	bool UseAntialiasing;
+	Uint8 PixelCoverageThreshold;
 
 	std::unordered_map<FontFamily*, PackedGlyphs> GlyphsPerFamily;
 	std::unordered_map<Uint32, FontGlyph> Glyphs;
@@ -71,7 +75,8 @@ public:
 
 	bool Init();
 	bool PackGlyphs(Font* font);
-	bool Refresh(Font* font);
+	bool Update(Font* font);
+	void ReloadAtlas();
 	void AddGlyph(Uint32 codepoint);
 
 	FontGlyphRange(unsigned id);
@@ -112,6 +117,9 @@ public:
 	float SpaceWidth;
 	float ScaleFactor;
 	int Oversampling;
+	bool UseAntialiasing;
+	Uint8 PixelCoverageThreshold;
+
 	int FontIndex;
 
 	bool LoadFailed;
@@ -125,15 +133,19 @@ public:
 	bool Load(std::vector<Stream*> streamList);
 	bool LoadSize(float fontSize);
 	bool Reload();
+	void ReloadAtlas();
 
 	bool IsValidCodepoint(Uint32 codepoint);
 	bool HasGlyph(Uint32 codepoint);
 	bool RequestGlyph(Uint32 codepoint);
-	void Refresh();
+	void Update();
 
 	FontFamily* FindFamilyForCodepoint(Uint32 codepoint);
 
-	static Texture* CreateAtlas(Uint8* data, unsigned size);
+	static Uint32*
+	GenerateAtlas(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold);
+	static Texture*
+	CreateAtlasTexture(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold);
 
 	void Dispose();
 	~Font();
