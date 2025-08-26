@@ -172,7 +172,7 @@ void FontImpl::Dispose(Obj* object) {
 }
 /***
  * \method GetPixelsPerUnit
- * \desc Gets the pixels per unit value of the font. The default for all fonts is 40.
+ * \desc Gets the pixels per unit value of the font. The default for all fonts is <code>40</code>.
  * \return Returns a Decimal value.
  * \ns Font
  */
