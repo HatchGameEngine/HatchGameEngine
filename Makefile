@@ -45,6 +45,7 @@ CPPFILES := \
 	source/Engine/Bytecode/SourceFileMap.cpp \
 	source/Engine/Bytecode/StandardLibrary.cpp \
 	source/Engine/Bytecode/TypeImpl/ArrayImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/FontImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/FunctionImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MapImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MaterialImpl.cpp \
@@ -268,6 +269,7 @@ PUBHFILES := \
 	include/Engine/Bytecode/SourceFileMap.h \
 	include/Engine/Bytecode/StandardLibrary.h \
 	include/Engine/Bytecode/TypeImpl/ArrayImpl.h \
+	include/Engine/Bytecode/TypeImpl/FontImpl.h \
 	include/Engine/Bytecode/TypeImpl/FunctionImpl.h \
 	include/Engine/Bytecode/TypeImpl/MapImpl.h \
 	include/Engine/Bytecode/TypeImpl/MaterialImpl.h \
