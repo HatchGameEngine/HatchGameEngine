@@ -24,8 +24,6 @@ struct ResourceType {
 		Image* AsImage;
 		ISound* AsSound;
 		ISound* AsMusic;
-		Font* AsFont;
-		void* AsShader;
 		IModel* AsModel;
 		MediaBag* AsMedia;
 	};

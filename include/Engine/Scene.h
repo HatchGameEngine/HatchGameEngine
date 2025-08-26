@@ -90,7 +90,6 @@ public:
 	static vector<ResourceType*> ImageList;
 	static vector<ResourceType*> SoundList;
 	static vector<ResourceType*> MusicList;
-	static vector<ResourceType*> FontList;
 	static vector<ResourceType*> ModelList;
 	static vector<ResourceType*> MediaList;
 	static vector<GameTexture*> TextureList;

@@ -126,7 +126,6 @@ vector<ResourceType*> Scene::SpriteList;
 vector<ResourceType*> Scene::ImageList;
 vector<ResourceType*> Scene::SoundList;
 vector<ResourceType*> Scene::MusicList;
-vector<ResourceType*> Scene::FontList;
 vector<ResourceType*> Scene::ModelList;
 vector<ResourceType*> Scene::MediaList;
 vector<GameTexture*> Scene::TextureList;
@@ -2838,37 +2837,6 @@ int Scene::LoadImageResource(const char* filename, int unloadPolicy) {
 
 	return (int)index;
 }
-int Scene::LoadFontResource(const char* filename, int unloadPolicy) {
-	ResourceType* resource = new (std::nothrow) ResourceType();
-	resource->FilenameHash = CRC32::EncryptString(filename);
-	resource->UnloadPolicy = unloadPolicy;
-
-	size_t index = 0;
-	vector<ResourceType*>* list = &Scene::FontList;
-	if (Scene::GetResource(list, resource, index)) {
-		return (int)index;
-	}
-
-	Stream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	resource->AsFont = new (std::nothrow) Font(stream);
-
-	stream->Close();
-
-	if (resource->AsFont->LoadFailed) {
-		delete resource->AsFont;
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	return (int)index;
-}
 int Scene::LoadModelResource(const char* filename, int unloadPolicy) {
 	ResourceType* resource = new (std::nothrow) ResourceType();
 	resource->FilenameHash = CRC32::EncryptString(filename);
@@ -3131,19 +3099,6 @@ void Scene::DisposeInScope(Uint32 scope) {
 		delete Scene::MusicList[i];
 		Scene::MusicList[i] = NULL;
 	}
-	// Fonts
-	for (size_t i = 0, i_sz = Scene::FontList.size(); i < i_sz; i++) {
-		if (!Scene::FontList[i]) {
-			continue;
-		}
-		if (Scene::FontList[i]->UnloadPolicy > scope) {
-			continue;
-		}
-
-		delete Scene::FontList[i]->AsFont;
-		delete Scene::FontList[i];
-		Scene::FontList[i] = NULL;
-	}
 	// Media
 	AudioManager::Lock();
 	for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
@@ -3219,7 +3174,6 @@ void Scene::Dispose() {
 	Scene::SpriteList.clear();
 	Scene::SoundList.clear();
 	Scene::MusicList.clear();
-	Scene::FontList.clear();
 	Scene::ModelList.clear();
 	Scene::MediaList.clear();
 	Scene::TextureList.clear();

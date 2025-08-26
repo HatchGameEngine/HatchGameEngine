@@ -11383,23 +11383,6 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(result);
 }
 /***
- * Resources.LoadFont
- * \desc Loads a Font resource, returning its Font index.
- * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return
- * \ns Resources
- */
-VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	char* filename = GET_ARG(0, GetString);
-	int unloadPolicy = GET_ARG(1, GetInteger);
-
-	int result = Scene::LoadFontResource(filename, unloadPolicy);
-
-	return INTEGER_VAL(result);
-}
-/***
  * Resources.LoadModel
  * \desc Loads Model resource, returning its Model index.
  * \param filename (String): Filename of the resource.
@@ -19604,7 +19587,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Resources, LoadSprite);
 	DEF_NATIVE(Resources, LoadDynamicSprite);
 	DEF_NATIVE(Resources, LoadImage);
-	DEF_NATIVE(Resources, LoadFont);
 	DEF_NATIVE(Resources, LoadModel);
 	DEF_NATIVE(Resources, LoadMusic);
 	DEF_NATIVE(Resources, LoadSound);
