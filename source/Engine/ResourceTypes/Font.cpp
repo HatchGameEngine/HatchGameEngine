@@ -301,8 +301,8 @@ bool FontGlyphRange::PackGlyphs(Font* font) {
 	}
 
 	if (atlas) {
-		Graphics::SetTextureMagFilter(atlas, TextureFilter_LINEAR);
-		Graphics::SetTextureMinFilter(atlas, TextureFilter_LINEAR);
+		Graphics::SetTextureMinFilter(atlas, font->GetAtlasMinFilter());
+		Graphics::SetTextureMagFilter(atlas, font->GetAtlasMagFilter());
 	}
 
 	Graphics::DisposeTexture(Atlas);
@@ -507,6 +507,9 @@ void Font::Update() {
 }
 
 void Font::ReloadAtlas() {
+	int minFilter = GetAtlasMinFilter();
+	int magFilter = GetAtlasMagFilter();
+
 	for (size_t i = 0; i < GlyphRanges.size(); i++) {
 		FontGlyphRange* range = GlyphRanges[i];
 
@@ -514,18 +517,18 @@ void Font::ReloadAtlas() {
 		range->PixelCoverageThreshold = PixelCoverageThreshold;
 
 		range->ReloadAtlas();
+
+		Graphics::SetTextureMinFilter(range->Atlas, minFilter);
+		Graphics::SetTextureMagFilter(range->Atlas, magFilter);
 	}
 }
 
-void Font::SetTextureFilter(int filterMode) {
-	for (size_t i = 0; i < GlyphRanges.size(); i++) {
-		FontGlyphRange* range = GlyphRanges[i];
-
-		if (range->Atlas) {
-			Graphics::SetTextureMagFilter(range->Atlas, filterMode);
-			Graphics::SetTextureMinFilter(range->Atlas, filterMode);
-		}
-	}
+int Font::GetAtlasMinFilter() {
+	// TODO: Use TextureFilter_LINEAR_MIPMAP_LINEAR when mipmaps are available.
+	return UseAntialiasing ? TextureFilter_LINEAR : TextureFilter_NEAREST;
+}
+int Font::GetAtlasMagFilter() {
+	return UseAntialiasing ? TextureFilter_LINEAR : TextureFilter_NEAREST;
 }
 
 Uint32* Font::GenerateAtlas(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold) {
