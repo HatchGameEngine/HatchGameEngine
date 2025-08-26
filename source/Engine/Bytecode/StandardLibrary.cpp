@@ -4071,7 +4071,7 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
  * \param font (Font): The Font to be used as text.
  * \param text (String): Text to measure.
  * \param maxWidth (Number): Max width that a line can be.
- * \paramOpt maxLines (Integer): Max number of lines to measure.
+ * \paramOpt maxLines (Integer): Max number of lines to measure. Use <code>null</code> to measure all lines.
  * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \return Returns the array inputted into the function.
  * \ns Draw
@@ -4082,7 +4082,7 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	ObjArray* array = GET_ARG(0, GetArray);
 	char* text = GET_ARG(2, GetString);
 	float maxWidth = GET_ARG(3, GetDecimal);
-	int maxLines = 0x7FFFFFFF;
+	int maxLines = 0;
 	if (argCount > 4 && !IS_NULL(args[4])) {
 		maxLines = GET_ARG(4, GetInteger);
 	}
@@ -4186,7 +4186,7 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (Number): X position of where to draw the text.
  * \param y (Number): Y position of where to draw the text.
  * \param maxWidth (Number): Max width the text can draw in.
- * \paramOpt maxLines (Integer): Max lines the text can draw.
+ * \paramOpt maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.
  * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
@@ -4197,7 +4197,7 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	float x = GET_ARG(2, GetDecimal);
 	float y = GET_ARG(3, GetDecimal);
 	float maxWidth = GET_ARG(4, GetDecimal);
-	int maxLines = 0x7FFFFFFF;
+	int maxLines = 0;
 	if (argCount > 5 && !IS_NULL(args[5])) {
 		maxLines = GET_ARG(5, GetInteger);
 	}
@@ -4240,12 +4240,14 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.TextEllipsis
- * \desc Draws UTF-8 text using a font, but adds ellipsis if the text doesn't fit in <code>maxWidth</code>. This function does not handle the line break (<code>\n</code>) character.
+ * \desc Draws UTF-8 text using a font, but adds ellipsis if the text doesn't fit in <code>maxWidth</code>.
  * \param font (Font): The Font to be used as text.
  * \param text (String): Text to draw.
  * \param x (Number): X position of where to draw the text.
  * \param y (Number): Y position of where to draw the text.
  * \param maxWidth (Number): Max width the text can draw in.
+ * \paramOpt maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
@@ -4255,13 +4257,17 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 	float x = GET_ARG(2, GetDecimal);
 	float y = GET_ARG(3, GetDecimal);
 	float maxWidth = GET_ARG(4, GetDecimal);
-	float fontSize = GET_ARG_OPT(5, GetDecimal, 0.0f);
+	int maxLines = 0;
+	if (argCount > 5 && !IS_NULL(args[5])) {
+		maxLines = GET_ARG(5, GetInteger);
+	}
+	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
 
 	if (IS_FONT(args[0])) {
 		ObjFont* objFont = GET_ARG(0, GetFont);
 		Font* font = (Font*)objFont->FontPtr;
 
-		if (argCount < 6) {
+		if (argCount < 7) {
 			fontSize = font->Size;
 		}
 
@@ -4271,6 +4277,7 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		params.Descent = font->Descent;
 		params.Leading = font->Leading;
 		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
 
 		Graphics::DrawTextEllipsis(font, text, x, y, &params);
 
@@ -4278,7 +4285,6 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-
 	if (sprite) {
 		LegacyTextDrawParams params;
 		params.Align = textAlign;
@@ -4286,6 +4292,7 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		params.Ascent = textAscent;
 		params.Advance = textAdvance;
 		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
 		Graphics::DrawTextEllipsisLegacy(sprite, text, x, y, &params);
 	}
 

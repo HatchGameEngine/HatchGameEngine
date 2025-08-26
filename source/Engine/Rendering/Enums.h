@@ -92,6 +92,10 @@ enum {
 	DrawMode_FlagsMask = ~0xF
 };
 
+enum {
+	TEXTDRAW_ELLIPSIS = 1 << 0
+};
+
 struct TileScanLine {
 	Sint64 SrcX;
 	Sint64 SrcY;
@@ -159,6 +163,7 @@ struct TextDrawParams {
 	float Leading;
 	int MaxWidth;
 	int MaxLines;
+	Uint8 Flags;
 };
 
 struct LegacyTextDrawParams {
@@ -168,6 +173,7 @@ struct LegacyTextDrawParams {
 	float Advance;
 	int MaxWidth;
 	int MaxLines;
+	Uint8 Flags;
 };
 
 #endif /* ENGINE_RENDERING_ENUMS */
