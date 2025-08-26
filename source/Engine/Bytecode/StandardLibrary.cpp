@@ -4037,7 +4037,13 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 			fontSize = font->Size;
 		}
 
-		// TODO
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+
+		Graphics::MeasureText(font, text, &params, maxW, maxH);
 	}
 	else {
 		ISprite* sprite = GET_ARG(1, GetSprite);
@@ -4077,7 +4083,7 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	char* text = GET_ARG(2, GetString);
 	float maxWidth = GET_ARG(3, GetDecimal);
 	int maxLines = 0x7FFFFFFF;
-	if (argCount > 4) {
+	if (argCount > 4 && !IS_NULL(args[4])) {
 		maxLines = GET_ARG(4, GetInteger);
 	}
 	float fontSize = GET_ARG_OPT(5, GetDecimal, 0.0f);
@@ -4092,7 +4098,15 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 			fontSize = font->Size;
 		}
 
-		// TODO
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+
+		Graphics::MeasureTextWrapped(font, text, &params, maxW, maxH);
 	}
 	else {
 		ISprite* sprite = GET_ARG(1, GetSprite);
@@ -4184,7 +4198,7 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	float y = GET_ARG(3, GetDecimal);
 	float maxWidth = GET_ARG(4, GetDecimal);
 	int maxLines = 0x7FFFFFFF;
-	if (argCount > 5) {
+	if (argCount > 5 && !IS_NULL(args[5])) {
 		maxLines = GET_ARG(5, GetInteger);
 	}
 	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
