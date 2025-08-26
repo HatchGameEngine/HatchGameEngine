@@ -1371,8 +1371,8 @@ void Graphics::DrawGlyph(Font* font,
 	float scale,
 	float glyphScale,
 	float ascent) {
-	// For performance, this doesn't check if font or font->Sprite are null.
-	// Do it from the caller!
+	// For performance, this doesn't check if font or font->Sprite are nullptr.
+	// Also, RequestGlyph must have been called before for this codepoint.
 	FontGlyph& glyph = font->Glyphs[codepoint];
 
 	float glyphX = x + (glyph.OffsetX * glyphScale);
@@ -1390,6 +1390,51 @@ void Graphics::DrawGlyph(Font* font,
 		glyphScale,
 		glyphScale,
 		0.0f);
+}
+
+void Graphics::DrawEllipsis(Font* font,
+	float x,
+	float y,
+	float scale,
+	float glyphScale,
+	float ascent) {
+	if (font->HasGlyph(ELLIPSIS_CODE_POINT) && font->RequestGlyph(ELLIPSIS_CODE_POINT)) {
+		DrawGlyph(font, ELLIPSIS_CODE_POINT, x, y, scale, glyphScale, ascent);
+	}
+	else if (font->HasGlyph(FULL_STOP_CODE_POINT) && font->RequestGlyph(FULL_STOP_CODE_POINT)) {
+		float currX = x;
+
+		for (size_t i = 0; i < 3; i++) {
+			DrawGlyph(font, 0x002E, currX, y, scale, glyphScale, ascent);
+
+			currX += font->Glyphs[FULL_STOP_CODE_POINT].Advance * scale;
+		}
+	}
+}
+
+void Graphics::DrawEllipsisLegacy(ISprite* sprite,
+	float x,
+	float y,
+	float advance,
+	float baseline) {
+	int glyph = '.';
+
+	advance = sprite->Animations[0].Frames[glyph].Advance * advance;
+
+	for (size_t i = 0; i < 3; i++) {
+		Graphics::DrawSprite(sprite,
+			0,
+			glyph,
+			x,
+			y - sprite->Animations[0].AnimationSpeed * baseline,
+			false,
+			false,
+			1.0f,
+			1.0f,
+			0.0f);
+
+		x += advance;
+	}
 }
 
 void Graphics::DrawText(Font* font, const char* text, float x, float y, TextDrawParams* params) {
@@ -1483,14 +1528,23 @@ void Graphics::DrawTextWrapped(Font* font,
 	Uint32* wordstart = codepointsData;
 	Uint32* codepointsEnd = codepointsData + numCodepoints;
 
-	// TODO: There is an actual ellipsis code point, U+2026
-	// Use that if present, or fallback into drawing three individual full stops.
-	bool drawEllipsis = params->Flags & TEXTDRAW_ELLIPSIS;
 	float ellipsisWidth = 0.0;
+
+	bool drawEllipsis = params->Flags & TEXTDRAW_ELLIPSIS;
 	if (drawEllipsis) {
-		Uint32 codepoint = 0x002E;
-		if (font->HasGlyph(codepoint)) {
-			ellipsisWidth = font->Glyphs[codepoint].Advance * scale;
+		// Load correct ellipsis glyph
+		if (font->HasGlyph(ELLIPSIS_CODE_POINT)) {
+			drawEllipsis = font->RequestGlyph(ELLIPSIS_CODE_POINT);
+		}
+		else if (font->HasGlyph(FULL_STOP_CODE_POINT)) {
+			drawEllipsis = font->RequestGlyph(FULL_STOP_CODE_POINT);
+		}
+		else {
+			drawEllipsis = false;
+		}
+
+		if (drawEllipsis) {
+			ellipsisWidth = font->GetEllipsisWidth() * scale;
 		}
 	}
 
@@ -1526,17 +1580,9 @@ void Graphics::DrawTextWrapped(Font* font,
 					// Draw ellipsis if the text no longer fits
 					if (isLastLine && drawEllipsis &&
 						(currX - x) + advance >
-							params->MaxWidth - (ellipsisWidth * 3)) {
-						for (size_t i = 0; i < 3; i++) {
-							DrawGlyph(font,
-								0x002E,
-								currX,
-								currY,
-								scale,
-								xyScale,
-								ascent);
-							currX += ellipsisWidth;
-						}
+							params->MaxWidth - ellipsisWidth) {
+						Graphics::DrawEllipsis(
+							font, currX, currY, scale, xyScale, ascent);
 						Graphics::TextureBlend = texBlend;
 						return;
 					}
@@ -1557,18 +1603,9 @@ void Graphics::DrawTextWrapped(Font* font,
 				if (isLastLine) {
 					// Draw ellipsis if the text no longer fits AND there is still space
 					if (drawEllipsis &&
-						(currX - x) <
-							params->MaxWidth - (ellipsisWidth * 3)) {
-						for (size_t i = 0; i < 3; i++) {
-							DrawGlyph(font,
-								0x002E,
-								currX,
-								currY,
-								scale,
-								xyScale,
-								ascent);
-							currX += ellipsisWidth;
-						}
+						(currX - x) < params->MaxWidth - ellipsisWidth) {
+						Graphics::DrawEllipsis(
+							font, currX, currY, scale, xyScale, ascent);
 					}
 
 					Graphics::TextureBlend = texBlend;
@@ -1595,12 +1632,8 @@ void Graphics::DrawTextWrapped(Font* font,
 		advance *= scale;
 
 		// Draw ellipsis if the text no longer fits
-		if (drawEllipsis &&
-			(currX - x) + advance > params->MaxWidth - (ellipsisWidth * 3)) {
-			for (size_t i = 0; i < 3; i++) {
-				DrawGlyph(font, 0x002E, currX, currY, scale, xyScale, ascent);
-				currX += ellipsisWidth;
-			}
+		if (drawEllipsis && (currX - x) + advance > params->MaxWidth - ellipsisWidth) {
+			Graphics::DrawEllipsis(font, currX, currY, scale, xyScale, ascent);
 			break;
 		}
 
@@ -1940,27 +1973,11 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 					if (isLastLine && drawEllipsis &&
 						(x - startx) + advance >
 							params->MaxWidth - ellipsisWidth) {
-						lm = '.';
-						advance = sprite->Animations[0].Frames[lm].Advance *
-							params->Advance;
-
-						for (size_t i = 0; i < 3; i++) {
-							Graphics::DrawSprite(sprite,
-								0,
-								lm,
-								x,
-								y -
-									sprite->Animations[0]
-											.AnimationSpeed *
-										params->Baseline,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f);
-							x += advance;
-						}
-
+						Graphics::DrawEllipsisLegacy(sprite,
+							x,
+							y,
+							params->Advance,
+							params->Baseline);
 						return;
 					}
 
@@ -1983,27 +2000,11 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 					// Draw ellipsis if the text no longer fits AND there is still space
 					if (drawEllipsis &&
 						(x - startx) < params->MaxWidth - ellipsisWidth) {
-						lm = '.';
-
-						for (size_t i = 0; i < 3; i++) {
-							Graphics::DrawSprite(sprite,
-								0,
-								lm,
-								x,
-								y -
-									sprite->Animations[0]
-											.AnimationSpeed *
-										params->Baseline,
-								false,
-								false,
-								1.0f,
-								1.0f,
-								0.0f);
-							x += sprite->Animations[0]
-									.Frames[lm]
-									.Advance *
-								params->Advance;
-						}
+						Graphics::DrawEllipsisLegacy(sprite,
+							x,
+							y,
+							params->Advance,
+							params->Baseline);
 					}
 					return;
 				}
@@ -2048,23 +2049,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 
 		// Draw ellipsis if the text no longer fits
 		if (drawEllipsis && (x - startx) + advance > params->MaxWidth - ellipsisWidth) {
-			l = '.';
-			advance = sprite->Animations[0].Frames[l].Advance * params->Advance;
-
-			for (size_t i = 0; i < 3; i++) {
-				Graphics::DrawSprite(sprite,
-					0,
-					l,
-					x,
-					y - sprite->Animations[0].AnimationSpeed * params->Baseline,
-					false,
-					false,
-					1.0f,
-					1.0f,
-					0.0f);
-				x += advance;
-			}
-
+			Graphics::DrawEllipsisLegacy(
+				sprite, x, y, params->Advance, params->Baseline);
 			return;
 		}
 

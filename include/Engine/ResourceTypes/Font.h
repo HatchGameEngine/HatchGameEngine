@@ -11,6 +11,9 @@
 #define DEFAULT_FONT_ATLAS_SIZE 128
 #define MAX_FONT_ATLAS_SIZE 2048
 
+#define FULL_STOP_CODE_POINT 0x002E
+#define ELLIPSIS_CODE_POINT 0x2026
+
 struct FontGlyph {
 	bool Exists;
 	int Codepoint;
@@ -139,6 +142,7 @@ public:
 	bool IsValidCodepoint(Uint32 codepoint);
 	bool HasGlyph(Uint32 codepoint);
 	bool RequestGlyph(Uint32 codepoint);
+	float GetEllipsisWidth();
 	void Update();
 
 	FontFamily* FindFamilyForCodepoint(Uint32 codepoint);

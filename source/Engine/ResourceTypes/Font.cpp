@@ -671,6 +671,17 @@ bool Font::RequestGlyph(Uint32 codepoint) {
 	return true;
 }
 
+float Font::GetEllipsisWidth() {
+	if (HasGlyph(ELLIPSIS_CODE_POINT) && IsGlyphLoaded(ELLIPSIS_CODE_POINT)) {
+		return Glyphs[ELLIPSIS_CODE_POINT].Advance;
+	}
+	else if (HasGlyph(FULL_STOP_CODE_POINT) && IsGlyphLoaded(FULL_STOP_CODE_POINT)) {
+		return Glyphs[FULL_STOP_CODE_POINT].Advance * 3;
+	}
+
+	return 0.0f;
+}
+
 void Font::Unload() {
 	for (size_t i = 0; i < GlyphRanges.size(); i++) {
 		delete GlyphRanges[i];

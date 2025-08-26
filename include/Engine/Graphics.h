@@ -279,6 +279,10 @@ public:
 		float glyphScale,
 		float ascent);
 	static void
+	DrawEllipsis(Font* font, float x, float y, float scale, float glyphScale, float ascent);
+	static void
+	DrawEllipsisLegacy(ISprite* sprite, float x, float y, float advance, float baseline);
+	static void
 	DrawText(Font* font, const char* text, float x, float y, TextDrawParams* params);
 	static void
 	DrawTextWrapped(Font* font, const char* text, float x, float y, TextDrawParams* params);
