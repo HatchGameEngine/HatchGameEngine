@@ -280,7 +280,7 @@ VMValue FontImpl::VM_GetOversampling(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * \method GetPixelCoverageThreshold
- * \desc Gets the pixel coverage threshold value. Pixels with coverage under this value become transparent. The default is <code>0</code> for all fonts.
+ * \desc Gets the pixel coverage threshold value. Pixels with coverage under this value become fully transparent, and pixels with coverage equal to or above this value become fully opaque. The default is <code>0.5</code> for all fonts.
  * \return Returns a Decimal value.
  * \ns Font
  */
@@ -470,7 +470,7 @@ VMValue FontImpl::VM_SetOversampling(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * \method SetPixelCoverageThreshold
- * \desc Sets the pixel coverage threshold value. Pixels with coverage under this value become transparent. You may want to increase this value if antialiasing is disabled.
+ * \desc Sets the pixel coverage threshold value. Pixels with coverage under this value become fully transparent, and pixels with coverage equal to or above this value become fully opaque. This only has an effect on fonts with anti-aliasing disabled.
  * \param threshold (Decimal): The threshold value, from <code>0.0</code> to <code>1.0</code>.
  * \ns Font
  */
@@ -502,7 +502,7 @@ VMValue FontImpl::VM_SetPixelCoverageThreshold(int argCount, VMValue* args, Uint
 /***
  * \method SetAntialiasing
  * \desc Enables or disables anti-aliasing on the font. If disabling, you may want to increase the pixel coverage value with <linkto ref="font.SetPixelCoverageThreshold"></linkto>.
- * \param useAntialiasing (Boolean): Whether or not to use antialiasing.
+ * \param useAntialiasing (Boolean): Whether or not to use anti-aliasing.
  * \ns Font
  */
 VMValue FontImpl::VM_SetAntialiasing(int argCount, VMValue* args, Uint32 threadID) {

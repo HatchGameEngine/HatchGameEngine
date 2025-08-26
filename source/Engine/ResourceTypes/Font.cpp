@@ -41,7 +41,7 @@ Font::Font(std::vector<Stream*> streamList) {
 void Font::Init() {
 	Oversampling = 1;
 	UseAntialiasing = true;
-	PixelCoverageThreshold = 0;
+	PixelCoverageThreshold = 128;
 	FontIndex = 0;
 }
 
@@ -544,11 +544,8 @@ Uint32* Font::GenerateAtlas(Uint8* data, unsigned size, bool useAntialias, Uint8
 	for (size_t i = 0; i < size * size; i++) {
 		Uint8 value = data[i];
 
-		if (value < threshold) {
-			value = 0;
-		}
-		else if (!useAntialias && value > 0) {
-			value = 255;
+		if (!useAntialias) {
+			value = (value < threshold) ? 0 : 255;
 		}
 
 		dataRgba[i] = (value << 24) | 0xFFFFFF;
