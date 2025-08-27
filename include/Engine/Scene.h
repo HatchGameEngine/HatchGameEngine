@@ -195,7 +195,6 @@ public:
 	static bool GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index);
 	static int LoadSpriteResource(const char* filename, int unloadPolicy);
 	static int LoadImageResource(const char* filename, int unloadPolicy);
-	static int LoadFontResource(const char* filename, int unloadPolicy);
 	static int LoadModelResource(const char* filename, int unloadPolicy);
 	static int LoadMusicResource(const char* filename, int unloadPolicy);
 	static int LoadSoundResource(const char* filename, int unloadPolicy);
