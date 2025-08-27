@@ -576,8 +576,11 @@ void ISprite::Dispose() {
 	Animations.clear();
 	Animations.shrink_to_fit();
 
-	for (int a = 0; a < Spritesheets.size(); a++) {
-		Graphics::DisposeSpriteSheet(SpritesheetFilenames[a]);
+	for (size_t i = 0; i < Spritesheets.size(); i++) {
+		std::string sheetFilename = SpritesheetFilenames[i];
+		if (sheetFilename.size() > 0) {
+			Graphics::DisposeSpriteSheet(sheetFilename);
+		}
 	}
 
 	Spritesheets.clear();

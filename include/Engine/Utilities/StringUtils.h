@@ -31,6 +31,7 @@ public:
 	static char* NormalizePath(const char* path);
 	static void NormalizePath(const char* path, char* dest, size_t destSize);
 	static void ReplacePathSeparatorsInPlace(char* path);
+	static int DecodeUTF8Char(const char* chr, int& numChars);
 };
 
 #endif /* ENGINE_UTILITIES_STRINGUTILS_H */

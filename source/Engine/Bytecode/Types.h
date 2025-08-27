@@ -7,6 +7,8 @@
 
 #include <Engine/Rendering/Material.h>
 
+#include <Engine/ResourceTypes/Font.h>
+
 #define FRAMES_MAX 64
 #define STACK_SIZE_MAX (FRAMES_MAX * 256)
 #define THREAD_NAME_MAX 64
@@ -180,6 +182,7 @@ enum ObjType {
 
 #define CLASS_ARRAY "$$ArrayImpl"
 #define CLASS_ENTITY "$$EntityImpl"
+#define CLASS_FONT "Font"
 #define CLASS_FUNCTION "$$FunctionImpl"
 #define CLASS_INSTANCE "$$InstanceImpl"
 #define CLASS_MAP "$$MapImpl"
@@ -340,6 +343,10 @@ struct ObjMaterial {
 struct ObjShader {
 	UNION_INSTANCEABLE;
 	void* ShaderPtr;
+};
+struct ObjFont {
+	UNION_INSTANCEABLE;
+	Font* FontPtr;
 };
 
 #undef UNION_INSTANCEABLE

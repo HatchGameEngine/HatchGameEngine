@@ -15,6 +15,7 @@ class IModel;
 #include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/TextureReference.h>
 #include <Engine/Rendering/VertexBuffer.h>
+#include <Engine/ResourceTypes/Font.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene/SceneEnums.h>
@@ -30,6 +31,7 @@ private:
 	static void DeleteSpriteSheetMap();
 	static void DeleteShaders();
 	static void DeleteVertexBuffers();
+	static std::vector<Uint32> GetTextCodepoints(Font* font, const char* text);
 
 public:
 	static bool Initialized;
@@ -125,6 +127,8 @@ public:
 	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
 	static int ConvertTextureToRGBA(Texture* texture);
 	static int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);
+	static void SetTextureMinFilter(Texture* texture, int filterMode);
+	static void SetTextureMagFilter(Texture* texture, int filterMode);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
 	static TextureReference* GetSpriteSheet(string sheetPath);
@@ -267,6 +271,55 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation);
+	static void DrawGlyph(Font* font,
+		Uint32 codepoint,
+		float x,
+		float y,
+		float scale,
+		float glyphScale,
+		float ascent);
+	static void
+	DrawEllipsis(Font* font, float x, float y, float scale, float glyphScale, float ascent);
+	static void
+	DrawEllipsisLegacy(ISprite* sprite, float x, float y, float advance, float baseline);
+	static void
+	DrawText(Font* font, const char* text, float x, float y, TextDrawParams* params);
+	static void
+	DrawTextWrapped(Font* font, const char* text, float x, float y, TextDrawParams* params);
+	static void
+	DrawTextEllipsis(Font* font, const char* text, float x, float y, TextDrawParams* params);
+	static void
+	MeasureText(Font* font, const char* text, TextDrawParams* params, float& maxW, float& maxH);
+	static void MeasureTextWrapped(Font* font,
+		const char* text,
+		TextDrawParams* params,
+		float& maxW,
+		float& maxH);
+	static void DrawTextLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params);
+	static void DrawTextWrappedLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params);
+	static void DrawTextEllipsisLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params);
+	static void MeasureTextLegacy(ISprite* sprite,
+		const char* text,
+		LegacyTextDrawParams* params,
+		float& maxW,
+		float& maxH);
+	static void MeasureTextWrappedLegacy(ISprite* sprite,
+		const char* text,
+		LegacyTextDrawParams* params,
+		float& maxW,
+		float& maxH);
 	static void
 	DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines);
 	static void DrawTilePart(int tile,

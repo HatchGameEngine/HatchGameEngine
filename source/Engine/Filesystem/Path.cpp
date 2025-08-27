@@ -22,11 +22,11 @@ std::pair<std::string, PathLocation> urlToLocationType[] = {
 std::string Path::ToString(std::filesystem::path path) {
 #if __cplusplus >= 202002L
 	std::u8string string = path.u8string();
+#else
+	auto string = path.u8string();
+#endif
 
 	return std::string(string.begin(), string.end());
-#else
-	return path.u8string();
-#endif
 }
 
 // Creates a path recursively.
@@ -489,11 +489,11 @@ std::string Path::GetLocationFromRealPath(const char* filename, PathLocation loc
 		return "";
 	}
 
-	if (!StringUtils::StartsWith(pathFs.u8string(), locFs.u8string())) {
+	if (!StringUtils::StartsWith(Path::ToString(pathFs), Path::ToString(locFs))) {
 		return "";
 	}
 
-	return pathFs.u8string().substr(locFs.u8string().size());
+	return Path::ToString(pathFs).substr(Path::ToString(locFs).size());
 }
 
 std::string Path::StripLocationFromURL(const char* filename, PathLocation& location) {

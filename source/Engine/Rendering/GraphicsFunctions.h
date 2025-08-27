@@ -24,6 +24,8 @@ struct GraphicsFunctions {
 		int pitchU,
 		void* pixelsV,
 		int pitchV);
+	void (*SetTextureMinFilter)(Texture* texture, int filterMode);
+	void (*SetTextureMagFilter)(Texture* texture, int filterMode);
 	int (*SetTexturePalette)(Texture* texture, void* palette, unsigned numPaletteColors);
 	void (*UnlockTexture)(Texture* texture);
 	void (*DisposeTexture)(Texture* texture);
