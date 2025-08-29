@@ -31,10 +31,11 @@ Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
 
 bool HatchSceneReader::Read(const char* filename, const char* parentFolder) {
 	Stream* r = ResourceStream::New(filename);
-	if (!r) {
-		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
-		return false;
-	}
+	ERROR_RET_VAL(r, false, "Couldn't open file '%s'!", filename);
+// 	if (!r) {
+// 		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
+// 		return false;
+// 	}
 
 	return HatchSceneReader::Read(r, parentFolder);
 }

@@ -64,10 +64,11 @@ bool IModel::Load(Stream* stream, const char* filename) {
 		success = ModelImporter::Convert(this, stream, filename);
 	}
 
-	if (!success) {
-		Log::Print(Log::LOG_ERROR, "Could not load model \"%s\"!", filename);
-		return false;
-	}
+	ERROR_RET_VAL(success, false, "Could not load model \"%s\"!", filename);
+// 	if (!success) {
+// 		Log::Print(Log::LOG_ERROR, "Could not load model \"%s\"!", filename);
+// 		return false;
+// 	}
 
 	Log::Print(Log::LOG_VERBOSE, "Model load took %.3f ms (%s)", Clock::End(), filename);
 
