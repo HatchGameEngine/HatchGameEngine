@@ -7,9 +7,12 @@
 #define ENTITY_FIELDS_LIST \
 	ENTITY_FIELD(Create)\
 	ENTITY_FIELD(PostCreate)\
+	ENTITY_FIELD(UpdateEarly)\
 	ENTITY_FIELD(Update)\
 	ENTITY_FIELD(UpdateLate)\
-	ENTITY_FIELD(UpdateEarly)\
+	ENTITY_FIELD(FixedUpdateEarly)\
+	ENTITY_FIELD(FixedUpdate)\
+	ENTITY_FIELD(FixedUpdateLate)\
 	ENTITY_FIELD(RenderEarly)\
 	ENTITY_FIELD(Render)\
 	ENTITY_FIELD(RenderLate)\
@@ -33,6 +36,7 @@ public:
 	void Link(ObjEntity* entity);
 	void LinkFields();
 	void AddEntityClassMethods();
+	static void SetUseFixedTimestep(bool useFixedTimestep);
 	bool RunFunction(Uint32 hash);
 	bool RunCreateFunction(VMValue flag);
 	bool RunInitializer();
@@ -47,6 +51,9 @@ public:
 	void UpdateEarly();
 	void Update();
 	void UpdateLate();
+	void FixedUpdateEarly();
+	void FixedUpdate();
+	void FixedUpdateLate();
 	void RenderEarly();
 	void Render();
 	void RenderLate();
