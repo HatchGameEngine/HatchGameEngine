@@ -132,12 +132,44 @@ double FrameTimeDesired = 1000.0 / Application::TargetFPS;
 
 int KeyBinds[(int)KeyBind::Max];
 
-ISprite* DEBUG_fontSprite = NULL;
-void DEBUG_DrawText(char* text, float x, float y) {
-	for (char* i = text; *i; i++) {
-		Graphics::DrawSprite(
-			DEBUG_fontSprite, 0, (int)*i, x, y, false, false, 1.0f, 1.0f, 0.0f);
-		x += 14; // DEBUG_fontSprite->Animations[0].Frames[(int)*i].ID;
+ISprite* DEBUG_fontSprite = nullptr;
+bool DEBUG_HasFontSprite = true;
+
+void LoadDebugFont() {
+	DEBUG_fontSprite = new ISprite();
+
+	int cols, rows;
+	Texture* spriteSheet = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
+	if (!spriteSheet) {
+		spriteSheet = DEBUG_fontSprite->AddSpriteSheet(
+			"Sprites/Fonts/DebugFont.png");
+	}
+	if (spriteSheet) {
+		Graphics::SetTextureMagFilter(spriteSheet, TextureFilter_LINEAR);
+		Graphics::SetTextureMinFilter(spriteSheet, TextureFilter_LINEAR);
+
+		cols = spriteSheet->Width / 32;
+		rows = spriteSheet->Height / 32;
+
+		DEBUG_fontSprite->ReserveAnimationCount(1);
+		DEBUG_fontSprite->AddAnimation("Font", 0, 0, cols * rows);
+		for (int i = 0; i < cols * rows; i++) {
+			DEBUG_fontSprite->AddFrame(0,
+				(i % cols) * 32,
+				(i / cols) * 32,
+				32,
+				32,
+				0,
+				0,
+				14);
+		}
+
+		DEBUG_fontSprite->RefreshGraphicsID();
+	}
+	else {
+		delete DEBUG_fontSprite;
+		DEBUG_fontSprite = nullptr;
+		DEBUG_HasFontSprite = false;
 	}
 }
 
@@ -1415,40 +1447,29 @@ DO_NOTHING:
 
 	// Show FPS counter
 	MetricFPSCounterTime = Clock::GetTicks();
-	if (ShowFPS) {
+	DrawPerformance();
+	MetricFPSCounterTime = Clock::GetTicks() - MetricFPSCounterTime;
+
+	MetricPresentTime = Clock::GetTicks();
+	Graphics::Present();
+	MetricPresentTime = Clock::GetTicks() - MetricPresentTime;
+
+	MetricFrameTime = Clock::GetTicks() - FrameTimeStart;
+}
+void Application::DrawPerformance() {
+	if (ShowFPS && DEBUG_HasFontSprite) {
 		if (!DEBUG_fontSprite) {
-			bool original = Graphics::TextureInterpolate;
-			Graphics::SetTextureInterpolation(true);
-
-			DEBUG_fontSprite = new ISprite();
-
-			int cols, rows;
-			Texture* spriteSheet = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
-			if (!spriteSheet) {
-				spriteSheet = DEBUG_fontSprite->AddSpriteSheet(
-					"Sprites/Fonts/DebugFont.png");
-			}
-			if (spriteSheet) {
-				cols = spriteSheet->Width / 32;
-				rows = spriteSheet->Height / 32;
-
-				DEBUG_fontSprite->ReserveAnimationCount(1);
-				DEBUG_fontSprite->AddAnimation("Font", 0, 0, cols * rows);
-				for (int i = 0; i < cols * rows; i++) {
-					DEBUG_fontSprite->AddFrame(0,
-						(i % cols) * 32,
-						(i / cols) * 32,
-						32,
-						32,
-						0,
-						0,
-						14);
-				}
-			}
-			DEBUG_fontSprite->RefreshGraphicsID();
-
-			Graphics::SetTextureInterpolation(original);
+			LoadDebugFont();
 		}
+		if (!DEBUG_HasFontSprite) {
+			return;
+		}
+
+		LegacyTextDrawParams textParams;
+		textParams.Align = 0.0f;
+		textParams.Baseline = 0.0f;
+		textParams.Ascent = 1.25f;
+		textParams.Advance = 1.0f;
 
 		int ww, wh;
 		char textBuffer[256];
@@ -1510,14 +1531,14 @@ DO_NOTHING:
 		Graphics::Translate(infoPadding - 2.0, infoPadding, 0.0);
 		Graphics::Scale(0.85, 0.85, 1.0);
 		snprintf(textBuffer, 256, "Frame Information");
-		DEBUG_DrawText(textBuffer, 0.0, 0.0);
+		Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
 		Graphics::Restore();
 
 		Graphics::Save();
 		Graphics::Translate(infoW - infoPadding - (8 * 16.0 * 0.85), infoPadding, 0.0);
 		Graphics::Scale(0.85, 0.85, 1.0);
 		snprintf(textBuffer, 256, "FPS: %03.1f", CurrentFPS);
-		DEBUG_DrawText(textBuffer, 0.0, 0.0);
+		Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
 		Graphics::Restore();
 
 		if (Application::Platform == Platforms::Android || true) {
@@ -1567,7 +1588,7 @@ DO_NOTHING:
 				Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
 				Graphics::Scale(0.6, 0.6, 1.0);
 				snprintf(textBuffer, 256, typeNames[i], types[i]);
-				DEBUG_DrawText(textBuffer, 0.0, 0.0);
+				Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
 				listY += 20.0;
 				Graphics::Restore();
 
@@ -1581,7 +1602,7 @@ DO_NOTHING:
 			Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
 			Graphics::Scale(0.6, 0.6, 1.0);
 			snprintf(textBuffer, 256, "Total Frame Time: %.3f ms", totalFrameCount);
-			DEBUG_DrawText(textBuffer, 0.0, 0.0);
+			Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
 			listY += 20.0;
 			Graphics::Restore();
 
@@ -1592,7 +1613,7 @@ DO_NOTHING:
 			Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
 			Graphics::Scale(0.6, 0.6, 1.0);
 			snprintf(textBuffer, 256, "Overdelay: %.3f ms", Overdelay);
-			DEBUG_DrawText(textBuffer, 0.0, 0.0);
+			Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
 			listY += 20.0;
 			Graphics::Restore();
 
@@ -1618,16 +1639,17 @@ DO_NOTHING:
 			Graphics::Translate(infoPadding / 2.0, listY, 0.0);
 			Graphics::Scale(0.6, 0.6, 1.0);
 			snprintf(textBuffer, 256, "RAM Usage: %.3f %s", count, moniker);
-			DEBUG_DrawText(textBuffer, 0.0, 0.0);
+			Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
 			Graphics::Restore();
 
 			listY += 30.0;
 
 			float* listYPtr = &listY;
 			if (Scene::ObjectLists && Application::Platform != Platforms::Android) {
-				Scene::ObjectLists->WithAll([infoPadding, listYPtr](Uint32,
+				Scene::ObjectLists->WithAll([infoPadding, listYPtr, textParams](Uint32,
 								    ObjectList* list) -> void {
 					char textBufferXXX[1024];
+					LegacyTextDrawParams locTextParams = textParams;
 					if (list->Performance.Update.AverageItemCount > 0.0) {
 						Graphics::Save();
 						Graphics::Translate(
@@ -1642,7 +1664,7 @@ DO_NOTHING:
 								.GetTotalAverageTime(),
 							(int)list->Performance.Render
 								.AverageItemCount);
-						DEBUG_DrawText(textBufferXXX, 0.0, 0.0);
+						Graphics::DrawTextLegacy(DEBUG_fontSprite, textBufferXXX, 0.0, 0.0, &locTextParams);
 						Graphics::Restore();
 
 						*listYPtr += 20.0;
@@ -1652,13 +1674,6 @@ DO_NOTHING:
 		}
 		Graphics::Restore();
 	}
-	MetricFPSCounterTime = Clock::GetTicks() - MetricFPSCounterTime;
-
-	MetricPresentTime = Clock::GetTicks();
-	Graphics::Present();
-	MetricPresentTime = Clock::GetTicks() - MetricPresentTime;
-
-	MetricFrameTime = Clock::GetTicks() - FrameTimeStart;
 }
 void Application::DelayFrame() {
 	double frameTime = Clock::GetTicks() - FrameTimeStart;
@@ -1824,9 +1839,9 @@ void Application::Cleanup() {
 	Application::TerminateScripting();
 
 	if (DEBUG_fontSprite) {
-		DEBUG_fontSprite->Dispose();
 		delete DEBUG_fontSprite;
-		DEBUG_fontSprite = NULL;
+		DEBUG_fontSprite = nullptr;
+		DEBUG_HasFontSprite = true;
 	}
 
 	Application::DisposeSettings();

@@ -45,6 +45,7 @@ CPPFILES := \
 	source/Engine/Bytecode/SourceFileMap.cpp \
 	source/Engine/Bytecode/StandardLibrary.cpp \
 	source/Engine/Bytecode/TypeImpl/ArrayImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/FontImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/FunctionImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MapImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MaterialImpl.cpp \
@@ -73,7 +74,6 @@ CPPFILES := \
 	source/Engine/Filesystem/VFS/VFSEntry.cpp \
 	source/Engine/Filesystem/VFS/VFSProvider.cpp \
 	source/Engine/Filesystem/VFS/VirtualFileSystem.cpp \
-	source/Engine/FontFace.cpp \
 	source/Engine/Graphics.cpp \
 	source/Engine/Hashing/CombinedHash.cpp \
 	source/Engine/Hashing/CRC32.cpp \
@@ -137,6 +137,7 @@ CPPFILES := \
 	source/Engine/Rendering/TextureReference.cpp \
 	source/Engine/Rendering/VertexBuffer.cpp \
 	source/Engine/Rendering/ViewTexture.cpp \
+	source/Engine/ResourceTypes/Font.cpp \
 	source/Engine/ResourceTypes/Image.cpp \
 	source/Engine/ResourceTypes/ImageFormats/GIF.cpp \
 	source/Engine/ResourceTypes/ImageFormats/ImageFormat.cpp \
@@ -268,6 +269,7 @@ PUBHFILES := \
 	include/Engine/Bytecode/SourceFileMap.h \
 	include/Engine/Bytecode/StandardLibrary.h \
 	include/Engine/Bytecode/TypeImpl/ArrayImpl.h \
+	include/Engine/Bytecode/TypeImpl/FontImpl.h \
 	include/Engine/Bytecode/TypeImpl/FunctionImpl.h \
 	include/Engine/Bytecode/TypeImpl/MapImpl.h \
 	include/Engine/Bytecode/TypeImpl/MaterialImpl.h \
@@ -294,7 +296,6 @@ PUBHFILES := \
 	include/Engine/Filesystem/VFS/VFSEntry.h \
 	include/Engine/Filesystem/VFS/VFSProvider.h \
 	include/Engine/Filesystem/VFS/VirtualFileSystem.h \
-	include/Engine/FontFace.h \
 	include/Engine/Graphics.h \
 	include/Engine/Hashing/CombinedHash.h \
 	include/Engine/Hashing/CRC32.h \
@@ -356,6 +357,7 @@ PUBHFILES := \
 	include/Engine/Rendering/TextureReference.h \
 	include/Engine/Rendering/VertexBuffer.h \
 	include/Engine/Rendering/ViewTexture.h \
+	include/Engine/ResourceTypes/Font.h \
 	include/Engine/ResourceTypes/Image.h \
 	include/Engine/ResourceTypes/ImageFormats/GIF.h \
 	include/Engine/ResourceTypes/ImageFormats/ImageFormat.h \

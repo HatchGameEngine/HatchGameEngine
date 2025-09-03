@@ -1,5 +1,5 @@
-#ifndef ENGINE_BYTECODE_TYPEIMPL_SHADERLIMPL_H
-#define ENGINE_BYTECODE_TYPEIMPL_SHADERLIMPL_H
+#ifndef ENGINE_BYTECODE_TYPEIMPL_SHADERIMPL_H
+#define ENGINE_BYTECODE_TYPEIMPL_SHADERIMPL_H
 
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
@@ -34,4 +34,4 @@ public:
 	static VMValue VM_Delete(int argCount, VMValue* args, Uint32 threadID);
 };
 
-#endif /* ENGINE_BYTECODE_TYPEIMPL_SHADERLIMPL_H */
+#endif /* ENGINE_BYTECODE_TYPEIMPL_SHADERIMPL_H */
