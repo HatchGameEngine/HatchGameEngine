@@ -325,6 +325,8 @@ struct ObjEnum {
 struct ObjResource {
 	Obj Object;
 	void* ResourcePtr;
+	ValueGetFn GetFieldFromData;
+	ValueSetFn SetFieldForData;
 };
 struct ObjResourceable {
 	Obj Object;

@@ -41,6 +41,27 @@ void* ResourceableImpl::New(void* ptr) {
 
 #undef SET_IMPL
 
+ValueGetFn ResourceableImpl::GetGetter(Uint8 type) {
+	switch (type) {
+	case RESOURCE_IMAGE:
+		return ImageResourceImpl::VM_PropertyGet;
+	default:
+		break;
+	}
+
+	return nullptr;
+}
+ValueSetFn ResourceableImpl::GetSetter(Uint8 type) {
+	switch (type) {
+	case RESOURCE_IMAGE:
+		return ImageResourceImpl::VM_PropertySet;
+	default:
+		break;
+	}
+
+	return nullptr;
+}
+
 void ResourceableImpl::Dispose(Obj* object) {
 	ObjResourceable* resourceable = (ObjResourceable*)object;
 

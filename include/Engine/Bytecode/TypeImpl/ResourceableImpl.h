@@ -11,6 +11,9 @@ public:
 	static void Init();
 	static void* New(void* ptr);
 	static void Dispose(Obj* object);
+
+	static ValueGetFn GetGetter(Uint8 type);
+	static ValueSetFn GetSetter(Uint8 type);
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_RESOURCEABLEIMPL_H */

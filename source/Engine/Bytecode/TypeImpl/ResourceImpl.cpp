@@ -1,6 +1,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceableImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Types.h>
 #include <Engine/ResourceTypes/Resource.h>
@@ -45,7 +46,12 @@ Obj* ResourceImpl::New(void* resourcePtr) {
 	resource->Object.Destructor = Dispose;
 	resource->Object.PropertyGet = VM_PropertyGet;
 	resource->Object.PropertySet = VM_PropertySet;
+
+	ResourceType* resourceType = (ResourceType*)resourcePtr;
 	resource->ResourcePtr = resourcePtr;
+	resource->GetFieldFromData = ResourceableImpl::GetGetter(resourceType->Type);
+	resource->SetFieldForData = ResourceableImpl::GetSetter(resourceType->Type);
+
 	return (Obj*)resource;
 }
 
@@ -113,6 +119,13 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 			*result = NULL_VAL;
 		}
 	}
+	else if (objResource->GetFieldFromData) {
+		Obj* obj = nullptr;
+		if (resource->AsResourceable) {
+			obj = (Obj*)resource->AsResourceable->GetVMObject();
+		}
+		return objResource->GetFieldFromData(obj, hash, result, threadID);
+	}
 	else {
 		return false;
 	}
@@ -121,13 +134,26 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 }
 
 bool ResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
+	ObjResource* objResource = (ObjResource*)object;
+	ResourceType* resource = (ResourceType*)objResource->ResourcePtr;
+
 	if (hash == Hash_Type || hash == Hash_Filename || hash == Hash_Loaded ||
 		hash == Hash_Scope || hash == Hash_Data) {
 		THROW_ERROR("Field cannot be written to!");
 		return true;
 	}
+	else if (objResource->SetFieldForData) {
+		Obj* obj = nullptr;
+		if (resource->AsResourceable) {
+			obj = (Obj*)resource->AsResourceable->GetVMObject();
+		}
+		return objResource->SetFieldForData(obj, hash, value, threadID);
+	}
+	else {
+		return false;
+	}
 
-	return false;
+	return true;
 }
 
 VMValue ResourceImpl::VM_Reload(int argCount, VMValue* args, Uint32 threadID) {

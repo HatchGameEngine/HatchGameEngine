@@ -21,8 +21,16 @@ void ImageResourceImpl::Init() {
 	TypeImpl::DefinePrintableName(Class, "image");
 }
 
+bool IsValidField(Uint32 hash) {
+	return hash == Hash_Width || hash == Hash_Height;
+}
+
 bool ImageResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
-	Resourceable* resourceable = GET_RESOURCEABLE(object);
+	if (!IsValidField(hash)) {
+		return false;
+	}
+
+	Resourceable* resourceable = object ? GET_RESOURCEABLE(object) : nullptr;
 	if (!resourceable || !resourceable->IsLoaded()) {
 		THROW_ERROR("Image is no longer loaded!");
 		return true;
@@ -36,15 +44,16 @@ bool ImageResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result
 	else if (hash == Hash_Height) {
 		*result = INTEGER_VAL((int)image->TexturePtr->Height);
 	}
-	else {
-		return false;
-	}
 
 	return true;
 }
 
 bool ImageResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue result, Uint32 threadID) {
-	Resourceable* resourceable = GET_RESOURCEABLE(object);
+	if (!IsValidField(hash)) {
+		return false;
+	}
+
+	Resourceable* resourceable = object ? GET_RESOURCEABLE(object) : nullptr;
 	if (!resourceable || !resourceable->IsLoaded()) {
 		THROW_ERROR("Image is no longer loaded!");
 		return true;
@@ -52,6 +61,7 @@ bool ImageResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue result,
 
 	if (hash == Hash_Width || hash == Hash_Height) {
 		THROW_ERROR("Field cannot be written to!");
+		return true;
 	}
 	else {
 		return false;
