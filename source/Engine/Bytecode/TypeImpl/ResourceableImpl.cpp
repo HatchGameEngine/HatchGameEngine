@@ -1,7 +1,8 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ResourceableImpl.h>
-#include <Engine/Bytecode/TypeImpl/ResourceImpl/ImageResourceImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 
@@ -12,13 +13,9 @@ void ResourceableImpl::Init() {
 
 	TypeImpl::RegisterClass(Class);
 
-	ImageResourceImpl::Init();
+	AudioImpl::Init();
+	ImageImpl::Init();
 }
-
-#define SET_IMPL(className) \
-	obj->Object.Class = className::Class; \
-	obj->Object.PropertyGet = className::VM_PropertyGet; \
-	obj->Object.PropertySet = className::VM_PropertySet
 
 void* ResourceableImpl::New(void* ptr) {
 	ObjResourceable* obj =
@@ -27,39 +24,53 @@ void* ResourceableImpl::New(void* ptr) {
 	obj->Object.Destructor = ResourceableImpl::Dispose;
 	obj->ResourceablePtr = ptr;
 
+#define CASE(type, className) \
+	case RESOURCE_##type: \
+		obj->Object.Class = className##Impl::Class; \
+		obj->Object.PropertyGet = className##Impl::VM_PropertyGet; \
+		obj->Object.PropertySet = className##Impl::VM_PropertySet; \
+		break
+
 	Resourceable* resourceable = (Resourceable*)ptr;
 	switch (resourceable->Type) {
-	case RESOURCE_IMAGE:
-		SET_IMPL(ImageResourceImpl);
-		break;
+	CASE(IMAGE, Image);
+	CASE(AUDIO, Audio);
 	default:
 		break;
 	}
+
+#undef CASE
 
 	return (void*)obj;
 }
 
-#undef SET_IMPL
-
 ValueGetFn ResourceableImpl::GetGetter(Uint8 type) {
+#define CASE(type, className) \
+	case RESOURCE_##type: \
+		return className##Impl::VM_PropertyGet \
+
 	switch (type) {
-	case RESOURCE_IMAGE:
-		return ImageResourceImpl::VM_PropertyGet;
+	CASE(IMAGE, Image);
+	CASE(AUDIO, Audio);
 	default:
-		break;
+		return nullptr;
 	}
 
-	return nullptr;
+#undef CASE
 }
 ValueSetFn ResourceableImpl::GetSetter(Uint8 type) {
+#define CASE(type, className) \
+	case RESOURCE_##type: \
+		return className##Impl::VM_PropertySet \
+
 	switch (type) {
-	case RESOURCE_IMAGE:
-		return ImageResourceImpl::VM_PropertySet;
+	CASE(IMAGE, Image);
+	CASE(AUDIO, Audio);
 	default:
-		break;
+		return nullptr;
 	}
 
-	return nullptr;
+#undef CASE
 }
 
 void ResourceableImpl::Dispose(Obj* object) {

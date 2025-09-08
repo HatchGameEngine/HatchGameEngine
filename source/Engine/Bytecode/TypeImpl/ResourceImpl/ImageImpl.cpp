@@ -1,8 +1,8 @@
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/TypeImpl/ResourceImpl/ImageResourceImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
-ObjClass* ImageResourceImpl::Class = nullptr;
+ObjClass* ImageImpl::Class = nullptr;
 
 Uint32 Hash_Width = 0;
 Uint32 Hash_Height = 0;
@@ -11,7 +11,7 @@ Uint32 Hash_Height = 0;
 
 #define GET_RESOURCEABLE(object) (Resourceable*)(((ObjResourceable*)object)->ResourceablePtr)
 
-void ImageResourceImpl::Init() {
+void ImageImpl::Init() {
 	Class = NewClass("ImageResource");
 
 	Hash_Width = Murmur::EncryptString("Width");
@@ -21,11 +21,11 @@ void ImageResourceImpl::Init() {
 	TypeImpl::DefinePrintableName(Class, "image");
 }
 
-bool IsValidField(Uint32 hash) {
+bool ImageImpl::IsValidField(Uint32 hash) {
 	return hash == Hash_Width || hash == Hash_Height;
 }
 
-bool ImageResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
+bool ImageImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
 	if (!IsValidField(hash)) {
 		return false;
 	}
@@ -48,7 +48,7 @@ bool ImageResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result
 	return true;
 }
 
-bool ImageResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue result, Uint32 threadID) {
+bool ImageImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
 	if (!IsValidField(hash)) {
 		return false;
 	}

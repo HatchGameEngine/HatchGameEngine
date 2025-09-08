@@ -10601,10 +10601,9 @@ VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Music
  */
 VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	// TODO: Move to Audio.GetLoopPoint
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetAudio);
-	if (!audio || audio->LoopPoint == -1) {
+	if (!audio || audio->LoopPoint < 0) {
 		return NULL_VAL;
 	}
 	return INTEGER_VAL(audio->LoopPoint);
@@ -10617,7 +10616,6 @@ VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Music
  */
 VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	// TODO: Move to Audio.SetLoopPoint
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetAudio);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
@@ -15138,10 +15136,9 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sound
  */
 VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	// TODO: Move to Audio.GetLoopPoint
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetAudio);
-	if (!audio || audio->LoopPoint == -1) {
+	if (!audio || audio->LoopPoint < 0) {
 		return NULL_VAL;
 	}
 	return INTEGER_VAL(audio->LoopPoint);
@@ -15154,7 +15151,6 @@ VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sound
  */
 VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	// TODO: Move to Audio.SetLoopPoint
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetAudio);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
