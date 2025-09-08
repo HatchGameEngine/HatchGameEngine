@@ -48,6 +48,16 @@ void* Resource::GetVMObject(ResourceType* resource) {
 	return resource->VMObject;
 }
 
+void Resource::SetVMObject(ResourceType* resource, void* obj) {
+	ReleaseVMObject(resource);
+
+	if (obj != nullptr) {
+		ResourceImpl::SetOwner((Obj*)obj, (void*)resource);
+		Resource::TakeRef(resource);
+		resource->VMObject = obj;
+	}
+}
+
 void Resource::ReleaseVMObject(ResourceType* resource) {
 	if (resource->VMObject != nullptr) {
 		resource->VMObject = nullptr;

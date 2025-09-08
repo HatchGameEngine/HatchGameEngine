@@ -9,8 +9,9 @@ public:
 	static ObjClass* Class;
 
 	static void Init();
+	static Obj* New();
 	static Obj* New(void* resourcePtr);
-	static Obj* DummyNew(void);
+	static void SetOwner(Obj* obj, void* resourcePtr);
 	static void Dispose(Obj* object);
 	static VMValue VM_Initializer(int argCount, VMValue* args, Uint32 threadID);
 

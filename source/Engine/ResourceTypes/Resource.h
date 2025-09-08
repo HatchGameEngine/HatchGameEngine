@@ -20,6 +20,7 @@ public:
 	static void DisposeInScope(Uint32 scope);
 	static void DisposeAll();
 	static void* GetVMObject(ResourceType* resource);
+	static void SetVMObject(ResourceType* resource, void* obj);
 	static void ReleaseVMObject(ResourceType* resource);
 	static bool CompareVMObjects(void* a, void* b);
 	static ResourceType* Load(Uint8 type, const char* filename, int unloadPolicy);

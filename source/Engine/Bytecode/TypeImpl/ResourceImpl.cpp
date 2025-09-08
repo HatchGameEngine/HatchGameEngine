@@ -19,7 +19,7 @@ Uint32 Hash_Data = 0;
 
 void ResourceImpl::Init() {
 	Class = NewClass(CLASS_RESOURCE);
-	Class->NewFn = DummyNew;
+	Class->NewFn = New;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 
 	Hash_Type = Murmur::EncryptString("Type");
@@ -39,25 +39,30 @@ void ResourceImpl::Init() {
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
 	(argIndex < argCount ? GET_ARG(argIndex, argFunction) : argDefault)
 
-Obj* ResourceImpl::New(void* resourcePtr) {
+Obj* ResourceImpl::New() {
 	ObjResource* resource = (ObjResource*)AllocateObject(sizeof(ObjResource), OBJ_RESOURCE);
 	Memory::Track(resource, "NewResource");
 	resource->Object.Class = Class;
 	resource->Object.Destructor = Dispose;
 	resource->Object.PropertyGet = VM_PropertyGet;
 	resource->Object.PropertySet = VM_PropertySet;
-
-	ResourceType* resourceType = (ResourceType*)resourcePtr;
-	resource->ResourcePtr = resourcePtr;
-	resource->GetFieldFromData = ResourceableImpl::GetGetter(resourceType->Type);
-	resource->SetFieldForData = ResourceableImpl::GetSetter(resourceType->Type);
-
 	return (Obj*)resource;
 }
 
-Obj* ResourceImpl::DummyNew() {
-	// Don't worry about it.
-	return nullptr;
+Obj* ResourceImpl::New(void* resourcePtr) {
+	Obj* obj = New();
+	SetOwner(obj, resourcePtr);
+	return obj;
+}
+
+void ResourceImpl::SetOwner(Obj* obj, void* resourcePtr) {
+	ObjResource* resource = (ObjResource*)obj;
+	if (resourcePtr) {
+		ResourceType* resourceType = (ResourceType*)resourcePtr;
+		resource->ResourcePtr = resourcePtr;
+		resource->GetFieldFromData = ResourceableImpl::GetGetter(resourceType->Type);
+		resource->SetFieldForData = ResourceableImpl::GetSetter(resourceType->Type);
+	}
 }
 
 void ResourceImpl::Dispose(Obj* object) {
@@ -70,6 +75,7 @@ void ResourceImpl::Dispose(Obj* object) {
 
 VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
+	ObjResource* objResource = AS_RESOURCE(args[0]);
 	char* filename = GET_ARG(1, GetString);
 	int unloadPolicy = GET_ARG_OPT(2, GetInteger, SCOPE_GAME);
 
@@ -78,7 +84,8 @@ VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 	if (filename != nullptr) {
 		ResourceType* resource = Resource::Load(RESOURCE_NONE, filename, unloadPolicy);
 		if (resource != nullptr) {
-			value = OBJECT_VAL(Resource::GetVMObject(resource));
+			Resource::SetVMObject(resource, (void*)objResource);
+			value = OBJECT_VAL(objResource);
 		}
 	}
 
