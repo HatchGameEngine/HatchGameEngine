@@ -27,6 +27,7 @@ public:
 	void RemoveNonPersistentFromLinkedList(Entity* first, int persistence);
 	void RemoveNonPersistentFromLinkedList(Entity* first);
 	void ResetPerf();
+	int GetID(Entity *obj);
 	Entity* GetNth(int n);
 	Entity* GetClosest(int x, int y);
 	int Count();

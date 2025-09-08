@@ -39,6 +39,7 @@ public:
 	bool Blending = false;
 	Uint8 BlendMode = 0; // BlendMode_NORMAL
 	float Opacity = 1.0f;
+	void* CurrentShader = nullptr;
 	bool UsePaletteIndexLines = false;
 	bool UsingCustomScanlineFunction = false;
 	ObjFunction CustomScanlineFunction;

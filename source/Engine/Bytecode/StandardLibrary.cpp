@@ -6,10 +6,13 @@
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/FontImpl.h>
+#include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
+#include <Engine/Error.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Graphics.h>
@@ -29,6 +32,7 @@
 #include <Engine/Math/Random.h>
 #include <Engine/Network/HTTP.h>
 #include <Engine/Network/WebSocketClient.h>
+#include <Engine/Platforms/Capability.h>
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
 #include <Engine/Rendering/ViewTexture.h>
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
@@ -45,11 +49,6 @@
 #include <Engine/Utilities/StringUtils.h>
 
 #include <Libraries/jsmn.h>
-
-#ifdef USING_FREETYPE
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#endif
 
 #define NANOPRINTF_IMPLEMENTATION
 #define NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS 1
@@ -292,6 +291,42 @@ inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline ObjShader* GetShader(VMValue* args, int index, Uint32 threadID) {
+	ObjShader* value = nullptr;
+	if (ScriptManager::Lock()) {
+		if (IS_SHADER(args[index])) {
+			value = AS_SHADER(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(ShaderImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
+inline ObjFont* GetFont(VMValue* args, int index, Uint32 threadID) {
+	ObjFont* value = nullptr;
+	if (ScriptManager::Lock()) {
+		if (IS_FONT(args[index])) {
+			value = AS_FONT(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(FontImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 inline ResourceType* GetResource(VMValue* args, int index, Uint32 threadID) {
 	if (IS_RESOURCE(args[index])) {
 		void* ptr = ((ObjResource*)(AS_OBJECT(args[index])))->ResourcePtr;
@@ -463,6 +498,9 @@ ObjMap* StandardLibrary::GetMap(VMValue* args, int index, Uint32 threadID) {
 ISprite* StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetSprite(args, index, threadID);
 }
+Image* StandardLibrary::GetImage(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetImage(args, index, threadID);
+}
 void* StandardLibrary::GetResource(VMValue* args, int index, Uint32 threadID) {
 	return (void*)LOCAL::GetResource(args, index, threadID);
 }
@@ -477,6 +515,12 @@ ObjEntity* StandardLibrary::GetEntity(VMValue* args, int index, Uint32 threadID)
 }
 ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetFunction(args, index, threadID);
+}
+ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetShader(args, index, threadID);
+}
+ObjFont* StandardLibrary::GetFont(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetFont(args, index, threadID);
 }
 
 void StandardLibrary::CheckArgCount(int argCount, int expects) {
@@ -537,6 +581,11 @@ void AddToMap(ObjMap* map, const char* key, VMValue value) {
 	map->Keys->Put(hash, keyString);
 	map->Values->Put(hash, value);
 }
+
+float textAlign;
+float textBaseline;
+float textAscent;
+float textAdvance;
 
 #define CHECK_READ_STREAM \
 	if (stream->Closed) { \
@@ -1303,8 +1352,8 @@ VMValue Application_GetCommandLineArguments(int argCount, VMValue* args, Uint32 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = NewArray();
 		for (size_t i = 0; i < Application::CmdLineArgs.size(); i++) {
-			array->Values->push_back(
-				OBJECT_VAL(CopyString(Application::CmdLineArgs[i])));
+			ObjString* argString = CopyString(Application::CmdLineArgs[i]);
+			array->Values->push_back(OBJECT_VAL(argString));
 		}
 		ScriptManager::Unlock();
 		return OBJECT_VAL(array);
@@ -1442,16 +1491,6 @@ VMValue Application_SetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
- * Application.Quit
- * \desc Closes the application.
- * \ns Application
- */
-VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	Application::Running = false;
-	return NULL_VAL;
-}
-/***
  * Application.GetGameTitle
  * \desc Gets the game title of the application.
  * \ns Application
@@ -1560,6 +1599,89 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 		return INTEGER_VAL(1);
 	}
 	return INTEGER_VAL(0);
+}
+/***
+ * Application.ChangeGame
+ * \desc Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead. Only <code>game://</code> and <code>user://</code> URLs are supported (or an absolute path that resolves to those locations).<br/><br/>\
+This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>\
+The change only takes effect after a frame completes.<br/><br/>\
+Note that certain game configurations will persist between games if not set by the new GameConfig:<ul>\
+<li>Game-identifying configurations:</li><ul>\
+<li>Game title (including the short game title)</li>\
+<li>Game version</li>\
+<li>Game description</li>\
+<li>Game developer</li>\
+<li>Game identifier</li>\
+<li>Developer identifier</li>\
+</ul>\
+<li>Paths:</li><ul>\
+<li>Saves directory</li>\
+<li>Preferences directory</li>\
+</ul>\
+<li>Engine configurations:</li><ul>\
+<li>Window size</li>\
+<li>Audio volume</li>\
+<li>Settings filename</li>\
+<ul>If this is changed, the current settings are discarded (not saved) and the new settings file is loaded. If the file does not exist, however, default settings will be loaded.</ul>\
+</ul></ul>\
+Some of the game's current state also persists between games:<ul>\
+<li>Command line arguments (unless <code>cmdLineArgs</code> is passed to this function)</li>\
+<li>Palette colors</li>\
+<li>Whether palette rendering is enabled</li>\
+<li>Whether software rendering was enabled with <code>useSoftwareRenderer</code></li>\
+</ul>\
+The following <b>does not</b> persist between games:<ul>\
+<li>Any loaded resources</li>\
+<li>Any persistent entities</li>\
+<li>Scripting state</li>\
+</ul>\
+The following <b>cannot</b> be changed between games:<ul>\
+<li>Log file name</li>\
+<li>Graphics rendering backend</li>\
+</ul>
+ * \param path (String): The path of the data file to load.
+ * \paramOpt startingScene (String): The filename of the scene file to load upon changing the game. Note that restarting the game will load the starting scene defined in its GameConfig instead. Passing <code>null</code> to this argument is equivalent to not passing it at all.
+ * \paramOpt cmdLineArgs (Array): An Array of Strings containing the command line arguments to pass to the new game. If any of the values are not Strings, they will be converted to a String representation. If this argument is not given, the current command line arguments will be passed to the new game.
+ * \return Returns <code>true</code> if the game will change, <code>false</code> if otherwise.
+ * \ns Application
+ */
+VMValue Application_ChangeGame(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* path = GET_ARG(0, GetString);
+	char* startingScene = nullptr;
+	ObjArray* cmdLineArgsArray = GET_ARG_OPT(2, GetArray, nullptr);
+	std::vector<std::string>* cmdLineArgs = nullptr;
+
+	if (argCount >= 2 && !IS_NULL(args[1])) {
+		startingScene = GET_ARG(1, GetString);
+	}
+
+	if (cmdLineArgsArray) {
+		cmdLineArgs = new std::vector<std::string>();
+
+		for (size_t i = 0; i < cmdLineArgsArray->Values->size(); i++) {
+			std::string arg = Value::ToString((*cmdLineArgsArray->Values)[i]);
+			cmdLineArgs->push_back(arg);
+		}
+	}
+
+	bool exists = Application::SetNextGame(path, startingScene, cmdLineArgs);
+	if (!exists) {
+		delete cmdLineArgs;
+		return INTEGER_VAL(false);
+	}
+
+	return INTEGER_VAL(true);
+}
+/***
+ * Application.Quit
+ * \desc Closes the application.
+ * \ns Application
+ */
+VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	Application::Running = false;
+	return NULL_VAL;
 }
 // #endregion
 
@@ -2667,7 +2789,7 @@ VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Device.IsPC
  * \desc Determines whether or not the application is running on a personal computer OS (Windows, MacOS, Linux).
- * \return Returns 1 if the device is on a PC, 0 if otherwise.
+ * \return Returns <code>true</code> if the device is on a PC, <code>false</code> if otherwise.
  * \ns Device
  */
 VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
@@ -2678,13 +2800,47 @@ VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Device.IsMobile
  * \desc Determines whether or not the application is running on a mobile device.
- * \return Returns 1 if the device is on a mobile device, 0 if otherwise.
+ * \return Returns <code>true</code> if the device is on a mobile device, <code>false</code> if otherwise.
  * \ns Device
  */
 VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	bool isMobile = Application::IsMobile();
 	return INTEGER_VAL((int)isMobile);
+}
+/***
+ * Device.GetCapability
+ * \desc Checks a capability of the device the application is running on.
+ * \param capability (String): The capability.
+ * \return The return value of this function depends on the capability being queried; however, if the capability is not present, this function returns <code>null</code>.
+ * \ns Device
+ */
+VMValue Device_GetCapability(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	char* capType = GET_ARG(0, GetString);
+
+	Capability capability = Application::GetCapability(capType);
+
+	switch (capability.Type) {
+	case Capability::TYPE_INTEGER:
+		return INTEGER_VAL(capability.AsInteger);
+	case Capability::TYPE_DECIMAL:
+		return DECIMAL_VAL(capability.AsDecimal);
+	case Capability::TYPE_BOOL:
+		return INTEGER_VAL(capability.AsBoolean ? 1 : 0);
+	case Capability::TYPE_STRING:
+		if (ScriptManager::Lock()) {
+			VMValue value = OBJECT_VAL(TakeString(capability.AsString));
+			ScriptManager::Unlock();
+			return value;
+		}
+		else {
+			Memory::Free(capability.AsString); // Oh, okay...
+		}
+		break;
+	}
+
+	return NULL_VAL;
 }
 // #endregion
 
@@ -2693,7 +2849,7 @@ VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
  * Directory.Create
  * \desc Creates a folder at the path.
  * \param path (String): The path of the folder to create.
- * \return Returns 1 if the folder creation was successful, 0 if otherwise
+ * \return Returns <code>true</code> if the folder creation was successful, <code>false</code> if otherwise.
  * \ns Directory
  */
 VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -2705,7 +2861,7 @@ VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
  * Directory.Exists
  * \desc Determines if the folder at the path exists.
  * \param path (String): The path of the folder to check for existence.
- * \return Returns 1 if the folder exists, 0 if otherwise
+ * \return Returns <code>true</code> if the folder exists, <code>false</code> if otherwise.
  * \ns Directory
  */
 VMValue Directory_Exists(int argCount, VMValue* args, Uint32 threadID) {
@@ -3295,14 +3451,18 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
  * \param image (Resoure): An image resource.
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	Image* image = GET_ARG(0, GetImage);
 	float x = GET_ARG(1, GetDecimal);
 	float y = GET_ARG(2, GetDecimal);
+	int paletteID = GET_ARG_OPT(3, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
 		Graphics::DrawTexture(image->TexturePtr,
@@ -3313,7 +3473,8 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
 			x,
 			y,
 			image->TexturePtr->Width,
-			image->TexturePtr->Height);
+			image->TexturePtr->Height,
+			paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3327,10 +3488,11 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
  * \param partH (Integer): Height of part of image to draw.
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(7);
+	CHECK_AT_LEAST_ARGCOUNT(7);
 
 	Image* image = GET_ARG(0, GetImage);
 	float sx = GET_ARG(1, GetDecimal);
@@ -3339,9 +3501,21 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 	float sh = GET_ARG(4, GetDecimal);
 	float x = GET_ARG(5, GetDecimal);
 	float y = GET_ARG(6, GetDecimal);
+	int paletteID = GET_ARG_OPT(7, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
-		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, sw, sh);
+		Graphics::DrawTexture(image->TexturePtr,
+			sx,
+			sy,
+			sw,
+			sh,
+			x,
+			y,
+			sw,
+			sh,
+			paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3353,16 +3527,20 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (Number): Y position of where to draw the image.
  * \param width (Number): Width to draw the image.
  * \param height (Number): Height to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(5);
 
 	Image* image = GET_ARG(0, GetImage);
 	float x = GET_ARG(1, GetDecimal);
 	float y = GET_ARG(2, GetDecimal);
 	float w = GET_ARG(3, GetDecimal);
 	float h = GET_ARG(4, GetDecimal);
+	int paletteID = GET_ARG_OPT(5, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
 		Graphics::DrawTexture(image->TexturePtr,
@@ -3373,7 +3551,8 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
 			x,
 			y,
 			w,
-			h);
+			h,
+			paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3389,10 +3568,11 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (Number): Y position of where to draw the image.
  * \param width (Number): Width to draw the image.
  * \param height (Number): Height to draw the image.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(9);
+	CHECK_AT_LEAST_ARGCOUNT(9);
 
 	Image* image = GET_ARG(0, GetImage);
 	float sx = GET_ARG(1, GetDecimal);
@@ -3403,9 +3583,12 @@ VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
 	float y = GET_ARG(6, GetDecimal);
 	float w = GET_ARG(7, GetDecimal);
 	float h = GET_ARG(8, GetDecimal);
+	int paletteID = GET_ARG_OPT(9, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
-		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, w, h);
+		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, w, h, paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3673,6 +3856,8 @@ VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt flipY (Integer): Whether or not to flip the tile vertically.
  * \paramOpt scaleX (Number): Horizontal scale multiplier of the tile.
  * \paramOpt scaleY (Number): Vertical scale multiplier of the tile.
+ * \paramOpt rotation (Number): Rotation of the drawn tile in radians.
+ * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
@@ -3685,10 +3870,23 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 	int flipY = GET_ARG_OPT(4, GetInteger, false);
 	float scaleX = GET_ARG_OPT(5, GetDecimal, 1.0f);
 	float scaleY = GET_ARG_OPT(6, GetDecimal, 1.0f);
+	float rotation = GET_ARG_OPT(7, GetDecimal, 0.0f);
+	int paletteID = -1;
+
+	if (argCount >= 9) {
+		paletteID = GET_ARG(8, GetInteger);
+
+		CHECK_PALETTE_INDEX(paletteID);
+	}
 
 	TileSpriteInfo info;
 	if (id < Scene::TileSpriteInfos.size() &&
 		(info = Scene::TileSpriteInfos[id]).Sprite != NULL) {
+
+		if (paletteID == -1) {
+			paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+		}
+
 		Graphics::DrawSprite(info.Sprite,
 			info.AnimationIndex,
 			info.FrameIndex,
@@ -3698,7 +3896,8 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 			flipY,
 			scaleX,
 			scaleY,
-			0.0f);
+			rotation,
+			paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3797,29 +3996,10 @@ VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
 	}
 	return NULL_VAL;
 }
-
-float textAlign = 0.0f;
-float textBaseline = 0.0f;
-float textAscent = 1.25f;
-float textAdvance = 1.0f;
-int _Text_GetLetter(int l) {
-	if (l < 0) {
-		return ' ';
-	}
-	return l;
-}
-/***
- * Draw.SetFont
- * \desc
- * \return
- * \ns Draw
- */
-VMValue Draw_SetFont(int argCount, VMValue* args, Uint32 threadID) {
-	return NULL_VAL;
-}
 /***
  * Draw.SetTextAlign
- * \desc Sets the text drawing horizontal alignment. (default: left)
+ * \desc Sets the text drawing horizontal alignment. (default: left)<br/>\
+This does not affect text drawn using a Font.
  * \param baseline (Integer): 0 for left, 1 for center, 2 for right.
  * \ns Draw
  */
@@ -3829,7 +4009,8 @@ VMValue Draw_SetTextAlign(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextBaseline
- * \desc Sets the text drawing vertical alignment. (default: top)
+ * \desc Sets the text drawing vertical alignment. (default: top)<br/>\
+This does not affect text drawn using a Font.
  * \param baseline (Integer): 0 for top, 1 for baseline, 2 for bottom.
  * \ns Draw
  */
@@ -3839,7 +4020,8 @@ VMValue Draw_SetTextBaseline(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextAdvance
- * \desc Sets the character spacing multiplier. (default: 1.0)
+ * \desc Sets the character spacing multiplier. (default: 1.0)<br/>\
+This does not affect text drawn using a Font.
  * \param ascent (Number): Multiplier for character spacing.
  * \ns Draw
  */
@@ -3850,7 +4032,8 @@ VMValue Draw_SetTextAdvance(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextLineAscent
- * \desc Sets the line height multiplier. (default: 1.25)
+ * \desc Sets the line height multiplier. (default: 1.25)<br/>\
+This does not affect text drawn using a Font.
  * \param ascent (Number): Multiplier for line height.
  * \ns Draw
  */
@@ -3861,47 +4044,46 @@ VMValue Draw_SetTextLineAscent(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.MeasureText
- * \desc Measures Extended UTF8 text using a sprite or font and stores max width and max height into the array.
+ * \desc Measures UTF-8 text using a font and stores max width and max height into the array.
  * \param outArray (Array): Array to output size values to.
- * \param sprite (Resource): The sprite resource to be used as text.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to measure.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \return Returns the array inputted into the function.
  * \ns Draw
  */
 VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	ObjArray* array = GET_ARG(0, GetArray);
-	ISprite* sprite = GET_ARG(1, GetSprite);
 	char* text = GET_ARG(2, GetString);
+	float fontSize = GET_ARG_OPT(3, GetDecimal, 0.0f);
 
-	if (!sprite) {
-		return NULL_VAL;
+	float maxW = 0.0f, maxH = 0.0f;
+
+	if (IS_FONT(args[1])) {
+		ObjFont* objFont = GET_ARG(1, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 4) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+
+		Graphics::MeasureText(font, text, &params, maxW, maxH);
 	}
-
-	float x = 0.0, y = 0.0;
-	float maxW = 0.0, maxH = 0.0;
-	float lineHeight = sprite->Animations[0].FrameToLoop;
-	for (char* i = text; *i; i++) {
-		if (*i == '\n') {
-			x = 0.0;
-			y += lineHeight * textAscent;
-			goto __MEASURE_Y;
-		}
-
-		x += sprite->Animations[0].Frames[*i].Advance * textAdvance;
-
-		if (maxW < x) {
-			maxW = x;
-		}
-
-	__MEASURE_Y:
-		if (maxH < y +
-				(sprite->Animations[0].Frames[*i].Height -
-					sprite->Animations[0].Frames[*i].OffsetY)) {
-			maxH = y +
-				(sprite->Animations[0].Frames[*i].Height -
-					sprite->Animations[0].Frames[*i].OffsetY);
+	else {
+		ISprite* sprite = GET_ARG(1, GetSprite);
+		if (sprite) {
+			LegacyTextDrawParams params;
+			params.Ascent = textAscent;
+			params.Advance = textAdvance;
+			Graphics::MeasureTextLegacy(sprite, text, &params, maxW, maxH);
 		}
 	}
 
@@ -3916,12 +4098,13 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.MeasureTextWrapped
- * \desc Measures wrapped Extended UTF8 text using a sprite or font and stores max width and max height into the array.
+ * \desc Measures wrapped UTF-8 text using a font and stores max width and max height into the array.
  * \param outArray (Array): Array to output size values to.
- * \param sprite (Resource): The sprite resource to be used as text.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to measure.
  * \param maxWidth (Number): Max width that a line can be.
- * \paramOpt maxLines (Integer): Max number of lines to measure.
+ * \paramOpt maxLines (Integer): Max number of lines to measure. Use <code>null</code> to measure all lines.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \return Returns the array inputted into the function.
  * \ns Draw
  */
@@ -3929,88 +4112,46 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(4);
 
 	ObjArray* array = GET_ARG(0, GetArray);
-	ISprite* sprite = GET_ARG(1, GetSprite);
 	char* text = GET_ARG(2, GetString);
-	float max_w = GET_ARG(3, GetDecimal);
-	int maxLines = 0x7FFFFFFF;
-	if (argCount > 4) {
+	float maxWidth = GET_ARG(3, GetDecimal);
+	int maxLines = 0;
+	if (argCount > 4 && !IS_NULL(args[4])) {
 		maxLines = GET_ARG(4, GetInteger);
 	}
+	float fontSize = GET_ARG_OPT(5, GetDecimal, 0.0f);
 
-	if (!sprite) {
-		return NULL_VAL;
-	}
+	float maxW = 0.0f, maxH = 0.0f;
 
-	int word = 0;
-	char* linestart = text;
-	char* wordstart = text;
+	if (IS_FONT(args[1])) {
+		ObjFont* objFont = GET_ARG(1, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
 
-	float x = 0.0, y = 0.0;
-	float maxW = 0.0, maxH = 0.0;
-	float lineHeight = sprite->Animations[0].FrameToLoop;
-
-	int lineNo = 1;
-	for (char* i = text;; i++) {
-		if (((*i == ' ' || *i == 0) && i != wordstart) || *i == '\n') {
-			float testWidth = 0.0f;
-			for (char* o = linestart; o < i; o++) {
-				testWidth += sprite->Animations[0].Frames[*o].Advance * textAdvance;
-			}
-			if ((testWidth > max_w && word > 0) || *i == '\n') {
-				x = 0.0f;
-				for (char* o = linestart; o < wordstart - 1; o++) {
-					x += sprite->Animations[0].Frames[*o].Advance * textAdvance;
-
-					if (maxW < x) {
-						maxW = x;
-					}
-					if (maxH < y +
-							(sprite->Animations[0].Frames[*o].Height +
-								sprite->Animations[0]
-									.Frames[*o]
-									.OffsetY)) {
-						maxH = y +
-							(sprite->Animations[0].Frames[*o].Height +
-								sprite->Animations[0]
-									.Frames[*o]
-									.OffsetY);
-					}
-				}
-
-				if (lineNo == maxLines) {
-					goto FINISH;
-				}
-				lineNo++;
-
-				linestart = wordstart;
-				y += lineHeight * textAscent;
-			}
-
-			wordstart = i + 1;
-			word++;
+		if (argCount < 6) {
+			fontSize = font->Size;
 		}
 
-		if (!*i) {
-			break;
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+
+		Graphics::MeasureTextWrapped(font, text, &params, maxW, maxH);
+	}
+	else {
+		ISprite* sprite = GET_ARG(1, GetSprite);
+		if (sprite) {
+			LegacyTextDrawParams params;
+			params.Ascent = textAscent;
+			params.Advance = textAdvance;
+			params.MaxWidth = maxWidth;
+			params.MaxLines = maxLines;
+			Graphics::MeasureTextLegacy(sprite, text, &params, maxW, maxH);
 		}
 	}
 
-	x = 0.0f;
-	for (char* o = linestart; *o; o++) {
-		x += sprite->Animations[0].Frames[*o].Advance * textAdvance;
-		if (maxW < x) {
-			maxW = x;
-		}
-		if (maxH < y +
-				(sprite->Animations[0].Frames[*o].Height +
-					sprite->Animations[0].Frames[*o].OffsetY)) {
-			maxH = y +
-				(sprite->Animations[0].Frames[*o].Height +
-					sprite->Animations[0].Frames[*o].OffsetY);
-		}
-	}
-
-FINISH:
 	if (ScriptManager::Lock()) {
 		array->Values->clear();
 		array->Values->push_back(DECIMAL_VAL(maxW));
@@ -4022,287 +4163,173 @@ FINISH:
 }
 /***
  * Draw.Text
- * \desc Draws Extended UTF8 text using a sprite or font.
- * \param sprite (Resource): The sprite resource to be used as text.
+ * \desc Draws UTF-8 text using a font.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to draw.
  * \param x (Number): X position of where to draw the text.
  * \param y (Number): Y position of where to draw the text.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
+	CHECK_AT_LEAST_ARGCOUNT(4);
+
+	char* text = GET_ARG(1, GetString);
+	float x = GET_ARG(2, GetDecimal);
+	float y = GET_ARG(3, GetDecimal);
+	float fontSize = GET_ARG_OPT(4, GetDecimal, 0.0f);
+
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 5) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+
+		Graphics::DrawText(font, text, x, y, &params);
+
+		return NULL_VAL;
+	}
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	char* text = GET_ARG(1, GetString);
-	float basex = GET_ARG(2, GetDecimal);
-	float basey = GET_ARG(3, GetDecimal);
-
-	float x = basex;
-	float y = basey;
-	float* lineWidths;
-	int line = 0;
-
-	if (!sprite) {
-		return NULL_VAL;
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		Graphics::DrawTextLegacy(sprite, text, x, y, &params);
 	}
 
-	// Count lines
-	for (char* i = text; *i; i++) {
-		if (*i == '\n') {
-			line++;
-			continue;
-		}
-	}
-	line++;
-	lineWidths = (float*)malloc(line * sizeof(float));
-	if (!lineWidths) {
-		return NULL_VAL;
-	}
-
-	// Get line widths
-	line = 0;
-	x = 0.0f;
-	for (char *i = text, l; *i; i++) {
-		l = _Text_GetLetter((Uint8)*i);
-		if (l == '\n') {
-			lineWidths[line++] = x;
-			x = 0.0f;
-			continue;
-		}
-		x += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-	lineWidths[line++] = x;
-
-	// Draw text
-	line = 0;
-	x = basex;
-	bool lineBack = true;
-	for (char *i = text, l; *i; i++) {
-		l = _Text_GetLetter((Uint8)*i);
-		if (lineBack) {
-			x -= sprite->Animations[0].Frames[l].OffsetX;
-			lineBack = false;
-		}
-
-		if (l == '\n') {
-			x = basex;
-			y += sprite->Animations[0].FrameToLoop * textAscent;
-			lineBack = true;
-			line++;
-			continue;
-		}
-
-		Graphics::DrawSprite(sprite,
-			0,
-			l,
-			x - lineWidths[line] * textAlign,
-			y - sprite->Animations[0].AnimationSpeed * textBaseline,
-			false,
-			false,
-			1.0f,
-			1.0f,
-			0.0f);
-		x += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-
-	free(lineWidths);
 	return NULL_VAL;
 }
 /***
  * Draw.TextWrapped
- * \desc Draws wrapped Extended UTF8 text using a sprite or font.
- * \param sprite (Resource): The sprite resource to be used as text.
+ * \desc Draws wrapped UTF-8 text using a font.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to draw.
- * \param x (Number): X position of where to draw the tile.
- * \param y (Number): Y position of where to draw the tile.
+ * \param x (Number): X position of where to draw the text.
+ * \param y (Number): Y position of where to draw the text.
  * \param maxWidth (Number): Max width the text can draw in.
- * \param maxLines (Integer): Max lines the text can draw.
+ * \paramOpt maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 
-	ISprite* sprite = GET_ARG(0, GetSprite);
 	char* text = GET_ARG(1, GetString);
-	float basex = GET_ARG(2, GetDecimal);
-	float basey = GET_ARG(3, GetDecimal);
-	float max_w = GET_ARG(4, GetDecimal);
-	int maxLines = 0x7FFFFFFF;
-	if (argCount > 5) {
+	float x = GET_ARG(2, GetDecimal);
+	float y = GET_ARG(3, GetDecimal);
+	float maxWidth = GET_ARG(4, GetDecimal);
+	int maxLines = 0;
+	if (argCount > 5 && !IS_NULL(args[5])) {
 		maxLines = GET_ARG(5, GetInteger);
 	}
+	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
 
-	if (!sprite) {
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 7) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+
+		Graphics::DrawTextWrapped(font, text, x, y, &params);
+
 		return NULL_VAL;
 	}
 
-	float x = basex;
-	float y = basey;
-
-	// Draw text
-	int word = 0;
-	char* linestart = text;
-	char* wordstart = text;
-	bool lineBack = true;
-	int lineNo = 1;
-	for (char *i = text, l;; i++) {
-		l = _Text_GetLetter((Uint8)*i);
-		if (((l == ' ' || l == 0) && i != wordstart) || l == '\n') {
-			float testWidth = 0.0f;
-			for (char *o = linestart, lm; o < i; o++) {
-				lm = _Text_GetLetter((Uint8)*o);
-				testWidth += sprite->Animations[0].Frames[lm].Advance * textAdvance;
-			}
-
-			if ((testWidth > max_w && word > 0) || l == '\n') {
-				float lineWidth = 0.0f;
-				for (char *o = linestart, lm; o < wordstart - 1; o++) {
-					lm = _Text_GetLetter((Uint8)*o);
-					if (lineBack) {
-						lineWidth -=
-							sprite->Animations[0].Frames[lm].OffsetX;
-						lineBack = false;
-					}
-					lineWidth += sprite->Animations[0].Frames[lm].Advance *
-						textAdvance;
-				}
-				lineBack = true;
-
-				x = basex - lineWidth * textAlign;
-				for (char *o = linestart, lm; o < wordstart - 1; o++) {
-					lm = _Text_GetLetter((Uint8)*o);
-					if (lineBack) {
-						x -= sprite->Animations[0].Frames[lm].OffsetX;
-						lineBack = false;
-					}
-					Graphics::DrawSprite(sprite,
-						0,
-						lm,
-						x,
-						y -
-							sprite->Animations[0].AnimationSpeed *
-								textBaseline,
-						false,
-						false,
-						1.0f,
-						1.0f,
-						0.0f);
-					x += sprite->Animations[0].Frames[lm].Advance * textAdvance;
-				}
-
-				if (lineNo == maxLines) {
-					return NULL_VAL;
-				}
-
-				lineNo++;
-
-				linestart = wordstart;
-				y += sprite->Animations[0].FrameToLoop * textAscent;
-				lineBack = true;
-			}
-
-			wordstart = i + 1;
-			word++;
-		}
-		if (!l) {
-			break;
-		}
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+		Graphics::DrawTextWrappedLegacy(sprite, text, x, y, &params);
 	}
-
-	float lineWidth = 0.0f;
-	for (char *o = linestart, l; *o; o++) {
-		l = _Text_GetLetter((Uint8)*o);
-		if (lineBack) {
-			lineWidth -= sprite->Animations[0].Frames[l].OffsetX;
-			lineBack = false;
-		}
-		lineWidth += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-	lineBack = true;
-
-	x = basex - lineWidth * textAlign;
-	for (char *o = linestart, l; *o; o++) {
-		l = _Text_GetLetter((Uint8)*o);
-		if (lineBack) {
-			x -= sprite->Animations[0].Frames[l].OffsetX;
-			lineBack = false;
-		}
-		Graphics::DrawSprite(sprite,
-			0,
-			l,
-			x,
-			y - sprite->Animations[0].AnimationSpeed * textBaseline,
-			false,
-			false,
-			1.0f,
-			1.0f,
-			0.0f);
-		x += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-
-	// FINISH:
 
 	return NULL_VAL;
 }
 /***
  * Draw.TextEllipsis
- * \desc
- * \return
+ * \desc Draws UTF-8 text using a font, but adds ellipsis if the text doesn't fit in <code>maxWidth</code>.
+ * \param font (Font): The Font to be used as text.
+ * \param text (String): Text to draw.
+ * \param x (Number): X position of where to draw the text.
+ * \param y (Number): Y position of where to draw the text.
+ * \param maxWidth (Number): Max width the text can draw in.
+ * \paramOpt maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(5);
 
-	ISprite* sprite = GET_ARG(0, GetSprite);
 	char* text = GET_ARG(1, GetString);
 	float x = GET_ARG(2, GetDecimal);
 	float y = GET_ARG(3, GetDecimal);
-	float maxwidth = GET_ARG(4, GetDecimal);
+	float maxWidth = GET_ARG(4, GetDecimal);
+	int maxLines = 0;
+	if (argCount > 5 && !IS_NULL(args[5])) {
+		maxLines = GET_ARG(5, GetInteger);
+	}
+	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
 
-	if (!sprite) {
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 7) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+
+		Graphics::DrawTextEllipsis(font, text, x, y, &params);
+
 		return NULL_VAL;
 	}
 
-	float elpisswidth = sprite->Animations[0].Frames['.'].Advance * 3;
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+		Graphics::DrawTextEllipsisLegacy(sprite, text, x, y, &params);
+	}
 
-	int t;
-	size_t textlen = strlen(text);
-	float textwidth = 0.0f;
-	for (size_t i = 0; i < textlen; i++) {
-		t = (int)text[i];
-		textwidth += sprite->Animations[0].Frames[t].Advance;
-	}
-	// If smaller than or equal to maxwidth, just draw normally.
-	if (textwidth <= maxwidth) {
-		for (size_t i = 0; i < textlen; i++) {
-			t = (int)text[i];
-			Graphics::DrawSprite(sprite, 0, t, x, y, false, false, 1.0f, 1.0f, 0.0f);
-			x += sprite->Animations[0].Frames[t].Advance;
-		}
-	}
-	else {
-		for (size_t i = 0; i < textlen; i++) {
-			t = (int)text[i];
-			if (x + sprite->Animations[0].Frames[t].Advance + elpisswidth > maxwidth) {
-				Graphics::DrawSprite(
-					sprite, 0, '.', x, y, false, false, 1.0f, 1.0f, 0.0f);
-				x += sprite->Animations[0].Frames['.'].Advance;
-				Graphics::DrawSprite(
-					sprite, 0, '.', x, y, false, false, 1.0f, 1.0f, 0.0f);
-				x += sprite->Animations[0].Frames['.'].Advance;
-				Graphics::DrawSprite(
-					sprite, 0, '.', x, y, false, false, 1.0f, 1.0f, 0.0f);
-				x += sprite->Animations[0].Frames['.'].Advance;
-				break;
-			}
-			Graphics::DrawSprite(sprite, 0, t, x, y, false, false, 1.0f, 1.0f, 0.0f);
-			x += sprite->Animations[0].Frames[t].Advance;
-		}
-	}
-	// Graphics::DrawSprite(sprite, 0, t, x, y, false, false, 1.0f, 1.0f, 0.0f);
 	return NULL_VAL;
 }
-
 /***
  * Draw.SetBlendColor
  * \desc Sets the color to be used for drawing and blending.
@@ -4458,6 +4485,37 @@ VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Draw.SetShader
+ * \desc Sets the current shader.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns Draw
+ */
+VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	if (IS_NULL(args[0])) {
+		Graphics::SetUserShader(nullptr);
+		return NULL_VAL;
+	}
+
+	ObjShader* objShader = GET_ARG(0, GetShader);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader has been deleted!");
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Validate();
+
+		Graphics::SetUserShader(shader);
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	return NULL_VAL;
+}
+/***
  * Draw.SetFilter
  * \desc Sets a <linkto ref="Filter_*">filter type</linkto>.
  * \param filterType (Enum): The <linkto ref="Filter_*">filter type</linkto>.
@@ -4470,7 +4528,7 @@ VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
 		OUT_OF_RANGE_ERROR("Filter", filterType, 0, Filter_INVERT);
 		return NULL_VAL;
 	}
-	SoftwareRenderer::SetFilter(filterType);
+	Graphics::SetFilter(filterType);
 	return NULL_VAL;
 }
 /***
@@ -6625,7 +6683,7 @@ VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  * File.Exists
  * \desc Determines if the file at the path exists.
  * \param path (String): The path of the file to check for existence.
- * \return Returns 1 if the file exists, 0 if otherwise
+ * \return Returns <code>true</code> if the file exists, <code>false</code> if otherwise.
  * \ns File
  */
 VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
@@ -7318,7 +7376,7 @@ VMValue Input_GetActionList(int argCount, VMValue* args, Uint32 threadID) {
 	for (size_t i = 0; i < count; i++) {
 		InputAction& action = InputManager::Actions[i];
 
-		ObjString* actionName = CopyString(action.Name.c_str());
+		ObjString* actionName = CopyString(action.Name);
 
 		array->Values->push_back(OBJECT_VAL(actionName));
 	}
@@ -8308,7 +8366,7 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	obj->InitialX = x;
 	obj->InitialY = y;
 	obj->List = objectList;
-	Scene::AddDynamic(objectList, obj);
+	obj->List->Add(obj);
 
 	ObjEntity* instance = obj->Instance;
 
@@ -8317,8 +8375,13 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 		obj->Initialize();
 	}
 
+	// Add it to the scene
+	Scene::AddDynamic(objectList, obj);
+
 	obj->Create(flag);
-	obj->PostCreate();
+	if (!Scene::Initializing) {
+		obj->PostCreate();
+	}
 
 	return OBJECT_VAL(instance);
 }
@@ -11240,6 +11303,7 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
 	for (Sint32 i = lineStart; i < lineEnd; i++) {
 		Graphics::PaletteIndexLines[i] = (Uint8)palIndex;
 	}
+	Graphics::PaletteIndexLinesUpdated = true;
 	return NULL_VAL;
 }
 #undef CHECK_COLOR_INDEX
@@ -11368,27 +11432,6 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
 	ObjResource* object = LoadResource(RESOURCE_IMAGE, filename, unloadPolicy);
 	if (object != nullptr) {
 		return OBJECT_VAL(object);
-	}
-	return NULL_VAL;
-}
-/***
- * Resources.LoadFont
- * \desc Loads a Font resource.
- * \param filename (String): Filename of the resource.
- * \param pixelSize (Number): The size of the font.
- * \param unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the resource.
- * \return
- * \ns Resources
- */
-VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	char* filename = GET_ARG(0, GetString);
-	int pixel_sz = (int)GET_ARG(1, GetDecimal);
-	int unloadPolicy = GET_ARG(2, GetInteger);
-
-	ResourceType* resource = Resource::LoadFont(filename, pixel_sz, unloadPolicy);
-	if (resource != nullptr) {
-		return OBJECT_VAL(Resource::GetVMObject(resource));
 	}
 	return NULL_VAL;
 }
@@ -11715,6 +11758,25 @@ VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
 	return DECIMAL_VAL(Scene::Layers[index].Opacity);
+}
+/***
+ * Scene.GetLayerShader
+ * \desc Gets the shader of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a shader, or <code>null</code>.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+
+	Shader* shader = (Shader*)Scene::Layers[index].CurrentShader;
+	if (shader != nullptr) {
+		return OBJECT_VAL(shader->Object);
+	}
+
+	return NULL_VAL;
 }
 /***
  * Scene.GetLayerUsePaletteIndexLines
@@ -13089,6 +13151,42 @@ VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 		THROW_ERROR("Opacity cannot be higher than 1.0.");
 	}
 	Scene::Layers[index].Opacity = opacity;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerShader
+ * \desc Sets a shader for the layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	ObjShader* objShader = GET_ARG(1, GetShader);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+
+	if (IS_NULL(args[1])) {
+		Scene::Layers[index].CurrentShader = nullptr;
+		return NULL_VAL;
+	}
+
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader has been deleted!");
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Validate();
+
+		Scene::Layers[index].CurrentShader = shader;
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+		return NULL_VAL;
+	}
+
 	return NULL_VAL;
 }
 /***
@@ -14524,32 +14622,6 @@ VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) 
 	}
 
 	return INTEGER_VAL(Application::Settings->GetPropertyCount(section));
-}
-// #endregion
-
-// #region Shader
-/***
- * Shader.Set
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_Set(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	ObjArray* array = GET_ARG(0, GetArray);
-	Graphics::UseShader(array);
-	return NULL_VAL;
-}
-/***
- * Shader.Unset
- * \desc
- * \return
- * \ns Shader
- */
-VMValue Shader_Unset(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	Graphics::UseShader(NULL);
-	return NULL_VAL;
 }
 // #endregion
 
@@ -17530,6 +17602,53 @@ VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)i);
 }
 /***
+ * View.SetShader
+ * \desc Sets a shader for the specified camera.
+ * \param viewIndex (Integer): Index of the view.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns View
+ */
+VMValue View_SetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	Shader* shader = nullptr;
+
+	CHECK_VIEW_INDEX();
+
+	if (!IS_NULL(args[1])) {
+		ObjShader* objShader = GET_ARG(1, GetShader);
+		shader = (Shader*)objShader->ShaderPtr;
+
+		if (shader == nullptr) {
+			THROW_ERROR("Shader has been deleted!");
+			return NULL_VAL;
+		}
+	}
+
+	Scene::Views[view_index].CurrentShader = shader;
+	return NULL_VAL;
+}
+/***
+ * View.GetShader
+ * \desc Gets the shader of the specified camera.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns a shader, or <code>null</code>.
+ * \ns View
+ */
+VMValue View_GetShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+
+	CHECK_VIEW_INDEX();
+
+	Shader* shader = Scene::Views[view_index].CurrentShader;
+	if (shader != nullptr) {
+		return OBJECT_VAL(shader->Object);
+	}
+
+	return NULL_VAL;
+}
+/***
  * View.IsUsingSoftwareRenderer
  * \desc Gets whether the specified camera is using the software renderer or not.
  * \param viewIndex (Integer): Index of the view.
@@ -17852,6 +17971,37 @@ VMValue Window_SetTitle(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Window.SetPostProcessingShader
+ * \desc Sets a post-processing shader for the active window.
+ * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \ns Window
+ */
+VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	if (IS_NULL(args[0])) {
+		Graphics::PostProcessShader = nullptr;
+		return NULL_VAL;
+	}
+
+	ObjShader* objShader = GET_ARG(0, GetShader);
+	Shader* shader = (Shader*)objShader->ShaderPtr;
+	if (shader == nullptr) {
+		THROW_ERROR("Shader has been deleted!");
+		return NULL_VAL;
+	}
+
+	try {
+		shader->Validate();
+
+		Graphics::PostProcessShader = shader;
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+	}
+
+	return NULL_VAL;
+}
+/***
  * Window.GetWidth
  * \desc Gets the width of the active window.
  * \return Returns the width of the active window.
@@ -17968,8 +18118,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
 			attrNameSize = length;
 			attrName = (char*)realloc(attrName, attrNameSize);
 			if (!attrName) {
-				Log::Print(Log::LOG_ERROR, "Out of memory parsing XML!");
-				abort();
+				Error::Fatal("Out of memory parsing XML!");
 			}
 		}
 
@@ -18005,11 +18154,14 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 			XMLNode* xmlRoot = XMLParser::ParseFromStream(stream);
 			if (xmlRoot) {
 				mapValue = XML_FillMap(xmlRoot);
-			}
 
-			// XMLParser will realloc text, so the stream needs to free it.
-			stream->owns_memory = true;
-			XMLParser::Free(xmlRoot);
+				// XMLParser will realloc text, so the stream needs to free it.
+				stream->owns_memory = true;
+				XMLParser::Free(xmlRoot);
+			}
+			else {
+				stream->Close();
+			}
 		}
 		else {
 			Memory::Free(text);
@@ -18054,6 +18206,11 @@ void StandardLibrary::Link() {
 	String_CaseMapBind(L'ç', L'Ç');
 	String_CaseMapBind(L'ç', L'Ç');
 	String_CaseMapBind(L'ç', L'Ç');
+
+	textAlign = 0.0f;
+	textBaseline = 0.0f;
+	textAscent = 1.25f;
+	textAdvance = 1.0f;
 
 #define INIT_CLASS(className) \
 	klass = NewClass(#className); \
@@ -18134,6 +18291,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
 	/***
     * \enum KeyBind_Fullscreen
@@ -18586,6 +18744,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Device, GetPlatform);
 	DEF_NATIVE(Device, IsPC);
 	DEF_NATIVE(Device, IsMobile);
+	DEF_NATIVE(Device, GetCapability);
 	/***
     * \enum Platform_Windows
     * \desc Windows platform.
@@ -18671,7 +18830,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, Texture);
 	DEF_NATIVE(Draw, TextureSized);
 	DEF_NATIVE(Draw, TexturePart);
-	DEF_NATIVE(Draw, SetFont);
 	DEF_NATIVE(Draw, SetTextAlign);
 	DEF_NATIVE(Draw, SetTextBaseline);
 	DEF_NATIVE(Draw, SetTextAdvance);
@@ -18690,6 +18848,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, SetTintColor);
 	DEF_NATIVE(Draw, SetTintMode);
 	DEF_NATIVE(Draw, UseTinting);
+	DEF_NATIVE(Draw, SetShader);
 	DEF_NATIVE(Draw, SetFilter);
 	DEF_NATIVE(Draw, UseStencil);
 	DEF_NATIVE(Draw, SetStencilTestFunction);
@@ -19481,7 +19640,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Resources, LoadSprite);
 	DEF_NATIVE(Resources, LoadDynamicSprite);
 	DEF_NATIVE(Resources, LoadImage);
-	DEF_NATIVE(Resources, LoadFont);
 	DEF_NATIVE(Resources, LoadModel);
 	DEF_NATIVE(Resources, LoadAudio);
 	DEF_NATIVE(Resources, LoadMusic);
@@ -19516,6 +19674,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetLayerIndex);
 	DEF_NATIVE(Scene, GetLayerVisible);
 	DEF_NATIVE(Scene, GetLayerOpacity);
+	DEF_NATIVE(Scene, GetLayerShader);
 	DEF_NATIVE(Scene, GetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, GetLayerProperty);
 	DEF_NATIVE(Scene, GetLayerExists); // deprecated
@@ -19596,6 +19755,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, SetDrawGroupEntityDepthSorting);
 	DEF_NATIVE(Scene, SetLayerBlend);
 	DEF_NATIVE(Scene, SetLayerOpacity);
+	DEF_NATIVE(Scene, SetLayerShader);
 	DEF_NATIVE(Scene, SetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, SetLayerScroll);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesBegin);
@@ -19744,9 +19904,101 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Shader
-	INIT_CLASS(Shader);
-	DEF_NATIVE(Shader, Set);
-	DEF_NATIVE(Shader, Unset);
+	/***
+    * \enum SHADERSTAGE_VERTEX
+    * \desc Vertex shader stage.
+    */
+	DEF_CONST_INT("SHADERSTAGE_VERTEX", Shader::STAGE_VERTEX);
+	/***
+    * \enum SHADERSTAGE_FRAGMENT
+    * \desc Fragment shader stage.
+    */
+	DEF_CONST_INT("SHADERSTAGE_FRAGMENT", Shader::STAGE_FRAGMENT);
+	/***
+    * \enum SHADERDATATYPE_FLOAT
+    * \desc <code>float</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_FLOAT", Shader::DATATYPE_FLOAT);
+	/***
+    * \enum SHADERDATATYPE_VEC2
+    * \desc <code>vec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC2", Shader::DATATYPE_FLOAT_VEC2);
+	/***
+    * \enum SHADERDATATYPE_VEC3
+    * \desc <code>vec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC3", Shader::DATATYPE_FLOAT_VEC3);
+	/***
+    * \enum SHADERDATATYPE_VEC4
+    * \desc <code>vec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_VEC4", Shader::DATATYPE_FLOAT_VEC4);
+	/***
+    * \enum SHADERDATATYPE_INT
+    * \desc <code>int</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_INT", Shader::DATATYPE_INT);
+	/***
+    * \enum SHADERDATATYPE_IVEC2
+    * \desc <code>ivec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC2", Shader::DATATYPE_INT_VEC2);
+	/***
+    * \enum SHADERDATATYPE_IVEC3
+    * \desc <code>ivec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC3", Shader::DATATYPE_INT_VEC3);
+	/***
+    * \enum SHADERDATATYPE_IVEC4
+    * \desc <code>ivec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_IVEC4", Shader::DATATYPE_INT_VEC4);
+	/***
+    * \enum SHADERDATATYPE_BOOL
+    * \desc <code>bool</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BOOL", Shader::DATATYPE_BOOL);
+	/***
+    * \enum SHADERDATATYPE_BVEC2
+    * \desc <code>bvec2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC2", Shader::DATATYPE_BOOL_VEC2);
+	/***
+    * \enum SHADERDATATYPE_BVEC3
+    * \desc <code>bvec3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC3", Shader::DATATYPE_BOOL_VEC3);
+	/***
+    * \enum SHADERDATATYPE_BVEC4
+    * \desc <code>bvec4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_BVEC4", Shader::DATATYPE_BOOL_VEC4);
+	/***
+    * \enum SHADERDATATYPE_MAT2
+    * \desc <code>mat2</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT2", Shader::DATATYPE_FLOAT_MAT2);
+	/***
+    * \enum SHADERDATATYPE_MAT3
+    * \desc <code>mat3</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT3", Shader::DATATYPE_FLOAT_MAT3);
+	/***
+    * \enum SHADERDATATYPE_MAT4
+    * \desc <code>mat4</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_MAT4", Shader::DATATYPE_FLOAT_MAT4);
+	/***
+    * \enum SHADERDATATYPE_SAMPLER_2D
+    * \desc <code>sampler2D</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_SAMPLER_2D", Shader::DATATYPE_SAMPLER_2D);
+	/***
+    * \enum SHADERDATATYPE_SAMPLER_CUBE
+    * \desc <code>samplerCube</code> data type.
+    */
+	DEF_CONST_INT("SHADERDATATYPE_SAMPLER_CUBE", Shader::DATATYPE_SAMPLER_CUBE);
 	// #endregion
 
 	// #region SocketClient
@@ -19997,6 +20249,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, IsUsingDrawTarget);
 	DEF_NATIVE(View, SetUseDrawTarget);
 	DEF_NATIVE(View, GetDrawTarget);
+	DEF_NATIVE(View, SetShader);
+	DEF_NATIVE(View, GetShader);
 	DEF_NATIVE(View, IsUsingSoftwareRenderer);
 	DEF_NATIVE(View, SetUseSoftwareRenderer);
 	DEF_NATIVE(View, SetUsePerspective);
@@ -20023,6 +20277,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Window, SetPosition);
 	DEF_NATIVE(Window, SetPositionCentered);
 	DEF_NATIVE(Window, SetTitle);
+	DEF_NATIVE(Window, SetPostProcessingShader);
 	DEF_NATIVE(Window, GetWidth);
 	DEF_NATIVE(Window, GetHeight);
 	DEF_NATIVE(Window, GetFullscreen);

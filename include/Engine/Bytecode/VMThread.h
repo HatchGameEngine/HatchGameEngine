@@ -56,6 +56,8 @@ public:
 	static char* GetVariableOrMethodName(Uint32 hash);
 	void MakeErrorMessage(PrintBuffer* buffer, const char* errorString);
 	int ThrowRuntimeError(bool fatal, const char* errorMessage, ...);
+	void ShowErrorLocation(const char* errorMessage);
+	void ShowErrorLocation();
 	void PrintStack();
 	void ReturnFromNative() throw();
 	void Push(VMValue value);
@@ -77,13 +79,13 @@ public:
 	void RunValue(VMValue value, int argCount);
 	void RunFunction(ObjFunction* func, int argCount);
 	int Invoke(VMValue receiver, Uint8 argCount, Uint32 hash);
-	int SuperInvoke(VMValue receiver, Uint8 argCount, Uint32 hash);
+	int SuperInvoke(VMValue receiver, ObjClass* klass, Uint8 argCount, Uint32 hash);
 	void InvokeForEntity(VMValue value, int argCount);
 	VMValue RunEntityFunction(ObjFunction* function, int argCount);
 	void CallInitializer(VMValue value);
 	bool Call(ObjFunction* function, int argCount);
 	bool InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount);
-	bool InvokeForInstance(ObjInstance* instance, Uint32 hash, int argCount);
+	bool InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount);
 	bool Import(VMValue value);
 	bool ImportModule(VMValue value);
 	VMValue Values_Multiply();
@@ -125,7 +127,7 @@ public:
 	VM_ADD_OPFUNC(OP_PRINT_STACK);
 	VM_ADD_OPFUNC(OP_INHERIT);
 	VM_ADD_OPFUNC(OP_RETURN);
-	VM_ADD_OPFUNC(OP_METHOD);
+	VM_ADD_OPFUNC(OP_METHOD_V4);
 	VM_ADD_OPFUNC(OP_CLASS);
 	VM_ADD_OPFUNC(OP_CALL);
 	VM_ADD_OPFUNC(OP_SUPER);
@@ -172,7 +174,7 @@ public:
 	VM_ADD_OPFUNC(OP_NEW_MAP);
 	VM_ADD_OPFUNC(OP_SWITCH_TABLE);
 	VM_ADD_OPFUNC(OP_FAILSAFE);
-	VM_ADD_OPFUNC(OP_EVENT);
+	VM_ADD_OPFUNC(OP_EVENT_V4);
 	VM_ADD_OPFUNC(OP_TYPEOF);
 	VM_ADD_OPFUNC(OP_NEW);
 	VM_ADD_OPFUNC(OP_IMPORT);
@@ -192,6 +194,8 @@ public:
 	VM_ADD_OPFUNC(OP_DECIMAL);
 	VM_ADD_OPFUNC(OP_INVOKE);
 	VM_ADD_OPFUNC(OP_SUPER_INVOKE);
+	VM_ADD_OPFUNC(OP_EVENT);
+	VM_ADD_OPFUNC(OP_METHOD);
 #endif
 };
 

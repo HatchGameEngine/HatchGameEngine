@@ -5,6 +5,7 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
+#include <Engine/Filesystem/Path.h>
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/IO/ResourceStream.h>
@@ -15,6 +16,7 @@
 #define OBJECTS_HCM_NAME OBJECTS_DIR_NAME "Objects.hcm"
 
 bool SourceFileMap::Initialized = false;
+bool SourceFileMap::AllowCompilation = false;
 HashMap<Uint32>* SourceFileMap::Checksums = NULL;
 HashMap<vector<Uint32>*>* SourceFileMap::ClassMap = NULL;
 Uint32 SourceFileMap::DirectoryChecksum = 0;
@@ -69,6 +71,8 @@ void SourceFileMap::CheckInit() {
 	}
 
 #ifndef NO_SCRIPT_COMPILING
+	SourceFileMap::AllowCompilation = true;
+
 	if (File::ProtectedExists(SOURCEFILEMAP_NAME, true)) {
 		char* bytes;
 		size_t len = File::ReadAllBytes(SOURCEFILEMAP_NAME, &bytes, true);
@@ -85,6 +89,10 @@ bool SourceFileMap::CheckForUpdate() {
 	SourceFileMap::CheckInit();
 
 #ifndef NO_SCRIPT_COMPILING
+	if (!SourceFileMap::AllowCompilation) {
+		return false;
+	}
+
 	VFSProvider* mainVfs = ResourceManager::GetMainResource();
 	if (!mainVfs || !mainVfs->IsWritable()) {
 		return false;
@@ -116,7 +124,7 @@ bool SourceFileMap::CheckForUpdate() {
 
 	SourceFileMap::DirectoryChecksum = 0x0;
 	for (size_t i = 0; i < list.size(); i++) {
-		std::string asStr = list[i].u8string();
+		std::string asStr = Path::ToString(list[i]);
 		const char* listEntry = asStr.c_str();
 		const char* filename = listEntry + scriptFolderNameLen;
 		SourceFileMap::DirectoryChecksum = FNV1A::EncryptData(
@@ -145,7 +153,7 @@ bool SourceFileMap::CheckForUpdate() {
 	size_t scriptFolderPathLen = scriptFolderPathStr.size();
 
 	for (size_t i = 0; i < list.size(); i++) {
-		std::string asStr = list[i].u8string();
+		std::string asStr = Path::ToString(list[i]);
 		const char* listEntry = asStr.c_str();
 		const char* filename = strrchr(listEntry, '/');
 		Uint32 filenameHash = 0;

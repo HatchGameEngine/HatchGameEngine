@@ -1,6 +1,5 @@
 #include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
 #include <Engine/Diagnostics/Memory.h>
-#include <Engine/FontFace.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/Resource.h>
@@ -188,34 +187,6 @@ ResourceType* Resource::LoadInternal(Uint8 type, const char* filename, int unloa
 	return resource;
 }
 
-ResourceType* Resource::LoadFont(const char* filename, int pixel_sz, int unloadPolicy) {
-	// Find a resource that already exists.
-	Uint32 hash = CRC32::EncryptString(filename);
-	hash = CRC32::EncryptData(&pixel_sz, sizeof(int), hash);
-
-	int result = Search(RESOURCE_FONT, filename, hash);
-	if (result != -1) {
-		return List[result];
-	}
-
-	// Try loading it.
-	ISprite* data = LoadFontData(filename, pixel_sz);
-	if (!data) {
-		return nullptr;
-	}
-
-	// Allocate a new resource.
-	ResourceType* resource = New(RESOURCE_FONT, filename, hash, unloadPolicy);
-	data->TakeRef();
-	resource->AsSprite = data;
-	resource->Loaded = true;
-
-	// Add it to the list.
-	List.push_back(resource);
-
-	return resource;
-}
-
 Uint8 Resource::GuessType(const char* filename) {
 	Stream* stream = ResourceStream::New(filename);
 	if (!stream) {
@@ -286,10 +257,6 @@ Resourceable* Resource::LoadData(Uint8 type, const char* filename) {
 	data->TakeRef();
 
 	return data;
-}
-
-ISprite* Resource::LoadFontData(const char* filename, int pixel_sz) {
-	return FontFace::SpriteFromFont(filename, pixel_sz);
 }
 
 bool Resource::UnloadData(ResourceType* resource) {

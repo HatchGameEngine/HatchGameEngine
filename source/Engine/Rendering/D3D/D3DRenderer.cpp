@@ -980,12 +980,6 @@ void D3DRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.UpdateProjectionMatrix = D3DRenderer::UpdateProjectionMatrix;
 	Graphics::Internal.MakePerspectiveMatrix = D3DRenderer::MakePerspectiveMatrix;
 
-	// Shader-related functions
-	Graphics::Internal.UseShader = D3DRenderer::UseShader;
-	Graphics::Internal.SetUniformF = D3DRenderer::SetUniformF;
-	Graphics::Internal.SetUniformI = D3DRenderer::SetUniformI;
-	Graphics::Internal.SetUniformTexture = D3DRenderer::SetUniformTexture;
-
 	// These guys
 	Graphics::Internal.Clear = D3DRenderer::Clear;
 	Graphics::Internal.Present = D3DRenderer::Present;
@@ -1159,9 +1153,10 @@ void D3DRenderer::DisposeTexture(Texture* texture) {
 }
 
 // Viewport and view-related functions
-void D3DRenderer::SetRenderTarget(Texture* texture) {
+bool D3DRenderer::SetRenderTarget(Texture* texture) {
 	D3D_Predraw();
-	D3D_SetRenderTarget(texture);
+
+	return D3D_SetRenderTarget(texture) == 0;
 }
 void D3DRenderer::UpdateWindowSize(int width, int height) {
 	// D3D_UpdateViewport(0, 0, width, height);
@@ -1260,29 +1255,6 @@ void D3DRenderer::MakePerspectiveMatrix(Matrix4x4* out,
 	float aspect) {
 	Matrix4x4::Perspective(out, fov, aspect, near, far);
 }
-
-// Shader-related functions
-void D3DRenderer::UseShader(void* shader) {
-	// if (D3D_CurrentShader != (D3DShader*)shader) {
-	//     D3D_CurrentShader = (D3DShader*)shader;
-	//     D3D_CurrentShader->Use();
-	// }
-}
-void D3DRenderer::SetUniformF(int location, int count, float* values) {
-	// switch (count) {
-	//     case 1: glUniform1f(location, values[0]); CHECK_GL();
-	//     break; case 2: glUniform2f(location, values[0],
-	//     values[1]); CHECK_GL(); break; case 3:
-	//     glUniform3f(location, values[0], values[1], values[2]);
-	//     CHECK_GL(); break; case 4: glUniform4f(location,
-	//     values[0], values[1], values[2], values[3]); CHECK_GL();
-	//     break;
-	// }
-}
-void D3DRenderer::SetUniformI(int location, int count, int* values) {
-	// glUniform1iv(location, count, values);
-}
-void D3DRenderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {}
 
 // These guys
 void D3DRenderer::Clear() {

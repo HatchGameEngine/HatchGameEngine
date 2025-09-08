@@ -207,6 +207,7 @@ public:
 	static int ShortInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int LocalInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int MethodInstruction(uint8_t opcode, Chunk* chunk, int offset);
+	static int MethodInstructionV4(uint8_t opcode, Chunk* chunk, int offset);
 	static int InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int InvokeInstructionV3(uint8_t opcode, Chunk* chunk, int offset);
 	static int JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset);

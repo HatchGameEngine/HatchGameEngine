@@ -16,7 +16,6 @@ enum {
 	RESOURCE_SPRITE,
 	RESOURCE_IMAGE,
 	RESOURCE_AUDIO,
-	RESOURCE_FONT,
 	RESOURCE_SHADER,
 	RESOURCE_MODEL,
 	RESOURCE_MEDIA
@@ -30,8 +29,6 @@ inline const char* GetResourceTypeString(Uint8 type) {
 		return "image";
 	case RESOURCE_AUDIO:
 		return "audio";
-	case RESOURCE_FONT:
-		return "font";
 	case RESOURCE_SHADER:
 		return "shader";
 	case RESOURCE_MODEL:
@@ -70,8 +67,6 @@ struct ResourceType {
 		ISprite* AsSprite;
 		Image* AsImage;
 		ISound* AsAudio;
-		void* AsFont;
-		void* AsShader;
 		IModel* AsModel;
 		MediaBag* AsMedia;
 		Resourceable* AsResourceable;

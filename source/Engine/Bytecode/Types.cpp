@@ -11,6 +11,7 @@
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceableImpl.h>
+#include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
@@ -66,7 +67,7 @@ ObjString* CopyString(ObjString* string) {
 	return AllocateString(heapChars, string->Length, string->Hash);
 }
 ObjString* CopyString(std::filesystem::path path) {
-	std::string asStr = path.u8string();
+	std::string asStr = Path::ToString(path);
 	const char* cStr = asStr.c_str();
 	return CopyString(cStr);
 }
@@ -302,7 +303,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_PRINT_STACK);
 			OPCASE(OP_INHERIT);
 			OPCASE(OP_RETURN);
-			OPCASE(OP_METHOD);
+			OPCASE(OP_METHOD_V4);
 			OPCASE(OP_CLASS);
 			OPCASE(OP_CALL);
 			OPCASE(OP_SUPER);
@@ -349,7 +350,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_NEW_MAP);
 			OPCASE(OP_SWITCH_TABLE);
 			OPCASE(OP_FAILSAFE);
-			OPCASE(OP_EVENT);
+			OPCASE(OP_EVENT_V4);
 			OPCASE(OP_TYPEOF);
 			OPCASE(OP_NEW);
 			OPCASE(OP_IMPORT);
@@ -369,6 +370,8 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_DECIMAL);
 			OPCASE(OP_INVOKE);
 			OPCASE(OP_SUPER_INVOKE);
+			OPCASE(OP_EVENT);
+			OPCASE(OP_METHOD);
 		}
 		assert((func != NULL));
 		OpcodeFuncs[i] = func;

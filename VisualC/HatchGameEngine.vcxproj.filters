@@ -30,6 +30,9 @@
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ArrayImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\FontImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\FunctionImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -39,10 +42,14 @@
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MaterialImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+<<<<<<< HEAD
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceableImpl.cpp">
+=======
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp">
+>>>>>>> master
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp">
@@ -96,6 +103,9 @@
     <ClCompile Include="..\source\engine\diagnostics\RemoteDebug.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\Error.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\extensions\Discord.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -130,9 +140,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\filesystem\vfs\VirtualFileSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\source\engine\FontFace.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\Graphics.cpp">
@@ -319,6 +326,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\rendering\ViewTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\resourcetypes\Font.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp">

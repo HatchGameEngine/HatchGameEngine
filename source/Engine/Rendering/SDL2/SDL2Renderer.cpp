@@ -46,6 +46,7 @@ void SDL2Renderer::Init() {
 	SDL_RendererInfo rendererInfo;
 	SDL_GetRendererInfo(Renderer, &rendererInfo);
 
+	Graphics::SupportsShaders = false;
 	Graphics::SupportsBatching = false;
 	Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
 
@@ -94,12 +95,6 @@ void SDL2Renderer::SetGraphicsFunctions() {
 	Graphics::Internal.UpdatePerspective = SDL2Renderer::UpdatePerspective;
 	Graphics::Internal.UpdateProjectionMatrix = SDL2Renderer::UpdateProjectionMatrix;
 	Graphics::Internal.MakePerspectiveMatrix = SDL2Renderer::MakePerspectiveMatrix;
-
-	// Shader-related functions
-	Graphics::Internal.UseShader = SDL2Renderer::UseShader;
-	Graphics::Internal.SetUniformF = SDL2Renderer::SetUniformF;
-	Graphics::Internal.SetUniformI = SDL2Renderer::SetUniformI;
-	Graphics::Internal.SetUniformTexture = SDL2Renderer::SetUniformTexture;
 
 	// These guys
 	Graphics::Internal.Clear = SDL2Renderer::Clear;
@@ -185,13 +180,14 @@ void SDL2Renderer::DisposeTexture(Texture* texture) {
 }
 
 // Viewport and view-related functions
-void SDL2Renderer::SetRenderTarget(Texture* texture) {
+bool SDL2Renderer::SetRenderTarget(Texture* texture) {
 	if (texture == NULL) {
 		SDL_SetRenderTarget(Renderer, NULL);
+
+		return true;
 	}
-	else {
-		SDL_SetRenderTarget(Renderer, *(SDL_Texture**)texture->DriverData);
-	}
+
+	return SDL_SetRenderTarget(Renderer, *(SDL_Texture**)texture->DriverData) == 0;
 }
 void SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
 	Viewport* vp = &Graphics::CurrentViewport;
@@ -244,19 +240,6 @@ void SDL2Renderer::MakePerspectiveMatrix(Matrix4x4* out,
 	float aspect) {
 	Matrix4x4::Perspective(out, fov, aspect, near, far);
 }
-
-void SDL2Renderer::GetMetalSize(int* width, int* height) {
-	// #ifdef IOS
-	//     SDL2MetalFunc_GetMetalSize(width, height, Renderer);
-	// #endif
-	SDL_GetRendererOutputSize(Renderer, width, height);
-}
-
-// Shader-related functions
-void SDL2Renderer::UseShader(void* shader) {}
-void SDL2Renderer::SetUniformF(int location, int count, float* values) {}
-void SDL2Renderer::SetUniformI(int location, int count, int* values) {}
-void SDL2Renderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {}
 
 // These guys
 void SDL2Renderer::Clear() {

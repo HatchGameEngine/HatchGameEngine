@@ -12,8 +12,10 @@ class IModel;
 #include <Engine/Rendering/Enums.h>
 #include <Engine/Rendering/GraphicsFunctions.h>
 #include <Engine/Rendering/Scene3D.h>
+#include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/TextureReference.h>
 #include <Engine/Rendering/VertexBuffer.h>
+#include <Engine/ResourceTypes/Font.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene/SceneEnums.h>
@@ -21,22 +23,35 @@ class IModel;
 #include <Engine/Scene/View.h>
 #include <Engine/Utilities/ColorUtils.h>
 
+#define PALETTE_INDEX_TEXTURE_SIZE 64
+
 class Graphics {
+private:
+	static void InitCapabilities();
+	static void DeleteSpriteSheetMap();
+	static void DeleteShaders();
+	static void DeleteVertexBuffers();
+	static std::vector<Uint32> GetTextCodepoints(Font* font, const char* text);
+
 public:
 	static bool Initialized;
 	static HashMap<Texture*>* TextureMap;
 	static map<string, TextureReference*> SpriteSheetTextureMap;
 	static bool VsyncEnabled;
+	static bool PrecompileShaders;
 	static int MultisamplingEnabled;
 	static int FontDPI;
+	static bool SupportsShaders;
 	static bool SupportsBatching;
 	static bool TextureBlend;
 	static bool TextureInterpolate;
 	static Uint32 PreferredPixelFormat;
 	static Uint32 MaxTextureWidth;
 	static Uint32 MaxTextureHeight;
+	static Uint32 MaxTextureUnits;
 	static Texture* TextureHead;
-	static vector<VertexBuffer*> VertexBuffers;
+	static std::vector<Shader*> Shaders;
+	static std::vector<VertexBuffer*> VertexBuffers;
 	static Scene3D Scene3Ds[MAX_3D_SCENES];
 	static stack<GraphicsState> StateStack;
 	static Matrix4x4 ViewMatrixStack[MATRIX_STACK_SIZE];
@@ -53,20 +68,26 @@ public:
 	static float TintColors[4];
 	static int BlendMode;
 	static int TintMode;
+	static bool StencilEnabled;
 	static int StencilTest;
 	static int StencilOpPass;
 	static int StencilOpFail;
-	static void* FramebufferPixels;
-	static size_t FramebufferSize;
+	static Texture* FramebufferTexture;
+	static int FramebufferWidth;
+	static int FramebufferHeight;
 	static TileScanLine TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static Uint32 PaletteColors[MAX_PALETTE_COUNT][0x100];
 	static Uint8 PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 	static bool PaletteUpdated;
+	static bool PaletteIndexLinesUpdated;
 	static Texture* PaletteTexture;
+	static Texture* PaletteIndexTexture;
+	static Uint32* PaletteIndexTextureData;
 	static Texture* CurrentRenderTarget;
 	static Sint32 CurrentScene3D;
 	static Sint32 CurrentVertexBuffer;
-	static void* CurrentShader;
+	static Shader* CurrentShader;
+	static Shader* PostProcessShader;
 	static bool SmoothFill;
 	static bool SmoothStroke;
 	static float PixelOffset;
@@ -106,23 +127,32 @@ public:
 	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
 	static int ConvertTextureToRGBA(Texture* texture);
 	static int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);
+	static void SetTextureMinFilter(Texture* texture, int filterMode);
+	static void SetTextureMagFilter(Texture* texture, int filterMode);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
 	static TextureReference* GetSpriteSheet(string sheetPath);
 	static TextureReference* AddSpriteSheet(string sheetPath, Texture* texture);
 	static void DisposeSpriteSheet(string sheetPath);
-	static void DeleteSpriteSheetMap();
+	static void UnloadData();
 	static Uint32 CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy);
 	static void DeleteVertexBuffer(Uint32 vertexBufferIndex);
-	static void UseShader(void* shader);
+	static Shader* CreateShader();
+	static void DeleteShader(Shader* shader);
+	static void SetUserShader(Shader* shader);
+	static void SetFilter(int filter);
 	static void SetTextureInterpolation(bool interpolate);
 	static void Clear();
 	static void Present();
-	static void SoftwareStart();
-	static void SoftwareEnd();
+	static void SoftwareStart(int viewIndex);
+	static void SoftwareEnd(int viewIndex);
 	static void UpdateGlobalPalette();
+	static void UpdatePaletteIndexTable();
 	static void UnloadSceneData();
-	static void SetRenderTarget(Texture* texture);
+	static bool SetRenderTarget(Texture* texture);
+	static bool CreateFramebufferTexture();
+	static bool UpdateFramebufferTexture();
+	static void DoScreenPostProcess();
 	static void CopyScreen(int source_x,
 		int source_y,
 		int source_w,
@@ -142,6 +172,7 @@ public:
 		Matrix4x4* modelMatrix,
 		Matrix4x4* viewMatrix,
 		Matrix4x4* projMatrix);
+	static void GetScreenSize(int& outWidth, int& outHeight);
 	static void SetViewport(float x, float y, float w, float h);
 	static void ResetViewport();
 	static void Resize(int width, int height);
@@ -240,6 +271,55 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation);
+	static void DrawGlyph(Font* font,
+		Uint32 codepoint,
+		float x,
+		float y,
+		float scale,
+		float glyphScale,
+		float ascent);
+	static void
+	DrawEllipsis(Font* font, float x, float y, float scale, float glyphScale, float ascent);
+	static void
+	DrawEllipsisLegacy(ISprite* sprite, float x, float y, float advance, float baseline);
+	static void
+	DrawText(Font* font, const char* text, float x, float y, TextDrawParams* params);
+	static void
+	DrawTextWrapped(Font* font, const char* text, float x, float y, TextDrawParams* params);
+	static void
+	DrawTextEllipsis(Font* font, const char* text, float x, float y, TextDrawParams* params);
+	static void
+	MeasureText(Font* font, const char* text, TextDrawParams* params, float& maxW, float& maxH);
+	static void MeasureTextWrapped(Font* font,
+		const char* text,
+		TextDrawParams* params,
+		float& maxW,
+		float& maxH);
+	static void DrawTextLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params);
+	static void DrawTextWrappedLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params);
+	static void DrawTextEllipsisLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params);
+	static void MeasureTextLegacy(ISprite* sprite,
+		const char* text,
+		LegacyTextDrawParams* params,
+		float& maxW,
+		float& maxH);
+	static void MeasureTextWrappedLegacy(ISprite* sprite,
+		const char* text,
+		LegacyTextDrawParams* params,
+		float& maxW,
+		float& maxH);
 	static void
 	DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines);
 	static void DrawTilePart(int tile,
@@ -320,7 +400,6 @@ public:
 	static void ConvertFromARGBtoNative(Uint32* argb, int count);
 	static void ConvertFromNativeToARGB(Uint32* argb, int count);
 	static void SetStencilEnabled(bool enabled);
-	static bool GetStencilEnabled();
 	static void SetStencilTestFunc(int stencilTest);
 	static void SetStencilPassFunc(int stencilOp);
 	static void SetStencilFailFunc(int stencilOp);

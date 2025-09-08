@@ -2,7 +2,6 @@
 #define ENGINE_BYTECODE_TYPES_H
 
 #include <Engine/Includes/HashMap.h>
-
 #include <Engine/IO/Stream.h>
 
 #define FRAMES_MAX 64
@@ -180,12 +179,14 @@ enum ObjType {
 
 #define CLASS_ARRAY "$$ArrayImpl"
 #define CLASS_ENTITY "$$EntityImpl"
+#define CLASS_FONT "Font"
 #define CLASS_FUNCTION "$$FunctionImpl"
 #define CLASS_INSTANCE "$$InstanceImpl"
 #define CLASS_MAP "$$MapImpl"
 #define CLASS_MATERIAL "Material"
 #define CLASS_RESOURCE "Resource"
 #define CLASS_RESOURCEABLE "Resourceable"
+#define CLASS_SHADER "Shader"
 #define CLASS_STREAM "$$StreamImpl"
 #define CLASS_STRING "$$StringImpl"
 
@@ -207,13 +208,14 @@ enum ObjType {
 #define IS_NATIVE_INSTANCE(value) IsObjectType(value, OBJ_NATIVE_INSTANCE)
 #define IS_ENTITY(value) IsObjectType(value, OBJ_ENTITY)
 #define IS_INSTANCEABLE(value) (IS_INSTANCE(value) || IS_NATIVE_INSTANCE(value) || IS_ENTITY(value))
+#define IS_CALLABLE(value) (IS_FUNCTION(value) || IS_NATIVE_FUNCTION(value) || IS_BOUND_METHOD(value))
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))
 #define AS_CLOSURE(value) ((ObjClosure*)AS_OBJECT(value))
 #define AS_FUNCTION(value) ((ObjFunction*)AS_OBJECT(value))
 #define AS_INSTANCE(value) ((ObjInstance*)AS_OBJECT(value))
-#define AS_NATIVE(value) (((ObjNative*)AS_OBJECT(value))->Function)
+#define AS_NATIVE_FUNCTION(value) (((ObjNative*)AS_OBJECT(value))->Function)
 #define AS_STRING(value) ((ObjString*)AS_OBJECT(value))
 #define AS_CSTRING(value) (((ObjString*)AS_OBJECT(value))->Chars)
 #define AS_ARRAY(value) ((ObjArray*)AS_OBJECT(value))
@@ -259,7 +261,7 @@ struct ObjFunction {
 	struct Chunk Chunk;
 	ObjModule* Module;
 	ObjString* Name;
-	ObjString* ClassName;
+	struct ObjClass* Class;
 	Uint32 NameHash;
 };
 struct ObjNative {
@@ -348,6 +350,14 @@ struct ObjStream {
 struct ObjMaterial {
 	UNION_INSTANCEABLE;
 	void* MaterialPtr;
+};
+struct ObjShader {
+	UNION_INSTANCEABLE;
+	void* ShaderPtr;
+};
+struct ObjFont {
+	UNION_INSTANCEABLE;
+	void* FontPtr;
 };
 
 #undef UNION_INSTANCEABLE
@@ -458,7 +468,7 @@ enum OpCode : uint8_t {
 	//
 	OP_INHERIT,
 	OP_RETURN,
-	OP_METHOD,
+	OP_METHOD_V4,
 	OP_CLASS,
 	// Function Operations
 	OP_CALL,
@@ -516,7 +526,7 @@ enum OpCode : uint8_t {
 	//
 	OP_SWITCH_TABLE,
 	OP_FAILSAFE,
-	OP_EVENT,
+	OP_EVENT_V4,
 	OP_TYPEOF,
 	OP_NEW,
 	OP_IMPORT,
@@ -536,6 +546,8 @@ enum OpCode : uint8_t {
 	OP_DECIMAL,
 	OP_INVOKE,
 	OP_SUPER_INVOKE,
+	OP_EVENT,
+	OP_METHOD,
 
 	OP_LAST
 };

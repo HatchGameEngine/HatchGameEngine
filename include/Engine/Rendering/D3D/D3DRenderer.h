@@ -21,7 +21,7 @@ public:
 	static int UpdateTexture(Texture* texture, SDL_Rect* r, void* pixels, int pitch);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
-	static void SetRenderTarget(Texture* texture);
+	static bool SetRenderTarget(Texture* texture);
 	static void UpdateWindowSize(int width, int height);
 	static void UpdateViewport();
 	static void UpdateClipRect();
@@ -30,10 +30,6 @@ public:
 	static void UpdateProjectionMatrix();
 	static void
 	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
-	static void UseShader(void* shader);
-	static void SetUniformF(int location, int count, float* values);
-	static void SetUniformI(int location, int count, int* values);
-	static void SetUniformTexture(Texture* texture, int uniform_index, int slot);
 	static void Clear();
 	static void Present();
 	static void SetBlendColor(float r, float g, float b, float a);

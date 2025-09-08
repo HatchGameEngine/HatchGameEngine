@@ -116,6 +116,7 @@ private:
 	static bool ValidateForLocation(const char* path);
 
 public:
+	static std::string ToString(std::filesystem::path path);
 	static bool Create(const char* path);
 	static std::string Concat(std::string pathA, std::string pathB);
 	static bool GetCurrentWorkingDirectory(char* out, size_t sz);
@@ -124,12 +125,15 @@ public:
 	static bool HasRelativeComponents(const char* path);
 	static std::string Normalize(std::string path);
 	static std::string Normalize(const char* path);
+	static std::string GetLocationFromRealPath(const char* filename, PathLocation location);
+	static bool IsAbsolute(const char* filename);
 	static bool IsValidDefaultLocation(const char* filename);
 	static bool
 	FromLocation(std::string path, PathLocation location, std::string& result, bool makeDirs);
 	static bool
 	FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs);
 	static bool FromURL(const char* filename, std::string& result);
+	static void FromURL(const char* filename, char* buf, size_t bufSize);
 	static std::string StripURL(const char* filename);
 };
 

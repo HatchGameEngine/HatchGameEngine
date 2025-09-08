@@ -1,3 +1,4 @@
+#include <Engine/Error.h>
 #include <Engine/Rendering/TextureReference.h>
 
 TextureReference::TextureReference(Texture* ptr) {
@@ -12,7 +13,7 @@ void TextureReference::TakeRef() {
 
 bool TextureReference::ReleaseRef() {
 	if (References == 0) {
-		abort();
+		Error::Fatal("Tried to release reference of TextureReference when it had none!");
 	}
 
 	References--;

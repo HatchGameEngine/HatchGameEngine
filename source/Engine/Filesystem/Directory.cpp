@@ -11,8 +11,8 @@
 #endif
 
 bool CompareFunction(std::filesystem::path i, std::filesystem::path j) {
-	std::string pathA = i.u8string();
-	std::string pathB = j.u8string();
+	std::string pathA = Path::ToString(i);
+	std::string pathB = Path::ToString(j);
 
 	return pathA.compare(pathB) < 0;
 }
@@ -27,10 +27,9 @@ bool Directory::Exists(const char* path) {
 		return true;
 	}
 #else
-	DIR* dir = opendir(path);
-	if (dir) {
-		closedir(dir);
-		return true;
+	struct stat pathStat;
+	if (stat(path, &pathStat) == 0) {
+		return S_ISDIR(pathStat.st_mode);
 	}
 #endif
 	return false;
@@ -104,7 +103,7 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 					std::filesystem::path(std::string(path));
 				std::filesystem::path entryFs = std::filesystem::path(entryName);
 
-				std::string tempPath = (pathFs / entryFs).u8string();
+				std::string tempPath = Path::ToString(pathFs / entryFs);
 				std::replace(tempPath.begin(), tempPath.end(), '\\', '/');
 
 				std::filesystem::path finalPath = std::filesystem::u8path(tempPath);
@@ -194,7 +193,7 @@ void Directory::GetDirectories(std::vector<std::filesystem::path>* files,
 					std::filesystem::path entryFs =
 						std::filesystem::path(entryName);
 
-					std::string tempPath = (pathFs / entryFs).u8string();
+					std::string tempPath = Path::ToString(pathFs / entryFs);
 					std::replace(tempPath.begin(), tempPath.end(), '\\', '/');
 
 					std::filesystem::path finalPath =

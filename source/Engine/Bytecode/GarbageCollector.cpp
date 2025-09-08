@@ -49,18 +49,8 @@ void GarbageCollector::Collect() {
 	// Mark constants
 	GrayHashMap(ScriptManager::Constants);
 
-	// Mark static objects
-	for (Entity *ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
-
-		ScriptEntity* bobj = (ScriptEntity*)ent;
-		GrayObject(bobj->Instance);
-		GrayHashMap(bobj->Properties);
-	}
-	// Mark dynamic objects
-	for (Entity *ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
-
+	// Mark objects
+	for (Entity* ent = Scene::ObjectFirst; ent; ent = ent->NextSceneEntity) {
 		ScriptEntity* bobj = (ScriptEntity*)ent;
 		GrayObject(bobj->Instance);
 		GrayHashMap(bobj->Properties);
@@ -239,6 +229,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		GrayObject(klass->Name);
 		GrayHashMap(klass->Methods);
 		GrayHashMap(klass->Fields);
+		GrayValue(klass->Initializer);
 		break;
 	}
 	case OBJ_ENUM: {
@@ -256,7 +247,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	case OBJ_FUNCTION: {
 		ObjFunction* function = (ObjFunction*)object;
 		GrayObject(function->Name);
-		GrayObject(function->ClassName);
+		GrayObject(function->Class);
 		for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
 			GrayValue((*function->Chunk.Constants)[i]);
 		}
@@ -302,4 +293,8 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		// No references
 		break;
 	}
+}
+
+void GarbageCollector::Dispose() {
+	Init();
 }

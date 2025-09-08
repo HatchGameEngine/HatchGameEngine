@@ -1,6 +1,7 @@
 #include <Engine/ResourceTypes/Image.h>
 
 #include <Engine/Application.h>
+#include <Engine/Error.h>
 #include <Engine/Graphics.h>
 
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>

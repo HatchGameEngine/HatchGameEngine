@@ -15,7 +15,6 @@ private:
 	static ResourceType* LoadInternal(Uint8 type, const char* filename, int unloadPolicy);
 	static Uint8 GuessType(const char* filename);
 	static Resourceable* LoadData(Uint8 type, const char* filename);
-	static ISprite* LoadFontData(const char* filename, int pixel_sz);
 
 public:
 	static vector<ResourceType*>* GetList();
@@ -25,7 +24,6 @@ public:
 	static void ReleaseVMObject(ResourceType* resource);
 	static bool CompareVMObjects(void* a, void* b);
 	static ResourceType* Load(Uint8 type, const char* filename, int unloadPolicy);
-	static ResourceType* LoadFont(const char* filename, int pixel_sz, int unloadPolicy);
 	static void TakeRef(ResourceType* resource);
 	static bool Reload(ResourceType* resource);
 	static void Unload(ResourceType* resource);

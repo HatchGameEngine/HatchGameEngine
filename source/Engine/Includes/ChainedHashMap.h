@@ -1,6 +1,7 @@
 #ifndef CHAINEDHASHMAP_H
 #define CHAINEDHASHMAP_H
 
+#include <Engine/Error.h>
 #include <Engine/Includes/HashMap.h>
 
 template<typename T>
@@ -29,9 +30,7 @@ public:
 		Data = (ChainedHashMapElement<T>*)Memory::TrackedCalloc(
 			"ChainedHashMap::Data", Capacity, sizeof(ChainedHashMapElement<T>));
 		if (!Data) {
-			Log::Print(Log::LOG_ERROR,
-				"Could not allocate memory for ChainedHashMap data!");
-			exit(-1);
+			Error::Fatal("Could not allocate memory for ChainedHashMap data!");
 		}
 	}
 
@@ -340,9 +339,7 @@ private:
 		newData = (ChainedHashMapElement<T>*)Memory::TrackedCalloc(
 			oldTrack, Capacity, sizeof(ChainedHashMapElement<T>));
 		if (!newData) {
-			Log::Print(Log::LOG_ERROR,
-				"Could not allocate memory for ChainedHashMap data!");
-			exit(-1);
+			Error::Fatal("Could not allocate memory for ChainedHashMap data!");
 		}
 
 		Data = newData;
