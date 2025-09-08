@@ -11357,7 +11357,7 @@ VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Resources
 ObjResource* LoadResource(Uint8 type, char* filename, int unloadPolicy) {
-	ResourceType* resource = Resource::Load(type, filename, unloadPolicy);
+	ResourceType* resource = Resource::Load(type, filename, unloadPolicy, false);
 	if (resource != nullptr) {
 		return (ObjResource*)(Resource::GetVMObject(resource));
 	}

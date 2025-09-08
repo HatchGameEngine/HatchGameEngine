@@ -28,6 +28,8 @@ void ResourceImpl::Init() {
 	Hash_Scope = Murmur::EncryptString("Scope");
 	Hash_Data = Murmur::EncryptString("Data");
 
+	ScriptManager::DefineNative(Class, "IsUnique", ResourceImpl::VM_IsUnique);
+	ScriptManager::DefineNative(Class, "MakeUnique", ResourceImpl::VM_MakeUnique);
 	ScriptManager::DefineNative(Class, "Reload", ResourceImpl::VM_Reload);
 	ScriptManager::DefineNative(Class, "Unload", ResourceImpl::VM_Unload);
 
@@ -78,11 +80,12 @@ VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 	ObjResource* objResource = AS_RESOURCE(args[0]);
 	char* filename = GET_ARG(1, GetString);
 	int unloadPolicy = GET_ARG_OPT(2, GetInteger, SCOPE_GAME);
+	bool unique = GET_ARG_OPT(3, GetInteger, false);
 
 	VMValue value = NULL_VAL;
 
 	if (filename != nullptr) {
-		ResourceType* resource = Resource::Load(RESOURCE_NONE, filename, unloadPolicy);
+		ResourceType* resource = Resource::Load(RESOURCE_NONE, filename, unloadPolicy, unique);
 		if (resource != nullptr) {
 			Resource::SetVMObject(resource, (void*)objResource);
 			value = OBJECT_VAL(objResource);
@@ -161,6 +164,30 @@ bool ResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint3
 	}
 
 	return true;
+}
+
+VMValue ResourceImpl::VM_IsUnique(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	void* ptr = GET_ARG(0, GetResource);
+	if (ptr != nullptr) {
+		ResourceType* resource = (ResourceType*)ptr;
+		return INTEGER_VAL(resource->Unique);
+	}
+
+	return NULL_VAL;
+}
+
+VMValue ResourceImpl::VM_MakeUnique(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	void* ptr = GET_ARG(0, GetResource);
+	if (ptr != nullptr) {
+		ResourceType* resource = (ResourceType*)ptr;
+		resource->Unique = true;
+	}
+
+	return NULL_VAL;
 }
 
 VMValue ResourceImpl::VM_Reload(int argCount, VMValue* args, Uint32 threadID) {

@@ -6,7 +6,7 @@
 
 class Resource {
 private:
-	static ResourceType* New(Uint8 type, const char* filename, Uint32 hash, int unloadPolicy);
+	static ResourceType* New(Uint8 type, const char* filename, Uint32 hash, int unloadPolicy, bool unique);
 	static void Delete(ResourceType* resource);
 	static void AddRef(ResourceType* resource);
 	static void DecRef(ResourceType* resource);
@@ -23,7 +23,7 @@ public:
 	static void SetVMObject(ResourceType* resource, void* obj);
 	static void ReleaseVMObject(ResourceType* resource);
 	static bool CompareVMObjects(void* a, void* b);
-	static ResourceType* Load(Uint8 type, const char* filename, int unloadPolicy);
+	static ResourceType* Load(Uint8 type, const char* filename, int unloadPolicy, bool unique);
 	static void TakeRef(ResourceType* resource);
 	static bool Reload(ResourceType* resource);
 	static void Unload(ResourceType* resource);

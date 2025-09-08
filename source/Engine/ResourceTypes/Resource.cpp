@@ -7,12 +7,13 @@
 
 static vector<ResourceType*> List;
 
-ResourceType* Resource::New(Uint8 type, const char* filename, Uint32 hash, int unloadPolicy) {
+ResourceType* Resource::New(Uint8 type, const char* filename, Uint32 hash, int unloadPolicy, bool unique) {
 	ResourceType* resource = new (std::nothrow) ResourceType();
 	resource->Type = type;
 	resource->Filename = StringUtils::Duplicate(filename);
 	resource->FilenameHash = hash;
 	resource->UnloadPolicy = unloadPolicy;
+	resource->Unique = unique;
 	AddRef(resource);
 	return resource;
 }
@@ -140,6 +141,7 @@ int Resource::Search(Uint8 type, const char* filename, Uint32 hash) {
 	for (size_t i = 0, listSz = List.size(); i < listSz; i++) {
 		if (List[i]->Type == type
 		&& List[i]->FilenameHash == hash
+		&& List[i]->Unique == false
 		&& strcmp(List[i]->Filename, filename) == 0) {
 			return (int)i;
 		}
@@ -148,7 +150,7 @@ int Resource::Search(Uint8 type, const char* filename, Uint32 hash) {
 	return -1;
 }
 
-ResourceType* Resource::Load(Uint8 type, const char* filename, int unloadPolicy) {
+ResourceType* Resource::Load(Uint8 type, const char* filename, int unloadPolicy, bool unique) {
 	// Guess resource type if none was given
 	if (type == RESOURCE_NONE) {
 		type = GuessType(filename);
@@ -157,11 +159,14 @@ ResourceType* Resource::Load(Uint8 type, const char* filename, int unloadPolicy)
 		}
 	}
 
-	// Find a resource that already exists.
 	Uint32 hash = CRC32::EncryptString(filename);
-	int result = Search(type, filename, hash);
-	if (result != -1) {
-		return List[result];
+
+	// If not unique, find a resource that already exists.
+	if (!unique) {
+		int result = Search(type, filename, hash);
+		if (result != -1) {
+			return List[result];
+		}
 	}
 
 	// Try loading it.
@@ -171,7 +176,7 @@ ResourceType* Resource::Load(Uint8 type, const char* filename, int unloadPolicy)
 	}
 
 	// Allocate a new resource.
-	ResourceType* resource = New(type, filename, hash, unloadPolicy);
+	ResourceType* resource = New(type, filename, hash, unloadPolicy, unique);
 	resource->AsResourceable = data;
 	resource->Loaded = true;
 

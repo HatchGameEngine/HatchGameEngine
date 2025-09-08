@@ -40,7 +40,7 @@ void* Material::TryLoadForModel(std::string imagePath, const char* parentDirecto
 		filename = Path::Concat(std::string(parentDirectory), filename);
 	}
 
-	ResourceType* resource = Resource::Load(RESOURCE_IMAGE, filename.c_str(), SCOPE_GAME);
+	ResourceType* resource = Resource::Load(RESOURCE_IMAGE, filename.c_str(), SCOPE_GAME, false);
 	if (resource) {
 		return (void*)resource;
 	}

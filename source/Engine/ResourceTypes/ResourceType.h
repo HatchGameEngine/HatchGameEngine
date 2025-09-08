@@ -57,6 +57,7 @@ struct ResourceType {
 	char* Filename = nullptr;
 	Uint32 FilenameHash = 0;
 	bool Loaded = false;
+	bool Unique = false;
 	int RefCount = 0;
 	void* VMObject;
 	Uint32 UnloadPolicy;
