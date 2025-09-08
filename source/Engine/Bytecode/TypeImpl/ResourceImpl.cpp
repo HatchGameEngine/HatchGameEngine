@@ -42,19 +42,19 @@ void ResourceImpl::Init() {
 	(argIndex < argCount ? GET_ARG(argIndex, argFunction) : argDefault)
 
 Obj* ResourceImpl::New() {
+	// Don't worry about it.
+	return nullptr;
+}
+
+Obj* ResourceImpl::New(void* resourcePtr) {
 	ObjResource* resource = (ObjResource*)AllocateObject(sizeof(ObjResource), OBJ_RESOURCE);
 	Memory::Track(resource, "NewResource");
 	resource->Object.Class = Class;
 	resource->Object.Destructor = Dispose;
 	resource->Object.PropertyGet = VM_PropertyGet;
 	resource->Object.PropertySet = VM_PropertySet;
+	SetOwner((Obj*)resource, resourcePtr);
 	return (Obj*)resource;
-}
-
-Obj* ResourceImpl::New(void* resourcePtr) {
-	Obj* obj = New();
-	SetOwner(obj, resourcePtr);
-	return obj;
 }
 
 void ResourceImpl::SetOwner(Obj* obj, void* resourcePtr) {
@@ -77,7 +77,6 @@ void ResourceImpl::Dispose(Obj* object) {
 
 VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
-	ObjResource* objResource = AS_RESOURCE(args[0]);
 	char* filename = GET_ARG(1, GetString);
 	int unloadPolicy = GET_ARG_OPT(2, GetInteger, SCOPE_GAME);
 	bool unique = GET_ARG_OPT(3, GetInteger, false);
@@ -87,8 +86,7 @@ VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 	if (filename != nullptr) {
 		ResourceType* resource = Resource::Load(RESOURCE_NONE, filename, unloadPolicy, unique);
 		if (resource != nullptr) {
-			Resource::SetVMObject(resource, (void*)objResource);
-			value = OBJECT_VAL(objResource);
+			value = OBJECT_VAL(Resource::GetVMObject(resource));
 		}
 	}
 
