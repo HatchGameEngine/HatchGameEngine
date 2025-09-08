@@ -165,13 +165,10 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\InstanceImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MapImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MaterialImpl.cpp" />
-<<<<<<< HEAD
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceableImpl.cpp" />
-=======
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StreamImpl.cpp" />
->>>>>>> master
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\TypeImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Bytecode.cpp" />
