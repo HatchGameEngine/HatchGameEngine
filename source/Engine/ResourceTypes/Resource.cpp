@@ -139,22 +139,6 @@ int Resource::Search(Uint8 type, const char* filename, Uint32 hash) {
 }
 
 ResourceType* Resource::Load(Uint8 type, const char* filename, int unloadPolicy) {
-	switch (type) {
-	case RESOURCE_NONE:
-	case RESOURCE_SPRITE:
-	case RESOURCE_IMAGE:
-	case RESOURCE_AUDIO:
-	case RESOURCE_MODEL:
-	case RESOURCE_MEDIA:
-		return LoadInternal(type, filename, unloadPolicy);
-	default:
-		break;
-	}
-
-	return nullptr;
-}
-
-ResourceType* Resource::LoadInternal(Uint8 type, const char* filename, int unloadPolicy) {
 	// Guess resource type if none was given
 	if (type == RESOURCE_NONE) {
 		type = GuessType(filename);

@@ -12,7 +12,6 @@ private:
 	static void DecRef(ResourceType* resource);
 	static bool UnloadData(ResourceType* resource);
 	static int Search(Uint8 type, const char* filename, Uint32 hash);
-	static ResourceType* LoadInternal(Uint8 type, const char* filename, int unloadPolicy);
 	static Uint8 GuessType(const char* filename);
 	static Resourceable* LoadData(Uint8 type, const char* filename);
 

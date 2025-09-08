@@ -11,7 +11,7 @@ void Resourceable::TakeRef() {
 
 bool Resourceable::Release() {
 	if (RefCount == 0) {
-		abort();
+		Error::Fatal("Tried to release reference of Resourceable when it had none!");
 	}
 
 	RefCount--;

@@ -171,7 +171,7 @@ void LoadDebugFont() {
 		DEBUG_fontSprite->RefreshGraphicsID();
 	}
 	else {
-		delete DEBUG_fontSprite;
+		DEBUG_fontSprite->Release();
 		DEBUG_fontSprite = nullptr;
 		DEBUG_HasFontSprite = false;
 	}
