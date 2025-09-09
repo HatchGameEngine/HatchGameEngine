@@ -85,12 +85,6 @@ Stream* GetFontStream(VMValue value, bool& closeStream, Uint32 threadID) {
 	}
 }
 
-/***
- * \constructor
- * \param font (String, Stream, or Array): The font or list of fonts.
- * \desc Loads a font from the given Resource path, Stream, or Array containing Resource paths or Streams.
- * \ns Font
- */
 Obj* FontImpl::New() {
 	Font* font = new Font();
 	ObjFont* obj = New((void*)font);
@@ -104,6 +98,13 @@ ObjFont* FontImpl::New(void* fontPtr) {
 	font->FontPtr = fontPtr;
 	return font;
 }
+
+/***
+ * \constructor
+ * \desc Loads a font from the given Resource path, Stream, or Array containing Resource paths or Streams.
+ * \param font (String, Stream, or Array): The font or list of fonts.
+ * \ns Font
+ */
 VMValue FontImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 	ObjFont* objFont = AS_FONT(args[0]);
 	Font* font = (Font*)objFont->FontPtr;

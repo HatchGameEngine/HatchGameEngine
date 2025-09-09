@@ -75,6 +75,14 @@ void ResourceImpl::Dispose(Obj* object) {
 	}
 }
 
+/***
+ * \constructor
+ * \desc Loads a Resource by name.
+ * \param filename (String): Filename of the resource.
+ * \paramOpt unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the resource.
+ * \paramOpt unique (Boolean): If <code>false</code> (the default), this constructor may return an already loaded Resource of the same type and filename. However, if <code>true</code>, this constructor will always return an unique Resource, and load a new Resourceable.
+ * \ns Resource
+ */
 VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
 	char* filename = GET_ARG(1, GetString);
@@ -100,9 +108,19 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	ObjResource* objResource = (ObjResource*)object;
 	ResourceType* resource = (ResourceType*)objResource->ResourcePtr;
 
+	/***
+	 * \field Type
+	 * \desc The <linkto ref="RESOURCETYPE_*">resource type</linkto> of the Resource.
+	 * \ns Resource
+ 	*/
 	if (hash == Hash_Type) {
 		*result = INTEGER_VAL(resource->Type);
 	}
+	/***
+	 * \field Filename
+	 * \desc The filename of the Resource.
+	 * \ns Resource
+ 	*/
 	else if (hash == Hash_Filename) {
 		if (ScriptManager::Lock()) {
 			ObjString* string = CopyString(resource->Filename);
@@ -113,12 +131,27 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 			*result = NULL_VAL;
 		}
 	}
+	/***
+	 * \field Loaded
+	 * \desc Whether the Resource is loaded or not.
+	 * \ns Resource
+ 	*/
 	else if (hash == Hash_Loaded) {
 		*result = INTEGER_VAL(resource->Loaded ? true : false);
 	}
+	/***
+	 * \field Scope
+	 * \desc The scope of the Resource.
+	 * \ns Resource
+ 	*/
 	else if (hash == Hash_Scope) {
 		*result = INTEGER_VAL((int)resource->UnloadPolicy);
 	}
+	/***
+	 * \field Data
+	 * \desc The Resourceable owned by this resource.
+	 * \ns Resource
+ 	*/
 	else if (hash == Hash_Data) {
 		if (resource->AsResourceable) {
 			*result = OBJECT_VAL(resource->AsResourceable->GetVMObject());
@@ -164,6 +197,12 @@ bool ResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint3
 	return true;
 }
 
+/***
+ * \method IsUnique
+ * \desc Returns whether the Resource is unique or not.
+ * \return Returns a Boolean value.
+ * \ns Resource
+ */
 VMValue ResourceImpl::VM_IsUnique(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 
@@ -176,6 +215,11 @@ VMValue ResourceImpl::VM_IsUnique(int argCount, VMValue* args, Uint32 threadID) 
 	return NULL_VAL;
 }
 
+/***
+ * \method MakeUnique
+ * \desc Makes the Resource unique, if it already wasn't.
+ * \ns Resource
+ */
 VMValue ResourceImpl::VM_MakeUnique(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 
@@ -188,6 +232,12 @@ VMValue ResourceImpl::VM_MakeUnique(int argCount, VMValue* args, Uint32 threadID
 	return NULL_VAL;
 }
 
+/***
+ * \method Reload
+ * \desc Reloads the Resourceable owned by this Resource. Returns <code>true</code> if it was reloaded successfully, and <code>false</code> if otherwise.
+ * \return Returns a Boolean value.
+ * \ns Resource
+ */
 VMValue ResourceImpl::VM_Reload(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 
@@ -202,6 +252,11 @@ VMValue ResourceImpl::VM_Reload(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(success);
 }
 
+/***
+ * \method Unload
+ * \desc Unloads the Resourceable owned by this Resource. Does nothing if the Resource was already unloaded.
+ * \ns Resource
+ */
 VMValue ResourceImpl::VM_Unload(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 

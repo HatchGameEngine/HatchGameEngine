@@ -36,6 +36,11 @@ bool AudioImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 
 	ISound* audio = (ISound*)resourceable;
 
+	/***
+	 * \field LoopPoint
+	 * \desc The loop point of the audio in samples, or <code>null</code> if it doesn't have one.
+	 * \ns AudioResource
+ 	*/
 	if (hash == Hash_LoopPoint) {
 		if (audio->LoopPoint >= 0) {
 			*result = INTEGER_VAL(audio->LoopPoint);

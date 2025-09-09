@@ -38,9 +38,19 @@ bool ImageImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 
 	Image* image = (Image*)resourceable;
 
+	/***
+	 * \field Width
+	 * \desc The width of the image.
+	 * \ns ImageResource
+ 	*/
 	if (hash == Hash_Width) {
 		*result = INTEGER_VAL((int)image->TexturePtr->Width);
 	}
+	/***
+	 * \field Height
+	 * \desc The height of the image.
+	 * \ns ImageResource
+ 	*/
 	else if (hash == Hash_Height) {
 		*result = INTEGER_VAL((int)image->TexturePtr->Height);
 	}

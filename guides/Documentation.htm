@@ -1,55 +1,57 @@
 <html>
-    <head>
-        <title>Hatch Game Engine Documentation</title>
-        <style>
-            body {
-                background-color: white;
-                font-family: sans-serif;
-                margin: 64px;
-            }
-            codefrag {
-                display: inline;
-                margin: 0px;
-                font-family: monospace;
-            }
-            a {
-                text-decoration: none;
-                color: #4141F2;
-            }
-            .function_list {
-                font-family: monospace;
-                margin-top: 0.5em;
-            }
-            .function_list li {
-                margin-top: 0.125em;
-                margin-bottom: 0.125em;
-            }
-            code, pre.code {
-                background-color: #f2f2f2;
-                border-radius: 3px;
-                padding: 3px;
-            }
-            codeBlock {
-                background-color: #f2f2f2;
-                border-radius: 3px;
-                padding: 3px;
-                line-height: 100%;
-                word-break: normal;
-                font-family: monospace;
-            }
-        </style>
-    </head>
-    <body>
-        <div style="position: fixed; margin-top: -32px; margin-left: -96px; width: 100%; text-align: right; ">
-            <a href="#Reference_top">Back to top</a>
-        </div>
-        <h1 id="Reference_top">Hatch Game Engine Reference</h1>
-        <h3>Namespaces</h3>
+  <head>
+    <title>Hatch Game Engine Documentation</title>
+    <style>
+    body {
+    background-color: white;
+    font-family: sans-serif;
+    margin: 64px;
+}
+codefrag {
+    display: inline;
+    margin: 0px;
+    font-family: monospace;
+}
+a {
+    text-decoration: none;
+    color: #4141F2;
+}
+.function_list {
+    font-family: monospace;
+    margin-top: 0.5em;
+}
+.function_list li {
+    margin-top: 0.125em;
+    margin-bottom: 0.125em;
+}
+code, pre.code {
+    background-color: #f2f2f2;
+    border-radius: 3px;
+    padding: 3px;
+}
+codeBlock {
+    background-color: #f2f2f2;
+    border-radius: 3px;
+    padding: 3px;
+    line-height: 100%;
+    word-break: normal;
+    font-family: monospace;
+}
+
+    </style>
+  </head>
+  <body>
+    <div style="position: fixed; margin-top: -32px; margin-left: -96px; width: 100%; text-align: right;">
+        <a href="#Reference_top">Back to top</a>
+    </div>
+    <h1 id="Reference_top">Hatch Game Engine Reference</h1>
+            <h3>Namespaces</h3>
         <ul>
             <li><a href="#Reference_Animator">Animator</a></li>
             <li><a href="#Reference_Application">Application</a></li>
             <li><a href="#Reference_Array">Array</a></li>
             <li><a href="#Reference_Audio">Audio</a></li>
+            <li><a href="#Reference_AudioResource">AudioResource</a></li>
             <li><a href="#Reference_Collision">Collision</a></li>
             <li><a href="#Reference_Controller">Controller</a></li>
             <li><a href="#Reference_Date">Date</a></li>
@@ -59,10 +61,12 @@
             <li><a href="#Reference_Draw">Draw</a></li>
             <li><a href="#Reference_Draw3D">Draw3D</a></li>
             <li><a href="#Reference_Ease">Ease</a></li>
+            <li><a href="#Reference_Entity">Entity</a></li>
             <li><a href="#Reference_File">File</a></li>
             <li><a href="#Reference_Geometry">Geometry</a></li>
             <li><a href="#Reference_HTTP">HTTP</a></li>
             <li><a href="#Reference_Image">Image</a></li>
+            <li><a href="#Reference_ImageResource">ImageResource</a></li>
             <li><a href="#Reference_Input">Input</a></li>
             <li><a href="#Reference_Instance">Instance</a></li>
             <li><a href="#Reference_JSON">JSON</a></li>
@@ -76,6 +80,7 @@
             <li><a href="#Reference_RSDK.Math">RSDK.Math</a></li>
             <li><a href="#Reference_RSDK.Matrix">RSDK.Matrix</a></li>
             <li><a href="#Reference_Random">Random</a></li>
+            <li><a href="#Reference_Resource">Resource</a></li>
             <li><a href="#Reference_Resources">Resources</a></li>
             <li><a href="#Reference_Scene">Scene</a></li>
             <li><a href="#Reference_Scene3D">Scene3D</a></li>
@@ -102,6 +107,7 @@
         <ul>
             <li><a href="#Reference_Entity">Entity</a></li>
             <li><a href="#Reference_Font">Font</a></li>
+            <li><a href="#Reference_Resource">Resource</a></li>
             <li><a href="#Reference_Shader">Shader</a></li>
         </ul>
         <h3>Enums</h3>
@@ -186,8 +192,9 @@
                     <li><a href="#Reference_globals_Scene_ActiveCategory">Scene_ActiveCategory</a></li>
                     <li><a href="#Reference_globals_Scene_DebugMode">Scene_DebugMode</a></li>
         </ul>
-        <hr/>
-        <h3>Class methods</h3>
+
+    <hr/>
+            <h3>Class methods</h3>
             <p id="Reference_Animator">
                 <h2>Animator</h2>
                 <i>Class methods:</i>
@@ -283,6 +290,13 @@
                     <li><a href="#Reference_functions_Audio_SetMasterVolume">Audio.SetMasterVolume</a></li>
                     <li><a href="#Reference_functions_Audio_SetMusicVolume">Audio.SetMusicVolume</a></li>
                     <li><a href="#Reference_functions_Audio_SetSoundVolume">Audio.SetSoundVolume</a></li>
+                </ul>
+            </p>
+            <p id="Reference_AudioResource">
+                <h2>AudioResource</h2>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_audioresource_LoopPoint">audioresource.LoopPoint</a></li>
                 </ul>
             </p>
             <p id="Reference_Collision">
@@ -527,6 +541,125 @@
                     <li><a href="#Reference_functions_Ease_Triangle">Ease.Triangle</a></li>
                 </ul>
             </p>
+            <p id="Reference_Entity">
+                <h2>Entity</h2>
+                <i>Instance methods:</i>
+                <ul>
+                    <li><a href="#Reference_methods_entity_SetAnimation">entity.SetAnimation</a></li>
+                    <li><a href="#Reference_methods_entity_ResetAnimation">entity.ResetAnimation</a></li>
+                    <li><a href="#Reference_methods_entity_Animate">entity.Animate</a></li>
+                    <li><a href="#Reference_methods_entity_GetUpdatePriority">entity.GetUpdatePriority</a></li>
+                    <li><a href="#Reference_methods_entity_SetUpdatePriority">entity.SetUpdatePriority</a></li>
+                    <li><a href="#Reference_methods_entity_GetIDWithinClass">entity.GetIDWithinClass</a></li>
+                    <li><a href="#Reference_methods_entity_AddToRegistry">entity.AddToRegistry</a></li>
+                    <li><a href="#Reference_methods_entity_IsInRegistry">entity.IsInRegistry</a></li>
+                    <li><a href="#Reference_methods_entity_RemoveFromRegistry">entity.RemoveFromRegistry</a></li>
+                    <li><a href="#Reference_methods_entity_ApplyMotion">entity.ApplyMotion</a></li>
+                    <li><a href="#Reference_methods_entity_InView">entity.InView</a></li>
+                    <li><a href="#Reference_methods_entity_CollidedWithObject">entity.CollidedWithObject</a></li>
+                    <li><a href="#Reference_methods_entity_GetHitboxFromSprite">entity.GetHitboxFromSprite</a></li>
+                    <li><a href="#Reference_methods_entity_ReturnHitbox">entity.ReturnHitbox</a></li>
+                    <li><a href="#Reference_methods_entity_CollideWithObject">entity.CollideWithObject</a></li>
+                    <li><a href="#Reference_methods_entity_SolidCollideWithObject">entity.SolidCollideWithObject</a></li>
+                    <li><a href="#Reference_methods_entity_TopSolidCollideWithObject">entity.TopSolidCollideWithObject</a></li>
+                    <li><a href="#Reference_methods_entity_PropertyExists">entity.PropertyExists</a></li>
+                    <li><a href="#Reference_methods_entity_PropertyGet">entity.PropertyGet</a></li>
+                    <li><a href="#Reference_methods_entity_SetViewVisibility">entity.SetViewVisibility</a></li>
+                    <li><a href="#Reference_methods_entity_SetViewOverride">entity.SetViewOverride</a></li>
+                    <li><a href="#Reference_methods_entity_AddToDrawGroup">entity.AddToDrawGroup</a></li>
+                    <li><a href="#Reference_methods_entity_IsInDrawGroup">entity.IsInDrawGroup</a></li>
+                    <li><a href="#Reference_methods_entity_RemoveFromDrawGroup">entity.RemoveFromDrawGroup</a></li>
+                    <li><a href="#Reference_methods_entity_PlaySound">entity.PlaySound</a></li>
+                    <li><a href="#Reference_methods_entity_LoopSound">entity.LoopSound</a></li>
+                    <li><a href="#Reference_methods_entity_StopSound">entity.StopSound</a></li>
+                    <li><a href="#Reference_methods_entity_StopAllSounds">entity.StopAllSounds</a></li>
+                </ul>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_entity_X">entity.X</a></li>
+                    <li><a href="#Reference_fields_entity_Y">entity.Y</a></li>
+                    <li><a href="#Reference_fields_entity_Z">entity.Z</a></li>
+                    <li><a href="#Reference_fields_entity_XSpeed">entity.XSpeed</a></li>
+                    <li><a href="#Reference_fields_entity_YSpeed">entity.YSpeed</a></li>
+                    <li><a href="#Reference_fields_entity_GroundSpeed">entity.GroundSpeed</a></li>
+                    <li><a href="#Reference_fields_entity_Gravity">entity.Gravity</a></li>
+                    <li><a href="#Reference_fields_entity_AutoPhysics">entity.AutoPhysics</a></li>
+                    <li><a href="#Reference_fields_entity_Angle">entity.Angle</a></li>
+                    <li><a href="#Reference_fields_entity_AngleMode">entity.AngleMode</a></li>
+                    <li><a href="#Reference_fields_entity_Ground">entity.Ground</a></li>
+                    <li><a href="#Reference_fields_entity_ScaleX">entity.ScaleX</a></li>
+                    <li><a href="#Reference_fields_entity_ScaleY">entity.ScaleY</a></li>
+                    <li><a href="#Reference_fields_entity_Rotation">entity.Rotation</a></li>
+                    <li><a href="#Reference_fields_entity_Alpha">entity.Alpha</a></li>
+                    <li><a href="#Reference_fields_entity_BlendMode">entity.BlendMode</a></li>
+                    <li><a href="#Reference_fields_entity_Priority">entity.Priority</a></li>
+                    <li><a href="#Reference_fields_entity_Depth">entity.Depth</a></li>
+                    <li><a href="#Reference_fields_entity_Sprite">entity.Sprite</a></li>
+                    <li><a href="#Reference_fields_entity_CurrentAnimation">entity.CurrentAnimation</a></li>
+                    <li><a href="#Reference_fields_entity_CurrentFrame">entity.CurrentFrame</a></li>
+                    <li><a href="#Reference_fields_entity_CurrentFrameCount">entity.CurrentFrameCount</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationSpeed">entity.AnimationSpeed</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationTimer">entity.AnimationTimer</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationFrameDuration">entity.AnimationFrameDuration</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationLoopIndex">entity.AnimationLoopIndex</a></li>
+                    <li><a href="#Reference_fields_entity_RotationStyle">entity.RotationStyle</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationSpeedMult">entity.AnimationSpeedMult</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationSpeedAdd">entity.AnimationSpeedAdd</a></li>
+                    <li><a href="#Reference_fields_entity_PrevAnimation">entity.PrevAnimation</a></li>
+                    <li><a href="#Reference_fields_entity_AutoAnimate">entity.AutoAnimate</a></li>
+                    <li><a href="#Reference_fields_entity_OnScreen">entity.OnScreen</a></li>
+                    <li><a href="#Reference_fields_entity_WasOffScreen">entity.WasOffScreen</a></li>
+                    <li><a href="#Reference_fields_entity_OnScreenHitboxW">entity.OnScreenHitboxW</a></li>
+                    <li><a href="#Reference_fields_entity_OnScreenHitboxH">entity.OnScreenHitboxH</a></li>
+                    <li><a href="#Reference_fields_entity_Visible">entity.Visible</a></li>
+                    <li><a href="#Reference_fields_entity_ViewRenderFlag">entity.ViewRenderFlag</a></li>
+                    <li><a href="#Reference_fields_entity_ViewOverrideFlag">entity.ViewOverrideFlag</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionW">entity.UpdateRegionW</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionH">entity.UpdateRegionH</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionTop">entity.UpdateRegionTop</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionLeft">entity.UpdateRegionLeft</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionRight">entity.UpdateRegionRight</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionBottom">entity.UpdateRegionBottom</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionW">entity.RenderRegionW</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionH">entity.RenderRegionH</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionTop">entity.RenderRegionTop</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionLeft">entity.RenderRegionLeft</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionRight">entity.RenderRegionRight</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionBottom">entity.RenderRegionBottom</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxW">entity.HitboxW</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxH">entity.HitboxH</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxOffX">entity.HitboxOffX</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxOffY">entity.HitboxOffY</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxLeft">entity.HitboxLeft</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxTop">entity.HitboxTop</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxRight">entity.HitboxRight</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxBottom">entity.HitboxBottom</a></li>
+                    <li><a href="#Reference_fields_entity_FlipFlag">entity.FlipFlag</a></li>
+                    <li><a href="#Reference_fields_entity_VelocityX">entity.VelocityX</a></li>
+                    <li><a href="#Reference_fields_entity_VelocityX">entity.VelocityX</a></li>
+                    <li><a href="#Reference_fields_entity_GroundVel">entity.GroundVel</a></li>
+                    <li><a href="#Reference_fields_entity_Direction">entity.Direction</a></li>
+                    <li><a href="#Reference_fields_entity_OnGround">entity.OnGround</a></li>
+                    <li><a href="#Reference_fields_entity_SlotID">entity.SlotID</a></li>
+                    <li><a href="#Reference_fields_entity_Filter">entity.Filter</a></li>
+                    <li><a href="#Reference_fields_entity_ZDepth">entity.ZDepth</a></li>
+                    <li><a href="#Reference_fields_entity_CollisionLayers">entity.CollisionLayers</a></li>
+                    <li><a href="#Reference_fields_entity_CollisionPlane">entity.CollisionPlane</a></li>
+                    <li><a href="#Reference_fields_entity_CollisionMode">entity.CollisionMode</a></li>
+                    <li><a href="#Reference_fields_entity_TileCollisions">entity.TileCollisions</a></li>
+                    <li><a href="#Reference_fields_entity_Activity">entity.Activity</a></li>
+                    <li><a href="#Reference_fields_entity_InRange">entity.InRange</a></li>
+                    <li><a href="#Reference_fields_entity_SensorX">entity.SensorX</a></li>
+                    <li><a href="#Reference_fields_entity_SensorY">entity.SensorY</a></li>
+                    <li><a href="#Reference_fields_entity_SensorAngle">entity.SensorAngle</a></li>
+                    <li><a href="#Reference_fields_entity_SensorAngle">entity.SensorAngle</a></li>
+                    <li><a href="#Reference_fields_entity_Active">entity.Active</a></li>
+                    <li><a href="#Reference_fields_entity_Pauseable">entity.Pauseable</a></li>
+                    <li><a href="#Reference_fields_entity_Persistent">entity.Persistent</a></li>
+                    <li><a href="#Reference_fields_entity_Interactable">entity.Interactable</a></li>
+                    <li><a href="#Reference_fields_entity_Persistence">entity.Persistence</a></li>
+                </ul>
+            </p>
             <p id="Reference_File">
                 <h2>File</h2>
                 <i>Class methods:</i>
@@ -560,6 +693,14 @@
                 <ul>
                     <li><a href="#Reference_functions_Image_GetWidth">Image.GetWidth</a></li>
                     <li><a href="#Reference_functions_Image_GetHeight">Image.GetHeight</a></li>
+                </ul>
+            </p>
+            <p id="Reference_ImageResource">
+                <h2>ImageResource</h2>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_imageresource_Width">imageresource.Width</a></li>
+                    <li><a href="#Reference_fields_imageresource_Height">imageresource.Height</a></li>
                 </ul>
             </p>
             <p id="Reference_Input">
@@ -623,91 +764,6 @@
                     <li><a href="#Reference_functions_Instance_DisableAutoAnimate">Instance.DisableAutoAnimate</a></li>
                     <li><a href="#Reference_functions_Instance_Copy">Instance.Copy</a></li>
                     <li><a href="#Reference_functions_Instance_ChangeClass">Instance.ChangeClass</a></li>
-                </ul>
-                <i>Instance fields:</i>
-                <ul>
-                    <li><a href="#Reference_fields_instance_X">instance.X</a></li>
-                    <li><a href="#Reference_fields_instance_Y">instance.Y</a></li>
-                    <li><a href="#Reference_fields_instance_Z">instance.Z</a></li>
-                    <li><a href="#Reference_fields_instance_XSpeed">instance.XSpeed</a></li>
-                    <li><a href="#Reference_fields_instance_YSpeed">instance.YSpeed</a></li>
-                    <li><a href="#Reference_fields_instance_GroundSpeed">instance.GroundSpeed</a></li>
-                    <li><a href="#Reference_fields_instance_Gravity">instance.Gravity</a></li>
-                    <li><a href="#Reference_fields_instance_AutoPhysics">instance.AutoPhysics</a></li>
-                    <li><a href="#Reference_fields_instance_Angle">instance.Angle</a></li>
-                    <li><a href="#Reference_fields_instance_AngleMode">instance.AngleMode</a></li>
-                    <li><a href="#Reference_fields_instance_Ground">instance.Ground</a></li>
-                    <li><a href="#Reference_fields_instance_ScaleX">instance.ScaleX</a></li>
-                    <li><a href="#Reference_fields_instance_ScaleY">instance.ScaleY</a></li>
-                    <li><a href="#Reference_fields_instance_Rotation">instance.Rotation</a></li>
-                    <li><a href="#Reference_fields_instance_Alpha">instance.Alpha</a></li>
-                    <li><a href="#Reference_fields_instance_BlendMode">instance.BlendMode</a></li>
-                    <li><a href="#Reference_fields_instance_Priority">instance.Priority</a></li>
-                    <li><a href="#Reference_fields_instance_Depth">instance.Depth</a></li>
-                    <li><a href="#Reference_fields_instance_Sprite">instance.Sprite</a></li>
-                    <li><a href="#Reference_fields_instance_CurrentAnimation">instance.CurrentAnimation</a></li>
-                    <li><a href="#Reference_fields_instance_CurrentFrame">instance.CurrentFrame</a></li>
-                    <li><a href="#Reference_fields_instance_CurrentFrameCount">instance.CurrentFrameCount</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationSpeed">instance.AnimationSpeed</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationTimer">instance.AnimationTimer</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationFrameDuration">instance.AnimationFrameDuration</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationLoopIndex">instance.AnimationLoopIndex</a></li>
-                    <li><a href="#Reference_fields_instance_RotationStyle">instance.RotationStyle</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationSpeedMult">instance.AnimationSpeedMult</a></li>
-                    <li><a href="#Reference_fields_instance_AnimationSpeedAdd">instance.AnimationSpeedAdd</a></li>
-                    <li><a href="#Reference_fields_instance_PrevAnimation">instance.PrevAnimation</a></li>
-                    <li><a href="#Reference_fields_instance_AutoAnimate">instance.AutoAnimate</a></li>
-                    <li><a href="#Reference_fields_instance_OnScreen">instance.OnScreen</a></li>
-                    <li><a href="#Reference_fields_instance_WasOffScreen">instance.WasOffScreen</a></li>
-                    <li><a href="#Reference_fields_instance_OnScreenHitboxW">instance.OnScreenHitboxW</a></li>
-                    <li><a href="#Reference_fields_instance_OnScreenHitboxH">instance.OnScreenHitboxH</a></li>
-                    <li><a href="#Reference_fields_instance_Visible">instance.Visible</a></li>
-                    <li><a href="#Reference_fields_instance_ViewRenderFlag">instance.ViewRenderFlag</a></li>
-                    <li><a href="#Reference_fields_instance_ViewOverrideFlag">instance.ViewOverrideFlag</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionW">instance.UpdateRegionW</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionH">instance.UpdateRegionH</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionTop">instance.UpdateRegionTop</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionLeft">instance.UpdateRegionLeft</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionRight">instance.UpdateRegionRight</a></li>
-                    <li><a href="#Reference_fields_instance_UpdateRegionBottom">instance.UpdateRegionBottom</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionW">instance.RenderRegionW</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionH">instance.RenderRegionH</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionTop">instance.RenderRegionTop</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionLeft">instance.RenderRegionLeft</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionRight">instance.RenderRegionRight</a></li>
-                    <li><a href="#Reference_fields_instance_RenderRegionBottom">instance.RenderRegionBottom</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxW">instance.HitboxW</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxH">instance.HitboxH</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxOffX">instance.HitboxOffX</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxOffY">instance.HitboxOffY</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxLeft">instance.HitboxLeft</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxTop">instance.HitboxTop</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxRight">instance.HitboxRight</a></li>
-                    <li><a href="#Reference_fields_instance_HitboxBottom">instance.HitboxBottom</a></li>
-                    <li><a href="#Reference_fields_instance_FlipFlag">instance.FlipFlag</a></li>
-                    <li><a href="#Reference_fields_instance_VelocityX">instance.VelocityX</a></li>
-                    <li><a href="#Reference_fields_instance_VelocityX">instance.VelocityX</a></li>
-                    <li><a href="#Reference_fields_instance_GroundVel">instance.GroundVel</a></li>
-                    <li><a href="#Reference_fields_instance_Direction">instance.Direction</a></li>
-                    <li><a href="#Reference_fields_instance_OnGround">instance.OnGround</a></li>
-                    <li><a href="#Reference_fields_instance_SlotID">instance.SlotID</a></li>
-                    <li><a href="#Reference_fields_instance_Filter">instance.Filter</a></li>
-                    <li><a href="#Reference_fields_instance_ZDepth">instance.ZDepth</a></li>
-                    <li><a href="#Reference_fields_instance_CollisionLayers">instance.CollisionLayers</a></li>
-                    <li><a href="#Reference_fields_instance_CollisionPlane">instance.CollisionPlane</a></li>
-                    <li><a href="#Reference_fields_instance_CollisionMode">instance.CollisionMode</a></li>
-                    <li><a href="#Reference_fields_instance_TileCollisions">instance.TileCollisions</a></li>
-                    <li><a href="#Reference_fields_instance_Activity">instance.Activity</a></li>
-                    <li><a href="#Reference_fields_instance_InRange">instance.InRange</a></li>
-                    <li><a href="#Reference_fields_instance_SensorX">instance.SensorX</a></li>
-                    <li><a href="#Reference_fields_instance_SensorY">instance.SensorY</a></li>
-                    <li><a href="#Reference_fields_instance_SensorAngle">instance.SensorAngle</a></li>
-                    <li><a href="#Reference_fields_instance_SensorAngle">instance.SensorAngle</a></li>
-                    <li><a href="#Reference_fields_instance_Active">instance.Active</a></li>
-                    <li><a href="#Reference_fields_instance_Pauseable">instance.Pauseable</a></li>
-                    <li><a href="#Reference_fields_instance_Persistent">instance.Persistent</a></li>
-                    <li><a href="#Reference_fields_instance_Interactable">instance.Interactable</a></li>
-                    <li><a href="#Reference_fields_instance_Persistence">instance.Persistence</a></li>
                 </ul>
             </p>
             <p id="Reference_JSON">
@@ -891,6 +947,28 @@
                     <li><a href="#Reference_functions_Random_GetSeed">Random.GetSeed</a></li>
                     <li><a href="#Reference_functions_Random_Max">Random.Max</a></li>
                     <li><a href="#Reference_functions_Random_Range">Random.Range</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Resource">
+                <h2>Resource</h2>
+                <i>Instance methods:</i>
+                <ul>
+                    <li><a href="#Reference_methods_resource_IsUnique">resource.IsUnique</a></li>
+                    <li><a href="#Reference_methods_resource_MakeUnique">resource.MakeUnique</a></li>
+                    <li><a href="#Reference_methods_resource_Reload">resource.Reload</a></li>
+                    <li><a href="#Reference_methods_resource_Unload">resource.Unload</a></li>
+                </ul>
+                <i>Instance constructors:</i>
+                <ul>
+                    <li><a href="#Reference_constructors_Resource">Resource</a></li>
+                </ul>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_resource_Type">resource.Type</a></li>
+                    <li><a href="#Reference_fields_resource_Filename">resource.Filename</a></li>
+                    <li><a href="#Reference_fields_resource_Loaded">resource.Loaded</a></li>
+                    <li><a href="#Reference_fields_resource_Scope">resource.Scope</a></li>
+                    <li><a href="#Reference_fields_resource_Data">resource.Data</a></li>
                 </ul>
             </p>
             <p id="Reference_Resources">
@@ -1416,6 +1494,91 @@
                     <li><a href="#Reference_methods_entity_StopSound">entity.StopSound</a></li>
                     <li><a href="#Reference_methods_entity_StopAllSounds">entity.StopAllSounds</a></li>
                 </ul>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_entity_X">entity.X</a></li>
+                    <li><a href="#Reference_fields_entity_Y">entity.Y</a></li>
+                    <li><a href="#Reference_fields_entity_Z">entity.Z</a></li>
+                    <li><a href="#Reference_fields_entity_XSpeed">entity.XSpeed</a></li>
+                    <li><a href="#Reference_fields_entity_YSpeed">entity.YSpeed</a></li>
+                    <li><a href="#Reference_fields_entity_GroundSpeed">entity.GroundSpeed</a></li>
+                    <li><a href="#Reference_fields_entity_Gravity">entity.Gravity</a></li>
+                    <li><a href="#Reference_fields_entity_AutoPhysics">entity.AutoPhysics</a></li>
+                    <li><a href="#Reference_fields_entity_Angle">entity.Angle</a></li>
+                    <li><a href="#Reference_fields_entity_AngleMode">entity.AngleMode</a></li>
+                    <li><a href="#Reference_fields_entity_Ground">entity.Ground</a></li>
+                    <li><a href="#Reference_fields_entity_ScaleX">entity.ScaleX</a></li>
+                    <li><a href="#Reference_fields_entity_ScaleY">entity.ScaleY</a></li>
+                    <li><a href="#Reference_fields_entity_Rotation">entity.Rotation</a></li>
+                    <li><a href="#Reference_fields_entity_Alpha">entity.Alpha</a></li>
+                    <li><a href="#Reference_fields_entity_BlendMode">entity.BlendMode</a></li>
+                    <li><a href="#Reference_fields_entity_Priority">entity.Priority</a></li>
+                    <li><a href="#Reference_fields_entity_Depth">entity.Depth</a></li>
+                    <li><a href="#Reference_fields_entity_Sprite">entity.Sprite</a></li>
+                    <li><a href="#Reference_fields_entity_CurrentAnimation">entity.CurrentAnimation</a></li>
+                    <li><a href="#Reference_fields_entity_CurrentFrame">entity.CurrentFrame</a></li>
+                    <li><a href="#Reference_fields_entity_CurrentFrameCount">entity.CurrentFrameCount</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationSpeed">entity.AnimationSpeed</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationTimer">entity.AnimationTimer</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationFrameDuration">entity.AnimationFrameDuration</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationLoopIndex">entity.AnimationLoopIndex</a></li>
+                    <li><a href="#Reference_fields_entity_RotationStyle">entity.RotationStyle</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationSpeedMult">entity.AnimationSpeedMult</a></li>
+                    <li><a href="#Reference_fields_entity_AnimationSpeedAdd">entity.AnimationSpeedAdd</a></li>
+                    <li><a href="#Reference_fields_entity_PrevAnimation">entity.PrevAnimation</a></li>
+                    <li><a href="#Reference_fields_entity_AutoAnimate">entity.AutoAnimate</a></li>
+                    <li><a href="#Reference_fields_entity_OnScreen">entity.OnScreen</a></li>
+                    <li><a href="#Reference_fields_entity_WasOffScreen">entity.WasOffScreen</a></li>
+                    <li><a href="#Reference_fields_entity_OnScreenHitboxW">entity.OnScreenHitboxW</a></li>
+                    <li><a href="#Reference_fields_entity_OnScreenHitboxH">entity.OnScreenHitboxH</a></li>
+                    <li><a href="#Reference_fields_entity_Visible">entity.Visible</a></li>
+                    <li><a href="#Reference_fields_entity_ViewRenderFlag">entity.ViewRenderFlag</a></li>
+                    <li><a href="#Reference_fields_entity_ViewOverrideFlag">entity.ViewOverrideFlag</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionW">entity.UpdateRegionW</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionH">entity.UpdateRegionH</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionTop">entity.UpdateRegionTop</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionLeft">entity.UpdateRegionLeft</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionRight">entity.UpdateRegionRight</a></li>
+                    <li><a href="#Reference_fields_entity_UpdateRegionBottom">entity.UpdateRegionBottom</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionW">entity.RenderRegionW</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionH">entity.RenderRegionH</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionTop">entity.RenderRegionTop</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionLeft">entity.RenderRegionLeft</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionRight">entity.RenderRegionRight</a></li>
+                    <li><a href="#Reference_fields_entity_RenderRegionBottom">entity.RenderRegionBottom</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxW">entity.HitboxW</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxH">entity.HitboxH</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxOffX">entity.HitboxOffX</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxOffY">entity.HitboxOffY</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxLeft">entity.HitboxLeft</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxTop">entity.HitboxTop</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxRight">entity.HitboxRight</a></li>
+                    <li><a href="#Reference_fields_entity_HitboxBottom">entity.HitboxBottom</a></li>
+                    <li><a href="#Reference_fields_entity_FlipFlag">entity.FlipFlag</a></li>
+                    <li><a href="#Reference_fields_entity_VelocityX">entity.VelocityX</a></li>
+                    <li><a href="#Reference_fields_entity_VelocityX">entity.VelocityX</a></li>
+                    <li><a href="#Reference_fields_entity_GroundVel">entity.GroundVel</a></li>
+                    <li><a href="#Reference_fields_entity_Direction">entity.Direction</a></li>
+                    <li><a href="#Reference_fields_entity_OnGround">entity.OnGround</a></li>
+                    <li><a href="#Reference_fields_entity_SlotID">entity.SlotID</a></li>
+                    <li><a href="#Reference_fields_entity_Filter">entity.Filter</a></li>
+                    <li><a href="#Reference_fields_entity_ZDepth">entity.ZDepth</a></li>
+                    <li><a href="#Reference_fields_entity_CollisionLayers">entity.CollisionLayers</a></li>
+                    <li><a href="#Reference_fields_entity_CollisionPlane">entity.CollisionPlane</a></li>
+                    <li><a href="#Reference_fields_entity_CollisionMode">entity.CollisionMode</a></li>
+                    <li><a href="#Reference_fields_entity_TileCollisions">entity.TileCollisions</a></li>
+                    <li><a href="#Reference_fields_entity_Activity">entity.Activity</a></li>
+                    <li><a href="#Reference_fields_entity_InRange">entity.InRange</a></li>
+                    <li><a href="#Reference_fields_entity_SensorX">entity.SensorX</a></li>
+                    <li><a href="#Reference_fields_entity_SensorY">entity.SensorY</a></li>
+                    <li><a href="#Reference_fields_entity_SensorAngle">entity.SensorAngle</a></li>
+                    <li><a href="#Reference_fields_entity_SensorAngle">entity.SensorAngle</a></li>
+                    <li><a href="#Reference_fields_entity_Active">entity.Active</a></li>
+                    <li><a href="#Reference_fields_entity_Pauseable">entity.Pauseable</a></li>
+                    <li><a href="#Reference_fields_entity_Persistent">entity.Persistent</a></li>
+                    <li><a href="#Reference_fields_entity_Interactable">entity.Interactable</a></li>
+                    <li><a href="#Reference_fields_entity_Persistence">entity.Persistence</a></li>
+                </ul>
             </p>
             <p id="Reference_Font">
                 <h2>Font</h2>
@@ -1442,6 +1605,28 @@
                 <i>Instance constructors:</i>
                 <ul>
                     <li><a href="#Reference_constructors_Font">Font</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Resource">
+                <h2>Resource</h2>
+                <i>Instance methods:</i>
+                <ul>
+                    <li><a href="#Reference_methods_resource_IsUnique">resource.IsUnique</a></li>
+                    <li><a href="#Reference_methods_resource_MakeUnique">resource.MakeUnique</a></li>
+                    <li><a href="#Reference_methods_resource_Reload">resource.Reload</a></li>
+                    <li><a href="#Reference_methods_resource_Unload">resource.Unload</a></li>
+                </ul>
+                <i>Instance constructors:</i>
+                <ul>
+                    <li><a href="#Reference_constructors_Resource">Resource</a></li>
+                </ul>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_resource_Type">resource.Type</a></li>
+                    <li><a href="#Reference_fields_resource_Filename">resource.Filename</a></li>
+                    <li><a href="#Reference_fields_resource_Loaded">resource.Loaded</a></li>
+                    <li><a href="#Reference_fields_resource_Scope">resource.Scope</a></li>
+                    <li><a href="#Reference_fields_resource_Data">resource.Data</a></li>
                 </ul>
             </p>
             <p id="Reference_Shader">
@@ -1994,10 +2179,9 @@
                     <li><a href="#Reference_enums_WEEKDAY_SATURDAY">WEEKDAY_SATURDAY</a></li>
                 </ul>
             </p>
-        <h3>Constants</h3>
-        <h3>Globals</h3>
-        <hr/>
-        <h3>Class methods</h3>
+
+    <hr/>
+            <h3>Class methods</h3>
         <p id="Reference_functions_Animator_Create">
         <h2 style="margin-bottom: 8px;">Animator.Create</h2>
         <code>Animator.Create([sprite, animationID, frameID, unloadPolicy])</code>
@@ -7585,7 +7769,7 @@
         <p id="Reference_functions_Scene_SetPaused">
         <h2 style="margin-bottom: 8px;">Scene.SetPaused</h2>
         <code>Scene.SetPaused(isPaused)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether the game is paused or not. When paused, only objects with <code><a href="#Reference_fields_instance_Pauseable">instance.Pauseable</a></code> set to <code>false</code> will continue to <code>Update</code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether the game is paused or not. When paused, only objects with <code></code> set to <code>false</code> will continue to <code>Update</code>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>isPaused (Boolean): Whether or not the scene is paused.</li>
@@ -10724,6 +10908,30 @@
         <li>useAntialiasing (Boolean): Whether or not to use anti-aliasing.</li>
         </ul>
         </p>
+        <p id="Reference_methods_resource_IsUnique">
+        <h2 style="margin-bottom: 8px;">resource.IsUnique</h2>
+        <code>resource.IsUnique()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns whether the Resource is unique or not.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_methods_resource_MakeUnique">
+        <h2 style="margin-bottom: 8px;">resource.MakeUnique</h2>
+        <code>resource.MakeUnique()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Makes the Resource unique, if it already wasn't.</div>
+        </p>
+        <p id="Reference_methods_resource_Reload">
+        <h2 style="margin-bottom: 8px;">resource.Reload</h2>
+        <code>resource.Reload()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reloads the Resourceable owned by this Resource. Returns <code>true</code> if it was reloaded successfully, and <code>false</code> if otherwise.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_methods_resource_Unload">
+        <h2 style="margin-bottom: 8px;">resource.Unload</h2>
+        <code>resource.Unload()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Unloads the Resourceable owned by this Resource. Does nothing if the Resource was already unloaded.</div>
+        </p>
         <p id="Reference_methods_shader_HasStage">
         <h2 style="margin-bottom: 8px;">shader.HasStage</h2>
         <code>shader.HasStage(stage)</code>
@@ -10844,9 +11052,14 @@
         <code>shader.Delete()</code>
         <div style="margin-top: 8px; font-size: 14px;">Deletes a shader. It can no longer be used after this function is called.</div>
         </p>
-        <p>58 out of 58 methods have descriptions. </p>
+        <p>62 out of 62 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
+        <p id="Reference_constructors_Shader">
+        <h2 style="margin-bottom: 8px;">Shader</h2>
+        <code>Shader()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a shader program.</div>
+        </p>
         <p id="Reference_constructors_Font">
         <h2 style="margin-bottom: 8px;">Font</h2>
         <code>Font(font)</code>
@@ -10856,500 +11069,538 @@
         <li>font (String, Stream, or Array): The font or list of fonts.</li>
         </ul>
         </p>
-        <p id="Reference_constructors_Shader">
-        <h2 style="margin-bottom: 8px;">Shader</h2>
-        <code>Shader()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Creates a shader program.</div>
+        <p id="Reference_constructors_Resource">
+        <h2 style="margin-bottom: 8px;">Resource</h2>
+        <code>Resource(filename[, unloadPolicy, unique])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Loads a Resource by name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>filename (String): Filename of the resource.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
+        <li>unique (Boolean): If <code>false</code> (the default), this constructor may return an already loaded Resource of the same type and filename. However, if <code>true</code>, this constructor will always return an unique Resource, and load a new Resourceable.</li>
+        </ul>
         </p>
-        <p>2 out of 2 constructors have descriptions. </p>
+        <p>3 out of 3 constructors have descriptions. </p>
         <hr/>
         <h3>Instance fields</h3>
-        <p id="Reference_fields_instance_X">
-        <h3 style="margin-bottom: 8px;"><code>instance.X</code></h2>
+        <p id="Reference_fields_entity_X">
+        <h3 style="margin-bottom: 8px;"><code>entity.X</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="margin-top: 8px; font-size: 14px;">The X position of the entity.</div>
         </p>
-        <p id="Reference_fields_instance_Y">
-        <h3 style="margin-bottom: 8px;"><code>instance.Y</code></h2>
+        <p id="Reference_fields_entity_Y">
+        <h3 style="margin-bottom: 8px;"><code>entity.Y</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="margin-top: 8px; font-size: 14px;">The Y position of the entity.</div>
         </p>
-        <p id="Reference_fields_instance_Z">
-        <h3 style="margin-bottom: 8px;"><code>instance.Z</code></h2>
+        <p id="Reference_fields_entity_Z">
+        <h3 style="margin-bottom: 8px;"><code>entity.Z</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="margin-top: 8px; font-size: 14px;">The Z position of the entity.</div>
         </p>
-        <p id="Reference_fields_instance_XSpeed">
-        <h3 style="margin-bottom: 8px;"><code>instance.XSpeed</code></h2>
+        <p id="Reference_fields_entity_XSpeed">
+        <h3 style="margin-bottom: 8px;"><code>entity.XSpeed</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The horizontal velocity of the entity.</div>
         </p>
-        <p id="Reference_fields_instance_YSpeed">
-        <h3 style="margin-bottom: 8px;"><code>instance.YSpeed</code></h2>
+        <p id="Reference_fields_entity_YSpeed">
+        <h3 style="margin-bottom: 8px;"><code>entity.YSpeed</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The vertical velocity of the entity.</div>
         </p>
-        <p id="Reference_fields_instance_GroundSpeed">
-        <h3 style="margin-bottom: 8px;"><code>instance.GroundSpeed</code></h2>
+        <p id="Reference_fields_entity_GroundSpeed">
+        <h3 style="margin-bottom: 8px;"><code>entity.GroundSpeed</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The speed of the entity on the ground.</div>
         </p>
-        <p id="Reference_fields_instance_Gravity">
-        <h3 style="margin-bottom: 8px;"><code>instance.Gravity</code></h2>
+        <p id="Reference_fields_entity_Gravity">
+        <h3 style="margin-bottom: 8px;"><code>entity.Gravity</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The gravity of the entity.</div>
         </p>
-        <p id="Reference_fields_instance_AutoPhysics">
-        <h3 style="margin-bottom: 8px;"><code>instance.AutoPhysics</code></h2>
+        <p id="Reference_fields_entity_AutoPhysics">
+        <h3 style="margin-bottom: 8px;"><code>entity.AutoPhysics</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>false</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Whether <code>instance.ApplyMotion</code> is automatically called for this entity.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Whether <code><a href="#Reference_methods_entity_ApplyMotion">entity.ApplyMotion</a></code> is automatically called for this entity.</div>
         </p>
-        <p id="Reference_fields_instance_Angle">
-        <h3 style="margin-bottom: 8px;"><code>instance.Angle</code></h2>
+        <p id="Reference_fields_entity_Angle">
+        <h3 style="margin-bottom: 8px;"><code>entity.Angle</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The angle of the entity on the ground, within the range of <code>0x00</code> - <code>0xFF</code>.</div>
         </p>
-        <p id="Reference_fields_instance_AngleMode">
-        <h3 style="margin-bottom: 8px;"><code>instance.AngleMode</code></h2>
+        <p id="Reference_fields_entity_AngleMode">
+        <h3 style="margin-bottom: 8px;"><code>entity.AngleMode</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The angle mode of the entity on the ground, within the range of <code>0</code> - <code>3</code>.</div>
         </p>
-        <p id="Reference_fields_instance_Ground">
-        <h3 style="margin-bottom: 8px;"><code>instance.Ground</code></h2>
+        <p id="Reference_fields_entity_Ground">
+        <h3 style="margin-bottom: 8px;"><code>entity.Ground</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>false</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity is on the ground.</div>
         </p>
-        <p id="Reference_fields_instance_ScaleX">
-        <h3 style="margin-bottom: 8px;"><code>instance.ScaleX</code></h2>
+        <p id="Reference_fields_entity_ScaleX">
+        <h3 style="margin-bottom: 8px;"><code>entity.ScaleX</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>1.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>instance.Render</code> for scaling a sprite horizontally.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code></code> for scaling a sprite horizontally.</div>
         </p>
-        <p id="Reference_fields_instance_ScaleY">
-        <h3 style="margin-bottom: 8px;"><code>instance.ScaleY</code></h2>
+        <p id="Reference_fields_entity_ScaleY">
+        <h3 style="margin-bottom: 8px;"><code>entity.ScaleY</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>1.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>instance.Render</code> for scaling a sprite vertically.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code></code> for scaling a sprite vertically.</div>
         </p>
-        <p id="Reference_fields_instance_Rotation">
-        <h3 style="margin-bottom: 8px;"><code>instance.Rotation</code></h2>
+        <p id="Reference_fields_entity_Rotation">
+        <h3 style="margin-bottom: 8px;"><code>entity.Rotation</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal (radians)</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>instance.Render</code> for rotating a sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code></code> for rotating a sprite.</div>
         </p>
-        <p id="Reference_fields_instance_Alpha">
-        <h3 style="margin-bottom: 8px;"><code>instance.Alpha</code></h2>
+        <p id="Reference_fields_entity_Alpha">
+        <h3 style="margin-bottom: 8px;"><code>entity.Alpha</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>instance.Render</code> for changing the opacity of a sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code></code> for changing the opacity of a sprite.</div>
         </p>
-        <p id="Reference_fields_instance_BlendMode">
-        <h3 style="margin-bottom: 8px;"><code>instance.BlendMode</code></h2>
+        <p id="Reference_fields_entity_BlendMode">
+        <h3 style="margin-bottom: 8px;"><code>entity.BlendMode</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>BlendMode_NORMAL</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>instance.Render</code> for changing the BlendMode of a sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code></code> for changing the BlendMode of a sprite.</div>
         </p>
-        <p id="Reference_fields_instance_Priority">
-        <h3 style="margin-bottom: 8px;"><code>instance.Priority</code></h2>
+        <p id="Reference_fields_entity_Priority">
+        <h3 style="margin-bottom: 8px;"><code>entity.Priority</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The priority, or draw group, where this entity is located.</div>
         </p>
-        <p id="Reference_fields_instance_Depth">
-        <h3 style="margin-bottom: 8px;"><code>instance.Depth</code></h2>
+        <p id="Reference_fields_entity_Depth">
+        <h3 style="margin-bottom: 8px;"><code>entity.Depth</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The depth of the entity. Used for sorting entity draw order.</div>
         </p>
-        <p id="Reference_fields_instance_Sprite">
-        <h3 style="margin-bottom: 8px;"><code>instance.Sprite</code></h2>
+        <p id="Reference_fields_entity_Sprite">
+        <h3 style="margin-bottom: 8px;"><code>entity.Sprite</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Resource</div>
         <div style="font-size: 14px;"><b>Default: </b><code>null</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The sprite Resource of the entity.</div>
         </p>
-        <p id="Reference_fields_instance_CurrentAnimation">
-        <h3 style="margin-bottom: 8px;"><code>instance.CurrentAnimation</code></h2>
+        <p id="Reference_fields_entity_CurrentAnimation">
+        <h3 style="margin-bottom: 8px;"><code>entity.CurrentAnimation</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>-1</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The current sprite animation index of the entity.</div>
         </p>
-        <p id="Reference_fields_instance_CurrentFrame">
-        <h3 style="margin-bottom: 8px;"><code>instance.CurrentFrame</code></h2>
+        <p id="Reference_fields_entity_CurrentFrame">
+        <h3 style="margin-bottom: 8px;"><code>entity.CurrentFrame</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>-1</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The current frame index of the entity's current animation.</div>
         </p>
-        <p id="Reference_fields_instance_CurrentFrameCount">
-        <h3 style="margin-bottom: 8px;"><code>instance.CurrentFrameCount</code></h2>
+        <p id="Reference_fields_entity_CurrentFrameCount">
+        <h3 style="margin-bottom: 8px;"><code>entity.CurrentFrameCount</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>-1</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The frame count of the entity's current animation.</div>
         </p>
-        <p id="Reference_fields_instance_AnimationSpeed">
-        <h3 style="margin-bottom: 8px;"><code>instance.AnimationSpeed</code></h2>
+        <p id="Reference_fields_entity_AnimationSpeed">
+        <h3 style="margin-bottom: 8px;"><code>entity.AnimationSpeed</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The animation speed of the entity's animation.</div>
         </p>
-        <p id="Reference_fields_instance_AnimationTimer">
-        <h3 style="margin-bottom: 8px;"><code>instance.AnimationTimer</code></h2>
+        <p id="Reference_fields_entity_AnimationTimer">
+        <h3 style="margin-bottom: 8px;"><code>entity.AnimationTimer</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The animation timer of the entity's animation.</div>
         </p>
-        <p id="Reference_fields_instance_AnimationFrameDuration">
-        <h3 style="margin-bottom: 8px;"><code>instance.AnimationFrameDuration</code></h2>
+        <p id="Reference_fields_entity_AnimationFrameDuration">
+        <h3 style="margin-bottom: 8px;"><code>entity.AnimationFrameDuration</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The duration of the entity's current animation frame.</div>
         </p>
-        <p id="Reference_fields_instance_AnimationLoopIndex">
-        <h3 style="margin-bottom: 8px;"><code>instance.AnimationLoopIndex</code></h2>
+        <p id="Reference_fields_entity_AnimationLoopIndex">
+        <h3 style="margin-bottom: 8px;"><code>entity.AnimationLoopIndex</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The loop index of entity's current animation.</div>
         </p>
-        <p id="Reference_fields_instance_RotationStyle">
-        <h3 style="margin-bottom: 8px;"><code>instance.RotationStyle</code></h2>
+        <p id="Reference_fields_entity_RotationStyle">
+        <h3 style="margin-bottom: 8px;"><code>entity.RotationStyle</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Enumeration</div>
         <div style="font-size: 14px;"><b>Default: </b><code>ROTSTYLE_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The rotation style to use when this entity is called in <code><a href="#Reference_functions_Draw_SpriteBasic">Draw.SpriteBasic</a></code>.</div>
         </p>
-        <p id="Reference_fields_instance_AnimationSpeedMult">
-        <h3 style="margin-bottom: 8px;"><code>instance.AnimationSpeedMult</code></h2>
+        <p id="Reference_fields_entity_AnimationSpeedMult">
+        <h3 style="margin-bottom: 8px;"><code>entity.AnimationSpeedMult</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>1.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The animation speed multiplier of the entity.</div>
         </p>
-        <p id="Reference_fields_instance_AnimationSpeedAdd">
-        <h3 style="margin-bottom: 8px;"><code>instance.AnimationSpeedAdd</code></h2>
+        <p id="Reference_fields_entity_AnimationSpeedAdd">
+        <h3 style="margin-bottom: 8px;"><code>entity.AnimationSpeedAdd</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">This value is added to the result of <code><a href="#Reference_fields_instance_AnimationSpeed">instance.AnimationSpeed</a></code> * <code><a href="#Reference_fields_instance_AnimationSpeedMult">instance.AnimationSpeedMult</a></code> when the entity is being animated.</div>
+        <div style="margin-top: 8px; font-size: 14px;">This value is added to the result of <code><a href="#Reference_fields_entity_AnimationSpeed">entity.AnimationSpeed</a></code> * <code><a href="#Reference_fields_entity_AnimationSpeedMult">entity.AnimationSpeedMult</a></code> when the entity is being animated.</div>
         </p>
-        <p id="Reference_fields_instance_PrevAnimation">
-        <h3 style="margin-bottom: 8px;"><code>instance.PrevAnimation</code></h2>
+        <p id="Reference_fields_entity_PrevAnimation">
+        <h3 style="margin-bottom: 8px;"><code>entity.PrevAnimation</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>-1</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The previous sprite animation index of the entity, if it was changed.</div>
         </p>
-        <p id="Reference_fields_instance_AutoAnimate">
-        <h3 style="margin-bottom: 8px;"><code>instance.AutoAnimate</code></h2>
+        <p id="Reference_fields_entity_AutoAnimate">
+        <h3 style="margin-bottom: 8px;"><code>entity.AutoAnimate</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>true</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Whether <code>instance.Animate</code> is automatically called for this entity.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Whether <code><a href="#Reference_methods_entity_Animate">entity.Animate</a></code> is automatically called for this entity.</div>
         </p>
-        <p id="Reference_fields_instance_OnScreen">
-        <h3 style="margin-bottom: 8px;"><code>instance.OnScreen</code></h2>
+        <p id="Reference_fields_entity_OnScreen">
+        <h3 style="margin-bottom: 8px;"><code>entity.OnScreen</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>true</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">See <code><a href="#Reference_fields_instance_InRange">instance.InRange</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">See <code><a href="#Reference_fields_entity_InRange">entity.InRange</a></code>.</div>
         </p>
-        <p id="Reference_fields_instance_WasOffScreen">
-        <h3 style="margin-bottom: 8px;"><code>instance.WasOffScreen</code></h2>
+        <p id="Reference_fields_entity_WasOffScreen">
+        <h3 style="margin-bottom: 8px;"><code>entity.WasOffScreen</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>false</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Indicates if the entity was previously off-screen.</div>
         </p>
-        <p id="Reference_fields_instance_OnScreenHitboxW">
-        <h3 style="margin-bottom: 8px;"><code>instance.OnScreenHitboxW</code></h2>
+        <p id="Reference_fields_entity_OnScreenHitboxW">
+        <h3 style="margin-bottom: 8px;"><code>entity.OnScreenHitboxW</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Alias for <code><a href="#Reference_fields_instance_UpdateRegionW">instance.UpdateRegionW</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Alias for <code><a href="#Reference_fields_entity_UpdateRegionW">entity.UpdateRegionW</a></code>.</div>
         </p>
-        <p id="Reference_fields_instance_OnScreenHitboxH">
-        <h3 style="margin-bottom: 8px;"><code>instance.OnScreenHitboxH</code></h2>
+        <p id="Reference_fields_entity_OnScreenHitboxH">
+        <h3 style="margin-bottom: 8px;"><code>entity.OnScreenHitboxH</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Alias for <code><a href="#Reference_fields_instance_UpdateRegionH">instance.UpdateRegionH</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Alias for <code><a href="#Reference_fields_entity_UpdateRegionH">entity.UpdateRegionH</a></code>.</div>
         </p>
-        <p id="Reference_fields_instance_Visible">
-        <h3 style="margin-bottom: 8px;"><code>instance.Visible</code></h2>
+        <p id="Reference_fields_entity_Visible">
+        <h3 style="margin-bottom: 8px;"><code>entity.Visible</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>true</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity is visible or not.</div>
         </p>
-        <p id="Reference_fields_instance_ViewRenderFlag">
-        <h3 style="margin-bottom: 8px;"><code>instance.ViewRenderFlag</code></h2>
+        <p id="Reference_fields_entity_ViewRenderFlag">
+        <h3 style="margin-bottom: 8px;"><code>entity.ViewRenderFlag</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>~0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">A bitfield that indicates in which views the entity renders. By default, this is on for every view.</div>
         </p>
-        <p id="Reference_fields_instance_ViewOverrideFlag">
-        <h3 style="margin-bottom: 8px;"><code>instance.ViewOverrideFlag</code></h2>
+        <p id="Reference_fields_entity_ViewOverrideFlag">
+        <h3 style="margin-bottom: 8px;"><code>entity.ViewOverrideFlag</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A bitfield similar to <code><a href="#Reference_fields_instance_ViewRenderFlag">instance.ViewRenderFlag</a></code>. Bypasses each view's entity rendering toggle set by <code><a href="#Reference_functions_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A bitfield similar to <code><a href="#Reference_fields_entity_ViewRenderFlag">entity.ViewRenderFlag</a></code>. Bypasses each view's entity rendering toggle set by <code><a href="#Reference_functions_Scene_SetObjectViewRender">Scene.SetObjectViewRender</a></code>.</div>
         </p>
-        <p id="Reference_fields_instance_UpdateRegionW">
-        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionW</code></h2>
+        <p id="Reference_fields_entity_UpdateRegionW">
+        <h3 style="margin-bottom: 8px;"><code>entity.UpdateRegionW</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The horizontal on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's horizontal position.</div>
         </p>
-        <p id="Reference_fields_instance_UpdateRegionH">
-        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionH</code></h2>
+        <p id="Reference_fields_entity_UpdateRegionH">
+        <h3 style="margin-bottom: 8px;"><code>entity.UpdateRegionH</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The vertical on-screen range where the entity can update. If this is set to <code>0.0</code>, the entity will update regardless of the camera's vertical position.</div>
         </p>
-        <p id="Reference_fields_instance_UpdateRegionTop">
-        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionTop</code></h2>
+        <p id="Reference_fields_entity_UpdateRegionTop">
+        <h3 style="margin-bottom: 8px;"><code>entity.UpdateRegionTop</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The top on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionH">UpdateRegionH</a> instead.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The top on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_entity_UpdateRegionH">UpdateRegionH</a> instead.</div>
         </p>
-        <p id="Reference_fields_instance_UpdateRegionLeft">
-        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionLeft</code></h2>
+        <p id="Reference_fields_entity_UpdateRegionLeft">
+        <h3 style="margin-bottom: 8px;"><code>entity.UpdateRegionLeft</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionW">UpdateRegionW</a> instead.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_entity_UpdateRegionW">UpdateRegionW</a> instead.</div>
         </p>
-        <p id="Reference_fields_instance_UpdateRegionRight">
-        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionRight</code></h2>
+        <p id="Reference_fields_entity_UpdateRegionRight">
+        <h3 style="margin-bottom: 8px;"><code>entity.UpdateRegionRight</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionW">UpdateRegionW</a> instead.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_entity_UpdateRegionW">UpdateRegionW</a> instead.</div>
         </p>
-        <p id="Reference_fields_instance_UpdateRegionBottom">
-        <h3 style="margin-bottom: 8px;"><code>instance.UpdateRegionBottom</code></h2>
+        <p id="Reference_fields_entity_UpdateRegionBottom">
+        <h3 style="margin-bottom: 8px;"><code>entity.UpdateRegionBottom</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The bottom on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_UpdateRegionH">UpdateRegionH</a> instead.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The bottom on-screen range where the entity can update. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_entity_UpdateRegionH">UpdateRegionH</a> instead.</div>
         </p>
-        <p id="Reference_fields_instance_RenderRegionW">
-        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionW</code></h2>
+        <p id="Reference_fields_entity_RenderRegionW">
+        <h3 style="margin-bottom: 8px;"><code>entity.RenderRegionW</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The horizontal on-screen range where the entity can render. If set to <code>0.0</code>, the entity will render regardless of the camera's horizontal position.</div>
         </p>
-        <p id="Reference_fields_instance_RenderRegionH">
-        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionH</code></h2>
+        <p id="Reference_fields_entity_RenderRegionH">
+        <h3 style="margin-bottom: 8px;"><code>entity.RenderRegionH</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The vertical on-screen range where the entity can render. If set to <code>0.0</code>, the entity will render regardless of the camera's vertical position.</div>
         </p>
-        <p id="Reference_fields_instance_RenderRegionTop">
-        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionTop</code></h2>
+        <p id="Reference_fields_entity_RenderRegionTop">
+        <h3 style="margin-bottom: 8px;"><code>entity.RenderRegionTop</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The top on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionH">RenderRegionH</a> instead.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The top on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_entity_RenderRegionH">RenderRegionH</a> instead.</div>
         </p>
-        <p id="Reference_fields_instance_RenderRegionLeft">
-        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionLeft</code></h2>
+        <p id="Reference_fields_entity_RenderRegionLeft">
+        <h3 style="margin-bottom: 8px;"><code>entity.RenderRegionLeft</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can render. If this and <code><a href="#Reference_fields_instance_RenderRegionRight">instance.RenderRegionRight</a></code> are set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionW">RenderRegionW</a> instead.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can render. If this and <code><a href="#Reference_fields_entity_RenderRegionRight">entity.RenderRegionRight</a></code> are set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_entity_RenderRegionW">RenderRegionW</a> instead.</div>
         </p>
-        <p id="Reference_fields_instance_RenderRegionRight">
-        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionRight</code></h2>
+        <p id="Reference_fields_entity_RenderRegionRight">
+        <h3 style="margin-bottom: 8px;"><code>entity.RenderRegionRight</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can render. If this and <code><a href="#Reference_fields_instance_RenderRegionLeft">instance.RenderRegionLeft</a></code> are set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionW">RenderRegionW</a> instead.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The left on-screen range where the entity can render. If this and <code><a href="#Reference_fields_entity_RenderRegionLeft">entity.RenderRegionLeft</a></code> are set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_entity_RenderRegionW">RenderRegionW</a> instead.</div>
         </p>
-        <p id="Reference_fields_instance_RenderRegionBottom">
-        <h3 style="margin-bottom: 8px;"><code>instance.RenderRegionBottom</code></h2>
+        <p id="Reference_fields_entity_RenderRegionBottom">
+        <h3 style="margin-bottom: 8px;"><code>entity.RenderRegionBottom</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">The bottom on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_instance_RenderRegionH">RenderRegionH</a> instead.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The bottom on-screen range where the entity can render. If set to <code>0.0</code>, the entity will use its <a href="#Reference_fields_entity_RenderRegionH">RenderRegionH</a> instead.</div>
         </p>
-        <p id="Reference_fields_instance_HitboxW">
-        <h3 style="margin-bottom: 8px;"><code>instance.HitboxW</code></h2>
+        <p id="Reference_fields_entity_HitboxW">
+        <h3 style="margin-bottom: 8px;"><code>entity.HitboxW</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The width of the hitbox.</div>
         </p>
-        <p id="Reference_fields_instance_HitboxH">
-        <h3 style="margin-bottom: 8px;"><code>instance.HitboxH</code></h2>
+        <p id="Reference_fields_entity_HitboxH">
+        <h3 style="margin-bottom: 8px;"><code>entity.HitboxH</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The height of the hitbox.</div>
         </p>
-        <p id="Reference_fields_instance_HitboxOffX">
-        <h3 style="margin-bottom: 8px;"><code>instance.HitboxOffX</code></h2>
+        <p id="Reference_fields_entity_HitboxOffX">
+        <h3 style="margin-bottom: 8px;"><code>entity.HitboxOffX</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The horizontal offset of the hitbox.</div>
         </p>
-        <p id="Reference_fields_instance_HitboxOffY">
-        <h3 style="margin-bottom: 8px;"><code>instance.HitboxOffY</code></h2>
+        <p id="Reference_fields_entity_HitboxOffY">
+        <h3 style="margin-bottom: 8px;"><code>entity.HitboxOffY</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The vertical offset of the hitbox.</div>
         </p>
-        <p id="Reference_fields_instance_HitboxLeft">
-        <h3 style="margin-bottom: 8px;"><code>instance.HitboxLeft</code></h2>
+        <p id="Reference_fields_entity_HitboxLeft">
+        <h3 style="margin-bottom: 8px;"><code>entity.HitboxLeft</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The left extent of the hitbox.</div>
         </p>
-        <p id="Reference_fields_instance_HitboxTop">
-        <h3 style="margin-bottom: 8px;"><code>instance.HitboxTop</code></h2>
+        <p id="Reference_fields_entity_HitboxTop">
+        <h3 style="margin-bottom: 8px;"><code>entity.HitboxTop</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The top extent of the hitbox.</div>
         </p>
-        <p id="Reference_fields_instance_HitboxRight">
-        <h3 style="margin-bottom: 8px;"><code>instance.HitboxRight</code></h2>
+        <p id="Reference_fields_entity_HitboxRight">
+        <h3 style="margin-bottom: 8px;"><code>entity.HitboxRight</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The right extent of the hitbox.</div>
         </p>
-        <p id="Reference_fields_instance_HitboxBottom">
-        <h3 style="margin-bottom: 8px;"><code>instance.HitboxBottom</code></h2>
+        <p id="Reference_fields_entity_HitboxBottom">
+        <h3 style="margin-bottom: 8px;"><code>entity.HitboxBottom</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The bottom extent of the hitbox.</div>
         </p>
-        <p id="Reference_fields_instance_FlipFlag">
-        <h3 style="margin-bottom: 8px;"><code>instance.FlipFlag</code></h2>
+        <p id="Reference_fields_entity_FlipFlag">
+        <h3 style="margin-bottom: 8px;"><code>entity.FlipFlag</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Bitfield that indicates whether the entity is X/Y flipped.</div>
         </p>
-        <p id="Reference_fields_instance_VelocityX">
-        <h3 style="margin-bottom: 8px;"><code>instance.VelocityX</code></h2>
+        <p id="Reference_fields_entity_VelocityX">
+        <h3 style="margin-bottom: 8px;"><code>entity.VelocityX</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Similar to <code><a href="#Reference_fields_instance_XSpeed">instance.XSpeed</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Similar to <code><a href="#Reference_fields_entity_XSpeed">entity.XSpeed</a></code>.</div>
         </p>
-        <p id="Reference_fields_instance_VelocityX">
-        <h3 style="margin-bottom: 8px;"><code>instance.VelocityX</code></h2>
+        <p id="Reference_fields_entity_VelocityX">
+        <h3 style="margin-bottom: 8px;"><code>entity.VelocityX</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Similar to <code><a href="#Reference_fields_instance_YSpeed">instance.YSpeed</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Similar to <code><a href="#Reference_fields_entity_YSpeed">entity.YSpeed</a></code>.</div>
         </p>
-        <p id="Reference_fields_instance_GroundVel">
-        <h3 style="margin-bottom: 8px;"><code>instance.GroundVel</code></h2>
+        <p id="Reference_fields_entity_GroundVel">
+        <h3 style="margin-bottom: 8px;"><code>entity.GroundVel</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Similar to <code><a href="#Reference_fields_instance_GroundSpeed">instance.GroundSpeed</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Similar to <code><a href="#Reference_fields_entity_GroundSpeed">entity.GroundSpeed</a></code>.</div>
         </p>
-        <p id="Reference_fields_instance_Direction">
-        <h3 style="margin-bottom: 8px;"><code>instance.Direction</code></h2>
+        <p id="Reference_fields_entity_Direction">
+        <h3 style="margin-bottom: 8px;"><code>entity.Direction</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Similar to <code><a href="#Reference_fields_instance_FlipFlag">instance.FlipFlag</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Similar to <code><a href="#Reference_fields_entity_FlipFlag">entity.FlipFlag</a></code>.</div>
         </p>
-        <p id="Reference_fields_instance_OnGround">
-        <h3 style="margin-bottom: 8px;"><code>instance.OnGround</code></h2>
+        <p id="Reference_fields_entity_OnGround">
+        <h3 style="margin-bottom: 8px;"><code>entity.OnGround</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>false</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Similar to <code><a href="#Reference_fields_instance_Ground">instance.Ground</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Similar to <code><a href="#Reference_fields_entity_Ground">entity.Ground</a></code>.</div>
         </p>
-        <p id="Reference_fields_instance_SlotID">
-        <h3 style="margin-bottom: 8px;"><code>instance.SlotID</code></h2>
+        <p id="Reference_fields_entity_SlotID">
+        <h3 style="margin-bottom: 8px;"><code>entity.SlotID</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>-1</code></div>
         <div style="margin-top: 8px; font-size: 14px;">If this entity was spawned from a scene file, this field contains the slot ID in which it was placed. If not, this field contains the default value of <code>-1</code>.</div>
         </p>
-        <p id="Reference_fields_instance_Filter">
-        <h3 style="margin-bottom: 8px;"><code>instance.Filter</code></h2>
+        <p id="Reference_fields_entity_Filter">
+        <h3 style="margin-bottom: 8px;"><code>entity.Filter</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0xFF</code></div>
         <div style="margin-top: 8px; font-size: 14px;">If there is a scene list loaded, this checks to see whether the entity would spawn based on the scene's filter. Defaults to <code>0xFF</code>.</div>
         </p>
-        <p id="Reference_fields_instance_ZDepth">
-        <h3 style="margin-bottom: 8px;"><code>instance.ZDepth</code></h2>
+        <p id="Reference_fields_entity_ZDepth">
+        <h3 style="margin-bottom: 8px;"><code>entity.ZDepth</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         </p>
-        <p id="Reference_fields_instance_CollisionLayers">
-        <h3 style="margin-bottom: 8px;"><code>instance.CollisionLayers</code></h2>
+        <p id="Reference_fields_entity_CollisionLayers">
+        <h3 style="margin-bottom: 8px;"><code>entity.CollisionLayers</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">A bitfield containing which layers an entity is able to collide with.</div>
         </p>
-        <p id="Reference_fields_instance_CollisionPlane">
-        <h3 style="margin-bottom: 8px;"><code>instance.CollisionPlane</code></h2>
+        <p id="Reference_fields_entity_CollisionPlane">
+        <h3 style="margin-bottom: 8px;"><code>entity.CollisionPlane</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         </p>
-        <p id="Reference_fields_instance_CollisionMode">
-        <h3 style="margin-bottom: 8px;"><code>instance.CollisionMode</code></h2>
+        <p id="Reference_fields_entity_CollisionMode">
+        <h3 style="margin-bottom: 8px;"><code>entity.CollisionMode</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         </p>
-        <p id="Reference_fields_instance_TileCollisions">
-        <h3 style="margin-bottom: 8px;"><code>instance.TileCollisions</code></h2>
+        <p id="Reference_fields_entity_TileCollisions">
+        <h3 style="margin-bottom: 8px;"><code>entity.TileCollisions</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         </p>
-        <p id="Reference_fields_instance_Activity">
-        <h3 style="margin-bottom: 8px;"><code>instance.Activity</code></h2>
+        <p id="Reference_fields_entity_Activity">
+        <h3 style="margin-bottom: 8px;"><code>entity.Activity</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Enumeration</div>
         <div style="font-size: 14px;"><b>Default: </b><code>ACTIVE_BOUNDS</code></div>
         <div style="margin-top: 8px; font-size: 14px;">The active status for this entity.</div>
         </p>
-        <p id="Reference_fields_instance_InRange">
-        <h3 style="margin-bottom: 8px;"><code>instance.InRange</code></h2>
+        <p id="Reference_fields_entity_InRange">
+        <h3 style="margin-bottom: 8px;"><code>entity.InRange</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>false</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">Whether this entity is within active range; see <code><a href="#Reference_fields_instance_Activity">instance.Activity</a></code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Whether this entity is within active range; see <code><a href="#Reference_fields_entity_Activity">entity.Activity</a></code>.</div>
         </p>
-        <p id="Reference_fields_instance_SensorX">
-        <h3 style="margin-bottom: 8px;"><code>instance.SensorX</code></h2>
+        <p id="Reference_fields_entity_SensorX">
+        <h3 style="margin-bottom: 8px;"><code>entity.SensorX</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">After a successful call to <code><a href="#Reference_functions_TileCollision_Line">TileCollision.Line</a></code>, this value will contain the horizontal position of where the entity collided.</div>
         </p>
-        <p id="Reference_fields_instance_SensorY">
-        <h3 style="margin-bottom: 8px;"><code>instance.SensorY</code></h2>
+        <p id="Reference_fields_entity_SensorY">
+        <h3 style="margin-bottom: 8px;"><code>entity.SensorY</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">After a successful call to <code><a href="#Reference_functions_TileCollision_Line">TileCollision.Line</a></code>, this value will contain the vertical position of where the entity collided.</div>
         </p>
-        <p id="Reference_fields_instance_SensorAngle">
-        <h3 style="margin-bottom: 8px;"><code>instance.SensorAngle</code></h2>
+        <p id="Reference_fields_entity_SensorAngle">
+        <h3 style="margin-bottom: 8px;"><code>entity.SensorAngle</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">After a successful call to <code><a href="#Reference_functions_TileCollision_Line">TileCollision.Line</a></code>, this value will be <code>true</code> if the entity collided with a tile, <code>false</code> otherwise.</div>
         </p>
-        <p id="Reference_fields_instance_SensorAngle">
-        <h3 style="margin-bottom: 8px;"><code>instance.SensorAngle</code></h2>
+        <p id="Reference_fields_entity_SensorAngle">
+        <h3 style="margin-bottom: 8px;"><code>entity.SensorAngle</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0</code></div>
         <div style="margin-top: 8px; font-size: 14px;">After a successful call to <code><a href="#Reference_functions_TileCollision_Line">TileCollision.Line</a></code>, this value will contain the angle of the tile within the range of <code>0x00</code> - <code>0xFF</code>.</div>
         </p>
-        <p id="Reference_fields_instance_Active">
-        <h3 style="margin-bottom: 8px;"><code>instance.Active</code></h2>
+        <p id="Reference_fields_entity_Active">
+        <h3 style="margin-bottom: 8px;"><code>entity.Active</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>true</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity is active. If set to false, the entity is removed at the end of the frame.</div>
         </p>
-        <p id="Reference_fields_instance_Pauseable">
-        <h3 style="margin-bottom: 8px;"><code>instance.Pauseable</code></h2>
+        <p id="Reference_fields_entity_Pauseable">
+        <h3 style="margin-bottom: 8px;"><code>entity.Pauseable</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>true</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity stops updating when the scene is paused.</div>
         </p>
-        <p id="Reference_fields_instance_Persistent">
-        <h3 style="margin-bottom: 8px;"><code>instance.Persistent</code></h2>
+        <p id="Reference_fields_entity_Persistent">
+        <h3 style="margin-bottom: 8px;"><code>entity.Persistent</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>false</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">See <code><a href="#Reference_fields_instance_Persistence">instance.Persistence</a></code> instead.</div>
+        <div style="margin-top: 8px; font-size: 14px;">See <code><a href="#Reference_fields_entity_Persistence">entity.Persistence</a></code> instead.</div>
         </p>
-        <p id="Reference_fields_instance_Interactable">
-        <h3 style="margin-bottom: 8px;"><code>instance.Interactable</code></h2>
+        <p id="Reference_fields_entity_Interactable">
+        <h3 style="margin-bottom: 8px;"><code>entity.Interactable</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Boolean</div>
         <div style="font-size: 14px;"><b>Default: </b><code>true</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity can be interacted with. If set to <code>false</code>, the entity will not be included in <code>with</code> iterations.</div>
         </p>
-        <p id="Reference_fields_instance_Persistence">
-        <h3 style="margin-bottom: 8px;"><code>instance.Persistence</code></h2>
+        <p id="Reference_fields_entity_Persistence">
+        <h3 style="margin-bottom: 8px;"><code>entity.Persistence</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
         </p>
-        <p>78 out of 82 fields have descriptions. </p>
+        <p id="Reference_fields_resource_Type">
+        <h3 style="margin-bottom: 8px;"><code>resource.Type</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The <a href="#Reference_RESOURCETYPE_*">resource type</a> of the Resource.</div>
+        </p>
+        <p id="Reference_fields_resource_Filename">
+        <h3 style="margin-bottom: 8px;"><code>resource.Filename</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The filename of the Resource.</div>
+        </p>
+        <p id="Reference_fields_resource_Loaded">
+        <h3 style="margin-bottom: 8px;"><code>resource.Loaded</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Whether the Resource is loaded or not.</div>
+        </p>
+        <p id="Reference_fields_resource_Scope">
+        <h3 style="margin-bottom: 8px;"><code>resource.Scope</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The scope of the Resource.</div>
+        </p>
+        <p id="Reference_fields_resource_Data">
+        <h3 style="margin-bottom: 8px;"><code>resource.Data</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The Resourceable owned by this resource.</div>
+        </p>
+        <p id="Reference_fields_imageresource_Width">
+        <h3 style="margin-bottom: 8px;"><code>imageresource.Width</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The width of the image.</div>
+        </p>
+        <p id="Reference_fields_imageresource_Height">
+        <h3 style="margin-bottom: 8px;"><code>imageresource.Height</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The height of the image.</div>
+        </p>
+        <p id="Reference_fields_audioresource_LoopPoint">
+        <h3 style="margin-bottom: 8px;"><code>audioresource.LoopPoint</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The loop point of the audio in samples, or <code>null</code> if it doesn't have one.</div>
+        </p>
+        <p>86 out of 90 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">
@@ -12864,5 +13115,6 @@
         </p>
         <p>13 out of 13 globals have descriptions. </p>
         <hr/>
-    </body>
+
+  </body>
 </html>
