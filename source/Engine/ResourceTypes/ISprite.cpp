@@ -344,7 +344,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 #endif
 
 		bool shouldConcatSpritesPath = true;
-		if (StringUtils::StartsWith(sheetName.c_str(), "Sprites/")) {
+		if (StringUtils::StartsWithCaseInsensitive(sheetName.c_str(), "Sprites/")) {
 			// don't need to concat "Sprites/" if the path
 			// already begins with that
 			shouldConcatSpritesPath = false;
