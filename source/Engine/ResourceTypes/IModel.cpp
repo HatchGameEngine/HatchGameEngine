@@ -2,6 +2,7 @@
 #include <Engine/Math/Vector.h>
 #include <Engine/ResourceTypes/IModel.h>
 
+#include <Engine/Application.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/IO/MemoryStream.h>
@@ -12,7 +13,9 @@
 #include <Engine/ResourceTypes/ModelFormats/RSDKModel.h>
 #include <Engine/Utilities/StringUtils.h>
 
-IModel::IModel() {
+IModel::IModel(const char* filename) {
+	Type = RESOURCE_MODEL;
+
 	VertexCount = 0;
 	VertexIndexCount = 0;
 	VertexPerFace = 0;
@@ -25,24 +28,36 @@ IModel::IModel() {
 	BaseArmature = nullptr;
 	GlobalInverseMatrix = nullptr;
 	UseVertexAnimation = false;
-}
-IModel::IModel(const char* filename) {
+
 	ResourceStream* resourceStream = ResourceStream::New(filename);
 	if (!resourceStream) {
 		return;
 	}
 
-	this->Load(resourceStream, filename);
+	Loaded = Load(resourceStream, filename);
 
 	if (resourceStream) {
 		resourceStream->Close();
 	}
 }
-bool IModel::Load(Stream* stream, const char* filename) {
-	if (!stream) {
-		return false;
+bool IModel::IsFile(Stream* stream) {
+	if (HatchModel::IsMagic(stream)) {
+		return true;
 	}
-	if (!filename) {
+	else if (MD3Model::IsMagic(stream)) {
+		return true;
+	}
+	else if (RSDKModel::IsMagic(stream)) {
+		return true;
+	}
+	else {
+		return ModelImporter::IsValid(stream);
+	}
+
+	return false;
+}
+bool IModel::Load(Stream* stream, const char* filename) {
+	if (!stream || !filename) {
 		return false;
 	}
 
@@ -460,7 +475,11 @@ void IModel::DeleteArmature(size_t index) {
 	}
 }
 
-void IModel::Dispose() {
+void IModel::Unload() {
+	if (!Loaded) {
+		return;
+	}
+
 	// Models don't own their materials, so they do not delete
 	// them.
 	for (size_t i = 0; i < Meshes.size(); i++) {
@@ -483,8 +502,10 @@ void IModel::Dispose() {
 
 	BaseArmature = nullptr;
 	GlobalInverseMatrix = nullptr;
+
+	Loaded = false;
 }
 
 IModel::~IModel() {
-	Dispose();
+	Unload();
 }

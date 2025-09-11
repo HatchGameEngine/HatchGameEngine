@@ -3,6 +3,7 @@
 
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
+#include <Engine/IO/Stream.h>
 #include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
 
 class WAV : public SoundFormat {
@@ -11,7 +12,7 @@ private:
 	int DataStart = 0;
 
 public:
-	static SoundFormat* Load(const char* filename);
+	static SoundFormat* Load(Stream* stream);
 	int LoadSamples(size_t count);
 	void Dispose();
 };

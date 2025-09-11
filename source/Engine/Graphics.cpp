@@ -485,7 +485,7 @@ void Graphics::DisposeTexture(Texture* texture) {
 TextureReference* Graphics::GetSpriteSheet(string sheetPath) {
 	if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
 		TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
-		textureRef->AddRef();
+		textureRef->TakeRef();
 		return textureRef;
 	}
 
@@ -502,7 +502,7 @@ TextureReference* Graphics::AddSpriteSheet(string sheetPath, Texture* texture) {
 void Graphics::DisposeSpriteSheet(string sheetPath) {
 	if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
 		TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
-		if (textureRef->TakeRef()) {
+		if (textureRef->ReleaseRef()) {
 			Graphics::DisposeTexture(textureRef->TexturePtr);
 			Graphics::SpriteSheetTextureMap.erase(sheetPath);
 			delete textureRef;
@@ -2887,18 +2887,20 @@ bool Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {
 		return true;
 	}
 	if (animation < 0 || animation >= (int)sprite->Animations.size()) {
+#if 0
 		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Animation %d does not exist in sprite %s!",
-			animation,
-			sprite->Filename);
+			"Animation %d does not exist in sprite!",
+			animation);
+#endif
 		return true;
 	}
 	if (frame < 0 || frame >= (int)sprite->Animations[animation].Frames.size()) {
+#if 0
 		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Frame %d in animation \"%s\" does not exist in sprite %s!",
+			"Frame %d in animation \"%s\" does not exist in sprite!",
 			frame,
-			sprite->Animations[animation].Name,
-			sprite->Filename);
+			sprite->Animations[animation].Name);
+#endif
 		return true;
 	}
 	// #endif

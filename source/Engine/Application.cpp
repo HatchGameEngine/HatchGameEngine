@@ -12,14 +12,17 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
+#include <Engine/ResourceTypes/Resource.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/Utilities/StringUtils.h>
 
+#ifdef USING_FFMPEG
 #include <Engine/Media/MediaPlayer.h>
 #include <Engine/Media/MediaSource.h>
+#endif
 
 #ifdef IOS
 extern "C" {
@@ -137,6 +140,7 @@ bool DEBUG_HasFontSprite = true;
 
 void LoadDebugFont() {
 	DEBUG_fontSprite = new ISprite();
+	DEBUG_fontSprite->TakeRef();
 
 	int cols, rows;
 	Texture* spriteSheet = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
@@ -167,7 +171,7 @@ void LoadDebugFont() {
 		DEBUG_fontSprite->RefreshGraphicsID();
 	}
 	else {
-		delete DEBUG_fontSprite;
+		DEBUG_fontSprite->Release();
 		DEBUG_fontSprite = nullptr;
 		DEBUG_HasFontSprite = false;
 	}
@@ -840,7 +844,6 @@ void Application::UpdateWindowTitle() {
 
 void Application::EndGame() {
 	if (DEBUG_fontSprite) {
-		DEBUG_fontSprite->Dispose();
 		delete DEBUG_fontSprite;
 		DEBUG_fontSprite = NULL;
 	}
@@ -852,6 +855,7 @@ void Application::EndGame() {
 
 	Scene::Dispose();
 	SceneInfo::Dispose();
+	Resource::DisposeAll();
 	Graphics::UnloadData();
 
 	Application::TerminateScripting();
@@ -1106,6 +1110,7 @@ void Application::LoadKeyBinds() {
 	GET_KEY("devRecompile", DevRecompile, Key_F5);
 	GET_KEY("devPerfSnapshot", DevPerfSnapshot, Key_F3);
 	GET_KEY("devLogLayerInfo", DevLayerInfo, Key_F2);
+	GET_KEY("devLogResourceInfo", DevResourceInfo, Key_UNKNOWN);
 	GET_KEY("devFastForward", DevFastForward, Key_BACKSPACE);
 	GET_KEY("devToggleFrameStepper", DevFrameStepper, Key_F9);
 	GET_KEY("devStepFrame", DevStepFrame, Key_F10);
@@ -1265,6 +1270,21 @@ void Application::PollEvents() {
 					}
 					break;
 				}
+				// Show resource info (dev)
+				else if (key == KeyBindsSDL[(int)KeyBind::DevResourceInfo]) {
+					std::vector<ResourceType*>* list = Resource::GetList();
+
+					for (size_t i = 0; i < list->size(); i++) {
+						ResourceType* resource = (*list)[i];
+						Log::Print(Log::LOG_VERBOSE,
+							"- %d: %s (Type: %s, Scope: %s)",
+							i,
+							resource->Filename,
+							GetResourceTypeString(resource->Type),
+							GetResourceScopeString(resource->UnloadPolicy));
+					}
+					break;
+				}
 				// Print performance snapshot (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevPerfSnapshot]) {
 					TakeSnapshot = true;
@@ -1412,17 +1432,20 @@ void Application::RunFrame(int runFrames) {
 	AudioManager::Lock();
 	Uint8 audio_buffer[0x8000]; // <-- Should be larger than AudioManager::AudioQueueMaxSize
 	int needed = 0x8000; // AudioManager::AudioQueueMaxSize;
-	for (size_t i = 0, i_sz = Scene::MediaList.size(); i < i_sz; i++) {
-		if (!Scene::MediaList[i]) {
+	vector<ResourceType*>* list = Resource::GetList();
+	for (size_t i = 0, i_sz = list->size(); i < i_sz; i++) {
+		if ((*list)[i]->Type != RESOURCE_MEDIA) {
 			continue;
 		}
 
-		MediaBag* media = Scene::MediaList[i]->AsMedia;
+		MediaBag* media = (*list)[i]->AsMedia;
 		int queued = (int)AudioManager::AudioQueueSize;
 		if (queued < needed) {
 			int ready_bytes = media->Player->GetAudioData(audio_buffer, needed - queued);
 			if (ready_bytes > 0) {
-				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize, audio_buffer, ready_bytes);
+				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize,
+					audio_buffer,
+					ready_bytes);
 				AudioManager::AudioQueueSize += ready_bytes;
 			}
 		}
@@ -1845,6 +1868,8 @@ void Application::Cleanup() {
 	}
 
 	Application::DisposeSettings();
+
+	Resource::DisposeAll();
 
 	MemoryCache::Dispose();
 	ResourceManager::Dispose();

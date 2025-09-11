@@ -1,14 +1,14 @@
 #ifndef ENGINE_RESOURCETYPES_IMODEL_H
 #define ENGINE_RESOURCETYPES_IMODEL_H
 
-#include <Engine/Graphics.h>
 #include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
 #include <Engine/Rendering/Material.h>
 #include <Engine/Rendering/Mesh.h>
+#include <Engine/ResourceTypes/Resourceable.h>
 
-class IModel {
+class IModel : public Resourceable {
 private:
 	void UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame);
 
@@ -24,8 +24,8 @@ public:
 	Armature* BaseArmature;
 	Matrix4x4* GlobalInverseMatrix;
 
-	IModel();
 	IModel(const char* filename);
+	static bool IsFile(Stream* stream);
 	bool Load(Stream* stream, const char* filename);
 	size_t FindMaterial(const char* name);
 	size_t AddMaterial(Material* material);
@@ -51,7 +51,7 @@ public:
 	int GetAnimationIndex(const char* animationName);
 	int NewArmature();
 	void DeleteArmature(size_t index);
-	void Dispose();
+	void Unload();
 	~IModel();
 };
 

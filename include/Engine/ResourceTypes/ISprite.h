@@ -2,13 +2,13 @@
 #define ENGINE_RESOURCETYPES_ISPRITE_H
 
 #include <Engine/Includes/Standard.h>
+#include <Engine/IO/Stream.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/ResourceTypes/Resourceable.h>
 #include <Engine/Sprites/Animation.h>
 
-class ISprite {
+class ISprite : public Resourceable {
 public:
-	char* Filename = nullptr;
-	bool LoadFailed = true;
 	vector<Texture*> Spritesheets;
 	vector<string> SpritesheetFilenames;
 	int CollisionBoxCount = 0;
@@ -56,11 +56,12 @@ public:
 	void RefreshGraphicsID();
 	void ConvertToRGBA();
 	void ConvertToPalette(unsigned paletteNumber);
+	static bool IsFile(Stream* stream);
 	bool LoadAnimation(const char* filename);
 	int FindAnimation(const char* animname);
 	void LinkAnimation(vector<Animation> ani);
 	bool SaveAnimation(const char* filename);
-	void Dispose();
+	void Unload();
 	~ISprite();
 };
 
