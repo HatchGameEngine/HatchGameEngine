@@ -671,6 +671,29 @@ bool Font::RequestGlyph(Uint32 codepoint) {
 	return true;
 }
 
+float Font::GetGlyphAdvance(Uint32 codepoint) {
+	if (IsValidCodepoint(codepoint)) {
+		if (IsGlyphLoaded(codepoint)) {
+			std::unordered_map<Uint32, FontGlyph>::iterator it = Glyphs.find(codepoint);
+			if (it != Glyphs.end()) {
+				return it->second.Advance;
+			}
+		}
+
+		FontFamily* family = FindFamilyForCodepoint(codepoint);
+		if (family) {
+			stbtt_fontinfo* info = (stbtt_fontinfo*)family->Context;
+
+			int advanceWidth = 0;
+			stbtt_GetGlyphHMetrics(info, stbtt_FindGlyphIndex(info, codepoint), &advanceWidth, nullptr);
+
+			return (float)advanceWidth * stbtt_ScaleForPixelHeight(info, Size);
+		}
+	}
+
+	return 0.0f;
+}
+
 float Font::GetEllipsisWidth() {
 	if (HasGlyph(ELLIPSIS_CODE_POINT) && IsGlyphLoaded(ELLIPSIS_CODE_POINT)) {
 		return Glyphs[ELLIPSIS_CODE_POINT].Advance;
