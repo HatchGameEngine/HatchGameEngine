@@ -16300,6 +16300,29 @@ VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {
 	char* string = GET_ARG(0, GetString);
 	return DECIMAL_VAL((float)strtod(string, NULL));
 }
+/***
+ * String.GetCodepoints
+ * \desc Gets a list of UCS codepoints from UTF-8 text.
+ * \param string (String): The UTF-8 string.
+ * \return Returns an Array of Integer values.
+ * \ns String
+ */
+VMValue String_GetCodepoints(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	char* string = GET_ARG(0, GetString);
+
+	ObjArray* array = NewArray();
+
+	if (string) {
+		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
+
+		for (size_t i = 0; i < codepoints.size(); i++) {
+			array->Values->push_back(INTEGER_VAL((int)codepoints[i]));
+		}
+	}
+
+	return OBJECT_VAL(array);
+}
 // #endregion
 
 // #region Texture
@@ -20083,6 +20106,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(String, LastIndexOf);
 	DEF_NATIVE(String, ParseInteger);
 	DEF_NATIVE(String, ParseDecimal);
+	DEF_NATIVE(String, GetCodepoints);
 	// #endregion
 
 	// #region Texture
