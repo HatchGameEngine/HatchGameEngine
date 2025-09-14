@@ -34,6 +34,7 @@ public:
 	static void NormalizePath(const char* path, char* dest, size_t destSize);
 	static void ReplacePathSeparatorsInPlace(char* path);
 	static int DecodeUTF8Char(const char* chr, int& numChars);
+	static std::vector<Uint32> GetCodepoints(const char* text);
 };
 
 #endif /* ENGINE_UTILITIES_STRINGUTILS_H */

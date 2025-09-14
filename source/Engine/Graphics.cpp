@@ -1327,41 +1327,21 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 		paletteID);
 }
 
-// Handles UTF-8 text and obtains UCS codepoints
 std::vector<Uint32> Graphics::GetTextCodepoints(Font* font, const char* text) {
-	size_t textLength = strlen(text);
+	std::vector<Uint32> codepoints = StringUtils::GetCodepoints(text);
 
-	std::vector<Uint32> codepoints;
-	codepoints.reserve(textLength);
+	std::vector<Uint32> output;
+	output.reserve(codepoints.size());
 
-	for (size_t i = 0; i < textLength;) {
-		if (text[i] == '\n') {
-			codepoints.push_back((Uint32)text[i]);
-			i++;
-			continue;
+	for (size_t i = 0; i < codepoints.size(); i++) {
+		Uint32 codepoint = codepoints[i];
+		if (codepoint != (Uint32)-1 && (char)codepoint == '\n' || (char)codepoint == ' ' ||
+			(font->IsValidCodepoint(codepoint) && font->RequestGlyph(codepoint))) {
+			output.push_back(codepoint);
 		}
-
-		int numBytes = 1;
-		int decoded = StringUtils::DecodeUTF8Char(&text[i], numBytes);
-		if (decoded == -1) {
-			decoded = 0;
-		}
-
-		Uint32 codepoint = (Uint32)decoded;
-		if (!font->IsValidCodepoint(codepoint)) {
-			i += numBytes;
-			continue;
-		}
-
-		// If the glyph is valid
-		if (font->RequestGlyph(codepoint)) {
-			codepoints.push_back(codepoint);
-		}
-
-		i += numBytes;
 	}
 
-	return codepoints;
+	return output;
 }
 
 void Graphics::DrawGlyph(Font* font,
