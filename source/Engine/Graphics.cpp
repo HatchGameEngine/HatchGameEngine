@@ -1645,6 +1645,33 @@ void Graphics::DrawTextEllipsis(Font* font,
 
 	DrawTextWrapped(font, text, x, y, &localParams);
 }
+
+// StandardLibrary calls this.
+void Graphics::DrawGlyph(Font* font, Uint32 codepoint, float x, float y, TextDrawParams* params) {
+	if (!(font->IsValidCodepoint(codepoint) && font->RequestGlyph(codepoint))) {
+		return;
+	}
+
+	font->Update();
+
+	if (font->Sprite == nullptr || font->Sprite->Spritesheets.size() == 0) {
+		return;
+	}
+
+	float ascent = params->Ascent;
+	float scale = params->FontSize / font->Size;
+	float xyScale = scale / font->Oversampling;
+
+	bool texBlend = Graphics::TextureBlend;
+	Graphics::TextureBlend = true;
+
+	FontGlyph& glyph = font->Glyphs[codepoint];
+
+	DrawGlyph(font, codepoint, x, y, scale, xyScale, ascent);
+
+	Graphics::TextureBlend = texBlend;
+}
+
 void Graphics::MeasureText(Font* font,
 	const char* text,
 	TextDrawParams* params,
@@ -2071,6 +2098,27 @@ void Graphics::DrawTextEllipsisLegacy(ISprite* sprite,
 	localParams.Flags |= TEXTDRAW_ELLIPSIS;
 
 	DrawTextWrappedLegacy(sprite, text, basex, basey, &localParams);
+}
+
+void Graphics::DrawGlyphLegacy(ISprite* sprite,
+	Uint32 codepoint,
+	float basex,
+	float basey,
+	LegacyTextDrawParams* params) {
+	char l = _Text_GetLetter((Uint8)codepoint);
+	float charWidth = sprite->Animations[0].Frames[l].Advance * params->Advance;
+	basex -= sprite->Animations[0].Frames[l].OffsetX;
+
+	Graphics::DrawSprite(sprite,
+		0,
+		l,
+		basex - charWidth * params->Align,
+		basey - sprite->Animations[0].AnimationSpeed * params->Baseline,
+		false,
+		false,
+		1.0f,
+		1.0f,
+		0.0f);
 }
 
 void Graphics::MeasureTextLegacy(ISprite* sprite,
