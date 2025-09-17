@@ -450,3 +450,22 @@ int StringUtils::DecodeUTF8Char(const char* chr, int& numBytes) {
 
 	return -1;
 }
+
+// Handles UTF-8 text and obtains UCS codepoints
+std::vector<Uint32> StringUtils::GetCodepoints(const char* text) {
+	size_t textLength = strlen(text);
+
+	std::vector<Uint32> codepoints;
+	codepoints.reserve(textLength);
+
+	for (size_t i = 0; i < textLength;) {
+		int numBytes = 1;
+		int decoded = StringUtils::DecodeUTF8Char(&text[i], numBytes);
+
+		codepoints.push_back((Uint32)decoded);
+
+		i += numBytes;
+	}
+
+	return codepoints;
+}

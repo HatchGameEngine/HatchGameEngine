@@ -1327,41 +1327,21 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 		paletteID);
 }
 
-// Handles UTF-8 text and obtains UCS codepoints
 std::vector<Uint32> Graphics::GetTextCodepoints(Font* font, const char* text) {
-	size_t textLength = strlen(text);
+	std::vector<Uint32> codepoints = StringUtils::GetCodepoints(text);
 
-	std::vector<Uint32> codepoints;
-	codepoints.reserve(textLength);
+	std::vector<Uint32> output;
+	output.reserve(codepoints.size());
 
-	for (size_t i = 0; i < textLength;) {
-		if (text[i] == '\n') {
-			codepoints.push_back((Uint32)text[i]);
-			i++;
-			continue;
+	for (size_t i = 0; i < codepoints.size(); i++) {
+		Uint32 codepoint = codepoints[i];
+		if (codepoint != (Uint32)-1 && (char)codepoint == '\n' || (char)codepoint == ' ' ||
+			(font->IsValidCodepoint(codepoint) && font->RequestGlyph(codepoint))) {
+			output.push_back(codepoint);
 		}
-
-		int numBytes = 1;
-		int decoded = StringUtils::DecodeUTF8Char(&text[i], numBytes);
-		if (decoded == -1) {
-			decoded = 0;
-		}
-
-		Uint32 codepoint = (Uint32)decoded;
-		if (!font->IsValidCodepoint(codepoint)) {
-			i += numBytes;
-			continue;
-		}
-
-		// If the glyph is valid
-		if (font->RequestGlyph(codepoint)) {
-			codepoints.push_back(codepoint);
-		}
-
-		i += numBytes;
 	}
 
-	return codepoints;
+	return output;
 }
 
 void Graphics::DrawGlyph(Font* font,
@@ -1468,12 +1448,12 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, TextDraw
 
 	for (size_t i = 0; i < numCodepoints; i++) {
 		Uint32 codepoint = codepoints[i];
-		if (codepoints[i] == '\n') {
+		if (codepoint == '\n') {
 			currX = x;
 			currY += (ascent - descent + leading) * scale;
 			continue;
 		}
-		else if (codepoints[i] == ' ') {
+		else if (codepoint == ' ') {
 			currX += font->SpaceWidth * scale;
 			continue;
 		}
@@ -1552,26 +1532,32 @@ void Graphics::DrawTextWrapped(Font* font,
 		Uint32* codepointsPtr = (codepointsData + i);
 		Uint32 codepoint = *codepointsPtr;
 
-		bool canBreak = codepoint == 0x0010;
-		if (!canBreak && codepointsPtr != wordstart) {
-			canBreak = codepoint == 0x0020;
-		}
+		bool isLineBreak = codepoint == 0x000A;
 
-		if (canBreak) {
-			float lineWidth = 0.0f;
-			for (Uint32* o = linestart; o < codepointsPtr; o++) {
-				float advance = (*o == 0x0020) ? font->SpaceWidth
-							       : font->Glyphs[*o].Advance;
-				lineWidth += advance * scale;
+		if ((codepointsPtr != wordstart && codepoint == 0x0020) || isLineBreak) {
+			bool canLineBreak = isLineBreak;
+			if (!canLineBreak && word > 0) {
+				float lineWidth = 0.0f;
+
+				for (Uint32* o = linestart; o < codepointsPtr; o++) {
+					float advance = (*o == 0x0020) ? font->SpaceWidth
+								       : font->Glyphs[*o].Advance;
+					lineWidth += advance * scale;
+				}
+
+				canLineBreak = lineWidth > params->MaxWidth;
 			}
 
-			if ((lineWidth > params->MaxWidth && word > 0) || codepoint == 0x0010) {
+			Uint32* start = isLineBreak ? (codepointsPtr + 1) : wordstart;
+			Uint32* end = isLineBreak ? codepointsPtr : (wordstart - 1);
+
+			if (canLineBreak) {
 				bool isLastLine =
 					params->MaxLines > 0 && lineNo == params->MaxLines;
 
 				currX = x;
 
-				for (Uint32* o = linestart; o < wordstart - 1; o++) {
+				for (Uint32* o = linestart; o < end; o++) {
 					float advance = (*o == 0x0020) ? font->SpaceWidth
 								       : font->Glyphs[*o].Advance;
 
@@ -1613,7 +1599,7 @@ void Graphics::DrawTextWrapped(Font* font,
 				}
 
 				lineNo++;
-				linestart = wordstart;
+				linestart = start;
 
 				currY += (ascent - descent + leading) * scale;
 			}
@@ -1637,7 +1623,7 @@ void Graphics::DrawTextWrapped(Font* font,
 			break;
 		}
 
-		if (*o != 0x0020) {
+		if (*o != 0x0020 && *o != 0x000A) {
 			DrawGlyph(font, *o, currX, currY, scale, xyScale, ascent);
 		}
 
@@ -1686,11 +1672,11 @@ void Graphics::MeasureText(Font* font,
 		float glyphY = 0.0f;
 
 		Uint32 codepoint = codepoints[i];
-		if (codepoints[i] == '\n') {
+		if (codepoint == '\n') {
 			currX = 0.0f;
 			currY += (ascent - descent + leading) * scale;
 		}
-		else if (codepoints[i] == ' ') {
+		else if (codepoint == ' ') {
 			currX += font->SpaceWidth * scale;
 		}
 		else {
@@ -1746,23 +1732,29 @@ void Graphics::MeasureTextWrapped(Font* font,
 		Uint32* codepointsPtr = (codepointsData + i);
 		Uint32 codepoint = *codepointsPtr;
 
-		bool canBreak = codepoint == 0x0010;
-		if (!canBreak && codepointsPtr != wordstart) {
-			canBreak = codepoint == 0x0020;
-		}
+		bool isLineBreak = codepoint == 0x000A;
 
-		if (canBreak) {
-			float lineWidth = 0.0f;
-			for (Uint32* o = linestart; o < codepointsPtr; o++) {
-				float advance = (*o == 0x0020) ? font->SpaceWidth
-							       : font->Glyphs[*o].Advance;
-				lineWidth += advance * scale;
+		if ((codepointsPtr != wordstart && codepoint == 0x0020) || isLineBreak) {
+			bool canLineBreak = isLineBreak;
+			if (!canLineBreak && word > 0) {
+				float lineWidth = 0.0f;
+
+				for (Uint32* o = linestart; o < codepointsPtr; o++) {
+					float advance = (*o == 0x0020) ? font->SpaceWidth
+								       : font->Glyphs[*o].Advance;
+					lineWidth += advance * scale;
+				}
+
+				canLineBreak = lineWidth > params->MaxWidth;
 			}
 
-			if ((lineWidth > params->MaxWidth && word > 0) || codepoint == 0x0010) {
+			Uint32* start = isLineBreak ? (codepointsPtr + 1) : wordstart;
+			Uint32* end = isLineBreak ? codepointsPtr : (wordstart - 1);
+
+			if (canLineBreak) {
 				currX = 0.0f;
 
-				for (Uint32* o = linestart; o < wordstart - 1; o++) {
+				for (Uint32* o = linestart; o < end; o++) {
 					float glyphY = 0.0f;
 
 					if (*o == 0x0020) {
@@ -1790,7 +1782,7 @@ void Graphics::MeasureTextWrapped(Font* font,
 				}
 
 				lineNo++;
-				linestart = wordstart;
+				linestart = start;
 
 				currY += (ascent - descent + leading) * scale;
 			}
