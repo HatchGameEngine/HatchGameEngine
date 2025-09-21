@@ -208,6 +208,11 @@ bool ResourceManager::Init(const char* dataFilePath) {
 
 		return false;
 	}
+#ifdef DEVELOPER_MODE
+	else if (useResourcesFolder && GetMainResource()->IsEmpty()) {
+		Log::Print(Log::LOG_WARN, "\"%s\" folder is empty.", RESOURCES_DIR_PATH);
+	}
+#endif
 
 	return true;
 }

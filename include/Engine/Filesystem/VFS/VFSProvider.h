@@ -57,6 +57,7 @@ public:
 	virtual std::string TransformFilename(const char* filename);
 	virtual bool SupportsCompression();
 	virtual bool SupportsEncryption();
+	virtual bool IsEmpty();
 	virtual bool HasFile(const char* filename);
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
