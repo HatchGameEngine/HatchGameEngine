@@ -447,10 +447,24 @@ int Graphics::ConvertTextureToPalette(Texture* texture, unsigned paletteNumber) 
 
 	return ok;
 }
+void Graphics::SetTextureMinFilter(Texture* texture, int filterMode) {
+	if (texture && Graphics::GfxFunctions->SetTextureMinFilter) {
+		Graphics::GfxFunctions->SetTextureMinFilter(texture, filterMode);
+	}
+}
+void Graphics::SetTextureMagFilter(Texture* texture, int filterMode) {
+	if (texture && Graphics::GfxFunctions->SetTextureMagFilter) {
+		Graphics::GfxFunctions->SetTextureMagFilter(texture, filterMode);
+	}
+}
 void Graphics::UnlockTexture(Texture* texture) {
 	Graphics::GfxFunctions->UnlockTexture(texture);
 }
 void Graphics::DisposeTexture(Texture* texture) {
+	if (texture == nullptr) {
+		return;
+	}
+
 	Graphics::GfxFunctions->DisposeTexture(texture);
 
 	if (texture->Next) {
@@ -1311,6 +1325,860 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 		scaleH,
 		rotation,
 		paletteID);
+}
+
+std::vector<Uint32> Graphics::GetTextCodepoints(Font* font, const char* text) {
+	std::vector<Uint32> codepoints = StringUtils::GetCodepoints(text);
+
+	std::vector<Uint32> output;
+	output.reserve(codepoints.size());
+
+	for (size_t i = 0; i < codepoints.size(); i++) {
+		Uint32 codepoint = codepoints[i];
+		if (codepoint != (Uint32)-1 && (char)codepoint == '\n' || (char)codepoint == ' ' ||
+			(font->IsValidCodepoint(codepoint) && font->RequestGlyph(codepoint))) {
+			output.push_back(codepoint);
+		}
+	}
+
+	return output;
+}
+
+void Graphics::DrawGlyph(Font* font,
+	Uint32 codepoint,
+	float x,
+	float y,
+	float scale,
+	float glyphScale,
+	float ascent) {
+	// For performance, this doesn't check if font or font->Sprite are nullptr.
+	// Also, RequestGlyph must have been called before for this codepoint.
+	FontGlyph& glyph = font->Glyphs[codepoint];
+
+	float glyphX = x + (glyph.OffsetX * glyphScale);
+	float glyphY = y + (glyph.OffsetY * glyphScale);
+
+	glyphY += ascent * scale;
+
+	Graphics::DrawSprite(font->Sprite,
+		0,
+		glyph.FrameID,
+		glyphX,
+		glyphY,
+		false,
+		false,
+		glyphScale,
+		glyphScale,
+		0.0f);
+}
+
+void Graphics::DrawEllipsis(Font* font,
+	float x,
+	float y,
+	float scale,
+	float glyphScale,
+	float ascent) {
+	if (font->HasGlyph(ELLIPSIS_CODE_POINT) && font->RequestGlyph(ELLIPSIS_CODE_POINT)) {
+		DrawGlyph(font, ELLIPSIS_CODE_POINT, x, y, scale, glyphScale, ascent);
+	}
+	else if (font->HasGlyph(FULL_STOP_CODE_POINT) && font->RequestGlyph(FULL_STOP_CODE_POINT)) {
+		float currX = x;
+
+		for (size_t i = 0; i < 3; i++) {
+			DrawGlyph(font, 0x002E, currX, y, scale, glyphScale, ascent);
+
+			currX += font->Glyphs[FULL_STOP_CODE_POINT].Advance * scale;
+		}
+	}
+}
+
+void Graphics::DrawEllipsisLegacy(ISprite* sprite,
+	float x,
+	float y,
+	float advance,
+	float baseline) {
+	int glyph = '.';
+
+	advance = sprite->Animations[0].Frames[glyph].Advance * advance;
+
+	for (size_t i = 0; i < 3; i++) {
+		Graphics::DrawSprite(sprite,
+			0,
+			glyph,
+			x,
+			y - sprite->Animations[0].AnimationSpeed * baseline,
+			false,
+			false,
+			1.0f,
+			1.0f,
+			0.0f);
+
+		x += advance;
+	}
+}
+
+void Graphics::DrawText(Font* font, const char* text, float x, float y, TextDrawParams* params) {
+	// Obtain codepoints and check if the font needs to be updated
+	std::vector<Uint32> codepoints = GetTextCodepoints(font, text);
+
+	size_t numCodepoints = codepoints.size();
+	if (numCodepoints == 0) {
+		return;
+	}
+
+	font->Update();
+
+	if (font->Sprite == nullptr || font->Sprite->Spritesheets.size() == 0) {
+		return;
+	}
+
+	// Draw the codepoints
+	float currX = x;
+	float currY = y;
+
+	float ascent = params->Ascent;
+	float descent = params->Descent;
+	float leading = params->Leading;
+
+	float scale = params->FontSize / font->Size;
+	float xyScale = scale / font->Oversampling;
+
+	bool texBlend = Graphics::TextureBlend;
+	Graphics::TextureBlend = true;
+
+	for (size_t i = 0; i < numCodepoints; i++) {
+		Uint32 codepoint = codepoints[i];
+		if (codepoint == '\n') {
+			currX = x;
+			currY += (ascent - descent + leading) * scale;
+			continue;
+		}
+		else if (codepoint == ' ') {
+			currX += font->SpaceWidth * scale;
+			continue;
+		}
+
+		FontGlyph& glyph = font->Glyphs[codepoint];
+
+		DrawGlyph(font, codepoint, currX, currY, scale, xyScale, ascent);
+
+		currX += glyph.Advance * scale;
+	}
+
+	Graphics::TextureBlend = texBlend;
+}
+void Graphics::DrawTextWrapped(Font* font,
+	const char* text,
+	float x,
+	float y,
+	TextDrawParams* params) {
+	// Obtain codepoints and check if the font needs to be updated
+	std::vector<Uint32> codepoints = GetTextCodepoints(font, text);
+
+	size_t numCodepoints = codepoints.size();
+	if (numCodepoints == 0) {
+		return;
+	}
+
+	font->Update();
+
+	if (font->Sprite == nullptr || font->Sprite->Spritesheets.size() == 0) {
+		return;
+	}
+
+	// Draw the codepoints
+	float currX = x;
+	float currY = y;
+
+	float ascent = params->Ascent;
+	float descent = params->Descent;
+	float leading = params->Leading;
+
+	float scale = params->FontSize / font->Size;
+	float xyScale = scale / font->Oversampling;
+
+	bool texBlend = Graphics::TextureBlend;
+	Graphics::TextureBlend = true;
+
+	int word = 0;
+	int lineNo = 1;
+
+	Uint32* codepointsData = codepoints.data();
+	Uint32* linestart = codepointsData;
+	Uint32* wordstart = codepointsData;
+	Uint32* codepointsEnd = codepointsData + numCodepoints;
+
+	float ellipsisWidth = 0.0;
+
+	bool drawEllipsis = params->Flags & TEXTDRAW_ELLIPSIS;
+	if (drawEllipsis) {
+		// Load correct ellipsis glyph
+		if (font->HasGlyph(ELLIPSIS_CODE_POINT)) {
+			drawEllipsis = font->RequestGlyph(ELLIPSIS_CODE_POINT);
+		}
+		else if (font->HasGlyph(FULL_STOP_CODE_POINT)) {
+			drawEllipsis = font->RequestGlyph(FULL_STOP_CODE_POINT);
+		}
+		else {
+			drawEllipsis = false;
+		}
+
+		if (drawEllipsis) {
+			ellipsisWidth = font->GetEllipsisWidth() * scale;
+		}
+	}
+
+	for (size_t i = 0; i < numCodepoints; i++) {
+		Uint32* codepointsPtr = (codepointsData + i);
+		Uint32 codepoint = *codepointsPtr;
+
+		bool isLineBreak = codepoint == 0x000A;
+
+		if ((codepointsPtr != wordstart && codepoint == 0x0020) || isLineBreak) {
+			bool canLineBreak = isLineBreak;
+			if (!canLineBreak && word > 0) {
+				float lineWidth = 0.0f;
+
+				for (Uint32* o = linestart; o < codepointsPtr; o++) {
+					float advance = (*o == 0x0020) ? font->SpaceWidth
+								       : font->Glyphs[*o].Advance;
+					lineWidth += advance * scale;
+				}
+
+				canLineBreak = lineWidth > params->MaxWidth;
+			}
+
+			Uint32* start = isLineBreak ? (codepointsPtr + 1) : wordstart;
+			Uint32* end = isLineBreak ? codepointsPtr : (wordstart - 1);
+
+			if (canLineBreak) {
+				bool isLastLine =
+					params->MaxLines > 0 && lineNo == params->MaxLines;
+
+				currX = x;
+
+				for (Uint32* o = linestart; o < end; o++) {
+					float advance = (*o == 0x0020) ? font->SpaceWidth
+								       : font->Glyphs[*o].Advance;
+
+					advance *= scale;
+
+					// Draw ellipsis if the text no longer fits
+					if (isLastLine && drawEllipsis &&
+						(currX - x) + advance >
+							params->MaxWidth - ellipsisWidth) {
+						Graphics::DrawEllipsis(
+							font, currX, currY, scale, xyScale, ascent);
+						Graphics::TextureBlend = texBlend;
+						return;
+					}
+
+					if (*o != 0x0020) {
+						DrawGlyph(font,
+							*o,
+							currX,
+							currY,
+							scale,
+							xyScale,
+							ascent);
+					}
+
+					currX += advance;
+				}
+
+				if (isLastLine) {
+					// Draw ellipsis if the text no longer fits AND there is still space
+					if (drawEllipsis &&
+						(currX - x) < params->MaxWidth - ellipsisWidth) {
+						Graphics::DrawEllipsis(
+							font, currX, currY, scale, xyScale, ascent);
+					}
+
+					Graphics::TextureBlend = texBlend;
+					return;
+				}
+
+				lineNo++;
+				linestart = start;
+
+				currY += (ascent - descent + leading) * scale;
+			}
+
+			wordstart = codepointsPtr + 1;
+			word++;
+		}
+	}
+
+	// Draw the remaining line
+	currX = x;
+
+	for (Uint32* o = linestart; o < codepointsEnd; o++) {
+		float advance = (*o == 0x0020) ? font->SpaceWidth : font->Glyphs[*o].Advance;
+
+		advance *= scale;
+
+		// Draw ellipsis if the text no longer fits
+		if (drawEllipsis && (currX - x) + advance > params->MaxWidth - ellipsisWidth) {
+			Graphics::DrawEllipsis(font, currX, currY, scale, xyScale, ascent);
+			break;
+		}
+
+		if (*o != 0x0020 && *o != 0x000A) {
+			DrawGlyph(font, *o, currX, currY, scale, xyScale, ascent);
+		}
+
+		currX += advance;
+	}
+
+	Graphics::TextureBlend = texBlend;
+}
+void Graphics::DrawTextEllipsis(Font* font,
+	const char* text,
+	float x,
+	float y,
+	TextDrawParams* params) {
+	TextDrawParams localParams = *params;
+
+	localParams.Flags |= TEXTDRAW_ELLIPSIS;
+
+	DrawTextWrapped(font, text, x, y, &localParams);
+}
+void Graphics::MeasureText(Font* font,
+	const char* text,
+	TextDrawParams* params,
+	float& maxW,
+	float& maxH) {
+	// Obtain codepoints and check if the font needs to be updated
+	std::vector<Uint32> codepoints = GetTextCodepoints(font, text);
+
+	size_t numCodepoints = codepoints.size();
+	if (numCodepoints == 0) {
+		return;
+	}
+
+	font->Update();
+
+	float currX = 0.0f;
+	float currY = 0.0f;
+
+	float ascent = params->Ascent;
+	float descent = params->Descent;
+	float leading = params->Leading;
+
+	float scale = params->FontSize / font->Size;
+	float xyScale = scale / font->Oversampling;
+
+	for (size_t i = 0; i < numCodepoints; i++) {
+		float glyphY = 0.0f;
+
+		Uint32 codepoint = codepoints[i];
+		if (codepoint == '\n') {
+			currX = 0.0f;
+			currY += (ascent - descent + leading) * scale;
+		}
+		else if (codepoint == ' ') {
+			currX += font->SpaceWidth * scale;
+		}
+		else {
+			FontGlyph& glyph = font->Glyphs[codepoint];
+
+			currX += glyph.Advance * scale;
+			glyphY += (ascent * scale) + (glyph.OffsetY * scale) +
+				(glyph.Height * xyScale);
+		}
+
+		if (currX > maxW) {
+			maxW = currX;
+		}
+		if (currY + glyphY > maxH) {
+			maxH = currY + glyphY;
+		}
+	}
+}
+void Graphics::MeasureTextWrapped(Font* font,
+	const char* text,
+	TextDrawParams* params,
+	float& maxW,
+	float& maxH) {
+	// Obtain codepoints and check if the font needs to be updated
+	std::vector<Uint32> codepoints = GetTextCodepoints(font, text);
+
+	size_t numCodepoints = codepoints.size();
+	if (numCodepoints == 0) {
+		return;
+	}
+
+	font->Update();
+
+	float currX = 0.0f;
+	float currY = 0.0f;
+
+	float ascent = params->Ascent;
+	float descent = params->Descent;
+	float leading = params->Leading;
+
+	float scale = params->FontSize / font->Size;
+	float xyScale = scale / font->Oversampling;
+
+	int word = 0;
+	int lineNo = 1;
+
+	Uint32* codepointsData = codepoints.data();
+	Uint32* linestart = codepointsData;
+	Uint32* wordstart = codepointsData;
+	Uint32* codepointsEnd = codepointsData + numCodepoints;
+
+	for (size_t i = 0; i < numCodepoints; i++) {
+		Uint32* codepointsPtr = (codepointsData + i);
+		Uint32 codepoint = *codepointsPtr;
+
+		bool isLineBreak = codepoint == 0x000A;
+
+		if ((codepointsPtr != wordstart && codepoint == 0x0020) || isLineBreak) {
+			bool canLineBreak = isLineBreak;
+			if (!canLineBreak && word > 0) {
+				float lineWidth = 0.0f;
+
+				for (Uint32* o = linestart; o < codepointsPtr; o++) {
+					float advance = (*o == 0x0020) ? font->SpaceWidth
+								       : font->Glyphs[*o].Advance;
+					lineWidth += advance * scale;
+				}
+
+				canLineBreak = lineWidth > params->MaxWidth;
+			}
+
+			Uint32* start = isLineBreak ? (codepointsPtr + 1) : wordstart;
+			Uint32* end = isLineBreak ? codepointsPtr : (wordstart - 1);
+
+			if (canLineBreak) {
+				currX = 0.0f;
+
+				for (Uint32* o = linestart; o < end; o++) {
+					float glyphY = 0.0f;
+
+					if (*o == 0x0020) {
+						currX += font->SpaceWidth * scale;
+					}
+					else {
+						FontGlyph& glyph = font->Glyphs[*o];
+
+						currX += glyph.Advance * scale;
+						glyphY += (ascent * scale) +
+							(glyph.OffsetY * scale) +
+							(glyph.Height * xyScale);
+					}
+
+					if (currX > maxW) {
+						maxW = currX;
+					}
+					if (currY + glyphY > maxH) {
+						maxH = currY + glyphY;
+					}
+				}
+
+				if (params->MaxLines > 0 && lineNo == params->MaxLines) {
+					return;
+				}
+
+				lineNo++;
+				linestart = start;
+
+				currY += (ascent - descent + leading) * scale;
+			}
+
+			wordstart = codepointsPtr + 1;
+			word++;
+		}
+	}
+
+	// Measure the remaining line
+	currX = 0.0f;
+
+	for (Uint32* o = linestart; o < codepointsEnd; o++) {
+		float glyphY = 0.0f;
+
+		if (*o == 0x0020) {
+			currX += font->SpaceWidth * scale;
+		}
+		else {
+			FontGlyph& glyph = font->Glyphs[*o];
+
+			currX += glyph.Advance * scale;
+			glyphY += (ascent * scale) + (glyph.OffsetY * scale) +
+				(glyph.Height * xyScale);
+		}
+
+		if (currX > maxW) {
+			maxW = currX;
+		}
+		if (currY + glyphY > maxH) {
+			maxH = currY + glyphY;
+		}
+	}
+}
+
+// Those are the old text drawing functions. They do not handle UTF-8!
+// Eventually, the Font class will be able to handle bitmap fonts as well.
+int _Text_GetLetter(int l) {
+	if (l < 0) {
+		return ' ';
+	}
+	return l;
+}
+
+void Graphics::DrawTextLegacy(ISprite* sprite,
+	const char* text,
+	float basex,
+	float basey,
+	LegacyTextDrawParams* params) {
+	float x = basex;
+	float y = basey;
+	float* lineWidths;
+	int line = 0;
+	char l;
+
+	// Count lines
+	for (const char* i = text; *i; i++) {
+		if (*i == '\n') {
+			line++;
+			continue;
+		}
+	}
+	line++;
+	lineWidths = (float*)Memory::Malloc(line * sizeof(float));
+	if (!lineWidths) {
+		return;
+	}
+
+	// Get line widths
+	line = 0;
+	x = 0.0f;
+	for (const char* i = text; *i; i++) {
+		l = _Text_GetLetter((Uint8)*i);
+		if (l == '\n') {
+			lineWidths[line++] = x;
+			x = 0.0f;
+			continue;
+		}
+		x += sprite->Animations[0].Frames[l].Advance * params->Advance;
+	}
+	lineWidths[line++] = x;
+
+	// Draw text
+	line = 0;
+	x = basex;
+	bool lineBack = true;
+	for (const char* i = text; *i; i++) {
+		l = _Text_GetLetter((Uint8)*i);
+		if (lineBack) {
+			x -= sprite->Animations[0].Frames[l].OffsetX;
+			lineBack = false;
+		}
+
+		if (l == '\n') {
+			x = basex;
+			y += sprite->Animations[0].FrameToLoop * params->Ascent;
+			lineBack = true;
+			line++;
+			continue;
+		}
+
+		Graphics::DrawSprite(sprite,
+			0,
+			l,
+			x - lineWidths[line] * params->Align,
+			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			false,
+			false,
+			1.0f,
+			1.0f,
+			0.0f);
+		x += sprite->Animations[0].Frames[l].Advance * params->Advance;
+	}
+
+	Memory::Free(lineWidths);
+}
+void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
+	const char* text,
+	float basex,
+	float basey,
+	LegacyTextDrawParams* params) {
+	float x = basex;
+	float y = basey;
+
+	// Draw text
+	int word = 0;
+	const char* linestart = text;
+	const char* wordstart = text;
+	bool lineBack = true;
+	int lineNo = 1;
+	char l, lm;
+
+	bool drawEllipsis = params->Flags & TEXTDRAW_ELLIPSIS;
+	float ellipsisWidth = 0.0;
+	if (drawEllipsis) {
+		ellipsisWidth = sprite->Animations[0].Frames['.'].Advance * 3;
+	}
+
+	for (const char* i = text;; i++) {
+		l = _Text_GetLetter((Uint8)*i);
+		if (((l == ' ' || l == 0) && i != wordstart) || l == '\n') {
+			float testWidth = 0.0f;
+			for (const char* o = linestart; o < i; o++) {
+				lm = _Text_GetLetter((Uint8)*o);
+				testWidth +=
+					sprite->Animations[0].Frames[lm].Advance * params->Advance;
+			}
+
+			if ((testWidth > params->MaxWidth && word > 0) || l == '\n') {
+				bool isLastLine =
+					params->MaxLines > 0 && lineNo == params->MaxLines;
+
+				float lineWidth = 0.0f;
+				for (const char* o = linestart; o < wordstart - 1; o++) {
+					lm = _Text_GetLetter((Uint8)*o);
+					if (lineBack) {
+						lineWidth -=
+							sprite->Animations[0].Frames[lm].OffsetX;
+						lineBack = false;
+					}
+					lineWidth += sprite->Animations[0].Frames[lm].Advance *
+						params->Advance;
+				}
+				lineBack = true;
+
+				float startx = basex - lineWidth * params->Align;
+
+				x = startx;
+				for (const char* o = linestart; o < wordstart - 1; o++) {
+					lm = _Text_GetLetter((Uint8)*o);
+					if (lineBack) {
+						x -= sprite->Animations[0].Frames[lm].OffsetX;
+						lineBack = false;
+					}
+
+					float advance = sprite->Animations[0].Frames[lm].Advance *
+						params->Advance;
+
+					// Draw ellipsis if the text no longer fits
+					if (isLastLine && drawEllipsis &&
+						(x - startx) + advance >
+							params->MaxWidth - ellipsisWidth) {
+						Graphics::DrawEllipsisLegacy(sprite,
+							x,
+							y,
+							params->Advance,
+							params->Baseline);
+						return;
+					}
+
+					Graphics::DrawSprite(sprite,
+						0,
+						lm,
+						x,
+						y -
+							sprite->Animations[0].AnimationSpeed *
+								params->Baseline,
+						false,
+						false,
+						1.0f,
+						1.0f,
+						0.0f);
+					x += advance;
+				}
+
+				if (isLastLine) {
+					// Draw ellipsis if the text no longer fits AND there is still space
+					if (drawEllipsis &&
+						(x - startx) < params->MaxWidth - ellipsisWidth) {
+						Graphics::DrawEllipsisLegacy(sprite,
+							x,
+							y,
+							params->Advance,
+							params->Baseline);
+					}
+					return;
+				}
+
+				lineNo++;
+
+				linestart = wordstart;
+				y += sprite->Animations[0].FrameToLoop * params->Ascent;
+				lineBack = true;
+			}
+
+			wordstart = i + 1;
+			word++;
+		}
+		if (!l) {
+			break;
+		}
+	}
+
+	float lineWidth = 0.0f;
+	for (const char* o = linestart; *o; o++) {
+		l = _Text_GetLetter((Uint8)*o);
+		if (lineBack) {
+			lineWidth -= sprite->Animations[0].Frames[l].OffsetX;
+			lineBack = false;
+		}
+		lineWidth += sprite->Animations[0].Frames[l].Advance * params->Advance;
+	}
+	lineBack = true;
+
+	// Draw the remaining line
+	float startx = basex - lineWidth * params->Align;
+	x = startx;
+	for (const char* o = linestart; *o; o++) {
+		l = _Text_GetLetter((Uint8)*o);
+		if (lineBack) {
+			x -= sprite->Animations[0].Frames[l].OffsetX;
+			lineBack = false;
+		}
+
+		float advance = sprite->Animations[0].Frames[l].Advance * params->Advance;
+
+		// Draw ellipsis if the text no longer fits
+		if (drawEllipsis && (x - startx) + advance > params->MaxWidth - ellipsisWidth) {
+			Graphics::DrawEllipsisLegacy(
+				sprite, x, y, params->Advance, params->Baseline);
+			return;
+		}
+
+		Graphics::DrawSprite(sprite,
+			0,
+			l,
+			x,
+			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			false,
+			false,
+			1.0f,
+			1.0f,
+			0.0f);
+		x += advance;
+	}
+}
+void Graphics::DrawTextEllipsisLegacy(ISprite* sprite,
+	const char* text,
+	float basex,
+	float basey,
+	LegacyTextDrawParams* params) {
+	LegacyTextDrawParams localParams = *params;
+
+	localParams.Flags |= TEXTDRAW_ELLIPSIS;
+
+	DrawTextWrappedLegacy(sprite, text, basex, basey, &localParams);
+}
+
+void Graphics::MeasureTextLegacy(ISprite* sprite,
+	const char* text,
+	LegacyTextDrawParams* params,
+	float& maxW,
+	float& maxH) {
+	float x = 0.0, y = 0.0;
+	float lineHeight = sprite->Animations[0].FrameToLoop;
+
+	maxW = maxH = 0.0;
+
+	for (const char* i = text; *i; i++) {
+		if (*i == '\n') {
+			x = 0.0;
+			y += lineHeight * params->Ascent;
+		}
+		else {
+			x += sprite->Animations[0].Frames[*i].Advance * params->Advance;
+
+			if (maxW < x) {
+				maxW = x;
+			}
+		}
+
+		if (maxH < y +
+				(sprite->Animations[0].Frames[*i].Height -
+					sprite->Animations[0].Frames[*i].OffsetY)) {
+			maxH = y +
+				(sprite->Animations[0].Frames[*i].Height -
+					sprite->Animations[0].Frames[*i].OffsetY);
+		}
+	}
+}
+void Graphics::MeasureTextWrappedLegacy(ISprite* sprite,
+	const char* text,
+	LegacyTextDrawParams* params,
+	float& maxW,
+	float& maxH) {
+	int word = 0;
+	const char* linestart = text;
+	const char* wordstart = text;
+
+	float x = 0.0, y = 0.0;
+	float lineHeight = sprite->Animations[0].FrameToLoop;
+
+	maxW = maxH = 0.0;
+
+	int lineNo = 1;
+	for (const char* i = text;; i++) {
+		if (((*i == ' ' || *i == 0) && i != wordstart) || *i == '\n') {
+			float lineWidth = 0.0f;
+			for (const char* o = linestart; o < i; o++) {
+				lineWidth +=
+					sprite->Animations[0].Frames[*o].Advance * params->Advance;
+			}
+			if ((lineWidth > params->MaxWidth && word > 0) || *i == '\n') {
+				x = 0.0f;
+				for (const char* o = linestart; o < wordstart - 1; o++) {
+					x += sprite->Animations[0].Frames[*o].Advance *
+						params->Advance;
+
+					if (maxW < x) {
+						maxW = x;
+					}
+					if (maxH < y +
+							(sprite->Animations[0].Frames[*o].Height +
+								sprite->Animations[0]
+									.Frames[*o]
+									.OffsetY)) {
+						maxH = y +
+							(sprite->Animations[0].Frames[*o].Height +
+								sprite->Animations[0]
+									.Frames[*o]
+									.OffsetY);
+					}
+				}
+
+				if (params->MaxLines > 0 && lineNo == params->MaxLines) {
+					return;
+				}
+				lineNo++;
+
+				linestart = wordstart;
+				y += lineHeight * params->Ascent;
+			}
+
+			wordstart = i + 1;
+			word++;
+		}
+
+		if (!*i) {
+			break;
+		}
+	}
+
+	x = 0.0f;
+	for (const char* o = linestart; *o; o++) {
+		x += sprite->Animations[0].Frames[*o].Advance * params->Advance;
+		if (maxW < x) {
+			maxW = x;
+		}
+		if (maxH < y +
+				(sprite->Animations[0].Frames[*o].Height +
+					sprite->Animations[0].Frames[*o].OffsetY)) {
+			maxH = y +
+				(sprite->Animations[0].Frames[*o].Height +
+					sprite->Animations[0].Frames[*o].OffsetY);
+		}
+	}
 }
 
 void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {

@@ -4082,7 +4082,7 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_NEW_ENUM:
 		return 5;
 	case OP_METHOD:
-		return 8;
+		return 7;
 	case OP_METHOD_V4:
 		return 6;
 	}

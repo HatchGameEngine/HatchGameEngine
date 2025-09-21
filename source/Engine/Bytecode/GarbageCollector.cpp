@@ -194,6 +194,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		GrayObject(klass->Name);
 		GrayHashMap(klass->Methods);
 		GrayHashMap(klass->Fields);
+		GrayValue(klass->Initializer);
 		break;
 	}
 	case OBJ_ENUM: {

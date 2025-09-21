@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/FontImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/Value.h>
@@ -45,11 +46,6 @@
 #include <Engine/Utilities/StringUtils.h>
 
 #include <Libraries/jsmn.h>
-
-#ifdef USING_FREETYPE
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#endif
 
 #define NANOPRINTF_IMPLEMENTATION
 #define NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS 1
@@ -305,6 +301,24 @@ inline ObjShader* GetShader(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline ObjFont* GetFont(VMValue* args, int index, Uint32 threadID) {
+	ObjFont* value = nullptr;
+	if (ScriptManager::Lock()) {
+		if (IS_FONT(args[index])) {
+			value = AS_FONT(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(FontImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 
 inline ISprite* GetSpriteIndex(int where, Uint32 threadID) {
 	if (where < 0 || where >= (int)Scene::SpriteList.size()) {
@@ -489,6 +503,9 @@ ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threa
 ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetShader(args, index, threadID);
 }
+ObjFont* StandardLibrary::GetFont(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetFont(args, index, threadID);
+}
 
 void StandardLibrary::CheckArgCount(int argCount, int expects) {
 	Uint32 threadID = 0;
@@ -548,6 +565,11 @@ void AddToMap(ObjMap* map, const char* key, VMValue value) {
 	map->Keys->Put(hash, keyString);
 	map->Values->Put(hash, value);
 }
+
+float textAlign;
+float textBaseline;
+float textAscent;
+float textAdvance;
 
 #define CHECK_READ_STREAM \
 	if (stream->Closed) { \
@@ -3978,29 +4000,10 @@ VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
 	}
 	return NULL_VAL;
 }
-
-float textAlign = 0.0f;
-float textBaseline = 0.0f;
-float textAscent = 1.25f;
-float textAdvance = 1.0f;
-int _Text_GetLetter(int l) {
-	if (l < 0) {
-		return ' ';
-	}
-	return l;
-}
-/***
- * Draw.SetFont
- * \desc
- * \return
- * \ns Draw
- */
-VMValue Draw_SetFont(int argCount, VMValue* args, Uint32 threadID) {
-	return NULL_VAL;
-}
 /***
  * Draw.SetTextAlign
- * \desc Sets the text drawing horizontal alignment. (default: left)
+ * \desc Sets the text drawing horizontal alignment. (default: left)<br/>\
+This does not affect text drawn using a Font.
  * \param baseline (Integer): 0 for left, 1 for center, 2 for right.
  * \ns Draw
  */
@@ -4010,7 +4013,8 @@ VMValue Draw_SetTextAlign(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextBaseline
- * \desc Sets the text drawing vertical alignment. (default: top)
+ * \desc Sets the text drawing vertical alignment. (default: top)<br/>\
+This does not affect text drawn using a Font.
  * \param baseline (Integer): 0 for top, 1 for baseline, 2 for bottom.
  * \ns Draw
  */
@@ -4020,7 +4024,8 @@ VMValue Draw_SetTextBaseline(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextAdvance
- * \desc Sets the character spacing multiplier. (default: 1.0)
+ * \desc Sets the character spacing multiplier. (default: 1.0)<br/>\
+This does not affect text drawn using a Font.
  * \param ascent (Number): Multiplier for character spacing.
  * \ns Draw
  */
@@ -4031,7 +4036,8 @@ VMValue Draw_SetTextAdvance(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextLineAscent
- * \desc Sets the line height multiplier. (default: 1.25)
+ * \desc Sets the line height multiplier. (default: 1.25)<br/>\
+This does not affect text drawn using a Font.
  * \param ascent (Number): Multiplier for line height.
  * \ns Draw
  */
@@ -4042,47 +4048,48 @@ VMValue Draw_SetTextLineAscent(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.MeasureText
- * \desc Measures Extended UTF8 text using a sprite or font and stores max width and max height into the array.
+ * \desc Measures UTF-8 text using a font and stores max width and max height into the array.
  * \param outArray (Array): Array to output size values to.
- * \param sprite (Integer): Index of the loaded sprite to be used as text.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to measure.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \return Returns the array inputted into the function.
  * \ns Draw
  */
 VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	ObjArray* array = GET_ARG(0, GetArray);
-	ISprite* sprite = GET_ARG(1, GetSprite);
 	char* text = GET_ARG(2, GetString);
+	float fontSize = GET_ARG_OPT(3, GetDecimal, 0.0f);
 
-	if (!sprite) {
-		return NULL_VAL;
+	float maxW = 0.0f, maxH = 0.0f;
+
+	if (IS_FONT(args[1])) {
+		ObjFont* objFont = GET_ARG(1, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 4) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.Flags = 0;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+
+		Graphics::MeasureText(font, text, &params, maxW, maxH);
 	}
-
-	float x = 0.0, y = 0.0;
-	float maxW = 0.0, maxH = 0.0;
-	float lineHeight = sprite->Animations[0].FrameToLoop;
-	for (char* i = text; *i; i++) {
-		if (*i == '\n') {
-			x = 0.0;
-			y += lineHeight * textAscent;
-			goto __MEASURE_Y;
-		}
-
-		x += sprite->Animations[0].Frames[*i].Advance * textAdvance;
-
-		if (maxW < x) {
-			maxW = x;
-		}
-
-	__MEASURE_Y:
-		if (maxH < y +
-				(sprite->Animations[0].Frames[*i].Height -
-					sprite->Animations[0].Frames[*i].OffsetY)) {
-			maxH = y +
-				(sprite->Animations[0].Frames[*i].Height -
-					sprite->Animations[0].Frames[*i].OffsetY);
+	else {
+		ISprite* sprite = GET_ARG(1, GetSprite);
+		if (sprite) {
+			LegacyTextDrawParams params;
+			params.Flags = 0;
+			params.Ascent = textAscent;
+			params.Advance = textAdvance;
+			Graphics::MeasureTextLegacy(sprite, text, &params, maxW, maxH);
 		}
 	}
 
@@ -4097,12 +4104,13 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.MeasureTextWrapped
- * \desc Measures wrapped Extended UTF8 text using a sprite or font and stores max width and max height into the array.
+ * \desc Measures wrapped UTF-8 text using a font and stores max width and max height into the array.
  * \param outArray (Array): Array to output size values to.
- * \param sprite (Integer): Index of the loaded sprite to be used as text.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to measure.
  * \param maxWidth (Number): Max width that a line can be.
- * \paramOpt maxLines (Integer): Max number of lines to measure.
+ * \paramOpt maxLines (Integer): Max number of lines to measure. Use <code>null</code> to measure all lines.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \return Returns the array inputted into the function.
  * \ns Draw
  */
@@ -4110,88 +4118,48 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(4);
 
 	ObjArray* array = GET_ARG(0, GetArray);
-	ISprite* sprite = GET_ARG(1, GetSprite);
 	char* text = GET_ARG(2, GetString);
-	float max_w = GET_ARG(3, GetDecimal);
-	int maxLines = 0x7FFFFFFF;
-	if (argCount > 4) {
+	float maxWidth = GET_ARG(3, GetDecimal);
+	int maxLines = 0;
+	if (argCount > 4 && !IS_NULL(args[4])) {
 		maxLines = GET_ARG(4, GetInteger);
 	}
+	float fontSize = GET_ARG_OPT(5, GetDecimal, 0.0f);
 
-	if (!sprite) {
-		return NULL_VAL;
-	}
+	float maxW = 0.0f, maxH = 0.0f;
 
-	int word = 0;
-	char* linestart = text;
-	char* wordstart = text;
+	if (IS_FONT(args[1])) {
+		ObjFont* objFont = GET_ARG(1, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
 
-	float x = 0.0, y = 0.0;
-	float maxW = 0.0, maxH = 0.0;
-	float lineHeight = sprite->Animations[0].FrameToLoop;
-
-	int lineNo = 1;
-	for (char* i = text;; i++) {
-		if (((*i == ' ' || *i == 0) && i != wordstart) || *i == '\n') {
-			float testWidth = 0.0f;
-			for (char* o = linestart; o < i; o++) {
-				testWidth += sprite->Animations[0].Frames[*o].Advance * textAdvance;
-			}
-			if ((testWidth > max_w && word > 0) || *i == '\n') {
-				x = 0.0f;
-				for (char* o = linestart; o < wordstart - 1; o++) {
-					x += sprite->Animations[0].Frames[*o].Advance * textAdvance;
-
-					if (maxW < x) {
-						maxW = x;
-					}
-					if (maxH < y +
-							(sprite->Animations[0].Frames[*o].Height +
-								sprite->Animations[0]
-									.Frames[*o]
-									.OffsetY)) {
-						maxH = y +
-							(sprite->Animations[0].Frames[*o].Height +
-								sprite->Animations[0]
-									.Frames[*o]
-									.OffsetY);
-					}
-				}
-
-				if (lineNo == maxLines) {
-					goto FINISH;
-				}
-				lineNo++;
-
-				linestart = wordstart;
-				y += lineHeight * textAscent;
-			}
-
-			wordstart = i + 1;
-			word++;
+		if (argCount < 6) {
+			fontSize = font->Size;
 		}
 
-		if (!*i) {
-			break;
+		TextDrawParams params;
+		params.Flags = 0;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+
+		Graphics::MeasureTextWrapped(font, text, &params, maxW, maxH);
+	}
+	else {
+		ISprite* sprite = GET_ARG(1, GetSprite);
+		if (sprite) {
+			LegacyTextDrawParams params;
+			params.Flags = 0;
+			params.Ascent = textAscent;
+			params.Advance = textAdvance;
+			params.MaxWidth = maxWidth;
+			params.MaxLines = maxLines;
+			Graphics::MeasureTextLegacy(sprite, text, &params, maxW, maxH);
 		}
 	}
 
-	x = 0.0f;
-	for (char* o = linestart; *o; o++) {
-		x += sprite->Animations[0].Frames[*o].Advance * textAdvance;
-		if (maxW < x) {
-			maxW = x;
-		}
-		if (maxH < y +
-				(sprite->Animations[0].Frames[*o].Height +
-					sprite->Animations[0].Frames[*o].OffsetY)) {
-			maxH = y +
-				(sprite->Animations[0].Frames[*o].Height +
-					sprite->Animations[0].Frames[*o].OffsetY);
-		}
-	}
-
-FINISH:
 	if (ScriptManager::Lock()) {
 		array->Values->clear();
 		array->Values->push_back(DECIMAL_VAL(maxW));
@@ -4203,287 +4171,179 @@ FINISH:
 }
 /***
  * Draw.Text
- * \desc Draws Extended UTF8 text using a sprite or font.
- * \param sprite (Integer): Index of the loaded sprite to be used as text.
+ * \desc Draws UTF-8 text using a font.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to draw.
  * \param x (Number): X position of where to draw the text.
  * \param y (Number): Y position of where to draw the text.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
+	CHECK_AT_LEAST_ARGCOUNT(4);
+
+	char* text = GET_ARG(1, GetString);
+	float x = GET_ARG(2, GetDecimal);
+	float y = GET_ARG(3, GetDecimal);
+	float fontSize = GET_ARG_OPT(4, GetDecimal, 0.0f);
+
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 5) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.Flags = 0;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+
+		Graphics::DrawText(font, text, x, y, &params);
+
+		return NULL_VAL;
+	}
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	char* text = GET_ARG(1, GetString);
-	float basex = GET_ARG(2, GetDecimal);
-	float basey = GET_ARG(3, GetDecimal);
-
-	float x = basex;
-	float y = basey;
-	float* lineWidths;
-	int line = 0;
-
-	if (!sprite) {
-		return NULL_VAL;
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Flags = 0;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		Graphics::DrawTextLegacy(sprite, text, x, y, &params);
 	}
 
-	// Count lines
-	for (char* i = text; *i; i++) {
-		if (*i == '\n') {
-			line++;
-			continue;
-		}
-	}
-	line++;
-	lineWidths = (float*)malloc(line * sizeof(float));
-	if (!lineWidths) {
-		return NULL_VAL;
-	}
-
-	// Get line widths
-	line = 0;
-	x = 0.0f;
-	for (char *i = text, l; *i; i++) {
-		l = _Text_GetLetter((Uint8)*i);
-		if (l == '\n') {
-			lineWidths[line++] = x;
-			x = 0.0f;
-			continue;
-		}
-		x += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-	lineWidths[line++] = x;
-
-	// Draw text
-	line = 0;
-	x = basex;
-	bool lineBack = true;
-	for (char *i = text, l; *i; i++) {
-		l = _Text_GetLetter((Uint8)*i);
-		if (lineBack) {
-			x -= sprite->Animations[0].Frames[l].OffsetX;
-			lineBack = false;
-		}
-
-		if (l == '\n') {
-			x = basex;
-			y += sprite->Animations[0].FrameToLoop * textAscent;
-			lineBack = true;
-			line++;
-			continue;
-		}
-
-		Graphics::DrawSprite(sprite,
-			0,
-			l,
-			x - lineWidths[line] * textAlign,
-			y - sprite->Animations[0].AnimationSpeed * textBaseline,
-			false,
-			false,
-			1.0f,
-			1.0f,
-			0.0f);
-		x += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-
-	free(lineWidths);
 	return NULL_VAL;
 }
 /***
  * Draw.TextWrapped
- * \desc Draws wrapped Extended UTF8 text using a sprite or font.
- * \param sprite (Integer): Index of the loaded sprite to be used as text.
+ * \desc Draws wrapped UTF-8 text using a font.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to draw.
- * \param x (Number): X position of where to draw the tile.
- * \param y (Number): Y position of where to draw the tile.
+ * \param x (Number): X position of where to draw the text.
+ * \param y (Number): Y position of where to draw the text.
  * \param maxWidth (Number): Max width the text can draw in.
- * \param maxLines (Integer): Max lines the text can draw.
+ * \paramOpt maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 
-	ISprite* sprite = GET_ARG(0, GetSprite);
 	char* text = GET_ARG(1, GetString);
-	float basex = GET_ARG(2, GetDecimal);
-	float basey = GET_ARG(3, GetDecimal);
-	float max_w = GET_ARG(4, GetDecimal);
-	int maxLines = 0x7FFFFFFF;
-	if (argCount > 5) {
+	float x = GET_ARG(2, GetDecimal);
+	float y = GET_ARG(3, GetDecimal);
+	float maxWidth = GET_ARG(4, GetDecimal);
+	int maxLines = 0;
+	if (argCount > 5 && !IS_NULL(args[5])) {
 		maxLines = GET_ARG(5, GetInteger);
 	}
+	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
 
-	if (!sprite) {
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 7) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.Flags = 0;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+
+		Graphics::DrawTextWrapped(font, text, x, y, &params);
+
 		return NULL_VAL;
 	}
 
-	float x = basex;
-	float y = basey;
-
-	// Draw text
-	int word = 0;
-	char* linestart = text;
-	char* wordstart = text;
-	bool lineBack = true;
-	int lineNo = 1;
-	for (char *i = text, l;; i++) {
-		l = _Text_GetLetter((Uint8)*i);
-		if (((l == ' ' || l == 0) && i != wordstart) || l == '\n') {
-			float testWidth = 0.0f;
-			for (char *o = linestart, lm; o < i; o++) {
-				lm = _Text_GetLetter((Uint8)*o);
-				testWidth += sprite->Animations[0].Frames[lm].Advance * textAdvance;
-			}
-
-			if ((testWidth > max_w && word > 0) || l == '\n') {
-				float lineWidth = 0.0f;
-				for (char *o = linestart, lm; o < wordstart - 1; o++) {
-					lm = _Text_GetLetter((Uint8)*o);
-					if (lineBack) {
-						lineWidth -=
-							sprite->Animations[0].Frames[lm].OffsetX;
-						lineBack = false;
-					}
-					lineWidth += sprite->Animations[0].Frames[lm].Advance *
-						textAdvance;
-				}
-				lineBack = true;
-
-				x = basex - lineWidth * textAlign;
-				for (char *o = linestart, lm; o < wordstart - 1; o++) {
-					lm = _Text_GetLetter((Uint8)*o);
-					if (lineBack) {
-						x -= sprite->Animations[0].Frames[lm].OffsetX;
-						lineBack = false;
-					}
-					Graphics::DrawSprite(sprite,
-						0,
-						lm,
-						x,
-						y -
-							sprite->Animations[0].AnimationSpeed *
-								textBaseline,
-						false,
-						false,
-						1.0f,
-						1.0f,
-						0.0f);
-					x += sprite->Animations[0].Frames[lm].Advance * textAdvance;
-				}
-
-				if (lineNo == maxLines) {
-					return NULL_VAL;
-				}
-
-				lineNo++;
-
-				linestart = wordstart;
-				y += sprite->Animations[0].FrameToLoop * textAscent;
-				lineBack = true;
-			}
-
-			wordstart = i + 1;
-			word++;
-		}
-		if (!l) {
-			break;
-		}
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Flags = 0;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+		Graphics::DrawTextWrappedLegacy(sprite, text, x, y, &params);
 	}
-
-	float lineWidth = 0.0f;
-	for (char *o = linestart, l; *o; o++) {
-		l = _Text_GetLetter((Uint8)*o);
-		if (lineBack) {
-			lineWidth -= sprite->Animations[0].Frames[l].OffsetX;
-			lineBack = false;
-		}
-		lineWidth += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-	lineBack = true;
-
-	x = basex - lineWidth * textAlign;
-	for (char *o = linestart, l; *o; o++) {
-		l = _Text_GetLetter((Uint8)*o);
-		if (lineBack) {
-			x -= sprite->Animations[0].Frames[l].OffsetX;
-			lineBack = false;
-		}
-		Graphics::DrawSprite(sprite,
-			0,
-			l,
-			x,
-			y - sprite->Animations[0].AnimationSpeed * textBaseline,
-			false,
-			false,
-			1.0f,
-			1.0f,
-			0.0f);
-		x += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-
-	// FINISH:
 
 	return NULL_VAL;
 }
 /***
  * Draw.TextEllipsis
- * \desc
- * \return
+ * \desc Draws UTF-8 text using a font, but adds ellipsis if the text doesn't fit in <code>maxWidth</code>.
+ * \param font (Font): The Font to be used as text.
+ * \param text (String): Text to draw.
+ * \param x (Number): X position of where to draw the text.
+ * \param y (Number): Y position of where to draw the text.
+ * \param maxWidth (Number): Max width the text can draw in.
+ * \paramOpt maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(5);
 
-	ISprite* sprite = GET_ARG(0, GetSprite);
 	char* text = GET_ARG(1, GetString);
 	float x = GET_ARG(2, GetDecimal);
 	float y = GET_ARG(3, GetDecimal);
-	float maxwidth = GET_ARG(4, GetDecimal);
+	float maxWidth = GET_ARG(4, GetDecimal);
+	int maxLines = 0;
+	if (argCount > 5 && !IS_NULL(args[5])) {
+		maxLines = GET_ARG(5, GetInteger);
+	}
+	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
 
-	if (!sprite) {
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 7) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.Flags = 0;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+
+		Graphics::DrawTextEllipsis(font, text, x, y, &params);
+
 		return NULL_VAL;
 	}
 
-	float elpisswidth = sprite->Animations[0].Frames['.'].Advance * 3;
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Flags = 0;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+		Graphics::DrawTextEllipsisLegacy(sprite, text, x, y, &params);
+	}
 
-	int t;
-	size_t textlen = strlen(text);
-	float textwidth = 0.0f;
-	for (size_t i = 0; i < textlen; i++) {
-		t = (int)text[i];
-		textwidth += sprite->Animations[0].Frames[t].Advance;
-	}
-	// If smaller than or equal to maxwidth, just draw normally.
-	if (textwidth <= maxwidth) {
-		for (size_t i = 0; i < textlen; i++) {
-			t = (int)text[i];
-			Graphics::DrawSprite(sprite, 0, t, x, y, false, false, 1.0f, 1.0f, 0.0f);
-			x += sprite->Animations[0].Frames[t].Advance;
-		}
-	}
-	else {
-		for (size_t i = 0; i < textlen; i++) {
-			t = (int)text[i];
-			if (x + sprite->Animations[0].Frames[t].Advance + elpisswidth > maxwidth) {
-				Graphics::DrawSprite(
-					sprite, 0, '.', x, y, false, false, 1.0f, 1.0f, 0.0f);
-				x += sprite->Animations[0].Frames['.'].Advance;
-				Graphics::DrawSprite(
-					sprite, 0, '.', x, y, false, false, 1.0f, 1.0f, 0.0f);
-				x += sprite->Animations[0].Frames['.'].Advance;
-				Graphics::DrawSprite(
-					sprite, 0, '.', x, y, false, false, 1.0f, 1.0f, 0.0f);
-				x += sprite->Animations[0].Frames['.'].Advance;
-				break;
-			}
-			Graphics::DrawSprite(sprite, 0, t, x, y, false, false, 1.0f, 1.0f, 0.0f);
-			x += sprite->Animations[0].Frames[t].Advance;
-		}
-	}
-	// Graphics::DrawSprite(sprite, 0, t, x, y, false, false, 1.0f, 1.0f, 0.0f);
 	return NULL_VAL;
 }
-
 /***
  * Draw.SetBlendColor
  * \desc Sets the color to be used for drawing and blending.
@@ -11692,25 +11552,6 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(result);
 }
 /***
- * Resources.LoadFont
- * \desc Loads a Font resource, returning its Font index.
- * \param filename (String):
- * \param pixelSize (Number):
- * \param unloadPolicy (Integer):
- * \return
- * \ns Resources
- */
-VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	char* filename = GET_ARG(0, GetString);
-	int pixel_sz = (int)GET_ARG(1, GetDecimal);
-	int unloadPolicy = GET_ARG(2, GetInteger);
-
-	int result = Scene::LoadFontResource(filename, pixel_sz, unloadPolicy);
-
-	return INTEGER_VAL(result);
-}
-/***
  * Resources.LoadModel
  * \desc Loads Model resource, returning its Model index.
  * \param filename (String): Filename of the resource.
@@ -18517,6 +18358,11 @@ void StandardLibrary::Link() {
 	String_CaseMapBind(L'ç', L'Ç');
 	String_CaseMapBind(L'ç', L'Ç');
 
+	textAlign = 0.0f;
+	textBaseline = 0.0f;
+	textAscent = 1.25f;
+	textAdvance = 1.0f;
+
 #define INIT_CLASS(className) \
 	klass = NewClass(#className); \
 	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
@@ -19131,7 +18977,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, Texture);
 	DEF_NATIVE(Draw, TextureSized);
 	DEF_NATIVE(Draw, TexturePart);
-	DEF_NATIVE(Draw, SetFont);
 	DEF_NATIVE(Draw, SetTextAlign);
 	DEF_NATIVE(Draw, SetTextBaseline);
 	DEF_NATIVE(Draw, SetTextAdvance);
@@ -19965,7 +19810,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Resources, LoadSprite);
 	DEF_NATIVE(Resources, LoadDynamicSprite);
 	DEF_NATIVE(Resources, LoadImage);
-	DEF_NATIVE(Resources, LoadFont);
 	DEF_NATIVE(Resources, LoadModel);
 	DEF_NATIVE(Resources, LoadMusic);
 	DEF_NATIVE(Resources, LoadSound);

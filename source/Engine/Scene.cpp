@@ -9,7 +9,6 @@
 #include <Engine/Diagnostics/MemoryPools.h>
 #include <Engine/Error.h>
 #include <Engine/Filesystem/File.h>
-#include <Engine/FontFace.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/FNV1A.h>
@@ -2846,38 +2845,6 @@ int Scene::LoadImageResource(const char* filename, int unloadPolicy) {
 	}
 
 	resource->AsImage->ID = (int)index;
-
-	return (int)index;
-}
-int Scene::LoadFontResource(const char* filename, int pixel_sz, int unloadPolicy) {
-	ResourceType* resource = new (std::nothrow) ResourceType();
-	resource->FilenameHash = CRC32::EncryptString(filename);
-	resource->FilenameHash = CRC32::EncryptData(&pixel_sz, sizeof(int), resource->FilenameHash);
-	resource->UnloadPolicy = unloadPolicy;
-
-	size_t index = 0;
-	vector<ResourceType*>* list = &Scene::SpriteList;
-	if (Scene::GetResource(list, resource, index)) {
-		return (int)index;
-	}
-
-	ResourceStream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	resource->AsSprite = FontFace::SpriteFromFont(stream, pixel_sz, filename);
-
-	stream->Close();
-
-	if (resource->AsSprite->LoadFailed) {
-		delete resource->AsSprite;
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
 
 	return (int)index;
 }

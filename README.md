@@ -30,4 +30,3 @@ Optional:
 - libpng
 - libjpeg
 - libogg
-- libfreetype
