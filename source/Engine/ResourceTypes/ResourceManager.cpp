@@ -160,9 +160,9 @@ bool ResourceManager::Init(const char* dataFilePath) {
 	// If the resource wasn't found
 	if (GetMainResource() == nullptr) {
 #ifdef DEVELOPER_MODE
-		std::string error = "No data files found!\n";
+		std::string error = "No data file was found!\n";
 		if (candidates.size() > 0) {
-			error += "Ensure that it's in one of the following paths:\n";
+			error += "Ensure that it's named one of the following:\n";
 			for (size_t i = 0; i < candidates.size(); i++) {
 				error += "* " + candidates[i].Path;
 				if (i < candidates.size() - 1) {
@@ -171,9 +171,7 @@ bool ResourceManager::Init(const char* dataFilePath) {
 			}
 		}
 
-		Log::Print(Log::LOG_ERROR, "%s", error.c_str());
-		Application::Cleanup();
-		exit(-1);
+		Error::FatalNoMessageBox("%s", error.c_str());
 #else
 		const char* datafilename = StringUtils::GetFilename(data_files[0]);
 
