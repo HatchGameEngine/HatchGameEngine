@@ -8,10 +8,6 @@
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/IO/FileStream.h>
 
-#if LINUX
-#include <unistd.h> // For STDOUT_FILENO
-#endif
-
 #define RESOURCES_VFS_NAME "main"
 
 #ifdef DEVELOPER_MODE
@@ -190,19 +186,14 @@ bool ResourceManager::Init(const char* dataFilePath) {
 			additionalError =
 				"Ensure that the application has read access permissions.";
 		}
-#endif
 
 #if LINUX
-		if (isatty(STDOUT_FILENO)) {
-			Error::FatalNoMessageBox(
-				"%s not found! %s", datafilename, additionalError.c_str());
-		}
-		else
-#endif
-		{
-			Error::Fatal("%s not found! %s", datafilename, additionalError.c_str());
-		}
-#endif
+		Error::FatalNoMessageBox("%s not found! %s", datafilename, additionalError.c_str());
+#else
+		Error::Fatal("%s not found! %s", datafilename, additionalError.c_str());
+#endif // #if LINUX
+#endif // #if WIN32
+#endif // #ifdef DEVELOPER_MODE
 
 		return false;
 	}
