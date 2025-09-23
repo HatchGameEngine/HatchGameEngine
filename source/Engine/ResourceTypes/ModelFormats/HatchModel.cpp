@@ -269,22 +269,25 @@ Mesh* HatchModel::ReadMesh(IModel* model, Stream* stream) {
 	}
 
 	Uint32 vertexCount = stream->ReadUInt32();
-	if (!vertexCount) {
-		Log::Print(Log::LOG_ERROR, "Mesh \"%s\" has no vertices!", mesh->Name);
-		return nullptr;
-	}
+	ERROR_RET_VAL(vertexCount, nullptr, "Mesh \"%s\" has no vertices!", mesh->Name);
+// 	if (!vertexCount) {
+// 		Log::Print(Log::LOG_ERROR, "Mesh \"%s\" has no vertices!", mesh->Name);
+// 		return nullptr;
+// 	}
 
 	Uint32 triangleCount = stream->ReadUInt32();
-	if (!triangleCount) {
-		Log::Print(Log::LOG_ERROR, "Mesh \"%s\" has no triangles!", mesh->Name);
-		return nullptr;
-	}
+	ERROR_RET_VAL(triangleCount, nullptr, "Mesh \"%s\" has no triangles!", mesh->Name);
+// 	if (!triangleCount) {
+// 		Log::Print(Log::LOG_ERROR, "Mesh \"%s\" has no triangles!", mesh->Name);
+// 		return nullptr;
+// 	}
 
 	Uint16 frameCount = stream->ReadUInt16();
-	if (!frameCount) {
-		Log::Print(Log::LOG_ERROR, "Mesh \"%s\" has no frames!", mesh->Name);
-		return nullptr;
-	}
+	ERROR_RET_VAL(frameCount, nullptr, "Mesh \"%s\" has no frames!", mesh->Name);
+// 	if (!frameCount) {
+// 		Log::Print(Log::LOG_ERROR, "Mesh \"%s\" has no frames!", mesh->Name);
+// 		return nullptr;
+// 	}
 
 	mesh->VertexCount = vertexCount;
 	mesh->FrameCount = frameCount;

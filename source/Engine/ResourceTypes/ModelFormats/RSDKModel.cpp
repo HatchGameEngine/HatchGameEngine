@@ -16,10 +16,13 @@ bool RSDKModel::IsMagic(Stream* stream) {
 }
 
 bool RSDKModel::Convert(IModel* model, Stream* stream) {
-	if (stream->ReadUInt32BE() != RSDK_MODEL_MAGIC) {
-		Log::Print(Log::LOG_ERROR, "Model not of RSDK type!");
-		return false;
-	}
+	Uint32 fileMagic = stream->ReadUInt32BE();
+
+	ERROR_RET_VAL(fileMagic == RSDK_MODEL_MAGIC, false, "Model not of RSDK type!");
+// 	if (stream->ReadUInt32BE() != RSDK_MODEL_MAGIC) {
+// 		Log::Print(Log::LOG_ERROR, "Model not of RSDK type!");
+// 		return false;
+// 	}
 
 	Uint8 vertexFlag = stream->ReadByte();
 

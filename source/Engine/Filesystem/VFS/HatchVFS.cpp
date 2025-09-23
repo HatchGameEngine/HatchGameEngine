@@ -17,16 +17,28 @@ bool HatchVFS::Open(Stream* stream) {
 	Uint16 fileCount;
 	Uint8 magicHATCH[MAGIC_HATCH_SIZE];
 	stream->ReadBytes(magicHATCH, MAGIC_HATCH_SIZE);
-	if (memcmp(magicHATCH, MAGIC_HATCH, MAGIC_HATCH_SIZE)) {
-		Log::Print(Log::LOG_ERROR,
-			"Invalid HATCH data file! (%02X %02X %02X %02X %02X)",
+	ERROR_RET_VAL(
+		!memcmp(magicHATCH, MAGIC_HATCH, MAGIC_HATCH_SIZE),
+		false,
+		"Invalid HATCH data file! (%02X %02X %02X %02X %02X)",
 			magicHATCH[0],
 			magicHATCH[1],
 			magicHATCH[2],
 			magicHATCH[3],
-			magicHATCH[4]);
-		return false;
-	}
+			magicHATCH[4]
+	);
+
+// 	if (memcmp(magicHATCH, MAGIC_HATCH, MAGIC_HATCH_SIZE)) {
+//
+// 		Log::Print(Log::LOG_ERROR,
+// 			"Invalid HATCH data file! (%02X %02X %02X %02X %02X)",
+// 			magicHATCH[0],
+// 			magicHATCH[1],
+// 			magicHATCH[2],
+// 			magicHATCH[3],
+// 			magicHATCH[4]);
+// 		return false;
+// 	}
 
 	// Uint8 major, minor, pad;
 	stream->ReadByte();

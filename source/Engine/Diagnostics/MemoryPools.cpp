@@ -20,10 +20,11 @@ bool Init() {
 	auto memPool = &MemoryPools[0];
 	for (int i = 0; i < MEMPOOL_COUNT; i++) {
 		memPool->Blocks = (Uint32*)malloc(memPool->BlocksDataSize);
-		if (!memPool->Blocks) {
-			Log::Print(Log::LOG_ERROR, "Pool %d could not be allocated.", i);
-			return false;
-		}
+		ERROR_RET_VAL(memPool->Blocks, false, "Pool %d could not be allocated.", i);
+// 		if (!memPool->Blocks) {
+// 			Log::Print(Log::LOG_ERROR, "Pool %d could not be allocated.", i);
+// 			return false;
+// 		}
 
 		totalPoolSize += memPool->BlocksDataSize;
 

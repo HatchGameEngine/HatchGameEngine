@@ -80,10 +80,12 @@ MediaSource* MediaSource::CreateSourceFromUrl(const char* url) {
 
 	MediaSource* src = (MediaSource*)Memory::TrackedCalloc(
 		"MediaSource::MediaSource", 1, sizeof(MediaSource));
-	if (!src) {
-		Log::Print(Log::LOG_ERROR, "Unable to allocate MediaSource!");
-		return NULL;
-	}
+
+	ERROR_RET_VAL(src, NULL, "Unable to allocate MediaSource!");
+// 	if (!src) {
+// 		Log::Print(Log::LOG_ERROR, "Unable to allocate MediaSource!");
+// 		return NULL;
+// 	}
 
 #ifdef USING_LIBAV
 	if (avformat_open_input((AVFormatContext**)&src->FormatCtx, url, NULL, NULL) < 0) {

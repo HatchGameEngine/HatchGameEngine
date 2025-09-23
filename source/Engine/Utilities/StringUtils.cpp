@@ -1,4 +1,5 @@
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -231,9 +232,11 @@ bool StringUtils::ToDecimal(double* dst, string src) {
 	return ToDecimal(dst, src.c_str());
 }
 bool StringUtils::HexToUint32(Uint32* dst, const char* hexstr) {
-	if (hexstr == nullptr || *hexstr == '\0') {
-		return false;
-	}
+	ERROR_IS_NULL_RET_VAL(hexstr, false, "Hex string is null!");
+	ERROR_RET_VAL(*hexstr != '\0', false, "Hex string is empty!");
+	//if (hexstr == nullptr || *hexstr == '\0') {
+	//	return false;
+	//}
 
 	Uint32 result = 0;
 

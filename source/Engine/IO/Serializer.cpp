@@ -310,11 +310,12 @@ void Serializer::GetObject() {
 	switch (type) {
 	case Serializer::OBJ_TYPE_STRING: {
 		Uint32 stringID = StreamPtr->ReadUInt32();
-		if (stringID >= StringList.size()) {
-			Log::Print(Log::LOG_ERROR, "Attempted to read an invalid string ID!");
-			return;
-		}
-		else if (StringList[stringID].Chars == nullptr) {
+		ERROR_RET_VOID(stringID <= StringList.size(), "Attempted to read an invalid string ID!");
+// 		if (stringID >= StringList.size()) {
+// 			Log::Print(Log::LOG_ERROR, "Attempted to read an invalid string ID!");
+// 			return;
+// 		}
+		if (StringList[stringID].Chars == nullptr) {
 			ObjList.push_back(nullptr);
 			return;
 		}
