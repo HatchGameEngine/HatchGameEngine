@@ -269,7 +269,9 @@ void Graphics::Dispose() {
 		Graphics::PaletteIndexTextureData = NULL;
 	}
 
-	Graphics::GfxFunctions->Dispose();
+	if (Graphics::GfxFunctions->Dispose != nullptr) {
+		Graphics::GfxFunctions->Dispose();
+	}
 
 	delete Graphics::TextureMap;
 }

@@ -1,5 +1,6 @@
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 
+#include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Filesystem/VFS/FileSystemVFS.h>
@@ -48,7 +49,7 @@ VFSMountStatus VirtualFileSystem::Mount(const char* name,
 		mountPoint = DEFAULT_MOUNT_POINT;
 	}
 
-	if (type == VFSType::FILESYSTEM) {
+	if (type == VFSType::FILESYSTEM && Directory::Exists(filename)) {
 		FileSystemVFS* fsVfs = new FileSystemVFS(flags);
 		fsVfs->Open(filename);
 		vfs = fsVfs;
