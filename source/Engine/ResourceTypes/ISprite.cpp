@@ -7,6 +7,7 @@
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
 #include <Engine/ResourceTypes/ImageFormats/JPEG.h>
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
+#include <Engine/ResourceTypes/ResourceManager.h>
 
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
@@ -343,15 +344,15 @@ bool ISprite::LoadAnimation(const char* filename) {
 		Log::Print(Log::LOG_VERBOSE, " - %s", sheetName.c_str());
 #endif
 
-		bool shouldConcatSpritesPath = true;
-		if (StringUtils::StartsWithCaseInsensitive(sheetName.c_str(), "Sprites/")) {
-			// don't need to concat "Sprites/" if the path
-			// already begins with that
-			shouldConcatSpritesPath = false;
-		}
+		// If the resource doesn't exist, and the path doesn't begin with 'Sprites/' or 'sprites/'
+		if (!ResourceManager::ResourceExists(sheetName.c_str())
+			&& !StringUtils::StartsWithCaseInsensitive(sheetName.c_str(), "Sprites/")) {
+			std::string altered = Path::Normalize(Path::Concat("Sprites", sheetName));
 
-		if (shouldConcatSpritesPath) {
-			std::string altered = Path::Concat(std::string("Sprites"), sheetName);
+			// Try with 'sprites/' if the above doesn't exist
+			if (!ResourceManager::ResourceExists(altered.c_str())) {
+				altered = Path::Normalize(Path::Concat("sprites", sheetName));
+			}
 
 			AddSpriteSheet(altered.c_str());
 		}
