@@ -402,6 +402,7 @@
                     <li><a href="#Reference_functions_Draw_Text">Draw.Text</a></li>
                     <li><a href="#Reference_functions_Draw_TextWrapped">Draw.TextWrapped</a></li>
                     <li><a href="#Reference_functions_Draw_TextEllipsis">Draw.TextEllipsis</a></li>
+                    <li><a href="#Reference_functions_Draw_Glyph">Draw.Glyph</a></li>
                     <li><a href="#Reference_functions_Draw_SetBlendColor">Draw.SetBlendColor</a></li>
                     <li><a href="#Reference_functions_Draw_SetTextureBlend">Draw.SetTextureBlend</a></li>
                     <li><a href="#Reference_functions_Draw_SetBlendMode">Draw.SetBlendMode</a></li>
@@ -1218,6 +1219,7 @@
                     <li><a href="#Reference_functions_String_LastIndexOf">String.LastIndexOf</a></li>
                     <li><a href="#Reference_functions_String_ParseInteger">String.ParseInteger</a></li>
                     <li><a href="#Reference_functions_String_ParseDecimal">String.ParseDecimal</a></li>
+                    <li><a href="#Reference_functions_String_GetCodepoints">String.GetCodepoints</a></li>
                 </ul>
             </p>
             <p id="Reference_Texture">
@@ -1426,6 +1428,7 @@
                     <li><a href="#Reference_methods_font_GetSpaceWidth">font.GetSpaceWidth</a></li>
                     <li><a href="#Reference_methods_font_GetOversampling">font.GetOversampling</a></li>
                     <li><a href="#Reference_methods_font_GetPixelCoverageThreshold">font.GetPixelCoverageThreshold</a></li>
+                    <li><a href="#Reference_methods_font_GetGlyphAdvance">font.GetGlyphAdvance</a></li>
                     <li><a href="#Reference_methods_font_IsAntialiasingEnabled">font.IsAntialiasingEnabled</a></li>
                     <li><a href="#Reference_methods_font_HasGlyph">font.HasGlyph</a></li>
                     <li><a href="#Reference_methods_font_SetPixelsPerUnit">font.SetPixelsPerUnit</a></li>
@@ -3556,6 +3559,19 @@
         <li>y (Number): Y position of where to draw the text.</li>
         <li>maxWidth (Number): Max width the text can draw in.</li>
         <li>maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.</li>
+        <li>fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_Glyph">
+        <h2 style="margin-bottom: 8px;">Draw.Glyph</h2>
+        <code>Draw.Glyph(font, codepoint, x, y[, fontSize])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a glyph for a given code point.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>font (Font): The Font.</li>
+        <li>codepoint (Integer): Code point to draw.</li>
+        <li>x (Number): X position of where to draw the glyph.</li>
+        <li>y (Number): Y position of where to draw the glyph.</li>
         <li>fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.</li>
         </ul>
         </p>
@@ -9423,6 +9439,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the value as a Decimal.</div>
         </p>
+        <p id="Reference_functions_String_GetCodepoints">
+        <h2 style="margin-bottom: 8px;">String.GetCodepoints</h2>
+        <code>String.GetCodepoints(string)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a list of UCS codepoints from UTF-8 text.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>string (String): The UTF-8 string.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Array of Integer values.</div>
+        </p>
         <p id="Reference_functions_Texture_Create">
         <h2 style="margin-bottom: 8px; color: red;">Texture.Create</h2>
         <code>Texture.Create()</code>
@@ -10275,7 +10302,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>747 out of 802 functions have descriptions. </p>
+        <p>749 out of 804 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -10609,6 +10636,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
+        <p id="Reference_methods_font_GetGlyphAdvance">
+        <h2 style="margin-bottom: 8px;">font.GetGlyphAdvance</h2>
+        <code>font.GetGlyphAdvance(codepoint)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the advance width of a given glyph through its code point, if it exists in the font.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>codepoint (Integer): An Unicode code point.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value, or <code>null</code> if no glyph representing the given code point exists in the font.</div>
+        </p>
         <p id="Reference_methods_font_IsAntialiasingEnabled">
         <h2 style="margin-bottom: 8px;">font.IsAntialiasingEnabled</h2>
         <code>font.IsAntialiasingEnabled()</code>
@@ -10819,7 +10857,7 @@
         <code>shader.Delete()</code>
         <div style="margin-top: 8px; font-size: 14px;">Deletes a shader. It can no longer be used after this function is called.</div>
         </p>
-        <p>58 out of 58 methods have descriptions. </p>
+        <p>59 out of 59 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
         <p id="Reference_constructors_Font">
