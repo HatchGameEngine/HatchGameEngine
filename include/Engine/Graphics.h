@@ -288,6 +288,7 @@ public:
 	DrawTextWrapped(Font* font, const char* text, float x, float y, TextDrawParams* params);
 	static void
 	DrawTextEllipsis(Font* font, const char* text, float x, float y, TextDrawParams* params);
+	static void DrawGlyph(Font* font, Uint32 codepoint, float x, float y, TextDrawParams* params);
 	static void
 	MeasureText(Font* font, const char* text, TextDrawParams* params, float& maxW, float& maxH);
 	static void MeasureTextWrapped(Font* font,
@@ -309,6 +310,11 @@ public:
 		const char* text,
 		float x,
 		float y,
+		LegacyTextDrawParams* params);
+	static void DrawGlyphLegacy(ISprite* sprite,
+		Uint32 codepoint,
+		float basex,
+		float basey,
 		LegacyTextDrawParams* params);
 	static void MeasureTextLegacy(ISprite* sprite,
 		const char* text,

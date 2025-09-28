@@ -4038,7 +4038,6 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4050,7 +4049,6 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 		ISprite* sprite = GET_ARG(1, GetSprite);
 		if (sprite) {
 			LegacyTextDrawParams params;
-			params.Flags = 0;
 			params.Ascent = textAscent;
 			params.Advance = textAdvance;
 			Graphics::MeasureTextLegacy(sprite, text, &params, maxW, maxH);
@@ -4101,7 +4099,6 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4115,7 +4112,6 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		ISprite* sprite = GET_ARG(1, GetSprite);
 		if (sprite) {
 			LegacyTextDrawParams params;
-			params.Flags = 0;
 			params.Ascent = textAscent;
 			params.Advance = textAdvance;
 			params.MaxWidth = maxWidth;
@@ -4160,7 +4156,6 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4174,7 +4169,6 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (sprite) {
 		LegacyTextDrawParams params;
-		params.Flags = 0;
 		params.Align = textAlign;
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
@@ -4218,7 +4212,6 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4234,7 +4227,6 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (sprite) {
 		LegacyTextDrawParams params;
-		params.Flags = 0;
 		params.Align = textAlign;
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
@@ -4280,7 +4272,6 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4296,7 +4287,6 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (sprite) {
 		LegacyTextDrawParams params;
-		params.Flags = 0;
 		params.Align = textAlign;
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
@@ -4304,6 +4294,53 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		params.MaxWidth = maxWidth;
 		params.MaxLines = maxLines;
 		Graphics::DrawTextEllipsisLegacy(sprite, text, x, y, &params);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Draw.Glyph
+ * \desc Draws a glyph for a given code point.
+ * \param font (Font): The Font.
+ * \param codepoint (Integer): Code point to draw.
+ * \param x (Number): X position of where to draw the glyph.
+ * \param y (Number): Y position of where to draw the glyph.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \ns Draw
+ */
+VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(4);
+
+	Uint32 codepoint = GET_ARG(1, GetInteger);
+	float x = GET_ARG(2, GetDecimal);
+	float y = GET_ARG(3, GetDecimal);
+	float fontSize = GET_ARG_OPT(4, GetDecimal, 0.0f);
+
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 5) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+
+		Graphics::DrawGlyph(font, codepoint, x, y, &params);
+
+		return NULL_VAL;
+	}
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		Graphics::DrawGlyphLegacy(sprite, codepoint, x, y, &params);
 	}
 
 	return NULL_VAL;
@@ -16300,6 +16337,29 @@ VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {
 	char* string = GET_ARG(0, GetString);
 	return DECIMAL_VAL((float)strtod(string, NULL));
 }
+/***
+ * String.GetCodepoints
+ * \desc Gets a list of UCS codepoints from UTF-8 text.
+ * \param string (String): The UTF-8 string.
+ * \return Returns an Array of Integer values.
+ * \ns String
+ */
+VMValue String_GetCodepoints(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	char* string = GET_ARG(0, GetString);
+
+	ObjArray* array = NewArray();
+
+	if (string) {
+		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
+
+		for (size_t i = 0; i < codepoints.size(); i++) {
+			array->Values->push_back(INTEGER_VAL((int)codepoints[i]));
+		}
+	}
+
+	return OBJECT_VAL(array);
+}
 // #endregion
 
 // #region Texture
@@ -18796,6 +18856,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, Text);
 	DEF_NATIVE(Draw, TextWrapped);
 	DEF_NATIVE(Draw, TextEllipsis);
+	DEF_NATIVE(Draw, Glyph);
 	DEF_NATIVE(Draw, SetBlendColor);
 	DEF_NATIVE(Draw, SetTextureBlend);
 	DEF_NATIVE(Draw, SetBlendMode);
@@ -20083,6 +20144,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(String, LastIndexOf);
 	DEF_NATIVE(String, ParseInteger);
 	DEF_NATIVE(String, ParseDecimal);
+	DEF_NATIVE(String, GetCodepoints);
 	// #endregion
 
 	// #region Texture
