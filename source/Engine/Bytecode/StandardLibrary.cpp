@@ -4038,7 +4038,6 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4050,7 +4049,6 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 		ISprite* sprite = GET_ARG(1, GetSprite);
 		if (sprite) {
 			LegacyTextDrawParams params;
-			params.Flags = 0;
 			params.Ascent = textAscent;
 			params.Advance = textAdvance;
 			Graphics::MeasureTextLegacy(sprite, text, &params, maxW, maxH);
@@ -4101,7 +4099,6 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4115,7 +4112,6 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		ISprite* sprite = GET_ARG(1, GetSprite);
 		if (sprite) {
 			LegacyTextDrawParams params;
-			params.Flags = 0;
 			params.Ascent = textAscent;
 			params.Advance = textAdvance;
 			params.MaxWidth = maxWidth;
@@ -4160,7 +4156,6 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4174,7 +4169,6 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (sprite) {
 		LegacyTextDrawParams params;
-		params.Flags = 0;
 		params.Align = textAlign;
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
@@ -4218,7 +4212,6 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4234,7 +4227,6 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (sprite) {
 		LegacyTextDrawParams params;
-		params.Flags = 0;
 		params.Align = textAlign;
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
@@ -4280,7 +4272,6 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4296,7 +4287,6 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (sprite) {
 		LegacyTextDrawParams params;
-		params.Flags = 0;
 		params.Align = textAlign;
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
