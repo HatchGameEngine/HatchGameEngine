@@ -616,8 +616,17 @@ void Application::LoadDefaultFont() {
 
 	Application::UnloadDefaultFont();
 
+	int oversampling = 0;
+	Application::Settings->GetInteger("graphics", "defaultFontOversampling", &oversampling);
+	if (oversampling < 1) {
+		oversampling = 1;
+	}
+	else if (oversampling > 8) {
+		oversampling = 8;
+	}
+
 	DefaultFont = new Font();
-	DefaultFont->Oversampling = 4;
+	DefaultFont->Oversampling = oversampling;
 
 	if (DefaultFont->Load(streamList) && DefaultFont->LoadSize(DEFAULT_FONT_SIZE)) {
 		DefaultFont->LoadFailed = false;
