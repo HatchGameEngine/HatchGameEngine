@@ -42,7 +42,7 @@ private:
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
 #ifdef USE_DEFAULT_FONTS
-	static void LoadDefaultFont();
+	static void UnloadDefaultFont();
 #endif
 	static void CreateWindow();
 	static void EndGame();
@@ -69,6 +69,7 @@ private:
 
 public:
 	static vector<std::string> CmdLineArgs;
+	static std::vector<std::string> DefaultFontList;
 	static INI* Settings;
 	static char SettingsFile[MAX_PATH_LENGTH];
 	static XMLNode* GameConfig;
@@ -115,6 +116,7 @@ public:
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();
 	static const char* GetPreferencesDir();
+	static void LoadDefaultFont();
 	static void GetPerformanceSnapshot();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();

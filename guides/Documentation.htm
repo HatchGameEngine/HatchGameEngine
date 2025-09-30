@@ -251,6 +251,7 @@
                     <li><a href="#Reference_functions_Application_SetGameDescription">Application.SetGameDescription</a></li>
                     <li><a href="#Reference_functions_Application_SetCursorVisible">Application.SetCursorVisible</a></li>
                     <li><a href="#Reference_functions_Application_GetCursorVisible">Application.GetCursorVisible</a></li>
+                    <li><a href="#Reference_functions_Application_SetDefaultFont">Application.SetDefaultFont</a></li>
                     <li><a href="#Reference_functions_Application_ChangeGame">Application.ChangeGame</a></li>
                     <li><a href="#Reference_functions_Application_Quit">Application.Quit</a></li>
                 </ul>
@@ -2489,6 +2490,15 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the visibility of the cursor.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether ot not the cursor is visible.</div>
+        </p>
+        <p id="Reference_functions_Application_SetDefaultFont">
+        <h2 style="margin-bottom: 8px;">Application.SetDefaultFont</h2>
+        <code>Application.SetDefaultFont(font)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the default font to the given Resource path, or Array containing Resource paths.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>font (String or Array): The font or list of fonts. Passing <code>null</code> to this argument will change the default font to the one the application was built with, if one is present.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Application_ChangeGame">
         <h2 style="margin-bottom: 8px;">Application.ChangeGame</h2>
@@ -10302,7 +10312,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>749 out of 804 functions have descriptions. </p>
+        <p>750 out of 805 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -10862,11 +10872,11 @@
         <h3>Instance constructors</h3>
         <p id="Reference_constructors_Font">
         <h2 style="margin-bottom: 8px;">Font</h2>
-        <code>Font(font)</code>
+        <code>Font([font])</code>
         <div style="margin-top: 8px; font-size: 14px;">Loads a font from the given Resource path, Stream, or Array containing Resource paths or Streams.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>font (String, Stream, or Array): The font or list of fonts.</li>
+        <li>font (String, Stream, or Array): The font or list of fonts. If this argument is not given, it will use font the application was built with, if one is present.</li>
         </ul>
         </p>
         <p id="Reference_constructors_Shader">

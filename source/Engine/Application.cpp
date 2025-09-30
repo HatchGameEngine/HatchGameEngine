@@ -96,6 +96,7 @@ char Application::SavesDir[256];
 char Application::PreferencesDir[256];
 
 std::unordered_map<std::string, Capability> Application::CapabilityMap;
+std::vector<std::string> Application::DefaultFontList;
 
 int Application::UpdatesPerFrame = 1;
 int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
@@ -577,29 +578,65 @@ const char* Application::GetPreferencesDir() {
 
 #ifdef USE_DEFAULT_FONTS
 void Application::LoadDefaultFont() {
-	void* data = GetDefaultFontData();
-	if (data == nullptr) {
+	std::vector<Stream*> streamList;
+	bool hadError = false;
+
+	for (size_t i = 0; i < DefaultFontList.size(); i++) {
+		const char* filename = DefaultFontList[i].c_str();
+		Stream* stream = ResourceStream::New(filename);
+		if (stream) {
+			streamList.push_back(stream);
+		} else {
+			Log::Print(Log::LOG_ERROR, "Resource \"%s\" does not exist!", filename);
+			hadError = true;
+		}
+	}
+
+	if (streamList.size() == 0) {
+		void* data = GetDefaultFontData();
+		if (data == nullptr) {
+			Application::UnloadDefaultFont();
+			return;
+		}
+
+		if (hadError) {
+			Log::Print(Log::LOG_IMPORTANT, "Loading the default font as a fallback.");
+		}
+
+		MemoryStream* stream = MemoryStream::New(data, GetDefaultFontDataLength());
+		if (stream) {
+			streamList.push_back(stream);
+		}
+	}
+
+	if (streamList.size() == 0) {
+		Log::Print(Log::LOG_WARN, "No default fonts to load!");
 		return;
 	}
 
-	MemoryStream* stream = MemoryStream::New(data, GetDefaultFontDataLength());
-	if (!stream) {
-		return;
-	}
+	Application::UnloadDefaultFont();
 
 	DefaultFont = new Font();
 	DefaultFont->Oversampling = 4;
 
-	if (DefaultFont->Load(stream) && DefaultFont->LoadSize(DEFAULT_FONT_SIZE)) {
+	if (DefaultFont->Load(streamList) && DefaultFont->LoadSize(DEFAULT_FONT_SIZE)) {
 		DefaultFont->LoadFailed = false;
 	}
 	else {
 		Log::Print(Log::LOG_WARN, "Couldn't load the default font!");
+		Application::UnloadDefaultFont();
+	}
+
+	for (size_t i = 0; i < streamList.size(); i++) {
+		streamList[i]->Close();
+	}
+}
+
+void Application::UnloadDefaultFont() {
+	if (DefaultFont) {
 		delete DefaultFont;
 		DefaultFont = nullptr;
 	}
-
-	stream->Close();
 }
 #endif
 
@@ -829,10 +866,8 @@ void Application::UpdateWindowTitle() {
 
 void Application::EndGame() {
 #ifdef USE_DEFAULT_FONTS
-	if (DefaultFont) {
-		delete DefaultFont;
-		DefaultFont = nullptr;
-	}
+	Application::UnloadDefaultFont();
+	Application::DefaultFontList.clear();
 #endif
 
 	// Reset FPS timer
@@ -1846,10 +1881,8 @@ void Application::Cleanup() {
 	Application::TerminateScripting();
 
 #ifdef USE_DEFAULT_FONTS
-	if (DefaultFont) {
-		delete DefaultFont;
-		DefaultFont = nullptr;
-	}
+	Application::UnloadDefaultFont();
+	Application::DefaultFontList.clear();
 #endif
 
 	Application::DisposeSettings();
