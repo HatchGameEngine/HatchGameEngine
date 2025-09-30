@@ -105,7 +105,7 @@ void GetDefaultFonts(std::vector<Stream*>& streamList, std::vector<bool>& closeS
 	// If no default font list was set
 	void* data = GetDefaultFontData();
 	if (data == nullptr) {
-		throw ScriptException("The application was not compiled with a default font!");
+		throw ScriptException("No default font present in this build!");
 	}
 
 	MemoryStream* stream = MemoryStream::New(data, GetDefaultFontDataLength());
