@@ -125,6 +125,7 @@ char LogFilename[MAX_PATH_LENGTH];
 bool UseMemoryFileCache = false;
 
 bool DevMenu = false;
+bool ShowFPS = false;
 bool ViewPerformance = false;
 bool TakeSnapshot = false;
 bool DoNothing = false;
@@ -1004,6 +1005,8 @@ void Application::LoadVideoSettings() {
 		Application::Settings->GetBool(
 			"graphics", "precompileShaders", &Graphics::PrecompileShaders);
 
+		Application::Settings->GetBool("graphics", "showFramerate", &ShowFPS);
+
 		if (Graphics::MultisamplingEnabled < 0) {
 			Graphics::MultisamplingEnabled = 0;
 		}
@@ -1502,6 +1505,9 @@ void Application::DrawPerformance() {
 
 	if (ViewPerformance) {
 		PerformanceViewer::DrawDetailed(DefaultFont);
+	}
+	else if (ShowFPS) {
+		PerformanceViewer::DrawFramerate(DefaultFont);
 	}
 }
 void Application::DelayFrame() {
