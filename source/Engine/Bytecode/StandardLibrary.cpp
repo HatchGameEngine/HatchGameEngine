@@ -18433,6 +18433,11 @@ void StandardLibrary::Link() {
     */
 	DEF_ENUM_CLASS(KeyBind, Fullscreen);
 	/***
+    * \enum KeyBind_ToggleFPSCounter
+    * \desc FPS counter toggle keybind.
+    */
+	DEF_ENUM_CLASS(KeyBind, ToggleFPSCounter);
+	/***
     * \enum KeyBind_DevRestartApp
     * \desc App restart keybind. (dev)
     */

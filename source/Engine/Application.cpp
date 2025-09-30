@@ -1095,6 +1095,7 @@ void Application::LoadKeyBinds() {
 	}
 
 	GET_KEY("fullscreen", Fullscreen, Key_F4);
+	GET_KEY("toggleFPSCounter", ToggleFPSCounter, Key_UNKNOWN);
 	GET_KEY("devRestartApp", DevRestartApp, Key_F1);
 	GET_KEY("devRestartScene", DevRestartScene, Key_F6);
 	GET_KEY("devRecompile", DevRecompile, Key_F5);
@@ -1263,8 +1264,12 @@ void Application::PollEvents() {
 
 			// Fullscreen
 			if (key == KeyBindsSDL[(int)KeyBind::Fullscreen]) {
-				Application::SetWindowFullscreen(
-					!Application::GetWindowFullscreen());
+				Application::SetWindowFullscreen(!Application::GetWindowFullscreen());
+				break;
+			}
+			// Toggle FPS counter
+			else if (key == KeyBindsSDL[(int)KeyBind::ToggleFPSCounter]) {
+				Application::ShowFPS = !Application::ShowFPS;
 				break;
 			}
 
