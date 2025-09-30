@@ -87,6 +87,7 @@ public:
 	static float CurrentFPS;
 	static bool Running;
 	static bool FirstFrame;
+	static bool ShowFPS;
 	static SDL_Window* Window;
 	static char WindowTitle[256];
 	static int WindowWidth;

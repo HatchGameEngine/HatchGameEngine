@@ -76,6 +76,7 @@ int Application::TargetFPS = DEFAULT_TARGET_FRAMERATE;
 float Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
 bool Application::Running = false;
 bool Application::FirstFrame = true;
+bool Application::ShowFPS = false;
 
 SDL_Window* Application::Window = NULL;
 char Application::WindowTitle[256];
@@ -125,7 +126,6 @@ char LogFilename[MAX_PATH_LENGTH];
 bool UseMemoryFileCache = false;
 
 bool DevMenu = false;
-bool ShowFPS = false;
 bool ViewPerformance = false;
 bool TakeSnapshot = false;
 bool DoNothing = false;
@@ -1005,7 +1005,7 @@ void Application::LoadVideoSettings() {
 		Application::Settings->GetBool(
 			"graphics", "precompileShaders", &Graphics::PrecompileShaders);
 
-		Application::Settings->GetBool("graphics", "showFramerate", &ShowFPS);
+		Application::Settings->GetBool("graphics", "showFramerate", &Application::ShowFPS);
 
 		if (Graphics::MultisamplingEnabled < 0) {
 			Graphics::MultisamplingEnabled = 0;
@@ -1506,7 +1506,7 @@ void Application::DrawPerformance() {
 	if (ViewPerformance) {
 		PerformanceViewer::DrawDetailed(DefaultFont);
 	}
-	else if (ShowFPS) {
+	else if (Application::ShowFPS) {
 		PerformanceViewer::DrawFramerate(DefaultFont);
 	}
 }
