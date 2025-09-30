@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/SourceFileMap.h>
+#include <Engine/Data/DefaultFonts.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
@@ -68,6 +69,7 @@ INI* Application::Settings = NULL;
 char Application::SettingsFile[MAX_PATH_LENGTH];
 
 XMLNode* Application::GameConfig = NULL;
+Font* Application::DefaultFont = NULL;
 
 int Application::TargetFPS = DEFAULT_TARGET_FRAMERATE;
 float Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
@@ -94,6 +96,7 @@ char Application::SavesDir[256];
 char Application::PreferencesDir[256];
 
 std::unordered_map<std::string, Capability> Application::CapabilityMap;
+std::vector<std::string> Application::DefaultFontList;
 
 int Application::UpdatesPerFrame = 1;
 int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
@@ -131,47 +134,6 @@ double FrameTimeStart = 0.0;
 double FrameTimeDesired = 1000.0 / Application::TargetFPS;
 
 int KeyBinds[(int)KeyBind::Max];
-
-ISprite* DEBUG_fontSprite = nullptr;
-bool DEBUG_HasFontSprite = true;
-
-void LoadDebugFont() {
-	DEBUG_fontSprite = new ISprite();
-
-	int cols, rows;
-	Texture* spriteSheet = DEBUG_fontSprite->AddSpriteSheet("Debug/Font.png");
-	if (!spriteSheet) {
-		spriteSheet = DEBUG_fontSprite->AddSpriteSheet(
-			"Sprites/Fonts/DebugFont.png");
-	}
-	if (spriteSheet) {
-		Graphics::SetTextureMagFilter(spriteSheet, TextureFilter_LINEAR);
-		Graphics::SetTextureMinFilter(spriteSheet, TextureFilter_LINEAR);
-
-		cols = spriteSheet->Width / 32;
-		rows = spriteSheet->Height / 32;
-
-		DEBUG_fontSprite->ReserveAnimationCount(1);
-		DEBUG_fontSprite->AddAnimation("Font", 0, 0, cols * rows);
-		for (int i = 0; i < cols * rows; i++) {
-			DEBUG_fontSprite->AddFrame(0,
-				(i % cols) * 32,
-				(i / cols) * 32,
-				32,
-				32,
-				0,
-				0,
-				14);
-		}
-
-		DEBUG_fontSprite->RefreshGraphicsID();
-	}
-	else {
-		delete DEBUG_fontSprite;
-		DEBUG_fontSprite = nullptr;
-		DEBUG_HasFontSprite = false;
-	}
-}
 
 void Application::Init(int argc, char* args[]) {
 #ifdef MSYS
@@ -614,6 +576,71 @@ const char* Application::GetPreferencesDir() {
 	return PreferencesDir;
 }
 
+void Application::LoadDefaultFont() {
+	std::vector<Stream*> streamList;
+	bool hadError = false;
+
+	for (size_t i = 0; i < DefaultFontList.size(); i++) {
+		const char* filename = DefaultFontList[i].c_str();
+		Stream* stream = ResourceStream::New(filename);
+		if (stream) {
+			streamList.push_back(stream);
+		} else {
+			Log::Print(Log::LOG_ERROR, "Resource \"%s\" does not exist!", filename);
+			hadError = true;
+		}
+	}
+
+	if (streamList.size() == 0) {
+		void* data = GetDefaultFontData();
+		if (data == nullptr) {
+			Application::UnloadDefaultFont();
+			return;
+		}
+
+		if (hadError) {
+			Log::Print(Log::LOG_IMPORTANT, "Loading the default font as a fallback.");
+		}
+
+		MemoryStream* stream = MemoryStream::New(data, GetDefaultFontDataLength());
+		if (stream) {
+			streamList.push_back(stream);
+		}
+	}
+
+	if (streamList.size() == 0) {
+		Log::Print(Log::LOG_WARN, "No default fonts to load!");
+		return;
+	}
+
+	Application::UnloadDefaultFont();
+
+	int oversampling = 1;
+	Application::Settings->GetInteger("graphics", "defaultFontOversampling", &oversampling);
+
+	DefaultFont = new Font();
+	DefaultFont->SetOversampling(oversampling);
+
+	if (DefaultFont->Load(streamList) && DefaultFont->LoadSize(DEFAULT_FONT_SIZE)) {
+		DefaultFont->LoadFailed = false;
+	}
+	else {
+		Log::Print(Log::LOG_WARN, "Couldn't load the default font!");
+		Application::UnloadDefaultFont();
+	}
+
+	for (size_t i = 0; i < streamList.size(); i++) {
+		streamList[i]->Close();
+	}
+}
+
+void Application::UnloadDefaultFont() {
+	if (DefaultFont) {
+		delete DefaultFont;
+		DefaultFont = nullptr;
+	}
+}
+
 bool AutomaticPerformanceSnapshots = false;
 double AutomaticPerformanceSnapshotFrameTimeThreshold = 20.0;
 double AutomaticPerformanceSnapshotLastTime = 0.0;
@@ -839,11 +866,8 @@ void Application::UpdateWindowTitle() {
 }
 
 void Application::EndGame() {
-	if (DEBUG_fontSprite) {
-		DEBUG_fontSprite->Dispose();
-		delete DEBUG_fontSprite;
-		DEBUG_fontSprite = NULL;
-	}
+	Application::UnloadDefaultFont();
+	Application::DefaultFontList.clear();
 
 	// Reset FPS timer
 	BenchmarkFrameCount = 0;
@@ -1457,20 +1481,14 @@ DO_NOTHING:
 	MetricFrameTime = Clock::GetTicks() - FrameTimeStart;
 }
 void Application::DrawPerformance() {
-	if (ShowFPS && DEBUG_HasFontSprite) {
-		if (!DEBUG_fontSprite) {
-			LoadDebugFont();
-		}
-		if (!DEBUG_HasFontSprite) {
-			return;
-		}
+	Font* font = DefaultFont;
 
-		LegacyTextDrawParams textParams;
-		textParams.Flags = 0;
-		textParams.Align = 0.0f;
-		textParams.Baseline = 0.0f;
-		textParams.Ascent = 1.25f;
-		textParams.Advance = 1.0f;
+	if (ShowFPS && font != nullptr) {
+		TextDrawParams textParams;
+		textParams.FontSize = font->Size;
+		textParams.Ascent = font->Ascent;
+		textParams.Descent = font->Descent;
+		textParams.Leading = font->Leading;
 
 		int ww, wh;
 		char textBuffer[256];
@@ -1528,18 +1546,22 @@ void Application::DrawPerformance() {
 
 		int typeCount = sizeof(types) / sizeof(double);
 
+		float textX = 0.0;
+		float textY = font->Descent;
+
 		Graphics::Save();
 		Graphics::Translate(infoPadding - 2.0, infoPadding, 0.0);
 		Graphics::Scale(0.85, 0.85, 1.0);
 		snprintf(textBuffer, 256, "Frame Information");
-		Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
+		Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+		Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
 		Graphics::Restore();
 
 		Graphics::Save();
 		Graphics::Translate(infoW - infoPadding - (8 * 16.0 * 0.85), infoPadding, 0.0);
 		Graphics::Scale(0.85, 0.85, 1.0);
 		snprintf(textBuffer, 256, "FPS: %03.1f", CurrentFPS);
-		Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
+		Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
 		Graphics::Restore();
 
 		if (Application::Platform == Platforms::Android || true) {
@@ -1589,7 +1611,8 @@ void Application::DrawPerformance() {
 				Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
 				Graphics::Scale(0.6, 0.6, 1.0);
 				snprintf(textBuffer, 256, typeNames[i], types[i]);
-				Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
+				Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+				Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
 				listY += 20.0;
 				Graphics::Restore();
 
@@ -1603,7 +1626,8 @@ void Application::DrawPerformance() {
 			Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
 			Graphics::Scale(0.6, 0.6, 1.0);
 			snprintf(textBuffer, 256, "Total Frame Time: %.3f ms", totalFrameCount);
-			Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
+			Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+			Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
 			listY += 20.0;
 			Graphics::Restore();
 
@@ -1614,7 +1638,8 @@ void Application::DrawPerformance() {
 			Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
 			Graphics::Scale(0.6, 0.6, 1.0);
 			snprintf(textBuffer, 256, "Overdelay: %.3f ms", Overdelay);
-			Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
+			Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+			Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
 			listY += 20.0;
 			Graphics::Restore();
 
@@ -1640,17 +1665,23 @@ void Application::DrawPerformance() {
 			Graphics::Translate(infoPadding / 2.0, listY, 0.0);
 			Graphics::Scale(0.6, 0.6, 1.0);
 			snprintf(textBuffer, 256, "RAM Usage: %.3f %s", count, moniker);
-			Graphics::DrawTextLegacy(DEBUG_fontSprite, textBuffer, 0.0, 0.0, &textParams);
+			Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+			Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
 			Graphics::Restore();
 
 			listY += 30.0;
 
 			float* listYPtr = &listY;
 			if (Scene::ObjectLists && Application::Platform != Platforms::Android) {
-				Scene::ObjectLists->WithAll([infoPadding, listYPtr, textParams](Uint32,
+				Scene::ObjectLists->WithAll([textX,
+								    textY,
+								    font,
+								    infoPadding,
+								    listYPtr,
+								    textParams](Uint32,
 								    ObjectList* list) -> void {
 					char textBufferXXX[1024];
-					LegacyTextDrawParams locTextParams = textParams;
+					TextDrawParams locTextParams = textParams;
 					if (list->Performance.Update.AverageItemCount > 0.0) {
 						Graphics::Save();
 						Graphics::Translate(
@@ -1665,7 +1696,12 @@ void Application::DrawPerformance() {
 								.GetTotalAverageTime(),
 							(int)list->Performance.Render
 								.AverageItemCount);
-						Graphics::DrawTextLegacy(DEBUG_fontSprite, textBufferXXX, 0.0, 0.0, &locTextParams);
+						Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+						Graphics::DrawText(font,
+							textBufferXXX,
+							textX,
+							textY,
+							&locTextParams);
 						Graphics::Restore();
 
 						*listYPtr += 20.0;
@@ -1696,6 +1732,7 @@ void Application::DelayFrame() {
 	}
 }
 void Application::StartGame(const char* startingScene) {
+	Application::LoadDefaultFont();
 	Application::InitScripting();
 
 	Scene::Init();
@@ -1839,11 +1876,8 @@ void Application::Run(int argc, char* args[]) {
 void Application::Cleanup() {
 	Application::TerminateScripting();
 
-	if (DEBUG_fontSprite) {
-		delete DEBUG_fontSprite;
-		DEBUG_fontSprite = nullptr;
-		DEBUG_HasFontSprite = true;
-	}
+	Application::UnloadDefaultFont();
+	Application::DefaultFontList.clear();
 
 	Application::DisposeSettings();
 

@@ -1571,6 +1571,67 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 	return INTEGER_VAL(0);
 }
 /***
+ * Application.SetDefaultFont
+ * \desc Sets the default font to the given Resource path, or Array containing Resource paths.
+ * \param font (String or Array): The font or list of fonts. Passing <code>null</code> to this argument will change the default font to the one the application was built with, if one is present.
+ * \ns Application
+ */
+VMValue Application_SetDefaultFont(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	std::vector<std::string> fontList;
+
+	// If null was passed, this clears the font list.
+	if (IS_NULL(args[0])) {
+		Application::DefaultFontList.clear();
+		Application::LoadDefaultFont();
+		return NULL_VAL;
+	}
+	else if (IS_ARRAY(args[0])) {
+		ObjArray* array = AS_ARRAY(args[0]);
+
+		// If an empty array was passed intentionally, this clears the font list.
+		if (array->Values->size() == 0) {
+			Application::DefaultFontList.clear();
+			Application::LoadDefaultFont();
+			return NULL_VAL;
+		}
+
+		for (size_t i = 0; i < array->Values->size(); i++) {
+			if (ScriptManager::Lock()) {
+				VMValue value = (*array->Values)[i];
+				if (IS_STRING(value)) {
+					char* filename = AS_CSTRING(value);
+					fontList.push_back(std::string(filename));
+				}
+				else {
+					ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+						"Expected argument to be of type %s instead of %s.",
+						GetObjectTypeString(OBJ_STRING),
+						GetValueTypeString(value));
+				}
+				ScriptManager::Unlock();
+			}
+		}
+	}
+	else {
+		char* path = GET_ARG(0, GetString);
+		if (ResourceManager::ResourceExists(path)) {
+			fontList.push_back(std::string(path));
+		}
+		else {
+			Log::Print(Log::LOG_ERROR, "Resource \"%s\" does not exist!", path);
+		}
+	}
+
+	if (fontList.size() > 0) {
+		Application::DefaultFontList = fontList;
+		Application::LoadDefaultFont();
+	}
+
+	return NULL_VAL;
+}
+/***
  * Application.ChangeGame
  * \desc Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead. Only <code>game://</code> and <code>user://</code> URLs are supported (or an absolute path that resolves to those locations).<br/><br/>\
 This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>\
@@ -3474,16 +3535,7 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
-		Graphics::DrawTexture(image->TexturePtr,
-			sx,
-			sy,
-			sw,
-			sh,
-			x,
-			y,
-			sw,
-			sh,
-			paletteID);
+		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, sw, sh, paletteID);
 	}
 	return NULL_VAL;
 }
@@ -15526,7 +15578,8 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
+		ObjStream* stream =
+			StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -18313,6 +18366,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, SetDefaultFont);
 	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
 	/***

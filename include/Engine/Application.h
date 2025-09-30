@@ -8,6 +8,7 @@
 #include <Engine/InputManager.h>
 #include <Engine/Math/Math.h>
 #include <Engine/Platforms/Capability.h>
+#include <Engine/ResourceTypes/Font.h>
 #include <Engine/Scene.h>
 #include <Engine/TextFormats/INI/INI.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
@@ -40,6 +41,7 @@ private:
 	static char* GenerateIdentifier(const char* string);
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
+	static void UnloadDefaultFont();
 	static void CreateWindow();
 	static void EndGame();
 	static void UnloadGame();
@@ -65,9 +67,11 @@ private:
 
 public:
 	static vector<std::string> CmdLineArgs;
+	static std::vector<std::string> DefaultFontList;
 	static INI* Settings;
 	static char SettingsFile[MAX_PATH_LENGTH];
 	static XMLNode* GameConfig;
+	static Font* DefaultFont;
 	static int TargetFPS;
 	static float CurrentFPS;
 	static bool Running;
@@ -110,6 +114,7 @@ public:
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();
 	static const char* GetPreferencesDir();
+	static void LoadDefaultFont();
 	static void GetPerformanceSnapshot();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();

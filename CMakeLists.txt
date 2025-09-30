@@ -81,10 +81,11 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 endif()
 
 option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" ON)
-
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   set(USE_OPEN_ASSET_IMPORT_LIBRARY OFF)
 endif()
+
+option(USE_DEFAULT_FONTS "Build with default fonts" ON)
 
 # Renderers
 option(USING_OPENGL "Use OpenGL" ON)
@@ -122,6 +123,10 @@ endif()
 
 if(ALLOW_COMMAND_LINE_RESOURCE_LOAD)
   add_definitions(-DALLOW_COMMAND_LINE_RESOURCE_LOAD)
+endif()
+
+if(USE_DEFAULT_FONTS)
+  add_definitions(-DUSE_DEFAULT_FONTS)
 endif()
 
 add_definitions(-DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME )

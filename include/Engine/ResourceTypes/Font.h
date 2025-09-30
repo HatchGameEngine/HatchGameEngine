@@ -141,6 +141,8 @@ public:
 	int GetAtlasMinFilter();
 	int GetAtlasMagFilter();
 
+	bool SetOversampling(int oversamplingValue);
+
 	bool IsValidCodepoint(Uint32 codepoint);
 	bool HasGlyph(Uint32 codepoint);
 	bool RequestGlyph(Uint32 codepoint);

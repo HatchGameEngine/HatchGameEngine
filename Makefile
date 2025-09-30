@@ -55,6 +55,7 @@ CPPFILES := \
 	source/Engine/Bytecode/Value.cpp \
 	source/Engine/Bytecode/ValuePrinter.cpp \
 	source/Engine/Bytecode/VMThread.cpp \
+	source/Engine/Data/DefaultFonts.cpp \
 	source/Engine/Diagnostics/Clock.cpp \
 	source/Engine/Diagnostics/Log.cpp \
 	source/Engine/Diagnostics/Memory.cpp \
@@ -278,6 +279,7 @@ PUBHFILES := \
 	include/Engine/Bytecode/Value.h \
 	include/Engine/Bytecode/ValuePrinter.h \
 	include/Engine/Bytecode/VMThread.h \
+	include/Engine/Data/DefaultFonts.h \
 	include/Engine/Diagnostics/Clock.h \
 	include/Engine/Diagnostics/Log.h \
 	include/Engine/Diagnostics/Memory.h \
