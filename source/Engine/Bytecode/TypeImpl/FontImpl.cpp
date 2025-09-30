@@ -518,16 +518,8 @@ VMValue FontImpl::VM_SetOversampling(int argCount, VMValue* args, Uint32 threadI
 		return NULL_VAL;
 	}
 
-	if (oversampling < 1) {
-		oversampling = 1;
-	}
-	else if (oversampling > 8) {
-		oversampling = 8;
-	}
-
 	Font* font = (Font*)objFont->FontPtr;
-	if (oversampling != font->Oversampling) {
-		font->Oversampling = oversampling;
+	if (font->SetOversampling(oversampling)) {
 		font->Reload();
 	}
 
