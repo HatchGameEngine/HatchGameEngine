@@ -576,7 +576,6 @@ const char* Application::GetPreferencesDir() {
 	return PreferencesDir;
 }
 
-#ifdef USE_DEFAULT_FONTS
 void Application::LoadDefaultFont() {
 	std::vector<Stream*> streamList;
 	bool hadError = false;
@@ -641,7 +640,6 @@ void Application::UnloadDefaultFont() {
 		DefaultFont = nullptr;
 	}
 }
-#endif
 
 bool AutomaticPerformanceSnapshots = false;
 double AutomaticPerformanceSnapshotFrameTimeThreshold = 20.0;
@@ -868,10 +866,8 @@ void Application::UpdateWindowTitle() {
 }
 
 void Application::EndGame() {
-#ifdef USE_DEFAULT_FONTS
 	Application::UnloadDefaultFont();
 	Application::DefaultFontList.clear();
-#endif
 
 	// Reset FPS timer
 	BenchmarkFrameCount = 0;
@@ -1736,10 +1732,7 @@ void Application::DelayFrame() {
 	}
 }
 void Application::StartGame(const char* startingScene) {
-#ifdef USE_DEFAULT_FONTS
 	Application::LoadDefaultFont();
-#endif
-
 	Application::InitScripting();
 
 	Scene::Init();
@@ -1883,10 +1876,8 @@ void Application::Run(int argc, char* args[]) {
 void Application::Cleanup() {
 	Application::TerminateScripting();
 
-#ifdef USE_DEFAULT_FONTS
 	Application::UnloadDefaultFont();
 	Application::DefaultFontList.clear();
-#endif
 
 	Application::DisposeSettings();
 

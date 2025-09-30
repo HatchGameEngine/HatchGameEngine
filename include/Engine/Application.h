@@ -41,9 +41,7 @@ private:
 	static char* GenerateIdentifier(const char* string);
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
-#ifdef USE_DEFAULT_FONTS
 	static void UnloadDefaultFont();
-#endif
 	static void CreateWindow();
 	static void EndGame();
 	static void UnloadGame();
