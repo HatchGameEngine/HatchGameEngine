@@ -1489,6 +1489,7 @@ void Application::DrawPerformance() {
 		}
 
 		LegacyTextDrawParams textParams;
+		textParams.Flags = 0;
 		textParams.Align = 0.0f;
 		textParams.Baseline = 0.0f;
 		textParams.Ascent = 1.25f;

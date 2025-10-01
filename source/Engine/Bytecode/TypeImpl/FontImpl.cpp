@@ -21,6 +21,7 @@ void FontImpl::Init() {
 	ScriptManager::DefineNative(Class, "GetSpaceWidth", VM_GetSpaceWidth);
 	ScriptManager::DefineNative(Class, "GetOversampling", VM_GetOversampling);
 	ScriptManager::DefineNative(Class, "GetPixelCoverageThreshold", VM_GetPixelCoverageThreshold);
+	ScriptManager::DefineNative(Class, "GetGlyphAdvance", VM_GetGlyphAdvance);
 	ScriptManager::DefineNative(Class, "IsAntialiasingEnabled", VM_IsAntialiasingEnabled);
 	ScriptManager::DefineNative(Class, "HasGlyph", VM_HasGlyph);
 	ScriptManager::DefineNative(Class, "SetPixelsPerUnit", VM_SetPixelsPerUnit);
@@ -297,6 +298,34 @@ VMValue FontImpl::VM_GetPixelCoverageThreshold(int argCount, VMValue* args, Uint
 
 	return DECIMAL_VAL((float)font->PixelCoverageThreshold / 255.0f);
 }
+/***
+ * \method GetGlyphAdvance
+ * \desc Gets the advance width of a given glyph through its code point, if it exists in the font.
+ * \param codepoint (Integer): An Unicode code point.
+ * \return Returns a Decimal value, or <code>null</code> if no glyph representing the given code point exists in the font.
+ * \ns Font
+ */
+VMValue FontImpl::VM_GetGlyphAdvance(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjFont* objFont = GET_ARG(0, GetFont);
+	int codepoint = GET_ARG(1, GetInteger);
+
+	if (objFont == nullptr) {
+		return NULL_VAL;
+	}
+
+	Font* font = (Font*)objFont->FontPtr;
+
+	if (font->IsValidCodepoint(codepoint)) {
+		float advance = font->GetGlyphAdvance(codepoint);
+
+		return DECIMAL_VAL(advance);
+	}
+
+	return NULL_VAL;
+}
+
 /***
  * \method IsAntialiasingEnabled
  * \desc Gets whether the font has anti-aliasing enabled.

@@ -1,57 +1,55 @@
 <html>
-  <head>
-    <title>Hatch Game Engine Documentation</title>
-    <style>
-    body {
-    background-color: white;
-    font-family: sans-serif;
-    margin: 64px;
-}
-codefrag {
-    display: inline;
-    margin: 0px;
-    font-family: monospace;
-}
-a {
-    text-decoration: none;
-    color: #4141F2;
-}
-.function_list {
-    font-family: monospace;
-    margin-top: 0.5em;
-}
-.function_list li {
-    margin-top: 0.125em;
-    margin-bottom: 0.125em;
-}
-code, pre.code {
-    background-color: #f2f2f2;
-    border-radius: 3px;
-    padding: 3px;
-}
-codeBlock {
-    background-color: #f2f2f2;
-    border-radius: 3px;
-    padding: 3px;
-    line-height: 100%;
-    word-break: normal;
-    font-family: monospace;
-}
-
-    </style>
-  </head>
-  <body>
-    <div style="position: fixed; margin-top: -32px; margin-left: -96px; width: 100%; text-align: right;">
-        <a href="#Reference_top">Back to top</a>
-    </div>
-    <h1 id="Reference_top">Hatch Game Engine Reference</h1>
-            <h3>Namespaces</h3>
+    <head>
+        <title>Hatch Game Engine Documentation</title>
+        <style>
+            body {
+                background-color: white;
+                font-family: sans-serif;
+                margin: 64px;
+            }
+            codefrag {
+                display: inline;
+                margin: 0px;
+                font-family: monospace;
+            }
+            a {
+                text-decoration: none;
+                color: #4141F2;
+            }
+            .function_list {
+                font-family: monospace;
+                margin-top: 0.5em;
+            }
+            .function_list li {
+                margin-top: 0.125em;
+                margin-bottom: 0.125em;
+            }
+            code, pre.code {
+                background-color: #f2f2f2;
+                border-radius: 3px;
+                padding: 3px;
+            }
+            codeBlock {
+                background-color: #f2f2f2;
+                border-radius: 3px;
+                padding: 3px;
+                line-height: 100%;
+                word-break: normal;
+                font-family: monospace;
+            }
+        </style>
+    </head>
+    <body>
+        <div style="position: fixed; margin-top: -32px; margin-left: -96px; width: 100%; text-align: right; ">
+            <a href="#Reference_top">Back to top</a>
+        </div>
+        <h1 id="Reference_top">Hatch Game Engine Reference</h1>
+        <h3>Namespaces</h3>
         <ul>
             <li><a href="#Reference_Animator">Animator</a></li>
             <li><a href="#Reference_Application">Application</a></li>
             <li><a href="#Reference_Array">Array</a></li>
             <li><a href="#Reference_Audio">Audio</a></li>
-            <li><a href="#Reference_AudioResource">AudioResource</a></li>
             <li><a href="#Reference_Collision">Collision</a></li>
             <li><a href="#Reference_Controller">Controller</a></li>
             <li><a href="#Reference_Date">Date</a></li>
@@ -66,7 +64,6 @@ codeBlock {
             <li><a href="#Reference_Geometry">Geometry</a></li>
             <li><a href="#Reference_HTTP">HTTP</a></li>
             <li><a href="#Reference_Image">Image</a></li>
-            <li><a href="#Reference_ImageResource">ImageResource</a></li>
             <li><a href="#Reference_Input">Input</a></li>
             <li><a href="#Reference_Instance">Instance</a></li>
             <li><a href="#Reference_JSON">JSON</a></li>
@@ -80,7 +77,6 @@ codeBlock {
             <li><a href="#Reference_RSDK.Math">RSDK.Math</a></li>
             <li><a href="#Reference_RSDK.Matrix">RSDK.Matrix</a></li>
             <li><a href="#Reference_Random">Random</a></li>
-            <li><a href="#Reference_Resource">Resource</a></li>
             <li><a href="#Reference_Resources">Resources</a></li>
             <li><a href="#Reference_Scene">Scene</a></li>
             <li><a href="#Reference_Scene3D">Scene3D</a></li>
@@ -107,7 +103,6 @@ codeBlock {
         <ul>
             <li><a href="#Reference_Entity">Entity</a></li>
             <li><a href="#Reference_Font">Font</a></li>
-            <li><a href="#Reference_Resource">Resource</a></li>
             <li><a href="#Reference_Shader">Shader</a></li>
         </ul>
         <h3>Enums</h3>
@@ -192,9 +187,8 @@ codeBlock {
                     <li><a href="#Reference_globals_Scene_ActiveCategory">Scene_ActiveCategory</a></li>
                     <li><a href="#Reference_globals_Scene_DebugMode">Scene_DebugMode</a></li>
         </ul>
-
-    <hr/>
-            <h3>Class methods</h3>
+        <hr/>
+        <h3>Class methods</h3>
             <p id="Reference_Animator">
                 <h2>Animator</h2>
                 <i>Class methods:</i>
@@ -290,13 +284,6 @@ codeBlock {
                     <li><a href="#Reference_functions_Audio_SetMasterVolume">Audio.SetMasterVolume</a></li>
                     <li><a href="#Reference_functions_Audio_SetMusicVolume">Audio.SetMusicVolume</a></li>
                     <li><a href="#Reference_functions_Audio_SetSoundVolume">Audio.SetSoundVolume</a></li>
-                </ul>
-            </p>
-            <p id="Reference_AudioResource">
-                <h2>AudioResource</h2>
-                <i>Instance fields:</i>
-                <ul>
-                    <li><a href="#Reference_fields_audioresource_LoopPoint">audioresource.LoopPoint</a></li>
                 </ul>
             </p>
             <p id="Reference_Collision">
@@ -417,6 +404,7 @@ codeBlock {
                     <li><a href="#Reference_functions_Draw_Text">Draw.Text</a></li>
                     <li><a href="#Reference_functions_Draw_TextWrapped">Draw.TextWrapped</a></li>
                     <li><a href="#Reference_functions_Draw_TextEllipsis">Draw.TextEllipsis</a></li>
+                    <li><a href="#Reference_functions_Draw_Glyph">Draw.Glyph</a></li>
                     <li><a href="#Reference_functions_Draw_SetBlendColor">Draw.SetBlendColor</a></li>
                     <li><a href="#Reference_functions_Draw_SetTextureBlend">Draw.SetTextureBlend</a></li>
                     <li><a href="#Reference_functions_Draw_SetBlendMode">Draw.SetBlendMode</a></li>
@@ -695,14 +683,6 @@ codeBlock {
                     <li><a href="#Reference_functions_Image_GetHeight">Image.GetHeight</a></li>
                 </ul>
             </p>
-            <p id="Reference_ImageResource">
-                <h2>ImageResource</h2>
-                <i>Instance fields:</i>
-                <ul>
-                    <li><a href="#Reference_fields_imageresource_Width">imageresource.Width</a></li>
-                    <li><a href="#Reference_fields_imageresource_Height">imageresource.Height</a></li>
-                </ul>
-            </p>
             <p id="Reference_Input">
                 <h2>Input</h2>
                 <i>Class methods:</i>
@@ -947,28 +927,6 @@ codeBlock {
                     <li><a href="#Reference_functions_Random_GetSeed">Random.GetSeed</a></li>
                     <li><a href="#Reference_functions_Random_Max">Random.Max</a></li>
                     <li><a href="#Reference_functions_Random_Range">Random.Range</a></li>
-                </ul>
-            </p>
-            <p id="Reference_Resource">
-                <h2>Resource</h2>
-                <i>Instance methods:</i>
-                <ul>
-                    <li><a href="#Reference_methods_resource_IsUnique">resource.IsUnique</a></li>
-                    <li><a href="#Reference_methods_resource_MakeUnique">resource.MakeUnique</a></li>
-                    <li><a href="#Reference_methods_resource_Reload">resource.Reload</a></li>
-                    <li><a href="#Reference_methods_resource_Unload">resource.Unload</a></li>
-                </ul>
-                <i>Instance constructors:</i>
-                <ul>
-                    <li><a href="#Reference_constructors_Resource">Resource</a></li>
-                </ul>
-                <i>Instance fields:</i>
-                <ul>
-                    <li><a href="#Reference_fields_resource_Type">resource.Type</a></li>
-                    <li><a href="#Reference_fields_resource_Filename">resource.Filename</a></li>
-                    <li><a href="#Reference_fields_resource_Loaded">resource.Loaded</a></li>
-                    <li><a href="#Reference_fields_resource_Scope">resource.Scope</a></li>
-                    <li><a href="#Reference_fields_resource_Data">resource.Data</a></li>
                 </ul>
             </p>
             <p id="Reference_Resources">
@@ -1298,6 +1256,7 @@ codeBlock {
                     <li><a href="#Reference_functions_String_LastIndexOf">String.LastIndexOf</a></li>
                     <li><a href="#Reference_functions_String_ParseInteger">String.ParseInteger</a></li>
                     <li><a href="#Reference_functions_String_ParseDecimal">String.ParseDecimal</a></li>
+                    <li><a href="#Reference_functions_String_GetCodepoints">String.GetCodepoints</a></li>
                 </ul>
             </p>
             <p id="Reference_Texture">
@@ -1591,6 +1550,7 @@ codeBlock {
                     <li><a href="#Reference_methods_font_GetSpaceWidth">font.GetSpaceWidth</a></li>
                     <li><a href="#Reference_methods_font_GetOversampling">font.GetOversampling</a></li>
                     <li><a href="#Reference_methods_font_GetPixelCoverageThreshold">font.GetPixelCoverageThreshold</a></li>
+                    <li><a href="#Reference_methods_font_GetGlyphAdvance">font.GetGlyphAdvance</a></li>
                     <li><a href="#Reference_methods_font_IsAntialiasingEnabled">font.IsAntialiasingEnabled</a></li>
                     <li><a href="#Reference_methods_font_HasGlyph">font.HasGlyph</a></li>
                     <li><a href="#Reference_methods_font_SetPixelsPerUnit">font.SetPixelsPerUnit</a></li>
@@ -1605,28 +1565,6 @@ codeBlock {
                 <i>Instance constructors:</i>
                 <ul>
                     <li><a href="#Reference_constructors_Font">Font</a></li>
-                </ul>
-            </p>
-            <p id="Reference_Resource">
-                <h2>Resource</h2>
-                <i>Instance methods:</i>
-                <ul>
-                    <li><a href="#Reference_methods_resource_IsUnique">resource.IsUnique</a></li>
-                    <li><a href="#Reference_methods_resource_MakeUnique">resource.MakeUnique</a></li>
-                    <li><a href="#Reference_methods_resource_Reload">resource.Reload</a></li>
-                    <li><a href="#Reference_methods_resource_Unload">resource.Unload</a></li>
-                </ul>
-                <i>Instance constructors:</i>
-                <ul>
-                    <li><a href="#Reference_constructors_Resource">Resource</a></li>
-                </ul>
-                <i>Instance fields:</i>
-                <ul>
-                    <li><a href="#Reference_fields_resource_Type">resource.Type</a></li>
-                    <li><a href="#Reference_fields_resource_Filename">resource.Filename</a></li>
-                    <li><a href="#Reference_fields_resource_Loaded">resource.Loaded</a></li>
-                    <li><a href="#Reference_fields_resource_Scope">resource.Scope</a></li>
-                    <li><a href="#Reference_fields_resource_Data">resource.Data</a></li>
                 </ul>
             </p>
             <p id="Reference_Shader">
@@ -2179,9 +2117,10 @@ codeBlock {
                     <li><a href="#Reference_enums_WEEKDAY_SATURDAY">WEEKDAY_SATURDAY</a></li>
                 </ul>
             </p>
-
-    <hr/>
-            <h3>Class methods</h3>
+        <h3>Constants</h3>
+        <h3>Globals</h3>
+        <hr/>
+        <h3>Class methods</h3>
         <p id="Reference_functions_Animator_Create">
         <h2 style="margin-bottom: 8px;">Animator.Create</h2>
         <code>Animator.Create([sprite, animationID, frameID, unloadPolicy])</code>
@@ -3753,6 +3692,19 @@ codeBlock {
         <li>y (Number): Y position of where to draw the text.</li>
         <li>maxWidth (Number): Max width the text can draw in.</li>
         <li>maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.</li>
+        <li>fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_Glyph">
+        <h2 style="margin-bottom: 8px;">Draw.Glyph</h2>
+        <code>Draw.Glyph(font, codepoint, x, y[, fontSize])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a glyph for a given code point.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>font (Font): The Font.</li>
+        <li>codepoint (Integer): Code point to draw.</li>
+        <li>x (Number): X position of where to draw the glyph.</li>
+        <li>y (Number): Y position of where to draw the glyph.</li>
         <li>fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.</li>
         </ul>
         </p>
@@ -7769,7 +7721,7 @@ codeBlock {
         <p id="Reference_functions_Scene_SetPaused">
         <h2 style="margin-bottom: 8px;">Scene.SetPaused</h2>
         <code>Scene.SetPaused(isPaused)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether the game is paused or not. When paused, only objects with <code></code> set to <code>false</code> will continue to <code>Update</code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether the game is paused or not. When paused, only objects with <code>instance.Pauseable</code> set to <code>false</code> will continue to <code>Update</code>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>isPaused (Boolean): Whether or not the scene is paused.</li>
@@ -9632,6 +9584,17 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the value as a Decimal.</div>
         </p>
+        <p id="Reference_functions_String_GetCodepoints">
+        <h2 style="margin-bottom: 8px;">String.GetCodepoints</h2>
+        <code>String.GetCodepoints(string)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a list of UCS codepoints from UTF-8 text.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>string (String): The UTF-8 string.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Array of Integer values.</div>
+        </p>
         <p id="Reference_functions_Texture_Create">
         <h2 style="margin-bottom: 8px; color: red;">Texture.Create</h2>
         <code>Texture.Create()</code>
@@ -10484,7 +10447,7 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>748 out of 803 functions have descriptions. </p>
+        <p>750 out of 805 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -10818,6 +10781,17 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
+        <p id="Reference_methods_font_GetGlyphAdvance">
+        <h2 style="margin-bottom: 8px;">font.GetGlyphAdvance</h2>
+        <code>font.GetGlyphAdvance(codepoint)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the advance width of a given glyph through its code point, if it exists in the font.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>codepoint (Integer): An Unicode code point.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value, or <code>null</code> if no glyph representing the given code point exists in the font.</div>
+        </p>
         <p id="Reference_methods_font_IsAntialiasingEnabled">
         <h2 style="margin-bottom: 8px;">font.IsAntialiasingEnabled</h2>
         <code>font.IsAntialiasingEnabled()</code>
@@ -10907,30 +10881,6 @@ codeBlock {
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>useAntialiasing (Boolean): Whether or not to use anti-aliasing.</li>
         </ul>
-        </p>
-        <p id="Reference_methods_resource_IsUnique">
-        <h2 style="margin-bottom: 8px;">resource.IsUnique</h2>
-        <code>resource.IsUnique()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns whether the Resource is unique or not.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Boolean value.</div>
-        </p>
-        <p id="Reference_methods_resource_MakeUnique">
-        <h2 style="margin-bottom: 8px;">resource.MakeUnique</h2>
-        <code>resource.MakeUnique()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Makes the Resource unique, if it already wasn't.</div>
-        </p>
-        <p id="Reference_methods_resource_Reload">
-        <h2 style="margin-bottom: 8px;">resource.Reload</h2>
-        <code>resource.Reload()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Reloads the Resourceable owned by this Resource. Returns <code>true</code> if it was reloaded successfully, and <code>false</code> if otherwise.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Boolean value.</div>
-        </p>
-        <p id="Reference_methods_resource_Unload">
-        <h2 style="margin-bottom: 8px;">resource.Unload</h2>
-        <code>resource.Unload()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Unloads the Resourceable owned by this Resource. Does nothing if the Resource was already unloaded.</div>
         </p>
         <p id="Reference_methods_shader_HasStage">
         <h2 style="margin-bottom: 8px;">shader.HasStage</h2>
@@ -11052,14 +11002,9 @@ codeBlock {
         <code>shader.Delete()</code>
         <div style="margin-top: 8px; font-size: 14px;">Deletes a shader. It can no longer be used after this function is called.</div>
         </p>
-        <p>62 out of 62 methods have descriptions. </p>
+        <p>59 out of 59 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
-        <p id="Reference_constructors_Shader">
-        <h2 style="margin-bottom: 8px;">Shader</h2>
-        <code>Shader()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Creates a shader program.</div>
-        </p>
         <p id="Reference_constructors_Font">
         <h2 style="margin-bottom: 8px;">Font</h2>
         <code>Font(font)</code>
@@ -11069,18 +11014,12 @@ codeBlock {
         <li>font (String, Stream, or Array): The font or list of fonts.</li>
         </ul>
         </p>
-        <p id="Reference_constructors_Resource">
-        <h2 style="margin-bottom: 8px;">Resource</h2>
-        <code>Resource(filename[, unloadPolicy, unique])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads a Resource by name.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>filename (String): Filename of the resource.</li>
-        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
-        <li>unique (Boolean): If <code>false</code> (the default), this constructor may return an already loaded Resource of the same type and filename. However, if <code>true</code>, this constructor will always return an unique Resource, and load a new Resourceable.</li>
-        </ul>
+        <p id="Reference_constructors_Shader">
+        <h2 style="margin-bottom: 8px;">Shader</h2>
+        <code>Shader()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a shader program.</div>
         </p>
-        <p>3 out of 3 constructors have descriptions. </p>
+        <p>2 out of 2 constructors have descriptions. </p>
         <hr/>
         <h3>Instance fields</h3>
         <p id="Reference_fields_entity_X">
@@ -11150,31 +11089,31 @@ codeBlock {
         <h3 style="margin-bottom: 8px;"><code>entity.ScaleX</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>1.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code></code> for scaling a sprite horizontally.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>entity.Render</code> for scaling a sprite horizontally.</div>
         </p>
         <p id="Reference_fields_entity_ScaleY">
         <h3 style="margin-bottom: 8px;"><code>entity.ScaleY</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>1.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code></code> for scaling a sprite vertically.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>entity.Render</code> for scaling a sprite vertically.</div>
         </p>
         <p id="Reference_fields_entity_Rotation">
         <h3 style="margin-bottom: 8px;"><code>entity.Rotation</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal (radians)</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code></code> for rotating a sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>entity.Render</code> for rotating a sprite.</div>
         </p>
         <p id="Reference_fields_entity_Alpha">
         <h3 style="margin-bottom: 8px;"><code>entity.Alpha</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code></code> for changing the opacity of a sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>entity.Render</code> for changing the opacity of a sprite.</div>
         </p>
         <p id="Reference_fields_entity_BlendMode">
         <h3 style="margin-bottom: 8px;"><code>entity.BlendMode</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>BlendMode_NORMAL</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code></code> for changing the BlendMode of a sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>entity.Render</code> for changing the BlendMode of a sprite.</div>
         </p>
         <p id="Reference_fields_entity_Priority">
         <h3 style="margin-bottom: 8px;"><code>entity.Priority</code></h2>
@@ -11568,39 +11507,7 @@ codeBlock {
         <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
         </p>
-        <p id="Reference_fields_resource_Type">
-        <h3 style="margin-bottom: 8px;"><code>resource.Type</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The <a href="#Reference_RESOURCETYPE_*">resource type</a> of the Resource.</div>
-        </p>
-        <p id="Reference_fields_resource_Filename">
-        <h3 style="margin-bottom: 8px;"><code>resource.Filename</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The filename of the Resource.</div>
-        </p>
-        <p id="Reference_fields_resource_Loaded">
-        <h3 style="margin-bottom: 8px;"><code>resource.Loaded</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Whether the Resource is loaded or not.</div>
-        </p>
-        <p id="Reference_fields_resource_Scope">
-        <h3 style="margin-bottom: 8px;"><code>resource.Scope</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The scope of the Resource.</div>
-        </p>
-        <p id="Reference_fields_resource_Data">
-        <h3 style="margin-bottom: 8px;"><code>resource.Data</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The Resourceable owned by this resource.</div>
-        </p>
-        <p id="Reference_fields_imageresource_Width">
-        <h3 style="margin-bottom: 8px;"><code>imageresource.Width</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The width of the image.</div>
-        </p>
-        <p id="Reference_fields_imageresource_Height">
-        <h3 style="margin-bottom: 8px;"><code>imageresource.Height</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The height of the image.</div>
-        </p>
-        <p id="Reference_fields_audioresource_LoopPoint">
-        <h3 style="margin-bottom: 8px;"><code>audioresource.LoopPoint</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The loop point of the audio in samples, or <code>null</code> if it doesn't have one.</div>
-        </p>
-        <p>86 out of 90 fields have descriptions. </p>
+        <p>78 out of 82 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">
@@ -13115,6 +13022,5 @@ codeBlock {
         </p>
         <p>13 out of 13 globals have descriptions. </p>
         <hr/>
-
-  </body>
+    </body>
 </html>

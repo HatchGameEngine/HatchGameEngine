@@ -143,19 +143,27 @@ Uint32 ScriptManager::GetBranchLimit() {
 }
 #endif
 void ScriptManager::Dispose() {
-	Globals->Clear();
-	Globals = nullptr;
-	delete Globals;
+	if (Globals) {
+		Globals->Clear();
+		Globals = nullptr;
+		delete Globals;
+	}
 
-	Constants->Clear();
-	Constants = nullptr;
-	delete Constants;
+	if (Constants) {
+		Constants->Clear();
+		Constants = nullptr;
+		delete Constants;
+	}
 
 	ClassImplList.clear();
 	AllNamespaces.clear();
 
-	Threads[0].FrameCount = 0;
-	Threads[0].ResetStack();
+	if (ThreadCount) {
+		Threads[0].FrameCount = 0;
+		Threads[0].ResetStack();
+	}
+	ThreadCount = 0;
+
 	ForceGarbageCollection();
 
 	if (Sources) {

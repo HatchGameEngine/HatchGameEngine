@@ -76,6 +76,37 @@ bool StringUtils::StartsWith(std::string string, std::string compare) {
 
 	return memcmp(string.c_str(), compare.c_str(), cmpLen) == 0;
 }
+bool StringUtils::StartsWithCaseInsensitive(const char* string, const char* compare) {
+	size_t cmpLen = strlen(compare);
+	if (strlen(string) < cmpLen) {
+		return false;
+	}
+
+	for (size_t i = 0; i < cmpLen; i++) {
+		if (tolower(string[i]) != tolower(compare[i])) {
+			return false;
+		}
+	}
+
+	return true;
+}
+bool StringUtils::StartsWithCaseInsensitive(std::string string, std::string compare) {
+	size_t cmpLen = compare.size();
+	if (string.size() < cmpLen) {
+		return false;
+	}
+
+	const char* a = string.c_str();
+	const char* b = compare.c_str();
+
+	for (size_t i = 0; i < cmpLen; i++) {
+		if (tolower(a[i]) != tolower(b[i])) {
+			return false;
+		}
+	}
+
+	return true;
+}
 char* StringUtils::StrCaseStr(const char* haystack, const char* needle) {
 	if (!needle[0]) {
 		return (char*)haystack;
@@ -418,4 +449,23 @@ int StringUtils::DecodeUTF8Char(const char* chr, int& numBytes) {
 	}
 
 	return -1;
+}
+
+// Handles UTF-8 text and obtains UCS codepoints
+std::vector<Uint32> StringUtils::GetCodepoints(const char* text) {
+	size_t textLength = strlen(text);
+
+	std::vector<Uint32> codepoints;
+	codepoints.reserve(textLength);
+
+	for (size_t i = 0; i < textLength;) {
+		int numBytes = 1;
+		int decoded = StringUtils::DecodeUTF8Char(&text[i], numBytes);
+
+		codepoints.push_back((Uint32)decoded);
+
+		i += numBytes;
+	}
+
+	return codepoints;
 }

@@ -26,6 +26,11 @@ void GarbageCollector::Init() {
 }
 
 void GarbageCollector::Collect() {
+	// Nothing to do
+	if (!RootObject) {
+		return;
+	}
+
 	GrayList.clear();
 
 	double grayElapsed = Clock::GetTicks();

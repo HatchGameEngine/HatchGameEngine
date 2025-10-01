@@ -144,6 +144,7 @@ public:
 	bool IsValidCodepoint(Uint32 codepoint);
 	bool HasGlyph(Uint32 codepoint);
 	bool RequestGlyph(Uint32 codepoint);
+	float GetGlyphAdvance(Uint32 codepoint);
 	float GetEllipsisWidth();
 	void Update();
 
