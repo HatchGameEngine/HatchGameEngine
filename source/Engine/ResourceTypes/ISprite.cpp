@@ -4,12 +4,9 @@
 #include <Engine/Error.h>
 #include <Engine/Graphics.h>
 
-#include <Engine/ResourceTypes/ImageFormats/GIF.h>
-#include <Engine/ResourceTypes/ImageFormats/JPEG.h>
-#include <Engine/ResourceTypes/ImageFormats/PNG.h>
+#include <Engine/ResourceTypes/Image.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 
-#include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 
@@ -19,20 +16,23 @@
 #include <Engine/Utilities/StringUtils.h>
 
 ISprite::ISprite() {
+	Type = RESOURCE_SPRITE;
+	Loaded = true;
+
 	Spritesheets.clear();
 	Spritesheets.shrink_to_fit();
 	SpritesheetFilenames.clear();
 	SpritesheetFilenames.shrink_to_fit();
-	LoadFailed = true;
-	Filename = nullptr;
 }
 ISprite::ISprite(const char* filename) {
+	Type = RESOURCE_SPRITE;
+
 	Spritesheets.clear();
 	Spritesheets.shrink_to_fit();
 	SpritesheetFilenames.clear();
 	SpritesheetFilenames.shrink_to_fit();
-	Filename = StringUtils::NormalizePath(filename);
-	LoadFailed = !LoadAnimation(Filename);
+
+	Loaded = LoadAnimation(filename);
 }
 
 size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
@@ -50,17 +50,12 @@ size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
 }
 
 Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
-	Texture* texture = NULL;
-	Uint32* data = NULL;
-	Uint32 width = 0;
-	Uint32 height = 0;
-	Uint32* paletteColors = NULL;
-	unsigned numPaletteColors = 0;
-
 	char* filename = StringUtils::NormalizePath(sheetFilename);
 
 	std::string sheetPath = std::string(filename);
 
+	// Check to see if this spritesheet is already loaded.
+	// TODO: Just use image Resources for this somehow?
 	TextureReference* textureRef = Graphics::GetSpriteSheet(sheetPath);
 	if (textureRef != nullptr) {
 		SpritesheetFilenames.push_back(sheetPath);
@@ -69,117 +64,13 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 		return textureRef->TexturePtr;
 	}
 
-	float loadDelta = 0.0f;
-	if (StringUtils::StrCaseStr(filename, ".png")) {
-		Clock::Start();
-		PNG* png = PNG::Load(filename);
-		loadDelta = Clock::End();
-
-		if (png && png->Data) {
-			Log::Print(Log::LOG_VERBOSE,
-				"PNG load took %.3f ms (%s)",
-				loadDelta,
-				filename);
-			width = png->Width;
-			height = png->Height;
-
-			data = png->Data;
-			Memory::Track(data, "Texture::Data");
-
-			if (png->Paletted) {
-				paletteColors = png->GetPalette();
-				numPaletteColors = png->NumPaletteColors;
-			}
-
-			delete png;
-		}
-		else {
-			Log::Print(Log::LOG_ERROR, "PNG could not be loaded!");
-			Memory::Free(filename);
-			return NULL;
-		}
+	// Wasn't loaded before, so do it now.
+	Texture* texture = Image::LoadTextureFromResource(filename);
+	if (texture) {
+		Graphics::AddSpriteSheet(sheetPath, texture);
+		Spritesheets.push_back(texture);
+		SpritesheetFilenames.push_back(sheetPath);
 	}
-	else if (StringUtils::StrCaseStr(filename, ".jpg") ||
-		StringUtils::StrCaseStr(filename, ".jpeg")) {
-		Clock::Start();
-		JPEG* jpeg = JPEG::Load(filename);
-		loadDelta = Clock::End();
-
-		if (jpeg && jpeg->Data) {
-			Log::Print(Log::LOG_VERBOSE,
-				"JPEG load took %.3f ms (%s)",
-				loadDelta,
-				filename);
-			width = jpeg->Width;
-			height = jpeg->Height;
-
-			data = jpeg->Data;
-			Memory::Track(data, "Texture::Data");
-
-			delete jpeg;
-		}
-		else {
-			Log::Print(Log::LOG_ERROR, "JPEG could not be loaded!");
-			Memory::Free(filename);
-			return NULL;
-		}
-	}
-	else if (StringUtils::StrCaseStr(filename, ".gif")) {
-		Clock::Start();
-		GIF* gif = GIF::Load(filename);
-		loadDelta = Clock::End();
-
-		if (gif && gif->Data) {
-			Log::Print(Log::LOG_VERBOSE,
-				"GIF load took %.3f ms (%s)",
-				loadDelta,
-				filename);
-			width = gif->Width;
-			height = gif->Height;
-
-			data = gif->Data;
-			Memory::Track(data, "Texture::Data");
-
-			if (gif->Paletted) {
-				paletteColors = gif->GetPalette();
-				numPaletteColors = gif->NumPaletteColors;
-			}
-
-			delete gif;
-		}
-		else {
-			Log::Print(Log::LOG_ERROR, "GIF could not be loaded!");
-			Memory::Free(filename);
-			return NULL;
-		}
-	}
-	else {
-		Log::Print(Log::LOG_ERROR, "Unsupported image format for sprite!");
-		Memory::Free(filename);
-		return texture;
-	}
-
-	bool forceSoftwareTextures = false;
-	Application::Settings->GetBool("display", "forceSoftwareTextures", &forceSoftwareTextures);
-	if (forceSoftwareTextures) {
-		Graphics::NoInternalTextures = true;
-	}
-
-	texture = Graphics::CreateTextureFromPixels(width, height, data, width * sizeof(Uint32));
-
-	if (texture == NULL) {
-		Error::Fatal("Couldn't create sprite sheet texture!");
-	}
-
-	Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
-
-	Graphics::NoInternalTextures = false;
-
-	Memory::Free(data);
-
-	Graphics::AddSpriteSheet(sheetPath, texture);
-	Spritesheets.push_back(texture);
-	SpritesheetFilenames.push_back(sheetPath);
 
 	Memory::Free(filename);
 
@@ -281,6 +172,9 @@ void ISprite::ConvertToPalette(unsigned paletteNumber) {
 	}
 }
 
+bool ISprite::IsFile(Stream* stream) {
+	return stream->ReadUInt32() == 0x00525053;
+}
 bool ISprite::LoadAnimation(const char* filename) {
 	char* str;
 	int animationCount, previousAnimationCount;
@@ -300,7 +194,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 	/// =======================
 
 	// Check MAGIC
-	if (reader->ReadUInt32() != 0x00525053) {
+	if (!IsFile(reader)) {
 		reader->Close();
 		return false;
 	}
@@ -554,7 +448,11 @@ bool ISprite::SaveAnimation(const char* filename) {
 	return true;
 }
 
-void ISprite::Dispose() {
+void ISprite::Unload() {
+	if (!Loaded) {
+		return;
+	}
+
 	for (size_t a = 0; a < Animations.size(); a++) {
 		for (size_t i = 0; i < Animations[a].Frames.size(); i++) {
 			AnimFrame* anfrm = &Animations[a].Frames[i];
@@ -592,10 +490,9 @@ void ISprite::Dispose() {
 
 	Graphics::DeleteFrameBufferID(this);
 
-	Memory::Free(Filename);
-	Filename = nullptr;
+	Loaded = false;
 }
 
 ISprite::~ISprite() {
-	Dispose();
+	Unload();
 }

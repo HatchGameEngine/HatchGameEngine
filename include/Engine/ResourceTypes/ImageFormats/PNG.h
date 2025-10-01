@@ -7,7 +7,7 @@
 
 class PNG : public ImageFormat {
 public:
-	static PNG* Load(const char* filename);
+	static PNG* Load(Stream* stream);
 	void ReadPixelDataARGB(Uint32* pixelData, int num_channels);
 	void ReadPixelBitstream(Uint8* pixelData, size_t bit_depth);
 	static bool Save(PNG* png, const char* filename);

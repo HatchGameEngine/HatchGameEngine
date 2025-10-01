@@ -1,6 +1,8 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/ResourceTypes/Resource.h>
+#include <Engine/ResourceTypes/ResourceType.h>
 
 const char* Value::GetObjectTypeName(Uint32 type) {
 	switch (type) {
@@ -34,6 +36,10 @@ const char* Value::GetObjectTypeName(Uint32 type) {
 		return "enum";
 	case OBJ_MODULE:
 		return "module";
+	case OBJ_RESOURCE:
+		return "resource";
+	case OBJ_RESOURCEABLE:
+		return "resourceable";
 	}
 
 	return "unknown object type";
@@ -49,10 +55,18 @@ const char* Value::GetObjectTypeName(ObjClass* klass) {
 
 const char* Value::GetObjectTypeName(VMValue value) {
 	Obj* object = AS_OBJECT(value);
+
+	if (object->Type == OBJ_RESOURCE) {
+		void* resourcePtr = ((ObjResource*)object)->ResourcePtr;
+		ResourceType* resource = (ResourceType*)resourcePtr;
+		return GetResourceTypeString(resource->Type);
+	}
+
 	const char* printableName = TypeImpl::GetPrintableName(object->Class);
 	if (printableName != nullptr) {
 		return printableName;
 	}
+
 	return GetObjectTypeName(OBJECT_TYPE(value));
 }
 
@@ -82,6 +96,10 @@ const char* Value::GetPrintableObjectName(VMValue value) {
 		return AS_NAMESPACE(value)->Name ? AS_NAMESPACE(value)->Name->Chars : "(null)";
 	case OBJ_STRING:
 		return AS_CSTRING(value);
+	case OBJ_RESOURCE: {
+		ResourceType* resource = (ResourceType*)AS_RESOURCE(value)->ResourcePtr;
+		return resource->Filename;
+	}
 	default:
 		return nullptr;
 	}
@@ -184,6 +202,13 @@ bool Value::SortaEqual(VMValue a, VMValue b) {
 		ObjBoundMethod* bbm = AS_BOUND_METHOD(b);
 		return Value::ExactlyEqual(abm->Receiver, bbm->Receiver) &&
 			abm->Method == bbm->Method;
+	}
+
+	if (IS_RESOURCE(a) && IS_RESOURCEABLE(b)) {
+		return Resource::CompareVMObjects(AS_OBJECT(a), AS_OBJECT(b));
+	}
+	else if (IS_RESOURCEABLE(a) && IS_RESOURCE(b)) {
+		return Resource::CompareVMObjects(AS_OBJECT(b), AS_OBJECT(a));
 	}
 
 	return Value::Equal(a, b);
