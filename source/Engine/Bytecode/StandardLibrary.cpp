@@ -602,8 +602,7 @@ float textAdvance;
 		return NULL_VAL; \
 	}
 
-#define OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) \
-	THROW_ERROR(eType " %d out of range. (%d - %d)", eIdx, eMin, eMax)
+#define OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) VM_OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax)
 
 #define CHECK_PALETTE_INDEX(index) \
 	if (index < 0 || index >= MAX_PALETTE_COUNT) { \
@@ -796,7 +795,7 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	animator->Frames = frames;
 	animator->AnimationTimer = 0;
 	animator->CurrentFrame = frameID;
-	animator->FrameCount = anim.FrameCount;
+	animator->FrameCount = anim.Frames.size();
 	animator->Duration = animator->Frames[frameID].Duration;
 	animator->AnimationSpeed = anim.AnimationSpeed;
 	animator->RotationStyle = anim.Flags;

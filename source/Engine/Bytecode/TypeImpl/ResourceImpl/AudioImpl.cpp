@@ -1,14 +1,11 @@
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/ResourceableImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 ObjClass* AudioImpl::Class = nullptr;
 
 Uint32 Hash_LoopPoint = 0;
-
-#define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
-
-#define GET_RESOURCEABLE(object) (Resourceable*)(((ObjResourceable*)object)->ResourceablePtr)
 
 void AudioImpl::Init() {
 	Class = NewClass("AudioResource");
@@ -30,7 +27,7 @@ bool AudioImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 
 	Resourceable* resourceable = object ? GET_RESOURCEABLE(object) : nullptr;
 	if (!resourceable || !resourceable->IsLoaded()) {
-		THROW_ERROR("Audio is no longer loaded!");
+		VM_THROW_ERROR("Audio is no longer loaded!");
 		return true;
 	}
 
@@ -60,7 +57,7 @@ bool AudioImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 t
 
 	Resourceable* resourceable = object ? GET_RESOURCEABLE(object) : nullptr;
 	if (!resourceable || !resourceable->IsLoaded()) {
-		THROW_ERROR("Audio is no longer loaded!");
+		VM_THROW_ERROR("Audio is no longer loaded!");
 		return true;
 	}
 

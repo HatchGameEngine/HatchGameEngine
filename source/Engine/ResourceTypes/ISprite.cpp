@@ -269,11 +269,11 @@ bool ISprite::LoadAnimation(const char* filename) {
 
 	// Load animations
 	int frameID = 0;
+	int frameCount;
 	for (int a = 0; a < animationCount; a++) {
 		Animation an;
 		an.Name = reader->ReadHeaderedString();
-		an.FrameCount = reader->ReadUInt16();
-		an.FrameListOffset = frameID;
+		frameCount = reader->ReadUInt16();
 		an.AnimationSpeed = reader->ReadUInt16();
 		an.FrameToLoop = reader->ReadByte();
 
@@ -293,12 +293,12 @@ bool ISprite::LoadAnimation(const char* filename) {
 			an.Flags,
 			an.FrameToLoop,
 			an.AnimationSpeed,
-			an.FrameCount);
+			frameCount);
 #endif
 
-		an.Frames.resize(an.FrameCount);
+		an.Frames.resize(frameCount);
 
-		for (int i = 0; i < an.FrameCount; i++) {
+		for (int i = 0; i < frameCount; i++) {
 			AnimFrame anfrm;
 			anfrm.SheetNumber = reader->ReadByte();
 			frameID++;

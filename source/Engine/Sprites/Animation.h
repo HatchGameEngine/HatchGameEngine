@@ -28,8 +28,6 @@ struct Animation {
 	int FrameToLoop;
 	int Flags;
 	vector<AnimFrame> Frames;
-	int FrameListOffset;
-	int FrameCount;
 };
 
 enum {

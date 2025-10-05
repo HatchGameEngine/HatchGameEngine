@@ -15,8 +15,6 @@ Uint32 Hash_Loaded = 0;
 Uint32 Hash_Scope = 0;
 Uint32 Hash_Data = 0;
 
-#define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
-
 void ResourceImpl::Init() {
 	Class = NewClass(CLASS_RESOURCE);
 	Class->NewFn = New;
@@ -180,7 +178,7 @@ bool ResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint3
 
 	if (hash == Hash_Type || hash == Hash_Filename || hash == Hash_Loaded ||
 		hash == Hash_Scope || hash == Hash_Data) {
-		THROW_ERROR("Field cannot be written to!");
+		VM_THROW_ERROR("Field cannot be written to!");
 		return true;
 	}
 	else if (objResource->SetFieldForData) {

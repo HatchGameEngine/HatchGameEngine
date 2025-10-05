@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/TypeImpl/ResourceableImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 
@@ -15,6 +16,7 @@ void ResourceableImpl::Init() {
 
 	AudioImpl::Init();
 	ImageImpl::Init();
+	SpriteImpl::Init();
 }
 
 void* ResourceableImpl::New(void* ptr) {
@@ -33,8 +35,9 @@ void* ResourceableImpl::New(void* ptr) {
 
 	Resourceable* resourceable = (Resourceable*)ptr;
 	switch (resourceable->Type) {
-	CASE(IMAGE, Image);
 	CASE(AUDIO, Audio);
+	CASE(IMAGE, Image);
+	CASE(SPRITE, Sprite);
 	default:
 		break;
 	}
@@ -50,8 +53,9 @@ ValueGetFn ResourceableImpl::GetGetter(Uint8 type) {
 		return className##Impl::VM_PropertyGet \
 
 	switch (type) {
-	CASE(IMAGE, Image);
 	CASE(AUDIO, Audio);
+	CASE(IMAGE, Image);
+	CASE(SPRITE, Sprite);
 	default:
 		return nullptr;
 	}
@@ -64,8 +68,9 @@ ValueSetFn ResourceableImpl::GetSetter(Uint8 type) {
 		return className##Impl::VM_PropertySet \
 
 	switch (type) {
-	CASE(IMAGE, Image);
 	CASE(AUDIO, Audio);
+	CASE(IMAGE, Image);
+	CASE(SPRITE, Sprite);
 	default:
 		return nullptr;
 	}

@@ -397,6 +397,10 @@ Obj* NewNativeInstance(size_t size);
 bool ValuesEqual(VMValue a, VMValue b);
 Uint32 GetClassHash(const char* name);
 
+#define VM_THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
+#define VM_OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) \
+	VM_THROW_ERROR(eType " %d out of range. (%d - %d)", eIdx, eMin, eMax)
+
 static inline bool IsObjectType(VMValue value, ObjType type) {
 	return IS_OBJECT(value) && AS_OBJECT(value)->Type == type;
 }
