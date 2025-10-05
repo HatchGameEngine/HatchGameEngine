@@ -189,12 +189,24 @@ VMValue EntityImpl::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID
 		return NULL_VAL;
 	}
 
-	if (!(animation >= 0 && (size_t)animation < sprite->Animations.size())) {
+	size_t numAnimations = sprite->Animations.size();
+	if (numAnimations == 0) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite has no animations!");
+		return NULL_VAL;
+	}
+	else if (animation < 0 || (size_t)animation >= numAnimations) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
-	if (!(frame >= 0 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
+
+	size_t numFrames = sprite->Animations[animation].Frames.size();
+	if (numFrames == 0) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Animation %d has no frames!", animation);
+		return NULL_VAL;
+	}
+	else if (frame < 0 || (size_t)frame >= numFrames) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;
@@ -233,12 +245,24 @@ VMValue EntityImpl::VM_ResetAnimation(int argCount, VMValue* args, Uint32 thread
 		return NULL_VAL;
 	}
 
-	if (!(animation >= 0 && (Uint32)animation < sprite->Animations.size())) {
+	size_t numAnimations = sprite->Animations.size();
+	if (numAnimations == 0) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite has no animations!");
+		return NULL_VAL;
+	}
+	else if (animation < 0 || (size_t)animation >= numAnimations) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
-	if (!(frame >= 0 && (Uint32)frame < sprite->Animations[animation].Frames.size())) {
+
+	size_t numFrames = sprite->Animations[animation].Frames.size();
+	if (numFrames == 0) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Animation %d has no frames!", animation);
+		return NULL_VAL;
+	}
+	else if (frame < 0 || (size_t)frame >= numFrames) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;

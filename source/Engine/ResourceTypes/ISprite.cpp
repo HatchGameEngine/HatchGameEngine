@@ -84,9 +84,7 @@ void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop
 	size_t strl = strlen(name);
 
 	Animation an;
-	an.Name = (char*)Memory::Malloc(strl + 1);
-	strcpy(an.Name, name);
-	an.Name[strl] = 0;
+	an.Name = StringUtils::Duplicate(name);
 	an.AnimationSpeed = animationSpeed;
 	an.FrameToLoop = frameToLoop;
 	an.Flags = 0;
@@ -152,7 +150,11 @@ void ISprite::AddFrame(int animID,
 
 	Animations[animID].Frames.push_back(anfrm);
 }
-void ISprite::RemoveFrames(int animID) {
+void ISprite::RemoveFrame(int animID, int frameID) {
+	Animations[animID].Frames.erase(Animations[animID].Frames.begin() + frameID);
+	FrameCount--;
+}
+void ISprite::RemoveAllFrames(int animID) {
 	FrameCount -= Animations[animID].Frames.size();
 	Animations[animID].Frames.clear();
 }
@@ -466,7 +468,7 @@ void ISprite::Unload() {
 			Animations[a].Name = NULL;
 		}
 
-		RemoveFrames(a);
+		RemoveAllFrames(a);
 
 		Animations[a].Frames.clear();
 		Animations[a].Frames.shrink_to_fit();

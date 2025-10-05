@@ -52,7 +52,8 @@ public:
 		int pivotY,
 		int id,
 		int sheetNumber);
-	void RemoveFrames(int animID);
+	void RemoveFrame(int animID, int frameID);
+	void RemoveAllFrames(int animID);
 	void RefreshGraphicsID();
 	void ConvertToRGBA();
 	void ConvertToPalette(unsigned paletteNumber);

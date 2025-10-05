@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/TypeImpl/FontImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
@@ -15211,18 +15212,6 @@ VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Sprite
-#define CHECK_ANIMATION_INDEX(idx) \
-	if (idx < 0 || idx >= (int)sprite->Animations.size()) { \
-		OUT_OF_RANGE_ERROR("Animation index", idx, 0, sprite->Animations.size() - 1); \
-		return NULL_VAL; \
-	}
-#define CHECK_ANIMFRAME_INDEX(anim, idx) \
-	CHECK_ANIMATION_INDEX(anim); \
-	if (idx < 0 || idx >= (int)sprite->Animations[anim].Frames.size()) { \
-		OUT_OF_RANGE_ERROR( \
-			"Frame index", idx, 0, sprite->Animations[anim].Frames.size() - 1); \
-		return NULL_VAL; \
-	}
 /***
  * Sprite.GetAnimationCount
  * \desc Gets the amount of animations in the sprite.
@@ -15247,14 +15236,7 @@ VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Sprite_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int index = GET_ARG(1, GetInteger);
-	if (!sprite) {
-		return NULL_VAL;
-	}
-	CHECK_ANIMATION_INDEX(index);
-	return ReturnString(sprite->Animations[index].Name);
+	return SpriteImpl_GetAnimationName(argCount, args, threadID);
 }
 /***
  * Sprite.GetAnimationIndexByName
@@ -15307,14 +15289,7 @@ VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMATION_INDEX(animation);
-	return INTEGER_VAL(sprite->Animations[animation].FrameToLoop);
+	return SpriteImpl_GetAnimationLoopIndex(argCount, args, threadID);
 }
 /***
  * Sprite.GetFrameCount
@@ -15325,14 +15300,7 @@ VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMATION_INDEX(animation);
-	return INTEGER_VAL((int)sprite->Animations[animation].Frames.size());
+	return SpriteImpl_GetAnimationFrameCount(argCount, args, threadID);
 }
 /***
  * Sprite.GetFrameDuration
@@ -15344,15 +15312,7 @@ VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Duration);
+	return SpriteImpl_GetFrameDuration(argCount, args, threadID);
 }
 /***
  * Sprite.GetFrameSpeed
@@ -15363,14 +15323,7 @@ VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMATION_INDEX(animation);
-	return INTEGER_VAL(sprite->Animations[animation].AnimationSpeed);
+	return SpriteImpl_GetAnimationSpeed(argCount, args, threadID);
 }
 /***
  * Sprite.GetFrameWidth
@@ -15382,15 +15335,7 @@ VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Width);
+	return SpriteImpl_GetFrameWidth(argCount, args, threadID);
 }
 /***
  * Sprite.GetFrameHeight
@@ -15402,15 +15347,7 @@ VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Height);
+	return SpriteImpl_GetFrameHeight(argCount, args, threadID);
 }
 /***
  * Sprite.GetFrameID
@@ -15422,15 +15359,7 @@ VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Advance);
+	return SpriteImpl_GetFrameID(argCount, args, threadID);
 }
 /***
  * Sprite.GetFrameOffsetX
@@ -15442,15 +15371,7 @@ VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetX);
+	return SpriteImpl_GetFrameOffsetX(argCount, args, threadID);
 }
 /***
  * Sprite.GetFrameOffsetY
@@ -15462,15 +15383,7 @@ VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetY);
+	return SpriteImpl_GetFrameOffsetY(argCount, args, threadID);
 }
 /***
  * Sprite.GetHitbox
@@ -15488,8 +15401,15 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	int frameID = GET_ARG(2, GetInteger);
 	int hitboxID = GET_ARG_OPT(3, GetInteger, 0);
 
-	CHECK_ANIMATION_INDEX(animationID);
-	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+	if (animationID < 0 || animationID >= (int)sprite->Animations.size()) {
+		OUT_OF_RANGE_ERROR("Animation index", animationID, 0, sprite->Animations.size() - 1);
+		return NULL_VAL;
+	}
+	if (frameID < 0 || frameID >= (int)sprite->Animations[animationID].Frames.size()) {
+		OUT_OF_RANGE_ERROR(
+			"Frame index", frameID, 0, sprite->Animations[animationID].Frames.size() - 1);
+		return NULL_VAL;
+	}
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
@@ -15538,8 +15458,6 @@ VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
 	}
 	return NULL_VAL;
 }
-#undef CHECK_ANIMATION_INDEX
-#undef CHECK_ANIMFRAME_INDEX
 // #endregion
 
 // #region Stream

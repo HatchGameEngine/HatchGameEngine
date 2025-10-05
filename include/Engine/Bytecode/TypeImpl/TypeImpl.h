@@ -4,8 +4,12 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
-#define GET_STRING_HASH(str) \
-	Hash_##str = Murmur::EncryptString(#str)
+#define GET_STRING_HASH(fieldName) \
+	Hash_##fieldName = Murmur::EncryptString(#fieldName)
+
+#define CHECK_VALID_FIELD(fieldName) \
+	if (hash == Hash_##fieldName) \
+		return true
 
 #define DEF_CLASS_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(Class, #funcName, className##_##funcName)

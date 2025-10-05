@@ -6,12 +6,12 @@
 
 ObjClass* SpriteImpl::Class = nullptr;
 
-Uint32 Hash_NumAnimations = 0;
+Uint32 Hash_AnimationCount = 0;
 
 void SpriteImpl::Init() {
 	Class = NewClass("SpriteResource");
 
-	GET_STRING_HASH(NumAnimations);
+	GET_STRING_HASH(AnimationCount);
 
 	AddNatives();
 
@@ -20,7 +20,9 @@ void SpriteImpl::Init() {
 }
 
 bool SpriteImpl::IsValidField(Uint32 hash) {
-	return hash == Hash_NumAnimations;
+	CHECK_VALID_FIELD(AnimationCount);
+
+	return false;
 }
 
 #define CHECK_EXISTS(ptr) \
@@ -40,11 +42,11 @@ bool SpriteImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 	ISprite* sprite = (ISprite*)resourceable;
 
 	/***
-	 * \field NumAnimations
+	 * \field AnimationCount
 	 * \desc The amount of animations in the sprite.
 	 * \ns SpriteResource
  	*/
-	if (hash == Hash_NumAnimations) {
+	if (hash == Hash_AnimationCount) {
 		*result = INTEGER_VAL((int)sprite->Animations.size());
 	}
 
@@ -59,7 +61,7 @@ bool SpriteImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 	Resourceable* resourceable = object ? GET_RESOURCEABLE(object) : nullptr;
 	CHECK_EXISTS(resourceable);
 
-	if (hash == Hash_NumAnimations) {
+	if (hash == Hash_AnimationCount) {
 		VM_THROW_ERROR("Field cannot be written to!");
 		return true;
 	}
@@ -73,6 +75,9 @@ bool SpriteImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
 #define CHECK_ANIMATION_INDEX(idx) \
+	if (sprite->Animations.size() == 0) { \
+		throw ScriptException("Sprite has no animations!"); \
+	} \
 	if (idx < 0 || idx >= (int)sprite->Animations.size()) { \
 		VM_OUT_OF_RANGE_ERROR("Animation index", idx, 0, sprite->Animations.size() - 1); \
 		return NULL_VAL; \
@@ -92,8 +97,7 @@ bool SpriteImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 		return NULL_VAL; \
 	} \
 	if (!ptr->IsLoaded()) { \
-		VM_THROW_ERROR("Sprite is no longer loaded!"); \
-		return NULL_VAL; \
+		throw ScriptException("Sprite is no longer loaded!"); \
 	}
 
 VMValue SpriteImpl_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
@@ -163,10 +167,186 @@ VMValue SpriteImpl_GetAnimationFrameCount(int argCount, VMValue* args, Uint32 th
 	return INTEGER_VAL((int)sprite->Animations[index].Frames.size());
 }
 
+#define GET_FRAME_PROPERTY(property) { \
+	StandardLibrary::CheckArgCount(argCount, 3); \
+	ISprite* sprite = GET_ARG(0, GetSprite); \
+	CHECK_EXISTS(sprite); \
+	int animation = GET_ARG(1, GetInteger); \
+	int frame = GET_ARG(2, GetInteger); \
+	CHECK_ANIMFRAME_INDEX(animation, frame); \
+	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].property); \
+}
+
+VMValue SpriteImpl_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(Width);
+}
+VMValue SpriteImpl_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(Height);
+}
+VMValue SpriteImpl_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(OffsetX);
+}
+VMValue SpriteImpl_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(OffsetY);
+}
+VMValue SpriteImpl_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(Duration);
+}
+VMValue SpriteImpl_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(Advance);
+}
+
+VMValue SpriteImpl_AddAnimation(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	CHECK_EXISTS(sprite);
+
+	char* name = GET_ARG(1, GetString);
+	if (name) {
+		sprite->AddAnimation(name, 1, 0);
+		sprite->RefreshGraphicsID();
+
+		return INTEGER_VAL((int)sprite->Animations.size() - 1);
+	}
+
+	return NULL_VAL;
+}
+VMValue SpriteImpl_RemoveAnimation(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	CHECK_EXISTS(sprite);
+
+	int index = GET_ARG(1, GetInteger);
+	CHECK_ANIMATION_INDEX(index);
+
+	sprite->Animations.erase(sprite->Animations.begin() + index);
+	sprite->RefreshGraphicsID();
+
+	return NULL_VAL;
+}
+
+VMValue SpriteImpl_AddFrame(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 6);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	CHECK_EXISTS(sprite);
+
+	int index = GET_ARG(1, GetInteger);
+	CHECK_ANIMATION_INDEX(index);
+
+	int frameX = GET_ARG(2, GetInteger);
+	int frameY = GET_ARG(3, GetInteger);
+	int frameWidth = GET_ARG(4, GetInteger);
+	int frameHeight = GET_ARG(5, GetInteger);
+
+	// TODO: Add optional arguments
+	int frameOffsetX = 0;
+	int frameOffsetY = 0;
+	int frameDuration = 1;
+	int frameSheetNumber = 0;
+	int frameID = 0;
+
+	size_t numSpritesheets = sprite->Spritesheets.size();
+	if (numSpritesheets == 0) {
+		throw ScriptException("Cannot add a frame to a sprite without any spritesheets!");
+	}
+	else if (frameSheetNumber < 0 || frameSheetNumber >= (int)numSpritesheets) {
+		VM_OUT_OF_RANGE_ERROR("Frame spritesheet", frameSheetNumber, 0, numSpritesheets - 1);
+		return NULL_VAL;
+	}
+
+	Texture* sheet = sprite->Spritesheets[frameSheetNumber];
+	if (frameX < 0 || frameX >= sheet->Width) {
+		VM_OUT_OF_RANGE_ERROR("Frame X", frameX, 0, sheet->Width - 1);
+		return NULL_VAL;
+	}
+	if (frameY < 0 || frameY >= sheet->Height) {
+		VM_OUT_OF_RANGE_ERROR("Frame Y", frameY, 0, sheet->Height - 1);
+		return NULL_VAL;
+	}
+
+	int maxFrameWidth = sheet->Width - frameX;
+	int maxFrameHeight = sheet->Height - frameY;
+	if (frameWidth < 0 || frameWidth > maxFrameWidth) {
+		VM_OUT_OF_RANGE_ERROR("Frame width", frameWidth, 0, maxFrameWidth);
+		return NULL_VAL;
+	}
+	if (frameHeight < 0 || frameHeight > maxFrameHeight) {
+		VM_OUT_OF_RANGE_ERROR("Frame height", frameHeight, 0, maxFrameHeight);
+		return NULL_VAL;
+	}
+
+	if (frameDuration < 0) {
+		throw ScriptException("Frame duration cannot be lower than zero.");
+	}
+
+	sprite->AddFrame(index,
+		frameDuration,
+		frameX,
+		frameY,
+		frameWidth,
+		frameHeight,
+		frameOffsetX,
+		frameOffsetY,
+		frameID,
+		frameSheetNumber);
+	sprite->RefreshGraphicsID();
+
+	return INTEGER_VAL((int)sprite->Animations[index].Frames.size() - 1);
+}
+VMValue SpriteImpl_RemoveFrame(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	CHECK_EXISTS(sprite);
+
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
+	CHECK_ANIMFRAME_INDEX(animation, frame);
+
+	sprite->RemoveFrame(animation, frame);
+	sprite->RefreshGraphicsID();
+
+	return NULL_VAL;
+}
+
+#undef GET_FRAME_PROPERTY
+
 void SpriteImpl::AddNatives() {
+	// Getting animation/frame properties
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationName);
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationIndex);
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationSpeed);
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationLoopIndex);
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationFrameCount);
+
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameWidth);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameHeight);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameOffsetX);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameOffsetY);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameDuration);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameID);
+
+#if 0
+	// Setting animation/frame properties
+	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationName);
+	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationSpeed);
+	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationLoopIndex);
+
+	DEF_CLASS_NATIVE(SpriteImpl, SetFrameWidth);
+	DEF_CLASS_NATIVE(SpriteImpl, SetFrameHeight);
+	DEF_CLASS_NATIVE(SpriteImpl, SetFrameOffsetX);
+	DEF_CLASS_NATIVE(SpriteImpl, SetFrameOffsetY);
+	DEF_CLASS_NATIVE(SpriteImpl, SetFrameDuration);
+	DEF_CLASS_NATIVE(SpriteImpl, SetFrameID);
+#endif
+
+	// Adding or removing animations/frames
+	DEF_CLASS_NATIVE(SpriteImpl, AddAnimation);
+	DEF_CLASS_NATIVE(SpriteImpl, RemoveAnimation);
+
+	DEF_CLASS_NATIVE(SpriteImpl, AddFrame);
+	DEF_CLASS_NATIVE(SpriteImpl, RemoveFrame);
 }
