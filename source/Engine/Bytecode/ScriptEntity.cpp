@@ -125,7 +125,7 @@ void ScriptEntity::LinkFields() {
     * \type Decimal
     * \default 1.0
     * \ns Entity
-    * \desc A field that may be used in <linkto ref="entity.Render"></linkto> for scaling a sprite horizontally.
+    * \desc A field that may be used in <code>Render</code> for scaling a sprite horizontally.
     */
 	LINK_DEC(ScaleX);
 	/***
@@ -133,7 +133,7 @@ void ScriptEntity::LinkFields() {
     * \type Decimal
     * \default 1.0
     * \ns Entity
-    * \desc A field that may be used in <linkto ref="entity.Render"></linkto> for scaling a sprite vertically.
+    * \desc A field that may be used in <code>Render</code> for scaling a sprite vertically.
     */
 	LINK_DEC(ScaleY);
 	/***
@@ -141,7 +141,7 @@ void ScriptEntity::LinkFields() {
     * \type Decimal (radians)
     * \default 0.0
     * \ns Entity
-    * \desc A field that may be used in <linkto ref="entity.Render"></linkto> for rotating a sprite.
+    * \desc A field that may be used in <code>Render</code> for rotating a sprite.
     */
 	LINK_DEC(Rotation);
 	/***
@@ -149,7 +149,7 @@ void ScriptEntity::LinkFields() {
     * \type Decimal
     * \default 0.0
     * \ns Entity
-    * \desc A field that may be used in <linkto ref="entity.Render"></linkto> for changing the opacity of a sprite.
+    * \desc A field that may be used in <code>Render</code> for changing the opacity of a sprite.
     */
 	LINK_DEC(Alpha);
 	/***
@@ -157,7 +157,7 @@ void ScriptEntity::LinkFields() {
 	* \type Integer
 	* \default BlendMode_NORMAL
 	* \ns Entity
-	* \desc A field that may be used in <linkto ref="entity.Render"></linkto> for changing the BlendMode of a sprite.
+	* \desc A field that may be used in <code>Render</code> for changing the BlendMode of a sprite.
 	*/
 	LINK_INT(BlendMode);
 	/***

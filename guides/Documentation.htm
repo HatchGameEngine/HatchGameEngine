@@ -1,55 +1,57 @@
 <html>
-    <head>
-        <title>Hatch Game Engine Documentation</title>
-        <style>
-            body {
-                background-color: white;
-                font-family: sans-serif;
-                margin: 64px;
-            }
-            codefrag {
-                display: inline;
-                margin: 0px;
-                font-family: monospace;
-            }
-            a {
-                text-decoration: none;
-                color: #4141F2;
-            }
-            .function_list {
-                font-family: monospace;
-                margin-top: 0.5em;
-            }
-            .function_list li {
-                margin-top: 0.125em;
-                margin-bottom: 0.125em;
-            }
-            code, pre.code {
-                background-color: #f2f2f2;
-                border-radius: 3px;
-                padding: 3px;
-            }
-            codeBlock {
-                background-color: #f2f2f2;
-                border-radius: 3px;
-                padding: 3px;
-                line-height: 100%;
-                word-break: normal;
-                font-family: monospace;
-            }
-        </style>
-    </head>
-    <body>
-        <div style="position: fixed; margin-top: -32px; margin-left: -96px; width: 100%; text-align: right; ">
-            <a href="#Reference_top">Back to top</a>
-        </div>
-        <h1 id="Reference_top">Hatch Game Engine Reference</h1>
-        <h3>Namespaces</h3>
+  <head>
+    <title>Hatch Game Engine Documentation</title>
+    <style>
+    body {
+    background-color: white;
+    font-family: sans-serif;
+    margin: 64px;
+}
+codefrag {
+    display: inline;
+    margin: 0px;
+    font-family: monospace;
+}
+a {
+    text-decoration: none;
+    color: #4141F2;
+}
+.function_list {
+    font-family: monospace;
+    margin-top: 0.5em;
+}
+.function_list li {
+    margin-top: 0.125em;
+    margin-bottom: 0.125em;
+}
+code, pre.code {
+    background-color: #f2f2f2;
+    border-radius: 3px;
+    padding: 3px;
+}
+codeBlock {
+    background-color: #f2f2f2;
+    border-radius: 3px;
+    padding: 3px;
+    line-height: 100%;
+    word-break: normal;
+    font-family: monospace;
+}
+
+    </style>
+  </head>
+  <body>
+    <div style="position: fixed; margin-top: -32px; margin-left: -96px; width: 100%; text-align: right;">
+        <a href="#Reference_top">Back to top</a>
+    </div>
+    <h1 id="Reference_top">Hatch Game Engine Reference</h1>
+            <h3>Namespaces</h3>
         <ul>
             <li><a href="#Reference_Animator">Animator</a></li>
             <li><a href="#Reference_Application">Application</a></li>
             <li><a href="#Reference_Array">Array</a></li>
             <li><a href="#Reference_Audio">Audio</a></li>
+            <li><a href="#Reference_AudioResource">AudioResource</a></li>
             <li><a href="#Reference_Collision">Collision</a></li>
             <li><a href="#Reference_Controller">Controller</a></li>
             <li><a href="#Reference_Date">Date</a></li>
@@ -64,6 +66,7 @@
             <li><a href="#Reference_Geometry">Geometry</a></li>
             <li><a href="#Reference_HTTP">HTTP</a></li>
             <li><a href="#Reference_Image">Image</a></li>
+            <li><a href="#Reference_ImageResource">ImageResource</a></li>
             <li><a href="#Reference_Input">Input</a></li>
             <li><a href="#Reference_Instance">Instance</a></li>
             <li><a href="#Reference_JSON">JSON</a></li>
@@ -77,6 +80,7 @@
             <li><a href="#Reference_RSDK.Math">RSDK.Math</a></li>
             <li><a href="#Reference_RSDK.Matrix">RSDK.Matrix</a></li>
             <li><a href="#Reference_Random">Random</a></li>
+            <li><a href="#Reference_Resource">Resource</a></li>
             <li><a href="#Reference_Resources">Resources</a></li>
             <li><a href="#Reference_Scene">Scene</a></li>
             <li><a href="#Reference_Scene3D">Scene3D</a></li>
@@ -103,7 +107,9 @@
         <ul>
             <li><a href="#Reference_Entity">Entity</a></li>
             <li><a href="#Reference_Font">Font</a></li>
+            <li><a href="#Reference_Resource">Resource</a></li>
             <li><a href="#Reference_Shader">Shader</a></li>
+            <li><a href="#Reference_Sprite">Sprite</a></li>
         </ul>
         <h3>Enums</h3>
         <ul>
@@ -187,8 +193,9 @@
                     <li><a href="#Reference_globals_Scene_ActiveCategory">Scene_ActiveCategory</a></li>
                     <li><a href="#Reference_globals_Scene_DebugMode">Scene_DebugMode</a></li>
         </ul>
-        <hr/>
-        <h3>Class methods</h3>
+
+    <hr/>
+            <h3>Class methods</h3>
             <p id="Reference_Animator">
                 <h2>Animator</h2>
                 <i>Class methods:</i>
@@ -284,6 +291,13 @@
                     <li><a href="#Reference_functions_Audio_SetMasterVolume">Audio.SetMasterVolume</a></li>
                     <li><a href="#Reference_functions_Audio_SetMusicVolume">Audio.SetMusicVolume</a></li>
                     <li><a href="#Reference_functions_Audio_SetSoundVolume">Audio.SetSoundVolume</a></li>
+                </ul>
+            </p>
+            <p id="Reference_AudioResource">
+                <h2>AudioResource</h2>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_audioresource_LoopPoint">audioresource.LoopPoint</a></li>
                 </ul>
             </p>
             <p id="Reference_Collision">
@@ -683,6 +697,14 @@
                     <li><a href="#Reference_functions_Image_GetHeight">Image.GetHeight</a></li>
                 </ul>
             </p>
+            <p id="Reference_ImageResource">
+                <h2>ImageResource</h2>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_imageresource_Width">imageresource.Width</a></li>
+                    <li><a href="#Reference_fields_imageresource_Height">imageresource.Height</a></li>
+                </ul>
+            </p>
             <p id="Reference_Input">
                 <h2>Input</h2>
                 <i>Class methods:</i>
@@ -927,6 +949,28 @@
                     <li><a href="#Reference_functions_Random_GetSeed">Random.GetSeed</a></li>
                     <li><a href="#Reference_functions_Random_Max">Random.Max</a></li>
                     <li><a href="#Reference_functions_Random_Range">Random.Range</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Resource">
+                <h2>Resource</h2>
+                <i>Instance methods:</i>
+                <ul>
+                    <li><a href="#Reference_methods_resource_IsUnique">resource.IsUnique</a></li>
+                    <li><a href="#Reference_methods_resource_MakeUnique">resource.MakeUnique</a></li>
+                    <li><a href="#Reference_methods_resource_Reload">resource.Reload</a></li>
+                    <li><a href="#Reference_methods_resource_Unload">resource.Unload</a></li>
+                </ul>
+                <i>Instance constructors:</i>
+                <ul>
+                    <li><a href="#Reference_constructors_Resource">Resource</a></li>
+                </ul>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_resource_Type">resource.Type</a></li>
+                    <li><a href="#Reference_fields_resource_Filename">resource.Filename</a></li>
+                    <li><a href="#Reference_fields_resource_Loaded">resource.Loaded</a></li>
+                    <li><a href="#Reference_fields_resource_Scope">resource.Scope</a></li>
+                    <li><a href="#Reference_fields_resource_Data">resource.Data</a></li>
                 </ul>
             </p>
             <p id="Reference_Resources">
@@ -1181,21 +1225,29 @@
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_Sprite_GetAnimationCount">Sprite.GetAnimationCount</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetAnimationName">Sprite.GetAnimationName</a></li>
                     <li><a href="#Reference_functions_Sprite_GetAnimationIndexByName">Sprite.GetAnimationIndexByName</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameExists">Sprite.GetFrameExists</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameLoopIndex">Sprite.GetFrameLoopIndex</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameCount">Sprite.GetFrameCount</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameDuration">Sprite.GetFrameDuration</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameSpeed">Sprite.GetFrameSpeed</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameWidth">Sprite.GetFrameWidth</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameHeight">Sprite.GetFrameHeight</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameID">Sprite.GetFrameID</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameOffsetX">Sprite.GetFrameOffsetX</a></li>
-                    <li><a href="#Reference_functions_Sprite_GetFrameOffsetY">Sprite.GetFrameOffsetY</a></li>
                     <li><a href="#Reference_functions_Sprite_GetHitbox">Sprite.GetHitbox</a></li>
                     <li><a href="#Reference_functions_Sprite_MakePalettized">Sprite.MakePalettized</a></li>
                     <li><a href="#Reference_functions_Sprite_MakeNonPalettized">Sprite.MakeNonPalettized</a></li>
+                </ul>
+                <i>Instance methods:</i>
+                <ul>
+                    <li><a href="#Reference_methods_sprite_GetAnimationName">sprite.GetAnimationName</a></li>
+                    <li><a href="#Reference_methods_sprite_GetAnimationIndex">sprite.GetAnimationIndex</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameWidth">sprite.GetFrameWidth</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameHeight">sprite.GetFrameHeight</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameOffsetX">sprite.GetFrameOffsetX</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameOffsetY">sprite.GetFrameOffsetY</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameDuration">sprite.GetFrameDuration</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameID">sprite.GetFrameID</a></li>
+                </ul>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_sprite_AnimationCount">sprite.AnimationCount</a></li>
                 </ul>
             </p>
             <p id="Reference_Stream">
@@ -1567,6 +1619,28 @@
                     <li><a href="#Reference_constructors_Font">Font</a></li>
                 </ul>
             </p>
+            <p id="Reference_Resource">
+                <h2>Resource</h2>
+                <i>Instance methods:</i>
+                <ul>
+                    <li><a href="#Reference_methods_resource_IsUnique">resource.IsUnique</a></li>
+                    <li><a href="#Reference_methods_resource_MakeUnique">resource.MakeUnique</a></li>
+                    <li><a href="#Reference_methods_resource_Reload">resource.Reload</a></li>
+                    <li><a href="#Reference_methods_resource_Unload">resource.Unload</a></li>
+                </ul>
+                <i>Instance constructors:</i>
+                <ul>
+                    <li><a href="#Reference_constructors_Resource">Resource</a></li>
+                </ul>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_resource_Type">resource.Type</a></li>
+                    <li><a href="#Reference_fields_resource_Filename">resource.Filename</a></li>
+                    <li><a href="#Reference_fields_resource_Loaded">resource.Loaded</a></li>
+                    <li><a href="#Reference_fields_resource_Scope">resource.Scope</a></li>
+                    <li><a href="#Reference_fields_resource_Data">resource.Data</a></li>
+                </ul>
+            </p>
             <p id="Reference_Shader">
                 <h2>Shader</h2>
                 <i>Instance methods:</i>
@@ -1588,6 +1662,36 @@
                 <i>Instance constructors:</i>
                 <ul>
                     <li><a href="#Reference_constructors_Shader">Shader</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Sprite">
+                <h2>Sprite</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_Sprite_GetAnimationCount">Sprite.GetAnimationCount</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetAnimationIndexByName">Sprite.GetAnimationIndexByName</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetFrameExists">Sprite.GetFrameExists</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetFrameLoopIndex">Sprite.GetFrameLoopIndex</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetFrameCount">Sprite.GetFrameCount</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetFrameSpeed">Sprite.GetFrameSpeed</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetHitbox">Sprite.GetHitbox</a></li>
+                    <li><a href="#Reference_functions_Sprite_MakePalettized">Sprite.MakePalettized</a></li>
+                    <li><a href="#Reference_functions_Sprite_MakeNonPalettized">Sprite.MakeNonPalettized</a></li>
+                </ul>
+                <i>Instance methods:</i>
+                <ul>
+                    <li><a href="#Reference_methods_sprite_GetAnimationName">sprite.GetAnimationName</a></li>
+                    <li><a href="#Reference_methods_sprite_GetAnimationIndex">sprite.GetAnimationIndex</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameWidth">sprite.GetFrameWidth</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameHeight">sprite.GetFrameHeight</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameOffsetX">sprite.GetFrameOffsetX</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameOffsetY">sprite.GetFrameOffsetY</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameDuration">sprite.GetFrameDuration</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameID">sprite.GetFrameID</a></li>
+                </ul>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_sprite_AnimationCount">sprite.AnimationCount</a></li>
                 </ul>
             </p>
         <h3>Enums</h3>
@@ -2117,10 +2221,9 @@
                     <li><a href="#Reference_enums_WEEKDAY_SATURDAY">WEEKDAY_SATURDAY</a></li>
                 </ul>
             </p>
-        <h3>Constants</h3>
-        <h3>Globals</h3>
-        <hr/>
-        <h3>Class methods</h3>
+
+    <hr/>
+            <h3>Class methods</h3>
         <p id="Reference_functions_Animator_Create">
         <h2 style="margin-bottom: 8px;">Animator.Create</h2>
         <code>Animator.Create([sprite, animationID, frameID, unloadPolicy])</code>
@@ -7721,7 +7824,7 @@
         <p id="Reference_functions_Scene_SetPaused">
         <h2 style="margin-bottom: 8px;">Scene.SetPaused</h2>
         <code>Scene.SetPaused(isPaused)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether the game is paused or not. When paused, only objects with <code>instance.Pauseable</code> set to <code>false</code> will continue to <code>Update</code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether the game is paused or not. When paused, only objects with <code><a href="#Reference_fields_entity_Pauseable">entity.Pauseable</a></code> set to <code>false</code> will continue to <code>Update</code>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>isPaused (Boolean): Whether or not the scene is paused.</li>
@@ -8873,7 +8976,7 @@
         <p id="Reference_functions_Sprite_GetAnimationCount">
         <h2 style="margin-bottom: 8px;">Sprite.GetAnimationCount</h2>
         <code>Sprite.GetAnimationCount(sprite)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of animations in the sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of animations in the sprite. (Deprecated; use <code><a href="#Reference_fields_sprite_AnimationCount">sprite.AnimationCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sprite (Resource): A sprite resource.</li>
@@ -8881,22 +8984,10 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the amount of animations in the sprite.</div>
         </p>
-        <p id="Reference_functions_Sprite_GetAnimationName">
-        <h2 style="margin-bottom: 8px;">Sprite.GetAnimationName</h2>
-        <code>Sprite.GetAnimationName(sprite, animationIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the specified animation index in the sprite.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
-        <li>animationIndex (Integer): The animation index.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the name of the specified animation index.</div>
-        </p>
         <p id="Reference_functions_Sprite_GetAnimationIndexByName">
         <h2 style="margin-bottom: 8px;">Sprite.GetAnimationIndexByName</h2>
         <code>Sprite.GetAnimationIndexByName(sprite, name)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the first animation in the sprite which matches the specified name.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the first animation in the sprite which matches the specified name. (Deprecated; use <code><a href="#Reference_methods_sprite_GetAnimationName">sprite.GetAnimationName</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sprite (Resource): A sprite resource.</li>
@@ -8921,7 +9012,7 @@
         <p id="Reference_functions_Sprite_GetFrameLoopIndex">
         <h2 style="margin-bottom: 8px;">Sprite.GetFrameLoopIndex</h2>
         <code>Sprite.GetFrameLoopIndex(sprite, animation)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the index of the frame that the specified animation will loop back to when it finishes.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the index of the frame that the specified animation will loop back to when it finishes. (Deprecated; use <code></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sprite (Resource): A sprite resource.</li>
@@ -8933,7 +9024,7 @@
         <p id="Reference_functions_Sprite_GetFrameCount">
         <h2 style="margin-bottom: 8px;">Sprite.GetFrameCount</h2>
         <code>Sprite.GetFrameCount(sprite, animation)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of frames in the specified animation.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of frames in the specified animation. (Deprecated; use <code></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sprite (Resource): A sprite resource.</li>
@@ -8942,23 +9033,10 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the frame count in the specified animation.</div>
         </p>
-        <p id="Reference_functions_Sprite_GetFrameDuration">
-        <h2 style="margin-bottom: 8px;">Sprite.GetFrameDuration</h2>
-        <code>Sprite.GetFrameDuration(sprite, animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the frame duration of the specified sprite frame.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
-        <li>animation (Integer): The animation index of the sprite to check.</li>
-        <li>frame (Integer): The frame index of the animation to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the frame duration (in game frames) of the specified sprite frame.</div>
-        </p>
         <p id="Reference_functions_Sprite_GetFrameSpeed">
         <h2 style="margin-bottom: 8px;">Sprite.GetFrameSpeed</h2>
         <code>Sprite.GetFrameSpeed(sprite, animation)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the animation speed of the specified animation.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the animation speed of the specified animation. (Deprecated; use <code></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sprite (Resource): A sprite resource.</li>
@@ -8966,71 +9044,6 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer.</div>
-        </p>
-        <p id="Reference_functions_Sprite_GetFrameWidth">
-        <h2 style="margin-bottom: 8px;">Sprite.GetFrameWidth</h2>
-        <code>Sprite.GetFrameWidth(sprite, animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the frame width of the specified sprite frame.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
-        <li>animation (Integer): The animation index of the sprite to check.</li>
-        <li>frame (Integer): The frame index of the animation to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the frame width (in pixels) of the specified sprite frame.</div>
-        </p>
-        <p id="Reference_functions_Sprite_GetFrameHeight">
-        <h2 style="margin-bottom: 8px;">Sprite.GetFrameHeight</h2>
-        <code>Sprite.GetFrameHeight(sprite, animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the frame height of the specified sprite frame.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
-        <li>animation (Integer): The animation index of the sprite to check.</li>
-        <li>frame (Integer): The frame index of the animation to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the frame height (in pixels) of the specified sprite frame.</div>
-        </p>
-        <p id="Reference_functions_Sprite_GetFrameID">
-        <h2 style="margin-bottom: 8px;">Sprite.GetFrameID</h2>
-        <code>Sprite.GetFrameID(sprite, animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the frame ID of the specified sprite frame.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
-        <li>animation (Integer): The animation index of the sprite to check.</li>
-        <li>frame (Integer): The frame index of the animation to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the frame ID of the specified sprite frame.</div>
-        </p>
-        <p id="Reference_functions_Sprite_GetFrameOffsetX">
-        <h2 style="margin-bottom: 8px;">Sprite.GetFrameOffsetX</h2>
-        <code>Sprite.GetFrameOffsetX(sprite, animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the X offset of the specified sprite frame.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
-        <li>animation (Integer): The animation index of the sprite to check.</li>
-        <li>frame (Integer): The frame index of the animation to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the X offset of the specified sprite frame.</div>
-        </p>
-        <p id="Reference_functions_Sprite_GetFrameOffsetY">
-        <h2 style="margin-bottom: 8px;">Sprite.GetFrameOffsetY</h2>
-        <code>Sprite.GetFrameOffsetY(sprite, animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the Y offset of the specified sprite frame.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
-        <li>animation (Integer): The animation index of the sprite to check.</li>
-        <li>frame (Integer): The frame index of the animation to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the Y offset of the specified sprite frame.</div>
         </p>
         <p id="Reference_functions_Sprite_GetHitbox">
         <h2 style="margin-bottom: 8px;">Sprite.GetHitbox</h2>
@@ -10447,7 +10460,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>750 out of 805 functions have descriptions. </p>
+        <p>743 out of 798 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -10882,6 +10895,30 @@
         <li>useAntialiasing (Boolean): Whether or not to use anti-aliasing.</li>
         </ul>
         </p>
+        <p id="Reference_methods_resource_IsUnique">
+        <h2 style="margin-bottom: 8px;">resource.IsUnique</h2>
+        <code>resource.IsUnique()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Returns whether the Resource is unique or not.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_methods_resource_MakeUnique">
+        <h2 style="margin-bottom: 8px;">resource.MakeUnique</h2>
+        <code>resource.MakeUnique()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Makes the Resource unique, if it already wasn't.</div>
+        </p>
+        <p id="Reference_methods_resource_Reload">
+        <h2 style="margin-bottom: 8px;">resource.Reload</h2>
+        <code>resource.Reload()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Reloads the Resourceable owned by this Resource. Returns <code>true</code> if it was reloaded successfully, and <code>false</code> if otherwise.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_methods_resource_Unload">
+        <h2 style="margin-bottom: 8px;">resource.Unload</h2>
+        <code>resource.Unload()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Unloads the Resourceable owned by this Resource. Does nothing if the Resource was already unloaded.</div>
+        </p>
         <p id="Reference_methods_shader_HasStage">
         <h2 style="margin-bottom: 8px;">shader.HasStage</h2>
         <code>shader.HasStage(stage)</code>
@@ -11002,9 +11039,108 @@
         <code>shader.Delete()</code>
         <div style="margin-top: 8px; font-size: 14px;">Deletes a shader. It can no longer be used after this function is called.</div>
         </p>
-        <p>59 out of 59 methods have descriptions. </p>
+        <p id="Reference_methods_sprite_GetAnimationName">
+        <h2 style="margin-bottom: 8px;">sprite.GetAnimationName</h2>
+        <code>sprite.GetAnimationName(animationIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the specified animation index in the sprite.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animationIndex (Integer): The animation index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the name of the specified animation index.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetAnimationIndex">
+        <h2 style="margin-bottom: 8px;">sprite.GetAnimationIndex</h2>
+        <code>sprite.GetAnimationIndex(name)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the first animation in the sprite which matches the specified name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>name (String): The animation name to search for.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the first animation index with the specified name, or <code>null</code> if there was no match.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetFrameWidth">
+        <h2 style="margin-bottom: 8px;">sprite.GetFrameWidth</h2>
+        <code>sprite.GetFrameWidth(animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the frame width of the specified sprite frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the frame width (in pixels) of the specified sprite frame.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetFrameHeight">
+        <h2 style="margin-bottom: 8px;">sprite.GetFrameHeight</h2>
+        <code>sprite.GetFrameHeight(animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the frame height of the specified sprite frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the frame height (in pixels) of the specified sprite frame.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetFrameOffsetX">
+        <h2 style="margin-bottom: 8px;">sprite.GetFrameOffsetX</h2>
+        <code>sprite.GetFrameOffsetX(animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the X offset of the specified sprite frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the X offset of the specified sprite frame.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetFrameOffsetY">
+        <h2 style="margin-bottom: 8px;">sprite.GetFrameOffsetY</h2>
+        <code>sprite.GetFrameOffsetY(animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the Y offset of the specified sprite frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the Y offset of the specified sprite frame.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetFrameDuration">
+        <h2 style="margin-bottom: 8px;">sprite.GetFrameDuration</h2>
+        <code>sprite.GetFrameDuration(animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the frame duration of the specified sprite frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the frame duration (in game frames) of the specified sprite frame.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetFrameID">
+        <h2 style="margin-bottom: 8px;">sprite.GetFrameID</h2>
+        <code>sprite.GetFrameID(animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the frame ID of the specified sprite frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the frame ID of the specified sprite frame.</div>
+        </p>
+        <p>71 out of 71 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
+        <p id="Reference_constructors_Shader">
+        <h2 style="margin-bottom: 8px;">Shader</h2>
+        <code>Shader()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a shader program.</div>
+        </p>
         <p id="Reference_constructors_Font">
         <h2 style="margin-bottom: 8px;">Font</h2>
         <code>Font(font)</code>
@@ -11014,12 +11150,18 @@
         <li>font (String, Stream, or Array): The font or list of fonts.</li>
         </ul>
         </p>
-        <p id="Reference_constructors_Shader">
-        <h2 style="margin-bottom: 8px;">Shader</h2>
-        <code>Shader()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Creates a shader program.</div>
+        <p id="Reference_constructors_Resource">
+        <h2 style="margin-bottom: 8px;">Resource</h2>
+        <code>Resource(filename[, unloadPolicy, unique])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Loads a Resource by name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>filename (String): Filename of the resource.</li>
+        <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
+        <li>unique (Boolean): If <code>false</code> (the default), this constructor may return an already loaded Resource of the same type and filename. However, if <code>true</code>, this constructor will always return an unique Resource, and load a new Resourceable.</li>
+        </ul>
         </p>
-        <p>2 out of 2 constructors have descriptions. </p>
+        <p>3 out of 3 constructors have descriptions. </p>
         <hr/>
         <h3>Instance fields</h3>
         <p id="Reference_fields_entity_X">
@@ -11089,31 +11231,31 @@
         <h3 style="margin-bottom: 8px;"><code>entity.ScaleX</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>1.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>entity.Render</code> for scaling a sprite horizontally.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>Render</code> for scaling a sprite horizontally.</div>
         </p>
         <p id="Reference_fields_entity_ScaleY">
         <h3 style="margin-bottom: 8px;"><code>entity.ScaleY</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>1.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>entity.Render</code> for scaling a sprite vertically.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>Render</code> for scaling a sprite vertically.</div>
         </p>
         <p id="Reference_fields_entity_Rotation">
         <h3 style="margin-bottom: 8px;"><code>entity.Rotation</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal (radians)</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>entity.Render</code> for rotating a sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>Render</code> for rotating a sprite.</div>
         </p>
         <p id="Reference_fields_entity_Alpha">
         <h3 style="margin-bottom: 8px;"><code>entity.Alpha</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
         <div style="font-size: 14px;"><b>Default: </b><code>0.0</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>entity.Render</code> for changing the opacity of a sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>Render</code> for changing the opacity of a sprite.</div>
         </p>
         <p id="Reference_fields_entity_BlendMode">
         <h3 style="margin-bottom: 8px;"><code>entity.BlendMode</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="font-size: 14px;"><b>Default: </b><code>BlendMode_NORMAL</code></div>
-        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>entity.Render</code> for changing the BlendMode of a sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">A field that may be used in <code>Render</code> for changing the BlendMode of a sprite.</div>
         </p>
         <p id="Reference_fields_entity_Priority">
         <h3 style="margin-bottom: 8px;"><code>entity.Priority</code></h2>
@@ -11507,7 +11649,43 @@
         <div style="font-size: 14px;"><b>Default: </b><code>Persistence_NONE</code></div>
         <div style="margin-top: 8px; font-size: 14px;">Whether the entity persists between scenes.</div>
         </p>
-        <p>78 out of 82 fields have descriptions. </p>
+        <p id="Reference_fields_resource_Type">
+        <h3 style="margin-bottom: 8px;"><code>resource.Type</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The <a href="#Reference_RESOURCETYPE_*">resource type</a> of the Resource.</div>
+        </p>
+        <p id="Reference_fields_resource_Filename">
+        <h3 style="margin-bottom: 8px;"><code>resource.Filename</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The filename of the Resource.</div>
+        </p>
+        <p id="Reference_fields_resource_Loaded">
+        <h3 style="margin-bottom: 8px;"><code>resource.Loaded</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Whether the Resource is loaded or not.</div>
+        </p>
+        <p id="Reference_fields_resource_Scope">
+        <h3 style="margin-bottom: 8px;"><code>resource.Scope</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The scope of the Resource.</div>
+        </p>
+        <p id="Reference_fields_resource_Data">
+        <h3 style="margin-bottom: 8px;"><code>resource.Data</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The Resourceable owned by this resource.</div>
+        </p>
+        <p id="Reference_fields_imageresource_Width">
+        <h3 style="margin-bottom: 8px;"><code>imageresource.Width</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The width of the image.</div>
+        </p>
+        <p id="Reference_fields_imageresource_Height">
+        <h3 style="margin-bottom: 8px;"><code>imageresource.Height</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The height of the image.</div>
+        </p>
+        <p id="Reference_fields_audioresource_LoopPoint">
+        <h3 style="margin-bottom: 8px;"><code>audioresource.LoopPoint</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The loop point of the audio in samples, or <code>null</code> if it doesn't have one.</div>
+        </p>
+        <p id="Reference_fields_sprite_AnimationCount">
+        <h3 style="margin-bottom: 8px;"><code>sprite.AnimationCount</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The amount of animations in the sprite.</div>
+        </p>
+        <p>87 out of 91 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">
@@ -13022,5 +13200,6 @@
         </p>
         <p>13 out of 13 globals have descriptions. </p>
         <hr/>
-    </body>
+
+  </body>
 </html>
