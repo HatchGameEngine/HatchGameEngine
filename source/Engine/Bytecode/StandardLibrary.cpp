@@ -12726,7 +12726,7 @@ VMValue Scene_SetTileCollisionSides(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * Scene.SetPaused
- * \desc Sets whether the game is paused or not. When paused, only objects with <linkto ref="instance.Pauseable"></linkto> set to <code>false</code> will continue to <code>Update</code>.
+ * \desc Sets whether the game is paused or not. When paused, only objects with <linkto ref="entity.Pauseable"></linkto> set to <code>false</code> will continue to <code>Update</code>.
  * \param isPaused (Boolean): Whether or not the scene is paused.
  * \ns Scene
  */
@@ -15214,7 +15214,7 @@ VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 // #region Sprite
 /***
  * Sprite.GetAnimationCount
- * \desc Gets the amount of animations in the sprite.
+ * \desc Gets the amount of animations in the sprite. (Deprecated; use <linkto ref="sprite.AnimationCount"></linkto> instead.)
  * \param sprite (Resource): A sprite resource.
  * \return Returns the amount of animations in the sprite.
  * \ns Sprite
@@ -15228,19 +15228,8 @@ VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)sprite->Animations.size());
 }
 /***
- * Sprite.GetAnimationName
- * \desc Gets the name of the specified animation index in the sprite.
- * \param sprite (Resource): A sprite resource.
- * \param animationIndex (Integer): The animation index.
- * \return Returns the name of the specified animation index.
- * \ns Sprite
- */
-VMValue Sprite_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
-	return SpriteImpl_GetAnimationName(argCount, args, threadID);
-}
-/***
  * Sprite.GetAnimationIndexByName
- * \desc Gets the first animation in the sprite which matches the specified name.
+ * \desc Gets the first animation in the sprite which matches the specified name. (Deprecated; use <linkto ref="sprite.GetAnimationName"></linkto> instead.)
  * \param sprite (Resource): A sprite resource.
  * \param name (String): The animation name to search for.
  * \return Returns the first animation index with the specified name, or -1 if there was no match.
@@ -15282,18 +15271,18 @@ VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sprite.GetFrameLoopIndex
- * \desc Gets the index of the frame that the specified animation will loop back to when it finishes.
+ * \desc Gets the index of the frame that the specified animation will loop back to when it finishes. (Deprecated; use <linkto ref="sprite.GetAnimationLoopFrame"></linkto> instead.)
  * \param sprite (Resource): A sprite resource.
  * \param animation (Integer): The animation index of the sprite to check.
  * \return Returns the frame loop index.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
-	return SpriteImpl_GetAnimationLoopIndex(argCount, args, threadID);
+	return SpriteImpl_GetAnimationLoopFrame(argCount, args, threadID);
 }
 /***
  * Sprite.GetFrameCount
- * \desc Gets the amount of frames in the specified animation.
+ * \desc Gets the amount of frames in the specified animation. (Deprecated; use <linkto ref="sprite.GetAnimationFrameCount"></linkto> instead.)
  * \param sprite (Resource): A sprite resource.
  * \param animation (Integer): The animation index of the sprite to check.
  * \return Returns the frame count in the specified animation.
@@ -15303,20 +15292,8 @@ VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	return SpriteImpl_GetAnimationFrameCount(argCount, args, threadID);
 }
 /***
- * Sprite.GetFrameDuration
- * \desc Gets the frame duration of the specified sprite frame.
- * \param sprite (Resource): A sprite resource.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the frame duration (in game frames) of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
-	return SpriteImpl_GetFrameDuration(argCount, args, threadID);
-}
-/***
  * Sprite.GetFrameSpeed
- * \desc Gets the animation speed of the specified animation.
+ * \desc Gets the animation speed of the specified animation. (Deprecated; use <linkto ref="sprite.GetAnimationSpeed"></linkto> instead.)
  * \param sprite (Resource): A sprite resource.
  * \param animation (Integer): The animation index of the sprite to check.
  * \return Returns an Integer.
@@ -15324,66 +15301,6 @@ VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	return SpriteImpl_GetAnimationSpeed(argCount, args, threadID);
-}
-/***
- * Sprite.GetFrameWidth
- * \desc Gets the frame width of the specified sprite frame.
- * \param sprite (Resource): A sprite resource.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the frame width (in pixels) of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
-	return SpriteImpl_GetFrameWidth(argCount, args, threadID);
-}
-/***
- * Sprite.GetFrameHeight
- * \desc Gets the frame height of the specified sprite frame.
- * \param sprite (Resource): A sprite resource.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the frame height (in pixels) of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
-	return SpriteImpl_GetFrameHeight(argCount, args, threadID);
-}
-/***
- * Sprite.GetFrameID
- * \desc Gets the frame ID of the specified sprite frame.
- * \param sprite (Resource): A sprite resource.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the frame ID of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
-	return SpriteImpl_GetFrameID(argCount, args, threadID);
-}
-/***
- * Sprite.GetFrameOffsetX
- * \desc Gets the X offset of the specified sprite frame.
- * \param sprite (Resource): A sprite resource.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the X offset of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
-	return SpriteImpl_GetFrameOffsetX(argCount, args, threadID);
-}
-/***
- * Sprite.GetFrameOffsetY
- * \desc Gets the Y offset of the specified sprite frame.
- * \param sprite (Resource): A sprite resource.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the Y offset of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
-	return SpriteImpl_GetFrameOffsetY(argCount, args, threadID);
 }
 /***
  * Sprite.GetHitbox
@@ -18197,7 +18114,9 @@ void StandardLibrary::Link() {
 
 #define INIT_CLASS(className) \
 	klass = NewClass(#className); \
-	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
+	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass))
+#define GET_CLASS(className) \
+	klass = AS_CLASS(ScriptManager::Globals->Get(#className))
 #define DEF_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
 #define ALIAS_NATIVE(className, funcName, oldClassName, oldFuncName) \
@@ -20023,20 +19942,14 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Sprite
-	INIT_CLASS(Sprite);
+	// Mostly deprecated.
+	GET_CLASS(Sprite);
 	DEF_NATIVE(Sprite, GetAnimationCount);
-	DEF_NATIVE(Sprite, GetAnimationName);
 	DEF_NATIVE(Sprite, GetAnimationIndexByName);
 	DEF_NATIVE(Sprite, GetFrameExists);
 	DEF_NATIVE(Sprite, GetFrameLoopIndex);
 	DEF_NATIVE(Sprite, GetFrameCount);
-	DEF_NATIVE(Sprite, GetFrameDuration);
 	DEF_NATIVE(Sprite, GetFrameSpeed);
-	DEF_NATIVE(Sprite, GetFrameWidth);
-	DEF_NATIVE(Sprite, GetFrameHeight);
-	DEF_NATIVE(Sprite, GetFrameID);
-	DEF_NATIVE(Sprite, GetFrameOffsetX);
-	DEF_NATIVE(Sprite, GetFrameOffsetY);
 	DEF_NATIVE(Sprite, GetHitbox);
 	DEF_NATIVE(Sprite, MakePalettized);
 	DEF_NATIVE(Sprite, MakeNonPalettized);

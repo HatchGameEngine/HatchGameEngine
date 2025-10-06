@@ -4,16 +4,9 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
-VMValue SpriteImpl_GetAnimationName(int argCount, VMValue* args, Uint32 threadID);
-VMValue SpriteImpl_GetAnimationLoopIndex(int argCount, VMValue* args, Uint32 threadID);
+VMValue SpriteImpl_GetAnimationLoopFrame(int argCount, VMValue* args, Uint32 threadID);
 VMValue SpriteImpl_GetAnimationFrameCount(int argCount, VMValue* args, Uint32 threadID);
 VMValue SpriteImpl_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID);
-VMValue SpriteImpl_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID);
-VMValue SpriteImpl_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID);
-VMValue SpriteImpl_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID);
-VMValue SpriteImpl_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID);
-VMValue SpriteImpl_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID);
-VMValue SpriteImpl_GetFrameID(int argCount, VMValue* args, Uint32 threadID);
 
 class SpriteImpl {
 private:

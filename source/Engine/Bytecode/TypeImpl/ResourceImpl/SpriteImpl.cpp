@@ -8,14 +8,17 @@ ObjClass* SpriteImpl::Class = nullptr;
 
 Uint32 Hash_AnimationCount = 0;
 
+#define CLASS_SPRITE "Sprite"
+
 void SpriteImpl::Init() {
-	Class = NewClass("SpriteResource");
+	Class = NewClass(CLASS_SPRITE);
 
 	GET_STRING_HASH(AnimationCount);
 
 	AddNatives();
 
 	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(CLASS_SPRITE, Class);
 	TypeImpl::DefinePrintableName(Class, "sprite");
 }
 
@@ -44,7 +47,7 @@ bool SpriteImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 	/***
 	 * \field AnimationCount
 	 * \desc The amount of animations in the sprite.
-	 * \ns SpriteResource
+	 * \ns Sprite
  	*/
 	if (hash == Hash_AnimationCount) {
 		*result = INTEGER_VAL((int)sprite->Animations.size());
@@ -100,6 +103,13 @@ bool SpriteImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 		throw ScriptException("Sprite is no longer loaded!"); \
 	}
 
+/***
+ * \method GetAnimationName
+ * \desc Gets the name of the specified animation index in the sprite.
+ * \param animationIndex (Integer): The animation index.
+ * \return Returns the name of the specified animation index.
+ * \ns Sprite
+ */
 VMValue SpriteImpl_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
@@ -118,6 +128,13 @@ VMValue SpriteImpl_GetAnimationName(int argCount, VMValue* args, Uint32 threadID
 
 	return NULL_VAL;
 }
+/***
+ * \method GetAnimationIndex
+ * \desc Gets the first animation in the sprite which matches the specified name.
+ * \param name (String): The animation name to search for.
+ * \return Returns the first animation index with the specified name, or <code>null</code> if there was no match.
+ * \ns Sprite
+ */
 VMValue SpriteImpl_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
@@ -144,7 +161,7 @@ VMValue SpriteImpl_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadI
 
 	return INTEGER_VAL(sprite->Animations[index].AnimationSpeed);
 }
-VMValue SpriteImpl_GetAnimationLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SpriteImpl_GetAnimationLoopFrame(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
@@ -177,21 +194,69 @@ VMValue SpriteImpl_GetAnimationFrameCount(int argCount, VMValue* args, Uint32 th
 	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].property); \
 }
 
+/***
+ * \method GetFrameWidth
+ * \desc Gets the frame width of the specified sprite frame.
+ * \param animation (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the frame width (in pixels) of the specified sprite frame.
+ * \ns Sprite
+ */
 VMValue SpriteImpl_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
 	GET_FRAME_PROPERTY(Width);
 }
+/***
+ * \method GetFrameHeight
+ * \desc Gets the frame height of the specified sprite frame.
+ * \param animation (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the frame height (in pixels) of the specified sprite frame.
+ * \ns Sprite
+ */
 VMValue SpriteImpl_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
 	GET_FRAME_PROPERTY(Height);
 }
+/***
+ * \method GetFrameOffsetX
+ * \desc Gets the X offset of the specified sprite frame.
+ * \param animation (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the X offset of the specified sprite frame.
+ * \ns Sprite
+ */
 VMValue SpriteImpl_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 	GET_FRAME_PROPERTY(OffsetX);
 }
+/***
+ * \method GetFrameOffsetY
+ * \desc Gets the Y offset of the specified sprite frame.
+ * \param animation (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the Y offset of the specified sprite frame.
+ * \ns Sprite
+ */
 VMValue SpriteImpl_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	GET_FRAME_PROPERTY(OffsetY);
 }
+/***
+ * \method GetFrameDuration
+ * \desc Gets the frame duration of the specified sprite frame.
+ * \param animation (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the frame duration (in game frames) of the specified sprite frame.
+ * \ns Sprite
+ */
 VMValue SpriteImpl_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
 	GET_FRAME_PROPERTY(Duration);
 }
+/***
+ * \method GetFrameID
+ * \desc Gets the frame ID of the specified sprite frame.
+ * \param animation (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the frame ID of the specified sprite frame.
+ * \ns Sprite
+ */
 VMValue SpriteImpl_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 	GET_FRAME_PROPERTY(Advance);
 }
@@ -319,7 +384,7 @@ void SpriteImpl::AddNatives() {
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationName);
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationIndex);
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationSpeed);
-	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationLoopIndex);
+	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationLoopFrame);
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationFrameCount);
 
 	DEF_CLASS_NATIVE(SpriteImpl, GetFrameWidth);
@@ -333,7 +398,7 @@ void SpriteImpl::AddNatives() {
 	// Setting animation/frame properties
 	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationName);
 	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationSpeed);
-	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationLoopIndex);
+	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationLoopFrame);
 
 	DEF_CLASS_NATIVE(SpriteImpl, SetFrameWidth);
 	DEF_CLASS_NATIVE(SpriteImpl, SetFrameHeight);
