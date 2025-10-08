@@ -7170,7 +7170,7 @@ VMValue HTTP_GetToFile(int argCount, VMValue* args, Uint32 threadID) {
 // #region Image
 /***
  * Image.GetWidth
- * \desc Gets the width of the specified image.
+ * \desc Gets the width of the specified image. (Deprecated; use <linkto ref="image.Width"></linkto> instead.)
  * \param image (Resource): An image resource.
  * \return Returns an Integer value.
  * \ns Image
@@ -7186,7 +7186,7 @@ VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Image.GetHeight
- * \desc Gets the height of the specified image.
+ * \desc Gets the height of the specified image. (Deprecated; use <linkto ref="image.Height"></linkto> instead.)
  * \param image (Resource): An image resource.
  * \return Returns an Integer value.
  * \ns Image
@@ -19178,7 +19178,8 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Image
-	INIT_CLASS(Image);
+	// Only contains deprecated methods.
+	GET_CLASS(Image);
 	DEF_NATIVE(Image, GetWidth);
 	DEF_NATIVE(Image, GetHeight);
 	// #endregion
@@ -19872,7 +19873,7 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Sprite
-	// Only deprecated methods.
+	// Only contains deprecated methods.
 	GET_CLASS(Sprite);
 	DEF_NATIVE(Sprite, GetAnimationCount);
 	DEF_NATIVE(Sprite, GetAnimationIndexByName);

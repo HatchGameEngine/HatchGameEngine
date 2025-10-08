@@ -8,18 +8,24 @@ ObjClass* ImageImpl::Class = nullptr;
 Uint32 Hash_Width = 0;
 Uint32 Hash_Height = 0;
 
-void ImageImpl::Init() {
-	Class = NewClass("ImageResource");
+#define CLASS_IMAGE "Image"
 
-	Hash_Width = Murmur::EncryptString("Width");
-	Hash_Height = Murmur::EncryptString("Height");
+void ImageImpl::Init() {
+	Class = NewClass(CLASS_IMAGE);
+
+	GET_STRING_HASH(Width);
+	GET_STRING_HASH(Height);
 
 	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(CLASS_IMAGE, Class);
 	TypeImpl::DefinePrintableName(Class, "image");
 }
 
 bool ImageImpl::IsValidField(Uint32 hash) {
-	return hash == Hash_Width || hash == Hash_Height;
+	CHECK_VALID_FIELD(Width);
+	CHECK_VALID_FIELD(Height);
+
+	return false;
 }
 
 bool ImageImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
@@ -38,7 +44,7 @@ bool ImageImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 	/***
 	 * \field Width
 	 * \desc The width of the image.
-	 * \ns ImageResource
+	 * \ns Image
  	*/
 	if (hash == Hash_Width) {
 		*result = INTEGER_VAL((int)image->TexturePtr->Width);
@@ -46,7 +52,7 @@ bool ImageImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 	/***
 	 * \field Height
 	 * \desc The height of the image.
-	 * \ns ImageResource
+	 * \ns Image
  	*/
 	else if (hash == Hash_Height) {
 		*result = INTEGER_VAL((int)image->TexturePtr->Height);

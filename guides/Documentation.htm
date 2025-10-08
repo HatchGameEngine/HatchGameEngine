@@ -66,7 +66,6 @@ codeBlock {
             <li><a href="#Reference_Geometry">Geometry</a></li>
             <li><a href="#Reference_HTTP">HTTP</a></li>
             <li><a href="#Reference_Image">Image</a></li>
-            <li><a href="#Reference_ImageResource">ImageResource</a></li>
             <li><a href="#Reference_Input">Input</a></li>
             <li><a href="#Reference_Instance">Instance</a></li>
             <li><a href="#Reference_JSON">JSON</a></li>
@@ -696,13 +695,10 @@ codeBlock {
                     <li><a href="#Reference_functions_Image_GetWidth">Image.GetWidth</a></li>
                     <li><a href="#Reference_functions_Image_GetHeight">Image.GetHeight</a></li>
                 </ul>
-            </p>
-            <p id="Reference_ImageResource">
-                <h2>ImageResource</h2>
                 <i>Instance fields:</i>
                 <ul>
-                    <li><a href="#Reference_fields_imageresource_Width">imageresource.Width</a></li>
-                    <li><a href="#Reference_fields_imageresource_Height">imageresource.Height</a></li>
+                    <li><a href="#Reference_fields_image_Width">image.Width</a></li>
+                    <li><a href="#Reference_fields_image_Height">image.Height</a></li>
                 </ul>
             </p>
             <p id="Reference_Input">
@@ -5226,7 +5222,7 @@ codeBlock {
         <p id="Reference_functions_Image_GetWidth">
         <h2 style="margin-bottom: 8px;">Image.GetWidth</h2>
         <code>Image.GetWidth(image)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the width of the specified image.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the width of the specified image. (Deprecated; use <code><a href="#Reference_fields_image_Width">image.Width</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>image (Resource): An image resource.</li>
@@ -5237,7 +5233,7 @@ codeBlock {
         <p id="Reference_functions_Image_GetHeight">
         <h2 style="margin-bottom: 8px;">Image.GetHeight</h2>
         <code>Image.GetHeight(image)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the height of the specified image.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the height of the specified image. (Deprecated; use <code><a href="#Reference_fields_image_Height">image.Height</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>image (Resource): An image resource.</li>
@@ -11887,12 +11883,12 @@ codeBlock {
         <h3 style="margin-bottom: 8px;"><code>resource.Data</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The Resourceable owned by this resource.</div>
         </p>
-        <p id="Reference_fields_imageresource_Width">
-        <h3 style="margin-bottom: 8px;"><code>imageresource.Width</code></h2>
+        <p id="Reference_fields_image_Width">
+        <h3 style="margin-bottom: 8px;"><code>image.Width</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The width of the image.</div>
         </p>
-        <p id="Reference_fields_imageresource_Height">
-        <h3 style="margin-bottom: 8px;"><code>imageresource.Height</code></h2>
+        <p id="Reference_fields_image_Height">
+        <h3 style="margin-bottom: 8px;"><code>image.Height</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The height of the image.</div>
         </p>
         <p id="Reference_fields_audioresource_LoopPoint">
