@@ -80,18 +80,18 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 void ISprite::ReserveAnimationCount(int count) {
 	Animations.reserve(count);
 }
-void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop) {
+void ISprite::AddAnimation(const char* name, int speed, int frameToLoop) {
 	size_t strl = strlen(name);
 
 	Animation an;
-	an.Name = StringUtils::Duplicate(name);
-	an.AnimationSpeed = animationSpeed;
+	an.Name = std::string(name);
+	an.Speed = speed;
 	an.FrameToLoop = frameToLoop;
 	an.Flags = 0;
 	Animations.push_back(an);
 }
-void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop, int frmAlloc) {
-	AddAnimation(name, animationSpeed, frameToLoop);
+void ISprite::AddAnimation(const char* name, int speed, int frameToLoop, int frmAlloc) {
+	AddAnimation(name, speed, frameToLoop);
 	Animations.back().Frames.reserve(frmAlloc);
 }
 void ISprite::AddFrame(int duration,
@@ -135,7 +135,7 @@ void ISprite::AddFrame(int animID,
 	int id,
 	int sheetNumber) {
 	AnimFrame anfrm;
-	anfrm.Advance = id;
+	anfrm.ID = id;
 	anfrm.Duration = duration;
 	anfrm.X = left;
 	anfrm.Y = top;
@@ -151,16 +151,32 @@ void ISprite::AddFrame(int animID,
 	Animations[animID].Frames.push_back(anfrm);
 }
 void ISprite::RemoveFrame(int animID, int frameID) {
-	Animations[animID].Frames.erase(Animations[animID].Frames.begin() + frameID);
+	Animation& animation = Animations[animID];
+
+	animation.Frames.erase(animation.Frames.begin() + frameID);
+
+	size_t numFrames = animation.Frames.size();
+	if (numFrames == 0) {
+		animation.FrameToLoop = 0;
+	}
+	else if (animation.FrameToLoop == numFrames) {
+		animation.FrameToLoop--;
+	}
+
 	FrameCount--;
 }
 void ISprite::RemoveAllFrames(int animID) {
 	FrameCount -= Animations[animID].Frames.size();
 	Animations[animID].Frames.clear();
+	Animations[animID].FrameToLoop = 0;
 }
 
 void ISprite::RefreshGraphicsID() {
 	Graphics::MakeFrameBufferID(this);
+}
+
+void ISprite::UpdateFrame(int animID, int frameID) {
+	Graphics::UpdateFrameBufferID(this, &Animations[animID].Frames[frameID]);
 }
 
 void ISprite::ConvertToRGBA() {
@@ -271,13 +287,15 @@ bool ISprite::LoadAnimation(const char* filename) {
 
 	// Load animations
 	int frameID = 0;
-	int frameCount;
 	for (int a = 0; a < animationCount; a++) {
 		Animation an;
-		an.Name = reader->ReadHeaderedString();
-		frameCount = reader->ReadUInt16();
-		an.AnimationSpeed = reader->ReadUInt16();
+		char* name = reader->ReadHeaderedString();
+		int frameCount = reader->ReadUInt16();
+		an.Speed = reader->ReadUInt16();
 		an.FrameToLoop = reader->ReadByte();
+
+		an.Name = std::string(name);
+		Memory::Free(name);
 
 		// 0: No rotation
 		// 1: Full rotation
@@ -290,11 +308,11 @@ bool ISprite::LoadAnimation(const char* filename) {
 #ifdef ISPRITE_DEBUG
 		Log::Print(Log::LOG_VERBOSE,
 			"    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)",
-			an.Name,
+			an.Name.c_str(),
 			a,
 			an.Flags,
 			an.FrameToLoop,
-			an.AnimationSpeed,
+			an.Speed,
 			frameCount);
 #endif
 
@@ -315,7 +333,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 			}
 
 			anfrm.Duration = reader->ReadInt16();
-			anfrm.Advance = reader->ReadUInt16();
+			anfrm.ID = reader->ReadUInt16();
 			anfrm.X = reader->ReadUInt16();
 			anfrm.Y = reader->ReadUInt16();
 			anfrm.Width = reader->ReadUInt16();
@@ -359,7 +377,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 }
 int ISprite::FindAnimation(const char* animname) {
 	for (Uint32 a = 0; a < Animations.size(); a++) {
-		if (Animations[a].Name[0] == animname[0] && !strcmp(Animations[a].Name, animname)) {
+		if (strcmp(Animations[a].Name.c_str(), animname) == 0) {
 			return a;
 		}
 	}
@@ -412,9 +430,9 @@ bool ISprite::SaveAnimation(const char* filename) {
 	// Write animations
 	for (size_t a = 0; a < Animations.size(); a++) {
 		Animation an = Animations[a];
-		stream->WriteHeaderedString(an.Name);
+		stream->WriteHeaderedString(an.Name.c_str());
 		stream->WriteUInt16(an.Frames.size());
-		stream->WriteUInt16(an.AnimationSpeed);
+		stream->WriteUInt16(an.Speed);
 		stream->WriteByte(an.FrameToLoop);
 
 		// 0: No rotation
@@ -429,7 +447,7 @@ bool ISprite::SaveAnimation(const char* filename) {
 			AnimFrame anfrm = an.Frames[i];
 			stream->WriteByte(anfrm.SheetNumber);
 			stream->WriteUInt16(anfrm.Duration);
-			stream->WriteUInt16(anfrm.Advance);
+			stream->WriteUInt16(anfrm.ID);
 			stream->WriteUInt16(anfrm.X);
 			stream->WriteUInt16(anfrm.Y);
 			stream->WriteUInt16(anfrm.Width);
@@ -462,10 +480,6 @@ void ISprite::Unload() {
 				Memory::Free(anfrm->Boxes);
 				anfrm->Boxes = NULL;
 			}
-		}
-		if (Animations[a].Name) {
-			Memory::Free(Animations[a].Name);
-			Animations[a].Name = NULL;
 		}
 
 		RemoveAllFrames(a);

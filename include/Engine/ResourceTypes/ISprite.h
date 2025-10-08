@@ -21,8 +21,8 @@ public:
 	Texture* AddSpriteSheet(const char* sheetFilename);
 	size_t FindOrAddSpriteSheet(const char* sheetFilename);
 	void ReserveAnimationCount(int count);
-	void AddAnimation(const char* name, int animationSpeed, int frameToLoop);
-	void AddAnimation(const char* name, int animationSpeed, int frameToLoop, int frmAlloc);
+	void AddAnimation(const char* name, int speed, int frameToLoop);
+	void AddAnimation(const char* name, int speed, int frameToLoop, int frmAlloc);
 	void
 	AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY);
 	void AddFrame(int duration,
@@ -55,6 +55,7 @@ public:
 	void RemoveFrame(int animID, int frameID);
 	void RemoveAllFrames(int animID);
 	void RefreshGraphicsID();
+	void UpdateFrame(int animID, int frameID);
 	void ConvertToRGBA();
 	void ConvertToPalette(unsigned paletteNumber);
 	static bool IsFile(Stream* stream);

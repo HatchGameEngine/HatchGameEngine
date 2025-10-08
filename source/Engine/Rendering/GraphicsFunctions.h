@@ -3,6 +3,7 @@
 
 #include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/Sprites/Animation.h>
 
 struct GraphicsFunctions {
 	void (*Init)();
@@ -142,6 +143,7 @@ struct GraphicsFunctions {
 	void* (*CreateVertexBuffer)(Uint32 maxVertices);
 	void (*DeleteVertexBuffer)(void* vtxBuf);
 	void (*MakeFrameBufferID)(ISprite* sprite);
+	void (*UpdateFrameBufferID)(ISprite* sprite, AnimFrame* frame);
 	void (*DeleteFrameBufferID)(ISprite* sprite);
 
 	void (*SetStencilEnabled)(bool enabled);

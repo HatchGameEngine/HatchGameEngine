@@ -1238,12 +1238,29 @@ codeBlock {
                 <ul>
                     <li><a href="#Reference_methods_sprite_GetAnimationName">sprite.GetAnimationName</a></li>
                     <li><a href="#Reference_methods_sprite_GetAnimationIndex">sprite.GetAnimationIndex</a></li>
+                    <li><a href="#Reference_methods_sprite_GetAnimationSpeed">sprite.GetAnimationSpeed</a></li>
+                    <li><a href="#Reference_methods_sprite_GetAnimationLoopFrame">sprite.GetAnimationLoopFrame</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameCount">sprite.GetFrameCount</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameX">sprite.GetFrameX</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameY">sprite.GetFrameY</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameWidth">sprite.GetFrameWidth</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameHeight">sprite.GetFrameHeight</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameOffsetX">sprite.GetFrameOffsetX</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameOffsetY">sprite.GetFrameOffsetY</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameDuration">sprite.GetFrameDuration</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameID">sprite.GetFrameID</a></li>
+                    <li><a href="#Reference_methods_sprite_SetAnimationName">sprite.SetAnimationName</a></li>
+                    <li><a href="#Reference_methods_sprite_SetAnimationSpeed">sprite.SetAnimationSpeed</a></li>
+                    <li><a href="#Reference_methods_sprite_SetAnimationLoopFrame">sprite.SetAnimationLoopFrame</a></li>
+                    <li><a href="#Reference_methods_sprite_SetFramePosition">sprite.SetFramePosition</a></li>
+                    <li><a href="#Reference_methods_sprite_SetFrameSize">sprite.SetFrameSize</a></li>
+                    <li><a href="#Reference_methods_sprite_SetFrameOffset">sprite.SetFrameOffset</a></li>
+                    <li><a href="#Reference_methods_sprite_SetFrameDuration">sprite.SetFrameDuration</a></li>
+                    <li><a href="#Reference_methods_sprite_SetFrameID">sprite.SetFrameID</a></li>
+                    <li><a href="#Reference_methods_sprite_AddAnimation">sprite.AddAnimation</a></li>
+                    <li><a href="#Reference_methods_sprite_RemoveAnimation">sprite.RemoveAnimation</a></li>
+                    <li><a href="#Reference_methods_sprite_AddFrame">sprite.AddFrame</a></li>
+                    <li><a href="#Reference_methods_sprite_RemoveFrame">sprite.RemoveFrame</a></li>
                 </ul>
                 <i>Instance fields:</i>
                 <ul>
@@ -1682,12 +1699,29 @@ codeBlock {
                 <ul>
                     <li><a href="#Reference_methods_sprite_GetAnimationName">sprite.GetAnimationName</a></li>
                     <li><a href="#Reference_methods_sprite_GetAnimationIndex">sprite.GetAnimationIndex</a></li>
+                    <li><a href="#Reference_methods_sprite_GetAnimationSpeed">sprite.GetAnimationSpeed</a></li>
+                    <li><a href="#Reference_methods_sprite_GetAnimationLoopFrame">sprite.GetAnimationLoopFrame</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameCount">sprite.GetFrameCount</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameX">sprite.GetFrameX</a></li>
+                    <li><a href="#Reference_methods_sprite_GetFrameY">sprite.GetFrameY</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameWidth">sprite.GetFrameWidth</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameHeight">sprite.GetFrameHeight</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameOffsetX">sprite.GetFrameOffsetX</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameOffsetY">sprite.GetFrameOffsetY</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameDuration">sprite.GetFrameDuration</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameID">sprite.GetFrameID</a></li>
+                    <li><a href="#Reference_methods_sprite_SetAnimationName">sprite.SetAnimationName</a></li>
+                    <li><a href="#Reference_methods_sprite_SetAnimationSpeed">sprite.SetAnimationSpeed</a></li>
+                    <li><a href="#Reference_methods_sprite_SetAnimationLoopFrame">sprite.SetAnimationLoopFrame</a></li>
+                    <li><a href="#Reference_methods_sprite_SetFramePosition">sprite.SetFramePosition</a></li>
+                    <li><a href="#Reference_methods_sprite_SetFrameSize">sprite.SetFrameSize</a></li>
+                    <li><a href="#Reference_methods_sprite_SetFrameOffset">sprite.SetFrameOffset</a></li>
+                    <li><a href="#Reference_methods_sprite_SetFrameDuration">sprite.SetFrameDuration</a></li>
+                    <li><a href="#Reference_methods_sprite_SetFrameID">sprite.SetFrameID</a></li>
+                    <li><a href="#Reference_methods_sprite_AddAnimation">sprite.AddAnimation</a></li>
+                    <li><a href="#Reference_methods_sprite_RemoveAnimation">sprite.RemoveAnimation</a></li>
+                    <li><a href="#Reference_methods_sprite_AddFrame">sprite.AddFrame</a></li>
+                    <li><a href="#Reference_methods_sprite_RemoveFrame">sprite.RemoveFrame</a></li>
                 </ul>
                 <i>Instance fields:</i>
                 <ul>
@@ -9012,7 +9046,7 @@ codeBlock {
         <p id="Reference_functions_Sprite_GetFrameLoopIndex">
         <h2 style="margin-bottom: 8px;">Sprite.GetFrameLoopIndex</h2>
         <code>Sprite.GetFrameLoopIndex(sprite, animation)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the index of the frame that the specified animation will loop back to when it finishes. (Deprecated; use <code></code> instead.)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the index of the frame that the specified animation will loop back to when it finishes. (Deprecated; use <code><a href="#Reference_methods_sprite_GetAnimationLoopFrame">sprite.GetAnimationLoopFrame</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sprite (Resource): A sprite resource.</li>
@@ -9036,7 +9070,7 @@ codeBlock {
         <p id="Reference_functions_Sprite_GetFrameSpeed">
         <h2 style="margin-bottom: 8px;">Sprite.GetFrameSpeed</h2>
         <code>Sprite.GetFrameSpeed(sprite, animation)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the animation speed of the specified animation. (Deprecated; use <code></code> instead.)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the animation speed of the specified animation. (Deprecated; use <code><a href="#Reference_methods_sprite_GetAnimationSpeed">sprite.GetAnimationSpeed</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sprite (Resource): A sprite resource.</li>
@@ -11042,7 +11076,7 @@ codeBlock {
         <p id="Reference_methods_sprite_GetAnimationName">
         <h2 style="margin-bottom: 8px;">sprite.GetAnimationName</h2>
         <code>sprite.GetAnimationName(animationIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the specified animation index in the sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the specified animation index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animationIndex (Integer): The animation index.</li>
@@ -11061,79 +11095,269 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the first animation index with the specified name, or <code>null</code> if there was no match.</div>
         </p>
-        <p id="Reference_methods_sprite_GetFrameWidth">
-        <h2 style="margin-bottom: 8px;">sprite.GetFrameWidth</h2>
-        <code>sprite.GetFrameWidth(animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the frame width of the specified sprite frame.</div>
+        <p id="Reference_methods_sprite_GetAnimationSpeed">
+        <h2 style="margin-bottom: 8px;">sprite.GetAnimationSpeed</h2>
+        <code>sprite.GetAnimationSpeed(animationIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the speed of the specified animation index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>animationIndex (Integer): The animation index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the speed of the specified animation index.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetAnimationLoopFrame">
+        <h2 style="margin-bottom: 8px;">sprite.GetAnimationLoopFrame</h2>
+        <code>sprite.GetAnimationLoopFrame(animationIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the loop frame of the specified animation index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animationIndex (Integer): The animation index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the loop frame of the specified animation index.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetFrameCount">
+        <h2 style="margin-bottom: 8px;">sprite.GetFrameCount</h2>
+        <code>sprite.GetFrameCount(animation)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the amount of frames in the specified animation.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the frame count of the specified animation.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetFrameX">
+        <h2 style="margin-bottom: 8px;">sprite.GetFrameX</h2>
+        <code>sprite.GetFrameX(animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the X position in the spritesheet of the specified animation frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the frame width (in pixels) of the specified sprite frame.</div>
+        <div style="font-size: 14px;">Returns the X position (in pixels) of the specified animation frame.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetFrameY">
+        <h2 style="margin-bottom: 8px;">sprite.GetFrameY</h2>
+        <code>sprite.GetFrameY(animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the Y position in the spritesheet of the specified animation frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the Y position (in pixels) of the specified animation frame.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetFrameWidth">
+        <h2 style="margin-bottom: 8px;">sprite.GetFrameWidth</h2>
+        <code>sprite.GetFrameWidth(animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the width of the specified animation frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the width (in pixels) of the specified animation frame.</div>
         </p>
         <p id="Reference_methods_sprite_GetFrameHeight">
         <h2 style="margin-bottom: 8px;">sprite.GetFrameHeight</h2>
         <code>sprite.GetFrameHeight(animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the frame height of the specified sprite frame.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the height of the specified animation frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>animation (Integer): The animation index to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the frame height (in pixels) of the specified sprite frame.</div>
+        <div style="font-size: 14px;">Returns the height (in pixels) of the specified animation frame.</div>
         </p>
         <p id="Reference_methods_sprite_GetFrameOffsetX">
         <h2 style="margin-bottom: 8px;">sprite.GetFrameOffsetX</h2>
         <code>sprite.GetFrameOffsetX(animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the X offset of the specified sprite frame.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the X offset of the specified animation frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>animation (Integer): The animation index to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the X offset of the specified sprite frame.</div>
+        <div style="font-size: 14px;">Returns the X offset of the specified animation frame.</div>
         </p>
         <p id="Reference_methods_sprite_GetFrameOffsetY">
         <h2 style="margin-bottom: 8px;">sprite.GetFrameOffsetY</h2>
         <code>sprite.GetFrameOffsetY(animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the Y offset of the specified sprite frame.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the Y offset of the specified animation frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>animation (Integer): The animation index to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the Y offset of the specified sprite frame.</div>
+        <div style="font-size: 14px;">Returns the Y offset of the specified animation frame.</div>
         </p>
         <p id="Reference_methods_sprite_GetFrameDuration">
         <h2 style="margin-bottom: 8px;">sprite.GetFrameDuration</h2>
         <code>sprite.GetFrameDuration(animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the frame duration of the specified sprite frame.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the duration of the specified animation frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>animation (Integer): The animation index to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the frame duration (in game frames) of the specified sprite frame.</div>
+        <div style="font-size: 14px;">Returns the duration (in game frames) of the specified animation frame.</div>
         </p>
         <p id="Reference_methods_sprite_GetFrameID">
         <h2 style="margin-bottom: 8px;">sprite.GetFrameID</h2>
         <code>sprite.GetFrameID(animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the frame ID of the specified sprite frame.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the ID of the specified animation frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>animation (Integer): The animation index of the sprite to check.</li>
+        <li>animation (Integer): The animation index to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the frame ID of the specified sprite frame.</div>
+        <div style="font-size: 14px;">Returns the ID of the specified animation frame.</div>
         </p>
-        <p>71 out of 71 methods have descriptions. </p>
+        <p id="Reference_methods_sprite_SetAnimationName">
+        <h2 style="margin-bottom: 8px;">sprite.SetAnimationName</h2>
+        <code>sprite.SetAnimationName(animationIndex, name)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the name of the specified animation index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animationIndex (Integer): The animation index.</li>
+        <li>name (String): The name to assign to the animation.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_sprite_SetAnimationSpeed">
+        <h2 style="margin-bottom: 8px;">sprite.SetAnimationSpeed</h2>
+        <code>sprite.SetAnimationSpeed(animationIndex, speed)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the speed of the specified animation index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animationIndex (Integer): The animation index.</li>
+        <li>speed (Integer): The speed to assign to the animation.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_sprite_SetAnimationLoopFrame">
+        <h2 style="margin-bottom: 8px;">sprite.SetAnimationLoopFrame</h2>
+        <code>sprite.SetAnimationLoopFrame(animationIndex, loopFrame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the loop frame of the specified animation index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animationIndex (Integer): The animation index.</li>
+        <li>loopFrame (Integer): The loop frame to assign to the animation.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_sprite_SetFramePosition">
+        <h2 style="margin-bottom: 8px;">sprite.SetFramePosition</h2>
+        <code>sprite.SetFramePosition(animation, frame, x, y)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the X and Y positions of the specified animation frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index.</li>
+        <li>frame (Integer): The frame index of the animation.</li>
+        <li>x (Integer): The new X position of the frame.</li>
+        <li>y (Integer): The new Y position of the frame.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_sprite_SetFrameSize">
+        <h2 style="margin-bottom: 8px;">sprite.SetFrameSize</h2>
+        <code>sprite.SetFrameSize(animation, frame, width, height)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the width and height of the specified animation frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index.</li>
+        <li>frame (Integer): The frame index of the animation.</li>
+        <li>width (Integer): The new width of the frame.</li>
+        <li>height (Integer): The new height of the frame.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_sprite_SetFrameOffset">
+        <h2 style="margin-bottom: 8px;">sprite.SetFrameOffset</h2>
+        <code>sprite.SetFrameOffset(animation, frame, offsetX, offsetY)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the X and Y offsets of the specified animation frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index.</li>
+        <li>frame (Integer): The frame index of the animation.</li>
+        <li>offsetX (Integer): The new X offset of the frame.</li>
+        <li>offsetY (Integer): The new Y offset of the frame.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_sprite_SetFrameDuration">
+        <h2 style="margin-bottom: 8px;">sprite.SetFrameDuration</h2>
+        <code>sprite.SetFrameDuration(animation, frame, duration)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the duration of the specified animation frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index.</li>
+        <li>frame (Integer): The frame index of the animation.</li>
+        <li>duration (Integer): The new duration of the frame.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_sprite_SetFrameID">
+        <h2 style="margin-bottom: 8px;">sprite.SetFrameID</h2>
+        <code>sprite.SetFrameID(animation, frame, id)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the ID of the specified animation frame.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index.</li>
+        <li>frame (Integer): The frame index of the animation.</li>
+        <li>id (Integer): The new ID of the frame.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_sprite_AddAnimation">
+        <h2 style="margin-bottom: 8px;">sprite.AddAnimation</h2>
+        <code>sprite.AddAnimation(name)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adds an animation.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>name (String): The name to give to the animation.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the index of the new animation.</div>
+        </p>
+        <p id="Reference_methods_sprite_RemoveAnimation">
+        <h2 style="margin-bottom: 8px;">sprite.RemoveAnimation</h2>
+        <code>sprite.RemoveAnimation(animation)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Removes an animation.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The index of the animation to remove.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_sprite_AddFrame">
+        <h2 style="margin-bottom: 8px;">sprite.AddFrame</h2>
+        <code>sprite.AddFrame(animation, x, y, width, height)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Adds a frame to an animation.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index to add the frame into.</li>
+        <li>x (Integer): X position of the frame in the spritesheet.</li>
+        <li>y (Integer): Y position of the frame in the spritesheet.</li>
+        <li>width (Integer): Width of the frame.</li>
+        <li>height (Integer): Height position of the frame.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the index of the new frame.</div>
+        </p>
+        <p id="Reference_methods_sprite_RemoveFrame">
+        <h2 style="margin-bottom: 8px;">sprite.RemoveFrame</h2>
+        <code>sprite.RemoveFrame(animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Removes a frame from an animation.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The index of the animation.</li>
+        <li>frame (Integer): The frame index of the animation to remove.</li>
+        </ul>
+        </p>
+        <p>88 out of 88 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
         <p id="Reference_constructors_Shader">

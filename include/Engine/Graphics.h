@@ -400,6 +400,7 @@ public:
 		int frameW,
 		int frameH);
 	static void MakeFrameBufferID(ISprite* sprite);
+	static void UpdateFrameBufferID(ISprite* sprite, AnimFrame* frame);
 	static void DeleteFrameBufferID(ISprite* sprite);
 	static void SetDepthTesting(bool enabled);
 	static bool SpriteRangeCheck(ISprite* sprite, int animation, int frame);

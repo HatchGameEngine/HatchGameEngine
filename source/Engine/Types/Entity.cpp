@@ -94,7 +94,7 @@ void Entity::ResetAnimation(int animation, int frame) {
 	CurrentFrame = frame;
 	CurrentFrameCount = (int)Sprite->Animations[CurrentAnimation].Frames.size();
 	AnimationFrameDuration = Sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
-	AnimationSpeed = Sprite->Animations[CurrentAnimation].AnimationSpeed;
+	AnimationSpeed = Sprite->Animations[CurrentAnimation].Speed;
 	AnimationLoopIndex = Sprite->Animations[CurrentAnimation].FrameToLoop;
 	RotationStyle = Sprite->Animations[CurrentAnimation].Flags;
 	if (RotationStyle == ROTSTYLE_STATICFRAMES) {

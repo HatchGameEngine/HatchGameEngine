@@ -370,6 +370,7 @@ ObjString* TakeString(char* chars);
 ObjString* CopyString(const char* chars, size_t length);
 ObjString* CopyString(const char* chars);
 ObjString* CopyString(ObjString* string);
+ObjString* CopyString(std::string string);
 ObjString* CopyString(std::filesystem::path path);
 ObjString* AllocString(size_t length);
 ObjFunction* NewFunction();

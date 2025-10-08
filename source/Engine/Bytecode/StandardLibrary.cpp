@@ -798,7 +798,7 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	animator->CurrentFrame = frameID;
 	animator->FrameCount = anim.Frames.size();
 	animator->Duration = animator->Frames[frameID].Duration;
-	animator->AnimationSpeed = anim.AnimationSpeed;
+	animator->AnimationSpeed = anim.Speed;
 	animator->RotationStyle = anim.Flags;
 	animator->LoopIndex = anim.FrameToLoop;
 	animator->PrevAnimation = animator->CurrentAnimation;
@@ -15243,7 +15243,7 @@ VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threa
 		return INTEGER_VAL(-1);
 	}
 	for (size_t i = 0; i < sprite->Animations.size(); i++) {
-		if (strcmp(name, sprite->Animations[i].Name) == 0) {
+		if (strcmp(name, sprite->Animations[i].Name.c_str()) == 0) {
 			return INTEGER_VAL((int)i);
 		}
 	}

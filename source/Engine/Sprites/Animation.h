@@ -16,15 +16,15 @@ struct AnimFrame {
 	int OffsetY;
 	int SheetNumber;
 	int Duration;
+	int ID;
 	int BufferOffset;
-	int Advance;
 
 	int BoxCount;
 	CollisionBox* Boxes = NULL;
 };
 struct Animation {
-	char* Name;
-	int AnimationSpeed;
+	std::string Name;
+	int Speed;
 	int FrameToLoop;
 	int Flags;
 	vector<AnimFrame> Frames;
