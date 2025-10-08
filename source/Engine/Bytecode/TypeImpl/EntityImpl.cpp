@@ -920,3 +920,7 @@ void EntityImpl::Dispose(Obj* object) {
 
 	InstanceImpl::Dispose(object);
 }
+
+#undef GET_ARG
+#undef GET_ARG_OPT
+#undef GET_ENTITY

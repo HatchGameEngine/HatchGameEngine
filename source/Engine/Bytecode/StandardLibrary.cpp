@@ -15302,79 +15302,6 @@ VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
 	return SpriteImpl_GetAnimationSpeed(argCount, args, threadID);
 }
-/***
- * Sprite.GetHitbox
- * \desc Gets the hitbox of an animation and frame of a sprite.
- * \param sprite (Resource): A sprite resource.
- * \param animationID (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \paramOpt hitboxID (Integer): The hitbox index of the animation to check. Defaults to <code>0</code>.
- * \ns Sprite
- */
-VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animationID = GET_ARG(1, GetInteger);
-	int frameID = GET_ARG(2, GetInteger);
-	int hitboxID = GET_ARG_OPT(3, GetInteger, 0);
-
-	if (animationID < 0 || animationID >= (int)sprite->Animations.size()) {
-		OUT_OF_RANGE_ERROR("Animation index", animationID, 0, sprite->Animations.size() - 1);
-		return NULL_VAL;
-	}
-	if (frameID < 0 || frameID >= (int)sprite->Animations[animationID].Frames.size()) {
-		OUT_OF_RANGE_ERROR(
-			"Frame index", frameID, 0, sprite->Animations[animationID].Frames.size() - 1);
-		return NULL_VAL;
-	}
-
-	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
-
-	if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-		THROW_ERROR("Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
-		return NULL_VAL;
-	}
-
-	CollisionBox box = frame.Boxes[hitboxID];
-	ObjArray* hitbox = NewArray();
-	hitbox->Values->push_back(INTEGER_VAL(box.Left));
-	hitbox->Values->push_back(INTEGER_VAL(box.Top));
-	hitbox->Values->push_back(INTEGER_VAL(box.Right));
-	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
-	return OBJECT_VAL(hitbox);
-}
-/***
- * Sprite.MakePalettized
- * \desc Converts a sprite's colors to the ones in the specified palette index.
- * \param sprite (Resource): A sprite resource.
- * \param paletteIndex (Integer): The palette index.
- * \ns Sprite
- */
-VMValue Sprite_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int palIndex = GET_ARG(1, GetInteger);
-	if (!sprite) {
-		return NULL_VAL;
-	}
-	CHECK_PALETTE_INDEX(palIndex);
-	sprite->ConvertToPalette(palIndex);
-	return NULL_VAL;
-}
-/***
- * Sprite.MakeNonPalettized
- * \desc Removes a sprite's palette.
- * \param sprite (Resource): A sprite resource.
- * \ns Sprite
- */
-VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	if (sprite) {
-		sprite->ConvertToRGBA();
-	}
-	return NULL_VAL;
-}
 // #endregion
 
 // #region Stream
@@ -18073,6 +18000,9 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+#undef GET_ARG
+#undef GET_ARG_OPT
+
 #define String_CaseMapBind(lowerCase, upperCase) \
 	String_ToUpperCase_Map_ExtendedASCII[(Uint8)lowerCase] = (Uint8)upperCase; \
 	String_ToLowerCase_Map_ExtendedASCII[(Uint8)upperCase] = (Uint8)lowerCase;
@@ -19942,7 +19872,7 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Sprite
-	// Mostly deprecated.
+	// Only deprecated methods.
 	GET_CLASS(Sprite);
 	DEF_NATIVE(Sprite, GetAnimationCount);
 	DEF_NATIVE(Sprite, GetAnimationIndexByName);
@@ -19950,9 +19880,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sprite, GetFrameLoopIndex);
 	DEF_NATIVE(Sprite, GetFrameCount);
 	DEF_NATIVE(Sprite, GetFrameSpeed);
-	DEF_NATIVE(Sprite, GetHitbox);
-	DEF_NATIVE(Sprite, MakePalettized);
-	DEF_NATIVE(Sprite, MakeNonPalettized);
 	// #endregion
 
 	// #region Stream

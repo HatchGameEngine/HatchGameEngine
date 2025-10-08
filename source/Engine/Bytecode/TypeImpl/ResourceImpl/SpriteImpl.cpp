@@ -76,6 +76,8 @@ bool SpriteImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
+#define GET_ARG_OPT(argIndex, argFunction, argDefault) \
+	(argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
 
 #define CHECK_ANIMATION_INDEX(idx) \
 	if (sprite->Animations.size() == 0) { \
@@ -186,7 +188,7 @@ VMValue SpriteImpl_GetAnimationLoopFrame(int argCount, VMValue* args, Uint32 thr
 	return INTEGER_VAL(sprite->Animations[index].FrameToLoop);
 }
 /***
- * \method GetFrameCount
+ * \method GetAnimationFrameCount
  * \desc Gets the amount of frames in the specified animation.
  * \param animation (Integer): The animation index to check.
  * \return Returns the frame count of the specified animation.
@@ -302,6 +304,8 @@ VMValue SpriteImpl_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID
 VMValue SpriteImpl_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 	GET_FRAME_PROPERTY(ID);
 }
+
+#undef GET_FRAME_PROPERTY
 
 /***
  * \method SetAnimationName
@@ -705,7 +709,81 @@ VMValue SpriteImpl_RemoveFrame(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 
-#undef GET_FRAME_PROPERTY
+/***
+ * \method GetHitbox
+ * \desc Gets the hitbox of an animation and frame.
+ * \param animationID (Integer): The animation index to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \paramOpt hitboxID (Integer): The hitbox index of the animation to check. Defaults to <code>0</code>.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 3);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	CHECK_EXISTS(sprite);
+
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+	int hitboxID = GET_ARG_OPT(3, GetInteger, 0);
+
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+	if (hitboxID < 0 || hitboxID >= frame.BoxCount) {
+		VM_THROW_ERROR("Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
+		return NULL_VAL;
+	}
+
+	CollisionBox box = frame.Boxes[hitboxID];
+	ObjArray* hitbox = NewArray();
+	hitbox->Values->push_back(INTEGER_VAL(box.Left));
+	hitbox->Values->push_back(INTEGER_VAL(box.Top));
+	hitbox->Values->push_back(INTEGER_VAL(box.Right));
+	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
+	return OBJECT_VAL(hitbox);
+}
+/***
+ * \method MakePalettized
+ * \desc Converts the sprite's colors to the ones in the specified palette index.
+ * \param paletteIndex (Integer): The palette index.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	CHECK_EXISTS(sprite);
+
+	int palIndex = GET_ARG(1, GetInteger);
+	if (palIndex < 0 || palIndex >= MAX_PALETTE_COUNT) {
+		VM_OUT_OF_RANGE_ERROR("Palette index", palIndex, 0, MAX_PALETTE_COUNT - 1);
+		return NULL_VAL;
+	}
+
+	sprite->ConvertToPalette(palIndex);
+
+	return NULL_VAL;
+}
+/***
+ * \method MakeNonPalettized
+ * \desc Removes the sprite's palette.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	CHECK_EXISTS(sprite);
+
+	sprite->ConvertToRGBA();
+
+	return NULL_VAL;
+}
+
+#undef GET_ARG
+#undef GET_ARG_OPT
+#undef CHECK_EXISTS
 
 void SpriteImpl::AddNatives() {
 	// Getting animation/frame properties
@@ -741,4 +819,9 @@ void SpriteImpl::AddNatives() {
 
 	DEF_CLASS_NATIVE(SpriteImpl, AddFrame);
 	DEF_CLASS_NATIVE(SpriteImpl, RemoveFrame);
+
+	// Miscellaneous methods
+	DEF_CLASS_NATIVE(SpriteImpl, GetHitbox);
+	DEF_CLASS_NATIVE(SpriteImpl, MakePalettized);
+	DEF_CLASS_NATIVE(SpriteImpl, MakeNonPalettized);
 }
