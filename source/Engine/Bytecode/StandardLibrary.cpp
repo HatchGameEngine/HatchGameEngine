@@ -18208,7 +18208,7 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Audio
-	INIT_CLASS(Audio);
+	GET_CLASS(Audio);
 	DEF_NATIVE(Audio, GetMasterVolume);
 	DEF_NATIVE(Audio, GetMusicVolume);
 	DEF_NATIVE(Audio, GetSoundVolume);

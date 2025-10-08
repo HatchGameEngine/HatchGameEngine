@@ -76,9 +76,6 @@ bool ImageImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 t
 		VM_THROW_ERROR("Field cannot be written to!");
 		return true;
 	}
-	else {
-		return false;
-	}
 
-	return true;
+	return false;
 }

@@ -7,17 +7,22 @@ ObjClass* AudioImpl::Class = nullptr;
 
 Uint32 Hash_LoopPoint = 0;
 
-void AudioImpl::Init() {
-	Class = NewClass("AudioResource");
+#define CLASS_AUDIO "Audio"
 
-	Hash_LoopPoint = Murmur::EncryptString("LoopPoint");
+void AudioImpl::Init() {
+	Class = NewClass(CLASS_AUDIO);
+
+	GET_STRING_HASH(LoopPoint);
 
 	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(CLASS_AUDIO, Class);
 	TypeImpl::DefinePrintableName(Class, "audio");
 }
 
 bool AudioImpl::IsValidField(Uint32 hash) {
-	return hash == Hash_LoopPoint;
+	CHECK_VALID_FIELD(LoopPoint);
+
+	return false;
 }
 
 bool AudioImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
@@ -35,8 +40,8 @@ bool AudioImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 
 	/***
 	 * \field LoopPoint
-	 * \desc The loop point of the audio in samples, or <code>null</code> if it doesn't have one.
-	 * \ns AudioResource
+	 * \desc The loop point in samples, or <code>null</code> if it doesn't have one.
+	 * \ns Audio
  	*/
 	if (hash == Hash_LoopPoint) {
 		if (audio->LoopPoint >= 0) {
@@ -75,9 +80,6 @@ bool AudioImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 t
 		}
 		return true;
 	}
-	else {
-		return false;
-	}
 
-	return true;
+	return false;
 }

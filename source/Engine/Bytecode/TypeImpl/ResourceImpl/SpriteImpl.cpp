@@ -68,11 +68,8 @@ bool SpriteImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 		VM_THROW_ERROR("Field cannot be written to!");
 		return true;
 	}
-	else {
-		return false;
-	}
 
-	return true;
+	return false;
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
