@@ -18,6 +18,7 @@ class Image : public Resourceable {
 public:
 	Texture* TexturePtr = NULL;
 
+	Image(Texture* texture);
 	Image(const char* filename);
 	void Unload();
 	~Image();

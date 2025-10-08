@@ -1238,6 +1238,8 @@ codeBlock {
                     <li><a href="#Reference_methods_sprite_GetFrameOffsetY">sprite.GetFrameOffsetY</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameDuration">sprite.GetFrameDuration</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameID">sprite.GetFrameID</a></li>
+                    <li><a href="#Reference_methods_sprite_GetSheetFilename">sprite.GetSheetFilename</a></li>
+                    <li><a href="#Reference_methods_sprite_GetSheetImage">sprite.GetSheetImage</a></li>
                     <li><a href="#Reference_methods_sprite_SetAnimationName">sprite.SetAnimationName</a></li>
                     <li><a href="#Reference_methods_sprite_SetAnimationSpeed">sprite.SetAnimationSpeed</a></li>
                     <li><a href="#Reference_methods_sprite_SetAnimationLoopFrame">sprite.SetAnimationLoopFrame</a></li>
@@ -1257,6 +1259,7 @@ codeBlock {
                 <i>Instance fields:</i>
                 <ul>
                     <li><a href="#Reference_fields_sprite_AnimationCount">sprite.AnimationCount</a></li>
+                    <li><a href="#Reference_fields_sprite_SheetCount">sprite.SheetCount</a></li>
                 </ul>
             </p>
             <p id="Reference_Stream">
@@ -1699,6 +1702,8 @@ codeBlock {
                     <li><a href="#Reference_methods_sprite_GetFrameOffsetY">sprite.GetFrameOffsetY</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameDuration">sprite.GetFrameDuration</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameID">sprite.GetFrameID</a></li>
+                    <li><a href="#Reference_methods_sprite_GetSheetFilename">sprite.GetSheetFilename</a></li>
+                    <li><a href="#Reference_methods_sprite_GetSheetImage">sprite.GetSheetImage</a></li>
                     <li><a href="#Reference_methods_sprite_SetAnimationName">sprite.SetAnimationName</a></li>
                     <li><a href="#Reference_methods_sprite_SetAnimationSpeed">sprite.SetAnimationSpeed</a></li>
                     <li><a href="#Reference_methods_sprite_SetAnimationLoopFrame">sprite.SetAnimationLoopFrame</a></li>
@@ -1718,6 +1723,7 @@ codeBlock {
                 <i>Instance fields:</i>
                 <ul>
                     <li><a href="#Reference_fields_sprite_AnimationCount">sprite.AnimationCount</a></li>
+                    <li><a href="#Reference_fields_sprite_SheetCount">sprite.SheetCount</a></li>
                 </ul>
             </p>
         <h3>Enums</h3>
@@ -11185,6 +11191,28 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the ID of the specified animation frame.</div>
         </p>
+        <p id="Reference_methods_sprite_GetSheetFilename">
+        <h2 style="margin-bottom: 8px;">sprite.GetSheetFilename</h2>
+        <code>sprite.GetSheetFilename(sheetID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the filename of the specified spritesheet, if it has a filename.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sheetID (Integer): The spritesheet index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the filename of the specified spritesheet, or <code>null</code> if the given spritesheet is not named.</div>
+        </p>
+        <p id="Reference_methods_sprite_GetSheetImage">
+        <h2 style="margin-bottom: 8px;">sprite.GetSheetImage</h2>
+        <code>sprite.GetSheetImage(sheetID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the specified spritesheet as an image. This returns a copy of the spritesheet texture.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sheetID (Integer): The spritesheet index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Image.</div>
+        </p>
         <p id="Reference_methods_sprite_SetAnimationName">
         <h2 style="margin-bottom: 8px;">sprite.SetAnimationName</h2>
         <code>sprite.SetAnimationName(animationIndex, name)</code>
@@ -11343,7 +11371,7 @@ codeBlock {
         <code>sprite.MakeNonPalettized()</code>
         <div style="margin-top: 8px; font-size: 14px;">Removes the sprite's palette.</div>
         </p>
-        <p>91 out of 91 methods have descriptions. </p>
+        <p>93 out of 93 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
         <p id="Reference_constructors_Shader">
@@ -11895,7 +11923,11 @@ codeBlock {
         <h3 style="margin-bottom: 8px;"><code>sprite.AnimationCount</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The amount of animations in the sprite.</div>
         </p>
-        <p>87 out of 91 fields have descriptions. </p>
+        <p id="Reference_fields_sprite_SheetCount">
+        <h3 style="margin-bottom: 8px;"><code>sprite.SheetCount</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The amount of spritesheets in the sprite.</div>
+        </p>
+        <p>88 out of 92 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">

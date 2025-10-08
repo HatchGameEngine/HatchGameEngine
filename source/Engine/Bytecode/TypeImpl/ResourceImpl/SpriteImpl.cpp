@@ -7,6 +7,7 @@
 ObjClass* SpriteImpl::Class = nullptr;
 
 Uint32 Hash_AnimationCount = 0;
+Uint32 Hash_SheetCount = 0;
 
 #define CLASS_SPRITE "Sprite"
 
@@ -14,6 +15,7 @@ void SpriteImpl::Init() {
 	Class = NewClass(CLASS_SPRITE);
 
 	GET_STRING_HASH(AnimationCount);
+	GET_STRING_HASH(SheetCount);
 
 	AddNatives();
 
@@ -24,6 +26,7 @@ void SpriteImpl::Init() {
 
 bool SpriteImpl::IsValidField(Uint32 hash) {
 	CHECK_VALID_FIELD(AnimationCount);
+	CHECK_VALID_FIELD(SheetCount);
 
 	return false;
 }
@@ -52,6 +55,14 @@ bool SpriteImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 	if (hash == Hash_AnimationCount) {
 		*result = INTEGER_VAL((int)sprite->Animations.size());
 	}
+	/***
+	 * \field SheetCount
+	 * \desc The amount of spritesheets in the sprite.
+	 * \ns Sprite
+ 	*/
+	else if (hash == Hash_SheetCount) {
+		*result = INTEGER_VAL((int)sprite->Spritesheets.size());
+	}
 
 	return true;
 }
@@ -64,7 +75,7 @@ bool SpriteImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 	Resourceable* resourceable = object ? GET_RESOURCEABLE(object) : nullptr;
 	CHECK_EXISTS(resourceable);
 
-	if (hash == Hash_AnimationCount) {
+	if (hash == Hash_AnimationCount || hash == Hash_SheetCount) {
 		VM_THROW_ERROR("Field cannot be written to!");
 		return true;
 	}
@@ -303,6 +314,66 @@ VMValue SpriteImpl_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 }
 
 #undef GET_FRAME_PROPERTY
+
+#define CHECK_SHEET_INDEX(idx) \
+	if (idx < 0 || idx >= (int)sprite->Spritesheets.size()) { \
+		VM_OUT_OF_RANGE_ERROR( \
+			"Sheet index", idx, 0, sprite->Spritesheets.size() - 1); \
+		return NULL_VAL; \
+	}
+
+/***
+ * \method GetSheetFilename
+ * \desc Gets the filename of the specified spritesheet, if it has a filename.
+ * \param sheetID (Integer): The spritesheet index.
+ * \return Returns the filename of the specified spritesheet, or <code>null</code> if the given spritesheet is not named.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetSheetFilename(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	CHECK_EXISTS(sprite);
+
+	int sheetID = GET_ARG(1, GetInteger);
+
+	CHECK_SHEET_INDEX(sheetID);
+
+	std::string sheetName = sprite->SpritesheetFilenames[sheetID];
+	if (sheetName.size() > 0 && ScriptManager::Lock()) {
+		ObjString* string = CopyString(sheetName);
+		ScriptManager::Unlock();
+		return OBJECT_VAL(string);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method GetSheetImage
+ * \desc Gets the specified spritesheet as an image. This returns a copy of the spritesheet texture.
+ * \param sheetID (Integer): The spritesheet index.
+ * \return Returns an Image.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetSheetImage(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	CHECK_EXISTS(sprite);
+
+	int sheetID = GET_ARG(1, GetInteger);
+
+	CHECK_SHEET_INDEX(sheetID);
+
+	Texture* texture = sprite->Spritesheets[sheetID];
+	Texture* newTexture = Graphics::CopyTexture(texture, texture->Access);
+
+	Image* image = new Image(newTexture);
+
+	return OBJECT_VAL(image->GetVMObject());
+}
+
+#undef CHECK_SHEET_INDEX
 
 /***
  * \method SetAnimationName
@@ -783,13 +854,11 @@ VMValue SpriteImpl_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadI
 #undef CHECK_EXISTS
 
 void SpriteImpl::AddNatives() {
-	// Getting animation/frame properties
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationName);
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationIndex);
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationSpeed);
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationLoopFrame);
 	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationFrameCount);
-
 	DEF_CLASS_NATIVE(SpriteImpl, GetFrameX);
 	DEF_CLASS_NATIVE(SpriteImpl, GetFrameY);
 	DEF_CLASS_NATIVE(SpriteImpl, GetFrameWidth);
@@ -798,26 +867,23 @@ void SpriteImpl::AddNatives() {
 	DEF_CLASS_NATIVE(SpriteImpl, GetFrameOffsetY);
 	DEF_CLASS_NATIVE(SpriteImpl, GetFrameDuration);
 	DEF_CLASS_NATIVE(SpriteImpl, GetFrameID);
+	DEF_CLASS_NATIVE(SpriteImpl, GetSheetFilename);
+	DEF_CLASS_NATIVE(SpriteImpl, GetSheetImage);
 
-	// Setting animation/frame properties
 	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationName);
 	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationSpeed);
 	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationLoopFrame);
-
 	DEF_CLASS_NATIVE(SpriteImpl, SetFramePosition);
 	DEF_CLASS_NATIVE(SpriteImpl, SetFrameSize);
 	DEF_CLASS_NATIVE(SpriteImpl, SetFrameOffset);
 	DEF_CLASS_NATIVE(SpriteImpl, SetFrameDuration);
 	DEF_CLASS_NATIVE(SpriteImpl, SetFrameID);
 
-	// Adding or removing animations/frames
 	DEF_CLASS_NATIVE(SpriteImpl, AddAnimation);
 	DEF_CLASS_NATIVE(SpriteImpl, RemoveAnimation);
-
 	DEF_CLASS_NATIVE(SpriteImpl, AddFrame);
 	DEF_CLASS_NATIVE(SpriteImpl, RemoveFrame);
 
-	// Miscellaneous methods
 	DEF_CLASS_NATIVE(SpriteImpl, GetHitbox);
 	DEF_CLASS_NATIVE(SpriteImpl, MakePalettized);
 	DEF_CLASS_NATIVE(SpriteImpl, MakeNonPalettized);

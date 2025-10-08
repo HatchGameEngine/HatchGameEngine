@@ -21,6 +21,12 @@ Image::Image(const char* filename) {
 	TexturePtr = Image::LoadTextureFromResource(filename);
 	Loaded = TexturePtr != nullptr;
 }
+Image::Image(Texture* texture) {
+	Type = RESOURCE_IMAGE;
+
+	TexturePtr = texture;
+	Loaded = TexturePtr != nullptr;
+}
 
 Uint8 Image::DetectFormat(Stream* stream) {
 	Uint8 magic[8];

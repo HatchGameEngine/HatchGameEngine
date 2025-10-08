@@ -3,15 +3,12 @@
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Utilities/ColorUtils.h>
 
-Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
-	Texture* texture = (Texture*)Memory::TrackedCalloc("Texture::Texture", 1, sizeof(Texture));
-	texture->Format = format;
-	texture->Access = access;
-	texture->Width = width;
-	texture->Height = height;
-	texture->Pixels = Memory::TrackedCalloc(
-		"Texture::Pixels", 1, sizeof(Uint32) * texture->Width * texture->Height);
-	return texture;
+Texture::Texture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+	Format = format;
+	Access = access;
+	Width = width;
+	Height = height;
+	Pixels = Memory::TrackedCalloc("Texture::Pixels", 1, sizeof(Uint32) * Width * Height);
 }
 
 void Texture::SetPalette(Uint32* palette, unsigned numPaletteColors) {
@@ -99,7 +96,7 @@ void Texture::Copy(Texture* source) {
 	}
 }
 
-void Texture::Dispose() {
+Texture::~Texture() {
 	Memory::Free(PaletteColors);
 	Memory::Free(Pixels);
 

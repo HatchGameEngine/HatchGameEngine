@@ -44,9 +44,11 @@ size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
 		}
 	}
 
-	AddSpriteSheet(sheetFilename);
+	if (AddSpriteSheet(sheetFilename)) {
+		return Spritesheets.size() - 1;
+	}
 
-	return Spritesheets.size() - 1;
+	return -1;
 }
 
 Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
@@ -55,7 +57,6 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 	std::string sheetPath = std::string(filename);
 
 	// Check to see if this spritesheet is already loaded.
-	// TODO: Just use image Resources for this somehow?
 	TextureReference* textureRef = Graphics::GetSpriteSheet(sheetPath);
 	if (textureRef != nullptr) {
 		SpritesheetFilenames.push_back(sheetPath);
@@ -75,6 +76,20 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 	Memory::Free(filename);
 
 	return texture;
+}
+
+void ISprite::MakeSpriteSheetUnique(int sheetID) {
+	if (SpritesheetFilenames[sheetID] == "") {
+		return;
+	}
+
+	Texture* texture = Spritesheets[sheetID];
+	Texture* newTexture = Graphics::CopyTexture(texture, texture->Access);
+
+	Graphics::DisposeSpriteSheet(SpritesheetFilenames[sheetID]);
+
+	Spritesheets[sheetID] = newTexture;
+	SpritesheetFilenames[sheetID] = "";
 }
 
 void ISprite::ReserveAnimationCount(int count) {
@@ -181,11 +196,15 @@ void ISprite::UpdateFrame(int animID, int frameID) {
 
 void ISprite::ConvertToRGBA() {
 	for (int a = 0; a < Spritesheets.size(); a++) {
+		MakeSpriteSheetUnique(a);
+
 		Graphics::ConvertTextureToRGBA(Spritesheets[a]);
 	}
 }
 void ISprite::ConvertToPalette(unsigned paletteNumber) {
 	for (int a = 0; a < Spritesheets.size(); a++) {
+		MakeSpriteSheetUnique(a);
+
 		Graphics::ConvertTextureToPalette(Spritesheets[a], paletteNumber);
 	}
 }

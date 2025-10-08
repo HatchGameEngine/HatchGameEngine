@@ -331,10 +331,7 @@ Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uin
 	Texture* texture;
 	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
 		Graphics::NoInternalTextures) {
-		texture = Texture::New(format, access, width, height);
-		if (!texture) {
-			return NULL;
-		}
+		texture = new Texture(format, access, width, height);
 	}
 	else {
 		texture = Graphics::GfxFunctions->CreateTexture(format, access, width, height);
@@ -402,6 +399,27 @@ int Graphics::UpdateYUVTexture(Texture* texture,
 	}
 	return Graphics::GfxFunctions->UpdateYUVTexture(
 		texture, src, pixelsY, pitchY, pixelsU, pitchU, pixelsV, pitchV);
+}
+Texture* Graphics::CopyTexture(Texture* source, Uint32 access) {
+	Texture* texture = CreateTexture(source->Format, access, source->Width, source->Height);
+	if (!texture) {
+		return nullptr;
+	}
+
+	memcpy(texture->Pixels, source->Pixels, source->Pitch * source->Height);
+
+	if (source->NumPaletteColors) {
+		Uint32* paletteColors = (Uint32*)Memory::Malloc(source->NumPaletteColors * sizeof(Uint32));
+
+		memcpy(paletteColors, source->PaletteColors, source->NumPaletteColors * sizeof(Uint32));
+
+		texture->PaletteColors = paletteColors;
+		texture->NumPaletteColors = source->NumPaletteColors;
+	}
+
+	Graphics::UpdateTexture(texture, NULL, source->Pixels, source->Pitch);
+
+	return texture;
 }
 int Graphics::SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors) {
 	texture->SetPalette((Uint32*)palette, numPaletteColors);
@@ -480,9 +498,7 @@ void Graphics::DisposeTexture(Texture* texture) {
 		Graphics::TextureHead = texture->Next;
 	}
 
-	texture->Dispose();
-
-	Memory::Free(texture);
+	delete texture;
 }
 TextureReference* Graphics::GetSpriteSheet(string sheetPath) {
 	if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {

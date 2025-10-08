@@ -1646,7 +1646,7 @@ void GLRenderer::Dispose() {
 
 // Texture management functions
 Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
-	Texture* texture = Texture::New(format, access, width, height);
+	Texture* texture = new Texture(format, access, width, height);
 	texture->DriverData =
 		Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(GL_TextureData));
 
