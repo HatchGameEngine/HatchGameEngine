@@ -849,16 +849,16 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.GetSprite
  * \desc Gets the sprite of an animator.
  * \param animator (Integer): The index of the animator.
- * \return Returns a Resource.
+ * \return Returns a Sprite Asset.
  * \ns Animator
  */
 VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator) {
+	if (!animator || !animator->Sprite) {
 		return NULL_VAL;
 	}
-	return OBJECT_VAL(Resource::GetVMObject((ResourceType*)animator->Sprite));
+	return OBJECT_VAL(animator->Sprite->GetVMObject());
 }
 /***
  * Animator.GetCurrentAnimation
