@@ -5,9 +5,11 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/TypeImpl/FontImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/Value.h>
@@ -100,17 +102,17 @@ inline bool ValidateResource(ResourceType* resource, Uint8 type, Uint32 threadID
 
 	return true;
 }
-inline bool ValidateResourceable(void* ptr, Uint8 type, Uint32 threadID) {
-	Resourceable* resourceable = (Resourceable*)ptr;
-	if (!resourceable) {
-		THROW_ERROR("Resourceable is no longer valid!");
+inline bool ValidateAsset(void* ptr, Uint8 type, Uint32 threadID) {
+	Asset* asset = (Asset*)ptr;
+	if (!asset) {
+		THROW_ERROR("Asset is no longer valid!");
 		return false;
 	}
 
-	if (resourceable->Type != type) {
-		THROW_ERROR("Expected resourceable to be of type '%s' instead of '%s'.",
+	if (asset->Type != type) {
+		THROW_ERROR("Expected asset to be of type '%s' instead of '%s'.",
 		    GetResourceTypeString(type),
-		    GetResourceTypeString(resourceable->Type));
+		    GetResourceTypeString(asset->Type));
 		return false;
 	}
 
@@ -346,79 +348,79 @@ inline void* GetResource(Uint8 type, VMValue* args, int index, Uint32 threadID) 
 
 	return nullptr;
 }
-inline Resourceable* GetValueAsResourceable(Uint8 type, VMValue value, Uint32 threadID) {
+inline Asset* GetValueAsAsset(Uint8 type, VMValue value, Uint32 threadID) {
 	if (IS_RESOURCE(value)) {
 		ObjResource* obj = AS_RESOURCE(value);
 		ResourceType* resourcePtr = (ResourceType*)obj->ResourcePtr;
 		if (ValidateResource(resourcePtr, type, threadID)) {
-			return (Resourceable*)resourcePtr->AsResourceable;
+			return (Asset*)resourcePtr->AsAsset;
 		}
 	}
-	else if (IS_RESOURCEABLE(value)) {
-		ObjResourceable* obj = AS_RESOURCEABLE(value);
-		if (ValidateResourceable(obj->ResourceablePtr, type, threadID)) {
-			return (Resourceable*)obj->ResourceablePtr;
+	else if (IS_ASSET(value)) {
+		ObjAsset* obj = AS_ASSET(value);
+		if (ValidateAsset(obj->AssetPtr, type, threadID)) {
+			return (Asset*)obj->AssetPtr;
 		}
 	}
 
 	return nullptr;
 }
-inline Resourceable* GetResourceable(Uint8 type, VMValue value, Uint32 threadID) {
-	Resourceable* resourceable = GetValueAsResourceable(type, value, threadID);
-	if (resourceable != nullptr) {
-		return resourceable;
+inline Asset* GetAsset(Uint8 type, VMValue value, Uint32 threadID) {
+	Asset* asset = GetValueAsAsset(type, value, threadID);
+	if (asset != nullptr) {
+		return asset;
 	}
 
-	if (!(IS_RESOURCE(value) || IS_RESOURCEABLE(value))) {
-		ExpectedObjectTypeError(value, OBJ_RESOURCEABLE, threadID);
+	if (!(IS_RESOURCE(value) || IS_ASSET(value))) {
+		ExpectedObjectTypeError(value, OBJ_ASSET, threadID);
 	}
 
 	return nullptr;
 }
-inline Resourceable* GetResourceable(Uint8 type, VMValue* args, int index, Uint32 threadID) {
+inline Asset* GetAsset(Uint8 type, VMValue* args, int index, Uint32 threadID) {
 	VMValue value = args[index];
 
-	Resourceable* resourceable = GetValueAsResourceable(type, value, threadID);
-	if (resourceable != nullptr) {
-		return resourceable;
+	Asset* asset = GetValueAsAsset(type, value, threadID);
+	if (asset != nullptr) {
+		return asset;
 	}
 
-	if (!(IS_RESOURCE(value) || IS_RESOURCEABLE(value))) {
-		ExpectedObjectTypeError(index, value, OBJ_RESOURCEABLE, threadID);
+	if (!(IS_RESOURCE(value) || IS_ASSET(value))) {
+		ExpectedObjectTypeError(index, value, OBJ_ASSET, threadID);
 	}
 
 	return nullptr;
 }
 inline ISprite* GetSprite(VMValue* args, int index, Uint32 threadID) {
-	Resourceable* resource = GetResourceable(RESOURCE_SPRITE, args, index, threadID);
+	Asset* resource = GetAsset(RESOURCE_SPRITE, args, index, threadID);
 	if (resource != nullptr) {
 		return (ISprite*)resource;
 	}
 	return nullptr;
 }
 inline Image* GetImage(VMValue* args, int index, Uint32 threadID) {
-	Resourceable* resource = GetResourceable(RESOURCE_IMAGE, args, index, threadID);
+	Asset* resource = GetAsset(RESOURCE_IMAGE, args, index, threadID);
 	if (resource != nullptr) {
 		return (Image*)resource;
 	}
 	return nullptr;
 }
 inline ISound* GetAudio(VMValue* args, int index, Uint32 threadID) {
-	Resourceable* resource = GetResourceable(RESOURCE_AUDIO, args, index, threadID);
+	Asset* resource = GetAsset(RESOURCE_AUDIO, args, index, threadID);
 	if (resource != nullptr) {
 		return (ISound*)resource;
 	}
 	return nullptr;
 }
 inline IModel* GetModel(VMValue* args, int index, Uint32 threadID) {
-	Resourceable* resource = GetResourceable(RESOURCE_MODEL, args, index, threadID);
+	Asset* resource = GetAsset(RESOURCE_MODEL, args, index, threadID);
 	if (resource != nullptr) {
 		return (IModel*)resource;
 	}
 	return nullptr;
 }
 inline MediaBag* GetVideo(VMValue* args, int index, Uint32 threadID) {
-	Resourceable* resource = GetResourceable(RESOURCE_MEDIA, args, index, threadID);
+	Asset* resource = GetAsset(RESOURCE_MEDIA, args, index, threadID);
 	if (resource != nullptr) {
 		return (MediaBag*)resource;
 	}
@@ -472,8 +474,8 @@ int StandardLibrary::ExpectedTypeError(int index, VMValue value, Uint32 expected
 int StandardLibrary::ExpectedObjectTypeError(int index, VMValue value, Uint32 expectedType, Uint32 threadID) {
 	return LOCAL::ExpectedObjectTypeError(index, value, expectedType, threadID);
 }
-void* StandardLibrary::GetResourceable(Uint8 type, VMValue value, Uint32 threadID) {
-	return (void*)LOCAL::GetResourceable(type, value, threadID);
+void* StandardLibrary::GetAsset(Uint8 type, VMValue value, Uint32 threadID) {
+	return (void*)LOCAL::GetAsset(type, value, threadID);
 }
 // NOTE:
 // Integers specifically need to be whole integers.

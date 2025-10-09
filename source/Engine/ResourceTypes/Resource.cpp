@@ -68,13 +68,13 @@ void Resource::ReleaseVMObject(ResourceType* resource) {
 
 bool Resource::CompareVMObjects(void* a, void* b) {
 	ObjResource* resource = resource = (ObjResource*)a;
-	ObjResourceable* resourceable = (ObjResourceable*)b;
+	ObjAsset* asset = (ObjAsset*)b;
 
-	if (!resource->ResourcePtr || !resourceable->ResourceablePtr) {
+	if (!resource->ResourcePtr || !asset->AssetPtr) {
 		return false;
 	}
 
-	return ((ResourceType*)resource->ResourcePtr)->AsResourceable == resourceable->ResourceablePtr;
+	return ((ResourceType*)resource->ResourcePtr)->AsAsset == asset->AssetPtr;
 }
 
 void Resource::AddRef(ResourceType* resource) {
@@ -100,11 +100,11 @@ bool Resource::Reload(ResourceType* resource) {
 	}
 
 	// Try loading it.
-	Resourceable* data = LoadData(resource->Type, resource->Filename);
+	Asset* data = LoadData(resource->Type, resource->Filename);
 	if (data != nullptr) {
 		UnloadData(resource); // Unload only if loading succeeded
 		data->TakeRef();
-		resource->AsResourceable = data;
+		resource->AsAsset = data;
 		resource->Loaded = true;
 	}
 
@@ -170,14 +170,14 @@ ResourceType* Resource::Load(Uint8 type, const char* filename, int unloadPolicy,
 	}
 
 	// Try loading it.
-	Resourceable* data = LoadData(type, filename);
+	Asset* data = LoadData(type, filename);
 	if (data == nullptr) {
 		return nullptr;
 	}
 
 	// Allocate a new resource.
 	ResourceType* resource = New(type, filename, hash, unloadPolicy, unique);
-	resource->AsResourceable = data;
+	resource->AsAsset = data;
 	resource->Loaded = true;
 
 	// Add it to the list.
@@ -225,8 +225,8 @@ Uint8 Resource::GuessType(const char* filename) {
 	return RESOURCE_NONE;
 }
 
-Resourceable* Resource::LoadData(Uint8 type, const char* filename) {
-	Resourceable* data = nullptr;
+Asset* Resource::LoadData(Uint8 type, const char* filename) {
+	Asset* data = nullptr;
 
 	switch (type) {
 	case RESOURCE_SPRITE:
@@ -259,12 +259,12 @@ Resourceable* Resource::LoadData(Uint8 type, const char* filename) {
 }
 
 bool Resource::UnloadData(ResourceType* resource) {
-	Resourceable* resourceable = resource->AsResourceable;
+	Asset* asset = resource->AsAsset;
 
-	if (resourceable != nullptr) {
-		resourceable->Unload();
-		resourceable->Release();
-		resource->AsResourceable = nullptr;
+	if (asset != nullptr) {
+		asset->Unload();
+		asset->Release();
+		resource->AsAsset = nullptr;
 		return true;
 	}
 

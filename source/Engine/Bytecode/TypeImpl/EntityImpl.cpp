@@ -107,9 +107,8 @@ bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 			return true;
 		}
 
-		void* resourceable =
-			StandardLibrary::GetResourceable(RESOURCE_SPRITE, value, threadID);
-		ISprite* sprite = (ISprite*)resourceable;
+		void* asset = StandardLibrary::GetAsset(RESOURCE_SPRITE, value, threadID);
+		ISprite* sprite = (ISprite*)asset;
 
 		entity->SetSprite(sprite);
 

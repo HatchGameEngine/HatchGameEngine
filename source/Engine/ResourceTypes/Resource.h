@@ -1,7 +1,7 @@
 #ifndef ENGINE_RESOURCETYPES_RESOURCE_H
 #define ENGINE_RESOURCETYPES_RESOURCE_H
 
-#include <Engine/ResourceTypes/Resourceable.h>
+#include <Engine/ResourceTypes/Asset.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 
 class Resource {
@@ -13,7 +13,7 @@ private:
 	static bool UnloadData(ResourceType* resource);
 	static int Search(Uint8 type, const char* filename, Uint32 hash);
 	static Uint8 GuessType(const char* filename);
-	static Resourceable* LoadData(Uint8 type, const char* filename);
+	static Asset* LoadData(Uint8 type, const char* filename);
 
 public:
 	static vector<ResourceType*>* GetList();

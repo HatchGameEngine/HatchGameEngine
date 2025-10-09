@@ -2,9 +2,9 @@
 #define ENGINE_RESOURCETYPES_MEDIABAG_H
 
 #include <Engine/Includes/Standard.h>
-#include <Engine/ResourceTypes/Resourceable.h>
+#include <Engine/ResourceTypes/Asset.h>
 
-class MediaBag : public Resourceable {
+class MediaBag : public Asset {
 private:
 	bool Load(const char* filename);
 

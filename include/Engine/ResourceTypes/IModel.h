@@ -6,9 +6,9 @@
 #include <Engine/Rendering/3D.h>
 #include <Engine/Rendering/Material.h>
 #include <Engine/Rendering/Mesh.h>
-#include <Engine/ResourceTypes/Resourceable.h>
+#include <Engine/ResourceTypes/Asset.h>
 
-class IModel : public Resourceable {
+class IModel : public Asset {
 private:
 	void UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame);
 

@@ -1,5 +1,7 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
+#include <Engine/Bytecode/TypeImpl/AssetImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/ResourceTypes/Resource.h>
 #include <Engine/ResourceTypes/ResourceType.h>
@@ -38,8 +40,8 @@ const char* Value::GetObjectTypeName(Uint32 type) {
 		return "module";
 	case OBJ_RESOURCE:
 		return "resource";
-	case OBJ_RESOURCEABLE:
-		return "resourceable";
+	case OBJ_ASSET:
+		return "asset";
 	}
 
 	return "unknown object type";
@@ -204,10 +206,10 @@ bool Value::SortaEqual(VMValue a, VMValue b) {
 			abm->Method == bbm->Method;
 	}
 
-	if (IS_RESOURCE(a) && IS_RESOURCEABLE(b)) {
+	if (IS_RESOURCE(a) && IS_ASSET(b)) {
 		return Resource::CompareVMObjects(AS_OBJECT(a), AS_OBJECT(b));
 	}
-	else if (IS_RESOURCEABLE(a) && IS_RESOURCE(b)) {
+	else if (IS_ASSET(a) && IS_RESOURCE(b)) {
 		return Resource::CompareVMObjects(AS_OBJECT(b), AS_OBJECT(a));
 	}
 

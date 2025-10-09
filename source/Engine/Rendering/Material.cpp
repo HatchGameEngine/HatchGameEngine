@@ -86,23 +86,23 @@ void* Material::LoadForModel(const char* imagePath, const char* parentDirectory)
 	return LoadForModel(std::string(imagePath), parentDirectory);
 }
 
-void Material::SetTexture(void** resourceable, void* newImage) {
+void Material::SetTexture(void** asset, void* newImage) {
 	Image* image = (Image*)newImage;
 
-	ReleaseTexture(resourceable);
+	ReleaseTexture(asset);
 
 	if (image) {
 		image->TakeRef();
-		(*resourceable) = image;
+		(*asset) = image;
 	}
 }
 
-void Material::ReleaseTexture(void** resourceable) {
-	Image* image = *((Image**)resourceable);
+void Material::ReleaseTexture(void** asset) {
+	Image* image = *((Image**)asset);
 	if (image) {
 		image->Release();
 
-		(*resourceable) = nullptr;
+		(*asset) = nullptr;
 	}
 }
 

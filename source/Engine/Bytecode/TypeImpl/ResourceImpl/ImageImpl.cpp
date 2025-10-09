@@ -1,5 +1,5 @@
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/TypeImpl/ResourceableImpl.h>
+#include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
@@ -33,13 +33,13 @@ bool ImageImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 		return false;
 	}
 
-	Resourceable* resourceable = object ? GET_RESOURCEABLE(object) : nullptr;
-	if (!resourceable || !resourceable->IsLoaded()) {
+	Asset* asset = object ? GET_ASSET(object) : nullptr;
+	if (!asset || !asset->IsLoaded()) {
 		VM_THROW_ERROR("Image is no longer loaded!");
 		return true;
 	}
 
-	Image* image = (Image*)resourceable;
+	Image* image = (Image*)asset;
 
 	/***
 	 * \field Width
@@ -66,8 +66,8 @@ bool ImageImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 t
 		return false;
 	}
 
-	Resourceable* resourceable = object ? GET_RESOURCEABLE(object) : nullptr;
-	if (!resourceable || !resourceable->IsLoaded()) {
+	Asset* asset = object ? GET_ASSET(object) : nullptr;
+	if (!asset || !asset->IsLoaded()) {
 		VM_THROW_ERROR("Image is no longer loaded!");
 		return true;
 	}

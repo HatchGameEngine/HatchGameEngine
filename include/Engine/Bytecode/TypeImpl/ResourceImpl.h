@@ -4,6 +4,9 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
+#define IS_RESOURCE(value) IsObjectType(value, OBJ_RESOURCE)
+#define AS_RESOURCE(value) ((ObjResource*)AS_OBJECT(value))
+
 class ResourceImpl {
 public:
 	static ObjClass* Class;
@@ -22,7 +25,7 @@ public:
 	static VMValue VM_Reload(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Unload(int argCount, VMValue* args, Uint32 threadID);
 
-	static void* NewResourceableObject(void* ptr);
+	static void* NewAssetObject(void* ptr);
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_RESOURCEIMPL_H */

@@ -70,7 +70,7 @@ void ValuePrinter::PrintObject(VMValue value, int indent) {
 		break;
 	case OBJ_NATIVE_FUNCTION:
 	case OBJ_UPVALUE:
-	case OBJ_RESOURCEABLE:
+	case OBJ_ASSET:
 		if (IsJSON) {
 			buffer_printf(Buffer, "\"%s\"", Value::GetObjectTypeName(value));
 		}

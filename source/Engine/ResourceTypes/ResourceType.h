@@ -9,7 +9,7 @@
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/ResourceTypes/Image.h>
 #include <Engine/ResourceTypes/MediaBag.h>
-#include <Engine/ResourceTypes/Resourceable.h>
+#include <Engine/ResourceTypes/Asset.h>
 
 enum {
 	RESOURCE_NONE,
@@ -67,7 +67,7 @@ struct ResourceType {
 		ISound* AsAudio;
 		IModel* AsModel;
 		MediaBag* AsMedia;
-		Resourceable* AsResourceable;
+		Asset* AsAsset;
 	};
 };
 

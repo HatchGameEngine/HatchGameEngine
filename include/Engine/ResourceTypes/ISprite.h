@@ -4,10 +4,10 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/IO/Stream.h>
 #include <Engine/Rendering/Texture.h>
-#include <Engine/ResourceTypes/Resourceable.h>
+#include <Engine/ResourceTypes/Asset.h>
 #include <Engine/Sprites/Animation.h>
 
-class ISprite : public Resourceable {
+class ISprite : public Asset {
 public:
 	vector<Texture*> Spritesheets;
 	vector<string> SpritesheetFilenames;

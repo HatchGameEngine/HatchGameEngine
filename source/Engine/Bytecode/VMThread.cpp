@@ -3457,8 +3457,8 @@ static const char* GetTypeOfValue(VMValue value) {
 			return "module";
 		case OBJ_RESOURCE:
 			return "resource";
-		case OBJ_RESOURCEABLE:
-			return "resourceable";
+		case OBJ_ASSET:
+			return "asset";
 		default:
 			if (IS_INSTANCEABLE(value)) {
 				return "instance";

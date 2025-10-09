@@ -1,16 +1,18 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
-#include <Engine/Bytecode/TypeImpl/ResourceableImpl.h>
+#include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 
-ObjClass* ResourceableImpl::Class = nullptr;
+ObjClass* AssetImpl::Class = nullptr;
 
-void ResourceableImpl::Init() {
-	Class = NewClass(CLASS_RESOURCEABLE);
+#define CLASS_ASSET "Asset"
+
+void AssetImpl::Init() {
+	Class = NewClass(CLASS_ASSET);
 
 	TypeImpl::RegisterClass(Class);
 
@@ -19,12 +21,11 @@ void ResourceableImpl::Init() {
 	SpriteImpl::Init();
 }
 
-void* ResourceableImpl::New(void* ptr) {
-	ObjResourceable* obj =
-		(ObjResourceable*)AllocateObject(sizeof(ObjResourceable), OBJ_RESOURCEABLE);
-	Memory::Track(obj, "NewResourceable");
-	obj->Object.Destructor = ResourceableImpl::Dispose;
-	obj->ResourceablePtr = ptr;
+void* AssetImpl::New(void* ptr) {
+	ObjAsset* obj = (ObjAsset*)AllocateObject(sizeof(ObjAsset), OBJ_ASSET);
+	Memory::Track(obj, "NewAsset");
+	obj->Object.Destructor = AssetImpl::Dispose;
+	obj->AssetPtr = ptr;
 
 #define CASE(type, className) \
 	case RESOURCE_##type: \
@@ -33,8 +34,8 @@ void* ResourceableImpl::New(void* ptr) {
 		obj->Object.PropertySet = className##Impl::VM_PropertySet; \
 		break
 
-	Resourceable* resourceable = (Resourceable*)ptr;
-	switch (resourceable->Type) {
+	Asset* asset = (Asset*)ptr;
+	switch (asset->Type) {
 	CASE(AUDIO, Audio);
 	CASE(IMAGE, Image);
 	CASE(SPRITE, Sprite);
@@ -47,7 +48,7 @@ void* ResourceableImpl::New(void* ptr) {
 	return (void*)obj;
 }
 
-ValueGetFn ResourceableImpl::GetGetter(Uint8 type) {
+ValueGetFn AssetImpl::GetGetter(Uint8 type) {
 #define CASE(type, className) \
 	case RESOURCE_##type: \
 		return className##Impl::VM_PropertyGet \
@@ -62,7 +63,7 @@ ValueGetFn ResourceableImpl::GetGetter(Uint8 type) {
 
 #undef CASE
 }
-ValueSetFn ResourceableImpl::GetSetter(Uint8 type) {
+ValueSetFn AssetImpl::GetSetter(Uint8 type) {
 #define CASE(type, className) \
 	case RESOURCE_##type: \
 		return className##Impl::VM_PropertySet \
@@ -78,10 +79,10 @@ ValueSetFn ResourceableImpl::GetSetter(Uint8 type) {
 #undef CASE
 }
 
-void ResourceableImpl::Dispose(Obj* object) {
-	ObjResourceable* resourceable = (ObjResourceable*)object;
+void AssetImpl::Dispose(Obj* object) {
+	ObjAsset* asset = (ObjAsset*)object;
 
-	if (resourceable->ResourceablePtr) {
-		((Resourceable*)resourceable->ResourceablePtr)->ReleaseVMObject();
+	if (asset->AssetPtr) {
+		((Asset*)asset->AssetPtr)->ReleaseVMObject();
 	}
 }

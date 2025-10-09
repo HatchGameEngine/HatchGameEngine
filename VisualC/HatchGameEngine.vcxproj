@@ -159,6 +159,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\audio\AudioManager.cpp" />
     <ClCompile Include="..\source\engine\audio\AudioPlayback.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ArrayImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\AssetImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\EntityImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\FontImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\FunctionImpl.cpp" />
@@ -168,7 +169,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\AudioImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\ImageImpl.cpp" />
-    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceableImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\SpriteImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StreamImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp" />

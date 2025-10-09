@@ -168,7 +168,7 @@ enum ObjType {
 	OBJ_NAMESPACE,
 	OBJ_ENUM,
 	OBJ_RESOURCE,
-	OBJ_RESOURCEABLE,
+	OBJ_ASSET,
 	OBJ_INSTANCE,
 	OBJ_ENTITY,
 	OBJ_NATIVE_FUNCTION,
@@ -176,19 +176,6 @@ enum ObjType {
 
 	MAX_OBJ_TYPE
 };
-
-#define CLASS_ARRAY "$$ArrayImpl"
-#define CLASS_ENTITY "$$EntityImpl"
-#define CLASS_FONT "Font"
-#define CLASS_FUNCTION "$$FunctionImpl"
-#define CLASS_INSTANCE "$$InstanceImpl"
-#define CLASS_MAP "$$MapImpl"
-#define CLASS_MATERIAL "Material"
-#define CLASS_RESOURCE "Resource"
-#define CLASS_RESOURCEABLE "Resourceable"
-#define CLASS_SHADER "Shader"
-#define CLASS_STREAM "$$StreamImpl"
-#define CLASS_STRING "$$StringImpl"
 
 #define OBJECT_TYPE(value) (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value) IsObjectType(value, OBJ_BOUND_METHOD)
@@ -203,8 +190,6 @@ enum ObjType {
 #define IS_NAMESPACE(value) IsObjectType(value, OBJ_NAMESPACE)
 #define IS_ENUM(value) IsObjectType(value, OBJ_ENUM)
 #define IS_MODULE(value) IsObjectType(value, OBJ_MODULE)
-#define IS_RESOURCE(value) IsObjectType(value, OBJ_RESOURCE)
-#define IS_RESOURCEABLE(value) IsObjectType(value, OBJ_RESOURCEABLE)
 #define IS_NATIVE_INSTANCE(value) IsObjectType(value, OBJ_NATIVE_INSTANCE)
 #define IS_ENTITY(value) IsObjectType(value, OBJ_ENTITY)
 #define IS_INSTANCEABLE(value) (IS_INSTANCE(value) || IS_NATIVE_INSTANCE(value) || IS_ENTITY(value))
@@ -223,8 +208,6 @@ enum ObjType {
 #define AS_NAMESPACE(value) ((ObjNamespace*)AS_OBJECT(value))
 #define AS_ENUM(value) ((ObjEnum*)AS_OBJECT(value))
 #define AS_MODULE(value) ((ObjModule*)AS_OBJECT(value))
-#define AS_RESOURCE(value) ((ObjResource*)AS_OBJECT(value))
-#define AS_RESOURCEABLE(value) ((ObjResourceable*)AS_OBJECT(value))
 #define AS_ENTITY(value) ((ObjEntity*)AS_OBJECT(value))
 
 typedef HashMap<VMValue> Table;
@@ -328,9 +311,9 @@ struct ObjResource {
 	ValueGetFn GetFieldFromData;
 	ValueSetFn SetFieldForData;
 };
-struct ObjResourceable {
+struct ObjAsset {
 	Obj Object;
-	void* ResourceablePtr;
+	void* AssetPtr;
 };
 
 #define UNION_INSTANCEABLE \

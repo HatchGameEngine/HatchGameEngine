@@ -1,7 +1,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
+#include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
-#include <Engine/Bytecode/TypeImpl/ResourceableImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Types.h>
 #include <Engine/ResourceTypes/Resource.h>
@@ -14,6 +14,8 @@ Uint32 Hash_Filename = 0;
 Uint32 Hash_Loaded = 0;
 Uint32 Hash_Scope = 0;
 Uint32 Hash_Data = 0;
+
+#define CLASS_RESOURCE "Resource"
 
 void ResourceImpl::Init() {
 	Class = NewClass(CLASS_RESOURCE);
@@ -60,8 +62,8 @@ void ResourceImpl::SetOwner(Obj* obj, void* resourcePtr) {
 	if (resourcePtr) {
 		ResourceType* resourceType = (ResourceType*)resourcePtr;
 		resource->ResourcePtr = resourcePtr;
-		resource->GetFieldFromData = ResourceableImpl::GetGetter(resourceType->Type);
-		resource->SetFieldForData = ResourceableImpl::GetSetter(resourceType->Type);
+		resource->GetFieldFromData = AssetImpl::GetGetter(resourceType->Type);
+		resource->SetFieldForData = AssetImpl::GetSetter(resourceType->Type);
 	}
 }
 
@@ -78,7 +80,7 @@ void ResourceImpl::Dispose(Obj* object) {
  * \desc Loads a Resource by name.
  * \param filename (String): Filename of the resource.
  * \paramOpt unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the resource.
- * \paramOpt unique (Boolean): If <code>false</code> (the default), this constructor may return an already loaded Resource of the same type and filename. However, if <code>true</code>, this constructor will always return an unique Resource, and load a new Resourceable.
+ * \paramOpt unique (Boolean): If <code>false</code> (the default), this constructor may return an already loaded Resource of the same type and filename. However, if <code>true</code>, this constructor will always return an unique Resource, and load a new Asset.
  * \ns Resource
  */
 VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
@@ -147,12 +149,12 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	}
 	/***
 	 * \field Data
-	 * \desc The Resourceable owned by this resource.
+	 * \desc The Asset owned by this resource.
 	 * \ns Resource
  	*/
 	else if (hash == Hash_Data) {
-		if (resource->AsResourceable) {
-			*result = OBJECT_VAL(resource->AsResourceable->GetVMObject());
+		if (resource->AsAsset) {
+			*result = OBJECT_VAL(resource->AsAsset->GetVMObject());
 		}
 		else {
 			*result = NULL_VAL;
@@ -160,8 +162,8 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	}
 	else if (objResource->GetFieldFromData) {
 		Obj* obj = nullptr;
-		if (resource->AsResourceable) {
-			obj = (Obj*)resource->AsResourceable->GetVMObject();
+		if (resource->AsAsset) {
+			obj = (Obj*)resource->AsAsset->GetVMObject();
 		}
 		return objResource->GetFieldFromData(obj, hash, result, threadID);
 	}
@@ -183,8 +185,8 @@ bool ResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint3
 	}
 	else if (objResource->SetFieldForData) {
 		Obj* obj = nullptr;
-		if (resource->AsResourceable) {
-			obj = (Obj*)resource->AsResourceable->GetVMObject();
+		if (resource->AsAsset) {
+			obj = (Obj*)resource->AsAsset->GetVMObject();
 		}
 		return objResource->SetFieldForData(obj, hash, value, threadID);
 	}
@@ -232,7 +234,7 @@ VMValue ResourceImpl::VM_MakeUnique(int argCount, VMValue* args, Uint32 threadID
 
 /***
  * \method Reload
- * \desc Reloads the Resourceable owned by this Resource. Returns <code>true</code> if it was reloaded successfully, and <code>false</code> if otherwise.
+ * \desc Reloads the Asset owned by this Resource. Returns <code>true</code> if it was reloaded successfully, and <code>false</code> if otherwise.
  * \return Returns a Boolean value.
  * \ns Resource
  */
@@ -252,7 +254,7 @@ VMValue ResourceImpl::VM_Reload(int argCount, VMValue* args, Uint32 threadID) {
 
 /***
  * \method Unload
- * \desc Unloads the Resourceable owned by this Resource. Does nothing if the Resource was already unloaded.
+ * \desc Unloads the Asset owned by this Resource. Does nothing if the Resource was already unloaded.
  * \ns Resource
  */
 VMValue ResourceImpl::VM_Unload(int argCount, VMValue* args, Uint32 threadID) {

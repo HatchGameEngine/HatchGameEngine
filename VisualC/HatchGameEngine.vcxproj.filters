@@ -30,6 +30,9 @@
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ArrayImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\AssetImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\FontImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -51,7 +54,7 @@
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\ImageImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceableImpl.cpp">
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\SpriteImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp">

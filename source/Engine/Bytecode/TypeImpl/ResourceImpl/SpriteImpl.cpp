@@ -1,6 +1,6 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
-#include <Engine/Bytecode/TypeImpl/ResourceableImpl.h>
+#include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
@@ -42,10 +42,10 @@ bool SpriteImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 		return false;
 	}
 
-	Resourceable* resourceable = object ? GET_RESOURCEABLE(object) : nullptr;
-	CHECK_EXISTS(resourceable);
+	Asset* asset = object ? GET_ASSET(object) : nullptr;
+	CHECK_EXISTS(asset);
 
-	ISprite* sprite = (ISprite*)resourceable;
+	ISprite* sprite = (ISprite*)asset;
 
 	/***
 	 * \field AnimationCount
@@ -72,8 +72,8 @@ bool SpriteImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 		return false;
 	}
 
-	Resourceable* resourceable = object ? GET_RESOURCEABLE(object) : nullptr;
-	CHECK_EXISTS(resourceable);
+	Asset* asset = object ? GET_ASSET(object) : nullptr;
+	CHECK_EXISTS(asset);
 
 	if (hash == Hash_AnimationCount || hash == Hash_SheetCount) {
 		VM_THROW_ERROR("Field cannot be written to!");

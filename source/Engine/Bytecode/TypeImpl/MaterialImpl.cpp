@@ -200,7 +200,7 @@ bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 				material->SetTexture(&material->Texture##type, nullptr); \
 			} \
 			else { \
-				Image* image = (Image*)StandardLibrary::GetResourceable( \
+				Image* image = (Image*)StandardLibrary::GetAsset( \
 					RESOURCE_IMAGE, value, threadID); \
 				material->SetTexture(&material->Texture##type, (void*)image); \
 			} \

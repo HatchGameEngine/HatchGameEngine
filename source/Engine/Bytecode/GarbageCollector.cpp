@@ -175,7 +175,7 @@ void GarbageCollector::GrayResource(void* ptr) {
 		return;
 	}
 
-	GrayObject(resource->AsResourceable->GetVMObjectPtr());
+	GrayObject(resource->AsAsset->GetVMObjectPtr());
 
 	// Mark model materials
 	if (resource->Type == RESOURCE_MODEL) {

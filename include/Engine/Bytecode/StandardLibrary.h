@@ -12,7 +12,7 @@ public:
 	static int ExpectedObjectTypeError(VMValue value, Uint32 expectedType, Uint32 threadID);
 	static int ExpectedTypeError(int index, VMValue value, Uint32 expectedType, Uint32 threadID);
 	static int ExpectedObjectTypeError(int index, VMValue value, Uint32 expectedType, Uint32 threadID);
-	static void* GetResourceable(Uint8 type, VMValue value, Uint32 threadID);
+	static void* GetAsset(Uint8 type, VMValue value, Uint32 threadID);
 	static int GetInteger(VMValue* args, int index, Uint32 threadID);
 	static float GetDecimal(VMValue* args, int index, Uint32 threadID);
 	static char* GetString(VMValue* args, int index, Uint32 threadID);

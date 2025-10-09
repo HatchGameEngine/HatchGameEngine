@@ -5,7 +5,7 @@
 #include <Engine/IO/Stream.h>
 #include <Engine/Rendering/GameTexture.h>
 #include <Engine/Rendering/Texture.h>
-#include <Engine/ResourceTypes/Resourceable.h>
+#include <Engine/ResourceTypes/Asset.h>
 
 enum {
 	IMAGE_FORMAT_UNKNOWN,
@@ -14,7 +14,7 @@ enum {
 	IMAGE_FORMAT_JPEG
 };
 
-class Image : public Resourceable {
+class Image : public Asset {
 public:
 	Texture* TexturePtr = NULL;
 

@@ -45,6 +45,7 @@ CPPFILES := \
 	source/Engine/Bytecode/SourceFileMap.cpp \
 	source/Engine/Bytecode/StandardLibrary.cpp \
 	source/Engine/Bytecode/TypeImpl/ArrayImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/AssetImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/FontImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/FunctionImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MapImpl.cpp \
@@ -52,7 +53,7 @@ CPPFILES := \
 	source/Engine/Bytecode/TypeImpl/ResourceImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.cpp \
-	source/Engine/Bytecode/TypeImpl/ResourceableImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ShaderImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
 	source/Engine/Bytecode/Types.cpp \
@@ -275,6 +276,7 @@ PUBHFILES := \
 	include/Engine/Bytecode/SourceFileMap.h \
 	include/Engine/Bytecode/StandardLibrary.h \
 	include/Engine/Bytecode/TypeImpl/ArrayImpl.h \
+	include/Engine/Bytecode/TypeImpl/AssetImpl.h \
 	include/Engine/Bytecode/TypeImpl/FontImpl.h \
 	include/Engine/Bytecode/TypeImpl/FunctionImpl.h \
 	include/Engine/Bytecode/TypeImpl/MapImpl.h \
@@ -282,7 +284,7 @@ PUBHFILES := \
 	include/Engine/Bytecode/TypeImpl/ResourceImpl.h \
 	include/Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.h \
 	include/Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.h \
-	include/Engine/Bytecode/TypeImpl/ResourceableImpl.h \
+	include/Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h \
 	include/Engine/Bytecode/TypeImpl/ShaderImpl.h \
 	include/Engine/Bytecode/TypeImpl/StringImpl.h \
 	include/Engine/Bytecode/Value.h \

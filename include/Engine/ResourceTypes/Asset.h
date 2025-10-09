@@ -1,9 +1,9 @@
-#ifndef ENGINE_RESOURCETYPES_RESOURCEABLE_H
-#define ENGINE_RESOURCETYPES_RESOURCEABLE_H
+#ifndef ENGINE_RESOURCETYPES_ASSET_H
+#define ENGINE_RESOURCETYPES_ASSET_H
 
 #include <Engine/Includes/Standard.h>
 
-class Resourceable {
+class Asset {
 protected:
 	bool Loaded = false;
 	void* VMObject = nullptr;
@@ -19,7 +19,7 @@ public:
 	void* GetVMObjectPtr();
 	void ReleaseVMObject();
 	virtual void Unload();
-	virtual ~Resourceable();
+	virtual ~Asset();
 };
 
-#endif /* ENGINE_RESOURCETYPES_RESOURCEABLE_H */
+#endif /* ENGINE_RESOURCETYPES_ASSET_H */

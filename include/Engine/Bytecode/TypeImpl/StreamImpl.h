@@ -4,6 +4,8 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
+#define CLASS_STREAM "$$StreamImpl"
+
 #define IS_STREAM(value) IsNativeInstance(value, CLASS_STREAM)
 #define AS_STREAM(value) ((ObjStream*)AS_OBJECT(value))
 

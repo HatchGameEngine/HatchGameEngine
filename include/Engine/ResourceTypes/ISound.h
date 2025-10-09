@@ -5,7 +5,7 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/IO/Stream.h>
-#include <Engine/ResourceTypes/Resourceable.h>
+#include <Engine/ResourceTypes/Asset.h>
 #include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
 
 enum {
@@ -17,7 +17,7 @@ enum {
 #define AUDIO_LOOP_NONE (-2)
 #define AUDIO_LOOP_DEFAULT (-1)
 
-class ISound : public Resourceable {
+class ISound : public Asset {
 public:
 	SDL_AudioSpec Format;
 	int BytesPerSample;
