@@ -11,12 +11,12 @@
 #include <Engine/ResourceTypes/SoundFormats/WAV.h>
 
 ISound::ISound(const char* filename) {
-	Type = RESOURCE_AUDIO;
+	Type = ASSET_AUDIO;
 
 	Loaded = Load(filename, true);
 }
 ISound::ISound(const char* filename, bool streamFromFile) {
-	Type = RESOURCE_AUDIO;
+	Type = ASSET_AUDIO;
 
 	Loaded = Load(filename, streamFromFile);
 }

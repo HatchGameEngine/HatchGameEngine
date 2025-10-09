@@ -3,7 +3,7 @@
 #include <Engine/Scene.h>
 
 MediaBag::MediaBag(const char* filename) {
-	Type = RESOURCE_MEDIA;
+	Type = ASSET_MEDIA;
 
 	Loaded = Load(filename);
 }

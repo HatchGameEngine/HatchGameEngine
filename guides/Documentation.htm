@@ -112,6 +112,7 @@ codeBlock {
         <h3>Enums</h3>
         <ul>
             <li><a href="#Reference_ACTIVE_*">ACTIVE_*</a></li>
+            <li><a href="#Reference_ASSET_*">ASSET_*</a></li>
             <li><a href="#Reference_AUDIO_*">AUDIO_*</a></li>
             <li><a href="#Reference_Axis_*">Axis_*</a></li>
             <li><a href="#Reference_BlendFactor_*">BlendFactor_*</a></li>
@@ -136,7 +137,6 @@ codeBlock {
             <li><a href="#Reference_Key_*">Key_*</a></li>
             <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
-            <li><a href="#Reference_RESOURCETYPE_*">RESOURCETYPE_*</a></li>
             <li><a href="#Reference_ROTSTYLE_*">ROTSTYLE_*</a></li>
             <li><a href="#Reference_SCENETYPE_*">SCENETYPE_*</a></li>
             <li><a href="#Reference_SCOPE_*">SCOPE_*</a></li>
@@ -962,7 +962,7 @@ codeBlock {
                     <li><a href="#Reference_fields_resource_Filename">resource.Filename</a></li>
                     <li><a href="#Reference_fields_resource_Loaded">resource.Loaded</a></li>
                     <li><a href="#Reference_fields_resource_Scope">resource.Scope</a></li>
-                    <li><a href="#Reference_fields_resource_Data">resource.Data</a></li>
+                    <li><a href="#Reference_fields_resource_Asset">resource.Asset</a></li>
                 </ul>
             </p>
             <p id="Reference_Resources">
@@ -1650,7 +1650,7 @@ codeBlock {
                     <li><a href="#Reference_fields_resource_Filename">resource.Filename</a></li>
                     <li><a href="#Reference_fields_resource_Loaded">resource.Loaded</a></li>
                     <li><a href="#Reference_fields_resource_Scope">resource.Scope</a></li>
-                    <li><a href="#Reference_fields_resource_Data">resource.Data</a></li>
+                    <li><a href="#Reference_fields_resource_Asset">resource.Asset</a></li>
                 </ul>
             </p>
             <p id="Reference_Shader">
@@ -1739,6 +1739,16 @@ codeBlock {
                     <li><a href="#Reference_enums_ACTIVE_YBOUNDS">ACTIVE_YBOUNDS</a></li>
                     <li><a href="#Reference_enums_ACTIVE_RBOUNDS">ACTIVE_RBOUNDS</a></li>
                     <li><a href="#Reference_enums_ACTIVE_DISABLED">ACTIVE_DISABLED</a></li>
+                </ul>
+            </p>
+            <p id="Reference_ASSET_*">
+                <h2><code>ASSET_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_ASSET_SPRITE">ASSET_SPRITE</a></li>
+                    <li><a href="#Reference_enums_ASSET_IMAGE">ASSET_IMAGE</a></li>
+                    <li><a href="#Reference_enums_ASSET_AUDIO">ASSET_AUDIO</a></li>
+                    <li><a href="#Reference_enums_ASSET_MODEL">ASSET_MODEL</a></li>
+                    <li><a href="#Reference_enums_ASSET_MEDIA">ASSET_MEDIA</a></li>
                 </ul>
             </p>
             <p id="Reference_AUDIO_*">
@@ -2114,16 +2124,6 @@ codeBlock {
                     <li><a href="#Reference_enums_Platform_Unknown">Platform_Unknown</a></li>
                 </ul>
             </p>
-            <p id="Reference_RESOURCETYPE_*">
-                <h2><code>RESOURCETYPE_*</code></h2>
-                <ul>
-                    <li><a href="#Reference_enums_RESOURCETYPE_SPRITE">RESOURCETYPE_SPRITE</a></li>
-                    <li><a href="#Reference_enums_RESOURCETYPE_IMAGE">RESOURCETYPE_IMAGE</a></li>
-                    <li><a href="#Reference_enums_RESOURCETYPE_AUDIO">RESOURCETYPE_AUDIO</a></li>
-                    <li><a href="#Reference_enums_RESOURCETYPE_MODEL">RESOURCETYPE_MODEL</a></li>
-                    <li><a href="#Reference_enums_RESOURCETYPE_MEDIA">RESOURCETYPE_MEDIA</a></li>
-                </ul>
-            </p>
             <p id="Reference_ROTSTYLE_*">
                 <h2><code>ROTSTYLE_*</code></h2>
                 <ul>
@@ -2262,7 +2262,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Creates a new animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>animationID (Integer): Which animation to use.</li>
         <li>frameID (Integer): Which frame to use.</li>
         <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the animator.</li>
@@ -2286,7 +2286,7 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The index of the animator.</li>
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>animationID (Integer): The animator's changed animation ID.</li>
         <li>frameID (Integer): The animator's changed frame ID.</li>
         <li>forceApply (Boolean): Whether to force the animation to go back to the frame if the animation is the same as the current animation.</li>
@@ -2430,7 +2430,7 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
-        <li>sprite (Resource): A sprite resource, or <code>null</code>.</li>
+        <li>sprite (Asset): A sprite asset, or <code>null</code>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_SetCurrentAnimation">
@@ -3447,7 +3447,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>animation (Integer): Index of the animation entry.</li>
         <li>frame (Integer): Index of the frame in the animation entry.</li>
         <li>x (Number): X position of where to draw the sprite.</li>
@@ -3506,7 +3506,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws part of a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>animation (Integer): Index of the animation entry.</li>
         <li>frame (Integer): Index of the frame in the animation entry.</li>
         <li>x (Number): X position of where to draw the sprite.</li>
@@ -3530,7 +3530,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws an image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resoure): An image resource.</li>
+        <li>image (Resoure): An image asset.</li>
         <li>x (Number): X position of where to draw the image.</li>
         <li>y (Number): Y position of where to draw the image.</li>
         <li>paletteID (Integer): Which palette index to use.</li>
@@ -3542,7 +3542,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws part of an image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resource): An image resource.</li>
+        <li>image (Asset): An image asset.</li>
         <li>partX (Integer): X coordinate of part of image to draw.</li>
         <li>partY (Integer): Y coordinate of part of image to draw.</li>
         <li>partW (Integer): Width of part of image to draw.</li>
@@ -3558,7 +3558,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws an image, but sized.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resource): An image resource.</li>
+        <li>image (Asset): An image asset.</li>
         <li>x (Number): X position of where to draw the image.</li>
         <li>y (Number): Y position of where to draw the image.</li>
         <li>width (Number): Width to draw the image.</li>
@@ -3572,7 +3572,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws part of an image, but sized.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resource): An image resource.</li>
+        <li>image (Asset): An image asset.</li>
         <li>partX (Integer): X coordinate of part of image to draw.</li>
         <li>partY (Integer): Y coordinate of part of image to draw.</li>
         <li>partW (Integer): Width of part of image to draw.</li>
@@ -4160,7 +4160,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws a textured triangle.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resource): Image to draw triangle with.</li>
+        <li>image (Asset): Image to draw triangle with.</li>
         <li>x1 (Number): X position of the first vertex.</li>
         <li>y1 (Number): Y position of the first vertex.</li>
         <li>x2 (Number): X position of the second vertex.</li>
@@ -4184,7 +4184,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws a textured quad.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resource): Image to draw quad with.</li>
+        <li>image (Asset): Image to draw quad with.</li>
         <li>x1 (Number): X position of the first vertex.</li>
         <li>y1 (Number): Y position of the first vertex.</li>
         <li>x2 (Number): X position of the second vertex.</li>
@@ -4437,7 +4437,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws a model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         <li>animation (Integer): Animation of model to draw.</li>
         <li>frame (Decimal): Frame of model to draw.</li>
         <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
@@ -4450,7 +4450,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws a skinned model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         <li>armatureIndex (Integer): Armature index to skin the model.</li>
         <li>matrixModel (Matrix): Matrix for transforming model coordinates to world space.</li>
         <li>matrixNormal (Matrix): Matrix for transforming model normals.</li>
@@ -4462,7 +4462,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws a model without using matrices.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         <li>animation (Integer): Animation of model to draw.</li>
         <li>frame (Integer): Frame of model to draw.</li>
         <li>x (Number): X position</li>
@@ -4527,7 +4527,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws a sprite in 3D space.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>animation (Integer): Index of the animation entry.</li>
         <li>frame (Integer): Index of the frame in the animation entry.</li>
         <li>x (Number): X position of where to draw the sprite.</li>
@@ -4547,7 +4547,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws part of a sprite in 3D space.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>animation (Integer): Index of the animation entry.</li>
         <li>frame (Integer): Index of the frame in the animation entry.</li>
         <li>x (Number): X position of where to draw the sprite.</li>
@@ -4571,7 +4571,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws an image in 3D space.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resource): Index of the loaded image.</li>
+        <li>image (Asset): An image asset.</li>
         <li>x (Number): X position of where to draw the image.</li>
         <li>y (Number): Y position of where to draw the image.</li>
         <li>z (Number): Z position of where to draw the image.</li>
@@ -4585,7 +4585,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws part of an image in 3D space.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resource): Index of the loaded image.</li>
+        <li>image (Asset): An image asset.</li>
         <li>x (Number): X position of where to draw the image.</li>
         <li>y (Number): Y position of where to draw the image.</li>
         <li>z (Number): Z position of where to draw the image.</li>
@@ -4619,7 +4619,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws a textured triangle in 3D space. The texture source should be an image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resource): Index of the loaded image.</li>
+        <li>image (Asset): An image asset.</li>
         <li>x1 (Number): X position of the first vertex.</li>
         <li>y1 (Number): Y position of the first vertex.</li>
         <li>z1 (Number): Z position of the first vertex.</li>
@@ -4648,7 +4648,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws a textured quad in 3D space. The texture source should be an image.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resource): Index of the loaded image.</li>
+        <li>image (Asset): An image asset.</li>
         <li>x1 (Number): X position of the first vertex.</li>
         <li>y1 (Number): Y position of the first vertex.</li>
         <li>z1 (Number): Z position of the first vertex.</li>
@@ -4683,7 +4683,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Draws a textured rectangle in 3D space. The texture source should be a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>animation (Integer): Index of the animation entry.</li>
         <li>frame (Integer): Index of the frame in the animation entry.</li>
         <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
@@ -5227,7 +5227,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the width of the specified image. (Deprecated; use <code><a href="#Reference_fields_image_Width">image.Width</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resource): An image resource.</li>
+        <li>image (Asset): An image asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
@@ -5238,7 +5238,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the height of the specified image. (Deprecated; use <code><a href="#Reference_fields_image_Height">image.Height</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>image (Resource): An image resource.</li>
+        <li>image (Asset): An image asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
@@ -6257,7 +6257,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Returns how many vertices are in the model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The vertex count.</div>
@@ -6268,7 +6268,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Returns how many animations exist in the model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
@@ -6279,7 +6279,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the name of the model animation with the specified index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         <li>animation (Integer): Index of the animation.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -6291,7 +6291,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the index of the model animation with the specified name.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         <li>animationName (String): Name of the animation to find.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -6303,7 +6303,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Returns how many frames exist in the model. (Deprecated; use <code><a href="#Reference_functions_Model_GetAnimationLength">Model.GetAnimationLength</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
@@ -6314,7 +6314,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Returns the length of the animation.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         <li>animation (Integer): The animation index to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -6326,7 +6326,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Checks to see if the model has materials.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the model has materials, <code>false</code> if otherwise. (Deprecated; use <code><a href="#Reference_functions_Model_GetMaterialCount">Model.GetMaterialCount</a></code> instead.)</div>
@@ -6337,7 +6337,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Checks to see if the model has bones.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the model has bones, <code>false</code> if otherwise.</div>
@@ -6348,7 +6348,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Returns the amount of materials in the model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
@@ -6359,7 +6359,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets a material from a model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         <li>material (String or Integer): The material name or ID to get.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -6371,7 +6371,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Creates an armature from the model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the index of the armature.</div>
@@ -6382,7 +6382,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Poses an armature.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         <li>armature (Integer): The armature index to pose.</li>
         <li>animation (Integer): Animation to pose the armature.</li>
         <li>frame (Decimal): Frame to pose the armature.</li>
@@ -6394,7 +6394,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Resets an armature to its default pose.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         <li>armature (Integer): The armature index to reset.</li>
         </ul>
         </p>
@@ -6404,7 +6404,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Deletes an armature from the model.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Resource): A model resource.</li>
+        <li>model (Asset): A model asset.</li>
         <li>armature (Integer): The armature index to delete.</li>
         </ul>
         </p>
@@ -6414,7 +6414,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Places the music onto the music stack and plays it.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Resource): The audio resource to play as music.</li>
+        <li>music (Asset): The audio asset to play as music.</li>
         <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the track once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default).</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default).</li>
@@ -6429,7 +6429,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Removes the music from the music stack, stopping it if currently playing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Resource): The music to stop.</li>
+        <li>music (Asset): The music to stop.</li>
         </ul>
         </p>
         <p id="Reference_functions_Music_StopWithFadeOut">
@@ -6462,7 +6462,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Checks to see if the specified music is currently playing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Resource): The music to play.</li>
+        <li>music (Asset): The music to play.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
@@ -6473,7 +6473,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the position of the current track playing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Resource): The music to get the current position (in seconds) of.</li>
+        <li>music (Asset): The music to get the current position (in seconds) of.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
@@ -6492,10 +6492,10 @@ codeBlock {
         <p id="Reference_functions_Music_GetLoopPoint">
         <h2 style="margin-bottom: 8px;">Music.GetLoopPoint</h2>
         <code>Music.GetLoopPoint(music)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of an audio resource, if it has one.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of an audio asset, if it has one. (Deprecated; use <code><a href="#Reference_fields_audio_LoopPoint">audio.LoopPoint</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Resource): The audio resource to get the loop point of.</li>
+        <li>music (Asset): The audio asset to get the loop point of.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.</div>
@@ -6503,10 +6503,10 @@ codeBlock {
         <p id="Reference_functions_Music_SetLoopPoint">
         <h2 style="margin-bottom: 8px;">Music.SetLoopPoint</h2>
         <code>Music.SetLoopPoint(music, loopPoint)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of an audio resource.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of an audio asset. (Deprecated; use <code><a href="#Reference_fields_audio_LoopPoint">audio.LoopPoint</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>music (Resource): The audio resource to set the loop point of.</li>
+        <li>music (Asset): The audio asset to set the loop point of.</li>
         <li>loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.</li>
         </ul>
         </p>
@@ -6599,11 +6599,11 @@ codeBlock {
         <p id="Reference_functions_Palette_LoadFromImage">
         <h2 style="margin-bottom: 8px;">Palette.LoadFromImage</h2>
         <code>Palette.LoadFromImage(paletteIndex, image)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads palette from an image resource.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads palette from an image asset.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>paletteIndex (Integer): Index of palette to load to.</li>
-        <li>image (Resource): An image resource.</li>
+        <li>image (Asset): An image asset.</li>
         </ul>
         </p>
         <p id="Reference_functions_Palette_GetColor">
@@ -7105,7 +7105,7 @@ codeBlock {
         <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a resource.</div>
+        <div style="font-size: 14px;">Returns a Resource.</div>
         </p>
         <p id="Reference_functions_Resources_LoadImage">
         <h2 style="margin-bottom: 8px;">Resources.LoadImage</h2>
@@ -7122,7 +7122,7 @@ codeBlock {
         <p id="Reference_functions_Resources_LoadModel">
         <h2 style="margin-bottom: 8px;">Resources.LoadModel</h2>
         <code>Resources.LoadModel(filename, unloadPolicy)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads Model resource.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Loads a Model resource.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of the resource.</li>
@@ -7889,7 +7889,7 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>tileID (Integer): Which tile ID to add an animated sequence to.</li>
-        <li>sprite (Resource): A sprite resource. (<code>null</code> to disable)</li>
+        <li>sprite (Asset): A sprite asset. (<code>null</code> to disable)</li>
         <li>animationIndex (Integer): Animation index in sprite.</li>
         </ul>
         </p>
@@ -8838,7 +8838,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Plays a sound either once or in a loop.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Resource): The audio resource to play as a sound.</li>
+        <li>sound (Asset): The audio asset to play as a sound.</li>
         <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the sound once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
@@ -8853,7 +8853,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Stops an actively playing sound.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Resource): The sound to stop.</li>
+        <li>sound (Asset): The sound to stop.</li>
         </ul>
         </p>
         <p id="Reference_functions_Sound_Pause">
@@ -8862,7 +8862,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Pauses an actively playing sound.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Resource): The sound to pause.</li>
+        <li>sound (Asset): The sound to pause.</li>
         </ul>
         </p>
         <p id="Reference_functions_Sound_Resume">
@@ -8871,7 +8871,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Unpauses a paused sound.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Resource): The sound to resume.</li>
+        <li>sound (Asset): The sound to resume.</li>
         </ul>
         </p>
         <p id="Reference_functions_Sound_StopAll">
@@ -8895,7 +8895,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Checks whether a sound is currently playing or not.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Resource): An audio resource.</li>
+        <li>sound (Asset): An audio asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
@@ -8906,7 +8906,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Plays a sound once or loops it, without interrupting channels playing the same sound.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Resource): The audio resource to play as a sound.</li>
+        <li>sound (Asset): The audio asset to play as a sound.</li>
         <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the sound once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
@@ -8922,7 +8922,7 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>channel (Integer): The channel index.</li>
-        <li>sound (Resource): The audio resource to play as a sound.</li>
+        <li>sound (Asset): The audio asset to play as a sound.</li>
         <li>loopPoint (Integer): Loop point in samples. Use <code><a href="#Reference_enums_AUDIO_LOOP_NONE">AUDIO_LOOP_NONE</a></code> to play the sound once or <code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> to use the audio file's metadata. (<code><a href="#Reference_enums_AUDIO_LOOP_DEFAULT">AUDIO_LOOP_DEFAULT</a></code> is the default).</li>
         <li>panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)</li>
         <li>speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)</li>
@@ -8987,10 +8987,10 @@ codeBlock {
         <p id="Reference_functions_Sound_GetLoopPoint">
         <h2 style="margin-bottom: 8px;">Sound.GetLoopPoint</h2>
         <code>Sound.GetLoopPoint(sound)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of an audio resource, if it has one.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the loop point of an audio asset, if it has one. (Deprecated; use <code><a href="#Reference_fields_audio_LoopPoint">audio.LoopPoint</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Resource): The audio resource to get the loop point of.</li>
+        <li>sound (Asset): The audio asset to get the loop point of.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.</div>
@@ -8998,10 +8998,10 @@ codeBlock {
         <p id="Reference_functions_Sound_SetLoopPoint">
         <h2 style="margin-bottom: 8px;">Sound.SetLoopPoint</h2>
         <code>Sound.SetLoopPoint(sound, loopPoint)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of an audio resource.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the loop point of an audio asset. (Deprecated; use <code><a href="#Reference_fields_audio_LoopPoint">audio.LoopPoint</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sound (Resource): The audio resource to set the loop point of.</li>
+        <li>sound (Asset): The audio asset to set the loop point of.</li>
         <li>loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.</li>
         </ul>
         </p>
@@ -9011,7 +9011,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the amount of animations in the sprite. (Deprecated; use <code><a href="#Reference_fields_sprite_AnimationCount">sprite.AnimationCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the amount of animations in the sprite.</div>
@@ -9022,7 +9022,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the first animation in the sprite which matches the specified name. (Deprecated; use <code><a href="#Reference_methods_sprite_GetAnimationName">sprite.GetAnimationName</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>name (String): The animation name to search for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -9034,7 +9034,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Checks if an animation and frame is valid within a sprite.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>animation (Integer): The animation index to check.</li>
         <li>frame (Integer): The frame index to check.</li>
         </ul>
@@ -9047,7 +9047,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the index of the frame that the specified animation will loop back to when it finishes. (Deprecated; use <code><a href="#Reference_methods_sprite_GetAnimationLoopFrame">sprite.GetAnimationLoopFrame</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -9059,7 +9059,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the amount of frames in the specified animation. (Deprecated; use <code><a href="#Reference_methods_sprite_GetAnimationFrameCount">sprite.GetAnimationFrameCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -9071,7 +9071,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the animation speed of the specified animation. (Deprecated; use <code><a href="#Reference_methods_sprite_GetAnimationSpeed">sprite.GetAnimationSpeed</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>sprite (Resource): A sprite resource.</li>
+        <li>sprite (Asset): A sprite asset.</li>
         <li>animation (Integer): The animation index of the sprite to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -9675,7 +9675,7 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>tileID (Integer): ID of tile to check.</li>
-        <li>sprite (Resource): A sprite resource. (<code>null</code> for default tile sprite)</li>
+        <li>sprite (Asset): A sprite asset. (<code>null</code> for default tile sprite)</li>
         <li>animationIndex (Integer): Animation index.</li>
         <li>frameIndex (Integer): Frame index. (<code>-1</code> for default tile frame)</li>
         </ul>
@@ -10911,14 +10911,14 @@ codeBlock {
         <p id="Reference_methods_resource_Reload">
         <h2 style="margin-bottom: 8px;">resource.Reload</h2>
         <code>resource.Reload()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Reloads the Resourceable owned by this Resource. Returns <code>true</code> if it was reloaded successfully, and <code>false</code> if otherwise.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Reloads the Asset owned by this Resource. Returns <code>true</code> if it was reloaded successfully, and <code>false</code> if otherwise.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
         <p id="Reference_methods_resource_Unload">
         <h2 style="margin-bottom: 8px;">resource.Unload</h2>
         <code>resource.Unload()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Unloads the Resourceable owned by this Resource. Does nothing if the Resource was already unloaded.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Unloads the Asset owned by this Resource. Does nothing if the Resource was already unloaded.</div>
         </p>
         <p id="Reference_methods_shader_HasStage">
         <h2 style="margin-bottom: 8px;">shader.HasStage</h2>
@@ -11396,7 +11396,7 @@ codeBlock {
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of the resource.</li>
         <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
-        <li>unique (Boolean): If <code>false</code> (the default), this constructor may return an already loaded Resource of the same type and filename. However, if <code>true</code>, this constructor will always return an unique Resource, and load a new Resourceable.</li>
+        <li>unique (Boolean): If <code>false</code> (the default), this constructor may return an already loaded Resource of the same type and filename. However, if <code>true</code>, this constructor will always return an unique Resource, and load a new Asset.</li>
         </ul>
         </p>
         <p>3 out of 3 constructors have descriptions. </p>
@@ -11889,7 +11889,7 @@ codeBlock {
         </p>
         <p id="Reference_fields_resource_Type">
         <h3 style="margin-bottom: 8px;"><code>resource.Type</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The <a href="#Reference_RESOURCETYPE_*">resource type</a> of the Resource.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The <a href="#Reference_ASSET_*">asset type</a> of the Asset.</div>
         </p>
         <p id="Reference_fields_resource_Filename">
         <h3 style="margin-bottom: 8px;"><code>resource.Filename</code></h2>
@@ -11897,15 +11897,15 @@ codeBlock {
         </p>
         <p id="Reference_fields_resource_Loaded">
         <h3 style="margin-bottom: 8px;"><code>resource.Loaded</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Whether the Resource is loaded or not.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Whether the Asset is loaded or not.</div>
         </p>
         <p id="Reference_fields_resource_Scope">
         <h3 style="margin-bottom: 8px;"><code>resource.Scope</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The scope of the Resource.</div>
         </p>
-        <p id="Reference_fields_resource_Data">
-        <h3 style="margin-bottom: 8px;"><code>resource.Data</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The Resourceable owned by this resource.</div>
+        <p id="Reference_fields_resource_Asset">
+        <h3 style="margin-bottom: 8px;"><code>resource.Asset</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The Asset owned by this resource.</div>
         </p>
         <p id="Reference_fields_image_Width">
         <h3 style="margin-bottom: 8px;"><code>image.Width</code></h2>
@@ -11965,6 +11965,26 @@ codeBlock {
         <p id="Reference_enums_ACTIVE_DISABLED">
         <h3 style="margin-bottom: 8px;"><code>ACTIVE_DISABLED</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity will not even reach a point where it would check for an update.</div>
+        </p>
+        <p id="Reference_enums_ASSET_SPRITE">
+        <h3 style="margin-bottom: 8px;"><code>ASSET_SPRITE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Sprite asset.</div>
+        </p>
+        <p id="Reference_enums_ASSET_IMAGE">
+        <h3 style="margin-bottom: 8px;"><code>ASSET_IMAGE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Image asset.</div>
+        </p>
+        <p id="Reference_enums_ASSET_AUDIO">
+        <h3 style="margin-bottom: 8px;"><code>ASSET_AUDIO</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Audio asset.</div>
+        </p>
+        <p id="Reference_enums_ASSET_MODEL">
+        <h3 style="margin-bottom: 8px;"><code>ASSET_MODEL</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Model asset.</div>
+        </p>
+        <p id="Reference_enums_ASSET_MEDIA">
+        <h3 style="margin-bottom: 8px;"><code>ASSET_MEDIA</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Media asset.</div>
         </p>
         <p id="Reference_enums_AUDIO_LOOP_NONE">
         <h3 style="margin-bottom: 8px;"><code>AUDIO_LOOP_NONE</code></h2>
@@ -12977,26 +12997,6 @@ codeBlock {
         <p id="Reference_enums_Platform_Unknown">
         <h3 style="margin-bottom: 8px;"><code>Platform_Unknown</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Unknown platform.</div>
-        </p>
-        <p id="Reference_enums_RESOURCETYPE_SPRITE">
-        <h3 style="margin-bottom: 8px;"><code>RESOURCETYPE_SPRITE</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Sprite resource.</div>
-        </p>
-        <p id="Reference_enums_RESOURCETYPE_IMAGE">
-        <h3 style="margin-bottom: 8px;"><code>RESOURCETYPE_IMAGE</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Image resource.</div>
-        </p>
-        <p id="Reference_enums_RESOURCETYPE_AUDIO">
-        <h3 style="margin-bottom: 8px;"><code>RESOURCETYPE_AUDIO</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Audio resource.</div>
-        </p>
-        <p id="Reference_enums_RESOURCETYPE_MODEL">
-        <h3 style="margin-bottom: 8px;"><code>RESOURCETYPE_MODEL</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Model resource.</div>
-        </p>
-        <p id="Reference_enums_RESOURCETYPE_MEDIA">
-        <h3 style="margin-bottom: 8px;"><code>RESOURCETYPE_MEDIA</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Media resource.</div>
         </p>
         <p id="Reference_enums_ROTSTYLE_NONE">
         <h3 style="margin-bottom: 8px;"><code>ROTSTYLE_NONE</code></h2>

@@ -14,7 +14,7 @@
 #include <Engine/Utilities/StringUtils.h>
 
 IModel::IModel(const char* filename) {
-	Type = RESOURCE_MODEL;
+	Type = ASSET_MODEL;
 
 	VertexCount = 0;
 	VertexIndexCount = 0;

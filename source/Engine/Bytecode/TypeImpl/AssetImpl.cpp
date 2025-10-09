@@ -28,7 +28,7 @@ void* AssetImpl::New(void* ptr) {
 	obj->AssetPtr = ptr;
 
 #define CASE(type, className) \
-	case RESOURCE_##type: \
+	case ASSET_##type: \
 		obj->Object.Class = className##Impl::Class; \
 		obj->Object.PropertyGet = className##Impl::VM_PropertyGet; \
 		obj->Object.PropertySet = className##Impl::VM_PropertySet; \
@@ -48,9 +48,9 @@ void* AssetImpl::New(void* ptr) {
 	return (void*)obj;
 }
 
-ValueGetFn AssetImpl::GetGetter(Uint8 type) {
+ValueGetFn AssetImpl::GetGetter(AssetType type) {
 #define CASE(type, className) \
-	case RESOURCE_##type: \
+	case ASSET_##type: \
 		return className##Impl::VM_PropertyGet \
 
 	switch (type) {
@@ -63,9 +63,9 @@ ValueGetFn AssetImpl::GetGetter(Uint8 type) {
 
 #undef CASE
 }
-ValueSetFn AssetImpl::GetSetter(Uint8 type) {
+ValueSetFn AssetImpl::GetSetter(AssetType type) {
 #define CASE(type, className) \
-	case RESOURCE_##type: \
+	case ASSET_##type: \
 		return className##Impl::VM_PropertySet \
 
 	switch (type) {

@@ -308,8 +308,8 @@ struct ObjEnum {
 struct ObjResource {
 	Obj Object;
 	void* ResourcePtr;
-	ValueGetFn GetFieldFromData;
-	ValueSetFn SetFieldForData;
+	ValueGetFn GetAssetField;
+	ValueSetFn SetAssetField;
 };
 struct ObjAsset {
 	Obj Object;

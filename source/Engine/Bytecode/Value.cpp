@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/ResourceTypes/Asset.h>
 #include <Engine/ResourceTypes/Resource.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 
@@ -61,7 +62,7 @@ const char* Value::GetObjectTypeName(VMValue value) {
 	if (object->Type == OBJ_RESOURCE) {
 		void* resourcePtr = ((ObjResource*)object)->ResourcePtr;
 		ResourceType* resource = (ResourceType*)resourcePtr;
-		return GetResourceTypeString(resource->Type);
+		return GetAssetTypeString(resource->Type);
 	}
 
 	const char* printableName = TypeImpl::GetPrintableName(object->Class);

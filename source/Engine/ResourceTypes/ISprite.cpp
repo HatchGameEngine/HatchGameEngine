@@ -16,7 +16,7 @@
 #include <Engine/Utilities/StringUtils.h>
 
 ISprite::ISprite() {
-	Type = RESOURCE_SPRITE;
+	Type = ASSET_SPRITE;
 	Loaded = true;
 
 	Spritesheets.clear();
@@ -25,7 +25,7 @@ ISprite::ISprite() {
 	SpritesheetFilenames.shrink_to_fit();
 }
 ISprite::ISprite(const char* filename) {
-	Type = RESOURCE_SPRITE;
+	Type = ASSET_SPRITE;
 
 	Spritesheets.clear();
 	Spritesheets.shrink_to_fit();

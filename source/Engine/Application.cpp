@@ -1280,7 +1280,7 @@ void Application::PollEvents() {
 							"- %d: %s (Type: %s, Scope: %s)",
 							i,
 							resource->Filename,
-							GetResourceTypeString(resource->Type),
+							GetAssetTypeString(resource->Type),
 							GetResourceScopeString(resource->UnloadPolicy));
 					}
 					break;
@@ -1434,7 +1434,7 @@ void Application::RunFrame(int runFrames) {
 	int needed = 0x8000; // AudioManager::AudioQueueMaxSize;
 	vector<ResourceType*>* list = Resource::GetList();
 	for (size_t i = 0, i_sz = list->size(); i < i_sz; i++) {
-		if ((*list)[i]->Type != RESOURCE_MEDIA) {
+		if ((*list)[i]->Type != ASSET_MEDIA) {
 			continue;
 		}
 

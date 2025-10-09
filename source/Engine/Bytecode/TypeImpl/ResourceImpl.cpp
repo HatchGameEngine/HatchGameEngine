@@ -13,7 +13,7 @@ Uint32 Hash_Type = 0;
 Uint32 Hash_Filename = 0;
 Uint32 Hash_Loaded = 0;
 Uint32 Hash_Scope = 0;
-Uint32 Hash_Data = 0;
+Uint32 Hash_Asset = 0;
 
 #define CLASS_RESOURCE "Resource"
 
@@ -22,11 +22,11 @@ void ResourceImpl::Init() {
 	Class->NewFn = New;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 
-	Hash_Type = Murmur::EncryptString("Type");
-	Hash_Filename = Murmur::EncryptString("Filename");
-	Hash_Loaded = Murmur::EncryptString("Loaded");
-	Hash_Scope = Murmur::EncryptString("Scope");
-	Hash_Data = Murmur::EncryptString("Data");
+	GET_STRING_HASH(Type);
+	GET_STRING_HASH(Filename);
+	GET_STRING_HASH(Loaded);
+	GET_STRING_HASH(Scope);
+	GET_STRING_HASH(Asset);
 
 	ScriptManager::DefineNative(Class, "IsUnique", ResourceImpl::VM_IsUnique);
 	ScriptManager::DefineNative(Class, "MakeUnique", ResourceImpl::VM_MakeUnique);
@@ -62,8 +62,8 @@ void ResourceImpl::SetOwner(Obj* obj, void* resourcePtr) {
 	if (resourcePtr) {
 		ResourceType* resourceType = (ResourceType*)resourcePtr;
 		resource->ResourcePtr = resourcePtr;
-		resource->GetFieldFromData = AssetImpl::GetGetter(resourceType->Type);
-		resource->SetFieldForData = AssetImpl::GetSetter(resourceType->Type);
+		resource->GetAssetField = AssetImpl::GetGetter(resourceType->Type);
+		resource->SetAssetField = AssetImpl::GetSetter(resourceType->Type);
 	}
 }
 
@@ -92,7 +92,7 @@ VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 	VMValue value = NULL_VAL;
 
 	if (filename != nullptr) {
-		ResourceType* resource = Resource::Load(RESOURCE_NONE, filename, unloadPolicy, unique);
+		ResourceType* resource = Resource::Load(ASSET_NONE, filename, unloadPolicy, unique);
 		if (resource != nullptr) {
 			value = OBJECT_VAL(Resource::GetVMObject(resource));
 		}
@@ -110,7 +110,7 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 
 	/***
 	 * \field Type
-	 * \desc The <linkto ref="RESOURCETYPE_*">resource type</linkto> of the Resource.
+	 * \desc The <linkto ref="ASSET_*">asset type</linkto> of the Asset.
 	 * \ns Resource
  	*/
 	if (hash == Hash_Type) {
@@ -133,7 +133,7 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	}
 	/***
 	 * \field Loaded
-	 * \desc Whether the Resource is loaded or not.
+	 * \desc Whether the Asset is loaded or not.
 	 * \ns Resource
  	*/
 	else if (hash == Hash_Loaded) {
@@ -148,11 +148,11 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 		*result = INTEGER_VAL((int)resource->UnloadPolicy);
 	}
 	/***
-	 * \field Data
+	 * \field Asset
 	 * \desc The Asset owned by this resource.
 	 * \ns Resource
  	*/
-	else if (hash == Hash_Data) {
+	else if (hash == Hash_Asset) {
 		if (resource->AsAsset) {
 			*result = OBJECT_VAL(resource->AsAsset->GetVMObject());
 		}
@@ -160,12 +160,12 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 			*result = NULL_VAL;
 		}
 	}
-	else if (objResource->GetFieldFromData) {
+	else if (objResource->GetAssetField) {
 		Obj* obj = nullptr;
 		if (resource->AsAsset) {
 			obj = (Obj*)resource->AsAsset->GetVMObject();
 		}
-		return objResource->GetFieldFromData(obj, hash, result, threadID);
+		return objResource->GetAssetField(obj, hash, result, threadID);
 	}
 	else {
 		return false;
@@ -179,16 +179,16 @@ bool ResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint3
 	ResourceType* resource = (ResourceType*)objResource->ResourcePtr;
 
 	if (hash == Hash_Type || hash == Hash_Filename || hash == Hash_Loaded ||
-		hash == Hash_Scope || hash == Hash_Data) {
+		hash == Hash_Scope || hash == Hash_Asset) {
 		VM_THROW_ERROR("Field cannot be written to!");
 		return true;
 	}
-	else if (objResource->SetFieldForData) {
+	else if (objResource->SetAssetField) {
 		Obj* obj = nullptr;
 		if (resource->AsAsset) {
 			obj = (Obj*)resource->AsAsset->GetVMObject();
 		}
-		return objResource->SetFieldForData(obj, hash, value, threadID);
+		return objResource->SetAssetField(obj, hash, value, threadID);
 	}
 	else {
 		return false;

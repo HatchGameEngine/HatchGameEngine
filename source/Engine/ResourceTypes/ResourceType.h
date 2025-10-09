@@ -4,40 +4,12 @@
 #include <Engine/Media/MediaPlayer.h>
 #include <Engine/Media/MediaSource.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/ResourceTypes/Asset.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/ResourceTypes/Image.h>
 #include <Engine/ResourceTypes/MediaBag.h>
-#include <Engine/ResourceTypes/Asset.h>
-
-enum {
-	RESOURCE_NONE,
-	RESOURCE_SPRITE,
-	RESOURCE_IMAGE,
-	RESOURCE_AUDIO,
-	RESOURCE_MODEL,
-	RESOURCE_MEDIA
-};
-
-inline const char* GetResourceTypeString(Uint8 type) {
-	switch (type) {
-	case RESOURCE_SPRITE:
-		return "sprite";
-	case RESOURCE_IMAGE:
-		return "image";
-	case RESOURCE_AUDIO:
-		return "audio";
-	case RESOURCE_MODEL:
-		return "model";
-	case RESOURCE_MEDIA:
-		return "media";
-	default:
-		break;
-	}
-
-	return "unknown";
-}
 
 inline const char* GetResourceScopeString(Uint8 scope) {
 	switch (scope) {
@@ -53,7 +25,7 @@ inline const char* GetResourceScopeString(Uint8 scope) {
 }
 
 struct ResourceType {
-	Uint8 Type = RESOURCE_NONE;
+	AssetType Type = ASSET_NONE;
 	char* Filename = nullptr;
 	Uint32 FilenameHash = 0;
 	bool Loaded = false;
@@ -62,12 +34,13 @@ struct ResourceType {
 	void* VMObject;
 	Uint32 UnloadPolicy;
 	union {
+		Asset* AsAsset;
+		// All types below can be casted as Asset
 		ISprite* AsSprite;
 		Image* AsImage;
 		ISound* AsAudio;
 		IModel* AsModel;
 		MediaBag* AsMedia;
-		Asset* AsAsset;
 	};
 };
 

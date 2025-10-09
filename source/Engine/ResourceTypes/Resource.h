@@ -6,14 +6,14 @@
 
 class Resource {
 private:
-	static ResourceType* New(Uint8 type, const char* filename, Uint32 hash, int unloadPolicy, bool unique);
+	static ResourceType* New(AssetType type, const char* filename, Uint32 hash, int unloadPolicy, bool unique);
 	static void Delete(ResourceType* resource);
 	static void AddRef(ResourceType* resource);
 	static void DecRef(ResourceType* resource);
 	static bool UnloadData(ResourceType* resource);
-	static int Search(Uint8 type, const char* filename, Uint32 hash);
-	static Uint8 GuessType(const char* filename);
-	static Asset* LoadData(Uint8 type, const char* filename);
+	static int Search(AssetType type, const char* filename, Uint32 hash);
+	static AssetType GuessType(const char* filename);
+	static Asset* LoadData(AssetType type, const char* filename);
 
 public:
 	static vector<ResourceType*>* GetList();
@@ -23,7 +23,7 @@ public:
 	static void SetVMObject(ResourceType* resource, void* obj);
 	static void ReleaseVMObject(ResourceType* resource);
 	static bool CompareVMObjects(void* a, void* b);
-	static ResourceType* Load(Uint8 type, const char* filename, int unloadPolicy, bool unique);
+	static ResourceType* Load(AssetType type, const char* filename, int unloadPolicy, bool unique);
 	static void TakeRef(ResourceType* resource);
 	static bool Reload(ResourceType* resource);
 	static void Unload(ResourceType* resource);

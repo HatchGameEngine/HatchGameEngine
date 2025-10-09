@@ -7,7 +7,7 @@
 
 static vector<ResourceType*> List;
 
-ResourceType* Resource::New(Uint8 type, const char* filename, Uint32 hash, int unloadPolicy, bool unique) {
+ResourceType* Resource::New(AssetType type, const char* filename, Uint32 hash, int unloadPolicy, bool unique) {
 	ResourceType* resource = new (std::nothrow) ResourceType();
 	resource->Type = type;
 	resource->Filename = StringUtils::Duplicate(filename);
@@ -137,7 +137,7 @@ void Resource::Delete(ResourceType* resource) {
 	}
 }
 
-int Resource::Search(Uint8 type, const char* filename, Uint32 hash) {
+int Resource::Search(AssetType type, const char* filename, Uint32 hash) {
 	for (size_t i = 0, listSz = List.size(); i < listSz; i++) {
 		if (List[i]->Type == type
 		&& List[i]->FilenameHash == hash
@@ -150,11 +150,11 @@ int Resource::Search(Uint8 type, const char* filename, Uint32 hash) {
 	return -1;
 }
 
-ResourceType* Resource::Load(Uint8 type, const char* filename, int unloadPolicy, bool unique) {
+ResourceType* Resource::Load(AssetType type, const char* filename, int unloadPolicy, bool unique) {
 	// Guess resource type if none was given
-	if (type == RESOURCE_NONE) {
+	if (type == ASSET_NONE) {
 		type = GuessType(filename);
-		if (type == RESOURCE_NONE) {
+		if (type == ASSET_NONE) {
 			return nullptr;
 		}
 	}
@@ -186,62 +186,62 @@ ResourceType* Resource::Load(Uint8 type, const char* filename, int unloadPolicy,
 	return resource;
 }
 
-Uint8 Resource::GuessType(const char* filename) {
+AssetType Resource::GuessType(const char* filename) {
 	Stream* stream = ResourceStream::New(filename);
 	if (!stream) {
-		return RESOURCE_NONE;
+		return ASSET_NONE;
 	}
 
 	// Guess sprite
 	if (ISprite::IsFile(stream)) {
 		stream->Close();
-		return RESOURCE_SPRITE;
+		return ASSET_SPRITE;
 	}
 	stream->Seek(0);
 
 	// Guess audio
 	if (ISound::IsFile(stream)) {
 		stream->Close();
-		return RESOURCE_AUDIO;
+		return ASSET_AUDIO;
 	}
 	stream->Seek(0);
 
 	// Guess image
 	if (Image::IsFile(stream)) {
 		stream->Close();
-		return RESOURCE_IMAGE;
+		return ASSET_IMAGE;
 	}
 	stream->Seek(0);
 
 	// Guess model
 	if (IModel::IsFile(stream)) {
 		stream->Close();
-		return RESOURCE_MODEL;
+		return ASSET_MODEL;
 	}
 
 	// Couldn't guess type
 	stream->Close();
 
-	return RESOURCE_NONE;
+	return ASSET_NONE;
 }
 
-Asset* Resource::LoadData(Uint8 type, const char* filename) {
+Asset* Resource::LoadData(AssetType type, const char* filename) {
 	Asset* data = nullptr;
 
 	switch (type) {
-	case RESOURCE_SPRITE:
+	case ASSET_SPRITE:
 		data = new (std::nothrow) ISprite(filename);
 		break;
-	case RESOURCE_IMAGE:
+	case ASSET_IMAGE:
 		data = new (std::nothrow) Image(filename);
 		break;
-	case RESOURCE_AUDIO:
+	case ASSET_AUDIO:
 		data = new (std::nothrow) ISound(filename);
 		break;
-	case RESOURCE_MODEL:
+	case ASSET_MODEL:
 		data = new (std::nothrow) IModel(filename);
 		break;
-	case RESOURCE_MEDIA:
+	case ASSET_MEDIA:
 		data = new (std::nothrow) MediaBag(filename);
 		break;
 	default:

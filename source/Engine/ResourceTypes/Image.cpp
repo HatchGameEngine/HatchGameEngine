@@ -16,13 +16,13 @@
 #include <Engine/Utilities/StringUtils.h>
 
 Image::Image(const char* filename) {
-	Type = RESOURCE_IMAGE;
+	Type = ASSET_IMAGE;
 
 	TexturePtr = Image::LoadTextureFromResource(filename);
 	Loaded = TexturePtr != nullptr;
 }
 Image::Image(Texture* texture) {
-	Type = RESOURCE_IMAGE;
+	Type = ASSET_IMAGE;
 
 	TexturePtr = texture;
 	Loaded = TexturePtr != nullptr;

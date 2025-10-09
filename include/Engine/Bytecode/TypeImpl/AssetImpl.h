@@ -3,6 +3,7 @@
 
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/ResourceTypes/Asset.h>
 
 #define IS_ASSET(value) IsObjectType(value, OBJ_ASSET)
 #define AS_ASSET(value) ((ObjAsset*)AS_OBJECT(value))
@@ -17,8 +18,8 @@ public:
 	static void* New(void* ptr);
 	static void Dispose(Obj* object);
 
-	static ValueGetFn GetGetter(Uint8 type);
-	static ValueSetFn GetSetter(Uint8 type);
+	static ValueGetFn GetGetter(AssetType type);
+	static ValueSetFn GetSetter(AssetType type);
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_ASSETIMPL_H */

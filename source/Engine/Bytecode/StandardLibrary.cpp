@@ -87,7 +87,7 @@
 // Get$1($2, $3, threadID)
 
 namespace LOCAL {
-inline bool ValidateResource(ResourceType* resource, Uint8 type, Uint32 threadID) {
+inline bool ValidateResource(ResourceType* resource, AssetType type, Uint32 threadID) {
 	if (!resource || !resource->Loaded) {
 		THROW_ERROR("Resource is not loaded!");
 		return false;
@@ -95,14 +95,14 @@ inline bool ValidateResource(ResourceType* resource, Uint8 type, Uint32 threadID
 
 	if (resource->Type != type) {
 		THROW_ERROR("Expected resource to be of type '%s' instead of '%s'.",
-		    GetResourceTypeString(type),
-		    GetResourceTypeString(resource->Type));
+		    GetAssetTypeString(type),
+		    GetAssetTypeString(resource->Type));
 		return false;
 	}
 
 	return true;
 }
-inline bool ValidateAsset(void* ptr, Uint8 type, Uint32 threadID) {
+inline bool ValidateAsset(void* ptr, AssetType type, Uint32 threadID) {
 	Asset* asset = (Asset*)ptr;
 	if (!asset) {
 		THROW_ERROR("Asset is no longer valid!");
@@ -111,8 +111,8 @@ inline bool ValidateAsset(void* ptr, Uint8 type, Uint32 threadID) {
 
 	if (asset->Type != type) {
 		THROW_ERROR("Expected asset to be of type '%s' instead of '%s'.",
-		    GetResourceTypeString(type),
-		    GetResourceTypeString(asset->Type));
+		    GetAssetTypeString(type),
+		    GetAssetTypeString(asset->Type));
 		return false;
 	}
 
@@ -340,7 +340,7 @@ inline ResourceType* GetResource(VMValue* args, int index, Uint32 threadID) {
 
 	return nullptr;
 }
-inline void* GetResource(Uint8 type, VMValue* args, int index, Uint32 threadID) {
+inline void* GetResource(AssetType type, VMValue* args, int index, Uint32 threadID) {
 	ResourceType* resource = GetResource(args, index, threadID);
 	if (ValidateResource(resource, type, threadID)) {
 		return resource;
@@ -348,7 +348,7 @@ inline void* GetResource(Uint8 type, VMValue* args, int index, Uint32 threadID) 
 
 	return nullptr;
 }
-inline Asset* GetValueAsAsset(Uint8 type, VMValue value, Uint32 threadID) {
+inline Asset* GetValueAsAsset(AssetType type, VMValue value, Uint32 threadID) {
 	if (IS_RESOURCE(value)) {
 		ObjResource* obj = AS_RESOURCE(value);
 		ResourceType* resourcePtr = (ResourceType*)obj->ResourcePtr;
@@ -365,7 +365,7 @@ inline Asset* GetValueAsAsset(Uint8 type, VMValue value, Uint32 threadID) {
 
 	return nullptr;
 }
-inline Asset* GetAsset(Uint8 type, VMValue value, Uint32 threadID) {
+inline Asset* GetAsset(AssetType type, VMValue value, Uint32 threadID) {
 	Asset* asset = GetValueAsAsset(type, value, threadID);
 	if (asset != nullptr) {
 		return asset;
@@ -377,7 +377,7 @@ inline Asset* GetAsset(Uint8 type, VMValue value, Uint32 threadID) {
 
 	return nullptr;
 }
-inline Asset* GetAsset(Uint8 type, VMValue* args, int index, Uint32 threadID) {
+inline Asset* GetAsset(AssetType type, VMValue* args, int index, Uint32 threadID) {
 	VMValue value = args[index];
 
 	Asset* asset = GetValueAsAsset(type, value, threadID);
@@ -392,39 +392,24 @@ inline Asset* GetAsset(Uint8 type, VMValue* args, int index, Uint32 threadID) {
 	return nullptr;
 }
 inline ISprite* GetSprite(VMValue* args, int index, Uint32 threadID) {
-	Asset* resource = GetAsset(RESOURCE_SPRITE, args, index, threadID);
-	if (resource != nullptr) {
-		return (ISprite*)resource;
-	}
-	return nullptr;
+	Asset* asset = GetAsset(ASSET_SPRITE, args, index, threadID);
+	return (ISprite*)asset;
 }
 inline Image* GetImage(VMValue* args, int index, Uint32 threadID) {
-	Asset* resource = GetAsset(RESOURCE_IMAGE, args, index, threadID);
-	if (resource != nullptr) {
-		return (Image*)resource;
-	}
-	return nullptr;
+	Asset* asset = GetAsset(ASSET_IMAGE, args, index, threadID);
+	return (Image*)asset;
 }
 inline ISound* GetAudio(VMValue* args, int index, Uint32 threadID) {
-	Asset* resource = GetAsset(RESOURCE_AUDIO, args, index, threadID);
-	if (resource != nullptr) {
-		return (ISound*)resource;
-	}
-	return nullptr;
+	Asset* asset = GetAsset(ASSET_AUDIO, args, index, threadID);
+	return (ISound*)asset;
 }
 inline IModel* GetModel(VMValue* args, int index, Uint32 threadID) {
-	Asset* resource = GetAsset(RESOURCE_MODEL, args, index, threadID);
-	if (resource != nullptr) {
-		return (IModel*)resource;
-	}
-	return nullptr;
+	Asset* asset = GetAsset(ASSET_MODEL, args, index, threadID);
+	return (IModel*)asset;
 }
 inline MediaBag* GetVideo(VMValue* args, int index, Uint32 threadID) {
-	Asset* resource = GetAsset(RESOURCE_MEDIA, args, index, threadID);
-	if (resource != nullptr) {
-		return (MediaBag*)resource;
-	}
-	return nullptr;
+	Asset* asset = GetAsset(ASSET_MEDIA, args, index, threadID);
+	return (MediaBag*)asset;
 }
 inline GameTexture* GetTexture(VMValue* args, int index, Uint32 threadID) {
 	int where = GetInteger(args, index, threadID);
@@ -474,7 +459,7 @@ int StandardLibrary::ExpectedTypeError(int index, VMValue value, Uint32 expected
 int StandardLibrary::ExpectedObjectTypeError(int index, VMValue value, Uint32 expectedType, Uint32 threadID) {
 	return LOCAL::ExpectedObjectTypeError(index, value, expectedType, threadID);
 }
-void* StandardLibrary::GetAsset(Uint8 type, VMValue value, Uint32 threadID) {
+void* StandardLibrary::GetAsset(AssetType type, VMValue value, Uint32 threadID) {
 	return (void*)LOCAL::GetAsset(type, value, threadID);
 }
 // NOTE:
@@ -687,7 +672,7 @@ bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) 
 /***
  * Animator.Create
  * \desc Creates a new animator.
- * \paramOpt sprite (Resource): A sprite resource.
+ * \paramOpt sprite (Asset): A sprite asset.
  * \paramOpt animationID (Integer): Which animation to use.
  * \paramOpt frameID (Integer): Which frame to use.
  * \paramOpt unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the animator.
@@ -746,7 +731,7 @@ VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.SetAnimation
  * \desc Sets the current animation and frame of an animator.
  * \param animator (Integer): The index of the animator.
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \param animationID (Integer): The animator's changed animation ID.
  * \param frameID (Integer): The animator's changed frame ID.
  * \param forceApply (Boolean): Whether to force the animation to go back to the frame if the animation is the same as the current animation.
@@ -1066,7 +1051,7 @@ VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
  * Animator.SetSprite
  * \desc Sets the sprite of an animator.
  * \param animator (Integer): The animator index to change.
- * \param sprite (Resource): A sprite resource, or <code>null</code>.
+ * \param sprite (Asset): A sprite asset, or <code>null</code>.
  * \ns Animator
  */
 VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -2966,7 +2951,7 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Sprite
  * \desc Draws a sprite.
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \param animation (Integer): Index of the animation entry.
  * \param frame (Integer): Index of the frame in the animation entry.
  * \param x (Number): X position of where to draw the sprite.
@@ -3362,7 +3347,7 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SpritePart
  * \desc Draws part of a sprite.
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \param animation (Integer): Index of the animation entry.
  * \param frame (Integer): Index of the frame in the animation entry.
  * \param x (Number): X position of where to draw the sprite.
@@ -3450,7 +3435,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Image
  * \desc Draws an image.
- * \param image (Resoure): An image resource.
+ * \param image (Resoure): An image asset.
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
  * \paramOpt paletteID (Integer): Which palette index to use.
@@ -3483,7 +3468,7 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ImagePart
  * \desc Draws part of an image.
- * \param image (Resource): An image resource.
+ * \param image (Asset): An image asset.
  * \param partX (Integer): X coordinate of part of image to draw.
  * \param partY (Integer): Y coordinate of part of image to draw.
  * \param partW (Integer): Width of part of image to draw.
@@ -3524,7 +3509,7 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ImageSized
  * \desc Draws an image, but sized.
- * \param image (Resource): An image resource.
+ * \param image (Asset): An image asset.
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
  * \param width (Number): Width to draw the image.
@@ -3561,7 +3546,7 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ImagePartSized
  * \desc Draws part of an image, but sized.
- * \param image (Resource): An image resource.
+ * \param image (Asset): An image asset.
  * \param partX (Integer): X coordinate of part of image to draw.
  * \param partY (Integer): Y coordinate of part of image to draw.
  * \param partW (Integer): Width of part of image to draw.
@@ -4893,7 +4878,7 @@ VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.TriangleTextured
  * \desc Draws a textured triangle.
- * \param image (Resource): Image to draw triangle with.
+ * \param image (Asset): Image to draw triangle with.
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param x2 (Number): X position of the second vertex.
@@ -4940,7 +4925,7 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.QuadTextured
  * \desc Draws a textured quad.
- * \param image (Resource): Image to draw quad with.
+ * \param image (Asset): Image to draw quad with.
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param x2 (Number): X position of the second vertex.
@@ -5463,7 +5448,7 @@ static void PrepareMatrix(Matrix4x4* output, ObjArray* input) {
 /***
  * Draw3D.Model
  * \desc Draws a model.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \param animation (Integer): Animation of model to draw.
  * \param frame (Decimal): Frame of model to draw.
  * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
@@ -5504,7 +5489,7 @@ VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.ModelSkinned
  * \desc Draws a skinned model.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \param armatureIndex (Integer): Armature index to skin the model.
  * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
@@ -5542,7 +5527,7 @@ VMValue Draw3D_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.ModelSimple
  * \desc Draws a model without using matrices.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \param animation (Integer): Animation of model to draw.
  * \param frame (Integer): Frame of model to draw.
  * \param x (Number): X position
@@ -5728,7 +5713,7 @@ VMValue Draw3D_Quad(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.Sprite
  * \desc Draws a sprite in 3D space.
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \param animation (Integer): Index of the animation entry.
  * \param frame (Integer): Index of the frame in the animation entry.
  * \param x (Number): X position of where to draw the sprite.
@@ -5800,7 +5785,7 @@ VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.SpritePart
  * \desc Draws part of a sprite in 3D space.
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \param animation (Integer): Index of the animation entry.
  * \param frame (Integer): Index of the frame in the animation entry.
  * \param x (Number): X position of where to draw the sprite.
@@ -5873,7 +5858,7 @@ VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.Image
  * \desc Draws an image in 3D space.
- * \param image (Resource): Index of the loaded image.
+ * \param image (Asset): An image asset.
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
  * \param z (Number): Z position of where to draw the image.
@@ -5911,7 +5896,7 @@ VMValue Draw3D_Image(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.ImagePart
  * \desc Draws part of an image in 3D space.
- * \param image (Resource): Index of the loaded image.
+ * \param image (Asset): An image asset.
  * \param x (Number): X position of where to draw the image.
  * \param y (Number): Y position of where to draw the image.
  * \param z (Number): Z position of where to draw the image.
@@ -6017,7 +6002,7 @@ VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.TriangleTextured
  * \desc Draws a textured triangle in 3D space. The texture source should be an image.
- * \param image (Resource): Index of the loaded image.
+ * \param image (Asset): An image asset.
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param z1 (Number): Z position of the first vertex.
@@ -6076,7 +6061,7 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.QuadTextured
  * \desc Draws a textured quad in 3D space. The texture source should be an image.
- * \param image (Resource): Index of the loaded image.
+ * \param image (Asset): An image asset.
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param z1 (Number): Z position of the first vertex.
@@ -6143,7 +6128,7 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.SpritePoints
  * \desc Draws a textured rectangle in 3D space. The texture source should be a sprite.
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \param animation (Integer): Index of the animation entry.
  * \param frame (Integer): Index of the frame in the animation entry.
  * \param flipX (Integer): Whether or not to flip the sprite horizontally.
@@ -7173,7 +7158,7 @@ VMValue HTTP_GetToFile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Image.GetWidth
  * \desc Gets the width of the specified image. (Deprecated; use <linkto ref="image.Width"></linkto> instead.)
- * \param image (Resource): An image resource.
+ * \param image (Asset): An image asset.
  * \return Returns an Integer value.
  * \ns Image
  */
@@ -7189,7 +7174,7 @@ VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Image.GetHeight
  * \desc Gets the height of the specified image. (Deprecated; use <linkto ref="image.Height"></linkto> instead.)
- * \param image (Resource): An image resource.
+ * \param image (Asset): An image asset.
  * \return Returns an Integer value.
  * \ns Image
  */
@@ -10185,7 +10170,7 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetVertexCount
  * \desc Returns how many vertices are in the model.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \return The vertex count.
  * \ns Model
  */
@@ -10200,7 +10185,7 @@ VMValue Model_GetVertexCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetAnimationCount
  * \desc Returns how many animations exist in the model.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \return Returns an Integer value.
  * \ns Model
  */
@@ -10215,7 +10200,7 @@ VMValue Model_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetAnimationName
  * \desc Gets the name of the model animation with the specified index.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \param animation (Integer): Index of the animation.
  * \return Returns the animation name, or <code>null</code> if the model contains no animations.
  * \ns Model
@@ -10242,7 +10227,7 @@ VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetAnimationIndex
  * \desc Gets the index of the model animation with the specified name.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \param animationName (String): Name of the animation to find.
  * \return Returns the animation index, or <code>-1</code> if the animation could not be found. Will always return <code>-1</code> if the model contains no animations.
  * \ns Model
@@ -10259,7 +10244,7 @@ VMValue Model_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetFrameCount
  * \desc Returns how many frames exist in the model. (Deprecated; use <linkto ref="Model.GetAnimationLength"></linkto> instead.)
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \return Returns an Integer value.
  * \ns Model
  */
@@ -10274,7 +10259,7 @@ VMValue Model_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetAnimationLength
  * \desc Returns the length of the animation.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \param animation (Integer): The animation index to check.
  * \return The number of keyframes in the animation.
  * \ns Model
@@ -10292,7 +10277,7 @@ VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.HasMaterials
  * \desc Checks to see if the model has materials.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \return Returns <code>true</code> if the model has materials, <code>false</code> if otherwise. (Deprecated; use <linkto ref="Model.GetMaterialCount"></linkto> instead.)
  * \ns Model
  */
@@ -10307,7 +10292,7 @@ VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.HasBones
  * \desc Checks to see if the model has bones.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \return Returns <code>true</code> if the model has bones, <code>false</code> if otherwise.
  * \ns Model
  */
@@ -10322,7 +10307,7 @@ VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetMaterialCount
  * \desc Returns the amount of materials in the model.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \return Returns an Integer value.
  * \ns Model
  */
@@ -10337,7 +10322,7 @@ VMValue Model_GetMaterialCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetMaterial
  * \desc Gets a material from a model.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \param material (String or Integer): The material name or ID to get.
  * \return Returns a Material value, or <code>null</code> if the model has no materials.
  * \ns Model
@@ -10380,7 +10365,7 @@ VMValue Model_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.CreateArmature
  * \desc Creates an armature from the model.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \return Returns the index of the armature.
  * \ns Model
  */
@@ -10395,7 +10380,7 @@ VMValue Model_CreateArmature(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.PoseArmature
  * \desc Poses an armature.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \param armature (Integer): The armature index to pose.
  * \paramOpt animation (Integer): Animation to pose the armature.
  * \paramOpt frame (Decimal): Frame to pose the armature.
@@ -10434,7 +10419,7 @@ VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.ResetArmature
  * \desc Resets an armature to its default pose.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \param armature (Integer): The armature index to reset.
  * \return
  * \ns Model
@@ -10453,7 +10438,7 @@ VMValue Model_ResetArmature(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.DeleteArmature
  * \desc Deletes an armature from the model.
- * \param model (Resource): A model resource.
+ * \param model (Asset): A model asset.
  * \param armature (Integer): The armature index to delete.
  * \return
  * \ns Model
@@ -10478,7 +10463,7 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.Play
  * \desc Places the music onto the music stack and plays it.
- * \param music (Resource): The audio resource to play as music.
+ * \param music (Asset): The audio asset to play as music.
  * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the track once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default).
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default).
@@ -10529,7 +10514,7 @@ VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.Stop
  * \desc Removes the music from the music stack, stopping it if currently playing.
- * \param music (Resource): The music to stop.
+ * \param music (Asset): The music to stop.
  * \ns Music
  */
 VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
@@ -10598,7 +10583,7 @@ VMValue Music_Clear(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.IsPlaying
  * \desc Checks to see if the specified music is currently playing.
- * \param music (Resource): The music to play.
+ * \param music (Asset): The music to play.
  * \return Returns a Boolean value.
  * \ns Music
  */
@@ -10613,7 +10598,7 @@ VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.GetPosition
  * \desc Gets the position of the current track playing.
- * \param music (Resource): The music to get the current position (in seconds) of.
+ * \param music (Asset): The music to get the current position (in seconds) of.
  * \return Returns a Decimal value.
  * \ns Music
  */
@@ -10644,8 +10629,8 @@ VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Music.GetLoopPoint
- * \desc Gets the loop point of an audio resource, if it has one.
- * \param music (Resource): The audio resource to get the loop point of.
+ * \desc Gets the loop point of an audio asset, if it has one. (Deprecated; use <linkto ref="audio.LoopPoint"></linkto> instead.)
+ * \param music (Asset): The audio asset to get the loop point of.
  * \return Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.
  * \ns Music
  */
@@ -10659,8 +10644,8 @@ VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Music.SetLoopPoint
- * \desc Sets the loop point of an audio resource.
- * \param music (Resource): The audio resource to set the loop point of.
+ * \desc Sets the loop point of an audio asset. (Deprecated; use <linkto ref="audio.LoopPoint"></linkto> instead.)
+ * \param music (Asset): The audio asset to set the loop point of.
  * \param loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.
  * \ns Music
  */
@@ -11046,9 +11031,9 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Palette.LoadFromImage
- * \desc Loads palette from an image resource.
+ * \desc Loads palette from an image asset.
  * \param paletteIndex (Integer): Index of palette to load to.
- * \param image (Resource): An image resource.
+ * \param image (Asset): An image asset.
  * \ns Palette
  */
 VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
@@ -11405,7 +11390,7 @@ VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Resources
-ObjResource* LoadResource(Uint8 type, char* filename, int unloadPolicy) {
+ObjResource* LoadResource(AssetType type, char* filename, int unloadPolicy) {
 	ResourceType* resource = Resource::Load(type, filename, unloadPolicy, false);
 	if (resource != nullptr) {
 		return (ObjResource*)(Resource::GetVMObject(resource));
@@ -11426,7 +11411,7 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	ObjResource* object = LoadResource(RESOURCE_SPRITE, filename, unloadPolicy);
+	ObjResource* object = LoadResource(ASSET_SPRITE, filename, unloadPolicy);
 	if (object != nullptr) {
 		return OBJECT_VAL(object);
 	}
@@ -11438,7 +11423,7 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
  * \param fallbackFolder (String): Folder to check if the sprite does not exist in the current Scene's resource folder.
  * \param name (String): Name of the animation file within the resource folder.
  * \param unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the resource.
- * \return Returns a resource.
+ * \return Returns a Resource.
  * \ns Resources
  */
 VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -11457,7 +11442,7 @@ VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID
 		snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", fallbackFolder, name);
 	}
 
-	ObjResource* object = LoadResource(RESOURCE_SPRITE, filename, unloadPolicy);
+	ObjResource* object = LoadResource(ASSET_SPRITE, filename, unloadPolicy);
 	if (object != nullptr) {
 		return OBJECT_VAL(object);
 	}
@@ -11476,7 +11461,7 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	ObjResource* object = LoadResource(RESOURCE_IMAGE, filename, unloadPolicy);
+	ObjResource* object = LoadResource(ASSET_IMAGE, filename, unloadPolicy);
 	if (object != nullptr) {
 		return OBJECT_VAL(object);
 	}
@@ -11484,7 +11469,7 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Resources.LoadModel
- * \desc Loads Model resource.
+ * \desc Loads a Model resource.
  * \param filename (String): Filename of the resource.
  * \param unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the resource.
  * \return Returns a resource.
@@ -11495,7 +11480,7 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	ObjResource* object = LoadResource(RESOURCE_MODEL, filename, unloadPolicy);
+	ObjResource* object = LoadResource(ASSET_MODEL, filename, unloadPolicy);
 	if (object != nullptr) {
 		return OBJECT_VAL(object);
 	}
@@ -11514,7 +11499,7 @@ VMValue Resources_LoadAudio(int argCount, VMValue* args, Uint32 threadID) {
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	ObjResource* object = LoadResource(RESOURCE_AUDIO, filename, unloadPolicy);
+	ObjResource* object = LoadResource(ASSET_AUDIO, filename, unloadPolicy);
 	if (object != nullptr) {
 		return OBJECT_VAL(object);
 	}
@@ -11555,7 +11540,7 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	ObjResource* object = LoadResource(RESOURCE_MEDIA, filename, unloadPolicy);
+	ObjResource* object = LoadResource(ASSET_MEDIA, filename, unloadPolicy);
 	if (object != nullptr) {
 		return OBJECT_VAL(object);
 	}
@@ -12820,7 +12805,7 @@ VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
  * Scene.SetTileAnimSequenceFromSprite
  * \desc Sets an animation sequence for a tile ID.
  * \param tileID (Integer): Which tile ID to add an animated sequence to.
- * \param sprite (Resource): A sprite resource. (<code>null</code> to disable)
+ * \param sprite (Asset): A sprite asset. (<code>null</code> to disable)
  * \param animationIndex (Integer): Animation index in sprite.
  * \ns Scene
  */
@@ -14856,7 +14841,7 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Play
  * \desc Plays a sound either once or in a loop.
- * \param sound (Resource): The audio resource to play as a sound.
+ * \param sound (Asset): The audio asset to play as a sound.
  * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
@@ -14900,7 +14885,7 @@ VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Stop
  * \desc Stops an actively playing sound.
- * \param sound (Resource): The sound to stop.
+ * \param sound (Asset): The sound to stop.
  * \ns Sound
  */
 VMValue Sound_Stop(int argCount, VMValue* args, Uint32 threadID) {
@@ -14914,7 +14899,7 @@ VMValue Sound_Stop(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Pause
  * \desc Pauses an actively playing sound.
- * \param sound (Resource): The sound to pause.
+ * \param sound (Asset): The sound to pause.
  * \ns Sound
  */
 VMValue Sound_Pause(int argCount, VMValue* args, Uint32 threadID) {
@@ -14928,7 +14913,7 @@ VMValue Sound_Pause(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Resume
  * \desc Unpauses a paused sound.
- * \param sound (Resource): The sound to resume.
+ * \param sound (Asset): The sound to resume.
  * \ns Sound
  */
 VMValue Sound_Resume(int argCount, VMValue* args, Uint32 threadID) {
@@ -14971,7 +14956,7 @@ VMValue Sound_ResumeAll(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.IsPlaying
- * \param sound (Resource): An audio resource.
+ * \param sound (Asset): An audio asset.
  * \desc Checks whether a sound is currently playing or not.
  * \return Returns a Boolean value.
  * \ns Sound
@@ -14987,7 +14972,7 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.PlayMultiple
  * \desc Plays a sound once or loops it, without interrupting channels playing the same sound.
- * \param sound (Resource): The audio resource to play as a sound.
+ * \param sound (Asset): The audio asset to play as a sound.
  * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
@@ -15031,7 +15016,7 @@ VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
  * Sound.PlayAtChannel
  * \desc Plays or loops a sound at the specified channel.
  * \param channel (Integer): The channel index.
- * \param sound (Resource): The audio resource to play as a sound.
+ * \param sound (Asset): The audio asset to play as a sound.
  * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
  * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
  * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
@@ -15179,8 +15164,8 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.GetLoopPoint
- * \desc Gets the loop point of an audio resource, if it has one.
- * \param sound (Resource): The audio resource to get the loop point of.
+ * \desc Gets the loop point of an audio asset, if it has one. (Deprecated; use <linkto ref="audio.LoopPoint"></linkto> instead.)
+ * \param sound (Asset): The audio asset to get the loop point of.
  * \return Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.
  * \ns Sound
  */
@@ -15194,8 +15179,8 @@ VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.SetLoopPoint
- * \desc Sets the loop point of an audio resource.
- * \param sound (Resource): The audio resource to set the loop point of.
+ * \desc Sets the loop point of an audio asset. (Deprecated; use <linkto ref="audio.LoopPoint"></linkto> instead.)
+ * \param sound (Asset): The audio asset to set the loop point of.
  * \param loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.
  * \ns Sound
  */
@@ -15217,7 +15202,7 @@ VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetAnimationCount
  * \desc Gets the amount of animations in the sprite. (Deprecated; use <linkto ref="sprite.AnimationCount"></linkto> instead.)
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \return Returns the amount of animations in the sprite.
  * \ns Sprite
  */
@@ -15232,7 +15217,7 @@ VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetAnimationIndexByName
  * \desc Gets the first animation in the sprite which matches the specified name. (Deprecated; use <linkto ref="sprite.GetAnimationName"></linkto> instead.)
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \param name (String): The animation name to search for.
  * \return Returns the first animation index with the specified name, or -1 if there was no match.
  * \ns Sprite
@@ -15254,7 +15239,7 @@ VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threa
 /***
  * Sprite.GetFrameExists
  * \desc Checks if an animation and frame is valid within a sprite.
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \param animation (Integer): The animation index to check.
  * \param frame (Integer): The frame index to check.
  * \return Returns whether the frame is valid.
@@ -15274,7 +15259,7 @@ VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameLoopIndex
  * \desc Gets the index of the frame that the specified animation will loop back to when it finishes. (Deprecated; use <linkto ref="sprite.GetAnimationLoopFrame"></linkto> instead.)
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \param animation (Integer): The animation index of the sprite to check.
  * \return Returns the frame loop index.
  * \ns Sprite
@@ -15285,7 +15270,7 @@ VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameCount
  * \desc Gets the amount of frames in the specified animation. (Deprecated; use <linkto ref="sprite.GetAnimationFrameCount"></linkto> instead.)
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \param animation (Integer): The animation index of the sprite to check.
  * \return Returns the frame count in the specified animation.
  * \ns Sprite
@@ -15296,7 +15281,7 @@ VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameSpeed
  * \desc Gets the animation speed of the specified animation. (Deprecated; use <linkto ref="sprite.GetAnimationSpeed"></linkto> instead.)
- * \param sprite (Resource): A sprite resource.
+ * \param sprite (Asset): A sprite asset.
  * \param animation (Integer): The animation index of the sprite to check.
  * \return Returns an Integer.
  * \ns Sprite
@@ -16393,7 +16378,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
  * TileInfo.SetSpriteInfo
  * \desc Sets the sprite, animation, and frame to use for specified tile.
  * \param tileID (Integer): ID of tile to check.
- * \param sprite (Resource): A sprite resource. (<code>null</code> for default tile sprite)
+ * \param sprite (Asset): A sprite asset. (<code>null</code> for default tile sprite)
  * \param animationIndex (Integer): Animation index.
  * \param frameIndex (Integer): Frame index. (<code>-1</code> for default tile frame)
  * \ns TileInfo
@@ -20121,32 +20106,32 @@ void StandardLibrary::Link() {
 #undef ALIAS_NATIVE
 #undef INIT_CLASS
 
-	// #region Resource Types
+	// #region Asset Types
 	/***
-    * \enum RESOURCETYPE_SPRITE
-    * \desc Sprite resource.
+    * \enum ASSET_SPRITE
+    * \desc Sprite asset.
     */
-	DEF_CONST_INT("RESOURCETYPE_SPRITE", RESOURCE_SPRITE);
+	DEF_CONST_INT("ASSET_SPRITE", ASSET_SPRITE);
 	/***
-    * \enum RESOURCETYPE_IMAGE
-    * \desc Image resource.
+    * \enum ASSET_IMAGE
+    * \desc Image asset.
     */
-	DEF_CONST_INT("RESOURCETYPE_IMAGE", RESOURCE_IMAGE);
+	DEF_CONST_INT("ASSET_IMAGE", ASSET_IMAGE);
     /***
-    * \enum RESOURCETYPE_AUDIO
-    * \desc Audio resource.
+    * \enum ASSET_AUDIO
+    * \desc Audio asset.
     */
-	DEF_CONST_INT("RESOURCETYPE_AUDIO", RESOURCE_AUDIO);
+	DEF_CONST_INT("ASSET_AUDIO", ASSET_AUDIO);
     /***
-    * \enum RESOURCETYPE_MODEL
-    * \desc Model resource.
+    * \enum ASSET_MODEL
+    * \desc Model asset.
     */
-	DEF_CONST_INT("RESOURCETYPE_MODEL", RESOURCE_MODEL);
+	DEF_CONST_INT("ASSET_MODEL", ASSET_MODEL);
     /***
-    * \enum RESOURCETYPE_MEDIA
-    * \desc Media resource.
+    * \enum ASSET_MEDIA
+    * \desc Media asset.
     */
-	DEF_CONST_INT("RESOURCETYPE_MEDIA", RESOURCE_MEDIA);
+	DEF_CONST_INT("ASSET_MEDIA", ASSET_MEDIA);
 	// #endregion
 
 	// #region Tile Collision States

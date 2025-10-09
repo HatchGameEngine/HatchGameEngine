@@ -3,6 +3,34 @@
 
 #include <Engine/Includes/Standard.h>
 
+enum AssetType {
+	ASSET_NONE,
+	ASSET_SPRITE,
+	ASSET_IMAGE,
+	ASSET_AUDIO,
+	ASSET_MODEL,
+	ASSET_MEDIA
+};
+
+inline const char* GetAssetTypeString(AssetType type) {
+	switch (type) {
+	case ASSET_SPRITE:
+		return "sprite";
+	case ASSET_IMAGE:
+		return "image";
+	case ASSET_AUDIO:
+		return "audio";
+	case ASSET_MODEL:
+		return "model";
+	case ASSET_MEDIA:
+		return "media";
+	default:
+		break;
+	}
+
+	return "unknown";
+}
+
 class Asset {
 protected:
 	bool Loaded = false;
@@ -10,7 +38,7 @@ protected:
 	int RefCount = 0;
 
 public:
-	Uint8 Type = 0;
+	AssetType Type = ASSET_NONE;
 
 	bool IsLoaded();
 	void TakeRef();
