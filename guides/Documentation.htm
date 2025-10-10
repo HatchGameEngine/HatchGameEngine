@@ -1249,6 +1249,7 @@ codeBlock {
                     <li><a href="#Reference_methods_sprite_GetFrameOffsetY">sprite.GetFrameOffsetY</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameDuration">sprite.GetFrameDuration</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameID">sprite.GetFrameID</a></li>
+                    <li><a href="#Reference_methods_sprite_IsFrameValid">sprite.IsFrameValid</a></li>
                     <li><a href="#Reference_methods_sprite_GetSheetFilename">sprite.GetSheetFilename</a></li>
                     <li><a href="#Reference_methods_sprite_GetSheetImage">sprite.GetSheetImage</a></li>
                     <li><a href="#Reference_methods_sprite_SetAnimationName">sprite.SetAnimationName</a></li>
@@ -1743,6 +1744,7 @@ codeBlock {
                     <li><a href="#Reference_methods_sprite_GetFrameOffsetY">sprite.GetFrameOffsetY</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameDuration">sprite.GetFrameDuration</a></li>
                     <li><a href="#Reference_methods_sprite_GetFrameID">sprite.GetFrameID</a></li>
+                    <li><a href="#Reference_methods_sprite_IsFrameValid">sprite.IsFrameValid</a></li>
                     <li><a href="#Reference_methods_sprite_GetSheetFilename">sprite.GetSheetFilename</a></li>
                     <li><a href="#Reference_methods_sprite_GetSheetImage">sprite.GetSheetImage</a></li>
                     <li><a href="#Reference_methods_sprite_SetAnimationName">sprite.SetAnimationName</a></li>
@@ -8981,7 +8983,7 @@ codeBlock {
         <p id="Reference_functions_Sprite_GetFrameExists">
         <h2 style="margin-bottom: 8px;">Sprite.GetFrameExists</h2>
         <code>Sprite.GetFrameExists(sprite, animation, frame)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks if an animation and frame is valid within a sprite.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an animation and frame is valid within a sprite. (Deprecated; use <code><a href="#Reference_methods_sprite_IsFrameValid">sprite.IsFrameValid</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sprite (Asset): A sprite asset.</li>
@@ -11225,6 +11227,18 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the ID of the specified animation frame.</div>
         </p>
+        <p id="Reference_methods_sprite_IsFrameValid">
+        <h2 style="margin-bottom: 8px;">sprite.IsFrameValid</h2>
+        <code>sprite.IsFrameValid(animation, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if an animation and frame is valid within a sprite.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animation (Integer): The animation index to check.</li>
+        <li>frame (Integer): The frame index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
         <p id="Reference_methods_sprite_GetSheetFilename">
         <h2 style="margin-bottom: 8px;">sprite.GetSheetFilename</h2>
         <code>sprite.GetSheetFilename(sheetID)</code>
@@ -11405,7 +11419,7 @@ codeBlock {
         <code>sprite.MakeNonPalettized()</code>
         <div style="margin-top: 8px; font-size: 14px;">Removes the sprite's palette.</div>
         </p>
-        <p>101 out of 101 methods have descriptions. </p>
+        <p>102 out of 102 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
         <p id="Reference_constructors_Shader">

@@ -15031,7 +15031,7 @@ VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threa
 }
 /***
  * Sprite.GetFrameExists
- * \desc Checks if an animation and frame is valid within a sprite.
+ * \desc Checks if an animation and frame is valid within a sprite. (Deprecated; use <linkto ref="sprite.IsFrameValid"></linkto> instead.)
  * \param sprite (Asset): A sprite asset.
  * \param animation (Integer): The animation index to check.
  * \param frame (Integer): The frame index to check.

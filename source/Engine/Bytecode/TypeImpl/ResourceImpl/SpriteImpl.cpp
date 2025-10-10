@@ -318,6 +318,27 @@ VMValue SpriteImpl_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 
 #undef GET_FRAME_PROPERTY
 
+/***
+ * \method IsFrameValid
+ * \desc Checks if an animation and frame is valid within a sprite.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The frame index to check.
+ * \return Returns a Boolean value.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_IsFrameValid(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
+
+	CHECK_EXISTS(sprite);
+
+	return (INTEGER_VAL((animation >= 0 && animation < (int)sprite->Animations.size()) &&
+		(frame >= 0 && frame < (int)sprite->Animations[animation].Frames.size())));
+}
+
 #define CHECK_SHEET_INDEX(idx) \
 	if (idx < 0 || idx >= (int)sprite->Spritesheets.size()) { \
 		VM_OUT_OF_RANGE_ERROR( \
@@ -866,6 +887,7 @@ void SpriteImpl::AddNatives() {
 	DEF_CLASS_NATIVE(SpriteImpl, GetFrameOffsetY);
 	DEF_CLASS_NATIVE(SpriteImpl, GetFrameDuration);
 	DEF_CLASS_NATIVE(SpriteImpl, GetFrameID);
+	DEF_CLASS_NATIVE(SpriteImpl, IsFrameValid);
 	DEF_CLASS_NATIVE(SpriteImpl, GetSheetFilename);
 	DEF_CLASS_NATIVE(SpriteImpl, GetSheetImage);
 
