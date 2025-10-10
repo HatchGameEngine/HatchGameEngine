@@ -14,7 +14,7 @@ ObjClass* ResourceImpl::Class = nullptr;
 DECLARE_STRING_HASH(Type);
 DECLARE_STRING_HASH(Filename);
 DECLARE_STRING_HASH(Loaded);
-DECLARE_STRING_HASH(Scope);
+DECLARE_STRING_HASH(UnloadPolicy);
 DECLARE_STRING_HASH(Asset);
 
 void ResourceImpl::Init() {
@@ -25,7 +25,7 @@ void ResourceImpl::Init() {
 	GET_STRING_HASH(Type);
 	GET_STRING_HASH(Filename);
 	GET_STRING_HASH(Loaded);
-	GET_STRING_HASH(Scope);
+	GET_STRING_HASH(UnloadPolicy);
 	GET_STRING_HASH(Asset);
 
 	ScriptManager::DefineNative(Class, "IsUnique", ResourceImpl::VM_IsUnique);
@@ -143,12 +143,12 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 		*result = INTEGER_VAL(resource->Loaded ? true : false);
 	}
 	/***
-	 * \field Scope
+	 * \field UnloadPolicy
 	 * \type Enum
 	 * \desc The <linkto ref="SCOPE_*">unload policy</linkto> of the Resource.
 	 * \ns Resource
  	*/
-	else if (hash == Hash_Scope) {
+	else if (hash == Hash_UnloadPolicy) {
 		*result = INTEGER_VAL((int)resource->UnloadPolicy);
 	}
 	/***
@@ -184,7 +184,7 @@ bool ResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint3
 	ResourceType* resource = (ResourceType*)objResource->ResourcePtr;
 
 	if (hash == Hash_Type || hash == Hash_Filename || hash == Hash_Loaded ||
-		hash == Hash_Scope || hash == Hash_Asset) {
+		hash == Hash_UnloadPolicy || hash == Hash_Asset) {
 		VM_THROW_ERROR("Field cannot be written to!");
 		return true;
 	}
