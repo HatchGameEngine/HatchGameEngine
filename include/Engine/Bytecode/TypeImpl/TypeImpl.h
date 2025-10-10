@@ -4,6 +4,19 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
+#define DECLARE_STRING_HASH(fieldName) \
+	static Uint32 Hash_##fieldName = 0;
+
+#define GET_STRING_HASH(fieldName) \
+	Hash_##fieldName = Murmur::EncryptString(#fieldName)
+
+#define CHECK_VALID_FIELD(fieldName) \
+	if (hash == Hash_##fieldName) \
+		return true
+
+#define DEF_CLASS_NATIVE(className, funcName) \
+	ScriptManager::DefineNative(Class, #funcName, className##_##funcName)
+
 class TypeImpl {
 public:
 	static void Init();

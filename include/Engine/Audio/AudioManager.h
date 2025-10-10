@@ -96,6 +96,7 @@ public:
 	static void AudioUnpauseAll();
 	static void AudioPauseAll();
 	static void AudioStopAll();
+	static void Unload(ISound* audio);
 	static bool IsOriginPlaying(void* origin, ISound* audio);
 	static void StopOriginSound(void* origin, ISound* audio);
 	static void StopAllOriginSounds(void* origin);

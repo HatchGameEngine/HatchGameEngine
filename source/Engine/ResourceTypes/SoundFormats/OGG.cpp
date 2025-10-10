@@ -64,15 +64,10 @@ long OGG::StaticTell(void* ptr) {
 	return ((class Stream*)ptr)->Position();
 }
 
-SoundFormat* OGG::Load(const char* filename) {
+SoundFormat* OGG::Load(Stream* stream) {
 	VorbisGroup* vorbis;
 
 	OGG* ogg = NULL;
-	class Stream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
-		goto OGG_Load_FAIL;
-	}
 
 #ifdef USING_LIBOGG
 	ogg = new (std::nothrow) OGG;
@@ -83,10 +78,6 @@ SoundFormat* OGG::Load(const char* filename) {
 	ogg->StreamPtr = stream;
 
 	ov_callbacks callbacks;
-	// callbacks = OV_CALLBACKS_STREAMONLY;
-	// callbacks = OV_CALLBACKS_STREAMONLY_NOCLOSE;
-	// callbacks = OV_CALLBACKS_DEFAULT;
-	// callbacks = OV_CALLBACKS_NOCLOSE;
 
 	callbacks.read_func = OGG::StaticRead;
 	callbacks.seek_func = OGG::StaticSeek;
@@ -99,7 +90,7 @@ SoundFormat* OGG::Load(const char* filename) {
 
 	int res;
 	if ((res = ov_open_callbacks(ogg->StreamPtr, &vorbis->File, NULL, 0, callbacks)) != 0) {
-		Log::Print(Log::LOG_ERROR, "Could not read file '%s'!", filename);
+		Log::Print(Log::LOG_ERROR, "Could not read stream!");
 		switch (res) {
 		case OV_EREAD:
 			Log::Print(Log::LOG_ERROR, "A read from media returned an error.");
@@ -159,7 +150,7 @@ SoundFormat* OGG::Load(const char* filename) {
 			stb_vorbis_open_memory((Uint8*)vorbis->FileBlock, fileLength, &error, NULL);
 		if (!vorbis->VorbisSTB) {
 			Log::Print(
-				Log::LOG_ERROR, "Could not open Vorbis stream for %s!", filename);
+				Log::LOG_ERROR, "Could not open Vorbis stream!");
 
 			switch (error) {
 			case VORBIS_need_more_data:
@@ -280,9 +271,6 @@ OGG_Load_FAIL:
 	ogg = NULL;
 
 OGG_Load_SUCCESS:
-	if (stream) {
-		stream->Close();
-	}
 	return ogg;
 }
 

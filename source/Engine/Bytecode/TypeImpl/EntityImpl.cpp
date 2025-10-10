@@ -11,10 +11,11 @@ ObjClass* EntityImpl::ParentClass = nullptr;
 #define ENTITY_CLASS_NAME "Entity"
 #define NATIVEENTITY_CLASS_NAME "NativeEntity"
 
-Uint32 Hash_HitboxLeft = 0;
-Uint32 Hash_HitboxTop = 0;
-Uint32 Hash_HitboxRight = 0;
-Uint32 Hash_HitboxBottom = 0;
+static Uint32 Hash_Sprite = 0;
+static Uint32 Hash_HitboxLeft = 0;
+static Uint32 Hash_HitboxTop = 0;
+static Uint32 Hash_HitboxRight = 0;
+static Uint32 Hash_HitboxBottom = 0;
 
 void EntityImpl::Init() {
 	Class = NewClass(ENTITY_CLASS_NAME);
@@ -31,6 +32,7 @@ void EntityImpl::Init() {
 	ENTITY_NATIVE_FN_LIST
 #undef ENTITY_NATIVE_FN
 
+	Hash_Sprite = Murmur::EncryptString("Sprite");
 	Hash_HitboxLeft = Murmur::EncryptString("HitboxLeft");
 	Hash_HitboxTop = Murmur::EncryptString("HitboxTop");
 	Hash_HitboxRight = Murmur::EncryptString("HitboxRight");
@@ -57,7 +59,18 @@ bool EntityImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 	ObjEntity* objEntity = (ObjEntity*)object;
 	Entity* entity = (Entity*)objEntity->EntityPtr;
 
-	if (hash == Hash_HitboxLeft) {
+	if (hash == Hash_Sprite) {
+		if (result) {
+			if (entity->Sprite) {
+				*result = OBJECT_VAL(entity->Sprite->GetVMObject());
+			}
+			else {
+				*result = NULL_VAL;
+			}
+		}
+		return true;
+	}
+	else if (hash == Hash_HitboxLeft) {
 		if (result) {
 			*result = DECIMAL_VAL(entity->Hitbox.GetLeft());
 		}
@@ -88,7 +101,20 @@ bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 	ObjEntity* objEntity = (ObjEntity*)object;
 	Entity* entity = (Entity*)objEntity->EntityPtr;
 
-	if (hash == Hash_HitboxLeft) {
+	if (hash == Hash_Sprite) {
+		if (IS_NULL(value)) {
+			entity->SetSprite(nullptr);
+			return true;
+		}
+
+		void* asset = StandardLibrary::GetAsset(ASSET_SPRITE, value, threadID);
+		ISprite* sprite = (ISprite*)asset;
+
+		entity->SetSprite(sprite);
+
+		return true;
+	}
+	else if (hash == Hash_HitboxLeft) {
 		if (ScriptManager::DoDecimalConversion(value, threadID)) {
 			entity->Hitbox.SetLeft(AS_DECIMAL(value));
 		}
@@ -149,26 +175,37 @@ VMValue EntityImpl::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID
 		return NULL_VAL;
 	}
 
-	ResourceType* resource = Scene::GetSpriteResource(self->Sprite);
-	if (!resource) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite is not set!", animation);
-		return NULL_VAL;
-	}
-
-	ISprite* sprite = resource->AsSprite;
+	ISprite* sprite = self->Sprite;
 	if (!sprite) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Sprite is not set!", animation);
 		return NULL_VAL;
 	}
 
-	if (!(animation >= 0 && (size_t)animation < sprite->Animations.size())) {
+	if (!sprite->IsLoaded()) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Sprite is no longer valid!");
+		return NULL_VAL;
+	}
+
+	size_t numAnimations = sprite->Animations.size();
+	if (numAnimations == 0) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite has no animations!");
+		return NULL_VAL;
+	}
+	else if (animation < 0 || (size_t)animation >= numAnimations) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
-	if (!(frame >= 0 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
+
+	size_t numFrames = sprite->Animations[animation].Frames.size();
+	if (numFrames == 0) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Animation %d has no frames!", animation);
+		return NULL_VAL;
+	}
+	else if (frame < 0 || (size_t)frame >= numFrames) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;
@@ -194,26 +231,37 @@ VMValue EntityImpl::VM_ResetAnimation(int argCount, VMValue* args, Uint32 thread
 		return NULL_VAL;
 	}
 
-	ResourceType* resource = Scene::GetSpriteResource(self->Sprite);
-	if (!resource) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite %d does not exist!", self->Sprite);
-		return NULL_VAL;
-	}
-
-	ISprite* sprite = resource->AsSprite;
+	ISprite* sprite = self->Sprite;
 	if (!sprite) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite %d does not exist!", self->Sprite);
+			false, "Sprite is not set!", animation);
 		return NULL_VAL;
 	}
 
-	if (!(animation >= 0 && (Uint32)animation < sprite->Animations.size())) {
+	if (!sprite->IsLoaded()) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Sprite is no longer valid!");
+		return NULL_VAL;
+	}
+
+	size_t numAnimations = sprite->Animations.size();
+	if (numAnimations == 0) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Sprite has no animations!");
+		return NULL_VAL;
+	}
+	else if (animation < 0 || (size_t)animation >= numAnimations) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
-	if (!(frame >= 0 && (Uint32)frame < sprite->Animations[animation].Frames.size())) {
+
+	size_t numFrames = sprite->Animations[animation].Frames.size();
+	if (numFrames == 0) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Animation %d has no frames!", animation);
+		return NULL_VAL;
+	}
+	else if (frame < 0 || (size_t)frame >= numFrames) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;
@@ -509,27 +557,19 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 		return NULL_VAL;
 	}
 
-	ISprite* sprite;
+	ISprite* sprite = nullptr;
 	int animationID = 0, frameID = 0, hitboxID = 0;
 
 	switch (argCount) {
 	case 1:
 	case 2:
-		if (self->Sprite < 0 || self->Sprite >= (int)Scene::SpriteList.size()) {
-			if (ScriptManager::Threads[threadID].ThrowRuntimeError(false,
-				    "Sprite index \"%d\" outside bounds of list.",
-				    self->Sprite) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-
-			return NULL_VAL;
+		if (self->Sprite == nullptr) {
+			ScriptManager::Threads[threadID].ThrowRuntimeError(
+				false, "Sprite is not set!");
+			break;
 		}
 
-		if (!Scene::SpriteList[self->Sprite]) {
-			return NULL_VAL;
-		}
-
-		sprite = Scene::SpriteList[self->Sprite]->AsSprite;
+		sprite = self->Sprite;
 		animationID = self->CurrentAnimation;
 		frameID = self->CurrentFrame;
 		hitboxID = argCount == 2 ? GET_ARG(1, GetInteger) : 0;
@@ -544,8 +584,6 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 	}
 
 	if (!sprite) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Sprite %d does not exist!", self->Sprite);
 		return NULL_VAL;
 	}
 
@@ -806,7 +844,7 @@ VMValue EntityImpl::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 t
 VMValue EntityImpl::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
-	ISound* audio = GET_ARG(1, GetSound);
+	ISound* audio = GET_ARG(1, GetAudio);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(3, GetDecimal, 1.0f);
 	float volume = GET_ARG_OPT(4, GetDecimal, 1.0f);
@@ -832,7 +870,7 @@ VMValue EntityImpl::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
 VMValue EntityImpl::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
-	ISound* audio = GET_ARG(1, GetSound);
+	ISound* audio = GET_ARG(1, GetAudio);
 	int loopPoint = GET_ARG_OPT(2, GetInteger, 0);
 	float panning = GET_ARG_OPT(3, GetDecimal, 0.0f);
 	float speed = GET_ARG_OPT(4, GetDecimal, 1.0f);
@@ -854,7 +892,7 @@ VMValue EntityImpl::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
 VMValue EntityImpl::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
-	ISound* audio = GET_ARG(1, GetSound);
+	ISound* audio = GET_ARG(1, GetAudio);
 	if (self) {
 		AudioManager::StopOriginSound((void*)self, audio);
 	}
@@ -881,3 +919,7 @@ void EntityImpl::Dispose(Obj* object) {
 
 	InstanceImpl::Dispose(object);
 }
+
+#undef GET_ARG
+#undef GET_ARG_OPT
+#undef GET_ENTITY

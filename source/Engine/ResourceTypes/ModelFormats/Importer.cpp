@@ -2,6 +2,7 @@
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/Rendering/3D.h>
 #include <Engine/ResourceTypes/ModelFormats/Importer.h>
+#include <Engine/ResourceTypes/ResourceType.h>
 #include <Engine/Utilities/StringUtils.h>
 
 vector<int> ModelImporter::MeshIDs;
@@ -209,20 +210,28 @@ Material* ModelImporter::LoadMaterial(IModel* imodel, struct aiMaterial* mat, un
 	Material* material = Material::Create(name);
 
 	if (mat->GetTexture(aiTextureType_DIFFUSE, 0, &texDiffuse) == AI_SUCCESS) {
-		material->TextureDiffuse =
-			Material::LoadForModel(texDiffuse.data, ModelImporter::ParentDirectory);
+		void* resource = Material::LoadForModel(texDiffuse.data, ModelImporter::ParentDirectory);
+		if (resource != nullptr) {
+			material->TextureDiffuse = (void*)(((ResourceType*)resource)->AsImage);
+		}
 	}
 	if (mat->GetTexture(aiTextureType_SPECULAR, 0, &texSpecular) == AI_SUCCESS) {
-		material->TextureSpecular =
-			Material::LoadForModel(texSpecular.data, ModelImporter::ParentDirectory);
+		void* resource = Material::LoadForModel(texSpecular.data, ModelImporter::ParentDirectory);
+		if (resource != nullptr) {
+			material->TextureSpecular = (void*)(((ResourceType*)resource)->AsImage);
+		}
 	}
 	if (mat->GetTexture(aiTextureType_AMBIENT, 0, &texAmbient) == AI_SUCCESS) {
-		material->TextureAmbient =
-			Material::LoadForModel(texAmbient.data, ModelImporter::ParentDirectory);
+		void* resource = Material::LoadForModel(texAmbient.data, ModelImporter::ParentDirectory);
+		if (resource != nullptr) {
+			material->TextureAmbient = (void*)(((ResourceType*)resource)->AsImage);
+		}
 	}
 	if (mat->GetTexture(aiTextureType_EMISSIVE, 0, &texEmissive) == AI_SUCCESS) {
-		material->TextureEmissive =
-			Material::LoadForModel(texEmissive.data, ModelImporter::ParentDirectory);
+		void* resource = Material::LoadForModel(texEmissive.data, ModelImporter::ParentDirectory);
+		if (resource != nullptr) {
+			material->TextureEmissive = (void*)(((ResourceType*)resource)->AsImage);
+		}
 	}
 
 	if (mat->Get(AI_MATKEY_COLOR_DIFFUSE, colorDiffuse) == AI_SUCCESS) {
@@ -389,6 +398,7 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 
 	size_t meshCount = 0;
 	size_t totalVertices = 0;
+	size_t totalBones = 0;
 
 	vector<struct aiMesh*> ameshes;
 	ameshes.clear();
@@ -463,6 +473,8 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 			// Remember this skeleton for storing it in the
 			// base armature
 			skeletons.push_back(skeleton);
+
+			totalBones += skeleton->NumBones;
 		}
 	}
 
@@ -476,6 +488,8 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 			armature->Skeletons[i] = skeletons[i];
 		}
 	}
+
+	imodel->BoneCount = totalBones;
 
 	// Pose and transform the meshes
 	imodel->Pose();
@@ -507,6 +521,40 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 }
 #endif
 
+int ModelImporter::GetConversionFlags() {
+#ifdef USING_ASSIMP
+	return aiProcessPreset_TargetRealtime_Fast | aiProcess_ConvertToLeftHanded;
+#else
+	return 0;
+#endif
+}
+bool ModelImporter::IsValid(Stream* stream) {
+	bool success = false;
+
+#ifdef USING_ASSIMP
+	size_t size = stream->Length();
+	void* data = Memory::Malloc(size);
+	if (data) {
+		stream->ReadBytes(data, size);
+	}
+	else {
+		return false;
+	}
+
+	Assimp::Importer importer;
+
+	int flags = GetConversionFlags();
+
+	const struct aiScene* scene = importer.ReadFileFromMemory(data, size, flags);
+	if (scene != nullptr) {
+		success = scene->mRootNode && (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) == 0;
+	}
+
+	Memory::Free(data);
+#endif
+
+	return success;
+}
 bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
 #ifdef USING_ASSIMP
 	size_t size = stream->Length();
@@ -521,8 +569,7 @@ bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
 
 	Assimp::Importer importer;
 
-	int flags = aiProcessPreset_TargetRealtime_Fast;
-	flags |= aiProcess_ConvertToLeftHanded;
+	int flags = GetConversionFlags();
 
 	const struct aiScene* scene =
 		importer.ReadFileFromMemory(data, size, flags, StringUtils::GetExtension(path));

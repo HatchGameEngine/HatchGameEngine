@@ -67,7 +67,7 @@ void Tileset::AddTileAnimSequence(int tileID,
 		animID = tileSprite->Animations.size() - 1;
 	}
 
-	tileSprite->RemoveFrames(animID);
+	tileSprite->RemoveAllFrames(animID);
 
 	if (!tileIDs.size()) {
 		AnimatorMap.erase(tileID);

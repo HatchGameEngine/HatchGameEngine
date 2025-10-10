@@ -3,15 +3,15 @@
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Diagnostics/Memory.h>
-#include <Engine/Scene.h>
+#include <Engine/Filesystem/Path.h>
+#include <Engine/ResourceTypes/Resource.h>
+#include <Engine/ResourceTypes/ResourceType.h>
 #include <Engine/Utilities/StringUtils.h>
 
 std::vector<Material*> Material::List;
 
 Material* Material::Create(char* name) {
 	Material* material = new Material(name);
-
-	material->Object = (void*)MaterialImpl::New((void*)material);
 
 	List.push_back(material);
 
@@ -33,28 +33,24 @@ Material::Material(char* name) {
 	}
 }
 
-Image* Material::TryLoadForModel(std::string imagePath, const char* parentDirectory) {
+void* Material::TryLoadForModel(std::string imagePath, const char* parentDirectory) {
 	std::string filename = imagePath;
 
 	if (parentDirectory) {
 		filename = Path::Concat(std::string(parentDirectory), filename);
 	}
 
-	int resourceID = Scene::LoadImageResource(filename.c_str(), SCOPE_SCENE);
-	if (resourceID == -1) {
-		return nullptr;
+	ResourceType* resource = Resource::Load(ASSET_IMAGE, filename.c_str(), SCOPE_GAME, false);
+	if (resource) {
+		return (void*)resource;
 	}
 
-	Image* image = Scene::GetImageResource(resourceID)->AsImage;
-
-	image->AddRef();
-
-	return image;
+	return nullptr;
 }
 
-Image* Material::LoadForModel(string imagePath, const char* parentDirectory) {
+void* Material::LoadForModel(string imagePath, const char* parentDirectory) {
 	// Try possible combinations
-	Image* image = nullptr;
+	void* image = nullptr;
 
 	if ((image = TryLoadForModel(imagePath, parentDirectory))) {
 		return image;
@@ -86,21 +82,35 @@ Image* Material::LoadForModel(string imagePath, const char* parentDirectory) {
 	return nullptr;
 }
 
-Image* Material::LoadForModel(const char* imagePath, const char* parentDirectory) {
+void* Material::LoadForModel(const char* imagePath, const char* parentDirectory) {
 	return LoadForModel(std::string(imagePath), parentDirectory);
 }
 
-void Material::ReleaseImage(Image* imagePtr) {
-	if (imagePtr && imagePtr->TakeRef()) {
-		delete imagePtr;
+void Material::SetTexture(void** asset, void* newImage) {
+	Image* image = (Image*)newImage;
+
+	ReleaseTexture(asset);
+
+	if (image) {
+		image->TakeRef();
+		(*asset) = image;
+	}
+}
+
+void Material::ReleaseTexture(void** asset) {
+	Image* image = *((Image**)asset);
+	if (image) {
+		image->Release();
+
+		(*asset) = nullptr;
 	}
 }
 
 void Material::Dispose() {
-	ReleaseImage(TextureDiffuse);
-	ReleaseImage(TextureSpecular);
-	ReleaseImage(TextureAmbient);
-	ReleaseImage(TextureEmissive);
+	ReleaseTexture(&TextureDiffuse);
+	ReleaseTexture(&TextureSpecular);
+	ReleaseTexture(&TextureAmbient);
+	ReleaseTexture(&TextureEmissive);
 
 	Memory::Free(Name);
 
