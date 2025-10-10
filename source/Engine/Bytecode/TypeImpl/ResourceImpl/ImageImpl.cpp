@@ -43,6 +43,7 @@ bool ImageImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 
 	/***
 	 * \field Width
+	 * \type Integer
 	 * \desc The width of the image.
 	 * \ns Image
  	*/
@@ -51,6 +52,7 @@ bool ImageImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 	}
 	/***
 	 * \field Height
+	 * \type Integer
 	 * \desc The height of the image.
 	 * \ns Image
  	*/

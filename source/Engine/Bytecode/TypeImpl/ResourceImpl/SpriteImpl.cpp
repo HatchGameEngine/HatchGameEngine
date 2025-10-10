@@ -49,6 +49,7 @@ bool SpriteImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 
 	/***
 	 * \field AnimationCount
+	 * \type Integer
 	 * \desc The amount of animations in the sprite.
 	 * \ns Sprite
  	*/
@@ -57,6 +58,7 @@ bool SpriteImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 	}
 	/***
 	 * \field SheetCount
+	 * \type Integer
 	 * \desc The amount of spritesheets in the sprite.
 	 * \ns Sprite
  	*/

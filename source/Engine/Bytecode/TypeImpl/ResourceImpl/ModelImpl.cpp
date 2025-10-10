@@ -56,6 +56,7 @@ bool ModelImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 
 	/***
 	 * \field VertexCount
+	 * \type Integer
 	 * \desc The amount of vertices in the model.
 	 * \ns Model
  	*/
@@ -64,6 +65,7 @@ bool ModelImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 	}
 	/***
 	 * \field AnimationCount
+	 * \type Integer
 	 * \desc The amount of animations in the model.
 	 * \ns Model
  	*/
@@ -72,6 +74,7 @@ bool ModelImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 	}
 	/***
 	 * \field MaterialCount
+	 * \type Integer
 	 * \desc The amount of materials in the model.
 	 * \ns Model
  	*/
@@ -80,6 +83,7 @@ bool ModelImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 	}
 	/***
 	 * \field BoneCount
+	 * \type Integer
 	 * \desc The amount of bones in the model.
 	 * \ns Model
  	*/

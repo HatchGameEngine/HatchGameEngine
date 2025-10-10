@@ -40,6 +40,7 @@ bool AudioImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 
 	/***
 	 * \field LoopPoint
+	 * \type Integer
 	 * \desc The loop point in samples, or <code>null</code> if it doesn't have one.
 	 * \ns Audio
  	*/

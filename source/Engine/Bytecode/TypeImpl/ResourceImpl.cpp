@@ -110,6 +110,7 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 
 	/***
 	 * \field Type
+	 * \type Enum
 	 * \desc The <linkto ref="ASSET_*">asset type</linkto> of the Asset.
 	 * \ns Resource
  	*/
@@ -118,6 +119,7 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	}
 	/***
 	 * \field Filename
+	 * \type String
 	 * \desc The filename of the Resource.
 	 * \ns Resource
  	*/
@@ -133,6 +135,7 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	}
 	/***
 	 * \field Loaded
+	 * \type Boolean
 	 * \desc Whether the Asset is loaded or not.
 	 * \ns Resource
  	*/
@@ -141,7 +144,8 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	}
 	/***
 	 * \field Scope
-	 * \desc The scope of the Resource.
+	 * \type Enum
+	 * \desc The <linkto ref="SCOPE_*">unload policy</linkto> of the Resource.
 	 * \ns Resource
  	*/
 	else if (hash == Hash_Scope) {
@@ -149,6 +153,7 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	}
 	/***
 	 * \field Asset
+	 * \type Asset
 	 * \desc The Asset owned by this resource.
 	 * \ns Resource
  	*/
