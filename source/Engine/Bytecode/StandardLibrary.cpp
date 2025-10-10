@@ -1,4 +1,4 @@
-#include "Engine/Diagnostics/Log.h"
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 
 #include <Engine/Audio/AudioManager.h>
@@ -6,10 +6,9 @@
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/TypeImpl/AssetImpl.h>
-#include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
-#include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/TypeImpl/FontImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/Value.h>
@@ -494,6 +493,9 @@ void* StandardLibrary::GetResource(VMValue* args, int index, Uint32 threadID) {
 }
 ISound* StandardLibrary::GetAudio(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetAudio(args, index, threadID);
+}
+IModel* StandardLibrary::GetModel(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetModel(args, index, threadID);
 }
 ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetInstance(args, index, threadID);
@@ -10154,22 +10156,10 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
-#define CHECK_MODEL_ANIMATION_INDEX(animation) \
-	if (animation < 0 || animation >= (signed)model->Animations.size()) { \
-		OUT_OF_RANGE_ERROR("Animation index", animation, 0, model->Animations.size() - 1); \
-		return NULL_VAL; \
-	}
-
-#define CHECK_ARMATURE_INDEX(armature) \
-	if (armature < 0 || armature >= (signed)model->Armatures.size()) { \
-		OUT_OF_RANGE_ERROR("Armature index", armature, 0, model->Armatures.size() - 1); \
-		return NULL_VAL; \
-	}
-
 // #region Model
 /***
  * Model.GetVertexCount
- * \desc Returns how many vertices are in the model.
+ * \desc Returns how many vertices are in the model. (Deprecated; use <linkto ref="model.VertexCount"></linkto> instead.)
  * \param model (Asset): A model asset.
  * \return The vertex count.
  * \ns Model
@@ -10184,7 +10174,7 @@ VMValue Model_GetVertexCount(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Model.GetAnimationCount
- * \desc Returns how many animations exist in the model.
+ * \desc Returns how many animations exist in the model. (Deprecated; use <linkto ref="model.AnimationCount"></linkto> instead.)
  * \param model (Asset): A model asset.
  * \return Returns an Integer value.
  * \ns Model
@@ -10198,52 +10188,8 @@ VMValue Model_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)model->Animations.size());
 }
 /***
- * Model.GetAnimationName
- * \desc Gets the name of the model animation with the specified index.
- * \param model (Asset): A model asset.
- * \param animation (Integer): Index of the animation.
- * \return Returns the animation name, or <code>null</code> if the model contains no animations.
- * \ns Model
- */
-VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-
-	IModel* model = GET_ARG(0, GetModel);
-	int animation = GET_ARG(1, GetInteger);
-
-	if (!model || model->Animations.size() == 0) {
-		return NULL_VAL;
-	}
-
-	CHECK_MODEL_ANIMATION_INDEX(animation);
-
-	const char* animationName = model->Animations[animation]->Name;
-	if (!animationName) {
-		return NULL_VAL;
-	}
-
-	return ReturnString(animationName);
-}
-/***
- * Model.GetAnimationIndex
- * \desc Gets the index of the model animation with the specified name.
- * \param model (Asset): A model asset.
- * \param animationName (String): Name of the animation to find.
- * \return Returns the animation index, or <code>-1</code> if the animation could not be found. Will always return <code>-1</code> if the model contains no animations.
- * \ns Model
- */
-VMValue Model_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	IModel* model = GET_ARG(0, GetModel);
-	if (!model) {
-		return INTEGER_VAL(-1);
-	}
-	char* animationName = GET_ARG(1, GetString);
-	return INTEGER_VAL(model->GetAnimationIndex(animationName));
-}
-/***
  * Model.GetFrameCount
- * \desc Returns how many frames exist in the model. (Deprecated; use <linkto ref="Model.GetAnimationLength"></linkto> instead.)
+ * \desc Returns how many frames exist in the model. (Deprecated; use <linkto ref="model.GetAnimationLength"></linkto> instead.)
  * \param model (Asset): A model asset.
  * \return Returns an Integer value.
  * \ns Model
@@ -10257,28 +10203,10 @@ VMValue Model_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)model->Meshes[0]->FrameCount);
 }
 /***
- * Model.GetAnimationLength
- * \desc Returns the length of the animation.
- * \param model (Asset): A model asset.
- * \param animation (Integer): The animation index to check.
- * \return The number of keyframes in the animation.
- * \ns Model
- */
-VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	IModel* model = GET_ARG(0, GetModel);
-	int animation = GET_ARG(1, GetInteger);
-	if (!model) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_MODEL_ANIMATION_INDEX(animation);
-	return INTEGER_VAL((int)model->Animations[animation]->Length);
-}
-/***
  * Model.HasMaterials
- * \desc Checks to see if the model has materials.
+ * \desc Checks to see if the model has materials. (Deprecated; use <linkto ref="model.MaterialCount"></linkto> instead.)
  * \param model (Asset): A model asset.
- * \return Returns <code>true</code> if the model has materials, <code>false</code> if otherwise. (Deprecated; use <linkto ref="Model.GetMaterialCount"></linkto> instead.)
+ * \return Returns <code>true</code> if the model has materials, <code>false</code> if otherwise.
  * \ns Model
  */
 VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
@@ -10291,7 +10219,7 @@ VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Model.HasBones
- * \desc Checks to see if the model has bones.
+ * \desc Checks to see if the model has bones. (Deprecated; use <linkto ref="model.BoneCount"></linkto> instead.)
  * \param model (Asset): A model asset.
  * \return Returns <code>true</code> if the model has bones, <code>false</code> if otherwise.
  * \ns Model
@@ -10306,7 +10234,7 @@ VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Model.GetMaterialCount
- * \desc Returns the amount of materials in the model.
+ * \desc Returns the amount of materials in the model. (Deprecated; use <linkto ref="model.MaterialCount"></linkto> instead.)
  * \param model (Asset): A model asset.
  * \return Returns an Integer value.
  * \ns Model
@@ -10318,141 +10246,6 @@ VMValue Model_GetMaterialCount(int argCount, VMValue* args, Uint32 threadID) {
 		return INTEGER_VAL(0);
 	}
 	return INTEGER_VAL((int)model->Materials.size());
-}
-/***
- * Model.GetMaterial
- * \desc Gets a material from a model.
- * \param model (Asset): A model asset.
- * \param material (String or Integer): The material name or ID to get.
- * \return Returns a Material value, or <code>null</code> if the model has no materials.
- * \ns Model
- */
-VMValue Model_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-
-	IModel* model = GET_ARG(0, GetModel);
-	if (!model || model->Materials.size() == 0) {
-		return INTEGER_VAL(0);
-	}
-
-	Material* material = nullptr;
-
-	if (IS_INTEGER(args[1])) {
-		int materialIndex = GET_ARG(1, GetInteger);
-		if (materialIndex < 0 || (size_t)materialIndex >= model->Materials.size()) {
-			OUT_OF_RANGE_ERROR(
-				"Material index", materialIndex, 0, (int)model->Materials.size());
-			return NULL_VAL;
-		}
-		material = model->Materials[materialIndex];
-	}
-	else {
-		char* materialName = GET_ARG(1, GetString);
-		size_t idx = model->FindMaterial(materialName);
-		if (idx == -1) {
-			THROW_ERROR("Model has no material named \"%s\".", materialName);
-			return NULL_VAL;
-		}
-		material = model->Materials[idx];
-	}
-
-	if (material->VMObject == nullptr) {
-		material->VMObject = (void*)MaterialImpl::New((void*)material);
-	}
-
-	return OBJECT_VAL(material->VMObject);
-}
-/***
- * Model.CreateArmature
- * \desc Creates an armature from the model.
- * \param model (Asset): A model asset.
- * \return Returns the index of the armature.
- * \ns Model
- */
-VMValue Model_CreateArmature(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	IModel* model = GET_ARG(0, GetModel);
-	if (!model) {
-		return INTEGER_VAL(-1);
-	}
-	return INTEGER_VAL(model->NewArmature());
-}
-/***
- * Model.PoseArmature
- * \desc Poses an armature.
- * \param model (Asset): A model asset.
- * \param armature (Integer): The armature index to pose.
- * \paramOpt animation (Integer): Animation to pose the armature.
- * \paramOpt frame (Decimal): Frame to pose the armature.
- * \return
- * \ns Model
- */
-VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(2);
-	IModel* model = GET_ARG(0, GetModel);
-	int armature = GET_ARG(1, GetInteger);
-
-	if (!model) {
-		return NULL_VAL;
-	}
-
-	CHECK_ARMATURE_INDEX(armature);
-
-	if (argCount >= 3) {
-		int animation = GET_ARG(2, GetInteger);
-		int frame = GET_ARG(3, GetDecimal) * 0x100;
-		if (frame < 0) {
-			frame = 0;
-		}
-
-		CHECK_MODEL_ANIMATION_INDEX(animation);
-
-		model->Animate(model->Armatures[armature], model->Animations[animation], frame);
-	}
-	else {
-		// Just update the skeletons
-		model->Armatures[armature]->UpdateSkeletons();
-	}
-
-	return NULL_VAL;
-}
-/***
- * Model.ResetArmature
- * \desc Resets an armature to its default pose.
- * \param model (Asset): A model asset.
- * \param armature (Integer): The armature index to reset.
- * \return
- * \ns Model
- */
-VMValue Model_ResetArmature(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	IModel* model = GET_ARG(0, GetModel);
-	int armature = GET_ARG(1, GetInteger);
-	if (!model) {
-		return NULL_VAL;
-	}
-	CHECK_ARMATURE_INDEX(armature);
-	model->Armatures[armature]->Reset();
-	return NULL_VAL;
-}
-/***
- * Model.DeleteArmature
- * \desc Deletes an armature from the model.
- * \param model (Asset): A model asset.
- * \param armature (Integer): The armature index to delete.
- * \return
- * \ns Model
- */
-VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	IModel* model = GET_ARG(0, GetModel);
-	int armature = GET_ARG(1, GetInteger);
-	if (!model) {
-		return NULL_VAL;
-	}
-	CHECK_ARMATURE_INDEX(armature);
-	model->DeleteArmature((size_t)armature);
-	return NULL_VAL;
 }
 // #endregion
 
@@ -19375,21 +19168,14 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Model
-	INIT_CLASS(Model);
+	// Only contains deprecated methods.
+	GET_CLASS(Model);
 	DEF_NATIVE(Model, GetVertexCount);
 	DEF_NATIVE(Model, GetAnimationCount);
-	DEF_NATIVE(Model, GetAnimationName);
-	DEF_NATIVE(Model, GetAnimationIndex);
 	DEF_NATIVE(Model, GetFrameCount);
-	DEF_NATIVE(Model, GetAnimationLength);
 	DEF_NATIVE(Model, HasMaterials);
 	DEF_NATIVE(Model, HasBones);
 	DEF_NATIVE(Model, GetMaterialCount);
-	DEF_NATIVE(Model, GetMaterial);
-	DEF_NATIVE(Model, CreateArmature);
-	DEF_NATIVE(Model, PoseArmature);
-	DEF_NATIVE(Model, ResetArmature);
-	DEF_NATIVE(Model, DeleteArmature);
 	// #endregion
 
 	// #region Music

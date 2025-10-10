@@ -9,13 +9,13 @@
 
 ObjClass* ResourceImpl::Class = nullptr;
 
-Uint32 Hash_Type = 0;
-Uint32 Hash_Filename = 0;
-Uint32 Hash_Loaded = 0;
-Uint32 Hash_Scope = 0;
-Uint32 Hash_Asset = 0;
-
 #define CLASS_RESOURCE "Resource"
+
+DECLARE_STRING_HASH(Type);
+DECLARE_STRING_HASH(Filename);
+DECLARE_STRING_HASH(Loaded);
+DECLARE_STRING_HASH(Scope);
+DECLARE_STRING_HASH(Asset);
 
 void ResourceImpl::Init() {
 	Class = NewClass(CLASS_RESOURCE);

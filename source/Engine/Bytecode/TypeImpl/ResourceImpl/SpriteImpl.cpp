@@ -6,10 +6,10 @@
 
 ObjClass* SpriteImpl::Class = nullptr;
 
-Uint32 Hash_AnimationCount = 0;
-Uint32 Hash_SheetCount = 0;
-
 #define CLASS_SPRITE "Sprite"
+
+DECLARE_STRING_HASH(AnimationCount);
+DECLARE_STRING_HASH(SheetCount);
 
 void SpriteImpl::Init() {
 	Class = NewClass(CLASS_SPRITE);
@@ -124,9 +124,9 @@ VMValue SpriteImpl_GetAnimationName(int argCount, VMValue* args, Uint32 threadID
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int index = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMATION_INDEX(index);
 
 	if (ScriptManager::Lock()) {
@@ -148,9 +148,10 @@ VMValue SpriteImpl_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadI
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
+	char* name = GET_ARG(1, GetString);
+
 	CHECK_EXISTS(sprite);
 
-	char* name = GET_ARG(1, GetString);
 	for (size_t i = 0; i < sprite->Animations.size(); i++) {
 		if (strcmp(name, sprite->Animations[i].Name.c_str()) == 0) {
 			return INTEGER_VAL((int)i);
@@ -170,9 +171,9 @@ VMValue SpriteImpl_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadI
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int index = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMATION_INDEX(index);
 
 	return INTEGER_VAL(sprite->Animations[index].Speed);
@@ -188,9 +189,9 @@ VMValue SpriteImpl_GetAnimationLoopFrame(int argCount, VMValue* args, Uint32 thr
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int index = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMATION_INDEX(index);
 
 	return INTEGER_VAL(sprite->Animations[index].FrameToLoop);
@@ -206,9 +207,9 @@ VMValue SpriteImpl_GetAnimationFrameCount(int argCount, VMValue* args, Uint32 th
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int index = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMATION_INDEX(index);
 
 	return INTEGER_VAL((int)sprite->Animations[index].Frames.size());
@@ -217,9 +218,9 @@ VMValue SpriteImpl_GetAnimationFrameCount(int argCount, VMValue* args, Uint32 th
 #define GET_FRAME_PROPERTY(property) { \
 	StandardLibrary::CheckArgCount(argCount, 3); \
 	ISprite* sprite = GET_ARG(0, GetSprite); \
-	CHECK_EXISTS(sprite); \
 	int animation = GET_ARG(1, GetInteger); \
 	int frame = GET_ARG(2, GetInteger); \
+	CHECK_EXISTS(sprite); \
 	CHECK_ANIMFRAME_INDEX(animation, frame); \
 	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].property); \
 }
@@ -333,10 +334,9 @@ VMValue SpriteImpl_GetSheetFilename(int argCount, VMValue* args, Uint32 threadID
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int sheetID = GET_ARG(1, GetInteger);
 
+	CHECK_EXISTS(sprite);
 	CHECK_SHEET_INDEX(sheetID);
 
 	std::string sheetName = sprite->SpritesheetFilenames[sheetID];
@@ -359,10 +359,9 @@ VMValue SpriteImpl_GetSheetImage(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int sheetID = GET_ARG(1, GetInteger);
 
+	CHECK_EXISTS(sprite);
 	CHECK_SHEET_INDEX(sheetID);
 
 	Texture* texture = sprite->Spritesheets[sheetID];
@@ -386,10 +385,10 @@ VMValue SpriteImpl_SetAnimationName(int argCount, VMValue* args, Uint32 threadID
 	StandardLibrary::CheckArgCount(argCount, 3);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int index = GET_ARG(1, GetInteger);
 	char* name = GET_ARG(2, GetString);
+
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMATION_INDEX(index);
 
 	if (name) {
@@ -409,10 +408,10 @@ VMValue SpriteImpl_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadI
 	StandardLibrary::CheckArgCount(argCount, 3);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int index = GET_ARG(1, GetInteger);
 	int speed = GET_ARG(2, GetInteger);
+
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMATION_INDEX(index);
 
 	if (speed < 0) {
@@ -434,10 +433,10 @@ VMValue SpriteImpl_SetAnimationLoopFrame(int argCount, VMValue* args, Uint32 thr
 	StandardLibrary::CheckArgCount(argCount, 3);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int index = GET_ARG(1, GetInteger);
 	int loopFrame = GET_ARG(2, GetInteger);
+
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMATION_INDEX(index);
 
 	size_t numFrames = sprite->Animations[index].Frames.size();
@@ -469,13 +468,12 @@ VMValue SpriteImpl_SetFramePosition(int argCount, VMValue* args, Uint32 threadID
 	StandardLibrary::CheckArgCount(argCount, 5);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
 	int x = GET_ARG(3, GetInteger);
 	int y = GET_ARG(4, GetInteger);
 
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMFRAME_INDEX(animation, frame);
 
 	AnimFrame& animFrame = sprite->Animations[animation].Frames[frame];
@@ -512,13 +510,12 @@ VMValue SpriteImpl_SetFrameSize(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 5);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
 	int width = GET_ARG(3, GetInteger);
 	int height = GET_ARG(4, GetInteger);
 
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMFRAME_INDEX(animation, frame);
 
 	AnimFrame& animFrame = sprite->Animations[animation].Frames[frame];
@@ -555,13 +552,12 @@ VMValue SpriteImpl_SetFrameOffset(int argCount, VMValue* args, Uint32 threadID) 
 	StandardLibrary::CheckArgCount(argCount, 5);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
 	int xOffset = GET_ARG(3, GetInteger);
 	int yOffset = GET_ARG(4, GetInteger);
 
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMFRAME_INDEX(animation, frame);
 
 	AnimFrame& animFrame = sprite->Animations[animation].Frames[frame];
@@ -585,12 +581,11 @@ VMValue SpriteImpl_SetFrameDuration(int argCount, VMValue* args, Uint32 threadID
 	StandardLibrary::CheckArgCount(argCount, 4);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
 	int duration = GET_ARG(3, GetInteger);
 
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMFRAME_INDEX(animation, frame);
 
 	if (duration < 0) {
@@ -615,12 +610,11 @@ VMValue SpriteImpl_SetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 4);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
 	int id = GET_ARG(3, GetInteger);
 
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMFRAME_INDEX(animation, frame);
 
 	AnimFrame& animFrame = sprite->Animations[animation].Frames[frame];
@@ -641,9 +635,10 @@ VMValue SpriteImpl_AddAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
+	char* name = GET_ARG(1, GetString);
+
 	CHECK_EXISTS(sprite);
 
-	char* name = GET_ARG(1, GetString);
 	if (name) {
 		sprite->AddAnimation(name, 1, 0);
 		sprite->RefreshGraphicsID();
@@ -663,9 +658,9 @@ VMValue SpriteImpl_RemoveAnimation(int argCount, VMValue* args, Uint32 threadID)
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int index = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMATION_INDEX(index);
 
 	sprite->Animations.erase(sprite->Animations.begin() + index);
@@ -689,11 +684,7 @@ VMValue SpriteImpl_AddFrame(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 6);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int animation = GET_ARG(1, GetInteger);
-	CHECK_ANIMATION_INDEX(animation);
-
 	int frameX = GET_ARG(2, GetInteger);
 	int frameY = GET_ARG(3, GetInteger);
 	int frameWidth = GET_ARG(4, GetInteger);
@@ -705,6 +696,9 @@ VMValue SpriteImpl_AddFrame(int argCount, VMValue* args, Uint32 threadID) {
 	int frameDuration = 1;
 	int frameSheetNumber = 0;
 	int frameID = 0;
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMATION_INDEX(animation);
 
 	size_t numSpritesheets = sprite->Spritesheets.size();
 	if (numSpritesheets == 0) {
@@ -765,10 +759,10 @@ VMValue SpriteImpl_RemoveFrame(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
+
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMFRAME_INDEX(animation, frame);
 
 	sprite->RemoveFrame(animation, frame);
@@ -789,12 +783,11 @@ VMValue SpriteImpl_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 3);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	CHECK_EXISTS(sprite);
-
 	int animationID = GET_ARG(1, GetInteger);
 	int frameID = GET_ARG(2, GetInteger);
 	int hitboxID = GET_ARG_OPT(3, GetInteger, 0);
 
+	CHECK_EXISTS(sprite);
 	CHECK_ANIMFRAME_INDEX(animationID, frameID);
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
@@ -821,9 +814,10 @@ VMValue SpriteImpl_MakePalettized(int argCount, VMValue* args, Uint32 threadID) 
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
+	int palIndex = GET_ARG(1, GetInteger);
+
 	CHECK_EXISTS(sprite);
 
-	int palIndex = GET_ARG(1, GetInteger);
 	if (palIndex < 0 || palIndex >= MAX_PALETTE_COUNT) {
 		VM_OUT_OF_RANGE_ERROR("Palette index", palIndex, 0, MAX_PALETTE_COUNT - 1);
 		return NULL_VAL;
@@ -842,6 +836,7 @@ VMValue SpriteImpl_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadI
 	StandardLibrary::CheckArgCount(argCount, 1);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
+
 	CHECK_EXISTS(sprite);
 
 	sprite->ConvertToRGBA();
@@ -851,6 +846,8 @@ VMValue SpriteImpl_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadI
 
 #undef GET_ARG
 #undef GET_ARG_OPT
+#undef CHECK_ANIMATION_INDEX
+#undef CHECK_ANIMFRAME_INDEX
 #undef CHECK_EXISTS
 
 void SpriteImpl::AddNatives() {

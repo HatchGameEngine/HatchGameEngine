@@ -54,6 +54,9 @@
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\ImageImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\ModelImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\SpriteImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

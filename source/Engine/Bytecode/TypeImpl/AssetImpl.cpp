@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl/ModelImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/ResourceTypes/ResourceType.h>
@@ -18,6 +19,7 @@ void AssetImpl::Init() {
 
 	AudioImpl::Init();
 	ImageImpl::Init();
+	ModelImpl::Init();
 	SpriteImpl::Init();
 }
 
@@ -38,6 +40,7 @@ void* AssetImpl::New(void* ptr) {
 	switch (asset->Type) {
 	CASE(AUDIO, Audio);
 	CASE(IMAGE, Image);
+	CASE(MODEL, Model);
 	CASE(SPRITE, Sprite);
 	default:
 		break;
@@ -56,6 +59,7 @@ ValueGetFn AssetImpl::GetGetter(AssetType type) {
 	switch (type) {
 	CASE(AUDIO, Audio);
 	CASE(IMAGE, Image);
+	CASE(MODEL, Model);
 	CASE(SPRITE, Sprite);
 	default:
 		return nullptr;
@@ -71,6 +75,7 @@ ValueSetFn AssetImpl::GetSetter(AssetType type) {
 	switch (type) {
 	CASE(AUDIO, Audio);
 	CASE(IMAGE, Image);
+	CASE(MODEL, Model);
 	CASE(SPRITE, Sprite);
 	default:
 		return nullptr;

@@ -20,6 +20,7 @@ public:
 	vector<Material*> Materials;
 	vector<ModelAnim*> Animations;
 	vector<Armature*> Armatures;
+	size_t BoneCount;
 	bool UseVertexAnimation;
 	Armature* BaseArmature;
 	Matrix4x4* GlobalInverseMatrix;

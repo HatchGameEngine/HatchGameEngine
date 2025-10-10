@@ -398,6 +398,7 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 
 	size_t meshCount = 0;
 	size_t totalVertices = 0;
+	size_t totalBones = 0;
 
 	vector<struct aiMesh*> ameshes;
 	ameshes.clear();
@@ -472,6 +473,8 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 			// Remember this skeleton for storing it in the
 			// base armature
 			skeletons.push_back(skeleton);
+
+			totalBones += skeleton->NumBones;
 		}
 	}
 
@@ -485,6 +488,8 @@ bool ModelImporter::DoConversion(const struct aiScene* scene, IModel* imodel) {
 			armature->Skeletons[i] = skeletons[i];
 		}
 	}
+
+	imodel->BoneCount = totalBones;
 
 	// Pose and transform the meshes
 	imodel->Pose();

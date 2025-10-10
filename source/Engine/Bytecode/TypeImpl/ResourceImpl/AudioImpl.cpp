@@ -5,9 +5,9 @@
 
 ObjClass* AudioImpl::Class = nullptr;
 
-Uint32 Hash_LoopPoint = 0;
-
 #define CLASS_AUDIO "Audio"
+
+DECLARE_STRING_HASH(LoopPoint);
 
 void AudioImpl::Init() {
 	Class = NewClass(CLASS_AUDIO);

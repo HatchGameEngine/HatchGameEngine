@@ -11,11 +11,11 @@ ObjClass* EntityImpl::ParentClass = nullptr;
 #define ENTITY_CLASS_NAME "Entity"
 #define NATIVEENTITY_CLASS_NAME "NativeEntity"
 
-Uint32 Hash_Sprite = 0;
-Uint32 Hash_HitboxLeft = 0;
-Uint32 Hash_HitboxTop = 0;
-Uint32 Hash_HitboxRight = 0;
-Uint32 Hash_HitboxBottom = 0;
+static Uint32 Hash_Sprite = 0;
+static Uint32 Hash_HitboxLeft = 0;
+static Uint32 Hash_HitboxTop = 0;
+static Uint32 Hash_HitboxRight = 0;
+static Uint32 Hash_HitboxBottom = 0;
 
 void EntityImpl::Init() {
 	Class = NewClass(ENTITY_CLASS_NAME);

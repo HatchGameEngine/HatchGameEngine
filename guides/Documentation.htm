@@ -105,6 +105,7 @@ codeBlock {
         <ul>
             <li><a href="#Reference_Entity">Entity</a></li>
             <li><a href="#Reference_Font">Font</a></li>
+            <li><a href="#Reference_Model">Model</a></li>
             <li><a href="#Reference_Resource">Resource</a></li>
             <li><a href="#Reference_Shader">Shader</a></li>
             <li><a href="#Reference_Sprite">Sprite</a></li>
@@ -822,18 +823,28 @@ codeBlock {
                 <ul>
                     <li><a href="#Reference_functions_Model_GetVertexCount">Model.GetVertexCount</a></li>
                     <li><a href="#Reference_functions_Model_GetAnimationCount">Model.GetAnimationCount</a></li>
-                    <li><a href="#Reference_functions_Model_GetAnimationName">Model.GetAnimationName</a></li>
-                    <li><a href="#Reference_functions_Model_GetAnimationIndex">Model.GetAnimationIndex</a></li>
                     <li><a href="#Reference_functions_Model_GetFrameCount">Model.GetFrameCount</a></li>
-                    <li><a href="#Reference_functions_Model_GetAnimationLength">Model.GetAnimationLength</a></li>
                     <li><a href="#Reference_functions_Model_HasMaterials">Model.HasMaterials</a></li>
                     <li><a href="#Reference_functions_Model_HasBones">Model.HasBones</a></li>
                     <li><a href="#Reference_functions_Model_GetMaterialCount">Model.GetMaterialCount</a></li>
-                    <li><a href="#Reference_functions_Model_GetMaterial">Model.GetMaterial</a></li>
-                    <li><a href="#Reference_functions_Model_CreateArmature">Model.CreateArmature</a></li>
-                    <li><a href="#Reference_functions_Model_PoseArmature">Model.PoseArmature</a></li>
-                    <li><a href="#Reference_functions_Model_ResetArmature">Model.ResetArmature</a></li>
-                    <li><a href="#Reference_functions_Model_DeleteArmature">Model.DeleteArmature</a></li>
+                </ul>
+                <i>Instance methods:</i>
+                <ul>
+                    <li><a href="#Reference_methods_model_GetAnimationName">model.GetAnimationName</a></li>
+                    <li><a href="#Reference_methods_model_GetAnimationIndex">model.GetAnimationIndex</a></li>
+                    <li><a href="#Reference_methods_model_GetAnimationLength">model.GetAnimationLength</a></li>
+                    <li><a href="#Reference_methods_model_GetMaterial">model.GetMaterial</a></li>
+                    <li><a href="#Reference_methods_model_CreateArmature">model.CreateArmature</a></li>
+                    <li><a href="#Reference_methods_model_PoseArmature">model.PoseArmature</a></li>
+                    <li><a href="#Reference_methods_model_ResetArmature">model.ResetArmature</a></li>
+                    <li><a href="#Reference_methods_model_DeleteArmature">model.DeleteArmature</a></li>
+                </ul>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_model_VertexCount">model.VertexCount</a></li>
+                    <li><a href="#Reference_fields_model_AnimationCount">model.AnimationCount</a></li>
+                    <li><a href="#Reference_fields_model_MaterialCount">model.MaterialCount</a></li>
+                    <li><a href="#Reference_fields_model_BoneCount">model.BoneCount</a></li>
                 </ul>
             </p>
             <p id="Reference_Music">
@@ -1629,6 +1640,36 @@ codeBlock {
                 <i>Instance constructors:</i>
                 <ul>
                     <li><a href="#Reference_constructors_Font">Font</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Model">
+                <h2>Model</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_Model_GetVertexCount">Model.GetVertexCount</a></li>
+                    <li><a href="#Reference_functions_Model_GetAnimationCount">Model.GetAnimationCount</a></li>
+                    <li><a href="#Reference_functions_Model_GetFrameCount">Model.GetFrameCount</a></li>
+                    <li><a href="#Reference_functions_Model_HasMaterials">Model.HasMaterials</a></li>
+                    <li><a href="#Reference_functions_Model_HasBones">Model.HasBones</a></li>
+                    <li><a href="#Reference_functions_Model_GetMaterialCount">Model.GetMaterialCount</a></li>
+                </ul>
+                <i>Instance methods:</i>
+                <ul>
+                    <li><a href="#Reference_methods_model_GetAnimationName">model.GetAnimationName</a></li>
+                    <li><a href="#Reference_methods_model_GetAnimationIndex">model.GetAnimationIndex</a></li>
+                    <li><a href="#Reference_methods_model_GetAnimationLength">model.GetAnimationLength</a></li>
+                    <li><a href="#Reference_methods_model_GetMaterial">model.GetMaterial</a></li>
+                    <li><a href="#Reference_methods_model_CreateArmature">model.CreateArmature</a></li>
+                    <li><a href="#Reference_methods_model_PoseArmature">model.PoseArmature</a></li>
+                    <li><a href="#Reference_methods_model_ResetArmature">model.ResetArmature</a></li>
+                    <li><a href="#Reference_methods_model_DeleteArmature">model.DeleteArmature</a></li>
+                </ul>
+                <i>Instance fields:</i>
+                <ul>
+                    <li><a href="#Reference_fields_model_VertexCount">model.VertexCount</a></li>
+                    <li><a href="#Reference_fields_model_AnimationCount">model.AnimationCount</a></li>
+                    <li><a href="#Reference_fields_model_MaterialCount">model.MaterialCount</a></li>
+                    <li><a href="#Reference_fields_model_BoneCount">model.BoneCount</a></li>
                 </ul>
             </p>
             <p id="Reference_Resource">
@@ -6254,7 +6295,7 @@ codeBlock {
         <p id="Reference_functions_Model_GetVertexCount">
         <h2 style="margin-bottom: 8px;">Model.GetVertexCount</h2>
         <code>Model.GetVertexCount(model)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns how many vertices are in the model.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Returns how many vertices are in the model. (Deprecated; use <code><a href="#Reference_fields_model_VertexCount">model.VertexCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>model (Asset): A model asset.</li>
@@ -6265,42 +6306,18 @@ codeBlock {
         <p id="Reference_functions_Model_GetAnimationCount">
         <h2 style="margin-bottom: 8px;">Model.GetAnimationCount</h2>
         <code>Model.GetAnimationCount(model)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns how many animations exist in the model.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Returns how many animations exist in the model. (Deprecated; use <code><a href="#Reference_fields_model_AnimationCount">model.AnimationCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>model (Asset): A model asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
-        </p>
-        <p id="Reference_functions_Model_GetAnimationName">
-        <h2 style="margin-bottom: 8px;">Model.GetAnimationName</h2>
-        <code>Model.GetAnimationName(model, animation)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the model animation with the specified index.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Asset): A model asset.</li>
-        <li>animation (Integer): Index of the animation.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the animation name, or <code>null</code> if the model contains no animations.</div>
-        </p>
-        <p id="Reference_functions_Model_GetAnimationIndex">
-        <h2 style="margin-bottom: 8px;">Model.GetAnimationIndex</h2>
-        <code>Model.GetAnimationIndex(model, animationName)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the index of the model animation with the specified name.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Asset): A model asset.</li>
-        <li>animationName (String): Name of the animation to find.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the animation index, or <code>-1</code> if the animation could not be found. Will always return <code>-1</code> if the model contains no animations.</div>
         </p>
         <p id="Reference_functions_Model_GetFrameCount">
         <h2 style="margin-bottom: 8px;">Model.GetFrameCount</h2>
         <code>Model.GetFrameCount(model)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns how many frames exist in the model. (Deprecated; use <code><a href="#Reference_functions_Model_GetAnimationLength">Model.GetAnimationLength</a></code> instead.)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Returns how many frames exist in the model. (Deprecated; use <code><a href="#Reference_methods_model_GetAnimationLength">model.GetAnimationLength</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>model (Asset): A model asset.</li>
@@ -6308,33 +6325,21 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
-        <p id="Reference_functions_Model_GetAnimationLength">
-        <h2 style="margin-bottom: 8px;">Model.GetAnimationLength</h2>
-        <code>Model.GetAnimationLength(model, animation)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the length of the animation.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Asset): A model asset.</li>
-        <li>animation (Integer): The animation index to check.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">The number of keyframes in the animation.</div>
-        </p>
         <p id="Reference_functions_Model_HasMaterials">
         <h2 style="margin-bottom: 8px;">Model.HasMaterials</h2>
         <code>Model.HasMaterials(model)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks to see if the model has materials.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks to see if the model has materials. (Deprecated; use <code><a href="#Reference_fields_model_MaterialCount">model.MaterialCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>model (Asset): A model asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns <code>true</code> if the model has materials, <code>false</code> if otherwise. (Deprecated; use <code><a href="#Reference_functions_Model_GetMaterialCount">Model.GetMaterialCount</a></code> instead.)</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if the model has materials, <code>false</code> if otherwise.</div>
         </p>
         <p id="Reference_functions_Model_HasBones">
         <h2 style="margin-bottom: 8px;">Model.HasBones</h2>
         <code>Model.HasBones(model)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks to see if the model has bones.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks to see if the model has bones. (Deprecated; use <code><a href="#Reference_fields_model_BoneCount">model.BoneCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>model (Asset): A model asset.</li>
@@ -6345,68 +6350,13 @@ codeBlock {
         <p id="Reference_functions_Model_GetMaterialCount">
         <h2 style="margin-bottom: 8px;">Model.GetMaterialCount</h2>
         <code>Model.GetMaterialCount(model)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Returns the amount of materials in the model.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Returns the amount of materials in the model. (Deprecated; use <code><a href="#Reference_fields_model_MaterialCount">model.MaterialCount</a></code> instead.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>model (Asset): A model asset.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
-        </p>
-        <p id="Reference_functions_Model_GetMaterial">
-        <h2 style="margin-bottom: 8px;">Model.GetMaterial</h2>
-        <code>Model.GetMaterial(model, material)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets a material from a model.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Asset): A model asset.</li>
-        <li>material (String or Integer): The material name or ID to get.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Material value, or <code>null</code> if the model has no materials.</div>
-        </p>
-        <p id="Reference_functions_Model_CreateArmature">
-        <h2 style="margin-bottom: 8px;">Model.CreateArmature</h2>
-        <code>Model.CreateArmature(model)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Creates an armature from the model.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Asset): A model asset.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the index of the armature.</div>
-        </p>
-        <p id="Reference_functions_Model_PoseArmature">
-        <h2 style="margin-bottom: 8px;">Model.PoseArmature</h2>
-        <code>Model.PoseArmature(model, armature[, animation, frame])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Poses an armature.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Asset): A model asset.</li>
-        <li>armature (Integer): The armature index to pose.</li>
-        <li>animation (Integer): Animation to pose the armature.</li>
-        <li>frame (Decimal): Frame to pose the armature.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Model_ResetArmature">
-        <h2 style="margin-bottom: 8px;">Model.ResetArmature</h2>
-        <code>Model.ResetArmature(model, armature)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Resets an armature to its default pose.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Asset): A model asset.</li>
-        <li>armature (Integer): The armature index to reset.</li>
-        </ul>
-        </p>
-        <p id="Reference_functions_Model_DeleteArmature">
-        <h2 style="margin-bottom: 8px;">Model.DeleteArmature</h2>
-        <code>Model.DeleteArmature(model, armature)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Deletes an armature from the model.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>model (Asset): A model asset.</li>
-        <li>armature (Integer): The armature index to delete.</li>
-        </ul>
         </p>
         <p id="Reference_functions_Music_Play">
         <h2 style="margin-bottom: 8px;">Music.Play</h2>
@@ -10461,7 +10411,7 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>740 out of 795 functions have descriptions. </p>
+        <p>732 out of 787 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -10894,6 +10844,90 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>useAntialiasing (Boolean): Whether or not to use anti-aliasing.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_model_GetAnimationName">
+        <h2 style="margin-bottom: 8px;">model.GetAnimationName</h2>
+        <code>model.GetAnimationName(animationIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the specified animation index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animationIndex (Integer): The animation index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the animation name, or <code>null</code> if the model contains no animations.</div>
+        </p>
+        <p id="Reference_methods_model_GetAnimationIndex">
+        <h2 style="margin-bottom: 8px;">model.GetAnimationIndex</h2>
+        <code>model.GetAnimationIndex(name)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the first animation in the model which matches the specified name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>name (String): The animation name to search for.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the first animation index with the specified name, or <code>null</code> if there was no match.</div>
+        </p>
+        <p id="Reference_methods_model_GetAnimationLength">
+        <h2 style="margin-bottom: 8px;">model.GetAnimationLength</h2>
+        <code>model.GetAnimationLength(animationIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the length of the specified animation index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>animationIndex (Integer): The animation index.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the number of keyframes in the animation.</div>
+        </p>
+        <p id="Reference_methods_model_GetMaterial">
+        <h2 style="margin-bottom: 8px;">model.GetMaterial</h2>
+        <code>model.GetMaterial(material)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets a material from a model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>material (String or Integer): The material name or ID to get.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Material.</div>
+        </p>
+        <p id="Reference_methods_model_CreateArmature">
+        <h2 style="margin-bottom: 8px;">model.CreateArmature</h2>
+        <code>model.CreateArmature(model)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates an armature from the model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>model (Asset): A model asset.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the index of the armature.</div>
+        </p>
+        <p id="Reference_methods_model_PoseArmature">
+        <h2 style="margin-bottom: 8px;">model.PoseArmature</h2>
+        <code>model.PoseArmature(armature[, animation, frame])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Poses an armature.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>armature (Integer): The armature index to pose.</li>
+        <li>animation (Integer): Animation to pose the armature.</li>
+        <li>frame (Decimal): Frame to pose the armature.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_model_ResetArmature">
+        <h2 style="margin-bottom: 8px;">model.ResetArmature</h2>
+        <code>model.ResetArmature(armature)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Resets an armature to its default pose.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>armature (Integer): The armature index to reset.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_model_DeleteArmature">
+        <h2 style="margin-bottom: 8px;">model.DeleteArmature</h2>
+        <code>model.DeleteArmature(armature)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Deletes an armature from the model.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>armature (Integer): The armature index to delete.</li>
         </ul>
         </p>
         <p id="Reference_methods_resource_IsUnique">
@@ -11371,7 +11405,7 @@ codeBlock {
         <code>sprite.MakeNonPalettized()</code>
         <div style="margin-top: 8px; font-size: 14px;">Removes the sprite's palette.</div>
         </p>
-        <p>93 out of 93 methods have descriptions. </p>
+        <p>101 out of 101 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
         <p id="Reference_constructors_Shader">
@@ -11907,6 +11941,22 @@ codeBlock {
         <h3 style="margin-bottom: 8px;"><code>resource.Asset</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The Asset owned by this resource.</div>
         </p>
+        <p id="Reference_fields_model_VertexCount">
+        <h3 style="margin-bottom: 8px;"><code>model.VertexCount</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The amount of vertices in the model.</div>
+        </p>
+        <p id="Reference_fields_model_AnimationCount">
+        <h3 style="margin-bottom: 8px;"><code>model.AnimationCount</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The amount of animations in the model.</div>
+        </p>
+        <p id="Reference_fields_model_MaterialCount">
+        <h3 style="margin-bottom: 8px;"><code>model.MaterialCount</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The amount of materials in the model.</div>
+        </p>
+        <p id="Reference_fields_model_BoneCount">
+        <h3 style="margin-bottom: 8px;"><code>model.BoneCount</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The amount of bones in the model.</div>
+        </p>
         <p id="Reference_fields_image_Width">
         <h3 style="margin-bottom: 8px;"><code>image.Width</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The width of the image.</div>
@@ -11927,7 +11977,7 @@ codeBlock {
         <h3 style="margin-bottom: 8px;"><code>sprite.SheetCount</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The amount of spritesheets in the sprite.</div>
         </p>
-        <p>88 out of 92 fields have descriptions. </p>
+        <p>92 out of 96 fields have descriptions. </p>
         <hr/>
         <h3>Enums</h3>
         <p id="Reference_enums_ACTIVE_NEVER">

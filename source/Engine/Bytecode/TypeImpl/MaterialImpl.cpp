@@ -9,32 +9,32 @@
 
 ObjClass* MaterialImpl::Class = nullptr;
 
-Uint32 Hash_Name = 0;
+static Uint32 Hash_Name = 0;
 
-Uint32 Hash_DiffuseRed = 0;
-Uint32 Hash_DiffuseGreen = 0;
-Uint32 Hash_DiffuseBlue = 0;
-Uint32 Hash_DiffuseAlpha = 0;
-Uint32 Hash_DiffuseTexture = 0;
+static Uint32 Hash_DiffuseRed = 0;
+static Uint32 Hash_DiffuseGreen = 0;
+static Uint32 Hash_DiffuseBlue = 0;
+static Uint32 Hash_DiffuseAlpha = 0;
+static Uint32 Hash_DiffuseTexture = 0;
 
-Uint32 Hash_SpecularRed = 0;
-Uint32 Hash_SpecularGreen = 0;
-Uint32 Hash_SpecularBlue = 0;
-Uint32 Hash_SpecularAlpha = 0;
-Uint32 Hash_SpecularTexture = 0;
+static Uint32 Hash_SpecularRed = 0;
+static Uint32 Hash_SpecularGreen = 0;
+static Uint32 Hash_SpecularBlue = 0;
+static Uint32 Hash_SpecularAlpha = 0;
+static Uint32 Hash_SpecularTexture = 0;
 
-Uint32 Hash_AmbientRed = 0;
-Uint32 Hash_AmbientGreen = 0;
-Uint32 Hash_AmbientBlue = 0;
-Uint32 Hash_AmbientAlpha = 0;
-Uint32 Hash_AmbientTexture = 0;
+static Uint32 Hash_AmbientRed = 0;
+static Uint32 Hash_AmbientGreen = 0;
+static Uint32 Hash_AmbientBlue = 0;
+static Uint32 Hash_AmbientAlpha = 0;
+static Uint32 Hash_AmbientTexture = 0;
 
 #ifdef MATERIAL_EXPOSE_EMISSIVE
-Uint32 Hash_EmissiveRed = 0;
-Uint32 Hash_EmissiveGreen = 0;
-Uint32 Hash_EmissiveBlue = 0;
-Uint32 Hash_EmissiveAlpha = 0;
-Uint32 Hash_EmissiveTexture = 0;
+static Uint32 Hash_EmissiveRed = 0;
+static Uint32 Hash_EmissiveGreen = 0;
+static Uint32 Hash_EmissiveBlue = 0;
+static Uint32 Hash_EmissiveAlpha = 0;
+static Uint32 Hash_EmissiveTexture = 0;
 #endif
 
 void MaterialImpl::Init() {

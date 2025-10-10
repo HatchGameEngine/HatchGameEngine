@@ -19,6 +19,7 @@ IModel::IModel(const char* filename) {
 	VertexCount = 0;
 	VertexIndexCount = 0;
 	VertexPerFace = 0;
+	BoneCount = 0;
 
 	Meshes.clear();
 	Materials.clear();

@@ -53,6 +53,7 @@ CPPFILES := \
 	source/Engine/Bytecode/TypeImpl/ResourceImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/ResourceImpl/ModelImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ShaderImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
@@ -284,6 +285,7 @@ PUBHFILES := \
 	include/Engine/Bytecode/TypeImpl/ResourceImpl.h \
 	include/Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.h \
 	include/Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.h \
+	include/Engine/Bytecode/TypeImpl/ResourceImpl/ModelImpl.h \
 	include/Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h \
 	include/Engine/Bytecode/TypeImpl/ShaderImpl.h \
 	include/Engine/Bytecode/TypeImpl/StringImpl.h \

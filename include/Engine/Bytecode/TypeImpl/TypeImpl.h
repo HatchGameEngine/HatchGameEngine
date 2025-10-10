@@ -4,6 +4,9 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
+#define DECLARE_STRING_HASH(fieldName) \
+	static Uint32 Hash_##fieldName = 0;
+
 #define GET_STRING_HASH(fieldName) \
 	Hash_##fieldName = Murmur::EncryptString(#fieldName)
 

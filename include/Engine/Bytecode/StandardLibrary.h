@@ -2,6 +2,7 @@
 #define ENGINE_BYTECODE_STANDARDLIBRARY_H
 
 #include <Engine/Bytecode/Types.h>
+#include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/ResourceTypes/Image.h>
@@ -23,6 +24,7 @@ public:
 	static ISprite* GetSprite(VMValue* args, int index, Uint32 threadID);
 	static Image* GetImage(VMValue* args, int index, Uint32 threadID);
 	static ISound* GetAudio(VMValue* args, int index, Uint32 threadID);
+	static IModel* GetModel(VMValue* args, int index, Uint32 threadID);
 	static ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID);
 	static ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID);
 	static ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID);

@@ -5,10 +5,10 @@
 
 ObjClass* ImageImpl::Class = nullptr;
 
-Uint32 Hash_Width = 0;
-Uint32 Hash_Height = 0;
-
 #define CLASS_IMAGE "Image"
+
+DECLARE_STRING_HASH(Width);
+DECLARE_STRING_HASH(Height);
 
 void ImageImpl::Init() {
 	Class = NewClass(CLASS_IMAGE);
