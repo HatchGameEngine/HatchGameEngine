@@ -31,10 +31,51 @@ bool EventHandler::Handle(AppEvent& event) {
     case APPEVENT_WINDOW_RESIZE:
         thread->Push(INTEGER_VAL(event.Window.Width));
         thread->Push(INTEGER_VAL(event.Window.Height));
+        thread->Push(INTEGER_VAL(event.Window.Index));
+        break;
+    case APPEVENT_WINDOW_MOVE:
+        thread->Push(INTEGER_VAL(event.Window.X));
+        thread->Push(INTEGER_VAL(event.Window.Y));
+        thread->Push(INTEGER_VAL(event.Window.Index));
+        break;
+    case APPEVENT_WINDOW_DISPLAY_CHANGE:
+        thread->Push(INTEGER_VAL(event.Window.X));
+        thread->Push(INTEGER_VAL(event.Window.Index));
+        break;
+    case APPEVENT_WINDOW_MINIMIZE:
+    case APPEVENT_WINDOW_MAXIMIZE:
+    case APPEVENT_WINDOW_RESTORE:
+    case APPEVENT_WINDOW_GAIN_INPUT_FOCUS:
+    case APPEVENT_WINDOW_LOSE_INPUT_FOCUS:
+    case APPEVENT_WINDOW_GAIN_MOUSE_FOCUS:
+    case APPEVENT_WINDOW_LOSE_MOUSE_FOCUS:
+        thread->Push(INTEGER_VAL(event.Window.Index));
         break;
     case APPEVENT_CONTROLLER_ADD:
     case APPEVENT_CONTROLLER_REMOVE:
         thread->Push(INTEGER_VAL(event.Controller.Index));
+        break;
+    case APPEVENT_MOUSE_BUTTON_DOWN:
+    case APPEVENT_MOUSE_BUTTON_UP:
+        thread->Push(INTEGER_VAL(event.Mouse.Button));
+        thread->Push(INTEGER_VAL(event.Mouse.X));
+        thread->Push(INTEGER_VAL(event.Mouse.Y));
+        thread->Push(INTEGER_VAL(event.Mouse.Clicks));
+        thread->Push(INTEGER_VAL(event.Mouse.WindowID));
+        break;
+    case APPEVENT_MOUSE_MOTION:
+        thread->Push(INTEGER_VAL(event.Mouse.MotionX));
+        thread->Push(INTEGER_VAL(event.Mouse.MotionY));
+        thread->Push(INTEGER_VAL(event.Mouse.X));
+        thread->Push(INTEGER_VAL(event.Mouse.Y));
+        thread->Push(INTEGER_VAL(event.Mouse.WindowID));
+        break;
+    case APPEVENT_MOUSE_WHEEL_MOTION:
+        thread->Push(DECIMAL_VAL(event.MouseWheel.MotionY));
+        thread->Push(DECIMAL_VAL(event.MouseWheel.MotionX));
+        thread->Push(INTEGER_VAL(event.MouseWheel.X));
+        thread->Push(INTEGER_VAL(event.MouseWheel.Y));
+        thread->Push(INTEGER_VAL(event.MouseWheel.WindowID));
         break;
     default:
         break;

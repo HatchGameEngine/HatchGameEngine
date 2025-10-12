@@ -15,6 +15,7 @@ enum AppEventType {
     APPEVENT_WINDOW_LOSE_INPUT_FOCUS,
     APPEVENT_WINDOW_GAIN_MOUSE_FOCUS,
     APPEVENT_WINDOW_LOSE_MOUSE_FOCUS,
+    APPEVENT_WINDOW_DISPLAY_CHANGE,
 
     APPEVENT_KEY_DOWN,
     APPEVENT_KEY_UP,
@@ -49,10 +50,29 @@ struct AppEvent {
         } Keyboard;
 
         struct {
+            Uint8 Button;
+            Uint8 Clicks;
+            Sint32 X;
+            Sint32 Y;
+            Sint32 MotionX;
+            Sint32 MotionY;
+            Uint8 WindowID;
+        } Mouse;
+
+        struct {
+            float MotionX;
+            float MotionY;
+            Sint32 X;
+            Sint32 Y;
+            Uint8 WindowID;
+        } MouseWheel;
+
+        struct {
             int X;
             int Y;
             int Width;
             int Height;
+            Uint8 Index;
         } Window;
 
         struct {
@@ -60,5 +80,42 @@ struct AppEvent {
         } Controller;
     };
 };
+
+#define KEY_APPEVENT(key, type) \
+    AppEvent event; \
+    event.Type = type; \
+    event.Keyboard.Key = key
+
+#define MOUSE_APPEVENT(e, type) \
+    AppEvent event; \
+    event.Type = type; \
+    event.Mouse.Button = e.button.button; \
+    event.Mouse.X = e.button.x; \
+    event.Mouse.Y = e.button.y; \
+    event.Mouse.Clicks = e.button.clicks; \
+    event.Mouse.WindowID = e.button.windowID
+
+#define MOUSE_MOTION_APPEVENT(e) \
+    AppEvent event; \
+    event.Type = APPEVENT_MOUSE_MOTION; \
+    event.Mouse.X = e.motion.x; \
+    event.Mouse.Y = e.motion.y; \
+    event.Mouse.MotionX = e.motion.xrel; \
+    event.Mouse.MotionY = e.motion.yrel; \
+    event.Mouse.WindowID = e.motion.windowID
+
+#define MOUSE_WHEEL_APPEVENT(e) \
+    AppEvent event; \
+    event.Type = APPEVENT_MOUSE_WHEEL_MOTION; \
+    event.MouseWheel.MotionX = e.wheel.preciseX; \
+    event.MouseWheel.MotionY = e.wheel.preciseY; \
+    event.MouseWheel.X = e.wheel.mouseX; \
+    event.MouseWheel.Y = e.wheel.mouseY; \
+    event.MouseWheel.WindowID = e.wheel.windowID
+
+#define WINDOW_APPEVENT(e, type) \
+    AppEvent event; \
+    event.Type = type; \
+    event.Window.Index = e.window.windowID
 
 #endif

@@ -1447,7 +1447,7 @@ bool Application::HandleDevKey(AppEventType eventType, int key) {
 	return false;
 }
 
-// Handle events that must be taken care of right now.
+// Handle events that must be taken care of right now by the application.
 // We also push them to the event queue.
 void Application::PollEvents() {
 	SDL_Event e;
@@ -1463,9 +1463,8 @@ void Application::PollEvents() {
 				break;
 			}
 
-			AppEvent event;
-			event.Type = APPEVENT_KEY_DOWN;
-			event.Keyboard.Key = key;
+			KEY_APPEVENT(key, APPEVENT_KEY_DOWN);
+
 			EventHandler::Push(event);
 			break;
 		}
@@ -1476,21 +1475,69 @@ void Application::PollEvents() {
 				break;
 			}
 
-			AppEvent event;
-			event.Type = APPEVENT_KEY_UP;
-			event.Keyboard.Key = key;
+			KEY_APPEVENT(key, APPEVENT_KEY_UP);
+
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_MOUSEBUTTONDOWN: {
+			MOUSE_APPEVENT(e, APPEVENT_MOUSE_BUTTON_DOWN);
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_MOUSEBUTTONUP: {
+			MOUSE_APPEVENT(e, APPEVENT_MOUSE_BUTTON_UP);
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_MOUSEMOTION: {
+			MOUSE_MOTION_APPEVENT(e);
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_MOUSEWHEEL: {
+			MOUSE_WHEEL_APPEVENT(e);
 			EventHandler::Push(event);
 			break;
 		}
 		case SDL_WINDOWEVENT:
 			switch (e.window.event) {
-			case SDL_WINDOWEVENT_RESIZED:
+			case SDL_WINDOWEVENT_RESIZED: {
 				Graphics::Resize(e.window.data1, e.window.data2);
 
-				AppEvent event;
-				event.Type = APPEVENT_WINDOW_RESIZE;
+				WINDOW_APPEVENT(e, APPEVENT_WINDOW_RESIZE);
 				event.Window.Width = e.window.data1;
 				event.Window.Height = e.window.data2;
+
+				EventHandler::Push(event);
+				break;
+			}
+			case SDL_WINDOWEVENT_MOVED: {
+				WINDOW_APPEVENT(e, APPEVENT_WINDOW_MOVE);
+				event.Window.X = e.window.data1;
+				event.Window.Y = e.window.data2;
+
+				EventHandler::Push(event);
+				break;
+			}
+			case SDL_WINDOWEVENT_MINIMIZED: {
+				WINDOW_APPEVENT(e, APPEVENT_WINDOW_MINIMIZE);
+				EventHandler::Push(event);
+				break;
+			}
+			case SDL_WINDOWEVENT_MAXIMIZED: {
+				WINDOW_APPEVENT(e, APPEVENT_WINDOW_MAXIMIZE);
+				EventHandler::Push(event);
+				break;
+			}
+			case SDL_WINDOWEVENT_RESTORED: {
+				WINDOW_APPEVENT(e, APPEVENT_WINDOW_RESTORE);
+				EventHandler::Push(event);
+				break;
+			}
+			case SDL_WINDOWEVENT_DISPLAY_CHANGED:
+				WINDOW_APPEVENT(e, APPEVENT_WINDOW_DISPLAY_CHANGE);
+				event.Window.X = e.window.data1;
 				EventHandler::Push(event);
 				break;
 			}

@@ -19326,6 +19326,11 @@ void StandardLibrary::Link() {
 	*/
 	DEF_ENUM(APPEVENT_WINDOW_LOSE_MOUSE_FOCUS);
 	/***
+	* \enum APPEVENT_WINDOW_DISPLAY_CHANGE
+	* \desc Window display change event.
+	*/
+	DEF_ENUM(APPEVENT_WINDOW_DISPLAY_CHANGE);
+	/***
 	* \enum APPEVENT_KEY_DOWN
 	* \desc Keyboard key down event.
 	*/
