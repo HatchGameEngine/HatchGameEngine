@@ -7,13 +7,16 @@ float InputManager::MouseY = 0;
 int InputManager::MouseDown = 0;
 int InputManager::MousePressed = 0;
 int InputManager::MouseReleased = 0;
+int InputManager::MouseDownLast = 0;
 int InputManager::MouseMode = MOUSEMODE_DEFAULT;
 
-Uint8 InputManager::KeyboardState[0x120];
-Uint8 InputManager::KeyboardStateLast[0x120];
+Uint8 InputManager::KeyboardState[NUM_KEYBOARD_KEYS];
+Uint8 InputManager::KeyboardStateLast[NUM_KEYBOARD_KEYS];
 Uint16 InputManager::KeymodState;
-SDL_Scancode InputManager::KeyToSDLScancode[NUM_KEYBOARD_KEYS];
-Uint16 InputManager::SDLScancodeToKey[NUM_KEYBOARD_KEYS];
+
+Uint16 InputManager::SDLScancodeToKey[SDL_NUM_SCANCODES];
+ControllerButton InputManager::SDLControllerButtonLookup[(int)ControllerButton::Max];
+ControllerAxis InputManager::SDLControllerAxisLookup[(int)ControllerAxis::Max];
 
 int InputManager::NumControllers;
 vector<Controller*> InputManager::Controllers;
@@ -41,7 +44,6 @@ void InputManager::Init() {
 	KeymodState = 0;
 
 	InputManager::InitLUTs();
-	InputManager::InitControllers();
 
 	InputManager::TouchStates = Memory::TrackedCalloc(
 		"InputManager::TouchStates", NUM_TOUCH_STATES, sizeof(TouchState));
@@ -66,9 +68,12 @@ void InputManager::InitLUTs() {
 	NameMap::Buttons = new BijectiveMap<const char*, Uint8>();
 	NameMap::Axes = new BijectiveMap<const char*, Uint8>();
 
+	for (size_t i = 0; i < SDL_NUM_SCANCODES; i++) {
+		InputManager::SDLScancodeToKey[i] = -1;
+	}
+
 #define DEF_KEY(key) \
 	{ \
-		InputManager::KeyToSDLScancode[Key_##key] = SDL_SCANCODE_##key; \
 		InputManager::SDLScancodeToKey[SDL_SCANCODE_##key] = Key_##key; \
 		NameMap::Keys->Put(#key, Key_##key); \
 	}
@@ -188,7 +193,12 @@ void InputManager::InitLUTs() {
 
 #undef DEF_KEY
 
-#define DEF_BUTTON(x, y) NameMap::Buttons->Put(#x, (int)ControllerButton::y)
+#define DEF_BUTTON(x, y) \
+	{ \
+		InputManager::SDLControllerButtonLookup[SDL_CONTROLLER_BUTTON_##x] = \
+			ControllerButton::y; \
+		NameMap::Buttons->Put(#x, (int)ControllerButton::y); \
+	}
 	DEF_BUTTON(A, A);
 	DEF_BUTTON(B, B);
 	DEF_BUTTON(X, X);
@@ -204,9 +214,6 @@ void InputManager::InitLUTs() {
 	DEF_BUTTON(DPAD_DOWN, DPadDown);
 	DEF_BUTTON(DPAD_LEFT, DPadLeft);
 	DEF_BUTTON(DPAD_RIGHT, DPadRight);
-	DEF_BUTTON(SHARE, Share);
-	DEF_BUTTON(MICROPHONE, Microphone);
-	DEF_BUTTON(TOUCHPAD, Touchpad);
 	DEF_BUTTON(PADDLE1, Paddle1);
 	DEF_BUTTON(PADDLE2, Paddle2);
 	DEF_BUTTON(PADDLE3, Paddle3);
@@ -214,7 +221,18 @@ void InputManager::InitLUTs() {
 	DEF_BUTTON(MISC1, Misc1);
 #undef DEF_BUTTON
 
-#define DEF_AXIS(x, y) NameMap::Axes->Put(#x, (int)ControllerAxis::y)
+#define DEF_BUTTON(x, y) NameMap::Buttons->Put(#x, (int)ControllerButton::y)
+	DEF_BUTTON(SHARE, Share);
+	DEF_BUTTON(MICROPHONE, Microphone);
+	DEF_BUTTON(TOUCHPAD, Touchpad);
+#undef DEF_BUTTON
+
+#define DEF_AXIS(x, y) \
+	{ \
+		InputManager::SDLControllerAxisLookup[SDL_CONTROLLER_AXIS_##x] = \
+			ControllerAxis::y; \
+		NameMap::Axes->Put(#x, (int)ControllerAxis::y); \
+	}
 	DEF_AXIS(LEFTX, LeftX);
 	DEF_AXIS(LEFTY, LeftY);
 	DEF_AXIS(RIGHTX, RightX);
@@ -280,46 +298,17 @@ int InputManager::ParseAxisName(const char* axis) {
 
 #undef FIND_IN_BIJECTIVE
 
-Controller* InputManager::OpenController(int index) {
-	Controller* controller = new Controller(index);
+Controller* InputManager::OpenController(int joystickID) {
+	Controller* controller = new Controller(joystickID);
 	if (controller->Device == nullptr) {
-		Log::Print(
-			Log::LOG_ERROR, "Opening controller %d failed: %s", index, SDL_GetError());
-		delete controller;
-	}
+		Log::Print(Log::LOG_ERROR, "Could not open controller: %s", SDL_GetError());
 
-	Log::Print(Log::LOG_VERBOSE, "Controller %d opened", index);
+		delete controller;
+
+		return nullptr;
+	}
 
 	return controller;
-}
-
-void InputManager::InitControllers() {
-	int numControllers = 0;
-	int numJoysticks = SDL_NumJoysticks();
-	for (int i = 0; i < numJoysticks; i++) {
-		if (SDL_IsGameController(i)) {
-			numControllers++;
-		}
-	}
-
-	if (numControllers != 0) {
-		Log::Print(Log::LOG_VERBOSE, "Opening controllers... (%d count)", numControllers);
-	}
-
-	InputManager::Controllers.resize(0);
-	InputManager::NumControllers = 0;
-
-	for (int i = 0; i < numJoysticks; i++) {
-		if (!SDL_IsGameController(i)) {
-			continue;
-		}
-
-		Controller* controller = InputManager::OpenController(i);
-		if (controller) {
-			InputManager::Controllers.push_back(controller);
-			InputManager::NumControllers++;
-		}
-	}
 }
 
 int InputManager::FindController(int joystickID) {
@@ -333,16 +322,23 @@ int InputManager::FindController(int joystickID) {
 	return -1;
 }
 
-bool InputManager::AddController(int index) {
-	Controller* controller;
+bool InputManager::AddController(int joystickID) {
 	for (int i = 0; i < InputManager::NumControllers; i++) {
-		controller = InputManager::Controllers[i];
-		if (!controller->Connected) {
-			return controller->Open(index);
+		Controller* controller = InputManager::Controllers[i];
+		if (controller->Connected) {
+			continue;
 		}
+
+		if (!controller->Open(joystickID)) {
+			Log::Print(Log::LOG_ERROR, "Could not open controller %d: %s", i, SDL_GetError());
+
+			return false;
+		}
+
+		return true;
 	}
 
-	controller = InputManager::OpenController(index);
+	Controller* controller = InputManager::OpenController(joystickID);
 	if (!controller) {
 		return false;
 	}
@@ -353,16 +349,32 @@ bool InputManager::AddController(int index) {
 	return true;
 }
 
-void InputManager::RemoveController(int joystickID) {
-	int controller_id = InputManager::FindController(joystickID);
-	if (controller_id == -1) {
-		return;
+bool InputManager::RemoveController(int controllerID) {
+	if (controllerID < InputManager::NumControllers) {
+		Controller* controller = InputManager::Controllers[controllerID];
+		if (controller->Connected) {
+			controller->Close();
+			return true;
+		}
 	}
 
-	InputManager::Controllers[controller_id]->Close();
+	return false;
 }
 
+void InputManager::SetLastState() {
+	memcpy(KeyboardStateLast, KeyboardState, NUM_KEYBOARD_KEYS);
+
+	MouseDownLast = MouseDown;
+
+	for (int i = 0; i < InputManager::NumControllers; i++) {
+		Controller* controller = InputManager::Controllers[i];
+		if (controller->Connected) {
+			controller->SetLastState();
+		}
+	}
+}
 void InputManager::Poll() {
+#if 0
 	if (Application::Platform == Platforms::iOS ||
 		Application::Platform == Platforms::Android ||
 		Application::Platform == Platforms::Switch) {
@@ -418,10 +430,7 @@ void InputManager::Poll() {
 			}
 		}
 	}
-
-	const Uint8* state = SDL_GetKeyboardState(NULL);
-	memcpy(KeyboardStateLast, KeyboardState, 0x11C + 1);
-	memcpy(KeyboardState, state, 0x11C + 1);
+#endif
 
 	SDL_Keymod sdlKeyMod = SDL_GetModState();
 
@@ -452,23 +461,15 @@ void InputManager::Poll() {
 		KeymodState |= KB_MODIFIER_CAPS;
 	}
 
-	int mx, my, buttons;
-	buttons = SDL_GetMouseState(&mx, &my);
-	MouseX = mx;
-	MouseY = my;
-
-	int lastDown = MouseDown;
-	MouseDown = 0;
 	MousePressed = 0;
 	MouseReleased = 0;
 	for (int i = 0; i < 8; i++) {
 		int lD, mD, mP, mR;
-		lD = (lastDown >> i) & 1;
-		mD = (buttons >> i) & 1;
+		lD = (MouseDownLast >> i) & 1;
+		mD = (MouseDown >> i) & 1;
 		mP = !lD && mD;
 		mR = lD && !mD;
 
-		MouseDown |= mD << i;
 		MousePressed |= mP << i;
 		MouseReleased |= mR << i;
 	}
@@ -484,22 +485,60 @@ void InputManager::Poll() {
 		InputManager::Players[i].Update();
 	}
 }
+void InputManager::RespondToEvent(AppEvent& event) {
+	switch (event.Type) {
+	case APPEVENT_KEY_DOWN:
+		KeyboardState[event.Keyboard.Key] = 1;
+		break;
+	case APPEVENT_KEY_UP:
+		KeyboardState[event.Keyboard.Key] = 0;
+		break;
+	case APPEVENT_MOUSE_MOTION:
+		MouseX = event.Mouse.X;
+		MouseY = event.Mouse.Y;
+		break;
+	case APPEVENT_MOUSE_BUTTON_DOWN:
+		MouseDown |= (1 << event.Mouse.Button);
+		break;
+	case APPEVENT_MOUSE_BUTTON_UP:
+		MouseDown &= ~(1 << event.Mouse.Button);
+		break;
+	case APPEVENT_CONTROLLER_BUTTON_DOWN:
+	case APPEVENT_CONTROLLER_BUTTON_UP:
+		if (event.ControllerButton.Index < InputManager::NumControllers) {
+			Controller* controller =
+				InputManager::Controllers[event.ControllerButton.Index];
+			if (controller->Connected) {
+				controller->RespondToEvent(event);
+			}
+		}
+		break;
+	case APPEVENT_CONTROLLER_AXIS_MOTION:
+		if (event.ControllerAxis.Index < InputManager::NumControllers) {
+			Controller* controller =
+				InputManager::Controllers[event.ControllerAxis.Index];
+			if (controller->Connected) {
+				controller->RespondToEvent(event);
+			}
+		}
+		break;
+	default:
+		break;
+	}
+}
 
 Uint16 InputManager::CheckKeyModifiers(Uint16 modifiers) {
 	return (KeymodState & modifiers) == modifiers;
 }
 
 bool InputManager::IsKeyDown(int key) {
-	int scancode = (int)KeyToSDLScancode[key];
-	return KeyboardState[scancode];
+	return KeyboardState[key];
 }
 bool InputManager::IsKeyPressed(int key) {
-	int scancode = (int)KeyToSDLScancode[key];
-	return KeyboardState[scancode] && !KeyboardStateLast[scancode];
+	return KeyboardState[key] && !KeyboardStateLast[key];
 }
 bool InputManager::IsKeyReleased(int key) {
-	int scancode = (int)KeyToSDLScancode[key];
-	return !KeyboardState[scancode] && KeyboardStateLast[scancode];
+	return !KeyboardState[key] && KeyboardStateLast[key];
 }
 
 void InputManager::SetMouseMode(int mode) {

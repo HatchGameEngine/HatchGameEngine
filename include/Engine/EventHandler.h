@@ -25,7 +25,7 @@ public:
 	static void RemoveAll();
 
 	static void Push(AppEvent event);
-	static void Process();
+	static void Process(bool doCallbacks);
 };
 
 #endif /* ENGINE_EVENTHANDLER_H */

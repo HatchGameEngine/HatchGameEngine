@@ -2,6 +2,7 @@
 #define ENGINE_INPUTMANAGER_H
 
 #include <Engine/Application.h>
+#include <Engine/Includes/AppEvent.h>
 #include <Engine/Includes/BijectiveMap.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
@@ -16,7 +17,6 @@
 class InputManager {
 private:
 	static void InitLUTs();
-	static int FindController(int joystickID);
 	static void ParsePlayerControls(InputPlayer& player, XMLNode* node);
 	static Uint16 ParseKeyModifiers(string& str, string& actionName);
 	static void ParseDefaultInputBinds(InputPlayer& player,
@@ -30,12 +30,14 @@ public:
 	static int MouseDown;
 	static int MousePressed;
 	static int MouseReleased;
+	static int MouseDownLast;
 	static int MouseMode;
-	static Uint8 KeyboardState[0x120];
-	static Uint8 KeyboardStateLast[0x120];
+	static Uint8 KeyboardState[NUM_KEYBOARD_KEYS];
+	static Uint8 KeyboardStateLast[NUM_KEYBOARD_KEYS];
 	static Uint16 KeymodState;
-	static SDL_Scancode KeyToSDLScancode[NUM_KEYBOARD_KEYS];
-	static Uint16 SDLScancodeToKey[NUM_KEYBOARD_KEYS];
+	static Uint16 SDLScancodeToKey[SDL_NUM_SCANCODES];
+	static ControllerButton SDLControllerButtonLookup[(int)ControllerButton::Max];
+	static ControllerAxis SDLControllerAxisLookup[(int)ControllerAxis::Max];
 	static int NumControllers;
 	static vector<Controller*> Controllers;
 	static SDL_TouchID TouchDevice;
@@ -50,10 +52,12 @@ public:
 	static int ParseKeyName(const char* key);
 	static int ParseButtonName(const char* button);
 	static int ParseAxisName(const char* axis);
-	static Controller* OpenController(int index);
-	static void InitControllers();
-	static bool AddController(int index);
-	static void RemoveController(int joystickID);
+	static Controller* OpenController(int joystickID);
+	static bool AddController(int joystickID);
+	static int FindController(int joystickID);
+	static bool RemoveController(int controllerID);
+	static void SetLastState();
+	static void RespondToEvent(AppEvent& event);
 	static void Poll();
 	static Uint16 CheckKeyModifiers(Uint16 modifiers);
 	static bool IsKeyDown(int key);

@@ -51,9 +51,19 @@ bool EventHandler::Handle(AppEvent& event) {
     case APPEVENT_WINDOW_LOSE_MOUSE_FOCUS:
         thread->Push(INTEGER_VAL(event.Window.Index));
         break;
+    case APPEVENT_CONTROLLER_BUTTON_DOWN:
+    case APPEVENT_CONTROLLER_BUTTON_UP:
+        thread->Push(INTEGER_VAL(event.ControllerButton.Which));
+        thread->Push(INTEGER_VAL(event.ControllerButton.Index));
+        break;
+    case APPEVENT_CONTROLLER_AXIS_MOTION:
+        thread->Push(INTEGER_VAL(event.ControllerAxis.Which));
+        thread->Push(DECIMAL_VAL(event.ControllerAxis.Value));
+        thread->Push(INTEGER_VAL(event.ControllerAxis.Index));
+        break;
     case APPEVENT_CONTROLLER_ADD:
     case APPEVENT_CONTROLLER_REMOVE:
-        thread->Push(INTEGER_VAL(event.Controller.Index));
+        thread->Push(INTEGER_VAL(event.ControllerDevice.Index));
         break;
     case APPEVENT_MOUSE_BUTTON_DOWN:
     case APPEVENT_MOUSE_BUTTON_UP:
@@ -138,19 +148,35 @@ bool EventHandler::CallHandlers(AppEvent& event) {
     return false;
 }
 
-// Events that can be delayed a bit, and that the game may need to handle.
-void EventHandler::Process() {
+// Events that can be delayed a bit, and that the game may need to handle before the application does.
+void EventHandler::Process(bool doCallbacks) {
     for (; !Queue.empty(); Queue.pop()) {
         AppEvent& event = Queue.front();
 
-        bool handled = CallHandlers(event);
+        bool handled = doCallbacks && CallHandlers(event);
 
         switch (event.Type) {
         case APPEVENT_KEY_DOWN:
+        case APPEVENT_KEY_UP:
+        case APPEVENT_MOUSE_MOTION:
+        case APPEVENT_MOUSE_BUTTON_DOWN:
+        case APPEVENT_MOUSE_BUTTON_UP:
+        case APPEVENT_MOUSE_WHEEL_MOTION:
+        case APPEVENT_CONTROLLER_BUTTON_DOWN:
+        case APPEVENT_CONTROLLER_BUTTON_UP:
+        case APPEVENT_CONTROLLER_AXIS_MOTION:
+        case APPEVENT_FINGER_MOTION:
+        case APPEVENT_FINGER_DOWN:
+        case APPEVENT_FINGER_UP:
             if (handled) {
                 break;
             }
-            Application::HandleBinds(event.Keyboard.Key);
+
+            if (event.Type == APPEVENT_KEY_DOWN) {
+                Application::HandleBinds(event.Keyboard.Key);
+            }
+
+            InputManager::RespondToEvent(event);
             break;
         default:
             break;

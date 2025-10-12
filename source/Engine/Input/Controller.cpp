@@ -1,52 +1,14 @@
 #include <Engine/Input/Controller.h>
 #include <Engine/InputManager.h>
 
-Controller::Controller(int index) {
+Controller::Controller(int joystickID) {
 	Reset();
-	Open(index);
+	Open(joystickID);
 }
 
 Controller::~Controller() {
 	Close();
 }
-
-#define CONST_BUTTON(x) SDL_CONTROLLER_BUTTON_##x
-
-static SDL_GameControllerButton ButtonEnums[] = {CONST_BUTTON(A),
-	CONST_BUTTON(B),
-	CONST_BUTTON(X),
-	CONST_BUTTON(Y),
-	CONST_BUTTON(BACK),
-	CONST_BUTTON(GUIDE),
-	CONST_BUTTON(START),
-	CONST_BUTTON(LEFTSTICK),
-	CONST_BUTTON(RIGHTSTICK),
-	CONST_BUTTON(LEFTSHOULDER),
-	CONST_BUTTON(RIGHTSHOULDER),
-	CONST_BUTTON(DPAD_UP),
-	CONST_BUTTON(DPAD_DOWN),
-	CONST_BUTTON(DPAD_LEFT),
-	CONST_BUTTON(DPAD_RIGHT),
-	CONST_BUTTON(MISC1),
-	CONST_BUTTON(MISC1),
-	CONST_BUTTON(TOUCHPAD),
-	CONST_BUTTON(PADDLE1),
-	CONST_BUTTON(PADDLE2),
-	CONST_BUTTON(PADDLE3),
-	CONST_BUTTON(PADDLE4),
-	CONST_BUTTON(MISC1)};
-
-#undef CONST_BUTTON
-#define CONST_AXIS(x) SDL_CONTROLLER_AXIS_##x
-
-static SDL_GameControllerAxis AxisEnums[] = {CONST_AXIS(LEFTX),
-	CONST_AXIS(LEFTY),
-	CONST_AXIS(RIGHTX),
-	CONST_AXIS(RIGHTY),
-	CONST_AXIS(TRIGGERLEFT),
-	CONST_AXIS(TRIGGERRIGHT)};
-
-#undef CONST_AXIS
 
 ControllerType Controller::DetermineType(void* gamecontroller) {
 	switch (SDL_GameControllerGetType((SDL_GameController*)gamecontroller)) {
@@ -83,8 +45,8 @@ ControllerType Controller::DetermineType(void* gamecontroller) {
 	}
 }
 
-bool Controller::Open(int index) {
-	Device = SDL_GameControllerOpen(index);
+bool Controller::Open(int joystickID) {
+	Device = SDL_GameControllerOpen(joystickID);
 	if (!Device) {
 		return false;
 	}
@@ -100,6 +62,7 @@ bool Controller::Open(int index) {
 
 	ButtonsPressed = (bool*)Memory::Calloc((int)ControllerButton::Max, sizeof(bool));
 	ButtonsHeld = (bool*)Memory::Calloc((int)ControllerButton::Max, sizeof(bool));
+	ButtonsHeldLast = (bool*)Memory::Calloc((int)ControllerButton::Max, sizeof(bool));
 	AxisValues = (float*)Memory::Calloc((int)ControllerAxis::Max, sizeof(float));
 
 	return true;
@@ -120,6 +83,11 @@ void Controller::Close() {
 	if (ButtonsHeld) {
 		Memory::Free(ButtonsHeld);
 		ButtonsHeld = nullptr;
+	}
+
+	if (ButtonsHeldLast) {
+		Memory::Free(ButtonsHeldLast);
+		ButtonsHeldLast = nullptr;
 	}
 
 	if (AxisValues) {
@@ -148,23 +116,33 @@ void Controller::SetPlayerIndex(int index) {
 	SDL_GameControllerSetPlayerIndex(Device, index);
 }
 
-bool Controller::GetButton(int button) {
-	if (button >= (int)ControllerButton::Max) {
-		return false;
+int Controller::RemapButton(int button) {
+	switch (button) {
+	case (int)ControllerButton::Share:
+	case (int)ControllerButton::Microphone:
+	case (int)ControllerButton::Touchpad:
+		return (int)ControllerButton::Misc1;
 	}
-	return SDL_GameControllerGetButton(Device, ButtonEnums[button]);
+
+	return button;
 }
 
 bool Controller::IsButtonHeld(int button) {
 	if (button < 0 || button >= (int)ControllerButton::Max) {
 		return false;
 	}
+
+	button = RemapButton(button);
+
 	return ButtonsHeld[button];
 }
 bool Controller::IsButtonPressed(int button) {
 	if (button < 0 || button >= (int)ControllerButton::Max) {
 		return false;
 	}
+
+	button = RemapButton(button);
+
 	return ButtonsPressed[button];
 }
 
@@ -175,20 +153,33 @@ float Controller::GetAxis(int axis) {
 	return AxisValues[axis];
 }
 
+void Controller::RespondToEvent(AppEvent& event) {
+	switch (event.Type) {
+	case APPEVENT_CONTROLLER_BUTTON_DOWN:
+		ButtonsHeld[event.ControllerButton.Which] = true;
+		break;
+	case APPEVENT_CONTROLLER_BUTTON_UP:
+		ButtonsHeld[event.ControllerButton.Which] = false;
+		break;
+	case APPEVENT_CONTROLLER_AXIS_MOTION:
+		AxisValues[event.ControllerAxis.Which] = event.ControllerAxis.Value;
+		break;
+	default:
+		break;
+	}
+}
+
+void Controller::SetLastState() {
+	memcpy(ButtonsHeldLast, ButtonsHeld, (int)ControllerButton::Max * sizeof(bool));
+}
+
 void Controller::Update() {
 	if (Rumble) {
 		Rumble->Update();
 	}
 
 	for (unsigned i = 0; i < (unsigned)ControllerButton::Max; i++) {
-		bool isDown = GetButton(i);
-		ButtonsPressed[i] = !ButtonsHeld[i] && isDown;
-		ButtonsHeld[i] = isDown;
-	}
-
-	for (unsigned i = 0; i < (unsigned)ControllerAxis::Max; i++) {
-		Sint16 value = SDL_GameControllerGetAxis(Device, AxisEnums[i]);
-		AxisValues[i] = (float)value / 32767;
+		ButtonsPressed[i] = ButtonsHeld[i] && !ButtonsHeldLast[i];
 	}
 }
 

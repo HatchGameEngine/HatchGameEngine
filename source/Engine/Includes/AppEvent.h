@@ -46,6 +46,14 @@ struct AppEvent {
 
     union {
         struct {
+            int X;
+            int Y;
+            int Width;
+            int Height;
+            Uint8 Index;
+        } Window;
+
+        struct {
             Uint16 Key;
         } Keyboard;
 
@@ -68,16 +76,19 @@ struct AppEvent {
         } MouseWheel;
 
         struct {
-            int X;
-            int Y;
-            int Width;
-            int Height;
-            Uint8 Index;
-        } Window;
+            Uint8 Which;
+            int Index;
+        } ControllerButton;
+
+        struct {
+            Uint8 Which;
+            float Value;
+            int Index;
+        } ControllerAxis;
 
         struct {
             int Index;
-        } Controller;
+        } ControllerDevice;
     };
 };
 
@@ -112,6 +123,24 @@ struct AppEvent {
     event.MouseWheel.X = e.wheel.mouseX; \
     event.MouseWheel.Y = e.wheel.mouseY; \
     event.MouseWheel.WindowID = e.wheel.windowID
+
+#define CONTROLLER_BUTTON_APPEVENT(index, button, type) \
+    AppEvent event; \
+    event.Type = type; \
+    event.ControllerButton.Index = index; \
+    event.ControllerButton.Which = button
+
+#define CONTROLLER_AXIS_APPEVENT(index, axis, value) \
+    AppEvent event; \
+    event.Type = APPEVENT_CONTROLLER_AXIS_MOTION; \
+    event.ControllerAxis.Index = index; \
+    event.ControllerAxis.Which = axis; \
+    event.ControllerAxis.Value = value
+
+#define CONTROLLER_DEVICE_APPEVENT(index, type) \
+    AppEvent event; \
+    event.Type = type; \
+    event.ControllerDevice.Index = index
 
 #define WINDOW_APPEVENT(e, type) \
     AppEvent event; \

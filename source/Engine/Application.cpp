@@ -1458,6 +1458,9 @@ void Application::PollEvents() {
 			break;
 		case SDL_KEYDOWN: {
 			Uint16 key = InputManager::SDLScancodeToKey[e.key.keysym.scancode];
+			if (key == -1) {
+				break;
+			}
 
 			if (DevMode && HandleDevKey(APPEVENT_KEY_DOWN, key)) {
 				break;
@@ -1470,6 +1473,9 @@ void Application::PollEvents() {
 		}
 		case SDL_KEYUP: {
 			Uint16 key = InputManager::SDLScancodeToKey[e.key.keysym.scancode];
+			if (key == -1) {
+				break;
+			}
 
 			if (DevMode && HandleDevKey(APPEVENT_KEY_UP, key)) {
 				break;
@@ -1498,6 +1504,37 @@ void Application::PollEvents() {
 		case SDL_MOUSEWHEEL: {
 			MOUSE_WHEEL_APPEVENT(e);
 			EventHandler::Push(event);
+			break;
+		}
+		case SDL_CONTROLLERBUTTONDOWN: {
+			int index = InputManager::FindController(e.cbutton.which);
+			if (index != -1) {
+				ControllerButton button = InputManager::SDLControllerButtonLookup[e.cbutton.button];
+
+				CONTROLLER_BUTTON_APPEVENT(index, (Uint8)button, APPEVENT_CONTROLLER_BUTTON_DOWN);
+				EventHandler::Push(event);
+			}
+			break;
+		}
+		case SDL_CONTROLLERBUTTONUP: {
+			int index = InputManager::FindController(e.cbutton.which);
+			if (index != -1) {
+				ControllerButton button = InputManager::SDLControllerButtonLookup[e.cbutton.button];
+
+				CONTROLLER_BUTTON_APPEVENT(index, (Uint8)button, APPEVENT_CONTROLLER_BUTTON_UP);
+				EventHandler::Push(event);
+			}
+			break;
+		}
+		case SDL_CONTROLLERAXISMOTION: {
+			int index = InputManager::FindController(e.caxis.which);
+			if (index != -1) {
+				ControllerAxis axis = InputManager::SDLControllerAxisLookup[e.caxis.axis];
+				float value = (float)e.caxis.value / 32767;
+
+				CONTROLLER_AXIS_APPEVENT(index, (Uint8)axis, value);
+				EventHandler::Push(event);
+			}
 			break;
 		}
 		case SDL_WINDOWEVENT:
@@ -1543,25 +1580,30 @@ void Application::PollEvents() {
 			}
 			break;
 		case SDL_CONTROLLERDEVICEADDED: {
-			int i = e.cdevice.which;
-			Log::Print(Log::LOG_VERBOSE, "Added controller device %d", i);
-			InputManager::AddController(i);
+			int joystickID = e.cdevice.which;
 
-			AppEvent event;
-			event.Type = APPEVENT_CONTROLLER_ADD;
-			event.Controller.Index = i;
-			EventHandler::Push(event);
+			if (!InputManager::AddController(joystickID)) {
+				Log::Print(Log::LOG_ERROR, "Could not add controller! (Joystick ID: %d)", joystickID);
+				break;
+			}
+
+			SDL_JoystickID instanceID = SDL_JoystickGetDeviceInstanceID(joystickID);
+			int index = InputManager::FindController((int)instanceID);
+			if (index != -1) {
+				Log::Print(Log::LOG_VERBOSE, "Controller %d opened", index);
+				CONTROLLER_DEVICE_APPEVENT(index, APPEVENT_CONTROLLER_ADD);
+				EventHandler::Push(event);
+			}
 			break;
 		}
 		case SDL_CONTROLLERDEVICEREMOVED: {
-			int i = e.cdevice.which;
-			Log::Print(Log::LOG_VERBOSE, "Removed controller device %d", i);
-			InputManager::RemoveController(i);
-
-			AppEvent event;
-			event.Type = APPEVENT_CONTROLLER_REMOVE;
-			event.Controller.Index = i;
-			EventHandler::Push(event);
+			int joystickID = e.cdevice.which;
+			int index = InputManager::FindController(joystickID);
+			if (index != -1 && InputManager::RemoveController(index)) {
+				Log::Print(Log::LOG_VERBOSE, "Controller %d removed", index);
+				CONTROLLER_DEVICE_APPEVENT(index, APPEVENT_CONTROLLER_REMOVE);
+				EventHandler::Push(event);
+			}
 			break;
 		}
 		}
@@ -1578,8 +1620,14 @@ void Application::RunFrame(int runFrames) {
 	// Event loop
 	Metrics.Event.Begin();
 	Application::PollEvents();
-	EventHandler::Process();
+	InputManager::SetLastState();
+	EventHandler::Process((Stepper && Step) || !Stepper);
 	Metrics.Event.End();
+
+	// Input update
+	Metrics.Poll.Begin();
+	InputManager::Poll();
+	Metrics.Poll.End();
 
 	// BUG: Having Stepper on prevents the first
 	//   frame of a new scene from Updating, but still rendering.
@@ -1598,16 +1646,10 @@ void Application::RunFrame(int runFrames) {
 	}
 
 	// Update
+	Metrics.Update.Reset();
 	for (int m = 0; m < runFrames; m++) {
 		Scene::ResetPerf();
-		Metrics.Poll.Reset();
-		Metrics.Update.Reset();
 		if (((Stepper && Step) || !Stepper) && !Application::DevMenuActivated) {
-			// Poll for inputs
-			Metrics.Poll.Begin();
-			InputManager::Poll();
-			Metrics.Poll.Accumulate();
-
 			// Update scene
 			Metrics.Update.Begin();
 			Scene::FrameUpdate();
@@ -2591,9 +2633,6 @@ void Application::RunDevMenu() {
 
 	Graphics::Save();
 	if (DevMenuActivated) {
-		// Poll for inputs, since the frame did not run
-		InputManager::Poll();
-
 		if (Application::DevMenu.State)
 			Application::DevMenu.State();
 	}
