@@ -1456,87 +1456,6 @@ void Application::PollEvents() {
 		case SDL_QUIT:
 			DoQuit();
 			break;
-		case SDL_KEYDOWN: {
-			Uint16 key = InputManager::SDLScancodeToKey[e.key.keysym.scancode];
-			if (key == -1) {
-				break;
-			}
-
-			if (DevMode && HandleDevKey(APPEVENT_KEY_DOWN, key)) {
-				break;
-			}
-
-			KEY_APPEVENT(key, APPEVENT_KEY_DOWN);
-
-			EventHandler::Push(event);
-			break;
-		}
-		case SDL_KEYUP: {
-			Uint16 key = InputManager::SDLScancodeToKey[e.key.keysym.scancode];
-			if (key == -1) {
-				break;
-			}
-
-			if (DevMode && HandleDevKey(APPEVENT_KEY_UP, key)) {
-				break;
-			}
-
-			KEY_APPEVENT(key, APPEVENT_KEY_UP);
-
-			EventHandler::Push(event);
-			break;
-		}
-		case SDL_MOUSEBUTTONDOWN: {
-			MOUSE_APPEVENT(e, APPEVENT_MOUSE_BUTTON_DOWN);
-			EventHandler::Push(event);
-			break;
-		}
-		case SDL_MOUSEBUTTONUP: {
-			MOUSE_APPEVENT(e, APPEVENT_MOUSE_BUTTON_UP);
-			EventHandler::Push(event);
-			break;
-		}
-		case SDL_MOUSEMOTION: {
-			MOUSE_MOTION_APPEVENT(e);
-			EventHandler::Push(event);
-			break;
-		}
-		case SDL_MOUSEWHEEL: {
-			MOUSE_WHEEL_APPEVENT(e);
-			EventHandler::Push(event);
-			break;
-		}
-		case SDL_CONTROLLERBUTTONDOWN: {
-			int index = InputManager::FindController(e.cbutton.which);
-			if (index != -1) {
-				ControllerButton button = InputManager::SDLControllerButtonLookup[e.cbutton.button];
-
-				CONTROLLER_BUTTON_APPEVENT(index, (Uint8)button, APPEVENT_CONTROLLER_BUTTON_DOWN);
-				EventHandler::Push(event);
-			}
-			break;
-		}
-		case SDL_CONTROLLERBUTTONUP: {
-			int index = InputManager::FindController(e.cbutton.which);
-			if (index != -1) {
-				ControllerButton button = InputManager::SDLControllerButtonLookup[e.cbutton.button];
-
-				CONTROLLER_BUTTON_APPEVENT(index, (Uint8)button, APPEVENT_CONTROLLER_BUTTON_UP);
-				EventHandler::Push(event);
-			}
-			break;
-		}
-		case SDL_CONTROLLERAXISMOTION: {
-			int index = InputManager::FindController(e.caxis.which);
-			if (index != -1) {
-				ControllerAxis axis = InputManager::SDLControllerAxisLookup[e.caxis.axis];
-				float value = (float)e.caxis.value / 32767;
-
-				CONTROLLER_AXIS_APPEVENT(index, (Uint8)axis, value);
-				EventHandler::Push(event);
-			}
-			break;
-		}
 		case SDL_WINDOWEVENT:
 			switch (e.window.event) {
 			case SDL_WINDOWEVENT_RESIZED: {
@@ -1579,6 +1498,87 @@ void Application::PollEvents() {
 				break;
 			}
 			break;
+		case SDL_KEYDOWN: {
+			Uint16 key = InputManager::SDLScancodeToKey[e.key.keysym.scancode];
+			if (key == -1) {
+				break;
+			}
+
+			if (DevMode && HandleDevKey(APPEVENT_KEY_DOWN, key)) {
+				break;
+			}
+
+			KEY_APPEVENT(key, APPEVENT_KEY_DOWN);
+
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_KEYUP: {
+			Uint16 key = InputManager::SDLScancodeToKey[e.key.keysym.scancode];
+			if (key == -1) {
+				break;
+			}
+
+			if (DevMode && HandleDevKey(APPEVENT_KEY_UP, key)) {
+				break;
+			}
+
+			KEY_APPEVENT(key, APPEVENT_KEY_UP);
+
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_MOUSEMOTION: {
+			MOUSE_MOTION_APPEVENT(e);
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_MOUSEBUTTONDOWN: {
+			MOUSE_APPEVENT(e, APPEVENT_MOUSE_BUTTON_DOWN);
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_MOUSEBUTTONUP: {
+			MOUSE_APPEVENT(e, APPEVENT_MOUSE_BUTTON_UP);
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_MOUSEWHEEL: {
+			MOUSE_WHEEL_APPEVENT(e);
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_CONTROLLERBUTTONDOWN: {
+			int index = InputManager::FindController(e.cbutton.which);
+			if (index != -1) {
+				ControllerButton button = InputManager::SDLControllerButtonLookup[e.cbutton.button];
+
+				CONTROLLER_BUTTON_APPEVENT(index, (Uint8)button, APPEVENT_CONTROLLER_BUTTON_DOWN);
+				EventHandler::Push(event);
+			}
+			break;
+		}
+		case SDL_CONTROLLERBUTTONUP: {
+			int index = InputManager::FindController(e.cbutton.which);
+			if (index != -1) {
+				ControllerButton button = InputManager::SDLControllerButtonLookup[e.cbutton.button];
+
+				CONTROLLER_BUTTON_APPEVENT(index, (Uint8)button, APPEVENT_CONTROLLER_BUTTON_UP);
+				EventHandler::Push(event);
+			}
+			break;
+		}
+		case SDL_CONTROLLERAXISMOTION: {
+			int index = InputManager::FindController(e.caxis.which);
+			if (index != -1) {
+				ControllerAxis axis = InputManager::SDLControllerAxisLookup[e.caxis.axis];
+				float value = (float)e.caxis.value / 32767;
+
+				CONTROLLER_AXIS_APPEVENT(index, (Uint8)axis, value);
+				EventHandler::Push(event);
+			}
+			break;
+		}
 		case SDL_CONTROLLERDEVICEADDED: {
 			int joystickID = e.cdevice.which;
 
