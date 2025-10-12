@@ -81,7 +81,19 @@ bool EventHandler::Handle(AppEvent& event) {
         break;
     }
 
-    result = thread->InvokeForEntity(OBJECT_VAL(handler), thread->StackTop - stackTop);
+    VMValue callee = OBJECT_VAL(handler);
+
+    // Check how many arguments we should actually pass.
+    // For example, we can push 5 arguments, even though the function has a max arity of 2.
+    // In that situation, we need to discard 3 arguments, as if we didn't pass them at all.
+    int numArgs = thread->StackTop - stackTop;
+    int minArity, maxArity;
+    if (thread->GetArity(callee, minArity, maxArity) && numArgs > maxArity) {
+        numArgs = maxArity;
+        thread->StackTop = stackTop + numArgs;
+    }
+
+    result = thread->InvokeForEntity(callee, numArgs);
     thread->StackTop = stackTop;
 
     return Value::Truthy(result);
