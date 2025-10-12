@@ -121,6 +121,14 @@ enum Keyboard {
 	NUM_KEYBOARD_KEYS
 };
 
+enum class MouseButton {
+	Left,
+	Middle,
+	Right,
+	Extra1,
+	Extra2
+};
+
 enum class ControllerType {
 	Unknown,
 	Xbox360,

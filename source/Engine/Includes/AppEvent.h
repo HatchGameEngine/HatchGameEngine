@@ -89,7 +89,7 @@ struct AppEvent {
 #define MOUSE_APPEVENT(e, type) \
     AppEvent event; \
     event.Type = type; \
-    event.Mouse.Button = e.button.button; \
+    event.Mouse.Button = e.button.button - 1; \
     event.Mouse.X = e.button.x; \
     event.Mouse.Y = e.button.y; \
     event.Mouse.Clicks = e.button.clicks; \

@@ -7563,57 +7563,51 @@ VMValue Input_GetMouseY(int argCount, VMValue* args, Uint32 threadID) {
 	SDL_GetMouseState(NULL, &value);
 	return DECIMAL_VAL((float)value);
 }
+#define CHECK_MOUSE_BUTTON_INDEX(index) \
+	if (index < (int)MouseButton::Left || index > (int)MouseButton::Extra2) { \
+		OUT_OF_RANGE_ERROR("Mouse button index", index, (int)MouseButton::Left, (int)MouseButton::Extra2); \
+		return NULL_VAL; \
+	}
 /***
  * Input.IsMouseButtonDown
- * \desc Gets whether the mouse button is currently down.<br/>\
-</br>Mouse Button Indexes:<ul>\
-<li><code>0</code>: Left</li>\
-<li><code>1</code>: Middle</li>\
-<li><code>2</code>: Right</li>\
-</ul>
- * \param mouseButtonID (Integer): Index of the mouse button to check.
+ * \desc Checks whether a mouse button is currently down.
+ * \param mouseButton (Enum): Which <linkto ref="MouseButton_*">mouse button</linkto> to check.
  * \return Returns whether the mouse button is currently down.
  * \ns Input
  */
 VMValue Input_IsMouseButtonDown(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int button = GET_ARG(0, GetInteger);
+	CHECK_MOUSE_BUTTON_INDEX(button);
 	return INTEGER_VAL((InputManager::MouseDown >> button) & 1);
 }
 /***
  * Input.IsMouseButtonPressed
- * \desc Gets whether the mouse button started pressing during the current frame.<br/>\
-</br>Mouse Button Indexes:<ul>\
-<li><code>0</code>: Left</li>\
-<li><code>1</code>: Middle</li>\
-<li><code>2</code>: Right</li>\
-</ul>
- * \param mouseButtonID (Integer): Index of the mouse button to check.
+ * \desc Checks whether a mouse button started pressing during the current frame.
+ * \param mouseButton (Enum): Which <linkto ref="MouseButton_*">mouse button</linkto> to check.
  * \return Returns whether the mouse button started pressing during the current frame.
  * \ns Input
  */
 VMValue Input_IsMouseButtonPressed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int button = GET_ARG(0, GetInteger);
+	CHECK_MOUSE_BUTTON_INDEX(button);
 	return INTEGER_VAL((InputManager::MousePressed >> button) & 1);
 }
 /***
  * Input.IsMouseButtonReleased
- * \desc Gets whether the mouse button released during the current frame.<br/>\
-</br>Mouse Button Indexes:<ul>\
-<li><code>0</code>: Left</li>\
-<li><code>1</code>: Middle</li>\
-<li><code>2</code>: Right</li>\
-</ul>
- * \param mouseButtonID (Integer): Index of the mouse button to check.
+ * \desc Checks whether a mouse button was released during the current frame.
+ * \param mouseButton (Enum): Which <linkto ref="MouseButton_*">mouse button</linkto> to check.
  * \return Returns whether the mouse button released during the current frame.
  * \ns Input
  */
 VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int button = GET_ARG(0, GetInteger);
+	CHECK_MOUSE_BUTTON_INDEX(button);
 	return INTEGER_VAL((InputManager::MouseReleased >> button) & 1);
 }
+#undef CHECK_MOUSE_BUTTON_INDEX
 /***
  * Input.GetMouseMode
  * \desc Gets the current mouse mode.
@@ -20488,6 +20482,32 @@ void StandardLibrary::Link() {
     * \desc Number of input device types.
     */
 	DEF_CONST_INT("NUM_INPUT_DEVICE_TYPES", (int)InputDevice_MAX);
+
+	/***
+    * \enum MouseButton_Left
+    * \desc Left mouse button.
+    */
+    DEF_ENUM_CLASS(MouseButton, Left);
+    /***
+    * \enum MouseButton_Middle
+    * \desc Middle mouse button.
+    */
+    DEF_ENUM_CLASS(MouseButton, Middle);
+    /***
+    * \enum MouseButton_Right
+    * \desc Right mouse button.
+    */
+    DEF_ENUM_CLASS(MouseButton, Right);
+    /***
+    * \enum MouseButton_Extra1
+    * \desc First side/extra mouse button.
+    */
+    DEF_ENUM_CLASS(MouseButton, Extra1);
+    /***
+    * \enum MouseButton_Extra2
+    * \desc Second side/extra mouse button.
+    */
+    DEF_ENUM_CLASS(MouseButton, Extra2);
 
 	/***
     * \enum InputBind_Keyboard
