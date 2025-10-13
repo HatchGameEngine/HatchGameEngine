@@ -7,8 +7,8 @@
 
 #include <queue>
 
-std::vector<EventHandler*> EventHandler::RegisteredHandlers[MAX_APPEVENT];
-std::vector<EventHandler*> EventHandler::AllHandlers;
+std::vector<EventHandler*> EventHandler::List;
+std::vector<EventHandler*> EventHandler::GroupedByType[MAX_APPEVENT];
 
 std::queue<AppEvent> Queue;
 
@@ -128,20 +128,66 @@ bool EventHandler::Handle(AppEvent& event) {
 
     return Value::Truthy(result);
 }
-void EventHandler::Register(AppEventType type, EventHandlerCallback callback) {
+int EventHandler::Register(AppEventType type, EventHandlerCallback callback) {
     EventHandler* handler = new EventHandler;
+    handler->Type = type;
     handler->Callback = callback;
     handler->Enabled = true;
 
-    RegisteredHandlers[type].push_back(handler);
-    AllHandlers.push_back(handler);
+    GroupedByType[type].push_back(handler);
+
+    for (size_t i = 0; i < List.size(); i++) {
+        if (List[i] == nullptr) {
+            List[i] = handler;
+
+            return (int)i;
+        }
+    }
+
+    List.push_back(handler);
+
+    return (int)(List.size() - 1);
+}
+bool EventHandler::IsValidIndex(int index) {
+    if (index < 0 || index >= (int)List.size()) {
+        return false;
+    }
+
+    return List[index] != nullptr;
+}
+void EventHandler::SetEnabled(int index, bool enabled) {
+    if (IsValidIndex(index)) {
+        EventHandler* handler = List[index];
+        handler->Enabled = enabled;
+    }
+}
+void EventHandler::Remove(int index) {
+    if (!IsValidIndex(index)) {
+        return;
+    }
+
+    EventHandler* handler = List[index];
+    std::vector<EventHandler*>* list = &GroupedByType[handler->Type];
+
+    auto it = std::find(list->begin(), list->end(), handler);
+    if (it != list->end()) {
+        list->erase(it);
+    }
+
+    delete handler;
+
+    List[index] = nullptr;
 }
 void EventHandler::RemoveAll() {
     for (size_t i = 0; i < MAX_APPEVENT; i++) {
-        RegisteredHandlers[i].clear();
+        GroupedByType[i].clear();
     }
 
-    AllHandlers.clear();
+    for (size_t i = 0; i < List.size(); i++) {
+        delete List[i];
+    }
+
+    List.clear();
 }
 
 void EventHandler::Push(AppEvent event) {
@@ -152,7 +198,7 @@ bool EventHandler::CallHandlers(AppEvent& event) {
         return false;
     }
 
-    std::vector<EventHandler*>* list = &RegisteredHandlers[event.Type];
+    std::vector<EventHandler*>* list = &GroupedByType[event.Type];
     int numHandlers = list->size();
     if (numHandlers == 0) {
         return false;

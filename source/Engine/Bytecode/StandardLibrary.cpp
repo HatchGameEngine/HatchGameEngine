@@ -1684,28 +1684,70 @@ VMValue Application_SetDefaultFont(int argCount, VMValue* args, Uint32 threadID)
  * Application.AddEventHandler
  * \desc Adds an event handler for the specified app event.
  * \param eventType (Enum): The app event type.
- * \param handler (Function): The event handler.
+ * \param callback (Function): The event handler callback.
+ * \return Returns the index of the registered event handler.
  * \ns Application
  */
 VMValue Application_AddEventHandler(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
 	int eventType = GET_ARG(0, GetInteger);
-	VMValue handler = args[1];
+	VMValue callback = args[1];
 
 	if (eventType < APPEVENT_QUIT || eventType >= MAX_APPEVENT) {
 		OUT_OF_RANGE_ERROR("App event type", eventType, APPEVENT_QUIT, MAX_APPEVENT - 1);
 		return NULL_VAL;
 	}
-	if (!IS_CALLABLE(handler)) {
-		THROW_ERROR("Expected argument 2 to be a callable instead of %s.", GetValueTypeString(handler));
+	if (!IS_CALLABLE(callback)) {
+		THROW_ERROR("Expected argument 2 to be a callable instead of %s.", GetValueTypeString(callback));
 		return NULL_VAL;
 	}
 
-	EventHandlerCallback callback;
-	callback.Function = (void*)(AS_OBJECT(handler));
+	EventHandlerCallback handlerCallback;
+	handlerCallback.Function = (void*)(AS_OBJECT(callback));
 
-	EventHandler::Register((AppEventType)eventType, callback);
+	int index = EventHandler::Register((AppEventType)eventType, handlerCallback);
+
+	return INTEGER_VAL(index);
+}
+/***
+ * Application.SetEventHandlerEnabled
+ * \desc Enables or disables a previously registered event handler.
+ * \param handler (Integer): The event handler index to remove.
+ * \param isEnabled (Boolean): Whether or not the event handler is enabled.
+ * \ns Application
+ */
+VMValue Application_SetEventHandlerEnabled(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+
+	int index = GET_ARG(0, GetInteger);
+	bool isEnabled = GET_ARG(1, GetInteger);
+
+	if (EventHandler::IsValidIndex(index)) {
+		EventHandler::SetEnabled(index, isEnabled);
+	}
+	else {
+		THROW_ERROR("Invalid event handler index %d.", index);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Application.RemoveEventHandler
+ * \desc Removes a previously registered event handler.
+ * \param handler (Integer): The event handler index to remove.
+ * \ns Application
+ */
+VMValue Application_RemoveEventHandler(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	int index = GET_ARG(0, GetInteger);
+	if (EventHandler::IsValidIndex(index)) {
+		EventHandler::Remove(index);
+	}
+	else {
+		THROW_ERROR("Invalid event handler index %d.", index);
+	}
 
 	return NULL_VAL;
 }
@@ -19202,6 +19244,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, Error);
 	DEF_NATIVE(Application, SetDefaultFont);
 	DEF_NATIVE(Application, AddEventHandler);
+	DEF_NATIVE(Application, SetEventHandlerEnabled);
+	DEF_NATIVE(Application, RemoveEventHandler);
 	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
 	/***
