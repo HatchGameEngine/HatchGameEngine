@@ -46,6 +46,10 @@ struct AppEvent {
 
     union {
         struct {
+            bool IsUserRequested;
+        } Quit;
+
+        struct {
             int X;
             int Y;
             int Width;

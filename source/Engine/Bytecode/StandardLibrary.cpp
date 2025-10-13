@@ -1786,12 +1786,12 @@ VMValue Application_ChangeGame(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Application.Quit
- * \desc Closes the application.
+ * \desc Closes the application. This will generate an <code>APPEVENT_QUIT</code> event, but the application will ignore any truthy values returned from a registered event handler.
  * \ns Application
  */
 VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	Application::Running = false;
+	Application::DoQuit(false);
 	return NULL_VAL;
 }
 // #endregion

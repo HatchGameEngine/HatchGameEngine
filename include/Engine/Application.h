@@ -75,7 +75,6 @@ private:
 	static void DelayFrame();
 	static void SetUseFixedTimestep(bool useFixedTimestep);
 	static void StartGame(const char* startingScene);
-	static void DoQuit();
 	static void LoadGameConfig();
 	static void DisposeGameConfig();
 	static string ParseGameVersion(XMLNode* versionNode);
@@ -183,6 +182,7 @@ public:
 	static void SetKeyBind(int bind, int key);
 	static bool HandleBinds(AppEvent& event);
 	static void Run(int argc, char* args[]);
+	static void DoQuit(bool isUserRequested);
 	static void Cleanup();
 	static void TerminateScripting();
 	static void LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene);

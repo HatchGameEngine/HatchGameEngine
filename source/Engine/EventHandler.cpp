@@ -24,6 +24,9 @@ bool EventHandler::Handle(AppEvent& event) {
     VMValue result;
 
     switch (event.Type) {
+    case APPEVENT_QUIT:
+        thread->Push(INTEGER_VAL(event.Quit.IsUserRequested));
+        break;
     case APPEVENT_KEY_DOWN:
     case APPEVENT_KEY_UP:
         thread->Push(INTEGER_VAL(event.Keyboard.Key));
@@ -173,6 +176,16 @@ void EventHandler::Process(bool doCallbacks) {
         bool handled = doCallbacks && CallHandlers(event);
 
         switch (event.Type) {
+        case APPEVENT_QUIT:
+            if (event.Quit.IsUserRequested && handled) {
+                // If this was an user-requested quit (from pressing the 'X' button, for example)
+                // then the callback can prevent the application from quitting.
+                // Otherwise - for example, calling Application.Quit in a script - the application
+                // always exits.
+                break;
+            }
+            Application::Running = false;
+            break;
         case APPEVENT_KEY_DOWN:
         case APPEVENT_KEY_UP:
         case APPEVENT_MOUSE_MOTION:

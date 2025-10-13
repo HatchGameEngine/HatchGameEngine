@@ -1352,7 +1352,7 @@ bool Application::HandleDevKey(AppEventType eventType, int key) {
 	// Quit game
 	// Unbound by default, must be set in GameConfig
 	case KeyBind::DevQuit:
-		DoQuit();
+		DoQuit(false); // We pass false because this is a forced quit.
 		return true;
 	// Open dev menu
 	case KeyBind::DevMenuToggle:
@@ -1462,7 +1462,7 @@ void Application::PollEvents() {
 	while (SDL_PollEvent(&e)) {
 		switch (e.type) {
 		case SDL_QUIT:
-			DoQuit();
+			DoQuit(true);
 			break;
 		case SDL_WINDOWEVENT:
 			switch (e.window.event) {
@@ -1994,15 +1994,15 @@ void Application::MainLoop() {
 	}
 }
 
-void Application::DoQuit() {
+void Application::DoQuit(bool isUserRequested) {
 	if (!Running) {
+		// If we are about to exit, don't send the event again.
 		return;
 	}
 
-	Running = false;
-
 	AppEvent event;
 	event.Type = APPEVENT_QUIT;
+	event.Quit.IsUserRequested = isUserRequested;
 	EventHandler::Push(event);
 }
 
