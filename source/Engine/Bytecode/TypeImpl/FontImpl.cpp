@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
+#include <Engine/Data/DefaultFonts.h>
 #include <Engine/ResourceTypes/Font.h>
 
 ObjClass* FontImpl::Class = nullptr;
@@ -86,10 +87,41 @@ Stream* GetFontStream(VMValue value, bool& closeStream, Uint32 threadID) {
 	}
 }
 
+void GetDefaultFonts(std::vector<Stream*>& streamList, std::vector<bool>& closeStream) {
+	if (Application::DefaultFontList.size() > 0) {
+		for (size_t i = 0; i < Application::DefaultFontList.size(); i++) {
+			std::string filename = Application::DefaultFontList[i];
+			Stream* stream = ResourceStream::New(filename.c_str());
+			if (stream) {
+				streamList.push_back(stream);
+				closeStream.push_back(true);
+			} else {
+				throw ScriptException("Resource \"" + filename + "\" does not exist!");
+			}
+		}
+		return;
+	}
+
+	// If no default font list was set
+	void* data = GetDefaultFontData();
+	if (data == nullptr) {
+		throw ScriptException("No default font present in this build!");
+	}
+
+	MemoryStream* stream = MemoryStream::New(data, GetDefaultFontDataLength());
+	if (stream) {
+		streamList.push_back(stream);
+		closeStream.push_back(true);
+	}
+	else {
+		throw ScriptException("Could not load default font!");
+	}
+}
+
 /***
  * \constructor
- * \param font (String, Stream, or Array): The font or list of fonts.
  * \desc Loads a font from the given Resource path, Stream, or Array containing Resource paths or Streams.
+ * \paramOpt font (String, Stream, or Array): The font or list of fonts. If this argument is not given, it will use font the application was built with, if one is present.
  * \ns Font
  */
 Obj* FontImpl::New() {
@@ -109,7 +141,7 @@ VMValue FontImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 	ObjFont* objFont = AS_FONT(args[0]);
 	Font* font = objFont->FontPtr;
 
-	StandardLibrary::CheckArgCount(argCount, 2);
+	StandardLibrary::CheckAtLeastArgCount(argCount, 1);
 
 	std::vector<Stream*> streamList;
 	std::vector<bool> closeStream;
@@ -133,7 +165,11 @@ VMValue FontImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 		throw; \
 	}
 
-	if (IS_ARRAY(args[1])) {
+	// No argument was passed, so this constructs the Font using the default font.
+	if (argCount == 1) {
+		GetDefaultFonts(streamList, closeStream);
+	}
+	else if (IS_ARRAY(args[1])) {
 		ObjArray* array = AS_ARRAY(args[1]);
 		for (size_t i = 0; i < array->Values->size(); i++) {
 			GET_STREAM((*array->Values)[i]);
@@ -482,16 +518,8 @@ VMValue FontImpl::VM_SetOversampling(int argCount, VMValue* args, Uint32 threadI
 		return NULL_VAL;
 	}
 
-	if (oversampling < 1) {
-		oversampling = 1;
-	}
-	else if (oversampling > 8) {
-		oversampling = 8;
-	}
-
 	Font* font = (Font*)objFont->FontPtr;
-	if (oversampling != font->Oversampling) {
-		font->Oversampling = oversampling;
+	if (font->SetOversampling(oversampling)) {
 		font->Reload();
 	}
 
