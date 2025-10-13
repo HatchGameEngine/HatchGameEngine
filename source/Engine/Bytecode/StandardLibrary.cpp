@@ -1733,6 +1733,20 @@ VMValue Application_SetEventHandlerEnabled(int argCount, VMValue* args, Uint32 t
 	return NULL_VAL;
 }
 /***
+ * Application.IsEventHandlerValid
+ * \desc Checks whether an event handler is valid.
+ * \param handler (Integer): The event handler index to check.
+ * \return Returns a Boolean value.
+ * \ns Application
+ */
+VMValue Application_IsEventHandlerValid(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	int index = GET_ARG(0, GetInteger);
+
+	return INTEGER_VAL(EventHandler::IsValidIndex(index));
+}
+/***
  * Application.RemoveEventHandler
  * \desc Removes a previously registered event handler.
  * \param handler (Integer): The event handler index to remove.
@@ -19245,6 +19259,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetDefaultFont);
 	DEF_NATIVE(Application, AddEventHandler);
 	DEF_NATIVE(Application, SetEventHandlerEnabled);
+	DEF_NATIVE(Application, IsEventHandlerValid);
 	DEF_NATIVE(Application, RemoveEventHandler);
 	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
