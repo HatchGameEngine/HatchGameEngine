@@ -87,6 +87,23 @@ bool EventHandler::Handle(AppEvent& event) {
         thread->Push(INTEGER_VAL(event.MouseWheel.Y));
         thread->Push(INTEGER_VAL(event.MouseWheel.WindowID));
         break;
+    case APPEVENT_TOUCH_FINGER_MOTION:
+        thread->Push(DECIMAL_VAL(event.Finger.X));
+        thread->Push(DECIMAL_VAL(event.Finger.Y));
+        thread->Push(DECIMAL_VAL(event.Finger.MotionX));
+        thread->Push(DECIMAL_VAL(event.Finger.MotionY));
+        thread->Push(DECIMAL_VAL(event.Finger.Pressure));
+        thread->Push(INTEGER_VAL(event.Finger.Index));
+        thread->Push(INTEGER_VAL(event.Finger.WindowID));
+        break;
+    case APPEVENT_TOUCH_FINGER_DOWN:
+    case APPEVENT_TOUCH_FINGER_UP:
+        thread->Push(DECIMAL_VAL(event.Finger.X));
+        thread->Push(DECIMAL_VAL(event.Finger.Y));
+        thread->Push(DECIMAL_VAL(event.Finger.Pressure));
+        thread->Push(INTEGER_VAL(event.Finger.Index));
+        thread->Push(INTEGER_VAL(event.Finger.WindowID));
+        break;
     default:
         break;
     }
@@ -165,15 +182,15 @@ void EventHandler::Process(bool doCallbacks) {
         case APPEVENT_CONTROLLER_BUTTON_DOWN:
         case APPEVENT_CONTROLLER_BUTTON_UP:
         case APPEVENT_CONTROLLER_AXIS_MOTION:
-        case APPEVENT_FINGER_MOTION:
-        case APPEVENT_FINGER_DOWN:
-        case APPEVENT_FINGER_UP:
+        case APPEVENT_TOUCH_FINGER_MOTION:
+        case APPEVENT_TOUCH_FINGER_DOWN:
+        case APPEVENT_TOUCH_FINGER_UP:
             if (handled) {
                 break;
             }
 
-            if (event.Type == APPEVENT_KEY_DOWN) {
-                Application::HandleBinds(event.Keyboard.Key);
+            if (event.Type == APPEVENT_KEY_DOWN || event.Type == APPEVENT_KEY_UP) {
+                Application::HandleBinds(event);
             }
 
             InputManager::RespondToEvent(event);

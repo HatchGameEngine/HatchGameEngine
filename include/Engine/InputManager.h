@@ -40,8 +40,9 @@ public:
 	static ControllerAxis SDLControllerAxisLookup[(int)ControllerAxis::Max];
 	static int NumControllers;
 	static vector<Controller*> Controllers;
-	static SDL_TouchID TouchDevice;
-	static void* TouchStates;
+	static TouchState* TouchStates;
+	static TouchState* TouchStatesLast;
+	static bool SimulateTouchScreen;
 	static vector<InputPlayer> Players;
 	static vector<InputAction> Actions;
 

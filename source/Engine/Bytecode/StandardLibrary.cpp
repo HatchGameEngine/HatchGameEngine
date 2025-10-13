@@ -19380,20 +19380,20 @@ void StandardLibrary::Link() {
 	*/
 	DEF_ENUM(APPEVENT_CONTROLLER_REMOVE);
 	/***
-	* \enum APPEVENT_FINGER_MOTION
+	* \enum APPEVENT_TOUCH_FINGER_MOTION
 	* \desc Touch screen finger motion event.
 	*/
-	DEF_ENUM(APPEVENT_FINGER_MOTION);
+	DEF_ENUM(APPEVENT_TOUCH_FINGER_MOTION);
 	/***
-	* \enum APPEVENT_FINGER_DOWN
+	* \enum APPEVENT_TOUCH_FINGER_DOWN
 	* \desc Touch screen finger down event.
 	*/
-	DEF_ENUM(APPEVENT_FINGER_DOWN);
+	DEF_ENUM(APPEVENT_TOUCH_FINGER_DOWN);
 	/***
-	* \enum APPEVENT_FINGER_UP
+	* \enum APPEVENT_TOUCH_FINGER_UP
 	* \desc Touch screen finger up event.
 	*/
-	DEF_ENUM(APPEVENT_FINGER_UP);
+	DEF_ENUM(APPEVENT_TOUCH_FINGER_UP);
 	/***
 	* \enum APPEVENT_AUDIO_DEVICE_ADD
 	* \desc Audio device added event.

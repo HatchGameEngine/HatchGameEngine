@@ -61,6 +61,7 @@ private:
 	static void Restart(bool keepScene);
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
+	static void LoadInputSettings();
 	static void LoadKeyBinds();
 	static void LoadDevSettings();
 	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest);
@@ -180,7 +181,7 @@ public:
 	static void SetWindowScale(int scale);
 	static int GetKeyBind(int bind);
 	static void SetKeyBind(int bind, int key);
-	static bool HandleBinds(int key);
+	static bool HandleBinds(AppEvent& event);
 	static void Run(int argc, char* args[]);
 	static void Cleanup();
 	static void TerminateScripting();

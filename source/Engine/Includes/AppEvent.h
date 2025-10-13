@@ -31,9 +31,9 @@ enum AppEventType {
     APPEVENT_CONTROLLER_ADD,
     APPEVENT_CONTROLLER_REMOVE,
 
-    APPEVENT_FINGER_MOTION,
-    APPEVENT_FINGER_DOWN,
-    APPEVENT_FINGER_UP,
+    APPEVENT_TOUCH_FINGER_MOTION,
+    APPEVENT_TOUCH_FINGER_DOWN,
+    APPEVENT_TOUCH_FINGER_UP,
 
     APPEVENT_AUDIO_DEVICE_ADD,
     APPEVENT_AUDIO_DEVICE_REMOVE,
@@ -89,8 +89,23 @@ struct AppEvent {
         struct {
             int Index;
         } ControllerDevice;
+
+        struct {
+            float X;
+            float Y;
+            float MotionX;
+            float MotionY;
+            float Pressure;
+            int Index;
+            Uint8 WindowID;
+        } Finger;
     };
 };
+
+#define WINDOW_APPEVENT(e, type) \
+    AppEvent event; \
+    event.Type = type; \
+    event.Window.Index = e.window.windowID
 
 #define KEY_APPEVENT(key, type) \
     AppEvent event; \
@@ -142,9 +157,50 @@ struct AppEvent {
     event.Type = type; \
     event.ControllerDevice.Index = index
 
-#define WINDOW_APPEVENT(e, type) \
+#define TOUCH_FINGER_MOTION_APPEVENT(e) \
+    AppEvent event; \
+    event.Type = APPEVENT_TOUCH_FINGER_MOTION; \
+    event.Finger.Index = e.tfinger.fingerId; \
+    event.Finger.WindowID = e.tfinger.windowID; \
+    event.Finger.X = e.tfinger.x; \
+    event.Finger.Y = e.tfinger.y; \
+    event.Finger.MotionX = e.tfinger.dx; \
+    event.Finger.MotionY = e.tfinger.dy; \
+    event.Finger.Pressure = e.tfinger.pressure
+
+#define TOUCH_FINGER_APPEVENT(e, type) \
     AppEvent event; \
     event.Type = type; \
-    event.Window.Index = e.window.windowID
+    event.Finger.Index = e.tfinger.fingerId; \
+    event.Finger.WindowID = e.tfinger.windowID; \
+    event.Finger.X = e.tfinger.x; \
+    event.Finger.Y = e.tfinger.y; \
+    event.Finger.MotionX = 0.0; \
+    event.Finger.MotionY = 0.0; \
+    event.Finger.Pressure = e.tfinger.pressure
+
+// Event struct should be of type SDL_MouseMotionEvent
+#define SIMULATED_TOUCH_FINGER_MOTION_APPEVENT(e, windowWidth, windowHeight) \
+    AppEvent event; \
+    event.Type = APPEVENT_TOUCH_FINGER_MOTION; \
+    event.Finger.Index = 0; \
+    event.Finger.WindowID = e.motion.windowID; \
+    event.Finger.X = (float)e.motion.x / windowWidth; \
+    event.Finger.Y = (float)e.motion.y / windowHeight; \
+    event.Finger.MotionX = (float)e.motion.xrel / windowWidth; \
+    event.Finger.MotionY = (float)e.motion.yrel / windowHeight; \
+    event.Finger.Pressure = 1.0
+
+// Event struct should be of type SDL_MouseButtonEvent
+#define SIMULATED_TOUCH_FINGER_APPEVENT(e, type, windowWidth, windowHeight) \
+    AppEvent event; \
+    event.Type = type; \
+    event.Finger.Index = 0; \
+    event.Finger.WindowID = e.motion.windowID; \
+    event.Finger.X = (float)e.motion.x / windowWidth; \
+    event.Finger.Y = (float)e.motion.y / windowHeight; \
+    event.Finger.MotionX = 0.0; \
+    event.Finger.MotionY = 0.0; \
+    event.Finger.Pressure = 1.0
 
 #endif

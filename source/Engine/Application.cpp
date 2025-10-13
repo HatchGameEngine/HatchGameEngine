@@ -180,17 +180,14 @@ void Application::Init(int argc, char* args[]) {
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "0");
 
 #ifdef IOS
-	// SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft
-	// LandscapeRight Portrait PortraitUpsideDown"); // iOS only
-	// SDL_SetHint(SDL_HINT_AUDIO_CATEGORY, "playback"); //
-	// Background Playback
+	// SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight Portrait PortraitUpsideDown"); // iOS only
+	// SDL_SetHint(SDL_HINT_AUDIO_CATEGORY, "playback"); // Background Playback
 	SDL_SetHint(SDL_HINT_IOS_HIDE_HOME_INDICATOR, "1");
 	iOS_InitMediaPlayer();
 #endif
 
-#ifdef ANDROID
-	SDL_SetHint(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH, "1");
-#endif
+	SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
+	SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
 
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK |
 		    SDL_INIT_GAMECONTROLLER) < 0) {
@@ -1142,6 +1139,11 @@ void Application::LoadKeyBinds() {
 #undef GET_KEY
 }
 
+void Application::LoadInputSettings() {
+	Application::Settings->GetBool(
+		"input", "simulateTouchScreen", &InputManager::SimulateTouchScreen);
+}
+
 void Application::AddPerformanceMetric(PerformanceMeasure* measure,
 	const char* name,
 	float r,
@@ -1306,7 +1308,13 @@ void Application::SetKeyBind(int bind, int key) {
 	KeyBinds[bind] = key;
 }
 
-bool Application::HandleBinds(int key) {
+bool Application::HandleBinds(AppEvent& event) {
+	if (event.Type != APPEVENT_KEY_DOWN) {
+		return event.Type == APPEVENT_KEY_UP;
+	}
+
+	int key = event.Keyboard.Key;
+
 	// Fullscreen
 	if (key == KeyBinds[(int)KeyBind::Fullscreen]) {
 		Application::SetWindowFullscreen(!Application::GetWindowFullscreen());
@@ -1529,21 +1537,65 @@ void Application::PollEvents() {
 			break;
 		}
 		case SDL_MOUSEMOTION: {
+			if (InputManager::SimulateTouchScreen) {
+				// Check if the mouse button is down
+				Uint32 mouseState = SDL_GetMouseState(nullptr, nullptr);
+				if (mouseState & SDL_BUTTON(1)) {
+					int ww, wh;
+					SDL_GetWindowSize(Application::Window, &ww, &wh);
+
+					SIMULATED_TOUCH_FINGER_MOTION_APPEVENT(e, ww, wh);
+					EventHandler::Push(event);
+				}
+				break;
+			}
+
 			MOUSE_MOTION_APPEVENT(e);
 			EventHandler::Push(event);
 			break;
 		}
 		case SDL_MOUSEBUTTONDOWN: {
+			if (InputManager::SimulateTouchScreen) {
+				// Check if the left mouse button was pressed
+				Uint8 button = e.button.button;
+				if (button == 1) {
+					int ww, wh;
+					SDL_GetWindowSize(Application::Window, &ww, &wh);
+
+					SIMULATED_TOUCH_FINGER_APPEVENT(e, APPEVENT_TOUCH_FINGER_DOWN, ww, wh);
+					EventHandler::Push(event);
+				}
+				break;
+			}
+
 			MOUSE_APPEVENT(e, APPEVENT_MOUSE_BUTTON_DOWN);
 			EventHandler::Push(event);
 			break;
 		}
 		case SDL_MOUSEBUTTONUP: {
+			if (InputManager::SimulateTouchScreen) {
+				// Check if the left mouse button was released
+				Uint8 button = e.button.button;
+				if (button == 1) {
+					int ww, wh;
+					SDL_GetWindowSize(Application::Window, &ww, &wh);
+
+					SIMULATED_TOUCH_FINGER_APPEVENT(e, APPEVENT_TOUCH_FINGER_UP, ww, wh);
+					EventHandler::Push(event);
+				}
+				break;
+			}
+
 			MOUSE_APPEVENT(e, APPEVENT_MOUSE_BUTTON_UP);
 			EventHandler::Push(event);
 			break;
 		}
 		case SDL_MOUSEWHEEL: {
+			if (InputManager::SimulateTouchScreen) {
+				// Mouse wheel events are ignored if simulating a touch screen with the mouse
+				break;
+			}
+
 			MOUSE_WHEEL_APPEVENT(e);
 			EventHandler::Push(event);
 			break;
@@ -1604,6 +1656,21 @@ void Application::PollEvents() {
 				CONTROLLER_DEVICE_APPEVENT(index, APPEVENT_CONTROLLER_REMOVE);
 				EventHandler::Push(event);
 			}
+			break;
+		}
+		case SDL_FINGERMOTION: {
+			TOUCH_FINGER_MOTION_APPEVENT(e);
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_FINGERDOWN: {
+			TOUCH_FINGER_APPEVENT(e, APPEVENT_TOUCH_FINGER_DOWN);
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_FINGERUP: {
+			TOUCH_FINGER_APPEVENT(e, APPEVENT_TOUCH_FINGER_UP);
+			EventHandler::Push(event);
 			break;
 		}
 		}
@@ -2466,6 +2533,7 @@ bool Application::LoadSettings(const char* filename) {
 void Application::ReadSettings() {
 	Application::LoadVideoSettings();
 	Application::LoadAudioSettings();
+	Application::LoadInputSettings();
 	Application::LoadDevSettings();
 	Application::LoadKeyBinds();
 }

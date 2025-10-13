@@ -12,7 +12,7 @@ int InputManager::MouseMode = MOUSEMODE_DEFAULT;
 
 Uint8 InputManager::KeyboardState[NUM_KEYBOARD_KEYS];
 Uint8 InputManager::KeyboardStateLast[NUM_KEYBOARD_KEYS];
-Uint16 InputManager::KeymodState;
+Uint16 InputManager::KeymodState = 0;
 
 Uint16 InputManager::SDLScancodeToKey[SDL_NUM_SCANCODES];
 ControllerButton InputManager::SDLControllerButtonLookup[(int)ControllerButton::Max];
@@ -21,40 +21,23 @@ ControllerAxis InputManager::SDLControllerAxisLookup[(int)ControllerAxis::Max];
 int InputManager::NumControllers;
 vector<Controller*> InputManager::Controllers;
 
-SDL_TouchID InputManager::TouchDevice;
-void* InputManager::TouchStates;
+// SDL_TouchID InputManager::TouchDevice;
+TouchState* InputManager::TouchStates;
+TouchState* InputManager::TouchStatesLast;
+bool InputManager::SimulateTouchScreen = false;
 
 vector<InputPlayer> InputManager::Players;
 vector<InputAction> InputManager::Actions;
 
 static std::map<std::string, Uint16> KeymodStrToFlags;
 
-struct TouchState {
-	float X;
-	float Y;
-	bool Down;
-	bool Pressed;
-	bool Released;
-};
-
 void InputManager::Init() {
-	memset(KeyboardState, 0, NUM_KEYBOARD_KEYS);
-	memset(KeyboardStateLast, 0, NUM_KEYBOARD_KEYS);
-
-	KeymodState = 0;
-
 	InputManager::InitLUTs();
 
-	InputManager::TouchStates = Memory::TrackedCalloc(
+	InputManager::TouchStates = (TouchState*)Memory::TrackedCalloc(
 		"InputManager::TouchStates", NUM_TOUCH_STATES, sizeof(TouchState));
-	for (int t = 0; t < NUM_TOUCH_STATES; t++) {
-		TouchState* current = &((TouchState*)TouchStates)[t];
-		current->X = 0.0f;
-		current->Y = 0.0f;
-		current->Down = false;
-		current->Pressed = false;
-		current->Released = false;
-	}
+	InputManager::TouchStatesLast = (TouchState*)Memory::TrackedCalloc(
+		"InputManager::TouchStatesLast", NUM_TOUCH_STATES, sizeof(TouchState));
 }
 
 namespace NameMap {
@@ -366,6 +349,8 @@ void InputManager::SetLastState() {
 
 	MouseDownLast = MouseDown;
 
+	memcpy(TouchStatesLast, TouchStates, NUM_TOUCH_STATES * sizeof(TouchState));
+
 	for (int i = 0; i < InputManager::NumControllers; i++) {
 		Controller* controller = InputManager::Controllers[i];
 		if (controller->Connected) {
@@ -374,64 +359,6 @@ void InputManager::SetLastState() {
 	}
 }
 void InputManager::Poll() {
-#if 0
-	if (Application::Platform == Platforms::iOS ||
-		Application::Platform == Platforms::Android ||
-		Application::Platform == Platforms::Switch) {
-		int w, h;
-		TouchState* states = (TouchState*)TouchStates;
-		SDL_GetWindowSize(Application::Window, &w, &h);
-
-		bool OneDown = false;
-		for (int d = 0; d < SDL_GetNumTouchDevices(); d++) {
-			TouchDevice = SDL_GetTouchDevice(d);
-			if (TouchDevice) {
-				OneDown = false;
-				for (int t = 0; t < 8 && SDL_GetNumTouchFingers(TouchDevice); t++) {
-					TouchState* current = &states[t];
-
-					bool previouslyDown = current->Down;
-
-					current->Down = false;
-					if (t < SDL_GetNumTouchFingers(TouchDevice)) {
-						SDL_Finger* finger =
-							SDL_GetTouchFinger(TouchDevice, t);
-						float tx = finger->x * w;
-						float ty = finger->y * h;
-
-						current->X = tx;
-						current->Y = ty;
-						current->Down = true;
-
-						OneDown = true;
-					}
-
-					current->Pressed = !previouslyDown && current->Down;
-					current->Released = previouslyDown && !current->Down;
-				}
-
-				if (OneDown) {
-					break;
-				}
-			}
-		}
-
-		// NOTE: If no touches were down, set all their
-		//   states to !Down and Released appropriately.
-		if (!OneDown) {
-			for (int t = 0; t < 8; t++) {
-				TouchState* current = &states[t];
-
-				bool previouslyDown = current->Down;
-
-				current->Down = false;
-				current->Pressed = !previouslyDown && current->Down;
-				current->Released = previouslyDown && !current->Down;
-			}
-		}
-	}
-#endif
-
 	SDL_Keymod sdlKeyMod = SDL_GetModState();
 
 	KeymodState = 0;
@@ -522,6 +449,27 @@ void InputManager::RespondToEvent(AppEvent& event) {
 			}
 		}
 		break;
+	case APPEVENT_TOUCH_FINGER_MOTION:
+	case APPEVENT_TOUCH_FINGER_DOWN:
+	case APPEVENT_TOUCH_FINGER_UP: {
+		int fingerID = event.Finger.Index;
+
+		TouchState* state = &TouchStates[fingerID];
+		TouchState* lastState = &TouchStatesLast[fingerID];
+
+		int w, h;
+		SDL_GetWindowSize(Application::Window, &w, &h);
+
+		float tx = event.Finger.X * w;
+		float ty = event.Finger.Y * h;
+
+		state->X = tx;
+		state->Y = ty;
+		state->Down = event.Type != APPEVENT_TOUCH_FINGER_UP;
+		state->Pressed = !lastState->Down && state->Down;
+		state->Released = lastState->Down && !state->Down;
+		break;
+	}
 	default:
 		break;
 	}
@@ -1423,6 +1371,7 @@ void InputManager::Dispose() {
 
 	// Dispose of touch states
 	Memory::Free(InputManager::TouchStates);
+	Memory::Free(InputManager::TouchStatesLast);
 
 	InputManager::ClearPlayers();
 	InputManager::ClearInputs();

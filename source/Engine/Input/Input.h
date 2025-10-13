@@ -182,6 +182,14 @@ enum class ControllerAxis { LeftX, LeftY, RightX, RightY, TriggerLeft, TriggerRi
 
 enum InputDevice { InputDevice_Keyboard, InputDevice_Controller, InputDevice_MAX };
 
+struct TouchState {
+	float X;
+	float Y;
+	bool Down;
+	bool Pressed;
+	bool Released;
+};
+
 #define KB_MODIFIER_SHIFT 1 // Either Shift key
 #define KB_MODIFIER_CTRL 2 // Either Ctrl key
 #define KB_MODIFIER_ALT 4 // Either Alt key
