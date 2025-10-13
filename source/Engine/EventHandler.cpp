@@ -70,24 +70,24 @@ bool EventHandler::Handle(AppEvent& event) {
         break;
     case APPEVENT_MOUSE_BUTTON_DOWN:
     case APPEVENT_MOUSE_BUTTON_UP:
-        thread->Push(INTEGER_VAL(event.Mouse.Button));
         thread->Push(INTEGER_VAL(event.Mouse.X));
         thread->Push(INTEGER_VAL(event.Mouse.Y));
+        thread->Push(INTEGER_VAL(event.Mouse.Button));
         thread->Push(INTEGER_VAL(event.Mouse.Clicks));
         thread->Push(INTEGER_VAL(event.Mouse.WindowID));
         break;
     case APPEVENT_MOUSE_MOTION:
-        thread->Push(INTEGER_VAL(event.Mouse.MotionX));
-        thread->Push(INTEGER_VAL(event.Mouse.MotionY));
         thread->Push(INTEGER_VAL(event.Mouse.X));
         thread->Push(INTEGER_VAL(event.Mouse.Y));
+        thread->Push(INTEGER_VAL(event.Mouse.MotionX));
+        thread->Push(INTEGER_VAL(event.Mouse.MotionY));
         thread->Push(INTEGER_VAL(event.Mouse.WindowID));
         break;
     case APPEVENT_MOUSE_WHEEL_MOTION:
-        thread->Push(DECIMAL_VAL(event.MouseWheel.MotionY));
-        thread->Push(DECIMAL_VAL(event.MouseWheel.MotionX));
         thread->Push(INTEGER_VAL(event.MouseWheel.X));
         thread->Push(INTEGER_VAL(event.MouseWheel.Y));
+        thread->Push(DECIMAL_VAL(event.MouseWheel.MotionX));
+        thread->Push(DECIMAL_VAL(event.MouseWheel.MotionY));
         thread->Push(INTEGER_VAL(event.MouseWheel.WindowID));
         break;
     case APPEVENT_TOUCH_FINGER_MOTION:
