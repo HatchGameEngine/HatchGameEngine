@@ -8,9 +8,11 @@
 #include <queue>
 
 std::vector<EventHandler*> EventHandler::List;
-std::vector<EventHandler*> EventHandler::GroupedByType[MAX_APPEVENT];
 
-std::queue<AppEvent> Queue;
+static unsigned HandlerID = 0;
+static std::unordered_map<unsigned, EventHandler*> IDMap;
+static std::vector<EventHandler*> GroupedByType[MAX_APPEVENT];
+static std::queue<AppEvent> Queue;
 
 bool EventHandler::Handle(AppEvent& event) {
 	if (!Enabled) {
@@ -129,54 +131,61 @@ bool EventHandler::Handle(AppEvent& event) {
 	return Value::Truthy(result);
 }
 int EventHandler::Register(AppEventType type, EventHandlerCallback callback) {
+	if (HandlerID > 0x7FFFFFFF) {
+		return -1;
+	}
+
 	EventHandler* handler = new EventHandler;
+	handler->ID = HandlerID;
 	handler->Type = type;
 	handler->Callback = callback;
 	handler->Enabled = true;
 
-	GroupedByType[type].push_back(handler);
-
-	for (size_t i = 0; i < List.size(); i++) {
-		if (List[i] == nullptr) {
-			List[i] = handler;
-
-			return (int)i;
-		}
-	}
-
 	List.push_back(handler);
 
-	return (int)(List.size() - 1);
+	IDMap[HandlerID] = handler;
+	GroupedByType[type].push_back(handler);
+
+	HandlerID++;
+
+	return handler->ID;
 }
-bool EventHandler::IsValidIndex(int index) {
-	if (index < 0 || index >= (int)List.size()) {
+EventHandler* EventHandler::FindByID(unsigned id) {
+	if (IDMap.count(id) == 0) {
+		return nullptr;
+	}
+
+	return IDMap[id];
+}
+bool EventHandler::IsValid(unsigned id) {
+	return FindByID(id) != nullptr;
+}
+bool EventHandler::SetEnabled(unsigned id, bool enabled) {
+	EventHandler* handler = FindByID(id);
+	if (handler == nullptr) {
 		return false;
 	}
 
-	return List[index] != nullptr;
+	handler->Enabled = enabled;
+
+	return true;
 }
-void EventHandler::SetEnabled(int index, bool enabled) {
-	if (IsValidIndex(index)) {
-		EventHandler* handler = List[index];
-		handler->Enabled = enabled;
-	}
-}
-void EventHandler::Remove(int index) {
-	if (!IsValidIndex(index)) {
-		return;
+bool EventHandler::Remove(unsigned id) {
+	EventHandler* handler = FindByID(id);
+	if (handler == nullptr) {
+		return false;
 	}
 
-	EventHandler* handler = List[index];
-	std::vector<EventHandler*>* list = &GroupedByType[handler->Type];
+	std::vector<EventHandler*>* groupedList = &GroupedByType[handler->Type];
 
-	auto it = std::find(list->begin(), list->end(), handler);
-	if (it != list->end()) {
-		list->erase(it);
-	}
+	groupedList->erase(std::find(groupedList->begin(), groupedList->end(), handler));
+
+	List.erase(std::find(List.begin(), List.end(), handler));
+	IDMap.erase(id);
 
 	delete handler;
 
-	List[index] = nullptr;
+	return true;
 }
 void EventHandler::RemoveAll() {
 	for (size_t i = 0; i < MAX_APPEVENT; i++) {
@@ -188,6 +197,9 @@ void EventHandler::RemoveAll() {
 	}
 
 	List.clear();
+	IDMap.clear();
+
+	HandlerID = 0;
 }
 
 void EventHandler::Push(AppEvent event) {

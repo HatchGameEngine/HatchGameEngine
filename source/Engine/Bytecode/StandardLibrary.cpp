@@ -1707,6 +1707,9 @@ VMValue Application_AddEventHandler(int argCount, VMValue* args, Uint32 threadID
 	handlerCallback.Function = (void*)(AS_OBJECT(callback));
 
 	int index = EventHandler::Register((AppEventType)eventType, handlerCallback);
+	if (index == -1) {
+		return NULL_VAL;
+	}
 
 	return INTEGER_VAL(index);
 }
@@ -1720,14 +1723,11 @@ VMValue Application_AddEventHandler(int argCount, VMValue* args, Uint32 threadID
 VMValue Application_SetEventHandlerEnabled(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
-	int index = GET_ARG(0, GetInteger);
+	int handler = GET_ARG(0, GetInteger);
 	bool isEnabled = GET_ARG(1, GetInteger);
 
-	if (EventHandler::IsValidIndex(index)) {
-		EventHandler::SetEnabled(index, isEnabled);
-	}
-	else {
-		THROW_ERROR("Invalid event handler index %d.", index);
+	if (!EventHandler::SetEnabled(handler, isEnabled)) {
+		THROW_ERROR("Invalid event handler ID %d.", handler);
 	}
 
 	return NULL_VAL;
@@ -1742,9 +1742,9 @@ VMValue Application_SetEventHandlerEnabled(int argCount, VMValue* args, Uint32 t
 VMValue Application_IsEventHandlerValid(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 
-	int index = GET_ARG(0, GetInteger);
+	int handler = GET_ARG(0, GetInteger);
 
-	return INTEGER_VAL(EventHandler::IsValidIndex(index));
+	return INTEGER_VAL(EventHandler::IsValid(handler));
 }
 /***
  * Application.RemoveEventHandler
@@ -1755,12 +1755,9 @@ VMValue Application_IsEventHandlerValid(int argCount, VMValue* args, Uint32 thre
 VMValue Application_RemoveEventHandler(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 
-	int index = GET_ARG(0, GetInteger);
-	if (EventHandler::IsValidIndex(index)) {
-		EventHandler::Remove(index);
-	}
-	else {
-		THROW_ERROR("Invalid event handler index %d.", index);
+	int handler = GET_ARG(0, GetInteger);
+	if (!EventHandler::Remove(handler)) {
+		THROW_ERROR("Invalid event handler ID %d.", handler);
 	}
 
 	return NULL_VAL;

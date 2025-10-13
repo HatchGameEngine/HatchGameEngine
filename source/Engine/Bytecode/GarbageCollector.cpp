@@ -76,9 +76,8 @@ void GarbageCollector::Collect() {
 	// Mark event handler callbacks
 	for (size_t i = 0; i < EventHandler::List.size(); i++) {
 		EventHandler* handler = EventHandler::List[i];
-		if (handler) {
-			GrayObject(handler->Callback.Function);
-		}
+
+		GrayObject(handler->Callback.Function);
 	}
 
 	// Mark modules

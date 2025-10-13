@@ -10,8 +10,10 @@ struct EventHandlerCallback {
 class EventHandler {
 private:
 	AppEventType Type;
+	unsigned ID;
 	bool Enabled;
 
+	static EventHandler* FindByID(unsigned id);
 	static bool CallHandlers(AppEvent& event);
 
 public:
@@ -20,12 +22,11 @@ public:
 	bool Handle(AppEvent& event);
 
 	static std::vector<EventHandler*> List;
-	static std::vector<EventHandler*> GroupedByType[MAX_APPEVENT];
 
 	static int Register(AppEventType type, EventHandlerCallback callback);
-	static bool IsValidIndex(int index);
-	static void SetEnabled(int index, bool enabled);
-	static void Remove(int index);
+	static bool IsValid(unsigned id);
+	static bool SetEnabled(unsigned id, bool enabled);
+	static bool Remove(unsigned id);
 	static void RemoveAll();
 
 	static void Push(AppEvent event);
