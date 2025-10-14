@@ -186,6 +186,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\diagnostics\Memory.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\MemoryPools.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\PerformanceMeasure.cpp" />
+    <ClCompile Include="..\source\engine\diagnostics\PerformanceViewer.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\RemoteDebug.cpp" />
     <ClCompile Include="..\source\engine\Error.cpp" />
     <ClCompile Include="..\source\engine\extensions\Discord.cpp" />
