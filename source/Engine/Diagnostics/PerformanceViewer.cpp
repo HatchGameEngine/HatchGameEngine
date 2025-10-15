@@ -175,8 +175,9 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 		char textBufferXXX[1024];
 		snprintf(textBufferXXX,
 			sizeof textBufferXXX,
-			"Object \"%s\": Avg Render %.1f mcs (Total %.1f mcs, Count %d)",
+			"Object \"%s\": Avg Update %.1f mcs - Avg Render %.1f mcs (Total %.1f mcs, Count %d)",
 			list->ObjectName,
+			list->Performance.Update.GetAverageTime(),
 			list->Performance.Render.GetAverageTime(),
 			list->Performance.Render.GetTotalAverageTime(),
 			(int)list->Performance.Render.AverageItemCount);
