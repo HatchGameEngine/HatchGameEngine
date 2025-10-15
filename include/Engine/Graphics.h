@@ -88,6 +88,7 @@ public:
 	static Sint32 CurrentVertexBuffer;
 	static Shader* CurrentShader;
 	static Shader* PostProcessShader;
+	static bool UsingPostProcessShader;
 	static bool SmoothFill;
 	static bool SmoothStroke;
 	static float PixelOffset;
@@ -152,6 +153,7 @@ public:
 	static bool SetRenderTarget(Texture* texture);
 	static bool CreateFramebufferTexture();
 	static bool UpdateFramebufferTexture();
+	static void SetPostProcessShader(Shader* shader);
 	static void DoScreenPostProcess();
 	static void CopyScreen(int source_x,
 		int source_y,

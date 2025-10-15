@@ -1111,6 +1111,10 @@ void Application::AddPerformanceMetric(PerformanceMeasure* measure, const char* 
 	*measure = PerformanceMeasure(name, r, g, b);
 	AllMetrics.push_back(measure);
 }
+void Application::AddPerformanceMetric(PerformanceMeasure* measure, const char* name, float r, float g, float b, bool* isActive) {
+	*measure = PerformanceMeasure(name, r, g, b, isActive);
+	AllMetrics.push_back(measure);
+}
 
 void Application::InitPerformanceMetrics() {
 	AutomaticPerformanceSnapshots = false;
@@ -1126,7 +1130,7 @@ void Application::InitPerformanceMetrics() {
 	AddPerformanceMetric(&Metrics.Update, "Entity Update", 1.0, 1.0, 0.0);
 	AddPerformanceMetric(&Metrics.Clear, "Clear Time", 0.0, 1.0, 1.0);
 	AddPerformanceMetric(&Metrics.Render, "World Render Commands", 1.0, 0.0, 1.0);
-	AddPerformanceMetric(&Metrics.PostProcess, "Render Post-Process", 1.0, 1.0, 1.0);
+	AddPerformanceMetric(&Metrics.PostProcess, "Render Post-Process", 1.0, 1.0, 1.0, &Graphics::UsingPostProcessShader);
 	AddPerformanceMetric(&Metrics.Present, "Frame Present Time", 0.75, 0.75, 0.75);
 }
 
@@ -1455,9 +1459,11 @@ void Application::RunFrame(int runFrames) {
 	Scene::Render();
 	Metrics.Render.End();
 
-	Metrics.PostProcess.Begin();
-	Graphics::DoScreenPostProcess();
-	Metrics.PostProcess.End();
+	if (Graphics::UsingPostProcessShader) {
+		Metrics.PostProcess.Begin();
+		Graphics::DoScreenPostProcess();
+		Metrics.PostProcess.End();
+	}
 
 DO_NOTHING:
 

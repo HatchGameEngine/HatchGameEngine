@@ -20,14 +20,17 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 
 	char textBuffer[256];
 
-	size_t typeCount = Application::AllMetrics.size();
-
 	float infoW = 400.0;
 	float infoH = 150.0;
 	float infoPadding = 20.0;
 
-	for (size_t i = 0; i < typeCount; i++) {
-		infoH += 20.0;
+	size_t numMetrics = Application::AllMetrics.size();
+
+	for (size_t i = 0; i < numMetrics; i++) {
+		PerformanceMeasure* measure = Application::AllMetrics[i];
+		if (measure->IsActive()) {
+			infoH += 20.0;
+		}
 	}
 
 	Graphics::Save();
@@ -54,13 +57,15 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 
 	// Draw bar
 	double total = 0.0001;
-	for (size_t i = 0; i < typeCount; i++) {
+	for (size_t i = 0; i < numMetrics; i++) {
 		PerformanceMeasure* measure = Application::AllMetrics[i];
-		float time = measure->Time;
-		if (time < 0.0) {
-			time = 0.0;
+		if (measure->IsActive()) {
+			float time = measure->Time;
+			if (time < 0.0) {
+				time = 0.0;
+			}
+			total += time;
 		}
-		total += time;
 	}
 
 	Graphics::Save();
@@ -69,8 +74,11 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 	Graphics::FillRectangle(0.0, 0.0, infoW - infoPadding * 2, 30.0);
 
 	double rectx = 0.0;
-	for (size_t i = 0; i < typeCount; i++) {
+	for (size_t i = 0; i < numMetrics; i++) {
 		PerformanceMeasure* measure = Application::AllMetrics[i];
+		if (!measure->IsActive()) {
+			continue;
+		}
 
 		Graphics::SetBlendColor(measure->Colors.R, measure->Colors.G, measure->Colors.B, 0.5);
 		Graphics::FillRectangle(
@@ -85,8 +93,11 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 	float listY = 90.0;
 	double totalFrameCount = 0.0;
 	infoPadding += infoPadding;
-	for (size_t i = 0; i < typeCount; i++) {
+	for (size_t i = 0; i < numMetrics; i++) {
 		PerformanceMeasure* measure = Application::AllMetrics[i];
+		if (!measure->IsActive()) {
+			continue;
+		}
 
 		Graphics::Save();
 		Graphics::Translate(infoPadding, listY, 0.0);

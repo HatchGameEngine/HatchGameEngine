@@ -7,6 +7,7 @@ class PerformanceMeasure {
 private:
 	double StartTime;
 	double EndTime;
+	bool* Active = nullptr;
 
 public:
 	const char* Name;
@@ -16,20 +17,11 @@ public:
 	} Colors;
 
 	PerformanceMeasure() {};
+	PerformanceMeasure(const char*, float, float, float);
+	PerformanceMeasure(const char*, float, float, float, bool*);
+	PerformanceMeasure(const char*);
 
-	PerformanceMeasure(const char* name, float r, float g, float b) {
-		Name = name;
-		Colors.R = r;
-		Colors.G = g;
-		Colors.B = b;
-	};
-
-	PerformanceMeasure(const char* name) {
-		Name = name;
-		Colors.R = 0.0f;
-		Colors.G = 1.0f;
-		Colors.B = 0.0f;
-	};
+	bool IsActive();
 
 	void Reset();
 	void Begin();
