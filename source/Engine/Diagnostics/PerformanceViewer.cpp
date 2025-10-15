@@ -71,21 +71,19 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 	Graphics::Translate(infoPadding, 50.0, 0.0);
 	Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.25);
 	Graphics::FillRectangle(0.0, 0.0, infoW - infoPadding * 2, 30.0);
-	Graphics::Restore();
 
 	double rectx = 0.0;
 	for (size_t i = 0; i < typeCount; i++) {
 		PerformanceMeasure* measure = Application::AllMetrics[i];
 
-		Graphics::Save();
-		Graphics::Translate(infoPadding, 50.0, 0.0);
 		Graphics::SetBlendColor(measure->Colors.R, measure->Colors.G, measure->Colors.B, 0.5);
 		Graphics::FillRectangle(
 			rectx, 0.0, measure->Time / total * (infoW - infoPadding * 2), 30.0);
-		Graphics::Restore();
 
 		rectx += measure->Time / total * (infoW - infoPadding * 2);
 	}
+
+	Graphics::Restore();
 
 	// Draw list
 	float listY = 90.0;
@@ -108,11 +106,20 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 		totalFrameCount += measure->Time;
 	}
 
+	// Draw a line
+	listY += 12.0;
+
+	float lineWidth = infoW * 0.95;
+
+	Graphics::Save();
+	Graphics::Translate((infoW * 0.5) - (lineWidth * 0.5), listY - 8.0, 0.0);
+	Graphics::SetBlendColor(0.5, 0.5, 0.5, 1.0);
+	Graphics::FillRectangle(0.0, 0.0, lineWidth, 1.0);
+	Graphics::Restore();
+
 	// Draw total
 	Graphics::Save();
-	Graphics::Translate(infoPadding, listY, 0.0);
-	Graphics::SetBlendColor(1.0, 1.0, 1.0, 0.5);
-	Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
+	Graphics::Translate(infoPadding - 24.0, listY, 0.0);
 	Graphics::Scale(0.6, 0.6, 1.0);
 	snprintf(textBuffer, sizeof textBuffer, "Total Frame Time: %.3f ms", totalFrameCount);
 	Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
@@ -122,9 +129,7 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 
 	// Draw Overdelay
 	Graphics::Save();
-	Graphics::Translate(infoPadding, listY, 0.0);
-	Graphics::SetBlendColor(1.0, 1.0, 1.0, 0.5);
-	Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
+	Graphics::Translate(infoPadding - 24.0, listY, 0.0);
 	Graphics::Scale(0.6, 0.6, 1.0);
 	snprintf(textBuffer, sizeof textBuffer, "Overdelay: %.3f ms", Application::GetOverdelay());
 	Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
