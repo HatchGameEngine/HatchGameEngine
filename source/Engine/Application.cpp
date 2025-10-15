@@ -596,7 +596,8 @@ void Application::LoadDefaultFont() {
 		Stream* stream = ResourceStream::New(filename);
 		if (stream) {
 			streamList.push_back(stream);
-		} else {
+		}
+		else {
 			Log::Print(Log::LOG_ERROR, "Resource \"%s\" does not exist!", filename);
 			hadError = true;
 		}
@@ -692,8 +693,7 @@ void Application::GetPerformanceSnapshot() {
 					layer->Name,
 					Scene::PERF_ViewRender[i].LayerTileRenderTime[li]);
 				StringUtils::Concat(layerText, temp, sizeof(layerText));
-				tilesTotal +=
-					Scene::PERF_ViewRender[i].LayerTileRenderTime[li];
+				tilesTotal += Scene::PERF_ViewRender[i].LayerTileRenderTime[li];
 			}
 			Log::Print(Log::LOG_INFO,
 				"View %d:\n"
@@ -1107,11 +1107,20 @@ void Application::LoadKeyBinds() {
 #undef GET_KEY
 }
 
-void Application::AddPerformanceMetric(PerformanceMeasure* measure, const char* name, float r, float g, float b) {
+void Application::AddPerformanceMetric(PerformanceMeasure* measure,
+	const char* name,
+	float r,
+	float g,
+	float b) {
 	*measure = PerformanceMeasure(name, r, g, b);
 	AllMetrics.push_back(measure);
 }
-void Application::AddPerformanceMetric(PerformanceMeasure* measure, const char* name, float r, float g, float b, bool* isActive) {
+void Application::AddPerformanceMetric(PerformanceMeasure* measure,
+	const char* name,
+	float r,
+	float g,
+	float b,
+	bool* isActive) {
 	*measure = PerformanceMeasure(name, r, g, b, isActive);
 	AllMetrics.push_back(measure);
 }
@@ -1130,7 +1139,12 @@ void Application::InitPerformanceMetrics() {
 	AddPerformanceMetric(&Metrics.Update, "Entity Update", 1.0, 1.0, 0.0);
 	AddPerformanceMetric(&Metrics.Clear, "Clear Time", 0.0, 1.0, 1.0);
 	AddPerformanceMetric(&Metrics.Render, "World Render Commands", 1.0, 0.0, 1.0);
-	AddPerformanceMetric(&Metrics.PostProcess, "Render Post-Process", 1.0, 1.0, 1.0, &Graphics::UsingPostProcessShader);
+	AddPerformanceMetric(&Metrics.PostProcess,
+		"Render Post-Process",
+		1.0,
+		1.0,
+		1.0,
+		&Graphics::UsingPostProcessShader);
 	AddPerformanceMetric(&Metrics.Present, "Frame Present Time", 0.75, 0.75, 0.75);
 }
 
@@ -1440,9 +1454,12 @@ void Application::RunFrame(int runFrames) {
 		MediaBag* media = Scene::MediaList[i]->AsMedia;
 		int queued = (int)AudioManager::AudioQueueSize;
 		if (queued < needed) {
-			int ready_bytes = media->Player->GetAudioData(audio_buffer, needed - queued);
+			int ready_bytes =
+				media->Player->GetAudioData(audio_buffer, needed - queued);
 			if (ready_bytes > 0) {
-				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize, audio_buffer, ready_bytes);
+				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize,
+					audio_buffer,
+					ready_bytes);
 				AudioManager::AudioQueueSize += ready_bytes;
 			}
 		}

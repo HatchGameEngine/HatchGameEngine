@@ -1,7 +1,11 @@
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/PerformanceMeasure.h>
 
-PerformanceMeasure::PerformanceMeasure(const char* name, float r, float g, float b, bool* isActive) {
+PerformanceMeasure::PerformanceMeasure(const char* name,
+	float r,
+	float g,
+	float b,
+	bool* isActive) {
 	Name = name;
 	Colors.R = r;
 	Colors.G = g;

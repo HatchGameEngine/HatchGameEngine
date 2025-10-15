@@ -38,8 +38,14 @@ private:
 	static void LogSystemInfo();
 	static void MakeEngineVersion();
 	static void InitPerformanceMetrics();
-	static void AddPerformanceMetric(PerformanceMeasure* dest, const char* name, float r, float g, float b, bool* isVisible);
-	static void AddPerformanceMetric(PerformanceMeasure* dest, const char* name, float r, float g, float b);
+	static void AddPerformanceMetric(PerformanceMeasure* dest,
+		const char* name,
+		float r,
+		float g,
+		float b,
+		bool* isVisible);
+	static void
+	AddPerformanceMetric(PerformanceMeasure* dest, const char* name, float r, float g, float b);
 	static void RemoveCapability(std::string capability);
 	static bool ValidateIdentifier(const char* string);
 	static char* GenerateIdentifier(const char* string);
