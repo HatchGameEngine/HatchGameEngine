@@ -35,9 +35,8 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 	}
 
 	Graphics::Save();
-	Graphics::Translate(0.0, 0.0, 0.0);
 	Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.75);
-	Graphics::FillRectangle(0.0f, 0.0f, infoW, infoH);
+	Graphics::FillRectangle(0.0, 0.0, infoW, infoH);
 
 	float textX = 0.0;
 	float textY = font->Descent;
@@ -71,7 +70,7 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 	Graphics::Save();
 	Graphics::Translate(infoPadding, 50.0, 0.0);
 	Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.25);
-	Graphics::FillRectangle(0.0, 0.0f, infoW - infoPadding * 2, 30.0);
+	Graphics::FillRectangle(0.0, 0.0, infoW - infoPadding * 2, 30.0);
 	Graphics::Restore();
 
 	double rectx = 0.0;
@@ -82,7 +81,7 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 		Graphics::Translate(infoPadding, 50.0, 0.0);
 		Graphics::SetBlendColor(measure->Colors.R, measure->Colors.G, measure->Colors.B, 0.5);
 		Graphics::FillRectangle(
-			rectx, 0.0f, measure->Time / total * (infoW - infoPadding * 2), 30.0);
+			rectx, 0.0, measure->Time / total * (infoW - infoPadding * 2), 30.0);
 		Graphics::Restore();
 
 		rectx += measure->Time / total * (infoW - infoPadding * 2);
@@ -90,7 +89,7 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 
 	// Draw list
 	float listY = 90.0;
-	double totalFrameCount = 0.0f;
+	double totalFrameCount = 0.0;
 	infoPadding += infoPadding;
 	for (size_t i = 0; i < typeCount; i++) {
 		PerformanceMeasure* measure = Application::AllMetrics[i];
@@ -167,14 +166,14 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 
 	float* listYPtr = &listY;
 	if (Scene::ObjectLists) {
-		Scene::ObjectLists->WithAll([textX, textY, font, infoPadding, listYPtr, textParams](
+		Scene::ObjectLists->WithAll([textX, textY, font, infoPadding, listYPtr, textParams, wh](
 						    Uint32, ObjectList* list) -> void {
-			char textBufferXXX[1024];
-			TextDrawParams locTextParams = textParams;
-			if (list->Performance.Update.AverageItemCount > 0.0) {
+			if (*listYPtr < wh && list->Performance.Update.AverageItemCount > 0.0) {
 				Graphics::Save();
 				Graphics::Translate(infoPadding / 2.0, *listYPtr, 0.0);
 				Graphics::Scale(0.6, 0.6, 1.0);
+
+				char textBufferXXX[1024];
 				snprintf(textBufferXXX,
 					sizeof textBufferXXX,
 					"Object \"%s\": Avg Render %.1f mcs (Total %.1f mcs, Count %d)",
@@ -182,11 +181,18 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 					list->Performance.Render.GetAverageTime(),
 					list->Performance.Render.GetTotalAverageTime(),
 					(int)list->Performance.Render.AverageItemCount);
+
+				float maxW = 0.0, maxH = 0.0;
+				TextDrawParams locTextParams = textParams;
+				Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.75);
+				Graphics::MeasureText(font, textBufferXXX, &locTextParams, maxW, maxH);
+				Graphics::FillRectangle(textX, textY, maxW, maxH);
+
 				Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
 				Graphics::DrawText(font, textBufferXXX, textX, textY, &locTextParams);
 				Graphics::Restore();
 
-				*listYPtr += 20.0;
+				*listYPtr += maxH * 0.6;
 			}
 		});
 	}
