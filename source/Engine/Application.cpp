@@ -1127,7 +1127,7 @@ void Application::InitPerformanceMetrics() {
 	AddPerformanceMetric(&Metrics.Clear, "Clear Time", 0.0, 1.0, 1.0);
 	AddPerformanceMetric(&Metrics.Render, "World Render Commands", 1.0, 0.0, 1.0);
 	AddPerformanceMetric(&Metrics.PostProcess, "Render Post-Process", 1.0, 1.0, 1.0);
-	AddPerformanceMetric(&Metrics.Present, "Frame Present Time", 0.0, 0.0, 0.0);
+	AddPerformanceMetric(&Metrics.Present, "Frame Present Time", 0.75, 0.75, 0.75);
 }
 
 void Application::LoadDevSettings() {
