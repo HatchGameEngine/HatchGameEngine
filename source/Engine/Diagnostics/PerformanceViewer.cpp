@@ -30,10 +30,6 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 		infoH += 20.0;
 	}
 
-	if (Memory::IsTracking) {
-		infoH += 20.0;
-	}
-
 	Graphics::Save();
 	Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.75);
 	Graphics::FillRectangle(0.0, 0.0, infoW, infoH);
@@ -134,8 +130,9 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 	snprintf(textBuffer, sizeof textBuffer, "Overdelay: %.3f ms", Application::GetOverdelay());
 	Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
 	Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
-	listY += 20.0;
 	Graphics::Restore();
+
+	listY += 50.0;
 
 	if (Memory::IsTracking) {
 		float count = (float)Memory::MemoryUsage;
@@ -154,20 +151,24 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 			moniker = "KB";
 		}
 
-		listY += 30.0 - 20.0;
-
 		Graphics::Save();
 		Graphics::Translate(infoPadding / 2.0, listY, 0.0);
 		Graphics::Scale(0.6, 0.6, 1.0);
+
 		snprintf(textBuffer, sizeof textBuffer, "RAM Usage: %.3f %s", count, moniker);
+
+		float maxW = 0.0, maxH = 0.0;
+		Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.75);
+		Graphics::MeasureText(font, textBuffer, &textParams, maxW, maxH);
+		Graphics::FillRectangle(textX, textY, maxW, maxH);
+
 		Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
 		Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
+
 		Graphics::Restore();
 
-		listY += 10.0;
+		listY += (maxH * 0.6) * 1.5;
 	}
-
-	listY += 30.0;
 
 	vector<ObjectList*> objListPerf = Scene::GetObjectListPerformance();
 	for (size_t i = 0; i < objListPerf.size(); i++) {
@@ -188,13 +189,12 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 			(int)list->Performance.Render.AverageItemCount);
 
 		float maxW = 0.0, maxH = 0.0;
-		TextDrawParams locTextParams = textParams;
 		Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.75);
-		Graphics::MeasureText(font, textBufferXXX, &locTextParams, maxW, maxH);
+		Graphics::MeasureText(font, textBufferXXX, &textParams, maxW, maxH);
 		Graphics::FillRectangle(textX, textY, maxW, maxH);
 
 		Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-		Graphics::DrawText(font, textBufferXXX, textX, textY, &locTextParams);
+		Graphics::DrawText(font, textBufferXXX, textX, textY, &textParams);
 		Graphics::Restore();
 
 		listY += maxH * 0.6;
