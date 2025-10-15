@@ -45,6 +45,7 @@ private:
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
 	static void UnloadDefaultFont();
+	static void GetPerformanceSnapshot();
 	static void CreateWindow();
 	static void EndGame();
 	static void UnloadGame();
@@ -121,7 +122,6 @@ public:
 	static const char* GetSavesDir();
 	static const char* GetPreferencesDir();
 	static void LoadDefaultFont();
-	static void GetPerformanceSnapshot();
 	static double GetOverdelay();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();

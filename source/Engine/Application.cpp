@@ -722,36 +722,15 @@ void Application::GetPerformanceSnapshot() {
 	}
 
 	// Object Performance Snapshot
-	vector<ObjectList*> ListList;
-	if (Scene::ObjectLists) {
-		ListList.clear();
-		Scene::ObjectLists->WithAll([&ListList](Uint32, ObjectList* list) -> void {
-			if ((list->Performance.Update.AverageTime > 0.0 &&
-				    list->Performance.Update.AverageItemCount > 0) ||
-				(list->Performance.Render.AverageTime > 0.0 &&
-					list->Performance.Render.AverageItemCount > 0)) {
-				ListList.push_back(list);
-			}
-		});
-		std::sort(
-			ListList.begin(), ListList.end(), [](ObjectList* a, ObjectList* b) -> bool {
-				ObjectListPerformanceStats& updatePerfA = a->Performance.Update;
-				ObjectListPerformanceStats& updatePerfB = b->Performance.Update;
-				ObjectListPerformanceStats& renderPerfA = a->Performance.Render;
-				ObjectListPerformanceStats& renderPerfB = b->Performance.Render;
-				return updatePerfA.AverageTime * updatePerfA.AverageItemCount +
-					renderPerfA.AverageTime * renderPerfA.AverageItemCount >
-					updatePerfB.AverageTime * updatePerfB.AverageItemCount +
-					renderPerfB.AverageTime * renderPerfB.AverageItemCount;
-			});
-
+	vector<ObjectList*> objListPerf = Scene::GetObjectListPerformance();
+	if (objListPerf.size() > 0) {
 		double totalUpdateEarly = 0.0;
 		double totalUpdate = 0.0;
 		double totalUpdateLate = 0.0;
 		double totalRender = 0.0;
 		Log::Print(Log::LOG_IMPORTANT, "Object Performance Snapshot:");
-		for (size_t i = 0; i < ListList.size(); i++) {
-			ObjectList* list = ListList[i];
+		for (size_t i = 0; i < objListPerf.size(); i++) {
+			ObjectList* list = objListPerf[i];
 			ObjectListPerformance& perf = list->Performance;
 			Log::Print(Log::LOG_INFO,
 				"Object \"%s\":\n"
