@@ -15,15 +15,8 @@ struct WAVheader {
 	Uint32 DATASize; // Sampled data length
 };
 
-SoundFormat* WAV::Load(const char* filename) {
-	WAV* wav = NULL;
-	class Stream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
-		goto WAV_Load_FAIL;
-	}
-
-	wav = new (std::nothrow) WAV;
+SoundFormat* WAV::Load(Stream* stream) {
+	WAV* wav = new (std::nothrow) WAV;
 	if (!wav) {
 		goto WAV_Load_FAIL;
 	}
@@ -68,7 +61,6 @@ SoundFormat* WAV::Load(const char* filename) {
 
 	wav->TotalPossibleSamples =
 		(int)(header.DATASize / (((header.BitsPerSample & 0xFF) >> 3) * header.Channels));
-	// stream->Seek(wav->DataStart);
 
 	// Common
 	wav->LoadFinish();
