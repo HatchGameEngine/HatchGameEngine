@@ -96,6 +96,9 @@
     <ClCompile Include="..\source\engine\diagnostics\PerformanceMeasure.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\diagnostics\PerformanceViewer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\diagnostics\RemoteDebug.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

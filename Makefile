@@ -61,6 +61,7 @@ CPPFILES := \
 	source/Engine/Diagnostics/Memory.cpp \
 	source/Engine/Diagnostics/MemoryPools.cpp \
 	source/Engine/Diagnostics/PerformanceMeasure.cpp \
+	source/Engine/Diagnostics/PerformanceViewer.cpp \
 	source/Engine/Diagnostics/RemoteDebug.cpp \
 	source/Engine/Error.cpp \
 	source/Engine/Extensions/Discord.cpp \
@@ -284,6 +285,7 @@ PUBHFILES := \
 	include/Engine/Diagnostics/Log.h \
 	include/Engine/Diagnostics/Memory.h \
 	include/Engine/Diagnostics/PerformanceMeasure.h \
+	include/Engine/Diagnostics/PerformanceViewer.h \
 	include/Engine/Diagnostics/RemoteDebug.h \
 	include/Engine/Error.h \
 	include/Engine/Extensions/Discord.h \

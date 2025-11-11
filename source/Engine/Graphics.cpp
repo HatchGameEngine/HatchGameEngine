@@ -85,6 +85,8 @@ Sint32 Graphics::CurrentVertexBuffer = -1;
 
 Shader* Graphics::CurrentShader = NULL;
 Shader* Graphics::PostProcessShader = NULL;
+bool Graphics::UsingPostProcessShader = false;
+
 bool Graphics::SmoothFill = false;
 bool Graphics::SmoothStroke = false;
 
@@ -785,8 +787,12 @@ bool Graphics::UpdateFramebufferTexture() {
 
 	return true;
 }
+void Graphics::SetPostProcessShader(Shader* shader) {
+	PostProcessShader = shader;
+	UsingPostProcessShader = shader != nullptr;
+}
 void Graphics::DoScreenPostProcess() {
-	if (Graphics::PostProcessShader == nullptr) {
+	if (!UsingPostProcessShader) {
 		return;
 	}
 

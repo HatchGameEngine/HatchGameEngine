@@ -2,6 +2,7 @@
 #define ENGINE_APPLICATION_H
 
 #include <Engine/Audio/AudioManager.h>
+#include <Engine/Diagnostics/PerformanceTypes.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/Version.h>
@@ -36,12 +37,22 @@ private:
 	static void LogEngineVersion();
 	static void LogSystemInfo();
 	static void MakeEngineVersion();
+	static void InitPerformanceMetrics();
+	static void AddPerformanceMetric(PerformanceMeasure* dest,
+		const char* name,
+		float r,
+		float g,
+		float b,
+		bool* isVisible);
+	static void
+	AddPerformanceMetric(PerformanceMeasure* dest, const char* name, float r, float g, float b);
 	static void RemoveCapability(std::string capability);
 	static bool ValidateIdentifier(const char* string);
 	static char* GenerateIdentifier(const char* string);
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
 	static void UnloadDefaultFont();
+	static void GetPerformanceSnapshot();
 	static void CreateWindow();
 	static void EndGame();
 	static void UnloadGame();
@@ -99,6 +110,9 @@ public:
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
 
+	static ApplicationMetrics Metrics;
+	static std::vector<PerformanceMeasure*> AllMetrics;
+
 	static void Init(int argc, char* args[]);
 	static void InitScripting();
 	static void SetTargetFrameRate(int targetFPS);
@@ -115,7 +129,7 @@ public:
 	static const char* GetSavesDir();
 	static const char* GetPreferencesDir();
 	static void LoadDefaultFont();
-	static void GetPerformanceSnapshot();
+	static double GetOverdelay();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();
 	static bool SetNextGame(const char* path,

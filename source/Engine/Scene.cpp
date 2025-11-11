@@ -2077,6 +2077,33 @@ void Scene::AddManagers() {
 	Scene::SpawnStaticObject("InputManager");
 	Scene::SpawnStaticObject("FadeManager");
 }
+std::vector<ObjectList*> Scene::GetObjectListPerformance() {
+	std::vector<ObjectList*> ListList;
+
+	if (ObjectLists) {
+		ObjectLists->WithAll([&ListList](Uint32, ObjectList* list) -> void {
+			if ((list->Performance.Update.AverageTime > 0.0 &&
+				    list->Performance.Update.AverageItemCount > 0) ||
+				(list->Performance.Render.AverageTime > 0.0 &&
+					list->Performance.Render.AverageItemCount > 0)) {
+				ListList.push_back(list);
+			}
+		});
+		std::sort(
+			ListList.begin(), ListList.end(), [](ObjectList* a, ObjectList* b) -> bool {
+				ObjectListPerformanceStats& updatePerfA = a->Performance.Update;
+				ObjectListPerformanceStats& updatePerfB = b->Performance.Update;
+				ObjectListPerformanceStats& renderPerfA = a->Performance.Render;
+				ObjectListPerformanceStats& renderPerfB = b->Performance.Render;
+				return updatePerfA.AverageTime * updatePerfA.AverageItemCount +
+					renderPerfA.AverageTime * renderPerfA.AverageItemCount >
+					updatePerfB.AverageTime * updatePerfB.AverageItemCount +
+					renderPerfB.AverageTime * renderPerfB.AverageItemCount;
+			});
+	}
+
+	return ListList;
+}
 
 void Scene::FreePriorityLists() {
 	if (Scene::PriorityLists) {

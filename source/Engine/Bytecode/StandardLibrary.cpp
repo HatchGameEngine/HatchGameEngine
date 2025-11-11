@@ -18055,7 +18055,7 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
 	CHECK_ARGCOUNT(1);
 
 	if (IS_NULL(args[0])) {
-		Graphics::PostProcessShader = nullptr;
+		Graphics::SetPostProcessShader(nullptr);
 		return NULL_VAL;
 	}
 
@@ -18069,7 +18069,7 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
 	try {
 		shader->Validate();
 
-		Graphics::PostProcessShader = shader;
+		Graphics::SetPostProcessShader(shader);
 	} catch (const std::runtime_error& error) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
 	}

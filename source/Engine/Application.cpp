@@ -10,6 +10,7 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
+#include <Engine/Diagnostics/PerformanceViewer.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
@@ -112,6 +113,9 @@ bool Application::DevConvertModels = false;
 
 bool Application::AllowCmdLineSceneLoad = false;
 
+ApplicationMetrics Application::Metrics;
+std::vector<PerformanceMeasure*> Application::AllMetrics;
+
 char StartingScene[MAX_RESOURCE_PATH_LENGTH];
 char NextGame[MAX_PATH_LENGTH];
 char NextGameStartingScene[MAX_RESOURCE_PATH_LENGTH];
@@ -121,10 +125,15 @@ char LogFilename[MAX_PATH_LENGTH];
 bool UseMemoryFileCache = false;
 
 bool DevMenu = false;
-bool ShowFPS = false;
+bool ViewPerformance = false;
 bool TakeSnapshot = false;
 bool DoNothing = false;
 int UpdatesPerFastForward = 4;
+
+bool AutomaticPerformanceSnapshots;
+double AutomaticPerformanceSnapshotFrameTimeThreshold;
+double AutomaticPerformanceSnapshotLastTime;
+double AutomaticPerformanceSnapshotMinInterval;
 
 int BenchmarkFrameCount = 0;
 double BenchmarkTickStart = 0.0;
@@ -148,6 +157,8 @@ void Application::Init(int argc, char* args[]) {
 	Log::Init();
 
 	MemoryPools::Init();
+
+	Application::InitPerformanceMetrics();
 
 	SDL_SetHint(SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING, "1");
 	SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
@@ -585,7 +596,8 @@ void Application::LoadDefaultFont() {
 		Stream* stream = ResourceStream::New(filename);
 		if (stream) {
 			streamList.push_back(stream);
-		} else {
+		}
+		else {
 			Log::Print(Log::LOG_ERROR, "Resource \"%s\" does not exist!", filename);
 			hadError = true;
 		}
@@ -641,131 +653,84 @@ void Application::UnloadDefaultFont() {
 	}
 }
 
-bool AutomaticPerformanceSnapshots = false;
-double AutomaticPerformanceSnapshotFrameTimeThreshold = 20.0;
-double AutomaticPerformanceSnapshotLastTime = 0.0;
-double AutomaticPerformanceSnapshotMinInterval = 5000.0; // 5 seconds
-
-int MetricFrameCounterTime = 0;
-double MetricEventTime = -1;
-double MetricAfterSceneTime = -1;
-double MetricPollTime = -1;
-double MetricUpdateTime = -1;
-double MetricClearTime = -1;
-double MetricRenderTime = -1;
-double MetricPostProcessTime = -1;
-double MetricFPSCounterTime = -1;
-double MetricPresentTime = -1;
-double MetricFrameTime = 0.0;
-vector<ObjectList*> ListList;
 void Application::GetPerformanceSnapshot() {
-	if (Scene::ObjectLists) {
-		// General Performance Snapshot
-		double types[] = {MetricEventTime,
-			MetricAfterSceneTime,
-			MetricPollTime,
-			MetricUpdateTime,
-			MetricClearTime,
-			MetricRenderTime,
-			MetricPostProcessTime,
-			MetricPresentTime,
-			0.0,
-			MetricFrameTime,
-			CurrentFPS};
-		const char* typeNames[] = {
-			"Event Polling:         %8.3f ms",
-			"Garbage Collector:     %8.3f ms",
-			"Input Polling:         %8.3f ms",
-			"Entity Update:         %8.3f ms",
-			"Clear Time:            %8.3f ms",
-			"World Render Commands: %8.3f ms",
-			"Render Post-Process:   %8.3f ms",
-			"Frame Present Time:    %8.3f ms",
-			"==================================",
-			"Frame Total Time:      %8.3f ms",
-			"FPS:                   %11.3f",
-		};
+	// General Performance Snapshot
+	Log::Print(Log::LOG_IMPORTANT, "General Performance Snapshot:");
+	for (size_t i = 0; i < Application::AllMetrics.size(); i++) {
+		PerformanceMeasure* measure = Application::AllMetrics[i];
 
-		ListList.clear();
-		Scene::ObjectLists->WithAll([](Uint32, ObjectList* list) -> void {
-			if ((list->Performance.Update.AverageTime > 0.0 &&
-				    list->Performance.Update.AverageItemCount > 0) ||
-				(list->Performance.Render.AverageTime > 0.0 &&
-					list->Performance.Render.AverageItemCount > 0)) {
-				ListList.push_back(list);
-			}
-		});
-		std::sort(
-			ListList.begin(), ListList.end(), [](ObjectList* a, ObjectList* b) -> bool {
-				ObjectListPerformanceStats& updatePerfA = a->Performance.Update;
-				ObjectListPerformanceStats& updatePerfB = b->Performance.Update;
-				ObjectListPerformanceStats& renderPerfA = a->Performance.Render;
-				ObjectListPerformanceStats& renderPerfB = b->Performance.Render;
-				return updatePerfA.AverageTime * updatePerfA.AverageItemCount +
-					renderPerfA.AverageTime * renderPerfA.AverageItemCount >
-					updatePerfB.AverageTime * updatePerfB.AverageItemCount +
-					renderPerfB.AverageTime * renderPerfB.AverageItemCount;
-			});
+		char timeString[64];
+		snprintf(timeString, sizeof timeString, "%.3f ms", measure->Time);
 
-		Log::Print(Log::LOG_IMPORTANT, "General Performance Snapshot:");
-		for (size_t i = 0; i < sizeof(types) / sizeof(types[0]); i++) {
-			Log::Print(Log::LOG_INFO, typeNames[i], types[i]);
+		char padStr[32 + 1];
+		int padding = (sizeof(padStr) - 1) - strlen(measure->Name) + 1 - strlen(timeString);
+		if (padding < 1) {
+			padding = 1;
 		}
-
-		// View Rendering Performance Snapshot
-		char layerText[2048];
-		Log::Print(Log::LOG_IMPORTANT, "View Rendering Performance Snapshot:");
-		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
-			View* currentView = &Scene::Views[i];
-			if (currentView->Active) {
-				layerText[0] = 0;
-				double tilesTotal = 0.0;
-				for (size_t li = 0; li < Scene::Layers.size(); li++) {
-					SceneLayer* layer = &Scene::Layers[li];
-					char temp[128];
-					snprintf(temp,
-						sizeof(temp),
-						"     > %24s:   %8.3f ms\n",
-						layer->Name,
-						Scene::PERF_ViewRender[i].LayerTileRenderTime[li]);
-					StringUtils::Concat(layerText, temp, sizeof(layerText));
-					tilesTotal +=
-						Scene::PERF_ViewRender[i].LayerTileRenderTime[li];
-				}
-				Log::Print(Log::LOG_INFO,
-					"View %d:\n"
-					"           - Render Setup:        %8.3f ms %s\n"
-					"           - Projection Setup:    %8.3f ms\n"
-					"           - Object RenderEarly:  %8.3f ms\n"
-					"           - Object Render:       %8.3f ms\n"
-					"           - Object RenderLate:   %8.3f ms\n"
-					"           - Layer Tiles Total:   %8.3f ms\n%s"
-					"           - Finish:              %8.3f ms\n"
-					"           - Total:               %8.3f ms",
-					i,
-					Scene::PERF_ViewRender[i].RenderSetupTime,
-					Scene::PERF_ViewRender[i].RecreatedDrawTarget
-						? "(recreated draw target)"
-						: "",
-					Scene::PERF_ViewRender[i].ProjectionSetupTime,
-					Scene::PERF_ViewRender[i].ObjectRenderEarlyTime,
-					Scene::PERF_ViewRender[i].ObjectRenderTime,
-					Scene::PERF_ViewRender[i].ObjectRenderLateTime,
-					tilesTotal,
-					layerText,
-					Scene::PERF_ViewRender[i].RenderFinishTime,
-					Scene::PERF_ViewRender[i].RenderTime);
-			}
+		for (int i = 0; i < padding; i++) {
+			padStr[i] = ' ';
 		}
+		padStr[padding] = '\0';
 
-		// Object Performance Snapshot
+		Log::Print(Log::LOG_INFO, "%s:%s%s", measure->Name, padStr, timeString);
+	}
+	Log::Print(Log::LOG_INFO, "FPS: %27.3f", CurrentFPS);
+
+	// View Rendering Performance Snapshot
+	char layerText[2048];
+	Log::Print(Log::LOG_IMPORTANT, "View Rendering Performance Snapshot:");
+	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+		View* currentView = &Scene::Views[i];
+		if (currentView->Active) {
+			layerText[0] = 0;
+			double tilesTotal = 0.0;
+			for (size_t li = 0; li < Scene::Layers.size(); li++) {
+				SceneLayer* layer = &Scene::Layers[li];
+				char temp[128];
+				snprintf(temp,
+					sizeof(temp),
+					"     > %24s:   %8.3f ms\n",
+					layer->Name,
+					Scene::PERF_ViewRender[i].LayerTileRenderTime[li]);
+				StringUtils::Concat(layerText, temp, sizeof(layerText));
+				tilesTotal += Scene::PERF_ViewRender[i].LayerTileRenderTime[li];
+			}
+			Log::Print(Log::LOG_INFO,
+				"View %d:\n"
+				"           - Render Setup:        %8.3f ms %s\n"
+				"           - Projection Setup:    %8.3f ms\n"
+				"           - Object RenderEarly:  %8.3f ms\n"
+				"           - Object Render:       %8.3f ms\n"
+				"           - Object RenderLate:   %8.3f ms\n"
+				"           - Layer Tiles Total:   %8.3f ms\n%s"
+				"           - Finish:              %8.3f ms\n"
+				"           - Total:               %8.3f ms",
+				i,
+				Scene::PERF_ViewRender[i].RenderSetupTime,
+				Scene::PERF_ViewRender[i].RecreatedDrawTarget
+					? "(recreated draw target)"
+					: "",
+				Scene::PERF_ViewRender[i].ProjectionSetupTime,
+				Scene::PERF_ViewRender[i].ObjectRenderEarlyTime,
+				Scene::PERF_ViewRender[i].ObjectRenderTime,
+				Scene::PERF_ViewRender[i].ObjectRenderLateTime,
+				tilesTotal,
+				layerText,
+				Scene::PERF_ViewRender[i].RenderFinishTime,
+				Scene::PERF_ViewRender[i].RenderTime);
+		}
+	}
+
+	// Object Performance Snapshot
+	vector<ObjectList*> objListPerf = Scene::GetObjectListPerformance();
+	if (objListPerf.size() > 0) {
 		double totalUpdateEarly = 0.0;
 		double totalUpdate = 0.0;
 		double totalUpdateLate = 0.0;
 		double totalRender = 0.0;
 		Log::Print(Log::LOG_IMPORTANT, "Object Performance Snapshot:");
-		for (size_t i = 0; i < ListList.size(); i++) {
-			ObjectList* list = ListList[i];
+		for (size_t i = 0; i < objListPerf.size(); i++) {
+			ObjectList* list = objListPerf[i];
 			ObjectListPerformance& perf = list->Performance;
 			Log::Print(Log::LOG_INFO,
 				"Object \"%s\":\n"
@@ -808,10 +773,12 @@ void Application::GetPerformanceSnapshot() {
 			"Total Render: %8.3f mcs / %1.3f ms",
 			totalRender,
 			totalRender / 1000.0);
-
-		Log::Print(Log::LOG_IMPORTANT, "Garbage Size:");
-		Log::Print(Log::LOG_INFO, "%u", (Uint32)GarbageCollector::GarbageSize);
 	}
+
+	Log::Print(Log::LOG_IMPORTANT, "Garbage Size: %u", (Uint32)GarbageCollector::GarbageSize);
+}
+double Application::GetOverdelay() {
+	return Overdelay;
 }
 
 void Application::SetWindowTitle(const char* title) {
@@ -1140,10 +1107,51 @@ void Application::LoadKeyBinds() {
 #undef GET_KEY
 }
 
+void Application::AddPerformanceMetric(PerformanceMeasure* measure,
+	const char* name,
+	float r,
+	float g,
+	float b) {
+	*measure = PerformanceMeasure(name, r, g, b);
+	AllMetrics.push_back(measure);
+}
+void Application::AddPerformanceMetric(PerformanceMeasure* measure,
+	const char* name,
+	float r,
+	float g,
+	float b,
+	bool* isActive) {
+	*measure = PerformanceMeasure(name, r, g, b, isActive);
+	AllMetrics.push_back(measure);
+}
+
+void Application::InitPerformanceMetrics() {
+	AutomaticPerformanceSnapshots = false;
+	AutomaticPerformanceSnapshotFrameTimeThreshold = 20.0;
+	AutomaticPerformanceSnapshotLastTime = 0.0;
+	AutomaticPerformanceSnapshotMinInterval = 5000.0; // 5 seconds
+
+	AllMetrics.clear();
+
+	AddPerformanceMetric(&Metrics.Event, "Event Polling", 1.0, 0.0, 0.0);
+	AddPerformanceMetric(&Metrics.AfterScene, "Post-Scene", 0.0, 1.0, 0.0);
+	AddPerformanceMetric(&Metrics.Poll, "Input Polling", 0.0, 0.0, 1.0);
+	AddPerformanceMetric(&Metrics.Update, "Entity Update", 1.0, 1.0, 0.0);
+	AddPerformanceMetric(&Metrics.Clear, "Clear Time", 0.0, 1.0, 1.0);
+	AddPerformanceMetric(&Metrics.Render, "World Render Commands", 1.0, 0.0, 1.0);
+	AddPerformanceMetric(&Metrics.PostProcess,
+		"Render Post-Process",
+		1.0,
+		1.0,
+		1.0,
+		&Graphics::UsingPostProcessShader);
+	AddPerformanceMetric(&Metrics.Present, "Frame Present Time", 0.75, 0.75, 0.75);
+}
+
 void Application::LoadDevSettings() {
 #ifdef DEVELOPER_MODE
 	Application::Settings->GetBool("dev", "devMenu", &DevMenu);
-	Application::Settings->GetBool("dev", "viewPerformance", &ShowFPS);
+	Application::Settings->GetBool("dev", "viewPerformance", &ViewPerformance);
 	Application::Settings->GetBool("dev", "donothing", &DoNothing);
 	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
 	Application::Settings->GetBool("dev", "convertModels", &Application::DevConvertModels);
@@ -1166,11 +1174,13 @@ void Application::LoadDevSettings() {
 	}
 
 	Application::Settings->GetBool("dev", "autoPerfSnapshots", &AutomaticPerformanceSnapshots);
-	int apsFrameTimeThreshold = 20, apsMinInterval = 5;
-	Application::Settings->GetInteger("dev", "apsMinFrameTime", &apsFrameTimeThreshold);
-	Application::Settings->GetInteger("dev", "apsMinInterval", &apsMinInterval);
-	AutomaticPerformanceSnapshotFrameTimeThreshold = apsFrameTimeThreshold;
-	AutomaticPerformanceSnapshotMinInterval = apsMinInterval;
+	int apsFrameTimeThreshold = 0, apsMinInterval = 0;
+	if (Application::Settings->GetInteger("dev", "apsMinFrameTime", &apsFrameTimeThreshold)) {
+		AutomaticPerformanceSnapshotFrameTimeThreshold = apsFrameTimeThreshold;
+	}
+	if (Application::Settings->GetInteger("dev", "apsMinInterval", &apsMinInterval)) {
+		AutomaticPerformanceSnapshotMinInterval = apsMinInterval;
+	}
 
 	// The main resource file is not writable by default.
 	// This can be enabled by using allowWritableResource.
@@ -1345,7 +1355,6 @@ void Application::PollEvents() {
 				// Toggle frame stepper (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevFrameStepper]) {
 					Stepper = !Stepper;
-					MetricFrameCounterTime = 0;
 					Application::UpdateWindowTitle();
 					break;
 				}
@@ -1353,7 +1362,6 @@ void Application::PollEvents() {
 				else if (key == KeyBindsSDL[(int)KeyBind::DevStepFrame]) {
 					Stepper = true;
 					Step = true;
-					MetricFrameCounterTime++;
 					Application::UpdateWindowTitle();
 					break;
 				}
@@ -1387,12 +1395,14 @@ void Application::RunFrameCallback(void* p) {
 	RunFrame(UpdatesPerFrame);
 }
 void Application::RunFrame(int runFrames) {
+	Metrics.Frame.Begin();
+
 	FrameTimeStart = Clock::GetTicks();
 
 	// Event loop
-	MetricEventTime = Clock::GetTicks();
+	Metrics.Event.Begin();
 	Application::PollEvents();
-	MetricEventTime = Clock::GetTicks() - MetricEventTime;
+	Metrics.Event.End();
 
 	// BUG: Having Stepper on prevents the first
 	//   frame of a new scene from Updating, but still rendering.
@@ -1402,9 +1412,9 @@ void Application::RunFrame(int runFrames) {
 
 	FirstFrame = false;
 
-	MetricAfterSceneTime = Clock::GetTicks();
+	Metrics.AfterScene.Begin();
 	Scene::AfterScene();
-	MetricAfterSceneTime = Clock::GetTicks() - MetricAfterSceneTime;
+	Metrics.AfterScene.End();
 
 	if (DoNothing) {
 		goto DO_NOTHING;
@@ -1413,18 +1423,18 @@ void Application::RunFrame(int runFrames) {
 	// Update
 	for (int m = 0; m < runFrames; m++) {
 		Scene::ResetPerf();
-		MetricPollTime = 0.0;
-		MetricUpdateTime = 0.0;
+		Metrics.Poll.Reset();
+		Metrics.Update.Reset();
 		if ((Stepper && Step) || !Stepper) {
 			// Poll for inputs
-			MetricPollTime = Clock::GetTicks();
+			Metrics.Poll.Begin();
 			InputManager::Poll();
-			MetricPollTime = Clock::GetTicks() - MetricPollTime;
+			Metrics.Poll.Accumulate();
 
 			// Update scene
-			MetricUpdateTime = Clock::GetTicks();
+			Metrics.Update.Begin();
 			Scene::Update();
-			MetricUpdateTime = Clock::GetTicks() - MetricUpdateTime;
+			Metrics.Update.Accumulate();
 		}
 		Step = false;
 		if (runFrames != 1 && (*Scene::NextScene || Scene::DoRestart)) {
@@ -1444,9 +1454,12 @@ void Application::RunFrame(int runFrames) {
 		MediaBag* media = Scene::MediaList[i]->AsMedia;
 		int queued = (int)AudioManager::AudioQueueSize;
 		if (queued < needed) {
-			int ready_bytes = media->Player->GetAudioData(audio_buffer, needed - queued);
+			int ready_bytes =
+				media->Player->GetAudioData(audio_buffer, needed - queued);
 			if (ready_bytes > 0) {
-				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize, audio_buffer, ready_bytes);
+				memcpy(AudioManager::AudioQueue + AudioManager::AudioQueueSize,
+					audio_buffer,
+					ready_bytes);
 				AudioManager::AudioQueueSize += ready_bytes;
 			}
 		}
@@ -1455,261 +1468,40 @@ void Application::RunFrame(int runFrames) {
 #endif
 
 	// Rendering
-	MetricClearTime = Clock::GetTicks();
+	Metrics.Clear.Begin();
 	Graphics::Clear();
-	MetricClearTime = Clock::GetTicks() - MetricClearTime;
+	Metrics.Clear.End();
 
-	MetricRenderTime = Clock::GetTicks();
+	Metrics.Render.Begin();
 	Scene::Render();
-	MetricRenderTime = Clock::GetTicks() - MetricRenderTime;
+	Metrics.Render.End();
 
-	MetricPostProcessTime = Clock::GetTicks();
-	Graphics::DoScreenPostProcess();
-	MetricPostProcessTime = Clock::GetTicks() - MetricPostProcessTime;
+	if (Graphics::UsingPostProcessShader) {
+		Metrics.PostProcess.Begin();
+		Graphics::DoScreenPostProcess();
+		Metrics.PostProcess.End();
+	}
 
 DO_NOTHING:
 
 	// Show FPS counter
-	MetricFPSCounterTime = Clock::GetTicks();
+	Metrics.FPSCounter.Begin();
 	DrawPerformance();
-	MetricFPSCounterTime = Clock::GetTicks() - MetricFPSCounterTime;
+	Metrics.FPSCounter.End();
 
-	MetricPresentTime = Clock::GetTicks();
+	Metrics.Present.Begin();
 	Graphics::Present();
-	MetricPresentTime = Clock::GetTicks() - MetricPresentTime;
+	Metrics.Present.End();
 
-	MetricFrameTime = Clock::GetTicks() - FrameTimeStart;
+	Metrics.Frame.End();
 }
 void Application::DrawPerformance() {
-	Font* font = DefaultFont;
+	if (DefaultFont == nullptr) {
+		return;
+	}
 
-	if (ShowFPS && font != nullptr) {
-		TextDrawParams textParams;
-		textParams.FontSize = font->Size;
-		textParams.Ascent = font->Ascent;
-		textParams.Descent = font->Descent;
-		textParams.Leading = font->Leading;
-
-		int ww, wh;
-		char textBuffer[256];
-		SDL_GetWindowSize(Application::Window, &ww, &wh);
-		Graphics::SetViewport(0.0, 0.0, ww, wh);
-		Graphics::UpdateOrthoFlipped(ww, wh);
-
-		Graphics::SetBlendMode(BlendFactor_SRC_ALPHA,
-			BlendFactor_INV_SRC_ALPHA,
-			BlendFactor_ONE,
-			BlendFactor_INV_SRC_ALPHA);
-
-		float infoW = 400.0;
-		float infoH = 290.0;
-		float infoPadding = 20.0;
-		Graphics::Save();
-		Graphics::Translate(0.0, 0.0, 0.0);
-		Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.75);
-		Graphics::FillRectangle(0.0f, 0.0f, infoW, infoH);
-
-		double types[] = {
-			MetricEventTime,
-			MetricAfterSceneTime,
-			MetricPollTime,
-			MetricUpdateTime,
-			MetricClearTime,
-			MetricRenderTime,
-			MetricPostProcessTime,
-			MetricPresentTime,
-		};
-		const char* typeNames[] = {
-			"Event Polling: %3.3f ms",
-			"Garbage Collector: %3.3f ms",
-			"Input Polling: %3.3f ms",
-			"Entity Update: %3.3f ms",
-			"Clear Time: %3.3f ms",
-			"World Render Commands: %3.3f ms",
-			"Render Post-Process: %3.3f ms",
-			"Frame Present Time: %3.3f ms",
-		};
-		struct {
-			float r;
-			float g;
-			float b;
-		} colors[8] = {
-			{1.0, 0.0, 0.0},
-			{0.0, 1.0, 0.0},
-			{0.0, 0.0, 1.0},
-			{1.0, 1.0, 0.0},
-			{0.0, 1.0, 1.0},
-			{1.0, 0.0, 1.0},
-			{1.0, 1.0, 1.0},
-			{0.0, 0.0, 0.0},
-		};
-
-		int typeCount = sizeof(types) / sizeof(double);
-
-		float textX = 0.0;
-		float textY = font->Descent;
-
-		Graphics::Save();
-		Graphics::Translate(infoPadding - 2.0, infoPadding, 0.0);
-		Graphics::Scale(0.85, 0.85, 1.0);
-		snprintf(textBuffer, 256, "Frame Information");
-		Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-		Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
-		Graphics::Restore();
-
-		Graphics::Save();
-		Graphics::Translate(infoW - infoPadding - (8 * 16.0 * 0.85), infoPadding, 0.0);
-		Graphics::Scale(0.85, 0.85, 1.0);
-		snprintf(textBuffer, 256, "FPS: %03.1f", CurrentFPS);
-		Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
-		Graphics::Restore();
-
-		if (Application::Platform == Platforms::Android || true) {
-			// Draw bar
-			double total = 0.0001;
-			for (int i = 0; i < typeCount; i++) {
-				if (types[i] < 0.0) {
-					types[i] = 0.0;
-				}
-				total += types[i];
-			}
-
-			Graphics::Save();
-			Graphics::Translate(infoPadding, 50.0, 0.0);
-			Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.25);
-			Graphics::FillRectangle(0.0, 0.0f, infoW - infoPadding * 2, 30.0);
-			Graphics::Restore();
-
-			double rectx = 0.0;
-			for (int i = 0; i < typeCount; i++) {
-				Graphics::Save();
-				Graphics::Translate(infoPadding, 50.0, 0.0);
-				if (i < 8) {
-					Graphics::SetBlendColor(
-						colors[i].r, colors[i].g, colors[i].b, 0.5);
-				}
-				else {
-					Graphics::SetBlendColor(0.5, 0.5, 0.5, 0.5);
-				}
-				Graphics::FillRectangle(rectx,
-					0.0f,
-					types[i] / total * (infoW - infoPadding * 2),
-					30.0);
-				Graphics::Restore();
-
-				rectx += types[i] / total * (infoW - infoPadding * 2);
-			}
-
-			// Draw list
-			float listY = 90.0;
-			double totalFrameCount = 0.0f;
-			infoPadding += infoPadding;
-			for (int i = 0; i < typeCount; i++) {
-				Graphics::Save();
-				Graphics::Translate(infoPadding, listY, 0.0);
-				Graphics::SetBlendColor(colors[i].r, colors[i].g, colors[i].b, 0.5);
-				Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
-				Graphics::Scale(0.6, 0.6, 1.0);
-				snprintf(textBuffer, 256, typeNames[i], types[i]);
-				Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-				Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
-				listY += 20.0;
-				Graphics::Restore();
-
-				totalFrameCount += types[i];
-			}
-
-			// Draw total
-			Graphics::Save();
-			Graphics::Translate(infoPadding, listY, 0.0);
-			Graphics::SetBlendColor(1.0, 1.0, 1.0, 0.5);
-			Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
-			Graphics::Scale(0.6, 0.6, 1.0);
-			snprintf(textBuffer, 256, "Total Frame Time: %.3f ms", totalFrameCount);
-			Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-			Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
-			listY += 20.0;
-			Graphics::Restore();
-
-			// Draw Overdelay
-			Graphics::Save();
-			Graphics::Translate(infoPadding, listY, 0.0);
-			Graphics::SetBlendColor(1.0, 1.0, 1.0, 0.5);
-			Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
-			Graphics::Scale(0.6, 0.6, 1.0);
-			snprintf(textBuffer, 256, "Overdelay: %.3f ms", Overdelay);
-			Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-			Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
-			listY += 20.0;
-			Graphics::Restore();
-
-			float count = (float)Memory::MemoryUsage;
-			const char* moniker = "B";
-
-			if (count >= 1000000000) {
-				count /= 1000000000;
-				moniker = "GB";
-			}
-			else if (count >= 1000000) {
-				count /= 1000000;
-				moniker = "MB";
-			}
-			else if (count >= 1000) {
-				count /= 1000;
-				moniker = "KB";
-			}
-
-			listY += 30.0 - 20.0;
-
-			Graphics::Save();
-			Graphics::Translate(infoPadding / 2.0, listY, 0.0);
-			Graphics::Scale(0.6, 0.6, 1.0);
-			snprintf(textBuffer, 256, "RAM Usage: %.3f %s", count, moniker);
-			Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-			Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
-			Graphics::Restore();
-
-			listY += 30.0;
-
-			float* listYPtr = &listY;
-			if (Scene::ObjectLists && Application::Platform != Platforms::Android) {
-				Scene::ObjectLists->WithAll([textX,
-								    textY,
-								    font,
-								    infoPadding,
-								    listYPtr,
-								    textParams](Uint32,
-								    ObjectList* list) -> void {
-					char textBufferXXX[1024];
-					TextDrawParams locTextParams = textParams;
-					if (list->Performance.Update.AverageItemCount > 0.0) {
-						Graphics::Save();
-						Graphics::Translate(
-							infoPadding / 2.0, *listYPtr, 0.0);
-						Graphics::Scale(0.6, 0.6, 1.0);
-						snprintf(textBufferXXX,
-							1024,
-							"Object \"%s\": Avg Render %.1f mcs (Total %.1f mcs, Count %d)",
-							list->ObjectName,
-							list->Performance.Render.GetAverageTime(),
-							list->Performance.Render
-								.GetTotalAverageTime(),
-							(int)list->Performance.Render
-								.AverageItemCount);
-						Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-						Graphics::DrawText(font,
-							textBufferXXX,
-							textX,
-							textY,
-							&locTextParams);
-						Graphics::Restore();
-
-						*listYPtr += 20.0;
-					}
-				});
-			}
-		}
-		Graphics::Restore();
+	if (ViewPerformance) {
+		PerformanceViewer::DrawDetailed(DefaultFont);
 	}
 }
 void Application::DelayFrame() {
@@ -1845,7 +1637,7 @@ void Application::Run(int argc, char* args[]) {
 		}
 
 		if (AutomaticPerformanceSnapshots &&
-			MetricFrameTime > AutomaticPerformanceSnapshotFrameTimeThreshold) {
+			Metrics.Frame.Time > AutomaticPerformanceSnapshotFrameTimeThreshold) {
 			if (Clock::GetTicks() - AutomaticPerformanceSnapshotLastTime >
 				AutomaticPerformanceSnapshotMinInterval) {
 				AutomaticPerformanceSnapshotLastTime = Clock::GetTicks();
