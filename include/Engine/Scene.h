@@ -182,6 +182,7 @@ public:
 	static ObjectList* GetObjectList(const char* objectName);
 	static ObjectList* GetStaticObjectList(const char* objectName);
 	static void AddManagers();
+	static std::vector<ObjectList*> GetObjectListPerformance();
 	static void FreePriorityLists();
 	static void InitPriorityLists();
 	static void SetPriorityPerLayer(int count);

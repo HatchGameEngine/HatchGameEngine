@@ -39,7 +39,7 @@ Font::Font(std::vector<Stream*> streamList) {
 }
 
 void Font::Init() {
-	Oversampling = 1;
+	SetOversampling(1);
 	UseAntialiasing = true;
 	PixelCoverageThreshold = 128;
 	FontIndex = 0;
@@ -531,6 +531,23 @@ int Font::GetAtlasMagFilter() {
 	return UseAntialiasing ? TextureFilter_LINEAR : TextureFilter_NEAREST;
 }
 
+bool Font::SetOversampling(int oversamplingValue) {
+	Application::Settings->GetInteger("graphics", "forceFontOversampling", &oversamplingValue);
+
+	if (oversamplingValue < 1) {
+		oversamplingValue = 1;
+	}
+	else if (oversamplingValue > 8) {
+		oversamplingValue = 8;
+	}
+
+	bool didChange = Oversampling != oversamplingValue;
+
+	Oversampling = oversamplingValue;
+
+	return didChange;
+}
+
 Uint32* Font::GenerateAtlas(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold) {
 	if (!data) {
 		return nullptr;
@@ -669,6 +686,29 @@ bool Font::RequestGlyph(Uint32 codepoint) {
 	NeedUpdate = true;
 
 	return true;
+}
+
+float Font::GetGlyphAdvance(Uint32 codepoint) {
+	if (IsValidCodepoint(codepoint)) {
+		if (IsGlyphLoaded(codepoint)) {
+			std::unordered_map<Uint32, FontGlyph>::iterator it = Glyphs.find(codepoint);
+			if (it != Glyphs.end()) {
+				return it->second.Advance;
+			}
+		}
+
+		FontFamily* family = FindFamilyForCodepoint(codepoint);
+		if (family) {
+			stbtt_fontinfo* info = (stbtt_fontinfo*)family->Context;
+
+			int advanceWidth = 0;
+			stbtt_GetGlyphHMetrics(info, stbtt_FindGlyphIndex(info, codepoint), &advanceWidth, nullptr);
+
+			return (float)advanceWidth * stbtt_ScaleForPixelHeight(info, Size);
+		}
+	}
+
+	return 0.0f;
 }
 
 float Font::GetEllipsisWidth() {

@@ -7,7 +7,7 @@
 
 class JPEG : public ImageFormat {
 public:
-	static JPEG* Load(const char* filename);
+	static JPEG* Load(Stream* stream);
 	static bool Save(JPEG* jpeg, const char* filename);
 	bool Save(const char* filename);
 	~JPEG();

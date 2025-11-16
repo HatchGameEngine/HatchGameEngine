@@ -2088,6 +2088,33 @@ void Scene::AddManagers() {
 	Scene::SpawnStaticObject("InputManager");
 	Scene::SpawnStaticObject("FadeManager");
 }
+std::vector<ObjectList*> Scene::GetObjectListPerformance() {
+	std::vector<ObjectList*> ListList;
+
+	if (ObjectLists) {
+		ObjectLists->WithAll([&ListList](Uint32, ObjectList* list) -> void {
+			if ((list->Performance.Update.AverageTime > 0.0 &&
+				    list->Performance.Update.AverageItemCount > 0) ||
+				(list->Performance.Render.AverageTime > 0.0 &&
+					list->Performance.Render.AverageItemCount > 0)) {
+				ListList.push_back(list);
+			}
+		});
+		std::sort(
+			ListList.begin(), ListList.end(), [](ObjectList* a, ObjectList* b) -> bool {
+				ObjectListPerformanceStats& updatePerfA = a->Performance.Update;
+				ObjectListPerformanceStats& updatePerfB = b->Performance.Update;
+				ObjectListPerformanceStats& renderPerfA = a->Performance.Render;
+				ObjectListPerformanceStats& renderPerfB = b->Performance.Render;
+				return updatePerfA.AverageTime * updatePerfA.AverageItemCount +
+					renderPerfA.AverageTime * renderPerfA.AverageItemCount >
+					updatePerfB.AverageTime * updatePerfB.AverageItemCount +
+					renderPerfB.AverageTime * renderPerfB.AverageItemCount;
+			});
+	}
+
+	return ListList;
+}
 
 void Scene::FreePriorityLists() {
 	if (Scene::PriorityLists) {
@@ -2859,26 +2886,13 @@ int Scene::LoadModelResource(const char* filename, int unloadPolicy) {
 		return (int)index;
 	}
 
-	ResourceStream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Could not read resource \"%s\"!", filename);
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
-	}
-
-	resource->AsModel = new (std::nothrow) IModel();
-
-	if (!resource->AsModel->Load(stream, filename)) {
+	resource->AsModel = new (std::nothrow) IModel(filename);
+	if (resource->AsModel->LoadFailed) {
 		delete resource->AsModel;
 		delete resource;
-		list->pop_back();
-		stream->Close();
 		(*list)[index] = NULL;
 		return -1;
 	}
-
-	stream->Close();
 
 	return (int)index;
 }

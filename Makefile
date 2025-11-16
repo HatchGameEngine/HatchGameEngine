@@ -55,11 +55,13 @@ CPPFILES := \
 	source/Engine/Bytecode/Value.cpp \
 	source/Engine/Bytecode/ValuePrinter.cpp \
 	source/Engine/Bytecode/VMThread.cpp \
+	source/Engine/Data/DefaultFonts.cpp \
 	source/Engine/Diagnostics/Clock.cpp \
 	source/Engine/Diagnostics/Log.cpp \
 	source/Engine/Diagnostics/Memory.cpp \
 	source/Engine/Diagnostics/MemoryPools.cpp \
 	source/Engine/Diagnostics/PerformanceMeasure.cpp \
+	source/Engine/Diagnostics/PerformanceViewer.cpp \
 	source/Engine/Diagnostics/RemoteDebug.cpp \
 	source/Engine/Error.cpp \
 	source/Engine/Extensions/Discord.cpp \
@@ -278,10 +280,12 @@ PUBHFILES := \
 	include/Engine/Bytecode/Value.h \
 	include/Engine/Bytecode/ValuePrinter.h \
 	include/Engine/Bytecode/VMThread.h \
+	include/Engine/Data/DefaultFonts.h \
 	include/Engine/Diagnostics/Clock.h \
 	include/Engine/Diagnostics/Log.h \
 	include/Engine/Diagnostics/Memory.h \
 	include/Engine/Diagnostics/PerformanceMeasure.h \
+	include/Engine/Diagnostics/PerformanceViewer.h \
 	include/Engine/Diagnostics/RemoteDebug.h \
 	include/Engine/Error.h \
 	include/Engine/Extensions/Discord.h \

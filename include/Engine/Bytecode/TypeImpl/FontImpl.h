@@ -25,6 +25,7 @@ public:
 	static VMValue VM_GetSpaceWidth(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetOversampling(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetPixelCoverageThreshold(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetGlyphAdvance(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_IsAntialiasingEnabled(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_HasGlyph(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetPixelsPerUnit(int argCount, VMValue* args, Uint32 threadID);

@@ -159,23 +159,23 @@ typedef bool (*StencilTestFunction)(Uint8*, Uint8, Uint8);
 typedef void (*StencilOpFunction)(Uint8*, Uint8);
 
 struct TextDrawParams {
-	float FontSize;
-	float Ascent;
-	float Descent;
-	float Leading;
-	int MaxWidth;
-	int MaxLines;
-	Uint8 Flags;
+	float FontSize = 0.0f;
+	float Ascent = 0.0f;
+	float Descent = 0.0f;
+	float Leading = 0.0f;
+	int MaxWidth = 0;
+	int MaxLines = 0;
+	Uint8 Flags = 0;
 };
 
 struct LegacyTextDrawParams {
-	float Align;
-	float Baseline;
-	float Ascent;
-	float Advance;
-	int MaxWidth;
-	int MaxLines;
-	Uint8 Flags;
+	float Align = 0.0f;
+	float Baseline = 0.0f;
+	float Ascent = 0.0f;
+	float Advance = 0.0f;
+	int MaxWidth = 0;
+	int MaxLines = 0;
+	Uint8 Flags = 0;
 };
 
 #endif /* ENGINE_RENDERING_ENUMS */

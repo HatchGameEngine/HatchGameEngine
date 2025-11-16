@@ -22,6 +22,7 @@ public:
 	ArchiveVFS(Uint16 flags) : VFSProvider(flags) {};
 	virtual ~ArchiveVFS();
 
+	virtual bool IsEmpty();
 	virtual bool HasFile(const char* filename);
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);
 	virtual bool ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize);

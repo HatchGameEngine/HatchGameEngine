@@ -88,6 +88,7 @@ public:
 	static Sint32 CurrentVertexBuffer;
 	static Shader* CurrentShader;
 	static Shader* PostProcessShader;
+	static bool UsingPostProcessShader;
 	static bool SmoothFill;
 	static bool SmoothStroke;
 	static float PixelOffset;
@@ -152,6 +153,7 @@ public:
 	static bool SetRenderTarget(Texture* texture);
 	static bool CreateFramebufferTexture();
 	static bool UpdateFramebufferTexture();
+	static void SetPostProcessShader(Shader* shader);
 	static void DoScreenPostProcess();
 	static void CopyScreen(int source_x,
 		int source_y,
@@ -289,6 +291,8 @@ public:
 	static void
 	DrawTextEllipsis(Font* font, const char* text, float x, float y, TextDrawParams* params);
 	static void
+	DrawGlyph(Font* font, Uint32 codepoint, float x, float y, TextDrawParams* params);
+	static void
 	MeasureText(Font* font, const char* text, TextDrawParams* params, float& maxW, float& maxH);
 	static void MeasureTextWrapped(Font* font,
 		const char* text,
@@ -309,6 +313,11 @@ public:
 		const char* text,
 		float x,
 		float y,
+		LegacyTextDrawParams* params);
+	static void DrawGlyphLegacy(ISprite* sprite,
+		Uint32 codepoint,
+		float basex,
+		float basey,
 		LegacyTextDrawParams* params);
 	static void MeasureTextLegacy(ISprite* sprite,
 		const char* text,

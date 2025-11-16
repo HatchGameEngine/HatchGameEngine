@@ -2,12 +2,14 @@
 #define ENGINE_APPLICATION_H
 
 #include <Engine/Audio/AudioManager.h>
+#include <Engine/Diagnostics/PerformanceTypes.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/Version.h>
 #include <Engine/InputManager.h>
 #include <Engine/Math/Math.h>
 #include <Engine/Platforms/Capability.h>
+#include <Engine/ResourceTypes/Font.h>
 #include <Engine/Scene.h>
 #include <Engine/TextFormats/INI/INI.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
@@ -35,15 +37,26 @@ private:
 	static void LogEngineVersion();
 	static void LogSystemInfo();
 	static void MakeEngineVersion();
+	static void InitPerformanceMetrics();
+	static void AddPerformanceMetric(PerformanceMeasure* dest,
+		const char* name,
+		float r,
+		float g,
+		float b,
+		bool* isVisible);
+	static void
+	AddPerformanceMetric(PerformanceMeasure* dest, const char* name, float r, float g, float b);
 	static void RemoveCapability(std::string capability);
 	static bool ValidateIdentifier(const char* string);
 	static char* GenerateIdentifier(const char* string);
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
+	static void UnloadDefaultFont();
+	static void GetPerformanceSnapshot();
 	static void CreateWindow();
 	static void EndGame();
 	static void UnloadGame();
-	static void Restart(bool keepScene);
+	static void Restart();
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
@@ -62,28 +75,14 @@ private:
 	static void LoadGameInfo();
 	static void DisposeSettings();
 	static int HandleAppEvents(void* data, SDL_Event* event);
-	static void DrawDevString(const char* string, int x, int y, int align, bool isSelected);
-	static void OpenDevMenu();
-	static void CloseDevMenu();
-	static void SetBlendColor(int color);
-	static void DrawRectangle(float x, float y, float width, float height, int color, int alpha, bool screenRelative);
-	static void DevMenu_DrawMainMenu();
-	static void DevMenu_DrawTitleBar();
-	static void DevMenu_MainMenu();
-	static void DevMenu_CategorySelectMenu();
-	static void DevMenu_SceneSelectMenu();
-	static void DevMenu_SettingsMenu();
-	static void DevMenu_VideoMenu();
-	static void DevMenu_AudioMenu();
-	static void DevMenu_InputMenu();
-	static void DevMenu_DebugMenu();
-	static void DevMenu_ModsMenu();
 
 public:
 	static vector<std::string> CmdLineArgs;
+	static std::vector<std::string> DefaultFontList;
 	static INI* Settings;
 	static char SettingsFile[MAX_PATH_LENGTH];
 	static XMLNode* GameConfig;
+	static Font* DefaultFont;
 	static int TargetFPS;
 	static float CurrentFPS;
 	static bool Running;
@@ -92,9 +91,6 @@ public:
 	static char WindowTitle[256];
 	static int WindowWidth;
 	static int WindowHeight;
-	static int WindowScale;
-	static bool WindowFullscreen;
-	static bool WindowBorderless;
 	static int DefaultMonitor;
 	static Platforms Platform;
 	static char EngineVersion[256];
@@ -114,10 +110,8 @@ public:
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
 
-	static vector<ViewableVariable*> ViewableVariableList;
-	static DeveloperMenu DevMenu;
-	static int DeveloperDarkFont;
-	static int DeveloperLightFont;
+	static ApplicationMetrics Metrics;
+	static std::vector<PerformanceMeasure*> AllMetrics;
 
 	static void Init(int argc, char* args[]);
 	static void InitScripting();
@@ -134,7 +128,8 @@ public:
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();
 	static const char* GetPreferencesDir();
-	static void GetPerformanceSnapshot();
+	static void LoadDefaultFont();
+	static double GetOverdelay();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();
 	static bool SetNextGame(const char* path,
@@ -154,7 +149,7 @@ public:
 	static void Run(int argc, char* args[]);
 	static void Cleanup();
 	static void TerminateScripting();
-    static void LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene);
+	static void LoadSceneInfo();
 	static void InitPlayerControls();
 	static bool LoadSettings(const char* filename);
 	static void ReadSettings();
@@ -164,9 +159,6 @@ public:
 	static void SaveSettings();
 	static void SaveSettings(const char* filename);
 	static void SetSettingsFilename(const char* filename);
-	static void AddViewableVariable(const char* name, void* value, int type, int min, int max);
-	static Uint16* UTF8toUTF16(const char* utf8string);
-	static int LoadDevFont(const char* fileName);
 };
 
 #endif /* ENGINE_APPLICATION_H */

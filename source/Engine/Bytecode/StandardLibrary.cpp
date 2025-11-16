@@ -1607,6 +1607,67 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 	return INTEGER_VAL(0);
 }
 /***
+ * Application.SetDefaultFont
+ * \desc Sets the default font to the given Resource path, or Array containing Resource paths.
+ * \param font (String or Array): The font or list of fonts. Passing <code>null</code> to this argument will change the default font to the one the application was built with, if one is present.
+ * \ns Application
+ */
+VMValue Application_SetDefaultFont(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	std::vector<std::string> fontList;
+
+	// If null was passed, this clears the font list.
+	if (IS_NULL(args[0])) {
+		Application::DefaultFontList.clear();
+		Application::LoadDefaultFont();
+		return NULL_VAL;
+	}
+	else if (IS_ARRAY(args[0])) {
+		ObjArray* array = AS_ARRAY(args[0]);
+
+		// If an empty array was passed intentionally, this clears the font list.
+		if (array->Values->size() == 0) {
+			Application::DefaultFontList.clear();
+			Application::LoadDefaultFont();
+			return NULL_VAL;
+		}
+
+		for (size_t i = 0; i < array->Values->size(); i++) {
+			if (ScriptManager::Lock()) {
+				VMValue value = (*array->Values)[i];
+				if (IS_STRING(value)) {
+					char* filename = AS_CSTRING(value);
+					fontList.push_back(std::string(filename));
+				}
+				else {
+					ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+						"Expected argument to be of type %s instead of %s.",
+						GetObjectTypeString(OBJ_STRING),
+						GetValueTypeString(value));
+				}
+				ScriptManager::Unlock();
+			}
+		}
+	}
+	else {
+		char* path = GET_ARG(0, GetString);
+		if (ResourceManager::ResourceExists(path)) {
+			fontList.push_back(std::string(path));
+		}
+		else {
+			Log::Print(Log::LOG_ERROR, "Resource \"%s\" does not exist!", path);
+		}
+	}
+
+	if (fontList.size() > 0) {
+		Application::DefaultFontList = fontList;
+		Application::LoadDefaultFont();
+	}
+
+	return NULL_VAL;
+}
+/***
  * Application.ChangeGame
  * \desc Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead. Only <code>game://</code> and <code>user://</code> URLs are supported (or an absolute path that resolves to those locations).<br/><br/>\
 This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>\
@@ -3510,16 +3571,7 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
-		Graphics::DrawTexture(image->TexturePtr,
-			sx,
-			sy,
-			sw,
-			sh,
-			x,
-			y,
-			sw,
-			sh,
-			paletteID);
+		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, sw, sh, paletteID);
 	}
 	return NULL_VAL;
 }
@@ -4074,7 +4126,6 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4086,7 +4137,6 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 		ISprite* sprite = GET_ARG(1, GetSprite);
 		if (sprite) {
 			LegacyTextDrawParams params;
-			params.Flags = 0;
 			params.Ascent = textAscent;
 			params.Advance = textAdvance;
 			Graphics::MeasureTextLegacy(sprite, text, &params, maxW, maxH);
@@ -4137,7 +4187,6 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4151,7 +4200,6 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		ISprite* sprite = GET_ARG(1, GetSprite);
 		if (sprite) {
 			LegacyTextDrawParams params;
-			params.Flags = 0;
 			params.Ascent = textAscent;
 			params.Advance = textAdvance;
 			params.MaxWidth = maxWidth;
@@ -4196,7 +4244,6 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4210,7 +4257,6 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (sprite) {
 		LegacyTextDrawParams params;
-		params.Flags = 0;
 		params.Align = textAlign;
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
@@ -4254,7 +4300,6 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4270,7 +4315,6 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (sprite) {
 		LegacyTextDrawParams params;
-		params.Flags = 0;
 		params.Align = textAlign;
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
@@ -4316,7 +4360,6 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		TextDrawParams params;
-		params.Flags = 0;
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 		params.Descent = font->Descent;
@@ -4332,7 +4375,6 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (sprite) {
 		LegacyTextDrawParams params;
-		params.Flags = 0;
 		params.Align = textAlign;
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
@@ -4340,6 +4382,53 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		params.MaxWidth = maxWidth;
 		params.MaxLines = maxLines;
 		Graphics::DrawTextEllipsisLegacy(sprite, text, x, y, &params);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Draw.Glyph
+ * \desc Draws a glyph for a given code point.
+ * \param font (Font): The Font.
+ * \param codepoint (Integer): Code point to draw.
+ * \param x (Number): X position of where to draw the glyph.
+ * \param y (Number): Y position of where to draw the glyph.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \ns Draw
+ */
+VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(4);
+
+	Uint32 codepoint = GET_ARG(1, GetInteger);
+	float x = GET_ARG(2, GetDecimal);
+	float y = GET_ARG(3, GetDecimal);
+	float fontSize = GET_ARG_OPT(4, GetDecimal, 0.0f);
+
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 5) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+
+		Graphics::DrawGlyph(font, codepoint, x, y, &params);
+
+		return NULL_VAL;
+	}
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		Graphics::DrawGlyphLegacy(sprite, codepoint, x, y, &params);
 	}
 
 	return NULL_VAL;
@@ -11064,7 +11153,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 					GIF* gif;
 
 					Graphics::UsePalettes = false;
-					gif = GIF::Load(filename);
+					gif = GIF::Load(memoryReader);
 					Graphics::UsePalettes = loadPalette;
 
 					if (gif) {
@@ -11096,7 +11185,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 					PNG* png;
 
 					Graphics::UsePalettes = true;
-					png = PNG::Load(filename);
+					png = PNG::Load(memoryReader);
 					Graphics::UsePalettes = loadPalette;
 
 					if (png) {
@@ -15648,7 +15737,8 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
+		ObjStream* stream =
+			StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -16458,6 +16548,29 @@ VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
 	return DECIMAL_VAL((float)strtod(string, NULL));
+}
+/***
+ * String.GetCodepoints
+ * \desc Gets a list of UCS codepoints from UTF-8 text.
+ * \param string (String): The UTF-8 string.
+ * \return Returns an Array of Integer values.
+ * \ns String
+ */
+VMValue String_GetCodepoints(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	char* string = GET_ARG(0, GetString);
+
+	ObjArray* array = NewArray();
+
+	if (string) {
+		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
+
+		for (size_t i = 0; i < codepoints.size(); i++) {
+			array->Values->push_back(INTEGER_VAL((int)codepoints[i]));
+		}
+	}
+
+	return OBJECT_VAL(array);
 }
 // #endregion
 
@@ -18121,7 +18234,7 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
 	CHECK_ARGCOUNT(1);
 
 	if (IS_NULL(args[0])) {
-		Graphics::PostProcessShader = nullptr;
+		Graphics::SetPostProcessShader(nullptr);
 		return NULL_VAL;
 	}
 
@@ -18135,7 +18248,7 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
 	try {
 		shader->Validate();
 
-		Graphics::PostProcessShader = shader;
+		Graphics::SetPostProcessShader(shader);
 	} catch (const std::runtime_error& error) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
 	}
@@ -18443,6 +18556,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, SetDefaultFont);
 	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
 	/***
@@ -18986,6 +19100,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, Text);
 	DEF_NATIVE(Draw, TextWrapped);
 	DEF_NATIVE(Draw, TextEllipsis);
+	DEF_NATIVE(Draw, Glyph);
 	DEF_NATIVE(Draw, SetBlendColor);
 	DEF_NATIVE(Draw, SetTextureBlend);
 	DEF_NATIVE(Draw, SetBlendMode);
@@ -20296,6 +20411,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(String, LastIndexOf);
 	DEF_NATIVE(String, ParseInteger);
 	DEF_NATIVE(String, ParseDecimal);
+	DEF_NATIVE(String, GetCodepoints);
 	// #endregion
 
 	// #region Texture
