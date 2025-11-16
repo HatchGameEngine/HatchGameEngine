@@ -56,7 +56,7 @@ private:
 	static void CreateWindow();
 	static void EndGame();
 	static void UnloadGame();
-	static void Restart();
+	static void Restart(bool keepScene);
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
@@ -75,6 +75,22 @@ private:
 	static void LoadGameInfo();
 	static void DisposeSettings();
 	static int HandleAppEvents(void* data, SDL_Event* event);
+	static void DrawDevString(const char* string, int x, int y, int align, bool isSelected);
+	static void OpenDevMenu();
+	static void CloseDevMenu();
+	static void SetBlendColor(int color);
+	static void DrawRectangle(float x, float y, float width, float height, int color, int alpha, bool screenRelative);
+	static void DevMenu_DrawMainMenu();
+	static void DevMenu_DrawTitleBar();
+	static void DevMenu_MainMenu();
+	static void DevMenu_CategorySelectMenu();
+	static void DevMenu_SceneSelectMenu();
+	static void DevMenu_SettingsMenu();
+	static void DevMenu_VideoMenu();
+	static void DevMenu_AudioMenu();
+	static void DevMenu_InputMenu();
+	static void DevMenu_DebugMenu();
+	static void DevMenu_ModsMenu();
 
 public:
 	static vector<std::string> CmdLineArgs;
@@ -91,6 +107,9 @@ public:
 	static char WindowTitle[256];
 	static int WindowWidth;
 	static int WindowHeight;
+	static int WindowScale;
+	static bool WindowFullscreen;
+	static bool WindowBorderless;
 	static int DefaultMonitor;
 	static Platforms Platform;
 	static char EngineVersion[256];
@@ -109,6 +128,11 @@ public:
 	static bool DevMenuActivated;
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
+
+	static vector<ViewableVariable*> ViewableVariableList;
+	static DeveloperMenu DevMenu;
+	static int DeveloperDarkFont;
+	static int DeveloperLightFont;
 
 	static ApplicationMetrics Metrics;
 	static std::vector<PerformanceMeasure*> AllMetrics;
@@ -149,7 +173,7 @@ public:
 	static void Run(int argc, char* args[]);
 	static void Cleanup();
 	static void TerminateScripting();
-	static void LoadSceneInfo();
+	static void LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene);
 	static void InitPlayerControls();
 	static bool LoadSettings(const char* filename);
 	static void ReadSettings();
@@ -159,6 +183,9 @@ public:
 	static void SaveSettings();
 	static void SaveSettings(const char* filename);
 	static void SetSettingsFilename(const char* filename);
+	static void AddViewableVariable(const char* name, void* value, int type, int min, int max);
+	static Uint16* UTF8toUTF16(const char* utf8string);
+	static int LoadDevFont(const char* fileName);
 };
 
 #endif /* ENGINE_APPLICATION_H */
