@@ -10679,7 +10679,7 @@ VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Music
  */
 VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_ARGCOUNT(2);
 	ISound* audio = GET_ARG(0, GetMusic);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
@@ -15190,7 +15190,7 @@ VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sound
  */
 VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_ARGCOUNT(2);
 	ISound* audio = GET_ARG(0, GetSound);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
