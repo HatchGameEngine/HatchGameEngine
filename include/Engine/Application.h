@@ -79,7 +79,8 @@ private:
 	static void OpenDevMenu();
 	static void CloseDevMenu();
 	static void SetBlendColor(int color);
-	static void DrawRectangle(float x, float y, float width, float height, int color, int alpha, bool screenRelative);
+	static void DrawRectangle(float x, float y, float width, float height, int color, int alpha);
+	static void RunDevMenu();
 	static void DevMenu_DrawMainMenu();
 	static void DevMenu_DrawTitleBar();
 	static void DevMenu_MainMenu();
@@ -89,8 +90,6 @@ private:
 	static void DevMenu_VideoMenu();
 	static void DevMenu_AudioMenu();
 	static void DevMenu_InputMenu();
-	static void DevMenu_DebugMenu();
-	static void DevMenu_ModsMenu();
 
 public:
 	static vector<std::string> CmdLineArgs;
@@ -125,14 +124,11 @@ public:
 	static int MasterVolume;
 	static int MusicVolume;
 	static int SoundVolume;
-	static bool DevMenuActivated;
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
 
-	static vector<ViewableVariable*> ViewableVariableList;
+	static bool DevMenuActivated;
 	static DeveloperMenu DevMenu;
-	static int DeveloperDarkFont;
-	static int DeveloperLightFont;
 
 	static ApplicationMetrics Metrics;
 	static std::vector<PerformanceMeasure*> AllMetrics;
@@ -183,9 +179,6 @@ public:
 	static void SaveSettings();
 	static void SaveSettings(const char* filename);
 	static void SetSettingsFilename(const char* filename);
-	static void AddViewableVariable(const char* name, void* value, int type, int min, int max);
-	static Uint16* UTF8toUTF16(const char* utf8string);
-	static int LoadDevFont(const char* fileName);
 };
 
 #endif /* ENGINE_APPLICATION_H */

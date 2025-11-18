@@ -1312,42 +1312,6 @@ VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Application
 /***
- * Application.AddViewableVariable
- * \desc Adds a variable to manage in the developer menu.
- * \param name
- * \param variable
- * \param field
- * \param type
- * \param min
- * \param max
- * \ns Application
- */
-VMValue Application_AddViewableVariable(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(6);
-	const char* string = GET_ARG(0, GetString);
-	ObjInstance* instance = GET_ARG(1, GetInstance);
-	const char* field = GET_ARG(2, GetString);
-	int type = GET_ARG(3, GetInteger);
-	int min = GET_ARG(4, GetInteger);
-	int max = GET_ARG(5, GetInteger);
-
-	if (!instance->Fields->Exists(field))
-		return NULL_VAL;
-
-	VMValue& value = instance->Fields->Get(field);
-
-	if (!IS_INTEGER(value)) {
-		THROW_ERROR("Viewable variables may only be integers.");
-		return NULL_VAL;
-	}
-
-	void* fieldPtr = (value.Type == VAL_INTEGER) ? &value.as.Integer : value.as.LinkedInteger;
-
-	Application::AddViewableVariable(string, fieldPtr, type, min, max);
-
-	return NULL_VAL;
-}
-/***
  * Application.GetCommandLineArguments
  * \desc Gets a list of the command line arguments passed to the application.
  * \return Returns an Array of String values.
@@ -18533,7 +18497,6 @@ void StandardLibrary::Link() {
 
 	// #region Application
 	INIT_CLASS(Application);
-	DEF_NATIVE(Application, AddViewableVariable);
 	DEF_NATIVE(Application, GetCommandLineArguments);
 	DEF_NATIVE(Application, GetEngineVersionString);
 	DEF_NATIVE(Application, GetEngineVersionMajor);

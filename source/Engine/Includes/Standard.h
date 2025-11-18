@@ -62,23 +62,6 @@ enum class KeyBind {
 	Max
 };
 
-enum {
-    VIEWVAR_INVALID,
-    VIEWVAR_BOOL,
-    VIEWVAR_UINT8,
-    VIEWVAR_UINT16,
-    VIEWVAR_UINT32,
-    VIEWVAR_SINT8,
-    VIEWVAR_SINT16,
-    VIEWVAR_SINT32,
-};
-
-enum {
-    VIEWVAR_DISPLAY_BOOL,
-    VIEWVAR_DISPLAY_UNSIGNED,
-    VIEWVAR_DISPLAY_SIGNED,
-};
-
 struct DeveloperMenu {
     void (*State)();
     int Selection;
@@ -91,21 +74,11 @@ struct DeveloperMenu {
     int ListPos;
     int WindowScale;
     bool WindowBorderless;
-    bool ModsChanged;
+    int CurrentWindowWidth;
+    int CurrentWindowHeight;
     int PlayerListPos;
     bool MusicPausedStore;
 };
-
-struct ViewableVariable {
-    char Name[0x10];
-    void* Value;
-    int Type;
-    int Size;
-    int Min;
-    int Max;
-};
-
-#define VIEWABLEVARIABLE_COUNT 64
 
 #define DEFAULT_TARGET_FRAMERATE 60
 

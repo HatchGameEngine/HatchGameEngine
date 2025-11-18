@@ -1190,14 +1190,6 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	Scene::CurrentDrawGroup = -1;
 	PERF_END(ObjectRenderLateTime);
 
-	if (Application::DevMenuActivated && viewIndex == 0) {
-		// Poll for inputs, since the frame did not run
-		InputManager::Poll();
-
-		if (Application::DevMenu.State)
-			Application::DevMenu.State();
-	}
-
 	PERF_START(RenderFinishTime);
 	if (useDrawTarget && currentView->Software) {
 		Graphics::SoftwareEnd(viewIndex);
@@ -1649,9 +1641,6 @@ void Scene::Restart() {
 		Scene::TileSpriteInfos.resize(Scene::BaseTileCount);
 		Scene::SetTileCount(Scene::BaseTileCount);
 	}
-
-	Application::DeveloperDarkFont = Application::LoadDevFont("Sprites/Fonts/DevFontDark.bin");
-	Application::DeveloperLightFont = Application::LoadDevFont("Sprites/Fonts/DevFont.bin");
 
 	// Restart tile animations
 	for (Tileset& tileset : Scene::Tilesets) {
