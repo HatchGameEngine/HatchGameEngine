@@ -3,7 +3,10 @@
 #include <Engine/Application.h>
 
 DrawGroupList::DrawGroupList() {
-	Init();
+	Entities = new vector<Entity*>();
+}
+DrawGroupList::~DrawGroupList() {
+	delete Entities;
 }
 
 // Double linked-list functions
@@ -44,17 +47,6 @@ void DrawGroupList::Sort() {
 			return entA->Depth < entB->Depth;
 		});
 	NeedsSorting = false;
-}
-
-void DrawGroupList::Init() {
-	Entities = new vector<Entity*>();
-}
-void DrawGroupList::Dispose() {
-	delete Entities;
-	Entities = nullptr;
-}
-DrawGroupList::~DrawGroupList() {
-	// Dispose();
 }
 
 int DrawGroupList::Count() {

@@ -370,6 +370,54 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 	return true;
 }
 
+void Entity::CheckDrawGroupChanges() {
+	if (Priority < 0) {
+		Priority = 0;
+	}
+	else if (Priority >= MAX_PRIORITY_PER_LAYER) {
+		Priority = MAX_PRIORITY_PER_LAYER - 1;
+	}
+
+	// If hasn't been put in a list yet:
+	if (PriorityListIndex == -1) {
+		DrawGroupList* drawGroupList = Scene::GetDrawGroup(Priority);
+		int index = drawGroupList->GetEntityIndex(this);
+		if (index == -1) {
+			index = drawGroupList->Add(this);
+		}
+		PriorityListIndex = index;
+	}
+	// If Priority has changed:
+	else if (Priority != PriorityOld) {
+		// Remove entry in old list.
+		if (PriorityOld != -1) {
+			DrawGroupList* oldDrawGroupList = Scene::GetDrawGroupNoCheck(PriorityOld);
+			if (oldDrawGroupList) {
+				oldDrawGroupList->Remove(this);
+			}
+		}
+
+		// Add entry to new list.
+		DrawGroupList* drawGroupList = Scene::GetDrawGroup(Priority);
+		int index = drawGroupList->GetEntityIndex(this);
+		if (index == -1) {
+			index = drawGroupList->Add(this);
+		}
+		PriorityListIndex = index;
+	}
+
+	PriorityOld = Priority;
+}
+void Entity::CheckDepthChanges() {
+	// Sort list if needed
+	if (Depth != OldDepth) {
+		DrawGroupList* drawGroupList = Scene::GetDrawGroup(Priority);
+		drawGroupList->NeedsSorting = true;
+	}
+
+	OldDepth = Depth;
+}
+
 void Entity::Copy(Entity* other) {
 	// Add the other entity to this object's list
 	if (List != nullptr && other->List != List) {
@@ -382,17 +430,20 @@ void Entity::Copy(Entity* other) {
 	}
 
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-		if (Scene::PriorityLists[l].Contains(this)) {
-			// If the other object isn't in this priority
-			// list already, it's added into it
-			if (!Scene::PriorityLists[l].Contains(other)) {
-				Scene::PriorityLists[l].Add(other);
+		DrawGroupList* drawGroupList = Scene::PriorityLists[l];
+		if (drawGroupList) {
+			if (drawGroupList->Contains(this)) {
+				// If the other object isn't in this priority
+				// list already, it's added into it
+				if (!drawGroupList->Contains(other)) {
+					drawGroupList->Add(other);
+				}
 			}
-		}
-		else {
-			// If this object isn't in this priority list,
-			// the other object is removed from it
-			Scene::PriorityLists[l].Remove(other);
+			else {
+				// If this object isn't in this priority list,
+				// the other object is removed from it
+				drawGroupList->Remove(other);
+			}
 		}
 	}
 

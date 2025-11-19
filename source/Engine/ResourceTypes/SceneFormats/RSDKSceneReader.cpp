@@ -582,6 +582,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	Scene::TileCount = 0x400;
 	Scene::EmptyTile = 0x3FF;
 
+	Scene::FreePriorityLists();
 	Scene::PriorityPerLayer = 16;
 	Scene::InitPriorityLists();
 

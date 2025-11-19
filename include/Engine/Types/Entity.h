@@ -107,6 +107,8 @@ public:
 	Entity* NextSceneEntity = NULL;
 
 	virtual ~Entity() = default;
+	void CheckDrawGroupChanges();
+	void CheckDepthChanges();
 	void Copy(Entity* other);
 	void CopyFields(Entity* other);
 	int GetIDWithinClass();
