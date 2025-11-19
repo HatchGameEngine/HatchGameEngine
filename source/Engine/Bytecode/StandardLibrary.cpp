@@ -13138,7 +13138,8 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 	else if (count >= MAX_PRIORITY_PER_LAYER) {
-		THROW_ERROR("Draw group count cannot be higher than %d.", MAX_PRIORITY_PER_LAYER - 1);
+		THROW_ERROR(
+			"Draw group count cannot be higher than %d.", MAX_PRIORITY_PER_LAYER - 1);
 		return NULL_VAL;
 	}
 	Scene::SetPriorityPerLayer(count);
@@ -20626,6 +20627,12 @@ void StandardLibrary::Link() {
     * \desc The max amount of scene views.
     */
 	DEF_ENUM(MAX_SCENE_VIEWS);
+	/***
+    * \constant MAX_DRAW_GROUPS
+    * \type Integer
+    * \desc The max amount of draw groups.
+    */
+	DEF_CONST_INT("MAX_DRAW_GROUPS", MAX_PRIORITY_PER_LAYER);
 
 	/***
     * \constant Math_PI
