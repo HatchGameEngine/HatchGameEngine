@@ -370,6 +370,32 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 	return true;
 }
 
+void Entity::SetDrawGroup(int index) {
+	if (index < 0) {
+		index = 0;
+	}
+	else if (index >= MAX_PRIORITY_PER_LAYER) {
+		index = MAX_PRIORITY_PER_LAYER - 1;
+	}
+
+	// Remove entry in old list.
+	if (PriorityOld != -1) {
+		DrawGroupList* oldDrawGroupList = Scene::GetDrawGroupNoCheck(PriorityOld);
+		if (oldDrawGroupList) {
+			oldDrawGroupList->Remove(this);
+		}
+	}
+
+	// Add entry to new list.
+	DrawGroupList* drawGroupList = Scene::GetDrawGroup(index);
+	PriorityListIndex = drawGroupList->GetEntityIndex(this);
+	if (PriorityListIndex == -1) {
+		PriorityListIndex = drawGroupList->Add(this);
+	}
+
+	PriorityOld = Priority;
+	Priority = index;
+}
 void Entity::CheckDrawGroupChanges() {
 	if (Priority < 0) {
 		Priority = 0;
@@ -381,29 +407,14 @@ void Entity::CheckDrawGroupChanges() {
 	// If hasn't been put in a list yet:
 	if (PriorityListIndex == -1) {
 		DrawGroupList* drawGroupList = Scene::GetDrawGroup(Priority);
-		int index = drawGroupList->GetEntityIndex(this);
-		if (index == -1) {
-			index = drawGroupList->Add(this);
+		PriorityListIndex = drawGroupList->GetEntityIndex(this);
+		if (PriorityListIndex == -1) {
+			PriorityListIndex = drawGroupList->Add(this);
 		}
-		PriorityListIndex = index;
 	}
 	// If Priority has changed:
 	else if (Priority != PriorityOld) {
-		// Remove entry in old list.
-		if (PriorityOld != -1) {
-			DrawGroupList* oldDrawGroupList = Scene::GetDrawGroupNoCheck(PriorityOld);
-			if (oldDrawGroupList) {
-				oldDrawGroupList->Remove(this);
-			}
-		}
-
-		// Add entry to new list.
-		DrawGroupList* drawGroupList = Scene::GetDrawGroup(Priority);
-		int index = drawGroupList->GetEntityIndex(this);
-		if (index == -1) {
-			index = drawGroupList->Add(this);
-		}
-		PriorityListIndex = index;
+		SetDrawGroup(Priority);
 	}
 
 	PriorityOld = Priority;

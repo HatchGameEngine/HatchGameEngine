@@ -2122,7 +2122,19 @@ void Scene::SetPriorityPerLayer(int count) {
 
 	if (count < currentCount) {
 		for (int i = count; i < currentCount; i++) {
-			delete Scene::PriorityLists[i];
+			DrawGroupList* drawGroupList = Scene::PriorityLists[i];
+			if (!drawGroupList) {
+				continue;
+			}
+
+			for (Entity* ent : *drawGroupList->Entities) {
+				if (ent->Priority == i) {
+					// Force the entity to be placed in a draw group next Update()
+					ent->PriorityListIndex = -1;
+				}
+			}
+
+			delete drawGroupList;
 		}
 	}
 

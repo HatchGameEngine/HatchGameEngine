@@ -13137,6 +13137,10 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
 		THROW_ERROR("Draw group count cannot be lower than 1.");
 		return NULL_VAL;
 	}
+	else if (count >= MAX_PRIORITY_PER_LAYER) {
+		THROW_ERROR("Draw group count cannot be higher than %d.", MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
+	}
 	Scene::SetPriorityPerLayer(count);
 	return NULL_VAL;
 }

@@ -107,6 +107,7 @@ public:
 	Entity* NextSceneEntity = NULL;
 
 	virtual ~Entity() = default;
+	void SetDrawGroup(int index);
 	void CheckDrawGroupChanges();
 	void CheckDepthChanges();
 	void Copy(Entity* other);
