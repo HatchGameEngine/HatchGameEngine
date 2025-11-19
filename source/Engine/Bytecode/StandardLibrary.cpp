@@ -1792,6 +1792,11 @@ VMValue Array_Pop(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
+		if (array->Values->size() == 0) {
+			ScriptManager::Unlock();
+			THROW_ERROR("Array is empty!");
+			return NULL_VAL;
+		}
 		VMValue value = array->Values->back();
 		array->Values->pop_back();
 		ScriptManager::Unlock();
@@ -1813,6 +1818,13 @@ VMValue Array_Insert(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int index = GET_ARG(1, GetInteger);
+		if (index < 0 || index > (int)array->Values->size()) { // Not a typo
+			ScriptManager::Unlock();
+			THROW_ERROR("Index %d is out of bounds of array of size %d.",
+				index,
+				(int)array->Values->size());
+			return NULL_VAL;
+		}
 		array->Values->insert(array->Values->begin() + index, args[2]);
 		ScriptManager::Unlock();
 	}
@@ -1831,6 +1843,13 @@ VMValue Array_Erase(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int index = GET_ARG(1, GetInteger);
+		if (index < 0 || index >= (int)array->Values->size()) {
+			ScriptManager::Unlock();
+			THROW_ERROR("Index %d is out of bounds of array of size %d.",
+				index,
+				(int)array->Values->size());
+			return NULL_VAL;
+		}
 		array->Values->erase(array->Values->begin() + index);
 		ScriptManager::Unlock();
 	}
