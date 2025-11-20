@@ -13,7 +13,9 @@ private:
 	static Skeleton* LoadBones(IModel* imodel, Mesh* mesh, struct aiMesh* amesh);
 	static SkeletalAnim*
 	LoadAnimation(IModel* imodel, ModelAnim* parentAnim, struct aiAnimation* aanim);
+#ifdef USING_ASSIMP
 	static int GetConversionFlags();
+#endif
 	static bool DoConversion(const struct aiScene* scene, IModel* imodel);
 
 public:

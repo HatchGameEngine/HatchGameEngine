@@ -24,8 +24,6 @@ class Entity;
 #include <Engine/Types/ObjectRegistry.h>
 #include <Engine/Types/Tileset.h>
 
-enum { SCENETYPE_NONE = 0, SCENETYPE_HATCH = 1, SCENETYPE_TILED = 2, SCENETYPE_RSDK = 3 };
-
 class Scene {
 private:
 	static void RemoveObject(Entity* obj);
@@ -72,9 +70,8 @@ public:
 	static int ObjectCount;
 	static Entity* ObjectFirst;
 	static Entity* ObjectLast;
-	static int BasePriorityPerLayer;
 	static int PriorityPerLayer;
-	static DrawGroupList* PriorityLists;
+	static DrawGroupList** PriorityLists;
 	static vector<Tileset> Tilesets;
 	static vector<TileSpriteInfo> TileSpriteInfos;
 	static Uint16 EmptyTile;
@@ -177,9 +174,12 @@ public:
 	static ObjectList* GetObjectList(const char* objectName);
 	static ObjectList* GetStaticObjectList(const char* objectName);
 	static void AddManagers();
+	static std::vector<ObjectList*> GetObjectListPerformance();
 	static void FreePriorityLists();
 	static void InitPriorityLists();
 	static void SetPriorityPerLayer(int count);
+	static DrawGroupList* GetDrawGroup(int index);
+	static DrawGroupList* GetDrawGroupNoCheck(int index);
 	static bool AddTileset(char* path);
 	static void LoadTileCollisions(const char* filename, size_t tilesetID);
 	static void UnloadTileCollisions();

@@ -41,11 +41,10 @@ bool ISound::IsFile(Stream* stream) {
 }
 
 bool ISound::Load(const char* filename, bool streamFromFile) {
-	StreamFromFile = streamFromFile;
-
 	double ticks = Clock::GetTicks();
 
 	Uint8 format = AUDIO_FORMAT_UNKNOWN;
+
 	Stream* stream = ResourceStream::New(filename);
 	if (stream) {
 		format = DetectFormat(stream);
@@ -99,7 +98,7 @@ bool ISound::Load(const char* filename, bool streamFromFile) {
 	}
 
 	// If we're not streaming, then load all samples now
-	if (!StreamFromFile) {
+	if (!streamFromFile) {
 		ticks = Clock::GetTicks();
 
 		SoundData->LoadSamples(SoundData->TotalPossibleSamples);
@@ -111,6 +110,7 @@ bool ISound::Load(const char* filename, bool streamFromFile) {
 	}
 
 	BytesPerSample = ((Format.format & 0xFF) >> 3) * Format.channels;
+	StreamFromFile = streamFromFile;
 
 	return true;
 }

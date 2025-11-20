@@ -225,8 +225,6 @@ JPEG* JPEG::Load(Stream* stream) {
 	}
 	else {
 		memcpy(jpeg->Data, pixelData, jpeg->Width * jpeg->Height * sizeof(Uint32));
-		// memcpy(jpeg->Data, pixelData, jpeg->Width *
-		// jpeg->Height * 3);
 	}
 	free(pixelData);
 

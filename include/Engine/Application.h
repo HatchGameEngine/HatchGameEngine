@@ -2,12 +2,14 @@
 #define ENGINE_APPLICATION_H
 
 #include <Engine/Audio/AudioManager.h>
+#include <Engine/Diagnostics/PerformanceTypes.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/Version.h>
 #include <Engine/InputManager.h>
 #include <Engine/Math/Math.h>
 #include <Engine/Platforms/Capability.h>
+#include <Engine/ResourceTypes/Font.h>
 #include <Engine/Scene.h>
 #include <Engine/TextFormats/INI/INI.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
@@ -35,11 +37,22 @@ private:
 	static void LogEngineVersion();
 	static void LogSystemInfo();
 	static void MakeEngineVersion();
+	static void InitPerformanceMetrics();
+	static void AddPerformanceMetric(PerformanceMeasure* dest,
+		const char* name,
+		float r,
+		float g,
+		float b,
+		bool* isVisible);
+	static void
+	AddPerformanceMetric(PerformanceMeasure* dest, const char* name, float r, float g, float b);
 	static void RemoveCapability(std::string capability);
 	static bool ValidateIdentifier(const char* string);
 	static char* GenerateIdentifier(const char* string);
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
+	static void UnloadDefaultFont();
+	static void GetPerformanceSnapshot();
 	static void CreateWindow();
 	static void EndGame();
 	static void UnloadGame();
@@ -65,9 +78,11 @@ private:
 
 public:
 	static vector<std::string> CmdLineArgs;
+	static std::vector<std::string> DefaultFontList;
 	static INI* Settings;
 	static char SettingsFile[MAX_PATH_LENGTH];
 	static XMLNode* GameConfig;
+	static Font* DefaultFont;
 	static int TargetFPS;
 	static float CurrentFPS;
 	static bool Running;
@@ -95,6 +110,9 @@ public:
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
 
+	static ApplicationMetrics Metrics;
+	static std::vector<PerformanceMeasure*> AllMetrics;
+
 	static void Init(int argc, char* args[]);
 	static void InitScripting();
 	static void SetTargetFrameRate(int targetFPS);
@@ -110,7 +128,8 @@ public:
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();
 	static const char* GetPreferencesDir();
-	static void GetPerformanceSnapshot();
+	static void LoadDefaultFont();
+	static double GetOverdelay();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();
 	static bool SetNextGame(const char* path,

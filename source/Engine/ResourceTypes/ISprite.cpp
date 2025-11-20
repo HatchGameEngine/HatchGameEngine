@@ -15,6 +15,8 @@
 
 #include <Engine/Utilities/StringUtils.h>
 
+#define RSDK_SPRITE_MAGIC 0x00525053
+
 ISprite::ISprite() {
 	Type = ASSET_SPRITE;
 	Loaded = true;
@@ -210,7 +212,7 @@ void ISprite::ConvertToPalette(unsigned paletteNumber) {
 }
 
 bool ISprite::IsFile(Stream* stream) {
-	return stream->ReadUInt32() == 0x00525053;
+	return stream->ReadUInt32() == RSDK_SPRITE_MAGIC;
 }
 bool ISprite::LoadAnimation(const char* filename) {
 	char* str;
@@ -418,7 +420,7 @@ bool ISprite::SaveAnimation(const char* filename) {
 	/// =======================
 
 	// Check MAGIC
-	stream->WriteUInt32(0x00525053);
+	stream->WriteUInt32(RSDK_SPRITE_MAGIC);
 
 	// Total frame count
 	Uint32 totalFrameCount = 0;

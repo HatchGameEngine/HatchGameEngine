@@ -158,6 +158,7 @@ codeBlock {
                     <li><a href="#Reference_constants_NUM_INPUT_DEVICE_TYPES">NUM_INPUT_DEVICE_TYPES</a></li>
                     <li><a href="#Reference_constants_NUM_INPUT_BIND_TYPES">NUM_INPUT_BIND_TYPES</a></li>
                     <li><a href="#Reference_constants_MAX_SCENE_VIEWS">MAX_SCENE_VIEWS</a></li>
+                    <li><a href="#Reference_constants_MAX_DRAW_GROUPS">MAX_DRAW_GROUPS</a></li>
                     <li><a href="#Reference_constants_Math_PI">Math_PI</a></li>
                     <li><a href="#Reference_constants_Math_PI_DOUBLE">Math_PI_DOUBLE</a></li>
                     <li><a href="#Reference_constants_Math_PI_HALF">Math_PI_HALF</a></li>
@@ -259,6 +260,7 @@ codeBlock {
                     <li><a href="#Reference_functions_Application_SetGameDescription">Application.SetGameDescription</a></li>
                     <li><a href="#Reference_functions_Application_SetCursorVisible">Application.SetCursorVisible</a></li>
                     <li><a href="#Reference_functions_Application_GetCursorVisible">Application.GetCursorVisible</a></li>
+                    <li><a href="#Reference_functions_Application_SetDefaultFont">Application.SetDefaultFont</a></li>
                     <li><a href="#Reference_functions_Application_ChangeGame">Application.ChangeGame</a></li>
                     <li><a href="#Reference_functions_Application_Quit">Application.Quit</a></li>
                 </ul>
@@ -1006,6 +1008,7 @@ codeBlock {
                     <li><a href="#Reference_functions_Scene_GetProperty">Scene.GetProperty</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerCount">Scene.GetLayerCount</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerIndex">Scene.GetLayerIndex</a></li>
+                    <li><a href="#Reference_functions_Scene_GetLayerName">Scene.GetLayerName</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerVisible">Scene.GetLayerVisible</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerOpacity">Scene.GetLayerOpacity</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerShader">Scene.GetLayerShader</a></li>
@@ -2800,6 +2803,15 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the visibility of the cursor.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether ot not the cursor is visible.</div>
+        </p>
+        <p id="Reference_functions_Application_SetDefaultFont">
+        <h2 style="margin-bottom: 8px;">Application.SetDefaultFont</h2>
+        <code>Application.SetDefaultFont(font)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the default font to the given Resource path, or Array containing Resource paths.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>font (String or Array): The font or list of fonts. Passing <code>null</code> to this argument will change the default font to the one the application was built with, if one is present.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Application_ChangeGame">
         <h2 style="margin-bottom: 8px;">Application.ChangeGame</h2>
@@ -7246,6 +7258,17 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the layer index, or <code>-1</code> if the layer could not be found.</div>
         </p>
+        <p id="Reference_functions_Scene_GetLayerName">
+        <h2 style="margin-bottom: 8px;">Scene.GetLayerName</h2>
+        <code>Scene.GetLayerName(layerIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of the specified layer.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
         <p id="Reference_functions_Scene_GetLayerVisible">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerVisible</h2>
         <code>Scene.GetLayerVisible(layerIndex)</code>
@@ -7994,7 +8017,7 @@ codeBlock {
         <p id="Reference_functions_Scene_SetDrawGroupCount">
         <h2 style="margin-bottom: 8px;">Scene.SetDrawGroupCount</h2>
         <code>Scene.SetDrawGroupCount(count)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the amount of draw groups in the active scene.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the amount of draw groups in the active scene. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>count (Integer): Draw group count.</li>
@@ -10413,7 +10436,7 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>732 out of 787 functions have descriptions. </p>
+        <p>734 out of 789 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -11429,11 +11452,11 @@ codeBlock {
         </p>
         <p id="Reference_constructors_Font">
         <h2 style="margin-bottom: 8px;">Font</h2>
-        <code>Font(font)</code>
+        <code>Font([font])</code>
         <div style="margin-top: 8px; font-size: 14px;">Loads a font from the given Resource path, Stream, or Array containing Resource paths or Streams.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>font (String, Stream, or Array): The font or list of fonts.</li>
+        <li>font (String, Stream, or Array): The font or list of fonts. If this argument is not given, it will use font the application was built with, if one is present.</li>
         </ul>
         </p>
         <p id="Reference_constructors_Resource">
@@ -13378,6 +13401,11 @@ codeBlock {
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="margin-top: 8px; font-size: 14px;">The max amount of scene views.</div>
         </p>
+        <p id="Reference_constants_MAX_DRAW_GROUPS">
+        <h3 style="margin-bottom: 8px;"><code>MAX_DRAW_GROUPS</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
+        <div style="margin-top: 8px; font-size: 14px;">The max amount of draw groups.</div>
+        </p>
         <p id="Reference_constants_Math_PI">
         <h3 style="margin-bottom: 8px;"><code>Math_PI</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Decimal</div>
@@ -13463,7 +13491,7 @@ codeBlock {
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="margin-top: 8px; font-size: 14px;">Key modifier for the Caps Lock key.</div>
         </p>
-        <p>22 out of 22 constants have descriptions. </p>
+        <p>23 out of 23 constants have descriptions. </p>
         <hr/>
         <h3>Globals</h3>
         <p id="Reference_globals_CameraX">

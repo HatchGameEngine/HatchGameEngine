@@ -43,9 +43,8 @@ int Scene::TileAnimationEnabled = 1;
 // Layering variables
 vector<SceneLayer> Scene::Layers;
 bool Scene::AnyLayerTileChange = false;
-int Scene::BasePriorityPerLayer = 32;
 int Scene::PriorityPerLayer = 0;
-DrawGroupList* Scene::PriorityLists = NULL;
+DrawGroupList** Scene::PriorityLists = nullptr;
 
 // Rendering variables
 int Scene::ShowTileCollisionFlag = 0;
@@ -369,47 +368,8 @@ void UpdateObject(Entity* ent) {
 		ent->WasOffScreen = true;
 	}
 
-	if (!Scene::PriorityLists) {
-		return;
-	}
-
-	int oldPriority = ent->PriorityOld;
-	int maxPriority = Scene::PriorityPerLayer - 1;
-	if (ent->Priority < 0) {
-		ent->Priority = 0;
-	}
-	if (ent->Priority > maxPriority) {
-		ent->Priority = maxPriority;
-	}
-
-	// If hasn't been put in a list yet:
-	if (ent->PriorityListIndex == -1) {
-		int index = Scene::PriorityLists[ent->Priority].GetEntityIndex(ent);
-		if (index == -1) {
-			index = Scene::PriorityLists[ent->Priority].Add(ent);
-		}
-		ent->PriorityListIndex = index;
-	}
-	// If Priority has changed:
-	else if (ent->Priority != oldPriority) {
-		// Remove entry in old list.
-		if (oldPriority != -1) {
-			Scene::PriorityLists[oldPriority].Remove(ent);
-		}
-		int index = Scene::PriorityLists[ent->Priority].GetEntityIndex(ent);
-		if (index == -1) {
-			index = Scene::PriorityLists[ent->Priority].Add(ent);
-		}
-		ent->PriorityListIndex = index;
-	}
-
-	// Sort list if needed
-	if (ent->Depth != ent->OldDepth) {
-		Scene::PriorityLists[ent->Priority].NeedsSorting = true;
-	}
-
-	ent->PriorityOld = ent->Priority;
-	ent->OldDepth = ent->Depth;
+	ent->CheckDrawGroupChanges();
+	ent->CheckDepthChanges();
 }
 
 // Double linked-list functions
@@ -557,7 +517,10 @@ void Scene::RemoveObject(Entity* obj) {
 
 	// Remove from draw groups
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-		PriorityLists[l].Remove(obj);
+		DrawGroupList* list = PriorityLists[l];
+		if (list) {
+			list->Remove(obj);
+		}
 	}
 
 	// Stop all sounds
@@ -976,7 +939,11 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			break;
 		}
 
-		DrawGroupList* drawGroupList = &PriorityLists[l];
+		DrawGroupList* drawGroupList = PriorityLists[l];
+		if (!drawGroupList) {
+			continue;
+		}
+
 		if (drawGroupList->NeedsSorting) {
 			drawGroupList->Sort();
 		}
@@ -1015,9 +982,13 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 		Scene::CurrentDrawGroup = l;
 
-		drawGroupList = &PriorityLists[l];
-		for (Entity* ent : *drawGroupList->Entities) {
-			if (ent->Active) {
+		drawGroupList = PriorityLists[l];
+		if (drawGroupList) {
+			for (Entity* ent : *drawGroupList->Entities) {
+				if (!ent->Active) {
+					continue;
+				}
+
 				_ox = ent->X - _vx;
 				_oy = ent->Y - _vy;
 
@@ -1173,10 +1144,12 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 		Scene::CurrentDrawGroup = l;
 
-		DrawGroupList* drawGroupList = &PriorityLists[l];
-		for (Entity* ent : *drawGroupList->Entities) {
-			if (ent->Active) {
-				ent->RenderLate();
+		DrawGroupList* drawGroupList = PriorityLists[l];
+		if (drawGroupList) {
+			for (Entity* ent : *drawGroupList->Entities) {
+				if (ent->Active) {
+					ent->RenderLate();
+				}
 			}
 		}
 	}
@@ -1725,7 +1698,10 @@ void Scene::ClearPriorityLists() {
 
 	int layerSize = Scene::PriorityPerLayer;
 	for (int l = 0; l < layerSize; l++) {
-		Scene::PriorityLists[l].Clear();
+		DrawGroupList* list = Scene::PriorityLists[l];
+		if (list) {
+			list->Clear();
+		}
 	}
 
 	// Reset the priority list indexes of all persistent objects
@@ -2070,62 +2046,138 @@ void Scene::AddManagers() {
 	Scene::SpawnStaticObject("InputManager");
 	Scene::SpawnStaticObject("FadeManager");
 }
+std::vector<ObjectList*> Scene::GetObjectListPerformance() {
+	std::vector<ObjectList*> ListList;
 
+	if (ObjectLists) {
+		ObjectLists->WithAll([&ListList](Uint32, ObjectList* list) -> void {
+			if ((list->Performance.Update.AverageTime > 0.0 &&
+				    list->Performance.Update.AverageItemCount > 0) ||
+				(list->Performance.Render.AverageTime > 0.0 &&
+					list->Performance.Render.AverageItemCount > 0)) {
+				ListList.push_back(list);
+			}
+		});
+		std::sort(
+			ListList.begin(), ListList.end(), [](ObjectList* a, ObjectList* b) -> bool {
+				ObjectListPerformanceStats& updatePerfA = a->Performance.Update;
+				ObjectListPerformanceStats& updatePerfB = b->Performance.Update;
+				ObjectListPerformanceStats& renderPerfA = a->Performance.Render;
+				ObjectListPerformanceStats& renderPerfB = b->Performance.Render;
+				return updatePerfA.AverageTime * updatePerfA.AverageItemCount +
+					renderPerfA.AverageTime * renderPerfA.AverageItemCount >
+					updatePerfB.AverageTime * updatePerfB.AverageItemCount +
+					renderPerfB.AverageTime * renderPerfB.AverageItemCount;
+			});
+	}
+
+	return ListList;
+}
+
+void Scene::InitPriorityLists() {
+	if (Scene::PriorityLists) {
+		Scene::FreePriorityLists();
+		Scene::PriorityPerLayer = BASE_PRIORITY_PER_LAYER;
+	}
+
+	Scene::PriorityLists = (DrawGroupList**)Memory::TrackedCalloc(
+		"Scene::PriorityLists", Scene::PriorityPerLayer, sizeof(DrawGroupList*));
+	if (Scene::PriorityLists == nullptr) {
+		Error::Fatal("Couldn't allocate Scene::PriorityLists!");
+	}
+}
 void Scene::FreePriorityLists() {
 	if (Scene::PriorityLists) {
-		for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--) {
-			Scene::PriorityLists[i].Dispose();
+		for (int i = 0; i < Scene::PriorityPerLayer; i++) {
+			if (Scene::PriorityLists[i]) {
+				delete Scene::PriorityLists[i];
+			}
 		}
+
 		Memory::Free(Scene::PriorityLists);
 	}
-	Scene::PriorityLists = NULL;
+
+	Scene::PriorityLists = nullptr;
 	Scene::PriorityPerLayer = 0;
-}
-void Scene::InitPriorityLists() {
-	if (Scene::PriorityPerLayer == 0) {
-		Scene::PriorityPerLayer = Scene::BasePriorityPerLayer;
-	}
-
-	if (Scene::PriorityLists) {
-		for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--) {
-			Scene::PriorityLists[i].Dispose();
-		}
-	}
-	else {
-		Scene::PriorityLists = (DrawGroupList*)Memory::TrackedCalloc(
-			"Scene::PriorityLists", Scene::PriorityPerLayer, sizeof(DrawGroupList));
-		if (!Scene::PriorityLists) {
-			Error::Fatal("Out of memory in Scene::InitPriorityLists!");
-		}
-	}
-
-	for (int i = Scene::PriorityPerLayer - 1; i >= 0; i--) {
-		Scene::PriorityLists[i].Init();
-	}
 }
 void Scene::SetPriorityPerLayer(int count) {
 	if (count < 1) {
 		count = 1;
 	}
-	else if (count > 256) {
-		count = 256;
+	else if (count >= MAX_PRIORITY_PER_LAYER) {
+		count = MAX_PRIORITY_PER_LAYER - 1;
 	}
 
 	int currentCount = Scene::PriorityPerLayer;
+	if (count == currentCount) {
+		return;
+	}
+
 	if (count < currentCount) {
 		for (int i = count; i < currentCount; i++) {
-			Scene::PriorityLists[i].Dispose();
-		}
-	}
-	else if (count > currentCount) {
-		Scene::PriorityLists = (DrawGroupList*)Memory::Realloc(
-			Scene::PriorityLists, Scene::PriorityPerLayer * sizeof(DrawGroupList));
-		for (int i = currentCount; i < count; i++) {
-			Scene::PriorityLists[i].Init();
+			DrawGroupList* drawGroupList = Scene::PriorityLists[i];
+			if (!drawGroupList) {
+				continue;
+			}
+
+			for (Entity* ent : *drawGroupList->Entities) {
+				if (ent->Priority == i) {
+					// Force the entity to be placed in a draw group next Update()
+					ent->PriorityListIndex = -1;
+				}
+			}
+
+			delete drawGroupList;
 		}
 	}
 
 	Scene::PriorityPerLayer = count;
+	Scene::PriorityLists = (DrawGroupList**)Memory::Realloc(
+		Scene::PriorityLists, Scene::PriorityPerLayer * sizeof(DrawGroupList*));
+
+	if (!Scene::PriorityLists) {
+		Error::Fatal("Couldn't reallocate Scene::PriorityLists!");
+	}
+
+	for (int i = currentCount; i < count; i++) {
+		Scene::PriorityLists[i] = nullptr;
+	}
+}
+DrawGroupList* Scene::GetDrawGroup(int index) {
+	if (index < 0 || index >= MAX_PRIORITY_PER_LAYER) {
+		return nullptr;
+	}
+
+	int count = index + 1;
+	if (count > Scene::PriorityPerLayer) {
+		Scene::SetPriorityPerLayer(count);
+	}
+	else if (Scene::PriorityLists == nullptr) {
+		if (count > Scene::PriorityPerLayer) {
+			Scene::PriorityPerLayer = count;
+		}
+
+		Scene::InitPriorityLists();
+	}
+
+	DrawGroupList* drawGroup = Scene::PriorityLists[index];
+	if (drawGroup == nullptr) {
+		drawGroup = new (std::nothrow) DrawGroupList();
+		if (drawGroup == nullptr) {
+			Error::Fatal("Couldn't allocate draw group!");
+		}
+
+		Scene::PriorityLists[index] = drawGroup;
+	}
+
+	return drawGroup;
+}
+DrawGroupList* Scene::GetDrawGroupNoCheck(int index) {
+	if (index < 0 || index >= Scene::PriorityPerLayer) {
+		return nullptr;
+	}
+
+	return Scene::PriorityLists[index];
 }
 
 void Scene::ReadRSDKTile(TileConfig* tile, Uint8* line) {

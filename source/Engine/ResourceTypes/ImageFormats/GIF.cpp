@@ -235,7 +235,7 @@ GIF* GIF::Load(Stream* stream) {
 	if (memcmp(magic89a, "89a", 3) != 0 && memcmp(magic89a, "87a", 3) != 0) {
 		magic89a[3] = 0;
 		Log::Print(Log::LOG_ERROR,
-			"Invalid GIF version! Found \"%s\", expected \"89a\"!)",
+			"Invalid GIF version! Found \"%s\", expected \"89a\"!",
 			magic89a);
 		goto GIF_Load_FAIL;
 	}

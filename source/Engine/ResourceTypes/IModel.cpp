@@ -37,10 +37,9 @@ IModel::IModel(const char* filename) {
 
 	Loaded = Load(resourceStream, filename);
 
-	if (resourceStream) {
-		resourceStream->Close();
-	}
+	resourceStream->Close();
 }
+
 bool IModel::IsFile(Stream* stream) {
 	if (HatchModel::IsMagic(stream)) {
 		return true;
@@ -57,6 +56,7 @@ bool IModel::IsFile(Stream* stream) {
 
 	return false;
 }
+
 bool IModel::Load(Stream* stream, const char* filename) {
 	if (!stream || !filename) {
 		return false;

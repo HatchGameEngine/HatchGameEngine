@@ -1590,6 +1590,67 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 	return INTEGER_VAL(0);
 }
 /***
+ * Application.SetDefaultFont
+ * \desc Sets the default font to the given Resource path, or Array containing Resource paths.
+ * \param font (String or Array): The font or list of fonts. Passing <code>null</code> to this argument will change the default font to the one the application was built with, if one is present.
+ * \ns Application
+ */
+VMValue Application_SetDefaultFont(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	std::vector<std::string> fontList;
+
+	// If null was passed, this clears the font list.
+	if (IS_NULL(args[0])) {
+		Application::DefaultFontList.clear();
+		Application::LoadDefaultFont();
+		return NULL_VAL;
+	}
+	else if (IS_ARRAY(args[0])) {
+		ObjArray* array = AS_ARRAY(args[0]);
+
+		// If an empty array was passed intentionally, this clears the font list.
+		if (array->Values->size() == 0) {
+			Application::DefaultFontList.clear();
+			Application::LoadDefaultFont();
+			return NULL_VAL;
+		}
+
+		for (size_t i = 0; i < array->Values->size(); i++) {
+			if (ScriptManager::Lock()) {
+				VMValue value = (*array->Values)[i];
+				if (IS_STRING(value)) {
+					char* filename = AS_CSTRING(value);
+					fontList.push_back(std::string(filename));
+				}
+				else {
+					ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+						"Expected argument to be of type %s instead of %s.",
+						GetObjectTypeString(OBJ_STRING),
+						GetValueTypeString(value));
+				}
+				ScriptManager::Unlock();
+			}
+		}
+	}
+	else {
+		char* path = GET_ARG(0, GetString);
+		if (ResourceManager::ResourceExists(path)) {
+			fontList.push_back(std::string(path));
+		}
+		else {
+			Log::Print(Log::LOG_ERROR, "Resource \"%s\" does not exist!", path);
+		}
+	}
+
+	if (fontList.size() > 0) {
+		Application::DefaultFontList = fontList;
+		Application::LoadDefaultFont();
+	}
+
+	return NULL_VAL;
+}
+/***
  * Application.ChangeGame
  * \desc Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead. Only <code>game://</code> and <code>user://</code> URLs are supported (or an absolute path that resolves to those locations).<br/><br/>\
 This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>\
@@ -1750,6 +1811,11 @@ VMValue Array_Pop(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
+		if (array->Values->size() == 0) {
+			ScriptManager::Unlock();
+			THROW_ERROR("Array is empty!");
+			return NULL_VAL;
+		}
 		VMValue value = array->Values->back();
 		array->Values->pop_back();
 		ScriptManager::Unlock();
@@ -1771,6 +1837,13 @@ VMValue Array_Insert(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int index = GET_ARG(1, GetInteger);
+		if (index < 0 || index > (int)array->Values->size()) { // Not a typo
+			ScriptManager::Unlock();
+			THROW_ERROR("Index %d is out of bounds of array of size %d.",
+				index,
+				(int)array->Values->size());
+			return NULL_VAL;
+		}
 		array->Values->insert(array->Values->begin() + index, args[2]);
 		ScriptManager::Unlock();
 	}
@@ -1789,6 +1862,13 @@ VMValue Array_Erase(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int index = GET_ARG(1, GetInteger);
+		if (index < 0 || index >= (int)array->Values->size()) {
+			ScriptManager::Unlock();
+			THROW_ERROR("Index %d is out of bounds of array of size %d.",
+				index,
+				(int)array->Values->size());
+			return NULL_VAL;
+		}
 		array->Values->erase(array->Values->begin() + index);
 		ScriptManager::Unlock();
 	}
@@ -3495,16 +3575,7 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
-		Graphics::DrawTexture(image->TexturePtr,
-			sx,
-			sy,
-			sw,
-			sh,
-			x,
-			y,
-			sw,
-			sh,
-			paletteID);
+		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, sw, sh, paletteID);
 	}
 	return NULL_VAL;
 }
@@ -10443,7 +10514,7 @@ VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Music
  */
 VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_ARGCOUNT(2);
 	ISound* audio = GET_ARG(0, GetAudio);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
@@ -11559,6 +11630,19 @@ VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(-1);
 }
 /***
+ * Scene.GetLayerName
+ * \desc Gets the name of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a String value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerName(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return ReturnString(Scene::Layers[index].Name);
+}
+/***
  * Scene.GetLayerVisible
  * \desc Gets the visibility of the specified layer.
  * \param layerIndex (Integer): Index of layer.
@@ -12061,11 +12145,13 @@ VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
-	if (!Scene::PriorityLists) {
-		return INTEGER_VAL(0);
+	int drawGroup = GET_ARG(0, GetInteger);
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
 	}
-	return INTEGER_VAL(!!Scene::PriorityLists[drawg].EntityDepthSortingEnabled);
+	DrawGroupList* drawGroupList = Scene::GetDrawGroup(drawGroup);
+	return INTEGER_VAL(!!drawGroupList->EntityDepthSortingEnabled);
 }
 /***
  * Scene.GetCurrentFolder
@@ -12823,9 +12909,14 @@ VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
-	int drawg = GET_ARG(1, GetInteger);
+	int drawGroup = GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].DrawGroup = drawg % Scene::PriorityPerLayer;
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
+	}
+	Scene::GetDrawGroup(drawGroup); // In case it doesn't exist already
+	Scene::Layers[index].DrawGroup = drawGroup;
 	return NULL_VAL;
 }
 /***
@@ -12907,7 +12998,7 @@ VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * Scene.SetDrawGroupCount
- * \desc Sets the amount of draw groups in the active scene.
+ * \desc Sets the amount of draw groups in the active scene. (Deprecated)
  * \param count (Integer): Draw group count.
  * \ns Scene
  */
@@ -12916,6 +13007,11 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
 	int count = GET_ARG(0, GetInteger);
 	if (count < 1) {
 		THROW_ERROR("Draw group count cannot be lower than 1.");
+		return NULL_VAL;
+	}
+	else if (count >= MAX_PRIORITY_PER_LAYER) {
+		THROW_ERROR(
+			"Draw group count cannot be higher than %d.", MAX_PRIORITY_PER_LAYER - 1);
 		return NULL_VAL;
 	}
 	Scene::SetPriorityPerLayer(count);
@@ -12930,15 +13026,17 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
+	int drawGroup = GET_ARG(0, GetInteger);
 	bool useEntityDepth = !!GET_ARG(1, GetInteger);
-	if (Scene::PriorityLists) {
-		DrawGroupList* drawGroupList = &Scene::PriorityLists[drawg];
-		if (!drawGroupList->EntityDepthSortingEnabled && useEntityDepth) {
-			drawGroupList->NeedsSorting = true;
-		}
-		drawGroupList->EntityDepthSortingEnabled = useEntityDepth;
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
 	}
+	DrawGroupList* drawGroupList = Scene::GetDrawGroup(drawGroup);
+	if (!drawGroupList->EntityDepthSortingEnabled && useEntityDepth) {
+		drawGroupList->NeedsSorting = true;
+	}
+	drawGroupList->EntityDepthSortingEnabled = useEntityDepth;
 	return NULL_VAL;
 }
 /***
@@ -14978,7 +15076,7 @@ VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sound
  */
 VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_ARGCOUNT(2);
 	ISound* audio = GET_ARG(0, GetAudio);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
@@ -15127,7 +15225,8 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
+		ObjStream* stream =
+			StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -17587,7 +17686,7 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
 	CHECK_ARGCOUNT(1);
 
 	if (IS_NULL(args[0])) {
-		Graphics::PostProcessShader = nullptr;
+		Graphics::SetPostProcessShader(nullptr);
 		return NULL_VAL;
 	}
 
@@ -17601,7 +17700,7 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
 	try {
 		shader->Validate();
 
-		Graphics::PostProcessShader = shader;
+		Graphics::SetPostProcessShader(shader);
 	} catch (const std::runtime_error& error) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
 	}
@@ -17903,6 +18002,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, SetDefaultFont);
 	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
 	/***
@@ -19279,6 +19379,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetProperty);
 	DEF_NATIVE(Scene, GetLayerCount);
 	DEF_NATIVE(Scene, GetLayerIndex);
+	DEF_NATIVE(Scene, GetLayerName);
 	DEF_NATIVE(Scene, GetLayerVisible);
 	DEF_NATIVE(Scene, GetLayerOpacity);
 	DEF_NATIVE(Scene, GetLayerShader);
@@ -20168,6 +20269,12 @@ void StandardLibrary::Link() {
     * \desc The max amount of scene views.
     */
 	DEF_ENUM(MAX_SCENE_VIEWS);
+	/***
+    * \constant MAX_DRAW_GROUPS
+    * \type Integer
+    * \desc The max amount of draw groups.
+    */
+	DEF_CONST_INT("MAX_DRAW_GROUPS", MAX_PRIORITY_PER_LAYER);
 
 	/***
     * \constant Math_PI

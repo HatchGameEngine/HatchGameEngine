@@ -91,7 +91,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		}
 		else {
 			stream->Close();
-			Log::Print(Log::LOG_ERROR, "PNG could not be loaded!");
+			Log::Print(Log::LOG_ERROR, "PNG \"%s\" could not be loaded!", filename);
 			return nullptr;
 		}
 	}
@@ -113,7 +113,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		}
 		else {
 			stream->Close();
-			Log::Print(Log::LOG_ERROR, "JPEG %s could not be loaded!", filename);
+			Log::Print(Log::LOG_ERROR, "JPEG \"%s\" could not be loaded!", filename);
 			return nullptr;
 		}
 	}
@@ -140,7 +140,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		}
 		else {
 			stream->Close();
-			Log::Print(Log::LOG_ERROR, "GIF %s could not be loaded!", filename);
+			Log::Print(Log::LOG_ERROR, "GIF \"%s\" could not be loaded!", filename);
 			return nullptr;
 		}
 	}

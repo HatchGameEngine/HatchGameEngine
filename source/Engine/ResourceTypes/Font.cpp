@@ -39,7 +39,7 @@ Font::Font(std::vector<Stream*> streamList) {
 }
 
 void Font::Init() {
-	Oversampling = 1;
+	SetOversampling(1);
 	UseAntialiasing = true;
 	PixelCoverageThreshold = 128;
 	FontIndex = 0;
@@ -529,6 +529,23 @@ int Font::GetAtlasMinFilter() {
 }
 int Font::GetAtlasMagFilter() {
 	return UseAntialiasing ? TextureFilter_LINEAR : TextureFilter_NEAREST;
+}
+
+bool Font::SetOversampling(int oversamplingValue) {
+	Application::Settings->GetInteger("graphics", "forceFontOversampling", &oversamplingValue);
+
+	if (oversamplingValue < 1) {
+		oversamplingValue = 1;
+	}
+	else if (oversamplingValue > 8) {
+		oversamplingValue = 8;
+	}
+
+	bool didChange = Oversampling != oversamplingValue;
+
+	Oversampling = oversamplingValue;
+
+	return didChange;
 }
 
 Uint32* Font::GenerateAtlas(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold) {
