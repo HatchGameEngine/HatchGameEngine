@@ -1435,6 +1435,17 @@ VMValue Application_GetFPS(int argCount, VMValue* args, Uint32 threadID) {
 	return DECIMAL_VAL(Application::CurrentFPS);
 }
 /***
+ * Application.ShowFPSCounter
+ * \desc Enables or disables the FPS (frames per second) counter.
+ * \param show (Boolean): Whether or not to show the FPS counter.
+ * \ns Application
+ */
+VMValue Application_ShowFPSCounter(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	Application::ShowFPS = !!GET_ARG(0, GetInteger);
+	return NULL_VAL;
+}
+/***
  * Application.GetKeyBind
  * \desc Gets a <linkto ref="KeyBind_*">keybind</linkto>.
  * \param keyBind (Enum): The <linkto ref="KeyBind_*">keybind</linkto>.
@@ -18400,6 +18411,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, GetTargetFrameRate);
 	DEF_NATIVE(Application, SetTargetFrameRate);
 	DEF_NATIVE(Application, GetFPS);
+	DEF_NATIVE(Application, ShowFPSCounter);
 	DEF_NATIVE(Application, GetKeyBind);
 	DEF_NATIVE(Application, SetKeyBind);
 	DEF_NATIVE(Application, GetGameTitle);
@@ -18420,6 +18432,11 @@ void StandardLibrary::Link() {
     * \desc Fullscreen keybind.
     */
 	DEF_ENUM_CLASS(KeyBind, Fullscreen);
+	/***
+    * \enum KeyBind_ToggleFPSCounter
+    * \desc FPS counter toggle keybind.
+    */
+	DEF_ENUM_CLASS(KeyBind, ToggleFPSCounter);
 	/***
     * \enum KeyBind_DevRestartApp
     * \desc App restart keybind. (dev)

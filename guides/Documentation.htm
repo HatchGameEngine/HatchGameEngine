@@ -240,6 +240,7 @@
                     <li><a href="#Reference_functions_Application_GetTargetFrameRate">Application.GetTargetFrameRate</a></li>
                     <li><a href="#Reference_functions_Application_SetTargetFrameRate">Application.SetTargetFrameRate</a></li>
                     <li><a href="#Reference_functions_Application_GetFPS">Application.GetFPS</a></li>
+                    <li><a href="#Reference_functions_Application_ShowFPSCounter">Application.ShowFPSCounter</a></li>
                     <li><a href="#Reference_functions_Application_GetKeyBind">Application.GetKeyBind</a></li>
                     <li><a href="#Reference_functions_Application_SetKeyBind">Application.SetKeyBind</a></li>
                     <li><a href="#Reference_functions_Application_GetGameTitle">Application.GetGameTitle</a></li>
@@ -1714,6 +1715,7 @@
                 <h2><code>KeyBind_*</code></h2>
                 <ul>
                     <li><a href="#Reference_enums_KeyBind_Fullscreen">KeyBind_Fullscreen</a></li>
+                    <li><a href="#Reference_enums_KeyBind_ToggleFPSCounter">KeyBind_ToggleFPSCounter</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevRestartApp">KeyBind_DevRestartApp</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevRestartScene">KeyBind_DevRestartScene</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevRecompile">KeyBind_DevRecompile</a></li>
@@ -2399,6 +2401,15 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the current FPS (frames per second).</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <p id="Reference_functions_Application_ShowFPSCounter">
+        <h2 style="margin-bottom: 8px;">Application.ShowFPSCounter</h2>
+        <code>Application.ShowFPSCounter(show)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables the FPS (frames per second) counter.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>show (Boolean): Whether or not to show the FPS counter.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Application_GetKeyBind">
         <h2 style="margin-bottom: 8px;">Application.GetKeyBind</h2>
@@ -11924,6 +11935,10 @@
         <h3 style="margin-bottom: 8px;"><code>KeyBind_Fullscreen</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Fullscreen keybind.</div>
         </p>
+        <p id="Reference_enums_KeyBind_ToggleFPSCounter">
+        <h3 style="margin-bottom: 8px;"><code>KeyBind_ToggleFPSCounter</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">FPS counter toggle keybind.</div>
+        </p>
         <p id="Reference_enums_KeyBind_DevRestartApp">
         <h3 style="margin-bottom: 8px;"><code>KeyBind_DevRestartApp</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">App restart keybind. (dev)</div>
@@ -12708,7 +12723,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>330 out of 330 enums have descriptions. </p>
+        <p>331 out of 331 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">
