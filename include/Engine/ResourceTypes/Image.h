@@ -5,6 +5,7 @@
 #include <Engine/IO/Stream.h>
 #include <Engine/Rendering/GameTexture.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/ResourceTypes/Asset.h>
 
 enum {
 	IMAGE_FORMAT_UNKNOWN,
@@ -13,20 +14,13 @@ enum {
 	IMAGE_FORMAT_JPEG
 };
 
-class Image {
-private:
-	static Image* New(const char* filename);
-
+class Image : public Asset {
 public:
-	int ID = -1;
-	int References = 0;
-	char* Filename;
 	Texture* TexturePtr = NULL;
 
+	Image(Texture* texture);
 	Image(const char* filename);
-	void AddRef();
-	bool TakeRef();
-	void Dispose();
+	void Unload();
 	~Image();
 
 	static Uint8 DetectFormat(Stream* stream);

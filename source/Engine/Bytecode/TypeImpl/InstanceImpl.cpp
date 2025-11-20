@@ -5,6 +5,8 @@
 
 ObjClass* InstanceImpl::Class = nullptr;
 
+#define CLASS_INSTANCE "$$InstanceImpl"
+
 void InstanceImpl::Init() {
 	Class = NewClass(CLASS_INSTANCE);
 

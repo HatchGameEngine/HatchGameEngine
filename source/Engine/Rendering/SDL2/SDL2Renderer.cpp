@@ -131,7 +131,7 @@ void SDL2Renderer::Dispose() {
 
 // Texture management functions
 Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
-	Texture* texture = Texture::New(format, access, width, height);
+	Texture* texture = new Texture(format, access, width, height);
 	texture->DriverData = Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(SDL_Texture*));
 
 	SDL_Texture** textureData = (SDL_Texture**)texture->DriverData;
