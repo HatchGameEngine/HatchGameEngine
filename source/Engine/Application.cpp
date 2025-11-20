@@ -986,6 +986,7 @@ void Application::LoadVideoSettings() {
 	bool vsyncEnabled;
 	Application::Settings->GetBool("display", "vsync", &vsyncEnabled);
 	Application::Settings->GetInteger("display", "frameSkip", &Application::FrameSkip);
+	Application::Settings->GetBool("graphics", "showFramerate", &Application::ShowFPS);
 
 	if (Application::FrameSkip > DEFAULT_MAX_FRAMESKIP) {
 		Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
@@ -1004,8 +1005,6 @@ void Application::LoadVideoSettings() {
 			"graphics", "multisample", &Graphics::MultisamplingEnabled);
 		Application::Settings->GetBool(
 			"graphics", "precompileShaders", &Graphics::PrecompileShaders);
-
-		Application::Settings->GetBool("graphics", "showFramerate", &Application::ShowFPS);
 
 		if (Graphics::MultisamplingEnabled < 0) {
 			Graphics::MultisamplingEnabled = 0;
