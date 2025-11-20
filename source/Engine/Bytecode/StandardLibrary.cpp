@@ -11788,6 +11788,19 @@ VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(-1);
 }
 /***
+ * Scene.GetLayerName
+ * \desc Gets the name of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a String value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerName(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return ReturnString(Scene::Layers[index].Name);
+}
+/***
  * Scene.GetLayerVisible
  * \desc Gets the visibility of the specified layer.
  * \param layerIndex (Integer): Index of layer.
@@ -19776,6 +19789,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetProperty);
 	DEF_NATIVE(Scene, GetLayerCount);
 	DEF_NATIVE(Scene, GetLayerIndex);
+	DEF_NATIVE(Scene, GetLayerName);
 	DEF_NATIVE(Scene, GetLayerVisible);
 	DEF_NATIVE(Scene, GetLayerOpacity);
 	DEF_NATIVE(Scene, GetLayerShader);
