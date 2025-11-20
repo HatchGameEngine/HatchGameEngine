@@ -12271,11 +12271,13 @@ VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
-	if (!Scene::PriorityLists) {
-		return INTEGER_VAL(0);
+	int drawGroup = GET_ARG(0, GetInteger);
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
 	}
-	return INTEGER_VAL(!!Scene::PriorityLists[drawg].EntityDepthSortingEnabled);
+	DrawGroupList* drawGroupList = Scene::GetDrawGroup(drawGroup);
+	return INTEGER_VAL(!!drawGroupList->EntityDepthSortingEnabled);
 }
 /***
  * Scene.GetCurrentFolder
@@ -13035,9 +13037,14 @@ VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
-	int drawg = GET_ARG(1, GetInteger);
+	int drawGroup = GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].DrawGroup = drawg % Scene::PriorityPerLayer;
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
+	}
+	Scene::GetDrawGroup(drawGroup); // In case it doesn't exist already
+	Scene::Layers[index].DrawGroup = drawGroup;
 	return NULL_VAL;
 }
 /***
@@ -13119,7 +13126,7 @@ VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * Scene.SetDrawGroupCount
- * \desc Sets the amount of draw groups in the active scene.
+ * \desc Sets the amount of draw groups in the active scene. (Deprecated)
  * \param count (Integer): Draw group count.
  * \ns Scene
  */
@@ -13128,6 +13135,11 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
 	int count = GET_ARG(0, GetInteger);
 	if (count < 1) {
 		THROW_ERROR("Draw group count cannot be lower than 1.");
+		return NULL_VAL;
+	}
+	else if (count >= MAX_PRIORITY_PER_LAYER) {
+		THROW_ERROR(
+			"Draw group count cannot be higher than %d.", MAX_PRIORITY_PER_LAYER - 1);
 		return NULL_VAL;
 	}
 	Scene::SetPriorityPerLayer(count);
@@ -13142,15 +13154,17 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
+	int drawGroup = GET_ARG(0, GetInteger);
 	bool useEntityDepth = !!GET_ARG(1, GetInteger);
-	if (Scene::PriorityLists) {
-		DrawGroupList* drawGroupList = &Scene::PriorityLists[drawg];
-		if (!drawGroupList->EntityDepthSortingEnabled && useEntityDepth) {
-			drawGroupList->NeedsSorting = true;
-		}
-		drawGroupList->EntityDepthSortingEnabled = useEntityDepth;
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
 	}
+	DrawGroupList* drawGroupList = Scene::GetDrawGroup(drawGroup);
+	if (!drawGroupList->EntityDepthSortingEnabled && useEntityDepth) {
+		drawGroupList->NeedsSorting = true;
+	}
+	drawGroupList->EntityDepthSortingEnabled = useEntityDepth;
 	return NULL_VAL;
 }
 /***
@@ -20613,6 +20627,12 @@ void StandardLibrary::Link() {
     * \desc The max amount of scene views.
     */
 	DEF_ENUM(MAX_SCENE_VIEWS);
+	/***
+    * \constant MAX_DRAW_GROUPS
+    * \type Integer
+    * \desc The max amount of draw groups.
+    */
+	DEF_CONST_INT("MAX_DRAW_GROUPS", MAX_PRIORITY_PER_LAYER);
 
 	/***
     * \constant Math_PI

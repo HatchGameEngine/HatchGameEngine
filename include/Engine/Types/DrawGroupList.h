@@ -11,15 +11,14 @@ public:
 	bool NeedsSorting = false;
 
 	DrawGroupList();
+	~DrawGroupList();
+
 	int Add(Entity* obj);
 	bool Contains(Entity* obj);
 	int GetEntityIndex(Entity* obj);
 	void Remove(Entity* obj);
 	void Clear();
 	void Sort();
-	void Init();
-	void Dispose();
-	~DrawGroupList();
 	int Count();
 };
 
