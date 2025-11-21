@@ -1792,6 +1792,11 @@ VMValue Array_Pop(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
+		if (array->Values->size() == 0) {
+			ScriptManager::Unlock();
+			THROW_ERROR("Array is empty!");
+			return NULL_VAL;
+		}
 		VMValue value = array->Values->back();
 		array->Values->pop_back();
 		ScriptManager::Unlock();
@@ -1813,6 +1818,13 @@ VMValue Array_Insert(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int index = GET_ARG(1, GetInteger);
+		if (index < 0 || index > (int)array->Values->size()) { // Not a typo
+			ScriptManager::Unlock();
+			THROW_ERROR("Index %d is out of bounds of array of size %d.",
+				index,
+				(int)array->Values->size());
+			return NULL_VAL;
+		}
 		array->Values->insert(array->Values->begin() + index, args[2]);
 		ScriptManager::Unlock();
 	}
@@ -1831,6 +1843,13 @@ VMValue Array_Erase(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int index = GET_ARG(1, GetInteger);
+		if (index < 0 || index >= (int)array->Values->size()) {
+			ScriptManager::Unlock();
+			THROW_ERROR("Index %d is out of bounds of array of size %d.",
+				index,
+				(int)array->Values->size());
+			return NULL_VAL;
+		}
 		array->Values->erase(array->Values->begin() + index);
 		ScriptManager::Unlock();
 	}
@@ -10802,7 +10821,7 @@ VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Music
  */
 VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_ARGCOUNT(2);
 	ISound* audio = GET_ARG(0, GetMusic);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
@@ -11892,6 +11911,19 @@ VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(-1);
 }
 /***
+ * Scene.GetLayerName
+ * \desc Gets the name of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a String value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerName(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return ReturnString(Scene::Layers[index].Name);
+}
+/***
  * Scene.GetLayerVisible
  * \desc Gets the visibility of the specified layer.
  * \param layerIndex (Integer): Index of layer.
@@ -12394,11 +12426,13 @@ VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
-	if (!Scene::PriorityLists) {
-		return INTEGER_VAL(0);
+	int drawGroup = GET_ARG(0, GetInteger);
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
 	}
-	return INTEGER_VAL(!!Scene::PriorityLists[drawg].EntityDepthSortingEnabled);
+	DrawGroupList* drawGroupList = Scene::GetDrawGroup(drawGroup);
+	return INTEGER_VAL(!!drawGroupList->EntityDepthSortingEnabled);
 }
 /***
  * Scene.GetCurrentFolder
@@ -13158,9 +13192,14 @@ VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
-	int drawg = GET_ARG(1, GetInteger);
+	int drawGroup = GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].DrawGroup = drawg % Scene::PriorityPerLayer;
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
+	}
+	Scene::GetDrawGroup(drawGroup); // In case it doesn't exist already
+	Scene::Layers[index].DrawGroup = drawGroup;
 	return NULL_VAL;
 }
 /***
@@ -13242,7 +13281,7 @@ VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * Scene.SetDrawGroupCount
- * \desc Sets the amount of draw groups in the active scene.
+ * \desc Sets the amount of draw groups in the active scene. (Deprecated)
  * \param count (Integer): Draw group count.
  * \ns Scene
  */
@@ -13251,6 +13290,11 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
 	int count = GET_ARG(0, GetInteger);
 	if (count < 1) {
 		THROW_ERROR("Draw group count cannot be lower than 1.");
+		return NULL_VAL;
+	}
+	else if (count >= MAX_PRIORITY_PER_LAYER) {
+		THROW_ERROR(
+			"Draw group count cannot be higher than %d.", MAX_PRIORITY_PER_LAYER - 1);
 		return NULL_VAL;
 	}
 	Scene::SetPriorityPerLayer(count);
@@ -13265,15 +13309,17 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
+	int drawGroup = GET_ARG(0, GetInteger);
 	bool useEntityDepth = !!GET_ARG(1, GetInteger);
-	if (Scene::PriorityLists) {
-		DrawGroupList* drawGroupList = &Scene::PriorityLists[drawg];
-		if (!drawGroupList->EntityDepthSortingEnabled && useEntityDepth) {
-			drawGroupList->NeedsSorting = true;
-		}
-		drawGroupList->EntityDepthSortingEnabled = useEntityDepth;
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
 	}
+	DrawGroupList* drawGroupList = Scene::GetDrawGroup(drawGroup);
+	if (!drawGroupList->EntityDepthSortingEnabled && useEntityDepth) {
+		drawGroupList->NeedsSorting = true;
+	}
+	drawGroupList->EntityDepthSortingEnabled = useEntityDepth;
 	return NULL_VAL;
 }
 /***
@@ -15313,7 +15359,7 @@ VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sound
  */
 VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_ARGCOUNT(2);
 	ISound* audio = GET_ARG(0, GetSound);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
@@ -19919,6 +19965,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetProperty);
 	DEF_NATIVE(Scene, GetLayerCount);
 	DEF_NATIVE(Scene, GetLayerIndex);
+	DEF_NATIVE(Scene, GetLayerName);
 	DEF_NATIVE(Scene, GetLayerVisible);
 	DEF_NATIVE(Scene, GetLayerOpacity);
 	DEF_NATIVE(Scene, GetLayerShader);
@@ -20791,6 +20838,12 @@ void StandardLibrary::Link() {
     * \desc The max amount of scene views.
     */
 	DEF_ENUM(MAX_SCENE_VIEWS);
+	/***
+    * \constant MAX_DRAW_GROUPS
+    * \type Integer
+    * \desc The max amount of draw groups.
+    */
+	DEF_CONST_INT("MAX_DRAW_GROUPS", MAX_PRIORITY_PER_LAYER);
 
 	/***
     * \constant Math_PI

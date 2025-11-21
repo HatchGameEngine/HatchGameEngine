@@ -78,7 +78,8 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 	// Unused (number of kits)
 	r->ReadByte();
 
-	Scene::PriorityPerLayer = Scene::BasePriorityPerLayer;
+	Scene::FreePriorityLists();
+	Scene::PriorityPerLayer = BASE_PRIORITY_PER_LAYER;
 	Scene::InitPriorityLists();
 
 	// Read layers
@@ -561,7 +562,8 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 					strLength = r->ReadUInt16();
 					strVar = (char*)malloc(strLength);
 					if (!strVar) {
-						Error::Fatal("Out of memory in HatchSceneReader::ReadEntities!");
+						Error::Fatal(
+							"Out of memory in HatchSceneReader::ReadEntities!");
 					}
 
 					for (size_t i = 0; i < strLength; i++) {

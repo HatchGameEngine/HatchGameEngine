@@ -472,14 +472,9 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 			if (data->attributes.Exists("encoding")) {
 				if (XMLParser::MatchToken(
 					    data->attributes.Get("encoding"), "base64")) {
-					tile_buffer = (int*)Memory::Calloc(1,
-						layer_size_in_bytes + 4); // +4
-					// extra
-					// space
-					// to
-					// prevent
-					// base64
-					// overflow
+					// +4 extra space to prevent base64 overflow
+					tile_buffer =
+						(int*)Memory::Calloc(1, layer_size_in_bytes + 4);
 					tile_buffer_len = base64_decode_block(data_text->name.Start,
 						(int)data_text->name.Length,
 						(char*)tile_buffer);
@@ -764,7 +759,8 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 	Scene::TileWidth = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
 	Scene::TileHeight = (int)XMLParser::TokenToNumber(map->attributes.Get("tileheight"));
 
-	Scene::PriorityPerLayer = Scene::BasePriorityPerLayer;
+	Scene::FreePriorityLists();
+	Scene::PriorityPerLayer = BASE_PRIORITY_PER_LAYER;
 	Scene::InitPriorityLists();
 
 #if 0
