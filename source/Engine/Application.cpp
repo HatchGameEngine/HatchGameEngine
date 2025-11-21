@@ -2303,8 +2303,8 @@ void Application::DrawDevString(const char* string, int x, int y, int align, boo
 	if (align == ALIGN_CENTER) x -= (maxW / 2) / (DevMenu.CurrentWindowWidth / Application::WindowWidth);
 	else if (align == ALIGN_RIGHT) x -= maxW / (DevMenu.CurrentWindowWidth / Application::WindowWidth);
 
-	// Graphics::SetBlendColor(0.28125, 0.28125, 0.4375, 1.0);
-	// Graphics::DrawText(DefaultFont, string, (x + 0.5) * (DevMenu.CurrentWindowWidth / Application::WindowWidth), (y + 0.5) * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
+	Graphics::SetBlendColor(0.28125, 0.28125, 0.4375, 1.0);
+	Graphics::DrawText(DefaultFont, string, (x + 0.5) * (DevMenu.CurrentWindowWidth / Application::WindowWidth), (y + 0.5) * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
 	isSelected ? Graphics::SetBlendColor(0.9375, 0.9375, 0.9375, 1.0) : Graphics::SetBlendColor(0.5, 0.625, 0.6875, 1.0);
 	Graphics::DrawText(DefaultFont, string, x * (DevMenu.CurrentWindowWidth / Application::WindowWidth), y * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
 }
@@ -2393,17 +2393,17 @@ void Application::DevMenu_DrawMainMenu() {
 	const char* selectionNames[] = { "Resume", "Restart", "Scene Select", "Settings", "Exit" };
 
 	DevMenu_DrawTitleBar();
-	DrawRectangle(0, 82, 128, 113, 0x000000, 0xC0);
-	DrawRectangle(144, 82, Application::WindowWidth - 144, 113, 0x000000, 0xC0);
+	DrawRectangle(0, 82, 128, 124, 0x000000, 0xC0);
+	DrawRectangle(144, 82, Application::WindowWidth - 144, 124, 0x000000, 0xC0);
 
-	for (size_t i = 0, y = 100; i < std::size(selectionNames); ++i, y += 15)
+	for (size_t i = 0, y = 109; i < std::size(selectionNames); ++i, y += 14)
 		DrawDevString(selectionNames[i], 16, y, ALIGN_LEFT, DevMenu.Selection == i);
 }
 
 void Application::DevMenu_DrawTitleBar() {
 	DrawRectangle(0, 16, Application::WindowWidth, 54, 0x000000, 0xC0);
-	DrawDevString("Hatch Engine Developer Menu", Application::WindowWidth / 2, 26, ALIGN_CENTER, true);
-	DrawDevString(GameTitleShort, Application::WindowWidth / 2, 41, ALIGN_CENTER, true);
+	DrawDevString("Hatch Engine Developer Menu", Application::WindowWidth / 2, 20, ALIGN_CENTER, true);
+	DrawDevString(GameTitleShort, Application::WindowWidth / 2, 35, ALIGN_CENTER, true);
 }
 
 void Application::DevMenu_MainMenu() {
@@ -2411,13 +2411,13 @@ void Application::DevMenu_MainMenu() {
 
 	char versionDisplay[544];
 	snprintf(versionDisplay, sizeof(versionDisplay), "Engine version %s, game version %s", Application::EngineVersion, Application::GameVersion);
-	DrawDevString(versionDisplay, Application::WindowWidth / 2, 56, ALIGN_CENTER, true);
+	DrawDevString(versionDisplay, Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 
 	const char* tooltips[] = {
 		"Resume the game.", "Restart the current scene.", "Navigate to a certain scene.",
 		"Adjust the application's settings.", "Close the application."
 	};
-	DrawDevString(tooltips[DevMenu.Selection], 160, 93, ALIGN_LEFT, true);
+	DrawDevString(tooltips[DevMenu.Selection], 160, 86, ALIGN_LEFT, true);
 
 	int actionUp = InputManager::GetActionID("Up");
 	int actionDown = InputManager::GetActionID("Down");
@@ -2469,7 +2469,7 @@ void Application::DevMenu_CategorySelectMenu() {
 	DevMenu_DrawMainMenu();
 
 	if (!ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
-		DrawDevString("No SceneConfig is loaded!", 160, 93, ALIGN_LEFT, true);
+		DrawDevString("No SceneConfig is loaded!", 160, 86, ALIGN_LEFT, true);
 
 		int actionB = InputManager::GetActionID("B");
 		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
@@ -2480,9 +2480,9 @@ void Application::DevMenu_CategorySelectMenu() {
 		return;
 	}
 
-	DrawDevString("Select Scene Category...", Application::WindowWidth / 2, 56, ALIGN_CENTER, true);
+	DrawDevString("Select Scene Category...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 
-	for (size_t i = 0, y = 93; i < 7 && DevMenu.SubScrollPos + i < SceneInfo::Categories.size(); i++, y += 15)
+	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < SceneInfo::Categories.size(); i++, y += 14)
 		DrawDevString(SceneInfo::Categories[DevMenu.SubScrollPos + i].Name, 160, y, ALIGN_LEFT, (DevMenu.SubSelection - DevMenu.SubScrollPos) == i);
 
 	int actionUp = InputManager::GetActionID("Up");
@@ -2494,8 +2494,8 @@ void Application::DevMenu_CategorySelectMenu() {
 		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)SceneInfo::Categories.size()) % (int)SceneInfo::Categories.size();
 
 		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-				DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
+			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 7)
+				DevMenu.SubScrollPos = DevMenu.SubSelection - 7;
 		}
 		else {
 			DevMenu.SubScrollPos = DevMenu.SubSelection;
@@ -2536,11 +2536,11 @@ void Application::DevMenu_CategorySelectMenu() {
 void Application::DevMenu_SceneSelectMenu() {
 	DevMenu_DrawMainMenu();
 
-	DrawDevString("Select Scene...", Application::WindowWidth / 2, 56, ALIGN_CENTER, true);
+	DrawDevString("Select Scene...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 
 	SceneListCategory* list = &SceneInfo::Categories[DevMenu.ListPos];
 
-	for (size_t i = 0, y = 93; i < 7 && DevMenu.SubScrollPos + i < list->Entries.size(); i++, y += 15)
+	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < list->Entries.size(); i++, y += 14)
 		DrawDevString(list->Entries[DevMenu.SubScrollPos + i].Name, 160, y, ALIGN_LEFT, DevMenu.SubSelection - DevMenu.SubScrollPos == i);
 
 	int actionUp = InputManager::GetActionID("Up");
@@ -2552,8 +2552,8 @@ void Application::DevMenu_SceneSelectMenu() {
 		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)list->Entries.size()) % (int)list->Entries.size();
 
 		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
-			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
-				DevMenu.SubScrollPos = DevMenu.SubSelection - 6;
+			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 7)
+				DevMenu.SubScrollPos = DevMenu.SubSelection - 7;
 		}
 		else {
 			DevMenu.SubScrollPos = DevMenu.SubSelection;
@@ -2601,10 +2601,10 @@ void Application::DevMenu_SceneSelectMenu() {
 void Application::DevMenu_SettingsMenu() {
 	DevMenu_DrawMainMenu();
 
-	DrawDevString("Change settings...", Application::WindowWidth / 2, 56, ALIGN_CENTER, true);
+	DrawDevString("Change settings...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 
 	const char* labels[] = { "Video Settings", "Audio Settings", "Performance Viewer"};
-	for (size_t i = 0, y = 93; i < std::size(labels); i++, y += 15)
+	for (size_t i = 0, y = 86; i < std::size(labels); i++, y += 14)
 		DrawDevString(labels[i], 160, y, ALIGN_LEFT, DevMenu.SubSelection == i);
 
 	int actionUp = InputManager::GetActionID("Up");
@@ -2648,8 +2648,8 @@ void Application::DevMenu_SettingsMenu() {
 void Application::DevMenu_VideoMenu() {
 	DevMenu_DrawTitleBar();
 
-	DrawDevString("Change video settings...", Application::WindowWidth / 2, 56, ALIGN_CENTER, true);
-	DrawRectangle((Application::WindowWidth / 2.0) - 140.0, 82.0, 280.0, 113.0, 0x000000, 0xC0);
+	DrawDevString("Change video settings...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+	DrawRectangle((Application::WindowWidth / 2) - 140, 82, 280, 124, 0x000000, 0xC0);
 
 	const char* labels[] = { "Window Scale", "Fullscreen", "Borderless" };
 	for (size_t i = 0; i < std::size(labels); i++)
@@ -2731,8 +2731,8 @@ void Application::DevMenu_VideoMenu() {
 void Application::DevMenu_AudioMenu() {
 	DevMenu_DrawTitleBar();
 
-	DrawDevString("Change audio settings...", Application::WindowWidth / 2, 56, ALIGN_CENTER, true);
-	DrawRectangle((Application::WindowWidth / 2.0) - 140.0, 82.0, 280.0, 113.0, 0x000000, 0xC0);
+	DrawDevString("Change audio settings...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+	DrawRectangle((Application::WindowWidth / 2) - 140, 82, 280, 124, 0x000000, 0xC0);
 
 	const char* labels[] = { "Master Volume", "Music Volume", "Sound Volume" };
 	for (size_t i = 0; i < std::size(labels); i++)
@@ -2740,7 +2740,7 @@ void Application::DevMenu_AudioMenu() {
 
 	DrawDevString("Confirm", Application::WindowWidth / 2, 169, ALIGN_CENTER, DevMenu.SubSelection == std::size(labels));
 
-	for (size_t i = 0, y = 98; i < std::size(labels); i++, y += 16) {
+	for (size_t i = 0, y = 105; i < std::size(labels); i++, y += 16) {
 		DrawRectangle((Application::WindowWidth / 2.0) + 22.0, y, 104.0, 15.0, 0x303030, 0xC0);
 		DrawRectangle((Application::WindowWidth / 2.0) + 24.0, y + 2, (float)((int*)&Application::MasterVolume)[i], 11.0, 0xFFFFFF, 0xC0);
 	}
