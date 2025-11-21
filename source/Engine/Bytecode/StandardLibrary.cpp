@@ -2315,8 +2315,8 @@ VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 th
 	auto thisEnt = (Entity*)thisEntity->EntityPtr;
 	auto otherEnt = (Entity*)otherEntity->EntityPtr;
 
-	CollisionBox thisBox;
-	CollisionBox otherBox;
+	CollisionBox thisBox = { 0, 0, 0, 0 };
+	CollisionBox otherBox = { 0, 0, 0, 0 };
 
 	if (IS_INTEGER((*thisHitbox->Values)[0])) {
 		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
@@ -7572,6 +7572,78 @@ VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
 	}
 }
 /***
+ * Input.IsActionHeldByAny
+ * \desc Gets whether the input action is currently held by any player.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* actionName = GET_ARG(0, GetString);
+	int actionID = InputManager::GetActionID(actionName);
+	if (actionID == -1) {
+		THROW_ERROR("Invalid input action \"%s\"!", actionName);
+		return NULL_VAL;
+	}
+	if (argCount >= 2) {
+		int inputDevice = GET_ARG(1, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsActionHeldByAny(actionID, inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsActionHeldByAny(actionID));
+}
+/***
+ * Input.IsActionPressedByAny
+ * \desc Gets whether the input action is currently pressed by any player.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionPressedByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* actionName = GET_ARG(0, GetString);
+	int actionID = InputManager::GetActionID(actionName);
+	if (actionID == -1) {
+		THROW_ERROR("Invalid input action \"%s\"!", actionName);
+		return NULL_VAL;
+	}
+	if (argCount >= 2) {
+		int inputDevice = GET_ARG(1, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsActionPressedByAny(actionID, inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsActionPressedByAny(actionID));
+}
+/***
+ * Input.IsActionReleasedByAny
+ * \desc Gets whether the input action was released by any player.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* actionName = GET_ARG(0, GetString);
+	int actionID = InputManager::GetActionID(actionName);
+	if (actionID == -1) {
+		THROW_ERROR("Invalid input action \"%s\"!", actionName);
+		return NULL_VAL;
+	}
+	if (argCount >= 2) {
+		int inputDevice = GET_ARG(1, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsActionReleasedByAny(actionID, inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsActionReleasedByAny(actionID));
+}
+/***
  * Input.IsAnyActionHeld
  * \desc Gets whether any input action is currently held for the specified player.
  * \param playerID (Integer): Index of the player to check.
@@ -7633,6 +7705,57 @@ VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) 
 	else {
 		return INTEGER_VAL(!!InputManager::IsAnyActionReleased(playerID));
 	}
+}
+/***
+ * Input.IsAnyActionHeldByAny
+ * \desc Gets whether any input action is currently held by any player.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(0);
+	if (argCount >= 1) {
+		int inputDevice = GET_ARG(0, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsAnyActionHeldByAny(inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsAnyActionHeldByAny());
+}
+/***
+ * Input.IsAnyActionPressedByAny
+ * \desc Gets whether any input action is currently pressed by any player.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionPressedByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(0);
+	if (argCount >= 1) {
+		int inputDevice = GET_ARG(0, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsAnyActionPressedByAny(inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsAnyActionPressedByAny());
+}
+/***
+ * Input.IsAnyActionReleasedByAny
+ * \desc Gets whether any input action was released by any player.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(0);
+	if (argCount >= 1) {
+		int inputDevice = GET_ARG(0, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsAnyActionReleasedByAny(inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsAnyActionReleasedByAny());
 }
 /***
  * Input.GetAnalogActionInput
@@ -18021,7 +18144,7 @@ VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	int window_h = (int)GET_ARG(1, GetDecimal);
 	Application::WindowWidth = window_w;
 	Application::WindowHeight = window_h;
-	Application::SetWindowSize(window_w, window_h);
+	Application::SetWindowSize(window_w * Application::WindowScale, window_h * Application::WindowScale);
 	return NULL_VAL;
 }
 /***
@@ -18036,6 +18159,26 @@ VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Window.SetScale
+ * \desc Sets the scale of the active window.
+ * \param scale (Integer): Window scale.
+ * \ns Window
+ */
+VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	if (!Application::IsWindowResizeable())
+		return NULL_VAL;
+
+	Application::WindowScale = GET_ARG(0, GetInteger);
+	if (Application::WindowScale <= 0)
+		Application::WindowScale = 1;
+	if (Application::WindowScale > 5)
+		Application::WindowScale = 5;
+	Application::Settings->SetInteger("display", "scale", Application::WindowScale);
+	Application::SetWindowSize(Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale);
+	return NULL_VAL;
+}
+/***
  * Window.SetBorderless
  * \desc Sets the bordered state of the active window.
  * \param isBorderless (Boolean): Whether or not the window should be borderless.
@@ -18043,7 +18186,7 @@ VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Window_SetBorderless(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	Application::SetWindowBorderless(GET_ARG(0, GetInteger));
+	Application::SetWindowBorderless(!!GET_ARG(0, GetInteger));
 	return NULL_VAL;
 }
 /***
@@ -18155,6 +18298,16 @@ VMValue Window_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Window_GetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::GetWindowFullscreen());
+}
+/***
+ * Window.GetScale
+ * \desc Gets the scale of the active window.
+ * \return Returns the scale of the window.
+ * \ns Window
+ */
+VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::WindowScale);
 }
 /***
  * Window.IsResizeable
@@ -19258,6 +19411,22 @@ void StandardLibrary::Link() {
 	DEF_ENUM(StencilOp_DecrWrap);
 
 	/***
+	* \enum ALIGN_LEFT
+	* \desc Left alignment for text drawing.
+	*/
+	DEF_ENUM(ALIGN_LEFT);
+	/***
+	* \enum ALIGN_CENTER
+	* \desc Center alignment for text drawing.
+	*/
+	DEF_ENUM(ALIGN_CENTER);
+	/***
+	* \enum ALIGN_RIGHT
+	* \desc Right alignment for text drawing.
+	*/
+	DEF_ENUM(ALIGN_RIGHT);
+
+	/***
     * \enum BlendFactor_ZERO
     * \desc Blend factor: (0, 0, 0, 0)
     */
@@ -19307,6 +19476,7 @@ void StandardLibrary::Link() {
     * \desc Blend factor: (1-Ad, 1-Ad, 1-Ad, 1-Ad)
     */
 	DEF_ENUM(BlendFactor_INV_DST_ALPHA);
+
 	/***
 	* \enum ROTSTYLE_NONE
 	* \desc Does not rotate the sprite in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
@@ -19489,9 +19659,15 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Input, IsActionHeld);
 	DEF_NATIVE(Input, IsActionPressed);
 	DEF_NATIVE(Input, IsActionReleased);
+	DEF_NATIVE(Input, IsActionHeldByAny);
+	DEF_NATIVE(Input, IsActionPressedByAny);
+	DEF_NATIVE(Input, IsActionReleasedByAny);
 	DEF_NATIVE(Input, IsAnyActionHeld);
 	DEF_NATIVE(Input, IsAnyActionPressed);
 	DEF_NATIVE(Input, IsAnyActionReleased);
+	DEF_NATIVE(Input, IsAnyActionHeldByAny);
+	DEF_NATIVE(Input, IsAnyActionPressedByAny);
+	DEF_NATIVE(Input, IsAnyActionReleasedByAny);
 	DEF_NATIVE(Input, GetAnalogActionInput);
 	DEF_NATIVE(Input, GetActionBind);
 	DEF_NATIVE(Input, SetActionBind);
@@ -20391,6 +20567,7 @@ void StandardLibrary::Link() {
 	INIT_CLASS(Window);
 	DEF_NATIVE(Window, SetSize);
 	DEF_NATIVE(Window, SetFullscreen);
+	DEF_NATIVE(Window, SetScale);
 	DEF_NATIVE(Window, SetBorderless);
 	DEF_NATIVE(Window, SetVSync);
 	DEF_NATIVE(Window, SetPosition);
@@ -20400,6 +20577,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Window, GetWidth);
 	DEF_NATIVE(Window, GetHeight);
 	DEF_NATIVE(Window, GetFullscreen);
+	DEF_NATIVE(Window, GetScale);
 	DEF_NATIVE(Window, IsResizeable);
 	// #endregion
 

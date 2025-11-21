@@ -603,10 +603,12 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 		Token object_type = object->attributes.Get("name");
 		float object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
 		float object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
+        
+		int filter = object->attributes.Exists("filter") ? (int)XMLParser::TokenToNumber(object->attributes.Get("filter")) : 0xFF;
+		
+		if (!filter)
+			filter = 0xFF;
 
-		int filter = object->attributes.Exists("filter")
-			? (int)XMLParser::TokenToNumber(object->attributes.Get("filter"))
-			: 0xFF;
 		if (!(filter & Scene::Filter)) {
 			continue;
 		}

@@ -62,6 +62,24 @@ enum class KeyBind {
 	Max
 };
 
+struct DeveloperMenu {
+    void (*State)();
+    int Selection;
+    int SubSelection;
+    int ScrollPos;
+    int SubScrollPos;
+    int Timer;
+    bool Fullscreen;
+    int SceneState;
+    int ListPos;
+    int WindowScale;
+    bool WindowBorderless;
+    int CurrentWindowWidth;
+    int CurrentWindowHeight;
+    int PlayerListPos;
+    bool MusicPausedStore;
+};
+
 #define DEFAULT_TARGET_FRAMERATE 60
 
 #define MAX_TARGET_FRAMERATE 240

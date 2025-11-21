@@ -79,8 +79,12 @@ bool Application::FirstFrame = true;
 
 SDL_Window* Application::Window = NULL;
 char Application::WindowTitle[256];
-int Application::WindowWidth = 848;
-int Application::WindowHeight = 480;
+int Application::WindowWidth = 424;
+int Application::WindowHeight = 240;
+int Application::WindowScale = 2;
+bool Application::WindowFullscreen = false;
+bool Application::WindowBorderless = false;
+
 int Application::DefaultMonitor = 0;
 
 char Application::EngineVersion[256];
@@ -109,6 +113,8 @@ int Application::MusicVolume = 100;
 int Application::SoundVolume = 100;
 
 bool Application::DevMenuActivated = false;
+DeveloperMenu Application::DevMenu;
+
 bool Application::DevConvertModels = false;
 
 bool Application::AllowCmdLineSceneLoad = false;
@@ -124,7 +130,7 @@ char LogFilename[MAX_PATH_LENGTH];
 
 bool UseMemoryFileCache = false;
 
-bool DevMenu = false;
+bool DevMode = false;
 bool ViewPerformance = false;
 bool TakeSnapshot = false;
 bool DoNothing = false;
@@ -215,7 +221,7 @@ void Application::Init(int argc, char* args[]) {
 	Application::LogSystemInfo();
 
 	// Keep loading game stuff.
-	Application::LoadSceneInfo();
+	Application::LoadSceneInfo(0, 0, false);
 	Application::InitPlayerControls();
 	Application::DisposeGameConfig();
 
@@ -310,12 +316,17 @@ void Application::CreateWindow() {
 		window_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 	}
 
+	Application::WindowScale = 2;
+	Application::Settings->GetInteger("display", "scale", &Application::WindowScale);
+	if (Application::WindowScale <= 0)
+		Application::WindowScale = 0;
+	if (Application::WindowScale > 5)
+		Application::WindowScale = 5;
+
 	Application::Window = SDL_CreateWindow(NULL,
-		SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor),
-		SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor),
-		Application::WindowWidth,
-		Application::WindowHeight,
-		window_flags);
+		SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor), SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor),
+		Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale, window_flags);
+
 
 	if (Application::Platform == Platforms::iOS) {
 		SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
@@ -331,13 +342,14 @@ void Application::CreateWindow() {
 #endif
 	}
 	else {
-		bool fullscreen = false;
-		Application::Settings->GetBool("display", "fullscreen", &fullscreen);
+		Application::Settings->GetBool("display", "fullscreen", &Application::WindowFullscreen);
 
-		if (Application::GetWindowFullscreen() != fullscreen) {
-			Application::SetWindowFullscreen(fullscreen);
-		}
+		if (Application::GetWindowFullscreen() != Application::WindowFullscreen)
+			Application::SetWindowFullscreen(Application::WindowFullscreen);
 	}
+
+	Application::Settings->GetBool("display", "borderless", &Application::WindowBorderless);
+	Application::SetWindowBorderless(Application::WindowBorderless);
 
 	Application::SetWindowTitle(Application::GameTitleShort);
 }
@@ -801,7 +813,7 @@ void Application::UpdateWindowTitle() {
 		titleText += ", "; \
 	titleText += text
 
-	if (DevMenu) {
+	if (DevMode) {
 		if (ResourceManager::UsingDataFolder) {
 			ADD_TEXT("using Resources folder");
 		}
@@ -858,7 +870,7 @@ void Application::UnloadGame() {
 	InputManager::ClearInputs();
 }
 
-void Application::Restart() {
+void Application::Restart(bool keepScene) {
 	Application::EndGame();
 
 	Graphics::Reset();
@@ -867,7 +879,7 @@ void Application::Restart() {
 	Application::InitGameInfo();
 	Application::LoadGameInfo();
 	Application::ReloadSettings();
-	Application::LoadSceneInfo();
+	keepScene ? Application::LoadSceneInfo(Scene::ActiveCategory, Scene::CurrentSceneInList, true) : Application::LoadSceneInfo(0, 0, false);
 	Application::DisposeGameConfig();
 
 	FirstFrame = true;
@@ -917,7 +929,7 @@ bool Application::ChangeGame(const char* path) {
 		MemoryCache::Init();
 	}
 
-	Application::LoadSceneInfo();
+	Application::LoadSceneInfo(0, 0, false);
 	Application::InitPlayerControls();
 	Application::DisposeGameConfig();
 
@@ -1150,7 +1162,7 @@ void Application::InitPerformanceMetrics() {
 
 void Application::LoadDevSettings() {
 #ifdef DEVELOPER_MODE
-	Application::Settings->GetBool("dev", "devMenu", &DevMenu);
+	Application::Settings->GetBool("dev", "devMenu", &DevMode);
 	Application::Settings->GetBool("dev", "viewPerformance", &ViewPerformance);
 	Application::Settings->GetBool("dev", "donothing", &DoNothing);
 	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
@@ -1212,6 +1224,8 @@ void Application::SetWindowSize(int window_w, int window_h) {
 
 	// In case the window just doesn't resize (Android)
 	SDL_GetWindowSize(Application::Window, &window_w, &window_h);
+	DevMenu.CurrentWindowWidth = window_w;
+	DevMenu.CurrentWindowHeight = window_h;
 
 	Graphics::Resize(window_w, window_h);
 }
@@ -1221,17 +1235,24 @@ bool Application::GetWindowFullscreen() {
 }
 
 void Application::SetWindowFullscreen(bool isFullscreen) {
-	SDL_SetWindowFullscreen(
-		Application::Window, isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	SDL_SetWindowFullscreen(Application::Window, isFullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	Application::WindowFullscreen = isFullscreen;
+	Application::Settings->SetBool("display", "fullscreen", Application::WindowFullscreen);
+
+	DevMenu.Fullscreen = isFullscreen;
+
 
 	int window_w, window_h;
 	SDL_GetWindowSize(Application::Window, &window_w, &window_h);
+	DevMenu.CurrentWindowWidth = window_w;
+	DevMenu.CurrentWindowHeight = window_h;
 
 	Graphics::Resize(window_w, window_h);
 }
 
 void Application::SetWindowBorderless(bool isBorderless) {
-	SDL_SetWindowBordered(Application::Window, (SDL_bool)(!isBorderless));
+	Application::WindowBorderless = isBorderless;
+	Application::Settings->SetBool("display", "borderless", isBorderless);
 }
 
 int Application::GetKeyBind(int bind) {
@@ -1265,16 +1286,18 @@ void Application::PollEvents() {
 				break;
 			}
 
-			if (DevMenu) {
-				// Quit game (dev)
+			if (DevMode) {
+				// Open dev menu (dev)
 				if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
-					Running = false;
+					Application::DevMenuActivated ? Application::CloseDevMenu() : Application::OpenDevMenu();
 					break;
 				}
 				// Restart application (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevRestartApp]) {
-					Application::Restart();
+					Application::Restart(false);
 					Application::StartGame(StartingScene);
+					if (Application::DevMenuActivated)
+						Application::CloseDevMenu();
 					Application::UpdateWindowTitle();
 					break;
 				}
@@ -1311,8 +1334,10 @@ void Application::PollEvents() {
 						Scene::CurrentScene,
 						MAX_RESOURCE_PATH_LENGTH);
 
-					Application::Restart();
+					Application::Restart(true);
 					Application::StartGame(lastScene);
+					if (Application::DevMenuActivated)
+						Application::CloseDevMenu();
 					Application::UpdateWindowTitle();
 					break;
 				}
@@ -1322,6 +1347,9 @@ void Application::PollEvents() {
 					BenchmarkFrameCount = 0;
 
 					InputManager::ControllerStopRumble();
+
+					if (Application::DevMenuActivated)
+						Application::CloseDevMenu();
 
 					Scene::Restart();
 					Application::UpdateWindowTitle();
@@ -1364,6 +1392,12 @@ void Application::PollEvents() {
 					Step = true;
 					Application::UpdateWindowTitle();
 					break;
+				}
+			}
+			else {
+				// Quit game (not dev)
+				if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
+					Running = false;
 				}
 			}
 			break;
@@ -1425,7 +1459,7 @@ void Application::RunFrame(int runFrames) {
 		Scene::ResetPerf();
 		Metrics.Poll.Reset();
 		Metrics.Update.Reset();
-		if ((Stepper && Step) || !Stepper) {
+		if (((Stepper && Step) || !Stepper) && !Application::DevMenuActivated) {
 			// Poll for inputs
 			Metrics.Poll.Begin();
 			InputManager::Poll();
@@ -1483,6 +1517,7 @@ void Application::RunFrame(int runFrames) {
 	}
 
 DO_NOTHING:
+	RunDevMenu();
 
 	// Show FPS counter
 	Metrics.FPSCounter.Begin();
@@ -1587,7 +1622,7 @@ void Application::Run(int argc, char* args[]) {
 
 	Application::StartGame(scenePath);
 	Application::UpdateWindowTitle();
-	Application::SetWindowSize(Application::WindowWidth, Application::WindowHeight);
+	Application::SetWindowSize(Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale);
 
 	Graphics::Clear();
 	Graphics::Present();
@@ -2018,10 +2053,9 @@ void Application::LoadGameInfo() {
 	}
 }
 
-void Application::LoadSceneInfo() {
+void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene) {
 	XMLNode* sceneConfig = nullptr;
-
-	int startSceneNum = 0;
+	int startSceneNum = currentSceneNum;
 
 	Scene::ActiveCategory = 0;
 	Scene::CurrentSceneInList = 0;
@@ -2044,8 +2078,8 @@ void Application::LoadSceneInfo() {
 				if (node) {
 					// Parse active category
 					if (!ParseGameConfigInt(node,
-						    "activeCategory",
-						    Scene::ActiveCategory)) { // backwards compat
+						"activeCategory",
+						Scene::ActiveCategory)) { // backwards compat
 						char* text =
 							ParseGameConfigText(node, "activeCategory");
 						if (text) {
@@ -2088,7 +2122,7 @@ void Application::LoadSceneInfo() {
 				StringUtils::Copy(StartingScene,
 					SceneInfo::GetFilename(
 						Scene::ActiveCategory, Scene::CurrentSceneInList)
-						.c_str(),
+					.c_str(),
 					sizeof(StartingScene));
 			}
 
@@ -2098,12 +2132,52 @@ void Application::LoadSceneInfo() {
 				SceneInfo::NumTotalScenes);
 		}
 
-		XMLParser::Free(sceneConfig);
+		if (sceneConfig)
+			XMLParser::Free(sceneConfig);
 	}
 }
 
 void Application::InitPlayerControls() {
 	InputManager::InitPlayerControls();
+
+	std::unordered_map<std::string, unsigned> actions;
+
+	const char* name[] = {"Up", "Down", "Left", "Right", "A", "B", "C", "X", "Y", "Z", "Start", "Select"};
+	const int keys[] = { Key_UP, Key_DOWN, Key_LEFT, Key_RIGHT, Key_A, Key_S, Key_D, Key_Q, Key_W, Key_E, Key_RETURN, Key_TAB };
+	const int buttons[] = { (int)ControllerButton::DPadUp, (int)ControllerButton::DPadDown, (int)ControllerButton::DPadLeft, (int)ControllerButton::DPadRight,
+		(int)ControllerButton::A, (int)ControllerButton::B, (int)ControllerButton::LeftShoulder,
+		(int)ControllerButton::X, (int)ControllerButton::Y, (int)ControllerButton::RightShoulder,
+		(int)ControllerButton::Start, (int)ControllerButton::Back };
+
+	for (size_t i = 0; i < std::size(name); ++i) {
+		actions[name[i]] = InputManager::RegisterAction(name[i]);
+	}
+
+	if (InputManager::Players.size() < 1) {
+		InputManager::AddPlayer();
+		InputManager::SetPlayerControllerIndex(0, 0);
+	}
+
+	for (size_t p = 0; p < InputManager::Players.size(); ++p) {
+		InputPlayer& player = InputManager::Players[p];
+
+		for (size_t b = 0; b < std::size(name); ++b) {
+			KeyboardBind* keyboardBind = new KeyboardBind(keys[b]);
+			ControllerButtonBind* controllerBind = new ControllerButtonBind(buttons[b]);
+
+			if (!player.GetDefaultBind(actions[name[b]], p)) {
+				if (player.AddDefaultBind(actions[name[b]], keyboardBind) < 0) {
+					delete keyboardBind;
+				}
+
+				if (player.AddDefaultBind(actions[name[b]], controllerBind) < 0) {
+					delete controllerBind;
+				}
+			}
+		}
+
+		player.ResetBinds();
+	}
 }
 
 bool Application::LoadSettings(const char* filename) {
@@ -2213,5 +2287,501 @@ int Application::HandleAppEvents(void* data, SDL_Event* event) {
 		return 0;
 	default:
 		return 1;
+	}
+}
+
+void Application::DrawDevString(const char* string, int x, int y, int align, bool isSelected) {
+	TextDrawParams textParams;
+
+	textParams.FontSize = 15 * (DevMenu.CurrentWindowWidth / Application::WindowWidth);
+	textParams.Ascent = DefaultFont->Ascent;
+	textParams.Descent = DefaultFont->Descent;
+	textParams.Leading = DefaultFont->Leading;
+
+	float maxW = 0.0, maxH = 0.0;
+	if (align == ALIGN_CENTER) Graphics::MeasureText(DefaultFont, string, &textParams, maxW, maxH);
+	if (align == ALIGN_CENTER) x -= (maxW / 2) / (DevMenu.CurrentWindowWidth / Application::WindowWidth);
+	else if (align == ALIGN_RIGHT) x -= maxW / (DevMenu.CurrentWindowWidth / Application::WindowWidth);
+
+	Graphics::SetBlendColor(0.28125, 0.28125, 0.4375, 1.0);
+	Graphics::DrawText(DefaultFont, string, (x + 0.5) * (DevMenu.CurrentWindowWidth / Application::WindowWidth), (y + 0.5) * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
+	isSelected ? Graphics::SetBlendColor(0.9375, 0.9375, 0.9375, 1.0) : Graphics::SetBlendColor(0.5, 0.625, 0.6875, 1.0);
+	Graphics::DrawText(DefaultFont, string, x * (DevMenu.CurrentWindowWidth / Application::WindowWidth), y * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
+}
+
+void Application::RunDevMenu() {
+	if (DefaultFont == nullptr) {
+		return;
+	}
+
+	SDL_GetWindowSize(Application::Window, &DevMenu.CurrentWindowWidth, &DevMenu.CurrentWindowHeight);
+	Graphics::SetViewport(0.0, 0.0, DevMenu.CurrentWindowWidth, DevMenu.CurrentWindowHeight);
+	Graphics::UpdateOrthoFlipped(DevMenu.CurrentWindowWidth, DevMenu.CurrentWindowHeight);
+	Graphics::SetBlendMode(BlendFactor_SRC_ALPHA,
+		BlendFactor_INV_SRC_ALPHA,
+		BlendFactor_ONE,
+		BlendFactor_INV_SRC_ALPHA);
+
+	Graphics::Save();
+	if (DevMenuActivated) {
+		// Poll for inputs, since the frame did not run
+		InputManager::Poll();
+
+		if (Application::DevMenu.State)
+			Application::DevMenu.State();
+	}
+	Graphics::Restore();
+}
+
+void Application::OpenDevMenu() {
+	DevMenu.State = Application::DevMenu_MainMenu;
+	DevMenu.Selection = 0;
+	DevMenu.ScrollPos = 0;
+	DevMenu.SubSelection = 0;
+	DevMenu.SubScrollPos = 0;
+	DevMenu.Timer = 0;
+
+	DevMenu.WindowScale = Application::WindowScale;
+	DevMenu.Fullscreen = Application::WindowFullscreen;
+	DevMenu.WindowBorderless = Application::WindowBorderless;
+
+	AudioManager::AudioPauseAll();
+	AudioManager::Lock();
+	if (AudioManager::MusicStack.size() > 0) {
+		DevMenu.MusicPausedStore = AudioManager::MusicStack[0]->Paused;
+		AudioManager::MusicStack[0]->Paused = true;
+	}
+	AudioManager::Unlock();
+
+	Application::DevMenuActivated = true;
+}
+
+void Application::CloseDevMenu() {
+	Application::DevMenuActivated = false;
+
+	DevMenu.WindowScale = Application::WindowScale;
+	DevMenu.Fullscreen = Application::WindowFullscreen;
+	DevMenu.WindowBorderless = Application::WindowBorderless;
+
+	Application::SaveSettings();
+
+	AudioManager::AudioUnpauseAll();
+	AudioManager::Lock();
+	if (AudioManager::MusicStack.size() > 0) {
+		AudioManager::MusicStack[0]->Paused = DevMenu.MusicPausedStore;
+		DevMenu.MusicPausedStore = false;
+	}
+	AudioManager::Unlock();
+}
+
+void Application::SetBlendColor(int color) {
+	Graphics::SetBlendColor(
+		(color >> 16 & 0xFF) / 255.f,
+		(color >> 8 & 0xFF) / 255.f,
+		(color & 0xFF) / 255.f, 1.0);
+}
+
+void Application::DrawRectangle(float x, float y, float width, float height, int color, int alpha) {
+	Graphics::SetBlendColor(
+		(color >> 16 & 0xFF) / 255.f,
+		(color >> 8 & 0xFF) / 255.f,
+		(color & 0xFF) / 255.f, alpha / 256.0f);
+	Graphics::FillRectangle(x * (DevMenu.CurrentWindowWidth / Application::WindowWidth), y * (DevMenu.CurrentWindowHeight / Application::WindowHeight), width * (DevMenu.CurrentWindowWidth / Application::WindowWidth), height * (DevMenu.CurrentWindowHeight / Application::WindowHeight));
+}
+
+void Application::DevMenu_DrawMainMenu() {
+	const char* selectionNames[] = { "Resume", "Restart", "Scene Select", "Settings", "Exit" };
+
+	DevMenu_DrawTitleBar();
+	DrawRectangle(0, 82, 128, 124, 0x000000, 0xC0);
+	DrawRectangle(144, 82, Application::WindowWidth - 144, 124, 0x000000, 0xC0);
+
+	for (size_t i = 0, y = 109; i < std::size(selectionNames); ++i, y += 14)
+		DrawDevString(selectionNames[i], 16, y, ALIGN_LEFT, DevMenu.Selection == i);
+}
+
+void Application::DevMenu_DrawTitleBar() {
+	DrawRectangle(0, 16, Application::WindowWidth, 54, 0x000000, 0xC0);
+	DrawDevString("Hatch Engine Developer Menu", Application::WindowWidth / 2, 20, ALIGN_CENTER, true);
+	DrawDevString(GameTitleShort, Application::WindowWidth / 2, 35, ALIGN_CENTER, true);
+}
+
+void Application::DevMenu_MainMenu() {
+	DevMenu_DrawMainMenu();
+
+	char versionDisplay[544];
+	snprintf(versionDisplay, sizeof(versionDisplay), "Engine version %s, game version %s", Application::EngineVersion, Application::GameVersion);
+	DrawDevString(versionDisplay, Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+
+	const char* tooltips[] = {
+		"Resume the game.", "Restart the current scene.", "Navigate to a certain scene.",
+		"Adjust the application's settings.", "Close the application."
+	};
+	DrawDevString(tooltips[DevMenu.Selection], 160, 86, ALIGN_LEFT, true);
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || ((actionUp != -1 && InputManager::IsActionHeldByAny(actionUp)) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || ((actionDown != -1 && InputManager::IsActionHeldByAny(actionDown)) && !DevMenu.Timer)))) {
+
+		DevMenu.Selection = (DevMenu.Selection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)std::size(tooltips)) % (int)std::size(tooltips);
+		DevMenu.Timer = 8;
+	}
+
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+
+	bool confirm = false;
+	for (const char* action : { "A", "Start" }) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
+			break;
+		}
+	}
+
+	if (confirm) {
+		switch (DevMenu.Selection) {
+			case 0: CloseDevMenu(); break;
+			case 1:
+				CloseDevMenu();
+				BenchmarkFrameCount = 0;
+				InputManager::ControllerStopRumble();
+				Scene::Restart();
+				UpdateWindowTitle();
+				break;
+			case 2: DevMenu.State = Application::DevMenu_CategorySelectMenu; break;
+			case 3: DevMenu.State = Application::DevMenu_SettingsMenu; break;
+			case 4: Running = false; break;
+		}
+		DevMenu.SubSelection = 0;
+		DevMenu.Timer = 1;
+	}
+	else {
+		int actionB = InputManager::GetActionID("B");
+		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
+			CloseDevMenu();
+		}
+	}
+}
+
+void Application::DevMenu_CategorySelectMenu() {
+	DevMenu_DrawMainMenu();
+
+	if (!ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
+		DrawDevString("No SceneConfig is loaded!", 160, 86, ALIGN_LEFT, true);
+
+		int actionB = InputManager::GetActionID("B");
+		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
+			DevMenu.State = DevMenu_MainMenu;
+			DevMenu.SubSelection = 0;
+			DevMenu.Timer = 1;
+		}
+		return;
+	}
+
+	DrawDevString("Select Scene Category...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+
+	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < SceneInfo::Categories.size(); i++, y += 14)
+		DrawDevString(SceneInfo::Categories[DevMenu.SubScrollPos + i].Name, 160, y, ALIGN_LEFT, (DevMenu.SubSelection - DevMenu.SubScrollPos) == i);
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)SceneInfo::Categories.size()) % (int)SceneInfo::Categories.size();
+
+		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
+			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 7)
+				DevMenu.SubScrollPos = DevMenu.SubSelection - 7;
+		}
+		else {
+			DevMenu.SubScrollPos = DevMenu.SubSelection;
+		}
+
+		DevMenu.Timer = 8;
+	}
+
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+
+	bool confirm = false;
+	for (const char* action : { "A", "Start" }) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
+			break;
+		}
+	}
+
+	if (confirm) {
+		SceneListCategory* list = &SceneInfo::Categories[DevMenu.SubSelection];
+		if (!list->Entries.empty()) {
+			DevMenu.State = DevMenu_SceneSelectMenu;
+			DevMenu.ListPos = DevMenu.SubSelection;
+			DevMenu.SubScrollPos = DevMenu.SubSelection = 0;
+		}
+	}
+	else {
+		int actionB = InputManager::GetActionID("B");
+		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
+			DevMenu.State = DevMenu_MainMenu;
+			DevMenu.SubSelection = 0;
+			DevMenu.Timer = 1;
+		}
+	}
+}
+
+void Application::DevMenu_SceneSelectMenu() {
+	DevMenu_DrawMainMenu();
+
+	DrawDevString("Select Scene...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+
+	SceneListCategory* list = &SceneInfo::Categories[DevMenu.ListPos];
+
+	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < list->Entries.size(); i++, y += 14)
+		DrawDevString(list->Entries[DevMenu.SubScrollPos + i].Name, 160, y, ALIGN_LEFT, DevMenu.SubSelection - DevMenu.SubScrollPos == i);
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)list->Entries.size()) % (int)list->Entries.size();
+
+		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
+			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 7)
+				DevMenu.SubScrollPos = DevMenu.SubSelection - 7;
+		}
+		else {
+			DevMenu.SubScrollPos = DevMenu.SubSelection;
+		}
+
+		DevMenu.Timer = 8;
+	}
+
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+
+	bool confirm = false;
+	for (const char* action : { "A", "Start" }) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
+			break;
+		}
+	}
+
+	if (confirm) {
+		CloseDevMenu();
+		AudioManager::AudioStopAll();
+		AudioManager::ClearMusic();
+
+		const char* categoryName = list->Name;
+		const char* sceneName = list->Entries[DevMenu.SubSelection].Name;
+
+		int categoryID = SceneInfo::GetCategoryID(categoryName);
+		int entryID = SceneInfo::GetEntryID(categoryName, sceneName);
+		if (categoryID < 0 || entryID < 0) return;
+
+		Scene::SetCurrent(categoryName, sceneName);
+		StringUtils::Copy(Scene::NextScene, SceneInfo::GetFilename(categoryID, DevMenu.SubSelection).c_str(), sizeof(Scene::NextScene));
+	}
+	else {
+		int actionB = InputManager::GetActionID("B");
+		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
+			DevMenu.State = DevMenu_CategorySelectMenu;
+			DevMenu.SubScrollPos = DevMenu.SubSelection = 0;
+			DevMenu.ListPos = 1;
+		}
+	}
+}
+
+void Application::DevMenu_SettingsMenu() {
+	DevMenu_DrawMainMenu();
+
+	DrawDevString("Change settings...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+
+	const char* labels[] = { "Video Settings", "Audio Settings", "Performance Viewer"};
+	for (size_t i = 0, y = 86; i < std::size(labels); i++, y += 14)
+		DrawDevString(labels[i], 160, y, ALIGN_LEFT, DevMenu.SubSelection == i);
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)std::size(labels)) % (int)std::size(labels);
+		DevMenu.Timer = 8;
+	}
+
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+
+	bool confirm = false;
+	for (const char* action : { "A", "Start" }) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
+			break;
+		}
+	}
+
+	if (confirm) {
+		if (DevMenu.SubSelection == 2) {
+			ViewPerformance = !ViewPerformance;
+			return;
+		}
+		DevMenu.State = (DevMenu.SubSelection == 0) ? DevMenu_VideoMenu : DevMenu_AudioMenu;
+		DevMenu.SubSelection = 0;
+	}
+	else {
+		int actionB = InputManager::GetActionID("B");
+		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
+			DevMenu.State = DevMenu_MainMenu;
+			DevMenu.SubSelection = 0;
+		}
+	}
+}
+
+void Application::DevMenu_VideoMenu() {
+	DevMenu_DrawTitleBar();
+
+	DrawDevString("Change video settings...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+	DrawRectangle((Application::WindowWidth / 2) - 140, 82, 280, 124, 0x000000, 0xC0);
+
+	const char* labels[] = { "Window Scale", "Fullscreen", "Borderless" };
+	for (size_t i = 0; i < std::size(labels); i++)
+		DrawDevString(labels[i], (Application::WindowWidth / 2) - 124, 105 + (i * 16), ALIGN_LEFT, DevMenu.SubSelection == i);
+
+	DrawDevString("Confirm", Application::WindowWidth / 2, 161, ALIGN_CENTER, DevMenu.SubSelection == std::size(labels));
+	DrawDevString("Cancel", Application::WindowWidth / 2, 177, ALIGN_CENTER, DevMenu.SubSelection == std::size(labels) + 1);
+
+	char scale[2];
+	snprintf(scale, sizeof scale, "%d", DevMenu.WindowScale);
+	DrawDevString(scale, (Application::WindowWidth / 2) + 80, 105, ALIGN_CENTER, DevMenu.SubSelection == 0);
+	DrawDevString(DevMenu.Fullscreen ? "YES" : "NO", (Application::WindowWidth / 2) + 80, 121, ALIGN_CENTER, DevMenu.SubSelection == 1);
+	DrawDevString(DevMenu.WindowBorderless ? "YES" : "NO", (Application::WindowWidth / 2) + 80, 137, ALIGN_CENTER, DevMenu.SubSelection == 2);
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)std::size(labels) + 2) % ((int)std::size(labels) + 2);
+		DevMenu.Timer = 8;
+	}
+
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+
+	switch (DevMenu.SubSelection) {
+	case 0: { // Scale
+		const char* dir = InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) ? "Left" :
+			InputManager::IsActionPressedByAny(InputManager::GetActionID("Right")) ? "Right" : nullptr;
+		if (dir) {
+			DevMenu.WindowScale += (dir[0] == 'L') ? -1 : 1;
+			DevMenu.WindowScale = (DevMenu.WindowScale + 4) % 5 + 1;
+		}
+		break;
+	}
+	case 1: // Fullscreen
+	case 2: { // Borderless 
+		if (InputManager::IsActionPressedByAny(InputManager::GetActionID("Left")) ||
+			InputManager::IsActionPressedByAny(InputManager::GetActionID("Right"))) {
+			DevMenu.SubSelection == 1 ? DevMenu.Fullscreen ^= 1 : DevMenu.WindowBorderless ^= 1;
+		}
+		break;
+	}
+	case 3: // Confirm
+	case 4: { // Cancel
+		bool confirm = false;
+		for (const char* action : { "A", "Start" }) {
+			int actionID = InputManager::GetActionID(action);
+			if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+				confirm = true;
+				break;
+			}
+		}
+
+		if (confirm) {
+			if (DevMenu.SubSelection == 3) { // Confirm
+				Application::SetWindowFullscreen(DevMenu.Fullscreen);
+				Application::SetWindowBorderless(DevMenu.WindowBorderless);
+				if (Application::IsWindowResizeable()) {
+					Application::WindowScale = DevMenu.WindowScale;
+					Application::Settings->SetInteger("display", "scale", Application::WindowScale);
+					Application::SetWindowSize(Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale);
+				}
+			}
+			else { // Cancel
+				DevMenu.WindowScale = Application::WindowScale;
+				DevMenu.Fullscreen = Application::WindowFullscreen;
+				DevMenu.WindowBorderless = Application::WindowBorderless;
+			}
+			DevMenu.State = DevMenu_SettingsMenu;
+			DevMenu.SubSelection = 0;
+		}
+		break;
+	}
+	}
+}
+
+void Application::DevMenu_AudioMenu() {
+	DevMenu_DrawTitleBar();
+
+	DrawDevString("Change audio settings...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+	DrawRectangle((Application::WindowWidth / 2) - 140, 82, 280, 124, 0x000000, 0xC0);
+
+	const char* labels[] = { "Master Volume", "Music Volume", "Sound Volume" };
+	for (size_t i = 0; i < std::size(labels); i++)
+		DrawDevString(labels[i], (Application::WindowWidth / 2) - 124, 105 + (i * 16), ALIGN_LEFT, DevMenu.SubSelection == i);
+
+	DrawDevString("Confirm", Application::WindowWidth / 2, 169, ALIGN_CENTER, DevMenu.SubSelection == std::size(labels));
+
+	for (size_t i = 0, y = 105; i < std::size(labels); i++, y += 16) {
+		DrawRectangle((Application::WindowWidth / 2.0) + 22.0, y, 104.0, 15.0, 0x303030, 0xC0);
+		DrawRectangle((Application::WindowWidth / 2.0) + 24.0, y + 2, (float)((int*)&Application::MasterVolume)[i], 11.0, 0xFFFFFF, 0xC0);
+	}
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)std::size(labels) + 1) % ((int)std::size(labels) + 1);
+		DevMenu.Timer = 8;
+	}
+
+	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+
+	const char* volumeDirs[] = { "Left", "Right" };
+	for (const char* dir : volumeDirs) {
+		int actionID = InputManager::GetActionID(dir);
+		if (actionID != -1 && (InputManager::IsActionPressedByAny(actionID) || (InputManager::IsActionHeldByAny(actionID) && DevMenu.Timer == 0))) {
+			if (DevMenu.SubSelection < std::size(labels)) {
+				int& volume = ((int*)&Application::MasterVolume)[DevMenu.SubSelection];
+				volume = std::clamp(volume + (dir[0] == 'L' ? -1 : 1), 0, 100);
+				DevMenu.Timer = 8;
+				Application::Settings->SetInteger("audio", labels[DevMenu.SubSelection], volume);
+			}
+		}
+	}
+
+	bool confirm = false;
+	for (const char* action : { "A", "Start" }) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
+			break;
+		}
+	}
+
+	if (DevMenu.SubSelection == std::size(labels) && confirm) {
+		DevMenu.State = DevMenu_SettingsMenu;
+		DevMenu.SubSelection = 1;
+		DevMenu.Timer = 1;
 	}
 }
