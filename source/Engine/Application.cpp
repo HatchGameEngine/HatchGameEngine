@@ -2143,24 +2143,35 @@ void Application::InitPlayerControls() {
 	std::unordered_map<std::string, unsigned> actions;
 
 	const char* name[] = {"Up", "Down", "Left", "Right", "A", "B", "C", "X", "Y", "Z", "Start", "Select"};
-	const int keys[] = { Key_UP, Key_DOWN, Key_LEFT, Key_RIGHT, Key_A, Key_B, Key_C, Key_X, Key_Y, Key_Z, Key_RETURN, Key_TAB };
+	const int keys[] = { Key_UP, Key_DOWN, Key_LEFT, Key_RIGHT, Key_A, Key_S, Key_D, Key_Q, Key_W, Key_E, Key_RETURN, Key_TAB };
+	const int buttons[] = { (int)ControllerButton::DPadUp, (int)ControllerButton::DPadDown, (int)ControllerButton::DPadLeft, (int)ControllerButton::DPadRight,
+		(int)ControllerButton::A, (int)ControllerButton::B, (int)ControllerButton::LeftShoulder,
+		(int)ControllerButton::X, (int)ControllerButton::Y, (int)ControllerButton::RightShoulder,
+		(int)ControllerButton::Start, (int)ControllerButton::Back };
 
 	for (size_t i = 0; i < std::size(name); ++i) {
 		actions[name[i]] = InputManager::RegisterAction(name[i]);
 	}
 
-	if (InputManager::Players.size() < 1)
+	if (InputManager::Players.size() < 1) {
 		InputManager::AddPlayer();
+		InputManager::SetPlayerControllerIndex(0, 0);
+	}
 
 	for (size_t p = 0; p < InputManager::Players.size(); ++p) {
 		InputPlayer& player = InputManager::Players[p];
 
 		for (size_t b = 0; b < std::size(name); ++b) {
-			KeyboardBind* bind = new KeyboardBind(keys[b]);
+			KeyboardBind* keyboardBind = new KeyboardBind(keys[b]);
+			ControllerButtonBind* controllerBind = new ControllerButtonBind(buttons[b]);
+
 			if (!player.GetDefaultBind(actions[name[b]], p)) {
-				Log::Print(1, "HERE");
-				if (player.AddDefaultBind(actions[name[b]], bind) < 0) {
-					delete bind;
+				if (player.AddDefaultBind(actions[name[b]], keyboardBind) < 0) {
+					delete keyboardBind;
+				}
+
+				if (player.AddDefaultBind(actions[name[b]], controllerBind) < 0) {
+					delete controllerBind;
 				}
 			}
 		}
@@ -2406,7 +2417,7 @@ void Application::DevMenu_MainMenu() {
 		"Resume the game.", "Restart the current scene.", "Navigate to a certain scene.",
 		"Adjust the application's settings.", "Close the application."
 	};
-	DrawDevString(tooltips[DevMenu.Selection], 160 * (DevMenu.CurrentWindowWidth / Application::WindowWidth), 93, ALIGN_LEFT, true);
+	DrawDevString(tooltips[DevMenu.Selection], 160, 93, ALIGN_LEFT, true);
 
 	int actionUp = InputManager::GetActionID("Up");
 	int actionDown = InputManager::GetActionID("Down");
@@ -2447,8 +2458,8 @@ void Application::DevMenu_MainMenu() {
 		DevMenu.Timer = 1;
 	}
 	else {
-		int actionID = InputManager::GetActionID("B");
-		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+		int actionB = InputManager::GetActionID("B");
+		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
 			CloseDevMenu();
 		}
 	}
@@ -2480,7 +2491,7 @@ void Application::DevMenu_CategorySelectMenu() {
 	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
 		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
 
-		DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)SceneInfo::Categories.size()) % (int)SceneInfo::Categories.size();
+		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)SceneInfo::Categories.size()) % (int)SceneInfo::Categories.size();
 
 		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
 			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
@@ -2512,10 +2523,13 @@ void Application::DevMenu_CategorySelectMenu() {
 			DevMenu.SubScrollPos = DevMenu.SubSelection = 0;
 		}
 	}
-	else if (InputManager::IsActionPressedByAny(InputManager::GetActionID("B"))) {
-		DevMenu.State = DevMenu_MainMenu;
-		DevMenu.SubSelection = 0;
-		DevMenu.Timer = 1;
+	else {
+		int actionB = InputManager::GetActionID("B");
+		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
+			DevMenu.State = DevMenu_MainMenu;
+			DevMenu.SubSelection = 0;
+			DevMenu.Timer = 1;
+		}
 	}
 }
 
@@ -2535,7 +2549,7 @@ void Application::DevMenu_SceneSelectMenu() {
 	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
 		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
 
-		DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)list->Entries.size()) % (int)list->Entries.size();
+		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)list->Entries.size()) % (int)list->Entries.size();
 
 		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
 			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 6)
@@ -2574,10 +2588,13 @@ void Application::DevMenu_SceneSelectMenu() {
 		Scene::SetCurrent(categoryName, sceneName);
 		StringUtils::Copy(Scene::NextScene, SceneInfo::GetFilename(categoryID, DevMenu.SubSelection).c_str(), sizeof(Scene::NextScene));
 	}
-	else if (InputManager::IsActionPressedByAny(InputManager::GetActionID("B"))) {
-		DevMenu.State = DevMenu_CategorySelectMenu;
-		DevMenu.SubScrollPos = DevMenu.SubSelection = 0;
-		DevMenu.ListPos = 1;
+	else {
+		int actionB = InputManager::GetActionID("B");
+		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
+			DevMenu.State = DevMenu_CategorySelectMenu;
+			DevMenu.SubScrollPos = DevMenu.SubSelection = 0;
+			DevMenu.ListPos = 1;
+		}
 	}
 }
 
@@ -2586,7 +2603,7 @@ void Application::DevMenu_SettingsMenu() {
 
 	DrawDevString("Change settings...", Application::WindowWidth / 2, 56, ALIGN_CENTER, true);
 
-	const char* labels[] = { "Video Settings", "Audio Settings", "Input Settings", "Performance Viewer"};
+	const char* labels[] = { "Video Settings", "Audio Settings", "Performance Viewer"};
 	for (size_t i = 0, y = 93; i < std::size(labels); i++, y += 15)
 		DrawDevString(labels[i], 160, y, ALIGN_LEFT, DevMenu.SubSelection == i);
 
@@ -2596,7 +2613,7 @@ void Application::DevMenu_SettingsMenu() {
 	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
 		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
 
-		DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)std::size(labels)) % (int)std::size(labels);
+		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)std::size(labels)) % (int)std::size(labels);
 		DevMenu.Timer = 8;
 	}
 
@@ -2612,17 +2629,19 @@ void Application::DevMenu_SettingsMenu() {
 	}
 
 	if (confirm) {
-		if (DevMenu.SubSelection == 3) {
+		if (DevMenu.SubSelection == 2) {
 			ViewPerformance = !ViewPerformance;
 			return;
 		}
-		DevMenu.State = (DevMenu.SubSelection == 0) ? DevMenu_VideoMenu :
-			(DevMenu.SubSelection == 1) ? DevMenu_AudioMenu : DevMenu_InputMenu;
+		DevMenu.State = (DevMenu.SubSelection == 0) ? DevMenu_VideoMenu : DevMenu_AudioMenu;
 		DevMenu.SubSelection = 0;
 	}
-	else if (InputManager::IsActionPressedByAny(InputManager::GetActionID("B"))) {
-		DevMenu.State = DevMenu_MainMenu;
-		DevMenu.SubSelection = 0;
+	else {
+		int actionB = InputManager::GetActionID("B");
+		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
+			DevMenu.State = DevMenu_MainMenu;
+			DevMenu.SubSelection = 0;
+		}
 	}
 }
 
@@ -2651,7 +2670,7 @@ void Application::DevMenu_VideoMenu() {
 	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
 		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
 
-		DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)std::size(labels) + 2) % ((int)std::size(labels) + 2);
+		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)std::size(labels) + 2) % ((int)std::size(labels) + 2);
 		DevMenu.Timer = 8;
 	}
 
@@ -2765,8 +2784,4 @@ void Application::DevMenu_AudioMenu() {
 		DevMenu.SubSelection = 1;
 		DevMenu.Timer = 1;
 	}
-}
-
-void Application::DevMenu_InputMenu() {
-	DevMenu_DrawTitleBar();
 }
