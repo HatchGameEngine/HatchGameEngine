@@ -89,7 +89,6 @@ private:
 	static void DevMenu_SettingsMenu();
 	static void DevMenu_VideoMenu();
 	static void DevMenu_AudioMenu();
-	static void DevMenu_InputMenu();
 
 public:
 	static vector<std::string> CmdLineArgs;
