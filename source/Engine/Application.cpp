@@ -2078,8 +2078,8 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 				if (node) {
 					// Parse active category
 					if (!ParseGameConfigInt(node,
-						    "activeCategory",
-						    Scene::ActiveCategory)) { // backwards compat
+						"activeCategory",
+						Scene::ActiveCategory)) { // backwards compat
 						char* text =
 							ParseGameConfigText(node, "activeCategory");
 						if (text) {
@@ -2122,7 +2122,7 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 				StringUtils::Copy(StartingScene,
 					SceneInfo::GetFilename(
 						Scene::ActiveCategory, Scene::CurrentSceneInList)
-						.c_str(),
+					.c_str(),
 					sizeof(StartingScene));
 			}
 
@@ -2139,6 +2139,34 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 
 void Application::InitPlayerControls() {
 	InputManager::InitPlayerControls();
+
+	std::unordered_map<std::string, unsigned> actions;
+
+	const char* name[] = {"Up", "Down", "Left", "Right", "A", "B", "C", "X", "Y", "Z", "Start", "Select"};
+	const int keys[] = { Key_UP, Key_DOWN, Key_LEFT, Key_RIGHT, Key_A, Key_B, Key_C, Key_X, Key_Y, Key_Z, Key_RETURN, Key_TAB };
+
+	for (size_t i = 0; i < std::size(name); ++i) {
+		actions[name[i]] = InputManager::RegisterAction(name[i]);
+	}
+
+	if (InputManager::Players.size() < 1)
+		InputManager::AddPlayer();
+
+	for (size_t p = 0; p < InputManager::Players.size(); ++p) {
+		InputPlayer& player = InputManager::Players[p];
+
+		for (size_t b = 0; b < std::size(name); ++b) {
+			KeyboardBind* bind = new KeyboardBind(keys[b]);
+			if (!player.GetDefaultBind(actions[name[b]], p)) {
+				Log::Print(1, "HERE");
+				if (player.AddDefaultBind(actions[name[b]], bind) < 0) {
+					delete bind;
+				}
+			}
+		}
+
+		player.ResetBinds();
+	}
 }
 
 bool Application::LoadSettings(const char* filename) {
@@ -2254,52 +2282,20 @@ int Application::HandleAppEvents(void* data, SDL_Event* event) {
 void Application::DrawDevString(const char* string, int x, int y, int align, bool isSelected) {
 	TextDrawParams textParams;
 
-	textParams.FontSize = DefaultFont->Size;
+	textParams.FontSize = 15 * (DevMenu.CurrentWindowWidth / Application::WindowWidth);
 	textParams.Ascent = DefaultFont->Ascent;
 	textParams.Descent = DefaultFont->Descent;
 	textParams.Leading = DefaultFont->Leading;
 
-	Graphics::SetBlendColor(0.28125, 0.28125, 0.4375, 1.0);
-	Graphics::DrawText(DefaultFont, string, x * (DevMenu.CurrentWindowWidth / Application::WindowWidth) + 1.0, y * (DevMenu.CurrentWindowHeight / Application::WindowHeight) + 1.0, &textParams);
+	float maxW = 0.0, maxH = 0.0;
+	if (align == ALIGN_CENTER) Graphics::MeasureText(DefaultFont, string, &textParams, maxW, maxH);
+	if (align == ALIGN_CENTER) x -= (maxW / 2) / (DevMenu.CurrentWindowWidth / Application::WindowWidth);
+	else if (align == ALIGN_RIGHT) x -= maxW / (DevMenu.CurrentWindowWidth / Application::WindowWidth);
+
+	// Graphics::SetBlendColor(0.28125, 0.28125, 0.4375, 1.0);
+	// Graphics::DrawText(DefaultFont, string, (x + 0.5) * (DevMenu.CurrentWindowWidth / Application::WindowWidth), (y + 0.5) * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
 	isSelected ? Graphics::SetBlendColor(0.9375, 0.9375, 0.9375, 1.0) : Graphics::SetBlendColor(0.5, 0.625, 0.6875, 1.0);
 	Graphics::DrawText(DefaultFont, string, x * (DevMenu.CurrentWindowWidth / Application::WindowWidth), y * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
-
-	/*int sprite = isSelected ? Application::DeveloperLightFont : Application::DeveloperDarkFont;
-	if (sprite < 0 || !string || !Scene::SpriteList[sprite]) return;
-
-	ISprite* font = Scene::SpriteList[sprite]->AsSprite;
-	std::vector<int> spriteString;
-
-	for (const char* ptr = string; *ptr;) {
-		Uint32 unicodeChar = *ptr;
-		int bytes = (*ptr & 0x80) == 0 ? 1 : ((*ptr & 0xE0) == 0xC0) ? 2 : ((*ptr & 0xF0) == 0xE0) ? 3 : 4;
-		unicodeChar = (unicodeChar & (0xFF >> bytes)) << ((bytes - 1) * 6);
-		for (int i = 1; i < bytes; ++i) unicodeChar |= (ptr[i] & 0x3F) << ((bytes - i - 1) * 6);
-		ptr += bytes;
-
-		auto it = std::find_if(font->Animations[0].Frames.begin(), font->Animations[0].Frames.end(),
-			[unicodeChar](const AnimFrame& frame) { return frame.Advance == (int)unicodeChar; });
-
-		spriteString.push_back(it != font->Animations[0].Frames.end() ? std::distance(font->Animations[0].Frames.begin(), it) : -1);
-	}
-
-	if (y < 0 || y >= (int)Scene::Views[0].Height + (int)Scene::Views[0].Y) return;
-
-	int totalWidth = 0;
-	for (int index : spriteString)
-		totalWidth += (index >= 0) ? font->Animations[0].Frames[index].Width : 8;
-
-	if (align == ALIGN_CENTER) x -= totalWidth / 2;
-	else if (align == ALIGN_RIGHT) x -= totalWidth;
-
-	for (int index : spriteString) {
-		if (index >= 0) {
-			const AnimFrame& frame = font->Animations[0].Frames[index];
-			Graphics::DrawSprite(font, 0, index, x, y, false, false, 1.0f, 1.0f, 0.0f);
-			x += frame.Width + (align == ALIGN_LEFT ? 1 : 0);
-		}
-		else x += 8;
-	}*/
 }
 
 void Application::RunDevMenu() {
@@ -2410,15 +2406,15 @@ void Application::DevMenu_MainMenu() {
 		"Resume the game.", "Restart the current scene.", "Navigate to a certain scene.",
 		"Adjust the application's settings.", "Close the application."
 	};
-	DrawDevString(tooltips[DevMenu.Selection], 160 * (Application::WindowWidth / 240), 93, ALIGN_LEFT, true);
+	DrawDevString(tooltips[DevMenu.Selection], 160 * (DevMenu.CurrentWindowWidth / Application::WindowWidth), 93, ALIGN_LEFT, true);
 
 	int actionUp = InputManager::GetActionID("Up");
 	int actionDown = InputManager::GetActionID("Down");
 
-	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
-		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+	if ((actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || ((actionUp != -1 && InputManager::IsActionHeldByAny(actionUp)) && !DevMenu.Timer))) ||
+		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || ((actionDown != -1 && InputManager::IsActionHeldByAny(actionDown)) && !DevMenu.Timer)))) {
 
-		DevMenu.Selection = (DevMenu.Selection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)std::size(tooltips)) % (int)std::size(tooltips);
+		DevMenu.Selection = (DevMenu.Selection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)std::size(tooltips)) % (int)std::size(tooltips);
 		DevMenu.Timer = 8;
 	}
 
@@ -2450,8 +2446,11 @@ void Application::DevMenu_MainMenu() {
 		DevMenu.SubSelection = 0;
 		DevMenu.Timer = 1;
 	}
-	else if (InputManager::IsActionPressedByAny(InputManager::GetActionID("B"))) {
-		CloseDevMenu();
+	else {
+		int actionID = InputManager::GetActionID("B");
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			CloseDevMenu();
+		}
 	}
 }
 
