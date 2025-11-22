@@ -912,10 +912,17 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		AnimFrame frame = sprite->Animations[animator->CurrentAnimation]
 					  .Frames[animator->CurrentFrame];
 
-		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-			THROW_ERROR("Hitbox %d is not in bounds of frame %d.",
+		if (frame.Boxes.size() == 0) {
+			THROW_ERROR("Frame %d of animation %d contains no hitboxes.",
+				animator->CurrentFrame,
+				animator->CurrentAnimation);
+			return NULL_VAL;
+		}
+		else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+			THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
 				hitboxID,
-				animator->CurrentFrame);
+				animator->CurrentFrame,
+				animator->CurrentAnimation);
 			return NULL_VAL;
 		}
 
@@ -15927,60 +15934,187 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetY);
 }
 /***
+ * Sprite.GetHitboxName
+ * \desc Gets the name of a hitbox through its index.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animationID (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \param hitboxID (Integer): The hitbox index of the frame to check.
+ * \return Returns a String value.
+ * \ns Sprite
+ */
+VMValue Sprite_GetHitboxName(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(4);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+	int hitboxID = GET_ARG(3, GetInteger);
+
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+	if (frame.Boxes.size() == 0) {
+		THROW_ERROR("Frame %d of animation %d contains no hitboxes.", frameID, animationID);
+		return NULL_VAL;
+	}
+	else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+		THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
+			hitboxID,
+			frameID,
+			animationID);
+		return NULL_VAL;
+	}
+
+	return ReturnString(frame.Boxes[hitboxID].Name);
+}
+/***
+ * Sprite.GetHitboxIndex
+ * \desc Gets the index of a hitbox by its name.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animationID (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \param name (String): The name of the hitbox to check.
+ * \return Returns an Integer value, or <code>null</code> if no such hitbox exists with that name.
+ * \ns Sprite
+ */
+VMValue Sprite_GetHitboxIndex(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(4);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+	char* name = GET_ARG(3, GetString);
+
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	if (name != nullptr) {
+		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+		for (size_t i = 0; i < frame.Boxes.size(); i++) {
+			if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+				return INTEGER_VAL((int)i);
+			}
+		}
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Sprite.GetHitboxCount
+ * \desc Gets the hitbox count in the given frame of an animation of a sprite.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animationID (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns an Integer value.
+ * \ns Sprite
+ */
+VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+	size_t numHitboxes = frame.Boxes.size();
+
+	return INTEGER_VAL((int)numHitboxes);
+}
+/***
  * Sprite.GetHitbox
- * \desc Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.
- * \param instance (Instance):An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).
+ * \desc Gets the hitbox of a sprite frame. If an entity is provided as the first argument, the only parameters are <code>entity</code> and <code>hitbox</code>. Otherwise, the required parameters are <code>sprite</code>, <code>animationID</code>, and <code>frameID</code>.
+ * \param entity (Entity): An entity with <code>Sprite</code>, <code>CurrentAnimation</code>, and <code>CurrentFrame</code> values (if provided).
  * \param sprite (Integer): The sprite index to check (if an entity is not provided).
  * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
  * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
- * \param hitboxID (Integer): The index number of the hitbox.
- * \return Returns a reference value to a hitbox array.
+ * \paramOpt hitbox (String or Integer): The hitbox name or index of the animation to check. Defaults to <code>0</code>.
+ * \return Returns an Array value.
  * \ns Sprite
  */
 VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	ISprite* sprite;
-	int animationID, frameID, hitboxID;
+	int animationID, frameID, hitboxID = 0;
+	int hitboxArgNum;
 
 	if (argCount == 2 && IS_ENTITY(args[0])) {
 		ObjEntity* ent = GET_ARG(0, GetEntity);
 		Entity* entity = (Entity*)ent->EntityPtr;
-		hitboxID = GET_ARG(1, GetInteger);
+		hitboxArgNum = 1;
 
 		sprite = GetSpriteIndex(entity->Sprite, threadID);
+		if (!sprite) {
+			return NULL_VAL;
+		}
+
 		animationID = entity->CurrentAnimation;
 		frameID = entity->CurrentFrame;
 	}
 	else {
-		CHECK_ARGCOUNT(4);
+		CHECK_AT_LEAST_ARGCOUNT(3);
 		sprite = GET_ARG(0, GetSprite);
 		animationID = GET_ARG(1, GetInteger);
 		frameID = GET_ARG(2, GetInteger);
-		hitboxID = GET_ARG(3, GetInteger);
+		hitboxArgNum = 3;
 	}
 
-	ObjArray* array = NewArray();
-	for (int i = 0; i < 4; i++)
-		array->Values->push_back(INTEGER_VAL(0));
+	if (!sprite) {
+		return NULL_VAL;
+	}
 
-	if (sprite && animationID >= 0 && frameID >= 0) {
-		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
 
-		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-			return OBJECT_VAL(array);
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+	if (IS_STRING(args[hitboxArgNum])) {
+		char* name = GET_ARG(hitboxArgNum, GetString);
+		if (name) {
+			int boxIndex = -1;
+
+			for (size_t i = 0; i < frame.Boxes.size(); i++) {
+				if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+					boxIndex = (int)i;
+					break;
+				}
+			}
+
+			if (boxIndex != -1) {
+				hitboxID = boxIndex;
+			}
+			else {
+				THROW_ERROR("No hitbox named \"%s\" in frame %d of animation %d.",
+					name,
+					frameID,
+					animationID);
+			}
 		}
+	}
+	else {
+		hitboxID = GET_ARG_OPT(hitboxArgNum, GetInteger, 0);
+	}
 
+	ObjArray* hitbox = NewArray();
+	if (hitboxID >= 0 && hitboxID < (int)frame.Boxes.size()) {
 		CollisionBox box = frame.Boxes[hitboxID];
-		ObjArray* hitbox = NewArray();
 		hitbox->Values->push_back(INTEGER_VAL(box.Left));
 		hitbox->Values->push_back(INTEGER_VAL(box.Top));
 		hitbox->Values->push_back(INTEGER_VAL(box.Right));
 		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
-		return OBJECT_VAL(hitbox);
 	}
 	else {
-		return OBJECT_VAL(array);
+		// TODO: Make this an error.
+		// For backwards compatibility, currently it doesn't.
+		for (int i = 0; i < 4; i++) {
+			hitbox->Values->push_back(INTEGER_VAL(0));
+		}
 	}
+	return OBJECT_VAL(hitbox);
 }
 /***
  * Sprite.GetTextArray
@@ -20816,6 +20950,9 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sprite, GetFrameID);
 	DEF_NATIVE(Sprite, GetFrameOffsetX);
 	DEF_NATIVE(Sprite, GetFrameOffsetY);
+	DEF_NATIVE(Sprite, GetHitboxName);
+	DEF_NATIVE(Sprite, GetHitboxIndex);
+	DEF_NATIVE(Sprite, GetHitboxCount);
 	DEF_NATIVE(Sprite, GetHitbox);
 	DEF_NATIVE(Sprite, GetTextArray);
 	DEF_NATIVE(Sprite, GetTextWidth);

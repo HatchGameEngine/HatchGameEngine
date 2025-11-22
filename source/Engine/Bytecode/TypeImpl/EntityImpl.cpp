@@ -482,7 +482,7 @@ VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 t
 
 	AnimFrame frameO = sprite->Animations[animation].Frames[frame];
 
-	if (!(hitbox > -1 && hitbox < frameO.BoxCount)) {
+	if (!(hitbox > -1 && hitbox < frameO.Boxes.size())) {
 		// ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
 		self->Hitbox.Clear();
 	}
@@ -562,7 +562,7 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
-	if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+	if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
 		return NULL_VAL;
