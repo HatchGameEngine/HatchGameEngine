@@ -2765,7 +2765,7 @@ void Application::DevMenu_AudioMenu() {
 		int actionID = InputManager::GetActionID(dir);
 		if (actionID != -1 && (InputManager::IsActionPressedByAny(actionID) || (InputManager::IsActionHeldByAny(actionID)))) {
 			if (DevMenu.SubSelection < std::size(labels)) {
-				int& volume = ((int*)&Application::MasterVolume)[DevMenu.SubSelection];
+				int& volume = DevMenu.SubSelection == 0 ? Application::MasterVolume : DevMenu.SubSelection == 1 ? Application::MusicVolume : Application::SoundVolume;
 				volume = std::clamp(volume + (dir[0] == 'L' ? -1 : 1), 0, 100);
 				DevMenu.Timer = 8;
 				Application::Settings->SetInteger("audio", keys[DevMenu.SubSelection], volume);
