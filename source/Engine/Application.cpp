@@ -2312,6 +2312,7 @@ void Application::DrawDevString(const char* string, int x, int y, int align, boo
 
 void Application::RunDevMenu() {
 	if (DefaultFont == nullptr) {
+		Application::CloseDevMenu();
 		return;
 	}
 
