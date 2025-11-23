@@ -1253,6 +1253,7 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 void Application::SetWindowBorderless(bool isBorderless) {
 	Application::WindowBorderless = isBorderless;
 	Application::Settings->SetBool("display", "borderless", isBorderless);
+	SDL_SetWindowBordered(Application::Window, (SDL_bool)(!isBorderless));
 }
 
 int Application::GetKeyBind(int bind) {
@@ -2364,6 +2365,7 @@ void Application::CloseDevMenu() {
 	DevMenu.WindowBorderless = Application::WindowBorderless;
 
 	Application::SaveSettings();
+	Application::LoadAudioSettings();
 
 	AudioManager::AudioUnpauseAll();
 	AudioManager::Lock();
@@ -2735,6 +2737,7 @@ void Application::DevMenu_AudioMenu() {
 	DrawRectangle((Application::WindowWidth / 2) - 140, 82, 280, 124, 0x000000, 0xC0);
 
 	const char* labels[] = { "Master Volume", "Music Volume", "Sound Volume" };
+	const char* keys[] = { "masterVolume", "musicVolume", "soundVolume" };
 	for (size_t i = 0; i < std::size(labels); i++)
 		DrawDevString(labels[i], (Application::WindowWidth / 2) - 124, 105 + (i * 16), ALIGN_LEFT, DevMenu.SubSelection == i);
 
@@ -2760,12 +2763,12 @@ void Application::DevMenu_AudioMenu() {
 	const char* volumeDirs[] = { "Left", "Right" };
 	for (const char* dir : volumeDirs) {
 		int actionID = InputManager::GetActionID(dir);
-		if (actionID != -1 && (InputManager::IsActionPressedByAny(actionID) || (InputManager::IsActionHeldByAny(actionID) && DevMenu.Timer == 0))) {
+		if (actionID != -1 && (InputManager::IsActionPressedByAny(actionID) || (InputManager::IsActionHeldByAny(actionID)))) {
 			if (DevMenu.SubSelection < std::size(labels)) {
 				int& volume = ((int*)&Application::MasterVolume)[DevMenu.SubSelection];
 				volume = std::clamp(volume + (dir[0] == 'L' ? -1 : 1), 0, 100);
 				DevMenu.Timer = 8;
-				Application::Settings->SetInteger("audio", labels[DevMenu.SubSelection], volume);
+				Application::Settings->SetInteger("audio", keys[DevMenu.SubSelection], volume);
 			}
 		}
 	}
@@ -2780,6 +2783,7 @@ void Application::DevMenu_AudioMenu() {
 	}
 
 	if (DevMenu.SubSelection == std::size(labels) && confirm) {
+		Application::LoadAudioSettings();
 		DevMenu.State = DevMenu_SettingsMenu;
 		DevMenu.SubSelection = 1;
 		DevMenu.Timer = 1;
