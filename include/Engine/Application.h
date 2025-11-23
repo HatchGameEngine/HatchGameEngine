@@ -163,6 +163,7 @@ public:
 	static bool GetWindowFullscreen();
 	static void SetWindowFullscreen(bool isFullscreen);
 	static void SetWindowBorderless(bool isBorderless);
+	static Uint16* UTF8toUTF16(const char* utf8String);
 	static int GetKeyBind(int bind);
 	static void SetKeyBind(int bind, int key);
 	static void Run(int argc, char* args[]);

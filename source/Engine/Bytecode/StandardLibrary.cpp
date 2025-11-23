@@ -1152,7 +1152,7 @@ VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.SetFrameCount
  * \desc Sets the frame count of an animator.
  * \param animator (Integer): The animator index to change.
- * \param frameCount (Integer): The frame count.
+ * \param frameCount (Integer): The animator's changed frame count.
  * \ns Animator
  */
 VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -1168,7 +1168,7 @@ VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.SetLoopIndex
  * \desc Sets the loop index of an animator.
  * \param animator (Integer): The animator index to change.
- * \param loopIndex (Integer): The loop index.
+ * \param loopIndex (Integer): The animator's changed loop index.
  * \ns Animator
  */
 VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -1184,7 +1184,7 @@ VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.SetRotationStyle
  * \desc Sets the rotation style of an animator.
  * \param animator (Integer): The animator index to change.
- * \param rorationStyle (Integer): The rotation style.
+ * \param rotationStyle (Integer): The animator's changed rotation style.
  * \ns Animator
  */
 VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
@@ -4414,6 +4414,150 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
 		Graphics::DrawGlyphLegacy(sprite, codepoint, x, y, &params);
 	}
 
+	return NULL_VAL;
+}
+/***
+ * Draw.TextArray
+ * \desc Draws a series of sprites based on a converted sprite string.
+ * \param sprite (Integer): The index of the loaded sprite to be used as text.
+ * \param animation (Integer): The animation index.
+ * \param x (Number): The X value to begin drawing.
+ * \param y (Number): The Y value to begin drawing.
+ * \param string (Array): The array containing frame indexes.
+ * \param startFrame (Integer): The index to begin drawing.
+ * \param endFrame (Integer): The index to end drawing.
+ * \param align (Integer): The text alignment.
+ * \param spacing (Integer): The space between drawn sprites.
+ * \paramOpt charOffsetsX (Array): The X offsets at which to draw per frame. Must also have charOffsetsY to be used.
+ * \paramOpt charOffsetsY (Array): The Y offsets at which to draw per frame.
+ * \ns Draw
+ */
+VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(9);
+	if (ScriptManager::Lock()) {
+		ISprite* sprite = GET_ARG(0, GetSprite);
+		int animation = GET_ARG(1, GetInteger);
+		float x = GET_ARG(2, GetDecimal);
+		float y = GET_ARG(3, GetDecimal);
+		ObjArray* string = GET_ARG(4, GetArray);
+		int startFrame = GET_ARG(5, GetInteger);
+		int endFrame = GET_ARG(6, GetInteger);
+		int align = GET_ARG(7, GetInteger);
+		int spacing = GET_ARG(8, GetInteger);
+		ObjArray* charOffsetsX = GET_ARG_OPT(9, GetArray, NewArray());
+		ObjArray* charOffsetsY = GET_ARG_OPT(10, GetArray, NewArray());
+
+		if (sprite && string->Values) {
+			startFrame = (int)Math::Clamp(startFrame, 0, (int)string->Values->size() - 1);
+
+			if (endFrame <= 0 || endFrame > (int)string->Values->size())
+				endFrame = (int)string->Values->size();
+
+			int charOffsetIndex = 0;
+			switch (align) {
+			case ALIGN_LEFT:
+				if (charOffsetsX->Values->size() && charOffsetsY->Values->size()) {
+					for (; startFrame < endFrame; ++startFrame) {
+						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[startFrame]));
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsX->Values)[charOffsetIndex])),
+								y + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsY->Values)[charOffsetIndex])),
+								false, false, 1.0f, 1.0f, 0.0f);
+							x += spacing + frame.Width;
+							++charOffsetIndex;
+						}
+					}
+				}
+				else {
+					for (; startFrame < endFrame; ++startFrame) {
+						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[startFrame]));
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
+							x += spacing + frame.Width;
+						}
+					}
+				}
+				break;
+
+			case ALIGN_CENTER:
+				--endFrame;
+				if (charOffsetsX->Values->size() && charOffsetsY->Values->size()) {
+					charOffsetIndex = endFrame;
+					for (; endFrame >= startFrame; --endFrame) {
+						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[endFrame]));
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x - (frame.Width / 2) + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsX->Values)[charOffsetIndex])),
+								y + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsY->Values)[charOffsetIndex])),
+								false, false, 1.0f, 1.0f, 0.0f);
+							x = (x - frame.Width) - spacing;
+							--charOffsetIndex;
+						}
+					}
+				}
+				else {
+					for (; endFrame >= startFrame; --endFrame) {
+						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[endFrame]));
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							Graphics::DrawSprite(sprite, animation, curChar, x - frame.Width / 2, y, false, false, 1.0f, 1.0f, 0.0f);
+							x = (x - frame.Width) - spacing;
+						}
+					}
+				}
+				break;
+
+			case ALIGN_RIGHT:
+				int totalWidth = 0;
+				for (int pos = startFrame; pos < endFrame; ++pos) {
+					int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[pos]));
+					if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+						totalWidth += sprite->Animations[animation].Frames[curChar].Width + spacing;
+					}
+				}
+				x -= totalWidth;
+
+				if (charOffsetsX->Values->size() && charOffsetsY->Values->size()) {
+					for (; startFrame < endFrame; ++startFrame) {
+						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[startFrame]));
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsX->Values)[charOffsetIndex])),
+								y + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsY->Values)[charOffsetIndex])),
+								false, false, 1.0f, 1.0f, 0.0f);
+							x += spacing + frame.Width;
+							++charOffsetIndex;
+						}
+					}
+				}
+				else {
+					for (; startFrame < endFrame; ++startFrame) {
+						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[startFrame]));
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
+							x += spacing + frame.Width;
+						}
+					}
+				}
+				break;
+			}
+		}
+
+		ScriptManager::Unlock();
+		return NULL_VAL;
+	}
 	return NULL_VAL;
 }
 /***
@@ -15636,37 +15780,161 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sprite.GetHitbox
- * \desc Gets the hitbox of an animation and frame of a sprite.
- * \param sprite (Integer): The sprite index to check.
- * \param animationID (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \paramOpt hitboxID (Integer): The hitbox index of the animation to check. Defaults to <code>0</code>.
+ * \desc Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.
+ * \param instance (Instance):An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).
+ * \param sprite (Integer): The sprite index to check (if an entity is not provided).
+ * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
+ * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
+ * \param hitboxID (Integer): The index number of the hitbox.
+ * \return Returns a reference value to a hitbox array.
  * \ns Sprite
  */
 VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animationID = GET_ARG(1, GetInteger);
-	int frameID = GET_ARG(2, GetInteger);
-	int hitboxID = GET_ARG_OPT(3, GetInteger, 0);
+	CHECK_AT_LEAST_ARGCOUNT(2);
+	ISprite* sprite;
+	int animationID, frameID, hitboxID;
 
-	CHECK_ANIMATION_INDEX(animationID);
-	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+	if (argCount == 2 && IS_INSTANCE(args[0])) {
+		ObjEntity* ent = GET_ARG(0, GetEntity);
+		Entity* entity = (Entity*)ent->EntityPtr;
+		hitboxID = GET_ARG(1, GetInteger);
 
-	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
-
-	if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-		THROW_ERROR("Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
-		return NULL_VAL;
+		sprite = GetSpriteIndex(entity->Sprite, threadID);
+		animationID = entity->CurrentAnimation;
+		frameID = entity->CurrentFrame;
+	}
+	else {
+		CHECK_ARGCOUNT(4);
+		sprite = GET_ARG(0, GetSprite);
+		animationID = GET_ARG(1, GetInteger);
+		frameID = GET_ARG(2, GetInteger);
+		hitboxID = GET_ARG(3, GetInteger);
 	}
 
-	CollisionBox box = frame.Boxes[hitboxID];
-	ObjArray* hitbox = NewArray();
-	hitbox->Values->push_back(INTEGER_VAL(box.Left));
-	hitbox->Values->push_back(INTEGER_VAL(box.Top));
-	hitbox->Values->push_back(INTEGER_VAL(box.Right));
-	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
-	return OBJECT_VAL(hitbox);
+	ObjArray* array = NewArray();
+	for (int i = 0; i < 4; i++)
+		array->Values->push_back(INTEGER_VAL(0));
+
+	if (sprite && animationID >= 0 && frameID >= 0) {
+		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+			return OBJECT_VAL(array);
+		}
+
+		CollisionBox box = frame.Boxes[hitboxID];
+		ObjArray* hitbox = NewArray();
+		hitbox->Values->push_back(INTEGER_VAL(box.Left));
+		hitbox->Values->push_back(INTEGER_VAL(box.Top));
+		hitbox->Values->push_back(INTEGER_VAL(box.Right));
+		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
+		return OBJECT_VAL(hitbox);
+	}
+	else {
+		return OBJECT_VAL(array);
+	}
+}
+/***
+ * Sprite.SetSpriteString
+ * \desc Converts a string to an array of sprite indexes by comparing UTF-16 values to a frame's ID.
+ * \param sprite (Integer): The sprite index.
+ * \param animation (Integer): The animation index containing frames with UTF-16 ID values.
+ * \param string (String): The string to convert.
+ * \ns Sprite
+ */
+VMValue Sprite_SetSpriteString(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	char* string = GET_ARG(2, GetString);
+
+	ObjArray* spriteString = NewArray();
+
+	if (!sprite || !string)
+		return OBJECT_VAL(spriteString);
+
+	Uint16* utf16String = Application::UTF8toUTF16(string);
+
+	if (utf16String == NULL) {
+		// Handle UTF-16 conversion failure, if needed
+		return OBJECT_VAL(spriteString);
+	}
+
+	if (animation >= 0 && animation < (int)sprite->Animations.size()) {
+		for (size_t index = 0; utf16String[index] != 0; ++index) {
+			Uint16 unicodeChar = utf16String[index];
+
+			bool found = false;
+			for (int f = 0; f < (int)sprite->Animations[animation].Frames.size(); f++) {
+				if (sprite->Animations[animation].Frames[f].Advance == (int)unicodeChar) {
+					spriteString->Values->push_back(INTEGER_VAL(f));
+					found = true;
+					break;
+				}
+			}
+
+			if (!found)
+				spriteString->Values->push_back(INTEGER_VAL(-1));
+		}
+	}
+
+	free(utf16String);
+	return OBJECT_VAL(spriteString);
+}
+/***
+ * Sprite.GetStringWidth
+ * \desc Gets the width (in pixels) of a converted sprite string.
+ * \param sprite (Integer): The sprite index.
+ * \param animation (Integer): The animation index.
+ * \param string (Array): The array containing frame indexes.
+ * \param startIndex (Integer): Where to start checking the width.
+ * \param spacing (Integer): The spacing (in pixels) between frames.
+ * \ns Sprite
+ */
+VMValue Sprite_GetStringWidth(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(6);
+
+	if (ScriptManager::Lock()) {
+		ISprite* sprite = GET_ARG(0, GetSprite);
+		int animation = GET_ARG(1, GetInteger);
+		ObjArray* string = GET_ARG(2, GetArray);
+		int startIndex = GET_ARG(3, GetInteger);
+		int length = GET_ARG(4, GetInteger);
+		int spacing = GET_ARG(5, GetInteger);
+
+		if (!sprite || !string->Values) {
+			ScriptManager::Unlock();
+			return INTEGER_VAL(0);
+		}
+
+		if (animation >= 0 && animation <= (int)sprite->Animations.size()) {
+			Animation anim = sprite->Animations[animation];
+
+			startIndex = (int)Math::Clamp(startIndex, 0, (int)string->Values->size() - 1);
+
+			if (length <= 0 || length > (int)string->Values->size())
+				length = (int)string->Values->size();
+
+			int w = 0;
+			for (int c = startIndex; c < length; c++) {
+				int charFrame = AS_INTEGER(Value::CastAsInteger((*string->Values)[c]));
+				if (charFrame < anim.Frames.size()) {
+					w += anim.Frames[charFrame].Width;
+					if (c + 1 >= length) {
+						ScriptManager::Unlock();
+						return INTEGER_VAL(w);
+					}
+
+					w += spacing;
+				}
+			}
+
+			ScriptManager::Unlock();
+			return INTEGER_VAL(w);
+		}
+
+	}
+	return INTEGER_VAL(0);
 }
 /***
  * Sprite.MakePalettized
@@ -16347,17 +16615,28 @@ VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.CharAt
- * \desc Gets the ASCII code of the character at the specified index.
- * \param string (String): The input string.
- * \param index (Integer): The index of the character to get.
- * \return Returns the character as an Integer.
+ * \desc Gets the value of the character at the specified index.
+ * \param string (String): The string containing the character.
+ * \param index (Integer): The character index to check.
+ * \paramOpt utf16 (Boolean): Whether to use UTF-16 encoding. Otherwise, UTF-8 encoding is used.
+ * \return Returns the value as an Integer.
  * \ns String
  */
 VMValue String_CharAt(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
+	CHECK_AT_LEAST_ARGCOUNT(2);
 	char* string = GET_ARG(0, GetString);
 	int n = GET_ARG(1, GetInteger);
-	return INTEGER_VAL((Uint8)string[n]);
+	int utf16 = GET_ARG_OPT(2, GetInteger, 0);
+
+	if (utf16) {
+		Uint16* utf16String = Application::UTF8toUTF16(string);
+		Uint16 utf16Char = utf16String[n];
+		free(utf16String);
+		return INTEGER_VAL(utf16Char);
+	}
+	else {
+		return INTEGER_VAL((Uint8)string[n]);
+	}
 }
 /***
  * String.Length
@@ -19110,6 +19389,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, TextWrapped);
 	DEF_NATIVE(Draw, TextEllipsis);
 	DEF_NATIVE(Draw, Glyph);
+	DEF_NATIVE(Draw, TextArray);
 	DEF_NATIVE(Draw, SetBlendColor);
 	DEF_NATIVE(Draw, SetTextureBlend);
 	DEF_NATIVE(Draw, SetBlendMode);
@@ -20348,6 +20628,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sprite, GetFrameOffsetX);
 	DEF_NATIVE(Sprite, GetFrameOffsetY);
 	DEF_NATIVE(Sprite, GetHitbox);
+	DEF_NATIVE(Sprite, SetSpriteString);
+	DEF_NATIVE(Sprite, GetStringWidth);
 	DEF_NATIVE(Sprite, MakePalettized);
 	DEF_NATIVE(Sprite, MakeNonPalettized);
 	// #endregion
@@ -20784,6 +21066,12 @@ void StandardLibrary::Link() {
     * \desc The current scene frame.
     */
 	DEF_LINK_INT("Scene_Frame", &Scene::Frame);
+	/***
+	* \global Scene_Filter
+	* \type Integer
+	* \desc The current scene filter.
+	*/
+	DEF_LINK_INT("Scene_Filter", &Scene::Filter);
 	/***
     * \global Scene_TimeEnabled
     * \type Integer

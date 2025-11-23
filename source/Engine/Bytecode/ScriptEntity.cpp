@@ -247,7 +247,7 @@ void ScriptEntity::LinkFields() {
 	* \ns Instance
 	* \desc The rotation style to use when this entity is called in <linkto ref="Draw.SpriteBasic"></linkto>.
 	*/
-	LINK_INT(AnimationLoopIndex);
+	LINK_INT(RotationStyle);
 	/***
     * \field AnimationSpeedMult
     * \type Decimal
@@ -318,7 +318,7 @@ void ScriptEntity::LinkFields() {
     * \type Boolean
     * \default true
     * \ns Instance
-    * \desc Whether the entity is visible or not.
+    * \desc Whether the entity is visible.
     */
 	LINK_INT(Visible);
 	/***

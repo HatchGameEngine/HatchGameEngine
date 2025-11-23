@@ -2291,6 +2291,28 @@ int Application::HandleAppEvents(void* data, SDL_Event* event) {
 	}
 }
 
+Uint16* Application::UTF8toUTF16(const char* utf8String) {
+	size_t len = strlen(utf8String);
+	Uint16* utf16String = (Uint16*)malloc((len + 1) * sizeof(Uint16));
+	size_t i = 0, j = 0;
+	while (utf8String[i]) {
+		if ((utf8String[i] & 0x80) == 0) { // 1-byte
+			utf16String[j++] = utf8String[i];
+		}
+		else if ((utf8String[i] & 0xE0) == 0xC0) { // 2-byte
+			utf16String[j++] = ((utf8String[i] & 0x1F) << 6) | (utf8String[i + 1] & 0x3F);
+			i++;
+		}
+		else if ((utf8String[i] & 0xF0) == 0xE0) { // 3-byte
+			utf16String[j++] = ((utf8String[i] & 0x0F) << 12) | ((utf8String[i + 1] & 0x3F) << 6) | (utf8String[i + 2] & 0x3F);
+			i += 2;
+		}
+		i++;
+	}
+	utf16String[j] = 0;
+	return utf16String;
+}
+
 void Application::DrawDevString(const char* string, int x, int y, int align, bool isSelected) {
 	TextDrawParams textParams;
 
