@@ -2478,7 +2478,7 @@ int VMThread::SuperInvoke(VMValue receiver, ObjClass* klass, Uint8 argCount, Uin
 
 	return INVOKE_RUNTIME_ERROR;
 }
-void VMThread::InvokeForEntity(VMValue value, int argCount) {
+VMValue VMThread::InvokeForEntity(VMValue value, int argCount) {
 	VMValue* lastStackTop = StackTop;
 	int lastReturnFrame = ReturnFrame;
 
@@ -2499,6 +2499,8 @@ void VMThread::InvokeForEntity(VMValue value, int argCount) {
 	FunctionToInvoke = NULL_VAL;
 	ReturnFrame = lastReturnFrame;
 	StackTop = lastStackTop;
+
+	return InterpretResult;
 }
 VMValue VMThread::RunEntityFunction(ObjFunction* function, int argCount) {
 	VMValue* lastStackTop = StackTop;
@@ -2839,18 +2841,18 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 		if (OBJECT_TYPE(callee) == OBJ_NATIVE_FUNCTION) {
 			NativeFn native = AS_NATIVE_FUNCTION(callee);
 
-			VMValue returnValue = NULL_VAL;
+			InterpretResult = NULL_VAL;
 			try {
 				// Calling a native function for an object needs to correctly pass the receiver,
 				// which is the reason these +1 and -1 are here.
-				returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
+				InterpretResult = native(argCount + 1, StackTop - argCount - 1, ID);
 			} catch (const ScriptException& error) {
 				ThrowRuntimeError(false, "%s", error.what());
 			}
 
 			StackTop -= argCount; // Pop arguments
 			StackTop -= 1; // Pop receiver / class
-			Push(returnValue); // Push returned value
+			Push(InterpretResult); // Push returned value
 
 			ScriptManager::Unlock();
 			return true;

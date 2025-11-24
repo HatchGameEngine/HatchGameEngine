@@ -13,6 +13,7 @@ Uint8 InputManager::KeyboardState[0x120];
 Uint8 InputManager::KeyboardStateLast[0x120];
 Uint16 InputManager::KeymodState;
 SDL_Scancode InputManager::KeyToSDLScancode[NUM_KEYBOARD_KEYS];
+Uint16 InputManager::SDLScancodeToKey[NUM_KEYBOARD_KEYS];
 
 int InputManager::NumControllers;
 vector<Controller*> InputManager::Controllers;
@@ -39,7 +40,7 @@ void InputManager::Init() {
 
 	KeymodState = 0;
 
-	InputManager::InitStringLookup();
+	InputManager::InitLUTs();
 	InputManager::InitControllers();
 
 	InputManager::TouchStates = Memory::TrackedCalloc(
@@ -60,7 +61,7 @@ BijectiveMap<const char*, Uint8>* Buttons;
 BijectiveMap<const char*, Uint8>* Axes;
 } // namespace NameMap
 
-void InputManager::InitStringLookup() {
+void InputManager::InitLUTs() {
 	NameMap::Keys = new BijectiveMap<const char*, Uint16>();
 	NameMap::Buttons = new BijectiveMap<const char*, Uint8>();
 	NameMap::Axes = new BijectiveMap<const char*, Uint8>();
@@ -68,6 +69,7 @@ void InputManager::InitStringLookup() {
 #define DEF_KEY(key) \
 	{ \
 		InputManager::KeyToSDLScancode[Key_##key] = SDL_SCANCODE_##key; \
+		InputManager::SDLScancodeToKey[SDL_SCANCODE_##key] = Key_##key; \
 		NameMap::Keys->Put(#key, Key_##key); \
 	}
 	DEF_KEY(A);

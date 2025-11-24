@@ -1,4 +1,4 @@
-#include "Engine/Diagnostics/Log.h"
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 
 #include <Engine/Audio/AudioManager.h>
@@ -12,6 +12,7 @@
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Error.h>
+#include <Engine/EventHandler.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Graphics.h>
@@ -22,6 +23,7 @@
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/IO/Serializer.h>
+#include <Engine/Includes/AppEvent.h>
 #include <Engine/Includes/DateTime.h>
 #include <Engine/Input/Controller.h>
 #include <Engine/Input/Input.h>
@@ -1675,6 +1677,35 @@ VMValue Application_SetDefaultFont(int argCount, VMValue* args, Uint32 threadID)
 		Application::DefaultFontList = fontList;
 		Application::LoadDefaultFont();
 	}
+
+	return NULL_VAL;
+}
+/***
+ * Application.AddEventHandler
+ * \desc Adds an event handler for the specified app event.
+ * \param eventType (Enum): The app event type.
+ * \param handler (Function): The event handler.
+ * \ns Application
+ */
+VMValue Application_AddEventHandler(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+
+	int eventType = GET_ARG(0, GetInteger);
+	VMValue handler = args[1];
+
+	if (eventType < APPEVENT_QUIT || eventType >= MAX_APPEVENT) {
+		OUT_OF_RANGE_ERROR("App event type", eventType, APPEVENT_QUIT, MAX_APPEVENT - 1);
+		return NULL_VAL;
+	}
+	if (!IS_CALLABLE(handler)) {
+		THROW_ERROR("Expected argument 2 to be a callable instead of %s.", GetValueTypeString(handler));
+		return NULL_VAL;
+	}
+
+	EventHandlerCallback callback;
+	callback.Function = (void*)(AS_OBJECT(handler));
+
+	EventHandler::Register((AppEventType)eventType, callback);
 
 	return NULL_VAL;
 }
@@ -19176,6 +19207,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, GetCursorVisible);
 	DEF_NATIVE(Application, Error);
 	DEF_NATIVE(Application, SetDefaultFont);
+	DEF_NATIVE(Application, AddEventHandler);
 	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
 	/***
@@ -19243,6 +19275,136 @@ void StandardLibrary::Link() {
     * \desc App quit keybind. (dev)
     */
 	DEF_ENUM_CLASS(KeyBind, DevQuit);
+	/***
+	* \enum APPEVENT_QUIT
+	* \desc Quit event.
+	*/
+	DEF_ENUM(APPEVENT_QUIT);
+	/***
+	* \enum APPEVENT_WINDOW_MOVE
+	* \desc Window move event.
+	*/
+	DEF_ENUM(APPEVENT_WINDOW_MOVE);
+	/***
+	* \enum APPEVENT_WINDOW_RESIZE
+	* \desc Window resize event.
+	*/
+	DEF_ENUM(APPEVENT_WINDOW_RESIZE);
+	/***
+	* \enum APPEVENT_WINDOW_MINIMIZE
+	* \desc Window minimize event.
+	*/
+	DEF_ENUM(APPEVENT_WINDOW_MINIMIZE);
+	/***
+	* \enum APPEVENT_WINDOW_MAXIMIZE
+	* \desc Window maximize event.
+	*/
+	DEF_ENUM(APPEVENT_WINDOW_MAXIMIZE);
+	/***
+	* \enum APPEVENT_WINDOW_RESTORE
+	* \desc Window restore event.
+	*/
+	DEF_ENUM(APPEVENT_WINDOW_RESTORE);
+	/***
+	* \enum APPEVENT_WINDOW_GAIN_INPUT_FOCUS
+	* \desc Window input focus gain event.
+	*/
+	DEF_ENUM(APPEVENT_WINDOW_GAIN_INPUT_FOCUS);
+	/***
+	* \enum APPEVENT_WINDOW_LOSE_INPUT_FOCUS
+	* \desc Window input focus lose event.
+	*/
+	DEF_ENUM(APPEVENT_WINDOW_LOSE_INPUT_FOCUS);
+	/***
+	* \enum APPEVENT_WINDOW_GAIN_MOUSE_FOCUS
+	* \desc Window mouse focus gain event.
+	*/
+	DEF_ENUM(APPEVENT_WINDOW_GAIN_MOUSE_FOCUS);
+	/***
+	* \enum APPEVENT_WINDOW_LOSE_MOUSE_FOCUS
+	* \desc Window mouse focus lose event.
+	*/
+	DEF_ENUM(APPEVENT_WINDOW_LOSE_MOUSE_FOCUS);
+	/***
+	* \enum APPEVENT_KEY_DOWN
+	* \desc Keyboard key down event.
+	*/
+	DEF_ENUM(APPEVENT_KEY_DOWN);
+	/***
+	* \enum APPEVENT_KEY_UP
+	* \desc Keyboard key up event.
+	*/
+	DEF_ENUM(APPEVENT_KEY_UP);
+	/***
+	* \enum APPEVENT_MOUSE_MOTION
+	* \desc Mouse motion event.
+	*/
+	DEF_ENUM(APPEVENT_MOUSE_MOTION);
+	/***
+	* \enum APPEVENT_MOUSE_BUTTON_DOWN
+	* \desc Mouse button down event.
+	*/
+	DEF_ENUM(APPEVENT_MOUSE_BUTTON_DOWN);
+	/***
+	* \enum APPEVENT_MOUSE_BUTTON_UP
+	* \desc Mouse button up event.
+	*/
+	DEF_ENUM(APPEVENT_MOUSE_BUTTON_UP);
+	/***
+	* \enum APPEVENT_MOUSE_WHEEL_MOTION
+	* \desc Mouse wheel motion event.
+	*/
+	DEF_ENUM(APPEVENT_MOUSE_WHEEL_MOTION);
+	/***
+	* \enum APPEVENT_CONTROLLER_BUTTON_DOWN
+	* \desc Controller button down event.
+	*/
+	DEF_ENUM(APPEVENT_CONTROLLER_BUTTON_DOWN);
+	/***
+	* \enum APPEVENT_CONTROLLER_BUTTON_UP
+	* \desc Controller button up event.
+	*/
+	DEF_ENUM(APPEVENT_CONTROLLER_BUTTON_UP);
+	/***
+	* \enum APPEVENT_CONTROLLER_AXIS_MOTION
+	* \desc Controller axis motion event.
+	*/
+	DEF_ENUM(APPEVENT_CONTROLLER_AXIS_MOTION);
+	/***
+	* \enum APPEVENT_CONTROLLER_ADD
+	* \desc Controller device added event.
+	*/
+	DEF_ENUM(APPEVENT_CONTROLLER_ADD);
+	/***
+	* \enum APPEVENT_CONTROLLER_REMOVE
+	* \desc Controller device removed event.
+	*/
+	DEF_ENUM(APPEVENT_CONTROLLER_REMOVE);
+	/***
+	* \enum APPEVENT_FINGER_MOTION
+	* \desc Touch screen finger motion event.
+	*/
+	DEF_ENUM(APPEVENT_FINGER_MOTION);
+	/***
+	* \enum APPEVENT_FINGER_DOWN
+	* \desc Touch screen finger down event.
+	*/
+	DEF_ENUM(APPEVENT_FINGER_DOWN);
+	/***
+	* \enum APPEVENT_FINGER_UP
+	* \desc Touch screen finger up event.
+	*/
+	DEF_ENUM(APPEVENT_FINGER_UP);
+	/***
+	* \enum APPEVENT_AUDIO_DEVICE_ADD
+	* \desc Audio device added event.
+	*/
+	DEF_ENUM(APPEVENT_AUDIO_DEVICE_ADD);
+	/***
+	* \enum APPEVENT_AUDIO_DEVICE_REMOVE
+	* \desc Audio device removed event.
+	*/
+	DEF_ENUM(APPEVENT_AUDIO_DEVICE_REMOVE);
 	// #endregion
 
 	// #region Array

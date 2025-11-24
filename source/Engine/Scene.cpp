@@ -654,21 +654,6 @@ void Scene::DeleteRemoved(Entity* obj) {
 	delete obj;
 }
 
-void Scene::OnEvent(Uint32 event) {
-	switch (event) {
-	case SDL_APP_TERMINATING:
-	case SDL_APP_LOWMEMORY:
-	case SDL_APP_WILLENTERBACKGROUND:
-	case SDL_APP_DIDENTERBACKGROUND:
-	case SDL_APP_WILLENTERFOREGROUND:
-	case SDL_APP_DIDENTERFOREGROUND:
-		// Call "WindowFocusLost" event on all objects
-		break;
-	default:
-		break;
-	}
-}
-
 // Scene List Functions
 void Scene::SetCurrent(const char* categoryName, const char* sceneName) {
 	int categoryID = SceneInfo::GetCategoryID(categoryName);

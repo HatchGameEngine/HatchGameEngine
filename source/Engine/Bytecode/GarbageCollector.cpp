@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/EventHandler.h>
 #include <Engine/Scene.h>
 
 #define GC_HEAP_GROW_FACTOR 2
@@ -70,6 +71,11 @@ void GarbageCollector::Collect() {
 		if (Scene::Layers[i].Properties) {
 			GrayHashMap(Scene::Layers[i].Properties);
 		}
+	}
+
+	// Mark event handler callbacks
+	for (size_t i = 0; i < EventHandler::AllHandlers.size(); i++) {
+		GrayObject(EventHandler::AllHandlers[i]->Callback.Function);
 	}
 
 	// Mark modules

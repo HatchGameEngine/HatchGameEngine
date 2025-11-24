@@ -1,6 +1,5 @@
 #include <Engine/Application.h>
 #include <Engine/Graphics.h>
-
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
@@ -14,6 +13,7 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
+#include <Engine/Includes/AppEvent.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
@@ -874,6 +874,8 @@ void Application::EndGame() {
 	SceneInfo::Dispose();
 	Graphics::UnloadData();
 
+	EventHandler::RemoveAll();
+
 	Application::TerminateScripting();
 }
 
@@ -1093,8 +1095,6 @@ void Application::LoadAudioSettings() {
 
 #undef CLAMP_VOLUME
 
-SDL_Keycode KeyBindsSDL[(int)KeyBind::Max];
-
 void Application::LoadKeyBinds() {
 	XMLNode* node = nullptr;
 	if (Application::GameConfig) {
@@ -1304,170 +1304,217 @@ int Application::GetKeyBind(int bind) {
 }
 void Application::SetKeyBind(int bind, int key) {
 	KeyBinds[bind] = key;
-	if (key == Key_UNKNOWN) {
-		KeyBindsSDL[bind] = SDLK_UNKNOWN;
-	}
-	else {
-		KeyBindsSDL[bind] = SDL_GetKeyFromScancode(InputManager::KeyToSDLScancode[key]);
-	}
 }
 
+bool Application::HandleBinds(int key) {
+	// Fullscreen
+	if (key == KeyBinds[(int)KeyBind::Fullscreen]) {
+		Application::SetWindowFullscreen(!Application::GetWindowFullscreen());
+	}
+	// Toggle FPS counter
+	else if (key == KeyBinds[(int)KeyBind::ToggleFPSCounter]) {
+		Application::ShowFPS = !Application::ShowFPS;
+	}
+	else {
+		return false;
+	}
+
+	return true;
+}
+KeyBind Application::FindDevKeyBind(int key) {
+	for (int i = 0; i < (int)KeyBind::Max; i++) {
+		if (key == KeyBinds[i]) {
+			return (KeyBind)i;
+		}
+	}
+
+	return (KeyBind)-1;
+}
+bool Application::HandleDevKey(AppEventType eventType, int key) {
+	KeyBind bind = FindDevKeyBind(key);
+	if ((int)bind == -1) {
+		return false;
+	}
+
+	if (eventType != APPEVENT_KEY_UP) {
+		return true;
+	}
+
+	switch (bind) {
+	// Quit game
+	// Unbound by default, must be set in GameConfig
+	case KeyBind::DevQuit:
+		DoQuit();
+		return true;
+	// Open dev menu
+	case KeyBind::DevMenuToggle:
+		if (Application::DevMenuActivated) {
+			Application::CloseDevMenu();
+		}
+		else {
+			Application::OpenDevMenu();
+		}
+		return true;
+	// Restart application
+	case KeyBind::DevRestartApp:
+		Application::Restart(false);
+		Application::StartGame(StartingScene);
+		Application::CloseDevMenu();
+		Application::UpdateWindowTitle();
+		return true;
+	// Show layer info
+	case KeyBind::DevLayerInfo:
+		for (size_t li = 0; li < Scene::Layers.size(); li++) {
+			SceneLayer& layer = Scene::Layers[li];
+			Log::Print(Log::LOG_IMPORTANT,
+				"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeY: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
+				li,
+				layer.Name,
+				layer.Visible,
+				layer.Width,
+				layer.Height,
+				layer.OffsetX,
+				layer.OffsetY,
+				layer.RelativeY,
+				layer.ConstantY,
+				layer.DrawGroup,
+				layer.DrawBehavior,
+				layer.Flags);
+		}
+		return true;
+	// Print performance snapshot
+	case KeyBind::DevPerfSnapshot:
+		TakeSnapshot = true;
+		return true;
+	// Recompile and restart scene
+	case KeyBind::DevRecompile:
+		char lastScene[MAX_RESOURCE_PATH_LENGTH];
+		memcpy(lastScene, Scene::CurrentScene, MAX_RESOURCE_PATH_LENGTH);
+
+		Application::Restart(true);
+		Application::StartGame(lastScene);
+		Application::CloseDevMenu();
+		Application::UpdateWindowTitle();
+		return true;
+	// Restart scene
+	case KeyBind::DevRestartScene:
+		// Reset FPS timer
+		BenchmarkFrame = 0;
+		BenchmarkCounter = 0.0f;
+
+		InputManager::ControllerStopRumble();
+
+		Application::CloseDevMenu();
+
+		Scene::Restart();
+		Application::UpdateWindowTitle();
+		return true;
+	// Enable update speedup
+	case KeyBind::DevFastForward:
+		if (UpdatesPerFrame == 1) {
+			UpdatesPerFrame = UpdatesPerFastForward;
+		}
+		else {
+			UpdatesPerFrame = 1;
+		}
+		Application::UpdateWindowTitle();
+		return true;
+	// Cycle view tile collision
+	case KeyBind::DevTileCol:
+		Scene::ShowTileCollisionFlag = (Scene::ShowTileCollisionFlag + 1) % 3;
+		Application::UpdateWindowTitle();
+		return true;
+	// View object regions
+	case KeyBind::DevObjectRegions:
+		Scene::ShowObjectRegions ^= 1;
+		Application::UpdateWindowTitle();
+		return true;
+	// Toggle frame stepper
+	case KeyBind::DevFrameStepper:
+		Stepper = !Stepper;
+		Application::UpdateWindowTitle();
+		return true;
+	// Step frame
+	case KeyBind::DevStepFrame:
+		Stepper = true;
+		Step = true;
+		Application::UpdateWindowTitle();
+		return true;
+	default:
+		break;
+	}
+
+	return false;
+}
+
+// Handle events that must be taken care of right now.
+// We also push them to the event queue.
 void Application::PollEvents() {
 	SDL_Event e;
 	while (SDL_PollEvent(&e)) {
 		switch (e.type) {
-		case SDL_QUIT: {
-			Running = false;
+		case SDL_QUIT:
+			DoQuit();
 			break;
-		}
 		case SDL_KEYDOWN: {
-			SDL_Keycode key = e.key.keysym.sym;
+			Uint16 key = InputManager::SDLScancodeToKey[e.key.keysym.scancode];
 
-			// Fullscreen
-			if (key == KeyBindsSDL[(int)KeyBind::Fullscreen]) {
-				Application::SetWindowFullscreen(!Application::GetWindowFullscreen());
-				break;
-			}
-			// Toggle FPS counter
-			else if (key == KeyBindsSDL[(int)KeyBind::ToggleFPSCounter]) {
-				Application::ShowFPS = !Application::ShowFPS;
+			if (DevMode && HandleDevKey(APPEVENT_KEY_DOWN, key)) {
 				break;
 			}
 
-			if (DevMode) {
-				// Quit application (dev)
-				// Unbound by default, must be set in GameConfig
-				if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
-					Running = false;
-					break;
-				}
-				// Open dev menu (dev)
-				if (key == KeyBindsSDL[(int)KeyBind::DevMenuToggle]) {
-					Application::DevMenuActivated ? Application::CloseDevMenu() : Application::OpenDevMenu();
-					break;
-				}
-				// Restart application (dev)
-				else if (key == KeyBindsSDL[(int)KeyBind::DevRestartApp]) {
-					Application::Restart(false);
-					Application::StartGame(StartingScene);
-					if (Application::DevMenuActivated)
-						Application::CloseDevMenu();
-					Application::UpdateWindowTitle();
-					break;
-				}
-				// Show layer info (dev)
-				else if (key == KeyBindsSDL[(int)KeyBind::DevLayerInfo]) {
-					for (size_t li = 0; li < Scene::Layers.size(); li++) {
-						SceneLayer& layer = Scene::Layers[li];
-						Log::Print(Log::LOG_IMPORTANT,
-							"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeY: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
-							li,
-							layer.Name,
-							layer.Visible,
-							layer.Width,
-							layer.Height,
-							layer.OffsetX,
-							layer.OffsetY,
-							layer.RelativeY,
-							layer.ConstantY,
-							layer.DrawGroup,
-							layer.DrawBehavior,
-							layer.Flags);
-					}
-					break;
-				}
-				// Print performance snapshot (dev)
-				else if (key == KeyBindsSDL[(int)KeyBind::DevPerfSnapshot]) {
-					TakeSnapshot = true;
-					break;
-				}
-				// Recompile and restart scene (dev)
-				else if (key == KeyBindsSDL[(int)KeyBind::DevRecompile]) {
-					char lastScene[MAX_RESOURCE_PATH_LENGTH];
-					memcpy(lastScene,
-						Scene::CurrentScene,
-						MAX_RESOURCE_PATH_LENGTH);
-
-					Application::Restart(true);
-					Application::StartGame(lastScene);
-					if (Application::DevMenuActivated)
-						Application::CloseDevMenu();
-					Application::UpdateWindowTitle();
-					break;
-				}
-				// Restart scene (dev)
-				else if (key == KeyBindsSDL[(int)KeyBind::DevRestartScene]) {
-					// Reset FPS timer
-					BenchmarkFrame = 0;
-					BenchmarkCounter = 0.0f;
-
-					InputManager::ControllerStopRumble();
-
-					if (Application::DevMenuActivated)
-						Application::CloseDevMenu();
-
-					Scene::Restart();
-					Application::UpdateWindowTitle();
-					break;
-				}
-				// Enable update speedup (dev)
-				else if (key == KeyBindsSDL[(int)KeyBind::DevFastForward]) {
-					if (UpdatesPerFrame == 1) {
-						UpdatesPerFrame = UpdatesPerFastForward;
-					}
-					else {
-						UpdatesPerFrame = 1;
-					}
-
-					Application::UpdateWindowTitle();
-					break;
-				}
-				// Cycle view tile collision (dev)
-				else if (key == KeyBindsSDL[(int)KeyBind::DevTileCol]) {
-					Scene::ShowTileCollisionFlag =
-						(Scene::ShowTileCollisionFlag + 1) % 3;
-					Application::UpdateWindowTitle();
-					break;
-				}
-				// View object regions (dev)
-				else if (key == KeyBindsSDL[(int)KeyBind::DevObjectRegions]) {
-					Scene::ShowObjectRegions ^= 1;
-					break;
-				}
-				// Toggle frame stepper (dev)
-				else if (key == KeyBindsSDL[(int)KeyBind::DevFrameStepper]) {
-					Stepper = !Stepper;
-					Application::UpdateWindowTitle();
-					break;
-				}
-				// Step frame (dev)
-				else if (key == KeyBindsSDL[(int)KeyBind::DevStepFrame]) {
-					Stepper = true;
-					Step = true;
-					Application::UpdateWindowTitle();
-					break;
-				}
-			}
+			AppEvent event;
+			event.Type = APPEVENT_KEY_DOWN;
+			event.Keyboard.Key = key;
+			EventHandler::Push(event);
 			break;
 		}
-		case SDL_WINDOWEVENT: {
+		case SDL_KEYUP: {
+			Uint16 key = InputManager::SDLScancodeToKey[e.key.keysym.scancode];
+
+			if (DevMode && HandleDevKey(APPEVENT_KEY_UP, key)) {
+				break;
+			}
+
+			AppEvent event;
+			event.Type = APPEVENT_KEY_UP;
+			event.Keyboard.Key = key;
+			EventHandler::Push(event);
+			break;
+		}
+		case SDL_WINDOWEVENT:
 			switch (e.window.event) {
 			case SDL_WINDOWEVENT_RESIZED:
 				Graphics::Resize(e.window.data1, e.window.data2);
+
+				AppEvent event;
+				event.Type = APPEVENT_WINDOW_RESIZE;
+				event.Window.Width = e.window.data1;
+				event.Window.Height = e.window.data2;
+				EventHandler::Push(event);
 				break;
 			}
 			break;
-		}
 		case SDL_CONTROLLERDEVICEADDED: {
 			int i = e.cdevice.which;
 			Log::Print(Log::LOG_VERBOSE, "Added controller device %d", i);
 			InputManager::AddController(i);
+
+			AppEvent event;
+			event.Type = APPEVENT_CONTROLLER_ADD;
+			event.Controller.Index = i;
+			EventHandler::Push(event);
 			break;
 		}
 		case SDL_CONTROLLERDEVICEREMOVED: {
 			int i = e.cdevice.which;
 			Log::Print(Log::LOG_VERBOSE, "Removed controller device %d", i);
 			InputManager::RemoveController(i);
+
+			AppEvent event;
+			event.Type = APPEVENT_CONTROLLER_REMOVE;
+			event.Controller.Index = i;
+			EventHandler::Push(event);
 			break;
 		}
 		}
@@ -1484,6 +1531,7 @@ void Application::RunFrame(int runFrames) {
 	// Event loop
 	Metrics.Event.Begin();
 	Application::PollEvents();
+	EventHandler::Process();
 	Metrics.Event.End();
 
 	// BUG: Having Stepper on prevents the first
@@ -1790,6 +1838,18 @@ void Application::MainLoop() {
 	}
 }
 
+void Application::DoQuit() {
+	if (!Running) {
+		return;
+	}
+
+	Running = false;
+
+	AppEvent event;
+	event.Type = APPEVENT_QUIT;
+	EventHandler::Push(event);
+}
+
 void Application::Cleanup() {
 	Application::TerminateScripting();
 
@@ -1802,6 +1862,8 @@ void Application::Cleanup() {
 	ResourceManager::Dispose();
 	AudioManager::Dispose();
 	InputManager::Dispose();
+
+	EventHandler::RemoveAll();
 
 	Graphics::Dispose();
 
@@ -2399,28 +2461,26 @@ void Application::DisposeSettings() {
 int Application::HandleAppEvents(void* data, SDL_Event* event) {
 	switch (event->type) {
 	case SDL_APP_TERMINATING:
+		// Call Scene::Dispose(), Application::Cleanup()
 		Log::Print(Log::LOG_VERBOSE, "SDL_APP_TERMINATING");
-		Scene::OnEvent(event->type);
 		return 0;
 	case SDL_APP_LOWMEMORY:
+		// Do GC?
 		Log::Print(Log::LOG_VERBOSE, "SDL_APP_LOWMEMORY");
-		Scene::OnEvent(event->type);
 		return 0;
 	case SDL_APP_WILLENTERBACKGROUND:
+		// App is going to the background, pause the app
 		Log::Print(Log::LOG_VERBOSE, "SDL_APP_WILLENTERBACKGROUND");
-		Scene::OnEvent(event->type);
 		return 0;
 	case SDL_APP_DIDENTERBACKGROUND:
 		Log::Print(Log::LOG_VERBOSE, "SDL_APP_DIDENTERBACKGROUND");
-		Scene::OnEvent(event->type);
 		return 0;
 	case SDL_APP_WILLENTERFOREGROUND:
 		Log::Print(Log::LOG_VERBOSE, "SDL_APP_WILLENTERFOREGROUND");
-		Scene::OnEvent(event->type);
 		return 0;
 	case SDL_APP_DIDENTERFOREGROUND:
+		// App entered the foreground, resume the app
 		Log::Print(Log::LOG_VERBOSE, "SDL_APP_DIDENTERFOREGROUND");
-		Scene::OnEvent(event->type);
 		return 0;
 	default:
 		return 1;
@@ -2494,8 +2554,9 @@ void Application::RunDevMenu() {
 }
 
 void Application::OpenDevMenu() {
-	if (Application::DisableDefaultActions)
+	if (Application::DisableDefaultActions || Application::DevMenuActivated) {
 		return;
+	}
 
 	DevMenu.State = Application::DevMenu_MainMenu;
 	DevMenu.Selection = 0;
@@ -2521,6 +2582,10 @@ void Application::OpenDevMenu() {
 }
 
 void Application::CloseDevMenu() {
+	if (!Application::DevMenuActivated) {
+		return;
+	}
+
 	Application::DevMenuActivated = false;
 
 	DevMenu.WindowScale = Application::WindowScale;

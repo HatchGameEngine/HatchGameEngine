@@ -222,6 +222,9 @@ bool Value::ExactlyEqual(VMValue a, VMValue b) {
 	}
 	return false;
 }
+bool Value::Truthy(VMValue a) {
+	return !Value::Falsey(a);
+}
 bool Value::Falsey(VMValue a) {
 	if (a.Type == VAL_NULL) {
 		return true;

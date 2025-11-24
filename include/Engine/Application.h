@@ -3,6 +3,7 @@
 
 #include <Engine/Audio/AudioManager.h>
 #include <Engine/Diagnostics/PerformanceTypes.h>
+#include <Engine/EventHandler.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/Version.h>
@@ -63,6 +64,8 @@ private:
 	static void LoadKeyBinds();
 	static void LoadDevSettings();
 	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest);
+	static KeyBind FindDevKeyBind(int key);
+	static bool HandleDevKey(AppEventType eventType, int key);
 	static void PollEvents();
 	static void RunFrame(int runFrames);
 	static void MainLoop();
@@ -71,6 +74,7 @@ private:
 	static void DelayFrame();
 	static void SetUseFixedTimestep(bool useFixedTimestep);
 	static void StartGame(const char* startingScene);
+	static void DoQuit();
 	static void LoadGameConfig();
 	static void DisposeGameConfig();
 	static string ParseGameVersion(XMLNode* versionNode);
@@ -176,6 +180,7 @@ public:
 	static void SetWindowScale(int scale);
 	static int GetKeyBind(int bind);
 	static void SetKeyBind(int bind, int key);
+	static bool HandleBinds(int key);
 	static void Run(int argc, char* args[]);
 	static void Cleanup();
 	static void TerminateScripting();

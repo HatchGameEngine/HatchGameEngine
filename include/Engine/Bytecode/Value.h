@@ -20,6 +20,7 @@ public:
 	static bool SortaEqual(VMValue a, VMValue b);
 	static bool Equal(VMValue a, VMValue b);
 	static bool ExactlyEqual(VMValue a, VMValue b);
+	static bool Truthy(VMValue a);
 	static bool Falsey(VMValue a);
 	static VMValue Delink(VMValue val);
 };

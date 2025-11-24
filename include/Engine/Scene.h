@@ -149,7 +149,6 @@ public:
 	static bool AddStatic(ObjectList* objectList, Entity* obj);
 	static void AddDynamic(ObjectList* objectList, Entity* obj);
 	static void DeleteRemoved(Entity* obj);
-	static void OnEvent(Uint32 event);
 	static void SetCurrent(const char* categoryName, const char* sceneName);
 	static void SetInfoFromCurrentID();
 	static void Init();

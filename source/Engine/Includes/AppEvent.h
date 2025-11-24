@@ -1,0 +1,64 @@
+#ifndef APPEVENT_H
+#define APPEVENT_H
+
+#include <Engine/Includes/Standard.h>
+
+enum AppEventType {
+    APPEVENT_QUIT,
+
+    APPEVENT_WINDOW_MOVE,
+    APPEVENT_WINDOW_RESIZE,
+    APPEVENT_WINDOW_MINIMIZE,
+    APPEVENT_WINDOW_MAXIMIZE,
+    APPEVENT_WINDOW_RESTORE,
+    APPEVENT_WINDOW_GAIN_INPUT_FOCUS,
+    APPEVENT_WINDOW_LOSE_INPUT_FOCUS,
+    APPEVENT_WINDOW_GAIN_MOUSE_FOCUS,
+    APPEVENT_WINDOW_LOSE_MOUSE_FOCUS,
+
+    APPEVENT_KEY_DOWN,
+    APPEVENT_KEY_UP,
+
+    APPEVENT_MOUSE_MOTION,
+    APPEVENT_MOUSE_BUTTON_DOWN,
+    APPEVENT_MOUSE_BUTTON_UP,
+    APPEVENT_MOUSE_WHEEL_MOTION,
+
+    APPEVENT_CONTROLLER_BUTTON_DOWN,
+    APPEVENT_CONTROLLER_BUTTON_UP,
+    APPEVENT_CONTROLLER_AXIS_MOTION,
+    APPEVENT_CONTROLLER_ADD,
+    APPEVENT_CONTROLLER_REMOVE,
+
+    APPEVENT_FINGER_MOTION,
+    APPEVENT_FINGER_DOWN,
+    APPEVENT_FINGER_UP,
+
+    APPEVENT_AUDIO_DEVICE_ADD,
+    APPEVENT_AUDIO_DEVICE_REMOVE,
+
+    MAX_APPEVENT
+};
+
+struct AppEvent {
+    AppEventType Type;
+
+    union {
+        struct {
+            Uint16 Key;
+        } Keyboard;
+
+        struct {
+            int X;
+            int Y;
+            int Width;
+            int Height;
+        } Window;
+
+        struct {
+            int Index;
+        } Controller;
+    };
+};
+
+#endif

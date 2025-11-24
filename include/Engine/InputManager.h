@@ -15,7 +15,7 @@
 
 class InputManager {
 private:
-	static void InitStringLookup();
+	static void InitLUTs();
 	static int FindController(int joystickID);
 	static void ParsePlayerControls(InputPlayer& player, XMLNode* node);
 	static Uint16 ParseKeyModifiers(string& str, string& actionName);
@@ -35,6 +35,7 @@ public:
 	static Uint8 KeyboardStateLast[0x120];
 	static Uint16 KeymodState;
 	static SDL_Scancode KeyToSDLScancode[NUM_KEYBOARD_KEYS];
+	static Uint16 SDLScancodeToKey[NUM_KEYBOARD_KEYS];
 	static int NumControllers;
 	static vector<Controller*> Controllers;
 	static SDL_TouchID TouchDevice;
