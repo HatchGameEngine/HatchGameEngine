@@ -320,8 +320,8 @@ void Application::CreateWindow() {
 	Application::Settings->GetInteger("display", "scale", &Application::WindowScale);
 	if (Application::WindowScale <= 0)
 		Application::WindowScale = 0;
-	if (Application::WindowScale > 5)
-		Application::WindowScale = 5;
+	if (Application::WindowScale > 8)
+		Application::WindowScale = 8;
 
 	Application::Window = SDL_CreateWindow(NULL,
 		SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor), SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor),
@@ -2707,7 +2707,7 @@ void Application::DevMenu_VideoMenu() {
 			InputManager::IsActionPressedByAny(InputManager::GetActionID("Right")) ? "Right" : nullptr;
 		if (dir) {
 			DevMenu.WindowScale += (dir[0] == 'L') ? -1 : 1;
-			DevMenu.WindowScale = (DevMenu.WindowScale + 4) % 5 + 1;
+			DevMenu.WindowScale = (DevMenu.WindowScale + 7) % 8 + 1;
 		}
 		break;
 	}
