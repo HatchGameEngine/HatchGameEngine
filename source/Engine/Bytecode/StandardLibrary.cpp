@@ -15784,7 +15784,7 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	ISprite* sprite;
 	int animationID, frameID, hitboxID;
 
-	if (argCount == 2 && IS_INSTANCE(args[0])) {
+	if (argCount == 2 && IS_ENTITY(args[0])) {
 		ObjEntity* ent = GET_ARG(0, GetEntity);
 		Entity* entity = (Entity*)ent->EntityPtr;
 		hitboxID = GET_ARG(1, GetInteger);
