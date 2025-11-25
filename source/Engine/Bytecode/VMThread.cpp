@@ -2018,8 +2018,22 @@ int VMThread::RunInstruction() {
 			return INTERPRET_RUNTIME_ERROR;
 		}
 
+		if (klass->Hash == hashSuper) {
+			if (ThrowRuntimeError(false, "Class \"%s\" cannot inherit from itself!", klass->Name->Chars) == ERROR_RES_CONTINUE) {
+				goto FAIL_OP_INHERIT;
+			}
+			return INTERPRET_RUNTIME_ERROR;
+		}
+
 		VMValue parent;
 		if (ScriptManager::Globals->GetIfExists(hashSuper, &parent) && IS_CLASS(parent)) {
+			if (klass->Parent != nullptr) {
+				if (ThrowRuntimeError(false, "Class \"%s\" already has a parent!", klass->Name->Chars) == ERROR_RES_CONTINUE) {
+					goto FAIL_OP_INHERIT;
+				}
+				return INTERPRET_RUNTIME_ERROR;
+			}
+
 			klass->Parent = AS_CLASS(parent);
 		}
 		else {
@@ -3017,6 +3031,17 @@ bool VMThread::DoClassExtension(VMValue value, VMValue originalValue, bool clear
 	});
 	if (clearSrc) {
 		src->Fields->Clear();
+	}
+
+	// If the class doing the extension has a superclass, and the class being extended doesn't have
+	// a parent yet, then set the parent of the class being extended to that superclass.
+	if (src->Parent != nullptr) {
+		if (dst->Parent != nullptr) {
+			ThrowRuntimeError(false, "Class \"%s\" already has a parent!", dst->Name->Chars);
+		}
+		else {
+			dst->Parent = src->Parent;
+		}
 	}
 
 	return true;
