@@ -1221,8 +1221,10 @@ void Application::SetWindowSize(int window_w, int window_h) {
 
 	// In case the window just doesn't resize (Android)
 	SDL_GetWindowSize(Application::Window, &window_w, &window_h);
-	DevMenu.CurrentWindowWidth = window_w;
-	DevMenu.CurrentWindowHeight = window_h;
+	if (Application::DevMenuActivated) {
+		DevMenu.CurrentWindowWidth = window_w;
+		DevMenu.CurrentWindowHeight = window_h;
+	}
 
 	Graphics::Resize(window_w, window_h);
 }
@@ -1236,13 +1238,14 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 	Application::WindowFullscreen = isFullscreen;
 	Application::Settings->SetBool("display", "fullscreen", Application::WindowFullscreen);
 
-	DevMenu.Fullscreen = isFullscreen;
-
-
 	int window_w, window_h;
 	SDL_GetWindowSize(Application::Window, &window_w, &window_h);
-	DevMenu.CurrentWindowWidth = window_w;
-	DevMenu.CurrentWindowHeight = window_h;
+
+	if (Application::DevMenuActivated) {
+		DevMenu.Fullscreen = isFullscreen;
+		DevMenu.CurrentWindowWidth = window_w;
+		DevMenu.CurrentWindowHeight = window_h;
+	}
 
 	Graphics::Resize(window_w, window_h);
 }
