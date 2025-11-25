@@ -1103,19 +1103,20 @@ void Application::LoadKeyBinds() {
 	}
 
 	GET_KEY("fullscreen", Fullscreen, Key_F4);
-	GET_KEY("toggleFPSCounter", ToggleFPSCounter, Key_UNKNOWN);
+	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
+	GET_KEY("toggleFPSCounter", ToggleFPSCounter, Key_F2);
 	GET_KEY("devRestartApp", DevRestartApp, Key_F1);
 	GET_KEY("devRestartScene", DevRestartScene, Key_F6);
 	GET_KEY("devRecompile", DevRecompile, Key_F5);
 	GET_KEY("devPerfSnapshot", DevPerfSnapshot, Key_F3);
-	GET_KEY("devLogLayerInfo", DevLayerInfo, Key_F2);
+	GET_KEY("devLogLayerInfo", DevLayerInfo, Key_F7);
 	GET_KEY("devFastForward", DevFastForward, Key_BACKSPACE);
 	GET_KEY("devToggleFrameStepper", DevFrameStepper, Key_F9);
 	GET_KEY("devStepFrame", DevStepFrame, Key_F10);
-	GET_KEY("devShowTileCol", DevTileCol, Key_F7);
-	GET_KEY("devShowObjectRegions", DevObjectRegions, Key_F8);
-	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
+	
 	GET_KEY("devQuit", DevQuit, Key_UNKNOWN);
+	GET_KEY("devShowTileCol", DevTileCol, Key_UNKNOWN);
+	GET_KEY("devShowObjectRegions", DevObjectRegions, Key_UNKNOWN);
 
 #undef GET_KEY
 }
@@ -2649,7 +2650,7 @@ void Application::DevMenu_SettingsMenu() {
 
 	DrawDevString("Change settings...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 
-	const char* labels[] = { "Video Settings", "Audio Settings", "Performance Viewer"};
+	const char* labels[] = { "Video Settings", "Audio Settings", "Performance Viewer", "Tile Collision Viewer (Path A)", "Tile Collision Viewer (Path B)", "Object Region Viewer"};
 	for (size_t i = 0, y = 86; i < std::size(labels); i++, y += 14)
 		DrawDevString(labels[i], 160, y, ALIGN_LEFT, DevMenu.SubSelection == i);
 
@@ -2675,12 +2676,31 @@ void Application::DevMenu_SettingsMenu() {
 	}
 
 	if (confirm) {
-		if (DevMenu.SubSelection == 2) {
+		switch (DevMenu.SubSelection) {
+		case 0: // Video Menu
+			DevMenu.State = DevMenu_VideoMenu;
+			DevMenu.SubSelection = 0;
+			break;
+		case 1: // Audio Menu
+			DevMenu.State = DevMenu_AudioMenu;
+			DevMenu.SubSelection = 0;
+			break;
+		case 2: // Performance Viewer
 			ViewPerformance = !ViewPerformance;
-			return;
+			break;
+		case 3: // Tile Collision Viewer (Path A)
+			Scene::ShowTileCollisionFlag != 1 ? Scene::ShowTileCollisionFlag = 1 : Scene::ShowTileCollisionFlag = 0;
+			Application::UpdateWindowTitle();
+			break;
+		case 4: // Tile Collision Viewer (Path B)
+			Scene::ShowTileCollisionFlag != 2 ? Scene::ShowTileCollisionFlag = 2 : Scene::ShowTileCollisionFlag = 0;
+			Application::UpdateWindowTitle();
+			break;
+		case 5: // Object Region Viewer
+			Scene::ShowObjectRegions ^= 1;
+			Application::UpdateWindowTitle();
+			break;
 		}
-		DevMenu.State = (DevMenu.SubSelection == 0) ? DevMenu_VideoMenu : DevMenu_AudioMenu;
-		DevMenu.SubSelection = 0;
 	}
 	else {
 		int actionB = InputManager::GetActionID("B");
