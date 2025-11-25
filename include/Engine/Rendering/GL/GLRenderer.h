@@ -107,6 +107,7 @@ public:
 	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
 	static Shader* CreateShader();
 	static void SetUserShader(Shader* shader);
+	static int GetTextureID(void* ptr);
 	static void BindTexture(Texture* texture, int textureUnit);
 	static void BindTexture(int textureID, int textureUnit);
 	static int GetTextureUnit();
