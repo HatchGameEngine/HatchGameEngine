@@ -2094,17 +2094,13 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 	// Parse Scene List
 	if (sceneConfig) {
 		if (SceneInfo::Load(sceneConfig->children[0])) {
-			// Read category and starting scene number to
-			// be used by the SceneConfig
+			// Read category and starting scene number to be used by the SceneConfig
 			if (Application::GameConfig) {
 				XMLNode* node = Application::GameConfig->children[0];
 				if (node) {
 					// Parse active category
-					if (!ParseGameConfigInt(node,
-						"activeCategory",
-						Scene::ActiveCategory)) { // backwards compat
-						char* text =
-							ParseGameConfigText(node, "activeCategory");
+					if (!ParseGameConfigInt(node, "activeCategory", Scene::ActiveCategory)) { // backwards compat
+						char* text = ParseGameConfigText(node, "activeCategory");
 						if (text) {
 							int id = SceneInfo::GetCategoryID(text);
 							if (id >= 0) {
@@ -2115,15 +2111,11 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 					}
 
 					// Parse starting scene
-					ParseGameConfigInt(node,
-						"startSceneNum",
-						startSceneNum); // backwards
-					// compat
+					ParseGameConfigInt(node, "startSceneNum", startSceneNum); // backwards compat
 
 					char* text = ParseGameConfigText(node, "startscene");
 					if (text) {
-						int id = SceneInfo::GetEntryID(
-							Scene::ActiveCategory, text);
+						int id = SceneInfo::GetEntryID(Scene::ActiveCategory, text);
 						if (id >= 0) {
 							startSceneNum = id;
 						}
@@ -2132,27 +2124,22 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 				}
 			}
 
-			// TODO: Check existing scene folder and id
-			// here to reset them upon reload
+			if (keepScene) {
+				Scene::ActiveCategory = activeCategory;
+				startSceneNum = currentSceneNum;
+			}
+
 			if (SceneInfo::IsEntryValid(Scene::ActiveCategory, startSceneNum)) {
 				Scene::CurrentSceneInList = startSceneNum;
 			}
 
-			if (StartingScene[0] == '\0' &&
-				SceneInfo::CategoryHasEntries(Scene::ActiveCategory)) {
+			if (StartingScene[0] == '\0' && SceneInfo::CategoryHasEntries(Scene::ActiveCategory)) {
 				Scene::SetInfoFromCurrentID();
 
-				StringUtils::Copy(StartingScene,
-					SceneInfo::GetFilename(
-						Scene::ActiveCategory, Scene::CurrentSceneInList)
-					.c_str(),
-					sizeof(StartingScene));
+				StringUtils::Copy(StartingScene,SceneInfo::GetFilename(Scene::ActiveCategory, Scene::CurrentSceneInList).c_str(), sizeof(StartingScene));
 			}
 
-			Log::Print(Log::LOG_VERBOSE,
-				"Loaded scene list (%d categories, %d scenes)",
-				SceneInfo::Categories.size(),
-				SceneInfo::NumTotalScenes);
+			Log::Print(Log::LOG_VERBOSE, "Loaded scene list (%d categories, %d scenes)", SceneInfo::Categories.size(), SceneInfo::NumTotalScenes);
 		}
 
 		if (sceneConfig)
