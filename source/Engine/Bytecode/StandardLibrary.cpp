@@ -15836,29 +15836,30 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	}
 }
 /***
- * Sprite.SetSpriteString
+ * Sprite.GetTextArray
  * \desc Converts a string to an array of sprite indexes by comparing UTF-16 values to a frame's ID.
  * \param sprite (Integer): The sprite index.
  * \param animation (Integer): The animation index containing frames with UTF-16 ID values.
- * \param string (String): The string to convert.
+ * \param text (String): The text to convert.
+ * \return Returns an array of sprite indexes per character in the text.
  * \ns Sprite
  */
-VMValue Sprite_SetSpriteString(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
 	char* string = GET_ARG(2, GetString);
 
-	ObjArray* spriteString = NewArray();
+	ObjArray* textArray = NewArray();
 
 	if (!sprite || !string)
-		return OBJECT_VAL(spriteString);
+		return OBJECT_VAL(textArray);
 
 	Uint16* utf16String = Application::UTF8toUTF16(string);
 
 	if (utf16String == NULL) {
 		// Handle UTF-16 conversion failure, if needed
-		return OBJECT_VAL(spriteString);
+		return OBJECT_VAL(textArray);
 	}
 
 	if (animation >= 0 && animation < (int)sprite->Animations.size()) {
@@ -15868,19 +15869,19 @@ VMValue Sprite_SetSpriteString(int argCount, VMValue* args, Uint32 threadID) {
 			bool found = false;
 			for (int f = 0; f < (int)sprite->Animations[animation].Frames.size(); f++) {
 				if (sprite->Animations[animation].Frames[f].Advance == (int)unicodeChar) {
-					spriteString->Values->push_back(INTEGER_VAL(f));
+					textArray->Values->push_back(INTEGER_VAL(f));
 					found = true;
 					break;
 				}
 			}
 
 			if (!found)
-				spriteString->Values->push_back(INTEGER_VAL(-1));
+				textArray->Values->push_back(INTEGER_VAL(-1));
 		}
 	}
 
 	free(utf16String);
-	return OBJECT_VAL(spriteString);
+	return OBJECT_VAL(textArray);
 }
 /***
  * Sprite.GetTextWidth
@@ -20626,7 +20627,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sprite, GetFrameOffsetX);
 	DEF_NATIVE(Sprite, GetFrameOffsetY);
 	DEF_NATIVE(Sprite, GetHitbox);
-	DEF_NATIVE(Sprite, SetSpriteString);
+	DEF_NATIVE(Sprite, GetTextArray);
 	DEF_NATIVE(Sprite, GetTextWidth);
 	DEF_NATIVE(Sprite, MakePalettized);
 	DEF_NATIVE(Sprite, MakeNonPalettized);
