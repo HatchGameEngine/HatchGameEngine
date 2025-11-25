@@ -57,6 +57,7 @@ enum class KeyBind {
 	DevStepFrame,
 	DevTileCol,
 	DevObjectRegions,
+	DevMenuToggle,
 	DevQuit,
 
 	Max

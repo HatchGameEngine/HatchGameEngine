@@ -1111,7 +1111,8 @@ void Application::LoadKeyBinds() {
 	GET_KEY("devStepFrame", DevStepFrame, Key_F10);
 	GET_KEY("devShowTileCol", DevTileCol, Key_F7);
 	GET_KEY("devShowObjectRegions", DevObjectRegions, Key_F8);
-	GET_KEY("devQuit", DevQuit, Key_ESCAPE);
+	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
+	GET_KEY("devQuit", DevQuit, Key_UNKNOWN);
 
 #undef GET_KEY
 }
@@ -1298,8 +1299,14 @@ void Application::PollEvents() {
 			}
 
 			if (DevMode) {
-				// Open dev menu (dev)
+				// Quit application (dev)
+				// Unbound by default, must be set in GameConfig
 				if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
+					Running = false;
+					break;
+				}
+				// Open dev menu (dev)
+				if (key == KeyBindsSDL[(int)KeyBind::DevMenuToggle]) {
 					Application::DevMenuActivated ? Application::CloseDevMenu() : Application::OpenDevMenu();
 					break;
 				}
@@ -1403,12 +1410,6 @@ void Application::PollEvents() {
 					Step = true;
 					Application::UpdateWindowTitle();
 					break;
-				}
-			}
-			else {
-				// Quit game (not dev)
-				if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
-					Running = false;
 				}
 			}
 			break;
