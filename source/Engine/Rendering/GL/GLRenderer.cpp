@@ -1970,11 +1970,6 @@ int GLRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
 }
 int GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
-	// Can't update SDL_TEXTUREACCESS_TARGET textures
-	if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
-		return 0;
-	}
-
 	Uint32 inputPixelsX = 0;
 	Uint32 inputPixelsY = 0;
 	Uint32 inputPixelsW = texture->Width;
