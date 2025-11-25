@@ -2142,8 +2142,7 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 			Log::Print(Log::LOG_VERBOSE, "Loaded scene list (%d categories, %d scenes)", SceneInfo::Categories.size(), SceneInfo::NumTotalScenes);
 		}
 
-		if (sceneConfig)
-			XMLParser::Free(sceneConfig);
+		XMLParser::Free(sceneConfig);
 	}
 }
 
