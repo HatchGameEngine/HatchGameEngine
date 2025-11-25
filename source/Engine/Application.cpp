@@ -316,12 +316,9 @@ void Application::CreateWindow() {
 		window_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 	}
 
-	Application::WindowScale = 2;
-	Application::Settings->GetInteger("display", "scale", &Application::WindowScale);
-	if (Application::WindowScale <= 0)
-		Application::WindowScale = 0;
-	if (Application::WindowScale > 8)
-		Application::WindowScale = 8;
+	int scale = 2;
+	Application::Settings->GetInteger("display", "scale", &scale);
+	Application::SetWindowScale(scale);
 
 	Application::Window = SDL_CreateWindow(NULL,
 		SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor), SDL_WINDOWPOS_CENTERED_DISPLAY(defaultMonitor),
@@ -1254,6 +1251,16 @@ void Application::SetWindowBorderless(bool isBorderless) {
 	Application::WindowBorderless = isBorderless;
 	Application::Settings->SetBool("display", "borderless", isBorderless);
 	SDL_SetWindowBordered(Application::Window, (SDL_bool)(!isBorderless));
+}
+
+void Application::SetWindowScale(int scale) {
+	if (scale < 0)
+		scale = 0;
+	if (scale > 8)
+		scale = 8;
+	Application::WindowScale = scale;
+	Application::Settings->SetInteger("display", "scale", Application::WindowScale);
+	Application::SetWindowSize(Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale);
 }
 
 int Application::GetKeyBind(int bind) {
@@ -2735,9 +2742,7 @@ void Application::DevMenu_VideoMenu() {
 				Application::SetWindowFullscreen(DevMenu.Fullscreen);
 				Application::SetWindowBorderless(DevMenu.WindowBorderless);
 				if (Application::IsWindowResizeable()) {
-					Application::WindowScale = DevMenu.WindowScale;
-					Application::Settings->SetInteger("display", "scale", Application::WindowScale);
-					Application::SetWindowSize(Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale);
+					Application::SetWindowScale(DevMenu.WindowScale);
 				}
 			}
 			else { // Cancel

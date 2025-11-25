@@ -18435,16 +18435,8 @@ VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	if (!Application::IsWindowResizeable())
-		return NULL_VAL;
-
-	Application::WindowScale = GET_ARG(0, GetInteger);
-	if (Application::WindowScale <= 0)
-		Application::WindowScale = 1;
-	if (Application::WindowScale > 5)
-		Application::WindowScale = 5;
-	Application::Settings->SetInteger("display", "scale", Application::WindowScale);
-	Application::SetWindowSize(Application::WindowWidth * Application::WindowScale, Application::WindowHeight * Application::WindowScale);
+	int scale = GET_ARG(0, GetInteger);
+	Application::SetWindowScale(scale);
 	return NULL_VAL;
 }
 /***
