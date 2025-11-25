@@ -76,6 +76,7 @@ int Application::TargetFPS = DEFAULT_TARGET_FRAMERATE;
 float Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
 bool Application::Running = false;
 bool Application::FirstFrame = true;
+bool Application::ShowFPS = false;
 
 SDL_Window* Application::Window = NULL;
 char Application::WindowTitle[256];
@@ -994,6 +995,7 @@ void Application::LoadVideoSettings() {
 	bool vsyncEnabled;
 	Application::Settings->GetBool("display", "vsync", &vsyncEnabled);
 	Application::Settings->GetInteger("display", "frameSkip", &Application::FrameSkip);
+	Application::Settings->GetBool("graphics", "showFramerate", &Application::ShowFPS);
 
 	if (Application::FrameSkip > DEFAULT_MAX_FRAMESKIP) {
 		Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
@@ -1101,6 +1103,7 @@ void Application::LoadKeyBinds() {
 	}
 
 	GET_KEY("fullscreen", Fullscreen, Key_F4);
+	GET_KEY("toggleFPSCounter", ToggleFPSCounter, Key_UNKNOWN);
 	GET_KEY("devRestartApp", DevRestartApp, Key_F1);
 	GET_KEY("devRestartScene", DevRestartScene, Key_F6);
 	GET_KEY("devRecompile", DevRecompile, Key_F5);
@@ -1293,8 +1296,12 @@ void Application::PollEvents() {
 
 			// Fullscreen
 			if (key == KeyBindsSDL[(int)KeyBind::Fullscreen]) {
-				Application::SetWindowFullscreen(
-					!Application::GetWindowFullscreen());
+				Application::SetWindowFullscreen(!Application::GetWindowFullscreen());
+				break;
+			}
+			// Toggle FPS counter
+			else if (key == KeyBindsSDL[(int)KeyBind::ToggleFPSCounter]) {
+				Application::ShowFPS = !Application::ShowFPS;
 				break;
 			}
 
@@ -1549,6 +1556,9 @@ void Application::DrawPerformance() {
 
 	if (ViewPerformance) {
 		PerformanceViewer::DrawDetailed(DefaultFont);
+	}
+	else if (Application::ShowFPS) {
+		PerformanceViewer::DrawFramerate(DefaultFont);
 	}
 }
 void Application::DelayFrame() {

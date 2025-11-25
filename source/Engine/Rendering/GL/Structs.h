@@ -22,9 +22,14 @@ struct GL_TextureData {
 	GLuint TextureV;
 	bool YUV;
 	bool Framebuffer;
+	bool Multisampled;
 	GLuint FBO;
 	GLuint RBO;
 	GLuint StencilRBO;
+#ifdef GL_SUPPORTS_MULTISAMPLING
+	GLuint NonMultisampledFBO;
+	GLuint NonMultisampledTextureID;
+#endif
 	GLenum TextureTarget;
 	GLenum TextureStorageFormat;
 	GLenum PixelDataFormat;

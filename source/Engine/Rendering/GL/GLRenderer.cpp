@@ -252,7 +252,7 @@ void GL_SetTextureWrap(GL_TextureData* textureData,
 
 	GLint bound;
 	glGetIntegerv(binding, &bound);
-	glBindTexture(textureData->TextureTarget, textureData->TextureID);
+	glBindTexture(textureData->TextureTarget, GLRenderer::GetTextureID(textureData));
 
 	glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_S, wrapS);
 	glTexParameteri(textureData->TextureTarget, GL_TEXTURE_WRAP_T, wrapT);
@@ -287,7 +287,26 @@ void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 	GLRenderer::SetTextureUnit(shader->GetTextureUnit(shader->LocTexture));
 
 	if (textureData) {
-		glBindTexture(GL_TEXTURE_2D, textureData->TextureID);
+#ifdef GL_SUPPORTS_MULTISAMPLING
+		if (textureData->Multisampled) {
+			// Perform what's called a "multisample resolve"
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, textureData->FBO);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, textureData->NonMultisampledFBO);
+			glBlitFramebuffer(0,
+				0,
+				texture->Width,
+				texture->Height,
+				0,
+				0,
+				texture->Width,
+				texture->Height,
+				GL_COLOR_BUFFER_BIT,
+				GL_NEAREST);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+#endif
+
+		glBindTexture(GL_TEXTURE_2D, GLRenderer::GetTextureID(textureData));
 
 		if (!textureData->Accessed) {
 			// GL_REPEAT is the default
@@ -1643,6 +1662,21 @@ void GLRenderer::Dispose() {
 	SDL_GL_DeleteContext(Context);
 }
 
+#ifdef GL_SUPPORTS_RENDERBUFFER
+void GL_RenderbufferStorage(GLenum type, Uint32 width, Uint32 height, bool multisample) {
+#ifdef GL_SUPPORTS_MULTISAMPLING
+	if (multisample) {
+		glRenderbufferStorageMultisample(
+			GL_RENDERBUFFER, Graphics::MultisamplingEnabled, type, width, height);
+	}
+	else
+#endif
+	{
+		glRenderbufferStorage(GL_RENDERBUFFER, type, width, height);
+	}
+}
+#endif
+
 // Texture management functions
 Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
 	Texture* texture = Texture::New(format, access, width, height);
@@ -1658,6 +1692,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 	textureData->PixelDataType = GL_UNSIGNED_BYTE;
 
 	textureData->Accessed = false;
+	textureData->Framebuffer = false;
+	textureData->Multisampled = false;
 
 	// Set format
 	switch (texture->Format) {
@@ -1682,29 +1718,38 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		textureData->RBO = 0;
 		textureData->StencilRBO = 0;
 
+#ifdef GL_SUPPORTS_MULTISAMPLING
+		textureData->NonMultisampledFBO = 0;
+		textureData->NonMultisampledTextureID = 0;
+
+		if (Graphics::MultisamplingEnabled) {
+			textureData->TextureTarget = GL_TEXTURE_2D_MULTISAMPLE;
+			textureData->Multisampled = true;
+		}
+#endif
+
 #ifdef GL_SUPPORTS_RENDERBUFFER
 		glGenRenderbuffers(1, &textureData->RBO);
 		glBindRenderbuffer(GL_RENDERBUFFER, textureData->RBO);
 #ifdef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+		GL_RenderbufferStorage(
+			GL_DEPTH24_STENCIL8, width, height, textureData->Multisampled);
 		CHECK_GL();
 #else
 #ifdef USE_DEPTH_COMPONENT16
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
+		GL_RenderbufferStorage(
+			GL_DEPTH_COMPONENT16, width, height, textureData->Multisampled);
 #else
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+		GL_RenderbufferStorage(
+			GL_DEPTH_COMPONENT24, width, height, textureData->Multisampled);
 #endif
 		CHECK_GL();
 
 		glGenRenderbuffers(1, &textureData->StencilRBO);
 		glBindRenderbuffer(GL_RENDERBUFFER, textureData->StencilRBO);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX8, width, height);
+		GL_RenderbufferStorage(GL_STENCIL_INDEX8, width, height, textureData->Multisampled);
 		CHECK_GL();
 #endif
-#endif
-
-#ifdef GL_SUPPORTS_MULTISAMPLING
-		// textureData->TextureTarget = GL_TEXTURE_2D_MULTISAMPLE;
 #endif
 
 		width *= RetinaScale;
@@ -1730,6 +1775,12 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 	}
 	}
 
+	// Get appropriate texture filter
+	GLenum textureFilter = GL_NEAREST;
+	if (Graphics::TextureInterpolate) {
+		textureFilter = GL_LINEAR;
+	}
+
 	// Generate texture buffer
 	glGenTextures(1, &textureData->TextureID);
 	glBindTexture(textureData->TextureTarget, textureData->TextureID);
@@ -1746,6 +1797,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 			textureData->PixelDataFormat,
 			textureData->PixelDataType,
 			0);
+		glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MAG_FILTER, textureFilter);
+		glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MIN_FILTER, textureFilter);
 		CHECK_GL();
 		break;
 		{
@@ -1758,6 +1811,22 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 				height,
 				GL_TRUE);
 			CHECK_GL();
+
+			// Generate the non-multisampled texture
+			glGenTextures(1, &textureData->NonMultisampledTextureID);
+			glBindTexture(GL_TEXTURE_2D, textureData->NonMultisampledTextureID);
+			glTexImage2D(GL_TEXTURE_2D,
+				0,
+				textureData->TextureStorageFormat,
+				width,
+				height,
+				0,
+				textureData->PixelDataFormat,
+				textureData->PixelDataType,
+				0);
+			CHECK_GL();
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, textureFilter);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, textureFilter);
 			break;
 #endif
 		}
@@ -1765,14 +1834,6 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		Log::Print(Log::LOG_ERROR, "Unsupported GL texture target!");
 		break;
 	}
-
-	// Set texture filter
-	GLenum textureFilter = GL_NEAREST;
-	if (Graphics::TextureInterpolate) {
-		textureFilter = GL_LINEAR;
-	}
-	glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MAG_FILTER, textureFilter);
-	glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MIN_FILTER, textureFilter);
 
 	if (texture->Format == SDL_PIXELFORMAT_YV12 || texture->Format == SDL_PIXELFORMAT_IYUV) {
 #ifdef GL_HAVE_YUV
@@ -1825,15 +1886,19 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 #ifdef GL_SUPPORTS_RENDERBUFFER
 		glBindRenderbuffer(GL_RENDERBUFFER, textureData->RBO);
 #ifdef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
-		glFramebufferRenderbuffer(
-			GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, textureData->RBO);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+			GL_DEPTH_STENCIL_ATTACHMENT,
+			GL_RENDERBUFFER,
+			textureData->RBO);
 #else
 		glFramebufferRenderbuffer(
 			GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, textureData->RBO);
 		CHECK_GL();
 
-		glFramebufferRenderbuffer(
-			GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, textureData->StencilRBO);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+			GL_STENCIL_ATTACHMENT,
+			GL_RENDERBUFFER,
+			textureData->StencilRBO);
 #endif
 		CHECK_GL();
 #endif
@@ -1843,6 +1908,7 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 			CHECK_GL();
 
 			textureData->Framebuffer = false;
+			textureData->Multisampled = false;
 
 			glDeleteFramebuffers(1, &textureData->FBO);
 #ifdef GL_SUPPORTS_RENDERBUFFER
@@ -1854,6 +1920,38 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 			}
 #endif
 		}
+
+#ifdef GL_SUPPORTS_MULTISAMPLING
+		if (textureData->Multisampled) {
+			glGenFramebuffers(1, &textureData->NonMultisampledFBO);
+			glBindFramebuffer(GL_FRAMEBUFFER, textureData->NonMultisampledFBO);
+			glFramebufferTexture2D(GL_FRAMEBUFFER,
+				GL_COLOR_ATTACHMENT0,
+				GL_TEXTURE_2D,
+				textureData->NonMultisampledTextureID,
+				0);
+
+			if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+				Log::Print(Log::LOG_ERROR, "glFramebufferRenderbuffer() failed!");
+				CHECK_GL();
+
+				textureData->Framebuffer = false;
+				textureData->Multisampled = false;
+
+				glDeleteFramebuffers(1, &textureData->FBO);
+				glDeleteFramebuffers(1, &textureData->NonMultisampledFBO);
+
+#ifdef GL_SUPPORTS_RENDERBUFFER
+				if (textureData->RBO) {
+					glDeleteRenderbuffers(1, &textureData->RBO);
+				}
+				if (textureData->StencilRBO) {
+					glDeleteRenderbuffers(1, &textureData->StencilRBO);
+				}
+#endif
+			}
+		}
+#endif
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 #ifdef GL_SUPPORTS_RENDERBUFFER
@@ -1872,6 +1970,11 @@ int GLRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
 }
 int GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
+	// Can't update SDL_TEXTUREACCESS_TARGET textures
+	if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
+		return 0;
+	}
+
 	Uint32 inputPixelsX = 0;
 	Uint32 inputPixelsY = 0;
 	Uint32 inputPixelsW = texture->Width;
@@ -1920,6 +2023,7 @@ int GLRenderer::UpdateTextureYUV(Texture* texture,
 	void* pixelsV,
 	int pitchV) {
 #ifdef GL_HAVE_YUV
+	// YUV textures can't be SDL_TEXTUREACCESS_TARGET, so no similar check here.
 	int inputPixelsX = 0;
 	int inputPixelsY = 0;
 	int inputPixelsW = texture->Width;
@@ -2015,7 +2119,7 @@ void GLRenderer::SetTextureMinFilter(Texture* texture, int filterMode) {
 
 	GLenum textureFilter = GL_GetTextureMinFilterMode(filterMode);
 
-	glBindTexture(textureData->TextureTarget, textureData->TextureID);
+	glBindTexture(textureData->TextureTarget, GLRenderer::GetTextureID(textureData));
 	glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MIN_FILTER, textureFilter);
 }
 void GLRenderer::SetTextureMagFilter(Texture* texture, int filterMode) {
@@ -2023,7 +2127,7 @@ void GLRenderer::SetTextureMagFilter(Texture* texture, int filterMode) {
 
 	GLenum textureFilter = GL_GetTextureMagFilterMode(filterMode);
 
-	glBindTexture(textureData->TextureTarget, textureData->TextureID);
+	glBindTexture(textureData->TextureTarget, GLRenderer::GetTextureID(textureData));
 	glTexParameteri(textureData->TextureTarget, GL_TEXTURE_MAG_FILTER, textureFilter);
 }
 void GLRenderer::UnlockTexture(Texture* texture) {}
@@ -2043,6 +2147,11 @@ void GLRenderer::DisposeTexture(Texture* texture) {
 			glDeleteRenderbuffers(1, &textureData->StencilRBO);
 		}
 #endif
+#ifdef GL_SUPPORTS_MULTISAMPLING
+		if (textureData->Multisampled) {
+			glDeleteFramebuffers(1, &textureData->NonMultisampledFBO);
+		}
+#endif
 	}
 	else if (texture->Access == SDL_TEXTUREACCESS_STREAMING) {
 		// free(texture->Pixels);
@@ -2056,6 +2165,11 @@ void GLRenderer::DisposeTexture(Texture* texture) {
 	if (textureData->TextureID) {
 		glDeleteTextures(1, &textureData->TextureID);
 	}
+#ifdef GL_SUPPORTS_MULTISAMPLING
+	if (textureData->NonMultisampledTextureID) {
+		glDeleteTextures(1, &textureData->NonMultisampledTextureID);
+	}
+#endif
 	Memory::Free(textureData);
 }
 
@@ -2281,11 +2395,22 @@ void GLRenderer::SetUserShader(Shader* shaderPtr) {
 
 	GL_SetShader(shader);
 }
+int GLRenderer::GetTextureID(void* ptr) {
+	GL_TextureData* textureData = (GL_TextureData*)ptr;
+
+#ifdef GL_SUPPORTS_MULTISAMPLING
+	if (textureData->Multisampled) {
+		return textureData->NonMultisampledTextureID;
+	}
+#endif
+
+	return textureData->TextureID;
+}
 void GLRenderer::BindTexture(Texture* texture, int textureUnit) {
 	int textureID = 0;
 	if (texture != nullptr) {
 		GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
-		textureID = textureData->TextureID;
+		textureID = GLRenderer::GetTextureID(textureData);
 	}
 
 	BindTexture(textureID, textureUnit);
