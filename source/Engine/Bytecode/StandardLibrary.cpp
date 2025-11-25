@@ -15883,27 +15883,27 @@ VMValue Sprite_SetSpriteString(int argCount, VMValue* args, Uint32 threadID) {
 	return OBJECT_VAL(spriteString);
 }
 /***
- * Sprite.GetStringWidth
+ * Sprite.GetTextWidth
  * \desc Gets the width (in pixels) of a converted sprite string.
  * \param sprite (Integer): The sprite index.
  * \param animation (Integer): The animation index.
- * \param string (Array): The array containing frame indexes.
+ * \param text (Array): The array containing frame indexes.
  * \param startIndex (Integer): Where to start checking the width.
  * \param spacing (Integer): The spacing (in pixels) between frames.
  * \ns Sprite
  */
-VMValue Sprite_GetStringWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(6);
 
 	if (ScriptManager::Lock()) {
 		ISprite* sprite = GET_ARG(0, GetSprite);
 		int animation = GET_ARG(1, GetInteger);
-		ObjArray* string = GET_ARG(2, GetArray);
+		ObjArray* text = GET_ARG(2, GetArray);
 		int startIndex = GET_ARG(3, GetInteger);
 		int length = GET_ARG(4, GetInteger);
 		int spacing = GET_ARG(5, GetInteger);
 
-		if (!sprite || !string->Values) {
+		if (!sprite || !text->Values) {
 			ScriptManager::Unlock();
 			return INTEGER_VAL(0);
 		}
@@ -15911,14 +15911,14 @@ VMValue Sprite_GetStringWidth(int argCount, VMValue* args, Uint32 threadID) {
 		if (animation >= 0 && animation <= (int)sprite->Animations.size()) {
 			Animation anim = sprite->Animations[animation];
 
-			startIndex = (int)Math::Clamp(startIndex, 0, (int)string->Values->size() - 1);
+			startIndex = (int)Math::Clamp(startIndex, 0, (int)text->Values->size() - 1);
 
-			if (length <= 0 || length > (int)string->Values->size())
-				length = (int)string->Values->size();
+			if (length <= 0 || length > (int)text->Values->size())
+				length = (int)text->Values->size();
 
 			int w = 0;
 			for (int c = startIndex; c < length; c++) {
-				int charFrame = AS_INTEGER(Value::CastAsInteger((*string->Values)[c]));
+				int charFrame = AS_INTEGER(Value::CastAsInteger((*text->Values)[c]));
 				if (charFrame < anim.Frames.size()) {
 					w += anim.Frames[charFrame].Width;
 					if (c + 1 >= length) {
@@ -20627,7 +20627,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sprite, GetFrameOffsetY);
 	DEF_NATIVE(Sprite, GetHitbox);
 	DEF_NATIVE(Sprite, SetSpriteString);
-	DEF_NATIVE(Sprite, GetStringWidth);
+	DEF_NATIVE(Sprite, GetTextWidth);
 	DEF_NATIVE(Sprite, MakePalettized);
 	DEF_NATIVE(Sprite, MakeNonPalettized);
 	// #endregion
