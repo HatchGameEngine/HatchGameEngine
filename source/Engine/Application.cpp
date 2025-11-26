@@ -2389,6 +2389,8 @@ void Application::OpenDevMenu() {
 	DevMenu.Timer = 0;
 
 	DevMenu.WindowScale = Application::WindowScale;
+	DevMenu.CurrentWindowWidth = Application::WindowWidth;
+	DevMenu.CurrentWindowHeight = Application::WindowHeight;
 	DevMenu.Fullscreen = Application::WindowFullscreen;
 	DevMenu.WindowBorderless = Application::WindowBorderless;
 
