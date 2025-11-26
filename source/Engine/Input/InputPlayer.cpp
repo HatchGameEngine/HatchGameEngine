@@ -9,6 +9,14 @@ InputPlayer::InputPlayer(int id) {
 void InputPlayer::SetNumActions(size_t num) {
 	size_t oldNum = Binds.size();
 
+	// Clear the InputBinds, since just deleting PlayerInputConfig won't do that for us.
+	if (num < oldNum) {
+		for (size_t n = num; n < oldNum; n++) {
+			Binds[n].Clear();
+			DefaultBinds[n].Clear();
+		}
+	}
+
 	Binds.resize(num);
 	DefaultBinds.resize(num);
 
@@ -17,15 +25,6 @@ void InputPlayer::SetNumActions(size_t num) {
 	NumReleased.resize(num);
 
 	ControllerState.resize(num);
-
-	for (size_t n = oldNum; n < num; n++) {
-		Binds[n].Clear();
-		DefaultBinds[n].Clear();
-
-		NumHeld[n] = NumPressed[n] = NumReleased[n] = 0;
-
-		ControllerState[n] = 0;
-	}
 
 	for (unsigned i = 0; i < (unsigned)InputDevice_MAX; i++) {
 		Status[i].SetNumActions(num);

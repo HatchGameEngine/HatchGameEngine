@@ -312,8 +312,6 @@ struct PlayerInputStatus {
 struct PlayerInputConfig {
 	std::vector<InputBind*> Binds;
 
-	PlayerInputConfig() { Binds.clear(); }
-
 	void Clear() {
 		for (size_t i = 0; i < Binds.size(); i++) {
 			delete Binds[i];
@@ -321,8 +319,6 @@ struct PlayerInputConfig {
 
 		Binds.clear();
 	}
-
-	~PlayerInputConfig() { Clear(); }
 };
 
 #endif /* INPUT_H */
