@@ -113,6 +113,7 @@ int Application::MasterVolume = 100;
 int Application::MusicVolume = 100;
 int Application::SoundVolume = 100;
 
+bool Application::DisableDefaultActions = false;
 bool Application::DevMenuActivated = false;
 DeveloperMenu Application::DevMenu;
 
@@ -1845,8 +1846,8 @@ void Application::LoadGameConfig() {
 		ParseGameConfigInt(node, "framerate", targetFPS);
 		Application::SetTargetFrameRate(targetFPS);
 
-		ParseGameConfigBool(
-			node, "allowCmdLineSceneLoad", Application::AllowCmdLineSceneLoad);
+		ParseGameConfigBool(node, "allowCmdLineSceneLoad", Application::AllowCmdLineSceneLoad);
+		ParseGameConfigBool(node, "disableDefaultActions", Application::DisableDefaultActions);
 		ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
 		ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
 		ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
@@ -2148,6 +2149,9 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 void Application::InitPlayerControls() {
 	InputManager::InitPlayerControls();
 
+	if (Application::DisableDefaultActions)
+		return;
+
 	std::unordered_map<std::string, unsigned> actions;
 
 	const char* name[] = {"Up", "Down", "Left", "Right", "A", "B", "C", "X", "Y", "Z", "Start", "Select"};
@@ -2365,6 +2369,9 @@ void Application::RunDevMenu() {
 }
 
 void Application::OpenDevMenu() {
+	if (Application::DisableDefaultActions)
+		return;
+
 	DevMenu.State = Application::DevMenu_MainMenu;
 	DevMenu.Selection = 0;
 	DevMenu.ScrollPos = 0;

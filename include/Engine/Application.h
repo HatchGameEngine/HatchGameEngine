@@ -126,6 +126,7 @@ public:
 	static int SoundVolume;
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
+	static bool DisableDefaultActions;
 
 	static bool DevMenuActivated;
 	static DeveloperMenu DevMenu;
