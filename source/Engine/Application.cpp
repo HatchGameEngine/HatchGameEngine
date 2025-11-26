@@ -2359,7 +2359,7 @@ void Application::RunDevMenu() {
 	}
 
 	SDL_GetWindowSize(Application::Window, &DevMenu.CurrentWindowWidth, &DevMenu.CurrentWindowHeight);
-	Graphics::SetViewport(0.0, 0.0, DevMenu.CurrentWindowWidth, DevMenu.CurrentWindowHeight);
+	// Graphics::SetViewport(0.0, 0.0, DevMenu.CurrentWindowWidth, DevMenu.CurrentWindowHeight);
 	Graphics::UpdateOrthoFlipped(DevMenu.CurrentWindowWidth, DevMenu.CurrentWindowHeight);
 	Graphics::SetBlendMode(BlendFactor_SRC_ALPHA,
 		BlendFactor_INV_SRC_ALPHA,
