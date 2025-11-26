@@ -7973,18 +7973,21 @@ static VMValue SetActionBindFromArg(int playerID,
 		break;
 	}
 
-	if (bind != nullptr) {
-		if (bindIndex < 0) {
-			int idx = InputManager::AddPlayerInputBind(
-				playerID, actionID, bind, setDefault);
-			if (idx != -1) {
-				return INTEGER_VAL(idx);
-			}
+	if (bind == nullptr) {
+		return NULL_VAL;
+	}
+
+	if (bindIndex < 0) {
+		int idx = InputManager::AddPlayerInputBind(playerID, actionID, bind, setDefault);
+		if (idx == -1) {
+			delete bind;
+			return NULL_VAL;
 		}
-		else {
-			InputManager::SetPlayerInputBind(
-				playerID, actionID, bind, bindIndex, setDefault);
-		}
+
+		return INTEGER_VAL(idx);
+	}
+	else if (!InputManager::SetPlayerInputBind(playerID, actionID, bind, bindIndex, setDefault)) {
+		delete bind;
 	}
 
 	return NULL_VAL;
