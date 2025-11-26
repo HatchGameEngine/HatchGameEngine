@@ -1403,7 +1403,6 @@ void Application::PollEvents() {
 				// View object regions (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevObjectRegions]) {
 					Scene::ShowObjectRegions ^= 1;
-					Application::UpdateWindowTitle();
 					break;
 				}
 				// Toggle frame stepper (dev)
@@ -2636,9 +2635,15 @@ void Application::DevMenu_SettingsMenu() {
 
 	DrawDevString("Change settings...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 
-	const char* labels[] = { "Video Settings", "Audio Settings", "Performance Viewer", "Tile Collision Viewer (Path A)", "Tile Collision Viewer (Path B)", "Object Region Viewer"};
+	std::string labels[] = {
+		"Video Settings",
+		"Audio Settings",
+		std::string("Performance Viewer ") + (ViewPerformance ? "(On)" : "(Off)"),
+		std::string("Tile Collision Viewer (Path A) ") + ((Scene::ShowTileCollisionFlag == 1) ? "(On)" : "(Off)"),
+		std::string("Tile Collision Viewer (Path B) ") + ((Scene::ShowTileCollisionFlag == 2) ? "(On)" : "(Off)"),
+		std::string("Object Region Viewer ") + (Scene::ShowObjectRegions ? "(On)" : "(Off)") };
 	for (size_t i = 0, y = 86; i < std::size(labels); i++, y += 14)
-		DrawDevString(labels[i], 160, y, ALIGN_LEFT, DevMenu.SubSelection == i);
+		DrawDevString(labels[i].c_str(), 160, y, ALIGN_LEFT, DevMenu.SubSelection == i);
 
 	int actionUp = InputManager::GetActionID("Up");
 	int actionDown = InputManager::GetActionID("Down");
