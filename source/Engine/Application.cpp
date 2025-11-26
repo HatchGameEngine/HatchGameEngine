@@ -2342,7 +2342,7 @@ void Application::DrawDevString(const char* string, int x, int y, int align, boo
 	textParams.Leading = DefaultFont->Leading;
 
 	float maxW = 0.0, maxH = 0.0;
-	if (align == ALIGN_CENTER) Graphics::MeasureText(DefaultFont, string, &textParams, maxW, maxH);
+	Graphics::MeasureText(DefaultFont, string, &textParams, maxW, maxH);
 	if (align == ALIGN_CENTER) x -= (maxW / 2) / (DevMenu.CurrentWindowWidth / Application::WindowWidth);
 	else if (align == ALIGN_RIGHT) x -= maxW / (DevMenu.CurrentWindowWidth / Application::WindowWidth);
 
@@ -2359,7 +2359,6 @@ void Application::RunDevMenu() {
 	}
 
 	SDL_GetWindowSize(Application::Window, &DevMenu.CurrentWindowWidth, &DevMenu.CurrentWindowHeight);
-	// Graphics::SetViewport(0.0, 0.0, DevMenu.CurrentWindowWidth, DevMenu.CurrentWindowHeight);
 	Graphics::UpdateOrthoFlipped(DevMenu.CurrentWindowWidth, DevMenu.CurrentWindowHeight);
 	Graphics::SetBlendMode(BlendFactor_SRC_ALPHA,
 		BlendFactor_INV_SRC_ALPHA,
