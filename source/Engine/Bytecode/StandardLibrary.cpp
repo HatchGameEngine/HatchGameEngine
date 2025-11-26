@@ -4455,10 +4455,10 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 		int endFrame = GET_ARG(6, GetInteger);
 		int align = GET_ARG(7, GetInteger);
 		int spacing = GET_ARG(8, GetInteger);
-		ObjArray* charOffsetsX = GET_ARG_OPT(9, GetArray, NewArray());
-		ObjArray* charOffsetsY = GET_ARG_OPT(10, GetArray, NewArray());
+		ObjArray* charOffsetsX = GET_ARG_OPT(9, GetArray, nullptr);
+		ObjArray* charOffsetsY = GET_ARG_OPT(10, GetArray, nullptr);
 
-		if (sprite && string->Values) {
+		if (sprite && string && animation >= 0 && animation < (int)sprite->Animations.size()) {
 			startFrame = (int)Math::Clamp(startFrame, 0, (int)string->Values->size() - 1);
 
 			if (endFrame <= 0 || endFrame > (int)string->Values->size())
@@ -4467,17 +4467,28 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 			int charOffsetIndex = 0;
 			switch (align) {
 			case ALIGN_LEFT:
-				if (charOffsetsX->Values->size() && charOffsetsY->Values->size()) {
+				if (charOffsetsX && charOffsetsY
+					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
+					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
 					for (; startFrame < endFrame; ++startFrame) {
-						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[startFrame]));
+						VMValue val = (*string->Values)[startFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
 						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
 							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsX->Values)[charOffsetIndex])),
-								y + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsY->Values)[charOffsetIndex])),
-								false, false, 1.0f, 1.0f, 0.0f);
+							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+							float xOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+								xOffset = AS_DECIMAL(xVal);
+							}
+							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							float yOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+								yOffset = AS_DECIMAL(yVal);
+							}
+							Graphics::DrawSprite(sprite, animation, curChar, x + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
 							x += spacing + frame.Width;
 							++charOffsetIndex;
 						}
@@ -4485,7 +4496,11 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 				}
 				else {
 					for (; startFrame < endFrame; ++startFrame) {
-						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[startFrame]));
+						VMValue val = (*string->Values)[startFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
 						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
 							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
 							Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
@@ -4497,18 +4512,29 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 
 			case ALIGN_CENTER:
 				--endFrame;
-				if (charOffsetsX->Values->size() && charOffsetsY->Values->size()) {
+				if (charOffsetsX && charOffsetsY
+					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
+					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
 					charOffsetIndex = endFrame;
 					for (; endFrame >= startFrame; --endFrame) {
-						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[endFrame]));
+						VMValue val = (*string->Values)[endFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
 						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
 							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x - (frame.Width / 2) + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsX->Values)[charOffsetIndex])),
-								y + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsY->Values)[charOffsetIndex])),
-								false, false, 1.0f, 1.0f, 0.0f);
+							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+							float xOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+								xOffset = AS_DECIMAL(xVal);
+							}
+							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							float yOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+								yOffset = AS_DECIMAL(yVal);
+							}
+							Graphics::DrawSprite(sprite, animation, curChar, x - (frame.Width / 2) + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
 							x = (x - frame.Width) - spacing;
 							--charOffsetIndex;
 						}
@@ -4516,7 +4542,11 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 				}
 				else {
 					for (; endFrame >= startFrame; --endFrame) {
-						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[endFrame]));
+						VMValue val = (*string->Values)[endFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
 						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
 							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
 							Graphics::DrawSprite(sprite, animation, curChar, x - frame.Width / 2, y, false, false, 1.0f, 1.0f, 0.0f);
@@ -4529,24 +4559,39 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 			case ALIGN_RIGHT:
 				int totalWidth = 0;
 				for (int pos = startFrame; pos < endFrame; ++pos) {
-					int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[pos]));
+					VMValue val = (*string->Values)[pos];
+					int curChar = 0;
+					if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						curChar = AS_INTEGER(val);
+					}
 					if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
 						totalWidth += sprite->Animations[animation].Frames[curChar].Width + spacing;
 					}
 				}
 				x -= totalWidth;
 
-				if (charOffsetsX->Values->size() && charOffsetsY->Values->size()) {
+				if (charOffsetsX && charOffsetsY
+					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
+					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
 					for (; startFrame < endFrame; ++startFrame) {
-						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[startFrame]));
+						VMValue val = (*string->Values)[startFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
 						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
 							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							Graphics::DrawSprite(sprite,
-								animation,
-								curChar,
-								x + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsX->Values)[charOffsetIndex])),
-								y + AS_DECIMAL(Value::CastAsDecimal((*charOffsetsY->Values)[charOffsetIndex])),
-								false, false, 1.0f, 1.0f, 0.0f);
+							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+							float xOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+								xOffset = AS_DECIMAL(xVal);
+							}
+							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							float yOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+								yOffset = AS_DECIMAL(yVal);
+							}
+							Graphics::DrawSprite(sprite, animation, curChar, x + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
 							x += spacing + frame.Width;
 							++charOffsetIndex;
 						}
@@ -4554,7 +4599,11 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 				}
 				else {
 					for (; startFrame < endFrame; ++startFrame) {
-						int curChar = AS_INTEGER(Value::CastAsInteger((*string->Values)[startFrame]));
+						VMValue val = (*string->Values)[startFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
 						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
 							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
 							Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
@@ -16617,10 +16666,9 @@ VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.CharAt
- * \desc Gets the value of the character at the specified index.
+ * \desc Gets the 8-bit value of the character at the specified index.
  * \param string (String): The string containing the character.
  * \param index (Integer): The character index to check.
- * \paramOpt utf16 (Boolean): Whether to use UTF-16 encoding. Otherwise, UTF-8 encoding is used.
  * \return Returns the value as an Integer.
  * \ns String
  */
@@ -16628,17 +16676,23 @@ VMValue String_CharAt(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	char* string = GET_ARG(0, GetString);
 	int n = GET_ARG(1, GetInteger);
-	int utf16 = GET_ARG_OPT(2, GetInteger, 0);
+	
+	return INTEGER_VAL((Uint8)string[n]);
+}
+/***
+ * String.CodepointAt
+ * \desc Gets the codepoint value of the character at the specified index.
+ * \param string (String): The string containing the character.
+ * \param index (Integer): The character index to check.
+ * \return Returns the value as an Integer.
+ * \ns String
+ */
+VMValue String_CodepointAt(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(2);
+	char* string = GET_ARG(0, GetString);
+	int n = GET_ARG(1, GetInteger);
 
-	if (utf16) {
-		Uint16* utf16String = Application::UTF8toUTF16(string);
-		Uint16 utf16Char = utf16String[n];
-		free(utf16String);
-		return INTEGER_VAL(utf16Char);
-	}
-	else {
-		return INTEGER_VAL((Uint8)string[n]);
-	}
+	return INTEGER_VAL(StringUtils::DecodeUTF8Char(string, n));
 }
 /***
  * String.Length
@@ -20692,6 +20746,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(String, Format);
 	DEF_NATIVE(String, Split);
 	DEF_NATIVE(String, CharAt);
+	DEF_NATIVE(String, CodepointAt);
 	DEF_NATIVE(String, Length);
 	DEF_NATIVE(String, Compare);
 	DEF_NATIVE(String, IndexOf);
