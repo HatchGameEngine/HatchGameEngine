@@ -2185,6 +2185,37 @@ void Application::InitPlayerControls() {
 				if (player.AddDefaultBind(actions[name[b]], controllerBind) < 0) {
 					delete controllerBind;
 				}
+
+				if (strcmp(name[b], "Up") == 0 ||
+					strcmp(name[b], "Down") == 0 ||
+					strcmp(name[b], "Left") == 0 ||
+					strcmp(name[b], "Right") == 0)
+				{
+					ControllerAxisBind* axisBind = new ControllerAxisBind();
+					axisBind->AxisDeadzone = 0.0;
+					axisBind->AxisDigitalThreshold = DEFAULT_DIGITAL_AXIS_THRESHOLD;
+
+					if (strcmp(name[b], "Up") == 0) {
+						axisBind->IsAxisNegative = true;
+						axisBind->Axis = (int)ControllerAxis::LeftY;
+					}
+					else if (strcmp(name[b], "Down") == 0) {
+						axisBind->IsAxisNegative = false;
+						axisBind->Axis = (int)ControllerAxis::LeftY;
+					}
+					else if (strcmp(name[b], "Left") == 0) {
+						axisBind->IsAxisNegative = true;
+						axisBind->Axis = (int)ControllerAxis::LeftX;
+					}
+					else if (strcmp(name[b], "Right") == 0) {
+						axisBind->IsAxisNegative = false;
+						axisBind->Axis = (int)ControllerAxis::LeftX;
+					}
+
+					if (player.AddDefaultBind(actions[name[b]], axisBind) < 0) {
+						delete axisBind;
+					}
+				}
 			}
 		}
 
