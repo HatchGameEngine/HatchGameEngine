@@ -312,6 +312,44 @@ struct PlayerInputStatus {
 struct PlayerInputConfig {
 	std::vector<InputBind*> Binds;
 
+	InputBind* Get(size_t index) {
+		if (index >= Binds.size()) {
+			return nullptr;
+		}
+
+		return Binds[index];
+	}
+
+	bool Set(size_t index, InputBind* bind) {
+		if (index >= Binds.size()) {
+			return false;
+		}
+
+		delete Binds[index];
+
+		Binds[index] = bind;
+
+		return true;
+	}
+
+	size_t Add(InputBind* bind) {
+		Binds.push_back(bind);
+
+		return Binds.size() - 1;
+	}
+
+	bool Remove(size_t index) {
+		if (index >= Binds.size()) {
+			return false;
+		}
+
+		delete Binds[index];
+
+		Binds.erase(Binds.begin() + index);
+
+		return true;
+	}
+
 	void Clear() {
 		for (size_t i = 0; i < Binds.size(); i++) {
 			delete Binds[i];

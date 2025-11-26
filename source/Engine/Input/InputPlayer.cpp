@@ -140,31 +140,16 @@ void InputPlayer::Update() {
 	}
 }
 
-size_t InputPlayer::PushBindToList(PlayerInputConfig& config, InputBind* def) {
-	config.Binds.push_back(def);
-
-	return config.Binds.size() - 1;
+size_t InputPlayer::PushBindToList(PlayerInputConfig& config, InputBind* bind) {
+	return config.Add(bind);
 }
 
-bool InputPlayer::ReplaceBindInList(PlayerInputConfig& config, InputBind* def, unsigned index) {
-	if (index >= 0 && index < config.Binds.size()) {
-		if (config.Binds[index]) {
-			delete config.Binds[index];
-		}
-		config.Binds[index] = def;
-		return true;
-	}
-
-	return false;
+bool InputPlayer::ReplaceBindInList(PlayerInputConfig& config, InputBind* bind, unsigned index) {
+	return config.Set(index, bind);
 }
 
 bool InputPlayer::RemoveBindFromList(PlayerInputConfig& config, unsigned index) {
-	if (index >= 0 && index < config.Binds.size()) {
-		config.Binds.erase(config.Binds.begin() + index);
-		return true;
-	}
-
-	return false;
+	return config.Remove(index);
 }
 
 int InputPlayer::AddBind(unsigned num, InputBind* bind) {
@@ -190,11 +175,7 @@ bool InputPlayer::RemoveBind(unsigned num, unsigned index) {
 }
 
 InputBind* InputPlayer::GetBindAtIndex(PlayerInputConfig& config, unsigned index) {
-	if (config.Binds.size() > 0 && index < config.Binds.size()) {
-		return config.Binds[index];
-	}
-
-	return nullptr;
+	return config.Get(index);
 }
 
 size_t InputPlayer::GetBindCount(PlayerInputConfig& config) {
