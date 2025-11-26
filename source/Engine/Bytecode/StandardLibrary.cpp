@@ -15886,9 +15886,9 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sprite.GetTextArray
- * \desc Converts a string to an array of sprite indexes by comparing UTF-16 values to a frame's ID.
+ * \desc Converts a string to an array of sprite indexes by comparing codepoints to a frame's ID.
  * \param sprite (Integer): The sprite index.
- * \param animation (Integer): The animation index containing frames with UTF-16 ID values.
+ * \param animation (Integer): The animation index containing frames with codepoint ID values.
  * \param text (String): The text to convert.
  * \return Returns an array of sprite indexes per character in the text.
  * \ns Sprite
@@ -15904,20 +15904,18 @@ VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
 	if (!sprite || !string)
 		return OBJECT_VAL(textArray);
 
-	Uint16* utf16String = Application::UTF8toUTF16(string);
-
-	if (utf16String == NULL) {
-		// Handle UTF-16 conversion failure, if needed
-		return OBJECT_VAL(textArray);
-	}
-
 	if (animation >= 0 && animation < (int)sprite->Animations.size()) {
-		for (size_t index = 0; utf16String[index] != 0; ++index) {
-			Uint16 unicodeChar = utf16String[index];
+		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
+
+		for (Uint32 codepoint : codepoints) {
+			if (codepoint == (Uint32)-1) {
+				textArray->Values->push_back(INTEGER_VAL(-1));
+				continue;
+			}
 
 			bool found = false;
 			for (int f = 0; f < (int)sprite->Animations[animation].Frames.size(); f++) {
-				if (sprite->Animations[animation].Frames[f].Advance == (int)unicodeChar) {
+				if (sprite->Animations[animation].Frames[f].Advance == (int)codepoint) {
 					textArray->Values->push_back(INTEGER_VAL(f));
 					found = true;
 					break;
@@ -15929,7 +15927,6 @@ VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
 		}
 	}
 
-	free(utf16String);
 	return OBJECT_VAL(textArray);
 }
 /***
