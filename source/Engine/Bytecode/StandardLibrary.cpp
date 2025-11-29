@@ -7347,8 +7347,8 @@ VMValue Input_GetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Input_SetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int mouseMode = GET_ARG(0, GetInteger);
-	if (mouseMode < 0 || mouseMode > MOUSEMODE_CONSTRAINED) {
-		OUT_OF_RANGE_ERROR("Mouse mode", mouseMode, 0, MOUSEMODE_CONSTRAINED);
+	if (mouseMode < 0 || mouseMode > MOUSEMODE_RELATIVE) {
+		OUT_OF_RANGE_ERROR("Mouse mode", mouseMode, 0, MOUSEMODE_RELATIVE);
 		return NULL_VAL;
 	}
 	InputManager::SetMouseMode(mouseMode);
@@ -20764,11 +20764,6 @@ void StandardLibrary::Link() {
     * \desc "Relative" mouse mode. The cursor is invisible, and constrained to the window.
     */
 	DEF_ENUM(MOUSEMODE_RELATIVE);
-	/***
-    * \enum MOUSEMODE_CONSTRAINED
-    * \desc "Confined" mouse mode. The cursor is visible by default, and constrained to the edges of the window. Note that the position of the system cursor may not necessarily match the mouse position reported by the application. If that happens to be the case, use <code>MOUSEMODE_RELATIVE</code> instead, or hide the system cursor with <linkto ref="Application.SetCursorVisible"></linkto>.
-    */
-	DEF_ENUM(MOUSEMODE_CONSTRAINED);
 
 	/***
     * \constant KeyMod_SHIFT

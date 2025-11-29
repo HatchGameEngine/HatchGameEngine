@@ -507,13 +507,6 @@ void InputManager::SetMouseMode(int mode) {
 		break;
 	case MOUSEMODE_RELATIVE:
 		SDL_SetRelativeMouseMode(SDL_TRUE);
-		SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_CENTER, "1");
-		SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_CURSOR_VISIBLE, "0");
-		break;
-	case MOUSEMODE_CONSTRAINED:
-		SDL_SetRelativeMouseMode(SDL_TRUE);
-		SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_MODE_CENTER, "0");
-		SDL_SetHint(SDL_HINT_MOUSE_RELATIVE_CURSOR_VISIBLE, "1");
 		break;
 	default:
 		return;

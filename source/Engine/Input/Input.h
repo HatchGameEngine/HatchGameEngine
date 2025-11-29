@@ -193,8 +193,7 @@ enum InputDevice { InputDevice_Keyboard, InputDevice_Controller, InputDevice_MAX
 
 enum {
 	MOUSEMODE_DEFAULT,
-	MOUSEMODE_RELATIVE,
-	MOUSEMODE_CONSTRAINED
+	MOUSEMODE_RELATIVE
 };
 
 class InputBind {
