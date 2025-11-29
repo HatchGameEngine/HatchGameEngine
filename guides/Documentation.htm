@@ -129,6 +129,7 @@
             <li><a href="#Reference_InputDevice_*">InputDevice_*</a></li>
             <li><a href="#Reference_KeyBind_*">KeyBind_*</a></li>
             <li><a href="#Reference_Key_*">Key_*</a></li>
+            <li><a href="#Reference_MOUSEMODE_*">MOUSEMODE_*</a></li>
             <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
             <li><a href="#Reference_ROTSTYLE_*">ROTSTYLE_*</a></li>
@@ -574,6 +575,8 @@
                     <li><a href="#Reference_functions_Input_IsMouseButtonDown">Input.IsMouseButtonDown</a></li>
                     <li><a href="#Reference_functions_Input_IsMouseButtonPressed">Input.IsMouseButtonPressed</a></li>
                     <li><a href="#Reference_functions_Input_IsMouseButtonReleased">Input.IsMouseButtonReleased</a></li>
+                    <li><a href="#Reference_functions_Input_GetMouseMode">Input.GetMouseMode</a></li>
+                    <li><a href="#Reference_functions_Input_SetMouseMode">Input.SetMouseMode</a></li>
                     <li><a href="#Reference_functions_Input_IsKeyDown">Input.IsKeyDown</a></li>
                     <li><a href="#Reference_functions_Input_IsKeyPressed">Input.IsKeyPressed</a></li>
                     <li><a href="#Reference_functions_Input_IsKeyReleased">Input.IsKeyReleased</a></li>
@@ -1838,6 +1841,14 @@
                     <li><a href="#Reference_enums_Key_RGUI">Key_RGUI</a></li>
                 </ul>
             </p>
+            <p id="Reference_MOUSEMODE_*">
+                <h2><code>MOUSEMODE_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_MOUSEMODE_DEFAULT">MOUSEMODE_DEFAULT</a></li>
+                    <li><a href="#Reference_enums_MOUSEMODE_RELATIVE">MOUSEMODE_RELATIVE</a></li>
+                    <li><a href="#Reference_enums_MOUSEMODE_CONSTRAINED">MOUSEMODE_CONSTRAINED</a></li>
+                </ul>
+            </p>
             <p id="Reference_Persistence_*">
                 <h2><code>Persistence_*</code></h2>
                 <ul>
@@ -2420,7 +2431,7 @@
         <li>keyBind (Enum): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the key ID of the keybind.</div>
+        <div style="font-size: 14px;">Returns the <a href="#Reference_Key_*">key ID</a> of the keybind.</div>
         </p>
         <p id="Reference_functions_Application_SetKeyBind">
         <h2 style="margin-bottom: 8px;">Application.SetKeyBind</h2>
@@ -2429,7 +2440,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>keyBind (Enum): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
-        <li>keyID (Integer): The key ID.</li>
+        <li>keyID (Integer): The <a href="#Reference_Key_*">key ID</a>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_GetGameTitle">
@@ -5045,35 +5056,51 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the mouse button released during the current frame.</div>
         </p>
+        <p id="Reference_functions_Input_GetMouseMode">
+        <h2 style="margin-bottom: 8px;">Input.GetMouseMode</h2>
+        <code>Input.GetMouseMode()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current mouse mode.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the current <a href="#Reference_MOUSEMODE_*">mouse mode</a>.</div>
+        </p>
+        <p id="Reference_functions_Input_SetMouseMode">
+        <h2 style="margin-bottom: 8px;">Input.SetMouseMode</h2>
+        <code>Input.SetMouseMode(mouseMode)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current mouse mode.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>mouseMode (Enum): The <a href="#Reference_MOUSEMODE_*">mouse mode</a> to set.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Input_IsKeyDown">
         <h2 style="margin-bottom: 8px;">Input.IsKeyDown</h2>
         <code>Input.IsKeyDown(keyID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets whether the key is currently down.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>keyID (Integer): Index of the key to check.</li>
+        <li>keyID (Integer): The <a href="#Reference_Key_*">key ID</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the key is currently down.</div>
         </p>
         <p id="Reference_functions_Input_IsKeyPressed">
         <h2 style="margin-bottom: 8px;">Input.IsKeyPressed</h2>
-        <code>Input.IsKeyPressed(mouseButtonID)</code>
+        <code>Input.IsKeyPressed(keyID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets whether the key started pressing during the current frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>mouseButtonID (Integer): Index of the key to check.</li>
+        <li>keyID (Enum): The <a href="#Reference_Key_*">key ID</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the key started pressing during the current frame.</div>
         </p>
         <p id="Reference_functions_Input_IsKeyReleased">
         <h2 style="margin-bottom: 8px;">Input.IsKeyReleased</h2>
-        <code>Input.IsKeyReleased(mouseButtonID)</code>
+        <code>Input.IsKeyReleased(keyID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets whether the key released during the current frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>mouseButtonID (Integer): Index of the key to check.</li>
+        <li>keyID (Enum): The <a href="#Reference_Key_*">key ID</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the key released during the current frame.</div>
@@ -5084,7 +5111,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the name of the key.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>keyID (Integer): Index of the key to check.</li>
+        <li>keyID (Enum): The <a href="#Reference_Key_*">key ID</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a String value.</div>
@@ -5120,7 +5147,7 @@
         <li>keyName (String): The key name to parse.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the parsed key ID, or <code>null</code> if it could not be parsed.</div>
+        <div style="font-size: 14px;">Returns the parsed <a href="#Reference_Key_*">key ID</a>, or <code>null</code> if it could not be parsed.</div>
         </p>
         <p id="Reference_functions_Input_ParseButtonName">
         <h2 style="margin-bottom: 8px;">Input.ParseButtonName</h2>
@@ -10336,7 +10363,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>751 out of 806 functions have descriptions. </p>
+        <p>754 out of 809 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -12399,6 +12426,18 @@
         <h3 style="margin-bottom: 8px;"><code>Key_RGUI</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Right GUI key.</div>
         </p>
+        <p id="Reference_enums_MOUSEMODE_DEFAULT">
+        <h3 style="margin-bottom: 8px;"><code>MOUSEMODE_DEFAULT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">"Absolute" mouse mode. The cursor is visible by default, and not constrained to the window.</div>
+        </p>
+        <p id="Reference_enums_MOUSEMODE_RELATIVE">
+        <h3 style="margin-bottom: 8px;"><code>MOUSEMODE_RELATIVE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">"Relative" mouse mode. The cursor is invisible, and constrained to the window.</div>
+        </p>
+        <p id="Reference_enums_MOUSEMODE_CONSTRAINED">
+        <h3 style="margin-bottom: 8px;"><code>MOUSEMODE_CONSTRAINED</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">"Confined" mouse mode. The cursor is visible by default, and constrained to the edges of the window. Note that the position of the system cursor may not necessarily match the mouse position reported by the application. If that happens to be the case, use <code>MOUSEMODE_RELATIVE</code> instead, or hide the system cursor with <code><a href="#Reference_functions_Application_SetCursorVisible">Application.SetCursorVisible</a></code>.</div>
+        </p>
         <p id="Reference_enums_Persistence_NONE">
         <h3 style="margin-bottom: 8px;"><code>Persistence_NONE</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Doesn't persist between scenes.</div>
@@ -12723,7 +12762,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>331 out of 331 enums have descriptions. </p>
+        <p>334 out of 334 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

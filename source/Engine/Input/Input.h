@@ -191,6 +191,12 @@ enum InputDevice { InputDevice_Keyboard, InputDevice_Controller, InputDevice_MAX
 #define INPUT_BIND_CONTROLLER_AXIS 2
 #define NUM_INPUT_BIND_TYPES 3
 
+enum {
+	MOUSEMODE_DEFAULT,
+	MOUSEMODE_RELATIVE,
+	MOUSEMODE_CONSTRAINED
+};
+
 class InputBind {
 public:
 	Uint8 Type;

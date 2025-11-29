@@ -1449,7 +1449,7 @@ VMValue Application_ShowFPSCounter(int argCount, VMValue* args, Uint32 threadID)
  * Application.GetKeyBind
  * \desc Gets a <linkto ref="KeyBind_*">keybind</linkto>.
  * \param keyBind (Enum): The <linkto ref="KeyBind_*">keybind</linkto>.
- * \return Returns the key ID of the keybind.
+ * \return Returns the <linkto ref="Key_*">key ID</linkto> of the keybind.
  * \ns Application
  */
 VMValue Application_GetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -1461,7 +1461,7 @@ VMValue Application_GetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
  * Application.SetKeyBind
  * \desc Sets a <linkto ref="KeyBind_*">keybind</linkto>.
  * \param keyBind (Enum): The <linkto ref="KeyBind_*">keybind</linkto>.
- * \param keyID (Integer): The key ID.
+ * \param keyID (Integer): The <linkto ref="Key_*">key ID</linkto>.
  * \ns Application
  */
 VMValue Application_SetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -7329,9 +7329,35 @@ VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID
 	return INTEGER_VAL((InputManager::MouseReleased >> button) & 1);
 }
 /***
+ * Input.GetMouseMode
+ * \desc Gets the current mouse mode.
+ * \return Returns the current <linkto ref="MOUSEMODE_*">mouse mode</linkto>.
+ * \ns Input
+ */
+VMValue Input_GetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(InputManager::MouseMode);
+}
+/***
+ * Input.SetMouseMode
+ * \desc Sets the current mouse mode.
+ * \param mouseMode (Enum): The <linkto ref="MOUSEMODE_*">mouse mode</linkto> to set.
+ * \ns Input
+ */
+VMValue Input_SetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int mouseMode = GET_ARG(0, GetInteger);
+	if (mouseMode < 0 || mouseMode > MOUSEMODE_CONSTRAINED) {
+		OUT_OF_RANGE_ERROR("Mouse mode", mouseMode, 0, MOUSEMODE_CONSTRAINED);
+		return NULL_VAL;
+	}
+	InputManager::SetMouseMode(mouseMode);
+	return NULL_VAL;
+}
+/***
  * Input.IsKeyDown
  * \desc Gets whether the key is currently down.
- * \param keyID (Integer): Index of the key to check.
+ * \param keyID (Integer): The <linkto ref="Key_*">key ID</linkto> to check.
  * \return Returns whether the key is currently down.
  * \ns Input
  */
@@ -7344,7 +7370,7 @@ VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsKeyPressed
  * \desc Gets whether the key started pressing during the current frame.
- * \param mouseButtonID (Integer): Index of the key to check.
+ * \param keyID (Enum): The <linkto ref="Key_*">key ID</linkto> to check.
  * \return Returns whether the key started pressing during the current frame.
  * \ns Input
  */
@@ -7357,7 +7383,7 @@ VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsKeyReleased
  * \desc Gets whether the key released during the current frame.
- * \param mouseButtonID (Integer): Index of the key to check.
+ * \param keyID (Enum): The <linkto ref="Key_*">key ID</linkto> to check.
  * \return Returns whether the key released during the current frame.
  * \ns Input
  */
@@ -7370,7 +7396,7 @@ VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.GetKeyName
  * \desc Gets the name of the key.
- * \param keyID (Integer): Index of the key to check.
+ * \param keyID (Enum): The <linkto ref="Key_*">key ID</linkto> to check.
  * \return Returns a String value.
  * \ns Input
  */
@@ -7410,7 +7436,7 @@ VMValue Input_GetAxisName(int argCount, VMValue* args, Uint32 threadID) {
  * Input.ParseKeyName
  * \desc Parses a key name into its ID, if possible.
  * \param keyName (String): The key name to parse.
- * \return Returns the parsed key ID, or <code>null</code> if it could not be parsed.
+ * \return Returns the parsed <linkto ref="Key_*">key ID</linkto>, or <code>null</code> if it could not be parsed.
  * \ns Input
  */
 VMValue Input_ParseKeyName(int argCount, VMValue* args, Uint32 threadID) {
@@ -19495,6 +19521,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Input, IsMouseButtonDown);
 	DEF_NATIVE(Input, IsMouseButtonPressed);
 	DEF_NATIVE(Input, IsMouseButtonReleased);
+	DEF_NATIVE(Input, GetMouseMode);
+	DEF_NATIVE(Input, SetMouseMode);
 	DEF_NATIVE(Input, IsKeyDown);
 	DEF_NATIVE(Input, IsKeyPressed);
 	DEF_NATIVE(Input, IsKeyReleased);
@@ -20725,6 +20753,22 @@ void StandardLibrary::Link() {
     * \desc The max amount of palettes.
     */
 	DEF_ENUM(MAX_PALETTE_COUNT);
+
+	/***
+    * \enum MOUSEMODE_DEFAULT
+    * \desc "Absolute" mouse mode. The cursor is visible by default, and not constrained to the window.
+    */
+	DEF_ENUM(MOUSEMODE_DEFAULT);
+	/***
+    * \enum MOUSEMODE_RELATIVE
+    * \desc "Relative" mouse mode. The cursor is invisible, and constrained to the window.
+    */
+	DEF_ENUM(MOUSEMODE_RELATIVE);
+	/***
+    * \enum MOUSEMODE_CONSTRAINED
+    * \desc "Confined" mouse mode. The cursor is visible by default, and constrained to the edges of the window. Note that the position of the system cursor may not necessarily match the mouse position reported by the application. If that happens to be the case, use <code>MOUSEMODE_RELATIVE</code> instead, or hide the system cursor with <linkto ref="Application.SetCursorVisible"></linkto>.
+    */
+	DEF_ENUM(MOUSEMODE_CONSTRAINED);
 
 	/***
     * \constant KeyMod_SHIFT
