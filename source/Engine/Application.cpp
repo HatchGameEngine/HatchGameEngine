@@ -2275,7 +2275,7 @@ void Application::InitSettings() {
 	Application::Settings = INI::New(Application::SettingsFile);
 
 	Application::Settings->SetBool("display", "fullscreen", false);
-	Application::Settings->SetBool("display", "scale", false);
+	Application::Settings->SetInteger("display", "scale", 2);
 	Application::Settings->SetBool("display", "borderless", false);
 	Application::Settings->SetBool("display", "vsync", false);
 	Application::Settings->SetInteger("display", "frameSkip", DEFAULT_MAX_FRAMESKIP);
