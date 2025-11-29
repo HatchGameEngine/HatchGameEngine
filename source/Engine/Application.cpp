@@ -2278,6 +2278,7 @@ void Application::InitSettings() {
 	Application::Settings->SetInteger("display", "scale", 2);
 	Application::Settings->SetBool("display", "borderless", false);
 	Application::Settings->SetBool("display", "vsync", false);
+	Application::Settings->SetInteger("display", "defaultMonitor", 0);
 	Application::Settings->SetInteger("display", "frameSkip", DEFAULT_MAX_FRAMESKIP);
 }
 void Application::SaveSettings() {
