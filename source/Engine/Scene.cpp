@@ -657,8 +657,8 @@ void Scene::Init() {
 
 	Scene::ReservedSlotIDs = 0;
 
-	Application::Settings->GetBool("dev", "notiles", &DEV_NoTiles);
-	Application::Settings->GetBool("dev", "noobjectrender", &DEV_NoObjectRender);
+	Application::Settings->GetBool("dev", "noTiles", &DEV_NoTiles);
+	Application::Settings->GetBool("dev", "noObjectRender", &DEV_NoObjectRender);
 	Application::Settings->GetInteger("dev", "viewCollision", &ShowTileCollisionFlag);
 
 	Graphics::SetTextureInterpolation(false);

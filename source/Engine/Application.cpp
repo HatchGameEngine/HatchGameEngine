@@ -241,6 +241,8 @@ void Application::Init(int argc, char* args[]) {
 		MemoryCache::Init();
 	}
 
+	Application::SaveSettings();
+
 	AudioManager::Init();
 
 	Running = true;
@@ -1167,8 +1169,8 @@ void Application::LoadDevSettings() {
 #ifdef DEVELOPER_MODE
 	Application::Settings->GetBool("dev", "devMenu", &DevMode);
 	Application::Settings->GetBool("dev", "viewPerformance", &ViewPerformance);
-	Application::Settings->GetBool("dev", "donothing", &DoNothing);
-	Application::Settings->GetInteger("dev", "fastforward", &UpdatesPerFastForward);
+	Application::Settings->GetBool("dev", "doNothing", &DoNothing);
+	Application::Settings->GetInteger("dev", "fastForward", &UpdatesPerFastForward);
 	Application::Settings->GetBool("dev", "convertModels", &Application::DevConvertModels);
 	Application::Settings->GetBool("dev", "useMemoryFileCache", &UseMemoryFileCache);
 	Application::Settings->GetBool("dev", "loadAllClasses", &ScriptManager::LoadAllClasses);
@@ -2276,10 +2278,27 @@ void Application::InitSettings() {
 
 	Application::Settings->SetBool("display", "fullscreen", false);
 	Application::Settings->SetInteger("display", "scale", 2);
-	Application::Settings->SetBool("display", "borderless", false);
 	Application::Settings->SetBool("display", "vsync", false);
+	Application::Settings->SetBool("display", "borderless", false);
 	Application::Settings->SetInteger("display", "defaultMonitor", 0);
+	Application::Settings->SetBool("display", "retina", false);
+	Application::Settings->SetInteger("display", "multisample", 0);
 	Application::Settings->SetInteger("display", "frameSkip", DEFAULT_MAX_FRAMESKIP);
+
+#ifdef DEVELOPER_MODE
+	Application::Settings->SetBool("dev", "devMenu", true);
+	Application::Settings->SetBool("dev", "writeLogFile", true);
+	Application::Settings->SetBool("dev", "trackMemory", false);
+	Application::Settings->SetBool("dev", "viewPerformance", false);
+	Application::Settings->SetInteger("dev", "fastForward", 4);
+	int logLevel = 0;
+#ifdef DEBUG
+	logLevel = -1;
+#endif
+	Application::Settings->SetInteger("dev", "logLevel", logLevel);
+	Application::Settings->SetBool("dev", "trackMemory", false);
+	Application::Settings->SetBool("dev", "autoPerfSnapshots", false);
+#endif
 }
 void Application::SaveSettings() {
 	if (Application::Settings) {
@@ -2350,7 +2369,7 @@ void Application::DrawDevString(const char* string, int x, int y, int align, boo
 	else if (align == ALIGN_RIGHT) x -= maxW / (DevMenu.CurrentWindowWidth / Application::WindowWidth);
 
 	Graphics::SetBlendColor(0.28125, 0.28125, 0.4375, 1.0);
-	Graphics::DrawText(DefaultFont, string, (x + 0.5) * (DevMenu.CurrentWindowWidth / Application::WindowWidth), (y + 0.5) * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
+	// Graphics::DrawText(DefaultFont, string, (x + 0.5) * (DevMenu.CurrentWindowWidth / Application::WindowWidth), (y + 0.5) * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
 	isSelected ? Graphics::SetBlendColor(0.9375, 0.9375, 0.9375, 1.0) : Graphics::SetBlendColor(0.5, 0.625, 0.6875, 1.0);
 	Graphics::DrawText(DefaultFont, string, x * (DevMenu.CurrentWindowWidth / Application::WindowWidth), y * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
 }
@@ -2391,8 +2410,7 @@ void Application::OpenDevMenu() {
 	DevMenu.Timer = 0;
 
 	DevMenu.WindowScale = Application::WindowScale;
-	DevMenu.CurrentWindowWidth = Application::WindowWidth;
-	DevMenu.CurrentWindowHeight = Application::WindowHeight;
+	SDL_GetWindowSize(Application::Window, &DevMenu.CurrentWindowWidth, &DevMenu.CurrentWindowHeight);
 	DevMenu.Fullscreen = Application::WindowFullscreen;
 	DevMenu.WindowBorderless = Application::WindowBorderless;
 
