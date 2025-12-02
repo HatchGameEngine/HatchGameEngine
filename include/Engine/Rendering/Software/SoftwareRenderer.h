@@ -59,7 +59,7 @@ public:
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
 	static bool SetRenderTarget(Texture* texture);
-	static void ReadFramebuffer(void* pixels, int width, int height);
+	static void ReadFramebuffer(void* pixels, int x, int y, int width, int height);
 	static void UpdateWindowSize(int width, int height);
 	static void UpdateViewport();
 	static void UpdateClipRect();
@@ -218,66 +218,13 @@ public:
 	static void FillEllipse(float x, float y, float w, float h);
 	static void FillRectangle(float x, float y, float w, float h);
 	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
-	static void FillTriangleBlend(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3);
+	static void FillTriangleBlend(float* xc, float* yc, int* colors);
+	static void FillQuad(float* xc, float* yc);
+	static void FillQuadBlend(float* xc, float* yc, int* colors);
 	static void
-	FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
-	static void FillQuadBlend(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4);
-	static void DrawTriangleTextured(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3);
-	static void DrawQuadTextured(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3,
-		float u4,
-		float v4);
+	DrawTriangle(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
+	static void
+	DrawQuad(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
 	static void DrawTexture(Texture* texture,
 		float sx,
 		float sy,

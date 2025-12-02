@@ -35,6 +35,9 @@ vector<ObjClass*> ScriptManager::ClassImplList;
 
 SDL_mutex* ScriptManager::GlobalLock = NULL;
 
+std::unordered_map<void*, Obj*> ScriptManager::Registry;
+std::unordered_map<Obj*, void*> ScriptManager::UserdataMap;
+
 static Uint32 VMBranchLimit = 0;
 
 // #define DEBUG_STRESS_GC
@@ -156,6 +159,8 @@ void ScriptManager::Dispose() {
 		delete Constants;
 	}
 
+	Registry.clear();
+	UserdataMap.clear();
 	ClassImplList.clear();
 	AllNamespaces.clear();
 	ModuleList.clear();
@@ -238,6 +243,49 @@ void ScriptManager::FreeNamespace(Obj* object) {
 }
 // #endregion
 
+// #region Registry
+Obj* ScriptManager::RegistryAdd(void* ptr, Obj* obj) {
+	if (ptr == nullptr || obj == nullptr) {
+		return nullptr;
+	}
+
+	if (Registry.count(ptr)) {
+		return RegistryGet(ptr);
+	}
+
+	Registry[ptr] = obj;
+	UserdataMap[obj] = ptr;
+
+	return obj;
+}
+Obj* ScriptManager::RegistryGet(void* ptr) {
+	if (ptr == nullptr || Registry.count(ptr) == 0) {
+		return nullptr;
+	}
+
+	return Registry[ptr];
+}
+void* ScriptManager::RegistryGet(Obj* obj) {
+	if (obj == nullptr || UserdataMap.count(obj) == 0) {
+		return nullptr;
+	}
+
+	return UserdataMap[obj];
+}
+void ScriptManager::RegistryRemove(void* ptr) {
+	if (ptr != nullptr && Registry.count(ptr)) {
+		UserdataMap.erase(Registry[ptr]);
+		Registry.erase(ptr);
+	}
+}
+void ScriptManager::RegistryRemove(Obj* obj) {
+	if (obj != nullptr && UserdataMap.count(obj)) {
+		Registry.erase(UserdataMap[obj]);
+		UserdataMap.erase(obj);
+	}
+}
+// #endregion
+
 // #region ValueFuncs
 bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 threadID) {
 	VMValue result = Value::CastAsInteger(value);
@@ -270,6 +318,8 @@ void ScriptManager::DestroyObject(Obj* object) {
 	if (object->Destructor != nullptr) {
 		object->Destructor(object);
 	}
+
+	ScriptManager::RegistryRemove(object);
 
 	FREE_OBJ(object);
 }

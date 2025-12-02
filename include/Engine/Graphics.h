@@ -46,6 +46,7 @@ public:
 	static bool TextureBlend;
 	static bool TextureInterpolate;
 	static Uint32 PreferredPixelFormat;
+	static Uint32 TextureFormat;
 	static Uint32 MaxTextureWidth;
 	static Uint32 MaxTextureHeight;
 	static Uint32 MaxTextureUnits;
@@ -112,9 +113,11 @@ public:
 	static void Dispose();
 	static Point ProjectToScreen(float x, float y, float z);
 	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	static Texture*
-	CreateTextureFromPixels(Uint32 width, Uint32 height, void* pixels, int pitch);
-	static Texture* CreateTextureFromSurface(SDL_Surface* surface);
+	static Texture* CreateTextureFromPixels(Uint32 format,
+		Uint32 width,
+		Uint32 height,
+		void* pixels,
+		int pitch);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static int UpdateYUVTexture(Texture* texture,
@@ -125,6 +128,14 @@ public:
 		int pitchU,
 		Uint8* pixelsV,
 		int pitchV);
+	static void CopyTexturePixels(Texture* dest,
+		int destX,
+		int destY,
+		Texture* src,
+		int srcX,
+		int srcY,
+		int srcWidth,
+		int srcHeight);
 	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
 	static int ConvertTextureToRGBA(Texture* texture);
 	static int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);
@@ -204,6 +215,13 @@ public:
 	static void FillEllipse(float x, float y, float w, float h);
 	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
 	static void FillRectangle(float x, float y, float w, float h);
+	static void FillTriangleBlend(float* xc, float* yc, int* colors);
+	static void FillQuad(float* xc, float* yc);
+	static void FillQuadBlend(float* xc, float* yc, int* colors);
+	static void
+	DrawTriangle(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
+	static void
+	DrawQuad(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
 	static void DrawTexture(Texture* texture,
 		float sx,
 		float sy,

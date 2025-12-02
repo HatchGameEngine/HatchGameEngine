@@ -28,7 +28,8 @@ bool Graphics::SupportsShaders = false;
 bool Graphics::SupportsBatching = false;
 bool Graphics::TextureBlend = false;
 bool Graphics::TextureInterpolate = false;
-Uint32 Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
+Uint32 Graphics::PreferredPixelFormat = PixelFormat_ARGB8888;
+Uint32 Graphics::TextureFormat = TextureFormat_ARGB8888;
 Uint32 Graphics::MaxTextureWidth = 1;
 Uint32 Graphics::MaxTextureHeight = 1;
 Uint32 Graphics::MaxTextureUnits = 1;
@@ -354,22 +355,16 @@ Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uin
 
 	return texture;
 }
-Texture* Graphics::CreateTextureFromPixels(Uint32 width, Uint32 height, void* pixels, int pitch) {
-	Texture* texture = Graphics::CreateTexture(
-		SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, width, height);
+Texture* Graphics::CreateTextureFromPixels(Uint32 format,
+	Uint32 width,
+	Uint32 height,
+	void* pixels,
+	int pitch) {
+	Texture* texture = Graphics::CreateTexture(format, TextureAccess_STATIC, width, height);
 	if (texture) {
 		Graphics::UpdateTexture(texture, NULL, pixels, pitch);
 	}
 
-	return texture;
-}
-Texture* Graphics::CreateTextureFromSurface(SDL_Surface* surface) {
-	Texture* texture = Graphics::CreateTexture(
-		surface->format->format, SDL_TEXTUREACCESS_STATIC, surface->w, surface->h);
-	if (texture) {
-		Graphics::GfxFunctions->UpdateTexture(
-			texture, NULL, surface->pixels, surface->pitch);
-	}
 	return texture;
 }
 int Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
@@ -404,6 +399,17 @@ int Graphics::UpdateYUVTexture(Texture* texture,
 	}
 	return Graphics::GfxFunctions->UpdateYUVTexture(
 		texture, src, pixelsY, pitchY, pixelsU, pitchU, pixelsV, pitchV);
+}
+void Graphics::CopyTexturePixels(Texture* dest,
+	int destX,
+	int destY,
+	Texture* src,
+	int srcX,
+	int srcY,
+	int srcWidth,
+	int srcHeight) {
+	Graphics::GfxFunctions->CopyTexturePixels(
+		dest, destX, destY, src, srcX, srcY, srcWidth, srcHeight);
 }
 int Graphics::SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors) {
 	texture->SetPalette((Uint32*)palette, numPaletteColors);
@@ -644,8 +650,8 @@ void Graphics::SoftwareEnd(int viewIndex) {
 
 void Graphics::UpdateGlobalPalette() {
 	if (Graphics::PaletteTexture == nullptr) {
-		Graphics::PaletteTexture = CreateTexture(SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_STREAMING,
+		Graphics::PaletteTexture = CreateTexture(Graphics::TextureFormat,
+			TextureAccess_STREAMING,
 			PALETTE_ROW_SIZE,
 			MAX_PALETTE_COUNT);
 
@@ -665,8 +671,8 @@ void Graphics::UpdateGlobalPalette() {
 }
 void Graphics::UpdatePaletteIndexTable() {
 	if (Graphics::PaletteIndexTexture == nullptr) {
-		Graphics::PaletteIndexTexture = CreateTexture(SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_STREAMING,
+		Graphics::PaletteIndexTexture = CreateTexture(Graphics::TextureFormat,
+			TextureAccess_STREAMING,
 			PALETTE_INDEX_TEXTURE_SIZE,
 			PALETTE_INDEX_TEXTURE_SIZE);
 
@@ -759,7 +765,7 @@ bool Graphics::CreateFramebufferTexture() {
 
 	if (createTexture) {
 		FramebufferTexture = CreateTexture(
-			SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, maxWidth, maxHeight);
+			Graphics::TextureFormat, TextureAccess_STREAMING, maxWidth, maxHeight);
 
 		if (FramebufferTexture == nullptr) {
 			return false;
@@ -778,6 +784,8 @@ bool Graphics::UpdateFramebufferTexture() {
 	}
 
 	Graphics::GfxFunctions->ReadFramebuffer(Graphics::FramebufferTexture->Pixels,
+		0,
+		0,
 		Graphics::FramebufferTexture->Width,
 		Graphics::FramebufferTexture->Height);
 	Graphics::GfxFunctions->UpdateTexture(Graphics::FramebufferTexture,
@@ -881,7 +889,7 @@ void Graphics::CopyScreen(int source_x,
 
 	if (source_x == 0 && source_y == 0 && dest_x == 0 && dest_y == 0 && dest_w == source_w &&
 		dest_h == source_h) {
-		Graphics::GfxFunctions->ReadFramebuffer(texture->Pixels, dest_w, dest_h);
+		Graphics::GfxFunctions->ReadFramebuffer(texture->Pixels, 0, 0, dest_w, dest_h);
 		return;
 	}
 
@@ -891,7 +899,7 @@ void Graphics::CopyScreen(int source_x,
 
 	void* fbPixels = FramebufferTexture->Pixels;
 
-	Graphics::GfxFunctions->ReadFramebuffer(fbPixels, source_w, source_h);
+	Graphics::GfxFunctions->ReadFramebuffer(fbPixels, 0, 0, source_w, source_h);
 
 	Uint32* d = (Uint32*)texture->Pixels;
 	Uint32* s = (Uint32*)fbPixels;
@@ -1206,6 +1214,26 @@ void Graphics::FillTriangle(float x1, float y1, float x2, float y2, float x3, fl
 }
 void Graphics::FillRectangle(float x, float y, float w, float h) {
 	Graphics::GfxFunctions->FillRectangle(x, y, w, h);
+}
+void Graphics::FillTriangleBlend(float* xc, float* yc, int* colors) {
+	Graphics::GfxFunctions->FillTriangleBlend(xc, yc, colors);
+}
+void Graphics::FillQuad(float* xc, float* yc) {
+	Graphics::GfxFunctions->FillQuad(xc, yc);
+}
+void Graphics::FillQuadBlend(float* xc, float* yc, int* colors) {
+	Graphics::GfxFunctions->FillQuadBlend(xc, yc, colors);
+}
+void Graphics::DrawTriangle(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {
+	Graphics::GfxFunctions->DrawTriangle(texture, xc, yc, tu, tv, colors);
+}
+void Graphics::DrawQuad(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors) {
+	Graphics::GfxFunctions->DrawQuad(texture, xc, yc, tu, tv, colors);
 }
 
 void Graphics::DrawTexture(Texture* texture,
@@ -2954,12 +2982,12 @@ bool Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {
 }
 
 void Graphics::ConvertFromARGBtoNative(Uint32* argb, int count) {
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
+	if (Graphics::PreferredPixelFormat == PixelFormat_ABGR8888) {
 		ColorUtils::ConvertFromARGBtoABGR(argb, count);
 	}
 }
 void Graphics::ConvertFromNativeToARGB(Uint32* argb, int count) {
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
+	if (Graphics::PreferredPixelFormat == PixelFormat_ABGR8888) {
 		ColorUtils::ConvertFromABGRtoARGB(argb, count);
 	}
 }

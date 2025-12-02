@@ -48,7 +48,8 @@ void SDL2Renderer::Init() {
 
 	Graphics::SupportsShaders = false;
 	Graphics::SupportsBatching = false;
-	Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
+	Graphics::PreferredPixelFormat = PixelFormat_ARGB8888;
+	Graphics::TextureFormat = TextureFormat_ARGB8888;
 
 	Graphics::MaxTextureWidth = rendererInfo.max_texture_width;
 	Graphics::MaxTextureHeight = rendererInfo.max_texture_height;
@@ -131,12 +132,47 @@ void SDL2Renderer::Dispose() {
 
 // Texture management functions
 Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+	int sdlFormat = 0;
+	int sdlAccess = 0;
+
+	switch (format) {
+	case TextureFormat_ARGB8888:
+	case TextureFormat_INDEXED:
+		sdlFormat = SDL_PIXELFORMAT_ARGB8888;
+	case TextureFormat_RGBA8888:
+		sdlFormat = SDL_PIXELFORMAT_RGBA8888;
+	case TextureFormat_YV12:
+		sdlFormat = SDL_PIXELFORMAT_YV12;
+	case TextureFormat_YUY2:
+		sdlFormat = SDL_PIXELFORMAT_YUY2;
+	case TextureFormat_UYVY:
+		sdlFormat = SDL_PIXELFORMAT_UYVY;
+	case TextureFormat_NV12:
+		sdlFormat = SDL_PIXELFORMAT_NV12;
+	case TextureFormat_NV21:
+		sdlFormat = SDL_PIXELFORMAT_NV21;
+	default:
+		return nullptr;
+	}
+
+	switch (access) {
+	case TextureAccess_STATIC:
+		sdlAccess = SDL_TEXTUREACCESS_STATIC;
+	case TextureAccess_STREAMING:
+		sdlAccess = SDL_TEXTUREACCESS_STREAMING;
+	case TextureAccess_RENDERTARGET:
+		sdlAccess = SDL_TEXTUREACCESS_TARGET;
+	default:
+		return nullptr;
+	}
+
 	Texture* texture = Texture::New(format, access, width, height);
 	texture->DriverData = Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(SDL_Texture*));
+	texture->DriverFormat = PixelFormat_ARGB8888;
 
 	SDL_Texture** textureData = (SDL_Texture**)texture->DriverData;
 
-	*textureData = SDL_CreateTexture(Renderer, format, access, width, height);
+	*textureData = SDL_CreateTexture(Renderer, sdlFormat, sdlAccess, width, height);
 	SDL_SetTextureBlendMode(*textureData, SDL_BLENDMODE_BLEND);
 
 	FindTextureID(texture);
@@ -149,6 +185,9 @@ int SDL2Renderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 }
 int SDL2Renderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
 	SDL_Texture* textureData = *(SDL_Texture**)texture->DriverData;
+
+	// TODO: Format conversion
+
 	return SDL_UpdateTexture(textureData, src, pixels, pitch);
 }
 int SDL2Renderer::UpdateTextureYUV(Texture* texture,
@@ -159,8 +198,6 @@ int SDL2Renderer::UpdateTextureYUV(Texture* texture,
 	int pitchU,
 	void* pixelsV,
 	int pitchV) {
-	// SDL_Texture* textureData =
-	// *(SDL_Texture**)texture->DriverData;
 	return 0;
 }
 void SDL2Renderer::UnlockTexture(Texture* texture) {}
@@ -194,11 +231,21 @@ void SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
 
 	SDL_Rect r = {0, 0, width, height};
 
-	SDL_RenderReadPixels(Renderer,
-		&r,
-		Graphics::PreferredPixelFormat,
-		pixels,
-		width * SDL_BYTESPERPIXEL(Graphics::PreferredPixelFormat));
+	int pixelFormat = 0;
+
+	switch (Graphics::TextureFormat) {
+	case TextureFormat_ARGB8888:
+		pixelFormat = SDL_PIXELFORMAT_ARGB8888;
+		break;
+	case TextureFormat_ABGR8888:
+		pixelFormat = SDL_PIXELFORMAT_ABGR8888;
+		break;
+	default:
+		return;
+	}
+
+	SDL_RenderReadPixels(
+		Renderer, &r, pixelFormat, pixels, width * SDL_BYTESPERPIXEL(pixelFormat));
 }
 void SDL2Renderer::UpdateWindowSize(int width, int height) {
 	SDL2Renderer::UpdateViewport();

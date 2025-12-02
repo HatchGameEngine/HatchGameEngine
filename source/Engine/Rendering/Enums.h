@@ -3,6 +3,44 @@
 
 #include "Engine/Includes/Standard.h"
 
+enum { PixelFormat_ARGB8888, PixelFormat_ABGR8888 };
+
+enum {
+	// The texture is created with the given pixel data and never updated again, or it updates
+	// rarely. A texture with access TextureAccess_STATIC can become TextureAccess_STREAMING and
+	// the other way around.
+	TextureAccess_STATIC,
+
+	// The texture is expected to be updated often.
+	TextureAccess_STREAMING,
+
+	// The texture can be used as a render target.
+	// If a texture is created with TextureAccess_RENDERTARGET, it cannot be reinitialized.
+	// Which is to say, if you want to change its size or type, a new texture must be created.
+	// Render targets must not be indexed, also.
+	TextureAccess_RENDERTARGET
+};
+
+enum {
+	TextureFormat_ARGB8888,
+	TextureFormat_ABGR8888,
+	TextureFormat_RGBA8888,
+	TextureFormat_INDEXED,
+	TextureFormat_YV12,
+	TextureFormat_IYUV,
+	TextureFormat_YUY2,
+	TextureFormat_UYVY,
+	TextureFormat_YVYU,
+	TextureFormat_NV12,
+	TextureFormat_NV21
+};
+
+#define TEXTUREFORMAT_IS_RGBA(fmt) \
+	((fmt) == TextureFormat_ARGB8888 || (fmt) == TextureFormat_ABGR8888 || \
+		(fmt) == TextureFormat_RGBA8888)
+
+#define TEXTUREFORMAT_IS_YUV(fmt) ((fmt) >= TextureFormat_YV12 && (fmt) <= TextureFormat_NV21)
+
 enum {
 	TextureFilter_NEAREST,
 	TextureFilter_LINEAR,
@@ -94,9 +132,7 @@ enum {
 	DrawMode_FlagsMask = ~0xF
 };
 
-enum {
-	TEXTDRAW_ELLIPSIS = 1 << 0
-};
+enum { TEXTDRAW_ELLIPSIS = 1 << 0 };
 
 struct TileScanLine {
 	Sint64 SrcX;

@@ -78,7 +78,7 @@ Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
 	drawPolygonMacro(placePixelMacro, dpR, dpW)
 
 #define DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, placePixel, placePixelPaletted) \
-	if (Graphics::UsePalettes && texture->Paletted) { \
+	if (Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED) { \
 		if (UseDepthBuffer) { \
 			POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, \
 				placePixelPaletted, \
@@ -1004,6 +1004,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 		} \
 	}
 #else
+/* clang-format off */
 #define DO_PERSP_MAPPING(placePixelMacro, dpR, dpW) \
 	for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
 		SCANLINE_GET_MAPZ(); \
@@ -1016,6 +1017,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 		SCANLINE_STEP_UV(); \
 		DRAW_PERSP_STEP(); \
 	}
+/* clang-format on */
 #endif
 void PolygonRasterizer::DrawPerspective(Texture* texture,
 	Vector3* positions,

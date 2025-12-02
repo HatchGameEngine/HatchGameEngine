@@ -91,12 +91,20 @@ public:
 		int pitchU,
 		void* pixelsV,
 		int pitchV);
+	static void CopyTexturePixels(Texture* dest,
+		int destX,
+		int destY,
+		Texture* src,
+		int srcX,
+		int srcY,
+		int srcWidth,
+		int srcHeight);
 	static void SetTextureMinFilter(Texture* texture, int filterMode);
 	static void SetTextureMagFilter(Texture* texture, int filterMode);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
 	static bool SetRenderTarget(Texture* texture);
-	static void ReadFramebuffer(void* pixels, int width, int height);
+	static void ReadFramebuffer(void* pixels, int x, int y, int width, int height);
 	static void UpdateWindowSize(int width, int height);
 	static void UpdateViewport();
 	static void UpdateClipRect();
@@ -140,6 +148,13 @@ public:
 	static void FillEllipse(float x, float y, float w, float h);
 	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
 	static void FillRectangle(float x, float y, float w, float h);
+	static void FillTriangleBlend(float* xc, float* yc, int* colors);
+	static void FillQuad(float* xc, float* yc);
+	static void FillQuadBlend(float* xc, float* yc, int* colors);
+	static void
+	DrawTriangle(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
+	static void
+	DrawQuad(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
 	static Uint32 CreateTexturedShapeBuffer(float* data, int vertexCount);
 	static void DrawTexturedShapeBuffer(Texture* texture, Uint32 bufferID, int vertexCount);
 	static void DrawTexture(Texture* texture,

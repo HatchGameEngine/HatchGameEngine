@@ -577,8 +577,8 @@ Texture* Font::CreateAtlasTexture(Uint8* data, unsigned size, bool useAntialias,
 		return nullptr;
 	}
 
-	Texture* atlas =
-		Graphics::CreateTextureFromPixels(size, size, dataRgba, size * sizeof(Uint32));
+	Texture* atlas = Graphics::CreateTextureFromPixels(
+		TextureFormat_ABGR8888, size, size, dataRgba, size * sizeof(Uint32));
 
 	Memory::Free(dataRgba);
 
@@ -702,7 +702,10 @@ float Font::GetGlyphAdvance(Uint32 codepoint) {
 			stbtt_fontinfo* info = (stbtt_fontinfo*)family->Context;
 
 			int advanceWidth = 0;
-			stbtt_GetGlyphHMetrics(info, stbtt_FindGlyphIndex(info, codepoint), &advanceWidth, nullptr);
+			stbtt_GetGlyphHMetrics(info,
+				stbtt_FindGlyphIndex(info, codepoint),
+				&advanceWidth,
+				nullptr);
 
 			return (float)advanceWidth * stbtt_ScaleForPixelHeight(info, Size);
 		}

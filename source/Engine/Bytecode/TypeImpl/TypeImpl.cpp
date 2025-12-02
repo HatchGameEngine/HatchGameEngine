@@ -10,6 +10,7 @@
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
+#include <Engine/Bytecode/TypeImpl/TextureImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 std::unordered_map<ObjClass*, const char*> PrintableNames;
@@ -25,6 +26,7 @@ void TypeImpl::Init() {
 	ShaderImpl::Init();
 	StreamImpl::Init();
 	StringImpl::Init();
+	TextureImpl::Init();
 }
 
 void TypeImpl::RegisterClass(ObjClass* klass) {

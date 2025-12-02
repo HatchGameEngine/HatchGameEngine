@@ -172,6 +172,10 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 	SoftwareRenderer::BackendFunctions.FillEllipse = SoftwareRenderer::FillEllipse;
 	SoftwareRenderer::BackendFunctions.FillTriangle = SoftwareRenderer::FillTriangle;
 	SoftwareRenderer::BackendFunctions.FillRectangle = SoftwareRenderer::FillRectangle;
+	SoftwareRenderer::BackendFunctions.FillTriangleBlend = SoftwareRenderer::FillTriangleBlend;
+	SoftwareRenderer::BackendFunctions.FillQuad = SoftwareRenderer::FillQuad;
+	SoftwareRenderer::BackendFunctions.DrawTriangle = SoftwareRenderer::DrawTriangle;
+	SoftwareRenderer::BackendFunctions.DrawQuad = SoftwareRenderer::DrawQuad;
 
 	// Texture drawing functions
 	SoftwareRenderer::BackendFunctions.DrawTexture = SoftwareRenderer::DrawTexture;
@@ -226,9 +230,9 @@ void SoftwareRenderer::DisposeTexture(Texture* texture) {}
 bool SoftwareRenderer::SetRenderTarget(Texture* texture) {
 	return true;
 }
-void SoftwareRenderer::ReadFramebuffer(void* pixels, int width, int height) {
+void SoftwareRenderer::ReadFramebuffer(void* pixels, int x, int y, int width, int height) {
 	if (Graphics::Internal.ReadFramebuffer) {
-		Graphics::Internal.ReadFramebuffer(pixels, width, height);
+		Graphics::Internal.ReadFramebuffer(pixels, 0, 0, width, height);
 	}
 }
 void SoftwareRenderer::UpdateWindowSize(int width, int height) {
@@ -645,7 +649,7 @@ static TintFunction GetTintFunction(int blendFlags) {
 
 		switch (CurrentBlendState.FilterMode) {
 		case Filter_BLACK_AND_WHITE:
-			if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ARGB8888) {
+			if (Graphics::TextureFormat == TextureFormat_ARGB8888) {
 				return isDest ? FilterBWDestARGB : FilterBWSourceARGB;
 			}
 			else {
@@ -656,7 +660,8 @@ static TintFunction GetTintFunction(int blendFlags) {
 		}
 	}
 	else if (blendFlags & BlendFlag_TINT_BIT) {
-		TintFunction tintFunctions[] = {TintNormalSource, TintNormalDest, TintBlendSource, TintBlendDest};
+		TintFunction tintFunctions[] = {
+			TintNormalSource, TintNormalDest, TintBlendSource, TintBlendDest};
 
 		return tintFunctions[CurrentBlendState.Tint.Mode];
 	}
@@ -1045,10 +1050,10 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	}
 
 	// Convert vertex colors to native format
-	if (Graphics::PreferredPixelFormat != SDL_PIXELFORMAT_ARGB8888) {
+	if (Graphics::PreferredPixelFormat == PixelFormat_ABGR8888) {
 		VertexAttribute* vertex = vertexAttribsPtr;
 		for (Uint32 i = 0; i < vertexBuffer->VertexCount; i++, vertex++) {
-			Graphics::ConvertFromARGBtoNative(&vertex->Color, 1);
+			ColorUtils::ConvertFromARGBtoABGR(&vertex->Color, 1);
 		}
 	}
 
@@ -2539,15 +2544,7 @@ void SoftwareRenderer::FillTriangle(float x1, float y1, float x2, float y2, floa
 	vectors[2].Y = ((int)y3 + y) << 16;
 	PolygonRasterizer::DrawBasic(vectors, ColRGB, 3, blendState);
 }
-void SoftwareRenderer::FillTriangleBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3) {
+void SoftwareRenderer::FillTriangleBlend(float* xc, float* yc, int* colors) {
 	View* currentView = Graphics::CurrentView;
 	if (!currentView) {
 		return;
@@ -2569,27 +2566,26 @@ void SoftwareRenderer::FillTriangleBlend(float x1,
 	x -= cx;
 	y -= cy;
 
-	int colors[3];
+	float x1 = xc[0];
+	float y1 = yc[0];
+	float x2 = xc[1];
+	float y2 = yc[1];
+	float x3 = xc[2];
+	float y3 = yc[2];
+
 	Vector2 vectors[3];
 	vectors[0].X = ((int)x1 + x) << 16;
 	vectors[0].Y = ((int)y1 + y) << 16;
-	colors[0] = ColorUtils::Multiply(c1, GetBlendColor());
+	colors[0] = ColorUtils::Multiply(colors[0], GetBlendColor());
 	vectors[1].X = ((int)x2 + x) << 16;
 	vectors[1].Y = ((int)y2 + y) << 16;
-	colors[1] = ColorUtils::Multiply(c2, GetBlendColor());
+	colors[1] = ColorUtils::Multiply(colors[1], GetBlendColor());
 	vectors[2].X = ((int)x3 + x) << 16;
 	vectors[2].Y = ((int)y3 + y) << 16;
-	colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
+	colors[2] = ColorUtils::Multiply(colors[2], GetBlendColor());
 	PolygonRasterizer::DrawBasicBlend(vectors, colors, 3, blendState);
 }
-void SoftwareRenderer::FillQuad(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4) {
+void SoftwareRenderer::FillQuad(float* xc, float* yc) {
 	View* currentView = Graphics::CurrentView;
 	if (!currentView) {
 		return;
@@ -2610,6 +2606,15 @@ void SoftwareRenderer::FillQuad(float x1,
 	y += out->Values[13];
 	x -= cx;
 	y -= cy;
+
+	float x1 = xc[0];
+	float y1 = yc[0];
+	float x2 = xc[1];
+	float y2 = yc[1];
+	float x3 = xc[2];
+	float y3 = yc[2];
+	float x4 = xc[3];
+	float y4 = yc[3];
 
 	Vector2 vectors[4];
 	vectors[0].X = ((int)x1 + x) << 16;
@@ -2622,18 +2627,7 @@ void SoftwareRenderer::FillQuad(float x1,
 	vectors[3].Y = ((int)y4 + y) << 16;
 	PolygonRasterizer::DrawBasic(vectors, ColRGB, 4, blendState);
 }
-void SoftwareRenderer::FillQuadBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4) {
+void SoftwareRenderer::FillQuadBlend(float* xc, float* yc, int* colors) {
 	View* currentView = Graphics::CurrentView;
 	if (!currentView) {
 		return;
@@ -2655,22 +2649,47 @@ void SoftwareRenderer::FillQuadBlend(float x1,
 	x -= cx;
 	y -= cy;
 
-	int colors[4];
+	float x1 = xc[0];
+	float y1 = yc[0];
+	float x2 = xc[1];
+	float y2 = yc[1];
+	float x3 = xc[2];
+	float y3 = yc[2];
+	float x4 = xc[3];
+	float y4 = yc[3];
+
 	Vector2 vectors[4];
 	vectors[0].X = ((int)x1 + x) << 16;
 	vectors[0].Y = ((int)y1 + y) << 16;
-	colors[0] = ColorUtils::Multiply(c1, GetBlendColor());
+	colors[0] = ColorUtils::Multiply(colors[0], GetBlendColor());
 	vectors[1].X = ((int)x2 + x) << 16;
 	vectors[1].Y = ((int)y2 + y) << 16;
-	colors[1] = ColorUtils::Multiply(c2, GetBlendColor());
+	colors[1] = ColorUtils::Multiply(colors[1], GetBlendColor());
 	vectors[2].X = ((int)x3 + x) << 16;
 	vectors[2].Y = ((int)y3 + y) << 16;
-	colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
+	colors[2] = ColorUtils::Multiply(colors[2], GetBlendColor());
 	vectors[3].X = ((int)x4 + x) << 16;
 	vectors[3].Y = ((int)y4 + y) << 16;
-	colors[3] = ColorUtils::Multiply(c4, GetBlendColor());
+	colors[3] = ColorUtils::Multiply(colors[3], GetBlendColor());
 	PolygonRasterizer::DrawBasicBlend(vectors, colors, 4, blendState);
 }
+void SoftwareRenderer::DrawTriangle(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {
+	DrawShapeTextured(texture, 3, xc, yc, colors, tu, tv);
+}
+void SoftwareRenderer::DrawQuad(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {
+	DrawShapeTextured(texture, 4, xc, yc, colors, tu, tv);
+}
+
 void SoftwareRenderer::DrawShapeTextured(Texture* texturePtr,
 	unsigned numPoints,
 	float* px,
@@ -2699,120 +2718,39 @@ void SoftwareRenderer::DrawShapeTextured(Texture* texturePtr,
 	x -= cx;
 	y -= cy;
 
-	int colors[MAX_POLYGON_VERTICES];
-	Vector3 vectors[MAX_POLYGON_VERTICES];
-	Vector2 uv[MAX_POLYGON_VERTICES];
-
 	if (numPoints > MAX_POLYGON_VERTICES) {
 		numPoints = MAX_POLYGON_VERTICES;
 	}
 
-	for (unsigned i = 0; i < numPoints; i++) {
-		vectors[i].X = ((int)px[i] + x) << 16;
-		vectors[i].Y = ((int)py[i] + y) << 16;
-		vectors[i].Z = FP16_TO(1.0f);
-		colors[i] = ColorUtils::Multiply(pc[i], GetBlendColor());
-		uv[i].X = ((int)pu[i]) << 16;
-		uv[i].Y = ((int)pv[i]) << 16;
+	if (texturePtr) {
+		Vector3 vectors[MAX_POLYGON_VERTICES];
+		int colors[MAX_POLYGON_VERTICES];
+		Vector2 uv[MAX_POLYGON_VERTICES];
+
+		for (unsigned i = 0; i < numPoints; i++) {
+			vectors[i].X = ((int)px[i] + x) << 16;
+			vectors[i].Y = ((int)py[i] + y) << 16;
+			vectors[i].Z = FP16_TO(1.0f);
+			colors[i] = ColorUtils::Multiply(pc[i], GetBlendColor());
+			uv[i].X = ((int)pu[i]) << 16;
+			uv[i].Y = ((int)pv[i]) << 16;
+		}
+
+		PolygonRasterizer::DrawBlendPerspective(
+			texturePtr, vectors, uv, colors, numPoints, blendState);
 	}
+	else {
+		Vector2 vectors[MAX_POLYGON_VERTICES];
+		int colors[MAX_POLYGON_VERTICES];
 
-	PolygonRasterizer::DrawBlendPerspective(
-		texturePtr, vectors, uv, colors, numPoints, blendState);
-}
-void SoftwareRenderer::DrawTriangleTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3) {
-	float px[3];
-	float py[3];
-	float pu[3];
-	float pv[3];
-	int pc[3];
+		for (unsigned i = 0; i < numPoints; i++) {
+			vectors[i].X = ((int)px[i] + x) << 16;
+			vectors[i].Y = ((int)py[i] + y) << 16;
+			colors[i] = ColorUtils::Multiply(pc[i], GetBlendColor());
+		}
 
-	px[0] = x1;
-	py[0] = y1;
-	pu[0] = u1;
-	pv[0] = v1;
-	pc[0] = c1;
-
-	px[1] = x2;
-	py[1] = y2;
-	pu[1] = u2;
-	pv[1] = v2;
-	pc[1] = c2;
-
-	px[2] = x3;
-	py[2] = y3;
-	pu[2] = u3;
-	pv[2] = v3;
-	pc[2] = c3;
-
-	DrawShapeTextured(texturePtr, 3, px, py, pc, pu, pv);
-}
-void SoftwareRenderer::DrawQuadTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3,
-	float u4,
-	float v4) {
-	float px[4];
-	float py[4];
-	float pu[4];
-	float pv[4];
-	int pc[4];
-
-	px[0] = x1;
-	py[0] = y1;
-	pu[0] = u1;
-	pv[0] = v1;
-	pc[0] = c1;
-
-	px[1] = x2;
-	py[1] = y2;
-	pu[1] = u2;
-	pv[1] = v2;
-	pc[1] = c2;
-
-	px[2] = x3;
-	py[2] = y3;
-	pu[2] = u3;
-	pv[2] = v3;
-	pc[2] = c3;
-
-	px[3] = x4;
-	py[3] = y4;
-	pu[3] = u4;
-	pv[3] = v4;
-	pc[3] = c4;
-
-	DrawShapeTextured(texturePtr, 4, px, py, pc, pu, pv);
+		PolygonRasterizer::DrawBasicBlend(vectors, colors, numPoints, blendState);
+	}
 }
 
 void DrawSpriteImage(Texture* texture,
@@ -3006,7 +2944,7 @@ void DrawSpriteImage(Texture* texture,
 	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
 
-	if (Graphics::UsePalettes && texture->Paletted) {
+	if (Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED) {
 		if (paletteID != PALETTE_INDEX_TABLE_ID) {
 			index = &Graphics::PaletteColors[paletteID][0];
 		}
@@ -3404,7 +3342,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
 
-	if (Graphics::UsePalettes && texture->Paletted) {
+	if (Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED) {
 		if (paletteID != PALETTE_INDEX_TABLE_ID) {
 			index = &Graphics::PaletteColors[paletteID][0];
 		}
@@ -3815,7 +3753,8 @@ void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View
 		srcStrides.push_back(srcStride = texture->Width);
 		tileSources.push_back(
 			(&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
-		isPalettedSources.push_back(Graphics::UsePalettes && texture->Paletted);
+		isPalettedSources.push_back(
+			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
 		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
 	}
 
@@ -4414,7 +4353,8 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 		srcStrides.push_back(srcStride = texture->Width);
 		tileSources.push_back(
 			(&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
-		isPalettedSources.push_back(Graphics::UsePalettes && texture->Paletted);
+		isPalettedSources.push_back(
+			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
 		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
 	}
 
