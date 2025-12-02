@@ -1222,6 +1222,7 @@
                     <li><a href="#Reference_functions_String_Format">String.Format</a></li>
                     <li><a href="#Reference_functions_String_Split">String.Split</a></li>
                     <li><a href="#Reference_functions_String_CharAt">String.CharAt</a></li>
+                    <li><a href="#Reference_functions_String_CodepointAt">String.CodepointAt</a></li>
                     <li><a href="#Reference_functions_String_Length">String.Length</a></li>
                     <li><a href="#Reference_functions_String_Compare">String.Compare</a></li>
                     <li><a href="#Reference_functions_String_IndexOf">String.IndexOf</a></li>
@@ -9011,11 +9012,11 @@
         <p id="Reference_functions_Sprite_GetTextArray">
         <h2 style="margin-bottom: 8px;">Sprite.GetTextArray</h2>
         <code>Sprite.GetTextArray(sprite, animation, text)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Converts a string to an array of sprite indexes by comparing UTF-16 values to a frame's ID.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a string to an array of sprite indexes by comparing codepoints to a frame's ID.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sprite (Integer): The sprite index.</li>
-        <li>animation (Integer): The animation index containing frames with UTF-16 ID values.</li>
+        <li>animation (Integer): The animation index containing frames with codepoint ID values.</li>
         <li>text (String): The text to convert.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -9447,13 +9448,24 @@
         </p>
         <p id="Reference_functions_String_CharAt">
         <h2 style="margin-bottom: 8px;">String.CharAt</h2>
-        <code>String.CharAt(string, index[, utf16])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the value of the character at the specified index.</div>
+        <code>String.CharAt(string, index)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the 8-bit value of the character at the specified index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>string (String): The string containing the character.</li>
         <li>index (Integer): The character index to check.</li>
-        <li>utf16 (Boolean): Whether to use UTF-16 encoding. Otherwise, UTF-8 encoding is used.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the value as an Integer.</div>
+        </p>
+        <p id="Reference_functions_String_CodepointAt">
+        <h2 style="margin-bottom: 8px;">String.CodepointAt</h2>
+        <code>String.CodepointAt(string, index)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the codepoint value of the character at the specified index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>string (String): The string containing the character.</li>
+        <li>index (Integer): The character index to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the value as an Integer.</div>
@@ -10454,7 +10466,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>762 out of 817 functions have descriptions. </p>
+        <p>763 out of 818 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
