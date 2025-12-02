@@ -2287,8 +2287,10 @@ void Application::InitSettings() {
 
 #ifdef DEVELOPER_MODE
 	Application::Settings->SetBool("dev", "devMenu", true);
-	Application::Settings->SetBool("dev", "writeLogFile", true);
-	Application::Settings->SetBool("dev", "trackMemory", false);
+	if (!Running) {
+		Application::Settings->SetBool("dev", "writeLogFile", true);
+		Application::Settings->SetBool("dev", "trackMemory", false);
+	}
 	Application::Settings->SetBool("dev", "viewPerformance", false);
 	Application::Settings->SetInteger("dev", "fastForward", 4);
 	int logLevel = 0;
