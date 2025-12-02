@@ -2358,22 +2358,45 @@ int Application::HandleAppEvents(void* data, SDL_Event* event) {
 }
 
 void Application::DrawDevString(const char* string, int x, int y, int align, bool isSelected) {
-	TextDrawParams textParams;
+	float scaleX = (float)DevMenu.CurrentWindowWidth / Application::WindowWidth;
+	float scaleY = (float)DevMenu.CurrentWindowHeight / Application::WindowHeight;
 
-	textParams.FontSize = 15 * (DevMenu.CurrentWindowWidth / Application::WindowWidth);
+	TextDrawParams textParams;
+	textParams.FontSize = 15 * scaleX;
 	textParams.Ascent = DefaultFont->Ascent;
 	textParams.Descent = DefaultFont->Descent;
 	textParams.Leading = DefaultFont->Leading;
 
 	float maxW = 0.0, maxH = 0.0;
 	Graphics::MeasureText(DefaultFont, string, &textParams, maxW, maxH);
-	if (align == ALIGN_CENTER) x -= (maxW / 2) / (DevMenu.CurrentWindowWidth / Application::WindowWidth);
-	else if (align == ALIGN_RIGHT) x -= maxW / (DevMenu.CurrentWindowWidth / Application::WindowWidth);
+	if (align == ALIGN_CENTER) x -= (maxW / 2) / scaleX;
+	else if (align == ALIGN_RIGHT) x -= maxW / scaleX;
 
 	Graphics::SetBlendColor(0.28125, 0.28125, 0.4375, 1.0);
-	// Graphics::DrawText(DefaultFont, string, (x + 0.5) * (DevMenu.CurrentWindowWidth / Application::WindowWidth), (y + 0.5) * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
+	Graphics::DrawText(DefaultFont, string, (x + 0.5) * scaleX, (y + 0.5) * scaleY, &textParams);
 	isSelected ? Graphics::SetBlendColor(0.9375, 0.9375, 0.9375, 1.0) : Graphics::SetBlendColor(0.5, 0.625, 0.6875, 1.0);
-	Graphics::DrawText(DefaultFont, string, x * (DevMenu.CurrentWindowWidth / Application::WindowWidth), y * (DevMenu.CurrentWindowHeight / Application::WindowHeight), &textParams);
+	Graphics::DrawText(DefaultFont, string, x * scaleX, y * scaleY, &textParams);
+}
+
+void Application::SetBlendColor(int color) {
+	Graphics::SetBlendColor(
+		(color >> 16 & 0xFF) / 255.f,
+		(color >> 8 & 0xFF) / 255.f,
+		(color & 0xFF) / 255.f, 1.0);
+}
+
+void Application::DrawRectangle(float x, float y, float width, float height, int color, int alpha) {
+	float scaleX = (float)DevMenu.CurrentWindowWidth / Application::WindowWidth;
+	float scaleY = (float)DevMenu.CurrentWindowHeight / Application::WindowHeight;
+
+	Graphics::SetBlendColor(
+		(color >> 16 & 0xFF) / 255.f,
+		(color >> 8 & 0xFF) / 255.f,
+		(color & 0xFF) / 255.f, alpha / 256.0f);
+
+	Graphics::FillRectangle(
+		x * scaleX, y * scaleY,
+		width * scaleX, height * scaleY);
 }
 
 void Application::RunDevMenu() {
@@ -2444,21 +2467,6 @@ void Application::CloseDevMenu() {
 		DevMenu.MusicPausedStore = false;
 	}
 	AudioManager::Unlock();
-}
-
-void Application::SetBlendColor(int color) {
-	Graphics::SetBlendColor(
-		(color >> 16 & 0xFF) / 255.f,
-		(color >> 8 & 0xFF) / 255.f,
-		(color & 0xFF) / 255.f, 1.0);
-}
-
-void Application::DrawRectangle(float x, float y, float width, float height, int color, int alpha) {
-	Graphics::SetBlendColor(
-		(color >> 16 & 0xFF) / 255.f,
-		(color >> 8 & 0xFF) / 255.f,
-		(color & 0xFF) / 255.f, alpha / 256.0f);
-	Graphics::FillRectangle(x * (DevMenu.CurrentWindowWidth / Application::WindowWidth), y * (DevMenu.CurrentWindowHeight / Application::WindowHeight), width * (DevMenu.CurrentWindowWidth / Application::WindowWidth), height * (DevMenu.CurrentWindowHeight / Application::WindowHeight));
 }
 
 void Application::DevMenu_DrawMainMenu() {
