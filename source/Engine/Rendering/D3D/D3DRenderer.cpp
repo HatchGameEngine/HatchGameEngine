@@ -271,33 +271,16 @@ const char* D3D_GetResultString(HRESULT result) {
 }
 D3DFORMAT D3D_PixelFormatToD3DFORMAT(Uint32 format) {
 	switch (format) {
-	case SDL_PIXELFORMAT_RGB565:
-		return D3DFMT_R5G6B5;
-	case SDL_PIXELFORMAT_RGB888:
-		return D3DFMT_X8R8G8B8;
-	case SDL_PIXELFORMAT_ARGB8888:
+	case TextureFormat_ARGB8888:
 		return D3DFMT_A8R8G8B8;
-	case SDL_PIXELFORMAT_YV12:
-	case SDL_PIXELFORMAT_IYUV:
-	case SDL_PIXELFORMAT_NV12:
-	case SDL_PIXELFORMAT_NV21:
+	case TextureFormat_YV12:
+	case TextureFormat_IYUV:
+	case TextureFormat_NV12:
+	case TextureFormat_NV21:
 		return D3DFMT_L8;
 	default:
 		return D3DFMT_UNKNOWN;
 	}
-}
-Uint32 D3D_D3DFORMATToPixelFormat(D3DFORMAT format) {
-	switch (format) {
-	case D3DFMT_R5G6B5:
-		return SDL_PIXELFORMAT_RGB565;
-	case D3DFMT_X8R8G8B8:
-		return SDL_PIXELFORMAT_RGB888;
-	case D3DFMT_A8R8G8B8:
-		return SDL_PIXELFORMAT_ARGB8888;
-	default:
-		return SDL_PIXELFORMAT_UNKNOWN;
-	}
-	return SDL_PIXELFORMAT_UNKNOWN;
 }
 int D3D_SetError(const char* error, HRESULT result) {
 	Log::Print(Log::LOG_ERROR, "D3D: %s (%s)", error, D3D_GetResultString(result));
@@ -314,7 +297,7 @@ void D3D_CreateTexture(Texture* texture) {
 	textureData->ScaleMode = Graphics::TextureInterpolate ? D3DTEXF_LINEAR : D3DTEXF_POINT;
 
 	DWORD usage = 0;
-	if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
+	if (texture->Access == TextureAccess_RENDERTARGET) {
 		usage = D3DUSAGE_RENDERTARGET;
 	}
 
@@ -442,7 +425,7 @@ void D3D_Reset() {
 
 	/* Release application render targets */
 	for (Texture* texture = Graphics::TextureHead; texture != NULL; texture = texture->Next) {
-		if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
+		if (texture->Access == TextureAccess_RENDERTARGET) {
 			D3DRenderer::DisposeTexture(texture);
 		}
 		else {
@@ -465,7 +448,7 @@ void D3D_Reset() {
 
 	/* Allocate application render targets */
 	for (Texture* texture = Graphics::TextureHead; texture != NULL; texture = texture->Next) {
-		if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
+		if (texture->Access == TextureAccess_RENDERTARGET) {
 			D3D_CreateTexture(texture);
 		}
 	}
@@ -657,7 +640,7 @@ void D3D_DrawTextureRaw(Texture* texture,
 	// NOTE: We do this because Direct3D9's origin for render
 	// targets is top-left,
 	//    instead of the usual bottom-left.
-	if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
+	if (texture->Access == TextureAccess_RENDERTARGET) {
 		// miny = y + h;
 		// maxy = y;
 		// if (Graphics::CurrentRenderTarget != NULL)
@@ -725,7 +708,7 @@ void D3D_DrawTextureRaw(Texture* texture,
 		// sizeof(float) * 16);
 		Graphics::Save();
 		Graphics::Translate(x, y, 0.0f);
-		if (texture->Access != SDL_TEXTUREACCESS_TARGET) {
+		if (texture->Access != TextureAccess_RENDERTARGET) {
 			Graphics::Translate(-0.5f * fx, 0.5f * fy, 0.0f);
 		}
 		else {
@@ -771,7 +754,8 @@ void D3D_EndDrawShape(Vertex* shapeBuffer, D3DPRIMITIVETYPE prim, int triangleCo
 
 // Initialization and disposal functions
 void D3DRenderer::Init() {
-	Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
+	Graphics::PreferredPixelFormat = PixelFormat_ARGB8888;
+	Graphics::TextureFormat = TextureFormat_ARGB8888;
 	D3D_MatrixIdentity = Matrix4x4::Create();
 
 	renderData = (D3D_RenderData*)calloc(1, sizeof(D3D_RenderData));
@@ -1507,7 +1491,7 @@ void D3DRenderer::DrawTexture(Texture* texture,
 		w,
 		h,
 		false,
-		texture->Access != SDL_TEXTUREACCESS_TARGET);
+		texture->Access != TextureAccess_RENDERTARGET);
 }
 void D3DRenderer::DrawSprite(ISprite* sprite,
 	int animation,

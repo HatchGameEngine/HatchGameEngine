@@ -65,7 +65,8 @@ bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 		if (ScriptManager::Lock()) {
 			ObjArray* array = NewArray();
 
-			for (auto it = shader->UniformMap.begin(); it != shader->UniformMap.end(); it++) {
+			for (auto it = shader->UniformMap.begin(); it != shader->UniformMap.end();
+				it++) {
 				ObjString* name = CopyString(it->first.c_str());
 				array->Values->push_back(OBJECT_VAL(name));
 			}
@@ -226,7 +227,8 @@ VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
 		stream = ResourceStream::New(filename);
 
 		if (!stream) {
-			throw ScriptException("Resource \"" + std::string(filename) + "\" does not exist!");
+			throw ScriptException(
+				"Resource \"" + std::string(filename) + "\" does not exist!");
 		}
 
 		closeStream = true;
@@ -934,7 +936,7 @@ VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) 
 }
 /***
  * \method Delete
- * \desc Deletes a shader. It can no longer be used after this function is called.
+ * \desc Deletes the shader. It can no longer be used after this function is called.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {

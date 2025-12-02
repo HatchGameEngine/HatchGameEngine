@@ -274,7 +274,7 @@ GIF* GIF::Load(Stream* stream) {
 	gif->Data = (Uint32*)Memory::TrackedMalloc("GIF::Data", width * height * sizeof(Uint32));
 	// Load Palette Table
 	gif->Colors = (Uint32*)Memory::TrackedMalloc("GIF::Colors", 0x100 * sizeof(Uint32));
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
+	if (Graphics::TextureFormat == TextureFormat_ABGR8888) {
 		for (int p = 0; p < paletteTableSize; p++) {
 			gif->Colors[p] = 0xFF000000U;
 			// Load 'red'

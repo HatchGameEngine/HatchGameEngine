@@ -1,0 +1,214 @@
+#include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/StandardLibrary.h>
+#include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
+#include <Engine/Bytecode/TypeImpl/TextureImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/Bytecode/Value.h>
+
+ObjClass* TextureImpl::Class = nullptr;
+
+void TextureImpl::Init() {
+	Class = NewClass(CLASS_TEXTURE);
+	Class->NewFn = New;
+	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
+
+	ScriptManager::DefineNative(Class, "CopyPixels", VM_CopyPixels);
+	ScriptManager::DefineNative(Class, "Apply", VM_Apply);
+	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
+
+	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(CLASS_TEXTURE, Class);
+	TypeImpl::DefinePrintableName(Class, "texture");
+}
+
+#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
+#define GET_ARG_OPT(argIndex, argFunction, argDefault) \
+	(argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
+
+Obj* TextureImpl::New() {
+	ObjTexture* texture = (ObjTexture*)NewNativeInstance(sizeof(ObjTexture));
+	Memory::Track(texture, "NewTexture");
+	texture->Object.Class = Class;
+	texture->Object.Destructor = Dispose;
+	return (Obj*)texture;
+}
+/***
+ * \constructor
+ * \desc Creates a texture with the given dimensions.
+ * \param width (Integer): The width of the texture.
+ * \param height (Integer): The height of the texture.
+ * \param access (Enum): The <linkto ref="TEXTUREACCESS_*">access mode</linkto> of the texture. The default is <code>TextureAccess_RENDERTARGET</code>.
+ * \param format (Enum): The <linkto ref="TEXTUREFORMAT_*">format</linkto> of the texture. The default is <code>TextureFormat_RGBA8888</code>, or the preferred texture format for render target textures.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+
+	StandardLibrary::CheckAtLeastArgCount(argCount, 3);
+
+	int width = GET_ARG(1, GetInteger);
+	int height = GET_ARG(2, GetInteger);
+	int access = GET_ARG_OPT(3, GetInteger, TextureAccess_STATIC);
+	int format = GET_ARG_OPT(4,
+		GetInteger,
+		access == TextureAccess_RENDERTARGET ? Graphics::TextureFormat
+						     : TextureFormat_RGBA8888);
+
+	if (access < 0 || access > TextureAccess_RENDERTARGET) {
+		char errorString[128];
+
+		snprintf(errorString,
+			sizeof errorString,
+			"Texture access mode %d out of range. (%d - %d)",
+			format,
+			0,
+			TextureAccess_RENDERTARGET);
+
+		throw ScriptException(errorString);
+	}
+	if (access == TextureAccess_RENDERTARGET && format != Graphics::TextureFormat) {
+		throw ScriptException(
+			"Texture format of a render target texture must match the preferred format!");
+	}
+	if (format < 0 || format > TextureFormat_INDEXED) {
+		char errorString[128];
+
+		snprintf(errorString,
+			sizeof errorString,
+			"Texture format %d out of range. (%d - %d)",
+			format,
+			0,
+			TextureFormat_INDEXED);
+
+		throw ScriptException(errorString);
+	}
+
+	Texture* texture = Graphics::CreateTexture(format, access, width, height);
+
+	ScriptManager::RegistryAdd(texture, (Obj*)objTexture);
+
+	return OBJECT_VAL(objTexture);
+}
+void TextureImpl::Dispose(Obj* object) {
+	// Yes, this leaks memory.
+	// Use Delete() in your script for a texture you no longer need!
+	InstanceImpl::Dispose(object);
+}
+
+void* TextureImpl::GetTexture(ObjTexture* object) {
+	return ScriptManager::RegistryGet((Obj*)object);
+}
+ObjTexture* TextureImpl::GetTextureObject(void* texture) {
+	if (texture == nullptr) {
+		return nullptr;
+	}
+
+	Obj* obj = ScriptManager::RegistryGet(texture);
+	if (obj != nullptr) {
+		return (ObjTexture*)obj;
+	}
+
+	obj = ScriptManager::RegistryAdd(texture, TextureImpl::New());
+
+	return (ObjTexture*)obj;
+}
+
+#define CHECK_EXISTS(ptr) \
+	if (ptr == nullptr) { \
+		throw ScriptException("Texture is no longer valid!"); \
+	}
+
+#define CHECK_NOT_TRYING_TO_UPDATE(obj) \
+	if (obj->IsViewTexture) { \
+		throw ScriptException( \
+			"Cannot update a texture that is a draw target belonging to a view!"); \
+	}
+
+/***
+ * \method CopyPixels
+ * \desc Copies pixels from another Texture or Image into the texture.
+ * \param srcTexture The texture or image to copy pixels from.
+ * \param srcX The X offset of the region to copy.
+ * \param srcY The Y offset of the region to copy.
+ * \param srcWidth The width of the region to copy.
+ * \param srcHeight The height of the region to copy.
+ * \param destX The X offset of the destination.
+ * \param destY The Y offset of the destination.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 1);
+
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+	Texture* texture = (Texture*)GetTexture(objTexture);
+	Texture* srcTexture = GET_ARG(1, GetDrawable);
+
+	CHECK_EXISTS(texture);
+
+	int srcX = GET_ARG_OPT(2, GetInteger, 0);
+	int srcY = GET_ARG_OPT(3, GetInteger, 0);
+	int srcWidth = GET_ARG_OPT(4, GetInteger, srcTexture ? srcTexture->Width : 0);
+	int srcHeight = GET_ARG_OPT(5, GetInteger, srcTexture ? srcTexture->Height : 0);
+	int destX = GET_ARG_OPT(6, GetInteger, 0);
+	int destY = GET_ARG_OPT(7, GetInteger, 0);
+
+	CHECK_NOT_TRYING_TO_UPDATE(objTexture);
+
+	if (srcTexture == nullptr) {
+		return NULL_VAL;
+	}
+
+	if (!Texture::CanConvertBetweenFormats(srcTexture->Format, texture->Format)) {
+		throw ScriptException("Incompatible texture formats!");
+	}
+
+	Graphics::CopyTexturePixels(
+		texture, destX, destY, srcTexture, srcX, srcY, srcWidth, srcHeight);
+
+	return NULL_VAL;
+}
+/***
+ * \method Apply
+ * \desc Uploads all changes made to the texture to the GPU. This is an expensive operation, so change the most amount of pixels as possible before calling this.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_Apply(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+	Texture* texture = (Texture*)GetTexture(objTexture);
+
+	CHECK_EXISTS(texture);
+	CHECK_NOT_TRYING_TO_UPDATE(objTexture);
+
+	Graphics::UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
+
+	return NULL_VAL;
+}
+/***
+ * \method Delete
+ * \desc Deletes the texture. It can no longer be used after this function is called.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+	Texture* texture = (Texture*)GetTexture(objTexture);
+
+	CHECK_EXISTS(texture);
+
+	if (objTexture->IsViewTexture) {
+		throw ScriptException(
+			"Cannot delete a draw target texture that belongs to a view!");
+	}
+
+	Graphics::DisposeTexture(texture);
+
+	return NULL_VAL;
+}
+
+#undef CHECK_EXISTS
+#undef CHECK_NOT_TRYING_TO_UPDATE
+#undef GET_ARG
+#undef GET_ARG_OPT

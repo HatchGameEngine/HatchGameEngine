@@ -207,7 +207,8 @@ enum ObjType {
 #define IS_NATIVE_INSTANCE(value) IsObjectType(value, OBJ_NATIVE_INSTANCE)
 #define IS_ENTITY(value) IsObjectType(value, OBJ_ENTITY)
 #define IS_INSTANCEABLE(value) (IS_INSTANCE(value) || IS_NATIVE_INSTANCE(value) || IS_ENTITY(value))
-#define IS_CALLABLE(value) (IS_FUNCTION(value) || IS_NATIVE_FUNCTION(value) || IS_BOUND_METHOD(value))
+#define IS_CALLABLE(value) \
+	(IS_FUNCTION(value) || IS_NATIVE_FUNCTION(value) || IS_BOUND_METHOD(value))
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))
@@ -347,6 +348,10 @@ struct ObjShader {
 struct ObjFont {
 	UNION_INSTANCEABLE;
 	Font* FontPtr;
+};
+struct ObjTexture {
+	UNION_INSTANCEABLE;
+	bool IsViewTexture;
 };
 
 #undef UNION_INSTANCEABLE

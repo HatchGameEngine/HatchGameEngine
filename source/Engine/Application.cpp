@@ -1307,7 +1307,8 @@ void Application::PollEvents() {
 
 			// Fullscreen
 			if (key == KeyBindsSDL[(int)KeyBind::Fullscreen]) {
-				Application::SetWindowFullscreen(!Application::GetWindowFullscreen());
+				Application::SetWindowFullscreen(
+					!Application::GetWindowFullscreen());
 				break;
 			}
 			// Toggle FPS counter

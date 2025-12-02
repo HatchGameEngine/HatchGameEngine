@@ -180,7 +180,7 @@ JPEG* JPEG::Load(Stream* stream) {
 	jpeg_finish_decompress(&cinfo);
 
 	doConvert = false;
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
+	if (Graphics::TextureFormat == TextureFormat_ABGR8888) {
 		Amask = (num_channels == 4) ? 0xFF000000 : 0;
 		Bmask = 0x00FF0000;
 		Gmask = 0x0000FF00;
@@ -189,7 +189,7 @@ JPEG* JPEG::Load(Stream* stream) {
 			doConvert = true;
 		}
 	}
-	else if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ARGB8888) {
+	else if (Graphics::TextureFormat == TextureFormat_ARGB8888) {
 		Amask = (num_channels == 4) ? 0xFF000000 : 0;
 		Rmask = 0x00FF0000;
 		Gmask = 0x0000FF00;
