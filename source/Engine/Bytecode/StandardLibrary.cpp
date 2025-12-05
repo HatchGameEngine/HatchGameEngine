@@ -5519,7 +5519,7 @@ static void PrepareMatrix(Matrix4x4* output, ObjArray* input) {
  * \ns Draw3D
  */
 VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	IModel* model = GET_ARG(0, GetModel);
 	int animation = GET_ARG(1, GetInteger);
@@ -5527,16 +5527,20 @@ VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjArray* matrixModelArr = NULL;
 	Matrix4x4 matrixModel;
-	if (!IS_NULL(args[3])) {
-		matrixModelArr = GET_ARG(3, GetArray);
-		PrepareMatrix(&matrixModel, matrixModelArr);
+	if (argCount >= 4) {
+		if (!IS_NULL(args[3])) {
+			matrixModelArr = GET_ARG(3, GetArray);
+			PrepareMatrix(&matrixModel, matrixModelArr);
+		}
 	}
 
 	ObjArray* matrixNormalArr = NULL;
 	Matrix4x4 matrixNormal;
-	if (!IS_NULL(args[4])) {
-		matrixNormalArr = GET_ARG(4, GetArray);
-		PrepareMatrix(&matrixNormal, matrixNormalArr);
+	if (argCount >= 5) {
+		if (!IS_NULL(args[4])) {
+			matrixNormalArr = GET_ARG(4, GetArray);
+			PrepareMatrix(&matrixNormal, matrixNormalArr);
+		}
 	}
 
 	if (model) {
@@ -5559,23 +5563,27 @@ VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw3D
  */
 VMValue Draw3D_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
+	CHECK_AT_LEAST_ARGCOUNT(2);
 
 	IModel* model = GET_ARG(0, GetModel);
 	int armature = GET_ARG(1, GetInteger);
 
 	ObjArray* matrixModelArr = NULL;
 	Matrix4x4 matrixModel;
-	if (!IS_NULL(args[2])) {
-		matrixModelArr = GET_ARG(2, GetArray);
-		PrepareMatrix(&matrixModel, matrixModelArr);
+	if (argCount >= 3) {
+		if (!IS_NULL(args[2])) {
+			matrixModelArr = GET_ARG(2, GetArray);
+			PrepareMatrix(&matrixModel, matrixModelArr);
+		}
 	}
 
 	ObjArray* matrixNormalArr = NULL;
 	Matrix4x4 matrixNormal;
-	if (!IS_NULL(args[3])) {
-		matrixNormalArr = GET_ARG(3, GetArray);
-		PrepareMatrix(&matrixNormal, matrixNormalArr);
+	if (argCount >= 4) {
+		if (!IS_NULL(args[3])) {
+			matrixNormalArr = GET_ARG(3, GetArray);
+			PrepareMatrix(&matrixNormal, matrixNormalArr);
+		}
 	}
 
 	if (model) {
