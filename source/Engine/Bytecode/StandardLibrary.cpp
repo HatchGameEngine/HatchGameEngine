@@ -6008,7 +6008,7 @@ VMValue Draw3D_Quad(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw3D
  */
 VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(7);
+	CHECK_AT_LEAST_ARGCOUNT(8);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -6084,7 +6084,7 @@ VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw3D
  */
 VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(11);
+	CHECK_AT_LEAST_ARGCOUNT(12);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -6306,7 +6306,7 @@ VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw3D
  */
 VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(7);
+	CHECK_AT_LEAST_ARGCOUNT(10);
 
 	VertexAttribute data[3];
 
@@ -6434,7 +6434,7 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw3D
  */
 VMValue Draw3D_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(16);
+	CHECK_AT_LEAST_ARGCOUNT(17);
 
 	VertexAttribute data[4];
 
