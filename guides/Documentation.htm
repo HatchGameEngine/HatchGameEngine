@@ -101,6 +101,7 @@
         <h3>Instance methods</h3>
         <ul>
             <li><a href="#Reference_Entity">Entity</a></li>
+            <li><a href="#Reference_Font">Font</a></li>
             <li><a href="#Reference_Shader">Shader</a></li>
         </ul>
         <h3>Enums</h3>
@@ -1434,6 +1435,34 @@
                     <li><a href="#Reference_methods_entity_LoopSound">entity.LoopSound</a></li>
                     <li><a href="#Reference_methods_entity_StopSound">entity.StopSound</a></li>
                     <li><a href="#Reference_methods_entity_StopAllSounds">entity.StopAllSounds</a></li>
+                </ul>
+            </p>
+            <p id="Reference_Font">
+                <h2>Font</h2>
+                <i>Instance methods:</i>
+                <ul>
+                    <li><a href="#Reference_methods_font_GetPixelsPerUnit">font.GetPixelsPerUnit</a></li>
+                    <li><a href="#Reference_methods_font_GetAscent">font.GetAscent</a></li>
+                    <li><a href="#Reference_methods_font_GetDescent">font.GetDescent</a></li>
+                    <li><a href="#Reference_methods_font_GetLeading">font.GetLeading</a></li>
+                    <li><a href="#Reference_methods_font_GetSpaceWidth">font.GetSpaceWidth</a></li>
+                    <li><a href="#Reference_methods_font_GetOversampling">font.GetOversampling</a></li>
+                    <li><a href="#Reference_methods_font_GetPixelCoverageThreshold">font.GetPixelCoverageThreshold</a></li>
+                    <li><a href="#Reference_methods_font_GetGlyphAdvance">font.GetGlyphAdvance</a></li>
+                    <li><a href="#Reference_methods_font_IsAntialiasingEnabled">font.IsAntialiasingEnabled</a></li>
+                    <li><a href="#Reference_methods_font_HasGlyph">font.HasGlyph</a></li>
+                    <li><a href="#Reference_methods_font_SetPixelsPerUnit">font.SetPixelsPerUnit</a></li>
+                    <li><a href="#Reference_methods_font_SetAscent">font.SetAscent</a></li>
+                    <li><a href="#Reference_methods_font_SetDescent">font.SetDescent</a></li>
+                    <li><a href="#Reference_methods_font_SetLeading">font.SetLeading</a></li>
+                    <li><a href="#Reference_methods_font_SetSpaceWidth">font.SetSpaceWidth</a></li>
+                    <li><a href="#Reference_methods_font_SetOversampling">font.SetOversampling</a></li>
+                    <li><a href="#Reference_methods_font_SetPixelCoverageThreshold">font.SetPixelCoverageThreshold</a></li>
+                    <li><a href="#Reference_methods_font_SetAntialiasing">font.SetAntialiasing</a></li>
+                </ul>
+                <i>Instance constructors:</i>
+                <ul>
+                    <li><a href="#Reference_constructors_Font">Font</a></li>
                 </ul>
             </p>
             <p id="Reference_Shader">
@@ -10492,7 +10521,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>763 out of 818 functions have descriptions. </p>
+        <p>765 out of 820 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -10777,6 +10806,156 @@
         <code>entity.StopAllSounds()</code>
         <div style="margin-top: 8px; font-size: 14px;">Stops all sounds the entity is playing.</div>
         </p>
+        <p id="Reference_methods_font_GetPixelsPerUnit">
+        <h2 style="margin-bottom: 8px;">font.GetPixelsPerUnit</h2>
+        <code>font.GetPixelsPerUnit()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the pixels per unit value of the font. The default for all fonts is <code>40</code>.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <p id="Reference_methods_font_GetAscent">
+        <h2 style="margin-bottom: 8px;">font.GetAscent</h2>
+        <code>font.GetAscent()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the distance in pixels above the baseline.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <p id="Reference_methods_font_GetDescent">
+        <h2 style="margin-bottom: 8px;">font.GetDescent</h2>
+        <code>font.GetDescent()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the distance in pixels below the baseline.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <p id="Reference_methods_font_GetLeading">
+        <h2 style="margin-bottom: 8px;">font.GetLeading</h2>
+        <code>font.GetLeading()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the distance between lines in pixels.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <p id="Reference_methods_font_GetSpaceWidth">
+        <h2 style="margin-bottom: 8px;">font.GetSpaceWidth</h2>
+        <code>font.GetSpaceWidth()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the width of the space character.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <p id="Reference_methods_font_GetOversampling">
+        <h2 style="margin-bottom: 8px;">font.GetOversampling</h2>
+        <code>font.GetOversampling()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the oversampling value. The default is <code>1</code> for all fonts.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_methods_font_GetPixelCoverageThreshold">
+        <h2 style="margin-bottom: 8px;">font.GetPixelCoverageThreshold</h2>
+        <code>font.GetPixelCoverageThreshold()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the pixel coverage threshold value. Pixels with coverage under this value become fully transparent, and pixels with coverage equal to or above this value become fully opaque. The default is <code>0.5</code> for all fonts.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <p id="Reference_methods_font_GetGlyphAdvance">
+        <h2 style="margin-bottom: 8px;">font.GetGlyphAdvance</h2>
+        <code>font.GetGlyphAdvance(codepoint)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the advance width of a given glyph through its code point, if it exists in the font.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>codepoint (Integer): An Unicode code point.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Decimal value, or <code>null</code> if no glyph representing the given code point exists in the font.</div>
+        </p>
+        <p id="Reference_methods_font_IsAntialiasingEnabled">
+        <h2 style="margin-bottom: 8px;">font.IsAntialiasingEnabled</h2>
+        <code>font.IsAntialiasingEnabled()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the font has anti-aliasing enabled.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> is anti-aliasing is enabled, <code>false</code> if otherwise.</div>
+        </p>
+        <p id="Reference_methods_font_HasGlyph">
+        <h2 style="margin-bottom: 8px;">font.HasGlyph</h2>
+        <code>font.HasGlyph(codepoint)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Checks if the font has a glyph for the given code point.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>codepoint (Integer): An Unicode code point.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns <code>true</code> if there is a glyph for the given code point, <code>false</code> if otherwise.</div>
+        </p>
+        <p id="Reference_methods_font_SetPixelsPerUnit">
+        <h2 style="margin-bottom: 8px;">font.SetPixelsPerUnit</h2>
+        <code>font.SetPixelsPerUnit(pixelsPerUnit)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the pixels per unit value of the font. Higher values improve the clarity, at the cost of increased memory usage. Note that this causes all glyphs to be reloaded, so this should usually only be called once.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>pixelsPerUnit (Number): The pixels per unit value.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_font_SetAscent">
+        <h2 style="margin-bottom: 8px;">font.SetAscent</h2>
+        <code>font.SetAscent(ascent)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the distance in pixels above the baseline.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>ascent (Number): The distance.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_font_SetDescent">
+        <h2 style="margin-bottom: 8px;">font.SetDescent</h2>
+        <code>font.SetDescent(descent)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the distance in pixels below the baseline.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>descent (Number): The distance.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_font_SetLeading">
+        <h2 style="margin-bottom: 8px;">font.SetLeading</h2>
+        <code>font.SetLeading(leading)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the distance between lines in pixels.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>leading (Number): The distance.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_font_SetSpaceWidth">
+        <h2 style="margin-bottom: 8px;">font.SetSpaceWidth</h2>
+        <code>font.SetSpaceWidth(spaceWidth)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the width of the space character.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>spaceWidth (Number): The width.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_font_SetOversampling">
+        <h2 style="margin-bottom: 8px;">font.SetOversampling</h2>
+        <code>font.SetOversampling(oversampling)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the oversampling value. Higher values increase font quality. Changing this value causes all font glyphs to be reloaded.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>oversampling (Integer): The oversampling value.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_font_SetPixelCoverageThreshold">
+        <h2 style="margin-bottom: 8px;">font.SetPixelCoverageThreshold</h2>
+        <code>font.SetPixelCoverageThreshold(threshold)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the pixel coverage threshold value. Pixels with coverage under this value become fully transparent, and pixels with coverage equal to or above this value become fully opaque. This only has an effect on fonts with anti-aliasing disabled.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>threshold (Decimal): The threshold value, from <code>0.0</code> to <code>1.0</code>.</li>
+        </ul>
+        </p>
+        <p id="Reference_methods_font_SetAntialiasing">
+        <h2 style="margin-bottom: 8px;">font.SetAntialiasing</h2>
+        <code>font.SetAntialiasing(useAntialiasing)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables anti-aliasing on the font. If disabling, you may want to increase the pixel coverage value with <code><a href="#Reference_methods_font_SetPixelCoverageThreshold">font.SetPixelCoverageThreshold</a></code>.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>useAntialiasing (Boolean): Whether or not to use anti-aliasing.</li>
+        </ul>
+        </p>
         <p id="Reference_methods_shader_HasStage">
         <h2 style="margin-bottom: 8px;">shader.HasStage</h2>
         <code>shader.HasStage(stage)</code>
@@ -10897,15 +11076,24 @@
         <code>shader.Delete()</code>
         <div style="margin-top: 8px; font-size: 14px;">Deletes a shader. It can no longer be used after this function is called.</div>
         </p>
-        <p>41 out of 41 methods have descriptions. </p>
+        <p>59 out of 59 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
+        <p id="Reference_constructors_Font">
+        <h2 style="margin-bottom: 8px;">Font</h2>
+        <code>Font([font])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Loads a font from the given Resource path, Stream, or Array containing Resource paths or Streams.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>font (String, Stream, or Array): The font or list of fonts. If this argument is not given, it will use font the application was built with, if one is present.</li>
+        </ul>
+        </p>
         <p id="Reference_constructors_Shader">
         <h2 style="margin-bottom: 8px;">Shader</h2>
         <code>Shader()</code>
         <div style="margin-top: 8px; font-size: 14px;">Creates a shader program.</div>
         </p>
-        <p>1 out of 1 constructors have descriptions. </p>
+        <p>2 out of 2 constructors have descriptions. </p>
         <hr/>
         <h3>Instance fields</h3>
         <p id="Reference_fields_instance_X">
@@ -12740,7 +12928,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>334 out of 334 enums have descriptions. </p>
+        <p>336 out of 336 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">
