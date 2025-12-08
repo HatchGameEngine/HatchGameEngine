@@ -30,6 +30,7 @@ public:
 	static int MouseDown;
 	static int MousePressed;
 	static int MouseReleased;
+	static int MouseMode;
 	static Uint8 KeyboardState[0x120];
 	static Uint8 KeyboardStateLast[0x120];
 	static Uint16 KeymodState;
@@ -57,6 +58,7 @@ public:
 	static bool IsKeyDown(int key);
 	static bool IsKeyPressed(int key);
 	static bool IsKeyReleased(int key);
+	static void SetMouseMode(int mode);
 	static Controller* GetController(int index);
 	static bool ControllerIsConnected(int index);
 	static bool ControllerIsXbox(int index);

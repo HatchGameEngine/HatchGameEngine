@@ -1249,6 +1249,13 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 	int window_w, window_h;
 	SDL_GetWindowSize(Application::Window, &window_w, &window_h);
 
+	if (InputManager::MouseMode != MOUSEMODE_DEFAULT) {
+		// Toggling fullscreen in relative mouse modes seems a little finnicky with respect to the
+		// mouse position... So we warp the cursor to the center of the window.
+		// Something more proper should be done, if possible.
+		SDL_WarpMouseInWindow(Application::Window, window_w / 2, window_h / 2);
+	}
+
 	if (Application::DevMenuActivated) {
 		DevMenu.Fullscreen = isFullscreen;
 		DevMenu.CurrentWindowWidth = window_w;

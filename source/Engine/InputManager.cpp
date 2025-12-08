@@ -7,6 +7,7 @@ float InputManager::MouseY = 0;
 int InputManager::MouseDown = 0;
 int InputManager::MousePressed = 0;
 int InputManager::MouseReleased = 0;
+int InputManager::MouseMode = MOUSEMODE_DEFAULT;
 
 Uint8 InputManager::KeyboardState[0x120];
 Uint8 InputManager::KeyboardStateLast[0x120];
@@ -497,6 +498,21 @@ bool InputManager::IsKeyPressed(int key) {
 bool InputManager::IsKeyReleased(int key) {
 	int scancode = (int)KeyToSDLScancode[key];
 	return !KeyboardState[scancode] && KeyboardStateLast[scancode];
+}
+
+void InputManager::SetMouseMode(int mode) {
+	switch (mode) {
+	case MOUSEMODE_DEFAULT:
+		SDL_SetRelativeMouseMode(SDL_FALSE);
+		break;
+	case MOUSEMODE_RELATIVE:
+		SDL_SetRelativeMouseMode(SDL_TRUE);
+		break;
+	default:
+		return;
+	}
+
+	MouseMode = mode;
 }
 
 Controller* InputManager::GetController(int index) {
