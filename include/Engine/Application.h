@@ -56,7 +56,7 @@ private:
 	static void CreateWindow();
 	static void EndGame();
 	static void UnloadGame();
-	static void Restart();
+	static void Restart(bool keepScene);
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
@@ -75,6 +75,20 @@ private:
 	static void LoadGameInfo();
 	static void DisposeSettings();
 	static int HandleAppEvents(void* data, SDL_Event* event);
+	static void DrawDevString(const char* string, int x, int y, int align, bool isSelected);
+	static void OpenDevMenu();
+	static void CloseDevMenu();
+	static void SetBlendColor(int color);
+	static void DrawRectangle(float x, float y, float width, float height, int color, int alpha);
+	static void RunDevMenu();
+	static void DevMenu_DrawMainMenu();
+	static void DevMenu_DrawTitleBar();
+	static void DevMenu_MainMenu();
+	static void DevMenu_CategorySelectMenu();
+	static void DevMenu_SceneSelectMenu();
+	static void DevMenu_SettingsMenu();
+	static void DevMenu_VideoMenu();
+	static void DevMenu_AudioMenu();
 
 public:
 	static vector<std::string> CmdLineArgs;
@@ -92,6 +106,9 @@ public:
 	static char WindowTitle[256];
 	static int WindowWidth;
 	static int WindowHeight;
+	static int WindowScale;
+	static bool WindowFullscreen;
+	static bool WindowBorderless;
 	static int DefaultMonitor;
 	static Platforms Platform;
 	static char EngineVersion[256];
@@ -107,9 +124,12 @@ public:
 	static int MasterVolume;
 	static int MusicVolume;
 	static int SoundVolume;
-	static bool DevMenuActivated;
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
+	static bool DisableDefaultActions;
+
+	static bool DevMenuActivated;
+	static DeveloperMenu DevMenu;
 
 	static ApplicationMetrics Metrics;
 	static std::vector<PerformanceMeasure*> AllMetrics;
@@ -145,12 +165,13 @@ public:
 	static bool GetWindowFullscreen();
 	static void SetWindowFullscreen(bool isFullscreen);
 	static void SetWindowBorderless(bool isBorderless);
+	static void SetWindowScale(int scale);
 	static int GetKeyBind(int bind);
 	static void SetKeyBind(int bind, int key);
 	static void Run(int argc, char* args[]);
 	static void Cleanup();
 	static void TerminateScripting();
-	static void LoadSceneInfo();
+	static void LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene);
 	static void InitPlayerControls();
 	static bool LoadSettings(const char* filename);
 	static void ReadSettings();
