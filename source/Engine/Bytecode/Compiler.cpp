@@ -2089,7 +2089,7 @@ void Compiler::GetRepeatStatement() {
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
 	if (!remaining) {
-		remaining = AddHiddenLocal("$remaining", 11);
+		remaining = AddHiddenLocal(" remaining", 11);
 	}
 	EmitByte(OP_INCREMENT); // increment remaining as we're about
 	// to decrement it, so we can cheat
@@ -2506,7 +2506,16 @@ void Compiler::GetForStatement() {
 		// No initializer.
 	}
 	else {
-		GetExpressionStatement();
+		// "for (<identifier> in <expression>)"
+		if (PeekNextToken().Type == TOKEN_IN) {
+			GetForEachBlock();
+			ScopeEnd();
+			return;
+		}
+		else {
+			// It's a regular 'for'
+			GetExpressionStatement();
+		}
 	}
 
 	int exitJump = -1;
@@ -2570,6 +2579,12 @@ void Compiler::GetForEachStatement() {
 
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'foreach'.");
 
+	GetForEachBlock();
+
+	// End new scope
+	ScopeEnd();
+}
+void Compiler::GetForEachBlock() {
 	// Variable name
 	ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
 
@@ -2581,16 +2596,15 @@ void Compiler::GetForEachStatement() {
 	GetExpression();
 
 	// Add a local for the object to be iterated
-	// The programmer cannot refer to it by name, so it begins with
-	// a dollar sign. The value in it is what GetExpression() left
-	// on the top of the stack
-	int iterObj = AddHiddenLocal("$iterObj", 8);
+	// The script should not be able to refer to it by name, so it begins with a space.
+	// The value in it is what GetExpression() left on the top of the stack
+	int iterObj = AddHiddenLocal(" iterObj", 8);
 
 	// Add a local for the iteration state
 	// Its initial value is null
 	EmitByte(OP_NULL);
 
-	int iterValue = AddHiddenLocal("$iterValue", 10);
+	int iterValue = AddHiddenLocal(" iterValue", 10);
 
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 
@@ -2651,9 +2665,6 @@ void Compiler::GetForEachStatement() {
 	// Pop jump list off break stack, patch all break to this code
 	// point
 	EndBreakJumpList();
-
-	// End new scope
-	ScopeEnd();
 }
 void Compiler::GetIfStatement() {
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
