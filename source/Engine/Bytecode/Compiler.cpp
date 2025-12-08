@@ -2306,11 +2306,19 @@ void Compiler::GetDefaultStatement() {
 
 	ConsumeToken(TOKEN_COLON, "Expected \":\" after \"default\".");
 
+	// Check if there already is a default clause, and prevent compilation if so.
+	vector<switch_case>* top = SwitchJumpListStack.top();
+	for (size_t i = 0; i < top->size(); i++) {
+		if ((*top)[i].IsDefault) {
+			Error("Cannot have multiple default clauses.");
+		}
+	}
+
 	switch_case case_info;
 	case_info.IsDefault = true;
 	case_info.CasePosition = CodePointer();
 
-	SwitchJumpListStack.top()->push_back(case_info);
+	top->push_back(case_info);
 }
 void Compiler::GetWhileStatement() {
 	// Set the start of the loop to before the condition
