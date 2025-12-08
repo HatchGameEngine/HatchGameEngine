@@ -145,6 +145,7 @@ public:
 	void GetWithStatement();
 	void GetForStatement();
 	void GetForEachStatement();
+	void GetForEachBlock();
 	void GetIfStatement();
 	void GetStatement();
 	int GetFunction(int type, string className);
