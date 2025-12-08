@@ -2160,16 +2160,32 @@ VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 thre
 
 	if (entity && outer && inner) {
 		auto ent = (Entity*)entity->EntityPtr;
+		
+		if (IS_INTEGER((*outer->Values)[0])) {
+			outerBox.Left = AS_INTEGER((*outer->Values)[0]);
+			outerBox.Top = AS_INTEGER((*outer->Values)[1]);
+			outerBox.Right = AS_INTEGER((*outer->Values)[2]);
+			outerBox.Bottom = AS_INTEGER((*outer->Values)[3]);
+		}
+		else {
+			outerBox.Left = (int)AS_DECIMAL((*outer->Values)[0]);
+			outerBox.Top = (int)AS_DECIMAL((*outer->Values)[1]);
+			outerBox.Right = (int)AS_DECIMAL((*outer->Values)[2]);
+			outerBox.Bottom = (int)AS_DECIMAL((*outer->Values)[3]);
+		}
 
-		outerBox.Left = (int)AS_DECIMAL((*outer->Values)[0]);
-		outerBox.Top = (int)AS_DECIMAL((*outer->Values)[1]);
-		outerBox.Right = (int)AS_DECIMAL((*outer->Values)[2]);
-		outerBox.Bottom = (int)AS_DECIMAL((*outer->Values)[3]);
-
-		innerBox.Left = (int)AS_DECIMAL((*inner->Values)[0]);
-		innerBox.Top = (int)AS_DECIMAL((*inner->Values)[1]);
-		innerBox.Right = (int)AS_DECIMAL((*inner->Values)[2]);
-		innerBox.Bottom = (int)AS_DECIMAL((*inner->Values)[3]);
+		if (IS_INTEGER((*inner->Values)[0])) {
+			innerBox.Left = AS_INTEGER((*inner->Values)[0]);
+			innerBox.Top = AS_INTEGER((*inner->Values)[1]);
+			innerBox.Right = AS_INTEGER((*inner->Values)[2]);
+			innerBox.Bottom = AS_INTEGER((*inner->Values)[3]);
+		}
+		else {
+			innerBox.Left = (int)AS_DECIMAL((*inner->Values)[0]);
+			innerBox.Top = (int)AS_DECIMAL((*inner->Values)[1]);
+			innerBox.Right = (int)AS_DECIMAL((*inner->Values)[2]);
+			innerBox.Bottom = (int)AS_DECIMAL((*inner->Values)[3]);
+		}
 		Scene::ProcessObjectMovement(ent, &outerBox, &innerBox);
 	}
 	return NULL_VAL;
