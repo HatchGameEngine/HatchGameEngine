@@ -938,12 +938,10 @@ bool Scene::SetView(int viewIndex) {
 		size_t stride = currentView->Software ? (size_t)currentView->Stride : view_w;
 		if (tar->Width != stride || tar->Height != view_h) {
 			Graphics::GfxFunctions = &Graphics::Internal;
-			Graphics::DisposeTexture(tar);
 			Graphics::SetTextureInterpolation(false);
-			currentView->DrawTarget = Graphics::CreateTexture(Graphics::TextureFormat,
-				TextureAccess_RENDERTARGET,
-				stride,
-				view_h);
+			if (!Graphics::ResizeTexture(currentView->DrawTarget, stride, view_h)) {
+				return false;
+			}
 		}
 
 		if (!Graphics::SetRenderTarget(currentView->DrawTarget)) {

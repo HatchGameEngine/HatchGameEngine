@@ -11,6 +11,7 @@
 class SDL2Renderer {
 private:
 	static SDL_BlendMode GetCustomBlendMode(int srcC, int dstC, int srcA, int dstA);
+	static bool InitializeTexture(Texture* texture);
 
 public:
 	static float RenderScale;
@@ -21,6 +22,8 @@ public:
 	static void SetGraphicsFunctions();
 	static void Dispose();
 	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static bool
+	ReinitializeTexture(Texture*, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static int UpdateTextureYUV(Texture* texture,

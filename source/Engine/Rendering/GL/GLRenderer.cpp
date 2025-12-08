@@ -1565,6 +1565,7 @@ void GLRenderer::SetGraphicsFunctions() {
 
 	// Texture management functions
 	Graphics::Internal.CreateTexture = GLRenderer::CreateTexture;
+	Graphics::Internal.ReinitializeTexture = GLRenderer::ReinitializeTexture;
 	Graphics::Internal.LockTexture = GLRenderer::LockTexture;
 	Graphics::Internal.UpdateTexture = GLRenderer::UpdateTexture;
 	Graphics::Internal.UpdateYUVTexture = GLRenderer::UpdateTextureYUV;
@@ -1690,15 +1691,11 @@ void GL_RenderbufferStorage(GLenum type, Uint32 width, Uint32 height, bool multi
 #endif
 
 // Texture management functions
-Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
-	Texture* texture = Texture::New(format, access, width, height);
-	texture->DriverData =
-		Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(GL_TextureData));
-
-	GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
+bool GL_CreateTexture(Texture* texture) {
+	GL_TextureData* textureData = (GL_TextureData*)Memory::TrackedCalloc(
+		"Texture::DriverData", 1, sizeof(GL_TextureData));
 
 	textureData->TextureTarget = GL_TEXTURE_2D;
-
 	textureData->Accessed = false;
 	textureData->Framebuffer = false;
 	textureData->Multisampled = false;
@@ -1753,28 +1750,34 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		glGenRenderbuffers(1, &textureData->RBO);
 		glBindRenderbuffer(GL_RENDERBUFFER, textureData->RBO);
 #ifdef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
-		GL_RenderbufferStorage(
-			GL_DEPTH24_STENCIL8, width, height, textureData->Multisampled);
+		GL_RenderbufferStorage(GL_DEPTH24_STENCIL8,
+			texture->Width,
+			texture->Height,
+			textureData->Multisampled);
 		CHECK_GL();
 #else
 #ifdef USE_DEPTH_COMPONENT16
-		GL_RenderbufferStorage(
-			GL_DEPTH_COMPONENT16, width, height, textureData->Multisampled);
+		GL_RenderbufferStorage(GL_DEPTH_COMPONENT16,
+			texture->Width,
+			texture->Height,
+			textureData->Multisampled);
 #else
-		GL_RenderbufferStorage(
-			GL_DEPTH_COMPONENT24, width, height, textureData->Multisampled);
+		GL_RenderbufferStorage(GL_DEPTH_COMPONENT24,
+			texture->Width,
+			texture->Height,
+			textureData->Multisampled);
 #endif
 		CHECK_GL();
 
 		glGenRenderbuffers(1, &textureData->StencilRBO);
 		glBindRenderbuffer(GL_RENDERBUFFER, textureData->StencilRBO);
-		GL_RenderbufferStorage(GL_STENCIL_INDEX8, width, height, textureData->Multisampled);
+		GL_RenderbufferStorage(GL_STENCIL_INDEX8,
+			texture->Width,
+			texture->Height,
+			textureData->Multisampled);
 		CHECK_GL();
 #endif
 #endif
-
-		width *= RetinaScale;
-		height *= RetinaScale;
 		break;
 	}
 	case TextureAccess_STREAMING: {
@@ -1817,8 +1820,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		glTexImage2D(textureData->TextureTarget,
 			0,
 			textureData->TextureStorageFormat,
-			width,
-			height,
+			texture->Width,
+			texture->Height,
 			0,
 			textureData->PixelDataFormat,
 			textureData->PixelDataType,
@@ -1833,8 +1836,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 			glTexImage2DMultisample(textureData->TextureTarget,
 				Graphics::MultisamplingEnabled,
 				textureData->PixelDataFormat,
-				width,
-				height,
+				texture->Width,
+				texture->Height,
 				GL_TRUE);
 			CHECK_GL();
 
@@ -1844,8 +1847,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 			glTexImage2D(GL_TEXTURE_2D,
 				0,
 				textureData->TextureStorageFormat,
-				width,
-				height,
+				texture->Width,
+				texture->Height,
 				0,
 				textureData->PixelDataFormat,
 				textureData->PixelDataType,
@@ -1874,8 +1877,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		glTexImage2D(textureData->TextureTarget,
 			0,
 			textureData->TextureStorageFormat,
-			(width + 1) / 2,
-			(height + 1) / 2,
+			(texture->Width + 1) / 2,
+			(texture->Height + 1) / 2,
 			0,
 			textureData->PixelDataFormat,
 			textureData->PixelDataType,
@@ -1888,8 +1891,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		glTexImage2D(textureData->TextureTarget,
 			0,
 			textureData->TextureStorageFormat,
-			(width + 1) / 2,
-			(height + 1) / 2,
+			(texture->Width + 1) / 2,
+			(texture->Height + 1) / 2,
 			0,
 			textureData->PixelDataFormat,
 			textureData->PixelDataType,
@@ -1988,9 +1991,33 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 	glBindTexture(textureData->TextureTarget, 0);
 
 	texture->ID = textureData->TextureID;
+	texture->DriverData = textureData;
+
+	return true;
+}
+Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+	Texture* texture = Texture::New(format, access, width, height);
+
+	GL_CreateTexture(texture);
+
 	Graphics::TextureMap->Put(texture->ID, texture);
 
 	return texture;
+}
+bool GLRenderer::ReinitializeTexture(Texture* texture,
+	Uint32 format,
+	Uint32 access,
+	Uint32 width,
+	Uint32 height) {
+	if (texture->DriverData != nullptr) {
+		GLRenderer::DisposeTexture(texture);
+	}
+
+	if (!Texture::Initialize(texture, format, access, width, height)) {
+		return false;
+	}
+
+	return GL_CreateTexture(texture);
 }
 int GLRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
@@ -2290,7 +2317,10 @@ void GLRenderer::DisposeTexture(Texture* texture) {
 		glDeleteTextures(1, &textureData->NonMultisampledTextureID);
 	}
 #endif
+
 	Memory::Free(textureData);
+
+	texture->DriverData = nullptr;
 }
 
 // Viewport and view-related functions

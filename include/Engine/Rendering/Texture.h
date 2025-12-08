@@ -24,6 +24,8 @@ public:
 	unsigned NumPaletteColors;
 
 	static Texture* New(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static bool Initialize(Texture* texture, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static bool Reinitialize(Texture* texture, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	void SetPalette(Uint32* palette, unsigned numPaletteColors);
 	static int GetFormatBytesPerPixel(int textureFormat);
 	static int PixelFormatToTextureFormat(int pixelFormat);

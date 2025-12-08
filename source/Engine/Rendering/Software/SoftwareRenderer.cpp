@@ -118,6 +118,8 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 
 	// Texture management functions
 	SoftwareRenderer::BackendFunctions.CreateTexture = SoftwareRenderer::CreateTexture;
+	SoftwareRenderer::BackendFunctions.ReinitializeTexture =
+		SoftwareRenderer::ReinitializeTexture;
 	SoftwareRenderer::BackendFunctions.LockTexture = SoftwareRenderer::LockTexture;
 	SoftwareRenderer::BackendFunctions.UpdateTexture = SoftwareRenderer::UpdateTexture;
 	SoftwareRenderer::BackendFunctions.UnlockTexture = SoftwareRenderer::UnlockTexture;
@@ -213,9 +215,14 @@ void SoftwareRenderer::RenderEnd(int viewIndex) {}
 // Texture management functions
 Texture*
 SoftwareRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
-	Texture* texture = NULL; // Texture::New(format, access, width, height);
-
-	return texture;
+	return nullptr;
+}
+bool SoftwareRenderer::ReinitializeTexture(Texture* texture,
+	Uint32 format,
+	Uint32 access,
+	Uint32 width,
+	Uint32 height) {
+	return false;
 }
 int SoftwareRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;

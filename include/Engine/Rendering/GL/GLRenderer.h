@@ -63,9 +63,6 @@ public:
 	static SDL_GLContext Context;
 	static GLShader* CurrentShader;
 	static GLShaderContainer* ShaderShape;
-	static GLShaderContainer* ShaderShape3D;
-	static GLShaderContainer* ShaderFogLinear;
-	static GLShaderContainer* ShaderFogExp;
 #ifdef GL_HAVE_YUV
 	static GLShaderContainer* ShaderYUV;
 #endif
@@ -81,6 +78,8 @@ public:
 	static void SetGraphicsFunctions();
 	static void Dispose();
 	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static bool
+	ReinitializeTexture(Texture*, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static int UpdateTextureYUV(Texture* texture,
