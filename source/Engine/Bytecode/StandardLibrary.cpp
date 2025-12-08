@@ -9986,7 +9986,7 @@ VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
   * \ns RSDK.Math
   */
 VMValue Math_ATan2(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_ARGCOUNT(2);
 	return INTEGER_VAL((int)Math::ArcTanLookup((int)(GET_ARG(0, GetDecimal) * 65536.0f),
 		(int)(GET_ARG(1, GetDecimal) * 65536.0f)));
 }
