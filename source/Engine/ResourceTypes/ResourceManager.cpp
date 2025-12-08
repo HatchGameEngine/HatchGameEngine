@@ -10,9 +10,7 @@
 
 #define RESOURCES_VFS_NAME "main"
 
-#ifdef DEVELOPER_MODE
 #define RESOURCES_DIR_PATH "Resources"
-#endif
 
 VirtualFileSystem* vfs = nullptr;
 VFSProvider* mainResource = nullptr;
@@ -63,9 +61,7 @@ bool ResourceManager::Init(const char* dataFilePath) {
 
 	std::vector<DataFileCandidate> candidates = FindDataFiles();
 
-#ifdef DEVELOPER_MODE
 	bool useResourcesFolder = true;
-#endif
 
 	UsingDataFolder = false;
 
@@ -75,9 +71,7 @@ bool ResourceManager::Init(const char* dataFilePath) {
 	if (dataFilePath != nullptr) {
 		bool found = false;
 
-#ifdef DEVELOPER_MODE
 		useResourcesFolder = false;
-#endif
 
 		if (dataFilePath[strlen(dataFilePath) - 1] == '/' &&
 			Directory::Exists(dataFilePath)) {
@@ -132,7 +126,6 @@ bool ResourceManager::Init(const char* dataFilePath) {
 		ResourceManager::Mount(
 			RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
 	}
-#ifdef DEVELOPER_MODE
 	else if (useResourcesFolder) {
 		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME,
 			RESOURCES_DIR_PATH,
@@ -141,7 +134,9 @@ bool ResourceManager::Init(const char* dataFilePath) {
 			VFS_READABLE | VFS_WRITABLE);
 
 		if (status == VFSMountStatus::MOUNTED) {
+#ifdef DEVELOPER_MODE
 			Log::Print(Log::LOG_INFO, "Using \"%s\" folder.", RESOURCES_DIR_PATH);
+#endif
 
 			ResourceManager::UsingDataFolder = true;
 		}
@@ -149,7 +144,6 @@ bool ResourceManager::Init(const char* dataFilePath) {
 			Log::Print(Log::LOG_ERROR, "Could not access \"%s\"!", RESOURCES_DIR_PATH);
 		}
 	}
-#endif
 
 	Memory::Free(filename);
 
@@ -197,11 +191,9 @@ bool ResourceManager::Init(const char* dataFilePath) {
 
 		return false;
 	}
-#ifdef DEVELOPER_MODE
 	else if (useResourcesFolder && GetMainResource()->IsEmpty()) {
 		Log::Print(Log::LOG_WARN, "\"%s\" folder is empty.", RESOURCES_DIR_PATH);
 	}
-#endif
 
 	return true;
 }
