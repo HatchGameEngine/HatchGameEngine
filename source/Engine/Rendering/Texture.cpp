@@ -6,6 +6,21 @@
 
 Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
 	Texture* texture = (Texture*)Memory::TrackedCalloc("Texture::Texture", 1, sizeof(Texture));
+	Texture::Initialize(texture, format, access, width, height);
+	return texture;
+}
+bool Texture::Initialize(Texture* texture,
+	Uint32 format,
+	Uint32 access,
+	Uint32 width,
+	Uint32 height) {
+	if (texture->Pixels) {
+		Memory::Free(texture->Pixels);
+	}
+	if (texture->PaletteColors) {
+		Memory::Free(texture->PaletteColors);
+	}
+
 	texture->Format = format;
 	texture->DriverFormat = format;
 	texture->Access = access;
@@ -13,7 +28,10 @@ Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, Uint32 height)
 	texture->Height = height;
 	texture->Pixels = Memory::TrackedCalloc(
 		"Texture::Pixels", 1, sizeof(Uint32) * texture->Width * texture->Height);
-	return texture;
+	texture->PaletteColors = nullptr;
+	texture->NumPaletteColors = 0;
+
+	return texture->Pixels != nullptr;
 }
 
 void Texture::SetPalette(Uint32* palette, unsigned numPaletteColors) {

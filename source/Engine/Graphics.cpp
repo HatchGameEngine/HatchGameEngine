@@ -367,6 +367,22 @@ Texture* Graphics::CreateTextureFromPixels(Uint32 format,
 
 	return texture;
 }
+bool Graphics::ReinitializeTexture(Texture* texture,
+	Uint32 format,
+	Uint32 access,
+	Uint32 width,
+	Uint32 height) {
+	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+		Graphics::NoInternalTextures) {
+		return Texture::Initialize(texture, format, access, width, height);
+	}
+	else if (Graphics::GfxFunctions->ReinitializeTexture) {
+		return Graphics::GfxFunctions->ReinitializeTexture(
+			texture, format, access, width, height);
+	}
+
+	return false;
+}
 int Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
 		Graphics::NoInternalTextures) {
@@ -410,6 +426,10 @@ void Graphics::CopyTexturePixels(Texture* dest,
 	int srcHeight) {
 	Graphics::GfxFunctions->CopyTexturePixels(
 		dest, destX, destY, src, srcX, srcY, srcWidth, srcHeight);
+}
+bool Graphics::ResizeTexture(Texture* texture, Uint32 width, Uint32 height) {
+	return Graphics::ReinitializeTexture(
+		texture, texture->Format, texture->Access, width, height);
 }
 int Graphics::SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors) {
 	texture->SetPalette((Uint32*)palette, numPaletteColors);

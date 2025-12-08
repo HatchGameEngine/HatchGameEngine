@@ -118,6 +118,8 @@ public:
 		Uint32 height,
 		void* pixels,
 		int pitch);
+	static bool
+	ReinitializeTexture(Texture*, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static int UpdateYUVTexture(Texture* texture,
@@ -136,6 +138,7 @@ public:
 		int srcY,
 		int srcWidth,
 		int srcHeight);
+	static bool ResizeTexture(Texture* texture, Uint32 width, Uint32 height);
 	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
 	static int ConvertTextureToRGBA(Texture* texture);
 	static int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);

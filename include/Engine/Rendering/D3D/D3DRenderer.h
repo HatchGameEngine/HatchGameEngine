@@ -17,6 +17,8 @@ public:
 	static void SetGraphicsFunctions();
 	static void Dispose();
 	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static bool
+	ReinitializeTexture(Texture*, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* r, void* pixels, int pitch);
 	static void UnlockTexture(Texture* texture);

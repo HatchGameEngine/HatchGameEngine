@@ -288,7 +288,7 @@ int D3D_SetError(const char* error, HRESULT result) {
 	return 0;
 }
 
-void D3D_CreateTexture(Texture* texture) {
+bool D3D_CreateTexture(Texture* texture) {
 	texture->DriverData =
 		Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(D3D_TextureData));
 
@@ -328,8 +328,10 @@ void D3D_CreateTexture(Texture* texture) {
 			texture->Height,
 			1,
 			usage);
-		exit(-1);
+		return false;
 	}
+
+	return true;
 }
 int D3D_RecreateTexture(Texture* texture) {
 	D3D_TextureData* textureData = (D3D_TextureData*)texture->DriverData;
@@ -949,6 +951,7 @@ void D3DRenderer::SetGraphicsFunctions() {
 
 	// Texture management functions
 	Graphics::Internal.CreateTexture = D3DRenderer::CreateTexture;
+	Graphics::Internal.ReinitializeTexture = D3DRenderer::ReinitializeTexture;
 	Graphics::Internal.LockTexture = D3DRenderer::LockTexture;
 	Graphics::Internal.UpdateTexture = D3DRenderer::UpdateTexture;
 	Graphics::Internal.UnlockTexture = D3DRenderer::UnlockTexture;
@@ -1020,12 +1023,31 @@ void D3DRenderer::Dispose() {
 Texture* D3DRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
 	Texture* texture = Texture::New(format, access, width, height);
 
-	D3D_CreateTexture(texture);
+	if (!D3D_CreateTexture(texture)) {
+		Memory::Free(texture);
+
+		return nullptr;
+	}
 
 	texture->ID = Graphics::TextureMap->Count + 1;
 	Graphics::TextureMap->Put(texture->ID, texture);
 
 	return texture;
+}
+bool D3DRenderer::ReinitializeTexture(Texture* texture,
+	Uint32 format,
+	Uint32 access,
+	Uint32 width,
+	Uint32 height) {
+	if (texture->DriverData != nullptr) {
+		D3DRenderer::DisposeTexture(texture);
+	}
+
+	if (!Texture::Initialize(texture, format, access, width, height)) {
+		return false;
+	}
+
+	return D3D_CreateTexture(texture);
 }
 int D3DRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;

@@ -12,7 +12,16 @@ struct GraphicsFunctions {
 	void (*Dispose)();
 
 	Texture* (*CreateTexture)(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	Texture* (*CreateTextureFromPixels)(Uint32 format, Uint32 width, Uint32 height, void* pixels, int pitch);
+	Texture* (*CreateTextureFromPixels)(Uint32 format,
+		Uint32 width,
+		Uint32 height,
+		void* pixels,
+		int pitch);
+	bool (*ReinitializeTexture)(Texture* texture,
+		Uint32 format,
+		Uint32 access,
+		Uint32 width,
+		Uint32 height);
 	int (*LockTexture)(Texture* texture, void** pixels, int* pitch);
 	int (*UpdateTexture)(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	int (*UpdateYUVTexture)(Texture* texture,
