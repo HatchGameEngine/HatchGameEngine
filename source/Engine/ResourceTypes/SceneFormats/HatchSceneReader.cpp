@@ -456,6 +456,9 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		Uint32 objectHash = CRC32::EncryptData(&classHash.A, 16);
 		char* objectName = scnClass->Name;
 
+		if (!filter)
+			filter = 0xFF;
+
 		if (!(filter & Scene::Filter)) {
 			HatchSceneReader::SkipEntityProperties(r, numProps);
 			continue;
