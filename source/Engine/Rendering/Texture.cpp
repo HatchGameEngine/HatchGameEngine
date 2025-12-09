@@ -27,7 +27,7 @@ bool Texture::Initialize(Texture* texture,
 	texture->Width = width;
 	texture->Height = height;
 	texture->Pixels = Memory::TrackedCalloc(
-		"Texture::Pixels", 1, sizeof(Uint32) * texture->Width * texture->Height);
+		"Texture::Pixels", texture->Width * texture->Height, sizeof(Uint32));
 	texture->PaletteColors = nullptr;
 	texture->NumPaletteColors = 0;
 

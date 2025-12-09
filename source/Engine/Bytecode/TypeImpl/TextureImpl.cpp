@@ -14,6 +14,7 @@ void TextureImpl::Init() {
 
 	ScriptManager::DefineNative(Class, "CopyPixels", VM_CopyPixels);
 	ScriptManager::DefineNative(Class, "Apply", VM_Apply);
+	ScriptManager::DefineNative(Class, "Resize", VM_Resize);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
 	TypeImpl::RegisterClass(Class);
@@ -37,8 +38,9 @@ Obj* TextureImpl::New() {
  * \desc Creates a texture with the given dimensions.
  * \param width (Integer): The width of the texture.
  * \param height (Integer): The height of the texture.
- * \param access (Enum): The <linkto ref="TEXTUREACCESS_*">access mode</linkto> of the texture. The default is <code>TextureAccess_RENDERTARGET</code>.
- * \param format (Enum): The <linkto ref="TEXTUREFORMAT_*">format</linkto> of the texture. The default is <code>TextureFormat_RGBA8888</code>, or the preferred texture format for render target textures.
+ * \paramOpt access (Enum): The <linkto ref="TEXTUREACCESS_*">access mode</linkto> of the texture. The default is <code>TEXTUREACCESS_STATIC</code>.
+ * \paramOpt format (Enum): The <linkto ref="TEXTUREFORMAT_*">format</linkto> of the texture. The default is <code>TEXTUREFORMAT_RGBA8888</code>, or the preferred texture format for render target textures.
+ * \paramOpt pixels (Array): An array of pixels to initialize the texture with. The length of the array must match the dimensions of the texture (e.g., for a 64x64 texture, you must pass an array of exactly 4096 values.)
  * \ns Texture
  */
 VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
@@ -53,10 +55,17 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 		GetInteger,
 		access == TextureAccess_RENDERTARGET ? Graphics::TextureFormat
 						     : TextureFormat_RGBA8888);
+	ObjArray* pixelsArray = GET_ARG_OPT(5, GetArray, nullptr);
 
+	char errorString[128];
+
+	if (width < 1) {
+		throw ScriptException("Width cannot be lower than 1.");
+	}
+	if (height < 1) {
+		throw ScriptException("Height cannot be lower than 1.");
+	}
 	if (access < 0 || access > TextureAccess_RENDERTARGET) {
-		char errorString[128];
-
 		snprintf(errorString,
 			sizeof errorString,
 			"Texture access mode %d out of range. (%d - %d)",
@@ -71,8 +80,6 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 			"Texture format of a render target texture must match the preferred format!");
 	}
 	if (format < 0 || format > TextureFormat_INDEXED) {
-		char errorString[128];
-
 		snprintf(errorString,
 			sizeof errorString,
 			"Texture format %d out of range. (%d - %d)",
@@ -83,9 +90,83 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 		throw ScriptException(errorString);
 	}
 
+	Uint32* pixels = nullptr;
+	size_t numPixels = width * height;
+
+	if (pixelsArray != nullptr) {
+		if (access == TextureAccess_RENDERTARGET) {
+			throw ScriptException("Cannot create a render target texture with pixel data!");
+		}
+
+		size_t numArrayPixels = pixelsArray->Values->size();
+
+		if (numArrayPixels != numPixels) {
+			snprintf(errorString,
+				sizeof errorString,
+				"Expected array of pixels to have %d elements, but it had %d elements instead.",
+				numPixels,
+				numArrayPixels);
+
+			throw ScriptException(errorString);
+		}
+
+		pixels = (Uint32*)Memory::Calloc(numPixels, sizeof(Uint32));
+
+		for (size_t i = 0; i < pixelsArray->Values->size(); i++) {
+			VMValue element = (*pixelsArray->Values)[i];
+			VMValue result = Value::CastAsInteger(element);
+
+			if (IS_NULL(result)) {
+				Memory::Free(pixels);
+
+				snprintf(errorString,
+					sizeof errorString,
+					"Expected value at index %d to be of type %s; value was of type %s.",
+					i,
+					GetTypeString(VAL_INTEGER),
+					GetValueTypeString(element));
+
+				throw ScriptException(errorString);
+			}
+
+			int value = AS_INTEGER(result);
+
+			if (format == TextureFormat_INDEXED && (value < 0 || value > 255)) {
+				Memory::Free(pixels);
+
+				snprintf(errorString,
+					sizeof errorString,
+					"Pixel value %d out of range. (0 - 255)",
+					value);
+
+				throw ScriptException(errorString);
+			}
+
+			pixels[i] = value;
+		}
+	}
+
 	Texture* texture = Graphics::CreateTexture(format, access, width, height);
 
 	ScriptManager::RegistryAdd(texture, (Obj*)objTexture);
+
+	if (pixels) {
+		Graphics::UpdateTexture(texture, NULL, pixels, texture->Pitch);
+
+		Memory::Free(pixels);
+	}
+
+	if (format == TextureFormat_INDEXED) {
+		unsigned numPaletteColors = 256;
+
+		Uint32* palette = (Uint32*)Memory::Calloc(numPaletteColors, sizeof(Uint32));
+
+		for (unsigned i = 0; i < numPaletteColors; i++) {
+			palette[i] = 0xFF000000U | (i << 16) | (i << 8) | i;
+		}
+
+		Graphics::SetTexturePalette(texture, palette, numPaletteColors);
+	}
 
 	return OBJECT_VAL(objTexture);
 }
@@ -137,14 +218,10 @@ ObjTexture* TextureImpl::GetTextureObject(void* texture) {
  * \ns Texture
  */
 VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckAtLeastArgCount(argCount, 1);
+	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
 
 	ObjTexture* objTexture = AS_TEXTURE(args[0]);
-	Texture* texture = (Texture*)GetTexture(objTexture);
 	Texture* srcTexture = GET_ARG(1, GetDrawable);
-
-	CHECK_EXISTS(texture);
-
 	int srcX = GET_ARG_OPT(2, GetInteger, 0);
 	int srcY = GET_ARG_OPT(3, GetInteger, 0);
 	int srcWidth = GET_ARG_OPT(4, GetInteger, srcTexture ? srcTexture->Width : 0);
@@ -152,6 +229,8 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 	int destX = GET_ARG_OPT(6, GetInteger, 0);
 	int destY = GET_ARG_OPT(7, GetInteger, 0);
 
+	Texture* texture = (Texture*)GetTexture(objTexture);
+	CHECK_EXISTS(texture);
 	CHECK_NOT_TRYING_TO_UPDATE(objTexture);
 
 	if (srcTexture == nullptr) {
@@ -182,6 +261,40 @@ VMValue TextureImpl::VM_Apply(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_NOT_TRYING_TO_UPDATE(objTexture);
 
 	Graphics::UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
+
+	return NULL_VAL;
+}
+/***
+ * \method Resize
+ * \desc Resizes the texture to the given dimensions. This will clear the pixel data of the texture.
+ * \param width (Integer): The new width of the texture.
+ * \param height (Integer): The new height of the texture.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_Resize(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+	int width = GET_ARG(1, GetInteger);
+	int height = GET_ARG(2, GetInteger);
+
+	Texture* texture = (Texture*)GetTexture(objTexture);
+	CHECK_EXISTS(texture);
+
+	if (objTexture->IsViewTexture) {
+		throw ScriptException(
+			"Cannot resize a draw target texture that belongs to a view!");
+	}
+
+	if (width < 1) {
+		throw ScriptException("Width cannot be lower than 1.");
+	}
+
+	if (height < 1) {
+		throw ScriptException("Height cannot be lower than 1.");
+	}
+
+	Graphics::ResizeTexture(texture, width, height);
 
 	return NULL_VAL;
 }
