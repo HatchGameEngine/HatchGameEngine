@@ -9352,8 +9352,10 @@ static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t 
  */
 VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
+	ObjString* string = GET_ARG(0, GetVMString);
+	if (!string) return NULL_VAL;
+
 	if (ScriptManager::Lock()) {
-		ObjString* string = AS_STRING(args[0]);
 		ObjMap* map = NewMap();
 
 		jsmn_parser p;
@@ -18795,9 +18797,11 @@ static VMValue XML_FillMap(XMLNode* parent) {
  */
 VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
+	ObjString* string = GET_ARG(0, GetVMString);
+	if (!string) return NULL_VAL;
+
 	VMValue mapValue = NULL_VAL;
 	if (ScriptManager::Lock()) {
-		ObjString* string = AS_STRING(args[0]);
 		char* text = StringUtils::Duplicate(string->Chars);
 
 		MemoryStream* stream = MemoryStream::New(text, strlen(text));
