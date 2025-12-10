@@ -392,8 +392,7 @@ int Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
 }
 int Graphics::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
 	memcpy(texture->Pixels, pixels, sizeof(Uint32) * texture->Width * texture->Height);
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures) {
+	if (Graphics::NoInternalTextures) {
 		return 1;
 	}
 	return Graphics::GfxFunctions->UpdateTexture(texture, src, pixels, pitch);
@@ -424,8 +423,13 @@ void Graphics::CopyTexturePixels(Texture* dest,
 	int srcY,
 	int srcWidth,
 	int srcHeight) {
-	Graphics::GfxFunctions->CopyTexturePixels(
-		dest, destX, destY, src, srcX, srcY, srcWidth, srcHeight);
+	if (Graphics::GfxFunctions->CopyTexturePixels) {
+		Graphics::GfxFunctions->CopyTexturePixels(
+			dest, destX, destY, src, srcX, srcY, srcWidth, srcHeight);
+	}
+	else {
+		dest->CopyPixels(src, srcX, srcY, srcWidth, srcHeight, destX, destY);
+	}
 }
 bool Graphics::ResizeTexture(Texture* texture, Uint32 width, Uint32 height) {
 	return Graphics::ReinitializeTexture(
@@ -1135,8 +1139,12 @@ void Graphics::PopState() {
 
 	Graphics::SetDepthTesting(Graphics::UseDepthTesting);
 
-	Graphics::GfxFunctions->UpdateViewport();
-	Graphics::GfxFunctions->UpdateClipRect();
+	if (Graphics::GfxFunctions->UpdateViewport) {
+		Graphics::GfxFunctions->UpdateViewport();
+	}
+	if (Graphics::GfxFunctions->UpdateClipRect) {
+		Graphics::GfxFunctions->UpdateClipRect();
+	}
 
 	StateStack.pop();
 
@@ -1148,7 +1156,10 @@ void Graphics::SetBlendColor(float r, float g, float b, float a) {
 	Graphics::BlendColors[1] = Math::Clamp(g, 0.0f, 1.0f);
 	Graphics::BlendColors[2] = Math::Clamp(b, 0.0f, 1.0f);
 	Graphics::BlendColors[3] = Math::Clamp(a, 0.0f, 1.0f);
-	Graphics::GfxFunctions->SetBlendColor(r, g, b, a);
+
+	if (Graphics::GfxFunctions->SetBlendColor) {
+		Graphics::GfxFunctions->SetBlendColor(r, g, b, a);
+	}
 }
 void Graphics::SetBlendMode(int blendMode) {
 	Graphics::BlendMode = blendMode;
@@ -1185,64 +1196,101 @@ void Graphics::SetBlendMode(int blendMode) {
 	}
 }
 void Graphics::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
-	Graphics::GfxFunctions->SetBlendMode(srcC, dstC, srcA, dstA);
+	if (Graphics::GfxFunctions->SetBlendMode) {
+		Graphics::GfxFunctions->SetBlendMode(srcC, dstC, srcA, dstA);
+	}
 }
 void Graphics::SetTintColor(float r, float g, float b, float a) {
 	Graphics::TintColors[0] = Math::Clamp(r, 0.0f, 1.0f);
 	Graphics::TintColors[1] = Math::Clamp(g, 0.0f, 1.0f);
 	Graphics::TintColors[2] = Math::Clamp(b, 0.0f, 1.0f);
 	Graphics::TintColors[3] = Math::Clamp(a, 0.0f, 1.0f);
-	Graphics::GfxFunctions->SetTintColor(r, g, b, a);
+
+	if (Graphics::GfxFunctions->SetTintColor) {
+		Graphics::GfxFunctions->SetTintColor(r, g, b, a);
+	}
 }
 void Graphics::SetTintMode(int mode) {
 	Graphics::TintMode = mode;
-	Graphics::GfxFunctions->SetTintMode(mode);
+
+	if (Graphics::GfxFunctions->SetTintMode) {
+		Graphics::GfxFunctions->SetTintMode(mode);
+	}
 }
 void Graphics::SetTintEnabled(bool enabled) {
 	Graphics::UseTinting = enabled;
-	Graphics::GfxFunctions->SetTintEnabled(enabled);
+
+	if (Graphics::GfxFunctions->SetTintEnabled) {
+		Graphics::GfxFunctions->SetTintEnabled(enabled);
+	}
 }
 void Graphics::SetLineWidth(float n) {
-	Graphics::GfxFunctions->SetLineWidth(n);
+	if (Graphics::GfxFunctions->SetLineWidth) {
+		Graphics::GfxFunctions->SetLineWidth(n);
+	}
 }
 
 void Graphics::StrokeLine(float x1, float y1, float x2, float y2) {
-	Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
+	if (Graphics::GfxFunctions->StrokeLine) {
+		Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
+	}
 }
 void Graphics::StrokeCircle(float x, float y, float rad, float thickness) {
-	Graphics::GfxFunctions->StrokeCircle(x, y, rad, thickness);
+	if (Graphics::GfxFunctions->StrokeCircle) {
+		Graphics::GfxFunctions->StrokeCircle(x, y, rad, thickness);
+	}
 }
 void Graphics::StrokeEllipse(float x, float y, float w, float h) {
-	Graphics::GfxFunctions->StrokeEllipse(x, y, w, h);
+	if (Graphics::GfxFunctions->StrokeEllipse) {
+		Graphics::GfxFunctions->StrokeEllipse(x, y, w, h);
+	}
 }
 void Graphics::StrokeTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-	Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
-	Graphics::GfxFunctions->StrokeLine(x2, y2, x3, y3);
-	Graphics::GfxFunctions->StrokeLine(x3, y3, x1, y1);
+	if (Graphics::GfxFunctions->StrokeLine) {
+		Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
+		Graphics::GfxFunctions->StrokeLine(x2, y2, x3, y3);
+		Graphics::GfxFunctions->StrokeLine(x3, y3, x1, y1);
+	}
 }
 void Graphics::StrokeRectangle(float x, float y, float w, float h) {
-	Graphics::GfxFunctions->StrokeRectangle(x, y, w, h);
+	if (Graphics::GfxFunctions->StrokeRectangle) {
+		Graphics::GfxFunctions->StrokeRectangle(x, y, w, h);
+	}
 }
 void Graphics::FillCircle(float x, float y, float rad) {
-	Graphics::GfxFunctions->FillCircle(x, y, rad);
+	if (Graphics::GfxFunctions->FillCircle) {
+		Graphics::GfxFunctions->FillCircle(x, y, rad);
+	}
 }
 void Graphics::FillEllipse(float x, float y, float w, float h) {
-	Graphics::GfxFunctions->FillEllipse(x, y, w, h);
+	if (Graphics::GfxFunctions->FillEllipse) {
+		Graphics::GfxFunctions->FillEllipse(x, y, w, h);
+	}
 }
 void Graphics::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-	Graphics::GfxFunctions->FillTriangle(x1, y1, x2, y2, x3, y3);
+	if (Graphics::GfxFunctions->FillTriangle) {
+		Graphics::GfxFunctions->FillTriangle(x1, y1, x2, y2, x3, y3);
+	}
 }
 void Graphics::FillRectangle(float x, float y, float w, float h) {
-	Graphics::GfxFunctions->FillRectangle(x, y, w, h);
+	if (Graphics::GfxFunctions->FillRectangle) {
+		Graphics::GfxFunctions->FillRectangle(x, y, w, h);
+	}
 }
 void Graphics::FillTriangleBlend(float* xc, float* yc, int* colors) {
-	Graphics::GfxFunctions->FillTriangleBlend(xc, yc, colors);
+	if (Graphics::GfxFunctions->FillTriangleBlend) {
+		Graphics::GfxFunctions->FillTriangleBlend(xc, yc, colors);
+	}
 }
 void Graphics::FillQuad(float* xc, float* yc) {
-	Graphics::GfxFunctions->FillQuad(xc, yc);
+	if (Graphics::GfxFunctions->FillQuad) {
+		Graphics::GfxFunctions->FillQuad(xc, yc);
+	}
 }
 void Graphics::FillQuadBlend(float* xc, float* yc, int* colors) {
-	Graphics::GfxFunctions->FillQuadBlend(xc, yc, colors);
+	if (Graphics::GfxFunctions->FillQuadBlend) {
+		Graphics::GfxFunctions->FillQuadBlend(xc, yc, colors);
+	}
 }
 void Graphics::DrawTriangle(Texture* texture,
 	float* xc,
@@ -1250,10 +1298,14 @@ void Graphics::DrawTriangle(Texture* texture,
 	float* tu,
 	float* tv,
 	int* colors) {
-	Graphics::GfxFunctions->DrawTriangle(texture, xc, yc, tu, tv, colors);
+	if (Graphics::GfxFunctions->DrawQuad) {
+		Graphics::GfxFunctions->DrawTriangle(texture, xc, yc, tu, tv, colors);
+	}
 }
 void Graphics::DrawQuad(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors) {
-	Graphics::GfxFunctions->DrawQuad(texture, xc, yc, tu, tv, colors);
+	if (Graphics::GfxFunctions->DrawQuad) {
+		Graphics::GfxFunctions->DrawQuad(texture, xc, yc, tu, tv, colors);
+	}
 }
 
 void Graphics::DrawTexture(Texture* texture,
@@ -1266,11 +1318,13 @@ void Graphics::DrawTexture(Texture* texture,
 	float w,
 	float h,
 	int paletteID) {
-	if (Graphics::UsePaletteIndexLines) {
-		paletteID = PALETTE_INDEX_TABLE_ID;
-	}
+	if (Graphics::GfxFunctions->DrawTexture) {
+		if (Graphics::UsePaletteIndexLines) {
+			paletteID = PALETTE_INDEX_TABLE_ID;
+		}
 
-	Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
+		Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
+	}
 }
 void Graphics::DrawSprite(ISprite* sprite,
 	int animation,
@@ -1283,12 +1337,14 @@ void Graphics::DrawSprite(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::UsePaletteIndexLines) {
-		paletteID = PALETTE_INDEX_TABLE_ID;
-	}
+	if (Graphics::GfxFunctions->DrawSprite) {
+		if (Graphics::UsePaletteIndexLines) {
+			paletteID = PALETTE_INDEX_TABLE_ID;
+		}
 
-	Graphics::GfxFunctions->DrawSprite(
-		sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
+		Graphics::GfxFunctions->DrawSprite(
+			sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
+	}
 }
 void Graphics::DrawSpritePart(ISprite* sprite,
 	int animation,
@@ -1305,25 +1361,27 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::UsePaletteIndexLines) {
-		paletteID = PALETTE_INDEX_TABLE_ID;
-	}
+	if (Graphics::GfxFunctions->DrawSpritePart) {
+		if (Graphics::UsePaletteIndexLines) {
+			paletteID = PALETTE_INDEX_TABLE_ID;
+		}
 
-	Graphics::GfxFunctions->DrawSpritePart(sprite,
-		animation,
-		frame,
-		sx,
-		sy,
-		sw,
-		sh,
-		x,
-		y,
-		flipX,
-		flipY,
-		scaleW,
-		scaleH,
-		rotation,
-		paletteID);
+		Graphics::GfxFunctions->DrawSpritePart(sprite,
+			animation,
+			frame,
+			sx,
+			sy,
+			sw,
+			sh,
+			x,
+			y,
+			flipX,
+			flipY,
+			scaleW,
+			scaleH,
+			rotation,
+			paletteID);
+	}
 }
 void Graphics::DrawTexture(Texture* texture,
 	float sx,
@@ -1334,8 +1392,10 @@ void Graphics::DrawTexture(Texture* texture,
 	float y,
 	float w,
 	float h) {
-	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
-	Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
+	if (Graphics::GfxFunctions->DrawTexture) {
+		int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
+		Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
+	}
 }
 void Graphics::DrawSprite(ISprite* sprite,
 	int animation,
@@ -1348,7 +1408,7 @@ void Graphics::DrawSprite(ISprite* sprite,
 	float scaleH,
 	float rotation) {
 	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
-	DrawSprite(
+	Graphics::DrawSprite(
 		sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
 }
 void Graphics::DrawSpritePart(ISprite* sprite,
@@ -1366,7 +1426,7 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 	float scaleH,
 	float rotation) {
 	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
-	DrawSpritePart(sprite,
+	Graphics::DrawSpritePart(sprite,
 		animation,
 		frame,
 		sx,

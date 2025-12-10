@@ -228,7 +228,30 @@ int SoftwareRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
 }
 int SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
-	return 0;
+	if (texture->Format == Graphics::TextureFormat || texture->Format == TextureFormat_INDEXED) {
+		return 0;
+	}
+
+	size_t bpp = Texture::GetFormatBytesPerPixel(Graphics::TextureFormat);
+
+	if (texture->DriverPixelData == nullptr) {
+		texture->DriverPixelData = Memory::Calloc(texture->Width * texture->Height, bpp);
+	}
+
+	Texture::Convert(pixels,
+		texture->Format,
+		texture->Pitch,
+		0,
+		0,
+		texture->DriverPixelData,
+		Graphics::TextureFormat,
+		texture->Width * bpp,
+		0,
+		0,
+		texture->Width,
+		texture->Height);
+
+	return 1;
 }
 void SoftwareRenderer::UnlockTexture(Texture* texture) {}
 void SoftwareRenderer::DisposeTexture(Texture* texture) {}
@@ -2770,7 +2793,7 @@ void DrawSpriteImage(Texture* texture,
 	int flipFlag,
 	int paletteID,
 	BlendState blendState) {
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
 	Uint32 srcStride = texture->Width;
 	Uint32* srcPxLine;
 
@@ -3026,7 +3049,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 	int rotation,
 	int paletteID,
 	BlendState blendState) {
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
 	Uint32 srcStride = texture->Width;
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
@@ -3757,9 +3780,10 @@ void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
+		void* texturePixelData = texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels;
 		srcStrides.push_back(srcStride = texture->Width);
 		tileSources.push_back(
-			(&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
+			(&((Uint32*)texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
 		isPalettedSources.push_back(
 			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
 		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
@@ -4312,9 +4336,7 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 	int dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
 	int dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
 
-	// Uint32* srcPx = NULL;
 	Uint32 srcStride = 0;
-	// Uint32* srcPxLine;
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
@@ -4357,9 +4379,10 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
+		void* texturePixelData = texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels;
 		srcStrides.push_back(srcStride = texture->Width);
 		tileSources.push_back(
-			(&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
+			(&((Uint32*)texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
 		isPalettedSources.push_back(
 			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
 		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);

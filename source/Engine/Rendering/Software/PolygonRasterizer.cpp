@@ -622,7 +622,7 @@ void PolygonRasterizer::DrawAffine(Texture* texture,
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
 	Uint32 srcStride = texture->Width;
 
 	int dst_y1, dst_y2;
@@ -782,7 +782,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
 	Uint32 srcStride = texture->Width;
 
 	int dst_y1, dst_y2;
@@ -1031,7 +1031,7 @@ void PolygonRasterizer::DrawPerspective(Texture* texture,
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
 	Uint32 srcStride = texture->Width;
 
 	int dst_y1, dst_y2;
@@ -1177,7 +1177,7 @@ void PolygonRasterizer::DrawBlendPerspective(Texture* texture,
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
 	Uint32 srcStride = texture->Width;
 
 	int dst_y1, dst_y2;
