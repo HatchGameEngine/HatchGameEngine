@@ -3741,7 +3741,7 @@ bool Scene::CheckObjectCollisionTouch(Entity* thisEntity,
 	CollisionBox* thisHitbox,
 	Entity* otherEntity,
 	CollisionBox* otherHitbox) {
-	int store = 0;
+	float store = 0.f;
 	if (!thisEntity || !otherEntity || !thisHitbox || !otherHitbox) {
 		return false;
 	}
