@@ -9368,16 +9368,17 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 
 		jsmn_init(&p);
 		while (true) {
-			int r = jsmn_parse(
-				&p, string->Chars, string->Length, tok, (Uint32)tokcount);
+			int r = jsmn_parse(&p, string->Chars, string->Length, tok, (Uint32)tokcount);
 			if (r < 0) {
 				if (r == JSMN_ERROR_NOMEM) {
 					tokcount = tokcount * 2;
-					tok = (jsmntok_t*)realloc(tok, sizeof(*tok) * tokcount);
-					if (tok == NULL) {
+					jsmntok_t* tempTok = (jsmntok_t*)realloc(tok, sizeof(*tok) * tokcount);
+					if (tempTok == NULL) {
+						free(tok);
 						ScriptManager::Unlock();
 						return NULL_VAL;
 					}
+					tok = tempTok;
 					continue;
 				}
 			}
