@@ -138,20 +138,30 @@ bool SDL2Renderer::InitializeTexture(Texture* texture) {
 
 	switch (texture->Format) {
 	case TextureFormat_ARGB8888:
-	case TextureFormat_INDEXED:
 		format = SDL_PIXELFORMAT_ARGB8888;
+		break;
 	case TextureFormat_RGBA8888:
 		format = SDL_PIXELFORMAT_RGBA8888;
+		break;
+	case TextureFormat_ABGR8888:
+	case TextureFormat_INDEXED:
+		format = SDL_PIXELFORMAT_ABGR8888;
+		break;
 	case TextureFormat_YV12:
 		format = SDL_PIXELFORMAT_YV12;
+		break;
 	case TextureFormat_YUY2:
 		format = SDL_PIXELFORMAT_YUY2;
+		break;
 	case TextureFormat_UYVY:
 		format = SDL_PIXELFORMAT_UYVY;
+		break;
 	case TextureFormat_NV12:
 		format = SDL_PIXELFORMAT_NV12;
+		break;
 	case TextureFormat_NV21:
 		format = SDL_PIXELFORMAT_NV21;
+		break;
 	default:
 		return false;
 	}
@@ -159,10 +169,13 @@ bool SDL2Renderer::InitializeTexture(Texture* texture) {
 	switch (texture->Access) {
 	case TextureAccess_STATIC:
 		access = SDL_TEXTUREACCESS_STATIC;
+		break;
 	case TextureAccess_STREAMING:
 		access = SDL_TEXTUREACCESS_STREAMING;
+		break;
 	case TextureAccess_RENDERTARGET:
 		access = SDL_TEXTUREACCESS_TARGET;
+		break;
 	default:
 		return false;
 	}
@@ -212,8 +225,6 @@ int SDL2Renderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 int SDL2Renderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
 	SDL_Texture* textureData = *(SDL_Texture**)texture->DriverData;
 
-	// TODO: Format conversion
-
 	return SDL_UpdateTexture(textureData, src, pixels, pitch);
 }
 int SDL2Renderer::UpdateTextureYUV(Texture* texture,
@@ -257,21 +268,21 @@ void SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
 
 	SDL_Rect r = {0, 0, width, height};
 
-	int pixelFormat = 0;
+	int format = 0;
 
 	switch (Graphics::TextureFormat) {
 	case TextureFormat_ARGB8888:
-		pixelFormat = SDL_PIXELFORMAT_ARGB8888;
+		format = SDL_PIXELFORMAT_ARGB8888;
 		break;
 	case TextureFormat_ABGR8888:
-		pixelFormat = SDL_PIXELFORMAT_ABGR8888;
+		format = SDL_PIXELFORMAT_ABGR8888;
 		break;
 	default:
 		return;
 	}
 
 	SDL_RenderReadPixels(
-		Renderer, &r, pixelFormat, pixels, width * SDL_BYTESPERPIXEL(pixelFormat));
+		Renderer, &r, format, pixels, width * SDL_BYTESPERPIXEL(format));
 }
 void SDL2Renderer::UpdateWindowSize(int width, int height) {
 	SDL2Renderer::UpdateViewport();

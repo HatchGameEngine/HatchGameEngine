@@ -2177,24 +2177,24 @@ void GLRenderer::CopyTexturePixels(Texture* dest,
 		return;
 	}
 
+	int destWidth, destHeight;
+
+	if (!Texture::ClipCopyRegion(src->Width,
+		    src->Height,
+		    srcX,
+		    srcY,
+		    srcWidth,
+		    srcHeight,
+		    dest->Width,
+		    dest->Height,
+		    destX,
+		    destY,
+		    destWidth,
+		    destHeight)) {
+		return;
+	}
+
 	if (srcTextureData->Framebuffer) {
-		int destWidth, destHeight;
-
-		if (!Texture::ClipCopyRegion(src->Width,
-			    src->Height,
-			    srcX,
-			    srcY,
-			    srcWidth,
-			    srcHeight,
-			    dest->Width,
-			    dest->Height,
-			    destX,
-			    destY,
-			    destWidth,
-			    destHeight)) {
-			return;
-		}
-
 #ifdef GL_SUPPORTS_MULTISAMPLING
 		if (srcTextureData->Multisampled) {
 			GL_BlitMultisampledTexture(src);
@@ -2234,7 +2234,18 @@ void GLRenderer::CopyTexturePixels(Texture* dest,
 		}
 	}
 
-	dest->CopyPixels(src, srcX, srcY, srcWidth, srcHeight, destX, destY);
+	Texture::Convert((Uint8*)src->Pixels,
+		src->Format,
+		src->Pitch,
+		srcX,
+		srcY,
+		(Uint8*)dest->Pixels,
+		dest->Format,
+		dest->Pitch,
+		destX,
+		destY,
+		destWidth,
+		destHeight);
 }
 GLenum GL_GetTextureMinFilterMode(int filterMode) {
 	switch (filterMode) {
