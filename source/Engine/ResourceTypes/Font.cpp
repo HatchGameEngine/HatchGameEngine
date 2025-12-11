@@ -565,7 +565,7 @@ Uint32* Font::GenerateAtlas(Uint8* data, unsigned size, bool useAntialias, Uint8
 			value = (value < threshold) ? 0 : 255;
 		}
 
-		dataRgba[i] = (value << 24) | 0xFFFFFF;
+		dataRgba[i] = ColorUtils::Make(0xFF, 0xFF, 0xFF, value, Graphics::PreferredPixelFormat);
 	}
 
 	return dataRgba;
@@ -578,7 +578,7 @@ Texture* Font::CreateAtlasTexture(Uint8* data, unsigned size, bool useAntialias,
 	}
 
 	Texture* atlas = Graphics::CreateTextureFromPixels(
-		TextureFormat_ABGR8888, size, size, dataRgba, size * sizeof(Uint32));
+		TextureFormat_NATIVE, size, size, dataRgba, size * sizeof(Uint32));
 
 	Memory::Free(dataRgba);
 

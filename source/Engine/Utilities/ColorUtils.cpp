@@ -50,7 +50,9 @@ void ColorUtils::SeparateRGB(Uint32 color, float* dest) {
 }
 void ColorUtils::Separate(Uint32 color, float* dest) {
 	dest[3] = (color >> 24 & 0xFF) / 255.f;
-	SeparateRGB(color, dest);
+	dest[0] = (color >> 16 & 0xFF) / 255.f;
+	dest[1] = (color >> 8 & 0xFF) / 255.f;
+	dest[2] = (color & 0xFF) / 255.f;
 }
 void ColorUtils::SeparateRGB(Uint32 color, Uint8* dest) {
 	dest[0] = (color >> 16) & 0xFF;
@@ -59,7 +61,9 @@ void ColorUtils::SeparateRGB(Uint32 color, Uint8* dest) {
 }
 void ColorUtils::Separate(Uint32 color, Uint8* dest) {
 	dest[3] = (color >> 24) & 0xFF;
-	SeparateRGB(color, dest);
+	dest[0] = (color >> 16) & 0xFF;
+	dest[1] = (color >> 8) & 0xFF;
+	dest[2] = color & 0xFF;
 }
 void ColorUtils::SeparateRGB(float* color, Uint8* dest) {
 	dest[0] = color[0] * 0xFF;
@@ -67,8 +71,10 @@ void ColorUtils::SeparateRGB(float* color, Uint8* dest) {
 	dest[2] = color[2] * 0xFF;
 }
 void ColorUtils::Separate(float* color, Uint8* dest) {
+	dest[0] = color[0] * 0xFF;
+	dest[1] = color[1] * 0xFF;
+	dest[2] = color[2] * 0xFF;
 	dest[2] = color[3] * 0xFF;
-	SeparateRGB(color, dest);
 }
 Uint32 ColorUtils::Tint(Uint32 color, Uint32 colorMult) {
 	Uint32 dR = (colorMult >> 16) & 0xFF;
@@ -103,26 +109,31 @@ Uint32 ColorUtils::Make(Uint8 red, Uint8 green, Uint8 blue, Uint8 alpha, int pix
 
 	switch (pixelFormat) {
 	case PixelFormat_RGBA8888:
-		color = red << 24;
-		color |= green << 16;
-		color |= blue << 8;
-		color |= alpha;
+		color = (red << 24) | (green << 16) | (blue << 8) | alpha;
 		break;
 	case PixelFormat_ABGR8888:
-		color = alpha << 24;
-		color |= blue << 16;
-		color |= green << 8;
-		color |= red;
+		color = (alpha << 24) | (blue << 16) | (green << 8) | red;
 		break;
 	case PixelFormat_ARGB8888:
-		color = alpha << 24;
-		color |= red << 16;
-		color |= green << 8;
-		color |= blue;
+		color = (alpha << 24) | (red << 16) | (green << 8) | blue;
+		break;
+	case PixelFormat_RGB888:
+		color = (red << 16) | (green << 8) | blue;
+		break;
+	case PixelFormat_BGR888:
+		color = (blue << 16) | (green << 8) | red;
 		break;
 	}
 
-	return TO_BE32(color);
+	color = TO_BE32(color);
+
+#if HATCH_LITTLE_ENDIAN
+	if (pixelFormat == PixelFormat_RGB888 || pixelFormat == PixelFormat_BGR888) {
+		color >>= 8;
+	}
+#endif
+
+	return color;
 }
 Uint32 ColorUtils::Convert(Uint32 color, int srcPixelFormat, int destPixelFormat) {
 	if (srcPixelFormat == destPixelFormat) {
@@ -152,6 +163,18 @@ Uint32 ColorUtils::Convert(Uint32 color, int srcPixelFormat, int destPixelFormat
 		blue = (color >> 16) & 0xFF;
 		green = (color >> 8) & 0xFF;
 		red = color & 0xFF;
+		break;
+	case PixelFormat_RGB888:
+		red = (color >> 16) & 0xFF;
+		green = (color >> 8) & 0xFF;
+		blue = color & 0xFF;
+		alpha = 0xFF;
+		break;
+	case PixelFormat_BGR888:
+		blue = (color >> 16) & 0xFF;
+		green = (color >> 8) & 0xFF;
+		red = color & 0xFF;
+		alpha = 0xFF;
 		break;
 	}
 

@@ -3,7 +3,7 @@
 
 #include "Engine/Includes/Standard.h"
 
-enum { PixelFormat_RGBA8888, PixelFormat_ABGR8888, PixelFormat_ARGB8888 };
+enum { PixelFormat_RGBA8888, PixelFormat_ABGR8888, PixelFormat_ARGB8888, PixelFormat_RGB888, PixelFormat_BGR888 };
 
 enum {
 	// The texture is created with the given pixel data and never updated again, or it updates
@@ -22,22 +22,32 @@ enum {
 };
 
 enum {
+	TextureFormat_RGBA8888,
 	TextureFormat_ARGB8888,
 	TextureFormat_ABGR8888,
-	TextureFormat_RGBA8888,
+	TextureFormat_RGB888,
+	TextureFormat_BGR888,
 	TextureFormat_INDEXED,
+
 	TextureFormat_YV12,
 	TextureFormat_IYUV,
 	TextureFormat_YUY2,
 	TextureFormat_UYVY,
 	TextureFormat_YVYU,
 	TextureFormat_NV12,
-	TextureFormat_NV21
+	TextureFormat_NV21,
+
+	// Not an actual texture format.
+	// This just maps to Graphics::TextureFormat
+	TextureFormat_NATIVE
 };
 
 #define TEXTUREFORMAT_IS_RGBA(fmt) \
-	((fmt) == TextureFormat_ARGB8888 || (fmt) == TextureFormat_ABGR8888 || \
-		(fmt) == TextureFormat_RGBA8888)
+	((fmt) == TextureFormat_RGBA8888 || (fmt) == TextureFormat_ABGR8888 || \
+		(fmt) == TextureFormat_ARGB8888)
+
+#define TEXTUREFORMAT_IS_RGB(fmt) \
+	((fmt) == TextureFormat_RGB888 || (fmt) == TextureFormat_BGR888)
 
 #define TEXTUREFORMAT_IS_YUV(fmt) ((fmt) >= TextureFormat_YV12 && (fmt) <= TextureFormat_NV21)
 

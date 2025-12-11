@@ -30,7 +30,10 @@ public:
 	static int GetFormatBytesPerPixel(int textureFormat);
 	static int PixelFormatToTextureFormat(int pixelFormat);
 	static int TextureFormatToPixelFormat(int textureFormat);
+	static int FormatWithAlphaChannel(int textureFormat);
+	static int FormatWithoutAlphaChannel(int textureFormat);
 	static bool CanConvertBetweenFormats(int sourceFormat, int destFormat);
+	bool KeepDriverPixelsResident();
 	bool ConvertToRGBA();
 	bool ConvertToPalette(Uint32* palColors, unsigned numPaletteColors);
 	static void Convert(void* srcPixels,

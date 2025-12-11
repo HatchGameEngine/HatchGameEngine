@@ -21,13 +21,17 @@ bool Texture::Initialize(Texture* texture,
 		Memory::Free(texture->PaletteColors);
 	}
 
+	if (format == TextureFormat_NATIVE) {
+		format = Graphics::TextureFormat;
+	}
+
 	texture->Format = format;
 	texture->DriverFormat = format;
 	texture->Access = access;
 	texture->Width = width;
 	texture->Height = height;
 	texture->Pixels = Memory::TrackedCalloc(
-		"Texture::Pixels", texture->Width * texture->Height, sizeof(Uint32));
+		"Texture::Pixels", texture->Width * texture->Height, GetFormatBytesPerPixel(format));
 	texture->PaletteColors = nullptr;
 	texture->NumPaletteColors = 0;
 
@@ -53,6 +57,9 @@ int Texture::GetFormatBytesPerPixel(int textureFormat) {
 	case TextureFormat_ABGR8888:
 	case TextureFormat_RGBA8888:
 		return 4;
+	case TextureFormat_RGB888:
+	case TextureFormat_BGR888:
+		return 3;
 	case TextureFormat_INDEXED:
 		// "Why four bytes? Aren't indexed formats typically 1 byte per pixel?"
 		// Yes, but indexed textures are stored in memory as if they were ABGR.
@@ -81,6 +88,10 @@ int Texture::PixelFormatToTextureFormat(int pixelFormat) {
 		return TextureFormat_ABGR8888;
 	case PixelFormat_ARGB8888:
 		return TextureFormat_ARGB8888;
+	case PixelFormat_RGB888:
+		return TextureFormat_RGB888;
+	case PixelFormat_BGR888:
+		return TextureFormat_BGR888;
 	default:
 		return TextureFormat_RGBA8888;
 	}
@@ -93,8 +104,33 @@ int Texture::TextureFormatToPixelFormat(int textureFormat) {
 		return PixelFormat_ABGR8888;
 	case TextureFormat_ARGB8888:
 		return PixelFormat_ARGB8888;
+	case TextureFormat_RGB888:
+		return PixelFormat_RGB888;
+	case TextureFormat_BGR888:
+		return PixelFormat_BGR888;
 	default:
 		return PixelFormat_RGBA8888;
+	}
+}
+int Texture::FormatWithAlphaChannel(int textureFormat) {
+	switch (textureFormat) {
+	case TextureFormat_RGB888:
+		return PixelFormat_RGBA8888;
+	case TextureFormat_BGR888:
+		return PixelFormat_ABGR8888;
+	default:
+		return PixelFormat_RGBA8888;
+	}
+}
+int Texture::FormatWithoutAlphaChannel(int textureFormat) {
+	switch (textureFormat) {
+	case TextureFormat_RGBA8888:
+	case TextureFormat_ARGB8888:
+		return PixelFormat_RGB888;
+	case TextureFormat_ABGR8888:
+		return PixelFormat_BGR888;
+	default:
+		return PixelFormat_RGB888;
 	}
 }
 bool Texture::CanConvertBetweenFormats(int sourceFormat, int destFormat) {
@@ -102,11 +138,27 @@ bool Texture::CanConvertBetweenFormats(int sourceFormat, int destFormat) {
 		return true;
 	}
 
-	if (TEXTUREFORMAT_IS_RGBA(sourceFormat)) {
-		return TEXTUREFORMAT_IS_RGBA(destFormat);
+	if (TEXTUREFORMAT_IS_RGBA(sourceFormat) || TEXTUREFORMAT_IS_RGB(sourceFormat)) {
+		return TEXTUREFORMAT_IS_RGBA(destFormat) || TEXTUREFORMAT_IS_RGB(destFormat);
 	}
 
 	return false;
+}
+
+bool Texture::KeepDriverPixelsResident() {
+	if (Format == TextureFormat_INDEXED) {
+		return false;
+	}
+
+	if (Access != TextureAccess_STATIC) {
+		return true;
+	}
+
+	if (TEXTUREFORMAT_IS_RGB(Format)) {
+		return true;
+	}
+
+	return Format != DriverFormat;
 }
 
 bool Texture::ConvertToRGBA() {
@@ -225,6 +277,18 @@ void Texture::Convert(void* srcPixels,
 				blue = srcPtr[2];
 				alpha = srcPtr[3];
 				break;
+			case TextureFormat_RGB888:
+				red = srcPtr[0];
+				green = srcPtr[1];
+				blue = srcPtr[2];
+				alpha = 0xFF;
+				break;
+			case TextureFormat_BGR888:
+				blue = srcPtr[0];
+				green = srcPtr[1];
+				red = srcPtr[2];
+				alpha = 0xFF;
+				break;
 			}
 
 			switch (destFormat) {
@@ -245,6 +309,16 @@ void Texture::Convert(void* srcPixels,
 				destPtr[1] = red;
 				destPtr[2] = green;
 				destPtr[3] = blue;
+				break;
+			case TextureFormat_RGB888:
+				destPtr[0] = red;
+				destPtr[1] = green;
+				destPtr[2] = blue;
+				break;
+			case TextureFormat_BGR888:
+				destPtr[0] = blue;
+				destPtr[1] = green;
+				destPtr[2] = red;
 				break;
 			}
 

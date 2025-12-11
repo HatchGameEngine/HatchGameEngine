@@ -391,7 +391,7 @@ int Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return Graphics::GfxFunctions->LockTexture(texture, pixels, pitch);
 }
 int Graphics::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
-	memcpy(texture->Pixels, pixels, sizeof(Uint32) * texture->Width * texture->Height);
+	memcpy(texture->Pixels, pixels, pitch * texture->Height);
 	if (Graphics::NoInternalTextures) {
 		return 1;
 	}

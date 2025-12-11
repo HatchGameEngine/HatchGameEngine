@@ -146,6 +146,12 @@ bool SDL2Renderer::InitializeTexture(Texture* texture) {
 	case TextureFormat_ARGB8888:
 		format = SDL_PIXELFORMAT_ARGB32;
 		break;
+	case TextureFormat_RGB888:
+		format = SDL_PIXELFORMAT_RGB24;
+		break;
+	case TextureFormat_BGR888:
+		format = SDL_PIXELFORMAT_BGR24;
+		break;
 	case TextureFormat_INDEXED:
 		format = SDL_PIXELFORMAT_RGBA32;
 		break;
@@ -281,6 +287,12 @@ void SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
 		break;
 	case TextureFormat_ARGB8888:
 		format = SDL_PIXELFORMAT_ARGB32;
+		break;
+	case TextureFormat_RGB888:
+		format = SDL_PIXELFORMAT_RGB24;
+		break;
+	case TextureFormat_BGR888:
+		format = SDL_PIXELFORMAT_BGR24;
 		break;
 	default:
 		return;

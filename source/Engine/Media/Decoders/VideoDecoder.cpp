@@ -118,10 +118,12 @@ AVPixelFormat VideoDecoder::FindAVPixelFormat(Uint32 format) {
 		return AV_PIX_FMT_NV12;
 	case TextureFormat_NV21:
 		return AV_PIX_FMT_NV21;
-	case TextureFormat_ARGB8888:
-		return AV_PIX_FMT_ARGB;
 	case TextureFormat_RGBA8888:
 		return AV_PIX_FMT_RGBA;
+	case TextureFormat_ABGR8888:
+		return AV_PIX_FMT_ABGR;
+	case TextureFormat_ARGB8888:
+		return AV_PIX_FMT_ARGB;
 	default:
 		return AV_PIX_FMT_NONE;
 	}
@@ -140,8 +142,12 @@ int VideoDecoder::FindEnginePixelFormat(AVPixelFormat fmt) {
 		return TextureFormat_NV21;
 	case AV_PIX_FMT_RGBA:
 		return TextureFormat_RGBA8888;
-	default:
+	case AV_PIX_FMT_ABGR:
+		return TextureFormat_ABGR8888;
+	case AV_PIX_FMT_ARGB:
 		return TextureFormat_ARGB8888;
+	default:
+		return TextureFormat_RGBA8888;
 	}
 }
 

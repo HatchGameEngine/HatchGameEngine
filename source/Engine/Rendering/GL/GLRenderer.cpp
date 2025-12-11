@@ -1384,7 +1384,7 @@ PolygonRenderer* GL_GetPolygonRenderer() {
 	polyRenderer.DrawMode = polyRenderer.ScenePtr ? polyRenderer.ScenePtr->DrawMode : 0;
 	polyRenderer.FaceCullMode =
 		polyRenderer.ScenePtr ? polyRenderer.ScenePtr->FaceCullMode : FaceCull_None;
-	polyRenderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
+	polyRenderer.CurrentColor = ColorUtils::ToRGBA(Graphics::BlendColors);
 
 	GL_VertexBuffer* driverData = (GL_VertexBuffer*)polyRenderer.VertexBuf->DriverData;
 	driverData->Changed = true;
@@ -1701,27 +1701,29 @@ bool GL_CreateTexture(Texture* texture) {
 	textureData->Multisampled = false;
 
 	// Set format
-	switch (texture->Format) {
-	case TextureFormat_YV12:
-	case TextureFormat_IYUV:
-	case TextureFormat_NV12:
-	case TextureFormat_NV21:
-		textureData->TextureStorageFormat = GL_MONOCHROME_PIXELFORMAT;
-		textureData->PixelDataFormat = GL_MONOCHROME_PIXELFORMAT;
-		textureData->PixelDataType = GL_UNSIGNED_BYTE;
-		break;
-	default:
-		textureData->TextureStorageFormat = GL_RGBA;
-		textureData->PixelDataFormat = GL_RGBA;
-		textureData->PixelDataType = GL_UNSIGNED_BYTE;
-		break;
-	}
-
 	if (TEXTUREFORMAT_IS_YUV(texture->Format)) {
 		texture->DriverFormat = texture->Format;
 	}
 	else {
 		texture->DriverFormat = Graphics::TextureFormat;
+	}
+
+	textureData->PixelDataType = GL_UNSIGNED_BYTE;
+
+	if (texture->DriverFormat == TextureFormat_YV12 ||
+		texture->DriverFormat == TextureFormat_IYUV ||
+		texture->DriverFormat == TextureFormat_NV12 ||
+		texture->DriverFormat == TextureFormat_NV21) {
+		textureData->TextureStorageFormat = GL_MONOCHROME_PIXELFORMAT;
+		textureData->PixelDataFormat = GL_MONOCHROME_PIXELFORMAT;
+	}
+	else if (TEXTUREFORMAT_IS_RGB(texture->DriverFormat)) {
+		textureData->TextureStorageFormat = GL_RGB;
+		textureData->PixelDataFormat = GL_RGB;
+	}
+	else {
+		textureData->TextureStorageFormat = GL_RGBA;
+		textureData->PixelDataFormat = GL_RGBA;
 	}
 
 	texture->BytesPerPixel = Texture::GetFormatBytesPerPixel(texture->Format);
@@ -1797,7 +1799,7 @@ bool GL_CreateTexture(Texture* texture) {
 	}
 
 	// Keep a buffer allocated for converting between formats.
-	if (texture->Access != TextureAccess_STATIC && texture->Format != texture->DriverFormat) {
+	if (texture->KeepDriverPixelsResident()) {
 		size_t bpp = Texture::GetFormatBytesPerPixel(texture->DriverFormat);
 		size_t size = texture->Width * texture->Height * bpp;
 
@@ -2051,7 +2053,7 @@ int GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int
 	if (srcFormat != texture->DriverFormat) {
 		size_t bpp = Texture::GetFormatBytesPerPixel(texture->DriverFormat);
 
-		if (texture->Access == TextureAccess_STATIC) {
+		if (texture->DriverPixelData == nullptr) {
 			texture->DriverPixelData = Memory::Calloc(inputPixelsW * inputPixelsH, bpp);
 		}
 
@@ -2084,7 +2086,7 @@ int GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int
 		pixels);
 	CHECK_GL();
 
-	if (srcFormat != texture->DriverFormat && texture->Access == TextureAccess_STATIC) {
+	if (!texture->KeepDriverPixelsResident()) {
 		Memory::Free(texture->DriverPixelData);
 		texture->DriverPixelData = nullptr;
 	}
@@ -2412,7 +2414,7 @@ void GL_PrepareScreenTexture() {
 	GLRenderer::ReadFramebuffer(GL_ReadPixelsResult, 0, 0, maxWidth, maxHeight);
 
 	if (allocTexture) {
-		GL_ScreenTexture = Graphics::CreateTexture(Graphics::TextureFormat,
+		GL_ScreenTexture = Graphics::CreateTexture(TextureFormat_RGBA8888,
 			TextureAccess_STREAMING,
 			GL_ScreenTextureWidth,
 			GL_ScreenTextureHeight);
@@ -3383,7 +3385,7 @@ void GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex,
 	polyRenderer.NormalMatrix = normalMatrix;
 	polyRenderer.DrawMode = scene->DrawMode;
 	polyRenderer.FaceCullMode = scene->FaceCullMode;
-	polyRenderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
+	polyRenderer.CurrentColor = ColorUtils::ToRGBA(Graphics::BlendColors);
 	polyRenderer.DrawVertexBuffer();
 
 	GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;

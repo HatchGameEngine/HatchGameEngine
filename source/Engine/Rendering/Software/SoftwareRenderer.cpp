@@ -13,6 +13,10 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Types.h>
 
+#define GET_R(color) ((color >> 16) & 0xFF)
+#define GET_G(color) ((color >> 8) & 0xFF)
+#define GET_B(color) ((color) & 0xFF)
+
 GraphicsFunctions SoftwareRenderer::BackendFunctions;
 Uint32 SoftwareRenderer::CompareColor = 0xFF000000U;
 Sint32 SoftwareRenderer::SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
@@ -228,11 +232,21 @@ int SoftwareRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
 }
 int SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
-	if (texture->Format == Graphics::TextureFormat || texture->Format == TextureFormat_INDEXED) {
+	if (texture->Format == TextureFormat_INDEXED) {
 		return 0;
 	}
 
-	size_t bpp = Texture::GetFormatBytesPerPixel(Graphics::TextureFormat);
+	int preferredFormat = Graphics::TextureFormat;
+
+	if (TEXTUREFORMAT_IS_RGB(preferredFormat)) {
+		preferredFormat = Texture::FormatWithAlphaChannel(preferredFormat);
+	}
+
+	if (texture->Format == preferredFormat) {
+		return 0;
+	}
+
+	size_t bpp = Texture::GetFormatBytesPerPixel(preferredFormat);
 
 	if (texture->DriverPixelData == nullptr) {
 		texture->DriverPixelData = Memory::Calloc(texture->Width * texture->Height, bpp);
@@ -244,7 +258,7 @@ int SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixel
 		0,
 		0,
 		texture->DriverPixelData,
-		Graphics::TextureFormat,
+		preferredFormat,
 		texture->Width * bpp,
 		0,
 		0,
@@ -363,9 +377,6 @@ void SoftwareRenderer::Clear() {
 void SoftwareRenderer::Present() {}
 
 // Draw mode setting functions
-#define GET_R(color) ((color >> 16) & 0xFF)
-#define GET_G(color) ((color >> 8) & 0xFF)
-#define GET_B(color) ((color) & 0xFF)
 void SoftwareRenderer::SetColor(Uint32 color) {
 	ColRGB = color;
 	ColR = GET_R(color);
@@ -422,7 +433,7 @@ void SoftwareRenderer::Scale(float x, float y, float z) {}
 void SoftwareRenderer::Restore() {}
 
 Uint32 SoftwareRenderer::GetBlendColor() {
-	return ColorUtils::ToRGB(ColR, ColG, ColB);
+	return ColorUtils::ToRGB(ColR, ColG, ColB, CurrentBlendState.Opacity);
 }
 
 int SoftwareRenderer::ConvertBlendMode(int blendMode) {
@@ -618,8 +629,6 @@ static PixelFunction PixelTintFunctions[] = {SoftwareRenderer::PixelTintSetOpaqu
 	SoftwareRenderer::PixelTintSetMatchEqual,
 	SoftwareRenderer::PixelTintSetMatchNotEqual};
 
-#define GET_FILTER_COLOR(col) ((col & 0xF80000) >> 9 | (col & 0xF800) >> 6 | (col & 0xF8) >> 3)
-
 static Uint32 TintNormalSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
 	return ColorUtils::Tint(*src, tintColor, tintAmount);
 }
@@ -633,22 +642,30 @@ static Uint32 TintBlendDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 t
 	return ColorUtils::Blend(*dst, tintColor, tintAmount);
 }
 
-static Uint32 FilterBW(Uint32 color) {
-	Uint8 red = GET_R(color);
-	Uint8 green = GET_G(color);
-	Uint8 blue = GET_B(color);
-
+static Uint32 FilterBW(Uint8 red, Uint8 green, Uint8 blue) {
 	float luminance = ((float)red * 0.2126) + ((float)green * 0.7152) + ((float)blue * 0.0722);
 
 	int bw = (int)luminance;
+	if (bw > 0xFF) {
+		bw = 0xFF;
+	}
+
 	return bw << 16 | bw << 8 | bw | 0xFF000000U;
 }
 
 static Uint32 FilterBWSourceARGB(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
-	return FilterBW(*src);
+	Uint8 red = GET_R(*src);
+	Uint8 green = GET_G(*src);
+	Uint8 blue = GET_B(*src);
+
+	return FilterBW(red, green, blue);
 }
 static Uint32 FilterBWDestARGB(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
-	return FilterBW(*dst);
+	Uint8 red = GET_R(*dst);
+	Uint8 green = GET_G(*dst);
+	Uint8 blue = GET_B(*dst);
+
+	return FilterBW(red, green, blue);
 }
 
 static Uint32 FilterBWSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
@@ -656,14 +673,14 @@ static Uint32 FilterBWSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 
 
 	Graphics::ConvertFromNativeToARGB(&color, 1);
 
-	return FilterBW(color);
+	return FilterBW(GET_R(color), GET_G(color), GET_B(color));
 }
 static Uint32 FilterBWDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
-	Uint32 color = *dst;
+	Uint32 color = *src;
 
 	Graphics::ConvertFromNativeToARGB(&color, 1);
 
-	return FilterBW(color);
+	return FilterBW(GET_R(color), GET_G(color), GET_B(color));
 }
 
 static Uint32 FilterInvertSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {

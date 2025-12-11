@@ -19662,20 +19662,35 @@ void StandardLibrary::Link() {
 	*/
 	DEF_CONST_INT("TEXTUREFORMAT_RGBA8888", TextureFormat_RGBA8888);
 	/***
-	* \enum TEXTUREFORMAT_ARGB8888
-	* \desc ARGB8888 texture format.
-	*/
-	DEF_CONST_INT("TEXTUREFORMAT_ARGB8888", TextureFormat_ARGB8888);
-	/***
 	* \enum TEXTUREFORMAT_ABGR8888
 	* \desc ABGR8888 texture format.
 	*/
 	DEF_CONST_INT("TEXTUREFORMAT_ABGR8888", TextureFormat_ABGR8888);
 	/***
+	* \enum TEXTUREFORMAT_ARGB8888
+	* \desc ARGB8888 texture format.
+	*/
+	DEF_CONST_INT("TEXTUREFORMAT_ARGB8888", TextureFormat_ARGB8888);
+	/***
+	* \enum TEXTUREFORMAT_RGA888
+	* \desc RGB888 texture format.
+	*/
+	DEF_CONST_INT("TEXTUREFORMAT_RGB888", TextureFormat_RGB888);
+	/***
+	* \enum TEXTUREFORMAT_BGR888
+	* \desc BGR888 texture format.
+	*/
+	DEF_CONST_INT("TEXTUREFORMAT_BGR888", TextureFormat_BGR888);
+	/***
 	* \enum TEXTUREFORMAT_INDEXED
 	* \desc Indexed (palette) texture format.
 	*/
 	DEF_CONST_INT("TEXTUREFORMAT_INDEXED", TextureFormat_INDEXED);
+	/***
+	* \enum TEXTUREFORMAT_NATIVE
+	* \desc The native texture format of the renderer.
+	*/
+	DEF_CONST_INT("TEXTUREFORMAT_NATIVE", TextureFormat_NATIVE);
 
 	/***
     * \enum DrawMode_LINES

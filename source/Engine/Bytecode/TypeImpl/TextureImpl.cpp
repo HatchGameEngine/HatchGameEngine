@@ -39,7 +39,7 @@ Obj* TextureImpl::New() {
  * \param width (Integer): The width of the texture.
  * \param height (Integer): The height of the texture.
  * \paramOpt access (Enum): The <linkto ref="TEXTUREACCESS_*">access mode</linkto> of the texture. The default is <code>TEXTUREACCESS_STATIC</code>.
- * \paramOpt format (Enum): The <linkto ref="TEXTUREFORMAT_*">format</linkto> of the texture. The default is <code>TEXTUREFORMAT_RGBA8888</code>, or the preferred texture format for render target textures.
+ * \paramOpt format (Enum): The <linkto ref="TEXTUREFORMAT_*">format</linkto> of the texture. The default is <code>TEXTUREFORMAT_RGB888</code>, or <code>TextureFormat_NATIVE</code> for render target textures.
  * \paramOpt pixels (Array): An array of pixels to initialize the texture with. The length of the array must match the dimensions of the texture (e.g., for a 64x64 texture, you must pass an array of exactly 4096 values.)
  * \ns Texture
  */
@@ -53,8 +53,8 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 	int access = GET_ARG_OPT(3, GetInteger, TextureAccess_STATIC);
 	int format = GET_ARG_OPT(4,
 		GetInteger,
-		access == TextureAccess_RENDERTARGET ? Graphics::TextureFormat
-						     : TextureFormat_RGBA8888);
+		access == TextureAccess_RENDERTARGET ? TextureFormat_NATIVE
+						     : TextureFormat_RGB888);
 	ObjArray* pixelsArray = GET_ARG_OPT(5, GetArray, nullptr);
 
 	char errorString[128];
@@ -62,36 +62,48 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 	if (width < 1) {
 		throw ScriptException("Width cannot be lower than 1.");
 	}
+
 	if (height < 1) {
 		throw ScriptException("Height cannot be lower than 1.");
 	}
+
 	if (access < 0 || access > TextureAccess_RENDERTARGET) {
 		snprintf(errorString,
 			sizeof errorString,
 			"Texture access mode %d out of range. (%d - %d)",
-			format,
+			access,
 			0,
 			TextureAccess_RENDERTARGET);
 
 		throw ScriptException(errorString);
 	}
-	if (access == TextureAccess_RENDERTARGET && format != Graphics::TextureFormat) {
-		throw ScriptException(
-			"Texture format of a render target texture must match the preferred format!");
-	}
-	if (format < 0 || format > TextureFormat_INDEXED) {
-		snprintf(errorString,
-			sizeof errorString,
-			"Texture format %d out of range. (%d - %d)",
-			format,
-			0,
-			TextureFormat_INDEXED);
 
-		throw ScriptException(errorString);
+	if (format == TextureFormat_NATIVE) {
+		format = Graphics::TextureFormat;
+	}
+	else {
+		if (access == TextureAccess_RENDERTARGET) {
+			throw ScriptException(
+				"Texture format of a render target texture must be TEXTUREFORMAT_NATIVE!");
+		}
+
+		if (format < 0 || format > TextureFormat_INDEXED) {
+			snprintf(errorString,
+				sizeof errorString,
+				"Texture format %d out of range. (%d - %d)",
+				format,
+				0,
+				TextureFormat_INDEXED);
+
+			throw ScriptException(errorString);
+		}
 	}
 
-	Uint32* pixels = nullptr;
+	Uint8* pixels = nullptr;
+	unsigned numPaletteColors = 256;
+
 	size_t numPixels = width * height;
+	size_t bpp = Texture::GetFormatBytesPerPixel(format);
 
 	if (pixelsArray != nullptr) {
 		if (access == TextureAccess_RENDERTARGET) {
@@ -110,7 +122,10 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 			throw ScriptException(errorString);
 		}
 
-		pixels = (Uint32*)Memory::Calloc(numPixels, sizeof(Uint32));
+		pixels = (Uint8*)Memory::Calloc(numPixels, bpp);
+
+		Uint8* dest = pixels;
+		int pixelFormat = Texture::TextureFormatToPixelFormat(format);
 
 		for (size_t i = 0; i < pixelsArray->Values->size(); i++) {
 			VMValue element = (*pixelsArray->Values)[i];
@@ -131,18 +146,33 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 
 			int value = AS_INTEGER(result);
 
-			if (format == TextureFormat_INDEXED && (value < 0 || value > 255)) {
-				Memory::Free(pixels);
+			if (format == TextureFormat_INDEXED) {
+				if (value < 0 || value > 255) {
+					Memory::Free(pixels);
 
-				snprintf(errorString,
-					sizeof errorString,
-					"Pixel value %d out of range. (0 - 255)",
-					value);
+					snprintf(errorString,
+						sizeof errorString,
+						"Pixel value %d out of range. (0 - 255)",
+						value);
 
-				throw ScriptException(errorString);
+					throw ScriptException(errorString);
+				}
+
+				*dest = value;
+			}
+			else {
+				value = TO_BE32((Uint32)value);
+
+#if HATCH_LITTLE_ENDIAN
+				if (TEXTUREFORMAT_IS_RGB(format)) {
+					value >>= 8;
+				}
+#endif
+
+				memcpy(dest, &value, bpp);
 			}
 
-			pixels[i] = value;
+			dest += bpp;
 		}
 	}
 
@@ -157,12 +187,12 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 	}
 
 	if (format == TextureFormat_INDEXED) {
-		unsigned numPaletteColors = 256;
-
 		Uint32* palette = (Uint32*)Memory::Calloc(numPaletteColors, sizeof(Uint32));
 
 		for (unsigned i = 0; i < numPaletteColors; i++) {
-			palette[i] = 0xFF000000U | (i << 16) | (i << 8) | i;
+			Uint8 brightness = (int)(i * std::ceil(255.0 / numPaletteColors));
+
+			palette[i] = ColorUtils::Make(i, i, i, 0xFF, Graphics::PreferredPixelFormat);
 		}
 
 		Graphics::SetTexturePalette(texture, palette, numPaletteColors);
