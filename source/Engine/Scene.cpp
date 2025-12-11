@@ -3257,6 +3257,11 @@ void Scene::Dispose() {
 	}
 	Scene::ObjectLists = NULL;
 
+	if (Scene::StaticObjectLists) {
+		delete Scene::StaticObjectLists;
+	}
+	Scene::StaticObjectLists = NULL;
+
 	if (Scene::ObjectRegistries) {
 		Scene::ObjectRegistries->ForAll([](Uint32, ObjectRegistry* registry) -> void {
 			delete registry;

@@ -262,4 +262,6 @@ void GarbageCollector::BlackenObject(Obj* object) {
 
 void GarbageCollector::Dispose() {
 	Init();
+
+	vector<Obj*>().swap(GrayList);
 }
