@@ -3,7 +3,7 @@
 
 #include "Engine/Includes/Standard.h"
 
-enum { PixelFormat_ARGB8888, PixelFormat_ABGR8888 };
+enum { PixelFormat_RGBA8888, PixelFormat_ABGR8888, PixelFormat_ARGB8888 };
 
 enum {
 	// The texture is created with the given pixel data and never updated again, or it updates

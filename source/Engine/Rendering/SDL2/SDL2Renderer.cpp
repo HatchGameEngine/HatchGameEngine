@@ -48,8 +48,8 @@ void SDL2Renderer::Init() {
 
 	Graphics::SupportsShaders = false;
 	Graphics::SupportsBatching = false;
-	Graphics::PreferredPixelFormat = PixelFormat_ARGB8888;
-	Graphics::TextureFormat = TextureFormat_ARGB8888;
+	Graphics::PreferredPixelFormat = PixelFormat_RGBA8888;
+	Graphics::TextureFormat = TextureFormat_RGBA8888;
 
 	Graphics::MaxTextureWidth = rendererInfo.max_texture_width;
 	Graphics::MaxTextureHeight = rendererInfo.max_texture_height;
@@ -137,15 +137,17 @@ bool SDL2Renderer::InitializeTexture(Texture* texture) {
 	int access = 0;
 
 	switch (texture->Format) {
-	case TextureFormat_ARGB8888:
-		format = SDL_PIXELFORMAT_ARGB8888;
-		break;
 	case TextureFormat_RGBA8888:
-		format = SDL_PIXELFORMAT_RGBA8888;
+		format = SDL_PIXELFORMAT_RGBA32;
 		break;
 	case TextureFormat_ABGR8888:
+		format = SDL_PIXELFORMAT_ABGR32;
+		break;
+	case TextureFormat_ARGB8888:
+		format = SDL_PIXELFORMAT_ARGB32;
+		break;
 	case TextureFormat_INDEXED:
-		format = SDL_PIXELFORMAT_ABGR8888;
+		format = SDL_PIXELFORMAT_RGBA32;
 		break;
 	case TextureFormat_YV12:
 		format = SDL_PIXELFORMAT_YV12;
@@ -271,11 +273,14 @@ void SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
 	int format = 0;
 
 	switch (Graphics::TextureFormat) {
-	case TextureFormat_ARGB8888:
-		format = SDL_PIXELFORMAT_ARGB8888;
+	case TextureFormat_RGBA8888:
+		format = SDL_PIXELFORMAT_RGBA32;
 		break;
 	case TextureFormat_ABGR8888:
-		format = SDL_PIXELFORMAT_ABGR8888;
+		format = SDL_PIXELFORMAT_ABGR32;
+		break;
+	case TextureFormat_ARGB8888:
+		format = SDL_PIXELFORMAT_ARGB32;
 		break;
 	default:
 		return;

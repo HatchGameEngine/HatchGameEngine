@@ -1396,8 +1396,8 @@ PolygonRenderer* GL_GetPolygonRenderer() {
 void GLRenderer::Init() {
 	Graphics::SupportsShaders = true;
 	Graphics::SupportsBatching = true;
-	Graphics::PreferredPixelFormat = PixelFormat_ABGR8888;
-	Graphics::TextureFormat = TextureFormat_ABGR8888;
+	Graphics::PreferredPixelFormat = PixelFormat_RGBA8888;
+	Graphics::TextureFormat = TextureFormat_RGBA8888;
 
 	Log::Print(Log::LOG_INFO, "Renderer: OpenGL");
 
@@ -1721,7 +1721,7 @@ bool GL_CreateTexture(Texture* texture) {
 		texture->DriverFormat = texture->Format;
 	}
 	else {
-		texture->DriverFormat = TextureFormat_ABGR8888;
+		texture->DriverFormat = Graphics::TextureFormat;
 	}
 
 	texture->BytesPerPixel = Texture::GetFormatBytesPerPixel(texture->Format);
@@ -2045,7 +2045,7 @@ int GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int
 
 	int srcFormat = texture->Format;
 	if (srcFormat == TextureFormat_INDEXED) {
-		srcFormat = TextureFormat_ABGR8888;
+		srcFormat = Graphics::TextureFormat;
 	}
 
 	if (srcFormat != texture->DriverFormat) {
@@ -2212,15 +2212,9 @@ void GLRenderer::CopyTexturePixels(Texture* dest,
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
 		// Convert from RGBA to the texture's actual format
-#if HATCH_LITTLE_ENDIAN
-		int framebufferFormat = TextureFormat_ABGR8888;
-#else
-		int framebufferFormat = TextureFormat_RGBA8888;
-#endif
-
-		if (src->Format != framebufferFormat) {
+		if (src->Format != Graphics::TextureFormat) {
 			Texture::Convert(src->Pixels,
-				framebufferFormat,
+				Graphics::TextureFormat,
 				src->Pitch,
 				srcX,
 				srcY,
@@ -2418,7 +2412,7 @@ void GL_PrepareScreenTexture() {
 	GLRenderer::ReadFramebuffer(GL_ReadPixelsResult, 0, 0, maxWidth, maxHeight);
 
 	if (allocTexture) {
-		GL_ScreenTexture = Graphics::CreateTexture(PixelFormat_ABGR8888,
+		GL_ScreenTexture = Graphics::CreateTexture(Graphics::TextureFormat,
 			TextureAccess_STREAMING,
 			GL_ScreenTextureWidth,
 			GL_ScreenTextureHeight);

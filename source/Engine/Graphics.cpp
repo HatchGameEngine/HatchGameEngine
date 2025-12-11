@@ -28,8 +28,8 @@ bool Graphics::SupportsShaders = false;
 bool Graphics::SupportsBatching = false;
 bool Graphics::TextureBlend = false;
 bool Graphics::TextureInterpolate = false;
-Uint32 Graphics::PreferredPixelFormat = PixelFormat_ARGB8888;
-Uint32 Graphics::TextureFormat = TextureFormat_ARGB8888;
+Uint32 Graphics::PreferredPixelFormat = PixelFormat_RGBA8888;
+Uint32 Graphics::TextureFormat = TextureFormat_RGBA8888;
 Uint32 Graphics::MaxTextureWidth = 1;
 Uint32 Graphics::MaxTextureHeight = 1;
 Uint32 Graphics::MaxTextureUnits = 1;
@@ -3061,15 +3061,11 @@ bool Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {
 	return false;
 }
 
-void Graphics::ConvertFromARGBtoNative(Uint32* argb, int count) {
-	if (Graphics::PreferredPixelFormat == PixelFormat_ABGR8888) {
-		ColorUtils::ConvertFromARGBtoABGR(argb, count);
-	}
+void Graphics::ConvertFromARGBtoNative(Uint32* colors, int count) {
+	ColorUtils::Convert(colors, count, PixelFormat_ARGB8888, Graphics::PreferredPixelFormat);
 }
-void Graphics::ConvertFromNativeToARGB(Uint32* argb, int count) {
-	if (Graphics::PreferredPixelFormat == PixelFormat_ABGR8888) {
-		ColorUtils::ConvertFromABGRtoARGB(argb, count);
-	}
+void Graphics::ConvertFromNativeToARGB(Uint32* colors, int count) {
+	ColorUtils::Convert(colors, count, Graphics::PreferredPixelFormat, PixelFormat_ARGB8888);
 }
 
 void Graphics::SetStencilEnabled(bool enabled) {

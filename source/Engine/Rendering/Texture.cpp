@@ -75,22 +75,26 @@ int Texture::GetFormatBytesPerPixel(int textureFormat) {
 }
 int Texture::PixelFormatToTextureFormat(int pixelFormat) {
 	switch (pixelFormat) {
-	case PixelFormat_ARGB8888:
-		return TextureFormat_ARGB8888;
+	case PixelFormat_RGBA8888:
+		return TextureFormat_RGBA8888;
 	case PixelFormat_ABGR8888:
 		return TextureFormat_ABGR8888;
+	case PixelFormat_ARGB8888:
+		return TextureFormat_ARGB8888;
 	default:
 		return TextureFormat_RGBA8888;
 	}
 }
 int Texture::TextureFormatToPixelFormat(int textureFormat) {
 	switch (textureFormat) {
-	case TextureFormat_ARGB8888:
-		return PixelFormat_ARGB8888;
+	case TextureFormat_RGBA8888:
+		return PixelFormat_RGBA8888;
 	case TextureFormat_ABGR8888:
 		return PixelFormat_ABGR8888;
-	default:
+	case TextureFormat_ARGB8888:
 		return PixelFormat_ARGB8888;
+	default:
+		return PixelFormat_RGBA8888;
 	}
 }
 bool Texture::CanConvertBetweenFormats(int sourceFormat, int destFormat) {
@@ -194,7 +198,8 @@ void Texture::Convert(void* srcPixels,
 		size_t destPos = ((destY + y) * destPitch) + (destX * destBytesPerPixel);
 
 		for (int x = 0; x < width; x++) {
-			Uint32 val = TO_LE32(*(Uint32*)(&src[srcPos]));
+			Uint8* srcPtr = src + srcPos;
+			Uint8* destPtr = dest + destPos;
 
 			Uint8 red = 0;
 			Uint8 green = 0;
@@ -203,49 +208,45 @@ void Texture::Convert(void* srcPixels,
 
 			switch (srcFormat) {
 			case TextureFormat_ARGB8888:
-				alpha = (val >> 24) & 0xFF;
-				red = (val >> 16) & 0xFF;
-				green = (val >> 8) & 0xFF;
-				blue = val & 0xFF;
+				alpha = srcPtr[0];
+				red = srcPtr[1];
+				green = srcPtr[2];
+				blue = srcPtr[3];
 				break;
 			case TextureFormat_ABGR8888:
-				alpha = (val >> 24) & 0xFF;
-				blue = (val >> 16) & 0xFF;
-				green = (val >> 8) & 0xFF;
-				red = val & 0xFF;
+				alpha = srcPtr[0];
+				blue = srcPtr[1];
+				green = srcPtr[2];
+				red = srcPtr[3];
 				break;
 			case TextureFormat_RGBA8888:
-				red = (val >> 24) & 0xFF;
-				green = (val >> 16) & 0xFF;
-				blue = (val >> 8) & 0xFF;
-				alpha = val & 0xFF;
+				red = srcPtr[0];
+				green = srcPtr[1];
+				blue = srcPtr[2];
+				alpha = srcPtr[3];
 				break;
 			}
-
-			Uint32* destPtr = (Uint32*)(&dest[destPos]);
 
 			switch (destFormat) {
 			case TextureFormat_RGBA8888:
-				val = red << 24;
-				val |= green << 16;
-				val |= blue << 8;
-				val |= alpha;
+				destPtr[0] = red;
+				destPtr[1] = green;
+				destPtr[2] = blue;
+				destPtr[3] = alpha;
 				break;
 			case TextureFormat_ABGR8888:
-				val = alpha << 24;
-				val |= blue << 16;
-				val |= green << 8;
-				val |= red;
+				destPtr[0] = alpha;
+				destPtr[1] = blue;
+				destPtr[2] = green;
+				destPtr[3] = red;
 				break;
 			case TextureFormat_ARGB8888:
-				val = alpha << 24;
-				val |= red << 16;
-				val |= green << 8;
-				val |= blue;
+				destPtr[0] = alpha;
+				destPtr[1] = red;
+				destPtr[2] = green;
+				destPtr[3] = blue;
 				break;
 			}
-
-			*destPtr = TO_LE32(val);
 
 			srcPos += srcBytesPerPixel;
 			destPos += destBytesPerPixel;

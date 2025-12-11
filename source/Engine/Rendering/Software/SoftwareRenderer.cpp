@@ -1080,10 +1080,10 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	}
 
 	// Convert vertex colors to native format
-	if (Graphics::PreferredPixelFormat == PixelFormat_ABGR8888) {
+	if (Graphics::PreferredPixelFormat != PixelFormat_ARGB8888) {
 		VertexAttribute* vertex = vertexAttribsPtr;
 		for (Uint32 i = 0; i < vertexBuffer->VertexCount; i++, vertex++) {
-			ColorUtils::ConvertFromARGBtoABGR(&vertex->Color, 1);
+			Graphics::ConvertFromARGBtoNative(&vertex->Color, 1);
 		}
 	}
 

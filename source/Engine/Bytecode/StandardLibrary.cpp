@@ -11609,16 +11609,23 @@ VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
 	Texture* texture = image->TexturePtr;
 
 	size_t x = 0;
+	size_t length = texture->Width;
+	if (length > 0x100) {
+		length = 0x100;
+	}
+
+	int pixelFormat = Texture::TextureFormatToPixelFormat(texture->Format);
 
 	for (size_t y = 0; y < texture->Height; y++) {
 		Uint32* line = (Uint32*)texture->Pixels + (y * texture->Width);
-		size_t length = texture->Width;
-		if (length > 0x100) {
-			length = 0x100;
-		}
+		for (size_t src = 0; src < length && x < 0x100; x++) {
+			Uint32 color = line[src++];
 
-		for (size_t src = 0; src < length && x < 0x100;) {
-			Graphics::PaletteColors[palIndex][x++] = 0xFF000000 | line[src++];
+			if (pixelFormat != Graphics::PreferredPixelFormat) {
+				color = ColorUtils::Convert(color, pixelFormat, Graphics::PreferredPixelFormat);
+			}
+
+			Graphics::PaletteColors[palIndex][x] = 0xFF000000 | color;
 		}
 		Graphics::PaletteUpdated = true;
 		if (x >= 0x100) {
@@ -11643,7 +11650,7 @@ VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_PALETTE_INDEX(palIndex);
 	CHECK_COLOR_INDEX(colorIndex);
 	Uint32 color = Graphics::PaletteColors[palIndex][colorIndex];
-	Graphics::ConvertFromARGBtoNative(&color, 1);
+	Graphics::ConvertFromNativeToARGB(&color, 1);
 	return INTEGER_VAL((int)(color & 0xFFFFFFU));
 }
 /***

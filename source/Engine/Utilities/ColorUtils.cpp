@@ -1,3 +1,4 @@
+#include <Engine/Rendering/Enums.h>
 #include <Engine/Utilities/ColorUtils.h>
 
 #define CLAMP_VAL(v, a, b) \
@@ -97,22 +98,73 @@ Uint32 ColorUtils::Blend(Uint32 color1, Uint32 color2, int percent) {
 	g += (((color2 & 0x00FF00U) - g) * percent) >> 8;
 	return (rb & 0xFF00FFU) | (g & 0x00FF00U);
 }
-void ColorUtils::ConvertFromARGBtoABGR(Uint32* argb, int count) {
-	for (int p = 0; p < count; p++) {
-		Uint8 red = (*argb >> 16) & 0xFF;
-		Uint8 green = (*argb >> 8) & 0xFF;
-		Uint8 blue = *argb & 0xFF;
-		*argb = 0xFF000000U | blue << 16 | green << 8 | red;
-		argb++;
+Uint32 ColorUtils::Make(Uint8 red, Uint8 green, Uint8 blue, Uint8 alpha, int pixelFormat) {
+	Uint32 color = 0;
+
+	switch (pixelFormat) {
+	case PixelFormat_RGBA8888:
+		color = red << 24;
+		color |= green << 16;
+		color |= blue << 8;
+		color |= alpha;
+		break;
+	case PixelFormat_ABGR8888:
+		color = alpha << 24;
+		color |= blue << 16;
+		color |= green << 8;
+		color |= red;
+		break;
+	case PixelFormat_ARGB8888:
+		color = alpha << 24;
+		color |= red << 16;
+		color |= green << 8;
+		color |= blue;
+		break;
 	}
+
+	return TO_BE32(color);
 }
-void ColorUtils::ConvertFromABGRtoARGB(Uint32* argb, int count) {
+Uint32 ColorUtils::Convert(Uint32 color, int srcPixelFormat, int destPixelFormat) {
+	if (srcPixelFormat == destPixelFormat) {
+		return color;
+	}
+
+	Uint8 red = 0;
+	Uint8 green = 0;
+	Uint8 blue = 0;
+	Uint8 alpha = 0;
+
+	switch (srcPixelFormat) {
+	case PixelFormat_RGBA8888:
+		red = (color >> 24) & 0xFF;
+		green = (color >> 16) & 0xFF;
+		blue = (color >> 8) & 0xFF;
+		alpha = color & 0xFF;
+		break;
+	case PixelFormat_ARGB8888:
+		alpha = (color >> 24) & 0xFF;
+		red = (color >> 16) & 0xFF;
+		green = (color >> 8) & 0xFF;
+		blue = color & 0xFF;
+		break;
+	case PixelFormat_ABGR8888:
+		alpha = (color >> 24) & 0xFF;
+		blue = (color >> 16) & 0xFF;
+		green = (color >> 8) & 0xFF;
+		red = color & 0xFF;
+		break;
+	}
+
+	return ColorUtils::Make(red, green, blue, alpha, destPixelFormat);
+}
+void ColorUtils::Convert(Uint32* colors, int count, int srcPixelFormat, int destPixelFormat) {
+	if (srcPixelFormat == destPixelFormat) {
+		return;
+	}
+
 	for (int p = 0; p < count; p++) {
-		Uint8 blue = (*argb >> 16) & 0xFF;
-		Uint8 green = (*argb >> 8) & 0xFF;
-		Uint8 red = *argb & 0xFF;
-		*argb = 0xFF000000U | red << 16 | green << 8 | blue;
-		argb++;
+		*colors = ColorUtils::Convert(*colors, srcPixelFormat, destPixelFormat);
+		colors++;
 	}
 }
 int ColorUtils::NearestColor(Uint8 r, Uint8 g, Uint8 b, Uint32* palette, unsigned numColors) {

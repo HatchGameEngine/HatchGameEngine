@@ -274,27 +274,16 @@ GIF* GIF::Load(Stream* stream) {
 	gif->Data = (Uint32*)Memory::TrackedMalloc("GIF::Data", width * height * sizeof(Uint32));
 	// Load Palette Table
 	gif->Colors = (Uint32*)Memory::TrackedMalloc("GIF::Colors", 0x100 * sizeof(Uint32));
-	if (Graphics::TextureFormat == TextureFormat_ABGR8888) {
-		for (int p = 0; p < paletteTableSize; p++) {
-			gif->Colors[p] = 0xFF000000U;
-			// Load 'red'
-			gif->Colors[p] |= stream->ReadByte();
-			// Load 'green'
-			gif->Colors[p] |= stream->ReadByte() << 8;
-			// Load 'blue'
-			gif->Colors[p] |= stream->ReadByte() << 16;
-		}
-	}
-	else {
-		for (int p = 0; p < paletteTableSize; p++) {
-			gif->Colors[p] = 0xFF000000U;
-			// Load 'red'
-			gif->Colors[p] |= stream->ReadByte() << 16;
-			// Load 'green'
-			gif->Colors[p] |= stream->ReadByte() << 8;
-			// Load 'blue'
-			gif->Colors[p] |= stream->ReadByte();
-		}
+	for (int p = 0; p < paletteTableSize; p++) {
+		// Load 'red'
+		Uint8 red = stream->ReadByte();
+		// Load 'green'
+		Uint8 green = stream->ReadByte();
+		// Load 'blue'
+		Uint8 blue = stream->ReadByte();
+
+		// Store color
+		gif->Colors[p] = ColorUtils::Make(red, green, blue, 0xFF, Graphics::PreferredPixelFormat);
 	}
 
 #ifdef DO_GIF_PERF
