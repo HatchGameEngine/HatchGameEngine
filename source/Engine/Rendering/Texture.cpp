@@ -480,6 +480,31 @@ Uint32* Texture::Crop(Texture* source, int cropX, int cropY, int cropWidth, int 
 	return pixels;
 }
 
+Uint32* Texture::Scale(Texture* source, Uint32 destWidth, Uint32 destHeight) {
+	int bpp = Texture::GetFormatBytesPerPixel(source->Format);
+	Uint32* pixels = (Uint32*)Memory::Malloc(destWidth * destHeight * bpp);
+
+	Uint32 maxWidth = source->Width << 16;
+	Uint32 maxHeight = source->Height << 16;
+
+	Uint32 xStep = FP16_DIVIDE(0x10000, FP16_DIVIDE(destWidth << 16, maxWidth));
+	Uint32 yStep = FP16_DIVIDE(0x10000, FP16_DIVIDE(destHeight << 16, maxHeight));
+
+	Uint32* src = (Uint32*)source->Pixels;
+	Uint32* dest = pixels;
+
+	for (Uint32 srcY = 0; srcY < maxHeight; srcY += yStep) {
+		Uint32* row = src + ((srcY >> 16) * source->Width);
+
+		for (Uint32 srcX = 0; srcX < maxWidth; srcX += xStep) {
+			*dest = row[srcX >> 16];
+			dest++;
+		}
+	}
+
+	return pixels;
+}
+
 void Texture::Dispose() {
 	Memory::Free(PaletteColors);
 	Memory::Free(Pixels);

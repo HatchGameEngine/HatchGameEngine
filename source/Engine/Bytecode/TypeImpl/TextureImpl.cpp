@@ -15,6 +15,7 @@ void TextureImpl::Init() {
 	ScriptManager::DefineNative(Class, "CopyPixels", VM_CopyPixels);
 	ScriptManager::DefineNative(Class, "Apply", VM_Apply);
 	ScriptManager::DefineNative(Class, "Resize", VM_Resize);
+	ScriptManager::DefineNative(Class, "Scale", VM_Scale);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
 	TypeImpl::RegisterClass(Class);
@@ -296,7 +297,7 @@ VMValue TextureImpl::VM_Apply(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * \method Resize
- * \desc Resizes the texture to the given dimensions.
+ * \desc Resizes the texture to the given dimensions, without scaling the pixels.
  * \param width (Integer): The new width of the texture.
  * \param height (Integer): The new height of the texture.
  * \ns Texture
@@ -327,6 +328,48 @@ VMValue TextureImpl::VM_Resize(int argCount, VMValue* args, Uint32 threadID) {
 	Uint32* pixels = Texture::Crop(texture, 0, 0, width, height);
 	if (pixels == nullptr) {
 		throw ScriptException("Could not resize texture!");
+	}
+
+	Graphics::ResizeTexture(texture, width, height);
+	Graphics::UpdateTexture(texture, NULL, pixels, texture->Pitch);
+
+	Memory::Free(pixels);
+
+	return NULL_VAL;
+}
+/***
+ * \method Scale
+ * \desc Resizes the texture to the given dimensions, scaling the pixels using nearest neighbor interpolation.
+ * \param width (Integer): The new width of the texture.
+ * \param height (Integer): The new height of the texture.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_Scale(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+	int width = GET_ARG(1, GetInteger);
+	int height = GET_ARG(2, GetInteger);
+
+	Texture* texture = (Texture*)GetTexture(objTexture);
+	CHECK_EXISTS(texture);
+
+	if (objTexture->IsViewTexture) {
+		throw ScriptException(
+			"Cannot scale a draw target texture that belongs to a view!");
+	}
+
+	if (width < 1) {
+		throw ScriptException("Width cannot be lower than 1.");
+	}
+
+	if (height < 1) {
+		throw ScriptException("Height cannot be lower than 1.");
+	}
+
+	Uint32* pixels = Texture::Scale(texture, width, height);
+	if (pixels == nullptr) {
+		throw ScriptException("Could not scale texture!");
 	}
 
 	Graphics::ResizeTexture(texture, width, height);
