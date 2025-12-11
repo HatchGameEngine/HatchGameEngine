@@ -296,7 +296,7 @@ VMValue TextureImpl::VM_Apply(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * \method Resize
- * \desc Resizes the texture to the given dimensions. This will clear the pixel data of the texture.
+ * \desc Resizes the texture to the given dimensions.
  * \param width (Integer): The new width of the texture.
  * \param height (Integer): The new height of the texture.
  * \ns Texture
@@ -324,7 +324,15 @@ VMValue TextureImpl::VM_Resize(int argCount, VMValue* args, Uint32 threadID) {
 		throw ScriptException("Height cannot be lower than 1.");
 	}
 
+	Uint32* pixels = Texture::Crop(texture, 0, 0, width, height);
+	if (pixels == nullptr) {
+		throw ScriptException("Could not resize texture!");
+	}
+
 	Graphics::ResizeTexture(texture, width, height);
+	Graphics::UpdateTexture(texture, NULL, pixels, texture->Pitch);
+
+	Memory::Free(pixels);
 
 	return NULL_VAL;
 }

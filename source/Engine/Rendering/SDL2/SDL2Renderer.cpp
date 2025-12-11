@@ -221,7 +221,7 @@ bool SDL2Renderer::ReinitializeTexture(Texture* texture,
 		SDL2Renderer::DisposeTexture(texture);
 	}
 
-	if (!Texture::Initialize(texture, format, access, width, height)) {
+	if (!Texture::Reinitialize(texture, format, access, width, height)) {
 		return false;
 	}
 

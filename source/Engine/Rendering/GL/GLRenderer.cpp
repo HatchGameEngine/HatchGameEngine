@@ -2015,7 +2015,7 @@ bool GLRenderer::ReinitializeTexture(Texture* texture,
 		GLRenderer::DisposeTexture(texture);
 	}
 
-	if (!Texture::Initialize(texture, format, access, width, height)) {
+	if (!Texture::Reinitialize(texture, format, access, width, height)) {
 		return false;
 	}
 

@@ -374,7 +374,7 @@ bool Graphics::ReinitializeTexture(Texture* texture,
 	Uint32 height) {
 	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
 		Graphics::NoInternalTextures) {
-		return Texture::Initialize(texture, format, access, width, height);
+		return Texture::Reinitialize(texture, format, access, width, height);
 	}
 	else if (Graphics::GfxFunctions->ReinitializeTexture) {
 		return Graphics::GfxFunctions->ReinitializeTexture(

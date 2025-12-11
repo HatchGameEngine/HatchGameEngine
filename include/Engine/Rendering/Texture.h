@@ -19,7 +19,6 @@ public:
 	void* DriverData;
 	Texture* Prev;
 	Texture* Next;
-	bool Paletted;
 	Uint32* PaletteColors;
 	unsigned NumPaletteColors;
 
@@ -67,6 +66,7 @@ public:
 		int& destY,
 		int& destWidth,
 		int& destHeight);
+	static Uint32* Crop(Texture* source, int cropX, int cropY, int cropWidth, int cropHeight);
 	void Dispose();
 };
 

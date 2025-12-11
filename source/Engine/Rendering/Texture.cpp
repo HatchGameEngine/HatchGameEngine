@@ -17,9 +17,6 @@ bool Texture::Initialize(Texture* texture,
 	if (texture->Pixels) {
 		Memory::Free(texture->Pixels);
 	}
-	if (texture->PaletteColors) {
-		Memory::Free(texture->PaletteColors);
-	}
 
 	if (format == TextureFormat_NATIVE) {
 		format = Graphics::TextureFormat;
@@ -32,10 +29,22 @@ bool Texture::Initialize(Texture* texture,
 	texture->Height = height;
 	texture->Pixels = Memory::TrackedCalloc(
 		"Texture::Pixels", texture->Width * texture->Height, GetFormatBytesPerPixel(format));
-	texture->PaletteColors = nullptr;
-	texture->NumPaletteColors = 0;
 
 	return texture->Pixels != nullptr;
+}
+bool Texture::Reinitialize(Texture* texture,
+	Uint32 format,
+	Uint32 access,
+	Uint32 width,
+	Uint32 height) {
+	// Free palette if no longer indexed
+	if (format != TextureFormat_INDEXED && texture->Format != format) {
+		Memory::Free(texture->PaletteColors);
+		texture->PaletteColors = nullptr;
+		texture->NumPaletteColors = 0;
+	}
+
+	return Texture::Initialize(texture, format, access, width, height);
 }
 
 void Texture::SetPalette(Uint32* palette, unsigned numPaletteColors) {
@@ -439,6 +448,36 @@ bool Texture::ClipCopyRegion(int srcTextureWidth,
 	}
 
 	return true;
+}
+
+Uint32* Texture::Crop(Texture* source, int cropX, int cropY, int cropWidth, int cropHeight) {
+	if (cropX < 0 || cropY < 0 || cropWidth <= 0 || cropHeight <= 0) {
+		return nullptr;
+	}
+
+	int endX = std::min(cropX + cropWidth, (int)source->Width);
+	int endY = std::min(cropY + cropHeight, (int)source->Height);
+
+	int copyWidth = endX - cropX;
+	int copyHeight = endY - cropY;
+
+	int bpp = Texture::GetFormatBytesPerPixel(source->Format);
+
+	Uint32* pixels = (Uint32*)Memory::Calloc(cropWidth * cropHeight, bpp);
+
+	if (copyWidth > 0 && copyHeight > 0) {
+		Uint8* src = (Uint8*)source->Pixels + (cropY * source->Pitch);
+		Uint8* dest = (Uint8*)pixels;
+
+		for (int srcY = 0; srcY < copyHeight; srcY++) {
+			memcpy(dest, src + (cropX * bpp), copyWidth * bpp);
+
+			src += source->Pitch;
+			dest += cropWidth * bpp;
+		}
+	}
+
+	return pixels;
 }
 
 void Texture::Dispose() {
