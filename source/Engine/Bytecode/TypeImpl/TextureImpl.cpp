@@ -14,7 +14,7 @@ void TextureImpl::Init() {
 
 	ScriptManager::DefineNative(Class, "CopyPixels", VM_CopyPixels);
 	ScriptManager::DefineNative(Class, "Apply", VM_Apply);
-	ScriptManager::DefineNative(Class, "Resize", VM_Resize);
+	ScriptManager::DefineNative(Class, "SetSize", VM_SetSize);
 	ScriptManager::DefineNative(Class, "Scale", VM_Scale);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
@@ -296,13 +296,13 @@ VMValue TextureImpl::VM_Apply(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
- * \method Resize
- * \desc Resizes the texture to the given dimensions, without scaling the pixels.
+ * \method SetSize
+ * \desc Changes the dimensions of the texture, without scaling the pixels.
  * \param width (Integer): The new width of the texture.
  * \param height (Integer): The new height of the texture.
  * \ns Texture
  */
-VMValue TextureImpl::VM_Resize(int argCount, VMValue* args, Uint32 threadID) {
+VMValue TextureImpl::VM_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
 
 	ObjTexture* objTexture = AS_TEXTURE(args[0]);
@@ -339,7 +339,7 @@ VMValue TextureImpl::VM_Resize(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * \method Scale
- * \desc Resizes the texture to the given dimensions, scaling the pixels using nearest neighbor interpolation.
+ * \desc Scales the texture to the given dimensions, using nearest neighbor interpolation.
  * \param width (Integer): The new width of the texture.
  * \param height (Integer): The new height of the texture.
  * \ns Texture
