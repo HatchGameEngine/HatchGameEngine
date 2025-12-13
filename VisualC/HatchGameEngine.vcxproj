@@ -121,14 +121,14 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;_DEBUG;_WINDOWS;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;_DEBUG;_WINDOWS;DEBUG;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
     </PostBuildEvent>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
