@@ -4729,14 +4729,14 @@ VMValue Draw_SetBlendColor(int argCount, VMValue* args, Uint32 threadID) {
 		CHECK_ARGCOUNT(2);
 		int hex = GET_ARG(0, GetInteger);
 		float alpha = GET_ARG(1, GetDecimal);
-#ifdef HATCH_BIG_ENDIAN
-		int red = (hex >> 16) & 0xFF;
-		int green = (hex >> 8) & 0xFF;
-		int blue = hex & 0xFF;
-#else
+#if HATCH_BIG_ENDIAN
 		int red = (hex >> 24) & 0xFF;
 		int green = (hex >> 16) & 0xFF;
 		int blue = (hex >> 8) & 0xFF;
+#else
+		int red = (hex >> 16) & 0xFF;
+		int green = (hex >> 8) & 0xFF;
+		int blue = hex & 0xFF;
 #endif
 		Graphics::SetBlendColor(red / 255.f, green / 255.f, blue / 255.f, alpha);
 		return NULL_VAL;
@@ -4834,14 +4834,14 @@ VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
 		CHECK_ARGCOUNT(2);
 		int hex = GET_ARG(0, GetInteger);
 		float alpha = GET_ARG(1, GetDecimal);
-#ifdef HATCH_BIG_ENDIAN
-		int red = (hex >> 16) & 0xFF;
-		int green = (hex >> 8) & 0xFF;
-		int blue = hex & 0xFF;
-#else
+#if HATCH_BIG_ENDIAN
 		int red = (hex >> 24) & 0xFF;
 		int green = (hex >> 16) & 0xFF;
 		int blue = (hex >> 8) & 0xFF;
+#else
+		int red = (hex >> 16) & 0xFF;
+		int green = (hex >> 8) & 0xFF;
+		int blue = hex & 0xFF;
 #endif
 		Graphics::SetTintColor(red / 255.f, green / 255.f, blue / 255.f, alpha);
 		return NULL_VAL;
@@ -11662,7 +11662,7 @@ VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_COLOR_INDEX(colorIndex);
 	Uint32 color = Graphics::PaletteColors[palIndex][colorIndex];
 	color = ColorUtils::Convert(color, Graphics::PreferredPixelFormat, PixelFormat_RGB888);
-#ifdef HATCH_LITTLE_ENDIAN
+#if HATCH_LITTLE_ENDIAN
 	color = ((color & 0xFF) << 16) | (color & 0x00FF00) | ((color >> 16) & 0xFF);
 #endif
 	return INTEGER_VAL((int)color);
@@ -11682,14 +11682,14 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
 	Uint32 hex = (Uint32)GET_ARG(2, GetInteger);
 	CHECK_PALETTE_INDEX(palIndex);
 	CHECK_COLOR_INDEX(colorIndex);
-#ifdef HATCH_BIG_ENDIAN
-	int red = (hex >> 16) & 0xFF;
-	int green = (hex >> 8) & 0xFF;
-	int blue = hex & 0xFF;
-#else
+#if HATCH_BIG_ENDIAN
 	int red = (hex >> 24) & 0xFF;
 	int green = (hex >> 16) & 0xFF;
 	int blue = (hex >> 8) & 0xFF;
+#else
+	int red = (hex >> 16) & 0xFF;
+	int green = (hex >> 8) & 0xFF;
+	int blue = hex & 0xFF;
 #endif
 	Uint32* color = &Graphics::PaletteColors[palIndex][colorIndex];
 	*color = ColorUtils::Make(red, green, blue, 0xFF, Graphics::PreferredPixelFormat);

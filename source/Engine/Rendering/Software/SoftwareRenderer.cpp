@@ -13,9 +13,17 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Types.h>
 
+#if HATCH_BIG_ENDIAN
+#define GET_R(color) ((color >> 24) & 0xFF)
+#define GET_G(color) ((color >> 8) & 0xFF)
+#define GET_B(color) ((color >> 16) & 0xFF)
+#define GET_A(color) ((color) & 0xFF)
+#else
 #define GET_R(color) ((color) & 0xFF)
 #define GET_G(color) ((color >> 8) & 0xFF)
 #define GET_B(color) ((color >> 16) & 0xFF)
+#define GET_A(color) ((color >> 24) & 0xFF)
+#endif
 
 GraphicsFunctions SoftwareRenderer::BackendFunctions;
 Uint32 SoftwareRenderer::CompareColor = 0xFF000000U;
@@ -215,11 +223,7 @@ int SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixel
 		return 0;
 	}
 
-	int preferredFormat = Graphics::TextureFormat;
-
-	if (TEXTUREFORMAT_IS_RGB(preferredFormat)) {
-		preferredFormat = Texture::FormatWithAlphaChannel(preferredFormat);
-	}
+	int preferredFormat = TextureFormat_RGBA8888;
 
 	if (texture->Format == preferredFormat) {
 		return 0;

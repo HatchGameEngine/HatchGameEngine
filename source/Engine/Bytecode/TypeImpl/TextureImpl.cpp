@@ -163,7 +163,14 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 				*dest = value;
 			}
 			else {
-#ifdef HATCH_BIG_ENDIAN
+#if HATCH_BIG_ENDIAN
+				dest[0] = (value >> 24) & 0xFF;
+				dest[1] = (value >> 16) & 0xFF;
+				dest[2] = (value >> 8) & 0xFF;
+				if (bpp == 4) {
+					dest[3] = value & 0xFF;
+				}
+#else
 				if (bpp == 4) {
 					dest[0] = (value >> 24) & 0xFF;
 					dest[1] = (value >> 16) & 0xFF;
@@ -174,13 +181,6 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 					dest[0] = (value >> 16) & 0xFF;
 					dest[1] = (value >> 8) & 0xFF;
 					dest[2] = value & 0xFF;
-				}
-#else
-				dest[0] = (value >> 24) & 0xFF;
-				dest[1] = (value >> 16) & 0xFF;
-				dest[2] = (value >> 8) & 0xFF;
-				if (bpp == 4) {
-					dest[3] = value & 0xFF;
 				}
 #endif
 			}
@@ -416,7 +416,7 @@ VMValue TextureImpl::VM_GetPixel(int argCount, VMValue* args, Uint32 threadID) {
 
 	int pixel = texture->GetPixel(x, y);
 
-#ifdef HATCH_LITTLE_ENDIAN
+#if HATCH_LITTLE_ENDIAN
 	if (TEXTUREFORMAT_IS_RGB(texture->Format)) {
 		int red = pixel & 0xFF;
 		int green = (pixel >> 8) & 0xFF;

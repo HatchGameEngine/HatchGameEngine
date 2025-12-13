@@ -16,7 +16,13 @@ Uint32 ColorUtils::ToRGB(int r, int g, int b, int a) {
 	CLAMP_VAL(b, 0x00, 0xFF);
 	CLAMP_VAL(a, 0x00, 0xFF);
 
-	return a << 24 | b << 16 | g << 8 | r;
+#if HATCH_BIG_ENDIAN
+	Uint32 color = r << 24 | g << 16 | b << 8 | a;
+#else
+	Uint32 color = a << 24 | b << 16 | g << 8 | r;
+#endif
+
+	return color;
 }
 Uint32 ColorUtils::ToRGB(float r, float g, float b) {
 	int colR = (int)(r * 0xFF);
@@ -40,26 +46,70 @@ Uint32 ColorUtils::ToRGBA(float* r) {
 	return ToRGB(r[0], r[1], r[2], r[3]);
 }
 void ColorUtils::SeparateRGB(Uint32 color, float* dest) {
-	dest[0] = (color & 0xFF) / 255.f;
-	dest[1] = ((color >> 8) & 0xFF) / 255.f;
-	dest[2] = ((color >> 16) & 0xFF) / 255.f;
+#if HATCH_BIG_ENDIAN
+	Uint8 red = (color >> 24) & 0xFF;
+	Uint8 green = (color >> 16) & 0xFF;
+	Uint8 blue = (color >> 8) & 0xFF;
+#else
+	Uint8 red = color & 0xFF;
+	Uint8 green = (color >> 8) & 0xFF;
+	Uint8 blue = (color >> 16) & 0xFF;
+#endif
+
+	dest[0] = red / 255.f;
+	dest[1] = green / 255.f;
+	dest[2] = blue / 255.f;
 }
 void ColorUtils::Separate(Uint32 color, float* dest) {
-	dest[0] = (color & 0xFF) / 255.f;
-	dest[1] = ((color >> 8) & 0xFF) / 255.f;
-	dest[2] = ((color >> 16) & 0xFF) / 255.f;
-	dest[3] = ((color >> 24) & 0xFF) / 255.f;
+#if HATCH_BIG_ENDIAN
+	Uint8 red = (color >> 24) & 0xFF;
+	Uint8 green = (color >> 16) & 0xFF;
+	Uint8 blue = (color >> 8) & 0xFF;
+	Uint8 alpha = color & 0xFF;
+#else
+	Uint8 red = color & 0xFF;
+	Uint8 green = (color >> 8) & 0xFF;
+	Uint8 blue = (color >> 16) & 0xFF;
+	Uint8 alpha = (color >> 24) & 0xFF;
+#endif
+
+	dest[0] = red / 255.f;
+	dest[1] = green / 255.f;
+	dest[2] = blue / 255.f;
+	dest[3] = alpha / 255.f;
 }
 void ColorUtils::SeparateRGB(Uint32 color, Uint8* dest) {
-	dest[0] = color & 0xFF;
-	dest[1] = (color >> 8) & 0xFF;
-	dest[2] = (color >> 16) & 0xFF;
+#if HATCH_BIG_ENDIAN
+	Uint8 red = (color >> 24) & 0xFF;
+	Uint8 green = (color >> 16) & 0xFF;
+	Uint8 blue = (color >> 8) & 0xFF;
+#else
+	Uint8 red = color & 0xFF;
+	Uint8 green = (color >> 8) & 0xFF;
+	Uint8 blue = (color >> 16) & 0xFF;
+#endif
+
+	dest[0] = red;
+	dest[1] = green;
+	dest[2] = blue;
 }
 void ColorUtils::Separate(Uint32 color, Uint8* dest) {
-	dest[0] = color & 0xFF;
-	dest[1] = (color >> 8) & 0xFF;
-	dest[2] = (color >> 16) & 0xFF;
-	dest[3] = (color >> 24) & 0xFF;
+#if HATCH_BIG_ENDIAN
+	Uint8 red = (color >> 24) & 0xFF;
+	Uint8 green = (color >> 16) & 0xFF;
+	Uint8 blue = (color >> 8) & 0xFF;
+	Uint8 alpha = color & 0xFF;
+#else
+	Uint8 red = color & 0xFF;
+	Uint8 green = (color >> 8) & 0xFF;
+	Uint8 blue = (color >> 16) & 0xFF;
+	Uint8 alpha = (color >> 24) & 0xFF;
+#endif
+
+	dest[0] = red;
+	dest[1] = green;
+	dest[2] = blue;
+	dest[3] = alpha;
 }
 void ColorUtils::SeparateRGB(float* color, Uint8* dest) {
 	dest[0] = color[0] * 0xFF;
@@ -94,30 +144,50 @@ Uint32 ColorUtils::Multiply(Uint32 color, Uint32 colorMult) {
 	return (int)((R >> 8) | (G >> 8) | (B >> 8));
 }
 Uint32 ColorUtils::Blend(Uint32 color1, Uint32 color2, int percent) {
-	Uint32 rb = color1 & 0xFF00FFU;
+	Uint32 br = color1 & 0xFF00FFU;
 	Uint32 g = color1 & 0x00FF00U;
-	rb += (((color2 & 0xFF00FFU) - rb) * percent) >> 8;
+	br += (((color2 & 0xFF00FFU) - br) * percent) >> 8;
 	g += (((color2 & 0x00FF00U) - g) * percent) >> 8;
-	return (rb & 0xFF00FFU) | (g & 0x00FF00U);
+	return (br & 0xFF00FFU) | (g & 0x00FF00U);
 }
 Uint32 ColorUtils::Make(Uint8 red, Uint8 green, Uint8 blue, Uint8 alpha, int pixelFormat) {
 	Uint32 color = 0;
 
 	switch (pixelFormat) {
 	case PixelFormat_RGBA8888:
+#if HATCH_BIG_ENDIAN
+		color = (red << 24) | (green << 16) | (blue << 8) | alpha;
+#else
 		color = (alpha << 24) | (blue << 16) | (green << 8) | red;
+#endif
 		break;
 	case PixelFormat_ABGR8888:
+#if HATCH_BIG_ENDIAN
+		color = (alpha << 24) | (blue << 16) | (green << 8) | red;
+#else
 		color = (red << 24) | (green << 16) | (blue << 8) | alpha;
+#endif
 		break;
 	case PixelFormat_ARGB8888:
+#if HATCH_BIG_ENDIAN
+		color = (alpha << 24) | (red << 16) | (green << 8) | blue;
+#else
 		color = (blue << 24) | (green << 16) | (red << 8) | alpha;
+#endif
 		break;
 	case PixelFormat_RGB888:
+#if HATCH_BIG_ENDIAN
+		color = (red << 16) | (green << 8) | blue;
+#else
 		color = (blue << 16) | (green << 8) | red;
+#endif
 		break;
 	case PixelFormat_BGR888:
+#if HATCH_BIG_ENDIAN
+		color = (blue << 16) | (green << 8) | red;
+#else
 		color = (red << 16) | (green << 8) | blue;
+#endif
 		break;
 	}
 
@@ -135,33 +205,66 @@ Uint32 ColorUtils::Convert(Uint32 color, int srcPixelFormat, int destPixelFormat
 
 	switch (srcPixelFormat) {
 	case PixelFormat_RGBA8888:
+#if HATCH_BIG_ENDIAN
+		red = (color >> 24) & 0xFF;
+		green = (color >> 16) & 0xFF;
+		blue = (color >> 8) & 0xFF;
+		alpha = color & 0xFF;
+#else
 		red = color & 0xFF;
 		green = (color >> 8) & 0xFF;
 		blue = (color >> 16) & 0xFF;
 		alpha = (color >> 24) & 0xFF;
+#endif
 		break;
 	case PixelFormat_ARGB8888:
-		alpha = color & 0xFF;
-		red = (color >> 8) & 0xFF;
-		green = (color >> 16) & 0xFF;
-		blue = (color >> 24) & 0xFF;
+#if HATCH_BIG_ENDIAN
+		alpha = (color >> 24) & 0xFF;
+		red = (color >> 16) & 0xFF;
+		green = (color >> 8) & 0xFF;
+		blue = color & 0xFF;
+#else
+		red = color & 0xFF;
+		green = (color >> 8) & 0xFF;
+		blue = (color >> 16) & 0xFF;
+		alpha = (color >> 24) & 0xFF;
+#endif
 		break;
 	case PixelFormat_ABGR8888:
+#if HATCH_BIG_ENDIAN
+		alpha = (color >> 24) & 0xFF;
+		blue = (color >> 16) & 0xFF;
+		green = (color >> 8) & 0xFF;
+		red = color & 0xFF;
+#else
 		alpha = color & 0xFF;
 		blue = (color >> 8) & 0xFF;
 		green = (color >> 16) & 0xFF;
 		red = (color >> 24) & 0xFF;
+#endif
 		break;
 	case PixelFormat_RGB888:
+#if HATCH_BIG_ENDIAN
+		red = (color >> 24) & 0xFF;
+		green = (color >> 16) & 0xFF;
+		blue = (color >> 8) & 0xFF;
+#else
 		red = color & 0xFF;
 		green = (color >> 8) & 0xFF;
 		blue = (color >> 16) & 0xFF;
+#endif
 		alpha = 0xFF;
 		break;
 	case PixelFormat_BGR888:
+#if HATCH_BIG_ENDIAN
+		blue = (color >> 24) & 0xFF;
+		green = (color >> 16) & 0xFF;
+		red = (color >> 8) & 0xFF;
+#else
 		blue = color & 0xFF;
 		green = (color >> 8) & 0xFF;
 		red = (color >> 16) & 0xFF;
+#endif
 		alpha = 0xFF;
 		break;
 	}

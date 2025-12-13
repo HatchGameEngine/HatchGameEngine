@@ -331,13 +331,7 @@ PNG_Load_Success:
 	return NULL;
 }
 void PNG::ReadPixelData(Uint32* pixelData, int num_channels) {
-#ifdef HATCH_BIG_ENDIAN
-	int pixelFormat = PixelFormat_RGBA8888;
-#else
-	int pixelFormat = PixelFormat_ABGR8888;
-#endif
-
-	if (Graphics::PreferredPixelFormat == pixelFormat && num_channels == 4) {
+	if (Graphics::PreferredPixelFormat == PixelFormat_RGBA8888 && num_channels == 4) {
 		memcpy(Data, pixelData, Width * Height * sizeof(Uint32));
 		return;
 	}
@@ -345,7 +339,7 @@ void PNG::ReadPixelData(Uint32* pixelData, int num_channels) {
 	int pc = 0, size = Width * Height;
 	if (num_channels == 4) {
 		for (Uint32* px = pixelData; pc < size; px++, pc++) {
-			Data[pc] = ColorUtils::Convert(*px, pixelFormat, Graphics::PreferredPixelFormat);
+			Data[pc] = ColorUtils::Convert(*px, PixelFormat_RGBA8888, Graphics::PreferredPixelFormat);
 		}
 	}
 	else {

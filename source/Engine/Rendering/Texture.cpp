@@ -270,6 +270,12 @@ void Texture::Convert(void* srcPixels,
 			Uint8 alpha = 0;
 
 			switch (srcFormat) {
+			case TextureFormat_RGBA8888:
+				red = srcPtr[0];
+				green = srcPtr[1];
+				blue = srcPtr[2];
+				alpha = srcPtr[3];
+				break;
 			case TextureFormat_ARGB8888:
 				alpha = srcPtr[0];
 				red = srcPtr[1];
@@ -281,12 +287,6 @@ void Texture::Convert(void* srcPixels,
 				blue = srcPtr[1];
 				green = srcPtr[2];
 				red = srcPtr[3];
-				break;
-			case TextureFormat_RGBA8888:
-				red = srcPtr[0];
-				green = srcPtr[1];
-				blue = srcPtr[2];
-				alpha = srcPtr[3];
 				break;
 			case TextureFormat_RGB888:
 				red = srcPtr[0];
@@ -309,17 +309,17 @@ void Texture::Convert(void* srcPixels,
 				destPtr[2] = blue;
 				destPtr[3] = alpha;
 				break;
-			case TextureFormat_ABGR8888:
-				destPtr[0] = alpha;
-				destPtr[1] = blue;
-				destPtr[2] = green;
-				destPtr[3] = red;
-				break;
 			case TextureFormat_ARGB8888:
 				destPtr[0] = alpha;
 				destPtr[1] = red;
 				destPtr[2] = green;
 				destPtr[3] = blue;
+				break;
+			case TextureFormat_ABGR8888:
+				destPtr[0] = alpha;
+				destPtr[1] = blue;
+				destPtr[2] = green;
+				destPtr[3] = red;
 				break;
 			case TextureFormat_RGB888:
 				destPtr[0] = red;

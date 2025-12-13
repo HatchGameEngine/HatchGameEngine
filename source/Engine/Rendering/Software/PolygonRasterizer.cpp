@@ -171,7 +171,7 @@ Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
 	CLAMP_VAL(colR, 0x00, 0xFF0000); \
 	CLAMP_VAL(colG, 0x00, 0xFF0000); \
 	CLAMP_VAL(colB, 0x00, 0xFF0000); \
-	col = 0xFF000000U | ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF)
+	col = 0xFF000000U | ((colB) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colR >> 16) & 0xFF)
 
 #define SCANLINE_WRITE_PIXEL(px) \
 	pixelFunction((Uint32*)&px, \
