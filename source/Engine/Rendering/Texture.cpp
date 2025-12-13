@@ -27,6 +27,8 @@ bool Texture::Initialize(Texture* texture,
 	texture->Access = access;
 	texture->Width = width;
 	texture->Height = height;
+	texture->BytesPerPixel = Texture::GetFormatBytesPerPixel(format);
+	texture->Pitch = width * texture->BytesPerPixel;
 	texture->Pixels = Memory::TrackedCalloc(
 		"Texture::Pixels", texture->Width * texture->Height, GetFormatBytesPerPixel(format));
 
@@ -461,7 +463,7 @@ Uint32* Texture::Crop(Texture* source, int cropX, int cropY, int cropWidth, int 
 	int copyWidth = endX - cropX;
 	int copyHeight = endY - cropY;
 
-	int bpp = Texture::GetFormatBytesPerPixel(source->Format);
+	int bpp = source->BytesPerPixel;
 
 	Uint32* pixels = (Uint32*)Memory::Calloc(cropWidth * cropHeight, bpp);
 
@@ -481,7 +483,7 @@ Uint32* Texture::Crop(Texture* source, int cropX, int cropY, int cropWidth, int 
 }
 
 Uint32* Texture::Scale(Texture* source, Uint32 destWidth, Uint32 destHeight) {
-	int bpp = Texture::GetFormatBytesPerPixel(source->Format);
+	int bpp = source->BytesPerPixel;
 	Uint32* pixels = (Uint32*)Memory::Malloc(destWidth * destHeight * bpp);
 
 	Uint32 maxWidth = source->Width << 16;
@@ -503,6 +505,33 @@ Uint32* Texture::Scale(Texture* source, Uint32 destWidth, Uint32 destHeight) {
 	}
 
 	return pixels;
+}
+
+int Texture::GetPixel(int x, int y) {
+	Uint8* pixels = (Uint8*)Pixels;
+
+	x %= Width;
+	y %= Height;
+
+	pixels += y * Pitch;
+	pixels += x * BytesPerPixel;
+
+	if (Format == TextureFormat_INDEXED) {
+		return pixels[0];
+	}
+
+	switch (BytesPerPixel) {
+	case 4:
+		return pixels[0] | (pixels[1] << 8) | (pixels[2] << 16) | (pixels[3] << 24);
+	case 3:
+		return pixels[0] | (pixels[1] << 8) | (pixels[2] << 16);
+	case 2:
+		return pixels[0] | (pixels[1] << 8);
+	case 1:
+		return pixels[0];
+	}
+
+	return 0;
 }
 
 void Texture::Dispose() {

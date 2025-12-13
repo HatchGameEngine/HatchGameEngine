@@ -16,6 +16,7 @@ void TextureImpl::Init() {
 	ScriptManager::DefineNative(Class, "Apply", VM_Apply);
 	ScriptManager::DefineNative(Class, "SetSize", VM_SetSize);
 	ScriptManager::DefineNative(Class, "Scale", VM_Scale);
+	ScriptManager::DefineNative(Class, "GetPixel", VM_GetPixel);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
 	TypeImpl::RegisterClass(Class);
@@ -162,15 +163,26 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 				*dest = value;
 			}
 			else {
-				value = TO_BE32((Uint32)value);
-
-#if HATCH_LITTLE_ENDIAN
-				if (TEXTUREFORMAT_IS_RGB(format)) {
-					value >>= 8;
+#ifdef HATCH_BIG_ENDIAN
+				if (bpp == 4) {
+					dest[0] = (value >> 24) & 0xFF;
+					dest[1] = (value >> 16) & 0xFF;
+					dest[2] = (value >> 8) & 0xFF;
+					dest[3] = value & 0xFF;
+				}
+				else {
+					dest[0] = (value >> 16) & 0xFF;
+					dest[1] = (value >> 8) & 0xFF;
+					dest[2] = value & 0xFF;
+				}
+#else
+				dest[0] = (value >> 24) & 0xFF;
+				dest[1] = (value >> 16) & 0xFF;
+				dest[2] = (value >> 8) & 0xFF;
+				if (bpp == 4) {
+					dest[3] = value & 0xFF;
 				}
 #endif
-
-				memcpy(dest, &value, bpp);
 			}
 
 			dest += bpp;
@@ -378,6 +390,51 @@ VMValue TextureImpl::VM_Scale(int argCount, VMValue* args, Uint32 threadID) {
 	Memory::Free(pixels);
 
 	return NULL_VAL;
+}
+/***
+ * \method GetPixel
+ * \desc Gets the pixel at the specified coordinates. If the coordinates are not within the texture's dimensions, they wrap around.
+ * \param x (Integer): The X coordinate of the pixel to get.
+ * \param y (Integer): The Y coordinate of the pixel to get.
+ * \return Returns a color in the pixel format of the texture.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_GetPixel(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+	int x = GET_ARG(1, GetInteger);
+	int y = GET_ARG(2, GetInteger);
+
+	Texture* texture = (Texture*)GetTexture(objTexture);
+	CHECK_EXISTS(texture);
+
+	if (texture->Access == TextureAccess_RENDERTARGET) {
+		throw ScriptException(
+			"Cannot directly get the color of a draw target texture!");
+	}
+
+	int pixel = texture->GetPixel(x, y);
+
+#ifdef HATCH_LITTLE_ENDIAN
+	if (TEXTUREFORMAT_IS_RGB(texture->Format)) {
+		int red = pixel & 0xFF;
+		int green = (pixel >> 8) & 0xFF;
+		int blue = (pixel >> 16) & 0xFF;
+
+		pixel = (red << 16) | (green << 8) | blue;
+	}
+	else if (TEXTUREFORMAT_IS_RGBA(texture->Format)) {
+		int red = pixel & 0xFF;
+		int green = (pixel >> 8) & 0xFF;
+		int blue = (pixel >> 16) & 0xFF;
+		int alpha = (pixel >> 24) & 0xFF;
+
+		pixel = (red << 24) | (green << 16) | (blue << 8) | alpha;
+	}
+#endif
+
+	return INTEGER_VAL(pixel);
 }
 /***
  * \method Delete

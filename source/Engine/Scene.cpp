@@ -936,15 +936,16 @@ bool Scene::SetView(int viewIndex) {
 		Texture* tar = currentView->DrawTarget;
 
 		size_t stride = currentView->Software ? (size_t)currentView->Stride : view_w;
-		if (tar->Width != stride || tar->Height != view_h) {
+		int format = currentView->Software ? TextureFormat_RGBA8888 : Graphics::TextureFormat;
+		if (tar->Width != stride || tar->Height != view_h || tar->Format != format) {
 			Graphics::GfxFunctions = &Graphics::Internal;
 			Graphics::SetTextureInterpolation(false);
-			if (!Graphics::ResizeTexture(currentView->DrawTarget, stride, view_h)) {
+			if (!Graphics::ReinitializeTexture(tar, format, tar->Access, stride, view_h)) {
 				return false;
 			}
 		}
 
-		if (!Graphics::SetRenderTarget(currentView->DrawTarget)) {
+		if (!Graphics::SetRenderTarget(tar)) {
 			return false;
 		}
 

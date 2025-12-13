@@ -13,9 +13,9 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Types.h>
 
-#define GET_R(color) ((color >> 16) & 0xFF)
+#define GET_R(color) ((color) & 0xFF)
 #define GET_G(color) ((color >> 8) & 0xFF)
-#define GET_B(color) ((color) & 0xFF)
+#define GET_B(color) ((color >> 16) & 0xFF)
 
 GraphicsFunctions SoftwareRenderer::BackendFunctions;
 Uint32 SoftwareRenderer::CompareColor = 0xFF000000U;
@@ -27,27 +27,6 @@ int SoftwareRenderer::MultTableInv[0x10000];
 int SoftwareRenderer::MultSubTable[0x10000];
 
 BlendState CurrentBlendState;
-
-#if 0
-Uint32 ColorAdd(Uint32 color1, Uint32 color2, int percent) {
-	Uint32 r = (color1 & 0xFF0000U) + (((color2 & 0xFF0000U) * percent) >> 8);
-	Uint32 g = (color1 & 0xFF00U) + (((color2 & 0xFF00U) * percent) >> 8);
-	Uint32 b = (color1 & 0xFFU) + (((color2 & 0xFFU) * percent) >> 8);
-    if (r > 0xFF0000U) r = 0xFF0000U;
-	if (g > 0xFF00U) g = 0xFF00U;
-	if (b > 0xFFU) b = 0xFFU;
-	return r | g | b;
-}
-Uint32 ColorSubtract(Uint32 color1, Uint32 color2, int percent) {
-    Sint32 r = (color1 & 0xFF0000U) - (((color2 & 0xFF0000U) * percent) >> 8);
-	Sint32 g = (color1 & 0xFF00U) - (((color2 & 0xFF00U) * percent) >> 8);
-	Sint32 b = (color1 & 0xFFU) - (((color2 & 0xFFU) * percent) >> 8);
-    if (r < 0) r = 0;
-	if (g < 0) g = 0;
-	if (b < 0) b = 0;
-	return r | g | b;
-}
-#endif
 
 #define CLAMP_VAL(v, a, b) \
 	if (v < a) \
@@ -368,9 +347,8 @@ void SoftwareRenderer::SetFilter(int filter) {
 // These guys
 void SoftwareRenderer::Clear() {
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
 
-	memset(dstPx, 0, dstStride * Graphics::CurrentRenderTarget->Height * 4);
+	memset(dstPx, 0, Graphics::CurrentRenderTarget->Pitch * Graphics::CurrentRenderTarget->Height);
 
 	ClearStencil();
 }
@@ -382,14 +360,12 @@ void SoftwareRenderer::SetColor(Uint32 color) {
 	ColR = GET_R(color);
 	ColG = GET_G(color);
 	ColB = GET_B(color);
-	Graphics::ConvertFromARGBtoNative(&ColRGB, 1);
 }
 void SoftwareRenderer::SetBlendColor(float r, float g, float b, float a) {
 	ColR = (Uint8)(r * 0xFF);
 	ColG = (Uint8)(g * 0xFF);
 	ColB = (Uint8)(b * 0xFF);
 	ColRGB = ColorUtils::ToRGB(ColR, ColG, ColB);
-	Graphics::ConvertFromARGBtoNative(&ColRGB, 1);
 
 	int opacity = (int)(a * 0xFF);
 	CLAMP_VAL(opacity, 0x00, 0xFF);
@@ -411,8 +387,6 @@ void SoftwareRenderer::SetTintColor(float r, float g, float b, float a) {
 
 	CurrentBlendState.Tint.Color = red << 16 | green << 8 | blue;
 	CurrentBlendState.Tint.Amount = alpha;
-
-	Graphics::ConvertFromARGBtoNative(&CurrentBlendState.Tint.Color, 1);
 }
 void SoftwareRenderer::SetTintMode(int mode) {
 	CurrentBlendState.Tint.Mode = mode;
@@ -498,9 +472,9 @@ void SoftwareRenderer::PixelNoFiltSetTransparent(Uint32* src,
 	int* multTableAt,
 	int* multSubTableAt) {
 	int* multInvTableAt = &MultTableInv[state.Opacity << 8];
-	*dst = 0xFF000000U | (multTableAt[GET_R(*src)] + multInvTableAt[GET_R(*dst)]) << 16 |
+	*dst = 0xFF000000U | (multTableAt[GET_R(*src)] + multInvTableAt[GET_R(*dst)]) |
 		(multTableAt[GET_G(*src)] + multInvTableAt[GET_G(*dst)]) << 8 |
-		(multTableAt[GET_B(*src)] + multInvTableAt[GET_B(*dst)]);
+		(multTableAt[GET_B(*src)] + multInvTableAt[GET_B(*dst)]) << 16;
 }
 void SoftwareRenderer::PixelNoFiltSetAdditive(Uint32* src,
 	Uint32* dst,
@@ -519,7 +493,7 @@ void SoftwareRenderer::PixelNoFiltSetAdditive(Uint32* src,
 	if (B > 0xFF) {
 		B = 0xFF;
 	}
-	*dst = 0xFF000000U | (R << 16) | (G << 8) | B;
+	*dst = 0xFF000000U | (B << 16) | (G << 8) | R;
 }
 void SoftwareRenderer::PixelNoFiltSetSubtract(Uint32* src,
 	Uint32* dst,
@@ -538,7 +512,7 @@ void SoftwareRenderer::PixelNoFiltSetSubtract(Uint32* src,
 	if (B < 0) {
 		B = 0;
 	}
-	*dst = 0xFF000000U | (R << 16) | (G << 8) | B;
+	*dst = 0xFF000000U | (B << 16) | (G << 8) | R;
 }
 void SoftwareRenderer::PixelNoFiltSetMatchEqual(Uint32* src,
 	Uint32* dst,
@@ -653,34 +627,19 @@ static Uint32 FilterBW(Uint8 red, Uint8 green, Uint8 blue) {
 	return bw << 16 | bw << 8 | bw | 0xFF000000U;
 }
 
-static Uint32 FilterBWSourceARGB(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+static Uint32 FilterBWSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
 	Uint8 red = GET_R(*src);
 	Uint8 green = GET_G(*src);
 	Uint8 blue = GET_B(*src);
 
 	return FilterBW(red, green, blue);
 }
-static Uint32 FilterBWDestARGB(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
+static Uint32 FilterBWDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
 	Uint8 red = GET_R(*dst);
 	Uint8 green = GET_G(*dst);
 	Uint8 blue = GET_B(*dst);
 
 	return FilterBW(red, green, blue);
-}
-
-static Uint32 FilterBWSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
-	Uint32 color = *src;
-
-	Graphics::ConvertFromNativeToARGB(&color, 1);
-
-	return FilterBW(GET_R(color), GET_G(color), GET_B(color));
-}
-static Uint32 FilterBWDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
-	Uint32 color = *src;
-
-	Graphics::ConvertFromNativeToARGB(&color, 1);
-
-	return FilterBW(GET_R(color), GET_G(color), GET_B(color));
 }
 
 static Uint32 FilterInvertSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
@@ -696,12 +655,7 @@ static TintFunction GetTintFunction(int blendFlags) {
 
 		switch (CurrentBlendState.FilterMode) {
 		case Filter_BLACK_AND_WHITE:
-			if (Graphics::TextureFormat == TextureFormat_ARGB8888) {
-				return isDest ? FilterBWDestARGB : FilterBWSourceARGB;
-			}
-			else {
-				return isDest ? FilterBWDest : FilterBWSource;
-			}
+			return isDest ? FilterBWDest : FilterBWSource;
 		case Filter_INVERT:
 			return isDest ? FilterInvertDest : FilterInvertSource;
 		}
@@ -1094,14 +1048,6 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	bool sortFaces = !doDepthTest && vertexBuffer->FaceCount > 1;
 	if (Graphics::TextureBlend) {
 		sortFaces = true;
-	}
-
-	// Convert vertex colors to native format
-	if (Graphics::PreferredPixelFormat != PixelFormat_ARGB8888) {
-		VertexAttribute* vertex = vertexAttribsPtr;
-		for (Uint32 i = 0; i < vertexBuffer->VertexCount; i++, vertex++) {
-			Graphics::ConvertFromARGBtoNative(&vertex->Color, 1);
-		}
 	}
 
 	// Get the face depth and vertices' start index

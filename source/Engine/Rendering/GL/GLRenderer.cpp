@@ -1726,9 +1726,6 @@ bool GL_CreateTexture(Texture* texture) {
 		textureData->PixelDataFormat = GL_RGBA;
 	}
 
-	texture->BytesPerPixel = Texture::GetFormatBytesPerPixel(texture->Format);
-	texture->Pitch = texture->Width * texture->BytesPerPixel;
-
 	// Set texture access
 	switch (texture->Access) {
 	case TextureAccess_RENDERTARGET: {

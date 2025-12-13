@@ -68,6 +68,7 @@ public:
 		int& destHeight);
 	static Uint32* Crop(Texture* source, int cropX, int cropY, int cropWidth, int cropHeight);
 	static Uint32* Scale(Texture* source, Uint32 destWidth, Uint32 destHeight);
+	int GetPixel(int x, int y);
 	void Dispose();
 };
 

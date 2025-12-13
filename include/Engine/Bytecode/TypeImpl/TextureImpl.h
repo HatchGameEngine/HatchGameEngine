@@ -26,6 +26,7 @@ public:
 	static VMValue VM_Apply(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetSize(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Scale(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_GetPixel(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Delete(int argCount, VMValue* args, Uint32 threadID);
 };
 

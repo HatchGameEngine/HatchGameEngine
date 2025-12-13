@@ -8,11 +8,7 @@
 	v = b
 
 Uint32 ColorUtils::ToRGB(int r, int g, int b) {
-	CLAMP_VAL(r, 0x00, 0xFF);
-	CLAMP_VAL(g, 0x00, 0xFF);
-	CLAMP_VAL(b, 0x00, 0xFF);
-
-	return 0xFF000000U | r << 16 | g << 8 | b;
+	return ToRGB(r, g, b, 0xFF);
 }
 Uint32 ColorUtils::ToRGB(int r, int g, int b, int a) {
 	CLAMP_VAL(r, 0x00, 0xFF);
@@ -20,7 +16,7 @@ Uint32 ColorUtils::ToRGB(int r, int g, int b, int a) {
 	CLAMP_VAL(b, 0x00, 0xFF);
 	CLAMP_VAL(a, 0x00, 0xFF);
 
-	return a << 24 | r << 16 | g << 8 | b;
+	return a << 24 | b << 16 | g << 8 | r;
 }
 Uint32 ColorUtils::ToRGB(float r, float g, float b) {
 	int colR = (int)(r * 0xFF);
@@ -44,26 +40,26 @@ Uint32 ColorUtils::ToRGBA(float* r) {
 	return ToRGB(r[0], r[1], r[2], r[3]);
 }
 void ColorUtils::SeparateRGB(Uint32 color, float* dest) {
-	dest[0] = (color >> 16 & 0xFF) / 255.f;
-	dest[1] = (color >> 8 & 0xFF) / 255.f;
-	dest[2] = (color & 0xFF) / 255.f;
+	dest[0] = (color & 0xFF) / 255.f;
+	dest[1] = ((color >> 8) & 0xFF) / 255.f;
+	dest[2] = ((color >> 16) & 0xFF) / 255.f;
 }
 void ColorUtils::Separate(Uint32 color, float* dest) {
-	dest[3] = (color >> 24 & 0xFF) / 255.f;
-	dest[0] = (color >> 16 & 0xFF) / 255.f;
-	dest[1] = (color >> 8 & 0xFF) / 255.f;
-	dest[2] = (color & 0xFF) / 255.f;
+	dest[0] = (color & 0xFF) / 255.f;
+	dest[1] = ((color >> 8) & 0xFF) / 255.f;
+	dest[2] = ((color >> 16) & 0xFF) / 255.f;
+	dest[3] = ((color >> 24) & 0xFF) / 255.f;
 }
 void ColorUtils::SeparateRGB(Uint32 color, Uint8* dest) {
-	dest[0] = (color >> 16) & 0xFF;
+	dest[0] = color & 0xFF;
 	dest[1] = (color >> 8) & 0xFF;
-	dest[2] = color & 0xFF;
+	dest[2] = (color >> 16) & 0xFF;
 }
 void ColorUtils::Separate(Uint32 color, Uint8* dest) {
-	dest[3] = (color >> 24) & 0xFF;
-	dest[0] = (color >> 16) & 0xFF;
+	dest[0] = color & 0xFF;
 	dest[1] = (color >> 8) & 0xFF;
-	dest[2] = color & 0xFF;
+	dest[2] = (color >> 16) & 0xFF;
+	dest[3] = (color >> 24) & 0xFF;
 }
 void ColorUtils::SeparateRGB(float* color, Uint8* dest) {
 	dest[0] = color[0] * 0xFF;
@@ -77,12 +73,12 @@ void ColorUtils::Separate(float* color, Uint8* dest) {
 	dest[2] = color[3] * 0xFF;
 }
 Uint32 ColorUtils::Tint(Uint32 color, Uint32 colorMult) {
-	Uint32 dR = (colorMult >> 16) & 0xFF;
+	Uint32 dR = colorMult & 0xFF;
 	Uint32 dG = (colorMult >> 8) & 0xFF;
-	Uint32 dB = colorMult & 0xFF;
-	Uint32 sR = (color >> 16) & 0xFF;
+	Uint32 dB = (colorMult >> 16) & 0xFF;
+	Uint32 sR = color & 0xFF;
 	Uint32 sG = (color >> 8) & 0xFF;
-	Uint32 sB = color & 0xFF;
+	Uint32 sB = (color >> 16) & 0xFF;
 	dR = (Uint8)((dR * sR + 0xFF) >> 8);
 	dG = (Uint8)((dG * sG + 0xFF) >> 8);
 	dB = (Uint8)((dB * sB + 0xFF) >> 8);
@@ -92,9 +88,9 @@ Uint32 ColorUtils::Tint(Uint32 color, Uint32 colorMult, Uint16 percentage) {
 	return Blend(color, Tint(color, colorMult), percentage);
 }
 Uint32 ColorUtils::Multiply(Uint32 color, Uint32 colorMult) {
-	Uint32 R = (((colorMult >> 16) & 0xFF) + 1) * (color & 0xFF0000);
+	Uint32 R = ((colorMult & 0xFF) + 1) * (color & 0x0000FF);
 	Uint32 G = (((colorMult >> 8) & 0xFF) + 1) * (color & 0x00FF00);
-	Uint32 B = (((colorMult) & 0xFF) + 1) * (color & 0x0000FF);
+	Uint32 B = (((colorMult >> 16) & 0xFF) + 1) * (color & 0xFF0000);
 	return (int)((R >> 8) | (G >> 8) | (B >> 8));
 }
 Uint32 ColorUtils::Blend(Uint32 color1, Uint32 color2, int percent) {
@@ -109,29 +105,21 @@ Uint32 ColorUtils::Make(Uint8 red, Uint8 green, Uint8 blue, Uint8 alpha, int pix
 
 	switch (pixelFormat) {
 	case PixelFormat_RGBA8888:
-		color = (red << 24) | (green << 16) | (blue << 8) | alpha;
-		break;
-	case PixelFormat_ABGR8888:
 		color = (alpha << 24) | (blue << 16) | (green << 8) | red;
 		break;
+	case PixelFormat_ABGR8888:
+		color = (red << 24) | (green << 16) | (blue << 8) | alpha;
+		break;
 	case PixelFormat_ARGB8888:
-		color = (alpha << 24) | (red << 16) | (green << 8) | blue;
+		color = (blue << 24) | (green << 16) | (red << 8) | alpha;
 		break;
 	case PixelFormat_RGB888:
-		color = (red << 16) | (green << 8) | blue;
-		break;
-	case PixelFormat_BGR888:
 		color = (blue << 16) | (green << 8) | red;
 		break;
+	case PixelFormat_BGR888:
+		color = (red << 16) | (green << 8) | blue;
+		break;
 	}
-
-	color = TO_BE32(color);
-
-#if HATCH_LITTLE_ENDIAN
-	if (pixelFormat == PixelFormat_RGB888 || pixelFormat == PixelFormat_BGR888) {
-		color >>= 8;
-	}
-#endif
 
 	return color;
 }
@@ -147,33 +135,33 @@ Uint32 ColorUtils::Convert(Uint32 color, int srcPixelFormat, int destPixelFormat
 
 	switch (srcPixelFormat) {
 	case PixelFormat_RGBA8888:
-		red = (color >> 24) & 0xFF;
-		green = (color >> 16) & 0xFF;
-		blue = (color >> 8) & 0xFF;
-		alpha = color & 0xFF;
+		red = color & 0xFF;
+		green = (color >> 8) & 0xFF;
+		blue = (color >> 16) & 0xFF;
+		alpha = (color >> 24) & 0xFF;
 		break;
 	case PixelFormat_ARGB8888:
-		alpha = (color >> 24) & 0xFF;
-		red = (color >> 16) & 0xFF;
-		green = (color >> 8) & 0xFF;
-		blue = color & 0xFF;
+		alpha = color & 0xFF;
+		red = (color >> 8) & 0xFF;
+		green = (color >> 16) & 0xFF;
+		blue = (color >> 24) & 0xFF;
 		break;
 	case PixelFormat_ABGR8888:
-		alpha = (color >> 24) & 0xFF;
-		blue = (color >> 16) & 0xFF;
-		green = (color >> 8) & 0xFF;
-		red = color & 0xFF;
+		alpha = color & 0xFF;
+		blue = (color >> 8) & 0xFF;
+		green = (color >> 16) & 0xFF;
+		red = (color >> 24) & 0xFF;
 		break;
 	case PixelFormat_RGB888:
-		red = (color >> 16) & 0xFF;
+		red = color & 0xFF;
 		green = (color >> 8) & 0xFF;
-		blue = color & 0xFF;
+		blue = (color >> 16) & 0xFF;
 		alpha = 0xFF;
 		break;
 	case PixelFormat_BGR888:
-		blue = (color >> 16) & 0xFF;
+		blue = color & 0xFF;
 		green = (color >> 8) & 0xFF;
-		red = color & 0xFF;
+		red = (color >> 16) & 0xFF;
 		alpha = 0xFF;
 		break;
 	}
@@ -198,9 +186,9 @@ int ColorUtils::NearestColor(Uint8 r, Uint8 g, Uint8 b, Uint32* palette, unsigne
 	for (unsigned i = 0; i < numColors; i++) {
 		Uint32 color = palette[i];
 
-		Sint64 diffR = ((Sint64)r) - ((color >> 16) & 0xFF);
+		Sint64 diffR = ((Sint64)r) - (color & 0xFF);
 		Sint64 diffG = ((Sint64)g) - ((color >> 8) & 0xFF);
-		Sint64 diffB = ((Sint64)b) - (color & 0xFF);
+		Sint64 diffB = ((Sint64)b) - ((color >> 16) & 0xFF);
 
 		Sint64 dist = diffR * diffR + diffG * diffG + diffB * diffB;
 		if (dist < minDist) {

@@ -5,6 +5,13 @@
 
 enum { PixelFormat_RGBA8888, PixelFormat_ABGR8888, PixelFormat_ARGB8888, PixelFormat_RGB888, PixelFormat_BGR888 };
 
+#define PIXELFORMAT_IS_RGBA(fmt) \
+	((fmt) == PixelFormat_RGBA8888 || (fmt) == PixelFormat_ABGR8888 || \
+		(fmt) == PixelFormat_ARGB8888)
+
+#define PIXELFORMAT_IS_RGB(fmt) \
+	((fmt) == PixelFormat_RGB888 || (fmt) == PixelFormat_BGR888)
+
 enum {
 	// The texture is created with the given pixel data and never updated again, or it updates
 	// rarely. A texture with access TextureAccess_STATIC can become TextureAccess_STREAMING and
