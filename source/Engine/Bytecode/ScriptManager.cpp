@@ -224,15 +224,6 @@ void ScriptManager::FreeNamespace(Obj* object) {
 
 	delete ns->Fields;
 }
-void ScriptManager::FreeModules() {
-	// All this does is clear the Functions table in all modules,
-	// so that they are properly GC'd.
-	for (size_t i = 0; i < ModuleList.size(); i++) {
-		ObjModule* module = ModuleList[i];
-		module->Functions->clear();
-	}
-	ModuleList.clear();
-}
 // #endregion
 
 // #region ValueFuncs
