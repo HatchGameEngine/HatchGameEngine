@@ -72,13 +72,7 @@ int Texture::GetFormatBytesPerPixel(int textureFormat) {
 	case TextureFormat_BGR888:
 		return 3;
 	case TextureFormat_INDEXED:
-		// "Why four bytes? Aren't indexed formats typically 1 byte per pixel?"
-		// Yes, but indexed textures are stored in memory as if they were ABGR.
-		// This also simplifies the process of sending those textures to the GPU,
-		// since modern GPUs don't support indexed textures.
-		// If this is optimized in the future, and the conversion to ABGR happens
-		// at texture upload time, this can be changed to 1.
-		return 4;
+		return 1;
 	case TextureFormat_YV12:
 	case TextureFormat_IYUV:
 	case TextureFormat_YUY2:
@@ -149,23 +143,15 @@ bool Texture::CanConvertBetweenFormats(int sourceFormat, int destFormat) {
 		return true;
 	}
 
-	if (TEXTUREFORMAT_IS_RGBA(sourceFormat) || TEXTUREFORMAT_IS_RGB(sourceFormat)) {
-		return TEXTUREFORMAT_IS_RGBA(destFormat) || TEXTUREFORMAT_IS_RGB(destFormat);
+	if (TEXTUREFORMAT_IS_RGBA(sourceFormat) || TEXTUREFORMAT_IS_RGB(sourceFormat) || sourceFormat == TextureFormat_INDEXED) {
+		return TEXTUREFORMAT_IS_RGBA(destFormat) || TEXTUREFORMAT_IS_RGB(destFormat) || destFormat == TextureFormat_INDEXED;
 	}
 
 	return false;
 }
 
 bool Texture::KeepDriverPixelsResident() {
-	if (Format == TextureFormat_INDEXED) {
-		return false;
-	}
-
-	if (Access != TextureAccess_STATIC) {
-		return true;
-	}
-
-	if (TEXTUREFORMAT_IS_RGB(Format)) {
+	if (Access != TextureAccess_STATIC || Format == TextureFormat_INDEXED) {
 		return true;
 	}
 
@@ -300,6 +286,9 @@ void Texture::Convert(void* srcPixels,
 				red = srcPtr[2];
 				alpha = 0xFF;
 				break;
+			case TextureFormat_INDEXED:
+				red = srcPtr[0];
+				break;
 			}
 
 			switch (destFormat) {
@@ -330,6 +319,9 @@ void Texture::Convert(void* srcPixels,
 				destPtr[0] = blue;
 				destPtr[1] = green;
 				destPtr[2] = red;
+				break;
+			case TextureFormat_INDEXED:
+				destPtr[0] = red;
 				break;
 			}
 
@@ -515,10 +507,6 @@ int Texture::GetPixel(int x, int y) {
 
 	pixels += y * Pitch;
 	pixels += x * BytesPerPixel;
-
-	if (Format == TextureFormat_INDEXED) {
-		return pixels[0];
-	}
 
 	switch (BytesPerPixel) {
 	case 4:

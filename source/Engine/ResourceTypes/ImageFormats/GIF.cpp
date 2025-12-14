@@ -23,8 +23,7 @@ struct Entry {
 	Uint8 Suffix;
 };
 
-inline Uint32
-GIF::ReadCode(Stream* stream, int codeSize, int* blockLength, int* bitCache, int* bitCacheLength) {
+Uint32 GIF::ReadCode(Stream* stream, int codeSize, int* blockLength, int* bitCache, int* bitCacheLength) {
 	if (*blockLength == 0) {
 		*blockLength = stream->ReadByte();
 	}
@@ -45,7 +44,7 @@ GIF::ReadCode(Stream* stream, int codeSize, int* blockLength, int* bitCache, int
 
 	return result;
 }
-inline void GIF::WriteCode(Stream* stream,
+void GIF::WriteCode(Stream* stream,
 	int* offset,
 	int* partial,
 	Uint8* buffer,
@@ -68,7 +67,7 @@ inline void GIF::WriteCode(Stream* stream,
 	}
 	*offset = (*offset + key_size) % (0xFF * 8);
 }
-inline void GIF::WriteFrame(Stream* stream, Uint32* data) {
+void GIF::WriteFrame(Stream* stream, Uint8* data) {
 	int depth = 8;
 	// Put Image
 	Node* node;
@@ -259,11 +258,10 @@ GIF* GIF::Load(Stream* stream) {
 
 	gif->Width = width;
 	gif->Height = height;
+	gif->BytesPerPixel = loadPalette ? sizeof(Uint8) : sizeof(Uint32);
 
-	colorBitDepth =
-		((logicalScreenDesc & 0x70) >> 4) + 1; // normally 7, sometimes it is 4 (wrong)
-	// sortFlag = (logicalScreenDesc & 0x8) != 0; // This is
-	// unneeded.
+	colorBitDepth = ((logicalScreenDesc & 0x70) >> 4) + 1; // normally 7, sometimes it is 4 (wrong)
+	// sortFlag = (logicalScreenDesc & 0x8) != 0; // This is unneeded.
 	paletteTableSize = 2 << (logicalScreenDesc & 0x7);
 
 #ifdef DO_GIF_PERF
@@ -271,7 +269,7 @@ GIF* GIF::Load(Stream* stream) {
 #endif
 
 	// Prepare image data
-	gif->Data = (Uint32*)Memory::TrackedMalloc("GIF::Data", width * height * sizeof(Uint32));
+	gif->Data = (Uint8*)Memory::TrackedMalloc("GIF::Data", width * height * gif->BytesPerPixel);
 	// Load Palette Table
 	gif->Colors = (Uint32*)Memory::TrackedMalloc("GIF::Colors", 0x100 * sizeof(Uint32));
 	for (int p = 0; p < paletteTableSize; p++) {
@@ -291,7 +289,7 @@ GIF* GIF::Load(Stream* stream) {
 #endif
 
 	gif->Paletted = loadPalette;
-	gif->NumPaletteColors = 256;
+	gif->NumPaletteColors = loadPalette ? 256 : 0;
 
 	memset(gif->Colors + paletteTableSize, 0, (0x100 - paletteTableSize) * sizeof(Uint32));
 
@@ -324,22 +322,9 @@ GIF* GIF::Load(Stream* stream) {
 			switch (subtype) {
 			// Graphics Control Extension
 			case 0xF9:
-				// stream->Skip(0x06);
-				// temp = stream->ReadByte();  // Block
-				// Size [byte] (always 0x04) temp =
-				// stream->ReadByte();  // Packed Field
-				// [byte] // temp16 =
-				// stream->ReadUInt16(); // Delay Time
-				// [short] //
 				stream->Skip(0x04);
 				transparentColorIndex = stream->ReadByte(); // Transparent
-				// Color
-				// Index?
-				// [byte]
-				// //
 				stream->Skip(0x01);
-				// temp = stream->ReadByte();  // Block
-				// Terminator [byte] //
 				break;
 			// Plain Text Extension
 			case 0x01:
@@ -352,8 +337,7 @@ GIF* GIF::Load(Stream* stream) {
 				// Continue until we run out of blocks
 				while (temp) {
 					// Read block
-					stream->Skip(temp); // stream->ReadBytes(buffer,
-					// temp);
+					stream->Skip(temp);
 					temp = stream->ReadByte(); // next block Size
 				}
 				break;
@@ -366,22 +350,14 @@ GIF* GIF::Load(Stream* stream) {
 			break;
 		// Image descriptor
 		case 0x2C:
-			// temp16 = stream->ReadUInt16(); //
-			// Destination X temp16 = stream->ReadUInt16();
-			// // Destination Y temp16 =
-			// stream->ReadUInt16(); // Destination Width
-			// temp16 = stream->ReadUInt16(); //
-			// Destination Height
 			stream->Skip(8);
 			temp = stream->ReadByte(); // Packed Field
-			// [byte]
 
 			// If a local color table exists,
 			if (temp & 0x80) {
 				int size = 2 << (temp & 0x07);
 				// Load all colors
-				stream->Skip(3 * size); // stream->ReadBytes(buffer,
-				// 3 * size);
+				stream->Skip(3 * size);
 			}
 
 			interlaced = (temp & 0x40) == 0x40;
@@ -453,8 +429,7 @@ GIF* GIF::Load(Stream* stream) {
 					codeTable[emptyCode].Suffix = entry.Suffix;
 					emptyCode++;
 
-					// Once we reach highest code,
-					// increase code size
+					// Once we reach highest code, increase code size
 					if ((emptyCode & (emptyCode - 1)) == 0) {
 						mark = 1;
 					}
@@ -509,16 +484,20 @@ GIF* GIF::Load(Stream* stream) {
 						}
 					}
 
-					gif->Data[p] = entry.Suffix;
-					// For setting straight to
-					// color (no palette use)
+					unsigned colorIndex = entry.Suffix;
+
+					// For setting straight to color (no palette use)
 					if (!loadPalette) {
-						if (gif->Data[p] == transparentColorIndex) {
-							gif->Data[p] = 0;
+						Uint32* data = (Uint32*)gif->Data;
+						if (colorIndex == transparentColorIndex) {
+							data[p] = 0;
 						}
 						else {
-							gif->Data[p] = gif->Colors[gif->Data[p]];
+							data[p] = gif->Colors[colorIndex];
 						}
+					}
+					else {
+						gif->Data[p] = colorIndex;
 					}
 
 					if (entry.Prefix != 0xFFF) {

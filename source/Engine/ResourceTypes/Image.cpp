@@ -75,7 +75,7 @@ bool Image::IsFile(Stream* stream) {
 }
 
 Texture* Image::LoadTextureFromResource(const char* filename) {
-	Uint32* data = NULL;
+	Uint8* data = NULL;
 	Uint32 width = 0;
 	Uint32 height = 0;
 	Uint32* paletteColors = NULL;
@@ -194,8 +194,9 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 	}
 
 	Uint32 textureFormat = paletteColors ? TextureFormat_INDEXED : Graphics::TextureFormat;
+	unsigned bpp = Texture::GetFormatBytesPerPixel(textureFormat);
 	Texture* texture = Graphics::CreateTextureFromPixels(
-		textureFormat, width, height, data, width * sizeof(Uint32));
+		textureFormat, width, height, data, width * bpp);
 	Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
 
 	Graphics::NoInternalTextures = false;

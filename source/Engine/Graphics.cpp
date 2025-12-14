@@ -695,7 +695,7 @@ void Graphics::UpdateGlobalPalette() {
 }
 void Graphics::UpdatePaletteIndexTable() {
 	if (Graphics::PaletteIndexTexture == nullptr) {
-		Graphics::PaletteIndexTexture = CreateTexture(Graphics::TextureFormat,
+		Graphics::PaletteIndexTexture = CreateTexture(TextureFormat_RGBA8888,
 			TextureAccess_STREAMING,
 			PALETTE_INDEX_TEXTURE_SIZE,
 			PALETTE_INDEX_TEXTURE_SIZE);

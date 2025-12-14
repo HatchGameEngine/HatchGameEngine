@@ -2042,20 +2042,15 @@ int GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int
 		}
 	}
 
-	int srcFormat = texture->Format;
-	if (srcFormat == TextureFormat_INDEXED) {
-		srcFormat = Graphics::TextureFormat;
-	}
-
-	if (srcFormat != texture->DriverFormat) {
+	if (texture->Format != texture->DriverFormat) {
 		size_t bpp = Texture::GetFormatBytesPerPixel(texture->DriverFormat);
 
 		if (texture->DriverPixelData == nullptr) {
-			texture->DriverPixelData = Memory::Calloc(inputPixelsW * inputPixelsH, bpp);
+			texture->DriverPixelData = Memory::Calloc(texture->Width * texture->Height, bpp);
 		}
 
 		Texture::Convert(pixels,
-			srcFormat,
+			texture->Format,
 			texture->Pitch,
 			0,
 			0,

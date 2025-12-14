@@ -280,7 +280,7 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 		return NULL_VAL;
 	}
 
-	if (!Texture::CanConvertBetweenFormats(srcTexture->Format, texture->Format)) {
+	if (!Texture::CanConvertBetweenFormats(srcTexture->Format, texture->Format) || texture->Format == TextureFormat_INDEXED || srcTexture->Format == TextureFormat_INDEXED) {
 		throw ScriptException("Incompatible texture formats!");
 	}
 

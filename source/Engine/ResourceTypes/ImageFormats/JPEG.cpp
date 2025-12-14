@@ -152,6 +152,7 @@ JPEG* JPEG::Load(Stream* stream) {
 
 	jpeg->Width = cinfo.output_width;
 	jpeg->Height = cinfo.output_height;
+	jpeg->BytesPerPixel = sizeof(Uint32);
 	jpeg->Paletted = false;
 	jpeg->NumPaletteColors = 0;
 
@@ -165,10 +166,10 @@ JPEG* JPEG::Load(Stream* stream) {
 		goto JPEG_Load_FAIL;
 	}
 
-	jpeg->Data = (Uint32*)Memory::TrackedMalloc(
-		"JPEG::Data", jpeg->Width * jpeg->Height * sizeof(Uint32));
+	Uint32* data = (Uint32*)Memory::TrackedMalloc(
+		"JPEG::Data", jpeg->Width * jpeg->Height * jpeg->BytesPerPixel);
 	for (Uint32 i = 0; i < jpeg->Width * (jpeg->Height / 2); i++) {
-		jpeg->Data[i] = 0xFF41D1F2;
+		data[i] = 0xFF41D1F2;
 	}
 
 	// /* Decompress the image */
@@ -180,25 +181,22 @@ JPEG* JPEG::Load(Stream* stream) {
 	jpeg_finish_decompress(&cinfo);
 
 	if (Graphics::PreferredPixelFormat == PixelFormat_RGBA8888 && num_channels == 4) {
-		memcpy(jpeg->Data, pixelData, jpeg->Width * jpeg->Height * sizeof(Uint32));
+		memcpy(data, pixelData, jpeg->Width * jpeg->Height * jpeg->BytesPerPixel);
 	}
 	else {
 		int pc = 0, size = jpeg->Width * jpeg->Height;
 		if (num_channels == 4) {
 			for (Uint32* px = pixelData; pc < size; px++, pc++) {
-				jpeg->Data[pc] = ColorUtils::Convert(*px, PixelFormat_RGBA8888, Graphics::PreferredPixelFormat);
+				data[pc] = ColorUtils::Convert(*px, PixelFormat_RGBA8888, Graphics::PreferredPixelFormat);
 			}
 		}
 		else {
 			for (Uint8* px = (Uint8*)pixelData; pc < size; px += num_channels, pc++) {
-				Uint8 r = px[0];
-				Uint8 g = px[1];
-				Uint8 b = px[2];
-				Uint8 a = 0xFF;
-				jpeg->Data[pc] = ColorUtils::Make(r, g, b, a, Graphics::PreferredPixelFormat);
+				data[pc] = ColorUtils::Make(px[0], px[1], px[2], 0xFF, Graphics::PreferredPixelFormat);
 			}
 		}
 	}
+	jpeg->Data = data;
 	free(pixelData);
 
 	goto JPEG_Load_Success;

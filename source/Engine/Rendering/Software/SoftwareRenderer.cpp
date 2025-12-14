@@ -219,11 +219,9 @@ int SoftwareRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
 }
 int SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
-	if (texture->Format == TextureFormat_INDEXED) {
-		return 0;
-	}
-
 	int preferredFormat = TextureFormat_RGBA8888;
+
+	texture->DriverFormat = preferredFormat;
 
 	if (texture->Format == preferredFormat) {
 		return 0;
