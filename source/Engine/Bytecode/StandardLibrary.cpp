@@ -11425,9 +11425,9 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 										[palIndex]
 										[(col << 4) | d] =
 											0xFF000000U |
-										Color[0] << 16 |
+										Color[0] |
 										Color[1] << 8 |
-										Color[2];
+										Color[2] << 16;
 								}
 								Graphics::ConvertFromARGBtoNative(
 									&Graphics::PaletteColors
@@ -11460,8 +11460,8 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 								Graphics::PaletteColors
 									[palIndex][(col << 4) | d] =
 										0xFF000000U |
-									Color[0] << 16 |
-									Color[1] << 8 | Color[2];
+									Color[0] |
+									Color[1] << 8 | Color[2] << 16;
 							}
 							Graphics::ConvertFromARGBtoNative(
 								&Graphics::PaletteColors[palIndex][(
@@ -11511,11 +11511,10 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 											[lineStart |
 												d] =
 												0xFF000000U |
-											Color[0]
-												<< 16 |
+											Color[0] |
 											Color[1]
 												<< 8 |
-											Color[2];
+											Color[2] << 16;
 									}
 									Graphics::ConvertFromARGBtoNative(
 										&Graphics::PaletteColors
