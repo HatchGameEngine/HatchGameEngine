@@ -1883,7 +1883,7 @@ void Scene::ReadSceneFile(const char* filename) {
 		pathParent[length] = '\0';
 	}
 	else {
-		memcpy(pathParent, filename, strlen(filename) + 1);
+		pathParent[0] = '\0';
 	}
 
 	Scene::SceneType = SCENETYPE_NONE;
