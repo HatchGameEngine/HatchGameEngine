@@ -9028,6 +9028,17 @@ VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID
 	ScriptEntity::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
 }
+/***
+ * Instance.SetUseRenderRegions
+ * \desc Sets whether entities will use Render Regions when rendering. If false, entities will use their Update Regions instead.
+ * \param useRenderRegions (Boolean): Whether render regions will be used.
+ * \ns Instance
+ */
+VMValue Instance_SetUseRenderRegions(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	Scene::UseRenderRegions = !!GET_ARG(0, GetInteger);
+	return NULL_VAL;
+}
 // TODO: Finish these
 /***
  * Instance.Copy
@@ -20127,6 +20138,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Instance, GetNextInstance);
 	DEF_NATIVE(Instance, GetBySlotID);
 	DEF_NATIVE(Instance, DisableAutoAnimate);
+	DEF_NATIVE(Instance, SetUseRenderRegions);
 	DEF_NATIVE(Instance, Copy);
 	DEF_NATIVE(Instance, ChangeClass);
 
