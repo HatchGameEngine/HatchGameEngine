@@ -619,7 +619,7 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 			if (arrayLength != numElements) {
 				snprintf(errorString,
 					sizeof errorString,
-					"Expected array to have exactly %d elements, but it had %d elements instead!",
+					"Expected array to have exactly %zu elements, but it had %zu elements instead!",
 					numElements,
 					arrayLength);
 
@@ -633,7 +633,7 @@ size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType) {
 		if (numElements > 1 && (arrayLength % numElements) != 0) {
 			snprintf(errorString,
 				sizeof errorString,
-				"Expected array length to be a multiple of %d, but it had %d elements instead!",
+				"Expected array length to be a multiple of %zu, but it had %zu elements instead!",
 				numElements,
 				arrayLength);
 
@@ -767,7 +767,7 @@ bool IsArrayOfMatrices(ObjArray* array, size_t arrayLength, size_t expectedCount
 
 			snprintf(errorString,
 				sizeof errorString,
-				"Expected matrix at array index %d to have exactly %d elements, but it had %d elements instead!",
+				"Expected matrix at array index %zu to have exactly %zu elements, but it had %zu elements instead!",
 				i,
 				expectedCount,
 				matArraySize);
@@ -802,7 +802,7 @@ void ReadFloatVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, 
 	if (vecArraySize != numElements) {
 		snprintf(errorString,
 			sizeof errorString,
-			"Expected vector array to have exactly %d elements, but it had %d elements instead!",
+			"Expected vector array to have exactly %zu elements, but it had %zu elements instead!",
 			numElements,
 			vecArraySize);
 
@@ -823,7 +823,7 @@ void ReadFloatVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, 
 
 			snprintf(errorString,
 				sizeof errorString,
-				"Uniform type mismatch in vector array at index %d! Expected value at index %d to be of type %s; value was of type %s.",
+				"Uniform type mismatch in vector array at index %zu! Expected value at index %zu to be of type %s; value was of type %s.",
 				arrIndex,
 				i,
 				GetTypeString(VAL_INTEGER),
@@ -851,7 +851,7 @@ void ReadIntVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, vo
 	if (vecArraySize != numElements) {
 		snprintf(errorString,
 			sizeof errorString,
-			"Expected vector array to have exactly %d elements, but it had %d elements instead!",
+			"Expected vector array to have exactly %zu elements, but it had %zu elements instead!",
 			numElements,
 			vecArraySize);
 
@@ -872,7 +872,7 @@ void ReadIntVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, vo
 
 			snprintf(errorString,
 				sizeof errorString,
-				"Uniform type mismatch in vector array at index %d! Expected value at index %d to be of type %s; value was of type %s.",
+				"Uniform type mismatch in vector array at index %zu! Expected value at index %zu to be of type %s; value was of type %s.",
 				arrIndex,
 				i,
 				GetTypeString(VAL_INTEGER),
@@ -889,7 +889,7 @@ void ThrowElementTypeMismatchError(size_t element, const char* expected, const c
 
 	snprintf(errorString,
 		sizeof errorString,
-		"Uniform type mismatch in array! Expected value at index %d to be of type %s; value was of type %s.",
+		"Uniform type mismatch in array! Expected value at index %zu to be of type %s; value was of type %s.",
 		element,
 		expected,
 		elementType);

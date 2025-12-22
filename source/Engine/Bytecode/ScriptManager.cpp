@@ -156,6 +156,7 @@ void ScriptManager::Dispose() {
 
 	ClassImplList.clear();
 	AllNamespaces.clear();
+	ModuleList.clear();
 
 	if (ThreadCount) {
 		Threads[0].FrameCount = 0;
@@ -222,15 +223,6 @@ void ScriptManager::FreeNamespace(Obj* object) {
 	ObjNamespace* ns = (ObjNamespace*)object;
 
 	delete ns->Fields;
-}
-void ScriptManager::FreeModules() {
-	// All this does is clear the Functions table in all modules,
-	// so that they are properly GC'd.
-	for (size_t i = 0; i < ModuleList.size(); i++) {
-		ObjModule* module = ModuleList[i];
-		module->Functions->clear();
-	}
-	ModuleList.clear();
 }
 // #endregion
 
