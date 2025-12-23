@@ -55,6 +55,7 @@ private:
 public:
 	static int ShowTileCollisionFlag;
 	static int ShowObjectRegions;
+	static bool UseRenderRegions;
 	static HashMap<VMValue>* Properties;
 	static HashMap<ObjectList*>* ObjectLists;
 	static HashMap<ObjectRegistry*>* ObjectRegistries;

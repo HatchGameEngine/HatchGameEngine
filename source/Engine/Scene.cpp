@@ -50,6 +50,7 @@ DrawGroupList** Scene::PriorityLists = nullptr;
 // Rendering variables
 int Scene::ShowTileCollisionFlag = 0;
 int Scene::ShowObjectRegions = 0;
+bool Scene::UseRenderRegions = true;
 
 // Property variables
 HashMap<VMValue>* Scene::Properties = NULL;
@@ -656,6 +657,7 @@ void Scene::Init() {
 	Scene::CurrentScene[0] = '\0';
 
 	Scene::ReservedSlotIDs = 0;
+	Scene::UseRenderRegions = true;
 
 	Application::Settings->GetBool("dev", "noTiles", &DEV_NoTiles);
 	Application::Settings->GetBool("dev", "noObjectRender", &DEV_NoObjectRender);
@@ -999,41 +1001,81 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 				_ox = ent->X - _vx;
 				_oy = ent->Y - _vy;
 
-				if (ent->RenderRegionLeft || ent->RenderRegionRight) {
-					if (ent->RenderRegionLeft == 0.0f &&
-						ent->RenderRegionRight == 0.0f) {
-						goto DoCheckRender;
+				if (Scene::UseRenderRegions) {
+					if (ent->RenderRegionLeft || ent->RenderRegionRight) {
+						if (ent->RenderRegionLeft == 0.0f &&
+							ent->RenderRegionRight == 0.0f) {
+							goto DoCheckRender;
+						}
+
+						entX1 = _ox - ent->RenderRegionLeft;
+						entX2 = _ox + ent->RenderRegionRight;
+					}
+					else {
+						if (ent->RenderRegionW == 0.0f) {
+							goto DoCheckRender;
+						}
+
+						entX1 = _ox - ent->RenderRegionW * 0.5f;
+						entX2 = _ox + ent->RenderRegionW * 0.5f;
 					}
 
-					entX1 = _ox - ent->RenderRegionLeft;
-					entX2 = _ox + ent->RenderRegionRight;
+					if (ent->RenderRegionTop || ent->RenderRegionBottom) {
+						if (ent->RenderRegionTop == 0.0f &&
+							ent->RenderRegionBottom == 0.0f) {
+							goto DoCheckRender;
+						}
+
+						entY1 = _oy - ent->RenderRegionTop;
+						entY2 = _oy + ent->RenderRegionBottom;
+					}
+					else {
+						if (ent->RenderRegionH == 0.0f) {
+							goto DoCheckRender;
+						}
+
+						entY1 = _oy - ent->RenderRegionH * 0.5f;
+						entY2 = _oy + ent->RenderRegionH * 0.5f;
+					}
 				}
 				else {
-					if (ent->RenderRegionW == 0.0f) {
-						goto DoCheckRender;
+					if (ent->OnScreenRegionLeft || ent->OnScreenRegionRight) {
+						if (ent->OnScreenRegionLeft == 0.0f &&
+							ent->OnScreenRegionRight == 0.0f) {
+							goto DoCheckRender;
+						}
+
+						entX1 = _ox - ent->OnScreenRegionLeft;
+						entX2 = _ox + ent->OnScreenRegionRight;
+					}
+					else {
+						if (ent->OnScreenHitboxW == 0.0f) {
+							goto DoCheckRender;
+						}
+
+						entX1 = _ox - ent->OnScreenHitboxW * 0.5f;
+						entX2 = _ox + ent->OnScreenHitboxW * 0.5f;
 					}
 
-					entX1 = _ox - ent->RenderRegionW * 0.5f;
-					entX2 = _ox + ent->RenderRegionW * 0.5f;
-				}
+					if (ent->OnScreenRegionTop || ent->OnScreenRegionBottom) {
+						if (ent->OnScreenRegionTop == 0.0f &&
+							ent->OnScreenRegionBottom == 0.0f) {
+							goto DoCheckRender;
+						}
 
-				if (ent->RenderRegionTop || ent->RenderRegionBottom) {
-					if (ent->RenderRegionTop == 0.0f &&
-						ent->RenderRegionBottom == 0.0f) {
-						goto DoCheckRender;
+						entY1 = _oy - ent->OnScreenRegionTop;
+						entY2 = _oy + ent->OnScreenRegionBottom;
 					}
+					else {
+						if (ent->OnScreenHitboxH == 0.0f) {
+							goto DoCheckRender;
+						}
 
-					entY1 = _oy - ent->RenderRegionTop;
-					entY2 = _oy + ent->RenderRegionBottom;
-				}
-				else {
-					if (ent->RenderRegionH == 0.0f) {
-						goto DoCheckRender;
+						entY1 = _oy - ent->OnScreenHitboxH * 0.5f;
+						entY2 = _oy + ent->OnScreenHitboxH * 0.5f;
 					}
-
-					entY1 = _oy - ent->RenderRegionH * 0.5f;
-					entY2 = _oy + ent->RenderRegionH * 0.5f;
 				}
+
 
 				if (entX2 < 0.0f || entX1 >= _vw || entY2 < 0.0f || entY1 >= _vh) {
 					continue;
