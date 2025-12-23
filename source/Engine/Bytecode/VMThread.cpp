@@ -29,23 +29,20 @@ bool VMThread::InstructionIgnoreMap[0x100];
 std::jmp_buf VMThread::JumpBuffer;
 
 // #region Error Handling & Debug Info
-string VMThread::GetFunctionName(ObjFunction* function) {
-	std::string functionName(GetToken(function->NameHash));
-
-	if (functionName == "main") {
+std::string VMThread::GetFunctionName(ObjFunction* function) {
+	if (strcmp(function->Name, "main") == 0) {
 		return "top-level function";
 	}
-	else if (functionName != "<anonymous-fn>") {
-		if (function->Class) {
-			return "method " + std::string(function->Class->Name->Chars) +
-				"::" + functionName;
-		}
-		else {
-			return "function " + functionName;
-		}
+	else if (strcmp(function->Name, "<anonymous-fn>") == 0) {
+		return std::string(function->Name);
 	}
 
-	return functionName;
+	if (function->Class) {
+		return "method " + std::string(function->Class->Name) +
+			"::" + std::string(function->Name);
+	}
+
+	return "function " + std::string(function->Name);
 }
 
 char* VMThread::GetToken(Uint32 hash) {
@@ -73,7 +70,7 @@ char* VMThread::GetVariableOrMethodName(Uint32 hash) {
 }
 void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 	int line;
-	char* source;
+	const char* source;
 
 	CallFrame* frame = &Frames[FrameCount - 1];
 	ObjFunction* function = frame->Function;
@@ -83,16 +80,11 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 		line = function->Chunk.Lines[bpos] & 0xFFFF;
 
 		std::string functionName = GetFunctionName(function);
-		if (function->Module->SourceFilename) {
-			buffer_printf(buffer,
-				"In %s of %s, line %d",
-				functionName.c_str(),
-				function->Module->SourceFilename->Chars,
-				line);
-		}
-		else {
-			buffer_printf(buffer, "In %s, line %d", functionName.c_str(), line);
-		}
+		buffer_printf(buffer,
+			"In %s of %s, line %d",
+			functionName.c_str(),
+			function->Module->SourceFilename,
+			line);
 	}
 	else {
 		buffer_printf(buffer, "In %d", (int)(frame->IP - frame->IPStart));
@@ -109,20 +101,14 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 	for (Uint32 i = 0; i < FrameCount; i++) {
 		CallFrame* fr = &Frames[i];
 		function = fr->Function;
-		source = function->Module->SourceFilename ? function->Module->SourceFilename->Chars
-							  : nullptr;
+		source = function->Module->SourceFilename;
 		line = -1;
 		if (i > 0) {
 			CallFrame* fr2 = &Frames[i - 1];
 			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
 		}
 		std::string functionName = GetFunctionName(function);
-		if (source) {
-			buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
-		}
-		else {
-			buffer_printf(buffer, "    called %s", functionName.c_str());
-		}
+		buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
 
 		if (line > 0) {
 			buffer_printf(buffer, " on Line %d", line);
@@ -155,15 +141,10 @@ void VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
 
 			if (function) {
 				std::string functionName = GetFunctionName(function);
-				if (function->Module->SourceFilename) {
-					buffer_printf(buffer,
-						"While calling %s of %s",
-						functionName.c_str(),
-						function->Module->SourceFilename->Chars);
-				}
-				else {
-					buffer_printf(buffer, "While calling %s", functionName.c_str());
-				}
+				buffer_printf(buffer,
+					"While calling %s of %s",
+					functionName.c_str(),
+					function->Module->SourceFilename);
 			}
 			else {
 				buffer_printf(buffer, "While calling value");
@@ -1989,18 +1970,10 @@ int VMThread::RunInstruction() {
 	}
 	VM_CASE(OP_CLASS) {
 		Uint32 hash = ReadUInt32(frame);
-		ObjClass* klass = NewClass(hash);
-		klass->Type = ReadByte(frame);
+		Uint8 type = ReadByte(frame);
 
-		if (!__Tokens__ || !__Tokens__->Exists(hash)) {
-			char name[9];
-			snprintf(name, sizeof(name), "%8X", hash);
-			klass->Name = CopyString(name);
-		}
-		else {
-			char* t = __Tokens__->Get(hash);
-			klass->Name = CopyString(t);
-		}
+		ObjClass* klass = NewClass(hash);
+		klass->Type = type;
 
 		Push(OBJECT_VAL(klass));
 		VM_BREAK;
@@ -2018,8 +1991,22 @@ int VMThread::RunInstruction() {
 			return INTERPRET_RUNTIME_ERROR;
 		}
 
+		if (klass->Hash == hashSuper) {
+			if (ThrowRuntimeError(false, "Class \"%s\" cannot inherit from itself!", klass->Name) == ERROR_RES_CONTINUE) {
+				goto FAIL_OP_INHERIT;
+			}
+			return INTERPRET_RUNTIME_ERROR;
+		}
+
 		VMValue parent;
 		if (ScriptManager::Globals->GetIfExists(hashSuper, &parent) && IS_CLASS(parent)) {
+			if (klass->Parent != nullptr) {
+				if (ThrowRuntimeError(false, "Class \"%s\" already has a parent!", klass->Name) == ERROR_RES_CONTINUE) {
+					goto FAIL_OP_INHERIT;
+				}
+				return INTERPRET_RUNTIME_ERROR;
+			}
+
 			klass->Parent = AS_CLASS(parent);
 		}
 		else {
@@ -2027,7 +2014,7 @@ int VMThread::RunInstruction() {
 			if (ThrowRuntimeError(false,
 				    "Class %s must be imported before \"%s\" can inherit it!",
 				    className,
-				    klass->Name->Chars) == ERROR_RES_CONTINUE) {
+				    klass->Name) == ERROR_RES_CONTINUE) {
 				goto FAIL_OP_INHERIT;
 			}
 			return INTERPRET_RUNTIME_ERROR;
@@ -2100,17 +2087,6 @@ int VMThread::RunInstruction() {
 	VM_CASE(OP_NEW_ENUM) {
 		Uint32 hash = ReadUInt32(frame);
 		ObjEnum* enumeration = NewEnum(hash);
-
-		if (!__Tokens__ || !__Tokens__->Exists(hash)) {
-			char name[9];
-			snprintf(name, sizeof(name), "%8X", hash);
-			enumeration->Name = CopyString(name);
-		}
-		else {
-			char* t = __Tokens__->Get(hash);
-			enumeration->Name = CopyString(t);
-		}
-
 		Push(OBJECT_VAL(enumeration));
 		VM_BREAK;
 	}
@@ -2189,7 +2165,7 @@ int VMThread::RunInstruction() {
 			}
 			else {
 				ThrowRuntimeError(
-					false, "Class '%s' has no superclass!", klass->Name->Chars);
+					false, "Class '%s' has no superclass!", klass->Name);
 			}
 		}
 
@@ -2373,7 +2349,7 @@ int VMThread::Invoke(VMValue receiver, Uint8 argCount, Uint32 hash) {
 		if (ThrowRuntimeError(false,
 			    "Method %s does not exist in class '%s'!",
 			    GetVariableOrMethodName(hash),
-			    klass->Name->Chars) == ERROR_RES_CONTINUE) {
+			    klass->Name) == ERROR_RES_CONTINUE) {
 			return INVOKE_FAIL;
 		}
 
@@ -2437,7 +2413,7 @@ int VMThread::SuperInvoke(VMValue receiver, ObjClass* klass, Uint8 argCount, Uin
 	if (!parentClass) {
 		ThrowRuntimeError(false,
 			"Class '%s' does not have a parent to call method from!",
-			klass->Name->Chars);
+			klass->Name);
 		return INVOKE_FAIL;
 	}
 
@@ -3017,6 +2993,17 @@ bool VMThread::DoClassExtension(VMValue value, VMValue originalValue, bool clear
 	});
 	if (clearSrc) {
 		src->Fields->Clear();
+	}
+
+	// If the class doing the extension has a superclass, and the class being extended doesn't have
+	// a parent yet, then set the parent of the class being extended to that superclass.
+	if (src->Parent != nullptr) {
+		if (dst->Parent != nullptr) {
+			ThrowRuntimeError(false, "Class \"%s\" already has a parent!", dst->Name);
+		}
+		else {
+			dst->Parent = src->Parent;
+		}
 	}
 
 	return true;

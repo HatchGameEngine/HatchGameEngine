@@ -1,17 +1,21 @@
 #ifndef ENGINE_DIAGNOSTICS_PERFORMANCETYPES
 #define ENGINE_DIAGNOSTICS_PERFORMANCETYPES
 
-struct Perf_Application {
-	double EventTime;
-	double AfterSceneTime;
-	double PollTime;
-	double UpdateTime;
-	double ClearTime;
-	double RenderTime;
-	double FPSCounterTime;
-	double PresentTime;
-	double FrameTime;
+#include <Engine/Diagnostics/PerformanceMeasure.h>
+
+struct ApplicationMetrics {
+	PerformanceMeasure Event;
+	PerformanceMeasure AfterScene;
+	PerformanceMeasure Poll;
+	PerformanceMeasure Update;
+	PerformanceMeasure Clear;
+	PerformanceMeasure Render;
+	PerformanceMeasure PostProcess;
+	PerformanceMeasure FPSCounter;
+	PerformanceMeasure Present;
+	PerformanceMeasure Frame;
 };
+
 struct Perf_ViewRender {
 	double RenderSetupTime;
 	bool RecreatedDrawTarget;

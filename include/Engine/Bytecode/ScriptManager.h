@@ -19,7 +19,6 @@ private:
 #ifdef VM_DEBUG
 	static Uint32 GetBranchLimit();
 #endif
-	static void FreeModules();
 
 public:
 	static bool LoadAllClasses;

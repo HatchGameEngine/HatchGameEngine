@@ -26,7 +26,7 @@ private:
 public:
 	vector<Uint32*> Frames;
 
-	static GIF* Load(const char* filename);
+	static GIF* Load(Stream* stream);
 	static bool Save(GIF* gif, const char* filename);
 	bool Save(const char* filename);
 	~GIF();

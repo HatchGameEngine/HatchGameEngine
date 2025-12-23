@@ -28,22 +28,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -85,15 +85,16 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USING_FREETYPE;_DEBUG;_WINDOWS;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;_DEBUG;_WINDOWS;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
@@ -102,9 +103,10 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USING_FREETYPE;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -112,7 +114,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Command>
@@ -121,14 +123,14 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USING_FREETYPE;_DEBUG;_WINDOWS;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;_DEBUG;_WINDOWS;DEBUG;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <PostBuildEvent>
       <Command>copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
     </PostBuildEvent>
     <Link>
-      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
@@ -137,7 +139,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";DEVELOPER_MODE;GLEW_STATIC;USING_OPENGL;USING_ASSIMP;NDEBUG;_WINDOWS;USING_VM_FUNCPTRS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";DEVELOPER_MODE;GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;USING_ASSIMP;NDEBUG;_WINDOWS;USING_VM_FUNCPTRS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <PostBuildEvent>
@@ -148,7 +150,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     </PostBuildEvent>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;freetype.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>libvcruntime.lib</IgnoreSpecificDefaultLibraries>
@@ -160,6 +162,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\audio\AudioPlayback.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ArrayImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\EntityImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\FontImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\FunctionImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\InstanceImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MapImpl.cpp" />
@@ -179,11 +182,13 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\bytecode\Value.cpp" />
     <ClCompile Include="..\source\engine\bytecode\ValuePrinter.cpp" />
     <ClCompile Include="..\source\engine\bytecode\VMThread.cpp" />
+    <ClCompile Include="..\source\engine\data\DefaultFonts.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\Clock.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\Log.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\Memory.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\MemoryPools.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\PerformanceMeasure.cpp" />
+    <ClCompile Include="..\source\engine\diagnostics\PerformanceViewer.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\RemoteDebug.cpp" />
     <ClCompile Include="..\source\engine\Error.cpp" />
     <ClCompile Include="..\source\engine\extensions\Discord.cpp" />
@@ -198,7 +203,6 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\filesystem\vfs\VFSEntry.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\VFSProvider.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\VirtualFileSystem.cpp" />
-    <ClCompile Include="..\source\engine\FontFace.cpp" />
     <ClCompile Include="..\source\engine\Graphics.cpp" />
     <ClCompile Include="..\source\engine\hashing\CombinedHash.cpp" />
     <ClCompile Include="..\source\engine\hashing\CRC32.cpp" />
@@ -262,6 +266,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\rendering\TextureReference.cpp" />
     <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp" />
     <ClCompile Include="..\source\engine\rendering\ViewTexture.cpp" />
+    <ClCompile Include="..\source\engine\resourcetypes\Font.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\GIF.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\ImageFormat.cpp" />

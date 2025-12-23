@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/FontImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/Value.h>
@@ -45,11 +46,6 @@
 #include <Engine/Utilities/StringUtils.h>
 
 #include <Libraries/jsmn.h>
-
-#ifdef USING_FREETYPE
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#endif
 
 #define NANOPRINTF_IMPLEMENTATION
 #define NANOPRINTF_USE_FIELD_WIDTH_FORMAT_SPECIFIERS 1
@@ -305,6 +301,24 @@ inline ObjShader* GetShader(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline ObjFont* GetFont(VMValue* args, int index, Uint32 threadID) {
+	ObjFont* value = nullptr;
+	if (ScriptManager::Lock()) {
+		if (IS_FONT(args[index])) {
+			value = AS_FONT(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(FontImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 
 inline ISprite* GetSpriteIndex(int where, Uint32 threadID) {
 	if (where < 0 || where >= (int)Scene::SpriteList.size()) {
@@ -489,6 +503,9 @@ ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threa
 ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetShader(args, index, threadID);
 }
+ObjFont* StandardLibrary::GetFont(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetFont(args, index, threadID);
+}
 
 void StandardLibrary::CheckArgCount(int argCount, int expects) {
 	Uint32 threadID = 0;
@@ -548,6 +565,11 @@ void AddToMap(ObjMap* map, const char* key, VMValue value) {
 	map->Keys->Put(hash, keyString);
 	map->Values->Put(hash, value);
 }
+
+float textAlign;
+float textBaseline;
+float textAscent;
+float textAdvance;
 
 #define CHECK_READ_STREAM \
 	if (stream->Closed) { \
@@ -1130,7 +1152,7 @@ VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.SetFrameCount
  * \desc Sets the frame count of an animator.
  * \param animator (Integer): The animator index to change.
- * \param frameCount (Integer): The frame count.
+ * \param frameCount (Integer): The animator's changed frame count.
  * \ns Animator
  */
 VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -1146,7 +1168,7 @@ VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.SetLoopIndex
  * \desc Sets the loop index of an animator.
  * \param animator (Integer): The animator index to change.
- * \param loopIndex (Integer): The loop index.
+ * \param loopIndex (Integer): The animator's changed loop index.
  * \ns Animator
  */
 VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -1162,7 +1184,7 @@ VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.SetRotationStyle
  * \desc Sets the rotation style of an animator.
  * \param animator (Integer): The animator index to change.
- * \param rorationStyle (Integer): The rotation style.
+ * \param rotationStyle (Integer): The animator's changed rotation style.
  * \ns Animator
  */
 VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
@@ -1426,10 +1448,21 @@ VMValue Application_GetFPS(int argCount, VMValue* args, Uint32 threadID) {
 	return DECIMAL_VAL(Application::CurrentFPS);
 }
 /***
+ * Application.ShowFPSCounter
+ * \desc Enables or disables the FPS (frames per second) counter.
+ * \param show (Boolean): Whether or not to show the FPS counter.
+ * \ns Application
+ */
+VMValue Application_ShowFPSCounter(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	Application::ShowFPS = !!GET_ARG(0, GetInteger);
+	return NULL_VAL;
+}
+/***
  * Application.GetKeyBind
  * \desc Gets a <linkto ref="KeyBind_*">keybind</linkto>.
  * \param keyBind (Enum): The <linkto ref="KeyBind_*">keybind</linkto>.
- * \return Returns the key ID of the keybind.
+ * \return Returns the <linkto ref="Key_*">key ID</linkto> of the keybind.
  * \ns Application
  */
 VMValue Application_GetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -1441,7 +1474,7 @@ VMValue Application_GetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
  * Application.SetKeyBind
  * \desc Sets a <linkto ref="KeyBind_*">keybind</linkto>.
  * \param keyBind (Enum): The <linkto ref="KeyBind_*">keybind</linkto>.
- * \param keyID (Integer): The key ID.
+ * \param keyID (Integer): The <linkto ref="Key_*">key ID</linkto>.
  * \ns Application
  */
 VMValue Application_SetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -1560,6 +1593,67 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 		return INTEGER_VAL(1);
 	}
 	return INTEGER_VAL(0);
+}
+/***
+ * Application.SetDefaultFont
+ * \desc Sets the default font to the given Resource path, or Array containing Resource paths.
+ * \param font (String or Array): The font or list of fonts. Passing <code>null</code> to this argument will change the default font to the one the application was built with, if one is present.
+ * \ns Application
+ */
+VMValue Application_SetDefaultFont(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	std::vector<std::string> fontList;
+
+	// If null was passed, this clears the font list.
+	if (IS_NULL(args[0])) {
+		Application::DefaultFontList.clear();
+		Application::LoadDefaultFont();
+		return NULL_VAL;
+	}
+	else if (IS_ARRAY(args[0])) {
+		ObjArray* array = AS_ARRAY(args[0]);
+
+		// If an empty array was passed intentionally, this clears the font list.
+		if (array->Values->size() == 0) {
+			Application::DefaultFontList.clear();
+			Application::LoadDefaultFont();
+			return NULL_VAL;
+		}
+
+		for (size_t i = 0; i < array->Values->size(); i++) {
+			if (ScriptManager::Lock()) {
+				VMValue value = (*array->Values)[i];
+				if (IS_STRING(value)) {
+					char* filename = AS_CSTRING(value);
+					fontList.push_back(std::string(filename));
+				}
+				else {
+					ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+						"Expected argument to be of type %s instead of %s.",
+						GetObjectTypeString(OBJ_STRING),
+						GetValueTypeString(value));
+				}
+				ScriptManager::Unlock();
+			}
+		}
+	}
+	else {
+		char* path = GET_ARG(0, GetString);
+		if (ResourceManager::ResourceExists(path)) {
+			fontList.push_back(std::string(path));
+		}
+		else {
+			Log::Print(Log::LOG_ERROR, "Resource \"%s\" does not exist!", path);
+		}
+	}
+
+	if (fontList.size() > 0) {
+		Application::DefaultFontList = fontList;
+		Application::LoadDefaultFont();
+	}
+
+	return NULL_VAL;
 }
 /***
  * Application.ChangeGame
@@ -1722,6 +1816,11 @@ VMValue Array_Pop(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
+		if (array->Values->size() == 0) {
+			ScriptManager::Unlock();
+			THROW_ERROR("Array is empty!");
+			return NULL_VAL;
+		}
 		VMValue value = array->Values->back();
 		array->Values->pop_back();
 		ScriptManager::Unlock();
@@ -1743,6 +1842,13 @@ VMValue Array_Insert(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int index = GET_ARG(1, GetInteger);
+		if (index < 0 || index > (int)array->Values->size()) { // Not a typo
+			ScriptManager::Unlock();
+			THROW_ERROR("Index %d is out of bounds of array of size %d.",
+				index,
+				(int)array->Values->size());
+			return NULL_VAL;
+		}
 		array->Values->insert(array->Values->begin() + index, args[2]);
 		ScriptManager::Unlock();
 	}
@@ -1761,6 +1867,13 @@ VMValue Array_Erase(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int index = GET_ARG(1, GetInteger);
+		if (index < 0 || index >= (int)array->Values->size()) {
+			ScriptManager::Unlock();
+			THROW_ERROR("Index %d is out of bounds of array of size %d.",
+				index,
+				(int)array->Values->size());
+			return NULL_VAL;
+		}
 		array->Values->erase(array->Values->begin() + index);
 		ScriptManager::Unlock();
 	}
@@ -2060,16 +2173,32 @@ VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 thre
 
 	if (entity && outer && inner) {
 		auto ent = (Entity*)entity->EntityPtr;
+		
+		if (IS_INTEGER((*outer->Values)[0])) {
+			outerBox.Left = AS_INTEGER((*outer->Values)[0]);
+			outerBox.Top = AS_INTEGER((*outer->Values)[1]);
+			outerBox.Right = AS_INTEGER((*outer->Values)[2]);
+			outerBox.Bottom = AS_INTEGER((*outer->Values)[3]);
+		}
+		else {
+			outerBox.Left = (int)AS_DECIMAL((*outer->Values)[0]);
+			outerBox.Top = (int)AS_DECIMAL((*outer->Values)[1]);
+			outerBox.Right = (int)AS_DECIMAL((*outer->Values)[2]);
+			outerBox.Bottom = (int)AS_DECIMAL((*outer->Values)[3]);
+		}
 
-		outerBox.Left = (int)AS_DECIMAL((*outer->Values)[0]);
-		outerBox.Top = (int)AS_DECIMAL((*outer->Values)[1]);
-		outerBox.Right = (int)AS_DECIMAL((*outer->Values)[2]);
-		outerBox.Bottom = (int)AS_DECIMAL((*outer->Values)[3]);
-
-		innerBox.Left = (int)AS_DECIMAL((*inner->Values)[0]);
-		innerBox.Top = (int)AS_DECIMAL((*inner->Values)[1]);
-		innerBox.Right = (int)AS_DECIMAL((*inner->Values)[2]);
-		innerBox.Bottom = (int)AS_DECIMAL((*inner->Values)[3]);
+		if (IS_INTEGER((*inner->Values)[0])) {
+			innerBox.Left = AS_INTEGER((*inner->Values)[0]);
+			innerBox.Top = AS_INTEGER((*inner->Values)[1]);
+			innerBox.Right = AS_INTEGER((*inner->Values)[2]);
+			innerBox.Bottom = AS_INTEGER((*inner->Values)[3]);
+		}
+		else {
+			innerBox.Left = (int)AS_DECIMAL((*inner->Values)[0]);
+			innerBox.Top = (int)AS_DECIMAL((*inner->Values)[1]);
+			innerBox.Right = (int)AS_DECIMAL((*inner->Values)[2]);
+			innerBox.Bottom = (int)AS_DECIMAL((*inner->Values)[3]);
+		}
 		Scene::ProcessObjectMovement(ent, &outerBox, &innerBox);
 	}
 	return NULL_VAL;
@@ -2226,8 +2355,8 @@ VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 th
 	auto thisEnt = (Entity*)thisEntity->EntityPtr;
 	auto otherEnt = (Entity*)otherEntity->EntityPtr;
 
-	CollisionBox thisBox;
-	CollisionBox otherBox;
+	CollisionBox thisBox = { 0, 0, 0, 0 };
+	CollisionBox otherBox = { 0, 0, 0, 0 };
 
 	if (IS_INTEGER((*thisHitbox->Values)[0])) {
 		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
@@ -3465,16 +3594,7 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_PALETTE_INDEX(paletteID);
 
 	if (image) {
-		Graphics::DrawTexture(image->TexturePtr,
-			sx,
-			sy,
-			sw,
-			sh,
-			x,
-			y,
-			sw,
-			sh,
-			paletteID);
+		Graphics::DrawTexture(image->TexturePtr, sx, sy, sw, sh, x, y, sw, sh, paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3955,29 +4075,10 @@ VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
 	}
 	return NULL_VAL;
 }
-
-float textAlign = 0.0f;
-float textBaseline = 0.0f;
-float textAscent = 1.25f;
-float textAdvance = 1.0f;
-int _Text_GetLetter(int l) {
-	if (l < 0) {
-		return ' ';
-	}
-	return l;
-}
-/***
- * Draw.SetFont
- * \desc
- * \return
- * \ns Draw
- */
-VMValue Draw_SetFont(int argCount, VMValue* args, Uint32 threadID) {
-	return NULL_VAL;
-}
 /***
  * Draw.SetTextAlign
- * \desc Sets the text drawing horizontal alignment. (default: left)
+ * \desc Sets the text drawing horizontal alignment. (default: left)<br/>\
+This does not affect text drawn using a Font.
  * \param baseline (Integer): 0 for left, 1 for center, 2 for right.
  * \ns Draw
  */
@@ -3987,7 +4088,8 @@ VMValue Draw_SetTextAlign(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextBaseline
- * \desc Sets the text drawing vertical alignment. (default: top)
+ * \desc Sets the text drawing vertical alignment. (default: top)<br/>\
+This does not affect text drawn using a Font.
  * \param baseline (Integer): 0 for top, 1 for baseline, 2 for bottom.
  * \ns Draw
  */
@@ -3997,7 +4099,8 @@ VMValue Draw_SetTextBaseline(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextAdvance
- * \desc Sets the character spacing multiplier. (default: 1.0)
+ * \desc Sets the character spacing multiplier. (default: 1.0)<br/>\
+This does not affect text drawn using a Font.
  * \param ascent (Number): Multiplier for character spacing.
  * \ns Draw
  */
@@ -4008,7 +4111,8 @@ VMValue Draw_SetTextAdvance(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextLineAscent
- * \desc Sets the line height multiplier. (default: 1.25)
+ * \desc Sets the line height multiplier. (default: 1.25)<br/>\
+This does not affect text drawn using a Font.
  * \param ascent (Number): Multiplier for line height.
  * \ns Draw
  */
@@ -4019,47 +4123,46 @@ VMValue Draw_SetTextLineAscent(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.MeasureText
- * \desc Measures Extended UTF8 text using a sprite or font and stores max width and max height into the array.
+ * \desc Measures UTF-8 text using a font and stores max width and max height into the array.
  * \param outArray (Array): Array to output size values to.
- * \param sprite (Integer): Index of the loaded sprite to be used as text.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to measure.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \return Returns the array inputted into the function.
  * \ns Draw
  */
 VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	ObjArray* array = GET_ARG(0, GetArray);
-	ISprite* sprite = GET_ARG(1, GetSprite);
 	char* text = GET_ARG(2, GetString);
+	float fontSize = GET_ARG_OPT(3, GetDecimal, 0.0f);
 
-	if (!sprite) {
-		return NULL_VAL;
+	float maxW = 0.0f, maxH = 0.0f;
+
+	if (IS_FONT(args[1])) {
+		ObjFont* objFont = GET_ARG(1, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 4) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+
+		Graphics::MeasureText(font, text, &params, maxW, maxH);
 	}
-
-	float x = 0.0, y = 0.0;
-	float maxW = 0.0, maxH = 0.0;
-	float lineHeight = sprite->Animations[0].FrameToLoop;
-	for (char* i = text; *i; i++) {
-		if (*i == '\n') {
-			x = 0.0;
-			y += lineHeight * textAscent;
-			goto __MEASURE_Y;
-		}
-
-		x += sprite->Animations[0].Frames[*i].Advance * textAdvance;
-
-		if (maxW < x) {
-			maxW = x;
-		}
-
-	__MEASURE_Y:
-		if (maxH < y +
-				(sprite->Animations[0].Frames[*i].Height -
-					sprite->Animations[0].Frames[*i].OffsetY)) {
-			maxH = y +
-				(sprite->Animations[0].Frames[*i].Height -
-					sprite->Animations[0].Frames[*i].OffsetY);
+	else {
+		ISprite* sprite = GET_ARG(1, GetSprite);
+		if (sprite) {
+			LegacyTextDrawParams params;
+			params.Ascent = textAscent;
+			params.Advance = textAdvance;
+			Graphics::MeasureTextLegacy(sprite, text, &params, maxW, maxH);
 		}
 	}
 
@@ -4074,12 +4177,13 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.MeasureTextWrapped
- * \desc Measures wrapped Extended UTF8 text using a sprite or font and stores max width and max height into the array.
+ * \desc Measures wrapped UTF-8 text using a font and stores max width and max height into the array.
  * \param outArray (Array): Array to output size values to.
- * \param sprite (Integer): Index of the loaded sprite to be used as text.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to measure.
  * \param maxWidth (Number): Max width that a line can be.
- * \paramOpt maxLines (Integer): Max number of lines to measure.
+ * \paramOpt maxLines (Integer): Max number of lines to measure. Use <code>null</code> to measure all lines.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \return Returns the array inputted into the function.
  * \ns Draw
  */
@@ -4087,88 +4191,46 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(4);
 
 	ObjArray* array = GET_ARG(0, GetArray);
-	ISprite* sprite = GET_ARG(1, GetSprite);
 	char* text = GET_ARG(2, GetString);
-	float max_w = GET_ARG(3, GetDecimal);
-	int maxLines = 0x7FFFFFFF;
-	if (argCount > 4) {
+	float maxWidth = GET_ARG(3, GetDecimal);
+	int maxLines = 0;
+	if (argCount > 4 && !IS_NULL(args[4])) {
 		maxLines = GET_ARG(4, GetInteger);
 	}
+	float fontSize = GET_ARG_OPT(5, GetDecimal, 0.0f);
 
-	if (!sprite) {
-		return NULL_VAL;
-	}
+	float maxW = 0.0f, maxH = 0.0f;
 
-	int word = 0;
-	char* linestart = text;
-	char* wordstart = text;
+	if (IS_FONT(args[1])) {
+		ObjFont* objFont = GET_ARG(1, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
 
-	float x = 0.0, y = 0.0;
-	float maxW = 0.0, maxH = 0.0;
-	float lineHeight = sprite->Animations[0].FrameToLoop;
-
-	int lineNo = 1;
-	for (char* i = text;; i++) {
-		if (((*i == ' ' || *i == 0) && i != wordstart) || *i == '\n') {
-			float testWidth = 0.0f;
-			for (char* o = linestart; o < i; o++) {
-				testWidth += sprite->Animations[0].Frames[*o].Advance * textAdvance;
-			}
-			if ((testWidth > max_w && word > 0) || *i == '\n') {
-				x = 0.0f;
-				for (char* o = linestart; o < wordstart - 1; o++) {
-					x += sprite->Animations[0].Frames[*o].Advance * textAdvance;
-
-					if (maxW < x) {
-						maxW = x;
-					}
-					if (maxH < y +
-							(sprite->Animations[0].Frames[*o].Height +
-								sprite->Animations[0]
-									.Frames[*o]
-									.OffsetY)) {
-						maxH = y +
-							(sprite->Animations[0].Frames[*o].Height +
-								sprite->Animations[0]
-									.Frames[*o]
-									.OffsetY);
-					}
-				}
-
-				if (lineNo == maxLines) {
-					goto FINISH;
-				}
-				lineNo++;
-
-				linestart = wordstart;
-				y += lineHeight * textAscent;
-			}
-
-			wordstart = i + 1;
-			word++;
+		if (argCount < 6) {
+			fontSize = font->Size;
 		}
 
-		if (!*i) {
-			break;
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+
+		Graphics::MeasureTextWrapped(font, text, &params, maxW, maxH);
+	}
+	else {
+		ISprite* sprite = GET_ARG(1, GetSprite);
+		if (sprite) {
+			LegacyTextDrawParams params;
+			params.Ascent = textAscent;
+			params.Advance = textAdvance;
+			params.MaxWidth = maxWidth;
+			params.MaxLines = maxLines;
+			Graphics::MeasureTextLegacy(sprite, text, &params, maxW, maxH);
 		}
 	}
 
-	x = 0.0f;
-	for (char* o = linestart; *o; o++) {
-		x += sprite->Animations[0].Frames[*o].Advance * textAdvance;
-		if (maxW < x) {
-			maxW = x;
-		}
-		if (maxH < y +
-				(sprite->Animations[0].Frames[*o].Height +
-					sprite->Animations[0].Frames[*o].OffsetY)) {
-			maxH = y +
-				(sprite->Animations[0].Frames[*o].Height +
-					sprite->Animations[0].Frames[*o].OffsetY);
-		}
-	}
-
-FINISH:
 	if (ScriptManager::Lock()) {
 		array->Values->clear();
 		array->Values->push_back(DECIMAL_VAL(maxW));
@@ -4180,287 +4242,413 @@ FINISH:
 }
 /***
  * Draw.Text
- * \desc Draws Extended UTF8 text using a sprite or font.
- * \param sprite (Integer): Index of the loaded sprite to be used as text.
+ * \desc Draws UTF-8 text using a font.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to draw.
  * \param x (Number): X position of where to draw the text.
  * \param y (Number): Y position of where to draw the text.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
+	CHECK_AT_LEAST_ARGCOUNT(4);
+
+	char* text = GET_ARG(1, GetString);
+	float x = GET_ARG(2, GetDecimal);
+	float y = GET_ARG(3, GetDecimal);
+	float fontSize = GET_ARG_OPT(4, GetDecimal, 0.0f);
+
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 5) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+
+		Graphics::DrawText(font, text, x, y, &params);
+
+		return NULL_VAL;
+	}
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
-	char* text = GET_ARG(1, GetString);
-	float basex = GET_ARG(2, GetDecimal);
-	float basey = GET_ARG(3, GetDecimal);
-
-	float x = basex;
-	float y = basey;
-	float* lineWidths;
-	int line = 0;
-
-	if (!sprite) {
-		return NULL_VAL;
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		Graphics::DrawTextLegacy(sprite, text, x, y, &params);
 	}
 
-	// Count lines
-	for (char* i = text; *i; i++) {
-		if (*i == '\n') {
-			line++;
-			continue;
-		}
-	}
-	line++;
-	lineWidths = (float*)malloc(line * sizeof(float));
-	if (!lineWidths) {
-		return NULL_VAL;
-	}
-
-	// Get line widths
-	line = 0;
-	x = 0.0f;
-	for (char *i = text, l; *i; i++) {
-		l = _Text_GetLetter((Uint8)*i);
-		if (l == '\n') {
-			lineWidths[line++] = x;
-			x = 0.0f;
-			continue;
-		}
-		x += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-	lineWidths[line++] = x;
-
-	// Draw text
-	line = 0;
-	x = basex;
-	bool lineBack = true;
-	for (char *i = text, l; *i; i++) {
-		l = _Text_GetLetter((Uint8)*i);
-		if (lineBack) {
-			x -= sprite->Animations[0].Frames[l].OffsetX;
-			lineBack = false;
-		}
-
-		if (l == '\n') {
-			x = basex;
-			y += sprite->Animations[0].FrameToLoop * textAscent;
-			lineBack = true;
-			line++;
-			continue;
-		}
-
-		Graphics::DrawSprite(sprite,
-			0,
-			l,
-			x - lineWidths[line] * textAlign,
-			y - sprite->Animations[0].AnimationSpeed * textBaseline,
-			false,
-			false,
-			1.0f,
-			1.0f,
-			0.0f);
-		x += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-
-	free(lineWidths);
 	return NULL_VAL;
 }
 /***
  * Draw.TextWrapped
- * \desc Draws wrapped Extended UTF8 text using a sprite or font.
- * \param sprite (Integer): Index of the loaded sprite to be used as text.
+ * \desc Draws wrapped UTF-8 text using a font.
+ * \param font (Font): The Font to be used as text.
  * \param text (String): Text to draw.
- * \param x (Number): X position of where to draw the tile.
- * \param y (Number): Y position of where to draw the tile.
+ * \param x (Number): X position of where to draw the text.
+ * \param y (Number): Y position of where to draw the text.
  * \param maxWidth (Number): Max width the text can draw in.
- * \param maxLines (Integer): Max lines the text can draw.
+ * \paramOpt maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 
-	ISprite* sprite = GET_ARG(0, GetSprite);
 	char* text = GET_ARG(1, GetString);
-	float basex = GET_ARG(2, GetDecimal);
-	float basey = GET_ARG(3, GetDecimal);
-	float max_w = GET_ARG(4, GetDecimal);
-	int maxLines = 0x7FFFFFFF;
-	if (argCount > 5) {
+	float x = GET_ARG(2, GetDecimal);
+	float y = GET_ARG(3, GetDecimal);
+	float maxWidth = GET_ARG(4, GetDecimal);
+	int maxLines = 0;
+	if (argCount > 5 && !IS_NULL(args[5])) {
 		maxLines = GET_ARG(5, GetInteger);
 	}
+	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
 
-	if (!sprite) {
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 7) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+
+		Graphics::DrawTextWrapped(font, text, x, y, &params);
+
 		return NULL_VAL;
 	}
 
-	float x = basex;
-	float y = basey;
-
-	// Draw text
-	int word = 0;
-	char* linestart = text;
-	char* wordstart = text;
-	bool lineBack = true;
-	int lineNo = 1;
-	for (char *i = text, l;; i++) {
-		l = _Text_GetLetter((Uint8)*i);
-		if (((l == ' ' || l == 0) && i != wordstart) || l == '\n') {
-			float testWidth = 0.0f;
-			for (char *o = linestart, lm; o < i; o++) {
-				lm = _Text_GetLetter((Uint8)*o);
-				testWidth += sprite->Animations[0].Frames[lm].Advance * textAdvance;
-			}
-
-			if ((testWidth > max_w && word > 0) || l == '\n') {
-				float lineWidth = 0.0f;
-				for (char *o = linestart, lm; o < wordstart - 1; o++) {
-					lm = _Text_GetLetter((Uint8)*o);
-					if (lineBack) {
-						lineWidth -=
-							sprite->Animations[0].Frames[lm].OffsetX;
-						lineBack = false;
-					}
-					lineWidth += sprite->Animations[0].Frames[lm].Advance *
-						textAdvance;
-				}
-				lineBack = true;
-
-				x = basex - lineWidth * textAlign;
-				for (char *o = linestart, lm; o < wordstart - 1; o++) {
-					lm = _Text_GetLetter((Uint8)*o);
-					if (lineBack) {
-						x -= sprite->Animations[0].Frames[lm].OffsetX;
-						lineBack = false;
-					}
-					Graphics::DrawSprite(sprite,
-						0,
-						lm,
-						x,
-						y -
-							sprite->Animations[0].AnimationSpeed *
-								textBaseline,
-						false,
-						false,
-						1.0f,
-						1.0f,
-						0.0f);
-					x += sprite->Animations[0].Frames[lm].Advance * textAdvance;
-				}
-
-				if (lineNo == maxLines) {
-					return NULL_VAL;
-				}
-
-				lineNo++;
-
-				linestart = wordstart;
-				y += sprite->Animations[0].FrameToLoop * textAscent;
-				lineBack = true;
-			}
-
-			wordstart = i + 1;
-			word++;
-		}
-		if (!l) {
-			break;
-		}
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+		Graphics::DrawTextWrappedLegacy(sprite, text, x, y, &params);
 	}
-
-	float lineWidth = 0.0f;
-	for (char *o = linestart, l; *o; o++) {
-		l = _Text_GetLetter((Uint8)*o);
-		if (lineBack) {
-			lineWidth -= sprite->Animations[0].Frames[l].OffsetX;
-			lineBack = false;
-		}
-		lineWidth += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-	lineBack = true;
-
-	x = basex - lineWidth * textAlign;
-	for (char *o = linestart, l; *o; o++) {
-		l = _Text_GetLetter((Uint8)*o);
-		if (lineBack) {
-			x -= sprite->Animations[0].Frames[l].OffsetX;
-			lineBack = false;
-		}
-		Graphics::DrawSprite(sprite,
-			0,
-			l,
-			x,
-			y - sprite->Animations[0].AnimationSpeed * textBaseline,
-			false,
-			false,
-			1.0f,
-			1.0f,
-			0.0f);
-		x += sprite->Animations[0].Frames[l].Advance * textAdvance;
-	}
-
-	// FINISH:
 
 	return NULL_VAL;
 }
 /***
  * Draw.TextEllipsis
- * \desc
- * \return
+ * \desc Draws UTF-8 text using a font, but adds ellipsis if the text doesn't fit in <code>maxWidth</code>.
+ * \param font (Font): The Font to be used as text.
+ * \param text (String): Text to draw.
+ * \param x (Number): X position of where to draw the text.
+ * \param y (Number): Y position of where to draw the text.
+ * \param maxWidth (Number): Max width the text can draw in.
+ * \paramOpt maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(5);
 
-	ISprite* sprite = GET_ARG(0, GetSprite);
 	char* text = GET_ARG(1, GetString);
 	float x = GET_ARG(2, GetDecimal);
 	float y = GET_ARG(3, GetDecimal);
-	float maxwidth = GET_ARG(4, GetDecimal);
+	float maxWidth = GET_ARG(4, GetDecimal);
+	int maxLines = 0;
+	if (argCount > 5 && !IS_NULL(args[5])) {
+		maxLines = GET_ARG(5, GetInteger);
+	}
+	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
 
-	if (!sprite) {
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 7) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+		params.Descent = font->Descent;
+		params.Leading = font->Leading;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+
+		Graphics::DrawTextEllipsis(font, text, x, y, &params);
+
 		return NULL_VAL;
 	}
 
-	float elpisswidth = sprite->Animations[0].Frames['.'].Advance * 3;
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		params.MaxWidth = maxWidth;
+		params.MaxLines = maxLines;
+		Graphics::DrawTextEllipsisLegacy(sprite, text, x, y, &params);
+	}
 
-	int t;
-	size_t textlen = strlen(text);
-	float textwidth = 0.0f;
-	for (size_t i = 0; i < textlen; i++) {
-		t = (int)text[i];
-		textwidth += sprite->Animations[0].Frames[t].Advance;
-	}
-	// If smaller than or equal to maxwidth, just draw normally.
-	if (textwidth <= maxwidth) {
-		for (size_t i = 0; i < textlen; i++) {
-			t = (int)text[i];
-			Graphics::DrawSprite(sprite, 0, t, x, y, false, false, 1.0f, 1.0f, 0.0f);
-			x += sprite->Animations[0].Frames[t].Advance;
-		}
-	}
-	else {
-		for (size_t i = 0; i < textlen; i++) {
-			t = (int)text[i];
-			if (x + sprite->Animations[0].Frames[t].Advance + elpisswidth > maxwidth) {
-				Graphics::DrawSprite(
-					sprite, 0, '.', x, y, false, false, 1.0f, 1.0f, 0.0f);
-				x += sprite->Animations[0].Frames['.'].Advance;
-				Graphics::DrawSprite(
-					sprite, 0, '.', x, y, false, false, 1.0f, 1.0f, 0.0f);
-				x += sprite->Animations[0].Frames['.'].Advance;
-				Graphics::DrawSprite(
-					sprite, 0, '.', x, y, false, false, 1.0f, 1.0f, 0.0f);
-				x += sprite->Animations[0].Frames['.'].Advance;
-				break;
-			}
-			Graphics::DrawSprite(sprite, 0, t, x, y, false, false, 1.0f, 1.0f, 0.0f);
-			x += sprite->Animations[0].Frames[t].Advance;
-		}
-	}
-	// Graphics::DrawSprite(sprite, 0, t, x, y, false, false, 1.0f, 1.0f, 0.0f);
 	return NULL_VAL;
 }
+/***
+ * Draw.Glyph
+ * \desc Draws a glyph for a given code point.
+ * \param font (Font): The Font.
+ * \param codepoint (Integer): Code point to draw.
+ * \param x (Number): X position of where to draw the glyph.
+ * \param y (Number): Y position of where to draw the glyph.
+ * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \ns Draw
+ */
+VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(4);
 
+	Uint32 codepoint = GET_ARG(1, GetInteger);
+	float x = GET_ARG(2, GetDecimal);
+	float y = GET_ARG(3, GetDecimal);
+	float fontSize = GET_ARG_OPT(4, GetDecimal, 0.0f);
+
+	if (IS_FONT(args[0])) {
+		ObjFont* objFont = GET_ARG(0, GetFont);
+		Font* font = (Font*)objFont->FontPtr;
+
+		if (argCount < 5) {
+			fontSize = font->Size;
+		}
+
+		TextDrawParams params;
+		params.FontSize = fontSize;
+		params.Ascent = font->Ascent;
+
+		Graphics::DrawGlyph(font, codepoint, x, y, &params);
+
+		return NULL_VAL;
+	}
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	if (sprite) {
+		LegacyTextDrawParams params;
+		params.Align = textAlign;
+		params.Baseline = textBaseline;
+		params.Ascent = textAscent;
+		params.Advance = textAdvance;
+		Graphics::DrawGlyphLegacy(sprite, codepoint, x, y, &params);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Draw.TextArray
+ * \desc Draws a series of sprites based on a converted sprite string.
+ * \param sprite (Integer): The index of the loaded sprite to be used as text.
+ * \param animation (Integer): The animation index.
+ * \param x (Number): The X value to begin drawing.
+ * \param y (Number): The Y value to begin drawing.
+ * \param string (Array): The array containing frame indexes.
+ * \param startFrame (Integer): The index to begin drawing.
+ * \param endFrame (Integer): The index to end drawing.
+ * \param align (Integer): The text alignment.
+ * \param spacing (Integer): The space between drawn sprites.
+ * \paramOpt charOffsetsX (Array): The X offsets at which to draw per frame. Must also have charOffsetsY to be used.
+ * \paramOpt charOffsetsY (Array): The Y offsets at which to draw per frame.
+ * \ns Draw
+ */
+VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(9);
+	if (ScriptManager::Lock()) {
+		ISprite* sprite = GET_ARG(0, GetSprite);
+		int animation = GET_ARG(1, GetInteger);
+		float x = GET_ARG(2, GetDecimal);
+		float y = GET_ARG(3, GetDecimal);
+		ObjArray* string = GET_ARG(4, GetArray);
+		int startFrame = GET_ARG(5, GetInteger);
+		int endFrame = GET_ARG(6, GetInteger);
+		int align = GET_ARG(7, GetInteger);
+		int spacing = GET_ARG(8, GetInteger);
+		ObjArray* charOffsetsX = GET_ARG_OPT(9, GetArray, nullptr);
+		ObjArray* charOffsetsY = GET_ARG_OPT(10, GetArray, nullptr);
+
+		if (sprite && string && animation >= 0 && animation < (int)sprite->Animations.size()) {
+			startFrame = (int)Math::Clamp(startFrame, 0, (int)string->Values->size() - 1);
+
+			if (endFrame <= 0 || endFrame > (int)string->Values->size())
+				endFrame = (int)string->Values->size();
+
+			int charOffsetIndex = 0;
+			switch (align) {
+			case ALIGN_LEFT:
+				if (charOffsetsX && charOffsetsY
+					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
+					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+					for (; startFrame < endFrame; ++startFrame) {
+						VMValue val = (*string->Values)[startFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+							float xOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+								xOffset = AS_DECIMAL(xVal);
+							}
+							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							float yOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+								yOffset = AS_DECIMAL(yVal);
+							}
+							Graphics::DrawSprite(sprite, animation, curChar, x + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
+							x += spacing + frame.Width;
+							++charOffsetIndex;
+						}
+					}
+				}
+				else {
+					for (; startFrame < endFrame; ++startFrame) {
+						VMValue val = (*string->Values)[startFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
+							x += spacing + frame.Width;
+						}
+					}
+				}
+				break;
+
+			case ALIGN_CENTER:
+				--endFrame;
+				if (charOffsetsX && charOffsetsY
+					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
+					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+					charOffsetIndex = endFrame;
+					for (; endFrame >= startFrame; --endFrame) {
+						VMValue val = (*string->Values)[endFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+							float xOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+								xOffset = AS_DECIMAL(xVal);
+							}
+							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							float yOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+								yOffset = AS_DECIMAL(yVal);
+							}
+							Graphics::DrawSprite(sprite, animation, curChar, x - (frame.Width / 2) + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
+							x = (x - frame.Width) - spacing;
+							--charOffsetIndex;
+						}
+					}
+				}
+				else {
+					for (; endFrame >= startFrame; --endFrame) {
+						VMValue val = (*string->Values)[endFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							Graphics::DrawSprite(sprite, animation, curChar, x - frame.Width / 2, y, false, false, 1.0f, 1.0f, 0.0f);
+							x = (x - frame.Width) - spacing;
+						}
+					}
+				}
+				break;
+
+			case ALIGN_RIGHT:
+				int totalWidth = 0;
+				for (int pos = startFrame; pos < endFrame; ++pos) {
+					VMValue val = (*string->Values)[pos];
+					int curChar = 0;
+					if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						curChar = AS_INTEGER(val);
+					}
+					if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+						totalWidth += sprite->Animations[animation].Frames[curChar].Width + spacing;
+					}
+				}
+				x -= totalWidth;
+
+				if (charOffsetsX && charOffsetsY
+					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
+					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+					for (; startFrame < endFrame; ++startFrame) {
+						VMValue val = (*string->Values)[startFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+							float xOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+								xOffset = AS_DECIMAL(xVal);
+							}
+							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							float yOffset = 0.0f;
+							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+								yOffset = AS_DECIMAL(yVal);
+							}
+							Graphics::DrawSprite(sprite, animation, curChar, x + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
+							x += spacing + frame.Width;
+							++charOffsetIndex;
+						}
+					}
+				}
+				else {
+					for (; startFrame < endFrame; ++startFrame) {
+						VMValue val = (*string->Values)[startFrame];
+						int curChar = 0;
+						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+							curChar = AS_INTEGER(val);
+						}
+						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
+							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
+							Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
+							x += spacing + frame.Width;
+						}
+					}
+				}
+				break;
+			}
+		}
+
+		ScriptManager::Unlock();
+		return NULL_VAL;
+	}
+	return NULL_VAL;
+}
 /***
  * Draw.SetBlendColor
  * \desc Sets the color to be used for drawing and blending.
@@ -5553,7 +5741,7 @@ static void PrepareMatrix(Matrix4x4* output, ObjArray* input) {
  * \ns Draw3D
  */
 VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	IModel* model = GET_ARG(0, GetModel);
 	int animation = GET_ARG(1, GetInteger);
@@ -5561,16 +5749,20 @@ VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjArray* matrixModelArr = NULL;
 	Matrix4x4 matrixModel;
-	if (!IS_NULL(args[3])) {
-		matrixModelArr = GET_ARG(3, GetArray);
-		PrepareMatrix(&matrixModel, matrixModelArr);
+	if (argCount >= 4) {
+		if (!IS_NULL(args[3])) {
+			matrixModelArr = GET_ARG(3, GetArray);
+			PrepareMatrix(&matrixModel, matrixModelArr);
+		}
 	}
 
 	ObjArray* matrixNormalArr = NULL;
 	Matrix4x4 matrixNormal;
-	if (!IS_NULL(args[4])) {
-		matrixNormalArr = GET_ARG(4, GetArray);
-		PrepareMatrix(&matrixNormal, matrixNormalArr);
+	if (argCount >= 5) {
+		if (!IS_NULL(args[4])) {
+			matrixNormalArr = GET_ARG(4, GetArray);
+			PrepareMatrix(&matrixNormal, matrixNormalArr);
+		}
 	}
 
 	if (model) {
@@ -5593,23 +5785,27 @@ VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw3D
  */
 VMValue Draw3D_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
+	CHECK_AT_LEAST_ARGCOUNT(2);
 
 	IModel* model = GET_ARG(0, GetModel);
 	int armature = GET_ARG(1, GetInteger);
 
 	ObjArray* matrixModelArr = NULL;
 	Matrix4x4 matrixModel;
-	if (!IS_NULL(args[2])) {
-		matrixModelArr = GET_ARG(2, GetArray);
-		PrepareMatrix(&matrixModel, matrixModelArr);
+	if (argCount >= 3) {
+		if (!IS_NULL(args[2])) {
+			matrixModelArr = GET_ARG(2, GetArray);
+			PrepareMatrix(&matrixModel, matrixModelArr);
+		}
 	}
 
 	ObjArray* matrixNormalArr = NULL;
 	Matrix4x4 matrixNormal;
-	if (!IS_NULL(args[3])) {
-		matrixNormalArr = GET_ARG(3, GetArray);
-		PrepareMatrix(&matrixNormal, matrixNormalArr);
+	if (argCount >= 4) {
+		if (!IS_NULL(args[3])) {
+			matrixNormalArr = GET_ARG(3, GetArray);
+			PrepareMatrix(&matrixNormal, matrixNormalArr);
+		}
 	}
 
 	if (model) {
@@ -5825,7 +6021,7 @@ VMValue Draw3D_Quad(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw3D
  */
 VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(7);
+	CHECK_AT_LEAST_ARGCOUNT(8);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -5901,7 +6097,7 @@ VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw3D
  */
 VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(11);
+	CHECK_AT_LEAST_ARGCOUNT(12);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -6123,7 +6319,7 @@ VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw3D
  */
 VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(7);
+	CHECK_AT_LEAST_ARGCOUNT(10);
 
 	VertexAttribute data[3];
 
@@ -6251,7 +6447,7 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Draw3D
  */
 VMValue Draw3D_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(16);
+	CHECK_AT_LEAST_ARGCOUNT(17);
 
 	VertexAttribute data[4];
 
@@ -7363,9 +7559,35 @@ VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID
 	return INTEGER_VAL((InputManager::MouseReleased >> button) & 1);
 }
 /***
+ * Input.GetMouseMode
+ * \desc Gets the current mouse mode.
+ * \return Returns the current <linkto ref="MOUSEMODE_*">mouse mode</linkto>.
+ * \ns Input
+ */
+VMValue Input_GetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(InputManager::MouseMode);
+}
+/***
+ * Input.SetMouseMode
+ * \desc Sets the current mouse mode.
+ * \param mouseMode (Enum): The <linkto ref="MOUSEMODE_*">mouse mode</linkto> to set.
+ * \ns Input
+ */
+VMValue Input_SetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int mouseMode = GET_ARG(0, GetInteger);
+	if (mouseMode < 0 || mouseMode > MOUSEMODE_RELATIVE) {
+		OUT_OF_RANGE_ERROR("Mouse mode", mouseMode, 0, MOUSEMODE_RELATIVE);
+		return NULL_VAL;
+	}
+	InputManager::SetMouseMode(mouseMode);
+	return NULL_VAL;
+}
+/***
  * Input.IsKeyDown
  * \desc Gets whether the key is currently down.
- * \param keyID (Integer): Index of the key to check.
+ * \param keyID (Integer): The <linkto ref="Key_*">key ID</linkto> to check.
  * \return Returns whether the key is currently down.
  * \ns Input
  */
@@ -7378,7 +7600,7 @@ VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsKeyPressed
  * \desc Gets whether the key started pressing during the current frame.
- * \param mouseButtonID (Integer): Index of the key to check.
+ * \param keyID (Enum): The <linkto ref="Key_*">key ID</linkto> to check.
  * \return Returns whether the key started pressing during the current frame.
  * \ns Input
  */
@@ -7391,7 +7613,7 @@ VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsKeyReleased
  * \desc Gets whether the key released during the current frame.
- * \param mouseButtonID (Integer): Index of the key to check.
+ * \param keyID (Enum): The <linkto ref="Key_*">key ID</linkto> to check.
  * \return Returns whether the key released during the current frame.
  * \ns Input
  */
@@ -7404,7 +7626,7 @@ VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.GetKeyName
  * \desc Gets the name of the key.
- * \param keyID (Integer): Index of the key to check.
+ * \param keyID (Enum): The <linkto ref="Key_*">key ID</linkto> to check.
  * \return Returns a String value.
  * \ns Input
  */
@@ -7444,7 +7666,7 @@ VMValue Input_GetAxisName(int argCount, VMValue* args, Uint32 threadID) {
  * Input.ParseKeyName
  * \desc Parses a key name into its ID, if possible.
  * \param keyName (String): The key name to parse.
- * \return Returns the parsed key ID, or <code>null</code> if it could not be parsed.
+ * \return Returns the parsed <linkto ref="Key_*">key ID</linkto>, or <code>null</code> if it could not be parsed.
  * \ns Input
  */
 VMValue Input_ParseKeyName(int argCount, VMValue* args, Uint32 threadID) {
@@ -7617,6 +7839,78 @@ VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
 	}
 }
 /***
+ * Input.IsActionHeldByAny
+ * \desc Gets whether the input action is currently held by any player.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* actionName = GET_ARG(0, GetString);
+	int actionID = InputManager::GetActionID(actionName);
+	if (actionID == -1) {
+		THROW_ERROR("Invalid input action \"%s\"!", actionName);
+		return NULL_VAL;
+	}
+	if (argCount >= 2) {
+		int inputDevice = GET_ARG(1, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsActionHeldByAny(actionID, inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsActionHeldByAny(actionID));
+}
+/***
+ * Input.IsActionPressedByAny
+ * \desc Gets whether the input action is currently pressed by any player.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionPressedByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* actionName = GET_ARG(0, GetString);
+	int actionID = InputManager::GetActionID(actionName);
+	if (actionID == -1) {
+		THROW_ERROR("Invalid input action \"%s\"!", actionName);
+		return NULL_VAL;
+	}
+	if (argCount >= 2) {
+		int inputDevice = GET_ARG(1, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsActionPressedByAny(actionID, inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsActionPressedByAny(actionID));
+}
+/***
+ * Input.IsActionReleasedByAny
+ * \desc Gets whether the input action was released by any player.
+ * \param actionName (String): Name of the action to check.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* actionName = GET_ARG(0, GetString);
+	int actionID = InputManager::GetActionID(actionName);
+	if (actionID == -1) {
+		THROW_ERROR("Invalid input action \"%s\"!", actionName);
+		return NULL_VAL;
+	}
+	if (argCount >= 2) {
+		int inputDevice = GET_ARG(1, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsActionReleasedByAny(actionID, inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsActionReleasedByAny(actionID));
+}
+/***
  * Input.IsAnyActionHeld
  * \desc Gets whether any input action is currently held for the specified player.
  * \param playerID (Integer): Index of the player to check.
@@ -7678,6 +7972,57 @@ VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) 
 	else {
 		return INTEGER_VAL(!!InputManager::IsAnyActionReleased(playerID));
 	}
+}
+/***
+ * Input.IsAnyActionHeldByAny
+ * \desc Gets whether any input action is currently held by any player.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(0);
+	if (argCount >= 1) {
+		int inputDevice = GET_ARG(0, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsAnyActionHeldByAny(inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsAnyActionHeldByAny());
+}
+/***
+ * Input.IsAnyActionPressedByAny
+ * \desc Gets whether any input action is currently pressed by any player.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionPressedByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(0);
+	if (argCount >= 1) {
+		int inputDevice = GET_ARG(0, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsAnyActionPressedByAny(inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsAnyActionPressedByAny());
+}
+/***
+ * Input.IsAnyActionReleasedByAny
+ * \desc Gets whether any input action was released by any player.
+ * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
+ * \return Returns a Boolean value.
+ * \ns Input
+ */
+VMValue Input_IsAnyActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(0);
+	if (argCount >= 1) {
+		int inputDevice = GET_ARG(0, GetInteger);
+		CHECK_INPUT_DEVICE(inputDevice);
+		return INTEGER_VAL(!!InputManager::IsAnyActionReleasedByAny(inputDevice));
+	}
+	else
+		return INTEGER_VAL(!!InputManager::IsAnyActionReleasedByAny());
 }
 /***
  * Input.GetAnalogActionInput
@@ -8007,18 +8352,21 @@ static VMValue SetActionBindFromArg(int playerID,
 		break;
 	}
 
-	if (bind != nullptr) {
-		if (bindIndex < 0) {
-			int idx = InputManager::AddPlayerInputBind(
-				playerID, actionID, bind, setDefault);
-			if (idx != -1) {
-				return INTEGER_VAL(idx);
-			}
+	if (bind == nullptr) {
+		return NULL_VAL;
+	}
+
+	if (bindIndex < 0) {
+		int idx = InputManager::AddPlayerInputBind(playerID, actionID, bind, setDefault);
+		if (idx == -1) {
+			delete bind;
+			return NULL_VAL;
 		}
-		else {
-			InputManager::SetPlayerInputBind(
-				playerID, actionID, bind, bindIndex, setDefault);
-		}
+
+		return INTEGER_VAL(idx);
+	}
+	else if (!InputManager::SetPlayerInputBind(playerID, actionID, bind, bindIndex, setDefault)) {
+		delete bind;
 	}
 
 	return NULL_VAL;
@@ -8693,6 +9041,17 @@ VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID
 	ScriptEntity::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
 }
+/***
+ * Instance.SetUseRenderRegions
+ * \desc Sets whether entities will use Render Regions when rendering. If false, entities will use their Update Regions instead.
+ * \param useRenderRegions (Boolean): Whether render regions will be used.
+ * \ns Instance
+ */
+VMValue Instance_SetUseRenderRegions(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	Scene::UseRenderRegions = !!GET_ARG(0, GetInteger);
+	return NULL_VAL;
+}
 // TODO: Finish these
 /***
  * Instance.Copy
@@ -9017,8 +9376,10 @@ static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t 
  */
 VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
+	ObjString* string = GET_ARG(0, GetVMString);
+	if (!string) return NULL_VAL;
+
 	if (ScriptManager::Lock()) {
-		ObjString* string = AS_STRING(args[0]);
 		ObjMap* map = NewMap();
 
 		jsmn_parser p;
@@ -9031,16 +9392,17 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 
 		jsmn_init(&p);
 		while (true) {
-			int r = jsmn_parse(
-				&p, string->Chars, string->Length, tok, (Uint32)tokcount);
+			int r = jsmn_parse(&p, string->Chars, string->Length, tok, (Uint32)tokcount);
 			if (r < 0) {
 				if (r == JSMN_ERROR_NOMEM) {
 					tokcount = tokcount * 2;
-					tok = (jsmntok_t*)realloc(tok, sizeof(*tok) * tokcount);
-					if (tok == NULL) {
+					jsmntok_t* tempTok = (jsmntok_t*)realloc(tok, sizeof(*tok) * tokcount);
+					if (tempTok == NULL) {
+						free(tok);
 						ScriptManager::Unlock();
 						return NULL_VAL;
 					}
+					tok = tempTok;
 					continue;
 				}
 			}
@@ -9651,7 +10013,7 @@ VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
   * \ns RSDK.Math
   */
 VMValue Math_ATan2(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_ARGCOUNT(2);
 	return INTEGER_VAL((int)Math::ArcTanLookup((int)(GET_ARG(0, GetDecimal) * 65536.0f),
 		(int)(GET_ARG(1, GetDecimal) * 65536.0f)));
 }
@@ -10743,7 +11105,7 @@ VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Music
  */
 VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_ARGCOUNT(2);
 	ISound* audio = GET_ARG(0, GetMusic);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
@@ -11058,7 +11420,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 					GIF* gif;
 
 					Graphics::UsePalettes = false;
-					gif = GIF::Load(filename);
+					gif = GIF::Load(memoryReader);
 					Graphics::UsePalettes = loadPalette;
 
 					if (gif) {
@@ -11090,7 +11452,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 					PNG* png;
 
 					Graphics::UsePalettes = true;
-					png = PNG::Load(filename);
+					png = PNG::Load(memoryReader);
 					Graphics::UsePalettes = loadPalette;
 
 					if (png) {
@@ -11546,25 +11908,6 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(result);
 }
 /***
- * Resources.LoadFont
- * \desc Loads a Font resource, returning its Font index.
- * \param filename (String):
- * \param pixelSize (Number):
- * \param unloadPolicy (Integer):
- * \return
- * \ns Resources
- */
-VMValue Resources_LoadFont(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	char* filename = GET_ARG(0, GetString);
-	int pixel_sz = (int)GET_ARG(1, GetDecimal);
-	int unloadPolicy = GET_ARG(2, GetInteger);
-
-	int result = Scene::LoadFontResource(filename, pixel_sz, unloadPolicy);
-
-	return INTEGER_VAL(result);
-}
-/***
  * Resources.LoadModel
  * \desc Loads Model resource, returning its Model index.
  * \param filename (String): Filename of the resource.
@@ -11852,6 +12195,19 @@ VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(-1);
 }
 /***
+ * Scene.GetLayerName
+ * \desc Gets the name of the specified layer.
+ * \param layerIndex (Integer): Index of layer.
+ * \return Returns a String value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerName(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return ReturnString(Scene::Layers[index].Name);
+}
+/***
  * Scene.GetLayerVisible
  * \desc Gets the visibility of the specified layer.
  * \param layerIndex (Integer): Index of layer.
@@ -12010,16 +12366,6 @@ VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::SceneType);
-}
-/***
- * Scene.GetFilter
- * \desc Gets the filter of the active scene.
- * \return Returns an Integer value.
- * \ns Scene
- */
-VMValue Scene_GetFilter(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Scene::Filter);
 }
 /***
  * Scene.GetWidth
@@ -12354,11 +12700,13 @@ VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
-	if (!Scene::PriorityLists) {
-		return INTEGER_VAL(0);
+	int drawGroup = GET_ARG(0, GetInteger);
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
 	}
-	return INTEGER_VAL(!!Scene::PriorityLists[drawg].EntityDepthSortingEnabled);
+	DrawGroupList* drawGroupList = Scene::GetDrawGroup(drawGroup);
+	return INTEGER_VAL(!!drawGroupList->EntityDepthSortingEnabled);
 }
 /***
  * Scene.GetCurrentFolder
@@ -13118,9 +13466,14 @@ VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
-	int drawg = GET_ARG(1, GetInteger);
+	int drawGroup = GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].DrawGroup = drawg % Scene::PriorityPerLayer;
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
+	}
+	Scene::GetDrawGroup(drawGroup); // In case it doesn't exist already
+	Scene::Layers[index].DrawGroup = drawGroup;
 	return NULL_VAL;
 }
 /***
@@ -13202,7 +13555,7 @@ VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * Scene.SetDrawGroupCount
- * \desc Sets the amount of draw groups in the active scene.
+ * \desc Sets the amount of draw groups in the active scene. (Deprecated)
  * \param count (Integer): Draw group count.
  * \ns Scene
  */
@@ -13211,6 +13564,11 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
 	int count = GET_ARG(0, GetInteger);
 	if (count < 1) {
 		THROW_ERROR("Draw group count cannot be lower than 1.");
+		return NULL_VAL;
+	}
+	else if (count >= MAX_PRIORITY_PER_LAYER) {
+		THROW_ERROR(
+			"Draw group count cannot be higher than %d.", MAX_PRIORITY_PER_LAYER - 1);
 		return NULL_VAL;
 	}
 	Scene::SetPriorityPerLayer(count);
@@ -13225,15 +13583,17 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	int drawg = GET_ARG(0, GetInteger) % Scene::PriorityPerLayer;
+	int drawGroup = GET_ARG(0, GetInteger);
 	bool useEntityDepth = !!GET_ARG(1, GetInteger);
-	if (Scene::PriorityLists) {
-		DrawGroupList* drawGroupList = &Scene::PriorityLists[drawg];
-		if (!drawGroupList->EntityDepthSortingEnabled && useEntityDepth) {
-			drawGroupList->NeedsSorting = true;
-		}
-		drawGroupList->EntityDepthSortingEnabled = useEntityDepth;
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
+		OUT_OF_RANGE_ERROR("Draw group", drawGroup, 0, MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
 	}
+	DrawGroupList* drawGroupList = Scene::GetDrawGroup(drawGroup);
+	if (!drawGroupList->EntityDepthSortingEnabled && useEntityDepth) {
+		drawGroupList->NeedsSorting = true;
+	}
+	drawGroupList->EntityDepthSortingEnabled = useEntityDepth;
 	return NULL_VAL;
 }
 /***
@@ -15273,7 +15633,7 @@ VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sound
  */
 VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_ARGCOUNT(2);
 	ISound* audio = GET_ARG(0, GetSound);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
@@ -15550,37 +15910,159 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sprite.GetHitbox
- * \desc Gets the hitbox of an animation and frame of a sprite.
- * \param sprite (Integer): The sprite index to check.
- * \param animationID (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \paramOpt hitboxID (Integer): The hitbox index of the animation to check. Defaults to <code>0</code>.
+ * \desc Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.
+ * \param instance (Instance):An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).
+ * \param sprite (Integer): The sprite index to check (if an entity is not provided).
+ * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
+ * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
+ * \param hitboxID (Integer): The index number of the hitbox.
+ * \return Returns a reference value to a hitbox array.
  * \ns Sprite
  */
 VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animationID = GET_ARG(1, GetInteger);
-	int frameID = GET_ARG(2, GetInteger);
-	int hitboxID = GET_ARG_OPT(3, GetInteger, 0);
+	CHECK_AT_LEAST_ARGCOUNT(2);
+	ISprite* sprite;
+	int animationID, frameID, hitboxID;
 
-	CHECK_ANIMATION_INDEX(animationID);
-	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+	if (argCount == 2 && IS_ENTITY(args[0])) {
+		ObjEntity* ent = GET_ARG(0, GetEntity);
+		Entity* entity = (Entity*)ent->EntityPtr;
+		hitboxID = GET_ARG(1, GetInteger);
 
-	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
-
-	if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-		THROW_ERROR("Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
-		return NULL_VAL;
+		sprite = GetSpriteIndex(entity->Sprite, threadID);
+		animationID = entity->CurrentAnimation;
+		frameID = entity->CurrentFrame;
+	}
+	else {
+		CHECK_ARGCOUNT(4);
+		sprite = GET_ARG(0, GetSprite);
+		animationID = GET_ARG(1, GetInteger);
+		frameID = GET_ARG(2, GetInteger);
+		hitboxID = GET_ARG(3, GetInteger);
 	}
 
-	CollisionBox box = frame.Boxes[hitboxID];
-	ObjArray* hitbox = NewArray();
-	hitbox->Values->push_back(INTEGER_VAL(box.Left));
-	hitbox->Values->push_back(INTEGER_VAL(box.Top));
-	hitbox->Values->push_back(INTEGER_VAL(box.Right));
-	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
-	return OBJECT_VAL(hitbox);
+	ObjArray* array = NewArray();
+	for (int i = 0; i < 4; i++)
+		array->Values->push_back(INTEGER_VAL(0));
+
+	if (sprite && animationID >= 0 && frameID >= 0) {
+		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+			return OBJECT_VAL(array);
+		}
+
+		CollisionBox box = frame.Boxes[hitboxID];
+		ObjArray* hitbox = NewArray();
+		hitbox->Values->push_back(INTEGER_VAL(box.Left));
+		hitbox->Values->push_back(INTEGER_VAL(box.Top));
+		hitbox->Values->push_back(INTEGER_VAL(box.Right));
+		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
+		return OBJECT_VAL(hitbox);
+	}
+	else {
+		return OBJECT_VAL(array);
+	}
+}
+/***
+ * Sprite.GetTextArray
+ * \desc Converts a string to an array of sprite indexes by comparing codepoints to a frame's ID.
+ * \param sprite (Integer): The sprite index.
+ * \param animation (Integer): The animation index containing frames with codepoint ID values.
+ * \param text (String): The text to convert.
+ * \return Returns an array of sprite indexes per character in the text.
+ * \ns Sprite
+ */
+VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	char* string = GET_ARG(2, GetString);
+
+	ObjArray* textArray = NewArray();
+
+	if (!sprite || !string)
+		return OBJECT_VAL(textArray);
+
+	if (animation >= 0 && animation < (int)sprite->Animations.size()) {
+		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
+
+		for (Uint32 codepoint : codepoints) {
+			if (codepoint == (Uint32)-1) {
+				textArray->Values->push_back(INTEGER_VAL(-1));
+				continue;
+			}
+
+			bool found = false;
+			for (int f = 0; f < (int)sprite->Animations[animation].Frames.size(); f++) {
+				if (sprite->Animations[animation].Frames[f].Advance == (int)codepoint) {
+					textArray->Values->push_back(INTEGER_VAL(f));
+					found = true;
+					break;
+				}
+			}
+
+			if (!found)
+				textArray->Values->push_back(INTEGER_VAL(-1));
+		}
+	}
+
+	return OBJECT_VAL(textArray);
+}
+/***
+ * Sprite.GetTextWidth
+ * \desc Gets the width (in pixels) of a converted sprite string.
+ * \param sprite (Integer): The sprite index.
+ * \param animation (Integer): The animation index.
+ * \param text (Array): The array containing frame indexes.
+ * \param startIndex (Integer): Where to start checking the width.
+ * \param spacing (Integer): The spacing (in pixels) between frames.
+ * \ns Sprite
+ */
+VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(6);
+
+	if (ScriptManager::Lock()) {
+		ISprite* sprite = GET_ARG(0, GetSprite);
+		int animation = GET_ARG(1, GetInteger);
+		ObjArray* text = GET_ARG(2, GetArray);
+		int startIndex = GET_ARG(3, GetInteger);
+		int length = GET_ARG(4, GetInteger);
+		int spacing = GET_ARG(5, GetInteger);
+
+		if (!sprite || !text->Values) {
+			ScriptManager::Unlock();
+			return INTEGER_VAL(0);
+		}
+
+		if (animation >= 0 && animation <= (int)sprite->Animations.size()) {
+			Animation anim = sprite->Animations[animation];
+
+			startIndex = (int)Math::Clamp(startIndex, 0, (int)text->Values->size() - 1);
+
+			if (length <= 0 || length > (int)text->Values->size())
+				length = (int)text->Values->size();
+
+			int w = 0;
+			for (int c = startIndex; c < length; c++) {
+				int charFrame = AS_INTEGER(Value::CastAsInteger((*text->Values)[c]));
+				if (charFrame < anim.Frames.size()) {
+					w += anim.Frames[charFrame].Width;
+					if (c + 1 >= length) {
+						ScriptManager::Unlock();
+						return INTEGER_VAL(w);
+					}
+
+					w += spacing;
+				}
+			}
+
+			ScriptManager::Unlock();
+			return INTEGER_VAL(w);
+		}
+
+	}
+	return INTEGER_VAL(0);
 }
 /***
  * Sprite.MakePalettized
@@ -15661,7 +16143,8 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
+		ObjStream* stream =
+			StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
 		ScriptManager::Unlock();
 		return OBJECT_VAL(stream);
 	}
@@ -16260,17 +16743,33 @@ VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.CharAt
- * \desc Gets the ASCII code of the character at the specified index.
- * \param string (String): The input string.
- * \param index (Integer): The index of the character to get.
- * \return Returns the character as an Integer.
+ * \desc Gets the 8-bit value of the character at the specified index.
+ * \param string (String): The string containing the character.
+ * \param index (Integer): The character index to check.
+ * \return Returns the value as an Integer.
  * \ns String
  */
 VMValue String_CharAt(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
+	CHECK_AT_LEAST_ARGCOUNT(2);
 	char* string = GET_ARG(0, GetString);
 	int n = GET_ARG(1, GetInteger);
+	
 	return INTEGER_VAL((Uint8)string[n]);
+}
+/***
+ * String.CodepointAt
+ * \desc Gets the codepoint value of the character at the specified index.
+ * \param string (String): The string containing the character.
+ * \param index (Integer): The character index to check.
+ * \return Returns the value as an Integer.
+ * \ns String
+ */
+VMValue String_CodepointAt(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(2);
+	char* string = GET_ARG(0, GetString);
+	int n = GET_ARG(1, GetInteger);
+
+	return INTEGER_VAL(StringUtils::DecodeUTF8Char(string, n));
 }
 /***
  * String.Length
@@ -16471,6 +16970,29 @@ VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
 	return DECIMAL_VAL((float)strtod(string, NULL));
+}
+/***
+ * String.GetCodepoints
+ * \desc Gets a list of UCS codepoints from UTF-8 text.
+ * \param string (String): The UTF-8 string.
+ * \return Returns an Array of Integer values.
+ * \ns String
+ */
+VMValue String_GetCodepoints(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	char* string = GET_ARG(0, GetString);
+
+	ObjArray* array = NewArray();
+
+	if (string) {
+		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
+
+		for (size_t i = 0; i < codepoints.size(); i++) {
+			array->Values->push_back(INTEGER_VAL((int)codepoints[i]));
+		}
+	}
+
+	return OBJECT_VAL(array);
 }
 // #endregion
 
@@ -18034,7 +18556,7 @@ VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	int window_h = (int)GET_ARG(1, GetDecimal);
 	Application::WindowWidth = window_w;
 	Application::WindowHeight = window_h;
-	Application::SetWindowSize(window_w, window_h);
+	Application::SetWindowSize(window_w * Application::WindowScale, window_h * Application::WindowScale);
 	return NULL_VAL;
 }
 /***
@@ -18049,6 +18571,18 @@ VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Window.SetScale
+ * \desc Sets the scale of the active window.
+ * \param scale (Integer): Window scale.
+ * \ns Window
+ */
+VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int scale = GET_ARG(0, GetInteger);
+	Application::SetWindowScale(scale);
+	return NULL_VAL;
+}
+/***
  * Window.SetBorderless
  * \desc Sets the bordered state of the active window.
  * \param isBorderless (Boolean): Whether or not the window should be borderless.
@@ -18056,7 +18590,7 @@ VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Window_SetBorderless(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	Application::SetWindowBorderless(GET_ARG(0, GetInteger));
+	Application::SetWindowBorderless(!!GET_ARG(0, GetInteger));
 	return NULL_VAL;
 }
 /***
@@ -18114,7 +18648,7 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
 	CHECK_ARGCOUNT(1);
 
 	if (IS_NULL(args[0])) {
-		Graphics::PostProcessShader = nullptr;
+		Graphics::SetPostProcessShader(nullptr);
 		return NULL_VAL;
 	}
 
@@ -18128,7 +18662,7 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
 	try {
 		shader->Validate();
 
-		Graphics::PostProcessShader = shader;
+		Graphics::SetPostProcessShader(shader);
 	} catch (const std::runtime_error& error) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
 	}
@@ -18168,6 +18702,16 @@ VMValue Window_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Window_GetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::GetWindowFullscreen());
+}
+/***
+ * Window.GetScale
+ * \desc Gets the scale of the active window.
+ * \return Returns the scale of the window.
+ * \ns Window
+ */
+VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::WindowScale);
 }
 /***
  * Window.IsResizeable
@@ -18278,9 +18822,11 @@ static VMValue XML_FillMap(XMLNode* parent) {
  */
 VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
+	ObjString* string = GET_ARG(0, GetVMString);
+	if (!string) return NULL_VAL;
+
 	VMValue mapValue = NULL_VAL;
 	if (ScriptManager::Lock()) {
-		ObjString* string = AS_STRING(args[0]);
 		char* text = StringUtils::Duplicate(string->Chars);
 
 		MemoryStream* stream = MemoryStream::New(text, strlen(text));
@@ -18340,6 +18886,11 @@ void StandardLibrary::Link() {
 	String_CaseMapBind(L'ç', L'Ç');
 	String_CaseMapBind(L'ç', L'Ç');
 	String_CaseMapBind(L'ç', L'Ç');
+
+	textAlign = 0.0f;
+	textBaseline = 0.0f;
+	textAscent = 1.25f;
+	textAdvance = 1.0f;
 
 #define INIT_CLASS(className) \
 	klass = NewClass(#className); \
@@ -18409,6 +18960,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetTargetFrameRate);
 	DEF_NATIVE(Application, UseFixedTimestep);
 	DEF_NATIVE(Application, GetFPS);
+	DEF_NATIVE(Application, ShowFPSCounter);
 	DEF_NATIVE(Application, GetKeyBind);
 	DEF_NATIVE(Application, SetKeyBind);
 	DEF_NATIVE(Application, GetGameTitle);
@@ -18421,6 +18973,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, SetDefaultFont);
 	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
 	/***
@@ -18428,6 +18981,11 @@ void StandardLibrary::Link() {
     * \desc Fullscreen keybind.
     */
 	DEF_ENUM_CLASS(KeyBind, Fullscreen);
+	/***
+    * \enum KeyBind_ToggleFPSCounter
+    * \desc FPS counter toggle keybind.
+    */
+	DEF_ENUM_CLASS(KeyBind, ToggleFPSCounter);
 	/***
     * \enum KeyBind_DevRestartApp
     * \desc App restart keybind. (dev)
@@ -18955,7 +19513,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, Texture);
 	DEF_NATIVE(Draw, TextureSized);
 	DEF_NATIVE(Draw, TexturePart);
-	DEF_NATIVE(Draw, SetFont);
 	DEF_NATIVE(Draw, SetTextAlign);
 	DEF_NATIVE(Draw, SetTextBaseline);
 	DEF_NATIVE(Draw, SetTextAdvance);
@@ -18965,6 +19522,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Draw, Text);
 	DEF_NATIVE(Draw, TextWrapped);
 	DEF_NATIVE(Draw, TextEllipsis);
+	DEF_NATIVE(Draw, Glyph);
+	DEF_NATIVE(Draw, TextArray);
 	DEF_NATIVE(Draw, SetBlendColor);
 	DEF_NATIVE(Draw, SetTextureBlend);
 	DEF_NATIVE(Draw, SetBlendMode);
@@ -19266,6 +19825,22 @@ void StandardLibrary::Link() {
 	DEF_ENUM(StencilOp_DecrWrap);
 
 	/***
+	* \enum ALIGN_LEFT
+	* \desc Left alignment for text drawing.
+	*/
+	DEF_ENUM(ALIGN_LEFT);
+	/***
+	* \enum ALIGN_CENTER
+	* \desc Center alignment for text drawing.
+	*/
+	DEF_ENUM(ALIGN_CENTER);
+	/***
+	* \enum ALIGN_RIGHT
+	* \desc Right alignment for text drawing.
+	*/
+	DEF_ENUM(ALIGN_RIGHT);
+
+	/***
     * \enum BlendFactor_ZERO
     * \desc Blend factor: (0, 0, 0, 0)
     */
@@ -19315,6 +19890,7 @@ void StandardLibrary::Link() {
     * \desc Blend factor: (1-Ad, 1-Ad, 1-Ad, 1-Ad)
     */
 	DEF_ENUM(BlendFactor_INV_DST_ALPHA);
+
 	/***
 	* \enum ROTSTYLE_NONE
 	* \desc Does not rotate the sprite in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
@@ -19483,6 +20059,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Input, IsMouseButtonDown);
 	DEF_NATIVE(Input, IsMouseButtonPressed);
 	DEF_NATIVE(Input, IsMouseButtonReleased);
+	DEF_NATIVE(Input, GetMouseMode);
+	DEF_NATIVE(Input, SetMouseMode);
 	DEF_NATIVE(Input, IsKeyDown);
 	DEF_NATIVE(Input, IsKeyPressed);
 	DEF_NATIVE(Input, IsKeyReleased);
@@ -19497,9 +20075,15 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Input, IsActionHeld);
 	DEF_NATIVE(Input, IsActionPressed);
 	DEF_NATIVE(Input, IsActionReleased);
+	DEF_NATIVE(Input, IsActionHeldByAny);
+	DEF_NATIVE(Input, IsActionPressedByAny);
+	DEF_NATIVE(Input, IsActionReleasedByAny);
 	DEF_NATIVE(Input, IsAnyActionHeld);
 	DEF_NATIVE(Input, IsAnyActionPressed);
 	DEF_NATIVE(Input, IsAnyActionReleased);
+	DEF_NATIVE(Input, IsAnyActionHeldByAny);
+	DEF_NATIVE(Input, IsAnyActionPressedByAny);
+	DEF_NATIVE(Input, IsAnyActionReleasedByAny);
 	DEF_NATIVE(Input, GetAnalogActionInput);
 	DEF_NATIVE(Input, GetActionBind);
 	DEF_NATIVE(Input, SetActionBind);
@@ -19568,6 +20152,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Instance, GetNextInstance);
 	DEF_NATIVE(Instance, GetBySlotID);
 	DEF_NATIVE(Instance, DisableAutoAnimate);
+	DEF_NATIVE(Instance, SetUseRenderRegions);
 	DEF_NATIVE(Instance, Copy);
 	DEF_NATIVE(Instance, ChangeClass);
 
@@ -19766,7 +20351,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Resources, LoadSprite);
 	DEF_NATIVE(Resources, LoadDynamicSprite);
 	DEF_NATIVE(Resources, LoadImage);
-	DEF_NATIVE(Resources, LoadFont);
 	DEF_NATIVE(Resources, LoadModel);
 	DEF_NATIVE(Resources, LoadMusic);
 	DEF_NATIVE(Resources, LoadSound);
@@ -19798,6 +20382,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, GetProperty);
 	DEF_NATIVE(Scene, GetLayerCount);
 	DEF_NATIVE(Scene, GetLayerIndex);
+	DEF_NATIVE(Scene, GetLayerName);
 	DEF_NATIVE(Scene, GetLayerVisible);
 	DEF_NATIVE(Scene, GetLayerOpacity);
 	DEF_NATIVE(Scene, GetLayerShader);
@@ -19810,7 +20395,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Scene, LayerPropertyExists);
 	DEF_NATIVE(Scene, GetName);
 	DEF_NATIVE(Scene, GetType);
-	DEF_NATIVE(Scene, GetFilter);
 	DEF_NATIVE(Scene, GetWidth);
 	DEF_NATIVE(Scene, GetHeight);
 	DEF_NATIVE(Scene, GetLayerWidth);
@@ -20180,6 +20764,8 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sprite, GetFrameOffsetX);
 	DEF_NATIVE(Sprite, GetFrameOffsetY);
 	DEF_NATIVE(Sprite, GetHitbox);
+	DEF_NATIVE(Sprite, GetTextArray);
+	DEF_NATIVE(Sprite, GetTextWidth);
 	DEF_NATIVE(Sprite, MakePalettized);
 	DEF_NATIVE(Sprite, MakeNonPalettized);
 	// #endregion
@@ -20243,6 +20829,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(String, Format);
 	DEF_NATIVE(String, Split);
 	DEF_NATIVE(String, CharAt);
+	DEF_NATIVE(String, CodepointAt);
 	DEF_NATIVE(String, Length);
 	DEF_NATIVE(String, Compare);
 	DEF_NATIVE(String, IndexOf);
@@ -20253,6 +20840,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(String, LastIndexOf);
 	DEF_NATIVE(String, ParseInteger);
 	DEF_NATIVE(String, ParseDecimal);
+	DEF_NATIVE(String, GetCodepoints);
 	// #endregion
 
 	// #region Texture
@@ -20398,6 +20986,7 @@ void StandardLibrary::Link() {
 	INIT_CLASS(Window);
 	DEF_NATIVE(Window, SetSize);
 	DEF_NATIVE(Window, SetFullscreen);
+	DEF_NATIVE(Window, SetScale);
 	DEF_NATIVE(Window, SetBorderless);
 	DEF_NATIVE(Window, SetVSync);
 	DEF_NATIVE(Window, SetPosition);
@@ -20407,6 +20996,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Window, GetWidth);
 	DEF_NATIVE(Window, GetHeight);
 	DEF_NATIVE(Window, GetFullscreen);
+	DEF_NATIVE(Window, GetScale);
 	DEF_NATIVE(Window, IsResizeable);
 	// #endregion
 
@@ -20620,6 +21210,12 @@ void StandardLibrary::Link() {
     */
 	DEF_LINK_DECIMAL("DeltaTime", &Application::ActualDeltaTime);
 	/***
+	* \global Scene_Filter
+	* \type Integer
+	* \desc The current scene filter.
+	*/
+	DEF_LINK_INT("Scene_Filter", &Scene::Filter);
+	/***
     * \global Scene_TimeEnabled
     * \type Integer
     * \desc Whether the scene timer is enabled or not.
@@ -20673,6 +21269,12 @@ void StandardLibrary::Link() {
     * \desc The max amount of scene views.
     */
 	DEF_ENUM(MAX_SCENE_VIEWS);
+	/***
+    * \constant MAX_DRAW_GROUPS
+    * \type Integer
+    * \desc The max amount of draw groups.
+    */
+	DEF_CONST_INT("MAX_DRAW_GROUPS", MAX_PRIORITY_PER_LAYER);
 
 	/***
     * \constant Math_PI
@@ -20712,6 +21314,17 @@ void StandardLibrary::Link() {
     * \desc The max amount of palettes.
     */
 	DEF_ENUM(MAX_PALETTE_COUNT);
+
+	/***
+    * \enum MOUSEMODE_DEFAULT
+    * \desc "Absolute" mouse mode. The cursor is visible by default, and not constrained to the window.
+    */
+	DEF_ENUM(MOUSEMODE_DEFAULT);
+	/***
+    * \enum MOUSEMODE_RELATIVE
+    * \desc "Relative" mouse mode. The cursor is invisible, and constrained to the window.
+    */
+	DEF_ENUM(MOUSEMODE_RELATIVE);
 
 	/***
     * \constant KeyMod_SHIFT

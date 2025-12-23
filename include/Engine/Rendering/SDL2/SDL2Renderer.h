@@ -33,7 +33,7 @@ public:
 		int pitchV);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
-	static void SetRenderTarget(Texture* texture);
+	static bool SetRenderTarget(Texture* texture);
 	static void CopyScreen(void* pixels, int width, int height);
 	static void UpdateWindowSize(int width, int height);
 	static void UpdateViewport();

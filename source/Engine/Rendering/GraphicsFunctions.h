@@ -24,6 +24,8 @@ struct GraphicsFunctions {
 		int pitchU,
 		void* pixelsV,
 		int pitchV);
+	void (*SetTextureMinFilter)(Texture* texture, int filterMode);
+	void (*SetTextureMagFilter)(Texture* texture, int filterMode);
 	int (*SetTexturePalette)(Texture* texture, void* palette, unsigned numPaletteColors);
 	void (*UnlockTexture)(Texture* texture);
 	void (*DisposeTexture)(Texture* texture);
@@ -49,7 +51,7 @@ struct GraphicsFunctions {
 
 	void (*Clear)();
 	void (*Present)();
-	void (*SetRenderTarget)(Texture* texture);
+	bool (*SetRenderTarget)(Texture* texture);
 	void (*ReadFramebuffer)(void* pixels, int width, int height);
 	void (*UpdateWindowSize)(int width, int height);
 
@@ -143,7 +145,6 @@ struct GraphicsFunctions {
 	void (*DeleteFrameBufferID)(ISprite* sprite);
 
 	void (*SetStencilEnabled)(bool enabled);
-	bool (*IsStencilEnabled)();
 	void (*SetStencilTestFunc)(int stencilTest);
 	void (*SetStencilPassFunc)(int stencilOp);
 	void (*SetStencilFailFunc)(int stencilOp);

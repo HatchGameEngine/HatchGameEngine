@@ -499,6 +499,9 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 			else {
 				obj->Filter = 0xFF;
 			}
+            
+			if (!obj->Filter)
+				obj->Filter = 0xFF;
 
 			if (!(obj->Filter & Scene::Filter)) {
 				doAdd = false;
@@ -582,6 +585,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	Scene::TileCount = 0x400;
 	Scene::EmptyTile = 0x3FF;
 
+	Scene::FreePriorityLists();
 	Scene::PriorityPerLayer = 16;
 	Scene::InitPriorityLists();
 
@@ -682,12 +686,14 @@ bool RSDKSceneReader::LoadTileset(const char* parentFolder) {
 
 	char filename16x16Tiles[MAX_RESOURCE_PATH_LENGTH];
 	snprintf(filename16x16Tiles, sizeof(filename16x16Tiles), "%s16x16Tiles.gif", parentFolder);
-	{
+
+	Stream* resourceStream = ResourceStream::New(filename16x16Tiles);
+	if (resourceStream != nullptr) {
 		GIF* gif;
 		bool loadPalette = Graphics::UsePalettes;
 
 		Graphics::UsePalettes = false;
-		gif = GIF::Load(filename16x16Tiles);
+		gif = GIF::Load(resourceStream);
 		Graphics::UsePalettes = loadPalette;
 
 		if (gif) {
@@ -699,6 +705,8 @@ bool RSDKSceneReader::LoadTileset(const char* parentFolder) {
 			}
 			delete gif;
 		}
+
+		resourceStream->Close();
 	}
 
 	ISprite* tileSprite = new ISprite();

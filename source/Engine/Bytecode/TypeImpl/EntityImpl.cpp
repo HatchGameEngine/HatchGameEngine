@@ -730,16 +730,16 @@ VMValue EntityImpl::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 thread
 		return NULL_VAL;
 	}
 	int drawGroup = GET_ARG(1, GetInteger);
-	if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer) {
-		if (!Scene::PriorityLists[drawGroup].Contains(self)) {
-			Scene::PriorityLists[drawGroup].Add(self);
-		}
-	}
-	else {
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
-			Scene::PriorityPerLayer - 1);
+			MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
+	}
+	DrawGroupList* drawGroupList = Scene::GetDrawGroup(drawGroup);
+	if (!drawGroupList->Contains(self)) {
+		drawGroupList->Add(self);
 	}
 	return NULL_VAL;
 }
@@ -757,16 +757,18 @@ VMValue EntityImpl::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadI
 		return INTEGER_VAL(false);
 	}
 	int drawGroup = GET_ARG(1, GetInteger);
-	if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer) {
-		return INTEGER_VAL(!!(Scene::PriorityLists[drawGroup].Contains(self)));
-	}
-	else {
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
-			Scene::PriorityPerLayer - 1);
+			MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
 	}
-	return NULL_VAL;
+	DrawGroupList* drawGroupList = Scene::GetDrawGroupNoCheck(drawGroup);
+	if (drawGroupList) {
+		return INTEGER_VAL(drawGroupList->Contains(self));
+	}
+	return INTEGER_VAL(0);
 }
 /***
  * \method RemoveFromDrawGroup
@@ -781,14 +783,16 @@ VMValue EntityImpl::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 t
 		return NULL_VAL;
 	}
 	int drawGroup = GET_ARG(1, GetInteger);
-	if (drawGroup >= 0 && drawGroup < Scene::PriorityPerLayer) {
-		Scene::PriorityLists[drawGroup].Remove(self);
-	}
-	else {
+	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
-			Scene::PriorityPerLayer - 1);
+			MAX_PRIORITY_PER_LAYER - 1);
+		return NULL_VAL;
+	}
+	DrawGroupList* drawGroupList = Scene::GetDrawGroupNoCheck(drawGroup);
+	if (drawGroupList) {
+		drawGroupList->Remove(self);
 	}
 	return NULL_VAL;
 }

@@ -7,6 +7,8 @@
 
 #include <Engine/Rendering/Material.h>
 
+#include <Engine/ResourceTypes/Font.h>
+
 #define FRAMES_MAX 64
 #define STACK_SIZE_MAX (FRAMES_MAX * 256)
 #define THREAD_NAME_MAX 64
@@ -180,6 +182,7 @@ enum ObjType {
 
 #define CLASS_ARRAY "$$ArrayImpl"
 #define CLASS_ENTITY "$$EntityImpl"
+#define CLASS_FONT "Font"
 #define CLASS_FUNCTION "$$FunctionImpl"
 #define CLASS_INSTANCE "$$InstanceImpl"
 #define CLASS_MAP "$$MapImpl"
@@ -243,9 +246,9 @@ struct ObjString {
 };
 struct ObjModule {
 	Obj Object;
-	vector<struct ObjFunction*>* Functions;
-	vector<VMValue>* Locals;
-	ObjString* SourceFilename;
+	std::vector<struct ObjFunction*>* Functions;
+	std::vector<VMValue>* Locals;
+	char* SourceFilename;
 };
 struct ObjFunction {
 	Obj Object;
@@ -254,7 +257,7 @@ struct ObjFunction {
 	int UpvalueCount;
 	struct Chunk Chunk;
 	ObjModule* Module;
-	ObjString* Name;
+	char* Name;
 	struct ObjClass* Class;
 	Uint32 NameHash;
 };
@@ -276,7 +279,7 @@ struct ObjClosure {
 };
 struct ObjClass {
 	Obj Object;
-	ObjString* Name;
+	char* Name;
 	Uint32 Hash;
 	Table* Methods;
 	Table* Fields;
@@ -296,7 +299,7 @@ struct ObjBoundMethod {
 };
 struct ObjArray {
 	Obj Object;
-	vector<VMValue>* Values;
+	std::vector<VMValue>* Values;
 };
 struct ObjMap {
 	Obj Object;
@@ -305,14 +308,14 @@ struct ObjMap {
 };
 struct ObjNamespace {
 	Obj Object;
-	ObjString* Name;
+	char* Name;
 	Uint32 Hash;
 	Table* Fields;
 	bool InUse;
 };
 struct ObjEnum {
 	Obj Object;
-	ObjString* Name;
+	char* Name;
 	Uint32 Hash;
 	Table* Fields;
 };
@@ -340,6 +343,10 @@ struct ObjMaterial {
 struct ObjShader {
 	UNION_INSTANCEABLE;
 	void* ShaderPtr;
+};
+struct ObjFont {
+	UNION_INSTANCEABLE;
+	Font* FontPtr;
 };
 
 #undef UNION_INSTANCEABLE
@@ -374,7 +381,7 @@ Obj* NewNativeInstance(size_t size);
 	GarbageCollector::GarbageSize -= ((Obj*)(obj))->Size; \
 	Memory::Free(obj)
 
-bool ValuesEqual(VMValue a, VMValue b);
+std::string GetClassName(Uint32 hash);
 Uint32 GetClassHash(const char* name);
 
 static inline bool IsObjectType(VMValue value, ObjType type) {

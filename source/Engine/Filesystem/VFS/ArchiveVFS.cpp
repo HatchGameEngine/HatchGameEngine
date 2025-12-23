@@ -18,6 +18,10 @@ bool ArchiveVFS::AddEntry(VFSEntry* entry) {
 	return true;
 }
 
+bool ArchiveVFS::IsEmpty() {
+	return Entries.size() == 0;
+}
+
 bool ArchiveVFS::HasFile(const char* filename) {
 	if (IsReadable()) {
 		std::string entryName = TransformFilename(filename);

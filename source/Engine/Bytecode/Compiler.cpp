@@ -969,7 +969,7 @@ void Compiler::WarningInFunction(const char* format, ...) {
 	buffer.WriteIndex = 0;
 	buffer.BufferSize = 512;
 
-	if (strcmp(Function->Name->Chars, "main") == 0) {
+	if (strcmp(Function->Name, "main") == 0) {
 		buffer_printf(&buffer,
 			"In top level code of file '%s':\n    %s\n",
 			scanner.SourceFilename,
@@ -979,14 +979,14 @@ void Compiler::WarningInFunction(const char* format, ...) {
 		buffer_printf(&buffer,
 			"In method '%s::%s' of file '%s':\n    %s\n",
 			ClassName.c_str(),
-			Function->Name->Chars,
+			Function->Name,
 			scanner.SourceFilename,
 			message);
 	}
 	else {
 		buffer_printf(&buffer,
 			"In function '%s' of file '%s':\n    %s\n",
-			Function->Name->Chars,
+			Function->Name,
 			scanner.SourceFilename,
 			message);
 	}
@@ -2089,7 +2089,7 @@ void Compiler::GetRepeatStatement() {
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
 	if (!remaining) {
-		remaining = AddHiddenLocal("$remaining", 11);
+		remaining = AddHiddenLocal(" remaining", 11);
 	}
 	EmitByte(OP_INCREMENT); // increment remaining as we're about
 	// to decrement it, so we can cheat
@@ -2306,11 +2306,19 @@ void Compiler::GetDefaultStatement() {
 
 	ConsumeToken(TOKEN_COLON, "Expected \":\" after \"default\".");
 
+	// Check if there already is a default clause, and prevent compilation if so.
+	vector<switch_case>* top = SwitchJumpListStack.top();
+	for (size_t i = 0; i < top->size(); i++) {
+		if ((*top)[i].IsDefault) {
+			Error("Cannot have multiple default clauses.");
+		}
+	}
+
 	switch_case case_info;
 	case_info.IsDefault = true;
 	case_info.CasePosition = CodePointer();
 
-	SwitchJumpListStack.top()->push_back(case_info);
+	top->push_back(case_info);
 }
 void Compiler::GetWhileStatement() {
 	// Set the start of the loop to before the condition
@@ -2506,7 +2514,16 @@ void Compiler::GetForStatement() {
 		// No initializer.
 	}
 	else {
-		GetExpressionStatement();
+		// "for (<identifier> in <expression>)"
+		if (PeekNextToken().Type == TOKEN_IN) {
+			GetForEachBlock();
+			ScopeEnd();
+			return;
+		}
+		else {
+			// It's a regular 'for'
+			GetExpressionStatement();
+		}
 	}
 
 	int exitJump = -1;
@@ -2570,6 +2587,12 @@ void Compiler::GetForEachStatement() {
 
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'foreach'.");
 
+	GetForEachBlock();
+
+	// End new scope
+	ScopeEnd();
+}
+void Compiler::GetForEachBlock() {
 	// Variable name
 	ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
 
@@ -2581,16 +2604,15 @@ void Compiler::GetForEachStatement() {
 	GetExpression();
 
 	// Add a local for the object to be iterated
-	// The programmer cannot refer to it by name, so it begins with
-	// a dollar sign. The value in it is what GetExpression() left
-	// on the top of the stack
-	int iterObj = AddHiddenLocal("$iterObj", 8);
+	// The script should not be able to refer to it by name, so it begins with a space.
+	// The value in it is what GetExpression() left on the top of the stack
+	int iterObj = AddHiddenLocal(" iterObj", 8);
 
 	// Add a local for the iteration state
 	// Its initial value is null
 	EmitByte(OP_NULL);
 
-	int iterValue = AddHiddenLocal("$iterValue", 10);
+	int iterValue = AddHiddenLocal(" iterValue", 10);
 
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
 
@@ -2651,9 +2673,6 @@ void Compiler::GetForEachStatement() {
 	// Pop jump list off break stack, patch all break to this code
 	// point
 	EndBreakJumpList();
-
-	// End new scope
-	ScopeEnd();
 }
 void Compiler::GetIfStatement() {
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
@@ -4082,7 +4101,7 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_NEW_ENUM:
 		return 5;
 	case OP_METHOD:
-		return 8;
+		return 7;
 	case OP_METHOD_V4:
 		return 6;
 	}
@@ -4420,10 +4439,10 @@ void Compiler::Initialize(Compiler* enclosing, int scope, int type) {
 	case TYPE_CONSTRUCTOR:
 	case TYPE_METHOD:
 	case TYPE_FUNCTION:
-		Function->Name = CopyString(parser.Previous.Start, parser.Previous.Length);
+		Function->Name = StringUtils::Create(parser.Previous.Start, parser.Previous.Length);
 		break;
 	case TYPE_TOP_LEVEL:
-		Function->Name = CopyString("main");
+		Function->Name = StringUtils::Create("main");
 		break;
 	}
 
@@ -4505,7 +4524,7 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 		for (size_t c = 0; c < Compiler::Functions.size(); c++) {
 			Chunk* chunk = &Compiler::Functions[c]->Chunk;
 			DebugChunk(chunk,
-				Compiler::Functions[c]->Name->Chars,
+				Compiler::Functions[c]->Name,
 				Compiler::Functions[c]->MinArity,
 				Compiler::Functions[c]->Arity);
 			Log::PrintSimple("\n");

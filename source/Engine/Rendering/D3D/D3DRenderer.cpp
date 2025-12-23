@@ -1153,9 +1153,10 @@ void D3DRenderer::DisposeTexture(Texture* texture) {
 }
 
 // Viewport and view-related functions
-void D3DRenderer::SetRenderTarget(Texture* texture) {
+bool D3DRenderer::SetRenderTarget(Texture* texture) {
 	D3D_Predraw();
-	D3D_SetRenderTarget(texture);
+
+	return D3D_SetRenderTarget(texture) == 0;
 }
 void D3DRenderer::UpdateWindowSize(int width, int height) {
 	// D3D_UpdateViewport(0, 0, width, height);

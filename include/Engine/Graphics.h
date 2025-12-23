@@ -15,6 +15,7 @@ class IModel;
 #include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/TextureReference.h>
 #include <Engine/Rendering/VertexBuffer.h>
+#include <Engine/ResourceTypes/Font.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene/SceneEnums.h>
@@ -30,6 +31,7 @@ private:
 	static void DeleteSpriteSheetMap();
 	static void DeleteShaders();
 	static void DeleteVertexBuffers();
+	static std::vector<Uint32> GetTextCodepoints(Font* font, const char* text);
 
 public:
 	static bool Initialized;
@@ -66,6 +68,7 @@ public:
 	static float TintColors[4];
 	static int BlendMode;
 	static int TintMode;
+	static bool StencilEnabled;
 	static int StencilTest;
 	static int StencilOpPass;
 	static int StencilOpFail;
@@ -85,6 +88,7 @@ public:
 	static Sint32 CurrentVertexBuffer;
 	static Shader* CurrentShader;
 	static Shader* PostProcessShader;
+	static bool UsingPostProcessShader;
 	static bool SmoothFill;
 	static bool SmoothStroke;
 	static float PixelOffset;
@@ -124,6 +128,8 @@ public:
 	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
 	static int ConvertTextureToRGBA(Texture* texture);
 	static int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);
+	static void SetTextureMinFilter(Texture* texture, int filterMode);
+	static void SetTextureMagFilter(Texture* texture, int filterMode);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
 	static TextureReference* GetSpriteSheet(string sheetPath);
@@ -139,14 +145,15 @@ public:
 	static void SetTextureInterpolation(bool interpolate);
 	static void Clear();
 	static void Present();
-	static void SoftwareStart();
-	static void SoftwareEnd();
+	static void SoftwareStart(int viewIndex);
+	static void SoftwareEnd(int viewIndex);
 	static void UpdateGlobalPalette();
 	static void UpdatePaletteIndexTable();
 	static void UnloadSceneData();
-	static void SetRenderTarget(Texture* texture);
+	static bool SetRenderTarget(Texture* texture);
 	static bool CreateFramebufferTexture();
 	static bool UpdateFramebufferTexture();
+	static void SetPostProcessShader(Shader* shader);
 	static void DoScreenPostProcess();
 	static void CopyScreen(int source_x,
 		int source_y,
@@ -266,6 +273,62 @@ public:
 		float scaleW,
 		float scaleH,
 		float rotation);
+	static void DrawGlyph(Font* font,
+		Uint32 codepoint,
+		float x,
+		float y,
+		float scale,
+		float glyphScale,
+		float ascent);
+	static void
+	DrawEllipsis(Font* font, float x, float y, float scale, float glyphScale, float ascent);
+	static void
+	DrawEllipsisLegacy(ISprite* sprite, float x, float y, float advance, float baseline);
+	static void
+	DrawText(Font* font, const char* text, float x, float y, TextDrawParams* params);
+	static void
+	DrawTextWrapped(Font* font, const char* text, float x, float y, TextDrawParams* params);
+	static void
+	DrawTextEllipsis(Font* font, const char* text, float x, float y, TextDrawParams* params);
+	static void
+	DrawGlyph(Font* font, Uint32 codepoint, float x, float y, TextDrawParams* params);
+	static void
+	MeasureText(Font* font, const char* text, TextDrawParams* params, float& maxW, float& maxH);
+	static void MeasureTextWrapped(Font* font,
+		const char* text,
+		TextDrawParams* params,
+		float& maxW,
+		float& maxH);
+	static void DrawTextLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params);
+	static void DrawTextWrappedLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params);
+	static void DrawTextEllipsisLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params);
+	static void DrawGlyphLegacy(ISprite* sprite,
+		Uint32 codepoint,
+		float basex,
+		float basey,
+		LegacyTextDrawParams* params);
+	static void MeasureTextLegacy(ISprite* sprite,
+		const char* text,
+		LegacyTextDrawParams* params,
+		float& maxW,
+		float& maxH);
+	static void MeasureTextWrappedLegacy(ISprite* sprite,
+		const char* text,
+		LegacyTextDrawParams* params,
+		float& maxW,
+		float& maxH);
 	static void
 	DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines);
 	static void DrawTilePart(int tile,
@@ -346,7 +409,6 @@ public:
 	static void ConvertFromARGBtoNative(Uint32* argb, int count);
 	static void ConvertFromNativeToARGB(Uint32* argb, int count);
 	static void SetStencilEnabled(bool enabled);
-	static bool GetStencilEnabled();
 	static void SetStencilTestFunc(int stencilTest);
 	static void SetStencilPassFunc(int stencilOp);
 	static void SetStencilFailFunc(int stencilOp);

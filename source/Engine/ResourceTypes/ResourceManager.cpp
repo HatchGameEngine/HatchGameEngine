@@ -2,6 +2,7 @@
 
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Error.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
@@ -60,9 +61,7 @@ bool ResourceManager::Init(const char* dataFilePath) {
 
 	std::vector<DataFileCandidate> candidates = FindDataFiles();
 
-#ifdef DEVELOPER_MODE
 	bool useResourcesFolder = true;
-#endif
 
 	UsingDataFolder = false;
 
@@ -72,9 +71,7 @@ bool ResourceManager::Init(const char* dataFilePath) {
 	if (dataFilePath != nullptr) {
 		bool found = false;
 
-#ifdef DEVELOPER_MODE
 		useResourcesFolder = false;
-#endif
 
 		if (dataFilePath[strlen(dataFilePath) - 1] == '/' &&
 			Directory::Exists(dataFilePath)) {
@@ -114,11 +111,8 @@ bool ResourceManager::Init(const char* dataFilePath) {
 
 		Log::Print(Log::LOG_VERBOSE, "Loading \"%s\"...", filenameOnly);
 
-		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME,
-				filename,
-				nullptr,
-				VFSType::FILESYSTEM,
-				VFS_READABLE);
+		VFSMountStatus status = vfs->Mount(
+			RESOURCES_VFS_NAME, filename, nullptr, VFSType::FILESYSTEM, VFS_READABLE);
 
 		if (status != VFSMountStatus::MOUNTED) {
 			Log::Print(Log::LOG_ERROR, "Could not access \"%s\"!", filename);
@@ -129,13 +123,9 @@ bool ResourceManager::Init(const char* dataFilePath) {
 
 		Log::Print(Log::LOG_VERBOSE, "Loading \"%s\"...", filenameOnly);
 
-		ResourceManager::Mount(RESOURCES_VFS_NAME,
-			filename,
-			nullptr,
-			VFSType::HATCH,
-			VFS_READABLE);
+		ResourceManager::Mount(
+			RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
 	}
-#ifdef DEVELOPER_MODE
 	else if (useResourcesFolder) {
 		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME,
 			RESOURCES_DIR_PATH,
@@ -144,7 +134,9 @@ bool ResourceManager::Init(const char* dataFilePath) {
 			VFS_READABLE | VFS_WRITABLE);
 
 		if (status == VFSMountStatus::MOUNTED) {
+#ifdef DEVELOPER_MODE
 			Log::Print(Log::LOG_INFO, "Using \"%s\" folder.", RESOURCES_DIR_PATH);
+#endif
 
 			ResourceManager::UsingDataFolder = true;
 		}
@@ -152,25 +144,55 @@ bool ResourceManager::Init(const char* dataFilePath) {
 			Log::Print(Log::LOG_ERROR, "Could not access \"%s\"!", RESOURCES_DIR_PATH);
 		}
 	}
-#endif
 
 	Memory::Free(filename);
 
+	// If the resource wasn't found
 	if (GetMainResource() == nullptr) {
-		Log::Print(Log::LOG_ERROR, "No data files loaded!");
-
 #ifdef DEVELOPER_MODE
-		if (!useResourcesFolder && candidates.size() > 0) {
-			Log::Print(Log::LOG_ERROR,
-				"Ensure the data file is in one of the following paths:");
-
+		std::string error = "No data file was found!\n";
+		if (candidates.size() > 0) {
+			error += "Ensure that it's named one of the following:\n";
 			for (size_t i = 0; i < candidates.size(); i++) {
-				Log::Print(Log::LOG_ERROR, "* %s", candidates[i].Path.c_str());
+				error += "* " + candidates[i].Path;
+				if (i < candidates.size() - 1) {
+					error += "\n";
+				}
 			}
 		}
-#endif
+
+		Error::FatalNoMessageBox("%s", error.c_str());
+#else
+		const char* datafilename = StringUtils::GetFilename(data_files[0]);
+
+#if WIN32
+		Error::Fatal(
+			"%s not found! Ensure that it's in the same location as the application.",
+			datafilename);
+#else
+		std::string additionalError;
+		std::string resolved = "";
+		if (Path::FromURL(PATHLOCATION_GAME_URL, resolved)) {
+			additionalError = "Ensure that it's in the following path:\n";
+			additionalError += "* " + resolved;
+		}
+		else {
+			additionalError =
+				"Ensure that the application has read access permissions.";
+		}
+
+#if LINUX
+		Error::FatalNoMessageBox("%s not found! %s", datafilename, additionalError.c_str());
+#else
+		Error::Fatal("%s not found! %s", datafilename, additionalError.c_str());
+#endif // #if LINUX
+#endif // #if WIN32
+#endif // #ifdef DEVELOPER_MODE
 
 		return false;
+	}
+	else if (useResourcesFolder && GetMainResource()->IsEmpty()) {
+		Log::Print(Log::LOG_WARN, "\"%s\" folder is empty.", RESOURCES_DIR_PATH);
 	}
 
 	return true;

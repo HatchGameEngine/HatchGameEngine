@@ -1,13 +1,55 @@
+#include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/PerformanceMeasure.h>
 
-bool PerformanceMeasure::Initialized = false;
-Perf_ViewRender PerformanceMeasure::PERF_ViewRender[MAX_SCENE_VIEWS];
+PerformanceMeasure::PerformanceMeasure(const char* name,
+	float r,
+	float g,
+	float b,
+	bool* isActive) {
+	Name = name;
+	Colors.R = r;
+	Colors.G = g;
+	Colors.B = b;
+	Active = isActive;
+};
 
-void PerformanceMeasure::Init() {
-	if (PerformanceMeasure::Initialized) {
-		return;
+PerformanceMeasure::PerformanceMeasure(const char* name, float r, float g, float b) {
+	Name = name;
+	Colors.R = r;
+	Colors.G = g;
+	Colors.B = b;
+	Active = nullptr;
+};
+
+PerformanceMeasure::PerformanceMeasure(const char* name) {
+	Name = name;
+	Colors.R = 0.0f;
+	Colors.G = 1.0f;
+	Colors.B = 0.0f;
+	Active = nullptr;
+};
+
+bool PerformanceMeasure::IsActive() {
+	if (Active != nullptr) {
+		return *Active;
 	}
 
-	PerformanceMeasure::Initialized = true;
-	memset(PerformanceMeasure::PERF_ViewRender, 0, sizeof(PerformanceMeasure::PERF_ViewRender));
+	return true;
+}
+
+void PerformanceMeasure::Reset() {
+	Time = 0.0;
+}
+void PerformanceMeasure::Begin() {
+	StartTime = Clock::GetTicks();
+}
+void PerformanceMeasure::End() {
+	EndTime = Clock::GetTicks();
+
+	Time = EndTime - StartTime;
+}
+void PerformanceMeasure::Accumulate() {
+	EndTime = Clock::GetTicks();
+
+	Time += EndTime - StartTime;
 }

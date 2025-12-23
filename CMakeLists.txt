@@ -81,20 +81,16 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 endif()
 
 option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" ON)
-option(USE_FREETYPE_LIBRARY "Use FreeType" OFF)
-
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   set(USE_OPEN_ASSET_IMPORT_LIBRARY OFF)
 endif()
+
+option(USE_DEFAULT_FONTS "Build with default fonts" ON)
 
 # Renderers
 option(USING_OPENGL "Use OpenGL" ON)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   option(USING_DIRECT3D "Use Direct3D" OFF)
-endif()
-
-if(USE_FREETYPE_LIBRARY)
-  add_definitions(-DUSING_FREETYPE)
 endif()
 
 if(USING_OPENGL)
@@ -127,6 +123,10 @@ endif()
 
 if(ALLOW_COMMAND_LINE_RESOURCE_LOAD)
   add_definitions(-DALLOW_COMMAND_LINE_RESOURCE_LOAD)
+endif()
+
+if(USE_DEFAULT_FONTS)
+  add_definitions(-DUSE_DEFAULT_FONTS)
 endif()
 
 add_definitions(-DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME )
@@ -164,9 +164,6 @@ endif()
 # Find the includes
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   find_package(SDL2 REQUIRED)
-  if(USE_FREETYPE_LIBRARY)
-    find_package(Freetype REQUIRED)
-  endif()
   find_package(PNG)
   if(PNG_FOUND)
     add_definitions(-DUSING_LIBPNG)
@@ -232,12 +229,6 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   if(WINDOWS_USE_RESOURCE_FILE)
     target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/${WIN_RES_FILE})
   endif()
-else()
-  if(USE_FREETYPE_LIBRARY)
-    include_directories(
-      ${FREETYPE_INCLUDE_DIRS}
-    )
-  endif()
 endif()
 
 # Add libraries
@@ -261,9 +252,6 @@ else()
   target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
 endif()
 
-if(USE_FREETYPE_LIBRARY)
-  target_link_libraries(${PROJECT_NAME} ${FREETYPE_LIBRARIES})
-endif()
 if(PNG_FOUND)
   target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
 endif()

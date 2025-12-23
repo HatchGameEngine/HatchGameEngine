@@ -107,17 +107,19 @@ ObjClosure* NewClosure(ObjFunction* function) {
 ObjClass* NewClass(Uint32 hash) {
 	ObjClass* klass = ALLOCATE_OBJ(ObjClass, OBJ_CLASS);
 	Memory::Track(klass, "NewClass");
-	klass->Object.Destructor = ScriptManager::FreeClass;
 	klass->Hash = hash;
+	klass->Object.Destructor = ScriptManager::FreeClass;
 	klass->Methods = new Table(NULL, 4);
 	klass->Fields = new Table(NULL, 16);
 	klass->Initializer = NULL_VAL;
 	klass->Type = CLASS_TYPE_NORMAL;
+	klass->Name = StringUtils::Create(GetClassName(hash));
 	return klass;
 }
 ObjClass* NewClass(const char* className) {
 	ObjClass* klass = NewClass(GetClassHash(className));
-	klass->Name = CopyString(className);
+	klass->Name = (char*)Memory::Realloc(klass->Name, strlen(className));
+	memcpy(klass->Name, className, strlen(className));
 	return klass;
 }
 ObjInstance* NewInstance(ObjClass* klass) {
@@ -147,11 +149,13 @@ ObjNamespace* NewNamespace(Uint32 hash) {
 	ns->Object.Destructor = ScriptManager::FreeNamespace;
 	ns->Hash = hash;
 	ns->Fields = new Table(NULL, 16);
+	ns->Name = StringUtils::Create(GetClassName(hash));
 	return ns;
 }
 ObjNamespace* NewNamespace(const char* nsName) {
 	ObjNamespace* ns = NewNamespace(GetClassHash(nsName));
-	ns->Name = CopyString(nsName);
+	ns->Name = (char*)Memory::Realloc(ns->Name, strlen(nsName));
+	memcpy(ns->Name, nsName, strlen(nsName));
 	return ns;
 }
 ObjEnum* NewEnum(Uint32 hash) {
@@ -160,6 +164,7 @@ ObjEnum* NewEnum(Uint32 hash) {
 	enumeration->Object.Destructor = ScriptManager::FreeEnumeration;
 	enumeration->Hash = hash;
 	enumeration->Fields = new Table(NULL, 16);
+	enumeration->Name = StringUtils::Create(GetClassName(hash));
 	return enumeration;
 }
 ObjModule* NewModule() {
@@ -176,6 +181,17 @@ Obj* NewNativeInstance(size_t size) {
 	return obj;
 }
 
+std::string GetClassName(Uint32 hash) {
+	if (ScriptManager::Tokens && ScriptManager::Tokens->Exists(hash)) {
+		char* t = ScriptManager::Tokens->Get(hash);
+		return std::string(t);
+	}
+	else {
+		char nameHash[9];
+		snprintf(nameHash, sizeof(nameHash), "%8X", hash);
+		return std::string(nameHash);
+	}
+}
 Uint32 GetClassHash(const char* name) {
 	return Murmur::EncryptString(name);
 }

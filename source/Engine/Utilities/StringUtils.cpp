@@ -76,6 +76,37 @@ bool StringUtils::StartsWith(std::string string, std::string compare) {
 
 	return memcmp(string.c_str(), compare.c_str(), cmpLen) == 0;
 }
+bool StringUtils::StartsWithCaseInsensitive(const char* string, const char* compare) {
+	size_t cmpLen = strlen(compare);
+	if (strlen(string) < cmpLen) {
+		return false;
+	}
+
+	for (size_t i = 0; i < cmpLen; i++) {
+		if (tolower(string[i]) != tolower(compare[i])) {
+			return false;
+		}
+	}
+
+	return true;
+}
+bool StringUtils::StartsWithCaseInsensitive(std::string string, std::string compare) {
+	size_t cmpLen = compare.size();
+	if (string.size() < cmpLen) {
+		return false;
+	}
+
+	const char* a = string.c_str();
+	const char* b = compare.c_str();
+
+	for (size_t i = 0; i < cmpLen; i++) {
+		if (tolower(a[i]) != tolower(b[i])) {
+			return false;
+		}
+	}
+
+	return true;
+}
 char* StringUtils::StrCaseStr(const char* haystack, const char* needle) {
 	if (!needle[0]) {
 		return (char*)haystack;
@@ -342,4 +373,99 @@ void StringUtils::ReplacePathSeparatorsInPlace(char* path) {
 		}
 		path++;
 	}
+}
+
+int StringUtils::DecodeUTF8Char(const char* chr, int& numBytes) {
+	numBytes = 1;
+
+	if (!chr) {
+		return 0;
+	}
+
+	unsigned char c = *chr;
+	if (c <= 0x7F) {
+		return c;
+	}
+
+	if ((c & 0xE0) == 0xC0) {
+		numBytes = 2;
+
+		if ((chr[1] & 0xC0) != 0x80) {
+			return -1;
+		}
+
+		int decoded = (chr[0] & 0x1F) << 6;
+		decoded |= chr[1] & 0x3F;
+
+		if (decoded < 0x80) {
+			return -1;
+		}
+
+		return decoded;
+	}
+	else if ((c & 0xF0) == 0xE0) {
+		numBytes = 3;
+
+		if ((chr[1] & 0xC0) != 0x80) {
+			return -1;
+		}
+		else if ((chr[2] & 0xC0) != 0x80) {
+			return -1;
+		}
+
+		int decoded = (chr[0] & 0x0F) << 12;
+		decoded |= (chr[1] & 0x3F) << 6;
+		decoded |= chr[2] & 0x3F;
+
+		if (decoded < 0x800 || (decoded >= 0xD800 && decoded <= 0xDFFF)) {
+			return -1;
+		}
+
+		return decoded;
+	}
+	else if ((c & 0xF8) == 0xF0) {
+		numBytes = 4;
+
+		if ((chr[1] & 0xC0) != 0x80) {
+			return -1;
+		}
+		else if ((chr[2] & 0xC0) != 0x80) {
+			return -1;
+		}
+		else if ((chr[3] & 0xC0) != 0x80) {
+			return -1;
+		}
+
+		int decoded = (chr[0] & 0x07) << 18;
+		decoded |= (chr[1] & 0x3F) << 12;
+		decoded |= (chr[2] & 0x3F) << 6;
+		decoded |= chr[3] & 0x3F;
+
+		if (decoded < 0x10000 || decoded > 0x10FFFF) {
+			return -1;
+		}
+
+		return decoded;
+	}
+
+	return -1;
+}
+
+// Handles UTF-8 text and obtains UCS codepoints
+std::vector<Uint32> StringUtils::GetCodepoints(const char* text) {
+	size_t textLength = strlen(text);
+
+	std::vector<Uint32> codepoints;
+	codepoints.reserve(textLength);
+
+	for (size_t i = 0; i < textLength;) {
+		int numBytes = 1;
+		int decoded = StringUtils::DecodeUTF8Char(&text[i], numBytes);
+
+		codepoints.push_back((Uint32)decoded);
+
+		i += numBytes;
+	}
+
+	return codepoints;
 }

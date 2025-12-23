@@ -23,8 +23,6 @@ class Entity;
 #include <Engine/Types/ObjectRegistry.h>
 #include <Engine/Types/Tileset.h>
 
-enum { SCENETYPE_NONE = 0, SCENETYPE_HATCH = 1, SCENETYPE_TILED = 2, SCENETYPE_RSDK = 3 };
-
 class Scene {
 private:
 	static void RemoveObject(Entity* obj);
@@ -58,6 +56,7 @@ private:
 public:
 	static int ShowTileCollisionFlag;
 	static int ShowObjectRegions;
+	static bool UseRenderRegions;
 	static HashMap<VMValue>* Properties;
 	static HashMap<ObjectList*>* ObjectLists;
 	static HashMap<ObjectRegistry*>* ObjectRegistries;
@@ -72,9 +71,8 @@ public:
 	static int ObjectCount;
 	static Entity* ObjectFirst;
 	static Entity* ObjectLast;
-	static int BasePriorityPerLayer;
 	static int PriorityPerLayer;
-	static DrawGroupList* PriorityLists;
+	static DrawGroupList** PriorityLists;
 	static vector<Tileset> Tilesets;
 	static vector<TileSpriteInfo> TileSpriteInfos;
 	static Uint16 EmptyTile;
@@ -165,7 +163,7 @@ public:
 	static void SetViewActive(int viewIndex, bool active);
 	static void SetViewPriority(int viewIndex, int priority);
 	static void SortViews();
-	static void SetView(int viewIndex);
+	static bool SetView(int viewIndex);
 	static bool CheckPosOnScreen(float posX, float posY, float rangeX, float rangeY);
 	static void RenderView(int viewIndex, bool doPerf);
 	static void Render();
@@ -184,9 +182,12 @@ public:
 	static ObjectList* GetObjectList(const char* objectName);
 	static ObjectList* GetStaticObjectList(const char* objectName);
 	static void AddManagers();
+	static std::vector<ObjectList*> GetObjectListPerformance();
 	static void FreePriorityLists();
 	static void InitPriorityLists();
 	static void SetPriorityPerLayer(int count);
+	static DrawGroupList* GetDrawGroup(int index);
+	static DrawGroupList* GetDrawGroupNoCheck(int index);
 	static bool AddTileset(char* path);
 	static void LoadTileCollisions(const char* filename, size_t tilesetID);
 	static void UnloadTileCollisions();
@@ -197,7 +198,6 @@ public:
 	static bool GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index);
 	static int LoadSpriteResource(const char* filename, int unloadPolicy);
 	static int LoadImageResource(const char* filename, int unloadPolicy);
-	static int LoadFontResource(const char* filename, int pixel_sz, int unloadPolicy);
 	static int LoadModelResource(const char* filename, int unloadPolicy);
 	static int LoadMusicResource(const char* filename, int unloadPolicy);
 	static int LoadSoundResource(const char* filename, int unloadPolicy);

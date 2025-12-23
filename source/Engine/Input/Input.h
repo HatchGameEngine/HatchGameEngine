@@ -191,6 +191,11 @@ enum InputDevice { InputDevice_Keyboard, InputDevice_Controller, InputDevice_MAX
 #define INPUT_BIND_CONTROLLER_AXIS 2
 #define NUM_INPUT_BIND_TYPES 3
 
+enum {
+	MOUSEMODE_DEFAULT,
+	MOUSEMODE_RELATIVE
+};
+
 class InputBind {
 public:
 	Uint8 Type;
@@ -312,7 +317,43 @@ struct PlayerInputStatus {
 struct PlayerInputConfig {
 	std::vector<InputBind*> Binds;
 
-	PlayerInputConfig() { Binds.clear(); }
+	InputBind* Get(size_t index) {
+		if (index >= Binds.size()) {
+			return nullptr;
+		}
+
+		return Binds[index];
+	}
+
+	bool Set(size_t index, InputBind* bind) {
+		if (index >= Binds.size()) {
+			return false;
+		}
+
+		delete Binds[index];
+
+		Binds[index] = bind;
+
+		return true;
+	}
+
+	size_t Add(InputBind* bind) {
+		Binds.push_back(bind);
+
+		return Binds.size() - 1;
+	}
+
+	bool Remove(size_t index) {
+		if (index >= Binds.size()) {
+			return false;
+		}
+
+		delete Binds[index];
+
+		Binds.erase(Binds.begin() + index);
+
+		return true;
+	}
 
 	void Clear() {
 		for (size_t i = 0; i < Binds.size(); i++) {
@@ -321,8 +362,6 @@ struct PlayerInputConfig {
 
 		Binds.clear();
 	}
-
-	~PlayerInputConfig() { Clear(); }
 };
 
 #endif /* INPUT_H */
