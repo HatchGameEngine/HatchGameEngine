@@ -969,7 +969,7 @@ void Compiler::WarningInFunction(const char* format, ...) {
 	buffer.WriteIndex = 0;
 	buffer.BufferSize = 512;
 
-	if (strcmp(Function->Name->Chars, "main") == 0) {
+	if (strcmp(Function->Name, "main") == 0) {
 		buffer_printf(&buffer,
 			"In top level code of file '%s':\n    %s\n",
 			scanner.SourceFilename,
@@ -979,14 +979,14 @@ void Compiler::WarningInFunction(const char* format, ...) {
 		buffer_printf(&buffer,
 			"In method '%s::%s' of file '%s':\n    %s\n",
 			ClassName.c_str(),
-			Function->Name->Chars,
+			Function->Name,
 			scanner.SourceFilename,
 			message);
 	}
 	else {
 		buffer_printf(&buffer,
 			"In function '%s' of file '%s':\n    %s\n",
-			Function->Name->Chars,
+			Function->Name,
 			scanner.SourceFilename,
 			message);
 	}
@@ -4439,10 +4439,10 @@ void Compiler::Initialize(Compiler* enclosing, int scope, int type) {
 	case TYPE_CONSTRUCTOR:
 	case TYPE_METHOD:
 	case TYPE_FUNCTION:
-		Function->Name = CopyString(parser.Previous.Start, parser.Previous.Length);
+		Function->Name = StringUtils::Create(parser.Previous.Start, parser.Previous.Length);
 		break;
 	case TYPE_TOP_LEVEL:
-		Function->Name = CopyString("main");
+		Function->Name = StringUtils::Create("main");
 		break;
 	}
 
@@ -4524,7 +4524,7 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 		for (size_t c = 0; c < Compiler::Functions.size(); c++) {
 			Chunk* chunk = &Compiler::Functions[c]->Chunk;
 			DebugChunk(chunk,
-				Compiler::Functions[c]->Name->Chars,
+				Compiler::Functions[c]->Name,
 				Compiler::Functions[c]->MinArity,
 				Compiler::Functions[c]->Arity);
 			Log::PrintSimple("\n");
