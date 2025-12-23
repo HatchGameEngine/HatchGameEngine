@@ -657,6 +657,7 @@ void Scene::Init() {
 	Scene::CurrentScene[0] = '\0';
 
 	Scene::ReservedSlotIDs = 0;
+	Scene::UseRenderRegions = true;
 
 	Application::Settings->GetBool("dev", "noTiles", &DEV_NoTiles);
 	Application::Settings->GetBool("dev", "noObjectRender", &DEV_NoObjectRender);
