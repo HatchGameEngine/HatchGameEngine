@@ -21,6 +21,10 @@ void ScriptEntity::Init() {
 #define ENTITY_FIELD(name) Hash_##name = Murmur::EncryptString(#name);
 	ENTITY_FIELDS_LIST
 #undef ENTITY_FIELD
+
+    FixedUpdateEarlyHash = Hash_UpdateEarly;
+    FixedUpdateHash = Hash_Update;
+    FixedUpdateLateHash = Hash_UpdateLate;
 }
 
 void ScriptEntity::Link(ObjEntity* entity) {
