@@ -1530,7 +1530,7 @@ void Application::RunFrame(int runFrames) {
 			}
 			Metrics.Update.Accumulate();
 		}
-		else {
+		else if (!Application::UseFixedTimestep) {
 			while (FixedUpdateCounter >= FixedFrameTimeDesired) {
 				FixedUpdateCounter -= FixedFrameTimeDesired;
 			}
