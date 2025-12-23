@@ -36,6 +36,7 @@ private:
 
 	static void LogEngineVersion();
 	static void LogSystemInfo();
+	static void ResetTimestepVariables();
 	static void MakeEngineVersion();
 	static void InitPerformanceMetrics();
 	static void AddPerformanceMetric(PerformanceMeasure* dest,
@@ -64,7 +65,8 @@ private:
 	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest);
 	static void PollEvents();
 	static void RunFrame(int runFrames);
-	static void RunFrameCallback(void* p);
+	static void MainLoop();
+	static void MainLoopCallback(void* p);
 	static void DrawPerformance();
 	static void DelayFrame();
 	static void SetUseFixedTimestep(bool useFixedTimestep);
@@ -120,9 +122,9 @@ public:
 	static char GameDeveloper[256];
 	static bool UseFixedTimestep;
 	static bool ShouldUseFixedTimestep;
-	static float DeltaTime;
+	static double DeltaTime;
 	static float ActualDeltaTime;
-	static float FixedUpdateCounter;
+	static double FixedUpdateCounter;
 	static int UpdatesPerFrame;
 	static int FrameSkip;
 	static bool Stepper;

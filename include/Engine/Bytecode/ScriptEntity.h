@@ -28,11 +28,16 @@ class ScriptEntity : public Entity {
 private:
 	bool GetCallableValue(Uint32 hash, VMValue& value);
 
+	static Uint32 FixedUpdateEarlyHash;
+	static Uint32 FixedUpdateHash;
+	static Uint32 FixedUpdateLateHash;
+
 public:
 	static bool DisableAutoAnimate;
 	ObjEntity* Instance = NULL;
 	HashMap<VMValue>* Properties;
 
+	static void Init();
 	void Link(ObjEntity* entity);
 	void LinkFields();
 	void AddEntityClassMethods();

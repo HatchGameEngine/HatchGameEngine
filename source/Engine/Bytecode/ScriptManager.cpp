@@ -119,6 +119,8 @@ void ScriptManager::Init() {
 	}
 	ThreadCount = 1;
 
+	ScriptEntity::Init();
+
 	TypeImpl::Init();
 }
 #ifdef VM_DEBUG

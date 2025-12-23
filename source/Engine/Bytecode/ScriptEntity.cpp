@@ -3,9 +3,11 @@
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Scene.h>
 
-bool ScriptEntity::DisableAutoAnimate = false;
+Uint32 ScriptEntity::FixedUpdateEarlyHash = 0;
+Uint32 ScriptEntity::FixedUpdateHash = 0;
+Uint32 ScriptEntity::FixedUpdateLateHash = 0;
 
-bool SavedHashes = false;
+bool ScriptEntity::DisableAutoAnimate = false;
 
 #define LINK_INT(VAR) Instance->InstanceObj.Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
 #define LINK_DEC(VAR) Instance->InstanceObj.Fields->Put(#VAR, DECIMAL_LINK_VAL(&VAR))
@@ -15,26 +17,16 @@ bool SavedHashes = false;
 ENTITY_FIELDS_LIST
 #undef ENTITY_FIELD
 
-Uint32 CurrentFixedUpdateEarly = 0;
-Uint32 CurrentFixedUpdate = 0;
-Uint32 CurrentFixedUpdateLate = 0;
+void ScriptEntity::Init() {
+#define ENTITY_FIELD(name) Hash_##name = Murmur::EncryptString(#name);
+	ENTITY_FIELDS_LIST
+#undef ENTITY_FIELD
+}
 
 void ScriptEntity::Link(ObjEntity* entity) {
 	Instance = entity;
 	Instance->EntityPtr = this;
 	Properties = new HashMap<VMValue>(NULL, 4);
-
-	if (!SavedHashes) {
-#define ENTITY_FIELD(name) Hash_##name = Murmur::EncryptString(#name);
-		ENTITY_FIELDS_LIST
-#undef ENTITY_FIELD
-
-		CurrentFixedUpdateEarly = Hash_UpdateEarly;
-		CurrentFixedUpdate = Hash_Update;
-		CurrentFixedUpdateLate = Hash_UpdateLate;
-
-		SavedHashes = true;
-	}
 
 	LinkFields();
 	AddEntityClassMethods();
@@ -728,14 +720,14 @@ void ScriptEntity::AddEntityClassMethods() {
 
 void ScriptEntity::SetUseFixedTimestep(bool useFixedTimestep) {
 	if (useFixedTimestep) {
-		CurrentFixedUpdateEarly = Hash_UpdateEarly;
-		CurrentFixedUpdate = Hash_Update;
-		CurrentFixedUpdateLate = Hash_UpdateLate;
+		FixedUpdateEarlyHash = Hash_UpdateEarly;
+		FixedUpdateHash = Hash_Update;
+		FixedUpdateLateHash = Hash_UpdateLate;
 	}
 	else {
-		CurrentFixedUpdateEarly = Hash_FixedUpdateEarly;
-		CurrentFixedUpdate = Hash_FixedUpdate;
-		CurrentFixedUpdateLate = Hash_FixedUpdateLate;
+		FixedUpdateEarlyHash = Hash_FixedUpdateEarly;
+		FixedUpdateHash = Hash_FixedUpdate;
+		FixedUpdateLateHash = Hash_FixedUpdateLate;
 	}
 }
 
@@ -1023,21 +1015,21 @@ void ScriptEntity::FixedUpdateEarly() {
 		return;
 	}
 
-	RunFunction(CurrentFixedUpdateEarly);
+	RunFunction(FixedUpdateEarlyHash);
 }
 void ScriptEntity::FixedUpdate() {
 	if (!Active) {
 		return;
 	}
 
-	RunFunction(CurrentFixedUpdate);
+	RunFunction(FixedUpdateHash);
 }
 void ScriptEntity::FixedUpdateLate() {
 	if (!Active) {
 		return;
 	}
 
-	RunFunction(CurrentFixedUpdateLate);
+	RunFunction(FixedUpdateLateHash);
 
 	if (AutoAnimate) {
 		Animate();
