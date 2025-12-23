@@ -928,8 +928,6 @@ bool Application::ChangeGame(const char* path) {
 		return false;
 	}
 
-	Application::ResetTimestepVariables();
-
 	Application::LoadGameConfig();
 	Application::LoadGameInfo();
 
@@ -1910,9 +1908,10 @@ void Application::LoadGameConfig() {
 	node = XMLParser::SearchNode(root, "engine");
 	if (node) {
 		int targetFPS = DEFAULT_TARGET_FRAMERATE;
-		ParseGameConfigInt(node, "framerate", targetFPS);
-		Application::SetTargetFrameRate(targetFPS);
+		bool useFixedTimestep = true;
 
+		ParseGameConfigInt(node, "framerate", targetFPS);
+		ParseGameConfigBool(node, "useFixedTimestep", useFixedTimestep);
 		ParseGameConfigBool(node, "allowCmdLineSceneLoad", Application::AllowCmdLineSceneLoad);
 		ParseGameConfigBool(node, "disableDefaultActions", Application::DisableDefaultActions);
 		ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
@@ -1924,6 +1923,10 @@ void Application::LoadGameConfig() {
 			ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
 			ParseGameConfigText(node, "logFilename", LogFilename, sizeof LogFilename);
 		}
+
+		Application::SetTargetFrameRate(targetFPS);
+		Application::SetUseFixedTimestep(useFixedTimestep);
+		Application::ShouldUseFixedTimestep = useFixedTimestep;
 	}
 
 	// Read display defaults

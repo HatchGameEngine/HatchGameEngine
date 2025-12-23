@@ -1676,6 +1676,8 @@ Note that certain game configurations will persist between games if not set by t
 <li>Engine configurations:</li><ul>\
 <li>Window size</li>\
 <li>Audio volume</li>\
+<li>Target frame rate</li>\
+<li>Whether fixed timestep was enabled or disabled with <code>useFixedTimestep</code></li>\
 <li>Settings filename</li>\
 <ul>If this is changed, the current settings are discarded (not saved) and the new settings file is loaded. If the file does not exist, however, default settings will be loaded.</ul>\
 </ul></ul>\
@@ -1683,7 +1685,7 @@ Some of the game's current state also persists between games:<ul>\
 <li>Command line arguments (unless <code>cmdLineArgs</code> is passed to this function)</li>\
 <li>Palette colors</li>\
 <li>Whether palette rendering is enabled</li>\
-<li>Whether software rendering was enabled with <code>useSoftwareRenderer</code></li>\
+<li>Whether software rendering was enabled or disabled with <code>useSoftwareRenderer</code></li>\
 </ul>\
 The following <b>does not</b> persist between games:<ul>\
 <li>Any loaded resources</li>\

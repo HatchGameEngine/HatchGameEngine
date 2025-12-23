@@ -1,3 +1,4 @@
+#include <Engine/Application.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
@@ -22,9 +23,7 @@ void ScriptEntity::Init() {
 	ENTITY_FIELDS_LIST
 #undef ENTITY_FIELD
 
-    FixedUpdateEarlyHash = Hash_UpdateEarly;
-    FixedUpdateHash = Hash_Update;
-    FixedUpdateLateHash = Hash_UpdateLate;
+    SetUseFixedTimestep(Application::UseFixedTimestep);
 }
 
 void ScriptEntity::Link(ObjEntity* entity) {
