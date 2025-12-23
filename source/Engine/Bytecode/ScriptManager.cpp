@@ -156,7 +156,6 @@ void ScriptManager::Dispose() {
 
 	ClassImplList.clear();
 	AllNamespaces.clear();
-	ModuleList.clear();
 
 	if (ThreadCount) {
 		Threads[0].FrameCount = 0;
