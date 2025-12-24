@@ -636,6 +636,7 @@
                     <li><a href="#Reference_functions_Instance_GetNextInstance">Instance.GetNextInstance</a></li>
                     <li><a href="#Reference_functions_Instance_GetBySlotID">Instance.GetBySlotID</a></li>
                     <li><a href="#Reference_functions_Instance_DisableAutoAnimate">Instance.DisableAutoAnimate</a></li>
+                    <li><a href="#Reference_functions_Instance_SetUseRenderRegions">Instance.SetUseRenderRegions</a></li>
                     <li><a href="#Reference_functions_Instance_Copy">Instance.Copy</a></li>
                     <li><a href="#Reference_functions_Instance_ChangeClass">Instance.ChangeClass</a></li>
                 </ul>
@@ -5690,6 +5691,15 @@
         <li>disableAutoAnimate (Boolean): Whether to turn off the engine automatically applying AutoAnimate when entities are initialized.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Instance_SetUseRenderRegions">
+        <h2 style="margin-bottom: 8px;">Instance.SetUseRenderRegions</h2>
+        <code>Instance.SetUseRenderRegions(useRenderRegions)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether entities will use Render Regions when rendering. If false, entities will use their Update Regions instead.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>useRenderRegions (Boolean): Whether render regions will be used.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Instance_Copy">
         <h2 style="margin-bottom: 8px;">Instance.Copy</h2>
         <code>Instance.Copy(destInstance, srcInstance[, copyClass])</code>
@@ -10521,7 +10531,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>765 out of 820 functions have descriptions. </p>
+        <p>766 out of 821 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
