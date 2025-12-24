@@ -232,6 +232,50 @@ int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
 
 	return ERROR_RES_CONTINUE;
 }
+int VMThread::ShowErrorFromScript(const char* errorString, bool detailed) {
+	char* textBuffer = (char*)malloc(512);
+	PrintBuffer buffer;
+	buffer.Buffer = &textBuffer;
+	buffer.WriteIndex = 0;
+	buffer.BufferSize = 512;
+
+	if (detailed) {
+		MakeErrorMessage(&buffer, errorString);
+	}
+	else {
+		buffer_printf(&buffer, "%s", errorString);
+	}
+
+	Log::Print(Log::LOG_ERROR, textBuffer);
+
+	const SDL_MessageBoxButtonData buttonsError[] = {
+		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"},
+		{SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Continue"},
+	};
+	const SDL_MessageBoxData messageBoxData = {
+		SDL_MESSAGEBOX_ERROR,
+		nullptr,
+		"Script Error",
+		textBuffer,
+		(int)(SDL_arraysize(buttonsError)),
+		buttonsError,
+		nullptr
+	};
+
+	int buttonClicked;
+	if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) {
+		buttonClicked = 0;
+	}
+	free(textBuffer);
+
+	if (buttonClicked == 1) {
+		Application::Cleanup();
+		exit(-1);
+		return ERROR_RES_EXIT;
+	}
+
+	return ERROR_RES_CONTINUE;
+}
 void VMThread::ShowErrorLocation(const char* errorMessage) {
 	char* textBuffer = (char*)malloc(512);
 	PrintBuffer buffer;

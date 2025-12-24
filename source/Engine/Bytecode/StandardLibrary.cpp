@@ -1582,6 +1582,22 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 	return INTEGER_VAL(0);
 }
 /***
+ * Application.Error
+ * \desc Shows an error message to the user through a dialog box, if possible. The error message is also logged.
+ * \param message (String): The error message to show to the user.
+ * \paramOpt detailed (Boolean): Whether or not to show the stack trace alongside the error. The default is <code>true</code>.
+ * \ns Application
+ */
+VMValue Application_Error(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* errorString = GET_ARG(0, GetString);
+	bool detailed = GET_ARG_OPT(1, GetInteger, true);
+
+	ScriptManager::Threads[threadID].ShowErrorFromScript(errorString, detailed);
+
+	return NULL_VAL;
+}
+/***
  * Application.SetDefaultFont
  * \desc Sets the default font to the given Resource path, or Array containing Resource paths.
  * \param font (String or Array): The font or list of fonts. Passing <code>null</code> to this argument will change the default font to the one the application was built with, if one is present.
@@ -18959,6 +18975,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, Error);
 	DEF_NATIVE(Application, SetDefaultFont);
 	DEF_NATIVE(Application, ChangeGame);
 	DEF_NATIVE(Application, Quit);
