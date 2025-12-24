@@ -463,7 +463,7 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 
 	return true;
 }
-bool ScriptManager::CallFunction(char* functionName) {
+bool ScriptManager::CallFunction(const char* functionName) {
 	if (!Globals->Exists(functionName)) {
 		return false;
 	}

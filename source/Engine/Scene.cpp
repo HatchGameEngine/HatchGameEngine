@@ -165,14 +165,20 @@ void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
 		return;
 	}
 
-	ScriptManager::CallFunction(list->LoadFunctionName);
+	ScriptManager::CallFunction(list->LoadFunctionName.c_str());
 }
-void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
+void ObjectList_CallUpdateFunction(ObjectList* list, const char* functionName) {
 	if (list->Activity == ACTIVE_ALWAYS ||
 		(list->Activity == ACTIVE_NORMAL && !Scene::Paused) ||
 		(list->Activity == ACTIVE_PAUSED && Scene::Paused)) {
-		ScriptManager::CallFunction(list->GlobalUpdateFunctionName);
+		ScriptManager::CallFunction(functionName);
 	}
+}
+void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
+	ObjectList_CallUpdateFunction(list, list->GlobalUpdateFunctionName.c_str());
+}
+void ObjectList_CallGlobalFixedUpdates(Uint32, ObjectList* list) {
+	ObjectList_CallUpdateFunction(list, list->GlobalFixedUpdateFunctionName.c_str());
 }
 bool CanUpdateEntity(Entity* ent) {
 	if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED &&
@@ -803,6 +809,13 @@ void Scene::Update() {
 void Scene::FixedUpdate() {
 	// Animate tiles
 	Scene::RunTileAnimations();
+
+	// Call global updates
+	if (Scene::ObjectLists) {
+		Scene::ObjectLists->ForAllOrdered(Application::UseFixedTimestep
+				? ObjectList_CallGlobalUpdates
+				: ObjectList_CallGlobalFixedUpdates);
+	}
 
 	// Early Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
@@ -2122,7 +2135,7 @@ ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFuncti
 		Scene::ObjectLists->Put(objectNameHash, objectList);
 
 		if (callListLoadFunction) {
-			ScriptManager::CallFunction(objectList->LoadFunctionName);
+			ScriptManager::CallFunction(objectList->LoadFunctionName.c_str());
 		}
 	}
 
