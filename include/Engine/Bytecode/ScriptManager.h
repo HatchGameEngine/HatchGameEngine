@@ -62,7 +62,7 @@ public:
 	static void LinkStandardLibrary();
 	static void LinkExtensions();
 	static bool RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash);
-	static bool CallFunction(char* functionName);
+	static bool CallFunction(const char* functionName);
 	static Entity* SpawnObject(const char* objectName);
 	static Uint32 MakeFilenameHash(const char* filename);
 	static std::string GetBytecodeFilenameForHash(Uint32 filenameHash);

@@ -179,6 +179,7 @@
                     <li><a href="#Reference_globals_LowPassFilter">LowPassFilter</a></li>
                     <li><a href="#Reference_globals_CurrentView">CurrentView</a></li>
                     <li><a href="#Reference_globals_Scene_Frame">Scene_Frame</a></li>
+                    <li><a href="#Reference_globals_DeltaTime">DeltaTime</a></li>
                     <li><a href="#Reference_globals_Scene_Filter">Scene_Filter</a></li>
                     <li><a href="#Reference_globals_Scene_TimeEnabled">Scene_TimeEnabled</a></li>
                     <li><a href="#Reference_globals_Scene_TimeCounter">Scene_TimeCounter</a></li>
@@ -242,6 +243,7 @@
                     <li><a href="#Reference_functions_Application_GetEngineVersionCodename">Application.GetEngineVersionCodename</a></li>
                     <li><a href="#Reference_functions_Application_GetTargetFrameRate">Application.GetTargetFrameRate</a></li>
                     <li><a href="#Reference_functions_Application_SetTargetFrameRate">Application.SetTargetFrameRate</a></li>
+                    <li><a href="#Reference_functions_Application_UseFixedTimestep">Application.UseFixedTimestep</a></li>
                     <li><a href="#Reference_functions_Application_GetFPS">Application.GetFPS</a></li>
                     <li><a href="#Reference_functions_Application_ShowFPSCounter">Application.ShowFPSCounter</a></li>
                     <li><a href="#Reference_functions_Application_GetKeyBind">Application.GetKeyBind</a></li>
@@ -636,6 +638,7 @@
                     <li><a href="#Reference_functions_Instance_GetNextInstance">Instance.GetNextInstance</a></li>
                     <li><a href="#Reference_functions_Instance_GetBySlotID">Instance.GetBySlotID</a></li>
                     <li><a href="#Reference_functions_Instance_DisableAutoAnimate">Instance.DisableAutoAnimate</a></li>
+                    <li><a href="#Reference_functions_Instance_SetUseRenderRegions">Instance.SetUseRenderRegions</a></li>
                     <li><a href="#Reference_functions_Instance_Copy">Instance.Copy</a></li>
                     <li><a href="#Reference_functions_Instance_ChangeClass">Instance.ChangeClass</a></li>
                 </ul>
@@ -2413,17 +2416,26 @@
         <p id="Reference_functions_Application_GetTargetFrameRate">
         <h2 style="margin-bottom: 8px;">Application.GetTargetFrameRate</h2>
         <code>Application.GetTargetFrameRate()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the target frame rate.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the target frame rate of the fixed timestep.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Application_SetTargetFrameRate">
         <h2 style="margin-bottom: 8px;">Application.SetTargetFrameRate</h2>
         <code>Application.SetTargetFrameRate(framerate)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the target frame rate.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the target frame rate of the fixed timestep.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>framerate (Integer): The target frame rate.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Application_UseFixedTimestep">
+        <h2 style="margin-bottom: 8px;">Application.UseFixedTimestep</h2>
+        <code>Application.UseFixedTimestep(useFixedTimestep)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables fixed timestep. This is enabled by default.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>useFixedTimestep (Boolean): Whether or not to use fixed timestep.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_GetFPS">
@@ -2547,7 +2559,7 @@
         <p id="Reference_functions_Application_ChangeGame">
         <h2 style="margin-bottom: 8px;">Application.ChangeGame</h2>
         <code>Application.ChangeGame(path[, startingScene, cmdLineArgs])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead. Only <code>game://</code> and <code>user://</code> URLs are supported (or an absolute path that resolves to those locations).<br/><br/>This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>The change only takes effect after a frame completes.<br/><br/>Note that certain game configurations will persist between games if not set by the new GameConfig:<ul><li>Game-identifying configurations:</li><ul><li>Game title (including the short game title)</li><li>Game version</li><li>Game description</li><li>Game developer</li><li>Game identifier</li><li>Developer identifier</li></ul><li>Paths:</li><ul><li>Saves directory</li><li>Preferences directory</li></ul><li>Engine configurations:</li><ul><li>Window size</li><li>Audio volume</li><li>Settings filename</li><ul>If this is changed, the current settings are discarded (not saved) and the new settings file is loaded. If the file does not exist, however, default settings will be loaded.</ul></ul></ul>Some of the game's current state also persists between games:<ul><li>Command line arguments (unless <code>cmdLineArgs</code> is passed to this function)</li><li>Palette colors</li><li>Whether palette rendering is enabled</li><li>Whether software rendering was enabled with <code>useSoftwareRenderer</code></li></ul>The following <b>does not</b> persist between games:<ul><li>Any loaded resources</li><li>Any persistent entities</li><li>Scripting state</li></ul>The following <b>cannot</b> be changed between games:<ul><li>Log file name</li><li>Graphics rendering backend</li></ul></div>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead. Only <code>game://</code> and <code>user://</code> URLs are supported (or an absolute path that resolves to those locations).<br/><br/>This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>The change only takes effect after a frame completes.<br/><br/>Note that certain game configurations will persist between games if not set by the new GameConfig:<ul><li>Game-identifying configurations:</li><ul><li>Game title (including the short game title)</li><li>Game version</li><li>Game description</li><li>Game developer</li><li>Game identifier</li><li>Developer identifier</li></ul><li>Paths:</li><ul><li>Saves directory</li><li>Preferences directory</li></ul><li>Engine configurations:</li><ul><li>Window size</li><li>Audio volume</li><li>Target frame rate</li><li>Whether fixed timestep was enabled or disabled with <code>useFixedTimestep</code></li><li>Settings filename</li><ul>If this is changed, the current settings are discarded (not saved) and the new settings file is loaded. If the file does not exist, however, default settings will be loaded.</ul></ul></ul>Some of the game's current state also persists between games:<ul><li>Command line arguments (unless <code>cmdLineArgs</code> is passed to this function)</li><li>Palette colors</li><li>Whether palette rendering is enabled</li><li>Whether software rendering was enabled or disabled with <code>useSoftwareRenderer</code></li></ul>The following <b>does not</b> persist between games:<ul><li>Any loaded resources</li><li>Any persistent entities</li><li>Scripting state</li></ul>The following <b>cannot</b> be changed between games:<ul><li>Log file name</li><li>Graphics rendering backend</li></ul></div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>path (String): The path of the data file to load.</li>
@@ -5688,6 +5700,15 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>disableAutoAnimate (Boolean): Whether to turn off the engine automatically applying AutoAnimate when entities are initialized.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Instance_SetUseRenderRegions">
+        <h2 style="margin-bottom: 8px;">Instance.SetUseRenderRegions</h2>
+        <code>Instance.SetUseRenderRegions(useRenderRegions)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether entities will use Render Regions when rendering. If false, entities will use their Update Regions instead.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>useRenderRegions (Boolean): Whether render regions will be used.</li>
         </ul>
         </p>
         <p id="Reference_functions_Instance_Copy">
@@ -10521,7 +10542,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>765 out of 820 functions have descriptions. </p>
+        <p>767 out of 822 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -13067,6 +13088,10 @@
         <h3 style="margin-bottom: 8px;"><code>Scene_Frame</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The current scene frame.</div>
         </p>
+        <p id="Reference_globals_DeltaTime">
+        <h3 style="margin-bottom: 8px;"><code>DeltaTime</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The delta time.</div>
+        </p>
         <p id="Reference_globals_Scene_Filter">
         <h3 style="margin-bottom: 8px;"><code>Scene_Filter</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The current scene filter.</div>
@@ -13103,7 +13128,7 @@
         <h3 style="margin-bottom: 8px;"><code>Scene_DebugMode</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Whether nor not Debug Mode has been turned on in the current scene</div>
         </p>
-        <p>14 out of 14 globals have descriptions. </p>
+        <p>15 out of 15 globals have descriptions. </p>
         <hr/>
     </body>
 </html>
