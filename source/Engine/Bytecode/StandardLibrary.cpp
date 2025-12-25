@@ -18479,12 +18479,13 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* self = (Entity*)instance->EntityPtr;
-	float rangeX = 0.0;
-	float rangeY = 0.0;
 
 	if (!self) {
 		return INTEGER_VAL(false);
 	}
+
+	float rangeX = self->OnScreenHitboxW;
+	float rangeY = self->OnScreenHitboxH;
 
 	if (argCount >= 2 && !IS_NULL(args[1])) {
 		rangeX = GET_ARG(1, GetDecimal);
@@ -18493,17 +18494,7 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 		rangeY = GET_ARG(2, GetDecimal);
 	}
 
-	if (!rangeX) {
-		rangeX = self->OnScreenHitboxW;
-	}
-	if (!rangeY) {
-		rangeY = self->OnScreenHitboxH;
-	}
-
-	float selfX = self->X - (rangeX * 0.5);
-	float selfY = self->Y - (rangeY * 0.5);
-
-	return INTEGER_VAL(Scene::CheckPosOnScreen(selfX, selfY, rangeX, rangeY));
+	return INTEGER_VAL(Scene::CheckPosOnScreen(self->X, self->Y, rangeX, rangeY));
 }
 /***
  * View.CheckPosOnScreen

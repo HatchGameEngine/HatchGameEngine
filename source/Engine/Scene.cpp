@@ -873,8 +873,8 @@ bool Scene::CheckPosOnScreen(float posX, float posY, float rangeX, float rangeY)
 	for (int s = 0; s < MAX_SCENE_VIEWS; ++s) {
 		if (Scene::Views[s].Active && posX + (rangeX * 0.5f) >= Scene::Views[s].X &&
 			posY + (rangeY * 0.5f) >= Scene::Views[s].Y &&
-			posX < Scene::Views[s].X + Scene::Views[s].Width &&
-			posY < Scene::Views[s].Y + Scene::Views[s].Height) {
+			posX - (rangeX * 0.5f) < Scene::Views[s].X + Scene::Views[s].Width &&
+			posY - (rangeY * 0.5f) < Scene::Views[s].Y + Scene::Views[s].Height) {
 			return true;
 		}
 	}
