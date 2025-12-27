@@ -256,6 +256,7 @@
                     <li><a href="#Reference_functions_Application_SetGameDescription">Application.SetGameDescription</a></li>
                     <li><a href="#Reference_functions_Application_SetCursorVisible">Application.SetCursorVisible</a></li>
                     <li><a href="#Reference_functions_Application_GetCursorVisible">Application.GetCursorVisible</a></li>
+                    <li><a href="#Reference_functions_Application_Error">Application.Error</a></li>
                     <li><a href="#Reference_functions_Application_SetDefaultFont">Application.SetDefaultFont</a></li>
                     <li><a href="#Reference_functions_Application_ChangeGame">Application.ChangeGame</a></li>
                     <li><a href="#Reference_functions_Application_Quit">Application.Quit</a></li>
@@ -2535,6 +2536,16 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the visibility of the cursor.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether ot not the cursor is visible.</div>
+        </p>
+        <p id="Reference_functions_Application_Error">
+        <h2 style="margin-bottom: 8px;">Application.Error</h2>
+        <code>Application.Error(message[, detailed])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Shows an error message to the user through a dialog box, if possible. The error message is also logged.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>message (String): The error message to show to the user.</li>
+        <li>detailed (Boolean): Whether or not to show the stack trace alongside the error. The default is <code>true</code>.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Application_SetDefaultFont">
         <h2 style="margin-bottom: 8px;">Application.SetDefaultFont</h2>
@@ -10531,7 +10542,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>766 out of 821 functions have descriptions. </p>
+        <p>767 out of 822 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
