@@ -241,7 +241,9 @@ void Application::Init(int argc, char* args[]) {
 		MemoryCache::Init();
 	}
 
-	Application::SaveSettings();
+	if (Application::Settings && !Application::Settings->IsPersisted()) {
+		Application::Settings->Save();
+	}
 
 	AudioManager::Init();
 
