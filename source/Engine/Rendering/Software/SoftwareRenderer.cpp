@@ -3503,8 +3503,8 @@ void SoftwareRenderer::DrawTexture(Texture* texture,
 void SoftwareRenderer::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
@@ -3531,6 +3531,9 @@ void SoftwareRenderer::DrawSprite(ISprite* sprite,
 	y += out->Values[13];
 	x -= cx;
 	y -= cy;
+
+	x = std::floor(x);
+	y = std::floor(y);
 
 	BlendState blendState = GetBlendState();
 	int flipFlag = (int)flipX | ((int)flipY << 1);
@@ -3612,8 +3615,8 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 	int sy,
 	int sw,
 	int sh,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
@@ -3640,6 +3643,9 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 	y += out->Values[13];
 	x -= cx;
 	y -= cy;
+
+	x = std::floor(x);
+	y = std::floor(y);
 
 	if (sw >= frameStr.Width - sx) {
 		sw = frameStr.Width - sx;

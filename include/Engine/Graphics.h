@@ -32,6 +32,18 @@ private:
 	static void DeleteShaders();
 	static void DeleteVertexBuffers();
 	static std::vector<Uint32> GetTextCodepoints(Font* font, const char* text);
+	static Sint64 CalcHorizontalParallaxPosition(SceneLayer* layer,
+		float viewX,
+		float constant,
+		float relative);
+	static void CalcScanlineDeforms(SceneLayer* layer,
+		int start,
+		int end,
+		float viewX,
+		int scrollLine,
+		int* deformValues,
+		int deformOffset,
+		TileScanLine* scanLine);
 
 public:
 	static bool Initialized;
@@ -217,8 +229,8 @@ public:
 	static void DrawSprite(ISprite* sprite,
 		int animation,
 		int frame,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,
@@ -232,8 +244,8 @@ public:
 		int sy,
 		int sw,
 		int sh,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,
@@ -252,8 +264,8 @@ public:
 	static void DrawSprite(ISprite* sprite,
 		int animation,
 		int frame,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,
@@ -266,8 +278,8 @@ public:
 		int sy,
 		int sw,
 		int sh,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,

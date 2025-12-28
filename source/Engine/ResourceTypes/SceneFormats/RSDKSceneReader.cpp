@@ -253,6 +253,8 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 	int DrawGroup = r->ReadByte();
 	int Width = (int)r->ReadUInt16();
 	int Height = (int)r->ReadUInt16();
+	float relativeY = r->ReadInt16() / 0x100;
+	float constantY = r->ReadInt16() / 0x100;
 
 	SceneLayer layer(Width, Height);
 	if (layerDrawBehavior == 3) {
@@ -262,8 +264,8 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 
 	layer.Name = Name;
 
-	layer.RelativeY = r->ReadInt16();
-	layer.ConstantY = (short)r->ReadInt16();
+	layer.RelativeY = relativeY;
+	layer.ConstantY = constantY;
 
 	layer.Flags = 0;
 
@@ -285,10 +287,13 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 	layer.ScrollInfos =
 		(ScrollingInfo*)Memory::Malloc(layer.ScrollInfoCount * sizeof(ScrollingInfo));
 	for (int g = 0; g < layer.ScrollInfoCount; g++) {
-		layer.ScrollInfos[g].RelativeParallax = r->ReadInt16();
-		layer.ScrollInfos[g].ConstantParallax = r->ReadInt16();
+		Uint16 relativeParallax = r->ReadInt16();
+		Uint16 constantParallax = r->ReadInt16();
 
-		layer.ScrollInfos[g].CanDeform = (char)r->ReadByte();
+		layer.ScrollInfos[g].RelativeParallax = (float)relativeParallax / 0x100;
+		layer.ScrollInfos[g].ConstantParallax = (float)constantParallax / 0x100;
+
+		layer.ScrollInfos[g].CanDeform = (bool)r->ReadByte();
 		r->ReadByte();
 	}
 
@@ -499,9 +504,10 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 			else {
 				obj->Filter = 0xFF;
 			}
-            
-			if (!obj->Filter)
+
+			if (!obj->Filter) {
 				obj->Filter = 0xFF;
+			}
 
 			if (!(obj->Filter & Scene::Filter)) {
 				doAdd = false;

@@ -20,10 +20,10 @@ public:
 	Uint32 HeightData = 0;
 	Uint32 DataSize = 0;
 	Uint32 ScrollIndexCount = 0;
-	int RelativeY = 0x0100;
-	int ConstantY = 0x0000;
-	int OffsetX = 0x0000;
-	int OffsetY = 0x0000;
+	float RelativeY = 1.0;
+	float ConstantY = 0.0;
+	float OffsetX = 0.0;
+	float OffsetY = 0.0;
 	Uint32* Tiles = NULL;
 	Uint32* TilesBackup = NULL;
 	Uint16* TileOffsetY = NULL;
