@@ -118,8 +118,8 @@ ObjClass* NewClass(Uint32 hash) {
 }
 ObjClass* NewClass(const char* className) {
 	ObjClass* klass = NewClass(GetClassHash(className));
-	klass->Name = (char*)Memory::Realloc(klass->Name, strlen(className));
-	memcpy(klass->Name, className, strlen(className));
+	klass->Name = (char*)Memory::Realloc(klass->Name, strlen(className) + 1);
+	memcpy(klass->Name, className, strlen(className) + 1);
 	return klass;
 }
 ObjInstance* NewInstance(ObjClass* klass) {
@@ -154,8 +154,8 @@ ObjNamespace* NewNamespace(Uint32 hash) {
 }
 ObjNamespace* NewNamespace(const char* nsName) {
 	ObjNamespace* ns = NewNamespace(GetClassHash(nsName));
-	ns->Name = (char*)Memory::Realloc(ns->Name, strlen(nsName));
-	memcpy(ns->Name, nsName, strlen(nsName));
+	ns->Name = (char*)Memory::Realloc(ns->Name, strlen(nsName) + 1);
+	memcpy(ns->Name, nsName, strlen(nsName) + 1);
 	return ns;
 }
 ObjEnum* NewEnum(Uint32 hash) {
