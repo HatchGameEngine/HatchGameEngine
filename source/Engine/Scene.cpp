@@ -281,11 +281,13 @@ void UpdateObject(Entity* ent) {
 
 			if (!onScreenX) {
 				onScreenX = entX2 >= Scene::Views[i].X &&
-					entX1 < Scene::Views[i].X + Scene::Views[i].Width;
+					entX1 < Scene::Views[i].X +
+							Scene::Views[i].GetScaledWidth();
 			}
 			if (!onScreenY) {
 				onScreenY = entY2 >= Scene::Views[i].Y &&
-					entY1 < Scene::Views[i].Y + Scene::Views[i].Height;
+					entY1 < Scene::Views[i].Y +
+							Scene::Views[i].GetScaledHeight();
 			}
 
 			if (onScreenX && onScreenY) {
@@ -306,7 +308,8 @@ void UpdateObject(Entity* ent) {
 				continue;
 			}
 
-			if (entX2 >= Scene::Views[i].X && entX1 < Scene::Views[i].X + Scene::Views[i].Width) {
+			if (entX2 >= Scene::Views[i].X &&
+				entX1 < Scene::Views[i].X + Scene::Views[i].GetScaledWidth()) {
 				ent->InRange = true;
 				break;
 			}
@@ -324,7 +327,8 @@ void UpdateObject(Entity* ent) {
 				continue;
 			}
 
-			if (entY2 >= Scene::Views[i].Y && entY1 < Scene::Views[i].Y + Scene::Views[i].Height) {
+			if (entY2 >= Scene::Views[i].Y &&
+				entY1 < Scene::Views[i].Y + Scene::Views[i].GetScaledHeight()) {
 				ent->InRange = true;
 				break;
 			}
@@ -926,10 +930,6 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		viewPerf->RecreatedDrawTarget = true;
 	}
 
-	float cx = std::floor(currentView->X);
-	float cy = std::floor(currentView->Y);
-	float cz = std::floor(currentView->Z);
-
 	int viewRenderFlag = 1 << viewIndex;
 
 	// Adjust projection
@@ -968,8 +968,8 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	// Render Objects and Layer Tiles
 	float _vx = currentView->X;
 	float _vy = currentView->Y;
-	float _vw = currentView->Width;
-	float _vh = currentView->Height;
+	float _vw = currentView->GetScaledWidth();
+	float _vh = currentView->GetScaledHeight();
 	double objectTimeTotal = 0.0;
 	DrawGroupList* drawGroupList;
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
@@ -1234,31 +1234,45 @@ void Scene::SetupView2D(View* currentView) {
 		Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
 	}
 
-	// Rotate
-	if (currentView->RotateX || currentView->RotateY || currentView->RotateZ) {
+	// Rotate and scale
+	if (currentView->RotateX || currentView->RotateY || currentView->RotateZ ||
+		currentView->ScaleX || currentView->ScaleY || currentView->ScaleZ) {
+		if (currentView->ScaleX || currentView->ScaleY || currentView->ScaleZ) {
+			Matrix4x4::Scale(currentView->ViewMatrix,
+				currentView->ViewMatrix,
+				currentView->ScaleX,
+				currentView->ScaleY,
+				currentView->ScaleZ);
+		}
 		Matrix4x4::Translate(currentView->ViewMatrix,
 			currentView->ViewMatrix,
 			currentView->Width / 2.0,
 			currentView->Height / 2.0,
 			0.0);
-		Matrix4x4::Rotate(currentView->ViewMatrix,
-			currentView->ViewMatrix,
-			currentView->RotateX,
-			1.0,
-			0.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ViewMatrix,
-			currentView->ViewMatrix,
-			currentView->RotateY,
-			0.0,
-			1.0,
-			0.0);
-		Matrix4x4::Rotate(currentView->ViewMatrix,
-			currentView->ViewMatrix,
-			currentView->RotateZ,
-			0.0,
-			0.0,
-			1.0);
+		if (currentView->RotateX) {
+			Matrix4x4::Rotate(currentView->ViewMatrix,
+				currentView->ViewMatrix,
+				currentView->RotateX,
+				1.0,
+				0.0,
+				0.0);
+		}
+		if (currentView->RotateY) {
+			Matrix4x4::Rotate(currentView->ViewMatrix,
+				currentView->ViewMatrix,
+				currentView->RotateY,
+				0.0,
+				1.0,
+				0.0);
+		}
+		if (currentView->RotateZ) {
+			Matrix4x4::Rotate(currentView->ViewMatrix,
+				currentView->ViewMatrix,
+				currentView->RotateZ,
+				0.0,
+				0.0,
+				1.0);
+		}
 		Matrix4x4::Translate(currentView->ViewMatrix,
 			currentView->ViewMatrix,
 			-currentView->Width / 2.0,
@@ -1267,11 +1281,11 @@ void Scene::SetupView2D(View* currentView) {
 	}
 
 	// Translate
-	float cx = std::floor(currentView->X);
-	float cy = std::floor(currentView->Y);
-	float cz = std::floor(currentView->Z);
-
-	Matrix4x4::Translate(currentView->ViewMatrix, currentView->ViewMatrix, -cx, -cy, -cz);
+	Matrix4x4::Translate(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		-currentView->X,
+		-currentView->Y,
+		-currentView->Z);
 }
 
 void Scene::SetupView3D(View* currentView) {
@@ -1279,6 +1293,13 @@ void Scene::SetupView3D(View* currentView) {
 		currentView->Width / currentView->Height,
 		currentView->NearPlane,
 		currentView->FarPlane);
+
+	// Scale
+	Matrix4x4::Scale(currentView->ViewMatrix,
+		currentView->ViewMatrix,
+		currentView->ScaleX,
+		currentView->ScaleY,
+		currentView->ScaleZ);
 
 	// Rotate
 	Matrix4x4::Rotate(currentView->ViewMatrix,

@@ -12,6 +12,23 @@ void View::SetSize(float w, float h) {
 	}
 }
 
+float View::GetScaledWidth() {
+	float scale = fabs(ScaleX);
+	if (scale < 0.01) {
+		scale = 0.01;
+	}
+
+	return Width * (1.0 / scale);
+}
+float View::GetScaledHeight() {
+	float scale = fabs(ScaleY);
+	if (scale < 0.01) {
+		scale = 0.01;
+	}
+
+	return Height * (1.0 / scale);
+}
+
 void View::SetStencilEnabled(bool enabled) {
 	UseStencil = enabled;
 }

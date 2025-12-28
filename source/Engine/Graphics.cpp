@@ -2455,9 +2455,12 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	int layerOffsetX = layer->OffsetX;
 	int layerOffsetY = layer->OffsetY;
 
+	float viewWidth = currentView->GetScaledWidth();
+	float viewHeight = currentView->GetScaledHeight();
+
 	int startX = 0, startY = 0;
-	int endX = (int)currentView->Width + tileWidth;
-	int endY = (int)currentView->Height + tileHeight;
+	int endX = (int)viewWidth + tileWidth;
+	int endY = (int)viewHeight + tileHeight;
 
 	int scrollOffset = Scene::Frame * layer->ConstantY;
 	int srcY = (scrollOffset + ((viewY + layerOffsetY) * layer->RelativeY)) >> 8;
@@ -2465,8 +2468,22 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 
 	// Draw more of the view if it is being rotated on the Z axis
 	if (currentView->RotateZ != 0.0f) {
-		int offsetY = currentView->Height / 2;
-		int offsetX = currentView->Width / 2;
+		int offsetY = std::ceil(viewHeight);
+		int offsetX = std::ceil(viewWidth);
+
+		if (std::abs(currentView->ScaleY) <= 1.0) {
+			offsetY *= 0.5;
+		}
+		else {
+			offsetY *= 2.0;
+		}
+
+		if (std::abs(currentView->ScaleX) <= 1.0) {
+			offsetX *= 0.5;
+		}
+		else {
+			offsetX *= 2.0;
+		}
 
 		startY = -offsetY;
 		endY += offsetY;

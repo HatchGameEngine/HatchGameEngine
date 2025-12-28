@@ -18017,12 +18017,30 @@ VMValue View_AdjustZ(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * View.SetScale
+ * \desc Sets the scale of the camera for the specified view.
+ * \param viewIndex (Integer): Index of the view.
+ * \param x (Number): Desired X scale.
+ * \param y (Number): Desired Y scale.
+ * \paramOpt z (Number): Desired Z scale.
+ * \ns View
+ */
+VMValue View_SetScale(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].ScaleX = GET_ARG(1, GetDecimal);
+	Scene::Views[view_index].ScaleY = GET_ARG(2, GetDecimal);
+	Scene::Views[view_index].ScaleZ = GET_ARG_OPT(3, GetDecimal, 1.0);
+	return NULL_VAL;
+}
+/***
  * View.SetAngle
  * \desc Sets the angle of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
- * \param x (Number): Desired X angle
- * \param y (Number): Desired Y angle
- * \param z (Number): Desired Z angle
+ * \param x (Number): Desired X angle.
+ * \param y (Number): Desired Y angle.
+ * \param z (Number): Desired Z angle.
  * \ns View
  */
 VMValue View_SetAngle(int argCount, VMValue* args, Uint32 threadID) {
@@ -20941,6 +20959,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, AdjustX);
 	DEF_NATIVE(View, AdjustY);
 	DEF_NATIVE(View, AdjustZ);
+	DEF_NATIVE(View, SetScale);
 	DEF_NATIVE(View, SetAngle);
 	DEF_NATIVE(View, SetSize);
 	DEF_NATIVE(View, SetOutputX);

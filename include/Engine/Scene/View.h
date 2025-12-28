@@ -15,6 +15,9 @@ public:
 	float X = 0.0f;
 	float Y = 0.0f;
 	float Z = 0.0f;
+	float ScaleX = 1.0f;
+	float ScaleY = 1.0f;
+	float ScaleZ = 1.0f;
 	float RotateX = 0.0f;
 	float RotateY = 0.0f;
 	float RotateZ = 0.0f;
@@ -38,6 +41,8 @@ public:
 	Matrix4x4* ViewMatrix = NULL;
 	Shader* CurrentShader = NULL;
 
+	float GetScaledWidth();
+	float GetScaledHeight();
 	void SetSize(float w, float h);
 	void SetStencilEnabled(bool enabled);
 	void ReallocStencil();
