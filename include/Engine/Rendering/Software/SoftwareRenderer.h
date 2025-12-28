@@ -14,20 +14,32 @@
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISprite.h>
 
+struct PlotPixelContext {
+	Uint32* DestPx;
+	Uint32 DestStride;
+	BlendState Blend;
+	int* MultTable;
+	int* MultSubTable;
+	PixelFunction PixelFunc;
+	Uint32 Color;
+};
+
 class SoftwareRenderer {
 private:
 	static void SetColor(Uint32 color);
 	static Uint32 GetBlendColor();
 	static bool SetupPolygonRenderer(Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
 	static void InitContour(Contour* contourBuffer, int dst_y1, int scanLineCount);
-	static void RasterizeCircle(int ccx,
+	static void RasterizeEllipse(int ccx,
 		int ccy,
 		int dst_x1,
 		int dst_y1,
 		int dst_x2,
 		int dst_y2,
-		float rad,
-		Contour* contourBuffer);
+		float width,
+		float height,
+		Contour* contourBuffer,
+		PlotPixelContext* ctx);
 	static void StrokeThickCircle(float x, float y, float rad, float thickness);
 	static void DrawShapeTextured(Texture* texturePtr,
 		unsigned numPoints,

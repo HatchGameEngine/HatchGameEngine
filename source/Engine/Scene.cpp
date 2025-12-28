@@ -1234,16 +1234,19 @@ void Scene::SetupView2D(View* currentView) {
 		Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
 	}
 
-	// Rotate and scale
-	if (currentView->RotateX || currentView->RotateY || currentView->RotateZ ||
-		currentView->ScaleX || currentView->ScaleY || currentView->ScaleZ) {
-		if (currentView->ScaleX || currentView->ScaleY || currentView->ScaleZ) {
-			Matrix4x4::Scale(currentView->ViewMatrix,
-				currentView->ViewMatrix,
-				currentView->ScaleX,
-				currentView->ScaleY,
-				currentView->ScaleZ);
-		}
+	// Scale
+	bool isScaled = currentView->IsScaled();
+	if (isScaled) {
+		Matrix4x4::Scale(currentView->ViewMatrix,
+			currentView->ViewMatrix,
+			currentView->ScaleX,
+			currentView->ScaleY,
+			currentView->ScaleZ);
+	}
+
+	// Rotate
+	bool isRotated = currentView->IsRotated();
+	if (isRotated) {
 		Matrix4x4::Translate(currentView->ViewMatrix,
 			currentView->ViewMatrix,
 			currentView->Width / 2.0,
@@ -1281,11 +1284,21 @@ void Scene::SetupView2D(View* currentView) {
 	}
 
 	// Translate
+	float cx = currentView->X;
+	float cy = currentView->Y;
+	float cz = currentView->Z;
+
+	if (!isScaled && !isRotated) {
+		cx = std::floor(cx);
+		cy = std::floor(cy);
+		cz = std::floor(cz);
+	}
+
 	Matrix4x4::Translate(currentView->ViewMatrix,
 		currentView->ViewMatrix,
-		-currentView->X,
-		-currentView->Y,
-		-currentView->Z);
+		-cx,
+		-cy,
+		-cz);
 }
 
 void Scene::SetupView3D(View* currentView) {

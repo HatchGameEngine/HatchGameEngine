@@ -6,6 +6,8 @@
 #include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/Texture.h>
 
+#define MIN_VIEW_SCALE 0.01f
+
 class View {
 public:
 	bool Active = false;
@@ -41,6 +43,8 @@ public:
 	Matrix4x4* ViewMatrix = NULL;
 	Shader* CurrentShader = NULL;
 
+	bool IsScaled();
+	bool IsRotated();
 	float GetScaledWidth();
 	float GetScaledHeight();
 	void SetSize(float w, float h);
