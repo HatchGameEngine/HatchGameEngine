@@ -1400,7 +1400,7 @@ VMValue Application_GetEngineVersionCodename(int argCount, VMValue* args, Uint32
 }
 /***
  * Application.GetTargetFrameRate
- * \desc Gets the target frame rate.
+ * \desc Gets the target frame rate of the fixed timestep.
  * \return Returns an Integer value.
  * \ns Application
  */
@@ -1410,7 +1410,7 @@ VMValue Application_GetTargetFrameRate(int argCount, VMValue* args, Uint32 threa
 }
 /***
  * Application.SetTargetFrameRate
- * \desc Sets the target frame rate.
+ * \desc Sets the target frame rate of the fixed timestep.
  * \param framerate (Integer): The target frame rate.
  * \ns Application
  */
@@ -1424,6 +1424,19 @@ VMValue Application_SetTargetFrameRate(int argCount, VMValue* args, Uint32 threa
 	Application::SetTargetFrameRate(framerate);
 	return NULL_VAL;
 }
+/***
+ * Application.UseFixedTimestep
+ * \desc Enables or disables fixed timestep. This is enabled by default.
+ * \param useFixedTimestep (Boolean): Whether or not to use fixed timestep.
+ * \ns Application
+ */
+VMValue Application_UseFixedTimestep(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	bool useFixedTimestep = GET_ARG(0, GetInteger);
+	Application::ShouldUseFixedTimestep = useFixedTimestep;
+	return NULL_VAL;
+}
+
 /***
  * Application.GetFPS
  * \desc Gets the current FPS (frames per second).
@@ -1679,6 +1692,8 @@ Note that certain game configurations will persist between games if not set by t
 <li>Engine configurations:</li><ul>\
 <li>Window size</li>\
 <li>Audio volume</li>\
+<li>Target frame rate</li>\
+<li>Whether fixed timestep was enabled or disabled with <code>useFixedTimestep</code></li>\
 <li>Settings filename</li>\
 <ul>If this is changed, the current settings are discarded (not saved) and the new settings file is loaded. If the file does not exist, however, default settings will be loaded.</ul>\
 </ul></ul>\
@@ -1686,7 +1701,7 @@ Some of the game's current state also persists between games:<ul>\
 <li>Command line arguments (unless <code>cmdLineArgs</code> is passed to this function)</li>\
 <li>Palette colors</li>\
 <li>Whether palette rendering is enabled</li>\
-<li>Whether software rendering was enabled with <code>useSoftwareRenderer</code></li>\
+<li>Whether software rendering was enabled or disabled with <code>useSoftwareRenderer</code></li>\
 </ul>\
 The following <b>does not</b> persist between games:<ul>\
 <li>Any loaded resources</li>\
@@ -18952,6 +18967,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, GetEngineVersionCodename);
 	DEF_NATIVE(Application, GetTargetFrameRate);
 	DEF_NATIVE(Application, SetTargetFrameRate);
+	DEF_NATIVE(Application, UseFixedTimestep);
 	DEF_NATIVE(Application, GetFPS);
 	DEF_NATIVE(Application, ShowFPSCounter);
 	DEF_NATIVE(Application, GetKeyBind);
@@ -21197,6 +21213,12 @@ void StandardLibrary::Link() {
     * \desc The current scene frame.
     */
 	DEF_LINK_INT("Scene_Frame", &Scene::Frame);
+	/***
+    * \global DeltaTime
+    * \type Decimal
+    * \desc The delta time.
+    */
+	DEF_LINK_DECIMAL("DeltaTime", &Application::ActualDeltaTime);
 	/***
 	* \global Scene_Filter
 	* \type Integer

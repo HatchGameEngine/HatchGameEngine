@@ -165,69 +165,33 @@ void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
 		return;
 	}
 
-	ScriptManager::CallFunction(list->LoadFunctionName);
+	ScriptManager::CallFunction(list->LoadFunctionName.c_str());
 }
-void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
+void ObjectList_CallUpdateFunction(ObjectList* list, const char* functionName) {
 	if (list->Activity == ACTIVE_ALWAYS ||
 		(list->Activity == ACTIVE_NORMAL && !Scene::Paused) ||
 		(list->Activity == ACTIVE_PAUSED && Scene::Paused)) {
-		ScriptManager::CallFunction(list->GlobalUpdateFunctionName);
+		ScriptManager::CallFunction(functionName);
 	}
 }
-void UpdateObjectEarly(Entity* ent) {
-	if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED &&
-		ent->Activity != ACTIVE_ALWAYS) {
-		return;
-	}
-	if (!ent->Active) {
-		return;
-	}
-	if (!ent->OnScreen) {
-		return;
-	}
-
-	double elapsed = Clock::GetTicks();
-
-	ent->UpdateEarly();
-
-	elapsed = Clock::GetTicks() - elapsed;
-
-	if (ent->List) {
-		ent->List->Performance.EarlyUpdate.DoAverage(elapsed);
-	}
+void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
+	ObjectList_CallUpdateFunction(list, list->GlobalUpdateFunctionName.c_str());
 }
-void UpdateObjectLate(Entity* ent) {
-	if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED &&
-		ent->Activity != ACTIVE_ALWAYS) {
-		return;
-	}
-	if (!ent->Active) {
-		return;
-	}
-	if (!ent->OnScreen) {
-		return;
-	}
-
-	double elapsed = Clock::GetTicks();
-
-	ent->UpdateLate();
-
-	elapsed = Clock::GetTicks() - elapsed;
-
-	if (ent->List) {
-		ent->List->Performance.LateUpdate.DoAverage(elapsed);
-	}
+void ObjectList_CallGlobalFixedUpdates(Uint32, ObjectList* list) {
+	ObjectList_CallUpdateFunction(list, list->GlobalFixedUpdateFunctionName.c_str());
 }
-void UpdateObject(Entity* ent) {
+bool CanUpdateEntity(Entity* ent) {
 	if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED &&
 		ent->Activity != ACTIVE_ALWAYS) {
-		return;
+		return false;
 	}
-
 	if (!ent->Active) {
-		return;
+		return false;
 	}
 
+	return true;
+}
+void DetermineEntityIsOnScreen(Entity* ent) {
 	bool onScreenX = false;
 	bool onScreenY = false;
 
@@ -351,6 +315,28 @@ void UpdateObject(Entity* ent) {
 		}
 		break;
 	}
+}
+void UpdateObjectEarly(Entity* ent) {
+	if (!CanUpdateEntity(ent)) {
+		return;
+	}
+
+	double elapsed = Clock::GetTicks();
+
+	ent->UpdateEarly();
+
+	elapsed = Clock::GetTicks() - elapsed;
+
+	if (ent->List) {
+		ent->List->Performance.EarlyUpdate.DoAverage(elapsed);
+	}
+}
+void UpdateObject(Entity* ent) {
+	if (!CanUpdateEntity(ent)) {
+		return;
+	}
+
+	DetermineEntityIsOnScreen(ent);
 
 	if (ent->InRange) {
 		double elapsed = Clock::GetTicks();
@@ -374,6 +360,82 @@ void UpdateObject(Entity* ent) {
 
 	ent->CheckDrawGroupChanges();
 	ent->CheckDepthChanges();
+}
+void UpdateObjectLate(Entity* ent) {
+	if (!CanUpdateEntity(ent) || !ent->OnScreen) {
+		return;
+	}
+
+	double elapsed = Clock::GetTicks();
+
+	ent->UpdateLate();
+
+	elapsed = Clock::GetTicks() - elapsed;
+
+	if (ent->List) {
+		ent->List->Performance.LateUpdate.DoAverage(elapsed);
+	}
+}
+
+void FixedUpdateObjectEarly(Entity* ent) {
+	if (!CanUpdateEntity(ent)) {
+		return;
+	}
+
+	double elapsed = Clock::GetTicks();
+
+	ent->FixedUpdateEarly();
+
+	elapsed = Clock::GetTicks() - elapsed;
+
+	if (ent->List) {
+		ent->List->Performance.EarlyUpdate.DoAverage(elapsed);
+	}
+}
+void FixedUpdateObject(Entity* ent) {
+	if (!CanUpdateEntity(ent)) {
+		return;
+	}
+
+	DetermineEntityIsOnScreen(ent);
+
+	if (ent->InRange) {
+		double elapsed = Clock::GetTicks();
+
+		ent->OnScreen = true;
+
+		ent->FixedUpdate();
+
+		elapsed = Clock::GetTicks() - elapsed;
+
+		if (ent->List) {
+			ent->List->Performance.Update.DoAverage(elapsed);
+		}
+
+		ent->WasOffScreen = false;
+	}
+	else {
+		ent->OnScreen = false;
+		ent->WasOffScreen = true;
+	}
+
+	ent->CheckDrawGroupChanges();
+	ent->CheckDepthChanges();
+}
+void FixedUpdateObjectLate(Entity* ent) {
+	if (!CanUpdateEntity(ent) || !ent->OnScreen) {
+		return;
+	}
+
+	double elapsed = Clock::GetTicks();
+
+	ent->FixedUpdateLate();
+
+	elapsed = Clock::GetTicks() - elapsed;
+
+	if (ent->List) {
+		ent->List->Performance.LateUpdate.DoAverage(elapsed);
+	}
 }
 
 // Double linked-list functions
@@ -708,17 +770,15 @@ void Scene::ResetPerf() {
 		});
 	}
 }
+void Scene::FrameUpdate() {
+	// Sort entities if needed
+	Scene::SortEntities();
+}
 void Scene::Update() {
-	// Animate tiles
-	Scene::RunTileAnimations();
-
 	// Call global updates
 	if (Scene::ObjectLists) {
 		Scene::ObjectLists->ForAllOrdered(ObjectList_CallGlobalUpdates);
 	}
-
-	// Sort entities if needed
-	Scene::SortEntities();
 
 	// Early Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
@@ -740,6 +800,39 @@ void Scene::Update() {
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		UpdateObjectLate(ent);
+	}
+}
+void Scene::FixedUpdate() {
+	// Animate tiles
+	Scene::RunTileAnimations();
+
+	// Call global updates
+	if (Scene::ObjectLists) {
+		Scene::ObjectLists->ForAllOrdered(Application::UseFixedTimestep
+				? ObjectList_CallGlobalUpdates
+				: ObjectList_CallGlobalFixedUpdates);
+	}
+
+	// Early Update
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
+		next = ent->NextSceneEntity;
+		FixedUpdateObjectEarly(ent);
+	}
+
+	// Update objects
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
+		// Store the "next" so that when/if the current is removed,
+		// it can still be used to point at the end of the loop.
+		next = ent->NextSceneEntity;
+
+		// Execute whatever on object
+		FixedUpdateObject(ent);
+	}
+
+	// Late Update
+	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
+		next = ent->NextSceneEntity;
+		FixedUpdateObjectLate(ent);
 
 		// Removes the object from the scene, but doesn't delete it yet.
 		if (ent->Dynamic && !ent->Active) {
@@ -2038,7 +2131,7 @@ ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFuncti
 		Scene::ObjectLists->Put(objectNameHash, objectList);
 
 		if (callListLoadFunction) {
-			ScriptManager::CallFunction(objectList->LoadFunctionName);
+			ScriptManager::CallFunction(objectList->LoadFunctionName.c_str());
 		}
 	}
 

@@ -1405,9 +1405,7 @@ void GLRenderer::Init() {
 	}
 #endif
 
-	if (Graphics::VsyncEnabled) {
-		GLRenderer::SetVSync(true);
-	}
+	GLRenderer::SetVSync(Graphics::VsyncEnabled);
 
 	int maxTextureSize;
 	int maxTextureImageUnits;

@@ -73,7 +73,7 @@ XMLNode* Application::GameConfig = NULL;
 Font* Application::DefaultFont = NULL;
 
 int Application::TargetFPS = DEFAULT_TARGET_FRAMERATE;
-float Application::CurrentFPS = DEFAULT_TARGET_FRAMERATE;
+float Application::CurrentFPS = 0.0f;
 bool Application::Running = false;
 bool Application::FirstFrame = true;
 bool Application::ShowFPS = false;
@@ -104,6 +104,11 @@ char Application::PreferencesDir[256];
 std::unordered_map<std::string, Capability> Application::CapabilityMap;
 std::vector<std::string> Application::DefaultFontList;
 
+bool Application::UseFixedTimestep = true;
+bool Application::ShouldUseFixedTimestep = true;
+double Application::DeltaTime = 0.0f;
+float Application::ActualDeltaTime = 0.0f;
+double Application::FixedUpdateCounter = 0.0f;
 int Application::UpdatesPerFrame = 1;
 int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
 bool Application::Stepper = false;
@@ -143,12 +148,14 @@ double AutomaticPerformanceSnapshotFrameTimeThreshold;
 double AutomaticPerformanceSnapshotLastTime;
 double AutomaticPerformanceSnapshotMinInterval;
 
-int BenchmarkFrameCount = 0;
-double BenchmarkTickStart = 0.0;
+int BenchmarkFrame = 0;
+float BenchmarkCounter = 0;
 
 double Overdelay = 0.0;
 double FrameTimeStart = 0.0;
 double FrameTimeDesired = 1000.0 / Application::TargetFPS;
+double FixedFrameTimeDesired;
+double LastTick;
 
 int KeyBinds[(int)KeyBind::Max];
 
@@ -192,7 +199,7 @@ void Application::Init(int argc, char* args[]) {
 
 	SDL_SetEventFilter(Application::HandleAppEvents, NULL);
 
-	Application::SetTargetFrameRate(DEFAULT_TARGET_FRAMERATE);
+	Application::ResetTimestepVariables();
 
 	for (int i = 1; i < argc; i++) {
 		Application::CmdLineArgs.push_back(std::string(args[i]));
@@ -369,6 +376,12 @@ void Application::SetTargetFrameRate(int targetFPS) {
 	}
 
 	FrameTimeDesired = 1000.0 / TargetFPS;
+}
+
+void Application::ResetTimestepVariables() {
+	Application::SetTargetFrameRate(DEFAULT_TARGET_FRAMERATE);
+	Application::SetUseFixedTimestep(true);
+	Application::ShouldUseFixedTimestep = true;
 }
 
 void Application::MakeEngineVersion() {
@@ -852,7 +865,8 @@ void Application::EndGame() {
 	Application::DefaultFontList.clear();
 
 	// Reset FPS timer
-	BenchmarkFrameCount = 0;
+	BenchmarkFrame = 0;
+	BenchmarkCounter = 0.0f;
 
 	InputManager::ControllerStopRumble();
 
@@ -877,6 +891,8 @@ void Application::Restart(bool keepScene) {
 	Application::EndGame();
 
 	Graphics::Reset();
+
+	Application::ResetTimestepVariables();
 
 	Application::LoadGameConfig();
 	Application::InitGameInfo();
@@ -997,7 +1013,7 @@ bool Application::SetNextGame(const char* path,
 }
 
 void Application::LoadVideoSettings() {
-	bool vsyncEnabled;
+	bool vsyncEnabled = false;
 	Application::Settings->GetBool("display", "vsync", &vsyncEnabled);
 	Application::Settings->GetInteger("display", "frameSkip", &Application::FrameSkip);
 	Application::Settings->GetBool("graphics", "showFramerate", &Application::ShowFPS);
@@ -1382,7 +1398,8 @@ void Application::PollEvents() {
 				// Restart scene (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevRestartScene]) {
 					// Reset FPS timer
-					BenchmarkFrameCount = 0;
+					BenchmarkFrame = 0;
+					BenchmarkCounter = 0.0f;
 
 					InputManager::ControllerStopRumble();
 
@@ -1456,8 +1473,8 @@ void Application::PollEvents() {
 		}
 	}
 }
-void Application::RunFrameCallback(void* p) {
-	RunFrame(UpdatesPerFrame);
+void Application::MainLoopCallback(void* p) {
+	MainLoop();
 }
 void Application::RunFrame(int runFrames) {
 	Metrics.Frame.Begin();
@@ -1498,8 +1515,25 @@ void Application::RunFrame(int runFrames) {
 
 			// Update scene
 			Metrics.Update.Begin();
-			Scene::Update();
+			Scene::FrameUpdate();
+			if (Application::UseFixedTimestep) {
+				Scene::FixedUpdate();
+			}
+			else {
+				Scene::Update();
+
+				while (FixedUpdateCounter >= FixedFrameTimeDesired) {
+					Scene::FixedUpdate();
+
+					FixedUpdateCounter -= FixedFrameTimeDesired;
+				}
+			}
 			Metrics.Update.Accumulate();
+		}
+		else if (!Application::UseFixedTimestep) {
+			while (FixedUpdateCounter >= FixedFrameTimeDesired) {
+				FixedUpdateCounter -= FixedFrameTimeDesired;
+			}
 		}
 		Step = false;
 		if (runFrames != 1 && (*Scene::NextScene || Scene::DoRestart)) {
@@ -1592,6 +1626,11 @@ void Application::DelayFrame() {
 			;
 	}
 }
+void Application::SetUseFixedTimestep(bool useFixedTimestep) {
+	UseFixedTimestep = useFixedTimestep;
+
+	ScriptEntity::SetUseFixedTimestep(useFixedTimestep);
+}
 void Application::StartGame(const char* startingScene) {
 	Application::LoadDefaultFont();
 	Application::InitScripting();
@@ -1669,69 +1708,86 @@ void Application::Run(int argc, char* args[]) {
 
 	// Set up the game to run in the window animation callback on
 	// iOS so that Game Center and so forth works correctly.
-	SDL_iPhoneSetAnimationCallback(Application::Window, 1, RunFrameCallback, NULL);
+	SDL_iPhoneSetAnimationCallback(Application::Window, 1, MainLoopCallback, NULL);
 #else
-	float lastTick = Clock::GetTicks();
+	LastTick = Clock::GetTicks();
+
 	while (Running) {
-		float tickStart = Clock::GetTicks();
-		float timeTaken = tickStart - lastTick;
-		lastTick = tickStart;
-
-		int updateFrames = UpdatesPerFrame;
-		if (updateFrames == 1) {
-			// Compensate for lag
-			int lagFrames = ((int)round(timeTaken / FrameTimeDesired)) - 1;
-			if (lagFrames > Application::FrameSkip) {
-				lagFrames = Application::FrameSkip;
-			}
-
-			if (!FirstFrame && lagFrames > 0) {
-				updateFrames += lagFrames;
-			}
-		}
-
-		if (BenchmarkFrameCount == 0) {
-			BenchmarkTickStart = tickStart;
-		}
-
-		Application::RunFrame(updateFrames);
-		Application::DelayFrame();
-
-		// Do benchmarking stuff
-		BenchmarkFrameCount++;
-		if (BenchmarkFrameCount == TargetFPS) {
-			double measuredSecond = Clock::GetTicks() - BenchmarkTickStart;
-			CurrentFPS = 1000.0 / floor(measuredSecond) * TargetFPS;
-			BenchmarkFrameCount = 0;
-		}
-
-		if (AutomaticPerformanceSnapshots &&
-			Metrics.Frame.Time > AutomaticPerformanceSnapshotFrameTimeThreshold) {
-			if (Clock::GetTicks() - AutomaticPerformanceSnapshotLastTime >
-				AutomaticPerformanceSnapshotMinInterval) {
-				AutomaticPerformanceSnapshotLastTime = Clock::GetTicks();
-				TakeSnapshot = true;
-			}
-		}
-
-		if (TakeSnapshot) {
-			TakeSnapshot = false;
-			Application::GetPerformanceSnapshot();
-		}
-
-		if (NextGame[0] != '\0') {
-			char gamePath[MAX_PATH_LENGTH];
-			StringUtils::Copy(gamePath, NextGame, sizeof gamePath);
-			NextGame[0] = '\0';
-
-			ChangeGame(gamePath);
-		}
+		MainLoop();
 	}
 
 	Scene::Dispose();
 
 	Application::Cleanup();
 #endif
+}
+void Application::MainLoop() {
+	double tickStart = Clock::GetTicks();
+
+	DeltaTime = tickStart - LastTick;
+	LastTick = tickStart;
+
+	int adjustedUpdateFrames = UpdatesPerFrame;
+
+	if (UseFixedTimestep) {
+		// Compensate for lag
+		if (UpdatesPerFrame == 1) {
+			int lagFrames = ((int)round(DeltaTime / FrameTimeDesired)) - 1;
+			if (lagFrames > Application::FrameSkip) {
+				lagFrames = Application::FrameSkip;
+			}
+
+			if (!FirstFrame && lagFrames > 0) {
+				adjustedUpdateFrames += lagFrames;
+			}
+		}
+	}
+	else {
+		ActualDeltaTime = DeltaTime / 1000.0;
+		FixedFrameTimeDesired = 1000.0 / (TargetFPS * UpdatesPerFrame);
+		FixedUpdateCounter += DeltaTime;
+	}
+
+	Application::RunFrame(adjustedUpdateFrames);
+
+	if (!Graphics::VsyncEnabled || UseFixedTimestep) {
+		Application::DelayFrame();
+	}
+
+	// Do benchmarking stuff
+	BenchmarkFrame++;
+	BenchmarkCounter += DeltaTime;
+	if (BenchmarkCounter >= 1000.0f) {
+		CurrentFPS = BenchmarkFrame;
+		BenchmarkFrame = 0;
+		BenchmarkCounter = 0.0f;
+	}
+
+	if (AutomaticPerformanceSnapshots &&
+		Metrics.Frame.Time > AutomaticPerformanceSnapshotFrameTimeThreshold) {
+		if (tickStart - AutomaticPerformanceSnapshotLastTime >
+			AutomaticPerformanceSnapshotMinInterval) {
+			AutomaticPerformanceSnapshotLastTime = tickStart;
+			TakeSnapshot = true;
+		}
+	}
+
+	if (TakeSnapshot) {
+		TakeSnapshot = false;
+		Application::GetPerformanceSnapshot();
+	}
+
+	if (ShouldUseFixedTimestep != UseFixedTimestep) {
+		SetUseFixedTimestep(ShouldUseFixedTimestep);
+	}
+
+	if (NextGame[0] != '\0') {
+		char gamePath[MAX_PATH_LENGTH];
+		StringUtils::Copy(gamePath, NextGame, sizeof gamePath);
+		NextGame[0] = '\0';
+
+		ChangeGame(gamePath);
+	}
 }
 
 void Application::Cleanup() {
@@ -1854,9 +1910,10 @@ void Application::LoadGameConfig() {
 	node = XMLParser::SearchNode(root, "engine");
 	if (node) {
 		int targetFPS = DEFAULT_TARGET_FRAMERATE;
-		ParseGameConfigInt(node, "framerate", targetFPS);
-		Application::SetTargetFrameRate(targetFPS);
+		bool useFixedTimestep = true;
 
+		ParseGameConfigInt(node, "framerate", targetFPS);
+		ParseGameConfigBool(node, "useFixedTimestep", useFixedTimestep);
 		ParseGameConfigBool(node, "allowCmdLineSceneLoad", Application::AllowCmdLineSceneLoad);
 		ParseGameConfigBool(node, "disableDefaultActions", Application::DisableDefaultActions);
 		ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
@@ -1868,6 +1925,10 @@ void Application::LoadGameConfig() {
 			ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
 			ParseGameConfigText(node, "logFilename", LogFilename, sizeof LogFilename);
 		}
+
+		Application::SetTargetFrameRate(targetFPS);
+		Application::SetUseFixedTimestep(useFixedTimestep);
+		Application::ShouldUseFixedTimestep = useFixedTimestep;
 	}
 
 	// Read display defaults
@@ -2515,10 +2576,12 @@ void Application::DevMenu_MainMenu() {
 		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || ((actionDown != -1 && InputManager::IsActionHeldByAny(actionDown)) && !DevMenu.Timer)))) {
 
 		DevMenu.Selection = (DevMenu.Selection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)std::size(tooltips)) % (int)std::size(tooltips);
-		DevMenu.Timer = 8;
+		DevMenu.Timer = 8 * FrameTimeDesired;
 	}
 
-	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+	if (DevMenu.Timer > 0) {
+		DevMenu.Timer = std::max(DevMenu.Timer - DeltaTime, 0.0);
+	}
 
 	bool confirm = false;
 	for (const char* action : { "A", "Start" }) {
@@ -2534,7 +2597,7 @@ void Application::DevMenu_MainMenu() {
 			case 0: CloseDevMenu(); break;
 			case 1:
 				CloseDevMenu();
-				BenchmarkFrameCount = 0;
+				BenchmarkFrame = 0;
 				InputManager::ControllerStopRumble();
 				Scene::Restart();
 				UpdateWindowTitle();
@@ -2544,7 +2607,7 @@ void Application::DevMenu_MainMenu() {
 			case 4: Running = false; break;
 		}
 		DevMenu.SubSelection = 0;
-		DevMenu.Timer = 1;
+		DevMenu.Timer = 1 * FrameTimeDesired;
 	}
 	else {
 		int actionB = InputManager::GetActionID("B");
@@ -2564,7 +2627,7 @@ void Application::DevMenu_CategorySelectMenu() {
 		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
 			DevMenu.State = DevMenu_MainMenu;
 			DevMenu.SubSelection = 0;
-			DevMenu.Timer = 1;
+			DevMenu.Timer = 1 * FrameTimeDesired;
 		}
 		return;
 	}
@@ -2590,10 +2653,12 @@ void Application::DevMenu_CategorySelectMenu() {
 			DevMenu.SubScrollPos = DevMenu.SubSelection;
 		}
 
-		DevMenu.Timer = 8;
+		DevMenu.Timer = 8 * FrameTimeDesired;
 	}
 
-	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+	if (DevMenu.Timer > 0) {
+		DevMenu.Timer = std::max(DevMenu.Timer - DeltaTime, 0.0);
+	}
 
 	bool confirm = false;
 	for (const char* action : { "A", "Start" }) {
@@ -2617,7 +2682,7 @@ void Application::DevMenu_CategorySelectMenu() {
 		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
 			DevMenu.State = DevMenu_MainMenu;
 			DevMenu.SubSelection = 0;
-			DevMenu.Timer = 1;
+			DevMenu.Timer = 1 * FrameTimeDesired;
 		}
 	}
 }
@@ -2648,10 +2713,12 @@ void Application::DevMenu_SceneSelectMenu() {
 			DevMenu.SubScrollPos = DevMenu.SubSelection;
 		}
 
-		DevMenu.Timer = 8;
+		DevMenu.Timer = 8 * FrameTimeDesired;
 	}
 
-	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+	if (DevMenu.Timer > 0) {
+		DevMenu.Timer = std::max(DevMenu.Timer - DeltaTime, 0.0);
+	}
 
 	bool confirm = false;
 	for (const char* action : { "A", "Start" }) {
@@ -2709,10 +2776,12 @@ void Application::DevMenu_SettingsMenu() {
 		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
 
 		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)std::size(labels)) % (int)std::size(labels);
-		DevMenu.Timer = 8;
+		DevMenu.Timer = 8 * FrameTimeDesired;
 	}
 
-	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+	if (DevMenu.Timer > 0) {
+		DevMenu.Timer = std::max(DevMenu.Timer - DeltaTime, 0.0);
+	}
 
 	bool confirm = false;
 	for (const char* action : { "A", "Start" }) {
@@ -2785,10 +2854,12 @@ void Application::DevMenu_VideoMenu() {
 		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
 
 		DevMenu.SubSelection = (DevMenu.SubSelection + (((actionUp != -1 && InputManager::IsActionPressedByAny(actionUp)) || (actionUp != -1 && InputManager::IsActionHeldByAny(actionUp))) ? -1 : 1) + (int)std::size(labels) + 2) % ((int)std::size(labels) + 2);
-		DevMenu.Timer = 8;
+		DevMenu.Timer = 8 * FrameTimeDesired;
 	}
 
-	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+	if (DevMenu.Timer > 0) {
+		DevMenu.Timer = std::max(DevMenu.Timer - DeltaTime, 0.0);
+	}
 
 	switch (DevMenu.SubSelection) {
 	case 0: { // Scale
@@ -2865,10 +2936,12 @@ void Application::DevMenu_AudioMenu() {
 		(actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
 
 		DevMenu.SubSelection = (DevMenu.SubSelection + ((InputManager::IsActionPressedByAny(actionUp) || InputManager::IsActionHeldByAny(actionUp)) ? -1 : 1) + (int)std::size(labels) + 1) % ((int)std::size(labels) + 1);
-		DevMenu.Timer = 8;
+		DevMenu.Timer = 8 * FrameTimeDesired;
 	}
 
-	if (DevMenu.Timer > 0) DevMenu.Timer = ++DevMenu.Timer & 7;
+	if (DevMenu.Timer > 0) {
+		DevMenu.Timer = std::max(DevMenu.Timer - DeltaTime, 0.0);
+	}
 
 	const char* volumeDirs[] = { "Left", "Right" };
 	for (const char* dir : volumeDirs) {
@@ -2896,6 +2969,6 @@ void Application::DevMenu_AudioMenu() {
 		Application::LoadAudioSettings();
 		DevMenu.State = DevMenu_SettingsMenu;
 		DevMenu.SubSelection = 1;
-		DevMenu.Timer = 1;
+		DevMenu.Timer = 1 * FrameTimeDesired;
 	}
 }

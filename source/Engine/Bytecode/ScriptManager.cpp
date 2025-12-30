@@ -119,6 +119,8 @@ void ScriptManager::Init() {
 	}
 	ThreadCount = 1;
 
+	ScriptEntity::Init();
+
 	TypeImpl::Init();
 }
 #ifdef VM_DEBUG
@@ -461,7 +463,7 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 
 	return true;
 }
-bool ScriptManager::CallFunction(char* functionName) {
+bool ScriptManager::CallFunction(const char* functionName) {
 	if (!Globals->Exists(functionName)) {
 		return false;
 	}
