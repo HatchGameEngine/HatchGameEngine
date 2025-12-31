@@ -2117,7 +2117,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The index of the animator.</li>
-        <li>hitboxID (Integer): The index number of the hitbox. Default to <code>0</code>.</li>
+        <li>hitboxID (Integer): The index number of the hitbox. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
@@ -9094,7 +9094,7 @@
         <li>sprite (Integer): The sprite index to check.</li>
         <li>animationID (Integer): The animation index of the sprite to check.</li>
         <li>frame (Integer): The frame index of the animation to check.</li>
-        <li>hitboxID (Integer): The hitbox index of the frame to check.</li>
+        <li>hitboxID (Integer): The hitbox index to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a String value.</div>
@@ -9136,7 +9136,7 @@
         <li>sprite (Integer): The sprite index to check (if an entity is not provided).</li>
         <li>animationID (Integer): The animation index of the sprite to check (if an entity is not provided).</li>
         <li>frameID (Integer): The frame index of the animation to check (if an entity is not provided).</li>
-        <li>hitbox (String or Integer): The hitbox name or index of the animation to check. Defaults to <code>0</code>.</li>
+        <li>hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Array value.</div>
@@ -10722,30 +10722,29 @@
         </p>
         <p id="Reference_methods_entity_GetHitboxFromSprite">
         <h2 style="margin-bottom: 8px;">entity.GetHitboxFromSprite</h2>
-        <code>entity.GetHitboxFromSprite(sprite, animation, frame, hitbox)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Updates the entity's hitbox with the hitbox in the specified sprite's animation, frame and hitbox ID.</div>
+        <code>entity.GetHitboxFromSprite(sprite, animation, frame[, hitbox])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Updates the entity's hitbox with the hitbox in the specified sprite's animation, frame and hitbox ID or name.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sprite (Sprite): The sprite.</li>
         <li>animation (Integer): The animation index.</li>
         <li>frame (Integer): The frame index.</li>
-        <li>hitbox (Integer): The hitbox ID.</li>
+        <li>hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.</li>
         </ul>
         </p>
         <p id="Reference_methods_entity_ReturnHitbox">
         <h2 style="margin-bottom: 8px;">entity.ReturnHitbox</h2>
-        <code>entity.ReturnHitbox(instance, sprite, animationID, frameID, hitboxID)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.</div>
+        <code>entity.ReturnHitbox(sprite, animationID, frameID[, hitbox])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of a sprite frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>instance (Instance): An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).</li>
-        <li>sprite (Integer): The sprite index to check (if an entity is not provided).</li>
-        <li>animationID (Integer): The animation index of the sprite to check (if an entity is not provided).</li>
-        <li>frameID (Integer): The frame index of the animation to check (if an entity is not provided).</li>
-        <li>hitboxID (Integer): The index number of the hitbox.</li>
+        <li>sprite (Integer): The sprite index to check.</li>
+        <li>animationID (Integer): The animation index of the sprite to check.</li>
+        <li>frameID (Integer): The frame index of the animation to check.</li>
+        <li>hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
+        <div style="font-size: 14px;">Returns an Array value.</div>
         </p>
         <p id="Reference_methods_entity_CollideWithObject">
         <h2 style="margin-bottom: 8px;">entity.CollideWithObject</h2>

@@ -884,7 +884,7 @@ VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.GetHitbox
  * \desc Gets the hitbox of an animation and frame of an animator.
  * \param animator (Integer): The index of the animator.
- * \paramOpt hitboxID (Integer): The index number of the hitbox. Default to <code>0</code>.
+ * \paramOpt hitboxID (Integer): The index number of the hitbox. Defaults to <code>0</code>.
  * \return Returns a reference value to a hitbox array.
  * \ns Animator
  */
@@ -15939,7 +15939,7 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
  * \param sprite (Integer): The sprite index to check.
  * \param animationID (Integer): The animation index of the sprite to check.
  * \param frame (Integer): The frame index of the animation to check.
- * \param hitboxID (Integer): The hitbox index of the frame to check.
+ * \param hitboxID (Integer): The hitbox index to check.
  * \return Returns a String value.
  * \ns Sprite
  */
@@ -16032,7 +16032,7 @@ VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
  * \param sprite (Integer): The sprite index to check (if an entity is not provided).
  * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
  * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
- * \paramOpt hitbox (String or Integer): The hitbox name or index of the animation to check. Defaults to <code>0</code>.
+ * \paramOpt hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.
  * \return Returns an Array value.
  * \ns Sprite
  */
@@ -16072,7 +16072,7 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
-	if (IS_STRING(args[hitboxArgNum])) {
+	if (argCount > hitboxArgNum && IS_STRING(args[hitboxArgNum])) {
 		char* name = GET_ARG(hitboxArgNum, GetString);
 		if (name) {
 			int boxIndex = -1;

@@ -450,57 +450,83 @@ VMValue EntityImpl::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 th
 }
 /***
  * \method GetHitboxFromSprite
- * \desc Updates the entity's hitbox with the hitbox in the specified sprite's animation, frame and hitbox ID.
+ * \desc Updates the entity's hitbox with the hitbox in the specified sprite's animation, frame and hitbox ID or name.
  * \param sprite (Sprite): The sprite.
  * \param animation (Integer): The animation index.
  * \param frame (Integer): The frame index.
- * \param hitbox (Integer): The hitbox ID.
+ * \paramOpt hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.
  * \ns Entity
  */
 VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 5);
+	StandardLibrary::CheckAtLeastArgCount(argCount, 4);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISprite* sprite = GET_ARG(1, GetSprite);
-	int animation = GET_ARG(2, GetInteger);
-	int frame = GET_ARG(3, GetInteger);
-	int hitbox = GET_ARG(4, GetInteger);
+	int animationID = GET_ARG(2, GetInteger);
+	int frameID = GET_ARG(3, GetInteger);
+	int hitboxID = 0;
 
 	if (!self || !sprite) {
 		return NULL_VAL;
 	}
 
-	if (!(animation > -1 && (size_t)animation < sprite->Animations.size())) {
+	if (!(animationID > -1 && (size_t)animationID < sprite->Animations.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Animation %d is not in bounds of sprite.", animation);
+			false, "Animation %d is not in bounds of sprite.", animationID);
 		return NULL_VAL;
 	}
-	if (!(frame > -1 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
+	if (!(frameID > -1 && (size_t)frameID < sprite->Animations[animationID].Frames.size())) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Frame %d is not in bounds of animation %d.", frame, animation);
+			false, "Frame %d is not in bounds of animation %d.", frameID, animationID);
 		return NULL_VAL;
 	}
 
-	AnimFrame frameO = sprite->Animations[animation].Frames[frame];
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
-	if (!(hitbox > -1 && hitbox < frameO.Boxes.size())) {
-		// ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Hitbox %d is not in bounds of frame %d.", hitbox, frame);
-		self->Hitbox.Clear();
+	if (argCount >= 4 && IS_STRING(args[4])) {
+		char* name = GET_ARG(4, GetString);
+		if (name) {
+			int boxIndex = -1;
+
+			for (size_t i = 0; i < frame.Boxes.size(); i++) {
+				if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+					boxIndex = (int)i;
+					break;
+				}
+			}
+
+			if (boxIndex != -1) {
+				hitboxID = boxIndex;
+			}
+			else {
+				ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+					"No hitbox named \"%s\" in frame %d of animation %d.",
+					name,
+					frameID,
+					animationID);
+			}
+		}
 	}
 	else {
-		self->Hitbox.Set(frameO.Boxes[hitbox]);
+		hitboxID = GET_ARG_OPT(4, GetInteger, 0);
+	}
+
+	if (hitboxID >= 0 && hitboxID < (int)frame.Boxes.size()) {
+		self->Hitbox.Set(frame.Boxes[hitboxID]);
+	}
+	else {
+		self->Hitbox.Clear();
 	}
 
 	return NULL_VAL;
 }
 /***
  * \method ReturnHitbox
- * \desc Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.
- * \param instance (Instance): An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).
- * \param sprite (Integer): The sprite index to check (if an entity is not provided).
- * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
- * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
- * \param hitboxID (Integer): The index number of the hitbox.
- * \return Returns a reference value to a hitbox array.
+ * \desc Gets the hitbox of a sprite frame.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animationID (Integer): The animation index of the sprite to check.
+ * \param frameID (Integer): The frame index of the animation to check.
+ * \paramOpt hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.
+ * \return Returns an Array value.
  * \ns Entity
  */
 VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID) {
@@ -511,36 +537,32 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 
 	ISprite* sprite;
 	int animationID = 0, frameID = 0, hitboxID = 0;
+	int hitboxArgNum;
 
-	switch (argCount) {
-	case 1:
-	case 2:
+	if (argCount <= 2) {
 		if (self->Sprite < 0 || self->Sprite >= (int)Scene::SpriteList.size()) {
-			if (ScriptManager::Threads[threadID].ThrowRuntimeError(false,
-				    "Sprite index \"%d\" outside bounds of list.",
-				    self->Sprite) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-
+			ScriptManager::Threads[threadID].ThrowRuntimeError(
+				false, "Sprite index \"%d\" outside bounds of list.", self->Sprite);
 			return NULL_VAL;
 		}
 
 		if (!Scene::SpriteList[self->Sprite]) {
+			ScriptManager::Threads[threadID].ThrowRuntimeError(
+				false, "Sprite %d does not exist!", self->Sprite);
 			return NULL_VAL;
 		}
 
 		sprite = Scene::SpriteList[self->Sprite]->AsSprite;
 		animationID = self->CurrentAnimation;
 		frameID = self->CurrentFrame;
-		hitboxID = argCount == 2 ? GET_ARG(1, GetInteger) : 0;
-		break;
-	default:
+		hitboxArgNum = 1;
+	}
+	else {
 		StandardLibrary::CheckAtLeastArgCount(argCount, 4);
 		sprite = GET_ARG(1, GetSprite);
 		animationID = GET_ARG(2, GetInteger);
 		frameID = GET_ARG(3, GetInteger);
-		hitboxID = argCount == 5 ? GET_ARG(4, GetInteger) : 0;
-		break;
+		hitboxArgNum = 4;
 	}
 
 	if (!sprite) {
@@ -562,9 +584,47 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
-	if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
+	if (argCount > hitboxArgNum && IS_STRING(args[hitboxArgNum])) {
+		char* name = GET_ARG(hitboxArgNum, GetString);
+		if (name) {
+			int boxIndex = -1;
+
+			for (size_t i = 0; i < frame.Boxes.size(); i++) {
+				if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+					boxIndex = (int)i;
+					break;
+				}
+			}
+
+			if (boxIndex != -1) {
+				hitboxID = boxIndex;
+			}
+			else {
+				ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+					"No hitbox named \"%s\" in frame %d of animation %d.",
+					name,
+					frameID,
+					animationID);
+			}
+		}
+	}
+	else {
+		hitboxID = GET_ARG_OPT(hitboxArgNum, GetInteger, 0);
+	}
+
+	if (frame.Boxes.size() == 0) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+			"Frame %d of animation %d contains no hitboxes.",
+			frameID,
+			animationID);
+		return NULL_VAL;
+	}
+	else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+			"Hitbox %d is not in bounds of frame %d of animation %d.",
+			hitboxID,
+			frameID,
+			animationID);
 		return NULL_VAL;
 	}
 
