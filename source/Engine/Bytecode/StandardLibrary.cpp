@@ -17012,6 +17012,49 @@ VMValue String_GetCodepoints(int argCount, VMValue* args, Uint32 threadID) {
 
 	return OBJECT_VAL(array);
 }
+/***
+ * String.FromCodepoints
+ * \desc Creates UTF-8 text from a list of UCS codepoints.
+ * \param codepoints (Array): An Array of Integer values.
+ * \return Returns a String value.
+ * \ns String
+ */
+VMValue String_FromCodepoints(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ObjArray* array = GET_ARG(0, GetArray);
+	if (!array) {
+		return NULL_VAL;
+	}
+
+	std::vector<Uint32> codepoints;
+	std::string result;
+
+	for (size_t i = 0; i < array->Values->size(); i++) {
+		VMValue value = (*array->Values)[i];
+		int codepoint = 0;
+
+		if (IS_INTEGER(value)) {
+			codepoint = AS_INTEGER(value);
+		}
+		else {
+			THROW_ERROR("Expected array index %d to be of type %s instead of %s.",
+				i,
+				GetTypeString(VAL_INTEGER),
+				GetValueTypeString(value));
+		}
+
+		codepoints.push_back(codepoint);
+	}
+
+	try {
+		result = StringUtils::FromCodepoints(codepoints);
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+		return NULL_VAL;
+	}
+
+	return ReturnString(result);
+}
 // #endregion
 
 // #region Texture
@@ -20851,6 +20894,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(String, ParseInteger);
 	DEF_NATIVE(String, ParseDecimal);
 	DEF_NATIVE(String, GetCodepoints);
+	DEF_NATIVE(String, FromCodepoints);
 	// #endregion
 
 	// #region Texture
