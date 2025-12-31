@@ -16037,12 +16037,12 @@ VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(2);
+	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISprite* sprite;
 	int animationID, frameID, hitboxID = 0;
 	int hitboxArgNum;
 
-	if (argCount == 2 && IS_ENTITY(args[0])) {
+	if (argCount <= 2 && IS_ENTITY(args[0])) {
 		ObjEntity* ent = GET_ARG(0, GetEntity);
 		Entity* entity = (Entity*)ent->EntityPtr;
 		hitboxArgNum = 1;
