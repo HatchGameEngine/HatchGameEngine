@@ -28,7 +28,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -38,7 +38,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -272,6 +272,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\rendering\TextureReference.cpp" />
     <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp" />
     <ClCompile Include="..\source\engine\rendering\ViewTexture.cpp" />
+    <ClCompile Include="..\source\engine\resourcetypes\Asset.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Font.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\GIF.cpp" />
@@ -281,6 +282,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\resourcetypes\IModel.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\ISound.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\ISprite.cpp" />
+    <ClCompile Include="..\source\engine\resourcetypes\MediaBag.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\HatchModel.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\Importer.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\MD3Model.cpp" />

@@ -145,6 +145,7 @@ CPPFILES := \
 	source/Engine/Rendering/TextureReference.cpp \
 	source/Engine/Rendering/VertexBuffer.cpp \
 	source/Engine/Rendering/ViewTexture.cpp \
+	source/Engine/ResourceTypes/Asset.cpp \
 	source/Engine/ResourceTypes/Font.cpp \
 	source/Engine/ResourceTypes/Image.cpp \
 	source/Engine/ResourceTypes/ImageFormats/GIF.cpp \
@@ -154,6 +155,7 @@ CPPFILES := \
 	source/Engine/ResourceTypes/IModel.cpp \
 	source/Engine/ResourceTypes/ISound.cpp \
 	source/Engine/ResourceTypes/ISprite.cpp \
+	source/Engine/ResourceTypes/MediaBag.cpp \
 	source/Engine/ResourceTypes/ModelFormats/HatchModel.cpp \
 	source/Engine/ResourceTypes/ModelFormats/Importer.cpp \
 	source/Engine/ResourceTypes/ModelFormats/MD3Model.cpp \
@@ -375,6 +377,7 @@ PUBHFILES := \
 	include/Engine/Rendering/TextureReference.h \
 	include/Engine/Rendering/VertexBuffer.h \
 	include/Engine/Rendering/ViewTexture.h \
+	include/Engine/ResourceTypes/Asset.h \
 	include/Engine/ResourceTypes/Font.h \
 	include/Engine/ResourceTypes/Image.h \
 	include/Engine/ResourceTypes/ImageFormats/GIF.h \
@@ -384,6 +387,7 @@ PUBHFILES := \
 	include/Engine/ResourceTypes/IModel.h \
 	include/Engine/ResourceTypes/ISound.h \
 	include/Engine/ResourceTypes/ISprite.h \
+	include/Engine/ResourceTypes/MediaBag.h \
 	include/Engine/ResourceTypes/ModelFormats/HatchModel.h \
 	include/Engine/ResourceTypes/ModelFormats/Importer.h \
 	include/Engine/ResourceTypes/ModelFormats/MD3Model.h \
