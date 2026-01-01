@@ -85,16 +85,16 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 			functionName.c_str(),
 			function->Module->SourceFilename,
 			line);
-	}
-	else {
-		buffer_printf(buffer, "In %d", (int)(frame->IP - frame->IPStart));
-	}
 
-	if (errorString) {
-		buffer_printf(buffer, ":\n\n    %s\n", errorString);
+		if (errorString) {
+			buffer_printf(buffer, ":\n\n    %s\n", errorString);
+		}
+		else {
+			buffer_printf(buffer, ".\n");
+		}
 	}
-	else {
-		buffer_printf(buffer, ".\n");
+	else if (errorString) {
+		buffer_printf(buffer, "%s\n", errorString);
 	}
 
 	buffer_printf(buffer, "\nCall Trace (Thread %d):\n", ID);
@@ -103,7 +103,7 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 		function = fr->Function;
 		source = function->Module->SourceFilename;
 		line = -1;
-		if (i > 0) {
+		if (i > 0 && function->Chunk.Lines) {
 			CallFrame* fr2 = &Frames[i - 1];
 			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
 		}

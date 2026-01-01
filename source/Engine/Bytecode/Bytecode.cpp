@@ -132,6 +132,13 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 			}
 		}
 	}
+	else {
+		char fnHash[9];
+		for (ObjFunction* function : Functions) {
+			snprintf(fnHash, sizeof(fnHash), "%08X", function->NameHash);
+			function->Name = StringUtils::Duplicate(fnHash);
+		}
+	}
 
 	bool hasSourceFilename = opts & 2;
 	if (hasSourceFilename) {
