@@ -1,0 +1,938 @@
+#include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/StandardLibrary.h>
+#include <Engine/Bytecode/TypeImpl/AssetImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+
+ObjClass* SpriteImpl::Class = nullptr;
+
+#define CLASS_SPRITE "Sprite"
+
+DECLARE_STRING_HASH(AnimationCount);
+DECLARE_STRING_HASH(SheetCount);
+
+void SpriteImpl::Init() {
+	Class = NewClass(CLASS_SPRITE);
+
+	GET_STRING_HASH(AnimationCount);
+	GET_STRING_HASH(SheetCount);
+
+	AddNatives();
+
+	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(CLASS_SPRITE, Class);
+	TypeImpl::DefinePrintableName(Class, "sprite");
+}
+
+bool SpriteImpl::IsValidField(Uint32 hash) {
+	CHECK_VALID_FIELD(AnimationCount);
+	CHECK_VALID_FIELD(SheetCount);
+
+	return false;
+}
+
+#define CHECK_EXISTS(ptr) \
+	if (!ptr || !ptr->IsLoaded()) { \
+		VM_THROW_ERROR("Sprite is no longer loaded!"); \
+		return true; \
+	}
+
+bool SpriteImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
+	if (!IsValidField(hash)) {
+		return false;
+	}
+
+	Asset* asset = object ? GET_ASSET(object) : nullptr;
+	CHECK_EXISTS(asset);
+
+	ISprite* sprite = (ISprite*)asset;
+
+	/***
+	 * \field AnimationCount
+	 * \type Integer
+	 * \desc The amount of animations in the sprite.
+	 * \ns Sprite
+ 	*/
+	if (hash == Hash_AnimationCount) {
+		*result = INTEGER_VAL((int)sprite->Animations.size());
+	}
+	/***
+	 * \field SheetCount
+	 * \type Integer
+	 * \desc The amount of spritesheets in the sprite.
+	 * \ns Sprite
+ 	*/
+	else if (hash == Hash_SheetCount) {
+		*result = INTEGER_VAL((int)sprite->Spritesheets.size());
+	}
+
+	return true;
+}
+
+bool SpriteImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
+	if (!IsValidField(hash)) {
+		return false;
+	}
+
+	Asset* asset = object ? GET_ASSET(object) : nullptr;
+	CHECK_EXISTS(asset);
+
+	if (hash == Hash_AnimationCount || hash == Hash_SheetCount) {
+		VM_THROW_ERROR("Field cannot be written to!");
+		return true;
+	}
+
+	return false;
+}
+
+#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
+#define GET_ARG_OPT(argIndex, argFunction, argDefault) \
+	(argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
+
+#define CHECK_ANIMATION_INDEX(idx) \
+	if (sprite->Animations.size() == 0) { \
+		throw ScriptException("Sprite has no animations!"); \
+	} \
+	if (idx < 0 || idx >= (int)sprite->Animations.size()) { \
+		VM_OUT_OF_RANGE_ERROR("Animation index", idx, 0, sprite->Animations.size() - 1); \
+		return NULL_VAL; \
+	}
+
+#define CHECK_ANIMFRAME_INDEX(anim, idx) \
+	CHECK_ANIMATION_INDEX(anim); \
+	if (idx < 0 || idx >= (int)sprite->Animations[anim].Frames.size()) { \
+		VM_OUT_OF_RANGE_ERROR( \
+			"Frame index", idx, 0, sprite->Animations[anim].Frames.size() - 1); \
+		return NULL_VAL; \
+	}
+
+#undef CHECK_EXISTS
+#define CHECK_EXISTS(ptr) \
+	if (!ptr) { \
+		return NULL_VAL; \
+	} \
+	if (!ptr->IsLoaded()) { \
+		throw ScriptException("Sprite is no longer loaded!"); \
+	}
+
+/***
+ * \method GetAnimationName
+ * \desc Gets the name of the specified animation index.
+ * \param animationIndex (Integer): The animation index.
+ * \return Returns the name of the specified animation index.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int index = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMATION_INDEX(index);
+
+	if (ScriptManager::Lock()) {
+		ObjString* string = CopyString(sprite->Animations[index].Name);
+		ScriptManager::Unlock();
+		return OBJECT_VAL(string);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method GetAnimationIndex
+ * \desc Gets the first animation in the sprite which matches the specified name.
+ * \param name (String): The animation name to search for.
+ * \return Returns the first animation index with the specified name, or <code>null</code> if there was no match.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	char* name = GET_ARG(1, GetString);
+
+	CHECK_EXISTS(sprite);
+
+	for (size_t i = 0; i < sprite->Animations.size(); i++) {
+		if (strcmp(name, sprite->Animations[i].Name.c_str()) == 0) {
+			return INTEGER_VAL((int)i);
+		}
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method GetAnimationSpeed
+ * \desc Gets the speed of the specified animation index.
+ * \param animationIndex (Integer): The animation index.
+ * \return Returns the speed of the specified animation index.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int index = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMATION_INDEX(index);
+
+	return INTEGER_VAL(sprite->Animations[index].Speed);
+}
+/***
+ * \method GetAnimationLoopFrame
+ * \desc Gets the loop frame of the specified animation index.
+ * \param animationIndex (Integer): The animation index.
+ * \return Returns the loop frame of the specified animation index.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetAnimationLoopFrame(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int index = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMATION_INDEX(index);
+
+	return INTEGER_VAL(sprite->Animations[index].FrameToLoop);
+}
+/***
+ * \method GetAnimationFrameCount
+ * \desc Gets the amount of frames in the specified animation.
+ * \param animation (Integer): The animation index to check.
+ * \return Returns the frame count of the specified animation.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetAnimationFrameCount(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int index = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMATION_INDEX(index);
+
+	return INTEGER_VAL((int)sprite->Animations[index].Frames.size());
+}
+
+#define GET_FRAME_PROPERTY(property) { \
+	StandardLibrary::CheckArgCount(argCount, 3); \
+	ISprite* sprite = GET_ARG(0, GetSprite); \
+	int animation = GET_ARG(1, GetInteger); \
+	int frame = GET_ARG(2, GetInteger); \
+	CHECK_EXISTS(sprite); \
+	CHECK_ANIMFRAME_INDEX(animation, frame); \
+	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].property); \
+}
+
+/***
+ * \method GetFrameX
+ * \desc Gets the X position in the spritesheet of the specified animation frame.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the X position (in pixels) of the specified animation frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetFrameX(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(X);
+}
+/***
+ * \method GetFrameY
+ * \desc Gets the Y position in the spritesheet of the specified animation frame.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the Y position (in pixels) of the specified animation frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetFrameY(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(Y);
+}
+/***
+ * \method GetFrameWidth
+ * \desc Gets the width of the specified animation frame.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the width (in pixels) of the specified animation frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(Width);
+}
+/***
+ * \method GetFrameHeight
+ * \desc Gets the height of the specified animation frame.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the height (in pixels) of the specified animation frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(Height);
+}
+/***
+ * \method GetFrameOffsetX
+ * \desc Gets the X offset of the specified animation frame.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the X offset of the specified animation frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(OffsetX);
+}
+/***
+ * \method GetFrameOffsetY
+ * \desc Gets the Y offset of the specified animation frame.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the Y offset of the specified animation frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(OffsetY);
+}
+/***
+ * \method GetFrameDuration
+ * \desc Gets the duration of the specified animation frame.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the duration (in game frames) of the specified animation frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(Duration);
+}
+/***
+ * \method GetFrameID
+ * \desc Gets the ID of the specified animation frame.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns the ID of the specified animation frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
+	GET_FRAME_PROPERTY(ID);
+}
+
+#undef GET_FRAME_PROPERTY
+
+/***
+ * \method IsFrameValid
+ * \desc Checks if an animation and frame is valid within a sprite.
+ * \param animation (Integer): The animation index to check.
+ * \param frame (Integer): The frame index to check.
+ * \return Returns a Boolean value.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_IsFrameValid(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
+
+	CHECK_EXISTS(sprite);
+
+	return (INTEGER_VAL((animation >= 0 && animation < (int)sprite->Animations.size()) &&
+		(frame >= 0 && frame < (int)sprite->Animations[animation].Frames.size())));
+}
+
+#define CHECK_SHEET_INDEX(idx) \
+	if (idx < 0 || idx >= (int)sprite->Spritesheets.size()) { \
+		VM_OUT_OF_RANGE_ERROR( \
+			"Sheet index", idx, 0, sprite->Spritesheets.size() - 1); \
+		return NULL_VAL; \
+	}
+
+/***
+ * \method GetSheetFilename
+ * \desc Gets the filename of the specified spritesheet, if it has a filename.
+ * \param sheetID (Integer): The spritesheet index.
+ * \return Returns the filename of the specified spritesheet, or <code>null</code> if the given spritesheet is not named.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetSheetFilename(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int sheetID = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_SHEET_INDEX(sheetID);
+
+	std::string sheetName = sprite->SpritesheetFilenames[sheetID];
+	if (sheetName.size() > 0 && ScriptManager::Lock()) {
+		ObjString* string = CopyString(sheetName);
+		ScriptManager::Unlock();
+		return OBJECT_VAL(string);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method GetSheetImage
+ * \desc Gets the specified spritesheet as an image. This returns a copy of the spritesheet texture.
+ * \param sheetID (Integer): The spritesheet index.
+ * \return Returns an Image.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetSheetImage(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int sheetID = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_SHEET_INDEX(sheetID);
+
+	Texture* texture = sprite->Spritesheets[sheetID];
+	Texture* newTexture = Graphics::CopyTexture(texture, texture->Access);
+
+	Image* image = new Image(newTexture);
+
+	return OBJECT_VAL(image->GetVMObject());
+}
+
+#undef CHECK_SHEET_INDEX
+
+/***
+ * \method SetAnimationName
+ * \desc Sets the name of the specified animation index.
+ * \param animationIndex (Integer): The animation index.
+ * \param name (String): The name to assign to the animation.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_SetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int index = GET_ARG(1, GetInteger);
+	char* name = GET_ARG(2, GetString);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMATION_INDEX(index);
+
+	if (name) {
+		sprite->Animations[index].Name = std::string(name);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method SetAnimationSpeed
+ * \desc Sets the speed of the specified animation index.
+ * \param animationIndex (Integer): The animation index.
+ * \param speed (Integer): The speed to assign to the animation.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int index = GET_ARG(1, GetInteger);
+	int speed = GET_ARG(2, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMATION_INDEX(index);
+
+	if (speed < 0) {
+		throw ScriptException("Animation speed cannot be lower than zero.");
+	}
+
+	sprite->Animations[index].Speed = speed;
+
+	return NULL_VAL;
+}
+/***
+ * \method SetAnimationLoopFrame
+ * \desc Sets the loop frame of the specified animation index.
+ * \param animationIndex (Integer): The animation index.
+ * \param loopFrame (Integer): The loop frame to assign to the animation.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_SetAnimationLoopFrame(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int index = GET_ARG(1, GetInteger);
+	int loopFrame = GET_ARG(2, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMATION_INDEX(index);
+
+	size_t numFrames = sprite->Animations[index].Frames.size();
+	if (numFrames == 0) {
+		throw ScriptException("Cannot change loop frame of an animation with no frames!");
+	}
+
+	size_t maxFrame = numFrames - 1;
+	if (loopFrame < 0 || loopFrame > (int)maxFrame) {
+		VM_OUT_OF_RANGE_ERROR("Loop frame", loopFrame, 0, maxFrame);
+		return NULL_VAL;
+	}
+
+	sprite->Animations[index].FrameToLoop = loopFrame;
+
+	return NULL_VAL;
+}
+
+/***
+ * \method SetFramePosition
+ * \desc Changes the X and Y positions of the specified animation frame.
+ * \param animation (Integer): The animation index.
+ * \param frame (Integer): The frame index of the animation.
+ * \param x (Integer): The new X position of the frame.
+ * \param y (Integer): The new Y position of the frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_SetFramePosition(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 5);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
+	int x = GET_ARG(3, GetInteger);
+	int y = GET_ARG(4, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMFRAME_INDEX(animation, frame);
+
+	AnimFrame& animFrame = sprite->Animations[animation].Frames[frame];
+
+	Texture* sheet = sprite->Spritesheets[animFrame.SheetNumber];
+	int maxFrameX = sheet->Width - animFrame.Width;
+	int maxFrameY = sheet->Height - animFrame.Height;
+	if (x < 0 || x >= maxFrameX) {
+		VM_OUT_OF_RANGE_ERROR("Frame X", x, 0, maxFrameX - 1);
+		return NULL_VAL;
+	}
+	if (y < 0 || y >= maxFrameY) {
+		VM_OUT_OF_RANGE_ERROR("Frame Y", y, 0, maxFrameY - 1);
+		return NULL_VAL;
+	}
+
+	animFrame.X = x;
+	animFrame.Y = y;
+
+	sprite->UpdateFrame(animation, frame);
+
+	return NULL_VAL;
+}
+/***
+ * \method SetFrameSize
+ * \desc Changes the width and height of the specified animation frame.
+ * \param animation (Integer): The animation index.
+ * \param frame (Integer): The frame index of the animation.
+ * \param width (Integer): The new width of the frame.
+ * \param height (Integer): The new height of the frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_SetFrameSize(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 5);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
+	int width = GET_ARG(3, GetInteger);
+	int height = GET_ARG(4, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMFRAME_INDEX(animation, frame);
+
+	AnimFrame& animFrame = sprite->Animations[animation].Frames[frame];
+
+	Texture* sheet = sprite->Spritesheets[animFrame.SheetNumber];
+	int maxFrameWidth = sheet->Width - animFrame.X;
+	int maxFrameHeight = sheet->Height - animFrame.Y;
+	if (width < 0 || width > maxFrameWidth) {
+		VM_OUT_OF_RANGE_ERROR("Frame width", width, 0, maxFrameWidth);
+		return NULL_VAL;
+	}
+	if (height < 0 || height > maxFrameHeight) {
+		VM_OUT_OF_RANGE_ERROR("Frame height", height, 0, maxFrameHeight);
+		return NULL_VAL;
+	}
+
+	animFrame.Width = width;
+	animFrame.Height = height;
+
+	sprite->UpdateFrame(animation, frame);
+
+	return NULL_VAL;
+}
+/***
+ * \method SetFrameOffset
+ * \desc Changes the X and Y offsets of the specified animation frame.
+ * \param animation (Integer): The animation index.
+ * \param frame (Integer): The frame index of the animation.
+ * \param offsetX (Integer): The new X offset of the frame.
+ * \param offsetY (Integer): The new Y offset of the frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_SetFrameOffset(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 5);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
+	int xOffset = GET_ARG(3, GetInteger);
+	int yOffset = GET_ARG(4, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMFRAME_INDEX(animation, frame);
+
+	AnimFrame& animFrame = sprite->Animations[animation].Frames[frame];
+
+	animFrame.OffsetX = xOffset;
+	animFrame.OffsetY = yOffset;
+
+	sprite->UpdateFrame(animation, frame);
+
+	return NULL_VAL;
+}
+/***
+ * \method SetFrameDuration
+ * \desc Changes the duration of the specified animation frame.
+ * \param animation (Integer): The animation index.
+ * \param frame (Integer): The frame index of the animation.
+ * \param duration (Integer): The new duration of the frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_SetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 4);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
+	int duration = GET_ARG(3, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMFRAME_INDEX(animation, frame);
+
+	if (duration < 0) {
+		throw ScriptException("Frame duration cannot be lower than zero.");
+	}
+
+	AnimFrame& animFrame = sprite->Animations[animation].Frames[frame];
+
+	animFrame.Duration = duration;
+
+	return NULL_VAL;
+}
+/***
+ * \method SetFrameID
+ * \desc Changes the ID of the specified animation frame.
+ * \param animation (Integer): The animation index.
+ * \param frame (Integer): The frame index of the animation.
+ * \param id (Integer): The new ID of the frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_SetFrameID(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 4);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
+	int id = GET_ARG(3, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMFRAME_INDEX(animation, frame);
+
+	AnimFrame& animFrame = sprite->Animations[animation].Frames[frame];
+
+	animFrame.ID = id;
+
+	return NULL_VAL;
+}
+
+/***
+ * \method AddAnimation
+ * \desc Adds an animation.
+ * \param name (String): The name to give to the animation.
+ * \return Returns the index of the new animation.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_AddAnimation(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	char* name = GET_ARG(1, GetString);
+
+	CHECK_EXISTS(sprite);
+
+	if (name) {
+		sprite->AddAnimation(name, 1, 0);
+		sprite->RefreshGraphicsID();
+
+		return INTEGER_VAL((int)sprite->Animations.size() - 1);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method RemoveAnimation
+ * \desc Removes an animation.
+ * \param animation (Integer): The index of the animation to remove.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_RemoveAnimation(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int index = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMATION_INDEX(index);
+
+	sprite->Animations.erase(sprite->Animations.begin() + index);
+	sprite->RefreshGraphicsID();
+
+	return NULL_VAL;
+}
+
+/***
+ * \method AddFrame
+ * \desc Adds a frame to an animation.
+ * \param animation (Integer): The animation index to add the frame into.
+ * \param x (Integer): X position of the frame in the spritesheet.
+ * \param y (Integer): Y position of the frame in the spritesheet.
+ * \param width (Integer): Width of the frame.
+ * \param height (Integer): Height position of the frame.
+ * \return Returns the index of the new frame.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_AddFrame(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 6);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	int frameX = GET_ARG(2, GetInteger);
+	int frameY = GET_ARG(3, GetInteger);
+	int frameWidth = GET_ARG(4, GetInteger);
+	int frameHeight = GET_ARG(5, GetInteger);
+
+	// TODO: Add optional arguments
+	int frameOffsetX = 0;
+	int frameOffsetY = 0;
+	int frameDuration = 1;
+	int frameSheetNumber = 0;
+	int frameID = 0;
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMATION_INDEX(animation);
+
+	size_t numSpritesheets = sprite->Spritesheets.size();
+	if (numSpritesheets == 0) {
+		throw ScriptException("Cannot add a frame to a sprite without any spritesheets!");
+	}
+	else if (frameSheetNumber < 0 || frameSheetNumber >= (int)numSpritesheets) {
+		VM_OUT_OF_RANGE_ERROR("Frame spritesheet", frameSheetNumber, 0, numSpritesheets - 1);
+		return NULL_VAL;
+	}
+
+	Texture* sheet = sprite->Spritesheets[frameSheetNumber];
+	if (frameX < 0 || frameX >= sheet->Width) {
+		VM_OUT_OF_RANGE_ERROR("Frame X", frameX, 0, sheet->Width - 1);
+		return NULL_VAL;
+	}
+	if (frameY < 0 || frameY >= sheet->Height) {
+		VM_OUT_OF_RANGE_ERROR("Frame Y", frameY, 0, sheet->Height - 1);
+		return NULL_VAL;
+	}
+
+	int maxFrameWidth = sheet->Width - frameX;
+	int maxFrameHeight = sheet->Height - frameY;
+	if (frameWidth < 0 || frameWidth > maxFrameWidth) {
+		VM_OUT_OF_RANGE_ERROR("Frame width", frameWidth, 0, maxFrameWidth);
+		return NULL_VAL;
+	}
+	if (frameHeight < 0 || frameHeight > maxFrameHeight) {
+		VM_OUT_OF_RANGE_ERROR("Frame height", frameHeight, 0, maxFrameHeight);
+		return NULL_VAL;
+	}
+
+	if (frameDuration < 0) {
+		throw ScriptException("Frame duration cannot be lower than zero.");
+	}
+
+	sprite->AddFrame(animation,
+		frameDuration,
+		frameX,
+		frameY,
+		frameWidth,
+		frameHeight,
+		frameOffsetX,
+		frameOffsetY,
+		frameID,
+		frameSheetNumber);
+	sprite->RefreshGraphicsID();
+
+	return INTEGER_VAL((int)sprite->Animations[animation].Frames.size() - 1);
+}
+/***
+ * \method RemoveFrame
+ * \desc Removes a frame from an animation.
+ * \param animation (Integer): The index of the animation.
+ * \param frame (Integer): The frame index of the animation to remove.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_RemoveFrame(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	int frame = GET_ARG(2, GetInteger);
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMFRAME_INDEX(animation, frame);
+
+	sprite->RemoveFrame(animation, frame);
+	sprite->RefreshGraphicsID();
+
+	return NULL_VAL;
+}
+
+/***
+ * \method GetHitbox
+ * \desc Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.
+ * \param instance (Instance):An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).
+ * \param sprite (Integer): The sprite index to check (if an entity is not provided).
+ * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
+ * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
+ * \param hitboxID (Integer): The index number of the hitbox.
+ * \return Returns a reference value to a hitbox array.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
+
+	ISprite* sprite;
+	int animationID, frameID, hitboxID;
+
+	if (argCount == 2 && IS_ENTITY(args[0])) {
+		ObjEntity* ent = GET_ARG(0, GetEntity);
+		Entity* entity = (Entity*)ent->EntityPtr;
+		hitboxID = GET_ARG(1, GetInteger);
+
+		sprite = entity->Sprite;
+		animationID = entity->CurrentAnimation;
+		frameID = entity->CurrentFrame;
+	}
+	else {
+		StandardLibrary::CheckArgCount(argCount, 4);
+		sprite = GET_ARG(0, GetSprite);
+		animationID = GET_ARG(1, GetInteger);
+		frameID = GET_ARG(2, GetInteger);
+		hitboxID = GET_ARG(3, GetInteger);
+	}
+
+	CHECK_EXISTS(sprite);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	ObjArray* array = NewArray();
+	for (int i = 0; i < 4; i++)
+		array->Values->push_back(INTEGER_VAL(0));
+
+	if (sprite && animationID >= 0 && frameID >= 0) {
+		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+			return OBJECT_VAL(array);
+		}
+
+		CollisionBox box = frame.Boxes[hitboxID];
+		ObjArray* hitbox = NewArray();
+		hitbox->Values->push_back(INTEGER_VAL(box.Left));
+		hitbox->Values->push_back(INTEGER_VAL(box.Top));
+		hitbox->Values->push_back(INTEGER_VAL(box.Right));
+		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
+		return OBJECT_VAL(hitbox);
+	}
+	else {
+		return OBJECT_VAL(array);
+	}
+}
+/***
+ * \method MakePalettized
+ * \desc Converts the sprite's colors to the ones in the specified palette index.
+ * \param paletteIndex (Integer): The palette index.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int palIndex = GET_ARG(1, GetInteger);
+
+	CHECK_EXISTS(sprite);
+
+	if (palIndex < 0 || palIndex >= MAX_PALETTE_COUNT) {
+		VM_OUT_OF_RANGE_ERROR("Palette index", palIndex, 0, MAX_PALETTE_COUNT - 1);
+		return NULL_VAL;
+	}
+
+	sprite->ConvertToPalette(palIndex);
+
+	return NULL_VAL;
+}
+/***
+ * \method MakeNonPalettized
+ * \desc Removes the sprite's palette.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ISprite* sprite = GET_ARG(0, GetSprite);
+
+	CHECK_EXISTS(sprite);
+
+	sprite->ConvertToRGBA();
+
+	return NULL_VAL;
+}
+
+#undef GET_ARG
+#undef GET_ARG_OPT
+#undef CHECK_ANIMATION_INDEX
+#undef CHECK_ANIMFRAME_INDEX
+#undef CHECK_EXISTS
+
+void SpriteImpl::AddNatives() {
+	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationName);
+	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationIndex);
+	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationSpeed);
+	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationLoopFrame);
+	DEF_CLASS_NATIVE(SpriteImpl, GetAnimationFrameCount);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameX);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameY);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameWidth);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameHeight);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameOffsetX);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameOffsetY);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameDuration);
+	DEF_CLASS_NATIVE(SpriteImpl, GetFrameID);
+	DEF_CLASS_NATIVE(SpriteImpl, IsFrameValid);
+	DEF_CLASS_NATIVE(SpriteImpl, GetSheetFilename);
+	DEF_CLASS_NATIVE(SpriteImpl, GetSheetImage);
+
+	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationName);
+	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationSpeed);
+	DEF_CLASS_NATIVE(SpriteImpl, SetAnimationLoopFrame);
+	DEF_CLASS_NATIVE(SpriteImpl, SetFramePosition);
+	DEF_CLASS_NATIVE(SpriteImpl, SetFrameSize);
+	DEF_CLASS_NATIVE(SpriteImpl, SetFrameOffset);
+	DEF_CLASS_NATIVE(SpriteImpl, SetFrameDuration);
+	DEF_CLASS_NATIVE(SpriteImpl, SetFrameID);
+
+	DEF_CLASS_NATIVE(SpriteImpl, AddAnimation);
+	DEF_CLASS_NATIVE(SpriteImpl, RemoveAnimation);
+	DEF_CLASS_NATIVE(SpriteImpl, AddFrame);
+	DEF_CLASS_NATIVE(SpriteImpl, RemoveFrame);
+
+	DEF_CLASS_NATIVE(SpriteImpl, GetHitbox);
+	DEF_CLASS_NATIVE(SpriteImpl, MakePalettized);
+	DEF_CLASS_NATIVE(SpriteImpl, MakeNonPalettized);
+}

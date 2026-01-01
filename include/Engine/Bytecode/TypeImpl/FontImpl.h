@@ -4,6 +4,8 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
+#define CLASS_FONT "Font"
+
 #define IS_FONT(value) IsNativeInstance(value, CLASS_FONT)
 #define AS_FONT(value) ((ObjFont*)AS_OBJECT(value))
 

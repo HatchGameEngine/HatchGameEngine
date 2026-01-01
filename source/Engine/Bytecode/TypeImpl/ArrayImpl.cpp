@@ -5,6 +5,8 @@
 
 ObjClass* ArrayImpl::Class = nullptr;
 
+#define CLASS_ARRAY "$$ArrayImpl"
+
 void ArrayImpl::Init() {
 	Class = NewClass(CLASS_ARRAY);
 
