@@ -113,6 +113,7 @@ codeBlock {
         <h3>Enums</h3>
         <ul>
             <li><a href="#Reference_ACTIVE_*">ACTIVE_*</a></li>
+            <li><a href="#Reference_ALIGN_*">ALIGN_*</a></li>
             <li><a href="#Reference_ASSET_*">ASSET_*</a></li>
             <li><a href="#Reference_AUDIO_*">AUDIO_*</a></li>
             <li><a href="#Reference_Axis_*">Axis_*</a></li>
@@ -136,6 +137,7 @@ codeBlock {
             <li><a href="#Reference_InputDevice_*">InputDevice_*</a></li>
             <li><a href="#Reference_KeyBind_*">KeyBind_*</a></li>
             <li><a href="#Reference_Key_*">Key_*</a></li>
+            <li><a href="#Reference_MOUSEMODE_*">MOUSEMODE_*</a></li>
             <li><a href="#Reference_Persistence_*">Persistence_*</a></li>
             <li><a href="#Reference_Platform_*">Platform_*</a></li>
             <li><a href="#Reference_ROTSTYLE_*">ROTSTYLE_*</a></li>
@@ -184,6 +186,8 @@ codeBlock {
                     <li><a href="#Reference_globals_LowPassFilter">LowPassFilter</a></li>
                     <li><a href="#Reference_globals_CurrentView">CurrentView</a></li>
                     <li><a href="#Reference_globals_Scene_Frame">Scene_Frame</a></li>
+                    <li><a href="#Reference_globals_DeltaTime">DeltaTime</a></li>
+                    <li><a href="#Reference_globals_Scene_Filter">Scene_Filter</a></li>
                     <li><a href="#Reference_globals_Scene_TimeEnabled">Scene_TimeEnabled</a></li>
                     <li><a href="#Reference_globals_Scene_TimeCounter">Scene_TimeCounter</a></li>
                     <li><a href="#Reference_globals_Scene_Minutes">Scene_Minutes</a></li>
@@ -247,7 +251,9 @@ codeBlock {
                     <li><a href="#Reference_functions_Application_GetEngineVersionCodename">Application.GetEngineVersionCodename</a></li>
                     <li><a href="#Reference_functions_Application_GetTargetFrameRate">Application.GetTargetFrameRate</a></li>
                     <li><a href="#Reference_functions_Application_SetTargetFrameRate">Application.SetTargetFrameRate</a></li>
+                    <li><a href="#Reference_functions_Application_UseFixedTimestep">Application.UseFixedTimestep</a></li>
                     <li><a href="#Reference_functions_Application_GetFPS">Application.GetFPS</a></li>
+                    <li><a href="#Reference_functions_Application_ShowFPSCounter">Application.ShowFPSCounter</a></li>
                     <li><a href="#Reference_functions_Application_GetKeyBind">Application.GetKeyBind</a></li>
                     <li><a href="#Reference_functions_Application_SetKeyBind">Application.SetKeyBind</a></li>
                     <li><a href="#Reference_functions_Application_GetGameTitle">Application.GetGameTitle</a></li>
@@ -260,6 +266,7 @@ codeBlock {
                     <li><a href="#Reference_functions_Application_SetGameDescription">Application.SetGameDescription</a></li>
                     <li><a href="#Reference_functions_Application_SetCursorVisible">Application.SetCursorVisible</a></li>
                     <li><a href="#Reference_functions_Application_GetCursorVisible">Application.GetCursorVisible</a></li>
+                    <li><a href="#Reference_functions_Application_Error">Application.Error</a></li>
                     <li><a href="#Reference_functions_Application_SetDefaultFont">Application.SetDefaultFont</a></li>
                     <li><a href="#Reference_functions_Application_ChangeGame">Application.ChangeGame</a></li>
                     <li><a href="#Reference_functions_Application_Quit">Application.Quit</a></li>
@@ -417,6 +424,7 @@ codeBlock {
                     <li><a href="#Reference_functions_Draw_TextWrapped">Draw.TextWrapped</a></li>
                     <li><a href="#Reference_functions_Draw_TextEllipsis">Draw.TextEllipsis</a></li>
                     <li><a href="#Reference_functions_Draw_Glyph">Draw.Glyph</a></li>
+                    <li><a href="#Reference_functions_Draw_TextArray">Draw.TextArray</a></li>
                     <li><a href="#Reference_functions_Draw_SetBlendColor">Draw.SetBlendColor</a></li>
                     <li><a href="#Reference_functions_Draw_SetTextureBlend">Draw.SetTextureBlend</a></li>
                     <li><a href="#Reference_functions_Draw_SetBlendMode">Draw.SetBlendMode</a></li>
@@ -709,6 +717,8 @@ codeBlock {
                     <li><a href="#Reference_functions_Input_IsMouseButtonDown">Input.IsMouseButtonDown</a></li>
                     <li><a href="#Reference_functions_Input_IsMouseButtonPressed">Input.IsMouseButtonPressed</a></li>
                     <li><a href="#Reference_functions_Input_IsMouseButtonReleased">Input.IsMouseButtonReleased</a></li>
+                    <li><a href="#Reference_functions_Input_GetMouseMode">Input.GetMouseMode</a></li>
+                    <li><a href="#Reference_functions_Input_SetMouseMode">Input.SetMouseMode</a></li>
                     <li><a href="#Reference_functions_Input_IsKeyDown">Input.IsKeyDown</a></li>
                     <li><a href="#Reference_functions_Input_IsKeyPressed">Input.IsKeyPressed</a></li>
                     <li><a href="#Reference_functions_Input_IsKeyReleased">Input.IsKeyReleased</a></li>
@@ -723,9 +733,15 @@ codeBlock {
                     <li><a href="#Reference_functions_Input_IsActionHeld">Input.IsActionHeld</a></li>
                     <li><a href="#Reference_functions_Input_IsActionPressed">Input.IsActionPressed</a></li>
                     <li><a href="#Reference_functions_Input_IsActionReleased">Input.IsActionReleased</a></li>
+                    <li><a href="#Reference_functions_Input_IsActionHeldByAny">Input.IsActionHeldByAny</a></li>
+                    <li><a href="#Reference_functions_Input_IsActionPressedByAny">Input.IsActionPressedByAny</a></li>
+                    <li><a href="#Reference_functions_Input_IsActionReleasedByAny">Input.IsActionReleasedByAny</a></li>
                     <li><a href="#Reference_functions_Input_IsAnyActionHeld">Input.IsAnyActionHeld</a></li>
                     <li><a href="#Reference_functions_Input_IsAnyActionPressed">Input.IsAnyActionPressed</a></li>
                     <li><a href="#Reference_functions_Input_IsAnyActionReleased">Input.IsAnyActionReleased</a></li>
+                    <li><a href="#Reference_functions_Input_IsAnyActionHeldByAny">Input.IsAnyActionHeldByAny</a></li>
+                    <li><a href="#Reference_functions_Input_IsAnyActionPressedByAny">Input.IsAnyActionPressedByAny</a></li>
+                    <li><a href="#Reference_functions_Input_IsAnyActionReleasedByAny">Input.IsAnyActionReleasedByAny</a></li>
                     <li><a href="#Reference_functions_Input_GetAnalogActionInput">Input.GetAnalogActionInput</a></li>
                     <li><a href="#Reference_functions_Input_GetActionBind">Input.GetActionBind</a></li>
                     <li><a href="#Reference_functions_Input_SetActionBind">Input.SetActionBind</a></li>
@@ -759,6 +775,7 @@ codeBlock {
                     <li><a href="#Reference_functions_Instance_GetNextInstance">Instance.GetNextInstance</a></li>
                     <li><a href="#Reference_functions_Instance_GetBySlotID">Instance.GetBySlotID</a></li>
                     <li><a href="#Reference_functions_Instance_DisableAutoAnimate">Instance.DisableAutoAnimate</a></li>
+                    <li><a href="#Reference_functions_Instance_SetUseRenderRegions">Instance.SetUseRenderRegions</a></li>
                     <li><a href="#Reference_functions_Instance_Copy">Instance.Copy</a></li>
                     <li><a href="#Reference_functions_Instance_ChangeClass">Instance.ChangeClass</a></li>
                 </ul>
@@ -1021,7 +1038,6 @@ codeBlock {
                     <li><a href="#Reference_functions_Scene_LayerPropertyExists">Scene.LayerPropertyExists</a></li>
                     <li><a href="#Reference_functions_Scene_GetName">Scene.GetName</a></li>
                     <li><a href="#Reference_functions_Scene_GetType">Scene.GetType</a></li>
-                    <li><a href="#Reference_functions_Scene_GetFilter">Scene.GetFilter</a></li>
                     <li><a href="#Reference_functions_Scene_GetWidth">Scene.GetWidth</a></li>
                     <li><a href="#Reference_functions_Scene_GetHeight">Scene.GetHeight</a></li>
                     <li><a href="#Reference_functions_Scene_GetLayerWidth">Scene.GetLayerWidth</a></li>
@@ -1236,6 +1252,8 @@ codeBlock {
                     <li><a href="#Reference_functions_Sprite_GetFrameLoopIndex">Sprite.GetFrameLoopIndex</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameCount">Sprite.GetFrameCount</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameSpeed">Sprite.GetFrameSpeed</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetTextArray">Sprite.GetTextArray</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetTextWidth">Sprite.GetTextWidth</a></li>
                 </ul>
                 <i>Instance methods:</i>
                 <ul>
@@ -1325,6 +1343,7 @@ codeBlock {
                     <li><a href="#Reference_functions_String_Format">String.Format</a></li>
                     <li><a href="#Reference_functions_String_Split">String.Split</a></li>
                     <li><a href="#Reference_functions_String_CharAt">String.CharAt</a></li>
+                    <li><a href="#Reference_functions_String_CodepointAt">String.CodepointAt</a></li>
                     <li><a href="#Reference_functions_String_Length">String.Length</a></li>
                     <li><a href="#Reference_functions_String_Compare">String.Compare</a></li>
                     <li><a href="#Reference_functions_String_IndexOf">String.IndexOf</a></li>
@@ -1336,6 +1355,7 @@ codeBlock {
                     <li><a href="#Reference_functions_String_ParseInteger">String.ParseInteger</a></li>
                     <li><a href="#Reference_functions_String_ParseDecimal">String.ParseDecimal</a></li>
                     <li><a href="#Reference_functions_String_GetCodepoints">String.GetCodepoints</a></li>
+                    <li><a href="#Reference_functions_String_FromCodepoints">String.FromCodepoints</a></li>
                 </ul>
             </p>
             <p id="Reference_Texture">
@@ -1479,6 +1499,7 @@ codeBlock {
                 <ul>
                     <li><a href="#Reference_functions_Window_SetSize">Window.SetSize</a></li>
                     <li><a href="#Reference_functions_Window_SetFullscreen">Window.SetFullscreen</a></li>
+                    <li><a href="#Reference_functions_Window_SetScale">Window.SetScale</a></li>
                     <li><a href="#Reference_functions_Window_SetBorderless">Window.SetBorderless</a></li>
                     <li><a href="#Reference_functions_Window_SetVSync">Window.SetVSync</a></li>
                     <li><a href="#Reference_functions_Window_SetPosition">Window.SetPosition</a></li>
@@ -1488,6 +1509,7 @@ codeBlock {
                     <li><a href="#Reference_functions_Window_GetWidth">Window.GetWidth</a></li>
                     <li><a href="#Reference_functions_Window_GetHeight">Window.GetHeight</a></li>
                     <li><a href="#Reference_functions_Window_GetFullscreen">Window.GetFullscreen</a></li>
+                    <li><a href="#Reference_functions_Window_GetScale">Window.GetScale</a></li>
                     <li><a href="#Reference_functions_Window_IsResizeable">Window.IsResizeable</a></li>
                 </ul>
             </p>
@@ -1731,6 +1753,8 @@ codeBlock {
                     <li><a href="#Reference_functions_Sprite_GetFrameLoopIndex">Sprite.GetFrameLoopIndex</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameCount">Sprite.GetFrameCount</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameSpeed">Sprite.GetFrameSpeed</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetTextArray">Sprite.GetTextArray</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetTextWidth">Sprite.GetTextWidth</a></li>
                 </ul>
                 <i>Instance methods:</i>
                 <ul>
@@ -1785,6 +1809,14 @@ codeBlock {
                     <li><a href="#Reference_enums_ACTIVE_YBOUNDS">ACTIVE_YBOUNDS</a></li>
                     <li><a href="#Reference_enums_ACTIVE_RBOUNDS">ACTIVE_RBOUNDS</a></li>
                     <li><a href="#Reference_enums_ACTIVE_DISABLED">ACTIVE_DISABLED</a></li>
+                </ul>
+            </p>
+            <p id="Reference_ALIGN_*">
+                <h2><code>ALIGN_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_ALIGN_LEFT">ALIGN_LEFT</a></li>
+                    <li><a href="#Reference_enums_ALIGN_CENTER">ALIGN_CENTER</a></li>
+                    <li><a href="#Reference_enums_ALIGN_RIGHT">ALIGN_RIGHT</a></li>
                 </ul>
             </p>
             <p id="Reference_ASSET_*">
@@ -2025,6 +2057,7 @@ codeBlock {
                 <h2><code>KeyBind_*</code></h2>
                 <ul>
                     <li><a href="#Reference_enums_KeyBind_Fullscreen">KeyBind_Fullscreen</a></li>
+                    <li><a href="#Reference_enums_KeyBind_ToggleFPSCounter">KeyBind_ToggleFPSCounter</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevRestartApp">KeyBind_DevRestartApp</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevRestartScene">KeyBind_DevRestartScene</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevRecompile">KeyBind_DevRecompile</a></li>
@@ -2146,6 +2179,13 @@ codeBlock {
                     <li><a href="#Reference_enums_Key_RSHIFT">Key_RSHIFT</a></li>
                     <li><a href="#Reference_enums_Key_RALT">Key_RALT</a></li>
                     <li><a href="#Reference_enums_Key_RGUI">Key_RGUI</a></li>
+                </ul>
+            </p>
+            <p id="Reference_MOUSEMODE_*">
+                <h2><code>MOUSEMODE_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_MOUSEMODE_DEFAULT">MOUSEMODE_DEFAULT</a></li>
+                    <li><a href="#Reference_enums_MOUSEMODE_RELATIVE">MOUSEMODE_RELATIVE</a></li>
                 </ul>
             </p>
             <p id="Reference_Persistence_*">
@@ -2546,7 +2586,7 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
-        <li>frameCount (Integer): The frame count.</li>
+        <li>frameCount (Integer): The animator's changed frame count.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_SetLoopIndex">
@@ -2556,17 +2596,17 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
-        <li>loopIndex (Integer): The loop index.</li>
+        <li>loopIndex (Integer): The animator's changed loop index.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_SetRotationStyle">
         <h2 style="margin-bottom: 8px;">Animator.SetRotationStyle</h2>
-        <code>Animator.SetRotationStyle(animator, rorationStyle)</code>
+        <code>Animator.SetRotationStyle(animator, rotationStyle)</code>
         <div style="margin-top: 8px; font-size: 14px;">Sets the rotation style of an animator.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The animator index to change.</li>
-        <li>rorationStyle (Integer): The rotation style.</li>
+        <li>rotationStyle (Integer): The animator's changed rotation style.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_AdjustCurrentAnimation">
@@ -2691,17 +2731,26 @@ codeBlock {
         <p id="Reference_functions_Application_GetTargetFrameRate">
         <h2 style="margin-bottom: 8px;">Application.GetTargetFrameRate</h2>
         <code>Application.GetTargetFrameRate()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the target frame rate.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the target frame rate of the fixed timestep.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Application_SetTargetFrameRate">
         <h2 style="margin-bottom: 8px;">Application.SetTargetFrameRate</h2>
         <code>Application.SetTargetFrameRate(framerate)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the target frame rate.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the target frame rate of the fixed timestep.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>framerate (Integer): The target frame rate.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Application_UseFixedTimestep">
+        <h2 style="margin-bottom: 8px;">Application.UseFixedTimestep</h2>
+        <code>Application.UseFixedTimestep(useFixedTimestep)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables fixed timestep. This is enabled by default.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>useFixedTimestep (Boolean): Whether or not to use fixed timestep.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_GetFPS">
@@ -2710,6 +2759,15 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the current FPS (frames per second).</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <p id="Reference_functions_Application_ShowFPSCounter">
+        <h2 style="margin-bottom: 8px;">Application.ShowFPSCounter</h2>
+        <code>Application.ShowFPSCounter(show)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Enables or disables the FPS (frames per second) counter.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>show (Boolean): Whether or not to show the FPS counter.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Application_GetKeyBind">
         <h2 style="margin-bottom: 8px;">Application.GetKeyBind</h2>
@@ -2720,7 +2778,7 @@ codeBlock {
         <li>keyBind (Enum): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the key ID of the keybind.</div>
+        <div style="font-size: 14px;">Returns the <a href="#Reference_Key_*">key ID</a> of the keybind.</div>
         </p>
         <p id="Reference_functions_Application_SetKeyBind">
         <h2 style="margin-bottom: 8px;">Application.SetKeyBind</h2>
@@ -2729,7 +2787,7 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>keyBind (Enum): The <a href="#Reference_KeyBind_*">keybind</a>.</li>
-        <li>keyID (Integer): The key ID.</li>
+        <li>keyID (Integer): The <a href="#Reference_Key_*">key ID</a>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_GetGameTitle">
@@ -2804,6 +2862,16 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether ot not the cursor is visible.</div>
         </p>
+        <p id="Reference_functions_Application_Error">
+        <h2 style="margin-bottom: 8px;">Application.Error</h2>
+        <code>Application.Error(message[, detailed])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Shows an error message to the user through a dialog box, if possible. The error message is also logged.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>message (String): The error message to show to the user.</li>
+        <li>detailed (Boolean): Whether or not to show the stack trace alongside the error. The default is <code>true</code>.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Application_SetDefaultFont">
         <h2 style="margin-bottom: 8px;">Application.SetDefaultFont</h2>
         <code>Application.SetDefaultFont(font)</code>
@@ -2816,7 +2884,7 @@ codeBlock {
         <p id="Reference_functions_Application_ChangeGame">
         <h2 style="margin-bottom: 8px;">Application.ChangeGame</h2>
         <code>Application.ChangeGame(path[, startingScene, cmdLineArgs])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead. Only <code>game://</code> and <code>user://</code> URLs are supported (or an absolute path that resolves to those locations).<br/><br/>This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>The change only takes effect after a frame completes.<br/><br/>Note that certain game configurations will persist between games if not set by the new GameConfig:<ul><li>Game-identifying configurations:</li><ul><li>Game title (including the short game title)</li><li>Game version</li><li>Game description</li><li>Game developer</li><li>Game identifier</li><li>Developer identifier</li></ul><li>Paths:</li><ul><li>Saves directory</li><li>Preferences directory</li></ul><li>Engine configurations:</li><ul><li>Window size</li><li>Audio volume</li><li>Settings filename</li><ul>If this is changed, the current settings are discarded (not saved) and the new settings file is loaded. If the file does not exist, however, default settings will be loaded.</ul></ul></ul>Some of the game's current state also persists between games:<ul><li>Command line arguments (unless <code>cmdLineArgs</code> is passed to this function)</li><li>Palette colors</li><li>Whether palette rendering is enabled</li><li>Whether software rendering was enabled with <code>useSoftwareRenderer</code></li></ul>The following <b>does not</b> persist between games:<ul><li>Any loaded resources</li><li>Any persistent entities</li><li>Scripting state</li></ul>The following <b>cannot</b> be changed between games:<ul><li>Log file name</li><li>Graphics rendering backend</li></ul></div>
+        <div style="margin-top: 8px; font-size: 14px;">Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead. Only <code>game://</code> and <code>user://</code> URLs are supported (or an absolute path that resolves to those locations).<br/><br/>This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>The change only takes effect after a frame completes.<br/><br/>Note that certain game configurations will persist between games if not set by the new GameConfig:<ul><li>Game-identifying configurations:</li><ul><li>Game title (including the short game title)</li><li>Game version</li><li>Game description</li><li>Game developer</li><li>Game identifier</li><li>Developer identifier</li></ul><li>Paths:</li><ul><li>Saves directory</li><li>Preferences directory</li></ul><li>Engine configurations:</li><ul><li>Window size</li><li>Audio volume</li><li>Target frame rate</li><li>Whether fixed timestep was enabled or disabled with <code>useFixedTimestep</code></li><li>Settings filename</li><ul>If this is changed, the current settings are discarded (not saved) and the new settings file is loaded. If the file does not exist, however, default settings will be loaded.</ul></ul></ul>Some of the game's current state also persists between games:<ul><li>Command line arguments (unless <code>cmdLineArgs</code> is passed to this function)</li><li>Palette colors</li><li>Whether palette rendering is enabled</li><li>Whether software rendering was enabled or disabled with <code>useSoftwareRenderer</code></li></ul>The following <b>does not</b> persist between games:<ul><li>Any loaded resources</li><li>Any persistent entities</li><li>Scripting state</li></ul>The following <b>cannot</b> be changed between games:<ul><li>Log file name</li><li>Graphics rendering backend</li></ul></div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>path (String): The path of the data file to load.</li>
@@ -3896,6 +3964,25 @@ codeBlock {
         <li>x (Number): X position of where to draw the glyph.</li>
         <li>y (Number): Y position of where to draw the glyph.</li>
         <li>fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Draw_TextArray">
+        <h2 style="margin-bottom: 8px;">Draw.TextArray</h2>
+        <code>Draw.TextArray(sprite, animation, x, y, string, startFrame, endFrame, align, spacing[, charOffsetsX, charOffsetsY])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a series of sprites based on a converted sprite string.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The index of the loaded sprite to be used as text.</li>
+        <li>animation (Integer): The animation index.</li>
+        <li>x (Number): The X value to begin drawing.</li>
+        <li>y (Number): The Y value to begin drawing.</li>
+        <li>string (Array): The array containing frame indexes.</li>
+        <li>startFrame (Integer): The index to begin drawing.</li>
+        <li>endFrame (Integer): The index to end drawing.</li>
+        <li>align (Integer): The text alignment.</li>
+        <li>spacing (Integer): The space between drawn sprites.</li>
+        <li>charOffsetsX (Array): The X offsets at which to draw per frame. Must also have charOffsetsY to be used.</li>
+        <li>charOffsetsY (Array): The Y offsets at which to draw per frame.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetBlendColor">
@@ -5345,35 +5432,51 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the mouse button released during the current frame.</div>
         </p>
+        <p id="Reference_functions_Input_GetMouseMode">
+        <h2 style="margin-bottom: 8px;">Input.GetMouseMode</h2>
+        <code>Input.GetMouseMode()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current mouse mode.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the current <a href="#Reference_MOUSEMODE_*">mouse mode</a>.</div>
+        </p>
+        <p id="Reference_functions_Input_SetMouseMode">
+        <h2 style="margin-bottom: 8px;">Input.SetMouseMode</h2>
+        <code>Input.SetMouseMode(mouseMode)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current mouse mode.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>mouseMode (Enum): The <a href="#Reference_MOUSEMODE_*">mouse mode</a> to set.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Input_IsKeyDown">
         <h2 style="margin-bottom: 8px;">Input.IsKeyDown</h2>
         <code>Input.IsKeyDown(keyID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets whether the key is currently down.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>keyID (Integer): Index of the key to check.</li>
+        <li>keyID (Integer): The <a href="#Reference_Key_*">key ID</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the key is currently down.</div>
         </p>
         <p id="Reference_functions_Input_IsKeyPressed">
         <h2 style="margin-bottom: 8px;">Input.IsKeyPressed</h2>
-        <code>Input.IsKeyPressed(mouseButtonID)</code>
+        <code>Input.IsKeyPressed(keyID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets whether the key started pressing during the current frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>mouseButtonID (Integer): Index of the key to check.</li>
+        <li>keyID (Enum): The <a href="#Reference_Key_*">key ID</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the key started pressing during the current frame.</div>
         </p>
         <p id="Reference_functions_Input_IsKeyReleased">
         <h2 style="margin-bottom: 8px;">Input.IsKeyReleased</h2>
-        <code>Input.IsKeyReleased(mouseButtonID)</code>
+        <code>Input.IsKeyReleased(keyID)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets whether the key released during the current frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>mouseButtonID (Integer): Index of the key to check.</li>
+        <li>keyID (Enum): The <a href="#Reference_Key_*">key ID</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the key released during the current frame.</div>
@@ -5384,7 +5487,7 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the name of the key.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>keyID (Integer): Index of the key to check.</li>
+        <li>keyID (Enum): The <a href="#Reference_Key_*">key ID</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a String value.</div>
@@ -5420,7 +5523,7 @@ codeBlock {
         <li>keyName (String): The key name to parse.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the parsed key ID, or <code>null</code> if it could not be parsed.</div>
+        <div style="font-size: 14px;">Returns the parsed <a href="#Reference_Key_*">key ID</a>, or <code>null</code> if it could not be parsed.</div>
         </p>
         <p id="Reference_functions_Input_ParseButtonName">
         <h2 style="margin-bottom: 8px;">Input.ParseButtonName</h2>
@@ -5501,6 +5604,42 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
+        <p id="Reference_functions_Input_IsActionHeldByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsActionHeldByAny</h2>
+        <code>Input.IsActionHeldByAny(actionName[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input action is currently held by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>actionName (String): Name of the action to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_IsActionPressedByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsActionPressedByAny</h2>
+        <code>Input.IsActionPressedByAny(actionName[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input action is currently pressed by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>actionName (String): Name of the action to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_IsActionReleasedByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsActionReleasedByAny</h2>
+        <code>Input.IsActionReleasedByAny(actionName[, inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the input action was released by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>actionName (String): Name of the action to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
         <p id="Reference_functions_Input_IsAnyActionHeld">
         <h2 style="margin-bottom: 8px;">Input.IsAnyActionHeld</h2>
         <code>Input.IsAnyActionHeld(playerID[, inputDevice])</code>
@@ -5532,6 +5671,39 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>playerID (Integer): Index of the player to check.</li>
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_IsAnyActionHeldByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsAnyActionHeldByAny</h2>
+        <code>Input.IsAnyActionHeldByAny([inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input action is currently held by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_IsAnyActionPressedByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsAnyActionPressedByAny</h2>
+        <code>Input.IsAnyActionPressedByAny([inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input action is currently pressed by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a Boolean value.</div>
+        </p>
+        <p id="Reference_functions_Input_IsAnyActionReleasedByAny">
+        <h2 style="margin-bottom: 8px;">Input.IsAnyActionReleasedByAny</h2>
+        <code>Input.IsAnyActionReleasedByAny([inputDevice])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether any input action was released by any player.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
         <li>inputDevice (Enum): Which <a href="#Reference_InputDevice_*">input device</a> to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -5853,6 +6025,15 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>disableAutoAnimate (Boolean): Whether to turn off the engine automatically applying AutoAnimate when entities are initialized.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_Instance_SetUseRenderRegions">
+        <h2 style="margin-bottom: 8px;">Instance.SetUseRenderRegions</h2>
+        <code>Instance.SetUseRenderRegions(useRenderRegions)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether entities will use Render Regions when rendering. If false, entities will use their Update Regions instead.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>useRenderRegions (Boolean): Whether render regions will be used.</li>
         </ul>
         </p>
         <p id="Reference_functions_Instance_Copy">
@@ -7394,13 +7575,6 @@ codeBlock {
         <div style="margin-top: 8px; font-size: 14px;">Gets the type of the active scene.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the type of the active scene, see <code><a href="#Reference_SCENETYPE_*">SCENETYPE_*</a></code>.</div>
-        </p>
-        <p id="Reference_functions_Scene_GetFilter">
-        <h2 style="margin-bottom: 8px;">Scene.GetFilter</h2>
-        <code>Scene.GetFilter()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the filter of the active scene.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetWidth">
         <h2 style="margin-bottom: 8px;">Scene.GetWidth</h2>
@@ -9052,6 +9226,32 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer.</div>
         </p>
+        <p id="Reference_functions_Sprite_GetTextArray">
+        <h2 style="margin-bottom: 8px;">Sprite.GetTextArray</h2>
+        <code>Sprite.GetTextArray(sprite, animation, text)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a string to an array of sprite indexes by comparing codepoints to a frame's ID.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index.</li>
+        <li>animation (Integer): The animation index containing frames with codepoint ID values.</li>
+        <li>text (String): The text to convert.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an array of sprite indexes per character in the text.</div>
+        </p>
+        <p id="Reference_functions_Sprite_GetTextWidth">
+        <h2 style="margin-bottom: 8px;">Sprite.GetTextWidth</h2>
+        <code>Sprite.GetTextWidth(sprite, animation, text, startIndex, spacing)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the width (in pixels) of a converted sprite string.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index.</li>
+        <li>animation (Integer): The animation index.</li>
+        <li>text (Array): The array containing frame indexes.</li>
+        <li>startIndex (Integer): Where to start checking the width.</li>
+        <li>spacing (Integer): The spacing (in pixels) between frames.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Stream_FromResource">
         <h2 style="margin-bottom: 8px;">Stream.FromResource</h2>
         <code>Stream.FromResource(filename)</code>
@@ -9447,14 +9647,26 @@ codeBlock {
         <p id="Reference_functions_String_CharAt">
         <h2 style="margin-bottom: 8px;">String.CharAt</h2>
         <code>String.CharAt(string, index)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the ASCII code of the character at the specified index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the 8-bit value of the character at the specified index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>string (String): The input string.</li>
-        <li>index (Integer): The index of the character to get.</li>
+        <li>string (String): The string containing the character.</li>
+        <li>index (Integer): The character index to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the character as an Integer.</div>
+        <div style="font-size: 14px;">Returns the value as an Integer.</div>
+        </p>
+        <p id="Reference_functions_String_CodepointAt">
+        <h2 style="margin-bottom: 8px;">String.CodepointAt</h2>
+        <code>String.CodepointAt(string, index)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the codepoint value of the character at the specified index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>string (String): The string containing the character.</li>
+        <li>index (Integer): The character index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the value as an Integer.</div>
         </p>
         <p id="Reference_functions_String_Length">
         <h2 style="margin-bottom: 8px;">String.Length</h2>
@@ -9583,6 +9795,17 @@ codeBlock {
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Array of Integer values.</div>
+        </p>
+        <p id="Reference_functions_String_FromCodepoints">
+        <h2 style="margin-bottom: 8px;">String.FromCodepoints</h2>
+        <code>String.FromCodepoints(codepoints)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates UTF-8 text from a list of UCS codepoints.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>codepoints (Array): An Array of Integer values.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
         </p>
         <p id="Reference_functions_Texture_Create">
         <h2 style="margin-bottom: 8px; color: red;">Texture.Create</h2>
@@ -10346,6 +10569,15 @@ codeBlock {
         <li>isFullscreen (Boolean): Whether or not the window should be fullscreen.</li>
         </ul>
         </p>
+        <p id="Reference_functions_Window_SetScale">
+        <h2 style="margin-bottom: 8px;">Window.SetScale</h2>
+        <code>Window.SetScale(scale)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the scale of the active window.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>scale (Integer): Window scale.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Window_SetBorderless">
         <h2 style="margin-bottom: 8px;">Window.SetBorderless</h2>
         <code>Window.SetBorderless(isBorderless)</code>
@@ -10418,6 +10650,13 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the window is fullscreen, <code>false</code> if otherwise.</div>
         </p>
+        <p id="Reference_functions_Window_GetScale">
+        <h2 style="margin-bottom: 8px;">Window.GetScale</h2>
+        <code>Window.GetScale()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the scale of the active window.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the scale of the window.</div>
+        </p>
         <p id="Reference_functions_Window_IsResizeable">
         <h2 style="margin-bottom: 8px;">Window.IsResizeable</h2>
         <code>Window.IsResizeable()</code>
@@ -10436,7 +10675,7 @@ codeBlock {
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>734 out of 789 functions have descriptions. </p>
+        <p>752 out of 807 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -11419,14 +11658,18 @@ codeBlock {
         </p>
         <p id="Reference_methods_sprite_GetHitbox">
         <h2 style="margin-bottom: 8px;">sprite.GetHitbox</h2>
-        <code>sprite.GetHitbox(animationID, frame[, hitboxID])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of an animation and frame.</div>
+        <code>sprite.GetHitbox(instance, sprite, animationID, frameID, hitboxID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>animationID (Integer): The animation index to check.</li>
-        <li>frame (Integer): The frame index of the animation to check.</li>
-        <li>hitboxID (Integer): The hitbox index of the animation to check. Defaults to <code>0</code>.</li>
+        <li>instance (Instance):An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).</li>
+        <li>sprite (Integer): The sprite index to check (if an entity is not provided).</li>
+        <li>animationID (Integer): The animation index of the sprite to check (if an entity is not provided).</li>
+        <li>frameID (Integer): The frame index of the animation to check (if an entity is not provided).</li>
+        <li>hitboxID (Integer): The index number of the hitbox.</li>
         </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
         </p>
         <p id="Reference_methods_sprite_MakePalettized">
         <h2 style="margin-bottom: 8px;">sprite.MakePalettized</h2>
@@ -11445,11 +11688,6 @@ codeBlock {
         <p>102 out of 102 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
-        <p id="Reference_constructors_Shader">
-        <h2 style="margin-bottom: 8px;">Shader</h2>
-        <code>Shader()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Creates a shader program.</div>
-        </p>
         <p id="Reference_constructors_Font">
         <h2 style="margin-bottom: 8px;">Font</h2>
         <code>Font([font])</code>
@@ -11469,6 +11707,11 @@ codeBlock {
         <li>unloadPolicy (Integer): The <a href="#Reference_SCOPE_*">unload policy</a> of the resource.</li>
         <li>unique (Boolean): If <code>false</code> (the default), this constructor may return an already loaded Resource of the same type and filename. However, if <code>true</code>, this constructor will always return an unique Resource, and load a new Asset.</li>
         </ul>
+        </p>
+        <p id="Reference_constructors_Shader">
+        <h2 style="margin-bottom: 8px;">Shader</h2>
+        <code>Shader()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Creates a shader program.</div>
         </p>
         <p>3 out of 3 constructors have descriptions. </p>
         <hr/>
@@ -11983,6 +12226,21 @@ codeBlock {
         <div style="font-size: 14px;"><b>Type: </b>Asset</div>
         <div style="margin-top: 8px; font-size: 14px;">The Asset owned by this resource.</div>
         </p>
+        <p id="Reference_fields_audio_LoopPoint">
+        <h3 style="margin-bottom: 8px;"><code>audio.LoopPoint</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
+        <div style="margin-top: 8px; font-size: 14px;">The loop point in samples, or <code>null</code> if it doesn't have one.</div>
+        </p>
+        <p id="Reference_fields_image_Width">
+        <h3 style="margin-bottom: 8px;"><code>image.Width</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
+        <div style="margin-top: 8px; font-size: 14px;">The width of the image.</div>
+        </p>
+        <p id="Reference_fields_image_Height">
+        <h3 style="margin-bottom: 8px;"><code>image.Height</code></h2>
+        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
+        <div style="margin-top: 8px; font-size: 14px;">The height of the image.</div>
+        </p>
         <p id="Reference_fields_model_VertexCount">
         <h3 style="margin-bottom: 8px;"><code>model.VertexCount</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
@@ -12002,21 +12260,6 @@ codeBlock {
         <h3 style="margin-bottom: 8px;"><code>model.BoneCount</code></h2>
         <div style="font-size: 14px;"><b>Type: </b>Integer</div>
         <div style="margin-top: 8px; font-size: 14px;">The amount of bones in the model.</div>
-        </p>
-        <p id="Reference_fields_image_Width">
-        <h3 style="margin-bottom: 8px;"><code>image.Width</code></h2>
-        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
-        <div style="margin-top: 8px; font-size: 14px;">The width of the image.</div>
-        </p>
-        <p id="Reference_fields_image_Height">
-        <h3 style="margin-bottom: 8px;"><code>image.Height</code></h2>
-        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
-        <div style="margin-top: 8px; font-size: 14px;">The height of the image.</div>
-        </p>
-        <p id="Reference_fields_audio_LoopPoint">
-        <h3 style="margin-bottom: 8px;"><code>audio.LoopPoint</code></h2>
-        <div style="font-size: 14px;"><b>Type: </b>Integer</div>
-        <div style="margin-top: 8px; font-size: 14px;">The loop point in samples, or <code>null</code> if it doesn't have one.</div>
         </p>
         <p id="Reference_fields_sprite_AnimationCount">
         <h3 style="margin-bottom: 8px;"><code>sprite.AnimationCount</code></h2>
@@ -12066,6 +12309,18 @@ codeBlock {
         <p id="Reference_enums_ACTIVE_DISABLED">
         <h3 style="margin-bottom: 8px;"><code>ACTIVE_DISABLED</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Entity will not even reach a point where it would check for an update.</div>
+        </p>
+        <p id="Reference_enums_ALIGN_LEFT">
+        <h3 style="margin-bottom: 8px;"><code>ALIGN_LEFT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Left alignment for text drawing.</div>
+        </p>
+        <p id="Reference_enums_ALIGN_CENTER">
+        <h3 style="margin-bottom: 8px;"><code>ALIGN_CENTER</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Center alignment for text drawing.</div>
+        </p>
+        <p id="Reference_enums_ALIGN_RIGHT">
+        <h3 style="margin-bottom: 8px;"><code>ALIGN_RIGHT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Right alignment for text drawing.</div>
         </p>
         <p id="Reference_enums_ASSET_SPRITE">
         <h3 style="margin-bottom: 8px;"><code>ASSET_SPRITE</code></h2>
@@ -12587,6 +12842,10 @@ codeBlock {
         <h3 style="margin-bottom: 8px;"><code>KeyBind_Fullscreen</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Fullscreen keybind.</div>
         </p>
+        <p id="Reference_enums_KeyBind_ToggleFPSCounter">
+        <h3 style="margin-bottom: 8px;"><code>KeyBind_ToggleFPSCounter</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">FPS counter toggle keybind.</div>
+        </p>
         <p id="Reference_enums_KeyBind_DevRestartApp">
         <h3 style="margin-bottom: 8px;"><code>KeyBind_DevRestartApp</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">App restart keybind. (dev)</div>
@@ -13051,6 +13310,14 @@ codeBlock {
         <h3 style="margin-bottom: 8px;"><code>Key_RGUI</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Right GUI key.</div>
         </p>
+        <p id="Reference_enums_MOUSEMODE_DEFAULT">
+        <h3 style="margin-bottom: 8px;"><code>MOUSEMODE_DEFAULT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">"Absolute" mouse mode. The cursor is visible by default, and not constrained to the window.</div>
+        </p>
+        <p id="Reference_enums_MOUSEMODE_RELATIVE">
+        <h3 style="margin-bottom: 8px;"><code>MOUSEMODE_RELATIVE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">"Relative" mouse mode. The cursor is invisible, and constrained to the window.</div>
+        </p>
         <p id="Reference_enums_Persistence_NONE">
         <h3 style="margin-bottom: 8px;"><code>Persistence_NONE</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Doesn't persist between scenes.</div>
@@ -13375,7 +13642,7 @@ codeBlock {
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>336 out of 336 enums have descriptions. </p>
+        <p>342 out of 342 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">
@@ -13514,6 +13781,14 @@ codeBlock {
         <h3 style="margin-bottom: 8px;"><code>Scene_Frame</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The current scene frame.</div>
         </p>
+        <p id="Reference_globals_DeltaTime">
+        <h3 style="margin-bottom: 8px;"><code>DeltaTime</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The delta time.</div>
+        </p>
+        <p id="Reference_globals_Scene_Filter">
+        <h3 style="margin-bottom: 8px;"><code>Scene_Filter</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The current scene filter.</div>
+        </p>
         <p id="Reference_globals_Scene_TimeEnabled">
         <h3 style="margin-bottom: 8px;"><code>Scene_TimeEnabled</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Whether the scene timer is enabled or not.</div>
@@ -13546,7 +13821,7 @@ codeBlock {
         <h3 style="margin-bottom: 8px;"><code>Scene_DebugMode</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Whether nor not Debug Mode has been turned on in the current scene</div>
         </p>
-        <p>13 out of 13 globals have descriptions. </p>
+        <p>15 out of 15 globals have descriptions. </p>
         <hr/>
 
   </body>

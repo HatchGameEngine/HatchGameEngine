@@ -1,12 +1,15 @@
+#include <Engine/Application.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/ResourceTypes/Resource.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Scene.h>
 
-bool ScriptEntity::DisableAutoAnimate = false;
+Uint32 ScriptEntity::FixedUpdateEarlyHash = 0;
+Uint32 ScriptEntity::FixedUpdateHash = 0;
+Uint32 ScriptEntity::FixedUpdateLateHash = 0;
 
-bool SavedHashes = false;
+bool ScriptEntity::DisableAutoAnimate = false;
 
 #define LINK_INT(VAR) Instance->InstanceObj.Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
 #define LINK_DEC(VAR) Instance->InstanceObj.Fields->Put(#VAR, DECIMAL_LINK_VAL(&VAR))
@@ -16,18 +19,18 @@ bool SavedHashes = false;
 ENTITY_FIELDS_LIST
 #undef ENTITY_FIELD
 
+void ScriptEntity::Init() {
+#define ENTITY_FIELD(name) Hash_##name = Murmur::EncryptString(#name);
+	ENTITY_FIELDS_LIST
+#undef ENTITY_FIELD
+
+    SetUseFixedTimestep(Application::UseFixedTimestep);
+}
+
 void ScriptEntity::Link(ObjEntity* entity) {
 	Instance = entity;
 	Instance->EntityPtr = this;
 	Properties = new HashMap<VMValue>(NULL, 4);
-
-	if (!SavedHashes) {
-#define ENTITY_FIELD(name) Hash_##name = Murmur::EncryptString(#name);
-		ENTITY_FIELDS_LIST
-#undef ENTITY_FIELD
-
-		SavedHashes = true;
-	}
 
 	LinkFields();
 	AddEntityClassMethods();
@@ -248,7 +251,7 @@ void ScriptEntity::LinkFields() {
 	* \ns Entity
 	* \desc The rotation style to use when this entity is called in <linkto ref="Draw.SpriteBasic"></linkto>.
 	*/
-	LINK_INT(AnimationLoopIndex);
+	LINK_INT(RotationStyle);
 	/***
     * \field AnimationSpeedMult
     * \type Decimal
@@ -719,6 +722,19 @@ void ScriptEntity::AddEntityClassMethods() {
 	});
 }
 
+void ScriptEntity::SetUseFixedTimestep(bool useFixedTimestep) {
+	if (useFixedTimestep) {
+		FixedUpdateEarlyHash = Hash_UpdateEarly;
+		FixedUpdateHash = Hash_Update;
+		FixedUpdateLateHash = Hash_UpdateLate;
+	}
+	else {
+		FixedUpdateEarlyHash = Hash_FixedUpdateEarly;
+		FixedUpdateHash = Hash_FixedUpdate;
+		FixedUpdateLateHash = Hash_FixedUpdateLate;
+	}
+}
+
 bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value) {
 	VMValue result;
 
@@ -1000,6 +1016,27 @@ void ScriptEntity::UpdateLate() {
 	}
 
 	RunFunction(Hash_UpdateLate);
+}
+void ScriptEntity::FixedUpdateEarly() {
+	if (!Active) {
+		return;
+	}
+
+	RunFunction(FixedUpdateEarlyHash);
+}
+void ScriptEntity::FixedUpdate() {
+	if (!Active) {
+		return;
+	}
+
+	RunFunction(FixedUpdateHash);
+}
+void ScriptEntity::FixedUpdateLate() {
+	if (!Active) {
+		return;
+	}
+
+	RunFunction(FixedUpdateLateHash);
 
 	if (AutoAnimate) {
 		Animate();

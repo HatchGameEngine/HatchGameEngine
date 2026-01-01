@@ -1734,7 +1734,7 @@ void Graphics::MeasureText(Font* font,
 			FontGlyph& glyph = font->Glyphs[codepoint];
 
 			currX += glyph.Advance * scale;
-			glyphY += (ascent * scale) + (glyph.OffsetY * scale) +
+			glyphY += (ascent * scale) + (glyph.OffsetY * xyScale) +
 				(glyph.Height * xyScale);
 		}
 
@@ -1816,7 +1816,7 @@ void Graphics::MeasureTextWrapped(Font* font,
 
 						currX += glyph.Advance * scale;
 						glyphY += (ascent * scale) +
-							(glyph.OffsetY * scale) +
+							(glyph.OffsetY * xyScale) +
 							(glyph.Height * xyScale);
 					}
 
@@ -1856,7 +1856,7 @@ void Graphics::MeasureTextWrapped(Font* font,
 			FontGlyph& glyph = font->Glyphs[*o];
 
 			currX += glyph.Advance * scale;
-			glyphY += (ascent * scale) + (glyph.OffsetY * scale) +
+			glyphY += (ascent * scale) + (glyph.OffsetY * xyScale) +
 				(glyph.Height * xyScale);
 		}
 

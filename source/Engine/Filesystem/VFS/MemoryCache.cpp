@@ -51,6 +51,14 @@ Stream* MemoryCache::OpenStream(const char* filename, Uint32 access) {
 	return stream;
 }
 
+bool MemoryCache::Exists(const char* filename) {
+	if (CacheVFS) {
+		return CacheVFS->FileExists(filename);
+	}
+
+	return false;
+}
+
 void MemoryCache::Dispose() {
 	if (CacheVFS) {
 		delete CacheVFS;

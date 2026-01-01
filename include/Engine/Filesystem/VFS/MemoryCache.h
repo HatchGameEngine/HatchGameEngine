@@ -12,6 +12,7 @@ public:
 	static bool Using;
 
 	static Stream* OpenStream(const char* filename, Uint32 access);
+	static bool Exists(const char* filename);
 	static bool Init();
 	static void Dispose();
 };

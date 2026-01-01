@@ -2,6 +2,42 @@
 #include <Engine/Diagnostics/PerformanceViewer.h>
 #include <Engine/Graphics.h>
 
+void PerformanceViewer::DrawFramerate(Font* font) {
+	int ww, wh;
+	SDL_GetWindowSize(Application::Window, &ww, &wh);
+	Graphics::SetViewport(0.0, 0.0, ww, wh);
+	Graphics::UpdateOrthoFlipped(ww, wh);
+	Graphics::SetBlendMode(BlendFactor_SRC_ALPHA,
+		BlendFactor_INV_SRC_ALPHA,
+		BlendFactor_ONE,
+		BlendFactor_INV_SRC_ALPHA);
+
+	TextDrawParams textParams;
+	textParams.FontSize = font->Size;
+	textParams.Ascent = font->Ascent;
+	textParams.Descent = font->Descent;
+	textParams.Leading = font->Leading;
+
+	char textBuffer[256];
+	snprintf(textBuffer, sizeof textBuffer, "FPS: %03.1f", Application::CurrentFPS);
+
+	float maxW = 0.0, maxH = 0.0;
+	Graphics::MeasureText(font, textBuffer, &textParams, maxW, maxH);
+
+	float paddingW = 12.0;
+	float paddingH = 6.0;
+
+	Graphics::Save();
+	Graphics::Translate(ww - maxW, 0.0, 0.0);
+
+	Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.5);
+	Graphics::FillRectangle(-paddingW * 2, 0.0, maxW + (paddingW * 2), maxH + (paddingH * 2));
+	Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+	Graphics::DrawText(font, textBuffer, -paddingW, font->Descent + paddingH, &textParams);
+
+	Graphics::Restore();
+}
+
 void PerformanceViewer::DrawDetailed(Font* font) {
 	int ww, wh;
 	SDL_GetWindowSize(Application::Window, &ww, &wh);

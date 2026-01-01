@@ -7,7 +7,7 @@
 
 class VMThread {
 private:
-	string GetFunctionName(ObjFunction* function);
+	std::string GetFunctionName(ObjFunction* function);
 	void PrintStackTrace(PrintBuffer* buffer, const char* errorString);
 	bool CheckBranchLimit(CallFrame* frame);
 	bool DoJump(CallFrame* frame, int offset);
@@ -56,6 +56,7 @@ public:
 	static char* GetVariableOrMethodName(Uint32 hash);
 	void MakeErrorMessage(PrintBuffer* buffer, const char* errorString);
 	int ThrowRuntimeError(bool fatal, const char* errorMessage, ...);
+	int ShowErrorFromScript(const char* errorString, bool detailed);
 	void ShowErrorLocation(const char* errorMessage);
 	void ShowErrorLocation();
 	void PrintStack();

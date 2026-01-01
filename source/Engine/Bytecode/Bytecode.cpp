@@ -108,12 +108,9 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 
 	if (HasDebugInfo) {
 		int tokenCount = stream->ReadInt32();
-		for (int t = 0; t < tokenCount; t++) {
-			char* string = stream->ReadString();
-			if (!tokens) {
-				stream->SkipString();
-			}
-			else {
+		if (tokens) {
+			for (int t = 0; t < tokenCount; t++) {
+				char* string = stream->ReadString();
 				Uint32 hash = Murmur::EncryptString(string);
 				if (!tokens->Exists(hash)) {
 					tokens->Put(hash, string);
@@ -122,14 +119,16 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 					Memory::Free(string);
 				}
 			}
-		}
 
-		if (tokens) {
 			for (ObjFunction* function : Functions) {
 				if (tokens->Exists(function->NameHash)) {
-					function->Name =
-						CopyString(tokens->Get(function->NameHash));
+					function->Name = StringUtils::Duplicate(tokens->Get(function->NameHash));
 				}
+			}
+		}
+		else {
+			for (int t = 0; t < tokenCount; t++) {
+				stream->SkipString();
 			}
 		}
 	}
@@ -172,7 +171,7 @@ void Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>*
 			stream->WriteUInt32(chunk->OpcodeCount);
 		}
 
-		stream->WriteUInt32(Murmur::EncryptString(Functions[c]->Name->Chars));
+		stream->WriteUInt32(Murmur::EncryptString(Functions[c]->Name));
 
 		stream->WriteBytes(chunk->Code, chunk->Count);
 		if (HasDebugInfo) {

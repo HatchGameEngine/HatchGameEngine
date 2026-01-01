@@ -469,3 +469,40 @@ std::vector<Uint32> StringUtils::GetCodepoints(const char* text) {
 
 	return codepoints;
 }
+
+// Returns UTF-8 text from UCS codepoints
+// Throws an exception if it encounters an invalid codepoint.
+std::string StringUtils::FromCodepoints(std::vector<Uint32> codepoints) {
+	size_t numCodepoints = codepoints.size();
+
+	std::string result;
+	result.reserve(numCodepoints);
+
+	for (size_t i = 0; i < numCodepoints; i++) {
+		Uint32 codepoint = codepoints[i];
+
+		if (codepoint <= 0x7F) {
+			result += (char)codepoint;
+		}
+		else if (codepoint <= 0x7FF) {
+			result += (char)(0xC0 | (codepoint >> 6));
+			result += (char)(0x80 | (codepoint & 0x3F));
+		}
+		else if (codepoint <= 0xFFFF) {
+			result += (char)(0xE0 | (codepoint >> 12));
+			result += (char)(0x80 | ((codepoint >> 6) & 0x3F));
+			result += (char)(0x80 | (codepoint & 0x3F));
+		}
+		else if (codepoint <= 0x10FFFF) {
+			result += (char)(0xF0 | (codepoint >> 18));
+			result += (char)(0x80 | ((codepoint >> 12) & 0x3F));
+			result += (char)(0x80 | ((codepoint >> 6) & 0x3F));
+			result += (char)(0x80 | (codepoint & 0x3F));
+		}
+		else {
+			throw std::runtime_error("Invalid UCS codepoint encountered!");
+		}
+	}
+
+	return result;
+}

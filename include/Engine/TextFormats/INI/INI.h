@@ -16,6 +16,7 @@ public:
 	bool Reload();
 	bool Save(const char* filename);
 	bool Save();
+	bool IsPersisted();
 	void SetFilename(const char* filename);
 	bool Read(Stream* stream);
 	bool Write(Stream* stream);

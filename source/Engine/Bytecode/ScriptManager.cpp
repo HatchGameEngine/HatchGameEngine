@@ -120,6 +120,8 @@ void ScriptManager::Init() {
 	}
 	ThreadCount = 1;
 
+	ScriptEntity::Init();
+
 	TypeImpl::Init();
 }
 #ifdef VM_DEBUG
@@ -157,6 +159,7 @@ void ScriptManager::Dispose() {
 
 	ClassImplList.clear();
 	AllNamespaces.clear();
+	ModuleList.clear();
 
 	if (ThreadCount) {
 		Threads[0].FrameCount = 0;
@@ -196,6 +199,8 @@ void ScriptManager::Dispose() {
 void ScriptManager::FreeFunction(Obj* object) {
 	ObjFunction* function = (ObjFunction*)object;
 
+	Memory::Free(function->Name);
+
 	function->Chunk.Free();
 }
 void ScriptManager::FreeModule(Obj* object) {
@@ -205,11 +210,15 @@ void ScriptManager::FreeModule(Obj* object) {
 		FreeFunction((Obj*)(*module->Functions)[i]);
 	}
 
+	Memory::Free(module->SourceFilename);
+
 	delete module->Functions;
 	delete module->Locals;
 }
 void ScriptManager::FreeClass(Obj* object) {
 	ObjClass* klass = (ObjClass*)object;
+
+	Memory::Free(klass->Name);
 
 	delete klass->Methods;
 	delete klass->Fields;
@@ -217,21 +226,16 @@ void ScriptManager::FreeClass(Obj* object) {
 void ScriptManager::FreeEnumeration(Obj* object) {
 	ObjEnum* enumeration = (ObjEnum*)object;
 
+	Memory::Free(enumeration->Name);
+
 	delete enumeration->Fields;
 }
 void ScriptManager::FreeNamespace(Obj* object) {
 	ObjNamespace* ns = (ObjNamespace*)object;
 
+	Memory::Free(ns->Name);
+
 	delete ns->Fields;
-}
-void ScriptManager::FreeModules() {
-	// All this does is clear the Functions table in all modules,
-	// so that they are properly GC'd.
-	for (size_t i = 0; i < ModuleList.size(); i++) {
-		ObjModule* module = ModuleList[i];
-		module->Functions->clear();
-	}
-	ModuleList.clear();
 }
 // #endregion
 
@@ -444,12 +448,12 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 	}
 
 	if (bytecode->SourceFilename) {
-		module->SourceFilename = CopyString(bytecode->SourceFilename);
+		module->SourceFilename = StringUtils::Duplicate(bytecode->SourceFilename);
 	}
 	else {
-		char fnHash[256];
-		snprintf(fnHash, sizeof(fnHash), "%08X", filenameHash);
-		module->SourceFilename = CopyString(fnHash);
+		char fnHash[13];
+		snprintf(fnHash, sizeof(fnHash), "%08X.ibc", filenameHash);
+		module->SourceFilename = StringUtils::Duplicate(fnHash);
 	}
 
 	ModuleList.push_back(module);
@@ -460,7 +464,7 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 
 	return true;
 }
-bool ScriptManager::CallFunction(char* functionName) {
+bool ScriptManager::CallFunction(const char* functionName) {
 	if (!Globals->Exists(functionName)) {
 		return false;
 	}
@@ -605,10 +609,7 @@ bool ScriptManager::LoadObjectClass(const char* objectName) {
 		}
 	}
 
-	// Set native functions for that new object class
 	if (!IsStandardLibraryClass(objectName) && !Classes->Exists(objectName)) {
-		// Log::Print(Log::LOG_VERBOSE, "Setting native
-		// functions for class %s...", objectName);
 		ObjClass* klass = GetObjectClass(objectName);
 		if (!klass) {
 			Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);

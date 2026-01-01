@@ -796,36 +796,63 @@ VMValue SpriteImpl_RemoveFrame(int argCount, VMValue* args, Uint32 threadID) {
 
 /***
  * \method GetHitbox
- * \desc Gets the hitbox of an animation and frame.
- * \param animationID (Integer): The animation index to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \paramOpt hitboxID (Integer): The hitbox index of the animation to check. Defaults to <code>0</code>.
+ * \desc Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.
+ * \param instance (Instance):An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).
+ * \param sprite (Integer): The sprite index to check (if an entity is not provided).
+ * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
+ * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
+ * \param hitboxID (Integer): The index number of the hitbox.
+ * \return Returns a reference value to a hitbox array.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckAtLeastArgCount(argCount, 3);
+	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
 
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animationID = GET_ARG(1, GetInteger);
-	int frameID = GET_ARG(2, GetInteger);
-	int hitboxID = GET_ARG_OPT(3, GetInteger, 0);
+	ISprite* sprite;
+	int animationID, frameID, hitboxID;
+
+	if (argCount == 2 && IS_ENTITY(args[0])) {
+		ObjEntity* ent = GET_ARG(0, GetEntity);
+		Entity* entity = (Entity*)ent->EntityPtr;
+		hitboxID = GET_ARG(1, GetInteger);
+
+		sprite = entity->Sprite;
+		animationID = entity->CurrentAnimation;
+		frameID = entity->CurrentFrame;
+	}
+	else {
+		StandardLibrary::CheckArgCount(argCount, 4);
+		sprite = GET_ARG(0, GetSprite);
+		animationID = GET_ARG(1, GetInteger);
+		frameID = GET_ARG(2, GetInteger);
+		hitboxID = GET_ARG(3, GetInteger);
+	}
 
 	CHECK_EXISTS(sprite);
 	CHECK_ANIMFRAME_INDEX(animationID, frameID);
 
-	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
-	if (hitboxID < 0 || hitboxID >= frame.BoxCount) {
-		VM_THROW_ERROR("Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
-		return NULL_VAL;
-	}
+	ObjArray* array = NewArray();
+	for (int i = 0; i < 4; i++)
+		array->Values->push_back(INTEGER_VAL(0));
 
-	CollisionBox box = frame.Boxes[hitboxID];
-	ObjArray* hitbox = NewArray();
-	hitbox->Values->push_back(INTEGER_VAL(box.Left));
-	hitbox->Values->push_back(INTEGER_VAL(box.Top));
-	hitbox->Values->push_back(INTEGER_VAL(box.Right));
-	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
-	return OBJECT_VAL(hitbox);
+	if (sprite && animationID >= 0 && frameID >= 0) {
+		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
+			return OBJECT_VAL(array);
+		}
+
+		CollisionBox box = frame.Boxes[hitboxID];
+		ObjArray* hitbox = NewArray();
+		hitbox->Values->push_back(INTEGER_VAL(box.Left));
+		hitbox->Values->push_back(INTEGER_VAL(box.Top));
+		hitbox->Values->push_back(INTEGER_VAL(box.Right));
+		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
+		return OBJECT_VAL(hitbox);
+	}
+	else {
+		return OBJECT_VAL(array);
+	}
 }
 /***
  * \method MakePalettized
