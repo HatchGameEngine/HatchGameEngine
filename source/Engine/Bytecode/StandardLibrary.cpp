@@ -13750,7 +13750,7 @@ VMValue Scene_SetLayerSetParallaxLines(int argCount, VMValue* args, Uint32 threa
 	int lineEnd = GET_ARG(1, GetInteger);
 	float relative = GET_ARG(2, GetDecimal);
 	float constant = GET_ARG(3, GetDecimal);
-	int canDeform = GET_ARG(4, GetInteger);
+	bool canDeform = !!GET_ARG(4, GetInteger);
 
 	BufferedScrollInfo info;
 	info.relative = relative;
