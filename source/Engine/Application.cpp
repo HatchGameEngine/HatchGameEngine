@@ -1330,7 +1330,7 @@ bool Application::HandleBinds(AppEvent& event) {
 	return true;
 }
 KeyBind Application::FindDevKeyBind(int key) {
-	for (int i = 0; i < (int)KeyBind::Max; i++) {
+	for (int i = (int)KeyBind::DevFirst; i < (int)KeyBind::Max; i++) {
 		if (key == KeyBinds[i]) {
 			return (KeyBind)i;
 		}
@@ -1345,7 +1345,7 @@ bool Application::HandleDevKey(AppEventType eventType, int key) {
 	}
 
 	if (eventType != APPEVENT_KEY_DOWN) {
-		return false;
+		return true;
 	}
 
 	switch (bind) {
@@ -1524,6 +1524,10 @@ void Application::PollEvents() {
 		case SDL_KEYUP: {
 			Uint16 key = InputManager::SDLScancodeToKey[e.key.keysym.scancode];
 			if (key == -1) {
+				break;
+			}
+
+			if (DevMode && HandleDevKey(APPEVENT_KEY_UP, key)) {
 				break;
 			}
 

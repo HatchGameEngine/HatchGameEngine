@@ -49,7 +49,8 @@ enum class KeyBind {
 	Fullscreen,
 	ToggleFPSCounter,
 
-	DevRestartApp,
+	DevFirst,
+	DevRestartApp = DevFirst,
 	DevRestartScene,
 	DevRecompile,
 	DevPerfSnapshot,
