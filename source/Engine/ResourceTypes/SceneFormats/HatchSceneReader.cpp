@@ -116,8 +116,8 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 	Uint8 drawGroup = r->ReadByte();
 	Uint16 width = r->ReadUInt16();
 	Uint16 height = r->ReadUInt16();
-	float relativeY = r->ReadInt16() / 0x100;
-	float constantY = r->ReadInt16() / 0x100;
+	Uint16 relativeY = r->ReadInt16();
+	Uint16 constantY = r->ReadInt16();
 
 	SceneLayer layer(width, height);
 
@@ -134,8 +134,8 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 	layer.DrawGroup = drawGroup;
 	layer.DrawBehavior = drawBehavior;
 
-	layer.RelativeY = relativeY;
-	layer.ConstantY = constantY;
+	layer.RelativeY = (float)relativeY / 0x100;
+	layer.ConstantY = (float)constantY / 0x100;
 
 	layer.ScrollInfoCount = r->ReadUInt16();
 

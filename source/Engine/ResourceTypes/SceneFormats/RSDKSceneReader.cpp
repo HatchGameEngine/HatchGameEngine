@@ -253,8 +253,8 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 	int DrawGroup = r->ReadByte();
 	int Width = (int)r->ReadUInt16();
 	int Height = (int)r->ReadUInt16();
-	float relativeY = r->ReadInt16() / 0x100;
-	float constantY = r->ReadInt16() / 0x100;
+	Uint16 relativeY = r->ReadInt16();
+	Uint16 constantY = r->ReadInt16();
 
 	SceneLayer layer(Width, Height);
 	if (layerDrawBehavior == 3) {
@@ -264,8 +264,8 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 
 	layer.Name = Name;
 
-	layer.RelativeY = relativeY;
-	layer.ConstantY = constantY;
+	layer.RelativeY = (float)relativeY / 0x100;
+	layer.ConstantY = (float)constantY / 0x100;
 
 	layer.Flags = 0;
 
