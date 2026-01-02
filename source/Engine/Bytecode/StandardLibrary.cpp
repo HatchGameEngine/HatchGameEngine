@@ -1311,30 +1311,30 @@ VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
-// #region API
+// #region API.Discord
 /***
- * API.InitDiscord
+ * API.Discord.Init
  * \desc Initializes Discord integration.
  * \param applicationID (String): The Discord Application ID. This will have needed to be created via the Discord Developer Portal.
  * \return Returns whether initialization was successful.
  * \ns API
  */
-VMValue API_InitDiscord(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
     const char* applicationID = GET_ARG(0, GetString);
     Discord::Init(applicationID);
 	return INTEGER_VAL(Discord::Initialized);
 }
 /***
- * API.UpdateDiscordRichPresence
+ * API.Discord.UpdateRichPresence
  * \desc Updates Discord Rich Presence.
- * \param details (String): A
- * \paramOpt state (String): A
- * \paramOpt imageKey (String): A
- * \paramOpt startTime (Integer): A
+ * \param details (String): The first line of text in the Rich Presence.
+ * \paramOpt state (String): The second line of text, appearing below details.
+ * \paramOpt imageKey (String): The internal name of the image asset to display, created via the Discord Developer Portal.
+ * \paramOpt startTime (Integer): A Unix timestamp (in seconds) of when the activity started.
  * \ns API
  */
-VMValue API_UpdateDiscordRichPresence(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	const char* details = GET_ARG(0, GetString);
 	const char* state = GET_ARG_OPT(1, GetString, "");
@@ -19042,9 +19042,13 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region API
-	INIT_CLASS(API);
-	DEF_NATIVE(API, InitDiscord);
-	DEF_NATIVE(API, UpdateDiscordRichPresence);
+	INIT_NAMESPACE(API);
+	// #endregion
+
+	// #region API.Discord
+	INIT_NAMESPACED_CLASS(API, Discord);
+	DEF_NAMESPACED_NATIVE(Discord, Init);
+	DEF_NAMESPACED_NATIVE(Discord, UpdateRichPresence);
 	// #endregion
 
 	// #region Application
