@@ -1469,7 +1469,7 @@ VMValue Application_SetTargetFrameRate(int argCount, VMValue* args, Uint32 threa
 /***
  * Application.UseFixedTimestep
  * \desc Enables or disables fixed timestep. This is enabled by default.
- * \param useFixedTimestep (Boolean): Whether or not to use fixed timestep.
+ * \param useFixedTimestep (Boolean): Whether to use fixed timestep.
  * \ns Application
  */
 VMValue Application_UseFixedTimestep(int argCount, VMValue* args, Uint32 threadID) {
@@ -1492,7 +1492,7 @@ VMValue Application_GetFPS(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Application.ShowFPSCounter
  * \desc Enables or disables the FPS (frames per second) counter.
- * \param show (Boolean): Whether or not to show the FPS counter.
+ * \param show (Boolean): Whether to show the FPS counter.
  * \ns Application
  */
 VMValue Application_ShowFPSCounter(int argCount, VMValue* args, Uint32 threadID) {
@@ -1614,7 +1614,7 @@ VMValue Application_SetGameDescription(int argCount, VMValue* args, Uint32 threa
 /***
  * Application.SetCursorVisible
  * \desc Sets the visibility of the cursor.
- * \param cursorVisible (Boolean): Whether or not the cursor is visible.
+ * \param cursorVisible (Boolean): Whether the cursor is visible.
  * \ns Application
  */
 VMValue Application_SetCursorVisible(int argCount, VMValue* args, Uint32 threadID) {
@@ -1640,7 +1640,7 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
  * Application.Error
  * \desc Shows an error message to the user through a dialog box, if possible. The error message is also logged.
  * \param message (String): The error message to show to the user.
- * \paramOpt detailed (Boolean): Whether or not to show the stack trace alongside the error. The default is <code>true</code>.
+ * \paramOpt detailed (Boolean): Whether to show the stack trace alongside the error. The default is <code>true</code>.
  * \ns Application
  */
 VMValue Application_Error(int argCount, VMValue* args, Uint32 threadID) {
@@ -2938,7 +2938,7 @@ VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Device.IsPC
- * \desc Determines whether or not the application is running on a personal computer OS (Windows, MacOS, Linux).
+ * \desc Determines whether the application is running on a personal computer OS (Windows, MacOS, Linux).
  * \return Returns <code>true</code> if the device is on a PC, <code>false</code> if otherwise.
  * \ns Device
  */
@@ -2949,7 +2949,7 @@ VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Device.IsMobile
- * \desc Determines whether or not the application is running on a mobile device.
+ * \desc Determines whether the application is running on a mobile device.
  * \return Returns <code>true</code> if the device is on a mobile device, <code>false</code> if otherwise.
  * \ns Device
  */
@@ -3024,7 +3024,7 @@ VMValue Directory_Exists(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Gets the paths of all the files in the directory.
  * \param directory (String): The path of the folder to find files in.
  * \param pattern (String): The search pattern for the files. (ex: "*" for any file, "*.*" any file name with any file type, "*.png" any PNG file)
- * \param allDirs (Boolean): Whether or not to search into all folders in the directory.
+ * \param allDirs (Boolean): Whether to search into all folders in the directory.
  * \return Returns an Array containing the filepaths (as Strings.)
  * \ns Directory
  */
@@ -3054,7 +3054,7 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Gets the paths of all the folders in the directory.
  * \param directory (String): The path of the folder to find folders in.
  * \param pattern (String): The search pattern for the folders. (ex: "*" for any folder, "image*" any folder that starts with "image")
- * \param allDirs (Boolean): Whether or not to search into all folders in the directory.
+ * \param allDirs (Boolean): Whether to search into all folders in the directory.
  * \return Returns an Array containing the filepaths (as Strings.)
  * \ns Directory
  */
@@ -3119,12 +3119,12 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \param frame (Integer): Index of the frame in the animation entry.
  * \param x (Number): X position of where to draw the sprite.
  * \param y (Number): Y position of where to draw the sprite.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
+ * \param flipX (Integer): Whether to flip the sprite horizontally.
+ * \param flipY (Integer): Whether to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
  * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.
- * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians.
+ * \paramOpt useInteger (Number): Whether the rotation argument is already in radians.
  * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
@@ -3517,12 +3517,12 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
  * \param partY (Integer): Y coordinate of part of frame to draw.
  * \param partW (Integer): Width of part of frame to draw.
  * \param partH (Integer): Height of part of frame to draw.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
+ * \param flipX (Integer): Whether to flip the sprite horizontally.
+ * \param flipY (Integer): Whether to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
  * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.
- * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians.
+ * \paramOpt useInteger (Number): Whether the rotation argument is already in radians.
  * \paramOpt paletteID (Integer): Which palette index to use.
  * \ns Draw
  */
@@ -3991,8 +3991,8 @@ VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param ID (Integer): ID of the tile to draw.
  * \param x (Number): X position of where to draw the tile.
  * \param y (Number): Y position of where to draw the tile.
- * \paramOpt flipX (Integer): Whether or not to flip the tile horizontally.
- * \paramOpt flipY (Integer): Whether or not to flip the tile vertically.
+ * \paramOpt flipX (Integer): Whether to flip the tile horizontally.
+ * \paramOpt flipY (Integer): Whether to flip the tile vertically.
  * \paramOpt scaleX (Number): Horizontal scale multiplier of the tile.
  * \paramOpt scaleY (Number): Vertical scale multiplier of the tile.
  * \paramOpt rotation (Number): Rotation of the drawn tile in radians.
@@ -4736,8 +4736,8 @@ VMValue Draw_SetBlendColor(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextureBlend
- * \desc Sets whether or not to use color and alpha blending on sprites, images, and textures.
- * \param doBlend (Boolean): Whether or not to use blending.
+ * \desc Sets whetherto use color and alpha blending on sprites, images, and textures.
+ * \param doBlend (Boolean): Whether to use blending.
  * \ns Draw
  */
 VMValue Draw_SetTextureBlend(int argCount, VMValue* args, Uint32 threadID) {
@@ -4853,8 +4853,8 @@ VMValue Draw_SetTintMode(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.UseTinting
- * \desc Sets whether or not to use color tinting when drawing.
- * \param useTinting (Boolean): Whether or not to use color tinting when drawing.
+ * \desc Sets whether to use color tinting when drawing.
+ * \param useTinting (Boolean): Whether to use color tinting when drawing.
  * \ns Draw
  */
 VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
@@ -5415,8 +5415,8 @@ VMValue Draw_RectangleStroke(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.UseFillSmoothing
- * \desc Sets whether or not to use smoothing when drawing filled shapes. (hardware-renderer only)
- * \param smoothFill (Boolean): Whether or not to use smoothing.
+ * \desc Sets whether to use smoothing when drawing filled shapes. (hardware-renderer only)
+ * \param smoothFill (Boolean): Whether to use smoothing.
  * \return
  * \ns Draw
  */
@@ -5427,8 +5427,8 @@ VMValue Draw_UseFillSmoothing(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.UseStrokeSmoothing
- * \desc Sets whether or not to use smoothing when drawing un-filled shapes. (hardware-renderer only)
- * \param smoothFill (Boolean): Whether or not to use smoothing.
+ * \desc Sets whether to use smoothing when drawing un-filled shapes. (hardware-renderer only)
+ * \param smoothFill (Boolean): Whether to use smoothing.
  * \ns Draw
  */
 VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, Uint32 threadID) {
@@ -5636,8 +5636,8 @@ VMValue Draw_ResetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.UseSpriteDeform
- * \desc Sets whether or not to use sprite deform when drawing.
- * \param useDeform (Boolean): Whether or not to use sprite deform when drawing.
+ * \desc Sets whether to use sprite deform when drawing.
+ * \param useDeform (Boolean): Whether to use sprite deform when drawing.
  * \ns Draw
  */
 VMValue Draw_UseSpriteDeform(int argCount, VMValue* args, Uint32 threadID) {
@@ -5663,8 +5663,8 @@ VMValue Draw_SetSpriteDeformLine(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.UseDepthTesting
- * \desc Sets whether or not to do depth tests when drawing.
- * \param useDepthTesting (Boolean): Whether or not to do depth tests when drawing.
+ * \desc Sets whether to do depth tests when drawing.
+ * \param useDepthTesting (Boolean): Whether to do depth tests when drawing.
  * \ns Draw
  */
 VMValue Draw_UseDepthTesting(int argCount, VMValue* args, Uint32 threadID) {
@@ -6072,8 +6072,8 @@ VMValue Draw3D_Quad(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (Number): X position of where to draw the sprite.
  * \param y (Number): Y position of where to draw the sprite.
  * \param z (Number): Z position of where to draw the sprite.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
+ * \param flipX (Integer): Whether to flip the sprite horizontally.
+ * \param flipY (Integer): Whether to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
  * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
@@ -6148,8 +6148,8 @@ VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * \param partY (Integer): Y coordinate of part of frame to draw.
  * \param partW (Integer): Width of part of frame to draw.
  * \param partH (Integer): Height of part of frame to draw.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
+ * \param flipX (Integer): Whether to flip the sprite horizontally.
+ * \param flipY (Integer): Whether to flip the sprite vertically.
  * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
  * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
@@ -6298,8 +6298,8 @@ VMValue Draw3D_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (Number): X position of where to draw the tile.
  * \param y (Number): Y position of where to draw the tile.
  * \param z (Number): Z position of where to draw the tile.
- * \param flipX (Integer): Whether or not to flip the tile horizontally.
- * \param flipY (Integer): Whether or not to flip the tile vertically.
+ * \param flipX (Integer): Whether to flip the tile horizontally.
+ * \param flipY (Integer): Whether to flip the tile vertically.
  * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
  * \ns Draw3D
@@ -6484,8 +6484,8 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
  * \param sprite (Integer): Index of the loaded sprite.
  * \param animation (Integer): Index of the animation entry.
  * \param frame (Integer): Index of the frame in the animation entry.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
+ * \param flipX (Integer): Whether to flip the sprite horizontally.
+ * \param flipY (Integer): Whether to flip the sprite vertically.
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param z1 (Number): Z position of the first vertex.
@@ -6548,8 +6548,8 @@ VMValue Draw3D_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
  * Draw3D.TilePoints
  * \desc Draws a textured rectangle in 3D space.
  * \param ID (Integer): ID of the tile to draw.
- * \param flipX (Integer): Whether or not to flip the tile horizontally.
- * \param flipY (Integer): Whether or not to flip the tile vertically.
+ * \param flipX (Integer): Whether to flip the tile horizontally.
+ * \param flipY (Integer): Whether to flip the tile vertically.
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param z1 (Number): Z position of the first vertex.
@@ -8953,10 +8953,10 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Instance.IsClass
- * \desc Determines whether or not the instance is of a specified object class.
+ * \desc Determines whether the instance is of a specified object class.
  * \param instance (Instance): The instance to check. If there is no instance, this automatically returns false.
  * \param className (String): Name of the object class.
- * \return Returns whether or not the instance is of a specified object class.
+ * \return Returns whether the instance is of a specified object class.
  * \ns Instance
  */
 VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
@@ -9482,7 +9482,7 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
  * JSON.ToString
  * \desc Converts a value into a JSON string.
  * \param json (Any type): The value to convert.
- * \paramOpt prettyPrint (Boolean): Whether or not to use spacing and newlines in the text.
+ * \paramOpt prettyPrint (Boolean): Whether to use spacing and newlines in the text.
  * \return Returns a JSON string based on the value.
  * \ns JSON
  */
@@ -10267,7 +10267,7 @@ VMValue Matrix_Multiply(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (Number): X position value.
  * \param y (Number): Y position value.
  * \param z (Number): Z position value.
- * \paramOpt resetToIdentity (Boolean): Whether or not to calculate the translation values based on the matrix. (Default: <code>false</code>)
+ * \paramOpt resetToIdentity (Boolean): Whether to calculate the translation values based on the matrix. (Default: <code>false</code>)
  * \paramOpt actuallyTranslate (Boolean): Adds the translation components to the matrix instead of overwriting them (Preserves older code functionality, please fix me!). (Default: <code>false</code>)
  * \ns Matrix
  */
@@ -10457,7 +10457,7 @@ VMValue Matrix_Multiply256(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (Number): X position value.
  * \param y (Number): Y position value.
  * \param z (Number): Z position value.
- * \param setIdentity (Boolean): Whether or not to set the matrix as the identity.
+ * \param setIdentity (Boolean): Whether to set the matrix as the identity.
  * \ns RSDK.Matrix
  */
 VMValue Matrix_Translate256(int argCount, VMValue* args, Uint32 threadID) {
@@ -11312,7 +11312,7 @@ VMValue Object_GetActivity(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Palette.EnablePaletteUsage
  * \desc Enables or disables palette usage for the application.
- * \param usePalettes (Boolean): Whether or not to use palettes.
+ * \param usePalettes (Boolean): Whether to use palettes.
  * \ns Palette
  */
 VMValue Palette_EnablePaletteUsage(int argCount, VMValue* args, Uint32 threadID) {
@@ -11646,7 +11646,7 @@ VMValue Palette_GetColorTransparent(int argCount, VMValue* args, Uint32 threadID
  * \desc Sets a color on the specified palette transparent.
  * \param paletteIndex (Integer): Index of palette.
  * \param colorIndex (Integer): Index of color.
- * \param isTransparent (Boolean): Whether to make the color transparent or not.
+ * \param isTransparent (Boolean): Whether to make the color transparent.
  * \ns Palette
  */
 VMValue Palette_SetColorTransparent(int argCount, VMValue* args, Uint32 threadID) {
@@ -11812,7 +11812,7 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Palette.UsePaletteIndexLines
  * \desc Enables or disables the global palette index table.
- * \param usePaletteIndexLines (Boolean): Whether or not to use the global palette index table.
+ * \param usePaletteIndexLines (Boolean): Whether to use the global palette index table.
  * \ns Palette
  */
 VMValue Palette_UsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
@@ -12087,7 +12087,7 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.Load
  * \desc Changes the active scene. If a path to a resource is provided, the active scene is changed to the one in the specified resource file. Otherwise, the active scene is changed to the currently set entry in the scene list, if it exists (see <linkto ref="SceneList"></linkto>.)
  * \paramOpt filename (String): Filename of scene.
- * \paramOpt persistency (Boolean): Whether or not the scene should load with persistency.
+ * \paramOpt persistency (Boolean): Whether the scene should load with persistency.
  * \ns Scene
  */
 VMValue Scene_Load(int argCount, VMValue* args, Uint32 threadID) {
@@ -12342,7 +12342,7 @@ VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetLayerExists
- * \desc Gets whether a layer exists or not. (Deprecated)
+ * \desc Gets whether a layer exists. (Deprecated)
  * \param layerIndex (Integer): Index of layer.
  * \return Returns a Boolean value.
  * \ns Scene
@@ -12532,7 +12532,7 @@ VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetLayerHorizontalRepeat
- * \desc Gets whether or not the layer repeats horizontally.
+ * \desc Gets whether the layer repeats horizontally.
  * \param layerIndex (Integer): Index of layer.
  * \return Returns a Boolean value.
  * \ns Scene
@@ -12551,7 +12551,7 @@ VMValue Scene_GetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threa
 }
 /***
  * Scene.GetLayerVerticalRepeat
- * \desc Gets whether or not the layer repeats vertically.
+ * \desc Gets whether the layer repeats vertically.
  * \param layerIndex (Integer): Index of layer.
  * \return Returns a Boolean value.
  * \ns Scene
@@ -12697,7 +12697,7 @@ VMValue Scene_GetTileID(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetTileFlipX
- * \desc Gets whether the tile at the tile coordinates is flipped horizontally or not.
+ * \desc Gets whether the tile at the tile coordinates is flipped horizontally.
  * \param layer (Integer): Index of the layer
  * \param x (Number): X position (in tiles) of the tile
  * \param y (Number): Y position (in tiles) of the tile
@@ -12720,7 +12720,7 @@ VMValue Scene_GetTileFlipX(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetTileFlipY
- * \desc Gets whether the tile at the tile coordinates is flipped vertically or not.
+ * \desc Gets whether the tile at the tile coordinates is flipped vertically.
  * \param layer (Integer): Index of the layer
  * \param x (Number): X position (in tiles) of the tile
  * \param y (Number): Y position (in tiles) of the tile
@@ -12892,7 +12892,7 @@ VMValue Scene_GetDynamicInstanceCount(int argCount, VMValue* args, Uint32 thread
 }
 /***
  * Scene.GetTileAnimationEnabled
- * \desc Gets whether or not tile animation is enabled.
+ * \desc Gets whether tile animation is enabled.
  * \return Returns 0 if tile animation is disabled, 1 if it's enabled, and 2 if tiles animate even if the scene is paused.
  * \ns Scene
  */
@@ -13092,7 +13092,7 @@ VMValue Scene_IsUsingID(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.IsPaused
- * \desc Gets whether or not the scene is paused.
+ * \desc Gets whether the scene is paused.
  * \return Returns a Boolean value.
  * \ns Scene
  */
@@ -13127,8 +13127,8 @@ VMValue Scene_SetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
  * \param cellX (Number): Tile cell X.
  * \param cellY (Number): Tile cell Y.
  * \param tileID (Integer): Tile ID.
- * \param flipX (Boolean): Whether to flip the tile horizontally or not.
- * \param flipY (Boolean): Whether to flip the tile vertically or not.
+ * \param flipX (Boolean): Whether to flip the tile horizontally.
+ * \param flipY (Boolean): Whether to flip the tile vertically.
  * \paramOpt collisionMaskA (Integer): Collision mask to use for the tile on Plane A. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)
  * \paramOpt collisionMaskB (Integer): Collision mask to use for the tile on Plane B. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)
  * \ns Scene
@@ -13209,8 +13209,8 @@ VMValue Scene_SetTileCollisionSides(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * Scene.SetPaused
- * \desc Sets whether the game is paused or not. When paused, only objects with <linkto ref="instance.Pauseable"></linkto> set to <code>false</code> will continue to <code>Update</code>.
- * \param isPaused (Boolean): Whether or not the scene is paused.
+ * \desc Sets whether the game is paused. When paused, only objects with <linkto ref="instance.Pauseable"></linkto> set to <code>false</code> will continue to <code>Update</code>.
+ * \param isPaused (Boolean): Whether the scene is paused.
  * \ns Scene
  */
 VMValue Scene_SetPaused(int argCount, VMValue* args, Uint32 threadID) {
@@ -13220,7 +13220,7 @@ VMValue Scene_SetPaused(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetTileAnimationEnabled
- * \desc Sets whether or not tile animation is enabled.
+ * \desc Sets whether tile animation is enabled.
  * \param isEnabled (Integer): 0 disables tile animation, 1 enables it, and 2 makes tiles animate even if the scene is paused.
  * \ns Scene
  */
@@ -13418,7 +13418,7 @@ VMValue Scene_SetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadI
  * Scene.SetLayerVisible
  * \desc Sets the visibility of the specified layer.
  * \param layerIndex (Integer): Index of layer.
- * \param isVisible (Boolean): Whether or not the layer can be seen.
+ * \param isVisible (Boolean): Whether the layer can be seen.
  * \ns Scene
  */
 VMValue Scene_SetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
@@ -13431,9 +13431,9 @@ VMValue Scene_SetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetLayerCollidable
- * \desc Sets whether or not the specified layer's tiles can be collided with.
+ * \desc Sets whether the specified layer's tiles can be collided with.
  * \param layerIndex (Integer): Index of layer.
- * \param isVisible (Boolean): Whether or not the layer can be collided with.
+ * \param isVisible (Boolean): Whether the layer can be collided with.
  * \ns Scene
  */
 VMValue Scene_SetLayerCollidable(int argCount, VMValue* args, Uint32 threadID) {
@@ -13553,9 +13553,9 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Scene.SetLayerRepeat
- * \desc Sets whether or not the specified layer repeats.
+ * \desc Sets whether the specified layer repeats.
  * \param layerIndex (Integer): Index of layer.
- * \param doesRepeat (Boolean): Whether or not the layer repeats.
+ * \param doesRepeat (Boolean): Whether the layer repeats.
  * \ns Scene
  */
 VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, Uint32 threadID) {
@@ -13575,9 +13575,9 @@ VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetLayerHorizontalRepeat
- * \desc Sets whether or not the specified layer repeats horizontally.
+ * \desc Sets whether the specified layer repeats horizontally.
  * \param layerIndex (Integer): Index of layer.
- * \param doesRepeat (Boolean): Whether or not the layer repeats horizontally.
+ * \param doesRepeat (Boolean): Whether the layer repeats horizontally.
  * \ns Scene
  */
 VMValue Scene_SetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threadID) {
@@ -13595,9 +13595,9 @@ VMValue Scene_SetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threa
 }
 /***
  * Scene.SetLayerVerticalRepeat
- * \desc Sets whether or not the specified layer repeats vertically.
+ * \desc Sets whether the specified layer repeats vertically.
  * \param layerIndex (Integer): Index of layer.
- * \param doesRepeat (Boolean): Whether or not the layer repeats vertically.
+ * \param doesRepeat (Boolean): Whether the layer repeats vertically.
  * \ns Scene
  */
 VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadID) {
@@ -13638,7 +13638,7 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.SetDrawGroupEntityDepthSorting
  * \desc Sets the specified draw group to sort objects by depth.
  * \param drawGroup (Integer): Number between 0 to the result of <linkto ref="Scene.GetDrawGroupCount"></linkto>.
- * \param useEntityDepth (Boolean): Whether or not to sort objects by depth.
+ * \param useEntityDepth (Boolean): Whether to sort objects by depth.
  * \ns Scene
  */
 VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
@@ -13658,9 +13658,9 @@ VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
 }
 /***
  * Scene.SetLayerBlend
- * \desc Sets whether or not to use color and alpha blending on this layer. See <linkto ref="BlendMode_*"></linkto> for a list of accepted blend modes.
+ * \desc Sets whether to use color and alpha blending on this layer. See <linkto ref="BlendMode_*"></linkto> for a list of accepted blend modes.
  * \param layerIndex (Integer): Index of layer.
- * \param doBlend (Boolean): Whether or not to use blending.
+ * \param doBlend (Boolean): Whether to use blending.
  * \paramOpt blendMode (Enum): The desired <linkto ref="BlendMode_*">blend mode</linkto>.
  * \ns Scene
  */
@@ -14066,7 +14066,7 @@ VMValue Scene_SetLayerCustomRenderFunction(int argCount, VMValue* args, Uint32 t
 }
 /***
  * Scene.SetObjectViewRender
- * \desc Sets whether or not objects can render on the specified view.
+ * \desc Sets whether objects can render on the specified view.
  * \param viewIndex (Integer): Index of the view.
  * \param enableViewRender (Boolean):
  * \ns Scene
@@ -14089,7 +14089,7 @@ VMValue Scene_SetObjectViewRender(int argCount, VMValue* args, Uint32 threadID) 
 }
 /***
  * Scene.SetTileViewRender
- * \desc Sets whether or not tiles can render on the specified view.
+ * \desc Sets whether tiles can render on the specified view.
  * \param viewIndex (Integer): Index of the view.
  * \param enableViewRender (Boolean):
  * \ns Scene
@@ -14404,7 +14404,7 @@ VMValue SceneList_GetSceneCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.Create
  * \desc Creates a 3D scene.
- * \param unloadPolicy (Integer): Whether or not to delete the 3D scene at the end of the current Scene, or the game end.
+ * \param unloadPolicy (Integer): Whether to delete the 3D scene at the end of the current Scene, or the game end.
  * \return The index of the created 3D scene.
  * \ns Scene3D
  */
@@ -15465,7 +15465,7 @@ VMValue Sound_ResumeAll(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.IsPlaying
  * \param sound (Integer): The sound index.
- * \desc Checks whether a sound is currently playing or not.
+ * \desc Checks whether a sound is currently playing
  * \return Returns a Boolean value.
  * \ns Sound
  */
@@ -15657,7 +15657,7 @@ VMValue Sound_GetFreeChannel(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.IsChannelFree
- * \desc Checks whether a channel is currently playing any sound or not.
+ * \desc Checks whether a channel is currently playing any sound.
  * \param sound (Integer): The channel index.
  * \ns Sound
  */
@@ -16877,7 +16877,7 @@ VMValue String_IndexOf(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.Contains
- * \desc Searches for whether or not a substring is within a String value.
+ * \desc Searches for whether a substring is within a String value.
  * \param string (String): The string to compare.
  * \param substring (String): The substring to search for.
  * \return Returns a Boolean value.
@@ -17253,7 +17253,7 @@ VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID
 <pre class="code"><br/>\
     instance.SensorX: (Number), // X Position where the sensor collided if it did. <br/>\
     instance.SensorY: (Number), // Y Position where the sensor collided if it did. <br/>\
-    instance.SensorCollided: (Boolean), // Whether or not the sensor collided. <br/>\
+    instance.SensorCollided: (Boolean), // Whether the sensor collided. <br/>\
     instance.SensorAngle: (Integer) // Tile angle at the collision. <br/>\
 \
 </pre>
@@ -17369,8 +17369,8 @@ VMValue TileInfo_GetEmptyTile(int argCount, VMValue* args, Uint32 threadID) {
  * \param collisionField (Integer): The collision plane of the tile to get the collision from.
  * \param directionType (Integer): Ordinal direction to check in. (0: Down, 1: Right, 2: Up, 3: Left, or one of the enums: SensorDirection_Up, SensorDirection_Left, SensorDirection_Down, SensorDirection_Right)
  * \param position (Integer): Position on the tile to check, X position if the directionType is Up/Down, Y position if the directionType is Left/Right.
- * \paramOpt flipX (Boolean): Whether or not to check the collision with the tile horizontally flipped.
- * \paramOpt flipY (Boolean): Whether or not to check the collision with the tile vertically flipped.
+ * \paramOpt flipX (Boolean): Whether to check the collision with the tile horizontally flipped.
+ * \paramOpt flipY (Boolean): Whether to check the collision with the tile vertically flipped.
  * \return Collision position (Integer) on the tile, X position if the directionType is Left/Right, Y position if the directionType is Up/Down, -1 if there was no collision.
  * \ns TileInfo
  */
@@ -17428,8 +17428,8 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
  * \param tileID (Integer): ID of the tile to get the value of.
  * \param collisionField (Integer): The collision plane of the tile to get the angle from.
  * \param directionType (Integer): Ordinal direction to check in. (0: Down, 1: Right, 2: Up, 3: Left, or one of the enums: SensorDirection_Up, SensorDirection_Left, SensorDirection_Down, SensorDirection_Right)
- * \paramOpt flipX (Boolean): Whether or not to check the angle with the tile horizontally flipped.
- * \paramOpt flipY (Boolean): Whether or not to check the angle with the tile vertically flipped.
+ * \paramOpt flipX (Boolean): Whether to check the angle with the tile horizontally flipped.
+ * \paramOpt flipY (Boolean): Whether to check the angle with the tile vertically flipped.
  * \return Angle value between 0x00 to 0xFF at the specified direction.
  * \ns TileInfo
  */
@@ -17621,7 +17621,7 @@ VMValue Thread_Sleep(int argCount, VMValue* args, Uint32 threadID) {
  * VertexBuffer.Create
  * \desc Create a vertex buffer.
  * \param numVertices (Integer): The initial capacity of this vertex buffer.
- * \param unloadPolicy (Integer): Whether or not to delete the vertex buffer at the end of the current Scene, or the game end.
+ * \param unloadPolicy (Integer): Whether to delete the vertex buffer at the end of the current Scene, or the game end.
  * \return The index of the created vertex buffer.
  * \ns VertexBuffer
  */
@@ -18309,7 +18309,7 @@ VMValue View_GetCenterY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.IsUsingDrawTarget
- * \desc Gets whether the specified camera is using a draw target or not.
+ * \desc Gets whether the specified camera is using a draw target.
  * \param viewIndex (Integer): Index of the view.
  * \return Returns a Boolean value.
  * \ns View
@@ -18324,7 +18324,7 @@ VMValue View_IsUsingDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
  * View.SetUseDrawTarget
  * \desc Sets the specified camera to use a draw target.
  * \param viewIndex (Integer): Index of the view.
- * \param useDrawTarget (Boolean): Whether to use a draw target or not.
+ * \param useDrawTarget (Boolean): Whether to use a draw target.
  * \ns View
  */
 VMValue View_SetUseDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
@@ -18409,7 +18409,7 @@ VMValue View_GetShader(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.IsUsingSoftwareRenderer
- * \desc Gets whether the specified camera is using the software renderer or not.
+ * \desc Gets whether the specified camera is using the software renderer.
  * \param viewIndex (Integer): Index of the view.
  * \return Returns a Boolean value.
  * \ns View
@@ -18455,7 +18455,7 @@ VMValue View_SetUsePerspective(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.IsEnabled
- * \desc Gets whether the specified camera is active or not.
+ * \desc Gets whether the specified camera is active.
  * \param viewIndex (Integer): Index of the view.
  * \return Returns a Boolean value.
  * \ns View
@@ -18470,7 +18470,7 @@ VMValue View_IsEnabled(int argCount, VMValue* args, Uint32 threadID) {
  * View.SetEnabled
  * \desc Sets the specified camera to be active.
  * \param viewIndex (Integer): Index of the view.
- * \param enabled (Boolean): Whether or not the camera should be enabled.
+ * \param enabled (Boolean): Whether the camera should be enabled.
  * \ns View
  */
 VMValue View_SetEnabled(int argCount, VMValue* args, Uint32 threadID) {
@@ -18483,7 +18483,7 @@ VMValue View_SetEnabled(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.IsVisible
- * \desc Gets whether the specified camera is visible or not.
+ * \desc Gets whether the specified camera is visible.
  * \param viewIndex (Integer): Index of the view.
  * \return Returns a Boolean value.
  * \ns View
@@ -18498,7 +18498,7 @@ VMValue View_IsVisible(int argCount, VMValue* args, Uint32 threadID) {
  * View.SetVisible
  * \desc Sets the specified camera to be visible.
  * \param viewIndex (Integer): Index of the view.
- * \param visible (Boolean): Whether or not the camera should be visible.
+ * \param visible (Boolean): Whether the camera should be visible.
  * \ns View
  */
 VMValue View_SetVisible(int argCount, VMValue* args, Uint32 threadID) {
@@ -18587,7 +18587,7 @@ VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
  * \param instance (Instance): The instance to check.
  * \paramOpt rangeX (Decimal): The x range to check, or <code>null</code> if the entity's update region width should be used.
  * \paramOpt rangeY (Decimal): The y range to check, or <code>null</code> if the entity's update region height should be used.
- * \return Returns whether or not the instance is on screen in any view.
+ * \return Returns whether the instance is on screen in any view.
  * \ns View
  */
 VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
@@ -18619,7 +18619,7 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
  * \param posY (Decimal): The y position to check.
  * \param rangeX (Decimal): The x range to check.
  * \param rangeY (Decimal): The y range to check.
- * \return Returns whether or not the position is on screen in any view.
+ * \return Returns whether the position is on screen in any view.
  * \ns View
  */
 VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
@@ -18656,7 +18656,7 @@ VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetFullscreen
  * \desc Sets the fullscreen state of the active window.
- * \param isFullscreen (Boolean): Whether or not the window should be fullscreen.
+ * \param isFullscreen (Boolean): Whether the window should be fullscreen.
  * \ns Window
  */
 VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
@@ -18679,7 +18679,7 @@ VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetBorderless
  * \desc Sets the bordered state of the active window.
- * \param isBorderless (Boolean): Whether or not the window should be borderless.
+ * \param isBorderless (Boolean): Whether the window should be borderless.
  * \ns Window
  */
 VMValue Window_SetBorderless(int argCount, VMValue* args, Uint32 threadID) {
@@ -18690,7 +18690,7 @@ VMValue Window_SetBorderless(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetVSync
  * \desc Enables or disables V-Sync for the active window.
- * \param enableVsync (Boolean): Whether or not the window should use V-Sync.
+ * \param enableVsync (Boolean): Whether the window should use V-Sync.
  * \ns Window
  */
 VMValue Window_SetVSync(int argCount, VMValue* args, Uint32 threadID) {
@@ -18789,7 +18789,7 @@ VMValue Window_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Window.GetFullscreen
- * \desc Gets whether or not the active window is currently fullscreen.
+ * \desc Gets whether the active window is currently fullscreen.
  * \return Returns <code>true</code> if the window is fullscreen, <code>false</code> if otherwise.
  * \ns Window
  */
@@ -18809,7 +18809,7 @@ VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Window.IsResizeable
- * \desc Gets whether or not the active window is resizeable.
+ * \desc Gets whether the active window is resizeable.
  * \return Returns <code>true</code> if the window is resizeable, <code>false</code> if otherwise.
  * \ns Window
  */
@@ -21321,7 +21321,7 @@ void StandardLibrary::Link() {
 	/***
     * \global Scene_TimeEnabled
     * \type Integer
-    * \desc Whether the scene timer is enabled or not.
+    * \desc Whether the scene timer is enabled.
     */
 	DEF_LINK_INT("Scene_TimeEnabled", &Scene::TimeEnabled);
 	/***
@@ -21363,7 +21363,7 @@ void StandardLibrary::Link() {
 	/***
     * \global Scene_DebugMode
     * \type Integer
-    * \desc Whether nor not Debug Mode has been turned on in the current scene
+    * \desc Whether Debug Mode has been turned on in the current scene.
     */
 	DEF_LINK_INT("Scene_DebugMode", &Scene::DebugMode);
 	/***
