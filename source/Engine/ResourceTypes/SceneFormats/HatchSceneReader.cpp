@@ -116,6 +116,8 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 	Uint8 drawGroup = r->ReadByte();
 	Uint16 width = r->ReadUInt16();
 	Uint16 height = r->ReadUInt16();
+	Uint16 relativeY = r->ReadInt16();
+	Uint16 constantY = r->ReadInt16();
 
 	SceneLayer layer(width, height);
 
@@ -132,18 +134,25 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 	layer.DrawGroup = drawGroup;
 	layer.DrawBehavior = drawBehavior;
 
-	layer.RelativeY = r->ReadInt16();
-	layer.ConstantY = r->ReadInt16();
+	layer.RelativeY = (float)relativeY / 0x100;
+	layer.ConstantY = (float)constantY / 0x100;
 
 	layer.ScrollInfoCount = r->ReadUInt16();
-	layer.ScrollInfos =
-		(ScrollingInfo*)Memory::Malloc(layer.ScrollInfoCount * sizeof(ScrollingInfo));
 
-	if (!layer.ScrollInfos) {
-		Error::Fatal("Out of memory in HatchSceneReader::ReadLayer!");
+	if (layer.ScrollInfoCount > 0) {
+		layer.ScrollInfos = (ScrollingInfo*)Memory::Malloc(
+			layer.ScrollInfoCount * sizeof(ScrollingInfo));
+
+		if (!layer.ScrollInfos) {
+			Error::Fatal("Out of memory in HatchSceneReader::ReadLayer!");
+		}
+
+		layer.UsingScrollIndexes = true;
 	}
-
-	layer.UsingScrollIndexes = true;
+	else {
+		layer.ScrollInfos = nullptr;
+		layer.UsingScrollIndexes = false;
+	}
 
 	// Read scroll data
 	HatchSceneReader::ReadScrollData(r, &layer);
@@ -211,14 +220,14 @@ void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer* layer) {
 	for (Uint16 i = 0; i < layer->ScrollInfoCount; i++) {
 		ScrollingInfo* info = &layer->ScrollInfos[i];
 
-		info->RelativeParallax = r->ReadInt16();
-		info->ConstantParallax = r->ReadInt16();
-		info->CanDeform = r->ReadByte();
+		Uint16 relativeParallax = r->ReadInt16();
+		Uint16 constantParallax = r->ReadInt16();
+
+		info->RelativeParallax = (float)relativeParallax / 0x100;
+		info->ConstantParallax = (float)constantParallax / 0x100;
+		info->CanDeform = (bool)r->ReadByte();
 
 		r->ReadByte(); // ?
-
-		info->Position = 0;
-		info->Offset = 0;
 	}
 
 	size_t streamPos = r->Position();
@@ -456,8 +465,9 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		Uint32 objectHash = CRC32::EncryptData(&classHash.A, 16);
 		char* objectName = scnClass->Name;
 
-		if (!filter)
+		if (!filter) {
 			filter = 0xFF;
+		}
 
 		if (!(filter & Scene::Filter)) {
 			HatchSceneReader::SkipEntityProperties(r, numProps);

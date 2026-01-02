@@ -3,11 +3,10 @@
 
 class ScrollingInfo {
 public:
-	int RelativeParallax;
-	int ConstantParallax;
-	char CanDeform;
-	int Position;
-	int Offset;
+	float RelativeParallax;
+	float ConstantParallax;
+	bool CanDeform;
+	float Position;
 };
 
 #endif /* ENGINE_SCENE_SCROLLINGINFO_H */

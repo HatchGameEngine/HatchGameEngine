@@ -12320,7 +12320,7 @@ VMValue Scene_GetLayerExists(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetLayerDeformSplitLine
- * \desc Gets the DeformSplitLine of the specified layer.
+ * \desc Gets the Deform Split Line of the specified layer.
  * \param layerIndex (Integer): Index of layer.
  * \return Returns an Integer value.
  * \ns Scene
@@ -12333,7 +12333,7 @@ VMValue Scene_GetLayerDeformSplitLine(int argCount, VMValue* args, Uint32 thread
 }
 /***
  * Scene.GetLayerDeformOffsetA
- * \desc Gets the DeformOffsetA of the specified layer.
+ * \desc Gets the tile deform offset above the Deform Split Line of the specified layer.
  * \param layerIndex (Integer): Index of layer.
  * \return Returns an Integer value.
  * \ns Scene
@@ -12346,7 +12346,7 @@ VMValue Scene_GetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * Scene.GetLayerDeformOffsetB
- * \desc Gets the DeformOffsetB of the specified layer.
+ * \desc Gets the tile deform offset below the Deform Split Line of the specified layer.
  * \param layerIndex (Integer): Index of layer.
  * \return Returns an Integer value.
  * \ns Scene
@@ -12355,7 +12355,7 @@ VMValue Scene_GetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(Scene::Layers[index].DeformOffsetA);
+	return INTEGER_VAL(Scene::Layers[index].DeformOffsetB);
 }
 /***
  * Scene.LayerPropertyExists
@@ -12461,26 +12461,26 @@ VMValue Scene_GetLayerHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerOffsetX
  * \desc Gets the X offset of a layer index.
- * \return Returns an Integer value.
+ * \return Returns a Decimal value.
  * \ns Scene
  */
 VMValue Scene_GetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(Scene::Layers[index].OffsetX);
+	return DECIMAL_VAL(Scene::Layers[index].OffsetX);
 }
 /***
  * Scene.GetLayerOffsetY
  * \desc Gets the Y offset of a layer index.
- * \return Returns an Integer value.
+ * \return Returns a Decimal value.
  * \ns Scene
  */
 VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(Scene::Layers[index].OffsetY);
+	return DECIMAL_VAL(Scene::Layers[index].OffsetY);
 }
 /***
  * Scene.GetLayerDrawGroup
@@ -13444,8 +13444,8 @@ VMValue Scene_SetLayerInternalSize(int argCount, VMValue* args, Uint32 threadID)
 VMValue Scene_SetLayerOffsetPosition(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
 	int index = GET_ARG(0, GetInteger);
-	int offsetX = (int)GET_ARG(1, GetDecimal);
-	int offsetY = (int)GET_ARG(2, GetDecimal);
+	float offsetX = GET_ARG(1, GetDecimal);
+	float offsetY = GET_ARG(2, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].OffsetX = offsetX;
 	Scene::Layers[index].OffsetY = offsetY;
@@ -13461,7 +13461,7 @@ VMValue Scene_SetLayerOffsetPosition(int argCount, VMValue* args, Uint32 threadI
 VMValue Scene_SetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
-	int offsetX = (int)GET_ARG(1, GetDecimal);
+	float offsetX = GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].OffsetX = offsetX;
 	return NULL_VAL;
@@ -13476,7 +13476,7 @@ VMValue Scene_SetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
-	int offsetY = (int)GET_ARG(1, GetDecimal);
+	float offsetY = GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].OffsetY = offsetY;
 	return NULL_VAL;
@@ -13723,14 +13723,14 @@ VMValue Scene_SetLayerScroll(int argCount, VMValue* args, Uint32 threadID) {
 	float relative = GET_ARG(1, GetDecimal);
 	float constant = GET_ARG(2, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].RelativeY = (short)(relative * 0x100);
-	Scene::Layers[index].ConstantY = (short)(constant * 0x100);
+	Scene::Layers[index].RelativeY = relative;
+	Scene::Layers[index].ConstantY = constant;
 	return NULL_VAL;
 }
 struct BufferedScrollInfo {
-	short relative;
-	short constant;
-	int canDeform;
+	float relative;
+	float constant;
+	bool canDeform;
 };
 Uint8* BufferedScrollLines = NULL;
 int BufferedScrollLinesMax = 0;
@@ -13772,14 +13772,11 @@ VMValue Scene_SetLayerSetParallaxLines(int argCount, VMValue* args, Uint32 threa
 	int lineEnd = GET_ARG(1, GetInteger);
 	float relative = GET_ARG(2, GetDecimal);
 	float constant = GET_ARG(3, GetDecimal);
-	int canDeform = GET_ARG(4, GetInteger);
-
-	short relVal = (short)(relative * 0x100);
-	short constVal = (short)(constant * 0x100);
+	bool canDeform = !!GET_ARG(4, GetInteger);
 
 	BufferedScrollInfo info;
-	info.relative = relVal;
-	info.constant = constVal;
+	info.relative = relative;
+	info.constant = constant;
 	info.canDeform = canDeform;
 
 	// Check to see if these scroll values are used, if not, add them.
@@ -13789,7 +13786,7 @@ VMValue Scene_SetLayerSetParallaxLines(int argCount, VMValue* args, Uint32 threa
 		scrollIndex = -1;
 		for (size_t i = 0; i < setupCount; i++) {
 			BufferedScrollInfo setup = BufferedScrollInfos[i];
-			if (setup.relative == relVal && setup.constant == constVal &&
+			if (setup.relative == relative && setup.constant == constant &&
 				setup.canDeform == canDeform) {
 				scrollIndex = (int)i;
 				break;
@@ -13917,7 +13914,7 @@ VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 thre
 }
 /***
  * Scene.SetLayerDeformOffsetA
- * \desc Sets the tile deform offset A of the layer at the specified index.
+ * \desc Sets the tile deform offset above the Deform Split Line of the layer.
  * \param layerIndex (Integer): Index of layer.
  * \param deformA (Number): Deform value above the Deform Split Line.
  * \ns Scene
@@ -13933,7 +13930,7 @@ VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * Scene.SetLayerDeformOffsetB
- * \desc Sets the tile deform offset B of the layer at the specified index.
+ * \desc Sets the tile deform offset below the Deform Split Line of the layer.
  * \param layerIndex (Integer): Index of layer.
  * \param deformA (Number): Deform value below the Deform Split Line.
  * \ns Scene
@@ -13943,7 +13940,7 @@ VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 	int index = GET_ARG(0, GetInteger);
 	int deformB = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].DeformOffsetA = deformB;
+	Scene::Layers[index].DeformOffsetB = deformB;
 	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
@@ -18209,12 +18206,30 @@ VMValue View_AdjustZ(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * View.SetScale
+ * \desc Sets the scale of the camera for the specified view.
+ * \param viewIndex (Integer): Index of the view.
+ * \param x (Number): Desired X scale.
+ * \param y (Number): Desired Y scale.
+ * \paramOpt z (Number): Desired Z scale.
+ * \ns View
+ */
+VMValue View_SetScale(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].ScaleX = GET_ARG(1, GetDecimal);
+	Scene::Views[view_index].ScaleY = GET_ARG(2, GetDecimal);
+	Scene::Views[view_index].ScaleZ = GET_ARG_OPT(3, GetDecimal, 1.0);
+	return NULL_VAL;
+}
+/***
  * View.SetAngle
  * \desc Sets the angle of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
- * \param x (Number): Desired X angle
- * \param y (Number): Desired Y angle
- * \param z (Number): Desired Z angle
+ * \param x (Number): Desired X angle.
+ * \param y (Number): Desired Y angle.
+ * \param z (Number): Desired Z angle.
  * \ns View
  */
 VMValue View_SetAngle(int argCount, VMValue* args, Uint32 threadID) {
@@ -21138,6 +21153,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, AdjustX);
 	DEF_NATIVE(View, AdjustY);
 	DEF_NATIVE(View, AdjustZ);
+	DEF_NATIVE(View, SetScale);
 	DEF_NATIVE(View, SetAngle);
 	DEF_NATIVE(View, SetSize);
 	DEF_NATIVE(View, SetOutputX);

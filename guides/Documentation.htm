@@ -1348,6 +1348,7 @@
                     <li><a href="#Reference_functions_View_AdjustX">View.AdjustX</a></li>
                     <li><a href="#Reference_functions_View_AdjustY">View.AdjustY</a></li>
                     <li><a href="#Reference_functions_View_AdjustZ">View.AdjustZ</a></li>
+                    <li><a href="#Reference_functions_View_SetScale">View.SetScale</a></li>
                     <li><a href="#Reference_functions_View_SetAngle">View.SetAngle</a></li>
                     <li><a href="#Reference_functions_View_SetSize">View.SetSize</a></li>
                     <li><a href="#Reference_functions_View_SetOutputX">View.SetOutputX</a></li>
@@ -7289,7 +7290,7 @@
         <p id="Reference_functions_Scene_GetLayerDeformSplitLine">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerDeformSplitLine</h2>
         <code>Scene.GetLayerDeformSplitLine(layerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the DeformSplitLine of the specified layer.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the Deform Split Line of the specified layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -7300,7 +7301,7 @@
         <p id="Reference_functions_Scene_GetLayerDeformOffsetA">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerDeformOffsetA</h2>
         <code>Scene.GetLayerDeformOffsetA(layerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the DeformOffsetA of the specified layer.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the tile deform offset above the Deform Split Line of the specified layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -7311,7 +7312,7 @@
         <p id="Reference_functions_Scene_GetLayerDeformOffsetB">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerDeformOffsetB</h2>
         <code>Scene.GetLayerDeformOffsetB(layerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the DeformOffsetB of the specified layer.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the tile deform offset below the Deform Split Line of the specified layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -7378,14 +7379,14 @@
         <code>Scene.GetLayerOffsetX()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the X offset of a layer index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Integer value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerOffsetY">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerOffsetY</h2>
         <code>Scene.GetLayerOffsetY()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the Y offset of a layer index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Integer value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerDrawGroup">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerDrawGroup</h2>
@@ -8091,7 +8092,7 @@
         <p id="Reference_functions_Scene_SetLayerDeformOffsetA">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerDeformOffsetA</h2>
         <code>Scene.SetLayerDeformOffsetA(layerIndex, deformA)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the tile deform offset A of the layer at the specified index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the tile deform offset above the Deform Split Line of the layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -8101,7 +8102,7 @@
         <p id="Reference_functions_Scene_SetLayerDeformOffsetB">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerDeformOffsetB</h2>
         <code>Scene.SetLayerDeformOffsetB(layerIndex, deformA)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the tile deform offset B of the layer at the specified index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the tile deform offset below the Deform Split Line of the layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -10149,6 +10150,18 @@
         <li>z (Number): Desired Z adjust amount.</li>
         </ul>
         </p>
+        <p id="Reference_functions_View_SetScale">
+        <h2 style="margin-bottom: 8px;">View.SetScale</h2>
+        <code>View.SetScale(viewIndex, x, y[, z])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the scale of the camera for the specified view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>x (Number): Desired X scale.</li>
+        <li>y (Number): Desired Y scale.</li>
+        <li>z (Number): Desired Z scale.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_View_SetAngle">
         <h2 style="margin-bottom: 8px;">View.SetAngle</h2>
         <code>View.SetAngle(viewIndex, x, y, z)</code>
@@ -10156,9 +10169,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
-        <li>x (Number): Desired X angle</li>
-        <li>y (Number): Desired Y angle</li>
-        <li>z (Number): Desired Z angle</li>
+        <li>x (Number): Desired X angle.</li>
+        <li>y (Number): Desired Y angle.</li>
+        <li>z (Number): Desired Z angle.</li>
         </ul>
         </p>
         <p id="Reference_functions_View_SetSize">
