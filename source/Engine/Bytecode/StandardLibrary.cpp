@@ -19003,8 +19003,9 @@ void StandardLibrary::Link() {
 	ns_##nsName->Fields->Put(klass->Hash, OBJECT_VAL(klass))
 #define DEF_NAMESPACED_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
-
+		
 	INIT_NAMESPACE(RSDK);
+	INIT_NAMESPACE(API);
 
 	// #region Animator
 	INIT_CLASS(Animator);
@@ -19039,10 +19040,6 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, AdjustDuration);
 	DEF_NATIVE(Animator, AdjustFrameCount);
 	DEF_NATIVE(Animator, AdjustLoopIndex);
-	// #endregion
-
-	// #region API
-	INIT_NAMESPACE(API);
 	// #endregion
 
 	// #region API.Discord
