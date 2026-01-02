@@ -1684,11 +1684,13 @@ void Application::RunFrame(int runFrames) {
 
 	FrameTimeStart = Clock::GetTicks();
 
+	bool runUpdate = ((Stepper && Step) || !Stepper) && !Application::DevMenuActivated;
+
 	// Event loop
 	Metrics.Event.Begin();
 	Application::PollEvents();
 	InputManager::SetLastState();
-	EventHandler::Process((Stepper && Step) || !Stepper);
+	EventHandler::Process(runUpdate);
 	Metrics.Event.End();
 
 	// Input update
@@ -1716,7 +1718,7 @@ void Application::RunFrame(int runFrames) {
 	Metrics.Update.Reset();
 	for (int m = 0; m < runFrames; m++) {
 		Scene::ResetPerf();
-		if (((Stepper && Step) || !Stepper) && !Application::DevMenuActivated) {
+		if (runUpdate) {
 			// Update scene
 			Metrics.Update.Begin();
 			Scene::FrameUpdate();
