@@ -12,14 +12,14 @@ public:
     static struct IDiscordCore* Core;
     static struct IDiscordActivityManager* ActivityManager;
 
-    static void Init(const char* application_id);
+    static void Init(const char* applicationID);
     static void Update();
     static void UpdatePresence(const char* details);
     static void UpdatePresence(const char* details, const char* state);
     static void UpdatePresence(const char* details, const char* state, const char* imageKey);
-    static void UpdatePresence(const char* details, const char* state, const char* imageKey, time_t start_time);
+    static void UpdatePresence(const char* details, const char* state, const char* imageKey, time_t startTime);
     static void UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax);
-    static void UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax, time_t start_time);
+    static void UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax, time_t startTime);
     static void Dispose();
 };
 

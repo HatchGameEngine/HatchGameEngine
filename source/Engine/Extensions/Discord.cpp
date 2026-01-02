@@ -23,7 +23,7 @@ void DISCORD_CALLBACK OnUpdateActivityCallback(void* callback_data, enum EDiscor
     }
 }
 
-void Discord::Init(const char* application_id) {
+void Discord::Init(const char* applicationID) {
     Discord::Initialized = false;
 
     library = SDL_LoadObject(DISCORD_DLL_NAME);
@@ -41,7 +41,7 @@ void Discord::Init(const char* application_id) {
 
     struct DiscordCreateParams params;
     DiscordCreateParamsSetDefault(&params);
-    params.client_id = strtoll(application_id, NULL, 10);
+    params.client_id = strtoll(applicationID, NULL, 10);
     params.flags = DiscordCreateFlags_NoRequireDiscord;
 
     enum EDiscordResult result = _DiscordCreate(DISCORD_VERSION, &params, &Discord::Core);
@@ -60,7 +60,7 @@ void Discord::Init(const char* application_id) {
 
     Discord::ActivityManager = Discord::Core->get_activity_manager(Discord::Core);
     Discord::Initialized = true;
-    Log::Print(Log::LOG_API, "Discord: SDK initialized successfully for Application ID: %s", application_id);
+    Log::Print(Log::LOG_API, "Discord: SDK initialized successfully for Application ID: %s", applicationID);
 }
 
 void Discord::Update() {
