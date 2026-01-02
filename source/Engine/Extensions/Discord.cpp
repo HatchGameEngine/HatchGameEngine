@@ -18,6 +18,7 @@ struct IDiscordActivityManager* Discord::ActivityManager = NULL;
 void Discord::Init(const char* application_id) {
     Discord::Initialized = false;
 
+#ifdef DISCORD_DLL_NAME
     library = SDL_LoadObject(DISCORD_DLL_NAME);
     if (!library) {
         Log::Print(Log::LOG_API, "Discord: Failed to load %s! (SDL Error: %s)", DISCORD_DLL_NAME, SDL_GetError());
@@ -55,6 +56,7 @@ void Discord::Init(const char* application_id) {
     Discord::Initialized = true;
 
     Log::Print(Log::LOG_API, "Discord: SDK initialized successfully for Application ID: %s", application_id);
+#endif
 }
 
 void Discord::Update() {
