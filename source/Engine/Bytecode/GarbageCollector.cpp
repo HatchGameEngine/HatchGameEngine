@@ -229,7 +229,8 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		}
 		break;
 	}
-	case OBJ_INSTANCE: {
+	case OBJ_INSTANCE:
+	case OBJ_NATIVE_INSTANCE: {
 		ObjInstance* instance = (ObjInstance*)object;
 		GrayHashMap(instance->Fields);
 		break;

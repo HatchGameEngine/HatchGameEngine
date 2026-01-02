@@ -1405,9 +1405,7 @@ void GLRenderer::Init() {
 	}
 #endif
 
-	if (Graphics::VsyncEnabled) {
-		GLRenderer::SetVSync(true);
-	}
+	GLRenderer::SetVSync(Graphics::VsyncEnabled);
 
 	int maxTextureSize;
 	int maxTextureImageUnits;
@@ -1459,7 +1457,6 @@ void GLRenderer::Init() {
 	glStencilMask(0xFF);
 
 #ifdef GL_SUPPORTS_SMOOTHING
-	glEnable(GL_LINE_SMOOTH);
 	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 #endif
@@ -2615,10 +2612,7 @@ void GLRenderer::ClearStencil() {
 }
 
 // Primitive drawing functions
-void GLRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
-	// Graphics::Save();
-	GL_Predraw(NULL);
-
+void GL_StrokeLine(float x1, float y1, float x2, float y2) {
 	float v[6];
 	v[0] = x1;
 	v[1] = y1;
@@ -2628,12 +2622,34 @@ void GLRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
 	v[5] = 0.0f;
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glVertexAttribPointer(CurrentShader->LocPosition, 3, GL_FLOAT, GL_FALSE, 0, v);
+	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 3, GL_FLOAT, GL_FALSE, 0, v);
 	glDrawArrays(GL_LINES, 0, 2);
 	CHECK_GL();
-	// Graphics::Restore();
+}
+void GLRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothStroke) {
+		glEnable(GL_LINE_SMOOTH);
+	}
+#endif
+
+	GL_Predraw(NULL);
+
+	GL_StrokeLine(x1, y1, x2, y2);
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothStroke) {
+		glDisable(GL_LINE_SMOOTH);
+	}
+#endif
 }
 void GLRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothStroke) {
+		glEnable(GL_LINE_SMOOTH);
+	}
+#endif
+
 	Graphics::Save();
 	Graphics::Translate(x, y, 0.0f);
 	Graphics::Scale(rad, rad, 1.0f);
@@ -2644,6 +2660,12 @@ void GLRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
 	glDrawArrays(GL_LINE_STRIP, 0, 361);
 	CHECK_GL();
 	Graphics::Restore();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothStroke) {
+		glDisable(GL_LINE_SMOOTH);
+	}
+#endif
 }
 void GLRenderer::StrokeEllipse(float x, float y, float w, float h) {
 	Graphics::Save();
@@ -2656,13 +2678,33 @@ void GLRenderer::StrokeEllipse(float x, float y, float w, float h) {
 	glDrawArrays(GL_LINE_STRIP, 0, 361);
 	CHECK_GL();
 	Graphics::Restore();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothStroke) {
+		glDisable(GL_LINE_SMOOTH);
+	}
+#endif
 }
 void GLRenderer::StrokeRectangle(float x, float y, float w, float h) {
-	StrokeLine(x, y, x + w, y);
-	StrokeLine(x, y + h, x + w, y + h);
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothStroke) {
+		glEnable(GL_LINE_SMOOTH);
+	}
+#endif
 
-	StrokeLine(x, y, x, y + h);
-	StrokeLine(x + w, y, x + w, y + h);
+	GL_Predraw(NULL);
+
+	GL_StrokeLine(x, y, x + w, y);
+	GL_StrokeLine(x, y + h, x + w, y + h);
+
+	GL_StrokeLine(x, y, x, y + h);
+	GL_StrokeLine(x + w, y, x + w, y + h);
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothStroke) {
+		glDisable(GL_LINE_SMOOTH);
+	}
+#endif
 }
 void GLRenderer::FillCircle(float x, float y, float rad) {
 #ifdef GL_SUPPORTS_SMOOTHING

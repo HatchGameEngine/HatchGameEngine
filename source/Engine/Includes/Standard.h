@@ -71,7 +71,7 @@ struct DeveloperMenu {
     int SubSelection;
     int ScrollPos;
     int SubScrollPos;
-    int Timer;
+    double Timer;
     bool Fullscreen;
     int SceneState;
     int ListPos;
