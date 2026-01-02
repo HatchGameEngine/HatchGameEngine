@@ -1,6 +1,5 @@
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
 
-#include <Engine/Application.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
@@ -19,6 +18,13 @@ void png_read_fn(png_structp ctx, png_bytep area, png_size_t size) {
 }
 #else
 #undef USING_LIBPNG
+#endif
+#ifdef PNG_WRITE_SUPPORTED
+#define CAN_SAVE_PNG
+void png_write_fn(png_structp ctx, png_bytep area, png_size_t size) {
+	Stream* stream = (Stream*)png_get_io_ptr(ctx);
+	stream->WriteBytes(area, size);
+}
 #endif
 #endif
 
@@ -424,6 +430,114 @@ bool PNG::Save(const char* filename) {
 
 	stream->Close();
 	return true;
+}
+
+#if defined(CAN_SAVE_PNG) && defined(USING_LIBPNG) && defined(PNG_TEXT_SUPPORTED)
+static void
+AddTextLibpng(png_structp png_ptr, png_infop png_info_ptr, std::vector<PNGMetadata>* metadata) {
+	size_t numMetadata = metadata->size();
+	if (numMetadata == 0) {
+		return;
+	}
+
+	png_text* png_text_p = (png_text*)Memory::Calloc(numMetadata, sizeof(png_text));
+	size_t numStrings = 0;
+
+	for (size_t i = 0; i < numMetadata; i++) {
+		char* keyword = (*metadata)[i].Keyword;
+		std::string& text = (*metadata)[i].Text;
+		if (keyword[0] == '\0') {
+			continue;
+		}
+
+		png_text_p[numStrings].key = keyword;
+		png_text_p[numStrings].text = (char*)text.c_str();
+		numStrings++;
+	}
+
+	if (numStrings > 0) {
+		png_set_text(png_ptr, png_info_ptr, png_text_p, numStrings);
+	}
+}
+#endif
+
+bool PNG::Save(Texture* texture, const char* filename, std::vector<PNGMetadata>* metadata) {
+#ifdef CAN_SAVE_PNG
+	Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
+	if (!stream) {
+		return false;
+	}
+
+#ifdef USING_LIBPNG
+	png_structp png_ptr;
+	png_infop png_info_ptr;
+	png_bytepp row_pointers;
+	png_bytep data_ptr;
+	Uint32 row_bytes;
+
+	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	if (!png_ptr) {
+		Log::Print(Log::LOG_ERROR, "Couldn't create PNG write struct!");
+		return false;
+	}
+
+	png_info_ptr = png_create_info_struct(png_ptr);
+	if (!png_info_ptr) {
+		Log::Print(Log::LOG_ERROR, "Couldn't create PNG information struct!");
+		png_destroy_write_struct(&png_ptr, NULL);
+		return false;
+	}
+
+	if (setjmp(*png_set_longjmp_fn(png_ptr, longjmp, sizeof(jmp_buf)))) {
+		Log::Print(Log::LOG_ERROR, "Couldn't write PNG file!");
+		png_destroy_write_struct(&png_ptr, &png_info_ptr);
+		stream->Close();
+		return false;
+	}
+
+	// TODO: Write the PNG as PNG_COLOR_TYPE_PALETTE if the Texture is palettized
+	png_set_write_fn(png_ptr, stream, png_write_fn, NULL);
+	png_set_IHDR(png_ptr,
+		png_info_ptr,
+		texture->Width,
+		texture->Height,
+		8,
+		PNG_COLOR_TYPE_RGBA,
+		PNG_INTERLACE_NONE,
+		PNG_COMPRESSION_TYPE_DEFAULT,
+		PNG_FILTER_TYPE_DEFAULT);
+#ifdef PNG_TEXT_SUPPORTED
+	if (metadata) {
+		AddTextLibpng(png_ptr, png_info_ptr, metadata);
+	}
+#endif
+	png_write_info(png_ptr, png_info_ptr);
+
+	row_pointers = (png_bytepp)Memory::Malloc(texture->Height * sizeof(png_bytep));
+	row_bytes = texture->Width * sizeof(Uint32);
+	data_ptr = (png_bytep)texture->Pixels;
+
+	for (int y = 0; y < texture->Height; y++) {
+		row_pointers[y] = data_ptr;
+		data_ptr += row_bytes;
+	}
+
+	png_write_image(png_ptr, row_pointers);
+	Memory::Free(row_pointers);
+
+	png_write_end(png_ptr, png_info_ptr);
+	png_destroy_write_struct(&png_ptr, &png_info_ptr);
+#endif
+
+	stream->Close();
+	return true;
+#else
+	Log::Print(Log::LOG_ERROR, "Cannot save PNG files in this build!");
+	return false;
+#endif
+}
+bool PNG::Save(Texture* texture, const char* filename) {
+	return Save(texture, filename, nullptr);
 }
 
 PNG::~PNG() {}

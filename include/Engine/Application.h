@@ -67,6 +67,7 @@ private:
 	static void RunFrame(int runFrames);
 	static void MainLoop();
 	static void MainLoopCallback(void* p);
+	static bool SaveScreenshot();
 	static void DrawPerformance();
 	static void DelayFrame();
 	static void SetUseFixedTimestep(bool useFixedTimestep);

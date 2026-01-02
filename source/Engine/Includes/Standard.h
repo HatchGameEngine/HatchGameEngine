@@ -47,6 +47,7 @@ enum class Platforms { Windows, MacOS, Linux, Switch, PlayStation, Xbox, Android
 
 enum class KeyBind {
 	Fullscreen,
+	Screenshot,
 	ToggleFPSCounter,
 
 	DevRestartApp,

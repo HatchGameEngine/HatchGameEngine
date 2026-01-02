@@ -19184,6 +19184,11 @@ void StandardLibrary::Link() {
     */
 	DEF_ENUM_CLASS(KeyBind, Fullscreen);
 	/***
+    * \enum KeyBind_Screenshot
+    * \desc Screenshot keybind.
+    */
+	DEF_ENUM_CLASS(KeyBind, Screenshot);
+	/***
     * \enum KeyBind_ToggleFPSCounter
     * \desc FPS counter toggle keybind.
     */

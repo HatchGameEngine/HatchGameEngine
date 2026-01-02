@@ -14,10 +14,12 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
+#include <Engine/ResourceTypes/ImageFormats/PNG.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
+#include <Engine/Utilities/Screenshot.h>
 #include <Engine/Utilities/StringUtils.h>
 
 #include <Engine/Media/MediaPlayer.h>
@@ -137,9 +139,11 @@ char LogFilename[MAX_PATH_LENGTH];
 
 bool UseMemoryFileCache = false;
 
+bool TakeScreenshot = false;
+
 bool DevMode = false;
 bool ViewPerformance = false;
-bool TakeSnapshot = false;
+bool TakePerfSnapshot = false;
 bool DoNothing = false;
 int UpdatesPerFastForward = 4;
 
@@ -1124,8 +1128,9 @@ void Application::LoadKeyBinds() {
 	}
 
 	GET_KEY("fullscreen", Fullscreen, Key_F4);
-	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
+	GET_KEY("screenshot", Screenshot, Key_F8);
 	GET_KEY("toggleFPSCounter", ToggleFPSCounter, Key_F2);
+	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
 	GET_KEY("devRestartApp", DevRestartApp, Key_F1);
 	GET_KEY("devRestartScene", DevRestartScene, Key_F6);
 	GET_KEY("devRecompile", DevRecompile, Key_F5);
@@ -1328,6 +1333,10 @@ void Application::PollEvents() {
 				Application::SetWindowFullscreen(!Application::GetWindowFullscreen());
 				break;
 			}
+			// Screenshot
+			else if (key == KeyBindsSDL[(int)KeyBind::Screenshot]) {
+				TakeScreenshot = true;
+			}
 			// Toggle FPS counter
 			else if (key == KeyBindsSDL[(int)KeyBind::ToggleFPSCounter]) {
 				Application::ShowFPS = !Application::ShowFPS;
@@ -1342,7 +1351,7 @@ void Application::PollEvents() {
 					break;
 				}
 				// Open dev menu (dev)
-				if (key == KeyBindsSDL[(int)KeyBind::DevMenuToggle]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevMenuToggle]) {
 					Application::DevMenuActivated ? Application::CloseDevMenu() : Application::OpenDevMenu();
 					break;
 				}
@@ -1378,7 +1387,7 @@ void Application::PollEvents() {
 				}
 				// Print performance snapshot (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevPerfSnapshot]) {
-					TakeSnapshot = true;
+					TakePerfSnapshot = true;
 					break;
 				}
 				// Recompile and restart scene (dev)
@@ -1589,11 +1598,40 @@ DO_NOTHING:
 	DrawPerformance();
 	Metrics.FPSCounter.End();
 
+	if (TakeScreenshot) {
+		Application::SaveScreenshot();
+		TakeScreenshot = false;
+	}
+
 	Metrics.Present.Begin();
 	Graphics::Present();
 	Metrics.Present.End();
 
 	Metrics.Frame.End();
+}
+bool Application::SaveScreenshot() {
+	std::string filename = Screenshot::GetFilename();
+	const char* path = filename.c_str();
+
+	bool success = true;
+
+	if (Graphics::UpdateFramebufferTexture()) {
+		std::vector<PNGMetadata> metadata = Screenshot::GetPNGMetadata();
+
+		success = PNG::Save(Graphics::FramebufferTexture, path, &metadata);
+	}
+	else {
+		success = false;
+	}
+
+	if (success) {
+		Log::Print(Log::LOG_VERBOSE, "Saved screenshot \"%s\"", path);
+	}
+	else {
+		Log::Print(Log::LOG_ERROR, "Could not save screenshot \"%s\"!", path);
+	}
+
+	return success;
 }
 void Application::DrawPerformance() {
 	if (DefaultFont == nullptr) {
@@ -1768,12 +1806,12 @@ void Application::MainLoop() {
 		if (tickStart - AutomaticPerformanceSnapshotLastTime >
 			AutomaticPerformanceSnapshotMinInterval) {
 			AutomaticPerformanceSnapshotLastTime = tickStart;
-			TakeSnapshot = true;
+			TakePerfSnapshot = true;
 		}
 	}
 
-	if (TakeSnapshot) {
-		TakeSnapshot = false;
+	if (TakePerfSnapshot) {
+		TakePerfSnapshot = false;
 		Application::GetPerformanceSnapshot();
 	}
 
