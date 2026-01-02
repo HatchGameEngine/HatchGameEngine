@@ -15,7 +15,10 @@ struct IDiscordCore* Discord::Core = NULL;
 struct IDiscordActivityManager* Discord::ActivityManager = NULL;
 
 void DISCORD_CALLBACK OnUpdateActivityCallback(void* callback_data, enum EDiscordResult result) {
-    if (result != DiscordResult_Ok) {
+    if (result == DiscordResult_Ok) {
+        Log::Print(Log::LOG_API, "Discord: Presence updated successfully.");
+    }
+    else {
         Log::Print(Log::LOG_API, "Discord: Failed to update presence (Error %d)", (int)result);
     }
 }
@@ -24,10 +27,14 @@ void Discord::Init(const char* application_id) {
     Discord::Initialized = false;
 
     library = SDL_LoadObject(DISCORD_DLL_NAME);
-    if (!library) return;
+    if (!library) {
+        Log::Print(Log::LOG_API, "Discord: Failed to load %s! (SDL Error: %s)", DISCORD_DLL_NAME, SDL_GetError());
+        return;
+    }
 
     _DiscordCreate = (DiscordCreate_t)SDL_LoadFunction(library, "DiscordCreate");
     if (!_DiscordCreate) {
+        Log::Print(Log::LOG_API, "Discord: Failed to find function 'DiscordCreate' in %s!", DISCORD_DLL_NAME);
         SDL_UnloadObject(library);
         return;
     }
@@ -39,6 +46,13 @@ void Discord::Init(const char* application_id) {
 
     enum EDiscordResult result = _DiscordCreate(DISCORD_VERSION, &params, &Discord::Core);
     if (result != DiscordResult_Ok) {
+        if (result == DiscordResult_InternalError || result == DiscordResult_NotRunning) {
+            Log::Print(Log::LOG_API, "Discord: Integration disabled (Discord client not found).");
+        }
+        else {
+            Log::Print(Log::LOG_API, "Discord: Initialization failed with unexpected error code %d", (int)result);
+        }
+
         SDL_UnloadObject(library);
         library = NULL;
         return;
@@ -46,7 +60,7 @@ void Discord::Init(const char* application_id) {
 
     Discord::ActivityManager = Discord::Core->get_activity_manager(Discord::Core);
     Discord::Initialized = true;
-    Log::Print(Log::LOG_API, "Discord: SDK initialized successfully.");
+    Log::Print(Log::LOG_API, "Discord: SDK initialized successfully for Application ID: %s", application_id);
 }
 
 void Discord::Update() {
