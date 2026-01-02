@@ -2380,8 +2380,8 @@ VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 th
 	auto thisEnt = (Entity*)thisEntity->EntityPtr;
 	auto otherEnt = (Entity*)otherEntity->EntityPtr;
 
-	CollisionBox thisBox = { 0, 0, 0, 0 };
-	CollisionBox otherBox = { 0, 0, 0, 0 };
+	CollisionBox thisBox;
+	CollisionBox otherBox;
 
 	if (IS_INTEGER((*thisHitbox->Values)[0])) {
 		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
