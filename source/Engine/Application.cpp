@@ -1344,8 +1344,8 @@ bool Application::HandleDevKey(AppEventType eventType, int key) {
 		return false;
 	}
 
-	if (eventType != APPEVENT_KEY_UP) {
-		return true;
+	if (eventType != APPEVENT_KEY_DOWN) {
+		return false;
 	}
 
 	switch (bind) {
@@ -1524,10 +1524,6 @@ void Application::PollEvents() {
 		case SDL_KEYUP: {
 			Uint16 key = InputManager::SDLScancodeToKey[e.key.keysym.scancode];
 			if (key == -1) {
-				break;
-			}
-
-			if (DevMode && HandleDevKey(APPEVENT_KEY_UP, key)) {
 				break;
 			}
 
