@@ -21327,7 +21327,7 @@ void StandardLibrary::Link() {
 	/***
     * \global Scene_TimeCounter
     * \type Integer
-    * \desc The current scene timer counter.
+    * \desc The current scene time counter.
     */
 	DEF_LINK_INT("Scene_TimeCounter", &Scene::TimeCounter);
 	/***
