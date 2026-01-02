@@ -1336,9 +1336,9 @@ VMValue API_InitDiscord(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue API_UpdateDiscordRichPresence(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	char* details = GET_ARG(0, GetString);
-	char* state = GET_ARG_OPT(1, GetString, "");
-	char* imageKey = GET_ARG_OPT(2, GetString, "");
+	const char* details = GET_ARG(0, GetString);
+	const char* state = GET_ARG_OPT(1, GetString, "");
+	const char* imageKey = GET_ARG_OPT(2, GetString, "");
 	time_t startTime = GET_ARG_OPT(3, GetInteger, 0);
 	if (argCount < 2)
 		Discord::UpdatePresence(details);

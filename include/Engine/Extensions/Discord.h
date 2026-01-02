@@ -14,12 +14,12 @@ public:
 
     static void Init(const char* application_id);
     static void Update();
-    static void UpdatePresence(char* details);
-    static void UpdatePresence(char* details, char* state);
-    static void UpdatePresence(char* details, char* state, char* imageKey);
-    static void UpdatePresence(char* details, char* state, char* imageKey, time_t start_time);
-    static void UpdatePresence(char* details, char* state, char* imageKey, int partySize, int partyMax);
-    static void UpdatePresence(char* details, char* state, char* imageKey, int partySize, int partyMax, time_t start_time);
+    static void UpdatePresence(const char* details);
+    static void UpdatePresence(const char* details, const char* state);
+    static void UpdatePresence(const char* details, const char* state, const char* imageKey);
+    static void UpdatePresence(const char* details, const char* state, const char* imageKey, time_t start_time);
+    static void UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax);
+    static void UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax, time_t start_time);
     static void Dispose();
 };
 

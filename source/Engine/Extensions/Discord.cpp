@@ -72,7 +72,7 @@ void DISCORD_CALLBACK OnUpdateActivityCallback(void* callback_data, enum EDiscor
     }
 }
 
-void Discord::UpdatePresence(char* details, char* state, char* imageKey, int partySize, int partyMax, time_t startTime) {
+void Discord::UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax, time_t startTime) {
     if (!Discord::Initialized || !Discord::ActivityManager) {
         return;
     }
@@ -97,15 +97,15 @@ void Discord::UpdatePresence(char* details, char* state, char* imageKey, int par
     Discord::ActivityManager->update_activity(Discord::ActivityManager, &activity, NULL, OnUpdateActivityCallback);
 }
 
-void Discord::UpdatePresence(char* details) { UpdatePresence(details, NULL, NULL, 0, 0, 0); }
+void Discord::UpdatePresence(const char* details) { UpdatePresence(details, NULL, NULL, 0, 0, 0); }
 
-void Discord::UpdatePresence(char* details, char* state) { UpdatePresence(details, state, NULL, 0, 0, 0); }
+void Discord::UpdatePresence(const char* details, const char* state) { UpdatePresence(details, state, NULL, 0, 0, 0); }
 
-void Discord::UpdatePresence(char* details, char* state, char* imageKey) { UpdatePresence(details, state, imageKey, 0, 0, 0); }
+void Discord::UpdatePresence(const char* details, const char* state, const char* imageKey) { UpdatePresence(details, state, imageKey, 0, 0, 0); }
 
-void Discord::UpdatePresence(char* details, char* state, char* imageKey, time_t startTime) { UpdatePresence(details, state, imageKey, 0, 0, startTime); }
+void Discord::UpdatePresence(const char* details, const char* state, const char* imageKey, time_t startTime) { UpdatePresence(details, state, imageKey, 0, 0, startTime); }
 
-void Discord::UpdatePresence(char* details, char* state, char* imageKey, int partySize, int partyMax) { UpdatePresence(details, state, imageKey, partySize, partyMax, 0); }
+void Discord::UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax) { UpdatePresence(details, state, imageKey, partySize, partyMax, 0); }
 
 void Discord::Dispose() {
     if (!Discord::Initialized) return;
