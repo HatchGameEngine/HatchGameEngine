@@ -1,6 +1,6 @@
 #include <Engine/Application.h>
 #include <Engine/Extensions/Discord.h>
-#include <discord_game_sdk.h>
+#include <Engine/Extensions/discord_game_sdk.h>
 
 #ifdef WIN32
 #define DISCORD_DLL_NAME "discord_game_sdk.dll"
