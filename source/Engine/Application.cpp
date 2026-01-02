@@ -11,6 +11,7 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
 #include <Engine/Diagnostics/PerformanceViewer.h>
+#include <Engine/Extensions/Discord.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
@@ -1322,9 +1323,10 @@ void Application::PollEvents() {
 		}
 		case SDL_KEYDOWN: {
 			SDL_Keycode key = e.key.keysym.sym;
+			Uint16 mod = e.key.keysym.mod;
 
 			// Fullscreen
-			if (key == KeyBindsSDL[(int)KeyBind::Fullscreen]) {
+			if (key == KeyBindsSDL[(int)KeyBind::Fullscreen] && !(mod & KMOD_ALT)) {
 				Application::SetWindowFullscreen(!Application::GetWindowFullscreen());
 				break;
 			}
@@ -1788,6 +1790,9 @@ void Application::MainLoop() {
 
 		ChangeGame(gamePath);
 	}
+
+	if (Discord::Initialized)
+		Discord::Update();
 }
 
 void Application::Cleanup() {

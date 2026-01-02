@@ -12,6 +12,7 @@
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Error.h>
+#include <Engine/Extensions/Discord.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Graphics.h>
@@ -1306,6 +1307,47 @@ VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 	animator->LoopIndex += GET_ARG(1, GetInteger);
+	return NULL_VAL;
+}
+// #endregion
+
+// #region API
+/***
+ * API.InitDiscord
+ * \desc Initializes Discord integration.
+ * \param applicationID (String): The Discord Application ID. This will have needed to be created via the Discord Developer Portal.
+ * \return Returns whether initialization was successful.
+ * \ns API
+ */
+VMValue API_InitDiscord(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+    const char* applicationID = GET_ARG(0, GetString);
+    Discord::Init(applicationID);
+	return INTEGER_VAL(Discord::Initialized);
+}
+/***
+ * API.UpdateDiscordRichPresence
+ * \desc Updates Discord Rich Presence.
+ * \param details (String): A
+ * \paramOpt state (String): A
+ * \paramOpt imageKey (String): A
+ * \paramOpt startTime (Integer): A
+ * \ns API
+ */
+VMValue API_UpdateDiscordRichPresence(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	char* details = GET_ARG(0, GetString);
+	char* state = GET_ARG_OPT(1, GetString, "");
+	char* imageKey = GET_ARG_OPT(2, GetString, "");
+	time_t startTime = GET_ARG_OPT(3, GetInteger, 0);
+	if (argCount < 2)
+		Discord::UpdatePresence(details);
+	else if (argCount < 3)
+		Discord::UpdatePresence(details, state);
+	else if (argCount < 4)
+		Discord::UpdatePresence(details, state, imageKey);
+	else if (argCount == 4)
+        Discord::UpdatePresence(details, state, imageKey, startTime);
 	return NULL_VAL;
 }
 // #endregion
@@ -18997,6 +19039,12 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, AdjustDuration);
 	DEF_NATIVE(Animator, AdjustFrameCount);
 	DEF_NATIVE(Animator, AdjustLoopIndex);
+	// #endregion
+
+	// #region API
+	INIT_CLASS(API);
+	DEF_NATIVE(API, InitDiscord);
+	DEF_NATIVE(API, UpdateDiscordRichPresence);
 	// #endregion
 
 	// #region Application
