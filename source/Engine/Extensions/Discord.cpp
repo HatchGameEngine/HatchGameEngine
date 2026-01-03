@@ -1,9 +1,14 @@
 #include <Engine/Application.h>
 #include <Engine/Extensions/Discord.h>
 
-#ifdef WIN32
+#if defined(WIN32) || defined(LINUX)
 #include <Engine/Extensions/discord_game_sdk.h>
-#define DISCORD_DLL_NAME "discord_game_sdk.dll"
+
+#ifdef WIN32
+#define DISCORD_LIBRARY_NAME "discord_game_sdk.dll"
+#else
+#define DISCORD_LIBRARY_NAME "discord_game_sdk.so"
+#endif
 
 typedef enum EDiscordResult(DISCORD_API* DiscordCreate_t)(DiscordVersion version, struct DiscordCreateParams* params, struct IDiscordCore** result);
 
@@ -26,15 +31,15 @@ void DISCORD_CALLBACK OnUpdateActivityCallback(void* callback_data, enum EDiscor
 void Discord::Init(const char* applicationID) {
     Discord::Initialized = false;
 
-    library = SDL_LoadObject(DISCORD_DLL_NAME);
+    library = SDL_LoadObject(DISCORD_LIBRARY_NAME);
     if (!library) {
-        Log::Print(Log::LOG_API, "Discord: Failed to load %s! (SDL Error: %s)", DISCORD_DLL_NAME, SDL_GetError());
+        Log::Print(Log::LOG_API, "Discord: Failed to load %s! (SDL Error: %s)", DISCORD_LIBRARY_NAME, SDL_GetError());
         return;
     }
 
     _DiscordCreate = (DiscordCreate_t)SDL_LoadFunction(library, "DiscordCreate");
     if (!_DiscordCreate) {
-        Log::Print(Log::LOG_API, "Discord: Failed to find function 'DiscordCreate' in %s!", DISCORD_DLL_NAME);
+        Log::Print(Log::LOG_API, "Discord: Failed to find function 'DiscordCreate' in %s!", DISCORD_LIBRARY_NAME);
         SDL_UnloadObject(library);
         return;
     }
