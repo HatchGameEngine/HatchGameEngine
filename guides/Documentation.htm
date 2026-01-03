@@ -2070,7 +2070,7 @@
         <li>details (String): The first line of text in the Rich Presence.</li>
         <li>state (String): The second line of text, appearing below details.</li>
         <li>largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.</li>
-        <li>startTime (Integer): A Unix timestamp of when the activity started.</li>
+        <li>startTime (Integer): A Unix timestamp of when the activity started. If <code>0</code>, the timer is disabled.</li>
         </ul>
         </p>
         <p id="Reference_functions_API_Discord_SetActivityDetails">
@@ -2117,7 +2117,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the elapsed timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>timestamp (Integer): A Unix timestamp of when the timer started.</li>
+        <li>timestamp (Integer): A Unix timestamp of when the timer started. If <code>0</code>, the timer is disabled.</li>
         </ul>
         </p>
         <p id="Reference_functions_API_Discord_SetActivityRemainingTimer">
@@ -2126,7 +2126,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the remaining timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>timestamp (Integer): A Unix timestamp of when the timer will end.</li>
+        <li>timestamp (Integer): A Unix timestamp of when the timer will end. If <code>0</code>, the timer is disabled.</li>
         </ul>
         </p>
         <p id="Reference_functions_API_Discord_SetActivityPartySize">

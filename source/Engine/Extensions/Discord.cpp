@@ -179,13 +179,13 @@ void Discord::Activity::SetSmallImage(const char* key, const char* text) {
 	Discord::Activity::SetSmallImageText(text);
 }
 
-void Discord::Activity::SetStartTime(time_t startTime) {
-	CurrentActivity.timestamps.start = (DiscordTimestamp)startTime;
+void Discord::Activity::SetElapsedTimer(time_t timestamp) {
+	CurrentActivity.timestamps.start = (DiscordTimestamp)timestamp;
 	CurrentActivity.timestamps.end = 0;
 }
-void Discord::Activity::SetEndTime(time_t endTime) {
+void Discord::Activity::SetRemainingTimer(time_t timestamp) {
 	CurrentActivity.timestamps.start = 0;
-	CurrentActivity.timestamps.end = (DiscordTimestamp)endTime;
+	CurrentActivity.timestamps.end = (DiscordTimestamp)timestamp;
 }
 void Discord::Activity::SetPartySize(int size) {
 	CurrentActivity.party.size.current_size = size;
@@ -214,10 +214,10 @@ void Discord::UpdatePresence(struct DiscordIntegrationActivity presence) {
 	Discord::Activity::SetSmallImage(presence.SmallImageKey, presence.SmallImageText);
 
 	if (presence.EndTime) {
-		Discord::Activity::SetEndTime(presence.EndTime);
+		Discord::Activity::SetRemainingTimer(presence.EndTime);
 	}
 	else {
-		Discord::Activity::SetStartTime(presence.StartTime);
+		Discord::Activity::SetElapsedTimer(presence.StartTime);
 	}
 
 	Discord::Activity::SetPartySize(presence.PartySize);
@@ -259,8 +259,8 @@ void Discord::Activity::SetSmallImageKey(const char* key) {}
 void Discord::Activity::SetSmallImageText(const char* text) {}
 void Discord::Activity::SetSmallImage(const char* key, const char* text) {}
 
-void Discord::Activity::SetStartTime(time_t startTime) {}
-void Discord::Activity::SetEndTime(time_t endTime) {}
+void Discord::Activity::SetElapsedTimer(time_t timestamp) {}
+void Discord::Activity::SetRemainingTimer(time_t timestamp) {}
 void Discord::Activity::SetPartySize(int size) {}
 void Discord::Activity::SetPartyMaxSize(int size) {}
 

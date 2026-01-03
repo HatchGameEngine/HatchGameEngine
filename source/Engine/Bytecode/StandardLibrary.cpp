@@ -1338,7 +1338,7 @@ VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
  * \param details (String): The first line of text in the Rich Presence.
  * \paramOpt state (String): The second line of text, appearing below details.
  * \paramOpt largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.
- * \paramOpt startTime (Integer): A Unix timestamp of when the activity started.
+ * \paramOpt startTime (Integer): A Unix timestamp of when the activity started. If <code>0</code>, the timer is disabled.
  * \ns API.Discord
  */
 VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID) {
@@ -1463,38 +1463,38 @@ VMValue Discord_SetActivitySmallImage(int argCount, VMValue* args, Uint32 thread
 /***
  * API.Discord.SetActivityElapsedTimer
  * \desc Sets the elapsed timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \param timestamp (Integer): A Unix timestamp of when the timer started.
+ * \param timestamp (Integer): A Unix timestamp of when the timer started. If <code>0</code>, the timer is disabled.
  * \ns API.Discord
  */
 VMValue Discord_SetActivityElapsedTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	int startTime = GET_ARG(0, GetInteger);
+	int timestamp = GET_ARG(0, GetInteger);
 
 	if (!Discord::Initialized) {
 		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
-	Discord::Activity::SetStartTime(startTime);
+	Discord::Activity::SetElapsedTimer(timestamp);
 
 	return NULL_VAL;
 }
 /***
  * API.Discord.SetActivityRemainingTimer
  * \desc Sets the remaining timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \param timestamp (Integer): A Unix timestamp of when the timer will end.
+ * \param timestamp (Integer): A Unix timestamp of when the timer will end. If <code>0</code>, the timer is disabled.
  * \ns API.Discord
  */
 VMValue Discord_SetActivityRemainingTimer(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	int startTime = GET_ARG(0, GetInteger);
+	int timestamp = GET_ARG(0, GetInteger);
 
 	if (!Discord::Initialized) {
 		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
-	Discord::Activity::SetEndTime(startTime);
+	Discord::Activity::SetRemainingTimer(timestamp);
 
 	return NULL_VAL;
 }

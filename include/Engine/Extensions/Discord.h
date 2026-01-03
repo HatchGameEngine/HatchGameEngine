@@ -42,8 +42,8 @@ public:
 		static void SetSmallImageKey(const char* key);
 		static void SetSmallImageText(const char* text);
 		static void SetSmallImage(const char* key, const char* text);
-		static void SetStartTime(time_t startTime);
-		static void SetEndTime(time_t endTime);
+		static void SetElapsedTimer(time_t timestamp);
+		static void SetRemainingTimer(time_t timestamp);
 		static void SetPartySize(int size);
 		static void SetPartyMaxSize(int size);
 		static void Update();
