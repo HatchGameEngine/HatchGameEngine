@@ -25,6 +25,7 @@
 #include <Engine/Includes/DateTime.h>
 #include <Engine/Input/Controller.h>
 #include <Engine/Input/Input.h>
+#include <Engine/Includes/Operation.h>
 #include <Engine/Math/Ease.h>
 #include <Engine/Math/Geometry.h>
 #include <Engine/Math/Math.h>
@@ -1600,6 +1601,72 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 		return INTEGER_VAL(1);
 	}
 	return INTEGER_VAL(0);
+}
+/***
+ * Application.TakeScreenshot
+ * \desc Saves a screenshot to <code>path</code>. This operation only completes at the end of the frame, so you may optionally provide a callback.
+ * \paramOpt path (String): The path to save the screenshot to. If <code>null</code> or not passed, the screenshot is saved to the default screenshot path.
+ * \paramOpt callback (Function): The function to call when the screenshot operation finishes. When called, it receives two arguments: <code>true</code> or <code>false</code> if the screenshot was saved, and the filename of the screenshot.
+ * \ns Application
+ */
+struct ScriptScreenshotOpData {
+	Uint32 ThreadID;
+	VMValue Callable;
+};
+void ScriptTakeScreenshotCallback(OperationResult result) {
+	ScriptScreenshotOpData* data = (ScriptScreenshotOpData*)result.Input;
+	const char* filename = (const char*)result.Output;
+
+	if (!IS_NULL(data->Callable)) {
+		VMThread* thread = ScriptManager::Threads + data->ThreadID;
+		VMValue* stackTop = thread->StackTop;
+
+		thread->Push(INTEGER_VAL(result.Success));
+		if (filename) {
+			thread->Push(ReturnString(filename));
+		}
+
+		VMValue callable = data->Callable;
+		int numArgs = thread->StackTop - stackTop;
+		int minArity, maxArity;
+		if (thread->GetArity(callable, minArity, maxArity) && numArgs > maxArity) {
+			numArgs = maxArity;
+			thread->StackTop = stackTop + numArgs;
+		}
+
+		thread->RunValue(callable, numArgs);
+		thread->StackTop = stackTop;
+	}
+
+	Memory::Free(data);
+}
+VMValue Application_TakeScreenshot(int argCount, VMValue* args, Uint32 threadID) {
+	char* path = nullptr;
+	VMValue callable = NULL_VAL;
+
+	if (argCount == 1 && IS_CALLABLE(args[0])) {
+		callable = args[0];
+	}
+	else if (argCount > 0 && !IS_NULL(args[0])) {
+		path = GET_ARG(0, GetString);
+		callable = argCount > 1 ? args[1] : NULL_VAL;
+	}
+
+	ScriptScreenshotOpData* data = (ScriptScreenshotOpData*)Memory::Malloc(sizeof(ScriptScreenshotOpData));
+	if (!data) {
+		return NULL_VAL;
+	}
+
+	data->ThreadID = threadID;
+	data->Callable = callable;
+
+	Operation operation;
+	operation.Callback = ScriptTakeScreenshotCallback;
+	operation.Data = data;
+
+	Application::TakeScreenshot(path, operation);
+
+	return NULL_VAL;
 }
 /***
  * Application.Error
@@ -19174,6 +19241,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, TakeScreenshot);
 	DEF_NATIVE(Application, Error);
 	DEF_NATIVE(Application, SetDefaultFont);
 	DEF_NATIVE(Application, ChangeGame);

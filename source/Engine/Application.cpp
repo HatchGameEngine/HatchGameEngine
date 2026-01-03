@@ -25,6 +25,8 @@
 #include <Engine/Media/MediaPlayer.h>
 #include <Engine/Media/MediaSource.h>
 
+#include <queue>
+
 #ifdef IOS
 extern "C" {
 #include <Engine/Platforms/iOS/MediaPlayer.h>
@@ -121,6 +123,9 @@ int Application::MasterVolume = 100;
 int Application::MusicVolume = 100;
 int Application::SoundVolume = 100;
 
+std::queue<ScreenshotOperation> QueuedScreenshots;
+bool HitScreenshotKey = false;
+
 bool Application::DisableDefaultActions = false;
 bool Application::DevMenuActivated = false;
 DeveloperMenu Application::DevMenu;
@@ -139,8 +144,6 @@ std::vector<std::string>* NextGameCmdLineArgs;
 char LogFilename[MAX_PATH_LENGTH];
 
 bool UseMemoryFileCache = false;
-
-bool TakeScreenshot = false;
 
 bool DevMode = false;
 bool ViewPerformance = false;
@@ -627,6 +630,12 @@ const char* Application::GetPreferencesDir() {
 	}
 
 	return PreferencesDir;
+}
+
+std::string Application::GetScreenshotPath() {
+	std::string filename = Screenshot::GetFilename();
+
+	return PATHLOCATION_SCREENSHOTS_URL + filename;
 }
 
 void Application::LoadDefaultFont() {
@@ -1345,7 +1354,10 @@ void Application::PollEvents() {
 			}
 			// Screenshot
 			else if (key == KeyBindsSDL[(int)KeyBind::Screenshot]) {
-				TakeScreenshot = true;
+				if (!HitScreenshotKey) {
+					Application::TakeScreenshot();
+					HitScreenshotKey = true;
+				}
 			}
 			// Toggle FPS counter
 			else if (key == KeyBindsSDL[(int)KeyBind::ToggleFPSCounter]) {
@@ -1608,10 +1620,12 @@ DO_NOTHING:
 	DrawPerformance();
 	Metrics.FPSCounter.End();
 
-	if (TakeScreenshot) {
+	// Take screenshots
+	while (!QueuedScreenshots.empty()) {
 		Application::DoTakeScreenshot();
-		TakeScreenshot = false;
+		QueuedScreenshots.pop();
 	}
+	HitScreenshotKey = false;
 
 	Metrics.Present.Begin();
 	Graphics::Present();
@@ -1619,15 +1633,55 @@ DO_NOTHING:
 
 	Metrics.Frame.End();
 }
-void Application::DoTakeScreenshot() {
-	std::string filename = Screenshot::GetFilename();
-	std::string path = PATHLOCATION_SCREENSHOTS_URL + filename;
+void Application::TakeScreenshotCallback(OperationResult result) {
+	const char* filename = StringUtils::GetFilename((const char*)result.Output);
 
-	if (Application::SaveScreenshotFile(path.c_str())) {
-		Log::Print(Log::LOG_VERBOSE, "Saved screenshot \"%s\"", filename.c_str());
+	if (result.Success) {
+		Log::Print(Log::LOG_VERBOSE, "Saved screenshot \"%s\"", filename);
 	}
 	else {
-		Log::Print(Log::LOG_ERROR, "Could not save screenshot \"%s\"!", filename.c_str());
+		Log::Print(Log::LOG_ERROR, "Could not save screenshot \"%s\"!", filename);
+	}
+}
+void Application::TakeScreenshot(const char* path, Operation operation) {
+	ScreenshotOperation op;
+
+	if (path) {
+		op.Path = std::string(path);
+	}
+	else {
+		op.Path = Application::GetScreenshotPath();
+	}
+
+	op.OnFinish = operation;
+
+	QueuedScreenshots.push(op);
+}
+void Application::TakeScreenshot() {
+	Operation operation;
+	operation.Callback = Application::TakeScreenshotCallback;
+	operation.Data = nullptr;
+
+	TakeScreenshot(nullptr, operation);
+}
+void Application::DoTakeScreenshot() {
+	ScreenshotOperation& operation = QueuedScreenshots.front();
+
+	const char* path = operation.Path.c_str();
+
+	bool success = false;
+
+	if (Application::SaveScreenshotFile(path)) {
+		success = true;
+	}
+
+	if (operation.OnFinish.Callback) {
+		OperationResult result;
+		result.Success = success;
+		result.Input = operation.OnFinish.Data;
+		result.Output = (void*)path;
+
+		operation.OnFinish.Callback(result);
 	}
 }
 bool Application::SaveScreenshotFile(const char* path) {

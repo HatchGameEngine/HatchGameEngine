@@ -1,12 +1,18 @@
 #ifndef ENGINE_UTILITIES_SCREENSHOT_H
 #define ENGINE_UTILITIES_SCREENSHOT_H
 
+#include <Engine/Includes/Operation.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
 
 struct ScreenshotMetadata {
 	std::string Key;
 	std::string Value;
+};
+
+struct ScreenshotOperation {
+	std::string Path;
+	Operation OnFinish;
 };
 
 class Screenshot {

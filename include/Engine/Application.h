@@ -4,6 +4,7 @@
 #include <Engine/Audio/AudioManager.h>
 #include <Engine/Diagnostics/PerformanceTypes.h>
 #include <Engine/Filesystem/Path.h>
+#include <Engine/Includes/Operation.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/Version.h>
 #include <Engine/InputManager.h>
@@ -70,6 +71,7 @@ private:
 	static void MainLoop();
 	static void MainLoopCallback(void* p);
 	static void DoTakeScreenshot();
+	static void TakeScreenshotCallback(OperationResult result);
 	static bool SaveScreenshotFile(const char* path);
 	static void DrawPerformance();
 	static void DelayFrame();
@@ -162,6 +164,9 @@ public:
 	static const char* GetSavesDir();
 	static const char* GetScreenshotsDir();
 	static const char* GetPreferencesDir();
+	static std::string GetScreenshotPath();
+	static void TakeScreenshot(const char* path, Operation operation);
+	static void TakeScreenshot();
 	static void LoadDefaultFont();
 	static double GetOverdelay();
 	static void SetWindowTitle(const char* title);

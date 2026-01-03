@@ -2861,6 +2861,31 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 	}
 	return false;
 }
+bool VMThread::GetArity(VMValue callee, int& minArity, int& maxArity) {
+	if (ScriptManager::Lock() && IS_OBJECT(callee)) {
+		switch (OBJECT_TYPE(callee)) {
+		case OBJ_BOUND_METHOD: {
+			ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
+			minArity = bound->Method->MinArity;
+			maxArity = bound->Method->Arity;
+			ScriptManager::Unlock();
+			return true;
+		}
+		case OBJ_FUNCTION: {
+			ObjFunction* function = AS_FUNCTION(callee);
+			minArity = function->MinArity;
+			maxArity = function->Arity;
+			ScriptManager::Unlock();
+			return true;
+		}
+		case OBJ_NATIVE_FUNCTION: // No way to know. (Yet)
+		default:
+			break;
+		}
+	}
+	ScriptManager::Unlock();
+	return false;
+}
 bool VMThread::InstantiateClass(VMValue callee, int argCount) {
 	if (!ScriptManager::Lock()) {
 		return false;
