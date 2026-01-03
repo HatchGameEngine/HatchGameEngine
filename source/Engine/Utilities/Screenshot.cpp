@@ -77,7 +77,7 @@ bool Screenshot::Exists(std::string path) {
 }
 
 void Screenshot::QueueOperation(ScreenshotOperation operation) {
-	Queue.insert(Queue.begin(), operation);
+	Queue.push_back(operation);
 }
 bool Screenshot::IsQueueEmpty() {
 	return Queue.empty();
