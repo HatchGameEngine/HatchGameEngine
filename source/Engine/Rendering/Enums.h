@@ -4,10 +4,10 @@
 #include <Engine/Includes/Standard.h>
 
 enum {
+	AspectMode_None,
 	AspectMode_Stretch,
 	AspectMode_Fit,
-	AspectMode_Fill,
-	AspectMode_Custom
+	AspectMode_Fill
 };
 
 enum {

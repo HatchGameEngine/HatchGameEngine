@@ -18260,10 +18260,29 @@ VMValue View_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
- * View.SetOutputX
- * \desc Sets the x-axis output position of the specified view.
+ * View.SetAspectMode
+ * \desc Sets the <linkto ref="ASPECTMODE_*">aspect mode</linkto> of the specified view.
  * \param viewIndex (Integer): Index of the view.
- * \param x (Number): Desired X position
+ * \param aspectMode (Enum): Desired <linkto ref="ASPECTMODE_">aspect mode</linkto>.
+ * \ns View
+ */
+VMValue View_SetAspectMode(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	int aspectMode = GET_ARG(1, GetInteger);
+	CHECK_VIEW_INDEX();
+	if (aspectMode < AspectMode_None || aspectMode > AspectMode_Fill) {
+		OUT_OF_RANGE_ERROR("Aspect mode", aspectMode, AspectMode_None, AspectMode_Fill);
+		return NULL_VAL;
+	}
+	Scene::Views[view_index].AspectMode = aspectMode;
+	return NULL_VAL;
+}
+/***
+ * View.SetOutputX
+ * \desc Sets the x-axis output position of the specified view. This only takes effect if the view has the <linkto ref="ASPECTMODE_NONE"></linkto> aspect mode.
+ * \param viewIndex (Integer): Index of the view.
+ * \param x (Number): Desired X position.
  * \ns View
  */
 VMValue View_SetOutputX(int argCount, VMValue* args, Uint32 threadID) {
@@ -18276,9 +18295,9 @@ VMValue View_SetOutputX(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.SetOutputY
- * \desc Sets the y-axis output position of the specified view.
+ * \desc Sets the y-axis output position of the specified view. This only takes effect if the view has the <linkto ref="ASPECTMODE_NONE"></linkto> aspect mode.
  * \param viewIndex (Integer): Index of the view.
- * \param y (Number): Desired Y position
+ * \param y (Number): Desired Y position.
  * \ns View
  */
 VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
@@ -18291,10 +18310,10 @@ VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.SetOutputPosition
- * \desc Sets the output position of the specified view.
+ * \desc Sets the output position of the specified view. This only takes effect if the view has the <linkto ref="ASPECTMODE_NONE"></linkto> aspect mode.
  * \param viewIndex (Integer): Index of the view.
- * \param x (Number): Desired X position
- * \param y (Number): Desired Y position
+ * \param x (Number): Desired X position.
+ * \param y (Number): Desired Y position.
  * \ns View
  */
 VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
@@ -18307,7 +18326,7 @@ VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.SetOutputSize
- * \desc Sets the output size of the specified view.
+ * \desc Sets the output size of the specified view. This only takes effect if the view has the <linkto ref="ASPECTMODE_NONE"></linkto> aspect mode.
  * \param viewIndex (Integer): Index of the view.
  * \param width (Number): Desired width.
  * \param height (Number): Desired height.
@@ -18413,6 +18432,19 @@ VMValue View_GetCenterY(int argCount, VMValue* args, Uint32 threadID) {
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
 	return DECIMAL_VAL(((float)Scene::Views[view_index].Height) / 2.0f);
+}
+/***
+ * View.GetAspectMode
+ * \desc Gets the <linkto ref="ASPECTMODE_*">aspect mode</linkto> of the specified view.
+ * \param viewIndex (Integer): Index of the view.
+ * \return Returns the <linkto ref="ASPECTMODE_">aspect mode</linkto> of the view.
+ * \ns View
+ */
+VMValue View_GetAspectMode(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return INTEGER_VAL(Scene::Views[view_index].AspectMode);
 }
 /***
  * View.IsUsingDrawTarget
@@ -21156,6 +21188,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, SetScale);
 	DEF_NATIVE(View, SetAngle);
 	DEF_NATIVE(View, SetSize);
+	DEF_NATIVE(View, SetAspectMode);
 	DEF_NATIVE(View, SetOutputX);
 	DEF_NATIVE(View, SetOutputY);
 	DEF_NATIVE(View, SetOutputPosition);
@@ -21167,6 +21200,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, GetHeight);
 	DEF_NATIVE(View, GetCenterX);
 	DEF_NATIVE(View, GetCenterY);
+	DEF_NATIVE(View, GetAspectMode);
 	DEF_NATIVE(View, IsUsingDrawTarget);
 	DEF_NATIVE(View, SetUseDrawTarget);
 	DEF_NATIVE(View, GetDrawTarget);
@@ -21377,6 +21411,29 @@ void StandardLibrary::Link() {
     * \desc Bottom side, slot 3 of a hitbox array.
     */
 	DEF_ENUM(HITBOX_BOTTOM);
+	// #endregion
+
+	// #region Aspect Modes
+	/***
+    * \enum ASPECTMODE_NONE
+    * \desc Content isn't resized.
+    */
+	DEF_CONST_INT("ASPECTMODE_NONE", AspectMode_None);
+	/***
+    * \enum ASPECTMODE_STRETCH
+    * \desc Stretches the content without preserving the aspect ratio.
+    */
+	DEF_CONST_INT("ASPECTMODE_STRETCH", AspectMode_Stretch);
+	/***
+    * \enum ASPECTMODE_FIT
+    * \desc Resizes the content to fit within its container, preserving the aspect ratio.
+    */
+	DEF_CONST_INT("ASPECTMODE_FIT", AspectMode_Fit);
+	/***
+    * \enum ASPECTMODE_FILL
+    * \desc Resizes the content to fill container, preserving the aspect ratio, but potentially cropping it.
+    */
+	DEF_CONST_INT("ASPECTMODE_FILL", AspectMode_Fill);
 	// #endregion
 
 	/***

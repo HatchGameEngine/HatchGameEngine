@@ -108,6 +108,7 @@
         <ul>
             <li><a href="#Reference_ACTIVE_*">ACTIVE_*</a></li>
             <li><a href="#Reference_ALIGN_*">ALIGN_*</a></li>
+            <li><a href="#Reference_ASPECTMODE_*">ASPECTMODE_*</a></li>
             <li><a href="#Reference_AUDIO_*">AUDIO_*</a></li>
             <li><a href="#Reference_Axis_*">Axis_*</a></li>
             <li><a href="#Reference_BlendFactor_*">BlendFactor_*</a></li>
@@ -1351,6 +1352,7 @@
                     <li><a href="#Reference_functions_View_SetScale">View.SetScale</a></li>
                     <li><a href="#Reference_functions_View_SetAngle">View.SetAngle</a></li>
                     <li><a href="#Reference_functions_View_SetSize">View.SetSize</a></li>
+                    <li><a href="#Reference_functions_View_SetAspectMode">View.SetAspectMode</a></li>
                     <li><a href="#Reference_functions_View_SetOutputX">View.SetOutputX</a></li>
                     <li><a href="#Reference_functions_View_SetOutputY">View.SetOutputY</a></li>
                     <li><a href="#Reference_functions_View_SetOutputPosition">View.SetOutputPosition</a></li>
@@ -1362,6 +1364,7 @@
                     <li><a href="#Reference_functions_View_GetHeight">View.GetHeight</a></li>
                     <li><a href="#Reference_functions_View_GetCenterX">View.GetCenterX</a></li>
                     <li><a href="#Reference_functions_View_GetCenterY">View.GetCenterY</a></li>
+                    <li><a href="#Reference_functions_View_GetAspectMode">View.GetAspectMode</a></li>
                     <li><a href="#Reference_functions_View_IsUsingDrawTarget">View.IsUsingDrawTarget</a></li>
                     <li><a href="#Reference_functions_View_SetUseDrawTarget">View.SetUseDrawTarget</a></li>
                     <li><a href="#Reference_functions_View_GetDrawTarget">View.GetDrawTarget</a></li>
@@ -1518,6 +1521,15 @@
                     <li><a href="#Reference_enums_ALIGN_LEFT">ALIGN_LEFT</a></li>
                     <li><a href="#Reference_enums_ALIGN_CENTER">ALIGN_CENTER</a></li>
                     <li><a href="#Reference_enums_ALIGN_RIGHT">ALIGN_RIGHT</a></li>
+                </ul>
+            </p>
+            <p id="Reference_ASPECTMODE_*">
+                <h2><code>ASPECTMODE_*</code></h2>
+                <ul>
+                    <li><a href="#Reference_enums_ASPECTMODE_NONE">ASPECTMODE_NONE</a></li>
+                    <li><a href="#Reference_enums_ASPECTMODE_STRETCH">ASPECTMODE_STRETCH</a></li>
+                    <li><a href="#Reference_enums_ASPECTMODE_FIT">ASPECTMODE_FIT</a></li>
+                    <li><a href="#Reference_enums_ASPECTMODE_FILL">ASPECTMODE_FILL</a></li>
                 </ul>
             </p>
             <p id="Reference_AUDIO_*">
@@ -10185,41 +10197,51 @@
         <li>height (Number): Desired height.</li>
         </ul>
         </p>
-        <p id="Reference_functions_View_SetOutputX">
-        <h2 style="margin-bottom: 8px;">View.SetOutputX</h2>
-        <code>View.SetOutputX(viewIndex, x)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the x-axis output position of the specified view.</div>
+        <p id="Reference_functions_View_SetAspectMode">
+        <h2 style="margin-bottom: 8px;">View.SetAspectMode</h2>
+        <code>View.SetAspectMode(viewIndex, aspectMode)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the <a href="#Reference_ASPECTMODE_*">aspect mode</a> of the specified view.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
-        <li>x (Number): Desired X position</li>
+        <li>aspectMode (Enum): Desired aspect mode.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_View_SetOutputX">
+        <h2 style="margin-bottom: 8px;">View.SetOutputX</h2>
+        <code>View.SetOutputX(viewIndex, x)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the x-axis output position of the specified view. This only takes effect if the view has the <code><a href="#Reference_enums_ASPECTMODE_NONE">ASPECTMODE_NONE</a></code> aspect mode.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>x (Number): Desired X position.</li>
         </ul>
         </p>
         <p id="Reference_functions_View_SetOutputY">
         <h2 style="margin-bottom: 8px;">View.SetOutputY</h2>
         <code>View.SetOutputY(viewIndex, y)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the y-axis output position of the specified view.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the y-axis output position of the specified view. This only takes effect if the view has the <code><a href="#Reference_enums_ASPECTMODE_NONE">ASPECTMODE_NONE</a></code> aspect mode.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
-        <li>y (Number): Desired Y position</li>
+        <li>y (Number): Desired Y position.</li>
         </ul>
         </p>
         <p id="Reference_functions_View_SetOutputPosition">
         <h2 style="margin-bottom: 8px;">View.SetOutputPosition</h2>
         <code>View.SetOutputPosition(viewIndex, x, y)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the output position of the specified view.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the output position of the specified view. This only takes effect if the view has the <code><a href="#Reference_enums_ASPECTMODE_NONE">ASPECTMODE_NONE</a></code> aspect mode.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
-        <li>x (Number): Desired X position</li>
-        <li>y (Number): Desired Y position</li>
+        <li>x (Number): Desired X position.</li>
+        <li>y (Number): Desired Y position.</li>
         </ul>
         </p>
         <p id="Reference_functions_View_SetOutputSize">
         <h2 style="margin-bottom: 8px;">View.SetOutputSize</h2>
         <code>View.SetOutputSize(viewIndex, width, height)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the output size of the specified view.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the output size of the specified view. This only takes effect if the view has the <code><a href="#Reference_enums_ASPECTMODE_NONE">ASPECTMODE_NONE</a></code> aspect mode.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
@@ -10303,6 +10325,17 @@
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
+        </p>
+        <p id="Reference_functions_View_GetAspectMode">
+        <h2 style="margin-bottom: 8px;">View.GetAspectMode</h2>
+        <code>View.GetAspectMode(viewIndex)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the <a href="#Reference_ASPECTMODE_*">aspect mode</a> of the specified view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the aspect mode of the view.</div>
         </p>
         <p id="Reference_functions_View_IsUsingDrawTarget">
         <h2 style="margin-bottom: 8px;">View.IsUsingDrawTarget</h2>
@@ -10622,7 +10655,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>771 out of 826 functions have descriptions. </p>
+        <p>775 out of 830 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -11731,6 +11764,22 @@
         <p id="Reference_enums_ALIGN_RIGHT">
         <h3 style="margin-bottom: 8px;"><code>ALIGN_RIGHT</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Right alignment for text drawing.</div>
+        </p>
+        <p id="Reference_enums_ASPECTMODE_NONE">
+        <h3 style="margin-bottom: 8px;"><code>ASPECTMODE_NONE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Content isn't resized.</div>
+        </p>
+        <p id="Reference_enums_ASPECTMODE_STRETCH">
+        <h3 style="margin-bottom: 8px;"><code>ASPECTMODE_STRETCH</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Stretches the content without preserving the aspect ratio.</div>
+        </p>
+        <p id="Reference_enums_ASPECTMODE_FIT">
+        <h3 style="margin-bottom: 8px;"><code>ASPECTMODE_FIT</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Resizes the content to fit within its container, preserving the aspect ratio.</div>
+        </p>
+        <p id="Reference_enums_ASPECTMODE_FILL">
+        <h3 style="margin-bottom: 8px;"><code>ASPECTMODE_FILL</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Resizes the content to fill container, preserving the aspect ratio, but potentially cropping it.</div>
         </p>
         <p id="Reference_enums_AUDIO_LOOP_NONE">
         <h3 style="margin-bottom: 8px;"><code>AUDIO_LOOP_NONE</code></h2>
@@ -13028,7 +13077,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>336 out of 336 enums have descriptions. </p>
+        <p>340 out of 340 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">
