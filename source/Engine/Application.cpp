@@ -25,8 +25,6 @@
 #include <Engine/Media/MediaPlayer.h>
 #include <Engine/Media/MediaSource.h>
 
-#include <queue>
-
 #ifdef IOS
 extern "C" {
 #include <Engine/Platforms/iOS/MediaPlayer.h>
@@ -123,7 +121,6 @@ int Application::MasterVolume = 100;
 int Application::MusicVolume = 100;
 int Application::SoundVolume = 100;
 
-std::queue<ScreenshotOperation> QueuedScreenshots;
 bool HitScreenshotKey = false;
 
 bool Application::DisableDefaultActions = false;
@@ -1621,10 +1618,10 @@ DO_NOTHING:
 	Metrics.FPSCounter.End();
 
 	// Take screenshots
-	while (!QueuedScreenshots.empty()) {
-		Application::DoTakeScreenshot();
-		QueuedScreenshots.pop();
+	if (!Screenshot::IsQueueEmpty()) {
+		Screenshot::TakeQueued();
 	}
+
 	HitScreenshotKey = false;
 
 	Metrics.Present.Begin();
@@ -1633,6 +1630,29 @@ DO_NOTHING:
 
 	Metrics.Frame.End();
 }
+
+void Application::TakeScreenshot(const char* path, Operation operation) {
+	ScreenshotOperation op;
+
+	if (path) {
+		op.Path = std::string(path);
+	}
+	else {
+		op.Path = Application::GetScreenshotPath() + ".png";
+	}
+
+	op.OnFinish = operation;
+
+	Screenshot::QueueOperation(op);
+}
+void Application::TakeScreenshot() {
+	Operation operation;
+	operation.Callback = Application::TakeScreenshotCallback;
+	operation.Data = nullptr;
+
+	TakeScreenshot(nullptr, operation);
+}
+
 void Application::TakeScreenshotCallback(OperationResult result) {
 	const char* filename = StringUtils::GetFilename((const char*)result.Output);
 
@@ -1643,56 +1663,7 @@ void Application::TakeScreenshotCallback(OperationResult result) {
 		Log::Print(Log::LOG_ERROR, "Could not save screenshot \"%s\"!", filename);
 	}
 }
-void Application::TakeScreenshot(const char* path, Operation operation) {
-	ScreenshotOperation op;
 
-	if (path) {
-		op.Path = std::string(path);
-	}
-	else {
-		op.Path = Application::GetScreenshotPath();
-	}
-
-	op.OnFinish = operation;
-
-	QueuedScreenshots.push(op);
-}
-void Application::TakeScreenshot() {
-	Operation operation;
-	operation.Callback = Application::TakeScreenshotCallback;
-	operation.Data = nullptr;
-
-	TakeScreenshot(nullptr, operation);
-}
-void Application::DoTakeScreenshot() {
-	ScreenshotOperation& operation = QueuedScreenshots.front();
-
-	const char* path = operation.Path.c_str();
-
-	bool success = false;
-
-	if (Application::SaveScreenshotFile(path)) {
-		success = true;
-	}
-
-	if (operation.OnFinish.Callback) {
-		OperationResult result;
-		result.Success = success;
-		result.Input = operation.OnFinish.Data;
-		result.Output = (void*)path;
-
-		operation.OnFinish.Callback(result);
-	}
-}
-bool Application::SaveScreenshotFile(const char* path) {
-	if (!Graphics::UpdateFramebufferTexture()) {
-		return false;
-	}
-
-	std::vector<PNGMetadata> metadata = Screenshot::GetPNGMetadata();
-
-	return PNG::Save(Graphics::FramebufferTexture, path, &metadata);
-}
 void Application::DrawPerformance() {
 	if (DefaultFont == nullptr) {
 		return;

@@ -70,9 +70,7 @@ private:
 	static void RunFrame(int runFrames);
 	static void MainLoop();
 	static void MainLoopCallback(void* p);
-	static void DoTakeScreenshot();
 	static void TakeScreenshotCallback(OperationResult result);
-	static bool SaveScreenshotFile(const char* path);
 	static void DrawPerformance();
 	static void DelayFrame();
 	static void SetUseFixedTimestep(bool useFixedTimestep);

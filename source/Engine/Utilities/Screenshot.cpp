@@ -1,8 +1,10 @@
 #include <Engine/Application.h>
-#include <Engine/ResourceTypes/Image.h>
+#include <Engine/Filesystem/File.h>
 #include <Engine/Utilities/Screenshot.h>
 
-std::string Screenshot::GetFilename(int imageFormat) {
+std::vector<ScreenshotOperation> Queue;
+
+std::string Screenshot::GetFilename() {
 	const char* identifier = Application::GetGameIdentifier();
 	if (identifier == nullptr) {
 		identifier = "hatch";
@@ -14,35 +16,16 @@ std::string Screenshot::GetFilename(int imageFormat) {
 	char timeString[256];
 	strftime(timeString, sizeof(timeString), "%Y-%m-%d-%H-%M-%S", localtime(&timeInfo));
 
-	const char* extension;
-	switch (imageFormat) {
-	case IMAGE_FORMAT_PNG:
-		extension = ".png";
-		break;
-	case IMAGE_FORMAT_GIF:
-		extension = ".gif";
-		break;
-	case IMAGE_FORMAT_JPEG:
-		extension = ".jpg";
-		break;
-	default:
-		extension = "";
-		break;
-	}
-
 	char filenameBuffer[MAX_FILENAME_LENGTH];
 	snprintf(filenameBuffer,
-		MAX_FILENAME_LENGTH - strlen(extension),
+		MAX_FILENAME_LENGTH,
 		"%s-%s",
 		identifier,
 		timeString);
 
-	std::string filename = std::string(filenameBuffer) + extension;
+	std::string filename = std::string(filenameBuffer);
 
 	return filename;
-}
-std::string Screenshot::GetFilename() {
-	return GetFilename(IMAGE_FORMAT_PNG);
 }
 
 std::vector<ScreenshotMetadata> Screenshot::GetMetadata() {
@@ -55,7 +38,6 @@ std::vector<ScreenshotMetadata> Screenshot::GetMetadata() {
 
 	return metadata;
 }
-
 std::vector<PNGMetadata> Screenshot::GetPNGMetadata() {
 	std::vector<ScreenshotMetadata> metadata = GetMetadata();
 	std::vector<PNGMetadata> pngMetadata;
@@ -73,7 +55,6 @@ std::vector<PNGMetadata> Screenshot::GetPNGMetadata() {
 
 	return pngMetadata;
 }
-
 std::string Screenshot::GetTimeString() {
 	time_t timeInfo;
 	time(&timeInfo);
@@ -81,4 +62,43 @@ std::string Screenshot::GetTimeString() {
 	char buffer[256];
 	strftime(buffer, sizeof(buffer), "%d %b %Y %H:%M:%S %z", localtime(&timeInfo));
 	return std::string(buffer);
+}
+
+void Screenshot::QueueOperation(ScreenshotOperation operation) {
+	Queue.insert(Queue.begin(), operation);
+}
+bool Screenshot::IsQueueEmpty() {
+	return Queue.empty();
+}
+void Screenshot::TakeQueued() {
+	while (!IsQueueEmpty()) {
+		Screenshot::RunOperation(Queue.front());
+		Queue.erase(Queue.begin());
+	}
+}
+
+bool Screenshot::RunOperation(ScreenshotOperation& operation) {
+	const char* path = operation.Path.c_str();
+
+	bool success = SaveFile(path);
+
+	if (operation.OnFinish.Callback) {
+		OperationResult result;
+		result.Success = success;
+		result.Input = operation.OnFinish.Data;
+		result.Output = (void*)path;
+
+		operation.OnFinish.Callback(result);
+	}
+
+	return success;
+}
+bool Screenshot::SaveFile(const char* path) {
+	if (!Graphics::UpdateFramebufferTexture()) {
+		return false;
+	}
+
+	std::vector<PNGMetadata> metadata = GetPNGMetadata();
+
+	return PNG::Save(Graphics::FramebufferTexture, path, &metadata);
 }

@@ -17,11 +17,15 @@ struct ScreenshotOperation {
 
 class Screenshot {
 public:
-	static std::string GetFilename(int imageFormat);
 	static std::string GetFilename();
 	static std::vector<ScreenshotMetadata> GetMetadata();
 	static std::vector<PNGMetadata> GetPNGMetadata();
 	static std::string GetTimeString();
+	static void TakeQueued();
+	static void QueueOperation(ScreenshotOperation operation);
+	static bool IsQueueEmpty();
+	static bool RunOperation(ScreenshotOperation& operation);
+	static bool SaveFile(const char* path);
 };
 
 #endif /* ENGINE_UTILITIES_SCREENSHOT_H */
