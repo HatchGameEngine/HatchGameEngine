@@ -59,6 +59,13 @@ enum {
 #define TEXTUREFORMAT_IS_YUV(fmt) ((fmt) >= TextureFormat_YV12 && (fmt) <= TextureFormat_NV21)
 
 enum {
+	AspectMode_Stretch,
+	AspectMode_Fit,
+	AspectMode_Fill,
+	AspectMode_Custom
+};
+
+enum {
 	TextureFilter_NEAREST,
 	TextureFilter_LINEAR,
 	TextureFilter_NEAREST_MIPMAP_NEAREST,
