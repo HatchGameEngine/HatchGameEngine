@@ -20292,10 +20292,6 @@ VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Window_SetResizeable(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	if (Application::GetWindowFullscreen()) {
-		THROW_ERROR("Cannot change the resizeable state of a fullscreen window.");
-		return NULL_VAL;
-	}
 	Application::SetWindowResizable(GET_ARG(0, GetInteger));
 	return NULL_VAL;
 }

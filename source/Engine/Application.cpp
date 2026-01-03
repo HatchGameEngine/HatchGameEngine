@@ -503,29 +503,12 @@ void Application::CreateWindow() {
 		Application::WindowHeight * Application::WindowScale,
 		window_flags);
 
-	if (Application::Platform == Platforms::iOS) {
-		SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
-	}
-	else if (Application::Platform == Platforms::Switch) {
-		SDL_SetWindowFullscreen(Application::Window, SDL_WINDOW_FULLSCREEN);
-		AudioManager::MasterVolume = 0.25;
-
-#ifdef SWITCH
-		SDL_DisplayMode mode;
-		SDL_GetDisplayMode(0, 1 - appletGetOperationMode(), &mode);
-		Log::Print(Log::LOG_INFO, "Display Mode: %i x %i", mode.w, mode.h);
-#endif
-	}
-	else {
-		Application::Settings->GetBool(
-			"display", "fullscreen", &Application::WindowFullscreen);
-
-		if (Application::GetWindowFullscreen() != Application::WindowFullscreen) {
-			Application::SetWindowFullscreen(Application::WindowFullscreen);
-		}
-	}
-
+	Application::Settings->GetBool("display", "fullscreen", &Application::WindowFullscreen);
 	Application::Settings->GetBool("display", "borderless", &Application::WindowBorderless);
+
+	if (Application::GetWindowFullscreen() != Application::WindowFullscreen) {
+		Application::SetWindowFullscreen(Application::WindowFullscreen);
+	}
 	Application::SetWindowBorderless(Application::WindowBorderless);
 
 	Application::SetWindowTitle(Application::GameTitleShort);
@@ -1511,6 +1494,10 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 		SDL_WarpMouseInWindow(Application::Window, window_w / 2, window_h / 2);
 	}
 
+	if (!isFullscreen) {
+		SDL_SetWindowResizable(Application::Window, (SDL_bool)Application::WindowResizable);
+	}
+
 	if (Application::DevMenuActivated) {
 		DevMenu.Fullscreen = isFullscreen;
 		DevMenu.CurrentWindowWidth = window_w;
@@ -1522,7 +1509,9 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 void Application::SetWindowResizable(bool isResizable) {
 	Application::WindowResizable = isResizable;
 
-	SDL_SetWindowResizable(Application::Window, (SDL_bool)isResizable);
+	if (!Application::GetWindowFullscreen()) {
+		SDL_SetWindowResizable(Application::Window, (SDL_bool)isResizable);
+	}
 }
 void Application::SetWindowBorderless(bool isBorderless) {
 	Application::WindowBorderless = isBorderless;
