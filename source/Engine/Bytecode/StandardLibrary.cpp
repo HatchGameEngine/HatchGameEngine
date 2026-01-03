@@ -1623,7 +1623,7 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
  * Application.TakeScreenshot
  * \desc Saves a screenshot to <code>path</code>. This operation only completes at the end of the frame, so you may optionally provide a callback.
  * \paramOpt path (String): The path to save the screenshot to. If not passed, the screenshot is saved to the default screenshot path.
- * \paramOpt callback (Function): The function to call when the screenshot operation finishes. When called, it receives two arguments: <code>true</code> or <code>false</code> if the screenshot was saved, and the filename of the screenshot.
+ * \paramOpt callback (Function): The function to call when the screenshot operation finishes. When called, it receives two arguments: a Boolean signifying if the screenshot was saved, and the path the screenshot was saved to. The function may have less than two parameters, but no more than two.
  * \ns Application
  */
 struct ScriptScreenshotOpData {

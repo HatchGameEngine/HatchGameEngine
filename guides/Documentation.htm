@@ -258,6 +258,7 @@
                     <li><a href="#Reference_functions_Application_SetGameDescription">Application.SetGameDescription</a></li>
                     <li><a href="#Reference_functions_Application_SetCursorVisible">Application.SetCursorVisible</a></li>
                     <li><a href="#Reference_functions_Application_GetCursorVisible">Application.GetCursorVisible</a></li>
+                    <li><a href="#Reference_functions_Application_TakeScreenshot">Application.TakeScreenshot</a></li>
                     <li><a href="#Reference_functions_Application_Error">Application.Error</a></li>
                     <li><a href="#Reference_functions_Application_SetDefaultFont">Application.SetDefaultFont</a></li>
                     <li><a href="#Reference_functions_Application_ChangeGame">Application.ChangeGame</a></li>
@@ -1748,6 +1749,7 @@
                 <h2><code>KeyBind_*</code></h2>
                 <ul>
                     <li><a href="#Reference_enums_KeyBind_Fullscreen">KeyBind_Fullscreen</a></li>
+                    <li><a href="#Reference_enums_KeyBind_Screenshot">KeyBind_Screenshot</a></li>
                     <li><a href="#Reference_enums_KeyBind_ToggleFPSCounter">KeyBind_ToggleFPSCounter</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevRestartApp">KeyBind_DevRestartApp</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevRestartScene">KeyBind_DevRestartScene</a></li>
@@ -2552,6 +2554,16 @@
         <div style="margin-top: 8px; font-size: 14px;">Gets the visibility of the cursor.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether ot not the cursor is visible.</div>
+        </p>
+        <p id="Reference_functions_Application_TakeScreenshot">
+        <h2 style="margin-bottom: 8px;">Application.TakeScreenshot</h2>
+        <code>Application.TakeScreenshot([path, callback])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Saves a screenshot to <code>path</code>. This operation only completes at the end of the frame, so you may optionally provide a callback.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>path (String): The path to save the screenshot to. If not passed, the screenshot is saved to the default screenshot path.</li>
+        <li>callback (Function): The function to call when the screenshot operation finishes. When called, it receives two arguments: a Boolean signifying if the screenshot was saved, and the path the screenshot was saved to. The function may have less than two parameters, but no more than two.</li>
+        </ul>
         </p>
         <p id="Reference_functions_Application_Error">
         <h2 style="margin-bottom: 8px;">Application.Error</h2>
@@ -10622,7 +10634,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>771 out of 826 functions have descriptions. </p>
+        <p>774 out of 829 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -12232,6 +12244,10 @@
         <h3 style="margin-bottom: 8px;"><code>KeyBind_Fullscreen</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Fullscreen keybind.</div>
         </p>
+        <p id="Reference_enums_KeyBind_Screenshot">
+        <h3 style="margin-bottom: 8px;"><code>KeyBind_Screenshot</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Screenshot keybind.</div>
+        </p>
         <p id="Reference_enums_KeyBind_ToggleFPSCounter">
         <h3 style="margin-bottom: 8px;"><code>KeyBind_ToggleFPSCounter</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">FPS counter toggle keybind.</div>
@@ -13028,7 +13044,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>336 out of 336 enums have descriptions. </p>
+        <p>337 out of 337 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">
