@@ -24,12 +24,14 @@
 #define DEFAULT_SETTINGS_FILENAME "config://config.ini"
 
 #define DEFAULT_SAVES_DIR "saves"
+#define DEFAULT_SCREENSHOTS_DIR "screenshots"
 
 class Application {
 private:
 	static char GameIdentifier[256];
 	static char DeveloperIdentifier[256];
 	static char SavesDir[256];
+	static char ScreenshotsDir[256];
 	static char PreferencesDir[256];
 
 	static std::unordered_map<std::string, Capability> CapabilityMap;
@@ -67,7 +69,8 @@ private:
 	static void RunFrame(int runFrames);
 	static void MainLoop();
 	static void MainLoopCallback(void* p);
-	static bool SaveScreenshot();
+	static void DoTakeScreenshot();
+	static bool SaveScreenshotFile(const char* path);
 	static void DrawPerformance();
 	static void DelayFrame();
 	static void SetUseFixedTimestep(bool useFixedTimestep);
@@ -157,6 +160,7 @@ public:
 	static const char* GetDeveloperIdentifier();
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();
+	static const char* GetScreenshotsDir();
 	static const char* GetPreferencesDir();
 	static void LoadDefaultFont();
 	static double GetOverdelay();

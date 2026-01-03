@@ -423,13 +423,7 @@ bool PNG::Save(PNG* png, const char* filename) {
 }
 
 bool PNG::Save(const char* filename) {
-	Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
-	if (!stream) {
-		return false;
-	}
-
-	stream->Close();
-	return true;
+	return false;
 }
 
 #if defined(CAN_SAVE_PNG) && defined(USING_LIBPNG) && defined(PNG_TEXT_SUPPORTED)
@@ -463,7 +457,7 @@ AddTextLibpng(png_structp png_ptr, png_infop png_info_ptr, std::vector<PNGMetada
 
 bool PNG::Save(Texture* texture, const char* filename, std::vector<PNGMetadata>* metadata) {
 #ifdef CAN_SAVE_PNG
-	Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
+	Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS, true);
 	if (!stream) {
 		return false;
 	}

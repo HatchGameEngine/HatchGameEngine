@@ -101,6 +101,7 @@ char Application::GameDeveloper[256];
 char Application::GameIdentifier[256];
 char Application::DeveloperIdentifier[256];
 char Application::SavesDir[256];
+char Application::ScreenshotsDir[256];
 char Application::PreferencesDir[256];
 
 std::unordered_map<std::string, Capability> Application::CapabilityMap;
@@ -608,6 +609,15 @@ const char* Application::GetSavesDir() {
 	}
 
 	return SavesDir;
+}
+
+// Returns the name of the screenshots directory
+const char* Application::GetScreenshotsDir() {
+	if (ScreenshotsDir[0] == '\0') {
+		return nullptr;
+	}
+
+	return ScreenshotsDir;
 }
 
 // Returns the name of the preferences directory
@@ -1599,7 +1609,7 @@ DO_NOTHING:
 	Metrics.FPSCounter.End();
 
 	if (TakeScreenshot) {
-		Application::SaveScreenshot();
+		Application::DoTakeScreenshot();
 		TakeScreenshot = false;
 	}
 
@@ -1609,29 +1619,25 @@ DO_NOTHING:
 
 	Metrics.Frame.End();
 }
-bool Application::SaveScreenshot() {
+void Application::DoTakeScreenshot() {
 	std::string filename = Screenshot::GetFilename();
-	const char* path = filename.c_str();
+	std::string path = PATHLOCATION_SCREENSHOTS_URL + filename;
 
-	bool success = true;
-
-	if (Graphics::UpdateFramebufferTexture()) {
-		std::vector<PNGMetadata> metadata = Screenshot::GetPNGMetadata();
-
-		success = PNG::Save(Graphics::FramebufferTexture, path, &metadata);
+	if (Application::SaveScreenshotFile(path.c_str())) {
+		Log::Print(Log::LOG_VERBOSE, "Saved screenshot \"%s\"", filename.c_str());
 	}
 	else {
-		success = false;
+		Log::Print(Log::LOG_ERROR, "Could not save screenshot \"%s\"!", filename.c_str());
+	}
+}
+bool Application::SaveScreenshotFile(const char* path) {
+	if (!Graphics::UpdateFramebufferTexture()) {
+		return false;
 	}
 
-	if (success) {
-		Log::Print(Log::LOG_VERBOSE, "Saved screenshot \"%s\"", path);
-	}
-	else {
-		Log::Print(Log::LOG_ERROR, "Could not save screenshot \"%s\"!", path);
-	}
+	std::vector<PNGMetadata> metadata = Screenshot::GetPNGMetadata();
 
-	return success;
+	return PNG::Save(Graphics::FramebufferTexture, path, &metadata);
 }
 void Application::DrawPerformance() {
 	if (DefaultFont == nullptr) {
@@ -2073,6 +2079,7 @@ void Application::InitGameInfo() {
 
 	StringUtils::Copy(GameIdentifier, DEFAULT_GAME_IDENTIFIER, sizeof(GameIdentifier));
 	StringUtils::Copy(SavesDir, DEFAULT_SAVES_DIR, sizeof(SavesDir));
+	StringUtils::Copy(ScreenshotsDir, DEFAULT_SCREENSHOTS_DIR, sizeof(ScreenshotsDir));
 }
 
 void Application::LoadGameInfo() {
@@ -2155,6 +2162,13 @@ void Application::LoadGameInfo() {
 		if (node) {
 			char* id = XMLParser::TokenToString(node->children[0]->name);
 			ValidateAndSetIdentifier("saves directory", id, SavesDir, sizeof(SavesDir));
+			Memory::Free(id);
+		}
+
+		node = XMLParser::SearchNode(root, "screenshotsDir");
+		if (node) {
+			char* id = XMLParser::TokenToString(node->children[0]->name);
+			ValidateAndSetIdentifier("screenshots directory", id, ScreenshotsDir, sizeof(ScreenshotsDir));
 			Memory::Free(id);
 		}
 
