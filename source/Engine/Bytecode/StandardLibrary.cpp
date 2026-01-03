@@ -1324,7 +1324,7 @@ VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Initializes Discord integration.
  * \param applicationID (String): The Discord Application ID. This will have needed to be created via the Discord Developer Portal.
  * \return Returns whether initialization was successful.
- * \ns API
+ * \ns API.Discord
  */
 VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
@@ -1334,27 +1334,210 @@ VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * API.Discord.UpdateRichPresence
- * \desc Updates Discord Rich Presence.
+ * \desc Updates Discord Rich Presence. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
  * \param details (String): The first line of text in the Rich Presence.
  * \paramOpt state (String): The second line of text, appearing below details.
- * \paramOpt imageKey (String): The internal name of the image asset to display, created via the Discord Developer Portal.
- * \paramOpt startTime (Integer): A Unix timestamp (in seconds) of when the activity started.
- * \ns API
+ * \paramOpt largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.
+ * \paramOpt startTime (Integer): A Unix timestamp of when the activity started.
+ * \ns API.Discord
  */
 VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	const char* details = GET_ARG(0, GetString);
 	const char* state = GET_ARG_OPT(1, GetString, "");
-	const char* imageKey = GET_ARG_OPT(2, GetString, "");
-	time_t startTime = GET_ARG_OPT(3, GetInteger, 0);
-	if (argCount < 2)
-		Discord::UpdatePresence(details);
-	else if (argCount < 3)
-		Discord::UpdatePresence(details, state);
-	else if (argCount < 4)
-		Discord::UpdatePresence(details, state, imageKey);
-	else if (argCount == 4)
-        Discord::UpdatePresence(details, state, imageKey, startTime);
+	const char* largeImageKey = GET_ARG_OPT(2, GetString, "");
+	int startTime = GET_ARG_OPT(3, GetInteger, 0);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	DiscordIntegrationActivity presence;
+	presence.Details = details;
+
+	if (argCount >= 2) {
+		presence.State = state;
+	}
+	if (argCount >= 3) {
+		presence.LargeImageKey = largeImageKey;
+	}
+	if (argCount >= 4) {
+		presence.StartTime = (time_t)startTime;
+	}
+
+	Discord::UpdatePresence(presence);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityDetails
+ * \desc Sets the first line of text of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param details (String): The first line of text in the Rich Presence.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityDetails(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	const char* details = GET_ARG(0, GetString);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	Discord::SetDetails(details);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityState
+ * \desc Sets the second line of text of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param details (String): The second line of text, appearing below details.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityState(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	const char* state = GET_ARG(0, GetString);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	Discord::SetState(state);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityLargeImage
+ * \desc Sets the image (and optionally) the hover text of the large image asset. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.
+ * \paramOpt largeImageText (String): The hover text of the large image.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityLargeImage(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	const char* key = GET_ARG(0, GetString);
+	const char* text = GET_ARG_OPT(1, GetString, nullptr);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	if (text) {
+		Discord::SetLargeImage(key, text);
+	}
+	else {
+		Discord::SetLargeImageKey(key);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivitySmallImage
+ * \desc Sets the image (and optionally) the hover text of the small image asset. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param smallImageKey (String): The internal name of the small image asset to display, created via the Discord Developer Portal.
+ * \paramOpt smallImageText (String): The hover text of the small image.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivitySmallImage(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	const char* key = GET_ARG(0, GetString);
+	const char* text = GET_ARG_OPT(1, GetString, nullptr);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	if (text) {
+		Discord::SetSmallImage(key, text);
+	}
+	else {
+		Discord::SetSmallImageKey(key);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityElapsedTimer
+ * \desc Sets the elapsed timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param timestamp (Integer): A Unix timestamp of when the timer started.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityElapsedTimer(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int startTime = GET_ARG(0, GetInteger);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	Discord::SetStartTime(startTime);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityRemainingTimer
+ * \desc Sets the remaining timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param timestamp (Integer): A Unix timestamp of when the timer will end.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityRemainingTimer(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int startTime = GET_ARG(0, GetInteger);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	Discord::SetEndTime(startTime);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityPartySize
+ * \desc Sets the current party size (and optionally) the max party size of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param currentSize (Integer): The current size of the party.
+ * \paramOpt maxSize (Integer): The max size of the party.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	int currentSize = GET_ARG(0, GetInteger);
+	int maxSize = GET_ARG_OPT(1, GetInteger, 0);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	Discord::SetPartySize(currentSize);
+	if (argCount >= 2) {
+		Discord::SetPartyMaxSize(maxSize);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.UpdateActivity
+ * \desc Updates the user's presence. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param details (String): The first line of text in the Rich Presence.
+ * \ns API.Discord
+ */
+VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	Discord::UpdateActivity();
+
 	return NULL_VAL;
 }
 // #endregion
@@ -19195,6 +19378,14 @@ void StandardLibrary::Link() {
 	INIT_NAMESPACED_CLASS(API, Discord);
 	DEF_NAMESPACED_NATIVE(Discord, Init);
 	DEF_NAMESPACED_NATIVE(Discord, UpdateRichPresence);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityDetails);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityState);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityLargeImage);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivitySmallImage);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityElapsedTimer);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityRemainingTimer);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityPartySize);
+	DEF_NAMESPACED_NATIVE(Discord, UpdateActivity);
 	// #endregion
 
 	// #region Application
