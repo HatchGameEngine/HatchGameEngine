@@ -1,7 +1,14 @@
 #ifndef ENGINE_RENDERING_ENUMS
 #define ENGINE_RENDERING_ENUMS
 
-#include "Engine/Includes/Standard.h"
+#include <Engine/Includes/Standard.h>
+
+enum {
+	AspectMode_Stretch,
+	AspectMode_Fit,
+	AspectMode_Fill,
+	AspectMode_Custom
+};
 
 enum {
 	TextureFilter_NEAREST,
