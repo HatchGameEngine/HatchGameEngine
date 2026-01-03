@@ -1385,7 +1385,7 @@ VMValue Discord_SetActivityDetails(int argCount, VMValue* args, Uint32 threadID)
 		return NULL_VAL;
 	}
 
-	Discord::SetDetails(details);
+	Discord::Activity::SetDetails(details);
 
 	return NULL_VAL;
 }
@@ -1404,7 +1404,7 @@ VMValue Discord_SetActivityState(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	Discord::SetState(state);
+	Discord::Activity::SetState(state);
 
 	return NULL_VAL;
 }
@@ -1426,10 +1426,10 @@ VMValue Discord_SetActivityLargeImage(int argCount, VMValue* args, Uint32 thread
 	}
 
 	if (text) {
-		Discord::SetLargeImage(key, text);
+		Discord::Activity::SetLargeImage(key, text);
 	}
 	else {
-		Discord::SetLargeImageKey(key);
+		Discord::Activity::SetLargeImageKey(key);
 	}
 
 	return NULL_VAL;
@@ -1452,10 +1452,10 @@ VMValue Discord_SetActivitySmallImage(int argCount, VMValue* args, Uint32 thread
 	}
 
 	if (text) {
-		Discord::SetSmallImage(key, text);
+		Discord::Activity::SetSmallImage(key, text);
 	}
 	else {
-		Discord::SetSmallImageKey(key);
+		Discord::Activity::SetSmallImageKey(key);
 	}
 
 	return NULL_VAL;
@@ -1475,7 +1475,7 @@ VMValue Discord_SetActivityElapsedTimer(int argCount, VMValue* args, Uint32 thre
 		return NULL_VAL;
 	}
 
-	Discord::SetStartTime(startTime);
+	Discord::Activity::SetStartTime(startTime);
 
 	return NULL_VAL;
 }
@@ -1494,7 +1494,7 @@ VMValue Discord_SetActivityRemainingTimer(int argCount, VMValue* args, Uint32 th
 		return NULL_VAL;
 	}
 
-	Discord::SetEndTime(startTime);
+	Discord::Activity::SetEndTime(startTime);
 
 	return NULL_VAL;
 }
@@ -1515,9 +1515,9 @@ VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, Uint32 threadI
 		return NULL_VAL;
 	}
 
-	Discord::SetPartySize(currentSize);
+	Discord::Activity::SetPartySize(currentSize);
 	if (argCount >= 2) {
-		Discord::SetPartyMaxSize(maxSize);
+		Discord::Activity::SetPartyMaxSize(maxSize);
 	}
 
 	return NULL_VAL;
@@ -1536,7 +1536,7 @@ VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	Discord::UpdateActivity();
+	Discord::Activity::Update();
 
 	return NULL_VAL;
 }

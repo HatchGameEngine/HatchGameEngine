@@ -29,21 +29,25 @@ public:
 
 	static void Init(const char* applicationID);
 	static void Update();
-	static void SetDetails(const char* details);
-	static void SetState(const char* state);
-	static void SetLargeImageKey(const char* key);
-	static void SetLargeImageText(const char* text);
-	static void SetLargeImage(const char* key, const char* text);
-	static void SetSmallImageKey(const char* key);
-	static void SetSmallImageText(const char* text);
-	static void SetSmallImage(const char* key, const char* text);
-	static void SetStartTime(time_t startTime);
-	static void SetEndTime(time_t endTime);
-	static void SetPartySize(int size);
-	static void SetPartyMaxSize(int size);
-	static void UpdateActivity();
 	static void UpdatePresence(DiscordIntegrationActivity presence);
 	static void Dispose();
+
+	class Activity {
+public:
+		static void SetDetails(const char* details);
+		static void SetState(const char* state);
+		static void SetLargeImageKey(const char* key);
+		static void SetLargeImageText(const char* text);
+		static void SetLargeImage(const char* key, const char* text);
+		static void SetSmallImageKey(const char* key);
+		static void SetSmallImageText(const char* text);
+		static void SetSmallImage(const char* key, const char* text);
+		static void SetStartTime(time_t startTime);
+		static void SetEndTime(time_t endTime);
+		static void SetPartySize(int size);
+		static void SetPartyMaxSize(int size);
+		static void Update();
+	};
 };
 
 #endif

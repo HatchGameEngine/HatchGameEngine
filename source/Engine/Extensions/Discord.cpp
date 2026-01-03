@@ -106,7 +106,7 @@ void Discord::Update() {
 	Discord::Core->run_callbacks(Discord::Core);
 }
 
-void Discord::SetDetails(const char* details) {
+void Discord::Activity::SetDetails(const char* details) {
 	if (details && strlen(details) > 0) {
 		strncpy(CurrentActivity.details, details, sizeof(CurrentActivity.details) - 1);
 	}
@@ -114,7 +114,7 @@ void Discord::SetDetails(const char* details) {
 		memset(CurrentActivity.details, 0, sizeof(CurrentActivity.details) - 1);
 	}
 }
-void Discord::SetState(const char* state) {
+void Discord::Activity::SetState(const char* state) {
 	if (state && strlen(state) > 0) {
 		strncpy(CurrentActivity.state, state, sizeof(CurrentActivity.state) - 1);
 	}
@@ -122,7 +122,7 @@ void Discord::SetState(const char* state) {
 		memset(CurrentActivity.state, 0, sizeof(CurrentActivity.state) - 1);
 	}
 }
-void Discord::SetLargeImageKey(const char* key) {
+void Discord::Activity::SetLargeImageKey(const char* key) {
 	if (key && strlen(key) > 0) {
 		strncpy(CurrentActivity.assets.large_image,
 			key,
@@ -134,7 +134,7 @@ void Discord::SetLargeImageKey(const char* key) {
 			sizeof(CurrentActivity.assets.large_image) - 1);
 	}
 }
-void Discord::SetLargeImageText(const char* text) {
+void Discord::Activity::SetLargeImageText(const char* text) {
 	if (text && strlen(text) > 0) {
 		strncpy(CurrentActivity.assets.large_text,
 			text,
@@ -146,11 +146,11 @@ void Discord::SetLargeImageText(const char* text) {
 			sizeof(CurrentActivity.assets.large_text) - 1);
 	}
 }
-void Discord::SetLargeImage(const char* key, const char* text) {
-	Discord::SetLargeImageKey(key);
-	Discord::SetLargeImageText(text);
+void Discord::Activity::SetLargeImage(const char* key, const char* text) {
+	Discord::Activity::SetLargeImageKey(key);
+	Discord::Activity::SetLargeImageText(text);
 }
-void Discord::SetSmallImageKey(const char* key) {
+void Discord::Activity::SetSmallImageKey(const char* key) {
 	if (key && strlen(key) > 0) {
 		strncpy(CurrentActivity.assets.small_image,
 			key,
@@ -162,7 +162,7 @@ void Discord::SetSmallImageKey(const char* key) {
 			sizeof(CurrentActivity.assets.small_image) - 1);
 	}
 }
-void Discord::SetSmallImageText(const char* text) {
+void Discord::Activity::SetSmallImageText(const char* text) {
 	if (text && strlen(text) > 0) {
 		strncpy(CurrentActivity.assets.small_text,
 			text,
@@ -174,27 +174,27 @@ void Discord::SetSmallImageText(const char* text) {
 			sizeof(CurrentActivity.assets.small_text) - 1);
 	}
 }
-void Discord::SetSmallImage(const char* key, const char* text) {
-	Discord::SetSmallImageKey(key);
-	Discord::SetSmallImageText(text);
+void Discord::Activity::SetSmallImage(const char* key, const char* text) {
+	Discord::Activity::SetSmallImageKey(key);
+	Discord::Activity::SetSmallImageText(text);
 }
 
-void Discord::SetStartTime(time_t startTime) {
+void Discord::Activity::SetStartTime(time_t startTime) {
 	CurrentActivity.timestamps.start = (DiscordTimestamp)startTime;
 	CurrentActivity.timestamps.end = 0;
 }
-void Discord::SetEndTime(time_t endTime) {
+void Discord::Activity::SetEndTime(time_t endTime) {
 	CurrentActivity.timestamps.start = 0;
 	CurrentActivity.timestamps.end = (DiscordTimestamp)endTime;
 }
-void Discord::SetPartySize(int size) {
+void Discord::Activity::SetPartySize(int size) {
 	CurrentActivity.party.size.current_size = size;
 }
-void Discord::SetPartyMaxSize(int size) {
+void Discord::Activity::SetPartyMaxSize(int size) {
 	CurrentActivity.party.size.max_size = size;
 }
 
-void Discord::UpdateActivity() {
+void Discord::Activity::Update() {
 	if (!Discord::Initialized || !Discord::ActivityManager) {
 		return;
 	}
@@ -208,22 +208,22 @@ void Discord::UpdatePresence(struct DiscordIntegrationActivity presence) {
 		return;
 	}
 
-	Discord::SetDetails(presence.Details);
-	Discord::SetState(presence.State);
-	Discord::SetLargeImage(presence.LargeImageKey, presence.LargeImageText);
-	Discord::SetSmallImage(presence.SmallImageKey, presence.SmallImageText);
+	Discord::Activity::SetDetails(presence.Details);
+	Discord::Activity::SetState(presence.State);
+	Discord::Activity::SetLargeImage(presence.LargeImageKey, presence.LargeImageText);
+	Discord::Activity::SetSmallImage(presence.SmallImageKey, presence.SmallImageText);
 
 	if (presence.EndTime) {
-		Discord::SetEndTime(presence.EndTime);
+		Discord::Activity::SetEndTime(presence.EndTime);
 	}
 	else {
-		Discord::SetStartTime(presence.StartTime);
+		Discord::Activity::SetStartTime(presence.StartTime);
 	}
 
-	Discord::SetPartySize(presence.PartySize);
-	Discord::SetPartyMaxSize(presence.PartyMax);
+	Discord::Activity::SetPartySize(presence.PartySize);
+	Discord::Activity::SetPartyMaxSize(presence.PartyMax);
 
-	Discord::UpdateActivity();
+	Discord::Activity::Update();
 }
 
 void Discord::Dispose() {
@@ -250,21 +250,22 @@ void Discord::Init(const char* application_id) {
 }
 void Discord::Update() {}
 
-void Discord::SetDetails(const char* details) {}
-void Discord::SetState(const char* state) {}
-void Discord::SetLargeImageKey(const char* key) {}
-void Discord::SetLargeImageText(const char* text) {}
-void Discord::SetLargeImage(const char* key, const char* text) {}
-void Discord::SetSmallImageKey(const char* key) {}
-void Discord::SetSmallImageText(const char* text) {}
-void Discord::SetSmallImage(const char* key, const char* text) {}
+void Discord::Activity::SetDetails(const char* details) {}
+void Discord::Activity::SetState(const char* state) {}
+void Discord::Activity::SetLargeImageKey(const char* key) {}
+void Discord::Activity::SetLargeImageText(const char* text) {}
+void Discord::Activity::SetLargeImage(const char* key, const char* text) {}
+void Discord::Activity::SetSmallImageKey(const char* key) {}
+void Discord::Activity::SetSmallImageText(const char* text) {}
+void Discord::Activity::SetSmallImage(const char* key, const char* text) {}
 
-void Discord::SetStartTime(time_t startTime) {}
-void Discord::SetEndTime(time_t endTime) {}
-void Discord::SetPartySize(int size) {}
-void Discord::SetPartyMaxSize(int size) {}
+void Discord::Activity::SetStartTime(time_t startTime) {}
+void Discord::Activity::SetEndTime(time_t endTime) {}
+void Discord::Activity::SetPartySize(int size) {}
+void Discord::Activity::SetPartyMaxSize(int size) {}
 
-void Discord::UpdateActivity() {}
+void Discord::Activity::Update() {}
+
 void Discord::UpdatePresence(struct DiscordPresence presence) {}
 void Discord::Dispose() {}
 
