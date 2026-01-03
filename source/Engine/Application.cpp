@@ -1325,6 +1325,11 @@ void Application::PollEvents() {
 
 			// Fullscreen
 			if (key == KeyBindsSDL[(int)KeyBind::Fullscreen]) {
+				Uint16 mod = e.key.keysym.mod;
+				if (key == SDLK_F4 && (mod & KMOD_ALT)) {
+					break;
+				}
+
 				Application::SetWindowFullscreen(!Application::GetWindowFullscreen());
 				break;
 			}
