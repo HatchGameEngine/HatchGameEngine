@@ -230,6 +230,23 @@ inline ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline VMValue GetCallable(VMValue* args, int index, Uint32 threadID) {
+	VMValue value = NULL_VAL;
+	if (ScriptManager::Lock()) {
+		if (IS_CALLABLE(args[index])) {
+			value = args[index];
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type callable instead of %s.",
+				    index + 1,
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 	ObjInstance* value = NULL;
 	if (ScriptManager::Lock()) {
@@ -1605,7 +1622,7 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 /***
  * Application.TakeScreenshot
  * \desc Saves a screenshot to <code>path</code>. This operation only completes at the end of the frame, so you may optionally provide a callback.
- * \paramOpt path (String): The path to save the screenshot to. If <code>null</code> or not passed, the screenshot is saved to the default screenshot path.
+ * \paramOpt path (String): The path to save the screenshot to. If not passed, the screenshot is saved to the default screenshot path.
  * \paramOpt callback (Function): The function to call when the screenshot operation finishes. When called, it receives two arguments: <code>true</code> or <code>false</code> if the screenshot was saved, and the filename of the screenshot.
  * \ns Application
  */
@@ -1647,9 +1664,9 @@ VMValue Application_TakeScreenshot(int argCount, VMValue* args, Uint32 threadID)
 	if (argCount == 1 && IS_CALLABLE(args[0])) {
 		callable = args[0];
 	}
-	else if (argCount > 0 && !IS_NULL(args[0])) {
+	else if (argCount > 0) {
 		path = GET_ARG(0, GetString);
-		callable = argCount > 1 ? args[1] : NULL_VAL;
+		callable = GET_ARG_OPT(1, GetCallable, NULL_VAL);
 	}
 
 	ScriptScreenshotOpData* data = (ScriptScreenshotOpData*)Memory::Malloc(sizeof(ScriptScreenshotOpData));
