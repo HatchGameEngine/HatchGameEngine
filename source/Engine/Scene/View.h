@@ -3,6 +3,7 @@
 
 #include <Engine/Includes/Standard.h>
 #include <Engine/Math/Matrix4x4.h>
+#include <Engine/Rendering/Enums.h>
 #include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/Texture.h>
 
@@ -29,6 +30,7 @@ public:
 	float OutputY = 0.0f;
 	float OutputWidth = 1.0f;
 	float OutputHeight = 1.0f;
+	int AspectMode = AspectMode_Fit;
 	int Stride = 1;
 	float FOV = 45.0f;
 	float NearPlane = 0.1f;
