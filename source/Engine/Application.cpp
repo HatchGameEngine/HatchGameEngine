@@ -1445,11 +1445,11 @@ void Application::LoadDevSettings() {
 }
 
 bool Application::IsWindowResizable() {
-	if (Application::GetWindowFullscreen() || !Application::IsPC()) {
-		return false;
-	}
-
+#ifdef CONSOLE_PLATFORM
+	return false;
+#else
 	return (SDL_GetWindowFlags(Application::Window) & SDL_WINDOW_RESIZABLE) != 0;
+#endif
 }
 
 void Application::SetWindowSize(int window_w, int window_h) {
@@ -1494,9 +1494,11 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 		SDL_WarpMouseInWindow(Application::Window, window_w / 2, window_h / 2);
 	}
 
+#ifndef CONSOLE_PLATFORM
 	if (!isFullscreen) {
 		SDL_SetWindowResizable(Application::Window, (SDL_bool)Application::WindowResizable);
 	}
+#endif
 
 	if (Application::DevMenuActivated) {
 		DevMenu.Fullscreen = isFullscreen;
@@ -1507,11 +1509,13 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 	Graphics::Resize(window_w, window_h);
 }
 void Application::SetWindowResizable(bool isResizable) {
+#ifndef CONSOLE_PLATFORM
 	Application::WindowResizable = isResizable;
 
 	if (!Application::GetWindowFullscreen()) {
 		SDL_SetWindowResizable(Application::Window, (SDL_bool)isResizable);
 	}
+#endif
 }
 void Application::SetWindowBorderless(bool isBorderless) {
 	Application::WindowBorderless = isBorderless;

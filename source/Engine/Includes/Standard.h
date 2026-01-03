@@ -128,4 +128,8 @@ typedef int64_t Sint64;
 #define UNIX __unix__
 #endif
 
+#if defined(SWITCH) || defined(PLAYSTATION) || defined(XBOX)
+#define CONSOLE_PLATFORM
+#endif
+
 #endif // STANDARDLIBS_H
