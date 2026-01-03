@@ -186,7 +186,7 @@ bool FileStream::Exists(const char* filename, bool allowURLs) {
 		return false;
 	}
 
-	if (location == PathLocation::CACHE) {
+	if (location == PathLocation::CACHE && MemoryCache::Using) {
 		resolvedPath = Path::StripURL(filename);
 
 		return MemoryCache::Exists(resolvedPath.c_str());

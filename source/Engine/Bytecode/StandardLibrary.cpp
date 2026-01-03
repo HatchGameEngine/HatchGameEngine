@@ -885,7 +885,7 @@ VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.GetHitbox
  * \desc Gets the hitbox of an animation and frame of an animator.
  * \param animator (Integer): The index of the animator.
- * \paramOpt hitboxID (Integer): The index number of the hitbox. Default to <code>0</code>.
+ * \paramOpt hitboxID (Integer): The index number of the hitbox. Defaults to <code>0</code>.
  * \return Returns a reference value to a hitbox array.
  * \ns Animator
  */
@@ -913,10 +913,17 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		AnimFrame frame = sprite->Animations[animator->CurrentAnimation]
 					  .Frames[animator->CurrentFrame];
 
-		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-			THROW_ERROR("Hitbox %d is not in bounds of frame %d.",
+		if (frame.Boxes.size() == 0) {
+			THROW_ERROR("Frame %d of animation %d contains no hitboxes.",
+				animator->CurrentFrame,
+				animator->CurrentAnimation);
+			return NULL_VAL;
+		}
+		else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+			THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
 				hitboxID,
-				animator->CurrentFrame);
+				animator->CurrentFrame,
+				animator->CurrentAnimation);
 			return NULL_VAL;
 		}
 
@@ -2415,8 +2422,8 @@ VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 th
 	auto thisEnt = (Entity*)thisEntity->EntityPtr;
 	auto otherEnt = (Entity*)otherEntity->EntityPtr;
 
-	CollisionBox thisBox = { 0, 0, 0, 0 };
-	CollisionBox otherBox = { 0, 0, 0, 0 };
+	CollisionBox thisBox;
+	CollisionBox otherBox;
 
 	if (IS_INTEGER((*thisHitbox->Values)[0])) {
 		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
@@ -12355,7 +12362,7 @@ VMValue Scene_GetLayerExists(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetLayerDeformSplitLine
- * \desc Gets the DeformSplitLine of the specified layer.
+ * \desc Gets the Deform Split Line of the specified layer.
  * \param layerIndex (Integer): Index of layer.
  * \return Returns an Integer value.
  * \ns Scene
@@ -12368,7 +12375,7 @@ VMValue Scene_GetLayerDeformSplitLine(int argCount, VMValue* args, Uint32 thread
 }
 /***
  * Scene.GetLayerDeformOffsetA
- * \desc Gets the DeformOffsetA of the specified layer.
+ * \desc Gets the tile deform offset above the Deform Split Line of the specified layer.
  * \param layerIndex (Integer): Index of layer.
  * \return Returns an Integer value.
  * \ns Scene
@@ -12381,7 +12388,7 @@ VMValue Scene_GetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * Scene.GetLayerDeformOffsetB
- * \desc Gets the DeformOffsetB of the specified layer.
+ * \desc Gets the tile deform offset below the Deform Split Line of the specified layer.
  * \param layerIndex (Integer): Index of layer.
  * \return Returns an Integer value.
  * \ns Scene
@@ -12390,7 +12397,7 @@ VMValue Scene_GetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(Scene::Layers[index].DeformOffsetA);
+	return INTEGER_VAL(Scene::Layers[index].DeformOffsetB);
 }
 /***
  * Scene.LayerPropertyExists
@@ -12496,26 +12503,26 @@ VMValue Scene_GetLayerHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerOffsetX
  * \desc Gets the X offset of a layer index.
- * \return Returns an Integer value.
+ * \return Returns a Decimal value.
  * \ns Scene
  */
 VMValue Scene_GetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(Scene::Layers[index].OffsetX);
+	return DECIMAL_VAL(Scene::Layers[index].OffsetX);
 }
 /***
  * Scene.GetLayerOffsetY
  * \desc Gets the Y offset of a layer index.
- * \return Returns an Integer value.
+ * \return Returns a Decimal value.
  * \ns Scene
  */
 VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(Scene::Layers[index].OffsetY);
+	return DECIMAL_VAL(Scene::Layers[index].OffsetY);
 }
 /***
  * Scene.GetLayerDrawGroup
@@ -13479,8 +13486,8 @@ VMValue Scene_SetLayerInternalSize(int argCount, VMValue* args, Uint32 threadID)
 VMValue Scene_SetLayerOffsetPosition(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
 	int index = GET_ARG(0, GetInteger);
-	int offsetX = (int)GET_ARG(1, GetDecimal);
-	int offsetY = (int)GET_ARG(2, GetDecimal);
+	float offsetX = GET_ARG(1, GetDecimal);
+	float offsetY = GET_ARG(2, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].OffsetX = offsetX;
 	Scene::Layers[index].OffsetY = offsetY;
@@ -13496,7 +13503,7 @@ VMValue Scene_SetLayerOffsetPosition(int argCount, VMValue* args, Uint32 threadI
 VMValue Scene_SetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
-	int offsetX = (int)GET_ARG(1, GetDecimal);
+	float offsetX = GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].OffsetX = offsetX;
 	return NULL_VAL;
@@ -13511,7 +13518,7 @@ VMValue Scene_SetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
-	int offsetY = (int)GET_ARG(1, GetDecimal);
+	float offsetY = GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].OffsetY = offsetY;
 	return NULL_VAL;
@@ -13758,14 +13765,14 @@ VMValue Scene_SetLayerScroll(int argCount, VMValue* args, Uint32 threadID) {
 	float relative = GET_ARG(1, GetDecimal);
 	float constant = GET_ARG(2, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].RelativeY = (short)(relative * 0x100);
-	Scene::Layers[index].ConstantY = (short)(constant * 0x100);
+	Scene::Layers[index].RelativeY = relative;
+	Scene::Layers[index].ConstantY = constant;
 	return NULL_VAL;
 }
 struct BufferedScrollInfo {
-	short relative;
-	short constant;
-	int canDeform;
+	float relative;
+	float constant;
+	bool canDeform;
 };
 Uint8* BufferedScrollLines = NULL;
 int BufferedScrollLinesMax = 0;
@@ -13807,14 +13814,11 @@ VMValue Scene_SetLayerSetParallaxLines(int argCount, VMValue* args, Uint32 threa
 	int lineEnd = GET_ARG(1, GetInteger);
 	float relative = GET_ARG(2, GetDecimal);
 	float constant = GET_ARG(3, GetDecimal);
-	int canDeform = GET_ARG(4, GetInteger);
-
-	short relVal = (short)(relative * 0x100);
-	short constVal = (short)(constant * 0x100);
+	bool canDeform = !!GET_ARG(4, GetInteger);
 
 	BufferedScrollInfo info;
-	info.relative = relVal;
-	info.constant = constVal;
+	info.relative = relative;
+	info.constant = constant;
 	info.canDeform = canDeform;
 
 	// Check to see if these scroll values are used, if not, add them.
@@ -13824,7 +13828,7 @@ VMValue Scene_SetLayerSetParallaxLines(int argCount, VMValue* args, Uint32 threa
 		scrollIndex = -1;
 		for (size_t i = 0; i < setupCount; i++) {
 			BufferedScrollInfo setup = BufferedScrollInfos[i];
-			if (setup.relative == relVal && setup.constant == constVal &&
+			if (setup.relative == relative && setup.constant == constant &&
 				setup.canDeform == canDeform) {
 				scrollIndex = (int)i;
 				break;
@@ -13952,7 +13956,7 @@ VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 thre
 }
 /***
  * Scene.SetLayerDeformOffsetA
- * \desc Sets the tile deform offset A of the layer at the specified index.
+ * \desc Sets the tile deform offset above the Deform Split Line of the layer.
  * \param layerIndex (Integer): Index of layer.
  * \param deformA (Number): Deform value above the Deform Split Line.
  * \ns Scene
@@ -13968,7 +13972,7 @@ VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * Scene.SetLayerDeformOffsetB
- * \desc Sets the tile deform offset B of the layer at the specified index.
+ * \desc Sets the tile deform offset below the Deform Split Line of the layer.
  * \param layerIndex (Integer): Index of layer.
  * \param deformA (Number): Deform value below the Deform Split Line.
  * \ns Scene
@@ -13978,7 +13982,7 @@ VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 	int index = GET_ARG(0, GetInteger);
 	int deformB = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].DeformOffsetA = deformB;
+	Scene::Layers[index].DeformOffsetB = deformB;
 	Scene::Layers[index].UsingScrollIndexes = true;
 	return NULL_VAL;
 }
@@ -15969,60 +15973,187 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetY);
 }
 /***
+ * Sprite.GetHitboxName
+ * \desc Gets the name of a hitbox through its index.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animationID (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \param hitboxID (Integer): The hitbox index to check.
+ * \return Returns a String value.
+ * \ns Sprite
+ */
+VMValue Sprite_GetHitboxName(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(4);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+	int hitboxID = GET_ARG(3, GetInteger);
+
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+	if (frame.Boxes.size() == 0) {
+		THROW_ERROR("Frame %d of animation %d contains no hitboxes.", frameID, animationID);
+		return NULL_VAL;
+	}
+	else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+		THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
+			hitboxID,
+			frameID,
+			animationID);
+		return NULL_VAL;
+	}
+
+	return ReturnString(frame.Boxes[hitboxID].Name);
+}
+/***
+ * Sprite.GetHitboxIndex
+ * \desc Gets the index of a hitbox by its name.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animationID (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \param name (String): The name of the hitbox to check.
+ * \return Returns an Integer value, or <code>null</code> if no such hitbox exists with that name.
+ * \ns Sprite
+ */
+VMValue Sprite_GetHitboxIndex(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(4);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+	char* name = GET_ARG(3, GetString);
+
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	if (name != nullptr) {
+		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+		for (size_t i = 0; i < frame.Boxes.size(); i++) {
+			if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+				return INTEGER_VAL((int)i);
+			}
+		}
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Sprite.GetHitboxCount
+ * \desc Gets the hitbox count in the given frame of an animation of a sprite.
+ * \param sprite (Integer): The sprite index to check.
+ * \param animationID (Integer): The animation index of the sprite to check.
+ * \param frame (Integer): The frame index of the animation to check.
+ * \return Returns an Integer value.
+ * \ns Sprite
+ */
+VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+	size_t numHitboxes = frame.Boxes.size();
+
+	return INTEGER_VAL((int)numHitboxes);
+}
+/***
  * Sprite.GetHitbox
- * \desc Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.
- * \param instance (Instance):An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).
+ * \desc Gets the hitbox of a sprite frame. If an entity is provided as the first argument, the only parameters are <code>entity</code> and <code>hitbox</code>. Otherwise, the required parameters are <code>sprite</code>, <code>animationID</code>, and <code>frameID</code>.
+ * \param entity (Entity): An entity with <code>Sprite</code>, <code>CurrentAnimation</code>, and <code>CurrentFrame</code> values (if provided).
  * \param sprite (Integer): The sprite index to check (if an entity is not provided).
  * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
  * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
- * \param hitboxID (Integer): The index number of the hitbox.
- * \return Returns a reference value to a hitbox array.
+ * \paramOpt hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.
+ * \return Returns an Array value.
  * \ns Sprite
  */
 VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(2);
+	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISprite* sprite;
-	int animationID, frameID, hitboxID;
+	int animationID, frameID, hitboxID = 0;
+	int hitboxArgNum;
 
-	if (argCount == 2 && IS_ENTITY(args[0])) {
+	if (argCount <= 2 && IS_ENTITY(args[0])) {
 		ObjEntity* ent = GET_ARG(0, GetEntity);
 		Entity* entity = (Entity*)ent->EntityPtr;
-		hitboxID = GET_ARG(1, GetInteger);
+		hitboxArgNum = 1;
 
 		sprite = GetSpriteIndex(entity->Sprite, threadID);
+		if (!sprite) {
+			return NULL_VAL;
+		}
+
 		animationID = entity->CurrentAnimation;
 		frameID = entity->CurrentFrame;
 	}
 	else {
-		CHECK_ARGCOUNT(4);
+		CHECK_AT_LEAST_ARGCOUNT(3);
 		sprite = GET_ARG(0, GetSprite);
 		animationID = GET_ARG(1, GetInteger);
 		frameID = GET_ARG(2, GetInteger);
-		hitboxID = GET_ARG(3, GetInteger);
+		hitboxArgNum = 3;
 	}
 
-	ObjArray* array = NewArray();
-	for (int i = 0; i < 4; i++)
-		array->Values->push_back(INTEGER_VAL(0));
+	if (!sprite) {
+		return NULL_VAL;
+	}
 
-	if (sprite && animationID >= 0 && frameID >= 0) {
-		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
 
-		if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
-			return OBJECT_VAL(array);
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+	if (argCount > hitboxArgNum && IS_STRING(args[hitboxArgNum])) {
+		char* name = GET_ARG(hitboxArgNum, GetString);
+		if (name) {
+			int boxIndex = -1;
+
+			for (size_t i = 0; i < frame.Boxes.size(); i++) {
+				if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+					boxIndex = (int)i;
+					break;
+				}
+			}
+
+			if (boxIndex != -1) {
+				hitboxID = boxIndex;
+			}
+			else {
+				THROW_ERROR("No hitbox named \"%s\" in frame %d of animation %d.",
+					name,
+					frameID,
+					animationID);
+			}
 		}
+	}
+	else {
+		hitboxID = GET_ARG_OPT(hitboxArgNum, GetInteger, 0);
+	}
 
+	ObjArray* hitbox = NewArray();
+	if (hitboxID >= 0 && hitboxID < (int)frame.Boxes.size()) {
 		CollisionBox box = frame.Boxes[hitboxID];
-		ObjArray* hitbox = NewArray();
 		hitbox->Values->push_back(INTEGER_VAL(box.Left));
 		hitbox->Values->push_back(INTEGER_VAL(box.Top));
 		hitbox->Values->push_back(INTEGER_VAL(box.Right));
 		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
-		return OBJECT_VAL(hitbox);
 	}
 	else {
-		return OBJECT_VAL(array);
+		// TODO: Make this an error.
+		// For backwards compatibility, currently it doesn't.
+		for (int i = 0; i < 4; i++) {
+			hitbox->Values->push_back(INTEGER_VAL(0));
+		}
 	}
+	return OBJECT_VAL(hitbox);
 }
 /***
  * Sprite.GetTextArray
@@ -18117,12 +18248,30 @@ VMValue View_AdjustZ(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * View.SetScale
+ * \desc Sets the scale of the camera for the specified view.
+ * \param viewIndex (Integer): Index of the view.
+ * \param x (Number): Desired X scale.
+ * \param y (Number): Desired Y scale.
+ * \paramOpt z (Number): Desired Z scale.
+ * \ns View
+ */
+VMValue View_SetScale(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	Scene::Views[view_index].ScaleX = GET_ARG(1, GetDecimal);
+	Scene::Views[view_index].ScaleY = GET_ARG(2, GetDecimal);
+	Scene::Views[view_index].ScaleZ = GET_ARG_OPT(3, GetDecimal, 1.0);
+	return NULL_VAL;
+}
+/***
  * View.SetAngle
  * \desc Sets the angle of the camera for the specified view.
  * \param viewIndex (Integer): Index of the view.
- * \param x (Number): Desired X angle
- * \param y (Number): Desired Y angle
- * \param z (Number): Desired Z angle
+ * \param x (Number): Desired X angle.
+ * \param y (Number): Desired Y angle.
+ * \param z (Number): Desired Z angle.
  * \ns View
  */
 VMValue View_SetAngle(int argCount, VMValue* args, Uint32 threadID) {
@@ -20865,6 +21014,9 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Sprite, GetFrameID);
 	DEF_NATIVE(Sprite, GetFrameOffsetX);
 	DEF_NATIVE(Sprite, GetFrameOffsetY);
+	DEF_NATIVE(Sprite, GetHitboxName);
+	DEF_NATIVE(Sprite, GetHitboxIndex);
+	DEF_NATIVE(Sprite, GetHitboxCount);
 	DEF_NATIVE(Sprite, GetHitbox);
 	DEF_NATIVE(Sprite, GetTextArray);
 	DEF_NATIVE(Sprite, GetTextWidth);
@@ -21050,6 +21202,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(View, AdjustX);
 	DEF_NATIVE(View, AdjustY);
 	DEF_NATIVE(View, AdjustZ);
+	DEF_NATIVE(View, SetScale);
 	DEF_NATIVE(View, SetAngle);
 	DEF_NATIVE(View, SetSize);
 	DEF_NATIVE(View, SetOutputX);

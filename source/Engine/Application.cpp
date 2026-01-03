@@ -1323,10 +1323,14 @@ void Application::PollEvents() {
 		}
 		case SDL_KEYDOWN: {
 			SDL_Keycode key = e.key.keysym.sym;
-			Uint16 mod = e.key.keysym.mod;
 
 			// Fullscreen
-			if (key == KeyBindsSDL[(int)KeyBind::Fullscreen] && !(mod & KMOD_ALT)) {
+			if (key == KeyBindsSDL[(int)KeyBind::Fullscreen]) {
+				Uint16 mod = e.key.keysym.mod;
+				if (key == SDLK_F4 && (mod & KMOD_ALT)) {
+					break;
+				}
+
 				Application::SetWindowFullscreen(!Application::GetWindowFullscreen());
 				break;
 			}
@@ -1362,7 +1366,7 @@ void Application::PollEvents() {
 					for (size_t li = 0; li < Scene::Layers.size(); li++) {
 						SceneLayer& layer = Scene::Layers[li];
 						Log::Print(Log::LOG_IMPORTANT,
-							"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %d, OffsetY: %d, RelativeY: %d, ConstantY: %d, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
+							"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeY: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
 							li,
 							layer.Name,
 							layer.Visible,

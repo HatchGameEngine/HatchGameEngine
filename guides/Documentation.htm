@@ -1183,6 +1183,9 @@
                     <li><a href="#Reference_functions_Sprite_GetFrameID">Sprite.GetFrameID</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameOffsetX">Sprite.GetFrameOffsetX</a></li>
                     <li><a href="#Reference_functions_Sprite_GetFrameOffsetY">Sprite.GetFrameOffsetY</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetHitboxName">Sprite.GetHitboxName</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetHitboxIndex">Sprite.GetHitboxIndex</a></li>
+                    <li><a href="#Reference_functions_Sprite_GetHitboxCount">Sprite.GetHitboxCount</a></li>
                     <li><a href="#Reference_functions_Sprite_GetHitbox">Sprite.GetHitbox</a></li>
                     <li><a href="#Reference_functions_Sprite_GetTextArray">Sprite.GetTextArray</a></li>
                     <li><a href="#Reference_functions_Sprite_GetTextWidth">Sprite.GetTextWidth</a></li>
@@ -1353,6 +1356,7 @@
                     <li><a href="#Reference_functions_View_AdjustX">View.AdjustX</a></li>
                     <li><a href="#Reference_functions_View_AdjustY">View.AdjustY</a></li>
                     <li><a href="#Reference_functions_View_AdjustZ">View.AdjustZ</a></li>
+                    <li><a href="#Reference_functions_View_SetScale">View.SetScale</a></li>
                     <li><a href="#Reference_functions_View_SetAngle">View.SetAngle</a></li>
                     <li><a href="#Reference_functions_View_SetSize">View.SetSize</a></li>
                     <li><a href="#Reference_functions_View_SetOutputX">View.SetOutputX</a></li>
@@ -2117,7 +2121,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>animator (Integer): The index of the animator.</li>
-        <li>hitboxID (Integer): The index number of the hitbox. Default to <code>0</code>.</li>
+        <li>hitboxID (Integer): The index number of the hitbox. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
@@ -7289,7 +7293,7 @@
         <p id="Reference_functions_Scene_GetLayerDeformSplitLine">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerDeformSplitLine</h2>
         <code>Scene.GetLayerDeformSplitLine(layerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the DeformSplitLine of the specified layer.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the Deform Split Line of the specified layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -7300,7 +7304,7 @@
         <p id="Reference_functions_Scene_GetLayerDeformOffsetA">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerDeformOffsetA</h2>
         <code>Scene.GetLayerDeformOffsetA(layerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the DeformOffsetA of the specified layer.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the tile deform offset above the Deform Split Line of the specified layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -7311,7 +7315,7 @@
         <p id="Reference_functions_Scene_GetLayerDeformOffsetB">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerDeformOffsetB</h2>
         <code>Scene.GetLayerDeformOffsetB(layerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the DeformOffsetB of the specified layer.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the tile deform offset below the Deform Split Line of the specified layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -7378,14 +7382,14 @@
         <code>Scene.GetLayerOffsetX()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the X offset of a layer index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Integer value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerOffsetY">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerOffsetY</h2>
         <code>Scene.GetLayerOffsetY()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the Y offset of a layer index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Integer value.</div>
+        <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerDrawGroup">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerDrawGroup</h2>
@@ -8091,7 +8095,7 @@
         <p id="Reference_functions_Scene_SetLayerDeformOffsetA">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerDeformOffsetA</h2>
         <code>Scene.SetLayerDeformOffsetA(layerIndex, deformA)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the tile deform offset A of the layer at the specified index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the tile deform offset above the Deform Split Line of the layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -8101,7 +8105,7 @@
         <p id="Reference_functions_Scene_SetLayerDeformOffsetB">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerDeformOffsetB</h2>
         <code>Scene.SetLayerDeformOffsetB(layerIndex, deformA)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the tile deform offset B of the layer at the specified index.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the tile deform offset below the Deform Split Line of the layer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -9085,20 +9089,61 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the Y offset of the specified sprite frame.</div>
         </p>
-        <p id="Reference_functions_Sprite_GetHitbox">
-        <h2 style="margin-bottom: 8px;">Sprite.GetHitbox</h2>
-        <code>Sprite.GetHitbox(instance, sprite, animationID, frameID, hitboxID)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.</div>
+        <p id="Reference_functions_Sprite_GetHitboxName">
+        <h2 style="margin-bottom: 8px;">Sprite.GetHitboxName</h2>
+        <code>Sprite.GetHitboxName(sprite, animationID, frame, hitboxID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the name of a hitbox through its index.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>instance (Instance):An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).</li>
+        <li>sprite (Integer): The sprite index to check.</li>
+        <li>animationID (Integer): The animation index of the sprite to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        <li>hitboxID (Integer): The hitbox index to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value.</div>
+        </p>
+        <p id="Reference_functions_Sprite_GetHitboxIndex">
+        <h2 style="margin-bottom: 8px;">Sprite.GetHitboxIndex</h2>
+        <code>Sprite.GetHitboxIndex(sprite, animationID, frame, name)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the index of a hitbox by its name.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index to check.</li>
+        <li>animationID (Integer): The animation index of the sprite to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        <li>name (String): The name of the hitbox to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value, or <code>null</code> if no such hitbox exists with that name.</div>
+        </p>
+        <p id="Reference_functions_Sprite_GetHitboxCount">
+        <h2 style="margin-bottom: 8px;">Sprite.GetHitboxCount</h2>
+        <code>Sprite.GetHitboxCount(sprite, animationID, frame)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox count in the given frame of an animation of a sprite.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>sprite (Integer): The sprite index to check.</li>
+        <li>animationID (Integer): The animation index of the sprite to check.</li>
+        <li>frame (Integer): The frame index of the animation to check.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns an Integer value.</div>
+        </p>
+        <p id="Reference_functions_Sprite_GetHitbox">
+        <h2 style="margin-bottom: 8px;">Sprite.GetHitbox</h2>
+        <code>Sprite.GetHitbox(entity, sprite, animationID, frameID[, hitbox])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of a sprite frame. If an entity is provided as the first argument, the only parameters are <code>entity</code> and <code>hitbox</code>. Otherwise, the required parameters are <code>sprite</code>, <code>animationID</code>, and <code>frameID</code>.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>entity (Entity): An entity with <code>Sprite</code>, <code>CurrentAnimation</code>, and <code>CurrentFrame</code> values (if provided).</li>
         <li>sprite (Integer): The sprite index to check (if an entity is not provided).</li>
         <li>animationID (Integer): The animation index of the sprite to check (if an entity is not provided).</li>
         <li>frameID (Integer): The frame index of the animation to check (if an entity is not provided).</li>
-        <li>hitboxID (Integer): The index number of the hitbox.</li>
+        <li>hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
+        <div style="font-size: 14px;">Returns an Array value.</div>
         </p>
         <p id="Reference_functions_Sprite_GetTextArray">
         <h2 style="margin-bottom: 8px;">Sprite.GetTextArray</h2>
@@ -10108,6 +10153,18 @@
         <li>z (Number): Desired Z adjust amount.</li>
         </ul>
         </p>
+        <p id="Reference_functions_View_SetScale">
+        <h2 style="margin-bottom: 8px;">View.SetScale</h2>
+        <code>View.SetScale(viewIndex, x, y[, z])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the scale of the camera for the specified view.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>viewIndex (Integer): Index of the view.</li>
+        <li>x (Number): Desired X scale.</li>
+        <li>y (Number): Desired Y scale.</li>
+        <li>z (Number): Desired Z scale.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_View_SetAngle">
         <h2 style="margin-bottom: 8px;">View.SetAngle</h2>
         <code>View.SetAngle(viewIndex, x, y, z)</code>
@@ -10115,9 +10172,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
-        <li>x (Number): Desired X angle</li>
-        <li>y (Number): Desired Y angle</li>
-        <li>z (Number): Desired Z angle</li>
+        <li>x (Number): Desired X angle.</li>
+        <li>y (Number): Desired Y angle.</li>
+        <li>z (Number): Desired Z angle.</li>
         </ul>
         </p>
         <p id="Reference_functions_View_SetSize">
@@ -10681,30 +10738,29 @@
         </p>
         <p id="Reference_methods_entity_GetHitboxFromSprite">
         <h2 style="margin-bottom: 8px;">entity.GetHitboxFromSprite</h2>
-        <code>entity.GetHitboxFromSprite(sprite, animation, frame, hitbox)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Updates the entity's hitbox with the hitbox in the specified sprite's animation, frame and hitbox ID.</div>
+        <code>entity.GetHitboxFromSprite(sprite, animation, frame[, hitbox])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Updates the entity's hitbox with the hitbox in the specified sprite's animation, frame and hitbox ID or name.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sprite (Sprite): The sprite.</li>
         <li>animation (Integer): The animation index.</li>
         <li>frame (Integer): The frame index.</li>
-        <li>hitbox (Integer): The hitbox ID.</li>
+        <li>hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.</li>
         </ul>
         </p>
         <p id="Reference_methods_entity_ReturnHitbox">
         <h2 style="margin-bottom: 8px;">entity.ReturnHitbox</h2>
-        <code>entity.ReturnHitbox(instance, sprite, animationID, frameID, hitboxID)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of a sprite frame. If an entity is provided, the only two arguments are the entity and the hitboxID. Else, there are 4 arguments.</div>
+        <code>entity.ReturnHitbox(sprite, animationID, frameID[, hitbox])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the hitbox of a sprite frame.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>instance (Instance): An instance with Sprite, CurrentAnimation, and CurrentFrame values (if provided).</li>
-        <li>sprite (Integer): The sprite index to check (if an entity is not provided).</li>
-        <li>animationID (Integer): The animation index of the sprite to check (if an entity is not provided).</li>
-        <li>frameID (Integer): The frame index of the animation to check (if an entity is not provided).</li>
-        <li>hitboxID (Integer): The index number of the hitbox.</li>
+        <li>sprite (Integer): The sprite index to check.</li>
+        <li>animationID (Integer): The animation index of the sprite to check.</li>
+        <li>frameID (Integer): The frame index of the animation to check.</li>
+        <li>hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
+        <div style="font-size: 14px;">Returns an Array value.</div>
         </p>
         <p id="Reference_methods_entity_CollideWithObject">
         <h2 style="margin-bottom: 8px;">entity.CollideWithObject</h2>

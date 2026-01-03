@@ -540,8 +540,11 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 	SceneLayer scenelayer(layer_width, layer_height);
 	scenelayer.Name = StringUtils::Duplicate(name.Start, name.Length);
 
-	scenelayer.RelativeY = 0x100;
-	scenelayer.ConstantY = 0x00;
+	scenelayer.RelativeY = 1.0;
+	scenelayer.ConstantY = 0;
+	scenelayer.ScrollInfoCount = 0;
+	scenelayer.ScrollInfos = nullptr;
+	scenelayer.UsingScrollIndexes = false;
 	scenelayer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
 	scenelayer.DrawGroup = 0;
 	scenelayer.Properties = layer_properties;
@@ -581,16 +584,6 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 	}
 	memcpy(scenelayer.TilesBackup, scenelayer.Tiles, scenelayer.DataSize);
 
-	// Create parallax data
-	scenelayer.ScrollInfoCount = 1;
-	scenelayer.ScrollInfos =
-		(ScrollingInfo*)Memory::Malloc(scenelayer.ScrollInfoCount * sizeof(ScrollingInfo));
-	for (int g = 0; g < scenelayer.ScrollInfoCount; g++) {
-		scenelayer.ScrollInfos[g].RelativeParallax = 0x0100;
-		scenelayer.ScrollInfos[g].ConstantParallax = 0x0000;
-		scenelayer.ScrollInfos[g].CanDeform = false;
-	}
-
 	Scene::Layers.push_back(scenelayer);
 
 	Memory::Free(tile_buffer);
@@ -603,11 +596,14 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 		Token object_type = object->attributes.Get("name");
 		float object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
 		float object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
-        
-		int filter = object->attributes.Exists("filter") ? (int)XMLParser::TokenToNumber(object->attributes.Get("filter")) : 0xFF;
-		
-		if (!filter)
+
+		int filter = object->attributes.Exists("filter")
+			? (int)XMLParser::TokenToNumber(object->attributes.Get("filter"))
+			: 0xFF;
+
+		if (!filter) {
 			filter = 0xFF;
+		}
 
 		if (!(filter & Scene::Filter)) {
 			continue;
