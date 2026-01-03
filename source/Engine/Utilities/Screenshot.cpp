@@ -64,6 +64,18 @@ std::string Screenshot::GetTimeString() {
 	return std::string(buffer);
 }
 
+bool Screenshot::Exists(std::string path) {
+	if (Queue.size() > 0) {
+		for (size_t i = Queue.size(); i > 0; i--) {
+			if (Queue[i - 1].Path == path) {
+				return true;
+			}
+		}
+	}
+
+	return File::ProtectedExists(path.c_str(), true);
+}
+
 void Screenshot::QueueOperation(ScreenshotOperation operation) {
 	Queue.insert(Queue.begin(), operation);
 }

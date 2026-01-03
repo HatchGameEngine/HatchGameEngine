@@ -1638,7 +1638,26 @@ void Application::TakeScreenshot(const char* path, Operation operation) {
 		op.Path = std::string(path);
 	}
 	else {
-		op.Path = Application::GetScreenshotPath() + ".png";
+		const char* extension = ".png";
+
+		std::string basePath = Application::GetScreenshotPath();
+		std::string path = basePath + extension;
+
+		if (Screenshot::Exists(path)) {
+			int attempt = 0;
+			do {
+				attempt++;
+
+				if (attempt == INT32_MAX) {
+					Log::Print(Log::LOG_ERROR, "Could not save screenshot \"%s\"!", basePath.c_str());
+					return;
+				}
+
+				path = basePath + "-" + std::to_string(attempt) + extension;
+			} while (Screenshot::Exists(path));
+		}
+
+		op.Path = path;
 	}
 
 	op.OnFinish = operation;

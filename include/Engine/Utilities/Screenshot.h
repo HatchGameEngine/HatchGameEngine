@@ -21,6 +21,7 @@ public:
 	static std::vector<ScreenshotMetadata> GetMetadata();
 	static std::vector<PNGMetadata> GetPNGMetadata();
 	static std::string GetTimeString();
+	static bool Exists(std::string path);
 	static void TakeQueued();
 	static void QueueOperation(ScreenshotOperation operation);
 	static bool IsQueueEmpty();
