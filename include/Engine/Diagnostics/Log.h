@@ -19,7 +19,8 @@ public:
 		LOG_WARN = 1,
 		LOG_ERROR = 2,
 		LOG_IMPORTANT = 3,
-		LOG_FATAL = 4
+		LOG_FATAL = 4,
+		LOG_API = 5,
 	};
 	static int LogLevel;
 	static bool WriteToFile;

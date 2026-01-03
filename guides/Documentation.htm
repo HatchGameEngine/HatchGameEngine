@@ -46,6 +46,7 @@
         <h1 id="Reference_top">Hatch Game Engine Reference</h1>
         <h3>Namespaces</h3>
         <ul>
+            <li><a href="#Reference_API">API</a></li>
             <li><a href="#Reference_Animator">Animator</a></li>
             <li><a href="#Reference_Application">Application</a></li>
             <li><a href="#Reference_Array">Array</a></li>
@@ -101,7 +102,6 @@
         <h3>Instance methods</h3>
         <ul>
             <li><a href="#Reference_Entity">Entity</a></li>
-            <li><a href="#Reference_Font">Font</a></li>
             <li><a href="#Reference_Shader">Shader</a></li>
         </ul>
         <h3>Enums</h3>
@@ -192,6 +192,14 @@
         </ul>
         <hr/>
         <h3>Class methods</h3>
+            <p id="Reference_API">
+                <h2>API</h2>
+                <i>Class methods:</i>
+                <ul>
+                    <li><a href="#Reference_functions_API_Discord_Init">API.Discord.Init</a></li>
+                    <li><a href="#Reference_functions_API_Discord_UpdateRichPresence">API.Discord.UpdateRichPresence</a></li>
+                </ul>
+            </p>
             <p id="Reference_Animator">
                 <h2>Animator</h2>
                 <i>Class methods:</i>
@@ -1446,34 +1454,6 @@
                     <li><a href="#Reference_methods_entity_StopAllSounds">entity.StopAllSounds</a></li>
                 </ul>
             </p>
-            <p id="Reference_Font">
-                <h2>Font</h2>
-                <i>Instance methods:</i>
-                <ul>
-                    <li><a href="#Reference_methods_font_GetPixelsPerUnit">font.GetPixelsPerUnit</a></li>
-                    <li><a href="#Reference_methods_font_GetAscent">font.GetAscent</a></li>
-                    <li><a href="#Reference_methods_font_GetDescent">font.GetDescent</a></li>
-                    <li><a href="#Reference_methods_font_GetLeading">font.GetLeading</a></li>
-                    <li><a href="#Reference_methods_font_GetSpaceWidth">font.GetSpaceWidth</a></li>
-                    <li><a href="#Reference_methods_font_GetOversampling">font.GetOversampling</a></li>
-                    <li><a href="#Reference_methods_font_GetPixelCoverageThreshold">font.GetPixelCoverageThreshold</a></li>
-                    <li><a href="#Reference_methods_font_GetGlyphAdvance">font.GetGlyphAdvance</a></li>
-                    <li><a href="#Reference_methods_font_IsAntialiasingEnabled">font.IsAntialiasingEnabled</a></li>
-                    <li><a href="#Reference_methods_font_HasGlyph">font.HasGlyph</a></li>
-                    <li><a href="#Reference_methods_font_SetPixelsPerUnit">font.SetPixelsPerUnit</a></li>
-                    <li><a href="#Reference_methods_font_SetAscent">font.SetAscent</a></li>
-                    <li><a href="#Reference_methods_font_SetDescent">font.SetDescent</a></li>
-                    <li><a href="#Reference_methods_font_SetLeading">font.SetLeading</a></li>
-                    <li><a href="#Reference_methods_font_SetSpaceWidth">font.SetSpaceWidth</a></li>
-                    <li><a href="#Reference_methods_font_SetOversampling">font.SetOversampling</a></li>
-                    <li><a href="#Reference_methods_font_SetPixelCoverageThreshold">font.SetPixelCoverageThreshold</a></li>
-                    <li><a href="#Reference_methods_font_SetAntialiasing">font.SetAntialiasing</a></li>
-                </ul>
-                <i>Instance constructors:</i>
-                <ul>
-                    <li><a href="#Reference_constructors_Font">Font</a></li>
-                </ul>
-            </p>
             <p id="Reference_Shader">
                 <h2>Shader</h2>
                 <i>Instance methods:</i>
@@ -2033,6 +2013,29 @@
         <h3>Globals</h3>
         <hr/>
         <h3>Class methods</h3>
+        <p id="Reference_functions_API_Discord_Init">
+        <h2 style="margin-bottom: 8px;">API.Discord.Init</h2>
+        <code>API.Discord.Init(applicationID)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Initializes Discord integration.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>applicationID (String): The Discord Application ID. This will have needed to be created via the Discord Developer Portal.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns whether initialization was successful.</div>
+        </p>
+        <p id="Reference_functions_API_Discord_UpdateRichPresence">
+        <h2 style="margin-bottom: 8px;">API.Discord.UpdateRichPresence</h2>
+        <code>API.Discord.UpdateRichPresence(details[, state, imageKey, startTime])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Updates Discord Rich Presence.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>details (String): The first line of text in the Rich Presence.</li>
+        <li>state (String): The second line of text, appearing below details.</li>
+        <li>imageKey (String): The internal name of the image asset to display, created via the Discord Developer Portal.</li>
+        <li>startTime (Integer): A Unix timestamp (in seconds) of when the activity started.</li>
+        </ul>
+        </p>
         <p id="Reference_functions_Animator_Create">
         <h2 style="margin-bottom: 8px;">Animator.Create</h2>
         <code>Animator.Create([sprite, animationID, frameID, unloadPolicy])</code>
@@ -2441,7 +2444,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Enables or disables fixed timestep. This is enabled by default.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>useFixedTimestep (Boolean): Whether or not to use fixed timestep.</li>
+        <li>useFixedTimestep (Boolean): Whether to use fixed timestep.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_GetFPS">
@@ -2457,7 +2460,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Enables or disables the FPS (frames per second) counter.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>show (Boolean): Whether or not to show the FPS counter.</li>
+        <li>show (Boolean): Whether to show the FPS counter.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_GetKeyBind">
@@ -2543,7 +2546,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the visibility of the cursor.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>cursorVisible (Boolean): Whether or not the cursor is visible.</li>
+        <li>cursorVisible (Boolean): Whether the cursor is visible.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_GetCursorVisible">
@@ -2560,7 +2563,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>message (String): The error message to show to the user.</li>
-        <li>detailed (Boolean): Whether or not to show the stack trace alongside the error. The default is <code>true</code>.</li>
+        <li>detailed (Boolean): Whether to show the stack trace alongside the error. The default is <code>true</code>.</li>
         </ul>
         </p>
         <p id="Reference_functions_Application_SetDefaultFont">
@@ -3163,14 +3166,14 @@
         <p id="Reference_functions_Device_IsPC">
         <h2 style="margin-bottom: 8px;">Device.IsPC</h2>
         <code>Device.IsPC()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Determines whether or not the application is running on a personal computer OS (Windows, MacOS, Linux).</div>
+        <div style="margin-top: 8px; font-size: 14px;">Determines whether the application is running on a personal computer OS (Windows, MacOS, Linux).</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the device is on a PC, <code>false</code> if otherwise.</div>
         </p>
         <p id="Reference_functions_Device_IsMobile">
         <h2 style="margin-bottom: 8px;">Device.IsMobile</h2>
         <code>Device.IsMobile()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Determines whether or not the application is running on a mobile device.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Determines whether the application is running on a mobile device.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the device is on a mobile device, <code>false</code> if otherwise.</div>
         </p>
@@ -3215,7 +3218,7 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>directory (String): The path of the folder to find files in.</li>
         <li>pattern (String): The search pattern for the files. (ex: "*" for any file, "*.*" any file name with any file type, "*.png" any PNG file)</li>
-        <li>allDirs (Boolean): Whether or not to search into all folders in the directory.</li>
+        <li>allDirs (Boolean): Whether to search into all folders in the directory.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Array containing the filepaths (as Strings.)</div>
@@ -3228,7 +3231,7 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>directory (String): The path of the folder to find folders in.</li>
         <li>pattern (String): The search pattern for the folders. (ex: "*" for any folder, "image*" any folder that starts with "image")</li>
-        <li>allDirs (Boolean): Whether or not to search into all folders in the directory.</li>
+        <li>allDirs (Boolean): Whether to search into all folders in the directory.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Array containing the filepaths (as Strings.)</div>
@@ -3266,12 +3269,12 @@
         <li>frame (Integer): Index of the frame in the animation entry.</li>
         <li>x (Number): X position of where to draw the sprite.</li>
         <li>y (Number): Y position of where to draw the sprite.</li>
-        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
+        <li>flipX (Integer): Whether to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether to flip the sprite vertically.</li>
         <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
         <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
         <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.</li>
-        <li>useInteger (Number): Whether or not the rotation argument is already in radians.</li>
+        <li>useInteger (Number): Whether the rotation argument is already in radians.</li>
         <li>paletteID (Integer): Which palette index to use.</li>
         </ul>
         </p>
@@ -3329,12 +3332,12 @@
         <li>partY (Integer): Y coordinate of part of frame to draw.</li>
         <li>partW (Integer): Width of part of frame to draw.</li>
         <li>partH (Integer): Height of part of frame to draw.</li>
-        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
+        <li>flipX (Integer): Whether to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether to flip the sprite vertically.</li>
         <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
         <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
         <li>rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.</li>
-        <li>useInteger (Number): Whether or not the rotation argument is already in radians.</li>
+        <li>useInteger (Number): Whether the rotation argument is already in radians.</li>
         <li>paletteID (Integer): Which palette index to use.</li>
         </ul>
         </p>
@@ -3488,8 +3491,8 @@
         <li>ID (Integer): ID of the tile to draw.</li>
         <li>x (Number): X position of where to draw the tile.</li>
         <li>y (Number): Y position of where to draw the tile.</li>
-        <li>flipX (Integer): Whether or not to flip the tile horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
+        <li>flipX (Integer): Whether to flip the tile horizontally.</li>
+        <li>flipY (Integer): Whether to flip the tile vertically.</li>
         <li>scaleX (Number): Horizontal scale multiplier of the tile.</li>
         <li>scaleY (Number): Vertical scale multiplier of the tile.</li>
         <li>rotation (Number): Rotation of the drawn tile in radians.</li>
@@ -3689,10 +3692,10 @@
         <p id="Reference_functions_Draw_SetTextureBlend">
         <h2 style="margin-bottom: 8px;">Draw.SetTextureBlend</h2>
         <code>Draw.SetTextureBlend(doBlend)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to use color and alpha blending on sprites, images, and textures.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whetherto use color and alpha blending on sprites, images, and textures.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>doBlend (Boolean): Whether or not to use blending.</li>
+        <li>doBlend (Boolean): Whether to use blending.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetBlendMode">
@@ -3757,10 +3760,10 @@
         <p id="Reference_functions_Draw_UseTinting">
         <h2 style="margin-bottom: 8px;">Draw.UseTinting</h2>
         <code>Draw.UseTinting(useTinting)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to use color tinting when drawing.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether to use color tinting when drawing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>useTinting (Boolean): Whether or not to use color tinting when drawing.</li>
+        <li>useTinting (Boolean): Whether to use color tinting when drawing.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetShader">
@@ -4105,19 +4108,19 @@
         <p id="Reference_functions_Draw_UseFillSmoothing">
         <h2 style="margin-bottom: 8px;">Draw.UseFillSmoothing</h2>
         <code>Draw.UseFillSmoothing(smoothFill)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to use smoothing when drawing filled shapes. (hardware-renderer only)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether to use smoothing when drawing filled shapes. (hardware-renderer only)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>smoothFill (Boolean): Whether or not to use smoothing.</li>
+        <li>smoothFill (Boolean): Whether to use smoothing.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_UseStrokeSmoothing">
         <h2 style="margin-bottom: 8px;">Draw.UseStrokeSmoothing</h2>
         <code>Draw.UseStrokeSmoothing(smoothFill)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to use smoothing when drawing un-filled shapes. (hardware-renderer only)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether to use smoothing when drawing un-filled shapes. (hardware-renderer only)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>smoothFill (Boolean): Whether or not to use smoothing.</li>
+        <li>smoothFill (Boolean): Whether to use smoothing.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetClip">
@@ -4200,10 +4203,10 @@
         <p id="Reference_functions_Draw_UseSpriteDeform">
         <h2 style="margin-bottom: 8px;">Draw.UseSpriteDeform</h2>
         <code>Draw.UseSpriteDeform(useDeform)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to use sprite deform when drawing.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether to use sprite deform when drawing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>useDeform (Boolean): Whether or not to use sprite deform when drawing.</li>
+        <li>useDeform (Boolean): Whether to use sprite deform when drawing.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_SetSpriteDeformLine">
@@ -4219,10 +4222,10 @@
         <p id="Reference_functions_Draw_UseDepthTesting">
         <h2 style="margin-bottom: 8px;">Draw.UseDepthTesting</h2>
         <code>Draw.UseDepthTesting(useDepthTesting)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to do depth tests when drawing.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether to do depth tests when drawing.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>useDepthTesting (Boolean): Whether or not to do depth tests when drawing.</li>
+        <li>useDepthTesting (Boolean): Whether to do depth tests when drawing.</li>
         </ul>
         </p>
         <p id="Reference_functions_Draw_GetCurrentDrawGroup">
@@ -4366,8 +4369,8 @@
         <li>x (Number): X position of where to draw the sprite.</li>
         <li>y (Number): Y position of where to draw the sprite.</li>
         <li>z (Number): Z position of where to draw the sprite.</li>
-        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
+        <li>flipX (Integer): Whether to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether to flip the sprite vertically.</li>
         <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
         <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
         <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
@@ -4390,8 +4393,8 @@
         <li>partY (Integer): Y coordinate of part of frame to draw.</li>
         <li>partW (Integer): Width of part of frame to draw.</li>
         <li>partH (Integer): Height of part of frame to draw.</li>
-        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
+        <li>flipX (Integer): Whether to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether to flip the sprite vertically.</li>
         <li>scaleX (Number): Scale multiplier of the sprite horizontally.</li>
         <li>scaleY (Number): Scale multiplier of the sprite vertically.</li>
         <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
@@ -4440,8 +4443,8 @@
         <li>x (Number): X position of where to draw the tile.</li>
         <li>y (Number): Y position of where to draw the tile.</li>
         <li>z (Number): Z position of where to draw the tile.</li>
-        <li>flipX (Integer): Whether or not to flip the tile horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
+        <li>flipX (Integer): Whether to flip the tile horizontally.</li>
+        <li>flipY (Integer): Whether to flip the tile vertically.</li>
         <li>matrixModel (Matrix): Matrix for transforming coordinates to world space.</li>
         <li>matrixNormal (Matrix): Matrix for transforming normals.</li>
         </ul>
@@ -4519,8 +4522,8 @@
         <li>sprite (Integer): Index of the loaded sprite.</li>
         <li>animation (Integer): Index of the animation entry.</li>
         <li>frame (Integer): Index of the frame in the animation entry.</li>
-        <li>flipX (Integer): Whether or not to flip the sprite horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the sprite vertically.</li>
+        <li>flipX (Integer): Whether to flip the sprite horizontally.</li>
+        <li>flipY (Integer): Whether to flip the sprite vertically.</li>
         <li>x1 (Number): X position of the first vertex.</li>
         <li>y1 (Number): Y position of the first vertex.</li>
         <li>z1 (Number): Z position of the first vertex.</li>
@@ -4548,8 +4551,8 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>ID (Integer): ID of the tile to draw.</li>
-        <li>flipX (Integer): Whether or not to flip the tile horizontally.</li>
-        <li>flipY (Integer): Whether or not to flip the tile vertically.</li>
+        <li>flipX (Integer): Whether to flip the tile horizontally.</li>
+        <li>flipY (Integer): Whether to flip the tile vertically.</li>
         <li>x1 (Number): X position of the first vertex.</li>
         <li>y1 (Number): Y position of the first vertex.</li>
         <li>z1 (Number): Z position of the first vertex.</li>
@@ -5655,14 +5658,14 @@
         <p id="Reference_functions_Instance_IsClass">
         <h2 style="margin-bottom: 8px;">Instance.IsClass</h2>
         <code>Instance.IsClass(instance, className)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Determines whether or not the instance is of a specified object class.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Determines whether the instance is of a specified object class.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>instance (Instance): The instance to check. If there is no instance, this automatically returns false.</li>
         <li>className (String): Name of the object class.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether or not the instance is of a specified object class.</div>
+        <div style="font-size: 14px;">Returns whether the instance is of a specified object class.</div>
         </p>
         <p id="Reference_functions_Instance_GetClass">
         <h2 style="margin-bottom: 8px;">Instance.GetClass</h2>
@@ -5768,7 +5771,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>json (Any type): The value to convert.</li>
-        <li>prettyPrint (Boolean): Whether or not to use spacing and newlines in the text.</li>
+        <li>prettyPrint (Boolean): Whether to use spacing and newlines in the text.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a JSON string based on the value.</div>
@@ -6150,7 +6153,7 @@
         <li>x (Number): X position value.</li>
         <li>y (Number): Y position value.</li>
         <li>z (Number): Z position value.</li>
-        <li>resetToIdentity (Boolean): Whether or not to calculate the translation values based on the matrix. (Default: <code>false</code>)</li>
+        <li>resetToIdentity (Boolean): Whether to calculate the translation values based on the matrix. (Default: <code>false</code>)</li>
         <li>actuallyTranslate (Boolean): Adds the translation components to the matrix instead of overwriting them (Preserves older code functionality, please fix me!). (Default: <code>false</code>)</li>
         </ul>
         </p>
@@ -6509,7 +6512,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Enables or disables palette usage for the application.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>usePalettes (Boolean): Whether or not to use palettes.</li>
+        <li>usePalettes (Boolean): Whether to use palettes.</li>
         </ul>
         </p>
         <p id="Reference_functions_Palette_LoadFromResource">
@@ -6576,7 +6579,7 @@
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>paletteIndex (Integer): Index of palette.</li>
         <li>colorIndex (Integer): Index of color.</li>
-        <li>isTransparent (Boolean): Whether to make the color transparent or not.</li>
+        <li>isTransparent (Boolean): Whether to make the color transparent.</li>
         </ul>
         </p>
         <p id="Reference_functions_Palette_MixPalettes">
@@ -6634,7 +6637,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Enables or disables the global palette index table.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>usePaletteIndexLines (Boolean): Whether or not to use the global palette index table.</li>
+        <li>usePaletteIndexLines (Boolean): Whether to use the global palette index table.</li>
         </ul>
         </p>
         <p id="Reference_functions_Palette_SetPaletteIndexLines">
@@ -6913,7 +6916,7 @@
         <li>x (Number): X position value.</li>
         <li>y (Number): Y position value.</li>
         <li>z (Number): Z position value.</li>
-        <li>setIdentity (Boolean): Whether or not to set the matrix as the identity.</li>
+        <li>setIdentity (Boolean): Whether to set the matrix as the identity.</li>
         </ul>
         </p>
         <p id="Reference_functions_RSDK_Matrix_Scale256">
@@ -7123,7 +7126,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>filename (String): Filename of scene.</li>
-        <li>persistency (Boolean): Whether or not the scene should load with persistency.</li>
+        <li>persistency (Boolean): Whether the scene should load with persistency.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_Change">
@@ -7279,7 +7282,7 @@
         <p id="Reference_functions_Scene_GetLayerExists">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerExists</h2>
         <code>Scene.GetLayerExists(layerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether a layer exists or not. (Deprecated)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether a layer exists. (Deprecated)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -7402,7 +7405,7 @@
         <p id="Reference_functions_Scene_GetLayerHorizontalRepeat">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerHorizontalRepeat</h2>
         <code>Scene.GetLayerHorizontalRepeat(layerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the layer repeats horizontally.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the layer repeats horizontally.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -7413,7 +7416,7 @@
         <p id="Reference_functions_Scene_GetLayerVerticalRepeat">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerVerticalRepeat</h2>
         <code>Scene.GetLayerVerticalRepeat(layerIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the layer repeats vertically.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the layer repeats vertically.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
@@ -7513,7 +7516,7 @@
         <p id="Reference_functions_Scene_GetTileFlipX">
         <h2 style="margin-bottom: 8px;">Scene.GetTileFlipX</h2>
         <code>Scene.GetTileFlipX(layer, x, y)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the tile at the tile coordinates is flipped horizontally or not.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the tile at the tile coordinates is flipped horizontally.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layer (Integer): Index of the layer</li>
@@ -7526,7 +7529,7 @@
         <p id="Reference_functions_Scene_GetTileFlipY">
         <h2 style="margin-bottom: 8px;">Scene.GetTileFlipY</h2>
         <code>Scene.GetTileFlipY(layer, x, y)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the tile at the tile coordinates is flipped vertically or not.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the tile at the tile coordinates is flipped vertically.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layer (Integer): Index of the layer</li>
@@ -7634,7 +7637,7 @@
         <p id="Reference_functions_Scene_GetTileAnimationEnabled">
         <h2 style="margin-bottom: 8px;">Scene.GetTileAnimationEnabled</h2>
         <code>Scene.GetTileAnimationEnabled()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not tile animation is enabled.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether tile animation is enabled.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns 0 if tile animation is disabled, 1 if it's enabled, and 2 if tiles animate even if the scene is paused.</div>
         </p>
@@ -7725,7 +7728,7 @@
         <p id="Reference_functions_Scene_IsPaused">
         <h2 style="margin-bottom: 8px;">Scene.IsPaused</h2>
         <code>Scene.IsPaused()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the scene is paused.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the scene is paused.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value.</div>
         </p>
@@ -7753,8 +7756,8 @@
         <li>cellX (Number): Tile cell X.</li>
         <li>cellY (Number): Tile cell Y.</li>
         <li>tileID (Integer): Tile ID.</li>
-        <li>flipX (Boolean): Whether to flip the tile horizontally or not.</li>
-        <li>flipY (Boolean): Whether to flip the tile vertically or not.</li>
+        <li>flipX (Boolean): Whether to flip the tile horizontally.</li>
+        <li>flipY (Boolean): Whether to flip the tile vertically.</li>
         <li>collisionMaskA (Integer): Collision mask to use for the tile on Plane A. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)</li>
         <li>collisionMaskB (Integer): Collision mask to use for the tile on Plane B. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)</li>
         </ul>
@@ -7775,16 +7778,16 @@
         <p id="Reference_functions_Scene_SetPaused">
         <h2 style="margin-bottom: 8px;">Scene.SetPaused</h2>
         <code>Scene.SetPaused(isPaused)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether the game is paused or not. When paused, only objects with <code><a href="#Reference_fields_instance_Pauseable">instance.Pauseable</a></code> set to <code>false</code> will continue to <code>Update</code>.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether the game is paused. When paused, only objects with <code><a href="#Reference_fields_instance_Pauseable">instance.Pauseable</a></code> set to <code>false</code> will continue to <code>Update</code>.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>isPaused (Boolean): Whether or not the scene is paused.</li>
+        <li>isPaused (Boolean): Whether the scene is paused.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetTileAnimationEnabled">
         <h2 style="margin-bottom: 8px;">Scene.SetTileAnimationEnabled</h2>
         <code>Scene.SetTileAnimationEnabled(isEnabled)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not tile animation is enabled.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether tile animation is enabled.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>isEnabled (Integer): 0 disables tile animation, 1 enables it, and 2 makes tiles animate even if the scene is paused.</li>
@@ -7859,17 +7862,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>isVisible (Boolean): Whether or not the layer can be seen.</li>
+        <li>isVisible (Boolean): Whether the layer can be seen.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerCollidable">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerCollidable</h2>
         <code>Scene.SetLayerCollidable(layerIndex, isVisible)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not the specified layer's tiles can be collided with.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether the specified layer's tiles can be collided with.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>isVisible (Boolean): Whether or not the layer can be collided with.</li>
+        <li>isVisible (Boolean): Whether the layer can be collided with.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerInternalSize">
@@ -7931,31 +7934,31 @@
         <p id="Reference_functions_Scene_SetLayerRepeat">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerRepeat</h2>
         <code>Scene.SetLayerRepeat(layerIndex, doesRepeat)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not the specified layer repeats.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether the specified layer repeats.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>doesRepeat (Boolean): Whether or not the layer repeats.</li>
+        <li>doesRepeat (Boolean): Whether the layer repeats.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerHorizontalRepeat">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerHorizontalRepeat</h2>
         <code>Scene.SetLayerHorizontalRepeat(layerIndex, doesRepeat)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not the specified layer repeats horizontally.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether the specified layer repeats horizontally.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>doesRepeat (Boolean): Whether or not the layer repeats horizontally.</li>
+        <li>doesRepeat (Boolean): Whether the layer repeats horizontally.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerVerticalRepeat">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerVerticalRepeat</h2>
         <code>Scene.SetLayerVerticalRepeat(layerIndex, doesRepeat)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not the specified layer repeats vertically.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether the specified layer repeats vertically.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>doesRepeat (Boolean): Whether or not the layer repeats vertically.</li>
+        <li>doesRepeat (Boolean): Whether the layer repeats vertically.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetDrawGroupCount">
@@ -7974,17 +7977,17 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>drawGroup (Integer): Number between 0 to the result of <code><a href="#Reference_functions_Scene_GetDrawGroupCount">Scene.GetDrawGroupCount</a></code>.</li>
-        <li>useEntityDepth (Boolean): Whether or not to sort objects by depth.</li>
+        <li>useEntityDepth (Boolean): Whether to sort objects by depth.</li>
         </ul>
         </p>
         <p id="Reference_functions_Scene_SetLayerBlend">
         <h2 style="margin-bottom: 8px;">Scene.SetLayerBlend</h2>
         <code>Scene.SetLayerBlend(layerIndex, doBlend[, blendMode])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not to use color and alpha blending on this layer. See <code><a href="#Reference_BlendMode_*">BlendMode_*</a></code> for a list of accepted blend modes.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether to use color and alpha blending on this layer. See <code><a href="#Reference_BlendMode_*">BlendMode_*</a></code> for a list of accepted blend modes.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>layerIndex (Integer): Index of layer.</li>
-        <li>doBlend (Boolean): Whether or not to use blending.</li>
+        <li>doBlend (Boolean): Whether to use blending.</li>
         <li>blendMode (Enum): The desired <a href="#Reference_BlendMode_*">blend mode</a>.</li>
         </ul>
         </p>
@@ -8148,7 +8151,7 @@
         <p id="Reference_functions_Scene_SetObjectViewRender">
         <h2 style="margin-bottom: 8px;">Scene.SetObjectViewRender</h2>
         <code>Scene.SetObjectViewRender(viewIndex, enableViewRender)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not objects can render on the specified view.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether objects can render on the specified view.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
@@ -8158,7 +8161,7 @@
         <p id="Reference_functions_Scene_SetTileViewRender">
         <h2 style="margin-bottom: 8px;">Scene.SetTileViewRender</h2>
         <code>Scene.SetTileViewRender(viewIndex, enableViewRender)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whether or not tiles can render on the specified view.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether tiles can render on the specified view.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
@@ -8171,7 +8174,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Creates a 3D scene.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>unloadPolicy (Integer): Whether or not to delete the 3D scene at the end of the current Scene, or the game end.</li>
+        <li>unloadPolicy (Integer): Whether to delete the 3D scene at the end of the current Scene, or the game end.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The index of the created 3D scene.</div>
@@ -8811,7 +8814,7 @@
         <p id="Reference_functions_Sound_IsPlaying">
         <h2 style="margin-bottom: 8px;">Sound.IsPlaying</h2>
         <code>Sound.IsPlaying(sound)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether a sound is currently playing or not.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether a sound is currently playing</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The sound index.</li>
@@ -8897,7 +8900,7 @@
         <p id="Reference_functions_Sound_IsChannelFree">
         <h2 style="margin-bottom: 8px;">Sound.IsChannelFree</h2>
         <code>Sound.IsChannelFree(sound)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks whether a channel is currently playing any sound or not.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Checks whether a channel is currently playing any sound.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>sound (Integer): The channel index.</li>
@@ -9641,7 +9644,7 @@
         <p id="Reference_functions_String_Contains">
         <h2 style="margin-bottom: 8px;">String.Contains</h2>
         <code>String.Contains(string, substring)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Searches for whether or not a substring is within a String value.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Searches for whether a substring is within a String value.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>string (String): The string to compare.</li>
@@ -9799,7 +9802,7 @@
         <li>instance (Instance): Instance to write the values to.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns <code>false</code> if no tile collision, but if <code>true</code>: <br/><pre class="code"><br/>instance.SensorX: (Number), // X Position where the sensor collided if it did. <br/>instance.SensorY: (Number), // Y Position where the sensor collided if it did. <br/>instance.SensorCollided: (Boolean), // Whether or not the sensor collided. <br/>instance.SensorAngle: (Integer) // Tile angle at the collision. <br/></pre></div>
+        <div style="font-size: 14px;">Returns <code>false</code> if no tile collision, but if <code>true</code>: <br/><pre class="code"><br/>instance.SensorX: (Number), // X Position where the sensor collided if it did. <br/>instance.SensorY: (Number), // Y Position where the sensor collided if it did. <br/>instance.SensorCollided: (Boolean), // Whether the sensor collided. <br/>instance.SensorAngle: (Integer) // Tile angle at the collision. <br/></pre></div>
         </p>
         <p id="Reference_functions_TileInfo_SetSpriteInfo">
         <h2 style="margin-bottom: 8px;">TileInfo.SetSpriteInfo</h2>
@@ -9842,8 +9845,8 @@
         <li>collisionField (Integer): The collision plane of the tile to get the collision from.</li>
         <li>directionType (Integer): Ordinal direction to check in. (0: Down, 1: Right, 2: Up, 3: Left, or one of the enums: SensorDirection_Up, SensorDirection_Left, SensorDirection_Down, SensorDirection_Right)</li>
         <li>position (Integer): Position on the tile to check, X position if the directionType is Up/Down, Y position if the directionType is Left/Right.</li>
-        <li>flipX (Boolean): Whether or not to check the collision with the tile horizontally flipped.</li>
-        <li>flipY (Boolean): Whether or not to check the collision with the tile vertically flipped.</li>
+        <li>flipX (Boolean): Whether to check the collision with the tile horizontally flipped.</li>
+        <li>flipY (Boolean): Whether to check the collision with the tile vertically flipped.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Collision position (Integer) on the tile, X position if the directionType is Left/Right, Y position if the directionType is Up/Down, -1 if there was no collision.</div>
@@ -9857,8 +9860,8 @@
         <li>tileID (Integer): ID of the tile to get the value of.</li>
         <li>collisionField (Integer): The collision plane of the tile to get the angle from.</li>
         <li>directionType (Integer): Ordinal direction to check in. (0: Down, 1: Right, 2: Up, 3: Left, or one of the enums: SensorDirection_Up, SensorDirection_Left, SensorDirection_Down, SensorDirection_Right)</li>
-        <li>flipX (Boolean): Whether or not to check the angle with the tile horizontally flipped.</li>
-        <li>flipY (Boolean): Whether or not to check the angle with the tile vertically flipped.</li>
+        <li>flipX (Boolean): Whether to check the angle with the tile horizontally flipped.</li>
+        <li>flipY (Boolean): Whether to check the angle with the tile vertically flipped.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Angle value between 0x00 to 0xFF at the specified direction.</div>
@@ -9949,7 +9952,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>numVertices (Integer): The initial capacity of this vertex buffer.</li>
-        <li>unloadPolicy (Integer): Whether or not to delete the vertex buffer at the end of the current Scene, or the game end.</li>
+        <li>unloadPolicy (Integer): Whether to delete the vertex buffer at the end of the current Scene, or the game end.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">The index of the created vertex buffer.</div>
@@ -10307,7 +10310,7 @@
         <p id="Reference_functions_View_IsUsingDrawTarget">
         <h2 style="margin-bottom: 8px;">View.IsUsingDrawTarget</h2>
         <code>View.IsUsingDrawTarget(viewIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the specified camera is using a draw target or not.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the specified camera is using a draw target.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
@@ -10322,7 +10325,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
-        <li>useDrawTarget (Boolean): Whether to use a draw target or not.</li>
+        <li>useDrawTarget (Boolean): Whether to use a draw target.</li>
         </ul>
         </p>
         <p id="Reference_functions_View_GetDrawTarget">
@@ -10360,7 +10363,7 @@
         <p id="Reference_functions_View_IsUsingSoftwareRenderer">
         <h2 style="margin-bottom: 8px;">View.IsUsingSoftwareRenderer</h2>
         <code>View.IsUsingSoftwareRenderer(viewIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the specified camera is using the software renderer or not.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the specified camera is using the software renderer.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
@@ -10385,7 +10388,7 @@
         <p id="Reference_functions_View_IsEnabled">
         <h2 style="margin-bottom: 8px;">View.IsEnabled</h2>
         <code>View.IsEnabled(viewIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the specified camera is active or not.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the specified camera is active.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
@@ -10400,13 +10403,13 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
-        <li>enabled (Boolean): Whether or not the camera should be enabled.</li>
+        <li>enabled (Boolean): Whether the camera should be enabled.</li>
         </ul>
         </p>
         <p id="Reference_functions_View_IsVisible">
         <h2 style="margin-bottom: 8px;">View.IsVisible</h2>
         <code>View.IsVisible(viewIndex)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the specified camera is visible or not.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the specified camera is visible.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
@@ -10421,7 +10424,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>viewIndex (Integer): Index of the view.</li>
-        <li>visible (Boolean): Whether or not the camera should be visible.</li>
+        <li>visible (Boolean): Whether the camera should be visible.</li>
         </ul>
         </p>
         <p id="Reference_functions_View_SetFieldOfView">
@@ -10481,7 +10484,7 @@
         <li>rangeY (Decimal): The y range to check, or <code>null</code> if the entity's update region height should be used.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether or not the instance is on screen in any view.</div>
+        <div style="font-size: 14px;">Returns whether the instance is on screen in any view.</div>
         </p>
         <p id="Reference_functions_View_CheckPosOnScreen">
         <h2 style="margin-bottom: 8px;">View.CheckPosOnScreen</h2>
@@ -10495,7 +10498,7 @@
         <li>rangeY (Decimal): The y range to check.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether or not the position is on screen in any view.</div>
+        <div style="font-size: 14px;">Returns whether the position is on screen in any view.</div>
         </p>
         <p id="Reference_functions_Window_SetSize">
         <h2 style="margin-bottom: 8px;">Window.SetSize</h2>
@@ -10513,7 +10516,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the fullscreen state of the active window.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>isFullscreen (Boolean): Whether or not the window should be fullscreen.</li>
+        <li>isFullscreen (Boolean): Whether the window should be fullscreen.</li>
         </ul>
         </p>
         <p id="Reference_functions_Window_SetScale">
@@ -10531,7 +10534,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Sets the bordered state of the active window.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>isBorderless (Boolean): Whether or not the window should be borderless.</li>
+        <li>isBorderless (Boolean): Whether the window should be borderless.</li>
         </ul>
         </p>
         <p id="Reference_functions_Window_SetVSync">
@@ -10540,7 +10543,7 @@
         <div style="margin-top: 8px; font-size: 14px;">Enables or disables V-Sync for the active window.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
-        <li>enableVsync (Boolean): Whether or not the window should use V-Sync.</li>
+        <li>enableVsync (Boolean): Whether the window should use V-Sync.</li>
         </ul>
         </p>
         <p id="Reference_functions_Window_SetPosition">
@@ -10593,7 +10596,7 @@
         <p id="Reference_functions_Window_GetFullscreen">
         <h2 style="margin-bottom: 8px;">Window.GetFullscreen</h2>
         <code>Window.GetFullscreen()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the active window is currently fullscreen.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the active window is currently fullscreen.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the window is fullscreen, <code>false</code> if otherwise.</div>
         </p>
@@ -10607,7 +10610,7 @@
         <p id="Reference_functions_Window_IsResizeable">
         <h2 style="margin-bottom: 8px;">Window.IsResizeable</h2>
         <code>Window.IsResizeable()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether or not the active window is resizeable.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Gets whether the active window is resizeable.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns <code>true</code> if the window is resizeable, <code>false</code> if otherwise.</div>
         </p>
@@ -10906,156 +10909,6 @@
         <code>entity.StopAllSounds()</code>
         <div style="margin-top: 8px; font-size: 14px;">Stops all sounds the entity is playing.</div>
         </p>
-        <p id="Reference_methods_font_GetPixelsPerUnit">
-        <h2 style="margin-bottom: 8px;">font.GetPixelsPerUnit</h2>
-        <code>font.GetPixelsPerUnit()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the pixels per unit value of the font. The default for all fonts is <code>40</code>.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Decimal value.</div>
-        </p>
-        <p id="Reference_methods_font_GetAscent">
-        <h2 style="margin-bottom: 8px;">font.GetAscent</h2>
-        <code>font.GetAscent()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the distance in pixels above the baseline.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Decimal value.</div>
-        </p>
-        <p id="Reference_methods_font_GetDescent">
-        <h2 style="margin-bottom: 8px;">font.GetDescent</h2>
-        <code>font.GetDescent()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the distance in pixels below the baseline.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Decimal value.</div>
-        </p>
-        <p id="Reference_methods_font_GetLeading">
-        <h2 style="margin-bottom: 8px;">font.GetLeading</h2>
-        <code>font.GetLeading()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the distance between lines in pixels.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Decimal value.</div>
-        </p>
-        <p id="Reference_methods_font_GetSpaceWidth">
-        <h2 style="margin-bottom: 8px;">font.GetSpaceWidth</h2>
-        <code>font.GetSpaceWidth()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the width of the space character.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Decimal value.</div>
-        </p>
-        <p id="Reference_methods_font_GetOversampling">
-        <h2 style="margin-bottom: 8px;">font.GetOversampling</h2>
-        <code>font.GetOversampling()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the oversampling value. The default is <code>1</code> for all fonts.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Integer value.</div>
-        </p>
-        <p id="Reference_methods_font_GetPixelCoverageThreshold">
-        <h2 style="margin-bottom: 8px;">font.GetPixelCoverageThreshold</h2>
-        <code>font.GetPixelCoverageThreshold()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the pixel coverage threshold value. Pixels with coverage under this value become fully transparent, and pixels with coverage equal to or above this value become fully opaque. The default is <code>0.5</code> for all fonts.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Decimal value.</div>
-        </p>
-        <p id="Reference_methods_font_GetGlyphAdvance">
-        <h2 style="margin-bottom: 8px;">font.GetGlyphAdvance</h2>
-        <code>font.GetGlyphAdvance(codepoint)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets the advance width of a given glyph through its code point, if it exists in the font.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>codepoint (Integer): An Unicode code point.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a Decimal value, or <code>null</code> if no glyph representing the given code point exists in the font.</div>
-        </p>
-        <p id="Reference_methods_font_IsAntialiasingEnabled">
-        <h2 style="margin-bottom: 8px;">font.IsAntialiasingEnabled</h2>
-        <code>font.IsAntialiasingEnabled()</code>
-        <div style="margin-top: 8px; font-size: 14px;">Gets whether the font has anti-aliasing enabled.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns <code>true</code> is anti-aliasing is enabled, <code>false</code> if otherwise.</div>
-        </p>
-        <p id="Reference_methods_font_HasGlyph">
-        <h2 style="margin-bottom: 8px;">font.HasGlyph</h2>
-        <code>font.HasGlyph(codepoint)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Checks if the font has a glyph for the given code point.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>codepoint (Integer): An Unicode code point.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns <code>true</code> if there is a glyph for the given code point, <code>false</code> if otherwise.</div>
-        </p>
-        <p id="Reference_methods_font_SetPixelsPerUnit">
-        <h2 style="margin-bottom: 8px;">font.SetPixelsPerUnit</h2>
-        <code>font.SetPixelsPerUnit(pixelsPerUnit)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the pixels per unit value of the font. Higher values improve the clarity, at the cost of increased memory usage. Note that this causes all glyphs to be reloaded, so this should usually only be called once.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>pixelsPerUnit (Number): The pixels per unit value.</li>
-        </ul>
-        </p>
-        <p id="Reference_methods_font_SetAscent">
-        <h2 style="margin-bottom: 8px;">font.SetAscent</h2>
-        <code>font.SetAscent(ascent)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the distance in pixels above the baseline.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>ascent (Number): The distance.</li>
-        </ul>
-        </p>
-        <p id="Reference_methods_font_SetDescent">
-        <h2 style="margin-bottom: 8px;">font.SetDescent</h2>
-        <code>font.SetDescent(descent)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the distance in pixels below the baseline.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>descent (Number): The distance.</li>
-        </ul>
-        </p>
-        <p id="Reference_methods_font_SetLeading">
-        <h2 style="margin-bottom: 8px;">font.SetLeading</h2>
-        <code>font.SetLeading(leading)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the distance between lines in pixels.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>leading (Number): The distance.</li>
-        </ul>
-        </p>
-        <p id="Reference_methods_font_SetSpaceWidth">
-        <h2 style="margin-bottom: 8px;">font.SetSpaceWidth</h2>
-        <code>font.SetSpaceWidth(spaceWidth)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the width of the space character.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>spaceWidth (Number): The width.</li>
-        </ul>
-        </p>
-        <p id="Reference_methods_font_SetOversampling">
-        <h2 style="margin-bottom: 8px;">font.SetOversampling</h2>
-        <code>font.SetOversampling(oversampling)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the oversampling value. Higher values increase font quality. Changing this value causes all font glyphs to be reloaded.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>oversampling (Integer): The oversampling value.</li>
-        </ul>
-        </p>
-        <p id="Reference_methods_font_SetPixelCoverageThreshold">
-        <h2 style="margin-bottom: 8px;">font.SetPixelCoverageThreshold</h2>
-        <code>font.SetPixelCoverageThreshold(threshold)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets the pixel coverage threshold value. Pixels with coverage under this value become fully transparent, and pixels with coverage equal to or above this value become fully opaque. This only has an effect on fonts with anti-aliasing disabled.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>threshold (Decimal): The threshold value, from <code>0.0</code> to <code>1.0</code>.</li>
-        </ul>
-        </p>
-        <p id="Reference_methods_font_SetAntialiasing">
-        <h2 style="margin-bottom: 8px;">font.SetAntialiasing</h2>
-        <code>font.SetAntialiasing(useAntialiasing)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Enables or disables anti-aliasing on the font. If disabling, you may want to increase the pixel coverage value with <code><a href="#Reference_methods_font_SetPixelCoverageThreshold">font.SetPixelCoverageThreshold</a></code>.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>useAntialiasing (Boolean): Whether or not to use anti-aliasing.</li>
-        </ul>
-        </p>
         <p id="Reference_methods_shader_HasStage">
         <h2 style="margin-bottom: 8px;">shader.HasStage</h2>
         <code>shader.HasStage(stage)</code>
@@ -11176,24 +11029,15 @@
         <code>shader.Delete()</code>
         <div style="margin-top: 8px; font-size: 14px;">Deletes a shader. It can no longer be used after this function is called.</div>
         </p>
-        <p>59 out of 59 methods have descriptions. </p>
+        <p>41 out of 41 methods have descriptions. </p>
         <hr/>
         <h3>Instance constructors</h3>
-        <p id="Reference_constructors_Font">
-        <h2 style="margin-bottom: 8px;">Font</h2>
-        <code>Font([font])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Loads a font from the given Resource path, Stream, or Array containing Resource paths or Streams.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>font (String, Stream, or Array): The font or list of fonts. If this argument is not given, it will use font the application was built with, if one is present.</li>
-        </ul>
-        </p>
         <p id="Reference_constructors_Shader">
         <h2 style="margin-bottom: 8px;">Shader</h2>
         <code>Shader()</code>
         <div style="margin-top: 8px; font-size: 14px;">Creates a shader program.</div>
         </p>
-        <p>2 out of 2 constructors have descriptions. </p>
+        <p>1 out of 1 constructors have descriptions. </p>
         <hr/>
         <h3>Instance fields</h3>
         <p id="Reference_fields_instance_X">
@@ -13177,11 +13021,11 @@
         </p>
         <p id="Reference_globals_Scene_TimeEnabled">
         <h3 style="margin-bottom: 8px;"><code>Scene_TimeEnabled</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Whether the scene timer is enabled or not.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Whether the scene timer is enabled.</div>
         </p>
         <p id="Reference_globals_Scene_TimeCounter">
         <h3 style="margin-bottom: 8px;"><code>Scene_TimeCounter</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">The current scene timer counter.</div>
+        <div style="margin-top: 8px; font-size: 14px;">The current scene time counter.</div>
         </p>
         <p id="Reference_globals_Scene_Minutes">
         <h3 style="margin-bottom: 8px;"><code>Scene_Minutes</code></h2>
@@ -13205,7 +13049,7 @@
         </p>
         <p id="Reference_globals_Scene_DebugMode">
         <h3 style="margin-bottom: 8px;"><code>Scene_DebugMode</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Whether nor not Debug Mode has been turned on in the current scene</div>
+        <div style="margin-top: 8px; font-size: 14px;">Whether Debug Mode has been turned on in the current scene.</div>
         </p>
         <p>15 out of 15 globals have descriptions. </p>
         <hr/>

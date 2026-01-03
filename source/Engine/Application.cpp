@@ -11,6 +11,7 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Diagnostics/MemoryPools.h>
 #include <Engine/Diagnostics/PerformanceViewer.h>
+#include <Engine/Extensions/Discord.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
@@ -1793,6 +1794,9 @@ void Application::MainLoop() {
 
 		ChangeGame(gamePath);
 	}
+
+	if (Discord::Initialized)
+		Discord::Update();
 }
 
 void Application::Cleanup() {
