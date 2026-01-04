@@ -194,6 +194,63 @@ inline ObjMap* GetMap(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
+	CollisionBox box;
+	if (IS_HITBOX(args[index])) {
+		int* values = AS_HITBOX(args[index]);
+		box.Left = values[HITBOX_LEFT];
+		box.Top = values[HITBOX_TOP];
+		box.Right = values[HITBOX_RIGHT];
+		box.Bottom = values[HITBOX_BOTTOM];
+	}
+	else if (IS_ARRAY(args[index])) {
+		if (ScriptManager::Lock()) {
+			int values[NUM_HITBOX_SIDES];
+
+			ObjArray* array = AS_ARRAY(args[index]);
+
+			if (array->Values->size() != NUM_HITBOX_SIDES) {
+				if (THROW_ERROR("Expected array to have %d elements instead of %d.",
+					NUM_HITBOX_SIDES,
+					array->Values->size()) == ERROR_RES_CONTINUE) {
+					ScriptManager::Threads[threadID].ReturnFromNative();
+				}
+				ScriptManager::Unlock();
+				return box;
+			}
+
+			for (int i = 0; i < NUM_HITBOX_SIDES; i++) {
+				VMValue value = (*array->Values)[i];
+				if (!IS_NUMBER(value)) {
+					THROW_ERROR(
+						"Expected value at index %d to be of type %s instead of %s.",
+						i,
+						"number",
+						GetValueTypeString(value));
+					ScriptManager::Unlock();
+					return box;
+				}
+				values[i] = AS_INTEGER(value);
+			}
+
+			box.Left = values[HITBOX_LEFT];
+			box.Top = values[HITBOX_TOP];
+			box.Right = values[HITBOX_RIGHT];
+			box.Bottom = values[HITBOX_BOTTOM];
+
+			ScriptManager::Unlock();
+		}
+	}
+	else {
+		if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+			    index + 1,
+			    GetTypeString(VAL_HITBOX),
+			    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+			ScriptManager::Threads[threadID].ReturnFromNative();
+		}
+	}
+	return box;
+}
 inline ObjBoundMethod* GetBoundMethod(VMValue* args, int index, Uint32 threadID) {
 	ObjBoundMethod* value = NULL;
 	if (ScriptManager::Lock()) {
@@ -886,7 +943,7 @@ VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Gets the hitbox of an animation and frame of an animator.
  * \param animator (Integer): The index of the animator.
  * \paramOpt hitboxID (Integer): The index number of the hitbox. Defaults to <code>0</code>.
- * \return Returns a reference value to a hitbox array.
+ * \return Returns a Hitbox value.
  * \ns Animator
  */
 VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
@@ -928,12 +985,7 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		CollisionBox box = frame.Boxes[hitboxID];
-		ObjArray* array = NewArray();
-		array->Values->push_back(INTEGER_VAL(box.Left));
-		array->Values->push_back(INTEGER_VAL(box.Top));
-		array->Values->push_back(INTEGER_VAL(box.Right));
-		array->Values->push_back(INTEGER_VAL(box.Bottom));
-		return OBJECT_VAL(array);
+		return HITBOX_VAL(box.Left, box.Top, box.Right, box.Bottom);
 	}
 	else {
 		return NULL_VAL;
@@ -2233,47 +2285,19 @@ VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
  * Collision.ProcessObjectMovement
  * \desc Processes movement of an instance with an outer hitbox and an inner hitboxes.
  * \param entity (Instance): The instance to move.
- * \param outer (Array): Array containing the outer hitbox.
- * \param inner (Array): Array containing the inner hitbox.
+ * \param outer (Hitbox): The outer hitbox.
+ * \param inner (Hitbox): The inner hitbox.
  * \ns Collision
  */
 VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
 	ObjEntity* entity = GET_ARG(0, GetEntity);
-	ObjArray* outer = GET_ARG(1, GetArray);
-	ObjArray* inner = GET_ARG(2, GetArray);
+	CollisionBox outerBox = GET_ARG(1, GetHitbox);
+	CollisionBox innerBox = GET_ARG(2, GetHitbox);
 
-	CollisionBox outerBox;
-	CollisionBox innerBox;
-
-	if (entity && outer && inner) {
+	if (entity) {
 		auto ent = (Entity*)entity->EntityPtr;
-		
-		if (IS_INTEGER((*outer->Values)[0])) {
-			outerBox.Left = AS_INTEGER((*outer->Values)[0]);
-			outerBox.Top = AS_INTEGER((*outer->Values)[1]);
-			outerBox.Right = AS_INTEGER((*outer->Values)[2]);
-			outerBox.Bottom = AS_INTEGER((*outer->Values)[3]);
-		}
-		else {
-			outerBox.Left = (int)AS_DECIMAL((*outer->Values)[0]);
-			outerBox.Top = (int)AS_DECIMAL((*outer->Values)[1]);
-			outerBox.Right = (int)AS_DECIMAL((*outer->Values)[2]);
-			outerBox.Bottom = (int)AS_DECIMAL((*outer->Values)[3]);
-		}
 
-		if (IS_INTEGER((*inner->Values)[0])) {
-			innerBox.Left = AS_INTEGER((*inner->Values)[0]);
-			innerBox.Top = AS_INTEGER((*inner->Values)[1]);
-			innerBox.Right = AS_INTEGER((*inner->Values)[2]);
-			innerBox.Bottom = AS_INTEGER((*inner->Values)[3]);
-		}
-		else {
-			innerBox.Left = (int)AS_DECIMAL((*inner->Values)[0]);
-			innerBox.Top = (int)AS_DECIMAL((*inner->Values)[1]);
-			innerBox.Right = (int)AS_DECIMAL((*inner->Values)[2]);
-			innerBox.Bottom = (int)AS_DECIMAL((*inner->Values)[3]);
-		}
 		Scene::ProcessObjectMovement(ent, &outerBox, &innerBox);
 	}
 	return NULL_VAL;
@@ -2338,50 +2362,22 @@ VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
  * Collision.CheckObjectCollisionTouch
  * \desc Checks if an instance is touching another instance with their respective hitboxes.
  * \param thisEntity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param thisHitbox (Hitbox): The first entity's hitbox.
  * \param otherEntity (Instance): The other instance to check.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \param otherHitbox (Hitbox): The other entity's hitbox.
  * \return Returns a Boolean value whether the entities are touching.
  * \ns Collision
  */
 VMValue Collision_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	CollisionBox thisBox = GET_ARG(1, GetHitbox);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 
 	auto thisEnt = (Entity*)thisEntity->EntityPtr;
 	auto otherEnt = (Entity*)otherEntity->EntityPtr;
 
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
 	return INTEGER_VAL(
 		!!Scene::CheckObjectCollisionTouch(thisEnt, &thisBox, otherEnt, &otherBox));
 }
@@ -2412,9 +2408,9 @@ VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32
  * Collision.CheckObjectCollisionBox
  * \desc Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.
  * \param thisEnity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param thisHitbox (Array): The first entity's hitbox.
  * \param otherEntity (Instance): The other instance to check.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \param otherHitbox (Array): The other entity's hitbox.
  * \param setValues (Boolean): Whether to set the values of the other entity.
  * \return Returns the side the entities are colliding on.
  * \ns Collision
@@ -2422,42 +2418,14 @@ VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32
 VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	CollisionBox thisBox = GET_ARG(1, GetHitbox);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
 	auto thisEnt = (Entity*)thisEntity->EntityPtr;
 	auto otherEnt = (Entity*)otherEntity->EntityPtr;
 
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
 	return INTEGER_VAL(
 		Scene::CheckObjectCollisionBox(thisEnt, &thisBox, otherEnt, &otherBox, setValues));
 }
@@ -2465,9 +2433,9 @@ VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 th
  * Collision.CheckObjectCollisionPlatform
  * \desc Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.
  * \param thisEnity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
+ * \param thisHitbox (Array): The first entity's hitbox.
  * \param otherEntity (Instance): The other instance to check whether it is on top of the first instance.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
+ * \param otherHitbox (Array): The other entity's hitbox.
  * \param setValues (Boolean): Whether to set the values of the other entity.
  * \return Returns a Boolean value whether the entities have collided.
  * \ns Collision
@@ -2475,42 +2443,14 @@ VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 th
 VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	CollisionBox thisBox = GET_ARG(1, GetHitbox);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
 	auto thisEnt = (Entity*)thisEntity->EntityPtr;
 	auto otherEnt = (Entity*)otherEntity->EntityPtr;
 
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
 	return INTEGER_VAL(!!Scene::CheckObjectCollisionPlatform(
 		thisEnt, &thisBox, otherEnt, &otherBox, setValues));
 }
@@ -16075,7 +16015,7 @@ VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
  * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
  * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
  * \paramOpt hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.
- * \return Returns an Array value.
+ * \return Returns a Hitbox value.
  * \ns Sprite
  */
 VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
@@ -16141,22 +16081,14 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		hitboxID = GET_ARG_OPT(hitboxArgNum, GetInteger, 0);
 	}
 
-	ObjArray* hitbox = NewArray();
-	if (hitboxID >= 0 && hitboxID < (int)frame.Boxes.size()) {
-		CollisionBox box = frame.Boxes[hitboxID];
-		hitbox->Values->push_back(INTEGER_VAL(box.Left));
-		hitbox->Values->push_back(INTEGER_VAL(box.Top));
-		hitbox->Values->push_back(INTEGER_VAL(box.Right));
-		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
-	}
-	else {
+	if (hitboxID < 0 || hitboxID >= (int)frame.Boxes.size()) {
 		// TODO: Make this an error.
 		// For backwards compatibility, currently it doesn't.
-		for (int i = 0; i < 4; i++) {
-			hitbox->Values->push_back(INTEGER_VAL(0));
-		}
+		return HITBOX_VAL(0, 0, 0, 0);
 	}
-	return OBJECT_VAL(hitbox);
+
+	CollisionBox box = frame.Boxes[hitboxID];
+	return HITBOX_VAL(box.Left, box.Top, box.Right, box.Bottom);
 }
 /***
  * Sprite.GetTextArray
@@ -21411,22 +21343,22 @@ void StandardLibrary::Link() {
 	// #region Hitbox Sides
 	/***
     * \enum HITBOX_LEFT
-    * \desc Left side, slot 0 of a hitbox array.
+    * \desc Left side, slot 0 of a hitbox value.
     */
 	DEF_ENUM(HITBOX_LEFT);
 	/***
     * \enum HITBOX_TOP
-    * \desc Top side, slot 1 of a hitbox array.
+    * \desc Top side, slot 1 of a hitbox value.
     */
 	DEF_ENUM(HITBOX_TOP);
 	/***
     * \enum HITBOX_RIGHT
-    * \desc Right side, slot 2 of a hitbox array.
+    * \desc Right side, slot 2 of a hitbox value.
     */
 	DEF_ENUM(HITBOX_RIGHT);
 	/***
     * \enum HITBOX_BOTTOM
-    * \desc Bottom side, slot 3 of a hitbox array.
+    * \desc Bottom side, slot 3 of a hitbox value.
     */
 	DEF_ENUM(HITBOX_BOTTOM);
 	// #endregion

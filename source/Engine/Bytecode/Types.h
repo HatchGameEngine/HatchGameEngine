@@ -161,6 +161,16 @@ static inline VMValue HITBOX_VAL(int left, int top, int right, int bottom) {
 	return val;
 }
 
+static inline VMValue HITBOX_VAL(int* values) {
+	VMValue val;
+	val.Type = VAL_HITBOX;
+	val.as.Hitbox[HITBOX_LEFT] = values[HITBOX_LEFT];
+	val.as.Hitbox[HITBOX_TOP] = values[HITBOX_TOP];
+	val.as.Hitbox[HITBOX_RIGHT] = values[HITBOX_RIGHT];
+	val.as.Hitbox[HITBOX_BOTTOM] = values[HITBOX_BOTTOM];
+	return val;
+}
+
 #define IS_HITBOX(value) ((value).Type == VAL_HITBOX)
 #define AS_HITBOX(value) (&((value).as.Hitbox[0]))
 

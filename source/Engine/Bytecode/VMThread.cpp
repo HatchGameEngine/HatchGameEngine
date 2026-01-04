@@ -1266,7 +1266,7 @@ int VMThread::RunInstruction() {
 			int index = AS_INTEGER(at);
 			if (index < HITBOX_LEFT || index > HITBOX_BOTTOM) {
 				if (ThrowRuntimeError(false,
-					    "%d is not a valid hitbox component. (0 - 3)",
+					    "%d is not a valid hitbox slot. (0 - 3)",
 					    index) ==
 					ERROR_RES_CONTINUE) {
 					goto FAIL_OP_GET_ELEMENT;
@@ -1379,7 +1379,7 @@ int VMThread::RunInstruction() {
 			int index = AS_INTEGER(at);
 			if (index < HITBOX_LEFT || index > HITBOX_BOTTOM) {
 				if (ThrowRuntimeError(false,
-					    "%d is not a valid hitbox component. (0 - 3)",
+					    "%d is not a valid hitbox slot. (0 - 3)",
 					    index) ==
 					ERROR_RES_CONTINUE) {
 					goto FAIL_OP_SET_ELEMENT;
@@ -3540,6 +3540,8 @@ static const char* GetTypeOfValue(VMValue value) {
 	case VAL_DECIMAL:
 	case VAL_LINKED_DECIMAL:
 		return "decimal";
+	case VAL_HITBOX:
+		return "hitbox";
 	case VAL_OBJECT:
 		switch (OBJECT_TYPE(value)) {
 		case OBJ_FUNCTION:
