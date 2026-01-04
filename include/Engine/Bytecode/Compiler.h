@@ -217,6 +217,7 @@ public:
 	static int ClassInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int EnumInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int WithInstruction(uint8_t opcode, Chunk* chunk, int offset);
+	static int HitboxInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int DebugInstruction(Chunk* chunk, int offset);
 	static void DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity);
 	static void Init();

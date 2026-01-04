@@ -562,6 +562,7 @@ enum OpCode : uint8_t {
 	OP_SUPER_INVOKE,
 	OP_EVENT,
 	OP_METHOD,
+	OP_HITBOX,
 	OP_NEW_HITBOX,
 
 	OP_LAST

@@ -627,6 +627,7 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_SUPER_INVOKE),
 		VM_ADD_DISPATCH(OP_EVENT),
 		VM_ADD_DISPATCH(OP_METHOD),
+		VM_ADD_DISPATCH(OP_HITBOX),
 		VM_ADD_DISPATCH(OP_NEW_HITBOX),
 	};
 #define VM_START(ins) \
@@ -740,6 +741,7 @@ int VMThread::RunInstruction() {
 			PRINT_CASE(OP_SUPER_INVOKE)
 			PRINT_CASE(OP_EVENT)
 			PRINT_CASE(OP_METHOD)
+			PRINT_CASE(OP_HITBOX)
 			PRINT_CASE(OP_NEW_HITBOX)
 
 		default:
@@ -2318,6 +2320,15 @@ int VMThread::RunInstruction() {
 			ScriptManager::Unlock();
 		}
 
+		VM_BREAK;
+	}
+
+	VM_CASE(OP_HITBOX) {
+		int left = ReadSInt32(frame);
+		int top = ReadSInt32(frame);
+		int right = ReadSInt32(frame);
+		int bottom = ReadSInt32(frame);
+		Push(HITBOX_VAL(left, top, right, bottom));
 		VM_BREAK;
 	}
 

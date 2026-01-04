@@ -116,6 +116,7 @@ static const char* opcodeNames[] = {"OP_ERROR",
 	"OP_SUPER_INVOKE",
 	"OP_EVENT",
 	"OP_METHOD",
+	"OP_HITBOX",
 	"OP_NEW_HITBOX"};
 
 // Order these by C/C++ precedence operators
@@ -1910,10 +1911,34 @@ void Compiler::GetHitbox(bool canAssign) {
 		return;
 	}
 
+	int pre;
+	int codePointer = CodePointer();
+	bool allConstants = true;
+	std::vector<int> values;
+
 	int count = 0;
 	while (!MatchToken(TOKEN_RIGHT_BRACE)) {
+		if (count == 4) {
+			Error("Must construct hitbox with exactly four values.");
+		}
+
+		if (allConstants) {
+			pre = CodePointer();
+		}
+
 		GetExpression();
 		count++;
+
+		if (allConstants) {
+			VMValue value;
+			if (!GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + pre, &value)) {
+				allConstants = false;
+			}
+			else if (!IS_INTEGER(value)) {
+				Error("Must construct hitbox with integer values.");
+			}
+			values.push_back(AS_INTEGER(value));
+		}
 
 		if (!MatchToken(TOKEN_COMMA)) {
 			ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' at end of hitbox constructor.");
@@ -1922,13 +1947,23 @@ void Compiler::GetHitbox(bool canAssign) {
 	}
 
 	if (count == 0) {
+		EmitByte(OP_HITBOX);
 		for (int i = 0; i < NUM_HITBOX_SIDES; i++) {
-			EmitByte(OP_INTEGER);
 			EmitSint32(0);
 		}
+		return;
 	}
 	else if (count != 4) {
 		Error("Must construct hitbox with exactly four values.");
+	}
+
+	if (allConstants) {
+		CurrentChunk()->Count = codePointer;
+		EmitByte(OP_HITBOX);
+		for (int i = 0; i < NUM_HITBOX_SIDES; i++) {
+			EmitSint32(values[i]);
+		}
+		return;
 	}
 
 	EmitByte(OP_NEW_HITBOX);
@@ -3412,6 +3447,13 @@ int Compiler::EmitConstant(VMValue value) {
 		EmitByte(OP_NULL);
 		return -1;
 	}
+	else if (value.Type == VAL_HITBOX) {
+		EmitByte(OP_HITBOX);
+		for (int i = 0; i < NUM_HITBOX_SIDES; i++) {
+			EmitSint32(value.as.Hitbox[i]);
+		}
+		return -1;
+	}
 
 	// anything else gets added to the const table
 	int index = GetConstantIndex(value);
@@ -3453,6 +3495,16 @@ bool Compiler::GetEmittedConstant(Chunk* chunk, Uint8* code, VMValue* value, int
 	case OP_DECIMAL:
 		if (value) {
 			*value = DECIMAL_VAL(*(float*)(code + 1));
+		}
+		return true;
+	case OP_HITBOX:
+		if (value) {
+			Sint32* ptr = (Sint32*)(code + 1);
+			int left = *ptr;
+			int top = *(ptr + 1);
+			int right = *(ptr + 2);
+			int bottom = *(ptr + 3);
+			*value = HITBOX_VAL(left, top, right, bottom);
 		}
 		return true;
 	}
@@ -4155,6 +4207,8 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 		return 7;
 	case OP_METHOD_V4:
 		return 6;
+	case OP_HITBOX:
+		return 17;
 	}
 	return 1;
 }
@@ -4276,6 +4330,15 @@ int Compiler::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	if (type == 3) {
 		offset--;
 	}
+	return offset + GetTotalOpcodeSize(chunk->Code + offset);
+}
+int Compiler::HitboxInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+	Sint32* ptr = (Sint32*)(&chunk->Code[offset + 1]);
+	int left = *ptr;
+	int top = *(ptr + 1);
+	int right = *(ptr + 2);
+	int bottom = *(ptr + 3);
+	Log::PrintSimple("%-16s [%d, %d, %d, %d]\n", opcodeNames[opcode], left, top, right, bottom);
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int Compiler::DebugInstruction(Chunk* chunk, int offset) {
@@ -4402,6 +4465,8 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 		return MethodInstruction(instruction, chunk, offset);
 	case OP_METHOD_V4:
 		return MethodInstructionV4(instruction, chunk, offset);
+	case OP_HITBOX:
+		return HitboxInstruction(instruction, chunk, offset);
 	default:
 		if (instruction < OP_LAST) {
 			Log::PrintSimple("No viewer for opcode %s\n", opcodeNames[instruction]);
