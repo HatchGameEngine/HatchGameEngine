@@ -1358,35 +1358,6 @@ int VMThread::RunInstruction() {
 				ScriptManager::Unlock();
 			}
 		}
-		else if (IS_HITBOX(obj)) {
-			if (!IS_INTEGER(at)) {
-				if (ThrowRuntimeError(false,
-					    "Cannot set value from hitbox using non-Integer value as an index.") ==
-					ERROR_RES_CONTINUE) {
-					goto FAIL_OP_SET_ELEMENT;
-				}
-			}
-
-			if (!IS_INTEGER(value)) {
-				if (ThrowRuntimeError(false,
-					    "Cannot set value from hitbox using non-Integer value.") ==
-					ERROR_RES_CONTINUE) {
-					goto FAIL_OP_SET_ELEMENT;
-				}
-			}
-
-			int* hitbox = AS_HITBOX(obj);
-			int index = AS_INTEGER(at);
-			if (index < HITBOX_LEFT || index > HITBOX_BOTTOM) {
-				if (ThrowRuntimeError(false,
-					    "%d is not a valid hitbox slot. (0 - 3)",
-					    index) ==
-					ERROR_RES_CONTINUE) {
-					goto FAIL_OP_SET_ELEMENT;
-				}
-			}
-			hitbox[index] = AS_INTEGER(value);
-		}
 		else {
 			if (!IS_OBJECT(obj)) {
 				ThrowRuntimeError(false, "Cannot set element of %s.", GetValueTypeString(obj));
