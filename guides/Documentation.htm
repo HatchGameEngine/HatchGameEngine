@@ -207,6 +207,9 @@
                     <li><a href="#Reference_functions_API_Discord_SetActivityRemainingTimer">API.Discord.SetActivityRemainingTimer</a></li>
                     <li><a href="#Reference_functions_API_Discord_SetActivityPartySize">API.Discord.SetActivityPartySize</a></li>
                     <li><a href="#Reference_functions_API_Discord_UpdateActivity">API.Discord.UpdateActivity</a></li>
+                    <li><a href="#Reference_functions_API_Discord_GetCurrentUsername">API.Discord.GetCurrentUsername</a></li>
+                    <li><a href="#Reference_functions_API_Discord_GetCurrentUserID">API.Discord.GetCurrentUserID</a></li>
+                    <li><a href="#Reference_functions_API_Discord_GetCurrentUserAvatar">API.Discord.GetCurrentUserAvatar</a></li>
                 </ul>
             </p>
             <p id="Reference_Animator">
@@ -2146,6 +2149,30 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>details (String): The first line of text in the Rich Presence.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_API_Discord_GetCurrentUsername">
+        <h2 style="margin-bottom: 8px;">API.Discord.GetCurrentUsername</h2>
+        <code>API.Discord.GetCurrentUsername()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current user's username. This returns <code>null</code> if the integration hasn't received the user's information yet. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code>.</div>
+        </p>
+        <p id="Reference_functions_API_Discord_GetCurrentUserID">
+        <h2 style="margin-bottom: 8px;">API.Discord.GetCurrentUserID</h2>
+        <code>API.Discord.GetCurrentUserID()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current user's ID. This returns <code>null</code> if the integration hasn't received the user's information yet. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code>.</div>
+        </p>
+        <p id="Reference_functions_API_Discord_GetCurrentUserAvatar">
+        <h2 style="margin-bottom: 8px;">API.Discord.GetCurrentUserAvatar</h2>
+        <code>API.Discord.GetCurrentUserAvatar(size, callback)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current user's avatar. This is an asynchronous operation. The callback function must have one parameter, and it receives an Image if the operation succeeded, or <code>null</code> if the operation failed. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>size (Integer): The size of the avatar to fetch. Must be one of: 16, 32, 64, 128, 256, 512, 1024</li>
+        <li>callback (Function): The callback to execute.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_Create">
@@ -10737,7 +10764,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>783 out of 838 functions have descriptions. </p>
+        <p>786 out of 841 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">

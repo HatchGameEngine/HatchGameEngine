@@ -418,6 +418,11 @@ struct WithIter {
 	Uint8 receiverSlot;
 };
 
+struct VMThreadCallback {
+	Uint32 ThreadID;
+	VMValue Callable;
+};
+
 struct CallFrame {
 	ObjFunction* Function;
 	Uint8* IP;

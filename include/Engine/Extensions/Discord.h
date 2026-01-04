@@ -3,9 +3,6 @@
 
 #include <Engine/Includes/Standard.h>
 
-struct IDiscordCore;
-struct IDiscordActivityManager;
-
 struct DiscordIntegrationActivity {
 	const char* Details = nullptr;
 	const char* State = nullptr;
@@ -19,10 +16,36 @@ struct DiscordIntegrationActivity {
 	time_t EndTime = 0;
 };
 
+typedef void (*DiscordIntegrationCallbackFuncPtr)(void* data);
+
+enum DiscordIntegrationCallbackType {
+	DiscordIntegrationCallbackType_FuncPtr,
+	DiscordIntegrationCallbackType_Script
+};
+
+struct DiscordIntegrationCallback {
+	DiscordIntegrationCallbackType Type;
+	void* Function;
+};
+
+struct DiscordIntegrationUserAvatar {
+	unsigned Width;
+	unsigned Height;
+	Uint8* Data;
+	char Identifier[256];
+};
+
+struct DiscordIntegrationUserInfo {
+	Sint64 IDSnowflake;
+	char ID[32];
+	char Username[256];
+	bool IsBot;
+	DiscordIntegrationUserAvatar Avatar;
+};
+
 class Discord {
 private:
-	static struct IDiscordCore* Core;
-	static struct IDiscordActivityManager* ActivityManager;
+	static void Unload();
 
 public:
 	static bool Initialized;
@@ -33,7 +56,7 @@ public:
 	static void Dispose();
 
 	class Activity {
-public:
+	public:
 		static void SetDetails(const char* details);
 		static void SetState(const char* state);
 		static void SetLargeImageKey(const char* key);
@@ -47,6 +70,19 @@ public:
 		static void SetPartySize(int size);
 		static void SetPartyMaxSize(int size);
 		static void Update();
+	};
+
+	class User {
+	public:
+		static void Update();
+		static bool IsUserPresent();
+		static DiscordIntegrationUserInfo* GetDetails();
+		static void GetAvatar(DiscordIntegrationUserAvatar* avatar,
+			int size,
+			DiscordIntegrationCallback* callback);
+		static void GetAvatar(DiscordIntegrationUserAvatar* avatar,
+			DiscordIntegrationCallback* callback);
+		static void GetAvatar(int size, DiscordIntegrationCallback* callback);
 	};
 };
 

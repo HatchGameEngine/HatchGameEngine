@@ -230,6 +230,23 @@ inline ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline VMValue GetCallable(VMValue* args, int index, Uint32 threadID) {
+	VMValue value = NULL_VAL;
+	if (ScriptManager::Lock()) {
+		if (IS_CALLABLE(args[index])) {
+			value = args[index];
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type callable instead of %s.",
+				    index + 1,
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 	ObjInstance* value = NULL;
 	if (ScriptManager::Lock()) {
@@ -1537,6 +1554,93 @@ VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	Discord::Activity::Update();
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.GetCurrentUsername
+ * \desc Gets the current user's username. This returns <code>null</code> if the integration hasn't received the user's information yet. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \return Returns a String value, or <code>null</code>.
+ * \ns API.Discord
+ */
+VMValue Discord_GetCurrentUsername(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	DiscordIntegrationUserInfo* details = Discord::User::GetDetails();
+	if (!details) {
+		return NULL_VAL;
+	}
+
+	return ReturnString(details->Username);
+}
+/***
+ * API.Discord.GetCurrentUserID
+ * \desc Gets the current user's ID. This returns <code>null</code> if the integration hasn't received the user's information yet. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \return Returns a String value, or <code>null</code>.
+ * \ns API.Discord
+ */
+VMValue Discord_GetCurrentUserID(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	DiscordIntegrationUserInfo* details = Discord::User::GetDetails();
+	if (!details) {
+		return NULL_VAL;
+	}
+
+	return ReturnString(details->ID);
+}
+/***
+ * API.Discord.GetCurrentUserAvatar
+ * \desc Gets the current user's avatar. This is an asynchronous operation. The callback function must have one parameter, and it receives an Image if the operation succeeded, or <code>null</code> if the operation failed. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param size (Integer): The size of the avatar to fetch. Must be one of: 16, 32, 64, 128, 256, 512, 1024
+ * \param callback (Function): The callback to execute.
+ * \ns API.Discord
+ */
+VMValue Discord_GetCurrentUserAvatar(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+
+	if (!Discord::Initialized) {
+		THROW_ERROR("Discord integration was not initialized!");
+		return NULL_VAL;
+	}
+
+	int size = GET_ARG(0, GetInteger);
+	if (size < 16 || size > 1024) {
+		OUT_OF_RANGE_ERROR("Avatar size", size, 16, 1024);
+		return NULL_VAL;
+	}
+
+	VMValue callable = GET_ARG(1, GetCallable);
+	if (IS_NULL(callable)) {
+		return NULL_VAL;
+	}
+
+	VMThreadCallback* callbackData = (VMThreadCallback*)Memory::Malloc(sizeof(VMThreadCallback));
+	if (!callbackData) {
+		return NULL_VAL;
+	}
+	callbackData->ThreadID = threadID;
+	callbackData->Callable = callable;
+
+	DiscordIntegrationCallback* callback = (DiscordIntegrationCallback*)Memory::Malloc(sizeof(DiscordIntegrationCallback));
+	if (!callback) {
+		Memory::Free(callbackData);
+		return NULL_VAL;
+	}
+	callback->Type = DiscordIntegrationCallbackType_Script;
+	callback->Function = callbackData;
+
+	Discord::User::GetAvatar(size, callback);
 
 	return NULL_VAL;
 }
@@ -19386,6 +19490,9 @@ void StandardLibrary::Link() {
 	DEF_NAMESPACED_NATIVE(Discord, SetActivityRemainingTimer);
 	DEF_NAMESPACED_NATIVE(Discord, SetActivityPartySize);
 	DEF_NAMESPACED_NATIVE(Discord, UpdateActivity);
+	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUsername);
+	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUserID);
+	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUserAvatar);
 	// #endregion
 
 	// #region Application

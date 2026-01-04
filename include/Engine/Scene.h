@@ -9,6 +9,7 @@ class Entity;
 #include <Engine/Includes/Standard.h>
 #include <Engine/Math/Math.h>
 #include <Engine/Rendering/GameTexture.h>
+#include <Engine/ResourceTypes/Image.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 #include <Engine/Scene/SceneConfig.h>
 #include <Engine/Scene/SceneEnums.h>
@@ -198,6 +199,7 @@ public:
 	static bool GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index);
 	static int LoadSpriteResource(const char* filename, int unloadPolicy);
 	static int LoadImageResource(const char* filename, int unloadPolicy);
+	static int AddImageResource(Image* image, const char* filename, int unloadPolicy);
 	static int LoadModelResource(const char* filename, int unloadPolicy);
 	static int LoadMusicResource(const char* filename, int unloadPolicy);
 	static int LoadSoundResource(const char* filename, int unloadPolicy);
