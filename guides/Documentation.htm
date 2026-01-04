@@ -2026,14 +2026,15 @@
         </p>
         <p id="Reference_functions_API_Discord_UpdateRichPresence">
         <h2 style="margin-bottom: 8px;">API.Discord.UpdateRichPresence</h2>
-        <code>API.Discord.UpdateRichPresence(details[, state, imageKey, startTime])</code>
+        <code>API.Discord.UpdateRichPresence(details[, state, largeImageKey, smallImageKey, startTime])</code>
         <div style="margin-top: 8px; font-size: 14px;">Updates Discord Rich Presence.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>details (String): The first line of text in the Rich Presence.</li>
         <li>state (String): The second line of text, appearing below details.</li>
-        <li>imageKey (String): The internal name of the image asset to display, created via the Discord Developer Portal.</li>
-        <li>startTime (Integer): A Unix timestamp (in seconds) of when the activity started.</li>
+        <li>largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.</li>
+        <li>smallImageKey (String): The internal name of the small image asset to display, also created via the Discord Developer Portal.</li>
+        <li>startTime (Integer): A Unix timestamp (in seconds) of when the activity started. This can also be used as the 4th argument in smallImageKey's place.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_Create">
@@ -10625,7 +10626,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>771 out of 826 functions have descriptions. </p>
+        <p>775 out of 830 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
