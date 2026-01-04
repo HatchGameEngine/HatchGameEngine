@@ -2935,8 +2935,13 @@ void Scene::SetTileCount(size_t tileCount) {
 	Scene::TileCount = tileCount;
 }
 void Scene::LoadTileCollisions(const char* filename, size_t tilesetID) {
+	if (tilesetID >= Scene::Tilesets.size()) {
+		Log::Print(Log::LOG_ERROR, "Tileset %zu out of range for loading \"%s\" collisions! (Size: %zu)", tilesetID, filename, Scene::Tilesets.size());
+		return;
+	}
+
 	if (!ResourceManager::ResourceExists(filename)) {
-		Log::Print(Log::LOG_ERROR, "Could not find tile collision file \"%s\"!", filename);
+		Log::Print(Log::LOG_WARN, "Could not find tile collision file \"%s\"!", filename);
 		return;
 	}
 
