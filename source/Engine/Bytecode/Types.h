@@ -27,6 +27,7 @@ typedef enum {
 	VAL_OBJECT,
 	VAL_LINKED_INTEGER,
 	VAL_LINKED_DECIMAL,
+	VAL_HITBOX,
 	VAL_ERROR
 } ValueType;
 
@@ -35,13 +36,14 @@ enum { CLASS_TYPE_NORMAL, CLASS_TYPE_EXTENDED };
 struct Obj;
 
 struct VMValue {
-	Uint32 Type;
+	Uint8 Type;
 	union {
 		int Integer;
 		float Decimal;
 		Obj* Object;
 		int* LinkedInteger;
 		float* LinkedDecimal;
+		int Hitbox[NUM_HITBOX_SIDES];
 	} as;
 };
 
@@ -148,6 +150,19 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 #define IS_NOT_NUMBER(value) \
 	(!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && \
 		!IS_LINKED_INTEGER(value))
+
+static inline VMValue HITBOX_VAL(int left, int top, int right, int bottom) {
+	VMValue val;
+	val.Type = VAL_HITBOX;
+	val.as.Hitbox[HITBOX_LEFT] = left;
+	val.as.Hitbox[HITBOX_TOP] = top;
+	val.as.Hitbox[HITBOX_RIGHT] = right;
+	val.as.Hitbox[HITBOX_BOTTOM] = bottom;
+	return val;
+}
+
+#define IS_HITBOX(value) ((value).Type == VAL_HITBOX)
+#define AS_HITBOX(value) (&((value).as.Hitbox[0]))
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 
@@ -537,6 +552,7 @@ enum OpCode : uint8_t {
 	OP_SUPER_INVOKE,
 	OP_EVENT,
 	OP_METHOD,
+	OP_NEW_HITBOX,
 
 	OP_LAST
 };

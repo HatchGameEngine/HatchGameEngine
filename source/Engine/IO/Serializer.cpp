@@ -29,6 +29,15 @@ void Serializer::WriteValue(VMValue val) {
 		StreamPtr->WriteInt64(i);
 		return;
 	}
+	case VAL_HITBOX: {
+		int* hitbox = AS_HITBOX(val);
+		StreamPtr->WriteByte(Serializer::VAL_TYPE_HITBOX);
+		StreamPtr->WriteInt32(hitbox[HITBOX_LEFT]);
+		StreamPtr->WriteInt32(hitbox[HITBOX_TOP]);
+		StreamPtr->WriteInt32(hitbox[HITBOX_RIGHT]);
+		StreamPtr->WriteInt32(hitbox[HITBOX_BOTTOM]);
+		return;
+	}
 	case VAL_OBJECT: {
 		Obj* obj = AS_OBJECT(val);
 		Uint32 objectID = GetUniqueObjectID(obj);
@@ -401,6 +410,13 @@ VMValue Serializer::ReadValue() {
 		return INTEGER_VAL((int)StreamPtr->ReadInt64());
 	case Serializer::VAL_TYPE_DECIMAL:
 		return DECIMAL_VAL(StreamPtr->ReadFloat());
+	case Serializer::VAL_TYPE_HITBOX: {
+		int left = StreamPtr->ReadInt32();
+		int top = StreamPtr->ReadInt32();
+		int right = StreamPtr->ReadInt32();
+		int bottom = StreamPtr->ReadInt32();
+		return HITBOX_VAL(left, top, right, bottom);
+	}
 	case Serializer::VAL_TYPE_NULL:
 		break;
 	case Serializer::VAL_TYPE_OBJECT: {
