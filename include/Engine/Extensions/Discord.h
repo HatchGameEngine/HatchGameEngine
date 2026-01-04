@@ -16,10 +16,13 @@ public:
     static void Update();
     static void UpdatePresence(const char* details);
     static void UpdatePresence(const char* details, const char* state);
-    static void UpdatePresence(const char* details, const char* state, const char* imageKey);
-    static void UpdatePresence(const char* details, const char* state, const char* imageKey, time_t startTime);
-    static void UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax);
-    static void UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax, time_t startTime);
+    static void UpdatePresence(const char* details, const char* state, const char* largeImageKey);
+    static void UpdatePresence(const char* details, const char* state, const char* largeImageKey, const char* smallImageKey);
+    static void UpdatePresence(const char* details, const char* state, const char* largeImageKey, time_t startTime);
+    static void UpdatePresence(const char* details, const char* state, const char* largeImageKey, const char* smallImageKey, time_t startTime);
+    static void UpdatePresence(const char* details, const char* state, const char* largeImageKey, int partySize, int partyMax);
+    static void UpdatePresence(const char* details, const char* state, const char* largeImageKey, const char* smallImageKey, int partySize, int partyMax);
+    static void UpdatePresence(const char* details, const char* state, const char* largeImageKey, const char* smallImageKey, int partySize, int partyMax, time_t startTime);
     static void Dispose();
 };
 

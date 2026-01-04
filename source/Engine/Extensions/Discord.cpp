@@ -74,7 +74,7 @@ void Discord::Update() {
     Discord::Core->run_callbacks(Discord::Core);
 }
 
-void Discord::UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax, time_t startTime) {
+void Discord::UpdatePresence(const char* details, const char* state, const char* largeImageKey, const char* smallImageKey, int partySize, int partyMax, time_t startTime) {
     if (!Discord::Initialized || !Discord::ActivityManager) return;
 
     struct DiscordActivity activity;
@@ -86,8 +86,14 @@ void Discord::UpdatePresence(const char* details, const char* state, const char*
     if (state && strlen(state) > 0)
         strncpy(activity.state, state, sizeof(activity.state) - 1);
 
-    if (imageKey && strlen(imageKey) > 0)
-        strncpy(activity.assets.large_image, imageKey, sizeof(activity.assets.large_image) - 1);
+    if (largeImageKey && strlen(largeImageKey) > 0)
+        strncpy(activity.assets.large_image, largeImageKey, sizeof(activity.assets.large_image) - 1);
+
+    if (smallImageKey && strlen(smallImageKey) > 0) {
+        strncpy(activity.assets.small_image, smallImageKey, sizeof(activity.assets.small_image) - 1);
+        // The small image won't display unless the small text is also set
+        strncpy(activity.assets.small_text, smallImageKey, sizeof(activity.assets.small_text) - 1);
+    }
 
     activity.timestamps.start = (DiscordTimestamp)startTime;
     activity.party.size.current_size = partySize;
@@ -114,17 +120,39 @@ void Discord::Init(const char* application_id) {
     Discord::Initialized = false;
 }
 void Discord::Update() {}
-void Discord::UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax, time_t startTime) {}
+void Discord::UpdatePresence(const char* details, const char* state, const char* largeImageKey, const char* smallImageKey, int partySize, int partyMax, time_t startTime) {}
 void Discord::Dispose() {}
 
 #endif
 
-void Discord::UpdatePresence(const char* details) { UpdatePresence(details, NULL, NULL, 0, 0, 0); }
+void Discord::UpdatePresence(const char* details) {
+    UpdatePresence(details, NULL, NULL, NULL, 0, 0, 0);
+}
 
-void Discord::UpdatePresence(const char* details, const char* state) { UpdatePresence(details, state, NULL, 0, 0, 0); }
+void Discord::UpdatePresence(const char* details, const char* state) {
+    UpdatePresence(details, state, NULL, NULL, 0, 0, 0);
+}
 
-void Discord::UpdatePresence(const char* details, const char* state, const char* imageKey) { UpdatePresence(details, state, imageKey, 0, 0, 0); }
+void Discord::UpdatePresence(const char* details, const char* state, const char* largeImageKey) {
+    UpdatePresence(details, state, largeImageKey, NULL, 0, 0, 0);
+}
 
-void Discord::UpdatePresence(const char* details, const char* state, const char* imageKey, time_t startTime) { UpdatePresence(details, state, imageKey, 0, 0, startTime); }
+void Discord::UpdatePresence(const char* details, const char* state, const char* largeImageKey, const char* smallImageKey) {
+    UpdatePresence(details, state, largeImageKey, smallImageKey, 0, 0, 0);
+}
 
-void Discord::UpdatePresence(const char* details, const char* state, const char* imageKey, int partySize, int partyMax) { UpdatePresence(details, state, imageKey, partySize, partyMax, 0); }
+void Discord::UpdatePresence(const char* details, const char* state, const char* largeImageKey, time_t startTime) {
+    UpdatePresence(details, state, largeImageKey, NULL, 0, 0, startTime);
+}
+
+void Discord::UpdatePresence(const char* details, const char* state, const char* largeImageKey, const char* smallImageKey, time_t startTime) {
+    UpdatePresence(details, state, largeImageKey, smallImageKey, 0, 0, startTime);
+}
+
+void Discord::UpdatePresence(const char* details, const char* state, const char* largeImageKey, int partySize, int partyMax) {
+    UpdatePresence(details, state, largeImageKey, NULL, partySize, partyMax, 0);
+}
+
+void Discord::UpdatePresence(const char* details, const char* state, const char* largeImageKey, const char* smallImageKey, int partySize, int partyMax) {
+    UpdatePresence(details, state, largeImageKey, smallImageKey, partySize, partyMax, 0);
+}
