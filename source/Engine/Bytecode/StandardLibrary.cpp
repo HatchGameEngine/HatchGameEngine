@@ -1347,32 +1347,22 @@ VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID)
 	const char* details = GET_ARG(0, GetString);
 	const char* state = GET_ARG_OPT(1, GetString, NULL);
 	const char* largeImageKey = GET_ARG_OPT(2, GetString, NULL);
-	const char* smallImageKey = GET_ARG_OPT(3, GetString, NULL);
-	time_t startTime = GET_ARG_OPT(4, GetInteger, 0);
+	const char* smallImageKey = NULL;
+	time_t startTime = 0;
 
-	switch (argCount) {
-		default:
-		case 1:
-			Discord::UpdatePresence(details);
-			break;
-		case 2:
-			Discord::UpdatePresence(details, state);
-			break;
-		case 3:
-			Discord::UpdatePresence(details, state, largeImageKey);
-			break;
-		case 4:
-			if (IS_INTEGER(args[3])) {
-				Discord::UpdatePresence(details, state, largeImageKey, startTime);
-			}
-			else {
-				Discord::UpdatePresence(details, state, largeImageKey, smallImageKey);
-            }
-			break;
-		case 5:
-			Discord::UpdatePresence(details, state, largeImageKey, smallImageKey, startTime);
-			break;
+	if (argCount == 4) {
+		if (IS_INTEGER(args[3]))
+			startTime = GET_ARG(3, GetInteger);
+		else
+			smallImageKey = GET_ARG(3, GetString);
 	}
+	else if (argCount >= 5) {
+		smallImageKey = GET_ARG(3, GetString);
+		startTime = GET_ARG(4, GetInteger);
+	}
+
+	Discord::UpdatePresence(details, state, largeImageKey, smallImageKey, 0, 0, startTime);
+
 	return NULL_VAL;
 }
 // #endregion

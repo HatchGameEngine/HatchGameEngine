@@ -91,8 +91,6 @@ void Discord::UpdatePresence(const char* details, const char* state, const char*
 
     if (smallImageKey && strlen(smallImageKey) > 0) {
         strncpy(activity.assets.small_image, smallImageKey, sizeof(activity.assets.small_image) - 1);
-        // The small image won't display unless the small text is also set
-        strncpy(activity.assets.small_text, smallImageKey, sizeof(activity.assets.small_text) - 1);
     }
 
     activity.timestamps.start = (DiscordTimestamp)startTime;
