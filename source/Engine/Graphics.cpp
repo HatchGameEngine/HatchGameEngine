@@ -2612,17 +2612,12 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
 
-				int srcTX = srcX & 15;
-				int srcTY = srcY & 15;
-
-				int partY = srcTY;
-				if (flipY) {
-					partY = tileHeight - partY - 1;
-				}
+				int srcTX = srcX % tileWidth;
+				int srcTY = srcY % tileHeight;
 
 				Graphics::DrawTilePart(tileID,
 					0,
-					partY,
+					srcTY,
 					tileWidth,
 					tileDrawHeight,
 					currentView->X + ((dst_x - srcTX) + tileWidthHalf),
