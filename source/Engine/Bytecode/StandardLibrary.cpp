@@ -1337,24 +1337,32 @@ VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Updates Discord Rich Presence.
  * \param details (String): The first line of text in the Rich Presence.
  * \paramOpt state (String): The second line of text, appearing below details.
- * \paramOpt imageKey (String): The internal name of the image asset to display, created via the Discord Developer Portal.
- * \paramOpt startTime (Integer): A Unix timestamp (in seconds) of when the activity started.
+ * \paramOpt largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.
+ * \paramOpt smallImageKey (String): The internal name of the small image asset to display, also created via the Discord Developer Portal.
+ * \paramOpt startTime (Integer): A Unix timestamp (in seconds) of when the activity started. This can also be used as the 4th argument in smallImageKey's place.
  * \ns API
  */
 VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	const char* details = GET_ARG(0, GetString);
-	const char* state = GET_ARG_OPT(1, GetString, "");
-	const char* imageKey = GET_ARG_OPT(2, GetString, "");
-	time_t startTime = GET_ARG_OPT(3, GetInteger, 0);
-	if (argCount < 2)
-		Discord::UpdatePresence(details);
-	else if (argCount < 3)
-		Discord::UpdatePresence(details, state);
-	else if (argCount < 4)
-		Discord::UpdatePresence(details, state, imageKey);
-	else if (argCount == 4)
-        Discord::UpdatePresence(details, state, imageKey, startTime);
+	const char* state = GET_ARG_OPT(1, GetString, NULL);
+	const char* largeImageKey = GET_ARG_OPT(2, GetString, NULL);
+	const char* smallImageKey = NULL;
+	time_t startTime = 0;
+
+	if (argCount == 4) {
+		if (IS_INTEGER(args[3]))
+			startTime = GET_ARG(3, GetInteger);
+		else
+			smallImageKey = GET_ARG(3, GetString);
+	}
+	else if (argCount >= 5) {
+		smallImageKey = GET_ARG(3, GetString);
+		startTime = GET_ARG(4, GetInteger);
+	}
+
+	Discord::UpdatePresence(details, state, largeImageKey, smallImageKey, 0, 0, startTime);
+
 	return NULL_VAL;
 }
 // #endregion
