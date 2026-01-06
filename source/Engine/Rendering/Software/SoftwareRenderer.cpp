@@ -2502,98 +2502,8 @@ void SoftwareRenderer::FillCircle(float x, float y, float rad) {
 		}
 	}
 }
-void SoftwareRenderer::FillEllipse(float x, float y, float w, float h) {}
-void SoftwareRenderer::FillRectangle(float x, float y, float w, float h) {
-	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
-
-	View* currentView = Graphics::CurrentView;
-	if (!currentView) {
-		return;
-	}
-
-	int cx = (int)std::floor(currentView->X);
-	int cy = (int)std::floor(currentView->Y);
-
-	Matrix4x4* out = Graphics::ModelMatrix;
-	x += out->Values[12];
-	y += out->Values[13];
-	x -= cx;
-	y -= cy;
-
-	if (currentView->IsScaled()) {
-		x *= currentView->ScaleX;
-		y *= currentView->ScaleY;
-		w *= currentView->ScaleX;
-		h *= currentView->ScaleY;
-	}
-
-	int dst_x1 = x;
-	int dst_y1 = y;
-	int dst_x2 = x + w;
-	int dst_y2 = y + h;
-
-	int clip_x1, clip_y1, clip_x2, clip_y2;
-	GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
-	if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2)) {
-		return;
-	}
-
-	if (dst_x1 < clip_x1) {
-		dst_x1 = clip_x1;
-	}
-	if (dst_y1 < clip_y1) {
-		dst_y1 = clip_y1;
-	}
-	if (dst_x2 > clip_x2) {
-		dst_x2 = clip_x2;
-	}
-	if (dst_y2 > clip_y2) {
-		dst_y2 = clip_y2;
-	}
-
-	if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2) {
-		return;
-	}
-
-	BlendState blendState = GetBlendState();
-	if (!AlterBlendState(blendState)) {
-		return;
-	}
-
-	Uint32 col = ColRGB;
-	int blendFlag = blendState.Mode;
-	int opacity = blendState.Opacity;
-
-	if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT)) {
-		SetTintFunction(blendFlag);
-	}
-
-	int* multTableAt = &MultTable[opacity << 8];
-	int* multSubTableAt = &MultSubTable[opacity << 8];
-	int dst_strideY = dst_y1 * dstStride;
-
-	if (!Graphics::StencilEnabled &&
-		((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
-		for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
-			Memory::Memset4(&dstPx[dst_x1 + dst_strideY], col, dst_x2 - dst_x1);
-			dst_strideY += dstStride;
-		}
-	}
-	else {
-		PixelFunction pixelFunction = GetPixelFunction(blendFlag);
-
-		for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
-			for (int dst_x = dst_x1; dst_x < dst_x2; dst_x++) {
-				pixelFunction((Uint32*)&col,
-					&dstPx[dst_x + dst_strideY],
-					blendState,
-					multTableAt,
-					multSubTableAt);
-			}
-			dst_strideY += dstStride;
-		}
-	}
+void SoftwareRenderer::FillEllipse(float x, float y, float w, float h) {
+	// TODO
 }
 void SoftwareRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
 	View* currentView = Graphics::CurrentView;
@@ -2686,6 +2596,98 @@ void SoftwareRenderer::FillTriangleBlend(float x1,
 	vectors[2].Y = ((int)y3 + y) << 16;
 	colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
 	PolygonRasterizer::DrawBasicBlend(vectors, colors, 3, blendState);
+}
+void SoftwareRenderer::FillRectangle(float x, float y, float w, float h) {
+	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
+
+	View* currentView = Graphics::CurrentView;
+	if (!currentView) {
+		return;
+	}
+
+	int cx = (int)std::floor(currentView->X);
+	int cy = (int)std::floor(currentView->Y);
+
+	Matrix4x4* out = Graphics::ModelMatrix;
+	x += out->Values[12];
+	y += out->Values[13];
+	x -= cx;
+	y -= cy;
+
+	if (currentView->IsScaled()) {
+		x *= currentView->ScaleX;
+		y *= currentView->ScaleY;
+		w *= currentView->ScaleX;
+		h *= currentView->ScaleY;
+	}
+
+	int dst_x1 = x;
+	int dst_y1 = y;
+	int dst_x2 = x + w;
+	int dst_y2 = y + h;
+
+	int clip_x1, clip_y1, clip_x2, clip_y2;
+	GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+	if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2)) {
+		return;
+	}
+
+	if (dst_x1 < clip_x1) {
+		dst_x1 = clip_x1;
+	}
+	if (dst_y1 < clip_y1) {
+		dst_y1 = clip_y1;
+	}
+	if (dst_x2 > clip_x2) {
+		dst_x2 = clip_x2;
+	}
+	if (dst_y2 > clip_y2) {
+		dst_y2 = clip_y2;
+	}
+
+	if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2) {
+		return;
+	}
+
+	BlendState blendState = GetBlendState();
+	if (!AlterBlendState(blendState)) {
+		return;
+	}
+
+	Uint32 col = ColRGB;
+	int blendFlag = blendState.Mode;
+	int opacity = blendState.Opacity;
+
+	if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT)) {
+		SetTintFunction(blendFlag);
+	}
+
+	int* multTableAt = &MultTable[opacity << 8];
+	int* multSubTableAt = &MultSubTable[opacity << 8];
+	int dst_strideY = dst_y1 * dstStride;
+
+	if (!Graphics::StencilEnabled &&
+		((blendFlag & (BlendFlag_MODE_MASK | BlendFlag_TINT_BIT)) == BlendFlag_OPAQUE)) {
+		for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+			Memory::Memset4(&dstPx[dst_x1 + dst_strideY], col, dst_x2 - dst_x1);
+			dst_strideY += dstStride;
+		}
+	}
+	else {
+		PixelFunction pixelFunction = GetPixelFunction(blendFlag);
+
+		for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+			for (int dst_x = dst_x1; dst_x < dst_x2; dst_x++) {
+				pixelFunction((Uint32*)&col,
+					&dstPx[dst_x + dst_strideY],
+					blendState,
+					multTableAt,
+					multSubTableAt);
+			}
+			dst_strideY += dstStride;
+		}
+	}
 }
 void SoftwareRenderer::FillQuad(float x1,
 	float y1,

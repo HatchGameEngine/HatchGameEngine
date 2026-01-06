@@ -1614,7 +1614,12 @@ void GLRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.FillCircle = GLRenderer::FillCircle;
 	Graphics::Internal.FillEllipse = GLRenderer::FillEllipse;
 	Graphics::Internal.FillTriangle = GLRenderer::FillTriangle;
+	Graphics::Internal.FillTriangleBlend = GLRenderer::FillTriangleBlend;
 	Graphics::Internal.FillRectangle = GLRenderer::FillRectangle;
+	Graphics::Internal.FillQuad = GLRenderer::FillQuad;
+	Graphics::Internal.FillQuadBlend = GLRenderer::FillQuadBlend;
+	Graphics::Internal.DrawTriangleTextured = GLRenderer::DrawTriangleTextured;
+	Graphics::Internal.DrawQuadTextured = GLRenderer::DrawQuadTextured;
 
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = GLRenderer::DrawTexture;
@@ -2492,7 +2497,8 @@ void GLRenderer::Present() {
 }
 
 // Draw mode setting functions
-void GLRenderer::SetBlendColor(float r, float g, float b, float a) {}
+void GLRenderer::SetBlendColor(float r, float g, float b, float a) {
+}
 void GLRenderer::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
 	glBlendFuncSeparate(GL_GetBlendFactorFromHatchEnum(srcC),
 		GL_GetBlendFactorFromHatchEnum(dstC),
@@ -2778,6 +2784,21 @@ void GLRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, 
 	}
 #endif
 }
+void GLRenderer::FillTriangleBlend(float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	// TODO
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
 void GLRenderer::FillRectangle(float x, float y, float w, float h) {
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothFill) {
@@ -2796,6 +2817,73 @@ void GLRenderer::FillRectangle(float x, float y, float w, float h) {
 	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	CHECK_GL();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
+void GLRenderer::FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	GL_Vec2 v[4] = { {x1, y1}, {x2, y2}, {x3, y3}, {x4, y4} };
+
+	GL_Predraw(NULL);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	CHECK_GL();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
+void GLRenderer::FillQuadBlend(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	// TODO
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
+void GLRenderer::DrawTriangleTextured(Texture* texturePtr, float x1, float y1, float x2, float y2, float x3, float y3, int c1, int c2, int c3, float u1, float v1, float u2, float v2, float u3, float v3) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	// TODO
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
+void GLRenderer::DrawQuadTextured(Texture* texturePtr, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, int c1, int c2, int c3, int c4, float u1, float v1, float u2, float v2, float u3, float v3, float u4, float v4) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	// TODO
 
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothFill) {
