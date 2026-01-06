@@ -43,7 +43,7 @@ struct VMValue {
 		Obj* Object;
 		int* LinkedInteger;
 		float* LinkedDecimal;
-		int Hitbox[NUM_HITBOX_SIDES];
+		Sint16 Hitbox[NUM_HITBOX_SIDES];
 	} as;
 };
 
@@ -151,7 +151,7 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 	(!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && \
 		!IS_LINKED_INTEGER(value))
 
-static inline VMValue HITBOX_VAL(int left, int top, int right, int bottom) {
+static inline VMValue HITBOX_VAL(Sint16 left, Sint16 top, Sint16 right, Sint16 bottom) {
 	VMValue val;
 	val.Type = VAL_HITBOX;
 	val.as.Hitbox[HITBOX_LEFT] = left;
@@ -161,7 +161,7 @@ static inline VMValue HITBOX_VAL(int left, int top, int right, int bottom) {
 	return val;
 }
 
-static inline VMValue HITBOX_VAL(int* values) {
+static inline VMValue HITBOX_VAL(Sint16* values) {
 	VMValue val;
 	val.Type = VAL_HITBOX;
 	val.as.Hitbox[HITBOX_LEFT] = values[HITBOX_LEFT];

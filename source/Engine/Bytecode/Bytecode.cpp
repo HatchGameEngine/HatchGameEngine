@@ -97,10 +97,10 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 				function->Chunk.AddConstant(DECIMAL_VAL(stream->ReadFloat()));
 				break;
 			case Bytecode::VALUE_TYPE_HITBOX: {
-				int left = stream->ReadInt32();
-				int top = stream->ReadInt32();
-				int right = stream->ReadInt32();
-				int bottom = stream->ReadInt32();
+				Sint16 left = stream->ReadInt16();
+				Sint16 top = stream->ReadInt16();
+				Sint16 right = stream->ReadInt16();
+				Sint16 bottom = stream->ReadInt16();
 				function->Chunk.AddConstant(HITBOX_VAL(left, top, right, bottom));
 				break;
 			}
@@ -210,7 +210,10 @@ void Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>*
 				break;
 			case VAL_HITBOX:
 				stream->WriteByte(Bytecode::VALUE_TYPE_HITBOX);
-				stream->WriteBytes(AS_HITBOX(constt), sizeof(int) * NUM_HITBOX_SIDES);
+				stream->WriteInt16(constt.as.Hitbox[HITBOX_LEFT]);
+				stream->WriteInt16(constt.as.Hitbox[HITBOX_TOP]);
+				stream->WriteInt16(constt.as.Hitbox[HITBOX_RIGHT]);
+				stream->WriteInt16(constt.as.Hitbox[HITBOX_BOTTOM]);
 				break;
 			case VAL_OBJECT:
 				if (OBJECT_TYPE(constt) == OBJ_STRING) {

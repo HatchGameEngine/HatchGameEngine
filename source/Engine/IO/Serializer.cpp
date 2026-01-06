@@ -30,12 +30,12 @@ void Serializer::WriteValue(VMValue val) {
 		return;
 	}
 	case VAL_HITBOX: {
-		int* hitbox = AS_HITBOX(val);
+		Sint16* hitbox = AS_HITBOX(val);
 		StreamPtr->WriteByte(Serializer::VAL_TYPE_HITBOX);
-		StreamPtr->WriteInt32(hitbox[HITBOX_LEFT]);
-		StreamPtr->WriteInt32(hitbox[HITBOX_TOP]);
-		StreamPtr->WriteInt32(hitbox[HITBOX_RIGHT]);
-		StreamPtr->WriteInt32(hitbox[HITBOX_BOTTOM]);
+		StreamPtr->WriteInt16(hitbox[HITBOX_LEFT]);
+		StreamPtr->WriteInt16(hitbox[HITBOX_TOP]);
+		StreamPtr->WriteInt16(hitbox[HITBOX_RIGHT]);
+		StreamPtr->WriteInt16(hitbox[HITBOX_BOTTOM]);
 		return;
 	}
 	case VAL_OBJECT: {
@@ -411,10 +411,10 @@ VMValue Serializer::ReadValue() {
 	case Serializer::VAL_TYPE_DECIMAL:
 		return DECIMAL_VAL(StreamPtr->ReadFloat());
 	case Serializer::VAL_TYPE_HITBOX: {
-		int left = StreamPtr->ReadInt32();
-		int top = StreamPtr->ReadInt32();
-		int right = StreamPtr->ReadInt32();
-		int bottom = StreamPtr->ReadInt32();
+		Sint16 left = StreamPtr->ReadInt16();
+		Sint16 top = StreamPtr->ReadInt16();
+		Sint16 right = StreamPtr->ReadInt16();
+		Sint16 bottom = StreamPtr->ReadInt16();
 		return HITBOX_VAL(left, top, right, bottom);
 	}
 	case Serializer::VAL_TYPE_NULL:

@@ -1264,7 +1264,7 @@ int VMThread::RunInstruction() {
 				}
 			}
 
-			int* hitbox = AS_HITBOX(obj);
+			Sint16* hitbox = AS_HITBOX(obj);
 			int index = AS_INTEGER(at);
 			if (index < HITBOX_LEFT || index > HITBOX_BOTTOM) {
 				if (ThrowRuntimeError(false,
@@ -2324,11 +2324,10 @@ int VMThread::RunInstruction() {
 	}
 
 	VM_CASE(OP_HITBOX) {
-		int left = ReadSInt32(frame);
-		int top = ReadSInt32(frame);
-		int right = ReadSInt32(frame);
-		int bottom = ReadSInt32(frame);
-		Push(HITBOX_VAL(left, top, right, bottom));
+		Push(HITBOX_VAL(ReadSInt16(frame),
+			ReadSInt16(frame),
+			ReadSInt16(frame),
+			ReadSInt16(frame)));
 		VM_BREAK;
 	}
 

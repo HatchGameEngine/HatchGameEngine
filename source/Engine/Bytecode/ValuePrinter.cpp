@@ -40,7 +40,7 @@ void ValuePrinter::PrintValue(VMValue value, int indent) {
 		buffer_printf(Buffer, "%f", AS_DECIMAL(value));
 		break;
 	case VAL_HITBOX: {
-		int* hitbox = AS_HITBOX(value);
+		Sint16* hitbox = AS_HITBOX(value);
 		buffer_printf(Buffer,
 			"[%d, %d, %d, %d]",
 			hitbox[HITBOX_LEFT],

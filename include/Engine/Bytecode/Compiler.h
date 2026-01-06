@@ -172,6 +172,7 @@ public:
 	void EmitByte(Uint8 byte);
 	void EmitBytes(Uint8 byte1, Uint8 byte2);
 	void EmitUint16(Uint16 value);
+	void EmitSint16(Sint16 value);
 	void EmitUint32(Uint32 value);
 	void EmitSint32(Sint32 value);
 	void EmitFloat(float value);

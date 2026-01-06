@@ -1914,7 +1914,7 @@ void Compiler::GetHitbox(bool canAssign) {
 	int pre;
 	int codePointer = CodePointer();
 	bool allConstants = true;
-	std::vector<int> values;
+	std::vector<Sint16> values;
 
 	int count = 0;
 	while (!MatchToken(TOKEN_RIGHT_BRACE)) {
@@ -1931,26 +1931,29 @@ void Compiler::GetHitbox(bool canAssign) {
 
 		if (allConstants) {
 			VMValue value;
-			if (!GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + pre, &value)) {
+			if (!GetEmittedConstant(
+				    CurrentChunk(), CurrentChunk()->Code + pre, &value)) {
 				allConstants = false;
 			}
 			else if (!IS_INTEGER(value)) {
 				Error("Must construct hitbox with integer values.");
 			}
-			values.push_back(AS_INTEGER(value));
+			values.push_back((Sint16)(AS_INTEGER(value)));
 		}
 
 		if (!MatchToken(TOKEN_COMMA)) {
-			ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' at end of hitbox constructor.");
+			ConsumeToken(
+				TOKEN_RIGHT_BRACE, "Expected '}' at end of hitbox constructor.");
 			break;
 		}
 	}
 
 	if (count == 0) {
 		EmitByte(OP_HITBOX);
-		for (int i = 0; i < NUM_HITBOX_SIDES; i++) {
-			EmitSint32(0);
-		}
+		EmitSint16(0);
+		EmitSint16(0);
+		EmitSint16(0);
+		EmitSint16(0);
 		return;
 	}
 	else if (count != 4) {
@@ -1960,9 +1963,10 @@ void Compiler::GetHitbox(bool canAssign) {
 	if (allConstants) {
 		CurrentChunk()->Count = codePointer;
 		EmitByte(OP_HITBOX);
-		for (int i = 0; i < NUM_HITBOX_SIDES; i++) {
-			EmitSint32(values[i]);
-		}
+		EmitSint16(values[HITBOX_LEFT]);
+		EmitSint16(values[HITBOX_TOP]);
+		EmitSint16(values[HITBOX_RIGHT]);
+		EmitSint16(values[HITBOX_BOTTOM]);
 		return;
 	}
 
@@ -3402,6 +3406,9 @@ void Compiler::EmitUint16(Uint16 value) {
 	EmitByte(value & 0xFF);
 	EmitByte(value >> 8 & 0xFF);
 }
+void Compiler::EmitSint16(Sint16 value) {
+	EmitUint16((Uint16)value);
+}
 void Compiler::EmitUint32(Uint32 value) {
 	EmitByte(value & 0xFF);
 	EmitByte(value >> 8 & 0xFF);
@@ -3449,9 +3456,10 @@ int Compiler::EmitConstant(VMValue value) {
 	}
 	else if (value.Type == VAL_HITBOX) {
 		EmitByte(OP_HITBOX);
-		for (int i = 0; i < NUM_HITBOX_SIDES; i++) {
-			EmitSint32(value.as.Hitbox[i]);
-		}
+		EmitSint16(value.as.Hitbox[HITBOX_LEFT]);
+		EmitSint16(value.as.Hitbox[HITBOX_TOP]);
+		EmitSint16(value.as.Hitbox[HITBOX_RIGHT]);
+		EmitSint16(value.as.Hitbox[HITBOX_BOTTOM]);
 		return -1;
 	}
 
@@ -3499,12 +3507,8 @@ bool Compiler::GetEmittedConstant(Chunk* chunk, Uint8* code, VMValue* value, int
 		return true;
 	case OP_HITBOX:
 		if (value) {
-			Sint32* ptr = (Sint32*)(code + 1);
-			int left = *ptr;
-			int top = *(ptr + 1);
-			int right = *(ptr + 2);
-			int bottom = *(ptr + 3);
-			*value = HITBOX_VAL(left, top, right, bottom);
+			Sint16* values = (Sint16*)(code + 1);
+			*value = HITBOX_VAL(values[0], values[1], values[2], values[3]);
 		}
 		return true;
 	}
@@ -4208,7 +4212,7 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_METHOD_V4:
 		return 6;
 	case OP_HITBOX:
-		return 17;
+		return 1 + (sizeof(Sint16) * NUM_HITBOX_SIDES);
 	}
 	return 1;
 }
@@ -4333,12 +4337,13 @@ int Compiler::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int Compiler::HitboxInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	Sint32* ptr = (Sint32*)(&chunk->Code[offset + 1]);
-	int left = *ptr;
-	int top = *(ptr + 1);
-	int right = *(ptr + 2);
-	int bottom = *(ptr + 3);
-	Log::PrintSimple("%-16s [%d, %d, %d, %d]\n", opcodeNames[opcode], left, top, right, bottom);
+	Sint16* values = (Sint16*)(&chunk->Code[offset + 1]);
+	Log::PrintSimple("%-16s [%d, %d, %d, %d]\n",
+		opcodeNames[opcode],
+		values[0],
+		values[1],
+		values[2],
+		values[3]);
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int Compiler::DebugInstruction(Chunk* chunk, int offset) {

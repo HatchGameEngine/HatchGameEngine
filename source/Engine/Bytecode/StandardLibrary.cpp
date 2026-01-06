@@ -197,7 +197,7 @@ inline ObjMap* GetMap(VMValue* args, int index, Uint32 threadID) {
 inline CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
 	CollisionBox box;
 	if (IS_HITBOX(args[index])) {
-		int* values = AS_HITBOX(args[index]);
+		Sint16* values = AS_HITBOX(args[index]);
 		box.Left = values[HITBOX_LEFT];
 		box.Top = values[HITBOX_TOP];
 		box.Right = values[HITBOX_RIGHT];
@@ -205,7 +205,7 @@ inline CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
 	}
 	else if (IS_ARRAY(args[index])) {
 		if (ScriptManager::Lock()) {
-			int values[NUM_HITBOX_SIDES];
+			Sint16 values[NUM_HITBOX_SIDES];
 
 			ObjArray* array = AS_ARRAY(args[index]);
 
