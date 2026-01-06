@@ -5163,8 +5163,7 @@ VMValue Draw_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(9);
-	// TODO: Implement for GL renderer
-	SoftwareRenderer::FillTriangleBlend(GET_ARG(0, GetDecimal),
+	Graphics::FillTriangleBlend(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
 		GET_ARG(2, GetDecimal),
 		GET_ARG(3, GetDecimal),
@@ -5190,8 +5189,7 @@ VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(8);
-	// TODO: Implement for GL renderer
-	SoftwareRenderer::FillQuad(GET_ARG(0, GetDecimal),
+	Graphics::FillQuad(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
 		GET_ARG(2, GetDecimal),
 		GET_ARG(3, GetDecimal),
@@ -5220,8 +5218,7 @@ VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(12);
-	// TODO: Implement for GL renderer
-	SoftwareRenderer::FillQuadBlend(GET_ARG(0, GetDecimal),
+	Graphics::FillQuadBlend(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
 		GET_ARG(2, GetDecimal),
 		GET_ARG(3, GetDecimal),
@@ -5261,8 +5258,7 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 
 	Image* image = GET_ARG(0, GetImage);
 	if (image) {
-		// TODO: Implement for GL renderer
-		SoftwareRenderer::DrawTriangleTextured(image->TexturePtr,
+		Graphics::DrawTriangleTextured(image->TexturePtr,
 			GET_ARG(1, GetDecimal),
 			GET_ARG(2, GetDecimal),
 			GET_ARG(3, GetDecimal),
@@ -5313,8 +5309,7 @@ VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 
 	Image* image = GET_ARG(0, GetImage);
 	if (image) {
-		// TODO: Implement for GL renderer
-		SoftwareRenderer::DrawQuadTextured(image->TexturePtr,
+		Graphics::DrawQuadTextured(image->TexturePtr,
 			GET_ARG(1, GetDecimal),
 			GET_ARG(2, GetDecimal),
 			GET_ARG(3, GetDecimal),
