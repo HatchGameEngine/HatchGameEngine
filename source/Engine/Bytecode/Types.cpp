@@ -389,7 +389,6 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_SUPER_INVOKE);
 			OPCASE(OP_EVENT);
 			OPCASE(OP_METHOD);
-			OPCASE(OP_HITBOX);
 			OPCASE(OP_NEW_HITBOX);
 		}
 		assert((func != NULL));

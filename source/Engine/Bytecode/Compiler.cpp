@@ -116,7 +116,6 @@ static const char* opcodeNames[] = {"OP_ERROR",
 	"OP_SUPER_INVOKE",
 	"OP_EVENT",
 	"OP_METHOD",
-	"OP_HITBOX",
 	"OP_NEW_HITBOX"};
 
 // Order these by C/C++ precedence operators
@@ -1949,11 +1948,7 @@ void Compiler::GetHitbox(bool canAssign) {
 	}
 
 	if (count == 0) {
-		EmitByte(OP_HITBOX);
-		EmitSint16(0);
-		EmitSint16(0);
-		EmitSint16(0);
-		EmitSint16(0);
+		EmitConstant(HITBOX_VAL(0, 0, 0, 0));
 		return;
 	}
 	else if (count != 4) {
@@ -1962,11 +1957,7 @@ void Compiler::GetHitbox(bool canAssign) {
 
 	if (allConstants) {
 		CurrentChunk()->Count = codePointer;
-		EmitByte(OP_HITBOX);
-		EmitSint16(values[HITBOX_LEFT]);
-		EmitSint16(values[HITBOX_TOP]);
-		EmitSint16(values[HITBOX_RIGHT]);
-		EmitSint16(values[HITBOX_BOTTOM]);
+		EmitConstant(HITBOX_VAL(values.data()));
 		return;
 	}
 
@@ -3454,14 +3445,6 @@ int Compiler::EmitConstant(VMValue value) {
 		EmitByte(OP_NULL);
 		return -1;
 	}
-	else if (value.Type == VAL_HITBOX) {
-		EmitByte(OP_HITBOX);
-		EmitSint16(value.as.Hitbox[HITBOX_LEFT]);
-		EmitSint16(value.as.Hitbox[HITBOX_TOP]);
-		EmitSint16(value.as.Hitbox[HITBOX_RIGHT]);
-		EmitSint16(value.as.Hitbox[HITBOX_BOTTOM]);
-		return -1;
-	}
 
 	// anything else gets added to the const table
 	int index = GetConstantIndex(value);
@@ -3503,12 +3486,6 @@ bool Compiler::GetEmittedConstant(Chunk* chunk, Uint8* code, VMValue* value, int
 	case OP_DECIMAL:
 		if (value) {
 			*value = DECIMAL_VAL(*(float*)(code + 1));
-		}
-		return true;
-	case OP_HITBOX:
-		if (value) {
-			Sint16* values = (Sint16*)(code + 1);
-			*value = HITBOX_VAL(values[0], values[1], values[2], values[3]);
 		}
 		return true;
 	}
@@ -4211,8 +4188,6 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 		return 7;
 	case OP_METHOD_V4:
 		return 6;
-	case OP_HITBOX:
-		return 1 + (sizeof(Sint16) * NUM_HITBOX_SIDES);
 	}
 	return 1;
 }
@@ -4334,16 +4309,6 @@ int Compiler::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) {
 	if (type == 3) {
 		offset--;
 	}
-	return offset + GetTotalOpcodeSize(chunk->Code + offset);
-}
-int Compiler::HitboxInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	Sint16* values = (Sint16*)(&chunk->Code[offset + 1]);
-	Log::PrintSimple("%-16s [%d, %d, %d, %d]\n",
-		opcodeNames[opcode],
-		values[0],
-		values[1],
-		values[2],
-		values[3]);
 	return offset + GetTotalOpcodeSize(chunk->Code + offset);
 }
 int Compiler::DebugInstruction(Chunk* chunk, int offset) {
@@ -4470,8 +4435,6 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 		return MethodInstruction(instruction, chunk, offset);
 	case OP_METHOD_V4:
 		return MethodInstructionV4(instruction, chunk, offset);
-	case OP_HITBOX:
-		return HitboxInstruction(instruction, chunk, offset);
 	default:
 		if (instruction < OP_LAST) {
 			Log::PrintSimple("No viewer for opcode %s\n", opcodeNames[instruction]);
