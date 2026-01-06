@@ -12482,6 +12482,7 @@ VMValue Scene_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerWidth
  * \desc Gets the width of a layer index (in tiles).
+ * \param layerIndex (Integer): Index of layer.
  * \return Returns an Integer value.
  * \ns Scene
  */
@@ -12494,6 +12495,7 @@ VMValue Scene_GetLayerWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerHeight
  * \desc Gets the height of a layer index (in tiles).
+ * \param layerIndex (Integer): Index of layer.
  * \return Returns an Integer value.
  * \ns Scene
  */
@@ -12506,6 +12508,7 @@ VMValue Scene_GetLayerHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerOffsetX
  * \desc Gets the X offset of a layer index.
+ * \param layerIndex (Integer): Index of layer.
  * \return Returns a Decimal value.
  * \ns Scene
  */
@@ -12518,6 +12521,7 @@ VMValue Scene_GetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerOffsetY
  * \desc Gets the Y offset of a layer index.
+ * \param layerIndex (Integer): Index of layer.
  * \return Returns a Decimal value.
  * \ns Scene
  */
