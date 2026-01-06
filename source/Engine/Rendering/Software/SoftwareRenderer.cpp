@@ -171,7 +171,12 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 	SoftwareRenderer::BackendFunctions.FillCircle = SoftwareRenderer::FillCircle;
 	SoftwareRenderer::BackendFunctions.FillEllipse = SoftwareRenderer::FillEllipse;
 	SoftwareRenderer::BackendFunctions.FillTriangle = SoftwareRenderer::FillTriangle;
+	SoftwareRenderer::BackendFunctions.FillTriangleBlend = SoftwareRenderer::FillTriangleBlend;
 	SoftwareRenderer::BackendFunctions.FillRectangle = SoftwareRenderer::FillRectangle;
+	SoftwareRenderer::BackendFunctions.FillQuad = SoftwareRenderer::FillQuad;
+	SoftwareRenderer::BackendFunctions.FillQuadBlend = SoftwareRenderer::FillQuadBlend;
+	SoftwareRenderer::BackendFunctions.DrawTriangleTextured = SoftwareRenderer::DrawTriangleTextured;
+	SoftwareRenderer::BackendFunctions.DrawQuadTextured = SoftwareRenderer::DrawQuadTextured;
 
 	// Texture drawing functions
 	SoftwareRenderer::BackendFunctions.DrawTexture = SoftwareRenderer::DrawTexture;
