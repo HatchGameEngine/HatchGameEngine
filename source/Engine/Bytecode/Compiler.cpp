@@ -1934,10 +1934,12 @@ void Compiler::GetHitbox(bool canAssign) {
 				    CurrentChunk(), CurrentChunk()->Code + pre, &value)) {
 				allConstants = false;
 			}
-			else if (!IS_INTEGER(value)) {
-				Error("Must construct hitbox with integer values.");
+			else {
+				if (!IS_INTEGER(value)) {
+					Error("Must construct hitbox with integer values.");
+				}
+				values.push_back((Sint16)(AS_INTEGER(value)));
 			}
-			values.push_back((Sint16)(AS_INTEGER(value)));
 		}
 
 		if (!MatchToken(TOKEN_COMMA)) {
