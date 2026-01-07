@@ -1,11 +1,3 @@
-#######################################################################
-##                         HATCH Game Engine                         ##
-##                                                                   ##
-##               Copyright (C) 2019-2024 ARQADIUM LLC.               ##
-##             Copyright (C) 2024-2025 Alexander Nicholi             ##
-##                    Released under BSD-2-Clause                    ##
-#######################################################################
-
 include meta/prologue.mk
 
 # name of project. used in output binary naming
