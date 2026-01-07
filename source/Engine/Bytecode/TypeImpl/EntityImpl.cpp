@@ -526,7 +526,7 @@ VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 t
  * \param animationID (Integer): The animation index of the sprite to check.
  * \param frameID (Integer): The frame index of the animation to check.
  * \paramOpt hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.
- * \return Returns an Array value.
+ * \return Returns a Hitbox value.
  * \ns Entity
  */
 VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID) {
