@@ -221,11 +221,11 @@ inline CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
 
 			for (int i = 0; i < NUM_HITBOX_SIDES; i++) {
 				VMValue value = (*array->Values)[i];
-				if (!IS_NUMBER(value)) {
+				if (!IS_INTEGER(value)) {
 					THROW_ERROR(
 						"Expected value at index %d to be of type %s instead of %s.",
 						i,
-						"number",
+						GetTypeString(VAL_INTEGER),
 						GetValueTypeString(value));
 					ScriptManager::Unlock();
 					return box;
