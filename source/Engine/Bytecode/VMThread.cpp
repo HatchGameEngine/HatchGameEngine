@@ -2328,12 +2328,9 @@ int VMThread::RunInstruction() {
 		VMValue left = Pop();
 
 		if (!IS_INTEGER(left) || !IS_INTEGER(top) || !IS_INTEGER(right) || !IS_INTEGER(bottom)) {
-			if (ThrowRuntimeError(false,
-				    "Cannot construct hitbox using non-Integer values.") ==
-				ERROR_RES_CONTINUE) {
-				Push(NULL_VAL);
-				VM_BREAK;
-			}
+			ThrowRuntimeError(false, "Cannot construct hitbox using non-Integer values.");
+			Push(NULL_VAL);
+			VM_BREAK;
 		}
 
 		Push(HITBOX_VAL(AS_INTEGER(left), AS_INTEGER(top), AS_INTEGER(right), AS_INTEGER(bottom)));
