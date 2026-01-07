@@ -4,9 +4,9 @@
 
 Multiplatform engine powering projects and making ideas into reality.
 
-![Discord Server](https://discord.gg/ZSw23t2sSd)
+[Discord Server](https://discord.gg/ZSw23t2sSd)
 
-[![Lines of code](https://tokei.rs/b1/github/HatchGameEngine/HatchGameEngine?category=code)](https://github.com/XAMPPRocky/tokei)
+[[Lines of code](https://tokei.rs/b1/github/HatchGameEngine/HatchGameEngine?category=code)](https://github.com/XAMPPRocky/tokei)
 
 ## Building
 ### Microsoft Windows
