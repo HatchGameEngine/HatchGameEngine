@@ -856,7 +856,9 @@ void AudioManager::AudioCallback(void* data, Uint8* stream, int len) {
 }
 
 void AudioManager::Dispose() {
-	AudioManager::ClearSounds();
+	if (SoundArray) {
+		AudioManager::ClearSounds();
+	}
 
 	Memory::Free(SoundArray);
 	Memory::Free(AudioQueue);
