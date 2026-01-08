@@ -1930,8 +1930,9 @@ void Compiler::GetHitbox(bool canAssign) {
 
 		if (allConstants) {
 			VMValue value;
-			if (!GetEmittedConstant(
-				    CurrentChunk(), CurrentChunk()->Code + pre, &value)) {
+			uint8_t* codePtr = CurrentChunk()->Code + pre;
+			if (!(pre + GetTotalOpcodeSize(codePtr) == CodePointer() &&
+				    GetEmittedConstant(CurrentChunk(), codePtr, &value))) {
 				allConstants = false;
 			}
 			else {
