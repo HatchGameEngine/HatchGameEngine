@@ -1726,7 +1726,7 @@ void Compiler::GetMap(bool canAssign) {
 	Uint32 count = 0;
 
 	while (!MatchToken(TOKEN_RIGHT_BRACE)) {
-		AdvanceToken();
+		ConsumeToken(TOKEN_STRING, "Expected string for map key.");
 		GetString(false);
 
 		ConsumeToken(TOKEN_COLON, "Expected \":\" after key string.");
