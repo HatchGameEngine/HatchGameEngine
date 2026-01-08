@@ -16057,6 +16057,10 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ANIMFRAME_INDEX(animationID, frameID);
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+	if (frame.Boxes.size() == 0) {
+		THROW_ERROR("Frame %d of animation %d contains no hitboxes.", frameID, animationID);
+		return NULL_VAL;
+	}
 
 	if (argCount > hitboxArgNum && IS_STRING(args[hitboxArgNum])) {
 		char* name = GET_ARG(hitboxArgNum, GetString);
@@ -16086,9 +16090,11 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (hitboxID < 0 || hitboxID >= (int)frame.Boxes.size()) {
-		// TODO: Make this an error.
-		// For backwards compatibility, currently it doesn't.
-		return HITBOX_VAL(0, 0, 0, 0);
+		THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
+			hitboxID,
+			frameID,
+			animationID);
+		return NULL_VAL;
 	}
 
 	CollisionBox box = frame.Boxes[hitboxID];
