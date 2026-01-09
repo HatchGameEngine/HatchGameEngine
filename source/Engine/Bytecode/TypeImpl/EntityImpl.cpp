@@ -526,7 +526,7 @@ VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 t
  * \param animationID (Integer): The animation index of the sprite to check.
  * \param frameID (Integer): The frame index of the animation to check.
  * \paramOpt hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.
- * \return Returns an Array value.
+ * \return Returns a Hitbox value.
  * \ns Entity
  */
 VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID) {
@@ -629,12 +629,7 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 	}
 
 	CollisionBox box = frame.Boxes[hitboxID];
-	ObjArray* hitbox = NewArray();
-	hitbox->Values->push_back(INTEGER_VAL(box.Left));
-	hitbox->Values->push_back(INTEGER_VAL(box.Top));
-	hitbox->Values->push_back(INTEGER_VAL(box.Right));
-	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
-	return OBJECT_VAL(hitbox);
+	return HITBOX_VAL(box.Left, box.Top, box.Right, box.Bottom);
 }
 
 /***

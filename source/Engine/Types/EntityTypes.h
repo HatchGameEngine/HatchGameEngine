@@ -5,8 +5,6 @@
 
 enum { Persistence_NONE, Persistence_SCENE, Persistence_GAME };
 
-enum { HITBOX_LEFT = 0, HITBOX_TOP = 1, HITBOX_RIGHT = 2, HITBOX_BOTTOM = 3 };
-
 enum {
 	ACTIVE_NEVER = 0, // Never updates
 	ACTIVE_ALWAYS = 1, // Updates no matter what

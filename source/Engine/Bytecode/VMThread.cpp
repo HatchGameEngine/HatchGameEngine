@@ -627,6 +627,7 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_SUPER_INVOKE),
 		VM_ADD_DISPATCH(OP_EVENT),
 		VM_ADD_DISPATCH(OP_METHOD),
+		VM_ADD_DISPATCH(OP_NEW_HITBOX),
 	};
 #define VM_START(ins) \
 	goto* dispatch_table[(ins)]; \
@@ -739,6 +740,7 @@ int VMThread::RunInstruction() {
 			PRINT_CASE(OP_SUPER_INVOKE)
 			PRINT_CASE(OP_EVENT)
 			PRINT_CASE(OP_METHOD)
+			PRINT_CASE(OP_NEW_HITBOX)
 
 		default:
 			Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP);
@@ -1196,13 +1198,7 @@ int VMThread::RunInstruction() {
 		VMValue at = Pop();
 		VMValue obj = Pop();
 		VMValue result;
-		if (!IS_OBJECT(obj)) {
-			if (ThrowRuntimeError(
-				    false, "Cannot get element of %s.", GetValueTypeString(obj)) ==
-				ERROR_RES_CONTINUE) {
-				goto FAIL_OP_GET_ELEMENT;
-			}
-		}
+
 		if (IS_ARRAY(obj)) {
 			if (!IS_INTEGER(at)) {
 				if (ThrowRuntimeError(false,
@@ -1257,8 +1253,37 @@ int VMThread::RunInstruction() {
 				ScriptManager::Unlock();
 			}
 		}
+		else if (IS_HITBOX(obj)) {
+			if (!IS_INTEGER(at)) {
+				if (ThrowRuntimeError(false,
+					    "Cannot get value from hitbox using non-Integer value as an index.") ==
+					ERROR_RES_CONTINUE) {
+					goto FAIL_OP_GET_ELEMENT;
+				}
+			}
+
+			Sint16* hitbox = AS_HITBOX(obj);
+			int index = AS_INTEGER(at);
+			if (index < HITBOX_LEFT || index > HITBOX_BOTTOM) {
+				if (ThrowRuntimeError(false,
+					    "%d is not a valid hitbox slot. (0 - 3)",
+					    index) ==
+					ERROR_RES_CONTINUE) {
+					goto FAIL_OP_GET_ELEMENT;
+				}
+			}
+			result = INTEGER_VAL(hitbox[index]);
+			Push(result);
+		}
 		else {
-			if (IS_OBJECT(obj)) {
+			if (!IS_OBJECT(obj)) {
+				if (ThrowRuntimeError(
+					    false, "Cannot get element of %s.", GetValueTypeString(obj)) ==
+					ERROR_RES_CONTINUE) {
+					goto FAIL_OP_GET_ELEMENT;
+				}
+			}
+			else {
 				Obj* objPtr = AS_OBJECT(obj);
 				if (objPtr->ElementGet && objPtr->ElementGet(objPtr, at, &result, this->ID)) {
 					Push(result);
@@ -1282,11 +1307,6 @@ int VMThread::RunInstruction() {
 		VMValue value = Peek(0);
 		VMValue at = Peek(1);
 		VMValue obj = Peek(2);
-		if (!IS_OBJECT(obj)) {
-			ThrowRuntimeError(false, "Cannot set element of %s.", GetValueTypeString(obj));
-
-			goto FAIL_OP_SET_ELEMENT;
-		}
 
 		if (IS_ARRAY(obj)) {
 			if (!IS_INTEGER(at)) {
@@ -1339,7 +1359,12 @@ int VMThread::RunInstruction() {
 			}
 		}
 		else {
-			if (IS_OBJECT(obj)) {
+			if (!IS_OBJECT(obj)) {
+				ThrowRuntimeError(false, "Cannot set element of %s.", GetValueTypeString(obj));
+
+				goto FAIL_OP_SET_ELEMENT;
+			}
+			else {
 				Obj* objPtr = AS_OBJECT(obj);
 				if (objPtr->ElementSet && objPtr->ElementSet(objPtr, at, value, this->ID)) {
 					goto SUCCESS_OP_SET_ELEMENT;
@@ -2293,6 +2318,22 @@ int VMThread::RunInstruction() {
 			ScriptManager::Unlock();
 		}
 
+		VM_BREAK;
+	}
+
+	VM_CASE(OP_NEW_HITBOX) {
+		VMValue bottom = Pop();
+		VMValue right = Pop();
+		VMValue top = Pop();
+		VMValue left = Pop();
+
+		if (!IS_INTEGER(left) || !IS_INTEGER(top) || !IS_INTEGER(right) || !IS_INTEGER(bottom)) {
+			ThrowRuntimeError(false, "Cannot construct hitbox using non-Integer values.");
+			Push(NULL_VAL);
+			VM_BREAK;
+		}
+
+		Push(HITBOX_VAL(AS_INTEGER(left), AS_INTEGER(top), AS_INTEGER(right), AS_INTEGER(bottom)));
 		VM_BREAK;
 	}
 
@@ -3467,6 +3508,8 @@ static const char* GetTypeOfValue(VMValue value) {
 	case VAL_DECIMAL:
 	case VAL_LINKED_DECIMAL:
 		return "decimal";
+	case VAL_HITBOX:
+		return "hitbox";
 	case VAL_OBJECT:
 		switch (OBJECT_TYPE(value)) {
 		case OBJ_FUNCTION:

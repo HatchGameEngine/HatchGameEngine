@@ -66,6 +66,7 @@ public:
 	bool MatchAssignmentToken();
 	bool CheckToken(int expectedType);
 	void ConsumeToken(int type, const char* message);
+	void ConsumeIdentifier(const char* message);
 	void SynchronizeToken();
 	bool ReportError(int line, int pos, bool fatal, const char* string, ...);
 	void ErrorAt(Token* token, const char* message, bool fatal);
@@ -125,6 +126,7 @@ public:
 	void GetConditional(bool canAssign);
 	void GetUnary(bool canAssign);
 	void GetNew(bool canAssign);
+	void GetHitbox(bool canAssign);
 	void GetBinary(bool canAssign);
 	void GetHas(bool canAssign);
 	void GetSuffix(bool canAssign);
@@ -170,6 +172,7 @@ public:
 	void EmitByte(Uint8 byte);
 	void EmitBytes(Uint8 byte1, Uint8 byte2);
 	void EmitUint16(Uint16 value);
+	void EmitSint16(Sint16 value);
 	void EmitUint32(Uint32 value);
 	void EmitSint32(Sint32 value);
 	void EmitFloat(float value);

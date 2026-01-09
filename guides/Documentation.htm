@@ -2125,7 +2125,7 @@
         <li>hitboxID (Integer): The index number of the hitbox. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
+        <div style="font-size: 14px;">Returns a Hitbox value.</div>
         </p>
         <p id="Reference_functions_Animator_GetPrevAnimation">
         <h2 style="margin-bottom: 8px;">Animator.GetPrevAnimation</h2>
@@ -2766,8 +2766,8 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>entity (Instance): The instance to move.</li>
-        <li>outer (Array): Array containing the outer hitbox.</li>
-        <li>inner (Array): Array containing the inner hitbox.</li>
+        <li>outer (Hitbox): The outer hitbox.</li>
+        <li>inner (Hitbox): The inner hitbox.</li>
         </ul>
         </p>
         <p id="Reference_functions_Collision_ObjectTileCollision">
@@ -2811,9 +2811,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>thisEntity (Instance): The first instance to check.</li>
-        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>thisHitbox (Hitbox): The first entity's hitbox.</li>
         <li>otherEntity (Instance): The other instance to check.</li>
-        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        <li>otherHitbox (Hitbox): The other entity's hitbox.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value whether the entities are touching.</div>
@@ -2839,9 +2839,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>thisEnity (Instance): The first instance to check.</li>
-        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>thisHitbox (Array): The first entity's hitbox.</li>
         <li>otherEntity (Instance): The other instance to check.</li>
-        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        <li>otherHitbox (Array): The other entity's hitbox.</li>
         <li>setValues (Boolean): Whether to set the values of the other entity.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -2854,9 +2854,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>thisEnity (Instance): The first instance to check.</li>
-        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>thisHitbox (Array): The first entity's hitbox.</li>
         <li>otherEntity (Instance): The other instance to check whether it is on top of the first instance.</li>
-        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        <li>otherHitbox (Array): The other entity's hitbox.</li>
         <li>setValues (Boolean): Whether to set the values of the other entity.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -9160,7 +9160,7 @@
         <li>hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Array value.</div>
+        <div style="font-size: 14px;">Returns a Hitbox value.</div>
         </p>
         <p id="Reference_functions_Sprite_GetTextArray">
         <h2 style="margin-bottom: 8px;">Sprite.GetTextArray</h2>
@@ -10777,7 +10777,7 @@
         <li>hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Array value.</div>
+        <div style="font-size: 14px;">Returns a Hitbox value.</div>
         </p>
         <p id="Reference_methods_entity_CollideWithObject">
         <h2 style="margin-bottom: 8px;">entity.CollideWithObject</h2>
@@ -12055,19 +12055,19 @@
         </p>
         <p id="Reference_enums_HITBOX_LEFT">
         <h3 style="margin-bottom: 8px;"><code>HITBOX_LEFT</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Left side, slot 0 of a hitbox array.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Left side, slot 0 of a hitbox value.</div>
         </p>
         <p id="Reference_enums_HITBOX_TOP">
         <h3 style="margin-bottom: 8px;"><code>HITBOX_TOP</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Top side, slot 1 of a hitbox array.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Top side, slot 1 of a hitbox value.</div>
         </p>
         <p id="Reference_enums_HITBOX_RIGHT">
         <h3 style="margin-bottom: 8px;"><code>HITBOX_RIGHT</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Right side, slot 2 of a hitbox array.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Right side, slot 2 of a hitbox value.</div>
         </p>
         <p id="Reference_enums_HITBOX_BOTTOM">
         <h3 style="margin-bottom: 8px;"><code>HITBOX_BOTTOM</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Bottom side, slot 3 of a hitbox array.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Bottom side, slot 3 of a hitbox value.</div>
         </p>
         <p id="Reference_enums_InputBind_Keyboard">
         <h3 style="margin-bottom: 8px;"><code>InputBind_Keyboard</code></h2>
