@@ -2296,9 +2296,7 @@ VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 thre
 	CollisionBox innerBox = GET_ARG(2, GetHitbox);
 
 	if (entity) {
-		auto ent = (Entity*)entity->EntityPtr;
-
-		Scene::ProcessObjectMovement(ent, &outerBox, &innerBox);
+		Scene::ProcessObjectMovement((Entity*)entity->EntityPtr, &outerBox, &innerBox);
 	}
 	return NULL_VAL;
 }
@@ -2325,10 +2323,7 @@ VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 thread
 	int yOffset = GET_ARG(5, GetDecimal);
 	int setPos = GET_ARG(6, GetInteger);
 
-	auto ent = (Entity*)entity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::ObjectTileCollision(ent, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
+	return INTEGER_VAL(Scene::CheckTileCollision((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
 }
 /***
  * Collision.ObjectTileGrip
@@ -2353,10 +2348,7 @@ VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
 	float yOffset = GET_ARG(5, GetDecimal);
 	float tolerance = GET_ARG(6, GetDecimal);
 
-	auto ent = (Entity*)entity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::ObjectTileGrip(ent, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
+	return INTEGER_VAL(Scene::CheckTileGrip((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
 }
 /***
  * Collision.CheckObjectCollisionTouch
@@ -2375,11 +2367,7 @@ VMValue Collision_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	return INTEGER_VAL(
-		!!Scene::CheckObjectCollisionTouch(thisEnt, &thisBox, otherEnt, &otherBox));
+	return INTEGER_VAL(!!Scene::CheckEntityTouch((Entity*)thisEntity->EntityPtr, &thisBox, (Entity*)otherEntity->EntityPtr, &otherBox));
 }
 /***
  * Collision.CheckObjectCollisionCircle
@@ -2398,11 +2386,7 @@ VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	float otherRadius = GET_ARG(3, GetDecimal);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	return INTEGER_VAL(
-		!!Scene::CheckObjectCollisionCircle(thisEnt, thisRadius, otherEnt, otherRadius));
+	return INTEGER_VAL(!!Scene::CheckEntityCircle((Entity*)thisEntity->EntityPtr, thisRadius, (Entity*)otherEntity->EntityPtr, otherRadius));
 }
 /***
  * Collision.CheckObjectCollisionBox
@@ -2423,11 +2407,7 @@ VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 th
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::CheckObjectCollisionBox(thisEnt, &thisBox, otherEnt, &otherBox, setValues));
+	return INTEGER_VAL(Scene::CheckEntityBox((Entity*)thisEntity->EntityPtr, &thisBox, (Entity*)otherEntity->EntityPtr, &otherBox, setValues));
 }
 /***
  * Collision.CheckObjectCollisionPlatform
@@ -2448,11 +2428,7 @@ VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	return INTEGER_VAL(!!Scene::CheckObjectCollisionPlatform(
-		thisEnt, &thisBox, otherEnt, &otherBox, setValues));
+	return INTEGER_VAL(!!Scene::CheckEntityPlatform((Entity*)thisEntity->EntityPtr, &thisBox, (Entity*)otherEntity->EntityPtr, &otherBox, setValues));
 }
 // #endregion
 
