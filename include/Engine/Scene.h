@@ -139,8 +139,8 @@ public:
 	static int WallAngleTolerance;
 	static int RoofAngleTolerance;
 	static bool ShowHitboxes;
-	static int DebugHitboxCount;
-	static DebugHitboxInfo DebugHitboxList[DEBUG_HITBOX_COUNT];
+	static int ViewableHitboxCount;
+	static ViewableHitbox ViewableHitboxList[VIEWABLE_HITBOX_COUNT];
 
 	static void Add(Entity** first, Entity** last, int* count, Entity* obj);
 	static void Remove(Entity** first, Entity** last, int* count, Entity* obj);

@@ -2319,8 +2319,8 @@ VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 thread
 	int cLayers = GET_ARG(1, GetInteger);
 	int cMode = GET_ARG(2, GetInteger);
 	int cPlane = GET_ARG(3, GetInteger);
-	int xOffset = GET_ARG(4, GetDecimal);
-	int yOffset = GET_ARG(5, GetDecimal);
+	int xOffset = GET_ARG(4, GetInteger);
+	int yOffset = GET_ARG(5, GetInteger);
 	int setPos = GET_ARG(6, GetInteger);
 
 	return INTEGER_VAL(Scene::CheckTileCollision((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
@@ -2344,8 +2344,8 @@ VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
 	int cLayers = GET_ARG(1, GetInteger);
 	int cMode = GET_ARG(2, GetInteger);
 	int cPlane = GET_ARG(3, GetInteger);
-	float xOffset = GET_ARG(4, GetDecimal);
-	float yOffset = GET_ARG(5, GetDecimal);
+	int xOffset = GET_ARG(4, GetInteger);
+	int yOffset = GET_ARG(5, GetInteger);
 	float tolerance = GET_ARG(6, GetDecimal);
 
 	return INTEGER_VAL(Scene::CheckTileGrip((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
@@ -19208,6 +19208,16 @@ void StandardLibrary::Link() {
     * \desc Object regions display keybind. (dev)
     */
 	DEF_ENUM_CLASS(KeyBind, DevObjectRegions);
+	/***
+	* \enum KeyBind_DevViewHitboxes
+	* \desc Hitbox display keybind. (dev)
+	*/
+	DEF_ENUM_CLASS(KeyBind, DevViewHitboxes);
+	/***
+	* \enum KeyBind_DevMenuToggle
+	* \desc Open/close dev menu keybind. (dev)
+	*/
+	DEF_ENUM_CLASS(KeyBind, DevMenuToggle);
 	/***
     * \enum KeyBind_DevQuit
     * \desc App quit keybind. (dev)

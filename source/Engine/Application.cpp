@@ -1139,6 +1139,7 @@ void Application::LoadKeyBinds() {
 	GET_KEY("devQuit", DevQuit, Key_UNKNOWN);
 	GET_KEY("devShowTileCol", DevTileCol, Key_UNKNOWN);
 	GET_KEY("devShowObjectRegions", DevObjectRegions, Key_UNKNOWN);
+	GET_KEY("devViewHitboxes", DevViewHitboxes, Key_UNKNOWN);
 
 #undef GET_KEY
 }
@@ -1438,6 +1439,11 @@ void Application::PollEvents() {
 				// View object regions (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevObjectRegions]) {
 					Scene::ShowObjectRegions ^= 1;
+					break;
+				}
+				// View object regions (dev)
+				else if (key == KeyBindsSDL[(int)KeyBind::DevViewHitboxes]) {
+					Scene::ShowHitboxes ^= 1;
 					break;
 				}
 				// Toggle frame stepper (dev)

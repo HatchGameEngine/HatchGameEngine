@@ -154,8 +154,8 @@ int Scene::FloorAngleTolerance = 0x20;
 int Scene::WallAngleTolerance = 0x20;
 int Scene::RoofAngleTolerance = 0x20;
 bool Scene::ShowHitboxes = false;
-int Scene::DebugHitboxCount = 0;
-DebugHitboxInfo Scene::DebugHitboxList[DEBUG_HITBOX_COUNT];
+int Scene::ViewableHitboxCount = 0;
+ViewableHitbox Scene::ViewableHitboxList[VIEWABLE_HITBOX_COUNT];
 
 void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
 	// This is called before object lists are cleared, so we need
@@ -3854,26 +3854,26 @@ int Scene::CollisionInLine(int x,
 }
 
 int Scene::RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbox) {
-	for (int i = 0; i < DebugHitboxCount; ++i) {
-		if (DebugHitboxList[i].hitbox.Left == hitbox->Left &&
-			DebugHitboxList[i].hitbox.Top == hitbox->Top &&
-			DebugHitboxList[i].hitbox.Right == hitbox->Right &&
-			DebugHitboxList[i].hitbox.Bottom == hitbox->Bottom &&
-			DebugHitboxList[i].x == (int)entity->X &&
-			DebugHitboxList[i].y == (int)entity->Y &&
-			DebugHitboxList[i].entity == entity) {
+	for (int i = 0; i < ViewableHitboxCount; ++i) {
+		if (ViewableHitboxList[i].Hitbox.Left == hitbox->Left &&
+			ViewableHitboxList[i].Hitbox.Top == hitbox->Top &&
+			ViewableHitboxList[i].Hitbox.Right == hitbox->Right &&
+			ViewableHitboxList[i].Hitbox.Bottom == hitbox->Bottom &&
+			ViewableHitboxList[i].X == (int)entity->X &&
+			ViewableHitboxList[i].Y == (int)entity->Y &&
+			ViewableHitboxList[i].Entity == entity) {
 			return i;
 		}
 	}
 
-	if (DebugHitboxCount < DEBUG_HITBOX_COUNT) {
-		DebugHitboxInfo& box = DebugHitboxList[DebugHitboxCount];
-		box.type = type;
-		box.entity = entity;
-		box.x = (int)entity->X;
-		box.y = (int)entity->Y;
-		OrientHitbox(hitbox, dir, &box.hitbox);
-		return DebugHitboxCount++;
+	if (ViewableHitboxCount < VIEWABLE_HITBOX_COUNT) {
+		ViewableHitbox& box = ViewableHitboxList[ViewableHitboxCount];
+		box.Type = type;
+		box.Entity = entity;
+		box.X = (int)entity->X;
+		box.Y = (int)entity->Y;
+		OrientHitbox(hitbox, dir, &box.Hitbox);
+		return ViewableHitboxCount++;
 	}
 	return -1;
 }
@@ -3889,13 +3889,13 @@ bool Scene::CheckEntityTouch(Entity* thisEntity, CollisionBox* thisHitbox, Entit
 	bool collided = thisEntity->X + thisBox.Left < otherEntity->X + otherBox.Right && thisEntity->X + thisBox.Right > otherEntity->X + otherBox.Left &&
 					thisEntity->Y + thisBox.Top < otherEntity->Y + otherBox.Bottom && thisEntity->Y + thisBox.Bottom > otherEntity->Y + otherBox.Top;
 
-	if (ShowHitboxes) { 
+	if (ShowHitboxes) {
 		int thisHitboxID = RegisterHitbox(H_TYPE_TOUCH, thisEntity->Direction, thisEntity, thisHitbox);
 		int otherHitboxID = RegisterHitbox(H_TYPE_TOUCH, otherEntity->Direction, otherEntity, otherHitbox);
 		if (thisHitboxID >= 0 && collided)
-			DebugHitboxList[thisHitboxID].collision |= 1 << (collided - 1);
+			ViewableHitboxList[thisHitboxID].Collision |= 1 << (collided - 1);
 		if (otherHitboxID >= 0 && collided)
-			DebugHitboxList[otherHitboxID].collision |= 1 << (collided - 1);
+			ViewableHitboxList[otherHitboxID].Collision |= 1 << (collided - 1);
 	}
 	return collided;
 }
@@ -3918,9 +3918,9 @@ bool Scene::CheckEntityCircle(Entity* thisEntity, float thisRadius, Entity* othe
 		int otherHitboxID = RegisterHitbox(H_TYPE_CIRCLE, FLIP_NONE, otherEntity, &otherBox);
 
 		if (thisHitboxID >= 0 && collided)
-			DebugHitboxList[thisHitboxID].collision |= 1 << (collided - 1);
+			ViewableHitboxList[thisHitboxID].Collision |= 1 << (collided - 1);
 		if (otherHitboxID >= 0 && collided)
-			DebugHitboxList[otherHitboxID].collision |= 1 << (collided - 1);
+			ViewableHitboxList[otherHitboxID].Collision |= 1 << (collided - 1);
 	}
 	return collided;
 }
@@ -4039,9 +4039,9 @@ int Scene::CheckEntityBox(Entity* thisEntity, CollisionBox* thisHitbox, Entity* 
 		int otherID = RegisterHitbox(H_TYPE_BOX, otherEntity->Direction, otherEntity, otherHitbox);
 
 		if (thisID >= 0 && side)
-			DebugHitboxList[thisID].collision |= 1 << (side - 1);
+			ViewableHitboxList[thisID].Collision |= 1 << (side - 1);
 		if (otherID >= 0 && side)
-			DebugHitboxList[otherID].collision |= 1 << (4 - side);
+			ViewableHitboxList[otherID].Collision |= 1 << (4 - side);
 	}
 
 	return side;
@@ -4087,8 +4087,8 @@ bool Scene::CheckEntityPlatform(Entity* thisEntity, CollisionBox* thisHitbox, En
 		int otherID = RegisterHitbox(H_TYPE_PLAT, otherEntity->Direction, otherEntity, otherHitbox);
 
 		if (isColliding && thisID >= 0 && otherID >= 0) {
-			DebugHitboxList[thisID].collision |= 1 << (isUp * 3);
-			DebugHitboxList[otherID].collision |= (!isUp * 3);
+			ViewableHitboxList[thisID].Collision |= 1 << (isUp * 3);
+			ViewableHitboxList[otherID].Collision |= (!isUp * 3);
 		}
 	}
 
@@ -4371,7 +4371,7 @@ void Scene::ProcessPathGrip() {
             if (CollisionEntity->GroundVel > 0.0) {
                 CheckHorizontalCollision(&Sensors[3], true);
                 if (Sensors[3].Collided) {
-                    Sensors[0].X = Sensors[3].X - 2.0;
+                    Sensors[2].X = Sensors[3].X - 2.0;
                 }
             }
 
@@ -5230,7 +5230,7 @@ void Scene::CheckVerticalCollision(CollisionSensor* sensor, bool isFloor) {
 				int stepCount = 2;
 				int step = TileHeight * stepDir;
 
-				for (int i = 0; i <= stepCount; ++i) {
+				for (int i = 0; i < stepCount; ++i) {
 					if (cy >= 0 && cy < TileHeight * layer.Height) {
 						int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
 						int collBits = (CollisionEntity->CollisionPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);

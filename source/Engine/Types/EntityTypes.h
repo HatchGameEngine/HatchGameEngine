@@ -91,15 +91,15 @@ struct ObjectListPerformance {
 	}
 };
 
-#define DEBUG_HITBOX_COUNT 0x400
+#define VIEWABLE_HITBOX_COUNT 0x400
 
-struct DebugHitboxInfo {
-	int type;
-	int collision;
-	Entity* entity;
-	CollisionBox hitbox;
-	int x;
-	int y;
+struct ViewableHitbox {
+	int Type;
+	int Collision;
+	Entity* Entity;
+	CollisionBox Hitbox;
+	int X;
+	int Y;
 };
 
 #endif /* ENTITYTYPES_H */
