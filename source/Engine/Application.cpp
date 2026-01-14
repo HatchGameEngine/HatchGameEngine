@@ -2584,6 +2584,11 @@ void Application::DevMenu_MainMenu() {
 	};
 	DrawDevString(tooltips[DevMenu.Selection], 160, 86, ALIGN_LEFT, true);
 
+	if (DevMenu.Selection == 2 && SceneInfo::Categories.empty()) {
+		DrawDevString("Warning: No scene list is loaded.", 160, 101, ALIGN_LEFT, false);
+		DrawDevString("This option is disabled.", 160, 101, ALIGN_LEFT, false);
+	}
+
 	int actionUp = InputManager::GetActionID("Up");
 	int actionDown = InputManager::GetActionID("Down");
 
@@ -2617,7 +2622,10 @@ void Application::DevMenu_MainMenu() {
 				Scene::Restart();
 				UpdateWindowTitle();
 				break;
-			case 2: DevMenu.State = Application::DevMenu_CategorySelectMenu; break;
+			case 2:
+				if (!SceneInfo::Categories.empty())
+					DevMenu.State = Application::DevMenu_CategorySelectMenu;
+				break;
 			case 3: DevMenu.State = Application::DevMenu_SettingsMenu; break;
 			case 4: Running = false; break;
 		}
@@ -2635,8 +2643,8 @@ void Application::DevMenu_MainMenu() {
 void Application::DevMenu_CategorySelectMenu() {
 	DevMenu_DrawMainMenu();
 
-	if (!ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
-		DrawDevString("No SceneConfig is loaded!", 160, 86, ALIGN_LEFT, true);
+	if (SceneInfo::Categories.empty()) {
+		DrawDevString("No scene list is loaded!", 160, 86, ALIGN_LEFT, true);
 
 		int actionB = InputManager::GetActionID("B");
 		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
@@ -2780,7 +2788,9 @@ void Application::DevMenu_SettingsMenu() {
 		std::string("Performance Viewer ") + (ViewPerformance ? "(On)" : "(Off)"),
 		std::string("Tile Collision Viewer (Path A) ") + ((Scene::ShowTileCollisionFlag == 1) ? "(On)" : "(Off)"),
 		std::string("Tile Collision Viewer (Path B) ") + ((Scene::ShowTileCollisionFlag == 2) ? "(On)" : "(Off)"),
-		std::string("Object Region Viewer ") + (Scene::ShowObjectRegions ? "(On)" : "(Off)") };
+		std::string("Object Region Viewer ") + (Scene::ShowObjectRegions ? "(On)" : "(Off)"),
+		std::string("Hitbox Viewer ") + (Scene::ShowHitboxes ? "(On)" : "(Off)"),
+	};
 	for (size_t i = 0, y = 86; i < std::size(labels); i++, y += 14)
 		DrawDevString(labels[i].c_str(), 160, y, ALIGN_LEFT, DevMenu.SubSelection == i);
 
@@ -2821,16 +2831,18 @@ void Application::DevMenu_SettingsMenu() {
 			ViewPerformance = !ViewPerformance;
 			break;
 		case 3: // Tile Collision Viewer (Path A)
-			Scene::ShowTileCollisionFlag != 1 ? Scene::ShowTileCollisionFlag = 1 : Scene::ShowTileCollisionFlag = 0;
+			Scene::ShowTileCollisionFlag = (Scene::ShowTileCollisionFlag == 1) ? 0 : 1;
 			Application::UpdateWindowTitle();
 			break;
 		case 4: // Tile Collision Viewer (Path B)
-			Scene::ShowTileCollisionFlag != 2 ? Scene::ShowTileCollisionFlag = 2 : Scene::ShowTileCollisionFlag = 0;
+			Scene::ShowTileCollisionFlag = (Scene::ShowTileCollisionFlag == 2) ? 0 : 2;
 			Application::UpdateWindowTitle();
 			break;
 		case 5: // Object Region Viewer
 			Scene::ShowObjectRegions ^= 1;
-			Application::UpdateWindowTitle();
+			break;
+		case 6: // Hitbox Viewer
+			Scene::ShowHitboxes ^= 1;
 			break;
 		}
 	}
