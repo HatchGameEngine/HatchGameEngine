@@ -1692,7 +1692,7 @@ VMValue Application_SetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 /***
  * Application.GetCursorVisible
  * \desc Gets the visibility of the cursor.
- * \return Returns whether ot not the cursor is visible.
+ * \return Returns whether or not the cursor is visible.
  * \ns Application
  */
 VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadID) {
@@ -4691,7 +4691,7 @@ VMValue Draw_SetBlendColor(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextureBlend
- * \desc Sets whetherto use color and alpha blending on sprites, images, and textures.
+ * \desc Sets whether to use color and alpha blending on sprites, images, and textures.
  * \param doBlend (Boolean): Whether to use blending.
  * \ns Draw
  */
@@ -5089,7 +5089,7 @@ VMValue Draw_Triangle(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.TriangleBlend
- * \desc Draws a triangle, blending the colors at the vertices. (Colors are multipled by the global Draw Blend Color, do <linkto ref="Draw.SetBlendColor"></linkto><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)
+ * \desc Draws a triangle, blending the colors at the vertices. (Colors are multiplied by the global Draw Blend Color, do <linkto ref="Draw.SetBlendColor"></linkto><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param x2 (Number): X position of the second vertex.
@@ -5141,7 +5141,7 @@ VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.QuadBlend
- * \desc Draws a quad, blending the colors at the vertices. (Colors are multipled by the global Draw Blend Color, do <linkto ref="Draw.SetBlendColor"></linkto><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)
+ * \desc Draws a quad, blending the colors at the vertices. (Colors are multiplied by the global Draw Blend Color, do <linkto ref="Draw.SetBlendColor"></linkto><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
  * \param x2 (Number): X position of the second vertex.
@@ -5937,7 +5937,7 @@ static void DrawPolygon3D(VertexAttribute* data,
 	matrixNormalArr = GET_ARG(offset + 1, GetArray)
 
 /***
- * Draw.Triangle3D
+ * Draw3D.Triangle
  * \desc Draws a triangle in 3D space.
  * \param x1 (Number): X position of the first vertex.
  * \param y1 (Number): Y position of the first vertex.
@@ -9619,7 +9619,6 @@ VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
 			GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
 	}
 }
-
 /***
  * Math.Sign
  * \desc Gets the sign associated with a Decimal value.
@@ -10054,7 +10053,7 @@ VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Converts a decimal number to its fixed-point equivalent.
  * \param n (Number): Number value.
  * \return Returns the converted fixed-point Number value.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
@@ -10065,7 +10064,7 @@ VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Converts a fixed-point number to its decimal equivalent.
  * \param n (Number): Number value.
  * \return Returns the converted decimal Number value.
- * \ns Math
+ * \ns RSDK.Math
  */
 VMValue Math_FromFixed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
@@ -10377,7 +10376,7 @@ VMValue Matrix_Identity256(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * RSDK.Matrix.Multiply256
- * \desc Multiplies two matrices based on the deciaml 256.0.
+ * \desc Multiplies two matrices based on the decimal 256.0.
  * \param matrix (Matrix): The matrix to output the values to.
  * \param a (Matrix): The first matrix to use for multiplying.
  * \param b (Matrix): The second matrix to use for multiplying.
