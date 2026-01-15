@@ -2323,7 +2323,7 @@ VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 thread
 	int yOffset = GET_ARG(5, GetInteger);
 	int setPos = GET_ARG(6, GetInteger);
 
-	return INTEGER_VAL(Scene::CheckTileCollision((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
+	return INTEGER_VAL(Scene::ObjectTileCollision((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
 }
 /***
  * Collision.ObjectTileGrip
@@ -2348,7 +2348,7 @@ VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
 	int yOffset = GET_ARG(5, GetInteger);
 	float tolerance = GET_ARG(6, GetDecimal);
 
-	return INTEGER_VAL(Scene::CheckTileGrip((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
+	return INTEGER_VAL(Scene::ObjectTileGrip((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
 }
 /***
  * Collision.CheckObjectCollisionTouch

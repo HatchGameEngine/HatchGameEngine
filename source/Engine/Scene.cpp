@@ -142,7 +142,6 @@ int ViewRenderList[MAX_SCENE_VIEWS];
 int Scene::CollisionTolerance = 0;
 bool Scene::UseCollisionOffset = false;
 float Scene::CollisionOffset = 4.0f;
-float Scene::CollisionMaskAir = 0.0f;
 CollisionBox Scene::CollisionOuter;
 CollisionBox Scene::CollisionInner;
 Entity* Scene::CollisionEntity = NULL;
@@ -4095,164 +4094,281 @@ bool Scene::CheckEntityPlatform(Entity* thisEntity, CollisionBox* thisHitbox, En
 	return isColliding;
 }
 
-bool Scene::CheckTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos) {
-	if (cPlane < 0 || cPlane >= Scene::TileCfg.size()) return false;
+bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos) {
+	int layerID = 1;
+	bool collided = false;
+	int posX = xOffset + entity->X;
+	int posY = yOffset + entity->Y;
+
+	if (cPlane < 0 || cPlane >= Scene::TileCfg.size())
+		return false;
 	TileConfig* tileCfgBase = Scene::TileCfg[cPlane];
 
-	const bool isVertical = (cMode == CMODE_FLOOR || cMode == CMODE_ROOF);
-	const int stepDir = (cMode >= CMODE_ROOF) ? -1 : 1;
-	const int requiredCollBit = (cMode == CMODE_FLOOR) ? 1 : 2;
-	
-	bool collided = false;
-	// X and Y values swap based on vertical/horizontal mode, so instead of X and Y we use primary and secondary
-	// Primary: axis along the surface (X for Floor/Roof, Y for Walls)
-	// Secondary: axis perpendicular to the surface (Y for Floor/Roof, X for Walls)
-	int primaryEntityPos = isVertical ? (xOffset + entity->X) : (yOffset + entity->Y);
-	int secondaryEntityPos = isVertical ? (yOffset + entity->Y) : (xOffset + entity->X);
-	int tileSize = isVertical ? TileHeight : TileWidth;
-
-	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
 		SceneLayer& layer = Layers[l];
 		if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE) || !(cLayers & layerID))
 			continue;
 
-		int relativePrimaryPos = primaryEntityPos - (isVertical ? layer.OffsetX : layer.OffsetY);
-		int relativeSecondaryPos = secondaryEntityPos - (isVertical ? layer.OffsetY : layer.OffsetX);
+		int colX = posX - layer.OffsetX;
+		int colY = posY - layer.OffsetY;
 
-		int layerPrimarySize = isVertical ? (TileWidth * layer.Width) : (TileHeight * layer.Height);
-		int layerSecondarySize = isVertical ? (TileHeight * layer.Height) : (TileWidth * layer.Width);
+		switch (cMode) {
+		case CMODE_FLOOR: {
+			int cy = (colY & -TileHeight) - TileHeight;
+			if (colX >= 0 && colX < TileWidth * layer.Width) {
+				for (int i = 0; i < 3; ++i) {
+					if (cy >= 0 && cy < TileHeight * layer.Height) {
+						int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
+						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
 
-		if (relativePrimaryPos >= 0 && relativePrimaryPos < layerPrimarySize) {
-			int currentSecondaryPos = (relativeSecondaryPos & -tileSize) + (stepDir == 1 ? -tileSize : tileSize);
-			int secondaryStep = stepDir * tileSize;
+						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 1)) {
+							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
 
-			for (int i = 0; i < 3; ++i) {
-				if (currentSecondaryPos >= 0 && currentSecondaryPos < layerSecondarySize) {
-					int tileX = isVertical ? (relativePrimaryPos / TileWidth) : (currentSecondaryPos / TileWidth);
-					int tileY = isVertical ? (currentSecondaryPos / TileHeight) : (relativePrimaryPos / TileHeight);
-
-					int tileID = layer.Tiles[tileX + (tileY << layer.WidthInBits)];
-					int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
-
-					if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & requiredCollBit)) {
-						int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-						TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
-
-						Uint8 mask = 0xFF;
-						switch (cMode) {
-							case CMODE_FLOOR: mask = tileCfg->CollisionTop[relativePrimaryPos & 0xF]; break;
-							case CMODE_LWALL: mask = tileCfg->CollisionLeft[relativePrimaryPos & 0xF]; break;
-							case CMODE_ROOF: mask = tileCfg->CollisionBottom[relativePrimaryPos & 0xF]; break;
-							case CMODE_RWALL: mask = tileCfg->CollisionRight[relativePrimaryPos & 0xF]; break;
-						}
-
-						if (mask < 0xFF) {
-							int targetS = currentSecondaryPos + mask;
-							bool checkColl = (stepDir == 1) ? (relativeSecondaryPos >= targetS) : (relativeSecondaryPos <= targetS);
-
-							if (checkColl && abs(relativeSecondaryPos - targetS) <= 14) {
+							int ty = cy + tileCfg->CollisionTop[colX & 0xF];
+							if (colY >= ty && abs(colY - ty) <= 14) {
 								collided = true;
-								relativeSecondaryPos = targetS;
+								colY = ty;
 								i = 3;
 							}
 						}
 					}
+					cy += TileHeight;
 				}
-				currentSecondaryPos += secondaryStep;
 			}
+			if (setPos && collided)
+				entity->Y = (float)(colY + layer.OffsetY) - yOffset;
+			break;
 		}
+		case CMODE_LWALL: {
+			int cx = (colX & -TileWidth) - TileWidth;
+			if (colY >= 0 && colY < TileHeight * layer.Height) {
+				for (int i = 0; i < 3; ++i) {
+					if (cx >= 0 && cx < TileWidth * layer.Width) {
+						int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
+						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
 
-		if (isVertical)
-			secondaryEntityPos = relativeSecondaryPos + layer.OffsetY;
-		else
-			secondaryEntityPos = relativeSecondaryPos + layer.OffsetX;
+						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
+							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
+
+							int tx = cx + tileCfg->CollisionLeft[colY & 0xF];
+							if (colX >= tx && abs(colX - tx) <= 14) {
+								collided = true;
+								colX = tx;
+								i = 3;
+							}
+						}
+					}
+					cx += TileWidth;
+				}
+			}
+			if (setPos && collided)
+				entity->X = (float)(colX + layer.OffsetX) - xOffset;
+			break;
+		}
+		case CMODE_ROOF: {
+			int cy = (colY & -TileHeight) + TileHeight;
+			if (colX >= 0 && colX < TileWidth * layer.Width) {
+				for (int i = 0; i < 3; ++i) {
+					if (cy >= 0 && cy < TileHeight * layer.Height) {
+						int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
+						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+
+						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
+							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
+
+							int ty = cy + tileCfg->CollisionBottom[colX & 0xF];
+							if (colY <= ty && abs(colY - ty) <= 14) {
+								collided = true;
+								colY = ty;
+								i = 3;
+							}
+						}
+					}
+					cy -= TileHeight;
+				}
+			}
+			if (setPos && collided)
+				entity->Y = (float)(colY + layer.OffsetY) - yOffset;
+			break;
+		}
+		case CMODE_RWALL: {
+			int cx = (colX & -TileWidth) + TileWidth;
+			if (colY >= 0 && colY < TileHeight * layer.Height) {
+				for (int i = 0; i < 3; ++i) {
+					if (cx >= 0 && cx < TileWidth * layer.Width) {
+						int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
+						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+
+						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
+							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
+
+							int tx = cx + tileCfg->CollisionRight[colY & 0xF];
+							if (colX <= tx && abs(colX - tx) <= 14) {
+								collided = true;
+								colX = tx;
+								i = 3;
+							}
+						}
+					}
+					cx -= TileWidth;
+				}
+			}
+			if (setPos && collided)
+				entity->X = (float)(colX + layer.OffsetX) - xOffset;
+			break;
+		}
+		}
+		posX = layer.OffsetX + colX;
+		posY = layer.OffsetY + colY;
 	}
-
-	if (setPos && collided) {
-		float snappedPos = (float)secondaryEntityPos - (isVertical ? yOffset : xOffset);
-		if (isVertical)
-			entity->Y = snappedPos;
-		else
-			entity->X = snappedPos;
-	}
-
 	return collided;
 }
 
-bool Scene::CheckTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance) {
+bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance) {
+	int layerID = 1;
+	bool collided = false;
+	int posX = (int)(xOffset + entity->X);
+	int posY = (int)(yOffset + entity->Y);
+
 	if (cPlane < 0 || cPlane >= Scene::TileCfg.size()) return false;
 	TileConfig* tileCfgBase = Scene::TileCfg[cPlane];
 
-	const bool isVertical = (cMode == CMODE_FLOOR || cMode == CMODE_ROOF);
-	const int stepDir = (cMode >= CMODE_ROOF) ? -1 : 1;
-	const int requiredCollBit = (cMode == CMODE_FLOOR) ? 1 : 2;
-
-	bool collided = false;
-    // X and Y values swap based on vertical/horizontal mode, so instead of X and Y we use primary and secondary
-	// Primary: axis along the surface
-    // Secondary: axis perpendicular to the surface
-	int primaryEntityPos = isVertical ? (xOffset + entity->X) : (yOffset + entity->Y);
-	int secondaryEntityPos = isVertical ? (yOffset + entity->Y) : (xOffset + entity->X);
-	int tileSize = isVertical ? TileHeight : TileWidth;
-
-	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
 		SceneLayer& layer = Layers[l];
 		if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE) || !(cLayers & layerID))
 			continue;
 
-		// "Relative" in relation to the layer
-		int relativePrimaryPos = primaryEntityPos - (isVertical ? layer.OffsetX : layer.OffsetY);
-		int relativeSecondaryPos = secondaryEntityPos - (isVertical ? layer.OffsetY : layer.OffsetX);
+		int colX = posX - layer.OffsetX;
+		int colY = posY - layer.OffsetY;
 
-		int layerPrimarySize = isVertical ? (TileWidth * layer.Width) : (TileHeight * layer.Height);
-		int layerSecondarySize = isVertical ? (TileHeight * layer.Height) : (TileWidth * layer.Width);
+		switch (cMode) {
+		case CMODE_FLOOR: {
+			int cy = (colY & -TileHeight) - TileHeight;
+			if (colX >= 0 && colX < TileWidth * layer.Width) {
+				for (int i = 0; i < 3; ++i) {
+					if (cy >= 0 && cy < TileHeight * layer.Height) {
+						int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
+						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
 
-		if (relativePrimaryPos >= 0 && relativePrimaryPos < layerPrimarySize) {
-			int currentSecondaryPos = (relativeSecondaryPos & -tileSize) + (stepDir == 1 ? -tileSize : tileSize);
-			int secondaryStep = stepDir * tileSize;
+						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 1)) {
+							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
 
-			for (int i = 0; i < 3; ++i) {
-				if (currentSecondaryPos >= 0 && currentSecondaryPos < layerSecondarySize) {
-					int tileX = isVertical ? (relativePrimaryPos / TileWidth) : (currentSecondaryPos / TileWidth);
-					int tileY = isVertical ? (currentSecondaryPos / TileHeight) : (relativePrimaryPos / TileHeight);
-
-					int tileID = layer.Tiles[tileX + (tileY << layer.WidthInBits)];
-					int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
-
-					if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & requiredCollBit)) {
-						int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-						TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
-
-						Uint8 mask = 0xFF;
-						switch (cMode) {
-							case CMODE_FLOOR: mask = tileCfg->CollisionTop[relativePrimaryPos & 0xF]; break;
-							case CMODE_LWALL: mask = tileCfg->CollisionLeft[relativePrimaryPos & 0xF]; break;
-							case CMODE_ROOF: mask = tileCfg->CollisionBottom[relativePrimaryPos & 0xF]; break;
-							case CMODE_RWALL: mask = tileCfg->CollisionRight[relativePrimaryPos & 0xF]; break;
-						}
-
-						if (mask < 0xFF) {
-							int targetS = currentSecondaryPos + mask;
-							if (abs(relativeSecondaryPos - targetS) <= tolerance) {
-								collided = true;
-
-								float snappedPos = (float)(targetS + (isVertical ? layer.OffsetY : layer.OffsetX)) - (isVertical ? yOffset : xOffset);
-								if (isVertical)
-									entity->Y = snappedPos;
-								else
-									entity->X = snappedPos;
-
-								relativeSecondaryPos = targetS;
+							int mask = tileCfg->CollisionTop[colX & 0xF];
+							int ty = cy + mask;
+							if (mask < 0xFF) {
+								if (abs(colY - ty) <= tolerance) {
+									collided = true;
+									colY = ty;
+								}
 								i = 3;
 							}
 						}
 					}
+					cy += TileHeight;
 				}
-				currentSecondaryPos += secondaryStep;
 			}
+			if (collided)
+				entity->Y = (float)(colY + layer.OffsetY) - yOffset;
+			break;
 		}
+		case CMODE_LWALL: {
+			int cx = (colX & -TileWidth) - TileWidth;
+			if (colY >= 0 && colY < TileHeight * layer.Height) {
+				for (int i = 0; i < 3; ++i) {
+					if (cx >= 0 && cx < TileWidth * layer.Width) {
+						int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
+						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+
+						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
+							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
+
+							int mask = tileCfg->CollisionLeft[colY & 0xF];
+							int tx = cx + mask;
+							if (mask < 0xFF) {
+								if (abs(colX - tx) <= tolerance) {
+									collided = true;
+									colX = tx;
+								}
+								i = 3;
+							}
+						}
+					}
+					cx += TileWidth;
+				}
+			}
+			if (collided)
+				entity->X = (float)(colX + layer.OffsetX) - xOffset;
+			break;
+		}
+		case CMODE_ROOF: {
+			int cy = (colY & -TileHeight) + TileHeight;
+			if (colX >= 0 && colX < TileWidth * layer.Width) {
+				for (int i = 0; i < 3; ++i) {
+					if (cy >= 0 && cy < TileHeight * layer.Height) {
+						int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
+						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+
+						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
+							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
+
+							int mask = tileCfg->CollisionBottom[colX & 0xF];
+							int ty = cy + mask;
+							if (mask < 0xFF) {
+								if (abs(colY - ty) <= tolerance) {
+									collided = true;
+									colY = ty;
+								}
+								i = 3;
+							}
+						}
+					}
+					cy -= TileHeight;
+				}
+			}
+			if (collided)
+				entity->Y = (float)(colY + layer.OffsetY) - yOffset;
+			break;
+		}
+		case CMODE_RWALL: {
+			int cx = (colX & -TileWidth) + TileWidth;
+			if (colY >= 0 && colY < TileHeight * layer.Height) {
+				for (int i = 0; i < 3; ++i) {
+					if (cx >= 0 && cx < TileWidth * layer.Width) {
+						int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
+						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+
+						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
+							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
+
+							int mask = tileCfg->CollisionRight[colY & 0xF];
+							int tx = cx + mask;
+							if (mask < 0xFF) {
+								if (abs(colX - tx) <= tolerance) {
+									collided = true;
+									colX = tx;
+								}
+								i = 3;
+							}
+						}
+					}
+					cx -= TileWidth;
+				}
+			}
+			if (collided)
+				entity->X = (float)(colX + layer.OffsetX) - xOffset;
+			break;
+		}
+		}
+		posX = layer.OffsetX + colX;
+		posY = layer.OffsetY + colY;
 	}
 	return collided;
 }
@@ -4271,40 +4387,35 @@ void Scene::ProcessObjectMovement(Entity* entity, CollisionBox* outerBox, Collis
 		if (entity->TileCollisions) {
 			entity->Angle &= 0xFF;
 
-			CollisionTolerance = HighCollisionTolerance;
-			if (abs(entity->GroundVel) < 6.0f && entity->Angle == 0) {
-				CollisionTolerance = LowCollisionTolerance;
-			}
-
 			CollisionOuter = *outerBox;
-            CollisionInner = *innerBox;
-
+			CollisionInner = *innerBox;
 			CollisionEntity = entity;
 
-			CollisionMaskAir = CollisionOuter.Bottom >= 14 ? 19 : 17;
+			bool isUp = (entity->TileCollisions == TILECOLLISION_UP);
+
+			int groundAngle = isUp ? 0x80 : 0x00;
+			if (abs(entity->GroundVel) < 6.0f && entity->Angle == groundAngle)
+				CollisionTolerance = LowCollisionTolerance;
+			else
+				CollisionTolerance = HighCollisionTolerance;
 
 			if (entity->OnGround) {
-				if (entity->TileCollisions == TILECOLLISION_DOWN)
-					UseCollisionOffset = entity->Angle == 0x00;
-				else
-					UseCollisionOffset = entity->Angle == 0x80;
+				UseCollisionOffset = (entity->Angle == groundAngle);
 
-				if (CollisionOuter.Bottom < 14) {
+				if ((isUp ? abs(CollisionOuter.Top) : abs(CollisionOuter.Bottom)) < 14) {
 					UseCollisionOffset = false;
 				}
+
 				ProcessPathGrip();
 			}
 			else {
 				UseCollisionOffset = false;
-				if (entity->TileCollisions == TILECOLLISION_DOWN)
-					ProcessAirCollision(false); // Downwards collision
-				else
-					ProcessAirCollision(true); // Upwards collision
+				ProcessAirCollision(isUp);
 			}
 
 			if (entity->OnGround) {
-				entity->VelocityX = entity->GroundVel * Math::Cos256(entity->Angle & 0xFF) / 256.0f;
-				entity->VelocityY = entity->GroundVel * Math::Sin256(entity->Angle & 0xFF) / 256.0f;
+				entity->VelocityX = entity->GroundVel * Math::Cos256(entity->Angle & 0xFF) * 0.00390625f; // 256.0
+				entity->VelocityY = entity->GroundVel * Math::Sin256(entity->Angle & 0xFF) * 0.00390625f;
 			}
 			else {
 				entity->GroundVel = entity->VelocityX;
@@ -4318,475 +4429,467 @@ void Scene::ProcessObjectMovement(Entity* entity, CollisionBox* outerBox, Collis
 }
 
 void Scene::ProcessPathGrip() {
-	// TODO: This function has a clipping issue on certain slopes, investigate
-    float xVel = 0.0;
-    float yVel = 0.0;
+	float xVel = 0.0;
+	float yVel = 0.0;
 
-    Sensors[4].X = CollisionEntity->X;
-    Sensors[4].Y = CollisionEntity->Y;
-    for (int i = 0; i < 6; i++) {
-        Sensors[i].Angle = CollisionEntity->Angle;
-        Sensors[i].Collided = false;
-    }
-    SetPathGripSensors(Sensors);
+	Sensors[4].X = CollisionEntity->X;
+	Sensors[4].Y = CollisionEntity->Y;
+	for (int i = 0; i < 6; i++) {
+		Sensors[i].Angle = CollisionEntity->Angle;
+		Sensors[i].Collided = false;
+	}
+	SetPathGripSensors(Sensors);
 
-    float absSpeed = abs(CollisionEntity->GroundVel);
-    int checkDist = (int)(absSpeed / 4.0);
-    float remainder = fmod(absSpeed, 4.0);
-    
-    while (checkDist > -1) {
-        float stepSize = 0.0;
+	float absSpeed = abs(CollisionEntity->GroundVel);
+	int checkDist = (int)(absSpeed / 4.0);
+	float remainder = fmod(absSpeed, 4.0);
 
-        if (checkDist >= 1) {
-            stepSize = 4.0;
-            checkDist--;
-        }
-        else {
-            stepSize = remainder;
-            checkDist = -1;
-        }
+	while (checkDist > -1) {
+		float stepSize = 0.0;
 
-        xVel = (Math::Cos256(CollisionEntity->Angle) / 256.0f) * stepSize;
-        yVel = (Math::Sin256(CollisionEntity->Angle) / 256.0f) * stepSize;
+		if (checkDist >= 1) {
+			stepSize = 4.0;
+			checkDist--;
+		}
+		else {
+			stepSize = remainder;
+			checkDist = -1;
+		}
 
-        if (CollisionEntity->GroundVel < 0.0) {
-            xVel = -xVel;
-            yVel = -yVel;
-        }
+		xVel = (Math::Cos256(CollisionEntity->Angle) * 0.00390625f) * stepSize;
+		yVel = (Math::Sin256(CollisionEntity->Angle) * 0.00390625f) * stepSize;
 
-        Sensors[0].Collided = false;
-        Sensors[1].Collided = false;
-        Sensors[2].Collided = false;
-        
-        Sensors[4].X += xVel;
-        Sensors[4].Y += yVel;
-        
-        int tileDistance = -1;
+		if (CollisionEntity->GroundVel < 0.0) {
+			xVel = -xVel;
+			yVel = -yVel;
+		}
 
-        switch (CollisionEntity->CollisionMode) {
-        case CMODE_FLOOR: {
-            Sensors[3].X += xVel;
-            Sensors[3].Y += yVel;
+		Sensors[0].Collided = false;
+		Sensors[1].Collided = false;
+		Sensors[2].Collided = false;
 
-            if (CollisionEntity->GroundVel > 0.0) {
-                CheckHorizontalCollision(&Sensors[3], true);
-                if (Sensors[3].Collided) {
-                    Sensors[2].X = Sensors[3].X - 2.0;
-                }
-            }
+		Sensors[4].X += xVel;
+		Sensors[4].Y += yVel;
 
-            if (CollisionEntity->GroundVel < 0.0) {
-                CheckHorizontalCollision(&Sensors[3], false);
-                if (Sensors[3].Collided) {
-                    Sensors[0].X = Sensors[3].X + 2.0;
-                }
-            }
+		int tileDistance = -1;
 
-            if (Sensors[3].Collided) {
-                xVel = 0.0;
-                checkDist = -1;
-            }
-
-            for (int i = 0; i < 3; i++) {
-                Sensors[i].X += xVel;
-                Sensors[i].Y += yVel;
-                CheckVerticalPosition(&Sensors[i], true);
-            }
-
-            tileDistance = -1;
-            for (int i = 0; i < 3; i++) {
-                if (tileDistance > -1) {
-                    if (Sensors[i].Collided) {
-                        if (Sensors[i].Y < Sensors[tileDistance].Y) {
-                            tileDistance = i;
-                        }
-                        else if ((int)Sensors[i].Y == (int)Sensors[tileDistance].Y &&
-                            (Sensors[i].Angle < 0x08 || Sensors[i].Angle > 0xF8)) {
-                            tileDistance = i;
-                        }
-                    }
-                }
-                else if (Sensors[i].Collided) {
-                    tileDistance = i;
-                }
-            }
-
-            if (tileDistance <= -1) {
-                checkDist = -1;
-            }
-            else {
-                Sensors[0].Y = Sensors[tileDistance].Y;
-                Sensors[0].Angle = Sensors[tileDistance].Angle;
-                Sensors[1].Y = Sensors[0].Y;
-                Sensors[1].Angle = Sensors[0].Angle;
-                Sensors[2].Y = Sensors[0].Y;
-                Sensors[2].Angle = Sensors[0].Angle;
-
-                Sensors[4].X = Sensors[1].X;
-                Sensors[4].Y = Sensors[0].Y - CollisionOuter.Bottom;
-            }
-
-            if (Sensors[0].Angle < 0xDE && Sensors[0].Angle > 0x80)
-                CollisionEntity->CollisionMode = CMODE_LWALL;
-            if (Sensors[0].Angle > 0x22 && Sensors[0].Angle < 0x80)
-                CollisionEntity->CollisionMode = CMODE_RWALL;
-            break;
-        }
-
-        case CMODE_LWALL: {
-            Sensors[3].X += xVel;
-            Sensors[3].Y += yVel;
-
-            if (CollisionEntity->GroundVel > 0.0)
-				CheckVerticalCollision(&Sensors[3], false);
-            if (CollisionEntity->GroundVel < 0.0)
-				CheckVerticalCollision(&Sensors[3], true);
-
-            if (Sensors[3].Collided) {
-                yVel = 0.0;
-                checkDist = -1;
-            }
-
-            for (int i = 0; i < 3; i++) {
-                Sensors[i].X += xVel;
-                Sensors[i].Y += yVel;
-                CheckHorizontalPosition(&Sensors[i], true);
-            }
-
-            tileDistance = -1;
-            for (int i = 0; i < 3; i++) {
-                if (tileDistance > -1) {
-                    if (Sensors[i].Collided && Sensors[i].X < Sensors[tileDistance].X) {
-                        tileDistance = i;
-                    }
-                }
-                else if (Sensors[i].Collided) {
-                    tileDistance = i;
-                }
-            }
-
-            if (tileDistance <= -1) {
-                checkDist = -1;
-            }
-            else {
-                Sensors[0].X = Sensors[tileDistance].X;
-                Sensors[0].Angle = Sensors[tileDistance].Angle;
-                Sensors[1].X = Sensors[0].X;
-                Sensors[1].Angle = Sensors[0].Angle;
-                Sensors[2].X = Sensors[0].X;
-                Sensors[2].Angle = Sensors[0].Angle;
-
-                Sensors[4].X = Sensors[1].X - CollisionOuter.Bottom;
-                Sensors[4].Y = Sensors[1].Y;
-            }
-
-            if (Sensors[0].Angle > 0xE2) CollisionEntity->CollisionMode = CMODE_FLOOR;
-            if (Sensors[0].Angle < 0x9E) CollisionEntity->CollisionMode = CMODE_ROOF;
-            break;
-        }
-
-        case CMODE_ROOF: {
-            Sensors[3].X += xVel;
-            Sensors[3].Y += yVel;
-
-            if (CollisionEntity->GroundVel > 0.0) {
-                CheckVerticalCollision(&Sensors[3], false);
-                if (Sensors[3].Collided) Sensors[2].X = Sensors[3].X + 2.0;
-            }
-            if (CollisionEntity->GroundVel < 0.0) {
-				CheckVerticalCollision(&Sensors[3], true);
-                if (Sensors[3].Collided) Sensors[0].X = Sensors[3].X - 2.0;
-            }
-
-            if (Sensors[3].Collided) {
-                xVel = 0.0;
-                checkDist = -1;
-            }
-
-            for (int i = 0; i < 3; i++) {
-                Sensors[i].X += xVel;
-                Sensors[i].Y += yVel;
-                CheckVerticalPosition(&Sensors[i], false);
-            }
-
-            tileDistance = -1;
-            for (int i = 0; i < 3; i++) {
-                if (tileDistance > -1) {
-                    if (Sensors[i].Collided && Sensors[i].Y > Sensors[tileDistance].Y) {
-                        tileDistance = i;
-                    }
-                }
-                else if (Sensors[i].Collided) {
-                    tileDistance = i;
-                }
-            }
-
-            if (tileDistance <= -1) {
-                checkDist = -1;
-            }
-            else {
-                Sensors[0].Y = Sensors[tileDistance].Y;
-                Sensors[0].Angle = Sensors[tileDistance].Angle;
-                Sensors[1].Y = Sensors[0].Y;
-                Sensors[1].Angle = Sensors[0].Angle;
-                Sensors[2].Y = Sensors[0].Y;
-                Sensors[2].Angle = Sensors[0].Angle;
-
-                Sensors[4].X = Sensors[1].X;
-                Sensors[4].Y = Sensors[0].Y + CollisionOuter.Bottom + 1.0; 
-            }
-
-            if (Sensors[0].Angle > 0xA2) CollisionEntity->CollisionMode = CMODE_LWALL;
-            if (Sensors[0].Angle < 0x5E) CollisionEntity->CollisionMode = CMODE_RWALL;
-            break;
-        }
-
-        case CMODE_RWALL: {
-            Sensors[3].X += xVel;
-            Sensors[3].Y += yVel;
-
-            if (CollisionEntity->GroundVel > 0.0) CheckVerticalCollision(&Sensors[3], true);
-            if (CollisionEntity->GroundVel < 0.0) CheckVerticalCollision(&Sensors[3], false);
-
-            if (Sensors[3].Collided) {
-                yVel = 0.0;
-                checkDist = -1;
-            }
-
-            for (int i = 0; i < 3; i++) {
-                Sensors[i].X += xVel;
-                Sensors[i].Y += yVel;
-                CheckHorizontalPosition(&Sensors[i], false);
-            }
-
-            tileDistance = -1;
-            for (int i = 0; i < 3; i++) {
-                if (tileDistance > -1) {
-                    if (Sensors[i].Collided && Sensors[i].X > Sensors[tileDistance].X) {
-                        tileDistance = i;
-                    }
-                }
-                else if (Sensors[i].Collided) {
-                    tileDistance = i;
-                }
-            }
-
-            if (tileDistance <= -1) {
-                checkDist = -1;
-            }
-            else {
-                Sensors[0].X = Sensors[tileDistance].X;
-                Sensors[0].Angle = Sensors[tileDistance].Angle;
-                Sensors[1].X = Sensors[0].X;
-                Sensors[1].Angle = Sensors[0].Angle;
-                Sensors[2].X = Sensors[0].X;
-                Sensors[2].Angle = Sensors[0].Angle;
-
-                Sensors[4].X = Sensors[1].X + CollisionOuter.Bottom + 1.0;
-                Sensors[4].Y = Sensors[1].Y;
-            }
-
-            if (Sensors[0].Angle < 0x1E) CollisionEntity->CollisionMode = CMODE_FLOOR;
-            if (Sensors[0].Angle > 0x62) CollisionEntity->CollisionMode = CMODE_ROOF;
-            break;
-        }
-        }
-
-        if (tileDistance != -1) {
-            CollisionEntity->Angle = Sensors[0].Angle;
-        }
-
-        if (!Sensors[3].Collided) {
-            SetPathGripSensors(Sensors);
-        }
-        else {
-            checkDist = -2;
-        }
-    }
-
-    int newCollisionMode = CollisionEntity->TileCollisions == TILECOLLISION_DOWN ? CMODE_FLOOR : CMODE_ROOF;
-    int newAngle = newCollisionMode << 6;
-
-    switch (CollisionEntity->CollisionMode) {
+		switch (CollisionEntity->CollisionMode) {
 		case CMODE_FLOOR: {
-			if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
-				CollisionEntity->Angle = Sensors[0].Angle;
-				if (!Sensors[3].Collided) {
-					CollisionEntity->X = Sensors[4].X;
-				}
-				else {
-					if (CollisionEntity->GroundVel > 0.0)
-						CollisionEntity->X = Sensors[3].X - CollisionOuter.Right;
+			Sensors[3].X += xVel;
+			Sensors[3].Y += yVel;
 
-					if (CollisionEntity->GroundVel < 0.0)
-						CollisionEntity->X = Sensors[3].X - CollisionOuter.Left + 1.0;
-                
-					CollisionEntity->GroundVel = 0.0;
-					CollisionEntity->VelocityX = 0.0;
+			if (CollisionEntity->GroundVel > 0.0) {
+				CheckHorizontalCollision(&Sensors[3], true);
+				if (Sensors[3].Collided) {
+					Sensors[2].X = Sensors[3].X - 2.0;
 				}
-				CollisionEntity->Y = Sensors[4].Y;
+			}
+
+			if (CollisionEntity->GroundVel < 0.0) {
+				CheckHorizontalCollision(&Sensors[3], false);
+				if (Sensors[3].Collided) {
+					Sensors[0].X = Sensors[3].X + 2.0;
+				}
+			}
+
+			if (Sensors[3].Collided) {
+				xVel = 0.0;
+				checkDist = -1;
+			}
+
+			for (int i = 0; i < 3; i++) {
+				Sensors[i].X += xVel;
+				Sensors[i].Y += yVel;
+				CheckVerticalPosition(&Sensors[i], true);
+			}
+
+			tileDistance = -1;
+			for (int i = 0; i < 3; i++) {
+				if (tileDistance > -1) {
+					if (Sensors[i].Collided) {
+						if (Sensors[i].Y < Sensors[tileDistance].Y) {
+							tileDistance = i;
+						}
+						else if ((int)Sensors[i].Y == (int)Sensors[tileDistance].Y &&
+							(Sensors[i].Angle < 0x08 || Sensors[i].Angle > 0xF8)) {
+							tileDistance = i;
+						}
+					}
+				}
+				else if (Sensors[i].Collided) {
+					tileDistance = i;
+				}
+			}
+
+			if (tileDistance <= -1) {
+				checkDist = -1;
 			}
 			else {
-				CollisionEntity->OnGround = false;
-				CollisionEntity->CollisionMode = newCollisionMode;
-				CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel / 256.0f;
-				CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel / 256.0f;
+				Sensors[0].Y = Sensors[tileDistance].Y;
+				Sensors[0].Angle = Sensors[tileDistance].Angle;
+				Sensors[1].Y = Sensors[0].Y;
+				Sensors[1].Angle = Sensors[0].Angle;
+				Sensors[2].Y = Sensors[0].Y;
+				Sensors[2].Angle = Sensors[0].Angle;
 
-				if (CollisionEntity->VelocityY < -16.0)
-					CollisionEntity->VelocityY = -16.0;
-				if (CollisionEntity->VelocityY > 16.0)
-					CollisionEntity->VelocityY = 16.0;
-
-				CollisionEntity->GroundVel = CollisionEntity->VelocityX;
-				CollisionEntity->Angle = newAngle;
-
-				if (!Sensors[3].Collided) {
-					CollisionEntity->X += CollisionEntity->VelocityX;
-				}
-				else {
-					if (CollisionEntity->GroundVel > 0.0)
-						CollisionEntity->X = Sensors[3].X - CollisionOuter.Right;
-
-					if (CollisionEntity->GroundVel < 0.0)
-						CollisionEntity->X = Sensors[3].X - CollisionOuter.Left + 1.0;
-                
-					CollisionEntity->GroundVel = 0.0;
-					CollisionEntity->VelocityX = 0.0;
-				}
-				CollisionEntity->Y += CollisionEntity->VelocityY;
+				Sensors[4].X = Sensors[1].X;
+				Sensors[4].Y = Sensors[0].Y - CollisionOuter.Bottom;
 			}
+
+			if (Sensors[0].Angle < 0xDE && Sensors[0].Angle > 0x80)
+				CollisionEntity->CollisionMode = CMODE_LWALL;
+			if (Sensors[0].Angle > 0x22 && Sensors[0].Angle < 0x80)
+				CollisionEntity->CollisionMode = CMODE_RWALL;
 			break;
 		}
+
 		case CMODE_LWALL: {
-			if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
-				CollisionEntity->Angle = Sensors[0].Angle;
+			Sensors[3].X += xVel;
+			Sensors[3].Y += yVel;
+
+			if (CollisionEntity->GroundVel > 0.0)
+				CheckVerticalCollision(&Sensors[3], false);
+			if (CollisionEntity->GroundVel < 0.0)
+				CheckVerticalCollision(&Sensors[3], true);
+
+			if (Sensors[3].Collided) {
+				yVel = 0.0;
+				checkDist = -1;
+			}
+
+			for (int i = 0; i < 3; i++) {
+				Sensors[i].X += xVel;
+				Sensors[i].Y += yVel;
+				CheckHorizontalPosition(&Sensors[i], true);
+			}
+
+			tileDistance = -1;
+			for (int i = 0; i < 3; i++) {
+				if (tileDistance > -1) {
+					if (Sensors[i].Collided && Sensors[i].X < Sensors[tileDistance].X) {
+						tileDistance = i;
+					}
+				}
+				else if (Sensors[i].Collided) {
+					tileDistance = i;
+				}
+			}
+
+			if (tileDistance <= -1) {
+				checkDist = -1;
 			}
 			else {
-				CollisionEntity->OnGround = false;
-				CollisionEntity->CollisionMode = newCollisionMode;
-				CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel / 256.0f;
-				CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel / 256.0f;
+				Sensors[0].X = Sensors[tileDistance].X;
+				Sensors[0].Angle = Sensors[tileDistance].Angle;
+				Sensors[1].X = Sensors[0].X;
+				Sensors[1].Angle = Sensors[0].Angle;
+				Sensors[2].X = Sensors[0].X;
+				Sensors[2].Angle = Sensors[0].Angle;
 
-				if (CollisionEntity->VelocityY < -16.0f)
-					CollisionEntity->VelocityY = -16.0f;
-				if (CollisionEntity->VelocityY > 16.0f)
-					CollisionEntity->VelocityY = 16.0f;
-
-				CollisionEntity->GroundVel = CollisionEntity->VelocityX;
-				CollisionEntity->Angle = newAngle;
+				Sensors[4].X = Sensors[1].X - CollisionOuter.Bottom;
+				Sensors[4].Y = Sensors[1].Y;
 			}
 
+			if (Sensors[0].Angle > 0xE2) CollisionEntity->CollisionMode = CMODE_FLOOR;
+			if (Sensors[0].Angle < 0x9E) CollisionEntity->CollisionMode = CMODE_ROOF;
+			break;
+		}
+
+		case CMODE_ROOF: {
+			Sensors[3].X += xVel;
+			Sensors[3].Y += yVel;
+
+			if (CollisionEntity->GroundVel > 0.0) {
+				CheckHorizontalCollision(&Sensors[3], false);
+				if (Sensors[3].Collided) Sensors[2].X = Sensors[3].X + 2.0;
+			}
+			if (CollisionEntity->GroundVel < 0.0) {
+				CheckHorizontalCollision(&Sensors[3], true);
+				if (Sensors[3].Collided) Sensors[0].X = Sensors[3].X - 2.0;
+			}
+
+			if (Sensors[3].Collided) {
+				xVel = 0.0;
+				checkDist = -1;
+			}
+
+			for (int i = 0; i < 3; i++) {
+				Sensors[i].X += xVel;
+				Sensors[i].Y += yVel;
+				CheckVerticalPosition(&Sensors[i], false);
+			}
+
+			tileDistance = -1;
+			for (int i = 0; i < 3; i++) {
+				if (tileDistance > -1) {
+					if (Sensors[i].Collided && Sensors[i].Y > Sensors[tileDistance].Y) {
+						tileDistance = i;
+					}
+				}
+				else if (Sensors[i].Collided) {
+					tileDistance = i;
+				}
+			}
+
+			if (tileDistance <= -1) {
+				checkDist = -1;
+			}
+			else {
+				Sensors[0].Y = Sensors[tileDistance].Y;
+				Sensors[0].Angle = Sensors[tileDistance].Angle;
+				Sensors[1].Y = Sensors[0].Y;
+				Sensors[1].Angle = Sensors[0].Angle;
+				Sensors[2].Y = Sensors[0].Y;
+				Sensors[2].Angle = Sensors[0].Angle;
+
+				Sensors[4].X = Sensors[1].X;
+				Sensors[4].Y = Sensors[0].Y + CollisionOuter.Bottom + 1.0;
+			}
+
+			if (Sensors[0].Angle > 0xA2) CollisionEntity->CollisionMode = CMODE_LWALL;
+			if (Sensors[0].Angle < 0x5E) CollisionEntity->CollisionMode = CMODE_RWALL;
+			break;
+		}
+
+		case CMODE_RWALL: {
+			Sensors[3].X += xVel;
+			Sensors[3].Y += yVel;
+
+			if (CollisionEntity->GroundVel > 0.0)
+				CheckVerticalCollision(&Sensors[3], true);
+			if (CollisionEntity->GroundVel < 0.0)
+				CheckVerticalCollision(&Sensors[3], false);
+
+			if (Sensors[3].Collided) {
+				yVel = 0.0;
+				checkDist = -1;
+			}
+
+			for (int i = 0; i < 3; i++) {
+				Sensors[i].X += xVel;
+				Sensors[i].Y += yVel;
+				CheckHorizontalPosition(&Sensors[i], false);
+			}
+
+			tileDistance = -1;
+			for (int i = 0; i < 3; i++) {
+				if (tileDistance > -1) {
+					if (Sensors[i].Collided && Sensors[i].X > Sensors[tileDistance].X) {
+						tileDistance = i;
+					}
+				}
+				else if (Sensors[i].Collided) {
+					tileDistance = i;
+				}
+			}
+
+			if (tileDistance <= -1) {
+				checkDist = -1;
+			}
+			else {
+				Sensors[0].X = Sensors[tileDistance].X;
+				Sensors[0].Angle = Sensors[tileDistance].Angle;
+				Sensors[1].X = Sensors[0].X;
+				Sensors[1].Angle = Sensors[0].Angle;
+				Sensors[2].X = Sensors[0].X;
+				Sensors[2].Angle = Sensors[0].Angle;
+
+				Sensors[4].X = Sensors[1].X + CollisionOuter.Bottom + 1.0;
+				Sensors[4].Y = Sensors[1].Y;
+			}
+
+			if (Sensors[0].Angle < 0x1E) CollisionEntity->CollisionMode = CMODE_FLOOR;
+			if (Sensors[0].Angle > 0x62) CollisionEntity->CollisionMode = CMODE_ROOF;
+			break;
+		}
+		}
+
+		if (tileDistance != -1) {
+			CollisionEntity->Angle = Sensors[0].Angle;
+		}
+
+		if (!Sensors[3].Collided) {
+			SetPathGripSensors(Sensors);
+		}
+		else {
+			checkDist = -2;
+		}
+	}
+
+	int newCollisionMode = CollisionEntity->TileCollisions == TILECOLLISION_DOWN ? CMODE_FLOOR : CMODE_ROOF;
+	int newAngle = newCollisionMode << 6;
+
+	switch (CollisionEntity->CollisionMode) {
+	case CMODE_FLOOR: {
+		if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
+			CollisionEntity->Angle = Sensors[0].Angle;
 			if (!Sensors[3].Collided) {
 				CollisionEntity->X = Sensors[4].X;
-				CollisionEntity->Y = Sensors[4].Y;
 			}
 			else {
 				if (CollisionEntity->GroundVel > 0.0)
-					CollisionEntity->Y = Sensors[3].Y + CollisionOuter.Right + 1.0;
+					CollisionEntity->X = Sensors[3].X - CollisionOuter.Right;
 
 				if (CollisionEntity->GroundVel < 0.0)
-					CollisionEntity->Y = Sensors[3].Y - CollisionOuter.Left;
+					CollisionEntity->X = Sensors[3].X - CollisionOuter.Left + 1.0;
 
 				CollisionEntity->GroundVel = 0.0;
-				CollisionEntity->X = Sensors[4].X;
-			}
-			break;
-		}
-		case CMODE_ROOF: {
-			if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
-				CollisionEntity->Angle = Sensors[0].Angle;
-
-				if (!Sensors[3].Collided) {
-					CollisionEntity->X = Sensors[4].X;
-				}
-				else {
-					if (CollisionEntity->GroundVel > 0.0)
-						CollisionEntity->X = Sensors[3].X + CollisionOuter.Right;
-
-					if (CollisionEntity->GroundVel < 0.0)
-						CollisionEntity->X = Sensors[3].X + CollisionOuter.Left - 1.0;
-
-					CollisionEntity->GroundVel = 0.0;
-				}
-			}
-			else {
-				CollisionEntity->OnGround = false;
-				CollisionEntity->CollisionMode = newCollisionMode;
-				CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel / 256.0f;
-				CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel / 256.0f;
-
-				if (CollisionEntity->VelocityY < -16.0)
-					CollisionEntity->VelocityY = -16.0;
-				if (CollisionEntity->VelocityY > 16.0)
-					CollisionEntity->VelocityY = 16.0;
-
-				CollisionEntity->Angle = newAngle;
-				CollisionEntity->GroundVel = CollisionEntity->VelocityX;
-
-				if (!Sensors[3].Collided) {
-					CollisionEntity->X += CollisionEntity->VelocityX;
-				}
-				else {
-					if (CollisionEntity->GroundVel > 0.0)
-						CollisionEntity->X = Sensors[3].X - CollisionOuter.Right;
-
-					if (CollisionEntity->GroundVel < 0.0)
-						CollisionEntity->X = Sensors[3].X - CollisionOuter.Left + 1.0;
-					CollisionEntity->GroundVel = 0.0;
-				}
+				CollisionEntity->VelocityX = 0.0;
 			}
 			CollisionEntity->Y = Sensors[4].Y;
-			break;
 		}
-		case CMODE_RWALL: {
-			if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
-				CollisionEntity->Angle = Sensors[0].Angle;
-			}
-			else {
-				CollisionEntity->OnGround = false;
-				CollisionEntity->CollisionMode = newCollisionMode;
-				CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel / 256.0f;
-				CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel / 256.0f;
+		else {
+			CollisionEntity->OnGround = false;
+			CollisionEntity->CollisionMode = newCollisionMode;
+			CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f; // 256.0
+			CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
 
-				if (CollisionEntity->VelocityY < -16.0)
-					CollisionEntity->VelocityY = -16.0;
-				if (CollisionEntity->VelocityY > 16.0)
-					CollisionEntity->VelocityY = 16.0;
+			if (CollisionEntity->VelocityY < -16.0)
+				CollisionEntity->VelocityY = -16.0;
+			if (CollisionEntity->VelocityY > 16.0)
+				CollisionEntity->VelocityY = 16.0;
 
-				CollisionEntity->GroundVel = CollisionEntity->VelocityX;
-				CollisionEntity->Angle = newAngle;
-			}
+			CollisionEntity->GroundVel = CollisionEntity->VelocityX;
+			CollisionEntity->Angle = newAngle;
 
 			if (!Sensors[3].Collided) {
-				CollisionEntity->X = Sensors[4].X;
-				CollisionEntity->Y = Sensors[4].Y;
+				CollisionEntity->X += CollisionEntity->VelocityX;
 			}
 			else {
 				if (CollisionEntity->GroundVel > 0.0)
-					CollisionEntity->Y = Sensors[3].Y - CollisionOuter.Right;
+					CollisionEntity->X = Sensors[3].X - CollisionOuter.Right;
 
 				if (CollisionEntity->GroundVel < 0.0)
-					CollisionEntity->Y = Sensors[3].Y - CollisionOuter.Left + 1.0;
+					CollisionEntity->X = Sensors[3].X - CollisionOuter.Left + 1.0;
 
 				CollisionEntity->GroundVel = 0.0;
+				CollisionEntity->VelocityX = 0.0;
+			}
+			CollisionEntity->Y += CollisionEntity->VelocityY;
+		}
+		break;
+	}
+	case CMODE_LWALL: {
+		if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
+			CollisionEntity->Angle = Sensors[0].Angle;
+		}
+		else {
+			CollisionEntity->OnGround = false;
+			CollisionEntity->CollisionMode = newCollisionMode;
+			CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f; // 256.0
+			CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
+
+			if (CollisionEntity->VelocityY < -16.0f)
+				CollisionEntity->VelocityY = -16.0f;
+			if (CollisionEntity->VelocityY > 16.0f)
+				CollisionEntity->VelocityY = 16.0f;
+
+			CollisionEntity->GroundVel = CollisionEntity->VelocityX;
+			CollisionEntity->Angle = newAngle;
+		}
+
+		if (!Sensors[3].Collided) {
+			CollisionEntity->X = Sensors[4].X;
+			CollisionEntity->Y = Sensors[4].Y;
+		}
+		else {
+			if (CollisionEntity->GroundVel > 0.0)
+				CollisionEntity->Y = Sensors[3].Y + CollisionOuter.Right + 1.0;
+
+			if (CollisionEntity->GroundVel < 0.0)
+				CollisionEntity->Y = Sensors[3].Y - CollisionOuter.Left;
+
+			CollisionEntity->GroundVel = 0.0;
+			CollisionEntity->X = Sensors[4].X;
+		}
+		break;
+	}
+	case CMODE_ROOF: {
+		if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
+			CollisionEntity->Angle = Sensors[0].Angle;
+
+			if (!Sensors[3].Collided) {
 				CollisionEntity->X = Sensors[4].X;
 			}
-			break;
+			else {
+				if (CollisionEntity->GroundVel > 0.0)
+					CollisionEntity->X = Sensors[3].X + CollisionOuter.Right;
+
+				if (CollisionEntity->GroundVel < 0.0)
+					CollisionEntity->X = Sensors[3].X + CollisionOuter.Left - 1.0;
+
+				CollisionEntity->GroundVel = 0.0;
+			}
 		}
-    }
+		else {
+			CollisionEntity->OnGround = false;
+			CollisionEntity->CollisionMode = newCollisionMode;
+			CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f; // 256.0
+			CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
+
+			if (CollisionEntity->VelocityY < -16.0)
+				CollisionEntity->VelocityY = -16.0;
+			if (CollisionEntity->VelocityY > 16.0)
+				CollisionEntity->VelocityY = 16.0;
+
+			CollisionEntity->Angle = newAngle;
+			CollisionEntity->GroundVel = CollisionEntity->VelocityX;
+
+			if (!Sensors[3].Collided) {
+				CollisionEntity->X += CollisionEntity->VelocityX;
+			}
+			else {
+				if (CollisionEntity->GroundVel > 0.0)
+					CollisionEntity->X = Sensors[3].X - CollisionOuter.Right;
+
+				if (CollisionEntity->GroundVel < 0.0)
+					CollisionEntity->X = Sensors[3].X - CollisionOuter.Left + 1.0;
+				CollisionEntity->GroundVel = 0.0;
+			}
+		}
+		CollisionEntity->Y = Sensors[4].Y;
+		break;
+	}
+	case CMODE_RWALL: {
+		if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
+			CollisionEntity->Angle = Sensors[0].Angle;
+		}
+		else {
+			CollisionEntity->OnGround = false;
+			CollisionEntity->CollisionMode = newCollisionMode;
+			CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f; // 256.0
+			CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
+
+			if (CollisionEntity->VelocityY < -16.0)
+				CollisionEntity->VelocityY = -16.0;
+			if (CollisionEntity->VelocityY > 16.0)
+				CollisionEntity->VelocityY = 16.0;
+
+			CollisionEntity->GroundVel = CollisionEntity->VelocityX;
+			CollisionEntity->Angle = newAngle;
+		}
+
+		if (!Sensors[3].Collided) {
+			CollisionEntity->X = Sensors[4].X;
+			CollisionEntity->Y = Sensors[4].Y;
+		}
+		else {
+			if (CollisionEntity->GroundVel > 0.0)
+				CollisionEntity->Y = Sensors[3].Y - CollisionOuter.Right;
+
+			if (CollisionEntity->GroundVel < 0.0)
+				CollisionEntity->Y = Sensors[3].Y - CollisionOuter.Left + 1.0;
+
+			CollisionEntity->GroundVel = 0.0;
+			CollisionEntity->X = Sensors[4].X;
+		}
+		break;
+	}
+	}
 }
 
 void Scene::ProcessAirCollision(bool isUp) {
-	const int floorSensorPrimary = isUp ? 4 : 2;
-	const int floorSensorSecondary = isUp ? 5 : 3;
-	const int roofSensorPrimary = isUp ? 2 : 4;
-	const int roofSensorSecondary = isUp ? 3 : 5;
-
-	int movingTowardFloor = 0;
-	int movingTowardRoof = 0;
-	int movingLeft = 0;
-	int movingRight = 0;
-
+	int movingDown = 0, movingUp = 0, movingLeft = 0, movingRight = 0;
 	float offset = UseCollisionOffset ? (isUp ? -CollisionOffset : CollisionOffset) : 0.0f;
 
 	if (CollisionEntity->VelocityX >= 0.0f) {
@@ -4794,428 +4897,314 @@ void Scene::ProcessAirCollision(bool isUp) {
 		Sensors[0].X = CollisionEntity->X + CollisionOuter.Right;
 		Sensors[0].Y = CollisionEntity->Y + offset;
 	}
-
 	if (CollisionEntity->VelocityX <= 0.0f) {
 		movingLeft = 1;
 		Sensors[1].X = CollisionEntity->X + CollisionOuter.Left - 1.0f;
 		Sensors[1].Y = CollisionEntity->Y + offset;
 	}
 
-	Sensors[2].X = CollisionEntity->X + CollisionOuter.Left + 1.0f;
-	Sensors[3].X = CollisionEntity->X + CollisionOuter.Right - 2.0f;
+	Sensors[2].X = CollisionEntity->X + CollisionInner.Left;
+	Sensors[3].X = CollisionEntity->X + CollisionInner.Right;
 	Sensors[4].X = Sensors[2].X;
 	Sensors[5].X = Sensors[3].X;
 
-	for (int i = 0; i < 6; ++i)
+	for (int i = 0; i < 6; i++)
 		Sensors[i].Collided = false;
 
-	if ((isUp && CollisionEntity->VelocityY <= 0.0f) || (!isUp && CollisionEntity->VelocityY >= 0.0f)) {
-		movingTowardFloor = 1;
-		float verticalBound = isUp ? CollisionOuter.Top - 1.0f : CollisionOuter.Bottom;
-		Sensors[floorSensorPrimary].Y = CollisionEntity->Y + verticalBound;
-		Sensors[floorSensorSecondary].Y = CollisionEntity->Y + verticalBound;
+	const int floorSensor1 = isUp ? 4 : 2;
+	const int floorSensor2 = isUp ? 5 : 3;
+	const int roofSensor1 = isUp ? 2 : 4;
+	const int roofSensor2 = isUp ? 3 : 5;
+
+	if ((!isUp && CollisionEntity->VelocityY >= 0.0f) || (isUp && CollisionEntity->VelocityY <= 0.0f)) {
+		movingDown = 1;
+		Sensors[floorSensor1].Y = CollisionEntity->Y + (isUp ? CollisionOuter.Top - 1.0f : CollisionOuter.Bottom);
+		Sensors[floorSensor2].Y = Sensors[floorSensor1].Y;
 	}
 
-	if (abs(CollisionEntity->VelocityX) > 1.0f || (isUp ? CollisionEntity->VelocityY > 0.0f : CollisionEntity->VelocityY < 0.0f)) {
-		movingTowardRoof = 1;
-		float verticalBound = isUp ? CollisionOuter.Bottom : CollisionOuter.Top - 1.0f;
-		Sensors[roofSensorPrimary].Y = CollisionEntity->Y + verticalBound;
-		Sensors[roofSensorSecondary].Y = CollisionEntity->Y + verticalBound;
+	if ((!isUp && CollisionEntity->VelocityY < 0.0f) || (isUp && CollisionEntity->VelocityY > 0.0f)) {
+		movingUp = 1;
+		Sensors[roofSensor1].Y = CollisionEntity->Y + (isUp ? CollisionOuter.Bottom : CollisionOuter.Top - 1.0f);
+		Sensors[roofSensor2].Y = Sensors[roofSensor1].Y;
 	}
 
-	int cnt = (int)(abs(CollisionEntity->VelocityX) <= abs(CollisionEntity->VelocityY)
-			  ? ((abs(CollisionEntity->VelocityY) / CollisionMaskAir) + 1.0f)
-			  : (abs(CollisionEntity->VelocityX) / CollisionMaskAir) + 1.0f);
+	// NOTE: If the hitbox is small, we need to check more often
+	float stepSize = (CollisionOuter.Bottom >= 14) ? 8.0f : 2.0f;
+	int cnt = (int)(fmax(abs(CollisionEntity->VelocityX), abs(CollisionEntity->VelocityY)) / stepSize) + 1;
 
-	float stepVelocityX = CollisionEntity->VelocityX / (float)cnt;
-	float stepVelocityY = CollisionEntity->VelocityY / (float)cnt;
-	float finalStepVelocityX = CollisionEntity->VelocityX - stepVelocityX * (cnt - 1);
-	float finalStepVelocityY = CollisionEntity->VelocityY - stepVelocityY * (cnt - 1);
+	float velX = CollisionEntity->VelocityX / (float)cnt;
+	float velY = CollisionEntity->VelocityY / (float)cnt;
+	float velX2 = CollisionEntity->VelocityX - velX * (cnt - 1);
+	float velY2 = CollisionEntity->VelocityY - velY * (cnt - 1);
 
 	while (cnt > 0) {
 		if (cnt == 1) {
-			stepVelocityX = finalStepVelocityX;
-			stepVelocityY = finalStepVelocityY;
+			velX = velX2;
+			velY = velY2;
 		}
 		cnt--;
 
 		if (movingRight == 1) {
-			Sensors[0].X += stepVelocityX; Sensors[0].Y += stepVelocityY;
-			CheckVerticalCollision(&Sensors[0], true);
-			if (Sensors[0].Collided) movingRight = 2;
+			Sensors[0].X += velX;
+			Sensors[0].Y += velY;
+			CheckHorizontalCollision(&Sensors[0], true);
+
+			if (Sensors[0].Collided)
+				movingRight = 2;
 		}
 		if (movingLeft == 1) {
-			Sensors[1].X += stepVelocityX; Sensors[1].Y += stepVelocityY;
-			CheckVerticalCollision(&Sensors[1], false);
-			if (Sensors[1].Collided) movingLeft = 2;
+			Sensors[1].X += velX;
+			Sensors[1].Y += velY;
+			CheckHorizontalCollision(&Sensors[1], false);
+
+			if (Sensors[1].Collided)
+				movingLeft = 2;
 		}
 
-		if (movingRight == 2) {
+		if (movingRight == 2 || movingLeft == 2) {
 			CollisionEntity->VelocityX = 0.0f;
 			CollisionEntity->GroundVel = 0.0f;
-			CollisionEntity->X = Sensors[0].X - CollisionOuter.Right;
-			Sensors[2].X = Sensors[4].X = CollisionEntity->X + CollisionOuter.Left + 1.0f;
-			Sensors[3].X = Sensors[5].X = CollisionEntity->X + CollisionOuter.Right - 2.0f;
-			stepVelocityX = finalStepVelocityX = 0.0f;
-			movingRight = 3;
-		}
-		if (movingLeft == 2) {
-			CollisionEntity->VelocityX = 0.0f;
-			CollisionEntity->GroundVel = 0.0f;
-			CollisionEntity->X = Sensors[1].X - CollisionOuter.Left + 1.0f;
-			Sensors[2].X = Sensors[4].X = CollisionEntity->X + CollisionOuter.Left + 1.0f;
-			Sensors[3].X = Sensors[5].X = CollisionEntity->X + CollisionOuter.Right - 2.0f;
-			stepVelocityX = finalStepVelocityX = 0.0f;
-			movingLeft = 3;
+			CollisionEntity->X = (movingRight == 2) ? (Sensors[0].X - CollisionOuter.Right) : (Sensors[1].X - CollisionOuter.Left + 1.0f);
+
+			Sensors[2].X = Sensors[4].X = (CollisionEntity->X + CollisionOuter.Left + 1.0f);
+			Sensors[3].X = Sensors[5].X = (CollisionEntity->X + CollisionOuter.Right - 2.0f);
+
+			velX = velX2 = 0.0f;
+			if (movingRight == 2)
+				movingRight = 3;
+			if (movingLeft == 2)
+				movingLeft = 3;
 		}
 
-		if (movingTowardFloor == 1) {
-			for (int i = floorSensorPrimary; i <= floorSensorSecondary; i++) {
+		if (movingDown == 1) {
+			for (int i : {floorSensor1, floorSensor2}) {
 				if (!Sensors[i].Collided) {
-					Sensors[i].X += stepVelocityX; Sensors[i].Y += stepVelocityY;
-					if (isUp)
-						CheckVerticalCollision(&Sensors[i], false);
-					else
-						CheckVerticalCollision(&Sensors[i], true);
+					Sensors[i].X += velX;
+					Sensors[i].Y += velY;
+					CheckVerticalCollision(&Sensors[i], !isUp);
 				}
 			}
-			if (Sensors[floorSensorPrimary].Collided || Sensors[floorSensorSecondary].Collided) {
-				movingTowardFloor = 2;
+			if (Sensors[floorSensor1].Collided || Sensors[floorSensor2].Collided) {
+				movingDown = 2;
 				cnt = 0;
 			}
 		}
-		if (movingTowardRoof == 1) {
-			for (int i = roofSensorPrimary; i <= roofSensorSecondary; i++) {
+
+		if (movingUp == 1) {
+			for (int i : {roofSensor1, roofSensor2}) {
 				if (!Sensors[i].Collided) {
-					Sensors[i].X += stepVelocityX; Sensors[i].Y += stepVelocityY;
-					if (isUp)
-						CheckVerticalCollision(&Sensors[i], true);
-					else
-						CheckVerticalCollision(&Sensors[i], false);
+					Sensors[i].X += velX;
+					Sensors[i].Y += velY;
+					CheckVerticalCollision(&Sensors[i], isUp);
 				}
 			}
-			if (Sensors[roofSensorPrimary].Collided || Sensors[roofSensorSecondary].Collided) {
-				movingTowardRoof = 2;
+			if (Sensors[roofSensor1].Collided || Sensors[roofSensor2].Collided) {
+				movingUp = 2;
 				cnt = 0;
 			}
 		}
 	}
 
-	if (movingRight < 2 && movingLeft < 2) {
+	if (movingRight < 2 && movingLeft < 2)
 		CollisionEntity->X += CollisionEntity->VelocityX;
-	}
 
-	if (movingTowardRoof < 2 && movingTowardFloor < 2) {
+	if (movingUp < 2 && movingDown < 2) {
 		CollisionEntity->Y += CollisionEntity->VelocityY;
 		return;
 	}
 
-	if (movingTowardFloor == 2) {
+	if (movingDown == 2) {
 		CollisionEntity->OnGround = true;
 
-		bool preferSecondary = false;
-		if (Sensors[floorSensorPrimary].Collided && Sensors[floorSensorSecondary].Collided) {
-			preferSecondary = isUp
-							  ? (Sensors[floorSensorPrimary].Y <= Sensors[floorSensorSecondary].Y)
-							  : (Sensors[floorSensorPrimary].Y >= Sensors[floorSensorSecondary].Y);
-		}
-		else {
-			preferSecondary = Sensors[floorSensorSecondary].Collided;
-		}
+		bool both = Sensors[floorSensor1].Collided && Sensors[floorSensor2].Collided;
+		bool useSensor2 = (both && (isUp ? Sensors[floorSensor1].Y <= Sensors[floorSensor2].Y : Sensors[floorSensor1].Y >= Sensors[floorSensor2].Y)) || (!Sensors[floorSensor1].Collided);
+		int finalSensor = useSensor2 ? floorSensor2 : floorSensor1;
 
-		int winningSensorIndex = preferSecondary ? floorSensorSecondary : floorSensorPrimary;
-		float verticalBound = isUp ? CollisionOuter.Top - 1.0f : CollisionOuter.Bottom;
+		CollisionEntity->Y = Sensors[finalSensor].Y - (isUp ? (CollisionOuter.Top - 1.0f) : CollisionOuter.Bottom);
+		CollisionEntity->Angle = Sensors[finalSensor].Angle;
 
-		CollisionEntity->Y = Sensors[winningSensorIndex].Y - verticalBound;
-		CollisionEntity->Angle = Sensors[winningSensorIndex].Angle;
+		int ang = CollisionEntity->Angle & 0xFF;
+		int lWallMin = isUp ? 0xA2 : 0xA0;
+		int lWallMax = isUp ? 0xE0 : 0xDE;
+		int rWallMin = isUp ? 0x20 : 0x22;
+		int rWallMax = isUp ? 0x5E : 0x60;
 
-		int leftWallMinThreshold = isUp ? 0xA2 : 0xA0;
-		int leftWallMaxThreshold = isUp ? 0xE0 : 0xDE;
-		int rightWallMinThreshold = isUp ? 0x20 : 0x22;
-		int rightWallMaxThreshold = isUp ? 0x5E : 0x60;
-
-		if (CollisionEntity->Angle > leftWallMinThreshold && CollisionEntity->Angle < leftWallMaxThreshold && CollisionEntity->CollisionMode != CMODE_LWALL) {
-			CollisionEntity->CollisionMode = CMODE_LWALL;
+		if (ang > lWallMin && ang < lWallMax && CollisionEntity->CollisionMode != CMODE_LWALL) {
+			CollisionEntity->CollisionMode = CMODE_LWALL; 
 			CollisionEntity->X -= 4.0f;
 		}
-		if (CollisionEntity->Angle > rightWallMinThreshold && CollisionEntity->Angle < rightWallMaxThreshold && CollisionEntity->CollisionMode != CMODE_RWALL) {
+		else if (ang > rWallMin && ang < rWallMax && CollisionEntity->CollisionMode != CMODE_RWALL) {
 			CollisionEntity->CollisionMode = CMODE_RWALL;
 			CollisionEntity->X += 4.0f;
 		}
 
-		float groundSpeed = 0.0f;
-		int currentAngle = CollisionEntity->Angle;
-		float entityVelX = CollisionEntity->VelocityX;
-		float entityVelY = CollisionEntity->VelocityY;
-
+		float speed = 0.0f;
 		if (!isUp) {
-			if (currentAngle < 0x80) {
-				if (currentAngle < 0x10)
-					groundSpeed = entityVelX;
-				else if (currentAngle >= 0x20)
-					groundSpeed = (abs(entityVelX) <= abs(entityVelY) ? entityVelY : entityVelX);
+			if (ang < 0x80) {
+				if (ang < 0x10)
+					speed = CollisionEntity->VelocityX;
 				else
-					groundSpeed = (abs(entityVelX) <= abs(entityVelY / 2.0f) ? (entityVelY / 2.0f) : entityVelX);
+					speed = (abs(CollisionEntity->VelocityX) <= abs(CollisionEntity->VelocityY / (ang >= 0x20 ? 1.0f : 2.0f))) ? (CollisionEntity->VelocityY / (ang >= 0x20 ? 1.0f : 2.0f)) : CollisionEntity->VelocityX;
 			}
-			else if (currentAngle > 0xF0)
-				groundSpeed = entityVelX;
-			else if (currentAngle <= 0xE0)
-				groundSpeed = (abs(entityVelX) <= abs(entityVelY) ? -entityVelY : entityVelX);
-			else
-				groundSpeed = (abs(entityVelX) <= abs(entityVelY / 2.0f) ? -(entityVelY / 2.0f) : entityVelX);
+			else {
+				if (ang > 0xF0)
+					speed = CollisionEntity->VelocityX;
+				else
+					speed = (abs(CollisionEntity->VelocityX) <= abs(CollisionEntity->VelocityY / (ang <= 0xE0 ? 1.0f : 2.0f))) ? -(CollisionEntity->VelocityY / (ang <= 0xE0 ? 1.0f : 2.0f)) : CollisionEntity->VelocityX;
+			}
 		}
 		else {
-			if (currentAngle >= 0x80) {
-				if (currentAngle < 0x90)
-					groundSpeed = -entityVelX;
-				else if (currentAngle >= 0xA0)
-					groundSpeed = (abs(entityVelX) <= abs(entityVelY) ? entityVelY : entityVelX);
+			if (ang >= 0x80) {
+				if (ang < 0x90)
+					speed = -CollisionEntity->VelocityX;
 				else
-					groundSpeed = (abs(entityVelX) <= abs(entityVelY / 2.0f) ? (entityVelY / 2.0f) : entityVelX);
+					speed = (abs(CollisionEntity->VelocityX) <= abs(CollisionEntity->VelocityY / (ang >= 0xA0 ? 1.0f : 2.0f))) ? (CollisionEntity->VelocityY / (ang >= 0xA0 ? 1.0f : 2.0f)) : CollisionEntity->VelocityX;
 			}
-			else if (currentAngle <= 0x70)
-				groundSpeed = entityVelX;
-			else if (currentAngle <= 0x60)
-				groundSpeed = (abs(entityVelX) <= abs(entityVelY) ? -entityVelY : entityVelX);
-			else
-				groundSpeed = (abs(entityVelX) <= abs(entityVelY / 2.0f) ? -(entityVelY / 2.0f) : entityVelX);
+			else {
+				if (ang <= 0x70)
+					speed = CollisionEntity->VelocityX;
+				else
+					speed = (abs(CollisionEntity->VelocityX) <= abs(CollisionEntity->VelocityY / (ang <= 0x60 ? 1.0f : 2.0f))) ? -(CollisionEntity->VelocityY / (ang <= 0x60 ? 1.0f : 2.0f)) : CollisionEntity->VelocityX;
+			}
 		}
 
-		if (groundSpeed < -24.0f)
-			groundSpeed = -24.0f;
-		if (groundSpeed > 24.0f)
-			groundSpeed = 24.0f;
-
-		CollisionEntity->GroundVel = CollisionEntity->VelocityX = groundSpeed;
+		CollisionEntity->GroundVel = fmax(-24.0f, fmin(24.0f, speed));
+		CollisionEntity->VelocityX = CollisionEntity->GroundVel;
 		CollisionEntity->VelocityY = 0.0f;
 	}
 
-	if (movingTowardRoof == 2) {
-		bool preferSecondary = false;
-		if (Sensors[roofSensorPrimary].Collided && Sensors[roofSensorSecondary].Collided) {
-			preferSecondary = isUp
-							  ? (Sensors[roofSensorPrimary].X >= Sensors[roofSensorSecondary].X)
-							  : (Sensors[roofSensorPrimary].X <= Sensors[roofSensorSecondary].X);
-		}
-		else {
-			preferSecondary = Sensors[roofSensorSecondary].Collided;
-		}
+	if (movingUp == 2) {
+		bool both = Sensors[roofSensor1].Collided && Sensors[roofSensor2].Collided;
+		bool useSensor2 = (both ? (isUp ? Sensors[roofSensor1].Y >= Sensors[roofSensor2].Y : Sensors[roofSensor1].Y <= Sensors[roofSensor2].Y) : Sensors[roofSensor2].Collided);
+		int finalS = useSensor2 ? roofSensor2 : roofSensor1;
+		int sensorAngle = Sensors[finalS].Angle & 0xFF;
 
-		int winningSensorIndex = preferSecondary ? roofSensorSecondary : roofSensorPrimary;
-		float verticalBound = isUp ? CollisionOuter.Bottom : CollisionOuter.Top - 1.0f;
+		CollisionEntity->Y = Sensors[finalS].Y - (isUp ? CollisionOuter.Bottom : CollisionOuter.Top - 1.0f);
 
-		CollisionEntity->Y = Sensors[winningSensorIndex].Y - verticalBound;
-		int sensorAngle = Sensors[winningSensorIndex].Angle & 0xFF;
-
+		bool landLeft, landRight, velocityCheck;
 		if (!isUp) {
-			if (sensorAngle < 0x62 && CollisionEntity->VelocityY < -abs(CollisionEntity->VelocityX)) {
-				CollisionEntity->OnGround = true;
-				CollisionEntity->Angle = sensorAngle;
-				CollisionEntity->CollisionMode = CMODE_RWALL;
-				CollisionEntity->X += 4.0f; CollisionEntity->Y -= 2.0f;
-				CollisionEntity->GroundVel = sensorAngle <= 0x60 ? CollisionEntity->VelocityY : (CollisionEntity->VelocityY / 2.0f);
-			}
-			if (sensorAngle > 0x9E && sensorAngle < 0xC1 && CollisionEntity->VelocityY < -abs(CollisionEntity->VelocityX)) {
-				CollisionEntity->OnGround = true;
-				CollisionEntity->Angle = sensorAngle;
-				CollisionEntity->CollisionMode = CMODE_LWALL;
-				CollisionEntity->X -= 4.0f; CollisionEntity->Y -= 2.0f;
-				CollisionEntity->GroundVel = sensorAngle >= 0xA0 ? -CollisionEntity->VelocityY : -(CollisionEntity->VelocityY / 2.0f);
-			}
-			if (CollisionEntity->VelocityY < 0.0f)
-				CollisionEntity->VelocityY = 0.0f;
+			landLeft = (sensorAngle > 0x9E && sensorAngle < 0xC1);
+			landRight = (sensorAngle < 0x62 && sensorAngle > 0x00);
+			velocityCheck = (CollisionEntity->VelocityY < -abs(CollisionEntity->VelocityX));
 		}
 		else {
-			if (sensorAngle >= 0x21 && sensorAngle <= 0x40 && CollisionEntity->VelocityY > -abs(CollisionEntity->VelocityX)) {
-				CollisionEntity->OnGround = true;
-				CollisionEntity->Angle = sensorAngle;
-				CollisionEntity->CollisionMode = CMODE_RWALL;
-				CollisionEntity->X += 4.0f; CollisionEntity->Y -= 2.0f;
-				CollisionEntity->GroundVel = sensorAngle <= 0x20 ? CollisionEntity->VelocityY : (CollisionEntity->VelocityY / 2.0f);
-			}
-			if (sensorAngle > 0xC0 && sensorAngle < 0xE2 && CollisionEntity->VelocityY > -abs(CollisionEntity->VelocityX)) {
-				CollisionEntity->OnGround = true;
-				CollisionEntity->Angle = sensorAngle;
-				CollisionEntity->CollisionMode = CMODE_LWALL;
-				CollisionEntity->X -= 4.0f; CollisionEntity->Y -= 2.0f;
-				CollisionEntity->GroundVel = sensorAngle <= 0xE0 ? -CollisionEntity->VelocityY : -(CollisionEntity->VelocityY / 2.0f);
-			}
-			if (CollisionEntity->VelocityY > 0.0f)
-				CollisionEntity->VelocityY = 0.0f;
+			landLeft = (sensorAngle > 0xC0 && sensorAngle < 0xE2);
+			landRight = (sensorAngle >= 0x21 && sensorAngle <= 0x40);
+			velocityCheck = (CollisionEntity->VelocityY > abs(CollisionEntity->VelocityX));
+		}
+
+		if ((landLeft || landRight) && velocityCheck) {
+			CollisionEntity->OnGround = true;
+			CollisionEntity->Angle = sensorAngle;
+			CollisionEntity->CollisionMode = landRight ? CMODE_RWALL : CMODE_LWALL;
+			CollisionEntity->X += landRight ? 4.0f : -4.0f;
+			CollisionEntity->Y -= 2.0f;
+
+			float multi;
+			if (!isUp)
+				multi = landRight ? (sensorAngle <= 0x60 ? 1.0f : 0.5f) : (sensorAngle >= 0xA0 ? -1.0f : -0.5f);
+			else
+				multi = landRight ? (sensorAngle <= 0x20 ? 1.0f : 0.5f) : (sensorAngle <= 0xE0 ? -1.0f : -0.5f);
+
+			CollisionEntity->GroundVel = CollisionEntity->VelocityY * multi;
+		}
+		else {
+			CollisionEntity->VelocityY = 0.0f;
 		}
 	}
 }
 
+
 void Scene::SetPathGripSensors(CollisionSensor* sensors) {
-	int mode = CollisionEntity->CollisionMode;
-	float offset = UseCollisionOffset ? CollisionOffset : 0.0f;
-	float& cX = sensors[4].X;
-	float& cY = sensors[4].Y;
+	float offset = UseCollisionOffset ? CollisionOffset : 0.0;
 
-	bool isVertical = (mode % 2 == 0);
-	bool flipDepth = (mode >= CMODE_ROOF);
-	bool flipSensor3 = (mode == CMODE_LWALL || mode == CMODE_ROOF);
+	switch (CollisionEntity->CollisionMode) {
+	case CMODE_FLOOR:
+		sensors[0].Y = sensors[4].Y + CollisionOuter.Bottom;
+		sensors[1].Y = sensors[4].Y + CollisionOuter.Bottom;
+		sensors[2].Y = sensors[4].Y + CollisionOuter.Bottom;
+		sensors[3].Y = sensors[4].Y + offset;
 
-	float depth = flipDepth ? -CollisionOuter.Bottom - 1.0f : CollisionOuter.Bottom;
+		sensors[0].X = sensors[4].X + CollisionInner.Left - 1.0;
+		sensors[1].X = sensors[4].X;
+		sensors[2].X = sensors[4].X + CollisionInner.Right;
 
-	float sensor3Position = (CollisionEntity->GroundVel <= 0.0f) ? (CollisionOuter.Left - 1.0f) : CollisionOuter.Right;
-	if (flipSensor3) 
-		sensor3Position = -sensor3Position - 1.0f;
+		if (CollisionEntity->GroundVel <= 0.0) {
+			sensors[3].X = sensors[4].X + CollisionOuter.Left - 1.0;
+		}
+		else {
+			sensors[3].X = sensors[4].X + CollisionOuter.Right;
+		}
+		break;
 
-	auto SetSensor = [&](int i, float tangent, float normal) {
-		(isVertical ? sensors[i].X : sensors[i].Y) = (isVertical ? cX : cY) + tangent;
-		(isVertical ? sensors[i].Y : sensors[i].X) = (isVertical ? cY : cX) + normal;
-	};
+	case CMODE_LWALL:
+		sensors[0].X = sensors[4].X + CollisionOuter.Bottom;
+		sensors[1].X = sensors[4].X + CollisionOuter.Bottom;
+		sensors[2].X = sensors[4].X + CollisionOuter.Bottom;
+		sensors[3].X = sensors[4].X;
 
-	SetSensor(0, CollisionInner.Left - 1.0f, depth);
-	SetSensor(1, 0.0f, depth);
-	SetSensor(2, CollisionInner.Right, depth);
-	SetSensor(3, sensor3Position, mode == CMODE_FLOOR ? offset : -offset);
+		sensors[0].Y = sensors[4].Y + CollisionInner.Left - 1.0;
+		sensors[1].Y = sensors[4].Y;
+		sensors[2].Y = sensors[4].Y + CollisionInner.Right;
+
+		if (CollisionEntity->GroundVel <= 0.0) {
+			sensors[3].Y = sensors[4].Y - CollisionOuter.Left;
+		}
+		else {
+			sensors[3].Y = sensors[4].Y - CollisionOuter.Right - 1.0;
+		}
+		break;
+
+	case CMODE_ROOF:
+		sensors[0].Y = sensors[4].Y - CollisionOuter.Bottom - 1.0;
+		sensors[1].Y = sensors[4].Y - CollisionOuter.Bottom - 1.0;
+		sensors[2].Y = sensors[4].Y - CollisionOuter.Bottom - 1.0;
+		sensors[3].Y = sensors[4].Y - offset;
+
+		sensors[0].X = sensors[4].X + CollisionInner.Left - 1.0;
+		sensors[1].X = sensors[4].X;
+		sensors[2].X = sensors[4].X + CollisionInner.Right;
+
+		if (CollisionEntity->GroundVel <= 0.0) {
+			sensors[3].X = sensors[4].X - CollisionOuter.Left;
+		}
+		else {
+			sensors[3].X = sensors[4].X - CollisionOuter.Right - 1.0;
+		}
+		break;
+
+	case CMODE_RWALL:
+		sensors[0].X = sensors[4].X - CollisionOuter.Bottom - 1.0;
+		sensors[1].X = sensors[4].X - CollisionOuter.Bottom - 1.0;
+		sensors[2].X = sensors[4].X - CollisionOuter.Bottom - 1.0;
+		sensors[3].X = sensors[4].X;
+
+		sensors[0].Y = sensors[4].Y + CollisionInner.Left - 1.0;
+		sensors[1].Y = sensors[4].Y;
+		sensors[2].Y = sensors[4].Y + CollisionInner.Right;
+
+		if (CollisionEntity->GroundVel <= 0.0) {
+			sensors[3].Y = sensors[4].Y + CollisionOuter.Left - 1.0;
+		}
+		else {
+			sensors[3].Y = sensors[4].Y + CollisionOuter.Right;
+		}
+		break;
+
+	default:
+		break;
+	}
 }
 
 void Scene::CheckVerticalPosition(CollisionSensor* sensor, bool isFloor) {
-	const int height = isFloor ? TileHeight : -TileHeight;
-	const int dirBit = isFloor ? 1 : 2;
+	int posX = (int)std::floor(sensor->X);
+	int posY = (int)std::floor(sensor->Y);
+	int startY = posY;
 
-	int angleTolerance = isFloor ? FloorAngleTolerance : RoofAngleTolerance;
+	if (CollisionEntity->CollisionPlane < 0 || CollisionEntity->CollisionPlane >= (int)Scene::TileCfg.size())
+		return;
 
-	if (CollisionEntity->CollisionPlane < 0 || CollisionEntity->CollisionPlane >= Scene::TileCfg.size()) return;
 	TileConfig* tileCfgBase = Scene::TileCfg[CollisionEntity->CollisionPlane];
-
-	int layerID = 1;
-	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-		if (CollisionEntity->CollisionLayers & layerID) {
-			SceneLayer& layer = Layers[l];
-			int relX = (int)floor(sensor->X) - layer.OffsetX;
-			int relY = (int)floor(sensor->Y) - layer.OffsetY;
-
-			int currentY = (relY & -TileHeight) - height;
-
-			int widthPx = TileWidth * layer.Width;
-			int heightPx = TileHeight * layer.Height;
-
-			if (relX >= 0 && relX < widthPx) {
-				for (int i = 0; i < 3; ++i) {
-					if (currentY >= 0 && currentY < heightPx) {
-						int tileIdx = (relX / TileWidth) + ((currentY / TileHeight) << layer.WidthInBits);
-						int tileID = layer.Tiles[tileIdx];
-
-						int collBits = (CollisionEntity->CollisionPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
-
-						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & dirBit)) {
-							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
-
-							int mask = isFloor ? tileCfg->CollisionTop[relX & 0xF] : tileCfg->CollisionBottom[relX & 0xF];
-							int tileAngle = isFloor ? tileCfg->AngleTop : tileCfg->AngleBottom;
-							int targetY = currentY + mask;
-
-							if (mask < 0xFF) {
-								bool isBetterPos = isFloor ? (relY >= targetY) : (relY <= targetY);
-
-								if (!sensor->Collided || isBetterPos) {
-									if (abs(relY - targetY) <= CollisionTolerance) {
-
-										bool angleOK = false;
-										if (abs(sensor->Angle - tileAngle) <= angleTolerance)
-											angleOK = true;
-
-										if (isFloor) {
-											if (abs(sensor->Angle - tileAngle + 0x100) <= angleTolerance ||
-												abs(sensor->Angle - tileAngle - 0x100) <= angleTolerance)
-												angleOK = true;
-										}
-
-										if (angleOK) {
-											sensor->Collided = true;
-											sensor->Angle = tileAngle;
-											sensor->Y = (float)(targetY + layer.OffsetY);
-											relY = targetY;
-											i = 3;
-										}
-									}
-								}
-							}
-						}
-					}
-					currentY += height;
-				}
-			}
-		}
-	}
-}
-
-void Scene::CheckHorizontalPosition(CollisionSensor* sensor, bool isLeft) {
-	const int width = isLeft ? TileWidth : -TileWidth;
-	const int angleTolerance = WallAngleTolerance;
-
-	if (CollisionEntity->CollisionPlane < 0 || CollisionEntity->CollisionPlane >= Scene::TileCfg.size()) return;
-	TileConfig* tileCfgBase = Scene::TileCfg[CollisionEntity->CollisionPlane];
-
-	int layerID = 1;
-	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-		if (CollisionEntity->CollisionLayers & layerID) {
-			SceneLayer& layer = Layers[l];
-			int relX = (int)floor(sensor->X) - layer.OffsetX;
-			int relY = (int)floor(sensor->Y) - layer.OffsetY;
-
-			int currentX = (relX & -TileWidth) - width;
-
-			int widthPx = TileWidth * layer.Width;
-			int heightPx = TileHeight * layer.Height;
-
-			if (relY >= 0 && relY < heightPx) {
-				for (int i = 0; i < 3; ++i) {
-					if (currentX >= 0 && currentX < widthPx) {
-						int tileID = layer.Tiles[(currentX / TileWidth) + ((relY / TileHeight) << layer.WidthInBits)];
-						int collBits = (CollisionEntity->CollisionPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
-
-						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
-							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
-
-							int mask = isLeft ? tileCfg->CollisionLeft[relY & 0xF] : tileCfg->CollisionRight[relY & 0xF];
-							int tileAngle = isLeft ? tileCfg->AngleLeft : tileCfg->AngleRight;
-							int targetX = currentX + mask;
-
-							if (mask < 0xFF) {
-								bool isBetterPos = isLeft ? (relX >= targetX) : (relX <= targetX);
-
-								if (!sensor->Collided || isBetterPos) {
-									if (abs(relX - targetX) <= CollisionTolerance) {
-										if (abs(sensor->Angle - tileAngle) <= angleTolerance) {
-											sensor->Collided = true;
-											sensor->Angle = tileAngle;
-											sensor->X = (float)(targetX + layer.OffsetX);
-
-											relX = targetX;
-											i = 3;
-										}
-									}
-								}
-							}
-						}
-					}
-					currentX += width;
-				}
-			}
-		}
-	}
-}
-
-void Scene::CheckVerticalCollision(CollisionSensor* sensor, bool isFloor) {
-	int posX = (int)floor(sensor->X);
-	int posY = (int)floor(sensor->Y);
-
-	float collidePos = isFloor ? 1000000.0f : -1000000.0f;
-	int collideAngle = 0;
-
-	if (CollisionEntity->CollisionPlane < 0 || CollisionEntity->CollisionPlane >= Scene::TileCfg.size()) return;
-	TileConfig* tileCfgBase = Scene::TileCfg[CollisionEntity->CollisionPlane];
-
-	int requiredCollBit = isFloor ? 1 : 2;
-	int stepDir = isFloor ? 1 : -1;
-	int initialOffset = isFloor ? -TileHeight : TileHeight;
 
 	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
@@ -5223,33 +5212,152 @@ void Scene::CheckVerticalCollision(CollisionSensor* sensor, bool isFloor) {
 			SceneLayer& layer = Layers[l];
 			int colX = posX - layer.OffsetX;
 			int colY = posY - layer.OffsetY;
-
-			int cy = (colY & -TileHeight) + initialOffset;
+			int cy = isFloor ? ((colY & -TileHeight) - TileHeight) : ((colY & -TileHeight) + TileHeight);
+			int step = isFloor ? TileHeight : -TileHeight;
 
 			if (colX >= 0 && colX < TileWidth * layer.Width) {
-				int stepCount = 2;
-				int step = TileHeight * stepDir;
-
-				for (int i = 0; i < stepCount; ++i) {
+				for (int i = 0; i < 3; ++i) {
 					if (cy >= 0 && cy < TileHeight * layer.Height) {
 						int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
 						int collBits = (CollisionEntity->CollisionPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+						int targetBit = isFloor ? 1 : 2;
 
-						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & requiredCollBit)) {
+						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & targetBit)) {
 							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
 							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
 
 							int mask = isFloor ? tileCfg->CollisionTop[colX & 0xF] : tileCfg->CollisionBottom[colX & 0xF];
-							int angle = isFloor ? tileCfg->AngleTop : tileCfg->AngleBottom;
+							int ty = cy + mask;
+							int tileAngle = isFloor ? tileCfg->AngleTop : tileCfg->AngleBottom;
+
+							if (mask < 0xFF) {
+								if (!sensor->Collided || (isFloor ? startY >= ty : startY <= ty)) {
+									if (abs(colY - ty) <= CollisionTolerance) {
+										bool angleValid = false;
+										if (isFloor) {
+											angleValid = (abs(sensor->Angle - tileAngle) <= FloorAngleTolerance ||
+												abs(sensor->Angle - tileAngle + 0x100) <= FloorAngleTolerance ||
+												abs(sensor->Angle - tileAngle - 0x100) <= FloorAngleTolerance);
+										}
+										else {
+											angleValid = (abs(sensor->Angle - tileAngle) <= RoofAngleTolerance);
+										}
+
+										if (angleValid) {
+											sensor->Collided = true;
+											sensor->Angle = tileAngle;
+											sensor->Y = (float)(ty + layer.OffsetY);
+											startY = ty;
+											i = 3;
+										}
+									}
+								}
+							}
+						}
+					}
+					cy += step;
+				}
+			}
+			posX = (int)std::floor(sensor->X);
+			posY = (int)std::floor(sensor->Y);
+		}
+	}
+}
+
+void Scene::CheckHorizontalPosition(CollisionSensor* sensor, bool isLeft) {
+	int posX = (int)std::floor(sensor->X);
+	int posY = (int)std::floor(sensor->Y);
+	int startX = posX;
+
+	if (CollisionEntity->CollisionPlane < 0 || CollisionEntity->CollisionPlane >= (int)Scene::TileCfg.size())
+		return;
+
+	TileConfig* tileCfgBase = Scene::TileCfg[CollisionEntity->CollisionPlane];
+
+	int layerID = 1;
+	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
+		if (CollisionEntity->CollisionLayers & layerID) {
+			SceneLayer& layer = Layers[l];
+			int colX = posX - layer.OffsetX;
+			int colY = posY - layer.OffsetY;
+			int cx = isLeft ? ((colX & -TileWidth) - TileWidth) : ((colX & -TileWidth) + TileWidth);
+			int step = isLeft ? TileWidth : -TileWidth;
+
+			if (colY >= 0 && colY < TileHeight * layer.Height) {
+				for (int i = 0; i < 3; ++i) {
+					if (cx >= 0 && cx < TileWidth * layer.Width) {
+						int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
+						int collBits = (CollisionEntity->CollisionPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+
+						if ((tileID & TILE_IDENT_MASK) != EmptyTile && ((collBits & 2) || (collBits & 1))) {
+							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
+
+							int mask = isLeft ? tileCfg->CollisionLeft[colY & 0xF] : tileCfg->CollisionRight[colY & 0xF];
+							int tx = cx + mask;
+							int tileAngle = isLeft ? tileCfg->AngleLeft : tileCfg->AngleRight;
+
+							if (mask < 0xFF) {
+								if (!sensor->Collided || (isLeft ? startX >= tx : startX <= tx)) {
+									if (abs(colX - tx) <= CollisionTolerance && abs(sensor->Angle - tileAngle) <= WallAngleTolerance) {
+										sensor->Collided = true;
+										sensor->Angle = tileAngle;
+										sensor->X = (float)(tx + layer.OffsetX);
+										startX = tx;
+										i = 3;
+									}
+								}
+							}
+						}
+					}
+					cx += step;
+				}
+			}
+			posX = (int)std::floor(sensor->X);
+			posY = (int)std::floor(sensor->Y);
+		}
+	}
+}
+
+void Scene::CheckVerticalCollision(CollisionSensor* sensor, bool isFloor) {
+	int posX = (int)std::floor(sensor->X);
+	int posY = (int)std::floor(sensor->Y);
+
+	if (CollisionEntity->CollisionPlane < 0 || CollisionEntity->CollisionPlane >= (int)Scene::TileCfg.size())
+		return;
+
+	TileConfig* tileCfgBase = Scene::TileCfg[CollisionEntity->CollisionPlane];
+
+	int layerID = 1;
+	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
+		if (CollisionEntity->CollisionLayers & layerID) {
+			SceneLayer& layer = Layers[l];
+			int colX = posX - layer.OffsetX;
+			int colY = posY - layer.OffsetY;
+			int cy = isFloor ? ((colY & -TileHeight) - TileHeight) : ((colY & -TileHeight) + TileHeight);
+			int step = isFloor ? TileHeight : -TileHeight;
+
+			if (colX >= 0 && colX < TileWidth * layer.Width) {
+				int stepCount = 2;
+				for (int i = 0; i < stepCount; ++i) {
+					if (cy >= 0 && cy < TileHeight * layer.Height) {
+						int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
+						int collBits = (CollisionEntity->CollisionPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+						int targetBit = isFloor ? 1 : 2;
+
+						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & targetBit)) {
+							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
+
+							int mask = isFloor ? tileCfg->CollisionTop[colX & 0xF] : tileCfg->CollisionBottom[colX & 0xF];
 							int ty = cy + mask;
 
 							if (mask < 0xFF) {
-								bool foundBetterPos = isFloor ? (colY < collidePos - layer.OffsetY) : (colY > collidePos - layer.OffsetY);
-
-								if (foundBetterPos) {
-									collideAngle = angle;
-									collidePos = (float)(ty + layer.OffsetY);
-									step = -step;
+								bool inBounds = isFloor ? (colY >= ty) : (colY <= ty);
+								if (inBounds && abs(colY - ty) <= CollisionMinimumDistance) {
+									sensor->Collided = true;
+									sensor->Angle = isFloor ? tileCfg->AngleTop : tileCfg->AngleBottom;
+									sensor->Y = (float)(ty + layer.OffsetY);
 									i = stepCount;
 								}
 							}
@@ -5258,39 +5366,20 @@ void Scene::CheckVerticalCollision(CollisionSensor* sensor, bool isFloor) {
 					cy += step;
 				}
 			}
-			posX = layer.OffsetX + colX;
-			posY = layer.OffsetY + colY;
+			posX = (int)std::floor(sensor->X);
+			posY = (int)std::floor(sensor->Y);
 		}
-	}
-
-	bool isValid = false;
-	float dist = sensor->Y - collidePos;
-
-	if (isFloor) {
-		if (collidePos < 500000.0f && sensor->Y >= collidePos && dist <= CollisionMinimumDistance)
-			isValid = true;
-	}
-	else {
-		if (collidePos > -500000.0f && sensor->Y <= collidePos && dist >= -CollisionMinimumDistance)
-			isValid = true;
-	}
-
-	if (isValid) {
-		sensor->Angle = collideAngle;
-		sensor->Y = collidePos;
-		sensor->Collided = true;
 	}
 }
 
 void Scene::CheckHorizontalCollision(CollisionSensor* sensor, bool isLeft) {
-	int posX = (int)floor(sensor->X);
-	int posY = (int)floor(sensor->Y);
+	int posX = (int)std::floor(sensor->X);
+	int posY = (int)std::floor(sensor->Y);
 
-	if (CollisionEntity->CollisionPlane < 0 || CollisionEntity->CollisionPlane >= Scene::TileCfg.size()) return;
+	if (CollisionEntity->CollisionPlane < 0 || CollisionEntity->CollisionPlane >= (int)Scene::TileCfg.size())
+		return;
+
 	TileConfig* tileCfgBase = Scene::TileCfg[CollisionEntity->CollisionPlane];
-
-	int initialOffset = isLeft ? -TileWidth : TileWidth;
-	int stepDir = isLeft ? 1 : -1;
 
 	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
@@ -5298,12 +5387,10 @@ void Scene::CheckHorizontalCollision(CollisionSensor* sensor, bool isLeft) {
 			SceneLayer& layer = Layers[l];
 			int colX = posX - layer.OffsetX;
 			int colY = posY - layer.OffsetY;
-
-			int cx = (colX & -TileWidth) + initialOffset;
+			int cx = isLeft ? ((colX & -TileWidth) - TileWidth) : ((colX & -TileWidth) + TileWidth);
+			int step = isLeft ? TileWidth : -TileWidth;
 
 			if (colY >= 0 && colY < TileHeight * layer.Height) {
-				int step = TileWidth * stepDir;
-
 				for (int i = 0; i < 3; ++i) {
 					if (cx >= 0 && cx < TileWidth * layer.Width) {
 						int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
@@ -5314,24 +5401,24 @@ void Scene::CheckHorizontalCollision(CollisionSensor* sensor, bool isLeft) {
 							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
 
 							int mask = isLeft ? tileCfg->CollisionLeft[colY & 0xF] : tileCfg->CollisionRight[colY & 0xF];
-							int angle = isLeft ? tileCfg->AngleLeft : tileCfg->AngleRight;
 							int tx = cx + mask;
 
-							bool posCheck = isLeft ? (colX >= tx) : (colX <= tx);
-
-							if (mask < 0xFF && posCheck && abs(colX - tx) <= CollisionMinimumDistance) {
-								sensor->Collided = true;
-								sensor->Angle = angle;
-								sensor->X = (float)(tx + layer.OffsetX);
-								i = 3;
+							if (mask < 0xFF) {
+								bool inBounds = isLeft ? (colX >= tx) : (colX <= tx);
+								if (inBounds && abs(colX - tx) <= CollisionMinimumDistance) {
+									sensor->Collided = true;
+									sensor->Angle = isLeft ? tileCfg->AngleLeft : tileCfg->AngleRight;
+									sensor->X = (float)(tx + layer.OffsetX);
+									i = 3;
+								}
 							}
 						}
 					}
 					cx += step;
 				}
 			}
-			posX = layer.OffsetX + colX;
-			posY = layer.OffsetY + colY;
+			posX = (int)std::floor(sensor->X);
+			posY = (int)std::floor(sensor->Y);
 		}
 	}
 }

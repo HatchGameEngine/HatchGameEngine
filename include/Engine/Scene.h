@@ -127,7 +127,6 @@ public:
 	static int CollisionTolerance;
 	static bool UseCollisionOffset;
 	static float CollisionOffset;
-	static float CollisionMaskAir;
 	static CollisionBox CollisionOuter;
 	static CollisionBox CollisionInner;
 	static Entity* CollisionEntity;
@@ -212,13 +211,7 @@ public:
 	static bool FindGameTextureByID(int id, size_t& out);
 	static void SetTile(int layer, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB);
 	static int CollisionAt(int x, int y, int collisionField, int collideSide, int* angle);
-	static int CollisionInLine(int x,
-		int y,
-		int angleMode,
-		int checkLen,
-		int collisionField,
-		bool compareAngle,
-		Sensor* sensor);
+	static int CollisionInLine(int x, int y, int angleMode, int checkLen, int collisionField, bool compareAngle, Sensor* sensor);
 	static void OrientHitbox(CollisionBox* source, int direction, CollisionBox* destination) {
 		*destination = *source;
 		if (direction & FLIP_X) {
@@ -237,8 +230,8 @@ public:
 	static bool CheckEntityCircle(Entity* thisEntity, float thisRadius, Entity* otherEntity, float otherRadius);
 	static int CheckEntityBox(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues);
 	static bool CheckEntityPlatform(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues);
-	static bool CheckTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos);
-	static bool CheckTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance);
+	static bool ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos);
+	static bool ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance);
 	static void SetCollisionVariables(float minDistance, float lowTolerance, float highTolerance, int floorAngleTolerance, int wallAngleTolerance, int roofAngleTolerance);
 	static void ProcessObjectMovement(Entity* entity, CollisionBox* outerBox, CollisionBox* innerBox);
 	static void ProcessPathGrip();
