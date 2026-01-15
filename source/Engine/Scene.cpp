@@ -4095,15 +4095,22 @@ bool Scene::CheckEntityPlatform(Entity* thisEntity, CollisionBox* thisHitbox, En
 }
 
 bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos) {
-	int layerID = 1;
-	bool collided = false;
-	int posX = xOffset + entity->X;
-	int posY = yOffset + entity->Y;
+	if (cPlane < 0 || (size_t)cPlane >= Scene::TileCfg.size()) return false;
 
-	if (cPlane < 0 || cPlane >= Scene::TileCfg.size())
-		return false;
+	bool collided = false;
+	int posX = xOffset + (int)entity->X;
+	int posY = yOffset + (int)entity->Y;
 	TileConfig* tileCfgBase = Scene::TileCfg[cPlane];
 
+	bool isVertical = (cMode == CMODE_FLOOR || cMode == CMODE_ROOF);
+	bool isPositive = (cMode == CMODE_FLOOR || cMode == CMODE_LWALL);
+	int targetBit = (cMode == CMODE_FLOOR) ? 1 : 2;
+
+	int mainTileSize = isVertical ? TileHeight : TileWidth;
+	int crossTileSize = isVertical ? TileWidth : TileHeight;
+	int step = isPositive ? mainTileSize : -mainTileSize;
+
+	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
 		SceneLayer& layer = Layers[l];
 		if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE) || !(cLayers & layerID))
@@ -4112,116 +4119,62 @@ bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPla
 		int colX = posX - layer.OffsetX;
 		int colY = posY - layer.OffsetY;
 
-		switch (cMode) {
-		case CMODE_FLOOR: {
-			int cy = (colY & -TileHeight) - TileHeight;
-			if (colX >= 0 && colX < TileWidth * layer.Width) {
-				for (int i = 0; i < 3; ++i) {
-					if (cy >= 0 && cy < TileHeight * layer.Height) {
-						int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
-						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+		int mainCoord = isVertical ? colY : colX;
+		int crossCoord = isVertical ? colX : colY;
+		int crossMax = (isVertical ? layer.Width : layer.Height) * crossTileSize;
 
-						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 1)) {
-							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
+		if (crossCoord >= 0 && crossCoord < crossMax) {
+			int curTilePos = (mainCoord & -mainTileSize) + (isPositive ? -mainTileSize : mainTileSize);
+			int mainMax = (isVertical ? layer.Height : layer.Width) * mainTileSize;
 
-							int ty = cy + tileCfg->CollisionTop[colX & 0xF];
-							if (colY >= ty && abs(colY - ty) <= 14) {
-								collided = true;
-								colY = ty;
-								i = 3;
-							}
+			for (int i = 0; i < 3; ++i, curTilePos += step) {
+				if (curTilePos < 0 || curTilePos >= mainMax)
+					continue;
+
+				int tx = isVertical ? (colX / TileWidth) : (curTilePos / TileWidth);
+				int ty = isVertical ? (curTilePos / TileHeight) : (colY / TileHeight);
+				int tileID = layer.Tiles[tx + (ty << layer.WidthInBits)];
+
+				int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+
+				if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & targetBit)) {
+					int flipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+					TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + flipOffset];
+
+					Uint8* maskDir;
+					switch (cMode) {
+					case CMODE_FLOOR: maskDir = tileCfg->CollisionTop;    break;
+					case CMODE_ROOF:  maskDir = tileCfg->CollisionBottom; break;
+					case CMODE_LWALL: maskDir = tileCfg->CollisionLeft;   break;
+					case CMODE_RWALL: maskDir = tileCfg->CollisionRight;  break;
+					default: maskDir = nullptr; break;
+					}
+
+					int mask = maskDir ? maskDir[crossCoord & 0xF] : 0xFF;
+					if (mask < 0xFF) {
+						int snapPos = curTilePos + mask;
+
+						bool isPenetrating = isPositive ? (mainCoord >= snapPos) : (mainCoord <= snapPos);
+						if (isPenetrating && abs(mainCoord - snapPos) <= 14) {
+							collided = true;
+							if (isVertical)
+								colY = snapPos;
+							else
+								colX = snapPos;
+							break;
 						}
 					}
-					cy += TileHeight;
 				}
 			}
-			if (setPos && collided)
+		}
+
+		if (setPos && collided) {
+			if (isVertical)
 				entity->Y = (float)(colY + layer.OffsetY) - yOffset;
-			break;
-		}
-		case CMODE_LWALL: {
-			int cx = (colX & -TileWidth) - TileWidth;
-			if (colY >= 0 && colY < TileHeight * layer.Height) {
-				for (int i = 0; i < 3; ++i) {
-					if (cx >= 0 && cx < TileWidth * layer.Width) {
-						int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
-						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
-
-						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
-							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
-
-							int tx = cx + tileCfg->CollisionLeft[colY & 0xF];
-							if (colX >= tx && abs(colX - tx) <= 14) {
-								collided = true;
-								colX = tx;
-								i = 3;
-							}
-						}
-					}
-					cx += TileWidth;
-				}
-			}
-			if (setPos && collided)
+			else
 				entity->X = (float)(colX + layer.OffsetX) - xOffset;
-			break;
 		}
-		case CMODE_ROOF: {
-			int cy = (colY & -TileHeight) + TileHeight;
-			if (colX >= 0 && colX < TileWidth * layer.Width) {
-				for (int i = 0; i < 3; ++i) {
-					if (cy >= 0 && cy < TileHeight * layer.Height) {
-						int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
-						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
 
-						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
-							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
-
-							int ty = cy + tileCfg->CollisionBottom[colX & 0xF];
-							if (colY <= ty && abs(colY - ty) <= 14) {
-								collided = true;
-								colY = ty;
-								i = 3;
-							}
-						}
-					}
-					cy -= TileHeight;
-				}
-			}
-			if (setPos && collided)
-				entity->Y = (float)(colY + layer.OffsetY) - yOffset;
-			break;
-		}
-		case CMODE_RWALL: {
-			int cx = (colX & -TileWidth) + TileWidth;
-			if (colY >= 0 && colY < TileHeight * layer.Height) {
-				for (int i = 0; i < 3; ++i) {
-					if (cx >= 0 && cx < TileWidth * layer.Width) {
-						int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
-						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
-
-						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
-							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
-
-							int tx = cx + tileCfg->CollisionRight[colY & 0xF];
-							if (colX <= tx && abs(colX - tx) <= 14) {
-								collided = true;
-								colX = tx;
-								i = 3;
-							}
-						}
-					}
-					cx -= TileWidth;
-				}
-			}
-			if (setPos && collided)
-				entity->X = (float)(colX + layer.OffsetX) - xOffset;
-			break;
-		}
-		}
 		posX = layer.OffsetX + colX;
 		posY = layer.OffsetY + colY;
 	}
@@ -4229,14 +4182,22 @@ bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPla
 }
 
 bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance) {
-	int layerID = 1;
+	if (cPlane < 0 || (size_t)cPlane >= Scene::TileCfg.size()) return false;
+
 	bool collided = false;
 	int posX = (int)(xOffset + entity->X);
 	int posY = (int)(yOffset + entity->Y);
-
-	if (cPlane < 0 || cPlane >= Scene::TileCfg.size()) return false;
 	TileConfig* tileCfgBase = Scene::TileCfg[cPlane];
 
+	bool isVertical = (cMode == CMODE_FLOOR || cMode == CMODE_ROOF);
+	bool isPositive = (cMode == CMODE_FLOOR || cMode == CMODE_LWALL);
+	int targetBit = (cMode == CMODE_FLOOR) ? 1 : 2;
+
+	int mainTileSize = isVertical ? TileHeight : TileWidth;
+	int crossTileSize = isVertical ? TileWidth : TileHeight;
+	int step = isPositive ? mainTileSize : -mainTileSize;
+
+	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
 		SceneLayer& layer = Layers[l];
 		if (!(layer.Flags & SceneLayer::FLAGS_COLLIDEABLE) || !(cLayers & layerID))
@@ -4245,128 +4206,60 @@ bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, i
 		int colX = posX - layer.OffsetX;
 		int colY = posY - layer.OffsetY;
 
-		switch (cMode) {
-		case CMODE_FLOOR: {
-			int cy = (colY & -TileHeight) - TileHeight;
-			if (colX >= 0 && colX < TileWidth * layer.Width) {
-				for (int i = 0; i < 3; ++i) {
-					if (cy >= 0 && cy < TileHeight * layer.Height) {
-						int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
-						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+		int mainCoord = isVertical ? colY : colX;
+		int crossCoord = isVertical ? colX : colY;
+		int crossMax = (isVertical ? layer.Width : layer.Height) * crossTileSize;
 
-						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 1)) {
-							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
+		if (crossCoord >= 0 && crossCoord < crossMax) {
+			int curTilePos = (mainCoord & -mainTileSize) + (isPositive ? -mainTileSize : mainTileSize);
+			int mainMax = (isVertical ? layer.Height : layer.Width) * mainTileSize;
 
-							int mask = tileCfg->CollisionTop[colX & 0xF];
-							int ty = cy + mask;
-							if (mask < 0xFF) {
-								if (abs(colY - ty) <= tolerance) {
-									collided = true;
-									colY = ty;
-								}
-								i = 3;
-							}
-						}
+			for (int i = 0; i < 3; ++i, curTilePos += step) {
+				if (curTilePos < 0 || curTilePos >= mainMax)
+					continue;
+
+				int tx = isVertical ? (colX / TileWidth) : (curTilePos / TileWidth);
+				int ty = isVertical ? (curTilePos / TileHeight) : (colY / TileHeight);
+				int tileID = layer.Tiles[tx + (ty << layer.WidthInBits)];
+
+				int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
+
+				if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & targetBit)) {
+					int flipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
+					TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + flipOffset];
+
+					Uint8* maskDir;
+					switch (cMode) {
+					case CMODE_FLOOR: maskDir = tileCfg->CollisionTop;    break;
+					case CMODE_ROOF:  maskDir = tileCfg->CollisionBottom; break;
+					case CMODE_LWALL: maskDir = tileCfg->CollisionLeft;   break;
+					case CMODE_RWALL: maskDir = tileCfg->CollisionRight;  break;
+					default: maskDir = nullptr; break;
 					}
-					cy += TileHeight;
+
+					int mask = maskDir ? maskDir[crossCoord & 0xF] : 0xFF;
+					if (mask < 0xFF) {
+						int snapPos = curTilePos + mask;
+						if (abs(mainCoord - snapPos) <= tolerance) {
+							collided = true;
+							if (isVertical)
+								colY = snapPos;
+							else
+								colX = snapPos;
+						}
+						break;
+					}
 				}
 			}
-			if (collided)
+		}
+
+		if (collided) {
+			if (isVertical)
 				entity->Y = (float)(colY + layer.OffsetY) - yOffset;
-			break;
-		}
-		case CMODE_LWALL: {
-			int cx = (colX & -TileWidth) - TileWidth;
-			if (colY >= 0 && colY < TileHeight * layer.Height) {
-				for (int i = 0; i < 3; ++i) {
-					if (cx >= 0 && cx < TileWidth * layer.Width) {
-						int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
-						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
-
-						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
-							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
-
-							int mask = tileCfg->CollisionLeft[colY & 0xF];
-							int tx = cx + mask;
-							if (mask < 0xFF) {
-								if (abs(colX - tx) <= tolerance) {
-									collided = true;
-									colX = tx;
-								}
-								i = 3;
-							}
-						}
-					}
-					cx += TileWidth;
-				}
-			}
-			if (collided)
+			else
 				entity->X = (float)(colX + layer.OffsetX) - xOffset;
-			break;
 		}
-		case CMODE_ROOF: {
-			int cy = (colY & -TileHeight) + TileHeight;
-			if (colX >= 0 && colX < TileWidth * layer.Width) {
-				for (int i = 0; i < 3; ++i) {
-					if (cy >= 0 && cy < TileHeight * layer.Height) {
-						int tileID = layer.Tiles[(colX / TileWidth) + ((cy / TileHeight) << layer.WidthInBits)];
-						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
 
-						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
-							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
-
-							int mask = tileCfg->CollisionBottom[colX & 0xF];
-							int ty = cy + mask;
-							if (mask < 0xFF) {
-								if (abs(colY - ty) <= tolerance) {
-									collided = true;
-									colY = ty;
-								}
-								i = 3;
-							}
-						}
-					}
-					cy -= TileHeight;
-				}
-			}
-			if (collided)
-				entity->Y = (float)(colY + layer.OffsetY) - yOffset;
-			break;
-		}
-		case CMODE_RWALL: {
-			int cx = (colX & -TileWidth) + TileWidth;
-			if (colY >= 0 && colY < TileHeight * layer.Height) {
-				for (int i = 0; i < 3; ++i) {
-					if (cx >= 0 && cx < TileWidth * layer.Width) {
-						int tileID = layer.Tiles[(cx / TileWidth) + ((colY / TileHeight) << layer.WidthInBits)];
-						int collBits = (cPlane == 0) ? ((tileID & TILE_COLLA_MASK) >> 28) : ((tileID & TILE_COLLB_MASK) >> 26);
-
-						if ((tileID & TILE_IDENT_MASK) != EmptyTile && (collBits & 2)) {
-							int tileFlipOffset = (((!!(tileID & TILE_FLIPY_MASK)) << 1) | (!!(tileID & TILE_FLIPX_MASK))) * TileCount;
-							TileConfig* tileCfg = &tileCfgBase[(tileID & TILE_IDENT_MASK) + tileFlipOffset];
-
-							int mask = tileCfg->CollisionRight[colY & 0xF];
-							int tx = cx + mask;
-							if (mask < 0xFF) {
-								if (abs(colX - tx) <= tolerance) {
-									collided = true;
-									colX = tx;
-								}
-								i = 3;
-							}
-						}
-					}
-					cx -= TileWidth;
-				}
-			}
-			if (collided)
-				entity->X = (float)(colX + layer.OffsetX) - xOffset;
-			break;
-		}
-		}
 		posX = layer.OffsetX + colX;
 		posY = layer.OffsetY + colY;
 	}
