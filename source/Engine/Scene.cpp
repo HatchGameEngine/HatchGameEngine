@@ -4505,7 +4505,7 @@ void Scene::ProcessPathGrip() {
 	auto SetAirborne = [&]() {
 		CollisionEntity->OnGround = false;
 		CollisionEntity->CollisionMode = newCollisionMode;
-		CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
+		CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f; // 256.0
 		CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
 		if (CollisionEntity->VelocityY < -16.0f)
 			CollisionEntity->VelocityY = -16.0f;
@@ -4823,82 +4823,40 @@ void Scene::ProcessAirCollision(bool isUp) {
 
 
 void Scene::SetPathGripSensors(CollisionSensor* sensors) {
-	float offset = UseCollisionOffset ? CollisionOffset : 0.0;
+	float offset = UseCollisionOffset ? CollisionOffset : 0.0f;
+	float groundVel = CollisionEntity->GroundVel;
+	float centerX = sensors[4].X;
+	float centerY = sensors[4].Y;
+
+	float left = CollisionInner.Left - 1.0f, right = CollisionInner.Right;
 
 	switch (CollisionEntity->CollisionMode) {
 	case CMODE_FLOOR:
-		sensors[0].Y = sensors[4].Y + CollisionOuter.Bottom;
-		sensors[1].Y = sensors[4].Y + CollisionOuter.Bottom;
-		sensors[2].Y = sensors[4].Y + CollisionOuter.Bottom;
-		sensors[3].Y = sensors[4].Y + offset;
-
-		sensors[0].X = sensors[4].X + CollisionInner.Left - 1.0;
-		sensors[1].X = sensors[4].X;
-		sensors[2].X = sensors[4].X + CollisionInner.Right;
-
-		if (CollisionEntity->GroundVel <= 0.0) {
-			sensors[3].X = sensors[4].X + CollisionOuter.Left - 1.0;
-		}
-		else {
-			sensors[3].X = sensors[4].X + CollisionOuter.Right;
-		}
+		sensors[0].Y = sensors[1].Y = sensors[2].Y = centerY + CollisionOuter.Bottom;
+		sensors[0].X = centerX + left; sensors[1].X = centerX; sensors[2].X = centerX + right;
+		sensors[3].Y = centerY + offset;
+		sensors[3].X = centerX + (groundVel <= 0.0f ? CollisionOuter.Left - 1.0f : CollisionOuter.Right);
 		break;
 
 	case CMODE_LWALL:
-		sensors[0].X = sensors[4].X + CollisionOuter.Bottom;
-		sensors[1].X = sensors[4].X + CollisionOuter.Bottom;
-		sensors[2].X = sensors[4].X + CollisionOuter.Bottom;
-		sensors[3].X = sensors[4].X;
-
-		sensors[0].Y = sensors[4].Y + CollisionInner.Left - 1.0;
-		sensors[1].Y = sensors[4].Y;
-		sensors[2].Y = sensors[4].Y + CollisionInner.Right;
-
-		if (CollisionEntity->GroundVel <= 0.0) {
-			sensors[3].Y = sensors[4].Y - CollisionOuter.Left;
-		}
-		else {
-			sensors[3].Y = sensors[4].Y - CollisionOuter.Right - 1.0;
-		}
+		sensors[0].X = sensors[1].X = sensors[2].X = centerX + CollisionOuter.Bottom;
+		sensors[0].Y = centerY + left; sensors[1].Y = centerY; sensors[2].Y = centerY + right;
+		sensors[3].X = centerX;
+		sensors[3].Y = centerY - (groundVel <= 0.0f ? CollisionOuter.Left : CollisionOuter.Right + 1.0f);
 		break;
 
 	case CMODE_ROOF:
-		sensors[0].Y = sensors[4].Y - CollisionOuter.Bottom - 1.0;
-		sensors[1].Y = sensors[4].Y - CollisionOuter.Bottom - 1.0;
-		sensors[2].Y = sensors[4].Y - CollisionOuter.Bottom - 1.0;
-		sensors[3].Y = sensors[4].Y - offset;
-
-		sensors[0].X = sensors[4].X + CollisionInner.Left - 1.0;
-		sensors[1].X = sensors[4].X;
-		sensors[2].X = sensors[4].X + CollisionInner.Right;
-
-		if (CollisionEntity->GroundVel <= 0.0) {
-			sensors[3].X = sensors[4].X - CollisionOuter.Left;
-		}
-		else {
-			sensors[3].X = sensors[4].X - CollisionOuter.Right - 1.0;
-		}
+		sensors[0].Y = sensors[1].Y = sensors[2].Y = centerY - CollisionOuter.Bottom - 1.0f;
+		sensors[0].X = centerX + left; sensors[1].X = centerX; sensors[2].X = centerX + right;
+		sensors[3].Y = centerY - offset;
+		sensors[3].X = centerX - (groundVel <= 0.0f ? CollisionOuter.Left : CollisionOuter.Right + 1.0f);
 		break;
 
 	case CMODE_RWALL:
-		sensors[0].X = sensors[4].X - CollisionOuter.Bottom - 1.0;
-		sensors[1].X = sensors[4].X - CollisionOuter.Bottom - 1.0;
-		sensors[2].X = sensors[4].X - CollisionOuter.Bottom - 1.0;
-		sensors[3].X = sensors[4].X;
-
-		sensors[0].Y = sensors[4].Y + CollisionInner.Left - 1.0;
-		sensors[1].Y = sensors[4].Y;
-		sensors[2].Y = sensors[4].Y + CollisionInner.Right;
-
-		if (CollisionEntity->GroundVel <= 0.0) {
-			sensors[3].Y = sensors[4].Y + CollisionOuter.Left - 1.0;
-		}
-		else {
-			sensors[3].Y = sensors[4].Y + CollisionOuter.Right;
-		}
-		break;
-
-	default:
+		sensors[0].X = sensors[1].X = sensors[2].X = centerX - CollisionOuter.Bottom - 1.0f;
+		sensors[0].Y = centerY + left; sensors[1].Y = centerY; sensors[2].Y = centerY + right;
+		sensors[3].X = centerX;
+		sensors[3].Y = centerY + (groundVel <= 0.0f ? CollisionOuter.Left - 1.0f : CollisionOuter.Right);
 		break;
 	}
 }
