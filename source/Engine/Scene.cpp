@@ -4383,8 +4383,8 @@ void Scene::ProcessPathGrip() {
 		else
 			checkDist = -1;
 
-		xVel = (Math::Cos256(CollisionEntity->Angle) * 0.00390625f) * stepSize;
-		yVel = (Math::Sin256(CollisionEntity->Angle) * 0.00390625f) * stepSize;
+		xVel = (Math::Cos256(CollisionEntity->Angle) * (1.0f / 256)) * stepSize;
+		yVel = (Math::Sin256(CollisionEntity->Angle) * (1.0f / 256)) * stepSize;
 		if (CollisionEntity->GroundVel < 0.0f){
 			xVel = -xVel;
 			yVel = -yVel;
