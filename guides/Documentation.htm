@@ -503,7 +503,7 @@
                     <li><a href="#Reference_functions_Draw3D_Model">Draw3D.Model</a></li>
                     <li><a href="#Reference_functions_Draw3D_ModelSkinned">Draw3D.ModelSkinned</a></li>
                     <li><a href="#Reference_functions_Draw3D_ModelSimple">Draw3D.ModelSimple</a></li>
-                    <li><a href="#Reference_functions_Draw_Triangle3D">Draw.Triangle3D</a></li>
+                    <li><a href="#Reference_functions_Draw3D_Triangle">Draw3D.Triangle</a></li>
                     <li><a href="#Reference_functions_Draw3D_Quad">Draw3D.Quad</a></li>
                     <li><a href="#Reference_functions_Draw3D_Sprite">Draw3D.Sprite</a></li>
                     <li><a href="#Reference_functions_Draw3D_SpritePart">Draw3D.SpritePart</a></li>
@@ -787,8 +787,6 @@
                     <li><a href="#Reference_functions_Math_Sqrt">Math.Sqrt</a></li>
                     <li><a href="#Reference_functions_Math_Pow">Math.Pow</a></li>
                     <li><a href="#Reference_functions_Math_Exp">Math.Exp</a></li>
-                    <li><a href="#Reference_functions_RSDK_Math_ToFixed">RSDK.Math.ToFixed</a></li>
-                    <li><a href="#Reference_functions_RSDK_Math_FromFixed">RSDK.Math.FromFixed</a></li>
                 </ul>
             </p>
             <p id="Reference_Matrix">
@@ -905,6 +903,8 @@
                     <li><a href="#Reference_functions_RSDK_Math_ATan2">RSDK.Math.ATan2</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_RadianToInteger">RSDK.Math.RadianToInteger</a></li>
                     <li><a href="#Reference_functions_RSDK_Math_IntegerToRadian">RSDK.Math.IntegerToRadian</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_ToFixed">RSDK.Math.ToFixed</a></li>
+                    <li><a href="#Reference_functions_RSDK_Math_FromFixed">RSDK.Math.FromFixed</a></li>
                 </ul>
             </p>
             <p id="Reference_RSDK.Matrix">
@@ -2066,14 +2066,15 @@
         </p>
         <p id="Reference_functions_API_Discord_UpdateRichPresence">
         <h2 style="margin-bottom: 8px;">API.Discord.UpdateRichPresence</h2>
-        <code>API.Discord.UpdateRichPresence(details[, state, largeImageKey, startTime])</code>
+        <code>API.Discord.UpdateRichPresence(details[, state, largeImageKey, smallImageKey, startTime])</code>
         <div style="margin-top: 8px; font-size: 14px;">Updates Discord Rich Presence. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>details (String): The first line of text in the Rich Presence.</li>
         <li>state (String): The second line of text, appearing below details.</li>
         <li>largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.</li>
-        <li>startTime (Integer): A Unix timestamp of when the activity started. If <code>0</code>, the timer is disabled.</li>
+        <li>smallImageKey (String): The internal name of the small image asset to display, also created via the Discord Developer Portal.</li>
+        <li>startTime (Integer): A Unix timestamp (in seconds) of when the activity started. This can also be used as the 4th argument in smallImageKey's place. If <code>0</code>, the timer is disabled.</li>
         </ul>
         </p>
         <p id="Reference_functions_API_Discord_SetActivityDetails">
@@ -2263,7 +2264,7 @@
         <li>hitboxID (Integer): The index number of the hitbox. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns a reference value to a hitbox array.</div>
+        <div style="font-size: 14px;">Returns a Hitbox value.</div>
         </p>
         <p id="Reference_functions_Animator_GetPrevAnimation">
         <h2 style="margin-bottom: 8px;">Animator.GetPrevAnimation</h2>
@@ -2693,7 +2694,7 @@
         <code>Application.GetCursorVisible()</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the visibility of the cursor.</div>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether ot not the cursor is visible.</div>
+        <div style="font-size: 14px;">Returns whether or not the cursor is visible.</div>
         </p>
         <p id="Reference_functions_Application_Error">
         <h2 style="margin-bottom: 8px;">Application.Error</h2>
@@ -2904,8 +2905,8 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>entity (Instance): The instance to move.</li>
-        <li>outer (Array): Array containing the outer hitbox.</li>
-        <li>inner (Array): Array containing the inner hitbox.</li>
+        <li>outer (Hitbox): The outer hitbox.</li>
+        <li>inner (Hitbox): The inner hitbox.</li>
         </ul>
         </p>
         <p id="Reference_functions_Collision_ObjectTileCollision">
@@ -2949,9 +2950,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>thisEntity (Instance): The first instance to check.</li>
-        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>thisHitbox (Hitbox): The first entity's hitbox.</li>
         <li>otherEntity (Instance): The other instance to check.</li>
-        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        <li>otherHitbox (Hitbox): The other entity's hitbox.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value whether the entities are touching.</div>
@@ -2977,9 +2978,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>thisEnity (Instance): The first instance to check.</li>
-        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>thisHitbox (Array): The first entity's hitbox.</li>
         <li>otherEntity (Instance): The other instance to check.</li>
-        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        <li>otherHitbox (Array): The other entity's hitbox.</li>
         <li>setValues (Boolean): Whether to set the values of the other entity.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -2992,9 +2993,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>thisEnity (Instance): The first instance to check.</li>
-        <li>thisHitbox (Array): Array containing the first entity's hitbox.</li>
+        <li>thisHitbox (Array): The first entity's hitbox.</li>
         <li>otherEntity (Instance): The other instance to check whether it is on top of the first instance.</li>
-        <li>otherHitbox (Array): Array containing the other entity's hitbox.</li>
+        <li>otherHitbox (Array): The other entity's hitbox.</li>
         <li>setValues (Boolean): Whether to set the values of the other entity.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
@@ -3831,7 +3832,7 @@
         <p id="Reference_functions_Draw_SetTextureBlend">
         <h2 style="margin-bottom: 8px;">Draw.SetTextureBlend</h2>
         <code>Draw.SetTextureBlend(doBlend)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Sets whetherto use color and alpha blending on sprites, images, and textures.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Sets whether to use color and alpha blending on sprites, images, and textures.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>doBlend (Boolean): Whether to use blending.</li>
@@ -4079,7 +4080,7 @@
         <p id="Reference_functions_Draw_TriangleBlend">
         <h2 style="margin-bottom: 8px;">Draw.TriangleBlend</h2>
         <code>Draw.TriangleBlend(x1, y1, x2, y2, x3, y3, color1, color2, color3)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a triangle, blending the colors at the vertices. (Colors are multipled by the global Draw Blend Color, do <code><a href="#Reference_functions_Draw_SetBlendColor">Draw.SetBlendColor</a></code><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a triangle, blending the colors at the vertices. (Colors are multiplied by the global Draw Blend Color, do <code><a href="#Reference_functions_Draw_SetBlendColor">Draw.SetBlendColor</a></code><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>x1 (Number): X position of the first vertex.</li>
@@ -4112,7 +4113,7 @@
         <p id="Reference_functions_Draw_QuadBlend">
         <h2 style="margin-bottom: 8px;">Draw.QuadBlend</h2>
         <code>Draw.QuadBlend(x1, y1, x2, y2, x3, y3, x4, y4, color1, color2, color3, color4)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Draws a quad, blending the colors at the vertices. (Colors are multipled by the global Draw Blend Color, do <code><a href="#Reference_functions_Draw_SetBlendColor">Draw.SetBlendColor</a></code><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)</div>
+        <div style="margin-top: 8px; font-size: 14px;">Draws a quad, blending the colors at the vertices. (Colors are multiplied by the global Draw Blend Color, do <code><a href="#Reference_functions_Draw_SetBlendColor">Draw.SetBlendColor</a></code><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>x1 (Number): X position of the first vertex.</li>
@@ -4448,9 +4449,9 @@
         <li>rz (Number): Z rotation in radians</li>
         </ul>
         </p>
-        <p id="Reference_functions_Draw_Triangle3D">
-        <h2 style="margin-bottom: 8px;">Draw.Triangle3D</h2>
-        <code>Draw.Triangle3D(x1, y1, z1, x2, y2, z2, x3, y3, z3[, color1, color2, color3, matrixModel, matrixNormal])</code>
+        <p id="Reference_functions_Draw3D_Triangle">
+        <h2 style="margin-bottom: 8px;">Draw3D.Triangle</h2>
+        <code>Draw3D.Triangle(x1, y1, z1, x2, y2, z2, x3, y3, z3[, color1, color2, color3, matrixModel, matrixNormal])</code>
         <div style="margin-top: 8px; font-size: 14px;">Draws a triangle in 3D space.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -6210,28 +6211,6 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the result number.</div>
         </p>
-        <p id="Reference_functions_RSDK_Math_ToFixed">
-        <h2 style="margin-bottom: 8px;">RSDK.Math.ToFixed</h2>
-        <code>RSDK.Math.ToFixed(n)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Converts a decimal number to its fixed-point equivalent.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>n (Number): Number value.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the converted fixed-point Number value.</div>
-        </p>
-        <p id="Reference_functions_RSDK_Math_FromFixed">
-        <h2 style="margin-bottom: 8px;">RSDK.Math.FromFixed</h2>
-        <code>RSDK.Math.FromFixed(n)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Converts a fixed-point number to its decimal equivalent.</div>
-        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
-        <ul style="margin-top: 0px; font-size: 14px;">
-        <li>n (Number): Number value.</li>
-        </ul>
-        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns the converted decimal Number value.</div>
-        </p>
         <p id="Reference_functions_Matrix_Create">
         <h2 style="margin-bottom: 8px;">Matrix.Create</h2>
         <code>Matrix.Create()</code>
@@ -7018,6 +6997,28 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">A radia Decimal value of the converted integer.</div>
         </p>
+        <p id="Reference_functions_RSDK_Math_ToFixed">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.ToFixed</h2>
+        <code>RSDK.Math.ToFixed(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a decimal number to its fixed-point equivalent.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Number): Number value.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted fixed-point Number value.</div>
+        </p>
+        <p id="Reference_functions_RSDK_Math_FromFixed">
+        <h2 style="margin-bottom: 8px;">RSDK.Math.FromFixed</h2>
+        <code>RSDK.Math.FromFixed(n)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Converts a fixed-point number to its decimal equivalent.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>n (Number): Number value.</li>
+        </ul>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns the converted decimal Number value.</div>
+        </p>
         <p id="Reference_functions_RSDK_Matrix_Create256">
         <h2 style="margin-bottom: 8px;">RSDK.Matrix.Create256</h2>
         <code>RSDK.Matrix.Create256()</code>
@@ -7037,7 +7038,7 @@
         <p id="Reference_functions_RSDK_Matrix_Multiply256">
         <h2 style="margin-bottom: 8px;">RSDK.Matrix.Multiply256</h2>
         <code>RSDK.Matrix.Multiply256(matrix, a, b)</code>
-        <div style="margin-top: 8px; font-size: 14px;">Multiplies two matrices based on the deciaml 256.0.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Multiplies two matrices based on the decimal 256.0.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>matrix (Matrix): The matrix to output the values to.</li>
@@ -7504,29 +7505,45 @@
         </p>
         <p id="Reference_functions_Scene_GetLayerWidth">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerWidth</h2>
-        <code>Scene.GetLayerWidth()</code>
+        <code>Scene.GetLayerWidth(layerIndex)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the width of a layer index (in tiles).</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerHeight">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerHeight</h2>
-        <code>Scene.GetLayerHeight()</code>
+        <code>Scene.GetLayerHeight(layerIndex)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the height of a layer index (in tiles).</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns an Integer value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerOffsetX">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerOffsetX</h2>
-        <code>Scene.GetLayerOffsetX()</code>
+        <code>Scene.GetLayerOffsetX(layerIndex)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the X offset of a layer index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
         <p id="Reference_functions_Scene_GetLayerOffsetY">
         <h2 style="margin-bottom: 8px;">Scene.GetLayerOffsetY</h2>
-        <code>Scene.GetLayerOffsetY()</code>
+        <code>Scene.GetLayerOffsetY(layerIndex)</code>
         <div style="margin-top: 8px; font-size: 14px;">Gets the Y offset of a layer index.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>layerIndex (Integer): Index of layer.</li>
+        </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Decimal value.</div>
         </p>
@@ -9282,7 +9299,7 @@
         <li>hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Array value.</div>
+        <div style="font-size: 14px;">Returns a Hitbox value.</div>
         </p>
         <p id="Reference_functions_Sprite_GetTextArray">
         <h2 style="margin-bottom: 8px;">Sprite.GetTextArray</h2>
@@ -10899,7 +10916,7 @@
         <li>hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns an Array value.</div>
+        <div style="font-size: 14px;">Returns a Hitbox value.</div>
         </p>
         <p id="Reference_methods_entity_CollideWithObject">
         <h2 style="margin-bottom: 8px;">entity.CollideWithObject</h2>
@@ -12336,19 +12353,19 @@
         </p>
         <p id="Reference_enums_HITBOX_LEFT">
         <h3 style="margin-bottom: 8px;"><code>HITBOX_LEFT</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Left side, slot 0 of a hitbox array.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Left side, slot 0 of a hitbox value.</div>
         </p>
         <p id="Reference_enums_HITBOX_TOP">
         <h3 style="margin-bottom: 8px;"><code>HITBOX_TOP</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Top side, slot 1 of a hitbox array.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Top side, slot 1 of a hitbox value.</div>
         </p>
         <p id="Reference_enums_HITBOX_RIGHT">
         <h3 style="margin-bottom: 8px;"><code>HITBOX_RIGHT</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Right side, slot 2 of a hitbox array.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Right side, slot 2 of a hitbox value.</div>
         </p>
         <p id="Reference_enums_HITBOX_BOTTOM">
         <h3 style="margin-bottom: 8px;"><code>HITBOX_BOTTOM</code></h2>
-        <div style="margin-top: 8px; font-size: 14px;">Bottom side, slot 3 of a hitbox array.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Bottom side, slot 3 of a hitbox value.</div>
         </p>
         <p id="Reference_enums_InputBind_Keyboard">
         <h3 style="margin-bottom: 8px;"><code>InputBind_Keyboard</code></h2>

@@ -399,7 +399,7 @@ void GL_SetShapeShader(Uint32 features) {
 		GL_SetShader(GLRenderer::ShaderShape->Get(features));
 	}
 }
-void GL_PrepareShader(Texture* texture, int paletteID = 0) {
+void GL_PrepareShader(Texture* texture, int paletteID = 0, bool useVertexColors = false) {
 	Uint32 features = 0;
 
 #ifdef GL_HAVE_YUV
@@ -461,6 +461,10 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 		features |= SHADER_FEATURE_BLENDING;
 	}
 
+	if (useVertexColors) {
+		features |= SHADER_FEATURE_VERTEXCOLORS;
+	}
+
 	if (CurrentFilter != Filter_NONE) {
 		switch (CurrentFilter) {
 		case Filter_BLACK_AND_WHITE:
@@ -496,8 +500,8 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0) {
 		GL_PreparePaletteShader(GLRenderer::CurrentShader, texture, paletteID);
 	}
 }
-void GL_SetTexture(Texture* texture, int paletteID = 0) {
-	GL_PrepareShader(texture, paletteID);
+void GL_SetTexture(Texture* texture, int paletteID = 0, bool useVertexColors = false) {
+	GL_PrepareShader(texture, paletteID, useVertexColors);
 	GL_BindTexture(texture);
 }
 void GL_SetProjectionMatrix(Matrix4x4* projMat) {
@@ -581,8 +585,8 @@ void GL_CheckPaletteUpdate() {
 		}
 	}
 }
-void GL_Predraw(Texture* texture, int paletteID = 0) {
-	GL_SetTexture(texture, paletteID);
+void GL_Predraw(Texture* texture, int paletteID = 0, bool useVertexColors = false) {
+	GL_SetTexture(texture, paletteID, useVertexColors);
 	GL_CheckPaletteUpdate();
 
 	GLShader* shader = GLRenderer::CurrentShader;
@@ -1614,7 +1618,12 @@ void GLRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.FillCircle = GLRenderer::FillCircle;
 	Graphics::Internal.FillEllipse = GLRenderer::FillEllipse;
 	Graphics::Internal.FillTriangle = GLRenderer::FillTriangle;
+	Graphics::Internal.FillTriangleBlend = GLRenderer::FillTriangleBlend;
 	Graphics::Internal.FillRectangle = GLRenderer::FillRectangle;
+	Graphics::Internal.FillQuad = GLRenderer::FillQuad;
+	Graphics::Internal.FillQuadBlend = GLRenderer::FillQuadBlend;
+	Graphics::Internal.DrawTriangleTextured = GLRenderer::DrawTriangleTextured;
+	Graphics::Internal.DrawQuadTextured = GLRenderer::DrawQuadTextured;
 
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = GLRenderer::DrawTexture;
@@ -2778,6 +2787,50 @@ void GLRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, 
 	}
 #endif
 }
+void GLRenderer::FillTriangleBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	GL_Predraw(NULL, 0, true);
+
+	GLShader* shader = GLRenderer::CurrentShader;
+
+	GL_Vec2 v[3];
+	v[0] = GL_Vec2{x1, y1};
+	v[1] = GL_Vec2{x2, y2};
+	v[2] = GL_Vec2{x3, y3};
+
+	float c[4 * 3];
+	ColorUtils::SeparateRGB(c1, &c[0]);
+	c[3] = 1.0;
+	ColorUtils::SeparateRGB(c2, &c[4]);
+	c[7] = 1.0;
+	ColorUtils::SeparateRGB(c3, &c[8]);
+	c[11] = 1.0;
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(shader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glVertexAttribPointer(shader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, 0, c);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 3);
+	CHECK_GL();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
 void GLRenderer::FillRectangle(float x, float y, float w, float h) {
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothFill) {
@@ -2795,6 +2848,219 @@ void GLRenderer::FillRectangle(float x, float y, float w, float h) {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	CHECK_GL();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
+void GLRenderer::FillQuad(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	GL_Predraw(NULL);
+
+	GL_Vec2 v[4];
+	v[0] = GL_Vec2{x1, y1};
+	v[1] = GL_Vec2{x2, y2};
+	v[2] = GL_Vec2{x3, y3};
+	v[3] = GL_Vec2{x4, y4};
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	CHECK_GL();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
+void GLRenderer::FillQuadBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	GL_Predraw(NULL, 0, true);
+
+	GLShader* shader = GLRenderer::CurrentShader;
+
+	GL_Vec2 v[4];
+	v[0] = GL_Vec2{x1, y1};
+	v[1] = GL_Vec2{x2, y2};
+	v[2] = GL_Vec2{x3, y3};
+	v[3] = GL_Vec2{x4, y4};
+
+	float c[4 * 4];
+	ColorUtils::SeparateRGB(c1, &c[0]);
+	c[3] = 1.0;
+	ColorUtils::SeparateRGB(c2, &c[4]);
+	c[7] = 1.0;
+	ColorUtils::SeparateRGB(c3, &c[8]);
+	c[11] = 1.0;
+	ColorUtils::SeparateRGB(c4, &c[12]);
+	c[15] = 1.0;
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(shader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glVertexAttribPointer(shader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, 0, c);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	CHECK_GL();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
+void GLRenderer::DrawTriangleTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	GL_Predraw(texturePtr, 0, true);
+
+	GLShader* shader = GLRenderer::CurrentShader;
+
+	GL_Vec2 v[3];
+	v[0] = GL_Vec2{x1, y1};
+	v[1] = GL_Vec2{x2, y2};
+	v[2] = GL_Vec2{x3, y3};
+
+	float texCoords[2 * 3];
+	texCoords[0] = u1;
+	texCoords[1] = v1;
+	texCoords[2] = u2;
+	texCoords[3] = v2;
+	texCoords[4] = u3;
+	texCoords[5] = v3;
+
+	float c[4 * 3];
+	ColorUtils::SeparateRGB(c1, &c[0]);
+	c[3] = 1.0;
+	ColorUtils::SeparateRGB(c2, &c[4]);
+	c[7] = 1.0;
+	ColorUtils::SeparateRGB(c3, &c[8]);
+	c[11] = 1.0;
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(shader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glVertexAttribPointer(shader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, 0, texCoords);
+	glVertexAttribPointer(shader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, 0, c);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 3);
+	CHECK_GL();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
+void GLRenderer::DrawQuadTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3,
+	float u4,
+	float v4) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	GL_Predraw(texturePtr, 0, true);
+
+	GLShader* shader = GLRenderer::CurrentShader;
+
+	GL_Vec2 v[4];
+	v[0] = GL_Vec2{x1, y1};
+	v[1] = GL_Vec2{x2, y2};
+	v[2] = GL_Vec2{x3, y3};
+	v[3] = GL_Vec2{x4, y4};
+
+	float texCoords[2 * 4];
+	texCoords[0] = u1;
+	texCoords[1] = v1;
+	texCoords[2] = u2;
+	texCoords[3] = v2;
+	texCoords[4] = u3;
+	texCoords[5] = v3;
+	texCoords[6] = u4;
+	texCoords[7] = v4;
+
+	float c[4 * 4];
+	ColorUtils::SeparateRGB(c1, &c[0]);
+	c[3] = 1.0;
+	ColorUtils::SeparateRGB(c2, &c[4]);
+	c[7] = 1.0;
+	ColorUtils::SeparateRGB(c3, &c[8]);
+	c[11] = 1.0;
+	ColorUtils::SeparateRGB(c4, &c[12]);
+	c[15] = 1.0;
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(shader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glVertexAttribPointer(shader->LocTexCoord, 2, GL_FLOAT, GL_FALSE, 0, texCoords);
+	glVertexAttribPointer(shader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, 0, c);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 	CHECK_GL();
 
 #ifdef GL_SUPPORTS_SMOOTHING

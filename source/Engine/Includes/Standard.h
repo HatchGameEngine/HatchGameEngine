@@ -120,6 +120,12 @@ typedef int64_t Sint64;
 
 #define RSDK_PI 3.1415927
 
+#define HITBOX_LEFT 0
+#define HITBOX_TOP 1
+#define HITBOX_RIGHT 2
+#define HITBOX_BOTTOM 3
+#define NUM_HITBOX_SIDES 4
+
 #ifdef IOS
 #define NEW_STRUCT_MACRO(n) (n)
 #else
