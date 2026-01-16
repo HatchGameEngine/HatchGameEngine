@@ -1392,14 +1392,14 @@ VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  * API.Discord.Init
  * \desc Initializes Discord integration.
  * \param applicationID (String): The Discord Application ID. This will have needed to be created via the Discord Developer Portal.
- * \return Returns whether initialization was successful.
+ * \return Returns an API response code.
  * \ns API.Discord
  */
 VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-    const char* applicationID = GET_ARG(0, GetString);
-    Discord::Init(applicationID);
-	return INTEGER_VAL(Discord::Initialized);
+	const char* applicationID = GET_ARG(0, GetString);
+	int result = Discord::Init(applicationID);
+	return INTEGER_VAL(result);
 }
 /***
  * API.Discord.UpdateRichPresence
@@ -19337,6 +19337,7 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 #define DEF_ENUM(a) DEF_CONST_INT(#a, a)
 #define DEF_ENUM_CLASS(a, b) DEF_CONST_INT(#a "_" #b, (int)a::b)
 #define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(a "_" #c, (int)b::c)
+#define DEF_ENUM_IN_CLASS(a, b) ScriptManager::GlobalConstInteger(klass, a, b)
 
 void StandardLibrary::Link() {
 	ObjClass* klass;
@@ -19436,6 +19437,73 @@ void StandardLibrary::Link() {
 	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUsername);
 	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUserID);
 	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUserAvatar);
+
+	/***
+    * \enum OK
+    * \desc Request was successful.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("OK", DISCORDRESULT_OK);
+	/***
+    * \enum ERROR
+    * \desc An error happened.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("ERROR", DISCORDRESULT_ERROR);
+	/***
+    * \enum SERVICE_UNAVAILABLE
+    * \desc Service isn't available.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("SERVICE_UNAVAILABLE", DISCORDRESULT_SERVICEUNAVAILABLE);
+	/***
+    * \enum INVALID_VERSION
+    * \desc SDK version mismatch.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("INVALID_VERSION", DISCORDRESULT_INVALIDVERSION);
+	/***
+    * \enum INVALID_PAYLOAD
+    * \desc The service didn't accept the data that it received.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("INVALID_PAYLOAD", DISCORDRESULT_INVALIDPAYLOAD);
+	/***
+    * \enum INVALID_PERMISSIONS
+    * \desc Not authorized for this operation.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("INVALID_PERMISSIONS", DISCORDRESULT_INVALIDPERMISSIONS);
+	/***
+    * \enum NOT_FOUND
+    * \desc The service couldn't find what was requested.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_FOUND", DISCORDRESULT_NOTFOUND);
+	/***
+    * \enum NOT_AUTHENTICATED
+    * \desc User isn't authenticated.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_AUTHENTICATED", DISCORDRESULT_NOTAUTHENTICATED);
+	/***
+    * \enum NOT_INSTALLED
+    * \desc Discord isn't installed.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_INSTALLED", DISCORDRESULT_NOTINSTALLED);
+	/***
+    * \enum NOT_RUNNING
+    * \desc Discord isn't running.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_RUNNING", DISCORDRESULT_NOTRUNNING);
+	/***
+    * \enum RATE_LIMITED
+    * \desc This request is being sent too quickly.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("RATE_LIMITED", DISCORDRESULT_RATELIMITED);
 	// #endregion
 
 	// #region Application

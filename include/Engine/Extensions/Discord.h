@@ -3,6 +3,21 @@
 
 #include <Engine/Includes/Standard.h>
 
+// This is a subset of EDiscordResult
+enum {
+    DISCORDRESULT_OK,
+    DISCORDRESULT_ERROR,
+    DISCORDRESULT_SERVICEUNAVAILABLE,
+    DISCORDRESULT_INVALIDVERSION,
+    DISCORDRESULT_INVALIDPAYLOAD,
+    DISCORDRESULT_INVALIDPERMISSIONS,
+    DISCORDRESULT_NOTFOUND,
+    DISCORDRESULT_NOTAUTHENTICATED,
+    DISCORDRESULT_NOTINSTALLED,
+    DISCORDRESULT_NOTRUNNING,
+    DISCORDRESULT_RATELIMITED
+};
+
 struct DiscordIntegrationActivity {
 	const char* Details = nullptr;
 	const char* State = nullptr;
@@ -50,7 +65,7 @@ private:
 public:
 	static bool Initialized;
 
-	static void Init(const char* applicationID);
+	static int Init(const char* applicationID);
 	static void Update();
 	static void UpdatePresence(DiscordIntegrationActivity presence);
 	static void Dispose();
@@ -74,7 +89,7 @@ public:
 
 	class User {
 	public:
-		static void Update();
+		static int Update();
 		static bool IsUserPresent();
 		static DiscordIntegrationUserInfo* GetDetails();
 		static void GetAvatar(DiscordIntegrationUserAvatar* avatar,

@@ -42,6 +42,33 @@ void DiscordLogHook(void* hook_data, EDiscordLogLevel level, const char* message
 	Log::Print(Log::LOG_API, "Discord: %s", message);
 }
 
+int DiscordResultToHatchEnum(EDiscordResult result) {
+	switch (result) {
+	case DiscordResult_Ok:
+		return DISCORDRESULT_OK;
+	case DiscordResult_ServiceUnavailable:
+		return DISCORDRESULT_SERVICEUNAVAILABLE;
+	case DiscordResult_InvalidVersion:
+		return DISCORDRESULT_INVALIDVERSION;
+	case DiscordResult_InvalidPayload:
+		return DISCORDRESULT_INVALIDPAYLOAD;
+	case DiscordResult_InvalidPermissions:
+		return DISCORDRESULT_INVALIDPERMISSIONS;
+	case DiscordResult_NotFound:
+		return DISCORDRESULT_NOTFOUND;
+	case DiscordResult_NotAuthenticated:
+		return DISCORDRESULT_NOTAUTHENTICATED;
+	case DiscordResult_NotInstalled:
+		return DISCORDRESULT_NOTINSTALLED;
+	case DiscordResult_NotRunning:
+		return DISCORDRESULT_NOTRUNNING;
+	case DiscordResult_RateLimited:
+		return DISCORDRESULT_RATELIMITED;
+	default:
+		return DISCORDRESULT_ERROR;
+	}
+}
+
 void DISCORD_CALLBACK OnUpdateActivityCallback(void* callback_data, EDiscordResult result) {
 	if (result == DiscordResult_Ok) {
 		Log::Print(Log::LOG_API, "Discord: Presence updated successfully.");
@@ -69,7 +96,8 @@ int CreateImageResource(DiscordIntegrationUserAvatar* avatar) {
 }
 
 void ExecuteImageFetchCallback(DiscordIntegrationCallback* callback,
-	DiscordIntegrationUserAvatar* avatar) {
+	DiscordIntegrationUserAvatar* avatar,
+	EDiscordResult result) {
 	if (!callback) {
 		return;
 	}
@@ -95,8 +123,9 @@ void ExecuteImageFetchCallback(DiscordIntegrationCallback* callback,
 			}
 		}
 
+		thread->Push(INTEGER_VAL(DiscordResultToHatchEnum(result)));
 		thread->Push(value);
-		thread->RunValue(scriptCallback->Callable, 1);
+		thread->RunValue(scriptCallback->Callable, 2);
 		thread->StackTop = stackTop;
 		break;
 	}
@@ -166,13 +195,13 @@ void DISCORD_CALLBACK OnImageFetchCallback(void* callback_data,
 	}
 
 EXECUTE_CALLBACK:
-	ExecuteImageFetchCallback(callback, avatar);
+	ExecuteImageFetchCallback(callback, avatar, result);
 	FreeImageFetchCallbackData(fetchData);
 }
 
-void Discord::Init(const char* applicationID) {
+int Discord::Init(const char* applicationID) {
 	if (Discord::Initialized) {
-		return;
+		return DISCORDRESULT_OK;
 	}
 	Discord::Initialized = false;
 
@@ -183,7 +212,7 @@ void Discord::Init(const char* applicationID) {
 				"Discord: Failed to load %s! (SDL Error: %s)",
 				DISCORD_LIBRARY_NAME,
 				SDL_GetError());
-			return;
+			return DISCORDRESULT_ERROR;
 		}
 	}
 
@@ -194,7 +223,7 @@ void Discord::Init(const char* applicationID) {
 				"Discord: Failed to find function 'DiscordCreate' in %s!",
 				DISCORD_LIBRARY_NAME);
 			Discord::Unload();
-			return;
+			return DISCORDRESULT_ERROR;
 		}
 	}
 
@@ -225,7 +254,7 @@ void Discord::Init(const char* applicationID) {
 		}
 
 		Discord::Unload();
-		return;
+		return DiscordResultToHatchEnum(result);
 	}
 
 	Core->set_log_hook(Core, DiscordLogLevel_Error, nullptr, DiscordLogHook);
@@ -243,6 +272,8 @@ void Discord::Init(const char* applicationID) {
 	memset(&CurrentUser, 0, sizeof(CurrentUser));
 
 	CurrentActivity.type = DiscordActivityType_Playing;
+
+	return DiscordResultToHatchEnum(result);
 }
 
 void Discord::Update() {
@@ -351,20 +382,22 @@ void Discord::Activity::Update() {
 		ActivityManager, &CurrentActivity, NULL, OnUpdateActivityCallback);
 }
 
-void Discord::User::Update() {
+int Discord::User::Update() {
 	DiscordUser user;
 	EDiscordResult result = UserManager->get_current_user(UserManager, &user);
 	if (result != DiscordResult_Ok) {
 		Log::Print(Log::LOG_API,
 			"Discord: Failed to update current user (Error %d)",
 			(int)result);
-		return;
+		return DiscordResultToHatchEnum(result);
 	}
 
 	CurrentUser.IDSnowflake = user.id;
 	snprintf(CurrentUser.ID, sizeof CurrentUser.ID, "%" PRId64, CurrentUser.IDSnowflake);
 	StringUtils::Copy(CurrentUser.Username, user.username, sizeof(CurrentUser.Username));
 	CurrentUser.IsBot = user.bot;
+
+	return DISCORDRESULT_OK;
 }
 
 bool Discord::User::IsUserPresent() {

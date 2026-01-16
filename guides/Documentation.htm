@@ -211,6 +211,20 @@
                     <li><a href="#Reference_functions_API_Discord_GetCurrentUserID">API.Discord.GetCurrentUserID</a></li>
                     <li><a href="#Reference_functions_API_Discord_GetCurrentUserAvatar">API.Discord.GetCurrentUserAvatar</a></li>
                 </ul>
+                <i>Enums:</i>
+                <ul>
+                    <li><a href="#Reference_enums_OK">OK</a></li>
+                    <li><a href="#Reference_enums_ERROR">ERROR</a></li>
+                    <li><a href="#Reference_enums_SERVICE_UNAVAILABLE">SERVICE_UNAVAILABLE</a></li>
+                    <li><a href="#Reference_enums_INVALID_VERSION">INVALID_VERSION</a></li>
+                    <li><a href="#Reference_enums_INVALID_PAYLOAD">INVALID_PAYLOAD</a></li>
+                    <li><a href="#Reference_enums_INVALID_PERMISSIONS">INVALID_PERMISSIONS</a></li>
+                    <li><a href="#Reference_enums_NOT_FOUND">NOT_FOUND</a></li>
+                    <li><a href="#Reference_enums_NOT_AUTHENTICATED">NOT_AUTHENTICATED</a></li>
+                    <li><a href="#Reference_enums_NOT_INSTALLED">NOT_INSTALLED</a></li>
+                    <li><a href="#Reference_enums_NOT_RUNNING">NOT_RUNNING</a></li>
+                    <li><a href="#Reference_enums_RATE_LIMITED">RATE_LIMITED</a></li>
+                </ul>
             </p>
             <p id="Reference_Animator">
                 <h2>Animator</h2>
@@ -2062,7 +2076,7 @@
         <li>applicationID (String): The Discord Application ID. This will have needed to be created via the Discord Developer Portal.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether initialization was successful.</div>
+        <div style="font-size: 14px;">Returns an API response code.</div>
         </p>
         <p id="Reference_functions_API_Discord_UpdateRichPresence">
         <h2 style="margin-bottom: 8px;">API.Discord.UpdateRichPresence</h2>
@@ -11891,6 +11905,50 @@
         <h3 style="margin-bottom: 8px;"><code>ALIGN_RIGHT</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Right alignment for text drawing.</div>
         </p>
+        <p id="Reference_enums_OK">
+        <h3 style="margin-bottom: 8px;"><code>OK</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Request was successful.</div>
+        </p>
+        <p id="Reference_enums_ERROR">
+        <h3 style="margin-bottom: 8px;"><code>ERROR</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">An error happened.</div>
+        </p>
+        <p id="Reference_enums_SERVICE_UNAVAILABLE">
+        <h3 style="margin-bottom: 8px;"><code>SERVICE_UNAVAILABLE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Service isn't available.</div>
+        </p>
+        <p id="Reference_enums_INVALID_VERSION">
+        <h3 style="margin-bottom: 8px;"><code>INVALID_VERSION</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">SDK version mismatch.</div>
+        </p>
+        <p id="Reference_enums_INVALID_PAYLOAD">
+        <h3 style="margin-bottom: 8px;"><code>INVALID_PAYLOAD</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The service didn't accept the data that it received.</div>
+        </p>
+        <p id="Reference_enums_INVALID_PERMISSIONS">
+        <h3 style="margin-bottom: 8px;"><code>INVALID_PERMISSIONS</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Not authorized for this operation.</div>
+        </p>
+        <p id="Reference_enums_NOT_FOUND">
+        <h3 style="margin-bottom: 8px;"><code>NOT_FOUND</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The service couldn't find what was requested.</div>
+        </p>
+        <p id="Reference_enums_NOT_AUTHENTICATED">
+        <h3 style="margin-bottom: 8px;"><code>NOT_AUTHENTICATED</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">User isn't authenticated.</div>
+        </p>
+        <p id="Reference_enums_NOT_INSTALLED">
+        <h3 style="margin-bottom: 8px;"><code>NOT_INSTALLED</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Discord isn't installed.</div>
+        </p>
+        <p id="Reference_enums_NOT_RUNNING">
+        <h3 style="margin-bottom: 8px;"><code>NOT_RUNNING</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Discord isn't running.</div>
+        </p>
+        <p id="Reference_enums_RATE_LIMITED">
+        <h3 style="margin-bottom: 8px;"><code>RATE_LIMITED</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">This request is being sent too quickly.</div>
+        </p>
         <p id="Reference_enums_AUDIO_LOOP_NONE">
         <h3 style="margin-bottom: 8px;"><code>AUDIO_LOOP_NONE</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">When used as the `loopPoint` argument in <code><a href="#Reference_functions_Music_Play">Music.Play</a></code> or <code><a href="#Reference_functions_Sound_Play">Sound.Play</a></code>, specifies that the audio should not loop, even if the audio file has a loop point.</div>
@@ -13187,7 +13245,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>336 out of 336 enums have descriptions. </p>
+        <p>347 out of 347 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">
