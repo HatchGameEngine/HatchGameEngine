@@ -4544,8 +4544,8 @@ void Scene::ProcessPathGrip() {
 	auto SetAirborne = [&]() {
 		CollisionEntity->OnGround = false;
 		CollisionEntity->CollisionMode = newCollisionMode;
-		CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f; // 256.0
-		CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
+		CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * (1.0f / 256);
+		CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * (1.0f / 256);
 		if (CollisionEntity->VelocityY < -16.0f)
 			CollisionEntity->VelocityY = -16.0f;
 		else if (CollisionEntity->VelocityY > 16.0f)
