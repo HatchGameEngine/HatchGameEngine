@@ -4307,8 +4307,8 @@ void Scene::ProcessEntityMovement(Entity* entity, CollisionBox* outerBox, Collis
 			}
 
 			if (entity->OnGround) {
-				entity->VelocityX = entity->GroundVel * Math::Cos256(entity->Angle & 0xFF) * 0.00390625f; // 256.0
-				entity->VelocityY = entity->GroundVel * Math::Sin256(entity->Angle & 0xFF) * 0.00390625f;
+				entity->VelocityX = entity->GroundVel * Math::Cos256(entity->Angle & 0xFF) * (1.0f / 256);
+				entity->VelocityY = entity->GroundVel * Math::Sin256(entity->Angle & 0xFF) * (1.0f / 256);
 			}
 			else {
 				entity->GroundVel = entity->VelocityX;
