@@ -2305,10 +2305,10 @@ VMValue Collision_ProcessEntityMovement(int argCount, VMValue* args, Uint32 thre
  * \desc Checks tile collision based on where an instance should check.
  * \param entity (Instance): The instance to base the values on.
  * \param cLayers (Bitfield): Which layers the entity can collide with.
- * \param cMode (Integer): Collision mode of the entity (see <linkto ref="CMODE_FLOOR"></linkto>.)
+ * \param cMode (Integer): Collision mode of the entity (see <linkto ref="CMODE_*"></linkto>.)
  * \param cPlane (Integer): Collision plane of which to get the collision (A or B).
- * \param xOffset (Number): How far from the entity's X value to start.
- * \param yOffset (Number): How far from the entity's Y value to start.
+ * \param xOffset (Integer): How far from the entity's X value to start.
+ * \param yOffset (Integer): How far from the entity's Y value to start.
  * \param setPos (Boolean): Whether to set the entity's position if collision is found.
  * \return Returns whether the instance has collided with a tile.
  * \ns Collision
@@ -2330,10 +2330,10 @@ VMValue Collision_CheckTileCollision(int argCount, VMValue* args, Uint32 threadI
  * \desc Keeps an instance gripped to tile collision based on where an instance should check.
  * \param entity (Instance): The instance to move.
  * \param cLayers (Bitfield): Which layers the entity can collide with.
- * \param cMode (Integer): Collision mode of the entity (see <linkto ref="CMODE_FLOOR"></linkto>.)
+ * \param cMode (Integer): Collision mode of the entity (see <linkto ref="CMODE_*"></linkto>.)
  * \param cPlane (Integer): Collision plane of which to get the collision (A or B).
- * \param xOffset (Decimal): How far from the entity's X value to start.
- * \param yOffset (Decimal): How far from the entity's Y value to start.
+ * \param xOffset (Integer): How far from the entity's X value to start.
+ * \param yOffset (Integer): How far from the entity's Y value to start.
  * \param tolerance (Decimal): How far of a tolerance the entity should check for.
  * \return Returns whether to grip the instance.
  * \ns Collision
