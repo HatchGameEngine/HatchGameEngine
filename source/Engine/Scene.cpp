@@ -3860,7 +3860,7 @@ int Scene::RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbo
 			ViewableHitboxList[i].Hitbox.Bottom == hitbox->Bottom &&
 			ViewableHitboxList[i].X == (int)entity->X &&
 			ViewableHitboxList[i].Y == (int)entity->Y &&
-			ViewableHitboxList[i].Entity == entity) {
+			ViewableHitboxList[i].Instance == entity) {
 			return i;
 		}
 	}
@@ -3868,7 +3868,7 @@ int Scene::RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbo
 	if (ViewableHitboxCount < VIEWABLE_HITBOX_COUNT) {
 		ViewableHitbox& box = ViewableHitboxList[ViewableHitboxCount];
 		box.Type = type;
-		box.Entity = entity;
+		box.Instance = entity;
 		box.X = (int)entity->X;
 		box.Y = (int)entity->Y;
 		OrientHitbox(hitbox, dir, &box.Hitbox);

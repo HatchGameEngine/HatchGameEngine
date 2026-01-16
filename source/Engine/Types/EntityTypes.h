@@ -96,7 +96,7 @@ struct ObjectListPerformance {
 struct ViewableHitbox {
 	int Type;
 	int Collision;
-	Entity* Entity;
+	Entity* Instance;
 	CollisionBox Hitbox;
 	int X;
 	int Y;
