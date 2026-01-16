@@ -4322,8 +4322,8 @@ void Scene::ProcessObjectMovement(Entity* entity, CollisionBox* outerBox, Collis
 }
 
 void Scene::ProcessPathGrip() {
-	float xVel = 0.0;
-	float yVel = 0.0;
+	float xVel = 0.0f;
+	float yVel = 0.0f;
 
 	Sensors[4].X = CollisionEntity->X;
 	Sensors[4].Y = CollisionEntity->Y;
@@ -4334,450 +4334,264 @@ void Scene::ProcessPathGrip() {
 	SetPathGripSensors(Sensors);
 
 	float absSpeed = abs(CollisionEntity->GroundVel);
-	int checkDist = (int)(absSpeed / 4.0);
-	float remainder = fmod(absSpeed, 4.0);
+	int checkDist = (int)(absSpeed / 4.0f);
+	float remainder = fmod(absSpeed, 4.0f);
 
 	while (checkDist > -1) {
-		float stepSize = 0.0;
-
-		if (checkDist >= 1) {
-			stepSize = 4.0;
+		float stepSize = (checkDist >= 1) ? 4.0f : remainder;
+		if (checkDist >= 1)
 			checkDist--;
-		}
-		else {
-			stepSize = remainder;
+		else
 			checkDist = -1;
-		}
 
 		xVel = (Math::Cos256(CollisionEntity->Angle) * 0.00390625f) * stepSize;
 		yVel = (Math::Sin256(CollisionEntity->Angle) * 0.00390625f) * stepSize;
-
-		if (CollisionEntity->GroundVel < 0.0) {
+		if (CollisionEntity->GroundVel < 0.0f){
 			xVel = -xVel;
 			yVel = -yVel;
 		}
 
-		Sensors[0].Collided = false;
-		Sensors[1].Collided = false;
-		Sensors[2].Collided = false;
-
+		Sensors[0].Collided = Sensors[1].Collided = Sensors[2].Collided = false;
 		Sensors[4].X += xVel;
 		Sensors[4].Y += yVel;
 
-		int tileDistance = -1;
-
+		int tileDist = -1;
 		switch (CollisionEntity->CollisionMode) {
-		case CMODE_FLOOR: {
+		case CMODE_FLOOR:
 			Sensors[3].X += xVel;
 			Sensors[3].Y += yVel;
-
-			if (CollisionEntity->GroundVel > 0.0) {
+			if (CollisionEntity->GroundVel > 0.0f) {
 				CheckHorizontalCollision(&Sensors[3], true);
-				if (Sensors[3].Collided) {
-					Sensors[2].X = Sensors[3].X - 2.0;
-				}
+				if (Sensors[3].Collided)
+					Sensors[2].X = Sensors[3].X - 2.0f;
 			}
-
-			if (CollisionEntity->GroundVel < 0.0) {
+			else if (CollisionEntity->GroundVel < 0.0f) {
 				CheckHorizontalCollision(&Sensors[3], false);
-				if (Sensors[3].Collided) {
-					Sensors[0].X = Sensors[3].X + 2.0;
-				}
+				if (Sensors[3].Collided)
+					Sensors[0].X = Sensors[3].X + 2.0f;
 			}
 
-			if (Sensors[3].Collided) {
-				xVel = 0.0;
-				checkDist = -1;
-			}
-
+			if (Sensors[3].Collided) { xVel = 0.0f; checkDist = -1; }
 			for (int i = 0; i < 3; i++) {
 				Sensors[i].X += xVel;
 				Sensors[i].Y += yVel;
 				CheckVerticalPosition(&Sensors[i], true);
-			}
-
-			tileDistance = -1;
-			for (int i = 0; i < 3; i++) {
-				if (tileDistance > -1) {
-					if (Sensors[i].Collided) {
-						if (Sensors[i].Y < Sensors[tileDistance].Y) {
-							tileDistance = i;
-						}
-						else if ((int)Sensors[i].Y == (int)Sensors[tileDistance].Y &&
-							(Sensors[i].Angle < 0x08 || Sensors[i].Angle > 0xF8)) {
-							tileDistance = i;
-						}
-					}
-				}
-				else if (Sensors[i].Collided) {
-					tileDistance = i;
+				if (Sensors[i].Collided) {
+					if (tileDist == -1 || Sensors[i].Y < Sensors[tileDist].Y ||
+						((int)Sensors[i].Y == (int)Sensors[tileDist].Y && (Sensors[i].Angle < 0x08 || Sensors[i].Angle > 0xF8)))
+						tileDist = i;
 				}
 			}
-
-			if (tileDistance <= -1) {
+			if (tileDist <= -1)
 				checkDist = -1;
-			}
 			else {
-				Sensors[0].Y = Sensors[tileDistance].Y;
-				Sensors[0].Angle = Sensors[tileDistance].Angle;
-				Sensors[1].Y = Sensors[0].Y;
-				Sensors[1].Angle = Sensors[0].Angle;
-				Sensors[2].Y = Sensors[0].Y;
-				Sensors[2].Angle = Sensors[0].Angle;
-
+				Sensors[0].Y = Sensors[1].Y = Sensors[2].Y = Sensors[tileDist].Y;
+				Sensors[0].Angle = Sensors[1].Angle = Sensors[2].Angle = Sensors[tileDist].Angle;
 				Sensors[4].X = Sensors[1].X;
 				Sensors[4].Y = Sensors[0].Y - CollisionOuter.Bottom;
 			}
-
 			if (Sensors[0].Angle < 0xDE && Sensors[0].Angle > 0x80)
 				CollisionEntity->CollisionMode = CMODE_LWALL;
 			if (Sensors[0].Angle > 0x22 && Sensors[0].Angle < 0x80)
 				CollisionEntity->CollisionMode = CMODE_RWALL;
 			break;
-		}
 
-		case CMODE_LWALL: {
+		case CMODE_LWALL:
 			Sensors[3].X += xVel;
 			Sensors[3].Y += yVel;
-
-			if (CollisionEntity->GroundVel > 0.0)
-				CheckVerticalCollision(&Sensors[3], false);
-			if (CollisionEntity->GroundVel < 0.0)
-				CheckVerticalCollision(&Sensors[3], true);
-
+			CheckVerticalCollision(&Sensors[3], CollisionEntity->GroundVel < 0.0f);
 			if (Sensors[3].Collided) {
-				yVel = 0.0;
+				yVel = 0.0f;
 				checkDist = -1;
 			}
-
 			for (int i = 0; i < 3; i++) {
 				Sensors[i].X += xVel;
 				Sensors[i].Y += yVel;
 				CheckHorizontalPosition(&Sensors[i], true);
+				if (Sensors[i].Collided && (tileDist == -1 || Sensors[i].X < Sensors[tileDist].X))
+					tileDist = i;
 			}
-
-			tileDistance = -1;
-			for (int i = 0; i < 3; i++) {
-				if (tileDistance > -1) {
-					if (Sensors[i].Collided && Sensors[i].X < Sensors[tileDistance].X) {
-						tileDistance = i;
-					}
-				}
-				else if (Sensors[i].Collided) {
-					tileDistance = i;
-				}
-			}
-
-			if (tileDistance <= -1) {
+			if (tileDist <= -1)
 				checkDist = -1;
-			}
 			else {
-				Sensors[0].X = Sensors[tileDistance].X;
-				Sensors[0].Angle = Sensors[tileDistance].Angle;
-				Sensors[1].X = Sensors[0].X;
-				Sensors[1].Angle = Sensors[0].Angle;
-				Sensors[2].X = Sensors[0].X;
-				Sensors[2].Angle = Sensors[0].Angle;
-
-				Sensors[4].X = Sensors[1].X - CollisionOuter.Bottom;
-				Sensors[4].Y = Sensors[1].Y;
+				Sensors[0].X = Sensors[1].X = Sensors[2].X = Sensors[tileDist].X;
+				Sensors[0].Angle = Sensors[1].Angle = Sensors[2].Angle = Sensors[tileDist].Angle;
+				Sensors[4].X = Sensors[0].X - CollisionOuter.Bottom; Sensors[4].Y = Sensors[1].Y;
 			}
-
-			if (Sensors[0].Angle > 0xE2) CollisionEntity->CollisionMode = CMODE_FLOOR;
-			if (Sensors[0].Angle < 0x9E) CollisionEntity->CollisionMode = CMODE_ROOF;
+			if (Sensors[0].Angle > 0xE2)
+				CollisionEntity->CollisionMode = CMODE_FLOOR;
+			if (Sensors[0].Angle < 0x9E)
+				CollisionEntity->CollisionMode = CMODE_ROOF;
 			break;
-		}
 
-		case CMODE_ROOF: {
+		case CMODE_ROOF:
 			Sensors[3].X += xVel;
 			Sensors[3].Y += yVel;
-
-			if (CollisionEntity->GroundVel > 0.0) {
+			if (CollisionEntity->GroundVel > 0.0f) {
 				CheckHorizontalCollision(&Sensors[3], false);
-				if (Sensors[3].Collided) Sensors[2].X = Sensors[3].X + 2.0;
+				if (Sensors[3].Collided)
+					Sensors[2].X = Sensors[3].X + 2.0f;
 			}
-			if (CollisionEntity->GroundVel < 0.0) {
+			else if (CollisionEntity->GroundVel < 0.0f) {
 				CheckHorizontalCollision(&Sensors[3], true);
-				if (Sensors[3].Collided) Sensors[0].X = Sensors[3].X - 2.0;
+				if (Sensors[3].Collided)
+					Sensors[0].X = Sensors[3].X - 2.0f;
 			}
 
 			if (Sensors[3].Collided) {
-				xVel = 0.0;
+				xVel = 0.0f;
 				checkDist = -1;
 			}
-
 			for (int i = 0; i < 3; i++) {
 				Sensors[i].X += xVel;
 				Sensors[i].Y += yVel;
 				CheckVerticalPosition(&Sensors[i], false);
+				if (Sensors[i].Collided && (tileDist == -1 || Sensors[i].Y > Sensors[tileDist].Y))
+					tileDist = i;
 			}
-
-			tileDistance = -1;
-			for (int i = 0; i < 3; i++) {
-				if (tileDistance > -1) {
-					if (Sensors[i].Collided && Sensors[i].Y > Sensors[tileDistance].Y) {
-						tileDistance = i;
-					}
-				}
-				else if (Sensors[i].Collided) {
-					tileDistance = i;
-				}
-			}
-
-			if (tileDistance <= -1) {
+			if (tileDist <= -1)
 				checkDist = -1;
-			}
 			else {
-				Sensors[0].Y = Sensors[tileDistance].Y;
-				Sensors[0].Angle = Sensors[tileDistance].Angle;
-				Sensors[1].Y = Sensors[0].Y;
-				Sensors[1].Angle = Sensors[0].Angle;
-				Sensors[2].Y = Sensors[0].Y;
-				Sensors[2].Angle = Sensors[0].Angle;
-
-				Sensors[4].X = Sensors[1].X;
-				Sensors[4].Y = Sensors[0].Y + CollisionOuter.Bottom + 1.0;
+				Sensors[0].Y = Sensors[1].Y = Sensors[2].Y = Sensors[tileDist].Y;
+				Sensors[0].Angle = Sensors[1].Angle = Sensors[2].Angle = Sensors[tileDist].Angle;
+				Sensors[4].X = Sensors[1].X; Sensors[4].Y = Sensors[0].Y + CollisionOuter.Bottom + 1.0f;
 			}
-
-			if (Sensors[0].Angle > 0xA2) CollisionEntity->CollisionMode = CMODE_LWALL;
-			if (Sensors[0].Angle < 0x5E) CollisionEntity->CollisionMode = CMODE_RWALL;
+			if (Sensors[0].Angle > 0xA2)
+				CollisionEntity->CollisionMode = CMODE_LWALL;
+			if (Sensors[0].Angle < 0x5E)
+				CollisionEntity->CollisionMode = CMODE_RWALL;
 			break;
-		}
 
-		case CMODE_RWALL: {
+		case CMODE_RWALL:
 			Sensors[3].X += xVel;
 			Sensors[3].Y += yVel;
-
-			if (CollisionEntity->GroundVel > 0.0)
-				CheckVerticalCollision(&Sensors[3], true);
-			if (CollisionEntity->GroundVel < 0.0)
-				CheckVerticalCollision(&Sensors[3], false);
-
+			CheckVerticalCollision(&Sensors[3], CollisionEntity->GroundVel > 0.0f);
 			if (Sensors[3].Collided) {
-				yVel = 0.0;
+				yVel = 0.0f;
 				checkDist = -1;
 			}
-
 			for (int i = 0; i < 3; i++) {
 				Sensors[i].X += xVel;
 				Sensors[i].Y += yVel;
 				CheckHorizontalPosition(&Sensors[i], false);
+				if (Sensors[i].Collided && (tileDist == -1 || Sensors[i].X > Sensors[tileDist].X))
+					tileDist = i;
 			}
-
-			tileDistance = -1;
-			for (int i = 0; i < 3; i++) {
-				if (tileDistance > -1) {
-					if (Sensors[i].Collided && Sensors[i].X > Sensors[tileDistance].X) {
-						tileDistance = i;
-					}
-				}
-				else if (Sensors[i].Collided) {
-					tileDistance = i;
-				}
-			}
-
-			if (tileDistance <= -1) {
+			if (tileDist <= -1)
 				checkDist = -1;
-			}
 			else {
-				Sensors[0].X = Sensors[tileDistance].X;
-				Sensors[0].Angle = Sensors[tileDistance].Angle;
-				Sensors[1].X = Sensors[0].X;
-				Sensors[1].Angle = Sensors[0].Angle;
-				Sensors[2].X = Sensors[0].X;
-				Sensors[2].Angle = Sensors[0].Angle;
-
-				Sensors[4].X = Sensors[1].X + CollisionOuter.Bottom + 1.0;
-				Sensors[4].Y = Sensors[1].Y;
+				Sensors[0].X = Sensors[1].X = Sensors[2].X = Sensors[tileDist].X;
+				Sensors[0].Angle = Sensors[1].Angle = Sensors[2].Angle = Sensors[tileDist].Angle;
+				Sensors[4].X = Sensors[0].X + CollisionOuter.Bottom + 1.0f; Sensors[4].Y = Sensors[1].Y;
 			}
-
-			if (Sensors[0].Angle < 0x1E) CollisionEntity->CollisionMode = CMODE_FLOOR;
-			if (Sensors[0].Angle > 0x62) CollisionEntity->CollisionMode = CMODE_ROOF;
+			if (Sensors[0].Angle < 0x1E)
+				CollisionEntity->CollisionMode = CMODE_FLOOR;
+			if (Sensors[0].Angle > 0x62)
+				CollisionEntity->CollisionMode = CMODE_ROOF;
 			break;
 		}
-		}
 
-		if (tileDistance != -1) {
+		if (tileDist != -1)
 			CollisionEntity->Angle = Sensors[0].Angle;
-		}
-
-		if (!Sensors[3].Collided) {
+		if (!Sensors[3].Collided)
 			SetPathGripSensors(Sensors);
-		}
-		else {
+		else
 			checkDist = -2;
-		}
 	}
 
 	int newCollisionMode = CollisionEntity->TileCollisions == TILECOLLISION_DOWN ? CMODE_FLOOR : CMODE_ROOF;
-	int newAngle = newCollisionMode << 6;
+	bool grounded = (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided);
+
+	auto SetAirborne = [&]() {
+		CollisionEntity->OnGround = false;
+		CollisionEntity->CollisionMode = newCollisionMode;
+		CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
+		CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
+		if (CollisionEntity->VelocityY < -16.0f)
+			CollisionEntity->VelocityY = -16.0f;
+		else if (CollisionEntity->VelocityY > 16.0f)
+			CollisionEntity->VelocityY = 16.0f;
+		CollisionEntity->GroundVel = CollisionEntity->VelocityX;
+		CollisionEntity->Angle = newCollisionMode << 6;
+	};
 
 	switch (CollisionEntity->CollisionMode) {
-	case CMODE_FLOOR: {
-		if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
+	case CMODE_FLOOR:
+		if (grounded) {
 			CollisionEntity->Angle = Sensors[0].Angle;
-			if (!Sensors[3].Collided) {
-				CollisionEntity->X = Sensors[4].X;
-			}
-			else {
-				if (CollisionEntity->GroundVel > 0.0)
-					CollisionEntity->X = Sensors[3].X - CollisionOuter.Right;
-
-				if (CollisionEntity->GroundVel < 0.0)
-					CollisionEntity->X = Sensors[3].X - CollisionOuter.Left + 1.0;
-
-				CollisionEntity->GroundVel = 0.0;
-				CollisionEntity->VelocityX = 0.0;
-			}
 			CollisionEntity->Y = Sensors[4].Y;
+			if (!Sensors[3].Collided)
+				CollisionEntity->X = Sensors[4].X;
+			else {
+				CollisionEntity->X = Sensors[3].X - (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
+				CollisionEntity->GroundVel = CollisionEntity->VelocityX = 0.0f;
+			}
 		}
 		else {
-			CollisionEntity->OnGround = false;
-			CollisionEntity->CollisionMode = newCollisionMode;
-			CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f; // 256.0
-			CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
-
-			if (CollisionEntity->VelocityY < -16.0)
-				CollisionEntity->VelocityY = -16.0;
-			if (CollisionEntity->VelocityY > 16.0)
-				CollisionEntity->VelocityY = 16.0;
-
-			CollisionEntity->GroundVel = CollisionEntity->VelocityX;
-			CollisionEntity->Angle = newAngle;
-
-			if (!Sensors[3].Collided) {
+			SetAirborne();
+			if (!Sensors[3].Collided)
 				CollisionEntity->X += CollisionEntity->VelocityX;
-			}
 			else {
-				if (CollisionEntity->GroundVel > 0.0)
-					CollisionEntity->X = Sensors[3].X - CollisionOuter.Right;
-
-				if (CollisionEntity->GroundVel < 0.0)
-					CollisionEntity->X = Sensors[3].X - CollisionOuter.Left + 1.0;
-
-				CollisionEntity->GroundVel = 0.0;
-				CollisionEntity->VelocityX = 0.0;
+				CollisionEntity->X = Sensors[3].X - (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
+				CollisionEntity->GroundVel = CollisionEntity->VelocityX = 0.0f;
 			}
 			CollisionEntity->Y += CollisionEntity->VelocityY;
 		}
 		break;
-	}
-	case CMODE_LWALL: {
-		if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
+
+	case CMODE_LWALL:
+		if (grounded)
 			CollisionEntity->Angle = Sensors[0].Angle;
-		}
-		else {
-			CollisionEntity->OnGround = false;
-			CollisionEntity->CollisionMode = newCollisionMode;
-			CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f; // 256.0
-			CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
-
-			if (CollisionEntity->VelocityY < -16.0f)
-				CollisionEntity->VelocityY = -16.0f;
-			if (CollisionEntity->VelocityY > 16.0f)
-				CollisionEntity->VelocityY = 16.0f;
-
-			CollisionEntity->GroundVel = CollisionEntity->VelocityX;
-			CollisionEntity->Angle = newAngle;
-		}
+		else
+			SetAirborne();
 
 		if (!Sensors[3].Collided) {
-			CollisionEntity->X = Sensors[4].X;
-			CollisionEntity->Y = Sensors[4].Y;
+			CollisionEntity->X = Sensors[4].X; CollisionEntity->Y = Sensors[4].Y;
 		}
 		else {
-			if (CollisionEntity->GroundVel > 0.0)
-				CollisionEntity->Y = Sensors[3].Y + CollisionOuter.Right + 1.0;
-
-			if (CollisionEntity->GroundVel < 0.0)
-				CollisionEntity->Y = Sensors[3].Y - CollisionOuter.Left;
-
-			CollisionEntity->GroundVel = 0.0;
+			CollisionEntity->Y = Sensors[3].Y + (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right + 1.0f : -CollisionOuter.Left);
+			CollisionEntity->GroundVel = 0.0f;
 			CollisionEntity->X = Sensors[4].X;
 		}
 		break;
-	}
-	case CMODE_ROOF: {
-		if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
+
+	case CMODE_ROOF:
+		if (grounded) {
 			CollisionEntity->Angle = Sensors[0].Angle;
-
-			if (!Sensors[3].Collided) {
+			if (!Sensors[3].Collided)
 				CollisionEntity->X = Sensors[4].X;
-			}
 			else {
-				if (CollisionEntity->GroundVel > 0.0)
-					CollisionEntity->X = Sensors[3].X + CollisionOuter.Right;
-
-				if (CollisionEntity->GroundVel < 0.0)
-					CollisionEntity->X = Sensors[3].X + CollisionOuter.Left - 1.0;
-
-				CollisionEntity->GroundVel = 0.0;
+				CollisionEntity->X = Sensors[3].X + (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
+				CollisionEntity->GroundVel = 0.0f;
 			}
 		}
 		else {
-			CollisionEntity->OnGround = false;
-			CollisionEntity->CollisionMode = newCollisionMode;
-			CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f; // 256.0
-			CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
-
-			if (CollisionEntity->VelocityY < -16.0)
-				CollisionEntity->VelocityY = -16.0;
-			if (CollisionEntity->VelocityY > 16.0)
-				CollisionEntity->VelocityY = 16.0;
-
-			CollisionEntity->Angle = newAngle;
-			CollisionEntity->GroundVel = CollisionEntity->VelocityX;
-
-			if (!Sensors[3].Collided) {
+			SetAirborne();
+			if (!Sensors[3].Collided)
 				CollisionEntity->X += CollisionEntity->VelocityX;
-			}
 			else {
-				if (CollisionEntity->GroundVel > 0.0)
-					CollisionEntity->X = Sensors[3].X - CollisionOuter.Right;
-
-				if (CollisionEntity->GroundVel < 0.0)
-					CollisionEntity->X = Sensors[3].X - CollisionOuter.Left + 1.0;
-				CollisionEntity->GroundVel = 0.0;
+				CollisionEntity->X = Sensors[3].X - (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
+				CollisionEntity->GroundVel = 0.0f;
 			}
 		}
 		CollisionEntity->Y = Sensors[4].Y;
 		break;
-	}
-	case CMODE_RWALL: {
-		if (Sensors[0].Collided || Sensors[1].Collided || Sensors[2].Collided) {
+
+	case CMODE_RWALL:
+		if (grounded)
 			CollisionEntity->Angle = Sensors[0].Angle;
-		}
-		else {
-			CollisionEntity->OnGround = false;
-			CollisionEntity->CollisionMode = newCollisionMode;
-			CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f; // 256.0
-			CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * 0.00390625f;
-
-			if (CollisionEntity->VelocityY < -16.0)
-				CollisionEntity->VelocityY = -16.0;
-			if (CollisionEntity->VelocityY > 16.0)
-				CollisionEntity->VelocityY = 16.0;
-
-			CollisionEntity->GroundVel = CollisionEntity->VelocityX;
-			CollisionEntity->Angle = newAngle;
-		}
+		else
+			SetAirborne();
 
 		if (!Sensors[3].Collided) {
-			CollisionEntity->X = Sensors[4].X;
-			CollisionEntity->Y = Sensors[4].Y;
+			CollisionEntity->X = Sensors[4].X; CollisionEntity->Y = Sensors[4].Y;
 		}
 		else {
-			if (CollisionEntity->GroundVel > 0.0)
-				CollisionEntity->Y = Sensors[3].Y - CollisionOuter.Right;
-
-			if (CollisionEntity->GroundVel < 0.0)
-				CollisionEntity->Y = Sensors[3].Y - CollisionOuter.Left + 1.0;
-
-			CollisionEntity->GroundVel = 0.0;
+			CollisionEntity->Y = Sensors[3].Y - (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
+			CollisionEntity->GroundVel = 0.0f;
 			CollisionEntity->X = Sensors[4].X;
 		}
 		break;
-	}
 	}
 }
 
