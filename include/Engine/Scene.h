@@ -230,13 +230,13 @@ public:
 	static bool CheckEntityCircle(Entity* thisEntity, float thisRadius, Entity* otherEntity, float otherRadius);
 	static int CheckEntityBox(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues);
 	static bool CheckEntityPlatform(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues);
-	static bool ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos);
-	static bool ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance);
+	static bool CheckTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos);
+	static bool CheckTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance);
 	static void SetCollisionVariables(float minDistance, float lowTolerance, float highTolerance, int floorAngleTolerance, int wallAngleTolerance, int roofAngleTolerance);
-	static void ProcessObjectMovement(Entity* entity, CollisionBox* outerBox, CollisionBox* innerBox);
+	static void ProcessEntityMovement(Entity* entity, CollisionBox* outerBox, CollisionBox* innerBox);
+	static void SetPathGripSensors(CollisionSensor* sensors);
 	static void ProcessPathGrip();
 	static void ProcessAirCollision(bool isUp);
-	static void SetPathGripSensors(CollisionSensor* sensors);
 	static void CheckVerticalPosition(CollisionSensor* sensor, bool isFloor);
 	static void CheckHorizontalPosition(CollisionSensor* sensor, bool isLeft);
 	static void CheckVerticalCollision(CollisionSensor* sensor, bool isFloor);

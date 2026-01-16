@@ -4094,7 +4094,7 @@ bool Scene::CheckEntityPlatform(Entity* thisEntity, CollisionBox* thisHitbox, En
 	return isColliding;
 }
 
-bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos) {
+bool Scene::CheckTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos) {
 	if (cPlane < 0 || (size_t)cPlane >= Scene::TileCfg.size()) return false;
 
 	bool collided = false;
@@ -4181,7 +4181,7 @@ bool Scene::ObjectTileCollision(Entity* entity, int cLayers, int cMode, int cPla
 	return collided;
 }
 
-bool Scene::ObjectTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance) {
+bool Scene::CheckTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance) {
 	if (cPlane < 0 || (size_t)cPlane >= Scene::TileCfg.size()) return false;
 
 	bool collided = false;
@@ -4275,7 +4275,7 @@ void Scene::SetCollisionVariables(float minDistance, float lowTolerance, float h
 	RoofAngleTolerance = roofAngleTolerance;
 }
 
-void Scene::ProcessObjectMovement(Entity* entity, CollisionBox* outerBox, CollisionBox* innerBox) {
+void Scene::ProcessEntityMovement(Entity* entity, CollisionBox* outerBox, CollisionBox* innerBox) {
 	if (entity && outerBox && innerBox) {
 		if (entity->TileCollisions) {
 			entity->Angle &= 0xFF;
@@ -4318,6 +4318,45 @@ void Scene::ProcessObjectMovement(Entity* entity, CollisionBox* outerBox, Collis
 			entity->X += entity->VelocityX;
 			entity->Y += entity->VelocityY;
 		}
+	}
+}
+
+void Scene::SetPathGripSensors(CollisionSensor* sensors) {
+	float offset = UseCollisionOffset ? CollisionOffset : 0.0f;
+	float groundVel = CollisionEntity->GroundVel;
+	float centerX = sensors[4].X;
+	float centerY = sensors[4].Y;
+
+	float left = CollisionInner.Left - 1.0f, right = CollisionInner.Right;
+
+	switch (CollisionEntity->CollisionMode) {
+	case CMODE_FLOOR:
+		sensors[0].Y = sensors[1].Y = sensors[2].Y = centerY + CollisionOuter.Bottom;
+		sensors[0].X = centerX + left; sensors[1].X = centerX; sensors[2].X = centerX + right;
+		sensors[3].Y = centerY + offset;
+		sensors[3].X = centerX + (groundVel <= 0.0f ? CollisionOuter.Left - 1.0f : CollisionOuter.Right);
+		break;
+
+	case CMODE_LWALL:
+		sensors[0].X = sensors[1].X = sensors[2].X = centerX + CollisionOuter.Bottom;
+		sensors[0].Y = centerY + left; sensors[1].Y = centerY; sensors[2].Y = centerY + right;
+		sensors[3].X = centerX;
+		sensors[3].Y = centerY - (groundVel <= 0.0f ? CollisionOuter.Left : CollisionOuter.Right + 1.0f);
+		break;
+
+	case CMODE_ROOF:
+		sensors[0].Y = sensors[1].Y = sensors[2].Y = centerY - CollisionOuter.Bottom - 1.0f;
+		sensors[0].X = centerX + left; sensors[1].X = centerX; sensors[2].X = centerX + right;
+		sensors[3].Y = centerY - offset;
+		sensors[3].X = centerX - (groundVel <= 0.0f ? CollisionOuter.Left : CollisionOuter.Right + 1.0f);
+		break;
+
+	case CMODE_RWALL:
+		sensors[0].X = sensors[1].X = sensors[2].X = centerX - CollisionOuter.Bottom - 1.0f;
+		sensors[0].Y = centerY + left; sensors[1].Y = centerY; sensors[2].Y = centerY + right;
+		sensors[3].X = centerX;
+		sensors[3].Y = centerY + (groundVel <= 0.0f ? CollisionOuter.Left - 1.0f : CollisionOuter.Right);
+		break;
 	}
 }
 
@@ -4818,46 +4857,6 @@ void Scene::ProcessAirCollision(bool isUp) {
 		else {
 			CollisionEntity->VelocityY = 0.0f;
 		}
-	}
-}
-
-
-void Scene::SetPathGripSensors(CollisionSensor* sensors) {
-	float offset = UseCollisionOffset ? CollisionOffset : 0.0f;
-	float groundVel = CollisionEntity->GroundVel;
-	float centerX = sensors[4].X;
-	float centerY = sensors[4].Y;
-
-	float left = CollisionInner.Left - 1.0f, right = CollisionInner.Right;
-
-	switch (CollisionEntity->CollisionMode) {
-	case CMODE_FLOOR:
-		sensors[0].Y = sensors[1].Y = sensors[2].Y = centerY + CollisionOuter.Bottom;
-		sensors[0].X = centerX + left; sensors[1].X = centerX; sensors[2].X = centerX + right;
-		sensors[3].Y = centerY + offset;
-		sensors[3].X = centerX + (groundVel <= 0.0f ? CollisionOuter.Left - 1.0f : CollisionOuter.Right);
-		break;
-
-	case CMODE_LWALL:
-		sensors[0].X = sensors[1].X = sensors[2].X = centerX + CollisionOuter.Bottom;
-		sensors[0].Y = centerY + left; sensors[1].Y = centerY; sensors[2].Y = centerY + right;
-		sensors[3].X = centerX;
-		sensors[3].Y = centerY - (groundVel <= 0.0f ? CollisionOuter.Left : CollisionOuter.Right + 1.0f);
-		break;
-
-	case CMODE_ROOF:
-		sensors[0].Y = sensors[1].Y = sensors[2].Y = centerY - CollisionOuter.Bottom - 1.0f;
-		sensors[0].X = centerX + left; sensors[1].X = centerX; sensors[2].X = centerX + right;
-		sensors[3].Y = centerY - offset;
-		sensors[3].X = centerX - (groundVel <= 0.0f ? CollisionOuter.Left : CollisionOuter.Right + 1.0f);
-		break;
-
-	case CMODE_RWALL:
-		sensors[0].X = sensors[1].X = sensors[2].X = centerX - CollisionOuter.Bottom - 1.0f;
-		sensors[0].Y = centerY + left; sensors[1].Y = centerY; sensors[2].Y = centerY + right;
-		sensors[3].X = centerX;
-		sensors[3].Y = centerY + (groundVel <= 0.0f ? CollisionOuter.Left - 1.0f : CollisionOuter.Right);
-		break;
 	}
 }
 
