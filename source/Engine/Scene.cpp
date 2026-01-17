@@ -3860,6 +3860,8 @@ int Scene::RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbo
 		if (ViewableHitboxList[i].Instance == entity &&
 			ViewableHitboxList[i].Hitbox.Left == hitbox->Left &&
 			ViewableHitboxList[i].Hitbox.Top == hitbox->Top &&
+			ViewableHitboxList[i].Hitbox.Right == hitbox->Right &&
+			ViewableHitboxList[i].Hitbox.Bottom == hitbox->Bottom &&
 			ViewableHitboxList[i].X == (int)entity->X &&
 			ViewableHitboxList[i].Y == (int)entity->Y) {
 			return (int)i;
