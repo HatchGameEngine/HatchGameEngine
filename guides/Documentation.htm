@@ -306,13 +306,13 @@
                 <h2>Collision</h2>
                 <i>Class methods:</i>
                 <ul>
-                    <li><a href="#Reference_functions_Collision_ProcessObjectMovement">Collision.ProcessObjectMovement</a></li>
-                    <li><a href="#Reference_functions_Collision_ObjectTileCollision">Collision.ObjectTileCollision</a></li>
-                    <li><a href="#Reference_functions_Collision_ObjectTileGrip">Collision.ObjectTileGrip</a></li>
-                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionTouch">Collision.CheckObjectCollisionTouch</a></li>
-                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionCircle">Collision.CheckObjectCollisionCircle</a></li>
-                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionBox">Collision.CheckObjectCollisionBox</a></li>
-                    <li><a href="#Reference_functions_Collision_CheckObjectCollisionPlatform">Collision.CheckObjectCollisionPlatform</a></li>
+                    <li><a href="#Reference_functions_Collision_ProcessEntityMovement">Collision.ProcessEntityMovement</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckTileCollision">Collision.CheckTileCollision</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckTileGrip">Collision.CheckTileGrip</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckEntityTouch">Collision.CheckEntityTouch</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckEntityCircle">Collision.CheckEntityCircle</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckEntityBox">Collision.CheckEntityBox</a></li>
+                    <li><a href="#Reference_functions_Collision_CheckEntityPlatform">Collision.CheckEntityPlatform</a></li>
                 </ul>
             </p>
             <p id="Reference_Controller">
@@ -1768,6 +1768,8 @@
                     <li><a href="#Reference_enums_KeyBind_DevStepFrame">KeyBind_DevStepFrame</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevTileCol">KeyBind_DevTileCol</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevObjectRegions">KeyBind_DevObjectRegions</a></li>
+                    <li><a href="#Reference_enums_KeyBind_DevViewHitboxes">KeyBind_DevViewHitboxes</a></li>
+                    <li><a href="#Reference_enums_KeyBind_DevMenuToggle">KeyBind_DevMenuToggle</a></li>
                     <li><a href="#Reference_enums_KeyBind_DevQuit">KeyBind_DevQuit</a></li>
                 </ul>
             </p>
@@ -2788,9 +2790,9 @@
         <li>volume (Integer): The sound effect volume, from 0 to 100.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Collision_ProcessObjectMovement">
-        <h2 style="margin-bottom: 8px;">Collision.ProcessObjectMovement</h2>
-        <code>Collision.ProcessObjectMovement(entity, outer, inner)</code>
+        <p id="Reference_functions_Collision_ProcessEntityMovement">
+        <h2 style="margin-bottom: 8px;">Collision.ProcessEntityMovement</h2>
+        <code>Collision.ProcessEntityMovement(entity, outer, inner)</code>
         <div style="margin-top: 8px; font-size: 14px;">Processes movement of an instance with an outer hitbox and an inner hitboxes.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -2799,43 +2801,43 @@
         <li>inner (Hitbox): The inner hitbox.</li>
         </ul>
         </p>
-        <p id="Reference_functions_Collision_ObjectTileCollision">
-        <h2 style="margin-bottom: 8px;">Collision.ObjectTileCollision</h2>
-        <code>Collision.ObjectTileCollision(entity, cLayers, cMode, cPlane, xOffset, yOffset, setPos)</code>
+        <p id="Reference_functions_Collision_CheckTileCollision">
+        <h2 style="margin-bottom: 8px;">Collision.CheckTileCollision</h2>
+        <code>Collision.CheckTileCollision(entity, cLayers, cMode, cPlane, xOffset, yOffset, setPos)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks tile collision based on where an instance should check.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>entity (Instance): The instance to base the values on.</li>
         <li>cLayers (Bitfield): Which layers the entity can collide with.</li>
-        <li>cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).</li>
-        <li>cPlane (Integer): Collision plane to get the collision of (A or B).</li>
-        <li>xOffset (Number): How far from the entity's X value to start from.</li>
-        <li>yOffset (Number): How far from the entity's Y value to start from.</li>
+        <li>cMode (Integer): Collision mode of the entity (see <code><a href="#Reference_CMODE_*">CMODE_*</a></code>.)</li>
+        <li>cPlane (Integer): Collision plane of which to get the collision (A or B).</li>
+        <li>xOffset (Integer): How far from the entity's X value to start.</li>
+        <li>yOffset (Integer): How far from the entity's Y value to start.</li>
         <li>setPos (Boolean): Whether to set the entity's position if collision is found.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether the instance has collided with a tile.</div>
         </p>
-        <p id="Reference_functions_Collision_ObjectTileGrip">
-        <h2 style="margin-bottom: 8px;">Collision.ObjectTileGrip</h2>
-        <code>Collision.ObjectTileGrip(entity, cLayers, cMode, cPlane, xOffset, yOffset, tolerance)</code>
+        <p id="Reference_functions_Collision_CheckTileGrip">
+        <h2 style="margin-bottom: 8px;">Collision.CheckTileGrip</h2>
+        <code>Collision.CheckTileGrip(entity, cLayers, cMode, cPlane, xOffset, yOffset, tolerance)</code>
         <div style="margin-top: 8px; font-size: 14px;">Keeps an instance gripped to tile collision based on where an instance should check.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>entity (Instance): The instance to move.</li>
         <li>cLayers (Bitfield): Which layers the entity can collide with.</li>
-        <li>cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).</li>
-        <li>cPlane (Integer): Collision plane to get the collision of (A or B).</li>
-        <li>xOffset (Decimal): How far from the entity's X value to start from.</li>
-        <li>yOffset (Decimal): How far from the entity's Y value to start from.</li>
+        <li>cMode (Integer): Collision mode of the entity (see <code><a href="#Reference_CMODE_*">CMODE_*</a></code>.)</li>
+        <li>cPlane (Integer): Collision plane of which to get the collision (A or B).</li>
+        <li>xOffset (Integer): How far from the entity's X value to start.</li>
+        <li>yOffset (Integer): How far from the entity's Y value to start.</li>
         <li>tolerance (Decimal): How far of a tolerance the entity should check for.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns whether to grip the instance.</div>
         </p>
-        <p id="Reference_functions_Collision_CheckObjectCollisionTouch">
-        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionTouch</h2>
-        <code>Collision.CheckObjectCollisionTouch(thisEntity, thisHitbox, otherEntity, otherHitbox)</code>
+        <p id="Reference_functions_Collision_CheckEntityTouch">
+        <h2 style="margin-bottom: 8px;">Collision.CheckEntityTouch</h2>
+        <code>Collision.CheckEntityTouch(thisEntity, thisHitbox, otherEntity, otherHitbox)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with their respective hitboxes.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -2847,9 +2849,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value whether the entities are touching.</div>
         </p>
-        <p id="Reference_functions_Collision_CheckObjectCollisionCircle">
-        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionCircle</h2>
-        <code>Collision.CheckObjectCollisionCircle(thisEnity, thisRadius, otherEntity, otherRadius)</code>
+        <p id="Reference_functions_Collision_CheckEntityCircle">
+        <h2 style="margin-bottom: 8px;">Collision.CheckEntityCircle</h2>
+        <code>Collision.CheckEntityCircle(thisEnity, thisRadius, otherEntity, otherRadius)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with within their respective radii.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -2861,9 +2863,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Boolean value whether the entities have collided.</div>
         </p>
-        <p id="Reference_functions_Collision_CheckObjectCollisionBox">
-        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionBox</h2>
-        <code>Collision.CheckObjectCollisionBox(thisEnity, thisHitbox, otherEntity, otherHitbox, setValues)</code>
+        <p id="Reference_functions_Collision_CheckEntityBox">
+        <h2 style="margin-bottom: 8px;">Collision.CheckEntityBox</h2>
+        <code>Collision.CheckEntityBox(thisEnity, thisHitbox, otherEntity, otherHitbox, setValues)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -2876,9 +2878,9 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns the side the entities are colliding on.</div>
         </p>
-        <p id="Reference_functions_Collision_CheckObjectCollisionPlatform">
-        <h2 style="margin-bottom: 8px;">Collision.CheckObjectCollisionPlatform</h2>
-        <code>Collision.CheckObjectCollisionPlatform(thisEnity, thisHitbox, otherEntity, otherHitbox, setValues)</code>
+        <p id="Reference_functions_Collision_CheckEntityPlatform">
+        <h2 style="margin-bottom: 8px;">Collision.CheckEntityPlatform</h2>
+        <code>Collision.CheckEntityPlatform(thisEnity, thisHitbox, otherEntity, otherHitbox, setValues)</code>
         <div style="margin-top: 8px; font-size: 14px;">Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
@@ -12325,6 +12327,14 @@
         <h3 style="margin-bottom: 8px;"><code>KeyBind_DevObjectRegions</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Object regions display keybind. (dev)</div>
         </p>
+        <p id="Reference_enums_KeyBind_DevViewHitboxes">
+        <h3 style="margin-bottom: 8px;"><code>KeyBind_DevViewHitboxes</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Hitbox display keybind. (dev)</div>
+        </p>
+        <p id="Reference_enums_KeyBind_DevMenuToggle">
+        <h3 style="margin-bottom: 8px;"><code>KeyBind_DevMenuToggle</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Open/close dev menu keybind. (dev)</div>
+        </p>
         <p id="Reference_enums_KeyBind_DevQuit">
         <h3 style="margin-bottom: 8px;"><code>KeyBind_DevQuit</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">App quit keybind. (dev)</div>
@@ -13077,7 +13087,7 @@
         <h3 style="margin-bottom: 8px;"><code>WEEKDAY_SATURDAY</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">The seventh day of the week.</div>
         </p>
-        <p>336 out of 336 enums have descriptions. </p>
+        <p>338 out of 338 enums have descriptions. </p>
         <hr/>
         <h3>Constants</h3>
         <p id="Reference_constants_NUM_CONTROLLER_BUTTONS">

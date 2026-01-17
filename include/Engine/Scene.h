@@ -124,22 +124,22 @@ public:
 	static char CurrentCategory[256];
 	static int ActiveCategory;
 	static int DebugMode;
-	static float CollisionTolerance;
+	static int CollisionTolerance;
 	static bool UseCollisionOffset;
-	static float CollisionMaskAir;
+	static float CollisionOffset;
 	static CollisionBox CollisionOuter;
 	static CollisionBox CollisionInner;
 	static Entity* CollisionEntity;
 	static CollisionSensor Sensors[6];
 	static float CollisionMinimumDistance;
-	static float LowCollisionTolerance;
-	static float HighCollisionTolerance;
+	static int LowCollisionTolerance;
+	static int HighCollisionTolerance;
 	static int FloorAngleTolerance;
 	static int WallAngleTolerance;
 	static int RoofAngleTolerance;
 	static bool ShowHitboxes;
-	static int DebugHitboxCount;
-	static DebugHitboxInfo DebugHitboxList[DEBUG_HITBOX_COUNT];
+	static int ViewableHitboxCount;
+	static std::vector<ViewableHitbox> ViewableHitboxList;
 
 	static void Add(Entity** first, Entity** last, int* count, Entity* obj);
 	static void Remove(Entity** first, Entity** last, int* count, Entity* obj);
@@ -209,69 +209,37 @@ public:
 	static void UnloadTilesets();
 	static size_t AddGameTexture(GameTexture* texture);
 	static bool FindGameTextureByID(int id, size_t& out);
-	static void
-	SetTile(int layer, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB);
+	static void SetTile(int layer, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB);
 	static int CollisionAt(int x, int y, int collisionField, int collideSide, int* angle);
-	static int CollisionInLine(int x,
-		int y,
-		int angleMode,
-		int checkLen,
-		int collisionField,
-		bool compareAngle,
-		Sensor* sensor);
-	static void SetupCollisionConfig(float minDistance,
-		float lowTolerance,
-		float highTolerance,
-		int floorAngleTolerance,
-		int wallAngleTolerance,
-		int roofAngleTolerance);
-	static int AddDebugHitbox(int type, int dir, Entity* entity, CollisionBox* hitbox);
-	static bool CheckObjectCollisionTouch(Entity* thisEntity,
-		CollisionBox* thisHitbox,
-		Entity* otherEntity,
-		CollisionBox* otherHitbox);
-	static bool CheckObjectCollisionCircle(Entity* thisEntity,
-		float thisRadius,
-		Entity* otherEntity,
-		float otherRadius);
-	static int CheckObjectCollisionBox(Entity* thisEntity,
-		CollisionBox* thisHitbox,
-		Entity* otherEntity,
-		CollisionBox* otherHitbox,
-		bool setValues);
-	static bool CheckObjectCollisionPlatform(Entity* thisEntity,
-		CollisionBox* thisHitbox,
-		Entity* otherEntity,
-		CollisionBox* otherHitbox,
-		bool setValues);
-	static bool ObjectTileCollision(Entity* entity,
-		int cLayers,
-		int cMode,
-		int cPlane,
-		int xOffset,
-		int yOffset,
-		bool setPos);
-	static bool ObjectTileGrip(Entity* entity,
-		int cLayers,
-		int cMode,
-		int cPlane,
-		float xOffset,
-		float yOffset,
-		float tolerance);
-	static void
-	ProcessObjectMovement(Entity* entity, CollisionBox* outerBox, CollisionBox* innerBox);
-	static void ProcessPathGrip();
-	static void ProcessAirCollision_Down();
-	static void ProcessAirCollision_Up();
+	static int CollisionInLine(int x, int y, int angleMode, int checkLen, int collisionField, bool compareAngle, Sensor* sensor);
+	static void OrientHitbox(CollisionBox* source, int direction, CollisionBox* destination) {
+		*destination = *source;
+		if (direction & FLIP_X) {
+			int store = -source->Left;
+			destination->Left = -source->Right;
+			destination->Right = store;
+		}
+		if (direction & FLIP_Y) {
+			int top = -source->Top;
+			destination->Top = -source->Bottom;
+			destination->Bottom = top;
+		}
+	};
+	static int RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbox);
+	static bool CheckEntityTouch(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox);
+	static bool CheckEntityCircle(Entity* thisEntity, float thisRadius, Entity* otherEntity, float otherRadius);
+	static int CheckEntityBox(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues);
+	static bool CheckEntityPlatform(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox, bool setValues);
+	static bool CheckTileCollision(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, bool setPos);
+	static bool CheckTileGrip(Entity* entity, int cLayers, int cMode, int cPlane, int xOffset, int yOffset, float tolerance);
+	static void SetCollisionVariables(float minDistance, float lowTolerance, float highTolerance, int floorAngleTolerance, int wallAngleTolerance, int roofAngleTolerance);
+	static void ProcessEntityMovement(Entity* entity, CollisionBox* outerBox, CollisionBox* innerBox);
 	static void SetPathGripSensors(CollisionSensor* sensors);
-	static void FindFloorPosition(CollisionSensor* sensor);
-	static void FindLWallPosition(CollisionSensor* sensor);
-	static void FindRoofPosition(CollisionSensor* sensor);
-	static void FindRWallPosition(CollisionSensor* sensor);
-	static void FloorCollision(CollisionSensor* sensor);
-	static void LWallCollision(CollisionSensor* sensor);
-	static void RoofCollision(CollisionSensor* sensor);
-	static void RWallCollision(CollisionSensor* sensor);
+	static void ProcessPathGrip();
+	static void ProcessAirCollision(bool isUp);
+	static void CheckVerticalPosition(CollisionSensor* sensor, bool isFloor);
+	static void CheckHorizontalPosition(CollisionSensor* sensor, bool isLeft);
+	static void CheckVerticalCollision(CollisionSensor* sensor, bool isFloor);
+	static void CheckHorizontalCollision(CollisionSensor* sensor, bool isLeft);
 };
-
 #endif /* ENGINE_SCENE_H */
