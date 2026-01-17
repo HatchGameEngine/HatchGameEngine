@@ -2838,8 +2838,13 @@ bool VMThread::CallBoundMethod(ObjBoundMethod* bound, int argCount) {
 	return Call(bound->Method, argCount);
 }
 bool VMThread::CallValue(VMValue callee, int argCount) {
+	if (!IS_CALLABLE(callee)) {
+		ThrowRuntimeError(false, "Cannot call value of type %s.", GetValueTypeString(callee));
+		return false;
+	}
+
 	bool result = false;
-	if (ScriptManager::Lock() && IS_OBJECT(callee)) {
+	if (ScriptManager::Lock()) {
 		switch (OBJECT_TYPE(callee)) {
 		case OBJ_BOUND_METHOD:
 			result = CallBoundMethod(AS_BOUND_METHOD(callee), argCount);
@@ -2865,9 +2870,6 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 			break;
 		}
 		default:
-			ThrowRuntimeError(false,
-				"Cannot call value of type %s.",
-				GetObjectTypeString(OBJECT_TYPE(callee)));
 			break;
 		}
 	}
@@ -2875,6 +2877,11 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 	return result;
 }
 bool VMThread::CallForObject(VMValue callee, int argCount) {
+	if (!IS_CALLABLE(callee)) {
+		ThrowRuntimeError(false, "Cannot call value of type %s.", GetValueTypeString(callee));
+		return false;
+	}
+
 	if (ScriptManager::Lock()) {
 		// Special case for native functions
 		if (OBJECT_TYPE(callee) == OBJ_NATIVE_FUNCTION) {
