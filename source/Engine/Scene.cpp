@@ -1785,6 +1785,31 @@ void Scene::Restart() {
 		tileset.RestartAnimations();
 	}
 
+	// On a scene restart, static entities are
+	// generally subject to having their
+	// constructors called again, along with having
+	// their positions set to their initial
+	// positions. On top of that, their Create
+	// event is called. Of course, none of this
+	// should be done if the entity is persistent.
+	// We do this before running "Load" on all
+	// object classes, as some Load methods may
+	// depend on the entities being set to Active.
+	Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
+		if (ent->Persistence == Persistence_NONE) {
+			// Reset Lifecycle
+			ent->Created = false;
+			ent->PostCreated = false;
+			ent->Removed = false;
+
+			ent->Active = true;
+			ent->Visible = true;
+
+			ent->X = ent->InitialX;
+			ent->Y = ent->InitialY;
+		}
+    });
+
 	// Run "Load" on all object classes
 	// This is done (on purpose) before object lists are cleared.
 	// See the comments in ObjectList_CallLoads
@@ -1794,21 +1819,7 @@ void Scene::Restart() {
 
 	// Run "Initialize" on all objects
 	Scene::Iterate(Scene::StaticObjectFirst, [](Entity* ent) -> void {
-		// On a scene restart, static entities are
-		// generally subject to having their
-		// constructors called again, along with having
-		// their positions set to their initial
-		// positions. On top of that, their Create
-		// event is called. Of course, none of this
-		// should be done if the entity is persistent.
-		if (ent->Persistence == Persistence_NONE) {
-			ent->Created = false;
-			ent->PostCreated = false;
-		}
-
 		if (!ent->Created) {
-			ent->X = ent->InitialX;
-			ent->Y = ent->InitialY;
 			ent->Initialize();
 		}
 	});
