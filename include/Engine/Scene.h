@@ -139,7 +139,7 @@ public:
 	static int RoofAngleTolerance;
 	static bool ShowHitboxes;
 	static int ViewableHitboxCount;
-	static ViewableHitbox ViewableHitboxList[VIEWABLE_HITBOX_COUNT];
+	static std::vector<ViewableHitbox> ViewableHitboxList;
 
 	static void Add(Entity** first, Entity** last, int* count, Entity* obj);
 	static void Remove(Entity** first, Entity** last, int* count, Entity* obj);

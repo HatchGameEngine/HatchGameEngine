@@ -154,7 +154,7 @@ int Scene::WallAngleTolerance = 0x20;
 int Scene::RoofAngleTolerance = 0x20;
 bool Scene::ShowHitboxes = false;
 int Scene::ViewableHitboxCount = 0;
-ViewableHitbox Scene::ViewableHitboxList[VIEWABLE_HITBOX_COUNT];
+std::vector<ViewableHitbox> Scene::ViewableHitboxList;
 
 void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
 	// This is called before object lists are cleared, so we need
@@ -773,6 +773,9 @@ void Scene::ResetPerf() {
 	}
 }
 void Scene::FrameUpdate() {
+	// Clear debug hitboxes from the previous frame
+	ViewableHitboxList.clear();
+	
 	// Sort entities if needed
 	Scene::SortEntities();
 }
@@ -3853,28 +3856,26 @@ int Scene::CollisionInLine(int x,
 }
 
 int Scene::RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbox) {
-	for (int i = 0; i < ViewableHitboxCount; ++i) {
-		if (ViewableHitboxList[i].Hitbox.Left == hitbox->Left &&
+	for (size_t i = 0; i < ViewableHitboxList.size(); ++i) {
+		if (ViewableHitboxList[i].Instance == entity &&
+			ViewableHitboxList[i].Hitbox.Left == hitbox->Left &&
 			ViewableHitboxList[i].Hitbox.Top == hitbox->Top &&
-			ViewableHitboxList[i].Hitbox.Right == hitbox->Right &&
-			ViewableHitboxList[i].Hitbox.Bottom == hitbox->Bottom &&
 			ViewableHitboxList[i].X == (int)entity->X &&
-			ViewableHitboxList[i].Y == (int)entity->Y &&
-			ViewableHitboxList[i].Instance == entity) {
-			return i;
+			ViewableHitboxList[i].Y == (int)entity->Y) {
+			return (int)i;
 		}
 	}
 
-	if (ViewableHitboxCount < VIEWABLE_HITBOX_COUNT) {
-		ViewableHitbox& box = ViewableHitboxList[ViewableHitboxCount];
-		box.Type = type;
-		box.Instance = entity;
-		box.X = (int)entity->X;
-		box.Y = (int)entity->Y;
-		OrientHitbox(hitbox, dir, &box.Hitbox);
-		return ViewableHitboxCount++;
-	}
-	return -1;
+	ViewableHitbox box;
+	box.Type = type;
+	box.Collision = 0;
+	box.Instance = entity;
+	box.X = (int)entity->X;
+	box.Y = (int)entity->Y;
+	OrientHitbox(hitbox, dir, &box.Hitbox);
+
+	ViewableHitboxList.push_back(box);
+	return (int)ViewableHitboxList.size() - 1;
 }
 
 bool Scene::CheckEntityTouch(Entity* thisEntity, CollisionBox* thisHitbox, Entity* otherEntity, CollisionBox* otherHitbox) {
