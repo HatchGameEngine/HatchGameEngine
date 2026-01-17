@@ -35,9 +35,7 @@ if(EXECUTABLE_NAME)
 endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}")
 
-add_definitions(-DTARGET_NAME=\"${HATCH_TARGET_NAME}\"
-  -DNO_LIBAV
-)
+add_definitions(-DTARGET_NAME=\"${HATCH_TARGET_NAME}\")
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
   set(CMAKE_CXX_FLAGS "/wd4244 /wd4267 /wd4305 /wd4717 /EHsc")
