@@ -8,6 +8,10 @@ else()
   option(WINDOWS_COMPILE_AS_CONSOLE_APP "Compile as a console application" OFF)
 endif()
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4244 /wd4267 /wd4305 /wd4717 /EHsc")
+endif()
+
 option(USING_DIRECT3D "Use Direct3D" OFF)
 
 if(USING_DIRECT3D)
