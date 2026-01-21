@@ -8,6 +8,13 @@
 #include <Engine/Graphics.h>
 #include <Engine/Rendering/Shader.h>
 
+/***
+* \class Shader
+* \desc Representation of a GPU shader.<br/>\
+Not all devices will support shaders. Use `Device.GetCapability("graphics_shaders")` to verify if that's the case.<br/>\
+The software renderer does not support shaders.
+*/
+
 size_t GetArrayUniformValues(ObjArray* array, void** values, Uint8 dataType);
 bool IsArrayOfMatrices(ObjArray* array, size_t arrayLength, size_t expectedCount);
 void ReadFloatVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, void* values);
@@ -120,8 +127,8 @@ void ShaderImpl::Dispose(Obj* object) {
 /***
  * \method HasStage
  * \desc Checks if the shader program has a shader stage.
- * \param stage (Enum): The <linkto ref="SHADERSTAGE_*">shader stage</linkto>.
- * \return Returns <code>true</code> if there is a shader stage of the given type, <code>false</code> if otherwise.
+ * \param stage (<ref SHADERSTAGE_*>): The shader stage.
+ * \return boolean Returns `true` if there is a shader stage of the given type, `false` if otherwise.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_HasStage(int argCount, VMValue* args, Uint32 threadID) {
@@ -144,7 +151,7 @@ VMValue ShaderImpl::VM_HasStage(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method CanCompile
  * \desc Checks if the shader can be compiled.
- * \return Returns <code>true</code> if the shader can be compiled, <code>false</code> if otherwise.
+ * \return boolean Returns `true` if the shader can be compiled, `false` if otherwise.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_CanCompile(int argCount, VMValue* args, Uint32 threadID) {
@@ -165,7 +172,7 @@ VMValue ShaderImpl::VM_CanCompile(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * \method IsValid
  * \desc Checks if the shader can be used.
- * \return Returns <code>true</code> if the shader can be used, <code>false</code> if otherwise.
+ * \return boolean Returns `true` if the shader can be used, `false` if otherwise.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, Uint32 threadID) {
@@ -186,8 +193,15 @@ VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method AddStage
  * \desc Adds a stage to the shader program. This should not be called multiple times for the same stage.
- * \param stage (Enum): The <linkto ref="SHADERSTAGE_*">shader stage</linkto>.
- * \param shader (String or Stream): Filename of the resource containing shader code, or a Stream containing shader code.
+ * \param stage (<ref SHADERSTAGE_*>): The shader stage.
+ * \param shader (string): Filename of the resource containing shader code.
+ * \ns Shader
+ */
+/***
+ * \method AddStage
+ * \desc Adds a stage to the shader program. This should not be called multiple times for the same stage.
+ * \param stage (<ref SHADERSTAGE_*>): The shader stage.
+ * \param shader (stream): A stream containing shader code.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
@@ -255,8 +269,8 @@ VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method AddStageFromString
  * \desc Adds a stage to the shader program, from a String containing the shader code. This should not be called multiple times for the same stage.
- * \param stage (Enum): The <linkto ref="SHADERSTAGE_*">shader stage</linkto>.
- * \param shader (String): A String that contains shader code.
+ * \param stage (<ref SHADERSTAGE_*>): The shader stage.
+ * \param shader (string): A String that contains shader code.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_AddStageFromString(int argCount, VMValue* args, Uint32 threadID) {
@@ -296,7 +310,7 @@ VMValue ShaderImpl::VM_AddStageFromString(int argCount, VMValue* args, Uint32 th
 /***
  * \method AssignTextureUnit
  * \desc Assigns a texture unit to a texture uniform. This is safe to call multiple times for the same uniform name.
- * \param uniform (String): The name of the uniform.
+ * \param uniform (string): The name of the uniform.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 threadID) {
@@ -323,8 +337,8 @@ VMValue ShaderImpl::VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 thr
 /***
  * \method GetTextureUnit
  * \desc Gets the texture unit assigned to a texture uniform.
- * \param uniform (String): The name of the uniform.
- * \return Returns an Integer value, or <code>null</code> if no texture unit was assigned.
+ * \param uniform (string): The name of the uniform.
+ * \return integer Returns an integer value, or `null` if no texture unit was assigned.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_GetTextureUnit(int argCount, VMValue* args, Uint32 threadID) {
@@ -361,7 +375,7 @@ VMValue ShaderImpl::VM_GetTextureUnit(int argCount, VMValue* args, Uint32 thread
 /***
  * \method Compile
  * \desc Compiles a shader.
- * \return Returns <code>true</code> if the shader was compiled, <code>false</code> if otherwise.
+ * \return boolean Returns `true` if the shader was compiled, `false` if otherwise.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
@@ -391,8 +405,8 @@ VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method HasUniform
  * \desc Checks if the shader has an uniform with the given name. This can only be called after the shader has been compiled.
- * \param uniform (String): The name of the uniform.
- * \return Returns <code>true</code> if there is an uniform with the given name, <code>false</code> if otherwise.
+ * \param uniform (string): The name of the uniform.
+ * \return boolean Returns `true` if there is an uniform with the given name, `false` if otherwise.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, Uint32 threadID) {
@@ -413,8 +427,8 @@ VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * \method GetUniformType
  * \desc Gets the type of the uniform with the given name. This can only be called after the shader has been compiled.
- * \param uniform (String): The name of the uniform.
- * \return Returns the <linkto ref="SHADERDATATYPE_*">data type</linkto> of the uniform, or <code>null</code> if there is no uniform with that name.
+ * \param uniform (string): The name of the uniform.
+ * \return <ref SHADERSTAGE_*> Returns the data type of the uniform, or `null` if there is no uniform with that name.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_GetUniformType(int argCount, VMValue* args, Uint32 threadID) {
@@ -440,9 +454,17 @@ VMValue ShaderImpl::VM_GetUniformType(int argCount, VMValue* args, Uint32 thread
 /***
  * \method SetUniform
  * \desc Sets the value of an uniform variable. The value passed to the uniform persists between different invocations, and can be set at any time, as long as the shader is valid. This can only be called after the shader has been compiled.
- * \param uniform (String): The name of the uniform.
- * \param value (Number or Array): The value.
- * \paramOpt dataType (Enum): The <linkto ref="SHADERDATATYPE_*">data type</linkto> of the value being sent. This is required if the value being passed is an Array.
+ * \param uniform (string): The name of the uniform.
+ * \param value (number): The value.
+ * \paramOpt dataType (<ref SHADERDATATYPE_*>): The data type of the value being sent. This is required if the value being passed is an array.
+ * \ns Shader
+ */
+/***
+ * \method SetUniform
+ * \desc Sets the value of an uniform variable. The value passed to the uniform persists between different invocations, and can be set at any time, as long as the shader is valid. This can only be called after the shader has been compiled.
+ * \param uniform (string): The name of the uniform.
+ * \param value (array): The value.
+ * \paramOpt dataType (<ref SHADERDATATYPE_*>): The data type of the value being sent. This is required if the value being passed is an array.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) {
@@ -898,9 +920,9 @@ void ThrowElementTypeMismatchError(size_t element, const char* expected, const c
 }
 /***
  * \method SetTexture
- * \desc Assigns an Image to a specific texture unit linked to an uniform variable. The texture unit must have been defined using <linkto ref="shader.AssignTextureUnit"></linkto> for this function to succeed.
- * \param uniform (String): The name of the uniform.
- * \param image (Image): The image to bind to the uniform.
+ * \desc Assigns an Image to a specific texture unit linked to an uniform variable. The texture unit must have been defined using <ref Shader.AssignTextureUnit> for this function to succeed.
+ * \param uniform (string): The name of the uniform.
+ * \param image (integer): The image index to bind to the uniform.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) {

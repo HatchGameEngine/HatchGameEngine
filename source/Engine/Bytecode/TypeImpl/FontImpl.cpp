@@ -8,6 +8,11 @@
 #include <Engine/Data/DefaultFonts.h>
 #include <Engine/ResourceTypes/Font.h>
 
+/***
+* \class Font
+* \desc Representation of a TrueType font.
+*/
+
 ObjClass* FontImpl::Class = nullptr;
 
 void FontImpl::Init() {
@@ -120,8 +125,20 @@ void GetDefaultFonts(std::vector<Stream*>& streamList, std::vector<bool>& closeS
 
 /***
  * \constructor
- * \desc Loads a font from the given Resource path, Stream, or Array containing Resource paths or Streams.
- * \paramOpt font (String, Stream, or Array): The font or list of fonts. If this argument is not given, it will use font the application was built with, if one is present.
+ * \desc Loads a font from the given resource path.
+ * \paramOpt font (string): The font. If this argument is not given, it will use font the application was built with, if one is present.
+ * \ns Font
+ */
+/***
+ * \constructor
+ * \desc Loads a font from the given stream.
+ * \paramOpt font (stream): The font. If this argument is not given, it will use font the application was built with, if one is present.
+ * \ns Font
+ */
+/***
+ * \constructor
+ * \desc Loads a font from the given array containing resource paths or streams.
+ * \paramOpt font (array): The list of fonts. If this argument is not given, it will use font the application was built with, if one is present.
  * \ns Font
  */
 Obj* FontImpl::New() {
@@ -209,8 +226,8 @@ void FontImpl::Dispose(Obj* object) {
 }
 /***
  * \method GetPixelsPerUnit
- * \desc Gets the pixels per unit value of the font. The default for all fonts is <code>40</code>.
- * \return Returns a Decimal value.
+ * \desc Gets the pixels per unit value of the font. The default for all fonts is `40`.
+ * \return decimal Returns a decimal value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetPixelsPerUnit(int argCount, VMValue* args, Uint32 threadID) {
@@ -228,7 +245,7 @@ VMValue FontImpl::VM_GetPixelsPerUnit(int argCount, VMValue* args, Uint32 thread
 /***
  * \method GetAscent
  * \desc Gets the distance in pixels above the baseline.
- * \return Returns a Decimal value.
+ * \return decimal Returns a decimal value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetAscent(int argCount, VMValue* args, Uint32 threadID) {
@@ -246,7 +263,7 @@ VMValue FontImpl::VM_GetAscent(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method GetDescent
  * \desc Gets the distance in pixels below the baseline.
- * \return Returns a Decimal value.
+ * \return decimal Returns a decimal value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetDescent(int argCount, VMValue* args, Uint32 threadID) {
@@ -264,7 +281,7 @@ VMValue FontImpl::VM_GetDescent(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method GetLeading
  * \desc Gets the distance between lines in pixels.
- * \return Returns a Decimal value.
+ * \return decimal Returns a decimal value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetLeading(int argCount, VMValue* args, Uint32 threadID) {
@@ -282,7 +299,7 @@ VMValue FontImpl::VM_GetLeading(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method GetSpaceWidth
  * \desc Gets the width of the space character.
- * \return Returns a Decimal value.
+ * \return decimal Returns a decimal value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetSpaceWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -299,8 +316,8 @@ VMValue FontImpl::VM_GetSpaceWidth(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * \method GetOversampling
- * \desc Gets the oversampling value. The default is <code>1</code> for all fonts.
- * \return Returns an Integer value.
+ * \desc Gets the oversampling value. The default is `1` for all fonts.
+ * \return integer Returns an integer value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetOversampling(int argCount, VMValue* args, Uint32 threadID) {
@@ -317,8 +334,8 @@ VMValue FontImpl::VM_GetOversampling(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * \method GetPixelCoverageThreshold
- * \desc Gets the pixel coverage threshold value. Pixels with coverage under this value become fully transparent, and pixels with coverage equal to or above this value become fully opaque. The default is <code>0.5</code> for all fonts.
- * \return Returns a Decimal value.
+ * \desc Gets the pixel coverage threshold value. Pixels with coverage under this value become fully transparent, and pixels with coverage equal to or above this value become fully opaque. The default is `0.5` for all fonts.
+ * \return decimal Returns a decimal value.
  * \ns Font
  */
 VMValue FontImpl::VM_GetPixelCoverageThreshold(int argCount, VMValue* args, Uint32 threadID) {
@@ -336,8 +353,8 @@ VMValue FontImpl::VM_GetPixelCoverageThreshold(int argCount, VMValue* args, Uint
 /***
  * \method GetGlyphAdvance
  * \desc Gets the advance width of a given glyph through its code point, if it exists in the font.
- * \param codepoint (Integer): An Unicode code point.
- * \return Returns a Decimal value, or <code>null</code> if no glyph representing the given code point exists in the font.
+ * \param codepoint (integer): An Unicode code point.
+ * \return decimal Returns a decimal value, or `null` if no glyph representing the given code point exists in the font.
  * \ns Font
  */
 VMValue FontImpl::VM_GetGlyphAdvance(int argCount, VMValue* args, Uint32 threadID) {
@@ -364,7 +381,7 @@ VMValue FontImpl::VM_GetGlyphAdvance(int argCount, VMValue* args, Uint32 threadI
 /***
  * \method IsAntialiasingEnabled
  * \desc Gets whether the font has anti-aliasing enabled.
- * \return Returns <code>true</code> is anti-aliasing is enabled, <code>false</code> if otherwise.
+ * \return boolean Returns `true` is anti-aliasing is enabled, `false` if otherwise.
  * \ns Font
  */
 VMValue FontImpl::VM_IsAntialiasingEnabled(int argCount, VMValue* args, Uint32 threadID) {
@@ -382,8 +399,8 @@ VMValue FontImpl::VM_IsAntialiasingEnabled(int argCount, VMValue* args, Uint32 t
 /***
  * \method HasGlyph
  * \desc Checks if the font has a glyph for the given code point.
- * \param codepoint (Integer): An Unicode code point.
- * \return Returns <code>true</code> if there is a glyph for the given code point, <code>false</code> if otherwise.
+ * \param codepoint (integer): An Unicode code point.
+ * \return boolean Returns `true` if there is a glyph for the given code point, `false` if otherwise.
  * \ns Font
  */
 VMValue FontImpl::VM_HasGlyph(int argCount, VMValue* args, Uint32 threadID) {
@@ -403,7 +420,7 @@ VMValue FontImpl::VM_HasGlyph(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method SetPixelsPerUnit
  * \desc Sets the pixels per unit value of the font. Higher values improve the clarity, at the cost of increased memory usage. Note that this causes all glyphs to be reloaded, so this should usually only be called once.
- * \param pixelsPerUnit (Number): The pixels per unit value.
+ * \param pixelsPerUnit (number): The pixels per unit value.
  * \ns Font
  */
 VMValue FontImpl::VM_SetPixelsPerUnit(int argCount, VMValue* args, Uint32 threadID) {
@@ -425,7 +442,7 @@ VMValue FontImpl::VM_SetPixelsPerUnit(int argCount, VMValue* args, Uint32 thread
 /***
  * \method SetAscent
  * \desc Sets the distance in pixels above the baseline.
- * \param ascent (Number): The distance.
+ * \param ascent (number): The distance.
  * \ns Font
  */
 VMValue FontImpl::VM_SetAscent(int argCount, VMValue* args, Uint32 threadID) {
@@ -445,7 +462,7 @@ VMValue FontImpl::VM_SetAscent(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method SetDescent
  * \desc Sets the distance in pixels below the baseline.
- * \param descent (Number): The distance.
+ * \param descent (number): The distance.
  * \ns Font
  */
 VMValue FontImpl::VM_SetDescent(int argCount, VMValue* args, Uint32 threadID) {
@@ -465,7 +482,7 @@ VMValue FontImpl::VM_SetDescent(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method SetLeading
  * \desc Sets the distance between lines in pixels.
- * \param leading (Number): The distance.
+ * \param leading (number): The distance.
  * \ns Font
  */
 VMValue FontImpl::VM_SetLeading(int argCount, VMValue* args, Uint32 threadID) {
@@ -485,7 +502,7 @@ VMValue FontImpl::VM_SetLeading(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method SetSpaceWidth
  * \desc Sets the width of the space character.
- * \param spaceWidth (Number): The width.
+ * \param spaceWidth (number): The width.
  * \ns Font
  */
 VMValue FontImpl::VM_SetSpaceWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -505,7 +522,7 @@ VMValue FontImpl::VM_SetSpaceWidth(int argCount, VMValue* args, Uint32 threadID)
 /***
  * \method SetOversampling
  * \desc Sets the oversampling value. Higher values increase font quality. Changing this value causes all font glyphs to be reloaded.
- * \param oversampling (Integer): The oversampling value.
+ * \param oversampling (integer): The oversampling value.
  * \ns Font
  */
 VMValue FontImpl::VM_SetOversampling(int argCount, VMValue* args, Uint32 threadID) {
@@ -528,7 +545,7 @@ VMValue FontImpl::VM_SetOversampling(int argCount, VMValue* args, Uint32 threadI
 /***
  * \method SetPixelCoverageThreshold
  * \desc Sets the pixel coverage threshold value. Pixels with coverage under this value become fully transparent, and pixels with coverage equal to or above this value become fully opaque. This only has an effect on fonts with anti-aliasing disabled.
- * \param threshold (Decimal): The threshold value, from <code>0.0</code> to <code>1.0</code>.
+ * \param threshold (decimal): The threshold value, from `0.0` to `1.0`.
  * \ns Font
  */
 VMValue FontImpl::VM_SetPixelCoverageThreshold(int argCount, VMValue* args, Uint32 threadID) {
@@ -558,8 +575,8 @@ VMValue FontImpl::VM_SetPixelCoverageThreshold(int argCount, VMValue* args, Uint
 }
 /***
  * \method SetAntialiasing
- * \desc Enables or disables anti-aliasing on the font. If disabling, you may want to increase the pixel coverage value with <linkto ref="font.SetPixelCoverageThreshold"></linkto>.
- * \param useAntialiasing (Boolean): Whether or not to use anti-aliasing.
+ * \desc Enables or disables anti-aliasing on the font. If disabling, you may want to increase the pixel coverage value with <ref Font.SetPixelCoverageThreshold>.
+ * \param useAntialiasing (boolean): Whether or not to use anti-aliasing.
  * \ns Font
  */
 VMValue FontImpl::VM_SetAntialiasing(int argCount, VMValue* args, Uint32 threadID) {
