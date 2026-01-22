@@ -2378,7 +2378,7 @@ VMValue Collision_CheckEntityTouch(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Collision.CheckEntityCircle
  * \desc Checks if an instance is touching another instance with within their respective radii.
- * \param thisEnity (Entity): The first instance to check.
+ * \param thisEntity (Entity): The first instance to check.
  * \param thisRadius (decimal): Radius of the first entity to check.
  * \param otherEntity (Entity): The other instance to check.
  * \param otherRadius (decimal): Radius of the other entity to check.
@@ -2397,7 +2397,7 @@ VMValue Collision_CheckEntityCircle(int argCount, VMValue* args, Uint32 threadID
 /***
  * Collision.CheckEntityBox
  * \desc Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.
- * \param thisEnity (Entity): The first instance to check.
+ * \param thisEntity (Entity): The first instance to check.
  * \param thisHitbox (hitbox): The first entity's hitbox.
  * \param otherEntity (Entity): The other instance to check.
  * \param otherHitbox (hitbox): The other entity's hitbox.
@@ -2418,7 +2418,7 @@ VMValue Collision_CheckEntityBox(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Collision.CheckEntityPlatform
  * \desc Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.
- * \param thisEnity (Entity): The first instance to check.
+ * \param thisEntity (Entity): The first instance to check.
  * \param thisHitbox (hitbox): The first entity's hitbox.
  * \param otherEntity (Entity): The other instance to check whether it is on top of the first instance.
  * \param otherHitbox (hitbox): The other entity's hitbox.
@@ -5363,7 +5363,7 @@ VMValue Draw_UseFillSmoothing(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.UseStrokeSmoothing
  * \desc Sets whether to use smoothing when drawing un-filled shapes. (hardware-renderer only)
- * \param smoothFill (boolean): Whether to use smoothing.
+ * \param smoothStroke (boolean): Whether to use smoothing.
  * \ns Draw
  */
 VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, Uint32 threadID) {
@@ -9445,7 +9445,7 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * JSON.ToString
  * \desc Converts a value into a JSON string.
- * \param json (Any type): The value to convert.
+ * \param json (value): The value to convert.
  * \paramOpt prettyPrint (boolean): Whether to use spacing and newlines in the text.
  * \return string Returns a JSON string based on the value.
  * \ns JSON
@@ -12275,7 +12275,7 @@ VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.GetLayerShader
  * \desc Gets the shader of the specified layer.
  * \param layerIndex (integer): Index of layer.
- * \return shader Returns a shader, or `null`.
+ * \return Shader Returns a shader, or `null`.
  * \ns Scene
  */
 VMValue Scene_GetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
@@ -14047,9 +14047,9 @@ VMValue Scene_SetLayerCustomRenderFunction(int argCount, VMValue* args, Uint32 t
 }
 /***
  * Scene.SetObjectViewRender
- * \desc Sets whether objects can render on the specified view.
+ * \desc Sets whether entities can render on the specified view.
  * \param viewIndex (integer): Index of the view.
- * \param enableViewRender (boolean):
+ * \param enableViewRender (boolean): Whether entities can render on the specified view.
  * \ns Scene
  */
 VMValue Scene_SetObjectViewRender(int argCount, VMValue* args, Uint32 threadID) {
@@ -14072,7 +14072,7 @@ VMValue Scene_SetObjectViewRender(int argCount, VMValue* args, Uint32 threadID) 
  * Scene.SetTileViewRender
  * \desc Sets whether tiles can render on the specified view.
  * \param viewIndex (integer): Index of the view.
- * \param enableViewRender (boolean):
+ * \param enableViewRender (boolean): Whether tiles can render on the specified view.
  * \ns Scene
  */
 VMValue Scene_SetTileViewRender(int argCount, VMValue* args, Uint32 threadID) {
@@ -17350,10 +17350,10 @@ VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID
  * \param entity (Entity): Instance to write the values to.
  * \return boolean Returns `false` if no tile collision, but if `true`: <br/>\
 <pre class="code"><br/>\
-    instance.SensorX: (Number), // X Position where the sensor collided if it did. <br/>\
-    instance.SensorY: (Number), // Y Position where the sensor collided if it did. <br/>\
-    instance.SensorCollided: (Boolean), // Whether the sensor collided. <br/>\
-    instance.SensorAngle: (Integer) // Tile angle at the collision. <br/>\
+    instance.SensorX: (number), // X Position where the sensor collided if it did. <br/>\
+    instance.SensorY: (number), // Y Position where the sensor collided if it did. <br/>\
+    instance.SensorCollided: (boolean), // Whether the sensor collided. <br/>\
+    instance.SensorAngle: (integer) // Tile angle at the collision. <br/>\
 \
 </pre>
  * \ns TileCollision
@@ -18112,7 +18112,7 @@ VMValue Video_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * View.SetX
  * \desc Sets the x-axis position of the camera for the specified view.
  * \param viewIndex (integer): Index of the view.
- * \param x (number): Desired X position
+ * \param x (number): Desired X position.
  * \ns View
  */
 VMValue View_SetX(int argCount, VMValue* args, Uint32 threadID) {
@@ -18127,7 +18127,7 @@ VMValue View_SetX(int argCount, VMValue* args, Uint32 threadID) {
  * View.SetY
  * \desc Sets the y-axis position of the camera for the specified view.
  * \param viewIndex (integer): Index of the view.
- * \param y (number): Desired Y position
+ * \param y (number): Desired Y position.
  * \ns View
  */
 VMValue View_SetY(int argCount, VMValue* args, Uint32 threadID) {
@@ -18142,7 +18142,7 @@ VMValue View_SetY(int argCount, VMValue* args, Uint32 threadID) {
  * View.SetZ
  * \desc Sets the z-axis position of the camera for the specified view.
  * \param viewIndex (integer): Index of the view.
- * \param z (number): Desired Z position
+ * \param z (number): Desired Z position.
  * \ns View
  */
 VMValue View_SetZ(int argCount, VMValue* args, Uint32 threadID) {
@@ -18157,9 +18157,9 @@ VMValue View_SetZ(int argCount, VMValue* args, Uint32 threadID) {
  * View.SetPosition
  * \desc Sets the position of the camera for the specified view.
  * \param viewIndex (integer): Index of the view.
- * \param x (number): Desired X position
- * \param y (number): Desired Y position
- * \paramOpt z (number): Desired Z position
+ * \param x (number): Desired X position.
+ * \param y (number): Desired Y position.
+ * \paramOpt z (number): Desired Z position.
  * \ns View
  */
 VMValue View_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
@@ -18273,7 +18273,7 @@ VMValue View_SetSize(int argCount, VMValue* args, Uint32 threadID) {
  * View.SetOutputX
  * \desc Sets the x-axis output position of the specified view.
  * \param viewIndex (integer): Index of the view.
- * \param x (number): Desired X position
+ * \param x (number): Desired X position.
  * \ns View
  */
 VMValue View_SetOutputX(int argCount, VMValue* args, Uint32 threadID) {
@@ -18288,7 +18288,7 @@ VMValue View_SetOutputX(int argCount, VMValue* args, Uint32 threadID) {
  * View.SetOutputY
  * \desc Sets the y-axis output position of the specified view.
  * \param viewIndex (integer): Index of the view.
- * \param y (number): Desired Y position
+ * \param y (number): Desired Y position.
  * \ns View
  */
 VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
@@ -18303,8 +18303,8 @@ VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
  * View.SetOutputPosition
  * \desc Sets the output position of the specified view.
  * \param viewIndex (integer): Index of the view.
- * \param x (number): Desired X position
- * \param y (number): Desired Y position
+ * \param x (number): Desired X position.
+ * \param y (number): Desired Y position.
  * \ns View
  */
 VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
@@ -18508,7 +18508,7 @@ VMValue View_SetShader(int argCount, VMValue* args, Uint32 threadID) {
  * View.GetShader
  * \desc Gets the shader of the specified camera.
  * \param viewIndex (integer): Index of the view.
- * \return shader Returns a shader, or `null`.
+ * \return Shader Returns a shader, or `null`.
  * \ns View
  */
 VMValue View_GetShader(int argCount, VMValue* args, Uint32 threadID) {
@@ -18541,7 +18541,7 @@ VMValue View_IsUsingSoftwareRenderer(int argCount, VMValue* args, Uint32 threadI
  * View.SetUseSoftwareRenderer
  * \desc Sets the specified camera to use the software renderer.
  * \param viewIndex (integer): Index of the view.
- * \param useSoftwareRenderer (boolean):
+ * \param useSoftwareRenderer (boolean): Whether to use the software renderer.
  * \ns View
  */
 VMValue View_SetUseSoftwareRenderer(int argCount, VMValue* args, Uint32 threadID) {
