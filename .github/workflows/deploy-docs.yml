@@ -2,8 +2,7 @@ name: Deploy Doxygen documentation
 
 on:
   push:
-    branches:
-      - master
+    branches: [ "master", "doxygen" ]
 
 jobs:
   deploy:
