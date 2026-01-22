@@ -2,7 +2,7 @@
 #include <Engine/Extensions/Discord.h>
 
 #if defined(WIN32) || defined(LINUX)
-#include <Engine/Extensions/discord_game_sdk.h>
+#include <Libraries/discord_game_sdk.h>
 
 #ifdef WIN32
 #define DISCORD_LIBRARY_NAME "discord_game_sdk.dll"

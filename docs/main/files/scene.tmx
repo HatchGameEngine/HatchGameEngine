@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="27" height="15" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="2">
+ <tileset firstgid="1" name="tileset" tilewidth="16" tileheight="16" tilecount="256" columns="32">
+  <image source="tileset.png" width="512" height="128"/>
+ </tileset>
+ <tileset firstgid="257" name="background" tilewidth="16" tileheight="16" tilecount="992" columns="32">
+  <image source="background.png" width="512" height="496"/>
+ </tileset>
+ <layer id="1" name="Background" width="27" height="15">
+  <data encoding="base64" compression="zlib">
+   eJzt08dVFGAAhVGGNOShBXIOLTDkTAsoQVDBFgQlGmiBDEZaQAEl04JKVsASvC38S85xcZff4i1eJJKQkEgSyaSQSpQ00skgkyyyySFGbmCXRz4FFFJEMSWUUkY5FVRSRTU11AZ2dcSpp4FGmmimhVbaaKeDTrropiew6+UBD+mjnwEGecQQwzzmCU8ZYZRngd1zxhjnBS+ZYJIppplhlle85g1vmQvs5llgkSWWWWGVNdZ5x3s+8JFPfGYjsNvkC1/ZYpsdvvGdXfbY54BDjjjmJLD7wU9+ccoZ51xwyRXX/OYPN9xyx9/ALpLoXySRTAqpREkjnQwyySKbHGLkBnb/d92vXXnkU0AhRRRTQilllFNBJVVUU0NtYFdHnHoaaKSJZlpopY12Ouiki256Art/SsCnHQ==
+  </data>
+ </layer>
+ <layer id="2" name="Foreground" width="27" height="15">
+  <data encoding="base64" compression="zlib">
+   eJzt0UsOgyAUheFbFSe1ygqq9VH72CRL748khhDqxDgw4SbfBJJzckEkTZo0R80FmSc/sKuA8pQn6nqImA4t7vDfbW/Xk7wJIwb0IMOQZQpnzQ7/K8b+YYVboMaXvA/eeGHe6Ar3irG7NpGd7NmVvNDeLh3p0u5uyVVe/r+uH/XhFiI=
+  </data>
+ </layer>
+ <objectgroup id="2" name="Object Layer">
+  <properties>
+   <property name="LayerIndex" type="int" value="0"/>
+  </properties>
+  <object id="1" name="Chick" x="80" y="32">
+   <properties>
+    <property name="blendColor" type="color" value="#ff64ff50"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+</map>
