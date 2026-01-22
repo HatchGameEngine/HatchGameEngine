@@ -2288,140 +2288,124 @@ VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Collision
 /***
- * Collision.ProcessObjectMovement
- * \desc Processes movement of an entity with an outer hitbox and an inner hitboxes.
- * \param entity (Entity): The entity to move.
+ * Collision.ProcessEntityMovement
+ * \desc Processes movement of an instance with an outer hitbox and an inner hitboxes.
+ * \param entity (Entity): The instance to move.
  * \param outer (hitbox): The outer hitbox.
  * \param inner (hitbox): The inner hitbox.
  * \ns Collision
  */
-VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_ProcessEntityMovement(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
 	ObjEntity* entity = GET_ARG(0, GetEntity);
 	CollisionBox outerBox = GET_ARG(1, GetHitbox);
 	CollisionBox innerBox = GET_ARG(2, GetHitbox);
 
 	if (entity) {
-		auto ent = (Entity*)entity->EntityPtr;
-
-		Scene::ProcessObjectMovement(ent, &outerBox, &innerBox);
+		Scene::ProcessEntityMovement((Entity*)entity->EntityPtr, &outerBox, &innerBox);
 	}
 	return NULL_VAL;
 }
 /***
- * Collision.ObjectTileCollision
- * \desc Checks tile collision based on where an entity should check.
- * \param entity (Entity): The entity to base the values on.
+ * Collision.CheckTileCollision
+ * \desc Checks tile collision based on where an instance should check.
+ * \param entity (Entity): The instance to base the values on.
  * \param cLayers (bitfield): Which layers the entity can collide with.
- * \param cMode (integer): Collision mode of the entity (floor, left wall, roof, right wall).
- * \param cPlane (integer): Collision plane to get the collision of (A or B).
- * \param xOffset (number): How far from the entity's X value to start from.
- * \param yOffset (number): How far from the entity's Y value to start from.
+ * \param cMode (<ref CMODE_*>): Collision mode of the entity.
+ * \param cPlane (integer): Collision plane of which to get the collision (A or B).
+ * \param xOffset (integer): How far from the entity's X value to start.
+ * \param yOffset (integer): How far from the entity's Y value to start.
  * \param setPos (boolean): Whether to set the entity's position if collision is found.
- * \return boolean Returns whether the entity has collided with a tile.
+ * \return boolean Returns whether the instance has collided with a tile.
  * \ns Collision
  */
-VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckTileCollision(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(7);
 	ObjEntity* entity = GET_ARG(0, GetEntity);
 	int cLayers = GET_ARG(1, GetInteger);
 	int cMode = GET_ARG(2, GetInteger);
 	int cPlane = GET_ARG(3, GetInteger);
-	int xOffset = GET_ARG(4, GetDecimal);
-	int yOffset = GET_ARG(5, GetDecimal);
+	int xOffset = GET_ARG(4, GetInteger);
+	int yOffset = GET_ARG(5, GetInteger);
 	int setPos = GET_ARG(6, GetInteger);
 
-	auto ent = (Entity*)entity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::ObjectTileCollision(ent, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
+	return INTEGER_VAL(Scene::CheckTileCollision((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
 }
 /***
- * Collision.ObjectTileGrip
- * \desc Keeps an entity gripped to tile collision based on where an entity should check.
- * \param entity (Entity): The entity to move.
+ * Collision.CheckTileGrip
+ * \desc Keeps an instance gripped to tile collision based on where an instance should check.
+ * \param entity (Entity): The instance to move.
  * \param cLayers (bitfield): Which layers the entity can collide with.
- * \param cMode (integer): Collision mode of the entity (floor, left wall, roof, right wall).
- * \param cPlane (integer): Collision plane to get the collision of (A or B).
- * \param xOffset (decimal): How far from the entity's X value to start from.
- * \param yOffset (decimal): How far from the entity's Y value to start from.
+ * \param cMode (<ref CMODE_*>): Collision mode of the entity.
+ * \param cPlane (integer): Collision plane of which to get the collision (A or B).
+ * \param xOffset (integer): How far from the entity's X value to start.
+ * \param yOffset (integer): How far from the entity's Y value to start.
  * \param tolerance (decimal): How far of a tolerance the entity should check for.
- * \return boolean Returns whether to grip the entity.
+ * \return boolean Returns whether to grip the instance.
  * \ns Collision
  */
-VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckTileGrip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(7);
 	ObjEntity* entity = GET_ARG(0, GetEntity);
 	int cLayers = GET_ARG(1, GetInteger);
 	int cMode = GET_ARG(2, GetInteger);
 	int cPlane = GET_ARG(3, GetInteger);
-	float xOffset = GET_ARG(4, GetDecimal);
-	float yOffset = GET_ARG(5, GetDecimal);
+	int xOffset = GET_ARG(4, GetInteger);
+	int yOffset = GET_ARG(5, GetInteger);
 	float tolerance = GET_ARG(6, GetDecimal);
 
-	auto ent = (Entity*)entity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::ObjectTileGrip(ent, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
+	return INTEGER_VAL(Scene::CheckTileGrip((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
 }
 /***
- * Collision.CheckObjectCollisionTouch
- * \desc Checks if an instance is touching another entity with their respective hitboxes.
- * \param thisEntity (Entity): The first entity to check.
+ * Collision.CheckEntityTouch
+ * \desc Checks if an instance is touching another instance with their respective hitboxes.
+ * \param thisEntity (Entity): The first instance to check.
  * \param thisHitbox (hitbox): The first entity's hitbox.
- * \param otherEntity (Entity): The other entity to check.
+ * \param otherEntity (Entity): The other instance to check.
  * \param otherHitbox (hitbox): The other entity's hitbox.
  * \return boolean Returns whether the entities are touching.
  * \ns Collision
  */
-VMValue Collision_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityTouch(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	CollisionBox thisBox = GET_ARG(1, GetHitbox);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	return INTEGER_VAL(
-		!!Scene::CheckObjectCollisionTouch(thisEnt, &thisBox, otherEnt, &otherBox));
+	return INTEGER_VAL(!!Scene::CheckEntityTouch((Entity*)thisEntity->EntityPtr, &thisBox, (Entity*)otherEntity->EntityPtr, &otherBox));
 }
 /***
- * Collision.CheckObjectCollisionCircle
- * \desc Checks if an entity is touching another entity with within their respective radii.
- * \param thisEnity (Entity): The first entity to check.
+ * Collision.CheckEntityCircle
+ * \desc Checks if an instance is touching another instance with within their respective radii.
+ * \param thisEnity (Entity): The first instance to check.
  * \param thisRadius (decimal): Radius of the first entity to check.
- * \param otherEntity (Entity): The other entity to check.
- * \param otherRadius (array): Radius of the other entity to check.
+ * \param otherEntity (Entity): The other instance to check.
+ * \param otherRadius (decimal): Radius of the other entity to check.
  * \return boolean Returns whether the entities have collided.
  * \ns Collision
  */
-VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityCircle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	float thisRadius = GET_ARG(1, GetDecimal);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	float otherRadius = GET_ARG(3, GetDecimal);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	return INTEGER_VAL(
-		!!Scene::CheckObjectCollisionCircle(thisEnt, thisRadius, otherEnt, otherRadius));
+	return INTEGER_VAL(!!Scene::CheckEntityCircle((Entity*)thisEntity->EntityPtr, thisRadius, (Entity*)otherEntity->EntityPtr, otherRadius));
 }
 /***
- * Collision.CheckObjectCollisionBox
- * \desc Checks if an entity is touching another entity with their respective hitboxes and sets the values of the other entity if specified.
- * \param thisEnity (Entity): The first entity to check.
- * \param thisHitbox (array): The first entity's hitbox.
- * \param otherEntity (Entity): The other entity to check.
- * \param otherHitbox (array): The other entity's hitbox.
+ * Collision.CheckEntityBox
+ * \desc Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.
+ * \param thisEnity (Entity): The first instance to check.
+ * \param thisHitbox (hitbox): The first entity's hitbox.
+ * \param otherEntity (Entity): The other instance to check.
+ * \param otherHitbox (hitbox): The other entity's hitbox.
  * \param setValues (boolean): Whether to set the values of the other entity.
- * \return enum Returns the side the entities are colliding on.
+ * \return <ref C_*> Returns the side the entities are colliding on.
  * \ns Collision
  */
-VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityBox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	CollisionBox thisBox = GET_ARG(1, GetHitbox);
@@ -2429,24 +2413,20 @@ VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 th
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::CheckObjectCollisionBox(thisEnt, &thisBox, otherEnt, &otherBox, setValues));
+	return INTEGER_VAL(Scene::CheckEntityBox((Entity*)thisEntity->EntityPtr, &thisBox, (Entity*)otherEntity->EntityPtr, &otherBox, setValues));
 }
 /***
- * Collision.CheckObjectCollisionPlatform
- * \desc Checks if an entity is touching the top of another entity with their respective hitboxes and sets the values of the other entity if specified.
- * \param thisEnity (Entity): The first entity to check.
- * \param thisHitbox (array): The first entity's hitbox.
- * \param otherEntity (Entity): The other entity to check whether it is on top of the first entity.
- * \param otherHitbox (array): The other entity's hitbox.
+ * Collision.CheckEntityPlatform
+ * \desc Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.
+ * \param thisEnity (Entity): The first instance to check.
+ * \param thisHitbox (hitbox): The first entity's hitbox.
+ * \param otherEntity (Entity): The other instance to check whether it is on top of the first instance.
+ * \param otherHitbox (hitbox): The other entity's hitbox.
  * \param setValues (boolean): Whether to set the values of the other entity.
  * \return boolean Returns whether the entities have collided.
  * \ns Collision
  */
-VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityPlatform(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	CollisionBox thisBox = GET_ARG(1, GetHitbox);
@@ -2454,11 +2434,7 @@ VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	return INTEGER_VAL(!!Scene::CheckObjectCollisionPlatform(
-		thisEnt, &thisBox, otherEnt, &otherBox, setValues));
+	return INTEGER_VAL(!!Scene::CheckEntityPlatform((Entity*)thisEntity->EntityPtr, &thisBox, (Entity*)otherEntity->EntityPtr, &otherBox, setValues));
 }
 // #endregion
 
@@ -19301,6 +19277,16 @@ They require the Game SDK library to be present.
     */
 	DEF_ENUM_CLASS(KeyBind, DevObjectRegions);
 	/***
+	* \enum KeyBind_DevViewHitboxes
+	* \desc Hitbox display keybind. (dev)
+	*/
+	DEF_ENUM_CLASS(KeyBind, DevViewHitboxes);
+	/***
+	* \enum KeyBind_DevMenuToggle
+	* \desc Open/close dev menu keybind. (dev)
+	*/
+	DEF_ENUM_CLASS(KeyBind, DevMenuToggle);
+	/***
     * \enum KeyBind_DevQuit
     * \desc App quit keybind. (dev)
     */
@@ -19346,13 +19332,13 @@ They require the Game SDK library to be present.
     * \desc Entity collision functions.
     */
 	INIT_CLASS(Collision);
-	DEF_NATIVE(Collision, ProcessObjectMovement);
-	DEF_NATIVE(Collision, ObjectTileCollision);
-	DEF_NATIVE(Collision, ObjectTileGrip);
-	DEF_NATIVE(Collision, CheckObjectCollisionTouch);
-	DEF_NATIVE(Collision, CheckObjectCollisionCircle);
-	DEF_NATIVE(Collision, CheckObjectCollisionBox);
-	DEF_NATIVE(Collision, CheckObjectCollisionPlatform);
+	DEF_NATIVE(Collision, ProcessEntityMovement);
+	DEF_NATIVE(Collision, CheckTileCollision);
+	DEF_NATIVE(Collision, CheckTileGrip);
+	DEF_NATIVE(Collision, CheckEntityTouch);
+	DEF_NATIVE(Collision, CheckEntityCircle);
+	DEF_NATIVE(Collision, CheckEntityBox);
+	DEF_NATIVE(Collision, CheckEntityPlatform);
 	// #endregion
 
 	// #region Controller
