@@ -46,7 +46,7 @@
         <h1 id="Reference_top">Hatch Game Engine Reference</h1>
         <h3>Namespaces</h3>
         <ul>
-            <li><a href="#Reference_API">API</a></li>
+            <li><a href="#Reference_API.Discord">API.Discord</a></li>
             <li><a href="#Reference_Animator">Animator</a></li>
             <li><a href="#Reference_Application">Application</a></li>
             <li><a href="#Reference_Array">Array</a></li>
@@ -193,12 +193,37 @@
         </ul>
         <hr/>
         <h3>Class methods</h3>
-            <p id="Reference_API">
-                <h2>API</h2>
+            <p id="Reference_API.Discord">
+                <h2>API.Discord</h2>
                 <i>Class methods:</i>
                 <ul>
                     <li><a href="#Reference_functions_API_Discord_Init">API.Discord.Init</a></li>
                     <li><a href="#Reference_functions_API_Discord_UpdateRichPresence">API.Discord.UpdateRichPresence</a></li>
+                    <li><a href="#Reference_functions_API_Discord_SetActivityDetails">API.Discord.SetActivityDetails</a></li>
+                    <li><a href="#Reference_functions_API_Discord_SetActivityState">API.Discord.SetActivityState</a></li>
+                    <li><a href="#Reference_functions_API_Discord_SetActivityLargeImage">API.Discord.SetActivityLargeImage</a></li>
+                    <li><a href="#Reference_functions_API_Discord_SetActivitySmallImage">API.Discord.SetActivitySmallImage</a></li>
+                    <li><a href="#Reference_functions_API_Discord_SetActivityElapsedTimer">API.Discord.SetActivityElapsedTimer</a></li>
+                    <li><a href="#Reference_functions_API_Discord_SetActivityRemainingTimer">API.Discord.SetActivityRemainingTimer</a></li>
+                    <li><a href="#Reference_functions_API_Discord_SetActivityPartySize">API.Discord.SetActivityPartySize</a></li>
+                    <li><a href="#Reference_functions_API_Discord_UpdateActivity">API.Discord.UpdateActivity</a></li>
+                    <li><a href="#Reference_functions_API_Discord_GetCurrentUsername">API.Discord.GetCurrentUsername</a></li>
+                    <li><a href="#Reference_functions_API_Discord_GetCurrentUserID">API.Discord.GetCurrentUserID</a></li>
+                    <li><a href="#Reference_functions_API_Discord_GetCurrentUserAvatar">API.Discord.GetCurrentUserAvatar</a></li>
+                </ul>
+                <i>Enums:</i>
+                <ul>
+                    <li><a href="#Reference_enums_OK">OK</a></li>
+                    <li><a href="#Reference_enums_ERROR">ERROR</a></li>
+                    <li><a href="#Reference_enums_SERVICE_UNAVAILABLE">SERVICE_UNAVAILABLE</a></li>
+                    <li><a href="#Reference_enums_INVALID_VERSION">INVALID_VERSION</a></li>
+                    <li><a href="#Reference_enums_INVALID_PAYLOAD">INVALID_PAYLOAD</a></li>
+                    <li><a href="#Reference_enums_INVALID_PERMISSIONS">INVALID_PERMISSIONS</a></li>
+                    <li><a href="#Reference_enums_NOT_FOUND">NOT_FOUND</a></li>
+                    <li><a href="#Reference_enums_NOT_AUTHENTICATED">NOT_AUTHENTICATED</a></li>
+                    <li><a href="#Reference_enums_NOT_INSTALLED">NOT_INSTALLED</a></li>
+                    <li><a href="#Reference_enums_NOT_RUNNING">NOT_RUNNING</a></li>
+                    <li><a href="#Reference_enums_RATE_LIMITED">RATE_LIMITED</a></li>
                 </ul>
             </p>
             <p id="Reference_Animator">
@@ -2053,19 +2078,118 @@
         <li>applicationID (String): The Discord Application ID. This will have needed to be created via the Discord Developer Portal.</li>
         </ul>
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
-        <div style="font-size: 14px;">Returns whether initialization was successful.</div>
+        <div style="font-size: 14px;">Returns an API response code.</div>
         </p>
         <p id="Reference_functions_API_Discord_UpdateRichPresence">
         <h2 style="margin-bottom: 8px;">API.Discord.UpdateRichPresence</h2>
         <code>API.Discord.UpdateRichPresence(details[, state, largeImageKey, smallImageKey, startTime])</code>
-        <div style="margin-top: 8px; font-size: 14px;">Updates Discord Rich Presence.</div>
+        <div style="margin-top: 8px; font-size: 14px;">Updates Discord Rich Presence. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
         <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
         <ul style="margin-top: 0px; font-size: 14px;">
         <li>details (String): The first line of text in the Rich Presence.</li>
         <li>state (String): The second line of text, appearing below details.</li>
         <li>largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.</li>
         <li>smallImageKey (String): The internal name of the small image asset to display, also created via the Discord Developer Portal.</li>
-        <li>startTime (Integer): A Unix timestamp (in seconds) of when the activity started. This can also be used as the 4th argument in smallImageKey's place.</li>
+        <li>startTime (Integer): A Unix timestamp (in seconds) of when the activity started. This can also be used as the 4th argument in smallImageKey's place. If <code>0</code>, the timer is disabled.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_API_Discord_SetActivityDetails">
+        <h2 style="margin-bottom: 8px;">API.Discord.SetActivityDetails</h2>
+        <code>API.Discord.SetActivityDetails(details)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the first line of text of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>details (String): The first line of text in the Rich Presence.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_API_Discord_SetActivityState">
+        <h2 style="margin-bottom: 8px;">API.Discord.SetActivityState</h2>
+        <code>API.Discord.SetActivityState(details)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the second line of text of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>details (String): The second line of text, appearing below details.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_API_Discord_SetActivityLargeImage">
+        <h2 style="margin-bottom: 8px;">API.Discord.SetActivityLargeImage</h2>
+        <code>API.Discord.SetActivityLargeImage(largeImageKey[, largeImageText])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the image (and optionally) the hover text of the large image asset. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.</li>
+        <li>largeImageText (String): The hover text of the large image.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_API_Discord_SetActivitySmallImage">
+        <h2 style="margin-bottom: 8px;">API.Discord.SetActivitySmallImage</h2>
+        <code>API.Discord.SetActivitySmallImage(smallImageKey[, smallImageText])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the image (and optionally) the hover text of the small image asset. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>smallImageKey (String): The internal name of the small image asset to display, created via the Discord Developer Portal.</li>
+        <li>smallImageText (String): The hover text of the small image.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_API_Discord_SetActivityElapsedTimer">
+        <h2 style="margin-bottom: 8px;">API.Discord.SetActivityElapsedTimer</h2>
+        <code>API.Discord.SetActivityElapsedTimer(timestamp)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the elapsed timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>timestamp (Integer): A Unix timestamp of when the timer started. If <code>0</code>, the timer is disabled.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_API_Discord_SetActivityRemainingTimer">
+        <h2 style="margin-bottom: 8px;">API.Discord.SetActivityRemainingTimer</h2>
+        <code>API.Discord.SetActivityRemainingTimer(timestamp)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the remaining timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>timestamp (Integer): A Unix timestamp of when the timer will end. If <code>0</code>, the timer is disabled.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_API_Discord_SetActivityPartySize">
+        <h2 style="margin-bottom: 8px;">API.Discord.SetActivityPartySize</h2>
+        <code>API.Discord.SetActivityPartySize(currentSize[, maxSize])</code>
+        <div style="margin-top: 8px; font-size: 14px;">Sets the current party size (and optionally) the max party size of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>currentSize (Integer): The current size of the party.</li>
+        <li>maxSize (Integer): The max size of the party.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_API_Discord_UpdateActivity">
+        <h2 style="margin-bottom: 8px;">API.Discord.UpdateActivity</h2>
+        <code>API.Discord.UpdateActivity(details)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Updates the user's presence. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>details (String): The first line of text in the Rich Presence.</li>
+        </ul>
+        </p>
+        <p id="Reference_functions_API_Discord_GetCurrentUsername">
+        <h2 style="margin-bottom: 8px;">API.Discord.GetCurrentUsername</h2>
+        <code>API.Discord.GetCurrentUsername()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current user's username. This returns <code>null</code> if the integration hasn't received the user's information yet. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code>.</div>
+        </p>
+        <p id="Reference_functions_API_Discord_GetCurrentUserID">
+        <h2 style="margin-bottom: 8px;">API.Discord.GetCurrentUserID</h2>
+        <code>API.Discord.GetCurrentUserID()</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current user's ID. This returns <code>null</code> if the integration hasn't received the user's information yet. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
+        <div style="font-size: 14px;">Returns a String value, or <code>null</code>.</div>
+        </p>
+        <p id="Reference_functions_API_Discord_GetCurrentUserAvatar">
+        <h2 style="margin-bottom: 8px;">API.Discord.GetCurrentUserAvatar</h2>
+        <code>API.Discord.GetCurrentUserAvatar(size, callback)</code>
+        <div style="margin-top: 8px; font-size: 14px;">Gets the current user's avatar. This is an asynchronous operation. The callback function must have one parameter, and it receives an Image if the operation succeeded, or <code>null</code> if the operation failed. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.</div>
+        <div style="font-weight: bold; margin-top: 8px;">Parameters:</div>
+        <ul style="margin-top: 0px; font-size: 14px;">
+        <li>size (Integer): The size of the avatar to fetch. Must be one of: 16, 32, 64, 128, 256, 512, 1024</li>
+        <li>callback (Function): The callback to execute.</li>
         </ul>
         </p>
         <p id="Reference_functions_Animator_Create">
@@ -10673,7 +10797,7 @@
         <div style="font-weight: bold; margin-top: 8px;">Returns:</div>
         <div style="font-size: 14px;">Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.</div>
         </p>
-        <p>775 out of 830 functions have descriptions. </p>
+        <p>786 out of 841 functions have descriptions. </p>
         <hr/>
         <h3>Instance methods</h3>
         <p id="Reference_methods_entity_SetAnimation">
@@ -11782,6 +11906,50 @@
         <p id="Reference_enums_ALIGN_RIGHT">
         <h3 style="margin-bottom: 8px;"><code>ALIGN_RIGHT</code></h2>
         <div style="margin-top: 8px; font-size: 14px;">Right alignment for text drawing.</div>
+        </p>
+        <p id="Reference_enums_OK">
+        <h3 style="margin-bottom: 8px;"><code>OK</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Request was successful.</div>
+        </p>
+        <p id="Reference_enums_ERROR">
+        <h3 style="margin-bottom: 8px;"><code>ERROR</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">An error happened.</div>
+        </p>
+        <p id="Reference_enums_SERVICE_UNAVAILABLE">
+        <h3 style="margin-bottom: 8px;"><code>SERVICE_UNAVAILABLE</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Service isn't available.</div>
+        </p>
+        <p id="Reference_enums_INVALID_VERSION">
+        <h3 style="margin-bottom: 8px;"><code>INVALID_VERSION</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">SDK version mismatch.</div>
+        </p>
+        <p id="Reference_enums_INVALID_PAYLOAD">
+        <h3 style="margin-bottom: 8px;"><code>INVALID_PAYLOAD</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The service didn't accept the data that it received.</div>
+        </p>
+        <p id="Reference_enums_INVALID_PERMISSIONS">
+        <h3 style="margin-bottom: 8px;"><code>INVALID_PERMISSIONS</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Not authorized for this operation.</div>
+        </p>
+        <p id="Reference_enums_NOT_FOUND">
+        <h3 style="margin-bottom: 8px;"><code>NOT_FOUND</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">The service couldn't find what was requested.</div>
+        </p>
+        <p id="Reference_enums_NOT_AUTHENTICATED">
+        <h3 style="margin-bottom: 8px;"><code>NOT_AUTHENTICATED</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">User isn't authenticated.</div>
+        </p>
+        <p id="Reference_enums_NOT_INSTALLED">
+        <h3 style="margin-bottom: 8px;"><code>NOT_INSTALLED</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Discord isn't installed.</div>
+        </p>
+        <p id="Reference_enums_NOT_RUNNING">
+        <h3 style="margin-bottom: 8px;"><code>NOT_RUNNING</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">Discord isn't running.</div>
+        </p>
+        <p id="Reference_enums_RATE_LIMITED">
+        <h3 style="margin-bottom: 8px;"><code>RATE_LIMITED</code></h2>
+        <div style="margin-top: 8px; font-size: 14px;">This request is being sent too quickly.</div>
         </p>
         <p id="Reference_enums_AUDIO_LOOP_NONE">
         <h3 style="margin-bottom: 8px;"><code>AUDIO_LOOP_NONE</code></h2>

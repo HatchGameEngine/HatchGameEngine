@@ -3071,6 +3071,21 @@ int Scene::LoadImageResource(const char* filename, int unloadPolicy) {
 
 	return (int)index;
 }
+int Scene::AddImageResource(Image* image, const char* filename, int unloadPolicy) {
+	ResourceType* resource = new (std::nothrow) ResourceType();
+	resource->FilenameHash = CRC32::EncryptString(filename);
+	resource->UnloadPolicy = unloadPolicy;
+
+	size_t index = 0;
+	vector<ResourceType*>* list = &Scene::ImageList;
+	if (Scene::GetResource(list, resource, index)) {
+		return (int)index;
+	}
+
+	resource->AsImage = image;
+
+	return (int)index;
+}
 int Scene::LoadModelResource(const char* filename, int unloadPolicy) {
 	ResourceType* resource = new (std::nothrow) ResourceType();
 	resource->FilenameHash = CRC32::EncryptString(filename);

@@ -287,6 +287,23 @@ inline ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline VMValue GetCallable(VMValue* args, int index, Uint32 threadID) {
+	VMValue value = NULL_VAL;
+	if (ScriptManager::Lock()) {
+		if (IS_CALLABLE(args[index])) {
+			value = args[index];
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type callable instead of %s.",
+				    index + 1,
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 	ObjInstance* value = NULL;
 	if (ScriptManager::Lock()) {
@@ -1375,32 +1392,32 @@ VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  * API.Discord.Init
  * \desc Initializes Discord integration.
  * \param applicationID (String): The Discord Application ID. This will have needed to be created via the Discord Developer Portal.
- * \return Returns whether initialization was successful.
- * \ns API
+ * \return Returns an API response code.
+ * \ns API.Discord
  */
 VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-    const char* applicationID = GET_ARG(0, GetString);
-    Discord::Init(applicationID);
-	return INTEGER_VAL(Discord::Initialized);
+	const char* applicationID = GET_ARG(0, GetString);
+	int result = Discord::Init(applicationID);
+	return INTEGER_VAL(result);
 }
 /***
  * API.Discord.UpdateRichPresence
- * \desc Updates Discord Rich Presence.
+ * \desc Updates Discord Rich Presence. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
  * \param details (String): The first line of text in the Rich Presence.
  * \paramOpt state (String): The second line of text, appearing below details.
  * \paramOpt largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.
  * \paramOpt smallImageKey (String): The internal name of the small image asset to display, also created via the Discord Developer Portal.
- * \paramOpt startTime (Integer): A Unix timestamp (in seconds) of when the activity started. This can also be used as the 4th argument in smallImageKey's place.
- * \ns API
+ * \paramOpt startTime (Integer): A Unix timestamp (in seconds) of when the activity started. This can also be used as the 4th argument in smallImageKey's place. If <code>0</code>, the timer is disabled.
+ * \ns API.Discord
  */
 VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	const char* details = GET_ARG(0, GetString);
-	const char* state = GET_ARG_OPT(1, GetString, NULL);
-	const char* largeImageKey = GET_ARG_OPT(2, GetString, NULL);
-	const char* smallImageKey = NULL;
-	time_t startTime = 0;
+	const char* state = GET_ARG_OPT(1, GetString, nullptr);
+	const char* largeImageKey = GET_ARG_OPT(2, GetString, nullptr);
+	const char* smallImageKey = nullptr;
+	int startTime = 0;
 
 	if (argCount == 4) {
 		if (IS_INTEGER(args[3]))
@@ -1413,7 +1430,264 @@ VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID)
 		startTime = GET_ARG(4, GetInteger);
 	}
 
-	Discord::UpdatePresence(details, state, largeImageKey, smallImageKey, 0, 0, startTime);
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	DiscordIntegrationActivity presence;
+	presence.Details = details;
+	presence.State = state;
+	presence.LargeImageKey = largeImageKey;
+	presence.SmallImageKey = smallImageKey;
+	presence.StartTime = (time_t)startTime;
+
+	Discord::UpdatePresence(presence);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityDetails
+ * \desc Sets the first line of text of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param details (String): The first line of text in the Rich Presence.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityDetails(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	const char* details = GET_ARG(0, GetString);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::SetDetails(details);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityState
+ * \desc Sets the second line of text of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param details (String): The second line of text, appearing below details.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityState(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	const char* state = GET_ARG(0, GetString);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::SetState(state);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityLargeImage
+ * \desc Sets the image (and optionally) the hover text of the large image asset. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.
+ * \paramOpt largeImageText (String): The hover text of the large image.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityLargeImage(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	const char* key = GET_ARG(0, GetString);
+	const char* text = GET_ARG_OPT(1, GetString, nullptr);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	if (text) {
+		Discord::Activity::SetLargeImage(key, text);
+	}
+	else {
+		Discord::Activity::SetLargeImageKey(key);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivitySmallImage
+ * \desc Sets the image (and optionally) the hover text of the small image asset. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param smallImageKey (String): The internal name of the small image asset to display, created via the Discord Developer Portal.
+ * \paramOpt smallImageText (String): The hover text of the small image.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivitySmallImage(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	const char* key = GET_ARG(0, GetString);
+	const char* text = GET_ARG_OPT(1, GetString, nullptr);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	if (text) {
+		Discord::Activity::SetSmallImage(key, text);
+	}
+	else {
+		Discord::Activity::SetSmallImageKey(key);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityElapsedTimer
+ * \desc Sets the elapsed timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param timestamp (Integer): A Unix timestamp of when the timer started. If <code>0</code>, the timer is disabled.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityElapsedTimer(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int timestamp = GET_ARG(0, GetInteger);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::SetElapsedTimer(timestamp);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityRemainingTimer
+ * \desc Sets the remaining timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param timestamp (Integer): A Unix timestamp of when the timer will end. If <code>0</code>, the timer is disabled.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityRemainingTimer(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int timestamp = GET_ARG(0, GetInteger);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::SetRemainingTimer(timestamp);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityPartySize
+ * \desc Sets the current party size (and optionally) the max party size of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param currentSize (Integer): The current size of the party.
+ * \paramOpt maxSize (Integer): The max size of the party.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	int currentSize = GET_ARG(0, GetInteger);
+	int maxSize = GET_ARG_OPT(1, GetInteger, 0);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::SetPartySize(currentSize);
+	if (argCount >= 2) {
+		Discord::Activity::SetPartyMaxSize(maxSize);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.UpdateActivity
+ * \desc Updates the user's presence. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param details (String): The first line of text in the Rich Presence.
+ * \ns API.Discord
+ */
+VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::Update();
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.GetCurrentUsername
+ * \desc Gets the current user's username. This returns <code>null</code> if the integration hasn't received the user's information yet. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \return Returns a String value, or <code>null</code>.
+ * \ns API.Discord
+ */
+VMValue Discord_GetCurrentUsername(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	DiscordIntegrationUserInfo* details = Discord::User::GetDetails();
+	if (!details) {
+		return NULL_VAL;
+	}
+
+	return ReturnString(details->Username);
+}
+/***
+ * API.Discord.GetCurrentUserID
+ * \desc Gets the current user's ID. This returns <code>null</code> if the integration hasn't received the user's information yet. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \return Returns a String value, or <code>null</code>.
+ * \ns API.Discord
+ */
+VMValue Discord_GetCurrentUserID(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	DiscordIntegrationUserInfo* details = Discord::User::GetDetails();
+	if (!details) {
+		return NULL_VAL;
+	}
+
+	return ReturnString(details->ID);
+}
+/***
+ * API.Discord.GetCurrentUserAvatar
+ * \desc Gets the current user's avatar. This is an asynchronous operation. The callback function must have one parameter, and it receives an Image if the operation succeeded, or <code>null</code> if the operation failed. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \param size (Integer): The size of the avatar to fetch. Must be one of: 16, 32, 64, 128, 256, 512, 1024
+ * \param callback (Function): The callback to execute.
+ * \ns API.Discord
+ */
+VMValue Discord_GetCurrentUserAvatar(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	int size = GET_ARG(0, GetInteger);
+	if (size < 16 || size > 1024) {
+		OUT_OF_RANGE_ERROR("Avatar size", size, 16, 1024);
+		return NULL_VAL;
+	}
+
+	VMValue callable = GET_ARG(1, GetCallable);
+	if (IS_NULL(callable)) {
+		return NULL_VAL;
+	}
+
+	VMThreadCallback* callbackData = (VMThreadCallback*)Memory::Malloc(sizeof(VMThreadCallback));
+	if (!callbackData) {
+		return NULL_VAL;
+	}
+	callbackData->ThreadID = threadID;
+	callbackData->Callable = callable;
+
+	DiscordIntegrationCallback* callback = (DiscordIntegrationCallback*)Memory::Malloc(sizeof(DiscordIntegrationCallback));
+	if (!callback) {
+		Memory::Free(callbackData);
+		return NULL_VAL;
+	}
+	callback->Type = DiscordIntegrationCallbackType_Script;
+	callback->Function = callbackData;
+
+	Discord::User::GetAvatar(size, callback);
 
 	return NULL_VAL;
 }
@@ -19027,6 +19301,7 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 #define DEF_ENUM(a) DEF_CONST_INT(#a, a)
 #define DEF_ENUM_CLASS(a, b) DEF_CONST_INT(#a "_" #b, (int)a::b)
 #define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(a "_" #c, (int)b::c)
+#define DEF_ENUM_IN_CLASS(a, b) ScriptManager::GlobalConstInteger(klass, a, b)
 
 void StandardLibrary::Link() {
 	ObjClass* klass;
@@ -19115,6 +19390,84 @@ void StandardLibrary::Link() {
 	INIT_NAMESPACED_CLASS(API, Discord);
 	DEF_NAMESPACED_NATIVE(Discord, Init);
 	DEF_NAMESPACED_NATIVE(Discord, UpdateRichPresence);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityDetails);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityState);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityLargeImage);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivitySmallImage);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityElapsedTimer);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityRemainingTimer);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityPartySize);
+	DEF_NAMESPACED_NATIVE(Discord, UpdateActivity);
+	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUsername);
+	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUserID);
+	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUserAvatar);
+
+	/***
+    * \enum OK
+    * \desc Request was successful.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("OK", DISCORDRESULT_OK);
+	/***
+    * \enum ERROR
+    * \desc An error happened.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("ERROR", DISCORDRESULT_ERROR);
+	/***
+    * \enum SERVICE_UNAVAILABLE
+    * \desc Service isn't available.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("SERVICE_UNAVAILABLE", DISCORDRESULT_SERVICEUNAVAILABLE);
+	/***
+    * \enum INVALID_VERSION
+    * \desc SDK version mismatch.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("INVALID_VERSION", DISCORDRESULT_INVALIDVERSION);
+	/***
+    * \enum INVALID_PAYLOAD
+    * \desc The service didn't accept the data that it received.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("INVALID_PAYLOAD", DISCORDRESULT_INVALIDPAYLOAD);
+	/***
+    * \enum INVALID_PERMISSIONS
+    * \desc Not authorized for this operation.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("INVALID_PERMISSIONS", DISCORDRESULT_INVALIDPERMISSIONS);
+	/***
+    * \enum NOT_FOUND
+    * \desc The service couldn't find what was requested.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_FOUND", DISCORDRESULT_NOTFOUND);
+	/***
+    * \enum NOT_AUTHENTICATED
+    * \desc User isn't authenticated.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_AUTHENTICATED", DISCORDRESULT_NOTAUTHENTICATED);
+	/***
+    * \enum NOT_INSTALLED
+    * \desc Discord isn't installed.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_INSTALLED", DISCORDRESULT_NOTINSTALLED);
+	/***
+    * \enum NOT_RUNNING
+    * \desc Discord isn't running.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_RUNNING", DISCORDRESULT_NOTRUNNING);
+	/***
+    * \enum RATE_LIMITED
+    * \desc This request is being sent too quickly.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("RATE_LIMITED", DISCORDRESULT_RATELIMITED);
 	// #endregion
 
 	// #region Application
