@@ -1403,7 +1403,8 @@ VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * API.Discord.UpdateRichPresence
- * \desc Updates Discord Rich Presence. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Updates Discord Rich Presence.<br/>\
+The integration must have been initialized with `API.Discord.Init` before calling this.
  * \param details (string): The first line of text in the Rich Presence.
  * \paramOpt state (string): The second line of text, appearing below details.
  * \paramOpt largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
@@ -1599,7 +1600,8 @@ VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * API.Discord.UpdateActivity
- * \desc Updates the user's presence. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Updates the user's presence.<br/>\
+The integration must have been initialized with `API.Discord.Init` before calling this.
  * \param details (string): The first line of text in the Rich Presence.
  * \ns API.Discord
  */
@@ -1616,7 +1618,8 @@ VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * API.Discord.GetCurrentUsername
- * \desc Gets the current user's username. This returns `null` if the integration hasn't received the user's information yet. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Gets the current user's username.<br/>\
+This returns `null` if the integration hasn't received the user's information yet. The integration must have been initialized with `API.Discord.Init` before calling this.
  * \return string Returns a string value, or `null`.
  * \ns API.Discord
  */
@@ -1636,7 +1639,8 @@ VMValue Discord_GetCurrentUsername(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * API.Discord.GetCurrentUserID
- * \desc Gets the current user's ID. This returns `null` if the integration hasn't received the user's information yet. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Gets the current user's ID.<br/>\
+This returns `null` if the integration hasn't received the user's information yet. The integration must have been initialized with `API.Discord.Init` before calling this.
  * \return string Returns a string value, or `null`.
  * \ns API.Discord
  */
@@ -1656,7 +1660,8 @@ VMValue Discord_GetCurrentUserID(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * API.Discord.GetCurrentUserAvatar
- * \desc Gets the current user's avatar. This is an asynchronous operation. The callback function must have one parameter, and it receives an Image if the operation succeeded, or `null` if the operation failed. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Gets the current user's avatar.<br/>\
+The callback function must have two parameters: `responseCode` and `image`. `responseCode` receives the API response code, and `image` receives an Image if the operation succeeded, or `null` if it failed. The integration must have been initialized with `API.Discord.Init` before calling this.
  * \param size (integer): The size of the avatar to fetch. Must be one of: 16, 32, 64, 128, 256, 512, 1024
  * \param callback (function): The callback to execute.
  * \ns API.Discord
