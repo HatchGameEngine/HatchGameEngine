@@ -1403,12 +1403,12 @@ VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * API.Discord.UpdateRichPresence
- * \desc Updates Discord Rich Presence. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
+ * \desc Updates Discord Rich Presence. The integration must have been initialized with `API.Discord.Init` before calling this.
  * \param details (string): The first line of text in the Rich Presence.
  * \paramOpt state (string): The second line of text, appearing below details.
  * \paramOpt largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
  * \paramOpt smallImageKey (string): The internal name of the small image asset to display, also created via the Discord Developer Portal.
- * \paramOpt startTime (integer): A Unix timestamp of when the activity started. This can also be used as the 4th argument in smallImageKey's place. If <code>0</code>, the timer is disabled.
+ * \paramOpt startTime (integer): A Unix timestamp of when the activity started. This can also be used as the 4th argument in smallImageKey's place. If `0`, the timer is disabled.
  * \ns API.Discord
  */
 VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID) {
@@ -1447,8 +1447,8 @@ VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * API.Discord.SetActivityDetails
- * \desc Sets the first line of text of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \param details (String): The first line of text in the Rich Presence.
+ * \desc Sets the first line of text of the activity. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param details (string): The first line of text in the Rich Presence.
  * \ns API.Discord
  */
 VMValue Discord_SetActivityDetails(int argCount, VMValue* args, Uint32 threadID) {
@@ -1465,8 +1465,8 @@ VMValue Discord_SetActivityDetails(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * API.Discord.SetActivityState
- * \desc Sets the second line of text of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \param details (String): The second line of text, appearing below details.
+ * \desc Sets the second line of text of the activity. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param details (string): The second line of text, appearing below details.
  * \ns API.Discord
  */
 VMValue Discord_SetActivityState(int argCount, VMValue* args, Uint32 threadID) {
@@ -1483,9 +1483,9 @@ VMValue Discord_SetActivityState(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * API.Discord.SetActivityLargeImage
- * \desc Sets the image (and optionally) the hover text of the large image asset. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \param largeImageKey (String): The internal name of the large image asset to display, created via the Discord Developer Portal.
- * \paramOpt largeImageText (String): The hover text of the large image.
+ * \desc Sets the image (and optionally) the hover text of the large image asset. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
+ * \paramOpt largeImageText (string): The hover text of the large image.
  * \ns API.Discord
  */
 VMValue Discord_SetActivityLargeImage(int argCount, VMValue* args, Uint32 threadID) {
@@ -1508,9 +1508,9 @@ VMValue Discord_SetActivityLargeImage(int argCount, VMValue* args, Uint32 thread
 }
 /***
  * API.Discord.SetActivitySmallImage
- * \desc Sets the image (and optionally) the hover text of the small image asset. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \param smallImageKey (String): The internal name of the small image asset to display, created via the Discord Developer Portal.
- * \paramOpt smallImageText (String): The hover text of the small image.
+ * \desc Sets the image (and optionally) the hover text of the small image asset. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param smallImageKey (string): The internal name of the small image asset to display, created via the Discord Developer Portal.
+ * \paramOpt smallImageText (string): The hover text of the small image.
  * \ns API.Discord
  */
 VMValue Discord_SetActivitySmallImage(int argCount, VMValue* args, Uint32 threadID) {
@@ -1533,8 +1533,8 @@ VMValue Discord_SetActivitySmallImage(int argCount, VMValue* args, Uint32 thread
 }
 /***
  * API.Discord.SetActivityElapsedTimer
- * \desc Sets the elapsed timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \param timestamp (Integer): A Unix timestamp of when the timer started. If <code>0</code>, the timer is disabled.
+ * \desc Sets the elapsed timer of the activity. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param timestamp (integer): A Unix timestamp of when the timer started. If `0`, the timer is disabled.
  * \ns API.Discord
  */
 VMValue Discord_SetActivityElapsedTimer(int argCount, VMValue* args, Uint32 threadID) {
@@ -1551,8 +1551,8 @@ VMValue Discord_SetActivityElapsedTimer(int argCount, VMValue* args, Uint32 thre
 }
 /***
  * API.Discord.SetActivityRemainingTimer
- * \desc Sets the remaining timer of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \param timestamp (Integer): A Unix timestamp of when the timer will end. If <code>0</code>, the timer is disabled.
+ * \desc Sets the remaining timer of the activity. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param timestamp (integer): A Unix timestamp of when the timer will end. If `0`, the timer is disabled.
  * \ns API.Discord
  */
 VMValue Discord_SetActivityRemainingTimer(int argCount, VMValue* args, Uint32 threadID) {
@@ -1569,9 +1569,9 @@ VMValue Discord_SetActivityRemainingTimer(int argCount, VMValue* args, Uint32 th
 }
 /***
  * API.Discord.SetActivityPartySize
- * \desc Sets the current party size (and optionally) the max party size of the activity. This doesn't update the user's presence; you must call <code>API.Discord.UpdateActivity</code>. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \param currentSize (Integer): The current size of the party.
- * \paramOpt maxSize (Integer): The max size of the party.
+ * \desc Sets the current party size (and optionally) the max party size of the activity. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param currentSize (integer): The current size of the party.
+ * \paramOpt maxSize (integer): The max size of the party.
  * \ns API.Discord
  */
 VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, Uint32 threadID) {
@@ -1592,8 +1592,8 @@ VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * API.Discord.UpdateActivity
- * \desc Updates the user's presence. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \param details (String): The first line of text in the Rich Presence.
+ * \desc Updates the user's presence. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param details (string): The first line of text in the Rich Presence.
  * \ns API.Discord
  */
 VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
@@ -1609,8 +1609,8 @@ VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * API.Discord.GetCurrentUsername
- * \desc Gets the current user's username. This returns <code>null</code> if the integration hasn't received the user's information yet. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \return Returns a String value, or <code>null</code>.
+ * \desc Gets the current user's username. This returns `null` if the integration hasn't received the user's information yet. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \return string Returns a string value, or `null`.
  * \ns API.Discord
  */
 VMValue Discord_GetCurrentUsername(int argCount, VMValue* args, Uint32 threadID) {
@@ -1629,8 +1629,8 @@ VMValue Discord_GetCurrentUsername(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * API.Discord.GetCurrentUserID
- * \desc Gets the current user's ID. This returns <code>null</code> if the integration hasn't received the user's information yet. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \return Returns a String value, or <code>null</code>.
+ * \desc Gets the current user's ID. This returns `null` if the integration hasn't received the user's information yet. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \return string Returns a string value, or `null`.
  * \ns API.Discord
  */
 VMValue Discord_GetCurrentUserID(int argCount, VMValue* args, Uint32 threadID) {
@@ -1649,9 +1649,9 @@ VMValue Discord_GetCurrentUserID(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * API.Discord.GetCurrentUserAvatar
- * \desc Gets the current user's avatar. This is an asynchronous operation. The callback function must have one parameter, and it receives an Image if the operation succeeded, or <code>null</code> if the operation failed. The integration must have been initialized with <code>API.Discord.Init</code> before calling this.
- * \param size (Integer): The size of the avatar to fetch. Must be one of: 16, 32, 64, 128, 256, 512, 1024
- * \param callback (Function): The callback to execute.
+ * \desc Gets the current user's avatar. This is an asynchronous operation. The callback function must have one parameter, and it receives an Image if the operation succeeded, or `null` if the operation failed. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param size (integer): The size of the avatar to fetch. Must be one of: 16, 32, 64, 128, 256, 512, 1024
+ * \param callback (function): The callback to execute.
  * \ns API.Discord
  */
 VMValue Discord_GetCurrentUserAvatar(int argCount, VMValue* args, Uint32 threadID) {
