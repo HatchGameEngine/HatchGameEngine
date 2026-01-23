@@ -1431,7 +1431,6 @@ VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID)
 	}
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
@@ -1457,7 +1456,6 @@ VMValue Discord_SetActivityDetails(int argCount, VMValue* args, Uint32 threadID)
 	const char* details = GET_ARG(0, GetString);
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
@@ -1476,7 +1474,6 @@ VMValue Discord_SetActivityState(int argCount, VMValue* args, Uint32 threadID) {
 	const char* state = GET_ARG(0, GetString);
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
@@ -1497,7 +1494,6 @@ VMValue Discord_SetActivityLargeImage(int argCount, VMValue* args, Uint32 thread
 	const char* text = GET_ARG_OPT(1, GetString, nullptr);
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
@@ -1523,7 +1519,6 @@ VMValue Discord_SetActivitySmallImage(int argCount, VMValue* args, Uint32 thread
 	const char* text = GET_ARG_OPT(1, GetString, nullptr);
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
@@ -1547,7 +1542,6 @@ VMValue Discord_SetActivityElapsedTimer(int argCount, VMValue* args, Uint32 thre
 	int timestamp = GET_ARG(0, GetInteger);
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
@@ -1566,7 +1560,6 @@ VMValue Discord_SetActivityRemainingTimer(int argCount, VMValue* args, Uint32 th
 	int timestamp = GET_ARG(0, GetInteger);
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
@@ -1587,7 +1580,6 @@ VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, Uint32 threadI
 	int maxSize = GET_ARG_OPT(1, GetInteger, 0);
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
@@ -1608,7 +1600,6 @@ VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
@@ -1626,7 +1617,6 @@ VMValue Discord_GetCurrentUsername(int argCount, VMValue* args, Uint32 threadID)
 	CHECK_ARGCOUNT(0);
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
@@ -1647,7 +1637,6 @@ VMValue Discord_GetCurrentUserID(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
@@ -1669,7 +1658,6 @@ VMValue Discord_GetCurrentUserAvatar(int argCount, VMValue* args, Uint32 threadI
 	CHECK_ARGCOUNT(2);
 
 	if (!Discord::Initialized) {
-		THROW_ERROR("Discord integration was not initialized!");
 		return NULL_VAL;
 	}
 
