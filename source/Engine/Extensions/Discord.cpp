@@ -482,7 +482,9 @@ void Discord::Dispose() {
 }
 
 #else
-void Discord::Init(const char* applicationID) {}
+int Discord::Init(const char* applicationID) {
+	return DISCORDRESULT_ERROR;
+}
 void Discord::Update() {}
 
 void Discord::Activity::SetDetails(const char* details) {}
