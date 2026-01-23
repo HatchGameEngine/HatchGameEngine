@@ -503,7 +503,9 @@ void Discord::Activity::SetPartyMaxSize(int size) {}
 
 void Discord::Activity::Update() {}
 
-void Discord::User::Update() {}
+int Discord::User::Update() {
+	return DISCORDRESULT_ERROR;
+}
 bool Discord::User::IsUserPresent() {
 	return false;
 }
