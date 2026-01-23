@@ -1447,7 +1447,8 @@ VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * API.Discord.SetActivityDetails
- * \desc Sets the first line of text of the activity. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Sets the first line of text of the activity.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
  * \param details (string): The first line of text in the Rich Presence.
  * \ns API.Discord
  */
@@ -1465,7 +1466,8 @@ VMValue Discord_SetActivityDetails(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * API.Discord.SetActivityState
- * \desc Sets the second line of text of the activity. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Sets the second line of text of the activity.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
  * \param details (string): The second line of text, appearing below details.
  * \ns API.Discord
  */
@@ -1483,7 +1485,8 @@ VMValue Discord_SetActivityState(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * API.Discord.SetActivityLargeImage
- * \desc Sets the image (and optionally) the hover text of the large image asset. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Sets the image (and optionally) the hover text of the large image asset.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
  * \param largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
  * \paramOpt largeImageText (string): The hover text of the large image.
  * \ns API.Discord
@@ -1508,7 +1511,8 @@ VMValue Discord_SetActivityLargeImage(int argCount, VMValue* args, Uint32 thread
 }
 /***
  * API.Discord.SetActivitySmallImage
- * \desc Sets the image (and optionally) the hover text of the small image asset. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Sets the image (and optionally) the hover text of the small image asset.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
  * \param smallImageKey (string): The internal name of the small image asset to display, created via the Discord Developer Portal.
  * \paramOpt smallImageText (string): The hover text of the small image.
  * \ns API.Discord
@@ -1533,7 +1537,8 @@ VMValue Discord_SetActivitySmallImage(int argCount, VMValue* args, Uint32 thread
 }
 /***
  * API.Discord.SetActivityElapsedTimer
- * \desc Sets the elapsed timer of the activity. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Sets the elapsed timer of the activity.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
  * \param timestamp (integer): A Unix timestamp of when the timer started. If `0`, the timer is disabled.
  * \ns API.Discord
  */
@@ -1551,7 +1556,8 @@ VMValue Discord_SetActivityElapsedTimer(int argCount, VMValue* args, Uint32 thre
 }
 /***
  * API.Discord.SetActivityRemainingTimer
- * \desc Sets the remaining timer of the activity. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Sets the remaining timer of the activity.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
  * \param timestamp (integer): A Unix timestamp of when the timer will end. If `0`, the timer is disabled.
  * \ns API.Discord
  */
@@ -1569,7 +1575,8 @@ VMValue Discord_SetActivityRemainingTimer(int argCount, VMValue* args, Uint32 th
 }
 /***
  * API.Discord.SetActivityPartySize
- * \desc Sets the current party size (and optionally) the max party size of the activity. This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \desc Sets the current party size (and optionally) the max party size of the activity.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
  * \param currentSize (integer): The current size of the party.
  * \paramOpt maxSize (integer): The max size of the party.
  * \ns API.Discord
