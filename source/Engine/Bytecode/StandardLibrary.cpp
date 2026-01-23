@@ -1408,7 +1408,7 @@ VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt state (string): The second line of text, appearing below details.
  * \paramOpt largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
  * \paramOpt smallImageKey (string): The internal name of the small image asset to display, also created via the Discord Developer Portal.
- * \paramOpt startTime (integer): A Unix timestamp (in seconds) of when the activity started. This can also be used as the 4th argument in smallImageKey's place. If <code>0</code>, the timer is disabled.
+ * \paramOpt startTime (integer): A Unix timestamp of when the activity started. This can also be used as the 4th argument in smallImageKey's place. If <code>0</code>, the timer is disabled.
  * \ns API.Discord
  */
 VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID) {
