@@ -2136,7 +2136,7 @@ The following <b>cannot</b> be changed between games:<ul>\
  * \param path (string): The path of the data file to load.
  * \paramOpt startingScene (string): The filename of the scene file to load upon changing the game. Note that restarting the game will load the starting scene defined in its GameConfig instead. Passing `null` to this argument is equivalent to not passing it at all.
  * \paramOpt cmdLineArgs (array): An array of strings containing the command line arguments to pass to the new game. If any of the values are not strings, they will be converted to a string representation. If this argument is not given, the current command line arguments will be passed to the new game.
- * \return boolean Returns if the game will change.
+ * \return boolean Returns whether the game will change.
  * \ns Application
  */
 VMValue Application_ChangeGame(int argCount, VMValue* args, Uint32 threadID) {
@@ -13266,7 +13266,7 @@ VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 t
 }
 /***
  * Scene.GetTileAnimSequencePaused
- * \desc Returns if a tile ID animation sequence is paused.
+ * \desc Returns whether a tile ID animation sequence is paused.
  * \param tileID (integer): The tile ID.
  * \return boolean Whether the animation is paused.
  * \ns Scene
