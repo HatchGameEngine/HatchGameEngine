@@ -130,7 +130,7 @@ void ScriptEntity::LinkFields() {
     * \type decimal
     * \default 1.0
     * \ns Entity
-    * \desc A field that may be used in <ref Entity.Render> for scaling a sprite horizontally.
+    * \desc Used by <ref Draw.SpriteBasic> for scaling the entity's sprite horizontally.
     */
 	LINK_DEC(ScaleX);
 	/***
@@ -138,7 +138,7 @@ void ScriptEntity::LinkFields() {
     * \type decimal
     * \default 1.0
     * \ns Entity
-    * \desc A field that may be used in <ref Entity.Render> for scaling a sprite vertically.
+    * \desc Used by <ref Draw.SpriteBasic> for scaling the entity's sprite vertically.
     */
 	LINK_DEC(ScaleY);
 	/***
@@ -146,7 +146,7 @@ void ScriptEntity::LinkFields() {
     * \type decimal
     * \default 0.0
     * \ns Entity
-    * \desc A field that may be used in <ref Entity.Render> for rotating a sprite.
+    * \desc Used by <ref Draw.SpriteBasic> for rotating the entity's sprite. See <ref Entity.RotationStyle>.
     */
 	LINK_DEC(Rotation);
 	/***
@@ -251,7 +251,7 @@ void ScriptEntity::LinkFields() {
 	* \type <ref ROTSTYLE_*>
 	* \default ROTSTYLE_NONE
 	* \ns Entity
-	* \desc The rotation style to use when this entity is called in <ref Draw.SpriteBasic>.
+	* \desc The rotation style to use when this entity's sprite is drawn by <ref Draw.SpriteBasic>.
 	*/
 	LINK_INT(RotationStyle);
 	/***
