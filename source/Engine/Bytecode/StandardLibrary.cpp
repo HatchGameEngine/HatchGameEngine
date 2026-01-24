@@ -3369,7 +3369,7 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \param flipY (integer): Whether to flip the sprite vertically.
  * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (number): Rotation of the drawn sprite in radians, or in integer if `useInteger` is `true`.
+ * \paramOpt rotation (number): Rotation of the drawn sprite in radians, or in integer if <param useInteger> is `true`.
  * \paramOpt useInteger (number): Whether the rotation argument is already in radians.
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
@@ -3767,7 +3767,7 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
  * \param flipY (integer): Whether to flip the sprite vertically.
  * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (number): Rotation of the drawn sprite in radians, or in integer if `useInteger` is `true`.
+ * \paramOpt rotation (number): Rotation of the drawn sprite in radians, or in integer if <param useInteger> is `true`.
  * \paramOpt useInteger (number): Whether the rotation argument is already in radians.
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
@@ -4657,7 +4657,7 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.TextEllipsis
- * \desc Draws UTF-8 text using a font, but adds ellipsis if the text doesn't fit in `maxWidth`.
+ * \desc Draws UTF-8 text using a font, but adds ellipsis if the text doesn't fit in <param maxWidth>.
  * \param font (Font): The Font to be used as text.
  * \param text (string): Text to draw.
  * \param x (number): X position of where to draw the text.
@@ -9950,7 +9950,7 @@ VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
  * Math.Sign
  * \desc Gets the sign associated with a decimal value.
  * \param n (number): Number value.
- * \return decimal Returns `-1` if `n` is negative, `1` if positive, and `0` if otherwise.
+ * \return decimal Returns `-1` if <param n> is negative, `1` if positive, and `0` if otherwise.
  * \ns Math
  */
 VMValue Math_Sign(int argCount, VMValue* args, Uint32 threadID) {
@@ -17271,7 +17271,7 @@ VMValue String_Length(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Compares two Strings lexicographically.
  * \param stringA (string): The first string to compare.
  * \param stringB (string): The second string to compare.
- * \return integer Returns the comparison result as an integer. The return value is a negative integer if `stringA` appears before `stringB` lexicographically, a positive integer if `stringA` appears after `stringB` lexicographically, and zero if `stringA` and `stringB` are equal.
+ * \return integer Returns the comparison result as an integer. The return value is a negative integer if <param stringA> appears before `stringB` lexicographically, a positive integer if <param stringA> appears after <param stringB> lexicographically, and zero if <param stringA> and <param stringB> are equal.
  * \ns String
  */
 VMValue String_Compare(int argCount, VMValue* args, Uint32 threadID) {
@@ -17425,9 +17425,9 @@ VMValue String_LastIndexOf(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Converts a string value to an integer value, if possible.
  * \param string (string): The string to parse.
  * \paramOpt radix (integer): The numerical base, or radix. If `0`, the radix is detected by the value of `string`: <br/>\
-If `string` begins with `0x`, it is a hexadecimal number (base 16);<br/>\
-Else, if `string` begins with `0`, it is an octal number (base 8);<br/>\
-Else, if `string` begins with `0b`, it is a binary number (base 2);<br/>\
+If <param string> begins with `0x`, it is a hexadecimal number (base 16);<br/>\
+Else, if <param string> begins with `0`, it is an octal number (base 8);<br/>\
+Else, if <param string> begins with `0b`, it is a binary number (base 2);<br/>\
 Else, the number is assumed to be in base 10.
  * \return integer Returns the value as an integer.
  * \ns String
