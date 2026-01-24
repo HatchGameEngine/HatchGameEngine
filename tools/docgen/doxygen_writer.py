@@ -88,7 +88,7 @@ class DoxygenWriter:
 
     return DoxygenWriter.write_function(title, doc, type)
 
-  def write_field(title, doc, type):
+  def write_field(doc, type):
     description = DoxygenWriter.process_description(doc.description)
 
     text = "    /**"
@@ -101,7 +101,10 @@ class DoxygenWriter:
         text += descriptions[1]
     text += "    **/\n"
 
-    text += f"    {type} {title};\n"
+    text += f"    {type} {doc.title}"
+    if doc.default_value is not None:
+      text += f" = {doc.default_value}"
+    text += ";\n"
 
     return text
 
@@ -131,7 +134,7 @@ class DoxygenWriter:
       elif doc.type == DefType.CONSTRUCTOR:
         text += DoxygenWriter.write_function(name, doc, "public")
       elif doc.type == DefType.FIELD:
-        text += DoxygenWriter.write_field(doc.title, doc, f"public {doc.value_type}")
+        text += DoxygenWriter.write_field(doc, f"public {doc.value_type}")
       text += "\n"
 
     text += "};"

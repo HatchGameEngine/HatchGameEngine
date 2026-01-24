@@ -39,6 +39,7 @@ void ScriptEntity::LinkFields() {
 	/***
     * \field X
     * \type decimal
+    * \default 0.0
     * \ns Entity
     * \desc The X position of the entity.
     */
@@ -46,6 +47,7 @@ void ScriptEntity::LinkFields() {
 	/***
     * \field Y
     * \type decimal
+    * \default 0.0
     * \ns Entity
     * \desc The Y position of the entity.
     */
@@ -53,6 +55,7 @@ void ScriptEntity::LinkFields() {
 	/***
     * \field Z
     * \type decimal
+    * \default 0.0
     * \ns Entity
     * \desc The Z position of the entity.
     */
@@ -327,7 +330,7 @@ void ScriptEntity::LinkFields() {
 	/***
     * \field ViewRenderFlag
     * \type integer
-    * \default ~0
+    * \default 0xFFFFFFFF
     * \ns Entity
     * \desc A bitfield that indicates in which views the entity renders. By default, this is on for every view.
     */
