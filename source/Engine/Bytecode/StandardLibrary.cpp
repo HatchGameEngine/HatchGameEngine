@@ -3099,7 +3099,7 @@ VMValue Date_GetEpoch(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Date.GetWeekday
  * \desc Gets the current day of the week, starting from 1 January 1970, 0:00 UTC.
- * \return integer The day of the week (0-6 corresponding to Sunday-Saturday).
+ * \return <ref WEEKDAY_*> The day of the week.
  * \ns Date
  */
 VMValue Date_GetWeekday(int argCount, VMValue* args, Uint32 threadID) {
@@ -3139,7 +3139,7 @@ VMValue Date_GetHour(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Date.GetTimeOfDay
  * \desc Gets the the current time of the day (Morning, Midday, Evening, Night).
- * \return enum The time of day based on the current hour.
+ * \return <ref TIMEOFDAY_*> The time of day based on the current hour.
  * \ns Date
  */
 VMValue Date_GetTimeOfDay(int argCount, VMValue* args, Uint32 threadID) {
@@ -7972,9 +7972,9 @@ VMValue Input_GetAxisName(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Input.ParseKeyName
- * \desc Parses a key name into its ID, if possible.
+ * \desc Parses a string into a <ref Key_*>.
  * \param keyName (string): The key name to parse.
- * \return <ref Key_*> Returns the parsed key ID, or `null` if it could not be parsed.
+ * \return <ref Key_*> Returns the parsed key, or `null` if it could not be parsed.
  * \ns Input
  */
 VMValue Input_ParseKeyName(int argCount, VMValue* args, Uint32 threadID) {
@@ -7988,9 +7988,9 @@ VMValue Input_ParseKeyName(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Input.ParseButtonName
- * \desc Parses a button name into a button index.
- * \param keyName (string): The button name to parse.
- * \return enum Returns the parsed button index, or `null` if it could not be parsed.
+ * \desc Parses a string into a <ref Button_*>.
+ * \param buttonName (string): The button name to parse.
+ * \return <ref Button_*> Returns the parsed button, or `null` if it could not be parsed.
  * \ns Input
  */
 VMValue Input_ParseButtonName(int argCount, VMValue* args, Uint32 threadID) {
@@ -8004,9 +8004,9 @@ VMValue Input_ParseButtonName(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Input.ParseAxisName
- * \desc Parses an axis into an axis index.
- * \param keyName (string): The axis name to parse.
- * \return enum Returns the parsed axis index, or `null` if it could not be parsed.
+ * \desc Parses a string into an <ref Axis_*>.
+ * \param axisName (string): The axis name to parse.
+ * \return <ref Axis_*> Returns the parsed axis, or `null` if it could not be parsed.
  * \ns Input
  */
 VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
@@ -11575,7 +11575,7 @@ VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
  * Object.GetActivity
  * \desc Gets the active state of an object that determines if/when it runs its GlobalUpdate function.
  * \param className (string): Name of the object class.
- * \return enum Returns the active state of the object if it is loaded, otherwise returns -1.
+ * \return <ref ACTIVE_*> Returns the active state of the object if it is loaded, otherwise returns -1.
  * \ns Object
  */
 VMValue Object_GetActivity(int argCount, VMValue* args, Uint32 threadID) {
@@ -12712,7 +12712,7 @@ VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetType
  * \desc Gets the type of the active scene.
- * \return enum Returns the type of the active scene, see <ref SCENETYPE_*>.
+ * \return <ref SCENETYPE_*> Returns the type of the active scene.
  * \ns Scene
  */
 VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
