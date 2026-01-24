@@ -12424,8 +12424,16 @@ VMValue Scene_Load(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.Change
- * \desc Changes the current scene if the category name and scene name are valid. If only one argument is provided, the global category is used. Note that this does not load the scene; you must use <ref Scene.Load>.
- * \param category (string): Category name.
+ * \desc Changes the current scene.<br/>\
+This does not load the scene. You must call <ref Scene.Load>.
+ * \param scene (string): Scene name in the global category. If the scene name is not found, the first scene in the category is used.
+ * \ns Scene
+ */
+/***
+ * Scene.Change
+ * \desc Changes the current scene.<br/>\
+This does not load the scene. You must call <ref Scene.Load>.
+ * \param category (string): Category name. If this is not valid, this function does nothing.
  * \param scene (string): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.
  * \ns Scene
  */
