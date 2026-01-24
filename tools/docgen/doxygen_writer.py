@@ -90,14 +90,27 @@ class DoxygenWriter:
   def write_field(doc, type):
     description = DoxygenWriter.process_description(doc.description)
 
+    if doc.deprecated is not None:
+      has_deprecated = True
+      deprecated = DoxygenWriter.process_description(doc.deprecated)
+    else:
+      has_deprecated = False
+
     text = "    /**"
+
     descriptions = DoxygenWriter.get_brief_and_extended_description(description)
     if descriptions:
       if descriptions[0]:
         text += f" \\brief {descriptions[0]}\n"
       if descriptions[1]:
-        text += "\n"
-        text += descriptions[1]
+        text += f"\n{descriptions[1]}\n"
+
+    if has_deprecated:
+      if deprecated:
+        text += f" \\deprecated {deprecated}\n"
+      else:
+        text += f" \\deprecated\n"
+
     text += "    **/\n"
 
     text += f"    {type} {doc.title}"

@@ -687,7 +687,7 @@ void ScriptEntity::LinkFields() {
     * \type boolean
     * \default false
     * \ns Entity
-    * \desc See <ref Entity.Persistence> instead.
+    * \deprecated See <ref Entity.Persistence> instead.
     */
 	Instance->InstanceObj.Fields->Put("Persistent", INTEGER_LINK_VAL(&Persistence));
 	/***
