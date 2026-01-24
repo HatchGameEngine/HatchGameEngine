@@ -52,8 +52,7 @@ class DoxygenWriter:
       if descriptions[0]:
         text += f" \\brief {descriptions[0]}\n"
       if descriptions[1]:
-        text += "\n"
-        text += descriptions[1]
+        text += f"\n{descriptions[1]}\n"
 
     params = []
     for param in doc.params:
