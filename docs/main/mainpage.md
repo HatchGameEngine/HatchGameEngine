@@ -15,6 +15,6 @@ The Manual section is a more in-depth explanation of how Hatch works. There will
 
 ### API Reference
 
-This section contains the API reference for the Hatch Scripting Language, or HSL.
+This section contains the API reference for the Hatch Scripting Language.
 
 - [API Reference](@ref hsl)
