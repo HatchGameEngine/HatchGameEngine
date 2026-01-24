@@ -18,8 +18,14 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y doxygen graphviz
+      - name: Download Doxygen
+        run: |
+          wget https://github.com/doxygen/doxygen/releases/download/Release_1_16_0/doxygen-1.16.0.linux.bin.tar.gz
+          tar -xzf doxygen-1.16.0.linux.bin.tar.gz
+          sudo mv doxygen-1.16.0/bin/doxygen /usr/local/bin/doxygen
+
+      - name: Install Graphviz
+        run: sudo apt-get update && sudo apt-get install -y graphviz
 
       - name: Generate HSL documentation
         run: |
