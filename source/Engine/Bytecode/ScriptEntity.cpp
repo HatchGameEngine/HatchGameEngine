@@ -329,18 +329,18 @@ void ScriptEntity::LinkFields() {
 	LINK_INT(Visible);
 	/***
     * \field ViewRenderFlag
-    * \type integer
+    * \type bitfield
     * \default 0xFFFFFFFF
     * \ns Entity
-    * \desc A bitfield that indicates in which views the entity renders. By default, this is on for every view.
+    * \desc Which views the entity can render on. By default, this is on for every view.
     */
 	LINK_INT(ViewRenderFlag);
 	/***
     * \field ViewOverrideFlag
-    * \type integer
+    * \type bitfield
     * \default 0
     * \ns Entity
-    * \desc A bitfield similar to <ref Entity.ViewRenderFlag>. Bypasses each view's entity rendering toggle set by <ref Scene.SetObjectViewRender>.
+    * \desc Bypasses each view's entity rendering toggle set by <ref Scene.SetObjectViewRender>.
     */
 	LINK_INT(ViewOverrideFlag);
 
@@ -512,10 +512,10 @@ void ScriptEntity::LinkFields() {
 
 	/***
     * \field FlipFlag
-    * \type integer
+    * \type bitfield
     * \default 0
     * \ns Entity
-    * \desc Bitfield that indicates whether the entity is X/Y flipped.
+    * \desc Indicates whether the entity is X/Y flipped.
     */
 	LINK_INT(FlipFlag);
 
@@ -588,10 +588,10 @@ void ScriptEntity::LinkFields() {
 
 	/***
     * \field CollisionLayers
-    * \type integer
+    * \type bitfield
     * \default 0
     * \ns Entity
-    * \desc A bitfield containing which layers an entity is able to collide with.
+    * \desc Which layers the entity is able to collide with.
     */
 	LINK_INT(CollisionLayers);
 	/***
