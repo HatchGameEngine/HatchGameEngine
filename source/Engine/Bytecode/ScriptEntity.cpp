@@ -603,15 +603,15 @@ void ScriptEntity::LinkFields() {
 	LINK_INT(CollisionPlane);
 	/***
     * \field CollisionMode
-    * \type integer
-    * \default 0
+    * \type <ref CMODE_*>
+    * \default CMODE_FLOOR
     * \ns Entity
     */
 	LINK_INT(CollisionMode);
 	/***
     * \field TileCollisions
-    * \type integer
-    * \default 0
+    * \type <ref TILECOLLISION_*>
+    * \default TILECOLLISION_NONE
     * \ns Entity
     */
 	LINK_INT(TileCollisions);
@@ -700,7 +700,7 @@ void ScriptEntity::LinkFields() {
 	LINK_BOOL(Interactable);
 	/***
     * \field Persistence
-    * \type integer
+    * \type <ref Persistence_*>
     * \default Persistence_NONE
     * \ns Entity
     * \desc Whether the entity persists between scenes.

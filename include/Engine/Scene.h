@@ -1,6 +1,8 @@
 #ifndef ENGINE_SCENE_H
 #define ENGINE_SCENE_H
 class Entity;
+class ObjectRegistry;
+class DrawGroupList;
 
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/PerformanceTypes.h>

@@ -1,8 +1,6 @@
 #ifndef ENGINE_TYPES_ENTITY_H
 #define ENGINE_TYPES_ENTITY_H
 class ObjectList;
-class ObjectRegistry;
-class DrawGroupList;
 
 #include <Engine/Application.h>
 #include <Engine/Graphics.h>
@@ -15,8 +13,8 @@ class DrawGroupList;
 
 class Entity {
 public:
-	float InitialX = 0;
-	float InitialY = 0;
+	float InitialX = 0.0f;
+	float InitialY = 0.0f;
 	int Active = true;
 	int Pauseable = true;
 	int Interactable = true;
@@ -91,10 +89,10 @@ public:
 	float GravityStrength = 0.0f;
 	int OnGround = false;
 	int Direction = 0;
-	int TileCollisions = false;
+	int TileCollisions = TILECOLLISION_NONE;
 	int CollisionLayers = 0;
 	int CollisionPlane = 0;
-	int CollisionMode = 0;
+	int CollisionMode = CMODE_FLOOR;
 	int SlotID = -1;
 	int Filter = 0xFF;
 	bool Removed = false;
