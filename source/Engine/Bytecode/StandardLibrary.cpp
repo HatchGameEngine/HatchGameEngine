@@ -1998,7 +1998,7 @@ VMValue Application_SetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 /***
  * Application.GetCursorVisible
  * \desc Gets the visibility of the cursor.
- * \return boolean Returns whether or not the cursor is visible.
+ * \return boolean Returns whether the cursor is visible.
  * \ns Application
  */
 VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadID) {
@@ -2135,8 +2135,8 @@ The following <b>cannot</b> be changed between games:<ul>\
 </ul>
  * \param path (string): The path of the data file to load.
  * \paramOpt startingScene (string): The filename of the scene file to load upon changing the game. Note that restarting the game will load the starting scene defined in its GameConfig instead. Passing `null` to this argument is equivalent to not passing it at all.
- * \paramOpt cmdLineArgs (array): An array of Strings containing the command line arguments to pass to the new game. If any of the values are not Strings, they will be converted to a string representation. If this argument is not given, the current command line arguments will be passed to the new game.
- * \return boolean Returns `true` if the game will change, `false` if otherwise.
+ * \paramOpt cmdLineArgs (array): An array of strings containing the command line arguments to pass to the new game. If any of the values are not strings, they will be converted to a string representation. If this argument is not given, the current command line arguments will be passed to the new game.
+ * \return boolean Returns if the game will change.
  * \ns Application
  */
 VMValue Application_ChangeGame(int argCount, VMValue* args, Uint32 threadID) {
@@ -2944,7 +2944,7 @@ VMValue Controller_SetPlayerIndex(int argCount, VMValue* args, Uint32 threadID) 
  * Controller.HasRumble
  * \desc Checks if the controller at the index supports rumble.
  * \param controllerIndex (integer): Index of the controller to check.
- * \return boolean Returns `true` if the controller at the index supports rumble, `false` otherwise.
+ * \return boolean Returns whether the controller supports rumble.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(HasRumble)
@@ -2952,7 +2952,7 @@ CONTROLLER_GET_BOOL(HasRumble)
  * Controller.IsRumbleActive
  * \desc Checks if rumble is active for the controller at the index.
  * \param controllerIndex (integer): Index of the controller to check.
- * \return boolean Returns `true` if rumble is active for the controller at the index, `false` otherwise.
+ * \return boolean Returns whether rumble is active for the controller.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(IsRumbleActive)
@@ -3023,7 +3023,7 @@ VMValue Controller_StopRumble(int argCount, VMValue* args, Uint32 threadID) {
  * Controller.IsRumblePaused
  * \desc Checks if rumble is paused for the controller at the index.
  * \param controllerIndex (integer): Index of the controller to check.
- * \return boolean Returns `true` if rumble is paused for the controller at the index, `false` otherwise.
+ * \return boolean Returns whether rumble is paused for the controller.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(IsRumblePaused)
@@ -3185,7 +3185,7 @@ VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Device.IsPC
  * \desc Determines whether the application is running on a personal computer OS (Windows, MacOS, Linux).
- * \return boolean Returns `true` if the device is on a PC, `false` if otherwise.
+ * \return boolean Returns whether the device running on a computer OS.
  * \ns Device
  */
 VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
@@ -3196,7 +3196,7 @@ VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Device.IsMobile
  * \desc Determines whether the application is running on a mobile device.
- * \return boolean Returns `true` if the device is on a mobile device, `false` if otherwise.
+ * \return boolean Returns whether the device is running on a mobile OS.
  * \ns Device
  */
 VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
@@ -3245,7 +3245,7 @@ VMValue Device_GetCapability(int argCount, VMValue* args, Uint32 threadID) {
  * Directory.Create
  * \desc Creates a folder at the path.
  * \param path (string): The path of the folder to create.
- * \return boolean Returns `true` if the folder creation was successful, `false` if otherwise.
+ * \return boolean Returns whether folder creation was successful.
  * \ns Directory
  */
 VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -3257,7 +3257,7 @@ VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
  * Directory.Exists
  * \desc Determines if the folder at the path exists.
  * \param path (string): The path of the folder to check for existence.
- * \return boolean Returns `true` if the folder exists, `false` if otherwise.
+ * \return boolean Returns whether the folder exists.
  * \ns Directory
  */
 VMValue Directory_Exists(int argCount, VMValue* args, Uint32 threadID) {
@@ -3271,7 +3271,7 @@ VMValue Directory_Exists(int argCount, VMValue* args, Uint32 threadID) {
  * \param directory (string): The path of the folder to find files in.
  * \param pattern (string): The search pattern for the files. (ex: "*" for any file, "*.*" any file name with any file type, "*.png" any PNG file)
  * \param allDirs (boolean): Whether to search into all folders in the directory.
- * \return array Returns an array containing the filepaths (as Strings.)
+ * \return array Returns an array containing the filepaths as strings.
  * \ns Directory
  */
 VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
@@ -3301,7 +3301,7 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
  * \param directory (string): The path of the folder to find folders in.
  * \param pattern (string): The search pattern for the folders. (ex: "*" for any folder, "image*" any folder that starts with "image")
  * \param allDirs (boolean): Whether to search into all folders in the directory.
- * \return array Returns an array containing the filepaths (as Strings.)
+ * \return array Returns an array containing the filepaths as strings.
  * \ns Directory
  */
 VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
@@ -7318,7 +7318,7 @@ VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  * File.Exists
  * \desc Determines if the file at the path exists.
  * \param path (string): The path of the file to check for existence.
- * \return boolean Returns `true` if the file exists, `false` if otherwise.
+ * \return boolean Returns whether the file exists.
  * \ns File
  */
 VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
@@ -7356,7 +7356,7 @@ VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Writes all text to the given filename.
  * \param path (string): The path of the file to read.
  * \param text (string): The text to write to the file.
- * \return boolean Returns `true` if successful, `false` if otherwise.
+ * \return boolean Returns whether the file was written successfully.
  * \ns File
  */
 VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
@@ -7633,7 +7633,7 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
  * \param polygon (array): The polygon.
  * \param pointX (decimal): The X of the point.
  * \param pointY (decimal): The Y of the point.
- * \return boolean Returns `true` if the point is inside, or `false` if the point is outside.
+ * \return boolean Returns whether the point is inside.
  * \ns Geometry
  */
 VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, Uint32 threadID) {
@@ -7655,7 +7655,7 @@ VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, Uint32 thread
  * \param y1 (decimal): The starting Y of the segment.
  * \param x2 (decimal): The ending X of the segment.
  * \param y2 (decimal): The ending Y of the segment.
- * \return boolean Returns `true` if the line segment is intersecting the polygon, or `false` if it is not.
+ * \return boolean Returns whether the line segment is intersecting the polygon.
  * \ns Geometry
  */
 VMValue Geometry_IsLineIntersectingPolygon(int argCount, VMValue* args, Uint32 threadID) {
@@ -8582,7 +8582,7 @@ static ObjMap* CreateInputActionMap(InputBind* bind) {
  * \param playerID (integer): Index of the player.
  * \param actionName (string): Name of the action to get.
  * \paramOpt bindIndex (integer): Which bind index to get.
- * \return map Returns a Map value, or `null` if the input action is not bound.
+ * \return map Returns a map value, or `null` if the input action is not bound.
  * \ns Input
  */
 VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -8855,7 +8855,7 @@ VMValue Input_GetBoundActionCount(int argCount, VMValue* args, Uint32 threadID) 
  * Input.GetBoundActionMap
  * \desc Gets a map of the input actions currently bound to a specific player.
  * \param playerID (integer): Index of the player.
- * \return map Returns a Map value, or `null` if no actions are registered.
+ * \return map Returns a map value, or `null` if no actions are registered.
  * \ns Input
  */
 VMValue Input_GetBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
@@ -8884,7 +8884,7 @@ VMValue Input_GetBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
  * \param playerID (integer): Index of the player.
  * \param actionName (string): Name of the action to get.
  * \paramOpt bindIndex (integer): Which bind index to get.
- * \return map Returns a Map value, or `null` if the input action is not bound.
+ * \return map Returns a map value, or `null` if the input action is not bound.
  * \ns Input
  */
 VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -9060,7 +9060,7 @@ VMValue Input_GetDefaultBoundActionCount(int argCount, VMValue* args, Uint32 thr
  * Input.GetDefaultBoundActionMap
  * \desc Gets a map of the input actions bound by default to a specific player.
  * \param playerID (integer): Index of the player.
- * \return map Returns a Map value, or `null` if no actions are registered.
+ * \return map Returns a map value, or `null` if no actions are registered.
  * \ns Input
  */
 VMValue Input_GetDefaultBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
@@ -9706,9 +9706,9 @@ static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t 
 
 /***
  * JSON.Parse
- * \desc Decodes a string value into a Map value.
+ * \desc Decodes a string value into a map value.
  * \param jsonText (string): JSON-compliant text.
- * \return map Returns a Map value if the text can be decoded, otherwise returns `null`.
+ * \return map Returns a map value if the text can be decoded, otherwise returns `null`.
  * \ns JSON
  */
 VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
@@ -11074,7 +11074,7 @@ VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
  * Model.HasMaterials
  * \desc Checks to see if the model has materials.
  * \param model (integer): The model index to check.
- * \return boolean Returns `true` if the model has materials, `false` if otherwise.
+ * \return boolean Returns whether the model has materials.
  * \deprecated Use <ref Model.GetMaterialCount> instead.
  * \ns Model
  */
@@ -11090,7 +11090,7 @@ VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
  * Model.HasBones
  * \desc Checks to see if the model has bones.
  * \param model (integer): The model index to check.
- * \return boolean Returns `true` if the model has bones, `false` if otherwise.
+ * \return boolean Returns whether the model has bones.
  * \ns Model
  */
 VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
@@ -12324,7 +12324,7 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
  * Resources.FileExists
  * \desc Checks to see if a Resource exists with the given filename.
  * \param filename (string): The given filename.
- * \return boolean Returns `true` if the Resource exists, `false` if otherwise.
+ * \return boolean Returns whether the Resource exists.
  * \ns Resources
  */
 VMValue Resources_FileExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -12459,7 +12459,7 @@ VMValue Scene_LoadTileCollisions(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.AreTileCollisionsLoaded
  * \desc Returns or whether tile collisions are loaded.
- * \return boolean Returns `true` if tile collisions are loaded, and `false` if not.
+ * \return boolean Returns whether tile collisions are loaded.
  * \ns Scene
  */
 VMValue Scene_AreTileCollisionsLoaded(int argCount, VMValue* args, Uint32 threadID) {
@@ -12470,7 +12470,7 @@ VMValue Scene_AreTileCollisionsLoaded(int argCount, VMValue* args, Uint32 thread
  * Scene.AddTileset
  * \desc Adds a new tileset into the scene.
  * \param tileset (string): Path of tileset to load.
- * \return boolean Returns `true` if the tileset was added, and `false` if not.
+ * \return boolean Returns whether the tileset was added to the scene.
  * \ns Scene
  */
 VMValue Scene_AddTileset(int argCount, VMValue* args, Uint32 threadID) {
@@ -12588,7 +12588,7 @@ VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.GetLayerShader
  * \desc Gets the shader of the specified layer.
  * \param layerIndex (integer): Index of layer.
- * \return Shader Returns a shader, or `null`.
+ * \return Shader Returns a Shader, or `null`.
  * \ns Scene
  */
 VMValue Scene_GetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
@@ -14599,7 +14599,7 @@ VMValue SceneList_GetCategoryProperty(int argCount, VMValue* args, Uint32 thread
  * \param category (string): The category.
  * \param entry (string): The entry.
  * \param property (string): The property.
- * \return boolean Returns `true` if the property exists, `false` if not.
+ * \return boolean Returns whether the property exists.
  * \ns SceneList
  */
 VMValue SceneList_HasEntryProperty(int argCount, VMValue* args, Uint32 threadID) {
@@ -14636,7 +14636,7 @@ VMValue SceneList_HasEntryProperty(int argCount, VMValue* args, Uint32 threadID)
  * \desc Checks if a given property exists in the category.
  * \param category (string): The category.
  * \param property (string): The property.
- * \return boolean Returns `true` if the property exists, `false` if not.
+ * \return boolean Returns whether the property exists.
  * \ns SceneList
  */
 VMValue SceneList_HasCategoryProperty(int argCount, VMValue* args, Uint32 threadID) {
@@ -15359,7 +15359,7 @@ VMValue Settings_RemoveSection(int argCount, VMValue* args, Uint32 threadID) {
  * Settings.SectionExists
  * \desc Checks if a section exists.
  * \param section (string): The section name.
- * \return boolean Returns `true` if the section exists, `false` if not.
+ * \return boolean Returns whether the section exists.
  * \ns Settings
  */
 VMValue Settings_SectionExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -15369,7 +15369,7 @@ VMValue Settings_SectionExists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.GetSectionCount
  * \desc Returns how many sections exist in the settings.
- * \return integer The total section count, as an integer.
+ * \return integer Returns the total section count.
  * \ns Settings
  */
 VMValue Settings_GetSectionCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -15381,7 +15381,7 @@ VMValue Settings_GetSectionCount(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Checks if a property exists.
  * \param section (string): The section where the property resides. If this is `null`, the global section is used instead.
  * \param property (string): The property name.
- * \return boolean Returns `true` if the property exists, `false` if not.
+ * \return boolean Returns whether the property exists.
  * \ns Settings
  */
 VMValue Settings_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -17268,7 +17268,7 @@ VMValue String_Length(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.Compare
- * \desc Compares two Strings lexicographically.
+ * \desc Compares two strings lexicographically.
  * \param stringA (string): The first string to compare.
  * \param stringB (string): The second string to compare.
  * \return integer Returns the comparison result as an integer. The return value is a negative integer if <param stringA> appears before `stringB` lexicographically, a positive integer if <param stringA> appears after <param stringB> lexicographically, and zero if <param stringA> and <param stringB> are equal.
@@ -17629,7 +17629,7 @@ VMValue Touch_IsReleased(int argCount, VMValue* args, Uint32 threadID) {
 // #region TileCollision
 /***
  * TileCollision.Point
- * \desc Checks for a tile collision at a specified point, returning `true` if successful, `false` if otherwise.
+ * \desc Checks for a tile collision at a specified point.
  * \param x (number): X position to check.
  * \param y (number): Y position to check.
  * \return boolean Returns a boolean value.
@@ -17645,12 +17645,12 @@ VMValue TileCollision_Point(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * TileCollision.PointExtended
- * \desc Checks for a tile collision at a specified point, returning the angle value if successful, `-1` if otherwise.
+ * \desc Checks for a tile collision at a specified point.
  * \param x (number): X position to check.
  * \param y (number): Y position to check.
  * \param collisionField (integer): Low (0) or high (1) field to check.
  * \param collisionSide (integer): Which side of the tile to check for collision. (TOP = 1, RIGHT = 2, BOTTOM = 4, LEFT = 8, ALL = 15)
- * \return integer Returns the angle of the ground as an integer value.
+ * \return integer Returns the angle of the ground if successful, `-1` if otherwise.
  * \ns TileCollision
  */
 VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID) {
@@ -17664,7 +17664,7 @@ VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * TileCollision.Line
- * \desc Checks for a tile collision in a straight line, returning the angle value if successful, `-1` if otherwise.
+ * \desc Checks for a tile collision in a straight line.
  * \param x (number): X position to start checking from.
  * \param y (number): Y position to start checking from.
  * \param directionType (integer): Ordinal direction to check in. (0: Down, 1: Right, 2: Up, 3: Left, or one of the enums: SensorDirection_Up, SensorDirection_Left, SensorDirection_Down, SensorDirection_Right)
@@ -17674,10 +17674,10 @@ VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID
  * \param entity (Entity): Instance to write the values to.
  * \return boolean Returns `false` if no tile collision, but if `true`: <br/>\
 <pre class="code"><br/>\
-    instance.SensorX: (number), // X Position where the sensor collided if it did. <br/>\
-    instance.SensorY: (number), // Y Position where the sensor collided if it did. <br/>\
-    instance.SensorCollided: (boolean), // Whether the sensor collided. <br/>\
-    instance.SensorAngle: (integer) // Tile angle at the collision. <br/>\
+    entity.SensorX: (number), // X Position where the sensor collided if it did. <br/>\
+    entity.SensorY: (number), // Y Position where the sensor collided if it did. <br/>\
+    entity.SensorCollided: (boolean), // Whether the sensor collided. <br/>\
+    entity.SensorAngle: (integer) // Tile angle at the collision. <br/>\
 \
 </pre>
  * \ns TileCollision
@@ -17767,7 +17767,7 @@ VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Checks to see if a tile at the ID is empty.
  * \param tileID (integer): ID of tile to check.
  * \param collisionPlane (integer): The collision plane of the tile to check for.
- * \return boolean Returns `true` if the tile is empty space, `false` if otherwise.
+ * \return boolean Returns whether the tile is empty space.
  * \ns TileInfo
  */
 VMValue TileInfo_IsEmptySpace(int argCount, VMValue* args, Uint32 threadID) {
@@ -17927,7 +17927,7 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Checks if the desired tile is a ceiling tile.
  * \param tileID (integer): ID of the tile to check.
  * \param collisionPlane (integer): The collision plane of the tile to check.
- * \return boolean Returns `true` if the tile is a ceiling tile, `false` if otherwise.
+ * \return boolean Returns whether the tile is a ceiling tile.
  * \ns TileInfo
  */
 VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
@@ -18832,7 +18832,7 @@ VMValue View_SetShader(int argCount, VMValue* args, Uint32 threadID) {
  * View.GetShader
  * \desc Gets the shader of the specified camera.
  * \param viewIndex (integer): Index of the view.
- * \return Shader Returns a shader, or `null`.
+ * \return Shader Returns a Shader, or `null`.
  * \ns View
  */
 VMValue View_GetShader(int argCount, VMValue* args, Uint32 threadID) {
@@ -19231,7 +19231,7 @@ VMValue Window_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.GetFullscreen
  * \desc Gets whether the active window is currently fullscreen.
- * \return boolean Returns `true` if the window is fullscreen, `false` if otherwise.
+ * \return boolean Returns whether the window is fullscreen.
  * \ns Window
  */
 VMValue Window_GetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
@@ -19251,7 +19251,7 @@ VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.IsResizeable
  * \desc Gets whether the active window is resizeable.
- * \return boolean Returns `true` if the window is resizeable, `false` if otherwise.
+ * \return boolean Returns whether the window is resizeable.
  * \ns Window
  */
 VMValue Window_IsResizeable(int argCount, VMValue* args, Uint32 threadID) {
@@ -19350,9 +19350,9 @@ static VMValue XML_FillMap(XMLNode* parent) {
 }
 /***
  * XML.Parse
- * \desc Decodes a string value into a Map value.
+ * \desc Decodes a string value into a map value.
  * \param xmlText (string): XML-compliant text.
- * \return map Returns a Map value if the text can be decoded, otherwise returns `null`.
+ * \return map Returns a map value if the text can be decoded, otherwise returns `null`.
  * \ns XML
  */
 VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
