@@ -1409,7 +1409,27 @@ The integration must have been initialized with `API.Discord.Init` before callin
  * \paramOpt state (string): The second line of text, appearing below details.
  * \paramOpt largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
  * \paramOpt smallImageKey (string): The internal name of the small image asset to display, also created via the Discord Developer Portal.
- * \paramOpt startTime (integer): A Unix timestamp of when the activity started. This can also be used as the 4th argument in smallImageKey's place. If `0`, the timer is disabled.
+ * \ns API.Discord
+ */
+/***
+ * API.Discord.UpdateRichPresence
+ * \desc Updates Discord Rich Presence.<br/>\
+The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param details (string): The first line of text in the Rich Presence.
+ * \paramOpt state (string): The second line of text, appearing below details.
+ * \paramOpt largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
+ * \paramOpt startTime (integer): A Unix timestamp of when the activity started. If `0`, the timer is disabled.
+ * \ns API.Discord
+ */
+/***
+ * API.Discord.UpdateRichPresence
+ * \desc Updates Discord Rich Presence.<br/>\
+The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param details (string): The first line of text in the Rich Presence.
+ * \paramOpt state (string): The second line of text, appearing below details.
+ * \paramOpt largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
+ * \paramOpt smallImageKey (string): The internal name of the small image asset to display, also created via the Discord Developer Portal.
+ * \paramOpt startTime (integer): A Unix timestamp of when the activity started. If `0`, the timer is disabled.
  * \ns API.Discord
  */
 VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID) {
@@ -3538,9 +3558,9 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (number): Y position of where to draw the sprite.
  * \param flipX (integer): Whether to flip the sprite horizontally.
  * \param flipY (integer): Whether to flip the sprite vertically.
- * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (number): Rotation of the drawn sprite, from 0-511.
+ * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally. (default: `1.0`)
+ * \paramOpt scaleY (number): Scale multiplier of the sprite vertically. (default: `1.0`)
+ * \paramOpt rotation (number): Rotation of the drawn sprite, from 0-511. (default: `0.0`)
  * \ns Draw
  */
 VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
@@ -4754,7 +4774,7 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
  * \param endFrame (integer): The index to end drawing.
  * \param align (integer): The text alignment.
  * \param spacing (integer): The space between drawn sprites.
- * \paramOpt charOffsetsX (array): The X offsets at which to draw per frame. Must also have charOffsetsY to be used.
+ * \paramOpt charOffsetsX (array): The X offsets at which to draw per frame. Must also have <param charOffsetsY> to be used.
  * \paramOpt charOffsetsY (array): The Y offsets at which to draw per frame.
  * \ns Draw
  */
@@ -5731,11 +5751,9 @@ VMValue Draw_GetClipHeight(int argCount, VMValue* args, Uint32 threadID) {
 	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height)
 					     : INTEGER_VAL((int)Graphics::CurrentView->Height);
 }
-
 /***
  * Draw.Save
- * \desc
- * \return
+ * \desc Saves the current transform matrix to the stack.
  * \ns Draw
  */
 VMValue Draw_Save(int argCount, VMValue* args, Uint32 threadID) {
@@ -5745,8 +5763,10 @@ VMValue Draw_Save(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.Scale
- * \desc
- * \return
+ * \desc Scales the view.
+ * \param x (number): Desired X scale.
+ * \param y (number): Desired Y scale.
+ * \paramOpt z (number): Desired Z scale. (default: `1.0`)
  * \ns Draw
  */
 VMValue Draw_Scale(int argCount, VMValue* args, Uint32 threadID) {
@@ -5762,8 +5782,16 @@ VMValue Draw_Scale(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.Rotate
- * \desc
- * \return
+ * \desc Rotates the view.
+ * \param x (number): Desired X angle.
+ * \param y (number): Desired Y angle.
+ * \param z (number): Desired Z angle.
+ * \ns Draw
+ */
+/***
+ * Draw.Rotate
+ * \desc Rotates the view.
+ * \param angle (number): Desired rotation angle.
  * \ns Draw
  */
 VMValue Draw_Rotate(int argCount, VMValue* args, Uint32 threadID) {
@@ -5782,8 +5810,7 @@ VMValue Draw_Rotate(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.Restore
- * \desc
- * \return
+ * \desc Restores the last saved transform matrix from the stack.
  * \ns Draw
  */
 VMValue Draw_Restore(int argCount, VMValue* args, Uint32 threadID) {
@@ -5793,8 +5820,10 @@ VMValue Draw_Restore(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.Translate
- * \desc
- * \return
+ * \desc Translates the view.
+ * \param x (number): Desired X translation.
+ * \param y (number): Desired Y translation.
+ * \paramOpt z (number): Desired Z translation. (default: `0.0`)
  * \ns Draw
  */
 VMValue Draw_Translate(int argCount, VMValue* args, Uint32 threadID) {
@@ -5810,8 +5839,8 @@ VMValue Draw_Translate(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextureTarget
- * \desc
- * \return
+ * \desc Sets the current render target.
+ * \param texture (integer): The texture target.
  * \ns Draw
  */
 VMValue Draw_SetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
@@ -5830,8 +5859,7 @@ VMValue Draw_SetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.Clear
- * \desc
- * \return
+ * \desc Clears the screen.
  * \ns Draw
  */
 VMValue Draw_Clear(int argCount, VMValue* args, Uint32 threadID) {
@@ -5841,8 +5869,7 @@ VMValue Draw_Clear(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.ResetTextureTarget
- * \desc
- * \return
+ * \desc Resets the current render target.
  * \ns Draw
  */
 VMValue Draw_ResetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
@@ -10047,7 +10074,7 @@ VMValue Math_RandomInteger(int argCount, VMValue* args, Uint32 threadID) {
  * \param min (integer): Minimum non-inclusive integer value.
  * \param max (integer): Maximum non-inclusive integer value.
  * \paramOpt seed (integer): Seed of which to base the number.
- * \return integer Returns the random number as an integer.
+ * \return integer Returns the random number.
  * \ns RSDK.Math
  */
 VMValue Math_RandomIntegerSeeded(int argCount, VMValue* args, Uint32 threadID) {
@@ -11441,7 +11468,7 @@ VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * Number.ToString
  * \desc Converts a number to a string.
  * \param n (number): Number value.
- * \paramOpt base (integer): The numerical base, or radix.
+ * \paramOpt base (integer): The numerical base, or radix. (default: `10`)
  * \return string Returns a string value.
  * \ns Number
  */
@@ -14641,9 +14668,15 @@ VMValue SceneList_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * SceneList.GetSceneCount
+ * \desc Gets the amount of scenes.
+ * \return integer Returns the total amount of scenes.
+ * \ns SceneList
+ */
+/***
+ * SceneList.GetSceneCount
  * \desc Gets the amount of scenes in a category.
- * \paramOpt categoryName (string): The category name.
- * \return integer Returns the number of scenes in the category. If `categoryName` is omitted, this returns the total amount of scenes.
+ * \param categoryName (string): The category name.
+ * \return integer Returns the number of scenes in the category.
  * \ns SceneList
  */
 VMValue SceneList_GetSceneCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -15076,7 +15109,12 @@ VMValue Settings_Load(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.Save
  * \desc Saves the settings.
- * \paramOpt filename (string): Filepath of config. This does not change the filepath of the current settings (Use <ref Settings.SetFilename> to do that.)
+ * \ns Settings
+ */
+/***
+ * Settings.Save
+ * \desc Saves the settings with the specified filename.
+ * \param filename (string): Filepath of config. This does not change the filepath of the current settings; use <ref Settings.SetFilename> to do that.
  * \ns Settings
  */
 VMValue Settings_Save(int argCount, VMValue* args, Uint32 threadID) {
