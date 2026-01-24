@@ -128,7 +128,7 @@ void ShaderImpl::Dispose(Obj* object) {
  * \method HasStage
  * \desc Checks if the shader program has a shader stage.
  * \param stage (<ref SHADERSTAGE_*>): The shader stage.
- * \return boolean Returns `true` if there is a shader stage of the given type, `false` if otherwise.
+ * \return boolean Returns whether there is a shader stage of the given type.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_HasStage(int argCount, VMValue* args, Uint32 threadID) {
@@ -151,7 +151,7 @@ VMValue ShaderImpl::VM_HasStage(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method CanCompile
  * \desc Checks if the shader can be compiled.
- * \return boolean Returns `true` if the shader can be compiled, `false` if otherwise.
+ * \return boolean Returns whether the shader can be compiled.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_CanCompile(int argCount, VMValue* args, Uint32 threadID) {
@@ -172,7 +172,7 @@ VMValue ShaderImpl::VM_CanCompile(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * \method IsValid
  * \desc Checks if the shader can be used.
- * \return boolean Returns `true` if the shader can be used, `false` if otherwise.
+ * \return boolean Returns whether the shader can be used.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, Uint32 threadID) {
@@ -375,7 +375,7 @@ VMValue ShaderImpl::VM_GetTextureUnit(int argCount, VMValue* args, Uint32 thread
 /***
  * \method Compile
  * \desc Compiles a shader.
- * \return boolean Returns `true` if the shader was compiled, `false` if otherwise.
+ * \return boolean Returns whether the shader was compiled.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
@@ -406,7 +406,7 @@ VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
  * \method HasUniform
  * \desc Checks if the shader has an uniform with the given name. This can only be called after the shader has been compiled.
  * \param uniform (string): The name of the uniform.
- * \return boolean Returns `true` if there is an uniform with the given name, `false` if otherwise.
+ * \return boolean Returns whether there is an uniform with the given name.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, Uint32 threadID) {

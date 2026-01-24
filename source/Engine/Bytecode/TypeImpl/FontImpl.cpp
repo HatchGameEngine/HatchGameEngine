@@ -381,7 +381,7 @@ VMValue FontImpl::VM_GetGlyphAdvance(int argCount, VMValue* args, Uint32 threadI
 /***
  * \method IsAntialiasingEnabled
  * \desc Gets whether the font has anti-aliasing enabled.
- * \return boolean Returns `true` is anti-aliasing is enabled, `false` if otherwise.
+ * \return boolean Returns whether anti-aliasing is enabled.
  * \ns Font
  */
 VMValue FontImpl::VM_IsAntialiasingEnabled(int argCount, VMValue* args, Uint32 threadID) {
@@ -400,7 +400,7 @@ VMValue FontImpl::VM_IsAntialiasingEnabled(int argCount, VMValue* args, Uint32 t
  * \method HasGlyph
  * \desc Checks if the font has a glyph for the given code point.
  * \param codepoint (integer): An Unicode code point.
- * \return boolean Returns `true` if there is a glyph for the given code point, `false` if otherwise.
+ * \return boolean Returns whether there is a glyph for the given code point.
  * \ns Font
  */
 VMValue FontImpl::VM_HasGlyph(int argCount, VMValue* args, Uint32 threadID) {

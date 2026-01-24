@@ -379,7 +379,7 @@ VMValue EntityImpl::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID)
  * \param y (decimal): The Y position.
  * \param w (decimal): The width.
  * \param h (decimal): The height.
- * \return boolean Returns `true` if the specified positions and ranges are within the specified view, `false` if otherwise.
+ * \return boolean Returns whether the specified positions and ranges are within the specified view.
  * \ns Entity
  */
 VMValue EntityImpl::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
@@ -658,7 +658,7 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
  * \method CollideWithObject
  * \desc Does collision with another entity.
  * \param other (Entity): The other entity to check collision for.
- * \return boolean Returns `true` if the entity collided, `false` if otherwise.
+ * \return boolean Returns whether the entity collided.
  * \ns Entity
  */
 VMValue EntityImpl::VM_CollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
@@ -674,7 +674,7 @@ VMValue EntityImpl::VM_CollideWithObject(int argCount, VMValue* args, Uint32 thr
  * \method SolidCollideWithObject
  * \desc Does solid collision with another entity.
  * \param other (Entity): The other entity to check collision for.
- * \return boolean Returns `true` if the entity collided, `false` if otherwise.
+ * \return boolean Returns whether the entity collided.
  * \ns Entity
  */
 VMValue EntityImpl::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
@@ -691,7 +691,7 @@ VMValue EntityImpl::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint3
  * \method TopSolidCollideWithObject
  * \desc Does solid collision with another entity's top.
  * \param other (Entity): The other entity to check collision for.
- * \return boolean Returns `true` if the entity collided, `false` if otherwise.
+ * \return boolean Returns whether the entity collided.
  * \ns Entity
  */
 VMValue EntityImpl::VM_TopSolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
@@ -718,7 +718,7 @@ VMValue EntityImpl::VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID
  * \method PropertyExists
  * \desc Checks if a property exists in the entity.
  * \param property (string): The property name.
- * \return boolean Returns `true` if the property exists, `false` if otherwise.
+ * \return boolean Returns whether the property exists.
  * \ns Entity
  */
 VMValue EntityImpl::VM_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -824,7 +824,7 @@ VMValue EntityImpl::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 thread
  * \method IsInDrawGroup
  * \desc Checks if the entity is in the specified draw group.
  * \param drawGroup (integer): The draw group.
- * \return boolean Returns `true` if the entity is in the specified draw group, `false` if otherwise.
+ * \return boolean Returns whether the entity is in the specified draw group.
  * \ns Entity
  */
 VMValue EntityImpl::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
