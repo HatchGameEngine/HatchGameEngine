@@ -17678,16 +17678,9 @@ VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID
  * \param directionType (<ref SensorDirection_*>): Ordinal direction to check in.
  * \param length (integer): How many pixels to check.
  * \param collisionField (integer): Low (0) or high (1) field to check.
- * \param compareAngle (integer): Only return a collision if the angle is within 0x20 this value, otherwise if angle comparison is not desired, set this value to -1.
- * \param entity (Entity): Instance to write the values to.
- * \return boolean Returns `false` if no tile collision, but if `true`: <br/>\
-<pre class="code"><br/>\
-    entity.SensorX: (number), // X Position where the sensor collided if it did. <br/>\
-    entity.SensorY: (number), // Y Position where the sensor collided if it did. <br/>\
-    entity.SensorCollided: (boolean), // Whether the sensor collided. <br/>\
-    entity.SensorAngle: (integer) // Tile angle at the collision. <br/>\
-\
-</pre>
+ * \param compareAngle (integer): Only return a collision if the angle is within `0x20` of this value. If angle comparison is not desired, pass `-1` to this parameter.
+ * \param entity (Entity): Entity to write the values to.
+ * \return boolean Returns `true` if tile collision happened, and sets <ref Entity.SensorCollided>, <ref Entity.SensorX>, <ref Entity.SensorY>, and <ref Entity.SensorAngle>. Otherwise, just returns `false`.
  * \ns TileCollision
  */
 VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
