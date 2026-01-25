@@ -17594,6 +17594,10 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 	int compareAngle = GET_ARG(5, GetInteger);
 	ObjEntity* entity = GET_ARG(6, GetEntity);
 
+	if (!entity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
+
 	Sensor sensor;
 	sensor.X = x;
 	sensor.Y = y;
@@ -17605,25 +17609,12 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 
 	Scene::CollisionInLine(x, y, angleMode, length, collisionField, compareAngle > -1, &sensor);
 
-	if (ScriptManager::Lock()) {
-		/*ObjMap*    mapSensor = NewMap();
-
-        mapSensor->Values->Put("X", DECIMAL_VAL((float)sensor.X));
-        mapSensor->Values->Put("Y", DECIMAL_VAL((float)sensor.Y));
-        mapSensor->Values->Put("Collided", INTEGER_VAL(sensor.Collided));
-        mapSensor->Values->Put("Angle", INTEGER_VAL(sensor.Angle));
-
-        ScriptManager::Unlock();*/
-		if (entity->EntityPtr) {
-			auto ent = (Entity*)entity->EntityPtr;
-			ent->SensorX = (float)sensor.X;
-			ent->SensorY = (float)sensor.Y;
-			ent->SensorCollided = sensor.Collided;
-			ent->SensorAngle = sensor.Angle;
-			return INTEGER_VAL(sensor.Collided);
-		}
-	}
-	return INTEGER_VAL(false);
+	Entity* ent = (Entity*)entity->EntityPtr;
+	ent->SensorX = (float)sensor.X;
+	ent->SensorY = (float)sensor.Y;
+	ent->SensorCollided = sensor.Collided;
+	ent->SensorAngle = sensor.Angle;
+	return INTEGER_VAL(sensor.Collided);
 }
 // #endregion
 
