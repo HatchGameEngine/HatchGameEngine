@@ -574,7 +574,7 @@ void ScriptEntity::LinkFields() {
 	* \type integer
 	* \default 0xFF
 	* \ns Entity
-	* \desc If there is a scene list loaded, this checks to see whether the entity would spawn based on the scene's filter. Defaults to `0xFF`.
+	* \desc If there is a scene list loaded, this checks to see whether the entity would spawn based on the scene's filter. See <ref Scene_Filter>.
 	*/
 	LINK_INT(Filter);
 
@@ -599,6 +599,7 @@ void ScriptEntity::LinkFields() {
     * \type integer
     * \default 0
     * \ns Entity
+    * \desc The collision plane of the entity.
     */
 	LINK_INT(CollisionPlane);
 	/***
@@ -606,6 +607,7 @@ void ScriptEntity::LinkFields() {
     * \type <ref CMODE_*>
     * \default CMODE_FLOOR
     * \ns Entity
+    * \desc The tile collision mode of the entity.
     */
 	LINK_INT(CollisionMode);
 	/***
@@ -613,6 +615,7 @@ void ScriptEntity::LinkFields() {
     * \type <ref TILECOLLISION_*>
     * \default TILECOLLISION_NONE
     * \ns Entity
+    * \desc The direction of tile collisions for this entity.
     */
 	LINK_INT(TileCollisions);
 
