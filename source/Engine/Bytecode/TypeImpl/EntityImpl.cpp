@@ -7,7 +7,8 @@
 
 /***
 * \class Entity
-* \desc A game object that can be spawned in a scene.
+* \desc A game object that can be spawned in a scene.<br/>\
+All spawned entities inherit from this class. Entities must be spawned with <ref Instance.Create>.
 */
 
 ObjClass* EntityImpl::Class = nullptr;
