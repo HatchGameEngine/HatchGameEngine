@@ -61,21 +61,37 @@ void ScriptEntity::LinkFields() {
     */
 	LINK_DEC(Z);
 	/***
-    * \field XSpeed
+    * \field SpeedX
     * \type decimal
     * \default 0.0
     * \ns Entity
     * \desc The horizontal velocity of the entity.
     */
-	LINK_DEC(XSpeed);
+	LINK_DEC(SpeedX);
 	/***
-    * \field YSpeed
+    * \field SpeedY
     * \type decimal
     * \default 0.0
     * \ns Entity
     * \desc The vertical velocity of the entity.
     */
-	LINK_DEC(YSpeed);
+	LINK_DEC(SpeedY);
+	/***
+	* \field XSpeed
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc Alias for <ref Entity.SpeedX>.
+	*/
+	Instance->InstanceObj.Fields->Put("XSpeed", DECIMAL_LINK_VAL(&SpeedX));
+	/***
+	* \field YSpeed
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc Alias for <ref Entity.SpeedY>.
+	*/
+	Instance->InstanceObj.Fields->Put("YSpeed", DECIMAL_LINK_VAL(&SpeedY));
 	/***
     * \field GroundSpeed
     * \type decimal
@@ -85,13 +101,21 @@ void ScriptEntity::LinkFields() {
     */
 	LINK_DEC(GroundSpeed);
 	/***
-    * \field Gravity
+    * \field GravitySpeed
     * \type decimal
     * \default 0.0
     * \ns Entity
-    * \desc The gravity of the entity.
+    * \desc The gravity rate of the entity.
     */
-	LINK_DEC(Gravity);
+	LINK_DEC(GravitySpeed);
+	/***
+	* \field Gravity
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc Alias for <ref Entity.GravitySpeed>.
+	*/
+	Instance->InstanceObj.Fields->Put("Gravity", DECIMAL_LINK_VAL(&GravitySpeed));
 	/***
     * \field AutoPhysics
     * \type boolean
@@ -117,13 +141,21 @@ void ScriptEntity::LinkFields() {
     */
 	LINK_INT(AngleMode);
 	/***
-    * \field Ground
+    * \field OnGround
     * \type boolean
     * \default false
     * \ns Entity
     * \desc Whether the entity is on the ground.
     */
-	LINK_INT(Ground);
+	LINK_INT(OnGround);
+	/***
+	* \field Ground
+	* \type boolean
+	* \default false
+	* \ns Entity
+	* \desc Alias for <ref Entity.OnGround>.
+	*/
+	Instance->InstanceObj.Fields->Put("Ground", INTEGER_LINK_VAL(&OnGround));
 
 	/***
     * \field ScaleX
@@ -304,21 +336,120 @@ void ScriptEntity::LinkFields() {
     */
 	LINK_INT(WasOffScreen);
 	/***
-    * \field OnScreenHitboxW
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc Alias for <ref Entity.UpdateRegionW>.
-    */
+	* \field UpdateRegionW
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The horizontal on-screen range where the entity can update. If this is set to `0.0`, the entity will update regardless of the camera's horizontal position.
+	*/
+	Instance->InstanceObj.Fields->Put("UpdateRegionW", DECIMAL_LINK_VAL(&OnScreenHitboxW));
+	/***
+	* \field UpdateRegionH
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The vertical on-screen range where the entity can update. If this is set to `0.0`, the entity will update regardless of the camera's vertical position.
+	*/
+	Instance->InstanceObj.Fields->Put("UpdateRegionH", DECIMAL_LINK_VAL(&OnScreenHitboxH));
+	/***
+	* \field UpdateRegionTop
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The top on-screen range where the entity can update. If set to `0.0`, the entity will use its <ref Entity.UpdateRegionH> instead.
+	*/
+	Instance->InstanceObj.Fields->Put("UpdateRegionTop", DECIMAL_LINK_VAL(&OnScreenRegionTop));
+	/***
+	* \field UpdateRegionLeft
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The left on-screen range where the entity can update. If set to `0.0`, the entity will use its <ref Entity.UpdateRegionW> instead.
+	*/
+	Instance->InstanceObj.Fields->Put(
+		"UpdateRegionLeft", DECIMAL_LINK_VAL(&OnScreenRegionLeft));
+	/***
+	* \field UpdateRegionRight
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The left on-screen range where the entity can update. If set to `0.0`, the entity will use its <ref Entity.UpdateRegionW> instead.
+	*/
+	Instance->InstanceObj.Fields->Put(
+		"UpdateRegionRight", DECIMAL_LINK_VAL(&OnScreenRegionRight));
+	/***
+	* \field UpdateRegionBottom
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The bottom on-screen range where the entity can update. If set to `0.0`, the entity will use its <ref Entity.UpdateRegionH> instead.
+	*/
+	Instance->InstanceObj.Fields->Put(
+		"UpdateRegionBottom", DECIMAL_LINK_VAL(&OnScreenRegionBottom));
+	/***
+	* \field OnScreenHitboxW
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc Alias for <ref Entity.UpdateRegionW>.
+	*/
 	LINK_DEC(OnScreenHitboxW);
 	/***
-    * \field OnScreenHitboxH
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc Alias for <ref Entity.UpdateRegionH>.
-    */
+	* \field OnScreenHitboxH
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc Alias for <ref Entity.UpdateRegionH>.
+	*/
 	LINK_DEC(OnScreenHitboxH);
+	/***
+	* \field RenderRegionW
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The horizontal on-screen range where the entity can render. If set to `0.0`, the entity will render regardless of the camera's horizontal position.
+	*/
+	LINK_DEC(RenderRegionW);
+	/***
+	* \field RenderRegionH
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The vertical on-screen range where the entity can render. If set to `0.0`, the entity will render regardless of the camera's vertical position.
+	*/
+	LINK_DEC(RenderRegionH);
+	/***
+	* \field RenderRegionTop
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The top on-screen range where the entity can render. If set to `0.0`, the entity will use its <ref Entity.RenderRegionH> instead.
+	*/
+	LINK_DEC(RenderRegionTop);
+	/***
+	* \field RenderRegionLeft
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The left on-screen range where the entity can render. If this and <ref Entity.RenderRegionRight> are set to `0.0`, the entity will use its <ref Entity.RenderRegionW> instead.
+	*/
+	LINK_DEC(RenderRegionLeft);
+	/***
+	* \field RenderRegionRight
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The right on-screen range where the entity can render. If this and <ref Entity.RenderRegionLeft> are set to `0.0`, the entity will use its <ref Entity.RenderRegionW> instead.
+	*/
+	LINK_DEC(RenderRegionRight);
+	/***
+	* \field RenderRegionBottom
+	* \type decimal
+	* \default 0.0
+	* \ns Entity
+	* \desc The bottom on-screen range where the entity can render. If set to `0.0`, the entity will use its <ref Entity.RenderRegionH> instead.
+	*/
+	LINK_DEC(RenderRegionBottom);
 	/***
     * \field Visible
     * \type boolean
@@ -343,106 +474,6 @@ void ScriptEntity::LinkFields() {
     * \desc Bypasses each view's entity rendering toggle set by <ref Scene.SetObjectViewRender>.
     */
 	LINK_INT(ViewOverrideFlag);
-
-	/***
-    * \field UpdateRegionW
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The horizontal on-screen range where the entity can update. If this is set to `0.0`, the entity will update regardless of the camera's horizontal position.
-    */
-	Instance->InstanceObj.Fields->Put("UpdateRegionW", DECIMAL_LINK_VAL(&OnScreenHitboxW));
-	/***
-    * \field UpdateRegionH
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The vertical on-screen range where the entity can update. If this is set to `0.0`, the entity will update regardless of the camera's vertical position.
-    */
-	Instance->InstanceObj.Fields->Put("UpdateRegionH", DECIMAL_LINK_VAL(&OnScreenHitboxH));
-	/***
-    * \field UpdateRegionTop
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The top on-screen range where the entity can update. If set to `0.0`, the entity will use its <ref Entity.UpdateRegionH> instead.
-    */
-	Instance->InstanceObj.Fields->Put("UpdateRegionTop", DECIMAL_LINK_VAL(&OnScreenRegionTop));
-	/***
-    * \field UpdateRegionLeft
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The left on-screen range where the entity can update. If set to `0.0`, the entity will use its <ref Entity.UpdateRegionW> instead.
-    */
-	Instance->InstanceObj.Fields->Put(
-		"UpdateRegionLeft", DECIMAL_LINK_VAL(&OnScreenRegionLeft));
-	/***
-    * \field UpdateRegionRight
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The left on-screen range where the entity can update. If set to `0.0`, the entity will use its <ref Entity.UpdateRegionW> instead.
-    */
-	Instance->InstanceObj.Fields->Put(
-		"UpdateRegionRight", DECIMAL_LINK_VAL(&OnScreenRegionRight));
-	/***
-    * \field UpdateRegionBottom
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The bottom on-screen range where the entity can update. If set to `0.0`, the entity will use its <ref Entity.UpdateRegionH> instead.
-    */
-	Instance->InstanceObj.Fields->Put(
-		"UpdateRegionBottom", DECIMAL_LINK_VAL(&OnScreenRegionBottom));
-	/***
-    * \field RenderRegionW
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The horizontal on-screen range where the entity can render. If set to `0.0`, the entity will render regardless of the camera's horizontal position.
-    */
-	LINK_DEC(RenderRegionW);
-	/***
-    * \field RenderRegionH
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The vertical on-screen range where the entity can render. If set to `0.0`, the entity will render regardless of the camera's vertical position.
-    */
-	LINK_DEC(RenderRegionH);
-	/***
-    * \field RenderRegionTop
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The top on-screen range where the entity can render. If set to `0.0`, the entity will use its <ref Entity.RenderRegionH> instead.
-    */
-	LINK_DEC(RenderRegionTop);
-	/***
-    * \field RenderRegionLeft
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The left on-screen range where the entity can render. If this and <ref Entity.RenderRegionRight> are set to `0.0`, the entity will use its <ref Entity.RenderRegionW> instead.
-    */
-	LINK_DEC(RenderRegionLeft);
-	/***
-    * \field RenderRegionRight
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The left on-screen range where the entity can render. If this and <ref Entity.RenderRegionLeft> are set to `0.0`, the entity will use its <ref Entity.RenderRegionW> instead.
-    */
-	LINK_DEC(RenderRegionRight);
-	/***
-    * \field RenderRegionBottom
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc The bottom on-screen range where the entity can render. If set to `0.0`, the entity will use its <ref Entity.RenderRegionH> instead.
-    */
-	LINK_DEC(RenderRegionBottom);
 
 	/***
     * \field HitboxW
@@ -511,54 +542,21 @@ void ScriptEntity::LinkFields() {
 	// See EntityImpl::VM_PropertyGet and EntityImpl::VM_PropertySet
 
 	/***
-    * \field FlipFlag
-    * \type bitfield
-    * \default 0
+    * \field Direction
+    * \type <ref FLIP_*>
+    * \default FLIP_NONE
     * \ns Entity
     * \desc Indicates whether the entity is X/Y flipped.
     */
-	LINK_INT(FlipFlag);
-
-	/***
-    * \field VelocityX
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc Similar to <ref Entity.XSpeed>.
-    */
-	LINK_DEC(VelocityX);
-	/***
-    * \field VelocityY
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc Similar to <ref Entity.YSpeed>.
-    */
-	LINK_DEC(VelocityY);
-	/***
-    * \field GroundVel
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    * \desc Similar to <ref Entity.GroundSpeed>.
-    */
-	LINK_DEC(GroundVel);
-	/***
-    * \field Direction
-    * \type integer
-    * \default 0
-    * \ns Entity
-    * \desc Similar to <ref Entity.FlipFlag>.
-    */
 	LINK_INT(Direction);
 	/***
-    * \field OnGround
-    * \type boolean
-    * \default false
-    * \ns Entity
-    * \desc Similar to <ref Entity.Ground>.
-    */
-	LINK_INT(OnGround);
+	* \field FlipFlag
+	* \type <ref FLIP_*>
+	* \default FLIP_NONE
+	* \ns Entity
+	* \desc Alias for <ref Entity.Direction>.
+	*/
+	Instance->InstanceObj.Fields->Put("FlipFlag", INTEGER_LINK_VAL(&Direction));
 
 	/***
     * \field SlotID
@@ -903,11 +901,11 @@ void ScriptEntity::Initialize() {
 	Activity = ACTIVE_BOUNDS;
 	InRange = false;
 
-	XSpeed = 0.0f;
-	YSpeed = 0.0f;
+	SpeedX = 0.0f;
+	SpeedY = 0.0f;
 	GroundSpeed = 0.0f;
-	Gravity = 0.0f;
-	Ground = false;
+	GravitySpeed = 0.0f;
+	OnGround = false;
 
 	WasOffScreen = false;
 	OnScreen = true;
@@ -950,14 +948,12 @@ void ScriptEntity::Initialize() {
 	RotationStyle = ROTSTYLE_NONE;
 
 	Hitbox.Clear();
-	FlipFlag = 0;
 
-	VelocityX = 0.0f;
-	VelocityY = 0.0f;
-	GroundVel = 0.0f;
-	GravityStrength = 0.0f;
-	OnGround = false;
 	Direction = 0;
+	TileCollisions = TILECOLLISION_NONE;
+	CollisionLayers = 0;
+	CollisionPlane = 0;
+	CollisionMode = CMODE_FLOOR;
 
 	Persistence = Persistence_NONE;
 	Interactable = true;

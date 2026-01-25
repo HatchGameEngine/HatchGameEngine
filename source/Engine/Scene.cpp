@@ -4028,22 +4028,22 @@ int Scene::CheckEntityBox(Entity* thisEntity, CollisionBox* thisHitbox, Entity* 
 			otherEntity->Y = collideY;
 
 			if (side == C_TOP) {
-				if (otherEntity->VelocityY > 0.0f)
-					otherEntity->VelocityY = 0.0f;
+				if (otherEntity->SpeedY > 0.0f)
+					otherEntity->SpeedY = 0.0f;
 
-				if (otherEntity->TileCollisions != TILECOLLISION_UP && !otherEntity->OnGround && otherEntity->VelocityY >= 0.0f) {
-					otherEntity->GroundVel = otherEntity->VelocityX;
+				if (otherEntity->TileCollisions != TILECOLLISION_UP && !otherEntity->OnGround && otherEntity->SpeedY >= 0.0f) {
+					otherEntity->GroundSpeed = otherEntity->SpeedX;
 					otherEntity->Angle = 0x00;
 					otherEntity->OnGround = true;
 				}
 			}
 			else {
-				if (otherEntity->VelocityY < 0.0f)
-					otherEntity->VelocityY = 0.0f;
+				if (otherEntity->SpeedY < 0.0f)
+					otherEntity->SpeedY = 0.0f;
 
-				if (otherEntity->TileCollisions == TILECOLLISION_UP && !otherEntity->OnGround && otherEntity->VelocityY <= 0.0f) {
+				if (otherEntity->TileCollisions == TILECOLLISION_UP && !otherEntity->OnGround && otherEntity->SpeedY <= 0.0f) {
 					otherEntity->Angle = 0x80;
-					otherEntity->GroundVel = -otherEntity->VelocityX;
+					otherEntity->GroundSpeed = -otherEntity->SpeedX;
 					otherEntity->OnGround = true;
 				}
 			}
@@ -4052,12 +4052,12 @@ int Scene::CheckEntityBox(Entity* thisEntity, CollisionBox* thisHitbox, Entity* 
 			otherEntity->X = collideX;
 
 			float entityVelX = otherEntity->OnGround
-							   ? (otherEntity->CollisionMode == CMODE_ROOF ? -otherEntity->GroundVel : otherEntity->GroundVel)
-							   : otherEntity->VelocityX;
+							   ? (otherEntity->CollisionMode == CMODE_ROOF ? -otherEntity->GroundSpeed : otherEntity->GroundSpeed)
+							   : otherEntity->SpeedX;
 
 			if ((side == C_LEFT && entityVelX > 0.0f) || (side == C_RIGHT && entityVelX < 0.0f)) {
-				otherEntity->VelocityX = 0.0f;
-				otherEntity->GroundVel = 0.0f;
+				otherEntity->SpeedX = 0.0f;
+				otherEntity->GroundSpeed = 0.0f;
 			}
 		}
 	}
@@ -4087,25 +4087,25 @@ bool Scene::CheckEntityPlatform(Entity* thisEntity, CollisionBox* thisHitbox, En
 	float gravityDir = isUp ? -1.0f : 1.0f;
 
 	float otherEdge = otherEntity->Y + (otherBox.Bottom * gravityDir);
-	float otherPrevEdge = (otherEntity->Y - otherEntity->VelocityY) + (otherBox.Bottom * gravityDir);
+	float otherPrevEdge = (otherEntity->Y - otherEntity->SpeedY) + (otherBox.Bottom * gravityDir);
 
 	float platformTop = thisEntity->Y + thisBox.Top;
 	float platformBottom = thisEntity->Y + thisBox.Bottom;
 
 	bool isColliding = (thisEntity->X + thisBox.Left < otherEntity->X + otherBox.Right) &&
 					   (thisEntity->X + thisBox.Right > otherEntity->X + otherBox.Left) &&
-					   ((!isUp && otherEntity->VelocityY >= 0.0f && otherEdge >= platformTop && otherPrevEdge <= platformBottom) ||
-					   (isUp && otherEntity->VelocityY <= 0.0f && otherEdge <= platformBottom && otherPrevEdge >= platformTop));
+					   ((!isUp && otherEntity->SpeedY >= 0.0f && otherEdge >= platformTop && otherPrevEdge <= platformBottom) ||
+					   (isUp && otherEntity->SpeedY <= 0.0f && otherEdge <= platformBottom && otherPrevEdge >= platformTop));
 
 	if (isColliding) {
 		otherEntity->Y = isUp ? (platformBottom + otherBox.Bottom) : (platformTop - otherBox.Bottom);
 
 		if (setValues) {
-			otherEntity->VelocityY = 0.0f;
+			otherEntity->SpeedY = 0.0f;
 			if (!otherEntity->OnGround) {
 				otherEntity->OnGround = true;
 				otherEntity->Angle = isUp ? 0x80 : 0x00;
-				otherEntity->GroundVel = isUp ? -otherEntity->VelocityX : otherEntity->VelocityX;
+				otherEntity->GroundSpeed = isUp ? -otherEntity->SpeedX : otherEntity->SpeedX;
 			}
 		}
 	}
@@ -4316,7 +4316,7 @@ void Scene::ProcessEntityMovement(Entity* entity, CollisionBox* outerBox, Collis
 			bool isUp = (entity->TileCollisions == TILECOLLISION_UP);
 
 			int groundAngle = isUp ? 0x80 : 0x00;
-			if (abs(entity->GroundVel) < 6.0f && entity->Angle == groundAngle)
+			if (abs(entity->GroundSpeed) < 6.0f && entity->Angle == groundAngle)
 				CollisionTolerance = LowCollisionTolerance;
 			else
 				CollisionTolerance = HighCollisionTolerance;
@@ -4336,23 +4336,23 @@ void Scene::ProcessEntityMovement(Entity* entity, CollisionBox* outerBox, Collis
 			}
 
 			if (entity->OnGround) {
-				entity->VelocityX = entity->GroundVel * Math::Cos256(entity->Angle & 0xFF) * (1.0f / 256);
-				entity->VelocityY = entity->GroundVel * Math::Sin256(entity->Angle & 0xFF) * (1.0f / 256);
+				entity->SpeedX = entity->GroundSpeed * Math::Cos256(entity->Angle & 0xFF) * (1.0f / 256);
+				entity->SpeedY = entity->GroundSpeed * Math::Sin256(entity->Angle & 0xFF) * (1.0f / 256);
 			}
 			else {
-				entity->GroundVel = entity->VelocityX;
+				entity->GroundSpeed = entity->SpeedX;
 			}
 		}
 		else {
-			entity->X += entity->VelocityX;
-			entity->Y += entity->VelocityY;
+			entity->X += entity->SpeedX;
+			entity->Y += entity->SpeedY;
 		}
 	}
 }
 
 void Scene::SetPathGripSensors(CollisionSensor* sensors) {
 	float offset = UseCollisionOffset ? CollisionOffset : 0.0f;
-	float groundVel = CollisionEntity->GroundVel;
+	float GroundSpeed = CollisionEntity->GroundSpeed;
 	float centerX = sensors[4].X;
 	float centerY = sensors[4].Y;
 
@@ -4363,28 +4363,28 @@ void Scene::SetPathGripSensors(CollisionSensor* sensors) {
 		sensors[0].Y = sensors[1].Y = sensors[2].Y = centerY + CollisionOuter.Bottom;
 		sensors[0].X = centerX + left; sensors[1].X = centerX; sensors[2].X = centerX + right;
 		sensors[3].Y = centerY + offset;
-		sensors[3].X = centerX + (groundVel <= 0.0f ? CollisionOuter.Left - 1.0f : CollisionOuter.Right);
+		sensors[3].X = centerX + (GroundSpeed <= 0.0f ? CollisionOuter.Left - 1.0f : CollisionOuter.Right);
 		break;
 
 	case CMODE_LWALL:
 		sensors[0].X = sensors[1].X = sensors[2].X = centerX + CollisionOuter.Bottom;
 		sensors[0].Y = centerY + left; sensors[1].Y = centerY; sensors[2].Y = centerY + right;
 		sensors[3].X = centerX;
-		sensors[3].Y = centerY - (groundVel <= 0.0f ? CollisionOuter.Left : CollisionOuter.Right + 1.0f);
+		sensors[3].Y = centerY - (GroundSpeed <= 0.0f ? CollisionOuter.Left : CollisionOuter.Right + 1.0f);
 		break;
 
 	case CMODE_ROOF:
 		sensors[0].Y = sensors[1].Y = sensors[2].Y = centerY - CollisionOuter.Bottom - 1.0f;
 		sensors[0].X = centerX + left; sensors[1].X = centerX; sensors[2].X = centerX + right;
 		sensors[3].Y = centerY - offset;
-		sensors[3].X = centerX - (groundVel <= 0.0f ? CollisionOuter.Left : CollisionOuter.Right + 1.0f);
+		sensors[3].X = centerX - (GroundSpeed <= 0.0f ? CollisionOuter.Left : CollisionOuter.Right + 1.0f);
 		break;
 
 	case CMODE_RWALL:
 		sensors[0].X = sensors[1].X = sensors[2].X = centerX - CollisionOuter.Bottom - 1.0f;
 		sensors[0].Y = centerY + left; sensors[1].Y = centerY; sensors[2].Y = centerY + right;
 		sensors[3].X = centerX;
-		sensors[3].Y = centerY + (groundVel <= 0.0f ? CollisionOuter.Left - 1.0f : CollisionOuter.Right);
+		sensors[3].Y = centerY + (GroundSpeed <= 0.0f ? CollisionOuter.Left - 1.0f : CollisionOuter.Right);
 		break;
 	}
 }
@@ -4401,7 +4401,7 @@ void Scene::ProcessPathGrip() {
 	}
 	SetPathGripSensors(Sensors);
 
-	float absSpeed = abs(CollisionEntity->GroundVel);
+	float absSpeed = abs(CollisionEntity->GroundSpeed);
 	int checkDist = (int)(absSpeed / 4.0f);
 	float remainder = fmod(absSpeed, 4.0f);
 
@@ -4414,7 +4414,7 @@ void Scene::ProcessPathGrip() {
 
 		xVel = (Math::Cos256(CollisionEntity->Angle) * (1.0f / 256)) * stepSize;
 		yVel = (Math::Sin256(CollisionEntity->Angle) * (1.0f / 256)) * stepSize;
-		if (CollisionEntity->GroundVel < 0.0f){
+		if (CollisionEntity->GroundSpeed < 0.0f){
 			xVel = -xVel;
 			yVel = -yVel;
 		}
@@ -4428,12 +4428,12 @@ void Scene::ProcessPathGrip() {
 		case CMODE_FLOOR:
 			Sensors[3].X += xVel;
 			Sensors[3].Y += yVel;
-			if (CollisionEntity->GroundVel > 0.0f) {
+			if (CollisionEntity->GroundSpeed > 0.0f) {
 				CheckHorizontalCollision(&Sensors[3], true);
 				if (Sensors[3].Collided)
 					Sensors[2].X = Sensors[3].X - 2.0f;
 			}
-			else if (CollisionEntity->GroundVel < 0.0f) {
+			else if (CollisionEntity->GroundSpeed < 0.0f) {
 				CheckHorizontalCollision(&Sensors[3], false);
 				if (Sensors[3].Collided)
 					Sensors[0].X = Sensors[3].X + 2.0f;
@@ -4467,7 +4467,7 @@ void Scene::ProcessPathGrip() {
 		case CMODE_LWALL:
 			Sensors[3].X += xVel;
 			Sensors[3].Y += yVel;
-			CheckVerticalCollision(&Sensors[3], CollisionEntity->GroundVel < 0.0f);
+			CheckVerticalCollision(&Sensors[3], CollisionEntity->GroundSpeed < 0.0f);
 			if (Sensors[3].Collided) {
 				yVel = 0.0f;
 				checkDist = -1;
@@ -4495,12 +4495,12 @@ void Scene::ProcessPathGrip() {
 		case CMODE_ROOF:
 			Sensors[3].X += xVel;
 			Sensors[3].Y += yVel;
-			if (CollisionEntity->GroundVel > 0.0f) {
+			if (CollisionEntity->GroundSpeed > 0.0f) {
 				CheckHorizontalCollision(&Sensors[3], false);
 				if (Sensors[3].Collided)
 					Sensors[2].X = Sensors[3].X + 2.0f;
 			}
-			else if (CollisionEntity->GroundVel < 0.0f) {
+			else if (CollisionEntity->GroundSpeed < 0.0f) {
 				CheckHorizontalCollision(&Sensors[3], true);
 				if (Sensors[3].Collided)
 					Sensors[0].X = Sensors[3].X - 2.0f;
@@ -4533,7 +4533,7 @@ void Scene::ProcessPathGrip() {
 		case CMODE_RWALL:
 			Sensors[3].X += xVel;
 			Sensors[3].Y += yVel;
-			CheckVerticalCollision(&Sensors[3], CollisionEntity->GroundVel > 0.0f);
+			CheckVerticalCollision(&Sensors[3], CollisionEntity->GroundSpeed > 0.0f);
 			if (Sensors[3].Collided) {
 				yVel = 0.0f;
 				checkDist = -1;
@@ -4573,13 +4573,13 @@ void Scene::ProcessPathGrip() {
 	auto SetAirborne = [&]() {
 		CollisionEntity->OnGround = false;
 		CollisionEntity->CollisionMode = newCollisionMode;
-		CollisionEntity->VelocityX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundVel * (1.0f / 256);
-		CollisionEntity->VelocityY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundVel * (1.0f / 256);
-		if (CollisionEntity->VelocityY < -16.0f)
-			CollisionEntity->VelocityY = -16.0f;
-		else if (CollisionEntity->VelocityY > 16.0f)
-			CollisionEntity->VelocityY = 16.0f;
-		CollisionEntity->GroundVel = CollisionEntity->VelocityX;
+		CollisionEntity->SpeedX = Math::Cos256(CollisionEntity->Angle) * CollisionEntity->GroundSpeed * (1.0f / 256);
+		CollisionEntity->SpeedY = Math::Sin256(CollisionEntity->Angle) * CollisionEntity->GroundSpeed * (1.0f / 256);
+		if (CollisionEntity->SpeedY < -16.0f)
+			CollisionEntity->SpeedY = -16.0f;
+		else if (CollisionEntity->SpeedY > 16.0f)
+			CollisionEntity->SpeedY = 16.0f;
+		CollisionEntity->GroundSpeed = CollisionEntity->SpeedX;
 		CollisionEntity->Angle = newCollisionMode << 6;
 	};
 
@@ -4591,19 +4591,19 @@ void Scene::ProcessPathGrip() {
 			if (!Sensors[3].Collided)
 				CollisionEntity->X = Sensors[4].X;
 			else {
-				CollisionEntity->X = Sensors[3].X - (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
-				CollisionEntity->GroundVel = CollisionEntity->VelocityX = 0.0f;
+				CollisionEntity->X = Sensors[3].X - (CollisionEntity->GroundSpeed > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
+				CollisionEntity->GroundSpeed = CollisionEntity->SpeedX = 0.0f;
 			}
 		}
 		else {
 			SetAirborne();
 			if (!Sensors[3].Collided)
-				CollisionEntity->X += CollisionEntity->VelocityX;
+				CollisionEntity->X += CollisionEntity->SpeedX;
 			else {
-				CollisionEntity->X = Sensors[3].X - (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
-				CollisionEntity->GroundVel = CollisionEntity->VelocityX = 0.0f;
+				CollisionEntity->X = Sensors[3].X - (CollisionEntity->GroundSpeed > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
+				CollisionEntity->GroundSpeed = CollisionEntity->SpeedX = 0.0f;
 			}
-			CollisionEntity->Y += CollisionEntity->VelocityY;
+			CollisionEntity->Y += CollisionEntity->SpeedY;
 		}
 		break;
 
@@ -4617,8 +4617,8 @@ void Scene::ProcessPathGrip() {
 			CollisionEntity->X = Sensors[4].X; CollisionEntity->Y = Sensors[4].Y;
 		}
 		else {
-			CollisionEntity->Y = Sensors[3].Y + (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right + 1.0f : -CollisionOuter.Left);
-			CollisionEntity->GroundVel = 0.0f;
+			CollisionEntity->Y = Sensors[3].Y + (CollisionEntity->GroundSpeed > 0.0f ? CollisionOuter.Right + 1.0f : -CollisionOuter.Left);
+			CollisionEntity->GroundSpeed = 0.0f;
 			CollisionEntity->X = Sensors[4].X;
 		}
 		break;
@@ -4629,17 +4629,17 @@ void Scene::ProcessPathGrip() {
 			if (!Sensors[3].Collided)
 				CollisionEntity->X = Sensors[4].X;
 			else {
-				CollisionEntity->X = Sensors[3].X + (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
-				CollisionEntity->GroundVel = 0.0f;
+				CollisionEntity->X = Sensors[3].X + (CollisionEntity->GroundSpeed > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
+				CollisionEntity->GroundSpeed = 0.0f;
 			}
 		}
 		else {
 			SetAirborne();
 			if (!Sensors[3].Collided)
-				CollisionEntity->X += CollisionEntity->VelocityX;
+				CollisionEntity->X += CollisionEntity->SpeedX;
 			else {
-				CollisionEntity->X = Sensors[3].X - (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
-				CollisionEntity->GroundVel = 0.0f;
+				CollisionEntity->X = Sensors[3].X - (CollisionEntity->GroundSpeed > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
+				CollisionEntity->GroundSpeed = 0.0f;
 			}
 		}
 		CollisionEntity->Y = Sensors[4].Y;
@@ -4655,8 +4655,8 @@ void Scene::ProcessPathGrip() {
 			CollisionEntity->X = Sensors[4].X; CollisionEntity->Y = Sensors[4].Y;
 		}
 		else {
-			CollisionEntity->Y = Sensors[3].Y - (CollisionEntity->GroundVel > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
-			CollisionEntity->GroundVel = 0.0f;
+			CollisionEntity->Y = Sensors[3].Y - (CollisionEntity->GroundSpeed > 0.0f ? CollisionOuter.Right : CollisionOuter.Left - 1.0f);
+			CollisionEntity->GroundSpeed = 0.0f;
 			CollisionEntity->X = Sensors[4].X;
 		}
 		break;
@@ -4667,12 +4667,12 @@ void Scene::ProcessAirCollision(bool isUp) {
 	int movingDown = 0, movingUp = 0, movingLeft = 0, movingRight = 0;
 	float offset = UseCollisionOffset ? (isUp ? -CollisionOffset : CollisionOffset) : 0.0f;
 
-	if (CollisionEntity->VelocityX >= 0.0f) {
+	if (CollisionEntity->SpeedX >= 0.0f) {
 		movingRight = 1;
 		Sensors[0].X = CollisionEntity->X + CollisionOuter.Right;
 		Sensors[0].Y = CollisionEntity->Y + offset;
 	}
-	if (CollisionEntity->VelocityX <= 0.0f) {
+	if (CollisionEntity->SpeedX <= 0.0f) {
 		movingLeft = 1;
 		Sensors[1].X = CollisionEntity->X + CollisionOuter.Left - 1.0f;
 		Sensors[1].Y = CollisionEntity->Y + offset;
@@ -4691,13 +4691,13 @@ void Scene::ProcessAirCollision(bool isUp) {
 	const int roofSensor1 = isUp ? 2 : 4;
 	const int roofSensor2 = isUp ? 3 : 5;
 
-	if ((!isUp && CollisionEntity->VelocityY >= 0.0f) || (isUp && CollisionEntity->VelocityY <= 0.0f)) {
+	if ((!isUp && CollisionEntity->SpeedY >= 0.0f) || (isUp && CollisionEntity->SpeedY <= 0.0f)) {
 		movingDown = 1;
 		Sensors[floorSensor1].Y = CollisionEntity->Y + (isUp ? CollisionOuter.Top - 1.0f : CollisionOuter.Bottom);
 		Sensors[floorSensor2].Y = Sensors[floorSensor1].Y;
 	}
 
-	if ((!isUp && CollisionEntity->VelocityY < 0.0f) || (isUp && CollisionEntity->VelocityY > 0.0f)) {
+	if ((!isUp && CollisionEntity->SpeedY < 0.0f) || (isUp && CollisionEntity->SpeedY > 0.0f)) {
 		movingUp = 1;
 		Sensors[roofSensor1].Y = CollisionEntity->Y + (isUp ? CollisionOuter.Bottom : CollisionOuter.Top - 1.0f);
 		Sensors[roofSensor2].Y = Sensors[roofSensor1].Y;
@@ -4705,12 +4705,12 @@ void Scene::ProcessAirCollision(bool isUp) {
 
 	// NOTE: If the hitbox is small, we need to check more often
 	float stepSize = (CollisionOuter.Bottom >= 14) ? 8.0f : 2.0f;
-	int cnt = (int)(fmax(abs(CollisionEntity->VelocityX), abs(CollisionEntity->VelocityY)) / stepSize) + 1;
+	int cnt = (int)(fmax(abs(CollisionEntity->SpeedX), abs(CollisionEntity->SpeedY)) / stepSize) + 1;
 
-	float velX = CollisionEntity->VelocityX / (float)cnt;
-	float velY = CollisionEntity->VelocityY / (float)cnt;
-	float velX2 = CollisionEntity->VelocityX - velX * (cnt - 1);
-	float velY2 = CollisionEntity->VelocityY - velY * (cnt - 1);
+	float velX = CollisionEntity->SpeedX / (float)cnt;
+	float velY = CollisionEntity->SpeedY / (float)cnt;
+	float velX2 = CollisionEntity->SpeedX - velX * (cnt - 1);
+	float velY2 = CollisionEntity->SpeedY - velY * (cnt - 1);
 
 	while (cnt > 0) {
 		if (cnt == 1) {
@@ -4737,8 +4737,8 @@ void Scene::ProcessAirCollision(bool isUp) {
 		}
 
 		if (movingRight == 2 || movingLeft == 2) {
-			CollisionEntity->VelocityX = 0.0f;
-			CollisionEntity->GroundVel = 0.0f;
+			CollisionEntity->SpeedX = 0.0f;
+			CollisionEntity->GroundSpeed = 0.0f;
 			CollisionEntity->X = (movingRight == 2) ? (Sensors[0].X - CollisionOuter.Right) : (Sensors[1].X - CollisionOuter.Left + 1.0f);
 
 			Sensors[2].X = Sensors[4].X = (CollisionEntity->X + CollisionOuter.Left + 1.0f);
@@ -4781,10 +4781,10 @@ void Scene::ProcessAirCollision(bool isUp) {
 	}
 
 	if (movingRight < 2 && movingLeft < 2)
-		CollisionEntity->X += CollisionEntity->VelocityX;
+		CollisionEntity->X += CollisionEntity->SpeedX;
 
 	if (movingUp < 2 && movingDown < 2) {
-		CollisionEntity->Y += CollisionEntity->VelocityY;
+		CollisionEntity->Y += CollisionEntity->SpeedY;
 		return;
 	}
 
@@ -4817,35 +4817,35 @@ void Scene::ProcessAirCollision(bool isUp) {
 		if (!isUp) {
 			if (ang < 0x80) {
 				if (ang < 0x10)
-					speed = CollisionEntity->VelocityX;
+					speed = CollisionEntity->SpeedX;
 				else
-					speed = (abs(CollisionEntity->VelocityX) <= abs(CollisionEntity->VelocityY / (ang >= 0x20 ? 1.0f : 2.0f))) ? (CollisionEntity->VelocityY / (ang >= 0x20 ? 1.0f : 2.0f)) : CollisionEntity->VelocityX;
+					speed = (abs(CollisionEntity->SpeedX) <= abs(CollisionEntity->SpeedY / (ang >= 0x20 ? 1.0f : 2.0f))) ? (CollisionEntity->SpeedY / (ang >= 0x20 ? 1.0f : 2.0f)) : CollisionEntity->SpeedX;
 			}
 			else {
 				if (ang > 0xF0)
-					speed = CollisionEntity->VelocityX;
+					speed = CollisionEntity->SpeedX;
 				else
-					speed = (abs(CollisionEntity->VelocityX) <= abs(CollisionEntity->VelocityY / (ang <= 0xE0 ? 1.0f : 2.0f))) ? -(CollisionEntity->VelocityY / (ang <= 0xE0 ? 1.0f : 2.0f)) : CollisionEntity->VelocityX;
+					speed = (abs(CollisionEntity->SpeedX) <= abs(CollisionEntity->SpeedY / (ang <= 0xE0 ? 1.0f : 2.0f))) ? -(CollisionEntity->SpeedY / (ang <= 0xE0 ? 1.0f : 2.0f)) : CollisionEntity->SpeedX;
 			}
 		}
 		else {
 			if (ang >= 0x80) {
 				if (ang < 0x90)
-					speed = -CollisionEntity->VelocityX;
+					speed = -CollisionEntity->SpeedX;
 				else
-					speed = (abs(CollisionEntity->VelocityX) <= abs(CollisionEntity->VelocityY / (ang >= 0xA0 ? 1.0f : 2.0f))) ? (CollisionEntity->VelocityY / (ang >= 0xA0 ? 1.0f : 2.0f)) : CollisionEntity->VelocityX;
+					speed = (abs(CollisionEntity->SpeedX) <= abs(CollisionEntity->SpeedY / (ang >= 0xA0 ? 1.0f : 2.0f))) ? (CollisionEntity->SpeedY / (ang >= 0xA0 ? 1.0f : 2.0f)) : CollisionEntity->SpeedX;
 			}
 			else {
 				if (ang <= 0x70)
-					speed = CollisionEntity->VelocityX;
+					speed = CollisionEntity->SpeedX;
 				else
-					speed = (abs(CollisionEntity->VelocityX) <= abs(CollisionEntity->VelocityY / (ang <= 0x60 ? 1.0f : 2.0f))) ? -(CollisionEntity->VelocityY / (ang <= 0x60 ? 1.0f : 2.0f)) : CollisionEntity->VelocityX;
+					speed = (abs(CollisionEntity->SpeedX) <= abs(CollisionEntity->SpeedY / (ang <= 0x60 ? 1.0f : 2.0f))) ? -(CollisionEntity->SpeedY / (ang <= 0x60 ? 1.0f : 2.0f)) : CollisionEntity->SpeedX;
 			}
 		}
 
-		CollisionEntity->GroundVel = fmax(-24.0f, fmin(24.0f, speed));
-		CollisionEntity->VelocityX = CollisionEntity->GroundVel;
-		CollisionEntity->VelocityY = 0.0f;
+		CollisionEntity->GroundSpeed = fmax(-24.0f, fmin(24.0f, speed));
+		CollisionEntity->SpeedX = CollisionEntity->GroundSpeed;
+		CollisionEntity->SpeedY = 0.0f;
 	}
 
 	if (movingUp == 2) {
@@ -4860,12 +4860,12 @@ void Scene::ProcessAirCollision(bool isUp) {
 		if (!isUp) {
 			landLeft = (sensorAngle > 0x9E && sensorAngle < 0xC1);
 			landRight = (sensorAngle < 0x62 && sensorAngle > 0x00);
-			velocityCheck = (CollisionEntity->VelocityY < -abs(CollisionEntity->VelocityX));
+			velocityCheck = (CollisionEntity->SpeedY < -abs(CollisionEntity->SpeedX));
 		}
 		else {
 			landLeft = (sensorAngle > 0xC0 && sensorAngle < 0xE2);
 			landRight = (sensorAngle >= 0x21 && sensorAngle <= 0x40);
-			velocityCheck = (CollisionEntity->VelocityY > abs(CollisionEntity->VelocityX));
+			velocityCheck = (CollisionEntity->SpeedY > abs(CollisionEntity->SpeedX));
 		}
 
 		if ((landLeft || landRight) && velocityCheck) {
@@ -4881,10 +4881,10 @@ void Scene::ProcessAirCollision(bool isUp) {
 			else
 				multi = landRight ? (sensorAngle <= 0x20 ? 1.0f : 0.5f) : (sensorAngle <= 0xE0 ? -1.0f : -0.5f);
 
-			CollisionEntity->GroundVel = CollisionEntity->VelocityY * multi;
+			CollisionEntity->GroundSpeed = CollisionEntity->SpeedY * multi;
 		}
 		else {
-			CollisionEntity->VelocityY = 0.0f;
+			CollisionEntity->SpeedY = 0.0f;
 		}
 	}
 }
