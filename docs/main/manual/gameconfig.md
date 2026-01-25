@@ -11,12 +11,12 @@ Configures basic information about the game.
 | Name             | Type             | Description        | Default         |
 | ---------------- | ---------------- | ------------------ | --------------- |
 | `gameTitle` | string | The full game title. `name` is also accepted. | `"Hatch Game Engine"` |
-| `shortTitle` | string | The shorter version of the game's title. | `"Hatch Game Engine"` |
-| `version` | string | The game's version. | `"1.0"` |
-| `description` | string | The game's description. | `"Cluck cluck I'm a chicken"` |
-| `developer` | string | The game's developer. | |
-| `gameIdentifier` | string | The game's identifier. | `"hatch"` |
-| `developerIdentifier` | string | The game's developer identifier. | |
+| `shortTitle` | string | A shorter version of the game's title. | `"Hatch Game Engine"` |
+| `version` | string | The version of the game. | `"1.0"` |
+| `description` | string | A short description of the game. | `"Cluck cluck I'm a chicken"` |
+| `developer` | string | The name of the developer. | |
+| `gameIdentifier` | string | The game's identifier. If not set, this is generated from the short game title. | `"hatch"` |
+| `developerIdentifier` | string | The identifier of the developer. If not set, this is generated from the developer name. | |
 | `useDeveloperIdentifierInPaths` | boolean | Whether to use `developerIdentifier` in paths. | |
 | `savesDir` | string | The name of the saves directory. | `"saves"` |
 | `preferencesDir` | string | The name of the preferences directory. | |
