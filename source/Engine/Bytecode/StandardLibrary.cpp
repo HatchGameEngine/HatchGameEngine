@@ -17675,7 +17675,7 @@ VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID
  * \desc Checks for a tile collision in a straight line.
  * \param x (number): X position to start checking from.
  * \param y (number): Y position to start checking from.
- * \param directionType (integer): Ordinal direction to check in. (0: Down, 1: Right, 2: Up, 3: Left, or one of the enums: SensorDirection_Up, SensorDirection_Left, SensorDirection_Down, SensorDirection_Right)
+ * \param directionType (<ref SensorDirection_*>): Ordinal direction to check in.
  * \param length (integer): How many pixels to check.
  * \param collisionField (integer): Low (0) or high (1) field to check.
  * \param compareAngle (integer): Only return a collision if the angle is within 0x20 this value, otherwise if angle comparison is not desired, set this value to -1.
@@ -17798,7 +17798,7 @@ VMValue TileInfo_GetEmptyTile(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Gets the collision value at the pixel position of the desired tile, -1 if no collision.
  * \param tileID (integer): ID of the tile to get the value of.
  * \param collisionField (integer): The collision plane of the tile to get the collision from.
- * \param directionType (integer): Ordinal direction to check in. (0: Down, 1: Right, 2: Up, 3: Left, or one of the enums: SensorDirection_Up, SensorDirection_Left, SensorDirection_Down, SensorDirection_Right)
+ * \param directionType (<ref SensorDirection_*>): Ordinal direction to check in.
  * \param position (integer): Position on the tile to check, X position if the directionType is Up/Down, Y position if the directionType is Left/Right.
  * \paramOpt flipX (boolean): Whether to check the collision with the tile horizontally flipped.
  * \paramOpt flipY (boolean): Whether to check the collision with the tile vertically flipped.
@@ -17858,7 +17858,7 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Gets the angle value of the desired tile.
  * \param tileID (integer): ID of the tile to get the value of.
  * \param collisionField (integer): The collision plane of the tile to get the angle from.
- * \param directionType (integer): Ordinal direction to check in. (0: Down, 1: Right, 2: Up, 3: Left, or one of the enums: SensorDirection_Up, SensorDirection_Left, SensorDirection_Down, SensorDirection_Right)
+ * \param directionType (<ref SensorDirection_*>): Ordinal direction to check in.
  * \paramOpt flipX (boolean): Whether to check the angle with the tile horizontally flipped.
  * \paramOpt flipY (boolean): Whether to check the angle with the tile vertically flipped.
  * \return integer Angle value between 0x00 to 0xFF at the specified direction.
