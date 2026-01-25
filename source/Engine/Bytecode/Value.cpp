@@ -1,6 +1,6 @@
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
-#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 const char* Value::GetObjectTypeName(Uint32 type) {
 	switch (type) {

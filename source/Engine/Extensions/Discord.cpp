@@ -393,7 +393,8 @@ int Discord::User::Update() {
 	}
 
 	CurrentUser.IDSnowflake = user.id;
-	snprintf(CurrentUser.ID, sizeof(CurrentUser.ID), "%lld", (long long)CurrentUser.IDSnowflake);
+	snprintf(
+		CurrentUser.ID, sizeof(CurrentUser.ID), "%lld", (long long)CurrentUser.IDSnowflake);
 	StringUtils::Copy(CurrentUser.Username, user.username, sizeof(CurrentUser.Username));
 	CurrentUser.IsBot = user.bot;
 

@@ -1,9 +1,9 @@
 #ifndef ENGINE_RESOURCETYPES_SOUNDFORMATS_OGG_H
 #define ENGINE_RESOURCETYPES_SOUNDFORMATS_OGG_H
 
+#include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
-#include <Engine/IO/Stream.h>
 #include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
 
 class OGG : public SoundFormat {

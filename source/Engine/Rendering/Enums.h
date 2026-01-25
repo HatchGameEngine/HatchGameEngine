@@ -94,9 +94,7 @@ enum {
 	DrawMode_FlagsMask = ~0xF
 };
 
-enum {
-	TEXTDRAW_ELLIPSIS = 1 << 0
-};
+enum { TEXTDRAW_ELLIPSIS = 1 << 0 };
 
 struct TileScanLine {
 	Sint64 SrcX;

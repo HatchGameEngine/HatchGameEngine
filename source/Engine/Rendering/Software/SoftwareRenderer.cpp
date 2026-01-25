@@ -175,7 +175,8 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 	SoftwareRenderer::BackendFunctions.FillRectangle = SoftwareRenderer::FillRectangle;
 	SoftwareRenderer::BackendFunctions.FillQuad = SoftwareRenderer::FillQuad;
 	SoftwareRenderer::BackendFunctions.FillQuadBlend = SoftwareRenderer::FillQuadBlend;
-	SoftwareRenderer::BackendFunctions.DrawTriangleTextured = SoftwareRenderer::DrawTriangleTextured;
+	SoftwareRenderer::BackendFunctions.DrawTriangleTextured =
+		SoftwareRenderer::DrawTriangleTextured;
 	SoftwareRenderer::BackendFunctions.DrawQuadTextured = SoftwareRenderer::DrawQuadTextured;
 
 	// Texture drawing functions
@@ -2153,7 +2154,8 @@ void SoftwareRenderer::StrokeThickCircle(float x, float y, float rad, float thic
 
 	Uint32 col = ColRGB;
 
-	RasterizeEllipse(x, y, dst_x1, dst_y1, dst_x2, dst_y2, width, height, contourBufferA, nullptr);
+	RasterizeEllipse(
+		x, y, dst_x1, dst_y1, dst_x2, dst_y2, width, height, contourBufferA, nullptr);
 	RasterizeEllipse(x,
 		y,
 		in_dst_x1,
@@ -2451,7 +2453,8 @@ void SoftwareRenderer::FillCircle(float x, float y, float rad) {
 	int opacity = blendState.Opacity;
 
 	InitContour(ContourBuffer, dst_y1, dst_y2 - dst_y1 + 1);
-	RasterizeEllipse(x, y, dst_x1, dst_y1, dst_x2, dst_y2, width, height, ContourBuffer, nullptr);
+	RasterizeEllipse(
+		x, y, dst_x1, dst_y1, dst_x2, dst_y2, width, height, ContourBuffer, nullptr);
 
 	Uint32 col = ColRGB;
 

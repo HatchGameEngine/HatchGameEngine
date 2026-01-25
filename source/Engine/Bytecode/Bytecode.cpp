@@ -130,7 +130,8 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 
 			for (ObjFunction* function : Functions) {
 				if (tokens->Exists(function->NameHash)) {
-					function->Name = StringUtils::Duplicate(tokens->Get(function->NameHash));
+					function->Name = StringUtils::Duplicate(
+						tokens->Get(function->NameHash));
 				}
 			}
 		}

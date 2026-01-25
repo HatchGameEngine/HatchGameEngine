@@ -72,7 +72,8 @@ bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 		if (ScriptManager::Lock()) {
 			ObjArray* array = NewArray();
 
-			for (auto it = shader->UniformMap.begin(); it != shader->UniformMap.end(); it++) {
+			for (auto it = shader->UniformMap.begin(); it != shader->UniformMap.end();
+				it++) {
 				ObjString* name = CopyString(it->first.c_str());
 				array->Values->push_back(OBJECT_VAL(name));
 			}
@@ -240,7 +241,8 @@ VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
 		stream = ResourceStream::New(filename);
 
 		if (!stream) {
-			throw ScriptException("Resource \"" + std::string(filename) + "\" does not exist!");
+			throw ScriptException(
+				"Resource \"" + std::string(filename) + "\" does not exist!");
 		}
 
 		closeStream = true;

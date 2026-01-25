@@ -3,9 +3,7 @@
 
 class Capability {
 public:
-	Capability() {
-		Type = TYPE_NULL;
-	}
+	Capability() { Type = TYPE_NULL; }
 	Capability(int value) {
 		Type = TYPE_INTEGER;
 		AsInteger = value;
@@ -23,13 +21,7 @@ public:
 		AsString = value;
 	};
 
-	enum {
-		TYPE_NULL,
-		TYPE_INTEGER,
-		TYPE_DECIMAL,
-		TYPE_BOOL,
-		TYPE_STRING
-	};
+	enum { TYPE_NULL, TYPE_INTEGER, TYPE_DECIMAL, TYPE_BOOL, TYPE_STRING };
 
 	Uint8 Type;
 

@@ -26,7 +26,8 @@ void FontImpl::Init() {
 	ScriptManager::DefineNative(Class, "GetLeading", VM_GetLeading);
 	ScriptManager::DefineNative(Class, "GetSpaceWidth", VM_GetSpaceWidth);
 	ScriptManager::DefineNative(Class, "GetOversampling", VM_GetOversampling);
-	ScriptManager::DefineNative(Class, "GetPixelCoverageThreshold", VM_GetPixelCoverageThreshold);
+	ScriptManager::DefineNative(
+		Class, "GetPixelCoverageThreshold", VM_GetPixelCoverageThreshold);
 	ScriptManager::DefineNative(Class, "GetGlyphAdvance", VM_GetGlyphAdvance);
 	ScriptManager::DefineNative(Class, "IsAntialiasingEnabled", VM_IsAntialiasingEnabled);
 	ScriptManager::DefineNative(Class, "HasGlyph", VM_HasGlyph);
@@ -36,7 +37,8 @@ void FontImpl::Init() {
 	ScriptManager::DefineNative(Class, "SetLeading", VM_SetLeading);
 	ScriptManager::DefineNative(Class, "SetSpaceWidth", VM_SetSpaceWidth);
 	ScriptManager::DefineNative(Class, "SetOversampling", VM_SetOversampling);
-	ScriptManager::DefineNative(Class, "SetPixelCoverageThreshold", VM_SetPixelCoverageThreshold);
+	ScriptManager::DefineNative(
+		Class, "SetPixelCoverageThreshold", VM_SetPixelCoverageThreshold);
 	ScriptManager::DefineNative(Class, "SetAntialiasing", VM_SetAntialiasing);
 
 	TypeImpl::RegisterClass(Class);
@@ -72,7 +74,10 @@ Stream* GetFontStream(VMValue value, bool& closeStream, Uint32 threadID) {
 				filename = AS_CSTRING(value);
 			}
 			else {
-				ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Expected argument to be of type %s instead of %s.", GetObjectTypeString(OBJ_STRING), GetValueTypeString(value));
+				ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+					"Expected argument to be of type %s instead of %s.",
+					GetObjectTypeString(OBJ_STRING),
+					GetValueTypeString(value));
 			}
 			ScriptManager::Unlock();
 		}
@@ -83,7 +88,8 @@ Stream* GetFontStream(VMValue value, bool& closeStream, Uint32 threadID) {
 
 		Stream* stream = ResourceStream::New(filename);
 		if (!stream) {
-			throw ScriptException("Resource \"" + std::string(filename) + "\" does not exist!");
+			throw ScriptException(
+				"Resource \"" + std::string(filename) + "\" does not exist!");
 		}
 
 		closeStream = true;
@@ -100,8 +106,10 @@ void GetDefaultFonts(std::vector<Stream*>& streamList, std::vector<bool>& closeS
 			if (stream) {
 				streamList.push_back(stream);
 				closeStream.push_back(true);
-			} else {
-				throw ScriptException("Resource \"" + filename + "\" does not exist!");
+			}
+			else {
+				throw ScriptException(
+					"Resource \"" + filename + "\" does not exist!");
 			}
 		}
 		return;
@@ -176,8 +184,7 @@ VMValue FontImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 		Stream* stream = GetFontStream(value, close, threadID); \
 		streamList.push_back(stream); \
 		closeStream.push_back(close); \
-	} \
-	catch (const std::runtime_error& error) { \
+	} catch (const std::runtime_error& error) { \
 		FREE_STREAM_LIST \
 		throw; \
 	}
@@ -559,7 +566,8 @@ VMValue FontImpl::VM_SetPixelCoverageThreshold(int argCount, VMValue* args, Uint
 	}
 
 	if (threshold < 0.0 || threshold > 1.0) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Threshold %f out of range. (0.0 - 1.0)", threshold);
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Threshold %f out of range. (0.0 - 1.0)", threshold);
 		return NULL_VAL;
 	}
 

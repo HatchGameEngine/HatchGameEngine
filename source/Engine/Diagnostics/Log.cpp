@@ -231,7 +231,7 @@ void Log::Print(int sev, const char* format, ...) {
 		break;
 	case LOG_API:
 		severityText = "      API: ";
-        break;
+		break;
 	}
 
 	printf("%s", severityText);

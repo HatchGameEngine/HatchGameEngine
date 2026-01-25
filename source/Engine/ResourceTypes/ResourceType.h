@@ -4,11 +4,11 @@
 #include <Engine/Media/MediaPlayer.h>
 #include <Engine/Media/MediaSource.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/ResourceTypes/Font.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/ResourceTypes/Image.h>
-#include <Engine/ResourceTypes/Font.h>
 
 struct MediaBag {
 	Texture* VideoTexture;

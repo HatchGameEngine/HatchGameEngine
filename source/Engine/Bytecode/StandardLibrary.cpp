@@ -211,8 +211,8 @@ inline CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
 
 			if (array->Values->size() != NUM_HITBOX_SIDES) {
 				if (THROW_ERROR("Expected array to have %d elements instead of %d.",
-					NUM_HITBOX_SIDES,
-					array->Values->size()) == ERROR_RES_CONTINUE) {
+					    NUM_HITBOX_SIDES,
+					    array->Values->size()) == ERROR_RES_CONTINUE) {
 					ScriptManager::Threads[threadID].ReturnFromNative();
 				}
 				ScriptManager::Unlock();
@@ -294,7 +294,8 @@ inline VMValue GetCallable(VMValue* args, int index, Uint32 threadID) {
 			value = args[index];
 		}
 		else {
-			if (THROW_ERROR("Expected argument %d to be of type callable instead of %s.",
+			if (THROW_ERROR(
+				    "Expected argument %d to be of type callable instead of %s.",
 				    index + 1,
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
 				ScriptManager::Threads[threadID].ReturnFromNative();
@@ -1441,10 +1442,12 @@ VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID)
 	int startTime = 0;
 
 	if (argCount == 4) {
-		if (IS_INTEGER(args[3]))
+		if (IS_INTEGER(args[3])) {
 			startTime = GET_ARG(3, GetInteger);
-		else
+		}
+		else {
 			smallImageKey = GET_ARG(3, GetString);
+		}
 	}
 	else if (argCount >= 5) {
 		smallImageKey = GET_ARG(3, GetString);
@@ -1704,14 +1707,16 @@ VMValue Discord_GetCurrentUserAvatar(int argCount, VMValue* args, Uint32 threadI
 		return NULL_VAL;
 	}
 
-	VMThreadCallback* callbackData = (VMThreadCallback*)Memory::Malloc(sizeof(VMThreadCallback));
+	VMThreadCallback* callbackData =
+		(VMThreadCallback*)Memory::Malloc(sizeof(VMThreadCallback));
 	if (!callbackData) {
 		return NULL_VAL;
 	}
 	callbackData->ThreadID = threadID;
 	callbackData->Callable = callable;
 
-	DiscordIntegrationCallback* callback = (DiscordIntegrationCallback*)Memory::Malloc(sizeof(DiscordIntegrationCallback));
+	DiscordIntegrationCallback* callback =
+		(DiscordIntegrationCallback*)Memory::Malloc(sizeof(DiscordIntegrationCallback));
 	if (!callback) {
 		Memory::Free(callbackData);
 		return NULL_VAL;
@@ -2635,7 +2640,8 @@ VMValue Collision_CheckTileCollision(int argCount, VMValue* args, Uint32 threadI
 	int yOffset = GET_ARG(5, GetInteger);
 	int setPos = GET_ARG(6, GetInteger);
 
-	return INTEGER_VAL(Scene::CheckTileCollision((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
+	return INTEGER_VAL(Scene::CheckTileCollision(
+		(Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
 }
 /***
  * Collision.CheckTileGrip
@@ -2660,7 +2666,8 @@ VMValue Collision_CheckTileGrip(int argCount, VMValue* args, Uint32 threadID) {
 	int yOffset = GET_ARG(5, GetInteger);
 	float tolerance = GET_ARG(6, GetDecimal);
 
-	return INTEGER_VAL(Scene::CheckTileGrip((Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
+	return INTEGER_VAL(Scene::CheckTileGrip(
+		(Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
 }
 /***
  * Collision.CheckEntityTouch
@@ -2679,7 +2686,10 @@ VMValue Collision_CheckEntityTouch(int argCount, VMValue* args, Uint32 threadID)
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 
-	return INTEGER_VAL(!!Scene::CheckEntityTouch((Entity*)thisEntity->EntityPtr, &thisBox, (Entity*)otherEntity->EntityPtr, &otherBox));
+	return INTEGER_VAL(!!Scene::CheckEntityTouch((Entity*)thisEntity->EntityPtr,
+		&thisBox,
+		(Entity*)otherEntity->EntityPtr,
+		&otherBox));
 }
 /***
  * Collision.CheckEntityCircle
@@ -2698,7 +2708,10 @@ VMValue Collision_CheckEntityCircle(int argCount, VMValue* args, Uint32 threadID
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	float otherRadius = GET_ARG(3, GetDecimal);
 
-	return INTEGER_VAL(!!Scene::CheckEntityCircle((Entity*)thisEntity->EntityPtr, thisRadius, (Entity*)otherEntity->EntityPtr, otherRadius));
+	return INTEGER_VAL(!!Scene::CheckEntityCircle((Entity*)thisEntity->EntityPtr,
+		thisRadius,
+		(Entity*)otherEntity->EntityPtr,
+		otherRadius));
 }
 /***
  * Collision.CheckEntityBox
@@ -2719,7 +2732,11 @@ VMValue Collision_CheckEntityBox(int argCount, VMValue* args, Uint32 threadID) {
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
-	return INTEGER_VAL(Scene::CheckEntityBox((Entity*)thisEntity->EntityPtr, &thisBox, (Entity*)otherEntity->EntityPtr, &otherBox, setValues));
+	return INTEGER_VAL(Scene::CheckEntityBox((Entity*)thisEntity->EntityPtr,
+		&thisBox,
+		(Entity*)otherEntity->EntityPtr,
+		&otherBox,
+		setValues));
 }
 /***
  * Collision.CheckEntityPlatform
@@ -2740,7 +2757,11 @@ VMValue Collision_CheckEntityPlatform(int argCount, VMValue* args, Uint32 thread
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
-	return INTEGER_VAL(!!Scene::CheckEntityPlatform((Entity*)thisEntity->EntityPtr, &thisBox, (Entity*)otherEntity->EntityPtr, &otherBox, setValues));
+	return INTEGER_VAL(!!Scene::CheckEntityPlatform((Entity*)thisEntity->EntityPtr,
+		&thisBox,
+		(Entity*)otherEntity->EntityPtr,
+		&otherBox,
+		setValues));
 }
 // #endregion
 
@@ -4793,37 +4814,58 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 		ObjArray* charOffsetsX = GET_ARG_OPT(9, GetArray, nullptr);
 		ObjArray* charOffsetsY = GET_ARG_OPT(10, GetArray, nullptr);
 
-		if (sprite && string && animation >= 0 && animation < (int)sprite->Animations.size()) {
-			startFrame = (int)Math::Clamp(startFrame, 0, (int)string->Values->size() - 1);
+		if (sprite && string && animation >= 0 &&
+			animation < (int)sprite->Animations.size()) {
+			startFrame =
+				(int)Math::Clamp(startFrame, 0, (int)string->Values->size() - 1);
 
-			if (endFrame <= 0 || endFrame > (int)string->Values->size())
+			if (endFrame <= 0 || endFrame > (int)string->Values->size()) {
 				endFrame = (int)string->Values->size();
+			}
 
 			int charOffsetIndex = 0;
 			switch (align) {
 			case ALIGN_LEFT:
-				if (charOffsetsX && charOffsetsY
-					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
-					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+				if (charOffsetsX && charOffsetsY &&
+					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
+					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							VMValue xVal = (*charOffsetsX
+									->Values)[charOffsetIndex];
 							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    xVal, threadID)) {
 								xOffset = AS_DECIMAL(xVal);
 							}
-							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							VMValue yVal = (*charOffsetsY
+									->Values)[charOffsetIndex];
 							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    yVal, threadID)) {
 								yOffset = AS_DECIMAL(yVal);
 							}
-							Graphics::DrawSprite(sprite, animation, curChar, x + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x + xOffset,
+								y + yOffset,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x += spacing + frame.Width;
 							++charOffsetIndex;
 						}
@@ -4833,12 +4875,26 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x,
+								y,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x += spacing + frame.Width;
 						}
 					}
@@ -4847,29 +4903,47 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 
 			case ALIGN_CENTER:
 				--endFrame;
-				if (charOffsetsX && charOffsetsY
-					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
-					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+				if (charOffsetsX && charOffsetsY &&
+					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
+					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
 					charOffsetIndex = endFrame;
 					for (; endFrame >= startFrame; --endFrame) {
 						VMValue val = (*string->Values)[endFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							VMValue xVal = (*charOffsetsX
+									->Values)[charOffsetIndex];
 							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    xVal, threadID)) {
 								xOffset = AS_DECIMAL(xVal);
 							}
-							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							VMValue yVal = (*charOffsetsY
+									->Values)[charOffsetIndex];
 							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    yVal, threadID)) {
 								yOffset = AS_DECIMAL(yVal);
 							}
-							Graphics::DrawSprite(sprite, animation, curChar, x - (frame.Width / 2) + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x - (frame.Width / 2) + xOffset,
+								y + yOffset,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x = (x - frame.Width) - spacing;
 							--charOffsetIndex;
 						}
@@ -4879,12 +4953,26 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; endFrame >= startFrame; --endFrame) {
 						VMValue val = (*string->Values)[endFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							Graphics::DrawSprite(sprite, animation, curChar, x - frame.Width / 2, y, false, false, 1.0f, 1.0f, 0.0f);
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x - frame.Width / 2,
+								y,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x = (x - frame.Width) - spacing;
 						}
 					}
@@ -4899,34 +4987,57 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					if (ScriptManager::DoIntegerConversion(val, threadID)) {
 						curChar = AS_INTEGER(val);
 					}
-					if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-						totalWidth += sprite->Animations[animation].Frames[curChar].Width + spacing;
+					if (curChar >= 0 &&
+						curChar <
+							sprite->Animations[animation].FrameCount) {
+						totalWidth += sprite->Animations[animation]
+								      .Frames[curChar]
+								      .Width +
+							spacing;
 					}
 				}
 				x -= totalWidth;
 
-				if (charOffsetsX && charOffsetsY
-					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
-					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+				if (charOffsetsX && charOffsetsY &&
+					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
+					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							VMValue xVal = (*charOffsetsX
+									->Values)[charOffsetIndex];
 							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    xVal, threadID)) {
 								xOffset = AS_DECIMAL(xVal);
 							}
-							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							VMValue yVal = (*charOffsetsY
+									->Values)[charOffsetIndex];
 							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    yVal, threadID)) {
 								yOffset = AS_DECIMAL(yVal);
 							}
-							Graphics::DrawSprite(sprite, animation, curChar, x + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x + xOffset,
+								y + yOffset,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x += spacing + frame.Width;
 							++charOffsetIndex;
 						}
@@ -4936,12 +5047,26 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x,
+								y,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x += spacing + frame.Width;
 						}
 					}
@@ -8167,8 +8292,9 @@ VMValue Input_IsActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsActionHeldByAny(actionID, inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsActionHeldByAny(actionID));
+	}
 }
 /***
  * Input.IsActionPressedByAny
@@ -8191,8 +8317,9 @@ VMValue Input_IsActionPressedByAny(int argCount, VMValue* args, Uint32 threadID)
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsActionPressedByAny(actionID, inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsActionPressedByAny(actionID));
+	}
 }
 /***
  * Input.IsActionReleasedByAny
@@ -8215,8 +8342,9 @@ VMValue Input_IsActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsActionReleasedByAny(actionID, inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsActionReleasedByAny(actionID));
+	}
 }
 /***
  * Input.IsAnyActionHeld
@@ -8295,8 +8423,9 @@ VMValue Input_IsAnyActionHeldByAny(int argCount, VMValue* args, Uint32 threadID)
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsAnyActionHeldByAny(inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsAnyActionHeldByAny());
+	}
 }
 /***
  * Input.IsAnyActionPressedByAny
@@ -8312,8 +8441,9 @@ VMValue Input_IsAnyActionPressedByAny(int argCount, VMValue* args, Uint32 thread
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsAnyActionPressedByAny(inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsAnyActionPressedByAny());
+	}
 }
 /***
  * Input.IsAnyActionReleasedByAny
@@ -8329,8 +8459,9 @@ VMValue Input_IsAnyActionReleasedByAny(int argCount, VMValue* args, Uint32 threa
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsAnyActionReleasedByAny(inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsAnyActionReleasedByAny());
+	}
 }
 /***
  * Input.GetAnalogActionInput
@@ -8673,7 +8804,8 @@ static VMValue SetActionBindFromArg(int playerID,
 
 		return INTEGER_VAL(idx);
 	}
-	else if (!InputManager::SetPlayerInputBind(playerID, actionID, bind, bindIndex, setDefault)) {
+	else if (!InputManager::SetPlayerInputBind(
+			 playerID, actionID, bind, bindIndex, setDefault)) {
 		delete bind;
 	}
 
@@ -9714,7 +9846,9 @@ static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t 
 VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjString* string = GET_ARG(0, GetVMString);
-	if (!string) return NULL_VAL;
+	if (!string) {
+		return NULL_VAL;
+	}
 
 	if (ScriptManager::Lock()) {
 		ObjMap* map = NewMap();
@@ -9729,11 +9863,13 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 
 		jsmn_init(&p);
 		while (true) {
-			int r = jsmn_parse(&p, string->Chars, string->Length, tok, (Uint32)tokcount);
+			int r = jsmn_parse(
+				&p, string->Chars, string->Length, tok, (Uint32)tokcount);
 			if (r < 0) {
 				if (r == JSMN_ERROR_NOMEM) {
 					tokcount = tokcount * 2;
-					jsmntok_t* tempTok = (jsmntok_t*)realloc(tok, sizeof(*tok) * tokcount);
+					jsmntok_t* tempTok =
+						(jsmntok_t*)realloc(tok, sizeof(*tok) * tokcount);
 					if (tempTok == NULL) {
 						free(tok);
 						ScriptManager::Unlock();
@@ -16477,8 +16613,9 @@ VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjArray* textArray = NewArray();
 
-	if (!sprite || !string)
+	if (!sprite || !string) {
 		return OBJECT_VAL(textArray);
+	}
 
 	if (animation >= 0 && animation < (int)sprite->Animations.size()) {
 		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
@@ -16491,15 +16628,17 @@ VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
 
 			bool found = false;
 			for (int f = 0; f < (int)sprite->Animations[animation].Frames.size(); f++) {
-				if (sprite->Animations[animation].Frames[f].Advance == (int)codepoint) {
+				if (sprite->Animations[animation].Frames[f].Advance ==
+					(int)codepoint) {
 					textArray->Values->push_back(INTEGER_VAL(f));
 					found = true;
 					break;
 				}
 			}
 
-			if (!found)
+			if (!found) {
 				textArray->Values->push_back(INTEGER_VAL(-1));
+			}
 		}
 	}
 
@@ -16536,12 +16675,14 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 
 			startIndex = (int)Math::Clamp(startIndex, 0, (int)text->Values->size() - 1);
 
-			if (length <= 0 || length > (int)text->Values->size())
+			if (length <= 0 || length > (int)text->Values->size()) {
 				length = (int)text->Values->size();
+			}
 
 			int w = 0;
 			for (int c = startIndex; c < length; c++) {
-				int charFrame = AS_INTEGER(Value::CastAsInteger((*text->Values)[c]));
+				int charFrame =
+					AS_INTEGER(Value::CastAsInteger((*text->Values)[c]));
 				if (charFrame < anim.Frames.size()) {
 					w += anim.Frames[charFrame].Width;
 					if (c + 1 >= length) {
@@ -16556,7 +16697,6 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 			ScriptManager::Unlock();
 			return INTEGER_VAL(w);
 		}
-
 	}
 	return INTEGER_VAL(0);
 }
@@ -17244,7 +17384,7 @@ VMValue String_CharAt(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	char* string = GET_ARG(0, GetString);
 	int n = GET_ARG(1, GetInteger);
-	
+
 	return INTEGER_VAL((Uint8)string[n]);
 }
 /***
@@ -19083,7 +19223,8 @@ VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	int window_h = (int)GET_ARG(1, GetDecimal);
 	Application::WindowWidth = window_w;
 	Application::WindowHeight = window_h;
-	Application::SetWindowSize(window_w * Application::WindowScale, window_h * Application::WindowScale);
+	Application::SetWindowSize(
+		window_w * Application::WindowScale, window_h * Application::WindowScale);
 	return NULL_VAL;
 }
 /***
@@ -19350,7 +19491,9 @@ static VMValue XML_FillMap(XMLNode* parent) {
 VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjString* string = GET_ARG(0, GetVMString);
-	if (!string) return NULL_VAL;
+	if (!string) {
+		return NULL_VAL;
+	}
 
 	VMValue mapValue = NULL_VAL;
 	if (ScriptManager::Lock()) {

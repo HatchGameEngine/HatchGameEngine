@@ -23,7 +23,7 @@ void ScriptEntity::Init() {
 	ENTITY_FIELDS_LIST
 #undef ENTITY_FIELD
 
-    SetUseFixedTimestep(Application::UseFixedTimestep);
+	SetUseFixedTimestep(Application::UseFixedTimestep);
 }
 
 void ScriptEntity::Link(ObjEntity* entity) {

@@ -1,9 +1,9 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
-#include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/Bytecode/Types.h>
 #include <Engine/Error.h>
 #include <Engine/Rendering/Material.h>
 

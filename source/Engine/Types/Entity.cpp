@@ -530,7 +530,7 @@ void Entity::CopyFields(Entity* other) {
 	COPY(RotationStyle);
 
 	COPY(Hitbox);
-	
+
 	COPY(SensorX);
 	COPY(SensorY);
 	COPY(SensorCollided);
