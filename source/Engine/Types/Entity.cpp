@@ -514,7 +514,6 @@ void Entity::CopyFields(Entity* other) {
 
 	COPY(Depth);
 	COPY(OldDepth);
-	COPY(ZDepth);
 
 	COPY(Sprite);
 	COPY(CurrentAnimation);

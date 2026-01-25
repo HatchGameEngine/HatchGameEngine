@@ -579,14 +579,6 @@ void ScriptEntity::LinkFields() {
 	LINK_INT(Filter);
 
 	/***
-    * \field ZDepth
-    * \type decimal
-    * \default 0.0
-    * \ns Entity
-    */
-	LINK_DEC(ZDepth);
-
-	/***
     * \field CollisionLayers
     * \type bitfield
     * \default 0
