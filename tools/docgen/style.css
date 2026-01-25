@@ -1,0 +1,35 @@
+body {
+    background-color: white;
+    font-family: sans-serif;
+    margin: 64px;
+}
+codefrag {
+    display: inline;
+    margin: 0px;
+    font-family: monospace;
+}
+a {
+    text-decoration: none;
+    color: #4141F2;
+}
+.function_list {
+    font-family: monospace;
+    margin-top: 0.5em;
+}
+.function_list li {
+    margin-top: 0.125em;
+    margin-bottom: 0.125em;
+}
+code, pre.code {
+    background-color: #f2f2f2;
+    border-radius: 3px;
+    padding: 3px;
+}
+codeBlock {
+    background-color: #f2f2f2;
+    border-radius: 3px;
+    padding: 3px;
+    line-height: 100%;
+    word-break: normal;
+    font-family: monospace;
+}

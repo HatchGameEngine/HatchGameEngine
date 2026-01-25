@@ -1,0 +1,53 @@
+name: Deploy Doxygen documentation
+
+on:
+  push:
+    branches: [ "master", "doxygen" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Download Doxygen
+        run: |
+          wget https://github.com/doxygen/doxygen/releases/download/Release_1_16_0/doxygen-1.16.0.linux.bin.tar.gz
+          tar -xzf doxygen-1.16.0.linux.bin.tar.gz
+          sudo mv doxygen-1.16.0/bin/doxygen /usr/local/bin/doxygen
+
+      - name: Install Graphviz
+        run: sudo apt-get update && sudo apt-get install -y graphviz
+
+      - name: Generate HSL documentation
+        run: |
+          mkdir -p ${{ github.workspace }}/docs/hsl/stdlib
+          python ${{ github.workspace }}/tools/docgen/ --dox -i ${{ github.workspace }}/source/Engine/Bytecode -o ${{ github.workspace }}/docs/hsl/stdlib
+
+      - name: Generate Doxygen documentation
+        run: doxygen
+        working-directory: ${{ github.workspace }}/docs
+
+      - name: Create .nojekyll
+        run: touch docs/html/.nojekyll
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          token: ${{ secrets.DOCS_TOKEN }}
+          branch: main
+          folder: docs/html
+          repository-name: ${{ vars.DOCS_DEPLOY_REPOSITORY }}
+          git-config-name: Miss Hatch
+          git-config-email: <>
+          commit-message: "Update documentation"
+          single-commit: false
+          clean: true
