@@ -3560,10 +3560,15 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 		int blendMode = Graphics::BlendMode;
 		int textureBlend = Graphics::TextureBlend;
+		float alpha = Graphics::BlendColors[3];
 
 		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f)
 			Graphics::TextureBlend = true;
 		Graphics::SetBlendMode(entity->BlendMode);
+        Graphics::SetBlendColor(Graphics::BlendColors[0],
+			Graphics::BlendColors[1],
+			Graphics::BlendColors[2],
+			Math::Clamp(entity->Alpha, 0.0f, 1.0f));
 
 		Graphics::DrawSprite(sprite,
 			entity->CurrentAnimation,
@@ -3578,6 +3583,10 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 		Graphics::SetBlendMode(blendMode);
 		Graphics::TextureBlend = textureBlend;
+		Graphics::SetBlendColor(Graphics::BlendColors[0],
+			Graphics::BlendColors[1],
+			Graphics::BlendColors[2],
+			alpha);
 	}
 	return NULL_VAL;
 }
@@ -3771,10 +3780,15 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 		int blendMode = Graphics::BlendMode;
 		int textureBlend = Graphics::TextureBlend;
+		float alpha = Graphics::BlendColors[3];
 
 		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f)
 			Graphics::TextureBlend = true;
 		Graphics::SetBlendMode(entity->BlendMode);
+		Graphics::SetBlendColor(Graphics::BlendColors[0],
+			Graphics::BlendColors[1],
+			Graphics::BlendColors[2],
+			Math::Clamp(entity->Alpha, 0.0f, 1.0f));
 
 		Graphics::DrawSprite(sprite,
 			animator->CurrentAnimation,
@@ -3789,6 +3803,10 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 		Graphics::SetBlendMode(blendMode);
 		Graphics::TextureBlend = textureBlend;
+		Graphics::SetBlendColor(Graphics::BlendColors[0],
+			Graphics::BlendColors[1],
+			Graphics::BlendColors[2],
+			alpha);
 	}
 	return NULL_VAL;
 }
