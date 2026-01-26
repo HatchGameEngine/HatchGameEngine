@@ -3558,6 +3558,13 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 		}
 		rotation = rot * M_PI / 256.0;
 
+		int blendMode = Graphics::BlendMode;
+		int textureBlend = Graphics::TextureBlend;
+
+		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f)
+			Graphics::TextureBlend = true;
+		Graphics::SetBlendMode(entity->BlendMode);
+
 		Graphics::DrawSprite(sprite,
 			entity->CurrentAnimation,
 			frame,
@@ -3568,6 +3575,9 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 			entity->ScaleX,
 			entity->ScaleY,
 			rotation);
+
+		Graphics::SetBlendMode(blendMode);
+		Graphics::TextureBlend = textureBlend;
 	}
 	return NULL_VAL;
 }
@@ -3759,6 +3769,13 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 		}
 		rotation = rot * M_PI / 256.0;
 
+		int blendMode = Graphics::BlendMode;
+		int textureBlend = Graphics::TextureBlend;
+
+		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f)
+			Graphics::TextureBlend = true;
+		Graphics::SetBlendMode(entity->BlendMode);
+
 		Graphics::DrawSprite(sprite,
 			animator->CurrentAnimation,
 			frame,
@@ -3769,6 +3786,9 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 			entity->ScaleX,
 			entity->ScaleY,
 			rotation);
+
+		Graphics::SetBlendMode(blendMode);
+		Graphics::TextureBlend = textureBlend;
 	}
 	return NULL_VAL;
 }
