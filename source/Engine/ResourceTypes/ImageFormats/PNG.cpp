@@ -235,7 +235,7 @@ PNG_Load_Success:
 	}
 
 	png->BytesPerPixel = usePalette ? sizeof(Uint8) : sizeof(Uint32);
-	png->Data = (Uint32*)Memory::TrackedMalloc(
+	png->Data = (Uint8*)Memory::TrackedMalloc(
 		"PNG::Data", ihdr.width * ihdr.height * png->BytesPerPixel);
 
 	if (usePalette) {

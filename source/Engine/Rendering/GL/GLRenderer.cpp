@@ -2198,13 +2198,21 @@ void GLRenderer::CopyTexturePixels(Texture* dest,
 		else
 #endif
 		{
+#ifdef GL_ES
+			glBindFramebuffer(GL_FRAMEBUFFER, srcTextureData->FBO);
+#else
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, srcTextureData->FBO);
+#endif
 		}
 
 		// TODO: Reading the entire texture isn't as efficient.
 		ReadFramebuffer(src->Pixels, 0, 0, src->Width, src->Height);
 
+#ifdef GL_ES
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#else
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+#endif
 
 		// Convert from RGBA to the texture's actual format
 		if (src->Format != Graphics::TextureFormat) {

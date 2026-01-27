@@ -123,8 +123,8 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 			snprintf(errorString,
 				sizeof errorString,
 				"Expected array of pixels to have %d elements, but it had %d elements instead.",
-				numPixels,
-				numArrayPixels);
+				(int)numPixels,
+				(int)numArrayPixels);
 
 			throw ScriptException(errorString);
 		}
@@ -144,7 +144,7 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 				snprintf(errorString,
 					sizeof errorString,
 					"Expected value at index %d to be of type %s; value was of type %s.",
-					i,
+					(int)i,
 					GetTypeString(VAL_INTEGER),
 					GetValueTypeString(element));
 
