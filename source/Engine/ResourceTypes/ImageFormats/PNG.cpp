@@ -48,7 +48,7 @@ PNG* PNG::Load(Stream* stream) {
 	int bit_depth, color_type, palette_size;
 	bool usePalette = false;
 	png_colorp palette;
-	Uint32* pixelData = NULL;
+	Uint8* pixelData = NULL;
 	png_bytep* row_pointers = NULL;
 	Uint32 row_bytes;
 
@@ -102,30 +102,30 @@ PNG* PNG::Load(Stream* stream) {
 
 	png->Width = width;
 	png->Height = height;
-	png->Data = (Uint32*)Memory::TrackedMalloc("PNG::Data", width * height * sizeof(Uint32));
+	png->BytesPerPixel = usePalette ? sizeof(Uint8) : sizeof(Uint32);
+	png->Data = (Uint8*)Memory::TrackedMalloc("PNG::Data", width * height * png->BytesPerPixel);
 
 	row_pointers = (png_bytep*)malloc(sizeof(png_bytep) * png->Height);
 	if (!row_pointers) {
 		goto PNG_Load_FAIL;
 	}
 
-	pixelData = (Uint32*)malloc(width * height * sizeof(Uint32));
+	pixelData = (Uint8*)malloc(width * height * png->BytesPerPixel);
 	row_bytes = png_get_rowbytes(png_ptr, info_ptr);
 	for (Uint32 row = 0, pitch = row_bytes; row < png->Height; row++) {
-		row_pointers[row] = (png_bytep)((Uint8*)pixelData + row * pitch);
+		row_pointers[row] = (png_bytep)(pixelData + row * pitch);
 	}
 
 	png_read_image(png_ptr, row_pointers);
 	free(row_pointers);
 
 	if (usePalette) {
-		Uint8* data = (Uint8*)pixelData;
 		if (bit_depth != 8) {
-			png->ReadPixelBitstream(data, bit_depth);
+			png->ReadPixelBitstream(pixelData, bit_depth);
 		}
 		else {
-			for (size_t i = 0; i < width * height; data++, i++) {
-				png->Data[i] = *data;
+			for (size_t i = 0; i < width * height; i++) {
+				png->Data[i] = pixelData[i];
 			}
 		}
 
@@ -135,17 +135,12 @@ PNG* PNG::Load(Stream* stream) {
 		png->Paletted = true;
 
 		for (size_t i = 0; i < png->NumPaletteColors; i++, palette++) {
-			png->Colors[i] = 0xFF000000U;
-			png->Colors[i] |= palette->red << 16;
-			png->Colors[i] |= palette->green << 8;
-			png->Colors[i] |= palette->blue;
+			png->Colors[i] = ColorUtils::Make(palette->red, palette->green, palette->blue, 0xFF, Graphics::PreferredPixelFormat);
 		}
-
-		Graphics::ConvertFromARGBtoNative(png->Colors, png->NumPaletteColors);
 	}
 	else {
 		int num_channels = PNG_COLOR_TYPE_RGB_ALPHA ? 4 : 3;
-		png->ReadPixelDataARGB(pixelData, num_channels);
+		png->ReadPixelData(pixelData, num_channels);
 		png->Paletted = false;
 		png->NumPaletteColors = 0;
 	}
@@ -223,7 +218,6 @@ PNG_Load_Success:
 		fmt = SPNG_FMT_RGBA8;
 	}
 
-	image_size;
 	ret = spng_decoded_image_size(ctx, fmt, &image_size);
 	if (ret) {
 		goto PNG_Load_FAIL;
@@ -240,8 +234,9 @@ PNG_Load_Success:
 		goto PNG_Load_FAIL;
 	}
 
-	png->Data = (Uint32*)Memory::TrackedMalloc(
-		"PNG::Data", ihdr.width * ihdr.height * sizeof(Uint32));
+	png->BytesPerPixel = usePalette ? sizeof(Uint8) : sizeof(Uint32);
+	png->Data = (Uint8*)Memory::TrackedMalloc(
+		"PNG::Data", ihdr.width * ihdr.height * png->BytesPerPixel);
 
 	if (usePalette) {
 		if (ihdr.bit_depth != 8) {
@@ -268,7 +263,7 @@ PNG_Load_Success:
 		Graphics::ConvertFromARGBtoNative(png->Colors, png->NumPaletteColors);
 	}
 	else {
-		png->ReadPixelDataARGB((Uint32*)pixelData, 4);
+		png->ReadPixelData(pixelData, 4);
 		png->Paletted = false;
 		png->Colors = nullptr;
 	}
@@ -290,7 +285,7 @@ PNG_Load_Success:
 	return png;
 #else
 	PNG* png = new PNG;
-	Uint32* pixelData = NULL;
+	Uint8* pixelData = NULL;
 	int num_channels;
 	int width, height;
 	Uint8* buffer = NULL;
@@ -300,7 +295,7 @@ PNG_Load_Success:
 	buffer = (Uint8*)malloc(buffer_len);
 	stream->ReadBytes(buffer, buffer_len);
 
-	pixelData = (Uint32*)stbi_load_from_memory(
+	pixelData = (Uint8*)stbi_load_from_memory(
 		buffer, buffer_len, &width, &height, &num_channels, STBI_rgb_alpha);
 	if (!pixelData) {
 		Log::Print(Log::LOG_ERROR, "stbi_load failed: %s", stbi_failure_reason());
@@ -309,10 +304,11 @@ PNG_Load_Success:
 
 	png->Width = width;
 	png->Height = height;
+	png->BytesPerPixel = sizeof(Uint32);
 	png->Data = (Uint32*)Memory::TrackedMalloc(
-		"PNG::Data", png->Width * png->Height * sizeof(Uint32));
+		"PNG::Data", png->Width * png->Height * png->BytesPerPixel);
 
-	png->ReadPixelDataARGB(pixelData, num_channels);
+	png->ReadPixelData(pixelData, num_channels);
 
 	png->Colors = nullptr;
 	png->Paletted = false;
@@ -335,53 +331,24 @@ PNG_Load_Success:
 #endif
 	return NULL;
 }
-void PNG::ReadPixelDataARGB(Uint32* pixelData, int num_channels) {
-	Uint32 Rmask, Gmask, Bmask, Amask;
-	bool doConvert = false;
+void PNG::ReadPixelData(Uint8* pixelData, int num_channels) {
+	Uint32* dest = (Uint32*)Data;
 
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
-		Amask = (num_channels == 4) ? 0xFF000000 : 0;
-		Bmask = 0x00FF0000;
-		Gmask = 0x0000FF00;
-		Rmask = 0x000000FF;
-		if (num_channels != 4) {
-			doConvert = true;
-		}
-	}
-	else if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ARGB8888) {
-		Amask = (num_channels == 4) ? 0xFF000000 : 0;
-		Rmask = 0x00FF0000;
-		Gmask = 0x0000FF00;
-		Bmask = 0x000000FF;
-		doConvert = true;
+	if (Graphics::PreferredPixelFormat == PixelFormat_RGBA8888 && num_channels == 4) {
+		memcpy(dest, pixelData, Width * Height * sizeof(Uint32));
+		return;
 	}
 
-	if (doConvert) {
-		Uint8* px;
-		Uint32 a, b, g, r;
-		int pc = 0, size = Width * Height;
-		if (Amask) {
-			for (Uint32* i = pixelData; pc < size; i++, pc++) {
-				px = (Uint8*)i;
-				r = px[0] | px[0] << 8 | px[0] << 16 | px[0] << 24;
-				g = px[1] | px[1] << 8 | px[1] << 16 | px[1] << 24;
-				b = px[2] | px[2] << 8 | px[2] << 16 | px[2] << 24;
-				a = px[3] | px[3] << 8 | px[3] << 16 | px[3] << 24;
-				Data[pc] = (r & Rmask) | (g & Gmask) | (b & Bmask) | (a & Amask);
-			}
-		}
-		else {
-			for (Uint8* i = (Uint8*)pixelData; pc < size; i += 3, pc++) {
-				px = (Uint8*)i;
-				r = px[0] | px[0] << 8 | px[0] << 16 | px[0] << 24;
-				g = px[1] | px[1] << 8 | px[1] << 16 | px[1] << 24;
-				b = px[2] | px[2] << 8 | px[2] << 16 | px[2] << 24;
-				Data[pc] = (r & Rmask) | (g & Gmask) | (b & Bmask) | 0xFF000000;
-			}
+	int pc = 0, size = Width * Height;
+	if (num_channels == 4) {
+		for (Uint32* px = (Uint32*)pixelData; pc < size; px++, pc++) {
+			dest[pc] = ColorUtils::Convert(*px, PixelFormat_RGBA8888, Graphics::PreferredPixelFormat);
 		}
 	}
 	else {
-		memcpy(Data, pixelData, Width * Height * sizeof(Uint32));
+		for (Uint8* px = pixelData; pc < size; px += num_channels, pc++) {
+			dest[pc] = ColorUtils::Make(px[0], px[1], px[2], 0xFF, Graphics::PreferredPixelFormat);
+		}
 	}
 }
 void PNG::ReadPixelBitstream(Uint8* pixelData, size_t bit_depth) {
@@ -390,9 +357,9 @@ void PNG::ReadPixelBitstream(Uint8* pixelData, size_t bit_depth) {
 
 	for (size_t y = 0; y < Height; y++) {
 		Uint8* src = pixelData + (y * scanline_width);
-		Uint32* out = Data + (y * Width);
+		Uint8* out = Data + (y * Width);
 
-		memset(out, 0, Width * sizeof(Uint32));
+		memset(out, 0, Width * sizeof(Uint8));
 
 		for (size_t w = 0, r = 0; r < scanline_width;) {
 			Uint8 pixels = src[r++];

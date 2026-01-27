@@ -958,7 +958,7 @@ VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) 
 }
 /***
  * \method Delete
- * \desc Deletes a shader. It can no longer be used after this function is called.
+ * \desc Deletes the shader. It can no longer be used after this function is called.
  * \ns Shader
  */
 VMValue ShaderImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {

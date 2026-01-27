@@ -78,7 +78,7 @@ Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
 	drawPolygonMacro(placePixelMacro, dpR, dpW)
 
 #define DRAW_POLYGON_SCANLINE_DEPTH(drawPolygonMacro, placePixel, placePixelPaletted) \
-	if (Graphics::UsePalettes && texture->Paletted) { \
+	if (Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED) { \
 		if (UseDepthBuffer) { \
 			POLYGON_BLENDFLAGS_DEPTH(drawPolygonMacro, \
 				placePixelPaletted, \
@@ -171,7 +171,7 @@ Uint32 DoColorTint(Uint32 color, Uint32 colorMult) {
 	CLAMP_VAL(colR, 0x00, 0xFF0000); \
 	CLAMP_VAL(colG, 0x00, 0xFF0000); \
 	CLAMP_VAL(colB, 0x00, 0xFF0000); \
-	col = 0xFF000000U | ((colR) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colB >> 16) & 0xFF)
+	col = 0xFF000000U | ((colB) & 0xFF0000) | ((colG >> 8) & 0xFF00) | ((colR >> 16) & 0xFF)
 
 #define SCANLINE_WRITE_PIXEL(px) \
 	pixelFunction((Uint32*)&px, \
@@ -622,7 +622,7 @@ void PolygonRasterizer::DrawAffine(Texture* texture,
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
 	Uint32 srcStride = texture->Width;
 
 	int dst_y1, dst_y2;
@@ -782,7 +782,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
 	Uint32 srcStride = texture->Width;
 
 	int dst_y1, dst_y2;
@@ -1004,6 +1004,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 		} \
 	}
 #else
+/* clang-format off */
 #define DO_PERSP_MAPPING(placePixelMacro, dpR, dpW) \
 	for (int dst_x = contour.MinX; dst_x < contour.MaxX; dst_x++) { \
 		SCANLINE_GET_MAPZ(); \
@@ -1016,6 +1017,7 @@ void PolygonRasterizer::DrawBlendAffine(Texture* texture,
 		SCANLINE_STEP_UV(); \
 		DRAW_PERSP_STEP(); \
 	}
+/* clang-format on */
 #endif
 void PolygonRasterizer::DrawPerspective(Texture* texture,
 	Vector3* positions,
@@ -1029,7 +1031,7 @@ void PolygonRasterizer::DrawPerspective(Texture* texture,
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
 	Uint32 srcStride = texture->Width;
 
 	int dst_y1, dst_y2;
@@ -1175,7 +1177,7 @@ void PolygonRasterizer::DrawBlendPerspective(Texture* texture,
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
 	Uint32 srcStride = texture->Width;
 
 	int dst_y1, dst_y2;

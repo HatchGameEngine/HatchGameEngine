@@ -17,7 +17,7 @@ public:
 	void* CreateVideoPacket(AVFrame* frame, double pts);
 	static void FreeVideoPacket(void* p);
 	AVPixelFormat FindAVPixelFormat(Uint32 format);
-	int FindSDLPixelFormat(AVPixelFormat fmt);
+	int FindEnginePixelFormat(AVPixelFormat fmt);
 	int GetOutputFormat(OutputFormat* output);
 	static void ReadVideo(void* ptr);
 	static int DecodeFunction(void* ptr, AVPacket* in_packet);

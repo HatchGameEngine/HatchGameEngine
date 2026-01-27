@@ -12,8 +12,16 @@ struct GraphicsFunctions {
 	void (*Dispose)();
 
 	Texture* (*CreateTexture)(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	Texture* (*CreateTextureFromPixels)(Uint32 width, Uint32 height, void* pixels, int pitch);
-	Texture* (*CreateTextureFromSurface)(SDL_Surface* surface);
+	Texture* (*CreateTextureFromPixels)(Uint32 format,
+		Uint32 width,
+		Uint32 height,
+		void* pixels,
+		int pitch);
+	bool (*ReinitializeTexture)(Texture* texture,
+		Uint32 format,
+		Uint32 access,
+		Uint32 width,
+		Uint32 height);
 	int (*LockTexture)(Texture* texture, void** pixels, int* pitch);
 	int (*UpdateTexture)(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	int (*UpdateYUVTexture)(Texture* texture,
@@ -24,6 +32,14 @@ struct GraphicsFunctions {
 		int pitchU,
 		void* pixelsV,
 		int pitchV);
+	void (*CopyTexturePixels)(Texture* dest,
+		int destX,
+		int destY,
+		Texture* src,
+		int srcX,
+		int srcY,
+		int srcWidth,
+		int srcHeight);
 	void (*SetTextureMinFilter)(Texture* texture, int filterMode);
 	void (*SetTextureMagFilter)(Texture* texture, int filterMode);
 	int (*SetTexturePalette)(Texture* texture, void* palette, unsigned numPaletteColors);
@@ -52,7 +68,7 @@ struct GraphicsFunctions {
 	void (*Clear)();
 	void (*Present)();
 	bool (*SetRenderTarget)(Texture* texture);
-	void (*ReadFramebuffer)(void* pixels, int width, int height);
+	void (*ReadFramebuffer)(void* pixels, int x, int y, int width, int height);
 	void (*UpdateWindowSize)(int width, int height);
 
 	void (*SetBlendColor)(float r, float g, float b, float a);
@@ -68,74 +84,18 @@ struct GraphicsFunctions {
 	void (*StrokeRectangle)(float x, float y, float w, float h);
 	void (*FillCircle)(float x, float y, float rad);
 	void (*FillEllipse)(float x, float y, float w, float h);
-	void (*FillTriangle)(float x1, float y1, float x2, float y2, float x3, float y3);
-	void (*FillTriangleBlend)(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3);
 	void (*FillRectangle)(float x, float y, float w, float h);
-	void (*FillQuad)(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4);
-	void (*FillQuadBlend)(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4);
-	void (*DrawTriangleTextured)(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3);
-	void (*DrawQuadTextured)(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3,
-		float u4,
-		float v4);
+	void (*FillTriangle)(float x1, float y1, float x2, float y2, float x3, float y3);
+	void (*FillTriangleBlend)(float* xc, float* yc, int* colors);
+	void (*FillQuad)(float* xc, float* yc);
+	void (*FillQuadBlend)(float* xc, float* yc, int* colors);
+	void (*DrawTriangle)(Texture* texture,
+		float* xc,
+		float* yc,
+		float* tu,
+		float* tv,
+		int* colors);
+	void (*DrawQuad)(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
 
 	void (*DrawTexture)(Texture* texture,
 		float sx,

@@ -58,6 +58,7 @@ public:
 	static bool TextureBlend;
 	static bool TextureInterpolate;
 	static Uint32 PreferredPixelFormat;
+	static Uint32 TextureFormat;
 	static Uint32 MaxTextureWidth;
 	static Uint32 MaxTextureHeight;
 	static Uint32 MaxTextureUnits;
@@ -124,9 +125,13 @@ public:
 	static void Dispose();
 	static Point ProjectToScreen(float x, float y, float z);
 	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	static Texture*
-	CreateTextureFromPixels(Uint32 width, Uint32 height, void* pixels, int pitch);
-	static Texture* CreateTextureFromSurface(SDL_Surface* surface);
+	static Texture* CreateTextureFromPixels(Uint32 format,
+		Uint32 width,
+		Uint32 height,
+		void* pixels,
+		int pitch);
+	static bool
+	ReinitializeTexture(Texture*, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static int UpdateYUVTexture(Texture* texture,
@@ -137,6 +142,15 @@ public:
 		int pitchU,
 		Uint8* pixelsV,
 		int pitchV);
+	static void CopyTexturePixels(Texture* dest,
+		int destX,
+		int destY,
+		Texture* src,
+		int srcX,
+		int srcY,
+		int srcWidth,
+		int srcHeight);
+	static bool ResizeTexture(Texture* texture, Uint32 width, Uint32 height);
 	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
 	static int ConvertTextureToRGBA(Texture* texture);
 	static int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);
@@ -214,68 +228,15 @@ public:
 	static void StrokeRectangle(float x, float y, float w, float h);
 	static void FillCircle(float x, float y, float rad);
 	static void FillEllipse(float x, float y, float w, float h);
-	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
-	static void FillTriangleBlend(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3);
 	static void FillRectangle(float x, float y, float w, float h);
+	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
+	static void FillTriangleBlend(float* xc, float* yc, int* colors);
+	static void FillQuad(float* xc, float* yc);
+	static void FillQuadBlend(float* xc, float* yc, int* colors);
 	static void
-	FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
-	static void FillQuadBlend(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4);
-	static void DrawTriangleTextured(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3);
-	static void DrawQuadTextured(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3,
-		float u4,
-		float v4);
+	DrawTriangle(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
+	static void
+	DrawQuad(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
 	static void DrawTexture(Texture* texture,
 		float sx,
 		float sy,

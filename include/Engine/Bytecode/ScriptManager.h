@@ -16,6 +16,9 @@ class ScriptEntity;
 
 class ScriptManager {
 private:
+	static std::unordered_map<void*, Obj*> Registry;
+	static std::unordered_map<Obj*, void*> UserdataMap;
+
 #ifdef VM_DEBUG
 	static Uint32 GetBranchLimit();
 #endif
@@ -45,6 +48,11 @@ public:
 	static void ResetStack();
 	static void Init();
 	static void Dispose();
+	static Obj* RegistryAdd(void* ptr, Obj* obj);
+	static Obj* RegistryGet(void* ptr);
+	static void* RegistryGet(Obj* obj);
+	static void RegistryRemove(void* ptr);
+	static void RegistryRemove(Obj* obj);
 	static bool DoIntegerConversion(VMValue& value, Uint32 threadID);
 	static bool DoDecimalConversion(VMValue& value, Uint32 threadID);
 	static bool Lock();
