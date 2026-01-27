@@ -143,7 +143,6 @@ void ISprite::AddFrame(int animID,
 	anfrm.OffsetX = pivotX;
 	anfrm.OffsetY = pivotY;
 	anfrm.SheetNumber = sheetNumber;
-	anfrm.BoxCount = 0;
 
 	FrameCount++;
 
@@ -185,10 +184,6 @@ bool ISprite::LoadAnimation(const char* filename) {
 #ifdef ISPRITE_DEBUG
 	Log::Print(Log::LOG_VERBOSE, "\"%s\"", filename);
 #endif
-
-	/// =======================
-	/// RSDKv5 Animation Format
-	/// =======================
 
 	// Check MAGIC
 	if (!IsFile(reader)) {
@@ -236,8 +231,8 @@ bool ISprite::LoadAnimation(const char* filename) {
 #endif
 
 		// If the resource doesn't exist, and the path doesn't begin with 'Sprites/' or 'sprites/'
-		if (!ResourceManager::ResourceExists(sheetName.c_str())
-			&& !StringUtils::StartsWithCaseInsensitive(sheetName.c_str(), "Sprites/")) {
+		if (!ResourceManager::ResourceExists(sheetName.c_str()) &&
+			!StringUtils::StartsWithCaseInsensitive(sheetName.c_str(), "Sprites/")) {
 			std::string altered = Path::Normalize(Path::Concat("Sprites", sheetName));
 
 			// Try with 'sprites/' if the above doesn't exist
@@ -253,11 +248,12 @@ bool ISprite::LoadAnimation(const char* filename) {
 	}
 
 	// Get collision group count
-	this->CollisionBoxCount = reader->ReadByte();
+	int hitboxCount = reader->ReadByte();
 
-	// Load collision groups
-	for (int i = 0; i < this->CollisionBoxCount; i++) {
-		Memory::Free(reader->ReadHeaderedString());
+	// Read collision groups names
+	std::vector<char*> hitboxNames;
+	for (int i = 0; i < hitboxCount; i++) {
+		hitboxNames.push_back(reader->ReadHeaderedString());
 	}
 
 	animationCount = reader->ReadUInt16();
@@ -318,16 +314,14 @@ bool ISprite::LoadAnimation(const char* filename) {
 			anfrm.OffsetX = reader->ReadInt16();
 			anfrm.OffsetY = reader->ReadInt16();
 
-			anfrm.BoxCount = this->CollisionBoxCount;
-			if (anfrm.BoxCount) {
-				anfrm.Boxes = (CollisionBox*)Memory::Malloc(
-					anfrm.BoxCount * sizeof(CollisionBox));
-				for (int h = 0; h < anfrm.BoxCount; h++) {
-					anfrm.Boxes[h].Left = reader->ReadInt16();
-					anfrm.Boxes[h].Top = reader->ReadInt16();
-					anfrm.Boxes[h].Right = reader->ReadInt16();
-					anfrm.Boxes[h].Bottom = reader->ReadInt16();
-				}
+			for (int h = 0; h < hitboxCount; h++) {
+				CollisionBox box;
+				box.Name = std::string(hitboxNames[h]);
+				box.Left = reader->ReadInt16();
+				box.Top = reader->ReadInt16();
+				box.Right = reader->ReadInt16();
+				box.Bottom = reader->ReadInt16();
+				anfrm.Boxes.push_back(box);
 			}
 
 #ifdef ISPRITE_DEBUG
@@ -345,8 +339,14 @@ bool ISprite::LoadAnimation(const char* filename) {
 		Animations[previousAnimationCount + a] = an;
 	}
 	FrameCount = frameID;
+
 	// Possibly buffer the position in the renderer.
 	Graphics::MakeFrameBufferID(this);
+
+	// Free the read collision group names
+	for (int i = 0; i < hitboxCount; i++) {
+		Memory::Free(hitboxNames[i]);
+	}
 
 	reader->Close();
 
@@ -371,10 +371,6 @@ bool ISprite::SaveAnimation(const char* filename) {
 		return false;
 	}
 
-	/// =======================
-	/// RSDKv5 Animation Format
-	/// =======================
-
 	// Check MAGIC
 	stream->WriteUInt32(RSDK_SPRITE_MAGIC);
 
@@ -394,11 +390,36 @@ bool ISprite::SaveAnimation(const char* filename) {
 	}
 
 	// Get collision group count
-	stream->WriteByte(this->CollisionBoxCount);
+	// In Hatch, the hitboxes are stored per frame. In RSDK's sprite format, the list of hitboxes
+	// is shared for all frames. So we look through all sprite frames and build a list of unique
+	// hitbox names. Frames hitboxes with a matching entry in boxNames are saved in that order.
+	std::vector<std::string> boxNames;
+
+	for (size_t a = 0; a < Animations.size(); a++) {
+		Animation an = Animations[a];
+
+		for (size_t i = 0; i < an.Frames.size(); i++) {
+			AnimFrame anfrm = an.Frames[i];
+
+			for (size_t h = 0; h < anfrm.Boxes.size(); h++) {
+				CollisionBox box = anfrm.Boxes[h];
+				auto it = std::find(boxNames.begin(), boxNames.end(), box.Name);
+				if (it == boxNames.end()) {
+					boxNames.push_back(box.Name);
+				}
+			}
+		}
+	}
+
+	size_t totalBoxes = boxNames.size();
+	if (totalBoxes > 0xFF) {
+		totalBoxes = 0xFF;
+	}
+	stream->WriteByte(totalBoxes);
 
 	// Write collision groups
-	for (int i = 0; i < this->CollisionBoxCount; i++) {
-		stream->WriteHeaderedString("Dummy");
+	for (size_t i = 0; i < totalBoxes; i++) {
+		stream->WriteHeaderedString(boxNames[i].c_str());
 	}
 
 	// Get animation count
@@ -432,11 +453,26 @@ bool ISprite::SaveAnimation(const char* filename) {
 			stream->WriteInt16(anfrm.OffsetX);
 			stream->WriteInt16(anfrm.OffsetY);
 
-			for (int h = 0; h < anfrm.BoxCount; h++) {
-				stream->WriteUInt16(anfrm.Boxes[h].Left);
-				stream->WriteUInt16(anfrm.Boxes[h].Top);
-				stream->WriteUInt16(anfrm.Boxes[h].Right);
-				stream->WriteUInt16(anfrm.Boxes[h].Bottom);
+			for (size_t b = 0; b < totalBoxes; b++) {
+				size_t h = 0;
+
+				for (; h < anfrm.Boxes.size(); h++) {
+					CollisionBox box = anfrm.Boxes[h];
+					if (boxNames[b] == box.Name) {
+						stream->WriteUInt16(box.Left);
+						stream->WriteUInt16(box.Top);
+						stream->WriteUInt16(box.Right);
+						stream->WriteUInt16(box.Bottom);
+						break;
+					}
+				}
+
+				if (h == anfrm.Boxes.size()) {
+					stream->WriteUInt16(0);
+					stream->WriteUInt16(0);
+					stream->WriteUInt16(0);
+					stream->WriteUInt16(0);
+				}
 			}
 		}
 	}
@@ -447,13 +483,6 @@ bool ISprite::SaveAnimation(const char* filename) {
 
 void ISprite::Dispose() {
 	for (size_t a = 0; a < Animations.size(); a++) {
-		for (size_t i = 0; i < Animations[a].Frames.size(); i++) {
-			AnimFrame* anfrm = &Animations[a].Frames[i];
-			if (anfrm->BoxCount) {
-				Memory::Free(anfrm->Boxes);
-				anfrm->Boxes = NULL;
-			}
-		}
 		if (Animations[a].Name) {
 			Memory::Free(Animations[a].Name);
 			Animations[a].Name = NULL;

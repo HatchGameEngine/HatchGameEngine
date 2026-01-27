@@ -84,8 +84,8 @@ struct GraphicsFunctions {
 	void (*StrokeRectangle)(float x, float y, float w, float h);
 	void (*FillCircle)(float x, float y, float rad);
 	void (*FillEllipse)(float x, float y, float w, float h);
-	void (*FillTriangle)(float x1, float y1, float x2, float y2, float x3, float y3);
 	void (*FillRectangle)(float x, float y, float w, float h);
+	void (*FillTriangle)(float x1, float y1, float x2, float y2, float x3, float y3);
 	void (*FillTriangleBlend)(float* xc, float* yc, int* colors);
 	void (*FillQuad)(float* xc, float* yc);
 	void (*FillQuadBlend)(float* xc, float* yc, int* colors);
@@ -110,8 +110,8 @@ struct GraphicsFunctions {
 	void (*DrawSprite)(ISprite* sprite,
 		int animation,
 		int frame,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,
@@ -125,8 +125,8 @@ struct GraphicsFunctions {
 		int sy,
 		int sw,
 		int sh,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,

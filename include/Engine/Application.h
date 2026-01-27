@@ -82,7 +82,8 @@ private:
 	static void OpenDevMenu();
 	static void CloseDevMenu();
 	static void SetBlendColor(int color);
-	static void DrawRectangle(float x, float y, float width, float height, int color, int alpha);
+	static void
+	DrawRectangle(float x, float y, float width, float height, int color, int alpha);
 	static void RunDevMenu();
 	static void DevMenu_DrawMainMenu();
 	static void DevMenu_DrawTitleBar();

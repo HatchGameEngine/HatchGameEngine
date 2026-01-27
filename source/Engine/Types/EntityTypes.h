@@ -5,8 +5,6 @@
 
 enum { Persistence_NONE, Persistence_SCENE, Persistence_GAME };
 
-enum { HITBOX_LEFT = 0, HITBOX_TOP = 1, HITBOX_RIGHT = 2, HITBOX_BOTTOM = 3 };
-
 enum {
 	ACTIVE_NEVER = 0, // Never updates
 	ACTIVE_ALWAYS = 1, // Updates no matter what
@@ -93,15 +91,15 @@ struct ObjectListPerformance {
 	}
 };
 
-#define DEBUG_HITBOX_COUNT 0x400
+#define VIEWABLE_HITBOX_COUNT 0x400
 
-struct DebugHitboxInfo {
-	int type;
-	int collision;
-	Entity* entity;
-	CollisionBox hitbox;
-	int x;
-	int y;
+struct ViewableHitbox {
+	int Type;
+	int Collision;
+	Entity* Instance;
+	CollisionBox Hitbox;
+	int X;
+	int Y;
 };
 
 #endif /* ENTITYTYPES_H */

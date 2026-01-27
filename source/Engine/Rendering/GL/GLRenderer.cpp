@@ -591,7 +591,7 @@ void GL_CheckPaletteUpdate() {
 	}
 }
 void GL_Predraw(Texture* texture, int paletteID = 0, bool useVertexColors = false) {
-	GL_SetTexture(texture, paletteID);
+	GL_SetTexture(texture, paletteID, useVertexColors);
 	GL_CheckPaletteUpdate();
 
 	GLShader* shader = GLRenderer::CurrentShader;
@@ -1625,10 +1625,11 @@ void GLRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.StrokeRectangle = GLRenderer::StrokeRectangle;
 	Graphics::Internal.FillCircle = GLRenderer::FillCircle;
 	Graphics::Internal.FillEllipse = GLRenderer::FillEllipse;
-	Graphics::Internal.FillTriangle = GLRenderer::FillTriangle;
 	Graphics::Internal.FillRectangle = GLRenderer::FillRectangle;
+	Graphics::Internal.FillTriangle = GLRenderer::FillTriangle;
 	Graphics::Internal.FillTriangleBlend = GLRenderer::FillTriangleBlend;
 	Graphics::Internal.FillQuad = GLRenderer::FillQuad;
+	Graphics::Internal.FillQuadBlend = GLRenderer::FillQuadBlend;
 	Graphics::Internal.DrawTriangle = GLRenderer::DrawTriangle;
 	Graphics::Internal.DrawQuad = GLRenderer::DrawQuad;
 
@@ -2911,30 +2912,6 @@ void GLRenderer::FillEllipse(float x, float y, float w, float h) {
 	}
 #endif
 }
-void GLRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothFill) {
-		glEnable(GL_POLYGON_SMOOTH);
-	}
-#endif
-
-	GL_Vec2 v[3];
-	v[0] = GL_Vec2{x1, y1};
-	v[1] = GL_Vec2{x2, y2};
-	v[2] = GL_Vec2{x3, y3};
-
-	GL_Predraw(NULL);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glVertexAttribPointer(CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-	CHECK_GL();
-
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothFill) {
-		glDisable(GL_POLYGON_SMOOTH);
-	}
-#endif
-}
 void GLRenderer::FillRectangle(float x, float y, float w, float h) {
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothFill) {
@@ -2952,6 +2929,30 @@ void GLRenderer::FillRectangle(float x, float y, float w, float h) {
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	CHECK_GL();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
+void GLRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	GL_Vec2 v[3];
+	v[0] = GL_Vec2{x1, y1};
+	v[1] = GL_Vec2{x2, y2};
+	v[2] = GL_Vec2{x3, y3};
+
+	GL_Predraw(NULL);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
 	CHECK_GL();
 
 #ifdef GL_SUPPORTS_SMOOTHING
@@ -3221,8 +3222,8 @@ void GLRenderer::DrawTexture(Texture* texture,
 void GLRenderer::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
@@ -3253,8 +3254,8 @@ void GLRenderer::DrawSpritePart(ISprite* sprite,
 	int sy,
 	int sw,
 	int sh,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,

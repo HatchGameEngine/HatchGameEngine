@@ -17,7 +17,7 @@ vector<Texture*> TextureList;
 
 // TODO: Would it just be better to turn Graphics::TextureMap into a
 // vector? The OpenGL renderer benefits from it being a map, but this
-// method would make sense for the D3D renderer too.
+// method would make sense for the SDL renderer too.
 void FindTextureID(Texture* texture) {
 	for (size_t i = 0; i <= TextureList.size(); i++) {
 		if (i == TextureList.size()) {
@@ -117,8 +117,13 @@ void SDL2Renderer::SetGraphicsFunctions() {
 	Graphics::Internal.StrokeRectangle = SDL2Renderer::StrokeRectangle;
 	Graphics::Internal.FillCircle = SDL2Renderer::FillCircle;
 	Graphics::Internal.FillEllipse = SDL2Renderer::FillEllipse;
-	Graphics::Internal.FillTriangle = SDL2Renderer::FillTriangle;
 	Graphics::Internal.FillRectangle = SDL2Renderer::FillRectangle;
+	Graphics::Internal.FillTriangle = SDL2Renderer::FillTriangle;
+	Graphics::Internal.FillTriangleBlend = SDL2Renderer::FillTriangleBlend;
+	Graphics::Internal.FillQuad = SDL2Renderer::FillQuad;
+	Graphics::Internal.FillQuadBlend = SDL2Renderer::FillQuadBlend;
+	Graphics::Internal.DrawTriangle = SDL2Renderer::DrawTriangle;
+	Graphics::Internal.DrawQuad = SDL2Renderer::DrawQuad;
 
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = SDL2Renderer::DrawTexture;
@@ -415,8 +420,23 @@ void SDL2Renderer::StrokeEllipse(float x, float y, float w, float h) {}
 void SDL2Renderer::StrokeRectangle(float x, float y, float w, float h) {}
 void SDL2Renderer::FillCircle(float x, float y, float rad) {}
 void SDL2Renderer::FillEllipse(float x, float y, float w, float h) {}
-void SDL2Renderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {}
 void SDL2Renderer::FillRectangle(float x, float y, float w, float h) {}
+void SDL2Renderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {}
+void SDL2Renderer::FillTriangleBlend(float* xc, float* yc, int* colors) {}
+void SDL2Renderer::FillQuad(float* xc, float* yc) {}
+void SDL2Renderer::FillQuadBlend(float* xc, float* yc, int* colors) {}
+void SDL2Renderer::DrawTriangle(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {}
+void SDL2Renderer::DrawQuad(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {}
 // Texture drawing functions
 void SDL2Renderer::DrawTexture(Texture* texture,
 	float sx,
@@ -459,8 +479,8 @@ void SDL2Renderer::DrawTexture(Texture* texture,
 void SDL2Renderer::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
@@ -495,8 +515,8 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 	int sy,
 	int sw,
 	int sh,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,

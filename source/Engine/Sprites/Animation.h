@@ -2,10 +2,11 @@
 #define ENGINE_SPRITES_ANIMATION_H
 
 struct CollisionBox {
-	int Left;
-	int Top;
-	int Right;
-	int Bottom;
+	std::string Name;
+	int Left = 0;
+	int Top = 0;
+	int Right = 0;
+	int Bottom = 0;
 };
 struct AnimFrame {
 	int X;
@@ -19,8 +20,7 @@ struct AnimFrame {
 	int BufferOffset;
 	int Advance;
 
-	int BoxCount;
-	CollisionBox* Boxes = NULL;
+	std::vector<CollisionBox> Boxes;
 };
 struct Animation {
 	char* Name;

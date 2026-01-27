@@ -21,6 +21,12 @@ Image::Image(const char* filename) {
 	TexturePtr = Image::LoadTextureFromResource(Filename);
 }
 
+Image::Image(Texture* texturePtr) {
+	AddRef();
+	Filename = nullptr;
+	TexturePtr = texturePtr;
+}
+
 void Image::AddRef() {
 	References++;
 }

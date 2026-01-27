@@ -1,8 +1,6 @@
 #ifndef ENGINE_TYPES_ENTITY_H
 #define ENGINE_TYPES_ENTITY_H
 class ObjectList;
-class ObjectRegistry;
-class DrawGroupList;
 
 #include <Engine/Application.h>
 #include <Engine/Graphics.h>
@@ -15,8 +13,8 @@ class DrawGroupList;
 
 class Entity {
 public:
-	float InitialX = 0;
-	float InitialY = 0;
+	float InitialX = 0.0f;
+	float InitialY = 0.0f;
 	int Active = true;
 	int Pauseable = true;
 	int Interactable = true;
@@ -30,11 +28,11 @@ public:
 	float X = 0.0f;
 	float Y = 0.0f;
 	float Z = 0.0f;
-	float XSpeed = 0.0f;
-	float YSpeed = 0.0f;
+	float SpeedX = 0.0f;
+	float SpeedY = 0.0f;
 	float GroundSpeed = 0.0f;
-	float Gravity = 0.0f;
-	int Ground = false;
+	float GravitySpeed = 0.0f;
+	int OnGround = false;
 	int WasOffScreen = false;
 	int OnScreen = true;
 	float OnScreenHitboxW = 0.0f;
@@ -65,7 +63,6 @@ public:
 	int PriorityOld = -1;
 	float Depth = 0.0f;
 	float OldDepth = 0.0f;
-	float ZDepth = 0.0;
 	int Sprite = -1;
 	int CurrentAnimation = -1;
 	int CurrentFrame = -1;
@@ -80,21 +77,15 @@ public:
 	int AnimationLoopIndex = 0;
 	int RotationStyle = ROTSTYLE_NONE;
 	EntityHitbox Hitbox;
-	int FlipFlag = 0;
+	int Direction = 0;
 	float SensorX = 0.0f;
 	float SensorY = 0.0f;
 	int SensorCollided = false;
 	int SensorAngle = 0;
-	float VelocityX = 0.0f;
-	float VelocityY = 0.0f;
-	float GroundVel = 0.0f;
-	float GravityStrength = 0.0f;
-	int OnGround = false;
-	int Direction = 0;
-	int TileCollisions = false;
+	int TileCollisions = TILECOLLISION_NONE;
 	int CollisionLayers = 0;
 	int CollisionPlane = 0;
-	int CollisionMode = 0;
+	int CollisionMode = CMODE_FLOOR;
 	int SlotID = -1;
 	int Filter = 0xFF;
 	bool Removed = false;

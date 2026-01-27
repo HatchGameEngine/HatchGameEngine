@@ -986,8 +986,13 @@ void D3DRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.StrokeRectangle = D3DRenderer::StrokeRectangle;
 	Graphics::Internal.FillCircle = D3DRenderer::FillCircle;
 	Graphics::Internal.FillEllipse = D3DRenderer::FillEllipse;
-	Graphics::Internal.FillTriangle = D3DRenderer::FillTriangle;
 	Graphics::Internal.FillRectangle = D3DRenderer::FillRectangle;
+	Graphics::Internal.FillTriangle = D3DRenderer::FillTriangle;
+	Graphics::Internal.FillTriangleBlend = D3DRenderer::FillTriangleBlend;
+	Graphics::Internal.FillQuad = D3DRenderer::FillQuad;
+	Graphics::Internal.FillQuadBlend = D3DRenderer::FillQuadBlend;
+	Graphics::Internal.DrawTriangle = D3DRenderer::DrawTriangle;
+	Graphics::Internal.DrawQuad = D3DRenderer::DrawQuad;
 
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = D3DRenderer::DrawTexture;
@@ -1460,6 +1465,19 @@ void D3DRenderer::FillEllipse(float x, float y, float w, float h) {
 
 	D3D_EndDrawShape(D3D_BufferCircleFill, D3DPT_TRIANGLEFAN, 360);
 }
+void D3DRenderer::FillRectangle(float x, float y, float w, float h) {
+	D3D_BeginDrawShape(D3D_BufferSquareFill, 4);
+
+	Graphics::Save();
+	Graphics::Translate(x, y, 0.0f);
+	Graphics::Scale(w, h, 1.0f);
+	D3DMATRIX matrix;
+	memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
+	IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
+	Graphics::Restore();
+
+	D3D_EndDrawShape(D3D_BufferSquareFill, D3DPT_TRIANGLEFAN, 2);
+}
 void D3DRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
 	Vertex vertices[3];
 	vertices[0] = Vertex{x1, y1, 0.0f, D3D_BlendColorsAsHex, 0.0f, 0.0f};
@@ -1474,19 +1492,21 @@ void D3DRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3,
 
 	D3D_EndDrawShape(vertices, D3DPT_TRIANGLEFAN, 1);
 }
-void D3DRenderer::FillRectangle(float x, float y, float w, float h) {
-	D3D_BeginDrawShape(D3D_BufferSquareFill, 4);
-
-	Graphics::Save();
-	Graphics::Translate(x, y, 0.0f);
-	Graphics::Scale(w, h, 1.0f);
-	D3DMATRIX matrix;
-	memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
-	IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
-	Graphics::Restore();
-
-	D3D_EndDrawShape(D3D_BufferSquareFill, D3DPT_TRIANGLEFAN, 2);
-}
+void D3DRenderer::FillTriangleBlend(float* xc, float* yc, int* colors) {}
+void D3DRenderer::FillQuad(float* xc, float* yc) {}
+void D3DRenderer::FillQuadBlend(float* xc, float* yc, int* colors) {}
+void D3DRenderer::DrawTriangle(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {}
+void D3DRenderer::DrawQuad(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {}
 
 // Texture drawing functions
 void D3DRenderer::DrawTexture(Texture* texture,
@@ -1497,7 +1517,8 @@ void D3DRenderer::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
+	float h,
+	int paletteID) {
 	// UseShader(D3D_SelectedShader ? D3D_SelectedShader :
 	// D3D_ShaderTexturedShape);
 	if (sx < 0) {
@@ -1518,8 +1539,8 @@ void D3DRenderer::DrawTexture(Texture* texture,
 void D3DRenderer::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
@@ -1564,8 +1585,8 @@ void D3DRenderer::DrawSpritePart(ISprite* sprite,
 	int sy,
 	int sw,
 	int sh,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
