@@ -235,15 +235,19 @@ unsigned int Math::ArcTanLookup(int X, int Y) {
 		}
 	}
 	if (X <= 0) {
-		if (Y <= 0)
+		if (Y <= 0) {
 			return ArcTan256LookupTable[(x << 8) + y] + 0x80;
-		else
+		}
+		else {
 			return 0x80 - ArcTan256LookupTable[(x << 8) + y];
+		}
 	}
-	else if (Y <= 0)
+	else if (Y <= 0) {
 		return -ArcTan256LookupTable[(x << 8) + y];
-	else
+	}
+	else {
 		return ArcTan256LookupTable[(x << 8) + y];
+	}
 }
 
 // help

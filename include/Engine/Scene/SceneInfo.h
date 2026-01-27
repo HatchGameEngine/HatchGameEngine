@@ -6,7 +6,7 @@
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 
-#define SCENEINFO_GLOBAL_CATEGORY_NAME "global"
+#define SCENEINFO_GLOBAL_CATEGORY_NAME "Global"
 
 class SceneInfo {
 private:
@@ -31,6 +31,7 @@ public:
 	static std::string GetName(int categoryID, int entryID);
 	static std::string GetFolder(int categoryID, int entryID);
 	static std::string GetID(int categoryID, int entryID);
+	static int GetFilter(int categoryID, int entryID);
 	static std::string GetTileConfigFilename(int categoryID, int entryID);
 	static char* GetEntryProperty(int categoryID, int entryID, char* property);
 	static char* GetCategoryProperty(int categoryID, char* property);

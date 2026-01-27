@@ -1,6 +1,7 @@
 #ifndef ENGINE_RESOURCETYPES_ISPRITE_H
 #define ENGINE_RESOURCETYPES_ISPRITE_H
 
+#include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Sprites/Animation.h>
@@ -11,7 +12,6 @@ public:
 	bool LoadFailed = true;
 	vector<Texture*> Spritesheets;
 	vector<string> SpritesheetFilenames;
-	int CollisionBoxCount = 0;
 	vector<Animation> Animations;
 	int ID = 0;
 	int FrameCount = 0;
@@ -56,6 +56,7 @@ public:
 	void RefreshGraphicsID();
 	void ConvertToRGBA();
 	void ConvertToPalette(unsigned paletteNumber);
+	static bool IsFile(Stream* stream);
 	bool LoadAnimation(const char* filename);
 	int FindAnimation(const char* animname);
 	void LinkAnimation(vector<Animation> ani);

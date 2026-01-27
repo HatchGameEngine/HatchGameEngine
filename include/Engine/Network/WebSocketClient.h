@@ -2,7 +2,6 @@
 #define ENGINE_NETWORK_WEBSOCKETCLIENT_H
 
 #include <Engine/Includes/Standard.h>
-#include <Engine/Network/WebSocketIncludes.h>
 #include <time.h>
 
 class WebSocketClient {
@@ -16,7 +15,7 @@ public:
 	std::vector<uint8_t> rxbuf;
 	std::vector<uint8_t> txbuf;
 	std::vector<uint8_t> receivedData;
-	socket_t socket;
+	void* SocketPtr;
 	int readyState;
 	bool useMask;
 	bool isRxBad;
@@ -34,6 +33,8 @@ public:
 	void SendBinary(const void* message, int64_t message_size);
 	void SendText(const char* message);
 	void Close();
+
+	~WebSocketClient();
 };
 
 #endif /* ENGINE_NETWORK_WEBSOCKETCLIENT_H */

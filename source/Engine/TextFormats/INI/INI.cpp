@@ -67,6 +67,9 @@ bool INI::Save(const char* filename) {
 bool INI::Save() {
 	return Save(Filename);
 }
+bool INI::IsPersisted() {
+	return FileStream::Exists(Filename, true);
+}
 void INI::SetFilename(const char* filename) {
 	Memory::Free(Filename);
 	Filename = StringUtils::Duplicate(filename);

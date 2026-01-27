@@ -38,6 +38,7 @@ static HashMap<const char*>* ObjectHashes = NULL;
 static HashMap<const char*>* PropertyHashes = NULL;
 
 static Uint32 HACK_PlayerNameHash = 0;
+static Uint32 FilterHash = 0;
 
 void RSDKSceneReader::StageConfig_GetColors(const char* filename) {
 	MemoryStream* memoryReader;
@@ -231,6 +232,7 @@ void RSDKSceneReader::LoadPropertyList() {
 		nameHead++;
 	}
 	PropertyHashes->Put(nameStart, nameStart);
+	FilterHash = PropertyHashes->HashFunction("filter", 6);
 
 	r->Close();
 }
@@ -251,16 +253,19 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 	int DrawGroup = r->ReadByte();
 	int Width = (int)r->ReadUInt16();
 	int Height = (int)r->ReadUInt16();
+	Uint16 relativeY = r->ReadInt16();
+	Uint16 constantY = r->ReadInt16();
 
 	SceneLayer layer(Width, Height);
+	if (layerDrawBehavior == 3) {
+		layerDrawBehavior = DrawBehavior_HorizontalParallax;
+	}
 	layer.DrawBehavior = layerDrawBehavior;
 
-	memset(layer.Name, 0, 50);
-	strcpy(layer.Name, Name);
-	Memory::Free(Name);
+	layer.Name = Name;
 
-	layer.RelativeY = r->ReadInt16();
-	layer.ConstantY = (short)r->ReadInt16();
+	layer.RelativeY = (float)relativeY / 0x100;
+	layer.ConstantY = (float)constantY / 0x100;
 
 	layer.Flags = 0;
 
@@ -277,14 +282,18 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 		layer.Visible = false;
 	}
 
+	layer.UsingScrollIndexes = true;
 	layer.ScrollInfoCount = (int)r->ReadUInt16();
 	layer.ScrollInfos =
 		(ScrollingInfo*)Memory::Malloc(layer.ScrollInfoCount * sizeof(ScrollingInfo));
 	for (int g = 0; g < layer.ScrollInfoCount; g++) {
-		layer.ScrollInfos[g].RelativeParallax = r->ReadInt16();
-		layer.ScrollInfos[g].ConstantParallax = r->ReadInt16();
+		Uint16 relativeParallax = r->ReadInt16();
+		Uint16 constantParallax = r->ReadInt16();
 
-		layer.ScrollInfos[g].CanDeform = (char)r->ReadByte();
+		layer.ScrollInfos[g].RelativeParallax = (float)relativeParallax / 0x100;
+		layer.ScrollInfos[g].ConstantParallax = (float)constantParallax / 0x100;
+
+		layer.ScrollInfos[g].CanDeform = (bool)r->ReadByte();
 		r->ReadByte();
 	}
 
@@ -305,9 +314,7 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 			sizeof(Uint16) * Width * Height);
 	}
 
-	layer.ScrollInfosSplitIndexesCount = 0;
-
-	// Convert to HatchTiles
+	// Convert to Hatch tiles
 	int t = 0;
 	Uint32* tileRow = &layer.Tiles[0];
 	for (int y = 0; y < layer.Height; y++) {
@@ -426,18 +433,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 			obj->InitialX = obj->X;
 			obj->InitialY = obj->Y;
 			obj->List = objectList;
-			obj->SlotID = SlotID;
-
-			// HACK: This is so Player ends up in the
-			// current SlotID,
-			//       since this currently cannot be changed
-			//       during runtime.
-			if (objectNameHash2 == HACK_PlayerNameHash) {
-				Scene::AddStatic(obj->List, obj);
-			}
-			else if (doAdd) {
-				objSlots[SlotID] = obj;
-			}
+			obj->SlotID = SlotID + Scene::ReservedSlotIDs;
 
 			for (int a = 1; a < argumentCount; a++) {
 				VMValue val = NULL_VAL;
@@ -499,6 +495,30 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 							PropertyHashes->Get(argumentHashes[a]),
 							val);
 				}
+			}
+
+			if (PropertyHashes->Exists(FilterHash)) {
+				obj->Filter =
+					((ScriptEntity*)obj)->Properties->Get("filter").as.Integer;
+			}
+			else {
+				obj->Filter = 0xFF;
+			}
+
+			if (!obj->Filter) {
+				obj->Filter = 0xFF;
+			}
+
+			if (!(obj->Filter & Scene::Filter)) {
+				doAdd = false;
+			}
+
+			// HACK: This is so Player ends up in the current SlotID, since this currently cannot be changed during runtime.
+			if (objectNameHash2 == HACK_PlayerNameHash) {
+				Scene::AddStatic(obj->List, obj);
+			}
+			else if (doAdd) {
+				objSlots[SlotID] = obj;
 			}
 		}
 		else {
@@ -566,9 +586,12 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 		return false;
 	}
 
+	Scene::SceneType = SCENETYPE_RSDK;
+
 	Scene::TileCount = 0x400;
 	Scene::EmptyTile = 0x3FF;
 
+	Scene::FreePriorityLists();
 	Scene::PriorityPerLayer = 16;
 	Scene::InitPriorityLists();
 
@@ -669,12 +692,14 @@ bool RSDKSceneReader::LoadTileset(const char* parentFolder) {
 
 	char filename16x16Tiles[MAX_RESOURCE_PATH_LENGTH];
 	snprintf(filename16x16Tiles, sizeof(filename16x16Tiles), "%s16x16Tiles.gif", parentFolder);
-	{
+
+	Stream* resourceStream = ResourceStream::New(filename16x16Tiles);
+	if (resourceStream != nullptr) {
 		GIF* gif;
 		bool loadPalette = Graphics::UsePalettes;
 
 		Graphics::UsePalettes = false;
-		gif = GIF::Load(filename16x16Tiles);
+		gif = GIF::Load(resourceStream);
 		Graphics::UsePalettes = loadPalette;
 
 		if (gif) {
@@ -686,6 +711,8 @@ bool RSDKSceneReader::LoadTileset(const char* parentFolder) {
 			}
 			delete gif;
 		}
+
+		resourceStream->Close();
 	}
 
 	ISprite* tileSprite = new ISprite();

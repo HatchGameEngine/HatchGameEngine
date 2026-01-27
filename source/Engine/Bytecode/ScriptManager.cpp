@@ -4,12 +4,10 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/StandardLibrary.h>
-#include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
-#include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
-#include <Engine/Bytecode/TypeImpl/MapImpl.h>
-#include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
-#include <Engine/Bytecode/TypeImpl/StringImpl.h>
-#include <Engine/Bytecode/Values.h>
+#include <Engine/Bytecode/TypeImpl/EntityImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/Bytecode/Value.h>
+#include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Hashing/CombinedHash.h>
@@ -26,8 +24,6 @@ Uint32 ScriptManager::ThreadCount = 1;
 
 HashMap<VMValue>* ScriptManager::Globals = NULL;
 HashMap<VMValue>* ScriptManager::Constants = NULL;
-
-std::set<Obj*> ScriptManager::FreedGlobals;
 
 vector<ObjModule*> ScriptManager::ModuleList;
 
@@ -123,11 +119,9 @@ void ScriptManager::Init() {
 	}
 	ThreadCount = 1;
 
-	ArrayImpl::Init();
-	MapImpl::Init();
-	FunctionImpl::Init();
-	StringImpl::Init();
-	MaterialImpl::Init();
+	ScriptEntity::Init();
+
+	TypeImpl::Init();
 }
 #ifdef VM_DEBUG
 Uint32 ScriptManager::GetBranchLimit() {
@@ -149,45 +143,30 @@ Uint32 ScriptManager::GetBranchLimit() {
 	return (Uint32)branchLimit;
 }
 #endif
-void ScriptManager::DisposeGlobalValueTable(HashMap<VMValue>* globals) {
-	globals->ForAll(FreeGlobalValue);
-	globals->Clear();
-	delete globals;
-}
 void ScriptManager::Dispose() {
-	// NOTE: Remove GC-able values from these tables so they may be
-	// cleaned up.
 	if (Globals) {
-		Globals->ForAll(RemoveNonGlobalableValue);
+		Globals->Clear();
+		Globals = nullptr;
+		delete Globals;
 	}
+
 	if (Constants) {
-		Constants->ForAll(RemoveNonGlobalableValue);
+		Constants->Clear();
+		Constants = nullptr;
+		delete Constants;
 	}
 
 	ClassImplList.clear();
 	AllNamespaces.clear();
+	ModuleList.clear();
 
-	Threads[0].FrameCount = 0;
-	Threads[0].ResetStack();
+	if (ThreadCount) {
+		Threads[0].FrameCount = 0;
+		Threads[0].ResetStack();
+	}
+	ThreadCount = 0;
+
 	ForceGarbageCollection();
-
-	FreeModules();
-
-	FreedGlobals.clear();
-
-	if (Globals) {
-		Log::Print(Log::LOG_VERBOSE, "Freeing values in Globals list...");
-		DisposeGlobalValueTable(Globals);
-		Log::Print(Log::LOG_VERBOSE, "Done!");
-		Globals = NULL;
-	}
-
-	if (Constants) {
-		Log::Print(Log::LOG_VERBOSE, "Freeing values in Constants list...");
-		DisposeGlobalValueTable(Constants);
-		Log::Print(Log::LOG_VERBOSE, "Done!");
-		Constants = NULL;
-	}
 
 	if (Sources) {
 		Sources->WithAll([](Uint32 hash, BytecodeContainer bytecode) -> void {
@@ -211,331 +190,57 @@ void ScriptManager::Dispose() {
 		Tokens = NULL;
 	}
 
-	SDL_DestroyMutex(GlobalLock);
-}
-void ScriptManager::RemoveNonGlobalableValue(Uint32 hash, VMValue value) {
-	if (IS_OBJECT(value)) {
-		switch (OBJECT_TYPE(value)) {
-		case OBJ_CLASS:
-		case OBJ_ENUM:
-		case OBJ_FUNCTION:
-		case OBJ_NATIVE:
-		case OBJ_NAMESPACE:
-		case OBJ_MODULE:
-			break;
-		default:
-			if (hash) {
-				Globals->Remove(hash);
-			}
-			break;
-		}
+	if (GlobalLock) {
+		SDL_DestroyMutex(GlobalLock);
+		GlobalLock = NULL;
 	}
 }
-void ScriptManager::FreeNativeValue(Uint32 hash, VMValue value) {
-	if (IS_OBJECT(value)) {
-		switch (OBJECT_TYPE(value)) {
-		case OBJ_NATIVE:
-			FREE_OBJ(AS_OBJECT(value), ObjNative);
-			break;
+void ScriptManager::FreeFunction(Obj* object) {
+	ObjFunction* function = (ObjFunction*)object;
 
-		default:
-			break;
-		}
-	}
-}
-void ScriptManager::FreeFunction(ObjFunction* function) {
-	/*
-	printf("OBJ_FUNCTION: %p (%s)\n", function,
-	    function->Name ?
-	        (function->Name->Chars ? function->Name->Chars :
-	"NULL") : "NULL");
-	//*/
-	if (function->Name != NULL) {
-		FreeValue(OBJECT_VAL(function->Name));
-	}
-	if (function->ClassName != NULL) {
-		FreeValue(OBJECT_VAL(function->ClassName));
-	}
+	Memory::Free(function->Name);
 
-	for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
-		FreeValue((*function->Chunk.Constants)[i]);
-	}
-	function->Chunk.Constants->clear();
 	function->Chunk.Free();
-
-	FREE_OBJ(function, ObjFunction);
 }
-void ScriptManager::FreeModule(ObjModule* module) {
+void ScriptManager::FreeModule(Obj* object) {
+	ObjModule* module = (ObjModule*)object;
+
 	for (size_t i = 0; i < module->Functions->size(); i++) {
-		FreeFunction((*module->Functions)[i]);
+		FreeFunction((Obj*)(*module->Functions)[i]);
 	}
+
+	Memory::Free(module->SourceFilename);
+
 	delete module->Functions;
 	delete module->Locals;
 }
-void ScriptManager::FreeClass(ObjClass* klass) {
-	// Subfunctions are already freed as a byproduct of the
-	// ModuleList, so just do natives.
-	klass->Methods->ForAll(FreeNativeValue);
+void ScriptManager::FreeClass(Obj* object) {
+	ObjClass* klass = (ObjClass*)object;
+
+	Memory::Free(klass->Name);
+
 	delete klass->Methods;
-
-	// A class does not own its values, so it's not allowed
-	// to free them.
 	delete klass->Fields;
-
-	if (klass->Name) {
-		FreeValue(OBJECT_VAL(klass->Name));
-	}
-
-	FREE_OBJ(klass, ObjClass);
 }
-void ScriptManager::FreeEnumeration(ObjEnum* enumeration) {
-	// An enumeration does not own its values, so it's not allowed
-	// to free them.
+void ScriptManager::FreeEnumeration(Obj* object) {
+	ObjEnum* enumeration = (ObjEnum*)object;
+
+	Memory::Free(enumeration->Name);
+
 	delete enumeration->Fields;
-
-	if (enumeration->Name) {
-		FreeValue(OBJECT_VAL(enumeration->Name));
-	}
-
-	FREE_OBJ(enumeration, ObjEnum);
 }
-void ScriptManager::FreeNamespace(ObjNamespace* ns) {
-	// A namespace does not own its values, so it's not allowed
-	// to free them.
+void ScriptManager::FreeNamespace(Obj* object) {
+	ObjNamespace* ns = (ObjNamespace*)object;
+
+	Memory::Free(ns->Name);
+
 	delete ns->Fields;
-
-	if (ns->Name) {
-		FreeValue(OBJECT_VAL(ns->Name));
-	}
-
-	FREE_OBJ(ns, ObjNamespace);
-}
-void ScriptManager::FreeString(ObjString* string) {
-	if (string->Chars != NULL) {
-		Memory::Free(string->Chars);
-	}
-	string->Chars = NULL;
-
-	FREE_OBJ(string, ObjString);
-}
-void ScriptManager::FreeGlobalValue(Uint32 hash, VMValue value) {
-	if (IS_OBJECT(value)) {
-		Obj* object = AS_OBJECT(value);
-		if (FreedGlobals.find(object) != FreedGlobals.end()) {
-			return;
-		}
-
-#ifdef DEBUG_FREE_GLOBALS
-		if (Tokens->Get(hash)) {
-			Log::Print(Log::LOG_VERBOSE,
-				"Freeing global %s, type %s",
-				Tokens->Get(hash),
-				GetValueTypeString(value));
-		}
-		else {
-			Log::Print(Log::LOG_VERBOSE,
-				"Freeing global %08X, type %s",
-				hash,
-				GetValueTypeString(value));
-		}
-#endif
-
-		switch (OBJECT_TYPE(value)) {
-		case OBJ_CLASS: {
-			ObjClass* klass = AS_CLASS(value);
-			FreeClass(klass);
-			FreedGlobals.insert(object);
-			break;
-		}
-		case OBJ_ENUM: {
-			ObjEnum* enumeration = AS_ENUM(value);
-			FreeEnumeration(enumeration);
-			FreedGlobals.insert(object);
-			break;
-		}
-		case OBJ_NAMESPACE: {
-			ObjNamespace* ns = AS_NAMESPACE(value);
-			FreeNamespace(ns);
-			FreedGlobals.insert(object);
-			break;
-		}
-		case OBJ_NATIVE: {
-			FREE_OBJ(AS_OBJECT(value), ObjNative);
-			FreedGlobals.insert(object);
-			break;
-		}
-		default:
-			break;
-		}
-	}
-}
-void ScriptManager::FreeModules() {
-	Log::Print(Log::LOG_VERBOSE, "Freeing %d modules...", ModuleList.size());
-	for (size_t i = 0; i < ModuleList.size(); i++) {
-		FreeModule(ModuleList[i]);
-	}
-	ModuleList.clear();
-	Log::Print(Log::LOG_VERBOSE, "Done!");
 }
 // #endregion
 
 // #region ValueFuncs
-VMValue ScriptManager::CastValueAsString(VMValue v, bool prettyPrint) {
-	if (IS_STRING(v)) {
-		return v;
-	}
-
-	char* buffer = (char*)malloc(512);
-	PrintBuffer buffer_info;
-	buffer_info.Buffer = &buffer;
-	buffer_info.WriteIndex = 0;
-	buffer_info.BufferSize = 512;
-	Values::PrintValue(&buffer_info, v, prettyPrint);
-	v = OBJECT_VAL(CopyString(buffer, buffer_info.WriteIndex));
-	free(buffer);
-	return v;
-}
-VMValue ScriptManager::CastValueAsString(VMValue v) {
-	return CastValueAsString(v, false);
-}
-VMValue ScriptManager::CastValueAsInteger(VMValue v) {
-	float a;
-	switch (v.Type) {
-	case VAL_DECIMAL:
-	case VAL_LINKED_DECIMAL:
-		a = AS_DECIMAL(v);
-		return INTEGER_VAL((int)a);
-	case VAL_INTEGER:
-		return v;
-	case VAL_LINKED_INTEGER:
-		return INTEGER_VAL(AS_INTEGER(v));
-	default:
-		// NOTE: Should error here instead.
-		break;
-	}
-	return NULL_VAL;
-}
-VMValue ScriptManager::CastValueAsDecimal(VMValue v) {
-	int a;
-	switch (v.Type) {
-	case VAL_DECIMAL:
-		return v;
-	case VAL_LINKED_DECIMAL:
-		return DECIMAL_VAL(AS_DECIMAL(v));
-	case VAL_INTEGER:
-	case VAL_LINKED_INTEGER:
-		a = AS_INTEGER(v);
-		return DECIMAL_VAL((float)a);
-	default:
-		// NOTE: Should error here instead.
-		break;
-	}
-	return NULL_VAL;
-}
-VMValue ScriptManager::Concatenate(VMValue va, VMValue vb) {
-	ObjString* a = AS_STRING(va);
-	ObjString* b = AS_STRING(vb);
-
-	size_t length = a->Length + b->Length;
-	ObjString* result = AllocString(length);
-
-	memcpy(result->Chars, a->Chars, a->Length);
-	memcpy(result->Chars + a->Length, b->Chars, b->Length);
-	result->Chars[length] = 0;
-	return OBJECT_VAL(result);
-}
-
-bool ScriptManager::ValuesSortaEqual(VMValue a, VMValue b) {
-	if ((a.Type == VAL_DECIMAL && b.Type == VAL_INTEGER) ||
-		(a.Type == VAL_INTEGER && b.Type == VAL_DECIMAL)) {
-		float a_d = AS_DECIMAL(CastValueAsDecimal(a));
-		float b_d = AS_DECIMAL(CastValueAsDecimal(b));
-		return (a_d == b_d);
-	}
-
-	if (IS_STRING(a) && IS_STRING(b)) {
-		ObjString* astr = AS_STRING(a);
-		ObjString* bstr = AS_STRING(b);
-		return astr->Length == bstr->Length &&
-			!memcmp(astr->Chars, bstr->Chars, astr->Length);
-	}
-
-	if (IS_BOUND_METHOD(a) && IS_BOUND_METHOD(b)) {
-		ObjBoundMethod* abm = AS_BOUND_METHOD(a);
-		ObjBoundMethod* bbm = AS_BOUND_METHOD(b);
-		return ValuesEqual(abm->Receiver, bbm->Receiver) && abm->Method == bbm->Method;
-	}
-
-	return ScriptManager::ValuesEqual(a, b);
-}
-bool ScriptManager::ValuesEqual(VMValue a, VMValue b) {
-	if (a.Type == VAL_LINKED_INTEGER) {
-		goto SKIP_CHECK;
-	}
-	if (a.Type == VAL_LINKED_DECIMAL) {
-		goto SKIP_CHECK;
-	}
-	if (b.Type == VAL_LINKED_INTEGER) {
-		goto SKIP_CHECK;
-	}
-	if (b.Type == VAL_LINKED_DECIMAL) {
-		goto SKIP_CHECK;
-	}
-
-	if (a.Type != b.Type) {
-		return false;
-	}
-
-SKIP_CHECK:
-
-	switch (a.Type) {
-	case VAL_LINKED_INTEGER:
-	case VAL_INTEGER:
-		return AS_INTEGER(a) == AS_INTEGER(b);
-
-	case VAL_LINKED_DECIMAL:
-	case VAL_DECIMAL:
-		return AS_DECIMAL(a) == AS_DECIMAL(b);
-
-	case VAL_OBJECT:
-		return AS_OBJECT(a) == AS_OBJECT(b);
-
-	case VAL_NULL:
-		return true;
-	}
-	return false;
-}
-bool ScriptManager::ValueFalsey(VMValue a) {
-	if (a.Type == VAL_NULL) {
-		return true;
-	}
-
-	switch (a.Type) {
-	case VAL_LINKED_INTEGER:
-	case VAL_INTEGER:
-		return AS_INTEGER(a) == 0;
-	case VAL_LINKED_DECIMAL:
-	case VAL_DECIMAL:
-		return AS_DECIMAL(a) == 0.0f;
-	case VAL_OBJECT:
-		return false;
-	}
-	return false;
-}
-
-VMValue ScriptManager::DelinkValue(VMValue val) {
-	if (IS_LINKED_DECIMAL(val)) {
-		return DECIMAL_VAL(AS_DECIMAL(val));
-	}
-	if (IS_LINKED_INTEGER(val)) {
-		return INTEGER_VAL(AS_INTEGER(val));
-	}
-
-	return val;
-}
-
 bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 threadID) {
-	VMValue result = ScriptManager::CastValueAsInteger(value);
+	VMValue result = Value::CastAsInteger(value);
 	if (IS_NULL(result)) {
 		// Conversion failed
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
@@ -548,7 +253,7 @@ bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 threadID) {
 	return true;
 }
 bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
-	VMValue result = ScriptManager::CastValueAsDecimal(value);
+	VMValue result = Value::CastAsDecimal(value);
 	if (IS_NULL(result)) {
 		// Conversion failed
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
@@ -561,79 +266,12 @@ bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
 	return true;
 }
 
-void ScriptManager::FreeValue(VMValue value) {
-	if (IS_OBJECT(value)) {
-		Obj* objectPointer = AS_OBJECT(value);
-		switch (OBJECT_TYPE(value)) {
-		case OBJ_BOUND_METHOD: {
-			FREE_OBJ(objectPointer, ObjBoundMethod);
-			break;
-		}
-		case OBJ_INSTANCE: {
-			ObjInstance* instance = AS_INSTANCE(value);
-
-			// An instance does not own its values, so it's
-			// not allowed to free them.
-			delete instance->Fields;
-
-			FREE_OBJ(instance, ObjInstance);
-			break;
-		}
-		case OBJ_STRING: {
-			ObjString* string = AS_STRING(value);
-			FreeString(string);
-			break;
-		}
-		case OBJ_ARRAY: {
-			ObjArray* array = AS_ARRAY(value);
-
-			// An array does not own its values, so it's
-			// not allowed to free them.
-			array->Values->clear();
-			delete array->Values;
-
-			FREE_OBJ(array, ObjArray);
-			break;
-		}
-		case OBJ_MAP: {
-			ObjMap* map = AS_MAP(value);
-
-			// Free keys
-			map->Keys->WithAll([](Uint32, char* ptr) -> void {
-				Memory::Free(ptr);
-			});
-
-			// Free Keys table
-			delete map->Keys;
-
-			// Free Values table
-			delete map->Values;
-
-			FREE_OBJ(map, ObjMap);
-			break;
-		}
-		case OBJ_STREAM: {
-			ObjStream* stream = AS_STREAM(value);
-
-			if (!stream->Closed) {
-				stream->StreamPtr->Close();
-			}
-
-			FREE_OBJ(stream, ObjStream);
-			break;
-		}
-		case OBJ_MATERIAL: {
-			ObjMaterial* material = AS_MATERIAL(value);
-
-			Material::Remove(material->MaterialPtr);
-
-			FREE_OBJ(material, ObjMaterial);
-			break;
-		}
-		default:
-			break;
-		}
+void ScriptManager::DestroyObject(Obj* object) {
+	if (object->Destructor != nullptr) {
+		object->Destructor(object);
 	}
+
+	FREE_OBJ(object);
 }
 // #endregion
 
@@ -661,18 +299,12 @@ void ScriptManager::DefineMethod(VMThread* thread, ObjFunction* function, Uint32
 		klass->Initializer = methodValue;
 	}
 
-	function->ClassName = CopyString(klass->Name);
+	function->Class = klass;
 
 	thread->Pop();
 }
 void ScriptManager::DefineNative(ObjClass* klass, const char* name, NativeFn function) {
-	if (function == NULL) {
-		return;
-	}
-	if (klass == NULL) {
-		return;
-	}
-	if (name == NULL) {
+	if (function == NULL || klass == NULL || name == NULL) {
 		return;
 	}
 
@@ -726,28 +358,55 @@ void ScriptManager::GlobalConstDecimal(ObjClass* klass, const char* name, float 
 		klass->Methods->Put(name, DECIMAL_VAL(value));
 	}
 }
-ObjClass* ScriptManager::GetClassParent(ObjClass* klass) {
-	if (!klass->Parent && klass->ParentHash) {
-		VMValue parent;
-		if (ScriptManager::Globals->GetIfExists(klass->ParentHash, &parent) &&
-			IS_CLASS(parent)) {
-			klass->Parent = AS_CLASS(parent);
+bool ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash, VMValue* callable) {
+	while (klass != nullptr) {
+		// Look for a field in the class which may shadow a method.
+		if (klass->Fields->GetIfExists(hash, callable)) {
+			return true;
+		}
+
+		// There is no field with that name, so look for methods.
+		if (klass->Methods->GetIfExists(hash, callable)) {
+			return true;
+		}
+
+		// Otherwise, walk up the inheritance chain until we find the method.
+		klass = klass->Parent;
+	}
+
+	return false;
+}
+bool ScriptManager::GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, VMValue* callable) {
+	while (klass != nullptr) {
+		// Look for a field in the class which may shadow a method.
+		if (klass->Fields->GetIfExists(hash, callable)) {
+			return true;
+		}
+
+		// There is no field with that name, so look for methods.
+		if (klass->Methods->GetIfExists(hash, callable)) {
+			return true;
+		}
+
+		// Otherwise, walk up the inheritance chain until we find the method.
+		klass = GetClassParent(object, klass);
+	}
+
+	return false;
+}
+ObjClass* ScriptManager::GetClassParent(Obj* object, ObjClass* klass) {
+	if (klass->Parent == nullptr && object->Type == OBJ_ENTITY) {
+		ObjEntity* entity = (ObjEntity*)object;
+		if (entity->EntityPtr && klass != EntityImpl::ParentClass) {
+			return EntityImpl::Class;
 		}
 	}
+
 	return klass->Parent;
 }
-VMValue ScriptManager::GetClassMethod(ObjClass* klass, Uint32 hash) {
-	VMValue method;
-	if (klass->Methods->GetIfExists(hash, &method)) {
-		return method;
-	}
-	else {
-		ObjClass* parentClass = ScriptManager::GetClassParent(klass);
-		if (parentClass) {
-			return GetClassMethod(parentClass, hash);
-		}
-	}
-	return NULL_VAL;
+bool ScriptManager::ClassHasMethod(ObjClass* klass, Uint32 hash) {
+	VMValue callable;
+	return GetClassMethod(klass, hash, &callable);
 }
 
 void ScriptManager::LinkStandardLibrary() {
@@ -788,12 +447,12 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 	}
 
 	if (bytecode->SourceFilename) {
-		module->SourceFilename = CopyString(bytecode->SourceFilename);
+		module->SourceFilename = StringUtils::Duplicate(bytecode->SourceFilename);
 	}
 	else {
-		char fnHash[256];
-		snprintf(fnHash, sizeof(fnHash), "%08X", filenameHash);
-		module->SourceFilename = CopyString(fnHash);
+		char fnHash[13];
+		snprintf(fnHash, sizeof(fnHash), "%08X.ibc", filenameHash);
+		module->SourceFilename = StringUtils::Duplicate(fnHash);
 	}
 
 	ModuleList.push_back(module);
@@ -804,18 +463,17 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 
 	return true;
 }
-bool ScriptManager::CallFunction(char* functionName) {
+bool ScriptManager::CallFunction(const char* functionName) {
 	if (!Globals->Exists(functionName)) {
 		return false;
 	}
 
-	VMValue functionValue = Globals->Get(functionName);
-	if (!IS_FUNCTION(functionValue)) {
+	VMValue callable = Globals->Get(functionName);
+	if (!IS_CALLABLE(callable)) {
 		return false;
 	}
 
-	ObjFunction* function = AS_FUNCTION(functionValue);
-	Threads[0].RunEntityFunction(function, 0);
+	Threads[0].InvokeForEntity(callable, 0);
 	return true;
 }
 Entity* ScriptManager::SpawnObject(const char* objectName) {
@@ -827,8 +485,8 @@ Entity* ScriptManager::SpawnObject(const char* objectName) {
 
 	ScriptEntity* object = new ScriptEntity;
 
-	ObjInstance* instance = NewInstance(klass);
-	object->Link(instance);
+	ObjEntity* entity = NewEntity(klass);
+	object->Link(entity);
 
 	return object;
 }
@@ -879,6 +537,9 @@ BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash
 bool ScriptManager::ClassExists(const char* objectName) {
 	return SourceFileMap::ClassMap->Exists(objectName);
 }
+bool ScriptManager::ClassExists(Uint32 hash) {
+	return SourceFileMap::ClassMap->Exists(hash);
+}
 bool ScriptManager::IsStandardLibraryClass(const char* className) {
 	return IS_CLASS(Constants->Get(className));
 }
@@ -905,7 +566,7 @@ bool ScriptManager::LoadScript(Uint32 hash) {
 
 	return true;
 }
-bool ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFunctions) {
+bool ScriptManager::LoadObjectClass(const char* objectName) {
 	if (!objectName || !*objectName) {
 		return false;
 	}
@@ -938,10 +599,8 @@ bool ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFuncti
 
 			if (fn == 0) {
 				Log::Print(Log::LOG_VERBOSE,
-					"Loading class %s%s%s, %d filename(s)...",
-					Log::WriteToFile ? "" : FG_YELLOW,
+					"Loading class %s, %d filename(s)...",
 					objectName,
-					Log::WriteToFile ? "" : FG_RESET,
 					(int)filenameHashList->size());
 			}
 
@@ -949,54 +608,16 @@ bool ScriptManager::LoadObjectClass(const char* objectName, bool addNativeFuncti
 		}
 	}
 
-	// Set native functions for that new object class
 	if (!IsStandardLibraryClass(objectName) && !Classes->Exists(objectName)) {
-		// Log::Print(Log::LOG_VERBOSE, "Setting native
-		// functions for class %s...", objectName);
 		ObjClass* klass = GetObjectClass(objectName);
 		if (!klass) {
 			Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
 			return false;
 		}
-		// FIXME: Do this in a better way. Probably just remove
-		// CLASS_TYPE_EXTENDED to begin with.
-		if (klass->Type != CLASS_TYPE_EXTENDED && addNativeFunctions) {
-			ScriptManager::AddNativeObjectFunctions(klass);
-		}
 		Classes->Put(objectName, klass);
 	}
 
 	return true;
-}
-void ScriptManager::AddNativeObjectFunctions(ObjClass* klass) {
-#define DEF_NATIVE(name) ScriptManager::DefineNative(klass, #name, ScriptEntity::VM_##name)
-	DEF_NATIVE(InView);
-	DEF_NATIVE(Animate);
-	DEF_NATIVE(ApplyPhysics);
-	DEF_NATIVE(SetAnimation);
-	DEF_NATIVE(ResetAnimation);
-	DEF_NATIVE(GetHitboxFromSprite);
-	DEF_NATIVE(ReturnHitbox);
-	DEF_NATIVE(AddToRegistry);
-	DEF_NATIVE(IsInRegistry);
-	DEF_NATIVE(RemoveFromRegistry);
-	DEF_NATIVE(CollidedWithObject);
-	DEF_NATIVE(CollideWithObject);
-	DEF_NATIVE(SolidCollideWithObject);
-	DEF_NATIVE(TopSolidCollideWithObject);
-	DEF_NATIVE(PropertyGet);
-	DEF_NATIVE(PropertyExists);
-	DEF_NATIVE(SetViewVisibility);
-	DEF_NATIVE(SetViewOverride);
-	DEF_NATIVE(AddToDrawGroup);
-	DEF_NATIVE(IsInDrawGroup);
-	DEF_NATIVE(RemoveFromDrawGroup);
-	DEF_NATIVE(GetIDWithinClass);
-	DEF_NATIVE(PlaySound);
-	DEF_NATIVE(LoopSound);
-	DEF_NATIVE(StopSound);
-	DEF_NATIVE(StopAllSounds);
-#undef DEF_NATIVE
 }
 ObjClass* ScriptManager::GetObjectClass(const char* className) {
 	VMValue value = Globals->Get(className);

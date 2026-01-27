@@ -37,10 +37,9 @@ void png_read_fn(png_structp ctx, png_bytep area, png_size_t size) {
 #include <Libraries/stb_image.h>
 #endif
 
-PNG* PNG::Load(const char* filename) {
+PNG* PNG::Load(Stream* stream) {
 #ifdef USING_LIBPNG
 	PNG* png = new PNG;
-	Stream* stream = NULL;
 
 	// PNG variables
 	png_structp png_ptr = NULL;
@@ -52,12 +51,6 @@ PNG* PNG::Load(const char* filename) {
 	Uint32* pixelData = NULL;
 	png_bytep* row_pointers = NULL;
 	Uint32 row_bytes;
-
-	stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
-		goto PNG_Load_FAIL;
-	}
 
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (png_ptr == NULL) {
@@ -170,13 +163,9 @@ PNG_Load_Success:
 		png_destroy_read_struct(
 			&png_ptr, info_ptr ? &info_ptr : (png_infopp)NULL, (png_infopp)NULL);
 	}
-	if (stream) {
-		stream->Close();
-	}
 	return png;
 #elif defined(USING_SPNG)
 	PNG* png = new PNG;
-	Stream* stream = NULL;
 	Uint8* pixelData = NULL;
 	Uint8* buffer = NULL;
 	size_t buffer_len = 0;
@@ -191,16 +180,9 @@ PNG_Load_Success:
 	size_t image_size;
 	int ret;
 
-	stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
-		goto PNG_Load_FAIL;
-	}
-
 	buffer_len = stream->Length();
 	buffer = (Uint8*)malloc(buffer_len);
 	stream->ReadBytes(buffer, buffer_len);
-	stream->Close();
 
 	ctx = spng_ctx_new(0);
 	if (ctx == NULL) {
@@ -308,23 +290,15 @@ PNG_Load_Success:
 	return png;
 #else
 	PNG* png = new PNG;
-	Stream* stream = NULL;
 	Uint32* pixelData = NULL;
 	int num_channels;
 	int width, height;
 	Uint8* buffer = NULL;
 	size_t buffer_len = 0;
 
-	stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
-		goto PNG_Load_FAIL;
-	}
-
 	buffer_len = stream->Length();
 	buffer = (Uint8*)malloc(buffer_len);
 	stream->ReadBytes(buffer, buffer_len);
-	stream->Close();
 
 	pixelData = (Uint32*)stbi_load_from_memory(
 		buffer, buffer_len, &width, &height, &num_channels, STBI_rgb_alpha);

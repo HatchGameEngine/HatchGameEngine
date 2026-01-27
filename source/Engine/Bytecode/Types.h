@@ -7,6 +7,8 @@
 
 #include <Engine/Rendering/Material.h>
 
+#include <Engine/ResourceTypes/Font.h>
+
 #define FRAMES_MAX 64
 #define STACK_SIZE_MAX (FRAMES_MAX * 256)
 #define THREAD_NAME_MAX 64
@@ -25,6 +27,7 @@ typedef enum {
 	VAL_OBJECT,
 	VAL_LINKED_INTEGER,
 	VAL_LINKED_DECIMAL,
+	VAL_HITBOX,
 	VAL_ERROR
 } ValueType;
 
@@ -33,13 +36,14 @@ enum { CLASS_TYPE_NORMAL, CLASS_TYPE_EXTENDED };
 struct Obj;
 
 struct VMValue {
-	Uint32 Type;
+	Uint8 Type;
 	union {
 		int Integer;
 		float Decimal;
 		Obj* Object;
 		int* LinkedInteger;
 		float* LinkedDecimal;
+		Sint16 Hitbox[NUM_HITBOX_SIDES];
 	} as;
 };
 
@@ -147,9 +151,33 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 	(!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && \
 		!IS_LINKED_INTEGER(value))
 
+static inline VMValue HITBOX_VAL(Sint16 left, Sint16 top, Sint16 right, Sint16 bottom) {
+	VMValue val;
+	val.Type = VAL_HITBOX;
+	val.as.Hitbox[HITBOX_LEFT] = left;
+	val.as.Hitbox[HITBOX_TOP] = top;
+	val.as.Hitbox[HITBOX_RIGHT] = right;
+	val.as.Hitbox[HITBOX_BOTTOM] = bottom;
+	return val;
+}
+
+static inline VMValue HITBOX_VAL(Sint16* values) {
+	VMValue val;
+	val.Type = VAL_HITBOX;
+	val.as.Hitbox[HITBOX_LEFT] = values[HITBOX_LEFT];
+	val.as.Hitbox[HITBOX_TOP] = values[HITBOX_TOP];
+	val.as.Hitbox[HITBOX_RIGHT] = values[HITBOX_RIGHT];
+	val.as.Hitbox[HITBOX_BOTTOM] = values[HITBOX_BOTTOM];
+	return val;
+}
+
+#define IS_HITBOX(value) ((value).Type == VAL_HITBOX)
+#define AS_HITBOX(value) (&((value).as.Hitbox[0]))
+
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 
 typedef Obj* (*ClassNewFn)(void);
+typedef void (*ObjectDestructor)(Obj*);
 
 typedef bool (*ValueGetFn)(Obj* object, Uint32 hash, VMValue* value, Uint32 threadID);
 typedef bool (*ValueSetFn)(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
@@ -157,64 +185,83 @@ typedef bool (*ValueSetFn)(Obj* object, Uint32 hash, VMValue value, Uint32 threa
 typedef bool (*StructGetFn)(Obj* object, VMValue at, VMValue* value, Uint32 threadID);
 typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threadID);
 
+enum ObjType {
+	OBJ_STRING,
+	OBJ_ARRAY,
+	OBJ_MAP,
+	OBJ_FUNCTION,
+	OBJ_BOUND_METHOD,
+	OBJ_MODULE,
+	OBJ_CLOSURE,
+	OBJ_UPVALUE,
+	OBJ_CLASS,
+	OBJ_NAMESPACE,
+	OBJ_ENUM,
+	OBJ_INSTANCE,
+	OBJ_ENTITY,
+	OBJ_NATIVE_FUNCTION,
+	OBJ_NATIVE_INSTANCE,
+
+	MAX_OBJ_TYPE
+};
+
+#define CLASS_ARRAY "$$ArrayImpl"
+#define CLASS_ENTITY "$$EntityImpl"
+#define CLASS_FONT "Font"
+#define CLASS_FUNCTION "$$FunctionImpl"
+#define CLASS_INSTANCE "$$InstanceImpl"
+#define CLASS_MAP "$$MapImpl"
+#define CLASS_MATERIAL "Material"
+#define CLASS_SHADER "Shader"
+#define CLASS_STREAM "$$StreamImpl"
+#define CLASS_STRING "$$StringImpl"
+
 #define OBJECT_TYPE(value) (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value) IsObjectType(value, OBJ_BOUND_METHOD)
 #define IS_CLASS(value) IsObjectType(value, OBJ_CLASS)
 #define IS_CLOSURE(value) IsObjectType(value, OBJ_CLOSURE)
 #define IS_FUNCTION(value) IsObjectType(value, OBJ_FUNCTION)
+#define IS_NATIVE_FUNCTION(value) IsObjectType(value, OBJ_NATIVE_FUNCTION)
 #define IS_INSTANCE(value) IsObjectType(value, OBJ_INSTANCE)
-#define IS_NATIVE(value) IsObjectType(value, OBJ_NATIVE)
 #define IS_STRING(value) IsObjectType(value, OBJ_STRING)
 #define IS_ARRAY(value) IsObjectType(value, OBJ_ARRAY)
 #define IS_MAP(value) IsObjectType(value, OBJ_MAP)
-#define IS_STREAM(value) IsObjectType(value, OBJ_STREAM)
 #define IS_NAMESPACE(value) IsObjectType(value, OBJ_NAMESPACE)
 #define IS_ENUM(value) IsObjectType(value, OBJ_ENUM)
 #define IS_MODULE(value) IsObjectType(value, OBJ_MODULE)
-#define IS_MATERIAL(value) IsObjectType(value, OBJ_MATERIAL)
+#define IS_NATIVE_INSTANCE(value) IsObjectType(value, OBJ_NATIVE_INSTANCE)
+#define IS_ENTITY(value) IsObjectType(value, OBJ_ENTITY)
+#define IS_INSTANCEABLE(value) (IS_INSTANCE(value) || IS_NATIVE_INSTANCE(value) || IS_ENTITY(value))
+#define IS_CALLABLE(value) \
+	(IS_FUNCTION(value) || IS_NATIVE_FUNCTION(value) || IS_BOUND_METHOD(value))
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))
 #define AS_CLOSURE(value) ((ObjClosure*)AS_OBJECT(value))
 #define AS_FUNCTION(value) ((ObjFunction*)AS_OBJECT(value))
 #define AS_INSTANCE(value) ((ObjInstance*)AS_OBJECT(value))
-#define AS_NATIVE(value) (((ObjNative*)AS_OBJECT(value))->Function)
+#define AS_NATIVE_FUNCTION(value) (((ObjNative*)AS_OBJECT(value))->Function)
 #define AS_STRING(value) ((ObjString*)AS_OBJECT(value))
 #define AS_CSTRING(value) (((ObjString*)AS_OBJECT(value))->Chars)
 #define AS_ARRAY(value) ((ObjArray*)AS_OBJECT(value))
 #define AS_MAP(value) ((ObjMap*)AS_OBJECT(value))
-#define AS_STREAM(value) ((ObjStream*)AS_OBJECT(value))
 #define AS_NAMESPACE(value) ((ObjNamespace*)AS_OBJECT(value))
 #define AS_ENUM(value) ((ObjEnum*)AS_OBJECT(value))
 #define AS_MODULE(value) ((ObjModule*)AS_OBJECT(value))
-#define AS_MATERIAL(value) ((ObjMaterial*)AS_OBJECT(value))
-
-enum ObjType {
-	OBJ_BOUND_METHOD,
-	OBJ_CLASS,
-	OBJ_CLOSURE,
-	OBJ_FUNCTION,
-	OBJ_INSTANCE,
-	OBJ_NATIVE,
-	OBJ_STRING,
-	OBJ_UPVALUE,
-	OBJ_ARRAY,
-	OBJ_MAP,
-	OBJ_STREAM,
-	OBJ_NAMESPACE,
-	OBJ_ENUM,
-	OBJ_MODULE,
-	OBJ_MATERIAL
-};
-
-#define MAX_OBJ_TYPE (OBJ_MATERIAL + 1)
+#define AS_ENTITY(value) ((ObjEntity*)AS_OBJECT(value))
 
 typedef HashMap<VMValue> Table;
 
 struct Obj {
 	ObjType Type;
+	size_t Size;
 	bool IsDark;
 	struct ObjClass* Class;
+	ValueGetFn PropertyGet;
+	ValueSetFn PropertySet;
+	StructGetFn ElementGet;
+	StructSetFn ElementSet;
+	ObjectDestructor Destructor;
 	struct Obj* Next;
 };
 struct ObjString {
@@ -225,9 +272,9 @@ struct ObjString {
 };
 struct ObjModule {
 	Obj Object;
-	vector<struct ObjFunction*>* Functions;
-	vector<VMValue>* Locals;
-	ObjString* SourceFilename;
+	std::vector<struct ObjFunction*>* Functions;
+	std::vector<VMValue>* Locals;
+	char* SourceFilename;
 };
 struct ObjFunction {
 	Obj Object;
@@ -236,8 +283,8 @@ struct ObjFunction {
 	int UpvalueCount;
 	struct Chunk Chunk;
 	ObjModule* Module;
-	ObjString* Name;
-	ObjString* ClassName;
+	char* Name;
+	struct ObjClass* Class;
 	Uint32 NameHash;
 };
 struct ObjNative {
@@ -258,28 +305,18 @@ struct ObjClosure {
 };
 struct ObjClass {
 	Obj Object;
-	ObjString* Name;
+	char* Name;
 	Uint32 Hash;
 	Table* Methods;
-	Table* Fields; // Keep this as a pointer, so that a new table
-	// isn't created when passing an ObjClass value
-	// around
-	ValueGetFn PropertyGet;
-	ValueSetFn PropertySet;
-	StructGetFn ElementGet;
-	StructSetFn ElementSet;
+	Table* Fields;
 	VMValue Initializer;
 	ClassNewFn NewFn;
 	Uint8 Type;
-	Uint32 ParentHash;
 	ObjClass* Parent;
 };
 struct ObjInstance {
 	Obj Object;
 	Table* Fields;
-	void* EntityPtr;
-	ValueGetFn PropertyGet;
-	ValueSetFn PropertySet;
 };
 struct ObjBoundMethod {
 	Obj Object;
@@ -288,37 +325,59 @@ struct ObjBoundMethod {
 };
 struct ObjArray {
 	Obj Object;
-	vector<VMValue>* Values;
+	std::vector<VMValue>* Values;
 };
 struct ObjMap {
 	Obj Object;
 	HashMap<VMValue>* Values;
 	HashMap<char*>* Keys;
 };
-struct ObjStream {
-	Obj Object;
-	Stream* StreamPtr;
-	bool Writable;
-	bool Closed;
-};
 struct ObjNamespace {
 	Obj Object;
-	ObjString* Name;
+	char* Name;
 	Uint32 Hash;
 	Table* Fields;
 	bool InUse;
 };
 struct ObjEnum {
 	Obj Object;
-	ObjString* Name;
+	char* Name;
 	Uint32 Hash;
 	Table* Fields;
 };
+
+#define UNION_INSTANCEABLE \
+	union { \
+		ObjInstance InstanceObj; \
+		Obj Object; \
+	}
+
+struct ObjEntity {
+	UNION_INSTANCEABLE;
+	void* EntityPtr;
+};
+struct ObjStream {
+	UNION_INSTANCEABLE;
+	Stream* StreamPtr;
+	bool Writable;
+	bool Closed;
+};
 struct ObjMaterial {
-	Obj Object;
+	UNION_INSTANCEABLE;
 	Material* MaterialPtr;
 };
+struct ObjShader {
+	UNION_INSTANCEABLE;
+	void* ShaderPtr;
+};
+struct ObjFont {
+	UNION_INSTANCEABLE;
+	Font* FontPtr;
+};
 
+#undef UNION_INSTANCEABLE
+
+Obj* AllocateObject(size_t size, ObjType type);
 ObjString* TakeString(char* chars, size_t length);
 ObjString* TakeString(char* chars);
 ObjString* CopyString(const char* chars, size_t length);
@@ -331,27 +390,48 @@ ObjNative* NewNative(NativeFn function);
 ObjUpvalue* NewUpvalue(VMValue* slot);
 ObjClosure* NewClosure(ObjFunction* function);
 ObjClass* NewClass(Uint32 hash);
+ObjClass* NewClass(const char* className);
 ObjInstance* NewInstance(ObjClass* klass);
+ObjEntity* NewEntity(ObjClass* klass);
 ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method);
 ObjArray* NewArray();
 ObjMap* NewMap();
-ObjStream* NewStream(Stream* streamPtr, bool writable);
 ObjNamespace* NewNamespace(Uint32 hash);
+ObjNamespace* NewNamespace(const char* nsName);
 ObjEnum* NewEnum(Uint32 hash);
 ObjModule* NewModule();
-ObjMaterial* NewMaterial(Material* material);
+Obj* NewNativeInstance(size_t size);
 
-#define FREE_OBJ(obj, type) \
-	assert(GarbageCollector::GarbageSize >= sizeof(type)); \
-	GarbageCollector::GarbageSize -= sizeof(type); \
+#define FREE_OBJ(obj) \
+	assert(GarbageCollector::GarbageSize >= ((Obj*)(obj))->Size); \
+	GarbageCollector::GarbageSize -= ((Obj*)(obj))->Size; \
 	Memory::Free(obj)
 
-bool ValuesEqual(VMValue a, VMValue b);
+std::string GetClassName(Uint32 hash);
+Uint32 GetClassHash(const char* name);
 
 static inline bool IsObjectType(VMValue value, ObjType type) {
 	return IS_OBJECT(value) && AS_OBJECT(value)->Type == type;
 }
+static inline bool IsNativeInstance(Obj* object, const char* className) {
+	if (object->Type != OBJ_NATIVE_INSTANCE) {
+		return false;
+	}
 
+	ObjClass* klass = object->Class;
+	if (klass != nullptr && klass->Hash == GetClassHash(className)) {
+		return true;
+	}
+
+	return false;
+}
+static inline bool IsNativeInstance(VMValue value, const char* className) {
+	if (!IS_OBJECT(value)) {
+		return false;
+	}
+
+	return IsNativeInstance(AS_OBJECT(value), className);
+}
 static inline bool HasInitializer(ObjClass* klass) {
 	return !IS_NULL(klass->Initializer);
 }
@@ -362,6 +442,11 @@ struct WithIter {
 	int index;
 	void* registry;
 	Uint8 receiverSlot;
+};
+
+struct VMThreadCallback {
+	Uint32 ThreadID;
+	VMValue Callable;
 };
 
 struct CallFrame {
@@ -403,12 +488,12 @@ enum OpCode : uint8_t {
 	//
 	OP_INHERIT,
 	OP_RETURN,
-	OP_METHOD,
+	OP_METHOD_V4,
 	OP_CLASS,
 	// Function Operations
 	OP_CALL,
 	OP_SUPER,
-	OP_INVOKE,
+	OP_INVOKE_V3,
 	// Jumping
 	OP_JUMP,
 	OP_JUMP_IF_FALSE,
@@ -461,7 +546,7 @@ enum OpCode : uint8_t {
 	//
 	OP_SWITCH_TABLE,
 	OP_FAILSAFE,
-	OP_EVENT,
+	OP_EVENT_V4,
 	OP_TYPEOF,
 	OP_NEW,
 	OP_IMPORT,
@@ -476,10 +561,14 @@ enum OpCode : uint8_t {
 	OP_SET_MODULE_LOCAL,
 	OP_DEFINE_MODULE_LOCAL,
 	OP_USE_NAMESPACE,
-	// New constant opcodes
 	OP_DEFINE_CONSTANT,
 	OP_INTEGER,
 	OP_DECIMAL,
+	OP_INVOKE,
+	OP_SUPER_INVOKE,
+	OP_EVENT,
+	OP_METHOD,
+	OP_NEW_HITBOX,
 
 	OP_LAST
 };

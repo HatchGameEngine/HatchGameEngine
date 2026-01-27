@@ -5,16 +5,12 @@
 ObjectList::ObjectList(const char* name) {
 	ObjectName = StringUtils::Duplicate(name);
 
-	std::string loadFunctionName = std::string(name) + "_Load";
-	std::string globalUpdateFunctionName = std::string(name) + "_GlobalUpdate";
-
-	LoadFunctionName = StringUtils::Create(loadFunctionName);
-	GlobalUpdateFunctionName = StringUtils::Create(globalUpdateFunctionName);
+	LoadFunctionName = std::string(name) + "_Load";
+	GlobalUpdateFunctionName = std::string(name) + "_GlobalUpdate";
+	GlobalFixedUpdateFunctionName = std::string(name) + "_GlobalFixedUpdate";
 }
 ObjectList::~ObjectList() {
 	Memory::Free(ObjectName);
-	Memory::Free(LoadFunctionName);
-	Memory::Free(GlobalUpdateFunctionName);
 }
 
 // Double linked-list functions
@@ -108,6 +104,21 @@ void ObjectList::RemoveNonPersistentFromLinkedList(Entity* first) {
 }
 void ObjectList::ResetPerf() {
 	Performance.Clear();
+}
+int ObjectList::GetID(Entity* obj) {
+	int num = 0;
+
+	Entity* other = EntityFirst;
+	while (other) {
+		if (obj == other) {
+			break;
+		}
+
+		num++;
+		other = other->NextEntityInList;
+	}
+
+	return num;
 }
 Entity* ObjectList::GetNth(int n) {
 	Entity* ent = EntityFirst;

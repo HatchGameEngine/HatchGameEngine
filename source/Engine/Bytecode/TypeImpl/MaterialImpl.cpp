@@ -1,66 +1,160 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
+#include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/Bytecode/Types.h>
+#include <Engine/Error.h>
 #include <Engine/Rendering/Material.h>
+
+/***
+* \class Material
+* \desc Representation of a 3D model material.
+*/
 
 ObjClass* MaterialImpl::Class = nullptr;
 
-Uint32 MaterialImpl::Hash_Name = 0;
+Uint32 Hash_Name = 0;
 
-Uint32 MaterialImpl::Hash_DiffuseRed = 0;
-Uint32 MaterialImpl::Hash_DiffuseGreen = 0;
-Uint32 MaterialImpl::Hash_DiffuseBlue = 0;
-Uint32 MaterialImpl::Hash_DiffuseAlpha = 0;
-Uint32 MaterialImpl::Hash_DiffuseTexture = 0;
+Uint32 Hash_DiffuseRed = 0;
+Uint32 Hash_DiffuseGreen = 0;
+Uint32 Hash_DiffuseBlue = 0;
+Uint32 Hash_DiffuseAlpha = 0;
+Uint32 Hash_DiffuseTexture = 0;
 
-Uint32 MaterialImpl::Hash_SpecularRed = 0;
-Uint32 MaterialImpl::Hash_SpecularGreen = 0;
-Uint32 MaterialImpl::Hash_SpecularBlue = 0;
-Uint32 MaterialImpl::Hash_SpecularAlpha = 0;
-Uint32 MaterialImpl::Hash_SpecularTexture = 0;
+Uint32 Hash_SpecularRed = 0;
+Uint32 Hash_SpecularGreen = 0;
+Uint32 Hash_SpecularBlue = 0;
+Uint32 Hash_SpecularAlpha = 0;
+Uint32 Hash_SpecularTexture = 0;
 
-Uint32 MaterialImpl::Hash_AmbientRed = 0;
-Uint32 MaterialImpl::Hash_AmbientGreen = 0;
-Uint32 MaterialImpl::Hash_AmbientBlue = 0;
-Uint32 MaterialImpl::Hash_AmbientAlpha = 0;
-Uint32 MaterialImpl::Hash_AmbientTexture = 0;
+Uint32 Hash_AmbientRed = 0;
+Uint32 Hash_AmbientGreen = 0;
+Uint32 Hash_AmbientBlue = 0;
+Uint32 Hash_AmbientAlpha = 0;
+Uint32 Hash_AmbientTexture = 0;
 
 #ifdef MATERIAL_EXPOSE_EMISSIVE
-Uint32 MaterialImpl::Hash_EmissiveRed = 0;
-Uint32 MaterialImpl::Hash_EmissiveGreen = 0;
-Uint32 MaterialImpl::Hash_EmissiveBlue = 0;
-Uint32 MaterialImpl::Hash_EmissiveAlpha = 0;
-Uint32 MaterialImpl::Hash_EmissiveTexture = 0;
+Uint32 Hash_EmissiveRed = 0;
+Uint32 Hash_EmissiveGreen = 0;
+Uint32 Hash_EmissiveBlue = 0;
+Uint32 Hash_EmissiveAlpha = 0;
+Uint32 Hash_EmissiveTexture = 0;
 #endif
 
 void MaterialImpl::Init() {
-	const char* className = "Material";
-
-	Class = NewClass(Murmur::EncryptString(className));
-	Class->Name = CopyString(className);
-	Class->NewFn = VM_New;
+	Class = NewClass(CLASS_MATERIAL);
+	Class->NewFn = New;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
-	Class->PropertyGet = VM_PropertyGet;
-	Class->PropertySet = VM_PropertySet;
 
 	Hash_Name = Murmur::EncryptString("Name");
 
+	/***
+    * \field DiffuseRed
+    * \type decimal
+    * \ns Material
+    * \desc The red component of the diffuse color.
+    */
 	Hash_DiffuseRed = Murmur::EncryptString("DiffuseRed");
+	/***
+    * \field DiffuseGreen
+    * \type decimal
+    * \ns Material
+    * \desc The green component of the diffuse color.
+    */
 	Hash_DiffuseGreen = Murmur::EncryptString("DiffuseGreen");
+	/***
+    * \field DiffuseBlue
+    * \type decimal
+    * \ns Material
+    * \desc The blue component of the diffuse color.
+    */
 	Hash_DiffuseBlue = Murmur::EncryptString("DiffuseBlue");
+	/***
+    * \field DiffuseAlpha
+    * \type decimal
+    * \ns Material
+    * \desc The alpha component of the diffuse color.
+    */
 	Hash_DiffuseAlpha = Murmur::EncryptString("DiffuseAlpha");
+	/***
+    * \field DiffuseTexture
+    * \type integer
+    * \ns Material
+    * \desc The diffuse texture.
+    */
 	Hash_DiffuseTexture = Murmur::EncryptString("DiffuseTexture");
 
+	/***
+    * \field SpecularRed
+    * \type decimal
+    * \ns Material
+    * \desc The red component of the specular color.
+    */
 	Hash_SpecularRed = Murmur::EncryptString("SpecularRed");
+	/***
+    * \field SpecularGreen
+    * \type decimal
+    * \ns Material
+    * \desc The green component of the specular color.
+    */
 	Hash_SpecularGreen = Murmur::EncryptString("SpecularGreen");
+	/***
+    * \field SpecularBlue
+    * \type decimal
+    * \ns Material
+    * \desc The blue component of the specular color.
+    */
 	Hash_SpecularBlue = Murmur::EncryptString("SpecularBlue");
+	/***
+    * \field SpecularAlpha
+    * \type decimal
+    * \ns Material
+    * \desc The alpha component of the specular color.
+    */
 	Hash_SpecularAlpha = Murmur::EncryptString("SpecularAlpha");
+	/***
+    * \field SpecularTexture
+    * \type integer
+    * \ns Material
+    * \desc The specular texture.
+    */
 	Hash_SpecularTexture = Murmur::EncryptString("SpecularTexture");
 
+	/***
+    * \field AmbientRed
+    * \type decimal
+    * \ns Material
+    * \desc The red component of the ambient color.
+    */
 	Hash_AmbientRed = Murmur::EncryptString("AmbientRed");
+	/***
+    * \field AmbientGreen
+    * \type decimal
+    * \ns Material
+    * \desc The green component of the ambient color.
+    */
 	Hash_AmbientGreen = Murmur::EncryptString("AmbientGreen");
+	/***
+    * \field AmbientBlue
+    * \type decimal
+    * \ns Material
+    * \desc The blue component of the ambient color.
+    */
 	Hash_AmbientBlue = Murmur::EncryptString("AmbientBlue");
+	/***
+    * \field AmbientAlpha
+    * \type decimal
+    * \ns Material
+    * \desc The alpha component of the ambient color.
+    */
 	Hash_AmbientAlpha = Murmur::EncryptString("AmbientAlpha");
+	/***
+    * \field AmbientTexture
+    * \type integer
+    * \ns Material
+    * \desc The ambient texture.
+    */
 	Hash_AmbientTexture = Murmur::EncryptString("AmbientTexture");
 
 #ifdef MATERIAL_EXPOSE_EMISSIVE
@@ -71,15 +165,38 @@ void MaterialImpl::Init() {
 	Hash_EmissiveTexture = Murmur::EncryptString("EmissiveTexture");
 #endif
 
-	ScriptManager::ClassImplList.push_back(Class);
-
-	ScriptManager::Globals->Put(className, OBJECT_VAL(Class));
+	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(CLASS_MATERIAL, Class);
+	TypeImpl::DefinePrintableName(Class, "material");
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
-Obj* MaterialImpl::VM_New() {
-	return (Obj*)NewMaterial(Material::Create(nullptr));
+/***
+ * \constructor
+ * \desc Creates a material.
+ * \ns Material
+ */
+Obj* MaterialImpl::New() {
+	Material* materialPtr = Material::Create(nullptr);
+	return (Obj*)New((void*)materialPtr);
+}
+ObjMaterial* MaterialImpl::New(void* materialPtr) {
+	ObjMaterial* material = (ObjMaterial*)NewNativeInstance(sizeof(ObjMaterial));
+	Memory::Track(material, "NewMaterial");
+	material->Object.Class = Class;
+	material->Object.PropertyGet = VM_PropertyGet;
+	material->Object.PropertySet = VM_PropertySet;
+	material->Object.Destructor = Dispose;
+	material->MaterialPtr = (Material*)materialPtr;
+	return material;
+}
+void MaterialImpl::Dispose(Obj* object) {
+	ObjMaterial* material = (ObjMaterial*)object;
+
+	Material::Remove(material->MaterialPtr);
+
+	InstanceImpl::Dispose(object);
 }
 
 VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
@@ -184,7 +301,7 @@ bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 static void DoTextureRemoval(Image** image) {
 	if (*image) {
 		if ((*image)->TakeRef()) {
-			abort();
+			Error::Fatal("Unexpected reference count for Image!");
 		}
 
 		(*image) = nullptr;

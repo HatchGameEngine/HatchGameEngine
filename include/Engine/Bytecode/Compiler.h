@@ -66,6 +66,7 @@ public:
 	bool MatchAssignmentToken();
 	bool CheckToken(int expectedType);
 	void ConsumeToken(int type, const char* message);
+	void ConsumeIdentifier(const char* message);
 	void SynchronizeToken();
 	bool ReportError(int line, int pos, bool fatal, const char* string, ...);
 	void ErrorAt(Token* token, const char* message, bool fatal);
@@ -87,6 +88,7 @@ public:
 	void EmitCopy(Uint8 count);
 	void EmitCall(const char* name, int argCount, bool isSuper);
 	void EmitCall(Token name, int argCount, bool isSuper);
+	void EmitCallOpcode(int argCount, bool isSuper);
 	void NamedVariable(Token name, bool canAssign);
 	void ScopeBegin();
 	void ScopeEnd();
@@ -124,6 +126,7 @@ public:
 	void GetConditional(bool canAssign);
 	void GetUnary(bool canAssign);
 	void GetNew(bool canAssign);
+	void GetHitbox(bool canAssign);
 	void GetBinary(bool canAssign);
 	void GetHas(bool canAssign);
 	void GetSuffix(bool canAssign);
@@ -144,6 +147,7 @@ public:
 	void GetWithStatement();
 	void GetForStatement();
 	void GetForEachStatement();
+	void GetForEachBlock();
 	void GetIfStatement();
 	void GetStatement();
 	int GetFunction(int type, string className);
@@ -168,6 +172,7 @@ public:
 	void EmitByte(Uint8 byte);
 	void EmitBytes(Uint8 byte1, Uint8 byte2);
 	void EmitUint16(Uint16 value);
+	void EmitSint16(Sint16 value);
 	void EmitUint32(Uint32 value);
 	void EmitSint32(Sint32 value);
 	void EmitFloat(float value);
@@ -206,7 +211,9 @@ public:
 	static int ShortInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int LocalInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int MethodInstruction(uint8_t opcode, Chunk* chunk, int offset);
+	static int MethodInstructionV4(uint8_t opcode, Chunk* chunk, int offset);
 	static int InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset);
+	static int InvokeInstructionV3(uint8_t opcode, Chunk* chunk, int offset);
 	static int JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset);
 	static int ClassInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	static int EnumInstruction(uint8_t opcode, Chunk* chunk, int offset);

@@ -43,6 +43,9 @@ bool VFSProvider::SupportsEncryption() {
 	return false;
 }
 
+bool VFSProvider::IsEmpty() {
+	return true;
+}
 bool VFSProvider::HasFile(const char* filename) {
 	return false;
 }

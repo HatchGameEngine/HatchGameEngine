@@ -30,6 +30,7 @@ public:
 	static int MouseDown;
 	static int MousePressed;
 	static int MouseReleased;
+	static int MouseMode;
 	static Uint8 KeyboardState[0x120];
 	static Uint8 KeyboardStateLast[0x120];
 	static Uint16 KeymodState;
@@ -57,6 +58,7 @@ public:
 	static bool IsKeyDown(int key);
 	static bool IsKeyPressed(int key);
 	static bool IsKeyReleased(int key);
+	static void SetMouseMode(int mode);
 	static Controller* GetController(int index);
 	static bool ControllerIsConnected(int index);
 	static bool ControllerIsXbox(int index);
@@ -103,6 +105,18 @@ public:
 	static bool IsAnyActionHeld(unsigned playerID, unsigned device);
 	static bool IsAnyActionPressed(unsigned playerID, unsigned device);
 	static bool IsAnyActionReleased(unsigned playerID, unsigned device);
+	static bool IsActionHeldByAny(unsigned actionID);
+	static bool IsActionPressedByAny(unsigned actionID);
+	static bool IsActionReleasedByAny(unsigned actionID);
+	static bool IsActionHeldByAny(unsigned actionID, unsigned device);
+	static bool IsActionPressedByAny(unsigned actionID, unsigned device);
+	static bool IsActionReleasedByAny(unsigned actionID, unsigned device);
+	static bool IsAnyActionHeldByAny();
+	static bool IsAnyActionPressedByAny();
+	static bool IsAnyActionReleasedByAny();
+	static bool IsAnyActionHeldByAny(unsigned device);
+	static bool IsAnyActionPressedByAny(unsigned device);
+	static bool IsAnyActionReleasedByAny(unsigned device);
 	static bool IsPlayerUsingDevice(unsigned playerID, unsigned device);
 	static float GetAnalogActionInput(unsigned playerID, unsigned actionID);
 	static InputBind*

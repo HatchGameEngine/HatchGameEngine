@@ -1,6 +1,7 @@
 #ifndef ENGINE_RESOURCETYPES_SOUNDFORMATS_WAV_H
 #define ENGINE_RESOURCETYPES_SOUNDFORMATS_WAV_H
 
+#include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
@@ -11,7 +12,7 @@ private:
 	int DataStart = 0;
 
 public:
-	static SoundFormat* Load(const char* filename);
+	static SoundFormat* Load(Stream* stream);
 	int LoadSamples(size_t count);
 	void Dispose();
 };

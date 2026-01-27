@@ -472,14 +472,9 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 			if (data->attributes.Exists("encoding")) {
 				if (XMLParser::MatchToken(
 					    data->attributes.Get("encoding"), "base64")) {
-					tile_buffer = (int*)Memory::Calloc(1,
-						layer_size_in_bytes + 4); // +4
-					// extra
-					// space
-					// to
-					// prevent
-					// base64
-					// overflow
+					// +4 extra space to prevent base64 overflow
+					tile_buffer =
+						(int*)Memory::Calloc(1, layer_size_in_bytes + 4);
 					tile_buffer_len = base64_decode_block(data_text->name.Start,
 						(int)data_text->name.Length,
 						(char*)tile_buffer);
@@ -543,11 +538,13 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 	Token name = layer->attributes.Get("name");
 
 	SceneLayer scenelayer(layer_width, layer_height);
-	strncpy(scenelayer.Name, name.Start, name.Length);
-	scenelayer.Name[name.Length] = 0;
+	scenelayer.Name = StringUtils::Duplicate(name.Start, name.Length);
 
-	scenelayer.RelativeY = 0x100;
-	scenelayer.ConstantY = 0x00;
+	scenelayer.RelativeY = 1.0;
+	scenelayer.ConstantY = 0;
+	scenelayer.ScrollInfoCount = 0;
+	scenelayer.ScrollInfos = nullptr;
+	scenelayer.UsingScrollIndexes = false;
 	scenelayer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
 	scenelayer.DrawGroup = 0;
 	scenelayer.Properties = layer_properties;
@@ -587,16 +584,6 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 	}
 	memcpy(scenelayer.TilesBackup, scenelayer.Tiles, scenelayer.DataSize);
 
-	// Create parallax data
-	scenelayer.ScrollInfoCount = 1;
-	scenelayer.ScrollInfos =
-		(ScrollingInfo*)Memory::Malloc(scenelayer.ScrollInfoCount * sizeof(ScrollingInfo));
-	for (int g = 0; g < scenelayer.ScrollInfoCount; g++) {
-		scenelayer.ScrollInfos[g].RelativeParallax = 0x0100;
-		scenelayer.ScrollInfos[g].ConstantParallax = 0x0000;
-		scenelayer.ScrollInfos[g].CanDeform = false;
-	}
-
 	Scene::Layers.push_back(scenelayer);
 
 	Memory::Free(tile_buffer);
@@ -610,6 +597,18 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 		float object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
 		float object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
 
+		int filter = object->attributes.Exists("filter")
+			? (int)XMLParser::TokenToNumber(object->attributes.Get("filter"))
+			: 0xFF;
+
+		if (!filter) {
+			filter = 0xFF;
+		}
+
+		if (!(filter & Scene::Filter)) {
+			continue;
+		}
+
 		ObjectList* objectList = Scene::GetStaticObjectList(object_type.ToString().c_str());
 		if (objectList->SpawnFunction) {
 			ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
@@ -622,11 +621,20 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 			obj->InitialX = obj->X;
 			obj->InitialY = obj->Y;
 			obj->List = objectList;
-			Scene::AddStatic(objectList, obj);
+			obj->Filter = filter;
+
+			if (!Scene::AddStatic(objectList, obj)) {
+				continue;
+			}
+
+			if (!object->attributes.Exists("filter")) {
+				obj->Properties->Put("filter", INTEGER_VAL(filter));
+			}
 
 			if (object->attributes.Exists("id")) {
-				obj->SlotID =
-					(int)XMLParser::TokenToNumber(object->attributes.Get("id"));
+				obj->SlotID = (int)XMLParser::TokenToNumber(
+						      object->attributes.Get("id")) +
+					Scene::ReservedSlotIDs;
 			}
 
 			if (object->attributes.Exists("width") &&
@@ -741,11 +749,14 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 		return;
 	}
 
+	Scene::SceneType = SCENETYPE_TILED;
+
 	Scene::EmptyTile = 0;
 	Scene::TileWidth = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
 	Scene::TileHeight = (int)XMLParser::TokenToNumber(map->attributes.Get("tileheight"));
 
-	Scene::PriorityPerLayer = Scene::BasePriorityPerLayer;
+	Scene::FreePriorityLists();
+	Scene::PriorityPerLayer = BASE_PRIORITY_PER_LAYER;
 	Scene::InitPriorityLists();
 
 #if 0

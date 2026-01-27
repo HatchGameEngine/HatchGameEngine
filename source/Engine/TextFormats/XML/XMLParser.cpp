@@ -2,6 +2,7 @@
 
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Error.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/IO/TextStream.h>
 #include <Engine/Includes/Token.h>
@@ -304,18 +305,7 @@ void ConsumeToken(int type, const char* message) {
 		return;
 	}
 
-	// ErrorAtCurrent(message);
-	Log::Print(Log::LOG_ERROR,
-		"%s\n\n%d\n\n%s\n",
-		message,
-		(int)(scanner.Current - scanner.SourceStart),
-		scanner.SourceStart);
-	exit(-1);
-}
-void PrintToken(Token token) {
-	printf("%.*s", (int)token.Length, token.Start);
-	printf("\n");
-	// exit(-1);
+	throw std::runtime_error(std::string(message));
 }
 
 void SynchronizeToken() {
@@ -430,6 +420,7 @@ float XMLParser::TokenToNumber(Token tok) {
 XMLNode* XMLParser::Parse() {
 	XMLNode* XMLRoot = new (std::nothrow) XMLNode;
 	if (!XMLRoot) {
+		Log::Print(Log::LOG_ERROR, "No free memory to parse XML!");
 		return NULL;
 	}
 
@@ -437,9 +428,23 @@ XMLNode* XMLParser::Parse() {
 	XMLRoot->parent = NULL;
 	XMLCurrent = XMLRoot;
 
+	try {
+		DoParsing();
+	} catch (const std::runtime_error& error) {
+		XMLParser::Free(XMLRoot);
+
+		Log::Print(Log::LOG_ERROR, "Error parsing XML: %s", error.what());
+
+		return NULL;
+	}
+
+	return XMLRoot;
+}
+
+void XMLParser::DoParsing() {
 	AdvanceToken();
 	if (!_MatchToken(TOKEN_EOF)) {
-		ConsumeToken(TOKEN_LEFT_BRACE, "SXML_ERROR_XMLINVALID");
+		ConsumeToken(TOKEN_LEFT_BRACE, "Missing '<' at beginning.");
 
 		// Instruction
 		if (_MatchToken(TOKEN_QUESTION)) {
@@ -477,7 +482,7 @@ XMLNode* XMLParser::Parse() {
 
 			XMLNode* node = new (std::nothrow) XMLNode;
 			if (!node) {
-				return NULL;
+				throw std::runtime_error("No free memory to allocate XML node!");
 			}
 
 			node->name = data;
@@ -511,8 +516,6 @@ XMLNode* XMLParser::Parse() {
 			}
 		}
 	}
-
-	return XMLRoot;
 }
 XMLNode* XMLParser::ParseFromStream(TextStream* stream) {
 	scanner.Line = 1;
@@ -525,7 +528,9 @@ XMLNode* XMLParser::ParseFromStream(TextStream* stream) {
 	parser.PanicMode = false;
 
 	XMLNode* xml = XMLParser::Parse();
-	xml->base_stream = stream;
+	if (xml) {
+		xml->base_stream = stream;
+	}
 	return xml;
 }
 XMLNode* XMLParser::ParseFromStream(Stream* streamSrc) {
@@ -554,8 +559,7 @@ XMLNode* XMLParser::ParseFromResource(const char* filename) {
 char* XMLParser::TokenToString(Token tok) {
 	char* string = StringUtils::Create(tok);
 	if (!string) {
-		Log::Print(Log::LOG_ERROR, "Out of memory converting XML token to string!");
-		abort();
+		Error::Fatal("Out of memory converting XML token to string!");
 	}
 	return string;
 }
@@ -592,6 +596,10 @@ void FreeNode(XMLNode* root) {
 }
 
 void XMLParser::Free(XMLNode* root) {
+	if (!root) {
+		return;
+	}
+
 	if (root->base_stream) {
 		root->base_stream->Close();
 	}

@@ -47,6 +47,8 @@ enum class Platforms { Windows, MacOS, Linux, Switch, PlayStation, Xbox, Android
 
 enum class KeyBind {
 	Fullscreen,
+	ToggleFPSCounter,
+
 	DevRestartApp,
 	DevRestartScene,
 	DevRecompile,
@@ -57,9 +59,29 @@ enum class KeyBind {
 	DevStepFrame,
 	DevTileCol,
 	DevObjectRegions,
+	DevViewHitboxes,
+	DevMenuToggle,
 	DevQuit,
 
 	Max
+};
+
+struct DeveloperMenu {
+	void (*State)();
+	int Selection;
+	int SubSelection;
+	int ScrollPos;
+	int SubScrollPos;
+	double Timer;
+	bool Fullscreen;
+	int SceneState;
+	int ListPos;
+	int WindowScale;
+	bool WindowBorderless;
+	int CurrentWindowWidth;
+	int CurrentWindowHeight;
+	int PlayerListPos;
+	bool MusicPausedStore;
 };
 
 #define DEFAULT_TARGET_FRAMERATE 60
@@ -67,6 +89,8 @@ enum class KeyBind {
 #define MAX_TARGET_FRAMERATE 240
 
 #define MATRIX_STACK_SIZE 256
+#define FILTER_TABLE_SIZE 0x8000
+#define PALETTE_ROW_SIZE 0x100
 
 #define MAX_SCENE_VIEWS 8
 #define MAX_PALETTE_COUNT 256
@@ -75,6 +99,8 @@ enum class KeyBind {
 
 #define SCOPE_SCENE 0
 #define SCOPE_GAME 1
+
+#define PALETTE_INDEX_TABLE_ID -1
 
 typedef uint8_t Uint8;
 typedef uint16_t Uint16;
@@ -94,6 +120,12 @@ typedef int64_t Sint64;
 #endif
 
 #define RSDK_PI 3.1415927
+
+#define HITBOX_LEFT 0
+#define HITBOX_TOP 1
+#define HITBOX_RIGHT 2
+#define HITBOX_BOTTOM 3
+#define NUM_HITBOX_SIDES 4
 
 #ifdef IOS
 #define NEW_STRUCT_MACRO(n) (n)

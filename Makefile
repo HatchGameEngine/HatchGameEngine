@@ -1,11 +1,3 @@
-#######################################################################
-##                         HATCH Game Engine                         ##
-##                                                                   ##
-##               Copyright (C) 2019-2024 ARQADIUM LLC.               ##
-##             Copyright (C) 2024-2025 Alexander Nicholi             ##
-##                    Released under BSD-2-Clause                    ##
-#######################################################################
-
 include meta/prologue.mk
 
 # name of project. used in output binary naming
@@ -45,19 +37,29 @@ CPPFILES := \
 	source/Engine/Bytecode/SourceFileMap.cpp \
 	source/Engine/Bytecode/StandardLibrary.cpp \
 	source/Engine/Bytecode/TypeImpl/ArrayImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/EntityImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/FontImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/FunctionImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/InstanceImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MapImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MaterialImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/ShaderImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/StreamImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/TypeImpl.cpp \
 	source/Engine/Bytecode/Types.cpp \
-	source/Engine/Bytecode/Values.cpp \
+	source/Engine/Bytecode/Value.cpp \
+	source/Engine/Bytecode/ValuePrinter.cpp \
 	source/Engine/Bytecode/VMThread.cpp \
+	source/Engine/Data/DefaultFonts.cpp \
 	source/Engine/Diagnostics/Clock.cpp \
 	source/Engine/Diagnostics/Log.cpp \
 	source/Engine/Diagnostics/Memory.cpp \
 	source/Engine/Diagnostics/MemoryPools.cpp \
 	source/Engine/Diagnostics/PerformanceMeasure.cpp \
+	source/Engine/Diagnostics/PerformanceViewer.cpp \
 	source/Engine/Diagnostics/RemoteDebug.cpp \
+	source/Engine/Error.cpp \
 	source/Engine/Extensions/Discord.cpp \
 	source/Engine/Filesystem/Directory.cpp \
 	source/Engine/Filesystem/File.cpp \
@@ -70,7 +72,6 @@ CPPFILES := \
 	source/Engine/Filesystem/VFS/VFSEntry.cpp \
 	source/Engine/Filesystem/VFS/VFSProvider.cpp \
 	source/Engine/Filesystem/VFS/VirtualFileSystem.cpp \
-	source/Engine/FontFace.cpp \
 	source/Engine/Graphics.cpp \
 	source/Engine/Hashing/CombinedHash.cpp \
 	source/Engine/Hashing/CRC32.cpp \
@@ -134,6 +135,7 @@ CPPFILES := \
 	source/Engine/Rendering/TextureReference.cpp \
 	source/Engine/Rendering/VertexBuffer.cpp \
 	source/Engine/Rendering/ViewTexture.cpp \
+	source/Engine/ResourceTypes/Font.cpp \
 	source/Engine/ResourceTypes/Image.cpp \
 	source/Engine/ResourceTypes/ImageFormats/GIF.cpp \
 	source/Engine/ResourceTypes/ImageFormats/ImageFormat.cpp \
@@ -165,6 +167,7 @@ CPPFILES := \
 	source/Engine/Types/ObjectRegistry.cpp \
 	source/Engine/Types/Tileset.cpp \
 	source/Engine/Utilities/ColorUtils.cpp \
+	source/Engine/Utilities/PrintBuffer.cpp \
 	source/Engine/Utilities/StringUtils.cpp \
 	source/Libraries/Clipper2/clipper.engine.cpp \
 	source/Libraries/Clipper2/clipper.offset.cpp \
@@ -183,12 +186,12 @@ PRVHFILES := \
 	source/Engine/Bytecode/Types.h \
 	source/Engine/Diagnostics/MemoryPools.h \
 	source/Engine/Diagnostics/PerformanceTypes.h \
+	source/Engine/Exceptions/ScriptException.h \
 	source/Engine/Includes/BijectiveMap.h \
 	source/Engine/Includes/ChainedHashMap.h \
 	source/Engine/Includes/DateTime.h \
 	source/Engine/Includes/Endian.h \
 	source/Engine/Includes/HashMap.h \
-	source/Engine/Includes/PrintBuffer.h \
 	source/Engine/Includes/Standard.h \
 	source/Engine/Includes/StandardSDL2.h \
 	source/Engine/Includes/Token.h \
@@ -206,12 +209,14 @@ PRVHFILES := \
 	source/Engine/Media/Includes/SWScale.h \
 	source/Engine/Media/Utils/Codec.h \
 	source/Engine/Network/WebSocketIncludes.h \
+	source/Engine/Platforms/Capability.h \
 	source/Engine/Platforms/iOS/MediaPlayer.h \
 	source/Engine/Platforms/MacOS/Filesystem.h \
 	source/Engine/Rendering/3D.h \
 	source/Engine/Rendering/Enums.h \
 	source/Engine/Rendering/GL/Includes.h \
 	source/Engine/Rendering/GL/ShaderIncludes.h \
+	source/Engine/Rendering/GL/Structs.h \
 	source/Engine/Rendering/GraphicsFunctions.h \
 	source/Engine/Rendering/Mesh.h \
 	source/Engine/Rendering/Metal/Includes.h \
@@ -238,6 +243,7 @@ PRVHFILES := \
 	source/Libraries/Clipper2/clipper.offset.h \
 	source/Libraries/Clipper2/clipper.rectclip.h \
 	source/Libraries/Clipper2/clipper.version.h \
+	source/Libraries/discord_game_sdk.h \
 	source/Libraries/jsmn.h \
 	source/Libraries/miniz.h \
 	source/Libraries/nanoprintf.h \
@@ -251,6 +257,8 @@ PRVHFILES := \
 	source/Libraries/poly2tri/sweep/sweep_context.h \
 	source/Libraries/spng.h \
 	source/Libraries/stb_image.h \
+	source/Libraries/stb_rect_pack.h \
+	source/Libraries/stb_truetype.h \
 	source/Libraries/stb_vorbis.h
 PUBHFILES := \
 	include/Engine/Application.h \
@@ -264,17 +272,27 @@ PUBHFILES := \
 	include/Engine/Bytecode/SourceFileMap.h \
 	include/Engine/Bytecode/StandardLibrary.h \
 	include/Engine/Bytecode/TypeImpl/ArrayImpl.h \
+	include/Engine/Bytecode/TypeImpl/EntityImpl.h \
+	include/Engine/Bytecode/TypeImpl/FontImpl.h \
 	include/Engine/Bytecode/TypeImpl/FunctionImpl.h \
+	include/Engine/Bytecode/TypeImpl/InstanceImpl.h \
 	include/Engine/Bytecode/TypeImpl/MapImpl.h \
 	include/Engine/Bytecode/TypeImpl/MaterialImpl.h \
+	include/Engine/Bytecode/TypeImpl/ShaderImpl.h \
+	include/Engine/Bytecode/TypeImpl/StreamImpl.h \
 	include/Engine/Bytecode/TypeImpl/StringImpl.h \
-	include/Engine/Bytecode/Values.h \
+	include/Engine/Bytecode/TypeImpl/TypeImpl.h \
+	include/Engine/Bytecode/Value.h \
+	include/Engine/Bytecode/ValuePrinter.h \
 	include/Engine/Bytecode/VMThread.h \
+	include/Engine/Data/DefaultFonts.h \
 	include/Engine/Diagnostics/Clock.h \
 	include/Engine/Diagnostics/Log.h \
 	include/Engine/Diagnostics/Memory.h \
 	include/Engine/Diagnostics/PerformanceMeasure.h \
+	include/Engine/Diagnostics/PerformanceViewer.h \
 	include/Engine/Diagnostics/RemoteDebug.h \
+	include/Engine/Error.h \
 	include/Engine/Extensions/Discord.h \
 	include/Engine/Filesystem/Directory.h \
 	include/Engine/Filesystem/File.h \
@@ -287,7 +305,6 @@ PUBHFILES := \
 	include/Engine/Filesystem/VFS/VFSEntry.h \
 	include/Engine/Filesystem/VFS/VFSProvider.h \
 	include/Engine/Filesystem/VFS/VirtualFileSystem.h \
-	include/Engine/FontFace.h \
 	include/Engine/Graphics.h \
 	include/Engine/Hashing/CombinedHash.h \
 	include/Engine/Hashing/CRC32.h \
@@ -349,6 +366,7 @@ PUBHFILES := \
 	include/Engine/Rendering/TextureReference.h \
 	include/Engine/Rendering/VertexBuffer.h \
 	include/Engine/Rendering/ViewTexture.h \
+	include/Engine/ResourceTypes/Font.h \
 	include/Engine/ResourceTypes/Image.h \
 	include/Engine/ResourceTypes/ImageFormats/GIF.h \
 	include/Engine/ResourceTypes/ImageFormats/ImageFormat.h \
@@ -384,6 +402,7 @@ PUBHFILES := \
 	include/Engine/Types/ObjectRegistry.h \
 	include/Engine/Types/Tileset.h \
 	include/Engine/Utilities/ColorUtils.h \
+	include/Engine/Utilities/PrintBuffer.h \
 	include/Engine/Utilities/StringUtils.h
 
 DEFINES := \
@@ -406,7 +425,7 @@ CXXFLAGS := \
 	-Wno-unused-variable
 
 # the linker has to care about this too, unfortunately
-LDFLAGS := -std=c++17
+LDFLAGS := -std=c++17 -fuse-ld=lld
 
 # Hatch uses meta/ instead of etc/
 FMTFLAGS := -style=file:meta/clang-format.yml

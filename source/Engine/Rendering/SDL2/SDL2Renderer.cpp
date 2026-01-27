@@ -17,7 +17,7 @@ vector<Texture*> TextureList;
 
 // TODO: Would it just be better to turn Graphics::TextureMap into a
 // vector? The OpenGL renderer benefits from it being a map, but this
-// method would make sense for the D3D renderer too.
+// method would make sense for the SDL renderer too.
 void FindTextureID(Texture* texture) {
 	for (size_t i = 0; i <= TextureList.size(); i++) {
 		if (i == TextureList.size()) {
@@ -46,6 +46,7 @@ void SDL2Renderer::Init() {
 	SDL_RendererInfo rendererInfo;
 	SDL_GetRendererInfo(Renderer, &rendererInfo);
 
+	Graphics::SupportsShaders = false;
 	Graphics::SupportsBatching = false;
 	Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
 
@@ -95,12 +96,6 @@ void SDL2Renderer::SetGraphicsFunctions() {
 	Graphics::Internal.UpdateProjectionMatrix = SDL2Renderer::UpdateProjectionMatrix;
 	Graphics::Internal.MakePerspectiveMatrix = SDL2Renderer::MakePerspectiveMatrix;
 
-	// Shader-related functions
-	Graphics::Internal.UseShader = SDL2Renderer::UseShader;
-	Graphics::Internal.SetUniformF = SDL2Renderer::SetUniformF;
-	Graphics::Internal.SetUniformI = SDL2Renderer::SetUniformI;
-	Graphics::Internal.SetUniformTexture = SDL2Renderer::SetUniformTexture;
-
 	// These guys
 	Graphics::Internal.Clear = SDL2Renderer::Clear;
 	Graphics::Internal.Present = SDL2Renderer::Present;
@@ -121,7 +116,12 @@ void SDL2Renderer::SetGraphicsFunctions() {
 	Graphics::Internal.FillCircle = SDL2Renderer::FillCircle;
 	Graphics::Internal.FillEllipse = SDL2Renderer::FillEllipse;
 	Graphics::Internal.FillTriangle = SDL2Renderer::FillTriangle;
+	Graphics::Internal.FillTriangleBlend = SDL2Renderer::FillTriangleBlend;
 	Graphics::Internal.FillRectangle = SDL2Renderer::FillRectangle;
+	Graphics::Internal.FillQuad = SDL2Renderer::FillQuad;
+	Graphics::Internal.FillQuadBlend = SDL2Renderer::FillQuadBlend;
+	Graphics::Internal.DrawTriangleTextured = SDL2Renderer::DrawTriangleTextured;
+	Graphics::Internal.DrawQuadTextured = SDL2Renderer::DrawQuadTextured;
 
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = SDL2Renderer::DrawTexture;
@@ -185,13 +185,14 @@ void SDL2Renderer::DisposeTexture(Texture* texture) {
 }
 
 // Viewport and view-related functions
-void SDL2Renderer::SetRenderTarget(Texture* texture) {
+bool SDL2Renderer::SetRenderTarget(Texture* texture) {
 	if (texture == NULL) {
 		SDL_SetRenderTarget(Renderer, NULL);
+
+		return true;
 	}
-	else {
-		SDL_SetRenderTarget(Renderer, *(SDL_Texture**)texture->DriverData);
-	}
+
+	return SDL_SetRenderTarget(Renderer, *(SDL_Texture**)texture->DriverData) == 0;
 }
 void SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
 	Viewport* vp = &Graphics::CurrentViewport;
@@ -244,19 +245,6 @@ void SDL2Renderer::MakePerspectiveMatrix(Matrix4x4* out,
 	float aspect) {
 	Matrix4x4::Perspective(out, fov, aspect, near, far);
 }
-
-void SDL2Renderer::GetMetalSize(int* width, int* height) {
-	// #ifdef IOS
-	//     SDL2MetalFunc_GetMetalSize(width, height, Renderer);
-	// #endif
-	SDL_GetRendererOutputSize(Renderer, width, height);
-}
-
-// Shader-related functions
-void SDL2Renderer::UseShader(void* shader) {}
-void SDL2Renderer::SetUniformF(int location, int count, float* values) {}
-void SDL2Renderer::SetUniformI(int location, int count, int* values) {}
-void SDL2Renderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {}
 
 // These guys
 void SDL2Renderer::Clear() {
@@ -332,7 +320,73 @@ void SDL2Renderer::StrokeRectangle(float x, float y, float w, float h) {}
 void SDL2Renderer::FillCircle(float x, float y, float rad) {}
 void SDL2Renderer::FillEllipse(float x, float y, float w, float h) {}
 void SDL2Renderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {}
+void SDL2Renderer::FillTriangleBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3) {}
 void SDL2Renderer::FillRectangle(float x, float y, float w, float h) {}
+void SDL2Renderer::FillQuad(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4) {}
+void SDL2Renderer::FillQuadBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4) {}
+void SDL2Renderer::DrawTriangleTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3) {}
+void SDL2Renderer::DrawQuadTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3,
+	float u4,
+	float v4) {}
 // Texture drawing functions
 void SDL2Renderer::DrawTexture(Texture* texture,
 	float sx,
@@ -342,7 +396,8 @@ void SDL2Renderer::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
+	float h,
+	int paletteID) {
 	x *= RenderScale;
 	y *= RenderScale;
 	w *= RenderScale;
@@ -374,14 +429,14 @@ void SDL2Renderer::DrawTexture(Texture* texture,
 void SDL2Renderer::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -392,7 +447,7 @@ void SDL2Renderer::DrawSprite(ISprite* sprite,
 	float sw = animframe.Width;
 	float sh = animframe.Height;
 
-	SDL2Renderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
+	DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
 		animframe.X,
 		animframe.Y,
 		sw,
@@ -400,7 +455,8 @@ void SDL2Renderer::DrawSprite(ISprite* sprite,
 		x + fX * animframe.OffsetX,
 		y + fY * animframe.OffsetY,
 		fX * sw,
-		fY * sh);
+		fY * sh,
+		paletteID);
 }
 void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 	int animation,
@@ -409,14 +465,14 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 	int sy,
 	int sw,
 	int sh,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -438,7 +494,7 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 		sh = animframe.Height - sy;
 	}
 
-	SDL2Renderer::DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
+	DrawTexture(sprite->Spritesheets[animframe.SheetNumber],
 		animframe.X + sx,
 		animframe.Y + sy,
 		sw,
@@ -446,7 +502,8 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 		x + fX * (sx + animframe.OffsetX),
 		y + fY * (sy + animframe.OffsetY),
 		fX * sw,
-		fY * sh);
+		fY * sh,
+		paletteID);
 }
 
 void SDL2Renderer::MakeFrameBufferID(ISprite* sprite) {

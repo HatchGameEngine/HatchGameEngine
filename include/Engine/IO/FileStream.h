@@ -30,6 +30,7 @@ public:
 
 	static FileStream* New(const char* filename, Uint32 access);
 	static FileStream* New(const char* filename, Uint32 access, bool allowURLs);
+	static bool Exists(const char* filename, bool allowURLs);
 	bool IsReadable();
 	bool IsWritable();
 	bool MakeReadable(bool readable);

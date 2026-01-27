@@ -2,6 +2,7 @@
 
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Error.h>
 #include <Engine/Math/Math.h>
 
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
@@ -20,24 +21,31 @@ bool Graphics::Initialized = false;
 HashMap<Texture*>* Graphics::TextureMap = NULL;
 std::map<std::string, TextureReference*> Graphics::SpriteSheetTextureMap;
 bool Graphics::VsyncEnabled = true;
+bool Graphics::PrecompileShaders = false;
 int Graphics::MultisamplingEnabled = 0;
 int Graphics::FontDPI = 1;
+bool Graphics::SupportsShaders = false;
 bool Graphics::SupportsBatching = false;
 bool Graphics::TextureBlend = false;
 bool Graphics::TextureInterpolate = false;
 Uint32 Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
 Uint32 Graphics::MaxTextureWidth = 1;
 Uint32 Graphics::MaxTextureHeight = 1;
+Uint32 Graphics::MaxTextureUnits = 1;
 Texture* Graphics::TextureHead = NULL;
 
-vector<VertexBuffer*> Graphics::VertexBuffers;
+std::vector<Shader*> Graphics::Shaders;
+
+std::vector<VertexBuffer*> Graphics::VertexBuffers;
 Scene3D Graphics::Scene3Ds[MAX_3D_SCENES];
 
 stack<GraphicsState> Graphics::StateStack;
-Matrix4x4 Graphics::MatrixStack[MATRIX_STACK_SIZE];
+Matrix4x4 Graphics::ViewMatrixStack[MATRIX_STACK_SIZE];
+Matrix4x4 Graphics::ModelMatrixStack[MATRIX_STACK_SIZE];
 size_t Graphics::MatrixStackID;
 
-Matrix4x4* Graphics::ModelViewMatrix;
+Matrix4x4* Graphics::ViewMatrix;
+Matrix4x4* Graphics::ModelMatrix;
 
 Viewport Graphics::CurrentViewport;
 Viewport Graphics::BackupViewport;
@@ -52,24 +60,33 @@ float Graphics::TintColors[4];
 int Graphics::BlendMode = BlendMode_NORMAL;
 int Graphics::TintMode = TintMode_SRC_NORMAL;
 
+bool Graphics::StencilEnabled = false;
 int Graphics::StencilTest = StencilTest_Always;
 int Graphics::StencilOpPass = StencilOp_Keep;
 int Graphics::StencilOpFail = StencilOp_Keep;
 
-void* Graphics::FramebufferPixels = NULL;
-size_t Graphics::FramebufferSize = 0;
+Texture* Graphics::FramebufferTexture = NULL;
+int Graphics::FramebufferWidth = 0;
+int Graphics::FramebufferHeight = 0;
 
+TileScanLine Graphics::TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 Uint32 Graphics::PaletteColors[MAX_PALETTE_COUNT][0x100];
 Uint8 Graphics::PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
 bool Graphics::PaletteUpdated = false;
+bool Graphics::PaletteIndexLinesUpdated = false;
 
 Texture* Graphics::PaletteTexture = NULL;
+Texture* Graphics::PaletteIndexTexture = NULL;
+Uint32* Graphics::PaletteIndexTextureData = NULL;
 
 Texture* Graphics::CurrentRenderTarget = NULL;
 Sint32 Graphics::CurrentScene3D = -1;
 Sint32 Graphics::CurrentVertexBuffer = -1;
 
-void* Graphics::CurrentShader = NULL;
+Shader* Graphics::CurrentShader = NULL;
+Shader* Graphics::PostProcessShader = NULL;
+bool Graphics::UsingPostProcessShader = false;
+
 bool Graphics::SmoothFill = false;
 bool Graphics::SmoothStroke = false;
 
@@ -91,9 +108,11 @@ void Graphics::Init() {
 	Graphics::TextureMap = new HashMap<Texture*>(NULL, 32);
 
 	for (size_t i = 0; i < MATRIX_STACK_SIZE; i++) {
-		Matrix4x4::Identity(&Graphics::MatrixStack[i]);
+		Matrix4x4::Identity(&Graphics::ViewMatrixStack[i]);
+		Matrix4x4::Identity(&Graphics::ModelMatrixStack[i]);
 	}
-	Graphics::ModelViewMatrix = &Graphics::MatrixStack[0];
+	Graphics::ViewMatrix = &Graphics::ViewMatrixStack[0];
+	Graphics::ModelMatrix = &Graphics::ModelMatrixStack[0];
 	Graphics::MatrixStackID = 1;
 
 	Graphics::CurrentClip.Enabled = false;
@@ -128,7 +147,15 @@ void Graphics::Init() {
 		Graphics::MaxTextureWidth,
 		Graphics::MaxTextureHeight);
 
+	InitCapabilities();
+
 	Graphics::Initialized = true;
+}
+void Graphics::InitCapabilities() {
+	Application::AddCapability("graphics_shaders", Graphics::SupportsShaders);
+	Application::AddCapability("gpu_maxTextureWidth", (int)Graphics::MaxTextureWidth);
+	Application::AddCapability("gpu_maxTextureHeight", (int)Graphics::MaxTextureHeight);
+	Application::AddCapability("gpu_maxTextureUnits", (int)Graphics::MaxTextureUnits);
 }
 void Graphics::ChooseBackend() {
 	char renderer[64];
@@ -137,6 +164,8 @@ void Graphics::ChooseBackend() {
 
 	// Set renderers
 	Graphics::Renderer = NULL;
+
+#ifdef DEVELOPER_MODE
 	if (Application::Settings->GetString("dev", "renderer", renderer, sizeof renderer)) {
 #ifdef USING_OPENGL
 		if (!strcmp(renderer, "opengl")) {
@@ -163,6 +192,7 @@ void Graphics::ChooseBackend() {
 				renderer);
 		}
 	}
+#endif
 
 // Compiler-directed renderer
 #ifdef USING_DIRECT3D
@@ -217,23 +247,15 @@ void Graphics::Reset() {
 		}
 	}
 	memset(Graphics::PaletteIndexLines, 0, sizeof(Graphics::PaletteIndexLines));
-	Graphics::PaletteUpdated = true;
+	Graphics::PaletteUpdated = Graphics::PaletteIndexLinesUpdated = true;
 
+	Graphics::StencilEnabled = false;
 	Graphics::StencilTest = StencilTest_Always;
 	Graphics::StencilOpPass = StencilOp_Keep;
 	Graphics::StencilOpFail = StencilOp_Keep;
 }
 void Graphics::Dispose() {
-	for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
-		Graphics::DeleteVertexBuffer(i);
-	}
-	Graphics::VertexBuffers.clear();
-
-	for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
-		Graphics::DeleteScene3D(i);
-	}
-
-	Graphics::DeleteSpriteSheetMap();
+	Graphics::UnloadData();
 
 	for (Texture *texture = Graphics::TextureHead, *next; texture != NULL; texture = next) {
 		next = texture->Next;
@@ -241,14 +263,51 @@ void Graphics::Dispose() {
 	}
 	Graphics::TextureHead = NULL;
 	Graphics::PaletteTexture = NULL;
+	Graphics::PaletteIndexTexture = NULL;
+	Graphics::FramebufferTexture = NULL;
 
-	Graphics::GfxFunctions->Dispose();
+	if (Graphics::PaletteIndexTextureData != NULL) {
+		Memory::Free(Graphics::PaletteIndexTextureData);
+		Graphics::PaletteIndexTextureData = NULL;
+	}
+
+	if (Graphics::GfxFunctions->Dispose != nullptr) {
+		Graphics::GfxFunctions->Dispose();
+	}
 
 	delete Graphics::TextureMap;
+}
+void Graphics::UnloadData() {
+	Graphics::UnloadSceneData();
 
-	if (Graphics::FramebufferPixels) {
-		Memory::Free(Graphics::FramebufferPixels);
+	Graphics::DeleteShaders();
+	Graphics::DeleteVertexBuffers();
+
+	for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
+		Graphics::DeleteScene3D(i);
 	}
+
+	Graphics::DeleteSpriteSheetMap();
+}
+void Graphics::DeleteShaders() {
+	Graphics::CurrentShader = nullptr;
+	Graphics::PostProcessShader = nullptr;
+
+	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+		Scene::Views[i].CurrentShader = nullptr;
+	}
+
+	for (Uint32 i = 0; i < Graphics::Shaders.size(); i++) {
+		delete Shaders[i];
+	}
+
+	Graphics::Shaders.clear();
+}
+void Graphics::DeleteVertexBuffers() {
+	for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
+		Graphics::DeleteVertexBuffer(i);
+	}
+	Graphics::VertexBuffers.clear();
 }
 
 Point Graphics::ProjectToScreen(float x, float y, float z) {
@@ -256,7 +315,7 @@ Point Graphics::ProjectToScreen(float x, float y, float z) {
 	float vec4[4];
 	Matrix4x4* matrix;
 
-	matrix = &Graphics::MatrixStack[MatrixStackID - 1];
+	matrix = &Graphics::ViewMatrixStack[MatrixStackID - 1];
 
 	vec4[0] = x;
 	vec4[1] = y;
@@ -392,10 +451,24 @@ int Graphics::ConvertTextureToPalette(Texture* texture, unsigned paletteNumber) 
 
 	return ok;
 }
+void Graphics::SetTextureMinFilter(Texture* texture, int filterMode) {
+	if (texture && Graphics::GfxFunctions->SetTextureMinFilter) {
+		Graphics::GfxFunctions->SetTextureMinFilter(texture, filterMode);
+	}
+}
+void Graphics::SetTextureMagFilter(Texture* texture, int filterMode) {
+	if (texture && Graphics::GfxFunctions->SetTextureMagFilter) {
+		Graphics::GfxFunctions->SetTextureMagFilter(texture, filterMode);
+	}
+}
 void Graphics::UnlockTexture(Texture* texture) {
 	Graphics::GfxFunctions->UnlockTexture(texture);
 }
 void Graphics::DisposeTexture(Texture* texture) {
+	if (texture == nullptr) {
+		return;
+	}
+
 	Graphics::GfxFunctions->DisposeTexture(texture);
 
 	if (texture->Next) {
@@ -502,10 +575,48 @@ void Graphics::DeleteVertexBuffer(Uint32 vertexBufferIndex) {
 	Graphics::VertexBuffers[vertexBufferIndex] = NULL;
 }
 
-void Graphics::UseShader(void* shader) {
-	Graphics::CurrentShader = shader;
-	Graphics::GfxFunctions->UseShader(shader);
+Shader* Graphics::CreateShader() {
+	if (!Graphics::GfxFunctions->CreateShader) {
+		return nullptr;
+	}
+
+	Shader* shader = Graphics::GfxFunctions->CreateShader();
+	if (shader == nullptr) {
+		return nullptr;
+	}
+
+	Shaders.push_back(shader);
+
+	return shader;
 }
+void Graphics::DeleteShader(Shader* shader) {
+	auto it = std::find(Shaders.begin(), Shaders.end(), shader);
+	if (it != Shaders.end()) {
+		delete shader;
+
+		Shaders.erase(it);
+	}
+}
+void Graphics::SetUserShader(Shader* shader) {
+	if (!Graphics::GfxFunctions->SetUserShader) {
+		return;
+	}
+
+	try {
+		Graphics::CurrentShader = shader;
+		Graphics::GfxFunctions->SetUserShader(shader);
+	} catch (const std::runtime_error& error) {
+		Graphics::CurrentShader = nullptr;
+		throw;
+	}
+}
+
+void Graphics::SetFilter(int filter) {
+	if (Graphics::GfxFunctions->SetFilter) {
+		Graphics::GfxFunctions->SetFilter(filter);
+	}
+}
+
 void Graphics::SetTextureInterpolation(bool interpolate) {
 	Graphics::TextureInterpolate = interpolate;
 }
@@ -518,12 +629,12 @@ void Graphics::Present() {
 	Graphics::CurrentFrame++;
 }
 
-void Graphics::SoftwareStart() {
+void Graphics::SoftwareStart(int viewIndex) {
 	Graphics::GfxFunctions = &SoftwareRenderer::BackendFunctions;
-	SoftwareRenderer::RenderStart();
+	SoftwareRenderer::RenderStart(viewIndex);
 }
-void Graphics::SoftwareEnd() {
-	SoftwareRenderer::RenderEnd();
+void Graphics::SoftwareEnd(int viewIndex) {
+	SoftwareRenderer::RenderEnd(viewIndex);
 	Graphics::GfxFunctions = &Graphics::Internal;
 	Graphics::UpdateTexture(Graphics::CurrentRenderTarget,
 		NULL,
@@ -532,26 +643,55 @@ void Graphics::SoftwareEnd() {
 }
 
 void Graphics::UpdateGlobalPalette() {
-	if (!Graphics::GfxFunctions->UpdateGlobalPalette) {
-		return;
-	}
-
-	if (Graphics::PaletteTexture == NULL) {
-		Graphics::PaletteTexture = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_STATIC,
-			0x100,
+	if (Graphics::PaletteTexture == nullptr) {
+		Graphics::PaletteTexture = CreateTexture(SDL_PIXELFORMAT_ARGB8888,
+			SDL_TEXTUREACCESS_STREAMING,
+			PALETTE_ROW_SIZE,
 			MAX_PALETTE_COUNT);
+
+		if (Graphics::PaletteTexture == nullptr) {
+			return;
+		}
 	}
 
-	if (Graphics::PaletteTexture == NULL) {
-		Log::Print(Log::LOG_ERROR, "Couldn't create palette texture!");
-		abort();
+	Graphics::UpdateTexture(Graphics::PaletteTexture,
+		nullptr,
+		(Uint32*)Graphics::PaletteColors,
+		PALETTE_ROW_SIZE * sizeof(Uint32));
+
+	if (Graphics::GfxFunctions->UpdateGlobalPalette) {
+		Graphics::GfxFunctions->UpdateGlobalPalette(Graphics::PaletteTexture);
+	}
+}
+void Graphics::UpdatePaletteIndexTable() {
+	if (Graphics::PaletteIndexTexture == nullptr) {
+		Graphics::PaletteIndexTexture = CreateTexture(SDL_PIXELFORMAT_ARGB8888,
+			SDL_TEXTUREACCESS_STREAMING,
+			PALETTE_INDEX_TEXTURE_SIZE,
+			PALETTE_INDEX_TEXTURE_SIZE);
+
+		if (Graphics::PaletteIndexTexture == nullptr) {
+			return;
+		}
 	}
 
-	Graphics::UpdateTexture(
-		Graphics::PaletteTexture, NULL, (Uint32*)Graphics::PaletteColors, 0x100 * 4);
+	if (Graphics::PaletteIndexTextureData == nullptr) {
+		Graphics::PaletteIndexTextureData = (Uint32*)Memory::Calloc(
+			PALETTE_INDEX_TEXTURE_SIZE * PALETTE_INDEX_TEXTURE_SIZE, sizeof(Uint32));
+	}
 
-	Graphics::GfxFunctions->UpdateGlobalPalette();
+	for (size_t i = 0; i < MAX_FRAMEBUFFER_HEIGHT; i++) {
+		Graphics::PaletteIndexTextureData[i] = 0xFF000000 | PaletteIndexLines[i];
+	}
+
+	Graphics::UpdateTexture(Graphics::PaletteIndexTexture,
+		nullptr,
+		Graphics::PaletteIndexTextureData,
+		PALETTE_INDEX_TEXTURE_SIZE * sizeof(Uint32));
+
+	if (Graphics::GfxFunctions->UpdatePaletteIndexTable) {
+		Graphics::GfxFunctions->UpdatePaletteIndexTable(Graphics::PaletteIndexTexture);
+	}
 }
 
 void Graphics::UnloadSceneData() {
@@ -574,15 +714,17 @@ void Graphics::UnloadSceneData() {
 	}
 }
 
-void Graphics::SetRenderTarget(Texture* texture) {
+bool Graphics::SetRenderTarget(Texture* texture) {
 	if (texture && !Graphics::CurrentRenderTarget) {
 		Graphics::BackupViewport = Graphics::CurrentViewport;
 		Graphics::BackupClip = Graphics::CurrentClip;
 	}
 
-	Graphics::CurrentRenderTarget = texture;
+	if (!Graphics::GfxFunctions->SetRenderTarget(texture)) {
+		return false;
+	}
 
-	Graphics::GfxFunctions->SetRenderTarget(texture);
+	Graphics::CurrentRenderTarget = texture;
 
 	Viewport* vp = &Graphics::CurrentViewport;
 	if (texture) {
@@ -598,6 +740,86 @@ void Graphics::SetRenderTarget(Texture* texture) {
 
 	Graphics::GfxFunctions->UpdateViewport();
 	Graphics::GfxFunctions->UpdateClipRect();
+
+	return true;
+}
+bool Graphics::CreateFramebufferTexture() {
+	int maxWidth, maxHeight;
+	GetScreenSize(maxWidth, maxHeight);
+
+	bool createTexture = FramebufferTexture == nullptr;
+
+	if (!createTexture) {
+		if (FramebufferWidth != maxWidth || FramebufferHeight != maxHeight) {
+			DisposeTexture(FramebufferTexture);
+
+			createTexture = true;
+		}
+	}
+
+	if (createTexture) {
+		FramebufferTexture = CreateTexture(
+			SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, maxWidth, maxHeight);
+
+		if (FramebufferTexture == nullptr) {
+			return false;
+		}
+
+		FramebufferWidth = maxWidth;
+		FramebufferHeight = maxHeight;
+	}
+
+	return true;
+}
+bool Graphics::UpdateFramebufferTexture() {
+	if (!Graphics::GfxFunctions->ReadFramebuffer || !Graphics::GfxFunctions->UpdateTexture ||
+		!Graphics::CreateFramebufferTexture()) {
+		return false;
+	}
+
+	Graphics::GfxFunctions->ReadFramebuffer(Graphics::FramebufferTexture->Pixels,
+		Graphics::FramebufferTexture->Width,
+		Graphics::FramebufferTexture->Height);
+	Graphics::GfxFunctions->UpdateTexture(Graphics::FramebufferTexture,
+		nullptr,
+		(Uint32*)Graphics::FramebufferTexture->Pixels,
+		Graphics::FramebufferTexture->Width * sizeof(Uint32));
+
+	return true;
+}
+void Graphics::SetPostProcessShader(Shader* shader) {
+	PostProcessShader = shader;
+	UsingPostProcessShader = shader != nullptr;
+}
+void Graphics::DoScreenPostProcess() {
+	if (!UsingPostProcessShader) {
+		return;
+	}
+
+	if (!Graphics::UpdateFramebufferTexture()) {
+		return;
+	}
+
+	int ww, wh;
+	SDL_GetWindowSize(Application::Window, &ww, &wh);
+	Graphics::SetViewport(0.0, 0.0, ww, wh);
+	Graphics::UpdateOrthoFlipped(ww, wh);
+	Graphics::SetDepthTesting(false);
+	Graphics::SetBlendMode(BlendMode_NORMAL);
+	Graphics::SetBlendColor(1.0, 0.0, 0.0, 1.0);
+	Graphics::TextureBlend = false;
+
+	Graphics::SetUserShader(Graphics::PostProcessShader);
+	Graphics::DrawTexture(Graphics::FramebufferTexture,
+		0.0,
+		0.0,
+		Graphics::FramebufferTexture->Width,
+		Graphics::FramebufferTexture->Height,
+		0.0,
+		0.0,
+		Application::WindowWidth,
+		Application::WindowHeight);
+	Graphics::SetUserShader(nullptr);
 }
 void Graphics::CopyScreen(int source_x,
 	int source_y,
@@ -612,47 +834,84 @@ void Graphics::CopyScreen(int source_x,
 		return;
 	}
 
+	if (texture == nullptr) {
+		return;
+	}
+
+	int maxWidth, maxHeight;
+	Graphics::GetScreenSize(maxWidth, maxHeight);
+
+	if (source_x < 0) {
+		source_x = 0;
+	}
+	if (source_y < 0) {
+		source_y = 0;
+	}
+	if (source_w > maxWidth) {
+		source_w = maxWidth;
+	}
+	if (source_h > maxHeight) {
+		source_h = maxHeight;
+	}
+	if (source_x >= source_w || source_y >= source_h) {
+		return;
+	}
+	if (source_w <= 0 || source_h <= 0) {
+		return;
+	}
+
+	if (dest_x < 0) {
+		dest_x = 0;
+	}
+	if (dest_y < 0) {
+		dest_y = 0;
+	}
+	if (dest_w > texture->Width) {
+		dest_w = texture->Width;
+	}
+	if (dest_h > texture->Height) {
+		dest_h = texture->Height;
+	}
+	if (dest_x >= dest_w || dest_y >= source_h) {
+		return;
+	}
+	if (dest_w <= 0 || dest_h <= 0) {
+		return;
+	}
+
 	if (source_x == 0 && source_y == 0 && dest_x == 0 && dest_y == 0 && dest_w == source_w &&
 		dest_h == source_h) {
 		Graphics::GfxFunctions->ReadFramebuffer(texture->Pixels, dest_w, dest_h);
+		return;
 	}
-	else {
-		size_t sz = source_w * source_h * 4;
 
-		if (Graphics::FramebufferPixels == NULL) {
-			Graphics::FramebufferPixels = (Uint32*)Memory::TrackedCalloc(
-				"Graphics::FramebufferPixels", 1, sz);
+	if (!Graphics::CreateFramebufferTexture()) {
+		return;
+	}
+
+	void* fbPixels = FramebufferTexture->Pixels;
+
+	Graphics::GfxFunctions->ReadFramebuffer(fbPixels, source_w, source_h);
+
+	Uint32* d = (Uint32*)texture->Pixels;
+	Uint32* s = (Uint32*)fbPixels;
+
+	int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_w << 16, source_w << 16));
+	int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_h << 16, source_h << 16));
+
+	for (int read_y = source_y << 16, write_y = dest_y; write_y < dest_h;
+		write_y++, read_y += ys) {
+		int isy = read_y >> 16;
+		if (isy >= source_h) {
+			return;
 		}
-		else if (sz != Graphics::FramebufferSize) {
-			Graphics::FramebufferPixels =
-				(Uint32*)Memory::Realloc(Graphics::FramebufferPixels, sz);
-		}
-
-		Graphics::FramebufferSize = sz;
-
-		Graphics::GfxFunctions->ReadFramebuffer(
-			Graphics::FramebufferPixels, source_w, source_h);
-
-		Uint32* d = (Uint32*)texture->Pixels;
-		Uint32* s = (Uint32*)Graphics::FramebufferPixels;
-
-		int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_w << 16, source_w << 16));
-		int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_h << 16, source_h << 16));
-
-		for (int read_y = source_y << 16, write_y = dest_y; write_y < dest_h;
-			write_y++, read_y += ys) {
-			int isy = read_y >> 16;
-			if (isy >= source_h) {
-				return;
+		for (int read_x = source_x << 16, write_x = dest_x; write_x < dest_w;
+			write_x++, read_x += xs) {
+			int isx = read_x >> 16;
+			if (isx >= source_w) {
+				break;
 			}
-			for (int read_x = source_x << 16, write_x = dest_x; write_x < dest_w;
-				write_x++, read_x += xs) {
-				int isx = read_x >> 16;
-				if (isx >= source_w) {
-					break;
-				}
-				d[(write_y * texture->Width) + write_x] = s[(isy * source_w) + isx];
-			}
+			d[(write_y * texture->Width) + write_x] = s[(isy * source_w) + isx];
 		}
 	}
 }
@@ -697,21 +956,27 @@ void Graphics::CalculateMVPMatrix(Matrix4x4* output,
 		Matrix4x4::Identity(output);
 	}
 }
+void Graphics::GetScreenSize(int& outWidth, int& outHeight) {
+	if (Graphics::CurrentRenderTarget) {
+		outWidth = Graphics::CurrentRenderTarget->Width;
+		outHeight = Graphics::CurrentRenderTarget->Height;
+	}
+	else {
+		int w, h;
+		SDL_GetWindowSize(Application::Window, &w, &h);
+		outWidth = w;
+		outHeight = h;
+	}
+}
 void Graphics::SetViewport(float x, float y, float w, float h) {
 	Viewport* vp = &Graphics::CurrentViewport;
 	if (x < 0) {
+		int w, h;
 		vp->X = 0.0;
 		vp->Y = 0.0;
-		if (Graphics::CurrentRenderTarget) {
-			vp->Width = Graphics::CurrentRenderTarget->Width;
-			vp->Height = Graphics::CurrentRenderTarget->Height;
-		}
-		else {
-			int w, h;
-			SDL_GetWindowSize(Application::Window, &w, &h);
-			vp->Width = w;
-			vp->Height = h;
-		}
+		Graphics::GetScreenSize(w, h);
+		vp->Width = w;
+		vp->Height = h;
 	}
 	else {
 		vp->X = x;
@@ -741,36 +1006,39 @@ void Graphics::ClearClip() {
 	Graphics::GfxFunctions->UpdateClipRect();
 }
 
+Matrix4x4* SaveMatrix(Matrix4x4* matrixStack, size_t pos) {
+	Matrix4x4* top = &matrixStack[pos - 1];
+	Matrix4x4* push = &matrixStack[pos];
+	Matrix4x4::Copy(push, top);
+	return push;
+}
 void Graphics::Save() {
 	if (MatrixStackID >= MATRIX_STACK_SIZE) {
-		Log::Print(Log::LOG_ERROR, "Draw.Save stack too big!");
-		exit(-1);
+		Error::Fatal("Draw.Save stack too big!");
 	}
 
-	Matrix4x4* top = &MatrixStack[MatrixStackID - 1];
-	Matrix4x4* push = &MatrixStack[MatrixStackID];
-	Matrix4x4::Copy(push, top);
+	ViewMatrix = SaveMatrix(ViewMatrixStack, MatrixStackID);
+	ModelMatrix = SaveMatrix(ModelMatrixStack, MatrixStackID);
 	MatrixStackID++;
-
-	ModelViewMatrix = push;
 }
 void Graphics::Translate(float x, float y, float z) {
-	Matrix4x4::Translate(ModelViewMatrix, ModelViewMatrix, x, y, z);
+	Matrix4x4::Translate(ModelMatrix, ModelMatrix, x, y, z);
 }
 void Graphics::Rotate(float x, float y, float z) {
-	Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, x, 1.0, 0.0, 0.0);
-	Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, y, 0.0, 1.0, 0.0);
-	Matrix4x4::Rotate(ModelViewMatrix, ModelViewMatrix, z, 0.0, 0.0, 1.0);
+	Matrix4x4::Rotate(ModelMatrix, ModelMatrix, x, 1.0, 0.0, 0.0);
+	Matrix4x4::Rotate(ModelMatrix, ModelMatrix, y, 0.0, 1.0, 0.0);
+	Matrix4x4::Rotate(ModelMatrix, ModelMatrix, z, 0.0, 0.0, 1.0);
 }
 void Graphics::Scale(float x, float y, float z) {
-	Matrix4x4::Scale(ModelViewMatrix, ModelViewMatrix, x, y, z);
+	Matrix4x4::Scale(ModelMatrix, ModelMatrix, x, y, z);
 }
 void Graphics::Restore() {
 	if (MatrixStackID == 1) {
 		return;
 	}
 	MatrixStackID--;
-	ModelViewMatrix = &MatrixStack[MatrixStackID - 1];
+	ViewMatrix = &ViewMatrixStack[MatrixStackID - 1];
+	ModelMatrix = &ModelMatrixStack[MatrixStackID - 1];
 }
 
 BlendState Graphics::GetBlendState() {
@@ -781,18 +1049,18 @@ BlendState Graphics::GetBlendState() {
 	state.Tint.Color = ColorUtils::ToRGB(Graphics::TintColors);
 	state.Tint.Amount = (int)(Graphics::TintColors[3] * 0xFF);
 	state.Tint.Mode = Graphics::TintMode;
-	state.FilterTable = NULL;
+	state.FilterMode = 0;
 	return state;
 }
 
 void Graphics::PushState() {
 	if (StateStack.size() == 256) {
-		Log::Print(Log::LOG_ERROR, "Graphics::PushState stack too big!");
-		exit(-1);
+		Error::Fatal("Graphics::PushState stack too big!");
 	}
 
 	GraphicsState state;
 
+	state.CurrentShader = (void*)Graphics::CurrentShader;
 	state.CurrentViewport = Graphics::CurrentViewport;
 	state.CurrentClip = Graphics::CurrentClip;
 	state.BlendMode = Graphics::BlendMode;
@@ -816,6 +1084,8 @@ void Graphics::PopState() {
 	}
 
 	GraphicsState state = StateStack.top();
+
+	Graphics::SetUserShader((Shader*)state.CurrentShader);
 
 	Graphics::SetBlendMode(state.BlendMode);
 	Graphics::SetBlendColor(state.BlendColors[0],
@@ -858,7 +1128,7 @@ void Graphics::SetBlendMode(int blendMode) {
 	case BlendMode_NORMAL:
 		Graphics::SetBlendMode(BlendFactor_SRC_ALPHA,
 			BlendFactor_INV_SRC_ALPHA,
-			BlendFactor_SRC_ALPHA,
+			BlendFactor_ONE,
 			BlendFactor_INV_SRC_ALPHA);
 		break;
 	case BlendMode_ADD:
@@ -934,8 +1204,105 @@ void Graphics::FillEllipse(float x, float y, float w, float h) {
 void Graphics::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
 	Graphics::GfxFunctions->FillTriangle(x1, y1, x2, y2, x3, y3);
 }
+void Graphics::FillTriangleBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3) {
+	Graphics::GfxFunctions->FillTriangleBlend(x1, y1, x2, y2, x3, y3, c1, c2, c3);
+}
 void Graphics::FillRectangle(float x, float y, float w, float h) {
 	Graphics::GfxFunctions->FillRectangle(x, y, w, h);
+}
+void Graphics::FillQuad(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4) {
+	Graphics::GfxFunctions->FillQuad(x1, y1, x2, y2, x3, y3, x4, y4);
+}
+void Graphics::FillQuadBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4) {
+	Graphics::GfxFunctions->FillQuadBlend(x1, y1, x2, y2, x3, y3, x4, y4, c1, c2, c3, c4);
+}
+void Graphics::DrawTriangleTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3) {
+	Graphics::GfxFunctions->DrawTriangleTextured(
+		texturePtr, x1, y1, x2, y2, x3, y3, c1, c2, c3, u1, v1, u2, v2, u3, v3);
+}
+void Graphics::DrawQuadTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3,
+	float u4,
+	float v4) {
+	Graphics::GfxFunctions->DrawQuadTextured(texturePtr,
+		x1,
+		y1,
+		x2,
+		y2,
+		x3,
+		y3,
+		x4,
+		y4,
+		c1,
+		c2,
+		c3,
+		c4,
+		u1,
+		v1,
+		u2,
+		v2,
+		u3,
+		v3,
+		u4,
+		v4);
 }
 
 void Graphics::DrawTexture(Texture* texture,
@@ -946,20 +1313,29 @@ void Graphics::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
-	Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h);
+	float h,
+	int paletteID) {
+	if (Graphics::UsePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+
+	Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
 }
 void Graphics::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
+	if (Graphics::UsePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+
 	Graphics::GfxFunctions->DrawSprite(
 		sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
 }
@@ -970,14 +1346,18 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 	int sy,
 	int sw,
 	int sh,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
+	if (Graphics::UsePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+
 	Graphics::GfxFunctions->DrawSpritePart(sprite,
 		animation,
 		frame,
@@ -994,17 +1374,31 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 		rotation,
 		paletteID);
 }
+void Graphics::DrawTexture(Texture* texture,
+	float sx,
+	float sy,
+	float sw,
+	float sh,
+	float x,
+	float y,
+	float w,
+	float h) {
+	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
+	Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
+}
 void Graphics::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
 	float scaleH,
 	float rotation) {
-	DrawSprite(sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, 0);
+	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
+	DrawSprite(
+		sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
 }
 void Graphics::DrawSpritePart(ISprite* sprite,
 	int animation,
@@ -1013,13 +1407,14 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 	int sy,
 	int sw,
 	int sh,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
 	float scaleH,
 	float rotation) {
+	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
 	DrawSpritePart(sprite,
 		animation,
 		frame,
@@ -1034,18 +1429,1069 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 		scaleW,
 		scaleH,
 		rotation,
-		0);
+		paletteID);
 }
 
-void Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {
-	// If possible, uses optimized software-renderer call instead.
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
-		SoftwareRenderer::DrawTile(tile, x, y, flipX, flipY);
+std::vector<Uint32> Graphics::GetTextCodepoints(Font* font, const char* text) {
+	std::vector<Uint32> codepoints = StringUtils::GetCodepoints(text);
+
+	std::vector<Uint32> output;
+	output.reserve(codepoints.size());
+
+	for (size_t i = 0; i < codepoints.size(); i++) {
+		Uint32 codepoint = codepoints[i];
+		if (codepoint != (Uint32)-1 && (char)codepoint == '\n' || (char)codepoint == ' ' ||
+			(font->IsValidCodepoint(codepoint) && font->RequestGlyph(codepoint))) {
+			output.push_back(codepoint);
+		}
+	}
+
+	return output;
+}
+
+void Graphics::DrawGlyph(Font* font,
+	Uint32 codepoint,
+	float x,
+	float y,
+	float scale,
+	float glyphScale,
+	float ascent) {
+	// For performance, this doesn't check if font or font->Sprite are nullptr.
+	// Also, RequestGlyph must have been called before for this codepoint.
+	FontGlyph& glyph = font->Glyphs[codepoint];
+
+	float glyphX = x + (glyph.OffsetX * glyphScale);
+	float glyphY = y + (glyph.OffsetY * glyphScale);
+
+	glyphY += ascent * scale;
+
+	Graphics::DrawSprite(font->Sprite,
+		0,
+		glyph.FrameID,
+		glyphX,
+		glyphY,
+		false,
+		false,
+		glyphScale,
+		glyphScale,
+		0.0f);
+}
+
+void Graphics::DrawEllipsis(Font* font,
+	float x,
+	float y,
+	float scale,
+	float glyphScale,
+	float ascent) {
+	if (font->HasGlyph(ELLIPSIS_CODE_POINT) && font->RequestGlyph(ELLIPSIS_CODE_POINT)) {
+		DrawGlyph(font, ELLIPSIS_CODE_POINT, x, y, scale, glyphScale, ascent);
+	}
+	else if (font->HasGlyph(FULL_STOP_CODE_POINT) && font->RequestGlyph(FULL_STOP_CODE_POINT)) {
+		float currX = x;
+
+		for (size_t i = 0; i < 3; i++) {
+			DrawGlyph(font, 0x002E, currX, y, scale, glyphScale, ascent);
+
+			currX += font->Glyphs[FULL_STOP_CODE_POINT].Advance * scale;
+		}
+	}
+}
+
+void Graphics::DrawEllipsisLegacy(ISprite* sprite,
+	float x,
+	float y,
+	float advance,
+	float baseline) {
+	int glyph = '.';
+
+	advance = sprite->Animations[0].Frames[glyph].Advance * advance;
+
+	for (size_t i = 0; i < 3; i++) {
+		Graphics::DrawSprite(sprite,
+			0,
+			glyph,
+			x,
+			y - sprite->Animations[0].AnimationSpeed * baseline,
+			false,
+			false,
+			1.0f,
+			1.0f,
+			0.0f);
+
+		x += advance;
+	}
+}
+
+void Graphics::DrawText(Font* font, const char* text, float x, float y, TextDrawParams* params) {
+	// Obtain codepoints and check if the font needs to be updated
+	std::vector<Uint32> codepoints = GetTextCodepoints(font, text);
+
+	size_t numCodepoints = codepoints.size();
+	if (numCodepoints == 0) {
 		return;
 	}
 
+	font->Update();
+
+	if (font->Sprite == nullptr || font->Sprite->Spritesheets.size() == 0) {
+		return;
+	}
+
+	// Draw the codepoints
+	float currX = x;
+	float currY = y;
+
+	float ascent = params->Ascent;
+	float descent = params->Descent;
+	float leading = params->Leading;
+
+	float scale = params->FontSize / font->Size;
+	float xyScale = scale / font->Oversampling;
+
+	bool texBlend = Graphics::TextureBlend;
+	Graphics::TextureBlend = true;
+
+	for (size_t i = 0; i < numCodepoints; i++) {
+		Uint32 codepoint = codepoints[i];
+		if (codepoint == '\n') {
+			currX = x;
+			currY += (ascent - descent + leading) * scale;
+			continue;
+		}
+		else if (codepoint == ' ') {
+			currX += font->SpaceWidth * scale;
+			continue;
+		}
+
+		FontGlyph& glyph = font->Glyphs[codepoint];
+
+		DrawGlyph(font, codepoint, currX, currY, scale, xyScale, ascent);
+
+		currX += glyph.Advance * scale;
+	}
+
+	Graphics::TextureBlend = texBlend;
+}
+void Graphics::DrawTextWrapped(Font* font,
+	const char* text,
+	float x,
+	float y,
+	TextDrawParams* params) {
+	// Obtain codepoints and check if the font needs to be updated
+	std::vector<Uint32> codepoints = GetTextCodepoints(font, text);
+
+	size_t numCodepoints = codepoints.size();
+	if (numCodepoints == 0) {
+		return;
+	}
+
+	font->Update();
+
+	if (font->Sprite == nullptr || font->Sprite->Spritesheets.size() == 0) {
+		return;
+	}
+
+	// Draw the codepoints
+	float currX = x;
+	float currY = y;
+
+	float ascent = params->Ascent;
+	float descent = params->Descent;
+	float leading = params->Leading;
+
+	float scale = params->FontSize / font->Size;
+	float xyScale = scale / font->Oversampling;
+
+	bool texBlend = Graphics::TextureBlend;
+	Graphics::TextureBlend = true;
+
+	int word = 0;
+	int lineNo = 1;
+
+	Uint32* codepointsData = codepoints.data();
+	Uint32* linestart = codepointsData;
+	Uint32* wordstart = codepointsData;
+	Uint32* codepointsEnd = codepointsData + numCodepoints;
+
+	float ellipsisWidth = 0.0;
+
+	bool drawEllipsis = params->Flags & TEXTDRAW_ELLIPSIS;
+	if (drawEllipsis) {
+		// Load correct ellipsis glyph
+		if (font->HasGlyph(ELLIPSIS_CODE_POINT)) {
+			drawEllipsis = font->RequestGlyph(ELLIPSIS_CODE_POINT);
+		}
+		else if (font->HasGlyph(FULL_STOP_CODE_POINT)) {
+			drawEllipsis = font->RequestGlyph(FULL_STOP_CODE_POINT);
+		}
+		else {
+			drawEllipsis = false;
+		}
+
+		if (drawEllipsis) {
+			ellipsisWidth = font->GetEllipsisWidth() * scale;
+		}
+	}
+
+	for (size_t i = 0; i < numCodepoints; i++) {
+		Uint32* codepointsPtr = (codepointsData + i);
+		Uint32 codepoint = *codepointsPtr;
+
+		bool isLineBreak = codepoint == 0x000A;
+
+		if ((codepointsPtr != wordstart && codepoint == 0x0020) || isLineBreak) {
+			bool canLineBreak = isLineBreak;
+			if (!canLineBreak && word > 0) {
+				float lineWidth = 0.0f;
+
+				for (Uint32* o = linestart; o < codepointsPtr; o++) {
+					float advance = (*o == 0x0020) ? font->SpaceWidth
+								       : font->Glyphs[*o].Advance;
+					lineWidth += advance * scale;
+				}
+
+				canLineBreak = lineWidth > params->MaxWidth;
+			}
+
+			Uint32* start = isLineBreak ? (codepointsPtr + 1) : wordstart;
+			Uint32* end = isLineBreak ? codepointsPtr : (wordstart - 1);
+
+			if (canLineBreak) {
+				bool isLastLine =
+					params->MaxLines > 0 && lineNo == params->MaxLines;
+
+				currX = x;
+
+				for (Uint32* o = linestart; o < end; o++) {
+					float advance = (*o == 0x0020) ? font->SpaceWidth
+								       : font->Glyphs[*o].Advance;
+
+					advance *= scale;
+
+					// Draw ellipsis if the text no longer fits
+					if (isLastLine && drawEllipsis &&
+						(currX - x) + advance >
+							params->MaxWidth - ellipsisWidth) {
+						Graphics::DrawEllipsis(
+							font, currX, currY, scale, xyScale, ascent);
+						Graphics::TextureBlend = texBlend;
+						return;
+					}
+
+					if (*o != 0x0020) {
+						DrawGlyph(font,
+							*o,
+							currX,
+							currY,
+							scale,
+							xyScale,
+							ascent);
+					}
+
+					currX += advance;
+				}
+
+				if (isLastLine) {
+					// Draw ellipsis if the text no longer fits AND there is still space
+					if (drawEllipsis &&
+						(currX - x) < params->MaxWidth - ellipsisWidth) {
+						Graphics::DrawEllipsis(
+							font, currX, currY, scale, xyScale, ascent);
+					}
+
+					Graphics::TextureBlend = texBlend;
+					return;
+				}
+
+				lineNo++;
+				linestart = start;
+
+				currY += (ascent - descent + leading) * scale;
+			}
+
+			wordstart = codepointsPtr + 1;
+			word++;
+		}
+	}
+
+	// Draw the remaining line
+	currX = x;
+
+	for (Uint32* o = linestart; o < codepointsEnd; o++) {
+		float advance = (*o == 0x0020) ? font->SpaceWidth : font->Glyphs[*o].Advance;
+
+		advance *= scale;
+
+		// Draw ellipsis if the text no longer fits
+		if (drawEllipsis && (currX - x) + advance > params->MaxWidth - ellipsisWidth) {
+			Graphics::DrawEllipsis(font, currX, currY, scale, xyScale, ascent);
+			break;
+		}
+
+		if (*o != 0x0020 && *o != 0x000A) {
+			DrawGlyph(font, *o, currX, currY, scale, xyScale, ascent);
+		}
+
+		currX += advance;
+	}
+
+	Graphics::TextureBlend = texBlend;
+}
+void Graphics::DrawTextEllipsis(Font* font,
+	const char* text,
+	float x,
+	float y,
+	TextDrawParams* params) {
+	TextDrawParams localParams = *params;
+
+	localParams.Flags |= TEXTDRAW_ELLIPSIS;
+
+	DrawTextWrapped(font, text, x, y, &localParams);
+}
+
+// StandardLibrary calls this.
+void Graphics::DrawGlyph(Font* font, Uint32 codepoint, float x, float y, TextDrawParams* params) {
+	if (!(font->IsValidCodepoint(codepoint) && font->RequestGlyph(codepoint))) {
+		return;
+	}
+
+	font->Update();
+
+	if (font->Sprite == nullptr || font->Sprite->Spritesheets.size() == 0) {
+		return;
+	}
+
+	float ascent = params->Ascent;
+	float scale = params->FontSize / font->Size;
+	float xyScale = scale / font->Oversampling;
+
+	bool texBlend = Graphics::TextureBlend;
+	Graphics::TextureBlend = true;
+
+	FontGlyph& glyph = font->Glyphs[codepoint];
+
+	DrawGlyph(font, codepoint, x, y, scale, xyScale, ascent);
+
+	Graphics::TextureBlend = texBlend;
+}
+
+void Graphics::MeasureText(Font* font,
+	const char* text,
+	TextDrawParams* params,
+	float& maxW,
+	float& maxH) {
+	// Obtain codepoints and check if the font needs to be updated
+	std::vector<Uint32> codepoints = GetTextCodepoints(font, text);
+
+	size_t numCodepoints = codepoints.size();
+	if (numCodepoints == 0) {
+		return;
+	}
+
+	font->Update();
+
+	float currX = 0.0f;
+	float currY = 0.0f;
+
+	float ascent = params->Ascent;
+	float descent = params->Descent;
+	float leading = params->Leading;
+
+	float scale = params->FontSize / font->Size;
+	float xyScale = scale / font->Oversampling;
+
+	for (size_t i = 0; i < numCodepoints; i++) {
+		float glyphY = 0.0f;
+
+		Uint32 codepoint = codepoints[i];
+		if (codepoint == '\n') {
+			currX = 0.0f;
+			currY += (ascent - descent + leading) * scale;
+		}
+		else if (codepoint == ' ') {
+			currX += font->SpaceWidth * scale;
+		}
+		else {
+			FontGlyph& glyph = font->Glyphs[codepoint];
+
+			currX += glyph.Advance * scale;
+			glyphY += (ascent * scale) + (glyph.OffsetY * xyScale) +
+				(glyph.Height * xyScale);
+		}
+
+		if (currX > maxW) {
+			maxW = currX;
+		}
+		if (currY + glyphY > maxH) {
+			maxH = currY + glyphY;
+		}
+	}
+}
+void Graphics::MeasureTextWrapped(Font* font,
+	const char* text,
+	TextDrawParams* params,
+	float& maxW,
+	float& maxH) {
+	// Obtain codepoints and check if the font needs to be updated
+	std::vector<Uint32> codepoints = GetTextCodepoints(font, text);
+
+	size_t numCodepoints = codepoints.size();
+	if (numCodepoints == 0) {
+		return;
+	}
+
+	font->Update();
+
+	float currX = 0.0f;
+	float currY = 0.0f;
+
+	float ascent = params->Ascent;
+	float descent = params->Descent;
+	float leading = params->Leading;
+
+	float scale = params->FontSize / font->Size;
+	float xyScale = scale / font->Oversampling;
+
+	int word = 0;
+	int lineNo = 1;
+
+	Uint32* codepointsData = codepoints.data();
+	Uint32* linestart = codepointsData;
+	Uint32* wordstart = codepointsData;
+	Uint32* codepointsEnd = codepointsData + numCodepoints;
+
+	for (size_t i = 0; i < numCodepoints; i++) {
+		Uint32* codepointsPtr = (codepointsData + i);
+		Uint32 codepoint = *codepointsPtr;
+
+		bool isLineBreak = codepoint == 0x000A;
+
+		if ((codepointsPtr != wordstart && codepoint == 0x0020) || isLineBreak) {
+			bool canLineBreak = isLineBreak;
+			if (!canLineBreak && word > 0) {
+				float lineWidth = 0.0f;
+
+				for (Uint32* o = linestart; o < codepointsPtr; o++) {
+					float advance = (*o == 0x0020) ? font->SpaceWidth
+								       : font->Glyphs[*o].Advance;
+					lineWidth += advance * scale;
+				}
+
+				canLineBreak = lineWidth > params->MaxWidth;
+			}
+
+			Uint32* start = isLineBreak ? (codepointsPtr + 1) : wordstart;
+			Uint32* end = isLineBreak ? codepointsPtr : (wordstart - 1);
+
+			if (canLineBreak) {
+				currX = 0.0f;
+
+				for (Uint32* o = linestart; o < end; o++) {
+					float glyphY = 0.0f;
+
+					if (*o == 0x0020) {
+						currX += font->SpaceWidth * scale;
+					}
+					else {
+						FontGlyph& glyph = font->Glyphs[*o];
+
+						currX += glyph.Advance * scale;
+						glyphY += (ascent * scale) +
+							(glyph.OffsetY * xyScale) +
+							(glyph.Height * xyScale);
+					}
+
+					if (currX > maxW) {
+						maxW = currX;
+					}
+					if (currY + glyphY > maxH) {
+						maxH = currY + glyphY;
+					}
+				}
+
+				if (params->MaxLines > 0 && lineNo == params->MaxLines) {
+					return;
+				}
+
+				lineNo++;
+				linestart = start;
+
+				currY += (ascent - descent + leading) * scale;
+			}
+
+			wordstart = codepointsPtr + 1;
+			word++;
+		}
+	}
+
+	// Measure the remaining line
+	currX = 0.0f;
+
+	for (Uint32* o = linestart; o < codepointsEnd; o++) {
+		float glyphY = 0.0f;
+
+		if (*o == 0x0020) {
+			currX += font->SpaceWidth * scale;
+		}
+		else {
+			FontGlyph& glyph = font->Glyphs[*o];
+
+			currX += glyph.Advance * scale;
+			glyphY += (ascent * scale) + (glyph.OffsetY * xyScale) +
+				(glyph.Height * xyScale);
+		}
+
+		if (currX > maxW) {
+			maxW = currX;
+		}
+		if (currY + glyphY > maxH) {
+			maxH = currY + glyphY;
+		}
+	}
+}
+
+// Those are the old text drawing functions. They do not handle UTF-8!
+// Eventually, the Font class will be able to handle bitmap fonts as well.
+int _Text_GetLetter(int l) {
+	if (l < 0) {
+		return ' ';
+	}
+	return l;
+}
+
+void Graphics::DrawTextLegacy(ISprite* sprite,
+	const char* text,
+	float basex,
+	float basey,
+	LegacyTextDrawParams* params) {
+	float x = basex;
+	float y = basey;
+	float* lineWidths;
+	int line = 0;
+	char l;
+
+	// Count lines
+	for (const char* i = text; *i; i++) {
+		if (*i == '\n') {
+			line++;
+			continue;
+		}
+	}
+	line++;
+	lineWidths = (float*)Memory::Malloc(line * sizeof(float));
+	if (!lineWidths) {
+		return;
+	}
+
+	// Get line widths
+	line = 0;
+	x = 0.0f;
+	for (const char* i = text; *i; i++) {
+		l = _Text_GetLetter((Uint8)*i);
+		if (l == '\n') {
+			lineWidths[line++] = x;
+			x = 0.0f;
+			continue;
+		}
+		x += sprite->Animations[0].Frames[l].Advance * params->Advance;
+	}
+	lineWidths[line++] = x;
+
+	// Draw text
+	line = 0;
+	x = basex;
+	bool lineBack = true;
+	for (const char* i = text; *i; i++) {
+		l = _Text_GetLetter((Uint8)*i);
+		if (lineBack) {
+			x -= sprite->Animations[0].Frames[l].OffsetX;
+			lineBack = false;
+		}
+
+		if (l == '\n') {
+			x = basex;
+			y += sprite->Animations[0].FrameToLoop * params->Ascent;
+			lineBack = true;
+			line++;
+			continue;
+		}
+
+		Graphics::DrawSprite(sprite,
+			0,
+			l,
+			x - lineWidths[line] * params->Align,
+			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			false,
+			false,
+			1.0f,
+			1.0f,
+			0.0f);
+		x += sprite->Animations[0].Frames[l].Advance * params->Advance;
+	}
+
+	Memory::Free(lineWidths);
+}
+void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
+	const char* text,
+	float basex,
+	float basey,
+	LegacyTextDrawParams* params) {
+	float x = basex;
+	float y = basey;
+
+	// Draw text
+	int word = 0;
+	const char* linestart = text;
+	const char* wordstart = text;
+	bool lineBack = true;
+	int lineNo = 1;
+	char l, lm;
+
+	bool drawEllipsis = params->Flags & TEXTDRAW_ELLIPSIS;
+	float ellipsisWidth = 0.0;
+	if (drawEllipsis) {
+		ellipsisWidth = sprite->Animations[0].Frames['.'].Advance * 3;
+	}
+
+	for (const char* i = text;; i++) {
+		l = _Text_GetLetter((Uint8)*i);
+		if (((l == ' ' || l == 0) && i != wordstart) || l == '\n') {
+			float testWidth = 0.0f;
+			for (const char* o = linestart; o < i; o++) {
+				lm = _Text_GetLetter((Uint8)*o);
+				testWidth +=
+					sprite->Animations[0].Frames[lm].Advance * params->Advance;
+			}
+
+			if ((testWidth > params->MaxWidth && word > 0) || l == '\n') {
+				bool isLastLine =
+					params->MaxLines > 0 && lineNo == params->MaxLines;
+
+				float lineWidth = 0.0f;
+				for (const char* o = linestart; o < wordstart - 1; o++) {
+					lm = _Text_GetLetter((Uint8)*o);
+					if (lineBack) {
+						lineWidth -=
+							sprite->Animations[0].Frames[lm].OffsetX;
+						lineBack = false;
+					}
+					lineWidth += sprite->Animations[0].Frames[lm].Advance *
+						params->Advance;
+				}
+				lineBack = true;
+
+				float startx = basex - lineWidth * params->Align;
+
+				x = startx;
+				for (const char* o = linestart; o < wordstart - 1; o++) {
+					lm = _Text_GetLetter((Uint8)*o);
+					if (lineBack) {
+						x -= sprite->Animations[0].Frames[lm].OffsetX;
+						lineBack = false;
+					}
+
+					float advance = sprite->Animations[0].Frames[lm].Advance *
+						params->Advance;
+
+					// Draw ellipsis if the text no longer fits
+					if (isLastLine && drawEllipsis &&
+						(x - startx) + advance >
+							params->MaxWidth - ellipsisWidth) {
+						Graphics::DrawEllipsisLegacy(sprite,
+							x,
+							y,
+							params->Advance,
+							params->Baseline);
+						return;
+					}
+
+					Graphics::DrawSprite(sprite,
+						0,
+						lm,
+						x,
+						y -
+							sprite->Animations[0].AnimationSpeed *
+								params->Baseline,
+						false,
+						false,
+						1.0f,
+						1.0f,
+						0.0f);
+					x += advance;
+				}
+
+				if (isLastLine) {
+					// Draw ellipsis if the text no longer fits AND there is still space
+					if (drawEllipsis &&
+						(x - startx) < params->MaxWidth - ellipsisWidth) {
+						Graphics::DrawEllipsisLegacy(sprite,
+							x,
+							y,
+							params->Advance,
+							params->Baseline);
+					}
+					return;
+				}
+
+				lineNo++;
+
+				linestart = wordstart;
+				y += sprite->Animations[0].FrameToLoop * params->Ascent;
+				lineBack = true;
+			}
+
+			wordstart = i + 1;
+			word++;
+		}
+		if (!l) {
+			break;
+		}
+	}
+
+	float lineWidth = 0.0f;
+	for (const char* o = linestart; *o; o++) {
+		l = _Text_GetLetter((Uint8)*o);
+		if (lineBack) {
+			lineWidth -= sprite->Animations[0].Frames[l].OffsetX;
+			lineBack = false;
+		}
+		lineWidth += sprite->Animations[0].Frames[l].Advance * params->Advance;
+	}
+	lineBack = true;
+
+	// Draw the remaining line
+	float startx = basex - lineWidth * params->Align;
+	x = startx;
+	for (const char* o = linestart; *o; o++) {
+		l = _Text_GetLetter((Uint8)*o);
+		if (lineBack) {
+			x -= sprite->Animations[0].Frames[l].OffsetX;
+			lineBack = false;
+		}
+
+		float advance = sprite->Animations[0].Frames[l].Advance * params->Advance;
+
+		// Draw ellipsis if the text no longer fits
+		if (drawEllipsis && (x - startx) + advance > params->MaxWidth - ellipsisWidth) {
+			Graphics::DrawEllipsisLegacy(
+				sprite, x, y, params->Advance, params->Baseline);
+			return;
+		}
+
+		Graphics::DrawSprite(sprite,
+			0,
+			l,
+			x,
+			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			false,
+			false,
+			1.0f,
+			1.0f,
+			0.0f);
+		x += advance;
+	}
+}
+void Graphics::DrawTextEllipsisLegacy(ISprite* sprite,
+	const char* text,
+	float basex,
+	float basey,
+	LegacyTextDrawParams* params) {
+	LegacyTextDrawParams localParams = *params;
+
+	localParams.Flags |= TEXTDRAW_ELLIPSIS;
+
+	DrawTextWrappedLegacy(sprite, text, basex, basey, &localParams);
+}
+
+void Graphics::DrawGlyphLegacy(ISprite* sprite,
+	Uint32 codepoint,
+	float basex,
+	float basey,
+	LegacyTextDrawParams* params) {
+	char l = _Text_GetLetter((Uint8)codepoint);
+	float charWidth = sprite->Animations[0].Frames[l].Advance * params->Advance;
+	basex -= sprite->Animations[0].Frames[l].OffsetX;
+
+	Graphics::DrawSprite(sprite,
+		0,
+		l,
+		basex - charWidth * params->Align,
+		basey - sprite->Animations[0].AnimationSpeed * params->Baseline,
+		false,
+		false,
+		1.0f,
+		1.0f,
+		0.0f);
+}
+
+void Graphics::MeasureTextLegacy(ISprite* sprite,
+	const char* text,
+	LegacyTextDrawParams* params,
+	float& maxW,
+	float& maxH) {
+	float x = 0.0, y = 0.0;
+	float lineHeight = sprite->Animations[0].FrameToLoop;
+
+	maxW = maxH = 0.0;
+
+	for (const char* i = text; *i; i++) {
+		if (*i == '\n') {
+			x = 0.0;
+			y += lineHeight * params->Ascent;
+		}
+		else {
+			x += sprite->Animations[0].Frames[*i].Advance * params->Advance;
+
+			if (maxW < x) {
+				maxW = x;
+			}
+		}
+
+		if (maxH < y +
+				(sprite->Animations[0].Frames[*i].Height -
+					sprite->Animations[0].Frames[*i].OffsetY)) {
+			maxH = y +
+				(sprite->Animations[0].Frames[*i].Height -
+					sprite->Animations[0].Frames[*i].OffsetY);
+		}
+	}
+}
+void Graphics::MeasureTextWrappedLegacy(ISprite* sprite,
+	const char* text,
+	LegacyTextDrawParams* params,
+	float& maxW,
+	float& maxH) {
+	int word = 0;
+	const char* linestart = text;
+	const char* wordstart = text;
+
+	float x = 0.0, y = 0.0;
+	float lineHeight = sprite->Animations[0].FrameToLoop;
+
+	maxW = maxH = 0.0;
+
+	int lineNo = 1;
+	for (const char* i = text;; i++) {
+		if (((*i == ' ' || *i == 0) && i != wordstart) || *i == '\n') {
+			float lineWidth = 0.0f;
+			for (const char* o = linestart; o < i; o++) {
+				lineWidth +=
+					sprite->Animations[0].Frames[*o].Advance * params->Advance;
+			}
+			if ((lineWidth > params->MaxWidth && word > 0) || *i == '\n') {
+				x = 0.0f;
+				for (const char* o = linestart; o < wordstart - 1; o++) {
+					x += sprite->Animations[0].Frames[*o].Advance *
+						params->Advance;
+
+					if (maxW < x) {
+						maxW = x;
+					}
+					if (maxH < y +
+							(sprite->Animations[0].Frames[*o].Height +
+								sprite->Animations[0]
+									.Frames[*o]
+									.OffsetY)) {
+						maxH = y +
+							(sprite->Animations[0].Frames[*o].Height +
+								sprite->Animations[0]
+									.Frames[*o]
+									.OffsetY);
+					}
+				}
+
+				if (params->MaxLines > 0 && lineNo == params->MaxLines) {
+					return;
+				}
+				lineNo++;
+
+				linestart = wordstart;
+				y += lineHeight * params->Ascent;
+			}
+
+			wordstart = i + 1;
+			word++;
+		}
+
+		if (!*i) {
+			break;
+		}
+	}
+
+	x = 0.0f;
+	for (const char* o = linestart; *o; o++) {
+		x += sprite->Animations[0].Frames[*o].Advance * params->Advance;
+		if (maxW < x) {
+			maxW = x;
+		}
+		if (maxH < y +
+				(sprite->Animations[0].Frames[*o].Height +
+					sprite->Animations[0].Frames[*o].OffsetY)) {
+			maxH = y +
+				(sprite->Animations[0].Frames[*o].Height +
+					sprite->Animations[0].Frames[*o].OffsetY);
+		}
+	}
+}
+
+Sint64 Graphics::CalcHorizontalParallaxPosition(SceneLayer* layer,
+	float viewX,
+	float constant,
+	float relative) {
+	float offset = Scene::Frame * constant;
+	float viewOffset = viewX + layer->OffsetX;
+	Sint64 position = (Sint64)(offset + (viewOffset * relative));
+
+	if (layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
+		int layerWidth = layer->Width * Scene::TileWidth;
+
+		position %= layerWidth;
+
+		if (position < 0) {
+			position += layerWidth;
+		}
+	}
+
+	return position;
+}
+void Graphics::CalcScanlineDeforms(SceneLayer* layer,
+	int start,
+	int end,
+	float viewX,
+	int scrollLine,
+	int* deformValues,
+	int deformOffset,
+	TileScanLine* scanLine) {
+	int layerHeight = layer->Height * Scene::TileHeight;
+
+	if (end > MAX_FRAMEBUFFER_HEIGHT) {
+		end = MAX_FRAMEBUFFER_HEIGHT - 1;
+	}
+
+	// Iterate lines
+	for (int i = start; i < end; i++, scrollLine++, scanLine++) {
+		if (i < 0) {
+			continue;
+		}
+
+		// If we've past the last line of the layer, return to the top
+		if (scrollLine >= layerHeight) {
+			scrollLine %= layerHeight;
+		}
+
+		// Set scanline start positions
+		if (layer->ScrollInfoCount) {
+			ScrollingInfo* info = &layer->ScrollInfos[layer->ScrollIndexes[scrollLine]];
+			scanLine->SrcX = info->Position;
+			if (info->CanDeform) {
+				int deformTableOffset = scrollLine + deformOffset;
+				deformTableOffset &= (MAX_DEFORM_LINES >> 1) - 1;
+				scanLine->SrcX += deformValues[deformTableOffset];
+			}
+		}
+		else {
+			scanLine->SrcX =
+				Graphics::CalcHorizontalParallaxPosition(layer, viewX, 0.0, 1.0);
+		}
+		scanLine->SrcX <<= 16;
+		scanLine->SrcY = scrollLine << 16;
+
+		scanLine->DeltaX = 0x10000;
+		scanLine->DeltaY = 0;
+	}
+}
+
+void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
+	int layerHeight = layer->Height * Scene::TileHeight;
+	int viewHeight = (int)std::ceil(currentView->GetScaledHeight());
+
+	switch (layer->DrawBehavior) {
+	case DrawBehavior_HorizontalParallax: {
+		float viewX = currentView->X;
+		float viewY = currentView->Y;
+
+		// Set parallax positions
+		for (int i = 0; i < layer->ScrollInfoCount; i++) {
+			ScrollingInfo* info = &layer->ScrollInfos[i];
+			info->Position = Graphics::CalcHorizontalParallaxPosition(
+				layer, viewX, info->ConstantParallax, info->RelativeParallax);
+		}
+
+		// Create scanlines
+		float scrollOffset = Scene::Frame * layer->ConstantY;
+		int scrollLine =
+			(int)(scrollOffset + ((viewY + layer->OffsetY) * layer->RelativeY));
+		scrollLine %= layerHeight;
+		if (scrollLine < 0) {
+			scrollLine += layerHeight;
+		}
+
+		TileScanLine* scanLine = TileScanLineBuffer;
+
+		// Calculate deform above the split line
+		Graphics::CalcScanlineDeforms(layer,
+			0,
+			layer->DeformSplitLine,
+			viewX,
+			scrollLine,
+			layer->DeformSetA,
+			layer->DeformOffsetA,
+			scanLine);
+
+		// Calculate deform below the split line
+		scrollLine += layer->DeformSplitLine;
+		scanLine += layer->DeformSplitLine;
+		Graphics::CalcScanlineDeforms(layer,
+			layer->DeformSplitLine,
+			viewHeight,
+			viewX,
+			scrollLine,
+			layer->DeformSetB,
+			layer->DeformOffsetB,
+			scanLine);
+		break;
+	}
+	case DrawBehavior_VerticalParallax: {
+		break;
+	}
+	case DrawBehavior_CustomTileScanLines: {
+		Sint64 scrollPositionX = (Sint64)(currentView->X + layer->OffsetX);
+		scrollPositionX %= layer->Width * Scene::TileWidth;
+		scrollPositionX <<= 16;
+
+		float scrollOffset = Scene::Frame * layer->ConstantY;
+		float vertOffset = currentView->Y + layer->OffsetY;
+		Sint64 scrollPositionY = (Sint64)(scrollOffset + (vertOffset * layer->RelativeY));
+		scrollPositionY %= layerHeight;
+		scrollPositionY <<= 16;
+
+		TileScanLine* scanLine = TileScanLineBuffer;
+		for (int i = 0; i < viewHeight; i++) {
+			scanLine->SrcX = scrollPositionX;
+			scanLine->SrcY = scrollPositionY;
+			scanLine->DeltaX = 0x10000;
+			scanLine->DeltaY = 0;
+
+			scrollPositionY += 0x10000;
+			scanLine++;
+		}
+		break;
+	}
+	}
+}
+
+void Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
 	TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-	DrawSprite(info.Sprite,
+
+	int paletteID;
+	if (usePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+	else {
+		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+	}
+
+	Graphics::GfxFunctions->DrawSprite(info.Sprite,
 		info.AnimationIndex,
 		info.FrameIndex,
 		x,
@@ -1054,466 +2500,240 @@ void Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY) {
 		flipY,
 		1.0f,
 		1.0f,
-		0.0f);
+		0.0,
+		(int)paletteID);
+}
+void Graphics::DrawTilePart(int tile,
+	int sx,
+	int sy,
+	int sw,
+	int sh,
+	int x,
+	int y,
+	bool flipX,
+	bool flipY,
+	bool usePaletteIndexLines) {
+	TileSpriteInfo info = Scene::TileSpriteInfos[tile];
+
+	int paletteID;
+	if (usePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+	else {
+		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+	}
+
+	Graphics::GfxFunctions->DrawSpritePart(info.Sprite,
+		info.AnimationIndex,
+		info.FrameIndex,
+		sx,
+		sy,
+		sw,
+		sh,
+		x,
+		y,
+		flipX,
+		flipY,
+		1.0f,
+		1.0f,
+		0.0,
+		(int)paletteID);
 }
 void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
+	float viewX = currentView->X;
+	float viewY = currentView->Y;
+
 	int tileWidth = Scene::TileWidth;
 	int tileWidthHalf = tileWidth >> 1;
 	int tileHeight = Scene::TileHeight;
 	int tileHeightHalf = tileHeight >> 1;
-	int tileCellMaxWidth = 3 + (currentView->Width / tileWidth);
-	int tileCellMaxHeight = 2 + (currentView->Height / tileHeight);
 
-	int flipX, flipY, col;
-	int TileBaseX, TileBaseY, baseX, baseY, tile, tileOrig, baseXOff, baseYOff;
+	int layerWidthInBits = layer->WidthInBits;
+	int layerWidthInPixels = layer->Width * tileWidth;
+	int layerHeightInPixels = layer->Height * tileHeight;
+	int layerWidthTileMask = layer->WidthMask;
+	int layerHeightTileMask = layer->HeightMask;
 
-	TileConfig* baseTileCfg = NULL;
-	if (Scene::TileCfg.size()) {
-		size_t collisionPlane = Scene::ShowTileCollisionFlag - 1;
-		if (collisionPlane < Scene::TileCfg.size()) {
-			baseTileCfg = Scene::TileCfg[collisionPlane];
+	float viewWidth = std::ceil(currentView->GetScaledWidth());
+	float viewHeight = std::ceil(currentView->GetScaledHeight());
+
+	int startX = 0, startY = 0;
+	int endX = (int)viewWidth + tileWidth;
+	int endY = (int)viewHeight + tileHeight;
+
+	float scrollOffset = Scene::Frame * layer->ConstantY;
+	int srcY = (int)(scrollOffset + ((viewY + layer->OffsetY) * layer->RelativeY));
+	int rowStartX = (int)(viewX + layer->OffsetX);
+
+	// Draw more of the view if it is being rotated on the Z axis
+	if (currentView->RotateZ != 0.0f) {
+		float offsetY = viewHeight;
+		float offsetX = viewWidth;
+
+		if (std::abs(currentView->ScaleY) <= 1.0) {
+			offsetY *= 0.5;
 		}
+		else {
+			offsetY *= 2.0;
+		}
+
+		if (std::abs(currentView->ScaleX) <= 1.0) {
+			offsetX *= 0.5;
+		}
+		else {
+			offsetX *= 2.0;
+		}
+
+		startY = -offsetY;
+		endY += offsetY;
+		srcY -= offsetY;
+
+		startX = -offsetX;
+		endX += offsetX;
+		rowStartX -= offsetX;
 	}
 
-	if (layer->ScrollInfosSplitIndexes && layer->ScrollInfosSplitIndexesCount > 0) {
-		int height, index;
-		int ix, iy, sourceTileCellX, sourceTileCellY;
+	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
-		// Vertical
-		if (layer->DrawBehavior == DrawBehavior_VerticalParallax) {
-			baseXOff = ((((int)currentView->X + layer->OffsetX) * layer->RelativeY) +
-					   Scene::Frame * layer->ConstantY) >>
-				8;
-			TileBaseX = 0;
+	for (int dst_y = startY; dst_y < endY; dst_y += tileHeight, srcY += tileHeight) {
+		if (srcY < 0 || srcY >= layerHeightInPixels) {
+			if ((layer->Flags & SceneLayer::FLAGS_REPEAT_Y) == 0) {
+				continue;
+			}
 
-			for (int split = 0, spl; split < 4096; split++) {
-				spl = split;
-				while (spl >= layer->ScrollInfosSplitIndexesCount) {
-					spl -= layer->ScrollInfosSplitIndexesCount;
-				}
-
-				height = (layer->ScrollInfosSplitIndexes[spl] >> 8) & 0xFF;
-
-				sourceTileCellX = (TileBaseX >> 4);
-				baseX = (sourceTileCellX << 4) + 8;
-				baseX -= baseXOff;
-
-				if (baseX - 8 + height < -tileWidth) {
-					goto SKIP_TILE_ROW_DRAW_ROT90;
-				}
-				if (baseX - 8 >= currentView->Width + tileWidth) {
-					break;
-				}
-
-				index = layer->ScrollInfosSplitIndexes[spl] & 0xFF;
-
-				baseYOff = ((((int)currentView->Y + layer->OffsetY) *
-						    layer->ScrollInfos[index].RelativeParallax) +
-						   Scene::Frame *
-							   layer->ScrollInfos[index]
-								   .ConstantParallax) >>
-					8;
-				TileBaseY = baseYOff;
-
-				// Loop or cut off sourceTileCellX
-				if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_X)) {
-					if (sourceTileCellX < 0) {
-						goto SKIP_TILE_ROW_DRAW_ROT90;
-					}
-					if (sourceTileCellX >= layer->Width) {
-						goto SKIP_TILE_ROW_DRAW_ROT90;
-					}
-				}
-				while (sourceTileCellX < 0) {
-					sourceTileCellX += layer->Width;
-				}
-				while (sourceTileCellX >= layer->Width) {
-					sourceTileCellX -= layer->Width;
-				}
-
-				// Draw row of tiles
-				iy = TileBaseY >> 4;
-				baseY = tileHeightHalf;
-				baseY -= baseYOff & 15;
-
-				// To get the leftmost tile, ix--, and
-				// start t = -1
-				baseY -= 16;
-				iy--;
-
-				for (int t = 0; t < tileCellMaxHeight; t++) {
-					// Loop or cut off
-					// sourceTileCellX
-					sourceTileCellY = iy;
-					if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_Y)) {
-						if (sourceTileCellY < 0) {
-							goto SKIP_TILE_DRAW_ROT90;
-						}
-						if (sourceTileCellY >= layer->Height) {
-							goto SKIP_TILE_DRAW_ROT90;
-						}
-					}
-					else {
-						// sourceTileCellY =
-						// ((sourceTileCellY %
-						// layer->Height) +
-						// layer->Height) %
-						// layer->Height;
-						while (sourceTileCellY < 0) {
-							sourceTileCellY += layer->Height;
-						}
-						while (sourceTileCellY >= layer->Height) {
-							sourceTileCellY -= layer->Height;
-						}
-					}
-
-					tileOrig = tile = layer->Tiles[sourceTileCellX +
-						(sourceTileCellY << layer->WidthInBits)];
-
-					tile &= TILE_IDENT_MASK;
-					// "li == 0" should ideally be
-					// "layer->DrawGroup == 0", but
-					// in some games multiple
-					// layers will use DrawGroup ==
-					// 0, which would look bad &
-					// lag
-					if (tile != Scene::EmptyTile) { // || li == 0
-						flipX = (tileOrig & TILE_FLIPX_MASK);
-						flipY = (tileOrig & TILE_FLIPY_MASK);
-
-						int partY = TileBaseX & 0xF;
-						if (flipX) {
-							partY = tileWidth - height - partY;
-						}
-
-						TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-						Graphics::DrawSpritePart(info.Sprite,
-							info.AnimationIndex,
-							info.FrameIndex,
-							partY,
-							0,
-							height,
-							tileWidth,
-							baseX,
-							baseY,
-							flipX,
-							flipY,
-							1.0f,
-							1.0f,
-							0.0f,
-							0);
-
-						if (Scene::ShowTileCollisionFlag && baseTileCfg &&
-							layer->ScrollInfoCount <= 1) {
-							col = 0;
-							if (Scene::ShowTileCollisionFlag == 1) {
-								col = (tileOrig &
-									      TILE_COLLA_MASK) >>
-									28;
-							}
-							else if (Scene::ShowTileCollisionFlag ==
-								2) {
-								col = (tileOrig &
-									      TILE_COLLB_MASK) >>
-									26;
-							}
-
-							switch (col) {
-							case 1:
-								Graphics::SetBlendColor(
-									1.0, 1.0, 0.0, 1.0);
-								break;
-							case 2:
-								Graphics::SetBlendColor(
-									1.0, 0.0, 0.0, 1.0);
-								break;
-							case 3:
-								Graphics::SetBlendColor(
-									1.0, 1.0, 1.0, 1.0);
-								break;
-							}
-
-							int xorFlipX = 0;
-							if (flipX) {
-								xorFlipX = tileWidth - 1;
-							}
-
-							if (baseTileCfg[tile].IsCeiling ^ flipY) {
-								for (int checkX = 0, realCheckX = 0;
-									checkX < tileWidth;
-									checkX++) {
-									realCheckX =
-										checkX ^ xorFlipX;
-									if (baseTileCfg[tile].CollisionTop
-											[realCheckX] <
-										0xF0) {
-										continue;
-									}
-
-									Uint8 colH =
-										baseTileCfg[tile].CollisionTop
-											[realCheckX];
-									Graphics::FillRectangle(
-										baseX - 8 + checkX,
-										baseY - 8,
-										1,
-										tileHeight - colH);
-								}
-							}
-							else {
-								for (int checkX = 0, realCheckX = 0;
-									checkX < tileWidth;
-									checkX++) {
-									realCheckX =
-										checkX ^ xorFlipX;
-									if (baseTileCfg[tile].CollisionTop
-											[realCheckX] <
-										0xF0) {
-										continue;
-									}
-
-									Uint8 colH =
-										baseTileCfg[tile].CollisionBottom
-											[realCheckX];
-									Graphics::FillRectangle(
-										baseX - 8 + checkX,
-										baseY - 8 + colH,
-										1,
-										tileHeight - colH);
-								}
-							}
-						}
-					}
-
-				SKIP_TILE_DRAW_ROT90:
-					iy++;
-					baseY += tileHeight;
-				}
-
-			SKIP_TILE_ROW_DRAW_ROT90:
-				TileBaseX += height;
+			if (srcY < 0) {
+				srcY = -(srcY % layerHeightInPixels);
+			}
+			else {
+				srcY %= layerHeightInPixels;
 			}
 		}
-		// Horizontal
-		else {
-			baseYOff = ((((int)currentView->Y + layer->OffsetY) * layer->RelativeY) +
-					   Scene::Frame * layer->ConstantY) >>
-				8;
-			TileBaseY = 0;
 
-			for (int split = 0, spl; split < 4096; split++) {
-				spl = split;
-				while (spl >= layer->ScrollInfosSplitIndexesCount) {
-					spl -= layer->ScrollInfosSplitIndexesCount;
+		int srcX = rowStartX;
+		for (int dst_x = startX; dst_x < endX; dst_x += tileWidth, srcX += tileWidth) {
+			if (srcX < 0 || srcX >= layerWidthInPixels) {
+				if ((layer->Flags & SceneLayer::FLAGS_REPEAT_X) == 0) {
+					continue;
 				}
 
-				height = (layer->ScrollInfosSplitIndexes[spl] >> 8) & 0xFF;
-
-				sourceTileCellY = (TileBaseY >> 4);
-				baseY = (sourceTileCellY << 4) + 8;
-				baseY -= baseYOff;
-
-				if (baseY - 8 + height < -tileHeight) {
-					goto SKIP_TILE_ROW_DRAW;
+				if (srcX < 0) {
+					srcX = -(srcX % layerWidthInPixels);
 				}
-				if (baseY - 8 >= currentView->Height + tileHeight) {
-					break;
+				else {
+					srcX %= layerWidthInPixels;
 				}
-
-				index = layer->ScrollInfosSplitIndexes[spl] & 0xFF;
-				baseXOff = ((((int)currentView->X + layer->OffsetX) *
-						    layer->ScrollInfos[index].RelativeParallax) +
-						   Scene::Frame *
-							   layer->ScrollInfos[index]
-								   .ConstantParallax) >>
-					8;
-				TileBaseX = baseXOff;
-
-				// Loop or cut off sourceTileCellY
-				if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_Y)) {
-					if (sourceTileCellY < 0) {
-						goto SKIP_TILE_ROW_DRAW;
-					}
-					if (sourceTileCellY >= layer->Height) {
-						goto SKIP_TILE_ROW_DRAW;
-					}
-				}
-				while (sourceTileCellY < 0) {
-					sourceTileCellY += layer->Height;
-				}
-				while (sourceTileCellY >= layer->Height) {
-					sourceTileCellY -= layer->Height;
-				}
-
-				// Draw row of tiles
-				ix = TileBaseX >> 4;
-				baseX = tileWidthHalf;
-				baseX -= baseXOff & 15;
-
-				// To get the leftmost tile, ix--, and
-				// start t = -1
-				baseX -= 16;
-				ix--;
-
-				// sourceTileCellX = ((sourceTileCellX
-				// % layer->Width) + layer->Width) %
-				// layer->Width;
-				for (int t = 0; t < tileCellMaxWidth; t++) {
-					// Loop or cut off
-					// sourceTileCellX
-					sourceTileCellX = ix;
-					if (!(layer->Flags & SceneLayer::FLAGS_REPEAT_X)) {
-						if (sourceTileCellX < 0) {
-							goto SKIP_TILE_DRAW;
-						}
-						if (sourceTileCellX >= layer->Width) {
-							goto SKIP_TILE_DRAW;
-						}
-					}
-					else {
-						// sourceTileCellX =
-						// ((sourceTileCellX %
-						// layer->Width) +
-						// layer->Width) %
-						// layer->Width;
-						while (sourceTileCellX < 0) {
-							sourceTileCellX += layer->Width;
-						}
-						while (sourceTileCellX >= layer->Width) {
-							sourceTileCellX -= layer->Width;
-						}
-					}
-
-					tileOrig = tile = layer->Tiles[sourceTileCellX +
-						(sourceTileCellY << layer->WidthInBits)];
-
-					tile &= TILE_IDENT_MASK;
-					// "li == 0" should ideally be
-					// "layer->DrawGroup == 0", but
-					// in some games multiple
-					// layers will use DrawGroup ==
-					// 0, which would look bad &
-					// lag
-					if (tile != Scene::EmptyTile) { // || li == 0
-						flipX = !!(tileOrig & TILE_FLIPX_MASK);
-						flipY = !!(tileOrig & TILE_FLIPY_MASK);
-
-						int partY = TileBaseY & 0xF;
-						if (flipY) {
-							partY = tileHeight - height - partY;
-						}
-
-						TileSpriteInfo info = Scene::TileSpriteInfos[tile];
-						Graphics::DrawSpritePart(info.Sprite,
-							info.AnimationIndex,
-							info.FrameIndex,
-							0,
-							partY,
-							tileWidth,
-							height,
-							baseX,
-							baseY,
-							flipX,
-							flipY,
-							1.0f,
-							1.0f,
-							0.0f,
-							0);
-
-						if (Scene::ShowTileCollisionFlag && baseTileCfg &&
-							layer->ScrollInfoCount <= 1) {
-							col = 0;
-							if (Scene::ShowTileCollisionFlag == 1) {
-								col = (tileOrig &
-									      TILE_COLLA_MASK) >>
-									28;
-							}
-							else if (Scene::ShowTileCollisionFlag ==
-								2) {
-								col = (tileOrig &
-									      TILE_COLLB_MASK) >>
-									26;
-							}
-
-							switch (col) {
-							case 1:
-								Graphics::SetBlendColor(
-									1.0, 1.0, 0.0, 1.0);
-								break;
-							case 2:
-								Graphics::SetBlendColor(
-									1.0, 0.0, 0.0, 1.0);
-								break;
-							case 3:
-								Graphics::SetBlendColor(
-									1.0, 1.0, 1.0, 1.0);
-								break;
-							}
-
-							int xorFlipX = 0;
-							if (flipX) {
-								xorFlipX = tileWidth - 1;
-							}
-
-							if (baseTileCfg[tile].IsCeiling ^ flipY) {
-								for (int checkX = 0, realCheckX = 0;
-									checkX < tileWidth;
-									checkX++) {
-									realCheckX =
-										checkX ^ xorFlipX;
-									if (baseTileCfg[tile].CollisionTop
-											[realCheckX] <
-										0xF0) {
-										continue;
-									}
-
-									Uint8 colH =
-										baseTileCfg[tile].CollisionTop
-											[realCheckX];
-									Graphics::FillRectangle(
-										baseX - 8 + checkX,
-										baseY - 8,
-										1,
-										tileHeight - colH);
-								}
-							}
-							else {
-								for (int checkX = 0, realCheckX = 0;
-									checkX < tileWidth;
-									checkX++) {
-									realCheckX =
-										checkX ^ xorFlipX;
-									if (baseTileCfg[tile].CollisionBottom
-											[realCheckX] <
-										0xF0) {
-										continue;
-									}
-
-									Uint8 colH =
-										baseTileCfg[tile].CollisionBottom
-											[realCheckX];
-									Graphics::FillRectangle(
-										baseX - 8 + checkX,
-										baseY - 8 + colH,
-										1,
-										tileHeight - colH);
-								}
-							}
-						}
-					}
-
-				SKIP_TILE_DRAW:
-					ix++;
-					baseX += tileWidth;
-				}
-
-			SKIP_TILE_ROW_DRAW:
-				TileBaseY += height;
 			}
+
+			int sourceTileCellX = (srcX / tileWidth) & layerWidthTileMask;
+			int sourceTileCellY = (srcY / tileHeight) & layerHeightTileMask;
+			int tile = layer->Tiles[sourceTileCellX +
+				(sourceTileCellY << layerWidthInBits)];
+
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID == Scene::EmptyTile) {
+				continue;
+			}
+
+			int srcTX = srcX % tileWidth;
+			int srcTY = srcY % tileHeight;
+
+			Graphics::DrawTile(tileID,
+				viewX + ((dst_x - srcTX) + tileWidthHalf),
+				viewY + ((dst_y - srcTY) + tileHeightHalf),
+				(tile & TILE_FLIPX_MASK) != 0,
+				(tile & TILE_FLIPY_MASK) != 0,
+				usePaletteIndexLines);
 		}
 	}
 }
-void Graphics::DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView) {}
+void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView) {
+	int viewWidth = (int)std::ceil(currentView->GetScaledWidth());
+	int max_y = (int)std::ceil(currentView->GetScaledHeight());
+
+	int tileWidth = Scene::TileWidth;
+	int tileWidthHalf = tileWidth / 2;
+	int tileHeight = Scene::TileHeight;
+	int tileHeightHalf = tileHeight / 2;
+
+	int layerWidthInBits = layer->WidthInBits;
+	int layerWidthInPixels = layer->Width * tileWidth;
+	int layerWidthTileMask = layer->WidthMask;
+	int layerHeightTileMask = layer->HeightMask;
+
+	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
+
+	TileScanLine* scanLine = TileScanLineBuffer;
+	for (int dst_y = 0; dst_y < max_y;) {
+		Sint64 srcX = scanLine->SrcX >> 16;
+		Sint64 srcY = scanLine->SrcY >> 16;
+
+		int tileDrawHeight = 1;
+		int check_y = dst_y + 1;
+		while (check_y < max_y) {
+			if (srcX != TileScanLineBuffer[check_y].SrcX >> 16) {
+				break;
+			}
+
+			if ((srcY + tileDrawHeight) % tileHeight == 0) {
+				break;
+			}
+
+			tileDrawHeight++;
+			check_y++;
+		}
+
+		for (int dst_x = 0; dst_x < viewWidth + tileWidth;
+			dst_x += tileWidth, srcX += tileWidth) {
+			bool isInLayer = srcX >= 0 && srcX < layerWidthInPixels;
+			if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
+				if (srcX < 0) {
+					srcX = -(srcX % layerWidthInPixels);
+				}
+				else {
+					srcX %= layerWidthInPixels;
+				}
+				isInLayer = true;
+			}
+
+			if (!isInLayer) {
+				continue;
+			}
+
+			int sourceTileCellX = (srcX / Scene::TileWidth) & layerWidthTileMask;
+			int sourceTileCellY = (srcY / Scene::TileHeight) & layerHeightTileMask;
+			int tile = layer->Tiles[sourceTileCellX +
+				(sourceTileCellY << layerWidthInBits)];
+
+			if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
+				int tileID = tile & TILE_IDENT_MASK;
+				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
+				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
+
+				int srcTX = srcX % tileWidth;
+				int srcTY = srcY % tileHeight;
+
+				int textureSrcTY = srcTY;
+				if (flipY) {
+					textureSrcTY = tileHeight - srcTY - tileDrawHeight;
+				}
+
+				Graphics::DrawTilePart(tileID,
+					0,
+					textureSrcTY,
+					tileWidth,
+					tileDrawHeight,
+					currentView->X + ((dst_x - srcTX) + tileWidthHalf),
+					currentView->Y + ((dst_y - srcTY) + tileHeightHalf),
+					flipX,
+					flipY,
+					usePaletteIndexLines);
+			}
+		}
+
+		scanLine += tileDrawHeight;
+		dst_y += tileDrawHeight;
+	}
+}
 void Graphics::DrawSceneLayer(SceneLayer* layer,
 	View* currentView,
 	int layerIndex,
@@ -1529,17 +2749,21 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 		return;
 	}
 
-	switch (layer->DrawBehavior) {
-	default:
-	case DrawBehavior_HorizontalParallax:
-	case DrawBehavior_CustomTileScanLines:
-	case DrawBehavior_PGZ1_BG:
+	Shader* shader = (Shader*)layer->CurrentShader;
+	if (shader) {
+		Graphics::SetUserShader(shader);
+	}
+
+	if (layer->UsingScrollIndexes) {
+		Graphics::DrawSceneLayer_InitTileScanLines(layer, currentView);
+		Graphics::DrawSceneLayer_HorizontalScrollIndexes(layer, currentView);
+	}
+	else {
 		Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView);
-		break;
-		// case DrawBehavior_VerticalParallax:
-		//  Graphics::DrawSceneLayer_VerticalParallax(layer,
-		//  currentView);
-		break;
+	}
+
+	if (shader) {
+		Graphics::SetUserShader(nullptr);
 	}
 }
 void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
@@ -1859,16 +3083,11 @@ void Graphics::ConvertFromNativeToARGB(Uint32* argb, int count) {
 }
 
 void Graphics::SetStencilEnabled(bool enabled) {
+	Graphics::StencilEnabled = enabled;
+
 	if (Graphics::GfxFunctions->SetStencilEnabled) {
 		Graphics::GfxFunctions->SetStencilEnabled(enabled);
 	}
-}
-bool Graphics::GetStencilEnabled() {
-	if (Graphics::GfxFunctions->IsStencilEnabled) {
-		return Graphics::GfxFunctions->IsStencilEnabled();
-	}
-
-	return false;
 }
 void Graphics::SetStencilTestFunc(int stencilTest) {
 	if (stencilTest >= StencilTest_Never && stencilTest <= StencilTest_GEqual) {

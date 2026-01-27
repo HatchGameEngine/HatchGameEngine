@@ -26,6 +26,11 @@ void GarbageCollector::Init() {
 }
 
 void GarbageCollector::Collect() {
+	// Nothing to do
+	if (!RootObject) {
+		return;
+	}
+
 	GrayList.clear();
 
 	double grayElapsed = Clock::GetTicks();
@@ -49,21 +54,10 @@ void GarbageCollector::Collect() {
 	// Mark constants
 	GrayHashMap(ScriptManager::Constants);
 
-	// Mark static objects
-	for (Entity *ent = Scene::StaticObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
-
-		ScriptEntity* bobj = (ScriptEntity*)ent;
-		GrayObject(bobj->Instance);
-		GrayHashMap(bobj->Properties);
-	}
-	// Mark dynamic objects
-	for (Entity *ent = Scene::DynamicObjectFirst, *next; ent; ent = next) {
-		next = ent->NextEntity;
-
-		ScriptEntity* bobj = (ScriptEntity*)ent;
-		GrayObject(bobj->Instance);
-		GrayHashMap(bobj->Properties);
+	// Mark objects
+	for (Entity* ent = Scene::ObjectFirst; ent; ent = ent->NextSceneEntity) {
+		ScriptEntity* scriptEntity = (ScriptEntity*)ent;
+		GrayObject(scriptEntity->Instance);
 	}
 
 	// Mark Scene properties
@@ -120,7 +114,7 @@ void GarbageCollector::Collect() {
 			Obj* unreached = *object;
 			*object = unreached->Next;
 
-			GarbageCollector::FreeValue(OBJECT_VAL(unreached));
+			GarbageCollector::FreeObject(unreached);
 		}
 		else {
 			// This object was reached, so unmark it (for
@@ -137,7 +131,7 @@ void GarbageCollector::Collect() {
 	Log::Print(Log::LOG_VERBOSE, "Sweep: Freeing took %.1f ms", freeElapsed);
 
 	for (size_t i = 0; i < MAX_OBJ_TYPE; i++) {
-		if (objectTypeCounts[i]) {
+		if (objectTypeFreed[i] && objectTypeCounts[i]) {
 			Log::Print(Log::LOG_VERBOSE,
 				"Freed %d %s objects out of %d.",
 				objectTypeFreed[i],
@@ -151,44 +145,19 @@ void GarbageCollector::Collect() {
 
 void GarbageCollector::CollectResources() {
 	// Mark model materials
-	for (size_t i = 0; i < Scene::ModelList.size(); i++) {
-		if (!Scene::ModelList[i]) {
-			continue;
-		}
-
-		IModel* model = Scene::ModelList[i]->AsModel;
-		if (!model) {
-			continue;
-		}
-
-		for (size_t ii = 0; ii < model->Materials.size(); ii++) {
-			GrayObject(model->Materials[ii]->Object);
-		}
+	for (size_t i = 0; i < Material::List.size(); i++) {
+		GrayObject(Material::List[i]->Object);
 	}
 }
 
-void GarbageCollector::FreeValue(VMValue value) {
-	if (!IS_OBJECT(value)) {
-		return;
-	}
-
-	// If this object is an instance associated with an entity,
-	// then delete the latter
-	if (OBJECT_TYPE(value) == OBJ_INSTANCE) {
-		ObjInstance* instance = AS_INSTANCE(value);
-		if (instance->EntityPtr) {
-			Scene::DeleteRemoved((Entity*)instance->EntityPtr);
-		}
-	}
-
-	ScriptManager::FreeValue(value);
+void GarbageCollector::FreeObject(Obj* object) {
+	ScriptManager::DestroyObject(object);
 }
 
 void GarbageCollector::GrayValue(VMValue value) {
-	if (!IS_OBJECT(value)) {
-		return;
+	if (IS_OBJECT(value)) {
+		GrayObject(AS_OBJECT(value));
 	}
-	GrayObject(AS_OBJECT(value));
 }
 void GarbageCollector::GrayObject(void* obj) {
 	if (obj == NULL) {
@@ -226,27 +195,25 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_CLASS: {
 		ObjClass* klass = (ObjClass*)object;
-		GrayObject(klass->Name);
 		GrayHashMap(klass->Methods);
 		GrayHashMap(klass->Fields);
+		GrayValue(klass->Initializer);
+		GrayObject(klass->Parent);
 		break;
 	}
 	case OBJ_ENUM: {
 		ObjEnum* enumeration = (ObjEnum*)object;
-		GrayObject(enumeration->Name);
 		GrayHashMap(enumeration->Fields);
 		break;
 	}
 	case OBJ_NAMESPACE: {
 		ObjNamespace* ns = (ObjNamespace*)object;
-		GrayObject(ns->Name);
 		GrayHashMap(ns->Fields);
 		break;
 	}
 	case OBJ_FUNCTION: {
 		ObjFunction* function = (ObjFunction*)object;
-		GrayObject(function->Name);
-		GrayObject(function->ClassName);
+		GrayObject(function->Class);
 		for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
 			GrayValue((*function->Chunk.Constants)[i]);
 		}
@@ -254,7 +221,6 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_MODULE: {
 		ObjModule* module = (ObjModule*)object;
-		GrayObject(module->SourceFilename);
 		for (size_t i = 0; i < module->Locals->size(); i++) {
 			GrayValue((*module->Locals)[i]);
 		}
@@ -263,9 +229,17 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		}
 		break;
 	}
-	case OBJ_INSTANCE: {
+	case OBJ_INSTANCE:
+	case OBJ_NATIVE_INSTANCE: {
 		ObjInstance* instance = (ObjInstance*)object;
 		GrayHashMap(instance->Fields);
+		break;
+	}
+	case OBJ_ENTITY: {
+		ObjEntity* entity = (ObjEntity*)object;
+		ScriptEntity* scriptEntity = (ScriptEntity*)entity->EntityPtr;
+		GrayHashMap(entity->InstanceObj.Fields);
+		GrayHashMap(scriptEntity->Properties);
 		break;
 	}
 	case OBJ_ARRAY: {
@@ -286,4 +260,10 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		// No references
 		break;
 	}
+}
+
+void GarbageCollector::Dispose() {
+	Init();
+
+	vector<Obj*>().swap(GrayList);
 }

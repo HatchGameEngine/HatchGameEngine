@@ -141,6 +141,8 @@ void Log::Print(int sev, const char* format, ...) {
 		__android_log_print(ANDROID_LOG_VERBOSE, TARGET_NAME, "%s", Buffer);
 		return;
 	case LOG_INFO:
+	case LOG_IMPORTANT:
+	case LOG_API:
 		__android_log_print(ANDROID_LOG_INFO, TARGET_NAME, "%s", Buffer);
 		return;
 	case LOG_WARN:
@@ -149,7 +151,7 @@ void Log::Print(int sev, const char* format, ...) {
 	case LOG_ERROR:
 		__android_log_print(ANDROID_LOG_ERROR, TARGET_NAME, "%s", Buffer);
 		return;
-	case LOG_IMPORTANT:
+	case LOG_FATAL:
 		__android_log_print(ANDROID_LOG_FATAL, TARGET_NAME, "%s", Buffer);
 		return;
 	}
@@ -167,10 +169,14 @@ void Log::Print(int sev, const char* format, ...) {
 		ColorCode = 0xE;
 		break;
 	case LOG_ERROR:
+	case LOG_FATAL:
 		ColorCode = 0xC;
 		break;
 	case LOG_IMPORTANT:
 		ColorCode = 0xB;
+		break;
+	case LOG_API:
+		ColorCode = 0x2;
 		break;
 	}
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
@@ -191,10 +197,14 @@ void Log::Print(int sev, const char* format, ...) {
 		ColorCode = 93;
 		break;
 	case LOG_ERROR:
+	case LOG_FATAL:
 		ColorCode = 91;
 		break;
 	case LOG_IMPORTANT:
 		ColorCode = 96;
+		break;
+	case LOG_API:
+		ColorCode = 92;
 		break;
 	}
 	printf("\x1b[%d;1m", ColorCode);
@@ -215,6 +225,12 @@ void Log::Print(int sev, const char* format, ...) {
 		break;
 	case LOG_IMPORTANT:
 		severityText = "IMPORTANT: ";
+		break;
+	case LOG_FATAL:
+		severityText = "    FATAL: ";
+		break;
+	case LOG_API:
+		severityText = "      API: ";
 		break;
 	}
 

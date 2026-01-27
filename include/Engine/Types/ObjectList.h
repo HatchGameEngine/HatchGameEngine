@@ -11,8 +11,9 @@ public:
 	Entity* EntityFirst = nullptr;
 	Entity* EntityLast = nullptr;
 	char* ObjectName;
-	char* LoadFunctionName;
-	char* GlobalUpdateFunctionName;
+	std::string LoadFunctionName;
+	std::string GlobalUpdateFunctionName;
+	std::string GlobalFixedUpdateFunctionName;
 	ObjectListPerformance Performance;
 	Entity* (*SpawnFunction)(ObjectList*) = nullptr;
 
@@ -27,6 +28,7 @@ public:
 	void RemoveNonPersistentFromLinkedList(Entity* first, int persistence);
 	void RemoveNonPersistentFromLinkedList(Entity* first);
 	void ResetPerf();
+	int GetID(Entity* obj);
 	Entity* GetNth(int n);
 	Entity* GetClosest(int x, int y);
 	int Count();

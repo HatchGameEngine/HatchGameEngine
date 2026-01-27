@@ -980,12 +980,6 @@ void D3DRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.UpdateProjectionMatrix = D3DRenderer::UpdateProjectionMatrix;
 	Graphics::Internal.MakePerspectiveMatrix = D3DRenderer::MakePerspectiveMatrix;
 
-	// Shader-related functions
-	Graphics::Internal.UseShader = D3DRenderer::UseShader;
-	Graphics::Internal.SetUniformF = D3DRenderer::SetUniformF;
-	Graphics::Internal.SetUniformI = D3DRenderer::SetUniformI;
-	Graphics::Internal.SetUniformTexture = D3DRenderer::SetUniformTexture;
-
 	// These guys
 	Graphics::Internal.Clear = D3DRenderer::Clear;
 	Graphics::Internal.Present = D3DRenderer::Present;
@@ -1006,7 +1000,12 @@ void D3DRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.FillCircle = D3DRenderer::FillCircle;
 	Graphics::Internal.FillEllipse = D3DRenderer::FillEllipse;
 	Graphics::Internal.FillTriangle = D3DRenderer::FillTriangle;
+	Graphics::Internal.FillTriangleBlend = D3DRenderer::FillTriangleBlend;
 	Graphics::Internal.FillRectangle = D3DRenderer::FillRectangle;
+	Graphics::Internal.FillQuad = D3DRenderer::FillQuad;
+	Graphics::Internal.FillQuadBlend = D3DRenderer::FillQuadBlend;
+	Graphics::Internal.DrawTriangleTextured = D3DRenderer::DrawTriangleTextured;
+	Graphics::Internal.DrawQuadTextured = D3DRenderer::DrawQuadTextured;
 
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = D3DRenderer::DrawTexture;
@@ -1159,9 +1158,10 @@ void D3DRenderer::DisposeTexture(Texture* texture) {
 }
 
 // Viewport and view-related functions
-void D3DRenderer::SetRenderTarget(Texture* texture) {
+bool D3DRenderer::SetRenderTarget(Texture* texture) {
 	D3D_Predraw();
-	D3D_SetRenderTarget(texture);
+
+	return D3D_SetRenderTarget(texture) == 0;
 }
 void D3DRenderer::UpdateWindowSize(int width, int height) {
 	// D3D_UpdateViewport(0, 0, width, height);
@@ -1260,29 +1260,6 @@ void D3DRenderer::MakePerspectiveMatrix(Matrix4x4* out,
 	float aspect) {
 	Matrix4x4::Perspective(out, fov, aspect, near, far);
 }
-
-// Shader-related functions
-void D3DRenderer::UseShader(void* shader) {
-	// if (D3D_CurrentShader != (D3DShader*)shader) {
-	//     D3D_CurrentShader = (D3DShader*)shader;
-	//     D3D_CurrentShader->Use();
-	// }
-}
-void D3DRenderer::SetUniformF(int location, int count, float* values) {
-	// switch (count) {
-	//     case 1: glUniform1f(location, values[0]); CHECK_GL();
-	//     break; case 2: glUniform2f(location, values[0],
-	//     values[1]); CHECK_GL(); break; case 3:
-	//     glUniform3f(location, values[0], values[1], values[2]);
-	//     CHECK_GL(); break; case 4: glUniform4f(location,
-	//     values[0], values[1], values[2], values[3]); CHECK_GL();
-	//     break;
-	// }
-}
-void D3DRenderer::SetUniformI(int location, int count, int* values) {
-	// glUniform1iv(location, count, values);
-}
-void D3DRenderer::SetUniformTexture(Texture* texture, int uniform_index, int slot) {}
 
 // These guys
 void D3DRenderer::Clear() {
@@ -1496,6 +1473,15 @@ void D3DRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3,
 
 	D3D_EndDrawShape(vertices, D3DPT_TRIANGLEFAN, 1);
 }
+void D3DRenderer::FillTriangleBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3) {}
 void D3DRenderer::FillRectangle(float x, float y, float w, float h) {
 	D3D_BeginDrawShape(D3D_BufferSquareFill, 4);
 
@@ -1509,6 +1495,63 @@ void D3DRenderer::FillRectangle(float x, float y, float w, float h) {
 
 	D3D_EndDrawShape(D3D_BufferSquareFill, D3DPT_TRIANGLEFAN, 2);
 }
+void D3DRenderer::FillQuad(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4) {}
+void D3DRenderer::FillQuadBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4) {}
+void D3DRenderer::DrawTriangleTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3) {}
+void D3DRenderer::DrawQuadTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3,
+	float u4,
+	float v4) {}
 
 // Texture drawing functions
 void D3DRenderer::DrawTexture(Texture* texture,
@@ -1519,7 +1562,8 @@ void D3DRenderer::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
+	float h,
+	int paletteID) {
 	// UseShader(D3D_SelectedShader ? D3D_SelectedShader :
 	// D3D_ShaderTexturedShape);
 	if (sx < 0) {
@@ -1540,14 +1584,14 @@ void D3DRenderer::DrawTexture(Texture* texture,
 void D3DRenderer::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}
@@ -1586,14 +1630,14 @@ void D3DRenderer::DrawSpritePart(ISprite* sprite,
 	int sy,
 	int sw,
 	int sh,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
 	float scaleH,
 	float rotation,
-	unsigned paletteID) {
+	int paletteID) {
 	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
 		return;
 	}

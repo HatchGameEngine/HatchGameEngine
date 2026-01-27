@@ -4,6 +4,7 @@
 #include <Engine/Media/MediaPlayer.h>
 #include <Engine/Media/MediaSource.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/ResourceTypes/Font.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/ResourceTypes/ISprite.h>
@@ -23,8 +24,6 @@ struct ResourceType {
 		Image* AsImage;
 		ISound* AsSound;
 		ISound* AsMusic;
-		void* AsFont;
-		void* AsShader;
 		IModel* AsModel;
 		MediaBag* AsMedia;
 	};

@@ -8,7 +8,7 @@
 
 class SceneLayer {
 public:
-	char Name[50];
+	char* Name;
 	bool Visible = true;
 	int Width = 0;
 	int Height = 0;
@@ -20,10 +20,10 @@ public:
 	Uint32 HeightData = 0;
 	Uint32 DataSize = 0;
 	Uint32 ScrollIndexCount = 0;
-	int RelativeY = 0x0100;
-	int ConstantY = 0x0000;
-	int OffsetX = 0x0000;
-	int OffsetY = 0x0000;
+	float RelativeY = 1.0;
+	float ConstantY = 0.0;
+	float OffsetX = 0.0;
+	float OffsetY = 0.0;
 	Uint32* Tiles = NULL;
 	Uint32* TilesBackup = NULL;
 	Uint16* TileOffsetY = NULL;
@@ -39,6 +39,7 @@ public:
 	bool Blending = false;
 	Uint8 BlendMode = 0; // BlendMode_NORMAL
 	float Opacity = 1.0f;
+	void* CurrentShader = nullptr;
 	bool UsePaletteIndexLines = false;
 	bool UsingCustomScanlineFunction = false;
 	ObjFunction CustomScanlineFunction;
@@ -46,9 +47,8 @@ public:
 	ObjFunction CustomRenderFunction;
 	int ScrollInfoCount = 0;
 	ScrollingInfo* ScrollInfos = NULL;
-	int ScrollInfosSplitIndexesCount = 0;
-	Uint16* ScrollInfosSplitIndexes = NULL;
 	Uint8* ScrollIndexes = NULL;
+	bool UsingScrollIndexes = false;
 	Uint32 BufferID = 0;
 	int VertexCount = 0;
 	void* TileBatches = NULL;

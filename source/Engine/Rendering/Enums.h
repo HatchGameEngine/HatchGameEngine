@@ -4,6 +4,15 @@
 #include "Engine/Includes/Standard.h"
 
 enum {
+	TextureFilter_NEAREST,
+	TextureFilter_LINEAR,
+	TextureFilter_NEAREST_MIPMAP_NEAREST,
+	TextureFilter_LINEAR_MIPMAP_NEAREST,
+	TextureFilter_NEAREST_MIPMAP_LINEAR,
+	TextureFilter_LINEAR_MIPMAP_LINEAR
+};
+
+enum {
 	BlendMode_NORMAL = 0,
 	BlendMode_ADD = 1,
 	BlendMode_MAX = 2,
@@ -51,11 +60,12 @@ enum {
 	StencilOp_DecrWrap
 };
 
+enum { ALIGN_LEFT, ALIGN_CENTER, ALIGN_RIGHT };
+
 enum {
 	DrawBehavior_HorizontalParallax = 0,
 	DrawBehavior_VerticalParallax = 1,
-	DrawBehavior_CustomTileScanLines = 2,
-	DrawBehavior_PGZ1_BG = 3,
+	DrawBehavior_CustomTileScanLines = 2
 };
 
 enum {
@@ -84,6 +94,8 @@ enum {
 	DrawMode_FlagsMask = ~0xF
 };
 
+enum { TEXTDRAW_ELLIPSIS = 1 << 0 };
+
 struct TileScanLine {
 	Sint64 SrcX;
 	Sint64 SrcY;
@@ -111,7 +123,9 @@ struct Point {
 	float Y;
 	float Z;
 };
+// TODO: Graphics should have a pointer to a GraphicsState.
 struct GraphicsState {
+	void* CurrentShader;
 	Viewport CurrentViewport;
 	ClipArea CurrentClip;
 	float BlendColors[4];
@@ -134,12 +148,32 @@ struct BlendState {
 	int Opacity;
 	int Mode;
 	TintState Tint;
-	int* FilterTable;
+	int FilterMode;
 };
 
 typedef void (*PixelFunction)(Uint32*, Uint32*, BlendState&, int*, int*);
 typedef Uint32 (*TintFunction)(Uint32*, Uint32*, Uint32, Uint32);
 typedef bool (*StencilTestFunction)(Uint8*, Uint8, Uint8);
 typedef void (*StencilOpFunction)(Uint8*, Uint8);
+
+struct TextDrawParams {
+	float FontSize = 0.0f;
+	float Ascent = 0.0f;
+	float Descent = 0.0f;
+	float Leading = 0.0f;
+	int MaxWidth = 0;
+	int MaxLines = 0;
+	Uint8 Flags = 0;
+};
+
+struct LegacyTextDrawParams {
+	float Align = 0.0f;
+	float Baseline = 0.0f;
+	float Ascent = 0.0f;
+	float Advance = 0.0f;
+	int MaxWidth = 0;
+	int MaxLines = 0;
+	Uint8 Flags = 0;
+};
 
 #endif /* ENGINE_RENDERING_ENUMS */

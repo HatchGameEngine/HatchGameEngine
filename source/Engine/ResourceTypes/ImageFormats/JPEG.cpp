@@ -93,13 +93,9 @@ static void jpeg_Hatch_IO_src(j_decompress_ptr cinfo, Stream* stream) {
 }
 #endif
 
-JPEG* JPEG::Load(const char* filename) {
+JPEG* JPEG::Load(Stream* stream) {
 #ifdef USING_LIBJPEG
 	JPEG* jpeg = new JPEG;
-	Stream* stream = NULL;
-	// size_t fileSize;
-	// void*  fileBuffer = NULL;
-	// SDL_Surface* temp = NULL,* tempOld = NULL;
 
 	// JPEG variables
 	Sint64 start;
@@ -111,12 +107,6 @@ JPEG* JPEG::Load(const char* filename) {
 
 	Uint32 Rmask, Gmask, Bmask, Amask;
 	bool doConvert;
-
-	stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
-		goto JPEG_Load_FAIL;
-	}
 
 	start = stream->Position();
 
@@ -235,8 +225,6 @@ JPEG* JPEG::Load(const char* filename) {
 	}
 	else {
 		memcpy(jpeg->Data, pixelData, jpeg->Width * jpeg->Height * sizeof(Uint32));
-		// memcpy(jpeg->Data, pixelData, jpeg->Width *
-		// jpeg->Height * 3);
 	}
 	free(pixelData);
 
@@ -249,9 +237,6 @@ JPEG_Load_FAIL:
 JPEG_Load_Success:
 	if (cinfoFlag) {
 		jpeg_destroy_decompress(&cinfo);
-	}
-	if (stream) {
-		stream->Close();
 	}
 	return jpeg;
 #endif

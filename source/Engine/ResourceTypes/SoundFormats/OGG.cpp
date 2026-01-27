@@ -64,15 +64,10 @@ long OGG::StaticTell(void* ptr) {
 	return ((class Stream*)ptr)->Position();
 }
 
-SoundFormat* OGG::Load(const char* filename) {
+SoundFormat* OGG::Load(Stream* stream) {
 	VorbisGroup* vorbis;
 
 	OGG* ogg = NULL;
-	class Stream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Could not open file '%s'!", filename);
-		goto OGG_Load_FAIL;
-	}
 
 #ifdef USING_LIBOGG
 	ogg = new (std::nothrow) OGG;
@@ -83,10 +78,6 @@ SoundFormat* OGG::Load(const char* filename) {
 	ogg->StreamPtr = stream;
 
 	ov_callbacks callbacks;
-	// callbacks = OV_CALLBACKS_STREAMONLY;
-	// callbacks = OV_CALLBACKS_STREAMONLY_NOCLOSE;
-	// callbacks = OV_CALLBACKS_DEFAULT;
-	// callbacks = OV_CALLBACKS_NOCLOSE;
 
 	callbacks.read_func = OGG::StaticRead;
 	callbacks.seek_func = OGG::StaticSeek;
@@ -99,7 +90,7 @@ SoundFormat* OGG::Load(const char* filename) {
 
 	int res;
 	if ((res = ov_open_callbacks(ogg->StreamPtr, &vorbis->File, NULL, 0, callbacks)) != 0) {
-		Log::Print(Log::LOG_ERROR, "Could not read file '%s'!", filename);
+		Log::Print(Log::LOG_ERROR, "Could not read stream!");
 		switch (res) {
 		case OV_EREAD:
 			Log::Print(Log::LOG_ERROR, "A read from media returned an error.");
@@ -158,8 +149,7 @@ SoundFormat* OGG::Load(const char* filename) {
 		vorbis->VorbisSTB =
 			stb_vorbis_open_memory((Uint8*)vorbis->FileBlock, fileLength, &error, NULL);
 		if (!vorbis->VorbisSTB) {
-			Log::Print(
-				Log::LOG_ERROR, "Could not open Vorbis stream for %s!", filename);
+			Log::Print(Log::LOG_ERROR, "Could not open Vorbis stream!");
 
 			switch (error) {
 			case VORBIS_need_more_data:
@@ -230,6 +220,33 @@ SoundFormat* OGG::Load(const char* filename) {
 
 		auto info = stb_vorbis_get_info(vorbis->VorbisSTB);
 
+		stb_vorbis_comment comment = stb_vorbis_get_comment(vorbis->VorbisSTB);
+
+		for (int i = 0; i < comment.comment_list_length; i++) {
+			const char* entry = (const char*)comment.comment_list[i];
+
+			if (StringUtils::StartsWith(entry, "LOOPPOINT=")) {
+				const char* valueStr = entry + 10;
+
+				int loopPoint = -1;
+				if (StringUtils::ToNumber(&loopPoint, valueStr) && loopPoint >= 0) {
+					ogg->LoopPoint = loopPoint;
+				}
+
+				break;
+			}
+			if (StringUtils::StartsWith(entry, "Loop Point=")) {
+				const char* valueStr = entry + 11;
+
+				int loopPoint = -1;
+				if (StringUtils::ToNumber(&loopPoint, valueStr) && loopPoint >= 0) {
+					ogg->LoopPoint = loopPoint;
+				}
+
+				break;
+			}
+		}
+
 		memset(&ogg->InputFormat, 0, sizeof(SDL_AudioSpec));
 		ogg->InputFormat.format = AUDIO_S16SYS;
 		ogg->InputFormat.channels = info.channels;
@@ -253,9 +270,6 @@ OGG_Load_FAIL:
 	ogg = NULL;
 
 OGG_Load_SUCCESS:
-	if (stream) {
-		stream->Close();
-	}
 	return ogg;
 }
 
@@ -386,6 +400,7 @@ int OGG::GetSamples(Uint8* buffer, size_t count, Sint32 loopIndex) {
 	total /= SampleSize;
 
 	SampleIndex += total;
+
 	return total;
 #endif
 	return 0;

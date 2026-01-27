@@ -14,20 +14,32 @@
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISprite.h>
 
+struct PlotPixelContext {
+	Uint32* DestPx;
+	Uint32 DestStride;
+	BlendState Blend;
+	int* MultTable;
+	int* MultSubTable;
+	PixelFunction PixelFunc;
+	Uint32 Color;
+};
+
 class SoftwareRenderer {
 private:
 	static void SetColor(Uint32 color);
 	static Uint32 GetBlendColor();
 	static bool SetupPolygonRenderer(Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
 	static void InitContour(Contour* contourBuffer, int dst_y1, int scanLineCount);
-	static void RasterizeCircle(int ccx,
+	static void RasterizeEllipse(int ccx,
 		int ccy,
 		int dst_x1,
 		int dst_y1,
 		int dst_x2,
 		int dst_y2,
-		float rad,
-		Contour* contourBuffer);
+		float width,
+		float height,
+		Contour* contourBuffer,
+		PlotPixelContext* ctx);
 	static void StrokeThickCircle(float x, float y, float rad, float thickness);
 	static void DrawShapeTextured(Texture* texturePtr,
 		unsigned numPoints,
@@ -40,7 +52,6 @@ private:
 public:
 	static GraphicsFunctions BackendFunctions;
 	static Uint32 CompareColor;
-	static TileScanLine TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static Sint32 SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
 	static bool UseSpriteDeform;
 	static Contour ContourBuffer[MAX_FRAMEBUFFER_HEIGHT];
@@ -52,14 +63,14 @@ public:
 	static Uint32 GetWindowFlags();
 	static void SetGraphicsFunctions();
 	static void Dispose();
-	static void RenderStart();
-	static void RenderEnd();
+	static void RenderStart(int viewIndex);
+	static void RenderEnd(int viewIndex);
 	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
-	static void SetRenderTarget(Texture* texture);
+	static bool SetRenderTarget(Texture* texture);
 	static void ReadFramebuffer(void* pixels, int width, int height);
 	static void UpdateWindowSize(int width, int height);
 	static void UpdateViewport();
@@ -69,10 +80,6 @@ public:
 	static void UpdateProjectionMatrix();
 	static void
 	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
-	static void UseShader(void* shader);
-	static void SetUniformF(int location, int count, float* values);
-	static void SetUniformI(int location, int count, int* values);
-	static void SetUniformTexture(Texture* texture, int uniform_index, int slot);
 	static void SetFilter(int filter);
 	static void Clear();
 	static void Present();
@@ -154,7 +161,6 @@ public:
 		int* multSubTableAt);
 	static void SetTintFunction(int blendFlags);
 	static void SetStencilEnabled(bool enabled);
-	static bool IsStencilEnabled();
 	static void SetStencilTestFunc(int stencilTest);
 	static void SetStencilPassFunc(int stencilOp);
 	static void SetStencilFailFunc(int stencilOp);
@@ -222,7 +228,6 @@ public:
 	static void StrokeRectangle(float x, float y, float w, float h);
 	static void FillCircle(float x, float y, float rad);
 	static void FillEllipse(float x, float y, float w, float h);
-	static void FillRectangle(float x, float y, float w, float h);
 	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
 	static void FillTriangleBlend(float x1,
 		float y1,
@@ -233,6 +238,7 @@ public:
 		int c1,
 		int c2,
 		int c3);
+	static void FillRectangle(float x, float y, float w, float h);
 	static void
 	FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
 	static void FillQuadBlend(float x1,
@@ -292,18 +298,19 @@ public:
 		float x,
 		float y,
 		float w,
-		float h);
+		float h,
+		int paletteID);
 	static void DrawSprite(ISprite* sprite,
 		int animation,
 		int frame,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
+		int paletteID);
 	static void DrawSpritePart(ISprite* sprite,
 		int animation,
 		int frame,
@@ -311,16 +318,14 @@ public:
 		int sy,
 		int sw,
 		int sh,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
-	static void DrawTile(int tile, int x, int y, bool flipX, bool flipY);
-	static void DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView);
+		int paletteID);
 	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView);

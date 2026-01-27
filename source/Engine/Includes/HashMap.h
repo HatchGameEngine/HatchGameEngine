@@ -3,6 +3,7 @@
 
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Error.h>
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/Hashing/Murmur.h>
 #include <Engine/Includes/Standard.h>

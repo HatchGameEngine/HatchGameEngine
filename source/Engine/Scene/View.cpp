@@ -7,21 +7,52 @@ void View::SetSize(float w, float h) {
 	Height = h;
 	Stride = Math::CeilPOT(w);
 
-	if (UseStencil) {
+	if (Software) {
 		ReallocStencil();
 	}
 }
 
-void View::SetStencilEnabled(bool enabled) {
-	UseStencil = enabled;
-	if (!UseStencil) {
-		return;
+bool View::IsScaled() {
+	bool isScaled = ScaleX != 1.0 || ScaleY != 1.0;
+
+	// Software views don't support perspective cameras, so no scaling on the Z axis
+	if (Software) {
+		return isScaled;
 	}
 
-	ReallocStencil();
+	return isScaled || ScaleZ != 1.0;
+}
+bool View::IsRotated() {
+	// Software views don't support perspective cameras, so only rotate on the Z axis
+	if (Software) {
+		return RotateZ;
+	}
+
+	return RotateX || RotateY || RotateZ;
+}
+
+float View::GetScaledWidth() {
+	float scale = fabs(ScaleX);
+	if (scale < MIN_VIEW_SCALE) {
+		scale = MIN_VIEW_SCALE;
+	}
+
+	return Width * (1.0 / scale);
+}
+float View::GetScaledHeight() {
+	float scale = fabs(ScaleY);
+	if (scale < MIN_VIEW_SCALE) {
+		scale = MIN_VIEW_SCALE;
+	}
+
+	return Height * (1.0 / scale);
+}
+
+void View::SetStencilEnabled(bool enabled) {
+	UseStencil = enabled;
 }
 void View::ReallocStencil() {
-	if (DrawTarget == nullptr) {
+	if (!UseStencil || DrawTarget == nullptr) {
 		return;
 	}
 

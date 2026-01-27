@@ -7,6 +7,7 @@
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Error.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/MD5.h>
@@ -46,6 +47,8 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 		return false;
 	}
 
+	Scene::SceneType = SCENETYPE_HATCH;
+
 	// Read scene version
 	Uint8 verMajor = r->ReadByte();
 	Uint8 verMinor = r->ReadByte();
@@ -75,7 +78,8 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 	// Unused (number of kits)
 	r->ReadByte();
 
-	Scene::PriorityPerLayer = Scene::BasePriorityPerLayer;
+	Scene::FreePriorityLists();
+	Scene::PriorityPerLayer = BASE_PRIORITY_PER_LAYER;
 	Scene::InitPriorityLists();
 
 	// Read layers
@@ -112,25 +116,14 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 	Uint8 drawGroup = r->ReadByte();
 	Uint16 width = r->ReadUInt16();
 	Uint16 height = r->ReadUInt16();
+	Uint16 relativeY = r->ReadInt16();
+	Uint16 constantY = r->ReadInt16();
 
 	SceneLayer layer(width, height);
 
-	size_t nameBufLen = sizeof(layer.Name);
-	memset(layer.Name, 0x00, nameBufLen);
-
+	layer.Name = name;
 	layer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
 	layer.Visible = true;
-
-	// Copy its name
-	if (strlen(name) >= nameBufLen) {
-		Log::Print(Log::LOG_WARN,
-			"Layer name '%s' is longer than max size of %u, truncating",
-			name,
-			nameBufLen);
-	}
-
-	StringUtils::Copy(layer.Name, name, nameBufLen);
-	Memory::Free(name);
 
 	// Set draw group and behavior
 	if (drawGroup & 0x10) {
@@ -141,16 +134,24 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 	layer.DrawGroup = drawGroup;
 	layer.DrawBehavior = drawBehavior;
 
-	layer.RelativeY = r->ReadInt16();
-	layer.ConstantY = r->ReadInt16();
+	layer.RelativeY = (float)relativeY / 0x100;
+	layer.ConstantY = (float)constantY / 0x100;
 
 	layer.ScrollInfoCount = r->ReadUInt16();
-	layer.ScrollInfos =
-		(ScrollingInfo*)Memory::Malloc(layer.ScrollInfoCount * sizeof(ScrollingInfo));
 
-	if (!layer.ScrollInfos) {
-		Log::Print(Log::LOG_ERROR, "Out of memory!");
-		exit(-1);
+	if (layer.ScrollInfoCount > 0) {
+		layer.ScrollInfos = (ScrollingInfo*)Memory::Malloc(
+			layer.ScrollInfoCount * sizeof(ScrollingInfo));
+
+		if (!layer.ScrollInfos) {
+			Error::Fatal("Out of memory in HatchSceneReader::ReadLayer!");
+		}
+
+		layer.UsingScrollIndexes = true;
+	}
+	else {
+		layer.ScrollInfos = nullptr;
+		layer.UsingScrollIndexes = false;
 	}
 
 	// Read scroll data
@@ -219,14 +220,14 @@ void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer* layer) {
 	for (Uint16 i = 0; i < layer->ScrollInfoCount; i++) {
 		ScrollingInfo* info = &layer->ScrollInfos[i];
 
-		info->RelativeParallax = r->ReadInt16();
-		info->ConstantParallax = r->ReadInt16();
-		info->CanDeform = r->ReadByte();
+		Uint16 relativeParallax = r->ReadInt16();
+		Uint16 constantParallax = r->ReadInt16();
+
+		info->RelativeParallax = (float)relativeParallax / 0x100;
+		info->ConstantParallax = (float)constantParallax / 0x100;
+		info->CanDeform = (bool)r->ReadByte();
 
 		r->ReadByte(); // ?
-
-		info->Position = 0;
-		info->Offset = 0;
 	}
 
 	size_t streamPos = r->Position();
@@ -464,6 +465,15 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		Uint32 objectHash = CRC32::EncryptData(&classHash.A, 16);
 		char* objectName = scnClass->Name;
 
+		if (!filter) {
+			filter = 0xFF;
+		}
+
+		if (!(filter & Scene::Filter)) {
+			HatchSceneReader::SkipEntityProperties(r, numProps);
+			continue;
+		}
+
 		// Spawn the object, if the class exists
 		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
 		if (objectList->SpawnFunction) {
@@ -478,10 +488,11 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 			obj->InitialX = posX;
 			obj->InitialY = posY;
 			obj->List = objectList;
-			obj->SlotID = (int)i;
+			obj->SlotID = (int)i + Scene::ReservedSlotIDs;
 			Scene::AddStatic(objectList, obj);
 
 			// Add "filter" property
+			obj->Filter = filter;
 			obj->Properties->Put("filter", INTEGER_VAL(filter));
 
 			// Add all properties
@@ -561,8 +572,8 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 					strLength = r->ReadUInt16();
 					strVar = (char*)malloc(strLength);
 					if (!strVar) {
-						Log::Print(Log::LOG_ERROR, "Out of memory!");
-						exit(-1);
+						Error::Fatal(
+							"Out of memory in HatchSceneReader::ReadEntities!");
 					}
 
 					for (size_t i = 0; i < strLength; i++) {

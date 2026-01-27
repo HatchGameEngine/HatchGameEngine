@@ -367,6 +367,7 @@ void AudioManager::RemoveMusic(ISound* music) {
 		if (MusicStack[i]->Audio == music) {
 			delete MusicStack[i];
 			MusicStack.erase(MusicStack.begin() + i);
+			i--;
 		}
 	}
 	AudioManager::Unlock();
@@ -855,6 +856,10 @@ void AudioManager::AudioCallback(void* data, Uint8* stream, int len) {
 }
 
 void AudioManager::Dispose() {
+	if (SoundArray) {
+		AudioManager::ClearSounds();
+	}
+
 	Memory::Free(SoundArray);
 	Memory::Free(AudioQueue);
 	Memory::Free(MixBuffer);

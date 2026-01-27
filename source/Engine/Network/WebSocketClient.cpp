@@ -1,4 +1,6 @@
+#include <Engine/Diagnostics/Memory.h>
 #include <Engine/Network/WebSocketClient.h>
+#include <Engine/Network/WebSocketIncludes.h>
 
 const char* BASE64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -344,7 +346,11 @@ WebSocketClient* WebSocketClient::New(const char* url) {
 	fcntl(sockfd, F_SETFL, O_NONBLOCK);
 #endif
 
-	socket->socket = sockfd;
+	socket->SocketPtr = Memory::Malloc(sizeof(socket_t));
+	if (!socket->SocketPtr) {
+		goto FREE;
+	}
+	memcpy(socket->SocketPtr, &sockfd, sizeof(socket_t));
 	socket->readyState = OPEN;
 	socket->useMask = false;
 	socket->isRxBad = false;
@@ -358,6 +364,12 @@ FREE:
 	return NULL;
 }
 void WebSocketClient::Poll(int timeout) {
+	if (!SocketPtr) {
+		return;
+	}
+
+	socket_t socket = *((socket_t*)SocketPtr);
+
 	if (readyState == WebSocketClient::CLOSED) {
 		if (timeout > 0) {
 			timeval tv = {timeout / 1000, (timeout % 1000) * 1000};
@@ -832,4 +844,7 @@ void WebSocketClient::Close() {
 #ifdef _WIN32
 	WSACleanup();
 #endif
+}
+WebSocketClient::~WebSocketClient() {
+	Memory::Free(SocketPtr);
 }

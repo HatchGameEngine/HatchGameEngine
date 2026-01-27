@@ -2,11 +2,14 @@
 #define ENGINE_APPLICATION_H
 
 #include <Engine/Audio/AudioManager.h>
+#include <Engine/Diagnostics/PerformanceTypes.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/Version.h>
 #include <Engine/InputManager.h>
 #include <Engine/Math/Math.h>
+#include <Engine/Platforms/Capability.h>
+#include <Engine/ResourceTypes/Font.h>
 #include <Engine/Scene.h>
 #include <Engine/TextFormats/INI/INI.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
@@ -29,15 +32,32 @@ private:
 	static char SavesDir[256];
 	static char PreferencesDir[256];
 
+	static std::unordered_map<std::string, Capability> CapabilityMap;
+
 	static void LogEngineVersion();
 	static void LogSystemInfo();
+	static void ResetTimestepVariables();
 	static void MakeEngineVersion();
+	static void InitPerformanceMetrics();
+	static void AddPerformanceMetric(PerformanceMeasure* dest,
+		const char* name,
+		float r,
+		float g,
+		float b,
+		bool* isVisible);
+	static void
+	AddPerformanceMetric(PerformanceMeasure* dest, const char* name, float r, float g, float b);
+	static void RemoveCapability(std::string capability);
 	static bool ValidateIdentifier(const char* string);
 	static char* GenerateIdentifier(const char* string);
 	static bool
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
+	static void UnloadDefaultFont();
+	static void GetPerformanceSnapshot();
 	static void CreateWindow();
-	static void Restart();
+	static void EndGame();
+	static void UnloadGame();
+	static void Restart(bool keepScene);
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
 	static void LoadKeyBinds();
@@ -45,28 +65,54 @@ private:
 	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest);
 	static void PollEvents();
 	static void RunFrame(int runFrames);
-	static void RunFrameCallback(void* p);
+	static void MainLoop();
+	static void MainLoopCallback(void* p);
+	static void DrawPerformance();
 	static void DelayFrame();
+	static void SetUseFixedTimestep(bool useFixedTimestep);
 	static void StartGame(const char* startingScene);
 	static void LoadGameConfig();
 	static void DisposeGameConfig();
 	static string ParseGameVersion(XMLNode* versionNode);
+	static void InitGameInfo();
 	static void LoadGameInfo();
+	static void DisposeSettings();
 	static int HandleAppEvents(void* data, SDL_Event* event);
+	static void DrawDevString(const char* string, int x, int y, int align, bool isSelected);
+	static void OpenDevMenu();
+	static void CloseDevMenu();
+	static void SetBlendColor(int color);
+	static void
+	DrawRectangle(float x, float y, float width, float height, int color, int alpha);
+	static void RunDevMenu();
+	static void DevMenu_DrawMainMenu();
+	static void DevMenu_DrawTitleBar();
+	static void DevMenu_MainMenu();
+	static void DevMenu_CategorySelectMenu();
+	static void DevMenu_SceneSelectMenu();
+	static void DevMenu_SettingsMenu();
+	static void DevMenu_VideoMenu();
+	static void DevMenu_AudioMenu();
 
 public:
-	static vector<char*> CmdLineArgs;
+	static vector<std::string> CmdLineArgs;
+	static std::vector<std::string> DefaultFontList;
 	static INI* Settings;
 	static char SettingsFile[MAX_PATH_LENGTH];
 	static XMLNode* GameConfig;
+	static Font* DefaultFont;
 	static int TargetFPS;
 	static float CurrentFPS;
 	static bool Running;
 	static bool FirstFrame;
+	static bool ShowFPS;
 	static SDL_Window* Window;
 	static char WindowTitle[256];
 	static int WindowWidth;
 	static int WindowHeight;
+	static int WindowScale;
+	static bool WindowFullscreen;
+	static bool WindowBorderless;
 	static int DefaultMonitor;
 	static Platforms Platform;
 	static char EngineVersion[256];
@@ -75,6 +121,11 @@ public:
 	static char GameVersion[256];
 	static char GameDescription[256];
 	static char GameDeveloper[256];
+	static bool UseFixedTimestep;
+	static bool ShouldUseFixedTimestep;
+	static double DeltaTime;
+	static float ActualDeltaTime;
+	static double FixedUpdateCounter;
 	static int UpdatesPerFrame;
 	static int FrameSkip;
 	static bool Stepper;
@@ -82,21 +133,39 @@ public:
 	static int MasterVolume;
 	static int MusicVolume;
 	static int SoundVolume;
-	static bool DevMenuActivated;
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
+	static bool DisableDefaultActions;
+
+	static bool DevMenuActivated;
+	static DeveloperMenu DevMenu;
+
+	static ApplicationMetrics Metrics;
+	static std::vector<PerformanceMeasure*> AllMetrics;
 
 	static void Init(int argc, char* args[]);
+	static void InitScripting();
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();
 	static bool IsMobile();
+	static void AddCapability(std::string capability, int value);
+	static void AddCapability(std::string capability, float value);
+	static void AddCapability(std::string capability, bool value);
+	static void AddCapability(std::string capability, std::string value);
+	static Capability GetCapability(std::string capability);
+	static bool HasCapability(std::string capability);
 	static const char* GetDeveloperIdentifier();
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();
 	static const char* GetPreferencesDir();
-	static void GetPerformanceSnapshot();
+	static void LoadDefaultFont();
+	static double GetOverdelay();
 	static void SetWindowTitle(const char* title);
 	static void UpdateWindowTitle();
+	static bool SetNextGame(const char* path,
+		const char* startingScene,
+		std::vector<std::string>* cmdLineArgs);
+	static bool ChangeGame(const char* path);
 	static void SetMasterVolume(int volume);
 	static void SetMusicVolume(int volume);
 	static void SetSoundVolume(int volume);
@@ -105,17 +174,19 @@ public:
 	static bool GetWindowFullscreen();
 	static void SetWindowFullscreen(bool isFullscreen);
 	static void SetWindowBorderless(bool isBorderless);
+	static void SetWindowScale(int scale);
 	static int GetKeyBind(int bind);
 	static void SetKeyBind(int bind, int key);
 	static void Run(int argc, char* args[]);
 	static void Cleanup();
-	static void LoadSceneInfo();
+	static void TerminateScripting();
+	static void LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene);
 	static void InitPlayerControls();
 	static bool LoadSettings(const char* filename);
 	static void ReadSettings();
 	static void ReloadSettings();
 	static void ReloadSettings(const char* filename);
-	static void InitSettings(const char* filename);
+	static void InitSettings();
 	static void SaveSettings();
 	static void SaveSettings(const char* filename);
 	static void SetSettingsFilename(const char* filename);

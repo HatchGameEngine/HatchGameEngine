@@ -15,6 +15,8 @@ public:
 	static bool WildcardMatch(const char* first, const char* second);
 	static bool StartsWith(const char* string, const char* compare);
 	static bool StartsWith(std::string string, std::string compare);
+	static bool StartsWithCaseInsensitive(const char* string, const char* compare);
+	static bool StartsWithCaseInsensitive(std::string string, std::string compare);
 	static char* StrCaseStr(const char* haystack, const char* needle);
 	static size_t Copy(char* dst, const char* src, size_t sz);
 	static size_t Copy(char* dst, std::string src, size_t sz);
@@ -31,6 +33,9 @@ public:
 	static char* NormalizePath(const char* path);
 	static void NormalizePath(const char* path, char* dest, size_t destSize);
 	static void ReplacePathSeparatorsInPlace(char* path);
+	static int DecodeUTF8Char(const char* chr, int& numChars);
+	static std::vector<Uint32> GetCodepoints(const char* text);
+	static std::string FromCodepoints(std::vector<Uint32> codepoints);
 };
 
 #endif /* ENGINE_UTILITIES_STRINGUTILS_H */

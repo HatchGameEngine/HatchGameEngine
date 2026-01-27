@@ -12,6 +12,52 @@
 #include <Engine/Rendering/Texture.h>
 #include <Engine/ResourceTypes/ISprite.h>
 
+#ifdef DEBUG
+#define GL_DO_ERROR_CHECKING
+#endif
+
+#define USE_USHORT_VTXBUFFER
+#define USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
+
+#define GL_SUPPORTS_MULTISAMPLING
+#define GL_SUPPORTS_SMOOTHING
+#define GL_SUPPORTS_RENDERBUFFER
+#define GL_MONOCHROME_PIXELFORMAT GL_RED
+
+#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
+#define GL_ES
+#undef GL_SUPPORTS_MULTISAMPLING
+#undef GL_SUPPORTS_SMOOTHING
+#undef GL_MONOCHROME_PIXELFORMAT
+#undef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
+#define GL_MONOCHROME_PIXELFORMAT GL_LUMINANCE
+#endif
+
+#ifdef GL_ES
+#undef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
+#endif
+
+#if GL_ES_VERSION_2_0
+#define USE_DEPTH_COMPONENT16
+#endif
+
+#ifdef USE_OES_PACKED_DEPTH_STENCIL
+#define GL_DEPTH24_STENCIL8 GL_DEPTH24_STENCIL8_OES
+#define GL_DEPTH_STENCIL_ATTACHMENT GL_DEPTH_STENCIL_ATTACHMENT_OES
+#endif
+
+#ifdef USE_OES_DEPTH_COMPONENT24
+#define GL_DEPTH_COMPONENT24 GL_DEPTH_COMPONENT24_OES
+#endif
+
+// #define HAVE_GL_PERFSTATS
+
+#ifdef GL_DO_ERROR_CHECKING
+#define CHECK_GL() GLRenderer::CheckError(__LINE__)
+#else
+#define CHECK_GL()
+#endif
+
 class GLRenderer {
 public:
 	static SDL_GLContext Context;
@@ -20,7 +66,9 @@ public:
 	static GLShaderContainer* ShaderShape3D;
 	static GLShaderContainer* ShaderFogLinear;
 	static GLShaderContainer* ShaderFogExp;
+#ifdef GL_HAVE_YUV
 	static GLShaderContainer* ShaderYUV;
+#endif
 	static GLint DefaultFramebuffer;
 	static GLint DefaultRenderbuffer;
 	static GLuint BufferCircleFill;
@@ -43,9 +91,11 @@ public:
 		int pitchU,
 		void* pixelsV,
 		int pitchV);
+	static void SetTextureMinFilter(Texture* texture, int filterMode);
+	static void SetTextureMagFilter(Texture* texture, int filterMode);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
-	static void SetRenderTarget(Texture* texture);
+	static bool SetRenderTarget(Texture* texture);
 	static void ReadFramebuffer(void* pixels, int width, int height);
 	static void UpdateWindowSize(int width, int height);
 	static void UpdateViewport();
@@ -55,11 +105,18 @@ public:
 	static void UpdateProjectionMatrix();
 	static void
 	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
-	static void UseShader(void* shader);
-	static void SetUniformF(int location, int count, float* values);
-	static void SetUniformI(int location, int count, int* values);
-	static void SetUniformTexture(Texture* texture, int uniform_index, int slot);
-	static void UpdateGlobalPalette();
+	static Shader* CreateShader();
+	static void SetUserShader(Shader* shader);
+	static int GetTextureID(void* ptr);
+	static void BindTexture(Texture* texture, int textureUnit);
+	static void BindTexture(int textureID, int textureUnit);
+	static int GetTextureUnit();
+	static void SetTextureUnit(int textureUnit);
+	static int GetCurrentProgram();
+	static void SetCurrentProgram(int program);
+	static void SetFilter(int filter);
+	static void UpdateGlobalPalette(Texture* texture);
+	static void UpdatePaletteIndexTable(Texture* texture);
 	static void Clear();
 	static void Present();
 	static void SetBlendColor(float r, float g, float b, float a);
@@ -68,6 +125,13 @@ public:
 	static void SetTintMode(int mode);
 	static void SetTintEnabled(bool enabled);
 	static void SetLineWidth(float n);
+	static void SetStencilEnabled(bool enabled);
+	static void SetStencilTestFunc(int stencilTest);
+	static void SetStencilPassFunc(int stencilOp);
+	static void SetStencilFailFunc(int stencilOp);
+	static void SetStencilValue(int value);
+	static void SetStencilMask(int mask);
+	static void ClearStencil();
 	static void StrokeLine(float x1, float y1, float x2, float y2);
 	static void StrokeCircle(float x, float y, float rad, float thickness);
 	static void StrokeEllipse(float x, float y, float w, float h);
@@ -75,7 +139,67 @@ public:
 	static void FillCircle(float x, float y, float rad);
 	static void FillEllipse(float x, float y, float w, float h);
 	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
+	static void FillTriangleBlend(float x1,
+		float y1,
+		float x2,
+		float y2,
+		float x3,
+		float y3,
+		int c1,
+		int c2,
+		int c3);
 	static void FillRectangle(float x, float y, float w, float h);
+	static void
+	FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
+	static void FillQuadBlend(float x1,
+		float y1,
+		float x2,
+		float y2,
+		float x3,
+		float y3,
+		float x4,
+		float y4,
+		int c1,
+		int c2,
+		int c3,
+		int c4);
+	static void DrawTriangleTextured(Texture* texturePtr,
+		float x1,
+		float y1,
+		float x2,
+		float y2,
+		float x3,
+		float y3,
+		int c1,
+		int c2,
+		int c3,
+		float u1,
+		float v1,
+		float u2,
+		float v2,
+		float u3,
+		float v3);
+	static void DrawQuadTextured(Texture* texturePtr,
+		float x1,
+		float y1,
+		float x2,
+		float y2,
+		float x3,
+		float y3,
+		float x4,
+		float y4,
+		int c1,
+		int c2,
+		int c3,
+		int c4,
+		float u1,
+		float v1,
+		float u2,
+		float v2,
+		float u3,
+		float v3,
+		float u4,
+		float v4);
 	static Uint32 CreateTexturedShapeBuffer(float* data, int vertexCount);
 	static void DrawTexturedShapeBuffer(Texture* texture, Uint32 bufferID, int vertexCount);
 	static void DrawTexture(Texture* texture,
@@ -86,18 +210,19 @@ public:
 		float x,
 		float y,
 		float w,
-		float h);
+		float h,
+		int paletteID);
 	static void DrawSprite(ISprite* sprite,
 		int animation,
 		int frame,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
+		int paletteID);
 	static void DrawSpritePart(ISprite* sprite,
 		int animation,
 		int frame,
@@ -105,14 +230,14 @@ public:
 		int sy,
 		int sw,
 		int sh,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,
 		float scaleH,
 		float rotation,
-		unsigned paletteID);
+		int paletteID);
 	static void DrawPolygon3D(void* data,
 		int vertexCount,
 		int vertexFlag,
@@ -146,6 +271,7 @@ public:
 	static void MakeFrameBufferID(ISprite* sprite);
 	static void DeleteFrameBufferID(ISprite* sprite);
 	static void SetDepthTesting(bool enable);
+	static bool CheckError(int line);
 };
 
 #endif /* ENGINE_RENDERING_GL_GLRENDERER_H */
