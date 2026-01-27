@@ -5,6 +5,11 @@
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 
+/***
+* \class Texture
+* \desc Representation of a GPU texture.
+*/
+
 ObjClass* TextureImpl::Class = nullptr;
 
 void TextureImpl::Init() {
@@ -38,11 +43,11 @@ Obj* TextureImpl::New() {
 /***
  * \constructor
  * \desc Creates a texture with the given dimensions.
- * \param width (Integer): The width of the texture.
- * \param height (Integer): The height of the texture.
- * \paramOpt access (Enum): The <linkto ref="TEXTUREACCESS_*">access mode</linkto> of the texture. The default is <code>TEXTUREACCESS_STATIC</code>.
- * \paramOpt format (Enum): The <linkto ref="TEXTUREFORMAT_*">format</linkto> of the texture. The default is <code>TEXTUREFORMAT_RGB888</code>, or <code>TextureFormat_NATIVE</code> for render target textures.
- * \paramOpt pixels (Array): An array of pixels to initialize the texture with. The length of the array must match the dimensions of the texture (e.g., for a 64x64 texture, you must pass an array of exactly 4096 values.)
+ * \param width (integer): The width of the texture.
+ * \param height (integer): The height of the texture.
+ * \paramOpt access (<ref TEXTUREACCESS_*>): The access mode of the texture. (default: <ref TEXTUREACCESS_STATIC>)
+ * \paramOpt format (<ref TEXTUREFORMAT_*>): The format of the texture. The default is <ref TEXTUREFORMAT_RGB888>, or <ref TEXTUREFORMAT_NATIVE> for render target textures.
+ * \paramOpt pixels (array): An array of pixels to initialize the texture with. The length of the array must match the dimensions of the texture (e.g., for a 64x64 texture, you must pass an array of exactly 4096 values.)
  * \ns Texture
  */
 VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
@@ -251,13 +256,13 @@ ObjTexture* TextureImpl::GetTextureObject(void* texture) {
 /***
  * \method CopyPixels
  * \desc Copies pixels from another Texture or Image into the texture.
- * \param srcTexture The texture or image to copy pixels from.
- * \param srcX The X offset of the region to copy.
- * \param srcY The Y offset of the region to copy.
- * \param srcWidth The width of the region to copy.
- * \param srcHeight The height of the region to copy.
- * \param destX The X offset of the destination.
- * \param destY The Y offset of the destination.
+ * \param srcTexture (Texture): The texture or image to copy pixels from.
+ * \param srcX (integer): The X offset of the region to copy.
+ * \param srcY (integer): The Y offset of the region to copy.
+ * \param srcWidth (integer): The width of the region to copy.
+ * \param srcHeight (integer): The height of the region to copy.
+ * \param destX (integer): The X offset of the destination.
+ * \param destY (integer): The Y offset of the destination.
  * \ns Texture
  */
 VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID) {
@@ -310,8 +315,8 @@ VMValue TextureImpl::VM_Apply(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method SetSize
  * \desc Changes the dimensions of the texture, without scaling the pixels.
- * \param width (Integer): The new width of the texture.
- * \param height (Integer): The new height of the texture.
+ * \param width (integer): The new width of the texture.
+ * \param height (integer): The new height of the texture.
  * \ns Texture
  */
 VMValue TextureImpl::VM_SetSize(int argCount, VMValue* args, Uint32 threadID) {
@@ -352,8 +357,8 @@ VMValue TextureImpl::VM_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method Scale
  * \desc Scales the texture to the given dimensions, using nearest neighbor interpolation.
- * \param width (Integer): The new width of the texture.
- * \param height (Integer): The new height of the texture.
+ * \param width (integer): The new width of the texture.
+ * \param height (integer): The new height of the texture.
  * \ns Texture
  */
 VMValue TextureImpl::VM_Scale(int argCount, VMValue* args, Uint32 threadID) {
@@ -394,9 +399,9 @@ VMValue TextureImpl::VM_Scale(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method GetPixel
  * \desc Gets the pixel at the specified coordinates. If the coordinates are not within the texture's dimensions, they wrap around.
- * \param x (Integer): The X coordinate of the pixel to get.
- * \param y (Integer): The Y coordinate of the pixel to get.
- * \return Returns a color in the pixel format of the texture.
+ * \param x (integer): The X coordinate of the pixel to get.
+ * \param y (integer): The Y coordinate of the pixel to get.
+ * \return integer Returns a color in the pixel format of the texture.
  * \ns Texture
  */
 VMValue TextureImpl::VM_GetPixel(int argCount, VMValue* args, Uint32 threadID) {
