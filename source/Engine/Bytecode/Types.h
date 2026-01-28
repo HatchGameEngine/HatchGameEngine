@@ -2,6 +2,7 @@
 #define ENGINE_BYTECODE_TYPES_H
 
 #include <Engine/Includes/HashMap.h>
+#include <Engine/Includes/OrderedHashMap.h>
 
 #include <Engine/IO/Stream.h>
 
@@ -329,8 +330,8 @@ struct ObjArray {
 };
 struct ObjMap {
 	Obj Object;
-	HashMap<VMValue>* Values;
-	HashMap<char*>* Keys;
+	OrderedHashMap<VMValue>* Values;
+	OrderedHashMap<char*>* Keys;
 };
 struct ObjNamespace {
 	Obj Object;

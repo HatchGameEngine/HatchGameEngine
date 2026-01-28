@@ -21,8 +21,8 @@ Obj* MapImpl::New() {
 	Memory::Track(map, "NewMap");
 	map->Object.Class = Class;
 	map->Object.Destructor = Dispose;
-	map->Values = new HashMap<VMValue>(NULL, 4);
-	map->Keys = new HashMap<char*>(NULL, 4);
+	map->Values = new OrderedHashMap<VMValue>(NULL, 4);
+	map->Keys = new OrderedHashMap<char*>(NULL, 4);
 	return (Obj*)map;
 }
 

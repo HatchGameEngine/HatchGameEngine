@@ -174,12 +174,7 @@ void ValuePrinter::PrintMap(ObjMap* map, int indent) {
 
 		hash = map->Values->Keys[i];
 		value = map->Values->Data[hash];
-		if (map->Keys && map->Keys->Exists(hash)) {
-			buffer_printf(Buffer, "\"%s\": ", map->Keys->Get(hash));
-		}
-		else {
-			buffer_printf(Buffer, "0x%08X: ", hash);
-		}
+		buffer_printf(Buffer, "\"%s\": ", map->Keys->Get(hash));
 		PrintValue(value, indent + 1);
 	}
 	if (PrettyPrint) {

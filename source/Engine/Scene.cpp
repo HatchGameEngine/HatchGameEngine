@@ -56,7 +56,7 @@ bool Scene::UseRenderRegions = true;
 HashMap<VMValue>* Scene::Properties = NULL;
 
 // Object variables
-HashMap<ObjectList*>* Scene::ObjectLists = NULL;
+OrderedHashMap<ObjectList*>* Scene::ObjectLists = NULL;
 HashMap<ObjectRegistry*>* Scene::ObjectRegistries = NULL;
 
 HashMap<ObjectList*>* Scene::StaticObjectLists = NULL;
@@ -754,7 +754,7 @@ void Scene::Init() {
 }
 void Scene::InitObjectListsAndRegistries() {
 	if (Scene::ObjectLists == NULL) {
-		Scene::ObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
+		Scene::ObjectLists = new OrderedHashMap<ObjectList*>(CombinedHash::EncryptData, 4);
 	}
 	if (Scene::ObjectRegistries == NULL) {
 		Scene::ObjectRegistries =
@@ -1832,11 +1832,12 @@ void Scene::Restart() {
 	// Clean up object lists
 	// Done after all objects are created.
 	if (Scene::ObjectLists && Scene::StaticObjectLists) {
-		Scene::ObjectLists->ForAll([](Uint32 key, ObjectList* list) -> void {
+		Scene::ObjectLists->EraseIf([](Uint32 key, ObjectList* list) -> bool {
 			if (!list->Count() && !Scene::StaticObjectLists->Exists(key)) {
-				Scene::ObjectLists->Remove(key);
 				delete list;
+				return true;
 			}
+			return false;
 		});
 	}
 
