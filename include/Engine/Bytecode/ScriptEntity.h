@@ -5,23 +5,23 @@
 #include <Engine/Types/Entity.h>
 
 #define ENTITY_FIELDS_LIST \
-	ENTITY_FIELD(Create)\
-	ENTITY_FIELD(PostCreate)\
-	ENTITY_FIELD(UpdateEarly)\
-	ENTITY_FIELD(Update)\
-	ENTITY_FIELD(UpdateLate)\
-	ENTITY_FIELD(FixedUpdateEarly)\
-	ENTITY_FIELD(FixedUpdate)\
-	ENTITY_FIELD(FixedUpdateLate)\
-	ENTITY_FIELD(RenderEarly)\
-	ENTITY_FIELD(Render)\
-	ENTITY_FIELD(RenderLate)\
-	ENTITY_FIELD(SetAnimation)\
-	ENTITY_FIELD(ResetAnimation)\
-	ENTITY_FIELD(OnAnimationFinish)\
-	ENTITY_FIELD(OnSceneLoad)\
-	ENTITY_FIELD(OnSceneRestart)\
-	ENTITY_FIELD(GameStart)\
+	ENTITY_FIELD(Create) \
+	ENTITY_FIELD(PostCreate) \
+	ENTITY_FIELD(UpdateEarly) \
+	ENTITY_FIELD(Update) \
+	ENTITY_FIELD(UpdateLate) \
+	ENTITY_FIELD(FixedUpdateEarly) \
+	ENTITY_FIELD(FixedUpdate) \
+	ENTITY_FIELD(FixedUpdateLate) \
+	ENTITY_FIELD(RenderEarly) \
+	ENTITY_FIELD(Render) \
+	ENTITY_FIELD(RenderLate) \
+	ENTITY_FIELD(SetAnimation) \
+	ENTITY_FIELD(ResetAnimation) \
+	ENTITY_FIELD(OnAnimationFinish) \
+	ENTITY_FIELD(OnSceneLoad) \
+	ENTITY_FIELD(OnSceneRestart) \
+	ENTITY_FIELD(GameStart) \
 	ENTITY_FIELD(Dispose)
 
 class ScriptEntity : public Entity {

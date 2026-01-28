@@ -1204,8 +1204,105 @@ void Graphics::FillEllipse(float x, float y, float w, float h) {
 void Graphics::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
 	Graphics::GfxFunctions->FillTriangle(x1, y1, x2, y2, x3, y3);
 }
+void Graphics::FillTriangleBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3) {
+	Graphics::GfxFunctions->FillTriangleBlend(x1, y1, x2, y2, x3, y3, c1, c2, c3);
+}
 void Graphics::FillRectangle(float x, float y, float w, float h) {
 	Graphics::GfxFunctions->FillRectangle(x, y, w, h);
+}
+void Graphics::FillQuad(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4) {
+	Graphics::GfxFunctions->FillQuad(x1, y1, x2, y2, x3, y3, x4, y4);
+}
+void Graphics::FillQuadBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4) {
+	Graphics::GfxFunctions->FillQuadBlend(x1, y1, x2, y2, x3, y3, x4, y4, c1, c2, c3, c4);
+}
+void Graphics::DrawTriangleTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3) {
+	Graphics::GfxFunctions->DrawTriangleTextured(
+		texturePtr, x1, y1, x2, y2, x3, y3, c1, c2, c3, u1, v1, u2, v2, u3, v3);
+}
+void Graphics::DrawQuadTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3,
+	float u4,
+	float v4) {
+	Graphics::GfxFunctions->DrawQuadTextured(texturePtr,
+		x1,
+		y1,
+		x2,
+		y2,
+		x3,
+		y3,
+		x4,
+		y4,
+		c1,
+		c2,
+		c3,
+		c4,
+		u1,
+		v1,
+		u2,
+		v2,
+		u3,
+		v3,
+		u4,
+		v4);
 }
 
 void Graphics::DrawTexture(Texture* texture,
@@ -2612,17 +2709,17 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
 
-				int srcTX = srcX & 15;
-				int srcTY = srcY & 15;
+				int srcTX = srcX % tileWidth;
+				int srcTY = srcY % tileHeight;
 
-				int partY = srcTY;
+				int textureSrcTY = srcTY;
 				if (flipY) {
-					partY = tileHeight - partY - 1;
+					textureSrcTY = tileHeight - srcTY - tileDrawHeight;
 				}
 
 				Graphics::DrawTilePart(tileID,
 					0,
-					partY,
+					textureSrcTY,
 					tileWidth,
 					tileDrawHeight,
 					currentView->X + ((dst_x - srcTX) + tileWidthHalf),

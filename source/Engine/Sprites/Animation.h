@@ -3,10 +3,10 @@
 
 struct CollisionBox {
 	std::string Name;
-	int Left;
-	int Top;
-	int Right;
-	int Bottom;
+	int Left = 0;
+	int Top = 0;
+	int Right = 0;
+	int Bottom = 0;
 };
 struct AnimFrame {
 	int X;

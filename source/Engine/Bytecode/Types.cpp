@@ -206,6 +206,8 @@ const char* GetTypeString(Uint32 type) {
 	case VAL_DECIMAL:
 	case VAL_LINKED_DECIMAL:
 		return "decimal";
+	case VAL_HITBOX:
+		return "hitbox";
 	case VAL_OBJECT:
 		return "object";
 	}
@@ -387,6 +389,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_SUPER_INVOKE);
 			OPCASE(OP_EVENT);
 			OPCASE(OP_METHOD);
+			OPCASE(OP_NEW_HITBOX);
 		}
 		assert((func != NULL));
 		OpcodeFuncs[i] = func;

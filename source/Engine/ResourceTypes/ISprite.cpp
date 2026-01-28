@@ -185,10 +185,6 @@ bool ISprite::LoadAnimation(const char* filename) {
 	Log::Print(Log::LOG_VERBOSE, "\"%s\"", filename);
 #endif
 
-	/// =======================
-	/// RSDKv5 Animation Format
-	/// =======================
-
 	// Check MAGIC
 	if (!IsFile(reader)) {
 		reader->Close();
@@ -374,10 +370,6 @@ bool ISprite::SaveAnimation(const char* filename) {
 		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 		return false;
 	}
-
-	/// =======================
-	/// RSDKv5 Animation Format
-	/// =======================
 
 	// Check MAGIC
 	stream->WriteUInt32(RSDK_SPRITE_MAGIC);

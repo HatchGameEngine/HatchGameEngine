@@ -21,6 +21,12 @@ Image::Image(const char* filename) {
 	TexturePtr = Image::LoadTextureFromResource(Filename);
 }
 
+Image::Image(Texture* texturePtr) {
+	AddRef();
+	Filename = nullptr;
+	TexturePtr = texturePtr;
+}
+
 void Image::AddRef() {
 	References++;
 }
@@ -63,7 +69,8 @@ Uint8 Image::DetectFormat(Stream* stream) {
 		return IMAGE_FORMAT_GIF;
 	}
 	// JPEG
-	else if (memcmp(magic, "\xFF\xD8\xFF\xDB", 4) == 0 || memcmp(magic, "\xFF\xD8\xFF\xEE", 4) == 0) {
+	else if (memcmp(magic, "\xFF\xD8\xFF\xDB", 4) == 0 ||
+		memcmp(magic, "\xFF\xD8\xFF\xEE", 4) == 0) {
 		return IMAGE_FORMAT_JPEG;
 	}
 

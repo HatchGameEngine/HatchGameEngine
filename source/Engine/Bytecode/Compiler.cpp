@@ -115,7 +115,8 @@ static const char* opcodeNames[] = {"OP_ERROR",
 	"OP_INVOKE",
 	"OP_SUPER_INVOKE",
 	"OP_EVENT",
-	"OP_METHOD"};
+	"OP_METHOD",
+	"OP_NEW_HITBOX"};
 
 // Order these by C/C++ precedence operators
 enum TokenTYPE {
@@ -186,6 +187,7 @@ enum TokenTYPE {
 	TOKEN_STRING,
 	TOKEN_NUMBER,
 	TOKEN_DECIMAL,
+	TOKEN_HITBOX,
 
 	// Literals.
 	TOKEN_FALSE,
@@ -477,7 +479,15 @@ int Compiler::GetKeywordType() {
 		}
 		break;
 	case 'h':
-		return CheckKeyword(1, 2, "as", TOKEN_HAS);
+		if (scanner.Current - scanner.Start > 1) {
+			switch (*(scanner.Start + 1)) {
+			case 'a':
+				return CheckKeyword(2, 1, "s", TOKEN_HAS);
+			case 'i':
+				return CheckKeyword(2, 4, "tbox", TOKEN_HITBOX);
+			}
+		}
+		break;
 	case 'i':
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
@@ -819,6 +829,16 @@ void Compiler::ConsumeToken(int type, const char* message) {
 
 	ErrorAtCurrent(message);
 }
+void Compiler::ConsumeIdentifier(const char* message) {
+	// Contextual keywords
+	switch (parser.Current.Type) {
+	case TOKEN_HITBOX:
+		AdvanceToken();
+		return;
+	}
+
+	ConsumeToken(TOKEN_IDENTIFIER, message);
+}
 
 void Compiler::SynchronizeToken() {
 	parser.PanicMode = false;
@@ -997,7 +1017,7 @@ void Compiler::WarningInFunction(const char* format, ...) {
 }
 
 int Compiler::ParseVariable(const char* errorMessage, bool constant) {
-	ConsumeToken(TOKEN_IDENTIFIER, errorMessage);
+	ConsumeIdentifier(errorMessage);
 	return DeclareVariable(&parser.Previous, constant);
 }
 bool Compiler::IdentifiersEqual(Token* a, Token* b) {
@@ -1058,7 +1078,7 @@ int Compiler::DeclareVariable(Token* name, bool constant) {
 	return ((int)Constants.size()) - 1;
 }
 int Compiler::ParseModuleVariable(const char* errorMessage, bool constant) {
-	ConsumeToken(TOKEN_IDENTIFIER, errorMessage);
+	ConsumeIdentifier(errorMessage);
 	return DeclareModuleVariable(&parser.Previous, constant);
 }
 void Compiler::DefineModuleVariable(int local) {
@@ -1495,7 +1515,7 @@ Uint8 Compiler::GetArgumentList() {
 Token InstanceToken = Token{0, NULL, 0, 0, 0};
 void Compiler::GetThis(bool canAssign) {
 	InstanceToken = parser.Previous;
-	GetVariable(false);
+	NamedVariable(parser.Previous, false);
 }
 void Compiler::GetSuper(bool canAssign) {
 	InstanceToken = parser.Previous;
@@ -1508,7 +1528,7 @@ void Compiler::GetDot(bool canAssign) {
 	bool isSuper = InstanceToken.Type == TOKEN_SUPER;
 	InstanceToken.Type = -1;
 
-	ConsumeToken(TOKEN_IDENTIFIER, "Expect property name after '.'.");
+	ConsumeIdentifier("Expect property name after '.'.");
 	Token nameToken = parser.Previous;
 
 	if (canAssign && MatchAssignmentToken()) {
@@ -1726,7 +1746,7 @@ void Compiler::GetMap(bool canAssign) {
 	Uint32 count = 0;
 
 	while (!MatchToken(TOKEN_RIGHT_BRACE)) {
-		AdvanceToken();
+		ConsumeToken(TOKEN_STRING, "Expected string for map key.");
 		GetString(false);
 
 		ConsumeToken(TOKEN_COLON, "Expected \":\" after key string.");
@@ -1875,7 +1895,7 @@ void Compiler::GetUnary(bool canAssign) {
 	}
 }
 void Compiler::GetNew(bool canAssign) {
-	ConsumeToken(TOKEN_IDENTIFIER, "Expect class name.");
+	ConsumeIdentifier("Expect class name.");
 	NamedVariable(parser.Previous, false);
 
 	uint8_t argCount = 0;
@@ -1883,6 +1903,68 @@ void Compiler::GetNew(bool canAssign) {
 		argCount = GetArgumentList();
 	}
 	EmitBytes(OP_NEW, argCount);
+}
+void Compiler::GetHitbox(bool canAssign) {
+	if (!MatchToken(TOKEN_LEFT_BRACE)) {
+		Compiler::GetVariable(canAssign);
+		return;
+	}
+
+	int pre;
+	int codePointer = CodePointer();
+	bool allConstants = true;
+	std::vector<Sint16> values;
+
+	int count = 0;
+	while (!MatchToken(TOKEN_RIGHT_BRACE)) {
+		if (count == 4) {
+			Error("Must construct hitbox with exactly four values.");
+		}
+
+		if (allConstants) {
+			pre = CodePointer();
+		}
+
+		GetExpression();
+		count++;
+
+		if (allConstants) {
+			VMValue value;
+			uint8_t* codePtr = CurrentChunk()->Code + pre;
+			if (!(pre + GetTotalOpcodeSize(codePtr) == CodePointer() &&
+				    GetEmittedConstant(CurrentChunk(), codePtr, &value))) {
+				allConstants = false;
+			}
+			else {
+				if (!IS_INTEGER(value)) {
+					Error("Must construct hitbox with integer values.");
+				}
+				values.push_back((Sint16)(AS_INTEGER(value)));
+			}
+		}
+
+		if (!MatchToken(TOKEN_COMMA)) {
+			ConsumeToken(
+				TOKEN_RIGHT_BRACE, "Expected '}' at end of hitbox constructor.");
+			break;
+		}
+	}
+
+	if (count == 0) {
+		EmitConstant(HITBOX_VAL(0, 0, 0, 0));
+		return;
+	}
+	else if (count != 4) {
+		Error("Must construct hitbox with exactly four values.");
+	}
+
+	if (allConstants) {
+		CurrentChunk()->Count = codePointer;
+		EmitConstant(HITBOX_VAL(values.data()));
+		return;
+	}
+
+	EmitByte(OP_NEW_HITBOX);
 }
 void Compiler::GetBinary(bool canAssign) {
 	Token operato = parser.Previous;
@@ -1956,7 +2038,7 @@ void Compiler::GetBinary(bool canAssign) {
 	}
 }
 void Compiler::GetHas(bool canAssign) {
-	ConsumeToken(TOKEN_IDENTIFIER, "Expect property name.");
+	ConsumeIdentifier("Expect property name.");
 	EmitByte(OP_HAS_PROPERTY);
 	EmitStringHash(parser.Previous);
 }
@@ -2077,10 +2159,10 @@ void Compiler::GetRepeatStatement() {
 	int remaining = 0;
 
 	if (MatchToken(TOKEN_COMMA)) {
-		ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
+		ConsumeIdentifier("Expect variable name.");
 		variableToken = parser.Previous;
 		if (MatchToken(TOKEN_COMMA)) {
-			ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
+			ConsumeIdentifier("Expect variable name.");
 			remaining = AddLocal(parser.Previous);
 			MarkInitialized();
 		}
@@ -2419,7 +2501,7 @@ void Compiler::GetWithStatement() {
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'with'.");
 	GetExpression();
 	if (MatchToken(TOKEN_AS)) {
-		ConsumeToken(TOKEN_IDENTIFIER, "Expect receiver name.");
+		ConsumeIdentifier("Expect receiver name.");
 
 		receiverName = parser.Previous;
 
@@ -2594,7 +2676,7 @@ void Compiler::GetForEachStatement() {
 }
 void Compiler::GetForEachBlock() {
 	// Variable name
-	ConsumeToken(TOKEN_IDENTIFIER, "Expect variable name.");
+	ConsumeIdentifier("Expect variable name.");
 
 	Token variableToken = parser.Previous;
 
@@ -2799,7 +2881,7 @@ int Compiler::GetFunction(int type) {
 	return GetFunction(type, "");
 }
 void Compiler::GetMethod(Token className) {
-	ConsumeToken(TOKEN_IDENTIFIER, "Expect method name.");
+	ConsumeIdentifier("Expect method name.");
 	Token constantToken = parser.Previous;
 
 	// If the method has the same name as its class, it's an
@@ -2948,7 +3030,7 @@ void Compiler::GetPropertyDeclaration(Token propertyName) {
 	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after property declaration.");
 }
 void Compiler::GetClassDeclaration() {
-	ConsumeToken(TOKEN_IDENTIFIER, "Expect class name.");
+	ConsumeIdentifier("Expect class name.");
 
 	Token className = parser.Previous;
 	DeclareVariable(&className, false);
@@ -2969,7 +3051,7 @@ void Compiler::GetClassDeclaration() {
 	}
 
 	if (MatchToken(TOKEN_LESS)) {
-		ConsumeToken(TOKEN_IDENTIFIER, "Expect base class name.");
+		ConsumeIdentifier("Expect base class name.");
 		Token superName = parser.Previous;
 
 		EmitByte(OP_INHERIT);
@@ -3113,7 +3195,7 @@ void Compiler::GetUsingDeclaration() {
 	}
 
 	do {
-		ConsumeToken(TOKEN_IDENTIFIER, "Expected namespace name.");
+		ConsumeIdentifier("Expected namespace name.");
 		Token nsName = parser.Previous;
 		EmitByte(OP_USE_NAMESPACE);
 		EmitStringHash(nsName);
@@ -3122,7 +3204,7 @@ void Compiler::GetUsingDeclaration() {
 	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"using\" declaration.");
 }
 void Compiler::GetEventDeclaration() {
-	ConsumeToken(TOKEN_IDENTIFIER, "Expected event name.");
+	ConsumeIdentifier("Expected event name.");
 	Token constantToken = parser.Previous;
 
 	// FIXME: We don't work with closures and upvalues yet, so
@@ -3253,6 +3335,7 @@ void Compiler::MakeRules() {
 	Rules[TOKEN_NUMBER] = ParseRule{&Compiler::GetInteger, NULL, NULL, PREC_NONE};
 	Rules[TOKEN_DECIMAL] = ParseRule{&Compiler::GetDecimal, NULL, NULL, PREC_NONE};
 	Rules[TOKEN_IDENTIFIER] = ParseRule{&Compiler::GetVariable, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_HITBOX] = ParseRule{&Compiler::GetHitbox, NULL, NULL, PREC_NONE};
 }
 ParseRule* Compiler::GetRule(int type) {
 	return &Compiler::Rules[(int)type];
@@ -3316,6 +3399,9 @@ void Compiler::EmitBytes(Uint8 byte1, Uint8 byte2) {
 void Compiler::EmitUint16(Uint16 value) {
 	EmitByte(value & 0xFF);
 	EmitByte(value >> 8 & 0xFF);
+}
+void Compiler::EmitSint16(Sint16 value) {
+	EmitUint16((Uint16)value);
 }
 void Compiler::EmitUint32(Uint32 value) {
 	EmitByte(value & 0xFF);
@@ -4053,6 +4139,7 @@ int Compiler::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_GET_SUPERCLASS:
 	case OP_DEFINE_MODULE_LOCAL:
 	case OP_ENUM_NEXT:
+	case OP_NEW_HITBOX:
 		return 1;
 	case OP_COPY:
 	case OP_CALL:
@@ -4281,6 +4368,7 @@ int Compiler::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_GET_SUPERCLASS:
 	case OP_DEFINE_MODULE_LOCAL:
 	case OP_ENUM_NEXT:
+	case OP_NEW_HITBOX:
 		return SimpleInstruction(instruction, chunk, offset);
 	case OP_COPY:
 	case OP_CALL:

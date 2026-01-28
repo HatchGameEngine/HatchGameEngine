@@ -228,7 +228,6 @@ public:
 	static void StrokeRectangle(float x, float y, float w, float h);
 	static void FillCircle(float x, float y, float rad);
 	static void FillEllipse(float x, float y, float w, float h);
-	static void FillRectangle(float x, float y, float w, float h);
 	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
 	static void FillTriangleBlend(float x1,
 		float y1,
@@ -239,6 +238,7 @@ public:
 		int c1,
 		int c2,
 		int c3);
+	static void FillRectangle(float x, float y, float w, float h);
 	static void
 	FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
 	static void FillQuadBlend(float x1,

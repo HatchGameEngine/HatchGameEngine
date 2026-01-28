@@ -1,22 +1,14 @@
 #ifndef ENGINE_RESOURCETYPES_IMAGE_H
 #define ENGINE_RESOURCETYPES_IMAGE_H
 
-#include <Engine/Includes/Standard.h>
 #include <Engine/IO/Stream.h>
+#include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/GameTexture.h>
 #include <Engine/Rendering/Texture.h>
 
-enum {
-	IMAGE_FORMAT_UNKNOWN,
-	IMAGE_FORMAT_PNG,
-	IMAGE_FORMAT_GIF,
-	IMAGE_FORMAT_JPEG
-};
+enum { IMAGE_FORMAT_UNKNOWN, IMAGE_FORMAT_PNG, IMAGE_FORMAT_GIF, IMAGE_FORMAT_JPEG };
 
 class Image {
-private:
-	static Image* New(const char* filename);
-
 public:
 	int ID = -1;
 	int References = 0;
@@ -24,6 +16,7 @@ public:
 	Texture* TexturePtr = NULL;
 
 	Image(const char* filename);
+	Image(Texture* texturePtr);
 	void AddRef();
 	bool TakeRef();
 	void Dispose();

@@ -17,7 +17,7 @@ vector<Texture*> TextureList;
 
 // TODO: Would it just be better to turn Graphics::TextureMap into a
 // vector? The OpenGL renderer benefits from it being a map, but this
-// method would make sense for the D3D renderer too.
+// method would make sense for the SDL renderer too.
 void FindTextureID(Texture* texture) {
 	for (size_t i = 0; i <= TextureList.size(); i++) {
 		if (i == TextureList.size()) {
@@ -116,7 +116,12 @@ void SDL2Renderer::SetGraphicsFunctions() {
 	Graphics::Internal.FillCircle = SDL2Renderer::FillCircle;
 	Graphics::Internal.FillEllipse = SDL2Renderer::FillEllipse;
 	Graphics::Internal.FillTriangle = SDL2Renderer::FillTriangle;
+	Graphics::Internal.FillTriangleBlend = SDL2Renderer::FillTriangleBlend;
 	Graphics::Internal.FillRectangle = SDL2Renderer::FillRectangle;
+	Graphics::Internal.FillQuad = SDL2Renderer::FillQuad;
+	Graphics::Internal.FillQuadBlend = SDL2Renderer::FillQuadBlend;
+	Graphics::Internal.DrawTriangleTextured = SDL2Renderer::DrawTriangleTextured;
+	Graphics::Internal.DrawQuadTextured = SDL2Renderer::DrawQuadTextured;
 
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = SDL2Renderer::DrawTexture;
@@ -315,7 +320,73 @@ void SDL2Renderer::StrokeRectangle(float x, float y, float w, float h) {}
 void SDL2Renderer::FillCircle(float x, float y, float rad) {}
 void SDL2Renderer::FillEllipse(float x, float y, float w, float h) {}
 void SDL2Renderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {}
+void SDL2Renderer::FillTriangleBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3) {}
 void SDL2Renderer::FillRectangle(float x, float y, float w, float h) {}
+void SDL2Renderer::FillQuad(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4) {}
+void SDL2Renderer::FillQuadBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4) {}
+void SDL2Renderer::DrawTriangleTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3) {}
+void SDL2Renderer::DrawQuadTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3,
+	float u4,
+	float v4) {}
 // Texture drawing functions
 void SDL2Renderer::DrawTexture(Texture* texture,
 	float sx,

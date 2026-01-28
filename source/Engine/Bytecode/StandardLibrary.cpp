@@ -12,6 +12,7 @@
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Error.h>
+#include <Engine/Extensions/Discord.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Graphics.h>
@@ -194,6 +195,63 @@ inline ObjMap* GetMap(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
+	CollisionBox box;
+	if (IS_HITBOX(args[index])) {
+		Sint16* values = AS_HITBOX(args[index]);
+		box.Left = values[HITBOX_LEFT];
+		box.Top = values[HITBOX_TOP];
+		box.Right = values[HITBOX_RIGHT];
+		box.Bottom = values[HITBOX_BOTTOM];
+	}
+	else if (IS_ARRAY(args[index])) {
+		if (ScriptManager::Lock()) {
+			Sint16 values[NUM_HITBOX_SIDES];
+
+			ObjArray* array = AS_ARRAY(args[index]);
+
+			if (array->Values->size() != NUM_HITBOX_SIDES) {
+				if (THROW_ERROR("Expected array to have %d elements instead of %d.",
+					    NUM_HITBOX_SIDES,
+					    array->Values->size()) == ERROR_RES_CONTINUE) {
+					ScriptManager::Threads[threadID].ReturnFromNative();
+				}
+				ScriptManager::Unlock();
+				return box;
+			}
+
+			for (int i = 0; i < NUM_HITBOX_SIDES; i++) {
+				VMValue value = (*array->Values)[i];
+				if (!IS_INTEGER(value)) {
+					THROW_ERROR(
+						"Expected value at index %d to be of type %s instead of %s.",
+						i,
+						GetTypeString(VAL_INTEGER),
+						GetValueTypeString(value));
+					ScriptManager::Unlock();
+					return box;
+				}
+				values[i] = AS_INTEGER(value);
+			}
+
+			box.Left = values[HITBOX_LEFT];
+			box.Top = values[HITBOX_TOP];
+			box.Right = values[HITBOX_RIGHT];
+			box.Bottom = values[HITBOX_BOTTOM];
+
+			ScriptManager::Unlock();
+		}
+	}
+	else {
+		if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+			    index + 1,
+			    GetTypeString(VAL_HITBOX),
+			    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+			ScriptManager::Threads[threadID].ReturnFromNative();
+		}
+	}
+	return box;
+}
 inline ObjBoundMethod* GetBoundMethod(VMValue* args, int index, Uint32 threadID) {
 	ObjBoundMethod* value = NULL;
 	if (ScriptManager::Lock()) {
@@ -237,7 +295,8 @@ inline VMValue GetCallable(VMValue* args, int index, Uint32 threadID) {
 			value = args[index];
 		}
 		else {
-			if (THROW_ERROR("Expected argument %d to be of type callable instead of %s.",
+			if (THROW_ERROR(
+				    "Expected argument %d to be of type callable instead of %s.",
 				    index + 1,
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
 				ScriptManager::Threads[threadID].ReturnFromNative();
@@ -687,11 +746,11 @@ bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) 
 /***
  * Animator.Create
  * \desc Creates a new animator.
- * \paramOpt sprite (Integer): The index of the sprite.
- * \paramOpt animationID (Integer): Which animation to use.
- * \paramOpt frameID (Integer): Which frame to use.
- * \paramOpt unloadPolicy (Integer): When to unload the animator.
- * \return Returns the index of the Animator.
+ * \paramOpt sprite (integer): The index of the sprite.
+ * \paramOpt animationID (integer): Which animation to use.
+ * \paramOpt frameID (integer): Which frame to use.
+ * \paramOpt unloadPolicy (integer): When to unload the animator.
+ * \return integer Returns the index of the Animator.
  * \ns Animator
  */
 VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -721,7 +780,7 @@ VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.Remove
  * \desc Removes an animator.
- * \param animator (Integer): The index of the animator.
+ * \param animator (integer): The index of the animator.
  * \ns Animator
  */
 VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
@@ -740,11 +799,11 @@ VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.SetAnimation
  * \desc Sets the current animation and frame of an animator.
- * \param animator (Integer): The index of the animator.
- * \param sprite (Integer): The index of the sprite.
- * \param animationID (Integer): The animator's changed animation ID.
- * \param frameID (Integer): The animator's changed frame ID.
- * \param forceApply (Boolean): Whether to force the animation to go back to the frame if the animation is the same as the current animation.
+ * \param animator (integer): The index of the animator.
+ * \param sprite (integer): The index of the sprite.
+ * \param animationID (integer): The animator's changed animation ID.
+ * \param frameID (integer): The animator's changed frame ID.
+ * \param forceApply (boolean): Whether to force the animation to go back to the frame if the animation is the same as the current animation.
  * \ns Animator
  */
 VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
@@ -808,7 +867,7 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.Animate
  * \desc Animates an animator.
- * \param animator (Integer): The index of the animator.
+ * \param animator (integer): The index of the animator.
  * \ns Animator
  */
 VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
@@ -856,8 +915,8 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.GetSprite
  * \desc Gets the sprite index of an animator.
- * \param animator (Integer): The index of the animator.
- * \return Returns an Integer value.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns an integer value.
  * \ns Animator
  */
 VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -871,8 +930,8 @@ VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.GetCurrentAnimation
  * \desc Gets the current animation value of an animator.
- * \param animator (Integer): The index of the animator.
- * \return Returns an Integer value.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns an integer value.
  * \ns Animator
  */
 VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
@@ -886,8 +945,8 @@ VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
 /***
  * Animator.GetCurrentFrame
  * \desc Gets the current animation value of an animator.
- * \param animator (Integer): The index of the animator.
- * \return Returns an Integer value.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns an integer value.
  * \ns Animator
  */
 VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
@@ -901,9 +960,9 @@ VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.GetHitbox
  * \desc Gets the hitbox of an animation and frame of an animator.
- * \param animator (Integer): The index of the animator.
- * \paramOpt hitboxID (Integer): The index number of the hitbox. Defaults to <code>0</code>.
- * \return Returns a reference value to a hitbox array.
+ * \param animator (integer): The index of the animator.
+ * \paramOpt hitboxID (integer): The index number of the hitbox. (default: `0`)
+ * \return hitbox Returns a Hitbox value.
  * \ns Animator
  */
 VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
@@ -945,12 +1004,7 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		CollisionBox box = frame.Boxes[hitboxID];
-		ObjArray* array = NewArray();
-		array->Values->push_back(INTEGER_VAL(box.Left));
-		array->Values->push_back(INTEGER_VAL(box.Top));
-		array->Values->push_back(INTEGER_VAL(box.Right));
-		array->Values->push_back(INTEGER_VAL(box.Bottom));
-		return OBJECT_VAL(array);
+		return HITBOX_VAL(box.Left, box.Top, box.Right, box.Bottom);
 	}
 	else {
 		return NULL_VAL;
@@ -959,8 +1013,8 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.GetPrevAnimation
  * \desc Gets the previous animation value of an animator.
- * \param animator (Integer): The index of the animator.
- * \return Returns an Integer value.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns an integer value.
  * \ns Animator
  */
 VMValue Animator_GetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
@@ -974,8 +1028,8 @@ VMValue Animator_GetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Animator.GetAnimationSpeed
  * \desc Gets the animation speed of an animator's current animation.
- * \param animator (Integer): The index of the animator.
- * \return Returns an Integer value.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns an integer value.
  * \ns Animator
  */
 VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -989,8 +1043,8 @@ VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Animator.GetAnimationTimer
  * \desc Gets the animation timer of an animator.
- * \param animator (Integer): The index of the animator.
- * \return Returns an Integer value.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns an integer value.
  * \ns Animator
  */
 VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
@@ -1004,8 +1058,8 @@ VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Animator.GetDuration
  * \desc Gets the frame duration of an animator's current frame.
- * \param animator (Integer): The index of the animator.
- * \return Returns an Integer value.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns an integer value.
  * \ns Animator
  */
 VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
@@ -1019,8 +1073,8 @@ VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.GetFrameCount
  * \desc Gets the frame count of an animator's current animation.
- * \param animator (Integer): The index of the animator.
- * \return Returns an Integer value.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns an integer value.
  * \ns Animator
  */
 VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -1034,8 +1088,8 @@ VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.GetLoopIndex
  * \desc Gets the loop index of an animator's current animation.
- * \param animator (Integer): The index of the animator.
- * \return Returns an Integer value.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns an integer value.
  * \ns Animator
  */
 VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -1049,8 +1103,8 @@ VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.GetRotationStyle
  * \desc Gets the loop index of an animator's rotation style.
- * \param animator (Integer): The index of the animator.
- * \return Returns an Integer value.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns an integer value.
  * \ns Animator
  */
 VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
@@ -1064,8 +1118,8 @@ VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Animator.SetSprite
  * \desc Sets the sprite index of an animator.
- * \param animator (Integer): The animator index to change.
- * \param spriteID (Integer): The sprite ID.
+ * \param animator (integer): The animator index to change.
+ * \param spriteID (integer): The sprite ID.
  * \ns Animator
  */
 VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -1080,8 +1134,8 @@ VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.SetCurrentAnimation
  * \desc Sets the current animation of an animator.
- * \param animator (Integer): The animator index to change.
- * \param animationID (Integer): The animation ID.
+ * \param animator (integer): The animator index to change.
+ * \param animationID (integer): The animation ID.
  * \ns Animator
  */
 VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
@@ -1096,8 +1150,8 @@ VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
 /***
  * Animator.SetCurrentFrame
  * \desc Sets the current frame of an animator.
- * \param animator (Integer): The animator index to change.
- * \param frameID (Integer): The frame ID.
+ * \param animator (integer): The animator index to change.
+ * \param frameID (integer): The frame ID.
  * \ns Animator
  */
 VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
@@ -1112,8 +1166,8 @@ VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.SetPrevAnimation
  * \desc Sets the previous animation of an animator.
- * \param animator (Integer): The animator index to change.
- * \param prevAnimationID (Integer): The animation ID.
+ * \param animator (integer): The animator index to change.
+ * \param prevAnimationID (integer): The animation ID.
  * \ns Animator
  */
 VMValue Animator_SetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
@@ -1128,8 +1182,8 @@ VMValue Animator_SetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Animator.SetAnimationSpeed
  * \desc Sets the animation speed of an animator.
- * \param animator (Integer): The animator index to change.
- * \param speed (Integer): The animation speed.
+ * \param animator (integer): The animator index to change.
+ * \param speed (integer): The animation speed.
  * \ns Animator
  */
 VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -1144,8 +1198,8 @@ VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Animator.SetAnimationTimer
  * \desc Sets the animation timer of an animator.
- * \param animator (Integer): The animator index to change.
- * \param timer (Integer): The animation timer.
+ * \param animator (integer): The animator index to change.
+ * \param timer (integer): The animation timer.
  * \ns Animator
  */
 VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
@@ -1160,8 +1214,8 @@ VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Animator.SetDuration
  * \desc Sets the frame duration of an animator.
- * \param animator (Integer): The animator index to change.
- * \param duration (Integer): The animator's changed duration.
+ * \param animator (integer): The animator index to change.
+ * \param duration (integer): The animator's changed duration.
  * \ns Animator
  */
 VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
@@ -1176,8 +1230,8 @@ VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.SetFrameCount
  * \desc Sets the frame count of an animator.
- * \param animator (Integer): The animator index to change.
- * \param frameCount (Integer): The animator's changed frame count.
+ * \param animator (integer): The animator index to change.
+ * \param frameCount (integer): The animator's changed frame count.
  * \ns Animator
  */
 VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -1192,8 +1246,8 @@ VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.SetLoopIndex
  * \desc Sets the loop index of an animator.
- * \param animator (Integer): The animator index to change.
- * \param loopIndex (Integer): The animator's changed loop index.
+ * \param animator (integer): The animator index to change.
+ * \param loopIndex (integer): The animator's changed loop index.
  * \ns Animator
  */
 VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -1208,8 +1262,8 @@ VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.SetRotationStyle
  * \desc Sets the rotation style of an animator.
- * \param animator (Integer): The animator index to change.
- * \param rotationStyle (Integer): The animator's changed rotation style.
+ * \param animator (integer): The animator index to change.
+ * \param rotationStyle (integer): The animator's changed rotation style.
  * \ns Animator
  */
 VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
@@ -1224,8 +1278,8 @@ VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Animator.AdjustCurrentAnimation
  * \desc Adjusts the current animation of an animator by an amount.
- * \param animator (Integer): The animator index to change.
- * \param amount (Integer): The amount to adjust the animator's animation ID.
+ * \param animator (integer): The animator index to change.
+ * \param amount (integer): The amount to adjust the animator's animation ID.
  * \ns Animator
  */
 VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
@@ -1240,8 +1294,8 @@ VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 thre
 /***
  * Animator.AdjustCurrentFrame
  * \desc Adjusts the current frame of an animator by an amount.
- * \param animator (Integer): The animator index to change.
- * \param amount (Integer): The amount to adjust the animator's frame ID.
+ * \param animator (integer): The animator index to change.
+ * \param amount (integer): The amount to adjust the animator's frame ID.
  * \ns Animator
  */
 VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
@@ -1256,8 +1310,8 @@ VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID
 /***
  * Animator.AdjustAnimationSpeed
  * \desc Adjusts the animation speed of an animator by an amount.
- * \param animator (Integer): The animator index to change.
- * \param amount (Integer): The amount to adjust the animator's animation speed.
+ * \param animator (integer): The animator index to change.
+ * \param amount (integer): The amount to adjust the animator's animation speed.
  * \ns Animator
  */
 VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -1272,8 +1326,8 @@ VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 thread
 /***
  * Animator.AdjustAnimationTimer
  * \desc Adjusts the animation timer of an animator by an amount.
- * \param animator (Integer): The animator index to change.
- * \param amount (Integer): The amount to adjust the animator's animation timer.
+ * \param animator (integer): The animator index to change.
+ * \param amount (integer): The amount to adjust the animator's animation timer.
  * \ns Animator
  */
 VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
@@ -1288,8 +1342,8 @@ VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 thread
 /***
  * Animator.AdjustDuration
  * \desc Adjusts the duration of an animator by an amount.
- * \param animator (Integer): The animator index to change.
- * \param amount (Integer): The amount to adjust the animator's duration.
+ * \param animator (integer): The animator index to change.
+ * \param amount (integer): The amount to adjust the animator's duration.
  * \ns Animator
  */
 VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
@@ -1304,8 +1358,8 @@ VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Animator.AdjustFrameCount
  * \desc Adjusts the frame count of an animator by an amount.
- * \param animator (Integer): The animator index to change.
- * \param amount (Integer): The amount to adjust the animator's duration.
+ * \param animator (integer): The animator index to change.
+ * \param amount (integer): The amount to adjust the animator's duration.
  * \ns Animator
  */
 VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -1320,8 +1374,8 @@ VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Animator.AdjustLoopIndex
  * \desc Adjusts the loop index of an animator by an amount.
- * \param animator (Integer): The animator index to change.
- * \param amount (Integer): The amount to adjust the animator's loop index.
+ * \param animator (integer): The animator index to change.
+ * \param amount (integer): The amount to adjust the animator's loop index.
  * \ns Animator
  */
 VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -1335,11 +1389,353 @@ VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region API.Discord
+/***
+ * API.Discord.Init
+ * \desc Initializes Discord integration.
+ * \param applicationID (string): The Discord Application ID. This will have needed to be created via the Discord Developer Portal.
+ * \return integer Returns an API response code.
+ * \ns API.Discord
+ */
+VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	const char* applicationID = GET_ARG(0, GetString);
+	int result = Discord::Init(applicationID);
+	return INTEGER_VAL(result);
+}
+/***
+ * API.Discord.UpdateRichPresence
+ * \desc Updates Discord Rich Presence.<br/>\
+The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param details (string): The first line of text in the Rich Presence.
+ * \paramOpt state (string): The second line of text, appearing below details.
+ * \paramOpt largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
+ * \paramOpt smallImageKey (string): The internal name of the small image asset to display, also created via the Discord Developer Portal.
+ * \ns API.Discord
+ */
+/***
+ * API.Discord.UpdateRichPresence
+ * \desc Updates Discord Rich Presence.<br/>\
+The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param details (string): The first line of text in the Rich Presence.
+ * \paramOpt state (string): The second line of text, appearing below details.
+ * \paramOpt largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
+ * \paramOpt startTime (integer): A Unix timestamp of when the activity started. If `0`, the timer is disabled.
+ * \ns API.Discord
+ */
+/***
+ * API.Discord.UpdateRichPresence
+ * \desc Updates Discord Rich Presence.<br/>\
+The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param details (string): The first line of text in the Rich Presence.
+ * \paramOpt state (string): The second line of text, appearing below details.
+ * \paramOpt largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
+ * \paramOpt smallImageKey (string): The internal name of the small image asset to display, also created via the Discord Developer Portal.
+ * \paramOpt startTime (integer): A Unix timestamp of when the activity started. If `0`, the timer is disabled.
+ * \ns API.Discord
+ */
+VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	const char* details = GET_ARG(0, GetString);
+	const char* state = GET_ARG_OPT(1, GetString, nullptr);
+	const char* largeImageKey = GET_ARG_OPT(2, GetString, nullptr);
+	const char* smallImageKey = nullptr;
+	int startTime = 0;
+
+	if (argCount == 4) {
+		if (IS_INTEGER(args[3])) {
+			startTime = GET_ARG(3, GetInteger);
+		}
+		else {
+			smallImageKey = GET_ARG(3, GetString);
+		}
+	}
+	else if (argCount >= 5) {
+		smallImageKey = GET_ARG(3, GetString);
+		startTime = GET_ARG(4, GetInteger);
+	}
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	DiscordIntegrationActivity presence;
+	presence.Details = details;
+	presence.State = state;
+	presence.LargeImageKey = largeImageKey;
+	presence.SmallImageKey = smallImageKey;
+	presence.StartTime = (time_t)startTime;
+
+	Discord::UpdatePresence(presence);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityDetails
+ * \desc Sets the first line of text of the activity.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param details (string): The first line of text in the Rich Presence.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityDetails(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	const char* details = GET_ARG(0, GetString);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::SetDetails(details);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityState
+ * \desc Sets the second line of text of the activity.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param details (string): The second line of text, appearing below details.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityState(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	const char* state = GET_ARG(0, GetString);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::SetState(state);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityLargeImage
+ * \desc Sets the image (and optionally) the hover text of the large image asset.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param largeImageKey (string): The internal name of the large image asset to display, created via the Discord Developer Portal.
+ * \paramOpt largeImageText (string): The hover text of the large image.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityLargeImage(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	const char* key = GET_ARG(0, GetString);
+	const char* text = GET_ARG_OPT(1, GetString, nullptr);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	if (text) {
+		Discord::Activity::SetLargeImage(key, text);
+	}
+	else {
+		Discord::Activity::SetLargeImageKey(key);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivitySmallImage
+ * \desc Sets the image (and optionally) the hover text of the small image asset.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param smallImageKey (string): The internal name of the small image asset to display, created via the Discord Developer Portal.
+ * \paramOpt smallImageText (string): The hover text of the small image.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivitySmallImage(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	const char* key = GET_ARG(0, GetString);
+	const char* text = GET_ARG_OPT(1, GetString, nullptr);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	if (text) {
+		Discord::Activity::SetSmallImage(key, text);
+	}
+	else {
+		Discord::Activity::SetSmallImageKey(key);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityElapsedTimer
+ * \desc Sets the elapsed timer of the activity.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param timestamp (integer): A Unix timestamp of when the timer started. If `0`, the timer is disabled.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityElapsedTimer(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int timestamp = GET_ARG(0, GetInteger);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::SetElapsedTimer(timestamp);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityRemainingTimer
+ * \desc Sets the remaining timer of the activity.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param timestamp (integer): A Unix timestamp of when the timer will end. If `0`, the timer is disabled.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityRemainingTimer(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int timestamp = GET_ARG(0, GetInteger);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::SetRemainingTimer(timestamp);
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.SetActivityPartySize
+ * \desc Sets the current party size (and optionally) the max party size of the activity.<br/>\
+This doesn't update the user's presence; you must call `API.Discord.UpdateActivity`. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param currentSize (integer): The current size of the party.
+ * \paramOpt maxSize (integer): The max size of the party.
+ * \ns API.Discord
+ */
+VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+	int currentSize = GET_ARG(0, GetInteger);
+	int maxSize = GET_ARG_OPT(1, GetInteger, 0);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::SetPartySize(currentSize);
+	if (argCount >= 2) {
+		Discord::Activity::SetPartyMaxSize(maxSize);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.UpdateActivity
+ * \desc Updates the user's presence.<br/>\
+The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param details (string): The first line of text in the Rich Presence.
+ * \ns API.Discord
+ */
+VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	Discord::Activity::Update();
+
+	return NULL_VAL;
+}
+/***
+ * API.Discord.GetCurrentUsername
+ * \desc Gets the current user's username.<br/>\
+This returns `null` if the integration hasn't received the user's information yet. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \return string Returns a string value, or `null`.
+ * \ns API.Discord
+ */
+VMValue Discord_GetCurrentUsername(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	DiscordIntegrationUserInfo* details = Discord::User::GetDetails();
+	if (!details) {
+		return NULL_VAL;
+	}
+
+	return ReturnString(details->Username);
+}
+/***
+ * API.Discord.GetCurrentUserID
+ * \desc Gets the current user's ID.<br/>\
+This returns `null` if the integration hasn't received the user's information yet. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \return string Returns a string value, or `null`.
+ * \ns API.Discord
+ */
+VMValue Discord_GetCurrentUserID(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	DiscordIntegrationUserInfo* details = Discord::User::GetDetails();
+	if (!details) {
+		return NULL_VAL;
+	}
+
+	return ReturnString(details->ID);
+}
+/***
+ * API.Discord.GetCurrentUserAvatar
+ * \desc Gets the current user's avatar.<br/>\
+The callback function must have two parameters: `responseCode` and `image`. `responseCode` receives the API response code, and `image` receives an Image if the operation succeeded, or `null` if it failed. The integration must have been initialized with `API.Discord.Init` before calling this.
+ * \param size (integer): The size of the avatar to fetch. Must be one of: 16, 32, 64, 128, 256, 512, 1024
+ * \param callback (function): The callback to execute.
+ * \ns API.Discord
+ */
+VMValue Discord_GetCurrentUserAvatar(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+
+	if (!Discord::Initialized) {
+		return NULL_VAL;
+	}
+
+	int size = GET_ARG(0, GetInteger);
+	if (size < 16 || size > 1024) {
+		OUT_OF_RANGE_ERROR("Avatar size", size, 16, 1024);
+		return NULL_VAL;
+	}
+
+	VMValue callable = GET_ARG(1, GetCallable);
+	if (IS_NULL(callable)) {
+		return NULL_VAL;
+	}
+
+	VMThreadCallback* callbackData =
+		(VMThreadCallback*)Memory::Malloc(sizeof(VMThreadCallback));
+	if (!callbackData) {
+		return NULL_VAL;
+	}
+	callbackData->ThreadID = threadID;
+	callbackData->Callable = callable;
+
+	DiscordIntegrationCallback* callback =
+		(DiscordIntegrationCallback*)Memory::Malloc(sizeof(DiscordIntegrationCallback));
+	if (!callback) {
+		Memory::Free(callbackData);
+		return NULL_VAL;
+	}
+	callback->Type = DiscordIntegrationCallbackType_Script;
+	callback->Function = callbackData;
+
+	Discord::User::GetAvatar(size, callback);
+
+	return NULL_VAL;
+}
+// #endregion
+
 // #region Application
 /***
  * Application.GetCommandLineArguments
  * \desc Gets a list of the command line arguments passed to the application.
- * \return Returns an Array of String values.
+ * \return array Returns an array of string values.
  * \ns Application
  */
 VMValue Application_GetCommandLineArguments(int argCount, VMValue* args, Uint32 threadID) {
@@ -1358,7 +1754,7 @@ VMValue Application_GetCommandLineArguments(int argCount, VMValue* args, Uint32 
 /***
  * Application.GetEngineVersionString
  * \desc Gets the engine version string.
- * \return Returns a String value.
+ * \return string Returns a string value.
  * \ns Application
  */
 VMValue Application_GetEngineVersionString(int argCount, VMValue* args, Uint32 threadID) {
@@ -1368,7 +1764,7 @@ VMValue Application_GetEngineVersionString(int argCount, VMValue* args, Uint32 t
 /***
  * Application.GetEngineVersionMajor
  * \desc Gets the major engine version.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Application
  */
 VMValue Application_GetEngineVersionMajor(int argCount, VMValue* args, Uint32 threadID) {
@@ -1378,7 +1774,7 @@ VMValue Application_GetEngineVersionMajor(int argCount, VMValue* args, Uint32 th
 /***
  * Application.GetEngineVersionMinor
  * \desc Gets the minor engine version.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Application
  */
 VMValue Application_GetEngineVersionMinor(int argCount, VMValue* args, Uint32 threadID) {
@@ -1388,7 +1784,7 @@ VMValue Application_GetEngineVersionMinor(int argCount, VMValue* args, Uint32 th
 /***
  * Application.GetEngineVersionPatch
  * \desc Gets the minor engine version.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Application
  */
 VMValue Application_GetEngineVersionPatch(int argCount, VMValue* args, Uint32 threadID) {
@@ -1398,7 +1794,7 @@ VMValue Application_GetEngineVersionPatch(int argCount, VMValue* args, Uint32 th
 /***
  * Application.GetEngineVersionPrerelease
  * \desc Gets the prerelease engine version.
- * \return Returns a String value, or <code>null</code>.
+ * \return string Returns a string value, or `null`.
  * \ns Application
  */
 VMValue Application_GetEngineVersionPrerelease(int argCount, VMValue* args, Uint32 threadID) {
@@ -1412,7 +1808,7 @@ VMValue Application_GetEngineVersionPrerelease(int argCount, VMValue* args, Uint
 /***
  * Application.GetEngineVersionCodename
  * \desc Gets the engine version codename.
- * \return Returns a String value, or <code>null</code>.
+ * \return string Returns a string value, or `null`.
  * \ns Application
  */
 VMValue Application_GetEngineVersionCodename(int argCount, VMValue* args, Uint32 threadID) {
@@ -1426,7 +1822,7 @@ VMValue Application_GetEngineVersionCodename(int argCount, VMValue* args, Uint32
 /***
  * Application.GetTargetFrameRate
  * \desc Gets the target frame rate of the fixed timestep.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Application
  */
 VMValue Application_GetTargetFrameRate(int argCount, VMValue* args, Uint32 threadID) {
@@ -1436,7 +1832,7 @@ VMValue Application_GetTargetFrameRate(int argCount, VMValue* args, Uint32 threa
 /***
  * Application.SetTargetFrameRate
  * \desc Sets the target frame rate of the fixed timestep.
- * \param framerate (Integer): The target frame rate.
+ * \param framerate (integer): The target frame rate.
  * \ns Application
  */
 VMValue Application_SetTargetFrameRate(int argCount, VMValue* args, Uint32 threadID) {
@@ -1452,7 +1848,7 @@ VMValue Application_SetTargetFrameRate(int argCount, VMValue* args, Uint32 threa
 /***
  * Application.UseFixedTimestep
  * \desc Enables or disables fixed timestep. This is enabled by default.
- * \param useFixedTimestep (Boolean): Whether or not to use fixed timestep.
+ * \param useFixedTimestep (boolean): Whether to use fixed timestep.
  * \ns Application
  */
 VMValue Application_UseFixedTimestep(int argCount, VMValue* args, Uint32 threadID) {
@@ -1465,7 +1861,7 @@ VMValue Application_UseFixedTimestep(int argCount, VMValue* args, Uint32 threadI
 /***
  * Application.GetFPS
  * \desc Gets the current FPS (frames per second).
- * \return Returns a Decimal value.
+ * \return decimal Returns a decimal value.
  * \ns Application
  */
 VMValue Application_GetFPS(int argCount, VMValue* args, Uint32 threadID) {
@@ -1475,7 +1871,7 @@ VMValue Application_GetFPS(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Application.ShowFPSCounter
  * \desc Enables or disables the FPS (frames per second) counter.
- * \param show (Boolean): Whether or not to show the FPS counter.
+ * \param show (boolean): Whether to show the FPS counter.
  * \ns Application
  */
 VMValue Application_ShowFPSCounter(int argCount, VMValue* args, Uint32 threadID) {
@@ -1485,9 +1881,9 @@ VMValue Application_ShowFPSCounter(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Application.GetKeyBind
- * \desc Gets a <linkto ref="KeyBind_*">keybind</linkto>.
- * \param keyBind (Enum): The <linkto ref="KeyBind_*">keybind</linkto>.
- * \return Returns the <linkto ref="Key_*">key ID</linkto> of the keybind.
+ * \desc Gets a keybind.
+ * \param keyBind (<ref KeyBind_*>): The keybind.
+ * \return <ref KeyBind_*> Returns the key ID of the keybind.
  * \ns Application
  */
 VMValue Application_GetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -1497,9 +1893,9 @@ VMValue Application_GetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Application.SetKeyBind
- * \desc Sets a <linkto ref="KeyBind_*">keybind</linkto>.
- * \param keyBind (Enum): The <linkto ref="KeyBind_*">keybind</linkto>.
- * \param keyID (Integer): The <linkto ref="Key_*">key ID</linkto>.
+ * \desc Sets a keybind.
+ * \param keyBind (<ref KeyBind_*>): The keybind.
+ * \param keyID (<ref Key_*>): The key ID.
  * \ns Application
  */
 VMValue Application_SetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -1548,7 +1944,7 @@ VMValue Application_GetGameDescription(int argCount, VMValue* args, Uint32 threa
 /***
  * Application.SetGameTitle
  * \desc Sets the title of the game.
- * \param title (String): Game title.
+ * \param title (string): Game title.
  * \ns Application
  */
 VMValue Application_SetGameTitle(int argCount, VMValue* args, Uint32 threadID) {
@@ -1560,7 +1956,7 @@ VMValue Application_SetGameTitle(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Application.SetGameTitleShort
  * \desc Sets the short title of the game.
- * \param title (String): Short game title.
+ * \param title (string): Short game title.
  * \ns Application
  */
 VMValue Application_SetGameTitleShort(int argCount, VMValue* args, Uint32 threadID) {
@@ -1572,7 +1968,7 @@ VMValue Application_SetGameTitleShort(int argCount, VMValue* args, Uint32 thread
 /***
  * Application.SetGameVersion
  * \desc Sets the version of the game.
- * \param title (String): Game version.
+ * \param title (string): Game version.
  * \ns Application
  */
 VMValue Application_SetGameVersion(int argCount, VMValue* args, Uint32 threadID) {
@@ -1584,7 +1980,7 @@ VMValue Application_SetGameVersion(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Application.SetGameDescription
  * \desc Sets the description of the game.
- * \param title (String): Game description.
+ * \param title (string): Game description.
  * \ns Application
  */
 VMValue Application_SetGameDescription(int argCount, VMValue* args, Uint32 threadID) {
@@ -1597,7 +1993,7 @@ VMValue Application_SetGameDescription(int argCount, VMValue* args, Uint32 threa
 /***
  * Application.SetCursorVisible
  * \desc Sets the visibility of the cursor.
- * \param cursorVisible (Boolean): Whether or not the cursor is visible.
+ * \param cursorVisible (boolean): Whether the cursor is visible.
  * \ns Application
  */
 VMValue Application_SetCursorVisible(int argCount, VMValue* args, Uint32 threadID) {
@@ -1608,7 +2004,7 @@ VMValue Application_SetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 /***
  * Application.GetCursorVisible
  * \desc Gets the visibility of the cursor.
- * \return Returns whether ot not the cursor is visible.
+ * \return boolean Returns whether the cursor is visible.
  * \ns Application
  */
 VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadID) {
@@ -1688,8 +2084,8 @@ VMValue Application_TakeScreenshot(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Application.Error
  * \desc Shows an error message to the user through a dialog box, if possible. The error message is also logged.
- * \param message (String): The error message to show to the user.
- * \paramOpt detailed (Boolean): Whether or not to show the stack trace alongside the error. The default is <code>true</code>.
+ * \param message (string): The error message to show to the user.
+ * \paramOpt detailed (boolean): Whether to show the stack trace alongside the error. (default: `true`)
  * \ns Application
  */
 VMValue Application_Error(int argCount, VMValue* args, Uint32 threadID) {
@@ -1703,8 +2099,14 @@ VMValue Application_Error(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Application.SetDefaultFont
- * \desc Sets the default font to the given Resource path, or Array containing Resource paths.
- * \param font (String or Array): The font or list of fonts. Passing <code>null</code> to this argument will change the default font to the one the application was built with, if one is present.
+ * \desc Sets the default font to the given Resource path, or array containing Resource paths.
+ * \param font (string): The font. Passing `null` to this argument will change the default font to the one the application was built with, if one is present.
+ * \ns Application
+ */
+/***
+ * Application.SetDefaultFont
+ * \desc Sets the default font to the given Resource path, or array containing Resource paths.
+ * \param font (array): The list of fonts. Passing `null` to this argument will change the default font to the one the application was built with, if one is present.
  * \ns Application
  */
 VMValue Application_SetDefaultFont(int argCount, VMValue* args, Uint32 threadID) {
@@ -1764,8 +2166,8 @@ VMValue Application_SetDefaultFont(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Application.ChangeGame
- * \desc Changes the current game, by loading a data file containing the new game. If the path ends with a path separator (<code>/</code>), an entire directory will be loaded as the game instead. Only <code>game://</code> and <code>user://</code> URLs are supported (or an absolute path that resolves to those locations).<br/><br/>\
-This is permanent for as long as the application is running, so restarting the application using <linkto ref="KeyBind_DevRestartApp">the associated developer key</linkto> will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>\
+ * \desc Changes the current game, by loading a data file containing the new game.<br/>If the path ends with a path separator (`/`), an entire directory will be loaded as the game instead. Only `game://` and `user://` URLs are supported (or an absolute path that resolves to those locations).<br/><br/>\
+This is permanent for as long as the application is running, so restarting the application using the associated developer key (<ref KeyBind_DevRestartApp>) will reload the current game, and not the one the application started with. Script compiling is also disabled after the game changes.<br/><br/>\
 The change only takes effect after a frame completes.<br/><br/>\
 Note that certain game configurations will persist between games if not set by the new GameConfig:<ul>\
 <li>Game-identifying configurations:</li><ul>\
@@ -1784,15 +2186,15 @@ Note that certain game configurations will persist between games if not set by t
 <li>Window size</li>\
 <li>Audio volume</li>\
 <li>Target frame rate</li>\
-<li>Whether fixed timestep was enabled or disabled with <code>useFixedTimestep</code></li>\
+<li>Whether fixed timestep was enabled or disabled with `useFixedTimestep`</li>\
 <li>Settings filename</li>\
 <ul>If this is changed, the current settings are discarded (not saved) and the new settings file is loaded. If the file does not exist, however, default settings will be loaded.</ul>\
 </ul></ul>\
 Some of the game's current state also persists between games:<ul>\
-<li>Command line arguments (unless <code>cmdLineArgs</code> is passed to this function)</li>\
+<li>Command line arguments (unless <param cmdLineArgs> is passed to this function)</li>\
 <li>Palette colors</li>\
 <li>Whether palette rendering is enabled</li>\
-<li>Whether software rendering was enabled or disabled with <code>useSoftwareRenderer</code></li>\
+<li>Whether software rendering was enabled or disabled with `useSoftwareRenderer`</li>\
 </ul>\
 The following <b>does not</b> persist between games:<ul>\
 <li>Any loaded resources</li>\
@@ -1803,10 +2205,10 @@ The following <b>cannot</b> be changed between games:<ul>\
 <li>Log file name</li>\
 <li>Graphics rendering backend</li>\
 </ul>
- * \param path (String): The path of the data file to load.
- * \paramOpt startingScene (String): The filename of the scene file to load upon changing the game. Note that restarting the game will load the starting scene defined in its GameConfig instead. Passing <code>null</code> to this argument is equivalent to not passing it at all.
- * \paramOpt cmdLineArgs (Array): An Array of Strings containing the command line arguments to pass to the new game. If any of the values are not Strings, they will be converted to a String representation. If this argument is not given, the current command line arguments will be passed to the new game.
- * \return Returns <code>true</code> if the game will change, <code>false</code> if otherwise.
+ * \param path (string): The path of the data file to load.
+ * \paramOpt startingScene (string): The filename of the scene file to load upon changing the game. Note that restarting the game will load the starting scene defined in its GameConfig instead. Passing `null` to this argument is equivalent to not passing it at all.
+ * \paramOpt cmdLineArgs (array): An array of strings containing the command line arguments to pass to the new game. If any of the values are not strings, they will be converted to a string representation. If this argument is not given, the current command line arguments will be passed to the new game.
+ * \return boolean Returns whether the game will change.
  * \ns Application
  */
 VMValue Application_ChangeGame(int argCount, VMValue* args, Uint32 threadID) {
@@ -1853,9 +2255,9 @@ VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Array.Create
  * \desc Creates an array.
- * \param size (Integer): Size of the array.
- * \paramOpt initialValue (Value): Initial value to set the array elements to.
- * \return A reference value to the array.
+ * \param size (integer): Size of the array.
+ * \paramOpt initialValue (value): Initial value to set the array elements to.
+ * \return value A reference value to the array.
  * \ns Array
  */
 VMValue Array_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -1881,8 +2283,8 @@ VMValue Array_Create(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Array.Length
  * \desc Gets the length of an array.
- * \param array (Array): Array to get the length of.
- * \return Length of the array.
+ * \param array (array): Array to get the length of.
+ * \return integer Length of the array.
  * \ns Array
  */
 VMValue Array_Length(int argCount, VMValue* args, Uint32 threadID) {
@@ -1899,8 +2301,8 @@ VMValue Array_Length(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Array.Push
  * \desc Adds a value to the end of an array.
- * \param array (Array): Array to get the length of.
- * \param value (Value): Value to add to the array.
+ * \param array (array): Array to get the length of.
+ * \param value (value): Value to add to the array.
  * \ns Array
  */
 VMValue Array_Push(int argCount, VMValue* args, Uint32 threadID) {
@@ -1916,8 +2318,8 @@ VMValue Array_Push(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Array.Pop
  * \desc Gets the value at the end of an array, and removes it.
- * \param array (Array): Array to get the length of.
- * \return The value from the end of the array.
+ * \param array (array): Array to get the length of.
+ * \return value The value from the end of the array.
  * \ns Array
  */
 VMValue Array_Pop(int argCount, VMValue* args, Uint32 threadID) {
@@ -1940,9 +2342,9 @@ VMValue Array_Pop(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Array.Insert
  * \desc Inserts a value at an index of an array.
- * \param array (Array): Array to insert value.
- * \param index (Integer): Index to insert value.
- * \param value (Value): Value to insert.
+ * \param array (array): Array to insert value.
+ * \param index (integer): Index to insert value.
+ * \param value (value): Value to insert.
  * \ns Array
  */
 VMValue Array_Insert(int argCount, VMValue* args, Uint32 threadID) {
@@ -1966,8 +2368,8 @@ VMValue Array_Insert(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Array.Erase
  * \desc Erases a value at an index of an array.
- * \param array (Array): Array to erase value.
- * \param index (Integer): Index to erase value.
+ * \param array (array): Array to erase value.
+ * \param index (integer): Index to erase value.
  * \ns Array
  */
 VMValue Array_Erase(int argCount, VMValue* args, Uint32 threadID) {
@@ -1991,7 +2393,7 @@ VMValue Array_Erase(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Array.Clear
  * \desc Clears an array.
- * \param array (Array): Array to clear.
+ * \param array (array): Array to clear.
  * \ns Array
  */
 VMValue Array_Clear(int argCount, VMValue* args, Uint32 threadID) {
@@ -2007,8 +2409,8 @@ VMValue Array_Clear(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Array.Shift
  * \desc Rotates the array in the desired direction.
- * \param array (Array): Array to shift.
- * \param toRight (Boolean): Whether to rotate the array to the right or not (left.)
+ * \param array (array): Array to shift.
+ * \param toRight (boolean): Whether to rotate the array to the right or not.
  * \ns Array
  */
 VMValue Array_Shift(int argCount, VMValue* args, Uint32 threadID) {
@@ -2038,10 +2440,10 @@ VMValue Array_Shift(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Array.SetAll
  * \desc Sets values in the array from startIndex to endIndex (includes the value at endIndex.)
- * \param array (Array): Array to set values to.
- * \param startIndex (Integer): Index of value to start setting. (<code>-1</code> for first index)
- * \param endIndex (Integer): Index of value to end setting. (<code>-1</code> for last index)
- * \param value (Value): Value to set to.
+ * \param array (array): Array to set values to.
+ * \param startIndex (integer): Index of value to start setting. (`-1` for first index)
+ * \param endIndex (integer): Index of value to end setting. (`-1` for last index)
+ * \param value (value): Value to set to.
  * \ns Array
  */
 VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
@@ -2079,10 +2481,10 @@ VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Array.Reverse
- * \desc Reverses the elements of an array through the specified range, exclusive. The array is reversed from <code>startIndex</code> to, but not including, <code>endIndex</code>.
- * \param array (Array): Array to reverse.
- * \paramOpt startIndex (Integer): Start range. Default is zero.
- * \paramOpt endIndex (Integer): End range. Default is size of array.
+ * \desc Reverses the elements of an array through the specified range, exclusive. The array is reversed from `startIndex` to, but not including, `endIndex`.
+ * \param array (array): Array to reverse.
+ * \paramOpt startIndex (integer): Start range. (default: `0`)
+ * \paramOpt endIndex (integer): End range. (default: size of array)
  * \ns Array
  */
 VMValue Array_Reverse(int argCount, VMValue* args, Uint32 threadID) {
@@ -2113,8 +2515,8 @@ VMValue Array_Reverse(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Array.Sort
  * \desc Sorts the entries of the given array.
- * \param array (Array): Array to sort.
- * \paramOpt compFunction (Function): Comparison function. If not given, a default comparison function is used; the entries of the array are sorted in ascending order, and non-numeric values do not participate in the comparison.
+ * \param array (array): Array to sort.
+ * \paramOpt compFunction (function): Comparison function. If not given, a default comparison function is used; the entries of the array are sorted in ascending order, and non-numeric values do not participate in the comparison.
  * \ns Array
  */
 VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
@@ -2170,7 +2572,7 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Audio.GetMasterVolume
  * \desc Gets the master volume of the audio mixer.
- * \return The master volume, from 0 to 100.
+ * \return integer The master volume, from 0 to 100.
  * \ns Audio
  */
 VMValue Audio_GetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
@@ -2180,7 +2582,7 @@ VMValue Audio_GetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Audio.GetMusicVolume
  * \desc Gets the music volume of the audio mixer.
- * \return The music volume, from 0 to 100.
+ * \return integer The music volume, from 0 to 100.
  * \ns Audio
  */
 VMValue Audio_GetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
@@ -2190,7 +2592,7 @@ VMValue Audio_GetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Audio.GetSoundVolume
  * \desc Gets the sound effect volume of the audio mixer.
- * \return The sound effect volume, from 0 to 100.
+ * \return integer The sound effect volume, from 0 to 100.
  * \ns Audio
  */
 VMValue Audio_GetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
@@ -2200,7 +2602,7 @@ VMValue Audio_GetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Audio.SetMasterVolume
  * \desc Sets the master volume of the audio mixer.
- * \param volume (Integer): The master volume, from 0 to 100.
+ * \param volume (integer): The master volume, from 0 to 100.
  * \ns Audio
  */
 VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
@@ -2221,7 +2623,7 @@ VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Audio.SetMusicVolume
  * \desc Sets the music volume of the audio mixer.
- * \param volume (Integer): The music volume, from 0 to 100.
+ * \param volume (integer): The music volume, from 0 to 100.
  * \ns Audio
  */
 VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
@@ -2242,7 +2644,7 @@ VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Audio.SetSoundVolume
  * \desc Sets the sound effect volume of the audio mixer.
- * \param volume (Integer): The sound effect volume, from 0 to 100.
+ * \param volume (integer): The sound effect volume, from 0 to 100.
  * \ns Audio
  */
 VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
@@ -2264,289 +2666,169 @@ VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Collision
 /***
- * Collision.ProcessObjectMovement
+ * Collision.ProcessEntityMovement
  * \desc Processes movement of an instance with an outer hitbox and an inner hitboxes.
- * \param entity (Instance): The instance to move.
- * \param outer (Array): Array containing the outer hitbox.
- * \param inner (Array): Array containing the inner hitbox.
+ * \param entity (Entity): The instance to move.
+ * \param outer (hitbox): The outer hitbox.
+ * \param inner (hitbox): The inner hitbox.
  * \ns Collision
  */
-VMValue Collision_ProcessObjectMovement(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_ProcessEntityMovement(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
 	ObjEntity* entity = GET_ARG(0, GetEntity);
-	ObjArray* outer = GET_ARG(1, GetArray);
-	ObjArray* inner = GET_ARG(2, GetArray);
+	CollisionBox outerBox = GET_ARG(1, GetHitbox);
+	CollisionBox innerBox = GET_ARG(2, GetHitbox);
 
-	CollisionBox outerBox;
-	CollisionBox innerBox;
-
-	if (entity && outer && inner) {
-		auto ent = (Entity*)entity->EntityPtr;
-		
-		if (IS_INTEGER((*outer->Values)[0])) {
-			outerBox.Left = AS_INTEGER((*outer->Values)[0]);
-			outerBox.Top = AS_INTEGER((*outer->Values)[1]);
-			outerBox.Right = AS_INTEGER((*outer->Values)[2]);
-			outerBox.Bottom = AS_INTEGER((*outer->Values)[3]);
-		}
-		else {
-			outerBox.Left = (int)AS_DECIMAL((*outer->Values)[0]);
-			outerBox.Top = (int)AS_DECIMAL((*outer->Values)[1]);
-			outerBox.Right = (int)AS_DECIMAL((*outer->Values)[2]);
-			outerBox.Bottom = (int)AS_DECIMAL((*outer->Values)[3]);
-		}
-
-		if (IS_INTEGER((*inner->Values)[0])) {
-			innerBox.Left = AS_INTEGER((*inner->Values)[0]);
-			innerBox.Top = AS_INTEGER((*inner->Values)[1]);
-			innerBox.Right = AS_INTEGER((*inner->Values)[2]);
-			innerBox.Bottom = AS_INTEGER((*inner->Values)[3]);
-		}
-		else {
-			innerBox.Left = (int)AS_DECIMAL((*inner->Values)[0]);
-			innerBox.Top = (int)AS_DECIMAL((*inner->Values)[1]);
-			innerBox.Right = (int)AS_DECIMAL((*inner->Values)[2]);
-			innerBox.Bottom = (int)AS_DECIMAL((*inner->Values)[3]);
-		}
-		Scene::ProcessObjectMovement(ent, &outerBox, &innerBox);
+	if (entity) {
+		Scene::ProcessEntityMovement((Entity*)entity->EntityPtr, &outerBox, &innerBox);
 	}
 	return NULL_VAL;
 }
 /***
- * Collision.ObjectTileCollision
+ * Collision.CheckTileCollision
  * \desc Checks tile collision based on where an instance should check.
- * \param entity (Instance): The instance to base the values on.
- * \param cLayers (Bitfield): Which layers the entity can collide with.
- * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
- * \param cPlane (Integer): Collision plane to get the collision of (A or B).
- * \param xOffset (Number): How far from the entity's X value to start from.
- * \param yOffset (Number): How far from the entity's Y value to start from.
- * \param setPos (Boolean): Whether to set the entity's position if collision is found.
- * \return Returns whether the instance has collided with a tile.
+ * \param entity (Entity): The instance to base the values on.
+ * \param cLayers (bitfield): Which layers the entity can collide with.
+ * \param cMode (<ref CMODE_*>): Collision mode of the entity.
+ * \param cPlane (integer): Collision plane of which to get the collision (A or B).
+ * \param xOffset (integer): How far from the entity's X value to start.
+ * \param yOffset (integer): How far from the entity's Y value to start.
+ * \param setPos (boolean): Whether to set the entity's position if collision is found.
+ * \return boolean Returns whether the instance has collided with a tile.
  * \ns Collision
  */
-VMValue Collision_ObjectTileCollision(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckTileCollision(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(7);
 	ObjEntity* entity = GET_ARG(0, GetEntity);
 	int cLayers = GET_ARG(1, GetInteger);
 	int cMode = GET_ARG(2, GetInteger);
 	int cPlane = GET_ARG(3, GetInteger);
-	int xOffset = GET_ARG(4, GetDecimal);
-	int yOffset = GET_ARG(5, GetDecimal);
+	int xOffset = GET_ARG(4, GetInteger);
+	int yOffset = GET_ARG(5, GetInteger);
 	int setPos = GET_ARG(6, GetInteger);
 
-	auto ent = (Entity*)entity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::ObjectTileCollision(ent, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
+	return INTEGER_VAL(Scene::CheckTileCollision(
+		(Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
 }
 /***
- * Collision.ObjectTileGrip
+ * Collision.CheckTileGrip
  * \desc Keeps an instance gripped to tile collision based on where an instance should check.
- * \param entity (Instance): The instance to move.
- * \param cLayers (Bitfield): Which layers the entity can collide with.
- * \param cMode (Integer): Collision mode of the entity (floor, left wall, roof, right wall).
- * \param cPlane (Integer): Collision plane to get the collision of (A or B).
- * \param xOffset (Decimal): How far from the entity's X value to start from.
- * \param yOffset (Decimal): How far from the entity's Y value to start from.
- * \param tolerance (Decimal): How far of a tolerance the entity should check for.
- * \return Returns whether to grip the instance.
+ * \param entity (Entity): The instance to move.
+ * \param cLayers (bitfield): Which layers the entity can collide with.
+ * \param cMode (<ref CMODE_*>): Collision mode of the entity.
+ * \param cPlane (integer): Collision plane of which to get the collision (A or B).
+ * \param xOffset (integer): How far from the entity's X value to start.
+ * \param yOffset (integer): How far from the entity's Y value to start.
+ * \param tolerance (decimal): How far of a tolerance the entity should check for.
+ * \return boolean Returns whether to grip the instance.
  * \ns Collision
  */
-VMValue Collision_ObjectTileGrip(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckTileGrip(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(7);
 	ObjEntity* entity = GET_ARG(0, GetEntity);
 	int cLayers = GET_ARG(1, GetInteger);
 	int cMode = GET_ARG(2, GetInteger);
 	int cPlane = GET_ARG(3, GetInteger);
-	float xOffset = GET_ARG(4, GetDecimal);
-	float yOffset = GET_ARG(5, GetDecimal);
+	int xOffset = GET_ARG(4, GetInteger);
+	int yOffset = GET_ARG(5, GetInteger);
 	float tolerance = GET_ARG(6, GetDecimal);
 
-	auto ent = (Entity*)entity->EntityPtr;
-
-	return INTEGER_VAL(
-		Scene::ObjectTileGrip(ent, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
+	return INTEGER_VAL(Scene::CheckTileGrip(
+		(Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
 }
 /***
- * Collision.CheckObjectCollisionTouch
+ * Collision.CheckEntityTouch
  * \desc Checks if an instance is touching another instance with their respective hitboxes.
- * \param thisEntity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
- * \param otherEntity (Instance): The other instance to check.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
- * \return Returns a Boolean value whether the entities are touching.
+ * \param thisEntity (Entity): The first instance to check.
+ * \param thisHitbox (hitbox): The first entity's hitbox.
+ * \param otherEntity (Entity): The other instance to check.
+ * \param otherHitbox (hitbox): The other entity's hitbox.
+ * \return boolean Returns whether the entities are touching.
  * \ns Collision
  */
-VMValue Collision_CheckObjectCollisionTouch(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityTouch(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	CollisionBox thisBox = GET_ARG(1, GetHitbox);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
-	return INTEGER_VAL(
-		!!Scene::CheckObjectCollisionTouch(thisEnt, &thisBox, otherEnt, &otherBox));
+	return INTEGER_VAL(!!Scene::CheckEntityTouch((Entity*)thisEntity->EntityPtr,
+		&thisBox,
+		(Entity*)otherEntity->EntityPtr,
+		&otherBox));
 }
 /***
- * Collision.CheckObjectCollisionCircle
+ * Collision.CheckEntityCircle
  * \desc Checks if an instance is touching another instance with within their respective radii.
- * \param thisEnity (Instance): The first instance to check.
- * \param thisRadius (Decimal): Radius of the first entity to check.
- * \param otherEntity (Instance): The other instance to check.
- * \param otherRadius (Array): Radius of the other entity to check.
- * \return Returns a Boolean value whether the entities have collided.
+ * \param thisEntity (Entity): The first instance to check.
+ * \param thisRadius (decimal): Radius of the first entity to check.
+ * \param otherEntity (Entity): The other instance to check.
+ * \param otherRadius (decimal): Radius of the other entity to check.
+ * \return boolean Returns whether the entities have collided.
  * \ns Collision
  */
-VMValue Collision_CheckObjectCollisionCircle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityCircle(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	float thisRadius = GET_ARG(1, GetDecimal);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	float otherRadius = GET_ARG(3, GetDecimal);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	return INTEGER_VAL(
-		!!Scene::CheckObjectCollisionCircle(thisEnt, thisRadius, otherEnt, otherRadius));
+	return INTEGER_VAL(!!Scene::CheckEntityCircle((Entity*)thisEntity->EntityPtr,
+		thisRadius,
+		(Entity*)otherEntity->EntityPtr,
+		otherRadius));
 }
 /***
- * Collision.CheckObjectCollisionBox
+ * Collision.CheckEntityBox
  * \desc Checks if an instance is touching another instance with their respective hitboxes and sets the values of the other instance if specified.
- * \param thisEnity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
- * \param otherEntity (Instance): The other instance to check.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
- * \param setValues (Boolean): Whether to set the values of the other entity.
- * \return Returns the side the entities are colliding on.
+ * \param thisEntity (Entity): The first instance to check.
+ * \param thisHitbox (hitbox): The first entity's hitbox.
+ * \param otherEntity (Entity): The other instance to check.
+ * \param otherHitbox (hitbox): The other entity's hitbox.
+ * \param setValues (boolean): Whether to set the values of the other entity.
+ * \return <ref C_*> Returns the side the entities are colliding on.
  * \ns Collision
  */
-VMValue Collision_CheckObjectCollisionBox(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityBox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	CollisionBox thisBox = GET_ARG(1, GetHitbox);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
-	return INTEGER_VAL(
-		Scene::CheckObjectCollisionBox(thisEnt, &thisBox, otherEnt, &otherBox, setValues));
+	return INTEGER_VAL(Scene::CheckEntityBox((Entity*)thisEntity->EntityPtr,
+		&thisBox,
+		(Entity*)otherEntity->EntityPtr,
+		&otherBox,
+		setValues));
 }
 /***
- * Collision.CheckObjectCollisionPlatform
+ * Collision.CheckEntityPlatform
  * \desc Checks if an instance is touching the top of another instance with their respective hitboxes and sets the values of the other instance if specified.
- * \param thisEnity (Instance): The first instance to check.
- * \param thisHitbox (Array): Array containing the first entity's hitbox.
- * \param otherEntity (Instance): The other instance to check whether it is on top of the first instance.
- * \param otherHitbox (Array): Array containing the other entity's hitbox.
- * \param setValues (Boolean): Whether to set the values of the other entity.
- * \return Returns a Boolean value whether the entities have collided.
+ * \param thisEntity (Entity): The first instance to check.
+ * \param thisHitbox (hitbox): The first entity's hitbox.
+ * \param otherEntity (Entity): The other instance to check whether it is on top of the first instance.
+ * \param otherHitbox (hitbox): The other entity's hitbox.
+ * \param setValues (boolean): Whether to set the values of the other entity.
+ * \return boolean Returns whether the entities have collided.
  * \ns Collision
  */
-VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityPlatform(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
-	ObjArray* thisHitbox = GET_ARG(1, GetArray);
+	CollisionBox thisBox = GET_ARG(1, GetHitbox);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
-	ObjArray* otherHitbox = GET_ARG(3, GetArray);
+	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
-	auto thisEnt = (Entity*)thisEntity->EntityPtr;
-	auto otherEnt = (Entity*)otherEntity->EntityPtr;
-
-	CollisionBox thisBox;
-	CollisionBox otherBox;
-
-	if (IS_INTEGER((*thisHitbox->Values)[0])) {
-		thisBox.Left = AS_INTEGER((*thisHitbox->Values)[0]);
-		thisBox.Top = AS_INTEGER((*thisHitbox->Values)[1]);
-		thisBox.Right = AS_INTEGER((*thisHitbox->Values)[2]);
-		thisBox.Bottom = AS_INTEGER((*thisHitbox->Values)[3]);
-	}
-	else {
-		thisBox.Left = (int)AS_DECIMAL((*thisHitbox->Values)[0]);
-		thisBox.Top = (int)AS_DECIMAL((*thisHitbox->Values)[1]);
-		thisBox.Right = (int)AS_DECIMAL((*thisHitbox->Values)[2]);
-		thisBox.Bottom = (int)AS_DECIMAL((*thisHitbox->Values)[3]);
-	}
-
-	if (IS_INTEGER((*otherHitbox->Values)[0])) {
-		otherBox.Left = AS_INTEGER((*otherHitbox->Values)[0]);
-		otherBox.Top = AS_INTEGER((*otherHitbox->Values)[1]);
-		otherBox.Right = AS_INTEGER((*otherHitbox->Values)[2]);
-		otherBox.Bottom = AS_INTEGER((*otherHitbox->Values)[3]);
-	}
-	else {
-		otherBox.Left = (int)AS_DECIMAL((*otherHitbox->Values)[0]);
-		otherBox.Top = (int)AS_DECIMAL((*otherHitbox->Values)[1]);
-		otherBox.Right = (int)AS_DECIMAL((*otherHitbox->Values)[2]);
-		otherBox.Bottom = (int)AS_DECIMAL((*otherHitbox->Values)[3]);
-	}
-	return INTEGER_VAL(!!Scene::CheckObjectCollisionPlatform(
-		thisEnt, &thisBox, otherEnt, &otherBox, setValues));
+	return INTEGER_VAL(!!Scene::CheckEntityPlatform((Entity*)thisEntity->EntityPtr,
+		&thisBox,
+		(Entity*)otherEntity->EntityPtr,
+		&otherBox,
+		setValues));
 }
 // #endregion
 
@@ -2554,7 +2836,7 @@ VMValue Collision_CheckObjectCollisionPlatform(int argCount, VMValue* args, Uint
 /***
  * Controller.GetCount
  * \desc Gets the amount of connected controllers in the device.
- * \return Returns the amount of connected controllers in the device.
+ * \return integer Returns the amount of connected controllers in the device.
  * \ns Controller
  */
 VMValue Controller_GetCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -2564,8 +2846,8 @@ VMValue Controller_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Controller.IsConnected
  * \desc Gets whether the controller at the index is connected.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns whether the controller at the index is connected.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return boolean Returns whether the controller at the index is connected.
  * \ns Controller
  */
 VMValue Controller_IsConnected(int argCount, VMValue* args, Uint32 threadID) {
@@ -2594,57 +2876,57 @@ VMValue Controller_IsConnected(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Controller.IsXbox
  * \desc Gets whether the controller at the index is an Xbox controller.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns whether the controller at the index is an Xbox controller.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return boolean Returns whether the controller at the index is an Xbox controller.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(IsXbox)
 /***
  * Controller.IsPlayStation
  * \desc Gets whether the controller at the index is a PlayStation controller.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns whether the controller at the index is a PlayStation controller.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return boolean Returns whether the controller at the index is a PlayStation controller.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(IsPlayStation)
 /***
  * Controller.IsJoyCon
  * \desc Gets whether the controller at the index is a Nintendo Switch Joy-Con L or R.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns whether the controller at the index is a Nintendo Switch Joy-Con L or R.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return boolean Returns whether the controller at the index is a Nintendo Switch Joy-Con L or R.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(IsJoyCon)
 /***
  * Controller.HasShareButton
  * \desc Gets whether the controller at the index has a Share or Capture button.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns whether the controller at the index has a Share or Capture button.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return boolean Returns whether the controller at the index has a Share or Capture button.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(HasShareButton)
 /***
  * Controller.HasMicrophoneButton
  * \desc Gets whether the controller at the index has a Microphone button.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns whether the controller at the index has a Microphone button.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return boolean Returns whether the controller at the index has a Microphone button.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(HasMicrophoneButton)
 /***
  * Controller.HasPaddles
  * \desc Gets whether the controller at the index has paddles.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns whether the controller at the index has paddles.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return boolean Returns whether the controller at the index has paddles.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(HasPaddles)
 /***
  * Controller.IsButtonHeld
- * \desc Checks if a <linkto ref="Button_*">button</linkto> is held.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
- * \return Returns a Boolean value.
+ * \desc Checks if a button is held.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \param button (<ref Button_*>): Which button to check.
+ * \return boolean Returns a boolean value.
  * \ns Controller
  */
 VMValue Controller_IsButtonHeld(int argCount, VMValue* args, Uint32 threadID) {
@@ -2660,10 +2942,10 @@ VMValue Controller_IsButtonHeld(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Controller.IsButtonPressed
- * \desc Checks if a <linkto ref="Button_*">button</linkto> is pressed.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
- * \return Returns a Boolean value.
+ * \desc Checks if a button is pressed.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \param button (<ref Button_*>): Which button to check.
+ * \return boolean Returns a boolean value.
  * \ns Controller
  */
 VMValue Controller_IsButtonPressed(int argCount, VMValue* args, Uint32 threadID) {
@@ -2679,10 +2961,11 @@ VMValue Controller_IsButtonPressed(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Controller.GetButton
- * \desc Gets the <linkto ref="Button_*">button</linkto> value from the controller at the index. (Deprecated; use <linkto ref="Controller.IsButtonHeld"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller to check.
- * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
- * \return Returns the button value from the controller at the index.
+ * \desc Gets the button value from the controller at the index.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \param button (<ref Button_*>): Which button to check.
+ * \return boolean Returns the button value from the controller at the index.
+ * \deprecated Use <ref Controller.IsButtonHeld> instead.
  * \ns Controller
  */
 VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
@@ -2690,10 +2973,10 @@ VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Controller.GetAxis
- * \desc Gets the <linkto ref="Axis_*">axis</linkto> value from the controller at the index.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \param axis (Enum): Which <linkto ref="Axis_*">axis</linkto> to check.
- * \return Returns the axis value from the controller at the index.
+ * \desc Gets the axis value from the controller at the index.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \param axis (<ref Axis_*>): Which axis to check.
+ * \return decimal Returns the axis value from the controller at the index.
  * \ns Controller
  */
 VMValue Controller_GetAxis(int argCount, VMValue* args, Uint32 threadID) {
@@ -2709,17 +2992,17 @@ VMValue Controller_GetAxis(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Controller.GetType
- * \desc Gets the <linkto ref="Controller_*">type of the controller</linkto> at the index.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns the <linkto ref="Controller_*">type of the controller</linkto> at the index.
+ * \desc Gets the type of the controller at the index.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return <ref Controller_*> Returns the type of the controller at the index.
  * \ns Controller
  */
 CONTROLLER_GET_INT(GetType)
 /***
  * Controller.GetName
  * \desc Gets the name of the controller at the index.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns the name of the controller at the index.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return string Returns the name of the controller at the index.
  * \ns Controller
  */
 VMValue Controller_GetName(int argCount, VMValue* args, Uint32 threadID) {
@@ -2733,8 +3016,8 @@ VMValue Controller_GetName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Controller.SetPlayerIndex
  * \desc Sets the player index of the controller at the index.
- * \param controllerIndex (Integer): Index of the controller.
- * \param playerIndex (Integer): The player index. Use <code>-1</code> to disable the controller's LEDs.
+ * \param controllerIndex (integer): Index of the controller.
+ * \param playerIndex (integer): The player index. Use `-1` to disable the controller's LEDs.
  * \ns Controller
  */
 VMValue Controller_SetPlayerIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -2748,25 +3031,25 @@ VMValue Controller_SetPlayerIndex(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Controller.HasRumble
  * \desc Checks if the controller at the index supports rumble.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns <code>true</code> if the controller at the index supports rumble, <code>false</code> otherwise.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return boolean Returns whether the controller supports rumble.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(HasRumble)
 /***
  * Controller.IsRumbleActive
  * \desc Checks if rumble is active for the controller at the index.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns <code>true</code> if rumble is active for the controller at the index, <code>false</code> otherwise.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return boolean Returns whether rumble is active for the controller.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(IsRumbleActive)
 /***
  * Controller.Rumble
  * \desc Rumbles a controller.
- * \param controllerIndex (Integer): Index of the controller to rumble.
- * \param strength (Number): Rumble strength. (0.0 - 1.0)
- * \param duration (Integer): Duration in milliseconds. Use <code>0</code> for infinite duration.
+ * \param controllerIndex (integer): Index of the controller to rumble.
+ * \param strength (number): Rumble strength. (0.0 - 1.0)
+ * \param duration (integer): Duration in milliseconds. Use `0` for infinite duration.
  * \ns Controller
  */
 VMValue Controller_Rumble(int argCount, VMValue* args, Uint32 threadID) {
@@ -2814,7 +3097,7 @@ VMValue Controller_Rumble(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Controller.StopRumble
  * \desc Stops controller haptics.
- * \param controllerIndex (Integer): Index of the controller to stop.
+ * \param controllerIndex (integer): Index of the controller to stop.
  * \ns Controller
  */
 VMValue Controller_StopRumble(int argCount, VMValue* args, Uint32 threadID) {
@@ -2827,15 +3110,15 @@ VMValue Controller_StopRumble(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Controller.IsRumblePaused
  * \desc Checks if rumble is paused for the controller at the index.
- * \param controllerIndex (Integer): Index of the controller to check.
- * \return Returns <code>true</code> if rumble is paused for the controller at the index, <code>false</code> otherwise.
+ * \param controllerIndex (integer): Index of the controller to check.
+ * \return boolean Returns whether rumble is paused for the controller.
  * \ns Controller
  */
 CONTROLLER_GET_BOOL(IsRumblePaused)
 /***
  * Controller.SetRumblePaused
  * \desc Pauses or unpauses rumble for the controller at the index.
- * \param controllerIndex (Integer): Index of the controller.
+ * \param controllerIndex (integer): Index of the controller.
  * \ns Controller
  */
 VMValue Controller_SetRumblePaused(int argCount, VMValue* args, Uint32 threadID) {
@@ -2848,9 +3131,10 @@ VMValue Controller_SetRumblePaused(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Controller.SetLargeMotorFrequency
- * \desc Sets the frequency of a controller's large motor. (Deprecated; use <linkto ref="Controller.Rumble"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller.
- * \param frequency (Number): Frequency of the large motor.
+ * \desc Sets the frequency of a controller's large motor.
+ * \param controllerIndex (integer): Index of the controller.
+ * \param frequency (number): Frequency of the large motor.
+ * \deprecated Use <ref Controller.Rumble> instead.
  * \ns Controller
  */
 VMValue Controller_SetLargeMotorFrequency(int argCount, VMValue* args, Uint32 threadID) {
@@ -2867,9 +3151,10 @@ VMValue Controller_SetLargeMotorFrequency(int argCount, VMValue* args, Uint32 th
 }
 /***
  * Controller.SetSmallMotorFrequency
- * \desc Sets the frequency of a controller's small motor. (Deprecated; use <linkto ref="Controller.Rumble"></linkto> instead.)
- * \param controllerIndex (Integer): Index of the controller.
- * \param frequency (Number): Frequency of the small motor.
+ * \desc Sets the frequency of a controller's small motor.
+ * \param controllerIndex (integer): Index of the controller.
+ * \param frequency (number): Frequency of the small motor.
+ * \deprecated Use <ref Controller.Rumble> instead.
  * \ns Controller
  */
 VMValue Controller_SetSmallMotorFrequency(int argCount, VMValue* args, Uint32 threadID) {
@@ -2892,7 +3177,7 @@ VMValue Controller_SetSmallMotorFrequency(int argCount, VMValue* args, Uint32 th
 /***
  * Date.GetEpoch
  * \desc Gets the amount of seconds from 1 January 1970, 0:00 UTC.
- * \return The amount of seconds from epoch.
+ * \return integer The amount of seconds from epoch.
  * \ns Date
  */
 VMValue Date_GetEpoch(int argCount, VMValue* args, Uint32 threadID) {
@@ -2902,7 +3187,7 @@ VMValue Date_GetEpoch(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Date.GetWeekday
  * \desc Gets the current day of the week, starting from 1 January 1970, 0:00 UTC.
- * \return The day of the week (0-6 corresponding to Sunday-Saturday).
+ * \return <ref WEEKDAY_*> The day of the week.
  * \ns Date
  */
 VMValue Date_GetWeekday(int argCount, VMValue* args, Uint32 threadID) {
@@ -2912,7 +3197,7 @@ VMValue Date_GetWeekday(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Date.GetSecond
  * \desc Gets the the second of the current minute.
- * \return The second of the minute (from 0 to 59).
+ * \return integer The second of the minute (from 0 to 59).
  * \ns Date
  */
 VMValue Date_GetSecond(int argCount, VMValue* args, Uint32 threadID) {
@@ -2922,7 +3207,7 @@ VMValue Date_GetSecond(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Date.GetMinute
  * \desc Gets the the minute of the current hour.
- * \return The minute of the hour (from 0 to 59).
+ * \return integer The minute of the hour (from 0 to 59).
  * \ns Date
  */
 VMValue Date_GetMinute(int argCount, VMValue* args, Uint32 threadID) {
@@ -2932,7 +3217,7 @@ VMValue Date_GetMinute(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Date.GetHour
  * \desc Gets the the hour of the current day.
- * \return The hour of the day (from 0 to 23).
+ * \return integer The hour of the day (from 0 to 23).
  * \ns Date
  */
 VMValue Date_GetHour(int argCount, VMValue* args, Uint32 threadID) {
@@ -2942,7 +3227,7 @@ VMValue Date_GetHour(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Date.GetTimeOfDay
  * \desc Gets the the current time of the day (Morning, Midday, Evening, Night).
- * \return The time of day based on the current hour.
+ * \return <ref TIMEOFDAY_*> The time of day based on the current hour.
  * \ns Date
  */
 VMValue Date_GetTimeOfDay(int argCount, VMValue* args, Uint32 threadID) {
@@ -2965,7 +3250,7 @@ VMValue Date_GetTimeOfDay(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Date.GetTicks
  * \desc Gets the milliseconds since the application began running.
- * \return Returns milliseconds since the application began running.
+ * \return decimal Returns milliseconds since the application began running.
  * \ns Date
  */
 VMValue Date_GetTicks(int argCount, VMValue* args, Uint32 threadID) {
@@ -2977,8 +3262,8 @@ VMValue Date_GetTicks(int argCount, VMValue* args, Uint32 threadID) {
 // #region Device
 /***
  * Device.GetPlatform
- * \desc Gets the <linkto ref="Platform_*">platform</linkto> the application is currently running on.
- * \return Returns the current <linkto ref="Platform_*">platform</linkto>.
+ * \desc Gets the platform the application is currently running on.
+ * \return <ref Platform_*> Returns the current platform.
  * \ns Device
  */
 VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
@@ -2987,8 +3272,8 @@ VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Device.IsPC
- * \desc Determines whether or not the application is running on a personal computer OS (Windows, MacOS, Linux).
- * \return Returns <code>true</code> if the device is on a PC, <code>false</code> if otherwise.
+ * \desc Determines whether the application is running on a personal computer OS (Windows, MacOS, Linux).
+ * \return boolean Returns whether the device running on a computer OS.
  * \ns Device
  */
 VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
@@ -2998,8 +3283,8 @@ VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Device.IsMobile
- * \desc Determines whether or not the application is running on a mobile device.
- * \return Returns <code>true</code> if the device is on a mobile device, <code>false</code> if otherwise.
+ * \desc Determines whether the application is running on a mobile device.
+ * \return boolean Returns whether the device is running on a mobile OS.
  * \ns Device
  */
 VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
@@ -3010,8 +3295,8 @@ VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Device.GetCapability
  * \desc Checks a capability of the device the application is running on.
- * \param capability (String): The capability.
- * \return The return value of this function depends on the capability being queried; however, if the capability is not present, this function returns <code>null</code>.
+ * \param capability (string): The capability.
+ * \return value The return value of this function depends on the capability being queried; however, if the capability is not present, this function returns `null`.
  * \ns Device
  */
 VMValue Device_GetCapability(int argCount, VMValue* args, Uint32 threadID) {
@@ -3047,8 +3332,8 @@ VMValue Device_GetCapability(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Directory.Create
  * \desc Creates a folder at the path.
- * \param path (String): The path of the folder to create.
- * \return Returns <code>true</code> if the folder creation was successful, <code>false</code> if otherwise.
+ * \param path (string): The path of the folder to create.
+ * \return boolean Returns whether folder creation was successful.
  * \ns Directory
  */
 VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -3059,8 +3344,8 @@ VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Directory.Exists
  * \desc Determines if the folder at the path exists.
- * \param path (String): The path of the folder to check for existence.
- * \return Returns <code>true</code> if the folder exists, <code>false</code> if otherwise.
+ * \param path (string): The path of the folder to check for existence.
+ * \return boolean Returns whether the folder exists.
  * \ns Directory
  */
 VMValue Directory_Exists(int argCount, VMValue* args, Uint32 threadID) {
@@ -3071,10 +3356,10 @@ VMValue Directory_Exists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Directory.GetFiles
  * \desc Gets the paths of all the files in the directory.
- * \param directory (String): The path of the folder to find files in.
- * \param pattern (String): The search pattern for the files. (ex: "*" for any file, "*.*" any file name with any file type, "*.png" any PNG file)
- * \param allDirs (Boolean): Whether or not to search into all folders in the directory.
- * \return Returns an Array containing the filepaths (as Strings.)
+ * \param directory (string): The path of the folder to find files in.
+ * \param pattern (string): The search pattern for the files. (ex: "*" for any file, "*.*" any file name with any file type, "*.png" any PNG file)
+ * \param allDirs (boolean): Whether to search into all folders in the directory.
+ * \return array Returns an array containing the filepaths as strings.
  * \ns Directory
  */
 VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
@@ -3101,10 +3386,10 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Directory.GetDirectories
  * \desc Gets the paths of all the folders in the directory.
- * \param directory (String): The path of the folder to find folders in.
- * \param pattern (String): The search pattern for the folders. (ex: "*" for any folder, "image*" any folder that starts with "image")
- * \param allDirs (Boolean): Whether or not to search into all folders in the directory.
- * \return Returns an Array containing the filepaths (as Strings.)
+ * \param directory (string): The path of the folder to find folders in.
+ * \param pattern (string): The search pattern for the folders. (ex: "*" for any folder, "image*" any folder that starts with "image")
+ * \param allDirs (boolean): Whether to search into all folders in the directory.
+ * \return array Returns an array containing the filepaths as strings.
  * \ns Directory
  */
 VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
@@ -3134,8 +3419,8 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Display.GetWidth
  * \desc Gets the width of the current display.
- * \paramOpt index (Integer): The display index to get the width of.
- * \return Returns the width of the current display.
+ * \paramOpt index (integer): The display index to get the width of.
+ * \return integer Returns the width of the current display.
  * \ns Display
  */
 VMValue Display_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -3147,8 +3432,8 @@ VMValue Display_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Display.GetHeight
  * \desc Gets the height of the current display.
- * \paramOpt index (Integer): The display index to get the width of.
- * \return Returns the height of the current display.
+ * \paramOpt index (integer): The display index to get the width of.
+ * \return integer Returns the height of the current display.
  * \ns Display
  */
 VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -3163,18 +3448,18 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Sprite
  * \desc Draws a sprite.
- * \param sprite (Integer): Index of the loaded sprite.
- * \param animation (Integer): Index of the animation entry.
- * \param frame (Integer): Index of the frame in the animation entry.
- * \param x (Number): X position of where to draw the sprite.
- * \param y (Number): Y position of where to draw the sprite.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
- * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.
- * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians.
- * \paramOpt paletteID (Integer): Which palette index to use.
+ * \param sprite (integer): Index of the loaded sprite.
+ * \param animation (integer): Index of the animation entry.
+ * \param frame (integer): Index of the frame in the animation entry.
+ * \param x (number): X position of where to draw the sprite.
+ * \param y (number): Y position of where to draw the sprite.
+ * \param flipX (integer): Whether to flip the sprite horizontally.
+ * \param flipY (integer): Whether to flip the sprite vertically.
+ * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
+ * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
+ * \paramOpt rotation (number): Rotation of the drawn sprite in radians, or in integer if <param useInteger> is `true`.
+ * \paramOpt useInteger (number): Whether the rotation argument is already in radians.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -3239,9 +3524,9 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SpriteBasic
  * \desc Draws a sprite based on an entity's current values (Sprite, CurrentAnimation, CurrentFrame, X, Y, Direction, ScaleX, ScaleY, Rotation).
- * \param instance (Instance): The instance to draw.
- * \paramOpt x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.
- * \paramOpt y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
+ * \param entity (Entity): The entity to draw.
+ * \paramOpt x (number): X position of where to draw the sprite, otherwise uses the entity's X value.
+ * \paramOpt y (number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \ns Draw
  */
 VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
@@ -3340,6 +3625,18 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 		}
 		rotation = rot * M_PI / 256.0;
 
+		int blendMode = Graphics::BlendMode;
+		int textureBlend = Graphics::TextureBlend;
+		float alpha = Graphics::BlendColors[3];
+
+		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f)
+			Graphics::TextureBlend = true;
+		Graphics::SetBlendMode(entity->BlendMode);
+        Graphics::SetBlendColor(Graphics::BlendColors[0],
+			Graphics::BlendColors[1],
+			Graphics::BlendColors[2],
+			Math::Clamp(entity->Alpha, 0.0f, 1.0f));
+
 		Graphics::DrawSprite(sprite,
 			entity->CurrentAnimation,
 			frame,
@@ -3350,20 +3647,27 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 			entity->ScaleX,
 			entity->ScaleY,
 			rotation);
+
+		Graphics::SetBlendMode(blendMode);
+		Graphics::TextureBlend = textureBlend;
+		Graphics::SetBlendColor(Graphics::BlendColors[0],
+			Graphics::BlendColors[1],
+			Graphics::BlendColors[2],
+			alpha);
 	}
 	return NULL_VAL;
 }
 /***
  * Draw.Animator
  * \desc Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and other provided values.
- * \param animator (Animator): The animator to draw.
- * \param x (Number): X position of where to draw the sprite.
- * \param y (Number): Y position of where to draw the sprite.
- * \param flipX (Integer): Whether to flip the sprite horizontally.
- * \param flipY (Integer): Whether to flip the sprite vertically.
- * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (Number): Rotation of the drawn sprite, from 0-511.
+ * \param animator (integer): The animator to draw.
+ * \param x (number): X position of where to draw the sprite.
+ * \param y (number): Y position of where to draw the sprite.
+ * \param flipX (integer): Whether to flip the sprite horizontally.
+ * \param flipY (integer): Whether to flip the sprite vertically.
+ * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally. (default: `1.0`)
+ * \paramOpt scaleY (number): Scale multiplier of the sprite vertically. (default: `1.0`)
+ * \paramOpt rotation (number): Rotation of the drawn sprite, from 0-511. (default: `0.0`)
  * \ns Draw
  */
 VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
@@ -3429,10 +3733,10 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.AnimatorBasic
  * \desc Draws an animator based on its current values (Sprite, CurrentAnimation, CurrentFrame) and an entity's other values (X, Y, Direction, ScaleX, ScaleY, Rotation).
- * \param animator (Animator): The animator to draw.
- * \param instance (Instance): The instance to pull other values from.
- * \paramOpt x (Number): X position of where to draw the sprite, otherwise uses the entity's X value.
- * \paramOpt y (Number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
+ * \param animator (integer): The animator to draw.
+ * \param entity (Entity): The entity to pull other values from.
+ * \paramOpt x (number): X position of where to draw the sprite, otherwise uses the entity's X value.
+ * \paramOpt y (number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \ns Draw
  */
 VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
@@ -3541,6 +3845,18 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 		}
 		rotation = rot * M_PI / 256.0;
 
+		int blendMode = Graphics::BlendMode;
+		int textureBlend = Graphics::TextureBlend;
+		float alpha = Graphics::BlendColors[3];
+
+		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f)
+			Graphics::TextureBlend = true;
+		Graphics::SetBlendMode(entity->BlendMode);
+		Graphics::SetBlendColor(Graphics::BlendColors[0],
+			Graphics::BlendColors[1],
+			Graphics::BlendColors[2],
+			Math::Clamp(entity->Alpha, 0.0f, 1.0f));
+
 		Graphics::DrawSprite(sprite,
 			animator->CurrentAnimation,
 			frame,
@@ -3551,28 +3867,35 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 			entity->ScaleX,
 			entity->ScaleY,
 			rotation);
+
+		Graphics::SetBlendMode(blendMode);
+		Graphics::TextureBlend = textureBlend;
+		Graphics::SetBlendColor(Graphics::BlendColors[0],
+			Graphics::BlendColors[1],
+			Graphics::BlendColors[2],
+			alpha);
 	}
 	return NULL_VAL;
 }
 /***
  * Draw.SpritePart
  * \desc Draws part of a sprite.
- * \param sprite (Integer): Index of the loaded sprite.
- * \param animation (Integer): Index of the animation entry.
- * \param frame (Integer): Index of the frame in the animation entry.
- * \param x (Number): X position of where to draw the sprite.
- * \param y (Number): Y position of where to draw the sprite.
- * \param partX (Integer): X coordinate of part of frame to draw.
- * \param partY (Integer): Y coordinate of part of frame to draw.
- * \param partW (Integer): Width of part of frame to draw.
- * \param partH (Integer): Height of part of frame to draw.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
- * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (Number): Rotation of the drawn sprite in radians, or in integer if <code>useInteger</code> is <code>true</code>.
- * \paramOpt useInteger (Number): Whether or not the rotation argument is already in radians.
- * \paramOpt paletteID (Integer): Which palette index to use.
+ * \param sprite (integer): Index of the loaded sprite.
+ * \param animation (integer): Index of the animation entry.
+ * \param frame (integer): Index of the frame in the animation entry.
+ * \param x (number): X position of where to draw the sprite.
+ * \param y (number): Y position of where to draw the sprite.
+ * \param partX (integer): X coordinate of part of frame to draw.
+ * \param partY (integer): Y coordinate of part of frame to draw.
+ * \param partW (integer): Width of part of frame to draw.
+ * \param partH (integer): Height of part of frame to draw.
+ * \param flipX (integer): Whether to flip the sprite horizontally.
+ * \param flipY (integer): Whether to flip the sprite vertically.
+ * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
+ * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
+ * \paramOpt rotation (number): Rotation of the drawn sprite in radians, or in integer if <param useInteger> is `true`.
+ * \paramOpt useInteger (number): Whether the rotation argument is already in radians.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
@@ -3645,10 +3968,10 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Image
  * \desc Draws an image.
- * \param image (Integer): Index of the loaded image.
- * \param x (Number): X position of where to draw the image.
- * \param y (Number): Y position of where to draw the image.
- * \paramOpt paletteID (Integer): Which palette index to use.
+ * \param image (integer): Index of the loaded image.
+ * \param x (number): X position of where to draw the image.
+ * \param y (number): Y position of where to draw the image.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
@@ -3678,14 +4001,14 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ImagePart
  * \desc Draws part of an image.
- * \param image (Integer): Index of the loaded image.
- * \param partX (Integer): X coordinate of part of image to draw.
- * \param partY (Integer): Y coordinate of part of image to draw.
- * \param partW (Integer): Width of part of image to draw.
- * \param partH (Integer): Height of part of image to draw.
- * \param x (Number): X position of where to draw the image.
- * \param y (Number): Y position of where to draw the image.
- * \paramOpt paletteID (Integer): Which palette index to use.
+ * \param image (integer): Index of the loaded image.
+ * \param partX (integer): X coordinate of part of image to draw.
+ * \param partY (integer): Y coordinate of part of image to draw.
+ * \param partW (integer): Width of part of image to draw.
+ * \param partH (integer): Height of part of image to draw.
+ * \param x (number): X position of where to draw the image.
+ * \param y (number): Y position of where to draw the image.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
@@ -3710,12 +4033,12 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ImageSized
  * \desc Draws an image, but sized.
- * \param image (Integer): Index of the loaded image.
- * \param x (Number): X position of where to draw the image.
- * \param y (Number): Y position of where to draw the image.
- * \param width (Number): Width to draw the image.
- * \param height (Number): Height to draw the image.
- * \paramOpt paletteID (Integer): Which palette index to use.
+ * \param image (integer): Index of the loaded image.
+ * \param x (number): X position of where to draw the image.
+ * \param y (number): Y position of where to draw the image.
+ * \param width (number): Width to draw the image.
+ * \param height (number): Height to draw the image.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
@@ -3747,16 +4070,16 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ImagePartSized
  * \desc Draws part of an image, but sized.
- * \param image (Integer): Index of the loaded image.
- * \param partX (Integer): X coordinate of part of image to draw.
- * \param partY (Integer): Y coordinate of part of image to draw.
- * \param partW (Integer): Width of part of image to draw.
- * \param partH (Integer): Height of part of image to draw.
- * \param x (Number): X position of where to draw the image.
- * \param y (Number): Y position of where to draw the image.
- * \param width (Number): Width to draw the image.
- * \param height (Number): Height to draw the image.
- * \paramOpt paletteID (Integer): Which palette index to use.
+ * \param image (integer): Index of the loaded image.
+ * \param partX (integer): X coordinate of part of image to draw.
+ * \param partY (integer): Y coordinate of part of image to draw.
+ * \param partW (integer): Width of part of image to draw.
+ * \param partH (integer): Height of part of image to draw.
+ * \param x (number): X position of where to draw the image.
+ * \param y (number): Y position of where to draw the image.
+ * \param width (number): Width to draw the image.
+ * \param height (number): Height to draw the image.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
@@ -3783,7 +4106,7 @@ VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Layer
  * \desc Draws a layer.
- * \param layerIndex (Integer): Index of layer.
+ * \param layerIndex (integer): Index of layer.
  * \ns Draw
  */
 VMValue Draw_Layer(int argCount, VMValue* args, Uint32 threadID) {
@@ -3799,9 +4122,9 @@ VMValue Draw_Layer(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.View
  * \desc Draws a view.
- * \param viewIndex (Integer): Index of the view.
- * \param x (Number): X position of where to draw the view.
- * \param y (Number): Y position of where to draw the view.
+ * \param viewIndex (integer): Index of the view.
+ * \param x (number): X position of where to draw the view.
+ * \param y (number): Y position of where to draw the view.
  * \ns Draw
  */
 #define CHECK_VIEW_INDEX() \
@@ -3850,13 +4173,13 @@ VMValue Draw_View(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ViewPart
  * \desc Draws part of a view.
- * \param viewIndex (Integer): Index of the view.
- * \param x (Number): X position of where to draw the view.
- * \param y (Number): Y position of where to draw the view.
- * \param partX (Integer): X coordinate of part of view to draw.
- * \param partY (Integer): Y coordinate of part of view to draw.
- * \param partW (Integer): Width of part of view to draw.
- * \param partH (Integer): Height of part of view to draw.
+ * \param viewIndex (integer): Index of the view.
+ * \param x (number): X position of where to draw the view.
+ * \param y (number): Y position of where to draw the view.
+ * \param partX (integer): X coordinate of part of view to draw.
+ * \param partY (integer): Y coordinate of part of view to draw.
+ * \param partW (integer): Width of part of view to draw.
+ * \param partH (integer): Height of part of view to draw.
  * \ns Draw
  */
 VMValue Draw_ViewPart(int argCount, VMValue* args, Uint32 threadID) {
@@ -3880,11 +4203,11 @@ VMValue Draw_ViewPart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ViewSized
  * \desc Draws a view, but sized.
- * \param viewIndex (Integer): Index of the view.
- * \param x (Number): X position of where to draw the view.
- * \param y (Number): Y position of where to draw the view.
- * \param width (Number): Width to draw the view.
- * \param height (Number): Height to draw the view.
+ * \param viewIndex (integer): Index of the view.
+ * \param x (number): X position of where to draw the view.
+ * \param y (number): Y position of where to draw the view.
+ * \param width (number): Width to draw the view.
+ * \param height (number): Height to draw the view.
  * \ns Draw
  */
 VMValue Draw_ViewSized(int argCount, VMValue* args, Uint32 threadID) {
@@ -3907,15 +4230,15 @@ VMValue Draw_ViewSized(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ViewPartSized
  * \desc Draws part of a view, but sized.
- * \param viewIndex (Integer): Index of the view.
- * \param x (Number): X position of where to draw the view.
- * \param y (Number): Y position of where to draw the view.
- * \param partX (Integer): X coordinate of part of view to draw.
- * \param partY (Integer): Y coordinate of part of view to draw.
- * \param partW (Integer): Width of part of view to draw.
- * \param partH (Integer): Height of part of view to draw.
- * \param width (Number): Width to draw the view.
- * \param height (Number): Height to draw the view.
+ * \param viewIndex (integer): Index of the view.
+ * \param x (number): X position of where to draw the view.
+ * \param y (number): Y position of where to draw the view.
+ * \param partX (integer): X coordinate of part of view to draw.
+ * \param partY (integer): Y coordinate of part of view to draw.
+ * \param partW (integer): Width of part of view to draw.
+ * \param partH (integer): Height of part of view to draw.
+ * \param width (number): Width to draw the view.
+ * \param height (number): Height to draw the view.
  * \ns Draw
  */
 VMValue Draw_ViewPartSized(int argCount, VMValue* args, Uint32 threadID) {
@@ -4037,15 +4360,15 @@ VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Tile
  * \desc Draws a tile.
- * \param ID (Integer): ID of the tile to draw.
- * \param x (Number): X position of where to draw the tile.
- * \param y (Number): Y position of where to draw the tile.
- * \paramOpt flipX (Integer): Whether or not to flip the tile horizontally.
- * \paramOpt flipY (Integer): Whether or not to flip the tile vertically.
- * \paramOpt scaleX (Number): Horizontal scale multiplier of the tile.
- * \paramOpt scaleY (Number): Vertical scale multiplier of the tile.
- * \paramOpt rotation (Number): Rotation of the drawn tile in radians.
- * \paramOpt paletteID (Integer): Which palette index to use.
+ * \param ID (integer): ID of the tile to draw.
+ * \param x (number): X position of where to draw the tile.
+ * \param y (number): Y position of where to draw the tile.
+ * \paramOpt flipX (integer): Whether to flip the tile horizontally.
+ * \paramOpt flipY (integer): Whether to flip the tile vertically.
+ * \paramOpt scaleX (number): Horizontal scale multiplier of the tile.
+ * \paramOpt scaleY (number): Vertical scale multiplier of the tile.
+ * \paramOpt rotation (number): Rotation of the drawn tile in radians.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
@@ -4092,9 +4415,9 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Texture
  * \desc Draws a texture.
- * \param texture (Integer): Texture index.
- * \param x (Number): X position of where to draw the texture.
- * \param y (Number): Y position of where to draw the texture.
+ * \param texture (integer): Texture index.
+ * \param x (number): X position of where to draw the texture.
+ * \param y (number): Y position of where to draw the texture.
  * \ns Draw
  */
 VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
@@ -4125,11 +4448,11 @@ VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.TextureSized
  * \desc Draws a texture, but sized.
- * \param texture (Integer): Texture index.
- * \param x (Number): X position of where to draw the texture.
- * \param y (Number): Y position of where to draw the texture.
- * \param width (Number): Width to draw the texture.
- * \param height (Number): Height to draw the texture.
+ * \param texture (integer): Texture index.
+ * \param x (number): X position of where to draw the texture.
+ * \param y (number): Y position of where to draw the texture.
+ * \param width (number): Width to draw the texture.
+ * \param height (number): Height to draw the texture.
  * \ns Draw
  */
 VMValue Draw_TextureSized(int argCount, VMValue* args, Uint32 threadID) {
@@ -4154,13 +4477,13 @@ VMValue Draw_TextureSized(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.TexturePart
  * \desc Draws part of a texture.
- * \param texture (Integer): Texture index.
- * \param partX (Integer): X coordinate of part of texture to draw.
- * \param partY (Integer): Y coordinate of part of texture to draw.
- * \param partW (Integer): Width of part of texture to draw.
- * \param partH (Integer): Height of part of texture to draw.
- * \param x (Number): X position of where to draw the texture.
- * \param y (Number): Y position of where to draw the texture.
+ * \param texture (integer): Texture index.
+ * \param partX (integer): X coordinate of part of texture to draw.
+ * \param partY (integer): Y coordinate of part of texture to draw.
+ * \param partW (integer): Width of part of texture to draw.
+ * \param partH (integer): Height of part of texture to draw.
+ * \param x (number): X position of where to draw the texture.
+ * \param y (number): Y position of where to draw the texture.
  * \ns Draw
  */
 VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
@@ -4186,9 +4509,9 @@ VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextAlign
- * \desc Sets the text drawing horizontal alignment. (default: left)<br/>\
+ * \desc Sets the text drawing horizontal alignment. The initial value is left.<br/>\
 This does not affect text drawn using a Font.
- * \param baseline (Integer): 0 for left, 1 for center, 2 for right.
+ * \param baseline (integer): 0 for left, 1 for center, 2 for right.
  * \ns Draw
  */
 VMValue Draw_SetTextAlign(int argCount, VMValue* args, Uint32 threadID) {
@@ -4197,9 +4520,9 @@ VMValue Draw_SetTextAlign(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextBaseline
- * \desc Sets the text drawing vertical alignment. (default: top)<br/>\
+ * \desc Sets the text drawing vertical alignment. The initial value is top.<br/>\
 This does not affect text drawn using a Font.
- * \param baseline (Integer): 0 for top, 1 for baseline, 2 for bottom.
+ * \param baseline (integer): 0 for top, 1 for baseline, 2 for bottom.
  * \ns Draw
  */
 VMValue Draw_SetTextBaseline(int argCount, VMValue* args, Uint32 threadID) {
@@ -4208,9 +4531,9 @@ VMValue Draw_SetTextBaseline(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextAdvance
- * \desc Sets the character spacing multiplier. (default: 1.0)<br/>\
+ * \desc Sets the character spacing multiplier. The initial value is 1.0.<br/>\
 This does not affect text drawn using a Font.
- * \param ascent (Number): Multiplier for character spacing.
+ * \param ascent (number): Multiplier for character spacing.
  * \ns Draw
  */
 VMValue Draw_SetTextAdvance(int argCount, VMValue* args, Uint32 threadID) {
@@ -4220,9 +4543,9 @@ VMValue Draw_SetTextAdvance(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextLineAscent
- * \desc Sets the line height multiplier. (default: 1.25)<br/>\
+ * \desc Sets the line height multiplier. The initial value is 1.25.<br/>\
 This does not affect text drawn using a Font.
- * \param ascent (Number): Multiplier for line height.
+ * \param ascent (number): Multiplier for line height.
  * \ns Draw
  */
 VMValue Draw_SetTextLineAscent(int argCount, VMValue* args, Uint32 threadID) {
@@ -4233,11 +4556,11 @@ VMValue Draw_SetTextLineAscent(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.MeasureText
  * \desc Measures UTF-8 text using a font and stores max width and max height into the array.
- * \param outArray (Array): Array to output size values to.
+ * \param outArray (array): Array to output size values to.
  * \param font (Font): The Font to be used as text.
- * \param text (String): Text to measure.
- * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
- * \return Returns the array inputted into the function.
+ * \param text (string): Text to measure.
+ * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \return array Returns the array inputted into the function.
  * \ns Draw
  */
 VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
@@ -4287,13 +4610,13 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.MeasureTextWrapped
  * \desc Measures wrapped UTF-8 text using a font and stores max width and max height into the array.
- * \param outArray (Array): Array to output size values to.
+ * \param outArray (array): Array to output size values to.
  * \param font (Font): The Font to be used as text.
- * \param text (String): Text to measure.
- * \param maxWidth (Number): Max width that a line can be.
- * \paramOpt maxLines (Integer): Max number of lines to measure. Use <code>null</code> to measure all lines.
- * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
- * \return Returns the array inputted into the function.
+ * \param text (string): Text to measure.
+ * \param maxWidth (number): Max width that a line can be.
+ * \paramOpt maxLines (integer): Max number of lines to measure. Use `null` to measure all lines.
+ * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \return array Returns the array inputted into the function.
  * \ns Draw
  */
 VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
@@ -4353,10 +4676,10 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.Text
  * \desc Draws UTF-8 text using a font.
  * \param font (Font): The Font to be used as text.
- * \param text (String): Text to draw.
- * \param x (Number): X position of where to draw the text.
- * \param y (Number): Y position of where to draw the text.
- * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \param text (string): Text to draw.
+ * \param x (number): X position of where to draw the text.
+ * \param y (number): Y position of where to draw the text.
+ * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
@@ -4402,12 +4725,12 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.TextWrapped
  * \desc Draws wrapped UTF-8 text using a font.
  * \param font (Font): The Font to be used as text.
- * \param text (String): Text to draw.
- * \param x (Number): X position of where to draw the text.
- * \param y (Number): Y position of where to draw the text.
- * \param maxWidth (Number): Max width the text can draw in.
- * \paramOpt maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.
- * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \param text (string): Text to draw.
+ * \param x (number): X position of where to draw the text.
+ * \param y (number): Y position of where to draw the text.
+ * \param maxWidth (number): Max width the text can draw in.
+ * \paramOpt maxLines (integer): Max lines of text to draw. Use `null` to draw all lines.
+ * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
@@ -4460,14 +4783,14 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.TextEllipsis
- * \desc Draws UTF-8 text using a font, but adds ellipsis if the text doesn't fit in <code>maxWidth</code>.
+ * \desc Draws UTF-8 text using a font, but adds ellipsis if the text doesn't fit in <param maxWidth>.
  * \param font (Font): The Font to be used as text.
- * \param text (String): Text to draw.
- * \param x (Number): X position of where to draw the text.
- * \param y (Number): Y position of where to draw the text.
- * \param maxWidth (Number): Max width the text can draw in.
- * \paramOpt maxLines (Integer): Max lines of text to draw. Use <code>null</code> to draw all lines.
- * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \param text (string): Text to draw.
+ * \param x (number): X position of where to draw the text.
+ * \param y (number): Y position of where to draw the text.
+ * \param maxWidth (number): Max width the text can draw in.
+ * \paramOpt maxLines (integer): Max lines of text to draw. Use `null` to draw all lines.
+ * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
@@ -4522,10 +4845,10 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
  * Draw.Glyph
  * \desc Draws a glyph for a given code point.
  * \param font (Font): The Font.
- * \param codepoint (Integer): Code point to draw.
- * \param x (Number): X position of where to draw the glyph.
- * \param y (Number): Y position of where to draw the glyph.
- * \paramOpt fontSize (Number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \param codepoint (integer): Code point to draw.
+ * \param x (number): X position of where to draw the glyph.
+ * \param y (number): Y position of where to draw the glyph.
+ * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
  * \ns Draw
  */
 VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
@@ -4568,17 +4891,17 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.TextArray
  * \desc Draws a series of sprites based on a converted sprite string.
- * \param sprite (Integer): The index of the loaded sprite to be used as text.
- * \param animation (Integer): The animation index.
- * \param x (Number): The X value to begin drawing.
- * \param y (Number): The Y value to begin drawing.
- * \param string (Array): The array containing frame indexes.
- * \param startFrame (Integer): The index to begin drawing.
- * \param endFrame (Integer): The index to end drawing.
- * \param align (Integer): The text alignment.
- * \param spacing (Integer): The space between drawn sprites.
- * \paramOpt charOffsetsX (Array): The X offsets at which to draw per frame. Must also have charOffsetsY to be used.
- * \paramOpt charOffsetsY (Array): The Y offsets at which to draw per frame.
+ * \param sprite (integer): The index of the loaded sprite to be used as text.
+ * \param animation (integer): The animation index.
+ * \param x (number): The X value to begin drawing.
+ * \param y (number): The Y value to begin drawing.
+ * \param string (array): The array containing frame indexes.
+ * \param startFrame (integer): The index to begin drawing.
+ * \param endFrame (integer): The index to end drawing.
+ * \param align (integer): The text alignment.
+ * \param spacing (integer): The space between drawn sprites.
+ * \paramOpt charOffsetsX (array): The X offsets at which to draw per frame. Must also have <param charOffsetsY> to be used.
+ * \paramOpt charOffsetsY (array): The Y offsets at which to draw per frame.
  * \ns Draw
  */
 VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
@@ -4596,37 +4919,58 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 		ObjArray* charOffsetsX = GET_ARG_OPT(9, GetArray, nullptr);
 		ObjArray* charOffsetsY = GET_ARG_OPT(10, GetArray, nullptr);
 
-		if (sprite && string && animation >= 0 && animation < (int)sprite->Animations.size()) {
-			startFrame = (int)Math::Clamp(startFrame, 0, (int)string->Values->size() - 1);
+		if (sprite && string && animation >= 0 &&
+			animation < (int)sprite->Animations.size()) {
+			startFrame =
+				(int)Math::Clamp(startFrame, 0, (int)string->Values->size() - 1);
 
-			if (endFrame <= 0 || endFrame > (int)string->Values->size())
+			if (endFrame <= 0 || endFrame > (int)string->Values->size()) {
 				endFrame = (int)string->Values->size();
+			}
 
 			int charOffsetIndex = 0;
 			switch (align) {
 			case ALIGN_LEFT:
-				if (charOffsetsX && charOffsetsY
-					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
-					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+				if (charOffsetsX && charOffsetsY &&
+					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
+					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							VMValue xVal = (*charOffsetsX
+									->Values)[charOffsetIndex];
 							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    xVal, threadID)) {
 								xOffset = AS_DECIMAL(xVal);
 							}
-							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							VMValue yVal = (*charOffsetsY
+									->Values)[charOffsetIndex];
 							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    yVal, threadID)) {
 								yOffset = AS_DECIMAL(yVal);
 							}
-							Graphics::DrawSprite(sprite, animation, curChar, x + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x + xOffset,
+								y + yOffset,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x += spacing + frame.Width;
 							++charOffsetIndex;
 						}
@@ -4636,12 +4980,26 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x,
+								y,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x += spacing + frame.Width;
 						}
 					}
@@ -4650,29 +5008,47 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 
 			case ALIGN_CENTER:
 				--endFrame;
-				if (charOffsetsX && charOffsetsY
-					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
-					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+				if (charOffsetsX && charOffsetsY &&
+					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
+					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
 					charOffsetIndex = endFrame;
 					for (; endFrame >= startFrame; --endFrame) {
 						VMValue val = (*string->Values)[endFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							VMValue xVal = (*charOffsetsX
+									->Values)[charOffsetIndex];
 							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    xVal, threadID)) {
 								xOffset = AS_DECIMAL(xVal);
 							}
-							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							VMValue yVal = (*charOffsetsY
+									->Values)[charOffsetIndex];
 							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    yVal, threadID)) {
 								yOffset = AS_DECIMAL(yVal);
 							}
-							Graphics::DrawSprite(sprite, animation, curChar, x - (frame.Width / 2) + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x - (frame.Width / 2) + xOffset,
+								y + yOffset,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x = (x - frame.Width) - spacing;
 							--charOffsetIndex;
 						}
@@ -4682,12 +5058,26 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; endFrame >= startFrame; --endFrame) {
 						VMValue val = (*string->Values)[endFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							Graphics::DrawSprite(sprite, animation, curChar, x - frame.Width / 2, y, false, false, 1.0f, 1.0f, 0.0f);
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x - frame.Width / 2,
+								y,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x = (x - frame.Width) - spacing;
 						}
 					}
@@ -4702,34 +5092,57 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					if (ScriptManager::DoIntegerConversion(val, threadID)) {
 						curChar = AS_INTEGER(val);
 					}
-					if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-						totalWidth += sprite->Animations[animation].Frames[curChar].Width + spacing;
+					if (curChar >= 0 &&
+						curChar <
+							sprite->Animations[animation].FrameCount) {
+						totalWidth += sprite->Animations[animation]
+								      .Frames[curChar]
+								      .Width +
+							spacing;
 					}
 				}
 				x -= totalWidth;
 
-				if (charOffsetsX && charOffsetsY
-					&& charOffsetsX->Values->size() >= (endFrame - startFrame)
-					&& charOffsetsY->Values->size() >= (endFrame - startFrame)) {
+				if (charOffsetsX && charOffsetsY &&
+					charOffsetsX->Values->size() >= (endFrame - startFrame) &&
+					charOffsetsY->Values->size() >= (endFrame - startFrame)) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							VMValue xVal = (*charOffsetsX->Values)[charOffsetIndex];
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							VMValue xVal = (*charOffsetsX
+									->Values)[charOffsetIndex];
 							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(xVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    xVal, threadID)) {
 								xOffset = AS_DECIMAL(xVal);
 							}
-							VMValue yVal = (*charOffsetsY->Values)[charOffsetIndex];
+							VMValue yVal = (*charOffsetsY
+									->Values)[charOffsetIndex];
 							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(yVal, threadID)) {
+							if (ScriptManager::DoDecimalConversion(
+								    yVal, threadID)) {
 								yOffset = AS_DECIMAL(yVal);
 							}
-							Graphics::DrawSprite(sprite, animation, curChar, x + xOffset, y + yOffset, false, false, 1.0f, 1.0f, 0.0f);
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x + xOffset,
+								y + yOffset,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x += spacing + frame.Width;
 							++charOffsetIndex;
 						}
@@ -4739,12 +5152,26 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(val, threadID)) {
+						if (ScriptManager::DoIntegerConversion(
+							    val, threadID)) {
 							curChar = AS_INTEGER(val);
 						}
-						if (curChar >= 0 && curChar < sprite->Animations[animation].FrameCount) {
-							AnimFrame frame = sprite->Animations[animation].Frames[curChar];
-							Graphics::DrawSprite(sprite, animation, curChar, x, y, false, false, 1.0f, 1.0f, 0.0f);
+						if (curChar >= 0 &&
+							curChar < sprite->Animations[animation]
+									  .FrameCount) {
+							AnimFrame frame =
+								sprite->Animations[animation]
+									.Frames[curChar];
+							Graphics::DrawSprite(sprite,
+								animation,
+								curChar,
+								x,
+								y,
+								false,
+								false,
+								1.0f,
+								1.0f,
+								0.0f);
 							x += spacing + frame.Width;
 						}
 					}
@@ -4761,8 +5188,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetBlendColor
  * \desc Sets the color to be used for drawing and blending.
- * \param hex (Integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)
- * \param alpha (Number): Opacity to use for drawing, 0.0 to 1.0.
+ * \param hex (integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)
+ * \param alpha (number): Opacity to use for drawing, 0.0 to 1.0.
  * \ns Draw
  */
 VMValue Draw_SetBlendColor(int argCount, VMValue* args, Uint32 threadID) {
@@ -4785,8 +5212,8 @@ VMValue Draw_SetBlendColor(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextureBlend
- * \desc Sets whether or not to use color and alpha blending on sprites, images, and textures.
- * \param doBlend (Boolean): Whether or not to use blending.
+ * \desc Sets whether to use color and alpha blending on sprites, images, and textures.
+ * \param doBlend (boolean): Whether to use blending.
  * \ns Draw
  */
 VMValue Draw_SetTextureBlend(int argCount, VMValue* args, Uint32 threadID) {
@@ -4796,8 +5223,8 @@ VMValue Draw_SetTextureBlend(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetBlendMode
- * \desc Sets the <linkto ref="BlendMode_*">blend mode</linkto> used for drawing.
- * \param blendMode (Enum): The desired <linkto ref="BlendMode_*">blend mode</linkto>.
+ * \desc Sets the blend mode used for drawing.
+ * \param blendMode (<ref BlendMode_*>): The desired blend mode.
  * \return
  * \ns Draw
  */
@@ -4813,9 +5240,9 @@ VMValue Draw_SetBlendMode(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetBlendFactor
- * \desc Sets the <linkto ref="BlendFactor_*">blend factors</linkto> used for drawing. (Only for hardware-rendering)
- * \param sourceFactor (Enum): <linkto ref="BlendFactor_*">Source factor</linkto> for blending.
- * \param destinationFactor (Enum): <linkto ref="BlendFactor_*">Destination factor</linkto> for blending.
+ * \desc Sets the blend factors used for drawing. (Only for hardware-rendering)
+ * \param sourceFactor (<ref BlendFactor_*>): Source factor for blending.
+ * \param destinationFactor (<ref BlendFactor_*>): Destination facto for blending.
  * \return
  * \ns Draw
  */
@@ -4828,11 +5255,11 @@ VMValue Draw_SetBlendFactor(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetBlendFactorExtended
- * \desc Sets all the <linkto ref="BlendFactor_*">blend factors</linkto> used for drawing. (Only for hardware-rendering)
- * \param sourceColorFactor (Enum): <linkto ref="BlendFactor_*">Source factor</linkto> for blending color.
- * \param destinationColorFactor (Enum): <linkto ref="BlendFactor_*">Destination factor</linkto> for blending color.
- * \param sourceAlphaFactor (Enum): <linkto ref="BlendFactor_*">Source factor</linkto> for blending alpha.
- * \param destinationAlphaFactor (Enum): <linkto ref="BlendFactor_*">Destination factor</linkto> for blending alpha.
+ * \desc Sets all the blend factors used for drawing. (Only for hardware-rendering)
+ * \param sourceColorFactor (<ref BlendFactor_*>): Source factor for blending color.
+ * \param destinationColorFactor (<ref BlendFactor_*>): Destination factor for blending color.
+ * \param sourceAlphaFactor (<ref BlendFactor_*>): Source factor for blending alpha.
+ * \param destinationAlphaFactor (<ref BlendFactor_*>): Destination factor for blending alpha.
  * \return
  * \ns Draw
  */
@@ -4848,7 +5275,7 @@ VMValue Draw_SetBlendFactorExtended(int argCount, VMValue* args, Uint32 threadID
 /***
  * Draw.SetCompareColor
  * \desc Sets the Comparison Color to draw over for Comparison Drawing.
- * \param hex (Integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)
+ * \param hex (integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)
  * \ns Draw
  */
 VMValue Draw_SetCompareColor(int argCount, VMValue* args, Uint32 threadID) {
@@ -4861,8 +5288,8 @@ VMValue Draw_SetCompareColor(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetTintColor
  * \desc Sets the color to be used for tinting.
- * \param hex (Integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)
- * \param amount (Number): Tint amount, from 0.0 to 1.0.
+ * \param hex (integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)
+ * \param amount (number): Tint amount, from 0.0 to 1.0.
  * \ns Draw
  */
 VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
@@ -4885,8 +5312,8 @@ VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTintMode
- * \desc Sets the <linkto ref="TintMode_*">tint mode</linkto> used for drawing.
- * \param tintMode (Enum): The desired <linkto ref="TintMode_*">tint mode</linkto>.
+ * \desc Sets the tint mode used for drawing.
+ * \param tintMode (<ref TintMode_*>): The desired tint mode.
  * \return
  * \ns Draw
  */
@@ -4902,8 +5329,8 @@ VMValue Draw_SetTintMode(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.UseTinting
- * \desc Sets whether or not to use color tinting when drawing.
- * \param useTinting (Boolean): Whether or not to use color tinting when drawing.
+ * \desc Sets whether to use color tinting when drawing.
+ * \param useTinting (boolean): Whether to use color tinting when drawing.
  * \ns Draw
  */
 VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
@@ -4915,7 +5342,7 @@ VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetShader
  * \desc Sets the current shader.
- * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \param shader (Shader): The shader, or `null` to unset the shader.
  * \ns Draw
  */
 VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
@@ -4945,8 +5372,8 @@ VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetFilter
- * \desc Sets a <linkto ref="Filter_*">filter type</linkto>.
- * \param filterType (Enum): The <linkto ref="Filter_*">filter type</linkto>.
+ * \desc Sets the current filter type.
+ * \param filterType (<ref Filter_*>): The filter type.
  * \ns Draw
  */
 VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
@@ -4962,7 +5389,7 @@ VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.UseStencil
  * \desc Enables or disables stencil operations.
- * \param enabled (Boolean): Whether to enable or disable stencil operations.
+ * \param enabled (boolean): Whether to enable or disable stencil operations.
  * \ns Draw
  */
 VMValue Draw_UseStencil(int argCount, VMValue* args, Uint32 threadID) {
@@ -4972,8 +5399,8 @@ VMValue Draw_UseStencil(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetStencilTestFunction
- * \desc Sets a <linkto ref="StencilTest_*">stencil test</linkto> function.
- * \param stencilTest (Enum): One of the <linkto ref="StencilTest_*">stencil test</linkto> functions.
+ * \desc Sets the current stencil test function.
+ * \param stencilTest (<ref StencilTest_*>): One of the stencil test functions.
  * \ns Draw
  */
 VMValue Draw_SetStencilTestFunction(int argCount, VMValue* args, Uint32 threadID) {
@@ -4991,8 +5418,8 @@ VMValue Draw_SetStencilTestFunction(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * Draw.SetStencilPassOperation
- * \desc Sets a <linkto ref="StencilTest_*">stencil operation</linkto> for when the stencil test passes.
- * \param stencilOp (Enum): One of the <linkto ref="StencilTest_*">stencil operations</linkto>.
+ * \desc Sets the stencil operation for when the stencil test passes.
+ * \param stencilOp (<ref StencilTest_*>): One of the stencil operation.
  * \ns Draw
  */
 VMValue Draw_SetStencilPassOperation(int argCount, VMValue* args, Uint32 threadID) {
@@ -5008,8 +5435,8 @@ VMValue Draw_SetStencilPassOperation(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * Draw.SetStencilFailOperation
- * \desc Sets a <linkto ref="StencilTest_*">stencil operation</linkto> for when the stencil test fails.
- * \param stencilOp (Enum): One of the <linkto ref="StencilTest_*">stencil operations</linkto>.
+ * \desc Sets the stencil operation for when the stencil test fails.
+ * \param stencilOp (<ref StencilTest_*>): One of the stencil operations.
  * \ns Draw
  */
 VMValue Draw_SetStencilFailOperation(int argCount, VMValue* args, Uint32 threadID) {
@@ -5026,7 +5453,7 @@ VMValue Draw_SetStencilFailOperation(int argCount, VMValue* args, Uint32 threadI
 /***
  * Draw.SetStencilValue
  * \desc Sets the stencil value.
- * \param value (Integer): The stencil value. This value is clamped by the stencil buffer's bit depth.
+ * \param value (integer): The stencil value. This value is clamped by the stencil buffer's bit depth.
  * \ns Draw
  */
 VMValue Draw_SetStencilValue(int argCount, VMValue* args, Uint32 threadID) {
@@ -5038,7 +5465,7 @@ VMValue Draw_SetStencilValue(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetStencilMask
  * \desc Sets the mask used for all stencil tests.
- * \param mask (Integer): The stencil mask. This value is clamped by the stencil buffer's bit depth.
+ * \param mask (integer): The stencil mask. This value is clamped by the stencil buffer's bit depth.
  * \ns Draw
  */
 VMValue Draw_SetStencilMask(int argCount, VMValue* args, Uint32 threadID) {
@@ -5060,7 +5487,7 @@ VMValue Draw_ClearStencil(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetDotMask
  * \desc Sets the dot mask.
- * \param mask (Integer): The mask.
+ * \param mask (integer): The mask.
  * \ns Draw
  */
 VMValue Draw_SetDotMask(int argCount, VMValue* args, Uint32 threadID) {
@@ -5071,7 +5498,7 @@ VMValue Draw_SetDotMask(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetHorizontalDotMask
  * \desc Sets the horizontal dot mask.
- * \param mask (Integer): The mask.
+ * \param mask (integer): The mask.
  * \ns Draw
  */
 VMValue Draw_SetHorizontalDotMask(int argCount, VMValue* args, Uint32 threadID) {
@@ -5082,7 +5509,7 @@ VMValue Draw_SetHorizontalDotMask(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Draw.SetVerticalDotMask
  * \desc Sets the vertical dot mask.
- * \param mask (Integer): The mask.
+ * \param mask (integer): The mask.
  * \ns Draw
  */
 VMValue Draw_SetVerticalDotMask(int argCount, VMValue* args, Uint32 threadID) {
@@ -5093,7 +5520,7 @@ VMValue Draw_SetVerticalDotMask(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetHorizontalDotMaskOffset
  * \desc Sets the offset of the horizontal dot mask.
- * \param offsetH (Integer): The offset.
+ * \param offsetH (integer): The offset.
  * \ns Draw
  */
 VMValue Draw_SetHorizontalDotMaskOffset(int argCount, VMValue* args, Uint32 threadID) {
@@ -5104,7 +5531,7 @@ VMValue Draw_SetHorizontalDotMaskOffset(int argCount, VMValue* args, Uint32 thre
 /***
  * Draw.SetVerticalDotMaskOffset
  * \desc Sets the offset of the vertical dot mask.
- * \param offsetV (Integer): The offset.
+ * \param offsetV (integer): The offset.
  * \ns Draw
  */
 VMValue Draw_SetVerticalDotMaskOffset(int argCount, VMValue* args, Uint32 threadID) {
@@ -5115,10 +5542,10 @@ VMValue Draw_SetVerticalDotMaskOffset(int argCount, VMValue* args, Uint32 thread
 /***
  * Draw.Line
  * \desc Draws a line.
- * \param x1 (Number): X position of where to start drawing the line.
- * \param y1 (Number): Y position of where to start drawing the line.
- * \param x2 (Number): X position of where to end drawing the line.
- * \param y2 (Number): Y position of where to end drawing the line.
+ * \param x1 (number): X position of where to start drawing the line.
+ * \param y1 (number): Y position of where to start drawing the line.
+ * \param x2 (number): X position of where to end drawing the line.
+ * \param y2 (number): Y position of where to end drawing the line.
  * \ns Draw
  */
 VMValue Draw_Line(int argCount, VMValue* args, Uint32 threadID) {
@@ -5132,9 +5559,9 @@ VMValue Draw_Line(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Circle
  * \desc Draws a circle.
- * \param x (Number): Center X position of where to draw the circle.
- * \param y (Number): Center Y position of where to draw the circle.
- * \param radius (Number): Radius of the circle.
+ * \param x (number): Center X position of where to draw the circle.
+ * \param y (number): Center Y position of where to draw the circle.
+ * \param radius (number): Radius of the circle.
  * \ns Draw
  */
 VMValue Draw_Circle(int argCount, VMValue* args, Uint32 threadID) {
@@ -5146,10 +5573,10 @@ VMValue Draw_Circle(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Ellipse
  * \desc Draws an ellipse.
- * \param x (Number): X position of where to draw the ellipse.
- * \param y (Number): Y position of where to draw the ellipse.
- * \param width (Number): Width to draw the ellipse at.
- * \param height (Number): Height to draw the ellipse at.
+ * \param x (number): X position of where to draw the ellipse.
+ * \param y (number): Y position of where to draw the ellipse.
+ * \param width (number): Width to draw the ellipse at.
+ * \param height (number): Height to draw the ellipse at.
  * \ns Draw
  */
 VMValue Draw_Ellipse(int argCount, VMValue* args, Uint32 threadID) {
@@ -5163,12 +5590,12 @@ VMValue Draw_Ellipse(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Triangle
  * \desc Draws a triangle.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
  * \ns Draw
  */
 VMValue Draw_Triangle(int argCount, VMValue* args, Uint32 threadID) {
@@ -5183,22 +5610,21 @@ VMValue Draw_Triangle(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.TriangleBlend
- * \desc Draws a triangle, blending the colors at the vertices. (Colors are multipled by the global Draw Blend Color, do <linkto ref="Draw.SetBlendColor"></linkto><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param color1 (Integer): Color of the first vertex.
- * \param color2 (Integer): Color of the second vertex.
- * \param color3 (Integer): Color of the third vertex.
+ * \desc Draws a triangle, blending the colors at the vertices. (Colors are multiplied by the global Draw Blend Color, do <ref Draw.SetBlendColor>`(0xFFFFFF, 1.0)` if you want the vertex colors unaffected.)
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
+ * \param color1 (integer): Color of the first vertex.
+ * \param color2 (integer): Color of the second vertex.
+ * \param color3 (integer): Color of the third vertex.
  * \ns Draw
  */
 VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(9);
-	// TODO: Implement for GL renderer
-	SoftwareRenderer::FillTriangleBlend(GET_ARG(0, GetDecimal),
+	Graphics::FillTriangleBlend(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
 		GET_ARG(2, GetDecimal),
 		GET_ARG(3, GetDecimal),
@@ -5212,20 +5638,19 @@ VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Quad
  * \desc Draws a quad.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
+ * \param x4 (number): X position of the fourth vertex.
+ * \param y4 (number): Y position of the fourth vertex.
  * \ns Draw
  */
 VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(8);
-	// TODO: Implement for GL renderer
-	SoftwareRenderer::FillQuad(GET_ARG(0, GetDecimal),
+	Graphics::FillQuad(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
 		GET_ARG(2, GetDecimal),
 		GET_ARG(3, GetDecimal),
@@ -5237,25 +5662,24 @@ VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.QuadBlend
- * \desc Draws a quad, blending the colors at the vertices. (Colors are multipled by the global Draw Blend Color, do <linkto ref="Draw.SetBlendColor"></linkto><code>(0xFFFFFF, 1.0)</code> if you want the vertex colors unaffected.)
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
- * \param color1 (Integer): Color of the first vertex.
- * \param color2 (Integer): Color of the second vertex.
- * \param color3 (Integer): Color of the third vertex.
- * \param color4 (Integer): Color of the fourth vertex.
+ * \desc Draws a quad, blending the colors at the vertices. (Colors are multiplied by the global Draw Blend Color, do <ref Draw.SetBlendColor>`(0xFFFFFF, 1.0)` if you want the vertex colors unaffected.)
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
+ * \param x4 (number): X position of the fourth vertex.
+ * \param y4 (number): Y position of the fourth vertex.
+ * \param color1 (integer): Color of the first vertex.
+ * \param color2 (integer): Color of the second vertex.
+ * \param color3 (integer): Color of the third vertex.
+ * \param color4 (integer): Color of the fourth vertex.
  * \ns Draw
  */
 VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(12);
-	// TODO: Implement for GL renderer
-	SoftwareRenderer::FillQuadBlend(GET_ARG(0, GetDecimal),
+	Graphics::FillQuadBlend(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
 		GET_ARG(2, GetDecimal),
 		GET_ARG(3, GetDecimal),
@@ -5272,22 +5696,22 @@ VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.TriangleTextured
  * \desc Draws a textured triangle.
- * \param image (Integer): Image to draw triangle with.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt u1 (Number): Texture U of the first vertex.
- * \paramOpt v1 (Number): Texture V of the first vertex.
- * \paramOpt u2 (Number): Texture U of the second vertex.
- * \paramOpt v2 (Number): Texture V of the second vertex.
- * \paramOpt u3 (Number): Texture U of the third vertex.
- * \paramOpt v3 (Number): Texture V of the third vertex.
+ * \param image (integer): Image to draw triangle with.
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
+ * \paramOpt color1 (integer): Color of the first vertex.
+ * \paramOpt color2 (integer): Color of the second vertex.
+ * \paramOpt color3 (integer): Color of the third vertex.
+ * \paramOpt u1 (number): Texture U of the first vertex.
+ * \paramOpt v1 (number): Texture V of the first vertex.
+ * \paramOpt u2 (number): Texture U of the second vertex.
+ * \paramOpt v2 (number): Texture V of the second vertex.
+ * \paramOpt u3 (number): Texture U of the third vertex.
+ * \paramOpt v3 (number): Texture V of the third vertex.
  * \ns Draw
  */
 VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
@@ -5295,8 +5719,7 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 
 	Image* image = GET_ARG(0, GetImage);
 	if (image) {
-		// TODO: Implement for GL renderer
-		SoftwareRenderer::DrawTriangleTextured(image->TexturePtr,
+		Graphics::DrawTriangleTextured(image->TexturePtr,
 			GET_ARG(1, GetDecimal),
 			GET_ARG(2, GetDecimal),
 			GET_ARG(3, GetDecimal),
@@ -5319,27 +5742,27 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.QuadTextured
  * \desc Draws a textured quad.
- * \param image (Integer): Image to draw quad with.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt color4 (Integer): Color of the fourth vertex.
- * \paramOpt u1 (Number): Texture U of the first vertex.
- * \paramOpt v1 (Number): Texture V of the first vertex.
- * \paramOpt u2 (Number): Texture U of the second vertex.
- * \paramOpt v2 (Number): Texture V of the second vertex.
- * \paramOpt u3 (Number): Texture U of the third vertex.
- * \paramOpt v3 (Number): Texture V of the third vertex.
- * \paramOpt u4 (Number): Texture U of the fourth vertex.
- * \paramOpt v4 (Number): Texture V of the fourth vertex.
+ * \param image (integer): Image to draw quad with.
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
+ * \param x4 (number): X position of the fourth vertex.
+ * \param y4 (number): Y position of the fourth vertex.
+ * \paramOpt color1 (integer): Color of the first vertex.
+ * \paramOpt color2 (integer): Color of the second vertex.
+ * \paramOpt color3 (integer): Color of the third vertex.
+ * \paramOpt color4 (integer): Color of the fourth vertex.
+ * \paramOpt u1 (number): Texture U of the first vertex.
+ * \paramOpt v1 (number): Texture V of the first vertex.
+ * \paramOpt u2 (number): Texture U of the second vertex.
+ * \paramOpt v2 (number): Texture V of the second vertex.
+ * \paramOpt u3 (number): Texture U of the third vertex.
+ * \paramOpt v3 (number): Texture V of the third vertex.
+ * \paramOpt u4 (number): Texture U of the fourth vertex.
+ * \paramOpt v4 (number): Texture V of the fourth vertex.
  * \ns Draw
  */
 VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
@@ -5347,8 +5770,7 @@ VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 
 	Image* image = GET_ARG(0, GetImage);
 	if (image) {
-		// TODO: Implement for GL renderer
-		SoftwareRenderer::DrawQuadTextured(image->TexturePtr,
+		Graphics::DrawQuadTextured(image->TexturePtr,
 			GET_ARG(1, GetDecimal),
 			GET_ARG(2, GetDecimal),
 			GET_ARG(3, GetDecimal),
@@ -5376,10 +5798,10 @@ VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Rectangle
  * \desc Draws a rectangle.
- * \param x (Number): X position of where to draw the rectangle.
- * \param y (Number): Y position of where to draw the rectangle.
- * \param width (Number): Width to draw the rectangle at.
- * \param height (Number): Height to draw the rectangle at.
+ * \param x (number): X position of where to draw the rectangle.
+ * \param y (number): Y position of where to draw the rectangle.
+ * \param width (number): Width to draw the rectangle at.
+ * \param height (number): Height to draw the rectangle at.
  * \ns Draw
  */
 VMValue Draw_Rectangle(int argCount, VMValue* args, Uint32 threadID) {
@@ -5393,10 +5815,10 @@ VMValue Draw_Rectangle(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.CircleStroke
  * \desc Draws a circle outline.
- * \param x (Number): Center X position of where to draw the circle.
- * \param y (Number): Center Y position of where to draw the circle.
- * \param radius (Number): Radius of the circle.
- * \paramOpt thickness (Number): Thickness of the circle.
+ * \param x (number): Center X position of where to draw the circle.
+ * \param y (number): Center Y position of where to draw the circle.
+ * \param radius (number): Radius of the circle.
+ * \paramOpt thickness (number): Thickness of the circle.
  * \ns Draw
  */
 VMValue Draw_CircleStroke(int argCount, VMValue* args, Uint32 threadID) {
@@ -5410,10 +5832,10 @@ VMValue Draw_CircleStroke(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.EllipseStroke
  * \desc Draws an ellipse outline.
- * \param x (Number): X position of where to draw the ellipse.
- * \param y (Number): Y position of where to draw the ellipse.
- * \param width (Number): Width to draw the ellipse at.
- * \param height (Number): Height to draw the ellipse at.
+ * \param x (number): X position of where to draw the ellipse.
+ * \param y (number): Y position of where to draw the ellipse.
+ * \param width (number): Width to draw the ellipse at.
+ * \param height (number): Height to draw the ellipse at.
  * \ns Draw
  */
 VMValue Draw_EllipseStroke(int argCount, VMValue* args, Uint32 threadID) {
@@ -5427,12 +5849,12 @@ VMValue Draw_EllipseStroke(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.TriangleStroke
  * \desc Draws a triangle outline.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
  * \ns Draw
  */
 VMValue Draw_TriangleStroke(int argCount, VMValue* args, Uint32 threadID) {
@@ -5448,10 +5870,10 @@ VMValue Draw_TriangleStroke(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.RectangleStroke
  * \desc Draws a rectangle outline.
- * \param x (Number): X position of where to draw the rectangle.
- * \param y (Number): Y position of where to draw the rectangle.
- * \param width (Number): Width to draw the rectangle at.
- * \param height (Number): Height to draw the rectangle at.
+ * \param x (number): X position of where to draw the rectangle.
+ * \param y (number): Y position of where to draw the rectangle.
+ * \param width (number): Width to draw the rectangle at.
+ * \param height (number): Height to draw the rectangle at.
  * \ns Draw
  */
 VMValue Draw_RectangleStroke(int argCount, VMValue* args, Uint32 threadID) {
@@ -5464,8 +5886,8 @@ VMValue Draw_RectangleStroke(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.UseFillSmoothing
- * \desc Sets whether or not to use smoothing when drawing filled shapes. (hardware-renderer only)
- * \param smoothFill (Boolean): Whether or not to use smoothing.
+ * \desc Sets whether to use smoothing when drawing filled shapes. (hardware-renderer only)
+ * \param smoothFill (boolean): Whether to use smoothing.
  * \return
  * \ns Draw
  */
@@ -5476,8 +5898,8 @@ VMValue Draw_UseFillSmoothing(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.UseStrokeSmoothing
- * \desc Sets whether or not to use smoothing when drawing un-filled shapes. (hardware-renderer only)
- * \param smoothFill (Boolean): Whether or not to use smoothing.
+ * \desc Sets whether to use smoothing when drawing un-filled shapes. (hardware-renderer only)
+ * \param smoothStroke (boolean): Whether to use smoothing.
  * \ns Draw
  */
 VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, Uint32 threadID) {
@@ -5489,10 +5911,10 @@ VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetClip
  * \desc Sets the region in which drawing will occur.
- * \param x (Number): X position of where to start the draw region.
- * \param y (Number): Y position of where to start the draw region.
- * \param width (Number): Width of the draw region.
- * \param height (Number): Height of the draw region.
+ * \param x (number): X position of where to start the draw region.
+ * \param y (number): Y position of where to start the draw region.
+ * \param width (number): Width of the draw region.
+ * \param height (number): Height of the draw region.
  * \ns Draw
  */
 VMValue Draw_SetClip(int argCount, VMValue* args, Uint32 threadID) {
@@ -5518,7 +5940,7 @@ VMValue Draw_ClearClip(int argCount, VMValue* args, Uint32 threadID) {
 /***
   * Draw.GetClipX
   * \desc Gets the X position in which drawing starts to occur.
-  * \return The X position if clipping is enabled, else 0.
+  * \return integer The X position if clipping is enabled, else 0.
   * \ns Draw
   */
 VMValue Draw_GetClipX(int argCount, VMValue* args, Uint32 threadID) {
@@ -5529,7 +5951,7 @@ VMValue Draw_GetClipX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.GetClipY
  * \desc Gets the Y position in which drawing starts to occur.
- * \return The Y position if clipping is enabled, else 0.
+ * \return integer The Y position if clipping is enabled, else 0.
  * \ns Draw
  */
 VMValue Draw_GetClipY(int argCount, VMValue* args, Uint32 threadID) {
@@ -5540,7 +5962,7 @@ VMValue Draw_GetClipY(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.GetClipWidth
  * \desc Gets the width in which drawing occurs.
- * \return The width if clipping is enabled, else 0.
+ * \return integer The width if clipping is enabled, else 0.
  * \ns Draw
  */
 VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -5551,7 +5973,7 @@ VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.GetClipHeight
  * \desc Gets the height in which drawing occurs.
- * \return The height if clipping is enabled, else 0.
+ * \return integer The height if clipping is enabled, else 0.
  * \ns Draw
  */
 VMValue Draw_GetClipHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -5559,11 +5981,9 @@ VMValue Draw_GetClipHeight(int argCount, VMValue* args, Uint32 threadID) {
 	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height)
 					     : INTEGER_VAL((int)Graphics::CurrentView->Height);
 }
-
 /***
  * Draw.Save
- * \desc
- * \return
+ * \desc Saves the current transform matrix to the stack.
  * \ns Draw
  */
 VMValue Draw_Save(int argCount, VMValue* args, Uint32 threadID) {
@@ -5573,8 +5993,10 @@ VMValue Draw_Save(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.Scale
- * \desc
- * \return
+ * \desc Scales the view.
+ * \param x (number): Desired X scale.
+ * \param y (number): Desired Y scale.
+ * \paramOpt z (number): Desired Z scale. (default: `1.0`)
  * \ns Draw
  */
 VMValue Draw_Scale(int argCount, VMValue* args, Uint32 threadID) {
@@ -5590,8 +6012,16 @@ VMValue Draw_Scale(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.Rotate
- * \desc
- * \return
+ * \desc Rotates the view.
+ * \param x (number): Desired X angle.
+ * \param y (number): Desired Y angle.
+ * \param z (number): Desired Z angle.
+ * \ns Draw
+ */
+/***
+ * Draw.Rotate
+ * \desc Rotates the view.
+ * \param angle (number): Desired rotation angle.
  * \ns Draw
  */
 VMValue Draw_Rotate(int argCount, VMValue* args, Uint32 threadID) {
@@ -5610,8 +6040,7 @@ VMValue Draw_Rotate(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.Restore
- * \desc
- * \return
+ * \desc Restores the last saved transform matrix from the stack.
  * \ns Draw
  */
 VMValue Draw_Restore(int argCount, VMValue* args, Uint32 threadID) {
@@ -5621,8 +6050,10 @@ VMValue Draw_Restore(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.Translate
- * \desc
- * \return
+ * \desc Translates the view.
+ * \param x (number): Desired X translation.
+ * \param y (number): Desired Y translation.
+ * \paramOpt z (number): Desired Z translation. (default: `0.0`)
  * \ns Draw
  */
 VMValue Draw_Translate(int argCount, VMValue* args, Uint32 threadID) {
@@ -5638,8 +6069,8 @@ VMValue Draw_Translate(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetTextureTarget
- * \desc
- * \return
+ * \desc Sets the current render target.
+ * \param texture (integer): The texture target.
  * \ns Draw
  */
 VMValue Draw_SetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
@@ -5658,8 +6089,7 @@ VMValue Draw_SetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.Clear
- * \desc
- * \return
+ * \desc Clears the screen.
  * \ns Draw
  */
 VMValue Draw_Clear(int argCount, VMValue* args, Uint32 threadID) {
@@ -5669,8 +6099,7 @@ VMValue Draw_Clear(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.ResetTextureTarget
- * \desc
- * \return
+ * \desc Resets the current render target.
  * \ns Draw
  */
 VMValue Draw_ResetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
@@ -5685,8 +6114,8 @@ VMValue Draw_ResetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.UseSpriteDeform
- * \desc Sets whether or not to use sprite deform when drawing.
- * \param useDeform (Boolean): Whether or not to use sprite deform when drawing.
+ * \desc Sets whether to use sprite deform when drawing.
+ * \param useDeform (boolean): Whether to use sprite deform when drawing.
  * \ns Draw
  */
 VMValue Draw_UseSpriteDeform(int argCount, VMValue* args, Uint32 threadID) {
@@ -5698,8 +6127,8 @@ VMValue Draw_UseSpriteDeform(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetSpriteDeformLine
  * \desc Sets the sprite deform line at the specified line index.
- * \param deformIndex (Integer): Index of deform line. (0 = top of screen, 1 = the line below it, 2 = etc.)
- * \param deformValue (Decimal): Deform value.
+ * \param deformIndex (integer): Index of deform line. (0 = top of screen, 1 = the line below it, 2 = etc.)
+ * \param deformValue (decimal): Deform value.
  * \ns Draw
  */
 VMValue Draw_SetSpriteDeformLine(int argCount, VMValue* args, Uint32 threadID) {
@@ -5712,8 +6141,8 @@ VMValue Draw_SetSpriteDeformLine(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.UseDepthTesting
- * \desc Sets whether or not to do depth tests when drawing.
- * \param useDepthTesting (Boolean): Whether or not to do depth tests when drawing.
+ * \desc Sets whether to do depth tests when drawing.
+ * \param useDepthTesting (boolean): Whether to do depth tests when drawing.
  * \ns Draw
  */
 VMValue Draw_UseDepthTesting(int argCount, VMValue* args, Uint32 threadID) {
@@ -5726,7 +6155,7 @@ VMValue Draw_UseDepthTesting(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.GetCurrentDrawGroup
  * \desc Gets the draw group currently being drawn.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Draw
  */
 VMValue Draw_GetCurrentDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
@@ -5736,7 +6165,7 @@ VMValue Draw_GetCurrentDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.CopyScreen
  * \desc Copies the contents of the screen into a texture.
- * \param texture (Integer): Texture index.
+ * \param texture (integer): Texture index.
  * \ns Draw
  */
 VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
@@ -5782,7 +6211,7 @@ VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.BindVertexBuffer
  * \desc Binds a vertex buffer.
- * \param vertexBufferIndex (Integer): Sets the vertex buffer to bind.
+ * \param vertexBufferIndex (integer): Sets the vertex buffer to bind.
  * \ns Draw3D
  */
 VMValue Draw3D_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
@@ -5815,7 +6244,7 @@ VMValue Draw3D_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Draw3D.BindScene
  * \desc Binds a 3D scene for drawing polygons in 3D space.
- * \param scene3DIndex (Integer): Sets the 3D scene to bind.
+ * \param scene3DIndex (integer): Sets the 3D scene to bind.
  * \ns Draw3D
  */
 VMValue Draw3D_BindScene(int argCount, VMValue* args, Uint32 threadID) {
@@ -5842,11 +6271,11 @@ static void PrepareMatrix(Matrix4x4* output, ObjArray* input) {
 /***
  * Draw3D.Model
  * \desc Draws a model.
- * \param modelIndex (Integer): Index of loaded model.
- * \param animation (Integer): Animation of model to draw.
- * \param frame (Decimal): Frame of model to draw.
- * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
+ * \param modelIndex (integer): Index of loaded model.
+ * \param animation (integer): Animation of model to draw.
+ * \param frame (decimal): Frame of model to draw.
+ * \paramOpt matrixModel (matrix): Matrix for transforming model coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming model normals.
  * \ns Draw3D
  */
 VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
@@ -5887,10 +6316,10 @@ VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.ModelSkinned
  * \desc Draws a skinned model.
- * \param modelIndex (Integer): Index of loaded model.
- * \param armatureIndex (Integer): Armature index to skin the model.
- * \paramOpt matrixModel (Matrix): Matrix for transforming model coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming model normals.
+ * \param modelIndex (integer): Index of loaded model.
+ * \param armatureIndex (integer): Armature index to skin the model.
+ * \paramOpt matrixModel (matrix): Matrix for transforming model coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming model normals.
  * \ns Draw3D
  */
 VMValue Draw3D_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
@@ -5929,15 +6358,15 @@ VMValue Draw3D_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.ModelSimple
  * \desc Draws a model without using matrices.
- * \param modelIndex (Integer): Index of loaded model.
- * \param animation (Integer): Animation of model to draw.
- * \param frame (Integer): Frame of model to draw.
- * \param x (Number): X position
- * \param y (Number): Y position
- * \param scale (Number): Model scale
- * \param rx (Number): X rotation in radians
- * \param ry (Number): Y rotation in radians
- * \param rz (Number): Z rotation in radians
+ * \param modelIndex (integer): Index of loaded model.
+ * \param animation (integer): Animation of model to draw.
+ * \param frame (integer): Frame of model to draw.
+ * \param x (number): X position
+ * \param y (number): Y position
+ * \param scale (number): Model scale
+ * \param rx (number): X rotation in radians
+ * \param ry (number): Y rotation in radians
+ * \param rz (number): Z rotation in radians
  * \ns Draw3D
  */
 VMValue Draw3D_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
@@ -6036,22 +6465,22 @@ static void DrawPolygon3D(VertexAttribute* data,
 	matrixNormalArr = GET_ARG(offset + 1, GetArray)
 
 /***
- * Draw.Triangle3D
+ * Draw3D.Triangle
  * \desc Draws a triangle in 3D space.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param z1 (number): Z position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param z2 (number): Z position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
+ * \param z3 (number): Z position of the third vertex.
+ * \paramOpt color1 (integer): Color of the first vertex.
+ * \paramOpt color2 (integer): Color of the second vertex.
+ * \paramOpt color3 (integer): Color of the third vertex.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_Triangle(int argCount, VMValue* args, Uint32 threadID) {
@@ -6074,24 +6503,24 @@ VMValue Draw3D_Triangle(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.Quad
  * \desc Draws a quadrilateral in 3D space.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
- * \param z4 (Number): Z position of the fourth vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt color4 (Integer): Color of the fourth vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param z1 (number): Z position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param z2 (number): Z position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
+ * \param z3 (number): Z position of the third vertex.
+ * \param x4 (number): X position of the fourth vertex.
+ * \param y4 (number): Y position of the fourth vertex.
+ * \param z4 (number): Z position of the fourth vertex.
+ * \paramOpt color1 (integer): Color of the first vertex.
+ * \paramOpt color2 (integer): Color of the second vertex.
+ * \paramOpt color3 (integer): Color of the third vertex.
+ * \paramOpt color4 (integer): Color of the fourth vertex.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_Quad(int argCount, VMValue* args, Uint32 threadID) {
@@ -6115,18 +6544,18 @@ VMValue Draw3D_Quad(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.Sprite
  * \desc Draws a sprite in 3D space.
- * \param sprite (Integer): Index of the loaded sprite.
- * \param animation (Integer): Index of the animation entry.
- * \param frame (Integer): Index of the frame in the animation entry.
- * \param x (Number): X position of where to draw the sprite.
- * \param y (Number): Y position of where to draw the sprite.
- * \param z (Number): Z position of where to draw the sprite.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
- * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param sprite (integer): Index of the loaded sprite.
+ * \param animation (integer): Index of the animation entry.
+ * \param frame (integer): Index of the frame in the animation entry.
+ * \param x (number): X position of where to draw the sprite.
+ * \param y (number): Y position of where to draw the sprite.
+ * \param z (number): Z position of where to draw the sprite.
+ * \param flipX (integer): Whether to flip the sprite horizontally.
+ * \param flipY (integer): Whether to flip the sprite vertically.
+ * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
+ * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -6187,22 +6616,22 @@ VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.SpritePart
  * \desc Draws part of a sprite in 3D space.
- * \param sprite (Integer): Index of the loaded sprite.
- * \param animation (Integer): Index of the animation entry.
- * \param frame (Integer): Index of the frame in the animation entry.
- * \param x (Number): X position of where to draw the sprite.
- * \param y (Number): Y position of where to draw the sprite.
- * \param z (Number): Z position of where to draw the sprite.
- * \param partX (Integer): X coordinate of part of frame to draw.
- * \param partY (Integer): Y coordinate of part of frame to draw.
- * \param partW (Integer): Width of part of frame to draw.
- * \param partH (Integer): Height of part of frame to draw.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
- * \paramOpt scaleX (Number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (Number): Scale multiplier of the sprite vertically.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param sprite (integer): Index of the loaded sprite.
+ * \param animation (integer): Index of the animation entry.
+ * \param frame (integer): Index of the frame in the animation entry.
+ * \param x (number): X position of where to draw the sprite.
+ * \param y (number): Y position of where to draw the sprite.
+ * \param z (number): Z position of where to draw the sprite.
+ * \param partX (integer): X coordinate of part of frame to draw.
+ * \param partY (integer): Y coordinate of part of frame to draw.
+ * \param partW (integer): Width of part of frame to draw.
+ * \param partH (integer): Height of part of frame to draw.
+ * \param flipX (integer): Whether to flip the sprite horizontally.
+ * \param flipY (integer): Whether to flip the sprite vertically.
+ * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
+ * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
@@ -6260,12 +6689,12 @@ VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.Image
  * \desc Draws an image in 3D space.
- * \param image (Integer): Index of the loaded image.
- * \param x (Number): X position of where to draw the image.
- * \param y (Number): Y position of where to draw the image.
- * \param z (Number): Z position of where to draw the image.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param image (integer): Index of the loaded image.
+ * \param x (number): X position of where to draw the image.
+ * \param y (number): Y position of where to draw the image.
+ * \param z (number): Z position of where to draw the image.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_Image(int argCount, VMValue* args, Uint32 threadID) {
@@ -6298,16 +6727,16 @@ VMValue Draw3D_Image(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.ImagePart
  * \desc Draws part of an image in 3D space.
- * \param image (Integer): Index of the loaded image.
- * \param x (Number): X position of where to draw the image.
- * \param y (Number): Y position of where to draw the image.
- * \param z (Number): Z position of where to draw the image.
- * \param partX (Integer): X coordinate of part of image to draw.
- * \param partY (Integer): Y coordinate of part of image to draw.
- * \param partW (Integer): Width of part of image to draw.
- * \param partH (Integer): Height of part of image to draw.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param image (integer): Index of the loaded image.
+ * \param x (number): X position of where to draw the image.
+ * \param y (number): Y position of where to draw the image.
+ * \param z (number): Z position of where to draw the image.
+ * \param partX (integer): X coordinate of part of image to draw.
+ * \param partY (integer): Y coordinate of part of image to draw.
+ * \param partW (integer): Width of part of image to draw.
+ * \param partH (integer): Height of part of image to draw.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
@@ -6343,14 +6772,14 @@ VMValue Draw3D_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.Tile
  * \desc Draws a tile in 3D space.
- * \param ID (Integer): ID of the tile to draw.
- * \param x (Number): X position of where to draw the tile.
- * \param y (Number): Y position of where to draw the tile.
- * \param z (Number): Z position of where to draw the tile.
- * \param flipX (Integer): Whether or not to flip the tile horizontally.
- * \param flipY (Integer): Whether or not to flip the tile vertically.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param ID (integer): ID of the tile to draw.
+ * \param x (number): X position of where to draw the tile.
+ * \param y (number): Y position of where to draw the tile.
+ * \param z (number): Z position of where to draw the tile.
+ * \param flipX (integer): Whether to flip the tile horizontally.
+ * \param flipY (integer): Whether to flip the tile vertically.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
@@ -6404,27 +6833,27 @@ VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.TriangleTextured
  * \desc Draws a textured triangle in 3D space. The texture source should be an image.
- * \param image (Integer): Index of the loaded image.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt u1 (Number): Texture U of the first vertex.
- * \paramOpt v1 (Number): Texture V of the first vertex.
- * \paramOpt u2 (Number): Texture U of the second vertex.
- * \paramOpt v2 (Number): Texture V of the second vertex.
- * \paramOpt u3 (Number): Texture U of the third vertex.
- * \paramOpt v3 (Number): Texture V of the third vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param image (integer): Index of the loaded image.
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param z1 (number): Z position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param z2 (number): Z position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
+ * \param z3 (number): Z position of the third vertex.
+ * \paramOpt color1 (integer): Color of the first vertex.
+ * \paramOpt color2 (integer): Color of the second vertex.
+ * \paramOpt color3 (integer): Color of the third vertex.
+ * \paramOpt u1 (number): Texture U of the first vertex.
+ * \paramOpt v1 (number): Texture V of the first vertex.
+ * \paramOpt u2 (number): Texture U of the second vertex.
+ * \paramOpt v2 (number): Texture V of the second vertex.
+ * \paramOpt u3 (number): Texture U of the third vertex.
+ * \paramOpt v3 (number): Texture V of the third vertex.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
@@ -6463,33 +6892,33 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.QuadTextured
  * \desc Draws a textured quad in 3D space. The texture source should be an image.
- * \param image (Integer): Index of the loaded image.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
- * \param z4 (Number): Z position of the fourth vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt color4 (Integer): Color of the fourth vertex.
- * \paramOpt u1 (Number): Texture U of the first vertex.
- * \paramOpt v1 (Number): Texture V of the first vertex.
- * \paramOpt u2 (Number): Texture U of the second vertex.
- * \paramOpt v2 (Number): Texture V of the second vertex.
- * \paramOpt u3 (Number): Texture U of the third vertex.
- * \paramOpt v3 (Number): Texture V of the third vertex.
- * \paramOpt u4 (Number): Texture U of the fourth vertex.
- * \paramOpt v4 (Number): Texture V of the fourth vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param image (integer): Index of the loaded image.
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param z1 (number): Z position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param z2 (number): Z position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
+ * \param z3 (number): Z position of the third vertex.
+ * \param x4 (number): X position of the fourth vertex.
+ * \param y4 (number): Y position of the fourth vertex.
+ * \param z4 (number): Z position of the fourth vertex.
+ * \paramOpt color1 (integer): Color of the first vertex.
+ * \paramOpt color2 (integer): Color of the second vertex.
+ * \paramOpt color3 (integer): Color of the third vertex.
+ * \paramOpt color4 (integer): Color of the fourth vertex.
+ * \paramOpt u1 (number): Texture U of the first vertex.
+ * \paramOpt v1 (number): Texture V of the first vertex.
+ * \paramOpt u2 (number): Texture U of the second vertex.
+ * \paramOpt v2 (number): Texture V of the second vertex.
+ * \paramOpt u3 (number): Texture U of the third vertex.
+ * \paramOpt v3 (number): Texture V of the third vertex.
+ * \paramOpt u4 (number): Texture U of the fourth vertex.
+ * \paramOpt v4 (number): Texture V of the fourth vertex.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
@@ -6530,29 +6959,29 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.SpritePoints
  * \desc Draws a textured rectangle in 3D space. The texture source should be a sprite.
- * \param sprite (Integer): Index of the loaded sprite.
- * \param animation (Integer): Index of the animation entry.
- * \param frame (Integer): Index of the frame in the animation entry.
- * \param flipX (Integer): Whether or not to flip the sprite horizontally.
- * \param flipY (Integer): Whether or not to flip the sprite vertically.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
- * \param z4 (Number): Z position of the fourth vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt color4 (Integer): Color of the fourth vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param sprite (integer): Index of the loaded sprite.
+ * \param animation (integer): Index of the animation entry.
+ * \param frame (integer): Index of the frame in the animation entry.
+ * \param flipX (integer): Whether to flip the sprite horizontally.
+ * \param flipY (integer): Whether to flip the sprite vertically.
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param z1 (number): Z position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param z2 (number): Z position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
+ * \param z3 (number): Z position of the third vertex.
+ * \param x4 (number): X position of the fourth vertex.
+ * \param y4 (number): Y position of the fourth vertex.
+ * \param z4 (number): Z position of the fourth vertex.
+ * \paramOpt color1 (integer): Color of the first vertex.
+ * \paramOpt color2 (integer): Color of the second vertex.
+ * \paramOpt color3 (integer): Color of the third vertex.
+ * \paramOpt color4 (integer): Color of the fourth vertex.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
@@ -6596,27 +7025,27 @@ VMValue Draw3D_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.TilePoints
  * \desc Draws a textured rectangle in 3D space.
- * \param ID (Integer): ID of the tile to draw.
- * \param flipX (Integer): Whether or not to flip the tile horizontally.
- * \param flipY (Integer): Whether or not to flip the tile vertically.
- * \param x1 (Number): X position of the first vertex.
- * \param y1 (Number): Y position of the first vertex.
- * \param z1 (Number): Z position of the first vertex.
- * \param x2 (Number): X position of the second vertex.
- * \param y2 (Number): Y position of the second vertex.
- * \param z2 (Number): Z position of the second vertex.
- * \param x3 (Number): X position of the third vertex.
- * \param y3 (Number): Y position of the third vertex.
- * \param z3 (Number): Z position of the third vertex.
- * \param x4 (Number): X position of the fourth vertex.
- * \param y4 (Number): Y position of the fourth vertex.
- * \param z4 (Number): Z position of the fourth vertex.
- * \paramOpt color1 (Integer): Color of the first vertex.
- * \paramOpt color2 (Integer): Color of the second vertex.
- * \paramOpt color3 (Integer): Color of the third vertex.
- * \paramOpt color4 (Integer): Color of the fourth vertex.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param ID (integer): ID of the tile to draw.
+ * \param flipX (integer): Whether to flip the tile horizontally.
+ * \param flipY (integer): Whether to flip the tile vertically.
+ * \param x1 (number): X position of the first vertex.
+ * \param y1 (number): Y position of the first vertex.
+ * \param z1 (number): Z position of the first vertex.
+ * \param x2 (number): X position of the second vertex.
+ * \param y2 (number): Y position of the second vertex.
+ * \param z2 (number): Z position of the second vertex.
+ * \param x3 (number): X position of the third vertex.
+ * \param y3 (number): Y position of the third vertex.
+ * \param z3 (number): Z position of the third vertex.
+ * \param x4 (number): X position of the fourth vertex.
+ * \param y4 (number): Y position of the fourth vertex.
+ * \param z4 (number): Z position of the fourth vertex.
+ * \paramOpt color1 (integer): Color of the first vertex.
+ * \paramOpt color2 (integer): Color of the second vertex.
+ * \paramOpt color3 (integer): Color of the third vertex.
+ * \paramOpt color4 (integer): Color of the fourth vertex.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
@@ -6663,9 +7092,9 @@ VMValue Draw3D_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.SceneLayer
  * \desc Draws a scene layer in 3D space.
- * \param layer (Integer): Index of the layer.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param layer (integer): Index of the layer.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_SceneLayer(int argCount, VMValue* args, Uint32 threadID) {
@@ -6685,13 +7114,13 @@ VMValue Draw3D_SceneLayer(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.SceneLayerPart
  * \desc Draws part of a scene layer in 3D space.
- * \param layer (Integer): Index of the layer.
- * \param partX (Integer): X coordinate (in tiles) of part of layer to draw.
- * \param partY (Integer): Y coordinate (in tiles) of part of layer to draw.
- * \param partW (Integer): Width (in tiles) of part of layer to draw.
- * \param partH (Integer): Height (in tiles) of part of layer to draw.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param layer (integer): Index of the layer.
+ * \param partX (integer): X coordinate (in tiles) of part of layer to draw.
+ * \param partY (integer): Y coordinate (in tiles) of part of layer to draw.
+ * \param partW (integer): Width (in tiles) of part of layer to draw.
+ * \param partH (integer): Height (in tiles) of part of layer to draw.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_SceneLayerPart(int argCount, VMValue* args, Uint32 threadID) {
@@ -6733,9 +7162,9 @@ VMValue Draw3D_SceneLayerPart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.VertexBuffer
  * \desc Draws a vertex buffer.
- * \param vertexBufferIndex (Integer): The vertex buffer to draw.
- * \paramOpt matrixModel (Matrix): Matrix for transforming coordinates to world space.
- * \paramOpt matrixNormal (Matrix): Matrix for transforming normals.
+ * \param vertexBufferIndex (integer): The vertex buffer to draw.
+ * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
+ * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \return
  * \ns Draw3D
  */
@@ -6756,8 +7185,8 @@ VMValue Draw3D_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.RenderScene
  * \desc Draws everything in the 3D scene.
- * \param scene3DIndex (Integer): The 3D scene at the index to draw.
- * \paramOpt drawMode (Integer): The type of drawing to use for the vertices in the 3D scene.
+ * \param scene3DIndex (integer): The 3D scene at the index to draw.
+ * \paramOpt drawMode (integer): The type of drawing to use for the vertices in the 3D scene.
  * \ns Draw3D
  */
 VMValue Draw3D_RenderScene(int argCount, VMValue* args, Uint32 threadID) {
@@ -6774,8 +7203,8 @@ VMValue Draw3D_RenderScene(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InSine
  * \desc Eases the value using the "InSine" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InSine(int argCount, VMValue* args, Uint32 threadID) {
@@ -6785,8 +7214,8 @@ VMValue Ease_InSine(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.OutSine
  * \desc Eases the value using the "OutSine" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_OutSine(int argCount, VMValue* args, Uint32 threadID) {
@@ -6796,8 +7225,8 @@ VMValue Ease_OutSine(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InOutSine
  * \desc Eases the value using the "InOutSine" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InOutSine(int argCount, VMValue* args, Uint32 threadID) {
@@ -6807,8 +7236,8 @@ VMValue Ease_InOutSine(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InQuad
  * \desc Eases the value using the "InQuad" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InQuad(int argCount, VMValue* args, Uint32 threadID) {
@@ -6818,8 +7247,8 @@ VMValue Ease_InQuad(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.OutQuad
  * \desc Eases the value using the "OutQuad" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_OutQuad(int argCount, VMValue* args, Uint32 threadID) {
@@ -6829,8 +7258,8 @@ VMValue Ease_OutQuad(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InOutQuad
  * \desc Eases the value using the "InOutQuad" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InOutQuad(int argCount, VMValue* args, Uint32 threadID) {
@@ -6840,8 +7269,8 @@ VMValue Ease_InOutQuad(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InCubic
  * \desc Eases the value using the "InCubic" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InCubic(int argCount, VMValue* args, Uint32 threadID) {
@@ -6851,8 +7280,8 @@ VMValue Ease_InCubic(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.OutCubic
  * \desc Eases the value using the "OutCubic" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_OutCubic(int argCount, VMValue* args, Uint32 threadID) {
@@ -6862,8 +7291,8 @@ VMValue Ease_OutCubic(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InOutCubic
  * \desc Eases the value using the "InOutCubic" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InOutCubic(int argCount, VMValue* args, Uint32 threadID) {
@@ -6873,8 +7302,8 @@ VMValue Ease_InOutCubic(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InQuart
  * \desc Eases the value using the "InQuart" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InQuart(int argCount, VMValue* args, Uint32 threadID) {
@@ -6884,8 +7313,8 @@ VMValue Ease_InQuart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.OutQuart
  * \desc Eases the value using the "OutQuart" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_OutQuart(int argCount, VMValue* args, Uint32 threadID) {
@@ -6895,8 +7324,8 @@ VMValue Ease_OutQuart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InOutQuart
  * \desc Eases the value using the "InOutQuart" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InOutQuart(int argCount, VMValue* args, Uint32 threadID) {
@@ -6906,8 +7335,8 @@ VMValue Ease_InOutQuart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InQuint
  * \desc Eases the value using the "InQuint" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InQuint(int argCount, VMValue* args, Uint32 threadID) {
@@ -6917,8 +7346,8 @@ VMValue Ease_InQuint(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.OutQuint
  * \desc Eases the value using the "OutQuint" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_OutQuint(int argCount, VMValue* args, Uint32 threadID) {
@@ -6928,8 +7357,8 @@ VMValue Ease_OutQuint(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InOutQuint
  * \desc Eases the value using the "InOutQuint" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InOutQuint(int argCount, VMValue* args, Uint32 threadID) {
@@ -6939,8 +7368,8 @@ VMValue Ease_InOutQuint(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InExpo
  * \desc Eases the value using the "InExpo" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InExpo(int argCount, VMValue* args, Uint32 threadID) {
@@ -6950,8 +7379,8 @@ VMValue Ease_InExpo(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.OutExpo
  * \desc Eases the value using the "OutExpo" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_OutExpo(int argCount, VMValue* args, Uint32 threadID) {
@@ -6961,8 +7390,8 @@ VMValue Ease_OutExpo(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InOutExpo
  * \desc Eases the value using the "InOutExpo" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InOutExpo(int argCount, VMValue* args, Uint32 threadID) {
@@ -6972,8 +7401,8 @@ VMValue Ease_InOutExpo(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InCirc
  * \desc Eases the value using the "InCirc" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InCirc(int argCount, VMValue* args, Uint32 threadID) {
@@ -6983,8 +7412,8 @@ VMValue Ease_InCirc(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.OutCirc
  * \desc Eases the value using the "OutCirc" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_OutCirc(int argCount, VMValue* args, Uint32 threadID) {
@@ -6994,8 +7423,8 @@ VMValue Ease_OutCirc(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InOutCirc
  * \desc Eases the value using the "InOutCirc" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InOutCirc(int argCount, VMValue* args, Uint32 threadID) {
@@ -7005,8 +7434,8 @@ VMValue Ease_InOutCirc(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InBack
  * \desc Eases the value using the "InBack" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InBack(int argCount, VMValue* args, Uint32 threadID) {
@@ -7016,8 +7445,8 @@ VMValue Ease_InBack(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.OutBack
  * \desc Eases the value using the "OutBack" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_OutBack(int argCount, VMValue* args, Uint32 threadID) {
@@ -7027,8 +7456,8 @@ VMValue Ease_OutBack(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InOutBack
  * \desc Eases the value using the "InOutBack" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InOutBack(int argCount, VMValue* args, Uint32 threadID) {
@@ -7038,8 +7467,8 @@ VMValue Ease_InOutBack(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InElastic
  * \desc Eases the value using the "InElastic" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InElastic(int argCount, VMValue* args, Uint32 threadID) {
@@ -7049,8 +7478,8 @@ VMValue Ease_InElastic(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.OutElastic
  * \desc Eases the value using the "OutElastic" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_OutElastic(int argCount, VMValue* args, Uint32 threadID) {
@@ -7060,8 +7489,8 @@ VMValue Ease_OutElastic(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InOutElastic
  * \desc Eases the value using the "InOutElastic" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InOutElastic(int argCount, VMValue* args, Uint32 threadID) {
@@ -7071,8 +7500,8 @@ VMValue Ease_InOutElastic(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InBounce
  * \desc Eases the value using the "InBounce" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InBounce(int argCount, VMValue* args, Uint32 threadID) {
@@ -7082,8 +7511,8 @@ VMValue Ease_InBounce(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.OutBounce
  * \desc Eases the value using the "OutBounce" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_OutBounce(int argCount, VMValue* args, Uint32 threadID) {
@@ -7093,8 +7522,8 @@ VMValue Ease_OutBounce(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.InOutBounce
  * \desc Eases the value using the "InOutBounce" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_InOutBounce(int argCount, VMValue* args, Uint32 threadID) {
@@ -7104,8 +7533,8 @@ VMValue Ease_InOutBounce(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Ease.Triangle
  * \desc Eases the value using the "Triangle" formula.
- * \param value (Number): Percent value. (0.0 - 1.0)
- * \return Eased Number value between 0.0 and 1.0.
+ * \param value (number): Percent value. (0.0 - 1.0)
+ * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
 VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) {
@@ -7118,8 +7547,8 @@ VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * File.Exists
  * \desc Determines if the file at the path exists.
- * \param path (String): The path of the file to check for existence.
- * \return Returns <code>true</code> if the file exists, <code>false</code> if otherwise.
+ * \param path (string): The path of the file to check for existence.
+ * \return boolean Returns whether the file exists.
  * \ns File
  */
 VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
@@ -7130,8 +7559,8 @@ VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * File.ReadAllText
  * \desc Reads all text from the given filename.
- * \param path (String): The path of the file to read.
- * \return Returns all the text in the file as a String value if it can be read, otherwise it returns a <code>null</code> value if it cannot be read.
+ * \param path (string): The path of the file to read.
+ * \return string Returns all the text in the file as a string value if it can be read, otherwise it returns a `null` value if it cannot be read.
  * \ns File
  */
 VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
@@ -7155,9 +7584,9 @@ VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * File.WriteAllText
  * \desc Writes all text to the given filename.
- * \param path (String): The path of the file to read.
- * \param text (String): The text to write to the file.
- * \return Returns <code>true</code> if successful, <code>false</code> if otherwise.
+ * \param path (string): The path of the file to read.
+ * \param text (string): The text to write to the file.
+ * \return boolean Returns whether the file was written successfully.
  * \ns File
  */
 VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
@@ -7257,9 +7686,9 @@ static vector<FVector2> GetPolygonPoints(ObjArray* array, const char* arrName, i
 /***
  * Geometry.Triangulate
  * \desc Triangulates a 2D polygon.
- * \param polygon (Array): Array of vertices that compromise the polygon to triangulate.
- * \paramOpt holes (Array): Array of polygons that compromise the holes to be made in the resulting shape.
- * \return Returns an Array containing a list of triangles, or <code>null</code> if the polygon could not be triangulated.
+ * \param polygon (array): Array of vertices that compromise the polygon to triangulate.
+ * \paramOpt holes (array): Array of polygons that compromise the holes to be made in the resulting shape.
+ * \return array Returns an array containing a list of triangles, or `null` if the polygon could not be triangulated.
  * \ns Geometry
  */
 VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
@@ -7338,11 +7767,11 @@ VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Geometry.Intersect
  * \desc Intersects a 2D polygon.
- * \param subjects (Array): Array of subject polygons.
- * \param clips (Array): Array of clip polygons.
- * \paramOpt booleanOp (Enum): The <linkto ref="GeoBooleanOp_*">boolean operation</linkto>. Default is <linkto ref="GeoBooleanOp_Intersection"></linkto>.
- * \paramOpt fillRule (Enum): The <linkto ref="GeoFillRule_*">fill rule</linkto>. Default is <linkto ref="GeoFillRule_EvenOdd"></linkto>.
- * \return Returns an Array containing a list of intersected polygons, or <code>null</code> if the polygon could not be intersected.
+ * \param subjects (array): Array of subject polygons.
+ * \param clips (array): Array of clip polygons.
+ * \paramOpt booleanOp (<ref GeoBooleanOp_*>): The boolean operation. (default: `<ref GeoBooleanOp_Intersection>`)
+ * \paramOpt fillRule (<ref GeoFillRule_*>): The fill rule. (default: `<ref GeoFillRule_EvenOdd>`)
+ * \return array Returns an array containing a list of intersected polygons, or `null` if the polygon could not be intersected.
  * \ns Geometry
  */
 VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
@@ -7431,10 +7860,10 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Geometry.IsPointInsidePolygon
  * \desc Checks if a point is inside a polygon.
- * \param polygon (Array): The polygon.
- * \param pointX (Decimal): The X of the point.
- * \param pointY (Decimal): The Y of the point.
- * \return Returns <code>true</code> if the point is inside, or <code>false</code> if the point is outside.
+ * \param polygon (array): The polygon.
+ * \param pointX (decimal): The X of the point.
+ * \param pointY (decimal): The Y of the point.
+ * \return boolean Returns whether the point is inside.
  * \ns Geometry
  */
 VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, Uint32 threadID) {
@@ -7451,12 +7880,12 @@ VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, Uint32 thread
 /***
  * Geometry.IsLineIntersectingPolygon
  * \desc Checks if a line segment is intersecting a polygon.
- * \param polygon (Array): The polygon to check.
- * \param x1 (Decimal): The starting X of the segment.
- * \param y1 (Decimal): The starting Y of the segment.
- * \param x2 (Decimal): The ending X of the segment.
- * \param y2 (Decimal): The ending Y of the segment.
- * \return Returns <code>true</code> if the line segment is intersecting the polygon, or <code>false</code> if it is not.
+ * \param polygon (array): The polygon to check.
+ * \param x1 (decimal): The starting X of the segment.
+ * \param y1 (decimal): The starting Y of the segment.
+ * \param x2 (decimal): The ending X of the segment.
+ * \param y2 (decimal): The ending Y of the segment.
+ * \return boolean Returns whether the line segment is intersecting the polygon.
  * \ns Geometry
  */
 VMValue Geometry_IsLineIntersectingPolygon(int argCount, VMValue* args, Uint32 threadID) {
@@ -7560,8 +7989,8 @@ VMValue HTTP_GetToFile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Image.GetWidth
  * \desc Gets the width of the specified image.
- * \param image (Integer): The image index to check.
- * \return Returns an Integer value.
+ * \param image (integer): The image index to check.
+ * \return integer Returns an integer value.
  * \ns Image
  */
 VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -7576,8 +8005,8 @@ VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Image.GetHeight
  * \desc Gets the height of the specified image.
- * \param image (Integer): The image index to check.
- * \return Returns an Integer value.
+ * \param image (integer): The image index to check.
+ * \return integer Returns an integer value.
  * \ns Image
  */
 VMValue Image_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -7595,7 +8024,7 @@ VMValue Image_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.GetMouseX
  * \desc Gets cursor's X position.
- * \return Returns cursor's X position in relation to the window.
+ * \return decimal Returns cursor's X position in relation to the window.
  * \ns Input
  */
 VMValue Input_GetMouseX(int argCount, VMValue* args, Uint32 threadID) {
@@ -7607,7 +8036,7 @@ VMValue Input_GetMouseX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.GetMouseY
  * \desc Gets cursor's Y position.
- * \return Returns cursor's Y position in relation to the window.
+ * \return decimal Returns cursor's Y position in relation to the window.
  * \ns Input
  */
 VMValue Input_GetMouseY(int argCount, VMValue* args, Uint32 threadID) {
@@ -7619,13 +8048,13 @@ VMValue Input_GetMouseY(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsMouseButtonDown
  * \desc Gets whether the mouse button is currently down.<br/>\
-</br>Mouse Button Indexes:<ul>\
-<li><code>0</code>: Left</li>\
-<li><code>1</code>: Middle</li>\
-<li><code>2</code>: Right</li>\
+<br/>Mouse Button Indexes:<ul>\
+<li>`0`: Left</li>\
+<li>`1`: Middle</li>\
+<li>`2`: Right</li>\
 </ul>
- * \param mouseButtonID (Integer): Index of the mouse button to check.
- * \return Returns whether the mouse button is currently down.
+ * \param mouseButtonID (integer): Index of the mouse button to check.
+ * \return boolean Returns whether the mouse button is currently down.
  * \ns Input
  */
 VMValue Input_IsMouseButtonDown(int argCount, VMValue* args, Uint32 threadID) {
@@ -7636,13 +8065,13 @@ VMValue Input_IsMouseButtonDown(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsMouseButtonPressed
  * \desc Gets whether the mouse button started pressing during the current frame.<br/>\
-</br>Mouse Button Indexes:<ul>\
-<li><code>0</code>: Left</li>\
-<li><code>1</code>: Middle</li>\
-<li><code>2</code>: Right</li>\
+<br/>Mouse Button Indexes:<ul>\
+<li>`0`: Left</li>\
+<li>`1`: Middle</li>\
+<li>`2`: Right</li>\
 </ul>
- * \param mouseButtonID (Integer): Index of the mouse button to check.
- * \return Returns whether the mouse button started pressing during the current frame.
+ * \param mouseButtonID (integer): Index of the mouse button to check.
+ * \return boolean Returns whether the mouse button started pressing during the current frame.
  * \ns Input
  */
 VMValue Input_IsMouseButtonPressed(int argCount, VMValue* args, Uint32 threadID) {
@@ -7653,13 +8082,13 @@ VMValue Input_IsMouseButtonPressed(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Input.IsMouseButtonReleased
  * \desc Gets whether the mouse button released during the current frame.<br/>\
-</br>Mouse Button Indexes:<ul>\
-<li><code>0</code>: Left</li>\
-<li><code>1</code>: Middle</li>\
-<li><code>2</code>: Right</li>\
+<br/>Mouse Button Indexes:<ul>\
+<li>`0`: Left</li>\
+<li>`1`: Middle</li>\
+<li>`2`: Right</li>\
 </ul>
- * \param mouseButtonID (Integer): Index of the mouse button to check.
- * \return Returns whether the mouse button released during the current frame.
+ * \param mouseButtonID (integer): Index of the mouse button to check.
+ * \return boolean Returns whether the mouse button released during the current frame.
  * \ns Input
  */
 VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID) {
@@ -7670,7 +8099,7 @@ VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID
 /***
  * Input.GetMouseMode
  * \desc Gets the current mouse mode.
- * \return Returns the current <linkto ref="MOUSEMODE_*">mouse mode</linkto>.
+ * \return <ref MOUSEMODE_*> Returns the current mouse mode.
  * \ns Input
  */
 VMValue Input_GetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
@@ -7680,7 +8109,7 @@ VMValue Input_GetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.SetMouseMode
  * \desc Sets the current mouse mode.
- * \param mouseMode (Enum): The <linkto ref="MOUSEMODE_*">mouse mode</linkto> to set.
+ * \param mouseMode (<ref MOUSEMODE_*>): The mouse mode to set.
  * \ns Input
  */
 VMValue Input_SetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
@@ -7696,8 +8125,8 @@ VMValue Input_SetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsKeyDown
  * \desc Gets whether the key is currently down.
- * \param keyID (Integer): The <linkto ref="Key_*">key ID</linkto> to check.
- * \return Returns whether the key is currently down.
+ * \param keyID (<ref Key_*>): The key ID to check.
+ * \return boolean Returns whether the key is currently down.
  * \ns Input
  */
 VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
@@ -7709,8 +8138,8 @@ VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsKeyPressed
  * \desc Gets whether the key started pressing during the current frame.
- * \param keyID (Enum): The <linkto ref="Key_*">key ID</linkto> to check.
- * \return Returns whether the key started pressing during the current frame.
+ * \param keyID (<ref Key_*>): The key ID to check.
+ * \return boolean Returns whether the key started pressing during the current frame.
  * \ns Input
  */
 VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
@@ -7722,8 +8151,8 @@ VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsKeyReleased
  * \desc Gets whether the key released during the current frame.
- * \param keyID (Enum): The <linkto ref="Key_*">key ID</linkto> to check.
- * \return Returns whether the key released during the current frame.
+ * \param keyID (<ref Key_*>): The key ID to check.
+ * \return boolean Returns whether the key released during the current frame.
  * \ns Input
  */
 VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
@@ -7735,8 +8164,8 @@ VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.GetKeyName
  * \desc Gets the name of the key.
- * \param keyID (Enum): The <linkto ref="Key_*">key ID</linkto> to check.
- * \return Returns a String value.
+ * \param keyID (<ref Key_*>): The key ID to check.
+ * \return string Returns a string value.
  * \ns Input
  */
 VMValue Input_GetKeyName(int argCount, VMValue* args, Uint32 threadID) {
@@ -7748,8 +8177,8 @@ VMValue Input_GetKeyName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.GetButtonName
  * \desc Gets the name of the button.
- * \param button (Enum): Which <linkto ref="Button_*">button</linkto> to check.
- * \return Returns a String value.
+ * \param button (<ref Button_*>): Which button to check.
+ * \return string Returns a string value.
  * \ns Input
  */
 VMValue Input_GetButtonName(int argCount, VMValue* args, Uint32 threadID) {
@@ -7761,8 +8190,8 @@ VMValue Input_GetButtonName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.GetAxisName
  * \desc Gets the name of the axis.
- * \param axis (Enum): Which <linkto ref="Axis_*">axis</linkto> to check.
- * \return Returns a String value.
+ * \param axis (<ref Axis_*>): Which axis to check.
+ * \return string Returns a string value.
  * \ns Input
  */
 VMValue Input_GetAxisName(int argCount, VMValue* args, Uint32 threadID) {
@@ -7773,9 +8202,9 @@ VMValue Input_GetAxisName(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Input.ParseKeyName
- * \desc Parses a key name into its ID, if possible.
- * \param keyName (String): The key name to parse.
- * \return Returns the parsed <linkto ref="Key_*">key ID</linkto>, or <code>null</code> if it could not be parsed.
+ * \desc Parses a string into a <ref Key_*>.
+ * \param keyName (string): The key name to parse.
+ * \return <ref Key_*> Returns the parsed key, or `null` if it could not be parsed.
  * \ns Input
  */
 VMValue Input_ParseKeyName(int argCount, VMValue* args, Uint32 threadID) {
@@ -7789,9 +8218,9 @@ VMValue Input_ParseKeyName(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Input.ParseButtonName
- * \desc Parses a button name into a button index.
- * \param keyName (String): The button name to parse.
- * \return Returns the parsed button index, or <code>null</code> if it could not be parsed.
+ * \desc Parses a string into a <ref Button_*>.
+ * \param buttonName (string): The button name to parse.
+ * \return <ref Button_*> Returns the parsed button, or `null` if it could not be parsed.
  * \ns Input
  */
 VMValue Input_ParseButtonName(int argCount, VMValue* args, Uint32 threadID) {
@@ -7805,9 +8234,9 @@ VMValue Input_ParseButtonName(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Input.ParseAxisName
- * \desc Parses an axis into an axis index.
- * \param keyName (String): The axis name to parse.
- * \return Returns the parsed axis index, or <code>null</code> if it could not be parsed.
+ * \desc Parses a string into an <ref Axis_*>.
+ * \param axisName (string): The axis name to parse.
+ * \return <ref Axis_*> Returns the parsed axis, or `null` if it could not be parsed.
  * \ns Input
  */
 VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
@@ -7822,7 +8251,7 @@ VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.GetActionList
  * \desc Gets a list of all input actions.
- * \return Returns an Array value, or <code>null</code> if no actions are registered.
+ * \return array Returns an array value, or `null` if no actions are registered.
  * \ns Input
  */
 VMValue Input_GetActionList(int argCount, VMValue* args, Uint32 threadID) {
@@ -7848,8 +8277,8 @@ VMValue Input_GetActionList(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.ActionExists
  * \desc Gets whether the given input action exists.
- * \param actionName (String): Name of the action to check.
- * \return Returns a Boolean value.
+ * \param actionName (string): Name of the action to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_ActionExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -7864,10 +8293,10 @@ VMValue Input_ActionExists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsActionHeld
  * \desc Gets whether the input action is currently held for the specified player.
- * \param playerID (Integer): Index of the player to check.
- * \param actionName (String): Name of the action to check.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \param playerID (integer): Index of the player to check.
+ * \param actionName (string): Name of the action to check.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsActionHeld(int argCount, VMValue* args, Uint32 threadID) {
@@ -7892,10 +8321,10 @@ VMValue Input_IsActionHeld(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsActionPressed
  * \desc Gets whether the input action is currently pressed for the specified player.
- * \param playerID (Integer): Index of the player to check.
- * \param actionName (String): Name of the action to check.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \param playerID (integer): Index of the player to check.
+ * \param actionName (string): Name of the action to check.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsActionPressed(int argCount, VMValue* args, Uint32 threadID) {
@@ -7921,10 +8350,10 @@ VMValue Input_IsActionPressed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsActionReleased
  * \desc Gets whether the input action was released for the specified player.
- * \param playerID (Integer): Index of the player to check.
- * \param actionName (String): Name of the action to check.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \param playerID (integer): Index of the player to check.
+ * \param actionName (string): Name of the action to check.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
@@ -7950,9 +8379,9 @@ VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsActionHeldByAny
  * \desc Gets whether the input action is currently held by any player.
- * \param actionName (String): Name of the action to check.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \param actionName (string): Name of the action to check.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
@@ -7968,15 +8397,16 @@ VMValue Input_IsActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsActionHeldByAny(actionID, inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsActionHeldByAny(actionID));
+	}
 }
 /***
  * Input.IsActionPressedByAny
  * \desc Gets whether the input action is currently pressed by any player.
- * \param actionName (String): Name of the action to check.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \param actionName (string): Name of the action to check.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsActionPressedByAny(int argCount, VMValue* args, Uint32 threadID) {
@@ -7992,15 +8422,16 @@ VMValue Input_IsActionPressedByAny(int argCount, VMValue* args, Uint32 threadID)
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsActionPressedByAny(actionID, inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsActionPressedByAny(actionID));
+	}
 }
 /***
  * Input.IsActionReleasedByAny
  * \desc Gets whether the input action was released by any player.
- * \param actionName (String): Name of the action to check.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \param actionName (string): Name of the action to check.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID) {
@@ -8016,15 +8447,16 @@ VMValue Input_IsActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsActionReleasedByAny(actionID, inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsActionReleasedByAny(actionID));
+	}
 }
 /***
  * Input.IsAnyActionHeld
  * \desc Gets whether any input action is currently held for the specified player.
- * \param playerID (Integer): Index of the player to check.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \param playerID (integer): Index of the player to check.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsAnyActionHeld(int argCount, VMValue* args, Uint32 threadID) {
@@ -8043,9 +8475,9 @@ VMValue Input_IsAnyActionHeld(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsAnyActionPressed
  * \desc Gets whether any input action is currently pressed for the specified player.
- * \param playerID (Integer): Index of the player to check.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \param playerID (integer): Index of the player to check.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsAnyActionPressed(int argCount, VMValue* args, Uint32 threadID) {
@@ -8064,9 +8496,9 @@ VMValue Input_IsAnyActionPressed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.IsAnyActionReleased
  * \desc Gets whether any input action was released for the specified player.
- * \param playerID (Integer): Index of the player to check.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \param playerID (integer): Index of the player to check.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) {
@@ -8085,8 +8517,8 @@ VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Input.IsAnyActionHeldByAny
  * \desc Gets whether any input action is currently held by any player.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsAnyActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
@@ -8096,14 +8528,15 @@ VMValue Input_IsAnyActionHeldByAny(int argCount, VMValue* args, Uint32 threadID)
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsAnyActionHeldByAny(inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsAnyActionHeldByAny());
+	}
 }
 /***
  * Input.IsAnyActionPressedByAny
  * \desc Gets whether any input action is currently pressed by any player.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsAnyActionPressedByAny(int argCount, VMValue* args, Uint32 threadID) {
@@ -8113,14 +8546,15 @@ VMValue Input_IsAnyActionPressedByAny(int argCount, VMValue* args, Uint32 thread
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsAnyActionPressedByAny(inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsAnyActionPressedByAny());
+	}
 }
 /***
  * Input.IsAnyActionReleasedByAny
  * \desc Gets whether any input action was released by any player.
- * \paramOpt inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \paramOpt inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsAnyActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID) {
@@ -8130,15 +8564,16 @@ VMValue Input_IsAnyActionReleasedByAny(int argCount, VMValue* args, Uint32 threa
 		CHECK_INPUT_DEVICE(inputDevice);
 		return INTEGER_VAL(!!InputManager::IsAnyActionReleasedByAny(inputDevice));
 	}
-	else
+	else {
 		return INTEGER_VAL(!!InputManager::IsAnyActionReleasedByAny());
+	}
 }
 /***
  * Input.GetAnalogActionInput
  * \desc Gets the analog value of a specific action.
- * \param playerID (Integer): Index of the player to check.
- * \param actionName (String): Name of the action to check.
- * \return Returns a Decimal value.
+ * \param playerID (integer): Index of the player to check.
+ * \param actionName (string): Name of the action to check.
+ * \return decimal Returns a decimal value.
  * \ns Input
  */
 VMValue Input_GetAnalogActionInput(int argCount, VMValue* args, Uint32 threadID) {
@@ -8380,10 +8815,10 @@ static ObjMap* CreateInputActionMap(InputBind* bind) {
 /***
  * Input.GetActionBind
  * \desc Gets the bound input action for a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action to get.
- * \paramOpt bindIndex (Integer): Which bind index to get.
- * \return Returns a Map value, or <code>null</code> if the input action is not bound.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action to get.
+ * \paramOpt bindIndex (integer): Which bind index to get.
+ * \return map Returns a map value, or `null` if the input action is not bound.
  * \ns Input
  */
 VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -8474,7 +8909,8 @@ static VMValue SetActionBindFromArg(int playerID,
 
 		return INTEGER_VAL(idx);
 	}
-	else if (!InputManager::SetPlayerInputBind(playerID, actionID, bind, bindIndex, setDefault)) {
+	else if (!InputManager::SetPlayerInputBind(
+			 playerID, actionID, bind, bindIndex, setDefault)) {
 		delete bind;
 	}
 
@@ -8483,11 +8919,21 @@ static VMValue SetActionBindFromArg(int playerID,
 /***
  * Input.SetActionBind
  * \desc Binds an input action for a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action to set.
- * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
- * \param actionBind (Enum or Map): The bind definition.
- * \paramOpt bindIndex (Integer): Which bind index to set.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action to set.
+ * \param inputBindType (<ref InputBind_*>): The input bind type.
+ * \param actionBind (enum): The bind definition.
+ * \paramOpt bindIndex (integer): Which bind index to set.
+ * \ns Input
+ */
+/***
+ * Input.SetActionBind
+ * \desc Binds an input action for a specific player.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action to set.
+ * \param inputBindType (<ref InputBind_*>): The input bind type.
+ * \param actionBind (map): The bind definition.
+ * \paramOpt bindIndex (integer): Which bind index to set.
  * \ns Input
  */
 VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -8513,11 +8959,21 @@ VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.AddActionBind
  * \desc Adds an input action bind for a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action.
- * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
- * \param actionBind (Enum or Map): The bind definition.
- * \return Returns the index of the added input action as an Integer value.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action.
+ * \param inputBindType (<ref InputBind_*>): The input bind type.
+ * \param actionBind (enum): The bind definition.
+ * \return integer Returns the index of the added input action as an integer value.
+ * \ns Input
+ */
+/***
+ * Input.AddActionBind
+ * \desc Adds an input action bind for a specific player.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action.
+ * \param inputBindType (<ref InputBind_*>): The input bind type.
+ * \param actionBind (map): The bind definition.
+ * \return integer Returns the index of the added input action as an integer value.
  * \ns Input
  */
 VMValue Input_AddActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -8542,9 +8998,9 @@ VMValue Input_AddActionBind(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.RemoveActionBind
  * \desc Removes a bound input action from a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action to unbind.
- * \paramOpt bindIndex (Integer): Which bind index to remove. If not passed, this removes all binds from the given action.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action to unbind.
+ * \paramOpt bindIndex (integer): Which bind index to remove. If not passed, this removes all binds from the given action.
  * \ns Input
  */
 VMValue Input_RemoveActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -8589,9 +9045,9 @@ static ObjArray* GetBoundActionList(int playerID, int actionID, bool isDefault) 
 /***
  * Input.GetBoundActionList
  * \desc Gets a list of the input actions currently bound to a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action to get.
- * \return Returns an Array of Map values.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action to get.
+ * \return array Returns an array of map values.
  * \ns Input
  */
 VMValue Input_GetBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
@@ -8612,9 +9068,9 @@ VMValue Input_GetBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.GetBoundActionCount
  * \desc Gets the amount of bound input actions for a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action.
- * \return Returns an Integer value.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action.
+ * \return integer Returns an integer value.
  * \ns Input
  */
 VMValue Input_GetBoundActionCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -8635,8 +9091,8 @@ VMValue Input_GetBoundActionCount(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Input.GetBoundActionMap
  * \desc Gets a map of the input actions currently bound to a specific player.
- * \param playerID (Integer): Index of the player.
- * \return Returns a Map value, or <code>null</code> if no actions are registered.
+ * \param playerID (integer): Index of the player.
+ * \return map Returns a map value, or `null` if no actions are registered.
  * \ns Input
  */
 VMValue Input_GetBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
@@ -8662,10 +9118,10 @@ VMValue Input_GetBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Input.GetDefaultActionBind
  * \desc Gets the default bound input action for a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action to get.
- * \paramOpt bindIndex (Integer): Which bind index to get.
- * \return Returns a Map value, or <code>null</code> if the input action is not bound.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action to get.
+ * \paramOpt bindIndex (integer): Which bind index to get.
+ * \return map Returns a map value, or `null` if the input action is not bound.
  * \ns Input
  */
 VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -8695,11 +9151,21 @@ VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Input.SetDefaultActionBind
  * \desc Binds a default input action for a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action to set.
- * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
- * \param actionBind (Enum or Map): The bind definition.
- * \paramOpt bindIndex (Integer): Which bind index to set.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action to set.
+ * \param inputBindType (<ref InputBind_*>): The input bind type.
+ * \param actionBind (enum): The bind definition.
+ * \paramOpt bindIndex (integer): Which bind index to set.
+ * \ns Input
+ */
+/***
+ * Input.SetDefaultActionBind
+ * \desc Binds a default input action for a specific player.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action to set.
+ * \param inputBindType (<ref InputBind_*>): The input bind type.
+ * \param actionBind (map): The bind definition.
+ * \paramOpt bindIndex (integer): Which bind index to set.
  * \ns Input
  */
 VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -8725,11 +9191,11 @@ VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Input.AddDefaultActionBind
  * \desc Adds a default input action bind for a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action.
- * \param inputBindType (Enum): The <linkto ref="InputBind_*">input bind type</linkto>.
- * \param actionBind (Enum or Map): The bind definition.
- * \return Returns the index of the added input action as an Integer value.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action.
+ * \param inputBindType (<ref InputBind_*>): The input bind type.
+ * \param actionBind (enum): The bind definition.
+ * \return integer Returns the index of the added input action as an integer value.
  * \ns Input
  */
 VMValue Input_AddDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -8753,9 +9219,9 @@ VMValue Input_AddDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Input.RemoveDefaultActionBind
  * \desc Removes a bound input action default from a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action to unbind.
- * \paramOpt bindIndex (Integer): Which bind index to remove. If not passed, this removes all binds from the given action.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action to unbind.
+ * \paramOpt bindIndex (integer): Which bind index to remove. If not passed, this removes all binds from the given action.
  * \ns Input
  */
 VMValue Input_RemoveDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
@@ -8784,9 +9250,9 @@ VMValue Input_RemoveDefaultActionBind(int argCount, VMValue* args, Uint32 thread
 /***
  * Input.GetDefaultBoundActionList
  * \desc Gets a list of the input actions bound by default to a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action to get.
- * \return Returns an Array of Map values.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action to get.
+ * \return array Returns an array of map values.
  * \ns Input
  */
 VMValue Input_GetDefaultBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
@@ -8807,9 +9273,9 @@ VMValue Input_GetDefaultBoundActionList(int argCount, VMValue* args, Uint32 thre
 /***
  * Input.GetDefaultBoundActionCount
  * \desc Gets the amount of bound default input actions for a specific player.
- * \param playerID (Integer): Index of the player.
- * \param actionName (String): Name of the action.
- * \return Returns an Integer value.
+ * \param playerID (integer): Index of the player.
+ * \param actionName (string): Name of the action.
+ * \return integer Returns an integer value.
  * \ns Input
  */
 VMValue Input_GetDefaultBoundActionCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -8830,8 +9296,8 @@ VMValue Input_GetDefaultBoundActionCount(int argCount, VMValue* args, Uint32 thr
 /***
  * Input.GetDefaultBoundActionMap
  * \desc Gets a map of the input actions bound by default to a specific player.
- * \param playerID (Integer): Index of the player.
- * \return Returns a Map value, or <code>null</code> if no actions are registered.
+ * \param playerID (integer): Index of the player.
+ * \return map Returns a map value, or `null` if no actions are registered.
  * \ns Input
  */
 VMValue Input_GetDefaultBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
@@ -8857,7 +9323,7 @@ VMValue Input_GetDefaultBoundActionMap(int argCount, VMValue* args, Uint32 threa
 /***
  * Input.ResetActionBindsToDefaults
  * \desc Sets all input actions for a specific player to its defaults.
- * \param playerID (Integer): Index of the player.
+ * \param playerID (integer): Index of the player.
  * \ns Input
  */
 VMValue Input_ResetActionBindsToDefaults(int argCount, VMValue* args, Uint32 threadID) {
@@ -8870,9 +9336,9 @@ VMValue Input_ResetActionBindsToDefaults(int argCount, VMValue* args, Uint32 thr
 /***
  * Input.IsPlayerUsingDevice
  * \desc Checks if a given input device is being used by the player.
- * \param playerID (Integer): Index of the player to check.
- * \param inputDevice (Enum): Which <linkto ref="InputDevice_*">input device</linkto> to check.
- * \return Returns a Boolean value.
+ * \param playerID (integer): Index of the player to check.
+ * \param inputDevice (<ref InputDevice_*>): Which input device to check.
+ * \return boolean Returns a boolean value.
  * \ns Input
  */
 VMValue Input_IsPlayerUsingDevice(int argCount, VMValue* args, Uint32 threadID) {
@@ -8886,8 +9352,8 @@ VMValue Input_IsPlayerUsingDevice(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Input.GetPlayerControllerIndex
  * \desc Gets the controller index assigned to a specific player.
- * \param playerID (Integer): Index of the player to check.
- * \return Returns the index of the controller, or <code>-1</code> if there is no controller assigned.
+ * \param playerID (integer): Index of the player to check.
+ * \return index Returns the index of the controller, or `-1` if there is no controller assigned.
  * \ns Input
  */
 VMValue Input_GetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -8899,8 +9365,8 @@ VMValue Input_GetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threa
 /***
  * Input.SetPlayerControllerIndex
  * \desc Assigns a controller index to a specific player.
- * \param playerID (Integer): Index of the player.
- * \param controllerID (Integer or <code>null</code>): Index of the controller to assign, or <code>null</code> to unassign.
+ * \param playerID (integer): Index of the player.
+ * \param controllerID (integer): Index of the controller to assign, or `null` to unassign.
  * \ns Input
  */
 VMValue Input_SetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -8921,12 +9387,12 @@ VMValue Input_SetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threa
 // #region Instance
 /***
  * Instance.Create
- * \desc Creates a new instance of an object class, and calls its <code>Create</code> event with the flag.
- * \param className (String): Name of the object class.
- * \param x (Number): X position of where to place the new instance.
- * \param y (Number): Y position of where to place the new instance.
- * \paramOpt flag (any type): Value to pass to the <code>Create</code> event. (Default: <code>0</code>)
- * \return Returns the new instance.
+ * \desc Creates a new instance of an object class, and calls its `Create` event with the flag.
+ * \param className (string): Name of the object class.
+ * \param x (number): X position of where to place the new instance.
+ * \param y (number): Y position of where to place the new instance.
+ * \paramOpt flag (value): Value to pass to the `Create` event. (default: `0`)
+ * \return Entity Returns the new instance.
  * \ns Instance
  */
 VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -8976,9 +9442,9 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Instance.GetNth
  * \desc Gets the n'th instance of an object class.
- * \param className (String): Name of the object class.
- * \param n (Integer): n'th of object class' instances to get. <code>0</code> is first.
- * \return Returns n'th of object class' instances, <code>null</code> if instance cannot be found or class does not exist.
+ * \param className (string): Name of the object class.
+ * \param n (integer): n'th of object class' instances to get. `0` is first.
+ * \return Entity Returns n'th of object class' instances, `null` if instance cannot be found or class does not exist.
  * \ns Instance
  */
 VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
@@ -9002,10 +9468,10 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Instance.IsClass
- * \desc Determines whether or not the instance is of a specified object class.
- * \param instance (Instance): The instance to check. If there is no instance, this automatically returns false.
- * \param className (String): Name of the object class.
- * \return Returns whether or not the instance is of a specified object class.
+ * \desc Determines whether the instance is of a specified object class.
+ * \param entity (Entity): The instance to check. If there is no instance, this automatically returns false.
+ * \param className (string): Name of the object class.
+ * \return boolean Returns whether the instance is of a specified object class.
  * \ns Instance
  */
 VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
@@ -9037,8 +9503,8 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Instance.GetClass
  * \desc Gets the object class of a instance.
- * \param instance (Instance): The instance to check.
- * \return Returns a String value.
+ * \param entity (Entity): The instance to check.
+ * \return string Returns a string value.
  * \ns Instance
  */
 VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
@@ -9056,8 +9522,8 @@ VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Instance.GetCount
  * \desc Gets amount of currently active instances in an object class.
- * \param className (String): Name of the object class.
- * \return Returns count of currently active instances in an object class.
+ * \param className (string): Name of the object class.
+ * \return integer Returns count of currently active instances in an object class.
  * \ns Instance
  */
 VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -9074,10 +9540,10 @@ VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Instance.GetNextInstance
- * \desc Gets the instance created after or before the specified instance. <code>0</code> is the next instance, <code>-1</code> is the previous instance.
- * \param instance (Instance): The instance to check.
- * \param n (Integer): How many instances after or before the desired instance is to the checking instance.
- * \return Returns the desired instance.
+ * \desc Gets the instance created after or before the specified instance. `0` is the next instance, `-1` is the previous instance.
+ * \param entity (Entity): The instance to check.
+ * \param n (integer): How many instances after or before the desired instance is to the checking instance.
+ * \return Entity Returns the desired instance.
  * \ns Instance
  */
 VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
@@ -9118,8 +9584,8 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Instance.GetBySlotID
  * \desc Gets an instance by its slot ID.
- * \param slotID (Integer): The slot ID to search a corresponding instance for.
- * \return Returns the instance corresponding to the specified slot ID, or <code>null</code> if no instance was found.
+ * \param slotID (integer): The slot ID to search a corresponding instance for.
+ * \return Entity Returns the instance corresponding to the specified slot ID, or `null` if no instance was found.
  * \ns Instance
  */
 VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
@@ -9142,7 +9608,7 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Instance.DisableAutoAnimate
  * \desc Disables the AutoAnimate function of entities.
- * \param disableAutoAnimate (Boolean): Whether to turn off the engine automatically applying AutoAnimate when entities are initialized.
+ * \param disableAutoAnimate (boolean): Whether to turn off the engine automatically applying AutoAnimate when entities are initialized.
  * \ns Instance
  */
 VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID) {
@@ -9153,7 +9619,7 @@ VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID
 /***
  * Instance.SetUseRenderRegions
  * \desc Sets whether entities will use Render Regions when rendering. If false, entities will use their Update Regions instead.
- * \param useRenderRegions (Boolean): Whether render regions will be used.
+ * \param useRenderRegions (boolean): Whether render regions will be used.
  * \ns Instance
  */
 VMValue Instance_SetUseRenderRegions(int argCount, VMValue* args, Uint32 threadID) {
@@ -9161,13 +9627,12 @@ VMValue Instance_SetUseRenderRegions(int argCount, VMValue* args, Uint32 threadI
 	Scene::UseRenderRegions = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
 }
-// TODO: Finish these
 /***
  * Instance.Copy
  * \desc Copies an instance into another.
- * \param destInstance (Instance): The destination instance.
- * \param srcInstance (Instance): The source instance.
- * \paramOpt copyClass (Boolean): Whether to copy the class of the source entity (defaults to true).
+ * \param destInstance (Entity): The destination instance.
+ * \param srcInstance (Entity): The source instance.
+ * \paramOpt copyClass (boolean): Whether to copy the class of the source entity. (default: `true`)
  * \ns Instance
  */
 VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
@@ -9187,9 +9652,9 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Instance.ChangeClass
  * \desc Changes an instance's class.
- * \param instance (Instance): The instance to swap.
- * \param className (String): Name of the object class.
- * \return Returns whether the instance was swapped.
+ * \param entity (Entity): The instance to swap.
+ * \param className (string): Name of the object class.
+ * \return boolean Returns whether the instance was swapped.
  * \ns Instance
  */
 VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
@@ -9478,15 +9943,17 @@ static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t 
 
 /***
  * JSON.Parse
- * \desc Decodes a String value into a Map value.
- * \param jsonText (String): JSON-compliant text.
- * \return Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.
+ * \desc Decodes a string value into a map value.
+ * \param jsonText (string): JSON-compliant text.
+ * \return map Returns a map value if the text can be decoded, otherwise returns `null`.
  * \ns JSON
  */
 VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjString* string = GET_ARG(0, GetVMString);
-	if (!string) return NULL_VAL;
+	if (!string) {
+		return NULL_VAL;
+	}
 
 	if (ScriptManager::Lock()) {
 		ObjMap* map = NewMap();
@@ -9501,11 +9968,13 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 
 		jsmn_init(&p);
 		while (true) {
-			int r = jsmn_parse(&p, string->Chars, string->Length, tok, (Uint32)tokcount);
+			int r = jsmn_parse(
+				&p, string->Chars, string->Length, tok, (Uint32)tokcount);
 			if (r < 0) {
 				if (r == JSMN_ERROR_NOMEM) {
 					tokcount = tokcount * 2;
-					jsmntok_t* tempTok = (jsmntok_t*)realloc(tok, sizeof(*tok) * tokcount);
+					jsmntok_t* tempTok =
+						(jsmntok_t*)realloc(tok, sizeof(*tok) * tokcount);
 					if (tempTok == NULL) {
 						free(tok);
 						ScriptManager::Unlock();
@@ -9530,9 +9999,9 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * JSON.ToString
  * \desc Converts a value into a JSON string.
- * \param json (Any type): The value to convert.
- * \paramOpt prettyPrint (Boolean): Whether or not to use spacing and newlines in the text.
- * \return Returns a JSON string based on the value.
+ * \param json (value): The value to convert.
+ * \paramOpt prettyPrint (boolean): Whether to use spacing and newlines in the text.
+ * \return string Returns a JSON string based on the value.
  * \ns JSON
  */
 VMValue JSON_ToString(int argCount, VMValue* args, Uint32 threadID) {
@@ -9556,8 +10025,8 @@ VMValue JSON_ToString(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Cos
  * \desc Returns the cosine of an angle of x radians.
- * \param x (Decimal): Angle (in radians) to get the cosine of.
- * \return The cosine of x radians.
+ * \param x (decimal): Angle (in radians) to get the cosine of.
+ * \return decimal The cosine of x radians.
  * \ns Math
  */
 VMValue Math_Cos(int argCount, VMValue* args, Uint32 threadID) {
@@ -9567,8 +10036,8 @@ VMValue Math_Cos(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Sin
  * \desc Returns the sine of an angle of x radians.
- * \param x (Decimal): Angle (in radians) to get the sine of.
- * \return The sine of x radians.
+ * \param x (decimal): Angle (in radians) to get the sine of.
+ * \return decimal The sine of x radians.
  * \ns Math
  */
 VMValue Math_Sin(int argCount, VMValue* args, Uint32 threadID) {
@@ -9578,8 +10047,8 @@ VMValue Math_Sin(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Tan
  * \desc Returns the tangent of an angle of x radians.
- * \param x (Decimal): Angle (in radians) to get the tangent of.
- * \return The tangent of x radians.
+ * \param x (decimal): Angle (in radians) to get the tangent of.
+ * \return decimal The tangent of x radians.
  * \ns Math
  */
 VMValue Math_Tan(int argCount, VMValue* args, Uint32 threadID) {
@@ -9589,8 +10058,8 @@ VMValue Math_Tan(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Acos
  * \desc Returns the arccosine of x.
- * \param x (Decimal): Number value to get the arccosine of.
- * \return Returns the angle (in radians) as a Decimal value.
+ * \param x (decimal): Number value to get the arccosine of.
+ * \return decimal Returns the angle (in radians) as a decimal value.
  * \ns Math
  */
 VMValue Math_Acos(int argCount, VMValue* args, Uint32 threadID) {
@@ -9600,8 +10069,8 @@ VMValue Math_Acos(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Asin
  * \desc Returns the arcsine of x.
- * \param x (Decimal): Number value to get the arcsine of.
- * \return Returns the angle (in radians) as a Decimal value.
+ * \param x (decimal): Number value to get the arcsine of.
+ * \return decimal Returns the angle (in radians) as a decimal value.
  * \ns Math
  */
 VMValue Math_Asin(int argCount, VMValue* args, Uint32 threadID) {
@@ -9611,9 +10080,9 @@ VMValue Math_Asin(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Atan
  * \desc Returns the arctangent angle (in radians) from x and y.
- * \param x (Decimal): x value.
- * \param y (Decimal): y value.
- * \return The angle from x and y.
+ * \param x (decimal): x value.
+ * \param y (decimal): y value.
+ * \return decimal The angle from x and y.
  * \ns Math
  */
 VMValue Math_Atan(int argCount, VMValue* args, Uint32 threadID) {
@@ -9623,11 +10092,11 @@ VMValue Math_Atan(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Distance
  * \desc Gets the distance from (x1,y1) to (x2,y2) in pixels.
- * \param x1 (Number): X position of first point.
- * \param y1 (Number): Y position of first point.
- * \param x2 (Number): X position of second point.
- * \param y2 (Number): Y position of second point.
- * \return Returns the distance from (x1,y1) to (x2,y2) as a Decimal value.
+ * \param x1 (number): X position of first point.
+ * \param y1 (number): Y position of first point.
+ * \param x2 (number): X position of second point.
+ * \param y2 (number): Y position of second point.
+ * \return decimal Returns the distance from (x1,y1) to (x2,y2) as a decimal value.
  * \ns Math
  */
 VMValue Math_Distance(int argCount, VMValue* args, Uint32 threadID) {
@@ -9640,11 +10109,11 @@ VMValue Math_Distance(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Direction
  * \desc Gets the angle from (x1,y1) to (x2,y2) in radians.
- * \param x1 (Number): X position of first point.
- * \param y1 (Number): Y position of first point.
- * \param x2 (Number): X position of second point.
- * \param y2 (Number): Y position of second point.
- * \return Returns the angle from (x1,y1) to (x2,y2) as a Decimal value.
+ * \param x1 (number): X position of first point.
+ * \param y1 (number): Y position of first point.
+ * \param x2 (number): X position of second point.
+ * \param y2 (number): Y position of second point.
+ * \return decimal Returns the angle from (x1,y1) to (x2,y2) as a decimal value.
  * \ns Math
  */
 VMValue Math_Direction(int argCount, VMValue* args, Uint32 threadID) {
@@ -9655,8 +10124,8 @@ VMValue Math_Direction(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Abs
  * \desc Gets the absolute value of a Number.
- * \param n (Number): Number value.
- * \return Returns the absolute value of n.
+ * \param n (number): Number value.
+ * \return number Returns the absolute value of n.
  * \ns Math
  */
 VMValue Math_Abs(int argCount, VMValue* args, Uint32 threadID) {
@@ -9667,9 +10136,9 @@ VMValue Math_Abs(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Min
  * \desc Gets the lesser value of two Number values.
- * \param a (Number): Number value.
- * \param b (Number): Number value.
- * \return Returns the lesser value of a and b.
+ * \param a (number): Number value.
+ * \param b (number): Number value.
+ * \return number Returns the lesser value of a and b.
  * \ns Math
  */
 VMValue Math_Min(int argCount, VMValue* args, Uint32 threadID) {
@@ -9684,9 +10153,9 @@ VMValue Math_Min(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Max
  * \desc Gets the greater value of two Number values.
- * \param a (Number): Number value.
- * \param b (Number): Number value.
- * \return Returns the greater value of a and b.
+ * \param a (number): Number value.
+ * \param b (number): Number value.
+ * \return number Returns the greater value of a and b.
  * \ns Math
  */
 VMValue Math_Max(int argCount, VMValue* args, Uint32 threadID) {
@@ -9701,10 +10170,10 @@ VMValue Math_Max(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Clamp
  * \desc Gets the value clamped between a range.
- * \param n (Number): Number value.
- * \param minValue (Number): Minimum range value to clamp to.
- * \param maxValue (Number): Maximum range value to clamp to.
- * \return Returns the Number value if within the range, otherwise returns closest range value.
+ * \param n (number): Number value.
+ * \param minValue (number): Minimum range value to clamp to.
+ * \param maxValue (number): Maximum range value to clamp to.
+ * \return number Returns the Number value if within the range, otherwise returns closest range value.
  * \ns Math
  */
 VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
@@ -9718,12 +10187,11 @@ VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
 			GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal)));
 	}
 }
-
 /***
  * Math.Sign
- * \desc Gets the sign associated with a Decimal value.
- * \param n (Number): Number value.
- * \return Returns <code>-1</code> if <code>n</code> is negative, <code>1</code> if positive, and <code>0</code> if otherwise.
+ * \desc Gets the sign associated with a decimal value.
+ * \param n (number): Number value.
+ * \return decimal Returns `-1` if <param n> is negative, `1` if positive, and `0` if otherwise.
  * \ns Math
  */
 VMValue Math_Sign(int argCount, VMValue* args, Uint32 threadID) {
@@ -9733,8 +10201,8 @@ VMValue Math_Sign(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Uint8
  * \desc Converts an integer to an 8-bit unsigned value.
- * \param n (Integer): Integer value to convert.
- * \return Returns the converted value.
+ * \param n (integer): Integer value to convert.
+ * \return integer Returns the converted value.
  * \ns Math
  */
 VMValue Math_Uint8(int argCount, VMValue* args, Uint32 threadID) {
@@ -9744,8 +10212,8 @@ VMValue Math_Uint8(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Uint16
  * \desc Converts an integer to a 16-bit unsigned value.
- * \param n (Integer): Integer value to convert.
- * \return Returns the converted value.
+ * \param n (integer): Integer value to convert.
+ * \return integer Returns the converted value.
  * \ns Math
  */
 VMValue Math_Uint16(int argCount, VMValue* args, Uint32 threadID) {
@@ -9755,8 +10223,8 @@ VMValue Math_Uint16(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Uint32
  * \desc Converts an integer to a 32-bit unsigned value.
- * \param n (Integer): Integer value to convert.
- * \return Returns the converted value.
+ * \param n (integer): Integer value to convert.
+ * \return integer Returns the converted value.
  * \ns Math
  */
 VMValue Math_Uint32(int argCount, VMValue* args, Uint32 threadID) {
@@ -9766,8 +10234,8 @@ VMValue Math_Uint32(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Uint64
  * \desc Converts an integer to a 64-bit unsigned value.
- * \param n (Integer): Integer value to convert.
- * \return Returns the converted value.
+ * \param n (integer): Integer value to convert.
+ * \return integer Returns the converted value.
  * \ns Math
  */
 VMValue Math_Uint64(int argCount, VMValue* args, Uint32 threadID) {
@@ -9777,7 +10245,7 @@ VMValue Math_Uint64(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Random
  * \desc Get a random number between 0.0 and 1.0.
- * \return Returns the random number.
+ * \return decimal Returns the random number.
  * \ns Math
  */
 VMValue Math_Random(int argCount, VMValue* args, Uint32 threadID) {
@@ -9787,8 +10255,8 @@ VMValue Math_Random(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.RandomMax
  * \desc Gets a random number between 0.0 and a specified maximum.
- * \param max (Number): Maximum non-inclusive value.
- * \return Returns the random number.
+ * \param max (number): Maximum non-inclusive value.
+ * \return decimal Returns the random number.
  * \ns Math
  */
 VMValue Math_RandomMax(int argCount, VMValue* args, Uint32 threadID) {
@@ -9798,9 +10266,9 @@ VMValue Math_RandomMax(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.RandomRange
  * \desc Gets a random number between specified minimum and a specified maximum.
- * \param min (Number): Minimum non-inclusive value.
- * \param max (Number): Maximum non-inclusive value.
- * \return Returns the random number.
+ * \param min (number): Minimum non-inclusive value.
+ * \param max (number): Maximum non-inclusive value.
+ * \return decimal Returns the random number.
  * \ns Math
  */
 VMValue Math_RandomRange(int argCount, VMValue* args, Uint32 threadID) {
@@ -9810,7 +10278,7 @@ VMValue Math_RandomRange(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.GetRandSeed
  * \desc Gets the engine's random seed value.
- * \return Returns an integer of the engine's random seed value.
+ * \return integer Returns an integer of the engine's random seed value.
  * \ns RSDK.Math
  */
 VMValue Math_GetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -9820,7 +10288,7 @@ VMValue Math_GetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.SetRandSeed
  * \desc Sets the engine's random seed value.
- * \param key (Integer): Value to set the seed to.
+ * \param key (integer): Value to set the seed to.
  * \ns RSDK.Math
  */
 VMValue Math_SetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -9831,9 +10299,9 @@ VMValue Math_SetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.RandomInteger
  * \desc Gets a random number between specified minimum integer and a specified maximum integer.
- * \param min (Integer): Minimum non-inclusive integer value.
- * \param max (Integer): Maximum non-inclusive integer value.
- * \return Returns the random number as an integer.
+ * \param min (integer): Minimum non-inclusive integer value.
+ * \param max (integer): Maximum non-inclusive integer value.
+ * \return integer Returns the random number as an integer.
  * \ns RSDK.Math
  */
 VMValue Math_RandomInteger(int argCount, VMValue* args, Uint32 threadID) {
@@ -9844,10 +10312,10 @@ VMValue Math_RandomInteger(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.RandomIntegerSeeded
  * \desc Gets a random number between specified minimum integer and a specified maximum integer based off of a given seed.
- * \param min (Integer): Minimum non-inclusive integer value.
- * \param max (Integer): Maximum non-inclusive integer value.
- * \paramOpt seed (Integer): Seed of which to base the number.
- * \return Returns the random number as an integer.
+ * \param min (integer): Minimum non-inclusive integer value.
+ * \param max (integer): Maximum non-inclusive integer value.
+ * \paramOpt seed (integer): Seed of which to base the number.
+ * \return integer Returns the random number.
  * \ns RSDK.Math
  */
 VMValue Math_RandomIntegerSeeded(int argCount, VMValue* args, Uint32 threadID) {
@@ -9861,8 +10329,8 @@ VMValue Math_RandomIntegerSeeded(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Floor
  * \desc Rounds the number n downward, returning the largest integral value that is not greater than n.
- * \param n (Number): Number to be rounded.
- * \return Returns the floored number value.
+ * \param n (number): Number to be rounded.
+ * \return integer Returns the floored number value.
  * \ns Math
  */
 VMValue Math_Floor(int argCount, VMValue* args, Uint32 threadID) {
@@ -9872,8 +10340,8 @@ VMValue Math_Floor(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Ceil
  * \desc Rounds the number n upward, returning the smallest integral value that is not less than n.
- * \param n (Number): Number to be rounded.
- * \return Returns the ceiling-ed number value.
+ * \param n (number): Number to be rounded.
+ * \return decimal Returns the ceiling-ed number value.
  * \ns Math
  */
 VMValue Math_Ceil(int argCount, VMValue* args, Uint32 threadID) {
@@ -9883,8 +10351,8 @@ VMValue Math_Ceil(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Round
  * \desc Rounds the number n.
- * \param n (Number): Number to be rounded.
- * \return Returns the rounded number value.
+ * \param n (number): Number to be rounded.
+ * \return decimal Returns the rounded number value.
  * \ns Math
  */
 VMValue Math_Round(int argCount, VMValue* args, Uint32 threadID) {
@@ -9894,8 +10362,8 @@ VMValue Math_Round(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Sqrt
  * \desc Retrieves the square root of the number n.
- * \param n (Number): Number to be square rooted.
- * \return Returns the square root of the number n.
+ * \param n (number): Number to be square rooted.
+ * \return decimal Returns the square root of the number n.
  * \ns Math
  */
 VMValue Math_Sqrt(int argCount, VMValue* args, Uint32 threadID) {
@@ -9905,9 +10373,9 @@ VMValue Math_Sqrt(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Pow
  * \desc Retrieves the number n to the power of p.
- * \param n (Number): Number for the base of the exponent.
- * \param p (Number): Exponent.
- * \return Returns the number n to the power of p.
+ * \param n (number): Number for the base of the exponent.
+ * \param p (number): Exponent.
+ * \return decimal Returns the number n to the power of p.
  * \ns Math
  */
 VMValue Math_Pow(int argCount, VMValue* args, Uint32 threadID) {
@@ -9917,8 +10385,8 @@ VMValue Math_Pow(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.Exp
  * \desc Retrieves the constant e (2.717) to the power of p.
- * \param p (Number): Exponent.
- * \return Returns the result number.
+ * \param p (number): Exponent.
+ * \return decimal Returns the result number.
  * \ns Math
  */
 VMValue Math_Exp(int argCount, VMValue* args, Uint32 threadID) {
@@ -9951,8 +10419,8 @@ VMValue Math_CalculateTrigAngles(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.Sin1024
  * \desc Returns the sine of an angle of x based on a max of 1024.
- * \param angle (Integer): Angle to get the sine of.
- * \return The sine 1024 of the angle.
+ * \param angle (integer): Angle to get the sine of.
+ * \return integer The sine 1024 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_Sin1024(int argCount, VMValue* args, Uint32 threadID) {
@@ -9962,8 +10430,8 @@ VMValue Math_Sin1024(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.Cos1024
  * \desc Returns the cosine of an angle of x based on a max of 1024.
- * \param angle (Integer): Angle to get the cosine of.
- * \return The cosine 1024 of the angle.
+ * \param angle (integer): Angle to get the cosine of.
+ * \return integer The cosine 1024 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_Cos1024(int argCount, VMValue* args, Uint32 threadID) {
@@ -9973,8 +10441,8 @@ VMValue Math_Cos1024(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.Tan1024
  * \desc Returns the tangent of an angle of x based on a max of 1024.
- * \param angle (Integer): Angle to get the tangent of.
- * \return The tangent 1024 of the angle.
+ * \param angle (integer): Angle to get the tangent of.
+ * \return integer The tangent 1024 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_Tan1024(int argCount, VMValue* args, Uint32 threadID) {
@@ -9984,8 +10452,8 @@ VMValue Math_Tan1024(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.ASin1024
  * \desc Returns the arc sine of an angle of x based on a max of 1024.
- * \param angle (Integer): Angle to get the arc sine of.
- * \return The arc sine 1024 of the angle.
+ * \param angle (integer): Angle to get the arc sine of.
+ * \return integer The arc sine 1024 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_ASin1024(int argCount, VMValue* args, Uint32 threadID) {
@@ -9995,8 +10463,8 @@ VMValue Math_ASin1024(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.ACos1024
  * \desc Returns the arc cosine of an angle of x based on a max of 1024.
- * \param angle (Integer): Angle to get the arc cosine of.
- * \return The arc cosine 1024 of the angle.
+ * \param angle (integer): Angle to get the arc cosine of.
+ * \return integer The arc cosine 1024 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_ACos1024(int argCount, VMValue* args, Uint32 threadID) {
@@ -10006,8 +10474,8 @@ VMValue Math_ACos1024(int argCount, VMValue* args, Uint32 threadID) {
 /**
  * RSDK.Math.Sin512
  * \desc Returns the sine of an angle of x based on a max of 512.
- * \param angle (Integer): Angle to get the sine of.
- * \return The sine 512 of the angle.
+ * \param angle (integer): Angle to get the sine of.
+ * \return integer The sine 512 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_Sin512(int argCount, VMValue* args, Uint32 threadID) {
@@ -10017,8 +10485,8 @@ VMValue Math_Sin512(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.Cos512
  * \desc Returns the cosine of an angle of x based on a max of 512.
- * \param angle (Integer): Angle to get the cosine of.
- * \return The cosine 512 of the angle.
+ * \param angle (integer): Angle to get the cosine of.
+ * \return integer The cosine 512 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_Cos512(int argCount, VMValue* args, Uint32 threadID) {
@@ -10028,8 +10496,8 @@ VMValue Math_Cos512(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.Tan512
  * \desc Returns the tangent of an angle of x based on a max of 512.
- * \param angle (Integer): Angle to get the tangent of.
- * \return The tangent 512 of the angle.
+ * \param angle (integer): Angle to get the tangent of.
+ * \return integer The tangent 512 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_Tan512(int argCount, VMValue* args, Uint32 threadID) {
@@ -10039,8 +10507,8 @@ VMValue Math_Tan512(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.ASin512
  * \desc Returns the arc sine of an angle of x based on a max of 512.
- * \param angle (Integer): Angle to get the arc sine of.
- * \return The arc sine 512 of the angle.
+ * \param angle (integer): Angle to get the arc sine of.
+ * \return integer The arc sine 512 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_ASin512(int argCount, VMValue* args, Uint32 threadID) {
@@ -10050,8 +10518,8 @@ VMValue Math_ASin512(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.ACos512
  * \desc Returns the arc cosine of an angle of x based on a max of 512.
- * \param angle (Integer): Angle to get the arc cosine of.
- * \return The arc cosine 512 of the angle.
+ * \param angle (integer): Angle to get the arc cosine of.
+ * \return integer The arc cosine 512 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_ACos512(int argCount, VMValue* args, Uint32 threadID) {
@@ -10061,8 +10529,8 @@ VMValue Math_ACos512(int argCount, VMValue* args, Uint32 threadID) {
 /**
  * RSDK.Math.Sin256
  * \desc Returns the sine of an angle of x based on a max of 256.
- * \param angle (Integer): Angle to get the sine of.
- * \return The sine 256 of the angle.
+ * \param angle (integer): Angle to get the sine of.
+ * \return integer The sine 256 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_Sin256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10072,8 +10540,8 @@ VMValue Math_Sin256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.Cos256
  * \desc Returns the cosine of an angle of x based on a max of 256.
- * \param angle (Integer): Angle to get the cosine of.
- * \return The cosine 256 of the angle.
+ * \param angle (integer): Angle to get the cosine of.
+ * \return integer The cosine 256 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_Cos256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10083,8 +10551,8 @@ VMValue Math_Cos256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.Tan256
  * \desc Returns the tangent of an angle of x based on a max of 256.
- * \param angle (Integer): Angle to get the tangent of.
- * \return The tangent 256 of the angle.
+ * \param angle (integer): Angle to get the tangent of.
+ * \return integer The tangent 256 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_Tan256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10094,8 +10562,8 @@ VMValue Math_Tan256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.ASin256
  * \desc Returns the arc sine of an angle of x based on a max of 256.
- * \param angle (Integer): Angle to get the arc sine of.
- * \return The arc sine 256 of the angle.
+ * \param angle (integer): Angle to get the arc sine of.
+ * \return integer The arc sine 256 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_ASin256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10105,8 +10573,8 @@ VMValue Math_ASin256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.ACos256
  * \desc Returns the arc cosine of an angle of x based on a max of 256.
- * \param angle (Integer): Angle to get the arc cosine of.
- * \return The arc cosine 256 of the angle.
+ * \param angle (integer): Angle to get the arc cosine of.
+ * \return integer The arc cosine 256 of the angle.
  * \ns RSDK.Math
  */
 VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10116,9 +10584,9 @@ VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
 /***
   * RSDK.Math.ATan2
   * \desc Returns the arc tangent of a position.
-  * \param x (Decimal): X value of the position.
-  * \param y (Decimal): Y value of the position.
-  * \return The arc tangent of the position.
+  * \param x (decimal): X value of the position.
+  * \param y (decimal): Y value of the position.
+  * \return integer The arc tangent of the position.
   * \ns RSDK.Math
   */
 VMValue Math_ATan2(int argCount, VMValue* args, Uint32 threadID) {
@@ -10129,8 +10597,8 @@ VMValue Math_ATan2(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.RadianToInteger
  * \desc Gets the integer conversion of a radian, based on 256.
- * \param radian (Decimal): Radian value to convert.
- * \return An integer value of the converted radian.
+ * \param radian (decimal): Radian value to convert.
+ * \return integer An integer value of the converted radian.
  * \ns RSDK.Math
  */
 VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
@@ -10139,9 +10607,9 @@ VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * RSDK.Math.IntegerToRadian
- * \desc Gets the radian Decimal conversion of an integer, based on 256.
- * \param integer (Integer): Integer value to convert.
- * \return A radia Decimal value of the converted integer.
+ * \desc Gets the radian decimal conversion of an integer, based on 256.
+ * \param integer (integer): Integer value to convert.
+ * \return decimal A radian decimal value of the converted integer.
  * \ns RSDK.Math
  */
 VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
@@ -10151,9 +10619,9 @@ VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.ToFixed
  * \desc Converts a decimal number to its fixed-point equivalent.
- * \param n (Number): Number value.
- * \return Returns the converted fixed-point Number value.
- * \ns Math
+ * \param n (number): Number value.
+ * \return integer Returns the converted fixed-point Number value.
+ * \ns RSDK.Math
  */
 VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
@@ -10162,9 +10630,9 @@ VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Math.FromFixed
  * \desc Converts a fixed-point number to its decimal equivalent.
- * \param n (Number): Number value.
- * \return Returns the converted decimal Number value.
- * \ns Math
+ * \param n (number): Number value.
+ * \return decimal Returns the converted decimal Number value.
+ * \ns RSDK.Math
  */
 VMValue Math_FromFixed(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
@@ -10184,7 +10652,7 @@ If you compose all three, you can use the one result to map all the way from <br
 object space to screen space, making you able to work out what you need to <br/>\
 pass on to the next stage of a programmable pipeline from the incoming <br/>\
 vertex positions." - Tommy (https://stackoverflow.com/questions/5550620/the-purpose-of-model-view-projection-matrix)
- * \return Returns the Matrix as an Array.
+ * \return array Returns the matrix as an array.
  * \ns Matrix
  */
 VMValue Matrix_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -10207,7 +10675,7 @@ VMValue Matrix_Create(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Matrix.Identity
  * \desc Sets the matrix to the identity.
- * \param matrix (Matrix): The matrix to set to the identity.
+ * \param matrix (matrix): The matrix to set to the identity.
  * \ns Matrix
  */
 VMValue Matrix_Identity(int argCount, VMValue* args, Uint32 threadID) {
@@ -10227,11 +10695,11 @@ VMValue Matrix_Identity(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Matrix.Perspective
  * \desc Creates a perspective projection matrix.
- * \param matrix (Matrix): The matrix to generate the projection matrix into.
- * \param fov (Number): The field of view, in degrees.
- * \param near (Number): The near clipping plane value.
- * \param far (Number): The far clipping plane value.
- * \param aspect (Number): The aspect ratio.
+ * \param matrix (matrix): The matrix to generate the projection matrix into.
+ * \param fov (number): The field of view, in degrees.
+ * \param near (number): The near clipping plane value.
+ * \param far (number): The far clipping plane value.
+ * \param aspect (number): The aspect ratio.
  * \ns Matrix
  */
 VMValue Matrix_Perspective(int argCount, VMValue* args, Uint32 threadID) {
@@ -10254,8 +10722,8 @@ VMValue Matrix_Perspective(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Matrix.Copy
  * \desc Copies the matrix to the destination.
- * \param matrixDestination (Matrix): Destination.
- * \param matrixSource (Matrix): Source.
+ * \param matrixDestination (matrix): Destination.
+ * \param matrixSource (matrix): Source.
  * \ns Matrix
  */
 VMValue Matrix_Copy(int argCount, VMValue* args, Uint32 threadID) {
@@ -10270,9 +10738,9 @@ VMValue Matrix_Copy(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Matrix.Multiply
  * \desc Multiplies two matrices.
- * \param matrix (Matrix): The matrix to output the values to.
- * \param a (Matrix): The first matrix to use for multiplying.
- * \param b (Matrix): The second matrix to use for multiplying.
+ * \param matrix (matrix): The matrix to output the values to.
+ * \param a (matrix): The first matrix to use for multiplying.
+ * \param b (matrix): The second matrix to use for multiplying.
  * \ns Matrix
  */
 VMValue Matrix_Multiply(int argCount, VMValue* args, Uint32 threadID) {
@@ -10312,12 +10780,12 @@ VMValue Matrix_Multiply(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Matrix.Translate
  * \desc Translates the matrix.
- * \param matrix (Matrix): The matrix to output the values to.
- * \param x (Number): X position value.
- * \param y (Number): Y position value.
- * \param z (Number): Z position value.
- * \paramOpt resetToIdentity (Boolean): Whether or not to calculate the translation values based on the matrix. (Default: <code>false</code>)
- * \paramOpt actuallyTranslate (Boolean): Adds the translation components to the matrix instead of overwriting them (Preserves older code functionality, please fix me!). (Default: <code>false</code>)
+ * \param matrix (matrix): The matrix to output the values to.
+ * \param x (number): X position value.
+ * \param y (number): Y position value.
+ * \param z (number): Z position value.
+ * \paramOpt resetToIdentity (boolean): Whether to calculate the translation values based on the matrix. (default: `false`)
+ * \paramOpt actuallyTranslate (boolean): Adds the translation components to the matrix instead of overwriting them (Preserves older code functionality, please fix me!). (default: `false`)
  * \ns Matrix
  */
 VMValue Matrix_Translate(int argCount, VMValue* args, Uint32 threadID) {
@@ -10357,10 +10825,10 @@ VMValue Matrix_Translate(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Matrix.Scale
  * \desc Sets the matrix to a scale identity.
- * \param matrix (Matrix): The matrix to output the values to.
- * \param x (Number): X scale value.
- * \param y (Number): Y scale value.
- * \param z (Number): Z scale value.
+ * \param matrix (matrix): The matrix to output the values to.
+ * \param x (number): X scale value.
+ * \param y (number): Y scale value.
+ * \param z (number): Z scale value.
  * \ns Matrix
  */
 VMValue Matrix_Scale(int argCount, VMValue* args, Uint32 threadID) {
@@ -10381,10 +10849,10 @@ VMValue Matrix_Scale(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Matrix.Rotate
  * \desc Sets the matrix to a rotation identity.
- * \param matrix (Matrix): The matrix to output the values to.
- * \param x (Number): X rotation value.
- * \param y (Number): Y rotation value.
- * \param z (Number): Z rotation value.
+ * \param matrix (matrix): The matrix to output the values to.
+ * \param x (number): X rotation value.
+ * \param y (number): Y rotation value.
+ * \param z (number): Z rotation value.
  * \ns Matrix
  */
 VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
@@ -10433,7 +10901,7 @@ VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Matrix.Create256
  * \desc Creates a 4x4 matrix based on the decimal 256.0.
- * \return Returns the Matrix as an Array.
+ * \return array Returns the matrix as an array.
  * \ns RSDK.Matrix
  */
 VMValue Matrix_Create256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10447,7 +10915,7 @@ VMValue Matrix_Create256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Matrix.Identity256
  * \desc Sets the matrix to the identity based on the decimal 256.0.
- * \param matrix (Matrix): The matrix to output the values to.
+ * \param matrix (matrix): The matrix to output the values to.
  * \ns RSDK.Matrix
  */
 VMValue Matrix_Identity256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10476,10 +10944,10 @@ VMValue Matrix_Identity256(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * RSDK.Matrix.Multiply256
- * \desc Multiplies two matrices based on the deciaml 256.0.
- * \param matrix (Matrix): The matrix to output the values to.
- * \param a (Matrix): The first matrix to use for multiplying.
- * \param b (Matrix): The second matrix to use for multiplying.
+ * \desc Multiplies two matrices based on the decimal 256.0.
+ * \param matrix (matrix): The matrix to output the values to.
+ * \param a (matrix): The first matrix to use for multiplying.
+ * \param b (matrix): The second matrix to use for multiplying.
  * \ns RSDK.Matrix
  */
 VMValue Matrix_Multiply256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10502,11 +10970,11 @@ VMValue Matrix_Multiply256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Matrix.Translate256
  * \desc Translates the matrix based on the decimal 256.0.
- * \param matrix (Matrix): The matrix to output the values to.
- * \param x (Number): X position value.
- * \param y (Number): Y position value.
- * \param z (Number): Z position value.
- * \param setIdentity (Boolean): Whether or not to set the matrix as the identity.
+ * \param matrix (matrix): The matrix to output the values to.
+ * \param x (number): X position value.
+ * \param y (number): Y position value.
+ * \param z (number): Z position value.
+ * \param setIdentity (boolean): Whether to set the matrix as the identity.
  * \ns RSDK.Matrix
  */
 VMValue Matrix_Translate256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10542,10 +11010,10 @@ VMValue Matrix_Translate256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Matrix.Scale256
  * \desc Sets the matrix to a scale identity based on the decimal 256.0.
- * \param matrix (Matrix): The matrix to output the values to.
- * \param scaleX (Number): X scale value.
- * \param scaleY (Number): Y scale value.
- * \param scaleZ (Number): Z scale value.
+ * \param matrix (matrix): The matrix to output the values to.
+ * \param scaleX (number): X scale value.
+ * \param scaleY (number): Y scale value.
+ * \param scaleZ (number): Z scale value.
  * \ns RSDK.Matrix
  */
 VMValue Matrix_Scale256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10578,8 +11046,8 @@ VMValue Matrix_Scale256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Matrix.RotateX256
  * \desc Sets the matrix to a rotation X identity based on the decimal 256.0.
- * \param matrix (Matrix): The matrix to output the values to.
- * \param rotationY (Number): X rotation value.
+ * \param matrix (matrix): The matrix to output the values to.
+ * \param rotationY (number): X rotation value.
  * \ns RSDK.Matrix
  */
 VMValue Matrix_RotateX256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10612,8 +11080,8 @@ VMValue Matrix_RotateX256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Matrix.RotateY256
  * \desc Sets the matrix to a rotation Y identity based on the decimal 256.0.
- * \param matrix (Matrix): The matrix to output the values to.
- * \param rotationY (Number): Y rotation value.
+ * \param matrix (matrix): The matrix to output the values to.
+ * \param rotationY (number): Y rotation value.
  * \ns RSDK.Matrix
  */
 VMValue Matrix_RotateY256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10646,8 +11114,8 @@ VMValue Matrix_RotateY256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Matrix.RotateZ256
  * \desc Sets the matrix to a rotation Z identity based on the decimal 256.0.
- * \param matrix (Matrix): The matrix to output the values to.
- * \param rotationZ (Number): Z rotation value.
+ * \param matrix (matrix): The matrix to output the values to.
+ * \param rotationZ (number): Z rotation value.
  * \ns RSDK.Matrix
  */
 VMValue Matrix_RotateZ256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10680,10 +11148,10 @@ VMValue Matrix_RotateZ256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * RSDK.Matrix.Rotate256
  * \desc Sets the matrix to a rotation identity based on 256.
- * \param matrix (Matrix): The matrix to output the values to.
- * \param rotationX (Number): X rotation value.
- * \param rotationY (Number): Y rotation value.
- * \param rotationZ (Number): Z rotation value.
+ * \param matrix (matrix): The matrix to output the values to.
+ * \param rotationX (number): X rotation value.
+ * \param rotationY (number): Y rotation value.
+ * \param rotationZ (number): Z rotation value.
  * \ns RSDK.Matrix
  */
 VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
@@ -10738,8 +11206,8 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetVertexCount
  * \desc Returns how many vertices are in the model.
- * \param model (Integer): The model index to check.
- * \return The vertex count.
+ * \param model (integer): The model index to check.
+ * \return integer The vertex count.
  * \ns Model
  */
 VMValue Model_GetVertexCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -10753,8 +11221,8 @@ VMValue Model_GetVertexCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetAnimationCount
  * \desc Returns how many animations exist in the model.
- * \param model (Integer): The model index to check.
- * \return Returns an Integer value.
+ * \param model (integer): The model index to check.
+ * \return integer Returns an integer value.
  * \ns Model
  */
 VMValue Model_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -10768,9 +11236,9 @@ VMValue Model_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetAnimationName
  * \desc Gets the name of the model animation with the specified index.
- * \param model (Integer): The model index to check.
- * \param animation (Integer): Index of the animation.
- * \return Returns the animation name, or <code>null</code> if the model contains no animations.
+ * \param model (integer): The model index to check.
+ * \param animation (integer): Index of the animation.
+ * \return string Returns the animation name, or `null` if the model contains no animations.
  * \ns Model
  */
 VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
@@ -10795,9 +11263,9 @@ VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetAnimationIndex
  * \desc Gets the index of the model animation with the specified name.
- * \param model (Integer): The model index to check.
- * \param animationName (String): Name of the animation to find.
- * \return Returns the animation index, or <code>-1</code> if the animation could not be found. Will always return <code>-1</code> if the model contains no animations.
+ * \param model (integer): The model index to check.
+ * \param animationName (string): Name of the animation to find.
+ * \return integer Returns the animation index, or `-1` if the animation could not be found. Will always return `-1` if the model contains no animations.
  * \ns Model
  */
 VMValue Model_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -10811,9 +11279,10 @@ VMValue Model_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Model.GetFrameCount
- * \desc Returns how many frames exist in the model. (Deprecated; use <linkto ref="Model.GetAnimationLength"></linkto> instead.)
- * \param model (Integer): The model index to check.
- * \return Returns an Integer value.
+ * \desc Returns how many frames exist in the model.
+ * \param model (integer): The model index to check.
+ * \return integer Returns an integer value.
+ * \deprecated Use <ref Model.GetAnimationLength> instead.
  * \ns Model
  */
 VMValue Model_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -10827,9 +11296,9 @@ VMValue Model_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetAnimationLength
  * \desc Returns the length of the animation.
- * \param model (Integer): The model index to check.
- * \param animation (Integer): The animation index to check.
- * \return The number of keyframes in the animation.
+ * \param model (integer): The model index to check.
+ * \param animation (integer): The animation index to check.
+ * \return integer The number of keyframes in the animation.
  * \ns Model
  */
 VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
@@ -10845,8 +11314,9 @@ VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.HasMaterials
  * \desc Checks to see if the model has materials.
- * \param model (Integer): The model index to check.
- * \return Returns <code>true</code> if the model has materials, <code>false</code> if otherwise. (Deprecated; use <linkto ref="Model.GetMaterialCount"></linkto> instead.)
+ * \param model (integer): The model index to check.
+ * \return boolean Returns whether the model has materials.
+ * \deprecated Use <ref Model.GetMaterialCount> instead.
  * \ns Model
  */
 VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
@@ -10860,8 +11330,8 @@ VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.HasBones
  * \desc Checks to see if the model has bones.
- * \param model (Integer): The model index to check.
- * \return Returns <code>true</code> if the model has bones, <code>false</code> if otherwise.
+ * \param model (integer): The model index to check.
+ * \return boolean Returns whether the model has bones.
  * \ns Model
  */
 VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
@@ -10875,8 +11345,8 @@ VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetMaterialCount
  * \desc Returns the amount of materials in the model.
- * \param model (Integer): The model index to check.
- * \return Returns an Integer value.
+ * \param model (integer): The model index to check.
+ * \return integer Returns an integer value.
  * \ns Model
  */
 VMValue Model_GetMaterialCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -10890,9 +11360,17 @@ VMValue Model_GetMaterialCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.GetMaterial
  * \desc Gets a material from a model.
- * \param model (Integer): The model index to check.
- * \param material (String or Integer): The material name or ID to get.
- * \return Returns a Material value, or <code>null</code> if the model has no materials.
+ * \param model (integer): The model index to check.
+ * \param material (string): The material to get, from its name.
+ * \return Material Returns a <ref Material>, or `null` if the model has no materials.
+ * \ns Model
+ */
+/***
+ * Model.GetMaterial
+ * \desc Gets a material from a model.
+ * \param model (integer): The model index to check.
+ * \param material (integer): The material to get, from its index.
+ * \return Material Returns a <ref Material>, or `null` if the model has no materials.
  * \ns Model
  */
 VMValue Model_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
@@ -10929,8 +11407,8 @@ VMValue Model_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.CreateArmature
  * \desc Creates an armature from the model.
- * \param model (Integer): The model index.
- * \return Returns the index of the armature.
+ * \param model (integer): The model index.
+ * \return integer Returns the index of the armature.
  * \ns Model
  */
 VMValue Model_CreateArmature(int argCount, VMValue* args, Uint32 threadID) {
@@ -10944,11 +11422,10 @@ VMValue Model_CreateArmature(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.PoseArmature
  * \desc Poses an armature.
- * \param model (Integer): The model index.
- * \param armature (Integer): The armature index to pose.
- * \paramOpt animation (Integer): Animation to pose the armature.
- * \paramOpt frame (Decimal): Frame to pose the armature.
- * \return
+ * \param model (integer): The model index.
+ * \param armature (integer): The armature index to pose.
+ * \paramOpt animation (integer): Animation to pose the armature.
+ * \paramOpt frame (decimal): Frame to pose the armature.
  * \ns Model
  */
 VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
@@ -10983,8 +11460,8 @@ VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.ResetArmature
  * \desc Resets an armature to its default pose.
- * \param model (Integer): The model index.
- * \param armature (Integer): The armature index to reset.
+ * \param model (integer): The model index.
+ * \param armature (integer): The armature index to reset.
  * \return
  * \ns Model
  */
@@ -11002,8 +11479,8 @@ VMValue Model_ResetArmature(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Model.DeleteArmature
  * \desc Deletes an armature from the model.
- * \param model (Integer): The model index.
- * \param armature (Integer): The armature index to delete.
+ * \param model (integer): The model index.
+ * \param armature (integer): The armature index to delete.
  * \return
  * \ns Model
  */
@@ -11027,13 +11504,13 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.Play
  * \desc Places the music onto the music stack and plays it.
- * \param music (Integer): The music index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the track once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default).
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default).
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default).
- * \paramOpt startPoint (Decimal): The time (in seconds) to start the music at. (0.0 is the default).
- * \paramOpt fadeInAfterFinished (Decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (0.0 is the default, which disables it).
+ * \param music (integer): The music index to play.
+ * \paramOpt loopPoint (integer): Loop point in samples. Use <ref AUDIO_LOOP_NONE> to play the track once or <ref AUDIO_LOOP_DEFAULT> to use the audio file's metadata. (default: <ref AUDIO_LOOP_DEFAULT>)
+ * \paramOpt panning (decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (default: `0.0`)
+ * \paramOpt speed (decimal): Control the speed of the audio. Higher than 1.0 makes it faster, lesser than 1.0 is slower, 1.0 is normal speed. (default: `1.0`)
+ * \paramOpt volume (decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (default: `1.0`)
+ * \paramOpt startPoint (decimal): The time (in seconds) to start the music at. (default: `0.0`)
+ * \paramOpt fadeInAfterFinished (decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (default: `0.0`)
  * \ns Music
  */
 VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
@@ -11078,7 +11555,7 @@ VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.Stop
  * \desc Removes the music from the music stack, stopping it if currently playing.
- * \param music (Integer): The music index to stop.
+ * \param music (integer): The music index to stop.
  * \ns Music
  */
 VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
@@ -11092,7 +11569,7 @@ VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.StopWithFadeOut
  * \desc Removes the music at the top of the music stack, fading it out over a time period.
- * \param seconds (Decimal): The time period to fade out the music, in seconds.
+ * \param seconds (decimal): The time period to fade out the music, in seconds.
  * \ns Music
  */
 VMValue Music_StopWithFadeOut(int argCount, VMValue* args, Uint32 threadID) {
@@ -11147,8 +11624,8 @@ VMValue Music_Clear(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.IsPlaying
  * \desc Checks to see if the specified music is currently playing.
- * \param music (Integer): The music index to play.
- * \return Returns a Boolean value.
+ * \param music (integer): The music index to play.
+ * \return boolean Returns a boolean value.
  * \ns Music
  */
 VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
@@ -11162,8 +11639,8 @@ VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.GetPosition
  * \desc Gets the position of the current track playing.
- * \param music (Integer): The music index to get the current position (in seconds) of.
- * \return Returns a Decimal value.
+ * \param music (integer): The music index to get the current position (in seconds) of.
+ * \return decimal Returns a decimal value.
  * \ns Music
  */
 VMValue Music_GetPosition(int argCount, VMValue* args, Uint32 threadID) {
@@ -11177,9 +11654,9 @@ VMValue Music_GetPosition(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.Alter
  * \desc Alters the playback conditions of the current track playing.
- * \param panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it.
- * \param speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed.
- * \param volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume.
+ * \param panning (decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it.
+ * \param speed (decimal): Control the speed of the audio. Higher than 1.0 makes it faster, lesser than 1.0 is slower, 1.0 is normal speed.
+ * \param volume (decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume.
  * \ns Music
  */
 VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
@@ -11194,8 +11671,8 @@ VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.GetLoopPoint
  * \desc Gets the loop point of a music index, if it has one.
- * \param music (Integer): The music index to get the loop point.
- * \return Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.
+ * \param music (integer): The music index to get the loop point.
+ * \return integer Returns the loop point in samples, as an integer value, or `null` if the audio does not have one.
  * \ns Music
  */
 VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
@@ -11209,8 +11686,8 @@ VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.SetLoopPoint
  * \desc Sets the loop point of a music index.
- * \param music (Integer): The music index to set the loop point.
- * \param loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.
+ * \param music (integer): The music index to set the loop point.
+ * \param loopPoint (integer): The loop point in samples, or `null` to remove the audio's loop point.
  * \ns Music
  */
 VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
@@ -11230,10 +11707,10 @@ VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 // #region Number
 /***
  * Number.ToString
- * \desc Converts a Number to a String.
- * \param n (Number): Number value.
- * \paramOpt base (Integer): The numerical base, or radix.
- * \return Returns a String value.
+ * \desc Converts a number to a string.
+ * \param n (number): Number value.
+ * \paramOpt base (integer): The numerical base, or radix. (default: `10`)
+ * \return string Returns a string value.
  * \ns Number
  */
 VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
@@ -11277,9 +11754,9 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Number.AsInteger
- * \desc Converts a Decimal to an Integer.
- * \param n (Number): Number value.
- * \return Returns an Integer value.
+ * \desc Converts a decimal to an integer.
+ * \param n (number): Number value.
+ * \return integer Returns an integer value.
  * \ns Number
  */
 VMValue Number_AsInteger(int argCount, VMValue* args, Uint32 threadID) {
@@ -11288,9 +11765,9 @@ VMValue Number_AsInteger(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Number.AsDecimal
- * \desc Converts a Integer to a Decimal.
- * \param n (Number): Number value.
- * \return Returns a Decimal value.
+ * \desc Converts a integer to a decimal.
+ * \param n (number): Number value.
+ * \return decimal Returns a decimal value.
  * \ns Number
  */
 VMValue Number_AsDecimal(int argCount, VMValue* args, Uint32 threadID) {
@@ -11303,8 +11780,8 @@ VMValue Number_AsDecimal(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Object.Loaded
  * \desc Checks if an object class is loaded.
- * \param className (String): Name of the object class.
- * \return Returns whether the class is loaded.
+ * \param className (string): Name of the object class.
+ * \return boolean Returns whether the class is loaded.
  * \ns Object
  */
 VMValue Object_Loaded(int argCount, VMValue* args, Uint32 threadID) {
@@ -11318,8 +11795,8 @@ VMValue Object_Loaded(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Object.SetActivity
  * \desc Sets the active state of an object to determine if/when it runs its GlobalUpdate function.
- * \param className (String): Name of the object class.
- * \param Activity (Integer): The active state to set the object to.
+ * \param className (string): Name of the object class.
+ * \param Activity (integer): The active state to set the object to.
  * \ns Object
  */
 VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
@@ -11338,8 +11815,8 @@ VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Object.GetActivity
  * \desc Gets the active state of an object that determines if/when it runs its GlobalUpdate function.
- * \param className (String): Name of the object class.
- * \return Returns the active state of the object if it is loaded, otherwise returns -1.
+ * \param className (string): Name of the object class.
+ * \return <ref ACTIVE_*> Returns the active state of the object if it is loaded, otherwise returns -1.
  * \ns Object
  */
 VMValue Object_GetActivity(int argCount, VMValue* args, Uint32 threadID) {
@@ -11361,7 +11838,7 @@ VMValue Object_GetActivity(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Palette.EnablePaletteUsage
  * \desc Enables or disables palette usage for the application.
- * \param usePalettes (Boolean): Whether or not to use palettes.
+ * \param usePalettes (boolean): Whether to use palettes.
  * \ns Palette
  */
 VMValue Palette_EnablePaletteUsage(int argCount, VMValue* args, Uint32 threadID) {
@@ -11378,9 +11855,9 @@ VMValue Palette_EnablePaletteUsage(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Palette.LoadFromResource
  * \desc Loads palette from an .act, .col, .gif, .png, or .hpal resource.
- * \param paletteIndex (Integer): Index of palette to load to.
- * \param filename (String): Filepath of resource.
- * \paramOpt activeRows (Bitfield): Which rows of 16 colors will not be loaded for .act, .col, and .gif files, from bottom to top.
+ * \param paletteIndex (integer): Index of palette to load to.
+ * \param filename (string): Filepath of resource.
+ * \paramOpt activeRows (bitfield): Which rows of 16 colors will not be loaded for .act, .col, and .gif files, from bottom to top.
  * \ns Palette
  */
 VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
@@ -11595,8 +12072,8 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Palette.LoadFromImage
  * \desc Loads palette from an image resource.
- * \param paletteIndex (Integer): Index of palette to load to.
- * \param image (Integer): Index of the loaded image.
+ * \param paletteIndex (integer): Index of palette to load to.
+ * \param image (integer): Index of the loaded image.
  * \ns Palette
  */
 VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
@@ -11635,9 +12112,9 @@ VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Palette.GetColor
  * \desc Gets a color from the specified palette.
- * \param paletteIndex (Integer): Index of palette.
- * \param colorIndex (Integer): Index of color.
- * \return Returns an Integer value.
+ * \param paletteIndex (integer): Index of palette.
+ * \param colorIndex (integer): Index of color.
+ * \return integer Returns an integer value.
  * \ns Palette
  */
 VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
@@ -11653,9 +12130,9 @@ VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Palette.SetColor
  * \desc Sets a color on the specified palette, format 0xRRGGBB.
- * \param paletteIndex (Integer): Index of palette.
- * \param colorIndex (Integer): Index of color.
- * \param hex (Integer): Hexadecimal color value to set the color to. (format: 0xRRGGBB)
+ * \param paletteIndex (integer): Index of palette.
+ * \param colorIndex (integer): Index of color.
+ * \param hex (integer): Hexadecimal color value to set the color to. (format: 0xRRGGBB)
  * \ns Palette
  */
 VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
@@ -11674,9 +12151,9 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Palette.GetColorTransparent
  * \desc Gets if the color on the specified palette is transparent.
- * \param paletteIndex (Integer): Index of palette.
- * \param colorIndex (Integer): Index of color.
- * \return Returns a Boolean value.
+ * \param paletteIndex (integer): Index of palette.
+ * \param colorIndex (integer): Index of color.
+ * \return boolean Returns a boolean value.
  * \ns Palette
  */
 VMValue Palette_GetColorTransparent(int argCount, VMValue* args, Uint32 threadID) {
@@ -11693,9 +12170,9 @@ VMValue Palette_GetColorTransparent(int argCount, VMValue* args, Uint32 threadID
 /***
  * Palette.SetColorTransparent
  * \desc Sets a color on the specified palette transparent.
- * \param paletteIndex (Integer): Index of palette.
- * \param colorIndex (Integer): Index of color.
- * \param isTransparent (Boolean): Whether to make the color transparent or not.
+ * \param paletteIndex (integer): Index of palette.
+ * \param colorIndex (integer): Index of color.
+ * \param isTransparent (boolean): Whether to make the color transparent.
  * \ns Palette
  */
 VMValue Palette_SetColorTransparent(int argCount, VMValue* args, Uint32 threadID) {
@@ -11718,12 +12195,12 @@ VMValue Palette_SetColorTransparent(int argCount, VMValue* args, Uint32 threadID
 /***
  * Palette.MixPalettes
  * \desc Mixes colors between two palettes and outputs to another palette.
- * \param destinationPaletteIndex (Integer): Index of palette to put colors to.
- * \param paletteIndexA (Integer): First index of palette.
- * \param paletteIndexB (Integer): Second index of palette.
- * \param mixRatio (Number): Percentage to mix the colors between 0.0 - 1.0.
- * \param colorIndexStart (Integer): First index of colors to mix.
- * \param colorCount (Integer): Amount of colors to mix.
+ * \param destinationPaletteIndex (integer): Index of palette to put colors to.
+ * \param paletteIndexA (integer): First index of palette.
+ * \param paletteIndexB (integer): Second index of palette.
+ * \param mixRatio (number): Percentage to mix the colors between 0.0 - 1.0.
+ * \param colorIndexStart (integer): First index of colors to mix.
+ * \param colorCount (integer): Amount of colors to mix.
  * \ns Palette
  */
 inline Uint32 PMP_ColorBlend(Uint32 color1, Uint32 color2, int percent) {
@@ -11766,9 +12243,9 @@ VMValue Palette_MixPalettes(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Palette.RotateColorsLeft
  * \desc Shifts the colors on the palette to the left.
- * \param paletteIndex (Integer): Index of palette.
- * \param colorIndexStart (Integer): First index of colors to shift.
- * \param colorCount (Integer): Amount of colors to shift.
+ * \param paletteIndex (integer): Index of palette.
+ * \param colorIndexStart (integer): First index of colors to shift.
+ * \param colorCount (integer): Amount of colors to shift.
  * \ns Palette
  */
 VMValue Palette_RotateColorsLeft(int argCount, VMValue* args, Uint32 threadID) {
@@ -11795,9 +12272,9 @@ VMValue Palette_RotateColorsLeft(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Palette.RotateColorsRight
  * \desc Shifts the colors on the palette to the right.
- * \param paletteIndex (Integer): Index of palette.
- * \param colorIndexStart (Integer): First index of colors to shift.
- * \param colorCount (Integer): Amount of colors to shift.
+ * \param paletteIndex (integer): Index of palette.
+ * \param colorIndexStart (integer): First index of colors to shift.
+ * \param colorCount (integer): Amount of colors to shift.
  * \ns Palette
  */
 VMValue Palette_RotateColorsRight(int argCount, VMValue* args, Uint32 threadID) {
@@ -11824,11 +12301,11 @@ VMValue Palette_RotateColorsRight(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Palette.CopyColors
  * \desc Copies colors from Palette A to Palette B
- * \param paletteIndexA (Integer): Index of palette to get colors from.
- * \param colorIndexStartA (Integer): First index of colors to copy.
- * \param paletteIndexB (Integer): Index of palette to put colors to.
- * \param colorIndexStartB (Integer): First index of colors to be placed.
- * \param colorCount (Integer): Amount of colors to be copied.
+ * \param paletteIndexA (integer): Index of palette to get colors from.
+ * \param colorIndexStartA (integer): First index of colors to copy.
+ * \param paletteIndexB (integer): Index of palette to put colors to.
+ * \param colorIndexStartB (integer): First index of colors to be placed.
+ * \param colorCount (integer): Amount of colors to be copied.
  * \ns Palette
  */
 VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
@@ -11861,7 +12338,7 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Palette.UsePaletteIndexLines
  * \desc Enables or disables the global palette index table.
- * \param usePaletteIndexLines (Boolean): Whether or not to use the global palette index table.
+ * \param usePaletteIndexLines (boolean): Whether to use the global palette index table.
  * \ns Palette
  */
 VMValue Palette_UsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
@@ -11873,9 +12350,9 @@ VMValue Palette_UsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
 /***
  * Palette.SetPaletteIndexLines
  * \desc Sets the palette to be used for drawing on certain Y-positions on the screen (between the start and end lines).
- * \param paletteIndex (Integer): Index of palette.
- * \param lineStart (Number): Start line to set to the palette.
- * \param lineEnd (Number): Line where to stop setting the palette.
+ * \param paletteIndex (integer): Index of palette.
+ * \param lineStart (number): Start line to set to the palette.
+ * \param lineEnd (number): Line where to stop setting the palette.
  * \ns Palette
  */
 VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
@@ -11908,7 +12385,7 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
 /***
  * Random.SetSeed
  * \desc Sets the PRNG seed.
- * \param seed (Integer): The seed.
+ * \param seed (integer): The seed.
  * \ns Random
  */
 VMValue Random_SetSeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -11920,7 +12397,7 @@ VMValue Random_SetSeed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Random.GetSeed
  * \desc Gets the PRNG seed.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Random
  */
 VMValue Random_GetSeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -11930,8 +12407,8 @@ VMValue Random_GetSeed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Random.Max
  * \desc Gets a random number between 0.0 and a specified maximum, and advances the PRNG state.
- * \param max (Number): Maximum non-inclusive value.
- * \return Returns a Decimal value.
+ * \param max (number): Maximum non-inclusive value.
+ * \return decimal Returns a decimal value.
  * \ns Random
  */
 VMValue Random_Max(int argCount, VMValue* args, Uint32 threadID) {
@@ -11941,9 +12418,9 @@ VMValue Random_Max(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Random.Range
  * \desc Gets a random number between a specified minimum and a specified maximum, and advances the PRNG state.
- * \param min (Number): Minimum non-inclusive value.
- * \param max (Number): Maximum non-inclusive value.
- * \return Returns a Decimal value.
+ * \param min (number): Minimum non-inclusive value.
+ * \param max (number): Maximum non-inclusive value.
+ * \return decimal Returns a decimal value.
  * \ns Random
  */
 VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
@@ -11956,9 +12433,9 @@ VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Resources.LoadSprite
  * \desc Loads a Sprite resource, returning its Sprite index.
- * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return Returns the index of the Resource.
+ * \param filename (string): Filename of the resource.
+ * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \return integer Returns the index of the Resource.
  * \ns Resources
  */
 VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -11973,10 +12450,10 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Resources.LoadDynamicSprite
  * \desc Loads a Sprite resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.
- * \param fallbackFolder (String): Folder to check if the sprite does not exist in the current Scene's resource folder.
- * \param name (String): Name of the animation file within the resource folder.
- * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return Returns the index of the Resource.
+ * \param fallbackFolder (string): Folder to check if the sprite does not exist in the current Scene's resource folder.
+ * \param name (string): Name of the animation file within the resource folder.
+ * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \return integer Returns the index of the Resource.
  * \ns Resources
  */
 VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -12002,9 +12479,9 @@ VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID
 /***
  * Resources.LoadImage
  * \desc Loads an Image resource, returning its Image index.
- * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return Returns the index of the Resource.
+ * \param filename (string): Filename of the resource.
+ * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \return integer Returns the index of the Resource.
  * \ns Resources
  */
 VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
@@ -12019,9 +12496,9 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Resources.LoadModel
  * \desc Loads Model resource, returning its Model index.
- * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return Returns the index of the Resource.
+ * \param filename (string): Filename of the resource.
+ * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \return integer Returns the index of the Resource.
  * \ns Resources
  */
 VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
@@ -12036,9 +12513,9 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Resources.LoadMusic
  * \desc Loads a Music resource, returning its Music index.
- * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return Returns the index of the Resource.
+ * \param filename (string): Filename of the resource.
+ * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \return integer Returns the index of the Resource.
  * \ns Resources
  */
 VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
@@ -12053,9 +12530,9 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Resources.LoadSound
  * \desc Loads a Sound resource, returning its Sound index.
- * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return Returns the index of the Resource.
+ * \param filename (string): Filename of the resource.
+ * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \return integer Returns the index of the Resource.
  * \ns Resources
  */
 VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
@@ -12070,9 +12547,9 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Resources.LoadVideo
  * \desc Loads a Video resource, returning its Video index.
- * \param filename (String): Filename of the resource.
- * \param unloadPolicy (Integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return Returns the index of the Resource.
+ * \param filename (string): Filename of the resource.
+ * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \return integer Returns the index of the Resource.
  * \ns Resources
  */
 VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
@@ -12087,8 +12564,8 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Resources.FileExists
  * \desc Checks to see if a Resource exists with the given filename.
- * \param filename (String): The given filename.
- * \return Returns <code>true</code> if the Resource exists, <code>false</code> if otherwise.
+ * \param filename (string): The given filename.
+ * \return boolean Returns whether the Resource exists.
  * \ns Resources
  */
 VMValue Resources_FileExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -12102,8 +12579,8 @@ VMValue Resources_FileExists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Resources.ReadAllText
  * \desc Reads all text from the given filename.
- * \param path (String): The path of the resource to read.
- * \return Returns all the text in the resource as a String value if it can be read, otherwise it returns a <code>null</code> value if it cannot be read.
+ * \param path (string): The path of the resource to read.
+ * \return string Returns all the text in the resource as a string value if it can be read, otherwise it returns a `null` value if it cannot be read.
  * \ns Resources
  */
 VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
@@ -12134,16 +12611,22 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 
 /***
  * Scene.Load
- * \desc Changes the active scene. If a path to a resource is provided, the active scene is changed to the one in the specified resource file. Otherwise, the active scene is changed to the currently set entry in the scene list, if it exists (see <linkto ref="SceneList"></linkto>.)
- * \paramOpt filename (String): Filename of scene.
- * \paramOpt persistency (Boolean): Whether or not the scene should load with persistency.
+ * \desc Changes the active scene. The active scene is changed to the one in the specified resource file.
+ * \paramOpt filename (string): Filename of scene.
+ * \paramOpt persistency (boolean): Whether the scene should load with persistency.
+ * \ns Scene
+ */
+/***
+ * Scene.Load
+ * \desc Changes the active scene. The active scene is changed to the currently set entry in the scene list, if it exists (see <ref SceneList>.)
+ * \paramOpt persistency (boolean): Whether the scene should load with persistency.
  * \ns Scene
  */
 VMValue Scene_Load(int argCount, VMValue* args, Uint32 threadID) {
 	bool loadFromResource = false;
 	bool noPersistency = false;
 
-	// If at least one argument is provided, and the first one isn't an Integer
+	// If at least one argument is provided, and the first one isn't an integer
 	if (argCount >= 1 && !IS_INTEGER(args[0])) {
 		// Argument 1 is the resource path
 		char* filename = GET_ARG(0, GetString);
@@ -12182,9 +12665,17 @@ VMValue Scene_Load(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.Change
- * \desc Changes the current scene if the category name and scene name are valid. If only one argument is provided, the global category is used. Note that this does not load the scene; you must use <linkto ref="Scene.Load"></linkto>.
- * \param category (String): Category name.
- * \param scene (String): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.
+ * \desc Changes the current scene.<br/>\
+This does not load the scene. You must call <ref Scene.Load>.
+ * \param scene (string): Scene name in the global category. If the scene name is not found, the first scene in the category is used.
+ * \ns Scene
+ */
+/***
+ * Scene.Change
+ * \desc Changes the current scene.<br/>\
+This does not load the scene. You must call <ref Scene.Load>.
+ * \param category (string): Category name. If this is not valid, this function does nothing.
+ * \param scene (string): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.
  * \ns Scene
  */
 VMValue Scene_Change(int argCount, VMValue* args, Uint32 threadID) {
@@ -12203,8 +12694,8 @@ VMValue Scene_Change(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.LoadTileCollisions
  * \desc Load tile collisions from a resource file.
- * \param filename (String): Filename of tile collision file.
- * \paramOpt tilesetID (Integer): Tileset to load tile collisions for.
+ * \param filename (string): Filename of tile collision file.
+ * \paramOpt tilesetID (integer): Tileset to load tile collisions for.
  * \ns Scene
  */
 VMValue Scene_LoadTileCollisions(int argCount, VMValue* args, Uint32 threadID) {
@@ -12217,7 +12708,7 @@ VMValue Scene_LoadTileCollisions(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.AreTileCollisionsLoaded
  * \desc Returns or whether tile collisions are loaded.
- * \return Returns <code>true</code> if tile collisions are loaded, and <code>false</code> if not.
+ * \return boolean Returns whether tile collisions are loaded.
  * \ns Scene
  */
 VMValue Scene_AreTileCollisionsLoaded(int argCount, VMValue* args, Uint32 threadID) {
@@ -12227,8 +12718,8 @@ VMValue Scene_AreTileCollisionsLoaded(int argCount, VMValue* args, Uint32 thread
 /***
  * Scene.AddTileset
  * \desc Adds a new tileset into the scene.
- * \param tileset (String): Path of tileset to load.
- * \return Returns <code>true</code> if the tileset was added, and <code>false</code> if not.
+ * \param tileset (string): Path of tileset to load.
+ * \return boolean Returns whether the tileset was added to the scene.
  * \ns Scene
  */
 VMValue Scene_AddTileset(int argCount, VMValue* args, Uint32 threadID) {
@@ -12249,8 +12740,8 @@ VMValue Scene_Restart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.PropertyExists
  * \desc Checks if a property exists.
- * \param property (String): Name of property to check.
- * \return Returns a Boolean value.
+ * \param property (string): Name of property to check.
+ * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -12264,8 +12755,8 @@ VMValue Scene_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetProperty
  * \desc Gets a property.
- * \param property (String): Name of property.
- * \return Returns the property.
+ * \param property (string): Name of property.
+ * \return value Returns the property.
  * \ns Scene
  */
 VMValue Scene_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
@@ -12279,7 +12770,7 @@ VMValue Scene_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerCount
  * \desc Gets the amount of layers in the active scene.
- * \return Returns the amount of layers in the active scene.
+ * \return integer Returns the amount of layers in the active scene.
  * \ns Scene
  */
 VMValue Scene_GetLayerCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -12289,8 +12780,8 @@ VMValue Scene_GetLayerCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerIndex
  * \desc Gets the layer index of the layer with the specified name.
- * \param layerName (String): Name of the layer to find.
- * \return Returns the layer index, or <code>-1</code> if the layer could not be found.
+ * \param layerName (string): Name of the layer to find.
+ * \return integer Returns the layer index, or `-1` if the layer could not be found.
  * \ns Scene
  */
 VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -12306,8 +12797,8 @@ VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerName
  * \desc Gets the name of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \return Returns a String value.
+ * \param layerIndex (integer): Index of layer.
+ * \return string Returns a string value.
  * \ns Scene
  */
 VMValue Scene_GetLayerName(int argCount, VMValue* args, Uint32 threadID) {
@@ -12319,8 +12810,8 @@ VMValue Scene_GetLayerName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerVisible
  * \desc Gets the visibility of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \return Returns a Boolean value.
+ * \param layerIndex (integer): Index of layer.
+ * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_GetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
@@ -12332,8 +12823,8 @@ VMValue Scene_GetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerOpacity
  * \desc Gets the opacity of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \return Returns a Decimal value.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
  * \ns Scene
  */
 VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
@@ -12345,8 +12836,8 @@ VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerShader
  * \desc Gets the shader of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \return Returns a shader, or <code>null</code>.
+ * \param layerIndex (integer): Index of layer.
+ * \return Shader Returns a Shader, or `null`.
  * \ns Scene
  */
 VMValue Scene_GetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
@@ -12364,8 +12855,8 @@ VMValue Scene_GetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerUsePaletteIndexLines
  * \desc Gets whether the layer is using the global palette index table.
- * \param layerIndex (Integer): Index of layer.
- * \return Returns a Boolean value.
+ * \param layerIndex (integer): Index of layer.
+ * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_GetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
@@ -12377,9 +12868,9 @@ VMValue Scene_GetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 t
 /***
  * Scene.GetLayerProperty
  * \desc Gets a property of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \param property (String): Name of property.
- * \return Returns the property.
+ * \param layerIndex (integer): Index of layer.
+ * \param property (string): Name of property.
+ * \return value Returns the property.
  * \ns Scene
  */
 VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
@@ -12391,9 +12882,10 @@ VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetLayerExists
- * \desc Gets whether a layer exists or not. (Deprecated)
- * \param layerIndex (Integer): Index of layer.
- * \return Returns a Boolean value.
+ * \desc Gets whether a layer exists.
+ * \param layerIndex (integer): Index of layer.
+ * \return boolean Returns a boolean value.
+ * \deprecated
  * \ns Scene
  */
 VMValue Scene_GetLayerExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -12405,8 +12897,8 @@ VMValue Scene_GetLayerExists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerDeformSplitLine
  * \desc Gets the Deform Split Line of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \return Returns an Integer value.
+ * \param layerIndex (integer): Index of layer.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerDeformSplitLine(int argCount, VMValue* args, Uint32 threadID) {
@@ -12418,8 +12910,8 @@ VMValue Scene_GetLayerDeformSplitLine(int argCount, VMValue* args, Uint32 thread
 /***
  * Scene.GetLayerDeformOffsetA
  * \desc Gets the tile deform offset above the Deform Split Line of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \return Returns an Integer value.
+ * \param layerIndex (integer): Index of layer.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID) {
@@ -12431,8 +12923,8 @@ VMValue Scene_GetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 /***
  * Scene.GetLayerDeformOffsetB
  * \desc Gets the tile deform offset below the Deform Split Line of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \return Returns an Integer value.
+ * \param layerIndex (integer): Index of layer.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID) {
@@ -12444,9 +12936,9 @@ VMValue Scene_GetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 /***
  * Scene.LayerPropertyExists
  * \desc Checks if a property exists in the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \param property (String): Name of property to check.
- * \return Returns a Boolean value.
+ * \param layerIndex (integer): Index of layer.
+ * \param property (string): Name of property to check.
+ * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_LayerPropertyExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -12459,7 +12951,7 @@ VMValue Scene_LayerPropertyExists(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Scene.GetName
  * \desc Gets the name of the active scene.
- * \return Returns the name of the active scene.
+ * \return string Returns the name of the active scene.
  * \ns Scene
  */
 VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
@@ -12469,7 +12961,7 @@ VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetType
  * \desc Gets the type of the active scene.
- * \return Returns the type of the active scene, see <linkto ref="SCENETYPE_*"></linkto>.
+ * \return <ref SCENETYPE_*> Returns the type of the active scene.
  * \ns Scene
  */
 VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
@@ -12479,7 +12971,7 @@ VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetWidth
  * \desc Gets the width of the scene (in tiles).
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -12500,7 +12992,7 @@ VMValue Scene_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetHeight
  * \desc Gets the height of the scene (in tiles).
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -12521,7 +13013,8 @@ VMValue Scene_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerWidth
  * \desc Gets the width of a layer index (in tiles).
- * \return Returns an Integer value.
+ * \param layerIndex (integer): Index of layer.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -12533,7 +13026,8 @@ VMValue Scene_GetLayerWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerHeight
  * \desc Gets the height of a layer index (in tiles).
- * \return Returns an Integer value.
+ * \param layerIndex (integer): Index of layer.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -12545,7 +13039,8 @@ VMValue Scene_GetLayerHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerOffsetX
  * \desc Gets the X offset of a layer index.
- * \return Returns a Decimal value.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
  * \ns Scene
  */
 VMValue Scene_GetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
@@ -12557,7 +13052,8 @@ VMValue Scene_GetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerOffsetY
  * \desc Gets the Y offset of a layer index.
- * \return Returns a Decimal value.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
  * \ns Scene
  */
 VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
@@ -12569,8 +13065,8 @@ VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLayerDrawGroup
  * \desc Gets the draw group of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \return Returns an Integer value.
+ * \param layerIndex (integer): Index of layer.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
@@ -12581,9 +13077,9 @@ VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetLayerHorizontalRepeat
- * \desc Gets whether or not the layer repeats horizontally.
- * \param layerIndex (Integer): Index of layer.
- * \return Returns a Boolean value.
+ * \desc Gets whether the layer repeats horizontally.
+ * \param layerIndex (integer): Index of layer.
+ * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_GetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threadID) {
@@ -12600,9 +13096,9 @@ VMValue Scene_GetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threa
 }
 /***
  * Scene.GetLayerVerticalRepeat
- * \desc Gets whether or not the layer repeats vertically.
- * \param layerIndex (Integer): Index of layer.
- * \return Returns a Boolean value.
+ * \desc Gets whether the layer repeats vertically.
+ * \param layerIndex (integer): Index of layer.
+ * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_GetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadID) {
@@ -12620,7 +13116,7 @@ VMValue Scene_GetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
 /***
  * Scene.GetTilesetCount
  * \desc Gets the amount of tilesets in the current scene.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetTilesetCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -12630,8 +13126,8 @@ VMValue Scene_GetTilesetCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetTilesetIndex
  * \desc Gets the tileset index for the specified filename.
- * \param tilesetID (Integer): The tileset index.
- * \return Returns the tileset index, or <code>-1</code> if there is no tileset with said filename.
+ * \param tilesetID (integer): The tileset index.
+ * \return integer Returns the tileset index, or `-1` if there is no tileset with said filename.
  * \ns Scene
  */
 VMValue Scene_GetTilesetIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -12653,7 +13149,7 @@ VMValue Scene_GetTilesetIndex(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.GetTilesetName
  * \desc Gets the tileset name for the specified tileset index.
  * \param tilesetIndex (Index): The tileset index.
- * \return Returns a String value.
+ * \return string Returns a string value.
  * \ns Scene
  */
 VMValue Scene_GetTilesetName(int argCount, VMValue* args, Uint32 threadID) {
@@ -12665,8 +13161,8 @@ VMValue Scene_GetTilesetName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetTilesetTileCount
  * \desc Gets the tile count for the specified tileset.
- * \param tilesetID (Integer): The tileset index.
- * \return Returns an Integer value.
+ * \param tilesetID (integer): The tileset index.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetTilesetTileCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -12678,8 +13174,8 @@ VMValue Scene_GetTilesetTileCount(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Scene.GetTilesetFirstTileID
  * \desc Gets the first tile index number for the specified tileset.
- * \param tilesetID (Integer): The tileset index.
- * \return Returns an Integer value.
+ * \param tilesetID (integer): The tileset index.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetTilesetFirstTileID(int argCount, VMValue* args, Uint32 threadID) {
@@ -12691,8 +13187,8 @@ VMValue Scene_GetTilesetFirstTileID(int argCount, VMValue* args, Uint32 threadID
 /***
  * Scene.GetTilesetPaletteIndex
  * \desc Gets the palette index for the specified tileset.
- * \param tilesetID (Integer): The tileset index.
- * \return Returns an Integer value.
+ * \param tilesetID (integer): The tileset index.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -12704,7 +13200,7 @@ VMValue Scene_GetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadI
 /***
  * Scene.GetTileWidth
  * \desc Gets the width of tiles.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetTileWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -12714,7 +13210,7 @@ VMValue Scene_GetTileWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetTileHeight
  * \desc Gets the height of tiles.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetTileHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -12724,10 +13220,10 @@ VMValue Scene_GetTileHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetTileID
  * \desc Gets the tile's index number at the tile coordinates.
- * \param layer (Integer): Index of the layer
- * \param x (Number): X position (in tiles) of the tile
- * \param y (Number): Y position (in tiles) of the tile
- * \return Returns an Integer value.
+ * \param layer (integer): Index of the layer
+ * \param x (number): X position (in tiles) of the tile
+ * \param y (number): Y position (in tiles) of the tile
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetTileID(int argCount, VMValue* args, Uint32 threadID) {
@@ -12746,11 +13242,11 @@ VMValue Scene_GetTileID(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetTileFlipX
- * \desc Gets whether the tile at the tile coordinates is flipped horizontally or not.
- * \param layer (Integer): Index of the layer
- * \param x (Number): X position (in tiles) of the tile
- * \param y (Number): Y position (in tiles) of the tile
- * \return Returns whether the tile's horizontally flipped.
+ * \desc Gets whether the tile at the tile coordinates is flipped horizontally.
+ * \param layer (integer): Index of the layer
+ * \param x (number): X position (in tiles) of the tile
+ * \param y (number): Y position (in tiles) of the tile
+ * \return boolean Returns whether the tile's horizontally flipped.
  * \ns Scene
  */
 VMValue Scene_GetTileFlipX(int argCount, VMValue* args, Uint32 threadID) {
@@ -12769,11 +13265,11 @@ VMValue Scene_GetTileFlipX(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetTileFlipY
- * \desc Gets whether the tile at the tile coordinates is flipped vertically or not.
- * \param layer (Integer): Index of the layer
- * \param x (Number): X position (in tiles) of the tile
- * \param y (Number): Y position (in tiles) of the tile
- * \return Returns whether the tile's vertically flipped.
+ * \desc Gets whether the tile at the tile coordinates is flipped vertically.
+ * \param layer (integer): Index of the layer
+ * \param x (number): X position (in tiles) of the tile
+ * \param y (number): Y position (in tiles) of the tile
+ * \return boolean Returns whether the tile's vertically flipped.
  * \ns Scene
  */
 VMValue Scene_GetTileFlipY(int argCount, VMValue* args, Uint32 threadID) {
@@ -12793,7 +13289,7 @@ VMValue Scene_GetTileFlipY(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetDrawGroupCount
  * \desc Gets the amount of draw groups in the active scene.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -12803,8 +13299,8 @@ VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetDrawGroupEntityDepthSorting
  * \desc Gets if the specified draw group sorts objects by depth.
- * \param drawGroup (Integer): Number between 0 to the result of <linkto ref="Scene.GetDrawGroupCount"></linkto>.
- * \return Returns a Boolean value.
+ * \param drawGroup (integer): Number between 0 to the result of <ref Scene.GetDrawGroupCount>.
+ * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
@@ -12820,7 +13316,7 @@ VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
 /***
  * Scene.GetCurrentFolder
  * \desc Gets the current folder of the scene.
- * \return Returns a String value.
+ * \return string Returns a string value.
  * \ns Scene
  */
 VMValue Scene_GetCurrentFolder(int argCount, VMValue* args, Uint32 threadID) {
@@ -12830,7 +13326,7 @@ VMValue Scene_GetCurrentFolder(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetCurrentID
  * \desc Gets the current ID of the scene.
- * \return Returns a String value.
+ * \return string Returns a string value.
  * \ns Scene
  */
 VMValue Scene_GetCurrentID(int argCount, VMValue* args, Uint32 threadID) {
@@ -12840,7 +13336,7 @@ VMValue Scene_GetCurrentID(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetCurrentResourceFolder
  * \desc Gets the current resource folder of the scene.
- * \return Returns a String value.
+ * \return string Returns a string value.
  * \ns Scene
  */
 VMValue Scene_GetCurrentResourceFolder(int argCount, VMValue* args, Uint32 threadID) {
@@ -12850,7 +13346,7 @@ VMValue Scene_GetCurrentResourceFolder(int argCount, VMValue* args, Uint32 threa
 /***
  * Scene.GetCurrentCategory
  * \desc Gets the current category name of the scene.
- * \return Returns a String value.
+ * \return string Returns a string value.
  * \ns Scene
  */
 VMValue Scene_GetCurrentCategory(int argCount, VMValue* args, Uint32 threadID) {
@@ -12860,7 +13356,7 @@ VMValue Scene_GetCurrentCategory(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetDebugMode
  * \desc Gets whether Debug Mode has been turned on in the current scene.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
 VMValue Scene_GetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
@@ -12870,7 +13366,7 @@ VMValue Scene_GetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetFirstInstance
  * \desc Gets the first active instance in the scene.
- * \return Returns the first active instance in the scene, or <code>null</code> if there are no instances in the scene.
+ * \return Entity Returns the first active instance in the scene, or `null` if there are no instances in the scene.
  * \ns Scene
  */
 VMValue Scene_GetFirstInstance(int argCount, VMValue* args, Uint32 threadID) {
@@ -12886,7 +13382,7 @@ VMValue Scene_GetFirstInstance(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetLastInstance
  * \desc Gets the last active instance in the scene.
- * \return Returns the last active instance in the scene, or <code>null</code> if there are no instances in the scene.
+ * \return Entity Returns the last active instance in the scene, or `null` if there are no instances in the scene.
  * \ns Scene
  */
 VMValue Scene_GetLastInstance(int argCount, VMValue* args, Uint32 threadID) {
@@ -12902,7 +13398,7 @@ VMValue Scene_GetLastInstance(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetReservedSlotIDs
  * \desc Gets the number of reserved slot IDs to account for before creating instances.
- * \return Returns how many reserved slot IDs are being used.
+ * \return integer Returns how many reserved slot IDs are being used.
  * \ns Scene
  */
 VMValue Scene_GetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
@@ -12912,7 +13408,7 @@ VMValue Scene_GetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetInstanceCount
  * \desc Gets the count of instances currently in the scene.
- * \return Returns the amount of instances in the scene.
+ * \return integer Returns the amount of instances in the scene.
  * \ns Scene
  */
 VMValue Scene_GetInstanceCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -12922,7 +13418,7 @@ VMValue Scene_GetInstanceCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.GetStaticInstanceCount
  * \desc Gets the count of instances currently in the scene.
- * \return Returns the amount of instances in the scene.
+ * \return integer Returns the amount of instances in the scene.
  * \ns Scene
  */
 VMValue Scene_GetStaticInstanceCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -12932,7 +13428,7 @@ VMValue Scene_GetStaticInstanceCount(int argCount, VMValue* args, Uint32 threadI
 /***
  * Scene.GetDynamicInstanceCount
  * \desc Gets the count of instances currently in the scene.
- * \return Returns the amount of instances in the scene.
+ * \return integer Returns the amount of instances in the scene.
  * \ns Scene
  */
 VMValue Scene_GetDynamicInstanceCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -12941,8 +13437,8 @@ VMValue Scene_GetDynamicInstanceCount(int argCount, VMValue* args, Uint32 thread
 }
 /***
  * Scene.GetTileAnimationEnabled
- * \desc Gets whether or not tile animation is enabled.
- * \return Returns 0 if tile animation is disabled, 1 if it's enabled, and 2 if tiles animate even if the scene is paused.
+ * \desc Gets whether tile animation is enabled.
+ * \return integer Returns 0 if tile animation is disabled, 1 if it's enabled, and 2 if tiles animate even if the scene is paused.
  * \ns Scene
  */
 VMValue Scene_GetTileAnimationEnabled(int argCount, VMValue* args, Uint32 threadID) {
@@ -12951,8 +13447,8 @@ VMValue Scene_GetTileAnimationEnabled(int argCount, VMValue* args, Uint32 thread
 /***
  * Scene.GetTileAnimSequence
  * \desc Gets the tile IDs of the animation sequence for a tile ID.
- * \param tileID (Integer): Which tile ID.
- * \return Returns an Array of tile IDs.
+ * \param tileID (integer): Which tile ID.
+ * \return array Returns an array of tile IDs.
  * \ns Scene
  */
 VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) {
@@ -12987,8 +13483,8 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Scene.GetTileAnimSequenceDurations
  * \desc Gets the frame durations of the animation sequence for a tile ID.
- * \param tileID (Integer): Which tile ID.
- * \return Returns an Array of frame durations.
+ * \param tileID (integer): Which tile ID.
+ * \return array Returns an array of frame durations.
  * \ns Scene
  */
 VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 threadID) {
@@ -13019,9 +13515,9 @@ VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 t
 }
 /***
  * Scene.GetTileAnimSequencePaused
- * \desc Returns if a tile ID animation sequence is paused.
- * \param tileID (Integer): The tile ID.
- * \return Whether the animation is paused.
+ * \desc Returns whether a tile ID animation sequence is paused.
+ * \param tileID (integer): The tile ID.
+ * \return boolean Whether the animation is paused.
  * \ns Scene
  */
 VMValue Scene_GetTileAnimSequencePaused(int argCount, VMValue* args, Uint32 threadID) {
@@ -13041,8 +13537,8 @@ VMValue Scene_GetTileAnimSequencePaused(int argCount, VMValue* args, Uint32 thre
 /***
  * Scene.GetTileAnimSequenceSpeed
  * \desc Gets the speed of a tile ID animation sequence.
- * \param tileID (Integer): The tile ID.
- * \return The frame speed.
+ * \param tileID (integer): The tile ID.
+ * \return decimal The frame speed.
  * \ns Scene
  */
 VMValue Scene_GetTileAnimSequenceSpeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -13062,8 +13558,8 @@ VMValue Scene_GetTileAnimSequenceSpeed(int argCount, VMValue* args, Uint32 threa
 /***
  * Scene.GetTileAnimSequenceFrame
  * \desc Gets the current frame of a tile ID animation sequence.
- * \param tileID (Integer): The tile ID.
- * \return The frame index.
+ * \param tileID (integer): The tile ID.
+ * \return integer The frame index.
  * \ns Scene
  */
 VMValue Scene_GetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threadID) {
@@ -13083,7 +13579,7 @@ VMValue Scene_GetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
 /***
  * Scene.IsCurrentEntryValid
  * \desc Checks if the current entry in the scene list is valid.
- * \return Returns a Boolean value.
+ * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_IsCurrentEntryValid(int argCount, VMValue* args, Uint32 threadID) {
@@ -13096,8 +13592,8 @@ VMValue Scene_IsCurrentEntryValid(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Scene.IsUsingFolder
  * \desc Checks whether the current scene's folder matches the string to check.
- * \param folder (String): Folder name to compare.
- * \return Returns a Boolean value.
+ * \param folder (string): Folder name to compare.
+ * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_IsUsingFolder(int argCount, VMValue* args, Uint32 threadID) {
@@ -13119,8 +13615,8 @@ VMValue Scene_IsUsingFolder(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.IsUsingID
  * \desc Checks whether the current scene's ID matches the string to check.
- * \param id (String): ID to compare.
- * \return Returns a Boolean value.
+ * \param id (string): ID to compare.
+ * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_IsUsingID(int argCount, VMValue* args, Uint32 threadID) {
@@ -13141,8 +13637,8 @@ VMValue Scene_IsUsingID(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.IsPaused
- * \desc Gets whether or not the scene is paused.
- * \return Returns a Boolean value.
+ * \desc Gets whether the scene is paused.
+ * \return boolean Returns a boolean value.
  * \ns Scene
  */
 VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
@@ -13151,7 +13647,7 @@ VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.SetReservedSlotIDs
  * \desc Sets the number of reserved slot IDs to account for before creating instances.
- * \param amount (Integer): How many reserved slot IDs to use.
+ * \param amount (integer): How many reserved slot IDs to use.
  * \ns Scene
  */
 VMValue Scene_SetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
@@ -13172,14 +13668,14 @@ VMValue Scene_SetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.SetTile
  * \desc Sets the tile at a position.
- * \param layer (Integer): Layer index.
- * \param cellX (Number): Tile cell X.
- * \param cellY (Number): Tile cell Y.
- * \param tileID (Integer): Tile ID.
- * \param flipX (Boolean): Whether to flip the tile horizontally or not.
- * \param flipY (Boolean): Whether to flip the tile vertically or not.
- * \paramOpt collisionMaskA (Integer): Collision mask to use for the tile on Plane A. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)
- * \paramOpt collisionMaskB (Integer): Collision mask to use for the tile on Plane B. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)
+ * \param layer (integer): Layer index.
+ * \param cellX (number): Tile cell X.
+ * \param cellY (number): Tile cell Y.
+ * \param tileID (integer): Tile ID.
+ * \param flipX (boolean): Whether to flip the tile horizontally.
+ * \param flipY (boolean): Whether to flip the tile vertically.
+ * \paramOpt collisionMaskA (integer): Collision mask to use for the tile on Plane A. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)
+ * \paramOpt collisionMaskB (integer): Collision mask to use for the tile on Plane B. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)
  * \ns Scene
  */
 VMValue Scene_SetTile(int argCount, VMValue* args, Uint32 threadID) {
@@ -13226,11 +13722,11 @@ VMValue Scene_SetTile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.SetTileCollisionSides
  * \desc Sets the collision of a tile at a position.
- * \param layer (Integer): Layer index.
- * \param cellX (Number): Tile cell X.
- * \param cellY (Number): Tile cell Y.
- * \param collisionMaskA (Integer): Collision mask to use for the tile on Plane A. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)
- * \param collisionMaskB (Integer): Collision mask to use for the tile on Plane B. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)
+ * \param layer (integer): Layer index.
+ * \param cellX (number): Tile cell X.
+ * \param cellY (number): Tile cell Y.
+ * \param collisionMaskA (integer): Collision mask to use for the tile on Plane A. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)
+ * \param collisionMaskB (integer): Collision mask to use for the tile on Plane B. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)
  * \return
  * \ns Scene
  */
@@ -13258,8 +13754,8 @@ VMValue Scene_SetTileCollisionSides(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * Scene.SetPaused
- * \desc Sets whether the game is paused or not. When paused, only objects with <linkto ref="instance.Pauseable"></linkto> set to <code>false</code> will continue to <code>Update</code>.
- * \param isPaused (Boolean): Whether or not the scene is paused.
+ * \desc Sets whether the game is paused. When paused, only objects with <ref Entity.Pauseable> set to `false` will continue to `Update`.
+ * \param isPaused (boolean): Whether the scene is paused.
  * \ns Scene
  */
 VMValue Scene_SetPaused(int argCount, VMValue* args, Uint32 threadID) {
@@ -13269,8 +13765,8 @@ VMValue Scene_SetPaused(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetTileAnimationEnabled
- * \desc Sets whether or not tile animation is enabled.
- * \param isEnabled (Integer): 0 disables tile animation, 1 enables it, and 2 makes tiles animate even if the scene is paused.
+ * \desc Sets whether tile animation is enabled.
+ * \param isEnabled (integer): 0 disables tile animation, 1 enables it, and 2 makes tiles animate even if the scene is paused.
  * \ns Scene
  */
 VMValue Scene_SetTileAnimationEnabled(int argCount, VMValue* args, Uint32 threadID) {
@@ -13281,9 +13777,9 @@ VMValue Scene_SetTileAnimationEnabled(int argCount, VMValue* args, Uint32 thread
 /***
  * Scene.SetTileAnimSequence
  * \desc Sets an animation sequence for a tile ID.
- * \param tileID (Integer): Which tile ID to add an animated sequence to.
- * \param tileIDs (Array): Tile ID list.
- * \paramOpt frameDurations (Array): Frame duration list.
+ * \param tileID (integer): Which tile ID to add an animated sequence to.
+ * \param tileIDs (array): Tile ID list.
+ * \paramOpt frameDurations (array): Frame duration list.
  * \ns Scene
  */
 VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) {
@@ -13349,9 +13845,9 @@ VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Scene.SetTileAnimSequenceFromSprite
  * \desc Sets an animation sequence for a tile ID.
- * \param tileID (Integer): Which tile ID to add an animated sequence to.
- * \param spriteIndex (Integer): Sprite index. (<code>null</code> to disable)
- * \param animationIndex (Integer): Animation index in sprite.
+ * \param tileID (integer): Which tile ID to add an animated sequence to.
+ * \param spriteIndex (integer): Sprite index. (`null` to disable)
+ * \param animationIndex (integer): Animation index in sprite.
  * \ns Scene
  */
 VMValue Scene_SetTileAnimSequenceFromSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -13380,8 +13876,8 @@ VMValue Scene_SetTileAnimSequenceFromSprite(int argCount, VMValue* args, Uint32 
 /***
  * Scene.SetTileAnimSequencePaused
  * \desc Pauses a tile ID animation sequence.
- * \param tileID (Integer): The tile ID.
- * \param isPaused (Boolean): Whether the animation is paused.
+ * \param tileID (integer): The tile ID.
+ * \param isPaused (boolean): Whether the animation is paused.
  * \ns Scene
  */
 VMValue Scene_SetTileAnimSequencePaused(int argCount, VMValue* args, Uint32 threadID) {
@@ -13402,8 +13898,8 @@ VMValue Scene_SetTileAnimSequencePaused(int argCount, VMValue* args, Uint32 thre
 /***
  * Scene.SetTileAnimSequenceSpeed
  * \desc Changes the speed of a tile ID animation sequence.
- * \param tileID (Integer): The tile ID.
- * \param speed (Decimal): The frame speed.
+ * \param tileID (integer): The tile ID.
+ * \param speed (decimal): The frame speed.
  * \ns Scene
  */
 VMValue Scene_SetTileAnimSequenceSpeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -13427,8 +13923,8 @@ VMValue Scene_SetTileAnimSequenceSpeed(int argCount, VMValue* args, Uint32 threa
 /***
  * Scene.SetTileAnimSequenceFrame
  * \desc Sets the current frame of a tile ID animation sequence.
- * \param tileID (Integer): The tile ID.
- * \param index (Integer): The frame index.
+ * \param tileID (integer): The tile ID.
+ * \param index (integer): The frame index.
  * \ns Scene
  */
 VMValue Scene_SetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threadID) {
@@ -13449,8 +13945,8 @@ VMValue Scene_SetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
 /***
  * Scene.SetTilesetPaletteIndex
  * \desc Sets the palette index of the specified tileset.
- * \param tilesetID (Integer): The tileset index.
- * \param paletteIndex (Integer): The palette index.
+ * \param tilesetID (integer): The tileset index.
+ * \param paletteIndex (integer): The palette index.
  * \ns Scene
  */
 VMValue Scene_SetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -13466,8 +13962,8 @@ VMValue Scene_SetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadI
 /***
  * Scene.SetLayerVisible
  * \desc Sets the visibility of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \param isVisible (Boolean): Whether or not the layer can be seen.
+ * \param layerIndex (integer): Index of layer.
+ * \param isVisible (boolean): Whether the layer can be seen.
  * \ns Scene
  */
 VMValue Scene_SetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
@@ -13480,9 +13976,9 @@ VMValue Scene_SetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetLayerCollidable
- * \desc Sets whether or not the specified layer's tiles can be collided with.
- * \param layerIndex (Integer): Index of layer.
- * \param isVisible (Boolean): Whether or not the layer can be collided with.
+ * \desc Sets whether the specified layer's tiles can be collided with.
+ * \param layerIndex (integer): Index of layer.
+ * \param isVisible (boolean): Whether the layer can be collided with.
  * \ns Scene
  */
 VMValue Scene_SetLayerCollidable(int argCount, VMValue* args, Uint32 threadID) {
@@ -13520,9 +14016,9 @@ VMValue Scene_SetLayerInternalSize(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Scene.SetLayerOffsetPosition
  * \desc Sets the camera offset position of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \param offsetX (Number): Offset X position.
- * \param offsetY (Number): Offset Y position.
+ * \param layerIndex (integer): Index of layer.
+ * \param offsetX (number): Offset X position.
+ * \param offsetY (number): Offset Y position.
  * \ns Scene
  */
 VMValue Scene_SetLayerOffsetPosition(int argCount, VMValue* args, Uint32 threadID) {
@@ -13538,8 +14034,8 @@ VMValue Scene_SetLayerOffsetPosition(int argCount, VMValue* args, Uint32 threadI
 /***
  * Scene.SetLayerOffsetX
  * \desc Sets the camera offset X value of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \param offsetX (Number): Offset X position.
+ * \param layerIndex (integer): Index of layer.
+ * \param offsetX (number): Offset X position.
  * \ns Scene
  */
 VMValue Scene_SetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
@@ -13553,8 +14049,8 @@ VMValue Scene_SetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.SetLayerOffsetY
  * \desc Sets the camera offset Y value of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \param offsetY (Number): Offset Y position.
+ * \param layerIndex (integer): Index of layer.
+ * \param offsetY (number): Offset Y position.
  * \ns Scene
  */
 VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
@@ -13568,8 +14064,8 @@ VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.SetLayerDrawGroup
  * \desc Sets the draw group of the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \param drawGroup (Integer): Number between 0 to the result of <linkto ref="Scene.GetDrawGroupCount"></linkto>.
+ * \param layerIndex (integer): Index of layer.
+ * \param drawGroup (integer): Number between 0 to the result of <ref Scene.GetDrawGroupCount>.
  * \ns Scene
  */
 VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
@@ -13587,9 +14083,9 @@ VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetLayerDrawBehavior
- * \desc Sets the parallax direction of the layer. See <linkto ref="DrawBehavior_*"></linkto> for a list of accepted draw behaviors.
- * \param layerIndex (Integer): Index of layer.
- * \param drawBehavior (Enum): The <linkto ref="DrawBehavior_*">draw behavior</linkto>.
+ * \desc Sets the parallax direction of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param drawBehavior (<ref DrawBehavior_*>): The draw behavior.
  * \ns Scene
  */
 VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID) {
@@ -13602,9 +14098,9 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Scene.SetLayerRepeat
- * \desc Sets whether or not the specified layer repeats.
- * \param layerIndex (Integer): Index of layer.
- * \param doesRepeat (Boolean): Whether or not the layer repeats.
+ * \desc Sets whether the specified layer repeats.
+ * \param layerIndex (integer): Index of layer.
+ * \param doesRepeat (boolean): Whether the layer repeats.
  * \ns Scene
  */
 VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, Uint32 threadID) {
@@ -13624,9 +14120,9 @@ VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetLayerHorizontalRepeat
- * \desc Sets whether or not the specified layer repeats horizontally.
- * \param layerIndex (Integer): Index of layer.
- * \param doesRepeat (Boolean): Whether or not the layer repeats horizontally.
+ * \desc Sets whether the specified layer repeats horizontally.
+ * \param layerIndex (integer): Index of layer.
+ * \param doesRepeat (boolean): Whether the layer repeats horizontally.
  * \ns Scene
  */
 VMValue Scene_SetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threadID) {
@@ -13644,9 +14140,9 @@ VMValue Scene_SetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threa
 }
 /***
  * Scene.SetLayerVerticalRepeat
- * \desc Sets whether or not the specified layer repeats vertically.
- * \param layerIndex (Integer): Index of layer.
- * \param doesRepeat (Boolean): Whether or not the layer repeats vertically.
+ * \desc Sets whether the specified layer repeats vertically.
+ * \param layerIndex (integer): Index of layer.
+ * \param doesRepeat (boolean): Whether the layer repeats vertically.
  * \ns Scene
  */
 VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadID) {
@@ -13664,8 +14160,9 @@ VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * Scene.SetDrawGroupCount
- * \desc Sets the amount of draw groups in the active scene. (Deprecated)
- * \param count (Integer): Draw group count.
+ * \desc Sets the amount of draw groups in the active scene.
+ * \param count (integer): Draw group count.
+ * \deprecated
  * \ns Scene
  */
 VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -13686,8 +14183,8 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.SetDrawGroupEntityDepthSorting
  * \desc Sets the specified draw group to sort objects by depth.
- * \param drawGroup (Integer): Number between 0 to the result of <linkto ref="Scene.GetDrawGroupCount"></linkto>.
- * \param useEntityDepth (Boolean): Whether or not to sort objects by depth.
+ * \param drawGroup (integer): Number between 0 to the result of <ref Scene.GetDrawGroupCount>.
+ * \param useEntityDepth (boolean): Whether to sort objects by depth.
  * \ns Scene
  */
 VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
@@ -13707,10 +14204,10 @@ VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
 }
 /***
  * Scene.SetLayerBlend
- * \desc Sets whether or not to use color and alpha blending on this layer. See <linkto ref="BlendMode_*"></linkto> for a list of accepted blend modes.
- * \param layerIndex (Integer): Index of layer.
- * \param doBlend (Boolean): Whether or not to use blending.
- * \paramOpt blendMode (Enum): The desired <linkto ref="BlendMode_*">blend mode</linkto>.
+ * \desc Sets whether to use color and alpha blending on this layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param doBlend (boolean): Whether to use blending.
+ * \paramOpt blendMode (<ref BlendMode_*>): The desired blend mode.
  * \ns Scene
  */
 VMValue Scene_SetLayerBlend(int argCount, VMValue* args, Uint32 threadID) {
@@ -13724,8 +14221,8 @@ VMValue Scene_SetLayerBlend(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.SetLayerOpacity
  * \desc Sets the opacity of the layer.
- * \param layerIndex (Integer): Index of layer.
- * \param opacity (Decimal): Opacity from 0.0 to 1.0.
+ * \param layerIndex (integer): Index of layer.
+ * \param opacity (decimal): Opacity from 0.0 to 1.0.
  * \ns Scene
  */
 VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
@@ -13745,8 +14242,8 @@ VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.SetLayerShader
  * \desc Sets a shader for the layer.
- * \param layerIndex (Integer): Index of layer.
- * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \param layerIndex (integer): Index of layer.
+ * \param shader (Shader): The shader, or `null` to unset the shader.
  * \ns Scene
  */
 VMValue Scene_SetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
@@ -13781,8 +14278,8 @@ VMValue Scene_SetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.SetLayerUsePaletteIndexLines
  * \desc Enables or disables the use of the global palette index table for the specified layer.
- * \param layerIndex (Integer): Index of layer.
- * \param usePaletteIndexLines (Boolean): Whether the layer is using the global palette index table.
+ * \param layerIndex (integer): Index of layer.
+ * \param usePaletteIndexLines (boolean): Whether the layer is using the global palette index table.
  * \ns Scene
  */
 VMValue Scene_SetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
@@ -13796,9 +14293,9 @@ VMValue Scene_SetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 t
 /***
  * Scene.SetLayerScroll
  * \desc Sets the scroll values of the layer. (Horizontal Parallax = Up/Down values, Vertical Parallax = Left/Right values)
- * \param layerIndex (Integer): Index of layer.
- * \param relative (Decimal): How much to move the layer relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
- * \param constant (Decimal): How many pixels to move the layer per frame.
+ * \param layerIndex (integer): Index of layer.
+ * \param relative (decimal): How much to move the layer relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
+ * \param constant (decimal): How many pixels to move the layer per frame.
  * \ns Scene
  */
 VMValue Scene_SetLayerScroll(int argCount, VMValue* args, Uint32 threadID) {
@@ -13823,7 +14320,7 @@ std::vector<BufferedScrollInfo> BufferedScrollInfos;
 /***
  * Scene.SetLayerSetParallaxLinesBegin
  * \desc Begins setup for changing the parallax lines.
- * \param layerIndex (Integer): Index of layer.
+ * \param layerIndex (integer): Index of layer.
  * \ns Scene
  */
 VMValue Scene_SetLayerSetParallaxLinesBegin(int argCount, VMValue* args, Uint32 threadID) {
@@ -13843,11 +14340,11 @@ VMValue Scene_SetLayerSetParallaxLinesBegin(int argCount, VMValue* args, Uint32 
 /***
  * Scene.SetLayerSetParallaxLines
  * \desc Set the parallax lines.
- * \param lineStart (Integer): Start line.
- * \param lineEnd (Integer): End line.
- * \param relative (Number): How much to move the scroll line relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
- * \param constant (Number): How many pixels to move the layer per frame.
- * \param canDeform (Boolean): Whether the parallax lines can be deformed.
+ * \param lineStart (integer): Start line.
+ * \param lineEnd (integer): End line.
+ * \param relative (number): How much to move the scroll line relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
+ * \param constant (number): How many pixels to move the layer per frame.
+ * \param canDeform (boolean): Whether the parallax lines can be deformed.
  * \ns Scene
  */
 VMValue Scene_SetLayerSetParallaxLines(int argCount, VMValue* args, Uint32 threadID) {
@@ -13939,10 +14436,10 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 /***
  * Scene.SetLayerTileDeforms
  * \desc Sets the tile deforms of the layer at the specified index.
- * \param layerIndex (Integer): Index of layer.
- * \param deformIndex (Integer): Index of deform value.
- * \param deformA (Number): Deform value above the Deform Split Line.
- * \param deformB (Number): Deform value below the Deform Split Line.
+ * \param layerIndex (integer): Index of layer.
+ * \param deformIndex (integer): Index of deform value.
+ * \param deformA (number): Deform value above the Deform Split Line.
+ * \param deformB (number): Deform value below the Deform Split Line.
  * \ns Scene
  */
 VMValue Scene_SetLayerTileDeforms(int argCount, VMValue* args, Uint32 threadID) {
@@ -13964,8 +14461,8 @@ VMValue Scene_SetLayerTileDeforms(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Scene.SetLayerTileDeformSplitLine
  * \desc Sets the position of the Deform Split Line.
- * \param layerIndex (Integer): Index of layer.
- * \param deformPosition (Number): The position on screen where the Deform Split Line should be. (Y when horizontal parallax, X when vertical.)
+ * \param layerIndex (integer): Index of layer.
+ * \param deformPosition (number): The position on screen where the Deform Split Line should be. (Y when horizontal parallax, X when vertical.)
  * \ns Scene
  */
 VMValue Scene_SetLayerTileDeformSplitLine(int argCount, VMValue* args, Uint32 threadID) {
@@ -13980,9 +14477,9 @@ VMValue Scene_SetLayerTileDeformSplitLine(int argCount, VMValue* args, Uint32 th
 /***
  * Scene.SetLayerTileDeformOffsets
  * \desc Sets the position of the Deform Split Line.
- * \param layerIndex (Integer): Index of layer.
- * \param deformAOffset (Number): Offset for the deforms above the Deform Split Line.
- * \param deformBOffset (Number): Offset for the deforms below the Deform Split Line.
+ * \param layerIndex (integer): Index of layer.
+ * \param deformAOffset (number): Offset for the deforms above the Deform Split Line.
+ * \param deformBOffset (number): Offset for the deforms below the Deform Split Line.
  * \ns Scene
  */
 VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 threadID) {
@@ -13999,8 +14496,8 @@ VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 thre
 /***
  * Scene.SetLayerDeformOffsetA
  * \desc Sets the tile deform offset above the Deform Split Line of the layer.
- * \param layerIndex (Integer): Index of layer.
- * \param deformA (Number): Deform value above the Deform Split Line.
+ * \param layerIndex (integer): Index of layer.
+ * \param deformA (number): Deform value above the Deform Split Line.
  * \ns Scene
  */
 VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID) {
@@ -14015,8 +14512,8 @@ VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 /***
  * Scene.SetLayerDeformOffsetB
  * \desc Sets the tile deform offset below the Deform Split Line of the layer.
- * \param layerIndex (Integer): Index of layer.
- * \param deformA (Number): Deform value below the Deform Split Line.
+ * \param layerIndex (integer): Index of layer.
+ * \param deformA (number): Deform value below the Deform Split Line.
  * \ns Scene
  */
 VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID) {
@@ -14031,8 +14528,8 @@ VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 /***
  * Scene.SetLayerCustomScanlineFunction
  * \desc Sets the function to be used for generating custom tile scanlines.
- * \param layerIndex (Integer): Index of layer.
- * \param function (Function): Function to be used before tile drawing for generating scanlines. (Use <code>null</code> to reset functionality.)
+ * \param layerIndex (integer): Index of layer.
+ * \param function (function): Function to be used before tile drawing for generating scanlines. (Use `null` to reset functionality.)
  * \ns Scene
  */
 VMValue Scene_SetLayerCustomScanlineFunction(int argCount, VMValue* args, Uint32 threadID) {
@@ -14052,14 +14549,14 @@ VMValue Scene_SetLayerCustomScanlineFunction(int argCount, VMValue* args, Uint32
 /***
  * Scene.SetTileScanline
  * \desc Sets the tile scanline (for use only inside a Custom Scanline Function).
- * \param scanline (Integer): Index of scanline to edit.
- * \param srcX (Number):
- * \param srcY (Number):
- * \param deltaX (Number):
- * \param deltaY (Number):
- * \paramOpt opacity (Decimal):
- * \paramOpt maxHorzCells (Number):
- * \paramOpt maxVertCells (Number):
+ * \param scanline (integer): Index of scanline to edit.
+ * \param srcX (number):
+ * \param srcY (number):
+ * \param deltaX (number):
+ * \param deltaY (number):
+ * \paramOpt opacity (decimal):
+ * \paramOpt maxHorzCells (number):
+ * \paramOpt maxVertCells (number):
  * \ns Scene
  */
 VMValue Scene_SetTileScanline(int argCount, VMValue* args, Uint32 threadID) {
@@ -14092,8 +14589,8 @@ VMValue Scene_SetTileScanline(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.SetLayerCustomRenderFunction
  * \desc Sets the function to be used for rendering a specific layer.
- * \param layerIndex (Integer): Index of layer.
- * \param function (Function): Function to call to render the layer. (Use <code>null</code> to reset functionality.)
+ * \param layerIndex (integer): Index of layer.
+ * \param function (function): Function to call to render the layer. (Use `null` to reset functionality.)
  * \ns Scene
  */
 VMValue Scene_SetLayerCustomRenderFunction(int argCount, VMValue* args, Uint32 threadID) {
@@ -14112,9 +14609,9 @@ VMValue Scene_SetLayerCustomRenderFunction(int argCount, VMValue* args, Uint32 t
 }
 /***
  * Scene.SetObjectViewRender
- * \desc Sets whether or not objects can render on the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param enableViewRender (Boolean):
+ * \desc Sets whether entities can render on the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \param enableViewRender (boolean): Whether entities can render on the specified view.
  * \ns Scene
  */
 VMValue Scene_SetObjectViewRender(int argCount, VMValue* args, Uint32 threadID) {
@@ -14135,9 +14632,9 @@ VMValue Scene_SetObjectViewRender(int argCount, VMValue* args, Uint32 threadID) 
 }
 /***
  * Scene.SetTileViewRender
- * \desc Sets whether or not tiles can render on the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param enableViewRender (Boolean):
+ * \desc Sets whether tiles can render on the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \param enableViewRender (boolean): Whether tiles can render on the specified view.
  * \ns Scene
  */
 VMValue Scene_SetTileViewRender(int argCount, VMValue* args, Uint32 threadID) {
@@ -14162,9 +14659,9 @@ VMValue Scene_SetTileViewRender(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * SceneList.Get
  * \desc Gets the scene path for the specified category and entry.
- * \param category (String): The category.
- * \param entry (String): The entry.
- * \return Returns a String value.
+ * \param category (string): The category.
+ * \param entry (string): The entry.
+ * \return string Returns a string value.
  * \ns SceneList
  */
 VMValue SceneList_Get(int argCount, VMValue* args, Uint32 threadID) {
@@ -14198,9 +14695,9 @@ VMValue SceneList_Get(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * SceneList.GetEntryID
  * \desc Gets the entry ID for the specified category and entry name.
- * \param categoryName (String): The category name.
- * \param entryName (String): The entry name.
- * \return Returns the entry ID, or <code>-1</code> if not found.
+ * \param categoryName (string): The category name.
+ * \param entryName (string): The entry name.
+ * \return integer Returns the entry ID, or `-1` if not found.
  * \ns SceneList
  */
 VMValue SceneList_GetEntryID(int argCount, VMValue* args, Uint32 threadID) {
@@ -14216,8 +14713,8 @@ VMValue SceneList_GetEntryID(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * SceneList.GetCategoryID
  * \desc Gets the category ID for the specified category name.
- * \param categoryName (String): The category name.
- * \return Returns the category ID, or <code>-1</code> if not found.
+ * \param categoryName (string): The category name.
+ * \return integer Returns the category ID, or `-1` if not found.
  * \ns SceneList
  */
 VMValue SceneList_GetCategoryID(int argCount, VMValue* args, Uint32 threadID) {
@@ -14229,9 +14726,9 @@ VMValue SceneList_GetCategoryID(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * SceneList.GetEntryName
  * \desc Gets the entry name for the specified category and entry.
- * \param category (String): The category.
- * \param entryID (Integer): The entry ID.
- * \return Returns the entry name.
+ * \param category (string): The category.
+ * \param entryID (integer): The entry ID.
+ * \return string Returns the entry name.
  * \ns SceneList
  */
 VMValue SceneList_GetEntryName(int argCount, VMValue* args, Uint32 threadID) {
@@ -14257,8 +14754,8 @@ VMValue SceneList_GetEntryName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * SceneList.GetCategoryName
  * \desc Gets the category name for the specified category ID.
- * \param categoryID (Integer): The category ID.
- * \return Returns the category name, or <code>-1</code> if not valid.
+ * \param categoryID (integer): The category ID.
+ * \return string Returns the category name, or `-1` if not valid.
  * \ns SceneList
  */
 VMValue SceneList_GetCategoryName(int argCount, VMValue* args, Uint32 threadID) {
@@ -14272,10 +14769,10 @@ VMValue SceneList_GetCategoryName(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * SceneList.GetEntryProperty
  * \desc Gets a property for an entry.
- * \param category (String): The category.
- * \param entry (String): The entry.
- * \param property (String): The property.
- * \return Returns a String value, or <code>null</code> if the entry has no such property.
+ * \param category (string): The category.
+ * \param entry (string): The entry.
+ * \param property (string): The property.
+ * \return string Returns a string value, or `null` if the entry has no such property.
  * \ns SceneList
  */
 VMValue SceneList_GetEntryProperty(int argCount, VMValue* args, Uint32 threadID) {
@@ -14316,9 +14813,9 @@ VMValue SceneList_GetEntryProperty(int argCount, VMValue* args, Uint32 threadID)
 /***
  * SceneList.GetCategoryProperty
  * \desc Gets a property for a category.
- * \param category (String): The category.
- * \param property (String): The property.
- * \return Returns a String value, or <code>null</code> if the category has no such property.
+ * \param category (string): The category.
+ * \param property (string): The property.
+ * \return string Returns a string value, or `null` if the category has no such property.
  * \ns SceneList
  */
 VMValue SceneList_GetCategoryProperty(int argCount, VMValue* args, Uint32 threadID) {
@@ -14348,10 +14845,10 @@ VMValue SceneList_GetCategoryProperty(int argCount, VMValue* args, Uint32 thread
 /***
  * SceneList.HasEntryProperty
  * \desc Checks if a given property exists in the entry.
- * \param category (String): The category.
- * \param entry (String): The entry.
- * \param property (String): The property.
- * \return Returns <code>true</code> if the property exists, <code>false</code> if not.
+ * \param category (string): The category.
+ * \param entry (string): The entry.
+ * \param property (string): The property.
+ * \return boolean Returns whether the property exists.
  * \ns SceneList
  */
 VMValue SceneList_HasEntryProperty(int argCount, VMValue* args, Uint32 threadID) {
@@ -14386,9 +14883,9 @@ VMValue SceneList_HasEntryProperty(int argCount, VMValue* args, Uint32 threadID)
 /***
  * SceneList.HasCategoryProperty
  * \desc Checks if a given property exists in the category.
- * \param category (String): The category.
- * \param property (String): The property.
- * \return Returns <code>true</code> if the property exists, <code>false</code> if not.
+ * \param category (string): The category.
+ * \param property (string): The property.
+ * \return boolean Returns whether the property exists.
  * \ns SceneList
  */
 VMValue SceneList_HasCategoryProperty(int argCount, VMValue* args, Uint32 threadID) {
@@ -14411,7 +14908,7 @@ VMValue SceneList_HasCategoryProperty(int argCount, VMValue* args, Uint32 thread
 /***
  * SceneList.GetCategoryCount
  * \desc Gets the amount of categories in the scene list.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns SceneList
  */
 VMValue SceneList_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -14420,9 +14917,15 @@ VMValue SceneList_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * SceneList.GetSceneCount
+ * \desc Gets the amount of scenes.
+ * \return integer Returns the total amount of scenes.
+ * \ns SceneList
+ */
+/***
+ * SceneList.GetSceneCount
  * \desc Gets the amount of scenes in a category.
- * \paramOpt categoryName (String): The category name.
- * \return Returns the number of scenes in the category. If <code>categoryName</code> is omitted, this returns the total amount of scenes.
+ * \param categoryName (string): The category name.
+ * \return integer Returns the number of scenes in the category.
  * \ns SceneList
  */
 VMValue SceneList_GetSceneCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -14450,8 +14953,8 @@ VMValue SceneList_GetSceneCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.Create
  * \desc Creates a 3D scene.
- * \param unloadPolicy (Integer): Whether or not to delete the 3D scene at the end of the current Scene, or the game end.
- * \return The index of the created 3D scene.
+ * \param unloadPolicy (integer): Whether to delete the 3D scene at the end of the current Scene, or the game end.
+ * \return integer The index of the created 3D scene.
  * \ns Scene3D
  */
 VMValue Scene3D_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -14467,8 +14970,7 @@ VMValue Scene3D_Create(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.Delete
  * \desc Deletes a 3D scene.
- * \param scene3DIndex (Integer): The index of the 3D scene to delete.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene to delete.
  * \ns Scene3D
  */
 VMValue Scene3D_Delete(int argCount, VMValue* args, Uint32 threadID) {
@@ -14483,10 +14985,9 @@ VMValue Scene3D_Delete(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene3D.SetDrawMode
- * \desc Sets the <linkto ref="DrawMode_*">draw mode</linkto> of the 3D scene.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param drawMode (Enum): The type of drawing to use for the vertices in the 3D scene. See <linkto ref="DrawMode_*"></linkto> for a list of accepted draw modes.
- * \return
+ * \desc Sets the draw mode of the 3D scene.
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param drawMode (<ref DrawMode_*>): The type of drawing to use for the vertices in the 3D scene.
  * \ns Scene3D
  */
 VMValue Scene3D_SetDrawMode(int argCount, VMValue* args, Uint32 threadID) {
@@ -14499,10 +15000,9 @@ VMValue Scene3D_SetDrawMode(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene3D.SetFaceCullMode
- * \desc Sets the <linkto ref="FaceCull_*">face culling mode</linkto> of the 3D scene. (hardware-renderer only)
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param cullMode (Enum): The type of face culling to use for the vertices in the 3D scene. See <linkto ref="FaceCull_*"></linkto> for a list of accepted face cull modes.
- * \return
+ * \desc Sets the face culling mode of the 3D scene. (hardware-renderer only)
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param cullMode (<ref FaceCull_*>): The type of face culling to use for the vertices in the 3D scene.
  * \ns Scene3D
  */
 VMValue Scene3D_SetFaceCullMode(int argCount, VMValue* args, Uint32 threadID) {
@@ -14520,9 +15020,8 @@ VMValue Scene3D_SetFaceCullMode(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.SetFieldOfView
  * \desc Sets the field of view of the 3D scene.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param fieldOfView (Matrix): The field of view value.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param fieldOfView (matrix): The field of view value.
  * \ns Scene3D
  */
 VMValue Scene3D_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
@@ -14536,9 +15035,8 @@ VMValue Scene3D_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.SetFarClippingPlane
  * \desc Sets the far clipping plane of the 3D scene.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param farClippingPlane (Matrix): The far clipping plane value.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param farClippingPlane (matrix): The far clipping plane value.
  * \ns Scene3D
  */
 VMValue Scene3D_SetFarClippingPlane(int argCount, VMValue* args, Uint32 threadID) {
@@ -14552,9 +15050,8 @@ VMValue Scene3D_SetFarClippingPlane(int argCount, VMValue* args, Uint32 threadID
 /***
  * Scene3D.SetNearClippingPlane
  * \desc Sets the near clipping plane of the 3D scene.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param farClippingPlane (Matrix): The near clipping plane value.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param farClippingPlane (matrix): The near clipping plane value.
  * \ns Scene3D
  */
 VMValue Scene3D_SetNearClippingPlane(int argCount, VMValue* args, Uint32 threadID) {
@@ -14568,9 +15065,8 @@ VMValue Scene3D_SetNearClippingPlane(int argCount, VMValue* args, Uint32 threadI
 /***
  * Scene3D.SetViewMatrix
  * \desc Sets the view matrix of the 3D scene.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param viewMatrix (Matrix): The view matrix.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param viewMatrix (matrix): The view matrix.
  * \ns Scene3D
  */
 VMValue Scene3D_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
@@ -14591,9 +15087,8 @@ VMValue Scene3D_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.SetCustomProjectionMatrix
  * \desc Sets a custom projection matrix.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param projMatrix (Matrix): The projection matrix.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param projMatrix (matrix): The projection matrix.
  * \ns Scene3D
  */
 VMValue Scene3D_SetCustomProjectionMatrix(int argCount, VMValue* args, Uint32 threadID) {
@@ -14629,11 +15124,10 @@ VMValue Scene3D_SetCustomProjectionMatrix(int argCount, VMValue* args, Uint32 th
 /***
  * Scene3D.SetAmbientLighting
  * \desc Sets the ambient lighting of the 3D scene.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param red (number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
 VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID) {
@@ -14649,11 +15143,10 @@ VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Scene3D.SetDiffuseLighting
  * \desc Sets the diffuse lighting of the 3D scene.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param red (number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
 VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
@@ -14669,11 +15162,10 @@ VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Scene3D.SetSpecularLighting
  * \desc Sets the specular lighting of the 3D scene.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param red (number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
 VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
@@ -14688,10 +15180,9 @@ VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * Scene3D.SetFogEquation
- * \desc Sets the <linkto ref="FogEquation_*">fog equation</linkto> of the 3D scene. (software-renderer only) 
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param fogEquation (Enum): The <linkto ref="FogEquation_*">fog equation</linkto> to use.
- * \return
+ * \desc Sets the fog equation of the 3D scene.
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param fogEquation (<ref FogEquation_*>): The fog equation to use.
  * \ns Scene3D
  */
 VMValue Scene3D_SetFogEquation(int argCount, VMValue* args, Uint32 threadID) {
@@ -14709,9 +15200,8 @@ VMValue Scene3D_SetFogEquation(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.SetFogStart
  * \desc Sets the near distance used in the linear equation of the 3D scene's fog.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param start (Number): The start value.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param start (number): The start value.
  * \ns Scene3D
  */
 VMValue Scene3D_SetFogStart(int argCount, VMValue* args, Uint32 threadID) {
@@ -14724,9 +15214,8 @@ VMValue Scene3D_SetFogStart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.SetFogEnd
  * \desc Sets the far distance used in the linear equation of the 3D scene's fog.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param end (Number): The end value.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param end (number): The end value.
  * \ns Scene3D
  */
 VMValue Scene3D_SetFogEnd(int argCount, VMValue* args, Uint32 threadID) {
@@ -14739,9 +15228,8 @@ VMValue Scene3D_SetFogEnd(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.SetFogDensity
  * \desc Sets the density used in the exponential equation of the 3D scene's fog.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param density (Number): The fog density.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param density (number): The fog density.
  * \ns Scene3D
  */
 VMValue Scene3D_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
@@ -14754,11 +15242,10 @@ VMValue Scene3D_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.SetFogColor
  * \desc Sets the fog color of the 3D scene.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param red (Number): The red color value, bounded by 0.0 - 1.0.
- * \param green (Number): The green color value, bounded by 0.0 - 1.0.
- * \param blue (Number): The blue color value, bounded by 0.0 - 1.0.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param red (number): The red color value, bounded by 0.0 - 1.0.
+ * \param green (number): The green color value, bounded by 0.0 - 1.0.
+ * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
 VMValue Scene3D_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
@@ -14774,9 +15261,8 @@ VMValue Scene3D_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.SetFogSmoothness
  * \desc Sets the smoothness of the 3D scene's fog.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param smoothness (Number): The smoothness, bounded by 0.0 - 1.0.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param smoothness (number): The smoothness, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
 VMValue Scene3D_SetFogSmoothness(int argCount, VMValue* args, Uint32 threadID) {
@@ -14790,9 +15276,8 @@ VMValue Scene3D_SetFogSmoothness(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.SetPointSize
  * \desc Sets the point size of the 3D scene. (hardware-renderer only)
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \param pointSize (Decimal): The point size.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param pointSize (decimal): The point size.
  * \ns Scene3D
  */
 VMValue Scene3D_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
@@ -14806,8 +15291,7 @@ VMValue Scene3D_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene3D.Clear
  * \desc Removes all previously drawn elements out of a 3D scene.
- * \param scene3DIndex (Integer): The index of the 3D scene.
- * \return
+ * \param scene3DIndex (integer): The index of the 3D scene.
  * \ns Scene3D
  */
 VMValue Scene3D_Clear(int argCount, VMValue* args, Uint32 threadID) {
@@ -14827,17 +15311,9 @@ VMValue Scene3D_Clear(int argCount, VMValue* args, Uint32 threadID) {
 // #region Serializer
 /***
  * Serializer.WriteToStream
- * \desc Serializes a value into a stream.<br/>\
-</br>Supported types:<ul>\
-<li>Integer</li>\
-<li>Decimal</li>\
-<li><code>null</code></li>\
-<li>String</li>\
-<li>Array</li>\
-<li>Map</li>\
-</ul>
- * \param stream (Stream): The stream.
- * \param value (any type): The value to serialize.
+ * \desc Serializes a value into a stream.
+ * \param stream (stream): The stream.
+ * \param value (value): The value to serialize.
  * \ns Serializer
  */
 VMValue Serializer_WriteToStream(int argCount, VMValue* args, Uint32 threadID) {
@@ -14853,8 +15329,8 @@ VMValue Serializer_WriteToStream(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Serializer.ReadFromStream
  * \desc Deserializes a value from a stream.
- * \param stream (Stream): The stream.
- * \return The deserialized value.
+ * \param stream (stream): The stream.
+ * \return value The deserialized value.
  * \ns Serializer
  */
 VMValue Serializer_ReadFromStream(int argCount, VMValue* args, Uint32 threadID) {
@@ -14871,7 +15347,7 @@ VMValue Serializer_ReadFromStream(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * Settings.Load
  * \desc Loads the config from the specified filename. Calling this does not save the current settings.
- * \param filename (String): Filepath of config.
+ * \param filename (string): Filepath of config.
  * \ns Settings
  */
 VMValue Settings_Load(int argCount, VMValue* args, Uint32 threadID) {
@@ -14882,7 +15358,12 @@ VMValue Settings_Load(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.Save
  * \desc Saves the settings.
- * \paramOpt filename (String): Filepath of config. This does not change the filepath of the current settings (Use <linkto ref="Settings.SetFilename"></linkto> to do that.)
+ * \ns Settings
+ */
+/***
+ * Settings.Save
+ * \desc Saves the settings with the specified filename.
+ * \param filename (string): Filepath of config. This does not change the filepath of the current settings; use <ref Settings.SetFilename> to do that.
  * \ns Settings
  */
 VMValue Settings_Save(int argCount, VMValue* args, Uint32 threadID) {
@@ -14898,7 +15379,7 @@ VMValue Settings_Save(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.SetFilename
  * \desc Sets the filepath of the settings.
- * \param filename (String): Filepath of config. This does not save the current settings.
+ * \param filename (string): Filepath of config. This does not save the current settings.
  * \ns Settings
  */
 VMValue Settings_SetFilename(int argCount, VMValue* args, Uint32 threadID) {
@@ -14909,9 +15390,9 @@ VMValue Settings_SetFilename(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.GetString
  * \desc Looks for a property in a section, and returns its value, as a string.
- * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
- * \param property (String): The property to look for.
- * \return Returns the property as a string, or <code>null</code> if the section or property aren't valid.
+ * \param section (string): The section where the property resides. If this is `null`, the global section is used instead.
+ * \param property (string): The property to look for.
+ * \return string Returns the property as a string, or `null` if the section or property aren't valid.
  * \ns Settings
  */
 VMValue Settings_GetString(int argCount, VMValue* args, Uint32 threadID) {
@@ -14936,9 +15417,9 @@ VMValue Settings_GetString(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.GetNumber
  * \desc Looks for a property in a section, and returns its value, as a number.
- * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
- * \param property (String): The property to look for.
- * \return Returns the property as a number, or <code>null</code> if the section or property aren't valid.
+ * \param section (string): The section where the property resides. If this is `null`, the global section is used instead.
+ * \param property (string): The property to look for.
+ * \return integer Returns the property as a number, or `null` if the section or property aren't valid.
  * \ns Settings
  */
 VMValue Settings_GetNumber(int argCount, VMValue* args, Uint32 threadID) {
@@ -14963,9 +15444,9 @@ VMValue Settings_GetNumber(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.GetInteger
  * \desc Looks for a property in a section, and returns its value, as an integer.
- * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
- * \param property (String): The property to look for.
- * \return Returns the property as an integer, or <code>null</code> if the section or property aren't valid.
+ * \param section (string): The section where the property resides. If this is `null`, the global section is used instead.
+ * \param property (string): The property to look for.
+ * \return integer Returns the property as an integer, or `null` if the section or property aren't valid.
  * \ns Settings
  */
 VMValue Settings_GetInteger(int argCount, VMValue* args, Uint32 threadID) {
@@ -14990,9 +15471,9 @@ VMValue Settings_GetInteger(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.GetBool
  * \desc Looks for a property in a section, and returns its value, as a boolean.
- * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
- * \param property (String): The property to look for.
- * \return Returns the property as a boolean, or <code>null</code> if the section or property aren't valid.
+ * \param section (string): The section where the property resides. If this is `null`, the global section is used instead.
+ * \param property (string): The property to look for.
+ * \return boolean Returns the property as a boolean, or `null` if the section or property aren't valid.
  * \ns Settings
  */
 VMValue Settings_GetBool(int argCount, VMValue* args, Uint32 threadID) {
@@ -15017,9 +15498,9 @@ VMValue Settings_GetBool(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.SetString
  * \desc Sets a property in a section to a string value.
- * \param section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.
- * \param property (String): The property to set.
- * \param value (String): The value of the property.
+ * \param section (string): The section where the property resides. If the section doesn't exist, it will be created. If this is `null`, the global section is used instead.
+ * \param property (string): The property to set.
+ * \param value (string): The value of the property.
  * \ns Settings
  */
 VMValue Settings_SetString(int argCount, VMValue* args, Uint32 threadID) {
@@ -15035,10 +15516,10 @@ VMValue Settings_SetString(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Settings.SetNumber
- * \desc Sets a property in a section to a Decimal value.
- * \param section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.
- * \param property (String): The property to set.
- * \param value (Number): The value of the property.
+ * \desc Sets a property in a section to a decimal value.
+ * \param section (string): The section where the property resides. If the section doesn't exist, it will be created. If this is `null`, the global section is used instead.
+ * \param property (string): The property to set.
+ * \param value (number): The value of the property.
  * \ns Settings
  */
 VMValue Settings_SetNumber(int argCount, VMValue* args, Uint32 threadID) {
@@ -15055,9 +15536,9 @@ VMValue Settings_SetNumber(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.SetInteger
  * \desc Sets a property in a section to an integer value.
- * \param section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.
- * \param property (String): The property to set.
- * \param value (Integer): The value of the property.
+ * \param section (string): The section where the property resides. If the section doesn't exist, it will be created. If this is `null`, the global section is used instead.
+ * \param property (string): The property to set.
+ * \param value (integer): The value of the property.
  * \ns Settings
  */
 VMValue Settings_SetInteger(int argCount, VMValue* args, Uint32 threadID) {
@@ -15075,9 +15556,9 @@ VMValue Settings_SetInteger(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.SetBool
  * \desc Sets a property in a section to a boolean value.
- * \param section (String): The section where the property resides. If the section doesn't exist, it will be created. If this is <code>null</code>, the global section is used instead.
- * \param property (String): The property to set.
- * \param value (Boolean): The value of the property.
+ * \param section (string): The section where the property resides. If the section doesn't exist, it will be created. If this is `null`, the global section is used instead.
+ * \param property (string): The property to set.
+ * \param value (boolean): The value of the property.
  * \ns Settings
  */
 VMValue Settings_SetBool(int argCount, VMValue* args, Uint32 threadID) {
@@ -15094,7 +15575,7 @@ VMValue Settings_SetBool(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.AddSection
  * \desc Creates a section.
- * \param section (String): The section name.
+ * \param section (string): The section name.
  * \ns Settings
  */
 VMValue Settings_AddSection(int argCount, VMValue* args, Uint32 threadID) {
@@ -15105,7 +15586,7 @@ VMValue Settings_AddSection(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.RemoveSection
  * \desc Removes a section.
- * \param section (String): The section name.
+ * \param section (string): The section name.
  * \ns Settings
  */
 VMValue Settings_RemoveSection(int argCount, VMValue* args, Uint32 threadID) {
@@ -15126,8 +15607,8 @@ VMValue Settings_RemoveSection(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.SectionExists
  * \desc Checks if a section exists.
- * \param section (String): The section name.
- * \return Returns <code>true</code> if the section exists, <code>false</code> if not.
+ * \param section (string): The section name.
+ * \return boolean Returns whether the section exists.
  * \ns Settings
  */
 VMValue Settings_SectionExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -15137,7 +15618,7 @@ VMValue Settings_SectionExists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.GetSectionCount
  * \desc Returns how many sections exist in the settings.
- * \return The total section count, as an integer.
+ * \return integer Returns the total section count.
  * \ns Settings
  */
 VMValue Settings_GetSectionCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -15147,9 +15628,9 @@ VMValue Settings_GetSectionCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.PropertyExists
  * \desc Checks if a property exists.
- * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
- * \param property (String): The property name.
- * \return Returns <code>true</code> if the property exists, <code>false</code> if not.
+ * \param section (string): The section where the property resides. If this is `null`, the global section is used instead.
+ * \param property (string): The property name.
+ * \return boolean Returns whether the property exists.
  * \ns Settings
  */
 VMValue Settings_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -15169,8 +15650,8 @@ VMValue Settings_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.RemoveProperty
  * \desc Removes a property from a section.
- * \param section (String): The section where the property resides. If this is <code>null</code>, the global section is used instead.
- * \param property (String): The property to remove.
+ * \param section (string): The section where the property resides. If this is `null`, the global section is used instead.
+ * \param property (string): The property to remove.
  * \ns Settings
  */
 VMValue Settings_RemoveProperty(int argCount, VMValue* args, Uint32 threadID) {
@@ -15191,8 +15672,8 @@ VMValue Settings_RemoveProperty(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Settings.GetPropertyCount
  * \desc Returns how many properties exist in the section.
- * \param section (String): The section. If this is <code>null</code>, the global section is used instead.
- * \return The total section count, as an integer.
+ * \param section (string): The section. If this is `null`, the global section is used instead.
+ * \return integer The total section count, as an integer.
  * \ns Settings
  */
 VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -15395,12 +15876,12 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Play
  * \desc Plays a sound either once or in a loop.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
+ * \param sound (integer): The sound index to play.
+ * \paramOpt loopPoint (integer): Loop point in samples. Use <ref AUDIO_LOOP_NONE> to play the sound once or <ref AUDIO_LOOP_DEFAULT> to use the audio file's metadata. (default: <ref AUDIO_LOOP_DEFAULT> )
+ * \paramOpt panning (decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (default: `0.0`)
+ * \paramOpt speed (decimal): Control the speed of the audio. Higher than 1.0 makes it faster, lesser than 1.0 is slower, 1.0 is normal speed. (default: `1.0`)
+ * \paramOpt volume (decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (default: `1.0`)
+ * \return integer Returns the channel index where the sound began to play, or `-1` if no channel was available.
  * \ns Sound
  */
 VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
@@ -15439,7 +15920,7 @@ VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Stop
  * \desc Stops an actively playing sound.
- * \param sound (Integer): The sound index to stop.
+ * \param sound (integer): The sound index to stop.
  * \ns Sound
  */
 VMValue Sound_Stop(int argCount, VMValue* args, Uint32 threadID) {
@@ -15453,7 +15934,7 @@ VMValue Sound_Stop(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Pause
  * \desc Pauses an actively playing sound.
- * \param sound (Integer): The sound index to pause.
+ * \param sound (integer): The sound index to pause.
  * \ns Sound
  */
 VMValue Sound_Pause(int argCount, VMValue* args, Uint32 threadID) {
@@ -15467,7 +15948,7 @@ VMValue Sound_Pause(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Resume
  * \desc Unpauses a paused sound.
- * \param sound (Integer): The sound index to resume.
+ * \param sound (integer): The sound index to resume.
  * \ns Sound
  */
 VMValue Sound_Resume(int argCount, VMValue* args, Uint32 threadID) {
@@ -15510,9 +15991,9 @@ VMValue Sound_ResumeAll(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.IsPlaying
- * \param sound (Integer): The sound index.
- * \desc Checks whether a sound is currently playing or not.
- * \return Returns a Boolean value.
+ * \param sound (integer): The sound index.
+ * \desc Checks whether a sound is currently playing
+ * \return boolean Returns a boolean value.
  * \ns Sound
  */
 VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
@@ -15526,12 +16007,12 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.PlayMultiple
  * \desc Plays a sound once or loops it, without interrupting channels playing the same sound.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
- * \return Returns the channel index where the sound began to play, or <code>-1</code> if no channel was available.
+ * \param sound (integer): The sound index to play.
+ * \paramOpt loopPoint (integer): Loop point in samples. Use <ref AUDIO_LOOP_NONE> to play the sound once or <ref AUDIO_LOOP_DEFAULT> to use the audio file's metadata. (default: <ref AUDIO_LOOP_DEFAULT>)
+ * \paramOpt panning (decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (default: `0.0`)
+ * \paramOpt speed (decimal): Control the speed of the audio. Higher than 1.0 makes it faster, lesser than 1.0 is slower, 1.0 is normal speed. (default: `1.0`)
+ * \paramOpt volume (decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (default: `1.0`)
+ * \return integer Returns the channel index where the sound began to play, or `-1` if no channel was available.
  * \ns Sound
  */
 VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
@@ -15569,12 +16050,12 @@ VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.PlayAtChannel
  * \desc Plays or loops a sound at the specified channel.
- * \param channel (Integer): The channel index.
- * \param sound (Integer): The sound index to play.
- * \paramOpt loopPoint (Integer): Loop point in samples. Use <linkto ref="AUDIO_LOOP_NONE"></linkto> to play the sound once or <linkto ref="AUDIO_LOOP_DEFAULT"></linkto> to use the audio file's metadata. (<linkto ref="AUDIO_LOOP_DEFAULT"></linkto> is the default).
- * \paramOpt panning (Decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (0.0 is the default.)
- * \paramOpt speed (Decimal): Control the speed of the audio. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed. (1.0 is the default.)
- * \paramOpt volume (Decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (1.0 is the default.)
+ * \param channel (integer): The channel index.
+ * \param sound (integer): The sound index to play.
+ * \paramOpt loopPoint (integer): Loop point in samples. Use <ref AUDIO_LOOP_NONE> to play the sound once or <ref AUDIO_LOOP_DEFAULT> to use the audio file's metadata. (default: <ref AUDIO_LOOP_DEFAULT>)
+ * \paramOpt panning (decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (default: `0.0`)
+ * \paramOpt speed (decimal): Control the speed of the audio. Higher than 1.0 makes it faster, lesser than 1.0 is slower, 1.0 is normal speed. (default: `1.0`)
+ * \paramOpt volume (decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (default: `1.0`)
  * \return
  * \ns Sound
  */
@@ -15619,7 +16100,7 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.StopChannel
  * \desc Stops a channel.
- * \param channel (Integer): The channel index to stop.
+ * \param channel (integer): The channel index to stop.
  * \return
  * \ns Sound
  */
@@ -15636,7 +16117,7 @@ VMValue Sound_StopChannel(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.PauseChannel
  * \desc Pauses a channel.
- * \param channel (Integer): The channel index to pause.
+ * \param channel (integer): The channel index to pause.
  * \return
  * \ns Sound
  */
@@ -15653,7 +16134,7 @@ VMValue Sound_PauseChannel(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.ResumeChannel
  * \desc Unpauses a paused channel.
- * \param channel (Integer): The channel index to resume.
+ * \param channel (integer): The channel index to resume.
  * \return
  * \ns Sound
  */
@@ -15670,10 +16151,10 @@ VMValue Sound_ResumeChannel(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.AlterChannel
  * \desc Alters the playback conditions of the specified channel.
- * \param channel (Integer): The channel index to resume.
- * \param panning (Decimal): Control the panning of the sound. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it.
- * \param speed (Decimal): Control the speed of the sound. > 1.0 makes it faster, < 1.0 is slower, 1.0 is normal speed.
- * \param volume (Decimal): Controls the volume of the sound. 0.0 is muted, 1.0 is normal volume.
+ * \param channel (integer): The channel index to resume.
+ * \param panning (decimal): Control the panning of the sound. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it.
+ * \param speed (decimal): Control the speed of the sound. Higher than 1.0 makes it faster, lesser than 1.0 is slower, 1.0 is normal speed.
+ * \param volume (decimal): Controls the volume of the sound. 0.0 is muted, 1.0 is normal volume.
  * \return
  * \ns Sound
  */
@@ -15694,7 +16175,7 @@ VMValue Sound_AlterChannel(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.GetFreeChannel
  * \desc Gets the first channel index that is not currently playing any sound.
- * \return Returns the available channel index, or <code>-1</code> if no channel was available.
+ * \return integer Returns the available channel index, or `-1` if no channel was available.
  * \ns Sound
  */
 VMValue Sound_GetFreeChannel(int argCount, VMValue* args, Uint32 threadID) {
@@ -15703,8 +16184,8 @@ VMValue Sound_GetFreeChannel(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.IsChannelFree
- * \desc Checks whether a channel is currently playing any sound or not.
- * \param sound (Integer): The channel index.
+ * \desc Checks whether a channel is currently playing any sound.
+ * \param sound (integer): The channel index.
  * \ns Sound
  */
 VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
@@ -15719,8 +16200,8 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.GetLoopPoint
  * \desc Gets the loop point of a sound index, if it has one.
- * \param sound (Integer): The sound index to get the loop point.
- * \return Returns the loop point in samples, as an Integer value, or <code>null</code> if the audio does not have one.
+ * \param sound (integer): The sound index to get the loop point.
+ * \return integer Returns the loop point in samples, as an integer value, or `null` if the audio does not have one.
  * \ns Sound
  */
 VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
@@ -15734,8 +16215,8 @@ VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.SetLoopPoint
  * \desc Sets the loop point of a sound index.
- * \param sound (Integer): The sound index to set the loop point.
- * \param loopPoint (Integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.
+ * \param sound (integer): The sound index to set the loop point.
+ * \param loopPoint (integer): The loop point in samples, or `null` to remove the audio's loop point.
  * \ns Sound
  */
 VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
@@ -15768,8 +16249,8 @@ VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetAnimationCount
  * \desc Gets the amount of animations in the sprite.
- * \param sprite (Integer): The sprite index to check.
- * \return Returns the amount of animations in the sprite.
+ * \param sprite (integer): The sprite index to check.
+ * \return integer Returns the amount of animations in the sprite.
  * \ns Sprite
  */
 VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -15783,9 +16264,9 @@ VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetAnimationName
  * \desc Gets the name of the specified animation index in the sprite.
- * \param sprite (Integer): The sprite index to check.
- * \param animationIndex (Integer): The animation index.
- * \return Returns the name of the specified animation index.
+ * \param sprite (integer): The sprite index to check.
+ * \param animationIndex (integer): The animation index.
+ * \return string Returns the name of the specified animation index.
  * \ns Sprite
  */
 VMValue Sprite_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
@@ -15801,9 +16282,9 @@ VMValue Sprite_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetAnimationIndexByName
  * \desc Gets the first animation in the sprite which matches the specified name.
- * \param sprite (Integer): The sprite index to check.
- * \param name (String): The animation name to search for.
- * \return Returns the first animation index with the specified name, or -1 if there was no match.
+ * \param sprite (integer): The sprite index to check.
+ * \param name (string): The animation name to search for.
+ * \return integer Returns the first animation index with the specified name, or -1 if there was no match.
  * \ns Sprite
  */
 VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threadID) {
@@ -15823,10 +16304,10 @@ VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threa
 /***
  * Sprite.GetFrameExists
  * \desc Checks if an animation and frame is valid within a sprite.
- * \param sprite (Integer): The sprite index to check.
- * \param animation (Integer): The animation index to check.
- * \param frame (Integer): The sprite index to check.
- * \return Returns whether the frame is valid.
+ * \param sprite (integer): The sprite index to check.
+ * \param animation (integer): The animation index to check.
+ * \param frame (integer): The sprite index to check.
+ * \return boolean Returns whether the frame is valid.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -15843,9 +16324,9 @@ VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameLoopIndex
  * \desc Gets the index of the frame that the specified animation will loop back to when it finishes.
- * \param sprite (Integer): The sprite index to check.
- * \param animation (Integer): The animation index of the sprite to check.
- * \return Returns the frame loop index.
+ * \param sprite (integer): The sprite index to check.
+ * \param animation (integer): The animation index of the sprite to check.
+ * \return integer Returns the frame loop index.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -15861,9 +16342,9 @@ VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameCount
  * \desc Gets the amount of frames in the specified animation.
- * \param sprite (Integer): The sprite index to check.
- * \param animation (Integer): The animation index of the sprite to check.
- * \return Returns the frame count in the specified animation.
+ * \param sprite (integer): The sprite index to check.
+ * \param animation (integer): The animation index of the sprite to check.
+ * \return integer Returns the frame count in the specified animation.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -15879,10 +16360,10 @@ VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameDuration
  * \desc Gets the frame duration of the specified sprite frame.
- * \param sprite (Integer): The sprite index to check.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the frame duration (in game frames) of the specified sprite frame.
+ * \param sprite (integer): The sprite index to check.
+ * \param animation (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the frame duration (in game frames) of the specified sprite frame.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
@@ -15899,9 +16380,9 @@ VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameSpeed
  * \desc Gets the animation speed of the specified animation.
- * \param sprite (Integer): The sprite index to check.
- * \param animation (Integer): The animation index of the sprite to check.
- * \return Returns an Integer.
+ * \param sprite (integer): The sprite index to check.
+ * \param animation (integer): The animation index of the sprite to check.
+ * \return integer Returns an integer.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -15917,10 +16398,10 @@ VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameWidth
  * \desc Gets the frame width of the specified sprite frame.
- * \param sprite (Integer): The sprite index to check.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the frame width (in pixels) of the specified sprite frame.
+ * \param sprite (integer): The sprite index to check.
+ * \param animation (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the frame width (in pixels) of the specified sprite frame.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -15937,10 +16418,10 @@ VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameHeight
  * \desc Gets the frame height of the specified sprite frame.
- * \param sprite (Integer): The sprite index to check.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the frame height (in pixels) of the specified sprite frame.
+ * \param sprite (integer): The sprite index to check.
+ * \param animation (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the frame height (in pixels) of the specified sprite frame.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -15957,10 +16438,10 @@ VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameID
  * \desc Gets the frame ID of the specified sprite frame.
- * \param sprite (Integer): The sprite index to check.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the frame ID of the specified sprite frame.
+ * \param sprite (integer): The sprite index to check.
+ * \param animation (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the frame ID of the specified sprite frame.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
@@ -15977,10 +16458,10 @@ VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameOffsetX
  * \desc Gets the X offset of the specified sprite frame.
- * \param sprite (Integer): The sprite index to check.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the X offset of the specified sprite frame.
+ * \param sprite (integer): The sprite index to check.
+ * \param animation (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the X offset of the specified sprite frame.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
@@ -15997,10 +16478,10 @@ VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameOffsetY
  * \desc Gets the Y offset of the specified sprite frame.
- * \param sprite (Integer): The sprite index to check.
- * \param animation (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the Y offset of the specified sprite frame.
+ * \param sprite (integer): The sprite index to check.
+ * \param animation (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the Y offset of the specified sprite frame.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
@@ -16017,11 +16498,11 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetHitboxName
  * \desc Gets the name of a hitbox through its index.
- * \param sprite (Integer): The sprite index to check.
- * \param animationID (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \param hitboxID (Integer): The hitbox index to check.
- * \return Returns a String value.
+ * \param sprite (integer): The sprite index to check.
+ * \param animationID (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \param hitboxID (integer): The hitbox index to check.
+ * \return string Returns a string value.
  * \ns Sprite
  */
 VMValue Sprite_GetHitboxName(int argCount, VMValue* args, Uint32 threadID) {
@@ -16053,11 +16534,11 @@ VMValue Sprite_GetHitboxName(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetHitboxIndex
  * \desc Gets the index of a hitbox by its name.
- * \param sprite (Integer): The sprite index to check.
- * \param animationID (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \param name (String): The name of the hitbox to check.
- * \return Returns an Integer value, or <code>null</code> if no such hitbox exists with that name.
+ * \param sprite (integer): The sprite index to check.
+ * \param animationID (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \param name (string): The name of the hitbox to check.
+ * \return integer Returns an integer value, or `null` if no such hitbox exists with that name.
  * \ns Sprite
  */
 VMValue Sprite_GetHitboxIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -16085,10 +16566,10 @@ VMValue Sprite_GetHitboxIndex(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetHitboxCount
  * \desc Gets the hitbox count in the given frame of an animation of a sprite.
- * \param sprite (Integer): The sprite index to check.
- * \param animationID (Integer): The animation index of the sprite to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns an Integer value.
+ * \param sprite (integer): The sprite index to check.
+ * \param animationID (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns an integer value.
  * \ns Sprite
  */
 VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -16108,13 +16589,38 @@ VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sprite.GetHitbox
- * \desc Gets the hitbox of a sprite frame. If an entity is provided as the first argument, the only parameters are <code>entity</code> and <code>hitbox</code>. Otherwise, the required parameters are <code>sprite</code>, <code>animationID</code>, and <code>frameID</code>.
- * \param entity (Entity): An entity with <code>Sprite</code>, <code>CurrentAnimation</code>, and <code>CurrentFrame</code> values (if provided).
- * \param sprite (Integer): The sprite index to check (if an entity is not provided).
- * \param animationID (Integer): The animation index of the sprite to check (if an entity is not provided).
- * \param frameID (Integer): The frame index of the animation to check (if an entity is not provided).
- * \paramOpt hitbox (String or Integer): The hitbox name or index. Defaults to <code>0</code>.
- * \return Returns an Array value.
+ * \desc Gets the hitbox of a sprite frame.
+ * \param entity (Entity): An entity with `Sprite`, `CurrentAnimation`, and `CurrentFrame` values.
+ * \paramOpt hitbox (string): The hitbox name.
+ * \return hitbox Returns a Hitbox value.
+ * \ns Sprite
+ */
+/***
+ * Sprite.GetHitbox
+ * \desc Gets the hitbox of a sprite frame.
+ * \param entity (Entity): An entity with `Sprite`, `CurrentAnimation`, and `CurrentFrame` values.
+ * \paramOpt hitbox (integer): The hitbox index. (default: `0`)
+ * \return hitbox Returns a Hitbox value.
+ * \ns Sprite
+ */
+/***
+ * Sprite.GetHitbox
+ * \desc Gets the hitbox of a sprite frame.
+ * \param sprite (integer): The sprite index to check.
+ * \param animationID (integer): The animation index of the sprite to check.
+ * \param frameID (integer): The frame index of the animation to check.
+ * \paramOpt hitbox (string): The hitbox name.
+ * \return hitbox Returns a Hitbox value.
+ * \ns Sprite
+ */
+/***
+ * Sprite.GetHitbox
+ * \desc Gets the hitbox of a sprite frame.
+ * \param sprite (integer): The sprite index to check.
+ * \param animationID (integer): The animation index of the sprite to check.
+ * \param frameID (integer): The frame index of the animation to check.
+ * \paramOpt hitbox (integer): The hitbox index. (default: `0`)
+ * \return hitbox Returns a Hitbox value.
  * \ns Sprite
  */
 VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
@@ -16152,6 +16658,10 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ANIMFRAME_INDEX(animationID, frameID);
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+	if (frame.Boxes.size() == 0) {
+		THROW_ERROR("Frame %d of animation %d contains no hitboxes.", frameID, animationID);
+		return NULL_VAL;
+	}
 
 	if (argCount > hitboxArgNum && IS_STRING(args[hitboxArgNum])) {
 		char* name = GET_ARG(hitboxArgNum, GetString);
@@ -16180,30 +16690,24 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		hitboxID = GET_ARG_OPT(hitboxArgNum, GetInteger, 0);
 	}
 
-	ObjArray* hitbox = NewArray();
-	if (hitboxID >= 0 && hitboxID < (int)frame.Boxes.size()) {
-		CollisionBox box = frame.Boxes[hitboxID];
-		hitbox->Values->push_back(INTEGER_VAL(box.Left));
-		hitbox->Values->push_back(INTEGER_VAL(box.Top));
-		hitbox->Values->push_back(INTEGER_VAL(box.Right));
-		hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
+	if (hitboxID < 0 || hitboxID >= (int)frame.Boxes.size()) {
+		THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
+			hitboxID,
+			frameID,
+			animationID);
+		return NULL_VAL;
 	}
-	else {
-		// TODO: Make this an error.
-		// For backwards compatibility, currently it doesn't.
-		for (int i = 0; i < 4; i++) {
-			hitbox->Values->push_back(INTEGER_VAL(0));
-		}
-	}
-	return OBJECT_VAL(hitbox);
+
+	CollisionBox box = frame.Boxes[hitboxID];
+	return HITBOX_VAL(box.Left, box.Top, box.Right, box.Bottom);
 }
 /***
  * Sprite.GetTextArray
  * \desc Converts a string to an array of sprite indexes by comparing codepoints to a frame's ID.
- * \param sprite (Integer): The sprite index.
- * \param animation (Integer): The animation index containing frames with codepoint ID values.
- * \param text (String): The text to convert.
- * \return Returns an array of sprite indexes per character in the text.
+ * \param sprite (integer): The sprite index.
+ * \param animation (integer): The animation index containing frames with codepoint ID values.
+ * \param text (string): The text to convert.
+ * \return array Returns an array of sprite indexes per character in the text.
  * \ns Sprite
  */
 VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
@@ -16214,8 +16718,9 @@ VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjArray* textArray = NewArray();
 
-	if (!sprite || !string)
+	if (!sprite || !string) {
 		return OBJECT_VAL(textArray);
+	}
 
 	if (animation >= 0 && animation < (int)sprite->Animations.size()) {
 		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
@@ -16228,15 +16733,17 @@ VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
 
 			bool found = false;
 			for (int f = 0; f < (int)sprite->Animations[animation].Frames.size(); f++) {
-				if (sprite->Animations[animation].Frames[f].Advance == (int)codepoint) {
+				if (sprite->Animations[animation].Frames[f].Advance ==
+					(int)codepoint) {
 					textArray->Values->push_back(INTEGER_VAL(f));
 					found = true;
 					break;
 				}
 			}
 
-			if (!found)
+			if (!found) {
 				textArray->Values->push_back(INTEGER_VAL(-1));
+			}
 		}
 	}
 
@@ -16245,11 +16752,11 @@ VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetTextWidth
  * \desc Gets the width (in pixels) of a converted sprite string.
- * \param sprite (Integer): The sprite index.
- * \param animation (Integer): The animation index.
- * \param text (Array): The array containing frame indexes.
- * \param startIndex (Integer): Where to start checking the width.
- * \param spacing (Integer): The spacing (in pixels) between frames.
+ * \param sprite (integer): The sprite index.
+ * \param animation (integer): The animation index.
+ * \param text (array): The array containing frame indexes.
+ * \param startIndex (integer): Where to start checking the width.
+ * \param spacing (integer): The spacing (in pixels) between frames.
  * \ns Sprite
  */
 VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -16273,12 +16780,14 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 
 			startIndex = (int)Math::Clamp(startIndex, 0, (int)text->Values->size() - 1);
 
-			if (length <= 0 || length > (int)text->Values->size())
+			if (length <= 0 || length > (int)text->Values->size()) {
 				length = (int)text->Values->size();
+			}
 
 			int w = 0;
 			for (int c = startIndex; c < length; c++) {
-				int charFrame = AS_INTEGER(Value::CastAsInteger((*text->Values)[c]));
+				int charFrame =
+					AS_INTEGER(Value::CastAsInteger((*text->Values)[c]));
 				if (charFrame < anim.Frames.size()) {
 					w += anim.Frames[charFrame].Width;
 					if (c + 1 >= length) {
@@ -16293,15 +16802,14 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 			ScriptManager::Unlock();
 			return INTEGER_VAL(w);
 		}
-
 	}
 	return INTEGER_VAL(0);
 }
 /***
  * Sprite.MakePalettized
  * \desc Converts a sprite's colors to the ones in the specified palette index.
- * \param sprite (Integer): The sprite index.
- * \param paletteIndex (Integer): The palette index.
+ * \param sprite (integer): The sprite index.
+ * \param paletteIndex (integer): The palette index.
  * \ns Sprite
  */
 VMValue Sprite_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
@@ -16318,7 +16826,7 @@ VMValue Sprite_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.MakeNonPalettized
  * \desc Removes a sprite's palette.
- * \param sprite (Integer): The sprite index.
+ * \param sprite (integer): The sprite index.
  * \ns Sprite
  */
 VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
@@ -16337,8 +16845,8 @@ VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.FromResource
  * \desc Opens a stream from a resource.
- * \param filename (String): Filename of the resource.
- * \return Returns the newly opened stream.
+ * \param filename (string): Filename of the resource.
+ * \return stream Returns the newly opened stream.
  * \ns Stream
  */
 VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
@@ -16359,10 +16867,10 @@ VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Stream.FromFile
- * \desc Opens a stream from a file. See <linkto ref="FileStream_*"></linkto> for a list of accepted file access modes.
- * \param filename (String): Path of the file.
- * \param mode (Enum): <linkto ref="FileStream_*">File access mode</linkto>.
- * \return Returns the newly opened stream.
+ * \desc Opens a stream from a file.
+ * \param filename (string): Path of the file.
+ * \param mode (<ref FileStream_*>): The file access mode.
+ * \return stream Returns the newly opened stream.
  * \ns Stream
  */
 VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
@@ -16386,7 +16894,7 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.Close
  * \desc Closes a stream.
- * \param stream (Stream): The stream to close.
+ * \param stream (stream): The stream to close.
  * \ns Stream
  */
 VMValue Stream_Close(int argCount, VMValue* args, Uint32 threadID) {
@@ -16403,8 +16911,8 @@ VMValue Stream_Close(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.Seek
  * \desc Seeks a stream, relative to the start of the stream.
- * \param stream (Stream): The stream to seek.
- * \param offset (Integer): Offset to seek to.
+ * \param stream (stream): The stream to seek.
+ * \param offset (integer): Offset to seek to.
  * \ns Stream
  */
 VMValue Stream_Seek(int argCount, VMValue* args, Uint32 threadID) {
@@ -16421,8 +16929,8 @@ VMValue Stream_Seek(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.SeekEnd
  * \desc Seeks a stream, relative to the end.
- * \param stream (Stream): The stream to seek.
- * \param offset (Integer): Offset to seek to.
+ * \param stream (stream): The stream to seek.
+ * \param offset (integer): Offset to seek to.
  * \ns Stream
  */
 VMValue Stream_SeekEnd(int argCount, VMValue* args, Uint32 threadID) {
@@ -16439,8 +16947,8 @@ VMValue Stream_SeekEnd(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.Skip
  * \desc Seeks a stream, relative to the current position.
- * \param stream (Stream): The stream to skip.
- * \param offset (Integer): How many bytes to skip.
+ * \param stream (stream): The stream to skip.
+ * \param offset (integer): How many bytes to skip.
  * \ns Stream
  */
 VMValue Stream_Skip(int argCount, VMValue* args, Uint32 threadID) {
@@ -16457,8 +16965,8 @@ VMValue Stream_Skip(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.Position
  * \desc Returns the current position of the stream.
- * \param stream (Stream): The stream.
- * \return The current position of the stream.
+ * \param stream (stream): The stream.
+ * \return integer The current position of the stream.
  * \ns Stream
  */
 VMValue Stream_Position(int argCount, VMValue* args, Uint32 threadID) {
@@ -16473,8 +16981,8 @@ VMValue Stream_Position(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.Length
  * \desc Returns the length of the stream.
- * \param stream (Stream): The stream.
- * \return The length of the stream.
+ * \param stream (stream): The stream.
+ * \return integer The length of the stream.
  * \ns Stream
  */
 VMValue Stream_Length(int argCount, VMValue* args, Uint32 threadID) {
@@ -16489,8 +16997,8 @@ VMValue Stream_Length(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadByte
  * \desc Reads an unsigned 8-bit number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns an unsigned 8-bit number as an Integer value.
+ * \param stream (stream): The stream.
+ * \return integer Returns an unsigned 8-bit number as an integer value.
  * \ns Stream
  */
 VMValue Stream_ReadByte(int argCount, VMValue* args, Uint32 threadID) {
@@ -16502,8 +17010,8 @@ VMValue Stream_ReadByte(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadUInt16
  * \desc Reads an unsigned 16-bit number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns an unsigned 16-bit number as an Integer value.
+ * \param stream (stream): The stream.
+ * \return integer Returns an unsigned 16-bit number as an integer value.
  * \ns Stream
  */
 VMValue Stream_ReadUInt16(int argCount, VMValue* args, Uint32 threadID) {
@@ -16515,8 +17023,8 @@ VMValue Stream_ReadUInt16(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadUInt16BE
  * \desc Reads an unsigned big-endian 16-bit number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns an unsigned big-endian 16-bit number as an Integer value.
+ * \param stream (stream): The stream.
+ * \return integer Returns an unsigned big-endian 16-bit number as an integer value.
  * \ns Stream
  */
 VMValue Stream_ReadUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -16528,8 +17036,8 @@ VMValue Stream_ReadUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadUInt32
  * \desc Reads an unsigned 32-bit number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns an unsigned 32-bit number as an Integer value.
+ * \param stream (stream): The stream.
+ * \return integer Returns an unsigned 32-bit number as an integer value.
  * \ns Stream
  */
 VMValue Stream_ReadUInt32(int argCount, VMValue* args, Uint32 threadID) {
@@ -16541,8 +17049,8 @@ VMValue Stream_ReadUInt32(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadUInt32BE
  * \desc Reads an unsigned big-endian 32-bit number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns an unsigned big-endian 32-bit number as an Integer value.
+ * \param stream (stream): The stream.
+ * \return integer Returns an unsigned big-endian 32-bit number as an integer value.
  * \ns Stream
  */
 VMValue Stream_ReadUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -16554,8 +17062,8 @@ VMValue Stream_ReadUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadUInt64
  * \desc Reads an unsigned 64-bit number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns an unsigned 64-bit number as an Integer value.
+ * \param stream (stream): The stream.
+ * \return integer Returns an unsigned 64-bit number as an integer value.
  * \ns Stream
  */
 VMValue Stream_ReadUInt64(int argCount, VMValue* args, Uint32 threadID) {
@@ -16567,8 +17075,8 @@ VMValue Stream_ReadUInt64(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadInt16
  * \desc Reads a signed 16-bit number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns a signed 16-bit number as an Integer value.
+ * \param stream (stream): The stream.
+ * \return integer Returns a signed 16-bit number as an integer value.
  * \ns Stream
  */
 VMValue Stream_ReadInt16(int argCount, VMValue* args, Uint32 threadID) {
@@ -16580,8 +17088,8 @@ VMValue Stream_ReadInt16(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadInt16BE
  * \desc Reads a signed big-endian 16-bit number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns a signed big-endian 16-bit number as an Integer value.
+ * \param stream (stream): The stream.
+ * \return integer Returns a signed big-endian 16-bit number as an integer value.
  * \ns Stream
  */
 VMValue Stream_ReadInt16BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -16593,8 +17101,8 @@ VMValue Stream_ReadInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadInt32
  * \desc Reads a signed 32-bit number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns a signed 32-bit number as an Integer value.
+ * \param stream (stream): The stream.
+ * \return integer Returns a signed 32-bit number as an integer value.
  * \ns Stream
  */
 VMValue Stream_ReadInt32(int argCount, VMValue* args, Uint32 threadID) {
@@ -16606,8 +17114,8 @@ VMValue Stream_ReadInt32(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadInt32BE
  * \desc Reads a signed big-endian 32-bit number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns a signed big-endian 32-bit number as an Integer value.
+ * \param stream (stream): The stream.
+ * \return integer Returns a signed big-endian 32-bit number as an integer value.
  * \ns Stream
  */
 VMValue Stream_ReadInt32BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -16619,8 +17127,8 @@ VMValue Stream_ReadInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadInt64
  * \desc Reads a signed 64-bit number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns a signed 64-bit Integer value.
+ * \param stream (stream): The stream.
+ * \return integer Returns a signed 64-bit Integer value.
  * \ns Stream
  */
 VMValue Stream_ReadInt64(int argCount, VMValue* args, Uint32 threadID) {
@@ -16632,8 +17140,8 @@ VMValue Stream_ReadInt64(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadFloat
  * \desc Reads a floating point number from the stream.
- * \param stream (Stream): The stream.
- * \return Returns a Decimal value.
+ * \param stream (stream): The stream.
+ * \return decimal Returns a decimal value.
  * \ns Stream
  */
 VMValue Stream_ReadFloat(int argCount, VMValue* args, Uint32 threadID) {
@@ -16645,8 +17153,8 @@ VMValue Stream_ReadFloat(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadString
  * \desc Reads a null-terminated string from the stream.
- * \param stream (Stream): The stream.
- * \return Returns a String value.
+ * \param stream (stream): The stream.
+ * \return string Returns a string value.
  * \ns Stream
  */
 VMValue Stream_ReadString(int argCount, VMValue* args, Uint32 threadID) {
@@ -16664,8 +17172,8 @@ VMValue Stream_ReadString(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.ReadLine
  * \desc Reads a line from the stream.
- * \param stream (Stream): The stream.
- * \return Returns a String value.
+ * \param stream (stream): The stream.
+ * \return string Returns a string value.
  * \ns Stream
  */
 VMValue Stream_ReadLine(int argCount, VMValue* args, Uint32 threadID) {
@@ -16683,8 +17191,8 @@ VMValue Stream_ReadLine(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteByte
  * \desc Writes an unsigned 8-bit number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Integer): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteByte(int argCount, VMValue* args, Uint32 threadID) {
@@ -16698,8 +17206,8 @@ VMValue Stream_WriteByte(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteUInt16
  * \desc Writes an unsigned 16-bit number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Integer): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteUInt16(int argCount, VMValue* args, Uint32 threadID) {
@@ -16713,8 +17221,8 @@ VMValue Stream_WriteUInt16(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteUInt16BE
  * \desc Writes an unsigned big-endian 16-bit number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Integer): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -16728,8 +17236,8 @@ VMValue Stream_WriteUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteUInt32
  * \desc Writes an unsigned 32-bit number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Integer): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteUInt32(int argCount, VMValue* args, Uint32 threadID) {
@@ -16743,8 +17251,8 @@ VMValue Stream_WriteUInt32(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteUInt32BE
  * \desc Writes an unsigned big-endian 32-bit number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Integer): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -16758,8 +17266,8 @@ VMValue Stream_WriteUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteUInt64
  * \desc Writes an unsigned 64-bit number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Integer): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteUInt64(int argCount, VMValue* args, Uint32 threadID) {
@@ -16773,8 +17281,8 @@ VMValue Stream_WriteUInt64(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteInt16
  * \desc Writes a signed 16-bit number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Integer): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteInt16(int argCount, VMValue* args, Uint32 threadID) {
@@ -16788,8 +17296,8 @@ VMValue Stream_WriteInt16(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteInt16BE
  * \desc Writes a signed big-endian 16-bit number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Integer): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteInt16BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -16803,8 +17311,8 @@ VMValue Stream_WriteInt16BE(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteInt32
  * \desc Writes a signed 32-bit number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Integer): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteInt32(int argCount, VMValue* args, Uint32 threadID) {
@@ -16818,8 +17326,8 @@ VMValue Stream_WriteInt32(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteInt32BE
  * \desc Writes a signed big-endian 32-bit number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Integer): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteInt32BE(int argCount, VMValue* args, Uint32 threadID) {
@@ -16833,8 +17341,8 @@ VMValue Stream_WriteInt32BE(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteInt64
  * \desc Writes a signed 64-bit number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Integer): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (integer): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteInt64(int argCount, VMValue* args, Uint32 threadID) {
@@ -16848,8 +17356,8 @@ VMValue Stream_WriteInt64(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteFloat
  * \desc Writes a floating point number to the stream.
- * \param stream (Stream): The stream.
- * \param value (Decimal): The value to write.
+ * \param stream (stream): The stream.
+ * \param value (decimal): The value to write.
  * \ns Stream
  */
 VMValue Stream_WriteFloat(int argCount, VMValue* args, Uint32 threadID) {
@@ -16863,8 +17371,8 @@ VMValue Stream_WriteFloat(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Stream.WriteString
  * \desc Writes a null-terminated string to the stream.
- * \param stream (Stream): The stream.
- * \param string (String): The string to write.
+ * \param stream (stream): The stream.
+ * \param string (string): The string to write.
  * \ns Stream
  */
 VMValue Stream_WriteString(int argCount, VMValue* args, Uint32 threadID) {
@@ -16882,49 +17390,44 @@ VMValue Stream_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 // #region String
 /***
  * String.Format
- * \desc Formats a <b>format string</b> according to the given <b>format specifiers</b>. A format specifier is a string of the form<br><br>\
-<code>%[flags][width][.precision][conversion specifier]</code><br><br>\
-where a <b>conversion specifier</b> must be one of the following:<br/>\
-<ul>\
-<li><code>d</code>: Integers</li>\
-<li><code>f</code> or <code>%F</code>: Decimals</li>\
-<li><code>s</code>: Strings</li>\
-<li><code>c</code>: Characters</li>\
-<li><code>x</code> or <code>%X</code>: Hexadecimal integers</li>\
-<li><code>b</code> or <code>%b</code>: Binary integers</li>\
-<li><code>o</code>: Octal integers</li>\
-<li><code>%</code>: A literal percent sign character</li>\
+ * \desc Formats a <b>format string</b> according to the given <b>format specifiers</b>. A format specifier is a string of the form <code>%[flags][width][.precision][conversion specifier]</code> where a <b>conversion specifier</b> must be one of the following:<br/>\
+<ul><li>`d`: Integers</li>\
+<li>`f` or `%F`: Decimals</li>\
+<li>`s`: Strings</li>\
+<li>`c`: Characters</li>\
+<li>`x` or `%X`: Hexadecimal integers</li>\
+<li>`b` or `%b`: Binary integers</li>\
+<li>`o`: Octal integers</li>\
+<li>`%`: A literal percent sign character</li>\
 </ul>\
 <b>Flags</b> are optional, and must be one of the following:<br/>\
-<ul>\
-<li><code>0</code>: Pads the value with leading zeroes. See the <b>width sub-specifier</b>.</li>\
-<li><code>-</code>: Left-justifies the result. See the <b>width sub-specifier</b>.</li>\
-<li><code>#</code>: Prefixes something to the value depending on the <b>conversion specifier</b>:<ul>\
-<li><code>x</code> or <code>X</code>: Prefixes the value with <code>0x</code> or <code>0X</code> respectively.</li>\
-<li><code>b</code> or <code>B</code>: Prefixes the value with <code>0b</code> or <code>0B</code> respectively.</li>\
-<li><code>f</code>: Prefixes the value with a <code>.</code> character.</li>\
-<li><code>o</code>: Prefixes the value with a <code>0</code> character.</li>\
+<ul><li>`0`: Pads the value with leading zeroes. See the <b>width sub-specifier</b>.</li>\
+<li>`-`: Left-justifies the result. See the <b>width sub-specifier</b>.</li>\
+<li>`#`: Prefixes something to the value depending on the <b>conversion specifier</b>:\
+<ul><li>`x` or `X`: Prefixes the value with `0x` or `0X` respectively.</li>\
+<li>`b` or `B`: Prefixes the value with `0b` or `0B` respectively.</li>\
+<li>`f`: Prefixes the value with a `.` character.</li>\
+<li>`o`: Prefixes the value with a `0` character.</li>\
 </ul>\
-<li><code>+</code>: Prefixes positive numbers with a plus sign.</li>\
-<li>A space character: If no sign character (<code>-</code> or <code>+</code>) was written, a space character is written instead.</li>\
+</li>\
+<li>`+`: Prefixes positive numbers with a plus sign.</li>\
+<li>A space character: If no sign character (`-` or `+`) was written, a space character is written instead.</li>\
 </ul>\
 A <b>width sub-specifier</b> is used in conjunction with the flags:<br/>\
-<ul>\
-<li>A number: The amount of padding to add.</li>\
-<li><code>*</code>: This functions the same as the above, but the width is given in the next argument as an Integer value.</li>\
+<ul><li>A number: The amount of padding to add.</li>\
+<li>`*`: This functions the same as the above, but the width is given in the next argument as an Integer value.</li>\
 </ul>\
 <b>Precision specifiers</b> are also supported:<br/>\
-<ul>\
-<li><code>.</code> followed by a number:<ul>\
-<li>For Integer values, this pads the value with leading zeroes.</li>\
+<ul><li>`.` followed by a number:<ul><li>For Integer values, this pads the value with leading zeroes.</li>\
 <li>For Decimal values, this specifies the number of digits to be printed after the decimal point (which is 6 by default).</li>\
 <li>For String values, this is the maximum amount of characters to be printed.</li>\
 </ul>\
-<li><code>.</code> followed by a <code>*</code>: This functions the same as the above, but the precision is given in the next argument as an Integer value.</li>\
+</li>\
+<li>`.` followed by a `*`: This functions the same as the above, but the precision is given in the next argument as an Integer value.</li>\
 </ul>
- * \param string (String): The format string.
- * \paramOpt values (any type): Variable arguments.
- * \return Returns a String value.
+ * \param string (string): The format string.
+ * \paramOpt values (value): Variable arguments.
+ * \return string Returns a string value.
  * \ns String
  */
 VMValue String_Format(int argCount, VMValue* args, Uint32 threadID) {
@@ -16948,9 +17451,9 @@ VMValue String_Format(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.Split
  * \desc Splits a string by a delimiter.
- * \param string (String): The string to split.
- * \param delimiter (Integer): The delimiter string.
- * \return Returns an Array of String values.
+ * \param string (string): The string to split.
+ * \param delimiter (integer): The delimiter string.
+ * \return array Returns an array of string values.
  * \ns String
  */
 VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
@@ -16977,24 +17480,24 @@ VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.CharAt
  * \desc Gets the 8-bit value of the character at the specified index.
- * \param string (String): The string containing the character.
- * \param index (Integer): The character index to check.
- * \return Returns the value as an Integer.
+ * \param string (string): The string containing the character.
+ * \param index (integer): The character index to check.
+ * \return integer Returns the value as an integer.
  * \ns String
  */
 VMValue String_CharAt(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	char* string = GET_ARG(0, GetString);
 	int n = GET_ARG(1, GetInteger);
-	
+
 	return INTEGER_VAL((Uint8)string[n]);
 }
 /***
  * String.CodepointAt
  * \desc Gets the codepoint value of the character at the specified index.
- * \param string (String): The string containing the character.
- * \param index (Integer): The character index to check.
- * \return Returns the value as an Integer.
+ * \param string (string): The string containing the character.
+ * \param index (integer): The character index to check.
+ * \return integer Returns the value as an integer.
  * \ns String
  */
 VMValue String_CodepointAt(int argCount, VMValue* args, Uint32 threadID) {
@@ -17006,9 +17509,9 @@ VMValue String_CodepointAt(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.Length
- * \desc Gets the length of the String value.
- * \param string (String): The input string.
- * \return Returns the length of the String value as an Integer.
+ * \desc Gets the length of the string value.
+ * \param string (string): The input string.
+ * \return integer Returns the length of the string value as an integer.
  * \ns String
  */
 VMValue String_Length(int argCount, VMValue* args, Uint32 threadID) {
@@ -17018,10 +17521,10 @@ VMValue String_Length(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.Compare
- * \desc Compares two Strings lexicographically.
- * \param stringA (String): The first string to compare.
- * \param stringB (String): The second string to compare.
- * \return Returns the comparison result as an Integer. The return value is a negative integer if <code>stringA</code> appears before <code>stringB</code> lexicographically, a positive integer if <code>stringA</code> appears after <code>stringB</code> lexicographically, and zero if <code>stringA</code> and <code>stringB</code> are equal.
+ * \desc Compares two strings lexicographically.
+ * \param stringA (string): The first string to compare.
+ * \param stringB (string): The second string to compare.
+ * \return integer Returns the comparison result as an integer. The return value is a negative integer if <param stringA> appears before `stringB` lexicographically, a positive integer if <param stringA> appears after <param stringB> lexicographically, and zero if <param stringA> and <param stringB> are equal.
  * \ns String
  */
 VMValue String_Compare(int argCount, VMValue* args, Uint32 threadID) {
@@ -17033,9 +17536,9 @@ VMValue String_Compare(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.IndexOf
  * \desc Get the first index at which the substring occurs in the string.
- * \param string (String): The string to compare.
- * \param substring (String): The substring to search for.
- * \return Returns the index as an Integer.
+ * \param string (string): The string to compare.
+ * \param substring (string): The substring to search for.
+ * \return integer Returns the index as an integer.
  * \ns String
  */
 VMValue String_IndexOf(int argCount, VMValue* args, Uint32 threadID) {
@@ -17050,10 +17553,10 @@ VMValue String_IndexOf(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.Contains
- * \desc Searches for whether or not a substring is within a String value.
- * \param string (String): The string to compare.
- * \param substring (String): The substring to search for.
- * \return Returns a Boolean value.
+ * \desc Searches for whether a substring is within a string value.
+ * \param string (string): The string to compare.
+ * \param substring (string): The substring to search for.
+ * \return boolean Returns a boolean value.
  * \ns String
  */
 VMValue String_Contains(int argCount, VMValue* args, Uint32 threadID) {
@@ -17064,11 +17567,11 @@ VMValue String_Contains(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.Substring
- * \desc Get a String value from a portion of a larger String value.
- * \param string (String): The input string.
- * \param startIndex (Integer): The starting index of the substring.
- * \param length (Integer): The length of the substring.
- * \return Returns a String value.
+ * \desc Get a string value from a portion of a larger string value.
+ * \param string (string): The input string.
+ * \param startIndex (integer): The starting index of the substring.
+ * \param length (integer): The length of the substring.
+ * \return string Returns a string value.
  * \ns String
  */
 VMValue String_Substring(int argCount, VMValue* args, Uint32 threadID) {
@@ -17091,9 +17594,9 @@ VMValue String_Substring(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.ToUpperCase
- * \desc Convert a String value to its uppercase representation.
- * \param string (String): The string to make uppercase.
- * \return Returns a uppercase String value.
+ * \desc Convert a string value to its uppercase representation.
+ * \param string (string): The string to make uppercase.
+ * \return string Returns a uppercase string value.
  * \ns String
  */
 VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
@@ -17118,9 +17621,9 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.ToLowerCase
- * \desc Convert a String value to its lowercase representation.
- * \param string (String): The string to make lowercase.
- * \return Returns a lowercase String value.
+ * \desc Convert a string value to its lowercase representation.
+ * \param string (string): The string to make lowercase.
+ * \return string Returns a lowercase string value.
  * \ns String
  */
 VMValue String_ToLowerCase(int argCount, VMValue* args, Uint32 threadID) {
@@ -17143,9 +17646,9 @@ VMValue String_ToLowerCase(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.LastIndexOf
  * \desc Get the last index at which the substring occurs in the string.
- * \param string (String): The string to compare.
- * \param substring (String): The substring to search for.
- * \return Returns the index as an Integer.
+ * \param string (string): The string to compare.
+ * \param substring (string): The substring to search for.
+ * \return integer Returns the index as an integer.
  * \ns String
  */
 VMValue String_LastIndexOf(int argCount, VMValue* args, Uint32 threadID) {
@@ -17172,14 +17675,14 @@ VMValue String_LastIndexOf(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.ParseInteger
- * \desc Converts a String value to an Integer value, if possible.
- * \param string (String): The string to parse.
- * \paramOpt radix (Integer): The numerical base, or radix. If <code>0</code>, the radix is detected by the value of <code>string</code>: <br/>\
-If <code>string</code> begins with <code>0x</code>, it is a hexadecimal number (base 16);<br/>\
-Else, if <code>string</code> begins with <code>0</code>, it is an octal number (base 8);<br/>\
-Else, if <code>string</code> begins with <code>0b</code>, it is a binary number (base 2);<br/>\
+ * \desc Converts a string value to an integer value, if possible.
+ * \param string (string): The string to parse.
+ * \paramOpt radix (integer): The numerical base, or radix. If `0`, the radix is detected by the value of `string`: <br/>\
+If <param string> begins with `0x`, it is a hexadecimal number (base 16);<br/>\
+Else, if <param string> begins with `0`, it is an octal number (base 8);<br/>\
+Else, if <param string> begins with `0b`, it is a binary number (base 2);<br/>\
 Else, the number is assumed to be in base 10.
- * \return Returns the value as an Integer.
+ * \return integer Returns the value as an integer.
  * \ns String
  */
 VMValue String_ParseInteger(int argCount, VMValue* args, Uint32 threadID) {
@@ -17194,9 +17697,9 @@ VMValue String_ParseInteger(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * String.ParseDecimal
- * \desc Convert a String value to a Decimal value if possible.
- * \param string (String): The string to parse.
- * \return Returns the value as a Decimal.
+ * \desc Convert a string value to a decimal value if possible.
+ * \param string (string): The string to parse.
+ * \return decimal Returns the value as a decimal.
  * \ns String
  */
 VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {
@@ -17207,8 +17710,8 @@ VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.GetCodepoints
  * \desc Gets a list of UCS codepoints from UTF-8 text.
- * \param string (String): The UTF-8 string.
- * \return Returns an Array of Integer values.
+ * \param string (string): The UTF-8 string.
+ * \return array Returns an array of Integer values.
  * \ns String
  */
 VMValue String_GetCodepoints(int argCount, VMValue* args, Uint32 threadID) {
@@ -17230,8 +17733,8 @@ VMValue String_GetCodepoints(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * String.FromCodepoints
  * \desc Creates UTF-8 text from a list of UCS codepoints.
- * \param codepoints (Array): An Array of Integer values.
- * \return Returns a String value.
+ * \param codepoints (array): An array of integer values.
+ * \return string Returns a string value.
  * \ns String
  */
 VMValue String_FromCodepoints(int argCount, VMValue* args, Uint32 threadID) {
@@ -17322,8 +17825,8 @@ VMValue Texture_Copy(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Touch.GetX
  * \desc Gets the X position of a touch.
- * \param touchIndex (Integer):
- * \return Returns a Decimal value.
+ * \param touchIndex (integer):
+ * \return decimal Returns a decimal value.
  * \ns Touch
  */
 VMValue Touch_GetX(int argCount, VMValue* args, Uint32 threadID) {
@@ -17333,8 +17836,8 @@ VMValue Touch_GetX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Touch.GetY
  * \desc Gets the Y position of a touch.
- * \param touchIndex (Integer):
- * \return Returns a Decimal value.
+ * \param touchIndex (integer):
+ * \return decimal Returns a decimal value.
  * \ns Touch
  */
 VMValue Touch_GetY(int argCount, VMValue* args, Uint32 threadID) {
@@ -17344,8 +17847,8 @@ VMValue Touch_GetY(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Touch.IsDown
  * \desc Gets whether a touch is currently down on the screen.
- * \param touchIndex (Integer):
- * \return Returns a Boolean value.
+ * \param touchIndex (integer):
+ * \return boolean Returns a boolean value.
  * \ns Touch
  */
 VMValue Touch_IsDown(int argCount, VMValue* args, Uint32 threadID) {
@@ -17355,8 +17858,8 @@ VMValue Touch_IsDown(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Touch.IsPressed
  * \desc Gets whether a touch just pressed down on the screen.
- * \param touchIndex (Integer):
- * \return Returns a Boolean value.
+ * \param touchIndex (integer):
+ * \return boolean Returns a boolean value.
  * \ns Touch
  */
 VMValue Touch_IsPressed(int argCount, VMValue* args, Uint32 threadID) {
@@ -17366,8 +17869,8 @@ VMValue Touch_IsPressed(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Touch.IsReleased
  * \desc Gets whether a touch just released from the screen.
- * \param touchIndex (Integer):
- * \return Returns a Boolean value.
+ * \param touchIndex (integer):
+ * \return boolean Returns a boolean value.
  * \ns Touch
  */
 VMValue Touch_IsReleased(int argCount, VMValue* args, Uint32 threadID) {
@@ -17379,10 +17882,10 @@ VMValue Touch_IsReleased(int argCount, VMValue* args, Uint32 threadID) {
 // #region TileCollision
 /***
  * TileCollision.Point
- * \desc Checks for a tile collision at a specified point, returning <code>true</code> if successful, <code>false</code> if otherwise.
- * \param x (Number): X position to check.
- * \param y (Number): Y position to check.
- * \return Returns a Boolean value.
+ * \desc Checks for a tile collision at a specified point.
+ * \param x (number): X position to check.
+ * \param y (number): Y position to check.
+ * \return boolean Returns a boolean value.
  * \ns TileCollision
  */
 VMValue TileCollision_Point(int argCount, VMValue* args, Uint32 threadID) {
@@ -17395,12 +17898,12 @@ VMValue TileCollision_Point(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * TileCollision.PointExtended
- * \desc Checks for a tile collision at a specified point, returning the angle value if successful, <code>-1</code> if otherwise.
- * \param x (Number): X position to check.
- * \param y (Number): Y position to check.
- * \param collisionField (Integer): Low (0) or high (1) field to check.
- * \param collisionSide (Integer): Which side of the tile to check for collision. (TOP = 1, RIGHT = 2, BOTTOM = 4, LEFT = 8, ALL = 15)
- * \return Returns the angle of the ground as an Integer value.
+ * \desc Checks for a tile collision at a specified point.
+ * \param x (number): X position to check.
+ * \param y (number): Y position to check.
+ * \param collisionField (integer): Low (0) or high (1) field to check.
+ * \param collisionSide (integer): Which side of the tile to check for collision. (TOP = 1, RIGHT = 2, BOTTOM = 4, LEFT = 8, ALL = 15)
+ * \return integer Returns the angle of the ground if successful, `-1` if otherwise.
  * \ns TileCollision
  */
 VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID) {
@@ -17414,22 +17917,15 @@ VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * TileCollision.Line
- * \desc Checks for a tile collision in a straight line, returning the angle value if successful, <code>-1</code> if otherwise.
- * \param x (Number): X position to start checking from.
- * \param y (Number): Y position to start checking from.
- * \param directionType (Integer): Ordinal direction to check in. (0: Down, 1: Right, 2: Up, 3: Left, or one of the enums: SensorDirection_Up, SensorDirection_Left, SensorDirection_Down, SensorDirection_Right)
- * \param length (Integer): How many pixels to check.
- * \param collisionField (Integer): Low (0) or high (1) field to check.
- * \param compareAngle (Integer): Only return a collision if the angle is within 0x20 this value, otherwise if angle comparison is not desired, set this value to -1.
- * \param instance (Instance): Instance to write the values to.
- * \return Returns <code>false</code> if no tile collision, but if <code>true</code>: <br/>\
-<pre class="code"><br/>\
-    instance.SensorX: (Number), // X Position where the sensor collided if it did. <br/>\
-    instance.SensorY: (Number), // Y Position where the sensor collided if it did. <br/>\
-    instance.SensorCollided: (Boolean), // Whether or not the sensor collided. <br/>\
-    instance.SensorAngle: (Integer) // Tile angle at the collision. <br/>\
-\
-</pre>
+ * \desc Checks for a tile collision in a straight line.
+ * \param x (number): X position to start checking from.
+ * \param y (number): Y position to start checking from.
+ * \param directionType (<ref SensorDirection_*>): Ordinal direction to check in.
+ * \param length (integer): How many pixels to check.
+ * \param collisionField (integer): Low (0) or high (1) field to check.
+ * \param compareAngle (integer): Only return a collision if the angle is within `0x20` of this value. If angle comparison is not desired, pass `-1` to this parameter.
+ * \param entity (Entity): Entity to write the values to.
+ * \return boolean Returns `true` if tile collision happened, and sets <ref Entity.SensorCollided>, <ref Entity.SensorX>, <ref Entity.SensorY>, and <ref Entity.SensorAngle>. Otherwise, just returns `false`.
  * \ns TileCollision
  */
 VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
@@ -17442,6 +17938,10 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 	int compareAngle = GET_ARG(5, GetInteger);
 	ObjEntity* entity = GET_ARG(6, GetEntity);
 
+	if (!entity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
+
 	Sensor sensor;
 	sensor.X = x;
 	sensor.Y = y;
@@ -17453,25 +17953,12 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 
 	Scene::CollisionInLine(x, y, angleMode, length, collisionField, compareAngle > -1, &sensor);
 
-	if (ScriptManager::Lock()) {
-		/*ObjMap*    mapSensor = NewMap();
-
-        mapSensor->Values->Put("X", DECIMAL_VAL((float)sensor.X));
-        mapSensor->Values->Put("Y", DECIMAL_VAL((float)sensor.Y));
-        mapSensor->Values->Put("Collided", INTEGER_VAL(sensor.Collided));
-        mapSensor->Values->Put("Angle", INTEGER_VAL(sensor.Angle));
-
-        ScriptManager::Unlock();*/
-		if (entity->EntityPtr) {
-			auto ent = (Entity*)entity->EntityPtr;
-			ent->SensorX = (float)sensor.X;
-			ent->SensorY = (float)sensor.Y;
-			ent->SensorCollided = sensor.Collided;
-			ent->SensorAngle = sensor.Angle;
-			return INTEGER_VAL(sensor.Collided);
-		}
-	}
-	return INTEGER_VAL(false);
+	Entity* ent = (Entity*)entity->EntityPtr;
+	ent->SensorX = (float)sensor.X;
+	ent->SensorY = (float)sensor.Y;
+	ent->SensorCollided = sensor.Collided;
+	ent->SensorAngle = sensor.Angle;
+	return INTEGER_VAL(sensor.Collided);
 }
 // #endregion
 
@@ -17479,10 +17966,10 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * TileInfo.SetSpriteInfo
  * \desc Sets the sprite, animation, and frame to use for specified tile.
- * \param tileID (Integer): ID of tile to check.
- * \param spriteIndex (Integer): Sprite index. (<code>-1</code> for default tile sprite)
- * \param animationIndex (Integer): Animation index.
- * \param frameIndex (Integer): Frame index. (<code>-1</code> for default tile frame)
+ * \param tileID (integer): ID of tile to check.
+ * \param spriteIndex (integer): Sprite index. (`-1` for default tile sprite)
+ * \param animationIndex (integer): Animation index.
+ * \param frameIndex (integer): Frame index. (`-1` for default tile frame)
  * \ns TileInfo
  */
 VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
@@ -17515,9 +18002,9 @@ VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * TileInfo.IsEmptySpace
  * \desc Checks to see if a tile at the ID is empty.
- * \param tileID (Integer): ID of tile to check.
- * \param collisionPlane (Integer): The collision plane of the tile to check for.
- * \return Returns <code>true</code> if the tile is empty space, <code>false</code> if otherwise.
+ * \param tileID (integer): ID of tile to check.
+ * \param collisionPlane (integer): The collision plane of the tile to check for.
+ * \return boolean Returns whether the tile is empty space.
  * \ns TileInfo
  */
 VMValue TileInfo_IsEmptySpace(int argCount, VMValue* args, Uint32 threadID) {
@@ -17528,7 +18015,7 @@ VMValue TileInfo_IsEmptySpace(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * TileInfo.GetEmptyTile
  * \desc Gets the scene's empty tile ID.
- * \return Returns the ID of the scene's empty tile space.
+ * \return integer Returns the ID of the scene's empty tile space.
  * \ns TileInfo
  */
 VMValue TileInfo_GetEmptyTile(int argCount, VMValue* args, Uint32 threadID) {
@@ -17538,13 +18025,13 @@ VMValue TileInfo_GetEmptyTile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * TileInfo.GetCollision
  * \desc Gets the collision value at the pixel position of the desired tile, -1 if no collision.
- * \param tileID (Integer): ID of the tile to get the value of.
- * \param collisionField (Integer): The collision plane of the tile to get the collision from.
- * \param directionType (Integer): Ordinal direction to check in. (0: Down, 1: Right, 2: Up, 3: Left, or one of the enums: SensorDirection_Up, SensorDirection_Left, SensorDirection_Down, SensorDirection_Right)
- * \param position (Integer): Position on the tile to check, X position if the directionType is Up/Down, Y position if the directionType is Left/Right.
- * \paramOpt flipX (Boolean): Whether or not to check the collision with the tile horizontally flipped.
- * \paramOpt flipY (Boolean): Whether or not to check the collision with the tile vertically flipped.
- * \return Collision position (Integer) on the tile, X position if the directionType is Left/Right, Y position if the directionType is Up/Down, -1 if there was no collision.
+ * \param tileID (integer): ID of the tile to get the value of.
+ * \param collisionField (integer): The collision plane of the tile to get the collision from.
+ * \param directionType (<ref SensorDirection_*>): Ordinal direction to check in.
+ * \param position (integer): Position on the tile to check, X position if the directionType is Up/Down, Y position if the directionType is Left/Right.
+ * \paramOpt flipX (boolean): Whether to check the collision with the tile horizontally flipped.
+ * \paramOpt flipY (boolean): Whether to check the collision with the tile vertically flipped.
+ * \return integer Collision position on the tile, X position if the directionType is Left/Right, Y position if the directionType is Up/Down, -1 if there was no collision.
  * \ns TileInfo
  */
 VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
@@ -17598,12 +18085,12 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * TileInfo.GetAngle
  * \desc Gets the angle value of the desired tile.
- * \param tileID (Integer): ID of the tile to get the value of.
- * \param collisionField (Integer): The collision plane of the tile to get the angle from.
- * \param directionType (Integer): Ordinal direction to check in. (0: Down, 1: Right, 2: Up, 3: Left, or one of the enums: SensorDirection_Up, SensorDirection_Left, SensorDirection_Down, SensorDirection_Right)
- * \paramOpt flipX (Boolean): Whether or not to check the angle with the tile horizontally flipped.
- * \paramOpt flipY (Boolean): Whether or not to check the angle with the tile vertically flipped.
- * \return Angle value between 0x00 to 0xFF at the specified direction.
+ * \param tileID (integer): ID of the tile to get the value of.
+ * \param collisionField (integer): The collision plane of the tile to get the angle from.
+ * \param directionType (<ref SensorDirection_*>): Ordinal direction to check in.
+ * \paramOpt flipX (boolean): Whether to check the angle with the tile horizontally flipped.
+ * \paramOpt flipY (boolean): Whether to check the angle with the tile vertically flipped.
+ * \return integer Angle value between 0x00 to 0xFF at the specified direction.
  * \ns TileInfo
  */
 VMValue TileInfo_GetAngle(int argCount, VMValue* args, Uint32 threadID) {
@@ -17648,9 +18135,9 @@ VMValue TileInfo_GetAngle(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * TileInfo.GetBehaviorFlag
  * \desc Gets the behavior value of the desired tile.
- * \param tileID (Integer): ID of the tile to get the value of.
- * \param collisionPlane (Integer): The collision plane of the tile to get the behavior from.
- * \return Behavior flag (Integer) of the tile.
+ * \param tileID (integer): ID of the tile to get the value of.
+ * \param collisionPlane (integer): The collision plane of the tile to get the behavior from.
+ * \return integer Behavior flag of the tile.
  * \ns TileInfo
  */
 VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
@@ -17675,9 +18162,9 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * TileInfo.IsCeiling
  * \desc Checks if the desired tile is a ceiling tile.
- * \param tileID (Integer): ID of the tile to check.
- * \param collisionPlane (Integer): The collision plane of the tile to check.
- * \return Returns <code>true</code> if the tile is a ceiling tile, <code>false</code> if otherwise.
+ * \param tileID (integer): ID of the tile to check.
+ * \param collisionPlane (integer): The collision plane of the tile to check.
+ * \return boolean Returns whether the tile is a ceiling tile.
  * \ns TileInfo
  */
 VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
@@ -17793,9 +18280,9 @@ VMValue Thread_Sleep(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * VertexBuffer.Create
  * \desc Create a vertex buffer.
- * \param numVertices (Integer): The initial capacity of this vertex buffer.
- * \param unloadPolicy (Integer): Whether or not to delete the vertex buffer at the end of the current Scene, or the game end.
- * \return The index of the created vertex buffer.
+ * \param numVertices (integer): The initial capacity of this vertex buffer.
+ * \param unloadPolicy (integer): Whether to delete the vertex buffer at the end of the current Scene, or the game end.
+ * \return integer The index of the created vertex buffer.
  * \ns VertexBuffer
  */
 VMValue VertexBuffer_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -17812,8 +18299,8 @@ VMValue VertexBuffer_Create(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * VertexBuffer.Resize
  * \desc Resizes a vertex buffer.
- * \param vertexBufferIndex (Integer): The vertex buffer to resize.
- * \param numVertices (Integer): The amount of vertices that this vertex buffer will hold.
+ * \param vertexBufferIndex (integer): The vertex buffer to resize.
+ * \param numVertices (integer): The amount of vertices that this vertex buffer will hold.
  * \return
  * \ns VertexBuffer
  */
@@ -17834,7 +18321,7 @@ VMValue VertexBuffer_Resize(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * VertexBuffer.Clear
  * \desc Clears a vertex buffer.
- * \param vertexBufferIndex (Integer): The vertex buffer to clear.
+ * \param vertexBufferIndex (integer): The vertex buffer to clear.
  * \return
  * \ns VertexBuffer
  */
@@ -17854,7 +18341,7 @@ VMValue VertexBuffer_Clear(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * VertexBuffer.Delete
  * \desc Deletes a vertex buffer.
- * \param vertexBufferIndex (Integer): The vertex buffer to delete.
+ * \param vertexBufferIndex (integer): The vertex buffer to delete.
  * \return
  * \ns VertexBuffer
  */
@@ -18185,8 +18672,8 @@ VMValue Video_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetX
  * \desc Sets the x-axis position of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param x (Number): Desired X position
+ * \param viewIndex (integer): Index of the view.
+ * \param x (number): Desired X position.
  * \ns View
  */
 VMValue View_SetX(int argCount, VMValue* args, Uint32 threadID) {
@@ -18200,8 +18687,8 @@ VMValue View_SetX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetY
  * \desc Sets the y-axis position of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param y (Number): Desired Y position
+ * \param viewIndex (integer): Index of the view.
+ * \param y (number): Desired Y position.
  * \ns View
  */
 VMValue View_SetY(int argCount, VMValue* args, Uint32 threadID) {
@@ -18215,8 +18702,8 @@ VMValue View_SetY(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetZ
  * \desc Sets the z-axis position of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param z (Number): Desired Z position
+ * \param viewIndex (integer): Index of the view.
+ * \param z (number): Desired Z position.
  * \ns View
  */
 VMValue View_SetZ(int argCount, VMValue* args, Uint32 threadID) {
@@ -18230,10 +18717,10 @@ VMValue View_SetZ(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetPosition
  * \desc Sets the position of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param x (Number): Desired X position
- * \param y (Number): Desired Y position
- * \paramOpt z (Number): Desired Z position
+ * \param viewIndex (integer): Index of the view.
+ * \param x (number): Desired X position.
+ * \param y (number): Desired Y position.
+ * \paramOpt z (number): Desired Z position.
  * \ns View
  */
 VMValue View_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
@@ -18250,8 +18737,8 @@ VMValue View_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.AdjustX
  * \desc Adjusts the x-axis position of the camera for the specified view by an amount.
- * \param viewIndex(Integer) : Index of the view.
- * \param x(Number) : Desired X adjust amount.
+ * \param viewIndex (integer): Index of the view.
+ * \param x (number): Desired X adjust amount.
  * \ns View
  */
 VMValue View_AdjustX(int argCount, VMValue* args, Uint32 threadID) {
@@ -18264,8 +18751,8 @@ VMValue View_AdjustX(int argCount, VMValue* args, Uint32 threadID) {
 /***
 * View.AdjustY
 * \desc Adjusts the y-axis position of the camera for the specified view by an amount.
-* \param viewIndex (Integer): Index of the view.
-* \param y (Number): Desired Y adjust amount.
+* \param viewIndex (integer): Index of the view.
+* \param y (number): Desired Y adjust amount.
 * \ns View
 */
 VMValue View_AdjustY(int argCount, VMValue* args, Uint32 threadID) {
@@ -18278,8 +18765,8 @@ VMValue View_AdjustY(int argCount, VMValue* args, Uint32 threadID) {
 /***
 * View.AdjustZ
 * \desc Adjusts the z-axis position of the camera for the specified view by an amount.
-* \param viewIndex (Integer): Index of the view.
-* \param z (Number): Desired Z adjust amount.
+* \param viewIndex (integer): Index of the view.
+* \param z (number): Desired Z adjust amount.
 * \ns View
 */
 VMValue View_AdjustZ(int argCount, VMValue* args, Uint32 threadID) {
@@ -18292,10 +18779,10 @@ VMValue View_AdjustZ(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetScale
  * \desc Sets the scale of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param x (Number): Desired X scale.
- * \param y (Number): Desired Y scale.
- * \paramOpt z (Number): Desired Z scale.
+ * \param viewIndex (integer): Index of the view.
+ * \param x (number): Desired X scale.
+ * \param y (number): Desired Y scale.
+ * \paramOpt z (number): Desired Z scale.
  * \ns View
  */
 VMValue View_SetScale(int argCount, VMValue* args, Uint32 threadID) {
@@ -18310,10 +18797,10 @@ VMValue View_SetScale(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetAngle
  * \desc Sets the angle of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param x (Number): Desired X angle.
- * \param y (Number): Desired Y angle.
- * \param z (Number): Desired Z angle.
+ * \param viewIndex (integer): Index of the view.
+ * \param x (number): Desired X angle.
+ * \param y (number): Desired Y angle.
+ * \param z (number): Desired Z angle.
  * \ns View
  */
 VMValue View_SetAngle(int argCount, VMValue* args, Uint32 threadID) {
@@ -18328,9 +18815,9 @@ VMValue View_SetAngle(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetSize
  * \desc Sets the size of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param width (Number): Desired width.
- * \param height (Number): Desired height.
+ * \param viewIndex (integer): Index of the view.
+ * \param width (number): Desired width.
+ * \param height (number): Desired height.
  * \return
  * \ns View
  */
@@ -18346,8 +18833,8 @@ VMValue View_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetOutputX
  * \desc Sets the x-axis output position of the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param x (Number): Desired X position
+ * \param viewIndex (integer): Index of the view.
+ * \param x (number): Desired X position.
  * \ns View
  */
 VMValue View_SetOutputX(int argCount, VMValue* args, Uint32 threadID) {
@@ -18361,8 +18848,8 @@ VMValue View_SetOutputX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetOutputY
  * \desc Sets the y-axis output position of the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param y (Number): Desired Y position
+ * \param viewIndex (integer): Index of the view.
+ * \param y (number): Desired Y position.
  * \ns View
  */
 VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
@@ -18376,9 +18863,9 @@ VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetOutputPosition
  * \desc Sets the output position of the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param x (Number): Desired X position
- * \param y (Number): Desired Y position
+ * \param viewIndex (integer): Index of the view.
+ * \param x (number): Desired X position.
+ * \param y (number): Desired Y position.
  * \ns View
  */
 VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
@@ -18392,9 +18879,9 @@ VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetOutputSize
  * \desc Sets the output size of the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \param width (Number): Desired width.
- * \param height (Number): Desired height.
+ * \param viewIndex (integer): Index of the view.
+ * \param width (number): Desired width.
+ * \param height (number): Desired height.
  * \ns View
  */
 VMValue View_SetOutputSize(int argCount, VMValue* args, Uint32 threadID) {
@@ -18410,8 +18897,8 @@ VMValue View_SetOutputSize(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetX
  * \desc Gets the x-axis position of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Decimal value.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
  * \ns View
  */
 VMValue View_GetX(int argCount, VMValue* args, Uint32 threadID) {
@@ -18423,8 +18910,8 @@ VMValue View_GetX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetY
  * \desc Gets the y-axis position of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Decimal value.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
  * \ns View
  */
 VMValue View_GetY(int argCount, VMValue* args, Uint32 threadID) {
@@ -18436,8 +18923,8 @@ VMValue View_GetY(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetZ
  * \desc Gets the z-axis position of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Decimal value.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
  * \ns View
  */
 VMValue View_GetZ(int argCount, VMValue* args, Uint32 threadID) {
@@ -18449,8 +18936,8 @@ VMValue View_GetZ(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetWidth
  * \desc Gets the width of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Decimal value.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
  * \ns View
  */
 VMValue View_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -18462,8 +18949,8 @@ VMValue View_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetHeight
  * \desc Gets the height of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Decimal value.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
  * \ns View
  */
 VMValue View_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -18475,8 +18962,8 @@ VMValue View_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetCenterX
  * \desc Gets the x center of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Decimal value.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
  * \ns View
  */
 VMValue View_GetCenterX(int argCount, VMValue* args, Uint32 threadID) {
@@ -18488,8 +18975,8 @@ VMValue View_GetCenterX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetCenterY
  * \desc Gets the y center of the camera for the specified view.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Decimal value.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
  * \ns View
  */
 VMValue View_GetCenterY(int argCount, VMValue* args, Uint32 threadID) {
@@ -18500,9 +18987,9 @@ VMValue View_GetCenterY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.IsUsingDrawTarget
- * \desc Gets whether the specified camera is using a draw target or not.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Boolean value.
+ * \desc Gets whether the specified camera is using a draw target.
+ * \param viewIndex (integer): Index of the view.
+ * \return boolean Returns a boolean value.
  * \ns View
  */
 VMValue View_IsUsingDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
@@ -18514,8 +19001,8 @@ VMValue View_IsUsingDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetUseDrawTarget
  * \desc Sets the specified camera to use a draw target.
- * \param viewIndex (Integer): Index of the view.
- * \param useDrawTarget (Boolean): Whether to use a draw target or not.
+ * \param viewIndex (integer): Index of the view.
+ * \param useDrawTarget (boolean): Whether to use a draw target.
  * \ns View
  */
 VMValue View_SetUseDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
@@ -18529,8 +19016,8 @@ VMValue View_SetUseDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetDrawTarget
  * \desc Gets the specified camera's draw target.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns an Integer value.
+ * \param viewIndex (integer): Index of the view.
+ * \return integer Returns an integer value.
  * \ns View
  */
 VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
@@ -18554,8 +19041,8 @@ VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetShader
  * \desc Sets a shader for the specified camera.
- * \param viewIndex (Integer): Index of the view.
- * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \param viewIndex (integer): Index of the view.
+ * \param shader (Shader): The shader, or `null` to unset the shader.
  * \ns View
  */
 VMValue View_SetShader(int argCount, VMValue* args, Uint32 threadID) {
@@ -18581,8 +19068,8 @@ VMValue View_SetShader(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetShader
  * \desc Gets the shader of the specified camera.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a shader, or <code>null</code>.
+ * \param viewIndex (integer): Index of the view.
+ * \return Shader Returns a Shader, or `null`.
  * \ns View
  */
 VMValue View_GetShader(int argCount, VMValue* args, Uint32 threadID) {
@@ -18600,9 +19087,9 @@ VMValue View_GetShader(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.IsUsingSoftwareRenderer
- * \desc Gets whether the specified camera is using the software renderer or not.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Boolean value.
+ * \desc Gets whether the specified camera is using the software renderer.
+ * \param viewIndex (integer): Index of the view.
+ * \return boolean Returns a boolean value.
  * \ns View
  */
 VMValue View_IsUsingSoftwareRenderer(int argCount, VMValue* args, Uint32 threadID) {
@@ -18614,8 +19101,8 @@ VMValue View_IsUsingSoftwareRenderer(int argCount, VMValue* args, Uint32 threadI
 /***
  * View.SetUseSoftwareRenderer
  * \desc Sets the specified camera to use the software renderer.
- * \param viewIndex (Integer): Index of the view.
- * \param useSoftwareRenderer (Boolean):
+ * \param viewIndex (integer): Index of the view.
+ * \param useSoftwareRenderer (boolean): Whether to use the software renderer.
  * \ns View
  */
 VMValue View_SetUseSoftwareRenderer(int argCount, VMValue* args, Uint32 threadID) {
@@ -18646,9 +19133,9 @@ VMValue View_SetUsePerspective(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.IsEnabled
- * \desc Gets whether the specified camera is active or not.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Boolean value.
+ * \desc Gets whether the specified camera is active.
+ * \param viewIndex (integer): Index of the view.
+ * \return boolean Returns a boolean value.
  * \ns View
  */
 VMValue View_IsEnabled(int argCount, VMValue* args, Uint32 threadID) {
@@ -18660,8 +19147,8 @@ VMValue View_IsEnabled(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetEnabled
  * \desc Sets the specified camera to be active.
- * \param viewIndex (Integer): Index of the view.
- * \param enabled (Boolean): Whether or not the camera should be enabled.
+ * \param viewIndex (integer): Index of the view.
+ * \param enabled (boolean): Whether the camera should be enabled.
  * \ns View
  */
 VMValue View_SetEnabled(int argCount, VMValue* args, Uint32 threadID) {
@@ -18674,9 +19161,9 @@ VMValue View_SetEnabled(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.IsVisible
- * \desc Gets whether the specified camera is visible or not.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns a Boolean value.
+ * \desc Gets whether the specified camera is visible.
+ * \param viewIndex (integer): Index of the view.
+ * \return boolean Returns a boolean value.
  * \ns View
  */
 VMValue View_IsVisible(int argCount, VMValue* args, Uint32 threadID) {
@@ -18688,8 +19175,8 @@ VMValue View_IsVisible(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetVisible
  * \desc Sets the specified camera to be visible.
- * \param viewIndex (Integer): Index of the view.
- * \param visible (Boolean): Whether or not the camera should be visible.
+ * \param viewIndex (integer): Index of the view.
+ * \param visible (boolean): Whether the camera should be visible.
  * \ns View
  */
 VMValue View_SetVisible(int argCount, VMValue* args, Uint32 threadID) {
@@ -18717,8 +19204,8 @@ VMValue View_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.SetPriority
  * \desc Gets the specified view's priority.
- * \param viewIndex (Integer): Index of the view.
- * \return Returns an Integer value.
+ * \param viewIndex (integer): Index of the view.
+ * \return integer Returns an integer value.
  * \ns View
  */
 VMValue View_SetPriority(int argCount, VMValue* args, Uint32 threadID) {
@@ -18732,8 +19219,8 @@ VMValue View_SetPriority(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetPriority
  * \desc Gets the specified view's priority.
- * \param viewIndex (Integer): Index of the view.
- * \param priority (Integer):
+ * \param viewIndex (integer): Index of the view.
+ * \param priority (integer):
  * \ns View
  */
 VMValue View_GetPriority(int argCount, VMValue* args, Uint32 threadID) {
@@ -18745,7 +19232,7 @@ VMValue View_GetPriority(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetCurrent
  * \desc Gets the current view index being drawn to.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns View
  */
 VMValue View_GetCurrent(int argCount, VMValue* args, Uint32 threadID) {
@@ -18755,7 +19242,7 @@ VMValue View_GetCurrent(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetCount
  * \desc Gets the total amount of views.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns View
  */
 VMValue View_GetCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -18765,7 +19252,7 @@ VMValue View_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.GetActiveCount
  * \desc Gets the total amount of views currently activated.
- * \return Returns an Integer value.
+ * \return integer Returns an integer value.
  * \ns View
  */
 VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -18775,10 +19262,10 @@ VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.CheckOnScreen
  * \desc Determines whether an instance is on screen.
- * \param instance (Instance): The instance to check.
- * \paramOpt rangeX (Decimal): The x range to check, or <code>null</code> if the entity's update region width should be used.
- * \paramOpt rangeY (Decimal): The y range to check, or <code>null</code> if the entity's update region height should be used.
- * \return Returns whether or not the instance is on screen in any view.
+ * \param entity (Entity): The instance to check.
+ * \paramOpt rangeX (decimal): The x range to check, or `null` if the entity's update region width should be used.
+ * \paramOpt rangeY (decimal): The y range to check, or `null` if the entity's update region height should be used.
+ * \return boolean Returns whether the instance is on screen in any view.
  * \ns View
  */
 VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
@@ -18806,11 +19293,11 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * View.CheckPosOnScreen
  * \desc Determines whether a position is on screen.
- * \param posX (Decimal): The x position to check.
- * \param posY (Decimal): The y position to check.
- * \param rangeX (Decimal): The x range to check.
- * \param rangeY (Decimal): The y range to check.
- * \return Returns whether or not the position is on screen in any view.
+ * \param posX (decimal): The x position to check.
+ * \param posY (decimal): The y position to check.
+ * \param rangeX (decimal): The x range to check.
+ * \param rangeY (decimal): The y range to check.
+ * \return boolean Returns whether the position is on screen in any view.
  * \ns View
  */
 VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
@@ -18827,8 +19314,8 @@ VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetSize
  * \desc Sets the size of the active window.
- * \param width (Number): Window width
- * \param height (Number): Window height
+ * \param width (number): Window width
+ * \param height (number): Window height
  * \ns Window
  */
 VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
@@ -18841,13 +19328,14 @@ VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	int window_h = (int)GET_ARG(1, GetDecimal);
 	Application::WindowWidth = window_w;
 	Application::WindowHeight = window_h;
-	Application::SetWindowSize(window_w * Application::WindowScale, window_h * Application::WindowScale);
+	Application::SetWindowSize(
+		window_w * Application::WindowScale, window_h * Application::WindowScale);
 	return NULL_VAL;
 }
 /***
  * Window.SetFullscreen
  * \desc Sets the fullscreen state of the active window.
- * \param isFullscreen (Boolean): Whether or not the window should be fullscreen.
+ * \param isFullscreen (boolean): Whether the window should be fullscreen.
  * \ns Window
  */
 VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
@@ -18858,7 +19346,7 @@ VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetScale
  * \desc Sets the scale of the active window.
- * \param scale (Integer): Window scale.
+ * \param scale (integer): Window scale.
  * \ns Window
  */
 VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
@@ -18870,7 +19358,7 @@ VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetBorderless
  * \desc Sets the bordered state of the active window.
- * \param isBorderless (Boolean): Whether or not the window should be borderless.
+ * \param isBorderless (boolean): Whether the window should be borderless.
  * \ns Window
  */
 VMValue Window_SetBorderless(int argCount, VMValue* args, Uint32 threadID) {
@@ -18881,7 +19369,7 @@ VMValue Window_SetBorderless(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetVSync
  * \desc Enables or disables V-Sync for the active window.
- * \param enableVsync (Boolean): Whether or not the window should use V-Sync.
+ * \param enableVsync (boolean): Whether the window should use V-Sync.
  * \ns Window
  */
 VMValue Window_SetVSync(int argCount, VMValue* args, Uint32 threadID) {
@@ -18892,8 +19380,8 @@ VMValue Window_SetVSync(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetPosition
  * \desc Sets the position of the active window.
- * \param x (Number): Window x
- * \param y (Number): Window y
+ * \param x (number): Window x
+ * \param y (number): Window y
  * \ns Window
  */
 VMValue Window_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
@@ -18914,7 +19402,7 @@ VMValue Window_SetPositionCentered(int argCount, VMValue* args, Uint32 threadID)
 /***
  * Window.SetTitle
  * \desc Sets the title of the active window.
- * \param title (String): Window title
+ * \param title (string): Window title
  * \ns Window
  */
 VMValue Window_SetTitle(int argCount, VMValue* args, Uint32 threadID) {
@@ -18926,7 +19414,7 @@ VMValue Window_SetTitle(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetPostProcessingShader
  * \desc Sets a post-processing shader for the active window.
- * \param shader (Shader): The shader, or <code>null</code> to unset the shader.
+ * \param shader (Shader): The shader, or `null` to unset the shader.
  * \ns Window
  */
 VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threadID) {
@@ -18957,7 +19445,7 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
 /***
  * Window.GetWidth
  * \desc Gets the width of the active window.
- * \return Returns the width of the active window.
+ * \return integer Returns the width of the active window.
  * \ns Window
  */
 VMValue Window_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -18969,7 +19457,7 @@ VMValue Window_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.GetHeight
  * \desc Gets the height of the active window.
- * \return Returns the height of the active window.
+ * \return integer Returns the height of the active window.
  * \ns Window
  */
 VMValue Window_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -18980,8 +19468,8 @@ VMValue Window_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Window.GetFullscreen
- * \desc Gets whether or not the active window is currently fullscreen.
- * \return Returns <code>true</code> if the window is fullscreen, <code>false</code> if otherwise.
+ * \desc Gets whether the active window is currently fullscreen.
+ * \return boolean Returns whether the window is fullscreen.
  * \ns Window
  */
 VMValue Window_GetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
@@ -18991,7 +19479,7 @@ VMValue Window_GetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.GetScale
  * \desc Gets the scale of the active window.
- * \return Returns the scale of the window.
+ * \return integer Returns the scale of the window.
  * \ns Window
  */
 VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
@@ -19000,8 +19488,8 @@ VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Window.IsResizeable
- * \desc Gets whether or not the active window is resizeable.
- * \return Returns <code>true</code> if the window is resizeable, <code>false</code> if otherwise.
+ * \desc Gets whether the active window is resizeable.
+ * \return boolean Returns whether the window is resizeable.
  * \ns Window
  */
 VMValue Window_IsResizeable(int argCount, VMValue* args, Uint32 threadID) {
@@ -19100,15 +19588,17 @@ static VMValue XML_FillMap(XMLNode* parent) {
 }
 /***
  * XML.Parse
- * \desc Decodes a String value into a Map value.
- * \param xmlText (String): XML-compliant text.
- * \return Returns a Map value if the text can be decoded, otherwise returns <code>null</code>.
+ * \desc Decodes a string value into a map value.
+ * \param xmlText (string): XML-compliant text.
+ * \return map Returns a map value if the text can be decoded, otherwise returns `null`.
  * \ns XML
  */
 VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ObjString* string = GET_ARG(0, GetVMString);
-	if (!string) return NULL_VAL;
+	if (!string) {
+		return NULL_VAL;
+	}
 
 	VMValue mapValue = NULL_VAL;
 	if (ScriptManager::Lock()) {
@@ -19149,6 +19639,7 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 #define DEF_ENUM(a) DEF_CONST_INT(#a, a)
 #define DEF_ENUM_CLASS(a, b) DEF_CONST_INT(#a "_" #b, (int)a::b)
 #define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(a "_" #c, (int)b::c)
+#define DEF_ENUM_IN_CLASS(a, b) ScriptManager::GlobalConstInteger(klass, a, b)
 
 void StandardLibrary::Link() {
 	ObjClass* klass;
@@ -19195,9 +19686,22 @@ void StandardLibrary::Link() {
 #define DEF_NAMESPACED_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
 
+	/***
+    * \namespace RSDK
+    * \desc RSDK (Retro Engine) related classes and functions.
+    */
 	INIT_NAMESPACE(RSDK);
+	/***
+    * \namespace API
+    * \desc Interfaces to external services.
+    */
+	INIT_NAMESPACE(API);
 
 	// #region Animator
+	/***
+    * \class Animator
+    * \desc A sprite animation player.
+    */
 	INIT_CLASS(Animator);
 	DEF_NATIVE(Animator, Create);
 	DEF_NATIVE(Animator, Remove);
@@ -19232,7 +19736,100 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, AdjustLoopIndex);
 	// #endregion
 
+	// #region API.Discord
+	/***
+    * \class API.Discord
+    * \desc Discord integration functions.<br/>\
+They require the Game SDK library to be present.
+    */
+	INIT_NAMESPACED_CLASS(API, Discord);
+	DEF_NAMESPACED_NATIVE(Discord, Init);
+	DEF_NAMESPACED_NATIVE(Discord, UpdateRichPresence);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityDetails);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityState);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityLargeImage);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivitySmallImage);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityElapsedTimer);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityRemainingTimer);
+	DEF_NAMESPACED_NATIVE(Discord, SetActivityPartySize);
+	DEF_NAMESPACED_NATIVE(Discord, UpdateActivity);
+	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUsername);
+	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUserID);
+	DEF_NAMESPACED_NATIVE(Discord, GetCurrentUserAvatar);
+
+	/***
+    * \enum OK
+    * \desc Request was successful.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("OK", DISCORDRESULT_OK);
+	/***
+    * \enum ERROR
+    * \desc An error happened.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("ERROR", DISCORDRESULT_ERROR);
+	/***
+    * \enum SERVICE_UNAVAILABLE
+    * \desc Service isn't available.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("SERVICE_UNAVAILABLE", DISCORDRESULT_SERVICEUNAVAILABLE);
+	/***
+    * \enum INVALID_VERSION
+    * \desc SDK version mismatch.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("INVALID_VERSION", DISCORDRESULT_INVALIDVERSION);
+	/***
+    * \enum INVALID_PAYLOAD
+    * \desc The service didn't accept the data that it received.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("INVALID_PAYLOAD", DISCORDRESULT_INVALIDPAYLOAD);
+	/***
+    * \enum INVALID_PERMISSIONS
+    * \desc Not authorized for this operation.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("INVALID_PERMISSIONS", DISCORDRESULT_INVALIDPERMISSIONS);
+	/***
+    * \enum NOT_FOUND
+    * \desc The service couldn't find what was requested.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_FOUND", DISCORDRESULT_NOTFOUND);
+	/***
+    * \enum NOT_AUTHENTICATED
+    * \desc User isn't authenticated.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_AUTHENTICATED", DISCORDRESULT_NOTAUTHENTICATED);
+	/***
+    * \enum NOT_INSTALLED
+    * \desc Discord isn't installed.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_INSTALLED", DISCORDRESULT_NOTINSTALLED);
+	/***
+    * \enum NOT_RUNNING
+    * \desc Discord isn't running.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("NOT_RUNNING", DISCORDRESULT_NOTRUNNING);
+	/***
+    * \enum RATE_LIMITED
+    * \desc This request is being sent too quickly.
+    * \ns API.Discord
+    */
+	DEF_ENUM_IN_CLASS("RATE_LIMITED", DISCORDRESULT_RATELIMITED);
+	// #endregion
+
 	// #region Application
+	/***
+    * \class Application
+    * \desc Functions for manipulating and reading runtime information.
+    */
 	INIT_CLASS(Application);
 	DEF_NATIVE(Application, GetCommandLineArguments);
 	DEF_NATIVE(Application, GetEngineVersionString);
@@ -19329,6 +19926,16 @@ void StandardLibrary::Link() {
     */
 	DEF_ENUM_CLASS(KeyBind, DevObjectRegions);
 	/***
+	* \enum KeyBind_DevViewHitboxes
+	* \desc Hitbox display keybind. (dev)
+	*/
+	DEF_ENUM_CLASS(KeyBind, DevViewHitboxes);
+	/***
+	* \enum KeyBind_DevMenuToggle
+	* \desc Open/close dev menu keybind. (dev)
+	*/
+	DEF_ENUM_CLASS(KeyBind, DevMenuToggle);
+	/***
     * \enum KeyBind_DevQuit
     * \desc App quit keybind. (dev)
     */
@@ -19336,6 +19943,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Array
+	/***
+    * \class Array
+    * \desc Array manipulation.
+    */
 	INIT_CLASS(Array);
 	DEF_NATIVE(Array, Create);
 	DEF_NATIVE(Array, Length);
@@ -19351,6 +19962,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Audio
+	/***
+    * \class Audio
+    * \desc Functions for manipulating the application's audio.
+    */
 	INIT_CLASS(Audio);
 	DEF_NATIVE(Audio, GetMasterVolume);
 	DEF_NATIVE(Audio, GetMusicVolume);
@@ -19361,17 +19976,25 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Collision
+	/***
+    * \class Collision
+    * \desc Entity collision functions.
+    */
 	INIT_CLASS(Collision);
-	DEF_NATIVE(Collision, ProcessObjectMovement);
-	DEF_NATIVE(Collision, ObjectTileCollision);
-	DEF_NATIVE(Collision, ObjectTileGrip);
-	DEF_NATIVE(Collision, CheckObjectCollisionTouch);
-	DEF_NATIVE(Collision, CheckObjectCollisionCircle);
-	DEF_NATIVE(Collision, CheckObjectCollisionBox);
-	DEF_NATIVE(Collision, CheckObjectCollisionPlatform);
+	DEF_NATIVE(Collision, ProcessEntityMovement);
+	DEF_NATIVE(Collision, CheckTileCollision);
+	DEF_NATIVE(Collision, CheckTileGrip);
+	DEF_NATIVE(Collision, CheckEntityTouch);
+	DEF_NATIVE(Collision, CheckEntityCircle);
+	DEF_NATIVE(Collision, CheckEntityBox);
+	DEF_NATIVE(Collision, CheckEntityPlatform);
 	// #endregion
 
 	// #region Controller
+	/***
+    * \class Controller
+    * \desc Functions for getting information about controllers, as well as functions to control rumble.
+    */
 	INIT_CLASS(Controller);
 	DEF_NATIVE(Controller, GetCount);
 	DEF_NATIVE(Controller, IsConnected);
@@ -19398,13 +20021,13 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Controller, SetSmallMotorFrequency); // deprecated
 	/***
     * \constant NUM_CONTROLLER_BUTTONS
-    * \type Integer
+    * \type integer
     * \desc The amount of buttons in a controller.
     */
 	DEF_CONST_INT("NUM_CONTROLLER_BUTTONS", (int)ControllerButton::Max);
 	/***
     * \constant NUM_CONTROLLER_AXES
-    * \type Integer
+    * \type integer
     * \desc The amount of axes in a controller.
     */
 	DEF_CONST_INT("NUM_CONTROLLER_AXES", (int)ControllerAxis::Max);
@@ -19643,6 +20266,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Date
+	/***
+    * \class Date
+    * \desc Date and time functions.
+    */
 	INIT_CLASS(Date);
 	DEF_NATIVE(Date, GetEpoch);
 	DEF_NATIVE(Date, GetWeekday);
@@ -19715,6 +20342,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Device
+	/***
+    * \class Device
+    * \desc Functions to retrieve information about the device the application is running on.
+    */
 	INIT_CLASS(Device);
 	DEF_NATIVE(Device, GetPlatform);
 	DEF_NATIVE(Device, IsPC);
@@ -19768,6 +20399,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Directory
+	/***
+    * \class Directory
+    * \desc Filesystem directory manipulation.
+    */
 	INIT_CLASS(Directory);
 	DEF_NATIVE(Directory, Create);
 	DEF_NATIVE(Directory, Exists);
@@ -19776,12 +20411,21 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Display
+	/***
+    * \class Display
+    * \desc Functions to retrieve information about the displays in the device.
+    */
 	INIT_CLASS(Display);
 	DEF_NATIVE(Display, GetWidth);
 	DEF_NATIVE(Display, GetHeight);
 	// #endregion
 
 	// #region Draw
+	/***
+    * \class Draw
+    * \desc General drawing functions.<br/>\
+Draw provides functions to draw images, sprites, and textures; as well as primitives, such as lines, rectangles, ellipses and polygons. You may also apply basic transformations like translation, scaling, and rotation.
+    */
 	INIT_CLASS(Draw);
 	DEF_NATIVE(Draw, Sprite);
 	DEF_NATIVE(Draw, SpriteBasic);
@@ -19917,7 +20561,7 @@ void StandardLibrary::Link() {
 	DEF_ENUM(DrawMode_DEPTH_TEST);
 	/***
     * \enum DrawMode_FOG
-    * \desc (software-renderer only) Enables fog.
+    * \desc Enables fog.
     */
 	DEF_ENUM(DrawMode_FOG);
 	/***
@@ -19927,42 +20571,42 @@ void StandardLibrary::Link() {
 	DEF_ENUM(DrawMode_ORTHOGRAPHIC);
 	/***
     * \enum DrawMode_LINES_FLAT
-    * \desc Combination of <linkto ref="DrawMode_LINES"></linkto> and <linkto ref="DrawMode_FLAT_LIGHTING"></linkto>.
+    * \desc Combination of <ref DrawMode_LINES> and <ref DrawMode_FLAT_LIGHTING>.
     */
 	DEF_ENUM(DrawMode_LINES_FLAT);
 	/***
     * \enum DrawMode_LINES_SMOOTH
-    * \desc Combination of <linkto ref="DrawMode_LINES"></linkto> and <linkto ref="DrawMode_SMOOTH_LIGHTING"></linkto>.
+    * \desc Combination of <ref DrawMode_LINES> and <ref DrawMode_SMOOTH_LIGHTING>.
     */
 	DEF_ENUM(DrawMode_LINES_SMOOTH);
 	/***
     * \enum DrawMode_POLYGONS_FLAT
-    * \desc Combination of <linkto ref="DrawMode_POLYGONS"></linkto> and <linkto ref="DrawMode_FLAT_LIGHTING"></linkto>.
+    * \desc Combination of <ref DrawMode_POLYGONS> and <ref DrawMode_FLAT_LIGHTING>.
     */
 	DEF_ENUM(DrawMode_POLYGONS_FLAT);
 	/***
     * \enum DrawMode_POLYGONS_SMOOTH
-    * \desc Combination of <linkto ref="DrawMode_POLYGONS"></linkto> and <linkto ref="DrawMode_SMOOTH_LIGHTING"></linkto>.
+    * \desc Combination of <ref DrawMode_POLYGONS> and <ref DrawMode_SMOOTH_LIGHTING>.
     */
 	DEF_ENUM(DrawMode_POLYGONS_SMOOTH);
 	/***
     * \enum DrawMode_PrimitiveMask
-    * \desc Masks out <linkto ref="DrawMode_LINES"></linkto><code> | </code><linkto ref="DrawMode_POLYGONS"></linkto><code> | </code><linkto ref="DrawMode_POINTS"></linkto> out of a draw mode.
+    * \desc Masks out <ref DrawMode_LINES> | <ref DrawMode_POLYGONS> | <ref DrawMode_POINTS> out of a draw mode.
     */
 	DEF_ENUM(DrawMode_PrimitiveMask);
 	/***
     * \enum DrawMode_LightingMask
-    * \desc Masks out <linkto ref="DrawMode_FLAT_LIGHTING"></linkto><code> | </code><linkto ref="DrawMode_SMOOTH_LIGHTING"></linkto> out of a draw mode.
+    * \desc Masks out <ref DrawMode_FLAT_LIGHTING> | <ref DrawMode_SMOOTH_LIGHTING> out of a draw mode.
     */
 	DEF_ENUM(DrawMode_LightingMask);
 	/***
     * \enum DrawMode_FillTypeMask
-    * \desc Masks out <linkto ref="DrawMode_PrimitiveMask"></linkto><code> | </code><linkto ref="DrawMode_LightingMask"></linkto> out of a draw mode.
+    * \desc Masks out <ref DrawMode_PrimitiveMask> | <ref DrawMode_LightingMask> out of a draw mode.
     */
 	DEF_ENUM(DrawMode_FillTypeMask);
 	/***
     * \enum DrawMode_FlagsMask
-    * \desc Masks out <code>~</code><linkto ref="DrawMode_FillTypeMask"></linkto> out of a draw mode.
+    * \desc Masks out ~<ref DrawMode_FillTypeMask> out of a draw mode.
     */
 	DEF_ENUM(DrawMode_FlagsMask);
 
@@ -20185,37 +20829,41 @@ void StandardLibrary::Link() {
 
 	/***
 	* \enum ROTSTYLE_NONE
-	* \desc Does not rotate the sprite in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	* \desc Does not rotate the sprite in <ref Draw.SpriteBasic>, <ref Draw.Animator>, and <ref Draw.AnimatorBasic>.
 	*/
 	DEF_ENUM(ROTSTYLE_NONE);
 	/***
 	* \enum ROTSTYLE_FULL
-	* \desc Allows the sprite 256 angles of rotation in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	* \desc Allows the sprite 256 angles of rotation in <ref Draw.SpriteBasic>, <ref Draw.Animator>, and <ref Draw.AnimatorBasic>.
 	*/
 	DEF_ENUM(ROTSTYLE_FULL);
 	/***
 	* \enum ROTSTYLE_45DEG
-	* \desc Allows the sprite to rotate in intervals of 45 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	* \desc Allows the sprite to rotate in intervals of 45 degrees in <ref Draw.SpriteBasic>, <ref Draw.Animator>, and <ref Draw.AnimatorBasic>.
 	*/
 	DEF_ENUM(ROTSTYLE_45DEG);
 	/***
 	* \enum ROTSTYLE_90DEG
-	* \desc Allows the sprite to rotate in intervals of 90 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	* \desc Allows the sprite to rotate in intervals of 90 degrees in <ref Draw.SpriteBasic>, <ref Draw.Animator>, and <ref Draw.AnimatorBasic>.
 	*/
 	DEF_ENUM(ROTSTYLE_90DEG);
 	/***
 	* \enum ROTSTYLE_180DEG
-	* \desc Allows the sprite to rotate in intervals of 180 degrees in <linkto ref="Draw.SpriteBasic"></linkto>, <linkto ref="Draw.Animator"></linkto>, and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	* \desc Allows the sprite to rotate in intervals of 180 degrees in <ref Draw.SpriteBasic>, <ref Draw.Animator>, and <ref Draw.AnimatorBasic>.
 	*/
 	DEF_ENUM(ROTSTYLE_180DEG);
 	/***
 	* \enum ROTSTYLE_STATICFRAMES
-	* \desc Uses extra frames to rotate the sprite in <linkto ref="Draw.SpriteBasic"></linkto> and <linkto ref="Draw.AnimatorBasic"></linkto>.
+	* \desc Uses extra frames to rotate the sprite in <ref Draw.SpriteBasic> and <ref Draw.AnimatorBasic>.
 	*/
 	DEF_ENUM(ROTSTYLE_STATICFRAMES);
 	// #endregion
 
 	// #region Draw3D
+	/***
+    * \class Draw3D
+    * \desc Functions for drawing in 3D.
+    */
 	INIT_CLASS(Draw3D);
 	DEF_NATIVE(Draw3D, BindVertexBuffer);
 	DEF_NATIVE(Draw3D, UnbindVertexBuffer);
@@ -20241,6 +20889,11 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Ease
+	/***
+    * \class Ease
+    * \desc Easing functions.<br/>\
+See https://easings.net/ for more details.
+    */
 	INIT_CLASS(Ease);
 	DEF_NATIVE(Ease, InSine);
 	DEF_NATIVE(Ease, OutSine);
@@ -20276,6 +20929,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region File
+	/***
+    * \class File
+    * \desc Filesystem file manipulation.
+    */
 	INIT_CLASS(File);
 	DEF_NATIVE(File, Exists);
 	DEF_NATIVE(File, ReadAllText);
@@ -20283,6 +20940,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Geometry
+	/***
+    * \class Geometry
+    * \desc Geometry intersection functions.
+    */
 	INIT_CLASS(Geometry);
 	DEF_NATIVE(Geometry, Triangulate);
 	DEF_NATIVE(Geometry, Intersect);
@@ -20322,12 +20983,12 @@ void StandardLibrary::Link() {
 	DEF_ENUM(GeoFillRule_NonZero);
 	/***
     * \enum GeoFillRule_Positive
-    * \desc Only subregions that have winding counts greater than zero (> 0) are filled.
+    * \desc Only subregions that have winding counts greater than zero are filled.
     */
 	DEF_ENUM(GeoFillRule_Positive);
 	/***
     * \enum GeoFillRule_Negative
-    * \desc Only subregions that have winding counts lesser than zero (< 0) are filled.
+    * \desc Only subregions that have winding counts lesser than zero are filled.
     */
 	DEF_ENUM(GeoFillRule_Negative);
 	// #endregion
@@ -20339,12 +21000,21 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Image
+	/***
+    * \class Image
+    * \desc Functions to retrieve information about images.
+    */
 	INIT_CLASS(Image);
 	DEF_NATIVE(Image, GetWidth);
 	DEF_NATIVE(Image, GetHeight);
 	// #endregion
 
 	// #region Input
+	/***
+    * \class Input
+    * \desc Input polling functions.<br/>\
+This class also houses the input action system.
+    */
 	INIT_CLASS(Input);
 	DEF_NATIVE(Input, GetMouseX);
 	DEF_NATIVE(Input, GetMouseY);
@@ -20435,6 +21105,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Instance
+	/***
+    * \class Instance
+    * \desc General <ref Entity> related functions.
+    */
 	INIT_CLASS(Instance);
 	DEF_NATIVE(Instance, Create);
 	DEF_NATIVE(Instance, GetNth);
@@ -20466,12 +21140,20 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region JSON
+	/***
+    * \class JSON
+    * \desc JSON parsing and writing.
+    */
 	INIT_CLASS(JSON);
 	DEF_NATIVE(JSON, Parse);
 	DEF_NATIVE(JSON, ToString);
 	// #endregion
 
 	// #region Math
+	/***
+    * \class Math
+    * \desc General Math functions.
+    */
 	INIT_CLASS(Math);
 	DEF_NATIVE(Math, Cos);
 	DEF_NATIVE(Math, Sin);
@@ -20502,6 +21184,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region RSDK.Math
+	/***
+    * \class RSDK.Math
+    * \desc RSDK math functions.
+    */
 	INIT_NAMESPACED_CLASS(RSDK, Math);
 	DEF_NAMESPACED_NATIVE(Math, ClearTrigLookupTables);
 	DEF_NAMESPACED_NATIVE(Math, CalculateTrigAngles);
@@ -20532,6 +21218,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Matrix
+	/***
+    * \class Matrix
+    * \desc Matrix manipulation.
+    */
 	INIT_CLASS(Matrix);
 	DEF_NATIVE(Matrix, Create);
 	DEF_NATIVE(Matrix, Identity);
@@ -20544,6 +21234,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region RSDK.Matrix
+	/***
+    * \class RSDK.Matrix
+    * \desc RSDK matrix manipulation.
+    */
 	INIT_NAMESPACED_CLASS(RSDK, Matrix);
 	DEF_NATIVE(Matrix, Create256);
 	DEF_NATIVE(Matrix, Identity256);
@@ -20557,6 +21251,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Model
+	/***
+    * \class Model
+    * \desc Functions to manipulate and retrieve information about 3D models.
+    */
 	INIT_CLASS(Model);
 	DEF_NATIVE(Model, GetVertexCount);
 	DEF_NATIVE(Model, GetAnimationCount);
@@ -20575,6 +21273,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Music
+	/***
+    * \class Music
+    * \desc Music playback.
+    */
 	INIT_CLASS(Music);
 	DEF_NATIVE(Music, Play);
 	DEF_NATIVE(Music, Stop);
@@ -20589,17 +21291,21 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Music, SetLoopPoint);
 	/***
 	* \enum AUDIO_LOOP_NONE
-	* \desc When used as the `loopPoint` argument in <linkto ref="Music.Play"></linkto> or <linkto ref="Sound.Play"></linkto>, specifies that the audio should not loop, even if the audio file has a loop point.
+	* \desc When used as the `loopPoint` argument in <ref Music.Play> or <ref Sound.Play>, specifies that the audio should not loop, even if the audio file has a loop point.
 	*/
 	DEF_CONST_INT("AUDIO_LOOP_NONE", AUDIO_LOOP_NONE);
 	/***
 	* \enum AUDIO_LOOP_DEFAULT
-	* \desc When used as the `loopPoint` argument in <linkto ref="Music.Play"></linkto> or <linkto ref="Sound.Play"></linkto>, specifies that the audio should use loop point defined in the metadata of the audio file.
+	* \desc When used as the `loopPoint` argument in <ref Music.Play> or <ref Sound.Play>, specifies that the audio should use loop point defined in the metadata of the audio file.
 	*/
 	DEF_CONST_INT("AUDIO_LOOP_DEFAULT", AUDIO_LOOP_DEFAULT);
 	// #endregion
 
 	// #region Number
+	/***
+    * \class Number
+    * \desc Number type related functions.
+    */
 	INIT_CLASS(Number);
 	DEF_NATIVE(Number, ToString);
 	DEF_NATIVE(Number, AsInteger);
@@ -20607,6 +21313,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Object
+	/***
+    * \class Object
+    * \desc Entity class related functions.
+    */
 	INIT_CLASS(Object);
 	DEF_NATIVE(Object, Loaded);
 	DEF_NATIVE(Object, SetActivity);
@@ -20614,6 +21324,11 @@ void StandardLibrary::Link() {
 	// #endRegion
 
 	// #region Palette
+	/***
+    * \class Palette
+    * \desc Palette manipulation.<br/>\
+Use <ref Palette.EnablePaletteUsage> to enable palettes.
+    */
 	INIT_CLASS(Palette);
 	DEF_NATIVE(Palette, EnablePaletteUsage);
 	DEF_NATIVE(Palette, LoadFromResource);
@@ -20631,6 +21346,11 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Random
+	/***
+    * \class Random
+    * \desc The engine's pseudorandom number generator.<br/>\
+This is preferred over <ref Math>'s random functions if you require consistency, since <ref Random> can be seeded and utilizes a defined algorithm, which functions such as <ref Math.Random> cannot guarantee.
+    */
 	INIT_CLASS(Random);
 	DEF_NATIVE(Random, SetSeed);
 	DEF_NATIVE(Random, GetSeed);
@@ -20639,6 +21359,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Resources
+	/***
+    * \class Resources
+    * \desc Resource loading.
+    */
 	INIT_CLASS(Resources);
 	DEF_NATIVE(Resources, LoadSprite);
 	DEF_NATIVE(Resources, LoadDynamicSprite);
@@ -20663,6 +21387,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Scene
+	/***
+    * \class Scene
+    * \desc Functions for manipulating and retrieving information about scenes.
+    */
 	INIT_CLASS(Scene);
 	DEF_NATIVE(Scene, Load);
 	DEF_NATIVE(Scene, Change);
@@ -20812,6 +21540,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region SceneList
+	/***
+    * \class SceneList
+    * \desc Functions for manipulating and retrieving information about the scene list.
+    */
 	INIT_CLASS(SceneList);
 	DEF_NATIVE(SceneList, Get);
 	DEF_NATIVE(SceneList, GetEntryID);
@@ -20827,6 +21559,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Scene3D
+	/***
+    * \class Scene3D
+    * \desc The main interface for drawing 3D elements.
+    */
 	INIT_CLASS(Scene3D);
 	DEF_NATIVE(Scene3D, Create);
 	DEF_NATIVE(Scene3D, Delete);
@@ -20878,12 +21614,28 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Serializer
+	/***
+    * \class Serializer
+    * \desc Functions for serializing values.<br/>\
+<br/>Supported types:<ul>\
+<li>integer</li>\
+<li>decimal</li>\
+<li>null</li>\
+<li>string</li>\
+<li>array</li>\
+<li>map</li>\
+</ul>
+    */
 	INIT_CLASS(Serializer);
 	DEF_NATIVE(Serializer, WriteToStream);
 	DEF_NATIVE(Serializer, ReadFromStream);
 	// #endregion
 
 	// #region Settings
+	/***
+    * \class Settings
+    * \desc Reading and writing the application's settings from and into INI files.
+    */
 	INIT_CLASS(Settings);
 	DEF_NATIVE(Settings, Load);
 	DEF_NATIVE(Settings, Save);
@@ -20918,87 +21670,87 @@ void StandardLibrary::Link() {
 	DEF_CONST_INT("SHADERSTAGE_FRAGMENT", Shader::STAGE_FRAGMENT);
 	/***
     * \enum SHADERDATATYPE_FLOAT
-    * \desc <code>float</code> data type.
+    * \desc `float` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_FLOAT", Shader::DATATYPE_FLOAT);
 	/***
     * \enum SHADERDATATYPE_VEC2
-    * \desc <code>vec2</code> data type.
+    * \desc `vec2` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_VEC2", Shader::DATATYPE_FLOAT_VEC2);
 	/***
     * \enum SHADERDATATYPE_VEC3
-    * \desc <code>vec3</code> data type.
+    * \desc `vec3` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_VEC3", Shader::DATATYPE_FLOAT_VEC3);
 	/***
     * \enum SHADERDATATYPE_VEC4
-    * \desc <code>vec4</code> data type.
+    * \desc `vec4` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_VEC4", Shader::DATATYPE_FLOAT_VEC4);
 	/***
     * \enum SHADERDATATYPE_INT
-    * \desc <code>int</code> data type.
+    * \desc `int` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_INT", Shader::DATATYPE_INT);
 	/***
     * \enum SHADERDATATYPE_IVEC2
-    * \desc <code>ivec2</code> data type.
+    * \desc `ivec2` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_IVEC2", Shader::DATATYPE_INT_VEC2);
 	/***
     * \enum SHADERDATATYPE_IVEC3
-    * \desc <code>ivec3</code> data type.
+    * \desc `ivec3` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_IVEC3", Shader::DATATYPE_INT_VEC3);
 	/***
     * \enum SHADERDATATYPE_IVEC4
-    * \desc <code>ivec4</code> data type.
+    * \desc `ivec4` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_IVEC4", Shader::DATATYPE_INT_VEC4);
 	/***
     * \enum SHADERDATATYPE_BOOL
-    * \desc <code>bool</code> data type.
+    * \desc `bool` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_BOOL", Shader::DATATYPE_BOOL);
 	/***
     * \enum SHADERDATATYPE_BVEC2
-    * \desc <code>bvec2</code> data type.
+    * \desc `bvec2` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_BVEC2", Shader::DATATYPE_BOOL_VEC2);
 	/***
     * \enum SHADERDATATYPE_BVEC3
-    * \desc <code>bvec3</code> data type.
+    * \desc `bvec3` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_BVEC3", Shader::DATATYPE_BOOL_VEC3);
 	/***
     * \enum SHADERDATATYPE_BVEC4
-    * \desc <code>bvec4</code> data type.
+    * \desc `bvec4` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_BVEC4", Shader::DATATYPE_BOOL_VEC4);
 	/***
     * \enum SHADERDATATYPE_MAT2
-    * \desc <code>mat2</code> data type.
+    * \desc `mat2` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_MAT2", Shader::DATATYPE_FLOAT_MAT2);
 	/***
     * \enum SHADERDATATYPE_MAT3
-    * \desc <code>mat3</code> data type.
+    * \desc `mat3` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_MAT3", Shader::DATATYPE_FLOAT_MAT3);
 	/***
     * \enum SHADERDATATYPE_MAT4
-    * \desc <code>mat4</code> data type.
+    * \desc `mat4` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_MAT4", Shader::DATATYPE_FLOAT_MAT4);
 	/***
     * \enum SHADERDATATYPE_SAMPLER_2D
-    * \desc <code>sampler2D</code> data type.
+    * \desc `sampler2D` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_SAMPLER_2D", Shader::DATATYPE_SAMPLER_2D);
 	/***
     * \enum SHADERDATATYPE_SAMPLER_CUBE
-    * \desc <code>samplerCube</code> data type.
+    * \desc `samplerCube` data type.
     */
 	DEF_CONST_INT("SHADERDATATYPE_SAMPLER_CUBE", Shader::DATATYPE_SAMPLER_CUBE);
 	// #endregion
@@ -21019,6 +21771,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Sound
+	/***
+    * \class Sound
+    * \desc Sound playback.
+    */
 	INIT_CLASS(Sound);
 	DEF_NATIVE(Sound, Play);
 	DEF_NATIVE(Sound, Stop);
@@ -21041,6 +21797,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Sprite
+	/***
+    * \class Sprite
+    * \desc Functions to retrieve information about sprites.
+    */
 	INIT_CLASS(Sprite);
 	DEF_NATIVE(Sprite, GetAnimationCount);
 	DEF_NATIVE(Sprite, GetAnimationName);
@@ -21066,6 +21826,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Stream
+	/***
+    * \class Stream
+    * \desc Functions for opening streams, as well as functions for reading and writing data.
+    */
 	INIT_CLASS(Stream);
 	DEF_NATIVE(Stream, FromResource);
 	DEF_NATIVE(Stream, FromFile);
@@ -21104,22 +21868,26 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Stream, WriteString);
 	/***
     * \enum FileStream_READ_ACCESS
-    * \desc Read file access mode. (<code>rb</code>)
+    * \desc Read file access mode. (`rb`)
     */
 	DEF_ENUM_CLASS(FileStream, READ_ACCESS);
 	/***
     * \enum FileStream_WRITE_ACCESS
-    * \desc Write file access mode. (<code>wb</code>)
+    * \desc Write file access mode. (`wb`)
     */
 	DEF_ENUM_CLASS(FileStream, WRITE_ACCESS);
 	/***
     * \enum FileStream_APPEND_ACCESS
-    * \desc Append file access mode. (<code>ab</code>)
+    * \desc Append file access mode. (`ab`)
     */
 	DEF_ENUM_CLASS(FileStream, APPEND_ACCESS);
 	// #endregion
 
 	// #region String
+	/***
+    * \class String
+    * \desc String manipulation functions.
+    */
 	INIT_CLASS(String);
 	DEF_NATIVE(String, Format);
 	DEF_NATIVE(String, Split);
@@ -21140,12 +21908,20 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Texture
+	/***
+    * \class Texture
+    * \desc Texture manipulation functions.
+    */
 	INIT_CLASS(Texture);
 	DEF_NATIVE(Texture, Create);
 	DEF_NATIVE(Texture, Copy);
 	// #endregion
 
 	// #region Touch
+	/***
+    * \class Touch
+    * \desc Touch screen related functions.
+    */
 	INIT_CLASS(Touch);
 	DEF_NATIVE(Touch, GetX);
 	DEF_NATIVE(Touch, GetY);
@@ -21155,6 +21931,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region TileCollision
+	/***
+    * \class TileCollision
+    * \desc Basic functions for performing collision with scene tiles.
+    */
 	INIT_CLASS(TileCollision);
 	DEF_NATIVE(TileCollision, Point);
 	DEF_NATIVE(TileCollision, PointExtended);
@@ -21182,6 +21962,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region TileInfo
+	/***
+    * \class TileInfo
+    * \desc Functions for retrieving information about tiles.
+    */
 	INIT_CLASS(TileInfo);
 	DEF_NATIVE(TileInfo, SetSpriteInfo);
 	DEF_NATIVE(TileInfo, IsEmptySpace);
@@ -21199,6 +21983,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region VertexBuffer
+	/***
+    * \class VertexBuffer
+    * \desc Representation of a vertex buffer.
+    */
 	INIT_CLASS(VertexBuffer);
 	DEF_NATIVE(VertexBuffer, Create);
 	DEF_NATIVE(VertexBuffer, Clear);
@@ -21207,6 +21995,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Video
+	/***
+    * \class Video
+    * \desc Video playback.
+    */
 	INIT_CLASS(Video);
 	DEF_NATIVE(Video, Play);
 	DEF_NATIVE(Video, Pause);
@@ -21235,6 +22027,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region View
+	/***
+    * \class View
+    * \desc View manipulation functions.
+    */
 	INIT_CLASS(View);
 	DEF_NATIVE(View, SetX);
 	DEF_NATIVE(View, SetY);
@@ -21280,6 +22076,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region Window
+	/***
+    * \class Window
+    * \desc Window manipulation functions.
+    */
 	INIT_CLASS(Window);
 	DEF_NATIVE(Window, SetSize);
 	DEF_NATIVE(Window, SetFullscreen);
@@ -21298,6 +22098,10 @@ void StandardLibrary::Link() {
 	// #endregion
 
 	// #region XML
+	/***
+    * \class XML
+    * \desc XML parsing.
+    */
 	INIT_CLASS(XML);
 	DEF_NATIVE(XML, Parse);
 	// #endregion
@@ -21449,165 +22253,165 @@ void StandardLibrary::Link() {
 	// #region Hitbox Sides
 	/***
     * \enum HITBOX_LEFT
-    * \desc Left side, slot 0 of a hitbox array.
+    * \desc Left side, slot 0 of a hitbox value.
     */
 	DEF_ENUM(HITBOX_LEFT);
 	/***
     * \enum HITBOX_TOP
-    * \desc Top side, slot 1 of a hitbox array.
+    * \desc Top side, slot 1 of a hitbox value.
     */
 	DEF_ENUM(HITBOX_TOP);
 	/***
     * \enum HITBOX_RIGHT
-    * \desc Right side, slot 2 of a hitbox array.
+    * \desc Right side, slot 2 of a hitbox value.
     */
 	DEF_ENUM(HITBOX_RIGHT);
 	/***
     * \enum HITBOX_BOTTOM
-    * \desc Bottom side, slot 3 of a hitbox array.
+    * \desc Bottom side, slot 3 of a hitbox value.
     */
 	DEF_ENUM(HITBOX_BOTTOM);
 	// #endregion
 
 	/***
     * \global CameraX
-    * \type Decimal
+    * \type decimal
     * \desc The X position of the first camera.
     */
 	DEF_LINK_DECIMAL("CameraX", &Scene::Views[0].X);
 	/***
     * \global CameraY
-    * \type Decimal
+    * \type decimal
     * \desc The Y position of the first camera.
     */
 	DEF_LINK_DECIMAL("CameraY", &Scene::Views[0].Y);
 	/***
     * \global LowPassFilter
-    * \type Decimal
+    * \type decimal
     * \desc The low pass filter of the audio.
     */
 	DEF_LINK_DECIMAL("LowPassFilter", &AudioManager::LowPassFilter);
 
 	/***
     * \global CurrentView
-    * \type Integer
+    * \type integer
     * \desc The current camera index.
     */
 	DEF_LINK_INT("CurrentView", &Scene::ViewCurrent);
 	/***
     * \global Scene_Frame
-    * \type Integer
+    * \type integer
     * \desc The current scene frame.
     */
 	DEF_LINK_INT("Scene_Frame", &Scene::Frame);
 	/***
     * \global DeltaTime
-    * \type Decimal
+    * \type decimal
     * \desc The delta time.
     */
 	DEF_LINK_DECIMAL("DeltaTime", &Application::ActualDeltaTime);
 	/***
 	* \global Scene_Filter
-	* \type Integer
+	* \type integer
 	* \desc The current scene filter.
 	*/
 	DEF_LINK_INT("Scene_Filter", &Scene::Filter);
 	/***
     * \global Scene_TimeEnabled
-    * \type Integer
-    * \desc Whether the scene timer is enabled or not.
+    * \type integer
+    * \desc Whether the scene timer is enabled.
     */
 	DEF_LINK_INT("Scene_TimeEnabled", &Scene::TimeEnabled);
 	/***
     * \global Scene_TimeCounter
-    * \type Integer
-    * \desc The current scene timer counter.
+    * \type integer
+    * \desc The current scene time counter.
     */
 	DEF_LINK_INT("Scene_TimeCounter", &Scene::TimeCounter);
 	/***
     * \global Scene_Minutes
-    * \type Integer
+    * \type integer
     * \desc The minutes value of the scene timer.
     */
 	DEF_LINK_INT("Scene_Minutes", &Scene::Minutes);
 	/***
     * \global Scene_Seconds
-    * \type Integer
+    * \type integer
     * \desc The seconds value of the scene timer.
     */
 	DEF_LINK_INT("Scene_Seconds", &Scene::Seconds);
 	/***
     * \global Scene_Milliseconds
-    * \type Integer
+    * \type integer
     * \desc The milliseconds value of the scene timer.
     */
 	DEF_LINK_INT("Scene_Milliseconds", &Scene::Milliseconds);
 	/***
     * \global Scene_ListPos
-    * \type Integer
+    * \type integer
     * \desc The position of the current scene in the scene list.
     */
 	DEF_LINK_INT("Scene_ListPos", &Scene::CurrentSceneInList);
 	/***
     * \global Scene_ActiveCategory
-    * \type Integer
+    * \type integer
     * \desc The category number that contains the current scene.
     */
 	DEF_LINK_INT("Scene_ActiveCategory", &Scene::ActiveCategory);
 	/***
     * \global Scene_DebugMode
-    * \type Integer
-    * \desc Whether nor not Debug Mode has been turned on in the current scene
+    * \type integer
+    * \desc Whether Debug Mode has been turned on in the current scene.
     */
 	DEF_LINK_INT("Scene_DebugMode", &Scene::DebugMode);
 	/***
     * \constant MAX_SCENE_VIEWS
-    * \type Integer
+    * \type integer
     * \desc The max amount of scene views.
     */
 	DEF_ENUM(MAX_SCENE_VIEWS);
 	/***
     * \constant MAX_DRAW_GROUPS
-    * \type Integer
+    * \type integer
     * \desc The max amount of draw groups.
     */
 	DEF_CONST_INT("MAX_DRAW_GROUPS", MAX_PRIORITY_PER_LAYER);
 
 	/***
     * \constant Math_PI
-    * \type Decimal
+    * \type decimal
     * \desc The value of pi.
     */
 	DEF_CONST_DECIMAL("Math_PI", M_PI);
 	/***
     * \constant Math_PI_DOUBLE
-    * \type Decimal
+    * \type decimal
     * \desc Double of the value of pi.
     */
 	DEF_CONST_DECIMAL("Math_PI_DOUBLE", M_PI * 2.0);
 	/***
     * \constant Math_PI_HALF
-    * \type Decimal
+    * \type decimal
     * \desc Half of the value of pi.
     */
 	DEF_CONST_DECIMAL("Math_PI_HALF", M_PI / 2.0);
 	/***
     * \constant Math_R_PI
-    * \type Decimal
+    * \type decimal
     * \desc A less precise value of pi.
     */
 	DEF_CONST_DECIMAL("Math_R_PI", RSDK_PI);
 
 	/***
     * \constant NUM_KEYBOARD_KEYS
-    * \type Integer
+    * \type integer
     * \desc Count of keyboard keys.
     */
 	DEF_ENUM(NUM_KEYBOARD_KEYS);
 
 	/***
     * \constant MAX_PALETTE_COUNT
-    * \type Integer
+    * \type integer
     * \desc The max amount of palettes.
     */
 	DEF_ENUM(MAX_PALETTE_COUNT);
@@ -21625,77 +22429,77 @@ void StandardLibrary::Link() {
 
 	/***
     * \constant KeyMod_SHIFT
-    * \type Integer
+    * \type integer
     * \desc Key modifier for either Shift key.
     */
 	DEF_CONST_INT("KeyMod_SHIFT", KB_MODIFIER_SHIFT);
 
 	/***
     * \constant KeyMod_CTRL
-    * \type Integer
+    * \type integer
     * \desc Key modifier for either Ctrl key.
     */
 	DEF_CONST_INT("KeyMod_CTRL", KB_MODIFIER_CTRL);
 
 	/***
     * \constant KeyMod_ALT
-    * \type Integer
+    * \type integer
     * \desc Key modifier for either Alt key.
     */
 	DEF_CONST_INT("KeyMod_ALT", KB_MODIFIER_ALT);
 
 	/***
     * \constant KeyMod_LSHIFT
-    * \type Integer
+    * \type integer
     * \desc Key modifier for the Left Shift key.
     */
 	DEF_CONST_INT("KeyMod_LSHIFT", KB_MODIFIER_LSHIFT);
 
 	/***
     * \constant KeyMod_RSHIFT
-    * \type Integer
+    * \type integer
     * \desc Key modifier for the Right Shift key.
     */
 	DEF_CONST_INT("KeyMod_RSHIFT", KB_MODIFIER_RSHIFT);
 
 	/***
     * \constant KeyMod_LCTRL
-    * \type Integer
+    * \type integer
     * \desc Key modifier for the Left Ctrl key.
     */
 	DEF_CONST_INT("KeyMod_LCTRL", KB_MODIFIER_LCTRL);
 
 	/***
     * \constant KeyMod_RCTRL
-    * \type Integer
+    * \type integer
     * \desc Key modifier for the Right Ctrl key.
     */
 	DEF_CONST_INT("KeyMod_RCTRL", KB_MODIFIER_RCTRL);
 
 	/***
     * \constant KeyMod_LALT
-    * \type Integer
+    * \type integer
     * \desc Key modifier for the Left Alt key.
     */
 	DEF_CONST_INT("KeyMod_LALT", KB_MODIFIER_LALT);
 
 	/***
     * \constant KeyMod_RALT
-    * \type Integer
+    * \type integer
     * \desc Key modifier for the Right Alt key.
     */
 	DEF_CONST_INT("KeyMod_RALT", KB_MODIFIER_RALT);
 
 	/***
     * \constant KeyMod_NUMLOCK
-    * \type Integer
+    * \type integer
     * \desc Key modifier for the Num Lock key.
     */
 	DEF_CONST_INT("KeyMod_NUMLOCK", KB_MODIFIER_NUM);
 
 	/***
     * \constant KeyMod_CAPSLOCK
-    * \type Integer
+    * \type integer
     * \desc Key modifier for the Caps Lock key.
     */
 	DEF_CONST_INT("KeyMod_CAPSLOCK", KB_MODIFIER_CAPS);
@@ -21704,633 +22508,633 @@ void StandardLibrary::Link() {
 	{
 		/***
         * \enum Key_UNKNOWN
-        * \type Integer
+        * \type integer
         * \desc Invalid key.
         */
 		CONST_KEY(UNKNOWN);
 		/***
         * \enum Key_A
-        * \type Integer
+        * \type integer
         * \desc A key.
         */
 		CONST_KEY(A);
 		/***
         * \enum Key_B
-        * \type Integer
+        * \type integer
         * \desc B key.
         */
 		CONST_KEY(B);
 		/***
         * \enum Key_C
-        * \type Integer
+        * \type integer
         * \desc C key.
         */
 		CONST_KEY(C);
 		/***
         * \enum Key_D
-        * \type Integer
+        * \type integer
         * \desc D key.
         */
 		CONST_KEY(D);
 		/***
         * \enum Key_E
-        * \type Integer
+        * \type integer
         * \desc E key.
         */
 		CONST_KEY(E);
 		/***
         * \enum Key_F
-        * \type Integer
+        * \type integer
         * \desc F key.
         */
 		CONST_KEY(F);
 		/***
         * \enum Key_G
-        * \type Integer
+        * \type integer
         * \desc G key.
         */
 		CONST_KEY(G);
 		/***
         * \enum Key_H
-        * \type Integer
+        * \type integer
         * \desc H key.
         */
 		CONST_KEY(H);
 		/***
         * \enum Key_I
-        * \type Integer
+        * \type integer
         * \desc I key.
         */
 		CONST_KEY(I);
 		/***
         * \enum Key_J
-        * \type Integer
+        * \type integer
         * \desc J key.
         */
 		CONST_KEY(J);
 		/***
         * \enum Key_K
-        * \type Integer
+        * \type integer
         * \desc K key.
         */
 		CONST_KEY(K);
 		/***
         * \enum Key_L
-        * \type Integer
+        * \type integer
         * \desc L key.
         */
 		CONST_KEY(L);
 		/***
         * \enum Key_M
-        * \type Integer
+        * \type integer
         * \desc M key.
         */
 		CONST_KEY(M);
 		/***
         * \enum Key_N
-        * \type Integer
+        * \type integer
         * \desc N key.
         */
 		CONST_KEY(N);
 		/***
         * \enum Key_O
-        * \type Integer
+        * \type integer
         * \desc O key.
         */
 		CONST_KEY(O);
 		/***
         * \enum Key_P
-        * \type Integer
+        * \type integer
         * \desc P key.
         */
 		CONST_KEY(P);
 		/***
         * \enum Key_Q
-        * \type Integer
+        * \type integer
         * \desc Q key.
         */
 		CONST_KEY(Q);
 		/***
         * \enum Key_R
-        * \type Integer
+        * \type integer
         * \desc R key.
         */
 		CONST_KEY(R);
 		/***
         * \enum Key_S
-        * \type Integer
+        * \type integer
         * \desc S key.
         */
 		CONST_KEY(S);
 		/***
         * \enum Key_T
-        * \type Integer
+        * \type integer
         * \desc T key.
         */
 		CONST_KEY(T);
 		/***
         * \enum Key_U
-        * \type Integer
+        * \type integer
         * \desc U key.
         */
 		CONST_KEY(U);
 		/***
         * \enum Key_V
-        * \type Integer
+        * \type integer
         * \desc V key.
         */
 		CONST_KEY(V);
 		/***
         * \enum Key_W
-        * \type Integer
+        * \type integer
         * \desc W key.
         */
 		CONST_KEY(W);
 		/***
         * \enum Key_X
-        * \type Integer
+        * \type integer
         * \desc X key.
         */
 		CONST_KEY(X);
 		/***
         * \enum Key_Y
-        * \type Integer
+        * \type integer
         * \desc Y key.
         */
 		CONST_KEY(Y);
 		/***
         * \enum Key_Z
-        * \type Integer
+        * \type integer
         * \desc Z key.
         */
 		CONST_KEY(Z);
 
 		/***
         * \enum Key_1
-        * \type Integer
+        * \type integer
         * \desc Number 1 key.
         */
 		CONST_KEY(1);
 		/***
         * \enum Key_2
-        * \type Integer
+        * \type integer
         * \desc Number 2 key.
         */
 		CONST_KEY(2);
 		/***
         * \enum Key_3
-        * \type Integer
+        * \type integer
         * \desc Number 3 key.
         */
 		CONST_KEY(3);
 		/***
         * \enum Key_4
-        * \type Integer
+        * \type integer
         * \desc Number 4 key.
         */
 		CONST_KEY(4);
 		/***
         * \enum Key_5
-        * \type Integer
+        * \type integer
         * \desc Number 5 key.
         */
 		CONST_KEY(5);
 		/***
         * \enum Key_6
-        * \type Integer
+        * \type integer
         * \desc Number 6 key.
         */
 		CONST_KEY(6);
 		/***
         * \enum Key_7
-        * \type Integer
+        * \type integer
         * \desc Number 7 key.
         */
 		CONST_KEY(7);
 		/***
         * \enum Key_8
-        * \type Integer
+        * \type integer
         * \desc Number 8 key.
         */
 		CONST_KEY(8);
 		/***
         * \enum Key_9
-        * \type Integer
+        * \type integer
         * \desc Number 9 key.
         */
 		CONST_KEY(9);
 		/***
         * \enum Key_0
-        * \type Integer
+        * \type integer
         * \desc Number 0 key.
         */
 		CONST_KEY(0);
 
 		/***
         * \enum Key_RETURN
-        * \type Integer
+        * \type integer
         * \desc Return key.
         */
 		CONST_KEY(RETURN);
 		/***
         * \enum Key_ESCAPE
-        * \type Integer
+        * \type integer
         * \desc Escape key.
         */
 		CONST_KEY(ESCAPE);
 		/***
         * \enum Key_BACKSPACE
-        * \type Integer
+        * \type integer
         * \desc Backspace key.
         */
 		CONST_KEY(BACKSPACE);
 		/***
         * \enum Key_TAB
-        * \type Integer
+        * \type integer
         * \desc Tab key.
         */
 		CONST_KEY(TAB);
 		/***
         * \enum Key_SPACE
-        * \type Integer
+        * \type integer
         * \desc Space Bar key.
         */
 		CONST_KEY(SPACE);
 
 		/***
         * \enum Key_MINUS
-        * \type Integer
+        * \type integer
         * \desc Minus key.
         */
 		CONST_KEY(MINUS);
 		/***
         * \enum Key_EQUALS
-        * \type Integer
+        * \type integer
         * \desc Equals key.
         */
 		CONST_KEY(EQUALS);
 		/***
         * \enum Key_LEFTBRACKET
-        * \type Integer
+        * \type integer
         * \desc Left Bracket key.
         */
 		CONST_KEY(LEFTBRACKET);
 		/***
         * \enum Key_RIGHTBRACKET
-        * \type Integer
+        * \type integer
         * \desc Right Bracket key.
         */
 		CONST_KEY(RIGHTBRACKET);
 		/***
         * \enum Key_BACKSLASH
-        * \type Integer
+        * \type integer
         * \desc Backslash key.
         */
 		CONST_KEY(BACKSLASH);
 		/***
         * \enum Key_SEMICOLON
-        * \type Integer
+        * \type integer
         * \desc Semicolon key.
         */
 		CONST_KEY(SEMICOLON);
 		/***
         * \enum Key_APOSTROPHE
-        * \type Integer
+        * \type integer
         * \desc Apostrophe key.
         */
 		CONST_KEY(APOSTROPHE);
 		/***
         * \enum Key_GRAVE
-        * \type Integer
+        * \type integer
         * \desc Grave key.
         */
 		CONST_KEY(GRAVE);
 		/***
         * \enum Key_COMMA
-        * \type Integer
+        * \type integer
         * \desc Comma key.
         */
 		CONST_KEY(COMMA);
 		/***
         * \enum Key_PERIOD
-        * \type Integer
+        * \type integer
         * \desc Period key.
         */
 		CONST_KEY(PERIOD);
 		/***
         * \enum Key_SLASH
-        * \type Integer
+        * \type integer
         * \desc SLASH key.
         */
 		CONST_KEY(SLASH);
 
 		/***
         * \enum Key_CAPSLOCK
-        * \type Integer
+        * \type integer
         * \desc Caps Lock key.
         */
 		CONST_KEY(CAPSLOCK);
 
 		/***
         * \enum Key_F1
-        * \type Integer
+        * \type integer
         * \desc F1 key.
         */
 		CONST_KEY(F1);
 		/***
         * \enum Key_F2
-        * \type Integer
+        * \type integer
         * \desc F2 key.
         */
 		CONST_KEY(F2);
 		/***
         * \enum Key_F3
-        * \type Integer
+        * \type integer
         * \desc F3 key.
         */
 		CONST_KEY(F3);
 		/***
         * \enum Key_F4
-        * \type Integer
+        * \type integer
         * \desc F4 key.
         */
 		CONST_KEY(F4);
 		/***
         * \enum Key_F5
-        * \type Integer
+        * \type integer
         * \desc F5 key.
         */
 		CONST_KEY(F5);
 		/***
         * \enum Key_F6
-        * \type Integer
+        * \type integer
         * \desc F6 key.
         */
 		CONST_KEY(F6);
 		/***
         * \enum Key_F7
-        * \type Integer
+        * \type integer
         * \desc F7 key.
         */
 		CONST_KEY(F7);
 		/***
         * \enum Key_F8
-        * \type Integer
+        * \type integer
         * \desc F8 key.
         */
 		CONST_KEY(F8);
 		/***
         * \enum Key_F9
-        * \type Integer
+        * \type integer
         * \desc F9 key.
         */
 		CONST_KEY(F9);
 		/***
         * \enum Key_F10
-        * \type Integer
+        * \type integer
         * \desc F10 key.
         */
 		CONST_KEY(F10);
 		/***
         * \enum Key_F11
-        * \type Integer
+        * \type integer
         * \desc F11 key.
         */
 		CONST_KEY(F11);
 		/***
         * \enum Key_F12
-        * \type Integer
+        * \type integer
         * \desc F12 key.
         */
 		CONST_KEY(F12);
 
 		/***
         * \enum Key_PRINTSCREEN
-        * \type Integer
+        * \type integer
         * \desc Print Screen key.
         */
 		CONST_KEY(PRINTSCREEN);
 		/***
         * \enum Key_SCROLLLOCK
-        * \type Integer
+        * \type integer
         * \desc Scroll Lock key.
         */
 		CONST_KEY(SCROLLLOCK);
 		/***
         * \enum Key_PAUSE
-        * \type Integer
+        * \type integer
         * \desc Pause/Break key.
         */
 		CONST_KEY(PAUSE);
 		/***
         * \enum Key_INSERT
-        * \type Integer
+        * \type integer
         * \desc Insert key.
         */
 		CONST_KEY(INSERT);
 		/***
         * \enum Key_HOME
-        * \type Integer
+        * \type integer
         * \desc Home key.
         */
 		CONST_KEY(HOME);
 		/***
         * \enum Key_PAGEUP
-        * \type Integer
+        * \type integer
         * \desc Page Up key.
         */
 		CONST_KEY(PAGEUP);
 		/***
         * \enum Key_DELETE
-        * \type Integer
+        * \type integer
         * \desc Delete key.
         */
 		CONST_KEY(DELETE);
 		/***
         * \enum Key_END
-        * \type Integer
+        * \type integer
         * \desc End key.
         */
 		CONST_KEY(END);
 		/***
         * \enum Key_PAGEDOWN
-        * \type Integer
+        * \type integer
         * \desc Page Down key.
         */
 		CONST_KEY(PAGEDOWN);
 		/***
         * \enum Key_RIGHT
-        * \type Integer
+        * \type integer
         * \desc Arrow Right key.
         */
 		CONST_KEY(RIGHT);
 		/***
         * \enum Key_LEFT
-        * \type Integer
+        * \type integer
         * \desc Arrow Left key.
         */
 		CONST_KEY(LEFT);
 		/***
         * \enum Key_DOWN
-        * \type Integer
+        * \type integer
         * \desc Arrow Down key.
         */
 		CONST_KEY(DOWN);
 		/***
         * \enum Key_UP
-        * \type Integer
+        * \type integer
         * \desc Arrow Up key.
         */
 		CONST_KEY(UP);
 
 		/***
         * \enum Key_NUMLOCKCLEAR
-        * \type Integer
+        * \type integer
         * \desc Num Clear key.
         */
 		CONST_KEY(NUMLOCKCLEAR);
 		/***
         * \enum Key_KP_DIVIDE
-        * \type Integer
+        * \type integer
         * \desc Keypad Divide key.
         */
 		CONST_KEY(KP_DIVIDE);
 		/***
         * \enum Key_KP_MULTIPLY
-        * \type Integer
+        * \type integer
         * \desc Keypad Multiply key.
         */
 		CONST_KEY(KP_MULTIPLY);
 		/***
         * \enum Key_KP_MINUS
-        * \type Integer
+        * \type integer
         * \desc Keypad Minus key.
         */
 		CONST_KEY(KP_MINUS);
 		/***
         * \enum Key_KP_PLUS
-        * \type Integer
+        * \type integer
         * \desc Keypad Plus key.
         */
 		CONST_KEY(KP_PLUS);
 		/***
         * \enum Key_KP_ENTER
-        * \type Integer
+        * \type integer
         * \desc Keypad Enter key.
         */
 		CONST_KEY(KP_ENTER);
 		/***
         * \enum Key_KP_1
-        * \type Integer
+        * \type integer
         * \desc Keypad 1 key.
         */
 		CONST_KEY(KP_1);
 		/***
         * \enum Key_KP_2
-        * \type Integer
+        * \type integer
         * \desc Keypad 2 key.
         */
 		CONST_KEY(KP_2);
 		/***
         * \enum Key_KP_3
-        * \type Integer
+        * \type integer
         * \desc Keypad 3 key.
         */
 		CONST_KEY(KP_3);
 		/***
         * \enum Key_KP_4
-        * \type Integer
+        * \type integer
         * \desc Keypad 4 key.
         */
 		CONST_KEY(KP_4);
 		/***
         * \enum Key_KP_5
-        * \type Integer
+        * \type integer
         * \desc Keypad 5 key.
         */
 		CONST_KEY(KP_5);
 		/***
         * \enum Key_KP_6
-        * \type Integer
+        * \type integer
         * \desc Keypad 6 key.
         */
 		CONST_KEY(KP_6);
 		/***
         * \enum Key_KP_7
-        * \type Integer
+        * \type integer
         * \desc Keypad 7 key.
         */
 		CONST_KEY(KP_7);
 		/***
         * \enum Key_KP_8
-        * \type Integer
+        * \type integer
         * \desc Keypad 8 key.
         */
 		CONST_KEY(KP_8);
 		/***
         * \enum Key_KP_9
-        * \type Integer
+        * \type integer
         * \desc Keypad 9 key.
         */
 		CONST_KEY(KP_9);
 		/***
         * \enum Key_KP_0
-        * \type Integer
+        * \type integer
         * \desc Keypad 0 key.
         */
 		CONST_KEY(KP_0);
 		/***
         * \enum Key_KP_PERIOD
-        * \type Integer
+        * \type integer
         * \desc Keypad Period key.
         */
 		CONST_KEY(KP_PERIOD);
 
 		/***
         * \enum Key_LCTRL
-        * \type Integer
+        * \type integer
         * \desc Left Ctrl key.
         */
 		CONST_KEY(LCTRL);
 		/***
         * \enum Key_LSHIFT
-        * \type Integer
+        * \type integer
         * \desc Left Shift key.
         */
 		CONST_KEY(LSHIFT);
 		/***
         * \enum Key_LALT
-        * \type Integer
+        * \type integer
         * \desc Left Alt key.
         */
 		CONST_KEY(LALT);
 		/***
         * \enum Key_LGUI
-        * \type Integer
+        * \type integer
         * \desc Left GUI key.
         */
 		CONST_KEY(LGUI);
 		/***
         * \enum Key_RCTRL
-        * \type Integer
+        * \type integer
         * \desc Right Ctrl key.
         */
 		CONST_KEY(RCTRL);
 		/***
         * \enum Key_RSHIFT
-        * \type Integer
+        * \type integer
         * \desc Right Shift key.
         */
 		CONST_KEY(RSHIFT);
 		/***
         * \enum Key_RALT
-        * \type Integer
+        * \type integer
         * \desc Right Alt key.
         */
 		CONST_KEY(RALT);
 		/***
         * \enum Key_RGUI
-        * \type Integer
+        * \type integer
         * \desc Right GUI key.
         */
 		CONST_KEY(RGUI);

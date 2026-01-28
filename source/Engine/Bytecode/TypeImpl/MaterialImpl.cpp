@@ -1,11 +1,16 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
-#include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/Bytecode/Types.h>
 #include <Engine/Error.h>
 #include <Engine/Rendering/Material.h>
+
+/***
+* \class Material
+* \desc Representation of a 3D model material.
+*/
 
 ObjClass* MaterialImpl::Class = nullptr;
 
@@ -44,22 +49,112 @@ void MaterialImpl::Init() {
 
 	Hash_Name = Murmur::EncryptString("Name");
 
+	/***
+    * \field DiffuseRed
+    * \type decimal
+    * \ns Material
+    * \desc The red component of the diffuse color.
+    */
 	Hash_DiffuseRed = Murmur::EncryptString("DiffuseRed");
+	/***
+    * \field DiffuseGreen
+    * \type decimal
+    * \ns Material
+    * \desc The green component of the diffuse color.
+    */
 	Hash_DiffuseGreen = Murmur::EncryptString("DiffuseGreen");
+	/***
+    * \field DiffuseBlue
+    * \type decimal
+    * \ns Material
+    * \desc The blue component of the diffuse color.
+    */
 	Hash_DiffuseBlue = Murmur::EncryptString("DiffuseBlue");
+	/***
+    * \field DiffuseAlpha
+    * \type decimal
+    * \ns Material
+    * \desc The alpha component of the diffuse color.
+    */
 	Hash_DiffuseAlpha = Murmur::EncryptString("DiffuseAlpha");
+	/***
+    * \field DiffuseTexture
+    * \type integer
+    * \ns Material
+    * \desc The diffuse texture.
+    */
 	Hash_DiffuseTexture = Murmur::EncryptString("DiffuseTexture");
 
+	/***
+    * \field SpecularRed
+    * \type decimal
+    * \ns Material
+    * \desc The red component of the specular color.
+    */
 	Hash_SpecularRed = Murmur::EncryptString("SpecularRed");
+	/***
+    * \field SpecularGreen
+    * \type decimal
+    * \ns Material
+    * \desc The green component of the specular color.
+    */
 	Hash_SpecularGreen = Murmur::EncryptString("SpecularGreen");
+	/***
+    * \field SpecularBlue
+    * \type decimal
+    * \ns Material
+    * \desc The blue component of the specular color.
+    */
 	Hash_SpecularBlue = Murmur::EncryptString("SpecularBlue");
+	/***
+    * \field SpecularAlpha
+    * \type decimal
+    * \ns Material
+    * \desc The alpha component of the specular color.
+    */
 	Hash_SpecularAlpha = Murmur::EncryptString("SpecularAlpha");
+	/***
+    * \field SpecularTexture
+    * \type integer
+    * \ns Material
+    * \desc The specular texture.
+    */
 	Hash_SpecularTexture = Murmur::EncryptString("SpecularTexture");
 
+	/***
+    * \field AmbientRed
+    * \type decimal
+    * \ns Material
+    * \desc The red component of the ambient color.
+    */
 	Hash_AmbientRed = Murmur::EncryptString("AmbientRed");
+	/***
+    * \field AmbientGreen
+    * \type decimal
+    * \ns Material
+    * \desc The green component of the ambient color.
+    */
 	Hash_AmbientGreen = Murmur::EncryptString("AmbientGreen");
+	/***
+    * \field AmbientBlue
+    * \type decimal
+    * \ns Material
+    * \desc The blue component of the ambient color.
+    */
 	Hash_AmbientBlue = Murmur::EncryptString("AmbientBlue");
+	/***
+    * \field AmbientAlpha
+    * \type decimal
+    * \ns Material
+    * \desc The alpha component of the ambient color.
+    */
 	Hash_AmbientAlpha = Murmur::EncryptString("AmbientAlpha");
+	/***
+    * \field AmbientTexture
+    * \type integer
+    * \ns Material
+    * \desc The ambient texture.
+    */
 	Hash_AmbientTexture = Murmur::EncryptString("AmbientTexture");
 
 #ifdef MATERIAL_EXPOSE_EMISSIVE
@@ -77,6 +172,11 @@ void MaterialImpl::Init() {
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
+/***
+ * \constructor
+ * \desc Creates a material.
+ * \ns Material
+ */
 Obj* MaterialImpl::New() {
 	Material* materialPtr = Material::Create(nullptr);
 	return (Obj*)New((void*)materialPtr);

@@ -1000,7 +1000,12 @@ void D3DRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.FillCircle = D3DRenderer::FillCircle;
 	Graphics::Internal.FillEllipse = D3DRenderer::FillEllipse;
 	Graphics::Internal.FillTriangle = D3DRenderer::FillTriangle;
+	Graphics::Internal.FillTriangleBlend = D3DRenderer::FillTriangleBlend;
 	Graphics::Internal.FillRectangle = D3DRenderer::FillRectangle;
+	Graphics::Internal.FillQuad = D3DRenderer::FillQuad;
+	Graphics::Internal.FillQuadBlend = D3DRenderer::FillQuadBlend;
+	Graphics::Internal.DrawTriangleTextured = D3DRenderer::DrawTriangleTextured;
+	Graphics::Internal.DrawQuadTextured = D3DRenderer::DrawQuadTextured;
 
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = D3DRenderer::DrawTexture;
@@ -1468,6 +1473,15 @@ void D3DRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3,
 
 	D3D_EndDrawShape(vertices, D3DPT_TRIANGLEFAN, 1);
 }
+void D3DRenderer::FillTriangleBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3) {}
 void D3DRenderer::FillRectangle(float x, float y, float w, float h) {
 	D3D_BeginDrawShape(D3D_BufferSquareFill, 4);
 
@@ -1481,6 +1495,63 @@ void D3DRenderer::FillRectangle(float x, float y, float w, float h) {
 
 	D3D_EndDrawShape(D3D_BufferSquareFill, D3DPT_TRIANGLEFAN, 2);
 }
+void D3DRenderer::FillQuad(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4) {}
+void D3DRenderer::FillQuadBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4) {}
+void D3DRenderer::DrawTriangleTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3) {}
+void D3DRenderer::DrawQuadTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3,
+	float u4,
+	float v4) {}
 
 // Texture drawing functions
 void D3DRenderer::DrawTexture(Texture* texture,
@@ -1491,7 +1562,8 @@ void D3DRenderer::DrawTexture(Texture* texture,
 	float x,
 	float y,
 	float w,
-	float h) {
+	float h,
+	int paletteID) {
 	// UseShader(D3D_SelectedShader ? D3D_SelectedShader :
 	// D3D_ShaderTexturedShape);
 	if (sx < 0) {
