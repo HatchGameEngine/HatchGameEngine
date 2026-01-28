@@ -8,6 +8,11 @@
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 
+/***
+* \class Asset
+* \desc A game asset.
+*/
+
 ObjClass* AssetImpl::Class = nullptr;
 
 #define CLASS_ASSET "Asset"

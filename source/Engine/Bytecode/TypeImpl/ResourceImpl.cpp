@@ -7,6 +7,11 @@
 #include <Engine/ResourceTypes/Resource.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 
+/***
+* \class Resource
+* \desc A resource containing an Asset, loaded from a resource file.
+*/
+
 ObjClass* ResourceImpl::Class = nullptr;
 
 #define CLASS_RESOURCE "Resource"
