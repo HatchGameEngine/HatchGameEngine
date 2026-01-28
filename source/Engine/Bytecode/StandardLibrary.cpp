@@ -483,7 +483,7 @@ inline IModel* GetModel(VMValue* args, int index, Uint32 threadID) {
 	return (IModel*)asset;
 }
 inline MediaBag* GetVideo(VMValue* args, int index, Uint32 threadID) {
-	Asset* asset = GetAsset(ASSET_MEDIA, args, index, threadID);
+	Asset* asset = GetAsset(ASSET_VIDEO, args, index, threadID);
 	return (MediaBag*)asset;
 }
 inline GameTexture* GetTexture(VMValue* args, int index, Uint32 threadID) {
@@ -12319,7 +12319,7 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Resources.LoadVideo
- * \desc Loads a Media Resource.
+ * \desc Loads a Video Resource.
  * \param filename (string): Filename of the Resource.
  * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
  * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
@@ -12330,7 +12330,7 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	ObjResource* object = LoadResource(ASSET_MEDIA, filename, unloadPolicy);
+	ObjResource* object = LoadResource(ASSET_VIDEO, filename, unloadPolicy);
 	if (object != nullptr) {
 		return OBJECT_VAL(object);
 	}
@@ -21420,29 +21420,29 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #region Asset Types
 	/***
     * \enum ASSET_SPRITE
-    * \desc Sprite asset.
+    * \desc A Sprite Asset.
     */
-	DEF_CONST_INT("ASSET_SPRITE", ASSET_SPRITE);
+    DEF_ENUM(ASSET_SPRITE);
 	/***
     * \enum ASSET_IMAGE
-    * \desc Image asset.
+    * \desc An Image Asset.
     */
-	DEF_CONST_INT("ASSET_IMAGE", ASSET_IMAGE);
+    DEF_ENUM(ASSET_IMAGE);
     /***
     * \enum ASSET_AUDIO
-    * \desc audio.
+    * \desc An Audio Asset.
     */
-	DEF_CONST_INT("ASSET_AUDIO", ASSET_AUDIO);
+    DEF_ENUM(ASSET_AUDIO);
     /***
     * \enum ASSET_MODEL
-    * \desc Model asset.
+    * \desc A Model Asset.
     */
-	DEF_CONST_INT("ASSET_MODEL", ASSET_MODEL);
+    DEF_ENUM(ASSET_MODEL);
     /***
-    * \enum ASSET_MEDIA
-    * \desc Media asset.
+    * \enum ASSET_VIDEO
+    * \desc A Video Asset.
     */
-	DEF_CONST_INT("ASSET_MEDIA", ASSET_MEDIA);
+    DEF_ENUM(ASSET_VIDEO);
 	// #endregion
 
 	// #region Tile Collision States

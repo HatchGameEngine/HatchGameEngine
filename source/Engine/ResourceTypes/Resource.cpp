@@ -241,7 +241,7 @@ Asset* Resource::LoadData(AssetType type, const char* filename) {
 	case ASSET_MODEL:
 		data = new (std::nothrow) IModel(filename);
 		break;
-	case ASSET_MEDIA:
+	case ASSET_VIDEO:
 		data = new (std::nothrow) MediaBag(filename);
 		break;
 	default:

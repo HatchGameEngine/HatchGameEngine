@@ -9,7 +9,7 @@ enum AssetType {
 	ASSET_IMAGE,
 	ASSET_AUDIO,
 	ASSET_MODEL,
-	ASSET_MEDIA
+	ASSET_VIDEO
 };
 
 inline const char* GetAssetTypeString(AssetType type) {
@@ -22,8 +22,8 @@ inline const char* GetAssetTypeString(AssetType type) {
 		return "audio";
 	case ASSET_MODEL:
 		return "model";
-	case ASSET_MEDIA:
-		return "media";
+	case ASSET_VIDEO:
+		return "video";
 	default:
 		break;
 	}
