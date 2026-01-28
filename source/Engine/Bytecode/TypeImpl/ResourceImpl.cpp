@@ -83,8 +83,8 @@ void ResourceImpl::Dispose(Obj* object) {
 /***
  * \constructor
  * \desc Loads a Resource by name.
- * \param filename (string): Filename of the resource.
- * \paramOpt unloadPolicy (<ref SCOPE_*>): The unload policy of the resource.
+ * \param filename (string): Filename of the Resource.
+ * \paramOpt unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
  * \paramOpt unique (boolean): If `false`, this constructor may return an already loaded Resource of the same type and filename. However, if `true`, this constructor will always return an unique Resource, and load a new Asset. (default: `false`)
  * \ns Resource
  */

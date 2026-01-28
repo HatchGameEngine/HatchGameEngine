@@ -12188,9 +12188,9 @@ ObjResource* LoadResource(AssetType type, char* filename, int unloadPolicy) {
 }
 /***
  * Resources.LoadSprite
- * \desc Loads a Sprite resource.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \desc Loads a Sprite Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
  * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \ns Resources
  */
@@ -12207,10 +12207,10 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Resources.LoadDynamicSprite
- * \desc Loads a Sprite resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.
+ * \desc Loads a Sprite Resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.
  * \param fallbackFolder (string): Folder to check if the sprite does not exist in the current Scene's resource folder.
- * \param name (string): Name of the animation file within the resource folder.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \param name (string): Name of the animation file within the Resource folder.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
  * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \ns Resources
  */
@@ -12238,9 +12238,9 @@ VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID
 }
 /***
  * Resources.LoadImage
- * \desc Loads an Image resource.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \desc Loads an Image Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
  * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \ns Resources
  */
@@ -12257,9 +12257,9 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Resources.LoadModel
- * \desc Loads a Model resource.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \desc Loads a Model Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
  * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \ns Resources
  */
@@ -12276,9 +12276,9 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Resources.LoadAudio
- * \desc Loads an Audio resource.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \desc Loads an Audio Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
  * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \ns Resources
  */
@@ -12295,9 +12295,9 @@ VMValue Resources_LoadAudio(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Resources.LoadMusic
- * \desc Loads a Music resource.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \desc Loads a Music Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
  * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \deprecated Use <ref Resources.LoadAudio> instead.
  * \ns Resources
@@ -12307,9 +12307,9 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Resources.LoadSound
- * \desc Loads a Sound resource.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \desc Loads a Sound Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
  * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \deprecated Use <ref Resources.LoadAudio> instead.
  * \ns Resources
@@ -12319,9 +12319,9 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Resources.LoadVideo
- * \desc Loads a Media resource.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
+ * \desc Loads a Media Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
  * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \ns Resources
  */
