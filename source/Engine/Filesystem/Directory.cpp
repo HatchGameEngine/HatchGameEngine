@@ -67,15 +67,14 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 	const char* path,
 	const char* searchPattern,
 	bool allDirs) {
+	char fullpath[MAX_PATH_LENGTH];
+
 #if WIN32
 	char winPath[MAX_PATH_LENGTH];
 	snprintf(winPath, MAX_PATH_LENGTH, "%s%s*", path, path[strlen(path) - 1] == '/' ? "" : "/");
 
 	WIN32_FIND_DATA data;
 	HANDLE hFind = FindFirstFile(winPath, &data);
-
-	int i;
-	char fullpath[MAX_PATH_LENGTH];
 	if (hFind != INVALID_HANDLE_VALUE) {
 		do {
 			if (data.cFileName[0] == '.' && data.cFileName[1] == 0) {
@@ -114,10 +113,8 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 		FindClose(hFind);
 	}
 #else
-	char fullpath[MAX_PATH_LENGTH];
 	DIR* dir = opendir(path);
 	if (dir) {
-		size_t i;
 		struct dirent* d;
 
 		while ((d = readdir(dir)) != NULL) {
@@ -260,4 +257,16 @@ Directory::GetDirectories(const char* path, const char* searchPattern, bool allD
 	std::vector<std::filesystem::path> files;
 	Directory::GetDirectories(&files, path, searchPattern, allDirs);
 	return files;
+}
+
+bool Directory::IsEmpty(const char* path) {
+	std::filesystem::path pathFs = std::filesystem::u8path(path);
+	std::filesystem::file_status status = std::filesystem::status(pathFs);
+
+	if (std::filesystem::is_directory(status)) {
+		std::error_code err;
+		return std::filesystem::is_empty(pathFs, err);
+	}
+
+	return false;
 }
