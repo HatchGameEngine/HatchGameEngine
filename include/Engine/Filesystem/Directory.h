@@ -19,6 +19,7 @@ public:
 		bool allDirs);
 	static std::vector<std::filesystem::path>
 	GetDirectories(const char* path, const char* searchPattern, bool allDirs);
+	static bool IsEmpty(const char* path);
 };
 
 #endif /* ENGINE_FILESYSTEM_DIRECTORY_H */
