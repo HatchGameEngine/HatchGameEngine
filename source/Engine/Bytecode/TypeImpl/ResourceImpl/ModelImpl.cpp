@@ -210,8 +210,15 @@ VMValue ModelImpl_GetAnimationLength(int argCount, VMValue* args, Uint32 threadI
 /***
  * \method GetMaterial
  * \desc Gets a material from a model.
- * \param material (String or Integer): The material name or ID to get.
- * \return Returns a Material.
+ * \param material (string): The material to get, from its name.
+ * \return <ref Material> Returns a Material, or `null` if the model has no materials.
+ * \ns Model
+ */
+/***
+ * \method GetMaterial
+ * \desc Gets a material from a model.
+ * \param material (integer): The material to get, from its index.
+ * \return <ref Material> Returns a Material, or `null` if the model has no materials.
  * \ns Model
  */
 VMValue ModelImpl_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {

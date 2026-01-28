@@ -39,6 +39,16 @@ void ValuePrinter::PrintValue(VMValue value, int indent) {
 	case VAL_LINKED_DECIMAL:
 		buffer_printf(Buffer, "%f", AS_DECIMAL(value));
 		break;
+	case VAL_HITBOX: {
+		Sint16* hitbox = AS_HITBOX(value);
+		buffer_printf(Buffer,
+			"[%d, %d, %d, %d]",
+			hitbox[HITBOX_LEFT],
+			hitbox[HITBOX_TOP],
+			hitbox[HITBOX_RIGHT],
+			hitbox[HITBOX_BOTTOM]);
+		break;
+	}
 	case VAL_OBJECT:
 		PrintObject(value, indent);
 		break;

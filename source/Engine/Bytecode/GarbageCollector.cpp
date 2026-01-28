@@ -66,9 +66,8 @@ void GarbageCollector::Collect() {
 
 	// Mark objects
 	for (Entity* ent = Scene::ObjectFirst; ent; ent = ent->NextSceneEntity) {
-		ScriptEntity* bobj = (ScriptEntity*)ent;
-		GrayObject(bobj->Instance);
-		GrayHashMap(bobj->Properties);
+		ScriptEntity* scriptEntity = (ScriptEntity*)ent;
+		GrayObject(scriptEntity->Instance);
 	}
 
 	// Mark Scene properties
@@ -239,27 +238,24 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_CLASS: {
 		ObjClass* klass = (ObjClass*)object;
-		GrayObject(klass->Name);
 		GrayHashMap(klass->Methods);
 		GrayHashMap(klass->Fields);
 		GrayValue(klass->Initializer);
+		GrayObject(klass->Parent);
 		break;
 	}
 	case OBJ_ENUM: {
 		ObjEnum* enumeration = (ObjEnum*)object;
-		GrayObject(enumeration->Name);
 		GrayHashMap(enumeration->Fields);
 		break;
 	}
 	case OBJ_NAMESPACE: {
 		ObjNamespace* ns = (ObjNamespace*)object;
-		GrayObject(ns->Name);
 		GrayHashMap(ns->Fields);
 		break;
 	}
 	case OBJ_FUNCTION: {
 		ObjFunction* function = (ObjFunction*)object;
-		GrayObject(function->Name);
 		GrayObject(function->Class);
 		for (size_t i = 0; i < function->Chunk.Constants->size(); i++) {
 			GrayValue((*function->Chunk.Constants)[i]);
@@ -268,7 +264,6 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_MODULE: {
 		ObjModule* module = (ObjModule*)object;
-		GrayObject(module->SourceFilename);
 		for (size_t i = 0; i < module->Locals->size(); i++) {
 			GrayValue((*module->Locals)[i]);
 		}
@@ -278,9 +273,16 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		break;
 	}
 	case OBJ_INSTANCE:
-	case OBJ_ENTITY: {
+	case OBJ_NATIVE_INSTANCE: {
 		ObjInstance* instance = (ObjInstance*)object;
 		GrayHashMap(instance->Fields);
+		break;
+	}
+	case OBJ_ENTITY: {
+		ObjEntity* entity = (ObjEntity*)object;
+		ScriptEntity* scriptEntity = (ScriptEntity*)entity->EntityPtr;
+		GrayHashMap(entity->InstanceObj.Fields);
+		GrayHashMap(scriptEntity->Properties);
 		break;
 	}
 	case OBJ_ARRAY: {
@@ -315,4 +317,6 @@ void GarbageCollector::BlackenObject(Obj* object) {
 
 void GarbageCollector::Dispose() {
 	Init();
+
+	vector<Obj*>().swap(GrayList);
 }

@@ -39,12 +39,14 @@ void GLShaderContainer::Precompile() {
 		}
 
 		// SHADER_FEATURE_PALETTE isn't very useful without SHADER_FEATURE_TEXTURE
-		if ((flags & (SHADER_FEATURE_TEXTURE | SHADER_FEATURE_PALETTE)) == SHADER_FEATURE_PALETTE) {
+		if ((flags & (SHADER_FEATURE_TEXTURE | SHADER_FEATURE_PALETTE)) ==
+			SHADER_FEATURE_PALETTE) {
 			continue;
 		}
 
 		// Likewise, tint flags without SHADER_FEATURE_TINTING don't do anything useful
-		if ((flags & SHADER_FEATURE_TINT_FLAGS) != 0 && (flags & SHADER_FEATURE_TINTING) == 0) {
+		if ((flags & SHADER_FEATURE_TINT_FLAGS) != 0 &&
+			(flags & SHADER_FEATURE_TINTING) == 0) {
 			continue;
 		}
 
@@ -144,7 +146,8 @@ void GLShaderContainer::PrintFeaturesWarning(Uint32 oldFeatures, Uint32 newFeatu
 	text = GetFeaturesString(oldFeatures);
 	Log::Print(Log::LOG_WARN, "    %s", text.c_str());
 
-	Log::Print(Log::LOG_WARN, "was not valid. Compiling the shader with the following features instead:");
+	Log::Print(Log::LOG_WARN,
+		"was not valid. Compiling the shader with the following features instead:");
 
 	text = GetFeaturesString(newFeatures);
 	Log::Print(Log::LOG_WARN, "    %s", text.c_str());
@@ -202,10 +205,12 @@ Uint32 GLShaderContainer::ValidateFeatures(Uint32 features) {
 	if ((features & SHADER_FEATURE_FOG_FLAGS) == SHADER_FEATURE_FOG_FLAGS) {
 		features &= ~SHADER_FEATURE_FOG_FLAGS;
 	}
-	if ((features & (SHADER_FEATURE_TEXTURE | SHADER_FEATURE_PALETTE)) == SHADER_FEATURE_PALETTE) {
+	if ((features & (SHADER_FEATURE_TEXTURE | SHADER_FEATURE_PALETTE)) ==
+		SHADER_FEATURE_PALETTE) {
 		features &= ~SHADER_FEATURE_PALETTE;
 	}
-	if ((features & SHADER_FEATURE_TINT_FLAGS) != 0 && (features & SHADER_FEATURE_TINTING) == 0) {
+	if ((features & SHADER_FEATURE_TINT_FLAGS) != 0 &&
+		(features & SHADER_FEATURE_TINTING) == 0) {
 		features &= ~SHADER_FEATURE_TINT_FLAGS;
 	}
 

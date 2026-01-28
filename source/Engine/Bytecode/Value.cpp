@@ -1,3 +1,4 @@
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Bytecode/TypeImpl/AssetImpl.h>
@@ -76,27 +77,23 @@ const char* Value::GetObjectTypeName(VMValue value) {
 const char* Value::GetPrintableObjectName(VMValue value) {
 	switch (OBJECT_TYPE(value)) {
 	case OBJ_CLASS:
-		return AS_CLASS(value)->Name ? AS_CLASS(value)->Name->Chars : "(null)";
+		return AS_CLASS(value)->Name;
 	case OBJ_BOUND_METHOD:
-		return AS_BOUND_METHOD(value)->Method->Name
-			? AS_BOUND_METHOD(value)->Method->Name->Chars
-			: "(null)";
+		return AS_BOUND_METHOD(value)->Method->Name;
 	case OBJ_CLOSURE:
-		return AS_CLOSURE(value)->Function->Name ? AS_CLOSURE(value)->Function->Name->Chars
-							 : "(null)";
+		return AS_CLOSURE(value)->Function->Name;
 	case OBJ_FUNCTION:
-		return AS_FUNCTION(value)->Name ? AS_FUNCTION(value)->Name->Chars : "(null)";
+		return AS_FUNCTION(value)->Name;
 	case OBJ_MODULE:
-		return AS_MODULE(value)->SourceFilename ? AS_MODULE(value)->SourceFilename->Chars
-							: "(null)";
+		return AS_MODULE(value)->SourceFilename;
 	case OBJ_INSTANCE:
 	case OBJ_NATIVE_INSTANCE:
 	case OBJ_ENTITY:
-		return AS_INSTANCE(value)->Object.Class->Name
-			? AS_INSTANCE(value)->Object.Class->Name->Chars
-			: "(null)";
+		return AS_INSTANCE(value)->Object.Class->Name;
+	case OBJ_ENUM:
+		return AS_ENUM(value)->Name;
 	case OBJ_NAMESPACE:
-		return AS_NAMESPACE(value)->Name ? AS_NAMESPACE(value)->Name->Chars : "(null)";
+		return AS_NAMESPACE(value)->Name;
 	case OBJ_STRING:
 		return AS_CSTRING(value);
 	case OBJ_RESOURCE: {
@@ -233,6 +230,8 @@ bool Value::Equal(VMValue a, VMValue b) {
 		return AS_DECIMAL(a) == AS_DECIMAL(b);
 	case VAL_OBJECT:
 		return AS_OBJECT(a) == AS_OBJECT(b);
+	case VAL_HITBOX:
+		return memcmp(AS_HITBOX(a), AS_HITBOX(b), sizeof(Sint16) * NUM_HITBOX_SIDES) == 0;
 	case VAL_NULL:
 		return true;
 	}
@@ -251,6 +250,8 @@ bool Value::ExactlyEqual(VMValue a, VMValue b) {
 		return AS_DECIMAL(a) == AS_DECIMAL(b);
 	case VAL_OBJECT:
 		return AS_OBJECT(a) == AS_OBJECT(b);
+	case VAL_HITBOX:
+		return memcmp(AS_HITBOX(a), AS_HITBOX(b), sizeof(Sint16) * NUM_HITBOX_SIDES) == 0;
 	}
 	return false;
 }

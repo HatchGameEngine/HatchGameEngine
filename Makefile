@@ -1,11 +1,3 @@
-#######################################################################
-##                         HATCH Game Engine                         ##
-##                                                                   ##
-##               Copyright (C) 2019-2024 ARQADIUM LLC.               ##
-##             Copyright (C) 2024-2025 Alexander Nicholi             ##
-##                    Released under BSD-2-Clause                    ##
-#######################################################################
-
 include meta/prologue.mk
 
 # name of project. used in output binary naming
@@ -46,8 +38,10 @@ CPPFILES := \
 	source/Engine/Bytecode/StandardLibrary.cpp \
 	source/Engine/Bytecode/TypeImpl/ArrayImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/AssetImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/EntityImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/FontImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/FunctionImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/InstanceImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MapImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MaterialImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ResourceImpl.cpp \
@@ -56,7 +50,9 @@ CPPFILES := \
 	source/Engine/Bytecode/TypeImpl/ResourceImpl/ModelImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ShaderImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/StreamImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/TypeImpl.cpp \
 	source/Engine/Bytecode/Types.cpp \
 	source/Engine/Bytecode/Value.cpp \
 	source/Engine/Bytecode/ValuePrinter.cpp \
@@ -197,6 +193,7 @@ PRVHFILES := \
 	source/Engine/Bytecode/Types.h \
 	source/Engine/Diagnostics/MemoryPools.h \
 	source/Engine/Diagnostics/PerformanceTypes.h \
+	source/Engine/Exceptions/ScriptException.h \
 	source/Engine/Includes/BijectiveMap.h \
 	source/Engine/Includes/ChainedHashMap.h \
 	source/Engine/Includes/DateTime.h \
@@ -226,6 +223,7 @@ PRVHFILES := \
 	source/Engine/Rendering/Enums.h \
 	source/Engine/Rendering/GL/Includes.h \
 	source/Engine/Rendering/GL/ShaderIncludes.h \
+	source/Engine/Rendering/GL/Structs.h \
 	source/Engine/Rendering/GraphicsFunctions.h \
 	source/Engine/Rendering/Mesh.h \
 	source/Engine/Rendering/Metal/Includes.h \
@@ -253,6 +251,7 @@ PRVHFILES := \
 	source/Libraries/Clipper2/clipper.offset.h \
 	source/Libraries/Clipper2/clipper.rectclip.h \
 	source/Libraries/Clipper2/clipper.version.h \
+	source/Libraries/discord_game_sdk.h \
 	source/Libraries/jsmn.h \
 	source/Libraries/miniz.h \
 	source/Libraries/nanoprintf.h \
@@ -266,6 +265,8 @@ PRVHFILES := \
 	source/Libraries/poly2tri/sweep/sweep_context.h \
 	source/Libraries/spng.h \
 	source/Libraries/stb_image.h \
+	source/Libraries/stb_rect_pack.h \
+	source/Libraries/stb_truetype.h \
 	source/Libraries/stb_vorbis.h
 PUBHFILES := \
 	include/Engine/Application.h \
@@ -280,8 +281,10 @@ PUBHFILES := \
 	include/Engine/Bytecode/StandardLibrary.h \
 	include/Engine/Bytecode/TypeImpl/ArrayImpl.h \
 	include/Engine/Bytecode/TypeImpl/AssetImpl.h \
+	include/Engine/Bytecode/TypeImpl/EntityImpl.h \
 	include/Engine/Bytecode/TypeImpl/FontImpl.h \
 	include/Engine/Bytecode/TypeImpl/FunctionImpl.h \
+	include/Engine/Bytecode/TypeImpl/InstanceImpl.h \
 	include/Engine/Bytecode/TypeImpl/MapImpl.h \
 	include/Engine/Bytecode/TypeImpl/MaterialImpl.h \
 	include/Engine/Bytecode/TypeImpl/ResourceImpl.h \
@@ -290,7 +293,9 @@ PUBHFILES := \
 	include/Engine/Bytecode/TypeImpl/ResourceImpl/ModelImpl.h \
 	include/Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h \
 	include/Engine/Bytecode/TypeImpl/ShaderImpl.h \
+	include/Engine/Bytecode/TypeImpl/StreamImpl.h \
 	include/Engine/Bytecode/TypeImpl/StringImpl.h \
+	include/Engine/Bytecode/TypeImpl/TypeImpl.h \
 	include/Engine/Bytecode/Value.h \
 	include/Engine/Bytecode/ValuePrinter.h \
 	include/Engine/Bytecode/VMThread.h \

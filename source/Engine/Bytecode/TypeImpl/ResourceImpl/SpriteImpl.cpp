@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/Bytecode/Value.h>
 
 ObjClass* SpriteImpl::Class = nullptr;
 
@@ -795,26 +796,160 @@ VMValue SpriteImpl_RemoveFrame(int argCount, VMValue* args, Uint32 threadID) {
 }
 
 /***
+ * \method GetHitboxName
+ * \desc Gets the name of a hitbox through its index.
+ * \param animationID (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \param hitboxID (integer): The hitbox index to check.
+ * \return string Returns a string value.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetHitboxName(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 4);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+	int hitboxID = GET_ARG(3, GetInteger);
+
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+	if (frame.Boxes.size() == 0) {
+		VM_THROW_ERROR("Frame %d of animation %d contains no hitboxes.", frameID, animationID);
+		return NULL_VAL;
+	}
+	else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+		VM_THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
+			hitboxID,
+			frameID,
+			animationID);
+		return NULL_VAL;
+	}
+
+	if (ScriptManager::Lock()) {
+		ObjString* string = CopyString(frame.Boxes[hitboxID].Name);
+		ScriptManager::Unlock();
+		return OBJECT_VAL(string);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method GetHitboxIndex
+ * \desc Gets the index of a hitbox by its name.
+ * \param sprite (Sprite): The sprite to check.
+ * \param animationID (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \param name (string): The name of the hitbox to check.
+ * \return integer Returns an integer value, or `null` if no such hitbox exists with that name.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetHitboxIndex(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 4);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+	char* name = GET_ARG(3, GetString);
+
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	if (name != nullptr) {
+		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+		for (size_t i = 0; i < frame.Boxes.size(); i++) {
+			if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+				return INTEGER_VAL((int)i);
+			}
+		}
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method GetHitboxCount
+ * \desc Gets the hitbox count in the given frame of an animation of a sprite.
+ * \param sprite (Sprite): The sprite to check.
+ * \param animationID (integer): The animation index of the sprite to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns an integer value.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
+
+	size_t numHitboxes = frame.Boxes.size();
+
+	return INTEGER_VAL((int)numHitboxes);
+}
+/***
  * \method GetHitbox
- * \desc Gets the hitbox of an animation and frame.
- * \param animationID (Integer): The animation index to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \paramOpt hitboxID (Integer): The hitbox index of the animation to check. Defaults to <code>0</code>.
+ * \desc Gets the hitbox of a sprite frame.
+ * \param animationID (integer): The animation index of the sprite to check.
+ * \param frameID (integer): The frame index of the animation to check.
+ * \paramOpt hitbox (string): The hitbox name.
+ * \return hitbox Returns a Hitbox value.
+ * \ns Sprite
+ */
+/***
+ * \method GetHitbox
+ * \desc Gets the hitbox of a sprite frame.
+ * \param animationID (integer): The animation index of the sprite to check.
+ * \param frameID (integer): The frame index of the animation to check.
+ * \paramOpt hitbox (integer): The hitbox index. (default: `0`)
+ * \return hitbox Returns a Hitbox value.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 3);
-
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animationID = GET_ARG(1, GetInteger);
 	int frameID = GET_ARG(2, GetInteger);
-	int hitboxID = GET_ARG_OPT(3, GetInteger, 0);
+	int hitboxID = 0;
 
 	CHECK_EXISTS(sprite);
 	CHECK_ANIMFRAME_INDEX(animationID, frameID);
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
-	if (hitboxID < 0 || hitboxID >= frame.BoxCount) {
+
+	if (argCount > 1 && IS_STRING(args[1])) {
+		char* name = GET_ARG(1, GetString);
+		if (name) {
+			int boxIndex = -1;
+
+			for (size_t i = 0; i < frame.Boxes.size(); i++) {
+				if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+					boxIndex = (int)i;
+					break;
+				}
+			}
+
+			if (boxIndex != -1) {
+				hitboxID = boxIndex;
+			}
+			else {
+				VM_THROW_ERROR("No hitbox named \"%s\" in frame %d of animation %d.",
+					name,
+					frameID,
+					animationID);
+			}
+		}
+	}
+	else {
+		hitboxID = GET_ARG_OPT(1, GetInteger, 0);
+	}
+
+	if (hitboxID < 0 || hitboxID >= (int)frame.Boxes.size()) {
 		VM_THROW_ERROR("Hitbox %d is not in bounds of frame %d.", hitboxID, frameID);
 		return NULL_VAL;
 	}
@@ -827,6 +962,110 @@ VMValue SpriteImpl_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	hitbox->Values->push_back(INTEGER_VAL(box.Bottom));
 	return OBJECT_VAL(hitbox);
 }
+
+/***
+ * \method GetTextArray
+ * \desc Converts a string to an array of frame indexes by comparing codepoints to a frame's ID.
+ * \param animation (integer): The animation index containing frames with codepoint ID values.
+ * \param text (string): The text to convert.
+ * \return array Returns an array of frame indexes per character in the text.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 3);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animation = GET_ARG(1, GetInteger);
+	char* string = GET_ARG(2, GetString);
+
+	ObjArray* textArray = NewArray();
+
+	if (!sprite || !string) {
+		return OBJECT_VAL(textArray);
+	}
+
+	if (animation >= 0 && animation < (int)sprite->Animations.size()) {
+		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
+
+		for (Uint32 codepoint : codepoints) {
+			if (codepoint == (Uint32)-1) {
+				textArray->Values->push_back(INTEGER_VAL(-1));
+				continue;
+			}
+
+			bool found = false;
+			for (int f = 0; f < (int)sprite->Animations[animation].Frames.size(); f++) {
+				if (sprite->Animations[animation].Frames[f].ID ==
+					(int)codepoint) {
+					textArray->Values->push_back(INTEGER_VAL(f));
+					found = true;
+					break;
+				}
+			}
+
+			if (!found) {
+				textArray->Values->push_back(INTEGER_VAL(-1));
+			}
+		}
+	}
+
+	return OBJECT_VAL(textArray);
+}
+/***
+ * \method GetTextWidth
+ * \desc Gets the width (in pixels) of a converted sprite string.
+ * \param animation (integer): The animation index.
+ * \param text (array): The array containing frame indexes.
+ * \param startIndex (integer): Where to start checking the width.
+ * \param spacing (integer): The spacing (in pixels) between frames.
+ * \ns Sprite
+ */
+VMValue SpriteImpl_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 6);
+
+	if (ScriptManager::Lock()) {
+		ISprite* sprite = GET_ARG(0, GetSprite);
+		int animation = GET_ARG(1, GetInteger);
+		ObjArray* text = GET_ARG(2, GetArray);
+		int startIndex = GET_ARG(3, GetInteger);
+		int length = GET_ARG(4, GetInteger);
+		int spacing = GET_ARG(5, GetInteger);
+
+		if (!sprite || !text->Values) {
+			ScriptManager::Unlock();
+			return INTEGER_VAL(0);
+		}
+
+		if (animation >= 0 && animation <= (int)sprite->Animations.size()) {
+			Animation anim = sprite->Animations[animation];
+
+			startIndex = (int)Math::Clamp(startIndex, 0, (int)text->Values->size() - 1);
+
+			if (length <= 0 || length > (int)text->Values->size()) {
+				length = (int)text->Values->size();
+			}
+
+			int w = 0;
+			for (int c = startIndex; c < length; c++) {
+				int charFrame =
+					AS_INTEGER(Value::CastAsInteger((*text->Values)[c]));
+				if (charFrame < anim.Frames.size()) {
+					w += anim.Frames[charFrame].Width;
+					if (c + 1 >= length) {
+						ScriptManager::Unlock();
+						return INTEGER_VAL(w);
+					}
+
+					w += spacing;
+				}
+			}
+
+			ScriptManager::Unlock();
+			return INTEGER_VAL(w);
+		}
+	}
+	return INTEGER_VAL(0);
+}
+
 /***
  * \method MakePalettized
  * \desc Converts the sprite's colors to the ones in the specified palette index.
@@ -905,7 +1144,14 @@ void SpriteImpl::AddNatives() {
 	DEF_CLASS_NATIVE(SpriteImpl, AddFrame);
 	DEF_CLASS_NATIVE(SpriteImpl, RemoveFrame);
 
+	DEF_CLASS_NATIVE(SpriteImpl, GetHitboxName);
+	DEF_CLASS_NATIVE(SpriteImpl, GetHitboxIndex);
+	DEF_CLASS_NATIVE(SpriteImpl, GetHitboxCount);
 	DEF_CLASS_NATIVE(SpriteImpl, GetHitbox);
+
+	DEF_CLASS_NATIVE(SpriteImpl, GetTextArray);
+	DEF_CLASS_NATIVE(SpriteImpl, GetTextWidth);
+
 	DEF_CLASS_NATIVE(SpriteImpl, MakePalettized);
 	DEF_CLASS_NATIVE(SpriteImpl, MakeNonPalettized);
 }

@@ -1220,8 +1220,105 @@ void Graphics::FillEllipse(float x, float y, float w, float h) {
 void Graphics::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
 	Graphics::GfxFunctions->FillTriangle(x1, y1, x2, y2, x3, y3);
 }
+void Graphics::FillTriangleBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3) {
+	Graphics::GfxFunctions->FillTriangleBlend(x1, y1, x2, y2, x3, y3, c1, c2, c3);
+}
 void Graphics::FillRectangle(float x, float y, float w, float h) {
 	Graphics::GfxFunctions->FillRectangle(x, y, w, h);
+}
+void Graphics::FillQuad(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4) {
+	Graphics::GfxFunctions->FillQuad(x1, y1, x2, y2, x3, y3, x4, y4);
+}
+void Graphics::FillQuadBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4) {
+	Graphics::GfxFunctions->FillQuadBlend(x1, y1, x2, y2, x3, y3, x4, y4, c1, c2, c3, c4);
+}
+void Graphics::DrawTriangleTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3) {
+	Graphics::GfxFunctions->DrawTriangleTextured(
+		texturePtr, x1, y1, x2, y2, x3, y3, c1, c2, c3, u1, v1, u2, v2, u3, v3);
+}
+void Graphics::DrawQuadTextured(Texture* texturePtr,
+	float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	float x4,
+	float y4,
+	int c1,
+	int c2,
+	int c3,
+	int c4,
+	float u1,
+	float v1,
+	float u2,
+	float v2,
+	float u3,
+	float v3,
+	float u4,
+	float v4) {
+	Graphics::GfxFunctions->DrawQuadTextured(texturePtr,
+		x1,
+		y1,
+		x2,
+		y2,
+		x3,
+		y3,
+		x4,
+		y4,
+		c1,
+		c2,
+		c3,
+		c4,
+		u1,
+		v1,
+		u2,
+		v2,
+		u3,
+		v3,
+		u4,
+		v4);
 }
 
 void Graphics::DrawTexture(Texture* texture,
@@ -1243,8 +1340,8 @@ void Graphics::DrawTexture(Texture* texture,
 void Graphics::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
@@ -1265,8 +1362,8 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 	int sy,
 	int sw,
 	int sh,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
@@ -1308,8 +1405,8 @@ void Graphics::DrawTexture(Texture* texture,
 void Graphics::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
@@ -1326,8 +1423,8 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 	int sy,
 	int sw,
 	int sh,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
@@ -1734,7 +1831,7 @@ void Graphics::MeasureText(Font* font,
 			FontGlyph& glyph = font->Glyphs[codepoint];
 
 			currX += glyph.Advance * scale;
-			glyphY += (ascent * scale) + (glyph.OffsetY * scale) +
+			glyphY += (ascent * scale) + (glyph.OffsetY * xyScale) +
 				(glyph.Height * xyScale);
 		}
 
@@ -1816,7 +1913,7 @@ void Graphics::MeasureTextWrapped(Font* font,
 
 						currX += glyph.Advance * scale;
 						glyphY += (ascent * scale) +
-							(glyph.OffsetY * scale) +
+							(glyph.OffsetY * xyScale) +
 							(glyph.Height * xyScale);
 					}
 
@@ -1856,7 +1953,7 @@ void Graphics::MeasureTextWrapped(Font* font,
 			FontGlyph& glyph = font->Glyphs[*o];
 
 			currX += glyph.Advance * scale;
-			glyphY += (ascent * scale) + (glyph.OffsetY * scale) +
+			glyphY += (ascent * scale) + (glyph.OffsetY * xyScale) +
 				(glyph.Height * xyScale);
 		}
 
@@ -2253,142 +2350,147 @@ void Graphics::MeasureTextWrappedLegacy(ISprite* sprite,
 	}
 }
 
-void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
-	switch (layer->DrawBehavior) {
-	case DrawBehavior_HorizontalParallax: {
-		int viewX = (int)currentView->X;
-		int viewY = (int)currentView->Y;
-		int viewHeight = (int)currentView->Height;
-		int layerWidth = layer->Width * 16;
-		int layerHeight = layer->Height * 16;
-		int layerOffsetX = layer->OffsetX;
-		int layerOffsetY = layer->OffsetY;
+Sint64 Graphics::CalcHorizontalParallaxPosition(SceneLayer* layer,
+	float viewX,
+	float constant,
+	float relative) {
+	float offset = Scene::Frame * constant;
+	float viewOffset = viewX + layer->OffsetX;
+	Sint64 position = (Sint64)(offset + (viewOffset * relative));
 
-		// Set parallax positions
-		ScrollingInfo* info = &layer->ScrollInfos[0];
-		for (int i = 0; i < layer->ScrollInfoCount; i++) {
-			info->Offset = Scene::Frame * info->ConstantParallax;
-			info->Position =
-				(info->Offset +
-					((viewX + layerOffsetX) * info->RelativeParallax)) >>
-				8;
-			if (layer->Flags & SceneLayer::FLAGS_REPEAT_Y) {
-				info->Position %= layerWidth;
-				if (info->Position < 0) {
-					info->Position += layerWidth;
-				}
-			}
-			info++;
+	if (layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
+		int layerWidth = layer->Width * Scene::TileWidth;
+
+		position %= layerWidth;
+
+		if (position < 0) {
+			position += layerWidth;
+		}
+	}
+
+	return position;
+}
+void Graphics::CalcScanlineDeforms(SceneLayer* layer,
+	int start,
+	int end,
+	float viewX,
+	int scrollLine,
+	int* deformValues,
+	int deformOffset,
+	TileScanLine* scanLine) {
+	int layerHeight = layer->Height * Scene::TileHeight;
+
+	if (end > MAX_FRAMEBUFFER_HEIGHT) {
+		end = MAX_FRAMEBUFFER_HEIGHT - 1;
+	}
+
+	// Iterate lines
+	for (int i = start; i < end; i++, scrollLine++, scanLine++) {
+		if (i < 0) {
+			continue;
 		}
 
-		// Create scan lines
-		Sint64 scrollOffset = Scene::Frame * layer->ConstantY;
-		Sint64 scrollLine =
-			(scrollOffset + ((viewY + layerOffsetY) * layer->RelativeY)) >> 8;
+		// If we've past the last line of the layer, return to the top
+		if (scrollLine >= layerHeight) {
+			scrollLine %= layerHeight;
+		}
+
+		// Set scanline start positions
+		if (layer->ScrollInfoCount) {
+			ScrollingInfo* info = &layer->ScrollInfos[layer->ScrollIndexes[scrollLine]];
+			scanLine->SrcX = info->Position;
+			if (info->CanDeform) {
+				int deformTableOffset = scrollLine + deformOffset;
+				deformTableOffset &= (MAX_DEFORM_LINES >> 1) - 1;
+				scanLine->SrcX += deformValues[deformTableOffset];
+			}
+		}
+		else {
+			scanLine->SrcX =
+				Graphics::CalcHorizontalParallaxPosition(layer, viewX, 0.0, 1.0);
+		}
+		scanLine->SrcX <<= 16;
+		scanLine->SrcY = scrollLine << 16;
+
+		scanLine->DeltaX = 0x10000;
+		scanLine->DeltaY = 0;
+	}
+}
+
+void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
+	int layerHeight = layer->Height * Scene::TileHeight;
+	int viewHeight = (int)std::ceil(currentView->GetScaledHeight());
+
+	switch (layer->DrawBehavior) {
+	case DrawBehavior_HorizontalParallax: {
+		float viewX = currentView->X;
+		float viewY = currentView->Y;
+
+		// Set parallax positions
+		for (int i = 0; i < layer->ScrollInfoCount; i++) {
+			ScrollingInfo* info = &layer->ScrollInfos[i];
+			info->Position = Graphics::CalcHorizontalParallaxPosition(
+				layer, viewX, info->ConstantParallax, info->RelativeParallax);
+		}
+
+		// Create scanlines
+		float scrollOffset = Scene::Frame * layer->ConstantY;
+		int scrollLine =
+			(int)(scrollOffset + ((viewY + layer->OffsetY) * layer->RelativeY));
 		scrollLine %= layerHeight;
 		if (scrollLine < 0) {
 			scrollLine += layerHeight;
 		}
 
-		int* deformValues;
-		Uint8* parallaxIndex;
-		TileScanLine* scanLine;
-		const int maxDeformLineMask = (MAX_DEFORM_LINES >> 1) - 1;
+		TileScanLine* scanLine = TileScanLineBuffer;
 
-		scanLine = TileScanLineBuffer;
-		parallaxIndex = &layer->ScrollIndexes[scrollLine];
-		deformValues =
-			&layer->DeformSetA[(scrollLine + layer->DeformOffsetA) & maxDeformLineMask];
-		for (int i = 0; i < layer->DeformSplitLine; i++) {
-			// Set scan line start positions
-			info = &layer->ScrollInfos[*parallaxIndex];
-			scanLine->SrcX = info->Position;
-			if (info->CanDeform) {
-				scanLine->SrcX += *deformValues;
-			}
-			scanLine->SrcX <<= 16;
-			scanLine->SrcY = scrollLine << 16;
+		// Calculate deform above the split line
+		Graphics::CalcScanlineDeforms(layer,
+			0,
+			layer->DeformSplitLine,
+			viewX,
+			scrollLine,
+			layer->DeformSetA,
+			layer->DeformOffsetA,
+			scanLine);
 
-			scanLine->DeltaX = 0x10000;
-			scanLine->DeltaY = 0x0000;
-
-			// Iterate lines
-			// NOTE: There is no protection from over-reading deform indexes past 512 here.
-			scanLine++;
-			scrollLine++;
-			deformValues++;
-
-			// If we've reach the last line of the layer, return to the first.
-			if (scrollLine == layerHeight) {
-				scrollLine = 0;
-				parallaxIndex = &layer->ScrollIndexes[scrollLine];
-			}
-			else {
-				parallaxIndex++;
-			}
-		}
-
-		deformValues =
-			&layer->DeformSetB[(scrollLine + layer->DeformOffsetB) & maxDeformLineMask];
-		for (int i = layer->DeformSplitLine; i < viewHeight; i++) {
-			// Set scan line start positions
-			info = &layer->ScrollInfos[*parallaxIndex];
-			scanLine->SrcX = info->Position;
-			if (info->CanDeform) {
-				scanLine->SrcX += *deformValues;
-			}
-			scanLine->SrcX <<= 16;
-			scanLine->SrcY = scrollLine << 16;
-
-			scanLine->DeltaX = 0x10000;
-			scanLine->DeltaY = 0x0000;
-
-			// Iterate lines
-			// NOTE: There is no protection from over-reading deform indexes past 512 here.
-			scanLine++;
-			scrollLine++;
-			deformValues++;
-
-			// If we've reach the last line of the layer, return to the first.
-			if (scrollLine == layerHeight) {
-				scrollLine = 0;
-				parallaxIndex = &layer->ScrollIndexes[scrollLine];
-			}
-			else {
-				parallaxIndex++;
-			}
-		}
+		// Calculate deform below the split line
+		scrollLine += layer->DeformSplitLine;
+		scanLine += layer->DeformSplitLine;
+		Graphics::CalcScanlineDeforms(layer,
+			layer->DeformSplitLine,
+			viewHeight,
+			viewX,
+			scrollLine,
+			layer->DeformSetB,
+			layer->DeformOffsetB,
+			scanLine);
 		break;
 	}
 	case DrawBehavior_VerticalParallax: {
 		break;
 	}
 	case DrawBehavior_CustomTileScanLines: {
-		Sint64 scrollOffset = Scene::Frame * layer->ConstantY;
-		Sint64 scrollPositionX =
-			((scrollOffset +
-				 (((int)currentView->X + layer->OffsetX) * layer->RelativeY)) >>
-				8);
-		scrollPositionX %= layer->Width * 16;
+		Sint64 scrollPositionX = (Sint64)(currentView->X + layer->OffsetX);
+		scrollPositionX %= layer->Width * Scene::TileWidth;
 		scrollPositionX <<= 16;
-		Sint64 scrollPositionY =
-			((scrollOffset +
-				 (((int)currentView->Y + layer->OffsetY) * layer->RelativeY)) >>
-				8);
-		scrollPositionY %= layer->Height * 16;
+
+		float scrollOffset = Scene::Frame * layer->ConstantY;
+		float vertOffset = currentView->Y + layer->OffsetY;
+		Sint64 scrollPositionY = (Sint64)(scrollOffset + (vertOffset * layer->RelativeY));
+		scrollPositionY %= layerHeight;
 		scrollPositionY <<= 16;
 
 		TileScanLine* scanLine = TileScanLineBuffer;
-		for (int i = 0; i < currentView->Height; i++) {
+		for (int i = 0; i < viewHeight; i++) {
 			scanLine->SrcX = scrollPositionX;
 			scanLine->SrcY = scrollPositionY;
 			scanLine->DeltaX = 0x10000;
-			scanLine->DeltaY = 0x0;
+			scanLine->DeltaY = 0;
 
 			scrollPositionY += 0x10000;
 			scanLine++;
 		}
-
 		break;
 	}
 	}
@@ -2454,8 +2556,8 @@ void Graphics::DrawTilePart(int tile,
 		(int)paletteID);
 }
 void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
-	int viewX = (int)currentView->X;
-	int viewY = (int)currentView->Y;
+	float viewX = currentView->X;
+	float viewY = currentView->Y;
 
 	int tileWidth = Scene::TileWidth;
 	int tileWidthHalf = tileWidth >> 1;
@@ -2468,21 +2570,35 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	int layerWidthTileMask = layer->WidthMask;
 	int layerHeightTileMask = layer->HeightMask;
 
-	int layerOffsetX = layer->OffsetX;
-	int layerOffsetY = layer->OffsetY;
+	float viewWidth = std::ceil(currentView->GetScaledWidth());
+	float viewHeight = std::ceil(currentView->GetScaledHeight());
 
 	int startX = 0, startY = 0;
-	int endX = (int)currentView->Width + tileWidth;
-	int endY = (int)currentView->Height + tileHeight;
+	int endX = (int)viewWidth + tileWidth;
+	int endY = (int)viewHeight + tileHeight;
 
-	int scrollOffset = Scene::Frame * layer->ConstantY;
-	int srcY = (scrollOffset + ((viewY + layerOffsetY) * layer->RelativeY)) >> 8;
-	int rowStartX = viewX + layerOffsetX;
+	float scrollOffset = Scene::Frame * layer->ConstantY;
+	int srcY = (int)(scrollOffset + ((viewY + layer->OffsetY) * layer->RelativeY));
+	int rowStartX = (int)(viewX + layer->OffsetX);
 
 	// Draw more of the view if it is being rotated on the Z axis
 	if (currentView->RotateZ != 0.0f) {
-		int offsetY = currentView->Height / 2;
-		int offsetX = currentView->Width / 2;
+		float offsetY = viewHeight;
+		float offsetX = viewWidth;
+
+		if (std::abs(currentView->ScaleY) <= 1.0) {
+			offsetY *= 0.5;
+		}
+		else {
+			offsetY *= 2.0;
+		}
+
+		if (std::abs(currentView->ScaleX) <= 1.0) {
+			offsetX *= 0.5;
+		}
+		else {
+			offsetX *= 2.0;
+		}
 
 		startY = -offsetY;
 		endY += offsetY;
@@ -2534,8 +2650,8 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 				continue;
 			}
 
-			int srcTX = srcX & (tileWidth - 1);
-			int srcTY = srcY & (tileHeight - 1);
+			int srcTX = srcX % tileWidth;
+			int srcTY = srcY % tileHeight;
 
 			Graphics::DrawTile(tileID,
 				viewX + ((dst_x - srcTX) + tileWidthHalf),
@@ -2547,12 +2663,13 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	}
 }
 void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView) {
-	int max_y = (int)currentView->Height;
+	int viewWidth = (int)std::ceil(currentView->GetScaledWidth());
+	int max_y = (int)std::ceil(currentView->GetScaledHeight());
 
 	int tileWidth = Scene::TileWidth;
-	int tileWidthHalf = tileWidth >> 1;
+	int tileWidthHalf = tileWidth / 2;
 	int tileHeight = Scene::TileHeight;
-	int tileHeightHalf = tileHeight >> 1;
+	int tileHeightHalf = tileHeight / 2;
 
 	int layerWidthInBits = layer->WidthInBits;
 	int layerWidthInPixels = layer->Width * tileWidth;
@@ -2581,7 +2698,8 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 			check_y++;
 		}
 
-		for (int dst_x = 0; dst_x < (int)currentView->Width + 16; dst_x += 16, srcX += 16) {
+		for (int dst_x = 0; dst_x < viewWidth + tileWidth;
+			dst_x += tileWidth, srcX += tileWidth) {
 			bool isInLayer = srcX >= 0 && srcX < layerWidthInPixels;
 			if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 				if (srcX < 0) {
@@ -2597,8 +2715,8 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 				continue;
 			}
 
-			int sourceTileCellX = (srcX >> 4) & layerWidthTileMask;
-			int sourceTileCellY = (srcY >> 4) & layerHeightTileMask;
+			int sourceTileCellX = (srcX / Scene::TileWidth) & layerWidthTileMask;
+			int sourceTileCellY = (srcY / Scene::TileHeight) & layerHeightTileMask;
 			int tile = layer->Tiles[sourceTileCellX +
 				(sourceTileCellY << layerWidthInBits)];
 
@@ -2607,17 +2725,17 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
 
-				int srcTX = srcX & 15;
-				int srcTY = srcY & 15;
+				int srcTX = srcX % tileWidth;
+				int srcTY = srcY % tileHeight;
 
-				int partY = srcTY;
+				int textureSrcTY = srcTY;
 				if (flipY) {
-					partY = tileHeight - partY - 1;
+					textureSrcTY = tileHeight - srcTY - tileDrawHeight;
 				}
 
 				Graphics::DrawTilePart(tileID,
 					0,
-					partY,
+					textureSrcTY,
 					tileWidth,
 					tileDrawHeight,
 					currentView->X + ((dst_x - srcTX) + tileWidthHalf),

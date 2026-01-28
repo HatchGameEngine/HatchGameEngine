@@ -173,6 +173,28 @@ bool FileStream::Reopen(Uint32 newAccess) {
 	return true;
 }
 
+bool FileStream::Exists(const char* filename, bool allowURLs) {
+	std::string resolvedPath = "";
+
+	PathLocation location = PathLocation::DEFAULT;
+
+	if (!Path::FromURL(filename, resolvedPath, location, false)) {
+		return false;
+	}
+
+	if (!allowURLs && location != PathLocation::DEFAULT) {
+		return false;
+	}
+
+	if (location == PathLocation::CACHE && MemoryCache::Using) {
+		resolvedPath = Path::StripURL(filename);
+
+		return MemoryCache::Exists(resolvedPath.c_str());
+	}
+
+	return File::Exists(resolvedPath.c_str());
+}
+
 bool FileStream::IsReadable() {
 	return CurrentAccess == FileStream::READ_ACCESS;
 }

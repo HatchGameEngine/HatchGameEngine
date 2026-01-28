@@ -171,7 +171,13 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 	SoftwareRenderer::BackendFunctions.FillCircle = SoftwareRenderer::FillCircle;
 	SoftwareRenderer::BackendFunctions.FillEllipse = SoftwareRenderer::FillEllipse;
 	SoftwareRenderer::BackendFunctions.FillTriangle = SoftwareRenderer::FillTriangle;
+	SoftwareRenderer::BackendFunctions.FillTriangleBlend = SoftwareRenderer::FillTriangleBlend;
 	SoftwareRenderer::BackendFunctions.FillRectangle = SoftwareRenderer::FillRectangle;
+	SoftwareRenderer::BackendFunctions.FillQuad = SoftwareRenderer::FillQuad;
+	SoftwareRenderer::BackendFunctions.FillQuadBlend = SoftwareRenderer::FillQuadBlend;
+	SoftwareRenderer::BackendFunctions.DrawTriangleTextured =
+		SoftwareRenderer::DrawTriangleTextured;
+	SoftwareRenderer::BackendFunctions.DrawQuadTextured = SoftwareRenderer::DrawQuadTextured;
 
 	// Texture drawing functions
 	SoftwareRenderer::BackendFunctions.DrawTexture = SoftwareRenderer::DrawTexture;
@@ -656,7 +662,8 @@ static TintFunction GetTintFunction(int blendFlags) {
 		}
 	}
 	else if (blendFlags & BlendFlag_TINT_BIT) {
-		TintFunction tintFunctions[] = {TintNormalSource, TintNormalDest, TintBlendSource, TintBlendDest};
+		TintFunction tintFunctions[] = {
+			TintNormalSource, TintNormalDest, TintBlendSource, TintBlendDest};
 
 		return tintFunctions[CurrentBlendState.Tint.Mode];
 	}
@@ -1780,10 +1787,22 @@ void SoftwareRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
 	x -= cx;
 	y -= cy;
 
-	int dst_x1 = x + x1;
-	int dst_y1 = y + y1;
-	int dst_x2 = x + x2;
-	int dst_y2 = y + y2;
+	x1 = x + x1;
+	y1 = y + y1;
+	x2 = x + x2;
+	y2 = y + y2;
+
+	if (currentView->IsScaled()) {
+		x1 *= currentView->ScaleX;
+		y1 *= currentView->ScaleY;
+		x2 *= currentView->ScaleX;
+		y2 *= currentView->ScaleY;
+	}
+
+	int dst_x1 = x1;
+	int dst_y1 = y1;
+	int dst_x2 = x2;
+	int dst_y2 = y2;
 
 	int minX, maxX, minY, maxY;
 	GetClipRegion(minX, minY, maxX, maxY);
@@ -1824,10 +1843,123 @@ void SoftwareRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
 		dstPx,
 		dstStride);
 }
-void SoftwareRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
-	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
+void SoftwareRenderer::InitContour(Contour* contourBuffer, int dst_y1, int scanLineCount) {
+	Contour* contourPtr = &contourBuffer[dst_y1];
+	while (scanLineCount--) {
+		contourPtr->MinX = 0x7FFFFFFF;
+		contourPtr->MaxX = -1;
+		contourPtr++;
+	}
+}
+void SoftwareRenderer::RasterizeEllipse(int ccx,
+	int ccy,
+	int dst_x1,
+	int dst_y1,
+	int dst_x2,
+	int dst_y2,
+	float width,
+	float height,
+	Contour* contourBuffer,
+	PlotPixelContext* ctx) {
+	int ix, iy;
+	Contour* cont;
 
+	float rx = width * width;
+	float ry = height * height;
+
+	float x = 0;
+	float y = height;
+	float d1, d2;
+
+	float dx = 2 * ry * x;
+	float dy = 2 * rx * y;
+
+#define SEEK_MIN(our_x, our_y) \
+	ix = (int)(our_x); \
+	iy = (int)(our_y); \
+	if (iy >= dst_y1 && iy < dst_y2 && ix < (cont = &contourBuffer[iy])->MinX) \
+		cont->MinX = ix<dst_x1 ? dst_x1 : ix>(dst_x2 - 1) ? dst_x2 - 1 : ix;
+#define SEEK_MAX(our_x, our_y) \
+	ix = (int)(our_x); \
+	iy = (int)(our_y); \
+	if (iy >= dst_y1 && iy < dst_y2 && ix > (cont = &contourBuffer[iy])->MaxX) \
+		cont->MaxX = ix<dst_x1 ? dst_x1 : ix>(dst_x2 - 1) ? dst_x2 - 1 : ix;
+#define DRAW_POINT(our_x, our_y) \
+	ix = (int)(our_x); \
+	iy = (int)(our_y); \
+	if (ix >= dst_x1 && ix < dst_x2 && iy >= dst_y1 && iy < dst_y2) { \
+		ctx->PixelFunc((Uint32*)&ctx->Color, \
+			&ctx->DestPx[(iy * ctx->DestStride) + ix], \
+			ctx->Blend, \
+			ctx->MultTable, \
+			ctx->MultSubTable); \
+	}
+
+	// First region
+	d1 = ry - (rx * height) + (rx * 0.25);
+	while (dx < dy) {
+		if (contourBuffer) {
+			SEEK_MAX(x + ccx, y + ccy);
+			SEEK_MIN(-x + ccx, y + ccy);
+			SEEK_MAX(x + ccx, -y + ccy);
+			SEEK_MIN(-x + ccx, -y + ccy);
+		}
+		else {
+			DRAW_POINT(x + ccx, y + ccy);
+			DRAW_POINT(-x + ccx, y + ccy);
+			DRAW_POINT(x + ccx, -y + ccy);
+			DRAW_POINT(-x + ccx, -y + ccy);
+		}
+
+		if (d1 < 0) {
+			x++;
+			dx += 2 * ry;
+			d1 = d1 + dx + ry;
+		}
+		else {
+			x++;
+			y--;
+			dx += 2 * ry;
+			dy -= 2 * rx;
+			d1 = d1 + dx - dy + ry;
+		}
+	}
+
+	// Second region
+	d2 = (ry * ((x + 0.5) * (x + 0.5))) + (rx * ((y - 1) * (y - 1))) - (rx * ry);
+	while (y >= 0) {
+		if (contourBuffer) {
+			SEEK_MAX(x + ccx, y + ccy);
+			SEEK_MIN(-x + ccx, y + ccy);
+			SEEK_MAX(x + ccx, -y + ccy);
+			SEEK_MIN(-x + ccx, -y + ccy);
+		}
+		else {
+			DRAW_POINT(x + ccx, y + ccy);
+			DRAW_POINT(-x + ccx, y + ccy);
+			DRAW_POINT(x + ccx, -y + ccy);
+			DRAW_POINT(-x + ccx, -y + ccy);
+		}
+
+		if (d2 > 0) {
+			y--;
+			dy -= 2 * rx;
+			d2 = d2 + rx - dy;
+		}
+		else {
+			y--;
+			x++;
+			dx += 2 * ry;
+			dy -= 2 * rx;
+			d2 = d2 + dx - dy + rx;
+		}
+	}
+
+#undef SEEK_MIN
+#undef SEEK_MAX
+#undef DRAW_POINT
+}
+void SoftwareRenderer::StrokeCircle(float x, float y, float rad, float thickness) {
 	View* currentView = Graphics::CurrentView;
 	if (!currentView) {
 		return;
@@ -1847,10 +1979,20 @@ void SoftwareRenderer::StrokeCircle(float x, float y, float rad, float thickness
 	x -= cx;
 	y -= cy;
 
-	int dst_x1 = x - rad - 1;
-	int dst_y1 = y - rad - 1;
-	int dst_x2 = x + rad + 1;
-	int dst_y2 = y + rad + 1;
+	float width = rad;
+	float height = rad;
+
+	if (currentView->IsScaled()) {
+		x *= currentView->ScaleX;
+		y *= currentView->ScaleY;
+		width *= currentView->ScaleX;
+		height *= currentView->ScaleY;
+	}
+
+	int dst_x1 = x - width - 1;
+	int dst_y1 = y - height - 1;
+	int dst_x2 = x + width + 1;
+	int dst_y2 = y + height + 1;
 
 	int clip_x1, clip_y1, clip_x2, clip_y2;
 	GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
@@ -1883,102 +2025,20 @@ void SoftwareRenderer::StrokeCircle(float x, float y, float rad, float thickness
 	int blendFlag = blendState.Mode;
 	int opacity = blendState.Opacity;
 
-#define DRAW_POINT(our_x, our_y) \
-	if ((our_x) >= dst_x1 && (our_x) < dst_x2 && (our_y) >= dst_y1 && (our_y) < dst_y2) { \
-		int dst_strideY = (our_y) * dstStride; \
-		pixelFunction((Uint32*)&col, \
-			&dstPx[(our_x) + dst_strideY], \
-			blendState, \
-			multTableAt, \
-			multSubTableAt); \
-	}
-
-	Uint32 col = ColRGB;
-
 	if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT)) {
 		SetTintFunction(blendFlag);
 	}
 
-	int* multTableAt = &MultTable[opacity << 8];
-	int* multSubTableAt = &MultSubTable[opacity << 8];
+	PlotPixelContext ctx;
+	ctx.DestPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+	ctx.DestStride = Graphics::CurrentRenderTarget->Width;
+	ctx.Blend = blendState;
+	ctx.MultTable = &MultTable[opacity << 8];
+	ctx.MultSubTable = &MultSubTable[opacity << 8];
+	ctx.PixelFunc = GetPixelFunction(blendFlag);
+	ctx.Color = ColRGB;
 
-	PixelFunction pixelFunction = GetPixelFunction(blendFlag);
-
-	int ccx = x, ccy = y;
-	int bx = 0, by = rad;
-	int bd = 3 - 2 * rad;
-	while (bx <= by) {
-		DRAW_POINT(ccx + bx, ccy - by);
-		DRAW_POINT(ccx - bx, ccy - by);
-		DRAW_POINT(ccx + by, ccy - bx);
-		DRAW_POINT(ccx - by, ccy - bx);
-		ccy--;
-		DRAW_POINT(ccx + bx, ccy + by);
-		DRAW_POINT(ccx - bx, ccy + by);
-		DRAW_POINT(ccx + by, ccy + bx);
-		DRAW_POINT(ccx - by, ccy + bx);
-		ccy++;
-		if (bd <= 0) {
-			bd += 4 * bx + 6;
-		}
-		else {
-			bd += 4 * (bx - by) + 10;
-			by--;
-		}
-		bx++;
-	}
-
-#undef DRAW_POINT
-}
-void SoftwareRenderer::InitContour(Contour* contourBuffer, int dst_y1, int scanLineCount) {
-	Contour* contourPtr = &contourBuffer[dst_y1];
-	while (scanLineCount--) {
-		contourPtr->MinX = 0x7FFFFFFF;
-		contourPtr->MaxX = -1;
-		contourPtr++;
-	}
-}
-void SoftwareRenderer::RasterizeCircle(int ccx,
-	int ccy,
-	int dst_x1,
-	int dst_y1,
-	int dst_x2,
-	int dst_y2,
-	float rad,
-	Contour* contourBuffer) {
-#define SEEK_MIN(our_x, our_y) \
-	if (our_y >= dst_y1 && our_y < dst_y2 && our_x < (cont = &contourBuffer[our_y])->MinX) \
-		cont->MinX = our_x<dst_x1 ? dst_x1 : our_x>(dst_x2 - 1) ? dst_x2 - 1 : our_x;
-#define SEEK_MAX(our_x, our_y) \
-	if (our_y >= dst_y1 && our_y < dst_y2 && our_x > (cont = &contourBuffer[our_y])->MaxX) \
-		cont->MaxX = our_x<dst_x1 ? dst_x1 : our_x>(dst_x2 - 1) ? dst_x2 - 1 : our_x;
-
-	Contour* cont;
-	int bx = 0, by = rad;
-	int bd = 3 - 2 * rad;
-	while (bx <= by) {
-		SEEK_MAX(ccx + bx, ccy - by);
-		SEEK_MIN(ccx - bx, ccy - by);
-		SEEK_MAX(ccx + by, ccy - bx);
-		SEEK_MIN(ccx - by, ccy - bx);
-		ccy--;
-		SEEK_MAX(ccx + bx, ccy + by);
-		SEEK_MIN(ccx - bx, ccy + by);
-		SEEK_MAX(ccx + by, ccy + bx);
-		SEEK_MIN(ccx - by, ccy + bx);
-		ccy++;
-		if (bd <= 0) {
-			bd += 4 * bx + 6;
-		}
-		else {
-			bd += 4 * (bx - by) + 10;
-			by--;
-		}
-		bx++;
-	}
-
-#undef SEEK_MIN
-#undef SEEK_MAX
+	RasterizeEllipse(x, y, dst_x1, dst_y1, dst_x2, dst_y2, width, height, nullptr, &ctx);
 }
 void SoftwareRenderer::StrokeThickCircle(float x, float y, float rad, float thickness) {
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
@@ -2007,10 +2067,24 @@ void SoftwareRenderer::StrokeThickCircle(float x, float y, float rad, float thic
 	x -= cx;
 	y -= cy;
 
-	int dst_x1 = x - rad - 1;
-	int dst_y1 = y - rad - 1;
-	int dst_x2 = x + rad + 1;
-	int dst_y2 = y + rad + 1;
+	float width = rad;
+	float height = rad;
+	float widthB = radB;
+	float heightB = radB;
+
+	if (currentView->IsScaled()) {
+		x *= currentView->ScaleX;
+		y *= currentView->ScaleY;
+		width *= currentView->ScaleX;
+		height *= currentView->ScaleY;
+		widthB *= currentView->ScaleX;
+		heightB *= currentView->ScaleY;
+	}
+
+	int dst_x1 = x - width - 1;
+	int dst_y1 = y - height - 1;
+	int dst_x2 = x + width + 1;
+	int dst_y2 = y + height + 1;
 
 	int clip_x1, clip_y1, clip_x2, clip_y2;
 	GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
@@ -2035,10 +2109,10 @@ void SoftwareRenderer::StrokeThickCircle(float x, float y, float rad, float thic
 		return;
 	}
 
-	int in_dst_x1 = x - radB - 1;
-	int in_dst_y1 = y - radB - 1;
-	int in_dst_x2 = x + radB + 1;
-	int in_dst_y2 = y + radB + 1;
+	int in_dst_x1 = x - widthB - 1;
+	int in_dst_y1 = y - heightB - 1;
+	int in_dst_x2 = x + widthB + 1;
+	int in_dst_y2 = y + heightB + 1;
 
 	if (in_dst_x1 < clip_x1) {
 		in_dst_x1 = clip_x1;
@@ -2080,8 +2154,18 @@ void SoftwareRenderer::StrokeThickCircle(float x, float y, float rad, float thic
 
 	Uint32 col = ColRGB;
 
-	RasterizeCircle(x, y, dst_x1, dst_y1, dst_x2, dst_y2, rad, contourBufferA);
-	RasterizeCircle(x, y, in_dst_x1, in_dst_y1, in_dst_x2, in_dst_y2, radB, contourBufferB);
+	RasterizeEllipse(
+		x, y, dst_x1, dst_y1, dst_x2, dst_y2, width, height, contourBufferA, nullptr);
+	RasterizeEllipse(x,
+		y,
+		in_dst_x1,
+		in_dst_y1,
+		in_dst_x2,
+		in_dst_y2,
+		widthB,
+		heightB,
+		contourBufferB,
+		nullptr);
 
 	int dst_strideY = dst_y1 * dstStride;
 
@@ -2198,6 +2282,13 @@ void SoftwareRenderer::StrokeRectangle(float x, float y, float w, float h) {
 	x -= cx;
 	y -= cy;
 
+	if (currentView->IsScaled()) {
+		x *= currentView->ScaleX;
+		y *= currentView->ScaleY;
+		w *= currentView->ScaleX;
+		h *= currentView->ScaleY;
+	}
+
 	int dst_x1 = x;
 	int dst_y1 = y;
 	int dst_x2 = x + w;
@@ -2298,9 +2389,6 @@ void SoftwareRenderer::StrokeRectangle(float x, float y, float w, float h) {
 }
 
 void SoftwareRenderer::FillCircle(float x, float y, float rad) {
-	// just checks to see if the pixel is within a radius range,
-	// uses a bounding box constructed by the diameter
-
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
 
@@ -2318,10 +2406,20 @@ void SoftwareRenderer::FillCircle(float x, float y, float rad) {
 	x -= cx;
 	y -= cy;
 
-	int dst_x1 = x - rad - 1;
-	int dst_y1 = y - rad - 1;
-	int dst_x2 = x + rad + 1;
-	int dst_y2 = y + rad + 1;
+	float width = rad;
+	float height = rad;
+
+	if (currentView->IsScaled()) {
+		x *= currentView->ScaleX;
+		y *= currentView->ScaleY;
+		width *= currentView->ScaleX;
+		height *= currentView->ScaleY;
+	}
+
+	int dst_x1 = x - width - 1;
+	int dst_y1 = y - height - 1;
+	int dst_x2 = x + width + 1;
+	int dst_y2 = y + height + 1;
 
 	int clip_x1, clip_y1, clip_x2, clip_y2;
 	GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
@@ -2355,15 +2453,8 @@ void SoftwareRenderer::FillCircle(float x, float y, float rad) {
 	int opacity = blendState.Opacity;
 
 	InitContour(ContourBuffer, dst_y1, dst_y2 - dst_y1 + 1);
-
-#define SEEK_MIN(our_x, our_y) \
-	if (our_y >= dst_y1 && our_y < dst_y2 && our_x < (cont = &ContourBuffer[our_y])->MinX) \
-		cont->MinX = our_x<dst_x1 ? dst_x1 : our_x>(dst_x2 - 1) ? dst_x2 - 1 : our_x;
-#define SEEK_MAX(our_x, our_y) \
-	if (our_y >= dst_y1 && our_y < dst_y2 && our_x > (cont = &ContourBuffer[our_y])->MaxX) \
-		cont->MaxX = our_x<dst_x1 ? dst_x1 : our_x>(dst_x2 - 1) ? dst_x2 - 1 : our_x;
-
-	RasterizeCircle(x, y, dst_x1, dst_y1, dst_x2, dst_y2, rad, ContourBuffer);
+	RasterizeEllipse(
+		x, y, dst_x1, dst_y1, dst_x2, dst_y2, width, height, ContourBuffer, nullptr);
 
 	Uint32 col = ColRGB;
 
@@ -2418,11 +2509,102 @@ void SoftwareRenderer::FillCircle(float x, float y, float rad) {
 			dst_strideY += dstStride;
 		}
 	}
-
-#undef SEEK_MIN
-#undef SEEK_MAX
 }
-void SoftwareRenderer::FillEllipse(float x, float y, float w, float h) {}
+void SoftwareRenderer::FillEllipse(float x, float y, float w, float h) {
+	// TODO
+}
+void SoftwareRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+	View* currentView = Graphics::CurrentView;
+	if (!currentView) {
+		return;
+	}
+
+	BlendState blendState = GetBlendState();
+	if (!AlterBlendState(blendState)) {
+		return;
+	}
+
+	int cx = (int)std::floor(currentView->X);
+	int cy = (int)std::floor(currentView->Y);
+
+	int x = 0, y = 0;
+
+	Matrix4x4* out = Graphics::ModelMatrix;
+	x += out->Values[12];
+	y += out->Values[13];
+	x -= cx;
+	y -= cy;
+
+	if (currentView->IsScaled()) {
+		x1 *= currentView->ScaleX;
+		y1 *= currentView->ScaleY;
+		x2 *= currentView->ScaleX;
+		y2 *= currentView->ScaleY;
+		x3 *= currentView->ScaleX;
+		y3 *= currentView->ScaleY;
+	}
+
+	Vector2 vectors[3];
+	vectors[0].X = ((int)x1 + x) << 16;
+	vectors[0].Y = ((int)y1 + y) << 16;
+	vectors[1].X = ((int)x2 + x) << 16;
+	vectors[1].Y = ((int)y2 + y) << 16;
+	vectors[2].X = ((int)x3 + x) << 16;
+	vectors[2].Y = ((int)y3 + y) << 16;
+	PolygonRasterizer::DrawBasic(vectors, ColRGB, 3, blendState);
+}
+void SoftwareRenderer::FillTriangleBlend(float x1,
+	float y1,
+	float x2,
+	float y2,
+	float x3,
+	float y3,
+	int c1,
+	int c2,
+	int c3) {
+	View* currentView = Graphics::CurrentView;
+	if (!currentView) {
+		return;
+	}
+
+	BlendState blendState = GetBlendState();
+	if (!AlterBlendState(blendState)) {
+		return;
+	}
+
+	int cx = (int)std::floor(currentView->X);
+	int cy = (int)std::floor(currentView->Y);
+
+	int x = 0, y = 0;
+
+	Matrix4x4* out = Graphics::ModelMatrix;
+	x += out->Values[12];
+	y += out->Values[13];
+	x -= cx;
+	y -= cy;
+
+	if (currentView->IsScaled()) {
+		x1 *= currentView->ScaleX;
+		y1 *= currentView->ScaleY;
+		x2 *= currentView->ScaleX;
+		y2 *= currentView->ScaleY;
+		x3 *= currentView->ScaleX;
+		y3 *= currentView->ScaleY;
+	}
+
+	int colors[3];
+	Vector2 vectors[3];
+	vectors[0].X = ((int)x1 + x) << 16;
+	vectors[0].Y = ((int)y1 + y) << 16;
+	colors[0] = ColorUtils::Multiply(c1, GetBlendColor());
+	vectors[1].X = ((int)x2 + x) << 16;
+	vectors[1].Y = ((int)y2 + y) << 16;
+	colors[1] = ColorUtils::Multiply(c2, GetBlendColor());
+	vectors[2].X = ((int)x3 + x) << 16;
+	vectors[2].Y = ((int)y3 + y) << 16;
+	colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
+	PolygonRasterizer::DrawBasicBlend(vectors, colors, 3, blendState);
+}
 void SoftwareRenderer::FillRectangle(float x, float y, float w, float h) {
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
@@ -2440,6 +2622,13 @@ void SoftwareRenderer::FillRectangle(float x, float y, float w, float h) {
 	y += out->Values[13];
 	x -= cx;
 	y -= cy;
+
+	if (currentView->IsScaled()) {
+		x *= currentView->ScaleX;
+		y *= currentView->ScaleY;
+		w *= currentView->ScaleX;
+		h *= currentView->ScaleY;
+	}
 
 	int dst_x1 = x;
 	int dst_y1 = y;
@@ -2508,80 +2697,6 @@ void SoftwareRenderer::FillRectangle(float x, float y, float w, float h) {
 		}
 	}
 }
-void SoftwareRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-	View* currentView = Graphics::CurrentView;
-	if (!currentView) {
-		return;
-	}
-
-	BlendState blendState = GetBlendState();
-	if (!AlterBlendState(blendState)) {
-		return;
-	}
-
-	int cx = (int)std::floor(currentView->X);
-	int cy = (int)std::floor(currentView->Y);
-
-	int x = 0, y = 0;
-
-	Matrix4x4* out = Graphics::ModelMatrix;
-	x += out->Values[12];
-	y += out->Values[13];
-	x -= cx;
-	y -= cy;
-
-	Vector2 vectors[3];
-	vectors[0].X = ((int)x1 + x) << 16;
-	vectors[0].Y = ((int)y1 + y) << 16;
-	vectors[1].X = ((int)x2 + x) << 16;
-	vectors[1].Y = ((int)y2 + y) << 16;
-	vectors[2].X = ((int)x3 + x) << 16;
-	vectors[2].Y = ((int)y3 + y) << 16;
-	PolygonRasterizer::DrawBasic(vectors, ColRGB, 3, blendState);
-}
-void SoftwareRenderer::FillTriangleBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3) {
-	View* currentView = Graphics::CurrentView;
-	if (!currentView) {
-		return;
-	}
-
-	BlendState blendState = GetBlendState();
-	if (!AlterBlendState(blendState)) {
-		return;
-	}
-
-	int cx = (int)std::floor(currentView->X);
-	int cy = (int)std::floor(currentView->Y);
-
-	int x = 0, y = 0;
-
-	Matrix4x4* out = Graphics::ModelMatrix;
-	x += out->Values[12];
-	y += out->Values[13];
-	x -= cx;
-	y -= cy;
-
-	int colors[3];
-	Vector2 vectors[3];
-	vectors[0].X = ((int)x1 + x) << 16;
-	vectors[0].Y = ((int)y1 + y) << 16;
-	colors[0] = ColorUtils::Multiply(c1, GetBlendColor());
-	vectors[1].X = ((int)x2 + x) << 16;
-	vectors[1].Y = ((int)y2 + y) << 16;
-	colors[1] = ColorUtils::Multiply(c2, GetBlendColor());
-	vectors[2].X = ((int)x3 + x) << 16;
-	vectors[2].Y = ((int)y3 + y) << 16;
-	colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
-	PolygonRasterizer::DrawBasicBlend(vectors, colors, 3, blendState);
-}
 void SoftwareRenderer::FillQuad(float x1,
 	float y1,
 	float x2,
@@ -2610,6 +2725,17 @@ void SoftwareRenderer::FillQuad(float x1,
 	y += out->Values[13];
 	x -= cx;
 	y -= cy;
+
+	if (currentView->IsScaled()) {
+		x1 *= currentView->ScaleX;
+		y1 *= currentView->ScaleY;
+		x2 *= currentView->ScaleX;
+		y2 *= currentView->ScaleY;
+		x3 *= currentView->ScaleX;
+		y3 *= currentView->ScaleY;
+		x4 *= currentView->ScaleX;
+		y4 *= currentView->ScaleY;
+	}
 
 	Vector2 vectors[4];
 	vectors[0].X = ((int)x1 + x) << 16;
@@ -2654,6 +2780,17 @@ void SoftwareRenderer::FillQuadBlend(float x1,
 	y += out->Values[13];
 	x -= cx;
 	y -= cy;
+
+	if (currentView->IsScaled()) {
+		x1 *= currentView->ScaleX;
+		y1 *= currentView->ScaleY;
+		x2 *= currentView->ScaleX;
+		y2 *= currentView->ScaleY;
+		x3 *= currentView->ScaleX;
+		y3 *= currentView->ScaleY;
+		x4 *= currentView->ScaleX;
+		y4 *= currentView->ScaleY;
+	}
 
 	int colors[4];
 	Vector2 vectors[4];
@@ -2708,8 +2845,16 @@ void SoftwareRenderer::DrawShapeTextured(Texture* texturePtr,
 	}
 
 	for (unsigned i = 0; i < numPoints; i++) {
-		vectors[i].X = ((int)px[i] + x) << 16;
-		vectors[i].Y = ((int)py[i] + y) << 16;
+		float xx = px[i] + x;
+		float yy = py[i] + y;
+
+		if (currentView->IsScaled()) {
+			xx *= currentView->ScaleX;
+			yy *= currentView->ScaleY;
+		}
+
+		vectors[i].X = FP16_TO(xx);
+		vectors[i].Y = FP16_TO(yy);
 		vectors[i].Z = FP16_TO(1.0f);
 		colors[i] = ColorUtils::Multiply(pc[i], GetBlendColor());
 		uv[i].X = ((int)pu[i]) << 16;
@@ -3481,6 +3626,13 @@ void SoftwareRenderer::DrawTexture(Texture* texture,
 	x -= cx;
 	y -= cy;
 
+	if (currentView->IsScaled()) {
+		x *= currentView->ScaleX;
+		y *= currentView->ScaleY;
+		w *= currentView->ScaleX;
+		h *= currentView->ScaleY;
+	}
+
 	int textureWidth = texture->Width;
 	int textureHeight = texture->Height;
 
@@ -3503,8 +3655,8 @@ void SoftwareRenderer::DrawTexture(Texture* texture,
 void SoftwareRenderer::DrawSprite(ISprite* sprite,
 	int animation,
 	int frame,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
@@ -3531,6 +3683,13 @@ void SoftwareRenderer::DrawSprite(ISprite* sprite,
 	y += out->Values[13];
 	x -= cx;
 	y -= cy;
+
+	if (currentView->IsScaled()) {
+		x *= currentView->ScaleX;
+		y *= currentView->ScaleY;
+		scaleW *= currentView->ScaleX;
+		scaleH *= currentView->ScaleY;
+	}
 
 	BlendState blendState = GetBlendState();
 	int flipFlag = (int)flipX | ((int)flipY << 1);
@@ -3612,8 +3771,8 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 	int sy,
 	int sw,
 	int sh,
-	int x,
-	int y,
+	float x,
+	float y,
 	bool flipX,
 	bool flipY,
 	float scaleW,
@@ -3640,6 +3799,13 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 	y += out->Values[13];
 	x -= cx;
 	y -= cy;
+
+	if (currentView->IsScaled()) {
+		x *= currentView->ScaleX;
+		y *= currentView->ScaleY;
+		scaleW *= currentView->ScaleX;
+		scaleH *= currentView->ScaleY;
+	}
 
 	if (sw >= frameStr.Width - sx) {
 		sw = frameStr.Width - sx;
@@ -4548,6 +4714,36 @@ void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
 	}
 	else {
 		Graphics::DrawSceneLayer_InitTileScanLines(layer, currentView);
+	}
+
+	// TODO: Implement view rotation
+	if (currentView->IsScaled()) {
+		float scrollOffset = Scene::Frame * layer->ConstantY;
+		Sint64 srcY = FP16_TO(
+			scrollOffset + ((currentView->Y + layer->OffsetY) * layer->RelativeY));
+		Sint64 rowStartX = FP16_TO(currentView->X + layer->OffsetX);
+		Sint64 iScaleX, iScaleY;
+
+		float scaleX = currentView->ScaleX;
+		float scaleY = currentView->ScaleY;
+
+		scaleX = std::max(fabs(scaleX), MIN_VIEW_SCALE) * Math::Sign(scaleX);
+		scaleY = std::max(fabs(scaleY), MIN_VIEW_SCALE) * Math::Sign(scaleY);
+
+		iScaleX = (1.0 / scaleX) * 0x10000;
+		iScaleY = (1.0 / scaleY) * 0x10000;
+
+		for (int i = 0; i < currentView->Height; i++) {
+			TileScanLine* scanLine = &Graphics::TileScanLineBuffer[i];
+			scanLine->SrcX = rowStartX;
+			scanLine->SrcY = srcY;
+			scanLine->DeltaX = iScaleX;
+			scanLine->DeltaY = 0;
+			srcY += iScaleY;
+		}
+
+		SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(layer, currentView);
+		return;
 	}
 
 	switch (layer->DrawBehavior) {

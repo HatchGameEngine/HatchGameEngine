@@ -47,6 +47,8 @@ enum class Platforms { Windows, MacOS, Linux, Switch, PlayStation, Xbox, Android
 
 enum class KeyBind {
 	Fullscreen,
+	ToggleFPSCounter,
+
 	DevRestartApp,
 	DevRestartScene,
 	DevRecompile,
@@ -58,9 +60,29 @@ enum class KeyBind {
 	DevStepFrame,
 	DevTileCol,
 	DevObjectRegions,
+	DevViewHitboxes,
+	DevMenuToggle,
 	DevQuit,
 
 	Max
+};
+
+struct DeveloperMenu {
+	void (*State)();
+	int Selection;
+	int SubSelection;
+	int ScrollPos;
+	int SubScrollPos;
+	double Timer;
+	bool Fullscreen;
+	int SceneState;
+	int ListPos;
+	int WindowScale;
+	bool WindowBorderless;
+	int CurrentWindowWidth;
+	int CurrentWindowHeight;
+	int PlayerListPos;
+	bool MusicPausedStore;
 };
 
 #define DEFAULT_TARGET_FRAMERATE 60
@@ -101,6 +123,12 @@ typedef int64_t Sint64;
 #endif
 
 #define RSDK_PI 3.1415927
+
+#define HITBOX_LEFT 0
+#define HITBOX_TOP 1
+#define HITBOX_RIGHT 2
+#define HITBOX_BOTTOM 3
+#define NUM_HITBOX_SIDES 4
 
 #ifdef IOS
 #define NEW_STRUCT_MACRO(n) (n)

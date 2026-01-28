@@ -60,6 +60,8 @@ enum {
 	StencilOp_DecrWrap
 };
 
+enum { ALIGN_LEFT, ALIGN_CENTER, ALIGN_RIGHT };
+
 enum {
 	DrawBehavior_HorizontalParallax = 0,
 	DrawBehavior_VerticalParallax = 1,
@@ -92,9 +94,7 @@ enum {
 	DrawMode_FlagsMask = ~0xF
 };
 
-enum {
-	TEXTDRAW_ELLIPSIS = 1 << 0
-};
+enum { TEXTDRAW_ELLIPSIS = 1 << 0 };
 
 struct TileScanLine {
 	Sint64 SrcX;

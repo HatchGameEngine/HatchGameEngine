@@ -107,6 +107,7 @@ public:
 	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
 	static Shader* CreateShader();
 	static void SetUserShader(Shader* shader);
+	static int GetTextureID(void* ptr);
 	static void BindTexture(Texture* texture, int textureUnit);
 	static void BindTexture(int textureID, int textureUnit);
 	static int GetTextureUnit();
@@ -138,7 +139,67 @@ public:
 	static void FillCircle(float x, float y, float rad);
 	static void FillEllipse(float x, float y, float w, float h);
 	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
+	static void FillTriangleBlend(float x1,
+		float y1,
+		float x2,
+		float y2,
+		float x3,
+		float y3,
+		int c1,
+		int c2,
+		int c3);
 	static void FillRectangle(float x, float y, float w, float h);
+	static void
+	FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
+	static void FillQuadBlend(float x1,
+		float y1,
+		float x2,
+		float y2,
+		float x3,
+		float y3,
+		float x4,
+		float y4,
+		int c1,
+		int c2,
+		int c3,
+		int c4);
+	static void DrawTriangleTextured(Texture* texturePtr,
+		float x1,
+		float y1,
+		float x2,
+		float y2,
+		float x3,
+		float y3,
+		int c1,
+		int c2,
+		int c3,
+		float u1,
+		float v1,
+		float u2,
+		float v2,
+		float u3,
+		float v3);
+	static void DrawQuadTextured(Texture* texturePtr,
+		float x1,
+		float y1,
+		float x2,
+		float y2,
+		float x3,
+		float y3,
+		float x4,
+		float y4,
+		int c1,
+		int c2,
+		int c3,
+		int c4,
+		float u1,
+		float v1,
+		float u2,
+		float v2,
+		float u3,
+		float v3,
+		float u4,
+		float v4);
 	static Uint32 CreateTexturedShapeBuffer(float* data, int vertexCount);
 	static void DrawTexturedShapeBuffer(Texture* texture, Uint32 bufferID, int vertexCount);
 	static void DrawTexture(Texture* texture,
@@ -154,8 +215,8 @@ public:
 	static void DrawSprite(ISprite* sprite,
 		int animation,
 		int frame,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,
@@ -169,8 +230,8 @@ public:
 		int sy,
 		int sw,
 		int sh,
-		int x,
-		int y,
+		float x,
+		float y,
 		bool flipX,
 		bool flipY,
 		float scaleW,

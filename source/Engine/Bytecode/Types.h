@@ -22,6 +22,7 @@ typedef enum {
 	VAL_OBJECT,
 	VAL_LINKED_INTEGER,
 	VAL_LINKED_DECIMAL,
+	VAL_HITBOX,
 	VAL_ERROR
 } ValueType;
 
@@ -30,13 +31,14 @@ enum { CLASS_TYPE_NORMAL, CLASS_TYPE_EXTENDED };
 struct Obj;
 
 struct VMValue {
-	Uint32 Type;
+	Uint8 Type;
 	union {
 		int Integer;
 		float Decimal;
 		Obj* Object;
 		int* LinkedInteger;
 		float* LinkedDecimal;
+		Sint16 Hitbox[NUM_HITBOX_SIDES];
 	} as;
 };
 
@@ -144,6 +146,29 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 	(!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && \
 		!IS_LINKED_INTEGER(value))
 
+static inline VMValue HITBOX_VAL(Sint16 left, Sint16 top, Sint16 right, Sint16 bottom) {
+	VMValue val;
+	val.Type = VAL_HITBOX;
+	val.as.Hitbox[HITBOX_LEFT] = left;
+	val.as.Hitbox[HITBOX_TOP] = top;
+	val.as.Hitbox[HITBOX_RIGHT] = right;
+	val.as.Hitbox[HITBOX_BOTTOM] = bottom;
+	return val;
+}
+
+static inline VMValue HITBOX_VAL(Sint16* values) {
+	VMValue val;
+	val.Type = VAL_HITBOX;
+	val.as.Hitbox[HITBOX_LEFT] = values[HITBOX_LEFT];
+	val.as.Hitbox[HITBOX_TOP] = values[HITBOX_TOP];
+	val.as.Hitbox[HITBOX_RIGHT] = values[HITBOX_RIGHT];
+	val.as.Hitbox[HITBOX_BOTTOM] = values[HITBOX_BOTTOM];
+	return val;
+}
+
+#define IS_HITBOX(value) ((value).Type == VAL_HITBOX)
+#define AS_HITBOX(value) (&((value).as.Hitbox[0]))
+
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 
 typedef Obj* (*ClassNewFn)(void);
@@ -193,7 +218,8 @@ enum ObjType {
 #define IS_NATIVE_INSTANCE(value) IsObjectType(value, OBJ_NATIVE_INSTANCE)
 #define IS_ENTITY(value) IsObjectType(value, OBJ_ENTITY)
 #define IS_INSTANCEABLE(value) (IS_INSTANCE(value) || IS_NATIVE_INSTANCE(value) || IS_ENTITY(value))
-#define IS_CALLABLE(value) (IS_FUNCTION(value) || IS_NATIVE_FUNCTION(value) || IS_BOUND_METHOD(value))
+#define IS_CALLABLE(value) \
+	(IS_FUNCTION(value) || IS_NATIVE_FUNCTION(value) || IS_BOUND_METHOD(value))
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))
@@ -232,9 +258,9 @@ struct ObjString {
 };
 struct ObjModule {
 	Obj Object;
-	vector<struct ObjFunction*>* Functions;
-	vector<VMValue>* Locals;
-	ObjString* SourceFilename;
+	std::vector<struct ObjFunction*>* Functions;
+	std::vector<VMValue>* Locals;
+	char* SourceFilename;
 };
 struct ObjFunction {
 	Obj Object;
@@ -243,7 +269,7 @@ struct ObjFunction {
 	int UpvalueCount;
 	struct Chunk Chunk;
 	ObjModule* Module;
-	ObjString* Name;
+	char* Name;
 	struct ObjClass* Class;
 	Uint32 NameHash;
 };
@@ -265,7 +291,7 @@ struct ObjClosure {
 };
 struct ObjClass {
 	Obj Object;
-	ObjString* Name;
+	char* Name;
 	Uint32 Hash;
 	Table* Methods;
 	Table* Fields;
@@ -285,7 +311,7 @@ struct ObjBoundMethod {
 };
 struct ObjArray {
 	Obj Object;
-	vector<VMValue>* Values;
+	std::vector<VMValue>* Values;
 };
 struct ObjMap {
 	Obj Object;
@@ -294,14 +320,14 @@ struct ObjMap {
 };
 struct ObjNamespace {
 	Obj Object;
-	ObjString* Name;
+	char* Name;
 	Uint32 Hash;
 	Table* Fields;
 	bool InUse;
 };
 struct ObjEnum {
 	Obj Object;
-	ObjString* Name;
+	char* Name;
 	Uint32 Hash;
 	Table* Fields;
 };
@@ -378,7 +404,7 @@ Obj* NewNativeInstance(size_t size);
 	GarbageCollector::GarbageSize -= ((Obj*)(obj))->Size; \
 	Memory::Free(obj)
 
-bool ValuesEqual(VMValue a, VMValue b);
+std::string GetClassName(Uint32 hash);
 Uint32 GetClassHash(const char* name);
 
 #define VM_THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
@@ -417,6 +443,11 @@ struct WithIter {
 	int index;
 	void* registry;
 	Uint8 receiverSlot;
+};
+
+struct VMThreadCallback {
+	Uint32 ThreadID;
+	VMValue Callable;
 };
 
 struct CallFrame {
@@ -538,6 +569,7 @@ enum OpCode : uint8_t {
 	OP_SUPER_INVOKE,
 	OP_EVENT,
 	OP_METHOD,
+	OP_NEW_HITBOX,
 
 	OP_LAST
 };

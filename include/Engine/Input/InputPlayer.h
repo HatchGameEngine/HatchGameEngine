@@ -7,8 +7,8 @@
 
 class InputPlayer {
 private:
-	size_t PushBindToList(PlayerInputConfig& config, InputBind* def);
-	bool ReplaceBindInList(PlayerInputConfig& config, InputBind* def, unsigned index);
+	size_t PushBindToList(PlayerInputConfig& config, InputBind* bind);
+	bool ReplaceBindInList(PlayerInputConfig& config, InputBind* bind, unsigned index);
 	bool RemoveBindFromList(PlayerInputConfig& config, unsigned index);
 	InputBind* GetBindAtIndex(PlayerInputConfig& config, unsigned index);
 	size_t GetBindCount(PlayerInputConfig& config);

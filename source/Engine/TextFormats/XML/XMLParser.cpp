@@ -430,8 +430,7 @@ XMLNode* XMLParser::Parse() {
 
 	try {
 		DoParsing();
-	}
-	catch (const std::runtime_error& error) {
+	} catch (const std::runtime_error& error) {
 		XMLParser::Free(XMLRoot);
 
 		Log::Print(Log::LOG_ERROR, "Error parsing XML: %s", error.what());

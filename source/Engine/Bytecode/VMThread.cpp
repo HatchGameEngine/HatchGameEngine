@@ -29,23 +29,20 @@ bool VMThread::InstructionIgnoreMap[0x100];
 std::jmp_buf VMThread::JumpBuffer;
 
 // #region Error Handling & Debug Info
-string VMThread::GetFunctionName(ObjFunction* function) {
-	std::string functionName(GetToken(function->NameHash));
-
-	if (functionName == "main") {
+std::string VMThread::GetFunctionName(ObjFunction* function) {
+	if (strcmp(function->Name, "main") == 0) {
 		return "top-level function";
 	}
-	else if (functionName != "<anonymous-fn>") {
-		if (function->Class) {
-			return "method " + std::string(function->Class->Name->Chars) +
-				"::" + functionName;
-		}
-		else {
-			return "function " + functionName;
-		}
+	else if (strcmp(function->Name, "<anonymous-fn>") == 0) {
+		return std::string(function->Name);
 	}
 
-	return functionName;
+	if (function->Class) {
+		return "method " + std::string(function->Class->Name) +
+			"::" + std::string(function->Name);
+	}
+
+	return "function " + std::string(function->Name);
 }
 
 char* VMThread::GetToken(Uint32 hash) {
@@ -73,7 +70,7 @@ char* VMThread::GetVariableOrMethodName(Uint32 hash) {
 }
 void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 	int line;
-	char* source;
+	const char* source;
 
 	CallFrame* frame = &Frames[FrameCount - 1];
 	ObjFunction* function = frame->Function;
@@ -83,46 +80,35 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 		line = function->Chunk.Lines[bpos] & 0xFFFF;
 
 		std::string functionName = GetFunctionName(function);
-		if (function->Module->SourceFilename) {
-			buffer_printf(buffer,
-				"In %s of %s, line %d",
-				functionName.c_str(),
-				function->Module->SourceFilename->Chars,
-				line);
+		buffer_printf(buffer,
+			"In %s of %s, line %d",
+			functionName.c_str(),
+			function->Module->SourceFilename,
+			line);
+
+		if (errorString) {
+			buffer_printf(buffer, ":\n\n    %s\n", errorString);
 		}
 		else {
-			buffer_printf(buffer, "In %s, line %d", functionName.c_str(), line);
+			buffer_printf(buffer, ".\n");
 		}
 	}
-	else {
-		buffer_printf(buffer, "In %d", (int)(frame->IP - frame->IPStart));
-	}
-
-	if (errorString) {
-		buffer_printf(buffer, ":\n\n    %s\n", errorString);
-	}
-	else {
-		buffer_printf(buffer, ".\n");
+	else if (errorString) {
+		buffer_printf(buffer, "%s\n", errorString);
 	}
 
 	buffer_printf(buffer, "\nCall Trace (Thread %d):\n", ID);
 	for (Uint32 i = 0; i < FrameCount; i++) {
 		CallFrame* fr = &Frames[i];
 		function = fr->Function;
-		source = function->Module->SourceFilename ? function->Module->SourceFilename->Chars
-							  : nullptr;
+		source = function->Module->SourceFilename;
 		line = -1;
-		if (i > 0) {
+		if (i > 0 && function->Chunk.Lines) {
 			CallFrame* fr2 = &Frames[i - 1];
 			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
 		}
 		std::string functionName = GetFunctionName(function);
-		if (source) {
-			buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
-		}
-		else {
-			buffer_printf(buffer, "    called %s", functionName.c_str());
-		}
+		buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
 
 		if (line > 0) {
 			buffer_printf(buffer, " on Line %d", line);
@@ -155,15 +141,10 @@ void VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
 
 			if (function) {
 				std::string functionName = GetFunctionName(function);
-				if (function->Module->SourceFilename) {
-					buffer_printf(buffer,
-						"While calling %s of %s",
-						functionName.c_str(),
-						function->Module->SourceFilename->Chars);
-				}
-				else {
-					buffer_printf(buffer, "While calling %s", functionName.c_str());
-				}
+				buffer_printf(buffer,
+					"While calling %s of %s",
+					functionName.c_str(),
+					function->Module->SourceFilename);
 			}
 			else {
 				buffer_printf(buffer, "While calling value");
@@ -220,15 +201,13 @@ int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
 	const SDL_MessageBoxButtonData buttonsFatal[] = {
 		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"},
 	};
-	const SDL_MessageBoxData messageBoxData = {
-		SDL_MESSAGEBOX_ERROR,
+	const SDL_MessageBoxData messageBoxData = {SDL_MESSAGEBOX_ERROR,
 		nullptr,
 		"Script Error",
 		textBuffer,
 		(int)(fatal ? SDL_arraysize(buttonsFatal) : SDL_arraysize(buttonsError)),
 		fatal ? buttonsFatal : buttonsError,
-		nullptr
-	};
+		nullptr};
 
 	int buttonClicked;
 	if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) {
@@ -247,6 +226,48 @@ int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
 	case 2:
 		VMThread::InstructionIgnoreMap[000000000] = true;
 		return ERROR_RES_CONTINUE;
+	}
+
+	return ERROR_RES_CONTINUE;
+}
+int VMThread::ShowErrorFromScript(const char* errorString, bool detailed) {
+	char* textBuffer = (char*)malloc(512);
+	PrintBuffer buffer;
+	buffer.Buffer = &textBuffer;
+	buffer.WriteIndex = 0;
+	buffer.BufferSize = 512;
+
+	if (detailed) {
+		MakeErrorMessage(&buffer, errorString);
+	}
+	else {
+		buffer_printf(&buffer, "%s", errorString);
+	}
+
+	Log::Print(Log::LOG_ERROR, textBuffer);
+
+	const SDL_MessageBoxButtonData buttonsError[] = {
+		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"},
+		{SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Continue"},
+	};
+	const SDL_MessageBoxData messageBoxData = {SDL_MESSAGEBOX_ERROR,
+		nullptr,
+		"Script Error",
+		textBuffer,
+		(int)(SDL_arraysize(buttonsError)),
+		buttonsError,
+		nullptr};
+
+	int buttonClicked;
+	if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) {
+		buttonClicked = 0;
+	}
+	free(textBuffer);
+
+	if (buttonClicked == 1) {
+		Application::Cleanup();
+		exit(-1);
+		return ERROR_RES_EXIT;
 	}
 
 	return ERROR_RES_CONTINUE;
@@ -602,6 +623,7 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_SUPER_INVOKE),
 		VM_ADD_DISPATCH(OP_EVENT),
 		VM_ADD_DISPATCH(OP_METHOD),
+		VM_ADD_DISPATCH(OP_NEW_HITBOX),
 	};
 #define VM_START(ins) \
 	goto* dispatch_table[(ins)]; \
@@ -714,6 +736,7 @@ int VMThread::RunInstruction() {
 			PRINT_CASE(OP_SUPER_INVOKE)
 			PRINT_CASE(OP_EVENT)
 			PRINT_CASE(OP_METHOD)
+			PRINT_CASE(OP_NEW_HITBOX)
 
 		default:
 			Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP);
@@ -979,9 +1002,13 @@ int VMThread::RunInstruction() {
 			Obj* objPtr = AS_OBJECT(object);
 
 			if (ScriptManager::Lock()) {
-				bool succeeded = objPtr->Class != nullptr ?
-					GetProperty(objPtr, objPtr->Class, hash, false, objPtr->PropertyGet) :
-					GetProperty(objPtr, hash, objPtr->PropertyGet);
+				bool succeeded = objPtr->Class != nullptr
+					? GetProperty(objPtr,
+						  objPtr->Class,
+						  hash,
+						  false,
+						  objPtr->PropertyGet)
+					: GetProperty(objPtr, hash, objPtr->PropertyGet);
 
 				if (succeeded) {
 					ScriptManager::Unlock();
@@ -1049,8 +1076,8 @@ int VMThread::RunInstruction() {
 		}
 		else {
 			ThrowRuntimeError(false,
-			    "Only instances and classes have properties; value was of type %s.",
-			    GetValueTypeString(object));
+				"Only instances and classes have properties; value was of type %s.",
+				GetValueTypeString(object));
 
 			goto FAIL_OP_SET_PROPERTY;
 		}
@@ -1146,9 +1173,13 @@ int VMThread::RunInstruction() {
 		else if (IS_OBJECT(object)) {
 			Obj* objPtr = AS_OBJECT(object);
 			if (ScriptManager::Lock()) {
-				bool hasProperty = objPtr->Class != nullptr ?
-					HasProperty(objPtr, objPtr->Class, hash, false, objPtr->PropertyGet) :
-					HasProperty(objPtr, hash, objPtr->PropertyGet);
+				bool hasProperty = objPtr->Class != nullptr
+					? HasProperty(objPtr,
+						  objPtr->Class,
+						  hash,
+						  false,
+						  objPtr->PropertyGet)
+					: HasProperty(objPtr, hash, objPtr->PropertyGet);
 
 				Pop();
 				Push(INTEGER_VAL(hasProperty));
@@ -1171,13 +1202,7 @@ int VMThread::RunInstruction() {
 		VMValue at = Pop();
 		VMValue obj = Pop();
 		VMValue result;
-		if (!IS_OBJECT(obj)) {
-			if (ThrowRuntimeError(
-				    false, "Cannot get element of %s.", GetValueTypeString(obj)) ==
-				ERROR_RES_CONTINUE) {
-				goto FAIL_OP_GET_ELEMENT;
-			}
-		}
+
 		if (IS_ARRAY(obj)) {
 			if (!IS_INTEGER(at)) {
 				if (ThrowRuntimeError(false,
@@ -1232,18 +1257,48 @@ int VMThread::RunInstruction() {
 				ScriptManager::Unlock();
 			}
 		}
+		else if (IS_HITBOX(obj)) {
+			if (!IS_INTEGER(at)) {
+				if (ThrowRuntimeError(false,
+					    "Cannot get value from hitbox using non-Integer value as an index.") ==
+					ERROR_RES_CONTINUE) {
+					goto FAIL_OP_GET_ELEMENT;
+				}
+			}
+
+			Sint16* hitbox = AS_HITBOX(obj);
+			int index = AS_INTEGER(at);
+			if (index < HITBOX_LEFT || index > HITBOX_BOTTOM) {
+				if (ThrowRuntimeError(false,
+					    "%d is not a valid hitbox slot. (0 - 3)",
+					    index) == ERROR_RES_CONTINUE) {
+					goto FAIL_OP_GET_ELEMENT;
+				}
+			}
+			result = INTEGER_VAL(hitbox[index]);
+			Push(result);
+		}
 		else {
-			if (IS_OBJECT(obj)) {
+			if (!IS_OBJECT(obj)) {
+				if (ThrowRuntimeError(false,
+					    "Cannot get element of %s.",
+					    GetValueTypeString(obj)) == ERROR_RES_CONTINUE) {
+					goto FAIL_OP_GET_ELEMENT;
+				}
+			}
+			else {
 				Obj* objPtr = AS_OBJECT(obj);
-				if (objPtr->ElementGet && objPtr->ElementGet(objPtr, at, &result, this->ID)) {
+				if (objPtr->ElementGet &&
+					objPtr->ElementGet(objPtr, at, &result, this->ID)) {
 					Push(result);
 					ScriptManager::Unlock();
 					VM_BREAK;
 				}
 			}
 
-			ThrowRuntimeError(
-				false, "Cannot get value in object of type %s.", GetValueTypeString(obj));
+			ThrowRuntimeError(false,
+				"Cannot get value in object of type %s.",
+				GetValueTypeString(obj));
 			goto FAIL_OP_GET_ELEMENT;
 		}
 		VM_BREAK;
@@ -1257,11 +1312,6 @@ int VMThread::RunInstruction() {
 		VMValue value = Peek(0);
 		VMValue at = Peek(1);
 		VMValue obj = Peek(2);
-		if (!IS_OBJECT(obj)) {
-			ThrowRuntimeError(false, "Cannot set element of %s.", GetValueTypeString(obj));
-
-			goto FAIL_OP_SET_ELEMENT;
-		}
 
 		if (IS_ARRAY(obj)) {
 			if (!IS_INTEGER(at)) {
@@ -1314,15 +1364,24 @@ int VMThread::RunInstruction() {
 			}
 		}
 		else {
-			if (IS_OBJECT(obj)) {
+			if (!IS_OBJECT(obj)) {
+				ThrowRuntimeError(false,
+					"Cannot set element of %s.",
+					GetValueTypeString(obj));
+
+				goto FAIL_OP_SET_ELEMENT;
+			}
+			else {
 				Obj* objPtr = AS_OBJECT(obj);
-				if (objPtr->ElementSet && objPtr->ElementSet(objPtr, at, value, this->ID)) {
+				if (objPtr->ElementSet &&
+					objPtr->ElementSet(objPtr, at, value, this->ID)) {
 					goto SUCCESS_OP_SET_ELEMENT;
 				}
 			}
 
-			ThrowRuntimeError(
-				false, "Cannot set value in object of type %s.", GetValueTypeString(obj));
+			ThrowRuntimeError(false,
+				"Cannot set value in object of type %s.",
+				GetValueTypeString(obj));
 			goto FAIL_OP_SET_ELEMENT;
 		}
 
@@ -1989,18 +2048,10 @@ int VMThread::RunInstruction() {
 	}
 	VM_CASE(OP_CLASS) {
 		Uint32 hash = ReadUInt32(frame);
-		ObjClass* klass = NewClass(hash);
-		klass->Type = ReadByte(frame);
+		Uint8 type = ReadByte(frame);
 
-		if (!__Tokens__ || !__Tokens__->Exists(hash)) {
-			char name[9];
-			snprintf(name, sizeof(name), "%8X", hash);
-			klass->Name = CopyString(name);
-		}
-		else {
-			char* t = __Tokens__->Get(hash);
-			klass->Name = CopyString(t);
-		}
+		ObjClass* klass = NewClass(hash);
+		klass->Type = type;
 
 		Push(OBJECT_VAL(klass));
 		VM_BREAK;
@@ -2018,8 +2069,26 @@ int VMThread::RunInstruction() {
 			return INTERPRET_RUNTIME_ERROR;
 		}
 
+		if (klass->Hash == hashSuper) {
+			if (ThrowRuntimeError(false,
+				    "Class \"%s\" cannot inherit from itself!",
+				    klass->Name) == ERROR_RES_CONTINUE) {
+				goto FAIL_OP_INHERIT;
+			}
+			return INTERPRET_RUNTIME_ERROR;
+		}
+
 		VMValue parent;
 		if (ScriptManager::Globals->GetIfExists(hashSuper, &parent) && IS_CLASS(parent)) {
+			if (klass->Parent != nullptr) {
+				if (ThrowRuntimeError(false,
+					    "Class \"%s\" already has a parent!",
+					    klass->Name) == ERROR_RES_CONTINUE) {
+					goto FAIL_OP_INHERIT;
+				}
+				return INTERPRET_RUNTIME_ERROR;
+			}
+
 			klass->Parent = AS_CLASS(parent);
 		}
 		else {
@@ -2027,7 +2096,7 @@ int VMThread::RunInstruction() {
 			if (ThrowRuntimeError(false,
 				    "Class %s must be imported before \"%s\" can inherit it!",
 				    className,
-				    klass->Name->Chars) == ERROR_RES_CONTINUE) {
+				    klass->Name) == ERROR_RES_CONTINUE) {
 				goto FAIL_OP_INHERIT;
 			}
 			return INTERPRET_RUNTIME_ERROR;
@@ -2100,17 +2169,6 @@ int VMThread::RunInstruction() {
 	VM_CASE(OP_NEW_ENUM) {
 		Uint32 hash = ReadUInt32(frame);
 		ObjEnum* enumeration = NewEnum(hash);
-
-		if (!__Tokens__ || !__Tokens__->Exists(hash)) {
-			char name[9];
-			snprintf(name, sizeof(name), "%8X", hash);
-			enumeration->Name = CopyString(name);
-		}
-		else {
-			char* t = __Tokens__->Get(hash);
-			enumeration->Name = CopyString(t);
-		}
-
 		Push(OBJECT_VAL(enumeration));
 		VM_BREAK;
 	}
@@ -2174,8 +2232,8 @@ int VMThread::RunInstruction() {
 
 		if (!klass) {
 			ThrowRuntimeError(false,
-			    "Only instances and classes have superclasses; value was of type %s.",
-			    GetValueTypeString(object));
+				"Only instances and classes have superclasses; value was of type %s.",
+				GetValueTypeString(object));
 
 			goto FAIL_OP_GET_SUPERCLASS;
 		}
@@ -2189,7 +2247,7 @@ int VMThread::RunInstruction() {
 			}
 			else {
 				ThrowRuntimeError(
-					false, "Class '%s' has no superclass!", klass->Name->Chars);
+					false, "Class '%s' has no superclass!", klass->Name);
 			}
 		}
 
@@ -2273,6 +2331,25 @@ int VMThread::RunInstruction() {
 			ScriptManager::Unlock();
 		}
 
+		VM_BREAK;
+	}
+
+	VM_CASE(OP_NEW_HITBOX) {
+		VMValue bottom = Pop();
+		VMValue right = Pop();
+		VMValue top = Pop();
+		VMValue left = Pop();
+
+		if (!IS_INTEGER(left) || !IS_INTEGER(top) || !IS_INTEGER(right) ||
+			!IS_INTEGER(bottom)) {
+			ThrowRuntimeError(
+				false, "Cannot construct hitbox using non-Integer values.");
+			Push(NULL_VAL);
+			VM_BREAK;
+		}
+
+		Push(HITBOX_VAL(
+			AS_INTEGER(left), AS_INTEGER(top), AS_INTEGER(right), AS_INTEGER(bottom)));
 		VM_BREAK;
 	}
 
@@ -2373,7 +2450,7 @@ int VMThread::Invoke(VMValue receiver, Uint8 argCount, Uint32 hash) {
 		if (ThrowRuntimeError(false,
 			    "Method %s does not exist in class '%s'!",
 			    GetVariableOrMethodName(hash),
-			    klass->Name->Chars) == ERROR_RES_CONTINUE) {
+			    klass->Name) == ERROR_RES_CONTINUE) {
 			return INVOKE_FAIL;
 		}
 
@@ -2437,7 +2514,7 @@ int VMThread::SuperInvoke(VMValue receiver, ObjClass* klass, Uint8 argCount, Uin
 	if (!parentClass) {
 		ThrowRuntimeError(false,
 			"Class '%s' does not have a parent to call method from!",
-			klass->Name->Chars);
+			klass->Name);
 		return INVOKE_FAIL;
 	}
 
@@ -2450,9 +2527,8 @@ int VMThread::SuperInvoke(VMValue receiver, ObjClass* klass, Uint8 argCount, Uin
 		return INVOKE_OK;
 	}
 
-	if (ThrowRuntimeError(false,
-		    "Could not invoke %s!",
-		    GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE) {
+	if (ThrowRuntimeError(false, "Could not invoke %s!", GetVariableOrMethodName(hash)) ==
+		ERROR_RES_CONTINUE) {
 		return INVOKE_FAIL;
 	}
 
@@ -2587,8 +2663,7 @@ bool VMThread::GetProperty(Obj* object, Uint32 hash, ValueGetFn getter) {
 			return true;
 		}
 
-		ThrowRuntimeError(
-			false, "Undefined property %s.", GetVariableOrMethodName(hash));
+		ThrowRuntimeError(false, "Undefined property %s.", GetVariableOrMethodName(hash));
 		Pop(); // Instance.
 		Push(NULL_VAL);
 	}
@@ -2777,8 +2852,14 @@ bool VMThread::CallBoundMethod(ObjBoundMethod* bound, int argCount) {
 	return Call(bound->Method, argCount);
 }
 bool VMThread::CallValue(VMValue callee, int argCount) {
+	if (!IS_CALLABLE(callee)) {
+		ThrowRuntimeError(
+			false, "Cannot call value of type %s.", GetValueTypeString(callee));
+		return false;
+	}
+
 	bool result = false;
-	if (ScriptManager::Lock() && IS_OBJECT(callee)) {
+	if (ScriptManager::Lock()) {
 		switch (OBJECT_TYPE(callee)) {
 		case OBJ_BOUND_METHOD:
 			result = CallBoundMethod(AS_BOUND_METHOD(callee), argCount);
@@ -2804,9 +2885,6 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 			break;
 		}
 		default:
-			ThrowRuntimeError(false,
-				"Cannot call value of type %s.",
-				GetObjectTypeString(OBJECT_TYPE(callee)));
 			break;
 		}
 	}
@@ -2814,6 +2892,12 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 	return result;
 }
 bool VMThread::CallForObject(VMValue callee, int argCount) {
+	if (!IS_CALLABLE(callee)) {
+		ThrowRuntimeError(
+			false, "Cannot call value of type %s.", GetValueTypeString(callee));
+		return false;
+	}
+
 	if (ScriptManager::Lock()) {
 		// Special case for native functions
 		if (OBJECT_TYPE(callee) == OBJ_NATIVE_FUNCTION) {
@@ -2962,7 +3046,10 @@ bool VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
 	}
 	return false;
 }
-bool VMThread::InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount) {
+bool VMThread::InvokeForInstance(ObjInstance* instance,
+	ObjClass* klass,
+	Uint32 hash,
+	int argCount) {
 	VMValue callable;
 
 	if (!ScriptManager::Lock()) {
@@ -3011,6 +3098,17 @@ bool VMThread::DoClassExtension(VMValue value, VMValue originalValue, bool clear
 	});
 	if (clearSrc) {
 		src->Fields->Clear();
+	}
+
+	// If the class doing the extension has a superclass, and the class being extended doesn't have
+	// a parent yet, then set the parent of the class being extended to that superclass.
+	if (src->Parent != nullptr) {
+		if (dst->Parent != nullptr) {
+			ThrowRuntimeError(false, "Class \"%s\" already has a parent!", dst->Name);
+		}
+		else {
+			dst->Parent = src->Parent;
+		}
 	}
 
 	return true;
@@ -3430,6 +3528,8 @@ static const char* GetTypeOfValue(VMValue value) {
 	case VAL_DECIMAL:
 	case VAL_LINKED_DECIMAL:
 		return "decimal";
+	case VAL_HITBOX:
+		return "hitbox";
 	case VAL_OBJECT:
 		switch (OBJECT_TYPE(value)) {
 		case OBJ_FUNCTION:

@@ -96,6 +96,14 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 			case Bytecode::VALUE_TYPE_DECIMAL:
 				function->Chunk.AddConstant(DECIMAL_VAL(stream->ReadFloat()));
 				break;
+			case Bytecode::VALUE_TYPE_HITBOX: {
+				Sint16 left = stream->ReadInt16();
+				Sint16 top = stream->ReadInt16();
+				Sint16 right = stream->ReadInt16();
+				Sint16 bottom = stream->ReadInt16();
+				function->Chunk.AddConstant(HITBOX_VAL(left, top, right, bottom));
+				break;
+			}
 			case Bytecode::VALUE_TYPE_STRING:
 				function->Chunk.AddConstant(
 					OBJECT_VAL(TakeString(stream->ReadString())));
@@ -108,12 +116,9 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 
 	if (HasDebugInfo) {
 		int tokenCount = stream->ReadInt32();
-		for (int t = 0; t < tokenCount; t++) {
-			char* string = stream->ReadString();
-			if (!tokens) {
-				stream->SkipString();
-			}
-			else {
+		if (tokens) {
+			for (int t = 0; t < tokenCount; t++) {
+				char* string = stream->ReadString();
 				Uint32 hash = Murmur::EncryptString(string);
 				if (!tokens->Exists(hash)) {
 					tokens->Put(hash, string);
@@ -122,15 +127,25 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 					Memory::Free(string);
 				}
 			}
-		}
 
-		if (tokens) {
 			for (ObjFunction* function : Functions) {
 				if (tokens->Exists(function->NameHash)) {
-					function->Name =
-						CopyString(tokens->Get(function->NameHash));
+					function->Name = StringUtils::Duplicate(
+						tokens->Get(function->NameHash));
 				}
 			}
+		}
+		else {
+			for (int t = 0; t < tokenCount; t++) {
+				stream->SkipString();
+			}
+		}
+	}
+	else {
+		char fnHash[9];
+		for (ObjFunction* function : Functions) {
+			snprintf(fnHash, sizeof(fnHash), "%08X", function->NameHash);
+			function->Name = StringUtils::Duplicate(fnHash);
 		}
 	}
 
@@ -172,7 +187,7 @@ void Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>*
 			stream->WriteUInt32(chunk->OpcodeCount);
 		}
 
-		stream->WriteUInt32(Murmur::EncryptString(Functions[c]->Name->Chars));
+		stream->WriteUInt32(Murmur::EncryptString(Functions[c]->Name));
 
 		stream->WriteBytes(chunk->Code, chunk->Count);
 		if (HasDebugInfo) {
@@ -193,6 +208,13 @@ void Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>*
 			case VAL_DECIMAL:
 				stream->WriteByte(Bytecode::VALUE_TYPE_DECIMAL);
 				stream->WriteBytes(&AS_DECIMAL(constt), sizeof(float));
+				break;
+			case VAL_HITBOX:
+				stream->WriteByte(Bytecode::VALUE_TYPE_HITBOX);
+				stream->WriteInt16(constt.as.Hitbox[HITBOX_LEFT]);
+				stream->WriteInt16(constt.as.Hitbox[HITBOX_TOP]);
+				stream->WriteInt16(constt.as.Hitbox[HITBOX_RIGHT]);
+				stream->WriteInt16(constt.as.Hitbox[HITBOX_BOTTOM]);
 				break;
 			case VAL_OBJECT:
 				if (OBJECT_TYPE(constt) == OBJ_STRING) {

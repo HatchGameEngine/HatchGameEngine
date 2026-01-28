@@ -7,6 +7,7 @@ float InputManager::MouseY = 0;
 int InputManager::MouseDown = 0;
 int InputManager::MousePressed = 0;
 int InputManager::MouseReleased = 0;
+int InputManager::MouseMode = MOUSEMODE_DEFAULT;
 
 Uint8 InputManager::KeyboardState[0x120];
 Uint8 InputManager::KeyboardStateLast[0x120];
@@ -499,6 +500,21 @@ bool InputManager::IsKeyReleased(int key) {
 	return !KeyboardState[scancode] && KeyboardStateLast[scancode];
 }
 
+void InputManager::SetMouseMode(int mode) {
+	switch (mode) {
+	case MOUSEMODE_DEFAULT:
+		SDL_SetRelativeMouseMode(SDL_FALSE);
+		break;
+	case MOUSEMODE_RELATIVE:
+		SDL_SetRelativeMouseMode(SDL_TRUE);
+		break;
+	default:
+		return;
+	}
+
+	MouseMode = mode;
+}
+
 Controller* InputManager::GetController(int index) {
 	if (index >= 0 && index < InputManager::NumControllers) {
 		return InputManager::Controllers[index];
@@ -845,6 +861,120 @@ bool InputManager::IsAnyActionReleased(unsigned playerID, unsigned device) {
 	InputPlayer& player = Players[playerID];
 
 	return player.IsAnyInputReleased(device);
+}
+bool InputManager::IsActionHeldByAny(unsigned actionID) {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsInputHeld(actionID)) {
+			return true;
+		}
+	}
+	return false;
+}
+bool InputManager::IsActionPressedByAny(unsigned actionID) {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsInputPressed(actionID)) {
+			return true;
+		}
+	}
+	return false;
+}
+bool InputManager::IsActionReleasedByAny(unsigned actionID) {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsInputReleased(actionID)) {
+			return true;
+		}
+	}
+	return false;
+}
+bool InputManager::IsActionHeldByAny(unsigned actionID, unsigned device) {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsInputHeld(actionID, device)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+bool InputManager::IsActionPressedByAny(unsigned actionID, unsigned device) {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsInputPressed(actionID, device)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+bool InputManager::IsActionReleasedByAny(unsigned actionID, unsigned device) {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsInputReleased(actionID, device)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+bool InputManager::IsAnyActionHeldByAny() {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsAnyInputHeld()) {
+			return true;
+		}
+	}
+	return false;
+}
+bool InputManager::IsAnyActionPressedByAny() {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsAnyInputPressed()) {
+			return true;
+		}
+	}
+	return false;
+}
+bool InputManager::IsAnyActionReleasedByAny() {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsAnyInputReleased()) {
+			return true;
+		}
+	}
+	return false;
+}
+bool InputManager::IsAnyActionHeldByAny(unsigned device) {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsAnyInputHeld(device)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+bool InputManager::IsAnyActionPressedByAny(unsigned device) {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsAnyInputPressed(device)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+bool InputManager::IsAnyActionReleasedByAny(unsigned device) {
+	for (unsigned playerID = 0; playerID < Players.size(); playerID++) {
+		InputPlayer& player = Players[playerID];
+		if (player.IsAnyInputReleased(device)) {
+			return true;
+		}
+	}
+
+	return false;
 }
 bool InputManager::IsPlayerUsingDevice(unsigned playerID, unsigned device) {
 	if (playerID >= Players.size() || device >= InputDevice_MAX) {

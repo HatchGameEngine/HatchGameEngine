@@ -6,6 +6,7 @@
 
 class PerformanceViewer {
 public:
+	static void DrawFramerate(Font* font);
 	static void DrawDetailed(Font* font);
 };
 

@@ -368,7 +368,7 @@ void WebSocketClient::Poll(int timeout) {
 		return;
 	}
 
-	socket_t socket = *((socket_t *)SocketPtr);
+	socket_t socket = *((socket_t*)SocketPtr);
 
 	if (readyState == WebSocketClient::CLOSED) {
 		if (timeout > 0) {

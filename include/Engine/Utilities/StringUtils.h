@@ -35,6 +35,7 @@ public:
 	static void ReplacePathSeparatorsInPlace(char* path);
 	static int DecodeUTF8Char(const char* chr, int& numChars);
 	static std::vector<Uint32> GetCodepoints(const char* text);
+	static std::string FromCodepoints(std::vector<Uint32> codepoints);
 };
 
 #endif /* ENGINE_UTILITIES_STRINGUTILS_H */
