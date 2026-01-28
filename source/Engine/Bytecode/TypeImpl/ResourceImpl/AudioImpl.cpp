@@ -3,6 +3,11 @@
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
+/***
+* \class Audio
+* \desc An audio Asset.
+*/
+
 ObjClass* AudioImpl::Class = nullptr;
 
 #define CLASS_AUDIO "Audio"
@@ -40,8 +45,8 @@ bool AudioImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 
 	/***
 	 * \field LoopPoint
-	 * \type Integer
-	 * \desc The loop point in samples, or <code>null</code> if it doesn't have one.
+	 * \type integer
+	 * \desc The loop point in samples, or `null` if it doesn't have one.
 	 * \ns Audio
  	*/
 	if (hash == Hash_LoopPoint) {

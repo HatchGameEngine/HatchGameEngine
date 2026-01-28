@@ -78,9 +78,9 @@ void ResourceImpl::Dispose(Obj* object) {
 /***
  * \constructor
  * \desc Loads a Resource by name.
- * \param filename (String): Filename of the resource.
- * \paramOpt unloadPolicy (Integer): The <linkto ref="SCOPE_*">unload policy</linkto> of the resource.
- * \paramOpt unique (Boolean): If <code>false</code> (the default), this constructor may return an already loaded Resource of the same type and filename. However, if <code>true</code>, this constructor will always return an unique Resource, and load a new Asset.
+ * \param filename (string): Filename of the resource.
+ * \paramOpt unloadPolicy (<ref SCOPE_*>): The unload policy of the resource.
+ * \paramOpt unique (boolean): If `false`, this constructor may return an already loaded Resource of the same type and filename. However, if `true`, this constructor will always return an unique Resource, and load a new Asset. (default: `false`)
  * \ns Resource
  */
 VMValue ResourceImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
@@ -110,8 +110,8 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 
 	/***
 	 * \field Type
-	 * \type Enum
-	 * \desc The <linkto ref="ASSET_*">asset type</linkto> of the Asset.
+	 * \type <ref ASSET_*>
+	 * \desc The type of the Asset.
 	 * \ns Resource
  	*/
 	if (hash == Hash_Type) {
@@ -119,7 +119,7 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	}
 	/***
 	 * \field Filename
-	 * \type String
+	 * \type string
 	 * \desc The filename of the Resource.
 	 * \ns Resource
  	*/
@@ -135,7 +135,7 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	}
 	/***
 	 * \field Loaded
-	 * \type Boolean
+	 * \type boolean
 	 * \desc Whether the Asset is loaded or not.
 	 * \ns Resource
  	*/
@@ -144,8 +144,8 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	}
 	/***
 	 * \field UnloadPolicy
-	 * \type Enum
-	 * \desc The <linkto ref="SCOPE_*">unload policy</linkto> of the Resource.
+	 * \type <ref SCOPE_*>
+	 * \desc The unload policy of the Resource.
 	 * \ns Resource
  	*/
 	else if (hash == Hash_UnloadPolicy) {
@@ -154,7 +154,7 @@ bool ResourceImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 	/***
 	 * \field Asset
 	 * \type Asset
-	 * \desc The Asset owned by this resource.
+	 * \desc The Asset owned by this Resource.
 	 * \ns Resource
  	*/
 	else if (hash == Hash_Asset) {
@@ -205,7 +205,7 @@ bool ResourceImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint3
 /***
  * \method IsUnique
  * \desc Returns whether the Resource is unique or not.
- * \return Returns a Boolean value.
+ * \return boolean Returns a boolean value.
  * \ns Resource
  */
 VMValue ResourceImpl::VM_IsUnique(int argCount, VMValue* args, Uint32 threadID) {
@@ -239,8 +239,8 @@ VMValue ResourceImpl::VM_MakeUnique(int argCount, VMValue* args, Uint32 threadID
 
 /***
  * \method Reload
- * \desc Reloads the Asset owned by this Resource. Returns <code>true</code> if it was reloaded successfully, and <code>false</code> if otherwise.
- * \return Returns a Boolean value.
+ * \desc Reloads the Asset owned by this Resource.
+ * \return boolean Returns `true` if it was reloaded successfully, and `false` if otherwise.
  * \ns Resource
  */
 VMValue ResourceImpl::VM_Reload(int argCount, VMValue* args, Uint32 threadID) {

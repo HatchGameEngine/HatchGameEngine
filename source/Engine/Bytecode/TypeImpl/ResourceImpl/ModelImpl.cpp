@@ -5,6 +5,11 @@
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/ModelImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
+/***
+* \class Model
+* \desc A model Asset.
+*/
+
 ObjClass* ModelImpl::Class = nullptr;
 
 #define CLASS_MODEL "Model"
@@ -56,7 +61,7 @@ bool ModelImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 
 	/***
 	 * \field VertexCount
-	 * \type Integer
+	 * \type integer
 	 * \desc The amount of vertices in the model.
 	 * \ns Model
  	*/
@@ -65,7 +70,7 @@ bool ModelImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 	}
 	/***
 	 * \field AnimationCount
-	 * \type Integer
+	 * \type integer
 	 * \desc The amount of animations in the model.
 	 * \ns Model
  	*/
@@ -74,7 +79,7 @@ bool ModelImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 	}
 	/***
 	 * \field MaterialCount
-	 * \type Integer
+	 * \type integer
 	 * \desc The amount of materials in the model.
 	 * \ns Model
  	*/
@@ -83,7 +88,7 @@ bool ModelImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 	}
 	/***
 	 * \field BoneCount
-	 * \type Integer
+	 * \type integer
 	 * \desc The amount of bones in the model.
 	 * \ns Model
  	*/
@@ -140,8 +145,8 @@ bool ModelImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 t
 /***
  * \method GetAnimationName
  * \desc Gets the name of the specified animation index.
- * \param animationIndex (Integer): The animation index.
- * \return Returns the animation name, or <code>null</code> if the model contains no animations.
+ * \param animationIndex (integer): The animation index.
+ * \return string Returns the animation name, or `null` if the model contains no animations.
  * \ns Model
  */
 VMValue ModelImpl_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
@@ -170,8 +175,8 @@ VMValue ModelImpl_GetAnimationName(int argCount, VMValue* args, Uint32 threadID)
 /***
  * \method GetAnimationIndex
  * \desc Gets the first animation in the model which matches the specified name.
- * \param name (String): The animation name to search for.
- * \return Returns the first animation index with the specified name, or <code>null</code> if there was no match.
+ * \param name (string): The animation name to search for.
+ * \return integer Returns the first animation index with the specified name, or `null` if there was no match.
  * \ns Model
  */
 VMValue ModelImpl_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -192,8 +197,8 @@ VMValue ModelImpl_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID
 /***
  * \method GetAnimationLength
  * \desc Gets the length of the specified animation index.
- * \param animationIndex (Integer): The animation index.
- * \return Returns the number of keyframes in the animation.
+ * \param animationIndex (integer): The animation index.
+ * \return integer Returns the number of keyframes in the animation.
  * \ns Model
  */
 VMValue ModelImpl_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
@@ -257,8 +262,7 @@ VMValue ModelImpl_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method CreateArmature
  * \desc Creates an armature from the model.
- * \param model (Asset): A model asset.
- * \return Returns the index of the armature.
+ * \return integer Returns the index of the armature.
  * \ns Model
  */
 VMValue ModelImpl_CreateArmature(int argCount, VMValue* args, Uint32 threadID) {
@@ -272,9 +276,9 @@ VMValue ModelImpl_CreateArmature(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method PoseArmature
  * \desc Poses an armature.
- * \param armature (Integer): The armature index to pose.
- * \paramOpt animation (Integer): Animation to pose the armature.
- * \paramOpt frame (Decimal): Frame to pose the armature.
+ * \param armature (integer): The armature index to pose.
+ * \paramOpt animation (integer): Animation to pose the armature.
+ * \paramOpt frame (decimal): Frame to pose the armature.
  * \ns Model
  */
 VMValue ModelImpl_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
@@ -307,7 +311,7 @@ VMValue ModelImpl_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method ResetArmature
  * \desc Resets an armature to its default pose.
- * \param armature (Integer): The armature index to reset.
+ * \param armature (integer): The armature index to reset.
  * \ns Model
  */
 VMValue ModelImpl_ResetArmature(int argCount, VMValue* args, Uint32 threadID) {
@@ -326,7 +330,7 @@ VMValue ModelImpl_ResetArmature(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method DeleteArmature
  * \desc Deletes an armature from the model.
- * \param armature (Integer): The armature index to delete.
+ * \param armature (integer): The armature index to delete.
  * \ns Model
  */
 VMValue ModelImpl_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {

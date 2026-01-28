@@ -3,6 +3,11 @@
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
+/***
+* \class Image
+* \desc An image Asset.
+*/
+
 ObjClass* ImageImpl::Class = nullptr;
 
 #define CLASS_IMAGE "Image"
@@ -43,7 +48,7 @@ bool ImageImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 
 	/***
 	 * \field Width
-	 * \type Integer
+	 * \type integer
 	 * \desc The width of the image.
 	 * \ns Image
  	*/
@@ -52,7 +57,7 @@ bool ImageImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32
 	}
 	/***
 	 * \field Height
-	 * \type Integer
+	 * \type integer
 	 * \desc The height of the image.
 	 * \ns Image
  	*/

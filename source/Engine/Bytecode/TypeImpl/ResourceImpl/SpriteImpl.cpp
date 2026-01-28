@@ -5,6 +5,11 @@
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 
+/***
+* \class Sprite
+* \desc A sprite Asset.
+*/
+
 ObjClass* SpriteImpl::Class = nullptr;
 
 #define CLASS_SPRITE "Sprite"
@@ -50,7 +55,7 @@ bool SpriteImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 
 	/***
 	 * \field AnimationCount
-	 * \type Integer
+	 * \type integer
 	 * \desc The amount of animations in the sprite.
 	 * \ns Sprite
  	*/
@@ -59,7 +64,7 @@ bool SpriteImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 	}
 	/***
 	 * \field SheetCount
-	 * \type Integer
+	 * \type integer
 	 * \desc The amount of spritesheets in the sprite.
 	 * \ns Sprite
  	*/
@@ -119,8 +124,8 @@ bool SpriteImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 /***
  * \method GetAnimationName
  * \desc Gets the name of the specified animation index.
- * \param animationIndex (Integer): The animation index.
- * \return Returns the name of the specified animation index.
+ * \param animationIndex (integer): The animation index.
+ * \return string Returns the name of the specified animation index.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
@@ -143,8 +148,8 @@ VMValue SpriteImpl_GetAnimationName(int argCount, VMValue* args, Uint32 threadID
 /***
  * \method GetAnimationIndex
  * \desc Gets the first animation in the sprite which matches the specified name.
- * \param name (String): The animation name to search for.
- * \return Returns the first animation index with the specified name, or <code>null</code> if there was no match.
+ * \param name (string): The animation name to search for.
+ * \return integer Returns the first animation index with the specified name, or `null` if there was no match.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
@@ -166,8 +171,8 @@ VMValue SpriteImpl_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadI
 /***
  * \method GetAnimationSpeed
  * \desc Gets the speed of the specified animation index.
- * \param animationIndex (Integer): The animation index.
- * \return Returns the speed of the specified animation index.
+ * \param animationIndex (integer): The animation index.
+ * \return integer Returns the speed of the specified animation index.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -184,8 +189,8 @@ VMValue SpriteImpl_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadI
 /***
  * \method GetAnimationLoopFrame
  * \desc Gets the loop frame of the specified animation index.
- * \param animationIndex (Integer): The animation index.
- * \return Returns the loop frame of the specified animation index.
+ * \param animationIndex (integer): The animation index.
+ * \return integer Returns the loop frame of the specified animation index.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetAnimationLoopFrame(int argCount, VMValue* args, Uint32 threadID) {
@@ -202,8 +207,8 @@ VMValue SpriteImpl_GetAnimationLoopFrame(int argCount, VMValue* args, Uint32 thr
 /***
  * \method GetAnimationFrameCount
  * \desc Gets the amount of frames in the specified animation.
- * \param animation (Integer): The animation index to check.
- * \return Returns the frame count of the specified animation.
+ * \param animation (integer): The animation index to check.
+ * \return integer Returns the frame count of the specified animation.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetAnimationFrameCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -231,9 +236,9 @@ VMValue SpriteImpl_GetAnimationFrameCount(int argCount, VMValue* args, Uint32 th
 /***
  * \method GetFrameX
  * \desc Gets the X position in the spritesheet of the specified animation frame.
- * \param animation (Integer): The animation index to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the X position (in pixels) of the specified animation frame.
+ * \param animation (integer): The animation index to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the X position (in pixels) of the specified animation frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetFrameX(int argCount, VMValue* args, Uint32 threadID) {
@@ -242,9 +247,9 @@ VMValue SpriteImpl_GetFrameX(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method GetFrameY
  * \desc Gets the Y position in the spritesheet of the specified animation frame.
- * \param animation (Integer): The animation index to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the Y position (in pixels) of the specified animation frame.
+ * \param animation (integer): The animation index to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the Y position (in pixels) of the specified animation frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetFrameY(int argCount, VMValue* args, Uint32 threadID) {
@@ -253,8 +258,8 @@ VMValue SpriteImpl_GetFrameY(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method GetFrameWidth
  * \desc Gets the width of the specified animation frame.
- * \param animation (Integer): The animation index to check.
- * \param frame (Integer): The frame index of the animation to check.
+ * \param animation (integer): The animation index to check.
+ * \param frame (integer): The frame index of the animation to check.
  * \return Returns the width (in pixels) of the specified animation frame.
  * \ns Sprite
  */
@@ -264,9 +269,9 @@ VMValue SpriteImpl_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method GetFrameHeight
  * \desc Gets the height of the specified animation frame.
- * \param animation (Integer): The animation index to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the height (in pixels) of the specified animation frame.
+ * \param animation (integer): The animation index to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the height (in pixels) of the specified animation frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -275,9 +280,9 @@ VMValue SpriteImpl_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * \method GetFrameOffsetX
  * \desc Gets the X offset of the specified animation frame.
- * \param animation (Integer): The animation index to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the X offset of the specified animation frame.
+ * \param animation (integer): The animation index to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the X offset of the specified animation frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
@@ -286,9 +291,9 @@ VMValue SpriteImpl_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID)
 /***
  * \method GetFrameOffsetY
  * \desc Gets the Y offset of the specified animation frame.
- * \param animation (Integer): The animation index to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the Y offset of the specified animation frame.
+ * \param animation (integer): The animation index to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the Y offset of the specified animation frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
@@ -297,9 +302,9 @@ VMValue SpriteImpl_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID)
 /***
  * \method GetFrameDuration
  * \desc Gets the duration of the specified animation frame.
- * \param animation (Integer): The animation index to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the duration (in game frames) of the specified animation frame.
+ * \param animation (integer): The animation index to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the duration (in game frames) of the specified animation frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
@@ -308,9 +313,9 @@ VMValue SpriteImpl_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID
 /***
  * \method GetFrameID
  * \desc Gets the ID of the specified animation frame.
- * \param animation (Integer): The animation index to check.
- * \param frame (Integer): The frame index of the animation to check.
- * \return Returns the ID of the specified animation frame.
+ * \param animation (integer): The animation index to check.
+ * \param frame (integer): The frame index of the animation to check.
+ * \return integer Returns the ID of the specified animation frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
@@ -322,9 +327,9 @@ VMValue SpriteImpl_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method IsFrameValid
  * \desc Checks if an animation and frame is valid within a sprite.
- * \param animation (Integer): The animation index to check.
- * \param frame (Integer): The frame index to check.
- * \return Returns a Boolean value.
+ * \param animation (integer): The animation index to check.
+ * \param frame (integer): The frame index to check.
+ * \return boolean Returns whether the animation and frame indexes are valid.
  * \ns Sprite
  */
 VMValue SpriteImpl_IsFrameValid(int argCount, VMValue* args, Uint32 threadID) {
@@ -350,8 +355,8 @@ VMValue SpriteImpl_IsFrameValid(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method GetSheetFilename
  * \desc Gets the filename of the specified spritesheet, if it has a filename.
- * \param sheetID (Integer): The spritesheet index.
- * \return Returns the filename of the specified spritesheet, or <code>null</code> if the given spritesheet is not named.
+ * \param sheetID (integer): The spritesheet index.
+ * \return string Returns the filename of the specified spritesheet, or `null` if the given spritesheet is not named.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetSheetFilename(int argCount, VMValue* args, Uint32 threadID) {
@@ -375,8 +380,8 @@ VMValue SpriteImpl_GetSheetFilename(int argCount, VMValue* args, Uint32 threadID
 /***
  * \method GetSheetImage
  * \desc Gets the specified spritesheet as an image. This returns a copy of the spritesheet texture.
- * \param sheetID (Integer): The spritesheet index.
- * \return Returns an Image.
+ * \param sheetID (integer): The spritesheet index.
+ * \return <ref Image> Returns an Image.
  * \ns Sprite
  */
 VMValue SpriteImpl_GetSheetImage(int argCount, VMValue* args, Uint32 threadID) {
@@ -401,8 +406,8 @@ VMValue SpriteImpl_GetSheetImage(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method SetAnimationName
  * \desc Sets the name of the specified animation index.
- * \param animationIndex (Integer): The animation index.
- * \param name (String): The name to assign to the animation.
+ * \param animationIndex (integer): The animation index.
+ * \param name (string): The name to assign to the animation.
  * \ns Sprite
  */
 VMValue SpriteImpl_SetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
@@ -424,8 +429,8 @@ VMValue SpriteImpl_SetAnimationName(int argCount, VMValue* args, Uint32 threadID
 /***
  * \method SetAnimationSpeed
  * \desc Sets the speed of the specified animation index.
- * \param animationIndex (Integer): The animation index.
- * \param speed (Integer): The speed to assign to the animation.
+ * \param animationIndex (integer): The animation index.
+ * \param speed (integer): The speed to assign to the animation.
  * \ns Sprite
  */
 VMValue SpriteImpl_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
@@ -449,8 +454,8 @@ VMValue SpriteImpl_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadI
 /***
  * \method SetAnimationLoopFrame
  * \desc Sets the loop frame of the specified animation index.
- * \param animationIndex (Integer): The animation index.
- * \param loopFrame (Integer): The loop frame to assign to the animation.
+ * \param animationIndex (integer): The animation index.
+ * \param loopFrame (integer): The loop frame to assign to the animation.
  * \ns Sprite
  */
 VMValue SpriteImpl_SetAnimationLoopFrame(int argCount, VMValue* args, Uint32 threadID) {
@@ -482,10 +487,10 @@ VMValue SpriteImpl_SetAnimationLoopFrame(int argCount, VMValue* args, Uint32 thr
 /***
  * \method SetFramePosition
  * \desc Changes the X and Y positions of the specified animation frame.
- * \param animation (Integer): The animation index.
- * \param frame (Integer): The frame index of the animation.
- * \param x (Integer): The new X position of the frame.
- * \param y (Integer): The new Y position of the frame.
+ * \param animation (integer): The animation index.
+ * \param frame (integer): The frame index of the animation.
+ * \param x (integer): The new X position of the frame.
+ * \param y (integer): The new Y position of the frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_SetFramePosition(int argCount, VMValue* args, Uint32 threadID) {
@@ -524,10 +529,10 @@ VMValue SpriteImpl_SetFramePosition(int argCount, VMValue* args, Uint32 threadID
 /***
  * \method SetFrameSize
  * \desc Changes the width and height of the specified animation frame.
- * \param animation (Integer): The animation index.
- * \param frame (Integer): The frame index of the animation.
- * \param width (Integer): The new width of the frame.
- * \param height (Integer): The new height of the frame.
+ * \param animation (integer): The animation index.
+ * \param frame (integer): The frame index of the animation.
+ * \param width (integer): The new width of the frame.
+ * \param height (integer): The new height of the frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_SetFrameSize(int argCount, VMValue* args, Uint32 threadID) {
@@ -566,10 +571,10 @@ VMValue SpriteImpl_SetFrameSize(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method SetFrameOffset
  * \desc Changes the X and Y offsets of the specified animation frame.
- * \param animation (Integer): The animation index.
- * \param frame (Integer): The frame index of the animation.
- * \param offsetX (Integer): The new X offset of the frame.
- * \param offsetY (Integer): The new Y offset of the frame.
+ * \param animation (integer): The animation index.
+ * \param frame (integer): The frame index of the animation.
+ * \param offsetX (integer): The new X offset of the frame.
+ * \param offsetY (integer): The new Y offset of the frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_SetFrameOffset(int argCount, VMValue* args, Uint32 threadID) {
@@ -596,9 +601,9 @@ VMValue SpriteImpl_SetFrameOffset(int argCount, VMValue* args, Uint32 threadID) 
 /***
  * \method SetFrameDuration
  * \desc Changes the duration of the specified animation frame.
- * \param animation (Integer): The animation index.
- * \param frame (Integer): The frame index of the animation.
- * \param duration (Integer): The new duration of the frame.
+ * \param animation (integer): The animation index.
+ * \param frame (integer): The frame index of the animation.
+ * \param duration (integer): The new duration of the frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_SetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
@@ -625,9 +630,9 @@ VMValue SpriteImpl_SetFrameDuration(int argCount, VMValue* args, Uint32 threadID
 /***
  * \method SetFrameID
  * \desc Changes the ID of the specified animation frame.
- * \param animation (Integer): The animation index.
- * \param frame (Integer): The frame index of the animation.
- * \param id (Integer): The new ID of the frame.
+ * \param animation (integer): The animation index.
+ * \param frame (integer): The frame index of the animation.
+ * \param id (integer): The new ID of the frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_SetFrameID(int argCount, VMValue* args, Uint32 threadID) {
@@ -651,8 +656,8 @@ VMValue SpriteImpl_SetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method AddAnimation
  * \desc Adds an animation.
- * \param name (String): The name to give to the animation.
- * \return Returns the index of the new animation.
+ * \param name (string): The name to give to the animation.
+ * \return integer Returns the index of the new animation.
  * \ns Sprite
  */
 VMValue SpriteImpl_AddAnimation(int argCount, VMValue* args, Uint32 threadID) {
@@ -675,7 +680,7 @@ VMValue SpriteImpl_AddAnimation(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method RemoveAnimation
  * \desc Removes an animation.
- * \param animation (Integer): The index of the animation to remove.
+ * \param animation (integer): The index of the animation to remove.
  * \ns Sprite
  */
 VMValue SpriteImpl_RemoveAnimation(int argCount, VMValue* args, Uint32 threadID) {
@@ -696,12 +701,12 @@ VMValue SpriteImpl_RemoveAnimation(int argCount, VMValue* args, Uint32 threadID)
 /***
  * \method AddFrame
  * \desc Adds a frame to an animation.
- * \param animation (Integer): The animation index to add the frame into.
- * \param x (Integer): X position of the frame in the spritesheet.
- * \param y (Integer): Y position of the frame in the spritesheet.
- * \param width (Integer): Width of the frame.
- * \param height (Integer): Height position of the frame.
- * \return Returns the index of the new frame.
+ * \param animation (integer): The animation index to add the frame into.
+ * \param x (integer): X position of the frame in the spritesheet.
+ * \param y (integer): Y position of the frame in the spritesheet.
+ * \param width (integer): Width of the frame.
+ * \param height (integer): Height position of the frame.
+ * \return integer Returns the index of the new frame.
  * \ns Sprite
  */
 VMValue SpriteImpl_AddFrame(int argCount, VMValue* args, Uint32 threadID) {
@@ -775,8 +780,8 @@ VMValue SpriteImpl_AddFrame(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method RemoveFrame
  * \desc Removes a frame from an animation.
- * \param animation (Integer): The index of the animation.
- * \param frame (Integer): The frame index of the animation to remove.
+ * \param animation (integer): The index of the animation.
+ * \param frame (integer): The frame index of the animation to remove.
  * \ns Sprite
  */
 VMValue SpriteImpl_RemoveFrame(int argCount, VMValue* args, Uint32 threadID) {
@@ -1069,7 +1074,7 @@ VMValue SpriteImpl_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method MakePalettized
  * \desc Converts the sprite's colors to the ones in the specified palette index.
- * \param paletteIndex (Integer): The palette index.
+ * \param paletteIndex (integer): The palette index.
  * \ns Sprite
  */
 VMValue SpriteImpl_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {

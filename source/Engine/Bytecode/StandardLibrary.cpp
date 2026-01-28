@@ -927,7 +927,7 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.GetSprite
  * \desc Gets the sprite of an animator.
  * \param animator (integer): The index of the animator.
- * \return Sprite Returns a Sprite.
+ * \return <ref Sprite> Returns a Sprite.
  * \ns Animator
  */
 VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -1131,7 +1131,7 @@ VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
  * Animator.SetSprite
  * \desc Sets the sprite of an animator.
  * \param animator (integer): The animator index to change.
- * \param sprite (Sprite): The sprite to use, or <code>null</code>.
+ * \param sprite (Sprite): The sprite to use, or `null`.
  * \ns Animator
  */
 VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -15989,7 +15989,7 @@ VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * Sound.SetLoopPoint
  * \desc Sets the loop point of an audio.
  * \param sound (Audio): The audio to set the loop point of.
- * \param loopPoint (integer): The loop point in samples, or <code>null</code> to remove the audio's loop point.
+ * \param loopPoint (integer): The loop point in samples, or `null` to remove the audio's loop point.
  * \deprecated Use <ref Audio.LoopPoint> instead.
  * \ns Sound
  */
@@ -17321,7 +17321,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
  * TileInfo.SetSpriteInfo
  * \desc Sets the sprite, animation, and frame to use for specified tile.
  * \param tileID (integer): ID of tile to check.
- * \param sprite (Sprite): The sprite to use. (<code>null</code> for default tile sprite)
+ * \param sprite (Sprite): The sprite to use. (`null` for default tile sprite)
  * \param animationIndex (integer): Animation index.
  * \param frameIndex (integer): Frame index. (`-1` for default tile frame)
  * \ns TileInfo
@@ -19304,10 +19304,6 @@ They require the Game SDK library to be present.
 	// #endregion
 
 	// #region Audio
-	/***
-    * \class Audio
-    * \desc Functions for manipulating the application's audio.
-    */
 	GET_CLASS(Audio);
 	DEF_NATIVE(Audio, GetMasterVolume);
 	DEF_NATIVE(Audio, GetMusicVolume);
@@ -20342,10 +20338,6 @@ See https://easings.net/ for more details.
 	// #endregion
 
 	// #region Image
-	/***
-    * \class Image
-    * \desc Functions to retrieve information about images.
-    */
 	// Only contains deprecated methods.
 	GET_CLASS(Image);
 	DEF_NATIVE(Image, GetWidth);
@@ -20594,10 +20586,6 @@ This class also houses the input action system.
 	// #endregion
 
 	// #region Model
-	/***
-    * \class Model
-    * \desc Functions to manipulate and retrieve information about 3D models.
-    */
 	// Only contains deprecated methods.
 	GET_CLASS(Model);
 	DEF_NATIVE(Model, GetVertexCount);
@@ -21134,10 +21122,6 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #endregion
 
 	// #region Sprite
-	/***
-    * \class Sprite
-    * \desc Functions to retrieve information about sprites.
-    */
     // Only contains deprecated methods.
 	GET_CLASS(Sprite);
 	DEF_NATIVE(Sprite, GetAnimationCount);
