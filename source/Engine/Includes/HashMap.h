@@ -1,7 +1,6 @@
 #ifndef HASHMAP_H
 #define HASHMAP_H
 
-#include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/Murmur.h>
 #include <Engine/Includes/Standard.h>
 #include <functional>
@@ -108,30 +107,19 @@ public:
 		}
 	}
 
-	Uint8* GetBytes(bool exportHashes) {
-		Uint32 stride = ((exportHashes ? 4 : 0) + sizeof(T));
-		Uint8* bytes = (Uint8*)Memory::TrackedMalloc("HashMap::GetBytes", Count() * stride);
-		if (exportHashes) {
-			size_t index = 0;
-			for (auto const& it : Data) {
-				*(Uint32*)(bytes + index * stride) = it.first;
-				*(T*)(bytes + index * stride + 4) = it.second;
-				index++;
-			}
+	void GetBytes(Uint8* bytes) {
+		size_t stride = sizeof(Uint32) + sizeof(T);
+		size_t index = 0;
+		for (auto const& it : Data) {
+			*(Uint32*)(bytes + index * stride) = it.first;
+			*(T*)(bytes + index * stride + sizeof(Uint32)) = it.second;
+			index++;
 		}
-		else {
-			size_t index = 0;
-			for (auto const& it : Data) {
-				*(T*)(bytes + index * stride) = it.second;
-				index++;
-			}
-		}
-		return bytes;
 	}
 	void FromBytes(Uint8* bytes, int count) {
-		Uint32 stride = (4 + sizeof(T));
+		size_t stride = sizeof(Uint32) + sizeof(T);
 		for (int i = 0; i < count; i++) {
-			Put(*(Uint32*)(bytes + i * stride), *(T*)(bytes + i * stride + 4));
+			Put(*(Uint32*)(bytes + i * stride), *(T*)(bytes + i * stride + sizeof(Uint32)));
 		}
 	}
 

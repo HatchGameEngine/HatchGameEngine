@@ -76,9 +76,14 @@ void SourceFileMap::CheckInit() {
 	if (File::ProtectedExists(SOURCEFILEMAP_NAME, true)) {
 		char* bytes;
 		size_t len = File::ReadAllBytes(SOURCEFILEMAP_NAME, &bytes, true);
-		SourceFileMap::Checksums->FromBytes(
-			(Uint8*)bytes, (len - 4) / (sizeof(Uint32) + sizeof(Uint32)));
-		SourceFileMap::DirectoryChecksum = *(Uint32*)(bytes + len - 4);
+		if (len >= sizeof(Uint32) * 3) {
+			SourceFileMap::Checksums->FromBytes(
+				(Uint8*)bytes, (len - sizeof(Uint32)) / (sizeof(Uint32) + sizeof(Uint32)));
+			SourceFileMap::DirectoryChecksum = *(Uint32*)(bytes + len - sizeof(Uint32));
+		}
+		else {
+			SourceFileMap::DirectoryChecksum = 0;
+		}
 		Memory::Free(bytes);
 	}
 #endif
@@ -242,13 +247,15 @@ bool SourceFileMap::CheckForUpdate() {
 		Stream* stream =
 			FileStream::New(SOURCEFILEMAP_NAME, FileStream::WRITE_ACCESS, true);
 		if (stream) {
-			Uint8* data = SourceFileMap::Checksums->GetBytes(true);
-			stream->WriteBytes(data,
-				SourceFileMap::Checksums->Count() *
-					(sizeof(Uint32) + sizeof(Uint32)));
-			Memory::Free(data);
+			size_t size = SourceFileMap::Checksums->Count() * (sizeof(Uint32) + sizeof(Uint32));
+			Uint8* data = (Uint8*)Memory::Malloc(size);
+			if (data) {
+				SourceFileMap::Checksums->GetBytes(data);
+				stream->WriteBytes(data, size);
+				Memory::Free(data);
 
-			stream->WriteUInt32(SourceFileMap::DirectoryChecksum);
+				stream->WriteUInt32(SourceFileMap::DirectoryChecksum);
+			}
 
 			stream->Close();
 		}
