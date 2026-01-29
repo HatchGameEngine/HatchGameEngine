@@ -829,8 +829,8 @@ bool ScriptEntity::RunCreateFunction(VMValue flag) {
 	return false;
 }
 bool ScriptEntity::RunInitializer() {
-	if (!HasInitializer(Instance->Object.Class)) {
-		return true;
+	if (!Instance || !HasInitializer(Instance->Object.Class)) {
+		return false;
 	}
 
 	VMThread* thread = ScriptManager::Threads + 0;
@@ -928,10 +928,6 @@ void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 
 // Events called from C++
 void ScriptEntity::Initialize() {
-	if (!Instance) {
-		return;
-	}
-
 	Entity::Initialize();
 
 	RunInitializer();

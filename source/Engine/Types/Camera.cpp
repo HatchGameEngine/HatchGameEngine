@@ -55,10 +55,18 @@ Entity* Camera::Spawn() {
 	REGISTER_ENTITY_GETTER(Camera, camera);
 	REGISTER_ENTITY_SETTER(Camera, camera);
 
-	camera->Target = nullptr;
-	camera->ViewIndex = 0;
-
 	return (Entity*)camera;
+}
+
+void Camera::Initialize() {
+	Entity::Initialize();
+
+	Target = nullptr;
+	ViewIndex = 0;
+
+#ifdef SCRIPTABLE_ENTITY
+	RunInitializer();
+#endif
 }
 
 void Camera::MoveToTarget() {

@@ -9350,10 +9350,8 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjEntity* instance = obj->Instance;
 
-	// Call the initializer, if there is one.
-	if (HasInitializer(instance->Object.Class)) {
-		obj->Initialize();
-	}
+	// Call the initializer
+	obj->Initialize();
 
 	// Add it to the scene
 	Scene::AddDynamic(obj->List, obj);
