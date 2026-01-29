@@ -31,11 +31,20 @@ DECLARE_ENTITY_FIELD(Camera, Target);
 * \desc The view that the camera operates on.
 */
 DECLARE_ENTITY_FIELD(Camera, ViewIndex);
+/***
+* \field UseBounds
+* \type boolean
+* \default true
+* \ns Camera
+* \desc Whether to restrict the camera to the bounds of the scene.
+*/
+DECLARE_ENTITY_FIELD(Camera, UseBounds);
 
 void Camera::ClassLoad() {
 	REGISTER_ENTITY(Camera);
 	REGISTER_ENTITY_FIELD(Camera, Target);
 	REGISTER_ENTITY_FIELD(Camera, ViewIndex);
+	REGISTER_ENTITY_FIELD(Camera, UseBounds);
 }
 void Camera::ClassUnload() {
 	UNREGISTER_ENTITY(Camera);
@@ -63,6 +72,18 @@ void Camera::Initialize() {
 
 	Target = nullptr;
 	ViewIndex = 0;
+	UseBounds = true;
+
+	// TODO: Add getters and setters for the following
+	MinX = 0.0;
+	MinY = 0.0;
+	MaxX = 0.0;
+	MaxY = 0.0;
+
+	if (Scene::Layers.size() > 0) {
+		MaxX = Scene::Layers[0].Width * Scene::TileWidth;
+		MaxY = Scene::Layers[0].Height * Scene::TileHeight;
+	}
 
 #ifdef SCRIPTABLE_ENTITY
 	RunInitializer();
@@ -80,9 +101,9 @@ void Camera::MoveToTarget() {
 	float x = Target->X - (viewWidth / 2.0);
 	float y = Target->Y - (viewHeight / 2.0);
 
-	if (Scene::Layers.size() > 0) {
-		x = Math::Clamp(x, 0.0, (Scene::Layers[0].Width * Scene::TileWidth) - viewWidth);
-		y = Math::Clamp(y, 0.0, (Scene::Layers[0].Height * Scene::TileHeight) - viewHeight);
+	if (UseBounds) {
+		x = Math::Clamp(x, MinX, MaxX - viewWidth);
+		y = Math::Clamp(y, MinY, MaxY - viewHeight);
 	}
 
 	Scene::Views[ViewIndex].X = x;
@@ -160,11 +181,23 @@ void Camera_FieldSet_ViewIndex(Camera* camera, VMValue value, Uint32 threadID) {
 	}
 }
 
+VMValue Camera_FieldGet_UseBounds(Camera* camera, Uint32 threadID) {
+	return INTEGER_VAL(camera->UseBounds);
+}
+void Camera_FieldSet_UseBounds(Camera* camera, VMValue value, Uint32 threadID) {
+	if (!ScriptManager::DoIntegerConversion(value, threadID)) {
+		return;
+	}
+
+	camera->UseBounds = AS_INTEGER(value) ? true : false;
+}
+
 bool Camera_VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
 	Camera* entity = (Camera*)((ObjEntity*)object)->EntityPtr;
 
 	ENTITY_GET_FIELD(Camera, Target);
 	ENTITY_GET_FIELD(Camera, ViewIndex);
+	ENTITY_GET_FIELD(Camera, UseBounds);
 
 	return EntityImpl::VM_PropertyGet(object, hash, result, threadID);
 }
@@ -173,6 +206,7 @@ bool Camera_VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threa
 
 	ENTITY_SET_FIELD(Camera, Target);
 	ENTITY_SET_FIELD(Camera, ViewIndex);
+	ENTITY_SET_FIELD(Camera, UseBounds);
 
 	return EntityImpl::VM_PropertySet(object, hash, value, threadID);
 }

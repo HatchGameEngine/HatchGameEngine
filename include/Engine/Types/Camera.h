@@ -12,6 +12,11 @@ public:
 
 	Entity* Target;
 	int ViewIndex;
+	bool UseBounds;
+	float MinX;
+	float MinY;
+	float MaxX;
+	float MaxY;
 
 	void Initialize();
 	void MoveToTarget();
