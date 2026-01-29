@@ -42,9 +42,9 @@ SceneLayer::SceneLayer(int w, int h) {
 bool SceneLayer::PropertyExists(char* property) {
 	return Properties && Properties->Exists(property);
 }
-VMValue SceneLayer::PropertyGet(char* property) {
+Property SceneLayer::PropertyGet(char* property) {
 	if (!PropertyExists(property)) {
-		return NULL_VAL;
+		return Property::MakeNull();
 	}
 	return Properties->Get(property);
 }
@@ -53,6 +53,9 @@ void SceneLayer::Dispose() {
 		Memory::Free(Name);
 	}
 	if (Properties) {
+		Properties->ForAll([](Uint32, Property property) -> void {
+			Property::Delete(property);
+		});
 		delete Properties;
 	}
 	if (ScrollInfos) {

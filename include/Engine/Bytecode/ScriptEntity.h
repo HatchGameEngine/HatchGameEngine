@@ -25,7 +25,7 @@
 	ENTITY_FIELD(Dispose)
 
 class ScriptEntity : public Entity {
-private:
+protected:
 	bool GetCallableValue(Uint32 hash, VMValue& value);
 
 	static Uint32 FixedUpdateEarlyHash;
@@ -33,13 +33,19 @@ private:
 	static Uint32 FixedUpdateLateHash;
 
 public:
-	static bool DisableAutoAnimate;
+#define ENTITY_FIELD(name) static Uint32 Hash_##name;
+	ENTITY_FIELDS_LIST
+#undef ENTITY_FIELD
+
 	ObjEntity* Instance = NULL;
-	HashMap<VMValue>* Properties;
+
+	static Entity* Spawn();
+	static Entity* SpawnNamed(const char* objectName);
+	static bool SpawnForClass(ScriptEntity* entity, const char* objectName);
 
 	static void Init();
 	void Link(ObjEntity* entity);
-	void LinkFields();
+	virtual void LinkFields();
 	void AddEntityClassMethods();
 	static void SetUseFixedTimestep(bool useFixedTimestep);
 	bool RunFunction(Uint32 hash);

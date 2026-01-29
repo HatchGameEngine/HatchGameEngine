@@ -16,6 +16,7 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
+#include <Engine/Utilities/StringUtils.h>
 
 #define ALLOCATE_OBJ(type, objectType) (type*)AllocateObject(sizeof(type), objectType)
 #define ALLOCATE(type, size) (type*)Memory::TrackedMalloc(#type, sizeof(type) * size)
@@ -58,17 +59,15 @@ ObjString* CopyString(const char* chars, size_t length) {
 ObjString* CopyString(const char* chars) {
 	return CopyString(chars, strlen(chars));
 }
+ObjString* CopyString(std::string string) {
+	return CopyString(string.c_str());
+}
 ObjString* CopyString(ObjString* string) {
 	char* heapChars = ALLOCATE(char, string->Length + 1);
 	memcpy(heapChars, string->Chars, string->Length);
 	heapChars[string->Length] = '\0';
 
 	return AllocateString(heapChars, string->Length, string->Hash);
-}
-ObjString* CopyString(std::filesystem::path path) {
-	std::string asStr = Path::ToString(path);
-	const char* cStr = asStr.c_str();
-	return CopyString(cStr);
 }
 ObjString* AllocString(size_t length) {
 	char* heapChars = ALLOCATE(char, length + 1);

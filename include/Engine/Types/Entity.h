@@ -1,15 +1,63 @@
 #ifndef ENGINE_TYPES_ENTITY_H
 #define ENGINE_TYPES_ENTITY_H
+class Entity;
 class ObjectList;
 
-#include <Engine/Application.h>
-#include <Engine/Graphics.h>
+#define SCRIPTABLE_ENTITY
+
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/Enums.h>
 #include <Engine/ResourceTypes/ISprite.h>
-#include <Engine/Scene.h>
+#include <Engine/Scene/SceneEnums.h>
 #include <Engine/Types/EntityTypes.h>
+#include <Engine/Types/Property.h>
+
+#ifdef SCRIPTABLE_ENTITY
+#define ENTITY_PARENT_CLASS ScriptEntity
+#else
+#define ENTITY_PARENT_CLASS Entity
+#endif
+
+typedef Entity* (*EntitySpawnFunction)();
+typedef Entity* (*NamedEntitySpawnFunction)(const char*);
+
+#define ENTITY_INIT(name) name::ClassLoad()
+#define ENTITY_DEINIT(name) name::ClassUnload()
+
+#ifdef SCRIPTABLE_ENTITY
+#define REGISTER_ENTITY(name) \
+	{ \
+		SpawnFunctions->Put(#name, name::Spawn); \
+		name##_Class = NewClass(#name); \
+		ScriptManager::Globals->Put(#name, OBJECT_VAL(name##_Class)); \
+	}
+#define UNREGISTER_ENTITY(name) name##_Class = nullptr
+#define ENTITY_SPAWN(entity, name) ScriptEntity::SpawnForClass(entity, #name)
+#define DECLARE_ENTITY_FIELD(name, field) Uint32 name##_Hash_##field = 0
+#define REGISTER_ENTITY_FIELD(name, field) name##_Hash_##field = Murmur::EncryptString(#field)
+#define ENTITY_GET_FIELD(name, field) \
+	{ \
+		if (name##_Hash_##field == hash) { \
+			if (result) { \
+				*result = name##_FieldGet_##field(entity, threadID); \
+			} \
+			return true; \
+		} \
+	}
+#define ENTITY_SET_FIELD(name, field) \
+	{ \
+		if (name##_Hash_##field == hash) { \
+			name##_FieldSet_##field(entity, value, threadID); \
+			return true; \
+		} \
+	}
+#else
+#define REGISTER_ENTITY(name) SpawnFunctions->Put(#name, name::Spawn)
+#define UNREGISTER_ENTITY(name)
+#define DECLARE_ENTITY_FIELD(name, field)
+#define REGISTER_ENTITY_FIELD(name, field)
+#endif
 
 class Entity {
 public:
@@ -97,12 +145,24 @@ public:
 	Entity* PrevSceneEntity = NULL;
 	Entity* NextSceneEntity = NULL;
 
+	HashMap<Property>* Properties = NULL;
+
+	static HashMap<EntitySpawnFunction>* SpawnFunctions;
+	static bool DisableAutoAnimate;
+
+	static void InitAll();
+	static void UnloadAll();
+
+	static Entity* Spawn();
+	static Entity* SpawnNamed(const char* objectName);
+
 	virtual ~Entity() = default;
 	void SetDrawGroup(int index);
 	void CheckDrawGroupChanges();
 	void CheckDepthChanges();
 	void Copy(Entity* other);
 	void CopyFields(Entity* other);
+	void InitProperties();
 	int GetIDWithinClass();
 	virtual void ApplyMotion();
 	virtual void Animate();

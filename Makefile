@@ -165,6 +165,7 @@ CPPFILES := \
 	source/Engine/Types/Entity.cpp \
 	source/Engine/Types/ObjectList.cpp \
 	source/Engine/Types/ObjectRegistry.cpp \
+	source/Engine/Types/Property.cpp \
 	source/Engine/Types/Tileset.cpp \
 	source/Engine/Utilities/ColorUtils.cpp \
 	source/Engine/Utilities/PrintBuffer.cpp \
@@ -400,6 +401,7 @@ PUBHFILES := \
 	include/Engine/Types/Entity.h \
 	include/Engine/Types/ObjectList.h \
 	include/Engine/Types/ObjectRegistry.h \
+	include/Engine/Types/Property.h \
 	include/Engine/Types/Tileset.h \
 	include/Engine/Utilities/ColorUtils.h \
 	include/Engine/Utilities/PrintBuffer.h \

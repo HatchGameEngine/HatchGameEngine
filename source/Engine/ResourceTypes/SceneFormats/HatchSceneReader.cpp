@@ -1,23 +1,15 @@
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneReader.h>
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h>
 
-#include <Engine/Bytecode/Compiler.h>
-#include <Engine/Bytecode/ScriptEntity.h>
-#include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Error.h>
 #include <Engine/Hashing/CRC32.h>
-#include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/MD5.h>
-#include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
-#include <Engine/Includes/HashMap.h>
-#include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
-#include <Engine/Utilities/StringUtils.h>
+#include <Engine/Types/Entity.h>
 
 Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
 
@@ -476,120 +468,112 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 
 		// Spawn the object, if the class exists
 		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
-		if (objectList->SpawnFunction) {
-			ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
-			if (!obj) {
-				HatchSceneReader::SkipEntityProperties(r, numProps);
+		Entity* obj = Scene::TrySpawnObject(objectList, posX, posY);
+		if (!obj) {
+			HatchSceneReader::SkipEntityProperties(r, numProps);
+			continue;
+		}
+
+		Scene::AddStatic(objectList, obj);
+
+		obj->SlotID = (int)i + Scene::ReservedSlotIDs;
+		obj->InitProperties();
+
+		// Add "filter" property
+		obj->Filter = filter;
+		obj->Properties->Put("filter", Property::MakeInteger(filter));
+
+		// Add all properties
+		for (Uint8 j = 0; j < numProps; j++) {
+			SceneHash propHash;
+			propHash.A = r->ReadUInt32();
+			propHash.B = r->ReadUInt32();
+			propHash.C = r->ReadUInt32();
+			propHash.D = r->ReadUInt32();
+
+			Uint8 varType = r->ReadByte();
+
+			// Find the class property from the hash
+			SceneClassProperty* classProp =
+				HatchSceneReader::FindProperty(scnClass, propHash);
+			if (!classProp) {
+#ifdef HSCN_READER_DEBUG
+				Log::Print(Log::LOG_WARN,
+					"Could not find any property with hash %08x%08x%08x%08x",
+					propHash.A,
+					propHash.B,
+					propHash.C,
+					propHash.D);
+#endif
+				HatchSceneReader::SkipProperty(r, varType);
 				continue;
 			}
 
-			obj->X = posX;
-			obj->Y = posY;
-			obj->InitialX = posX;
-			obj->InitialY = posY;
-			obj->List = objectList;
-			obj->SlotID = (int)i + Scene::ReservedSlotIDs;
-			Scene::AddStatic(objectList, obj);
+			// Add the property
+			Uint8 u8Var;
+			Uint16 u16Var;
+			Uint32 u32Var;
+			Uint32 vecVar[2];
+			Uint16 strLength;
+			char* strVar;
 
-			// Add "filter" property
-			obj->Filter = filter;
-			obj->Properties->Put("filter", INTEGER_VAL(filter));
+			Property val = Property::MakeNull();
 
-			// Add all properties
-			for (Uint8 j = 0; j < numProps; j++) {
-				SceneHash propHash;
-				propHash.A = r->ReadUInt32();
-				propHash.B = r->ReadUInt32();
-				propHash.C = r->ReadUInt32();
-				propHash.D = r->ReadUInt32();
+			switch (varType) {
+			case HSCN_VAR_INT8:
+			case HSCN_VAR_UINT8:
+				r->ReadBytes(&u8Var, 1);
+				val = Property::MakeInteger(u8Var);
+				break;
+			case HSCN_VAR_INT16:
+			case HSCN_VAR_UINT16:
+				r->ReadBytes(&u16Var, 2);
+				val = Property::MakeInteger(u16Var);
+				break;
+			case HSCN_VAR_ENUM:
+			case HSCN_VAR_COLOR:
+			case HSCN_VAR_INT32:
+			case HSCN_VAR_UINT32:
+			case HSCN_VAR_UNKNOWN:
+				r->ReadBytes(&u32Var, 4);
+				val = Property::MakeInteger((int)u32Var);
+				break;
+			case HSCN_VAR_BOOL:
+				r->ReadBytes(&u32Var, 4);
+				val = Property::MakeBool((bool)u32Var);
+				break;
+			case HSCN_VAR_VECTOR2:
+				r->ReadBytes(vecVar, 8);
+				{
+					float fx = vecVar[0] / 65536.0;
+					float fy = vecVar[1] / 65536.0;
 
-				Uint8 varType = r->ReadByte();
+					PropertyArray array;
+					PropertyArray::Init(&array);
+					AddPropertyToArray(&array, Property::MakeDecimal(fx));
+					AddPropertyToArray(&array, Property::MakeDecimal(fy));
 
-				// Find the class property from the
-				// hash
-				SceneClassProperty* classProp =
-					HatchSceneReader::FindProperty(scnClass, propHash);
-				if (!classProp) {
-#ifdef HSCN_READER_DEBUG
-					Log::Print(Log::LOG_WARN,
-						"Could not find any property with hash %08x%08x%08x%08x",
-						propHash.A,
-						propHash.B,
-						propHash.C,
-						propHash.D);
-#endif
-					HatchSceneReader::SkipProperty(r, varType);
-					continue;
+					val = Property::MakeArray(array);
+				}
+				break;
+			case HSCN_VAR_STRING:
+				strLength = r->ReadUInt16();
+				strVar = (char*)malloc(strLength);
+				if (!strVar) {
+					Error::Fatal(
+						"Out of memory in HatchSceneReader::ReadEntities!");
 				}
 
-				// Add the property
-				Uint8 u8Var;
-				Uint16 u16Var;
-				Uint32 u32Var;
-				Uint32 vecVar[2];
-				Uint16 strLength;
-				char* strVar;
-
-				VMValue val = NULL_VAL;
-
-				switch (varType) {
-				case HSCN_VAR_INT8:
-				case HSCN_VAR_UINT8:
-					r->ReadBytes(&u8Var, 1);
-					val = INTEGER_VAL(u8Var);
-					break;
-				case HSCN_VAR_INT16:
-				case HSCN_VAR_UINT16:
-					r->ReadBytes(&u16Var, 2);
-					val = INTEGER_VAL(u16Var);
-					break;
-				case HSCN_VAR_ENUM:
-				case HSCN_VAR_BOOL:
-				case HSCN_VAR_COLOR:
-				case HSCN_VAR_INT32:
-				case HSCN_VAR_UINT32:
-				case HSCN_VAR_UNKNOWN:
-					r->ReadBytes(&u32Var, 4);
-					val = INTEGER_VAL((int)u32Var);
-					break;
-				case HSCN_VAR_VECTOR2:
-					r->ReadBytes(vecVar, 8);
-					{
-						float fx = vecVar[0] / 65536.0;
-						float fy = vecVar[1] / 65536.0;
-
-						VMValue valX = DECIMAL_VAL(fx);
-						VMValue valY = DECIMAL_VAL(fy);
-
-						ObjArray* array = NewArray();
-						array->Values->push_back(valX);
-						array->Values->push_back(valY);
-
-						val = OBJECT_VAL(array);
-					}
-					break;
-				case HSCN_VAR_STRING:
-					strLength = r->ReadUInt16();
-					strVar = (char*)malloc(strLength);
-					if (!strVar) {
-						Error::Fatal(
-							"Out of memory in HatchSceneReader::ReadEntities!");
-					}
-
-					for (size_t i = 0; i < strLength; i++) {
-						strVar[i] = r->ReadInt16();
-					}
-
-					val = OBJECT_VAL(CopyString(strVar, strLength));
-					free(strVar);
-					break;
+				for (size_t i = 0; i < strLength; i++) {
+					strVar[i] = r->ReadInt16();
 				}
 
-				obj->Properties->Put(classProp->Name, val);
+				val = Property::MakeString(strVar, strLength);
+				free(strVar);
+				break;
 			}
-		}
-		else {
-			HatchSceneReader::SkipEntityProperties(r, numProps);
+
+			obj->Properties->Put(classProp->Name, val);
 		}
 	}
 }

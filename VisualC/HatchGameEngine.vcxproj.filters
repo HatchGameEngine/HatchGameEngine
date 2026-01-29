@@ -414,6 +414,9 @@
     <ClCompile Include="..\source\engine\types\ObjectRegistry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\types\Property.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\types\Tileset.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

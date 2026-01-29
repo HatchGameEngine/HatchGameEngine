@@ -1,3 +1,4 @@
+#include <Engine/Application.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
@@ -3130,9 +3131,7 @@ bool VMThread::Import(VMValue value) {
 		else {
 			char* className = AS_CSTRING(value);
 			if (ScriptManager::ClassExists(className)) {
-				if (!ScriptManager::Classes->Exists(className)) {
-					ScriptManager::LoadObjectClass(className);
-				}
+				ScriptManager::LoadObjectClass(className);
 				result = true;
 			}
 			else {

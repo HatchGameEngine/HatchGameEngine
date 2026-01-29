@@ -4,6 +4,7 @@
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Types.h>
+#include <Engine/Bytecode/Value.h>
 
 /***
 * \class Entity
@@ -743,7 +744,7 @@ VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID)
 	ScriptEntity* self = GET_ENTITY(0);
 	char* property = GET_ARG(1, GetString);
 	if (self && self->Properties->Exists(property)) {
-		return self->Properties->Get(property);
+		return Value::FromProperty(self->Properties->Get(property));
 	}
 	return NULL_VAL;
 }

@@ -1,7 +1,7 @@
 #include <Engine/Bytecode/Bytecode.h>
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
-#include <Engine/Diagnostics/Log.h>
 
 #define BYTECODE_VERSION 0x0005
 

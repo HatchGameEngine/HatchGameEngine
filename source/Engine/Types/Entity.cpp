@@ -1,4 +1,35 @@
+#include <Engine/Scene.h>
 #include <Engine/Types/Entity.h>
+
+HashMap<EntitySpawnFunction>* Entity::SpawnFunctions = nullptr;
+bool Entity::DisableAutoAnimate = false;
+
+void Entity::InitAll() {
+	SpawnFunctions = new HashMap<EntitySpawnFunction>();
+
+	// Init all C++ side classes here.
+}
+void Entity::UnloadAll() {
+	// De-init all C++ side classes here.
+	delete SpawnFunctions;
+
+	SpawnFunctions = nullptr;
+}
+
+Entity* Entity::Spawn() {
+	throw std::runtime_error("Cannot directly spawn Entity!");
+}
+Entity* Entity::SpawnNamed(const char* objectName) {
+	EntitySpawnFunction spawnFunction;
+	if (SpawnFunctions->GetIfExists(objectName, &spawnFunction)) {
+		return spawnFunction();
+	}
+	return nullptr;
+}
+
+void Entity::InitProperties() {
+	Properties = new HashMap<Property>(NULL, 4);
+}
 
 int Entity::GetIDWithinClass() {
 	if (!List) {
@@ -552,9 +583,81 @@ void Entity::CopyFields(Entity* other) {
 
 void Entity::ApplyPhysics() {}
 
-void Entity::Initialize() {}
-void Entity::Create() {}
-void Entity::PostCreate() {}
+void Entity::Initialize() {
+	// Set defaults
+	Active = true;
+	Pauseable = true;
+	Activity = ACTIVE_BOUNDS;
+	InRange = false;
+
+	SpeedX = 0.0f;
+	SpeedY = 0.0f;
+	GroundSpeed = 0.0f;
+	GravitySpeed = 0.0f;
+	OnGround = false;
+
+	WasOffScreen = false;
+	OnScreen = true;
+	OnScreenHitboxW = 0.0f;
+	OnScreenHitboxH = 0.0f;
+	OnScreenRegionTop = 0.0f;
+	OnScreenRegionLeft = 0.0f;
+	OnScreenRegionRight = 0.0f;
+	OnScreenRegionBottom = 0.0f;
+	Visible = true;
+	ViewRenderFlag = 0xFFFFFFFF;
+	ViewOverrideFlag = 0;
+	RenderRegionW = 0.0f;
+	RenderRegionH = 0.0f;
+	RenderRegionTop = 0.0f;
+	RenderRegionLeft = 0.0f;
+	RenderRegionRight = 0.0f;
+	RenderRegionBottom = 0.0f;
+
+	Angle = 0;
+	AngleMode = 0;
+	Rotation = 0.0;
+	AutoPhysics = false;
+
+	Priority = 0;
+	PriorityListIndex = -1;
+	PriorityOld = -1;
+
+	Sprite = -1;
+	CurrentAnimation = -1;
+	CurrentFrame = -1;
+	CurrentFrameCount = 0;
+	AnimationSpeedMult = 1.0;
+	AnimationSpeedAdd = 0;
+	AutoAnimate = Entity::DisableAutoAnimate ? false : true;
+	AnimationSpeed = 0;
+	AnimationTimer = 0.0;
+	AnimationFrameDuration = 0;
+	AnimationLoopIndex = 0;
+	RotationStyle = ROTSTYLE_NONE;
+
+	Hitbox.Clear();
+
+	Direction = 0;
+	TileCollisions = TILECOLLISION_NONE;
+	CollisionLayers = 0;
+	CollisionPlane = 0;
+	CollisionMode = CMODE_FLOOR;
+
+	Persistence = Persistence_NONE;
+	Interactable = true;
+
+	SetUpdatePriority(0);
+}
+void Entity::Create() {
+	Created = true;
+	if (Sprite >= 0 && CurrentAnimation < 0) {
+		SetAnimation(0, 0);
+	}
+}
+void Entity::PostCreate() {
+	PostCreated = true;
+}
 
 void Entity::UpdateEarly() {}
 void Entity::Update() {}
@@ -562,7 +665,14 @@ void Entity::UpdateLate() {}
 
 void Entity::FixedUpdateEarly() {}
 void Entity::FixedUpdate() {}
-void Entity::FixedUpdateLate() {}
+void Entity::FixedUpdateLate() {
+	if (AutoAnimate) {
+		Animate();
+	}
+	if (AutoPhysics) {
+		ApplyMotion();
+	}
+}
 
 void Entity::OnAnimationFinish() {}
 
@@ -580,4 +690,11 @@ void Entity::RenderLate() {}
 
 void Entity::Remove() {}
 
-void Entity::Dispose() {}
+void Entity::Dispose() {
+	if (Properties) {
+		Properties->ForAll([](Uint32, Property property) -> void {
+			Property::Delete(property);
+		});
+		delete Properties;
+	}
+}

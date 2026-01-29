@@ -53,7 +53,7 @@ int Scene::ShowObjectRegions = 0;
 bool Scene::UseRenderRegions = true;
 
 // Property variables
-HashMap<VMValue>* Scene::Properties = NULL;
+HashMap<Property>* Scene::Properties = NULL;
 
 // Object variables
 OrderedHashMap<ObjectList*>* Scene::ObjectLists = NULL;
@@ -1980,6 +1980,9 @@ void Scene::Unload() {
 
 	// Dispose of properties
 	if (Scene::Properties) {
+		Scene::Properties->ForAll([](Uint32, Property property) -> void {
+			Property::Delete(property);
+		});
 		delete Scene::Properties;
 	}
 	Scene::Properties = NULL;
@@ -2125,11 +2128,85 @@ void Scene::ProcessSceneTimer() {
 	}
 }
 
+// Spawns an object using a given list.
+// Entity spawning flow:
+// - Scene::SpawnObject calls Spawn() on the object list (see Scene::NewObjectList)
+// - If SCRIPTABLE_ENTITY is defined:
+//   - Call ScriptEntity::SpawnNamed:
+//     - Call Entity::SpawnNamed:
+//       - If there is a spawn function for a native entity, call it:
+//         - Construct the entity
+//         - Call ScriptEntity::SpawnForClass (see below for what it does)
+//     - If it returns nullptr, call ScriptEntity::SpawnForClass:
+//       - Get the ObjClass
+//       - Call NewEntity()
+//       - Call Link()
+//  - else, call Entity::SpawnNamed:
+//    - If there is a spawn function:
+//      - Call it, and return the entity
+//    - else, return nullptr
+Entity* Scene::SpawnObject(ObjectList* list, float x, float y) {
+	Entity* entity = list->Spawn();
+	if (!entity) {
+		char error[128];
+		snprintf(error,
+			sizeof error,
+			"Could not spawn object of class \"%s\"!",
+			list->ObjectName);
+		throw std::runtime_error(std::string(error));
+	}
+
+	entity->X = x;
+	entity->Y = y;
+	entity->InitialX = x;
+	entity->InitialY = y;
+	entity->List = list;
+
+	return entity;
+}
+
+// Finds an object list through its name, and attempts to spawn one.
+Entity* Scene::SpawnObject(const char* objectName, float x, float y) {
+	ObjectList* objectList = Scene::GetObjectList(objectName);
+	if (!objectList) {
+		char error[128];
+		snprintf(error, sizeof error, "Object class \"%s\" does not exist.", objectName);
+		throw std::runtime_error(std::string(error));
+	}
+
+	return Scene::SpawnObject(objectList, x, y);
+}
+
+// Non-throwing version of SpawnObject(objectList, x, y)
+Entity* Scene::TrySpawnObject(ObjectList* list, float x, float y) {
+	try {
+		return Scene::SpawnObject(list, x, y);
+	} catch (const std::runtime_error& error) {
+		return nullptr;
+	}
+}
+
+// Non-throwing version of SpawnObject(objectName, x, y)
+Entity* Scene::TrySpawnObject(const char* objectName, float x, float y) {
+	try {
+		return Scene::SpawnObject(objectName, x, y);
+	} catch (const std::runtime_error& error) {
+		return nullptr;
+	}
+}
+
 ObjectList* Scene::NewObjectList(const char* objectName) {
 	ObjectList* objectList = new (std::nothrow) ObjectList(objectName);
-	if (objectList && ScriptManager::LoadObjectClass(objectName)) {
-		objectList->SpawnFunction = ScriptManager::ObjectSpawnFunction;
+	if (!objectList) {
+		return nullptr;
 	}
+
+#ifdef SCRIPTABLE_ENTITY
+	objectList->SpawnFunction = ScriptEntity::SpawnNamed;
+#else
+	objectList->SpawnFunction = Entity::SpawnNamed;
+#endif
+
 	return objectList;
 }
 void Scene::AddStaticClass() {
@@ -2208,16 +2285,8 @@ ObjectList* Scene::GetStaticObjectList(const char* objectName) {
 }
 void Scene::SpawnStaticObject(const char* objectName) {
 	ObjectList* objectList = Scene::GetObjectList(objectName, false);
-	if (objectList->SpawnFunction) {
-		Entity* obj = objectList->Spawn();
-		if (!obj) {
-			return;
-		}
-		obj->X = 0.0f;
-		obj->Y = 0.0f;
-		obj->InitialX = obj->X;
-		obj->InitialY = obj->Y;
-		obj->List = objectList;
+	Entity* obj = Scene::SpawnObject(objectList, 0.0f, 0.0f);
+	if (obj) {
 		Scene::AddStatic(objectList, obj);
 	}
 }
