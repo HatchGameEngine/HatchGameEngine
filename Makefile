@@ -161,6 +161,7 @@ CPPFILES := \
 	source/Engine/Scene/View.cpp \
 	source/Engine/TextFormats/INI/INI.cpp \
 	source/Engine/TextFormats/XML/XMLParser.cpp \
+	source/Engine/Types/Camera.cpp \
 	source/Engine/Types/DrawGroupList.cpp \
 	source/Engine/Types/Entity.cpp \
 	source/Engine/Types/ObjectList.cpp \
@@ -397,6 +398,7 @@ PUBHFILES := \
 	include/Engine/Scene/View.h \
 	include/Engine/TextFormats/INI/INI.h \
 	include/Engine/TextFormats/XML/XMLParser.h \
+	include/Engine/Types/Camera.h \
 	include/Engine/Types/DrawGroupList.h \
 	include/Engine/Types/Entity.h \
 	include/Engine/Types/ObjectList.h \

@@ -1,6 +1,8 @@
 #include <Engine/Scene.h>
 #include <Engine/Types/Entity.h>
 
+#include <Engine/Types/Camera.h>
+
 HashMap<EntitySpawnFunction>* Entity::SpawnFunctions = nullptr;
 bool Entity::DisableAutoAnimate = false;
 
@@ -8,9 +10,12 @@ void Entity::InitAll() {
 	SpawnFunctions = new HashMap<EntitySpawnFunction>();
 
 	// Init all C++ side classes here.
+	ENTITY_INIT(Camera);
 }
 void Entity::UnloadAll() {
 	// De-init all C++ side classes here.
+	ENTITY_DEINIT(Camera);
+
 	delete SpawnFunctions;
 
 	SpawnFunctions = nullptr;
