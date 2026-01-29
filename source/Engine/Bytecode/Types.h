@@ -206,16 +206,16 @@ enum ObjType {
 	MAX_OBJ_TYPE
 };
 
-#define CLASS_ARRAY "$$ArrayImpl"
-#define CLASS_ENTITY "$$EntityImpl"
+#define CLASS_ARRAY "ArrayImpl"
+#define CLASS_ENTITY "EntityImpl"
 #define CLASS_FONT "Font"
-#define CLASS_FUNCTION "$$FunctionImpl"
-#define CLASS_INSTANCE "$$InstanceImpl"
-#define CLASS_MAP "$$MapImpl"
+#define CLASS_FUNCTION "FunctionImpl"
+#define CLASS_INSTANCE "InstanceImpl"
+#define CLASS_MAP "MapImpl"
 #define CLASS_MATERIAL "Material"
 #define CLASS_SHADER "Shader"
-#define CLASS_STREAM "$$StreamImpl"
-#define CLASS_STRING "$$StringImpl"
+#define CLASS_STREAM "StreamImpl"
+#define CLASS_STRING "StringImpl"
 
 #define OBJECT_TYPE(value) (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value) IsObjectType(value, OBJ_BOUND_METHOD)

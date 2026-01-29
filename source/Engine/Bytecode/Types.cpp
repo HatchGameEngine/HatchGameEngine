@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
@@ -76,6 +77,16 @@ ObjString* AllocString(size_t length) {
 	return AllocateString(heapChars, length, 0x00000000);
 }
 
+static VMValue VM_GetClass(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	if (IS_OBJECT(args[0])) {
+		return OBJECT_VAL(AS_OBJECT(args[0])->Class);
+	}
+
+	return NULL_VAL;
+}
+
 ObjFunction* NewFunction() {
 	return (ObjFunction*)FunctionImpl::New();
 }
@@ -113,6 +124,7 @@ ObjClass* NewClass(Uint32 hash) {
 	klass->Initializer = NULL_VAL;
 	klass->Type = CLASS_TYPE_NORMAL;
 	klass->Name = StringUtils::Create(GetClassName(hash));
+	ScriptManager::DefineNative(klass, "GetClass", VM_GetClass);
 	return klass;
 }
 ObjClass* NewClass(const char* className) {
