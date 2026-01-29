@@ -1,4 +1,5 @@
 #include <Engine/Application.h>
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Extensions/Discord.h>
 
 bool Discord::Initialized = false;
