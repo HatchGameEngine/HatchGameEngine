@@ -50,10 +50,10 @@ Entity* Camera::Spawn() {
 
 		return nullptr;
 	}
-
-	camera->Instance->Object.PropertyGet = Camera_VM_PropertyGet;
-	camera->Instance->Object.PropertySet = Camera_VM_PropertySet;
 #endif
+
+	REGISTER_ENTITY_GETTER(Camera, camera);
+	REGISTER_ENTITY_SETTER(Camera, camera);
 
 	camera->Target = nullptr;
 	camera->ViewIndex = 0;

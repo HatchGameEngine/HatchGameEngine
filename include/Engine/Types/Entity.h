@@ -36,6 +36,8 @@ typedef Entity* (*NamedEntitySpawnFunction)(const char*);
 #define ENTITY_SPAWN(entity, name) ScriptEntity::SpawnForClass(entity, #name)
 #define DECLARE_ENTITY_FIELD(name, field) Uint32 name##_Hash_##field = 0
 #define REGISTER_ENTITY_FIELD(name, field) name##_Hash_##field = Murmur::EncryptString(#field)
+#define REGISTER_ENTITY_GETTER(name, entity) entity->Instance->Object.PropertyGet = name##_VM_PropertyGet
+#define REGISTER_ENTITY_SETTER(name, entity) entity->Instance->Object.PropertySet = name##_VM_PropertySet
 #define ENTITY_GET_FIELD(name, field) \
 	{ \
 		if (name##_Hash_##field == hash) { \
@@ -57,6 +59,8 @@ typedef Entity* (*NamedEntitySpawnFunction)(const char*);
 #define UNREGISTER_ENTITY(name)
 #define DECLARE_ENTITY_FIELD(name, field)
 #define REGISTER_ENTITY_FIELD(name, field)
+#define REGISTER_ENTITY_GETTER(name, entity)
+#define REGISTER_ENTITY_SETTER(name, entity)
 #endif
 
 class Entity {
