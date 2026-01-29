@@ -1,5 +1,5 @@
-#ifndef ENGINE_BYTECODE_CAMERA_H
-#define ENGINE_BYTECODE_CAMERA_H
+#ifndef ENGINE_TYPES_CAMERA_H
+#define ENGINE_TYPES_CAMERA_H
 
 #include <Engine/Bytecode/ScriptEntity.h>
 
@@ -27,4 +27,4 @@ public:
 	void FixedUpdate();
 };
 
-#endif /* ENGINE_BYTECODE_CAMERA_H */
+#endif /* ENGINE_TYPES_CAMERA_H */
