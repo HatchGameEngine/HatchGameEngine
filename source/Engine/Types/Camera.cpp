@@ -61,17 +61,7 @@ Entity* Camera::Spawn() {
 	return (Entity*)camera;
 }
 
-void Camera::FixedUpdate() {
-	if (!Active) {
-		return;
-	}
-
-#ifdef SCRIPTABLE_ENTITY
-	if (RunFunction(FixedUpdateHash)) {
-		return;
-	}
-#endif
-
+void Camera::MoveToTarget() {
 	if (!Target || !Target->Active) {
 		return;
 	}
@@ -89,6 +79,35 @@ void Camera::FixedUpdate() {
 
 	Scene::Views[ViewIndex].X = x;
 	Scene::Views[ViewIndex].Y = y;
+}
+
+void Camera::Update() {
+	if (!Active) {
+		return;
+	}
+
+#ifdef SCRIPTABLE_ENTITY
+	if (RunFunction(Hash_Update)) {
+		return;
+	}
+#endif
+
+	MoveToTarget();
+}
+void Camera::FixedUpdate() {
+	if (!Active) {
+		return;
+	}
+
+#ifdef SCRIPTABLE_ENTITY
+	if (RunFunction(FixedUpdateHash)) {
+		return;
+	}
+#endif
+
+	if (Application::UseFixedTimestep) {
+		MoveToTarget();
+	}
 }
 
 #ifdef SCRIPTABLE_ENTITY

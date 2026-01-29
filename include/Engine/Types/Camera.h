@@ -10,9 +10,12 @@ public:
 
 	static Entity* Spawn();
 
+	void MoveToTarget();
+
 	Entity* Target;
 	int ViewIndex;
 
+	void Update();
 	void FixedUpdate();
 };
 
