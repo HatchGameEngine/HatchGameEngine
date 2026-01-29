@@ -77,8 +77,10 @@ void Camera::Initialize() {
 	// TODO: Add getters and setters for the following
 	MinX = 0.0;
 	MinY = 0.0;
+	MinZ = 0.0;
 	MaxX = 0.0;
 	MaxY = 0.0;
+	MaxZ = 0.0;
 
 	if (Scene::Layers.size() > 0) {
 		MaxX = Scene::Layers[0].Width * Scene::TileWidth;
@@ -90,24 +92,42 @@ void Camera::Initialize() {
 #endif
 }
 
+void Camera::MoveViewPosition() {
+	float x = X;
+	float y = Y;
+	float z = Z;
+
+	if (UseBounds) {
+		if (!Scene::Views[ViewIndex].UsePerspective) {
+			x = Math::Clamp(x, MinX, MaxX - Scene::Views[ViewIndex].Width);
+			y = Math::Clamp(y, MinY, MaxY - Scene::Views[ViewIndex].Height);
+		}
+		else {
+			x = Math::Clamp(x, MinX, MaxX);
+			y = Math::Clamp(y, MinY, MaxY);
+		}
+
+		z = Math::Clamp(z, MinZ, MaxZ);
+	}
+
+	Scene::Views[ViewIndex].X = x;
+	Scene::Views[ViewIndex].Y = y;
+	Scene::Views[ViewIndex].Z = z;
+}
+
 void Camera::MoveToTarget() {
 	if (!Target || !Target->Active) {
 		return;
 	}
 
-	int viewWidth = Scene::Views[ViewIndex].Width;
-	int viewHeight = Scene::Views[ViewIndex].Height;
+	X = Target->X;
+	Y = Target->Y;
+	Z = Target->Z;
 
-	float x = Target->X - (viewWidth / 2.0);
-	float y = Target->Y - (viewHeight / 2.0);
-
-	if (UseBounds) {
-		x = Math::Clamp(x, MinX, MaxX - viewWidth);
-		y = Math::Clamp(y, MinY, MaxY - viewHeight);
+	if (!Scene::Views[ViewIndex].UsePerspective) {
+		X -= Scene::Views[ViewIndex].Width * 0.5;
+		Y -= Scene::Views[ViewIndex].Height * 0.5;
 	}
-
-	Scene::Views[ViewIndex].X = x;
-	Scene::Views[ViewIndex].Y = y;
 }
 
 void Camera::Update() {
@@ -122,6 +142,7 @@ void Camera::Update() {
 #endif
 
 	MoveToTarget();
+	MoveViewPosition();
 }
 void Camera::FixedUpdate() {
 	if (!Active) {
@@ -136,6 +157,7 @@ void Camera::FixedUpdate() {
 
 	if (Application::UseFixedTimestep) {
 		MoveToTarget();
+		MoveViewPosition();
 	}
 }
 

@@ -15,11 +15,14 @@ public:
 	bool UseBounds;
 	float MinX;
 	float MinY;
+	float MinZ;
 	float MaxX;
 	float MaxY;
+	float MaxZ;
 
 	void Initialize();
 	void MoveToTarget();
+	void MoveViewPosition();
 	void Update();
 	void FixedUpdate();
 };
