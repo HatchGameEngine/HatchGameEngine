@@ -225,8 +225,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_ENTITY: {
 		ObjEntity* entity = (ObjEntity*)object;
-		ScriptEntity* scriptEntity = (ScriptEntity*)entity->EntityPtr;
-		GrayHashMap(entity->InstanceObj.Fields);
+		((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
 		break;
 	}
 	case OBJ_ARRAY: {

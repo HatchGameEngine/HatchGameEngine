@@ -21,6 +21,9 @@ public:
 	float MaxZ;
 
 	void Initialize();
+#ifdef SCRIPTABLE_ENTITY
+	void MarkForGarbageCollection();
+#endif
 	void MoveToTarget();
 	void MoveViewPosition();
 	void Update();

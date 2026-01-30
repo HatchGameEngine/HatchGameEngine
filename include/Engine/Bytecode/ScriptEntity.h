@@ -55,6 +55,7 @@ public:
 	void Copy(ScriptEntity* other, bool copyClass);
 	void CopyFields(ScriptEntity* other);
 	void CopyVMFields(ScriptEntity* other);
+	virtual void MarkForGarbageCollection();
 	void Initialize();
 	void Create(VMValue flag);
 	void Create();

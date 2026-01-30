@@ -1,5 +1,6 @@
 #include <Engine/Application.h>
 #include <Engine/Bytecode/Compiler.h>
+#include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Diagnostics/Log.h>
@@ -929,6 +930,10 @@ void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 
 	// Also re-add Entity's methods
 	other->AddEntityClassMethods();
+}
+
+void ScriptEntity::MarkForGarbageCollection() {
+	GarbageCollector::GrayHashMap(Instance->InstanceObj.Fields);
 }
 
 // Events called from C++

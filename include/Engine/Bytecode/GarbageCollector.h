@@ -8,9 +8,7 @@ class GarbageCollector {
 private:
 	static void FreeObject(Obj* object);
 	static void GrayValue(VMValue value);
-	static void GrayObject(void* obj);
 	static void GrayHashMapItem(Uint32, VMValue value);
-	static void GrayHashMap(void* pointer);
 	static void BlackenObject(Obj* object);
 	static void CollectResources();
 
@@ -26,6 +24,8 @@ public:
 
 	static void Init();
 	static void Collect();
+	static void GrayObject(void* obj);
+	static void GrayHashMap(void* pointer);
 	static void Dispose();
 };
 

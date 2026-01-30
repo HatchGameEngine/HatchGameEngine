@@ -1,3 +1,4 @@
+#include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Scene.h>
@@ -91,6 +92,16 @@ void Camera::Initialize() {
 	RunInitializer();
 #endif
 }
+
+#ifdef SCRIPTABLE_ENTITY
+void Camera::MarkForGarbageCollection() {
+	ScriptEntity::MarkForGarbageCollection();
+
+	if (TargetEntity) {
+		GarbageCollector::GrayObject(((ScriptEntity*)TargetEntity)->Instance);
+	}
+}
+#endif
 
 void Camera::MoveViewPosition() {
 	float x = X;
