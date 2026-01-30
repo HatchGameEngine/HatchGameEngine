@@ -351,19 +351,45 @@ public:
 		float y,
 		float scale,
 		float glyphScale,
-		float ascent);
-	static void
-	DrawEllipsis(Font* font, float x, float y, float scale, float glyphScale, float ascent);
-	static void
-	DrawEllipsisLegacy(ISprite* sprite, float x, float y, float advance, float baseline);
-	static void
-	DrawText(Font* font, const char* text, float x, float y, TextDrawParams* params);
-	static void
-	DrawTextWrapped(Font* font, const char* text, float x, float y, TextDrawParams* params);
-	static void
-	DrawTextEllipsis(Font* font, const char* text, float x, float y, TextDrawParams* params);
-	static void
-	DrawGlyph(Font* font, Uint32 codepoint, float x, float y, TextDrawParams* params);
+		float ascent,
+		int paletteID = 0);
+	static void DrawEllipsis(Font* font,
+		float x,
+		float y,
+		float scale,
+		float glyphScale,
+		float ascent,
+		int paletteID = 0);
+	static void DrawEllipsisLegacy(ISprite* sprite,
+		float x,
+		float y,
+		float advance,
+		float baseline,
+		int paletteID = 0);
+	static void DrawText(Font* font,
+		const char* text,
+		float x,
+		float y,
+		TextDrawParams* params,
+		int paletteID = 0);
+	static void DrawTextWrapped(Font* font,
+		const char* text,
+		float x,
+		float y,
+		TextDrawParams* params,
+		int paletteID = 0);
+	static void DrawTextEllipsis(Font* font,
+		const char* text,
+		float x,
+		float y,
+		TextDrawParams* params,
+		int paletteID = 0);
+	static void DrawGlyph(Font* font,
+		Uint32 codepoint,
+		float x,
+		float y,
+		TextDrawParams* params,
+		int paletteID = 0);
 	static void
 	MeasureText(Font* font, const char* text, TextDrawParams* params, float& maxW, float& maxH);
 	static void MeasureTextWrapped(Font* font,
@@ -375,22 +401,26 @@ public:
 		const char* text,
 		float x,
 		float y,
-		LegacyTextDrawParams* params);
+		LegacyTextDrawParams* params,
+		int paletteID = 0);
 	static void DrawTextWrappedLegacy(ISprite* sprite,
 		const char* text,
 		float x,
 		float y,
-		LegacyTextDrawParams* params);
+		LegacyTextDrawParams* params,
+		int paletteID = 0);
 	static void DrawTextEllipsisLegacy(ISprite* sprite,
 		const char* text,
 		float x,
 		float y,
-		LegacyTextDrawParams* params);
+		LegacyTextDrawParams* params,
+		int paletteID = 0);
 	static void DrawGlyphLegacy(ISprite* sprite,
 		Uint32 codepoint,
 		float basex,
 		float basey,
-		LegacyTextDrawParams* params);
+		LegacyTextDrawParams* params,
+		int paletteID = 0);
 	static void MeasureTextLegacy(ISprite* sprite,
 		const char* text,
 		LegacyTextDrawParams* params,
