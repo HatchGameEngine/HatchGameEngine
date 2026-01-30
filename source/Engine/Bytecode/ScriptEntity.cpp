@@ -1085,14 +1085,12 @@ void ScriptEntity::Remove() {
 	if (Removed) {
 		return;
 	}
-	if (!Instance) {
-		return;
+
+	if (Instance && Created) {
+		RunFunction(Hash_Dispose);
 	}
 
-	RunFunction(Hash_Dispose);
-
-	Active = false;
-	Removed = true;
+	Entity::Remove();
 }
 void ScriptEntity::Dispose() {
 	Entity::Dispose();

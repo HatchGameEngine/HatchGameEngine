@@ -693,7 +693,14 @@ void Entity::Render() {}
 
 void Entity::RenderLate() {}
 
-void Entity::Remove() {}
+void Entity::Remove() {
+	if (Removed) {
+		return;
+	}
+
+	Active = false;
+	Removed = true;
+}
 
 void Entity::Dispose() {
 	if (Properties) {
