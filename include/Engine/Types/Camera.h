@@ -10,7 +10,7 @@ public:
 
 	static Entity* Spawn();
 
-	Entity* Target;
+	Entity* TargetEntity;
 	int ViewIndex;
 	bool UseBounds;
 	float MinX;

@@ -16,13 +16,13 @@ bool Camera_VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threa
 #endif
 
 /***
-* \field Target
+* \field TargetEntity
 * \type Entity
 * \default null
 * \ns Camera
 * \desc The camera's target.
 */
-DECLARE_ENTITY_FIELD(Camera, Target);
+DECLARE_ENTITY_FIELD(Camera, TargetEntity);
 /***
 * \field ViewIndex
 * \type integer
@@ -42,7 +42,7 @@ DECLARE_ENTITY_FIELD(Camera, UseBounds);
 
 void Camera::ClassLoad() {
 	REGISTER_ENTITY(Camera);
-	REGISTER_ENTITY_FIELD(Camera, Target);
+	REGISTER_ENTITY_FIELD(Camera, TargetEntity);
 	REGISTER_ENTITY_FIELD(Camera, ViewIndex);
 	REGISTER_ENTITY_FIELD(Camera, UseBounds);
 }
@@ -70,7 +70,7 @@ Entity* Camera::Spawn() {
 void Camera::Initialize() {
 	Entity::Initialize();
 
-	Target = nullptr;
+	TargetEntity = nullptr;
 	ViewIndex = 0;
 	UseBounds = true;
 
@@ -116,13 +116,13 @@ void Camera::MoveViewPosition() {
 }
 
 void Camera::MoveToTarget() {
-	if (!Target || !Target->Active) {
+	if (!TargetEntity || !TargetEntity->Active) {
 		return;
 	}
 
-	X = Target->X;
-	Y = Target->Y;
-	Z = Target->Z;
+	X = TargetEntity->X;
+	Y = TargetEntity->Y;
+	Z = TargetEntity->Z;
 
 	if (!Scene::Views[ViewIndex].UsePerspective) {
 		X -= Scene::Views[ViewIndex].Width * 0.5;
@@ -162,23 +162,23 @@ void Camera::FixedUpdate() {
 }
 
 #ifdef SCRIPTABLE_ENTITY
-VMValue Camera_FieldGet_Target(Camera* camera, Uint32 threadID) {
-	if (camera->Target) {
-		return OBJECT_VAL(((ScriptEntity*)camera->Target)->Instance);
+VMValue Camera_FieldGet_TargetEntity(Camera* camera, Uint32 threadID) {
+	if (camera->TargetEntity) {
+		return OBJECT_VAL(((ScriptEntity*)camera->TargetEntity)->Instance);
 	}
 	else {
 		return NULL_VAL;
 	}
 }
-void Camera_FieldSet_Target(Camera* camera, VMValue value, Uint32 threadID) {
+void Camera_FieldSet_TargetEntity(Camera* camera, VMValue value, Uint32 threadID) {
 	if (IS_NULL(value)) {
-		camera->Target = nullptr;
+		camera->TargetEntity = nullptr;
 	}
 	else if (IS_ENTITY(value)) {
-		camera->Target = (Entity*)AS_ENTITY(value)->EntityPtr;
+		camera->TargetEntity = (Entity*)AS_ENTITY(value)->EntityPtr;
 	}
 	else {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Target must be an Entity!");
+		throw ScriptException("TargetEntity must be an Entity!");
 	}
 }
 
@@ -217,7 +217,7 @@ void Camera_FieldSet_UseBounds(Camera* camera, VMValue value, Uint32 threadID) {
 bool Camera_VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
 	Camera* entity = (Camera*)((ObjEntity*)object)->EntityPtr;
 
-	ENTITY_GET_FIELD(Camera, Target);
+	ENTITY_GET_FIELD(Camera, TargetEntity);
 	ENTITY_GET_FIELD(Camera, ViewIndex);
 	ENTITY_GET_FIELD(Camera, UseBounds);
 
@@ -226,7 +226,7 @@ bool Camera_VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 thr
 bool Camera_VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
 	Camera* entity = (Camera*)((ObjEntity*)object)->EntityPtr;
 
-	ENTITY_SET_FIELD(Camera, Target);
+	ENTITY_SET_FIELD(Camera, TargetEntity);
 	ENTITY_SET_FIELD(Camera, ViewIndex);
 	ENTITY_SET_FIELD(Camera, UseBounds);
 
