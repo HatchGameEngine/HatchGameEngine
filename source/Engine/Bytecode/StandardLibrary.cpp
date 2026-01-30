@@ -9356,6 +9356,11 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	// Add it to the scene
 	Scene::AddDynamic(obj->List, obj);
 
+	// Add to proper list
+	if (obj->List) {
+		obj->List->Add(obj);
+	}
+
 	obj->Create(flag);
 	if (!Scene::Initializing) {
 		obj->PostCreate();
