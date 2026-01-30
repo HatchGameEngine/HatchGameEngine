@@ -161,12 +161,18 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\audio\AudioManager.cpp" />
     <ClCompile Include="..\source\engine\audio\AudioPlayback.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ArrayImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\AssetImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\EntityImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\FontImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\FunctionImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\InstanceImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MapImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MaterialImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\AudioImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\ImageImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\ModelImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\SpriteImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StreamImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp" />
@@ -279,6 +285,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\Importer.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\MD3Model.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\RSDKModel.cpp" />
+    <ClCompile Include="..\source\engine\resourcetypes\Resource.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\ResourceManager.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\SceneFormats\HatchSceneReader.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\sceneformats\RSDKSceneReader.cpp" />
@@ -339,6 +346,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClInclude Include="..\include\engine\rendering\metal\MetalFuncs.h" />
     <ClInclude Include="..\include\engine\rendering\sdl2\SDL2MetalFunc.h" />
     <ClInclude Include="..\include\engine\resourcetypes\modelformats\Importer.h" />
+    <ClInclude Include="..\include\engine\resourcetypes\Resource.h" />
     <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h" />
     <ClInclude Include="..\include\engine\sprites\Animation.h" />
     <ClInclude Include="..\include\engine\textformats\ini\INIStructs.h" />

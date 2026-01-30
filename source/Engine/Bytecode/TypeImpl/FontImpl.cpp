@@ -98,6 +98,20 @@ Stream* GetFontStream(VMValue value, bool& closeStream, Uint32 threadID) {
 	}
 }
 
+Obj* FontImpl::New() {
+	Font* font = new Font();
+	ObjFont* obj = New((void*)font);
+	return (Obj*)obj;
+}
+ObjFont* FontImpl::New(void* fontPtr) {
+	ObjFont* font = (ObjFont*)NewNativeInstance(sizeof(ObjFont));
+	Memory::Track(font, "NewFont");
+	font->Object.Class = Class;
+	font->Object.Destructor = Dispose;
+	font->FontPtr = fontPtr;
+	return font;
+}
+
 void GetDefaultFonts(std::vector<Stream*>& streamList, std::vector<bool>& closeStream) {
 	if (Application::DefaultFontList.size() > 0) {
 		for (size_t i = 0; i < Application::DefaultFontList.size(); i++) {
@@ -149,22 +163,9 @@ void GetDefaultFonts(std::vector<Stream*>& streamList, std::vector<bool>& closeS
  * \paramOpt font (array): The list of fonts. If this argument is not given, it will use font the application was built with, if one is present.
  * \ns Font
  */
-Obj* FontImpl::New() {
-	Font* font = new Font();
-	ObjFont* obj = New((void*)font);
-	return (Obj*)obj;
-}
-ObjFont* FontImpl::New(void* fontPtr) {
-	ObjFont* font = (ObjFont*)NewNativeInstance(sizeof(ObjFont));
-	Memory::Track(font, "NewFont");
-	font->Object.Class = Class;
-	font->Object.Destructor = Dispose;
-	font->FontPtr = (Font*)fontPtr;
-	return font;
-}
 VMValue FontImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 	ObjFont* objFont = AS_FONT(args[0]);
-	Font* font = objFont->FontPtr;
+	Font* font = (Font*)objFont->FontPtr;
 
 	StandardLibrary::CheckAtLeastArgCount(argCount, 1);
 

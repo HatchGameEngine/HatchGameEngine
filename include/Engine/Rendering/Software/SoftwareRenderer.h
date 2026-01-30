@@ -1,6 +1,7 @@
 #ifndef ENGINE_RENDERING_SOFTWARE_SOFTWARERENDERER_H
 #define ENGINE_RENDERING_SOFTWARE_SOFTWARERENDERER_H
 
+#include <Engine/Graphics.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/StandardSDL2.h>

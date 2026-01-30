@@ -30,6 +30,9 @@
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ArrayImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\AssetImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\FontImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -40,6 +43,21 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\MaterialImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\AudioImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\ImageImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\ModelImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\ResourceImpl\SpriteImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp">
@@ -366,6 +384,9 @@
     <ClCompile Include="..\source\engine\resourcetypes\modelformats\RSDKModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\resourcetypes\Resource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\ResourceManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -561,6 +582,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\resourcetypes\modelformats\Importer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\engine\resourcetypes\Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h">

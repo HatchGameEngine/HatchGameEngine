@@ -137,6 +137,7 @@ public:
 		int pitchU,
 		Uint8* pixelsV,
 		int pitchV);
+	static Texture* CopyTexture(Texture* source, Uint32 access);
 	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
 	static int ConvertTextureToRGBA(Texture* texture);
 	static int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);
@@ -475,6 +476,7 @@ public:
 		int frameW,
 		int frameH);
 	static void MakeFrameBufferID(ISprite* sprite);
+	static void UpdateFrameBufferID(ISprite* sprite, AnimFrame* frame);
 	static void DeleteFrameBufferID(ISprite* sprite);
 	static void SetDepthTesting(bool enabled);
 	static bool SpriteRangeCheck(ISprite* sprite, int animation, int frame);

@@ -16,44 +16,16 @@
 #include <Engine/Utilities/StringUtils.h>
 
 Image::Image(const char* filename) {
-	AddRef();
-	Filename = StringUtils::Duplicate(filename);
-	TexturePtr = Image::LoadTextureFromResource(Filename);
+	Type = ASSET_IMAGE;
+
+	TexturePtr = Image::LoadTextureFromResource(filename);
+	Loaded = TexturePtr != nullptr;
 }
+Image::Image(Texture* texture) {
+	Type = ASSET_IMAGE;
 
-Image::Image(Texture* texturePtr) {
-	AddRef();
-	Filename = nullptr;
-	TexturePtr = texturePtr;
-}
-
-void Image::AddRef() {
-	References++;
-}
-
-bool Image::TakeRef() {
-	if (References == 0) {
-		Error::Fatal("Tried to release reference of Image when it had none!");
-	}
-
-	References--;
-
-	return References == 0;
-}
-
-void Image::Dispose() {
-	if (Filename) {
-		Memory::Free(Filename);
-		Filename = NULL;
-	}
-	if (TexturePtr) {
-		Graphics::DisposeTexture(TexturePtr);
-		TexturePtr = NULL;
-	}
-}
-
-Image::~Image() {
-	Dispose();
+	TexturePtr = texture;
+	Loaded = TexturePtr != nullptr;
 }
 
 Uint8 Image::DetectFormat(Stream* stream) {
@@ -81,7 +53,6 @@ bool Image::IsFile(Stream* stream) {
 }
 
 Texture* Image::LoadTextureFromResource(const char* filename) {
-	Texture* texture = NULL;
 	Uint32* data = NULL;
 	Uint32 width = 0;
 	Uint32 height = 0;
@@ -95,7 +66,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		stream->Seek(0);
 	}
 	else {
-		return NULL;
+		return nullptr;
 	}
 
 	if (format == IMAGE_FORMAT_PNG) {
@@ -122,7 +93,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		else {
 			stream->Close();
 			Log::Print(Log::LOG_ERROR, "PNG \"%s\" could not be loaded!", filename);
-			return NULL;
+			return nullptr;
 		}
 	}
 	else if (format == IMAGE_FORMAT_JPEG) {
@@ -144,7 +115,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		else {
 			stream->Close();
 			Log::Print(Log::LOG_ERROR, "JPEG \"%s\" could not be loaded!", filename);
-			return NULL;
+			return nullptr;
 		}
 	}
 	else if (format == IMAGE_FORMAT_GIF) {
@@ -171,13 +142,13 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		else {
 			stream->Close();
 			Log::Print(Log::LOG_ERROR, "GIF \"%s\" could not be loaded!", filename);
-			return NULL;
+			return nullptr;
 		}
 	}
 	else {
 		stream->Close();
 		Log::Print(Log::LOG_ERROR, "Unsupported image format for file \"%s\"!", filename);
-		return NULL;
+		return nullptr;
 	}
 
 	stream->Close();
@@ -197,16 +168,35 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			height,
 			Graphics::MaxTextureWidth,
 			Graphics::MaxTextureHeight);
-		// return NULL;
 	}
 
-	texture = Graphics::CreateTextureFromPixels(width, height, data, width * sizeof(Uint32));
+	Texture* texture = Graphics::CreateTextureFromPixels(width, height, data, width * sizeof(Uint32));
+	if (texture != nullptr) {
+		Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
 
-	Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
+		Memory::Free(data);
+	}
 
-	Graphics::NoInternalTextures = false;
-
-	Memory::Free(data);
+	if (forceSoftwareTextures) {
+		Graphics::NoInternalTextures = false;
+	}
 
 	return texture;
+}
+
+void Image::Unload() {
+	if (!Loaded) {
+		return;
+	}
+
+	if (TexturePtr) {
+		Graphics::DisposeTexture(TexturePtr);
+		TexturePtr = nullptr;
+	}
+
+	Loaded = false;
+}
+
+Image::~Image() {
+	Unload();
 }

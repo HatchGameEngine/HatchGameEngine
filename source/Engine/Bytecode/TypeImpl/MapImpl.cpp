@@ -5,6 +5,8 @@
 
 ObjClass* MapImpl::Class = nullptr;
 
+#define CLASS_MAP "$$MapImpl"
+
 void MapImpl::Init() {
 	Class = NewClass(CLASS_MAP);
 

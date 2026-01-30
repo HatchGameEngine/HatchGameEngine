@@ -39,7 +39,7 @@ struct TileAnimator {
 		FrameDuration = animationPtr->Frames[FrameIndex].Duration;
 		FrameCount = (int)animationPtr->Frames.size();
 		LoopIndex = animationPtr->FrameToLoop;
-		Speed = animationPtr->AnimationSpeed;
+		Speed = animationPtr->Speed;
 		Timer = 0.0;
 	}
 

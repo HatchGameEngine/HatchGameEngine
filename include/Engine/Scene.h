@@ -20,6 +20,7 @@ class DrawGroupList;
 #include <Engine/Scene/TileConfig.h>
 #include <Engine/Scene/TileSpriteInfo.h>
 #include <Engine/Scene/View.h>
+#include <Engine/Sprites/Animator.h>
 #include <Engine/Types/DrawGroupList.h>
 #include <Engine/Types/EntityTypes.h>
 #include <Engine/Types/ObjectList.h>
@@ -88,12 +89,6 @@ public:
 	static int BaseTilesetCount;
 	static bool TileCfgLoaded;
 	static vector<TileConfig*> TileCfg;
-	static vector<ResourceType*> SpriteList;
-	static vector<ResourceType*> ImageList;
-	static vector<ResourceType*> SoundList;
-	static vector<ResourceType*> MusicList;
-	static vector<ResourceType*> ModelList;
-	static vector<ResourceType*> MediaList;
 	static vector<GameTexture*> TextureList;
 	static vector<Animator*> AnimatorList;
 	static int Frame;
@@ -194,20 +189,6 @@ public:
 	static bool AddTileset(char* path);
 	static void LoadTileCollisions(const char* filename, size_t tilesetID);
 	static void UnloadTileCollisions();
-	static bool GetResourceListSpace(vector<ResourceType*>* list,
-		ResourceType* resource,
-		size_t& index,
-		bool& foundEmpty);
-	static bool GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index);
-	static int LoadSpriteResource(const char* filename, int unloadPolicy);
-	static int LoadImageResource(const char* filename, int unloadPolicy);
-	static int AddImageResource(Image* image, const char* filename, int unloadPolicy);
-	static int LoadModelResource(const char* filename, int unloadPolicy);
-	static int LoadMusicResource(const char* filename, int unloadPolicy);
-	static int LoadSoundResource(const char* filename, int unloadPolicy);
-	static int LoadVideoResource(const char* filename, int unloadPolicy);
-	static ResourceType* GetSpriteResource(int index);
-	static ResourceType* GetImageResource(int index);
 	static void DisposeInScope(Uint32 scope);
 	static void Dispose();
 	static void UnloadTilesets();

@@ -1,4 +1,5 @@
 #include <Engine/Audio/AudioIncludes.h>
+#include <Engine/Audio/AudioManager.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
@@ -10,10 +11,14 @@
 #include <Engine/ResourceTypes/SoundFormats/WAV.h>
 
 ISound::ISound(const char* filename) {
-	ISound::Load(filename, true);
+	Type = ASSET_AUDIO;
+
+	Loaded = Load(filename, true);
 }
 ISound::ISound(const char* filename, bool streamFromFile) {
-	ISound::Load(filename, streamFromFile);
+	Type = ASSET_AUDIO;
+
+	Loaded = Load(filename, streamFromFile);
 }
 
 Uint8 ISound::DetectFormat(Stream* stream) {
@@ -35,21 +40,18 @@ bool ISound::IsFile(Stream* stream) {
 	return DetectFormat(stream) != AUDIO_FORMAT_UNKNOWN;
 }
 
-void ISound::Load(const char* filename, bool streamFromFile) {
-	LoadFailed = true;
-	StreamFromFile = streamFromFile;
-	Filename = StringUtils::NormalizePath(filename);
-
+bool ISound::Load(const char* filename, bool streamFromFile) {
 	double ticks = Clock::GetTicks();
 
 	Uint8 format = AUDIO_FORMAT_UNKNOWN;
-	Stream* stream = ResourceStream::New(Filename);
+
+	Stream* stream = ResourceStream::New(filename);
 	if (stream) {
 		format = DetectFormat(stream);
 		stream->Seek(0);
 	}
 	else {
-		return;
+		return false;
 	}
 
 	// .OGG format
@@ -58,7 +60,8 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 
 		SoundData = OGG::Load(stream);
 		if (!SoundData) {
-			return;
+			stream->Close();
+			return false;
 		}
 
 		Format = SoundData->InputFormat;
@@ -68,7 +71,7 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 		Log::Print(Log::LOG_VERBOSE,
 			"OGG load took %.3f ms (%s)",
 			Clock::GetTicks() - ticks,
-			Filename);
+			filename);
 	}
 	// .WAV format
 	else if (format == AUDIO_FORMAT_WAV) {
@@ -76,7 +79,8 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 
 		SoundData = WAV::Load(stream);
 		if (!SoundData) {
-			return;
+			stream->Close();
+			return false;
 		}
 
 		Format = SoundData->InputFormat;
@@ -84,17 +88,17 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 		Log::Print(Log::LOG_VERBOSE,
 			"WAV load took %.3f ms (%s)",
 			Clock::GetTicks() - ticks,
-			Filename);
+			filename);
 	}
 	// Unsupported format
 	else {
 		stream->Close();
-		Log::Print(Log::LOG_ERROR, "Unsupported audio format for file \"%s\"!", Filename);
-		return;
+		Log::Print(Log::LOG_ERROR, "Unsupported audio format for file \"%s\"!", filename);
+		return false;
 	}
 
 	// If we're not streaming, then load all samples now
-	if (!StreamFromFile) {
+	if (!streamFromFile) {
 		ticks = Clock::GetTicks();
 
 		SoundData->LoadSamples(SoundData->TotalPossibleSamples);
@@ -106,7 +110,9 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 	}
 
 	BytesPerSample = ((Format.format & 0xFF) >> 3) * Format.channels;
-	LoadFailed = false;
+	StreamFromFile = streamFromFile;
+
+	return true;
 }
 
 AudioPlayback* ISound::CreatePlayer() {
@@ -120,15 +126,22 @@ AudioPlayback* ISound::CreatePlayer() {
 	return playback;
 }
 
-void ISound::Dispose() {
+void ISound::Unload() {
+	if (!Loaded) {
+		return;
+	}
+
+	AudioManager::Unload(this);
+
 	if (SoundData) {
 		SoundData->Dispose();
 		delete SoundData;
 		SoundData = nullptr;
 	}
 
-	if (Filename) {
-		Memory::Free(Filename);
-		Filename = nullptr;
-	}
+	Loaded = false;
+}
+
+ISound::~ISound() {
+	Unload();
 }

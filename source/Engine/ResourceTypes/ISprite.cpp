@@ -18,20 +18,23 @@
 #define RSDK_SPRITE_MAGIC 0x00525053
 
 ISprite::ISprite() {
+	Type = ASSET_SPRITE;
+	Loaded = true;
+
 	Spritesheets.clear();
 	Spritesheets.shrink_to_fit();
 	SpritesheetFilenames.clear();
 	SpritesheetFilenames.shrink_to_fit();
-	LoadFailed = true;
-	Filename = nullptr;
 }
 ISprite::ISprite(const char* filename) {
+	Type = ASSET_SPRITE;
+
 	Spritesheets.clear();
 	Spritesheets.shrink_to_fit();
 	SpritesheetFilenames.clear();
 	SpritesheetFilenames.shrink_to_fit();
-	Filename = StringUtils::NormalizePath(filename);
-	LoadFailed = !LoadAnimation(Filename);
+
+	Loaded = LoadAnimation(filename);
 }
 
 size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
@@ -43,18 +46,19 @@ size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
 		}
 	}
 
-	AddSpriteSheet(sheetFilename);
+	if (AddSpriteSheet(sheetFilename)) {
+		return Spritesheets.size() - 1;
+	}
 
-	return Spritesheets.size() - 1;
+	return -1;
 }
 
 Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
-	Texture* texture = nullptr;
-
 	char* filename = StringUtils::NormalizePath(sheetFilename);
 
 	std::string sheetPath = std::string(filename);
 
+	// Check to see if this spritesheet is already loaded.
 	TextureReference* textureRef = Graphics::GetSpriteSheet(sheetPath);
 	if (textureRef != nullptr) {
 		SpritesheetFilenames.push_back(sheetPath);
@@ -63,34 +67,48 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 		return textureRef->TexturePtr;
 	}
 
-	texture = Image::LoadTextureFromResource(filename);
-
-	Graphics::AddSpriteSheet(sheetPath, texture);
-	Spritesheets.push_back(texture);
-	SpritesheetFilenames.push_back(sheetPath);
+	// Wasn't loaded before, so do it now.
+	Texture* texture = Image::LoadTextureFromResource(filename);
+	if (texture) {
+		Graphics::AddSpriteSheet(sheetPath, texture);
+		Spritesheets.push_back(texture);
+		SpritesheetFilenames.push_back(sheetPath);
+	}
 
 	Memory::Free(filename);
 
 	return texture;
 }
 
+void ISprite::MakeSpriteSheetUnique(int sheetID) {
+	if (SpritesheetFilenames[sheetID] == "") {
+		return;
+	}
+
+	Texture* texture = Spritesheets[sheetID];
+	Texture* newTexture = Graphics::CopyTexture(texture, texture->Access);
+
+	Graphics::DisposeSpriteSheet(SpritesheetFilenames[sheetID]);
+
+	Spritesheets[sheetID] = newTexture;
+	SpritesheetFilenames[sheetID] = "";
+}
+
 void ISprite::ReserveAnimationCount(int count) {
 	Animations.reserve(count);
 }
-void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop) {
+void ISprite::AddAnimation(const char* name, int speed, int frameToLoop) {
 	size_t strl = strlen(name);
 
 	Animation an;
-	an.Name = (char*)Memory::Malloc(strl + 1);
-	strcpy(an.Name, name);
-	an.Name[strl] = 0;
-	an.AnimationSpeed = animationSpeed;
+	an.Name = std::string(name);
+	an.Speed = speed;
 	an.FrameToLoop = frameToLoop;
 	an.Flags = 0;
 	Animations.push_back(an);
 }
-void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop, int frmAlloc) {
-	AddAnimation(name, animationSpeed, frameToLoop);
+void ISprite::AddAnimation(const char* name, int speed, int frameToLoop, int frmAlloc) {
+	AddAnimation(name, speed, frameToLoop);
 	Animations.back().Frames.reserve(frmAlloc);
 }
 void ISprite::AddFrame(int duration,
@@ -134,7 +152,7 @@ void ISprite::AddFrame(int animID,
 	int id,
 	int sheetNumber) {
 	AnimFrame anfrm;
-	anfrm.Advance = id;
+	anfrm.ID = id;
 	anfrm.Duration = duration;
 	anfrm.X = left;
 	anfrm.Y = top;
@@ -148,22 +166,46 @@ void ISprite::AddFrame(int animID,
 
 	Animations[animID].Frames.push_back(anfrm);
 }
-void ISprite::RemoveFrames(int animID) {
+void ISprite::RemoveFrame(int animID, int frameID) {
+	Animation& animation = Animations[animID];
+
+	animation.Frames.erase(animation.Frames.begin() + frameID);
+
+	size_t numFrames = animation.Frames.size();
+	if (numFrames == 0) {
+		animation.FrameToLoop = 0;
+	}
+	else if (animation.FrameToLoop == numFrames) {
+		animation.FrameToLoop--;
+	}
+
+	FrameCount--;
+}
+void ISprite::RemoveAllFrames(int animID) {
 	FrameCount -= Animations[animID].Frames.size();
 	Animations[animID].Frames.clear();
+	Animations[animID].FrameToLoop = 0;
 }
 
 void ISprite::RefreshGraphicsID() {
 	Graphics::MakeFrameBufferID(this);
 }
 
+void ISprite::UpdateFrame(int animID, int frameID) {
+	Graphics::UpdateFrameBufferID(this, &Animations[animID].Frames[frameID]);
+}
+
 void ISprite::ConvertToRGBA() {
 	for (int a = 0; a < Spritesheets.size(); a++) {
+		MakeSpriteSheetUnique(a);
+
 		Graphics::ConvertTextureToRGBA(Spritesheets[a]);
 	}
 }
 void ISprite::ConvertToPalette(unsigned paletteNumber) {
 	for (int a = 0; a < Spritesheets.size(); a++) {
+		MakeSpriteSheetUnique(a);
+
 		Graphics::ConvertTextureToPalette(Spritesheets[a], paletteNumber);
 	}
 }
@@ -264,11 +306,13 @@ bool ISprite::LoadAnimation(const char* filename) {
 	int frameID = 0;
 	for (int a = 0; a < animationCount; a++) {
 		Animation an;
-		an.Name = reader->ReadHeaderedString();
-		an.FrameCount = reader->ReadUInt16();
-		an.FrameListOffset = frameID;
-		an.AnimationSpeed = reader->ReadUInt16();
+		char* name = reader->ReadHeaderedString();
+		int frameCount = reader->ReadUInt16();
+		an.Speed = reader->ReadUInt16();
 		an.FrameToLoop = reader->ReadByte();
+
+		an.Name = std::string(name);
+		Memory::Free(name);
 
 		// 0: No rotation
 		// 1: Full rotation
@@ -281,17 +325,17 @@ bool ISprite::LoadAnimation(const char* filename) {
 #ifdef ISPRITE_DEBUG
 		Log::Print(Log::LOG_VERBOSE,
 			"    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)",
-			an.Name,
+			an.Name.c_str(),
 			a,
 			an.Flags,
 			an.FrameToLoop,
-			an.AnimationSpeed,
-			an.FrameCount);
+			an.Speed,
+			frameCount);
 #endif
 
-		an.Frames.resize(an.FrameCount);
+		an.Frames.resize(frameCount);
 
-		for (int i = 0; i < an.FrameCount; i++) {
+		for (int i = 0; i < frameCount; i++) {
 			AnimFrame anfrm;
 			anfrm.SheetNumber = reader->ReadByte();
 			frameID++;
@@ -306,7 +350,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 			}
 
 			anfrm.Duration = reader->ReadInt16();
-			anfrm.Advance = reader->ReadUInt16();
+			anfrm.ID = reader->ReadUInt16();
 			anfrm.X = reader->ReadUInt16();
 			anfrm.Y = reader->ReadUInt16();
 			anfrm.Width = reader->ReadUInt16();
@@ -354,7 +398,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 }
 int ISprite::FindAnimation(const char* animname) {
 	for (Uint32 a = 0; a < Animations.size(); a++) {
-		if (Animations[a].Name[0] == animname[0] && !strcmp(Animations[a].Name, animname)) {
+		if (strcmp(Animations[a].Name.c_str(), animname) == 0) {
 			return a;
 		}
 	}
@@ -428,9 +472,9 @@ bool ISprite::SaveAnimation(const char* filename) {
 	// Write animations
 	for (size_t a = 0; a < Animations.size(); a++) {
 		Animation an = Animations[a];
-		stream->WriteHeaderedString(an.Name);
+		stream->WriteHeaderedString(an.Name.c_str());
 		stream->WriteUInt16(an.Frames.size());
-		stream->WriteUInt16(an.AnimationSpeed);
+		stream->WriteUInt16(an.Speed);
 		stream->WriteByte(an.FrameToLoop);
 
 		// 0: No rotation
@@ -445,7 +489,7 @@ bool ISprite::SaveAnimation(const char* filename) {
 			AnimFrame anfrm = an.Frames[i];
 			stream->WriteByte(anfrm.SheetNumber);
 			stream->WriteUInt16(anfrm.Duration);
-			stream->WriteUInt16(anfrm.Advance);
+			stream->WriteUInt16(anfrm.ID);
 			stream->WriteUInt16(anfrm.X);
 			stream->WriteUInt16(anfrm.Y);
 			stream->WriteUInt16(anfrm.Width);
@@ -481,15 +525,13 @@ bool ISprite::SaveAnimation(const char* filename) {
 	return true;
 }
 
-void ISprite::Dispose() {
+void ISprite::Unload() {
+	if (!Loaded) {
+		return;
+	}
+
 	for (size_t a = 0; a < Animations.size(); a++) {
-		if (Animations[a].Name) {
-			Memory::Free(Animations[a].Name);
-			Animations[a].Name = NULL;
-		}
-
-		RemoveFrames(a);
-
+		RemoveAllFrames(a);
 		Animations[a].Frames.clear();
 		Animations[a].Frames.shrink_to_fit();
 	}
@@ -512,10 +554,9 @@ void ISprite::Dispose() {
 
 	Graphics::DeleteFrameBufferID(this);
 
-	Memory::Free(Filename);
-	Filename = nullptr;
+	Loaded = false;
 }
 
 ISprite::~ISprite() {
-	Dispose();
+	Unload();
 }

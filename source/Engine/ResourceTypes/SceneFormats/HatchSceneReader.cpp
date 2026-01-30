@@ -376,6 +376,7 @@ bool HatchSceneReader::LoadTileset(const char* parentFolder) {
 	int cols = spriteSheet->Width / Scene::TileWidth;
 	int rows = spriteSheet->Height / Scene::TileHeight;
 
+	tileSprite->TakeRef();
 	tileSprite->ReserveAnimationCount(1);
 	tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
 

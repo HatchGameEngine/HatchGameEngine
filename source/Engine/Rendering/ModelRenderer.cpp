@@ -1,3 +1,4 @@
+#include <Engine/Graphics.h>
 #include <Engine/Rendering/ModelRenderer.h>
 #include <Engine/Rendering/PolygonRenderer.h>
 #include <Engine/Utilities/ColorUtils.h>

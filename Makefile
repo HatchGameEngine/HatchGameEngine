@@ -37,12 +37,18 @@ CPPFILES := \
 	source/Engine/Bytecode/SourceFileMap.cpp \
 	source/Engine/Bytecode/StandardLibrary.cpp \
 	source/Engine/Bytecode/TypeImpl/ArrayImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/AssetImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/EntityImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/FontImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/FunctionImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/InstanceImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MapImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/MaterialImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/ResourceImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/ResourceImpl/ModelImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/ShaderImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StreamImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
@@ -148,6 +154,7 @@ CPPFILES := \
 	source/Engine/ResourceTypes/ModelFormats/Importer.cpp \
 	source/Engine/ResourceTypes/ModelFormats/MD3Model.cpp \
 	source/Engine/ResourceTypes/ModelFormats/RSDKModel.cpp \
+	source/Engine/ResourceTypes/Resource.cpp \
 	source/Engine/ResourceTypes/ResourceManager.cpp \
 	source/Engine/ResourceTypes/SceneFormats/HatchSceneReader.cpp \
 	source/Engine/ResourceTypes/SceneFormats/RSDKSceneReader.cpp \
@@ -225,6 +232,7 @@ PRVHFILES := \
 	source/Engine/Rendering/SDL2/SDL2MetalFunc.h \
 	source/Engine/Rendering/Software/Contour.h \
 	source/Engine/Rendering/Software/SoftwareEnums.h \
+	source/Engine/ResourceTypes/Resource.h \
 	source/Engine/ResourceTypes/ResourceType.h \
 	source/Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h \
 	source/Engine/Scene/SceneConfig.h \
@@ -272,12 +280,18 @@ PUBHFILES := \
 	include/Engine/Bytecode/SourceFileMap.h \
 	include/Engine/Bytecode/StandardLibrary.h \
 	include/Engine/Bytecode/TypeImpl/ArrayImpl.h \
+	include/Engine/Bytecode/TypeImpl/AssetImpl.h \
 	include/Engine/Bytecode/TypeImpl/EntityImpl.h \
 	include/Engine/Bytecode/TypeImpl/FontImpl.h \
 	include/Engine/Bytecode/TypeImpl/FunctionImpl.h \
 	include/Engine/Bytecode/TypeImpl/InstanceImpl.h \
 	include/Engine/Bytecode/TypeImpl/MapImpl.h \
 	include/Engine/Bytecode/TypeImpl/MaterialImpl.h \
+	include/Engine/Bytecode/TypeImpl/ResourceImpl.h \
+	include/Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.h \
+	include/Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.h \
+	include/Engine/Bytecode/TypeImpl/ResourceImpl/ModelImpl.h \
+	include/Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h \
 	include/Engine/Bytecode/TypeImpl/ShaderImpl.h \
 	include/Engine/Bytecode/TypeImpl/StreamImpl.h \
 	include/Engine/Bytecode/TypeImpl/StringImpl.h \

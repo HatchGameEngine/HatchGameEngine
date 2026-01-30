@@ -1,3 +1,4 @@
+#include <Engine/ResourceTypes/Resource.h>
 #include <Engine/Types/Entity.h>
 
 int Entity::GetIDWithinClass() {
@@ -13,14 +14,11 @@ void Entity::ApplyMotion() {
 	Y += SpeedY;
 }
 void Entity::Animate() {
-	ResourceType* resource = Scene::GetSpriteResource(Sprite);
-	if (!resource) {
+	if (!Sprite || !Sprite->IsLoaded()) {
 		return;
 	}
 
-	ISprite* sprite = resource->AsSprite;
-	if (!sprite || CurrentAnimation < 0 ||
-		(size_t)CurrentAnimation >= sprite->Animations.size()) {
+	if (CurrentAnimation < 0 || (size_t)CurrentAnimation >= Sprite->Animations.size()) {
 		return;
 	}
 
@@ -37,7 +35,7 @@ void Entity::Animate() {
 		}
 
 		AnimationFrameDuration =
-			sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
+			Sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
 	}
 #else
 	if ((float)AnimationFrameDuration - AnimationTimer > 0.0f) {
@@ -47,25 +45,16 @@ void Entity::Animate() {
 			if (CurrentFrame >= CurrentFrameCount) {
 				CurrentFrame = AnimationLoopIndex;
 				OnAnimationFinish();
-
-				// Sprite may have changed after a call
-				// to OnAnimationFinish
-				ResourceType* resource = Scene::GetSpriteResource(Sprite);
-				if (resource) {
-					sprite = Scene::GetSpriteResource(Sprite)->AsSprite;
-				}
-				else {
-					sprite = nullptr;
-				}
 			}
 
 			// Do a basic range check, for strange loop
 			// points (or just in case CurrentAnimation
 			// happens to be invalid, which is very
 			// possible)
-			if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0 &&
-				CurrentAnimation < sprite->Animations.size()) {
-				AnimationFrameDuration = sprite->Animations[CurrentAnimation]
+			if (Sprite && Sprite->IsLoaded() &&
+				CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0 &&
+				CurrentAnimation < Sprite->Animations.size()) {
+				AnimationFrameDuration = Sprite->Animations[CurrentAnimation]
 								 .Frames[CurrentFrame]
 								 .Duration;
 			}
@@ -87,17 +76,15 @@ void Entity::SetAnimation(int animation, int frame) {
 	}
 }
 void Entity::ResetAnimation(int animation, int frame) {
-	ResourceType* resource = Scene::GetSpriteResource(Sprite);
-	if (!resource) {
+	if (!Sprite || !Sprite->IsLoaded()) {
 		return;
 	}
 
-	ISprite* sprite = resource->AsSprite;
-	if (!sprite || animation < 0 || (size_t)animation >= sprite->Animations.size()) {
+	if (animation < 0 || (size_t)animation >= Sprite->Animations.size()) {
 		return;
 	}
 
-	if (frame < 0 || (size_t)frame >= sprite->Animations[animation].Frames.size()) {
+	if (frame < 0 || (size_t)frame >= Sprite->Animations[animation].Frames.size()) {
 		return;
 	}
 
@@ -105,11 +92,11 @@ void Entity::ResetAnimation(int animation, int frame) {
 	CurrentAnimation = animation;
 	AnimationTimer = 0.0;
 	CurrentFrame = frame;
-	CurrentFrameCount = (int)sprite->Animations[CurrentAnimation].Frames.size();
-	AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
-	AnimationSpeed = sprite->Animations[CurrentAnimation].AnimationSpeed;
-	AnimationLoopIndex = sprite->Animations[CurrentAnimation].FrameToLoop;
-	RotationStyle = sprite->Animations[CurrentAnimation].Flags;
+	CurrentFrameCount = (int)Sprite->Animations[CurrentAnimation].Frames.size();
+	AnimationFrameDuration = Sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
+	AnimationSpeed = Sprite->Animations[CurrentAnimation].Speed;
+	AnimationLoopIndex = Sprite->Animations[CurrentAnimation].FrameToLoop;
+	RotationStyle = Sprite->Animations[CurrentAnimation].Flags;
 	if (RotationStyle == ROTSTYLE_STATICFRAMES) {
 		CurrentFrameCount >>= 1;
 	}
@@ -462,6 +449,8 @@ void Entity::Copy(Entity* other) {
 }
 
 void Entity::CopyFields(Entity* other) {
+	other->SetSprite(Sprite);
+
 #define COPY(which) other->which = which
 	COPY(InitialX);
 	COPY(InitialY);
@@ -515,7 +504,6 @@ void Entity::CopyFields(Entity* other) {
 	COPY(Depth);
 	COPY(OldDepth);
 
-	COPY(Sprite);
 	COPY(CurrentAnimation);
 	COPY(CurrentFrame);
 	COPY(CurrentFrameCount);
@@ -550,6 +538,18 @@ void Entity::CopyFields(Entity* other) {
 #undef COPY
 }
 
+void Entity::SetSprite(ISprite* newSprite) {
+	if (Sprite != nullptr) {
+		Sprite->Release();
+		Sprite = nullptr;
+	}
+
+	if (newSprite != nullptr) {
+		newSprite->TakeRef();
+		Sprite = newSprite;
+	}
+}
+
 void Entity::ApplyPhysics() {}
 
 void Entity::Initialize() {}
@@ -580,4 +580,6 @@ void Entity::RenderLate() {}
 
 void Entity::Remove() {}
 
-void Entity::Dispose() {}
+void Entity::Dispose() {
+	SetSprite(nullptr);
+}

@@ -4,13 +4,14 @@
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
-#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
@@ -64,6 +65,10 @@ ObjString* CopyString(ObjString* string) {
 	heapChars[string->Length] = '\0';
 
 	return AllocateString(heapChars, string->Length, string->Hash);
+}
+ObjString* CopyString(std::string string) {
+	const char* cStr = string.c_str();
+	return CopyString(cStr);
 }
 ObjString* CopyString(std::filesystem::path path) {
 	std::string asStr = Path::ToString(path);

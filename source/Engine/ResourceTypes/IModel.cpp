@@ -2,6 +2,7 @@
 #include <Engine/Math/Vector.h>
 #include <Engine/ResourceTypes/IModel.h>
 
+#include <Engine/Application.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
@@ -14,9 +15,12 @@
 #include <Engine/Utilities/StringUtils.h>
 
 IModel::IModel(const char* filename) {
+	Type = ASSET_MODEL;
+
 	VertexCount = 0;
 	VertexIndexCount = 0;
 	VertexPerFace = 0;
+	BoneCount = 0;
 
 	Meshes.clear();
 	Materials.clear();
@@ -27,17 +31,16 @@ IModel::IModel(const char* filename) {
 	GlobalInverseMatrix = nullptr;
 	UseVertexAnimation = false;
 
-	LoadFailed = true;
-
 	ResourceStream* resourceStream = ResourceStream::New(filename);
 	if (!resourceStream) {
 		return;
 	}
 
-	LoadFailed = !Load(resourceStream, filename);
+	Loaded = Load(resourceStream, filename);
 
 	resourceStream->Close();
 }
+
 bool IModel::IsFile(Stream* stream) {
 	if (HatchModel::IsMagic(stream)) {
 		return true;
@@ -54,6 +57,7 @@ bool IModel::IsFile(Stream* stream) {
 
 	return false;
 }
+
 bool IModel::Load(Stream* stream, const char* filename) {
 	if (!stream || !filename) {
 		return false;
@@ -473,7 +477,11 @@ void IModel::DeleteArmature(size_t index) {
 	}
 }
 
-void IModel::Dispose() {
+void IModel::Unload() {
+	if (!Loaded) {
+		return;
+	}
+
 	// Models don't own their materials, so they do not delete
 	// them.
 	for (size_t i = 0; i < Meshes.size(); i++) {
@@ -496,8 +504,10 @@ void IModel::Dispose() {
 
 	BaseArmature = nullptr;
 	GlobalInverseMatrix = nullptr;
+
+	Loaded = false;
 }
 
 IModel::~IModel() {
-	Dispose();
+	Unload();
 }

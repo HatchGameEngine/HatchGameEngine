@@ -1,11 +1,14 @@
-#include "Engine/Diagnostics/Log.h"
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 
 #include <Engine/Audio/AudioManager.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/FontImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl.h>
+#include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/Value.h>
@@ -37,12 +40,14 @@
 #include <Engine/Rendering/ViewTexture.h>
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
+#include <Engine/ResourceTypes/Resource.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneInfo.h>
+#include <Engine/Sprites/Animator.h>
 #include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -82,6 +87,59 @@
 // Get$1($2, $3, threadID)
 
 namespace LOCAL {
+inline bool ValidateResource(ResourceType* resource, AssetType type, Uint32 threadID) {
+	if (!resource || !resource->Loaded) {
+		THROW_ERROR("Resource is not loaded!");
+		return false;
+	}
+
+	if (resource->Type != type) {
+		THROW_ERROR("Expected resource to be of type '%s' instead of '%s'.",
+		    GetAssetTypeString(type),
+		    GetAssetTypeString(resource->Type));
+		return false;
+	}
+
+	return true;
+}
+inline bool ValidateAsset(void* ptr, AssetType type, Uint32 threadID) {
+	Asset* asset = (Asset*)ptr;
+	if (!asset) {
+		THROW_ERROR("Asset is no longer valid!");
+		return false;
+	}
+
+	if (asset->Type != type) {
+		THROW_ERROR("Expected asset to be of type '%s' instead of '%s'.",
+		    GetAssetTypeString(type),
+		    GetAssetTypeString(asset->Type));
+		return false;
+	}
+
+	return true;
+}
+inline int ExpectedTypeError(VMValue value, Uint32 expectedType, Uint32 threadID) {
+	return THROW_ERROR("Expected value to be of type %s instead of %s.",
+		GetTypeString(expectedType),
+		GetValueTypeString(value));
+}
+inline int ExpectedObjectTypeError(VMValue value, Uint32 expectedType, Uint32 threadID) {
+	return THROW_ERROR("Expected value to be of type %s instead of %s.",
+		GetObjectTypeString(expectedType),
+		GetValueTypeString(value));
+}
+inline int ExpectedTypeError(int index, VMValue value, Uint32 expectedType, Uint32 threadID) {
+	return THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+		index + 1,
+		GetTypeString(expectedType),
+		GetValueTypeString(value));
+}
+inline int ExpectedObjectTypeError(int index, VMValue value, Uint32 expectedType, Uint32 threadID) {
+	return THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+		index + 1,
+		GetObjectTypeString(expectedType),
+		GetValueTypeString(value));
+}
 inline int GetInteger(VMValue* args, int index, Uint32 threadID) {
 	int value = 0;
 	switch (args[index].Type) {
@@ -90,12 +148,7 @@ inline int GetInteger(VMValue* args, int index, Uint32 threadID) {
 		value = AS_INTEGER(args[index]);
 		break;
 	default:
-		if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-			    index + 1,
-			    GetTypeString(VAL_INTEGER),
-			    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
+		ExpectedTypeError(index, args[index], VAL_INTEGER, threadID);
 	}
 	return value;
 }
@@ -111,48 +164,35 @@ inline float GetDecimal(VMValue* args, int index, Uint32 threadID) {
 		value = AS_DECIMAL(Value::CastAsDecimal(args[index]));
 		break;
 	default:
-		if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-			    index + 1,
-			    GetTypeString(VAL_DECIMAL),
-			    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
+		ExpectedTypeError(index, args[index], VAL_DECIMAL, threadID);
 	}
 	return value;
 }
 inline char* GetString(VMValue* args, int index, Uint32 threadID) {
-	char* value = NULL;
+	char* value = nullptr;
 	if (ScriptManager::Lock()) {
 		if (IS_STRING(args[index])) {
 			value = AS_CSTRING(args[index]);
 		}
 		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_STRING),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Unlock();
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
+			ScriptManager::Unlock();
+			ExpectedObjectTypeError(index, args[index], OBJ_STRING, threadID);
+			return nullptr;
 		}
 		ScriptManager::Unlock();
 	}
 	return value;
 }
 inline ObjString* GetVMString(VMValue* args, int index, Uint32 threadID) {
-	ObjString* value = NULL;
+	ObjString* value = nullptr;
 	if (ScriptManager::Lock()) {
 		if (IS_STRING(args[index])) {
 			value = AS_STRING(args[index]);
 		}
 		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_STRING),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Unlock();
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
+			ScriptManager::Unlock();
+			ExpectedObjectTypeError(index, args[index], OBJ_STRING, threadID);
+			return nullptr;
 		}
 		ScriptManager::Unlock();
 	}
@@ -165,12 +205,7 @@ inline ObjArray* GetArray(VMValue* args, int index, Uint32 threadID) {
 			value = (ObjArray*)(AS_OBJECT(args[index]));
 		}
 		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_ARRAY),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
+			ExpectedObjectTypeError(index, args[index], OBJ_ARRAY, threadID);
 		}
 		ScriptManager::Unlock();
 	}
@@ -183,12 +218,7 @@ inline ObjMap* GetMap(VMValue* args, int index, Uint32 threadID) {
 			value = (ObjMap*)(AS_OBJECT(args[index]));
 		}
 		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_MAP),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
+			ExpectedObjectTypeError(index, args[index], OBJ_MAP, threadID);
 		}
 		ScriptManager::Unlock();
 	}
@@ -258,12 +288,7 @@ inline ObjBoundMethod* GetBoundMethod(VMValue* args, int index, Uint32 threadID)
 			value = (ObjBoundMethod*)(AS_OBJECT(args[index]));
 		}
 		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_BOUND_METHOD),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
+			ExpectedObjectTypeError(index, args[index], OBJ_BOUND_METHOD, threadID);
 		}
 		ScriptManager::Unlock();
 	}
@@ -276,12 +301,7 @@ inline ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
 			value = (ObjFunction*)(AS_OBJECT(args[index]));
 		}
 		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_FUNCTION),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
+			ExpectedObjectTypeError(index, args[index], OBJ_FUNCTION, threadID);
 		}
 		ScriptManager::Unlock();
 	}
@@ -312,12 +332,7 @@ inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 			value = AS_INSTANCE(args[index]);
 		}
 		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_INSTANCE),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
+			ExpectedObjectTypeError(index, args[index], OBJ_INSTANCE, threadID);
 		}
 		ScriptManager::Unlock();
 	}
@@ -330,12 +345,7 @@ inline ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID) {
 			value = AS_ENTITY(args[index]);
 		}
 		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_ENTITY),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
+			ExpectedObjectTypeError(index, args[index], OBJ_ENTITY, threadID);
 		}
 		ScriptManager::Unlock();
 	}
@@ -395,43 +405,86 @@ inline ObjFont* GetFont(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline ResourceType* GetResource(VMValue* args, int index, Uint32 threadID) {
+	if (IS_RESOURCE(args[index])) {
+		void* ptr = ((ObjResource*)(AS_OBJECT(args[index])))->ResourcePtr;
+		return (ResourceType*)ptr;
+	}
 
-inline ISprite* GetSpriteIndex(int where, Uint32 threadID) {
-	if (where < 0 || where >= (int)Scene::SpriteList.size()) {
-		if (THROW_ERROR("Sprite index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+	ExpectedObjectTypeError(index, args[index], OBJ_RESOURCE, threadID);
+
+	return nullptr;
+}
+inline void* GetResource(AssetType type, VMValue* args, int index, Uint32 threadID) {
+	ResourceType* resource = GetResource(args, index, threadID);
+	if (ValidateResource(resource, type, threadID)) {
+		return resource;
+	}
+
+	return nullptr;
+}
+inline Asset* GetValueAsAsset(AssetType type, VMValue value, Uint32 threadID) {
+	if (IS_RESOURCE(value)) {
+		ObjResource* obj = AS_RESOURCE(value);
+		ResourceType* resourcePtr = (ResourceType*)obj->ResourcePtr;
+		if (ValidateResource(resourcePtr, type, threadID)) {
+			return (Asset*)resourcePtr->AsAsset;
 		}
-
-		return NULL;
+	}
+	else if (IS_ASSET(value)) {
+		ObjAsset* obj = AS_ASSET(value);
+		if (ValidateAsset(obj->AssetPtr, type, threadID)) {
+			return (Asset*)obj->AssetPtr;
+		}
 	}
 
-	if (!Scene::SpriteList[where]) {
-		return NULL;
+	return nullptr;
+}
+inline Asset* GetAsset(AssetType type, VMValue value, Uint32 threadID) {
+	Asset* asset = GetValueAsAsset(type, value, threadID);
+	if (asset != nullptr) {
+		return asset;
 	}
 
-	return Scene::SpriteList[where]->AsSprite;
+	if (!(IS_RESOURCE(value) || IS_ASSET(value))) {
+		ExpectedObjectTypeError(value, OBJ_ASSET, threadID);
+	}
+
+	return nullptr;
+}
+inline Asset* GetAsset(AssetType type, VMValue* args, int index, Uint32 threadID) {
+	VMValue value = args[index];
+
+	Asset* asset = GetValueAsAsset(type, value, threadID);
+	if (asset != nullptr) {
+		return asset;
+	}
+
+	if (!(IS_RESOURCE(value) || IS_ASSET(value))) {
+		ExpectedObjectTypeError(index, value, OBJ_ASSET, threadID);
+	}
+
+	return nullptr;
 }
 inline ISprite* GetSprite(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	return GetSpriteIndex(where, threadID);
+	Asset* asset = GetAsset(ASSET_SPRITE, args, index, threadID);
+	return (ISprite*)asset;
 }
 inline Image* GetImage(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::ImageList.size()) {
-		if (THROW_ERROR("Image index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::ImageList[where]) {
-		return NULL;
-	}
-
-	return Scene::ImageList[where]->AsImage;
+	Asset* asset = GetAsset(ASSET_IMAGE, args, index, threadID);
+	return (Image*)asset;
+}
+inline ISound* GetAudio(VMValue* args, int index, Uint32 threadID) {
+	Asset* asset = GetAsset(ASSET_AUDIO, args, index, threadID);
+	return (ISound*)asset;
+}
+inline IModel* GetModel(VMValue* args, int index, Uint32 threadID) {
+	Asset* asset = GetAsset(ASSET_MODEL, args, index, threadID);
+	return (IModel*)asset;
+}
+inline MediaBag* GetVideo(VMValue* args, int index, Uint32 threadID) {
+	Asset* asset = GetAsset(ASSET_VIDEO, args, index, threadID);
+	return (MediaBag*)asset;
 }
 inline GameTexture* GetTexture(VMValue* args, int index, Uint32 threadID) {
 	int where = GetInteger(args, index, threadID);
@@ -449,74 +502,6 @@ inline GameTexture* GetTexture(VMValue* args, int index, Uint32 threadID) {
 	}
 
 	return Scene::TextureList[where];
-}
-inline ISound* GetSound(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::SoundList.size()) {
-		if (THROW_ERROR("Sound index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::SoundList[where]) {
-		return NULL;
-	}
-
-	return Scene::SoundList[where]->AsSound;
-}
-inline ISound* GetMusic(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::MusicList.size()) {
-		if (THROW_ERROR("Music index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::MusicList[where]) {
-		return NULL;
-	}
-
-	return Scene::MusicList[where]->AsMusic;
-}
-inline IModel* GetModel(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::ModelList.size()) {
-		if (THROW_ERROR("Model index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::ModelList[where]) {
-		return NULL;
-	}
-
-	return Scene::ModelList[where]->AsModel;
-}
-inline MediaBag* GetVideo(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::MediaList.size()) {
-		if (THROW_ERROR("Video index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::MediaList[where]) {
-		return NULL;
-	}
-
-	return Scene::MediaList[where]->AsMedia;
 }
 inline Animator* GetAnimator(VMValue* args, int index, Uint32 threadID) {
 	int where = GetInteger(args, index, threadID);
@@ -537,6 +522,21 @@ inline Animator* GetAnimator(VMValue* args, int index, Uint32 threadID) {
 }
 } // namespace LOCAL
 
+int StandardLibrary::ExpectedTypeError(VMValue value, Uint32 expectedType, Uint32 threadID) {
+	return LOCAL::ExpectedTypeError(value, expectedType, threadID);
+}
+int StandardLibrary::ExpectedObjectTypeError(VMValue value, Uint32 expectedType, Uint32 threadID) {
+	return LOCAL::ExpectedObjectTypeError(value, expectedType, threadID);
+}
+int StandardLibrary::ExpectedTypeError(int index, VMValue value, Uint32 expectedType, Uint32 threadID) {
+	return LOCAL::ExpectedTypeError(index, value, expectedType, threadID);
+}
+int StandardLibrary::ExpectedObjectTypeError(int index, VMValue value, Uint32 expectedType, Uint32 threadID) {
+	return LOCAL::ExpectedObjectTypeError(index, value, expectedType, threadID);
+}
+void* StandardLibrary::GetAsset(AssetType type, VMValue value, Uint32 threadID) {
+	return (void*)LOCAL::GetAsset(type, value, threadID);
+}
 // NOTE:
 // Integers specifically need to be whole integers.
 // Floats can be just any countable real number.
@@ -564,8 +564,14 @@ ISprite* StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
 Image* StandardLibrary::GetImage(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetImage(args, index, threadID);
 }
-ISound* StandardLibrary::GetSound(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetSound(args, index, threadID);
+void* StandardLibrary::GetResource(VMValue* args, int index, Uint32 threadID) {
+	return (void*)LOCAL::GetResource(args, index, threadID);
+}
+ISound* StandardLibrary::GetAudio(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetAudio(args, index, threadID);
+}
+IModel* StandardLibrary::GetModel(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetModel(args, index, threadID);
 }
 ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetInstance(args, index, threadID);
@@ -662,8 +668,7 @@ float textAdvance;
 		return NULL_VAL; \
 	}
 
-#define OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) \
-	THROW_ERROR(eType " %d out of range. (%d - %d)", eIdx, eMin, eMax)
+#define OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) VM_OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax)
 
 #define CHECK_PALETTE_INDEX(index) \
 	if (index < 0 || index >= MAX_PALETTE_COUNT) { \
@@ -745,7 +750,7 @@ bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) 
 /***
  * Animator.Create
  * \desc Creates a new animator.
- * \paramOpt sprite (integer): The index of the sprite.
+ * \paramOpt sprite (Sprite): The sprite to use.
  * \paramOpt animationID (integer): Which animation to use.
  * \paramOpt frameID (integer): Which frame to use.
  * \paramOpt unloadPolicy (integer): When to unload the animator.
@@ -755,8 +760,13 @@ bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) 
 VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(0);
 
+	ISprite* sprite = nullptr;
+	if (argCount >= 1) {
+		sprite = GET_ARG(1, GetSprite);
+	}
+
 	Animator* animator = new Animator();
-	animator->Sprite = argCount >= 1 ? GET_ARG(0, GetInteger) : -1;
+	animator->SetSprite(sprite);
 	animator->CurrentAnimation = argCount >= 2 ? GET_ARG(1, GetInteger) : -1;
 	animator->CurrentFrame = argCount >= 3 ? GET_ARG(2, GetInteger) : -1;
 	animator->UnloadPolicy = argCount >= 4 ? GET_ARG(3, GetInteger) : SCOPE_SCENE;
@@ -799,7 +809,7 @@ VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
  * Animator.SetAnimation
  * \desc Sets the current animation and frame of an animator.
  * \param animator (integer): The index of the animator.
- * \param sprite (integer): The index of the sprite.
+ * \param sprite (Sprite): The sprite.
  * \param animationID (integer): The animator's changed animation ID.
  * \param frameID (integer): The animator's changed frame ID.
  * \param forceApply (boolean): Whether to force the animation to go back to the frame if the animation is the same as the current animation.
@@ -808,7 +818,7 @@ VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	int spriteIndex = GET_ARG(1, GetInteger);
+	ISprite* sprite = nullptr; // Arg 1 is the sprite.
 	int animationID = GET_ARG(2, GetInteger);
 	int frameID = GET_ARG(3, GetInteger);
 	int forceApply = GET_ARG(4, GetInteger);
@@ -817,18 +827,20 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (spriteIndex < 0 || spriteIndex >= (int)Scene::SpriteList.size() || !animator) {
+	if (IS_NULL(args[1])) {
 		if (animator) {
 			animator->Frames.clear();
-			animator->Sprite = -1;
+			animator->SetSprite(nullptr);
 			animator->CurrentAnimation = -1;
 			animator->CurrentFrame = -1;
 		}
 		return NULL_VAL;
 	}
+	else {
+		sprite = GET_ARG(1, GetSprite);
+	}
 
-	ISprite* sprite = Scene::SpriteList[spriteIndex]->AsSprite;
-	if (!sprite || animationID < 0 || animationID >= (int)sprite->Animations.size()) {
+	if (animationID < 0 || animationID >= (int)sprite->Animations.size()) {
 		animator->CurrentAnimation = -1;
 		return NULL_VAL;
 	}
@@ -845,13 +857,13 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
+	animator->SetSprite(sprite);
 	animator->Frames = frames;
 	animator->AnimationTimer = 0;
-	animator->Sprite = spriteIndex;
 	animator->CurrentFrame = frameID;
-	animator->FrameCount = anim.FrameCount;
+	animator->FrameCount = anim.Frames.size();
 	animator->Duration = animator->Frames[frameID].Duration;
-	animator->AnimationSpeed = anim.AnimationSpeed;
+	animator->AnimationSpeed = anim.Speed;
 	animator->RotationStyle = anim.Flags;
 	animator->LoopIndex = anim.FrameToLoop;
 	animator->PrevAnimation = animator->CurrentAnimation;
@@ -877,7 +889,7 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	ResourceType* resource = Scene::GetSpriteResource(animator->Sprite);
+	ResourceType* resource = (ResourceType*)animator->Sprite;
 	if (!resource) {
 		return NULL_VAL;
 	}
@@ -913,18 +925,18 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Animator.GetSprite
- * \desc Gets the sprite index of an animator.
+ * \desc Gets the sprite of an animator.
  * \param animator (integer): The index of the animator.
- * \return integer Returns an integer value.
+ * \return <ref Sprite> Returns a Sprite.
  * \ns Animator
  */
 VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
-	if (!animator) {
-		return INTEGER_VAL(0);
+	if (!animator || !animator->Sprite) {
+		return NULL_VAL;
 	}
-	return INTEGER_VAL(animator->Sprite);
+	return OBJECT_VAL(animator->Sprite->GetVMObject());
 }
 /***
  * Animator.GetCurrentAnimation
@@ -968,11 +980,12 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	int hitboxID = GET_ARG_OPT(1, GetInteger, 0);
-	// Do not throw errors here because Animators are allowed to have negative sprite, animation, and frame indexes
-	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
+	// Do not throw errors here because Animators are allowed to have negative animation and frame indexes
+	if (animator && animator->Sprite != nullptr && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
-		if (!sprite) {
+		ISprite* sprite = animator->Sprite;
+		if (!sprite->IsLoaded()) {
+			THROW_ERROR("Sprite is no longer valid!");
 			return NULL_VAL;
 		}
 
@@ -1116,9 +1129,9 @@ VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
 }
 /***
  * Animator.SetSprite
- * \desc Sets the sprite index of an animator.
+ * \desc Sets the sprite of an animator.
  * \param animator (integer): The animator index to change.
- * \param spriteID (integer): The sprite ID.
+ * \param sprite (Sprite): The sprite to use, or `null`.
  * \ns Animator
  */
 VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -1127,7 +1140,13 @@ VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
 	if (!animator) {
 		return NULL_VAL;
 	}
-	animator->Sprite = GET_ARG(1, GetInteger);
+	if (IS_NULL(args[1])) {
+		animator->SetSprite(nullptr);
+	}
+	else {
+		ISprite* sprite = GET_ARG(1, GetSprite);
+		animator->SetSprite(sprite);
+	}
 	return NULL_VAL;
 }
 /***
@@ -3381,7 +3400,7 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Sprite
  * \desc Draws a sprite.
- * \param sprite (integer): Index of the loaded sprite.
+ * \param sprite (Sprite): The sprite.
  * \param animation (integer): Index of the animation entry.
  * \param frame (integer): Index of the frame in the animation entry.
  * \param x (number): X position of where to draw the sprite.
@@ -3398,7 +3417,7 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(7);
 
-	ISprite* sprite = (GET_ARG(0, GetInteger) > -1) ? GET_ARG(0, GetSprite) : NULL;
+	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
 	int x = (int)GET_ARG(3, GetDecimal);
@@ -3413,7 +3432,7 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 
 	CHECK_PALETTE_INDEX(paletteID);
 
-	if (sprite && animation >= 0 && frame >= 0) {
+	if (animation >= 0 && frame >= 0) {
 		if (useInteger) {
 			int rot = (int)rotation;
 			switch (int rotationStyle = sprite->Animations[animation].Flags) {
@@ -3469,10 +3488,10 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 	Entity* entity = (Entity*)instance->EntityPtr;
 	int x = (int)GET_ARG_OPT(1, GetDecimal, entity->X);
 	int y = (int)GET_ARG_OPT(2, GetDecimal, entity->Y);
-	ISprite* sprite = GetSpriteIndex(entity->Sprite, threadID);
+	ISprite* sprite = entity->Sprite;
 	float rotation = 0.0f;
 
-	if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
+	if (entity && sprite && sprite->IsLoaded() && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
 		int rot = (int)entity->Rotation;
 		int frame = entity->CurrentFrame;
 		switch (entity->RotationStyle) {
@@ -3619,10 +3638,11 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
+	if (animator->Sprite != nullptr && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
-		if (!sprite) {
+		ISprite* sprite = animator->Sprite;
+		if (!sprite->IsLoaded()) {
+			THROW_ERROR("Sprite is no longer valid!");
 			return NULL_VAL;
 		}
 
@@ -3686,10 +3706,11 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
+	if (entity && animator->Sprite != nullptr && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
-		if (!sprite) {
+		ISprite* sprite = animator->Sprite;
+		if (!sprite->IsLoaded()) {
+			THROW_ERROR("Sprite is no longer valid!");
 			return NULL_VAL;
 		}
 
@@ -3813,7 +3834,7 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SpritePart
  * \desc Draws part of a sprite.
- * \param sprite (integer): Index of the loaded sprite.
+ * \param sprite (Sprite): The sprite.
  * \param animation (integer): Index of the animation entry.
  * \param frame (integer): Index of the frame in the animation entry.
  * \param x (number): X position of where to draw the sprite.
@@ -3834,7 +3855,7 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(11);
 
-	ISprite* sprite = (GET_ARG(0, GetInteger) > -1) ? GET_ARG(0, GetSprite) : NULL;
+	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
 	int x = (int)GET_ARG(3, GetDecimal);
@@ -3901,7 +3922,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.Image
  * \desc Draws an image.
- * \param image (integer): Index of the loaded image.
+ * \param image (Image): Index of the loaded image.
  * \param x (number): X position of where to draw the image.
  * \param y (number): Y position of where to draw the image.
  * \paramOpt paletteID (integer): Which palette index to use.
@@ -3934,7 +3955,7 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ImagePart
  * \desc Draws part of an image.
- * \param image (integer): Index of the loaded image.
+ * \param image (Image): Index of the loaded image.
  * \param partX (integer): X coordinate of part of image to draw.
  * \param partY (integer): Y coordinate of part of image to draw.
  * \param partW (integer): Width of part of image to draw.
@@ -3966,7 +3987,7 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ImageSized
  * \desc Draws an image, but sized.
- * \param image (integer): Index of the loaded image.
+ * \param image (Image): Index of the loaded image.
  * \param x (number): X position of where to draw the image.
  * \param y (number): Y position of where to draw the image.
  * \param width (number): Width to draw the image.
@@ -4003,7 +4024,7 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.ImagePartSized
  * \desc Draws part of an image, but sized.
- * \param image (integer): Index of the loaded image.
+ * \param image (Image): Index of the loaded image.
  * \param partX (integer): X coordinate of part of image to draw.
  * \param partY (integer): Y coordinate of part of image to draw.
  * \param partW (integer): Width of part of image to draw.
@@ -4824,7 +4845,7 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.TextArray
  * \desc Draws a series of sprites based on a converted sprite string.
- * \param sprite (integer): The index of the loaded sprite to be used as text.
+ * \param sprite (Sprite): The sprite to be used as text.
  * \param animation (integer): The animation index.
  * \param x (number): The X value to begin drawing.
  * \param y (number): The Y value to begin drawing.
@@ -4875,8 +4896,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
+							curChar < (int)sprite->Animations[animation]
+									  .Frames.size()) {
 							AnimFrame frame =
 								sprite->Animations[animation]
 									.Frames[curChar];
@@ -4918,8 +4939,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
+							curChar < (int)sprite->Animations[animation]
+									  .Frames.size()) {
 							AnimFrame frame =
 								sprite->Animations[animation]
 									.Frames[curChar];
@@ -4953,8 +4974,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
+							curChar < (int)sprite->Animations[animation]
+									  .Frames.size()) {
 							AnimFrame frame =
 								sprite->Animations[animation]
 									.Frames[curChar];
@@ -4996,8 +5017,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
+							curChar < (int)sprite->Animations[animation]
+									  .Frames.size()) {
 							AnimFrame frame =
 								sprite->Animations[animation]
 									.Frames[curChar];
@@ -5027,7 +5048,7 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					}
 					if (curChar >= 0 &&
 						curChar <
-							sprite->Animations[animation].FrameCount) {
+							(int)sprite->Animations[animation].Frames.size()) {
 						totalWidth += sprite->Animations[animation]
 								      .Frames[curChar]
 								      .Width +
@@ -5047,8 +5068,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
+							curChar < (int)sprite->Animations[animation]
+									  .Frames.size()) {
 							AnimFrame frame =
 								sprite->Animations[animation]
 									.Frames[curChar];
@@ -5090,8 +5111,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
-							curChar < sprite->Animations[animation]
-									  .FrameCount) {
+							curChar < (int)sprite->Animations[animation]
+									  .Frames.size()) {
 							AnimFrame frame =
 								sprite->Animations[animation]
 									.Frames[curChar];
@@ -5629,7 +5650,7 @@ VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.TriangleTextured
  * \desc Draws a textured triangle.
- * \param image (integer): Image to draw triangle with.
+ * \param image (Image): Image to draw triangle with.
  * \param x1 (number): X position of the first vertex.
  * \param y1 (number): Y position of the first vertex.
  * \param x2 (number): X position of the second vertex.
@@ -5675,7 +5696,7 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.QuadTextured
  * \desc Draws a textured quad.
- * \param image (integer): Image to draw quad with.
+ * \param image (Image): Image to draw quad with.
  * \param x1 (number): X position of the first vertex.
  * \param y1 (number): Y position of the first vertex.
  * \param x2 (number): X position of the second vertex.
@@ -6477,7 +6498,7 @@ VMValue Draw3D_Quad(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.Sprite
  * \desc Draws a sprite in 3D space.
- * \param sprite (integer): Index of the loaded sprite.
+ * \param sprite (Sprite): The sprite.
  * \param animation (integer): Index of the animation entry.
  * \param frame (integer): Index of the frame in the animation entry.
  * \param x (number): X position of where to draw the sprite.
@@ -6549,7 +6570,7 @@ VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.SpritePart
  * \desc Draws part of a sprite in 3D space.
- * \param sprite (integer): Index of the loaded sprite.
+ * \param sprite (Sprite): The sprite.
  * \param animation (integer): Index of the animation entry.
  * \param frame (integer): Index of the frame in the animation entry.
  * \param x (number): X position of where to draw the sprite.
@@ -6622,7 +6643,7 @@ VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.Image
  * \desc Draws an image in 3D space.
- * \param image (integer): Index of the loaded image.
+ * \param image (Image): Index of the loaded image.
  * \param x (number): X position of where to draw the image.
  * \param y (number): Y position of where to draw the image.
  * \param z (number): Z position of where to draw the image.
@@ -6660,7 +6681,7 @@ VMValue Draw3D_Image(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.ImagePart
  * \desc Draws part of an image in 3D space.
- * \param image (integer): Index of the loaded image.
+ * \param image (Image): Index of the loaded image.
  * \param x (number): X position of where to draw the image.
  * \param y (number): Y position of where to draw the image.
  * \param z (number): Z position of where to draw the image.
@@ -6766,7 +6787,7 @@ VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.TriangleTextured
  * \desc Draws a textured triangle in 3D space. The texture source should be an image.
- * \param image (integer): Index of the loaded image.
+ * \param image (Image): Index of the loaded image.
  * \param x1 (number): X position of the first vertex.
  * \param y1 (number): Y position of the first vertex.
  * \param z1 (number): Z position of the first vertex.
@@ -6825,7 +6846,7 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.QuadTextured
  * \desc Draws a textured quad in 3D space. The texture source should be an image.
- * \param image (integer): Index of the loaded image.
+ * \param image (Image): Index of the loaded image.
  * \param x1 (number): X position of the first vertex.
  * \param y1 (number): Y position of the first vertex.
  * \param z1 (number): Z position of the first vertex.
@@ -6892,7 +6913,7 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.SpritePoints
  * \desc Draws a textured rectangle in 3D space. The texture source should be a sprite.
- * \param sprite (integer): Index of the loaded sprite.
+ * \param sprite (Sprite): The sprite.
  * \param animation (integer): Index of the animation entry.
  * \param frame (integer): Index of the frame in the animation entry.
  * \param flipX (integer): Whether to flip the sprite horizontally.
@@ -7922,8 +7943,9 @@ VMValue HTTP_GetToFile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Image.GetWidth
  * \desc Gets the width of the specified image.
- * \param image (integer): The image index to check.
+ * \param image (Image): The image to check.
  * \return integer Returns an integer value.
+ * \deprecated Use <ref Image.Width> instead.
  * \ns Image
  */
 VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
@@ -7938,8 +7960,9 @@ VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Image.GetHeight
  * \desc Gets the height of the specified image.
- * \param image (integer): The image index to check.
+ * \param image (Image): The image to check.
  * \return integer Returns an integer value.
+ * \deprecated Use <ref Image.Height> instead.
  * \ns Image
  */
 VMValue Image_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
@@ -11123,24 +11146,13 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
-#define CHECK_MODEL_ANIMATION_INDEX(animation) \
-	if (animation < 0 || animation >= (signed)model->Animations.size()) { \
-		OUT_OF_RANGE_ERROR("Animation index", animation, 0, model->Animations.size() - 1); \
-		return NULL_VAL; \
-	}
-
-#define CHECK_ARMATURE_INDEX(armature) \
-	if (armature < 0 || armature >= (signed)model->Armatures.size()) { \
-		OUT_OF_RANGE_ERROR("Armature index", armature, 0, model->Armatures.size() - 1); \
-		return NULL_VAL; \
-	}
-
 // #region Model
 /***
  * Model.GetVertexCount
  * \desc Returns how many vertices are in the model.
  * \param model (integer): The model index to check.
  * \return integer The vertex count.
+ * \deprecated Use <ref Model.VertexCount> instead.
  * \ns Model
  */
 VMValue Model_GetVertexCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -11156,6 +11168,7 @@ VMValue Model_GetVertexCount(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Returns how many animations exist in the model.
  * \param model (integer): The model index to check.
  * \return integer Returns an integer value.
+ * \deprecated Use <ref Model.AnimationCount> instead.
  * \ns Model
  */
 VMValue Model_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -11165,50 +11178,6 @@ VMValue Model_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
 		return INTEGER_VAL(0);
 	}
 	return INTEGER_VAL((int)model->Animations.size());
-}
-/***
- * Model.GetAnimationName
- * \desc Gets the name of the model animation with the specified index.
- * \param model (integer): The model index to check.
- * \param animation (integer): Index of the animation.
- * \return string Returns the animation name, or `null` if the model contains no animations.
- * \ns Model
- */
-VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-
-	IModel* model = GET_ARG(0, GetModel);
-	int animation = GET_ARG(1, GetInteger);
-
-	if (!model || model->Animations.size() == 0) {
-		return NULL_VAL;
-	}
-
-	CHECK_MODEL_ANIMATION_INDEX(animation);
-
-	const char* animationName = model->Animations[animation]->Name;
-	if (!animationName) {
-		return NULL_VAL;
-	}
-
-	return ReturnString(animationName);
-}
-/***
- * Model.GetAnimationIndex
- * \desc Gets the index of the model animation with the specified name.
- * \param model (integer): The model index to check.
- * \param animationName (string): Name of the animation to find.
- * \return integer Returns the animation index, or `-1` if the animation could not be found. Will always return `-1` if the model contains no animations.
- * \ns Model
- */
-VMValue Model_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	IModel* model = GET_ARG(0, GetModel);
-	if (!model) {
-		return INTEGER_VAL(-1);
-	}
-	char* animationName = GET_ARG(1, GetString);
-	return INTEGER_VAL(model->GetAnimationIndex(animationName));
 }
 /***
  * Model.GetFrameCount
@@ -11227,29 +11196,11 @@ VMValue Model_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)model->Meshes[0]->FrameCount);
 }
 /***
- * Model.GetAnimationLength
- * \desc Returns the length of the animation.
- * \param model (integer): The model index to check.
- * \param animation (integer): The animation index to check.
- * \return integer The number of keyframes in the animation.
- * \ns Model
- */
-VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	IModel* model = GET_ARG(0, GetModel);
-	int animation = GET_ARG(1, GetInteger);
-	if (!model) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_MODEL_ANIMATION_INDEX(animation);
-	return INTEGER_VAL((int)model->Animations[animation]->Length);
-}
-/***
  * Model.HasMaterials
  * \desc Checks to see if the model has materials.
  * \param model (integer): The model index to check.
  * \return boolean Returns whether the model has materials.
- * \deprecated Use <ref Model.GetMaterialCount> instead.
+ * \deprecated Use <ref Model.MaterialCount> instead.
  * \ns Model
  */
 VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
@@ -11265,6 +11216,7 @@ VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Checks to see if the model has bones.
  * \param model (integer): The model index to check.
  * \return boolean Returns whether the model has bones.
+ * \deprecated Use <ref Model.BoneCount> instead.
  * \ns Model
  */
 VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
@@ -11280,6 +11232,7 @@ VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Returns the amount of materials in the model.
  * \param model (integer): The model index to check.
  * \return integer Returns an integer value.
+ * \deprecated Use <ref Model.MaterialCount> instead.
  * \ns Model
  */
 VMValue Model_GetMaterialCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -11290,154 +11243,13 @@ VMValue Model_GetMaterialCount(int argCount, VMValue* args, Uint32 threadID) {
 	}
 	return INTEGER_VAL((int)model->Materials.size());
 }
-/***
- * Model.GetMaterial
- * \desc Gets a material from a model.
- * \param model (integer): The model index to check.
- * \param material (string): The material to get, from its name.
- * \return Material Returns a <ref Material>, or `null` if the model has no materials.
- * \ns Model
- */
-/***
- * Model.GetMaterial
- * \desc Gets a material from a model.
- * \param model (integer): The model index to check.
- * \param material (integer): The material to get, from its index.
- * \return Material Returns a <ref Material>, or `null` if the model has no materials.
- * \ns Model
- */
-VMValue Model_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-
-	IModel* model = GET_ARG(0, GetModel);
-	if (!model || model->Materials.size() == 0) {
-		return INTEGER_VAL(0);
-	}
-
-	Material* material = nullptr;
-
-	if (IS_INTEGER(args[1])) {
-		int materialIndex = GET_ARG(1, GetInteger);
-		if (materialIndex < 0 || (size_t)materialIndex >= model->Materials.size()) {
-			OUT_OF_RANGE_ERROR(
-				"Material index", materialIndex, 0, (int)model->Materials.size());
-			return NULL_VAL;
-		}
-		material = model->Materials[materialIndex];
-	}
-	else {
-		char* materialName = GET_ARG(1, GetString);
-		size_t idx = model->FindMaterial(materialName);
-		if (idx == -1) {
-			THROW_ERROR("Model has no material named \"%s\".", materialName);
-			return NULL_VAL;
-		}
-		material = model->Materials[idx];
-	}
-
-	return OBJECT_VAL(material->Object);
-}
-/***
- * Model.CreateArmature
- * \desc Creates an armature from the model.
- * \param model (integer): The model index.
- * \return integer Returns the index of the armature.
- * \ns Model
- */
-VMValue Model_CreateArmature(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	IModel* model = GET_ARG(0, GetModel);
-	if (!model) {
-		return INTEGER_VAL(-1);
-	}
-	return INTEGER_VAL(model->NewArmature());
-}
-/***
- * Model.PoseArmature
- * \desc Poses an armature.
- * \param model (integer): The model index.
- * \param armature (integer): The armature index to pose.
- * \paramOpt animation (integer): Animation to pose the armature.
- * \paramOpt frame (decimal): Frame to pose the armature.
- * \ns Model
- */
-VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(2);
-	IModel* model = GET_ARG(0, GetModel);
-	int armature = GET_ARG(1, GetInteger);
-
-	if (!model) {
-		return NULL_VAL;
-	}
-
-	CHECK_ARMATURE_INDEX(armature);
-
-	if (argCount >= 3) {
-		int animation = GET_ARG(2, GetInteger);
-		int frame = GET_ARG(3, GetDecimal) * 0x100;
-		if (frame < 0) {
-			frame = 0;
-		}
-
-		CHECK_MODEL_ANIMATION_INDEX(animation);
-
-		model->Animate(model->Armatures[armature], model->Animations[animation], frame);
-	}
-	else {
-		// Just update the skeletons
-		model->Armatures[armature]->UpdateSkeletons();
-	}
-
-	return NULL_VAL;
-}
-/***
- * Model.ResetArmature
- * \desc Resets an armature to its default pose.
- * \param model (integer): The model index.
- * \param armature (integer): The armature index to reset.
- * \return
- * \ns Model
- */
-VMValue Model_ResetArmature(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	IModel* model = GET_ARG(0, GetModel);
-	int armature = GET_ARG(1, GetInteger);
-	if (!model) {
-		return NULL_VAL;
-	}
-	CHECK_ARMATURE_INDEX(armature);
-	model->Armatures[armature]->Reset();
-	return NULL_VAL;
-}
-/***
- * Model.DeleteArmature
- * \desc Deletes an armature from the model.
- * \param model (integer): The model index.
- * \param armature (integer): The armature index to delete.
- * \return
- * \ns Model
- */
-VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	IModel* model = GET_ARG(0, GetModel);
-	int armature = GET_ARG(1, GetInteger);
-	if (!model) {
-		return NULL_VAL;
-	}
-	CHECK_ARMATURE_INDEX(armature);
-	model->DeleteArmature((size_t)armature);
-	return NULL_VAL;
-}
 // #endregion
-
-#undef CHECK_MODEL_ANIMATION_INDEX
-#undef CHECK_ARMATURE_INDEX
 
 // #region Music
 /***
  * Music.Play
  * \desc Places the music onto the music stack and plays it.
- * \param music (integer): The music index to play.
+ * \param music (Audio): The audio to play as music.
  * \paramOpt loopPoint (integer): Loop point in samples. Use <ref AUDIO_LOOP_NONE> to play the track once or <ref AUDIO_LOOP_DEFAULT> to use the audio file's metadata. (default: <ref AUDIO_LOOP_DEFAULT>)
  * \paramOpt panning (decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (default: `0.0`)
  * \paramOpt speed (decimal): Control the speed of the audio. Higher than 1.0 makes it faster, lesser than 1.0 is slower, 1.0 is normal speed. (default: `1.0`)
@@ -11448,7 +11260,7 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetMusic);
+	ISound* audio = GET_ARG(0, GetAudio);
 	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
 					 : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
@@ -11488,12 +11300,12 @@ VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.Stop
  * \desc Removes the music from the music stack, stopping it if currently playing.
- * \param music (integer): The music index to stop.
+ * \param music (Audio): The music to stop.
  * \ns Music
  */
 VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetMusic);
+	ISound* audio = GET_ARG(0, GetAudio);
 	if (audio) {
 		AudioManager::RemoveMusic(audio);
 	}
@@ -11557,13 +11369,13 @@ VMValue Music_Clear(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.IsPlaying
  * \desc Checks to see if the specified music is currently playing.
- * \param music (integer): The music index to play.
+ * \param music (Audio): The music to play.
  * \return boolean Returns a boolean value.
  * \ns Music
  */
 VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetMusic);
+	ISound* audio = GET_ARG(0, GetAudio);
 	if (!audio) {
 		return INTEGER_VAL(0);
 	}
@@ -11572,13 +11384,13 @@ VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.GetPosition
  * \desc Gets the position of the current track playing.
- * \param music (integer): The music index to get the current position (in seconds) of.
+ * \param music (Audio): The music to get the current position (in seconds) of.
  * \return decimal Returns a decimal value.
  * \ns Music
  */
 VMValue Music_GetPosition(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetMusic);
+	ISound* audio = GET_ARG(0, GetAudio);
 	if (!audio) {
 		return DECIMAL_VAL(0.0);
 	}
@@ -11604,28 +11416,30 @@ VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Music.GetLoopPoint
  * \desc Gets the loop point of a music index, if it has one.
- * \param music (integer): The music index to get the loop point.
+ * \param music (Audio): The audio to get the loop point of.
  * \return integer Returns the loop point in samples, as an integer value, or `null` if the audio does not have one.
+ * \deprecated Use <ref Audio.LoopPoint> instead.
  * \ns Music
  */
 VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetMusic);
-	if (!audio || audio->LoopPoint == -1) {
+	ISound* audio = GET_ARG(0, GetAudio);
+	if (!audio || audio->LoopPoint < 0) {
 		return NULL_VAL;
 	}
 	return INTEGER_VAL(audio->LoopPoint);
 }
 /***
  * Music.SetLoopPoint
- * \desc Sets the loop point of a music index.
- * \param music (integer): The music index to set the loop point.
+ * \desc Sets the loop point of an audio.
+ * \param music (Audio): The audio to set the loop point of.
  * \param loopPoint (integer): The loop point in samples, or `null` to remove the audio's loop point.
+ * \deprecated Use <ref Audio.LoopPoint> instead.
  * \ns Music
  */
 VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	ISound* audio = GET_ARG(0, GetMusic);
+	ISound* audio = GET_ARG(0, GetAudio);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
 		return NULL_VAL;
@@ -11810,6 +11624,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 		RSDKSceneReader::GameConfig_GetColors(filename);
 	}
 	else {
+		// TODO: This sucks.
 		ResourceStream* reader;
 		if ((reader = ResourceStream::New(filename))) {
 			MemoryStream* memoryReader;
@@ -12006,7 +11821,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
  * Palette.LoadFromImage
  * \desc Loads palette from an image resource.
  * \param paletteIndex (integer): Index of palette to load to.
- * \param image (integer): Index of the loaded image.
+ * \param image (Image): An image.
  * \ns Palette
  */
 VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
@@ -12363,12 +12178,20 @@ VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Resources
+ObjResource* LoadResource(AssetType type, char* filename, int unloadPolicy) {
+	ResourceType* resource = Resource::Load(type, filename, unloadPolicy, false);
+	if (resource != nullptr) {
+		return (ObjResource*)(Resource::GetVMObject(resource));
+	}
+
+	return nullptr;
+}
 /***
  * Resources.LoadSprite
- * \desc Loads a Sprite resource, returning its Sprite index.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return integer Returns the index of the Resource.
+ * \desc Loads a Sprite Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
+ * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \ns Resources
  */
 VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -12376,17 +12199,19 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	int result = Scene::LoadSpriteResource(filename, unloadPolicy);
-
-	return INTEGER_VAL(result);
+	ObjResource* object = LoadResource(ASSET_SPRITE, filename, unloadPolicy);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.LoadDynamicSprite
- * \desc Loads a Sprite resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.
+ * \desc Loads a Sprite Resource via the current Scene's resource folder (else a fallback folder) if a scene list is loaded.
  * \param fallbackFolder (string): Folder to check if the sprite does not exist in the current Scene's resource folder.
- * \param name (string): Name of the animation file within the resource folder.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return integer Returns the index of the Resource.
+ * \param name (string): Name of the animation file within the Resource folder.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
+ * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \ns Resources
  */
 VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID) {
@@ -12405,16 +12230,18 @@ VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID
 		snprintf(filename, sizeof(filename), "Sprites/%s/%s.bin", fallbackFolder, name);
 	}
 
-	int result = Scene::LoadSpriteResource(filename, unloadPolicy);
-
-	return INTEGER_VAL(result);
+	ObjResource* object = LoadResource(ASSET_SPRITE, filename, unloadPolicy);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.LoadImage
- * \desc Loads an Image resource, returning its Image index.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return integer Returns the index of the Resource.
+ * \desc Loads an Image Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
+ * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \ns Resources
  */
 VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
@@ -12422,16 +12249,18 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	int result = Scene::LoadImageResource(filename, unloadPolicy);
-
-	return INTEGER_VAL(result);
+	ObjResource* object = LoadResource(ASSET_IMAGE, filename, unloadPolicy);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.LoadModel
- * \desc Loads Model resource, returning its Model index.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return integer Returns the index of the Resource.
+ * \desc Loads a Model Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
+ * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \ns Resources
  */
 VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
@@ -12439,50 +12268,61 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	int result = Scene::LoadModelResource(filename, unloadPolicy);
+	ObjResource* object = LoadResource(ASSET_MODEL, filename, unloadPolicy);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
+}
+/***
+ * Resources.LoadAudio
+ * \desc Loads an Audio Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
+ * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
+ * \ns Resources
+ */
+VMValue Resources_LoadAudio(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	char* filename = GET_ARG(0, GetString);
+	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	return INTEGER_VAL(result);
+	ObjResource* object = LoadResource(ASSET_AUDIO, filename, unloadPolicy);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.LoadMusic
- * \desc Loads a Music resource, returning its Music index.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return integer Returns the index of the Resource.
+ * \desc Loads a Music Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
+ * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
+ * \deprecated Use <ref Resources.LoadAudio> instead.
  * \ns Resources
  */
 VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	char* filename = GET_ARG(0, GetString);
-	int unloadPolicy = GET_ARG(1, GetInteger);
-
-	int result = Scene::LoadMusicResource(filename, unloadPolicy);
-
-	return INTEGER_VAL(result);
+	return Resources_LoadAudio(argCount, args, threadID);
 }
 /***
  * Resources.LoadSound
- * \desc Loads a Sound resource, returning its Sound index.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return integer Returns the index of the Resource.
+ * \desc Loads a Sound Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
+ * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
+ * \deprecated Use <ref Resources.LoadAudio> instead.
  * \ns Resources
  */
 VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	char* filename = GET_ARG(0, GetString);
-	int unloadPolicy = GET_ARG(1, GetInteger);
-
-	int result = Scene::LoadSoundResource(filename, unloadPolicy);
-
-	return INTEGER_VAL(result);
+	return Resources_LoadAudio(argCount, args, threadID);
 }
 /***
  * Resources.LoadVideo
- * \desc Loads a Video resource, returning its Video index.
- * \param filename (string): Filename of the resource.
- * \param unloadPolicy (integer): Whether to unload the resource at the end of the current Scene, or the game end.
- * \return integer Returns the index of the Resource.
+ * \desc Loads a Video Resource.
+ * \param filename (string): Filename of the Resource.
+ * \param unloadPolicy (<ref SCOPE_*>): The unload policy of the Resource.
+ * \return Resource Returns the Resource if it was loaded, or `null` otherwise.
  * \ns Resources
  */
 VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
@@ -12490,9 +12330,11 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
 
-	int result = Scene::LoadVideoResource(filename, unloadPolicy);
-
-	return INTEGER_VAL(result);
+	ObjResource* object = LoadResource(ASSET_VIDEO, filename, unloadPolicy);
+	if (object != nullptr) {
+		return OBJECT_VAL(object);
+	}
+	return NULL_VAL;
 }
 /***
  * Resources.FileExists
@@ -13399,7 +13241,6 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = NewArray();
-		ISprite* tileSprite = animator->Sprite;
 		Animation* animation = animator->GetCurrentAnimation();
 		for (int i = 0; i < animation->Frames.size(); i++) {
 			int x = animation->Frames[i].X / tileset->TileWidth;
@@ -13435,7 +13276,6 @@ VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 t
 
 	if (ScriptManager::Lock()) {
 		ObjArray* array = NewArray();
-		ISprite* tileSprite = animator->Sprite;
 		Animation* animation = animator->GetCurrentAnimation();
 		for (int i = 0; i < animation->Frames.size(); i++) {
 			array->Values->push_back(INTEGER_VAL(animation->Frames[i].Duration));
@@ -13779,7 +13619,7 @@ VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
  * Scene.SetTileAnimSequenceFromSprite
  * \desc Sets an animation sequence for a tile ID.
  * \param tileID (integer): Which tile ID to add an animated sequence to.
- * \param spriteIndex (integer): Sprite index. (`null` to disable)
+ * \param sprite (Sprite): The sprite to use. (`null` to disable)
  * \param animationIndex (integer): Animation index in sprite.
  * \ns Scene
  */
@@ -15809,7 +15649,7 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Play
  * \desc Plays a sound either once or in a loop.
- * \param sound (integer): The sound index to play.
+ * \param sound (Audio): The audio to play as a sound.
  * \paramOpt loopPoint (integer): Loop point in samples. Use <ref AUDIO_LOOP_NONE> to play the sound once or <ref AUDIO_LOOP_DEFAULT> to use the audio file's metadata. (default: <ref AUDIO_LOOP_DEFAULT> )
  * \paramOpt panning (decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (default: `0.0`)
  * \paramOpt speed (decimal): Control the speed of the audio. Higher than 1.0 makes it faster, lesser than 1.0 is slower, 1.0 is normal speed. (default: `1.0`)
@@ -15819,7 +15659,7 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
+	ISound* audio = GET_ARG(0, GetAudio);
 	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
 					 : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
@@ -15853,12 +15693,12 @@ VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Stop
  * \desc Stops an actively playing sound.
- * \param sound (integer): The sound index to stop.
+ * \param sound (Audio): The sound to stop.
  * \ns Sound
  */
 VMValue Sound_Stop(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
+	ISound* audio = GET_ARG(0, GetAudio);
 	if (audio) {
 		AudioManager::AudioStop(audio);
 	}
@@ -15867,12 +15707,12 @@ VMValue Sound_Stop(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Pause
  * \desc Pauses an actively playing sound.
- * \param sound (integer): The sound index to pause.
+ * \param sound (Audio): The sound to pause.
  * \ns Sound
  */
 VMValue Sound_Pause(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
+	ISound* audio = GET_ARG(0, GetAudio);
 	if (audio) {
 		AudioManager::AudioPause(audio);
 	}
@@ -15881,12 +15721,12 @@ VMValue Sound_Pause(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.Resume
  * \desc Unpauses a paused sound.
- * \param sound (integer): The sound index to resume.
+ * \param sound (Audio): The sound to resume.
  * \ns Sound
  */
 VMValue Sound_Resume(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
+	ISound* audio = GET_ARG(0, GetAudio);
 	if (audio) {
 		AudioManager::AudioUnpause(audio);
 	}
@@ -15924,14 +15764,14 @@ VMValue Sound_ResumeAll(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.IsPlaying
- * \param sound (integer): The sound index.
+ * \param sound (Audio): An audio.
  * \desc Checks whether a sound is currently playing
  * \return boolean Returns a boolean value.
  * \ns Sound
  */
 VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
+	ISound* audio = GET_ARG(0, GetAudio);
 	if (!audio) {
 		return INTEGER_VAL(0);
 	}
@@ -15940,7 +15780,7 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.PlayMultiple
  * \desc Plays a sound once or loops it, without interrupting channels playing the same sound.
- * \param sound (integer): The sound index to play.
+ * \param sound (Audio): The audio to play as a sound.
  * \paramOpt loopPoint (integer): Loop point in samples. Use <ref AUDIO_LOOP_NONE> to play the sound once or <ref AUDIO_LOOP_DEFAULT> to use the audio file's metadata. (default: <ref AUDIO_LOOP_DEFAULT>)
  * \paramOpt panning (decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (default: `0.0`)
  * \paramOpt speed (decimal): Control the speed of the audio. Higher than 1.0 makes it faster, lesser than 1.0 is slower, 1.0 is normal speed. (default: `1.0`)
@@ -15950,7 +15790,7 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
+	ISound* audio = GET_ARG(0, GetAudio);
 	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
 					 : GET_ARG_OPT(1, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
@@ -15984,18 +15824,17 @@ VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
  * Sound.PlayAtChannel
  * \desc Plays or loops a sound at the specified channel.
  * \param channel (integer): The channel index.
- * \param sound (integer): The sound index to play.
+ * \param sound (Audio): The audio to play as a sound.
  * \paramOpt loopPoint (integer): Loop point in samples. Use <ref AUDIO_LOOP_NONE> to play the sound once or <ref AUDIO_LOOP_DEFAULT> to use the audio file's metadata. (default: <ref AUDIO_LOOP_DEFAULT>)
  * \paramOpt panning (decimal): Control the panning of the audio. -1.0 makes it sound in left ear only, 1.0 makes it sound in right ear, and closer to 0.0 centers it. (default: `0.0`)
  * \paramOpt speed (decimal): Control the speed of the audio. Higher than 1.0 makes it faster, lesser than 1.0 is slower, 1.0 is normal speed. (default: `1.0`)
  * \paramOpt volume (decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume. (default: `1.0`)
- * \return
  * \ns Sound
  */
 VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int channel = GET_ARG(0, GetInteger);
-	ISound* audio = GET_ARG(1, GetSound);
+	ISound* audio = GET_ARG(1, GetAudio);
 	int loopPoint = IS_NULL(args[2]) ? AUDIO_LOOP_DEFAULT
 					 : GET_ARG_OPT(2, GetInteger, AUDIO_LOOP_DEFAULT);
 	float panning = GET_ARG_OPT(3, GetDecimal, 0.0);
@@ -16118,7 +15957,7 @@ VMValue Sound_GetFreeChannel(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sound.IsChannelFree
  * \desc Checks whether a channel is currently playing any sound.
- * \param sound (integer): The channel index.
+ * \param sound (Audio): The channel index.
  * \ns Sound
  */
 VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
@@ -16132,29 +15971,31 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sound.GetLoopPoint
- * \desc Gets the loop point of a sound index, if it has one.
- * \param sound (integer): The sound index to get the loop point.
+ * \desc Gets the loop point of an audio, if it has one.
+ * \param sound (Audio): The audio to get the loop point of.
  * \return integer Returns the loop point in samples, as an integer value, or `null` if the audio does not have one.
+ * \deprecated Use <ref Audio.LoopPoint> instead.
  * \ns Sound
  */
 VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	ISound* audio = GET_ARG(0, GetSound);
-	if (!audio || audio->LoopPoint == -1) {
+	ISound* audio = GET_ARG(0, GetAudio);
+	if (!audio || audio->LoopPoint < 0) {
 		return NULL_VAL;
 	}
 	return INTEGER_VAL(audio->LoopPoint);
 }
 /***
  * Sound.SetLoopPoint
- * \desc Sets the loop point of a sound index.
- * \param sound (integer): The sound index to set the loop point.
+ * \desc Sets the loop point of an audio.
+ * \param sound (Audio): The audio to set the loop point of.
  * \param loopPoint (integer): The loop point in samples, or `null` to remove the audio's loop point.
+ * \deprecated Use <ref Audio.LoopPoint> instead.
  * \ns Sound
  */
 VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	ISound* audio = GET_ARG(0, GetSound);
+	ISound* audio = GET_ARG(0, GetAudio);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
 	if (!audio) {
 		return NULL_VAL;
@@ -16167,23 +16008,12 @@ VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Sprite
-#define CHECK_ANIMATION_INDEX(idx) \
-	if (idx < 0 || idx >= (int)sprite->Animations.size()) { \
-		OUT_OF_RANGE_ERROR("Animation index", idx, 0, sprite->Animations.size() - 1); \
-		return NULL_VAL; \
-	}
-#define CHECK_ANIMFRAME_INDEX(anim, idx) \
-	CHECK_ANIMATION_INDEX(anim); \
-	if (idx < 0 || idx >= (int)sprite->Animations[anim].Frames.size()) { \
-		OUT_OF_RANGE_ERROR( \
-			"Frame index", idx, 0, sprite->Animations[anim].Frames.size() - 1); \
-		return NULL_VAL; \
-	}
 /***
  * Sprite.GetAnimationCount
  * \desc Gets the amount of animations in the sprite.
- * \param sprite (integer): The sprite index to check.
+ * \param sprite (Sprite): The sprite to check.
  * \return integer Returns the amount of animations in the sprite.
+ * \deprecated Use <ref Sprite.AnimationCount> instead.
  * \ns Sprite
  */
 VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -16195,29 +16025,12 @@ VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)sprite->Animations.size());
 }
 /***
- * Sprite.GetAnimationName
- * \desc Gets the name of the specified animation index in the sprite.
- * \param sprite (integer): The sprite index to check.
- * \param animationIndex (integer): The animation index.
- * \return string Returns the name of the specified animation index.
- * \ns Sprite
- */
-VMValue Sprite_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int index = GET_ARG(1, GetInteger);
-	if (!sprite) {
-		return NULL_VAL;
-	}
-	CHECK_ANIMATION_INDEX(index);
-	return ReturnString(sprite->Animations[index].Name);
-}
-/***
  * Sprite.GetAnimationIndexByName
  * \desc Gets the first animation in the sprite which matches the specified name.
- * \param sprite (integer): The sprite index to check.
+ * \param sprite (Sprite): The sprite to check.
  * \param name (string): The animation name to search for.
- * \return integer Returns the first animation index with the specified name, or -1 if there was no match.
+ * \return Returns the first animation index with the specified name, or `-1` if there was no match.
+ * \deprecated Use <ref Sprite.GetAnimationIndex> instead.
  * \ns Sprite
  */
 VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threadID) {
@@ -16228,7 +16041,7 @@ VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threa
 		return INTEGER_VAL(-1);
 	}
 	for (size_t i = 0; i < sprite->Animations.size(); i++) {
-		if (strcmp(name, sprite->Animations[i].Name) == 0) {
+		if (strcmp(name, sprite->Animations[i].Name.c_str()) == 0) {
 			return INTEGER_VAL((int)i);
 		}
 	}
@@ -16237,10 +16050,11 @@ VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threa
 /***
  * Sprite.GetFrameExists
  * \desc Checks if an animation and frame is valid within a sprite.
- * \param sprite (integer): The sprite index to check.
+ * \param sprite (Sprite): The sprite to check.
  * \param animation (integer): The animation index to check.
- * \param frame (integer): The sprite index to check.
+ * \param frame (integer): The frame index to check.
  * \return boolean Returns whether the frame is valid.
+ * \deprecated Use <ref Sprite.IsFrameValid> instead.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
@@ -16257,268 +16071,38 @@ VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Sprite.GetFrameLoopIndex
  * \desc Gets the index of the frame that the specified animation will loop back to when it finishes.
- * \param sprite (integer): The sprite index to check.
+ * \param sprite (Sprite): The sprite to check.
  * \param animation (integer): The animation index of the sprite to check.
  * \return integer Returns the frame loop index.
+ * \deprecated Use <ref Sprite.GetAnimationLoopFrame> instead.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMATION_INDEX(animation);
-	return INTEGER_VAL(sprite->Animations[animation].FrameToLoop);
+	return SpriteImpl_GetAnimationLoopFrame(argCount, args, threadID);
 }
 /***
  * Sprite.GetFrameCount
  * \desc Gets the amount of frames in the specified animation.
- * \param sprite (integer): The sprite index to check.
+ * \param sprite (Sprite): The sprite to check.
  * \param animation (integer): The animation index of the sprite to check.
  * \return integer Returns the frame count in the specified animation.
+ * \deprecated Use <ref Sprite.GetAnimationFrameCount> instead.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMATION_INDEX(animation);
-	return INTEGER_VAL((int)sprite->Animations[animation].Frames.size());
-}
-/***
- * Sprite.GetFrameDuration
- * \desc Gets the frame duration of the specified sprite frame.
- * \param sprite (integer): The sprite index to check.
- * \param animation (integer): The animation index of the sprite to check.
- * \param frame (integer): The frame index of the animation to check.
- * \return integer Returns the frame duration (in game frames) of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Duration);
+	return SpriteImpl_GetAnimationFrameCount(argCount, args, threadID);
 }
 /***
  * Sprite.GetFrameSpeed
  * \desc Gets the animation speed of the specified animation.
- * \param sprite (integer): The sprite index to check.
+ * \param sprite (Sprite): The sprite to check.
  * \param animation (integer): The animation index of the sprite to check.
  * \return integer Returns an integer.
+ * \deprecated Use <ref Sprite.GetAnimationSpeed> instead.
  * \ns Sprite
  */
 VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMATION_INDEX(animation);
-	return INTEGER_VAL(sprite->Animations[animation].AnimationSpeed);
-}
-/***
- * Sprite.GetFrameWidth
- * \desc Gets the frame width of the specified sprite frame.
- * \param sprite (integer): The sprite index to check.
- * \param animation (integer): The animation index of the sprite to check.
- * \param frame (integer): The frame index of the animation to check.
- * \return integer Returns the frame width (in pixels) of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Width);
-}
-/***
- * Sprite.GetFrameHeight
- * \desc Gets the frame height of the specified sprite frame.
- * \param sprite (integer): The sprite index to check.
- * \param animation (integer): The animation index of the sprite to check.
- * \param frame (integer): The frame index of the animation to check.
- * \return integer Returns the frame height (in pixels) of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Height);
-}
-/***
- * Sprite.GetFrameID
- * \desc Gets the frame ID of the specified sprite frame.
- * \param sprite (integer): The sprite index to check.
- * \param animation (integer): The animation index of the sprite to check.
- * \param frame (integer): The frame index of the animation to check.
- * \return integer Returns the frame ID of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].Advance);
-}
-/***
- * Sprite.GetFrameOffsetX
- * \desc Gets the X offset of the specified sprite frame.
- * \param sprite (integer): The sprite index to check.
- * \param animation (integer): The animation index of the sprite to check.
- * \param frame (integer): The frame index of the animation to check.
- * \return integer Returns the X offset of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetX);
-}
-/***
- * Sprite.GetFrameOffsetY
- * \desc Gets the Y offset of the specified sprite frame.
- * \param sprite (integer): The sprite index to check.
- * \param animation (integer): The animation index of the sprite to check.
- * \param frame (integer): The frame index of the animation to check.
- * \return integer Returns the Y offset of the specified sprite frame.
- * \ns Sprite
- */
-VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	int frame = GET_ARG(2, GetInteger);
-	if (!sprite) {
-		return INTEGER_VAL(0);
-	}
-	CHECK_ANIMFRAME_INDEX(animation, frame);
-	return INTEGER_VAL(sprite->Animations[animation].Frames[frame].OffsetY);
-}
-/***
- * Sprite.GetHitboxName
- * \desc Gets the name of a hitbox through its index.
- * \param sprite (integer): The sprite index to check.
- * \param animationID (integer): The animation index of the sprite to check.
- * \param frame (integer): The frame index of the animation to check.
- * \param hitboxID (integer): The hitbox index to check.
- * \return string Returns a string value.
- * \ns Sprite
- */
-VMValue Sprite_GetHitboxName(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animationID = GET_ARG(1, GetInteger);
-	int frameID = GET_ARG(2, GetInteger);
-	int hitboxID = GET_ARG(3, GetInteger);
-
-	CHECK_ANIMATION_INDEX(animationID);
-	CHECK_ANIMFRAME_INDEX(animationID, frameID);
-
-	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
-
-	if (frame.Boxes.size() == 0) {
-		THROW_ERROR("Frame %d of animation %d contains no hitboxes.", frameID, animationID);
-		return NULL_VAL;
-	}
-	else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
-		THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
-			hitboxID,
-			frameID,
-			animationID);
-		return NULL_VAL;
-	}
-
-	return ReturnString(frame.Boxes[hitboxID].Name);
-}
-/***
- * Sprite.GetHitboxIndex
- * \desc Gets the index of a hitbox by its name.
- * \param sprite (integer): The sprite index to check.
- * \param animationID (integer): The animation index of the sprite to check.
- * \param frame (integer): The frame index of the animation to check.
- * \param name (string): The name of the hitbox to check.
- * \return integer Returns an integer value, or `null` if no such hitbox exists with that name.
- * \ns Sprite
- */
-VMValue Sprite_GetHitboxIndex(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animationID = GET_ARG(1, GetInteger);
-	int frameID = GET_ARG(2, GetInteger);
-	char* name = GET_ARG(3, GetString);
-
-	CHECK_ANIMATION_INDEX(animationID);
-	CHECK_ANIMFRAME_INDEX(animationID, frameID);
-
-	if (name != nullptr) {
-		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
-
-		for (size_t i = 0; i < frame.Boxes.size(); i++) {
-			if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
-				return INTEGER_VAL((int)i);
-			}
-		}
-	}
-
-	return NULL_VAL;
-}
-/***
- * Sprite.GetHitboxCount
- * \desc Gets the hitbox count in the given frame of an animation of a sprite.
- * \param sprite (integer): The sprite index to check.
- * \param animationID (integer): The animation index of the sprite to check.
- * \param frame (integer): The frame index of the animation to check.
- * \return integer Returns an integer value.
- * \ns Sprite
- */
-VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animationID = GET_ARG(1, GetInteger);
-	int frameID = GET_ARG(2, GetInteger);
-
-	CHECK_ANIMATION_INDEX(animationID);
-	CHECK_ANIMFRAME_INDEX(animationID, frameID);
-
-	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
-
-	size_t numHitboxes = frame.Boxes.size();
-
-	return INTEGER_VAL((int)numHitboxes);
+	return SpriteImpl_GetAnimationSpeed(argCount, args, threadID);
 }
 /***
  * Sprite.GetHitbox
@@ -16532,63 +16116,38 @@ VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
  * Sprite.GetHitbox
  * \desc Gets the hitbox of a sprite frame.
  * \param entity (Entity): An entity with `Sprite`, `CurrentAnimation`, and `CurrentFrame` values.
- * \paramOpt hitbox (integer): The hitbox index. (default: `0`)
- * \return hitbox Returns a Hitbox value.
- * \ns Sprite
- */
-/***
- * Sprite.GetHitbox
- * \desc Gets the hitbox of a sprite frame.
- * \param sprite (integer): The sprite index to check.
- * \param animationID (integer): The animation index of the sprite to check.
- * \param frameID (integer): The frame index of the animation to check.
- * \paramOpt hitbox (string): The hitbox name.
- * \return hitbox Returns a Hitbox value.
- * \ns Sprite
- */
-/***
- * Sprite.GetHitbox
- * \desc Gets the hitbox of a sprite frame.
- * \param sprite (integer): The sprite index to check.
- * \param animationID (integer): The animation index of the sprite to check.
- * \param frameID (integer): The frame index of the animation to check.
  * \paramOpt hitbox (integer): The hitbox index. (default: `0`)
  * \return hitbox Returns a Hitbox value.
  * \ns Sprite
  */
 VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	ISprite* sprite;
-	int animationID, frameID, hitboxID = 0;
-	int hitboxArgNum;
 
-	if (argCount <= 2 && IS_ENTITY(args[0])) {
-		ObjEntity* ent = GET_ARG(0, GetEntity);
-		Entity* entity = (Entity*)ent->EntityPtr;
-		hitboxArgNum = 1;
-
-		sprite = GetSpriteIndex(entity->Sprite, threadID);
-		if (!sprite) {
-			return NULL_VAL;
-		}
-
-		animationID = entity->CurrentAnimation;
-		frameID = entity->CurrentFrame;
-	}
-	else {
-		CHECK_AT_LEAST_ARGCOUNT(3);
-		sprite = GET_ARG(0, GetSprite);
-		animationID = GET_ARG(1, GetInteger);
-		frameID = GET_ARG(2, GetInteger);
-		hitboxArgNum = 3;
-	}
+	ObjEntity* ent = GET_ARG(0, GetEntity);
+	Entity* entity = (Entity*)ent->EntityPtr;
+	ISprite* sprite = entity->Sprite;
+	int animationID = entity->CurrentAnimation;
+	int frameID = entity->CurrentFrame;
+	int hitboxID = 0;
 
 	if (!sprite) {
 		return NULL_VAL;
 	}
 
-	CHECK_ANIMATION_INDEX(animationID);
-	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+	if (sprite->Animations.size() == 0) {
+		throw ScriptException("Sprite has no animations!");
+	}
+
+	if (animationID < 0 || animationID >= (int)sprite->Animations.size()) {
+		VM_OUT_OF_RANGE_ERROR("Animation index", animationID, 0, sprite->Animations.size() - 1);
+		return NULL_VAL;
+	}
+
+	if (frameID < 0 || frameID >= (int)sprite->Animations[animationID].Frames.size()) {
+		VM_OUT_OF_RANGE_ERROR(
+			"Frame index", frameID, 0, sprite->Animations[animationID].Frames.size() - 1);
+		return NULL_VAL;
+	}
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 	if (frame.Boxes.size() == 0) {
@@ -16596,8 +16155,8 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (argCount > hitboxArgNum && IS_STRING(args[hitboxArgNum])) {
-		char* name = GET_ARG(hitboxArgNum, GetString);
+	if (argCount > 1 && IS_STRING(args[1])) {
+		char* name = GET_ARG(1, GetString);
 		if (name) {
 			int boxIndex = -1;
 
@@ -16620,7 +16179,7 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		}
 	}
 	else {
-		hitboxID = GET_ARG_OPT(hitboxArgNum, GetInteger, 0);
+		hitboxID = GET_ARG_OPT(1, GetInteger, 0);
 	}
 
 	if (hitboxID < 0 || hitboxID >= (int)frame.Boxes.size()) {
@@ -16634,144 +16193,6 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	CollisionBox box = frame.Boxes[hitboxID];
 	return HITBOX_VAL(box.Left, box.Top, box.Right, box.Bottom);
 }
-/***
- * Sprite.GetTextArray
- * \desc Converts a string to an array of sprite indexes by comparing codepoints to a frame's ID.
- * \param sprite (integer): The sprite index.
- * \param animation (integer): The animation index containing frames with codepoint ID values.
- * \param text (string): The text to convert.
- * \return array Returns an array of sprite indexes per character in the text.
- * \ns Sprite
- */
-VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int animation = GET_ARG(1, GetInteger);
-	char* string = GET_ARG(2, GetString);
-
-	ObjArray* textArray = NewArray();
-
-	if (!sprite || !string) {
-		return OBJECT_VAL(textArray);
-	}
-
-	if (animation >= 0 && animation < (int)sprite->Animations.size()) {
-		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
-
-		for (Uint32 codepoint : codepoints) {
-			if (codepoint == (Uint32)-1) {
-				textArray->Values->push_back(INTEGER_VAL(-1));
-				continue;
-			}
-
-			bool found = false;
-			for (int f = 0; f < (int)sprite->Animations[animation].Frames.size(); f++) {
-				if (sprite->Animations[animation].Frames[f].Advance ==
-					(int)codepoint) {
-					textArray->Values->push_back(INTEGER_VAL(f));
-					found = true;
-					break;
-				}
-			}
-
-			if (!found) {
-				textArray->Values->push_back(INTEGER_VAL(-1));
-			}
-		}
-	}
-
-	return OBJECT_VAL(textArray);
-}
-/***
- * Sprite.GetTextWidth
- * \desc Gets the width (in pixels) of a converted sprite string.
- * \param sprite (integer): The sprite index.
- * \param animation (integer): The animation index.
- * \param text (array): The array containing frame indexes.
- * \param startIndex (integer): Where to start checking the width.
- * \param spacing (integer): The spacing (in pixels) between frames.
- * \ns Sprite
- */
-VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(6);
-
-	if (ScriptManager::Lock()) {
-		ISprite* sprite = GET_ARG(0, GetSprite);
-		int animation = GET_ARG(1, GetInteger);
-		ObjArray* text = GET_ARG(2, GetArray);
-		int startIndex = GET_ARG(3, GetInteger);
-		int length = GET_ARG(4, GetInteger);
-		int spacing = GET_ARG(5, GetInteger);
-
-		if (!sprite || !text->Values) {
-			ScriptManager::Unlock();
-			return INTEGER_VAL(0);
-		}
-
-		if (animation >= 0 && animation <= (int)sprite->Animations.size()) {
-			Animation anim = sprite->Animations[animation];
-
-			startIndex = (int)Math::Clamp(startIndex, 0, (int)text->Values->size() - 1);
-
-			if (length <= 0 || length > (int)text->Values->size()) {
-				length = (int)text->Values->size();
-			}
-
-			int w = 0;
-			for (int c = startIndex; c < length; c++) {
-				int charFrame =
-					AS_INTEGER(Value::CastAsInteger((*text->Values)[c]));
-				if (charFrame < anim.Frames.size()) {
-					w += anim.Frames[charFrame].Width;
-					if (c + 1 >= length) {
-						ScriptManager::Unlock();
-						return INTEGER_VAL(w);
-					}
-
-					w += spacing;
-				}
-			}
-
-			ScriptManager::Unlock();
-			return INTEGER_VAL(w);
-		}
-	}
-	return INTEGER_VAL(0);
-}
-/***
- * Sprite.MakePalettized
- * \desc Converts a sprite's colors to the ones in the specified palette index.
- * \param sprite (integer): The sprite index.
- * \param paletteIndex (integer): The palette index.
- * \ns Sprite
- */
-VMValue Sprite_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	int palIndex = GET_ARG(1, GetInteger);
-	if (!sprite) {
-		return NULL_VAL;
-	}
-	CHECK_PALETTE_INDEX(palIndex);
-	sprite->ConvertToPalette(palIndex);
-	return NULL_VAL;
-}
-/***
- * Sprite.MakeNonPalettized
- * \desc Removes a sprite's palette.
- * \param sprite (integer): The sprite index.
- * \ns Sprite
- */
-VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	ISprite* sprite = GET_ARG(0, GetSprite);
-	if (sprite) {
-		sprite->ConvertToRGBA();
-	}
-	return NULL_VAL;
-}
-#undef CHECK_ANIMATION_INDEX
-#undef CHECK_ANIMFRAME_INDEX
 // #endregion
 
 // #region Stream
@@ -17900,7 +17321,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
  * TileInfo.SetSpriteInfo
  * \desc Sets the sprite, animation, and frame to use for specified tile.
  * \param tileID (integer): ID of tile to check.
- * \param spriteIndex (integer): Sprite index. (`-1` for default tile sprite)
+ * \param sprite (Sprite): The sprite to use. (`null` for default tile sprite)
  * \param animationIndex (integer): Animation index.
  * \param frameIndex (integer): Frame index. (`-1` for default tile frame)
  * \ns TileInfo
@@ -17908,11 +17329,11 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
 	int tileID = GET_ARG(0, GetInteger);
-	int spriteIndex = GET_ARG(1, GetInteger);
+	ISprite* sprite = IS_NULL(args[1]) ? nullptr : GET_ARG(1, GetSprite);
 	int animationIndex = GET_ARG(2, GetInteger);
 	int frameIndex = GET_ARG(3, GetInteger);
 	if (tileID >= 0 && tileID < (int)Scene::TileSpriteInfos.size()) {
-		if (spriteIndex <= -1) {
+		if (sprite != nullptr) {
 			TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
 			info.Sprite = Scene::Tilesets[0].Sprite;
 			info.AnimationIndex = 0;
@@ -17925,7 +17346,7 @@ VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
 		}
 		else {
 			TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
-			info.Sprite = GET_ARG(1, GetSprite);
+			info.Sprite = sprite;
 			info.AnimationIndex = animationIndex;
 			info.FrameIndex = frameIndex;
 		}
@@ -18356,27 +17777,11 @@ VMValue Video_Stop(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Video_Close(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
+
 	MediaBag* video = GET_ARG(0, GetVideo);
-
-	int index = GET_ARG(0, GetInteger);
-	ResourceType* resource = Scene::MediaList[index];
-
-	Scene::MediaList[index] = NULL;
-
-#ifdef USING_FFMPEG
-	video->Source->Close();
-	video->Player->Close();
-#endif
-
-	if (!resource) {
-		return NULL_VAL;
+	if (video) {
+		video->Unload();
 	}
-
-	if (resource->AsMedia) {
-		delete resource->AsMedia;
-	}
-
-	delete resource;
 
 	return NULL_VAL;
 }
@@ -19561,6 +18966,9 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+#undef GET_ARG
+#undef GET_ARG_OPT
+
 #define String_CaseMapBind(lowerCase, upperCase) \
 	String_ToUpperCase_Map_ExtendedASCII[(Uint8)lowerCase] = (Uint8)upperCase; \
 	String_ToLowerCase_Map_ExtendedASCII[(Uint8)upperCase] = (Uint8)lowerCase;
@@ -19603,7 +19011,9 @@ void StandardLibrary::Link() {
 
 #define INIT_CLASS(className) \
 	klass = NewClass(#className); \
-	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
+	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass))
+#define GET_CLASS(className) \
+	klass = AS_CLASS(ScriptManager::Globals->Get(#className))
 #define DEF_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
 #define ALIAS_NATIVE(className, funcName, oldClassName, oldFuncName) \
@@ -19828,6 +19238,11 @@ They require the Game SDK library to be present.
     */
 	DEF_ENUM_CLASS(KeyBind, DevLayerInfo);
 	/***
+    * \enum KeyBind_DevResourceInfo
+    * \desc Resource info keybind. (dev)
+    */
+	DEF_ENUM_CLASS(KeyBind, DevResourceInfo);
+	/***
     * \enum KeyBind_DevFastForward
     * \desc Fast forward keybind. (dev)
     */
@@ -19889,11 +19304,7 @@ They require the Game SDK library to be present.
 	// #endregion
 
 	// #region Audio
-	/***
-    * \class Audio
-    * \desc Functions for manipulating the application's audio.
-    */
-	INIT_CLASS(Audio);
+	GET_CLASS(Audio);
 	DEF_NATIVE(Audio, GetMasterVolume);
 	DEF_NATIVE(Audio, GetMusicVolume);
 	DEF_NATIVE(Audio, GetSoundVolume);
@@ -20927,11 +20338,8 @@ See https://easings.net/ for more details.
 	// #endregion
 
 	// #region Image
-	/***
-    * \class Image
-    * \desc Functions to retrieve information about images.
-    */
-	INIT_CLASS(Image);
+	// Only contains deprecated methods.
+	GET_CLASS(Image);
 	DEF_NATIVE(Image, GetWidth);
 	DEF_NATIVE(Image, GetHeight);
 	// #endregion
@@ -21178,25 +20586,14 @@ This class also houses the input action system.
 	// #endregion
 
 	// #region Model
-	/***
-    * \class Model
-    * \desc Functions to manipulate and retrieve information about 3D models.
-    */
-	INIT_CLASS(Model);
+	// Only contains deprecated methods.
+	GET_CLASS(Model);
 	DEF_NATIVE(Model, GetVertexCount);
 	DEF_NATIVE(Model, GetAnimationCount);
-	DEF_NATIVE(Model, GetAnimationName);
-	DEF_NATIVE(Model, GetAnimationIndex);
 	DEF_NATIVE(Model, GetFrameCount);
-	DEF_NATIVE(Model, GetAnimationLength);
 	DEF_NATIVE(Model, HasMaterials);
 	DEF_NATIVE(Model, HasBones);
 	DEF_NATIVE(Model, GetMaterialCount);
-	DEF_NATIVE(Model, GetMaterial);
-	DEF_NATIVE(Model, CreateArmature);
-	DEF_NATIVE(Model, PoseArmature);
-	DEF_NATIVE(Model, ResetArmature);
-	DEF_NATIVE(Model, DeleteArmature);
 	// #endregion
 
 	// #region Music
@@ -21295,6 +20692,7 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(Resources, LoadDynamicSprite);
 	DEF_NATIVE(Resources, LoadImage);
 	DEF_NATIVE(Resources, LoadModel);
+	DEF_NATIVE(Resources, LoadAudio);
 	DEF_NATIVE(Resources, LoadMusic);
 	DEF_NATIVE(Resources, LoadSound);
 	DEF_NATIVE(Resources, LoadVideo);
@@ -21724,32 +21122,14 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #endregion
 
 	// #region Sprite
-	/***
-    * \class Sprite
-    * \desc Functions to retrieve information about sprites.
-    */
-	INIT_CLASS(Sprite);
+    // Only contains deprecated methods.
+	GET_CLASS(Sprite);
 	DEF_NATIVE(Sprite, GetAnimationCount);
-	DEF_NATIVE(Sprite, GetAnimationName);
 	DEF_NATIVE(Sprite, GetAnimationIndexByName);
 	DEF_NATIVE(Sprite, GetFrameExists);
 	DEF_NATIVE(Sprite, GetFrameLoopIndex);
 	DEF_NATIVE(Sprite, GetFrameCount);
-	DEF_NATIVE(Sprite, GetFrameDuration);
 	DEF_NATIVE(Sprite, GetFrameSpeed);
-	DEF_NATIVE(Sprite, GetFrameWidth);
-	DEF_NATIVE(Sprite, GetFrameHeight);
-	DEF_NATIVE(Sprite, GetFrameID);
-	DEF_NATIVE(Sprite, GetFrameOffsetX);
-	DEF_NATIVE(Sprite, GetFrameOffsetY);
-	DEF_NATIVE(Sprite, GetHitboxName);
-	DEF_NATIVE(Sprite, GetHitboxIndex);
-	DEF_NATIVE(Sprite, GetHitboxCount);
-	DEF_NATIVE(Sprite, GetHitbox);
-	DEF_NATIVE(Sprite, GetTextArray);
-	DEF_NATIVE(Sprite, GetTextWidth);
-	DEF_NATIVE(Sprite, MakePalettized);
-	DEF_NATIVE(Sprite, MakeNonPalettized);
 	// #endregion
 
 	// #region Stream
@@ -22036,6 +21416,34 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 #undef DEF_NATIVE
 #undef ALIAS_NATIVE
 #undef INIT_CLASS
+
+	// #region Asset Types
+	/***
+    * \enum ASSET_SPRITE
+    * \desc A Sprite Asset.
+    */
+    DEF_ENUM(ASSET_SPRITE);
+	/***
+    * \enum ASSET_IMAGE
+    * \desc An Image Asset.
+    */
+    DEF_ENUM(ASSET_IMAGE);
+    /***
+    * \enum ASSET_AUDIO
+    * \desc An Audio Asset.
+    */
+    DEF_ENUM(ASSET_AUDIO);
+    /***
+    * \enum ASSET_MODEL
+    * \desc A Model Asset.
+    */
+    DEF_ENUM(ASSET_MODEL);
+    /***
+    * \enum ASSET_VIDEO
+    * \desc A Video Asset.
+    */
+    DEF_ENUM(ASSET_VIDEO);
+	// #endregion
 
 	// #region Tile Collision States
 	/***

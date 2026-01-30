@@ -5,6 +5,8 @@
 
 ObjClass* StringImpl::Class = nullptr;
 
+#define CLASS_STRING "$$StringImpl"
+
 void StringImpl::Init() {
 	Class = NewClass(CLASS_STRING);
 
@@ -29,13 +31,11 @@ void StringImpl::Dispose(Obj* object) {
 	Memory::Free(string->Chars);
 }
 
-#define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
-
 bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* result, Uint32 threadID) {
 	ObjString* string = (ObjString*)object;
 
 	if (!IS_INTEGER(at)) {
-		THROW_ERROR("Cannot get value from array using non-Integer value as an index.");
+		VM_THROW_ERROR("Cannot get value from array using non-Integer value as an index.");
 		if (result) {
 			*result = NULL_VAL;
 		}
@@ -48,7 +48,7 @@ bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* result, Uint32 
 	}
 
 	if (index >= string->Length) {
-		THROW_ERROR("Index %d is out of bounds of string of length %d.",
+		VM_THROW_ERROR("Index %d is out of bounds of string of length %d.",
 			index,
 			(int)string->Length);
 		if (result) {

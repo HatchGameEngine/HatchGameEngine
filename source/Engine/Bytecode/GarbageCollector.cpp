@@ -54,6 +54,16 @@ void GarbageCollector::Collect() {
 	// Mark constants
 	GrayHashMap(ScriptManager::Constants);
 
+	// Mark modules
+	for (size_t i = 0; i < ScriptManager::ModuleList.size(); i++) {
+		GrayObject(ScriptManager::ModuleList[i]);
+	}
+
+	// Mark classes
+	for (size_t i = 0; i < ScriptManager::ClassImplList.size(); i++) {
+		GrayObject(ScriptManager::ClassImplList[i]);
+	}
+
 	// Mark objects
 	for (Entity* ent = Scene::ObjectFirst; ent; ent = ent->NextSceneEntity) {
 		ScriptEntity* scriptEntity = (ScriptEntity*)ent;
@@ -72,18 +82,17 @@ void GarbageCollector::Collect() {
 		}
 	}
 
-	// Mark modules
-	for (size_t i = 0; i < ScriptManager::ModuleList.size(); i++) {
-		GrayObject(ScriptManager::ModuleList[i]);
-	}
+	// Mark model materials
+	for (size_t i = 0; i < Material::List.size(); i++) {
+		ObjMaterial* material = (ObjMaterial*)Material::List[i]->VMObject;
 
-	// Mark classes
-	for (size_t i = 0; i < ScriptManager::ClassImplList.size(); i++) {
-		GrayObject(ScriptManager::ClassImplList[i]);
-	}
+		GrayObject((Obj*)material);
 
-	// Mark resources
-	CollectResources();
+		if (material && material->MaterialPtr) {
+			Material* materialPtr = (Material*)material->MaterialPtr;
+			GrayMaterialData(materialPtr);
+		}
+	}
 
 	grayElapsed = Clock::GetTicks() - grayElapsed;
 
@@ -143,11 +152,45 @@ void GarbageCollector::Collect() {
 	GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
 }
 
-void GarbageCollector::CollectResources() {
-	// Mark model materials
-	for (size_t i = 0; i < Material::List.size(); i++) {
-		GrayObject(Material::List[i]->Object);
+void GarbageCollector::GrayResource(void* ptr) {
+	ResourceType* resource = (ResourceType*)ptr;
+	if (!resource || !resource->Loaded) {
+		return;
 	}
+
+	GrayAsset((void*)resource->AsAsset);
+}
+
+void GarbageCollector::GrayAsset(void* ptr) {
+	Asset* asset = (Asset*)ptr;
+	if (!asset) {
+		return;
+	}
+
+	GrayObject(asset->GetVMObjectPtr());
+}
+
+void GarbageCollector::GrayAssetData(void *ptr) {
+	Asset* asset = (Asset*)ptr;
+	if (!asset) {
+		return;
+	}
+
+	// Mark model materials
+	if (asset->Type == ASSET_MODEL) {
+		IModel* model = (IModel*)asset;
+		for (size_t i = 0; i < model->Materials.size(); i++) {
+			GrayMaterialData(model->Materials[i]);
+		}
+	}
+}
+
+void GarbageCollector::GrayMaterialData(void *ptr) {
+	Material* material = (Material*)ptr;
+	GrayAsset(material->TextureDiffuse);
+	GrayAsset(material->TextureSpecular);
+	GrayAsset(material->TextureAmbient);
+	GrayAsset(material->TextureEmissive);
 }
 
 void GarbageCollector::FreeObject(Obj* object) {
@@ -254,6 +297,16 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		map->Values->ForAll([](Uint32, VMValue v) -> void {
 			GrayValue(v);
 		});
+		break;
+	}
+	case OBJ_RESOURCE: {
+		ObjResource* resource = (ObjResource*)object;
+		GrayResource(resource->ResourcePtr);
+		break;
+	}
+	case OBJ_ASSET: {
+		ObjAsset* asset = (ObjAsset*)object;
+		GrayAssetData(asset->AssetPtr);
 		break;
 	}
 	default:

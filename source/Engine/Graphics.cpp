@@ -333,10 +333,7 @@ Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uin
 	Texture* texture;
 	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
 		Graphics::NoInternalTextures) {
-		texture = Texture::New(format, access, width, height);
-		if (!texture) {
-			return NULL;
-		}
+		texture = new Texture(format, access, width, height);
 	}
 	else {
 		texture = Graphics::GfxFunctions->CreateTexture(format, access, width, height);
@@ -404,6 +401,27 @@ int Graphics::UpdateYUVTexture(Texture* texture,
 	}
 	return Graphics::GfxFunctions->UpdateYUVTexture(
 		texture, src, pixelsY, pitchY, pixelsU, pitchU, pixelsV, pitchV);
+}
+Texture* Graphics::CopyTexture(Texture* source, Uint32 access) {
+	Texture* texture = CreateTexture(source->Format, access, source->Width, source->Height);
+	if (!texture) {
+		return nullptr;
+	}
+
+	memcpy(texture->Pixels, source->Pixels, source->Pitch * source->Height);
+
+	if (source->NumPaletteColors) {
+		Uint32* paletteColors = (Uint32*)Memory::Malloc(source->NumPaletteColors * sizeof(Uint32));
+
+		memcpy(paletteColors, source->PaletteColors, source->NumPaletteColors * sizeof(Uint32));
+
+		texture->PaletteColors = paletteColors;
+		texture->NumPaletteColors = source->NumPaletteColors;
+	}
+
+	Graphics::UpdateTexture(texture, NULL, source->Pixels, source->Pitch);
+
+	return texture;
 }
 int Graphics::SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors) {
 	texture->SetPalette((Uint32*)palette, numPaletteColors);
@@ -482,14 +500,12 @@ void Graphics::DisposeTexture(Texture* texture) {
 		Graphics::TextureHead = texture->Next;
 	}
 
-	texture->Dispose();
-
-	Memory::Free(texture);
+	delete texture;
 }
 TextureReference* Graphics::GetSpriteSheet(string sheetPath) {
 	if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
 		TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
-		textureRef->AddRef();
+		textureRef->TakeRef();
 		return textureRef;
 	}
 
@@ -506,7 +522,7 @@ TextureReference* Graphics::AddSpriteSheet(string sheetPath, Texture* texture) {
 void Graphics::DisposeSpriteSheet(string sheetPath) {
 	if (Graphics::SpriteSheetTextureMap.count(sheetPath) != 0) {
 		TextureReference* textureRef = Graphics::SpriteSheetTextureMap.at(sheetPath);
-		if (textureRef->TakeRef()) {
+		if (textureRef->ReleaseRef()) {
 			Graphics::DisposeTexture(textureRef->TexturePtr);
 			Graphics::SpriteSheetTextureMap.erase(sheetPath);
 			delete textureRef;
@@ -1504,14 +1520,14 @@ void Graphics::DrawEllipsisLegacy(ISprite* sprite,
 	float baseline) {
 	int glyph = '.';
 
-	advance = sprite->Animations[0].Frames[glyph].Advance * advance;
+	advance = sprite->Animations[0].Frames[glyph].ID * advance;
 
 	for (size_t i = 0; i < 3; i++) {
 		Graphics::DrawSprite(sprite,
 			0,
 			glyph,
 			x,
-			y - sprite->Animations[0].AnimationSpeed * baseline,
+			y - sprite->Animations[0].Speed * baseline,
 			false,
 			false,
 			1.0f,
@@ -1993,7 +2009,7 @@ void Graphics::DrawTextLegacy(ISprite* sprite,
 			x = 0.0f;
 			continue;
 		}
-		x += sprite->Animations[0].Frames[l].Advance * params->Advance;
+		x += sprite->Animations[0].Frames[l].ID * params->Advance;
 	}
 	lineWidths[line++] = x;
 
@@ -2020,13 +2036,13 @@ void Graphics::DrawTextLegacy(ISprite* sprite,
 			0,
 			l,
 			x - lineWidths[line] * params->Align,
-			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			y - sprite->Animations[0].Speed * params->Baseline,
 			false,
 			false,
 			1.0f,
 			1.0f,
 			0.0f);
-		x += sprite->Animations[0].Frames[l].Advance * params->Advance;
+		x += sprite->Animations[0].Frames[l].ID * params->Advance;
 	}
 
 	Memory::Free(lineWidths);
@@ -2050,7 +2066,7 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 	bool drawEllipsis = params->Flags & TEXTDRAW_ELLIPSIS;
 	float ellipsisWidth = 0.0;
 	if (drawEllipsis) {
-		ellipsisWidth = sprite->Animations[0].Frames['.'].Advance * 3;
+		ellipsisWidth = sprite->Animations[0].Frames['.'].ID * 3;
 	}
 
 	for (const char* i = text;; i++) {
@@ -2060,7 +2076,7 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 			for (const char* o = linestart; o < i; o++) {
 				lm = _Text_GetLetter((Uint8)*o);
 				testWidth +=
-					sprite->Animations[0].Frames[lm].Advance * params->Advance;
+					sprite->Animations[0].Frames[lm].ID * params->Advance;
 			}
 
 			if ((testWidth > params->MaxWidth && word > 0) || l == '\n') {
@@ -2075,7 +2091,7 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 							sprite->Animations[0].Frames[lm].OffsetX;
 						lineBack = false;
 					}
-					lineWidth += sprite->Animations[0].Frames[lm].Advance *
+					lineWidth += sprite->Animations[0].Frames[lm].ID *
 						params->Advance;
 				}
 				lineBack = true;
@@ -2090,7 +2106,7 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 						lineBack = false;
 					}
 
-					float advance = sprite->Animations[0].Frames[lm].Advance *
+					float advance = sprite->Animations[0].Frames[lm].ID *
 						params->Advance;
 
 					// Draw ellipsis if the text no longer fits
@@ -2110,7 +2126,7 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 						lm,
 						x,
 						y -
-							sprite->Animations[0].AnimationSpeed *
+							sprite->Animations[0].Speed *
 								params->Baseline,
 						false,
 						false,
@@ -2155,7 +2171,7 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 			lineWidth -= sprite->Animations[0].Frames[l].OffsetX;
 			lineBack = false;
 		}
-		lineWidth += sprite->Animations[0].Frames[l].Advance * params->Advance;
+		lineWidth += sprite->Animations[0].Frames[l].ID * params->Advance;
 	}
 	lineBack = true;
 
@@ -2169,7 +2185,7 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 			lineBack = false;
 		}
 
-		float advance = sprite->Animations[0].Frames[l].Advance * params->Advance;
+		float advance = sprite->Animations[0].Frames[l].ID * params->Advance;
 
 		// Draw ellipsis if the text no longer fits
 		if (drawEllipsis && (x - startx) + advance > params->MaxWidth - ellipsisWidth) {
@@ -2182,7 +2198,7 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 			0,
 			l,
 			x,
-			y - sprite->Animations[0].AnimationSpeed * params->Baseline,
+			y - sprite->Animations[0].Speed * params->Baseline,
 			false,
 			false,
 			1.0f,
@@ -2209,14 +2225,14 @@ void Graphics::DrawGlyphLegacy(ISprite* sprite,
 	float basey,
 	LegacyTextDrawParams* params) {
 	char l = _Text_GetLetter((Uint8)codepoint);
-	float charWidth = sprite->Animations[0].Frames[l].Advance * params->Advance;
+	float charWidth = sprite->Animations[0].Frames[l].ID * params->Advance;
 	basex -= sprite->Animations[0].Frames[l].OffsetX;
 
 	Graphics::DrawSprite(sprite,
 		0,
 		l,
 		basex - charWidth * params->Align,
-		basey - sprite->Animations[0].AnimationSpeed * params->Baseline,
+		basey - sprite->Animations[0].Speed * params->Baseline,
 		false,
 		false,
 		1.0f,
@@ -2240,7 +2256,7 @@ void Graphics::MeasureTextLegacy(ISprite* sprite,
 			y += lineHeight * params->Ascent;
 		}
 		else {
-			x += sprite->Animations[0].Frames[*i].Advance * params->Advance;
+			x += sprite->Animations[0].Frames[*i].ID * params->Advance;
 
 			if (maxW < x) {
 				maxW = x;
@@ -2276,12 +2292,12 @@ void Graphics::MeasureTextWrappedLegacy(ISprite* sprite,
 			float lineWidth = 0.0f;
 			for (const char* o = linestart; o < i; o++) {
 				lineWidth +=
-					sprite->Animations[0].Frames[*o].Advance * params->Advance;
+					sprite->Animations[0].Frames[*o].ID * params->Advance;
 			}
 			if ((lineWidth > params->MaxWidth && word > 0) || *i == '\n') {
 				x = 0.0f;
 				for (const char* o = linestart; o < wordstart - 1; o++) {
-					x += sprite->Animations[0].Frames[*o].Advance *
+					x += sprite->Animations[0].Frames[*o].ID *
 						params->Advance;
 
 					if (maxW < x) {
@@ -2320,7 +2336,7 @@ void Graphics::MeasureTextWrappedLegacy(ISprite* sprite,
 
 	x = 0.0f;
 	for (const char* o = linestart; *o; o++) {
-		x += sprite->Animations[0].Frames[*o].Advance * params->Advance;
+		x += sprite->Animations[0].Frames[*o].ID * params->Advance;
 		if (maxW < x) {
 			maxW = x;
 		}
@@ -3035,6 +3051,11 @@ void Graphics::MakeFrameBufferID(ISprite* sprite) {
 		Graphics::GfxFunctions->MakeFrameBufferID(sprite);
 	}
 }
+void Graphics::UpdateFrameBufferID(ISprite* sprite, AnimFrame* frame) {
+	if (Graphics::GfxFunctions->UpdateFrameBufferID) {
+		Graphics::GfxFunctions->UpdateFrameBufferID(sprite, frame);
+	}
+}
 void Graphics::DeleteFrameBufferID(ISprite* sprite) {
 	if (Graphics::GfxFunctions->DeleteFrameBufferID) {
 		Graphics::GfxFunctions->DeleteFrameBufferID(sprite);
@@ -3053,18 +3074,20 @@ bool Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {
 		return true;
 	}
 	if (animation < 0 || animation >= (int)sprite->Animations.size()) {
+#if 0
 		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Animation %d does not exist in sprite %s!",
-			animation,
-			sprite->Filename);
+			"Animation %d does not exist in sprite!",
+			animation);
+#endif
 		return true;
 	}
 	if (frame < 0 || frame >= (int)sprite->Animations[animation].Frames.size()) {
+#if 0
 		ScriptManager::Threads[0].ThrowRuntimeError(false,
-			"Frame %d in animation \"%s\" does not exist in sprite %s!",
+			"Frame %d in animation \"%s\" does not exist in sprite!",
 			frame,
-			sprite->Animations[animation].Name,
-			sprite->Filename);
+			sprite->Animations[animation].Name.c_str());
+#endif
 		return true;
 	}
 	// #endif

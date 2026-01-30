@@ -5,21 +5,17 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/GameTexture.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/ResourceTypes/Asset.h>
 
 enum { IMAGE_FORMAT_UNKNOWN, IMAGE_FORMAT_PNG, IMAGE_FORMAT_GIF, IMAGE_FORMAT_JPEG };
 
-class Image {
+class Image : public Asset {
 public:
-	int ID = -1;
-	int References = 0;
-	char* Filename;
 	Texture* TexturePtr = NULL;
 
+	Image(Texture* texture);
 	Image(const char* filename);
-	Image(Texture* texturePtr);
-	void AddRef();
-	bool TakeRef();
-	void Dispose();
+	void Unload();
 	~Image();
 
 	static Uint8 DetectFormat(Stream* stream);

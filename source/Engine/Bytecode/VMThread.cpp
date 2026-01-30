@@ -2954,13 +2954,7 @@ bool VMThread::InstantiateClass(VMValue callee, int argCount) {
 		instance = (Obj*)NewInstance(klass);
 	}
 
-	if (instance == nullptr) {
-		StackTop[-argCount - 1] = NULL_VAL;
-		ScriptManager::Unlock();
-		return false;
-	}
-
-	StackTop[-argCount - 1] = OBJECT_VAL(instance);
+	StackTop[-argCount - 1] = instance ? OBJECT_VAL(instance) : NULL_VAL;
 
 	// Call the initializer, if there is one.
 	if (HasInitializer(klass)) {
@@ -3562,6 +3556,10 @@ static const char* GetTypeOfValue(VMValue value) {
 			return "enum";
 		case OBJ_MODULE:
 			return "module";
+		case OBJ_RESOURCE:
+			return "resource";
+		case OBJ_ASSET:
+			return "asset";
 		default:
 			if (IS_INSTANCEABLE(value)) {
 				return "instance";

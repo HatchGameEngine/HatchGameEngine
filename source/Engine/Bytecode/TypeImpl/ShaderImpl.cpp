@@ -23,7 +23,7 @@ void ThrowElementTypeMismatchError(size_t element, const char* expected, const c
 
 ObjClass* ShaderImpl::Class = nullptr;
 
-Uint32 Hash_Uniforms = 0;
+static Uint32 Hash_Uniforms = 0;
 
 void ShaderImpl::Init() {
 	Class = NewClass(CLASS_SHADER);
