@@ -349,15 +349,11 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 	ObjectList* objectList = Scene::GetStaticObjectList(objectName);
 	if (!objectList) {
 		if (objectName != NULL) {
-			Log::Print(Log::LOG_ERROR,
-				"Could not create object list for '%s'!",
-				objectName);
+			Log::Print(Log::LOG_WARN, "Class \"%s\" does not exist!", objectName);
 		}
 		else {
-			Log::Print(Log::LOG_ERROR, "Could not create object list!");
+			Log::Print(Log::LOG_WARN, "Class for hash 0x%08X does not exist!", objectNameHash);
 		}
-		r->Close();
-		return false;
 	}
 
 	// Read arguments
@@ -374,7 +370,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 	}
 
 #if 0
-    if (objectList->SpawnFunction) {
+    if (objectList) {
         Log::Print(Log::LOG_VERBOSE, "Object Hash: 0x%08XU (0x%08XU) Count: %d Argument Count: %d (%s)", objectNameHash, 3, entityCount, argumentCount, objectName);
 
         for (int a = 1; a < argumentCount; a++) {
@@ -404,7 +400,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 	for (int n = 0; n < entityCount; n++) {
 		bool doAdd = true;
 		int slotID = r->ReadUInt16();
-		if (slotID >= maxObjSlots) {
+		if (objectNameHash2 != HACK_PlayerNameHash && slotID >= maxObjSlots) {
 			Log::Print(Log::LOG_ERROR,
 				"Too many objects in scene! (Count: %d, Max: %d)",
 				slotID + 1,
@@ -415,11 +411,15 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 		Uint32 posX = r->ReadUInt32();
 		Uint32 posY = r->ReadUInt32();
 
-		Entity* obj = Scene::TrySpawnObject(objectList, posX / 65536.f, posY / 65536.f);
+		Entity* obj = nullptr;
+		if (doAdd && objectList != nullptr) {
+			obj = Scene::TrySpawnObject(objectList, posX / 65536.f, posY / 65536.f);
+		}
 		if (obj != nullptr) {
 			obj->SlotID = slotID + Scene::ReservedSlotIDs;
 			obj->InitProperties();
 
+			// TODO: Read the properties in advance, then attempt to spawn the entity
 			for (int a = 1; a < argumentCount; a++) {
 				Property val = Property::MakeNull();
 				switch (argumentTypes[a]) {
@@ -515,6 +515,10 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 			}
 			else if (doAdd) {
 				objSlots[slotID] = obj;
+			}
+			else {
+				obj->Dispose();
+				delete obj;
 			}
 		}
 		else {
