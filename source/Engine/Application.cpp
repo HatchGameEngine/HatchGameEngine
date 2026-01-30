@@ -1428,8 +1428,7 @@ void Application::PollEvents() {
 						Application::CloseDevMenu();
 					}
 
-					Scene::Restart();
-					Application::UpdateWindowTitle();
+					Scene::DoRestart = true;
 					break;
 				}
 				// Enable update speedup (dev)
@@ -1515,7 +1514,7 @@ void Application::RunFrame(int runFrames) {
 
 	// BUG: Having Stepper on prevents the first
 	//   frame of a new scene from Updating, but still rendering.
-	if (*Scene::NextScene) {
+	if (*Scene::NextScene || Scene::DoRestart) {
 		Step = true;
 	}
 
