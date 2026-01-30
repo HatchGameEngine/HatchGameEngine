@@ -1151,7 +1151,7 @@ void Application::LoadKeyBinds() {
 	}
 
 	GET_KEY("fullscreen", Fullscreen, Key_F4);
-	GET_KEY("screenshot", Screenshot, Key_F8);
+	GET_KEY("screenshot", Screenshot, Key_UNKNOWN);
 	GET_KEY("toggleFPSCounter", ToggleFPSCounter, Key_F2);
 	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
 	GET_KEY("devRestartApp", DevRestartApp, Key_F1);
