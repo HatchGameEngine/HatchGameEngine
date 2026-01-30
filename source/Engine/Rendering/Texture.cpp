@@ -52,7 +52,7 @@ bool Texture::ConvertToPalette(Uint32* palColors, unsigned numPaletteColors) {
 	Uint32* pixels = (Uint32*)Pixels;
 	int nearestColor;
 
-	HashMap<int>* colorsHash = new HashMap<int>(NULL, 256);
+	HashMap<int>* colorsHash = new HashMap<int>();
 
 	for (size_t i = 0; i < Width * Height; i++) {
 		Uint32 color = pixels[i];

@@ -109,8 +109,8 @@ ObjClass* NewClass(Uint32 hash) {
 	Memory::Track(klass, "NewClass");
 	klass->Hash = hash;
 	klass->Object.Destructor = ScriptManager::FreeClass;
-	klass->Methods = new Table(NULL, 4);
-	klass->Fields = new Table(NULL, 16);
+	klass->Methods = new Table();
+	klass->Fields = new Table();
 	klass->Initializer = NULL_VAL;
 	klass->Type = CLASS_TYPE_NORMAL;
 	klass->Name = StringUtils::Create(GetClassName(hash));
@@ -148,7 +148,7 @@ ObjNamespace* NewNamespace(Uint32 hash) {
 	Memory::Track(ns, "NewNamespace");
 	ns->Object.Destructor = ScriptManager::FreeNamespace;
 	ns->Hash = hash;
-	ns->Fields = new Table(NULL, 16);
+	ns->Fields = new Table();
 	ns->Name = StringUtils::Create(GetClassName(hash));
 	return ns;
 }
@@ -163,7 +163,7 @@ ObjEnum* NewEnum(Uint32 hash) {
 	Memory::Track(enumeration, "NewEnum");
 	enumeration->Object.Destructor = ScriptManager::FreeEnumeration;
 	enumeration->Hash = hash;
-	enumeration->Fields = new Table(NULL, 16);
+	enumeration->Fields = new Table();
 	enumeration->Name = StringUtils::Create(GetClassName(hash));
 	return enumeration;
 }

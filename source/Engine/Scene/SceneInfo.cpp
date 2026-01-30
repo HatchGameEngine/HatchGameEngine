@@ -30,7 +30,7 @@ SceneListCategory* SceneInfo::NewCategory(std::string name) {
 	SceneListCategory* category = &Categories[Categories.size() - 1];
 	category->Name = StringUtils::Create(name);
 
-	category->Properties = new HashMap<char*>(NULL, 8);
+	category->Properties = new HashMap<char*>();
 	category->Properties->Put("name", category->Name);
 
 	return category;
@@ -312,7 +312,7 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
 	}
 
 	// Fill properties
-	entry.Properties = new HashMap<char*>(NULL, 8);
+	entry.Properties = new HashMap<char*>();
 	entry.Properties->Put("name", entry.Name);
 	entry.Properties->Put("folder", entry.Folder);
 	entry.Properties->Put("id", entry.ID);

@@ -814,10 +814,10 @@ bool HatchModel::Save(IModel* model, const char* filename) {
 	Uint32 animDataOffsetPos = stream->Position();
 	stream->WriteUInt32(0x00000000);
 
-	vertexIDs = new HashMap<Uint32>(NULL, 1024);
-	normalIDs = new HashMap<Uint32>(NULL, 1024);
-	texCoordIDs = new HashMap<Uint32>(NULL, 1024);
-	colorIDs = new HashMap<Uint32>(NULL, 1024);
+	vertexIDs = new HashMap<Uint32>();
+	normalIDs = new HashMap<Uint32>();
+	texCoordIDs = new HashMap<Uint32>();
+	colorIDs = new HashMap<Uint32>();
 
 	vertexList.clear();
 	normalList.clear();

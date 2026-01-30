@@ -4497,8 +4497,7 @@ void Compiler::Init() {
 }
 void Compiler::GetStandardConstants() {
 	if (Compiler::StandardConstants == NULL) {
-		Compiler::StandardConstants =
-			new HashMap<VMValue>(NULL, ScriptManager::Constants->Count());
+		Compiler::StandardConstants = new HashMap<VMValue>();
 	}
 	Compiler::StandardConstants->Clear();
 
@@ -4510,7 +4509,7 @@ void Compiler::GetStandardConstants() {
 }
 void Compiler::PrepareCompiling() {
 	if (Compiler::TokenMap == NULL) {
-		Compiler::TokenMap = new HashMap<Token>(NULL, 8);
+		Compiler::TokenMap = new HashMap<Token>();
 	}
 }
 void Compiler::Initialize(Compiler* enclosing, int scope, int type) {

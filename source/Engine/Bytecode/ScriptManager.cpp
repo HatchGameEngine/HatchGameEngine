@@ -79,19 +79,19 @@ void ScriptManager::ResetStack() {
 // #region Life Cycle
 void ScriptManager::Init() {
 	if (Globals == NULL) {
-		Globals = new HashMap<VMValue>(NULL, 8);
+		Globals = new HashMap<VMValue>();
 	}
 	if (Constants == NULL) {
-		Constants = new HashMap<VMValue>(NULL, 8);
+		Constants = new HashMap<VMValue>();
 	}
 	if (Sources == NULL) {
-		Sources = new HashMap<BytecodeContainer>(NULL, 8);
+		Sources = new HashMap<BytecodeContainer>();
 	}
 	if (Classes == NULL) {
-		Classes = new HashMap<ObjClass*>(NULL, 8);
+		Classes = new HashMap<ObjClass*>();
 	}
 	if (Tokens == NULL) {
-		Tokens = new HashMap<char*>(NULL, 64);
+		Tokens = new HashMap<char*>();
 	}
 
 	memset(VMThread::InstructionIgnoreMap, 0, sizeof(VMThread::InstructionIgnoreMap));

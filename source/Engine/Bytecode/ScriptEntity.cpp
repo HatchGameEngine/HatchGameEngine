@@ -29,7 +29,7 @@ void ScriptEntity::Init() {
 void ScriptEntity::Link(ObjEntity* entity) {
 	Instance = entity;
 	Instance->EntityPtr = this;
-	Properties = new HashMap<VMValue>(NULL, 4);
+	Properties = new HashMap<VMValue>();
 
 	LinkFields();
 	AddEntityClassMethods();

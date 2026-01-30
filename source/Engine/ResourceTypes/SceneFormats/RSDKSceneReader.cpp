@@ -168,7 +168,7 @@ void RSDKSceneReader::LoadObjectList() {
 	r->ReadBytes(ObjectNames, sz);
 	ObjectNames[sz] = 0;
 
-	ObjectHashes = new HashMap<const char*>(CombinedHash::EncryptData, 1024);
+	ObjectHashes = new HashMap<const char*>(CombinedHash::EncryptData);
 
 	char* nameHead = ObjectNames;
 	char* nameStart = ObjectNames;
@@ -213,7 +213,7 @@ void RSDKSceneReader::LoadPropertyList() {
 	r->ReadBytes(PropertyNames, sz);
 	PropertyNames[sz] = 0;
 
-	PropertyHashes = new HashMap<const char*>(CombinedHash::EncryptData, 512);
+	PropertyHashes = new HashMap<const char*>(CombinedHash::EncryptData);
 
 	char* nameHead = PropertyNames;
 	char* nameStart = PropertyNames;

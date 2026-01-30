@@ -754,14 +754,13 @@ void Scene::Init() {
 }
 void Scene::InitObjectListsAndRegistries() {
 	if (Scene::ObjectLists == NULL) {
-		Scene::ObjectLists = new OrderedHashMap<ObjectList*>(CombinedHash::EncryptData, 4);
+		Scene::ObjectLists = new OrderedHashMap<ObjectList*>(CombinedHash::EncryptData);
 	}
 	if (Scene::ObjectRegistries == NULL) {
-		Scene::ObjectRegistries =
-			new HashMap<ObjectRegistry*>(CombinedHash::EncryptData, 16);
+		Scene::ObjectRegistries = new HashMap<ObjectRegistry*>(CombinedHash::EncryptData);
 	}
 	if (Scene::StaticObjectLists == NULL) {
-		Scene::StaticObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
+		Scene::StaticObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData);
 	}
 }
 

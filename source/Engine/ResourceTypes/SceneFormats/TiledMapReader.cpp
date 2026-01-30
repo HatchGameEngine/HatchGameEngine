@@ -526,7 +526,7 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 				}
 
 				if (layer_properties == NULL) {
-					layer_properties = new HashMap<VMValue>(NULL, 4);
+					layer_properties = new HashMap<VMValue>();
 				}
 
 				TiledMapReader::ParsePropertyNode(
@@ -778,7 +778,7 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 				}
 
 				if (Scene::Properties == NULL) {
-					Scene::Properties = new HashMap<VMValue>(NULL, 4);
+					Scene::Properties = new HashMap<VMValue>();
 				}
 
 				TiledMapReader::ParsePropertyNode(

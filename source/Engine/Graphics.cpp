@@ -105,7 +105,7 @@ GraphicsFunctions* Graphics::GfxFunctions = &Graphics::Internal;
 const char* Graphics::Renderer = "default";
 
 void Graphics::Init() {
-	Graphics::TextureMap = new HashMap<Texture*>(NULL, 32);
+	Graphics::TextureMap = new HashMap<Texture*>();
 
 	for (size_t i = 0; i < MATRIX_STACK_SIZE; i++) {
 		Matrix4x4::Identity(&Graphics::ViewMatrixStack[i]);

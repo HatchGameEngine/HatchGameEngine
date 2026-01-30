@@ -14,7 +14,7 @@ void InstanceImpl::Init() {
 Obj* InstanceImpl::New(size_t size, ObjType type) {
 	ObjInstance* instance = (ObjInstance*)AllocateObject(size, type);
 	Memory::Track(instance, "NewInstance");
-	instance->Fields = new Table(NULL, 16);
+	instance->Fields = new Table();
 	instance->Object.Destructor = Dispose;
 	return (Obj*)instance;
 }

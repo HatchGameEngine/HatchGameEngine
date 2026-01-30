@@ -332,7 +332,7 @@ SkeletalAnim*
 ModelImporter::LoadAnimation(IModel* imodel, ModelAnim* parentAnim, struct aiAnimation* aanim) {
 	SkeletalAnim* anim = new SkeletalAnim;
 	anim->Channels.resize(aanim->mNumChannels);
-	anim->NodeLookup = new HashMap<NodeAnim*>(NULL, 256); // Might be enough
+	anim->NodeLookup = new HashMap<NodeAnim*>();
 
 	double baseDuration = ceil(aanim->mDuration + 1.0);
 	double ticksPerSecond = aanim->mTicksPerSecond;

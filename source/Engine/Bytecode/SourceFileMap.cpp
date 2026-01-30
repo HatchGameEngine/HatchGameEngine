@@ -28,10 +28,10 @@ void SourceFileMap::CheckInit() {
 	}
 
 	if (SourceFileMap::Checksums == NULL) {
-		SourceFileMap::Checksums = new HashMap<Uint32>(CombinedHash::EncryptData, 16);
+		SourceFileMap::Checksums = new HashMap<Uint32>(CombinedHash::EncryptData);
 	}
 	if (SourceFileMap::ClassMap == NULL) {
-		SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(Murmur::EncryptData, 16);
+		SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(Murmur::EncryptData);
 	}
 
 	if (ResourceManager::ResourceExists(OBJECTS_HCM_NAME)) {

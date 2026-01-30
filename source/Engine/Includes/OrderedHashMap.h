@@ -9,7 +9,7 @@ class OrderedHashMap : public HashMap<T> {
 public:
 	std::vector<Uint32> Keys;
 
-	OrderedHashMap<T>(Uint32 (*hashFunc)(const void*, size_t) = nullptr, int capacity = 16) : HashMap<T>(hashFunc, capacity) {}
+	OrderedHashMap<T>(Uint32 (*hashFunc)(const void*, size_t) = nullptr) : HashMap<T>(hashFunc) {}
 
 	void Put(Uint32 hash, T data) {
 		if (!HashMap<T>::Exists(hash)) {
