@@ -587,7 +587,15 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 	for (size_t o = 0; o < objectgroup->children.size(); o++) {
 		XMLNode* object = objectgroup->children[o];
+		if (!XMLParser::MatchToken(object->name, "object")) {
+			continue;
+		}
+
 		Token object_type = object->attributes.Get("name");
+		if (object_type.Length == 0) {
+			continue;
+		}
+
 		float object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
 		float object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
 
@@ -603,9 +611,25 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 			continue;
 		}
 
-		const char* objectName = object_type.ToString().c_str();
+		int slotID = -1;
+		if (object->attributes.Exists("id")) {
+			slotID = (int)XMLParser::TokenToNumber(object->attributes.Get("id"));
+		}
+
+		std::string asStr = object_type.ToString();
+		const char* objectName = asStr.c_str();
 
 		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
+		if (!objectList) {
+			Log::Print(Log::LOG_WARN,
+				"Class \"%s\" does not exist! (ID: %d, X: %f, Y: %f)",
+				objectName,
+				slotID,
+				object_x,
+				object_y);
+			continue;
+		}
+
 		Entity* obj = Scene::TrySpawnObject(objectList, object_x, object_y);
 		if (!obj) {
 			continue;
@@ -614,16 +638,13 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 		Scene::AddStatic(objectList, obj);
 
 		obj->InitProperties();
-
+		if (slotID != -1) {
+			obj->SlotID = slotID + Scene::ReservedSlotIDs;
+		}
 		obj->Filter = filter;
 
 		if (!object->attributes.Exists("filter")) {
 			obj->Properties->Put("filter", Property::MakeInteger(filter));
-		}
-
-		if (object->attributes.Exists("id")) {
-			obj->SlotID = (int)XMLParser::TokenToNumber(object->attributes.Get("id")) +
-				Scene::ReservedSlotIDs;
 		}
 
 		if (object->attributes.Exists("width") && object->attributes.Exists("height")) {

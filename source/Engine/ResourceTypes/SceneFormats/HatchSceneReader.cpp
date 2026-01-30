@@ -468,6 +468,16 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 
 		// Spawn the object, if the class exists
 		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
+		if (!objectList) {
+			Log::Print(Log::LOG_WARN,
+				"Class \"%s\" does not exist! (ID: %d, X: %f, Y: %f)",
+				objectName,
+				(int)i,
+				posX,
+				posY);
+			continue;
+		}
+
 		Entity* obj = Scene::TrySpawnObject(objectList, posX, posY);
 		if (!obj) {
 			HatchSceneReader::SkipEntityProperties(r, numProps);

@@ -2196,6 +2196,13 @@ Entity* Scene::TrySpawnObject(const char* objectName, float x, float y) {
 }
 
 ObjectList* Scene::NewObjectList(const char* objectName) {
+#ifdef SCRIPTABLE_ENTITY
+	if (!ScriptManager::GetObjectClass(objectName) && !ScriptManager::ClassExists(objectName) &&
+		!Entity::SpawnFunctions->Exists(objectName)) {
+		return nullptr;
+	}
+#endif
+
 	ObjectList* objectList = new (std::nothrow) ObjectList(objectName);
 	if (!objectList) {
 		return nullptr;
@@ -2215,7 +2222,7 @@ void Scene::AddStaticClass() {
 	}
 
 	StaticObjectList = Scene::NewObjectList("Static");
-	if (!StaticObjectList->SpawnFunction) {
+	if (!StaticObjectList) {
 		return;
 	}
 
@@ -2247,6 +2254,10 @@ ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFuncti
 	}
 	else {
 		objectList = Scene::NewObjectList(objectName);
+		if (!objectList) {
+			return nullptr;
+		}
+
 		Scene::ObjectLists->Put(objectNameHash, objectList);
 
 		if (callListLoadFunction) {
@@ -2277,14 +2288,20 @@ ObjectList* Scene::GetStaticObjectList(const char* objectName) {
 	else {
 		// Create a new object list
 		objectList = Scene::NewObjectList(objectName);
-		Scene::StaticObjectLists->Put(objectName, objectList);
-		Scene::ObjectLists->Put(objectName, objectList);
+		if (objectList) {
+			Scene::StaticObjectLists->Put(objectName, objectList);
+			Scene::ObjectLists->Put(objectName, objectList);
+		}
 	}
 
 	return objectList;
 }
 void Scene::SpawnStaticObject(const char* objectName) {
 	ObjectList* objectList = Scene::GetObjectList(objectName, false);
+	if (!objectList) {
+		return;
+	}
+
 	Entity* obj = Scene::SpawnObject(objectList, 0.0f, 0.0f);
 	if (obj) {
 		Scene::AddStatic(objectList, obj);

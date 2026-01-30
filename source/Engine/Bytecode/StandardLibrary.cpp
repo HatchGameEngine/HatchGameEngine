@@ -11729,8 +11729,7 @@ VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
 	char* objectName = GET_ARG(0, GetString);
 	Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
-	if (Scene::ObjectLists->Exists(
-		    Scene::ObjectLists->HashFunction(objectName, strlen(objectName)))) {
+	if (Scene::ObjectLists->Exists(objectName)) {
 		Scene::GetObjectList(objectName)->Activity = GET_ARG(1, GetInteger);
 	}
 
@@ -11749,8 +11748,7 @@ VMValue Object_GetActivity(int argCount, VMValue* args, Uint32 threadID) {
 	char* objectName = GET_ARG(0, GetString);
 	Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
-	if (Scene::ObjectLists->Exists(
-		    Scene::ObjectLists->HashFunction(objectName, strlen(objectName)))) {
+	if (Scene::ObjectLists->Exists(objectName)) {
 		return INTEGER_VAL(Scene::GetObjectList(objectName)->Activity);
 	}
 
