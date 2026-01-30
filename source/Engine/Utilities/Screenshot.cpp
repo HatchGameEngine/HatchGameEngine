@@ -31,8 +31,8 @@ std::string Screenshot::GetFilename() {
 std::vector<ScreenshotMetadata> Screenshot::GetMetadata() {
 	std::vector<ScreenshotMetadata> metadata = {
 		ScreenshotMetadata{"Game", Application::GameTitle},
-		ScreenshotMetadata{"Game version", Application::GameVersion},
-		ScreenshotMetadata{"Game developer", Application::GameDeveloper},
+		ScreenshotMetadata{"Version", Application::GameVersion},
+		ScreenshotMetadata{"Developer", Application::GameDeveloper},
 		ScreenshotMetadata{"Engine version", Application::EngineVersion},
 		ScreenshotMetadata{"Date and time", GetTimeString()}};
 
