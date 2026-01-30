@@ -398,28 +398,28 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 
 	int entityCount = r->ReadUInt16();
 	for (int n = 0; n < entityCount; n++) {
-		bool doAdd = true;
+		bool doAdd = objectList != nullptr;
 		int slotID = r->ReadUInt16();
-		if (objectNameHash2 != HACK_PlayerNameHash && slotID >= maxObjSlots) {
+		if (doAdd && slotID >= maxObjSlots && objectNameHash2 != HACK_PlayerNameHash) {
 			Log::Print(Log::LOG_ERROR,
-				"Too many objects in scene! (Count: %d, Max: %d)",
-				slotID + 1,
+				"Too many objects in scene! (ID: %d, Max: %d)",
+				slotID,
 				maxObjSlots);
 			doAdd = false;
 		}
 
+		// Read positions
 		Uint32 posX = r->ReadUInt32();
 		Uint32 posY = r->ReadUInt32();
 
-		Entity* obj = nullptr;
-		if (doAdd && objectList != nullptr) {
-			obj = Scene::TrySpawnObject(objectList, posX / 65536.f, posY / 65536.f);
-		}
-		if (obj != nullptr) {
-			obj->SlotID = slotID + Scene::ReservedSlotIDs;
-			obj->InitProperties();
+		// Read all properties
+		// No need to allocate the HashMap if the entity won't be added.
+		// We still have to keep reading the stream though.
+		HashMap<Property>* properties = nullptr;
 
-			// TODO: Read the properties in advance, then attempt to spawn the entity
+		if (doAdd) {
+			properties = new HashMap<Property>();
+
 			for (int a = 1; a < argumentCount; a++) {
 				Property val = Property::MakeNull();
 				switch (argumentTypes[a]) {
@@ -486,39 +486,8 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 				}
 
 				if (PropertyHashes->Exists(argumentHashes[a])) {
-					obj->Properties->Put(
-						PropertyHashes->Get(argumentHashes[a]), val);
+					properties->Put(PropertyHashes->Get(argumentHashes[a]), val);
 				}
-			}
-
-			if (PropertyHashes->Exists(FilterHash)) {
-				Property prop = obj->Properties->Get("filter");
-				if (prop.Type == PROPERTY_INTEGER) {
-					obj->Filter = prop.as.Integer;
-				}
-			}
-			else {
-				obj->Filter = 0xFF;
-			}
-
-			if (!obj->Filter) {
-				obj->Filter = 0xFF;
-			}
-
-			if (!(obj->Filter & Scene::Filter)) {
-				doAdd = false;
-			}
-
-			// HACK: This is so Player ends up in the current SlotID, since this currently cannot be changed during runtime.
-			if (objectNameHash2 == HACK_PlayerNameHash) {
-				Scene::AddStatic(obj->List, obj);
-			}
-			else if (doAdd) {
-				objSlots[slotID] = obj;
-			}
-			else {
-				obj->Dispose();
-				delete obj;
 			}
 		}
 		else {
@@ -566,6 +535,53 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 					break;
 				}
 			}
+
+			// Can't add this entity
+			continue;
+		}
+
+		// Determine whether to spawn the entity
+		int filter = 0xFF;
+		if (PropertyHashes->Exists(FilterHash)) {
+			Property prop = properties->Get("filter");
+			if (prop.Type == PROPERTY_INTEGER) {
+				filter = prop.as.Integer;
+			}
+		}
+
+		if (!filter) {
+			filter = 0xFF;
+		}
+
+		// Can't spawn in this scene
+		if (!(filter & Scene::Filter)) {
+			properties->ForAll([](Uint32, Property property) -> void {
+				Property::Delete(property);
+			});
+			delete properties;
+			continue;
+		}
+
+		// Spawn the entity
+		Entity* obj = Scene::TrySpawnObject(objectList, posX / 65536.f, posY / 65536.f);
+		if (obj != nullptr) {
+			obj->SlotID = slotID + Scene::ReservedSlotIDs;
+			obj->Filter = filter;
+			obj->Properties = properties;
+
+			// HACK: This is so Player ends up in the current SlotID, since this currently cannot be changed during runtime.
+			if (objectNameHash2 == HACK_PlayerNameHash) {
+				Scene::AddStatic(obj->List, obj);
+			}
+			else {
+				objSlots[slotID] = obj;
+			}
+		}
+		else {
+			properties->ForAll([](Uint32, Property property) -> void {
+				Property::Delete(property);
+			});
+			delete properties;
 		}
 	}
 
