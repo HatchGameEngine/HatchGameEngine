@@ -1,5 +1,5 @@
 #include <Engine/Diagnostics/Memory.h>
-#include <Engine/Includes/ChainedHashMap.h>
+#include <Engine/Includes/HashMap.h>
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Utilities/ColorUtils.h>
 
@@ -49,7 +49,7 @@ bool Texture::ConvertToPalette(Uint32* palColors, unsigned numPaletteColors) {
 	Uint32* pixels = (Uint32*)Pixels;
 	int nearestColor;
 
-	ChainedHashMap<int>* colorsHash = new ChainedHashMap<int>(NULL, 256);
+	HashMap<int>* colorsHash = new HashMap<int>(NULL, 256);
 
 	for (size_t i = 0; i < Width * Height; i++) {
 		Uint32 color = pixels[i];

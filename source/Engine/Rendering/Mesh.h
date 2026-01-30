@@ -1,6 +1,7 @@
 #ifndef MESH_H
 #define MESH_H
 
+#include <Engine/Diagnostics/Memory.h>
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Math/FixedPoint.h>
 #include <Engine/Math/Matrix4x4.h>

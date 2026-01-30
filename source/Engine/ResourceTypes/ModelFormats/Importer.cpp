@@ -4,6 +4,7 @@
 #include <Engine/ResourceTypes/ModelFormats/Importer.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 #include <Engine/Utilities/StringUtils.h>
+#include <Engine/Diagnostics/Log.h>
 
 vector<int> ModelImporter::MeshIDs;
 char* ModelImporter::ParentDirectory;

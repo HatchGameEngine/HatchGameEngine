@@ -4,6 +4,7 @@
 
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Clock.h>
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>

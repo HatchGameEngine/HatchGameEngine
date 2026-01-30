@@ -159,32 +159,25 @@ void ValuePrinter::PrintMap(ObjMap* map, int indent) {
 	}
 
 	bool first = false;
-	for (int i = 0; i < map->Values->Capacity; i++) {
-		if (map->Values->Data[i].Used) {
-			if (!first) {
-				first = true;
-			}
-			else {
-				buffer_printf(Buffer, ",");
-				if (PrettyPrint) {
-					buffer_printf(Buffer, "\n");
-				}
-			}
-
-			for (int k = 0; k < indent + 1 && PrettyPrint; k++) {
-				buffer_printf(Buffer, "    ");
-			}
-
-			hash = map->Values->Data[i].Key;
-			value = map->Values->Data[i].Data;
-			if (map->Keys && map->Keys->Exists(hash)) {
-				buffer_printf(Buffer, "\"%s\": ", map->Keys->Get(hash));
-			}
-			else {
-				buffer_printf(Buffer, "0x%08X: ", hash);
-			}
-			PrintValue(value, indent + 1);
+	for (int i = 0; i < map->Values->Count(); i++) {
+		if (!first) {
+			first = true;
 		}
+		else {
+			buffer_printf(Buffer, ",");
+			if (PrettyPrint) {
+				buffer_printf(Buffer, "\n");
+			}
+		}
+
+		for (int k = 0; k < indent + 1 && PrettyPrint; k++) {
+			buffer_printf(Buffer, "    ");
+		}
+
+		hash = map->Values->Keys[i];
+		value = map->Values->Data[hash];
+		buffer_printf(Buffer, "\"%s\": ", map->Keys->Get(hash));
+		PrintValue(value, indent + 1);
 	}
 	if (PrettyPrint) {
 		buffer_printf(Buffer, "\n");

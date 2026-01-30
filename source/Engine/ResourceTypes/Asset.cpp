@@ -1,3 +1,4 @@
+#include <Engine/Error.h>
 #include <Engine/ResourceTypes/Asset.h>
 #include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 

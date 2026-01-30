@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
+#include <Engine/Diagnostics/Log.h>
 
 #ifndef _MSC_VER
 #define USING_VM_DISPATCH_TABLE

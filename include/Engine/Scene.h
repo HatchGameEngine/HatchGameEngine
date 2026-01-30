@@ -62,7 +62,7 @@ public:
 	static int ShowObjectRegions;
 	static bool UseRenderRegions;
 	static HashMap<VMValue>* Properties;
-	static HashMap<ObjectList*>* ObjectLists;
+	static OrderedHashMap<ObjectList*>* ObjectLists;
 	static HashMap<ObjectRegistry*>* ObjectRegistries;
 	static HashMap<ObjectList*>* StaticObjectLists;
 	static int ReservedSlotIDs;
