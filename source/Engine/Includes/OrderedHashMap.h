@@ -63,7 +63,7 @@ public:
 	}
 
 	void EraseIf(bool (*eraseFunc)(Uint32, T)) {
-		for (size_t i = 0; i < Keys.size(); i++) {
+		for (size_t i = 0; i < Keys.size();) {
 			Uint32 key = Keys[i];
 			if (eraseFunc(key, HashMap<T>::Data[key])) {
 				Remove(key);
