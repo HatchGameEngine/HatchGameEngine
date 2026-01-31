@@ -1229,7 +1229,6 @@ void Compiler::EmitAssignmentToken(Token assignmentToken) {
 	case TOKEN_ASSIGNMENT_BITWISE_RIGHT:
 		EmitByte(OP_BITSHIFT_RIGHT);
 		break;
-
 	case TOKEN_INCREMENT:
 		EmitByte(OP_INCREMENT);
 		break;
@@ -3699,19 +3698,10 @@ void Compiler::SetReceiverName(Token name) {
 }
 
 int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
-	///////////
-	// printf("------PrefixOptimize @ %d %d\n", preCount,
-	// preConstant); for (int i = preCount; i <
-	// CurrentChunk()->Count;)
-	//     i = DebugInstruction(CurrentChunk(), i);
-	///////////
-
 	int checkConstant = -1;
 	VMValue out = NULL_VAL;
 
 	if (fn == &Compiler::GetUnary) {
-		// printf("GetUnary\n");
-
 		Uint8 unOp = CurrentChunk()->Code[CodePointer() - 1];
 		if (unOp == OP_TYPEOF) {
 			return preConstant;
@@ -3770,6 +3760,28 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 				out = INTEGER_VAL(~AS_INTEGER(constant));
 			}
 			break;
+		case OP_INCREMENT: {
+			CurrentChunk()->Count = preCount;
+
+			if (constant.Type == VAL_DECIMAL) {
+				out = DECIMAL_VAL(++AS_DECIMAL(constant));
+			}
+			else {
+				out = INTEGER_VAL(++AS_INTEGER(constant));
+			}
+			break;
+		}
+		case OP_DECREMENT: {
+			CurrentChunk()->Count = preCount;
+
+			if (constant.Type == VAL_DECIMAL) {
+				out = DECIMAL_VAL(--AS_DECIMAL(constant));
+			}
+			else {
+				out = INTEGER_VAL(--AS_INTEGER(constant));
+			}
+			break;
+		}
 		}
 	}
 
