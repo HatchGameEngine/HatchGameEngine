@@ -16,6 +16,7 @@ std::pair<std::string, PathLocation> urlToLocationType[] = {
 	std::make_pair(PATHLOCATION_GAME_URL, PathLocation::GAME),
 	std::make_pair(PATHLOCATION_USER_URL, PathLocation::USER),
 	std::make_pair(PATHLOCATION_SAVEGAME_URL, PathLocation::SAVEGAME),
+	std::make_pair(PATHLOCATION_SCREENSHOTS_URL, PathLocation::SCREENSHOTS),
 	std::make_pair(PATHLOCATION_PREFERENCES_URL, PathLocation::PREFERENCES),
 	std::make_pair(PATHLOCATION_CACHE_URL, PathLocation::CACHE)};
 
@@ -431,6 +432,16 @@ std::string Path::GetForLocation(PathLocation location) {
 		finalPath = GetBaseUserPath();
 		if (finalPath != "") {
 			suffix = Application::GetSavesDir();
+			if (suffix != nullptr) {
+				finalPath = Concat(finalPath, std::string(suffix));
+			}
+		}
+		break;
+	// screenshots://
+	case PathLocation::SCREENSHOTS:
+		finalPath = GetBaseUserPath();
+		if (finalPath != "") {
+			suffix = Application::GetScreenshotsDir();
 			if (suffix != nullptr) {
 				finalPath = Concat(finalPath, std::string(suffix));
 			}

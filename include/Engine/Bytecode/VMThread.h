@@ -85,6 +85,7 @@ public:
 	VMValue RunEntityFunction(ObjFunction* function, int argCount);
 	void CallInitializer(VMValue value);
 	bool Call(ObjFunction* function, int argCount);
+	bool GetArity(VMValue callee, int& minArity, int& maxArity);
 	bool InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount);
 	bool InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount);
 	bool Import(VMValue value);

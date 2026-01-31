@@ -301,6 +301,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\types\Tileset.cpp" />
     <ClCompile Include="..\source\engine\utilities\ColorUtils.cpp" />
     <ClCompile Include="..\source\engine\utilities\PrintBuffer.cpp" />
+    <ClCompile Include="..\source\Engine\Utilities\Screenshot.cpp" />
     <ClCompile Include="..\source\engine\utilities\StringUtils.cpp" />
     <ClCompile Include="..\source\Libraries\miniz.c" />
     <ClCompile Include="..\source\Libraries\stb_vorbis.c" />

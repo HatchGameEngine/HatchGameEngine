@@ -11,6 +11,7 @@
 #define PATHLOCATION_GAME_URL "game://"
 #define PATHLOCATION_USER_URL "user://"
 #define PATHLOCATION_SAVEGAME_URL "save://"
+#define PATHLOCATION_SCREENSHOTS_URL "screenshots://"
 #define PATHLOCATION_PREFERENCES_URL "config://"
 #define PATHLOCATION_CACHE_URL "cache://"
 
@@ -48,6 +49,14 @@ enum PathLocation {
 	//
 	// The equivalent URL is "save://"
 	SAVEGAME,
+
+	// The screenshots location.
+	// This is persistent storage, and the path varies on the system.
+	//
+	// Typically, the path used is "user://screenshots/"
+	//
+	// The equivalent URL is "screenshots://"
+	SCREENSHOTS,
 
 	// The preferences location.
 	// This is non-roaming storage, and the path varies on the system.
