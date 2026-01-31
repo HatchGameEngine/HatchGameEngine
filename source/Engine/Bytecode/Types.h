@@ -206,16 +206,16 @@ enum ObjType {
 	MAX_OBJ_TYPE
 };
 
-#define CLASS_ARRAY "$$ArrayImpl"
-#define CLASS_ENTITY "$$EntityImpl"
+#define CLASS_ARRAY "ArrayImpl"
+#define CLASS_ENTITY "EntityImpl"
 #define CLASS_FONT "Font"
-#define CLASS_FUNCTION "$$FunctionImpl"
-#define CLASS_INSTANCE "$$InstanceImpl"
-#define CLASS_MAP "$$MapImpl"
+#define CLASS_FUNCTION "FunctionImpl"
+#define CLASS_INSTANCE "InstanceImpl"
+#define CLASS_MAP "MapImpl"
 #define CLASS_MATERIAL "Material"
 #define CLASS_SHADER "Shader"
-#define CLASS_STREAM "$$StreamImpl"
-#define CLASS_STRING "$$StringImpl"
+#define CLASS_STREAM "StreamImpl"
+#define CLASS_STRING "StringImpl"
 
 #define OBJECT_TYPE(value) (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value) IsObjectType(value, OBJ_BOUND_METHOD)
@@ -383,8 +383,8 @@ ObjString* TakeString(char* chars, size_t length);
 ObjString* TakeString(char* chars);
 ObjString* CopyString(const char* chars, size_t length);
 ObjString* CopyString(const char* chars);
+ObjString* CopyString(std::string path);
 ObjString* CopyString(ObjString* string);
-ObjString* CopyString(std::filesystem::path path);
 ObjString* AllocString(size_t length);
 ObjFunction* NewFunction();
 ObjNative* NewNative(NativeFn function);

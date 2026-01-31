@@ -880,6 +880,10 @@ void Application::EndGame() {
 	Graphics::UnloadData();
 
 	Application::TerminateScripting();
+
+	Entity::UnloadAll();
+
+	Entity::DisableAutoAnimate = false;
 }
 
 void Application::UnloadGame() {
@@ -1661,6 +1665,8 @@ void Application::StartGame(const char* startingScene) {
 	Application::LoadDefaultFont();
 	Application::InitScripting();
 
+	Entity::InitAll();
+
 	Scene::Init();
 	Scene::Prepare();
 	Scene::Initialize();
@@ -1872,7 +1878,6 @@ void Application::TerminateScripting() {
 	GarbageCollector::Dispose();
 
 	ScriptManager::LoadAllClasses = false;
-	ScriptEntity::DisableAutoAnimate = false;
 }
 
 static char* ParseGameConfigText(XMLNode* parent, const char* option) {

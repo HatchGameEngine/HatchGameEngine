@@ -3308,7 +3308,8 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		array = NewArray();
 		for (size_t i = 0; i < fileList.size(); i++) {
-			ObjString* part = CopyString(fileList[i]);
+			std::string asStr = Path::ToString(fileList[i]);
+			ObjString* part = CopyString(asStr);
 			array->Values->push_back(OBJECT_VAL(part));
 		}
 		ScriptManager::Unlock();
@@ -3338,7 +3339,8 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		array = NewArray();
 		for (size_t i = 0; i < fileList.size(); i++) {
-			ObjString* part = CopyString(fileList[i]);
+			std::string asStr = Path::ToString(fileList[i]);
+			ObjString* part = CopyString(asStr);
 			array->Values->push_back(OBJECT_VAL(part));
 		}
 		ScriptManager::Unlock();
@@ -9364,34 +9366,26 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	float y = GET_ARG(2, GetDecimal);
 	VMValue flag = argCount == 4 ? args[3] : INTEGER_VAL(0);
 
-	ObjectList* objectList = Scene::GetObjectList(objectName);
-	if (!objectList || !objectList->SpawnFunction) {
-		THROW_ERROR("Object class \"%s\" does not exist.", objectName);
+	ScriptEntity* obj;
+	try {
+		obj = (ScriptEntity*)Scene::SpawnObject(objectName, x, y);
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
 		return NULL_VAL;
 	}
-
-	ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
-	if (!obj) {
-		THROW_ERROR("Could not spawn object of class \"%s\"!", objectName);
-		return NULL_VAL;
-	}
-
-	obj->X = x;
-	obj->Y = y;
-	obj->InitialX = x;
-	obj->InitialY = y;
-	obj->List = objectList;
-	obj->List->Add(obj);
 
 	ObjEntity* instance = obj->Instance;
 
-	// Call the initializer, if there is one.
-	if (HasInitializer(instance->Object.Class)) {
-		obj->Initialize();
-	}
+	// Call the initializer
+	obj->Initialize();
 
 	// Add it to the scene
-	Scene::AddDynamic(objectList, obj);
+	Scene::AddDynamic(obj->List, obj);
+
+	// Add to proper list
+	if (obj->List) {
+		obj->List->Add(obj);
+	}
 
 	obj->Create(flag);
 	if (!Scene::Initializing) {
@@ -9574,7 +9568,7 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	ScriptEntity::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
+	Entity::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -11766,8 +11760,7 @@ VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
 	char* objectName = GET_ARG(0, GetString);
 	Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
-	if (Scene::ObjectLists->Exists(
-		    Scene::ObjectLists->HashFunction(objectName, strlen(objectName)))) {
+	if (Scene::ObjectLists->Exists(objectName)) {
 		Scene::GetObjectList(objectName)->Activity = GET_ARG(1, GetInteger);
 	}
 
@@ -11786,8 +11779,7 @@ VMValue Object_GetActivity(int argCount, VMValue* args, Uint32 threadID) {
 	char* objectName = GET_ARG(0, GetString);
 	Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
-	if (Scene::ObjectLists->Exists(
-		    Scene::ObjectLists->HashFunction(objectName, strlen(objectName)))) {
+	if (Scene::ObjectLists->Exists(objectName)) {
 		return INTEGER_VAL(Scene::GetObjectList(objectName)->Activity);
 	}
 
@@ -12726,7 +12718,7 @@ VMValue Scene_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
 	if (!Scene::Properties || !Scene::Properties->Exists(property)) {
 		return NULL_VAL;
 	}
-	return Scene::Properties->Get(property);
+	return Value::FromProperty(Scene::Properties->Get(property));
 }
 /***
  * Scene.GetLayerCount
@@ -12839,7 +12831,7 @@ VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
 	int index = GET_ARG(0, GetInteger);
 	char* property = GET_ARG(1, GetString);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return Scene::Layers[index].PropertyGet(property);
+	return Value::FromProperty(Scene::Layers[index].PropertyGet(property));
 }
 /***
  * Scene.GetLayerExists
