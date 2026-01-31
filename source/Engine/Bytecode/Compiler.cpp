@@ -1258,11 +1258,14 @@ void Compiler::EmitCallOpcode(int argCount, bool isSuper) {
 	EmitByte(argCount);
 }
 
-void Compiler::NamedVariable(Token name, bool canAssign) {
-	Uint8 getOp, setOp;
-	Local local;
+bool Compiler::ResolveNamedVariable(Token name,
+	Uint8& getOp,
+	Uint8& setOp,
+	Local& local,
+	int& arg) {
 	local.Constant = false;
-	int arg = ResolveLocal(&name, &local);
+
+	arg = ResolveLocal(&name, &local);
 
 	// Determine whether local or global
 	if (arg != -1) {
@@ -1278,7 +1281,7 @@ void Compiler::NamedVariable(Token name, bool canAssign) {
 		}
 		else if (StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
 			EmitConstant(value);
-			return;
+			return true;
 		}
 		else {
 			getOp = OP_GET_GLOBAL;
@@ -1286,42 +1289,66 @@ void Compiler::NamedVariable(Token name, bool canAssign) {
 		}
 	}
 
-	if (canAssign && MatchAssignmentToken()) {
-		if (local.Constant) {
-			ErrorAt(&name, "Attempted to assign to constant!", true);
-		}
-		else if (getOp == OP_GET_LOCAL) {
-			Locals[arg].WasSet = true;
-		}
-		else if (getOp == OP_GET_MODULE_LOCAL) {
-			ModuleLocals[arg].WasSet = true;
-		}
+	return false;
+}
+void Compiler::DoVariableAssignment(Token name,
+	Local local,
+	Uint8 getOp,
+	Uint8 setOp,
+	int arg,
+	Token assignmentToken,
+	bool isPrefix) {
+	if (local.Constant) {
+		ErrorAt(&name, "Attempted to assign to constant!", true);
+	}
+	else if (getOp == OP_GET_LOCAL) {
+		Locals[arg].WasSet = true;
+	}
+	else if (getOp == OP_GET_MODULE_LOCAL) {
+		ModuleLocals[arg].WasSet = true;
+	}
 
-		Token assignmentToken = parser.Previous;
-		if (assignmentToken.Type == TOKEN_INCREMENT ||
-			assignmentToken.Type == TOKEN_DECREMENT) {
-			EmitGetOperation(getOp, arg, name);
+	if (assignmentToken.Type == TOKEN_INCREMENT || assignmentToken.Type == TOKEN_DECREMENT) {
+		EmitGetOperation(getOp, arg, name);
 
+		// If postfix, we push the value BEFORE the increment/decrement happens
+		// If prefix, we leave the incremented/decremented value on the stack
+		if (!isPrefix) {
 			EmitCopy(1);
 			EmitByte(OP_SAVE_VALUE); // Save value. (value)
-			EmitAssignmentToken(assignmentToken); // OP_DECREMENT
-			// (value - 1, this)
+		}
 
-			EmitSetOperation(setOp, arg, name);
+		EmitAssignmentToken(assignmentToken);
+		EmitSetOperation(setOp, arg, name);
+
+		if (!isPrefix) {
 			EmitByte(OP_POP);
-
 			EmitByte(OP_LOAD_VALUE); // Load value. (value)
 		}
-		else {
-			if (assignmentToken.Type != TOKEN_ASSIGNMENT) {
-				EmitGetOperation(getOp, arg, name);
-			}
-
-			GetExpression();
-
-			EmitAssignmentToken(assignmentToken);
-			EmitSetOperation(setOp, arg, name);
+	}
+	else {
+		if (assignmentToken.Type != TOKEN_ASSIGNMENT) {
+			EmitGetOperation(getOp, arg, name);
 		}
+
+		GetExpression();
+
+		EmitAssignmentToken(assignmentToken);
+		EmitSetOperation(setOp, arg, name);
+	}
+}
+void Compiler::NamedVariable(Token name, bool canAssign) {
+	Uint8 getOp, setOp;
+	Local local;
+	int arg;
+
+	if (ResolveNamedVariable(name, getOp, setOp, local, arg)) {
+		return;
+	}
+
+	if (canAssign && MatchAssignmentToken()) {
+		Token assignmentToken = parser.Previous;
+		DoVariableAssignment(name, local, getOp, setOp, arg, assignmentToken, false);
 	}
 	else if (local.Constant && local.ConstantVal.Type != VAL_ERROR) {
 		EmitConstant(local.ConstantVal);
@@ -1825,14 +1852,6 @@ void Compiler::GetConstant(bool canAssign) {
 		break;
 	}
 }
-int Compiler::GetConstantValue() {
-	int position, constant_index;
-	position = CodePointer();
-	GetConstant(false);
-	constant_index = CurrentChunk()->Code[position + 1];
-	CurrentChunk()->Count = position;
-	return constant_index;
-}
 void Compiler::GetVariable(bool canAssign) {
 	NamedVariable(parser.Previous, canAssign);
 }
@@ -1868,11 +1887,14 @@ void Compiler::GetConditional(bool canAssign) {
 	PatchJump(elseJump);
 }
 void Compiler::GetUnary(bool canAssign) {
-	int operatorType = parser.Previous.Type;
+	Token previousToken = parser.Previous;
+	Token currentToken = parser.Current;
+
+	int position = CodePointer();
 
 	ParsePrecedence(PREC_UNARY);
 
-	switch (operatorType) {
+	switch (previousToken.Type) {
 	case TOKEN_MINUS:
 		EmitByte(OP_NEGATE);
 		break;
@@ -1885,13 +1907,41 @@ void Compiler::GetUnary(bool canAssign) {
 	case TOKEN_TYPEOF:
 		EmitByte(OP_TYPEOF);
 		break;
+	case TOKEN_INCREMENT:
+	case TOKEN_DECREMENT:
+		if (currentToken.Type == TOKEN_IDENTIFIER) {
+			CurrentChunk()->Count = position;
+		}
 
-		// HACK: replace these with prefix version of OP
-		// case TOKEN_INCREMENT:   EmitByte(OP_INCREMENT);
-		// break; case TOKEN_DECREMENT: EmitByte(OP_DECREMENT);
-		// break;
+		UnaryIncrement(currentToken, previousToken, canAssign);
+		break;
 	default:
 		return; // Unreachable.
+	}
+}
+void Compiler::UnaryIncrement(Token name, Token assignmentToken, bool canAssign) {
+	Uint8 getOp, setOp;
+	Local local;
+	int arg;
+
+	if (name.Type != TOKEN_IDENTIFIER) {
+		EmitAssignmentToken(assignmentToken);
+		return;
+	}
+
+	if (ResolveNamedVariable(name, getOp, setOp, local, arg)) {
+		return;
+	}
+
+	if (canAssign) {
+		DoVariableAssignment(name, local, getOp, setOp, arg, assignmentToken, true);
+	}
+	else if (local.Constant && local.ConstantVal.Type != VAL_ERROR) {
+		EmitConstant(local.ConstantVal);
+	}
+	else {
+		EmitGetOperation(getOp, arg, name);
+		EmitAssignmentToken(assignmentToken);
 	}
 }
 void Compiler::GetNew(bool canAssign) {
