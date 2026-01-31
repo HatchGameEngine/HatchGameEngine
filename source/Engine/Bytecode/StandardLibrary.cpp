@@ -3562,10 +3562,11 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 		int textureBlend = Graphics::TextureBlend;
 		float alpha = Graphics::BlendColors[3];
 
-		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f)
+		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f) {
 			Graphics::TextureBlend = true;
+		}
 		Graphics::SetBlendMode(entity->BlendMode);
-        Graphics::SetBlendColor(Graphics::BlendColors[0],
+		Graphics::SetBlendColor(Graphics::BlendColors[0],
 			Graphics::BlendColors[1],
 			Graphics::BlendColors[2],
 			Math::Clamp(entity->Alpha, 0.0f, 1.0f));
@@ -3782,8 +3783,9 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 		int textureBlend = Graphics::TextureBlend;
 		float alpha = Graphics::BlendColors[3];
 
-		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f)
+		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f) {
 			Graphics::TextureBlend = true;
+		}
 		Graphics::SetBlendMode(entity->BlendMode);
 		Graphics::SetBlendColor(Graphics::BlendColors[0],
 			Graphics::BlendColors[1],
@@ -4613,6 +4615,7 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (number): X position of where to draw the text.
  * \param y (number): Y position of where to draw the text.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
@@ -4622,6 +4625,9 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 	float x = GET_ARG(2, GetDecimal);
 	float y = GET_ARG(3, GetDecimal);
 	float fontSize = GET_ARG_OPT(4, GetDecimal, 0.0f);
+	int paletteID = GET_ARG_OPT(5, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (IS_FONT(args[0])) {
 		ObjFont* objFont = GET_ARG(0, GetFont);
@@ -4637,7 +4643,7 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 		params.Descent = font->Descent;
 		params.Leading = font->Leading;
 
-		Graphics::DrawText(font, text, x, y, &params);
+		Graphics::DrawText(font, text, x, y, &params, paletteID);
 
 		return NULL_VAL;
 	}
@@ -4649,7 +4655,7 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
 		params.Advance = textAdvance;
-		Graphics::DrawTextLegacy(sprite, text, x, y, &params);
+		Graphics::DrawTextLegacy(sprite, text, x, y, &params, paletteID);
 	}
 
 	return NULL_VAL;
@@ -4664,6 +4670,7 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
  * \param maxWidth (number): Max width the text can draw in.
  * \paramOpt maxLines (integer): Max lines of text to draw. Use `null` to draw all lines.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
@@ -4678,6 +4685,9 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		maxLines = GET_ARG(5, GetInteger);
 	}
 	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
+	int paletteID = GET_ARG_OPT(7, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (IS_FONT(args[0])) {
 		ObjFont* objFont = GET_ARG(0, GetFont);
@@ -4695,7 +4705,7 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		params.MaxWidth = maxWidth;
 		params.MaxLines = maxLines;
 
-		Graphics::DrawTextWrapped(font, text, x, y, &params);
+		Graphics::DrawTextWrapped(font, text, x, y, &params, paletteID);
 
 		return NULL_VAL;
 	}
@@ -4709,7 +4719,7 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		params.Advance = textAdvance;
 		params.MaxWidth = maxWidth;
 		params.MaxLines = maxLines;
-		Graphics::DrawTextWrappedLegacy(sprite, text, x, y, &params);
+		Graphics::DrawTextWrappedLegacy(sprite, text, x, y, &params, paletteID);
 	}
 
 	return NULL_VAL;
@@ -4724,6 +4734,7 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
  * \param maxWidth (number): Max width the text can draw in.
  * \paramOpt maxLines (integer): Max lines of text to draw. Use `null` to draw all lines.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
@@ -4738,6 +4749,9 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		maxLines = GET_ARG(5, GetInteger);
 	}
 	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
+	int paletteID = GET_ARG_OPT(7, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (IS_FONT(args[0])) {
 		ObjFont* objFont = GET_ARG(0, GetFont);
@@ -4755,7 +4769,7 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		params.MaxWidth = maxWidth;
 		params.MaxLines = maxLines;
 
-		Graphics::DrawTextEllipsis(font, text, x, y, &params);
+		Graphics::DrawTextEllipsis(font, text, x, y, &params, paletteID);
 
 		return NULL_VAL;
 	}
@@ -4769,7 +4783,7 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		params.Advance = textAdvance;
 		params.MaxWidth = maxWidth;
 		params.MaxLines = maxLines;
-		Graphics::DrawTextEllipsisLegacy(sprite, text, x, y, &params);
+		Graphics::DrawTextEllipsisLegacy(sprite, text, x, y, &params, paletteID);
 	}
 
 	return NULL_VAL;
@@ -4782,6 +4796,7 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (number): X position of where to draw the glyph.
  * \param y (number): Y position of where to draw the glyph.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
@@ -4791,6 +4806,9 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
 	float x = GET_ARG(2, GetDecimal);
 	float y = GET_ARG(3, GetDecimal);
 	float fontSize = GET_ARG_OPT(4, GetDecimal, 0.0f);
+	int paletteID = GET_ARG_OPT(5, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (IS_FONT(args[0])) {
 		ObjFont* objFont = GET_ARG(0, GetFont);
@@ -4804,7 +4822,7 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 
-		Graphics::DrawGlyph(font, codepoint, x, y, &params);
+		Graphics::DrawGlyph(font, codepoint, x, y, &params, paletteID);
 
 		return NULL_VAL;
 	}
@@ -4816,7 +4834,7 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
 		params.Advance = textAdvance;
-		Graphics::DrawGlyphLegacy(sprite, codepoint, x, y, &params);
+		Graphics::DrawGlyphLegacy(sprite, codepoint, x, y, &params, paletteID);
 	}
 
 	return NULL_VAL;
@@ -4835,6 +4853,7 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
  * \param spacing (integer): The space between drawn sprites.
  * \paramOpt charOffsetsX (array): The X offsets at which to draw per frame. Must also have <param charOffsetsY> to be used.
  * \paramOpt charOffsetsY (array): The Y offsets at which to draw per frame.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
@@ -4851,6 +4870,9 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 		int spacing = GET_ARG(8, GetInteger);
 		ObjArray* charOffsetsX = GET_ARG_OPT(9, GetArray, nullptr);
 		ObjArray* charOffsetsY = GET_ARG_OPT(10, GetArray, nullptr);
+		int paletteID = GET_ARG_OPT(11, GetInteger, 0);
+
+		CHECK_PALETTE_INDEX(paletteID);
 
 		if (sprite && string && animation >= 0 &&
 			animation < (int)sprite->Animations.size()) {
@@ -4903,7 +4925,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x += spacing + frame.Width;
 							++charOffsetIndex;
 						}
@@ -4932,7 +4955,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x += spacing + frame.Width;
 						}
 					}
@@ -4981,7 +5005,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x = (x - frame.Width) - spacing;
 							--charOffsetIndex;
 						}
@@ -5010,7 +5035,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x = (x - frame.Width) - spacing;
 						}
 					}
@@ -5075,7 +5101,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x += spacing + frame.Width;
 							++charOffsetIndex;
 						}
@@ -5104,7 +5131,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x += spacing + frame.Width;
 						}
 					}
@@ -6801,7 +6829,7 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 
 	// 0
 	// | \
-    // 1--2
+	// 1--2
 
 	data[1].UV.X = FP16_TO(1.0f);
 
