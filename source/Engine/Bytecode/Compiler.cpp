@@ -2388,9 +2388,11 @@ void Compiler::GetSwitchStatement() {
 	}
 
 	// Set the old continue opcode positions to the newly placed ones
-	top = ContinueJumpListStack.top();
-	for (size_t i = 0; i < top->size(); i++) {
-		(*top)[i] += code_offset;
+	if (ContinueJumpListStack.size() > 0) {
+		top = ContinueJumpListStack.top();
+		for (size_t i = 0; i < top->size(); i++) {
+			(*top)[i] += code_offset;
+		}
 	}
 
 	// Pop jump list off break stack, patch all breaks to this code
