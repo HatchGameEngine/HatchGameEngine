@@ -2197,8 +2197,14 @@ Entity* Scene::TrySpawnObject(const char* objectName, float x, float y) {
 
 ObjectList* Scene::NewObjectList(const char* objectName) {
 #ifdef SCRIPTABLE_ENTITY
-	if (!ScriptManager::GetObjectClass(objectName) && !ScriptManager::ClassExists(objectName) &&
-		!Entity::SpawnFunctions->Exists(objectName)) {
+	// Load the bytecode for this class if it exists
+	if (ScriptManager::ClassExists(objectName) && !ScriptManager::IsClassLoaded(objectName)) {
+		ScriptManager::LoadObjectClass(objectName);
+	}
+
+	// The above must have loaded the given scripted class if there is one.
+	// If there is still no class, then it doesn't exist natively or script-side.
+	if (!ScriptManager::GetObjectClass(objectName)) {
 		return nullptr;
 	}
 #endif

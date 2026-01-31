@@ -22,11 +22,6 @@ Entity* ScriptEntity::Spawn() {
 	throw std::runtime_error("Cannot directly spawn ScriptEntity!");
 }
 Entity* ScriptEntity::SpawnNamed(const char* objectName) {
-	// Ensure any class bytecode is loaded if there is a native implementation of the class
-	if (ScriptManager::ClassExists(objectName) && !ScriptManager::IsClassLoaded(objectName)) {
-		ScriptManager::LoadObjectClass(objectName);
-	}
-
 	// If this class is implemented natively, we can use Entity::SpawnNamed.
 	// This works because all native entities descend from ScriptEntity.
 	// Otherwise, this must be a script-side class, so we spawn a regular ScriptEntity.
