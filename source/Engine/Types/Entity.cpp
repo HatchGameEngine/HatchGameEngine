@@ -33,7 +33,9 @@ Entity* Entity::SpawnNamed(const char* objectName) {
 }
 
 void Entity::InitProperties() {
-	Properties = new HashMap<Property>(NULL, 4);
+	if (!Properties) {
+		Properties = new HashMap<Property>(NULL, 4);
+	}
 }
 
 int Entity::GetIDWithinClass() {

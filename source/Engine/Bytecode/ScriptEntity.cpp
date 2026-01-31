@@ -888,17 +888,20 @@ void ScriptEntity::Copy(ScriptEntity* other, bool copyClass) {
 	}
 
 	// Copy properties
-	HashMap<Property>* srcProperties = Properties;
-	HashMap<Property>* destProperties = other->Properties;
+	if (other->Properties) {
+		other->Properties->WithAll([](Uint32 key, Property value) -> void {
+			Property::Delete(value);
+		});
+		other->Properties->Clear();
+	}
 
-	destProperties->WithAll([](Uint32 key, Property value) -> void {
-		Property::Delete(value);
-	});
-	destProperties->Clear();
+	if (Properties) {
+		other->InitProperties();
 
-	srcProperties->WithAll([destProperties](Uint32 key, Property value) -> void {
-		destProperties->Put(key, value);
-	});
+		Properties->WithAll([other](Uint32 key, Property value) -> void {
+			other->Properties->Put(key, value);
+		});
+	}
 }
 
 void ScriptEntity::CopyFields(ScriptEntity* other) {
