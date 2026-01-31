@@ -26,8 +26,8 @@ public:
 #endif
 	void MoveToTarget();
 	void MoveViewPosition();
-	void Update();
-	void FixedUpdate();
+	void UpdateLate();
+	void FixedUpdateLate();
 };
 
 #endif /* ENGINE_TYPES_CAMERA_H */

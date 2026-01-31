@@ -141,13 +141,13 @@ void Camera::MoveToTarget() {
 	}
 }
 
-void Camera::Update() {
+void Camera::UpdateLate() {
 	if (!Active) {
 		return;
 	}
 
 #ifdef SCRIPTABLE_ENTITY
-	if (RunFunction(Hash_Update)) {
+	if (RunFunction(Hash_UpdateLate)) {
 		return;
 	}
 #endif
@@ -155,13 +155,13 @@ void Camera::Update() {
 	MoveToTarget();
 	MoveViewPosition();
 }
-void Camera::FixedUpdate() {
+void Camera::FixedUpdateLate() {
 	if (!Active) {
 		return;
 	}
 
 #ifdef SCRIPTABLE_ENTITY
-	if (RunFunction(FixedUpdateHash)) {
+	if (RunFunction(FixedUpdateLateHash)) {
 		return;
 	}
 #endif
