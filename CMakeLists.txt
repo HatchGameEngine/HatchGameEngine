@@ -20,20 +20,10 @@ if(TARGET_NAME)
   set(HATCH_TARGET_NAME ${TARGET_NAME})
 endif()
 
-add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
-
 # Default to Debug build if not specified
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
-
-set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
-
-# Change executable name
-if(EXECUTABLE_NAME)
-  set(OUT_EXEC_NAME ${EXECUTABLE_NAME})
-endif()
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}")
 
 add_definitions(-DTARGET_NAME=\"${HATCH_TARGET_NAME}\")
 
@@ -117,6 +107,14 @@ if(NOT PLATFORM_FILE)
   message(FATAL_ERROR "Could not find cmake file for target: '${CMAKE_SYSTEM_NAME}'")
 endif()
 include(${PLATFORM_FILE})
+
+set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
+
+# Change executable name
+if(EXECUTABLE_NAME)
+  set(OUT_EXEC_NAME ${EXECUTABLE_NAME})
+endif()
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}")
 
 # Add needed directories
 include_directories(

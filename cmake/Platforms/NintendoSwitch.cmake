@@ -1,3 +1,4 @@
+add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
 add_definitions(-DSWITCH -DCONSOLE_FILESYSTEM)
 
 find_package(SDL2 REQUIRED)

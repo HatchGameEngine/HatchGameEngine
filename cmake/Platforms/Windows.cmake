@@ -1,3 +1,4 @@
+add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
 add_definitions(-DWIN32 -D_WINDOWS)
 
 option(WINDOWS_USE_RESOURCE_FILE "Use resource file (Windows)" ON)
