@@ -12,6 +12,12 @@ private:
 	bool CheckBranchLimit(CallFrame* frame);
 	bool DoJump(CallFrame* frame, int offset);
 	bool DoJumpBack(CallFrame* frame, int offset);
+	VMValue GetProperty(VMValue object, Uint32 hash);
+	VMValue SetProperty(VMValue object, Uint32 hash, VMValue value);
+	VMValue GetElement(VMValue object, VMValue at);
+	VMValue SetElement(VMValue object, VMValue at, VMValue value);
+	VMValue GetGlobal(Uint32 hash);
+	void SetGlobal(Uint32 hash, VMValue value);
 	bool
 	GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
 	bool GetProperty(Obj* object, Uint32 hash, ValueGetFn getter);
@@ -198,6 +204,14 @@ public:
 	VM_ADD_OPFUNC(OP_EVENT);
 	VM_ADD_OPFUNC(OP_METHOD);
 	VM_ADD_OPFUNC(OP_NEW_HITBOX);
+	VM_ADD_OPFUNC(OP_LOCATION_STACK);
+	VM_ADD_OPFUNC(OP_LOCATION_MODULE_LOCAL);
+	VM_ADD_OPFUNC(OP_LOCATION_GLOBAL);
+	VM_ADD_OPFUNC(OP_LOCATION_PROPERTY);
+	VM_ADD_OPFUNC(OP_LOCATION_SUPER_PROPERTY);
+	VM_ADD_OPFUNC(OP_LOCATION_ELEMENT);
+	VM_ADD_OPFUNC(OP_LOAD_INDIRECT);
+	VM_ADD_OPFUNC(OP_STORE_INDIRECT);
 #endif
 };
 

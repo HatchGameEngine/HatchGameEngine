@@ -221,6 +221,8 @@ const char* GetTypeString(Uint32 type) {
 		return "hitbox";
 	case VAL_OBJECT:
 		return "object";
+	case VAL_LOCATION:
+		return "location";
 	}
 	return "unknown type";
 }
@@ -401,6 +403,14 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_EVENT);
 			OPCASE(OP_METHOD);
 			OPCASE(OP_NEW_HITBOX);
+			OPCASE(OP_LOCATION_STACK);
+			OPCASE(OP_LOCATION_MODULE_LOCAL);
+			OPCASE(OP_LOCATION_GLOBAL);
+			OPCASE(OP_LOCATION_PROPERTY);
+			OPCASE(OP_LOCATION_SUPER_PROPERTY);
+			OPCASE(OP_LOCATION_ELEMENT);
+			OPCASE(OP_LOAD_INDIRECT);
+			OPCASE(OP_STORE_INDIRECT);
 		}
 		assert((func != NULL));
 		OpcodeFuncs[i] = func;
