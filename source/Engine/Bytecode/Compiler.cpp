@@ -2282,6 +2282,7 @@ void Compiler::GetSwitchStatement() {
 	Chunk* chunk = CurrentChunk();
 
 	StartBreakJumpList();
+	StartContinueJumpList();
 
 	// Evaluate the condition
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
@@ -2388,12 +2389,14 @@ void Compiler::GetSwitchStatement() {
 	}
 
 	// Set the old continue opcode positions to the newly placed ones
-	if (ContinueJumpListStack.size() > 0) {
-		top = ContinueJumpListStack.top();
-		for (size_t i = 0; i < top->size(); i++) {
-			(*top)[i] += code_offset;
-		}
+	top = ContinueJumpListStack.top();
+	for (size_t i = 0; i < top->size(); i++) {
+		(*top)[i] += code_offset;
 	}
+
+	// Pop jump list off continue stack, patch all continue to this
+	// code point
+	EndContinueJumpList();
 
 	// Pop jump list off break stack, patch all breaks to this code
 	// point
