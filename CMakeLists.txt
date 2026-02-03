@@ -7,19 +7,6 @@ project(HatchGameEngine VERSION 1.4.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-  set(CMAKE_CXX_FLAGS "/wd4244 /wd4267 /wd4305 /wd4717 /EHsc")
-else()
-  set(HATCH_OPT_FLAGS "-Ofast")
-  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
-    set(HATCH_OPT_FLAGS "${HATCH_OPT_FLAGS} -march=nocona")
-  endif()
-  set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${HATCH_OPT_FLAGS}")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${HATCH_OPT_FLAGS}")
-  set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} ${HATCH_OPT_FLAGS}")
-  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${HATCH_OPT_FLAGS}")
-endif()
-
 # Set up CMake modules path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
@@ -33,27 +20,26 @@ if(TARGET_NAME)
   set(HATCH_TARGET_NAME ${TARGET_NAME})
 endif()
 
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  add_definitions(-DTARGET_NAME=\"${HATCH_TARGET_NAME}\"
-   -DNO_LIBAV
-  )
-  if(NINTENDO_SWITCH)
-    add_definitions(-DSWITCH -DCONSOLE_FILESYSTEM)
-  else()
-    add_definitions(-DLINUX)
-  endif()
+add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
 
-  set(CONSOLE_BASE_PATH "" CACHE STRING "Optional base path (must end with '/')")
-  if(NOT CONSOLE_BASE_PATH STREQUAL "")
-    add_definitions(-DCONSOLE_BASE_PATH="${CONSOLE_BASE_PATH}")
-  endif()
-else()
-  # Cross compiling a Windows executable
-  add_definitions(-DWIN32 -DTARGET_NAME=\"${HATCH_TARGET_NAME}\"
-   -DNO_LIBAV
-   -DGLEW_STATIC
-   -D_WINDOWS
-  )
+# Default to Debug build if not specified
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Debug")
+endif()
+
+set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
+
+# Change executable name
+if(EXECUTABLE_NAME)
+  set(OUT_EXEC_NAME ${EXECUTABLE_NAME})
+endif()
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}")
+
+add_definitions(-DTARGET_NAME=\"${HATCH_TARGET_NAME}\")
+
+set(CONSOLE_BASE_PATH "" CACHE STRING "Optional base path (must end with '/')")
+if(NOT CONSOLE_BASE_PATH STREQUAL "")
+  add_definitions(-DCONSOLE_BASE_PATH="${CONSOLE_BASE_PATH}")
 endif()
 
 # Build options
@@ -71,35 +57,17 @@ endif()
 option(PORTABLE_MODE "Portable mode" OFF)
 option(ALLOW_COMMAND_LINE_RESOURCE_LOAD "Allow loading resource files from command line" ON)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  option(WINDOWS_USE_RESOURCE_FILE "Use resource file (Windows)" ON)
-  if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
-    option(WINDOWS_COMPILE_AS_CONSOLE_APP "Compile as a console application" ON)
-  else()
-    option(WINDOWS_COMPILE_AS_CONSOLE_APP "Compile as a console application" OFF)
-  endif()
-endif()
-
 option(USE_OPEN_ASSET_IMPORT_LIBRARY "Use Open Asset Import Library" ON)
-if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-  set(USE_OPEN_ASSET_IMPORT_LIBRARY OFF)
-endif()
 
 option(USE_DEFAULT_FONTS "Build with default fonts" ON)
 
 # Renderers
 option(USING_OPENGL "Use OpenGL" ON)
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  option(USING_DIRECT3D "Use Direct3D" OFF)
-endif()
 
 if(USING_OPENGL)
   add_definitions(-DUSING_OPENGL)
 endif()
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows" AND USING_DIRECT3D)
-  add_definitions(-DUSING_DIRECT3D)
-endif()
 
 if(NOT ENABLE_SCRIPT_COMPILING)
   add_definitions(-DNO_SCRIPT_COMPILING)
@@ -129,7 +97,7 @@ if(USE_DEFAULT_FONTS)
   add_definitions(-DUSE_DEFAULT_FONTS)
 endif()
 
-add_definitions(-DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME )
+add_definitions(-DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME)
 
 find_file(REPO_DIR NAMES .git PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
 
@@ -143,134 +111,41 @@ if (REPO_DIR)
   add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 endif()
 
-add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
-
-set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
-
-# Change executable name
-if(EXECUTABLE_NAME)
-  set(OUT_EXEC_NAME ${EXECUTABLE_NAME})
+# Find platform cmake file
+find_file(PLATFORM_FILE NAMES "${CMAKE_SYSTEM_NAME}.cmake" PATHS "${CMAKE_SOURCE_DIR}/cmake/Platforms" NO_DEFAULT_PATH)
+if(NOT PLATFORM_FILE)
+  message(FATAL_ERROR "Could not find cmake file for target: '${CMAKE_SYSTEM_NAME}'")
 endif()
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}")
-
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  set(WIN_RES_FILE meta/win/HatchGameEngine.rc)
-
-  if(RESOURCE_FILE)
-    set(WIN_RES_FILE ${RESOURCE_FILE})
-  endif()
-endif()
-
-# Find the includes
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  find_package(SDL2 REQUIRED)
-  find_package(PNG)
-  if(PNG_FOUND)
-    add_definitions(-DUSING_LIBPNG)
-  endif()
-  if(USE_OPEN_ASSET_IMPORT_LIBRARY)
-    if(NINTENDO_SWITCH)
-      add_definitions(-DUSING_ASSIMP)
-      # No need to duplicate headers, use the ones for Windows
-      set(ASSIMP_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/")
-      set(ASSIMP_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/nx/lib/libassimp.a" "-lz -lminizip")
-    else()
-      find_package(assimp)
-      if(assimp_FOUND)
-        add_definitions(-DUSING_ASSIMP)
-        set(ASSIMP_INCLUDE_DIRS "${assimp_INCLUDE_DIRS}")
-        set(ASSIMP_LIBRARIES "${assimp_LIBRARIES}")
-      endif()
-    endif()
-  endif()
-  if(USING_OPENGL)
-    if(NINTENDO_SWITCH)
-      set(OPENGL_LIBRARIES "GLESv2")
-    else()
-      set(OPENGL_LIBRARIES "-lGL -lGLEW")
-    endif()
-  endif()
-else()
-  set(SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/SDL2/")
-  if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    if(USING_OPENGL)
-      set(OPENGL_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/msvc/x64/glew32s.lib")
-    endif()
-  else()
-    if(USE_OPEN_ASSET_IMPORT_LIBRARY)
-      add_definitions(-DUSING_ASSIMP)
-      set(ASSIMP_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/assimp/")
-      set(ASSIMP_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libassimp.a;${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libzlibstatic.a")
-    endif()
-    if(USING_OPENGL)
-      set(OPENGL_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libglew32.a;-lgdi32;-lopengl32")
-    endif()
-  endif()
-endif()
+include(${PLATFORM_FILE})
 
 # Add needed directories
 include_directories(
   include
   source
   ${SDL2_INCLUDE_DIRS}
-  ${ASSIMP_INCLUDE_DIRS}
 )
 
 if(USE_OPEN_ASSET_IMPORT_LIBRARY)
   include_directories(${ASSIMP_INCLUDE_DIRS})
 endif()
 
-# Include libraries
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  # Add all of the Windows include files
-  include_directories(
-    meta/win/include
-  )
-  if(WINDOWS_USE_RESOURCE_FILE)
-    target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/${WIN_RES_FILE})
-  endif()
-endif()
-
 # Add libraries
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/msvc/x64/SDL2.lib"
-    Ws2_32.lib opengl32.lib winmm.lib imm32.lib version.lib setupapi.lib)
-  else()
-    target_link_libraries(${PROJECT_NAME}
-      "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libSDL2.a"
-      -static -lmingw32 -lm -ldinput8 -ldxguid -ldxerr8
-      -luser32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32
-      -lversion -luuid -lhid -lsetupapi -lws2_32)
-
-    if(NOT WINDOWS_COMPILE_AS_CONSOLE_APP)
-      target_link_libraries(${PROJECT_NAME} -mwindows)
-    endif()
-  endif()
-  add_definitions(-DSDL_MAIN_HANDLED)
-else()
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
 endif()
 
 if(PNG_FOUND)
+  add_definitions(-DUSING_LIBPNG)
   target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
 endif()
+
 if(USE_OPEN_ASSET_IMPORT_LIBRARY)
-  target_link_libraries(${PROJECT_NAME} ${ASSIMP_LIBRARIES})
-endif()
-if(USING_OPENGL)
-  target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES})
+  if(assimp_FOUND)
+    add_definitions(-DUSING_ASSIMP)
+    target_link_libraries(${PROJECT_NAME} ${ASSIMP_LIBRARIES})
+  endif()
 endif()
 
-if(NINTENDO_SWITCH)
-  set(ICON_FILE "meta/nx/icon.jpg" CACHE FILEPATH "Optional path to a jpg icon")
-  set(ROMFS_PATH "" CACHE PATH "Optional path to a folder containing game data")
-  if (NOT ROMFS_PATH STREQUAL "")
-    message(STATUS "SWITCH: Building with romfs: ${ROMFS_PATH}")
-    add_definitions(-DSWITCH_ROMFS)
-    nx_create_nro(${PROJECT_NAME} ICON ${ICON_FILE} ROMFS ${ROMFS_PATH})
-  else()
-    message(STATUS "SWITCH: Building without romfs")
-    nx_create_nro(${PROJECT_NAME} ICON ${ICON_FILE})
-  endif()
+if(USING_OPENGL)
+  target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES})
 endif()
