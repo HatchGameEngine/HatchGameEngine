@@ -19626,8 +19626,6 @@ void StandardLibrary::Link() {
 	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
 #define DEF_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
-#define ALIAS_NATIVE(className, funcName, oldClassName, oldFuncName) \
-	ScriptManager::DefineNative(klass, #funcName, oldClassName##_##oldFuncName)
 
 #define INIT_NAMESPACE(nsName) \
 	ObjNamespace* ns_##nsName = NewNamespace(#nsName); \
@@ -22054,7 +22052,6 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #endregion
 
 #undef DEF_NATIVE
-#undef ALIAS_NATIVE
 #undef INIT_CLASS
 
 	// #region Tile Collision States

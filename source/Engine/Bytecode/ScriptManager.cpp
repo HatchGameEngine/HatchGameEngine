@@ -308,9 +308,7 @@ void ScriptManager::DefineNative(ObjClass* klass, const char* name, NativeFn fun
 		return;
 	}
 
-	if (!klass->Methods->Exists(name)) {
-		klass->Methods->Put(name, OBJECT_VAL(NewNative(function)));
-	}
+	klass->Methods->Put(name, OBJECT_VAL(NewNative(function)));
 }
 void ScriptManager::GlobalLinkInteger(ObjClass* klass, const char* name, int* value) {
 	if (name == NULL) {
