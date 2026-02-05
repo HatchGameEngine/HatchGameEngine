@@ -900,6 +900,10 @@ void Application::EndGame() {
 	Graphics::UnloadData();
 
 	Application::TerminateScripting();
+
+	Entity::UnloadAll();
+
+	Entity::DisableAutoAnimate = false;
 }
 
 void Application::UnloadGame() {
@@ -1456,8 +1460,7 @@ void Application::PollEvents() {
 						Application::CloseDevMenu();
 					}
 
-					Scene::Restart();
-					Application::UpdateWindowTitle();
+					Scene::DoRestart = true;
 					break;
 				}
 				// Enable update speedup (dev)
@@ -1543,7 +1546,7 @@ void Application::RunFrame(int runFrames) {
 
 	// BUG: Having Stepper on prevents the first
 	//   frame of a new scene from Updating, but still rendering.
-	if (*Scene::NextScene) {
+	if (*Scene::NextScene || Scene::DoRestart) {
 		Step = true;
 	}
 
@@ -1749,6 +1752,8 @@ void Application::SetUseFixedTimestep(bool useFixedTimestep) {
 void Application::StartGame(const char* startingScene) {
 	Application::LoadDefaultFont();
 	Application::InitScripting();
+
+	Entity::InitAll();
 
 	Scene::Init();
 	Scene::Prepare();
@@ -1961,7 +1966,6 @@ void Application::TerminateScripting() {
 	GarbageCollector::Dispose();
 
 	ScriptManager::LoadAllClasses = false;
-	ScriptEntity::DisableAutoAnimate = false;
 }
 
 static char* ParseGameConfigText(XMLNode* parent, const char* option) {

@@ -2,6 +2,7 @@
 #define ENGINE_RESOURCETYPES_SCENEFORMATS_RSDKSCENEREADER_H
 
 #include <Engine/IO/Stream.h>
+#include <Engine/Scene/SceneLayer.h>
 #include <Engine/Types/Entity.h>
 
 class RSDKSceneReader {

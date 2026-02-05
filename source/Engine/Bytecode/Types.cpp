@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
@@ -16,6 +17,7 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/FNV1A.h>
+#include <Engine/Utilities/StringUtils.h>
 
 #define ALLOCATE_OBJ(type, objectType) (type*)AllocateObject(sizeof(type), objectType)
 #define ALLOCATE(type, size) (type*)Memory::TrackedMalloc(#type, sizeof(type) * size)
@@ -58,6 +60,9 @@ ObjString* CopyString(const char* chars, size_t length) {
 ObjString* CopyString(const char* chars) {
 	return CopyString(chars, strlen(chars));
 }
+ObjString* CopyString(std::string string) {
+	return CopyString(string.c_str());
+}
 ObjString* CopyString(ObjString* string) {
 	char* heapChars = ALLOCATE(char, string->Length + 1);
 	memcpy(heapChars, string->Chars, string->Length);
@@ -65,16 +70,21 @@ ObjString* CopyString(ObjString* string) {
 
 	return AllocateString(heapChars, string->Length, string->Hash);
 }
-ObjString* CopyString(std::filesystem::path path) {
-	std::string asStr = Path::ToString(path);
-	const char* cStr = asStr.c_str();
-	return CopyString(cStr);
-}
 ObjString* AllocString(size_t length) {
 	char* heapChars = ALLOCATE(char, length + 1);
 	heapChars[length] = '\0';
 
 	return AllocateString(heapChars, length, 0x00000000);
+}
+
+static VMValue VM_GetClass(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	if (IS_OBJECT(args[0])) {
+		return OBJECT_VAL(AS_OBJECT(args[0])->Class);
+	}
+
+	return NULL_VAL;
 }
 
 ObjFunction* NewFunction() {
@@ -114,6 +124,7 @@ ObjClass* NewClass(Uint32 hash) {
 	klass->Initializer = NULL_VAL;
 	klass->Type = CLASS_TYPE_NORMAL;
 	klass->Name = StringUtils::Create(GetClassName(hash));
+	ScriptManager::DefineNative(klass, "GetClass", VM_GetClass);
 	return klass;
 }
 ObjClass* NewClass(const char* className) {

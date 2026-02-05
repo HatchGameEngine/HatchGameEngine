@@ -1,5 +1,6 @@
 #include <Engine/IO/Serializer.h>
 
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Utilities/StringUtils.h>
 
 Uint32 Serializer::Magic = 0x9D939FF0;

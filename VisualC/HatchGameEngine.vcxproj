@@ -292,10 +292,12 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\scene\View.cpp" />
     <ClCompile Include="..\source\engine\textformats\ini\INI.cpp" />
     <ClCompile Include="..\source\engine\textformats\xml\XMLParser.cpp" />
+    <ClCompile Include="..\source\engine\types\Camera.cpp" />
     <ClCompile Include="..\source\engine\types\DrawGroupList.cpp" />
     <ClCompile Include="..\source\engine\types\Entity.cpp" />
     <ClCompile Include="..\source\engine\types\ObjectList.cpp" />
     <ClCompile Include="..\source\engine\types\ObjectRegistry.cpp" />
+    <ClCompile Include="..\source\engine\types\Property.cpp" />
     <ClCompile Include="..\source\engine\types\Tileset.cpp" />
     <ClCompile Include="..\source\engine\utilities\ColorUtils.cpp" />
     <ClCompile Include="..\source\engine\utilities\PrintBuffer.cpp" />

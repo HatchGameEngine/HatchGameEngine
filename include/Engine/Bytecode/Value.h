@@ -3,6 +3,7 @@
 
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/Types/Property.h>
 #include <Engine/Utilities/PrintBuffer.h>
 
 class Value {
@@ -22,6 +23,7 @@ public:
 	static bool ExactlyEqual(VMValue a, VMValue b);
 	static bool Falsey(VMValue a);
 	static VMValue Delink(VMValue val);
+	static VMValue FromProperty(Property property);
 };
 
 #endif /* ENGINE_BYTECODE_VALUES_H */

@@ -31,7 +31,7 @@ jobs:
       - name: Generate HSL documentation
         run: |
           mkdir -p ${{ github.workspace }}/docs/hsl/stdlib
-          python ${{ github.workspace }}/tools/docgen/ --dox -i ${{ github.workspace }}/source/Engine/Bytecode -o ${{ github.workspace }}/docs/hsl/stdlib
+          python ${{ github.workspace }}/tools/docgen/ --dox -i ${{ github.workspace }}/source/Engine -o ${{ github.workspace }}/docs/hsl/stdlib
 
       - name: Generate Doxygen documentation
         run: doxygen

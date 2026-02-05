@@ -89,6 +89,14 @@ public:
 	void EmitCall(const char* name, int argCount, bool isSuper);
 	void EmitCall(Token name, int argCount, bool isSuper);
 	void EmitCallOpcode(int argCount, bool isSuper);
+	bool ResolveNamedVariable(Token name, Uint8& getOp, Uint8& setOp, Local& local, int& arg);
+	void DoVariableAssignment(Token name,
+		Local local,
+		Uint8 getOp,
+		Uint8 setOp,
+		int arg,
+		Token assignmentToken,
+		bool isPrefix);
 	void NamedVariable(Token name, bool canAssign);
 	void ScopeBegin();
 	void ScopeEnd();
@@ -119,12 +127,12 @@ public:
 	void GetMap(bool canAssign);
 	bool IsConstant();
 	void GetConstant(bool canAssign);
-	int GetConstantValue();
 	void GetVariable(bool canAssign);
 	void GetLogicalAND(bool canAssign);
 	void GetLogicalOR(bool canAssign);
 	void GetConditional(bool canAssign);
 	void GetUnary(bool canAssign);
+	void UnaryIncrement(Token name, Token assignmentToken, bool canAssign);
 	void GetNew(bool canAssign);
 	void GetHitbox(bool canAssign);
 	void GetBinary(bool canAssign);

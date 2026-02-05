@@ -1,5 +1,4 @@
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 

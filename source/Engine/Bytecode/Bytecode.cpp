@@ -1,4 +1,5 @@
 #include <Engine/Bytecode/Bytecode.h>
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -234,7 +235,7 @@ void Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>*
 
 	// Add tokens
 	if (HasDebugInfo && tokenMap) {
-		stream->WriteUInt32(tokenMap->Count + FunctionNames.size());
+		stream->WriteUInt32(tokenMap->Count() + FunctionNames.size());
 		std::for_each(
 			FunctionNames.begin(), FunctionNames.end(), [stream](const char* name) {
 				stream->WriteBytes((void*)name, strlen(name) + 1);

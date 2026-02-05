@@ -5,6 +5,7 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Scene/ScrollingIndex.h>
 #include <Engine/Scene/ScrollingInfo.h>
+#include <Engine/Types/Property.h>
 
 class SceneLayer {
 public:
@@ -35,7 +36,7 @@ public:
 	int Flags = 0x0000;
 	int DrawGroup = 0;
 	Uint8 DrawBehavior = 0;
-	HashMap<VMValue>* Properties = NULL;
+	HashMap<Property>* Properties = NULL;
 	bool Blending = false;
 	Uint8 BlendMode = 0; // BlendMode_NORMAL
 	float Opacity = 1.0f;
@@ -61,7 +62,7 @@ public:
 	SceneLayer();
 	SceneLayer(int w, int h);
 	bool PropertyExists(char* property);
-	VMValue PropertyGet(char* property);
+	Property PropertyGet(char* property);
 	void Dispose();
 };
 

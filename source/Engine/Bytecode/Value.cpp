@@ -1,3 +1,4 @@
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
@@ -253,4 +254,35 @@ VMValue Value::Delink(VMValue val) {
 	}
 
 	return val;
+}
+
+VMValue Value::FromProperty(Property property) {
+	switch (property.Type) {
+	case PROPERTY_NULL:
+		return NULL_VAL;
+	case PROPERTY_INTEGER:
+		return INTEGER_VAL(property.as.Integer);
+	case PROPERTY_DECIMAL:
+		return DECIMAL_VAL(property.as.Decimal);
+	case PROPERTY_BOOL:
+		return INTEGER_VAL(property.as.Bool ? 1 : 0);
+	case PROPERTY_STRING:
+		return OBJECT_VAL(CopyString(property.as.String));
+	case PROPERTY_ARRAY: {
+		if (ScriptManager::Lock()) {
+			ObjArray* array = NewArray();
+			for (size_t i = 0; i < property.as.Array.Count; i++) {
+				Property* data = (Property*)property.as.Array.Data;
+				array->Values->push_back(Value::FromProperty(data[i]));
+			}
+			ScriptManager::Unlock();
+			return OBJECT_VAL(array);
+		}
+		return NULL_VAL;
+	}
+	default:
+		break;
+	}
+
+	return NULL_VAL;
 }
