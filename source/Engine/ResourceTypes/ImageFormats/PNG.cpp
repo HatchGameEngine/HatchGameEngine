@@ -19,6 +19,9 @@ void png_read_fn(png_structp ctx, png_bytep area, png_size_t size) {
 #else
 #undef USING_LIBPNG
 #endif
+#endif
+
+#ifdef USING_LIBPNG
 #ifdef PNG_WRITE_SUPPORTED
 #define CAN_SAVE_PNG
 void png_write_fn(png_structp ctx, png_bytep area, png_size_t size) {
@@ -30,6 +33,7 @@ void png_write_fn(png_structp ctx, png_bytep area, png_size_t size) {
 
 #ifndef USING_LIBPNG
 #define USING_SPNG
+#define CAN_SAVE_PNG
 #endif
 
 #ifdef USING_SPNG
@@ -201,7 +205,7 @@ PNG_Load_Success:
 	spng_set_chunk_limits(ctx, limit, limit);
 	spng_set_png_buffer(ctx, buffer, buffer_len);
 
-	struct spng_ihdr ihdr;
+	spng_ihdr ihdr;
 	ret = spng_get_ihdr(ctx, &ihdr);
 	if (ret) {
 		Log::Print(Log::LOG_ERROR, "spng_ctx_new() failed! %s", spng_strerror(ret));
@@ -426,7 +430,8 @@ bool PNG::Save(const char* filename) {
 	return false;
 }
 
-#if defined(CAN_SAVE_PNG) && defined(USING_LIBPNG) && defined(PNG_TEXT_SUPPORTED)
+#ifdef CAN_SAVE_PNG
+#if defined(USING_LIBPNG) && defined(PNG_TEXT_SUPPORTED)
 static void
 AddTextLibpng(png_structp png_ptr, png_infop png_info_ptr, std::vector<PNGMetadata>* metadata) {
 	size_t numMetadata = metadata->size();
@@ -439,20 +444,59 @@ AddTextLibpng(png_structp png_ptr, png_infop png_info_ptr, std::vector<PNGMetada
 
 	for (size_t i = 0; i < numMetadata; i++) {
 		char* keyword = (*metadata)[i].Keyword;
-		std::string& text = (*metadata)[i].Text;
+		std::string& textString = (*metadata)[i].Text;
 		if (keyword[0] == '\0') {
 			continue;
 		}
 
 		png_text_p[numStrings].key = keyword;
-		png_text_p[numStrings].text = (char*)text.c_str();
+		png_text_p[numStrings].text = (char*)textString.c_str();
+
 		numStrings++;
 	}
 
 	if (numStrings > 0) {
 		png_set_text(png_ptr, png_info_ptr, png_text_p, numStrings);
 	}
+
+	Memory::Free(png_text_p);
 }
+#elif defined(USING_SPNG)
+static void AddTextLibspng(spng_ctx* ctx, std::vector<PNGMetadata>* metadata) {
+	size_t numMetadata = metadata->size();
+	if (numMetadata == 0) {
+		return;
+	}
+
+	spng_text* text = (spng_text*)Memory::Calloc(numMetadata, sizeof(spng_text));
+	uint32_t n_text = 0;
+
+	for (size_t i = 0; i < numMetadata; i++) {
+		char* keyword = (*metadata)[i].Keyword;
+		std::string& textString = (*metadata)[i].Text;
+		size_t textLength = textString.size();
+		if (keyword[0] == '\0' || textLength == 0) {
+			continue;
+		}
+
+		memcpy(text[n_text].keyword, keyword, sizeof(text[n_text].keyword));
+		text[n_text].text = (char*)textString.c_str();
+		text[n_text].length = textLength;
+		text[n_text].type = SPNG_TEXT;
+
+		n_text++;
+	}
+
+	if (n_text > 0) {
+		int ret = spng_set_text(ctx, text, n_text);
+		if (ret) {
+			Log::Print(Log::LOG_WARN, "spng_set_text() failed! %s", spng_strerror(ret));
+		}
+	}
+
+	Memory::Free(text);
+}
+#endif
 #endif
 
 bool PNG::Save(Texture* texture, const char* filename, std::vector<PNGMetadata>* metadata) {
@@ -521,6 +565,56 @@ bool PNG::Save(Texture* texture, const char* filename, std::vector<PNGMetadata>*
 
 	png_write_end(png_ptr, png_info_ptr);
 	png_destroy_write_struct(&png_ptr, &png_info_ptr);
+#elif defined(USING_SPNG)
+	spng_ctx* ctx;
+	spng_ihdr ihdr = {0};
+
+	int ret;
+	void* outData;
+	size_t outSize;
+
+	ctx = spng_ctx_new(SPNG_CTX_ENCODER);
+	if (ctx == NULL) {
+		Log::Print(Log::LOG_ERROR, "spng_ctx_new() failed!");
+		goto PNG_Save_FAIL;
+	}
+
+	// TODO: Use SPNG_COLOR_TYPE_INDEXED and spng_set_plte() if the Texture is palettized
+	ihdr.width = texture->Width;
+	ihdr.height = texture->Height;
+	ihdr.color_type = SPNG_COLOR_TYPE_TRUECOLOR_ALPHA;
+	ihdr.bit_depth = 8;
+
+	spng_set_ihdr(ctx, &ihdr);
+	spng_set_option(ctx, SPNG_ENCODE_TO_BUFFER, 1);
+
+	if (metadata) {
+		AddTextLibspng(ctx, metadata);
+	}
+
+	ret = spng_encode_image(ctx,
+		texture->Pixels,
+		texture->Width * texture->Height * sizeof(Uint32),
+		SPNG_FMT_PNG,
+		SPNG_ENCODE_FINALIZE);
+
+	if (ret) {
+		Log::Print(Log::LOG_ERROR, "spng_encode_image() failed! %s", spng_strerror(ret));
+		goto PNG_Save_FAIL;
+	}
+
+	outData = spng_get_png_buffer(ctx, &outSize, &ret);
+	if (outData == NULL) {
+		Log::Print(Log::LOG_ERROR, "spng_get_png_buffer() failed! %s", spng_strerror(ret));
+		goto PNG_Save_FAIL;
+	}
+
+	stream->WriteBytes(outData, outSize);
+
+	free(outData);
+
+PNG_Save_FAIL:
+	spng_ctx_free(ctx);
 #endif
 
 	stream->Close();
