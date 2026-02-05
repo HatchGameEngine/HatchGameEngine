@@ -202,11 +202,44 @@ static inline VMValue HITBOX_VAL(Sint16* values) {
 #define IS_HITBOX(value) ((value).Type == VAL_HITBOX)
 #define AS_HITBOX(value) (&((value).as.Hitbox[0]))
 
+#ifdef WIN32
+static inline VMLocation STACK_LOCATION(int index) {
+	VMLocation location;
+	location.Type = LOC_STACK;
+	location.as.Slot = index;
+	return location;
+}
+static inline VMLocation MODULE_LOCATION(int index) {
+	VMLocation location;
+	location.Type = LOC_MODULE;
+	location.as.Slot = index;
+	return location;
+}
+static inline VMLocation GLOBAL_LOCATION(Uint32 hash) {
+	VMLocation location;
+	location.Type = LOC_GLOBAL;
+	location.as.Hash = hash;
+	return location;
+}
+static inline VMLocation PROPERTY_LOCATION(Uint32 hash) {
+	VMLocation location;
+	location.Type = LOC_PROPERTY;
+	location.as.Hash = hash;
+	return location;
+}
+static inline VMLocation ELEMENT_LOCATION() {
+	VMLocation location;
+	location.Type = LOC_ELEMENT;
+	location.as.Slot = 0;
+	return location;
+}
+#else
 #define STACK_LOCATION(index) ((VMLocation){LOC_STACK, {.Slot = index}})
-#define GLOBAL_LOCATION(hash) ((VMLocation){LOC_GLOBAL, {.Hash = hash}})
 #define MODULE_LOCATION(index) ((VMLocation){LOC_MODULE, {.Slot = index}})
+#define GLOBAL_LOCATION(hash) ((VMLocation){LOC_GLOBAL, {.Hash = hash}})
 #define PROPERTY_LOCATION(hash) ((VMLocation){LOC_PROPERTY, {.Hash = hash}})
-#define ELEMENT_LOCATION ((VMLocation){LOC_ELEMENT, {.Slot = 0}})
+#define ELEMENT_LOCATION() ((VMLocation){LOC_ELEMENT, {.Slot = 0}})
+#endif
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 

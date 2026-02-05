@@ -2077,7 +2077,7 @@ int VMThread::RunInstruction() {
 			Push(value);
 		}
 
-		Push(LOCATION_VAL(ELEMENT_LOCATION));
+		Push(LOCATION_VAL(ELEMENT_LOCATION()));
 		VM_BREAK;
 	}
 
