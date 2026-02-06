@@ -77,12 +77,21 @@ struct Chunk {
 #endif
 	void Write(Uint8 byte, int line);
 	int AddConstant(VMValue value);
+	bool GetConstant(size_t offset, VMValue* value = NULL, int* index = NULL);
 };
 
 struct BytecodeContainer {
 	Uint8* Data;
 	size_t Size;
 };
+
+#ifdef VM_DEBUG
+struct SourceFile {
+	bool Exists = false;
+	char* Text = nullptr;
+	std::vector<char*> Lines;
+};
+#endif
 
 const char* GetTypeString(Uint32 type);
 const char* GetObjectTypeString(Uint32 type);
@@ -493,7 +502,7 @@ enum OpCode : uint8_t {
 	OP_CLASS,
 	// Function Operations
 	OP_CALL,
-	OP_SUPER,
+	OP_BREAKPOINT, // Formerly OP_SUPER
 	OP_INVOKE_V3,
 	// Jumping
 	OP_JUMP,

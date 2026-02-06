@@ -35,7 +35,9 @@ vector<ObjClass*> ScriptManager::ClassImplList;
 
 SDL_mutex* ScriptManager::GlobalLock = NULL;
 
-static Uint32 VMBranchLimit = 0;
+#ifdef VM_DEBUG
+static HashMap<SourceFile*>* SourceFiles = nullptr;
+#endif
 
 // #define DEBUG_STRESS_GC
 
@@ -99,7 +101,8 @@ void ScriptManager::Init() {
 	GlobalLock = SDL_CreateMutex();
 
 #ifdef VM_DEBUG
-	VMBranchLimit = GetBranchLimit();
+	int branchLimit = GetBranchLimit();
+	SourceFiles = new HashMap<SourceFile*>(NULL, 8);
 #endif
 
 	for (Uint32 i = 0; i < sizeof(Threads) / sizeof(VMThread); i++) {
@@ -114,8 +117,12 @@ void ScriptManager::Init() {
 		Threads[i].ID = i;
 		Threads[i].StackTop = Threads[i].Stack;
 
+#ifdef VM_DEBUG
 		Threads[i].DebugInfo = false;
-		Threads[i].BranchLimit = VMBranchLimit;
+		Threads[i].InDebugger = false;
+		Threads[i].DebugFrame = 0;
+		Threads[i].BranchLimit = branchLimit;
+#endif
 	}
 	ThreadCount = 1;
 
@@ -189,6 +196,18 @@ void ScriptManager::Dispose() {
 		delete Tokens;
 		Tokens = NULL;
 	}
+
+#ifdef VM_DEBUG
+	if (SourceFiles) {
+		SourceFiles->WithAll([](Uint32, SourceFile* sourceFile) -> void {
+			Memory::Free(sourceFile->Text);
+			delete sourceFile;
+		});
+		SourceFiles->Clear();
+		delete SourceFiles;
+		SourceFiles = NULL;
+	}
+#endif
 
 	if (GlobalLock) {
 		SDL_DestroyMutex(GlobalLock);
@@ -628,4 +647,59 @@ void ScriptManager::LoadClasses() {
 
 	ScriptManager::ForceGarbageCollection();
 }
+#ifdef VM_DEBUG
+void ScriptManager::LoadSourceCodeLines(SourceFile* sourceFile, const char* sourceFilename) {
+	Stream* stream = File::Open(sourceFilename, File::READ_ACCESS);
+	if (!stream) {
+		return;
+	}
+
+	size_t size = stream->Length();
+	char* text = (char*)Memory::Calloc(size + 1, sizeof(char));
+	stream->ReadBytes(text, size);
+	stream->Close();
+
+	char* ptr = text;
+	char* lineStart = ptr;
+	while (*ptr != '\0') {
+		if (*ptr == '\n') {
+			sourceFile->Lines.push_back(lineStart);
+			lineStart = ptr + 1;
+			*ptr = '\0';
+		}
+		ptr++;
+	}
+
+	sourceFile->Text = text;
+}
+char* ScriptManager::GetSourceCodeLine(const char* sourceFilename, int line) {
+	SourceFile* sourceFile = nullptr;
+
+	if (!SourceFiles->Exists(sourceFilename)) {
+		std::string filePath = std::string(SCRIPTS_DIRECTORY_NAME) + "/" + std::string(sourceFilename);
+
+		sourceFile = new SourceFile;
+
+		if (File::Exists(filePath.c_str())) {
+			LoadSourceCodeLines(sourceFile, filePath.c_str());
+
+			sourceFile->Exists = true;
+		}
+		else {
+			Log::Print(Log::LOG_WARN, "Source file \"%s\" does not exist.", filePath.c_str());
+		}
+
+		SourceFiles->Put(sourceFilename, sourceFile);
+	}
+	else {
+		sourceFile = SourceFiles->Get(sourceFilename);
+	}
+
+	if (!sourceFile->Exists || line < 1 || line > sourceFile->Lines.size()) {
+		return nullptr;
+	}
+
+	return sourceFile->Lines[line - 1];
+}
+#endif
 // #endregion

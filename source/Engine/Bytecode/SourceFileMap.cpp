@@ -106,15 +106,12 @@ bool SourceFileMap::CheckForUpdate() {
 
 	bool anyChanges = false;
 
-	const char* scriptFolder = "Scripts";
-	size_t scriptFolderNameLen = strlen(scriptFolder);
-
-	if (!Directory::Exists(scriptFolder)) {
+	if (!Directory::Exists(SCRIPTS_DIRECTORY_NAME)) {
 		return false;
 	}
 
 	vector<std::filesystem::path> list;
-	Directory::GetFiles(&list, scriptFolder, "*.hsl", true);
+	Directory::GetFiles(&list, SCRIPTS_DIRECTORY_NAME, "*.hsl", true);
 
 	if (list.size() == 0) {
 		list.clear();
@@ -125,6 +122,8 @@ bool SourceFileMap::CheckForUpdate() {
 	if (!mainVfs->HasFile(OBJECTS_HCM_NAME)) {
 		anyChanges = true;
 	}
+
+	size_t scriptFolderNameLen = strlen(SCRIPTS_DIRECTORY_NAME);
 
 	Uint32 oldDirectoryChecksum = SourceFileMap::DirectoryChecksum;
 
@@ -154,7 +153,7 @@ bool SourceFileMap::CheckForUpdate() {
 		SourceFileMap::ClassMap->Clear();
 	}
 
-	std::string scriptFolderPathStr = std::string(scriptFolder) + "/";
+	std::string scriptFolderPathStr = std::string(SCRIPTS_DIRECTORY_NAME) + "/";
 	const char* scriptFolderPath = scriptFolderPathStr.c_str();
 	size_t scriptFolderPathLen = scriptFolderPathStr.size();
 

@@ -19,6 +19,7 @@ class ScriptManager {
 private:
 #ifdef VM_DEBUG
 	static Uint32 GetBranchLimit();
+	static void LoadSourceCodeLines(SourceFile* sourceFile, const char* sourceFilename);
 #endif
 
 public:
@@ -78,6 +79,9 @@ public:
 	static bool LoadObjectClass(const char* objectName);
 	static ObjClass* GetObjectClass(const char* className);
 	static void LoadClasses();
+#ifdef VM_DEBUG
+	static char* GetSourceCodeLine(const char* sourceFilename, int line);
+#endif
 };
 
 #endif /* ENGINE_BYTECODE_SCRIPTMANAGER_H */

@@ -1,6 +1,6 @@
 #include <Engine/Bytecode/Types.h>
 
-#include <Engine/Bytecode/Compiler.h>
+#include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
@@ -304,7 +304,7 @@ void Chunk::SetupOpfuncs() {
 		// try to get it manually thru iterating it (for
 		// version <= 2 bytecode)
 		for (int offset = 0; offset < Count;) {
-			offset += Compiler::GetTotalOpcodeSize(Code + offset);
+			offset += Bytecode::GetTotalOpcodeSize(Code + offset);
 			OpcodeCount++;
 		}
 	}
@@ -316,7 +316,7 @@ void Chunk::SetupOpfuncs() {
 	for (int i = 0; i < OpcodeCount; i++) {
 		Uint8 op = *(Code + offset);
 		IPToOpcode[offset] = i;
-		offset += Compiler::GetTotalOpcodeSize(Code + offset);
+		offset += Bytecode::GetTotalOpcodeSize(Code + offset);
 		OpcodeFunc func = NULL;
 		switch (op) {
 			OPCASE(OP_ERROR);
@@ -334,7 +334,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_METHOD_V4);
 			OPCASE(OP_CLASS);
 			OPCASE(OP_CALL);
-			OPCASE(OP_SUPER);
+			OPCASE(OP_BREAKPOINT);
 			OPCASE(OP_INVOKE_V3);
 			OPCASE(OP_JUMP);
 			OPCASE(OP_JUMP_IF_FALSE);
@@ -421,4 +421,43 @@ void Chunk::Write(Uint8 byte, int line) {
 int Chunk::AddConstant(VMValue value) {
 	Constants->push_back(value);
 	return (int)Constants->size() - 1;
+}
+bool Chunk::GetConstant(size_t offset, VMValue* value, int* index) {
+	Uint8* code = Code + offset;
+	if (index) {
+		*index = -1;
+	}
+	switch (*code) {
+	case OP_CONSTANT:
+		if (value) {
+			*value = (*Constants)[*(Uint32*)(code + 1)];
+		}
+		if (index) {
+			*index = *(Uint32*)(code + 1);
+		}
+		return true;
+	case OP_FALSE:
+	case OP_TRUE:
+		if (value) {
+			*value = INTEGER_VAL(*code == OP_FALSE ? 0 : 1);
+		}
+		return true;
+	case OP_NULL:
+		if (value) {
+			*value = NULL_VAL;
+		}
+		return true;
+	case OP_INTEGER:
+		if (value) {
+			*value = INTEGER_VAL(*(Sint32*)(code + 1));
+		}
+		return true;
+	case OP_DECIMAL:
+		if (value) {
+			*value = DECIMAL_VAL(*(float*)(code + 1));
+		}
+		return true;
+	}
+
+	return false;
 }

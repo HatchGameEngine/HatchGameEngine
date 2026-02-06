@@ -18,6 +18,8 @@ public:
 	static const char* Magic;
 	static Uint32 LatestVersion;
 	static vector<const char*> FunctionNames;
+	static const char* OpcodeNames[OP_LAST];
+
 	vector<ObjFunction*> Functions;
 	Uint8 Version;
 	bool HasDebugInfo = false;
@@ -27,6 +29,8 @@ public:
 	~Bytecode();
 	bool Read(BytecodeContainer bytecode, HashMap<char*>* tokens);
 	void Write(Stream* stream, const char* sourceFilename, HashMap<Token>* tokenMap);
+
+	static int GetTotalOpcodeSize(uint8_t* op);
 };
 
 #endif /* ENGINE_BYTECODE_BYTECODE_H */

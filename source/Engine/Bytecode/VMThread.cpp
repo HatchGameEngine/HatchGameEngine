@@ -8,11 +8,15 @@
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 
+#ifdef VM_DEBUG
+#include <Engine/Audio/AudioManager.h>
+
+#include <iostream>
+#endif
+
 #ifndef _MSC_VER
 #define USING_VM_DISPATCH_TABLE
 #endif
-
-// #define VM_DEBUG_INSTRUCTIONS
 
 enum {
 	INVOKE_OK,
@@ -110,7 +114,16 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
 		}
 		std::string functionName = GetFunctionName(function);
-		buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
+		if (InDebugger) {
+			buffer_printf(buffer, "  %c (%d) %s of %s",
+				DebugFrame == i ? '>' : ' ',
+				(int)i,
+				functionName.c_str(),
+				source);
+		}
+		else {
+			buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
+		}
 
 		if (line > 0) {
 			buffer_printf(buffer, " on Line %d", line);
@@ -188,6 +201,13 @@ int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
 
 	Log::Print(Log::LOG_ERROR, textBuffer);
 
+#ifdef VM_DEBUG
+	if (InDebugger) {
+		free(textBuffer);
+		return ERROR_RES_CONTINUE;
+	}
+#endif
+
 	PrintStack();
 
 	if (!showMessageBox) {
@@ -248,6 +268,13 @@ int VMThread::ShowErrorFromScript(const char* errorString, bool detailed) {
 
 	Log::Print(Log::LOG_ERROR, textBuffer);
 
+#ifdef VM_DEBUG
+	if (InDebugger) {
+		free(textBuffer);
+		return ERROR_RES_CONTINUE;
+	}
+#endif
+
 	const SDL_MessageBoxButtonData buttonsError[] = {
 		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"},
 		{SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Continue"},
@@ -303,6 +330,393 @@ void VMThread::PrintStack() {
 	}
 }
 void VMThread::ReturnFromNative() throw() {}
+// #endregion
+
+// #region Debugging
+#ifdef VM_DEBUG
+void VMThread::Breakpoint() {
+	CallFrame* frame = &Frames[FrameCount - 1];
+	ObjFunction* function = frame->Function;
+
+	if (function) {
+		std::string functionName = GetFunctionName(function);
+		printf("Breakpoint hit at %s of %s",
+			functionName.c_str(),
+			function->Module->SourceFilename);
+
+		if (function->Chunk.Lines) {
+			size_t bpos = frame->IP - frame->IPStart;
+			int line = function->Chunk.Lines[bpos] & 0xFFFF;
+			int pos = (function->Chunk.Lines[bpos] >> 16) & 0xFFFF;
+
+			printf(", line %d, position %d\n", line, pos);
+
+			if (!PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos)) {
+				printf("\n");
+			}
+		}
+		else {
+			printf("\n");
+		}
+	}
+	else {
+		printf("Breakpoint hit\n");
+	}
+
+	if (InDebugger) {
+		return;
+	}
+
+	bool wasInterrupted = AudioManager::Interrupted;
+	if (!wasInterrupted) {
+		AudioManager::SetInterrupted(true);
+	}
+
+	DebuggerLoop();
+
+	if (!wasInterrupted) {
+		AudioManager::SetInterrupted(false);
+	}
+}
+void VMThread::DebuggerLoop() {
+	CodeDebugger = new BytecodeDebugger;
+	CodeDebugger->Tokens = ScriptManager::Tokens;
+
+	InDebugger = true;
+	DebugFrame = FrameCount - 1;
+
+	while (InDebugger) {
+		printf("> ");
+
+		// Read the line
+		std::string read;
+		std::getline(std::cin, read);
+
+		// Trim the line
+		const char* trim_chars = " \t\r\v\f";
+		size_t pos = read.find_first_not_of(trim_chars);
+		if (pos != std::string::npos) {
+			read.erase(0, pos);
+			pos = read.find_last_not_of(trim_chars);
+			if (pos != std::string::npos) {
+				read.erase(pos + 1);
+			} else {
+				read.clear();
+			}
+		}
+
+		// Do nothing if the entire string is empty
+		if (read.size() == 0) {
+			continue;
+		}
+
+		// Do nothing if the entire string is whitespace
+		bool isWhitespace = std::all_of(read.cbegin(), read.cend(), [](char c){
+			return std::isspace(c);
+		});
+		if (isWhitespace) {
+			continue;
+		}
+
+		// Split string by whitespace
+		// TODO: This needs to be able to capture text in quotes correctly
+		std::vector<char*> args;
+		char* line = StringUtils::Create(read.c_str());
+		char* tok = strtok(line, trim_chars);
+		while (tok != NULL) {
+			args.push_back(tok);
+			tok = strtok(NULL, trim_chars);
+		}
+
+		// Interpret the line
+		InterpretDebuggerCommand(args);
+
+		Memory::Free(line);
+	}
+
+	CodeDebugger->Tokens = nullptr;
+	delete CodeDebugger;
+
+	printf("Resuming execution.\n");
+
+	InDebugger = false;
+}
+bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
+	if (args.size() == 0) {
+		return false;
+	}
+
+	CallFrame* frame = nullptr;
+	if (DebugFrame >= 0) {
+		frame = &Frames[DebugFrame];
+	}
+
+#define IS_COMMAND(cmd) (strcmp(args[0], cmd) == 0)
+
+	if (IS_COMMAND("continue") || IS_COMMAND("c")) {
+		InDebugger = false;
+	}
+	else if (IS_COMMAND("backtrace") || IS_COMMAND("bt") || IS_COMMAND("b") || IS_COMMAND("trace")) {
+		PrintStackTrace(nullptr, nullptr);
+	}
+	else if (IS_COMMAND("stack") || IS_COMMAND("st") || IS_COMMAND("stk")) {
+		PrintStack();
+	}
+	else if (IS_COMMAND("ins") ||
+		IS_COMMAND("inst") ||
+		IS_COMMAND("instr") ||
+		IS_COMMAND("instruction") ||
+		IS_COMMAND("op") ||
+		IS_COMMAND("opcode")) {
+		if (frame && frame->Function) {
+			printf("byte   ln\n");
+			Uint8* ip = DebugFrame == FrameCount - 1 ? frame->IP : frame->IPLast;
+			CodeDebugger->DebugInstruction(&frame->Function->Chunk, ip - frame->IPStart);
+		}
+		else {
+			printf("No function to debug\n");
+			return false;
+		}
+	}
+	else if (IS_COMMAND("frame") || IS_COMMAND("f")) {
+		if (args.size() < 2) {
+			printf("Missing argument\n");
+			return false;
+		}
+
+		int index = 0;
+		if (!StringUtils::ToNumber(&index, args[1])) {
+			printf("Invalid argument\n");
+			return false;
+		}
+
+		if (index < 0 || index >= FrameCount) {
+			printf("Frame %d out of range (0-%d)\n", index, FrameCount - 1);
+			return false;
+		}
+
+		DebugFrame = index;
+		frame = &Frames[index];
+
+		if (frame->Function) {
+			Uint8* ip = DebugFrame == FrameCount - 1 ? frame->IP : frame->IPLast;
+			PrintCallFrameSourceLine(frame, ip - frame->IPStart);
+		}
+		else {
+			printf("No function to show the current line of\n");
+			return false;
+		}
+	}
+	else if (IS_COMMAND("line") || IS_COMMAND("l")) {
+		if (frame && frame->Function) {
+			Uint8* ip = DebugFrame == FrameCount - 1 ? frame->IP : frame->IPLast;
+			PrintCallFrameSourceLine(frame, ip - frame->IPStart);
+		}
+		else {
+			printf("No function to show the current line of\n");
+			return false;
+		}
+	}
+#if USING_VM_FUNCPTRS
+	else if (IS_COMMAND("step") || IS_COMMAND("s")) {
+		if (DebugFrame != FrameCount - 1) {
+			printf("Cannot step outside of top frame\n");
+			return false;
+		}
+		else if (frame && frame->Function) {
+			if (!frame->Function->Chunk.Lines) {
+				RunOpcodeFunc(frame);
+			}
+			else {
+				size_t bpos = frame->IP - frame->IPStart;
+				int lastPos = (frame->Function->Chunk.Lines[bpos] >> 16) & 0xFFFF;
+				int currentPos = lastPos;
+				while (lastPos == currentPos) {
+					RunOpcodeFunc(frame);
+					bpos = frame->IP - frame->IPStart;
+					currentPos = (frame->Function->Chunk.Lines[bpos] >> 16) & 0xFFFF;
+				}
+			}
+
+			if (FrameCount > 0) {
+				DebugFrame = FrameCount - 1;
+
+				frame = &Frames[DebugFrame];
+				frame->IPLast = frame->IP;
+
+				PrintCallFrameSourceLine(frame, frame->IP - frame->IPStart);
+			}
+		}
+		else {
+			printf("No function to step through\n");
+			return false;
+		}
+	}
+	else if (IS_COMMAND("nextins") ||
+		IS_COMMAND("nextinst") ||
+		IS_COMMAND("nextinstr") ||
+		IS_COMMAND("nextop") ||
+		IS_COMMAND("nextopcode")) {
+		if (DebugFrame != FrameCount - 1) {
+			printf("Cannot step outside of top frame\n");
+			return false;
+		}
+		else if (frame && frame->Function) {
+			RunOpcodeFunc(frame);
+			if (FrameCount > 0) {
+				DebugFrame = FrameCount - 1;
+
+				frame = &Frames[DebugFrame];
+				frame->IPLast = frame->IP;
+
+				printf("byte   ln\n");
+				CodeDebugger->DebugInstruction(&frame->Function->Chunk, frame->IP - frame->IPStart);
+			}
+		}
+		else {
+			printf("No function to step through\n");
+			return false;
+		}
+	}
+#endif
+	else if (IS_COMMAND("chunk") || IS_COMMAND("code")) {
+		if (frame && frame->Function) {
+			CodeDebugger->DebugChunk(&frame->Function->Chunk,
+				frame->Function->Name,
+				frame->Function->MinArity,
+				frame->Function->Arity);
+		}
+		else {
+			printf("No chunk to debug\n");
+			return false;
+		}
+	}
+#if 0
+	else if (IS_COMMAND("help")) {
+		// TODO
+		return true;
+	}
+#endif
+	else {
+		printf("Unknown command \"%s\"\n", args[0]);
+		return false;
+	}
+
+#undef IS_COMMAND
+
+	return true;
+}
+void VMThread::PrintCallFrameSourceLine(CallFrame* frame, size_t bpos) {
+	ObjFunction* function = frame->Function;
+
+	std::string functionName = GetFunctionName(function);
+	char* sourceFilename = function->Module->SourceFilename;
+
+	printf("In %s at %s", functionName.c_str(), sourceFilename);
+
+	if (function->Chunk.Lines) {
+		int line = function->Chunk.Lines[bpos] & 0xFFFF;
+		int pos = (function->Chunk.Lines[bpos] >> 16) & 0xFFFF;
+
+		printf(", line %d, position %d\n", line, pos);
+
+		PrintSourceLineAndPosition(sourceFilename, line, pos);
+	}
+	else {
+		printf("\n");
+	}
+}
+bool VMThread::PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos) {
+	char* sourceLine = ScriptManager::GetSourceCodeLine(sourceFilename, line);
+	if (!sourceLine) {
+		return false;
+	}
+
+	printf("%5d %s\n", line, sourceLine);
+	printf("     ");
+	while (pos--) {
+		printf(" ");
+	}
+	printf("^\n");
+
+	return true;
+}
+bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
+	va_list args;
+	char errorString[2048];
+	va_start(args, errorMessage);
+	vsnprintf(errorString, sizeof(errorString), errorMessage, args);
+	va_end(args);
+
+	char* textBuffer = (char*)malloc(512);
+	PrintBuffer buffer;
+	buffer.Buffer = &textBuffer;
+	buffer.WriteIndex = 0;
+	buffer.BufferSize = 512;
+
+	MakeErrorMessage(&buffer, errorString);
+
+	Log::Print(Log::LOG_WARN, textBuffer);
+
+#ifdef VM_DEBUG
+	if (InDebugger) {
+		free(textBuffer);
+		return true;
+	}
+#endif
+
+	PrintStack();
+
+	if (VMThread::InstructionIgnoreMap[000000001]) {
+		free(textBuffer);
+		return false;
+	}
+
+	const SDL_MessageBoxButtonData buttons[] = {
+		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"},
+		{0, 2, "Ignore All"},
+		{SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Exit Frame"},
+	};
+	const SDL_MessageBoxData messageBoxData = {
+		SDL_MESSAGEBOX_ERROR,
+		NULL,
+		"VM Debug",
+		textBuffer,
+		SDL_arraysize(buttons),
+		buttons,
+		NULL,
+	};
+
+	int buttonClicked;
+	if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) {
+		buttonClicked = 0;
+	}
+
+	free(textBuffer);
+
+	switch (buttonClicked) {
+	// Exit Game
+	case 1:
+		Application::Cleanup();
+		exit(-1);
+		break;
+	// Ignore All
+	case 2:
+		VMThread::InstructionIgnoreMap[000000001] = true;
+	// Break Out
+	case 0:
+		return false;
+	}
+
+	return true;
+}
+bool VMThread::CheckBranchLimit(CallFrame* frame) {
+	if (BranchLimit && ++frame->BranchCount >= BranchLimit) {
+		return ShowBranchLimitMessage("Hit branch limit!");
+	}
+	return true;
+}
+#endif
 // #endregion
 
 // #region Stack stuff
@@ -395,75 +809,6 @@ VMValue VMThread::ReadConstant(CallFrame* frame) {
 		frame = &Frames[FrameCount - 1]; \
 	}
 
-#ifdef VM_DEBUG
-bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
-	va_list args;
-	char errorString[2048];
-	va_start(args, errorMessage);
-	vsnprintf(errorString, sizeof(errorString), errorMessage, args);
-	va_end(args);
-
-	char* textBuffer = (char*)malloc(512);
-	PrintBuffer buffer;
-	buffer.Buffer = &textBuffer;
-	buffer.WriteIndex = 0;
-	buffer.BufferSize = 512;
-
-	MakeErrorMessage(&buffer, errorString);
-
-	Log::Print(Log::LOG_WARN, textBuffer);
-	PrintStack();
-
-	if (VMThread::InstructionIgnoreMap[000000001]) {
-		return false;
-	}
-
-	const SDL_MessageBoxButtonData buttons[] = {
-		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"},
-		{0, 2, "Ignore All"},
-		{SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Exit Frame"},
-	};
-	const SDL_MessageBoxData messageBoxData = {
-		SDL_MESSAGEBOX_ERROR,
-		NULL,
-		"VM Debug",
-		textBuffer,
-		SDL_arraysize(buttons),
-		buttons,
-		NULL,
-	};
-
-	int buttonClicked;
-	if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) {
-		buttonClicked = 0;
-	}
-
-	free(textBuffer);
-
-	switch (buttonClicked) {
-	// Exit Game
-	case 1:
-		Application::Cleanup();
-		exit(-1);
-		break;
-	// Ignore All
-	case 2:
-		VMThread::InstructionIgnoreMap[000000001] = true;
-	// Break Out
-	case 0:
-		return false;
-	}
-
-	return true;
-}
-
-bool VMThread::CheckBranchLimit(CallFrame* frame) {
-	if (BranchLimit && ++frame->BranchCount >= BranchLimit) {
-		return ShowBranchLimitMessage("Hit branch limit!");
-	}
-	return true;
-}
-
 #if USING_VM_FUNCPTRS
 #define IP_OPFUNC_SYNC() \
 	frame->OpcodeFunctions = \
@@ -472,6 +817,7 @@ bool VMThread::CheckBranchLimit(CallFrame* frame) {
 #define IP_OPFUNC_SYNC()
 #endif
 
+#ifdef VM_DEBUG
 bool VMThread::DoJump(CallFrame* frame, int offset) {
 	frame->IP += offset;
 #if USING_VM_FUNCPTRS
@@ -505,9 +851,6 @@ bool VMThread::DoJumpBack(CallFrame* frame, int offset) {
 		} \
 	}
 #elif USING_VM_FUNCPTRS
-#define IP_OPFUNC_SYNC() \
-	frame->OpcodeFunctions = \
-		frame->OpcodeFStart + frame->IPToOpcode[frame->IP - frame->IPStart];
 #define JUMP(offset) \
 	{ \
 		frame->IP += offset; \
@@ -519,7 +862,6 @@ bool VMThread::DoJumpBack(CallFrame* frame, int offset) {
 		IP_OPFUNC_SYNC(); \
 	}
 #else
-#define IP_OPFUNC_SYNC()
 #define JUMP(offset) \
 	{ frame->IP += offset; }
 #define JUMP_BACK(offset) \
@@ -559,7 +901,7 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_METHOD_V4),
 		VM_ADD_DISPATCH(OP_CLASS),
 		VM_ADD_DISPATCH(OP_CALL),
-		VM_ADD_DISPATCH_NULL(OP_SUPER),
+		VM_ADD_DISPATCH(OP_BREAKPOINT),
 		VM_ADD_DISPATCH(OP_INVOKE),
 		VM_ADD_DISPATCH(OP_JUMP),
 		VM_ADD_DISPATCH(OP_JUMP_IF_FALSE),
@@ -653,99 +995,13 @@ int VMThread::RunInstruction() {
 
 #ifdef VM_DEBUG_INSTRUCTIONS
 	if (DebugInfo) {
-#define PRINT_CASE(n) \
-	case n: \
-		Log::Print(Log::LOG_VERBOSE, #n); \
-		break;
-
-		switch (*frame->IP) {
-			PRINT_CASE(OP_ERROR)
-			PRINT_CASE(OP_CONSTANT)
-			PRINT_CASE(OP_DEFINE_GLOBAL)
-			PRINT_CASE(OP_GET_PROPERTY)
-			PRINT_CASE(OP_SET_PROPERTY)
-			PRINT_CASE(OP_GET_GLOBAL)
-			PRINT_CASE(OP_SET_GLOBAL)
-			PRINT_CASE(OP_GET_LOCAL)
-			PRINT_CASE(OP_SET_LOCAL)
-			PRINT_CASE(OP_PRINT_STACK)
-			PRINT_CASE(OP_INHERIT)
-			PRINT_CASE(OP_RETURN)
-			PRINT_CASE(OP_METHOD_V4)
-			PRINT_CASE(OP_CLASS)
-			PRINT_CASE(OP_CALL)
-			PRINT_CASE(OP_SUPER)
-			PRINT_CASE(OP_INVOKE_V3)
-			PRINT_CASE(OP_JUMP)
-			PRINT_CASE(OP_JUMP_IF_FALSE)
-			PRINT_CASE(OP_JUMP_BACK)
-			PRINT_CASE(OP_POP)
-			PRINT_CASE(OP_COPY)
-			PRINT_CASE(OP_ADD)
-			PRINT_CASE(OP_SUBTRACT)
-			PRINT_CASE(OP_MULTIPLY)
-			PRINT_CASE(OP_DIVIDE)
-			PRINT_CASE(OP_MODULO)
-			PRINT_CASE(OP_NEGATE)
-			PRINT_CASE(OP_INCREMENT)
-			PRINT_CASE(OP_DECREMENT)
-			PRINT_CASE(OP_BITSHIFT_LEFT)
-			PRINT_CASE(OP_BITSHIFT_RIGHT)
-			PRINT_CASE(OP_NULL)
-			PRINT_CASE(OP_TRUE)
-			PRINT_CASE(OP_FALSE)
-			PRINT_CASE(OP_BW_NOT)
-			PRINT_CASE(OP_BW_AND)
-			PRINT_CASE(OP_BW_OR)
-			PRINT_CASE(OP_BW_XOR)
-			PRINT_CASE(OP_LG_NOT)
-			PRINT_CASE(OP_LG_AND)
-			PRINT_CASE(OP_LG_OR)
-			PRINT_CASE(OP_EQUAL)
-			PRINT_CASE(OP_EQUAL_NOT)
-			PRINT_CASE(OP_GREATER)
-			PRINT_CASE(OP_GREATER_EQUAL)
-			PRINT_CASE(OP_LESS)
-			PRINT_CASE(OP_LESS_EQUAL)
-			PRINT_CASE(OP_PRINT)
-			PRINT_CASE(OP_ENUM_NEXT)
-			PRINT_CASE(OP_SAVE_VALUE)
-			PRINT_CASE(OP_LOAD_VALUE)
-			PRINT_CASE(OP_WITH)
-			PRINT_CASE(OP_GET_ELEMENT)
-			PRINT_CASE(OP_SET_ELEMENT)
-			PRINT_CASE(OP_NEW_ARRAY)
-			PRINT_CASE(OP_NEW_MAP)
-			PRINT_CASE(OP_SWITCH_TABLE)
-			PRINT_CASE(OP_TYPEOF)
-			PRINT_CASE(OP_NEW)
-			PRINT_CASE(OP_IMPORT)
-			PRINT_CASE(OP_SWITCH)
-			PRINT_CASE(OP_POPN)
-			PRINT_CASE(OP_HAS_PROPERTY)
-			PRINT_CASE(OP_IMPORT_MODULE)
-			PRINT_CASE(OP_ADD_ENUM)
-			PRINT_CASE(OP_NEW_ENUM)
-			PRINT_CASE(OP_GET_SUPERCLASS)
-			PRINT_CASE(OP_GET_MODULE_LOCAL)
-			PRINT_CASE(OP_SET_MODULE_LOCAL)
-			PRINT_CASE(OP_DEFINE_MODULE_LOCAL)
-			PRINT_CASE(OP_USE_NAMESPACE)
-			PRINT_CASE(OP_DEFINE_CONSTANT)
-			PRINT_CASE(OP_INTEGER)
-			PRINT_CASE(OP_DECIMAL)
-			PRINT_CASE(OP_INVOKE)
-			PRINT_CASE(OP_SUPER_INVOKE)
-			PRINT_CASE(OP_EVENT)
-			PRINT_CASE(OP_METHOD)
-			PRINT_CASE(OP_NEW_HITBOX)
-
-		default:
-			Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP);
-			break;
+		instruction = *frame->IP;
+		if (instruction < OP_LAST) {
+			Log::Print(Log::LOG_VERBOSE, Bytecode::OpcodeNames[instruction]);
 		}
-
-#undef PRINT_CASE
+		else {
+			Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP);
+		}
 	}
 #endif
 
@@ -2365,13 +2621,33 @@ int VMThread::RunInstruction() {
 	VM_CASE(OP_ERROR) {
 		VM_BREAK;
 	}
-	VM_CASE(OP_SUPER) {
+	VM_CASE(OP_BREAKPOINT) {
+#ifdef VM_DEBUG
+		if (InDebugger) {
+			VM_BREAK;
+		}
+
+		Uint8* lastIP = --frame->IP;
+
+		IP_OPFUNC_SYNC();
+
+		Breakpoint();
+
+#ifndef USING_VM_FUNCPTRS
+		frame = &Frames[FrameCount - 1];
+#endif
+
+		if (frame->IP == lastIP) {
+			frame->IP++;
+			IP_OPFUNC_SYNC();
+		}
+#endif
 		VM_BREAK;
 	}
 	VM_END();
 
 #ifdef VM_DEBUG_INSTRUCTIONS
-	if (DebugInfo) {
+	if (DebugInfo && !InDebugger) {
 		Log::Print(Log::LOG_WARN, "START");
 		PrintStack();
 	}

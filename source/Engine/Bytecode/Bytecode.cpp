@@ -9,6 +9,89 @@ const char* Bytecode::Magic = "HTVM";
 Uint32 Bytecode::LatestVersion = BYTECODE_VERSION;
 vector<const char*> Bytecode::FunctionNames{"<anonymous-fn>", "main"};
 
+const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_ERROR",
+	"OP_CONSTANT",
+	"OP_DEFINE_GLOBAL",
+	"OP_GET_PROPERTY",
+	"OP_SET_PROPERTY",
+	"OP_GET_GLOBAL",
+	"OP_SET_GLOBAL",
+	"OP_GET_LOCAL",
+	"OP_SET_LOCAL",
+	"OP_PRINT_STACK",
+	"OP_INHERIT",
+	"OP_RETURN",
+	"OP_METHOD_V4",
+	"OP_CLASS",
+	"OP_CALL",
+	"OP_BREAKPOINT",
+	"OP_INVOKE_V3",
+	"OP_JUMP",
+	"OP_JUMP_IF_FALSE",
+	"OP_JUMP_BACK",
+	"OP_POP",
+	"OP_COPY",
+	"OP_ADD",
+	"OP_SUBTRACT",
+	"OP_MULTIPLY",
+	"OP_DIVIDE",
+	"OP_MODULO",
+	"OP_NEGATE",
+	"OP_INCREMENT",
+	"OP_DECREMENT",
+	"OP_BITSHIFT_LEFT",
+	"OP_BITSHIFT_RIGHT",
+	"OP_NULL",
+	"OP_TRUE",
+	"OP_FALSE",
+	"OP_BW_NOT",
+	"OP_BW_AND",
+	"OP_BW_OR",
+	"OP_BW_XOR",
+	"OP_LG_NOT",
+	"OP_LG_AND",
+	"OP_LG_OR",
+	"OP_EQUAL",
+	"OP_EQUAL_NOT",
+	"OP_GREATER",
+	"OP_GREATER_EQUAL",
+	"OP_LESS",
+	"OP_LESS_EQUAL",
+	"OP_PRINT",
+	"OP_ENUM_NEXT",
+	"OP_SAVE_VALUE",
+	"OP_LOAD_VALUE",
+	"OP_WITH",
+	"OP_GET_ELEMENT",
+	"OP_SET_ELEMENT",
+	"OP_NEW_ARRAY",
+	"OP_NEW_MAP",
+	"OP_SWITCH_TABLE",
+	"OP_FAILSAFE",
+	"OP_EVENT_V4",
+	"OP_TYPEOF",
+	"OP_NEW",
+	"OP_IMPORT",
+	"OP_SWITCH",
+	"OP_POPN",
+	"OP_HAS_PROPERTY",
+	"OP_IMPORT_MODULE",
+	"OP_ADD_ENUM",
+	"OP_NEW_ENUM",
+	"OP_GET_SUPERCLASS",
+	"OP_GET_MODULE_LOCAL",
+	"OP_SET_MODULE_LOCAL",
+	"OP_DEFINE_MODULE_LOCAL",
+	"OP_USE_NAMESPACE",
+	"OP_DEFINE_CONSTANT",
+	"OP_INTEGER",
+	"OP_DECIMAL",
+	"OP_INVOKE",
+	"OP_SUPER_INVOKE",
+	"OP_EVENT",
+	"OP_METHOD",
+	"OP_NEW_HITBOX"};
+
 Bytecode::Bytecode() {
 	Version = LatestVersion;
 }
@@ -249,4 +332,106 @@ void Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>*
 	if (hasSourceFilename) {
 		stream->WriteBytes((void*)sourceFilename, strlen(sourceFilename) + 1);
 	}
+}
+
+int Bytecode::GetTotalOpcodeSize(uint8_t* op) {
+	switch (*op) {
+		// ConstantInstruction
+	case OP_CONSTANT:
+	case OP_INTEGER:
+	case OP_DECIMAL:
+	case OP_IMPORT:
+	case OP_IMPORT_MODULE:
+		return 5;
+	case OP_NULL:
+	case OP_TRUE:
+	case OP_FALSE:
+	case OP_POP:
+	case OP_INCREMENT:
+	case OP_DECREMENT:
+	case OP_BITSHIFT_LEFT:
+	case OP_BITSHIFT_RIGHT:
+	case OP_EQUAL:
+	case OP_EQUAL_NOT:
+	case OP_LESS:
+	case OP_LESS_EQUAL:
+	case OP_GREATER:
+	case OP_GREATER_EQUAL:
+	case OP_ADD:
+	case OP_SUBTRACT:
+	case OP_MULTIPLY:
+	case OP_MODULO:
+	case OP_DIVIDE:
+	case OP_BW_NOT:
+	case OP_BW_AND:
+	case OP_BW_OR:
+	case OP_BW_XOR:
+	case OP_LG_NOT:
+	case OP_LG_AND:
+	case OP_LG_OR:
+	case OP_GET_ELEMENT:
+	case OP_SET_ELEMENT:
+	case OP_NEGATE:
+	case OP_PRINT:
+	case OP_TYPEOF:
+	case OP_RETURN:
+	case OP_SAVE_VALUE:
+	case OP_LOAD_VALUE:
+	case OP_GET_SUPERCLASS:
+	case OP_DEFINE_MODULE_LOCAL:
+	case OP_ENUM_NEXT:
+	case OP_NEW_HITBOX:
+		return 1;
+	case OP_COPY:
+	case OP_CALL:
+	case OP_NEW:
+	case OP_EVENT_V4:
+	case OP_POPN:
+		return 2;
+	case OP_EVENT:
+		return 3;
+	case OP_GET_LOCAL:
+	case OP_SET_LOCAL:
+		return 2;
+	case OP_GET_GLOBAL:
+	case OP_DEFINE_GLOBAL:
+	case OP_DEFINE_CONSTANT:
+	case OP_SET_GLOBAL:
+	case OP_GET_PROPERTY:
+	case OP_SET_PROPERTY:
+	case OP_HAS_PROPERTY:
+	case OP_USE_NAMESPACE:
+	case OP_INHERIT:
+		return 5;
+	case OP_SET_MODULE_LOCAL:
+	case OP_GET_MODULE_LOCAL:
+		return 3;
+	case OP_NEW_ARRAY:
+	case OP_NEW_MAP:
+		return 5;
+	case OP_JUMP:
+	case OP_JUMP_IF_FALSE:
+	case OP_JUMP_BACK:
+		return 3;
+	case OP_INVOKE:
+	case OP_SUPER_INVOKE:
+		return 6;
+	case OP_INVOKE_V3:
+		return 7;
+	case OP_WITH:
+		if (*(op + 1) == 3) {
+			return 5;
+		}
+		return 4;
+	case OP_CLASS:
+		return 6;
+	case OP_ADD_ENUM:
+	case OP_NEW_ENUM:
+		return 5;
+	case OP_METHOD:
+		return 7;
+	case OP_METHOD_V4:
+		return 6;
+	}
+	return 1;
 }

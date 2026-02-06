@@ -5,6 +5,8 @@
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Includes/HashMap.h>
 
+#define SCRIPTS_DIRECTORY_NAME "Scripts"
+
 class SourceFileMap {
 private:
 	static void AddToList(Compiler* compiler, Uint32 filenameHash);

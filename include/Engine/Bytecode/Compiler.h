@@ -141,6 +141,7 @@ public:
 	void GetCall(bool canAssign);
 	void GetExpression();
 	void GetPrintStatement();
+	void GetBreakpointStatement();
 	void GetExpressionStatement();
 	void GetContinueStatement();
 	void GetDoWhileStatement();
@@ -186,8 +187,6 @@ public:
 	void EmitFloat(float value);
 	int GetConstantIndex(VMValue value);
 	int EmitConstant(VMValue value);
-	static bool
-	GetEmittedConstant(Chunk* chunk, Uint8* code, VMValue* value = NULL, int* index = NULL);
 	void EmitLoop(int loopStart);
 	int GetJump(int offset);
 	int GetPosition();
@@ -211,23 +210,6 @@ public:
 	void SetReceiverName(Token name);
 	int CheckInfixOptimize(int preCount, int preConstant, ParseFn fn);
 	int CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn);
-	static int GetTotalOpcodeSize(uint8_t* op);
-	static int HashInstruction(uint8_t opcode, Chunk* chunk, int offset);
-	static int ConstantInstruction(uint8_t opcode, Chunk* chunk, int offset);
-	static int SimpleInstruction(uint8_t opcode, Chunk* chunk, int offset);
-	static int ByteInstruction(uint8_t opcode, Chunk* chunk, int offset);
-	static int ShortInstruction(uint8_t opcode, Chunk* chunk, int offset);
-	static int LocalInstruction(uint8_t opcode, Chunk* chunk, int offset);
-	static int MethodInstruction(uint8_t opcode, Chunk* chunk, int offset);
-	static int MethodInstructionV4(uint8_t opcode, Chunk* chunk, int offset);
-	static int InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset);
-	static int InvokeInstructionV3(uint8_t opcode, Chunk* chunk, int offset);
-	static int JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset);
-	static int ClassInstruction(uint8_t opcode, Chunk* chunk, int offset);
-	static int EnumInstruction(uint8_t opcode, Chunk* chunk, int offset);
-	static int WithInstruction(uint8_t opcode, Chunk* chunk, int offset);
-	static int DebugInstruction(Chunk* chunk, int offset);
-	static void DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity);
 	static void Init();
 	static void GetStandardConstants();
 	static void PrepareCompiling();

@@ -5,13 +5,25 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Utilities/PrintBuffer.h>
 
+#ifdef VM_DEBUG
+#include <Engine/Bytecode/BytecodeDebugger.h>
+#endif
+
 class VMThread {
 private:
 	std::string GetFunctionName(ObjFunction* function);
 	void PrintStackTrace(PrintBuffer* buffer, const char* errorString);
+#ifdef VM_DEBUG
 	bool CheckBranchLimit(CallFrame* frame);
 	bool DoJump(CallFrame* frame, int offset);
 	bool DoJumpBack(CallFrame* frame, int offset);
+	void Breakpoint();
+	void DebuggerLoop();
+	bool InterpretDebuggerCommand(std::vector<char*> args);
+	void PrintCallFrameSourceLine(CallFrame* frame, size_t bpos);
+	bool PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos);
+	bool ShowBranchLimitMessage(const char* errorMessage, ...);
+#endif
 	bool
 	GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
 	bool GetProperty(Obj* object, Uint32 hash, ValueGetFn getter);
@@ -30,6 +42,10 @@ private:
 	bool InstantiateClass(VMValue callee, int argCount);
 	bool DoClassExtension(VMValue value, VMValue originalValue, bool clearSrc);
 
+#ifdef VM_DEBUG
+	BytecodeDebugger* CodeDebugger = nullptr;
+#endif
+
 public:
 	VMValue Stack[STACK_SIZE_MAX];
 	VMValue* StackTop = Stack;
@@ -47,8 +63,12 @@ public:
 	};
 	char Name[THREAD_NAME_MAX];
 	Uint32 ID;
+#ifdef VM_DEBUG
 	bool DebugInfo;
+	bool InDebugger;
+	int DebugFrame;
 	Uint32 BranchLimit;
+#endif
 	static bool InstructionIgnoreMap[0x100];
 	static std::jmp_buf JumpBuffer;
 
@@ -74,7 +94,6 @@ public:
 	Sint32 ReadSInt32(CallFrame* frame);
 	float ReadFloat(CallFrame* frame);
 	VMValue ReadConstant(CallFrame* frame);
-	bool ShowBranchLimitMessage(const char* errorMessage, ...);
 	int RunInstruction();
 	void RunInstructionSet();
 	void RunValue(VMValue value, int argCount);
@@ -131,7 +150,7 @@ public:
 	VM_ADD_OPFUNC(OP_METHOD_V4);
 	VM_ADD_OPFUNC(OP_CLASS);
 	VM_ADD_OPFUNC(OP_CALL);
-	VM_ADD_OPFUNC(OP_SUPER);
+	VM_ADD_OPFUNC(OP_BREAKPOINT);
 	VM_ADD_OPFUNC(OP_INVOKE_V3);
 	VM_ADD_OPFUNC(OP_JUMP);
 	VM_ADD_OPFUNC(OP_JUMP_IF_FALSE);
