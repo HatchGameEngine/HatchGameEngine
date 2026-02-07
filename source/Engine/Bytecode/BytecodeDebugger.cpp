@@ -184,7 +184,7 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_DEFINE_MODULE_LOCAL:
 	case OP_ENUM_NEXT:
 	case OP_NEW_HITBOX:
-	case OP_BREAKPOINT:
+	case OP_UNUSED_1:
 		return SimpleInstruction(instruction, chunk, offset);
 	case OP_COPY:
 	case OP_CALL:

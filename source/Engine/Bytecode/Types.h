@@ -69,7 +69,7 @@ struct Chunk {
 	int Count;
 	int Capacity;
 	Uint8* Code;
-	Uint8* Failsafe;
+	Uint8* Breakpoints;
 	int* Lines;
 	vector<VMValue>* Constants;
 	vector<ChunkLocal>* Locals;
@@ -497,7 +497,7 @@ struct CallFrame {
 	WithIter* WithIteratorStackTop = WithIteratorStack;
 };
 enum OpCode : uint8_t {
-	OP_ERROR = 0,
+	OP_NOP = 0, // Formerly OP_ERROR
 	OP_CONSTANT,
 	// Classes and Instances
 	OP_DEFINE_GLOBAL,
@@ -516,7 +516,7 @@ enum OpCode : uint8_t {
 	OP_CLASS,
 	// Function Operations
 	OP_CALL,
-	OP_BREAKPOINT, // Formerly OP_SUPER
+	OP_UNUSED_1, // Formerly OP_SUPER
 	OP_INVOKE_V3,
 	// Jumping
 	OP_JUMP,
@@ -569,7 +569,7 @@ enum OpCode : uint8_t {
 	OP_NEW_MAP,
 	//
 	OP_SWITCH_TABLE,
-	OP_FAILSAFE,
+	OP_UNUSED_2, // Formerly OP_FAILSAFE
 	OP_EVENT_V4,
 	OP_TYPEOF,
 	OP_NEW,

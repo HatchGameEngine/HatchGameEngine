@@ -478,7 +478,7 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 	if (IS_COMMAND("continue") || IS_COMMAND("c")) {
 		InDebugger = false;
 	}
-	else if (IS_COMMAND("backtrace") || IS_COMMAND("bt") || IS_COMMAND("b") || IS_COMMAND("trace")) {
+	else if (IS_COMMAND("backtrace") || IS_COMMAND("bt") || IS_COMMAND("trace")) {
 		PrintStackTrace(nullptr);
 	}
 	else if (IS_COMMAND("stack") || IS_COMMAND("st") || IS_COMMAND("stk")) {
@@ -828,12 +828,10 @@ bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 
 	Log::Print(Log::LOG_WARN, textBuffer);
 
-#ifdef VM_DEBUG
 	if (InDebugger) {
 		free(textBuffer);
 		return true;
 	}
-#endif
 
 	PrintStack();
 
@@ -885,6 +883,13 @@ bool VMThread::CheckBranchLimit(CallFrame* frame) {
 		return ShowBranchLimitMessage("Hit branch limit!");
 	}
 	return true;
+}
+void VMThread::DisposeBreakpoints() {
+	std::unordered_map<ObjFunction*, Uint8*>::iterator it;
+	for (it = Breakpoints.begin(); it != Breakpoints.end(); it++) {
+		Memory::Free(it->second);
+	}
+	Breakpoints.clear();
 }
 #endif
 // #endregion
@@ -1056,7 +1061,7 @@ int VMThread::RunInstruction() {
 #define VM_ADD_DISPATCH_NULL(op) NULL
 	// This must follow the existing opcode order.
 	static const void* dispatch_table[] = {
-		VM_ADD_DISPATCH_NULL(OP_ERROR),
+		VM_ADD_DISPATCH_NULL(OP_NOP),
 		VM_ADD_DISPATCH(OP_CONSTANT),
 		VM_ADD_DISPATCH(OP_DEFINE_GLOBAL),
 		VM_ADD_DISPATCH(OP_GET_PROPERTY),
@@ -1071,7 +1076,7 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_METHOD_V4),
 		VM_ADD_DISPATCH(OP_CLASS),
 		VM_ADD_DISPATCH(OP_CALL),
-		VM_ADD_DISPATCH(OP_BREAKPOINT),
+		VM_ADD_DISPATCH_NULL(OP_UNUSED_1),
 		VM_ADD_DISPATCH(OP_INVOKE),
 		VM_ADD_DISPATCH(OP_JUMP),
 		VM_ADD_DISPATCH(OP_JUMP_IF_FALSE),
@@ -1114,7 +1119,7 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_NEW_ARRAY),
 		VM_ADD_DISPATCH(OP_NEW_MAP),
 		VM_ADD_DISPATCH(OP_SWITCH_TABLE),
-		VM_ADD_DISPATCH(OP_FAILSAFE),
+		VM_ADD_DISPATCH_NULL(OP_UNUSED_2),
 		VM_ADD_DISPATCH(OP_EVENT_V4),
 		VM_ADD_DISPATCH(OP_TYPEOF),
 		VM_ADD_DISPATCH(OP_NEW),
@@ -1162,6 +1167,15 @@ int VMThread::RunInstruction() {
 
 	frame = &Frames[FrameCount - 1];
 	frame->IPLast = frame->IP;
+
+#ifdef VM_DEBUG
+	if (Breakpoints.count(frame->Function)) {
+		Uint8* bp = Breakpoints[frame->Function];
+		if (bp[frame->IP - frame->IPStart]) {
+			Breakpoint();
+		}
+	}
+#endif
 
 #ifdef VM_DEBUG_INSTRUCTIONS
 	if (DebugInfo) {
@@ -2781,18 +2795,11 @@ int VMThread::RunInstruction() {
 		VM_BREAK;
 	}
 
-	VM_CASE(OP_FAILSAFE) {
-		int offset = ReadUInt16(frame);
-		frame->Function->Chunk.Failsafe = frame->IPStart + offset;
-		// frame->IP = frame->IPStart + offset;
+	VM_CASE(OP_NOP) {
 		VM_BREAK;
 	}
-
-	VM_CASE(OP_ERROR) {
-		VM_BREAK;
-	}
-	VM_CASE(OP_BREAKPOINT) {
-#ifdef VM_DEBUG
+	VM_CASE(OP_UNUSED_1) {
+#if 0
 		if (InDebugger) {
 			VM_BREAK;
 		}
@@ -2812,6 +2819,9 @@ int VMThread::RunInstruction() {
 			IP_OPFUNC_SYNC();
 		}
 #endif
+		VM_BREAK;
+	}
+	VM_CASE(OP_UNUSED_2) {
 		VM_BREAK;
 	}
 	VM_END();

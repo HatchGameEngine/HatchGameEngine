@@ -8,6 +8,7 @@
 #define BYTECODE_FLAG_DEBUGINFO (1 << 0)
 #define BYTECODE_FLAG_SOURCEFILENAME (1 << 1)
 #define BYTECODE_FLAG_VARNAMES (1 << 2)
+#define BYTECODE_FLAG_BREAKPOINTS (1 << 3)
 
 class Bytecode {
 private:

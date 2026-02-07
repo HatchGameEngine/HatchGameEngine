@@ -8,7 +8,7 @@ const char* Bytecode::Magic = "HTVM";
 Uint32 Bytecode::LatestVersion = BYTECODE_VERSION;
 vector<const char*> Bytecode::FunctionNames{"<anonymous-fn>", "main"};
 
-const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_ERROR",
+const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_NOP",
 	"OP_CONSTANT",
 	"OP_DEFINE_GLOBAL",
 	"OP_GET_PROPERTY",
@@ -23,7 +23,7 @@ const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_ERROR",
 	"OP_METHOD_V4",
 	"OP_CLASS",
 	"OP_CALL",
-	"OP_BREAKPOINT",
+	"OP_UNUSED_1",
 	"OP_INVOKE_V3",
 	"OP_JUMP",
 	"OP_JUMP_IF_FALSE",
@@ -66,7 +66,7 @@ const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_ERROR",
 	"OP_NEW_ARRAY",
 	"OP_NEW_MAP",
 	"OP_SWITCH_TABLE",
-	"OP_FAILSAFE",
+	"OP_UNUSED_2",
 	"OP_EVENT_V4",
 	"OP_TYPEOF",
 	"OP_NEW",
@@ -204,55 +204,70 @@ void Bytecode::ReadChunk(MemoryStream* stream) {
 	function->Arity = arity;
 	function->MinArity = minArity;
 	function->NameHash = hash;
-	function->Chunk.Count = length;
-	function->Chunk.OpcodeCount = opcodeCount;
-	function->Chunk.OwnsMemory = false;
 
-	function->Chunk.Code = stream->pointer;
+	Chunk* chunk = &function->Chunk;
+	chunk->Count = length;
+	chunk->OpcodeCount = opcodeCount;
+	chunk->OwnsMemory = false;
+
+	chunk->Code = stream->pointer;
 	stream->Skip(length * sizeof(Uint8));
 
 	if (HasDebugInfo) {
-		function->Chunk.Lines = (int*)stream->pointer;
+		chunk->Lines = (int*)stream->pointer;
 		stream->Skip(length * sizeof(int));
 	}
 
-	if (Flags & BYTECODE_FLAG_VARNAMES) {
-		Uint16 numLocals = stream->ReadUInt16();
-		if (numLocals) {
-			function->Chunk.Locals = new vector<ChunkLocal>;
-			ReadLocals(stream, function->Chunk.Locals, numLocals);
-		}
-
-		Uint16 numModuleLocals = stream->ReadUInt16();
-		if (numModuleLocals) {
-			function->Chunk.ModuleLocals = new vector<ChunkLocal>;
-			ReadLocals(stream, function->Chunk.ModuleLocals, numModuleLocals);
-		}
-	}
-
 	int constantCount = stream->ReadInt32();
-	function->Chunk.Constants->reserve(constantCount);
+	chunk->Constants->reserve(constantCount);
 	for (int c = 0; c < constantCount; c++) {
 		Uint8 type = stream->ReadByte();
 		switch (type) {
 		case Bytecode::VALUE_TYPE_INTEGER:
-			function->Chunk.AddConstant(INTEGER_VAL(stream->ReadInt32()));
+			chunk->AddConstant(INTEGER_VAL(stream->ReadInt32()));
 			break;
 		case Bytecode::VALUE_TYPE_DECIMAL:
-			function->Chunk.AddConstant(DECIMAL_VAL(stream->ReadFloat()));
+			chunk->AddConstant(DECIMAL_VAL(stream->ReadFloat()));
 			break;
 		case Bytecode::VALUE_TYPE_HITBOX: {
 			Sint16 left = stream->ReadInt16();
 			Sint16 top = stream->ReadInt16();
 			Sint16 right = stream->ReadInt16();
 			Sint16 bottom = stream->ReadInt16();
-			function->Chunk.AddConstant(HITBOX_VAL(left, top, right, bottom));
+			chunk->AddConstant(HITBOX_VAL(left, top, right, bottom));
 			break;
 		}
 		case Bytecode::VALUE_TYPE_STRING:
-			function->Chunk.AddConstant(
+			chunk->AddConstant(
 				OBJECT_VAL(TakeString(stream->ReadString())));
 			break;
+		}
+	}
+
+	if (Flags & BYTECODE_FLAG_VARNAMES) {
+		Uint16 numLocals = stream->ReadUInt16();
+		if (numLocals) {
+			chunk->Locals = new vector<ChunkLocal>;
+			ReadLocals(stream, chunk->Locals, numLocals);
+		}
+
+		Uint16 numModuleLocals = stream->ReadUInt16();
+		if (numModuleLocals) {
+			chunk->ModuleLocals = new vector<ChunkLocal>;
+			ReadLocals(stream, chunk->ModuleLocals, numModuleLocals);
+		}
+	}
+
+	if (Flags & BYTECODE_FLAG_BREAKPOINTS) {
+		size_t numBreakpoints = stream->ReadByte();
+		if (numBreakpoints) {
+			chunk->Breakpoints = (Uint8*)Memory::Calloc(length, sizeof(Uint8));
+			for (size_t i = 0; i < numBreakpoints; i++) {
+				Uint32 position = stream->ReadUInt32();
+				if (position < chunk->Count) {
+					chunk->Breakpoints[position] = 1;
+				}
+			}
 		}
 	}
 
@@ -275,11 +290,20 @@ void Bytecode::ReadLocals(Stream* stream, vector<ChunkLocal>* locals, int numLoc
 }
 
 void Bytecode::Write(Stream* stream, HashMap<Token>* tokenMap) {
+	size_t chunkCount = Functions.size();
+
 	Flags = 0;
 
 	if (HasDebugInfo) {
 		Flags |= BYTECODE_FLAG_DEBUGINFO;
 		Flags |= BYTECODE_FLAG_VARNAMES;
+
+		for (size_t c = 0; c < chunkCount; c++) {
+			if (Functions[c]->Chunk.Breakpoints) {
+				Flags |= BYTECODE_FLAG_BREAKPOINTS;
+				break;
+			}
+		}
 	}
 	if (SourceFilename) {
 		Flags |= BYTECODE_FLAG_SOURCEFILENAME;
@@ -291,10 +315,9 @@ void Bytecode::Write(Stream* stream, HashMap<Token>* tokenMap) {
 	stream->WriteByte(0x00);
 	stream->WriteByte(0x00);
 
-	int chunkCount = (int)Functions.size();
-
 	stream->WriteUInt32(chunkCount);
-	for (int c = 0; c < chunkCount; c++) {
+
+	for (size_t c = 0; c < chunkCount; c++) {
 		WriteChunk(stream, Functions[c]);
 	}
 
@@ -338,14 +361,6 @@ void Bytecode::WriteChunk(Stream* stream, ObjFunction* function) {
 		stream->WriteBytes(chunk->Lines, chunk->Count * sizeof(int));
 	}
 
-	if (Flags & BYTECODE_FLAG_VARNAMES) {
-		int numLocals = chunk->Locals ? std::min((int)chunk->Locals->size(), 0xFFFF) : 0;
-		WriteLocals(stream, chunk->Locals, numLocals);
-
-		numLocals = chunk->ModuleLocals ? std::min((int)chunk->ModuleLocals->size(), 0xFFFF) : 0;
-		WriteLocals(stream, chunk->ModuleLocals, numLocals);
-	}
-
 	int constSize = (int)chunk->Constants->size();
 	stream->WriteUInt32(constSize);
 	for (int i = 0; i < constSize; i++) {
@@ -380,6 +395,33 @@ void Bytecode::WriteChunk(Stream* stream, ObjFunction* function) {
 				stream->WriteByte(Bytecode::VALUE_TYPE_NULL);
 			}
 			break;
+		}
+	}
+
+	if (Flags & BYTECODE_FLAG_VARNAMES) {
+		int numLocals = chunk->Locals ? std::min((int)chunk->Locals->size(), 0xFFFF) : 0;
+		WriteLocals(stream, chunk->Locals, numLocals);
+
+		numLocals = chunk->ModuleLocals ? std::min((int)chunk->ModuleLocals->size(), 0xFFFF) : 0;
+		WriteLocals(stream, chunk->ModuleLocals, numLocals);
+	}
+
+	if (Flags & BYTECODE_FLAG_BREAKPOINTS) {
+		if (chunk->Breakpoints) {
+			std::vector<Uint32> breakpoints;
+			for (size_t i = 0; i < chunk->Count; i++) {
+				if (chunk->Breakpoints[i]) {
+					breakpoints.push_back(i);
+				}
+			}
+
+			stream->WriteByte(breakpoints.size());
+			for (size_t i = 0; i < breakpoints.size(); i++) {
+				stream->WriteUInt32(breakpoints[i]);
+			}
+		}
+		else {
+			stream->WriteByte(0);
 		}
 	}
 }

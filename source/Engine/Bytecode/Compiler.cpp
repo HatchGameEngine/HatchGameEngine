@@ -2059,8 +2059,8 @@ void Compiler::GetPrintStatement() {
 	EmitByte(OP_PRINT);
 }
 void Compiler::GetBreakpointStatement() {
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after expression.");
-	EmitByte(OP_BREAKPOINT);
+	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after 'breakpoint'.");
+	AddBreakpoint();
 }
 void Compiler::GetExpressionStatement() {
 	GetExpression();
@@ -4071,6 +4071,14 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 	return preConstant;
 }
 
+void Compiler::AddBreakpoint() {
+	if (Breakpoints.size() == 255) {
+		Error("Cannot have more than 255 breakpoints.");
+	}
+
+	Breakpoints.push_back(CurrentChunk()->Count);
+}
+
 // Compiling
 void Compiler::Init() {
 	Compiler::MakeRules();
@@ -4297,6 +4305,14 @@ void Compiler::Finish() {
 			local.Index = srcLocal.Index;
 			local.Position = position;
 			chunk->Locals->push_back(local);
+		}
+	}
+
+	size_t numBreakpoints = Breakpoints.size();
+	if (numBreakpoints) {
+		Function->Chunk.Breakpoints = (Uint8*)Memory::Calloc(Function->Chunk.Count, sizeof(Uint8));
+		for (size_t i = 0; i < numBreakpoints; i++) {
+			Function->Chunk.Breakpoints[Breakpoints[i]] = 1;
 		}
 	}
 

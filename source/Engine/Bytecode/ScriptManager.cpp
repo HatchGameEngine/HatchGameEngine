@@ -168,6 +168,12 @@ void ScriptManager::Dispose() {
 	ModuleList.clear();
 
 	if (ThreadCount) {
+#ifdef VM_DEBUG
+		for (int i = 0; i < ThreadCount; i++) {
+			Threads[i].DisposeBreakpoints();
+		}
+#endif
+
 		Threads[0].FrameCount = 0;
 		Threads[0].ResetStack();
 	}
@@ -450,16 +456,29 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 		return false;
 	}
 
+	VMThread* thread = &Threads[0];
+
 	ObjModule* module = NewModule();
 
 	for (size_t i = 0; i < bytecode->Functions.size(); i++) {
 		ObjFunction* function = bytecode->Functions[i];
+		Chunk* chunk = &function->Chunk;
 
 		module->Functions->push_back(function);
 
 		function->Module = module;
 #if USING_VM_FUNCPTRS
-		function->Chunk.SetupOpfuncs();
+		chunk->SetupOpfuncs();
+#endif
+
+#ifdef VM_DEBUG
+		if (chunk->Breakpoints) {
+			Uint8* breakpoints = (Uint8*)Memory::Calloc(chunk->Count, sizeof(Uint8));
+
+			memcpy(breakpoints, chunk->Breakpoints, chunk->Count);
+
+			thread->Breakpoints[function] = breakpoints;
+		}
 #endif
 	}
 
@@ -476,7 +495,7 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 
 	delete bytecode;
 
-	Threads[0].RunFunction((*module->Functions)[0], 0);
+	thread->RunFunction((*module->Functions)[0], 0);
 
 	return true;
 }

@@ -241,6 +241,7 @@ void Chunk::Init() {
 	Capacity = 0;
 	Code = NULL;
 	Lines = NULL;
+	Breakpoints = NULL;
 #if USING_VM_FUNCPTRS
 	OpcodeFuncs = NULL;
 	IPToOpcode = NULL;
@@ -286,6 +287,10 @@ void Chunk::Free() {
 		delete Constants;
 	}
 
+	if (Breakpoints) {
+		Memory::Free(Breakpoints);
+	}
+
 	if (Locals) {
 		DeleteLocals(Locals);
 	}
@@ -318,8 +323,7 @@ void Chunk::DeleteLocals(vector<ChunkLocal>* locals) {
 		break
 void Chunk::SetupOpfuncs() {
 	if (!OpcodeCount) {
-		// try to get it manually thru iterating it (for
-		// version <= 2 bytecode)
+		// try to get it manually thru iterating it (for version <= 2 bytecode)
 		for (int offset = 0; offset < Count;) {
 			offset += Bytecode::GetTotalOpcodeSize(Code + offset);
 			OpcodeCount++;
@@ -336,7 +340,7 @@ void Chunk::SetupOpfuncs() {
 		offset += Bytecode::GetTotalOpcodeSize(Code + offset);
 		OpcodeFunc func = NULL;
 		switch (op) {
-			OPCASE(OP_ERROR);
+			OPCASE(OP_NOP);
 			OPCASE(OP_CONSTANT);
 			OPCASE(OP_DEFINE_GLOBAL);
 			OPCASE(OP_GET_PROPERTY);
@@ -351,7 +355,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_METHOD_V4);
 			OPCASE(OP_CLASS);
 			OPCASE(OP_CALL);
-			OPCASE(OP_BREAKPOINT);
+			OPCASE(OP_UNUSED_1);
 			OPCASE(OP_INVOKE_V3);
 			OPCASE(OP_JUMP);
 			OPCASE(OP_JUMP_IF_FALSE);
@@ -394,7 +398,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_NEW_ARRAY);
 			OPCASE(OP_NEW_MAP);
 			OPCASE(OP_SWITCH_TABLE);
-			OPCASE(OP_FAILSAFE);
+			OPCASE(OP_UNUSED_2);
 			OPCASE(OP_EVENT_V4);
 			OPCASE(OP_TYPEOF);
 			OPCASE(OP_NEW);

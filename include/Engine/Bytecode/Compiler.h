@@ -27,6 +27,7 @@ public:
 	Local Locals[0x100];
 	vector<Local> AllLocals;
 	vector<Local> Constants;
+	vector<Uint32> Breakpoints;
 	int LocalCount = 0;
 	int ScopeDepth = 0;
 	vector<Uint32> ClassHashList;
@@ -209,6 +210,7 @@ public:
 	void SetReceiverName(Token name);
 	int CheckInfixOptimize(int preCount, int preConstant, ParseFn fn);
 	int CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn);
+	void AddBreakpoint();
 	static void Init();
 	static void GetStandardConstants();
 	static void PrepareCompiling();
