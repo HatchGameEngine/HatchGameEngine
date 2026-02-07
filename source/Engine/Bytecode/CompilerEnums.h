@@ -4,6 +4,13 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Token.h>
 
+struct CompilerSettings {
+	bool ShowWarnings;
+	bool WriteDebugInfo;
+	bool WriteSourceFilename;
+	bool DoOptimizations;
+};
+
 class Parser {
 public:
 	Token Current;

@@ -246,6 +246,8 @@ void Chunk::Init() {
 	IPToOpcode = NULL;
 #endif
 	Constants = new vector<VMValue>();
+	Locals = nullptr;
+	ModuleLocals = nullptr;
 }
 void Chunk::Alloc() {
 	if (!Code) {
@@ -284,6 +286,13 @@ void Chunk::Free() {
 		delete Constants;
 	}
 
+	if (Locals) {
+		DeleteLocals(Locals);
+	}
+	if (ModuleLocals) {
+		DeleteLocals(ModuleLocals);
+	}
+
 #if USING_VM_FUNCPTRS
 	if (OpcodeFuncs) {
 		Memory::Free(OpcodeFuncs);
@@ -293,6 +302,14 @@ void Chunk::Free() {
 		OpcodeCount = 0;
 	}
 #endif
+}
+void Chunk::DeleteLocals(vector<ChunkLocal>* locals) {
+	for (size_t i = 0; i < locals->size(); i++) {
+		Memory::Free((*locals)[i].Name);
+	}
+	locals->clear();
+	locals->shrink_to_fit();
+	delete locals;
 }
 #if USING_VM_FUNCPTRS
 #define OPCASE(op) \

@@ -3,6 +3,11 @@
 
 #include <Engine/Bytecode/CompilerEnums.h>
 #include <Engine/Bytecode/Types.h>
+#include <Engine/IO/MemoryStream.h>
+
+#define BYTECODE_FLAG_DEBUGINFO (1 << 0)
+#define BYTECODE_FLAG_SOURCEFILENAME (1 << 1)
+#define BYTECODE_FLAG_VARNAMES (1 << 2)
 
 class Bytecode {
 private:
@@ -22,13 +27,18 @@ public:
 
 	vector<ObjFunction*> Functions;
 	Uint8 Version;
+	Uint8 Flags;
 	bool HasDebugInfo = false;
-	const char* SourceFilename = nullptr;
+	char* SourceFilename = nullptr;
 
 	Bytecode();
 	~Bytecode();
 	bool Read(BytecodeContainer bytecode, HashMap<char*>* tokens);
-	void Write(Stream* stream, const char* sourceFilename, HashMap<Token>* tokenMap);
+	void ReadChunk(MemoryStream* stream);
+	void ReadLocals(Stream* stream, vector<ChunkLocal>* locals, int numLocals);
+	void Write(Stream* stream, HashMap<Token>* tokenMap);
+	void WriteChunk(Stream* stream, ObjFunction* function);
+	void WriteLocals(Stream* stream, vector<ChunkLocal>* locals);
 
 	static int GetTotalOpcodeSize(uint8_t* op);
 };

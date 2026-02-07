@@ -19,10 +19,8 @@ public:
 	static HashMap<VMValue>* StandardConstants;
 	static HashMap<Token>* TokenMap;
 	static bool DoLogging;
-	static bool ShowWarnings;
-	static bool WriteDebugInfo;
-	static bool WriteSourceFilename;
-	static bool DoOptimizations;
+	static CompilerSettings Settings;
+	CompilerSettings CurrentSettings;
 	Compiler* Enclosing = nullptr;
 	ObjFunction* Function = nullptr;
 	int Type = 0;
@@ -214,6 +212,7 @@ public:
 	static void GetStandardConstants();
 	static void PrepareCompiling();
 	void Initialize(Compiler* enclosing, int scope, int type);
+	bool Compile(const char* filename, const char* source, CompilerSettings settings, Stream* output);
 	bool Compile(const char* filename, const char* source, Stream* output);
 	void Finish();
 	virtual ~Compiler();

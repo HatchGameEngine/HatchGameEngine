@@ -24,10 +24,7 @@ HashMap<VMValue>* Compiler::StandardConstants = NULL;
 HashMap<Token>* Compiler::TokenMap = NULL;
 
 bool Compiler::DoLogging = false;
-bool Compiler::ShowWarnings = false;
-bool Compiler::WriteDebugInfo = false;
-bool Compiler::WriteSourceFilename = false;
-bool Compiler::DoOptimizations = false;
+CompilerSettings Compiler::Settings;
 
 #define Panic(returnMe) \
 	if (parser.PanicMode) { \
@@ -799,7 +796,7 @@ void Compiler::SynchronizeToken() {
 
 // Error handling
 bool Compiler::ReportError(int line, int pos, bool fatal, const char* string, ...) {
-	if (!fatal && !Compiler::ShowWarnings) {
+	if (!fatal && !CurrentSettings.ShowWarnings) {
 		return true;
 	}
 
@@ -895,7 +892,7 @@ void Compiler::Warning(const char* message) {
 	ErrorAt(&parser.Current, message, false);
 }
 void Compiler::WarningInFunction(const char* format, ...) {
-	if (!Compiler::ShowWarnings) {
+	if (!CurrentSettings.ShowWarnings) {
 		return;
 	}
 
@@ -1035,7 +1032,7 @@ int Compiler::DeclareModuleVariable(Token* name, bool constant) {
 	return ((int)Compiler::ModuleConstants.size()) - 1;
 }
 void Compiler::WarnVariablesUnusedUnset() {
-	if (!Compiler::ShowWarnings) {
+	if (!CurrentSettings.ShowWarnings) {
 		return;
 	}
 
@@ -3344,7 +3341,7 @@ void Compiler::ParsePrecedence(Precedence precedence) {
 	bool canAssign = precedence <= PREC_ASSIGNMENT;
 	(this->*prefixRule)(canAssign);
 
-	if (DoOptimizations) {
+	if (CurrentSettings.DoOptimizations) {
 		preConstant = CheckPrefixOptimize(preCount, preConstant, prefixRule);
 	}
 
@@ -3354,7 +3351,7 @@ void Compiler::ParsePrecedence(Precedence precedence) {
 		if (infixRule) {
 			(this->*infixRule)(canAssign);
 		}
-		if (DoOptimizations) {
+		if (CurrentSettings.DoOptimizations) {
 			preConstant = CheckInfixOptimize(preCount, preConstant, infixRule);
 		}
 	}
@@ -3419,7 +3416,7 @@ int Compiler::GetConstantIndex(VMValue value) {
 int Compiler::EmitConstant(VMValue value) {
 	if (value.Type == VAL_INTEGER) {
 		int i = AS_INTEGER(value);
-		if (DoOptimizations && (i == 0 || i == 1)) {
+		if (CurrentSettings.DoOptimizations && (i == 0 || i == 1)) {
 			EmitByte(!i ? OP_FALSE : OP_TRUE);
 		}
 		else {
@@ -4059,25 +4056,26 @@ void Compiler::Init() {
 	Compiler::MakeRules();
 
 	Compiler::DoLogging = false;
-	Compiler::ShowWarnings = false;
+
+	Settings.ShowWarnings = false;
 #if DEVELOPER_MODE
-	Compiler::WriteDebugInfo = true;
-	Compiler::WriteSourceFilename = true;
+	Settings.WriteDebugInfo = true;
+	Settings.WriteSourceFilename = true;
 #else
-	Compiler::WriteDebugInfo = false;
-	Compiler::WriteSourceFilename = false;
+	Settings.WriteDebugInfo = false;
+	Settings.WriteSourceFilename = false;
 #endif
-	Compiler::DoOptimizations = true;
+	Settings.DoOptimizations = true;
 
 	Application::Settings->GetBool("compiler", "log", &Compiler::DoLogging);
 	if (Compiler::DoLogging) {
-		Application::Settings->GetBool("compiler", "showWarnings", &Compiler::ShowWarnings);
+		Application::Settings->GetBool("compiler", "showWarnings", &Settings.ShowWarnings);
 	}
 
-	Application::Settings->GetBool("compiler", "writeDebugInfo", &Compiler::WriteDebugInfo);
+	Application::Settings->GetBool("compiler", "writeDebugInfo", &Settings.WriteDebugInfo);
 	Application::Settings->GetBool(
-		"compiler", "writeSourceFilename", &Compiler::WriteSourceFilename);
-	Application::Settings->GetBool("compiler", "optimizations", &Compiler::DoOptimizations);
+		"compiler", "writeSourceFilename", &Settings.WriteSourceFilename);
+	Application::Settings->GetBool("compiler", "optimizations", &Settings.DoOptimizations);
 }
 void Compiler::GetStandardConstants() {
 	if (Compiler::StandardConstants == NULL) {
@@ -4138,8 +4136,11 @@ void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 		bytecode->Functions.push_back(Compiler::Functions[i]);
 	}
 
-	bytecode->HasDebugInfo = Compiler::WriteDebugInfo;
-	bytecode->Write(stream, Compiler::WriteSourceFilename ? filename : nullptr, TokenMap);
+	bytecode->HasDebugInfo = CurrentSettings.WriteDebugInfo;
+	bytecode->SourceFilename = CurrentSettings.WriteSourceFilename ? (char*)filename : nullptr;
+	bytecode->Write(stream, TokenMap);
+
+	bytecode->SourceFilename = nullptr;
 
 	delete bytecode;
 
@@ -4147,9 +4148,11 @@ void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 		TokenMap->Clear();
 	}
 }
-bool Compiler::Compile(const char* filename, const char* source, Stream* output) {
+bool Compiler::Compile(const char* filename, const char* source, CompilerSettings settings, Stream* output) {
 	bool debugCompiler = false;
 	Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
+
+	CurrentSettings = settings;
 
 	scanner.Line = 1;
 	scanner.Start = (char*)source;
@@ -4169,15 +4172,27 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 
 	ConsumeToken(TOKEN_EOF, "Expected end of file.");
 
-	for (size_t i = 0; i < Compiler::ModuleLocals.size(); i++) {
-		if (UnusedVariables && !Compiler::ModuleLocals[i].Resolved) {
-			UnusedVariables->insert(
-				UnusedVariables->begin(), Compiler::ModuleLocals[i]);
-		}
-		else if (UnsetVariables &&
-			Compiler::ModuleLocals[i].ConstantVal.Type != VAL_ERROR &&
-			!Compiler::ModuleLocals[i].WasSet) {
-			UnsetVariables->insert(UnsetVariables->begin(), Compiler::ModuleLocals[i]);
+	if (Compiler::ModuleLocals.size() > 0) {
+		Function->Chunk.ModuleLocals = new vector<ChunkLocal>;
+
+		for (size_t i = 0; i < Compiler::ModuleLocals.size(); i++) {
+			Local moduleLocal = Compiler::ModuleLocals[i];
+
+			ChunkLocal local;
+			local.Name = StringUtils::Create(moduleLocal.Name.ToString());
+			local.Constant = moduleLocal.Constant;
+			local.WasSet = moduleLocal.WasSet;
+			Function->Chunk.ModuleLocals->push_back(local);
+
+			if (UnusedVariables && !moduleLocal.Resolved) {
+				UnusedVariables->insert(
+					UnusedVariables->begin(), moduleLocal);
+			}
+			else if (UnsetVariables &&
+				moduleLocal.ConstantVal.Type != VAL_ERROR &&
+				!moduleLocal.WasSet) {
+				UnsetVariables->insert(UnsetVariables->begin(), moduleLocal);
+			}
 		}
 	}
 
@@ -4231,7 +4246,24 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 
 	return !parser.HadError;
 }
+bool Compiler::Compile(const char* filename, const char* source, Stream* output) {
+	return Compile(filename, source, CurrentSettings, output);
+}
 void Compiler::Finish() {
+	Chunk* chunk = CurrentChunk();
+
+	if (LocalCount) {
+		chunk->Locals = new vector<ChunkLocal>;
+
+		for (int i = 0; i < LocalCount; i++) {
+			ChunkLocal local;
+			local.Name = StringUtils::Create(Locals[i].Name.ToString());
+			local.Constant = Locals[i].Constant;
+			local.WasSet = Locals[i].WasSet;
+			chunk->Locals->push_back(local);
+		}
+	}
+
 	if (UnusedVariables || UnsetVariables) {
 		WarnVariablesUnusedUnset();
 		if (UnusedVariables) {

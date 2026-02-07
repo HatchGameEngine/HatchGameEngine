@@ -54,6 +54,15 @@ struct CallFrame;
 typedef int (VMThread::*OpcodeFunc)(CallFrame* frame);
 #endif
 
+#define CHUNKLOCAL_FLAG_CONST (1 << 0)
+#define CHUNKLOCAL_FLAG_SET (1 << 1)
+
+struct ChunkLocal {
+	char* Name;
+	bool Constant;
+	bool WasSet;
+};
+
 struct Chunk {
 	int Count;
 	int Capacity;
@@ -61,6 +70,8 @@ struct Chunk {
 	Uint8* Failsafe;
 	int* Lines;
 	vector<VMValue>* Constants;
+	vector<ChunkLocal>* Locals;
+	vector<ChunkLocal>* ModuleLocals;
 	bool OwnsMemory;
 
 	int OpcodeCount;
@@ -72,6 +83,7 @@ struct Chunk {
 	void Init();
 	void Alloc();
 	void Free();
+	void DeleteLocals(vector<ChunkLocal>* locals);
 #if USING_VM_FUNCPTRS
 	void SetupOpfuncs();
 #endif

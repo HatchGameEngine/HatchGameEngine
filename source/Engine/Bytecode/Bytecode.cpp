@@ -1,6 +1,5 @@
 #include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Diagnostics/Log.h>
-#include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
 #define BYTECODE_VERSION 0x0005
@@ -97,7 +96,7 @@ Bytecode::Bytecode() {
 }
 
 Bytecode::~Bytecode() {
-	Memory::Free((void*)SourceFilename);
+	Memory::Free(SourceFilename);
 }
 
 bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
@@ -122,80 +121,22 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 		return false;
 	}
 
-	Uint8 opts = stream->ReadByte();
+	Flags = stream->ReadByte();
 	stream->Skip(1);
 	stream->Skip(1);
 
-	HasDebugInfo = opts & 1;
+	HasDebugInfo = Flags & BYTECODE_FLAG_DEBUGINFO;
+	bool hasSourceFilename = Flags & BYTECODE_FLAG_SOURCEFILENAME;
 
 	int chunkCount = stream->ReadInt32();
 	if (!chunkCount) {
+		Log::Print(Log::LOG_ERROR, "Bytecode contains no chunks!");
+		stream->Close();
 		return false;
 	}
 
 	for (int i = 0; i < chunkCount; i++) {
-		int length = stream->ReadInt32();
-		int arity, minArity;
-		int opcodeCount = 0;
-
-		if (Version < 0x0001) {
-			arity = stream->ReadInt32();
-			minArity = arity;
-		}
-		else {
-			arity = stream->ReadByte();
-			minArity = stream->ReadByte();
-		}
-
-		if (Version > 0x0002) {
-			opcodeCount = stream->ReadUInt32();
-		}
-
-		Uint32 hash = stream->ReadUInt32();
-
-		ObjFunction* function = NewFunction();
-		function->Arity = arity;
-		function->MinArity = minArity;
-		function->NameHash = hash;
-		function->Chunk.Count = length;
-		function->Chunk.OpcodeCount = opcodeCount;
-		function->Chunk.OwnsMemory = false;
-
-		function->Chunk.Code = stream->pointer;
-		stream->Skip(length * sizeof(Uint8));
-
-		if (HasDebugInfo) {
-			function->Chunk.Lines = (int*)stream->pointer;
-			stream->Skip(length * sizeof(int));
-		}
-
-		int constantCount = stream->ReadInt32();
-		function->Chunk.Constants->reserve(constantCount);
-		for (int c = 0; c < constantCount; c++) {
-			Uint8 type = stream->ReadByte();
-			switch (type) {
-			case Bytecode::VALUE_TYPE_INTEGER:
-				function->Chunk.AddConstant(INTEGER_VAL(stream->ReadInt32()));
-				break;
-			case Bytecode::VALUE_TYPE_DECIMAL:
-				function->Chunk.AddConstant(DECIMAL_VAL(stream->ReadFloat()));
-				break;
-			case Bytecode::VALUE_TYPE_HITBOX: {
-				Sint16 left = stream->ReadInt16();
-				Sint16 top = stream->ReadInt16();
-				Sint16 right = stream->ReadInt16();
-				Sint16 bottom = stream->ReadInt16();
-				function->Chunk.AddConstant(HITBOX_VAL(left, top, right, bottom));
-				break;
-			}
-			case Bytecode::VALUE_TYPE_STRING:
-				function->Chunk.AddConstant(
-					OBJECT_VAL(TakeString(stream->ReadString())));
-				break;
-			}
-		}
-
-		Functions.push_back(function);
+		ReadChunk(stream);
 	}
 
 	if (HasDebugInfo) {
@@ -214,8 +155,7 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 
 			for (ObjFunction* function : Functions) {
 				if (tokens->Exists(function->NameHash)) {
-					function->Name = StringUtils::Duplicate(
-						tokens->Get(function->NameHash));
+					function->Name = StringUtils::Duplicate(tokens->Get(function->NameHash));
 				}
 			}
 		}
@@ -233,7 +173,6 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 		}
 	}
 
-	bool hasSourceFilename = opts & 2;
 	if (hasSourceFilename) {
 		SourceFilename = stream->ReadString();
 	}
@@ -241,14 +180,111 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 	stream->Close();
 	return true;
 }
+void Bytecode::ReadChunk(MemoryStream* stream) {
+	int length = stream->ReadInt32();
+	int arity, minArity;
+	int opcodeCount = 0;
 
-void Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>* tokenMap) {
-	int hasSourceFilename = (sourceFilename != nullptr) ? 1 : 0;
-	int hasDebugInfo = HasDebugInfo ? 1 : 0;
+	if (Version < 0x0001) {
+		arity = stream->ReadInt32();
+		minArity = arity;
+	}
+	else {
+		arity = stream->ReadByte();
+		minArity = stream->ReadByte();
+	}
+
+	if (Version > 0x0002) {
+		opcodeCount = stream->ReadUInt32();
+	}
+
+	Uint32 hash = stream->ReadUInt32();
+
+	ObjFunction* function = NewFunction();
+	function->Arity = arity;
+	function->MinArity = minArity;
+	function->NameHash = hash;
+	function->Chunk.Count = length;
+	function->Chunk.OpcodeCount = opcodeCount;
+	function->Chunk.OwnsMemory = false;
+
+	function->Chunk.Code = stream->pointer;
+	stream->Skip(length * sizeof(Uint8));
+
+	if (HasDebugInfo) {
+		function->Chunk.Lines = (int*)stream->pointer;
+		stream->Skip(length * sizeof(int));
+	}
+
+	if (Flags & BYTECODE_FLAG_VARNAMES) {
+		Uint8 numLocals = stream->ReadByte();
+		if (numLocals) {
+			function->Chunk.Locals = new vector<ChunkLocal>;
+			ReadLocals(stream, function->Chunk.Locals, numLocals);
+		}
+
+		Uint16 numModuleLocals = stream->ReadInt16();
+		if (numModuleLocals) {
+			function->Chunk.ModuleLocals = new vector<ChunkLocal>;
+			ReadLocals(stream, function->Chunk.ModuleLocals, numModuleLocals);
+		}
+	}
+
+	int constantCount = stream->ReadInt32();
+	function->Chunk.Constants->reserve(constantCount);
+	for (int c = 0; c < constantCount; c++) {
+		Uint8 type = stream->ReadByte();
+		switch (type) {
+		case Bytecode::VALUE_TYPE_INTEGER:
+			function->Chunk.AddConstant(INTEGER_VAL(stream->ReadInt32()));
+			break;
+		case Bytecode::VALUE_TYPE_DECIMAL:
+			function->Chunk.AddConstant(DECIMAL_VAL(stream->ReadFloat()));
+			break;
+		case Bytecode::VALUE_TYPE_HITBOX: {
+			Sint16 left = stream->ReadInt16();
+			Sint16 top = stream->ReadInt16();
+			Sint16 right = stream->ReadInt16();
+			Sint16 bottom = stream->ReadInt16();
+			function->Chunk.AddConstant(HITBOX_VAL(left, top, right, bottom));
+			break;
+		}
+		case Bytecode::VALUE_TYPE_STRING:
+			function->Chunk.AddConstant(
+				OBJECT_VAL(TakeString(stream->ReadString())));
+			break;
+		}
+	}
+
+	Functions.push_back(function);
+}
+void Bytecode::ReadLocals(Stream* stream, vector<ChunkLocal>* locals, int numLocals) {
+	for (int i = 0; i < numLocals; i++) {
+		char* name = stream->ReadString();
+		Uint8 flags = stream->ReadByte();
+
+		ChunkLocal local;
+		local.Name = name;
+		local.Constant = flags & CHUNKLOCAL_FLAG_CONST;
+
+		locals->push_back(local);
+	}
+}
+
+void Bytecode::Write(Stream* stream, HashMap<Token>* tokenMap) {
+	Flags = 0;
+
+	if (HasDebugInfo) {
+		Flags |= BYTECODE_FLAG_DEBUGINFO;
+		Flags |= BYTECODE_FLAG_VARNAMES;
+	}
+	if (SourceFilename) {
+		Flags |= BYTECODE_FLAG_SOURCEFILENAME;
+	}
 
 	stream->WriteBytes((char*)Bytecode::Magic, 4);
 	stream->WriteByte(Version);
-	stream->WriteByte((hasSourceFilename << 1) | hasDebugInfo);
+	stream->WriteByte(Flags);
 	stream->WriteByte(0x00);
 	stream->WriteByte(0x00);
 
@@ -256,64 +292,7 @@ void Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>*
 
 	stream->WriteUInt32(chunkCount);
 	for (int c = 0; c < chunkCount; c++) {
-		Chunk* chunk = &Functions[c]->Chunk;
-
-		stream->WriteUInt32(chunk->Count);
-		if (Version >= 0x0001) {
-			stream->WriteByte(Functions[c]->Arity);
-			stream->WriteByte(Functions[c]->MinArity);
-		}
-		else {
-			stream->WriteUInt32(Functions[c]->Arity);
-		}
-
-		if (Version >= 0x00003) {
-			stream->WriteUInt32(chunk->OpcodeCount);
-		}
-
-		stream->WriteUInt32(Murmur::EncryptString(Functions[c]->Name));
-
-		stream->WriteBytes(chunk->Code, chunk->Count);
-		if (HasDebugInfo) {
-			stream->WriteBytes(chunk->Lines, chunk->Count * sizeof(int));
-		}
-
-		int constSize = (int)chunk->Constants->size();
-		stream->WriteUInt32(constSize);
-		for (int i = 0; i < constSize; i++) {
-			VMValue constt = (*chunk->Constants)[i];
-			Uint8 type = (Uint8)constt.Type;
-
-			switch (type) {
-			case VAL_INTEGER:
-				stream->WriteByte(Bytecode::VALUE_TYPE_INTEGER);
-				stream->WriteBytes(&AS_INTEGER(constt), sizeof(int));
-				break;
-			case VAL_DECIMAL:
-				stream->WriteByte(Bytecode::VALUE_TYPE_DECIMAL);
-				stream->WriteBytes(&AS_DECIMAL(constt), sizeof(float));
-				break;
-			case VAL_HITBOX:
-				stream->WriteByte(Bytecode::VALUE_TYPE_HITBOX);
-				stream->WriteInt16(constt.as.Hitbox[HITBOX_LEFT]);
-				stream->WriteInt16(constt.as.Hitbox[HITBOX_TOP]);
-				stream->WriteInt16(constt.as.Hitbox[HITBOX_RIGHT]);
-				stream->WriteInt16(constt.as.Hitbox[HITBOX_BOTTOM]);
-				break;
-			case VAL_OBJECT:
-				if (OBJECT_TYPE(constt) == OBJ_STRING) {
-					ObjString* str = AS_STRING(constt);
-					stream->WriteByte(Bytecode::VALUE_TYPE_STRING);
-					stream->WriteBytes(str->Chars, str->Length + 1);
-				}
-				else {
-					printf("Unsupported object type...Chief. (%s)\n",
-						GetObjectTypeString(OBJECT_TYPE(constt)));
-					stream->WriteByte(Bytecode::VALUE_TYPE_NULL);
-				}
-				break;
-			}
-		}
+		WriteChunk(stream, Functions[c]);
 	}
 
 	// Add tokens
@@ -329,8 +308,102 @@ void Bytecode::Write(Stream* stream, const char* sourceFilename, HashMap<Token>*
 		});
 	}
 
-	if (hasSourceFilename) {
-		stream->WriteBytes((void*)sourceFilename, strlen(sourceFilename) + 1);
+	if (SourceFilename) {
+		stream->WriteBytes(SourceFilename, strlen(SourceFilename) + 1);
+	}
+}
+void Bytecode::WriteChunk(Stream* stream, ObjFunction* function) {
+	Chunk* chunk = &function->Chunk;
+
+	stream->WriteUInt32(chunk->Count);
+	if (Version >= 0x0001) {
+		stream->WriteByte(function->Arity);
+		stream->WriteByte(function->MinArity);
+	}
+	else {
+		stream->WriteUInt32(function->Arity);
+	}
+
+	if (Version >= 0x0003) {
+		stream->WriteUInt32(chunk->OpcodeCount);
+	}
+
+	stream->WriteUInt32(Murmur::EncryptString(function->Name));
+
+	stream->WriteBytes(chunk->Code, chunk->Count);
+	if (HasDebugInfo) {
+		stream->WriteBytes(chunk->Lines, chunk->Count * sizeof(int));
+	}
+
+	if (Flags & BYTECODE_FLAG_VARNAMES) {
+		if (chunk->Locals && chunk->Locals->size()) {
+			stream->WriteByte(chunk->Locals->size());
+			WriteLocals(stream, chunk->Locals);
+		}
+		else {
+			stream->WriteByte(0);
+		}
+
+		if (chunk->ModuleLocals && chunk->ModuleLocals->size()) {
+			stream->WriteInt16(chunk->ModuleLocals->size());
+			WriteLocals(stream, chunk->ModuleLocals);
+		}
+		else {
+			stream->WriteInt16(0);
+		}
+	}
+
+	int constSize = (int)chunk->Constants->size();
+	stream->WriteUInt32(constSize);
+	for (int i = 0; i < constSize; i++) {
+		VMValue constt = (*chunk->Constants)[i];
+		Uint8 type = (Uint8)constt.Type;
+
+		switch (type) {
+		case VAL_INTEGER:
+			stream->WriteByte(Bytecode::VALUE_TYPE_INTEGER);
+			stream->WriteBytes(&AS_INTEGER(constt), sizeof(int));
+			break;
+		case VAL_DECIMAL:
+			stream->WriteByte(Bytecode::VALUE_TYPE_DECIMAL);
+			stream->WriteBytes(&AS_DECIMAL(constt), sizeof(float));
+			break;
+		case VAL_HITBOX:
+			stream->WriteByte(Bytecode::VALUE_TYPE_HITBOX);
+			stream->WriteInt16(constt.as.Hitbox[HITBOX_LEFT]);
+			stream->WriteInt16(constt.as.Hitbox[HITBOX_TOP]);
+			stream->WriteInt16(constt.as.Hitbox[HITBOX_RIGHT]);
+			stream->WriteInt16(constt.as.Hitbox[HITBOX_BOTTOM]);
+			break;
+		case VAL_OBJECT:
+			if (OBJECT_TYPE(constt) == OBJ_STRING) {
+				ObjString* str = AS_STRING(constt);
+				stream->WriteByte(Bytecode::VALUE_TYPE_STRING);
+				stream->WriteBytes(str->Chars, str->Length + 1);
+			}
+			else {
+				printf("Unsupported object type...Chief. (%s)\n",
+					GetObjectTypeString(OBJECT_TYPE(constt)));
+				stream->WriteByte(Bytecode::VALUE_TYPE_NULL);
+			}
+			break;
+		}
+	}
+}
+void Bytecode::WriteLocals(Stream* stream, vector<ChunkLocal>* locals) {
+	for (size_t i = 0; i < locals->size(); i++) {
+		ChunkLocal local = (*locals)[i];
+
+		Uint8 flags = 0;
+		if (local.Constant) {
+			flags |= CHUNKLOCAL_FLAG_CONST;
+		}
+		if (local.WasSet) {
+			flags |= CHUNKLOCAL_FLAG_SET;
+		}
+
+		stream->WriteBytes((void*)local.Name, strlen(local.Name) + 1);
+		stream->WriteByte(flags);
 	}
 }
 
