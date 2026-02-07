@@ -74,16 +74,11 @@ char* VMThread::GetVariableOrMethodName(Uint32 hash) {
 
 	return GetTokenBuffer;
 }
-void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
-	int line;
-	const char* source;
-
-	CallFrame* frame = &Frames[FrameCount - 1];
+void VMThread::PrintCallTraceFrame(CallFrame* frame, PrintBuffer* buffer, const char* errorString) {
 	ObjFunction* function = frame->Function;
-
 	if (function && function->Chunk.Lines) {
 		size_t bpos = (frame->IPLast - frame->IPStart);
-		line = function->Chunk.Lines[bpos] & 0xFFFF;
+		int line = function->Chunk.Lines[bpos] & 0xFFFF;
 
 		std::string functionName = GetFunctionName(function);
 		buffer_printf(buffer,
@@ -102,31 +97,44 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 	else if (errorString) {
 		buffer_printf(buffer, "%s\n", errorString);
 	}
+}
+void VMThread::PrintStackTrace(PrintBuffer* buffer) {
+	buffer_printf(buffer, "Call Trace (Thread %d):\n", ID);
 
-	buffer_printf(buffer, "\nCall Trace (Thread %d):\n", ID);
 	for (Uint32 i = 0; i < FrameCount; i++) {
-		CallFrame* fr = &Frames[i];
-		function = fr->Function;
-		source = function->Module->SourceFilename;
-		line = -1;
+		CallFrame* frame = &Frames[i];
+		ObjFunction* function = frame->Function;
+		int line = -1;
+
 		if (i > 0 && function->Chunk.Lines) {
 			CallFrame* fr2 = &Frames[i - 1];
 			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
 		}
+
+		const char* source = function->Module->SourceFilename;
+
 		std::string functionName = GetFunctionName(function);
+#ifdef VM_DEBUG
 		if (InDebugger) {
-			buffer_printf(buffer, "  %c (%d) %s of %s",
+			buffer_printf(buffer, "  %c (%d) %s",
 				DebugFrame == i ? '>' : ' ',
 				(int)i,
-				functionName.c_str(),
-				source);
+				functionName.c_str());
+
+			PrintFunctionArgs(frame, buffer);
+
+			buffer_printf(buffer, "\n");
+
+			buffer_printf(buffer, "        of %s", source);
 		}
-		else {
+		else
+#endif
+		{
 			buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
 		}
 
 		if (line > 0) {
-			buffer_printf(buffer, " on Line %d", line);
+			buffer_printf(buffer, " on line %d", line);
 		}
 		if (i < FrameCount - 1) {
 			buffer_printf(buffer, ", then");
@@ -134,9 +142,31 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 		buffer_printf(buffer, "\n");
 	}
 }
+void VMThread::PrintFunctionArgs(CallFrame* frame, PrintBuffer* buffer) {
+	ObjFunction* function = frame->Function;
+	size_t maxLocals = std::min(function->Chunk.Locals->size(), (size_t)function->Arity + 1);
+
+	buffer_printf(buffer, " (");
+
+	for (size_t i = 0; i < maxLocals; i++) {
+		buffer_printf(buffer, "%s=", (*function->Chunk.Locals)[i].Name);
+
+		if (i < StackTop - frame->Slots) {
+			ValuePrinter::Print(buffer, frame->Slots[i]);
+		}
+
+		if (i < maxLocals - 1) {
+			buffer_printf(buffer, ", ");
+		}
+	}
+
+	buffer_printf(buffer, ")");
+}
 void VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
 	if (FrameCount > 0) {
-		PrintStackTrace(buffer, errorString);
+		PrintCallTraceFrame(&Frames[FrameCount - 1], buffer, errorString);
+		buffer_printf(buffer, "\n");
+		PrintStackTrace(buffer);
 	}
 	else if (IS_OBJECT(FunctionToInvoke)) {
 		if (OBJECT_TYPE(FunctionToInvoke) == OBJ_NATIVE_FUNCTION) {
@@ -338,29 +368,14 @@ void VMThread::Breakpoint() {
 	CallFrame* frame = &Frames[FrameCount - 1];
 	ObjFunction* function = frame->Function;
 
+	printf("Breakpoint hit");
+
 	if (function) {
-		std::string functionName = GetFunctionName(function);
-		printf("Breakpoint hit at %s of %s",
-			functionName.c_str(),
-			function->Module->SourceFilename);
-
-		if (function->Chunk.Lines) {
-			size_t bpos = frame->IP - frame->IPStart;
-			int line = function->Chunk.Lines[bpos] & 0xFFFF;
-			int pos = (function->Chunk.Lines[bpos] >> 16) & 0xFFFF;
-
-			printf(", line %d, position %d\n", line, pos);
-
-			if (!PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos)) {
-				printf("\n");
-			}
-		}
-		else {
-			printf("\n");
-		}
+		printf(" at ");
+		PrintCallFrameSourceLine(frame, frame->IP - frame->IPStart);
 	}
 	else {
-		printf("Breakpoint hit\n");
+		printf("\n");
 	}
 
 	if (InDebugger) {
@@ -457,7 +472,7 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 		InDebugger = false;
 	}
 	else if (IS_COMMAND("backtrace") || IS_COMMAND("bt") || IS_COMMAND("b") || IS_COMMAND("trace")) {
-		PrintStackTrace(nullptr, nullptr);
+		PrintStackTrace(nullptr);
 	}
 	else if (IS_COMMAND("stack") || IS_COMMAND("st") || IS_COMMAND("stk")) {
 		PrintStack();
@@ -500,6 +515,7 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 
 		if (frame->Function) {
 			Uint8* ip = DebugFrame == FrameCount - 1 ? frame->IP : frame->IPLast;
+			printf("In ");
 			PrintCallFrameSourceLine(frame, ip - frame->IPStart);
 		}
 		else {
@@ -510,6 +526,7 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 	else if (IS_COMMAND("line") || IS_COMMAND("l")) {
 		if (frame && frame->Function) {
 			Uint8* ip = DebugFrame == FrameCount - 1 ? frame->IP : frame->IPLast;
+			printf("In ");
 			PrintCallFrameSourceLine(frame, ip - frame->IPStart);
 		}
 		else {
@@ -544,6 +561,7 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 				frame = &Frames[DebugFrame];
 				frame->IPLast = frame->IP;
 
+				printf("In ");
 				PrintCallFrameSourceLine(frame, frame->IP - frame->IPStart);
 			}
 		}
@@ -591,6 +609,69 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 			return false;
 		}
 	}
+	else if (IS_COMMAND("variable") || IS_COMMAND("var")) {
+		if (args.size() < 2) {
+			printf("Missing argument\n");
+			return false;
+		}
+
+		const char* varName = args[1];
+		VMValue value = VMValue{VAL_ERROR};
+
+		if (frame && frame->Function) {
+			Chunk* chunk = &frame->Function->Chunk;
+
+			if (chunk->Locals) {
+				for (size_t i = 0; i < chunk->Locals->size(); i++) {
+					ChunkLocal local = (*chunk->Locals)[i];
+					if (strcmp(local.Name, varName) != 0) {
+						continue;
+					}
+
+					if (i >= StackTop - frame->Slots) {
+						printf("Variable \"%s\" not yet initialized or out of scope\n", varName);
+						return false;
+					}
+
+					value = frame->Slots[i];
+					break;
+				}
+			}
+
+			if (value.Type == VAL_ERROR) {
+				// Only the first chunk in the module contains module locals
+				chunk = &(*frame->Function->Module->Functions)[0]->Chunk;
+
+				if (chunk->ModuleLocals) {
+					for (size_t i = 0; i < chunk->ModuleLocals->size(); i++) {
+						ChunkLocal local = (*chunk->ModuleLocals)[i];
+						if (strcmp(local.Name, varName) != 0) {
+							continue;
+						}
+
+						if (i >= frame->Module->Locals->size()) {
+							printf("Invalid module local \"%s\"\n", varName);
+							return false;
+						}
+
+						value = (*frame->Module->Locals)[i];
+						break;
+					}
+				}
+			}
+		}
+
+		if (value.Type == VAL_ERROR &&
+			!ScriptManager::Constants->GetIfExists(varName, &value) &&
+			!ScriptManager::Globals->GetIfExists(varName, &value)) {
+			printf("No variable named \"%s\"\n", varName);
+			return false;
+		}
+
+		printf("%s = ", varName);
+		ValuePrinter::Print(value);
+		printf("\n");
+	}
 #if 0
 	else if (IS_COMMAND("help")) {
 		// TODO
@@ -612,7 +693,12 @@ void VMThread::PrintCallFrameSourceLine(CallFrame* frame, size_t bpos) {
 	std::string functionName = GetFunctionName(function);
 	char* sourceFilename = function->Module->SourceFilename;
 
-	printf("In %s at %s", functionName.c_str(), sourceFilename);
+	printf("%s", functionName.c_str());
+
+	VMThread::PrintFunctionArgs(frame, nullptr);
+
+	printf("\n");
+	printf("at %s", sourceFilename);
 
 	if (function->Chunk.Lines) {
 		int line = function->Chunk.Lines[bpos] & 0xFFFF;

@@ -12,8 +12,10 @@
 class VMThread {
 private:
 	std::string GetFunctionName(ObjFunction* function);
-	void PrintStackTrace(PrintBuffer* buffer, const char* errorString);
+	void PrintCallTraceFrame(CallFrame* frame, PrintBuffer* buffer, const char* errorString);
+	void PrintStackTrace(PrintBuffer* buffer);
 #ifdef VM_DEBUG
+	void PrintFunctionArgs(CallFrame* frame, PrintBuffer* buffer);
 	bool CheckBranchLimit(CallFrame* frame);
 	bool DoJump(CallFrame* frame, int offset);
 	bool DoJumpBack(CallFrame* frame, int offset);
