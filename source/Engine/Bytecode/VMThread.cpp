@@ -1,4 +1,5 @@
 #include <Engine/Application.h>
+#include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
@@ -742,6 +743,140 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 			printf("\"");
 		}
 		printf("\n");
+	}
+	else if (IS_COMMAND("breakpoint") || IS_COMMAND("break") || IS_COMMAND("b")) {
+		ObjFunction* function = nullptr;
+		ObjFunction* currentFunction = nullptr;
+
+		int lineNum = 0;
+
+		if (args.size() < 2) {
+			if (!frame || !frame->Function) {
+				printf("No current function to set breakpoint\n");
+				return false;
+			}
+
+			currentFunction = frame->Function;
+			function = currentFunction;
+		}
+		else {
+			const char* arg = args[1];
+
+			if (args.size() >= 3) {
+				StringUtils::ToNumber(&lineNum, args[2]);
+
+				if (lineNum < 1) {
+					printf("Invalid argument\n");
+					return false;
+				}
+			}
+
+			Uint32 hash = ScriptManager::MakeFilenameHash(arg);
+
+			if (ScriptManager::BytecodeForFilenameHashExists(hash)) {
+				if (!ScriptManager::IsScriptLoaded(hash)) {
+					printf("Script \"%s\" is not loaded\n", arg);
+					return false;
+				}
+
+				ObjModule* module = ScriptManager::GetScriptModule(hash);
+				if (!module) {
+					printf("Script \"%s\" is not loaded\n", arg);
+					return false;
+				}
+
+				function = ScriptManager::GetFunctionAtScriptLine(module, lineNum);
+				if (!function) {
+					printf("Cannot set breakpoint at line %d\n", lineNum);
+					return false;
+				}
+			}
+			else {
+				VMValue callable = ScriptManager::FindFunction(arg);
+
+				if (IS_NULL(callable)) {
+					printf("No function named \"%s\"\n", arg);
+					return false;
+				}
+				else if (!IS_FUNCTION(callable)) {
+					printf("\"%s\" must be a function, not a bound method or a native\n", arg);
+					return false;
+				}
+
+				function = AS_FUNCTION(callable);
+			}
+		}
+
+		Chunk* chunk = &function->Chunk;
+		Uint8* bp;
+
+		if (!Breakpoints.count(function)) {
+			bp = (Uint8*)Memory::Calloc(chunk->Count, sizeof(Uint8));
+
+			if (chunk->Breakpoints) {
+				memcpy(bp, chunk->Breakpoints, chunk->Count);
+			}
+
+			Breakpoints[function] = bp;
+		}
+		else {
+			bp = Breakpoints[function];
+		}
+
+		Uint32 position = 0;
+
+		if (function == currentFunction) {
+			position = frame->IP - frame->IPStart;
+			position += Bytecode::GetTotalOpcodeSize(chunk->Code + position);
+		}
+		else if (lineNum > 0) {
+			if (chunk->Lines) {
+				bool foundPosition = false;
+
+				for (int offset = 0; offset < chunk->Count;) {
+					int line = chunk->Lines[offset] & 0xFFFF;
+					if (line == lineNum) {
+						position = (Uint32)offset;
+						foundPosition = true;
+						break;
+					}
+
+					offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+				}
+
+				if (!foundPosition) {
+					printf("Cannot set breakpoint at line %d\n", lineNum);
+					return false;
+				}
+			}
+			else {
+				printf("Note: No line information present for this function. Setting breakpoint at the beginning\n");
+			}
+		}
+
+		if (position < chunk->Count) {
+			char* sourceFilename = function->Module->SourceFilename;
+
+			bp[position] = 1;
+
+			printf("Set breakpoint at %s", sourceFilename);
+
+			if (chunk->Lines) {
+				int line = chunk->Lines[position] & 0xFFFF;
+				int pos = (chunk->Lines[position] >> 16) & 0xFFFF;
+
+				printf(", line %d, column %d\n", line, pos);
+
+				PrintSourceLineAndPosition(sourceFilename, line, pos);
+			}
+			else {
+				printf("\n");
+			}
+		}
+		else {
+			printf("No next instruction to set breakpoint\n");
+			return false;
+		}
 	}
 #if 0
 	else if (IS_COMMAND("help")) {

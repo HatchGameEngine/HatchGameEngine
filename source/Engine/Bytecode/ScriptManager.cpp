@@ -29,6 +29,7 @@ vector<ObjModule*> ScriptManager::ModuleList;
 
 HashMap<BytecodeContainer>* ScriptManager::Sources = NULL;
 HashMap<ObjClass*>* ScriptManager::Classes = NULL;
+HashMap<ObjModule*>* ScriptManager::Modules = NULL;
 HashMap<char*>* ScriptManager::Tokens = NULL;
 vector<ObjNamespace*> ScriptManager::AllNamespaces;
 vector<ObjClass*> ScriptManager::ClassImplList;
@@ -91,6 +92,9 @@ void ScriptManager::Init() {
 	}
 	if (Classes == NULL) {
 		Classes = new HashMap<ObjClass*>(NULL, 8);
+	}
+	if (Modules == NULL) {
+		Modules = new HashMap<ObjModule*>(NULL, 8);
 	}
 	if (Tokens == NULL) {
 		Tokens = new HashMap<char*>(NULL, 64);
@@ -193,6 +197,11 @@ void ScriptManager::Dispose() {
 		Classes->Clear();
 		delete Classes;
 		Classes = NULL;
+	}
+	if (Modules) {
+		Modules->Clear();
+		delete Modules;
+		Modules = NULL;
 	}
 	if (Tokens) {
 		Tokens->WithAll([](Uint32 hash, char* token) -> void {
@@ -492,6 +501,7 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 	}
 
 	ModuleList.push_back(module);
+	Modules->Put(filenameHash, module);
 
 	delete bytecode;
 
@@ -511,6 +521,48 @@ bool ScriptManager::CallFunction(const char* functionName) {
 
 	Threads[0].InvokeForEntity(callable, 0);
 	return true;
+}
+VMValue ScriptManager::FindFunction(const char* functionName) {
+	VMValue callable;
+
+	char* methodName = StringUtils::StrCaseStr(functionName, "::");
+	if (methodName) {
+		std::string name = std::string(functionName, methodName - functionName);
+
+		methodName += 2;
+
+		if (*methodName == '\0') {
+			return NULL_VAL;
+		}
+
+		if (!Globals->Exists(name.c_str())) {
+			return NULL_VAL;
+		}
+
+		VMValue value = Globals->Get(name.c_str());
+		if (!IS_CLASS(value)) {
+			return NULL_VAL;
+		}
+
+		ObjClass* klass = AS_CLASS(value);
+		Uint32 hash = Murmur::EncryptString(methodName);
+		if (!GetClassMethod(klass, hash, &callable)) {
+			return NULL_VAL;
+		}
+	}
+	else {
+		if (!Globals->Exists(functionName)) {
+			return NULL_VAL;
+		}
+
+		callable = Globals->Get(functionName);
+	}
+
+	if (!IS_CALLABLE(callable)) {
+		return NULL_VAL;
+	}
+
+	return callable;
 }
 Uint32 ScriptManager::MakeFilenameHash(const char* filename) {
 	size_t length = strlen(filename);
@@ -556,6 +608,27 @@ BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash
 
 	return bytecode;
 }
+bool ScriptManager::BytecodeForFilenameHashExists(Uint32 filenameHash) {
+	if (Sources->Exists(filenameHash)) {
+		return true;
+	}
+
+	std::string filenameForHash = GetBytecodeFilenameForHash(filenameHash);
+	const char* filename = filenameForHash.c_str();
+
+	if (!ResourceManager::ResourceExists(filename)) {
+		return false;
+	}
+
+	ResourceStream* stream = ResourceStream::New(filename);
+	if (!stream) {
+		return false;
+	}
+
+	stream->Close();
+
+	return true;
+}
 bool ScriptManager::ClassExists(const char* objectName) {
 	return SourceFileMap::ClassMap->Exists(objectName);
 }
@@ -590,6 +663,47 @@ bool ScriptManager::LoadScript(Uint32 hash) {
 	}
 
 	return true;
+}
+bool ScriptManager::IsScriptLoaded(const char* filename) {
+	Uint32 hash = MakeFilenameHash(filename);
+	return IsScriptLoaded(hash);
+}
+bool ScriptManager::IsScriptLoaded(Uint32 filenameHash) {
+	return Sources->Exists(filenameHash);
+}
+ObjModule* ScriptManager::GetScriptModule(const char* filename) {
+	Uint32 hash = MakeFilenameHash(filename);
+	return GetScriptModule(hash);
+}
+ObjModule* ScriptManager::GetScriptModule(Uint32 filenameHash) {
+	if (Modules->Exists(filenameHash)) {
+		return Modules->Get(filenameHash);
+	}
+	return nullptr;
+}
+ObjFunction* ScriptManager::GetFunctionAtScriptLine(ObjModule* module, int lineNum) {
+	if (lineNum == 0) {
+		return (*module->Functions)[0];
+	}
+
+	for (size_t i = 0; i < module->Functions->size(); i++) {
+		ObjFunction* function = (*module->Functions)[i];
+		Chunk* chunk = &function->Chunk;
+		if (!chunk->Lines) {
+			continue;
+		}
+
+		for (int offset = 0; offset < chunk->Count;) {
+			int line = chunk->Lines[offset] & 0xFFFF;
+			if (line == lineNum) {
+				return function;
+			}
+
+			offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+		}
+	}
+
+	return nullptr;
 }
 bool ScriptManager::LoadObjectClass(const char* objectName) {
 	if (ScriptManager::IsClassLoaded(objectName)) {

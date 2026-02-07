@@ -31,6 +31,7 @@ public:
 	static vector<ObjModule*> ModuleList;
 	static HashMap<BytecodeContainer>* Sources;
 	static HashMap<ObjClass*>* Classes;
+	static HashMap<ObjModule*>* Modules;
 	static HashMap<char*>* Tokens;
 	static vector<ObjNamespace*> AllNamespaces;
 	static vector<ObjClass*> ClassImplList;
@@ -65,10 +66,12 @@ public:
 	static void LinkExtensions();
 	static bool RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash);
 	static bool CallFunction(const char* functionName);
+	static VMValue FindFunction(const char* functionName);
 	static Entity* SpawnObject(const char* objectName);
 	static Uint32 MakeFilenameHash(const char* filename);
 	static std::string GetBytecodeFilenameForHash(Uint32 filenameHash);
 	static BytecodeContainer GetBytecodeFromFilenameHash(Uint32 filenameHash);
+	static bool BytecodeForFilenameHashExists(Uint32 filenameHash);
 	static bool ClassExists(const char* objectName);
 	static bool ClassExists(Uint32 hash);
 	static bool IsClassLoaded(const char* className);
@@ -76,6 +79,11 @@ public:
 	static bool LoadScript(char* filename);
 	static bool LoadScript(const char* filename);
 	static bool LoadScript(Uint32 hash);
+	static bool IsScriptLoaded(const char* filename);
+	static bool IsScriptLoaded(Uint32 filenameHash);
+	static ObjModule* GetScriptModule(const char* filename);
+	static ObjModule* GetScriptModule(Uint32 filenameHash);
+	static ObjFunction* GetFunctionAtScriptLine(ObjModule* module, int lineNum);
 	static bool LoadObjectClass(const char* objectName);
 	static ObjClass* GetObjectClass(const char* className);
 	static void LoadClasses();
