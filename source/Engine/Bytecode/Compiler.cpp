@@ -10,7 +10,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
-#include <Engine/IO/FileStream.h>
+#include <Engine/Exceptions/CompilerErrorException.h>
 
 #include <Engine/Application.h>
 
@@ -25,12 +25,6 @@ HashMap<Token>* Compiler::TokenMap = NULL;
 
 bool Compiler::DoLogging = false;
 CompilerSettings Compiler::Settings;
-
-#define Panic(returnMe) \
-	if (parser.PanicMode) { \
-		SynchronizeToken(); \
-		return returnMe; \
-	}
 
 // Order these by C/C++ precedence operators
 enum TokenTYPE {
@@ -762,38 +756,6 @@ void Compiler::ConsumeIdentifier(const char* message) {
 	ConsumeToken(TOKEN_IDENTIFIER, message);
 }
 
-void Compiler::SynchronizeToken() {
-	parser.PanicMode = false;
-
-	while (PeekToken().Type != TOKEN_EOF) {
-		if (PrevToken().Type == TOKEN_SEMICOLON) {
-			return;
-		}
-
-		switch (PeekToken().Type) {
-		case TOKEN_IF:
-		case TOKEN_WHILE:
-		case TOKEN_DO:
-		case TOKEN_FOR:
-		case TOKEN_SWITCH:
-		case TOKEN_CASE:
-		case TOKEN_DEFAULT:
-		case TOKEN_RETURN:
-		case TOKEN_BREAK:
-		case TOKEN_CONTINUE:
-		case TOKEN_IMPORT:
-		case TOKEN_VAR:
-		case TOKEN_EVENT:
-		case TOKEN_PRINT:
-			return;
-		default:
-			break;
-		}
-
-		AdvanceToken();
-	}
-}
-
 // Error handling
 bool Compiler::ReportError(int line, int pos, bool fatal, const char* string, ...) {
 	if (!fatal && !CurrentSettings.ShowWarnings) {
@@ -828,40 +790,13 @@ bool Compiler::ReportError(int line, int pos, bool fatal, const char* string, ..
 		return true;
 	}
 
-	Log::Print(Log::LOG_ERROR, textBuffer);
-
-	const SDL_MessageBoxButtonData buttonsFatal[] = {
-		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Exit"},
-	};
-
-	const SDL_MessageBoxData messageBoxData = {
-		SDL_MESSAGEBOX_ERROR,
-		NULL,
-		"Syntax Error",
-		textBuffer,
-		SDL_arraysize(buttonsFatal),
-		buttonsFatal,
-		NULL,
-	};
-
-	int buttonClicked;
-	SDL_ShowMessageBox(&messageBoxData, &buttonClicked);
+	std::string error = std::string(textBuffer);
 
 	free(textBuffer);
 
-	Application::Cleanup();
-	exit(-1);
-
-	return false;
+	throw CompilerErrorException(error);
 }
 void Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
-	if (fatal) {
-		if (parser.PanicMode) {
-			return;
-		}
-		parser.PanicMode = true;
-	}
-
 	if (token->Type == TOKEN_EOF) {
 		ReportError(token->Line, (int)token->Pos, fatal, " at end of file: %s", message);
 	}
@@ -876,10 +811,6 @@ void Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
 			token->Length,
 			token->Start,
 			message);
-	}
-
-	if (fatal) {
-		parser.HadError = true;
 	}
 }
 void Compiler::Error(const char* message) {
@@ -2839,6 +2770,41 @@ void Compiler::GetStatement() {
 	}
 }
 // Reading declarations
+void Compiler::CompileFunction() {
+	// Compile the parameter list.
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+
+	bool isOptional = false;
+
+	if (!CheckToken(TOKEN_RIGHT_PAREN)) {
+		do {
+			if (!isOptional && MatchToken(TOKEN_LEFT_SQUARE_BRACE)) {
+				isOptional = true;
+			}
+
+			ParseVariable("Expect parameter name.", false);
+			DefineVariableToken(parser.Previous, false);
+
+			Function->Arity++;
+			if (Function->Arity > 255) {
+				Error("Cannot have more than 255 parameters.");
+			}
+
+			if (!isOptional) {
+				Function->MinArity++;
+			}
+			else if (MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
+				break;
+			}
+		} while (MatchToken(TOKEN_COMMA));
+	}
+
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+
+	// The body.
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+	GetBlockStatement();
+}
 int Compiler::GetFunction(int type, string className) {
 	int index = (int)Compiler::Functions.size();
 
@@ -2846,39 +2812,16 @@ int Compiler::GetFunction(int type, string className) {
 	compiler->ClassName = className;
 	compiler->Initialize(this, 1, type);
 
-	// Compile the parameter list.
-	compiler->ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
-
-	bool isOptional = false;
-
-	if (!compiler->CheckToken(TOKEN_RIGHT_PAREN)) {
-		do {
-			if (!isOptional && compiler->MatchToken(TOKEN_LEFT_SQUARE_BRACE)) {
-				isOptional = true;
-			}
-
-			compiler->ParseVariable("Expect parameter name.", false);
-			compiler->DefineVariableToken(parser.Previous, false);
-
-			compiler->Function->Arity++;
-			if (compiler->Function->Arity > 255) {
-				compiler->Error("Cannot have more than 255 parameters.");
-			}
-
-			if (!isOptional) {
-				compiler->Function->MinArity++;
-			}
-			else if (compiler->MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
-				break;
-			}
-		} while (compiler->MatchToken(TOKEN_COMMA));
+	try {
+		compiler->CompileFunction();
 	}
+	catch (const CompilerErrorException& error) {
+		compiler->Cleanup();
 
-	compiler->ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+		delete compiler;
 
-	// The body.
-	compiler->ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
-	compiler->GetBlockStatement();
+		throw error;
+	}
 
 	compiler->Finish();
 
@@ -3265,10 +3208,6 @@ void Compiler::GetDeclaration() {
 	}
 	else {
 		GetStatement();
-	}
-
-	if (parser.PanicMode) {
-		SynchronizeToken();
 	}
 }
 
@@ -4178,9 +4117,6 @@ void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 	}
 }
 bool Compiler::Compile(const char* filename, const char* source, CompilerSettings settings, Stream* output) {
-	bool debugCompiler = false;
-	Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
-
 	CurrentSettings = settings;
 
 	scanner.Line = 1;
@@ -4194,12 +4130,20 @@ bool Compiler::Compile(const char* filename, const char* source, CompilerSetting
 
 	Initialize(NULL, 0, TYPE_TOP_LEVEL);
 
-	AdvanceToken();
-	while (!MatchToken(TOKEN_EOF)) {
-		GetDeclaration();
-	}
+	try {
+		AdvanceToken();
+		while (!MatchToken(TOKEN_EOF)) {
+			GetDeclaration();
+		}
 
-	ConsumeToken(TOKEN_EOF, "Expected end of file.");
+		ConsumeToken(TOKEN_EOF, "Expected end of file.");
+	}
+	catch (const CompilerErrorException& error) {
+		Cleanup();
+		DeleteFunctions();
+
+		throw error;
+	}
 
 	if (Compiler::ModuleLocals.size() > 0) {
 		Function->Chunk.ModuleLocals = new vector<ChunkLocal>;
@@ -4239,6 +4183,9 @@ bool Compiler::Compile(const char* filename, const char* source, CompilerSetting
 		}
 	}
 
+	bool debugCompiler = false;
+	Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
+
 	if (debugCompiler && Compiler::Functions.size() > 0) {
 		BytecodeDebugger* debugger = new BytecodeDebugger;
 
@@ -4271,15 +4218,43 @@ bool Compiler::Compile(const char* filename, const char* source, CompilerSetting
 		WriteBytecode(output, filename);
 	}
 
+	Cleanup();
+	DeleteFunctions();
+
+	return true;
+}
+bool Compiler::Compile(const char* filename, const char* source, Stream* output) {
+	return Compile(filename, source, CurrentSettings, output);
+}
+void Compiler::Cleanup() {
+	if (UnusedVariables) {
+		delete UnusedVariables;
+		UnusedVariables = nullptr;
+	}
+	if (UnsetVariables) {
+		delete UnsetVariables;
+		UnsetVariables = nullptr;
+	}
+
+	while (BreakJumpListStack.size() > 0) {
+		delete BreakJumpListStack.top();
+		BreakJumpListStack.pop();
+		BreakScopeStack.pop();
+	}
+	while (ContinueJumpListStack.size() > 0) {
+		delete ContinueJumpListStack.top();
+		ContinueJumpListStack.pop();
+		ContinueScopeStack.pop();
+	}
+	while (SwitchJumpListStack.size() > 0) {
+		EndSwitchJumpList();
+	}
+}
+void Compiler::DeleteFunctions() {
 	for (size_t c = 0; c < Compiler::Functions.size(); c++) {
 		ObjFunction* func = Compiler::Functions[c];
 		func->Chunk.Free();
 	}
-
-	return !parser.HadError;
-}
-bool Compiler::Compile(const char* filename, const char* source, Stream* output) {
-	return Compile(filename, source, CurrentSettings, output);
 }
 void Compiler::Finish() {
 	Chunk* chunk = CurrentChunk();
@@ -4320,9 +4295,11 @@ void Compiler::Finish() {
 		WarnVariablesUnusedUnset();
 		if (UnusedVariables) {
 			delete UnusedVariables;
+			UnusedVariables = nullptr;
 		}
 		if (UnsetVariables) {
 			delete UnsetVariables;
+			UnsetVariables = nullptr;
 		}
 	}
 

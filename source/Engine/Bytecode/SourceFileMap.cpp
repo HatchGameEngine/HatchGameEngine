@@ -1,8 +1,9 @@
-#include <Engine/Bytecode/SourceFileMap.h>
-
+#include <Engine/Application.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Exceptions/CompilerErrorException.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Path.h>
@@ -212,35 +213,52 @@ bool SourceFileMap::CheckForUpdate() {
 				}
 			}
 
-			Compiler* compiler = nullptr;
-			bool didCompile = false;
+			const int initialSize = 0x100;
 
-			Stream* stream = mainVfs->OpenWriteStream(outFile);
-			if (stream) {
-				compiler = new Compiler;
+			MemoryStream* memStream = MemoryStream::New(initialSize);
+			if (memStream) {
+				memset(memStream->pointer_start, 0x00, initialSize);
 
-				didCompile = compiler->Compile(scriptFilename, source, stream);
+				bool didCompile = false;
+				Compiler* compiler = new Compiler;
+				try {
+					didCompile = compiler->Compile(scriptFilename, source, memStream);
+				}
+				catch (const CompilerErrorException& error) {
+					HandleCompileError(error.what());
+				}
 
-				mainVfs->CloseStream(stream);
+				if (didCompile) {
+					Stream* stream = mainVfs->OpenWriteStream(outFile);
+					if (stream) {
+						stream->WriteBytes(memStream->pointer_start, memStream->Position());
+						mainVfs->CloseStream(stream);
+					}
+					else {
+						Log::Print(Log::LOG_ERROR,
+							"Couldn't open file '%s' for writing compiled script!",
+							outFile);
+					}
+
+					// Add this file to the list
+					AddToList(compiler, filenameHash);
+
+					// Update checksum
+					SourceFileMap::Checksums->Put(filenameHash, newChecksum);
+				}
+
+				memStream->Close();
+
+				delete compiler;
 			}
 			else {
-				Log::Print(Log::LOG_ERROR,
-					"Couldn't open file '%s' for writing compiled script!",
-					outFile);
+				Log::Print(Log::LOG_ERROR, "Not enough memory for compiling '%s'!", outFile);
 			}
 
-			// Add this file to the list
-			if (didCompile) {
-				AddToList(compiler, filenameHash);
-			}
-
-			delete compiler;
 			Compiler::FinishCompiling();
 		}
 
 		Memory::Free(source);
-
-		SourceFileMap::Checksums->Put(filenameHash, newChecksum);
 	}
 
 	if (anyChanges) {
@@ -290,6 +308,29 @@ bool SourceFileMap::CheckForUpdate() {
 #else
 	return false;
 #endif
+}
+void SourceFileMap::HandleCompileError(const char* error) {
+	Log::Print(Log::LOG_ERROR, error);
+
+	const SDL_MessageBoxButtonData buttons[] = {
+		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Exit"},
+	};
+
+	const SDL_MessageBoxData messageBoxData = {
+		SDL_MESSAGEBOX_ERROR,
+		NULL,
+		"Syntax Error",
+		error,
+		SDL_arraysize(buttons),
+		buttons,
+		NULL,
+	};
+
+	int buttonClicked;
+	SDL_ShowMessageBox(&messageBoxData, &buttonClicked);
+
+	Application::Cleanup();
+	exit(-1);
 }
 void SourceFileMap::AddToList(Compiler* compiler, Uint32 filenameHash) {
 	for (size_t h = 0; h < compiler->ClassHashList.size(); h++) {

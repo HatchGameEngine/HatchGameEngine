@@ -10,6 +10,7 @@
 class SourceFileMap {
 private:
 	static void AddToList(Compiler* compiler, Uint32 filenameHash);
+	static void HandleCompileError(const char* error);
 
 public:
 	static bool Initialized;

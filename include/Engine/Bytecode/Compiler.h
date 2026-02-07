@@ -66,7 +66,6 @@ public:
 	bool CheckToken(int expectedType);
 	void ConsumeToken(int type, const char* message);
 	void ConsumeIdentifier(const char* message);
-	void SynchronizeToken();
 	bool ReportError(int line, int pos, bool fatal, const char* string, ...);
 	void ErrorAt(Token* token, const char* message, bool fatal);
 	void Error(const char* message);
@@ -159,6 +158,7 @@ public:
 	void GetForEachBlock();
 	void GetIfStatement();
 	void GetStatement();
+	void CompileFunction();
 	int GetFunction(int type, string className);
 	int GetFunction(int type);
 	void GetMethod(Token className);
@@ -217,6 +217,8 @@ public:
 	void Initialize(Compiler* enclosing, int scope, int type);
 	bool Compile(const char* filename, const char* source, CompilerSettings settings, Stream* output);
 	bool Compile(const char* filename, const char* source, Stream* output);
+	void Cleanup();
+	static void DeleteFunctions();
 	void Finish();
 	virtual ~Compiler();
 	static void FinishCompiling();
