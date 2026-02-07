@@ -152,7 +152,14 @@ void VMThread::PrintFunctionArgs(CallFrame* frame, PrintBuffer* buffer) {
 		buffer_printf(buffer, "%s=", (*function->Chunk.Locals)[i].Name);
 
 		if (i < StackTop - frame->Slots) {
-			ValuePrinter::Print(buffer, frame->Slots[i]);
+			VMValue value = frame->Slots[i];
+			if (IS_STRING(value)) {
+				buffer_printf(buffer, "\"");
+			}
+			ValuePrinter::Print(buffer, value);
+			if (IS_STRING(value)) {
+				buffer_printf(buffer, "\"");
+			}
 		}
 
 		if (i < maxLocals - 1) {
@@ -372,7 +379,7 @@ void VMThread::Breakpoint() {
 
 	if (function) {
 		printf(" at ");
-		PrintCallFrameSourceLine(frame, frame->IP - frame->IPStart);
+		PrintCallFrameSourceLine(frame, frame->IP - frame->IPStart, true);
 	}
 	else {
 		printf("\n");
@@ -516,7 +523,7 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 		if (frame->Function) {
 			Uint8* ip = DebugFrame == FrameCount - 1 ? frame->IP : frame->IPLast;
 			printf("In ");
-			PrintCallFrameSourceLine(frame, ip - frame->IPStart);
+			PrintCallFrameSourceLine(frame, ip - frame->IPStart, true);
 		}
 		else {
 			printf("No function to show the current line of\n");
@@ -527,7 +534,7 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 		if (frame && frame->Function) {
 			Uint8* ip = DebugFrame == FrameCount - 1 ? frame->IP : frame->IPLast;
 			printf("In ");
-			PrintCallFrameSourceLine(frame, ip - frame->IPStart);
+			PrintCallFrameSourceLine(frame, ip - frame->IPStart, true);
 		}
 		else {
 			printf("No function to show the current line of\n");
@@ -561,8 +568,7 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 				frame = &Frames[DebugFrame];
 				frame->IPLast = frame->IP;
 
-				printf("In ");
-				PrintCallFrameSourceLine(frame, frame->IP - frame->IPStart);
+				PrintCallFrameSourceLine(frame, frame->IP - frame->IPStart, true);
 			}
 		}
 		else {
@@ -616,10 +622,26 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 		}
 
 		const char* varName = args[1];
+		int which = -1;
+		if (args.size() >= 3) {
+			if (!StringUtils::ToNumber(&which, args[2])) {
+				printf("Invalid argument\n");
+				return false;
+			}
+
+			if (which < 0) {
+				printf("Invalid argument\n");
+				return false;
+			}
+		}
+
 		VMValue value = VMValue{VAL_ERROR};
 
 		if (frame && frame->Function) {
 			Chunk* chunk = &frame->Function->Chunk;
+
+			std::vector<ChunkLocal> matches;
+			ChunkLocal local;
 
 			if (chunk->Locals) {
 				for (size_t i = 0; i < chunk->Locals->size(); i++) {
@@ -628,33 +650,76 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 						continue;
 					}
 
-					if (i >= StackTop - frame->Slots) {
-						printf("Variable \"%s\" not yet initialized or out of scope\n", varName);
-						return false;
+					if (which == -1 && matches.size() == 1) {
+						printf("Note: More than one variable in this function is named \"%s\"\n", varName);
 					}
 
-					value = frame->Slots[i];
-					break;
+					matches.push_back(local);
 				}
 			}
 
-			if (value.Type == VAL_ERROR) {
+			if (matches.size() > 0) {
+				if (which == -1) {
+					local = matches[0];
+
+					if (matches.size() > 1) {
+						for (int i = (int)matches.size() - 1; i >= 0; i--) {
+							if (matches[i].Index < StackTop - frame->Slots) {
+								local = matches[i];
+								which = i;
+								break;
+							}
+						}
+					}
+				}
+				else {
+					if (which >= (int)matches.size()) {
+						printf("No occurrence #%d of a variable named \"%s\" in this function\n", which, varName);
+						return false;
+					}
+
+					local = matches[which];
+				}
+
+				if (local.Index >= StackTop - frame->Slots) {
+					printf("Variable \"%s\" not yet initialized or out of scope\n", varName);
+					return false;
+				}
+
+				value = frame->Slots[local.Index];
+
+				matches.clear();
+			}
+			else if (which != -1) {
+				printf("No occurrence #%d of a variable named \"%s\" in this function\n", which, varName);
+				return false;
+			}
+
+			if (value.Type != VAL_ERROR && which != -1) {
+				int line = local.Position & 0xFFFF;
+				int pos = (local.Position >> 16) & 0xFFFF;
+				if (line != 0) {
+					printf("Declared at ");
+					PrintCallFrameSourceLine(frame, line, pos, false);
+				}
+			}
+			else if (value.Type == VAL_ERROR) {
 				// Only the first chunk in the module contains module locals
 				chunk = &(*frame->Function->Module->Functions)[0]->Chunk;
 
 				if (chunk->ModuleLocals) {
 					for (size_t i = 0; i < chunk->ModuleLocals->size(); i++) {
-						ChunkLocal local = (*chunk->ModuleLocals)[i];
+						local = (*chunk->ModuleLocals)[i];
 						if (strcmp(local.Name, varName) != 0) {
 							continue;
 						}
 
-						if (i >= frame->Module->Locals->size()) {
+						if (local.Index >= frame->Module->Locals->size()) {
 							printf("Invalid module local \"%s\"\n", varName);
 							return false;
 						}
 
-						value = (*frame->Module->Locals)[i];
+						value = (*frame->Module->Locals)[local.Index];
 						break;
 					}
 				}
@@ -669,7 +734,13 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 		}
 
 		printf("%s = ", varName);
+		if (IS_STRING(value)) {
+			printf("\"");
+		}
 		ValuePrinter::Print(value);
+		if (IS_STRING(value)) {
+			printf("\"");
+		}
 		printf("\n");
 	}
 #if 0
@@ -687,30 +758,43 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 
 	return true;
 }
-void VMThread::PrintCallFrameSourceLine(CallFrame* frame, size_t bpos) {
+void VMThread::PrintCallFrameSourceLine(CallFrame* frame, int line, int pos, bool showFunction) {
 	ObjFunction* function = frame->Function;
-
-	std::string functionName = GetFunctionName(function);
 	char* sourceFilename = function->Module->SourceFilename;
 
-	printf("%s", functionName.c_str());
+	if (showFunction) {
+		std::string functionName = GetFunctionName(function);
 
-	VMThread::PrintFunctionArgs(frame, nullptr);
+		printf("%s", functionName.c_str());
 
-	printf("\n");
-	printf("at %s", sourceFilename);
+		VMThread::PrintFunctionArgs(frame, nullptr);
 
-	if (function->Chunk.Lines) {
-		int line = function->Chunk.Lines[bpos] & 0xFFFF;
-		int pos = (function->Chunk.Lines[bpos] >> 16) & 0xFFFF;
+		printf("\n" "at %s", sourceFilename);
+	}
+	else {
+		printf("%s", sourceFilename);
+	}
 
-		printf(", line %d, position %d\n", line, pos);
+	if (line > -1 && pos > -1) {
+		printf(", line %d, column %d\n", line, pos);
 
 		PrintSourceLineAndPosition(sourceFilename, line, pos);
 	}
 	else {
 		printf("\n");
 	}
+}
+void VMThread::PrintCallFrameSourceLine(CallFrame* frame, size_t bpos, bool showFunction) {
+	int line = -1;
+	int pos = -1;
+
+	ObjFunction* function = frame->Function;
+	if (function->Chunk.Lines) {
+		line = function->Chunk.Lines[bpos] & 0xFFFF;
+		pos = (function->Chunk.Lines[bpos] >> 16) & 0xFFFF;
+	}
+
+	PrintCallFrameSourceLine(frame, line, pos, showFunction);
 }
 bool VMThread::PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos) {
 	char* sourceLine = ScriptManager::GetSourceCodeLine(sourceFilename, line);

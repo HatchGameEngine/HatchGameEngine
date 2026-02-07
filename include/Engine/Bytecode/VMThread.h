@@ -22,7 +22,8 @@ private:
 	void Breakpoint();
 	void DebuggerLoop();
 	bool InterpretDebuggerCommand(std::vector<char*> args);
-	void PrintCallFrameSourceLine(CallFrame* frame, size_t bpos);
+	void PrintCallFrameSourceLine(CallFrame* frame, int line, int pos, bool showFunction);
+	void PrintCallFrameSourceLine(CallFrame* frame, size_t bpos, bool showFunction);
 	bool PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos);
 	bool ShowBranchLimitMessage(const char* errorMessage, ...);
 #endif
