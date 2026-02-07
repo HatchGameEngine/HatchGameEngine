@@ -54,6 +54,7 @@ typedef void (Compiler::*ParseFn)(bool canAssign);
 struct Local {
 	Token Name;
 	int Depth = -1;
+	int Index;
 	bool Resolved = false;
 	bool WasSet = false;
 	bool Constant = false;

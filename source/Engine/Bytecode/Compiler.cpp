@@ -996,7 +996,7 @@ int Compiler::DeclareVariable(Token* name, bool constant) {
 	if (!constant) {
 		return AddLocal(*name);
 	}
-	Constants.push_back({*name, ScopeDepth, false, false, true});
+	Constants.push_back({*name, ScopeDepth, 0, false, false, true});
 	return ((int)Constants.size()) - 1;
 }
 int Compiler::ParseModuleVariable(const char* errorMessage, bool constant) {
@@ -1028,7 +1028,7 @@ int Compiler::DeclareModuleVariable(Token* name, bool constant) {
 		return AddModuleLocal(*name);
 	}
 
-	Compiler::ModuleConstants.push_back({*name, 0, false, false, true});
+	Compiler::ModuleConstants.push_back({*name, 0, 0, false, false, true});
 	return ((int)Compiler::ModuleConstants.size()) - 1;
 }
 void Compiler::WarnVariablesUnusedUnset() {
@@ -1330,46 +1330,61 @@ void Compiler::PopMultiple(int count) {
 		count -= max;
 	}
 }
-int Compiler::AddLocal(Token name) {
+int Compiler::AddLocal() {
 	if (LocalCount == 0xFF) {
 		Error("Too many local variables in function.");
 		return -1;
 	}
 	Local* local = &Locals[LocalCount++];
-	local->Name = name;
 	local->Depth = -1;
+	local->Index = LocalCount - 1;
 	local->Resolved = false;
 	local->Constant = false;
 	local->ConstantVal = VMValue{VAL_ERROR};
-	return LocalCount - 1;
+	return local->Index;
+}
+int Compiler::AddLocal(Token name) {
+	int local = AddLocal();
+
+	Locals[local].Name = name;
+
+	AllLocals.push_back(Locals[local]);
+
+	return local;
 }
 int Compiler::AddLocal(const char* name, size_t len) {
-	if (LocalCount == 0xFF) {
-		Error("Too many local variables in function.");
-		return -1;
-	}
-	Local* local = &Locals[LocalCount++];
-	local->Depth = -1;
-	local->Resolved = false;
-	local->Constant = false;
-	local->ConstantVal = VMValue{VAL_ERROR};
-	;
-	RenameLocal(local, name, len);
-	return LocalCount - 1;
+	int local = AddLocal();
+
+	RenameLocal(&Locals[local], name, len);
+
+	AllLocals.push_back(Locals[local]);
+
+	return local;
 }
 int Compiler::AddHiddenLocal(const char* name, size_t len) {
-	int local = AddLocal(name, len);
+	int local = AddLocal();
+
+	RenameLocal(&Locals[local], name, len);
+
 	Locals[local].Resolved = true;
+
 	MarkInitialized();
+
+	AllLocals.push_back(Locals[local]);
+
 	return local;
 }
 void Compiler::RenameLocal(Local* local, const char* name, size_t len) {
 	local->Name.Start = (char*)name;
 	local->Name.Length = len;
+	local->Name.Line = 0;
+	local->Name.Pos = 0;
 }
 void Compiler::RenameLocal(Local* local, const char* name) {
 	local->Name.Start = (char*)name;
 	local->Name.Length = strlen(name);
+	local->Name.Line = 0;
+	local->Name.Pos = 0;
 }
 void Compiler::RenameLocal(Local* local, Token name) {
 	local->Name = name;
@@ -1410,11 +1425,12 @@ int Compiler::AddModuleLocal(Token name) {
 	Local local;
 	local.Name = name;
 	local.Depth = -1;
+	local.Index = (int)Compiler::ModuleLocals.size();
 	local.Resolved = false;
 	local.Constant = false;
 	local.ConstantVal = VMValue{VAL_ERROR};
 	Compiler::ModuleLocals.push_back(local);
-	return ((int)Compiler::ModuleLocals.size()) - 1;
+	return local.Index;
 }
 int Compiler::ResolveModuleLocal(Token* name, Local* result) {
 	for (int i = Compiler::ModuleLocals.size() - 1; i >= 0; i--) {
@@ -2495,6 +2511,8 @@ void Compiler::GetWithStatement() {
 		// true receiver name
 		RenameLocal(&Locals[otherSlot], receiverName);
 
+		AllLocals.push_back(Locals[otherSlot]);
+
 		// Don't rename "other" anymore
 		useOther = false;
 
@@ -2507,6 +2525,8 @@ void Compiler::GetWithStatement() {
 	// Rename "other" to "this" if the function doesn't have "this"
 	if (useOther && !hasThis) {
 		RenameLocal(&Locals[otherSlot], "this");
+
+		AllLocals.push_back(Locals[otherSlot]);
 	}
 
 	// Init "with" iteration
@@ -2937,7 +2957,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 		DefineVariableToken(token, constant);
 		if (constant && variable == -1) {
 			// treat it like a module constant
-			ModuleConstants.push_back({token, 0, false, false, true, value});
+			ModuleConstants.push_back({token, 0, 0, false, false, true, value});
 		}
 	} while (MatchToken(TOKEN_COMMA));
 
@@ -3150,7 +3170,7 @@ void Compiler::GetEnumDeclaration() {
 					// treat it as a module
 					// constant
 					ModuleConstants.push_back(
-						{token, 0, false, false, true, current});
+						{token, 0, 0, false, false, true, current});
 				}
 			}
 		} while (MatchToken(TOKEN_COMMA));
@@ -4099,7 +4119,6 @@ void Compiler::Initialize(Compiler* enclosing, int scope, int type) {
 	Type = type;
 	LocalCount = 0;
 	ScopeDepth = scope;
-	Enclosing = enclosing;
 	Function = NewFunction();
 	UnusedVariables = new vector<Local>();
 	UnsetVariables = new vector<Local>();
@@ -4118,16 +4137,18 @@ void Compiler::Initialize(Compiler* enclosing, int scope, int type) {
 
 	Local* local = &Locals[LocalCount++];
 	local->Depth = ScopeDepth;
+	local->Index = LocalCount - 1;
 
 	if (HasThis()) {
 		// In a method, it holds the receiver, "this".
 		SetReceiverName("this");
 	}
 	else {
-		// In a function, it holds the function, but cannot be
-		// referenced, so it has no name.
+		// In a function, it holds the function, but cannot be referenced, so it has no name.
 		SetReceiverName("");
 	}
+
+	AllLocals.push_back(*local);
 }
 void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 	Bytecode* bytecode = new Bytecode();
@@ -4179,9 +4200,12 @@ bool Compiler::Compile(const char* filename, const char* source, CompilerSetting
 			Local moduleLocal = Compiler::ModuleLocals[i];
 
 			ChunkLocal local;
-			local.Name = StringUtils::Create(moduleLocal.Name.ToString());
+			Token nameToken = moduleLocal.Name;
+			local.Name = StringUtils::Create(nameToken.ToString());
 			local.Constant = moduleLocal.Constant;
 			local.WasSet = moduleLocal.WasSet;
+			local.Index = i;
+			local.Position = (Uint32)((nameToken.Pos & 0xFFFF) << 16 | (nameToken.Line & 0xFFFF));
 			Function->Chunk.ModuleLocals->push_back(local);
 
 			if (UnusedVariables && !moduleLocal.Resolved) {
@@ -4252,14 +4276,26 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 void Compiler::Finish() {
 	Chunk* chunk = CurrentChunk();
 
-	if (LocalCount) {
+	// NOTE: Top level functions don't have locals.
+	// See Compiler::Compile for the logic that handles module locals
+	if (AllLocals.size()) {
 		chunk->Locals = new vector<ChunkLocal>;
 
-		for (int i = 0; i < LocalCount; i++) {
+		for (int i = 0; i < AllLocals.size(); i++) {
+			Local srcLocal = AllLocals[i];
+			Token nameToken = srcLocal.Name;
+			Uint32 position = 0;
+
+			if (i >= Function->Arity + 1) {
+				position = (Uint32)((nameToken.Pos & 0xFFFF) << 16 | (nameToken.Line & 0xFFFF));
+			}
+
 			ChunkLocal local;
-			local.Name = StringUtils::Create(Locals[i].Name.ToString());
-			local.Constant = Locals[i].Constant;
-			local.WasSet = Locals[i].WasSet;
+			local.Name = StringUtils::Create(nameToken.ToString());
+			local.Constant = srcLocal.Constant;
+			local.WasSet = srcLocal.WasSet;
+			local.Index = srcLocal.Index;
+			local.Position = position;
 			chunk->Locals->push_back(local);
 		}
 	}

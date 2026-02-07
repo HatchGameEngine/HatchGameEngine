@@ -21,11 +21,11 @@ public:
 	static bool DoLogging;
 	static CompilerSettings Settings;
 	CompilerSettings CurrentSettings;
-	Compiler* Enclosing = nullptr;
 	ObjFunction* Function = nullptr;
 	int Type = 0;
 	string ClassName;
 	Local Locals[0x100];
+	vector<Local> AllLocals;
 	vector<Local> Constants;
 	int LocalCount = 0;
 	int ScopeDepth = 0;
@@ -101,6 +101,7 @@ public:
 	void ClearToScope(int depth);
 	void PopToScope(int depth);
 	void PopMultiple(int count);
+	int AddLocal();
 	int AddLocal(Token name);
 	int AddLocal(const char* name, size_t len);
 	int AddHiddenLocal(const char* name, size_t len);

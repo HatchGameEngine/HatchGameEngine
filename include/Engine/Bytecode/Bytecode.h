@@ -38,7 +38,7 @@ public:
 	void ReadLocals(Stream* stream, vector<ChunkLocal>* locals, int numLocals);
 	void Write(Stream* stream, HashMap<Token>* tokenMap);
 	void WriteChunk(Stream* stream, ObjFunction* function);
-	void WriteLocals(Stream* stream, vector<ChunkLocal>* locals);
+	void WriteLocals(Stream* stream, vector<ChunkLocal>* locals, int numLocals);
 
 	static int GetTotalOpcodeSize(uint8_t* op);
 };

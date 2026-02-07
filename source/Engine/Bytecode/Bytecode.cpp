@@ -217,13 +217,13 @@ void Bytecode::ReadChunk(MemoryStream* stream) {
 	}
 
 	if (Flags & BYTECODE_FLAG_VARNAMES) {
-		Uint8 numLocals = stream->ReadByte();
+		Uint16 numLocals = stream->ReadUInt16();
 		if (numLocals) {
 			function->Chunk.Locals = new vector<ChunkLocal>;
 			ReadLocals(stream, function->Chunk.Locals, numLocals);
 		}
 
-		Uint16 numModuleLocals = stream->ReadInt16();
+		Uint16 numModuleLocals = stream->ReadUInt16();
 		if (numModuleLocals) {
 			function->Chunk.ModuleLocals = new vector<ChunkLocal>;
 			ReadLocals(stream, function->Chunk.ModuleLocals, numModuleLocals);
@@ -266,6 +266,9 @@ void Bytecode::ReadLocals(Stream* stream, vector<ChunkLocal>* locals, int numLoc
 		ChunkLocal local;
 		local.Name = name;
 		local.Constant = flags & CHUNKLOCAL_FLAG_CONST;
+		local.WasSet = flags & CHUNKLOCAL_FLAG_SET;
+		local.Index = stream->ReadUInt32();
+		local.Position = stream->ReadUInt32();
 
 		locals->push_back(local);
 	}
@@ -336,21 +339,11 @@ void Bytecode::WriteChunk(Stream* stream, ObjFunction* function) {
 	}
 
 	if (Flags & BYTECODE_FLAG_VARNAMES) {
-		if (chunk->Locals && chunk->Locals->size()) {
-			stream->WriteByte(chunk->Locals->size());
-			WriteLocals(stream, chunk->Locals);
-		}
-		else {
-			stream->WriteByte(0);
-		}
+		int numLocals = chunk->Locals ? std::min((int)chunk->Locals->size(), 0xFFFF) : 0;
+		WriteLocals(stream, chunk->Locals, numLocals);
 
-		if (chunk->ModuleLocals && chunk->ModuleLocals->size()) {
-			stream->WriteInt16(chunk->ModuleLocals->size());
-			WriteLocals(stream, chunk->ModuleLocals);
-		}
-		else {
-			stream->WriteInt16(0);
-		}
+		numLocals = chunk->ModuleLocals ? std::min((int)chunk->ModuleLocals->size(), 0xFFFF) : 0;
+		WriteLocals(stream, chunk->ModuleLocals, numLocals);
 	}
 
 	int constSize = (int)chunk->Constants->size();
@@ -390,8 +383,15 @@ void Bytecode::WriteChunk(Stream* stream, ObjFunction* function) {
 		}
 	}
 }
-void Bytecode::WriteLocals(Stream* stream, vector<ChunkLocal>* locals) {
-	for (size_t i = 0; i < locals->size(); i++) {
+void Bytecode::WriteLocals(Stream* stream, vector<ChunkLocal>* locals, int numLocals) {
+	if (!locals) {
+		stream->WriteUInt16(0);
+		return;
+	}
+
+	stream->WriteUInt16(numLocals);
+
+	for (int i = 0; i < numLocals; i++) {
 		ChunkLocal local = (*locals)[i];
 
 		Uint8 flags = 0;
@@ -404,6 +404,8 @@ void Bytecode::WriteLocals(Stream* stream, vector<ChunkLocal>* locals) {
 
 		stream->WriteBytes((void*)local.Name, strlen(local.Name) + 1);
 		stream->WriteByte(flags);
+		stream->WriteUInt32(local.Index);
+		stream->WriteUInt32(local.Position);
 	}
 }
 

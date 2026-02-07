@@ -61,6 +61,8 @@ struct ChunkLocal {
 	char* Name;
 	bool Constant;
 	bool WasSet;
+	Uint32 Index;
+	Uint32 Position;
 };
 
 struct Chunk {
