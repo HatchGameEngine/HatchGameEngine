@@ -433,6 +433,7 @@ Obj* NewNativeInstance(size_t size);
 
 std::string GetClassName(Uint32 hash);
 Uint32 GetClassHash(const char* name);
+const char* GetModuleName(ObjModule* module);
 
 static inline bool IsObjectType(VMValue value, ObjType type) {
 	return IS_OBJECT(value) && AS_OBJECT(value)->Type == type;

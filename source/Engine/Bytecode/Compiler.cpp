@@ -777,15 +777,26 @@ bool Compiler::ReportError(int line, int pos, bool fatal, const char* string, ..
 	buffer.WriteIndex = 0;
 	buffer.BufferSize = 512;
 
+	if (scanner.SourceFilename) {
+		buffer_printf(&buffer, "In file '%s' on ", scanner.SourceFilename);
+	}
+	else {
+		buffer_printf(&buffer, "On ");
+	}
+
 	buffer_printf(&buffer,
-		"In file '%s' on line %d, position %d:\n    %s\n\n",
-		scanner.SourceFilename,
+		"line %d, position %d:\n    %s\n\n",
 		line,
 		pos,
 		message);
 
 	if (!fatal) {
-		Log::Print(Log::LOG_WARN, textBuffer);
+		if (CurrentSettings.PrintToLog) {
+			Log::Print(Log::LOG_WARN, textBuffer);
+		}
+		else {
+			printf("%s\n", textBuffer);
+		}
 		free(textBuffer);
 		return true;
 	}
@@ -798,7 +809,7 @@ bool Compiler::ReportError(int line, int pos, bool fatal, const char* string, ..
 }
 void Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
 	if (token->Type == TOKEN_EOF) {
-		ReportError(token->Line, (int)token->Pos, fatal, " at end of file: %s", message);
+		ReportError(token->Line, (int)token->Pos, fatal, "At end of file: %s", message);
 	}
 	else if (token->Type == TOKEN_ERROR) {
 		ReportError(token->Line, (int)token->Pos, fatal, "%s", message);
@@ -807,7 +818,7 @@ void Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
 		ReportError(token->Line,
 			(int)token->Pos,
 			fatal,
-			" at '%.*s': %s",
+			"At '%.*s': %s",
 			token->Length,
 			token->Start,
 			message);
@@ -843,28 +854,27 @@ void Compiler::WarningInFunction(const char* format, ...) {
 	buffer.BufferSize = 512;
 
 	if (strcmp(Function->Name, "main") == 0) {
-		buffer_printf(&buffer,
-			"In top level code of file '%s':\n    %s\n",
-			scanner.SourceFilename,
-			message);
+		buffer_printf(&buffer, "In top level code");
 	}
 	else if (ClassName.size() > 0) {
-		buffer_printf(&buffer,
-			"In method '%s::%s' of file '%s':\n    %s\n",
-			ClassName.c_str(),
-			Function->Name,
-			scanner.SourceFilename,
-			message);
+		buffer_printf(&buffer, "In method '%s::%s'", ClassName.c_str(), Function->Name);
 	}
 	else {
-		buffer_printf(&buffer,
-			"In function '%s' of file '%s':\n    %s\n",
-			Function->Name,
-			scanner.SourceFilename,
-			message);
+		buffer_printf(&buffer, "In function '%s'", Function->Name);
 	}
 
-	Log::Print(Log::LOG_WARN, textBuffer);
+	if (scanner.SourceFilename) {
+		buffer_printf(&buffer, " of file '%s'", scanner.SourceFilename);
+	}
+
+	buffer_printf(&buffer, ":\n    %s\n",  message);
+
+	if (CurrentSettings.PrintToLog) {
+		Log::Print(Log::LOG_WARN, textBuffer);
+	}
+	else {
+		printf("%s\n", textBuffer);
+	}
 
 	free(textBuffer);
 }
@@ -1987,6 +1997,9 @@ stack<int> SwitchScopeStack;
 void Compiler::GetPrintStatement() {
 	GetExpression();
 	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after value.");
+	if (InREPL) {
+		EmitCopy(1);
+	}
 	EmitByte(OP_PRINT);
 }
 void Compiler::GetBreakpointStatement() {
@@ -1995,7 +2008,9 @@ void Compiler::GetBreakpointStatement() {
 }
 void Compiler::GetExpressionStatement() {
 	GetExpression();
-	EmitByte(OP_POP);
+	if (!InREPL) {
+		EmitByte(OP_POP);
+	}
 	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after expression.");
 }
 void Compiler::GetContinueStatement() {
@@ -3459,11 +3474,10 @@ void Compiler::EmitStringHash(Token token) {
 }
 void Compiler::EmitReturn() {
 	if (Type == TYPE_CONSTRUCTOR) {
-		EmitBytes(OP_GET_LOCAL,
-			0); // return the new instance built from the
-		// constructor
+		// return the new instance built from the constructor
+		EmitBytes(OP_GET_LOCAL, 0);
 	}
-	else {
+	else if (!InREPL) {
 		EmitByte(OP_NULL);
 	}
 	EmitByte(OP_RETURN);
@@ -4024,6 +4038,8 @@ void Compiler::Init() {
 
 	Compiler::DoLogging = false;
 
+	Settings.PrintToLog = true;
+	Settings.PrintChunks = false;
 	Settings.ShowWarnings = false;
 #if DEVELOPER_MODE
 	Settings.WriteDebugInfo = true;
@@ -4043,6 +4059,8 @@ void Compiler::Init() {
 	Application::Settings->GetBool(
 		"compiler", "writeSourceFilename", &Settings.WriteSourceFilename);
 	Application::Settings->GetBool("compiler", "optimizations", &Settings.DoOptimizations);
+
+	Application::Settings->GetBool("dev", "debugCompiler", &Settings.PrintChunks);
 }
 void Compiler::GetStandardConstants() {
 	if (Compiler::StandardConstants == NULL) {
@@ -4183,13 +4201,10 @@ bool Compiler::Compile(const char* filename, const char* source, CompilerSetting
 		}
 	}
 
-	bool debugCompiler = false;
-	Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
-
-	if (debugCompiler && Compiler::Functions.size() > 0) {
+	if (CurrentSettings.PrintChunks && Compiler::Functions.size() > 0) {
 		BytecodeDebugger* debugger = new BytecodeDebugger;
 
-		debugger->PrintToLog = true;
+		debugger->PrintToLog = CurrentSettings.PrintToLog;
 
 		if (TokenMap && TokenMap->Count()) {
 			HashMap<char*>* tokens = new HashMap<char*>(NULL, TokenMap->Count());
@@ -4204,11 +4219,18 @@ bool Compiler::Compile(const char* filename, const char* source, CompilerSetting
 
 		for (size_t c = 0; c < Compiler::Functions.size(); c++) {
 			Chunk* chunk = &Compiler::Functions[c]->Chunk;
+
 			debugger->DebugChunk(chunk,
 				Compiler::Functions[c]->Name,
 				Compiler::Functions[c]->MinArity,
 				Compiler::Functions[c]->Arity);
-			Log::PrintSimple("\n");
+
+			if (CurrentSettings.PrintToLog) {
+				Log::PrintSimple("\n");
+			}
+			else {
+				printf("\n");
+			}
 		}
 
 		delete debugger;

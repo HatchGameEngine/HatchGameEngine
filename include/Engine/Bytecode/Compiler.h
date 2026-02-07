@@ -23,6 +23,7 @@ public:
 	CompilerSettings CurrentSettings;
 	ObjFunction* Function = nullptr;
 	int Type = 0;
+	bool InREPL = false;
 	string ClassName;
 	Local Locals[0x100];
 	vector<Local> AllLocals;

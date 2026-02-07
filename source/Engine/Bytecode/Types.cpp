@@ -207,6 +207,14 @@ Uint32 GetClassHash(const char* name) {
 	return Murmur::EncryptString(name);
 }
 
+const char* GetModuleName(ObjModule* module) {
+	if (module->SourceFilename) {
+		return module->SourceFilename;
+	}
+
+	return "repl";
+}
+
 const char* GetTypeString(Uint32 type) {
 	switch (type) {
 	case VAL_NULL:

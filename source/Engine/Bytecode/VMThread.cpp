@@ -3,11 +3,13 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/VMThread.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Exceptions/CompilerErrorException.h>
 
 #ifdef VM_DEBUG
 #include <Engine/Audio/AudioManager.h>
@@ -85,7 +87,7 @@ void VMThread::PrintCallTraceFrame(CallFrame* frame, PrintBuffer* buffer, const 
 		buffer_printf(buffer,
 			"In %s of %s, line %d",
 			functionName.c_str(),
-			function->Module->SourceFilename,
+			GetModuleName(function->Module),
 			line);
 
 		if (errorString) {
@@ -107,12 +109,12 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer) {
 		ObjFunction* function = frame->Function;
 		int line = -1;
 
-		if (i > 0 && function->Chunk.Lines) {
+		const char* source = GetModuleName(function->Module);
+
+		if (i > 0 && function->Chunk.Lines && strcmp(source, "repl") != 0) {
 			CallFrame* fr2 = &Frames[i - 1];
 			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
 		}
-
-		const char* source = function->Module->SourceFilename;
 
 		std::string functionName = GetFunctionName(function);
 #ifdef VM_DEBUG
@@ -145,6 +147,12 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer) {
 }
 void VMThread::PrintFunctionArgs(CallFrame* frame, PrintBuffer* buffer) {
 	ObjFunction* function = frame->Function;
+
+	// That's top level code; there's no parameters
+	if (strcmp(function->Name, "main") == 0) {
+		return;
+	}
+
 	size_t maxLocals = std::min(function->Chunk.Locals->size(), (size_t)function->Arity + 1);
 
 	buffer_printf(buffer, " (");
@@ -197,7 +205,7 @@ void VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
 				buffer_printf(buffer,
 					"While calling %s of %s",
 					functionName.c_str(),
-					function->Module->SourceFilename);
+					GetModuleName(function->Module));
 			}
 			else {
 				buffer_printf(buffer, "While calling value");
@@ -376,6 +384,8 @@ void VMThread::Breakpoint() {
 	CallFrame* frame = &Frames[FrameCount - 1];
 	ObjFunction* function = frame->Function;
 
+	HitBreakpoint = true;
+
 	printf("Breakpoint hit");
 
 	if (function) {
@@ -452,7 +462,9 @@ void VMThread::DebuggerLoop() {
 		}
 
 		// Interpret the line
-		InterpretDebuggerCommand(args);
+		InterpretDebuggerCommand(args, read.c_str());
+
+		HitBreakpoint = false;
 
 		Memory::Free(line);
 	}
@@ -462,9 +474,11 @@ void VMThread::DebuggerLoop() {
 
 	printf("Resuming execution.\n");
 
+	ScriptManager::RemoveTemporaryModules();
+
 	InDebugger = false;
 }
-bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
+bool VMThread::InterpretDebuggerCommand(std::vector<char*> args, const char* fullLine) {
 	if (args.size() == 0) {
 		return false;
 	}
@@ -855,11 +869,9 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 		}
 
 		if (position < chunk->Count) {
-			char* sourceFilename = function->Module->SourceFilename;
-
 			bp[position] = 1;
 
-			printf("Set breakpoint at %s", sourceFilename);
+			printf("Set breakpoint at %s", GetModuleName(function->Module));
 
 			if (chunk->Lines) {
 				int line = chunk->Lines[position] & 0xFFFF;
@@ -867,7 +879,7 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 
 				printf(", line %d, column %d\n", line, pos);
 
-				PrintSourceLineAndPosition(sourceFilename, line, pos);
+				PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
 			}
 			else {
 				printf("\n");
@@ -885,8 +897,71 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 	}
 #endif
 	else {
-		printf("Unknown command \"%s\"\n", args[0]);
-		return false;
+		// Treat it as code
+		if (FrameCount == FRAMES_MAX) {
+			printf("No call frame available for executing code\n");
+			return false;
+		}
+
+		MemoryStream* memStream = MemoryStream::New(0x100);
+		if (!memStream) {
+			printf("Not enough memory for compiling code\n");
+			return false;
+		}
+
+		bool didExecute = false;
+		bool didCompile = false;
+
+		Compiler::PrepareCompiling();
+
+		Compiler* compiler = new Compiler;
+		compiler->InREPL = true;
+
+		CompilerSettings settings = Compiler::Settings;
+		settings.PrintToLog = false;
+
+		try {
+			didCompile = compiler->Compile(nullptr, fullLine, settings, memStream);
+		}
+		catch (const CompilerErrorException& error) {
+			printf("%s\n", error.what());
+		}
+
+		delete compiler;
+		Compiler::FinishCompiling();
+
+		if (didCompile) {
+			BytecodeContainer bytecode;
+			bytecode.Data = memStream->pointer_start;
+			bytecode.Size = memStream->Position();
+
+			ScriptManager::AddSourceFile("repl", StringUtils::Duplicate(fullLine));
+
+			VMValue* lastStackTop = StackTop;
+			int lastFrame = FrameCount++;
+
+			InterpretResult = NULL_VAL;
+
+			didExecute = ScriptManager::RunBytecode(this, bytecode, 0x00000000);
+
+			FrameCount = lastFrame;
+			StackTop = lastStackTop;
+
+			if (!HitBreakpoint) {
+				if (IS_STRING(InterpretResult)) {
+					printf("\"");
+				}
+				ValuePrinter::Print(InterpretResult);
+				if (IS_STRING(InterpretResult)) {
+					printf("\"");
+				}
+				printf("\n");
+			}
+		}
+
+		memStream->Close();
+
+		return didExecute;
 	}
 
 #undef IS_COMMAND
@@ -895,7 +970,8 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args) {
 }
 void VMThread::PrintCallFrameSourceLine(CallFrame* frame, int line, int pos, bool showFunction) {
 	ObjFunction* function = frame->Function;
-	char* sourceFilename = function->Module->SourceFilename;
+
+	const char* sourceFilename = GetModuleName(function->Module);
 
 	if (showFunction) {
 		std::string functionName = GetFunctionName(function);
@@ -913,7 +989,7 @@ void VMThread::PrintCallFrameSourceLine(CallFrame* frame, int line, int pos, boo
 	if (line > -1 && pos > -1) {
 		printf(", line %d, column %d\n", line, pos);
 
-		PrintSourceLineAndPosition(sourceFilename, line, pos);
+		PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
 	}
 	else {
 		printf("\n");
@@ -932,13 +1008,21 @@ void VMThread::PrintCallFrameSourceLine(CallFrame* frame, size_t bpos, bool show
 	PrintCallFrameSourceLine(frame, line, pos, showFunction);
 }
 bool VMThread::PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos) {
-	char* sourceLine = ScriptManager::GetSourceCodeLine(sourceFilename, line);
+	std::string filePath = "";
+	if (sourceFilename) {
+		filePath = std::string(SCRIPTS_DIRECTORY_NAME) + "/" + std::string(sourceFilename);
+	}
+	else {
+		filePath = "repl";
+	}
+
+	char* sourceLine = ScriptManager::GetSourceCodeLine(filePath.c_str(), line);
 	if (!sourceLine) {
 		return false;
 	}
 
-	printf("%5d %s\n", line, sourceLine);
-	printf("     ");
+	printf("%5d | %s\n", line, sourceLine);
+	printf("       ");
 	while (pos--) {
 		printf(" ");
 	}
@@ -1018,6 +1102,17 @@ bool VMThread::CheckBranchLimit(CallFrame* frame) {
 		return ShowBranchLimitMessage("Hit branch limit!");
 	}
 	return true;
+}
+void VMThread::RemoveBreakpointsForModule(ObjModule* module) {
+	for (size_t i = 0; i < module->Functions->size(); i++) {
+		ObjFunction* function = (*module->Functions)[i];
+
+		auto it = Breakpoints.find(function);
+		if (it != Breakpoints.end()) {
+			Memory::Free(it->second);
+			Breakpoints.erase(it);
+		}
+	}
 }
 void VMThread::DisposeBreakpoints() {
 	std::unordered_map<ObjFunction*, Uint8*>::iterator it;

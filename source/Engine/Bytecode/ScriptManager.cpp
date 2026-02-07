@@ -26,6 +26,7 @@ HashMap<VMValue>* ScriptManager::Globals = NULL;
 HashMap<VMValue>* ScriptManager::Constants = NULL;
 
 vector<ObjModule*> ScriptManager::ModuleList;
+vector<ObjModule*> ScriptManager::TempModuleList;
 
 HashMap<BytecodeContainer>* ScriptManager::Sources = NULL;
 HashMap<ObjClass*>* ScriptManager::Classes = NULL;
@@ -170,6 +171,7 @@ void ScriptManager::Dispose() {
 	ClassImplList.clear();
 	AllNamespaces.clear();
 	ModuleList.clear();
+	TempModuleList.clear();
 
 	if (ThreadCount) {
 #ifdef VM_DEBUG
@@ -269,6 +271,24 @@ void ScriptManager::FreeNamespace(Obj* object) {
 	Memory::Free(ns->Name);
 
 	delete ns->Fields;
+}
+void ScriptManager::RemoveTemporaryModules() {
+	for (size_t i = 0; i < TempModuleList.size(); i++) {
+		ObjModule* module = TempModuleList[i];
+
+#ifdef VM_DEBUG
+		for (int i = 0; i < ThreadCount; i++) {
+			Threads[i].RemoveBreakpointsForModule(module);
+		}
+#endif
+
+		auto it = std::find(ModuleList.begin(), ModuleList.end(), module);
+		if (it != ModuleList.end()) {
+			ModuleList.erase(it);
+		}
+	}
+
+	TempModuleList.clear();
 }
 // #endregion
 
@@ -458,14 +478,12 @@ void ScriptManager::LinkExtensions() {}
 #endif
 
 // #region ObjectFuncs
-bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+bool ScriptManager::RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
 	Bytecode* bytecode = new Bytecode();
 	if (!bytecode->Read(bytecodeContainer, Tokens)) {
 		delete bytecode;
 		return false;
 	}
-
-	VMThread* thread = &Threads[0];
 
 	ObjModule* module = NewModule();
 
@@ -494,14 +512,20 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 	if (bytecode->SourceFilename) {
 		module->SourceFilename = StringUtils::Duplicate(bytecode->SourceFilename);
 	}
-	else {
+	else if (filenameHash) {
 		char fnHash[13];
 		snprintf(fnHash, sizeof(fnHash), "%08X.ibc", filenameHash);
 		module->SourceFilename = StringUtils::Duplicate(fnHash);
 	}
 
 	ModuleList.push_back(module);
-	Modules->Put(filenameHash, module);
+
+	if (filenameHash) {
+		Modules->Put(filenameHash, module);
+	}
+	else {
+		TempModuleList.push_back(module);
+	}
 
 	delete bytecode;
 
@@ -659,7 +683,7 @@ bool ScriptManager::LoadScript(Uint32 hash) {
 			return false;
 		}
 
-		return RunBytecode(bytecode, hash);
+		return RunBytecode(&Threads[0], bytecode, hash);
 	}
 
 	return true;
@@ -737,7 +761,7 @@ bool ScriptManager::LoadObjectClass(const char* objectName) {
 					(int)filenameHashList->size());
 			}
 
-			RunBytecode(bytecode, filenameHash);
+			RunBytecode(&Threads[0], bytecode, filenameHash);
 		}
 	}
 
@@ -774,13 +798,37 @@ void ScriptManager::LoadClasses() {
 				continue;
 			}
 
-			RunBytecode(bytecode, filenameHash);
+			RunBytecode(&Threads[0], bytecode, filenameHash);
 		}
 	});
 
 	ScriptManager::ForceGarbageCollection();
 }
 #ifdef VM_DEBUG
+void ScriptManager::LoadSourceCodeLines(SourceFile* sourceFile, char* text) {
+	char* ptr = text;
+	char* end = text + strlen(text);
+	char* lineStart = ptr;
+
+	while (true) {
+		if (*ptr == '\n' || ptr == end) {
+			sourceFile->Lines.push_back(lineStart);
+
+			if (ptr == end) {
+				break;
+			}
+			else {
+				*ptr = '\0';
+				lineStart = ptr + 1;
+			}
+		}
+
+		ptr++;
+	}
+
+	sourceFile->Text = text;
+	sourceFile->Exists = true;
+}
 void ScriptManager::LoadSourceCodeLines(SourceFile* sourceFile, const char* sourceFilename) {
 	Stream* stream = File::Open(sourceFilename, File::READ_ACCESS);
 	if (!stream) {
@@ -792,34 +840,20 @@ void ScriptManager::LoadSourceCodeLines(SourceFile* sourceFile, const char* sour
 	stream->ReadBytes(text, size);
 	stream->Close();
 
-	char* ptr = text;
-	char* lineStart = ptr;
-	while (*ptr != '\0') {
-		if (*ptr == '\n') {
-			sourceFile->Lines.push_back(lineStart);
-			lineStart = ptr + 1;
-			*ptr = '\0';
-		}
-		ptr++;
-	}
-
-	sourceFile->Text = text;
+	LoadSourceCodeLines(sourceFile, text);
 }
 char* ScriptManager::GetSourceCodeLine(const char* sourceFilename, int line) {
 	SourceFile* sourceFile = nullptr;
 
 	if (!SourceFiles->Exists(sourceFilename)) {
-		std::string filePath = std::string(SCRIPTS_DIRECTORY_NAME) + "/" + std::string(sourceFilename);
-
 		sourceFile = new SourceFile;
 
-		if (File::Exists(filePath.c_str())) {
-			LoadSourceCodeLines(sourceFile, filePath.c_str());
-
-			sourceFile->Exists = true;
+		if (File::Exists(sourceFilename)) {
+			LoadSourceCodeLines(sourceFile, sourceFilename);
 		}
-		else {
-			Log::Print(Log::LOG_WARN, "Source file \"%s\" does not exist.", filePath.c_str());
+
+		if (!sourceFile->Exists) {
+			Log::Print(Log::LOG_WARN, "Source file \"%s\" does not exist.", sourceFilename);
 		}
 
 		SourceFiles->Put(sourceFilename, sourceFile);
@@ -833,6 +867,22 @@ char* ScriptManager::GetSourceCodeLine(const char* sourceFilename, int line) {
 	}
 
 	return sourceFile->Lines[line - 1];
+}
+void ScriptManager::AddSourceFile(const char* sourceFilename, char* text) {
+	SourceFile* sourceFile = new SourceFile;
+	sourceFile->Exists = true;
+
+	LoadSourceCodeLines(sourceFile, text);
+
+	RemoveSourceFile(sourceFilename);
+	SourceFiles->Put(sourceFilename, sourceFile);
+}
+void ScriptManager::RemoveSourceFile(const char* sourceFilename) {
+	if (SourceFiles->Exists(sourceFilename)) {
+		Memory::Free(SourceFiles->Get(sourceFilename));
+
+		SourceFiles->Remove(sourceFilename);
+	}
 }
 #endif
 // #endregion

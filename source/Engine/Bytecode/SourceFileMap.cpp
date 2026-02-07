@@ -213,13 +213,10 @@ bool SourceFileMap::CheckForUpdate() {
 				}
 			}
 
-			const int initialSize = 0x100;
-
-			MemoryStream* memStream = MemoryStream::New(initialSize);
+			MemoryStream* memStream = MemoryStream::New(0x100);
 			if (memStream) {
-				memset(memStream->pointer_start, 0x00, initialSize);
-
 				bool didCompile = false;
+
 				Compiler* compiler = new Compiler;
 				try {
 					didCompile = compiler->Compile(scriptFilename, source, memStream);

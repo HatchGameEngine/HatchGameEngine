@@ -19,6 +19,7 @@ class ScriptManager {
 private:
 #ifdef VM_DEBUG
 	static Uint32 GetBranchLimit();
+	static void LoadSourceCodeLines(SourceFile* sourceFile, char* text);
 	static void LoadSourceCodeLines(SourceFile* sourceFile, const char* sourceFilename);
 #endif
 
@@ -29,6 +30,7 @@ public:
 	static VMThread Threads[8];
 	static Uint32 ThreadCount;
 	static vector<ObjModule*> ModuleList;
+	static vector<ObjModule*> TempModuleList;
 	static HashMap<BytecodeContainer>* Sources;
 	static HashMap<ObjClass*>* Classes;
 	static HashMap<ObjModule*>* Modules;
@@ -43,6 +45,7 @@ public:
 	static void FreeClass(Obj* object);
 	static void FreeEnumeration(Obj* object);
 	static void FreeNamespace(Obj* object);
+	static void RemoveTemporaryModules();
 	static void RequestGarbageCollection();
 	static void ForceGarbageCollection();
 	static void ResetStack();
@@ -64,7 +67,7 @@ public:
 	static bool ClassHasMethod(ObjClass* klass, Uint32 hash);
 	static void LinkStandardLibrary();
 	static void LinkExtensions();
-	static bool RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash);
+	static bool RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
 	static bool CallFunction(const char* functionName);
 	static VMValue FindFunction(const char* functionName);
 	static Entity* SpawnObject(const char* objectName);
@@ -89,6 +92,8 @@ public:
 	static void LoadClasses();
 #ifdef VM_DEBUG
 	static char* GetSourceCodeLine(const char* sourceFilename, int line);
+	static void AddSourceFile(const char* sourceFilename, char* text);
+	static void RemoveSourceFile(const char* sourceFilename);
 #endif
 };
 

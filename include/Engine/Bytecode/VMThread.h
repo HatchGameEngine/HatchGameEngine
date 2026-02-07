@@ -21,7 +21,7 @@ private:
 	bool DoJumpBack(CallFrame* frame, int offset);
 	void Breakpoint();
 	void DebuggerLoop();
-	bool InterpretDebuggerCommand(std::vector<char*> args);
+	bool InterpretDebuggerCommand(std::vector<char*> args, const char* fullLine);
 	void PrintCallFrameSourceLine(CallFrame* frame, int line, int pos, bool showFunction);
 	void PrintCallFrameSourceLine(CallFrame* frame, size_t bpos, bool showFunction);
 	bool PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos);
@@ -68,6 +68,7 @@ public:
 	Uint32 ID;
 #ifdef VM_DEBUG
 	bool DebugInfo;
+	bool HitBreakpoint;
 	bool InDebugger;
 	int DebugFrame;
 	Uint32 BranchLimit;
@@ -86,6 +87,7 @@ public:
 	void PrintStack();
 	void ReturnFromNative() throw();
 #ifdef VM_DEBUG
+	void RemoveBreakpointsForModule(ObjModule* module);
 	void DisposeBreakpoints();
 #endif
 	void Push(VMValue value);
