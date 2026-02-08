@@ -697,12 +697,21 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args, const char* ful
 					local = matches[which];
 				}
 
-				if (local.Index >= StackTop - frame->Slots) {
+				if (local.Constant && local.Index >= chunk->Constants->size()) {
+					printf("Invalid constant \"%s\"\n", varName);
+					return false;
+				}
+				else if (!local.Constant && local.Index >= StackTop - frame->Slots) {
 					printf("Variable \"%s\" not yet initialized or out of scope\n", varName);
 					return false;
 				}
 
-				value = frame->Slots[local.Index];
+				if (local.Constant) {
+					value = GetConstant(chunk, local.Index);
+				}
+				else {
+					value = frame->Slots[local.Index];
+				}
 
 				matches.clear();
 			}
@@ -730,12 +739,18 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args, const char* ful
 							continue;
 						}
 
-						if (local.Index >= frame->Module->Locals->size()) {
+						if ((local.Constant && local.Index >= chunk->Constants->size()) ||
+							(local.Index >= frame->Module->Locals->size())) {
 							printf("Invalid module local \"%s\"\n", varName);
 							return false;
 						}
 
-						value = (*frame->Module->Locals)[local.Index];
+						if (local.Constant) {
+							value = GetConstant(chunk, local.Index);
+						}
+						else {
+							value = (*frame->Module->Locals)[local.Index];
+						}
 						break;
 					}
 				}
@@ -934,22 +949,51 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args, const char* ful
 			compiler->ScopeDepth = 1;
 		}
 
+		compiler->Initialize();
+
 		// Only the first chunk in the module contains module locals
 		Chunk* firstChunk = &(*function->Module->Functions)[0]->Chunk;
 		if (firstChunk->ModuleLocals) {
 			for (size_t i = 0; i < firstChunk->ModuleLocals->size(); i++) {
 				ChunkLocal local = (*firstChunk->ModuleLocals)[i];
 
-				int index = compiler->AddModuleLocal();
-				Local* compilerLocal = &Compiler::ModuleLocals[index];
+				Local* compilerLocal;
+				Local constLocal;
+
+				if (local.Constant) {
+					if (local.Index >= chunk->Constants->size()) {
+						continue;
+					}
+
+					VMValue constVal = GetConstant(chunk, local.Index);
+					compilerLocal = &constLocal;
+					compilerLocal->Index = compiler->MakeConstant(constVal);
+					compilerLocal->ConstantVal = constVal;
+					compilerLocal->Constant = true;
+				}
+				else {
+					if (Compiler::ModuleLocals.size() == 0xFFFF) {
+						continue;
+					}
+
+					int index = compiler->AddModuleLocal();
+					compilerLocal = &Compiler::ModuleLocals[index];
+					compilerLocal->Index = local.Index;
+				}
+
 				compilerLocal->Depth = 0;
-				compilerLocal->Index = local.Index;
 				compilerLocal->Resolved = true;
 
-				compiler->RenameLocal(compilerLocal, local.Name);
+				Compiler::RenameLocal(compilerLocal, local.Name);
 
-				if (Compiler::ModuleLocals.size() == 0xFFFF) {
-					break;
+				if (function->Chunk.Lines) {
+					Token* nameToken = &compilerLocal->Name;
+					nameToken->Line = function->Chunk.Lines[local.Position] & 0xFFFF;
+					nameToken->Pos = (function->Chunk.Lines[local.Position] >> 16) & 0xFFFF;
+				}
+
+				if (local.Constant) {
+					compiler->Constants.push_back(constLocal);
 				}
 			}
 		}
@@ -957,23 +1001,50 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args, const char* ful
 		if (chunk->Locals) {
 			for (size_t i = 0; i < chunk->Locals->size(); i++) {
 				ChunkLocal local = (*chunk->Locals)[i];
-				if (local.Index >= StackTop - frame->Slots) {
-					continue;
+
+				Local* compilerLocal;
+				Local constLocal;
+
+				if (local.Constant) {
+					if (local.Index >= chunk->Constants->size()) {
+						continue;
+					}
+
+					VMValue constVal = GetConstant(chunk, local.Index);
+					compilerLocal = &constLocal;
+					compilerLocal->Index = compiler->MakeConstant(constVal);
+					compilerLocal->ConstantVal = constVal;
+					compilerLocal->Constant = true;
+				}
+				else {
+					if (local.Index >= StackTop - frame->Slots || compiler->LocalCount == 0xFF) {
+						continue;
+					}
+
+					int index = compiler->AddLocal();
+					compilerLocal = &compiler->Locals[index];
+					compilerLocal->Index = local.Index;
+					compilerLocal->Constant = false;
 				}
 
-				int index = compiler->AddLocal();
-				Local* compilerLocal = &compiler->Locals[index];
 				compilerLocal->Depth = compiler->ScopeDepth;
-				compilerLocal->Index = local.Index;
 				compilerLocal->Resolved = true;
 
-				compiler->RenameLocal(compilerLocal, local.Name);
+				Compiler::RenameLocal(compilerLocal, local.Name);
 
-				if (compiler->LocalCount == 0xFF) {
-					break;
+				if (function->Chunk.Lines) {
+					Token* nameToken = &compilerLocal->Name;
+					nameToken->Line = function->Chunk.Lines[local.Position] & 0xFFFF;
+					nameToken->Pos = (function->Chunk.Lines[local.Position] >> 16) & 0xFFFF;
+				}
+
+				if (local.Constant) {
+					compiler->Constants.push_back(constLocal);
 				}
 			}
 		}
+
+		compiler->SetupLocals();
 
 		// Compile the code
 		ObjModule* module = nullptr;
@@ -1070,8 +1141,6 @@ ObjModule* VMThread::CompileCode(Compiler* compiler, const char* code) {
 	}
 
 	try {
-		compiler->Initialize();
-
 		didCompile = compiler->Compile(nullptr, code, memStream);
 	}
 	catch (const CompilerErrorException& error) {
@@ -1322,7 +1391,10 @@ float VMThread::ReadFloat(CallFrame* frame) {
 	return FROM_LE32F(*(float*)(frame->IP - sizeof(float)));
 }
 VMValue VMThread::ReadConstant(CallFrame* frame) {
-	return (*frame->Function->Chunk.Constants)[ReadUInt32(frame)];
+	return GetConstant(&frame->Function->Chunk, ReadUInt32(frame));
+}
+VMValue VMThread::GetConstant(Chunk* chunk, Uint32 index) {
+	return (*chunk->Constants)[index];
 }
 
 #define DO_RETURN() \

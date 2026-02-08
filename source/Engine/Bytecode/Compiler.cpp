@@ -929,7 +929,7 @@ int Compiler::DeclareVariable(Token* name, bool constant) {
 	if (!constant) {
 		return AddLocal(*name);
 	}
-	Constants.push_back({*name, ScopeDepth, 0, false, false, true});
+	Constants.push_back({*name, ScopeDepth, -1, false, false, true});
 	return ((int)Constants.size()) - 1;
 }
 int Compiler::ParseModuleVariable(const char* errorMessage, bool constant) {
@@ -961,7 +961,7 @@ int Compiler::DeclareModuleVariable(Token* name, bool constant) {
 		return AddModuleLocal(*name);
 	}
 
-	Compiler::ModuleConstants.push_back({*name, 0, 0, false, false, true});
+	Compiler::ModuleConstants.push_back({*name, 0, -1, false, false, true});
 	return ((int)Compiler::ModuleConstants.size()) - 1;
 }
 void Compiler::WarnVariablesUnusedUnset() {
@@ -1360,12 +1360,12 @@ int Compiler::AddModuleLocal() {
 	}
 	Local local;
 	local.Depth = -1;
-	local.Index = (int)Compiler::ModuleLocals.size();
+	local.Index = -1;
 	local.Resolved = false;
 	local.Constant = false;
 	local.ConstantVal = VMValue{VAL_ERROR};
 	Compiler::ModuleLocals.push_back(local);
-	return local.Index;
+	return (int)Compiler::ModuleLocals.size() - 1;
 }
 int Compiler::AddModuleLocal(Token name) {
 	int index = AddModuleLocal();
@@ -2827,10 +2827,13 @@ int Compiler::GetFunction(int type, string className) {
 	char* name = StringUtils::Create(parser.Previous.Start, parser.Previous.Length);
 
 	Compiler* compiler = new Compiler;
+	compiler->CurrentSettings = CurrentSettings;
 	compiler->ClassName = className;
 	compiler->Type = type;
 	compiler->ScopeDepth = 1;
+
 	compiler->Initialize(name);
+	compiler->SetupLocals();
 
 	try {
 		compiler->CompileFunction();
@@ -2903,13 +2906,16 @@ void Compiler::GetVariableDeclaration(bool constant) {
 
 		VMValue value;
 		Local* locals = constant ? Constants.data() : Locals;
+		int constantIndex = -1;
 		if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() &&
-			CurrentChunk()->GetConstant(pre, &value)) {
+			CurrentChunk()->GetConstant(pre, &value, &constantIndex)) {
 			if (variable != -1) {
 				locals[variable].ConstantVal = value;
 				locals[variable].Constant = constant;
 				if (constant) {
 					CurrentChunk()->Count = pre;
+					locals[variable].Index = constantIndex;
+					AllLocals.push_back(locals[variable]);
 				}
 			}
 		}
@@ -2920,7 +2926,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 		DefineVariableToken(token, constant);
 		if (constant && variable == -1) {
 			// treat it like a module constant
-			ModuleConstants.push_back({token, 0, 0, false, false, true, value});
+			ModuleConstants.push_back({token, 0, constantIndex, false, false, true, value});
 		}
 	} while (MatchToken(TOKEN_COMMA));
 
@@ -2953,12 +2959,15 @@ void Compiler::GetModuleVariableDeclaration() {
 				EmitByte(OP_NULL);
 			}
 
+			int constantIndex = -1;
+
 			VMValue value;
 			if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() &&
-				CurrentChunk()->GetConstant(pre, &value)) {
+				CurrentChunk()->GetConstant(pre, &value, &constantIndex)) {
 				vec->at(local).ConstantVal = value;
 				if (constant) {
 					CurrentChunk()->Count = pre;
+					vec->at(local).Index = constantIndex;
 				}
 			}
 			else if (constant) {
@@ -3085,12 +3094,14 @@ void Compiler::GetEnumDeclaration() {
 				NamedVariable(enumName, false);
 			}
 
+			int constantIndex = -1;
+
 			if (MatchToken(TOKEN_ASSIGNMENT)) {
 				int pre = CodePointer();
 				GetExpression();
 				if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) !=
 						CodePointer() ||
-					!CurrentChunk()->GetConstant(pre, &current)) {
+					!CurrentChunk()->GetConstant(pre, &current, &constantIndex)) {
 					ErrorAt(&token,
 						"Manual enum value must be constant.",
 						true);
@@ -3133,7 +3144,7 @@ void Compiler::GetEnumDeclaration() {
 					// treat it as a module
 					// constant
 					ModuleConstants.push_back(
-						{token, 0, 0, false, false, true, current});
+						{token, 0, constantIndex, false, false, true, current});
 				}
 			}
 		} while (MatchToken(TOKEN_COMMA));
@@ -3547,12 +3558,12 @@ int Compiler::FindConstant(VMValue value) {
 	return -1;
 }
 int Compiler::MakeConstant(VMValue value) {
-	int constant = CurrentChunk()->AddConstant(value);
-	// if (constant > UINT8_MAX) {
-	//     Error("Too many constants in one chunk.");
-	//     return 0;
-	// }
-	return constant;
+	if (CurrentChunk()->Constants->size() == 0xFFFFFFFF) {
+		Error("Too many constants in one chunk.");
+		return -1;
+	}
+
+	return CurrentChunk()->AddConstant(value);
 }
 
 bool Compiler::HasThis() {
@@ -4091,8 +4102,15 @@ void Compiler::Initialize(char* name) {
 
 	UnusedVariables = new vector<Local>();
 	UnsetVariables = new vector<Local>();
-	Compiler::Functions.push_back(Function);
 
+	Compiler::Functions.push_back(Function);
+}
+void Compiler::Initialize() {
+	char* name = StringUtils::Create("main");
+
+	Initialize(name);
+}
+void Compiler::SetupLocals() {
 	if (LocalCount >= 0) {
 		return;
 	}
@@ -4113,11 +4131,6 @@ void Compiler::Initialize(char* name) {
 	}
 
 	AllLocals.push_back(*local);
-}
-void Compiler::Initialize() {
-	char* name = StringUtils::Create("main");
-
-	Initialize(name);
 }
 void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 	Bytecode* bytecode = new Bytecode();
@@ -4172,7 +4185,7 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 			ChunkLocal local;
 			Token nameToken = moduleLocal.Name;
 			local.Name = StringUtils::Create(nameToken.ToString());
-			local.Constant = moduleLocal.Constant;
+			local.Constant = false;
 			local.Resolved = moduleLocal.Resolved;
 			local.Index = i;
 			local.Position = (Uint32)((nameToken.Pos & 0xFFFF) << 16 | (nameToken.Line & 0xFFFF));
@@ -4187,6 +4200,28 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 				!moduleLocal.WasSet) {
 				UnsetVariables->insert(UnsetVariables->begin(), moduleLocal);
 			}
+		}
+	}
+
+	if (Compiler::ModuleConstants.size() > 0) {
+		if (!Function->Chunk.ModuleLocals) {
+			Function->Chunk.ModuleLocals = new vector<ChunkLocal>;
+		}
+
+		for (size_t i = 0; i < Compiler::ModuleConstants.size(); i++) {
+			Local moduleLocal = Compiler::ModuleConstants[i];
+			if (moduleLocal.Index < 0) {
+				continue;
+			}
+
+			ChunkLocal local;
+			Token nameToken = moduleLocal.Name;
+			local.Name = StringUtils::Create(nameToken.ToString());
+			local.Constant = true;
+			local.Resolved = true;
+			local.Index = moduleLocal.Index;
+			local.Position = (Uint32)((nameToken.Pos & 0xFFFF) << 16 | (nameToken.Line & 0xFFFF));
+			Function->Chunk.ModuleLocals->push_back(local);
 		}
 	}
 
@@ -4285,9 +4320,12 @@ void Compiler::Finish() {
 
 		for (int i = 0; i < AllLocals.size(); i++) {
 			Local srcLocal = AllLocals[i];
+			if (srcLocal.Index < 0) {
+				continue;
+			}
+
 			Token nameToken = srcLocal.Name;
 			Uint32 position = 0;
-
 			if (i >= Function->Arity + 1) {
 				position = (Uint32)((nameToken.Pos & 0xFFFF) << 16 | (nameToken.Line & 0xFFFF));
 			}

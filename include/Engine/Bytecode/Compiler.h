@@ -107,9 +107,9 @@ public:
 	int AddLocal(Token name);
 	int AddLocal(const char* name, size_t len);
 	int AddHiddenLocal(const char* name, size_t len);
-	void RenameLocal(Local* local, const char* name, size_t len);
-	void RenameLocal(Local* local, const char* name);
-	void RenameLocal(Local* local, Token name);
+	static void RenameLocal(Local* local, const char* name, size_t len);
+	static void RenameLocal(Local* local, const char* name);
+	static void RenameLocal(Local* local, Token name);
 	int ResolveLocal(Token* name, Local* result = NULL);
 	int AddModuleLocal(Token name);
 	int AddModuleLocal();
@@ -219,6 +219,7 @@ public:
 	static void PrepareCompiling();
 	void Initialize(char* name);
 	void Initialize();
+	void SetupLocals();
 	bool Compile(const char* filename, const char* source, Stream* output);
 	void Cleanup();
 	static void DeleteFunctions();

@@ -104,6 +104,7 @@ public:
 	Sint32 ReadSInt32(CallFrame* frame);
 	float ReadFloat(CallFrame* frame);
 	VMValue ReadConstant(CallFrame* frame);
+	VMValue GetConstant(Chunk* chunk, Uint32 index);
 	int RunInstruction();
 	void RunInstructionSet();
 	void RunValue(VMValue value, int argCount);
