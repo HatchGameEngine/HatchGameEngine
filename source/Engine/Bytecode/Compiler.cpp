@@ -4302,14 +4302,6 @@ void Compiler::Finish() {
 		}
 	}
 
-	size_t numBreakpoints = Breakpoints.size();
-	if (numBreakpoints) {
-		Function->Chunk.Breakpoints = (Uint8*)Memory::Calloc(Function->Chunk.Count, sizeof(Uint8));
-		for (size_t i = 0; i < numBreakpoints; i++) {
-			Function->Chunk.Breakpoints[Breakpoints[i]] = 1;
-		}
-	}
-
 	if (UnusedVariables || UnsetVariables) {
 		WarnVariablesUnusedUnset();
 		if (UnusedVariables) {
@@ -4323,6 +4315,14 @@ void Compiler::Finish() {
 	}
 
 	EmitReturn();
+
+	size_t numBreakpoints = Breakpoints.size();
+	if (numBreakpoints) {
+		Function->Chunk.Breakpoints = (Uint8*)Memory::Calloc(Function->Chunk.Count, sizeof(Uint8));
+		for (size_t i = 0; i < numBreakpoints; i++) {
+			Function->Chunk.Breakpoints[Breakpoints[i]] = 1;
+		}
+	}
 }
 
 Compiler::~Compiler() {}
