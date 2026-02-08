@@ -5,27 +5,15 @@
 #include <Engine/Includes/Standard.h>
 #include <Engine/Utilities/PrintBuffer.h>
 
-#ifdef VM_DEBUG
-#include <Engine/Bytecode/BytecodeDebugger.h>
-#endif
-
 class VMThread {
 private:
-	std::string GetFunctionName(ObjFunction* function);
 	void PrintCallTraceFrame(CallFrame* frame, PrintBuffer* buffer, const char* errorString);
 	void PrintStackTrace(PrintBuffer* buffer);
 #ifdef VM_DEBUG
-	void PrintFunctionArgs(CallFrame* frame, PrintBuffer* buffer);
 	bool CheckBranchLimit(CallFrame* frame);
 	bool DoJump(CallFrame* frame, int offset);
 	bool DoJumpBack(CallFrame* frame, int offset);
 	void Breakpoint();
-	void DebuggerLoop();
-	bool InterpretDebuggerCommand(std::vector<char*> args, const char* fullLine);
-	ObjModule* CompileCode(Compiler* compiler, const char* code);
-	void PrintCallFrameSourceLine(CallFrame* frame, int line, int pos, bool showFunction);
-	void PrintCallFrameSourceLine(CallFrame* frame, size_t bpos, bool showFunction);
-	bool PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos);
 	bool ShowBranchLimitMessage(const char* errorMessage, ...);
 #endif
 	bool
@@ -45,10 +33,6 @@ private:
 	bool CallForObject(VMValue callee, int argCount);
 	bool InstantiateClass(VMValue callee, int argCount);
 	bool DoClassExtension(VMValue value, VMValue originalValue, bool clearSrc);
-
-#ifdef VM_DEBUG
-	BytecodeDebugger* CodeDebugger = nullptr;
-#endif
 
 public:
 	VMValue Stack[STACK_SIZE_MAX];
@@ -71,7 +55,6 @@ public:
 	bool DebugInfo;
 	bool HitBreakpoint;
 	bool InDebugger;
-	int DebugFrame;
 	Uint32 BranchLimit;
 	std::unordered_map<ObjFunction*, Uint8*> Breakpoints;
 #endif
@@ -80,6 +63,8 @@ public:
 
 	static char* GetToken(Uint32 hash);
 	static char* GetVariableOrMethodName(Uint32 hash);
+	static std::string GetFunctionName(ObjFunction* function);
+	void PrintFunctionArgs(CallFrame* frame, PrintBuffer* buffer);
 	void MakeErrorMessage(PrintBuffer* buffer, const char* errorString);
 	int ThrowRuntimeError(bool fatal, const char* errorMessage, ...);
 	int ShowErrorFromScript(const char* errorString, bool detailed);

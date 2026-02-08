@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/SourceFileMap.h>
+#include <Engine/Bytecode/VMThreadDebugger.h>
 #include <Engine/Data/DefaultFonts.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
@@ -268,6 +269,10 @@ void Application::InitScripting() {
 	ScriptManager::LinkExtensions();
 
 	Compiler::GetStandardConstants();
+
+#ifdef VM_DEBUG
+	VMThreadDebugger::Initialize();
+#endif
 
 	if (SourceFileMap::CheckForUpdate()) {
 		ScriptManager::ForceGarbageCollection();
@@ -1876,6 +1881,9 @@ void Application::TerminateScripting() {
 	SourceFileMap::Dispose();
 	Compiler::Dispose();
 	GarbageCollector::Dispose();
+#ifdef VM_DEBUG
+	VMThreadDebugger::Dispose();
+#endif
 
 	ScriptManager::LoadAllClasses = false;
 }
