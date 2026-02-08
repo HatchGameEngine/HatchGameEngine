@@ -54,13 +54,13 @@ struct CallFrame;
 typedef int (VMThread::*OpcodeFunc)(CallFrame* frame);
 #endif
 
-#define CHUNKLOCAL_FLAG_CONST (1 << 0)
-#define CHUNKLOCAL_FLAG_SET (1 << 1)
+#define CHUNKLOCAL_FLAG_RESOLVED (1 << 0)
+#define CHUNKLOCAL_FLAG_CONST (1 << 1)
 
 struct ChunkLocal {
 	char* Name;
 	bool Constant;
-	bool WasSet;
+	bool Resolved;
 	Uint32 Index;
 	Uint32 Position;
 };
@@ -310,6 +310,7 @@ struct ObjFunction {
 	char* Name;
 	struct ObjClass* Class;
 	Uint32 NameHash;
+	size_t Index;
 };
 struct ObjNative {
 	Obj Object;
@@ -481,6 +482,7 @@ struct CallFrame {
 	Uint8* IPStart;
 	VMValue* Slots;
 	ObjModule* Module;
+	std::vector<VMValue>* ModuleLocals;
 
 #ifdef VM_DEBUG
 	Uint32 BranchCount;

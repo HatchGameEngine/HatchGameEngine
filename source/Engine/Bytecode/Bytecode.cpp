@@ -136,7 +136,11 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 	}
 
 	for (int i = 0; i < chunkCount; i++) {
-		ReadChunk(stream);
+		ObjFunction* function = ReadChunk(stream);
+
+		function->Index = (size_t)i;
+
+		Functions.push_back(function);
 	}
 
 	if (HasDebugInfo) {
@@ -180,7 +184,7 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 	stream->Close();
 	return true;
 }
-void Bytecode::ReadChunk(MemoryStream* stream) {
+ObjFunction* Bytecode::ReadChunk(MemoryStream* stream) {
 	int length = stream->ReadInt32();
 	int arity, minArity;
 	int opcodeCount = 0;
@@ -271,7 +275,7 @@ void Bytecode::ReadChunk(MemoryStream* stream) {
 		}
 	}
 
-	Functions.push_back(function);
+	return function;
 }
 void Bytecode::ReadLocals(Stream* stream, vector<ChunkLocal>* locals, int numLocals) {
 	for (int i = 0; i < numLocals; i++) {
@@ -280,8 +284,8 @@ void Bytecode::ReadLocals(Stream* stream, vector<ChunkLocal>* locals, int numLoc
 
 		ChunkLocal local;
 		local.Name = name;
+		local.Resolved = flags & CHUNKLOCAL_FLAG_RESOLVED;
 		local.Constant = flags & CHUNKLOCAL_FLAG_CONST;
-		local.WasSet = flags & CHUNKLOCAL_FLAG_SET;
 		local.Index = stream->ReadUInt32();
 		local.Position = stream->ReadUInt32();
 
@@ -437,11 +441,11 @@ void Bytecode::WriteLocals(Stream* stream, vector<ChunkLocal>* locals, int numLo
 		ChunkLocal local = (*locals)[i];
 
 		Uint8 flags = 0;
+		if (local.Resolved) {
+			flags |= CHUNKLOCAL_FLAG_RESOLVED;
+		}
 		if (local.Constant) {
 			flags |= CHUNKLOCAL_FLAG_CONST;
-		}
-		if (local.WasSet) {
-			flags |= CHUNKLOCAL_FLAG_SET;
 		}
 
 		stream->WriteBytes((void*)local.Name, strlen(local.Name) + 1);

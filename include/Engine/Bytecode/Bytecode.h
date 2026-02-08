@@ -35,7 +35,7 @@ public:
 	Bytecode();
 	~Bytecode();
 	bool Read(BytecodeContainer bytecode, HashMap<char*>* tokens);
-	void ReadChunk(MemoryStream* stream);
+	ObjFunction* ReadChunk(MemoryStream* stream);
 	void ReadLocals(Stream* stream, vector<ChunkLocal>* locals, int numLocals);
 	void Write(Stream* stream, HashMap<Token>* tokenMap);
 	void WriteChunk(Stream* stream, ObjFunction* function);

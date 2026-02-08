@@ -67,6 +67,7 @@ public:
 	static bool ClassHasMethod(ObjClass* klass, Uint32 hash);
 	static void LinkStandardLibrary();
 	static void LinkExtensions();
+	static ObjModule* LoadBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
 	static bool RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
 	static bool CallFunction(const char* functionName);
 	static VMValue FindFunction(const char* functionName);

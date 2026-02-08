@@ -70,4 +70,11 @@ struct ParseRule {
 	enum Precedence Precedence;
 };
 
+enum FunctionType {
+	FUNCTIONTYPE_TOPLEVEL,
+	FUNCTIONTYPE_FUNCTION,
+	FUNCTIONTYPE_CONSTRUCTOR,
+	FUNCTIONTYPE_METHOD
+};
+
 #endif /* ENGINE_COMPILER_ENUMS */

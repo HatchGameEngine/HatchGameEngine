@@ -467,22 +467,12 @@ void ScriptManager::LinkStandardLibrary() {
 void ScriptManager::LinkExtensions() {}
 // #endregion
 
-#define FG_YELLOW ""
-#define FG_RESET ""
-
-#if defined(LINUX)
-#undef FG_YELLOW
-#undef FG_RESET
-#define FG_YELLOW "\x1b[1;93m"
-#define FG_RESET "\x1b[m"
-#endif
-
 // #region ObjectFuncs
-bool ScriptManager::RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+ObjModule* ScriptManager::LoadBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
 	Bytecode* bytecode = new Bytecode();
 	if (!bytecode->Read(bytecodeContainer, Tokens)) {
 		delete bytecode;
-		return false;
+		return nullptr;
 	}
 
 	ObjModule* module = NewModule();
@@ -528,6 +518,15 @@ bool ScriptManager::RunBytecode(VMThread* thread, BytecodeContainer bytecodeCont
 	}
 
 	delete bytecode;
+
+	return module;
+}
+bool ScriptManager::RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+	ObjModule* module = LoadBytecode(thread, bytecodeContainer, filenameHash);
+
+	if (!module) {
+		return false;
+	}
 
 	thread->RunFunction((*module->Functions)[0], 0);
 

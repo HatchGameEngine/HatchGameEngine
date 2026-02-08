@@ -22,6 +22,7 @@ private:
 	void Breakpoint();
 	void DebuggerLoop();
 	bool InterpretDebuggerCommand(std::vector<char*> args, const char* fullLine);
+	ObjModule* CompileCode(Compiler* compiler, const char* code);
 	void PrintCallFrameSourceLine(CallFrame* frame, int line, int pos, bool showFunction);
 	void PrintCallFrameSourceLine(CallFrame* frame, size_t bpos, bool showFunction);
 	bool PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos);

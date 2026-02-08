@@ -143,12 +143,6 @@ enum TokenTYPE {
 	TOKEN_ERROR,
 	TOKEN_EOF
 };
-enum FunctionType {
-	TYPE_TOP_LEVEL,
-	TYPE_FUNCTION,
-	TYPE_CONSTRUCTOR,
-	TYPE_METHOD,
-};
 
 Token Compiler::MakeToken(int type) {
 	Token token;
@@ -213,8 +207,6 @@ bool Compiler::MatchChar(char expected) {
 }
 char Compiler::AdvanceChar() {
 	return *scanner.Current++;
-	// scanner.Current++;
-	// return *(scanner.Current - 1);
 }
 char Compiler::PrevChar() {
 	return *(scanner.Current - 1);
@@ -1276,6 +1268,9 @@ int Compiler::AddLocal() {
 		Error("Too many local variables in function.");
 		return -1;
 	}
+	if (LocalCount < 0) {
+		LocalCount = 0;
+	}
 	Local* local = &Locals[LocalCount++];
 	local->Depth = -1;
 	local->Index = LocalCount - 1;
@@ -1358,13 +1353,12 @@ int Compiler::ResolveLocal(Token* name, Local* result) {
 
 	return -1;
 }
-int Compiler::AddModuleLocal(Token name) {
+int Compiler::AddModuleLocal() {
 	if (Compiler::ModuleLocals.size() == 0xFFFF) {
 		Error("Too many locals in module.");
 		return -1;
 	}
 	Local local;
-	local.Name = name;
 	local.Depth = -1;
 	local.Index = (int)Compiler::ModuleLocals.size();
 	local.Resolved = false;
@@ -1372,6 +1366,11 @@ int Compiler::AddModuleLocal(Token name) {
 	local.ConstantVal = VMValue{VAL_ERROR};
 	Compiler::ModuleLocals.push_back(local);
 	return local.Index;
+}
+int Compiler::AddModuleLocal(Token name) {
+	int index = AddModuleLocal();
+	Compiler::ModuleLocals[index].Name = name;
+	return index;
 }
 int Compiler::ResolveModuleLocal(Token* name, Local* result) {
 	for (int i = Compiler::ModuleLocals.size() - 1; i >= 0; i--) {
@@ -1997,9 +1996,6 @@ stack<int> SwitchScopeStack;
 void Compiler::GetPrintStatement() {
 	GetExpression();
 	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after value.");
-	if (InREPL) {
-		EmitCopy(1);
-	}
 	EmitByte(OP_PRINT);
 }
 void Compiler::GetBreakpointStatement() {
@@ -2008,9 +2004,14 @@ void Compiler::GetBreakpointStatement() {
 }
 void Compiler::GetExpressionStatement() {
 	GetExpression();
-	if (!InREPL) {
-		EmitByte(OP_POP);
+
+	if (InREPL && MatchToken(TOKEN_EOF)) {
+		EmitNullOnReturn = false;
+		return;
 	}
+
+	EmitByte(OP_POP);
+
 	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after expression.");
 }
 void Compiler::GetContinueStatement() {
@@ -2070,7 +2071,7 @@ void Compiler::GetDoWhileStatement() {
 	EndBreakJumpList();
 }
 void Compiler::GetReturnStatement() {
-	if (Type == TYPE_TOP_LEVEL) {
+	if (Type == FUNCTIONTYPE_TOPLEVEL) {
 		Error("Cannot return from top-level code.");
 	}
 
@@ -2078,7 +2079,7 @@ void Compiler::GetReturnStatement() {
 		EmitReturn();
 	}
 	else {
-		if (Type == TYPE_CONSTRUCTOR) {
+		if (Type == FUNCTIONTYPE_CONSTRUCTOR) {
 			Error("Cannot return a value from an initializer.");
 		}
 
@@ -2823,9 +2824,13 @@ void Compiler::CompileFunction() {
 int Compiler::GetFunction(int type, string className) {
 	int index = (int)Compiler::Functions.size();
 
+	char* name = StringUtils::Create(parser.Previous.Start, parser.Previous.Length);
+
 	Compiler* compiler = new Compiler;
 	compiler->ClassName = className;
-	compiler->Initialize(this, 1, type);
+	compiler->Type = type;
+	compiler->ScopeDepth = 1;
+	compiler->Initialize(name);
 
 	try {
 		compiler->CompileFunction();
@@ -2853,9 +2858,9 @@ void Compiler::GetMethod(Token className) {
 
 	// If the method has the same name as its class, it's an
 	// initializer.
-	int type = TYPE_METHOD;
+	int type = FUNCTIONTYPE_METHOD;
 	if (IdentifiersEqual(&className, &parser.Previous)) {
-		type = TYPE_CONSTRUCTOR;
+		type = FUNCTIONTYPE_CONSTRUCTOR;
 	}
 
 	// Compile the old instruction if it fits under uint8.
@@ -3181,7 +3186,7 @@ void Compiler::GetEventDeclaration() {
 	// }
 
 	// Compile the old instruction if it fits under uint8.
-	int index = GetFunction(TYPE_FUNCTION);
+	int index = GetFunction(FUNCTIONTYPE_FUNCTION);
 	if (index <= UINT8_MAX) {
 		EmitByte(OP_EVENT_V4);
 		EmitByte(index);
@@ -3473,11 +3478,11 @@ void Compiler::EmitStringHash(Token token) {
 	EmitUint32(GetHash(token));
 }
 void Compiler::EmitReturn() {
-	if (Type == TYPE_CONSTRUCTOR) {
+	if (Type == FUNCTIONTYPE_CONSTRUCTOR) {
 		// return the new instance built from the constructor
 		EmitBytes(OP_GET_LOCAL, 0);
 	}
-	else if (!InREPL) {
+	else if (EmitNullOnReturn) {
 		EmitByte(OP_NULL);
 	}
 	EmitByte(OP_RETURN);
@@ -3552,8 +3557,8 @@ int Compiler::MakeConstant(VMValue value) {
 
 bool Compiler::HasThis() {
 	switch (Type) {
-	case TYPE_CONSTRUCTOR:
-	case TYPE_METHOD:
+	case FUNCTIONTYPE_CONSTRUCTOR:
+	case FUNCTIONTYPE_METHOD:
 		return true;
 	default:
 		return false;
@@ -4080,25 +4085,19 @@ void Compiler::PrepareCompiling() {
 		Compiler::TokenMap = new HashMap<Token>(NULL, 8);
 	}
 }
-void Compiler::Initialize(Compiler* enclosing, int scope, int type) {
-	Type = type;
-	LocalCount = 0;
-	ScopeDepth = scope;
+void Compiler::Initialize(char* name) {
 	Function = NewFunction();
+	Function->Name = name;
+
 	UnusedVariables = new vector<Local>();
 	UnsetVariables = new vector<Local>();
 	Compiler::Functions.push_back(Function);
 
-	switch (type) {
-	case TYPE_CONSTRUCTOR:
-	case TYPE_METHOD:
-	case TYPE_FUNCTION:
-		Function->Name = StringUtils::Create(parser.Previous.Start, parser.Previous.Length);
-		break;
-	case TYPE_TOP_LEVEL:
-		Function->Name = StringUtils::Create("main");
-		break;
+	if (LocalCount >= 0) {
+		return;
 	}
+
+	LocalCount = 0;
 
 	Local* local = &Locals[LocalCount++];
 	local->Depth = ScopeDepth;
@@ -4114,6 +4113,11 @@ void Compiler::Initialize(Compiler* enclosing, int scope, int type) {
 	}
 
 	AllLocals.push_back(*local);
+}
+void Compiler::Initialize() {
+	char* name = StringUtils::Create("main");
+
+	Initialize(name);
 }
 void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 	Bytecode* bytecode = new Bytecode();
@@ -4134,9 +4138,7 @@ void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 		TokenMap->Clear();
 	}
 }
-bool Compiler::Compile(const char* filename, const char* source, CompilerSettings settings, Stream* output) {
-	CurrentSettings = settings;
-
+bool Compiler::Compile(const char* filename, const char* source, Stream* output) {
 	scanner.Line = 1;
 	scanner.Start = (char*)source;
 	scanner.Current = (char*)source;
@@ -4145,8 +4147,6 @@ bool Compiler::Compile(const char* filename, const char* source, CompilerSetting
 
 	parser.HadError = false;
 	parser.PanicMode = false;
-
-	Initialize(NULL, 0, TYPE_TOP_LEVEL);
 
 	try {
 		AdvanceToken();
@@ -4173,7 +4173,7 @@ bool Compiler::Compile(const char* filename, const char* source, CompilerSetting
 			Token nameToken = moduleLocal.Name;
 			local.Name = StringUtils::Create(nameToken.ToString());
 			local.Constant = moduleLocal.Constant;
-			local.WasSet = moduleLocal.WasSet;
+			local.Resolved = moduleLocal.Resolved;
 			local.Index = i;
 			local.Position = (Uint32)((nameToken.Pos & 0xFFFF) << 16 | (nameToken.Line & 0xFFFF));
 			Function->Chunk.ModuleLocals->push_back(local);
@@ -4245,9 +4245,6 @@ bool Compiler::Compile(const char* filename, const char* source, CompilerSetting
 
 	return true;
 }
-bool Compiler::Compile(const char* filename, const char* source, Stream* output) {
-	return Compile(filename, source, CurrentSettings, output);
-}
 void Compiler::Cleanup() {
 	if (UnusedVariables) {
 		delete UnusedVariables;
@@ -4298,7 +4295,7 @@ void Compiler::Finish() {
 			ChunkLocal local;
 			local.Name = StringUtils::Create(nameToken.ToString());
 			local.Constant = srcLocal.Constant;
-			local.WasSet = srcLocal.WasSet;
+			local.Resolved = srcLocal.Resolved;
 			local.Index = srcLocal.Index;
 			local.Position = position;
 			chunk->Locals->push_back(local);

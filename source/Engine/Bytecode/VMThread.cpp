@@ -39,7 +39,7 @@ std::jmp_buf VMThread::JumpBuffer;
 
 // #region Error Handling & Debug Info
 std::string VMThread::GetFunctionName(ObjFunction* function) {
-	if (strcmp(function->Name, "main") == 0) {
+	if (function->Index == 0) {
 		return "top-level function";
 	}
 	else if (strcmp(function->Name, "<anonymous-fn>") == 0) {
@@ -149,7 +149,7 @@ void VMThread::PrintFunctionArgs(CallFrame* frame, PrintBuffer* buffer) {
 	ObjFunction* function = frame->Function;
 
 	// That's top level code; there's no parameters
-	if (strcmp(function->Name, "main") == 0) {
+	if (function->Index == 0) {
 		return;
 	}
 
@@ -475,6 +475,7 @@ void VMThread::DebuggerLoop() {
 	printf("Resuming execution.\n");
 
 	ScriptManager::RemoveTemporaryModules();
+	ScriptManager::RemoveSourceFile("repl");
 
 	InDebugger = false;
 }
@@ -630,7 +631,7 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args, const char* ful
 			return false;
 		}
 	}
-	else if (IS_COMMAND("variable") || IS_COMMAND("var")) {
+	else if (IS_COMMAND("variable") || IS_COMMAND("printvar")) {
 		if (args.size() < 2) {
 			printf("Missing argument\n");
 			return false;
@@ -898,30 +899,87 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args, const char* ful
 #endif
 	else {
 		// Treat it as code
+		if (DebugFrame != FrameCount - 1) {
+			printf("Cannot execute code outside of top frame\n");
+			return false;
+		}
+
+		ObjFunction* function = frame->Function;
+		Chunk* chunk = &function->Chunk;
+
+		bool didCompile = false;
+		bool didExecute = false;
+
 		if (FrameCount == FRAMES_MAX) {
 			printf("No call frame available for executing code\n");
 			return false;
 		}
 
-		MemoryStream* memStream = MemoryStream::New(0x100);
-		if (!memStream) {
-			printf("Not enough memory for compiling code\n");
-			return false;
-		}
-
-		bool didExecute = false;
-		bool didCompile = false;
-
+		// Prepare the compiler
 		Compiler::PrepareCompiling();
-
-		Compiler* compiler = new Compiler;
-		compiler->InREPL = true;
 
 		CompilerSettings settings = Compiler::Settings;
 		settings.PrintToLog = false;
 
+		Compiler* compiler = new Compiler;
+		compiler->InREPL = true;
+		compiler->CurrentSettings = settings;
+
+		if (function->Index == 0) {
+			compiler->Type = FUNCTIONTYPE_TOPLEVEL;
+			compiler->ScopeDepth = 0;
+		}
+		else {
+			compiler->Type = FUNCTIONTYPE_FUNCTION;
+			compiler->ScopeDepth = 1;
+		}
+
+		// Only the first chunk in the module contains module locals
+		Chunk* firstChunk = &(*function->Module->Functions)[0]->Chunk;
+		if (firstChunk->ModuleLocals) {
+			for (size_t i = 0; i < firstChunk->ModuleLocals->size(); i++) {
+				ChunkLocal local = (*firstChunk->ModuleLocals)[i];
+
+				int index = compiler->AddModuleLocal();
+				Local* compilerLocal = &Compiler::ModuleLocals[index];
+				compilerLocal->Depth = 0;
+				compilerLocal->Index = local.Index;
+				compilerLocal->Resolved = true;
+
+				compiler->RenameLocal(compilerLocal, local.Name);
+
+				if (Compiler::ModuleLocals.size() == 0xFFFF) {
+					break;
+				}
+			}
+		}
+
+		if (chunk->Locals) {
+			for (size_t i = 0; i < chunk->Locals->size(); i++) {
+				ChunkLocal local = (*chunk->Locals)[i];
+				if (local.Index >= StackTop - frame->Slots) {
+					continue;
+				}
+
+				int index = compiler->AddLocal();
+				Local* compilerLocal = &compiler->Locals[index];
+				compilerLocal->Depth = compiler->ScopeDepth;
+				compilerLocal->Index = local.Index;
+				compilerLocal->Resolved = true;
+
+				compiler->RenameLocal(compilerLocal, local.Name);
+
+				if (compiler->LocalCount == 0xFF) {
+					break;
+				}
+			}
+		}
+
+		// Compile the code
+		ObjModule* module = nullptr;
 		try {
-			didCompile = compiler->Compile(nullptr, fullLine, settings, memStream);
+			module = CompileCode(compiler, fullLine);
+			didCompile = true;
 		}
 		catch (const CompilerErrorException& error) {
 			printf("%s\n", error.what());
@@ -930,36 +988,71 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args, const char* ful
 		delete compiler;
 		Compiler::FinishCompiling();
 
-		if (didCompile) {
-			BytecodeContainer bytecode;
-			bytecode.Data = memStream->pointer_start;
-			bytecode.Size = memStream->Position();
-
-			ScriptManager::AddSourceFile("repl", StringUtils::Duplicate(fullLine));
-
-			VMValue* lastStackTop = StackTop;
-			int lastFrame = FrameCount++;
-
-			InterpretResult = NULL_VAL;
-
-			didExecute = ScriptManager::RunBytecode(this, bytecode, 0x00000000);
-
-			FrameCount = lastFrame;
-			StackTop = lastStackTop;
-
-			if (!HitBreakpoint) {
-				if (IS_STRING(InterpretResult)) {
-					printf("\"");
-				}
-				ValuePrinter::Print(InterpretResult);
-				if (IS_STRING(InterpretResult)) {
-					printf("\"");
-				}
-				printf("\n");
-			}
+		if (!didCompile) {
+			return false;
 		}
 
-		memStream->Close();
+		// Execute the code
+		if (module) {
+			ObjFunction* newFunction = (*module->Functions)[0];
+
+			// Add any new module locals to the current module
+			if (firstChunk->ModuleLocals && newFunction->Chunk.ModuleLocals) {
+				size_t start = firstChunk->ModuleLocals->size();
+				for (size_t i = start; i < newFunction->Chunk.ModuleLocals->size(); i++) {
+					ChunkLocal copy = (*newFunction->Chunk.ModuleLocals)[i];
+					copy.Name = StringUtils::Duplicate(copy.Name);
+					firstChunk->ModuleLocals->push_back(copy);
+				}
+			}
+
+			VMValue* lastStackTop = StackTop;
+			int lastFrame = FrameCount;
+			int lastReturnFrame = ReturnFrame;
+
+			FrameCount++;
+			ReturnFrame = FrameCount;
+
+			if (Call(newFunction, 0)) {
+				InterpretResult = NULL_VAL;
+
+				CallFrame* currentCallFrame = &Frames[FrameCount - 1];
+				CallFrame* lastCallFrame = &Frames[lastFrame - 1];
+
+				currentCallFrame->Slots = lastCallFrame->Slots;
+				currentCallFrame->ModuleLocals = lastCallFrame->ModuleLocals;
+
+				ScriptManager::AddSourceFile("repl", StringUtils::Duplicate(fullLine));
+
+				HitBreakpoint = false;
+
+				RunInstructionSet();
+
+				didExecute = true;
+			}
+
+			ReturnFrame = lastReturnFrame;
+			FrameCount = lastFrame;
+			StackTop = lastStackTop;
+		}
+		else {
+			printf("Could not compile code\n");
+			return false;
+		}
+
+		if (HitBreakpoint) {
+			return didExecute;
+		}
+
+		// Print what was left on the stack
+		if (IS_STRING(InterpretResult)) {
+			printf("\"");
+		}
+		ValuePrinter::Print(InterpretResult);
+		if (IS_STRING(InterpretResult)) {
+			printf("\"");
+		}
+		printf("\n");
 
 		return didExecute;
 	}
@@ -967,6 +1060,39 @@ bool VMThread::InterpretDebuggerCommand(std::vector<char*> args, const char* ful
 #undef IS_COMMAND
 
 	return true;
+}
+ObjModule* VMThread::CompileCode(Compiler* compiler, const char* code) {
+	bool didCompile = false;
+
+	MemoryStream* memStream = MemoryStream::New(0x100);
+	if (!memStream) {
+		return nullptr;
+	}
+
+	try {
+		compiler->Initialize();
+
+		didCompile = compiler->Compile(nullptr, code, memStream);
+	}
+	catch (const CompilerErrorException& error) {
+		memStream->Close();
+
+		throw error;
+	}
+
+	ObjModule* module = nullptr;
+
+	if (didCompile) {
+		BytecodeContainer bytecode;
+		bytecode.Data = memStream->pointer_start;
+		bytecode.Size = memStream->Position();
+
+		module = ScriptManager::LoadBytecode(this, bytecode, 0x00000000);
+	}
+
+	memStream->Close();
+
+	return module;
 }
 void VMThread::PrintCallFrameSourceLine(CallFrame* frame, int line, int pos, bool showFunction) {
 	ObjFunction* function = frame->Function;
@@ -1016,6 +1142,7 @@ bool VMThread::PrintSourceLineAndPosition(const char* sourceFilename, int line, 
 		filePath = "repl";
 	}
 
+	// TODO: This doesn't watch for changes in the source file
 	char* sourceLine = ScriptManager::GetSourceCodeLine(filePath.c_str(), line);
 	if (!sourceLine) {
 		return false;
@@ -1160,9 +1287,6 @@ Uint32 VMThread::StackSize() {
 	return (Uint32)(StackTop - Stack);
 }
 void VMThread::ResetStack() {
-	// bool debugInstruction = ID == 1;
-	// if (debugInstruction) printf("reset stack\n");
-
 	StackTop = Stack;
 }
 // #endregion
@@ -1170,8 +1294,6 @@ void VMThread::ResetStack() {
 // #region Instruction stuff
 enum ThreadReturnCodes {
 	INTERPRET_RUNTIME_ERROR = -100,
-	INTERPRET_GLOBAL_DOES_NOT_EXIST,
-	INTERPRET_GLOBAL_ALREADY_EXIST,
 	INTERPRET_FINISHED = -1,
 	INTERPRET_OK = 0,
 };
@@ -1433,7 +1555,7 @@ int VMThread::RunInstruction() {
 					goto FAIL_OP_GET_GLOBAL;
 				}
 				Push(NULL_VAL);
-				return INTERPRET_GLOBAL_DOES_NOT_EXIST;
+				return INTERPRET_RUNTIME_ERROR;
 			}
 
 			Push(Value::Delink(result));
@@ -1465,7 +1587,7 @@ int VMThread::RunInstruction() {
 					ERROR_RES_CONTINUE) {
 					goto FAIL_OP_SET_GLOBAL;
 				}
-				return INTERPRET_GLOBAL_DOES_NOT_EXIST;
+				return INTERPRET_RUNTIME_ERROR;
 			}
 
 			VMValue LHS = ScriptManager::Globals->Get(hash);
@@ -2932,8 +3054,8 @@ int VMThread::RunInstruction() {
 
 	VM_CASE(OP_GET_MODULE_LOCAL) {
 		Uint16 slot = ReadUInt16(frame);
-		if (slot < frame->Module->Locals->size()) {
-			Push((*frame->Module->Locals)[slot]);
+		if (slot < frame->ModuleLocals->size()) {
+			Push((*frame->ModuleLocals)[slot]);
 		}
 		else {
 			Push(NULL_VAL);
@@ -2942,13 +3064,13 @@ int VMThread::RunInstruction() {
 	}
 	VM_CASE(OP_SET_MODULE_LOCAL) {
 		Uint16 slot = ReadUInt16(frame);
-		if (slot < frame->Module->Locals->size()) {
-			(*frame->Module->Locals)[slot] = Peek(0);
+		if (slot < frame->ModuleLocals->size()) {
+			(*frame->ModuleLocals)[slot] = Peek(0);
 		}
 		VM_BREAK;
 	}
 	VM_CASE(OP_DEFINE_MODULE_LOCAL) {
-		frame->Module->Locals->push_back(Pop());
+		frame->ModuleLocals->push_back(Pop());
 		VM_BREAK;
 	}
 
@@ -3068,17 +3190,10 @@ int VMThread::RunInstruction() {
 
 void VMThread::RunInstructionSet() {
 	while (true) {
-		// if (!ScriptManager::Lock()) break;
-
-		int ret;
-		if ((ret = RunInstruction()) < INTERPRET_OK) {
-			if (ret < INTERPRET_FINISHED) {
-				Log::Print(Log::LOG_ERROR, "Error Code: %d!", ret);
-			}
-			// ScriptManager::Unlock();
+		int ret = RunInstruction();
+		if (ret < INTERPRET_OK) {
 			break;
 		}
-		// ScriptManager::Unlock();
 	}
 }
 // #endregion
@@ -3708,6 +3823,7 @@ bool VMThread::Call(ObjFunction* function, int argCount) {
 	frame->WithReceiverStackTop = frame->WithReceiverStack;
 	frame->WithIteratorStackTop = frame->WithIteratorStack;
 	frame->Module = function->Module;
+	frame->ModuleLocals = function->Module->Locals;
 
 #ifdef VM_DEBUG
 	frame->BranchCount = 0;

@@ -218,7 +218,11 @@ bool SourceFileMap::CheckForUpdate() {
 				bool didCompile = false;
 
 				Compiler* compiler = new Compiler;
+				compiler->CurrentSettings = Compiler::Settings;
+
 				try {
+					compiler->Initialize();
+
 					didCompile = compiler->Compile(scriptFilename, source, memStream);
 				}
 				catch (const CompilerErrorException& error) {
