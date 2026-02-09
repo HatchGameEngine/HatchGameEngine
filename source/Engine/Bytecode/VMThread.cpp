@@ -529,6 +529,7 @@ void VMThread::ResetStack() {
 
 // #region Instruction stuff
 enum ThreadReturnCodes {
+	INTERPRET_EXIT_FROM_DEBUGGER = -200,
 	INTERPRET_RUNTIME_ERROR = -100,
 	INTERPRET_FINISHED = -1,
 	INTERPRET_OK = 0,
@@ -764,6 +765,12 @@ int VMThread::RunInstruction() {
 		Uint8* bp = Breakpoints[frame->Function];
 		if (bp[frame->IP - frame->IPStart]) {
 			Breakpoint();
+
+			if (!FrameCount) {
+				return INTERPRET_EXIT_FROM_DEBUGGER;
+			}
+
+			frame = &Frames[FrameCount - 1];
 		}
 	}
 #endif
@@ -775,7 +782,7 @@ int VMThread::RunInstruction() {
 			Log::Print(Log::LOG_VERBOSE, Bytecode::OpcodeNames[instruction]);
 		}
 		else {
-			Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP);
+			Log::Print(Log::LOG_ERROR, "Unknown opcode 0x%02X\n", instruction);
 		}
 	}
 #endif
@@ -2410,9 +2417,14 @@ int VMThread::RunInstruction() {
 void VMThread::RunInstructionSet() {
 	while (true) {
 		int ret = RunInstruction();
-		if (ret < INTERPRET_OK) {
-			break;
+		if (ret != INTERPRET_OK) {
+			return;
 		}
+#ifdef VM_DEBUG
+		else if (FrameCount == 0) {
+			return;
+		}
+#endif
 	}
 }
 // #endregion
@@ -2568,8 +2580,9 @@ void VMThread::InvokeForEntity(VMValue value, int argCount) {
 		case OBJ_BOUND_METHOD:
 		case OBJ_FUNCTION:
 			RunInstructionSet();
+			break;
 		default:
-			// Do nothing for native functions
+			// Do nothing for native functions, as they've already been called
 			break;
 		}
 	}
