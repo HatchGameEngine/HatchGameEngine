@@ -443,6 +443,10 @@ bool VMThreadDebugger::Cmd_Step(std::vector<char*> args, const char* fullLine) {
 
 			PrintCallFrameSourceLine(frame, frame->IP - frame->IPStart, true);
 		}
+		else {
+			printf("No code left to step through\n");
+			return true;
+		}
 	}
 	else {
 		printf("No function to step through\n");
@@ -477,6 +481,10 @@ bool VMThreadDebugger::Cmd_NextInstruction(std::vector<char*> args, const char* 
 			printf("byte   ln\n");
 			CodeDebugger->DebugInstruction(
 				&frame->Function->Chunk, frame->IP - frame->IPStart);
+		}
+		else {
+			printf("No code left to step through\n");
+			return true;
 		}
 	}
 	else {
