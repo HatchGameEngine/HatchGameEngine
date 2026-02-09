@@ -441,6 +441,7 @@ bool VMThreadDebugger::Cmd_Step(std::vector<char*> args, const char* fullLine) {
 			frame = &Thread->Frames[DebugFrame];
 			frame->IPLast = frame->IP;
 
+			printf("In ");
 			PrintCallFrameSourceLine(frame, frame->IP - frame->IPStart, true);
 		}
 		else {
