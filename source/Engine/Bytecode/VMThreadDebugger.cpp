@@ -295,7 +295,35 @@ bool VMThreadDebugger::Cmd_Continue(std::vector<char*> args, const char* fullLin
 }
 
 bool VMThreadDebugger::Cmd_Backtrace(std::vector<char*> args, const char* fullLine) {
-	PrintStackTrace();
+	for (Uint32 i = 0; i < Thread->FrameCount; i++) {
+		CallFrame* frame = &Thread->Frames[i];
+		ObjFunction* function = frame->Function;
+		int line = -1;
+
+		const char* source = GetModuleName(function->Module);
+
+		if (i > 0 && function->Chunk.Lines && strcmp(source, "repl") != 0) {
+			CallFrame* fr2 = &Thread->Frames[i - 1];
+			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
+		}
+
+		std::string functionName = VMThread::GetFunctionName(function);
+
+		printf("  %c (%d) %s", DebugFrame == i ? '>' : ' ', (int)i, functionName.c_str());
+
+		Thread->PrintFunctionArgs(frame, nullptr);
+
+		printf("\n");
+		printf("        of %s", source);
+
+		if (line > 0) {
+			printf(" on line %d", line);
+		}
+		if (i < Thread->FrameCount - 1) {
+			printf(", then");
+		}
+		printf("\n");
+	}
 
 	return true;
 }
@@ -1065,38 +1093,6 @@ CallFrame* VMThreadDebugger::GetCallFrame() {
 	}
 
 	return nullptr;
-}
-
-void VMThreadDebugger::PrintStackTrace() {
-	for (Uint32 i = 0; i < Thread->FrameCount; i++) {
-		CallFrame* frame = &Thread->Frames[i];
-		ObjFunction* function = frame->Function;
-		int line = -1;
-
-		const char* source = GetModuleName(function->Module);
-
-		if (i > 0 && function->Chunk.Lines && strcmp(source, "repl") != 0) {
-			CallFrame* fr2 = &Thread->Frames[i - 1];
-			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
-		}
-
-		std::string functionName = VMThread::GetFunctionName(function);
-
-		printf("  %c (%d) %s", DebugFrame == i ? '>' : ' ', (int)i, functionName.c_str());
-
-		Thread->PrintFunctionArgs(frame, nullptr);
-
-		printf("\n");
-		printf("        of %s", source);
-
-		if (line > 0) {
-			printf(" on line %d", line);
-		}
-		if (i < Thread->FrameCount - 1) {
-			printf(", then");
-		}
-		printf("\n");
-	}
 }
 
 void VMThreadDebugger::PrintCallFrameSourceLine(CallFrame* frame,

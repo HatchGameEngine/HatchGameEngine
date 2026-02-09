@@ -34,7 +34,6 @@ private:
 
 	ObjModule* CompileCode(Compiler* compiler, const char* code);
 	CallFrame* GetCallFrame();
-	void PrintStackTrace();
 	bool PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos);
 
 	VMThread* Thread = nullptr;
