@@ -360,6 +360,11 @@ bool VMThreadDebugger::Cmd_Frame(std::vector<char*> args, const char* fullLine) 
 		return false;
 	}
 
+	if (!Thread->FrameCount) {
+		printf("No call frames\n");
+		return false;
+	}
+
 	if (index < 0 || index >= Thread->FrameCount) {
 		printf("Frame %d out of range (0-%d)\n", index, Thread->FrameCount - 1);
 		return false;
@@ -382,6 +387,11 @@ bool VMThreadDebugger::Cmd_Frame(std::vector<char*> args, const char* fullLine) 
 }
 
 bool VMThreadDebugger::Cmd_Line(std::vector<char*> args, const char* fullLine) {
+	if (!Thread->FrameCount) {
+		printf("No call frames\n");
+		return false;
+	}
+
 	CallFrame* frame = GetCallFrame();
 
 	if (frame && frame->Function) {
@@ -398,6 +408,11 @@ bool VMThreadDebugger::Cmd_Line(std::vector<char*> args, const char* fullLine) {
 
 #if USING_VM_FUNCPTRS
 bool VMThreadDebugger::Cmd_Step(std::vector<char*> args, const char* fullLine) {
+	if (!Thread->FrameCount) {
+		printf("No call frames\n");
+		return false;
+	}
+
 	if (DebugFrame != Thread->FrameCount - 1) {
 		printf("Cannot step outside of top frame\n");
 		return false;
@@ -438,6 +453,11 @@ bool VMThreadDebugger::Cmd_Step(std::vector<char*> args, const char* fullLine) {
 }
 
 bool VMThreadDebugger::Cmd_NextInstruction(std::vector<char*> args, const char* fullLine) {
+	if (!Thread->FrameCount) {
+		printf("No call frames\n");
+		return false;
+	}
+
 	if (DebugFrame != Thread->FrameCount - 1) {
 		printf("Cannot step outside of top frame\n");
 		return false;
@@ -469,6 +489,11 @@ bool VMThreadDebugger::Cmd_NextInstruction(std::vector<char*> args, const char* 
 #endif
 
 bool VMThreadDebugger::Cmd_Chunk(std::vector<char*> args, const char* fullLine) {
+	if (!Thread->FrameCount) {
+		printf("No call frames\n");
+		return false;
+	}
+
 	CallFrame* frame = GetCallFrame();
 
 	if (frame && frame->Function) {
@@ -506,7 +531,7 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 	}
 
 	CallFrame* frame = GetCallFrame();
-	Chunk* chunk;
+	Chunk* chunk = nullptr;
 
 	VMValue value = VMValue{VAL_ERROR};
 	std::vector<ChunkLocal> matches;
@@ -515,14 +540,11 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 	bool printDeclaration = false;
 	bool exit = false;
 
-	if (!frame || !frame->Function) {
-		printf("No call farme\n");
-		return false;
+	if (frame && frame->Function) {
+		chunk = &frame->Function->Chunk;
 	}
 
-	chunk = &frame->Function->Chunk;
-
-	if (chunk->Locals) {
+	if (chunk && chunk->Locals) {
 		bool printMessage = false;
 
 		for (size_t i = 0; i < chunk->Locals->size(); i++) {
@@ -621,7 +643,7 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 		return false;
 	}
 
-	if (value.Type == VAL_ERROR) {
+	if (chunk && value.Type == VAL_ERROR) {
 		// Only the first chunk in the module contains module locals
 		chunk = &(*frame->Function->Module->Functions)[0]->Chunk;
 
@@ -833,6 +855,11 @@ bool VMThreadDebugger::Cmd_Help(std::vector<char*> args, const char* fullLine) {
 }
 
 bool VMThreadDebugger::ExecuteCode(const char* code) {
+	if (!Thread->FrameCount) {
+		printf("No call frames\n");
+		return false;
+	}
+
 	if (DebugFrame != Thread->FrameCount - 1) {
 		printf("Cannot execute code outside of top frame\n");
 		return false;
@@ -1088,7 +1115,7 @@ ObjModule* VMThreadDebugger::CompileCode(Compiler* compiler, const char* code) {
 }
 
 CallFrame* VMThreadDebugger::GetCallFrame() {
-	if (Thread && DebugFrame >= 0) {
+	if (Thread && Thread->FrameCount > 0 && DebugFrame >= 0) {
 		return &Thread->Frames[DebugFrame];
 	}
 
