@@ -23,10 +23,28 @@ endif()
 # Set up CMake modules path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-file(GLOB_RECURSE C_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "source/*.c")
-file(GLOB_RECURSE CPP_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "source/*.cpp")
+file(GLOB_RECURSE C_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "source/Engine/*.c")
+file(GLOB_RECURSE CPP_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "source/Engine/*.cpp")
 
-set(HATCH_SOURCES ${C_SOURCES} ${CPP_SOURCES})
+set(LIBRARY_SOURCES
+  source/Libraries/miniz.c
+  source/Libraries/spng.c
+  source/Libraries/stb_vorbis.c
+)
+
+list(APPEND LIBRARY_SOURCES
+  source/Libraries/Clipper2/clipper.engine.cpp
+  source/Libraries/Clipper2/clipper.offset.cpp
+  source/Libraries/Clipper2/clipper.rectclip.cpp
+)
+
+list(APPEND LIBRARY_SOURCES
+  source/Libraries/poly2tri/common/shapes.cpp
+  source/Libraries/poly2tri/sweep/advancing_front.cpp
+  source/Libraries/poly2tri/sweep/cdt.cpp
+  source/Libraries/poly2tri/sweep/sweep.cpp
+  source/Libraries/poly2tri/sweep/sweep_context.cpp
+)
 
 set(HATCH_TARGET_NAME ${PROJECT_NAME})
 if(TARGET_NAME)
@@ -67,6 +85,8 @@ else()
   option(ENABLE_VM_DEBUGGING "Enable VM debugging" OFF)
   option(DEVELOPER_MODE "Developer mode" OFF)
 endif()
+
+option(ENABLE_USING_LINENOISE "Use linenoise-ng for the script debugger command line interface" ON)
 
 option(PORTABLE_MODE "Portable mode" OFF)
 option(ALLOW_COMMAND_LINE_RESOURCE_LOAD "Allow loading resource files from command line" ON)
@@ -111,6 +131,15 @@ endif()
 
 if(ENABLE_VM_DEBUGGING)
   add_definitions(-DVM_DEBUG)
+
+  if (ENABLE_USING_LINENOISE)
+    add_definitions(-DUSING_LINENOISE)
+
+    list(APPEND LIBRARY_SOURCES
+      source/Libraries/linenoise-ng/linenoise.cpp
+      source/Libraries/linenoise-ng/wcwidth.cpp
+    )
+  endif()
 endif()
 
 if(DEVELOPER_MODE)
@@ -143,7 +172,7 @@ if (REPO_DIR)
   add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 endif()
 
-add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
+add_executable(${PROJECT_NAME} ${C_SOURCES} ${CPP_SOURCES} ${LIBRARY_SOURCES})
 
 set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
 

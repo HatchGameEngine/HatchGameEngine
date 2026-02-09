@@ -10,7 +10,15 @@
 #include <Engine/Exceptions/CompilerErrorException.h>
 #include <Engine/Utilities/StringUtils.h>
 
+#ifdef USING_LINENOISE
+#include <Libraries/linenoise-ng/linenoise.h>
+
+void DebuggerCompletionCallback(const char *buf, linenoiseCompletions *completions);
+#endif
+
 #include <iostream>
+
+#define PROMPT "> "
 
 typedef bool (VMThreadDebugger::*DebuggerCommandFunc)(std::vector<char*>, const char*);
 
@@ -109,6 +117,11 @@ VMThreadDebugger::VMThreadDebugger(VMThread* thread) {
 }
 
 void VMThreadDebugger::Enter() {
+	if (!Thread) {
+		printf("No thread to debug");
+		return;
+	}
+
 	if (Active) {
 		printf("Already debugging\n");
 		return;
@@ -122,15 +135,54 @@ void VMThreadDebugger::Enter() {
 	CodeDebugger->Tokens = ScriptManager::Tokens;
 
 	Thread->InDebugger = true;
+
+#ifdef USING_LINENOISE
+	linenoiseSetCompletionCallback(DebuggerCompletionCallback);
+#endif
 }
+
+bool VMThreadDebugger::ReadLine(std::string& line) {
+#ifdef USING_LINENOISE
+	char* read = linenoise(PROMPT);
+	if (!read) {
+		return false;
+	}
+
+	line = std::string(read);
+
+	free(read);
+#else
+	printf(PROMPT);
+
+	std::getline(std::cin, line);
+#endif
+
+	return true;
+}
+
+#ifdef USING_LINENOISE
+void DebuggerCompletionCallback(const char *buf, linenoiseCompletions *completions) {
+	if (buf[0] == '\0') {
+		return;
+	}
+
+	for (size_t i = 0; i < CommandList.size(); i++) {
+		DebuggerCommand& command = CommandList[i];
+		if (StringUtils::StartsWith(command.Name, buf)) {
+			linenoiseAddCompletion(completions, command.Name);
+		}
+	}
+}
+#endif
 
 void VMThreadDebugger::MainLoop() {
 	while (Active) {
-		printf("> ");
-
 		// Read the line
 		std::string read;
-		std::getline(std::cin, read);
+
+		if (!ReadLine(read)) {
+			continue;
+		}
 
 		// Trim the line
 		const char* trim_chars = " \t\r\v\f";
@@ -158,6 +210,10 @@ void VMThreadDebugger::MainLoop() {
 		if (isWhitespace) {
 			continue;
 		}
+
+#ifdef USING_LINENOISE
+		linenoiseHistoryAdd(read.c_str());
+#endif
 
 		// Split string by whitespace
 		// TODO: This needs to be able to capture text in quotes correctly

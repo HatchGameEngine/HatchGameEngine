@@ -13,6 +13,7 @@
 class VMThreadDebugger {
 #ifdef VM_DEBUG
 private:
+	bool ReadLine(std::string& line);
 	bool InterpretCommand(std::vector<char*> args, const char* fullLine);
 	bool ExecuteCode(const char* code);
 
@@ -36,10 +37,10 @@ private:
 	void PrintStackTrace();
 	bool PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos);
 
-	VMThread* Thread;
-	bool Active;
-	bool Exiting;
-	int DebugFrame;
+	VMThread* Thread = nullptr;
+	bool Active = false;
+	bool Exiting = false;
+	int DebugFrame = 0;
 	BytecodeDebugger* CodeDebugger = nullptr;
 #endif
 
