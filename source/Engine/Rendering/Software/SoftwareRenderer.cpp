@@ -388,7 +388,7 @@ void SoftwareRenderer::SetTintColor(float r, float g, float b, float a) {
 	CLAMP_VAL(blue, 0x00, 0xFF);
 	CLAMP_VAL(alpha, 0x00, 0x100);
 
-	CurrentBlendState.Tint.Color = red << 16 | green << 8 | blue;
+	CurrentBlendState.Tint.Color = ColorUtils::ToRGB(red, green, blue);
 	CurrentBlendState.Tint.Amount = alpha;
 }
 void SoftwareRenderer::SetTintMode(int mode) {

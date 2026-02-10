@@ -132,7 +132,7 @@ Uint32 ColorUtils::Tint(Uint32 color, Uint32 colorMult) {
 	dR = (Uint8)((dR * sR + 0xFF) >> 8);
 	dG = (Uint8)((dG * sG + 0xFF) >> 8);
 	dB = (Uint8)((dB * sB + 0xFF) >> 8);
-	return dB | (dG << 8) | (dR << 16);
+	return (dB << 16) | (dG << 8) | dR;
 }
 Uint32 ColorUtils::Tint(Uint32 color, Uint32 colorMult, Uint16 percentage) {
 	return Blend(color, Tint(color, colorMult), percentage);
@@ -141,7 +141,7 @@ Uint32 ColorUtils::Multiply(Uint32 color, Uint32 colorMult) {
 	Uint32 R = ((colorMult & 0xFF) + 1) * (color & 0x0000FF);
 	Uint32 G = (((colorMult >> 8) & 0xFF) + 1) * (color & 0x00FF00);
 	Uint32 B = (((colorMult >> 16) & 0xFF) + 1) * (color & 0xFF0000);
-	return (int)((R >> 8) | (G >> 8) | (B >> 8));
+	return (int)((B >> 8) | (G >> 8) | (R >> 8));
 }
 Uint32 ColorUtils::Blend(Uint32 color1, Uint32 color2, int percent) {
 	Uint32 br = color1 & 0xFF00FFU;
