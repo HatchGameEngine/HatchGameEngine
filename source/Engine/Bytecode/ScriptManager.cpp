@@ -125,6 +125,7 @@ void ScriptManager::Init() {
 #ifdef VM_DEBUG
 		Threads[i].DebugInfo = false;
 		Threads[i].InDebugger = false;
+		Threads[i].BreakpointIndex = 0;
 		Threads[i].BranchLimit = branchLimit;
 #endif
 	}
@@ -488,13 +489,7 @@ ObjModule* ScriptManager::LoadBytecode(VMThread* thread, BytecodeContainer bytec
 #endif
 
 #ifdef VM_DEBUG
-		if (chunk->Breakpoints) {
-			Uint8* breakpoints = (Uint8*)Memory::Calloc(chunk->Count, sizeof(Uint8));
-
-			memcpy(breakpoints, chunk->Breakpoints, chunk->Count);
-
-			thread->Breakpoints[function] = breakpoints;
-		}
+		thread->AddFunctionBreakpoints(function);
 #endif
 	}
 

@@ -13,7 +13,7 @@ private:
 	bool CheckBranchLimit(CallFrame* frame);
 	bool DoJump(CallFrame* frame, int offset);
 	bool DoJumpBack(CallFrame* frame, int offset);
-	void Breakpoint();
+	void Breakpoint(VMThreadBreakpoint* breakpoint);
 	bool ShowBranchLimitMessage(const char* errorMessage, ...);
 #endif
 	bool
@@ -55,8 +55,10 @@ public:
 	bool DebugInfo;
 	bool HitBreakpoint;
 	bool InDebugger;
+	int BreakpointIndex;
 	Uint32 BranchLimit;
-	std::unordered_map<ObjFunction*, Uint8*> Breakpoints;
+	std::vector<VMThreadBreakpoint*> Breakpoints;
+	std::unordered_map<ObjFunction*, Uint8*> BreakpointsPerFunction;
 #endif
 	static bool InstructionIgnoreMap[0x100];
 	static std::jmp_buf JumpBuffer;
@@ -73,6 +75,12 @@ public:
 	void PrintStack();
 	void ReturnFromNative() throw();
 #ifdef VM_DEBUG
+	VMThreadBreakpoint* AddBreakpoint(ObjFunction* function, Uint32 position, int type);
+	VMThreadBreakpoint* GetBreakpoint(int index);
+	VMThreadBreakpoint* FindBreakpoint(ObjFunction* function, Uint32 position);
+	bool RemoveBreakpoint(int index);
+	void AddFunctionBreakpoints(ObjFunction* function);
+	void RemoveBreakpointsForFunction(ObjFunction* function);
 	void RemoveBreakpointsForModule(ObjModule* module);
 	void DisposeBreakpoints();
 #endif

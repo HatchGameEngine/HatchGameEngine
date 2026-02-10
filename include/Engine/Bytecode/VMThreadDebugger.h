@@ -31,8 +31,15 @@ private:
 	bool Cmd_Chunk(std::vector<char*> args, const char* fullLine);
 	bool Cmd_Variable(std::vector<char*> args, const char* fullLine);
 	bool Cmd_Breakpoint(std::vector<char*> args, const char* fullLine);
+	bool Cmd_TempBreakpoint(std::vector<char*> args, const char* fullLine);
+	bool Cmd_DisableBreakpoint(std::vector<char*> args, const char* fullLine);
+	bool Cmd_EnableBreakpoint(std::vector<char*> args, const char* fullLine);
+	bool Cmd_RemoveBreakpoint(std::vector<char*> args, const char* fullLine);
+	bool Cmd_ListBreakpoints(std::vector<char*> args, const char* fullLine);
+	bool Cmd_ClearBreakpoints(std::vector<char*> args, const char* fullLine);
 
 	ObjModule* CompileCode(Compiler* compiler, const char* code);
+	ObjFunction* GetFunctionForBreakpoint(std::vector<char*> args, Uint32& position);
 	CallFrame* GetCallFrame();
 	bool PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos);
 

@@ -475,6 +475,22 @@ struct VMThreadCallback {
 	VMValue Callable;
 };
 
+#ifdef VM_DEBUG
+enum {
+	BREAKPOINT_ONHIT_KEEP,
+	BREAKPOINT_ONHIT_DISABLE,
+	BREAKPOINT_ONHIT_REMOVE
+};
+
+struct VMThreadBreakpoint {
+	ObjFunction* Function = nullptr;
+	Uint32 CodeOffset = 0;
+	bool Enabled = true;
+	int OnHit = BREAKPOINT_ONHIT_KEEP;
+	int Index = 0;
+};
+#endif
+
 struct CallFrame {
 	ObjFunction* Function;
 	Uint8* IP;

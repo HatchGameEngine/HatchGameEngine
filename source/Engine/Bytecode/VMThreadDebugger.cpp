@@ -102,6 +102,36 @@ void VMThreadDebugger::Initialize() {
 		(std::vector<std::string>{"break", "b"}),
 		"Adds a breakpoint");
 
+	CMD("tempbreakpoint",
+		&VMThreadDebugger::Cmd_TempBreakpoint,
+		(std::vector<std::string>{"tbreak", "tb"}),
+		"Adds a temporary breakpoint");
+
+	CMD("disablebreakpoint",
+		&VMThreadDebugger::Cmd_DisableBreakpoint,
+		(std::vector<std::string>{"disablebreak", "db"}),
+		"Removes a breakpoint");
+
+	CMD("enablebreakpoint",
+		&VMThreadDebugger::Cmd_EnableBreakpoint,
+		(std::vector<std::string>{"enablebreak", "eb"}),
+		"Enables a breakpoint");
+
+	CMD("removebreakpoint",
+		&VMThreadDebugger::Cmd_RemoveBreakpoint,
+		(std::vector<std::string>{"removebreak", "rb"}),
+		"Removes a breakpoint");
+
+	CMD("listbreakpoints",
+		&VMThreadDebugger::Cmd_ListBreakpoints,
+		(std::vector<std::string>{"listbreakpoint", "listbreak", "lb"}),
+		"Lists breakpoints");
+
+	CMD("clearbreakpoints",
+		&VMThreadDebugger::Cmd_ClearBreakpoints,
+		(std::vector<std::string>{"clearbreakpoint", "clearbreak", "cb"}),
+		"Clears all breakpoints");
+
 	CMD("help",
 		&VMThreadDebugger::Cmd_Help,
 		(std::vector<std::string>{"h"}),
@@ -700,140 +730,202 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 }
 
 bool VMThreadDebugger::Cmd_Breakpoint(std::vector<char*> args, const char* fullLine) {
-	CallFrame* frame = GetCallFrame();
-
-	ObjFunction* function = nullptr;
-	ObjFunction* currentFunction = nullptr;
-
-	Chunk* chunk;
-	Uint8* bp;
 	Uint32 position = 0;
+	ObjFunction* function = GetFunctionForBreakpoint(args, position);
+	if (!function) {
+		return false;
+	}
 
-	int lineNum = 0;
+	// Add the breakpoint
+	VMThreadBreakpoint* bp = Thread->AddBreakpoint(function, position, BREAKPOINT_ONHIT_KEEP);
 
-	if (args.size() < 2) {
-		if (!frame || !frame->Function) {
-			printf("No current function to set breakpoint\n");
+	if (bp == nullptr) {
+		// Must already have been added
+		bp = Thread->FindBreakpoint(function, position);
+		if (!bp) {
 			return false;
 		}
 
-		currentFunction = frame->Function;
-		function = currentFunction;
+		printf("Already set ");
 	}
 	else {
-		const char* arg = args[1];
-
-		if (args.size() >= 3) {
-			StringUtils::ToNumber(&lineNum, args[2]);
-
-			if (lineNum < 1) {
-				printf("Invalid argument\n");
-				return false;
-			}
-		}
-
-		Uint32 hash = ScriptManager::MakeFilenameHash(arg);
-
-		if (ScriptManager::BytecodeForFilenameHashExists(hash)) {
-			if (!ScriptManager::IsScriptLoaded(hash)) {
-				printf("Script \"%s\" is not loaded\n", arg);
-				return false;
-			}
-
-			ObjModule* module = ScriptManager::GetScriptModule(hash);
-			if (!module) {
-				printf("Script \"%s\" is not loaded\n", arg);
-				return false;
-			}
-
-			function = ScriptManager::GetFunctionAtScriptLine(module, lineNum);
-			if (!function) {
-				printf("Cannot set breakpoint at line %d\n", lineNum);
-				return false;
-			}
-		}
-		else {
-			VMValue callable = ScriptManager::FindFunction(arg);
-
-			if (IS_NULL(callable)) {
-				printf("No function named \"%s\"\n", arg);
-				return false;
-			}
-			else if (!IS_FUNCTION(callable)) {
-				printf("\"%s\" must be a function, not a bound method or a native\n",
-					arg);
-				return false;
-			}
-
-			function = AS_FUNCTION(callable);
-		}
+		printf("Set ");
 	}
 
-	chunk = &function->Chunk;
+	printf("breakpoint %d at %s", bp->Index, GetModuleName(function->Module));
 
-	if (!Thread->Breakpoints.count(function)) {
-		bp = (Uint8*)Memory::Calloc(chunk->Count, sizeof(Uint8));
+	Chunk* chunk = &function->Chunk;
+	if (chunk->Lines) {
+		int line = chunk->Lines[position] & 0xFFFF;
+		int pos = (chunk->Lines[position] >> 16) & 0xFFFF;
 
-		if (chunk->Breakpoints) {
-			memcpy(bp, chunk->Breakpoints, chunk->Count);
-		}
+		printf(", line %d, column %d\n", line, pos);
 
-		Thread->Breakpoints[function] = bp;
+		PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
 	}
 	else {
-		bp = Thread->Breakpoints[function];
+		printf("\n");
 	}
 
-	if (function == currentFunction) {
-		position = frame->IP - frame->IPStart;
-		position += Bytecode::GetTotalOpcodeSize(chunk->Code + position);
-	}
-	else if (lineNum > 0) {
-		if (chunk->Lines) {
-			bool foundPosition = false;
+	return true;
+}
 
-			for (int offset = 0; offset < chunk->Count;) {
-				int line = chunk->Lines[offset] & 0xFFFF;
-				if (line == lineNum) {
-					position = (Uint32)offset;
-					foundPosition = true;
-					break;
-				}
-
-				offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
-			}
-
-			if (!foundPosition) {
-				printf("Cannot set breakpoint at line %d\n", lineNum);
-				return false;
-			}
-		}
-		else {
-			printf("Note: No line information present for this function. Setting breakpoint at the beginning\n");
-		}
-	}
-
-	if (position < chunk->Count) {
-		bp[position] = 1;
-
-		printf("Set breakpoint at %s", GetModuleName(function->Module));
-
-		if (chunk->Lines) {
-			int line = chunk->Lines[position] & 0xFFFF;
-			int pos = (chunk->Lines[position] >> 16) & 0xFFFF;
-
-			printf(", line %d, column %d\n", line, pos);
-
-			PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
-		}
-		else {
-			printf("\n");
-		}
-	}
-	else {
-		printf("No next instruction to set breakpoint\n");
+bool VMThreadDebugger::Cmd_TempBreakpoint(std::vector<char*> args, const char* fullLine) {
+	Uint32 position = 0;
+	ObjFunction* function = GetFunctionForBreakpoint(args, position);
+	if (!function) {
 		return false;
 	}
+
+	const int type = BREAKPOINT_ONHIT_REMOVE;
+
+	// Add the breakpoint
+	VMThreadBreakpoint* bp = Thread->AddBreakpoint(function, position, type);
+
+	if (bp == nullptr) {
+		// Must already have been added
+		bp = Thread->FindBreakpoint(function, position);
+		if (!bp) {
+			return false;
+		}
+
+		// Change what to do when it's hit
+		bp->OnHit = type;
+	}
+
+	printf("Set temporary breakpoint %d at %s", bp->Index, GetModuleName(function->Module));
+
+	Chunk* chunk = &function->Chunk;
+	if (chunk->Lines) {
+		int line = chunk->Lines[position] & 0xFFFF;
+		int pos = (chunk->Lines[position] >> 16) & 0xFFFF;
+
+		printf(", line %d, column %d\n", line, pos);
+
+		PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
+	}
+	else {
+		printf("\n");
+	}
+
+	return true;
+}
+
+bool VMThreadDebugger::Cmd_DisableBreakpoint(std::vector<char*> args, const char* fullLine) {
+	int index = 0;
+	if (!StringUtils::ToNumber(&index, args[1]) || index < 0) {
+		printf("Invalid argument\n");
+		return false;
+	}
+
+	VMThreadBreakpoint* breakpoint = Thread->GetBreakpoint(index);
+
+	if (!breakpoint) {
+		printf("No breakpoint %d\n", index);
+		return false;
+	}
+
+	breakpoint->Enabled = false;
+
+	printf("Disabled breakpoint %d\n", index);
+
+	return false;
+}
+
+bool VMThreadDebugger::Cmd_EnableBreakpoint(std::vector<char*> args, const char* fullLine) {
+	int index = 0;
+	if (!StringUtils::ToNumber(&index, args[1]) || index < 0) {
+		printf("Invalid argument\n");
+		return false;
+	}
+
+	VMThreadBreakpoint* breakpoint = Thread->GetBreakpoint(index);
+
+	if (!breakpoint) {
+		printf("No breakpoint %d\n", index);
+		return false;
+	}
+
+	breakpoint->Enabled = true;
+
+	printf("Enabled breakpoint %d\n", index);
+
+	return false;
+}
+
+bool VMThreadDebugger::Cmd_RemoveBreakpoint(std::vector<char*> args, const char* fullLine) {
+	int index = 0;
+	if (!StringUtils::ToNumber(&index, args[1]) || index < 0) {
+		printf("Invalid argument\n");
+		return false;
+	}
+
+	if (Thread->RemoveBreakpoint(index)) {
+		printf("Removed breakpoint %d\n", index);
+		return true;
+	}
+
+	printf("No breakpoint %d\n", index);
+
+	return false;
+}
+
+bool VMThreadDebugger::Cmd_ListBreakpoints(std::vector<char*> args, const char* fullLine) {
+	if (Thread->Breakpoints.size() == 0) {
+		printf("No breakpoints in this thread\n");
+		return false;
+	}
+
+	printf("Breakpoints:\n");
+
+	for (size_t i = 0; i < Thread->Breakpoints.size(); i++) {
+		VMThreadBreakpoint* breakpoint = Thread->Breakpoints[i];
+		ObjFunction* function = breakpoint->Function;
+		Chunk* chunk = &function->Chunk;
+
+		int line = 0;
+		int pos = 0;
+
+		printf("%d: %s", breakpoint->Index, GetModuleName(function->Module));
+
+		if (chunk->Lines) {
+			line = chunk->Lines[breakpoint->CodeOffset] & 0xFFFF;
+			pos = (chunk->Lines[breakpoint->CodeOffset] >> 16) & 0xFFFF;
+
+			printf(", line %d, column %d", line, pos);
+		}
+		else {
+			printf(", code offset %d", breakpoint->CodeOffset);
+		}
+
+		if (breakpoint->Enabled) {
+			printf(", enabled");
+		}
+		else {
+			printf(", disabled");
+		}
+
+		if (breakpoint->OnHit == BREAKPOINT_ONHIT_DISABLE) {
+			printf(", disable on hit");
+		}
+		else if (breakpoint->OnHit == BREAKPOINT_ONHIT_REMOVE) {
+			printf(", remove on hit");
+		}
+
+		printf("\n");
+
+		if (line > 0) {
+			PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
+		}
+	}
+
+	return true;
+}
+
+bool VMThreadDebugger::Cmd_ClearBreakpoints(std::vector<char*> args, const char* fullLine) {
+	Thread->DisposeBreakpoints();
+
+	printf("Removed all breakpoints.\n");
 
 	return true;
 }
@@ -1121,6 +1213,113 @@ ObjModule* VMThreadDebugger::CompileCode(Compiler* compiler, const char* code) {
 	memStream->Close();
 
 	return module;
+}
+
+ObjFunction* VMThreadDebugger::GetFunctionForBreakpoint(std::vector<char*> args, Uint32& position) {
+	CallFrame* frame = GetCallFrame();
+
+	ObjFunction* function = nullptr;
+	ObjFunction* currentFunction = nullptr;
+
+	int lineNum = 0;
+
+	if (args.size() < 2) {
+		if (!frame || !frame->Function) {
+			printf("No current function to set breakpoint\n");
+			return nullptr;
+		}
+
+		currentFunction = frame->Function;
+		function = currentFunction;
+	}
+	else {
+		const char* arg = args[1];
+
+		if (args.size() >= 3) {
+			StringUtils::ToNumber(&lineNum, args[2]);
+
+			if (lineNum < 1) {
+				printf("Invalid argument\n");
+				return nullptr;
+			}
+		}
+
+		Uint32 hash = ScriptManager::MakeFilenameHash(arg);
+
+		if (ScriptManager::BytecodeForFilenameHashExists(hash)) {
+			if (!ScriptManager::IsScriptLoaded(hash)) {
+				printf("Script \"%s\" is not loaded\n", arg);
+				return nullptr;
+			}
+
+			ObjModule* module = ScriptManager::GetScriptModule(hash);
+			if (!module) {
+				printf("Script \"%s\" is not loaded\n", arg);
+				return nullptr;
+			}
+
+			function = ScriptManager::GetFunctionAtScriptLine(module, lineNum);
+			if (!function) {
+				printf("Cannot set breakpoint at line %d\n", lineNum);
+				return nullptr;
+			}
+		}
+		else {
+			VMValue callable = ScriptManager::FindFunction(arg);
+
+			if (IS_NULL(callable)) {
+				printf("No function named \"%s\"\n", arg);
+				return nullptr;
+			}
+			else if (!IS_FUNCTION(callable)) {
+				printf("\"%s\" must be a function, not a bound method or a native\n",
+					arg);
+				return nullptr;
+			}
+
+			function = AS_FUNCTION(callable);
+		}
+	}
+
+	Chunk* chunk = &function->Chunk;
+
+	position = 0;
+
+	if (function == currentFunction) {
+		position = frame->IP - frame->IPStart;
+		position += Bytecode::GetTotalOpcodeSize(chunk->Code + position);
+	}
+	else if (lineNum > 0) {
+		if (chunk->Lines) {
+			bool foundPosition = false;
+
+			for (int offset = 0; offset < chunk->Count;) {
+				int line = chunk->Lines[offset] & 0xFFFF;
+				if (line == lineNum) {
+					position = (Uint32)offset;
+					foundPosition = true;
+					break;
+				}
+
+				offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+			}
+
+			if (!foundPosition) {
+				printf("Cannot set breakpoint at line %d\n", lineNum);
+				return nullptr;
+			}
+		}
+		else {
+			printf("Note: No line information present for this function. Setting breakpoint at the beginning\n");
+		}
+	}
+
+	if (position >= chunk->Count) {
+		printf("No next instruction to set breakpoint\n");
+		return nullptr;
+	}
+
+	return function;
 }
 
 CallFrame* VMThreadDebugger::GetCallFrame() {

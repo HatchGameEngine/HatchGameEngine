@@ -358,7 +358,7 @@ void VMThread::ReturnFromNative() throw() {}
 
 // #region Debugging
 #ifdef VM_DEBUG
-void VMThread::Breakpoint() {
+void VMThread::Breakpoint(VMThreadBreakpoint* breakpoint) {
 	CallFrame* frame = &Frames[FrameCount - 1];
 	ObjFunction* function = frame->Function;
 
@@ -375,10 +375,22 @@ void VMThread::Breakpoint() {
 
 	if (function) {
 		printf(" at ");
-		debugger->PrintCallFrameSourceLine(frame, frame->IP - frame->IPStart, true);
+		debugger->PrintCallFrameSourceLine(frame, breakpoint->CodeOffset, true);
 	}
 	else {
 		printf("\n");
+	}
+
+	switch (breakpoint->OnHit) {
+	case BREAKPOINT_ONHIT_DISABLE:
+		breakpoint->Enabled = false;
+		break;
+	case BREAKPOINT_ONHIT_REMOVE:
+		RemoveBreakpoint(breakpoint->Index);
+		printf("Removed breakpoint %d\n", breakpoint->Index);
+		break;
+	default:
+		break;
 	}
 
 	debugger->Enter();
@@ -466,23 +478,118 @@ bool VMThread::CheckBranchLimit(CallFrame* frame) {
 	}
 	return true;
 }
+VMThreadBreakpoint* VMThread::AddBreakpoint(ObjFunction* function, Uint32 position, int type) {
+	Uint8* breakpoints = BreakpointsPerFunction[function];
+	if (breakpoints[position]) {
+		return nullptr;
+	}
+
+	VMThreadBreakpoint* bp = new VMThreadBreakpoint;
+	bp->Function = function;
+	bp->CodeOffset = position;
+	bp->Enabled = true;
+	bp->OnHit = type;
+	bp->Index = BreakpointIndex++;
+
+	breakpoints[position] = 1;
+
+	Breakpoints.push_back(bp);
+
+	return bp;
+}
+VMThreadBreakpoint* VMThread::GetBreakpoint(int index) {
+	for (size_t i = 0; i < Breakpoints.size(); i++) {
+		VMThreadBreakpoint* breakpoint = Breakpoints[i];
+		if (breakpoint->Index == index) {
+			return breakpoint;
+		}
+	}
+
+	return nullptr;
+}
+VMThreadBreakpoint* VMThread::FindBreakpoint(ObjFunction* function, Uint32 position) {
+	for (size_t i = 0; i < Breakpoints.size(); i++) {
+		VMThreadBreakpoint* breakpoint = Breakpoints[i];
+
+		if (breakpoint->Function == function && breakpoint->CodeOffset == position) {
+			return breakpoint;
+		}
+	}
+
+	return nullptr;
+}
+bool VMThread::RemoveBreakpoint(int index) {
+	for (size_t i = 0; i < Breakpoints.size(); i++) {
+		VMThreadBreakpoint* breakpoint = Breakpoints[i];
+
+		if (breakpoint->Index == index) {
+			Uint8* bp = BreakpointsPerFunction[breakpoint->Function];
+			bp[breakpoint->CodeOffset] = 0;
+
+			delete breakpoint;
+
+			Breakpoints.erase(Breakpoints.begin() + i);
+			return true;
+		}
+	}
+
+	return false;
+}
+void VMThread::AddFunctionBreakpoints(ObjFunction* function) {
+	Chunk* chunk = &function->Chunk;
+
+	Uint8* breakpoints = (Uint8*)Memory::Calloc(chunk->Count, sizeof(Uint8));
+
+	BreakpointsPerFunction[function] = breakpoints;
+
+	if (!chunk->Breakpoints) {
+		return;
+	}
+
+	for (Uint32 i = 0; i < chunk->Count; i++) {
+		if (chunk->Breakpoints[i]) {
+			AddBreakpoint(function, i, BREAKPOINT_ONHIT_KEEP);
+		}
+	}
+}
+void VMThread::RemoveBreakpointsForFunction(ObjFunction* function) {
+	auto it = BreakpointsPerFunction.find(function);
+	if (it != BreakpointsPerFunction.end()) {
+		Memory::Free(it->second);
+		BreakpointsPerFunction.erase(function);
+	}
+
+	for (size_t i = 0; i < Breakpoints.size();) {
+		VMThreadBreakpoint* breakpoint = Breakpoints[i];
+
+		if (breakpoint->Function == function) {
+			delete breakpoint;
+
+			Breakpoints.erase(Breakpoints.begin() + i);
+		}
+		else {
+			i++;
+		}
+	}
+}
 void VMThread::RemoveBreakpointsForModule(ObjModule* module) {
 	for (size_t i = 0; i < module->Functions->size(); i++) {
 		ObjFunction* function = (*module->Functions)[i];
 
-		auto it = Breakpoints.find(function);
-		if (it != Breakpoints.end()) {
-			Memory::Free(it->second);
-			Breakpoints.erase(it);
-		}
+		RemoveBreakpointsForFunction(function);
 	}
 }
 void VMThread::DisposeBreakpoints() {
-	std::unordered_map<ObjFunction*, Uint8*>::iterator it;
-	for (it = Breakpoints.begin(); it != Breakpoints.end(); it++) {
-		Memory::Free(it->second);
+	for (size_t i = 0; i < Breakpoints.size(); i++) {
+		delete Breakpoints[i];
 	}
 	Breakpoints.clear();
+
+	std::unordered_map<ObjFunction*, Uint8*>::iterator it;
+	for (it = BreakpointsPerFunction.begin(); it != BreakpointsPerFunction.end(); it++) {
+		Memory::Free(it->second);
+	}
+	BreakpointsPerFunction.clear();
 }
 #endif
 // #endregion
@@ -761,16 +868,21 @@ int VMThread::RunInstruction() {
 	frame->IPLast = frame->IP;
 
 #ifdef VM_DEBUG
-	if (Breakpoints.count(frame->Function)) {
-		Uint8* bp = Breakpoints[frame->Function];
-		if (bp[frame->IP - frame->IPStart]) {
-			Breakpoint();
+	if (BreakpointsPerFunction.count(frame->Function)) {
+		Uint8* bp = BreakpointsPerFunction[frame->Function];
+		Uint32 position = frame->IP - frame->IPStart;
 
-			if (!FrameCount) {
-				return INTERPRET_EXIT_FROM_DEBUGGER;
+		if (bp[position]) {
+			VMThreadBreakpoint* breakpoint = FindBreakpoint(frame->Function, position);
+			if (breakpoint && breakpoint->Enabled) {
+				Breakpoint(breakpoint);
+
+				if (!FrameCount) {
+					return INTERPRET_EXIT_FROM_DEBUGGER;
+				}
+
+				frame = &Frames[FrameCount - 1];
 			}
-
-			frame = &Frames[FrameCount - 1];
 		}
 	}
 #endif
