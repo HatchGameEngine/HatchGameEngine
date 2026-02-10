@@ -5,6 +5,7 @@ class ObjectRegistry;
 class DrawGroupList;
 
 #include <Engine/Application.h>
+#include <Engine/Bytecode/Types.h>
 #include <Engine/Diagnostics/PerformanceTypes.h>
 #include <Engine/Graphics.h>
 #include <Engine/Includes/HashMap.h>
@@ -58,8 +59,8 @@ public:
 	static int ShowTileCollisionFlag;
 	static int ShowObjectRegions;
 	static bool UseRenderRegions;
-	static HashMap<VMValue>* Properties;
-	static HashMap<ObjectList*>* ObjectLists;
+	static HashMap<Property>* Properties;
+	static OrderedHashMap<ObjectList*>* ObjectLists;
 	static HashMap<ObjectRegistry*>* ObjectRegistries;
 	static HashMap<ObjectList*>* StaticObjectLists;
 	static int ReservedSlotIDs;
@@ -177,6 +178,10 @@ public:
 	static void AddStaticClass();
 	static void CallGameStart();
 	static void ProcessSceneTimer();
+	static Entity* SpawnObject(ObjectList* list, float x, float y);
+	static Entity* SpawnObject(const char* objectName, float x, float y);
+	static Entity* TrySpawnObject(ObjectList* list, float x, float y);
+	static Entity* TrySpawnObject(const char* objectName, float x, float y);
 	static ObjectList* NewObjectList(const char* objectName);
 	static ObjectList* GetObjectList(const char* objectName, bool callListLoadFunction);
 	static ObjectList* GetObjectList(const char* objectName);

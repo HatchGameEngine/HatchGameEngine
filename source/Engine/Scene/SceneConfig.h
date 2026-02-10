@@ -1,6 +1,7 @@
 #ifndef ENGINE_SCENE_SCENECONFIG_H
 #define ENGINE_SCENE_SCENECONFIG_H
 
+#include <Engine/Diagnostics/Memory.h>
 #include <Engine/Includes/HashMap.h>
 
 struct SceneListEntry {

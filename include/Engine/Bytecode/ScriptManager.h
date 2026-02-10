@@ -9,6 +9,7 @@ class ScriptEntity;
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Types/Entity.h>
 #include <set>
 
@@ -77,13 +78,13 @@ public:
 	static BytecodeContainer GetBytecodeFromFilenameHash(Uint32 filenameHash);
 	static bool ClassExists(const char* objectName);
 	static bool ClassExists(Uint32 hash);
+	static bool IsClassLoaded(const char* className);
 	static bool IsStandardLibraryClass(const char* className);
 	static bool LoadScript(char* filename);
 	static bool LoadScript(const char* filename);
 	static bool LoadScript(Uint32 hash);
 	static bool LoadObjectClass(const char* objectName);
 	static ObjClass* GetObjectClass(const char* className);
-	static Entity* ObjectSpawnFunction(ObjectList* list);
 	static void LoadClasses();
 };
 

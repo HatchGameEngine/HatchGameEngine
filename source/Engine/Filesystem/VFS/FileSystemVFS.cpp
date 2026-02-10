@@ -33,10 +33,7 @@ bool FileSystemVFS::GetPath(const char* filename, char* path, size_t pathSize) {
 }
 
 bool FileSystemVFS::IsEmpty() {
-	std::vector<std::filesystem::path> results;
-	Directory::GetFiles(&results, ParentPath.c_str(), "*", true);
-
-	return results.size() == 0;
+	return Directory::IsEmpty(ParentPath.c_str());
 }
 
 bool FileSystemVFS::HasFile(const char* filename) {

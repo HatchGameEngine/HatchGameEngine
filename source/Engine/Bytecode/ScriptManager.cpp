@@ -358,9 +358,7 @@ void ScriptManager::DefineNative(ObjClass* klass, const char* name, NativeFn fun
 		return;
 	}
 
-	if (!klass->Methods->Exists(name)) {
-		klass->Methods->Put(name, OBJECT_VAL(NewNative(function)));
-	}
+	klass->Methods->Put(name, OBJECT_VAL(NewNative(function)));
 }
 void ScriptManager::GlobalLinkInteger(ObjClass* klass, const char* name, int* value) {
 	if (name == NULL) {
@@ -526,20 +524,6 @@ bool ScriptManager::CallFunction(const char* functionName) {
 	Threads[0].InvokeForEntity(callable, 0);
 	return true;
 }
-Entity* ScriptManager::SpawnObject(const char* objectName) {
-	ObjClass* klass = GetObjectClass(objectName);
-	if (!klass) {
-		Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
-		return nullptr;
-	}
-
-	ScriptEntity* object = new ScriptEntity;
-
-	ObjEntity* entity = NewEntity(klass);
-	object->Link(entity);
-
-	return object;
-}
 Uint32 ScriptManager::MakeFilenameHash(const char* filename) {
 	size_t length = strlen(filename);
 	const char* dot = strrchr(filename, '.');
@@ -590,6 +574,9 @@ bool ScriptManager::ClassExists(const char* objectName) {
 bool ScriptManager::ClassExists(Uint32 hash) {
 	return SourceFileMap::ClassMap->Exists(hash);
 }
+bool ScriptManager::IsClassLoaded(const char* className) {
+	return ScriptManager::Classes->Exists(className);
+}
 bool ScriptManager::IsStandardLibraryClass(const char* className) {
 	return IS_CLASS(Constants->Get(className));
 }
@@ -617,17 +604,11 @@ bool ScriptManager::LoadScript(Uint32 hash) {
 	return true;
 }
 bool ScriptManager::LoadObjectClass(const char* objectName) {
-	if (!objectName || !*objectName) {
-		return false;
+	if (ScriptManager::IsClassLoaded(objectName)) {
+		return true;
 	}
 
 	if (!ScriptManager::ClassExists(objectName)) {
-		Log::Print(Log::LOG_VERBOSE,
-			"Could not find classmap for %s%s%s! (Hash: 0x%08X)",
-			FG_YELLOW,
-			objectName,
-			FG_RESET,
-			SourceFileMap::ClassMap->HashFunction(objectName, strlen(objectName)));
 		return false;
 	}
 
@@ -677,9 +658,6 @@ ObjClass* ScriptManager::GetObjectClass(const char* className) {
 	}
 
 	return nullptr;
-}
-Entity* ScriptManager::ObjectSpawnFunction(ObjectList* list) {
-	return ScriptManager::SpawnObject(list->ObjectName);
 }
 void ScriptManager::LoadClasses() {
 	SourceFileMap::ClassMap->ForAll([](Uint32, vector<Uint32>* filenameHashList) -> void {

@@ -1,3 +1,4 @@
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/InputManager.h>
 
 #include <sstream>

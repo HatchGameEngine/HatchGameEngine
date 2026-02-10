@@ -3349,7 +3349,8 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		array = NewArray();
 		for (size_t i = 0; i < fileList.size(); i++) {
-			ObjString* part = CopyString(fileList[i]);
+			std::string asStr = Path::ToString(fileList[i]);
+			ObjString* part = CopyString(asStr);
 			array->Values->push_back(OBJECT_VAL(part));
 		}
 		ScriptManager::Unlock();
@@ -3379,7 +3380,8 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 	if (ScriptManager::Lock()) {
 		array = NewArray();
 		for (size_t i = 0; i < fileList.size(); i++) {
-			ObjString* part = CopyString(fileList[i]);
+			std::string asStr = Path::ToString(fileList[i]);
+			ObjString* part = CopyString(asStr);
 			array->Values->push_back(OBJECT_VAL(part));
 		}
 		ScriptManager::Unlock();
@@ -3603,10 +3605,11 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 		int textureBlend = Graphics::TextureBlend;
 		float alpha = Graphics::BlendColors[3];
 
-		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f)
+		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f) {
 			Graphics::TextureBlend = true;
+		}
 		Graphics::SetBlendMode(entity->BlendMode);
-        Graphics::SetBlendColor(Graphics::BlendColors[0],
+		Graphics::SetBlendColor(Graphics::BlendColors[0],
 			Graphics::BlendColors[1],
 			Graphics::BlendColors[2],
 			Math::Clamp(entity->Alpha, 0.0f, 1.0f));
@@ -3823,8 +3826,9 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 		int textureBlend = Graphics::TextureBlend;
 		float alpha = Graphics::BlendColors[3];
 
-		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f)
+		if (entity->BlendMode != BlendMode_NORMAL || entity->Alpha != 1.0f) {
 			Graphics::TextureBlend = true;
+		}
 		Graphics::SetBlendMode(entity->BlendMode);
 		Graphics::SetBlendColor(Graphics::BlendColors[0],
 			Graphics::BlendColors[1],
@@ -4663,6 +4667,7 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (number): X position of where to draw the text.
  * \param y (number): Y position of where to draw the text.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
@@ -4672,6 +4677,9 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 	float x = GET_ARG(2, GetDecimal);
 	float y = GET_ARG(3, GetDecimal);
 	float fontSize = GET_ARG_OPT(4, GetDecimal, 0.0f);
+	int paletteID = GET_ARG_OPT(5, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (IS_FONT(args[0])) {
 		ObjFont* objFont = GET_ARG(0, GetFont);
@@ -4687,7 +4695,7 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 		params.Descent = font->Descent;
 		params.Leading = font->Leading;
 
-		Graphics::DrawText(font, text, x, y, &params);
+		Graphics::DrawText(font, text, x, y, &params, paletteID);
 
 		return NULL_VAL;
 	}
@@ -4699,7 +4707,7 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
 		params.Advance = textAdvance;
-		Graphics::DrawTextLegacy(sprite, text, x, y, &params);
+		Graphics::DrawTextLegacy(sprite, text, x, y, &params, paletteID);
 	}
 
 	return NULL_VAL;
@@ -4714,6 +4722,7 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
  * \param maxWidth (number): Max width the text can draw in.
  * \paramOpt maxLines (integer): Max lines of text to draw. Use `null` to draw all lines.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
@@ -4728,6 +4737,9 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		maxLines = GET_ARG(5, GetInteger);
 	}
 	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
+	int paletteID = GET_ARG_OPT(7, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (IS_FONT(args[0])) {
 		ObjFont* objFont = GET_ARG(0, GetFont);
@@ -4745,7 +4757,7 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		params.MaxWidth = maxWidth;
 		params.MaxLines = maxLines;
 
-		Graphics::DrawTextWrapped(font, text, x, y, &params);
+		Graphics::DrawTextWrapped(font, text, x, y, &params, paletteID);
 
 		return NULL_VAL;
 	}
@@ -4759,7 +4771,7 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		params.Advance = textAdvance;
 		params.MaxWidth = maxWidth;
 		params.MaxLines = maxLines;
-		Graphics::DrawTextWrappedLegacy(sprite, text, x, y, &params);
+		Graphics::DrawTextWrappedLegacy(sprite, text, x, y, &params, paletteID);
 	}
 
 	return NULL_VAL;
@@ -4774,6 +4786,7 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
  * \param maxWidth (number): Max width the text can draw in.
  * \paramOpt maxLines (integer): Max lines of text to draw. Use `null` to draw all lines.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
@@ -4788,6 +4801,9 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		maxLines = GET_ARG(5, GetInteger);
 	}
 	float fontSize = GET_ARG_OPT(6, GetDecimal, 0.0f);
+	int paletteID = GET_ARG_OPT(7, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (IS_FONT(args[0])) {
 		ObjFont* objFont = GET_ARG(0, GetFont);
@@ -4805,7 +4821,7 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		params.MaxWidth = maxWidth;
 		params.MaxLines = maxLines;
 
-		Graphics::DrawTextEllipsis(font, text, x, y, &params);
+		Graphics::DrawTextEllipsis(font, text, x, y, &params, paletteID);
 
 		return NULL_VAL;
 	}
@@ -4819,7 +4835,7 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
 		params.Advance = textAdvance;
 		params.MaxWidth = maxWidth;
 		params.MaxLines = maxLines;
-		Graphics::DrawTextEllipsisLegacy(sprite, text, x, y, &params);
+		Graphics::DrawTextEllipsisLegacy(sprite, text, x, y, &params, paletteID);
 	}
 
 	return NULL_VAL;
@@ -4832,6 +4848,7 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (number): X position of where to draw the glyph.
  * \param y (number): Y position of where to draw the glyph.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
@@ -4841,6 +4858,9 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
 	float x = GET_ARG(2, GetDecimal);
 	float y = GET_ARG(3, GetDecimal);
 	float fontSize = GET_ARG_OPT(4, GetDecimal, 0.0f);
+	int paletteID = GET_ARG_OPT(5, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (IS_FONT(args[0])) {
 		ObjFont* objFont = GET_ARG(0, GetFont);
@@ -4854,7 +4874,7 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
 		params.FontSize = fontSize;
 		params.Ascent = font->Ascent;
 
-		Graphics::DrawGlyph(font, codepoint, x, y, &params);
+		Graphics::DrawGlyph(font, codepoint, x, y, &params, paletteID);
 
 		return NULL_VAL;
 	}
@@ -4866,7 +4886,7 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
 		params.Baseline = textBaseline;
 		params.Ascent = textAscent;
 		params.Advance = textAdvance;
-		Graphics::DrawGlyphLegacy(sprite, codepoint, x, y, &params);
+		Graphics::DrawGlyphLegacy(sprite, codepoint, x, y, &params, paletteID);
 	}
 
 	return NULL_VAL;
@@ -4885,6 +4905,7 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
  * \param spacing (integer): The space between drawn sprites.
  * \paramOpt charOffsetsX (array): The X offsets at which to draw per frame. Must also have <param charOffsetsY> to be used.
  * \paramOpt charOffsetsY (array): The Y offsets at which to draw per frame.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
@@ -4901,6 +4922,9 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 		int spacing = GET_ARG(8, GetInteger);
 		ObjArray* charOffsetsX = GET_ARG_OPT(9, GetArray, nullptr);
 		ObjArray* charOffsetsY = GET_ARG_OPT(10, GetArray, nullptr);
+		int paletteID = GET_ARG_OPT(11, GetInteger, 0);
+
+		CHECK_PALETTE_INDEX(paletteID);
 
 		if (sprite && string && animation >= 0 &&
 			animation < (int)sprite->Animations.size()) {
@@ -4953,7 +4977,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x += spacing + frame.Width;
 							++charOffsetIndex;
 						}
@@ -4982,7 +5007,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x += spacing + frame.Width;
 						}
 					}
@@ -5031,7 +5057,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x = (x - frame.Width) - spacing;
 							--charOffsetIndex;
 						}
@@ -5060,7 +5087,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x = (x - frame.Width) - spacing;
 						}
 					}
@@ -5125,7 +5153,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x += spacing + frame.Width;
 							++charOffsetIndex;
 						}
@@ -5154,7 +5183,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 								false,
 								1.0f,
 								1.0f,
-								0.0f);
+								0.0f,
+								paletteID);
 							x += spacing + frame.Width;
 						}
 					}
@@ -6903,7 +6933,7 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 
 	// 0
 	// | \
-    // 1--2
+	// 1--2
 
 	data[1].UV.X = FP16_TO(1.0f);
 
@@ -9438,34 +9468,26 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	float y = GET_ARG(2, GetDecimal);
 	VMValue flag = argCount == 4 ? args[3] : INTEGER_VAL(0);
 
-	ObjectList* objectList = Scene::GetObjectList(objectName);
-	if (!objectList || !objectList->SpawnFunction) {
-		THROW_ERROR("Object class \"%s\" does not exist.", objectName);
+	ScriptEntity* obj;
+	try {
+		obj = (ScriptEntity*)Scene::SpawnObject(objectName, x, y);
+	} catch (const std::runtime_error& error) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
 		return NULL_VAL;
 	}
-
-	ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
-	if (!obj) {
-		THROW_ERROR("Could not spawn object of class \"%s\"!", objectName);
-		return NULL_VAL;
-	}
-
-	obj->X = x;
-	obj->Y = y;
-	obj->InitialX = x;
-	obj->InitialY = y;
-	obj->List = objectList;
-	obj->List->Add(obj);
 
 	ObjEntity* instance = obj->Instance;
 
-	// Call the initializer, if there is one.
-	if (HasInitializer(instance->Object.Class)) {
-		obj->Initialize();
-	}
+	// Call the initializer
+	obj->Initialize();
 
 	// Add it to the scene
-	Scene::AddDynamic(objectList, obj);
+	Scene::AddDynamic(obj->List, obj);
+
+	// Add to proper list
+	if (obj->List) {
+		obj->List->Add(obj);
+	}
 
 	obj->Create(flag);
 	if (!Scene::Initializing) {
@@ -9648,7 +9670,7 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	ScriptEntity::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
+	Entity::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
 }
 /***
@@ -11840,8 +11862,7 @@ VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
 	char* objectName = GET_ARG(0, GetString);
 	Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
-	if (Scene::ObjectLists->Exists(
-		    Scene::ObjectLists->HashFunction(objectName, strlen(objectName)))) {
+	if (Scene::ObjectLists->Exists(objectName)) {
 		Scene::GetObjectList(objectName)->Activity = GET_ARG(1, GetInteger);
 	}
 
@@ -11860,8 +11881,7 @@ VMValue Object_GetActivity(int argCount, VMValue* args, Uint32 threadID) {
 	char* objectName = GET_ARG(0, GetString);
 	Uint32 objectNameHash = Scene::ObjectLists->HashFunction(objectName, strlen(objectName));
 
-	if (Scene::ObjectLists->Exists(
-		    Scene::ObjectLists->HashFunction(objectName, strlen(objectName)))) {
+	if (Scene::ObjectLists->Exists(objectName)) {
 		return INTEGER_VAL(Scene::GetObjectList(objectName)->Activity);
 	}
 
@@ -12817,7 +12837,7 @@ VMValue Scene_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
 	if (!Scene::Properties || !Scene::Properties->Exists(property)) {
 		return NULL_VAL;
 	}
-	return Scene::Properties->Get(property);
+	return Value::FromProperty(Scene::Properties->Get(property));
 }
 /***
  * Scene.GetLayerCount
@@ -12930,7 +12950,7 @@ VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
 	int index = GET_ARG(0, GetInteger);
 	char* property = GET_ARG(1, GetString);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return Scene::Layers[index].PropertyGet(property);
+	return Value::FromProperty(Scene::Layers[index].PropertyGet(property));
 }
 /***
  * Scene.GetLayerExists
@@ -19678,8 +19698,6 @@ void StandardLibrary::Link() {
 	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
 #define DEF_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
-#define ALIAS_NATIVE(className, funcName, oldClassName, oldFuncName) \
-	ScriptManager::DefineNative(klass, #funcName, oldClassName##_##oldFuncName)
 
 #define INIT_NAMESPACE(nsName) \
 	ObjNamespace* ns_##nsName = NewNamespace(#nsName); \
@@ -22148,7 +22166,6 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #endregion
 
 #undef DEF_NATIVE
-#undef ALIAS_NATIVE
 #undef INIT_CLASS
 
 	// #region Tile Collision States
