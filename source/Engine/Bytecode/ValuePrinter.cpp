@@ -52,6 +52,9 @@ void ValuePrinter::PrintValue(VMValue value, int indent) {
 	case VAL_OBJECT:
 		PrintObject(value, indent);
 		break;
+	case VAL_LOCATION:
+		buffer_printf(Buffer, "location");
+		break;
 	default:
 		buffer_printf(Buffer, "<unknown value type 0x%02X>", value.Type);
 	}
