@@ -1,6 +1,8 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Graphics.h>
 #include <Engine/Includes/HashMap.h>
+#include <Engine/Math/FixedPoint.h>
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Utilities/ColorUtils.h>
 
@@ -481,8 +483,8 @@ Uint32* Texture::Scale(Texture* source, Uint32 destWidth, Uint32 destHeight) {
 	Uint32 maxWidth = source->Width << 16;
 	Uint32 maxHeight = source->Height << 16;
 
-	Uint32 xStep = FP16_DIVIDE(0x10000, FP16_DIVIDE(destWidth << 16, maxWidth));
-	Uint32 yStep = FP16_DIVIDE(0x10000, FP16_DIVIDE(destHeight << 16, maxHeight));
+	Uint32 xStep = FP16_DIVIDE(FP16_TO(1.0f), FP16_DIVIDE(destWidth << 16, maxWidth));
+	Uint32 yStep = FP16_DIVIDE(FP16_TO(1.0f), FP16_DIVIDE(destHeight << 16, maxHeight));
 
 	Uint32* src = (Uint32*)source->Pixels;
 	Uint32* dest = pixels;
