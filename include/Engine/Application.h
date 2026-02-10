@@ -4,6 +4,7 @@
 #include <Engine/Audio/AudioManager.h>
 #include <Engine/Diagnostics/PerformanceTypes.h>
 #include <Engine/Filesystem/Path.h>
+#include <Engine/Includes/Operation.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Includes/Version.h>
 #include <Engine/InputManager.h>
@@ -24,12 +25,14 @@
 #define DEFAULT_SETTINGS_FILENAME "config://config.ini"
 
 #define DEFAULT_SAVES_DIR "saves"
+#define DEFAULT_SCREENSHOTS_DIR "screenshots"
 
 class Application {
 private:
 	static char GameIdentifier[256];
 	static char DeveloperIdentifier[256];
 	static char SavesDir[256];
+	static char ScreenshotsDir[256];
 	static char PreferencesDir[256];
 
 	static std::unordered_map<std::string, Capability> CapabilityMap;
@@ -67,6 +70,7 @@ private:
 	static void RunFrame(int runFrames);
 	static void MainLoop();
 	static void MainLoopCallback(void* p);
+	static void TakeScreenshotCallback(OperationResult result);
 	static void DrawPerformance();
 	static void DelayFrame();
 	static void SetUseFixedTimestep(bool useFixedTimestep);
@@ -157,7 +161,11 @@ public:
 	static const char* GetDeveloperIdentifier();
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();
+	static const char* GetScreenshotsDir();
 	static const char* GetPreferencesDir();
+	static std::string GetScreenshotPath();
+	static void TakeScreenshot(const char* path, Operation operation);
+	static void TakeScreenshot();
 	static void LoadDefaultFont();
 	static double GetOverdelay();
 	static void SetWindowTitle(const char* title);

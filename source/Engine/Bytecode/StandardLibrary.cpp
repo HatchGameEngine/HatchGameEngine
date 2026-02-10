@@ -26,6 +26,7 @@
 #include <Engine/Includes/DateTime.h>
 #include <Engine/Input/Controller.h>
 #include <Engine/Input/Input.h>
+#include <Engine/Includes/Operation.h>
 #include <Engine/Math/Ease.h>
 #include <Engine/Math/Geometry.h>
 #include <Engine/Math/Math.h>
@@ -2013,6 +2014,72 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 		return INTEGER_VAL(1);
 	}
 	return INTEGER_VAL(0);
+}
+/***
+ * Application.TakeScreenshot
+ * \desc Saves a screenshot to `path`. This operation only completes at the end of the frame, so you may optionally provide a callback.
+ * \paramOpt path (string): The path to save the screenshot to. If not passed, the screenshot is saved to the default screenshot path.
+ * \paramOpt callback (function): The function to call when the screenshot operation finishes. When called, it receives two arguments: a boolean indicating whether the screenshot was saved, and the path the screenshot was saved to, as a string. The function may have less than two parameters, but no more than two.
+ * \ns Application
+ */
+struct ScriptScreenshotOpData {
+	Uint32 ThreadID;
+	VMValue Callable;
+};
+void ScriptTakeScreenshotCallback(OperationResult result) {
+	ScriptScreenshotOpData* data = (ScriptScreenshotOpData*)result.Input;
+	const char* filename = (const char*)result.Output;
+
+	if (!IS_NULL(data->Callable)) {
+		VMThread* thread = ScriptManager::Threads + data->ThreadID;
+		VMValue* stackTop = thread->StackTop;
+
+		thread->Push(INTEGER_VAL(result.Success));
+		if (filename) {
+			thread->Push(ReturnString(filename));
+		}
+
+		VMValue callable = data->Callable;
+		int numArgs = thread->StackTop - stackTop;
+		int minArity, maxArity;
+		if (thread->GetArity(callable, minArity, maxArity) && numArgs > maxArity) {
+			numArgs = maxArity;
+			thread->StackTop = stackTop + numArgs;
+		}
+
+		thread->RunValue(callable, numArgs);
+		thread->StackTop = stackTop;
+	}
+
+	Memory::Free(data);
+}
+VMValue Application_TakeScreenshot(int argCount, VMValue* args, Uint32 threadID) {
+	char* path = nullptr;
+	VMValue callable = NULL_VAL;
+
+	if (argCount == 1 && IS_CALLABLE(args[0])) {
+		callable = args[0];
+	}
+	else if (argCount > 0) {
+		path = GET_ARG(0, GetString);
+		callable = GET_ARG_OPT(1, GetCallable, NULL_VAL);
+	}
+
+	ScriptScreenshotOpData* data = (ScriptScreenshotOpData*)Memory::Malloc(sizeof(ScriptScreenshotOpData));
+	if (!data) {
+		return NULL_VAL;
+	}
+
+	data->ThreadID = threadID;
+	data->Callable = callable;
+
+	Operation operation;
+	operation.Callback = ScriptTakeScreenshotCallback;
+	operation.Data = data;
+
+	Application::TakeScreenshot(path, operation);
+
+	return NULL_VAL;
 }
 /***
  * Application.Error
@@ -19806,6 +19873,7 @@ They require the Game SDK library to be present.
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, TakeScreenshot);
 	DEF_NATIVE(Application, Error);
 	DEF_NATIVE(Application, SetDefaultFont);
 	DEF_NATIVE(Application, ChangeGame);
@@ -19815,6 +19883,11 @@ They require the Game SDK library to be present.
     * \desc Fullscreen keybind.
     */
 	DEF_ENUM_CLASS(KeyBind, Fullscreen);
+	/***
+    * \enum KeyBind_Screenshot
+    * \desc Screenshot keybind.
+    */
+	DEF_ENUM_CLASS(KeyBind, Screenshot);
 	/***
     * \enum KeyBind_ToggleFPSCounter
     * \desc FPS counter toggle keybind.

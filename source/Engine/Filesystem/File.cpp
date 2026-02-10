@@ -45,13 +45,7 @@ bool File::ProtectedExists(const char* path, bool allowURLs) {
 		return false;
 	}
 
-	Stream* stream = FileStream::New(path, FileStream::READ_ACCESS, allowURLs);
-	if (stream) {
-		stream->Close();
-		return true;
-	}
-
-	return false;
+	return FileStream::Exists(path, allowURLs);
 }
 
 size_t File::ReadAllBytes(const char* path, char** out, bool allowURLs) {

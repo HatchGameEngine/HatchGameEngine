@@ -15,10 +15,12 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
+#include <Engine/ResourceTypes/ImageFormats/PNG.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
+#include <Engine/Utilities/Screenshot.h>
 #include <Engine/Utilities/StringUtils.h>
 
 #include <Engine/Media/MediaPlayer.h>
@@ -100,6 +102,7 @@ char Application::GameDeveloper[256];
 char Application::GameIdentifier[256];
 char Application::DeveloperIdentifier[256];
 char Application::SavesDir[256];
+char Application::ScreenshotsDir[256];
 char Application::PreferencesDir[256];
 
 std::unordered_map<std::string, Capability> Application::CapabilityMap;
@@ -118,6 +121,8 @@ bool Application::Step = false;
 int Application::MasterVolume = 100;
 int Application::MusicVolume = 100;
 int Application::SoundVolume = 100;
+
+bool HitScreenshotKey = false;
 
 bool Application::DisableDefaultActions = false;
 bool Application::DevMenuActivated = false;
@@ -140,7 +145,7 @@ bool UseMemoryFileCache = false;
 
 bool DevMode = false;
 bool ViewPerformance = false;
-bool TakeSnapshot = false;
+bool TakePerfSnapshot = false;
 bool DoNothing = false;
 int UpdatesPerFastForward = 4;
 
@@ -611,6 +616,15 @@ const char* Application::GetSavesDir() {
 	return SavesDir;
 }
 
+// Returns the name of the screenshots directory
+const char* Application::GetScreenshotsDir() {
+	if (ScreenshotsDir[0] == '\0') {
+		return nullptr;
+	}
+
+	return ScreenshotsDir;
+}
+
 // Returns the name of the preferences directory
 const char* Application::GetPreferencesDir() {
 	if (PreferencesDir[0] == '\0') {
@@ -618,6 +632,12 @@ const char* Application::GetPreferencesDir() {
 	}
 
 	return PreferencesDir;
+}
+
+std::string Application::GetScreenshotPath() {
+	std::string filename = Screenshot::GetFilename();
+
+	return PATHLOCATION_SCREENSHOTS_URL + filename;
 }
 
 void Application::LoadDefaultFont() {
@@ -1135,8 +1155,9 @@ void Application::LoadKeyBinds() {
 	}
 
 	GET_KEY("fullscreen", Fullscreen, Key_F4);
-	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
+	GET_KEY("screenshot", Screenshot, Key_UNKNOWN);
 	GET_KEY("toggleFPSCounter", ToggleFPSCounter, Key_F2);
+	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
 	GET_KEY("devRestartApp", DevRestartApp, Key_F1);
 	GET_KEY("devRestartScene", DevRestartScene, Key_F6);
 	GET_KEY("devRecompile", DevRecompile, Key_F5);
@@ -1350,6 +1371,13 @@ void Application::PollEvents() {
 					!Application::GetWindowFullscreen());
 				break;
 			}
+			// Screenshot
+			else if (key == KeyBindsSDL[(int)KeyBind::Screenshot]) {
+				if (!HitScreenshotKey) {
+					Application::TakeScreenshot();
+					HitScreenshotKey = true;
+				}
+			}
 			// Toggle FPS counter
 			else if (key == KeyBindsSDL[(int)KeyBind::ToggleFPSCounter]) {
 				Application::ShowFPS = !Application::ShowFPS;
@@ -1364,7 +1392,7 @@ void Application::PollEvents() {
 					break;
 				}
 				// Open dev menu (dev)
-				if (key == KeyBindsSDL[(int)KeyBind::DevMenuToggle]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevMenuToggle]) {
 					Application::DevMenuActivated ? Application::CloseDevMenu()
 								      : Application::OpenDevMenu();
 					break;
@@ -1402,7 +1430,7 @@ void Application::PollEvents() {
 				}
 				// Print performance snapshot (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevPerfSnapshot]) {
-					TakeSnapshot = true;
+					TakePerfSnapshot = true;
 					break;
 				}
 				// Recompile and restart scene (dev)
@@ -1619,12 +1647,72 @@ DO_NOTHING:
 	DrawPerformance();
 	Metrics.FPSCounter.End();
 
+	// Take screenshots
+	if (!Screenshot::IsQueueEmpty()) {
+		Screenshot::TakeQueued();
+	}
+
+	HitScreenshotKey = false;
+
 	Metrics.Present.Begin();
 	Graphics::Present();
 	Metrics.Present.End();
 
 	Metrics.Frame.End();
 }
+
+void Application::TakeScreenshot(const char* path, Operation operation) {
+	ScreenshotOperation op;
+
+	if (path) {
+		op.Path = std::string(path);
+	}
+	else {
+		const char* extension = ".png";
+
+		std::string basePath = Application::GetScreenshotPath();
+		std::string path = basePath + extension;
+
+		if (Screenshot::Exists(path)) {
+			int attempt = 0;
+			do {
+				attempt++;
+
+				if (attempt == INT32_MAX) {
+					Log::Print(Log::LOG_ERROR, "Could not save screenshot \"%s\"!", basePath.c_str());
+					return;
+				}
+
+				path = basePath + "-" + std::to_string(attempt) + extension;
+			} while (Screenshot::Exists(path));
+		}
+
+		op.Path = path;
+	}
+
+	op.OnFinish = operation;
+
+	Screenshot::QueueOperation(op);
+}
+void Application::TakeScreenshot() {
+	Operation operation;
+	operation.Callback = Application::TakeScreenshotCallback;
+	operation.Data = nullptr;
+
+	TakeScreenshot(nullptr, operation);
+}
+
+void Application::TakeScreenshotCallback(OperationResult result) {
+	const char* filename = StringUtils::GetFilename((const char*)result.Output);
+
+	if (result.Success) {
+		Log::Print(Log::LOG_VERBOSE, "Saved screenshot \"%s\"", filename);
+	}
+	else {
+		Log::Print(Log::LOG_ERROR, "Could not save screenshot \"%s\"!", filename);
+	}
+}
+
 void Application::DrawPerformance() {
 	if (DefaultFont == nullptr) {
 		return;
@@ -1801,12 +1889,12 @@ void Application::MainLoop() {
 		if (tickStart - AutomaticPerformanceSnapshotLastTime >
 			AutomaticPerformanceSnapshotMinInterval) {
 			AutomaticPerformanceSnapshotLastTime = tickStart;
-			TakeSnapshot = true;
+			TakePerfSnapshot = true;
 		}
 	}
 
-	if (TakeSnapshot) {
-		TakeSnapshot = false;
+	if (TakePerfSnapshot) {
+		TakePerfSnapshot = false;
 		Application::GetPerformanceSnapshot();
 	}
 
@@ -2073,6 +2161,7 @@ void Application::InitGameInfo() {
 
 	StringUtils::Copy(GameIdentifier, DEFAULT_GAME_IDENTIFIER, sizeof(GameIdentifier));
 	StringUtils::Copy(SavesDir, DEFAULT_SAVES_DIR, sizeof(SavesDir));
+	StringUtils::Copy(ScreenshotsDir, DEFAULT_SCREENSHOTS_DIR, sizeof(ScreenshotsDir));
 }
 
 void Application::LoadGameInfo() {
@@ -2155,6 +2244,13 @@ void Application::LoadGameInfo() {
 		if (node) {
 			char* id = XMLParser::TokenToString(node->children[0]->name);
 			ValidateAndSetIdentifier("saves directory", id, SavesDir, sizeof(SavesDir));
+			Memory::Free(id);
+		}
+
+		node = XMLParser::SearchNode(root, "screenshotsDir");
+		if (node) {
+			char* id = XMLParser::TokenToString(node->children[0]->name);
+			ValidateAndSetIdentifier("screenshots directory", id, ScreenshotsDir, sizeof(ScreenshotsDir));
 			Memory::Free(id);
 		}
 
