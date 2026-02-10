@@ -167,10 +167,13 @@ void Entity::SetUpdatePriority(int priority) {
 	}
 }
 bool Entity::BasicCollideWithObject(Entity* other) {
+	if (Hitbox.Width <= 0.0f || Hitbox.Height <= 0.0f) {
+		return false;
+	}
+
 	float otherHitboxW = other->Hitbox.Width;
 	float otherHitboxH = other->Hitbox.Height;
-
-	if (otherHitboxW == 0.0f || otherHitboxH == 0.0f) {
+	if (otherHitboxW <= 0.0f || otherHitboxH <= 0.0f) {
 		return false;
 	}
 
@@ -180,6 +183,18 @@ bool Entity::BasicCollideWithObject(Entity* other) {
 		other->Y + other->Hitbox.GetBottom() < Y + Hitbox.GetBottom();
 }
 bool Entity::CollideWithObject(Entity* other) {
+	float sourceHitboxW = this->Hitbox.Width * 0.5;
+	float sourceHitboxH = this->Hitbox.Height * 0.5;
+	if (sourceHitboxW <= 0.0f || sourceHitboxH <= 0.0f) {
+		return false;
+	}
+
+	float otherHitboxW = other->Hitbox.Width * 0.5;
+	float otherHitboxH = other->Hitbox.Height * 0.5;
+	if (otherHitboxW <= 0.0f || otherHitboxH <= 0.0f) {
+		return false;
+	}
+
 	float sourceFlipX = (this->Direction & 1) ? -1.0 : 1.0;
 	float sourceFlipY = (this->Direction & 2) ? -1.0 : 1.0;
 	float otherFlipX = (other->Direction & 1) ? -1.0 : 1.0;
@@ -190,20 +205,23 @@ bool Entity::CollideWithObject(Entity* other) {
 	float otherX = std::floor(other->X + other->Hitbox.OffsetX * otherFlipX);
 	float otherY = std::floor(other->Y + other->Hitbox.OffsetY * otherFlipY);
 
-	float otherHitboxW = other->Hitbox.Width * 0.5;
-	float otherHitboxH = other->Hitbox.Height * 0.5;
-	float sourceHitboxW = this->Hitbox.Width * 0.5;
-	float sourceHitboxH = this->Hitbox.Height * 0.5;
-
 	return !(otherY + otherHitboxH < sourceY - sourceHitboxH ||
 		otherY - otherHitboxH > sourceY + sourceHitboxH ||
 		sourceX - sourceHitboxW > otherX + otherHitboxW ||
 		sourceX + sourceHitboxW < otherX - otherHitboxW);
 }
 int Entity::SolidCollideWithObject(Entity* other, int flag) {
+	if (Hitbox.Width <= 0.0f || Hitbox.Height <= 0.0f) {
+		return false;
+	}
+
+	if (other->Hitbox.Width <= 0.0f || other->Hitbox.Height <= 0.0f) {
+		return false;
+	}
+
 	// NOTE: "flag" is setValues
-	float initialOtherX = (other->X);
-	float initialOtherY = (other->Y);
+	float initialOtherX = other->X;
+	float initialOtherY = other->Y;
 	int sourceX = this->X;
 	int sourceY = this->Y;
 	int otherX = initialOtherX;
