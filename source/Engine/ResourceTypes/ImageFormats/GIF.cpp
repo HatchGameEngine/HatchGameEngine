@@ -10,8 +10,6 @@
 
 #include <Engine/Graphics.h>
 
-#include <Libraries/stb_image.h>
-
 struct Node {
 	Uint16 Key;
 	struct Node* Children[];

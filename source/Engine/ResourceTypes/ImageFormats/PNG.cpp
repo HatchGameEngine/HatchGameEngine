@@ -32,9 +32,6 @@ void png_read_fn(png_structp ctx, png_bytep area, png_size_t size) {
 #define SPNG_USE_SIMD
 #endif
 #include <Libraries/spng.h>
-#else
-#define STB_IMAGE_IMPLEMENTATION
-#include <Libraries/stb_image.h>
 #endif
 
 PNG* PNG::Load(Stream* stream) {
@@ -289,51 +286,8 @@ PNG_Load_Success:
 	free(pixelData);
 	return png;
 #else
-	PNG* png = new PNG;
-	Uint32* pixelData = NULL;
-	int num_channels;
-	int width, height;
-	Uint8* buffer = NULL;
-	size_t buffer_len = 0;
-
-	buffer_len = stream->Length();
-	buffer = (Uint8*)malloc(buffer_len);
-	stream->ReadBytes(buffer, buffer_len);
-
-	pixelData = (Uint32*)stbi_load_from_memory(
-		buffer, buffer_len, &width, &height, &num_channels, STBI_rgb_alpha);
-	if (!pixelData) {
-		Log::Print(Log::LOG_ERROR, "stbi_load failed: %s", stbi_failure_reason());
-		goto PNG_Load_FAIL;
-	}
-
-	png->Width = width;
-	png->Height = height;
-	png->Data = (Uint32*)Memory::TrackedMalloc(
-		"PNG::Data", png->Width * png->Height * sizeof(Uint32));
-
-	png->ReadPixelDataARGB(pixelData, num_channels);
-
-	png->Colors = nullptr;
-	png->Paletted = false;
-	png->NumPaletteColors = 0;
-
-	goto PNG_Load_Success;
-
-PNG_Load_FAIL:
-	delete png;
-	png = NULL;
-
-PNG_Load_Success:
-	if (buffer) {
-		free(buffer);
-	}
-	if (pixelData) {
-		stbi_image_free(pixelData);
-	}
-	return png;
-#endif
 	return NULL;
+#endif
 }
 void PNG::ReadPixelDataARGB(Uint32* pixelData, int num_channels) {
 	Uint32 Rmask, Gmask, Bmask, Amask;
