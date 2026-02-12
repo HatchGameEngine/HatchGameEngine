@@ -18,6 +18,9 @@
 #include <Engine/Bytecode/Compiler.h>
 
 bool ScriptManager::LoadAllClasses = false;
+#ifdef VM_DEBUG
+bool ScriptManager::BreakpointsEnabled = false;
+#endif
 
 VMThread ScriptManager::Threads[8];
 Uint32 ScriptManager::ThreadCount = 1;
@@ -130,6 +133,13 @@ void ScriptManager::Init() {
 #endif
 	}
 	ThreadCount = 1;
+
+#if defined(DEVELOPER_MODE) && defined(VM_DEBUG)
+#if defined(WIN32) || defined(LINUX) || defined(MACOSX)
+	BreakpointsEnabled = true;
+#endif
+	Application::Settings->GetBool("dev", "enableScriptBreakpoints", &BreakpointsEnabled);
+#endif
 
 	ScriptEntity::Init();
 
@@ -489,7 +499,9 @@ ObjModule* ScriptManager::LoadBytecode(VMThread* thread, BytecodeContainer bytec
 #endif
 
 #ifdef VM_DEBUG
-		thread->AddFunctionBreakpoints(function);
+		if (BreakpointsEnabled) {
+			thread->AddFunctionBreakpoints(function);
+		}
 #endif
 	}
 

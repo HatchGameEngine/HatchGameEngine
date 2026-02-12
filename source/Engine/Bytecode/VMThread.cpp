@@ -866,7 +866,7 @@ int VMThread::RunInstruction() {
 	frame->IPLast = frame->IP;
 
 #ifdef VM_DEBUG
-	if (BreakpointsPerFunction.count(frame->Function)) {
+	if (ScriptManager::BreakpointsEnabled && BreakpointsPerFunction.count(frame->Function)) {
 		Uint8* bp = BreakpointsPerFunction[frame->Function];
 		Uint32 position = frame->IP - frame->IPStart;
 

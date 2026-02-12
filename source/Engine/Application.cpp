@@ -1883,6 +1883,7 @@ void Application::TerminateScripting() {
 	GarbageCollector::Dispose();
 #ifdef VM_DEBUG
 	VMThreadDebugger::Dispose();
+	ScriptManager::BreakpointsEnabled = false;
 #endif
 
 	ScriptManager::LoadAllClasses = false;

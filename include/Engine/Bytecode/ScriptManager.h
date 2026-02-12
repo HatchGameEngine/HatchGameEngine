@@ -25,6 +25,9 @@ private:
 
 public:
 	static bool LoadAllClasses;
+#ifdef VM_DEBUG
+	static bool BreakpointsEnabled;
+#endif
 	static HashMap<VMValue>* Globals;
 	static HashMap<VMValue>* Constants;
 	static VMThread Threads[8];
