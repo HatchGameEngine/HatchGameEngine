@@ -127,8 +127,8 @@ void ScriptManager::Init() {
 
 #ifdef VM_DEBUG
 		Threads[i].DebugInfo = false;
-		Threads[i].InDebugger = false;
-		Threads[i].BreakpointIndex = 0;
+		Threads[i].AttachedDebuggerCount = 0;
+		Threads[i].CurrentBreakpointIndex = 0;
 		Threads[i].BranchLimit = branchLimit;
 #endif
 	}

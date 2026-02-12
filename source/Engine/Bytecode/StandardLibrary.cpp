@@ -19881,6 +19881,11 @@ They require the Game SDK library to be present.
 	*/
 	DEF_ENUM_CLASS(KeyBind, DevMenuToggle);
 	/***
+	* \enum KeyBind_DevScriptDebugger
+	* \desc Script debugger keybind.
+	*/
+	DEF_ENUM_CLASS(KeyBind, DevScriptDebugger);
+	/***
     * \enum KeyBind_DevQuit
     * \desc App quit keybind. (dev)
     */

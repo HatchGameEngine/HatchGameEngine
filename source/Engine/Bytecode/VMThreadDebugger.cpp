@@ -164,7 +164,7 @@ void VMThreadDebugger::Enter() {
 	CodeDebugger = new BytecodeDebugger;
 	CodeDebugger->Tokens = ScriptManager::Tokens;
 
-	Thread->InDebugger = true;
+	Thread->AttachedDebuggerCount++;
 
 #ifdef USING_LINENOISE
 	linenoiseSetCompletionCallback(DebuggerCompletionCallback);
@@ -258,8 +258,6 @@ void VMThreadDebugger::MainLoop() {
 		// Interpret the line
 		InterpretCommand(args, read.c_str());
 
-		Thread->HitBreakpoint = false;
-
 		Memory::Free(line);
 	}
 }
@@ -278,7 +276,7 @@ void VMThreadDebugger::Exit() {
 	ScriptManager::RemoveSourceFile("repl");
 
 	if (Thread) {
-		Thread->InDebugger = false;
+		Thread->AttachedDebuggerCount--;
 		Thread = nullptr;
 	}
 
@@ -325,20 +323,23 @@ bool VMThreadDebugger::Cmd_Continue(std::vector<char*> args, const char* fullLin
 }
 
 bool VMThreadDebugger::Cmd_Backtrace(std::vector<char*> args, const char* fullLine) {
+	if (!Thread->FrameCount) {
+		printf("No call frames\n");
+		return false;
+	}
+
 	for (Uint32 i = 0; i < Thread->FrameCount; i++) {
 		CallFrame* frame = &Thread->Frames[i];
 		ObjFunction* function = frame->Function;
 		int line = -1;
 
 		const char* source = GetModuleName(function->Module);
-
 		if (i > 0 && function->Chunk.Lines && strcmp(source, "repl") != 0) {
 			CallFrame* fr2 = &Thread->Frames[i - 1];
 			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
 		}
 
 		std::string functionName = VMThread::GetFunctionName(function);
-
 		printf("  %c (%d) %s", DebugFrame == i ? '>' : ' ', (int)i, functionName.c_str());
 
 		Thread->PrintFunctionArgs(frame, nullptr);
@@ -379,6 +380,11 @@ bool VMThreadDebugger::Cmd_Instruction(std::vector<char*> args, const char* full
 }
 
 bool VMThreadDebugger::Cmd_Frame(std::vector<char*> args, const char* fullLine) {
+	if (!Thread->FrameCount) {
+		printf("No call frames\n");
+		return false;
+	}
+
 	if (args.size() < 2) {
 		printf("Missing argument\n");
 		return false;
@@ -387,11 +393,6 @@ bool VMThreadDebugger::Cmd_Frame(std::vector<char*> args, const char* fullLine) 
 	int index = 0;
 	if (!StringUtils::ToNumber(&index, args[1])) {
 		printf("Invalid argument\n");
-		return false;
-	}
-
-	if (!Thread->FrameCount) {
-		printf("No call frames\n");
 		return false;
 	}
 
@@ -956,23 +957,15 @@ bool VMThreadDebugger::Cmd_Help(std::vector<char*> args, const char* fullLine) {
 }
 
 bool VMThreadDebugger::ExecuteCode(const char* code) {
-	if (!Thread->FrameCount) {
-		printf("No call frames\n");
-		return false;
-	}
-
-	if (DebugFrame != Thread->FrameCount - 1) {
+	if (Thread->FrameCount && DebugFrame != Thread->FrameCount - 1) {
 		printf("Cannot execute code outside of top frame\n");
 		return false;
 	}
 
 	CallFrame* frame = GetCallFrame();
-	if (!frame) {
-		return false;
-	}
-
-	ObjFunction* function = frame->Function;
-	Chunk* chunk = &function->Chunk;
+	ObjFunction* function = nullptr;
+	Chunk* chunk = nullptr;
+	Chunk* firstChunk = nullptr;
 
 	bool didCompile = false;
 	bool didExecute = false;
@@ -980,6 +973,12 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 	if (Thread->FrameCount == FRAMES_MAX) {
 		printf("No call frame available for executing code\n");
 		return false;
+	}
+
+	if (frame) {
+		function = frame->Function;
+		chunk = &function->Chunk;
+		firstChunk = &(*function->Module->Functions)[0]->Chunk;
 	}
 
 	// Prepare the compiler
@@ -992,7 +991,7 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 	compiler->InREPL = true;
 	compiler->CurrentSettings = settings;
 
-	if (function->Index == 0) {
+	if (!function || function->Index == 0) {
 		compiler->Type = FUNCTIONTYPE_TOPLEVEL;
 		compiler->ScopeDepth = 0;
 	}
@@ -1004,8 +1003,7 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 	compiler->Initialize();
 
 	// Only the first chunk in the module contains module locals
-	Chunk* firstChunk = &(*function->Module->Functions)[0]->Chunk;
-	if (firstChunk->ModuleLocals) {
+	if (firstChunk && firstChunk->ModuleLocals) {
 		for (size_t i = 0; i < firstChunk->ModuleLocals->size(); i++) {
 			ChunkLocal local = (*firstChunk->ModuleLocals)[i];
 
@@ -1051,7 +1049,7 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 		}
 	}
 
-	if (chunk->Locals) {
+	if (chunk && chunk->Locals) {
 		for (size_t i = 0; i < chunk->Locals->size(); i++) {
 			ChunkLocal local = (*chunk->Locals)[i];
 
@@ -1124,7 +1122,7 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 		ObjFunction* newFunction = (*module->Functions)[0];
 
 		// Add any new module locals to the current module
-		if (firstChunk->ModuleLocals && newFunction->Chunk.ModuleLocals) {
+		if (firstChunk && firstChunk->ModuleLocals && newFunction->Chunk.ModuleLocals) {
 			size_t start = firstChunk->ModuleLocals->size();
 			for (size_t i = start; i < newFunction->Chunk.ModuleLocals->size(); i++) {
 				ChunkLocal copy = (*newFunction->Chunk.ModuleLocals)[i];
@@ -1137,23 +1135,25 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 		int lastFrame = Thread->FrameCount;
 		int lastReturnFrame = Thread->ReturnFrame;
 
-		Thread->FrameCount++;
 		Thread->ReturnFrame = Thread->FrameCount;
 
 		if (Thread->Call(newFunction, 0)) {
+			VMValue lastInterpretResult = Thread->InterpretResult;
 			Thread->InterpretResult = NULL_VAL;
 
-			CallFrame* currentCallFrame = &Thread->Frames[Thread->FrameCount - 1];
-			CallFrame* lastCallFrame = &Thread->Frames[lastFrame - 1];
+			if (lastFrame > 0) {
+				CallFrame* currentCallFrame = &Thread->Frames[Thread->FrameCount - 1];
+				CallFrame* lastCallFrame = &Thread->Frames[lastFrame - 1];
 
-			currentCallFrame->Slots = lastCallFrame->Slots;
-			currentCallFrame->ModuleLocals = lastCallFrame->ModuleLocals;
+				currentCallFrame->Slots = lastCallFrame->Slots;
+				currentCallFrame->ModuleLocals = lastCallFrame->ModuleLocals;
+			}
 
 			ScriptManager::AddSourceFile("repl", StringUtils::Duplicate(code));
 
-			Thread->HitBreakpoint = false;
 			Thread->RunInstructionSet();
 			result = Thread->InterpretResult;
+			Thread->InterpretResult = lastInterpretResult;
 
 			didExecute = true;
 		}
@@ -1165,10 +1165,6 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 	else {
 		printf("Could not compile code\n");
 		return false;
-	}
-
-	if (Thread->HitBreakpoint) {
-		return didExecute;
 	}
 
 	// Print what was left on the stack

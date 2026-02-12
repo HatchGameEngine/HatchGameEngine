@@ -105,13 +105,13 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer) {
 		ObjFunction* function = frame->Function;
 		int line = -1;
 
-		if (i > 0 && function->Chunk.Lines) {
+		const char* source = GetModuleName(function->Module);
+		if (i > 0 && function->Chunk.Lines && strcmp(source, "repl") != 0) {
 			CallFrame* fr2 = &Frames[i - 1];
 			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
 		}
 
 		std::string functionName = GetFunctionName(function);
-		const char* source = GetModuleName(function->Module);
 		buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
 
 		if (line > 0) {
@@ -226,7 +226,7 @@ int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
 	Log::Print(Log::LOG_ERROR, textBuffer);
 
 #ifdef VM_DEBUG
-	if (InDebugger) {
+	if (AttachedDebuggerCount) {
 		free(textBuffer);
 		return ERROR_RES_CONTINUE;
 	}
@@ -293,7 +293,7 @@ int VMThread::ShowErrorFromScript(const char* errorString, bool detailed) {
 	Log::Print(Log::LOG_ERROR, textBuffer);
 
 #ifdef VM_DEBUG
-	if (InDebugger) {
+	if (AttachedDebuggerCount) {
 		free(textBuffer);
 		return ERROR_RES_CONTINUE;
 	}
@@ -362,8 +362,6 @@ void VMThread::Breakpoint(VMThreadBreakpoint* breakpoint) {
 	CallFrame* frame = &Frames[FrameCount - 1];
 	ObjFunction* function = frame->Function;
 
-	HitBreakpoint = true;
-
 	bool wasInterrupted = AudioManager::Interrupted;
 	if (!wasInterrupted) {
 		AudioManager::SetInterrupted(true);
@@ -422,7 +420,7 @@ bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 
 	Log::Print(Log::LOG_WARN, textBuffer);
 
-	if (InDebugger) {
+	if (AttachedDebuggerCount) {
 		free(textBuffer);
 		return true;
 	}
@@ -489,7 +487,7 @@ VMThreadBreakpoint* VMThread::AddBreakpoint(ObjFunction* function, Uint32 positi
 	bp->CodeOffset = position;
 	bp->Enabled = true;
 	bp->OnHit = type;
-	bp->Index = BreakpointIndex++;
+	bp->Index = CurrentBreakpointIndex++;
 
 	breakpoints[position] = 1;
 
@@ -2515,7 +2513,7 @@ int VMThread::RunInstruction() {
 	VM_END();
 
 #ifdef VM_DEBUG_INSTRUCTIONS
-	if (DebugInfo && !InDebugger) {
+	if (DebugInfo && !AttachedDebuggerCount) {
 		Log::Print(Log::LOG_WARN, "START");
 		PrintStack();
 	}

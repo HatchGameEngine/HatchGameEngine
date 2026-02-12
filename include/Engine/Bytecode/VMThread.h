@@ -53,9 +53,8 @@ public:
 	Uint32 ID;
 #ifdef VM_DEBUG
 	bool DebugInfo;
-	bool HitBreakpoint;
-	bool InDebugger;
-	int BreakpointIndex;
+	int AttachedDebuggerCount;
+	int CurrentBreakpointIndex;
 	Uint32 BranchLimit;
 	std::vector<VMThreadBreakpoint*> Breakpoints;
 	std::unordered_map<ObjFunction*, Uint8*> BreakpointsPerFunction;
