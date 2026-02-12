@@ -86,7 +86,9 @@ else()
   option(DEVELOPER_MODE "Developer mode" OFF)
 endif()
 
+if(NOT NINTENDO_SWITCH)
 option(ENABLE_USING_LINENOISE "Use linenoise-ng for the script debugger command line interface" ON)
+endif()
 
 option(PORTABLE_MODE "Portable mode" OFF)
 option(ALLOW_COMMAND_LINE_RESOURCE_LOAD "Allow loading resource files from command line" ON)

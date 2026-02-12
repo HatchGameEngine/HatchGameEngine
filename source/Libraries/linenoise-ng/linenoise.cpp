@@ -86,6 +86,8 @@
 
 #ifdef _WIN32
 
+#define NOMINMAX
+
 #include <conio.h>
 #include <windows.h>
 #include <io.h>
@@ -210,7 +212,7 @@ class WinAttributes {
 
 static WinAttributes WIN_ATTR;
 
-static void copyString32to16(char16_t* dst, size_t dstSize, size_t* dstCount,
+static bool copyString32to16(char16_t* dst, size_t dstSize, size_t& dstCount,
                              const char32_t* src, size_t srcSize) {
   try {
     std::vector<char> asUtf8;
@@ -283,7 +285,7 @@ static int strncmp32(const char32_t* left, const char32_t* right, size_t len) {
 static size_t OutputWin(char16_t* text16, char32_t* text32, size_t len32) {
   size_t count16 = 0;
 
-  copyString32to16(text16, len32, &count16, text32, len32);
+  copyString32to16(text16, len32, count16, text32, len32);
   WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE), text16,
                 static_cast<DWORD>(count16), nullptr, nullptr);
 
@@ -412,7 +414,7 @@ static int write32(int fd, char32_t* text32, int len32) {
     unique_ptr<char[]> text8(new char[len8]);
     size_t count8 = 0;
 
-    copyString32to8(text8.get(), len8, &count8, text32, len32);
+    copyString32to8(text8.get(), len8, count8, text32, len32);
 
     return write(fd, text8.get(), static_cast<unsigned int>(count8));
   }
