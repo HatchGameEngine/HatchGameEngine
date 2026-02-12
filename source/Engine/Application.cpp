@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/SourceFileMap.h>
+#include <Engine/Bytecode/VMThreadDebugger.h>
 #include <Engine/Data/DefaultFonts.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
@@ -139,6 +140,7 @@ char LogFilename[MAX_PATH_LENGTH];
 bool UseMemoryFileCache = false;
 
 bool DevMode = false;
+bool ToggleDebugger = false;
 bool ViewPerformance = false;
 bool TakeSnapshot = false;
 bool DoNothing = false;
@@ -268,6 +270,10 @@ void Application::InitScripting() {
 	ScriptManager::LinkExtensions();
 
 	Compiler::GetStandardConstants();
+
+#ifdef VM_DEBUG
+	VMThreadDebugger::Initialize();
+#endif
 
 	if (SourceFileMap::CheckForUpdate()) {
 		ScriptManager::ForceGarbageCollection();
@@ -1135,7 +1141,6 @@ void Application::LoadKeyBinds() {
 	}
 
 	GET_KEY("fullscreen", Fullscreen, Key_F4);
-	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
 	GET_KEY("toggleFPSCounter", ToggleFPSCounter, Key_F2);
 	GET_KEY("devRestartApp", DevRestartApp, Key_F1);
 	GET_KEY("devRestartScene", DevRestartScene, Key_F6);
@@ -1145,11 +1150,12 @@ void Application::LoadKeyBinds() {
 	GET_KEY("devFastForward", DevFastForward, Key_BACKSPACE);
 	GET_KEY("devToggleFrameStepper", DevFrameStepper, Key_F9);
 	GET_KEY("devStepFrame", DevStepFrame, Key_F10);
-
-	GET_KEY("devQuit", DevQuit, Key_UNKNOWN);
 	GET_KEY("devShowTileCol", DevTileCol, Key_UNKNOWN);
 	GET_KEY("devShowObjectRegions", DevObjectRegions, Key_UNKNOWN);
 	GET_KEY("devViewHitboxes", DevViewHitboxes, Key_UNKNOWN);
+	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
+	GET_KEY("devScriptDebugger", DevScriptDebugger, Key_UNKNOWN);
+	GET_KEY("devQuit", DevQuit, Key_UNKNOWN);
 
 #undef GET_KEY
 }
@@ -1364,11 +1370,18 @@ void Application::PollEvents() {
 					break;
 				}
 				// Open dev menu (dev)
-				if (key == KeyBindsSDL[(int)KeyBind::DevMenuToggle]) {
+				else if (key == KeyBindsSDL[(int)KeyBind::DevMenuToggle]) {
 					Application::DevMenuActivated ? Application::CloseDevMenu()
 								      : Application::OpenDevMenu();
 					break;
 				}
+#if defined(WIN32) || defined(LINUX) || defined(MACOSX)
+				// Open script debugger
+				else if (key == KeyBindsSDL[(int)KeyBind::DevScriptDebugger]) {
+					ToggleDebugger = true;
+					break;
+				}
+#endif
 				// Restart application (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevRestartApp]) {
 					Application::Restart(false);
@@ -1781,6 +1794,35 @@ void Application::MainLoop() {
 		FixedUpdateCounter += DeltaTime;
 	}
 
+#ifdef VM_DEBUG
+	if (ToggleDebugger && ScriptManager::ThreadCount > 0) {
+		VMThreadDebugger* debugger;
+		bool wasInterrupted;
+
+		printf("Entering debugger.\n");
+
+		ToggleDebugger = false;
+
+		wasInterrupted = AudioManager::Interrupted;
+		if (!wasInterrupted) {
+			AudioManager::SetInterrupted(true);
+		}
+
+		debugger = new VMThreadDebugger(&ScriptManager::Threads[0]);
+		debugger->Enter();
+		debugger->MainLoop();
+		debugger->Exit();
+
+		printf("Exiting debugger.\n");
+
+		delete debugger;
+
+		if (!wasInterrupted) {
+			AudioManager::SetInterrupted(false);
+		}
+	}
+#endif
+
 	Application::RunFrame(adjustedUpdateFrames);
 
 	if (!Graphics::VsyncEnabled || UseFixedTimestep) {
@@ -1876,6 +1918,10 @@ void Application::TerminateScripting() {
 	SourceFileMap::Dispose();
 	Compiler::Dispose();
 	GarbageCollector::Dispose();
+#ifdef VM_DEBUG
+	VMThreadDebugger::Dispose();
+	ScriptManager::BreakpointsEnabled = false;
+#endif
 
 	ScriptManager::LoadAllClasses = false;
 }

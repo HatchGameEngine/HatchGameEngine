@@ -7,11 +7,15 @@
 
 class VMThread {
 private:
-	std::string GetFunctionName(ObjFunction* function);
-	void PrintStackTrace(PrintBuffer* buffer, const char* errorString);
+	void PrintCallTraceFrame(CallFrame* frame, PrintBuffer* buffer, const char* errorString);
+	void PrintStackTrace(PrintBuffer* buffer);
+#ifdef VM_DEBUG
 	bool CheckBranchLimit(CallFrame* frame);
 	bool DoJump(CallFrame* frame, int offset);
 	bool DoJumpBack(CallFrame* frame, int offset);
+	void Breakpoint(VMThreadBreakpoint* breakpoint);
+	bool ShowBranchLimitMessage(const char* errorMessage, ...);
+#endif
 	bool
 	GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
 	bool GetProperty(Obj* object, Uint32 hash, ValueGetFn getter);
@@ -47,13 +51,21 @@ public:
 	};
 	char Name[THREAD_NAME_MAX];
 	Uint32 ID;
+#ifdef VM_DEBUG
 	bool DebugInfo;
+	int AttachedDebuggerCount;
+	int CurrentBreakpointIndex;
 	Uint32 BranchLimit;
+	std::vector<VMThreadBreakpoint*> Breakpoints;
+	std::unordered_map<ObjFunction*, Uint8*> BreakpointsPerFunction;
+#endif
 	static bool InstructionIgnoreMap[0x100];
 	static std::jmp_buf JumpBuffer;
 
 	static char* GetToken(Uint32 hash);
 	static char* GetVariableOrMethodName(Uint32 hash);
+	static std::string GetFunctionName(ObjFunction* function);
+	void PrintFunctionArgs(CallFrame* frame, PrintBuffer* buffer);
 	void MakeErrorMessage(PrintBuffer* buffer, const char* errorString);
 	int ThrowRuntimeError(bool fatal, const char* errorMessage, ...);
 	int ShowErrorFromScript(const char* errorString, bool detailed);
@@ -61,6 +73,16 @@ public:
 	void ShowErrorLocation();
 	void PrintStack();
 	void ReturnFromNative() throw();
+#ifdef VM_DEBUG
+	VMThreadBreakpoint* AddBreakpoint(ObjFunction* function, Uint32 position, int type);
+	VMThreadBreakpoint* GetBreakpoint(int index);
+	VMThreadBreakpoint* FindBreakpoint(ObjFunction* function, Uint32 position);
+	bool RemoveBreakpoint(int index);
+	void AddFunctionBreakpoints(ObjFunction* function);
+	void RemoveBreakpointsForFunction(ObjFunction* function);
+	void RemoveBreakpointsForModule(ObjModule* module);
+	void DisposeBreakpoints();
+#endif
 	void Push(VMValue value);
 	VMValue Pop();
 	void Pop(unsigned amount);
@@ -74,7 +96,7 @@ public:
 	Sint32 ReadSInt32(CallFrame* frame);
 	float ReadFloat(CallFrame* frame);
 	VMValue ReadConstant(CallFrame* frame);
-	bool ShowBranchLimitMessage(const char* errorMessage, ...);
+	VMValue GetConstant(Chunk* chunk, Uint32 index);
 	int RunInstruction();
 	void RunInstructionSet();
 	void RunValue(VMValue value, int argCount);
@@ -116,7 +138,7 @@ public:
 	int RunOpcodeFunc(CallFrame* frame);
 
 #define VM_ADD_OPFUNC(op) int OPFUNC_##op(CallFrame* frame)
-	VM_ADD_OPFUNC(OP_ERROR);
+	VM_ADD_OPFUNC(OP_NOP);
 	VM_ADD_OPFUNC(OP_CONSTANT);
 	VM_ADD_OPFUNC(OP_DEFINE_GLOBAL);
 	VM_ADD_OPFUNC(OP_GET_PROPERTY);
@@ -131,7 +153,7 @@ public:
 	VM_ADD_OPFUNC(OP_METHOD_V4);
 	VM_ADD_OPFUNC(OP_CLASS);
 	VM_ADD_OPFUNC(OP_CALL);
-	VM_ADD_OPFUNC(OP_SUPER);
+	VM_ADD_OPFUNC(OP_UNUSED_1);
 	VM_ADD_OPFUNC(OP_INVOKE_V3);
 	VM_ADD_OPFUNC(OP_JUMP);
 	VM_ADD_OPFUNC(OP_JUMP_IF_FALSE);
@@ -174,7 +196,7 @@ public:
 	VM_ADD_OPFUNC(OP_NEW_ARRAY);
 	VM_ADD_OPFUNC(OP_NEW_MAP);
 	VM_ADD_OPFUNC(OP_SWITCH_TABLE);
-	VM_ADD_OPFUNC(OP_FAILSAFE);
+	VM_ADD_OPFUNC(OP_UNUSED_2);
 	VM_ADD_OPFUNC(OP_EVENT_V4);
 	VM_ADD_OPFUNC(OP_TYPEOF);
 	VM_ADD_OPFUNC(OP_NEW);

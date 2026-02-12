@@ -51,6 +51,7 @@ CPPFILES := \
 	source/Engine/Bytecode/Value.cpp \
 	source/Engine/Bytecode/ValuePrinter.cpp \
 	source/Engine/Bytecode/VMThread.cpp \
+	source/Engine/Bytecode/VMThreadDebugger.cpp \
 	source/Engine/Data/DefaultFonts.cpp \
 	source/Engine/Diagnostics/Clock.cpp \
 	source/Engine/Diagnostics/Log.cpp \
@@ -178,7 +179,9 @@ CPPFILES := \
 	source/Libraries/poly2tri/sweep/advancing_front.cpp \
 	source/Libraries/poly2tri/sweep/cdt.cpp \
 	source/Libraries/poly2tri/sweep/sweep.cpp \
-	source/Libraries/poly2tri/sweep/sweep_context.cpp
+	source/Libraries/poly2tri/sweep/sweep_context.cpp \
+	source/Libraries/linenoise-ng/linenoise.cpp \
+	source/Libraries/linenoise-ng/wcwidth.cpp
 MFILES := \
 	source/Engine/Platforms/MacOS/Filesystem.m
 PRVHFILES := \
@@ -287,6 +290,7 @@ PUBHFILES := \
 	include/Engine/Bytecode/Value.h \
 	include/Engine/Bytecode/ValuePrinter.h \
 	include/Engine/Bytecode/VMThread.h \
+	include/Engine/Bytecode/VMThreadDebugger.h \
 	include/Engine/Data/DefaultFonts.h \
 	include/Engine/Diagnostics/Clock.h \
 	include/Engine/Diagnostics/Log.h \

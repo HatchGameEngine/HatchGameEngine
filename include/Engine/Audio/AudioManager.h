@@ -16,6 +16,7 @@ public:
 	static SDL_AudioDeviceID Device;
 	static SDL_AudioSpec DeviceFormat;
 	static bool AudioEnabled;
+	static bool Interrupted;
 	static Uint8 BytesPerSample;
 	static Uint8* MixBuffer;
 	static size_t MixBufferSize;
@@ -99,6 +100,7 @@ public:
 	static bool IsOriginPlaying(void* origin, ISound* audio);
 	static void StopOriginSound(void* origin, ISound* audio);
 	static void StopAllOriginSounds(void* origin);
+	static void SetInterrupted(bool interrupted);
 	static void MixAudioLR(Uint8* dest, Uint8* src, size_t len, float volumeL, float volumeR);
 	static bool AudioPlayMix(AudioChannel* audio, Uint8* stream, int len, float volume);
 	static void AudioCallback(void* data, Uint8* stream, int len);

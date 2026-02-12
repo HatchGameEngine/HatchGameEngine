@@ -7,6 +7,7 @@
 SDL_AudioDeviceID AudioManager::Device;
 SDL_AudioSpec AudioManager::DeviceFormat;
 bool AudioManager::AudioEnabled = false;
+bool AudioManager::Interrupted = false;
 
 Uint8 AudioManager::BytesPerSample;
 Uint8* AudioManager::MixBuffer;
@@ -591,6 +592,12 @@ void AudioManager::StopAllOriginSounds(void* origin) {
 	AudioManager::Unlock();
 }
 
+void AudioManager::SetInterrupted(bool interrupted) {
+	AudioManager::Lock();
+	AudioManager::Interrupted = interrupted;
+	AudioManager::Unlock();
+}
+
 void AudioManager::MixAudioLR(Uint8* dest, Uint8* src, size_t len, float volumeL, float volumeR) {
 #define DEFINE_STREAM_PTR(type) \
 	type* src##type; \
@@ -791,6 +798,10 @@ bool AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stream, int len, flo
 
 void AudioManager::AudioCallback(void* data, Uint8* stream, int len) {
 	memset(stream, 0x00, len);
+
+	if (Interrupted) {
+		return;
+	}
 
 	if (AudioManager::AudioQueueSize >= (size_t)len) {
 		SDL_MixAudioFormat(stream,

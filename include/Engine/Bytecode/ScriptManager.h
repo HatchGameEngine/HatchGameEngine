@@ -19,17 +19,24 @@ class ScriptManager {
 private:
 #ifdef VM_DEBUG
 	static Uint32 GetBranchLimit();
+	static void LoadSourceCodeLines(SourceFile* sourceFile, char* text);
+	static void LoadSourceCodeLines(SourceFile* sourceFile, const char* sourceFilename);
 #endif
 
 public:
 	static bool LoadAllClasses;
+#ifdef VM_DEBUG
+	static bool BreakpointsEnabled;
+#endif
 	static HashMap<VMValue>* Globals;
 	static HashMap<VMValue>* Constants;
 	static VMThread Threads[8];
 	static Uint32 ThreadCount;
 	static vector<ObjModule*> ModuleList;
+	static vector<ObjModule*> TempModuleList;
 	static HashMap<BytecodeContainer>* Sources;
 	static HashMap<ObjClass*>* Classes;
+	static HashMap<ObjModule*>* Modules;
 	static HashMap<char*>* Tokens;
 	static vector<ObjNamespace*> AllNamespaces;
 	static vector<ObjClass*> ClassImplList;
@@ -41,6 +48,7 @@ public:
 	static void FreeClass(Obj* object);
 	static void FreeEnumeration(Obj* object);
 	static void FreeNamespace(Obj* object);
+	static void RemoveTemporaryModules();
 	static void RequestGarbageCollection();
 	static void ForceGarbageCollection();
 	static void ResetStack();
@@ -62,12 +70,15 @@ public:
 	static bool ClassHasMethod(ObjClass* klass, Uint32 hash);
 	static void LinkStandardLibrary();
 	static void LinkExtensions();
-	static bool RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash);
+	static ObjModule* LoadBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
+	static bool RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
 	static bool CallFunction(const char* functionName);
+	static VMValue FindFunction(const char* functionName);
 	static Entity* SpawnObject(const char* objectName);
 	static Uint32 MakeFilenameHash(const char* filename);
 	static std::string GetBytecodeFilenameForHash(Uint32 filenameHash);
 	static BytecodeContainer GetBytecodeFromFilenameHash(Uint32 filenameHash);
+	static bool BytecodeForFilenameHashExists(Uint32 filenameHash);
 	static bool ClassExists(const char* objectName);
 	static bool ClassExists(Uint32 hash);
 	static bool IsClassLoaded(const char* className);
@@ -75,9 +86,19 @@ public:
 	static bool LoadScript(char* filename);
 	static bool LoadScript(const char* filename);
 	static bool LoadScript(Uint32 hash);
+	static bool IsScriptLoaded(const char* filename);
+	static bool IsScriptLoaded(Uint32 filenameHash);
+	static ObjModule* GetScriptModule(const char* filename);
+	static ObjModule* GetScriptModule(Uint32 filenameHash);
+	static ObjFunction* GetFunctionAtScriptLine(ObjModule* module, int lineNum);
 	static bool LoadObjectClass(const char* objectName);
 	static ObjClass* GetObjectClass(const char* className);
 	static void LoadClasses();
+#ifdef VM_DEBUG
+	static char* GetSourceCodeLine(const char* sourceFilename, int line);
+	static void AddSourceFile(const char* sourceFilename, char* text);
+	static void RemoveSourceFile(const char* sourceFilename);
+#endif
 };
 
 #endif /* ENGINE_BYTECODE_SCRIPTMANAGER_H */

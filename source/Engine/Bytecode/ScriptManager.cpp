@@ -18,6 +18,9 @@
 #include <Engine/Bytecode/Compiler.h>
 
 bool ScriptManager::LoadAllClasses = false;
+#ifdef VM_DEBUG
+bool ScriptManager::BreakpointsEnabled = false;
+#endif
 
 VMThread ScriptManager::Threads[8];
 Uint32 ScriptManager::ThreadCount = 1;
@@ -26,16 +29,20 @@ HashMap<VMValue>* ScriptManager::Globals = NULL;
 HashMap<VMValue>* ScriptManager::Constants = NULL;
 
 vector<ObjModule*> ScriptManager::ModuleList;
+vector<ObjModule*> ScriptManager::TempModuleList;
 
 HashMap<BytecodeContainer>* ScriptManager::Sources = NULL;
 HashMap<ObjClass*>* ScriptManager::Classes = NULL;
+HashMap<ObjModule*>* ScriptManager::Modules = NULL;
 HashMap<char*>* ScriptManager::Tokens = NULL;
 vector<ObjNamespace*> ScriptManager::AllNamespaces;
 vector<ObjClass*> ScriptManager::ClassImplList;
 
 SDL_mutex* ScriptManager::GlobalLock = NULL;
 
-static Uint32 VMBranchLimit = 0;
+#ifdef VM_DEBUG
+static HashMap<SourceFile*>* SourceFiles = nullptr;
+#endif
 
 // #define DEBUG_STRESS_GC
 
@@ -90,6 +97,9 @@ void ScriptManager::Init() {
 	if (Classes == NULL) {
 		Classes = new HashMap<ObjClass*>(NULL, 8);
 	}
+	if (Modules == NULL) {
+		Modules = new HashMap<ObjModule*>(NULL, 8);
+	}
 	if (Tokens == NULL) {
 		Tokens = new HashMap<char*>(NULL, 64);
 	}
@@ -99,7 +109,8 @@ void ScriptManager::Init() {
 	GlobalLock = SDL_CreateMutex();
 
 #ifdef VM_DEBUG
-	VMBranchLimit = GetBranchLimit();
+	int branchLimit = GetBranchLimit();
+	SourceFiles = new HashMap<SourceFile*>(NULL, 8);
 #endif
 
 	for (Uint32 i = 0; i < sizeof(Threads) / sizeof(VMThread); i++) {
@@ -114,10 +125,21 @@ void ScriptManager::Init() {
 		Threads[i].ID = i;
 		Threads[i].StackTop = Threads[i].Stack;
 
+#ifdef VM_DEBUG
 		Threads[i].DebugInfo = false;
-		Threads[i].BranchLimit = VMBranchLimit;
+		Threads[i].AttachedDebuggerCount = 0;
+		Threads[i].CurrentBreakpointIndex = 0;
+		Threads[i].BranchLimit = branchLimit;
+#endif
 	}
 	ThreadCount = 1;
+
+#if defined(DEVELOPER_MODE) && defined(VM_DEBUG)
+#if defined(WIN32) || defined(LINUX) || defined(MACOSX)
+	BreakpointsEnabled = true;
+#endif
+	Application::Settings->GetBool("dev", "enableScriptBreakpoints", &BreakpointsEnabled);
+#endif
 
 	ScriptEntity::Init();
 
@@ -159,8 +181,15 @@ void ScriptManager::Dispose() {
 	ClassImplList.clear();
 	AllNamespaces.clear();
 	ModuleList.clear();
+	TempModuleList.clear();
 
 	if (ThreadCount) {
+#ifdef VM_DEBUG
+		for (int i = 0; i < ThreadCount; i++) {
+			Threads[i].DisposeBreakpoints();
+		}
+#endif
+
 		Threads[0].FrameCount = 0;
 		Threads[0].ResetStack();
 	}
@@ -181,6 +210,11 @@ void ScriptManager::Dispose() {
 		delete Classes;
 		Classes = NULL;
 	}
+	if (Modules) {
+		Modules->Clear();
+		delete Modules;
+		Modules = NULL;
+	}
 	if (Tokens) {
 		Tokens->WithAll([](Uint32 hash, char* token) -> void {
 			Memory::Free(token);
@@ -189,6 +223,18 @@ void ScriptManager::Dispose() {
 		delete Tokens;
 		Tokens = NULL;
 	}
+
+#ifdef VM_DEBUG
+	if (SourceFiles) {
+		SourceFiles->WithAll([](Uint32, SourceFile* sourceFile) -> void {
+			Memory::Free(sourceFile->Text);
+			delete sourceFile;
+		});
+		SourceFiles->Clear();
+		delete SourceFiles;
+		SourceFiles = NULL;
+	}
+#endif
 
 	if (GlobalLock) {
 		SDL_DestroyMutex(GlobalLock);
@@ -235,6 +281,24 @@ void ScriptManager::FreeNamespace(Obj* object) {
 	Memory::Free(ns->Name);
 
 	delete ns->Fields;
+}
+void ScriptManager::RemoveTemporaryModules() {
+	for (size_t i = 0; i < TempModuleList.size(); i++) {
+		ObjModule* module = TempModuleList[i];
+
+#ifdef VM_DEBUG
+		for (int i = 0; i < ThreadCount; i++) {
+			Threads[i].RemoveBreakpointsForModule(module);
+		}
+#endif
+
+		auto it = std::find(ModuleList.begin(), ModuleList.end(), module);
+		if (it != ModuleList.end()) {
+			ModuleList.erase(it);
+		}
+	}
+
+	TempModuleList.clear();
 }
 // #endregion
 
@@ -413,41 +477,38 @@ void ScriptManager::LinkStandardLibrary() {
 void ScriptManager::LinkExtensions() {}
 // #endregion
 
-#define FG_YELLOW ""
-#define FG_RESET ""
-
-#if defined(LINUX)
-#undef FG_YELLOW
-#undef FG_RESET
-#define FG_YELLOW "\x1b[1;93m"
-#define FG_RESET "\x1b[m"
-#endif
-
 // #region ObjectFuncs
-bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+ObjModule* ScriptManager::LoadBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
 	Bytecode* bytecode = new Bytecode();
 	if (!bytecode->Read(bytecodeContainer, Tokens)) {
 		delete bytecode;
-		return false;
+		return nullptr;
 	}
 
 	ObjModule* module = NewModule();
 
 	for (size_t i = 0; i < bytecode->Functions.size(); i++) {
 		ObjFunction* function = bytecode->Functions[i];
+		Chunk* chunk = &function->Chunk;
 
 		module->Functions->push_back(function);
 
 		function->Module = module;
 #if USING_VM_FUNCPTRS
-		function->Chunk.SetupOpfuncs();
+		chunk->SetupOpfuncs();
+#endif
+
+#ifdef VM_DEBUG
+		if (BreakpointsEnabled) {
+			thread->AddFunctionBreakpoints(function);
+		}
 #endif
 	}
 
 	if (bytecode->SourceFilename) {
 		module->SourceFilename = StringUtils::Duplicate(bytecode->SourceFilename);
 	}
-	else {
+	else if (filenameHash) {
 		char fnHash[13];
 		snprintf(fnHash, sizeof(fnHash), "%08X.ibc", filenameHash);
 		module->SourceFilename = StringUtils::Duplicate(fnHash);
@@ -455,9 +516,25 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 
 	ModuleList.push_back(module);
 
+	if (filenameHash) {
+		Modules->Put(filenameHash, module);
+	}
+	else {
+		TempModuleList.push_back(module);
+	}
+
 	delete bytecode;
 
-	Threads[0].RunFunction((*module->Functions)[0], 0);
+	return module;
+}
+bool ScriptManager::RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+	ObjModule* module = LoadBytecode(thread, bytecodeContainer, filenameHash);
+
+	if (!module) {
+		return false;
+	}
+
+	thread->RunFunction((*module->Functions)[0], 0);
 
 	return true;
 }
@@ -473,6 +550,48 @@ bool ScriptManager::CallFunction(const char* functionName) {
 
 	Threads[0].InvokeForEntity(callable, 0);
 	return true;
+}
+VMValue ScriptManager::FindFunction(const char* functionName) {
+	VMValue callable;
+
+	char* methodName = StringUtils::StrCaseStr(functionName, "::");
+	if (methodName) {
+		std::string name = std::string(functionName, methodName - functionName);
+
+		methodName += 2;
+
+		if (*methodName == '\0') {
+			return NULL_VAL;
+		}
+
+		if (!Globals->Exists(name.c_str())) {
+			return NULL_VAL;
+		}
+
+		VMValue value = Globals->Get(name.c_str());
+		if (!IS_CLASS(value)) {
+			return NULL_VAL;
+		}
+
+		ObjClass* klass = AS_CLASS(value);
+		Uint32 hash = Murmur::EncryptString(methodName);
+		if (!GetClassMethod(klass, hash, &callable)) {
+			return NULL_VAL;
+		}
+	}
+	else {
+		if (!Globals->Exists(functionName)) {
+			return NULL_VAL;
+		}
+
+		callable = Globals->Get(functionName);
+	}
+
+	if (!IS_CALLABLE(callable)) {
+		return NULL_VAL;
+	}
+
+	return callable;
 }
 Uint32 ScriptManager::MakeFilenameHash(const char* filename) {
 	size_t length = strlen(filename);
@@ -518,6 +637,27 @@ BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash
 
 	return bytecode;
 }
+bool ScriptManager::BytecodeForFilenameHashExists(Uint32 filenameHash) {
+	if (Sources->Exists(filenameHash)) {
+		return true;
+	}
+
+	std::string filenameForHash = GetBytecodeFilenameForHash(filenameHash);
+	const char* filename = filenameForHash.c_str();
+
+	if (!ResourceManager::ResourceExists(filename)) {
+		return false;
+	}
+
+	ResourceStream* stream = ResourceStream::New(filename);
+	if (!stream) {
+		return false;
+	}
+
+	stream->Close();
+
+	return true;
+}
 bool ScriptManager::ClassExists(const char* objectName) {
 	return SourceFileMap::ClassMap->Exists(objectName);
 }
@@ -548,10 +688,51 @@ bool ScriptManager::LoadScript(Uint32 hash) {
 			return false;
 		}
 
-		return RunBytecode(bytecode, hash);
+		return RunBytecode(&Threads[0], bytecode, hash);
 	}
 
 	return true;
+}
+bool ScriptManager::IsScriptLoaded(const char* filename) {
+	Uint32 hash = MakeFilenameHash(filename);
+	return IsScriptLoaded(hash);
+}
+bool ScriptManager::IsScriptLoaded(Uint32 filenameHash) {
+	return Sources->Exists(filenameHash);
+}
+ObjModule* ScriptManager::GetScriptModule(const char* filename) {
+	Uint32 hash = MakeFilenameHash(filename);
+	return GetScriptModule(hash);
+}
+ObjModule* ScriptManager::GetScriptModule(Uint32 filenameHash) {
+	if (Modules->Exists(filenameHash)) {
+		return Modules->Get(filenameHash);
+	}
+	return nullptr;
+}
+ObjFunction* ScriptManager::GetFunctionAtScriptLine(ObjModule* module, int lineNum) {
+	if (lineNum == 0) {
+		return (*module->Functions)[0];
+	}
+
+	for (size_t i = 0; i < module->Functions->size(); i++) {
+		ObjFunction* function = (*module->Functions)[i];
+		Chunk* chunk = &function->Chunk;
+		if (!chunk->Lines) {
+			continue;
+		}
+
+		for (int offset = 0; offset < chunk->Count;) {
+			int line = chunk->Lines[offset] & 0xFFFF;
+			if (line == lineNum) {
+				return function;
+			}
+
+			offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+		}
+	}
+
+	return nullptr;
 }
 bool ScriptManager::LoadObjectClass(const char* objectName) {
 	if (ScriptManager::IsClassLoaded(objectName)) {
@@ -585,7 +766,7 @@ bool ScriptManager::LoadObjectClass(const char* objectName) {
 					(int)filenameHashList->size());
 			}
 
-			RunBytecode(bytecode, filenameHash);
+			RunBytecode(&Threads[0], bytecode, filenameHash);
 		}
 	}
 
@@ -622,10 +803,91 @@ void ScriptManager::LoadClasses() {
 				continue;
 			}
 
-			RunBytecode(bytecode, filenameHash);
+			RunBytecode(&Threads[0], bytecode, filenameHash);
 		}
 	});
 
 	ScriptManager::ForceGarbageCollection();
 }
+#ifdef VM_DEBUG
+void ScriptManager::LoadSourceCodeLines(SourceFile* sourceFile, char* text) {
+	char* ptr = text;
+	char* end = text + strlen(text);
+	char* lineStart = ptr;
+
+	while (true) {
+		if (*ptr == '\n' || ptr == end) {
+			sourceFile->Lines.push_back(lineStart);
+
+			if (ptr == end) {
+				break;
+			}
+			else {
+				*ptr = '\0';
+				lineStart = ptr + 1;
+			}
+		}
+
+		ptr++;
+	}
+
+	sourceFile->Text = text;
+	sourceFile->Exists = true;
+}
+void ScriptManager::LoadSourceCodeLines(SourceFile* sourceFile, const char* sourceFilename) {
+	Stream* stream = File::Open(sourceFilename, File::READ_ACCESS);
+	if (!stream) {
+		return;
+	}
+
+	size_t size = stream->Length();
+	char* text = (char*)Memory::Calloc(size + 1, sizeof(char));
+	stream->ReadBytes(text, size);
+	stream->Close();
+
+	LoadSourceCodeLines(sourceFile, text);
+}
+char* ScriptManager::GetSourceCodeLine(const char* sourceFilename, int line) {
+	SourceFile* sourceFile = nullptr;
+
+	if (!SourceFiles->Exists(sourceFilename)) {
+		sourceFile = new SourceFile;
+
+		if (File::Exists(sourceFilename)) {
+			LoadSourceCodeLines(sourceFile, sourceFilename);
+		}
+
+		if (!sourceFile->Exists) {
+			Log::Print(Log::LOG_WARN, "Source file \"%s\" does not exist.", sourceFilename);
+		}
+
+		SourceFiles->Put(sourceFilename, sourceFile);
+	}
+	else {
+		sourceFile = SourceFiles->Get(sourceFilename);
+	}
+
+	if (!sourceFile->Exists || line < 1 || line > sourceFile->Lines.size()) {
+		return nullptr;
+	}
+
+	return sourceFile->Lines[line - 1];
+}
+void ScriptManager::AddSourceFile(const char* sourceFilename, char* text) {
+	SourceFile* sourceFile = new SourceFile;
+	sourceFile->Exists = true;
+
+	LoadSourceCodeLines(sourceFile, text);
+
+	RemoveSourceFile(sourceFilename);
+	SourceFiles->Put(sourceFilename, sourceFile);
+}
+void ScriptManager::RemoveSourceFile(const char* sourceFilename) {
+	if (SourceFiles->Exists(sourceFilename)) {
+		Memory::Free(SourceFiles->Get(sourceFilename));
+
+		SourceFiles->Remove(sourceFilename);
+	}
+}
+#endif
 // #endregion

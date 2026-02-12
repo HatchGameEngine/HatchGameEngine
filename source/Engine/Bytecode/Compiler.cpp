@@ -4,13 +4,13 @@
 #include <string.h>
 
 #include <Engine/Bytecode/Bytecode.h>
+#include <Engine/Bytecode/BytecodeDebugger.h>
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Value.h>
-#include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Log.h>
-#include <Engine/IO/FileStream.h>
+#include <Engine/Exceptions/CompilerErrorException.h>
 
 #include <Engine/Application.h>
 
@@ -24,99 +24,7 @@ HashMap<VMValue>* Compiler::StandardConstants = NULL;
 HashMap<Token>* Compiler::TokenMap = NULL;
 
 bool Compiler::DoLogging = false;
-bool Compiler::ShowWarnings = false;
-bool Compiler::WriteDebugInfo = false;
-bool Compiler::WriteSourceFilename = false;
-bool Compiler::DoOptimizations = false;
-
-#define Panic(returnMe) \
-	if (parser.PanicMode) { \
-		SynchronizeToken(); \
-		return returnMe; \
-	}
-
-static const char* opcodeNames[] = {"OP_ERROR",
-	"OP_CONSTANT",
-	"OP_DEFINE_GLOBAL",
-	"OP_GET_PROPERTY",
-	"OP_SET_PROPERTY",
-	"OP_GET_GLOBAL",
-	"OP_SET_GLOBAL",
-	"OP_GET_LOCAL",
-	"OP_SET_LOCAL",
-	"OP_PRINT_STACK",
-	"OP_INHERIT",
-	"OP_RETURN",
-	"OP_METHOD_V4",
-	"OP_CLASS",
-	"OP_CALL",
-	"OP_SUPER",
-	"OP_INVOKE_V3",
-	"OP_JUMP",
-	"OP_JUMP_IF_FALSE",
-	"OP_JUMP_BACK",
-	"OP_POP",
-	"OP_COPY",
-	"OP_ADD",
-	"OP_SUBTRACT",
-	"OP_MULTIPLY",
-	"OP_DIVIDE",
-	"OP_MODULO",
-	"OP_NEGATE",
-	"OP_INCREMENT",
-	"OP_DECREMENT",
-	"OP_BITSHIFT_LEFT",
-	"OP_BITSHIFT_RIGHT",
-	"OP_NULL",
-	"OP_TRUE",
-	"OP_FALSE",
-	"OP_BW_NOT",
-	"OP_BW_AND",
-	"OP_BW_OR",
-	"OP_BW_XOR",
-	"OP_LG_NOT",
-	"OP_LG_AND",
-	"OP_LG_OR",
-	"OP_EQUAL",
-	"OP_EQUAL_NOT",
-	"OP_GREATER",
-	"OP_GREATER_EQUAL",
-	"OP_LESS",
-	"OP_LESS_EQUAL",
-	"OP_PRINT",
-	"OP_ENUM_NEXT",
-	"OP_SAVE_VALUE",
-	"OP_LOAD_VALUE",
-	"OP_WITH",
-	"OP_GET_ELEMENT",
-	"OP_SET_ELEMENT",
-	"OP_NEW_ARRAY",
-	"OP_NEW_MAP",
-	"OP_SWITCH_TABLE",
-	"OP_FAILSAFE",
-	"OP_EVENT_V4",
-	"OP_TYPEOF",
-	"OP_NEW",
-	"OP_IMPORT",
-	"OP_SWITCH",
-	"OP_POPN",
-	"OP_HAS_PROPERTY",
-	"OP_IMPORT_MODULE",
-	"OP_ADD_ENUM",
-	"OP_NEW_ENUM",
-	"OP_GET_SUPERCLASS",
-	"OP_GET_MODULE_LOCAL",
-	"OP_SET_MODULE_LOCAL",
-	"OP_DEFINE_MODULE_LOCAL",
-	"OP_USE_NAMESPACE",
-	"OP_DEFINE_CONSTANT",
-	"OP_INTEGER",
-	"OP_DECIMAL",
-	"OP_INVOKE",
-	"OP_SUPER_INVOKE",
-	"OP_EVENT",
-	"OP_METHOD",
-	"OP_NEW_HITBOX"};
+CompilerSettings Compiler::Settings;
 
 // Order these by C/C++ precedence operators
 enum TokenTYPE {
@@ -230,15 +138,10 @@ enum TokenTYPE {
 	TOKEN_NAMESPACE,
 
 	TOKEN_PRINT,
+	TOKEN_BREAKPOINT,
 
 	TOKEN_ERROR,
 	TOKEN_EOF
-};
-enum FunctionType {
-	TYPE_TOP_LEVEL,
-	TYPE_FUNCTION,
-	TYPE_CONSTRUCTOR,
-	TYPE_METHOD,
 };
 
 Token Compiler::MakeToken(int type) {
@@ -304,8 +207,6 @@ bool Compiler::MatchChar(char expected) {
 }
 char Compiler::AdvanceChar() {
 	return *scanner.Current++;
-	// scanner.Current++;
-	// return *(scanner.Current - 1);
 }
 char Compiler::PrevChar() {
 	return *(scanner.Current - 1);
@@ -401,7 +302,13 @@ int Compiler::GetKeywordType() {
 		}
 		break;
 	case 'b':
-		return CheckKeyword(1, 4, "reak", TOKEN_BREAK);
+		if (scanner.Current - scanner.Start > 8) {
+			return CheckKeyword(1, 9, "reakpoint", TOKEN_BREAKPOINT);
+		}
+		else {
+			return CheckKeyword(1, 4, "reak", TOKEN_BREAK);
+		}
+		break;
 	case 'c':
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
@@ -833,6 +740,7 @@ void Compiler::ConsumeIdentifier(const char* message) {
 	// Contextual keywords
 	switch (parser.Current.Type) {
 	case TOKEN_HITBOX:
+	case TOKEN_BREAKPOINT:
 		AdvanceToken();
 		return;
 	}
@@ -840,41 +748,9 @@ void Compiler::ConsumeIdentifier(const char* message) {
 	ConsumeToken(TOKEN_IDENTIFIER, message);
 }
 
-void Compiler::SynchronizeToken() {
-	parser.PanicMode = false;
-
-	while (PeekToken().Type != TOKEN_EOF) {
-		if (PrevToken().Type == TOKEN_SEMICOLON) {
-			return;
-		}
-
-		switch (PeekToken().Type) {
-		case TOKEN_IF:
-		case TOKEN_WHILE:
-		case TOKEN_DO:
-		case TOKEN_FOR:
-		case TOKEN_SWITCH:
-		case TOKEN_CASE:
-		case TOKEN_DEFAULT:
-		case TOKEN_RETURN:
-		case TOKEN_BREAK:
-		case TOKEN_CONTINUE:
-		case TOKEN_IMPORT:
-		case TOKEN_VAR:
-		case TOKEN_EVENT:
-		case TOKEN_PRINT:
-			return;
-		default:
-			break;
-		}
-
-		AdvanceToken();
-	}
-}
-
 // Error handling
 bool Compiler::ReportError(int line, int pos, bool fatal, const char* string, ...) {
-	if (!fatal && !Compiler::ShowWarnings) {
+	if (!fatal && !CurrentSettings.ShowWarnings) {
 		return true;
 	}
 
@@ -893,55 +769,39 @@ bool Compiler::ReportError(int line, int pos, bool fatal, const char* string, ..
 	buffer.WriteIndex = 0;
 	buffer.BufferSize = 512;
 
+	if (scanner.SourceFilename) {
+		buffer_printf(&buffer, "In file '%s' on ", scanner.SourceFilename);
+	}
+	else {
+		buffer_printf(&buffer, "On ");
+	}
+
 	buffer_printf(&buffer,
-		"In file '%s' on line %d, position %d:\n    %s\n\n",
-		scanner.SourceFilename,
+		"line %d, position %d:\n    %s\n\n",
 		line,
 		pos,
 		message);
 
 	if (!fatal) {
-		Log::Print(Log::LOG_WARN, textBuffer);
+		if (CurrentSettings.PrintToLog) {
+			Log::Print(Log::LOG_WARN, textBuffer);
+		}
+		else {
+			printf("%s\n", textBuffer);
+		}
 		free(textBuffer);
 		return true;
 	}
 
-	Log::Print(Log::LOG_ERROR, textBuffer);
-
-	const SDL_MessageBoxButtonData buttonsFatal[] = {
-		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Exit"},
-	};
-
-	const SDL_MessageBoxData messageBoxData = {
-		SDL_MESSAGEBOX_ERROR,
-		NULL,
-		"Syntax Error",
-		textBuffer,
-		SDL_arraysize(buttonsFatal),
-		buttonsFatal,
-		NULL,
-	};
-
-	int buttonClicked;
-	SDL_ShowMessageBox(&messageBoxData, &buttonClicked);
+	std::string error = std::string(textBuffer);
 
 	free(textBuffer);
 
-	Application::Cleanup();
-	exit(-1);
-
-	return false;
+	throw CompilerErrorException(error);
 }
 void Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
-	if (fatal) {
-		if (parser.PanicMode) {
-			return;
-		}
-		parser.PanicMode = true;
-	}
-
 	if (token->Type == TOKEN_EOF) {
-		ReportError(token->Line, (int)token->Pos, fatal, " at end of file: %s", message);
+		ReportError(token->Line, (int)token->Pos, fatal, "At end of file: %s", message);
 	}
 	else if (token->Type == TOKEN_ERROR) {
 		ReportError(token->Line, (int)token->Pos, fatal, "%s", message);
@@ -950,14 +810,10 @@ void Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
 		ReportError(token->Line,
 			(int)token->Pos,
 			fatal,
-			" at '%.*s': %s",
+			"At '%.*s': %s",
 			token->Length,
 			token->Start,
 			message);
-	}
-
-	if (fatal) {
-		parser.HadError = true;
 	}
 }
 void Compiler::Error(const char* message) {
@@ -970,7 +826,7 @@ void Compiler::Warning(const char* message) {
 	ErrorAt(&parser.Current, message, false);
 }
 void Compiler::WarningInFunction(const char* format, ...) {
-	if (!Compiler::ShowWarnings) {
+	if (!CurrentSettings.ShowWarnings) {
 		return;
 	}
 
@@ -990,28 +846,27 @@ void Compiler::WarningInFunction(const char* format, ...) {
 	buffer.BufferSize = 512;
 
 	if (strcmp(Function->Name, "main") == 0) {
-		buffer_printf(&buffer,
-			"In top level code of file '%s':\n    %s\n",
-			scanner.SourceFilename,
-			message);
+		buffer_printf(&buffer, "In top level code");
 	}
 	else if (ClassName.size() > 0) {
-		buffer_printf(&buffer,
-			"In method '%s::%s' of file '%s':\n    %s\n",
-			ClassName.c_str(),
-			Function->Name,
-			scanner.SourceFilename,
-			message);
+		buffer_printf(&buffer, "In method '%s::%s'", ClassName.c_str(), Function->Name);
 	}
 	else {
-		buffer_printf(&buffer,
-			"In function '%s' of file '%s':\n    %s\n",
-			Function->Name,
-			scanner.SourceFilename,
-			message);
+		buffer_printf(&buffer, "In function '%s'", Function->Name);
 	}
 
-	Log::Print(Log::LOG_WARN, textBuffer);
+	if (scanner.SourceFilename) {
+		buffer_printf(&buffer, " of file '%s'", scanner.SourceFilename);
+	}
+
+	buffer_printf(&buffer, ":\n    %s\n",  message);
+
+	if (CurrentSettings.PrintToLog) {
+		Log::Print(Log::LOG_WARN, textBuffer);
+	}
+	else {
+		printf("%s\n", textBuffer);
+	}
 
 	free(textBuffer);
 }
@@ -1074,7 +929,7 @@ int Compiler::DeclareVariable(Token* name, bool constant) {
 	if (!constant) {
 		return AddLocal(*name);
 	}
-	Constants.push_back({*name, ScopeDepth, false, false, true});
+	Constants.push_back({*name, ScopeDepth, -1, false, false, true});
 	return ((int)Constants.size()) - 1;
 }
 int Compiler::ParseModuleVariable(const char* errorMessage, bool constant) {
@@ -1106,11 +961,11 @@ int Compiler::DeclareModuleVariable(Token* name, bool constant) {
 		return AddModuleLocal(*name);
 	}
 
-	Compiler::ModuleConstants.push_back({*name, 0, false, false, true});
+	Compiler::ModuleConstants.push_back({*name, 0, -1, false, false, true});
 	return ((int)Compiler::ModuleConstants.size()) - 1;
 }
 void Compiler::WarnVariablesUnusedUnset() {
-	if (!Compiler::ShowWarnings) {
+	if (!CurrentSettings.ShowWarnings) {
 		return;
 	}
 
@@ -1408,46 +1263,64 @@ void Compiler::PopMultiple(int count) {
 		count -= max;
 	}
 }
-int Compiler::AddLocal(Token name) {
+int Compiler::AddLocal() {
 	if (LocalCount == 0xFF) {
 		Error("Too many local variables in function.");
 		return -1;
 	}
+	if (LocalCount < 0) {
+		LocalCount = 0;
+	}
 	Local* local = &Locals[LocalCount++];
-	local->Name = name;
 	local->Depth = -1;
+	local->Index = LocalCount - 1;
 	local->Resolved = false;
 	local->Constant = false;
 	local->ConstantVal = VMValue{VAL_ERROR};
-	return LocalCount - 1;
+	return local->Index;
+}
+int Compiler::AddLocal(Token name) {
+	int local = AddLocal();
+
+	Locals[local].Name = name;
+
+	AllLocals.push_back(Locals[local]);
+
+	return local;
 }
 int Compiler::AddLocal(const char* name, size_t len) {
-	if (LocalCount == 0xFF) {
-		Error("Too many local variables in function.");
-		return -1;
-	}
-	Local* local = &Locals[LocalCount++];
-	local->Depth = -1;
-	local->Resolved = false;
-	local->Constant = false;
-	local->ConstantVal = VMValue{VAL_ERROR};
-	;
-	RenameLocal(local, name, len);
-	return LocalCount - 1;
+	int local = AddLocal();
+
+	RenameLocal(&Locals[local], name, len);
+
+	AllLocals.push_back(Locals[local]);
+
+	return local;
 }
 int Compiler::AddHiddenLocal(const char* name, size_t len) {
-	int local = AddLocal(name, len);
+	int local = AddLocal();
+
+	RenameLocal(&Locals[local], name, len);
+
 	Locals[local].Resolved = true;
+
 	MarkInitialized();
+
+	AllLocals.push_back(Locals[local]);
+
 	return local;
 }
 void Compiler::RenameLocal(Local* local, const char* name, size_t len) {
 	local->Name.Start = (char*)name;
 	local->Name.Length = len;
+	local->Name.Line = 0;
+	local->Name.Pos = 0;
 }
 void Compiler::RenameLocal(Local* local, const char* name) {
 	local->Name.Start = (char*)name;
 	local->Name.Length = strlen(name);
+	local->Name.Line = 0;
+	local->Name.Pos = 0;
 }
 void Compiler::RenameLocal(Local* local, Token name) {
 	local->Name = name;
@@ -1480,19 +1353,24 @@ int Compiler::ResolveLocal(Token* name, Local* result) {
 
 	return -1;
 }
-int Compiler::AddModuleLocal(Token name) {
+int Compiler::AddModuleLocal() {
 	if (Compiler::ModuleLocals.size() == 0xFFFF) {
 		Error("Too many locals in module.");
 		return -1;
 	}
 	Local local;
-	local.Name = name;
 	local.Depth = -1;
+	local.Index = -1;
 	local.Resolved = false;
 	local.Constant = false;
 	local.ConstantVal = VMValue{VAL_ERROR};
 	Compiler::ModuleLocals.push_back(local);
-	return ((int)Compiler::ModuleLocals.size()) - 1;
+	return (int)Compiler::ModuleLocals.size() - 1;
+}
+int Compiler::AddModuleLocal(Token name) {
+	int index = AddModuleLocal();
+	Compiler::ModuleLocals[index].Name = name;
+	return index;
 }
 int Compiler::ResolveModuleLocal(Token* name, Local* result) {
 	for (int i = Compiler::ModuleLocals.size() - 1; i >= 0; i--) {
@@ -1980,8 +1858,8 @@ void Compiler::GetHitbox(bool canAssign) {
 		if (allConstants) {
 			VMValue value;
 			uint8_t* codePtr = CurrentChunk()->Code + pre;
-			if (!(pre + GetTotalOpcodeSize(codePtr) == CodePointer() &&
-				    GetEmittedConstant(CurrentChunk(), codePtr, &value))) {
+			if (!(pre + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+				    CurrentChunk()->GetConstant(pre, &value))) {
 				allConstants = false;
 			}
 			else {
@@ -2112,6 +1990,7 @@ struct switch_case {
 stack<vector<int>*> BreakJumpListStack;
 stack<vector<int>*> ContinueJumpListStack;
 stack<vector<switch_case>*> SwitchJumpListStack;
+stack<vector<Uint32>*> BreakpointListStack;
 stack<int> BreakScopeStack;
 stack<int> ContinueScopeStack;
 stack<int> SwitchScopeStack;
@@ -2120,9 +1999,21 @@ void Compiler::GetPrintStatement() {
 	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after value.");
 	EmitByte(OP_PRINT);
 }
+void Compiler::GetBreakpointStatement() {
+	Token previousToken = parser.Previous;
+	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after 'breakpoint'.");
+	AddBreakpoint(previousToken);
+}
 void Compiler::GetExpressionStatement() {
 	GetExpression();
+
+	if (InREPL && MatchToken(TOKEN_EOF)) {
+		EmitNullOnReturn = false;
+		return;
+	}
+
 	EmitByte(OP_POP);
+
 	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after expression.");
 }
 void Compiler::GetContinueStatement() {
@@ -2182,7 +2073,7 @@ void Compiler::GetDoWhileStatement() {
 	EndBreakJumpList();
 }
 void Compiler::GetReturnStatement() {
-	if (Type == TYPE_TOP_LEVEL) {
+	if (Type == FUNCTIONTYPE_TOPLEVEL) {
 		Error("Cannot return from top-level code.");
 	}
 
@@ -2190,7 +2081,7 @@ void Compiler::GetReturnStatement() {
 		EmitReturn();
 	}
 	else {
-		if (Type == TYPE_CONSTRUCTOR) {
+		if (Type == FUNCTIONTYPE_CONSTRUCTOR) {
 			Error("Cannot return a value from an initializer.");
 		}
 
@@ -2283,6 +2174,7 @@ void Compiler::GetSwitchStatement() {
 
 	StartBreakJumpList();
 	StartContinueJumpList();
+	StartBreakpointList();
 
 	// Evaluate the condition
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
@@ -2393,6 +2285,9 @@ void Compiler::GetSwitchStatement() {
 	for (size_t i = 0; i < top->size(); i++) {
 		(*top)[i] += code_offset;
 	}
+
+	// Set the old breakpoint positions to the newly placed ones and pop list off breakpoint stack
+	EndBreakpointList(code_offset);
 
 	// Pop jump list off continue stack, patch all continue to this
 	// code point
@@ -2569,6 +2464,8 @@ void Compiler::GetWithStatement() {
 		// true receiver name
 		RenameLocal(&Locals[otherSlot], receiverName);
 
+		AllLocals.push_back(Locals[otherSlot]);
+
 		// Don't rename "other" anymore
 		useOther = false;
 
@@ -2581,6 +2478,8 @@ void Compiler::GetWithStatement() {
 	// Rename "other" to "this" if the function doesn't have "this"
 	if (useOther && !hasThis) {
 		RenameLocal(&Locals[otherSlot], "this");
+
+		AllLocals.push_back(Locals[otherSlot]);
 	}
 
 	// Init "with" iteration
@@ -2885,51 +2784,73 @@ void Compiler::GetStatement() {
 		GetBlockStatement();
 		ScopeEnd();
 	}
+	else if (MatchToken(TOKEN_BREAKPOINT)) {
+		GetBreakpointStatement();
+	}
 	else {
 		GetExpressionStatement();
 	}
 }
 // Reading declarations
-int Compiler::GetFunction(int type, string className) {
-	int index = (int)Compiler::Functions.size();
-
-	Compiler* compiler = new Compiler;
-	compiler->ClassName = className;
-	compiler->Initialize(this, 1, type);
-
+void Compiler::CompileFunction() {
 	// Compile the parameter list.
-	compiler->ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
 
 	bool isOptional = false;
 
-	if (!compiler->CheckToken(TOKEN_RIGHT_PAREN)) {
+	if (!CheckToken(TOKEN_RIGHT_PAREN)) {
 		do {
-			if (!isOptional && compiler->MatchToken(TOKEN_LEFT_SQUARE_BRACE)) {
+			if (!isOptional && MatchToken(TOKEN_LEFT_SQUARE_BRACE)) {
 				isOptional = true;
 			}
 
-			compiler->ParseVariable("Expect parameter name.", false);
-			compiler->DefineVariableToken(parser.Previous, false);
+			ParseVariable("Expect parameter name.", false);
+			DefineVariableToken(parser.Previous, false);
 
-			compiler->Function->Arity++;
-			if (compiler->Function->Arity > 255) {
-				compiler->Error("Cannot have more than 255 parameters.");
+			Function->Arity++;
+			if (Function->Arity > 255) {
+				Error("Cannot have more than 255 parameters.");
 			}
 
 			if (!isOptional) {
-				compiler->Function->MinArity++;
+				Function->MinArity++;
 			}
-			else if (compiler->MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
+			else if (MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
 				break;
 			}
-		} while (compiler->MatchToken(TOKEN_COMMA));
+		} while (MatchToken(TOKEN_COMMA));
 	}
 
-	compiler->ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
 
 	// The body.
-	compiler->ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
-	compiler->GetBlockStatement();
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+	GetBlockStatement();
+}
+int Compiler::GetFunction(int type, string className) {
+	int index = (int)Compiler::Functions.size();
+
+	char* name = StringUtils::Create(parser.Previous.Start, parser.Previous.Length);
+
+	Compiler* compiler = new Compiler;
+	compiler->CurrentSettings = CurrentSettings;
+	compiler->ClassName = className;
+	compiler->Type = type;
+	compiler->ScopeDepth = 1;
+
+	compiler->Initialize(name);
+	compiler->SetupLocals();
+
+	try {
+		compiler->CompileFunction();
+	}
+	catch (const CompilerErrorException& error) {
+		compiler->Cleanup();
+
+		delete compiler;
+
+		throw error;
+	}
 
 	compiler->Finish();
 
@@ -2946,9 +2867,9 @@ void Compiler::GetMethod(Token className) {
 
 	// If the method has the same name as its class, it's an
 	// initializer.
-	int type = TYPE_METHOD;
+	int type = FUNCTIONTYPE_METHOD;
 	if (IdentifiersEqual(&className, &parser.Previous)) {
-		type = TYPE_CONSTRUCTOR;
+		type = FUNCTIONTYPE_CONSTRUCTOR;
 	}
 
 	// Compile the old instruction if it fits under uint8.
@@ -2991,13 +2912,16 @@ void Compiler::GetVariableDeclaration(bool constant) {
 
 		VMValue value;
 		Local* locals = constant ? Constants.data() : Locals;
-		if (pre + GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() &&
-			GetEmittedConstant(CurrentChunk(), CurrentChunk()->Code + pre, &value)) {
+		int constantIndex = -1;
+		if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() &&
+			CurrentChunk()->GetConstant(pre, &value, &constantIndex)) {
 			if (variable != -1) {
 				locals[variable].ConstantVal = value;
 				locals[variable].Constant = constant;
 				if (constant) {
 					CurrentChunk()->Count = pre;
+					locals[variable].Index = constantIndex;
+					AllLocals.push_back(locals[variable]);
 				}
 			}
 		}
@@ -3008,7 +2932,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 		DefineVariableToken(token, constant);
 		if (constant && variable == -1) {
 			// treat it like a module constant
-			ModuleConstants.push_back({token, 0, false, false, true, value});
+			ModuleConstants.push_back({token, 0, constantIndex, false, false, true, value});
 		}
 	} while (MatchToken(TOKEN_COMMA));
 
@@ -3041,13 +2965,15 @@ void Compiler::GetModuleVariableDeclaration() {
 				EmitByte(OP_NULL);
 			}
 
+			int constantIndex = -1;
+
 			VMValue value;
-			if (pre + GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() &&
-				GetEmittedConstant(
-					CurrentChunk(), CurrentChunk()->Code + pre, &value)) {
+			if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() &&
+				CurrentChunk()->GetConstant(pre, &value, &constantIndex)) {
 				vec->at(local).ConstantVal = value;
 				if (constant) {
 					CurrentChunk()->Count = pre;
+					vec->at(local).Index = constantIndex;
 				}
 			}
 			else if (constant) {
@@ -3174,14 +3100,14 @@ void Compiler::GetEnumDeclaration() {
 				NamedVariable(enumName, false);
 			}
 
+			int constantIndex = -1;
+
 			if (MatchToken(TOKEN_ASSIGNMENT)) {
 				int pre = CodePointer();
 				GetExpression();
-				if (pre + GetTotalOpcodeSize(CurrentChunk()->Code + pre) !=
+				if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) !=
 						CodePointer() ||
-					!GetEmittedConstant(CurrentChunk(),
-						CurrentChunk()->Code + pre,
-						&current)) {
+					!CurrentChunk()->GetConstant(pre, &current, &constantIndex)) {
 					ErrorAt(&token,
 						"Manual enum value must be constant.",
 						true);
@@ -3224,7 +3150,7 @@ void Compiler::GetEnumDeclaration() {
 					// treat it as a module
 					// constant
 					ModuleConstants.push_back(
-						{token, 0, false, false, true, current});
+						{token, 0, constantIndex, false, false, true, current});
 				}
 			}
 		} while (MatchToken(TOKEN_COMMA));
@@ -3277,7 +3203,7 @@ void Compiler::GetEventDeclaration() {
 	// }
 
 	// Compile the old instruction if it fits under uint8.
-	int index = GetFunction(TYPE_FUNCTION);
+	int index = GetFunction(FUNCTIONTYPE_FUNCTION);
 	if (index <= UINT8_MAX) {
 		EmitByte(OP_EVENT_V4);
 		EmitByte(index);
@@ -3319,10 +3245,6 @@ void Compiler::GetDeclaration() {
 	}
 	else {
 		GetStatement();
-	}
-
-	if (parser.PanicMode) {
-		SynchronizeToken();
 	}
 }
 
@@ -3372,7 +3294,7 @@ void Compiler::MakeRules() {
 	Rules[TOKEN_GREATER_EQUAL] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
 	Rules[TOKEN_LESS] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
 	Rules[TOKEN_LESS_EQUAL] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
-	//
+	// Assignment
 	Rules[TOKEN_ASSIGNMENT] = ParseRule{NULL, NULL, NULL, PREC_NONE};
 	Rules[TOKEN_ASSIGNMENT_MULTIPLY] = ParseRule{NULL, NULL, NULL, PREC_NONE};
 	Rules[TOKEN_ASSIGNMENT_DIVISION] = ParseRule{NULL, NULL, NULL, PREC_NONE};
@@ -3415,7 +3337,7 @@ void Compiler::ParsePrecedence(Precedence precedence) {
 	bool canAssign = precedence <= PREC_ASSIGNMENT;
 	(this->*prefixRule)(canAssign);
 
-	if (DoOptimizations) {
+	if (CurrentSettings.DoOptimizations) {
 		preConstant = CheckPrefixOptimize(preCount, preConstant, prefixRule);
 	}
 
@@ -3425,7 +3347,7 @@ void Compiler::ParsePrecedence(Precedence precedence) {
 		if (infixRule) {
 			(this->*infixRule)(canAssign);
 		}
-		if (DoOptimizations) {
+		if (CurrentSettings.DoOptimizations) {
 			preConstant = CheckInfixOptimize(preCount, preConstant, infixRule);
 		}
 	}
@@ -3490,7 +3412,7 @@ int Compiler::GetConstantIndex(VMValue value) {
 int Compiler::EmitConstant(VMValue value) {
 	if (value.Type == VAL_INTEGER) {
 		int i = AS_INTEGER(value);
-		if (DoOptimizations && (i == 0 || i == 1)) {
+		if (CurrentSettings.DoOptimizations && (i == 0 || i == 1)) {
 			EmitByte(!i ? OP_FALSE : OP_TRUE);
 		}
 		else {
@@ -3516,44 +3438,6 @@ int Compiler::EmitConstant(VMValue value) {
 	EmitUint32(index);
 
 	return index;
-}
-bool Compiler::GetEmittedConstant(Chunk* chunk, Uint8* code, VMValue* value, int* index) {
-	if (index) {
-		*index = -1;
-	}
-	switch (*code) {
-	case OP_CONSTANT:
-		if (value) {
-			*value = (*chunk->Constants)[*(Uint32*)(code + 1)];
-		}
-		if (index) {
-			*index = *(Uint32*)(code + 1);
-		}
-		return true;
-	case OP_FALSE:
-	case OP_TRUE:
-		if (value) {
-			*value = INTEGER_VAL(*code == OP_FALSE ? 0 : 1);
-		}
-		return true;
-	case OP_NULL:
-		if (value) {
-			*value = NULL_VAL;
-		}
-		return true;
-	case OP_INTEGER:
-		if (value) {
-			*value = INTEGER_VAL(*(Sint32*)(code + 1));
-		}
-		return true;
-	case OP_DECIMAL:
-		if (value) {
-			*value = DECIMAL_VAL(*(float*)(code + 1));
-		}
-		return true;
-	}
-
-	return false;
 }
 
 void Compiler::EmitLoop(int loopStart) {
@@ -3611,12 +3495,11 @@ void Compiler::EmitStringHash(Token token) {
 	EmitUint32(GetHash(token));
 }
 void Compiler::EmitReturn() {
-	if (Type == TYPE_CONSTRUCTOR) {
-		EmitBytes(OP_GET_LOCAL,
-			0); // return the new instance built from the
-		// constructor
+	if (Type == FUNCTIONTYPE_CONSTRUCTOR) {
+		// return the new instance built from the constructor
+		EmitBytes(OP_GET_LOCAL, 0);
 	}
-	else {
+	else if (EmitNullOnReturn) {
 		EmitByte(OP_NULL);
 	}
 	EmitByte(OP_RETURN);
@@ -3667,6 +3550,20 @@ void Compiler::EndSwitchJumpList() {
 	SwitchJumpListStack.pop();
 	SwitchScopeStack.pop();
 }
+void Compiler::StartBreakpointList() {
+	BreakpointListStack.push(new vector<Uint32>());
+}
+void Compiler::EndBreakpointList(Uint32 offset) {
+	vector<Uint32>* top = BreakpointListStack.top();
+	for (size_t i = 0; i < top->size(); i++) {
+		Breakpoints.push_back((*top)[i] + offset);
+	}
+	delete top;
+	BreakpointListStack.pop();
+}
+void Compiler::EndBreakpointList() {
+	EndBreakpointList(0);
+}
 
 int Compiler::FindConstant(VMValue value) {
 	for (size_t i = 0; i < CurrentChunk()->Constants->size(); i++) {
@@ -3681,18 +3578,18 @@ int Compiler::FindConstant(VMValue value) {
 	return -1;
 }
 int Compiler::MakeConstant(VMValue value) {
-	int constant = CurrentChunk()->AddConstant(value);
-	// if (constant > UINT8_MAX) {
-	//     Error("Too many constants in one chunk.");
-	//     return 0;
-	// }
-	return constant;
+	if (CurrentChunk()->Constants->size() == 0xFFFFFFFF) {
+		Error("Too many constants in one chunk.");
+		return -1;
+	}
+
+	return CurrentChunk()->AddConstant(value);
 }
 
 bool Compiler::HasThis() {
 	switch (Type) {
-	case TYPE_CONSTRUCTOR:
-	case TYPE_METHOD:
+	case FUNCTIONTYPE_CONSTRUCTOR:
+	case FUNCTIONTYPE_METHOD:
 		return true;
 	default:
 		return false;
@@ -3719,10 +3616,9 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 		}
 		Uint8 op = CurrentChunk()->Code[preCount];
 		VMValue constant;
-		if (preCount + GetTotalOpcodeSize(CurrentChunk()->Code + preCount) !=
+		if (preCount + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + preCount) !=
 				CodePointer() - 1 ||
-			!GetEmittedConstant(CurrentChunk(),
-				CurrentChunk()->Code + preCount,
+			!CurrentChunk()->GetConstant(preCount,
 				&constant,
 				&checkConstant)) {
 			return preConstant;
@@ -3837,12 +3733,12 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 
 		int off1 = preCount;
 		Uint8 op1 = CurrentChunk()->Code[off1];
-		int off2 = GetTotalOpcodeSize(CurrentChunk()->Code + off1) + off1;
+		int off2 = Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + off1) + off1;
 		if (off2 >= CodePointer()) {
 			return preConstant;
 		}
 		Uint8 op2 = CurrentChunk()->Code[off2];
-		int offB = GetTotalOpcodeSize(CurrentChunk()->Code + off2) + off2;
+		int offB = Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + off2) + off2;
 		if (offB != CodePointer() - 1) { // CHANGE TO >= ONCE
 			// CASCADING IS ADDED
 			return preConstant;
@@ -3854,13 +3750,11 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		VMValue b;
 		int checkConstantB = -1;
 
-		if (!GetEmittedConstant(
-			    CurrentChunk(), CurrentChunk()->Code + off1, &a, &checkConstantA)) {
+		if (!CurrentChunk()->GetConstant(off1, &a, &checkConstantA)) {
 			return preConstant;
 		}
 
-		if (!GetEmittedConstant(
-			    CurrentChunk(), CurrentChunk()->Code + off2, &b, &checkConstantB)) {
+		if (!CurrentChunk()->GetConstant(off2, &b, &checkConstantB)) {
 			return preConstant;
 		}
 
@@ -4166,381 +4060,18 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 	return preConstant;
 }
 
-int Compiler::GetTotalOpcodeSize(uint8_t* op) {
-	switch (*op) {
-		// ConstantInstruction
-	case OP_CONSTANT:
-	case OP_INTEGER:
-	case OP_DECIMAL:
-	case OP_IMPORT:
-	case OP_IMPORT_MODULE:
-		return 5;
-	case OP_NULL:
-	case OP_TRUE:
-	case OP_FALSE:
-	case OP_POP:
-	case OP_INCREMENT:
-	case OP_DECREMENT:
-	case OP_BITSHIFT_LEFT:
-	case OP_BITSHIFT_RIGHT:
-	case OP_EQUAL:
-	case OP_EQUAL_NOT:
-	case OP_LESS:
-	case OP_LESS_EQUAL:
-	case OP_GREATER:
-	case OP_GREATER_EQUAL:
-	case OP_ADD:
-	case OP_SUBTRACT:
-	case OP_MULTIPLY:
-	case OP_MODULO:
-	case OP_DIVIDE:
-	case OP_BW_NOT:
-	case OP_BW_AND:
-	case OP_BW_OR:
-	case OP_BW_XOR:
-	case OP_LG_NOT:
-	case OP_LG_AND:
-	case OP_LG_OR:
-	case OP_GET_ELEMENT:
-	case OP_SET_ELEMENT:
-	case OP_NEGATE:
-	case OP_PRINT:
-	case OP_TYPEOF:
-	case OP_RETURN:
-	case OP_SAVE_VALUE:
-	case OP_LOAD_VALUE:
-	case OP_GET_SUPERCLASS:
-	case OP_DEFINE_MODULE_LOCAL:
-	case OP_ENUM_NEXT:
-	case OP_NEW_HITBOX:
-		return 1;
-	case OP_COPY:
-	case OP_CALL:
-	case OP_NEW:
-	case OP_EVENT_V4:
-	case OP_POPN:
-		return 2;
-	case OP_EVENT:
-		return 3;
-	case OP_GET_LOCAL:
-	case OP_SET_LOCAL:
-		return 2;
-	case OP_GET_GLOBAL:
-	case OP_DEFINE_GLOBAL:
-	case OP_DEFINE_CONSTANT:
-	case OP_SET_GLOBAL:
-	case OP_GET_PROPERTY:
-	case OP_SET_PROPERTY:
-	case OP_HAS_PROPERTY:
-	case OP_USE_NAMESPACE:
-	case OP_INHERIT:
-		return 5;
-	case OP_SET_MODULE_LOCAL:
-	case OP_GET_MODULE_LOCAL:
-		return 3;
-	case OP_NEW_ARRAY:
-	case OP_NEW_MAP:
-		return 5;
-	case OP_JUMP:
-	case OP_JUMP_IF_FALSE:
-	case OP_JUMP_BACK:
-		return 3;
-	case OP_INVOKE:
-	case OP_SUPER_INVOKE:
-		return 6;
-	case OP_INVOKE_V3:
-		return 7;
-	case OP_WITH:
-		if (*(op + 1) == 3) {
-			return 5;
-		}
-		return 4;
-	case OP_CLASS:
-		return 6;
-	case OP_ADD_ENUM:
-	case OP_NEW_ENUM:
-		return 5;
-	case OP_METHOD:
-		return 7;
-	case OP_METHOD_V4:
-		return 6;
-	}
-	return 1;
-}
-
-// Debugging functions
-int Compiler::HashInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 1];
-	Log::PrintSimple("%-16s #%08X", opcodeNames[opcode], hash);
-	if (TokenMap->Exists(hash)) {
-		Token t = TokenMap->Get(hash);
-		Log::PrintSimple(" (%.*s)", (int)t.Length, t.Start);
-	}
-	Log::PrintSimple("\n");
-	return offset + GetTotalOpcodeSize(chunk->Code + offset);
-}
-int Compiler::ConstantInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	int constant;
-	VMValue value;
-	if (GetEmittedConstant(chunk, chunk->Code + offset, &value, &constant)) {
-		if (constant != -1) {
-			Log::PrintSimple("%-16s %9d '", opcodeNames[opcode], constant);
-		}
-		else {
-			Log::PrintSimple("%-16s           '", opcodeNames[opcode]);
-		}
-	}
-	else {
-		constant = *(int*)&chunk->Code[offset + 1];
-		value = (*chunk->Constants)[constant];
-		Log::PrintSimple("%-16s %9d '", opcodeNames[opcode], constant);
-	}
-	ValuePrinter::Print(value);
-	Log::PrintSimple("'\n");
-	return offset + GetTotalOpcodeSize(chunk->Code + offset);
-}
-int Compiler::SimpleInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	Log::PrintSimple("%s\n", opcodeNames[opcode]);
-	return offset + GetTotalOpcodeSize(chunk->Code + offset);
-}
-int Compiler::ByteInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], chunk->Code[offset + 1]);
-	return offset + GetTotalOpcodeSize(chunk->Code + offset);
-}
-int Compiler::ShortInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	uint16_t data = (uint16_t)(chunk->Code[offset + 1]);
-	data |= chunk->Code[offset + 2] << 8;
-	Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], data);
-	return offset + GetTotalOpcodeSize(chunk->Code + offset);
-}
-int Compiler::LocalInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	uint8_t slot = chunk->Code[offset + 1];
-	if (slot > 0) {
-		Log::PrintSimple("%-16s %9d\n", opcodeNames[opcode], slot);
-	}
-	else {
-		Log::PrintSimple("%-16s %9d 'this'\n", opcodeNames[opcode], slot);
-	}
-	return offset + GetTotalOpcodeSize(chunk->Code + offset);
-}
-int Compiler::MethodInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	uint16_t slot = (uint16_t)(chunk->Code[offset + 1]);
-	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 3];
-	Log::PrintSimple("%-13s %2d", opcodeNames[opcode], slot);
-	Log::PrintSimple(" #%08X", hash);
-	if (TokenMap->Exists(hash)) {
-		Token t = TokenMap->Get(hash);
-		Log::PrintSimple(" (%.*s)", (int)t.Length, t.Start);
-	}
-	Log::PrintSimple("\n");
-	return offset + GetTotalOpcodeSize(chunk->Code + offset);
-}
-int Compiler::InvokeInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	return Compiler::MethodInstruction(opcode, chunk, offset);
-}
-int Compiler::MethodInstructionV4(uint8_t opcode, Chunk* chunk, int offset) {
-	uint8_t slot = chunk->Code[offset + 1];
-	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
-	Log::PrintSimple("%-13s %2d", opcodeNames[opcode], slot);
-	Log::PrintSimple(" #%08X", hash);
-	if (TokenMap->Exists(hash)) {
-		Token t = TokenMap->Get(hash);
-		Log::PrintSimple(" (%.*s)", (int)t.Length, t.Start);
-	}
-	Log::PrintSimple("\n");
-	return offset + GetTotalOpcodeSize(chunk->Code + offset);
-}
-int Compiler::InvokeInstructionV3(uint8_t opcode, Chunk* chunk, int offset) {
-	return Compiler::MethodInstructionV4(opcode, chunk, offset);
-}
-int Compiler::JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset) {
-	uint16_t jump = (uint16_t)(chunk->Code[offset + 1]);
-	jump |= chunk->Code[offset + 2] << 8;
-	Log::PrintSimple(
-		"%-16s %9d -> %d\n", opcodeNames[opcode], offset, offset + 3 + sign * jump);
-	return offset + GetTotalOpcodeSize(chunk->Code + offset);
-}
-int Compiler::ClassInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	return Compiler::HashInstruction(opcode, chunk, offset);
-}
-int Compiler::EnumInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	return Compiler::HashInstruction(opcode, chunk, offset);
-}
-int Compiler::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) {
-	uint8_t type = chunk->Code[offset + 1];
-	uint8_t slot = 0;
-	if (type == 3) {
-		slot = chunk->Code[offset + 2];
-		offset++;
-	}
-	uint16_t jump = (uint16_t)(chunk->Code[offset + 2]);
-	jump |= chunk->Code[offset + 3] << 8;
-	if (slot > 0) {
-		Log::PrintSimple("%-16s %1d %7d -> %d\n", opcodeNames[opcode], type, slot, jump);
-	}
-	else {
-		Log::PrintSimple(
-			"%-16s %1d %7d 'this' -> %d\n", opcodeNames[opcode], type, slot, jump);
-	}
-	if (type == 3) {
-		offset--;
-	}
-	return offset + GetTotalOpcodeSize(chunk->Code + offset);
-}
-int Compiler::DebugInstruction(Chunk* chunk, int offset) {
-	Log::PrintSimple("%04d ", offset);
-	if (offset > 0 && (chunk->Lines[offset] & 0xFFFF) == (chunk->Lines[offset - 1] & 0xFFFF)) {
-		Log::PrintSimple("   | ");
-	}
-	else {
-		Log::PrintSimple("%4d ", chunk->Lines[offset] & 0xFFFF);
+void Compiler::AddBreakpoint(Token at) {
+	std::vector<Uint32>* breakpoints = BreakpointListStack.top();
+	if (breakpoints->size() == MAX_CHUNK_BREAKPOINTS) {
+		char msg[64];
+		snprintf(msg, sizeof msg, "Cannot have more than %d breakpoints.", MAX_CHUNK_BREAKPOINTS);
+		ErrorAt(&at, msg, false); // It's not fatal to have too many breakpoints
+		return;
 	}
 
-	uint8_t instruction = chunk->Code[offset];
-	switch (instruction) {
-	case OP_CONSTANT:
-	case OP_INTEGER:
-	case OP_DECIMAL:
-	case OP_IMPORT:
-	case OP_IMPORT_MODULE:
-		return ConstantInstruction(instruction, chunk, offset);
-	case OP_NULL:
-	case OP_TRUE:
-	case OP_FALSE:
-	case OP_POP:
-	case OP_INCREMENT:
-	case OP_DECREMENT:
-	case OP_BITSHIFT_LEFT:
-	case OP_BITSHIFT_RIGHT:
-	case OP_EQUAL:
-	case OP_EQUAL_NOT:
-	case OP_LESS:
-	case OP_LESS_EQUAL:
-	case OP_GREATER:
-	case OP_GREATER_EQUAL:
-	case OP_ADD:
-	case OP_SUBTRACT:
-	case OP_MULTIPLY:
-	case OP_MODULO:
-	case OP_DIVIDE:
-	case OP_BW_NOT:
-	case OP_BW_AND:
-	case OP_BW_OR:
-	case OP_BW_XOR:
-	case OP_LG_NOT:
-	case OP_LG_AND:
-	case OP_LG_OR:
-	case OP_GET_ELEMENT:
-	case OP_SET_ELEMENT:
-	case OP_NEGATE:
-	case OP_PRINT:
-	case OP_TYPEOF:
-	case OP_RETURN:
-	case OP_SAVE_VALUE:
-	case OP_LOAD_VALUE:
-	case OP_GET_SUPERCLASS:
-	case OP_DEFINE_MODULE_LOCAL:
-	case OP_ENUM_NEXT:
-	case OP_NEW_HITBOX:
-		return SimpleInstruction(instruction, chunk, offset);
-	case OP_COPY:
-	case OP_CALL:
-	case OP_NEW:
-	case OP_EVENT_V4:
-	case OP_POPN:
-		return ByteInstruction(instruction, chunk, offset);
-	case OP_EVENT:
-		return ShortInstruction(instruction, chunk, offset);
-	case OP_GET_LOCAL:
-	case OP_SET_LOCAL:
-		return LocalInstruction(instruction, chunk, offset);
-	case OP_GET_GLOBAL:
-	case OP_DEFINE_GLOBAL:
-	case OP_DEFINE_CONSTANT:
-	case OP_SET_GLOBAL:
-	case OP_GET_PROPERTY:
-	case OP_SET_PROPERTY:
-	case OP_HAS_PROPERTY:
-	case OP_USE_NAMESPACE:
-	case OP_INHERIT:
-		return HashInstruction(instruction, chunk, offset);
-	case OP_SET_MODULE_LOCAL:
-	case OP_GET_MODULE_LOCAL:
-		return ShortInstruction(instruction, chunk, offset);
-	case OP_NEW_ARRAY:
-	case OP_NEW_MAP:
-		return SimpleInstruction(instruction, chunk, offset);
-	case OP_JUMP:
-	case OP_JUMP_IF_FALSE:
-		return JumpInstruction(instruction, 1, chunk, offset);
-	case OP_JUMP_BACK:
-		return JumpInstruction(instruction, -1, chunk, offset);
-	case OP_INVOKE:
-	case OP_SUPER_INVOKE:
-		return InvokeInstruction(instruction, chunk, offset);
-	case OP_INVOKE_V3:
-		return InvokeInstructionV3(instruction, chunk, offset);
+	Uint32 offset = CurrentChunk()->Count;
 
-	case OP_PRINT_STACK: {
-		offset++;
-		uint8_t constant = chunk->Code[offset++];
-		Log::PrintSimple("%-16s %4d ", opcodeNames[instruction], constant);
-		ValuePrinter::Print((*chunk->Constants)[constant]);
-		Log::PrintSimple("\n");
-
-		ObjFunction* function = AS_FUNCTION((*chunk->Constants)[constant]);
-		for (int j = 0; j < function->UpvalueCount; j++) {
-			int isLocal = chunk->Code[offset++];
-			int index = chunk->Code[offset++];
-			Log::PrintSimple("%04d   |                     %s %d\n",
-				offset - 2,
-				isLocal ? "local" : "upvalue",
-				index);
-		}
-
-		return offset;
-	}
-	case OP_WITH:
-		return WithInstruction(instruction, chunk, offset);
-	case OP_CLASS:
-		return ClassInstruction(instruction, chunk, offset);
-	case OP_ADD_ENUM:
-	case OP_NEW_ENUM:
-		return EnumInstruction(instruction, chunk, offset);
-	case OP_METHOD:
-		return MethodInstruction(instruction, chunk, offset);
-	case OP_METHOD_V4:
-		return MethodInstructionV4(instruction, chunk, offset);
-	default:
-		if (instruction < OP_LAST) {
-			Log::PrintSimple("No viewer for opcode %s\n", opcodeNames[instruction]);
-		}
-		else {
-			Log::PrintSimple("Unknown opcode %d\n", instruction);
-		}
-		return chunk->Count + 1;
-	}
-}
-void Compiler::DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity) {
-	int optArgCount = maxArity - minArity;
-	if (optArgCount) {
-		Log::PrintSimple(
-			"== %s (argCount: %d, optArgCount: %d) ==\n", name, maxArity, optArgCount);
-	}
-	else {
-		Log::PrintSimple("== %s (argCount: %d) ==\n", name, maxArity);
-	}
-	Log::PrintSimple("byte   ln\n");
-	for (int offset = 0; offset < chunk->Count;) {
-		offset = DebugInstruction(chunk, offset);
-	}
-
-	Log::PrintSimple("\nConstants: (%d count)\n", (int)(*chunk->Constants).size());
-	for (size_t i = 0; i < (*chunk->Constants).size(); i++) {
-		Log::PrintSimple(" %2d '", (int)i);
-		ValuePrinter::Print((*chunk->Constants)[i]);
-		Log::PrintSimple("'\n");
-	}
+	breakpoints->push_back(offset);
 }
 
 // Compiling
@@ -4548,25 +4079,30 @@ void Compiler::Init() {
 	Compiler::MakeRules();
 
 	Compiler::DoLogging = false;
-	Compiler::ShowWarnings = false;
+
+	Settings.PrintToLog = true;
+	Settings.PrintChunks = false;
+	Settings.ShowWarnings = false;
 #if DEVELOPER_MODE
-	Compiler::WriteDebugInfo = true;
-	Compiler::WriteSourceFilename = true;
+	Settings.WriteDebugInfo = true;
+	Settings.WriteSourceFilename = true;
 #else
-	Compiler::WriteDebugInfo = false;
-	Compiler::WriteSourceFilename = false;
+	Settings.WriteDebugInfo = false;
+	Settings.WriteSourceFilename = false;
 #endif
-	Compiler::DoOptimizations = true;
+	Settings.DoOptimizations = true;
 
 	Application::Settings->GetBool("compiler", "log", &Compiler::DoLogging);
 	if (Compiler::DoLogging) {
-		Application::Settings->GetBool("compiler", "showWarnings", &Compiler::ShowWarnings);
+		Application::Settings->GetBool("compiler", "showWarnings", &Settings.ShowWarnings);
 	}
 
-	Application::Settings->GetBool("compiler", "writeDebugInfo", &Compiler::WriteDebugInfo);
+	Application::Settings->GetBool("compiler", "writeDebugInfo", &Settings.WriteDebugInfo);
 	Application::Settings->GetBool(
-		"compiler", "writeSourceFilename", &Compiler::WriteSourceFilename);
-	Application::Settings->GetBool("compiler", "optimizations", &Compiler::DoOptimizations);
+		"compiler", "writeSourceFilename", &Settings.WriteSourceFilename);
+	Application::Settings->GetBool("compiler", "optimizations", &Settings.DoOptimizations);
+
+	Application::Settings->GetBool("dev", "debugCompiler", &Settings.PrintChunks);
 }
 void Compiler::GetStandardConstants() {
 	if (Compiler::StandardConstants == NULL) {
@@ -4586,39 +4122,43 @@ void Compiler::PrepareCompiling() {
 		Compiler::TokenMap = new HashMap<Token>(NULL, 8);
 	}
 }
-void Compiler::Initialize(Compiler* enclosing, int scope, int type) {
-	Type = type;
-	LocalCount = 0;
-	ScopeDepth = scope;
-	Enclosing = enclosing;
+void Compiler::Initialize(char* name) {
 	Function = NewFunction();
+	Function->Name = name;
+
 	UnusedVariables = new vector<Local>();
 	UnsetVariables = new vector<Local>();
-	Compiler::Functions.push_back(Function);
 
-	switch (type) {
-	case TYPE_CONSTRUCTOR:
-	case TYPE_METHOD:
-	case TYPE_FUNCTION:
-		Function->Name = StringUtils::Create(parser.Previous.Start, parser.Previous.Length);
-		break;
-	case TYPE_TOP_LEVEL:
-		Function->Name = StringUtils::Create("main");
-		break;
+	StartBreakpointList();
+
+	Compiler::Functions.push_back(Function);
+}
+void Compiler::Initialize() {
+	char* name = StringUtils::Create("main");
+
+	Initialize(name);
+}
+void Compiler::SetupLocals() {
+	if (LocalCount >= 0) {
+		return;
 	}
+
+	LocalCount = 0;
 
 	Local* local = &Locals[LocalCount++];
 	local->Depth = ScopeDepth;
+	local->Index = LocalCount - 1;
 
 	if (HasThis()) {
 		// In a method, it holds the receiver, "this".
 		SetReceiverName("this");
 	}
 	else {
-		// In a function, it holds the function, but cannot be
-		// referenced, so it has no name.
+		// In a function, it holds the function, but cannot be referenced, so it has no name.
 		SetReceiverName("");
 	}
+
+	AllLocals.push_back(*local);
 }
 void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 	Bytecode* bytecode = new Bytecode();
@@ -4627,8 +4167,11 @@ void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 		bytecode->Functions.push_back(Compiler::Functions[i]);
 	}
 
-	bytecode->HasDebugInfo = Compiler::WriteDebugInfo;
-	bytecode->Write(stream, Compiler::WriteSourceFilename ? filename : nullptr, TokenMap);
+	bytecode->HasDebugInfo = CurrentSettings.WriteDebugInfo;
+	bytecode->SourceFilename = CurrentSettings.WriteSourceFilename ? (char*)filename : nullptr;
+	bytecode->Write(stream, TokenMap);
+
+	bytecode->SourceFilename = nullptr;
 
 	delete bytecode;
 
@@ -4637,9 +4180,6 @@ void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 	}
 }
 bool Compiler::Compile(const char* filename, const char* source, Stream* output) {
-	bool debugCompiler = false;
-	Application::Settings->GetBool("dev", "debugCompiler", &debugCompiler);
-
 	scanner.Line = 1;
 	scanner.Start = (char*)source;
 	scanner.Current = (char*)source;
@@ -4649,24 +4189,67 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 	parser.HadError = false;
 	parser.PanicMode = false;
 
-	Initialize(NULL, 0, TYPE_TOP_LEVEL);
+	try {
+		AdvanceToken();
+		while (!MatchToken(TOKEN_EOF)) {
+			GetDeclaration();
+		}
 
-	AdvanceToken();
-	while (!MatchToken(TOKEN_EOF)) {
-		GetDeclaration();
+		ConsumeToken(TOKEN_EOF, "Expected end of file.");
+	}
+	catch (const CompilerErrorException& error) {
+		Cleanup();
+		DeleteFunctions();
+
+		throw error;
 	}
 
-	ConsumeToken(TOKEN_EOF, "Expected end of file.");
+	if (Compiler::ModuleLocals.size() > 0) {
+		Function->Chunk.ModuleLocals = new vector<ChunkLocal>;
 
-	for (size_t i = 0; i < Compiler::ModuleLocals.size(); i++) {
-		if (UnusedVariables && !Compiler::ModuleLocals[i].Resolved) {
-			UnusedVariables->insert(
-				UnusedVariables->begin(), Compiler::ModuleLocals[i]);
+		for (size_t i = 0; i < Compiler::ModuleLocals.size(); i++) {
+			Local moduleLocal = Compiler::ModuleLocals[i];
+
+			ChunkLocal local;
+			Token nameToken = moduleLocal.Name;
+			local.Name = StringUtils::Create(nameToken.ToString());
+			local.Constant = false;
+			local.Resolved = moduleLocal.Resolved;
+			local.Index = i;
+			local.Position = (Uint32)((nameToken.Pos & 0xFFFF) << 16 | (nameToken.Line & 0xFFFF));
+			Function->Chunk.ModuleLocals->push_back(local);
+
+			if (UnusedVariables && !moduleLocal.Resolved) {
+				UnusedVariables->insert(
+					UnusedVariables->begin(), moduleLocal);
+			}
+			else if (UnsetVariables &&
+				moduleLocal.ConstantVal.Type != VAL_ERROR &&
+				!moduleLocal.WasSet) {
+				UnsetVariables->insert(UnsetVariables->begin(), moduleLocal);
+			}
 		}
-		else if (UnsetVariables &&
-			Compiler::ModuleLocals[i].ConstantVal.Type != VAL_ERROR &&
-			!Compiler::ModuleLocals[i].WasSet) {
-			UnsetVariables->insert(UnsetVariables->begin(), Compiler::ModuleLocals[i]);
+	}
+
+	if (Compiler::ModuleConstants.size() > 0) {
+		if (!Function->Chunk.ModuleLocals) {
+			Function->Chunk.ModuleLocals = new vector<ChunkLocal>;
+		}
+
+		for (size_t i = 0; i < Compiler::ModuleConstants.size(); i++) {
+			Local moduleLocal = Compiler::ModuleConstants[i];
+			if (moduleLocal.Index < 0) {
+				continue;
+			}
+
+			ChunkLocal local;
+			Token nameToken = moduleLocal.Name;
+			local.Name = StringUtils::Create(nameToken.ToString());
+			local.Constant = true;
+			local.Resolved = true;
+			local.Index = moduleLocal.Index;
+			local.Position = (Uint32)((nameToken.Pos & 0xFFFF) << 16 | (nameToken.Line & 0xFFFF));
+			Function->Chunk.ModuleLocals->push_back(local);
 		}
 	}
 
@@ -4676,45 +4259,147 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 		Chunk* chunk = &Compiler::Functions[c]->Chunk;
 		chunk->OpcodeCount = 0;
 		for (int offset = 0; offset < chunk->Count;) {
-			offset += GetTotalOpcodeSize(chunk->Code + offset);
+			offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
 			chunk->OpcodeCount++;
 		}
 	}
 
-	if (debugCompiler) {
+	if (CurrentSettings.PrintChunks && Compiler::Functions.size() > 0) {
+		BytecodeDebugger* debugger = new BytecodeDebugger;
+
+		debugger->PrintToLog = CurrentSettings.PrintToLog;
+
+		if (TokenMap && TokenMap->Count()) {
+			HashMap<char*>* tokens = new HashMap<char*>(NULL, TokenMap->Count());
+
+			TokenMap->WithAll([tokens](Uint32 hash, Token token) -> void {
+				std::string asString = token.ToString();
+				tokens->Put(hash, StringUtils::Create(asString.c_str()));
+			});
+
+			debugger->Tokens = tokens;
+		}
+
 		for (size_t c = 0; c < Compiler::Functions.size(); c++) {
 			Chunk* chunk = &Compiler::Functions[c]->Chunk;
-			DebugChunk(chunk,
+
+			debugger->DebugChunk(chunk,
 				Compiler::Functions[c]->Name,
 				Compiler::Functions[c]->MinArity,
 				Compiler::Functions[c]->Arity);
-			Log::PrintSimple("\n");
+
+			if (CurrentSettings.PrintToLog) {
+				Log::PrintSimple("\n");
+			}
+			else {
+				printf("\n");
+			}
 		}
+
+		delete debugger;
 	}
 
 	if (output) {
 		WriteBytecode(output, filename);
 	}
 
+	Cleanup();
+	DeleteFunctions();
+
+	return true;
+}
+void Compiler::Cleanup() {
+	if (UnusedVariables) {
+		delete UnusedVariables;
+		UnusedVariables = nullptr;
+	}
+	if (UnsetVariables) {
+		delete UnsetVariables;
+		UnsetVariables = nullptr;
+	}
+
+	while (BreakJumpListStack.size() > 0) {
+		delete BreakJumpListStack.top();
+		BreakJumpListStack.pop();
+		BreakScopeStack.pop();
+	}
+	while (ContinueJumpListStack.size() > 0) {
+		delete ContinueJumpListStack.top();
+		ContinueJumpListStack.pop();
+		ContinueScopeStack.pop();
+	}
+	while (SwitchJumpListStack.size() > 0) {
+		EndSwitchJumpList();
+	}
+	while (BreakpointListStack.size() > 0) {
+		delete BreakpointListStack.top();
+		BreakpointListStack.pop();
+	}
+}
+void Compiler::DeleteFunctions() {
 	for (size_t c = 0; c < Compiler::Functions.size(); c++) {
 		ObjFunction* func = Compiler::Functions[c];
 		func->Chunk.Free();
 	}
-
-	return !parser.HadError;
 }
 void Compiler::Finish() {
+	Chunk* chunk = CurrentChunk();
+
+	// NOTE: Top level functions don't have locals.
+	// See Compiler::Compile for the logic that handles module locals
+	if (AllLocals.size()) {
+		chunk->Locals = new vector<ChunkLocal>;
+
+		for (int i = 0; i < AllLocals.size(); i++) {
+			Local srcLocal = AllLocals[i];
+			if (srcLocal.Index < 0) {
+				continue;
+			}
+
+			Token nameToken = srcLocal.Name;
+			Uint32 position = 0;
+			if (i >= Function->Arity + 1) {
+				position = (Uint32)((nameToken.Pos & 0xFFFF) << 16 | (nameToken.Line & 0xFFFF));
+			}
+
+			ChunkLocal local;
+			local.Name = StringUtils::Create(nameToken.ToString());
+			local.Constant = srcLocal.Constant;
+			local.Resolved = srcLocal.Resolved;
+			local.Index = srcLocal.Index;
+			local.Position = position;
+			chunk->Locals->push_back(local);
+		}
+	}
+
 	if (UnusedVariables || UnsetVariables) {
 		WarnVariablesUnusedUnset();
 		if (UnusedVariables) {
 			delete UnusedVariables;
+			UnusedVariables = nullptr;
 		}
 		if (UnsetVariables) {
 			delete UnsetVariables;
+			UnsetVariables = nullptr;
 		}
 	}
 
 	EmitReturn();
+	EndBreakpointList();
+	AddBreakpointsToChunk(chunk);
+}
+void Compiler::AddBreakpointsToChunk(Chunk* chunk) {
+	chunk->BreakpointCount = (Uint16)Breakpoints.size();
+
+	if (!chunk->BreakpointCount) {
+		return;
+	}
+
+	chunk->Breakpoints = (Uint32*)Memory::Calloc(chunk->BreakpointCount, sizeof(Uint32));
+
+	for (Uint16 i = 0; i < chunk->BreakpointCount; i++) {
+		chunk->Breakpoints[i] = Breakpoints[i];
+	}
 }
 
 Compiler::~Compiler() {}

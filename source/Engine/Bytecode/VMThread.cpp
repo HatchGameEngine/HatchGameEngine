@@ -1,5 +1,5 @@
 #include <Engine/Application.h>
-#include <Engine/Bytecode/Compiler.h>
+#include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/VMThread.h>
@@ -8,11 +8,14 @@
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 
+#ifdef VM_DEBUG
+#include <Engine/Audio/AudioManager.h>
+#include <Engine/Bytecode/VMThreadDebugger.h>
+#endif
+
 #ifndef _MSC_VER
 #define USING_VM_DISPATCH_TABLE
 #endif
-
-// #define VM_DEBUG_INSTRUCTIONS
 
 enum {
 	INVOKE_OK,
@@ -32,7 +35,7 @@ std::jmp_buf VMThread::JumpBuffer;
 
 // #region Error Handling & Debug Info
 std::string VMThread::GetFunctionName(ObjFunction* function) {
-	if (strcmp(function->Name, "main") == 0) {
+	if (function->Index == 0) {
 		return "top-level function";
 	}
 	else if (strcmp(function->Name, "<anonymous-fn>") == 0) {
@@ -70,22 +73,17 @@ char* VMThread::GetVariableOrMethodName(Uint32 hash) {
 
 	return GetTokenBuffer;
 }
-void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
-	int line;
-	const char* source;
-
-	CallFrame* frame = &Frames[FrameCount - 1];
+void VMThread::PrintCallTraceFrame(CallFrame* frame, PrintBuffer* buffer, const char* errorString) {
 	ObjFunction* function = frame->Function;
-
 	if (function && function->Chunk.Lines) {
 		size_t bpos = (frame->IPLast - frame->IPStart);
-		line = function->Chunk.Lines[bpos] & 0xFFFF;
+		int line = function->Chunk.Lines[bpos] & 0xFFFF;
 
 		std::string functionName = GetFunctionName(function);
 		buffer_printf(buffer,
 			"In %s of %s, line %d",
 			functionName.c_str(),
-			function->Module->SourceFilename,
+			GetModuleName(function->Module),
 			line);
 
 		if (errorString) {
@@ -98,22 +96,26 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 	else if (errorString) {
 		buffer_printf(buffer, "%s\n", errorString);
 	}
+}
+void VMThread::PrintStackTrace(PrintBuffer* buffer) {
+	buffer_printf(buffer, "Call Trace (Thread %d):\n", ID);
 
-	buffer_printf(buffer, "\nCall Trace (Thread %d):\n", ID);
 	for (Uint32 i = 0; i < FrameCount; i++) {
-		CallFrame* fr = &Frames[i];
-		function = fr->Function;
-		source = function->Module->SourceFilename;
-		line = -1;
-		if (i > 0 && function->Chunk.Lines) {
+		CallFrame* frame = &Frames[i];
+		ObjFunction* function = frame->Function;
+		int line = -1;
+
+		const char* source = GetModuleName(function->Module);
+		if (i > 0 && function->Chunk.Lines && strcmp(source, "repl") != 0) {
 			CallFrame* fr2 = &Frames[i - 1];
 			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
 		}
+
 		std::string functionName = GetFunctionName(function);
 		buffer_printf(buffer, "    called %s of %s", functionName.c_str(), source);
 
 		if (line > 0) {
-			buffer_printf(buffer, " on Line %d", line);
+			buffer_printf(buffer, " on line %d", line);
 		}
 		if (i < FrameCount - 1) {
 			buffer_printf(buffer, ", then");
@@ -121,9 +123,44 @@ void VMThread::PrintStackTrace(PrintBuffer* buffer, const char* errorString) {
 		buffer_printf(buffer, "\n");
 	}
 }
+void VMThread::PrintFunctionArgs(CallFrame* frame, PrintBuffer* buffer) {
+	ObjFunction* function = frame->Function;
+
+	// That's top level code; there's no parameters
+	if (function->Index == 0) {
+		return;
+	}
+
+	size_t maxLocals = std::min(function->Chunk.Locals->size(), (size_t)function->Arity + 1);
+
+	buffer_printf(buffer, " (");
+
+	for (size_t i = 0; i < maxLocals; i++) {
+		buffer_printf(buffer, "%s=", (*function->Chunk.Locals)[i].Name);
+
+		if (i < StackTop - frame->Slots) {
+			VMValue value = frame->Slots[i];
+			if (IS_STRING(value)) {
+				buffer_printf(buffer, "\"");
+			}
+			ValuePrinter::Print(buffer, value);
+			if (IS_STRING(value)) {
+				buffer_printf(buffer, "\"");
+			}
+		}
+
+		if (i < maxLocals - 1) {
+			buffer_printf(buffer, ", ");
+		}
+	}
+
+	buffer_printf(buffer, ")");
+}
 void VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
 	if (FrameCount > 0) {
-		PrintStackTrace(buffer, errorString);
+		PrintCallTraceFrame(&Frames[FrameCount - 1], buffer, errorString);
+		buffer_printf(buffer, "\n");
+		PrintStackTrace(buffer);
 	}
 	else if (IS_OBJECT(FunctionToInvoke)) {
 		if (OBJECT_TYPE(FunctionToInvoke) == OBJ_NATIVE_FUNCTION) {
@@ -146,7 +183,7 @@ void VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
 				buffer_printf(buffer,
 					"While calling %s of %s",
 					functionName.c_str(),
-					function->Module->SourceFilename);
+					GetModuleName(function->Module));
 			}
 			else {
 				buffer_printf(buffer, "While calling value");
@@ -187,6 +224,13 @@ int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
 	MakeErrorMessage(&buffer, errorString);
 
 	Log::Print(Log::LOG_ERROR, textBuffer);
+
+#ifdef VM_DEBUG
+	if (AttachedDebuggerCount) {
+		free(textBuffer);
+		return ERROR_RES_CONTINUE;
+	}
+#endif
 
 	PrintStack();
 
@@ -248,6 +292,13 @@ int VMThread::ShowErrorFromScript(const char* errorString, bool detailed) {
 
 	Log::Print(Log::LOG_ERROR, textBuffer);
 
+#ifdef VM_DEBUG
+	if (AttachedDebuggerCount) {
+		free(textBuffer);
+		return ERROR_RES_CONTINUE;
+	}
+#endif
+
 	const SDL_MessageBoxButtonData buttonsError[] = {
 		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"},
 		{SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Continue"},
@@ -305,97 +356,53 @@ void VMThread::PrintStack() {
 void VMThread::ReturnFromNative() throw() {}
 // #endregion
 
-// #region Stack stuff
-void VMThread::Push(VMValue value) {
-	if (StackSize() == STACK_SIZE_MAX) {
-		if (ThrowRuntimeError(true,
-			    "Stack overflow! \nStack Top: %p \nStack: %p\nCount: %d",
-			    StackTop,
-			    Stack,
-			    StackSize()) == ERROR_RES_CONTINUE) {
-			return;
-		}
-	}
-
-	*(StackTop++) = value;
-}
-VMValue VMThread::Pop() {
-	if (StackTop == Stack) {
-		if (ThrowRuntimeError(true, "Stack underflow!") == ERROR_RES_CONTINUE) {
-			return *StackTop;
-		}
-	}
-
-	StackTop--;
-	return *StackTop;
-}
-void VMThread::Pop(unsigned amount) {
-	while (amount-- > 0) {
-		Pop();
-	}
-}
-VMValue VMThread::Peek(int offset) {
-	return *(StackTop - offset - 1);
-}
-Uint32 VMThread::StackSize() {
-	return (Uint32)(StackTop - Stack);
-}
-void VMThread::ResetStack() {
-	// bool debugInstruction = ID == 1;
-	// if (debugInstruction) printf("reset stack\n");
-
-	StackTop = Stack;
-}
-// #endregion
-
-// #region Instruction stuff
-enum ThreadReturnCodes {
-	INTERPRET_RUNTIME_ERROR = -100,
-	INTERPRET_GLOBAL_DOES_NOT_EXIST,
-	INTERPRET_GLOBAL_ALREADY_EXIST,
-	INTERPRET_FINISHED = -1,
-	INTERPRET_OK = 0,
-};
-
-// NOTE: These should be inlined
-Uint8 VMThread::ReadByte(CallFrame* frame) {
-	frame->IP += sizeof(Uint8);
-	return *(Uint8*)(frame->IP - sizeof(Uint8));
-}
-Uint16 VMThread::ReadUInt16(CallFrame* frame) {
-	frame->IP += sizeof(Uint16);
-	return FROM_LE16(*(Uint16*)(frame->IP - sizeof(Uint16)));
-}
-Uint32 VMThread::ReadUInt32(CallFrame* frame) {
-	frame->IP += sizeof(Uint32);
-	return FROM_LE32(*(Uint32*)(frame->IP - sizeof(Uint32)));
-}
-Sint16 VMThread::ReadSInt16(CallFrame* frame) {
-	return (Sint16)ReadUInt16(frame);
-}
-Sint32 VMThread::ReadSInt32(CallFrame* frame) {
-	return (Sint32)ReadUInt32(frame);
-}
-float VMThread::ReadFloat(CallFrame* frame) {
-	frame->IP += sizeof(float);
-	return FROM_LE32F(*(float*)(frame->IP - sizeof(float)));
-}
-VMValue VMThread::ReadConstant(CallFrame* frame) {
-	return (*frame->Function->Chunk.Constants)[ReadUInt32(frame)];
-}
-
-#define DO_RETURN() \
-	{ \
-		FrameCount--; \
-		if (FrameCount == ReturnFrame) { \
-			return INTERPRET_FINISHED; \
-		} \
-		StackTop = frame->Slots; \
-		Push(InterpretResult); \
-		frame = &Frames[FrameCount - 1]; \
-	}
-
+// #region Debugging
 #ifdef VM_DEBUG
+void VMThread::Breakpoint(VMThreadBreakpoint* breakpoint) {
+	CallFrame* frame = &Frames[FrameCount - 1];
+	ObjFunction* function = frame->Function;
+
+	bool wasInterrupted = AudioManager::Interrupted;
+	if (!wasInterrupted) {
+		AudioManager::SetInterrupted(true);
+	}
+
+	VMThreadDebugger* debugger = new VMThreadDebugger(this);
+
+	printf("Breakpoint hit");
+
+	if (function) {
+		printf(" at ");
+		debugger->PrintCallFrameSourceLine(frame, breakpoint->CodeOffset, true);
+	}
+	else {
+		printf("\n");
+	}
+
+	switch (breakpoint->OnHit) {
+	case BREAKPOINT_ONHIT_DISABLE:
+		breakpoint->Enabled = false;
+		break;
+	case BREAKPOINT_ONHIT_REMOVE:
+		RemoveBreakpoint(breakpoint->Index);
+		printf("Removed breakpoint %d\n", breakpoint->Index);
+		break;
+	default:
+		break;
+	}
+
+	debugger->Enter();
+	debugger->MainLoop();
+	debugger->Exit();
+
+	printf("Resuming execution.\n");
+
+	delete debugger;
+
+	if (!wasInterrupted) {
+		AudioManager::SetInterrupted(false);
+	}
+}
 bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 	va_list args;
 	char errorString[2048];
@@ -412,9 +419,16 @@ bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 	MakeErrorMessage(&buffer, errorString);
 
 	Log::Print(Log::LOG_WARN, textBuffer);
+
+	if (AttachedDebuggerCount) {
+		free(textBuffer);
+		return true;
+	}
+
 	PrintStack();
 
 	if (VMThread::InstructionIgnoreMap[000000001]) {
+		free(textBuffer);
 		return false;
 	}
 
@@ -456,13 +470,214 @@ bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 
 	return true;
 }
-
 bool VMThread::CheckBranchLimit(CallFrame* frame) {
 	if (BranchLimit && ++frame->BranchCount >= BranchLimit) {
 		return ShowBranchLimitMessage("Hit branch limit!");
 	}
 	return true;
 }
+VMThreadBreakpoint* VMThread::AddBreakpoint(ObjFunction* function, Uint32 position, int type) {
+	Uint8* breakpoints = BreakpointsPerFunction[function];
+	if (breakpoints[position]) {
+		return nullptr;
+	}
+
+	VMThreadBreakpoint* bp = new VMThreadBreakpoint;
+	bp->Function = function;
+	bp->CodeOffset = position;
+	bp->Enabled = true;
+	bp->OnHit = type;
+	bp->Index = CurrentBreakpointIndex++;
+
+	breakpoints[position] = 1;
+
+	Breakpoints.push_back(bp);
+
+	return bp;
+}
+VMThreadBreakpoint* VMThread::GetBreakpoint(int index) {
+	for (size_t i = 0; i < Breakpoints.size(); i++) {
+		VMThreadBreakpoint* breakpoint = Breakpoints[i];
+		if (breakpoint->Index == index) {
+			return breakpoint;
+		}
+	}
+
+	return nullptr;
+}
+VMThreadBreakpoint* VMThread::FindBreakpoint(ObjFunction* function, Uint32 position) {
+	for (size_t i = 0; i < Breakpoints.size(); i++) {
+		VMThreadBreakpoint* breakpoint = Breakpoints[i];
+
+		if (breakpoint->Function == function && breakpoint->CodeOffset == position) {
+			return breakpoint;
+		}
+	}
+
+	return nullptr;
+}
+bool VMThread::RemoveBreakpoint(int index) {
+	for (size_t i = 0; i < Breakpoints.size(); i++) {
+		VMThreadBreakpoint* breakpoint = Breakpoints[i];
+
+		if (breakpoint->Index == index) {
+			Uint8* bp = BreakpointsPerFunction[breakpoint->Function];
+			bp[breakpoint->CodeOffset] = 0;
+
+			delete breakpoint;
+
+			Breakpoints.erase(Breakpoints.begin() + i);
+			return true;
+		}
+	}
+
+	return false;
+}
+void VMThread::AddFunctionBreakpoints(ObjFunction* function) {
+	Chunk* chunk = &function->Chunk;
+
+	Uint8* breakpoints = (Uint8*)Memory::Calloc(chunk->Count, sizeof(Uint8));
+
+	BreakpointsPerFunction[function] = breakpoints;
+
+	if (!chunk->BreakpointCount) {
+		return;
+	}
+
+	for (Uint16 i = 0; i < chunk->BreakpointCount; i++) {
+		AddBreakpoint(function, chunk->Breakpoints[i], BREAKPOINT_ONHIT_KEEP);
+	}
+}
+void VMThread::RemoveBreakpointsForFunction(ObjFunction* function) {
+	auto it = BreakpointsPerFunction.find(function);
+	if (it != BreakpointsPerFunction.end()) {
+		Memory::Free(it->second);
+		BreakpointsPerFunction.erase(function);
+	}
+
+	for (size_t i = 0; i < Breakpoints.size();) {
+		VMThreadBreakpoint* breakpoint = Breakpoints[i];
+
+		if (breakpoint->Function == function) {
+			delete breakpoint;
+
+			Breakpoints.erase(Breakpoints.begin() + i);
+		}
+		else {
+			i++;
+		}
+	}
+}
+void VMThread::RemoveBreakpointsForModule(ObjModule* module) {
+	for (size_t i = 0; i < module->Functions->size(); i++) {
+		ObjFunction* function = (*module->Functions)[i];
+
+		RemoveBreakpointsForFunction(function);
+	}
+}
+void VMThread::DisposeBreakpoints() {
+	for (size_t i = 0; i < Breakpoints.size(); i++) {
+		delete Breakpoints[i];
+	}
+	Breakpoints.clear();
+
+	std::unordered_map<ObjFunction*, Uint8*>::iterator it;
+	for (it = BreakpointsPerFunction.begin(); it != BreakpointsPerFunction.end(); it++) {
+		Memory::Free(it->second);
+	}
+	BreakpointsPerFunction.clear();
+}
+#endif
+// #endregion
+
+// #region Stack stuff
+void VMThread::Push(VMValue value) {
+	if (StackSize() == STACK_SIZE_MAX) {
+		if (ThrowRuntimeError(true,
+			    "Stack overflow! \nStack Top: %p \nStack: %p\nCount: %d",
+			    StackTop,
+			    Stack,
+			    StackSize()) == ERROR_RES_CONTINUE) {
+			return;
+		}
+	}
+
+	*(StackTop++) = value;
+}
+VMValue VMThread::Pop() {
+	if (StackTop == Stack) {
+		if (ThrowRuntimeError(true, "Stack underflow!") == ERROR_RES_CONTINUE) {
+			return *StackTop;
+		}
+	}
+
+	StackTop--;
+	return *StackTop;
+}
+void VMThread::Pop(unsigned amount) {
+	while (amount-- > 0) {
+		Pop();
+	}
+}
+VMValue VMThread::Peek(int offset) {
+	return *(StackTop - offset - 1);
+}
+Uint32 VMThread::StackSize() {
+	return (Uint32)(StackTop - Stack);
+}
+void VMThread::ResetStack() {
+	StackTop = Stack;
+}
+// #endregion
+
+// #region Instruction stuff
+enum ThreadReturnCodes {
+	INTERPRET_EXIT_FROM_DEBUGGER = -200,
+	INTERPRET_RUNTIME_ERROR = -100,
+	INTERPRET_FINISHED = -1,
+	INTERPRET_OK = 0,
+};
+
+// NOTE: These should be inlined
+Uint8 VMThread::ReadByte(CallFrame* frame) {
+	frame->IP += sizeof(Uint8);
+	return *(Uint8*)(frame->IP - sizeof(Uint8));
+}
+Uint16 VMThread::ReadUInt16(CallFrame* frame) {
+	frame->IP += sizeof(Uint16);
+	return FROM_LE16(*(Uint16*)(frame->IP - sizeof(Uint16)));
+}
+Uint32 VMThread::ReadUInt32(CallFrame* frame) {
+	frame->IP += sizeof(Uint32);
+	return FROM_LE32(*(Uint32*)(frame->IP - sizeof(Uint32)));
+}
+Sint16 VMThread::ReadSInt16(CallFrame* frame) {
+	return (Sint16)ReadUInt16(frame);
+}
+Sint32 VMThread::ReadSInt32(CallFrame* frame) {
+	return (Sint32)ReadUInt32(frame);
+}
+float VMThread::ReadFloat(CallFrame* frame) {
+	frame->IP += sizeof(float);
+	return FROM_LE32F(*(float*)(frame->IP - sizeof(float)));
+}
+VMValue VMThread::ReadConstant(CallFrame* frame) {
+	return GetConstant(&frame->Function->Chunk, ReadUInt32(frame));
+}
+VMValue VMThread::GetConstant(Chunk* chunk, Uint32 index) {
+	return (*chunk->Constants)[index];
+}
+
+#define DO_RETURN() \
+	{ \
+		FrameCount--; \
+		if (FrameCount == ReturnFrame) { \
+			return INTERPRET_FINISHED; \
+		} \
+		StackTop = frame->Slots; \
+		Push(InterpretResult); \
+		frame = &Frames[FrameCount - 1]; \
+	}
 
 #if USING_VM_FUNCPTRS
 #define IP_OPFUNC_SYNC() \
@@ -472,6 +687,7 @@ bool VMThread::CheckBranchLimit(CallFrame* frame) {
 #define IP_OPFUNC_SYNC()
 #endif
 
+#ifdef VM_DEBUG
 bool VMThread::DoJump(CallFrame* frame, int offset) {
 	frame->IP += offset;
 #if USING_VM_FUNCPTRS
@@ -505,9 +721,6 @@ bool VMThread::DoJumpBack(CallFrame* frame, int offset) {
 		} \
 	}
 #elif USING_VM_FUNCPTRS
-#define IP_OPFUNC_SYNC() \
-	frame->OpcodeFunctions = \
-		frame->OpcodeFStart + frame->IPToOpcode[frame->IP - frame->IPStart];
 #define JUMP(offset) \
 	{ \
 		frame->IP += offset; \
@@ -519,7 +732,6 @@ bool VMThread::DoJumpBack(CallFrame* frame, int offset) {
 		IP_OPFUNC_SYNC(); \
 	}
 #else
-#define IP_OPFUNC_SYNC()
 #define JUMP(offset) \
 	{ frame->IP += offset; }
 #define JUMP_BACK(offset) \
@@ -544,7 +756,7 @@ int VMThread::RunInstruction() {
 #define VM_ADD_DISPATCH_NULL(op) NULL
 	// This must follow the existing opcode order.
 	static const void* dispatch_table[] = {
-		VM_ADD_DISPATCH_NULL(OP_ERROR),
+		VM_ADD_DISPATCH_NULL(OP_NOP),
 		VM_ADD_DISPATCH(OP_CONSTANT),
 		VM_ADD_DISPATCH(OP_DEFINE_GLOBAL),
 		VM_ADD_DISPATCH(OP_GET_PROPERTY),
@@ -559,7 +771,7 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_METHOD_V4),
 		VM_ADD_DISPATCH(OP_CLASS),
 		VM_ADD_DISPATCH(OP_CALL),
-		VM_ADD_DISPATCH_NULL(OP_SUPER),
+		VM_ADD_DISPATCH_NULL(OP_UNUSED_1),
 		VM_ADD_DISPATCH(OP_INVOKE),
 		VM_ADD_DISPATCH(OP_JUMP),
 		VM_ADD_DISPATCH(OP_JUMP_IF_FALSE),
@@ -602,7 +814,7 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_NEW_ARRAY),
 		VM_ADD_DISPATCH(OP_NEW_MAP),
 		VM_ADD_DISPATCH(OP_SWITCH_TABLE),
-		VM_ADD_DISPATCH(OP_FAILSAFE),
+		VM_ADD_DISPATCH_NULL(OP_UNUSED_2),
 		VM_ADD_DISPATCH(OP_EVENT_V4),
 		VM_ADD_DISPATCH(OP_TYPEOF),
 		VM_ADD_DISPATCH(OP_NEW),
@@ -651,101 +863,35 @@ int VMThread::RunInstruction() {
 	frame = &Frames[FrameCount - 1];
 	frame->IPLast = frame->IP;
 
+#ifdef VM_DEBUG
+	if (ScriptManager::BreakpointsEnabled && BreakpointsPerFunction.count(frame->Function)) {
+		Uint8* bp = BreakpointsPerFunction[frame->Function];
+		Uint32 position = frame->IP - frame->IPStart;
+
+		if (bp[position]) {
+			VMThreadBreakpoint* breakpoint = FindBreakpoint(frame->Function, position);
+			if (breakpoint && breakpoint->Enabled) {
+				Breakpoint(breakpoint);
+
+				if (!FrameCount) {
+					return INTERPRET_EXIT_FROM_DEBUGGER;
+				}
+
+				frame = &Frames[FrameCount - 1];
+			}
+		}
+	}
+#endif
+
 #ifdef VM_DEBUG_INSTRUCTIONS
 	if (DebugInfo) {
-#define PRINT_CASE(n) \
-	case n: \
-		Log::Print(Log::LOG_VERBOSE, #n); \
-		break;
-
-		switch (*frame->IP) {
-			PRINT_CASE(OP_ERROR)
-			PRINT_CASE(OP_CONSTANT)
-			PRINT_CASE(OP_DEFINE_GLOBAL)
-			PRINT_CASE(OP_GET_PROPERTY)
-			PRINT_CASE(OP_SET_PROPERTY)
-			PRINT_CASE(OP_GET_GLOBAL)
-			PRINT_CASE(OP_SET_GLOBAL)
-			PRINT_CASE(OP_GET_LOCAL)
-			PRINT_CASE(OP_SET_LOCAL)
-			PRINT_CASE(OP_PRINT_STACK)
-			PRINT_CASE(OP_INHERIT)
-			PRINT_CASE(OP_RETURN)
-			PRINT_CASE(OP_METHOD_V4)
-			PRINT_CASE(OP_CLASS)
-			PRINT_CASE(OP_CALL)
-			PRINT_CASE(OP_SUPER)
-			PRINT_CASE(OP_INVOKE_V3)
-			PRINT_CASE(OP_JUMP)
-			PRINT_CASE(OP_JUMP_IF_FALSE)
-			PRINT_CASE(OP_JUMP_BACK)
-			PRINT_CASE(OP_POP)
-			PRINT_CASE(OP_COPY)
-			PRINT_CASE(OP_ADD)
-			PRINT_CASE(OP_SUBTRACT)
-			PRINT_CASE(OP_MULTIPLY)
-			PRINT_CASE(OP_DIVIDE)
-			PRINT_CASE(OP_MODULO)
-			PRINT_CASE(OP_NEGATE)
-			PRINT_CASE(OP_INCREMENT)
-			PRINT_CASE(OP_DECREMENT)
-			PRINT_CASE(OP_BITSHIFT_LEFT)
-			PRINT_CASE(OP_BITSHIFT_RIGHT)
-			PRINT_CASE(OP_NULL)
-			PRINT_CASE(OP_TRUE)
-			PRINT_CASE(OP_FALSE)
-			PRINT_CASE(OP_BW_NOT)
-			PRINT_CASE(OP_BW_AND)
-			PRINT_CASE(OP_BW_OR)
-			PRINT_CASE(OP_BW_XOR)
-			PRINT_CASE(OP_LG_NOT)
-			PRINT_CASE(OP_LG_AND)
-			PRINT_CASE(OP_LG_OR)
-			PRINT_CASE(OP_EQUAL)
-			PRINT_CASE(OP_EQUAL_NOT)
-			PRINT_CASE(OP_GREATER)
-			PRINT_CASE(OP_GREATER_EQUAL)
-			PRINT_CASE(OP_LESS)
-			PRINT_CASE(OP_LESS_EQUAL)
-			PRINT_CASE(OP_PRINT)
-			PRINT_CASE(OP_ENUM_NEXT)
-			PRINT_CASE(OP_SAVE_VALUE)
-			PRINT_CASE(OP_LOAD_VALUE)
-			PRINT_CASE(OP_WITH)
-			PRINT_CASE(OP_GET_ELEMENT)
-			PRINT_CASE(OP_SET_ELEMENT)
-			PRINT_CASE(OP_NEW_ARRAY)
-			PRINT_CASE(OP_NEW_MAP)
-			PRINT_CASE(OP_SWITCH_TABLE)
-			PRINT_CASE(OP_TYPEOF)
-			PRINT_CASE(OP_NEW)
-			PRINT_CASE(OP_IMPORT)
-			PRINT_CASE(OP_SWITCH)
-			PRINT_CASE(OP_POPN)
-			PRINT_CASE(OP_HAS_PROPERTY)
-			PRINT_CASE(OP_IMPORT_MODULE)
-			PRINT_CASE(OP_ADD_ENUM)
-			PRINT_CASE(OP_NEW_ENUM)
-			PRINT_CASE(OP_GET_SUPERCLASS)
-			PRINT_CASE(OP_GET_MODULE_LOCAL)
-			PRINT_CASE(OP_SET_MODULE_LOCAL)
-			PRINT_CASE(OP_DEFINE_MODULE_LOCAL)
-			PRINT_CASE(OP_USE_NAMESPACE)
-			PRINT_CASE(OP_DEFINE_CONSTANT)
-			PRINT_CASE(OP_INTEGER)
-			PRINT_CASE(OP_DECIMAL)
-			PRINT_CASE(OP_INVOKE)
-			PRINT_CASE(OP_SUPER_INVOKE)
-			PRINT_CASE(OP_EVENT)
-			PRINT_CASE(OP_METHOD)
-			PRINT_CASE(OP_NEW_HITBOX)
-
-		default:
-			Log::Print(Log::LOG_ERROR, "Unknown opcode %d\n", frame->IP);
-			break;
+		instruction = *frame->IP;
+		if (instruction < OP_LAST) {
+			Log::Print(Log::LOG_VERBOSE, Bytecode::OpcodeNames[instruction]);
 		}
-
-#undef PRINT_CASE
+		else {
+			Log::Print(Log::LOG_ERROR, "Unknown opcode 0x%02X\n", instruction);
+		}
 	}
 #endif
 
@@ -763,7 +909,7 @@ int VMThread::RunInstruction() {
 					goto FAIL_OP_GET_GLOBAL;
 				}
 				Push(NULL_VAL);
-				return INTERPRET_GLOBAL_DOES_NOT_EXIST;
+				return INTERPRET_RUNTIME_ERROR;
 			}
 
 			Push(Value::Delink(result));
@@ -795,7 +941,7 @@ int VMThread::RunInstruction() {
 					ERROR_RES_CONTINUE) {
 					goto FAIL_OP_SET_GLOBAL;
 				}
-				return INTERPRET_GLOBAL_DOES_NOT_EXIST;
+				return INTERPRET_RUNTIME_ERROR;
 			}
 
 			VMValue LHS = ScriptManager::Globals->Get(hash);
@@ -2262,8 +2408,8 @@ int VMThread::RunInstruction() {
 
 	VM_CASE(OP_GET_MODULE_LOCAL) {
 		Uint16 slot = ReadUInt16(frame);
-		if (slot < frame->Module->Locals->size()) {
-			Push((*frame->Module->Locals)[slot]);
+		if (slot < frame->ModuleLocals->size()) {
+			Push((*frame->ModuleLocals)[slot]);
 		}
 		else {
 			Push(NULL_VAL);
@@ -2272,13 +2418,13 @@ int VMThread::RunInstruction() {
 	}
 	VM_CASE(OP_SET_MODULE_LOCAL) {
 		Uint16 slot = ReadUInt16(frame);
-		if (slot < frame->Module->Locals->size()) {
-			(*frame->Module->Locals)[slot] = Peek(0);
+		if (slot < frame->ModuleLocals->size()) {
+			(*frame->ModuleLocals)[slot] = Peek(0);
 		}
 		VM_BREAK;
 	}
 	VM_CASE(OP_DEFINE_MODULE_LOCAL) {
-		frame->Module->Locals->push_back(Pop());
+		frame->ModuleLocals->push_back(Pop());
 		VM_BREAK;
 	}
 
@@ -2355,23 +2501,19 @@ int VMThread::RunInstruction() {
 		VM_BREAK;
 	}
 
-	VM_CASE(OP_FAILSAFE) {
-		int offset = ReadUInt16(frame);
-		frame->Function->Chunk.Failsafe = frame->IPStart + offset;
-		// frame->IP = frame->IPStart + offset;
+	VM_CASE(OP_NOP) {
 		VM_BREAK;
 	}
-
-	VM_CASE(OP_ERROR) {
+	VM_CASE(OP_UNUSED_1) {
 		VM_BREAK;
 	}
-	VM_CASE(OP_SUPER) {
+	VM_CASE(OP_UNUSED_2) {
 		VM_BREAK;
 	}
 	VM_END();
 
 #ifdef VM_DEBUG_INSTRUCTIONS
-	if (DebugInfo) {
+	if (DebugInfo && !AttachedDebuggerCount) {
 		Log::Print(Log::LOG_WARN, "START");
 		PrintStack();
 	}
@@ -2382,17 +2524,15 @@ int VMThread::RunInstruction() {
 
 void VMThread::RunInstructionSet() {
 	while (true) {
-		// if (!ScriptManager::Lock()) break;
-
-		int ret;
-		if ((ret = RunInstruction()) < INTERPRET_OK) {
-			if (ret < INTERPRET_FINISHED) {
-				Log::Print(Log::LOG_ERROR, "Error Code: %d!", ret);
-			}
-			// ScriptManager::Unlock();
-			break;
+		int ret = RunInstruction();
+		if (ret != INTERPRET_OK) {
+			return;
 		}
-		// ScriptManager::Unlock();
+#ifdef VM_DEBUG
+		else if (FrameCount == 0) {
+			return;
+		}
+#endif
 	}
 }
 // #endregion
@@ -2548,8 +2688,9 @@ void VMThread::InvokeForEntity(VMValue value, int argCount) {
 		case OBJ_BOUND_METHOD:
 		case OBJ_FUNCTION:
 			RunInstructionSet();
+			break;
 		default:
-			// Do nothing for native functions
+			// Do nothing for native functions, as they've already been called
 			break;
 		}
 	}
@@ -3022,6 +3163,7 @@ bool VMThread::Call(ObjFunction* function, int argCount) {
 	frame->WithReceiverStackTop = frame->WithReceiverStack;
 	frame->WithIteratorStackTop = frame->WithIteratorStack;
 	frame->Module = function->Module;
+	frame->ModuleLocals = function->Module->Locals;
 
 #ifdef VM_DEBUG
 	frame->BranchCount = 0;

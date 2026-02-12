@@ -54,13 +54,29 @@ struct CallFrame;
 typedef int (VMThread::*OpcodeFunc)(CallFrame* frame);
 #endif
 
+#define CHUNKLOCAL_FLAG_RESOLVED (1 << 0)
+#define CHUNKLOCAL_FLAG_CONST (1 << 1)
+
+#define MAX_CHUNK_BREAKPOINTS 0xFFFF
+
+struct ChunkLocal {
+	char* Name;
+	bool Constant;
+	bool Resolved;
+	Uint32 Index;
+	Uint32 Position;
+};
+
 struct Chunk {
 	int Count;
 	int Capacity;
 	Uint8* Code;
-	Uint8* Failsafe;
+	Uint32* Breakpoints;
+	Uint16 BreakpointCount;
 	int* Lines;
 	vector<VMValue>* Constants;
+	vector<ChunkLocal>* Locals;
+	vector<ChunkLocal>* ModuleLocals;
 	bool OwnsMemory;
 
 	int OpcodeCount;
@@ -72,17 +88,27 @@ struct Chunk {
 	void Init();
 	void Alloc();
 	void Free();
+	void DeleteLocals(vector<ChunkLocal>* locals);
 #if USING_VM_FUNCPTRS
 	void SetupOpfuncs();
 #endif
 	void Write(Uint8 byte, int line);
 	int AddConstant(VMValue value);
+	bool GetConstant(size_t offset, VMValue* value = NULL, int* index = NULL);
 };
 
 struct BytecodeContainer {
 	Uint8* Data;
 	size_t Size;
 };
+
+#ifdef VM_DEBUG
+struct SourceFile {
+	bool Exists = false;
+	char* Text = nullptr;
+	std::vector<char*> Lines;
+};
+#endif
 
 const char* GetTypeString(Uint32 type);
 const char* GetObjectTypeString(Uint32 type);
@@ -287,6 +313,7 @@ struct ObjFunction {
 	char* Name;
 	struct ObjClass* Class;
 	Uint32 NameHash;
+	size_t Index;
 };
 struct ObjNative {
 	Obj Object;
@@ -410,6 +437,7 @@ Obj* NewNativeInstance(size_t size);
 
 std::string GetClassName(Uint32 hash);
 Uint32 GetClassHash(const char* name);
+const char* GetModuleName(ObjModule* module);
 
 static inline bool IsObjectType(VMValue value, ObjType type) {
 	return IS_OBJECT(value) && AS_OBJECT(value)->Type == type;
@@ -450,6 +478,22 @@ struct VMThreadCallback {
 	VMValue Callable;
 };
 
+#ifdef VM_DEBUG
+enum {
+	BREAKPOINT_ONHIT_KEEP,
+	BREAKPOINT_ONHIT_DISABLE,
+	BREAKPOINT_ONHIT_REMOVE
+};
+
+struct VMThreadBreakpoint {
+	ObjFunction* Function = nullptr;
+	Uint32 CodeOffset = 0;
+	bool Enabled = true;
+	int OnHit = BREAKPOINT_ONHIT_KEEP;
+	int Index = 0;
+};
+#endif
+
 struct CallFrame {
 	ObjFunction* Function;
 	Uint8* IP;
@@ -457,6 +501,7 @@ struct CallFrame {
 	Uint8* IPStart;
 	VMValue* Slots;
 	ObjModule* Module;
+	std::vector<VMValue>* ModuleLocals;
 
 #ifdef VM_DEBUG
 	Uint32 BranchCount;
@@ -474,7 +519,7 @@ struct CallFrame {
 	WithIter* WithIteratorStackTop = WithIteratorStack;
 };
 enum OpCode : uint8_t {
-	OP_ERROR = 0,
+	OP_NOP = 0, // Formerly OP_ERROR
 	OP_CONSTANT,
 	// Classes and Instances
 	OP_DEFINE_GLOBAL,
@@ -493,7 +538,7 @@ enum OpCode : uint8_t {
 	OP_CLASS,
 	// Function Operations
 	OP_CALL,
-	OP_SUPER,
+	OP_UNUSED_1, // Formerly OP_SUPER
 	OP_INVOKE_V3,
 	// Jumping
 	OP_JUMP,
@@ -546,7 +591,7 @@ enum OpCode : uint8_t {
 	OP_NEW_MAP,
 	//
 	OP_SWITCH_TABLE,
-	OP_FAILSAFE,
+	OP_UNUSED_2, // Formerly OP_FAILSAFE
 	OP_EVENT_V4,
 	OP_TYPEOF,
 	OP_NEW,
