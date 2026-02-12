@@ -250,6 +250,7 @@ void Chunk::Init() {
 	Code = NULL;
 	Lines = NULL;
 	Breakpoints = NULL;
+	BreakpointCount = 0;
 #if USING_VM_FUNCPTRS
 	OpcodeFuncs = NULL;
 	IPToOpcode = NULL;

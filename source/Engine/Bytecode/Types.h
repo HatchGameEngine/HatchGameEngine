@@ -57,6 +57,8 @@ typedef int (VMThread::*OpcodeFunc)(CallFrame* frame);
 #define CHUNKLOCAL_FLAG_RESOLVED (1 << 0)
 #define CHUNKLOCAL_FLAG_CONST (1 << 1)
 
+#define MAX_CHUNK_BREAKPOINTS 0xFFFF
+
 struct ChunkLocal {
 	char* Name;
 	bool Constant;
@@ -69,7 +71,8 @@ struct Chunk {
 	int Count;
 	int Capacity;
 	Uint8* Code;
-	Uint8* Breakpoints;
+	Uint32* Breakpoints;
+	Uint16 BreakpointCount;
 	int* Lines;
 	vector<VMValue>* Constants;
 	vector<ChunkLocal>* Locals;

@@ -263,14 +263,11 @@ ObjFunction* Bytecode::ReadChunk(MemoryStream* stream) {
 	}
 
 	if (Flags & BYTECODE_FLAG_BREAKPOINTS) {
-		size_t numBreakpoints = stream->ReadByte();
-		if (numBreakpoints) {
-			chunk->Breakpoints = (Uint8*)Memory::Calloc(length, sizeof(Uint8));
-			for (size_t i = 0; i < numBreakpoints; i++) {
-				Uint32 position = stream->ReadUInt32();
-				if (position < chunk->Count) {
-					chunk->Breakpoints[position] = 1;
-				}
+		chunk->BreakpointCount = stream->ReadUInt16();
+		if (chunk->BreakpointCount) {
+			chunk->Breakpoints = (Uint32*)Memory::Calloc(chunk->BreakpointCount, sizeof(Uint32));
+			for (Uint16 i = 0; i < chunk->BreakpointCount; i++) {
+				chunk->Breakpoints[i] = stream->ReadUInt32();
 			}
 		}
 	}
@@ -303,7 +300,7 @@ void Bytecode::Write(Stream* stream, HashMap<Token>* tokenMap) {
 		Flags |= BYTECODE_FLAG_VARNAMES;
 
 		for (size_t c = 0; c < chunkCount; c++) {
-			if (Functions[c]->Chunk.Breakpoints) {
+			if (Functions[c]->Chunk.BreakpointCount) {
 				Flags |= BYTECODE_FLAG_BREAKPOINTS;
 				break;
 			}
@@ -411,21 +408,9 @@ void Bytecode::WriteChunk(Stream* stream, ObjFunction* function) {
 	}
 
 	if (Flags & BYTECODE_FLAG_BREAKPOINTS) {
-		if (chunk->Breakpoints) {
-			std::vector<Uint32> breakpoints;
-			for (size_t i = 0; i < chunk->Count; i++) {
-				if (chunk->Breakpoints[i]) {
-					breakpoints.push_back(i);
-				}
-			}
-
-			stream->WriteByte(breakpoints.size());
-			for (size_t i = 0; i < breakpoints.size(); i++) {
-				stream->WriteUInt32(breakpoints[i]);
-			}
-		}
-		else {
-			stream->WriteByte(0);
+		stream->WriteUInt16(chunk->BreakpointCount);
+		for (Uint16 i = 0; i < chunk->BreakpointCount; i++) {
+			stream->WriteUInt32(chunk->Breakpoints[i]);
 		}
 	}
 }

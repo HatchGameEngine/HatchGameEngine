@@ -206,6 +206,9 @@ public:
 	void EndContinueJumpList();
 	void StartSwitchJumpList();
 	void EndSwitchJumpList();
+	void StartBreakpointList();
+	void EndBreakpointList(Uint32 offset);
+	void EndBreakpointList();
 	int FindConstant(VMValue value);
 	int MakeConstant(VMValue value);
 	bool HasThis();
@@ -213,7 +216,8 @@ public:
 	void SetReceiverName(Token name);
 	int CheckInfixOptimize(int preCount, int preConstant, ParseFn fn);
 	int CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn);
-	void AddBreakpoint();
+	void AddBreakpoint(Token token);
+	void AddBreakpointsToChunk(Chunk* chunk);
 	static void Init();
 	static void GetStandardConstants();
 	static void PrepareCompiling();

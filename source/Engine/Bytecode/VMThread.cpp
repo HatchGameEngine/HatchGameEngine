@@ -542,14 +542,12 @@ void VMThread::AddFunctionBreakpoints(ObjFunction* function) {
 
 	BreakpointsPerFunction[function] = breakpoints;
 
-	if (!chunk->Breakpoints) {
+	if (!chunk->BreakpointCount) {
 		return;
 	}
 
-	for (Uint32 i = 0; i < chunk->Count; i++) {
-		if (chunk->Breakpoints[i]) {
-			AddBreakpoint(function, i, BREAKPOINT_ONHIT_KEEP);
-		}
+	for (Uint16 i = 0; i < chunk->BreakpointCount; i++) {
+		AddBreakpoint(function, chunk->Breakpoints[i], BREAKPOINT_ONHIT_KEEP);
 	}
 }
 void VMThread::RemoveBreakpointsForFunction(ObjFunction* function) {

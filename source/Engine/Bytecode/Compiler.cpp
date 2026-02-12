@@ -1990,6 +1990,7 @@ struct switch_case {
 stack<vector<int>*> BreakJumpListStack;
 stack<vector<int>*> ContinueJumpListStack;
 stack<vector<switch_case>*> SwitchJumpListStack;
+stack<vector<Uint32>*> BreakpointListStack;
 stack<int> BreakScopeStack;
 stack<int> ContinueScopeStack;
 stack<int> SwitchScopeStack;
@@ -1999,8 +2000,9 @@ void Compiler::GetPrintStatement() {
 	EmitByte(OP_PRINT);
 }
 void Compiler::GetBreakpointStatement() {
+	Token previousToken = parser.Previous;
 	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after 'breakpoint'.");
-	AddBreakpoint();
+	AddBreakpoint(previousToken);
 }
 void Compiler::GetExpressionStatement() {
 	GetExpression();
@@ -2172,6 +2174,7 @@ void Compiler::GetSwitchStatement() {
 
 	StartBreakJumpList();
 	StartContinueJumpList();
+	StartBreakpointList();
 
 	// Evaluate the condition
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
@@ -2282,6 +2285,9 @@ void Compiler::GetSwitchStatement() {
 	for (size_t i = 0; i < top->size(); i++) {
 		(*top)[i] += code_offset;
 	}
+
+	// Set the old breakpoint positions to the newly placed ones and pop list off breakpoint stack
+	EndBreakpointList(code_offset);
 
 	// Pop jump list off continue stack, patch all continue to this
 	// code point
@@ -3544,6 +3550,20 @@ void Compiler::EndSwitchJumpList() {
 	SwitchJumpListStack.pop();
 	SwitchScopeStack.pop();
 }
+void Compiler::StartBreakpointList() {
+	BreakpointListStack.push(new vector<Uint32>());
+}
+void Compiler::EndBreakpointList(Uint32 offset) {
+	vector<Uint32>* top = BreakpointListStack.top();
+	for (size_t i = 0; i < top->size(); i++) {
+		Breakpoints.push_back((*top)[i] + offset);
+	}
+	delete top;
+	BreakpointListStack.pop();
+}
+void Compiler::EndBreakpointList() {
+	EndBreakpointList(0);
+}
 
 int Compiler::FindConstant(VMValue value) {
 	for (size_t i = 0; i < CurrentChunk()->Constants->size(); i++) {
@@ -4040,12 +4060,18 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 	return preConstant;
 }
 
-void Compiler::AddBreakpoint() {
-	if (Breakpoints.size() == 255) {
-		Error("Cannot have more than 255 breakpoints.");
+void Compiler::AddBreakpoint(Token at) {
+	std::vector<Uint32>* breakpoints = BreakpointListStack.top();
+	if (breakpoints->size() == MAX_CHUNK_BREAKPOINTS) {
+		char msg[64];
+		snprintf(msg, sizeof msg, "Cannot have more than %d breakpoints.", MAX_CHUNK_BREAKPOINTS);
+		ErrorAt(&at, msg, false); // It's not fatal to have too many breakpoints
+		return;
 	}
 
-	Breakpoints.push_back(CurrentChunk()->Count);
+	Uint32 offset = CurrentChunk()->Count;
+
+	breakpoints->push_back(offset);
 }
 
 // Compiling
@@ -4102,6 +4128,8 @@ void Compiler::Initialize(char* name) {
 
 	UnusedVariables = new vector<Local>();
 	UnsetVariables = new vector<Local>();
+
+	StartBreakpointList();
 
 	Compiler::Functions.push_back(Function);
 }
@@ -4303,6 +4331,10 @@ void Compiler::Cleanup() {
 	while (SwitchJumpListStack.size() > 0) {
 		EndSwitchJumpList();
 	}
+	while (BreakpointListStack.size() > 0) {
+		delete BreakpointListStack.top();
+		BreakpointListStack.pop();
+	}
 }
 void Compiler::DeleteFunctions() {
 	for (size_t c = 0; c < Compiler::Functions.size(); c++) {
@@ -4353,13 +4385,20 @@ void Compiler::Finish() {
 	}
 
 	EmitReturn();
+	EndBreakpointList();
+	AddBreakpointsToChunk(chunk);
+}
+void Compiler::AddBreakpointsToChunk(Chunk* chunk) {
+	chunk->BreakpointCount = (Uint16)Breakpoints.size();
 
-	size_t numBreakpoints = Breakpoints.size();
-	if (numBreakpoints) {
-		Function->Chunk.Breakpoints = (Uint8*)Memory::Calloc(Function->Chunk.Count, sizeof(Uint8));
-		for (size_t i = 0; i < numBreakpoints; i++) {
-			Function->Chunk.Breakpoints[Breakpoints[i]] = 1;
-		}
+	if (!chunk->BreakpointCount) {
+		return;
+	}
+
+	chunk->Breakpoints = (Uint32*)Memory::Calloc(chunk->BreakpointCount, sizeof(Uint32));
+
+	for (Uint16 i = 0; i < chunk->BreakpointCount; i++) {
+		chunk->Breakpoints[i] = Breakpoints[i];
 	}
 }
 
