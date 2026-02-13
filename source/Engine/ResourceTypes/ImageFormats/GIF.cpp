@@ -1,16 +1,15 @@
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
 
 #include <Engine/Application.h>
-#include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Graphics.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/IO/MemoryStream.h>
-#include <Engine/IO/ResourceStream.h>
 
-#include <Engine/Graphics.h>
-
-#include <Libraries/stb_image.h>
+#ifdef DO_GIF_PERF
+#include <Engine/Diagnostics/Clock.h>
+#endif
 
 struct Node {
 	Uint16 Key;
@@ -197,9 +196,9 @@ GIF* GIF::Load(Stream* stream) {
 	size_t fileSize;
 	void* fileBuffer = NULL;
 
+#ifdef DO_GIF_PERF
 	Clock::Start();
 
-#ifdef DO_GIF_PERF
 	MARK_PERF_LABEL("stream open");
 #endif
 
@@ -563,8 +562,8 @@ GIF_Load_FAIL:
 GIF_Load_Success:
 #ifdef DO_GIF_PERF
 	MARK_PERF_LABEL("decode gif data");
-#endif
 	Clock::End();
+#endif
 	Memory::Free(fileBuffer);
 	Memory::Free(codeTable);
 	return gif;

@@ -1,14 +1,10 @@
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
 
 #include <Engine/Application.h>
-#include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Graphics.h>
 #include <Engine/IO/FileStream.h>
-#include <Engine/IO/MemoryStream.h>
-#include <Engine/IO/ResourceStream.h>
-#include <Engine/Rendering/Software/SoftwareRenderer.h>
 
 #ifdef USING_LIBPNG
 #include "png.h"
@@ -33,7 +29,6 @@ void png_read_fn(png_structp ctx, png_bytep area, png_size_t size) {
 #endif
 #include <Libraries/spng.h>
 #else
-#define STB_IMAGE_IMPLEMENTATION
 #include <Libraries/stb_image.h>
 #endif
 
@@ -48,7 +43,7 @@ PNG* PNG::Load(Stream* stream) {
 	int bit_depth, color_type, palette_size;
 	bool usePalette = false;
 	png_colorp palette;
-	Uint32* pixelData = NULL;
+	Uint8* pixelData = NULL;
 	png_bytep* row_pointers = NULL;
 	Uint32 row_bytes;
 
@@ -109,17 +104,17 @@ PNG* PNG::Load(Stream* stream) {
 		goto PNG_Load_FAIL;
 	}
 
-	pixelData = (Uint32*)malloc(width * height * sizeof(Uint32));
+	pixelData = (Uint8*)malloc(width * height * sizeof(Uint32));
 	row_bytes = png_get_rowbytes(png_ptr, info_ptr);
 	for (Uint32 row = 0, pitch = row_bytes; row < png->Height; row++) {
-		row_pointers[row] = (png_bytep)((Uint8*)pixelData + row * pitch);
+		row_pointers[row] = (png_bytep)(pixelData + row * pitch);
 	}
 
 	png_read_image(png_ptr, row_pointers);
 	free(row_pointers);
 
 	if (usePalette) {
-		Uint8* data = (Uint8*)pixelData;
+		Uint8* data = pixelData;
 		if (bit_depth != 8) {
 			png->ReadPixelBitstream(data, bit_depth);
 		}
@@ -268,7 +263,7 @@ PNG_Load_Success:
 		Graphics::ConvertFromARGBtoNative(png->Colors, png->NumPaletteColors);
 	}
 	else {
-		png->ReadPixelDataARGB((Uint32*)pixelData, 4);
+		png->ReadPixelDataARGB(pixelData, 4);
 		png->Paletted = false;
 		png->Colors = nullptr;
 	}
@@ -290,7 +285,7 @@ PNG_Load_Success:
 	return png;
 #else
 	PNG* png = new PNG;
-	Uint32* pixelData = NULL;
+	Uint8* pixelData = NULL;
 	int num_channels;
 	int width, height;
 	Uint8* buffer = NULL;
@@ -300,7 +295,7 @@ PNG_Load_Success:
 	buffer = (Uint8*)malloc(buffer_len);
 	stream->ReadBytes(buffer, buffer_len);
 
-	pixelData = (Uint32*)stbi_load_from_memory(
+	pixelData = (Uint8*)stbi_load_from_memory(
 		buffer, buffer_len, &width, &height, &num_channels, STBI_rgb_alpha);
 	if (!pixelData) {
 		Log::Print(Log::LOG_ERROR, "stbi_load failed: %s", stbi_failure_reason());
@@ -334,55 +329,6 @@ PNG_Load_Success:
 	return png;
 #endif
 	return NULL;
-}
-void PNG::ReadPixelDataARGB(Uint32* pixelData, int num_channels) {
-	Uint32 Rmask, Gmask, Bmask, Amask;
-	bool doConvert = false;
-
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
-		Amask = (num_channels == 4) ? 0xFF000000 : 0;
-		Bmask = 0x00FF0000;
-		Gmask = 0x0000FF00;
-		Rmask = 0x000000FF;
-		if (num_channels != 4) {
-			doConvert = true;
-		}
-	}
-	else if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ARGB8888) {
-		Amask = (num_channels == 4) ? 0xFF000000 : 0;
-		Rmask = 0x00FF0000;
-		Gmask = 0x0000FF00;
-		Bmask = 0x000000FF;
-		doConvert = true;
-	}
-
-	if (doConvert) {
-		Uint8* px;
-		Uint32 a, b, g, r;
-		int pc = 0, size = Width * Height;
-		if (Amask) {
-			for (Uint32* i = pixelData; pc < size; i++, pc++) {
-				px = (Uint8*)i;
-				r = px[0] | px[0] << 8 | px[0] << 16 | px[0] << 24;
-				g = px[1] | px[1] << 8 | px[1] << 16 | px[1] << 24;
-				b = px[2] | px[2] << 8 | px[2] << 16 | px[2] << 24;
-				a = px[3] | px[3] << 8 | px[3] << 16 | px[3] << 24;
-				Data[pc] = (r & Rmask) | (g & Gmask) | (b & Bmask) | (a & Amask);
-			}
-		}
-		else {
-			for (Uint8* i = (Uint8*)pixelData; pc < size; i += 3, pc++) {
-				px = (Uint8*)i;
-				r = px[0] | px[0] << 8 | px[0] << 16 | px[0] << 24;
-				g = px[1] | px[1] << 8 | px[1] << 16 | px[1] << 24;
-				b = px[2] | px[2] << 8 | px[2] << 16 | px[2] << 24;
-				Data[pc] = (r & Rmask) | (g & Gmask) | (b & Bmask) | 0xFF000000;
-			}
-		}
-	}
-	else {
-		memcpy(Data, pixelData, Width * Height * sizeof(Uint32));
-	}
 }
 void PNG::ReadPixelBitstream(Uint8* pixelData, size_t bit_depth) {
 	size_t scanline_width = (((bit_depth * Width) + 15) / 8) - 1;

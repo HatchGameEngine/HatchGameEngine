@@ -69,8 +69,10 @@ Uint8 Image::DetectFormat(Stream* stream) {
 		return IMAGE_FORMAT_GIF;
 	}
 	// JPEG
-	else if (memcmp(magic, "\xFF\xD8\xFF\xDB", 4) == 0 ||
-		memcmp(magic, "\xFF\xD8\xFF\xEE", 4) == 0) {
+	else if (memcmp(magic, "\xFF\xD8\xFF\xE0", 4) == 0 ||
+		memcmp(magic, "\xFF\xD8\xFF\xDB", 4) == 0 ||
+		memcmp(magic, "\xFF\xD8\xFF\xEE", 4) == 0 ||
+		memcmp(magic, "\xFF\xD8\xFF\xE1", 4) == 0) {
 		return IMAGE_FORMAT_JPEG;
 	}
 
