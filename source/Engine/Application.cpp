@@ -1427,6 +1427,8 @@ void Application::PollEvents() {
 					BenchmarkCounter = 0.0f;
 
 					InputManager::ControllerStopRumble();
+					AudioManager::AudioStopAll();
+					AudioManager::ClearMusic();
 
 					if (Application::DevMenuActivated) {
 						Application::CloseDevMenu();
@@ -2712,6 +2714,8 @@ void Application::DevMenu_MainMenu() {
 			CloseDevMenu();
 			BenchmarkFrame = 0;
 			InputManager::ControllerStopRumble();
+			AudioManager::AudioStopAll();
+			AudioManager::ClearMusic();
 			Scene::Restart();
 			UpdateWindowTitle();
 			break;
