@@ -271,6 +271,24 @@ void GL_SetTextureWrap(GL_TextureData* textureData,
 
 	glBindTexture(textureData->TextureTarget, bound);
 }
+#ifdef GL_SUPPORTS_MULTISAMPLING
+void GL_BlitMultisampledTexture(Texture* texture) {
+	GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, textureData->FBO);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, textureData->NonMultisampledFBO);
+	glBlitFramebuffer(0,
+		0,
+		texture->Width,
+		texture->Height,
+		0,
+		0,
+		texture->Width,
+		texture->Height,
+		GL_COLOR_BUFFER_BIT,
+		GL_NEAREST);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+#endif
 void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 	// Do texture (re-)binding if necessary
 	if (GL_LastTexture == texture) {
@@ -289,20 +307,7 @@ void GL_BindTexture(Texture* texture, GLenum wrapS = 0, GLenum wrapT = 0) {
 	if (textureData) {
 #ifdef GL_SUPPORTS_MULTISAMPLING
 		if (textureData->Multisampled) {
-			// Perform what's called a "multisample resolve"
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, textureData->FBO);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, textureData->NonMultisampledFBO);
-			glBlitFramebuffer(0,
-				0,
-				texture->Width,
-				texture->Height,
-				0,
-				0,
-				texture->Width,
-				texture->Height,
-				GL_COLOR_BUFFER_BIT,
-				GL_NEAREST);
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+			GL_BlitMultisampledTexture(texture);
 		}
 #endif
 
@@ -344,7 +349,7 @@ void GL_PreparePaletteShader(GLShader* shader, Texture* texture, int paletteID) 
 	}
 
 	if (shader->LocNumTexturePaletteIndices != -1) {
-		if (texture && texture->Paletted) {
+		if (texture && texture->Format == TextureFormat_INDEXED) {
 			glUniform1i(shader->LocNumTexturePaletteIndices, texture->NumPaletteColors);
 		}
 		else {
@@ -429,7 +434,7 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0, bool useVertexColors 
 		{
 			features |= SHADER_FEATURE_TEXTURE;
 
-			if (texture->Paletted && Graphics::UsePalettes) {
+			if (texture->Format == TextureFormat_INDEXED && Graphics::UsePalettes) {
 				features |= SHADER_FEATURE_PALETTE;
 			}
 		}
@@ -1259,7 +1264,7 @@ void GL_UpdateStateFromFace(GL_State& state,
 			state.TexturePtr = (Texture*)face.MaterialInfo.Texture;
 			state.UseTexture = state.TexturePtr != nullptr;
 			state.UsePalette = state.UseTexture && Graphics::UsePalettes &&
-				state.TexturePtr->Paletted;
+				state.TexturePtr->Format == TextureFormat_INDEXED;
 		}
 	}
 	else {
@@ -1379,7 +1384,7 @@ PolygonRenderer* GL_GetPolygonRenderer() {
 	polyRenderer.DrawMode = polyRenderer.ScenePtr ? polyRenderer.ScenePtr->DrawMode : 0;
 	polyRenderer.FaceCullMode =
 		polyRenderer.ScenePtr ? polyRenderer.ScenePtr->FaceCullMode : FaceCull_None;
-	polyRenderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
+	polyRenderer.CurrentColor = ColorUtils::ToRGBA(Graphics::BlendColors);
 
 	GL_VertexBuffer* driverData = (GL_VertexBuffer*)polyRenderer.VertexBuf->DriverData;
 	driverData->Changed = true;
@@ -1391,7 +1396,8 @@ PolygonRenderer* GL_GetPolygonRenderer() {
 void GLRenderer::Init() {
 	Graphics::SupportsShaders = true;
 	Graphics::SupportsBatching = true;
-	Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ABGR8888;
+	Graphics::PreferredPixelFormat = PixelFormat_RGBA8888;
+	Graphics::TextureFormat = TextureFormat_RGBA8888;
 
 	Log::Print(Log::LOG_INFO, "Renderer: OpenGL");
 
@@ -1559,9 +1565,11 @@ void GLRenderer::SetGraphicsFunctions() {
 
 	// Texture management functions
 	Graphics::Internal.CreateTexture = GLRenderer::CreateTexture;
+	Graphics::Internal.ReinitializeTexture = GLRenderer::ReinitializeTexture;
 	Graphics::Internal.LockTexture = GLRenderer::LockTexture;
 	Graphics::Internal.UpdateTexture = GLRenderer::UpdateTexture;
 	Graphics::Internal.UpdateYUVTexture = GLRenderer::UpdateTextureYUV;
+	Graphics::Internal.CopyTexturePixels = GLRenderer::CopyTexturePixels;
 	Graphics::Internal.SetTextureMinFilter = GLRenderer::SetTextureMinFilter;
 	Graphics::Internal.SetTextureMagFilter = GLRenderer::SetTextureMagFilter;
 	Graphics::Internal.UnlockTexture = GLRenderer::UnlockTexture;
@@ -1617,13 +1625,13 @@ void GLRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.StrokeRectangle = GLRenderer::StrokeRectangle;
 	Graphics::Internal.FillCircle = GLRenderer::FillCircle;
 	Graphics::Internal.FillEllipse = GLRenderer::FillEllipse;
+	Graphics::Internal.FillRectangle = GLRenderer::FillRectangle;
 	Graphics::Internal.FillTriangle = GLRenderer::FillTriangle;
 	Graphics::Internal.FillTriangleBlend = GLRenderer::FillTriangleBlend;
-	Graphics::Internal.FillRectangle = GLRenderer::FillRectangle;
 	Graphics::Internal.FillQuad = GLRenderer::FillQuad;
 	Graphics::Internal.FillQuadBlend = GLRenderer::FillQuadBlend;
-	Graphics::Internal.DrawTriangleTextured = GLRenderer::DrawTriangleTextured;
-	Graphics::Internal.DrawQuadTextured = GLRenderer::DrawQuadTextured;
+	Graphics::Internal.DrawTriangle = GLRenderer::DrawTriangle;
+	Graphics::Internal.DrawQuad = GLRenderer::DrawQuad;
 
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = GLRenderer::DrawTexture;
@@ -1684,40 +1692,44 @@ void GL_RenderbufferStorage(GLenum type, Uint32 width, Uint32 height, bool multi
 #endif
 
 // Texture management functions
-Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
-	Texture* texture = Texture::New(format, access, width, height);
-	texture->DriverData =
-		Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(GL_TextureData));
-
-	GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
+bool GL_CreateTexture(Texture* texture) {
+	GL_TextureData* textureData = (GL_TextureData*)Memory::TrackedCalloc(
+		"Texture::DriverData", 1, sizeof(GL_TextureData));
 
 	textureData->TextureTarget = GL_TEXTURE_2D;
-
-	textureData->TextureStorageFormat = GL_RGBA;
-	textureData->PixelDataFormat = GL_RGBA;
-	textureData->PixelDataType = GL_UNSIGNED_BYTE;
-
 	textureData->Accessed = false;
 	textureData->Framebuffer = false;
 	textureData->Multisampled = false;
 
 	// Set format
-	switch (texture->Format) {
-	case SDL_PIXELFORMAT_YV12:
-	case SDL_PIXELFORMAT_IYUV:
-	case SDL_PIXELFORMAT_NV12:
-	case SDL_PIXELFORMAT_NV21:
+	if (TEXTUREFORMAT_IS_YUV(texture->Format)) {
+		texture->DriverFormat = texture->Format;
+	}
+	else {
+		texture->DriverFormat = Graphics::TextureFormat;
+	}
+
+	textureData->PixelDataType = GL_UNSIGNED_BYTE;
+
+	if (texture->DriverFormat == TextureFormat_YV12 ||
+		texture->DriverFormat == TextureFormat_IYUV ||
+		texture->DriverFormat == TextureFormat_NV12 ||
+		texture->DriverFormat == TextureFormat_NV21) {
 		textureData->TextureStorageFormat = GL_MONOCHROME_PIXELFORMAT;
 		textureData->PixelDataFormat = GL_MONOCHROME_PIXELFORMAT;
-		textureData->PixelDataType = GL_UNSIGNED_BYTE;
-		break;
-	default:
-		break;
+	}
+	else if (TEXTUREFORMAT_IS_RGB(texture->DriverFormat)) {
+		textureData->TextureStorageFormat = GL_RGB;
+		textureData->PixelDataFormat = GL_RGB;
+	}
+	else {
+		textureData->TextureStorageFormat = GL_RGBA;
+		textureData->PixelDataFormat = GL_RGBA;
 	}
 
 	// Set texture access
 	switch (texture->Access) {
-	case SDL_TEXTUREACCESS_TARGET: {
+	case TextureAccess_RENDERTARGET: {
 		textureData->Framebuffer = true;
 		glGenFramebuffers(1, &textureData->FBO);
 
@@ -1738,47 +1750,58 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		glGenRenderbuffers(1, &textureData->RBO);
 		glBindRenderbuffer(GL_RENDERBUFFER, textureData->RBO);
 #ifdef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
-		GL_RenderbufferStorage(
-			GL_DEPTH24_STENCIL8, width, height, textureData->Multisampled);
+		GL_RenderbufferStorage(GL_DEPTH24_STENCIL8,
+			texture->Width,
+			texture->Height,
+			textureData->Multisampled);
 		CHECK_GL();
 #else
 #ifdef USE_DEPTH_COMPONENT16
-		GL_RenderbufferStorage(
-			GL_DEPTH_COMPONENT16, width, height, textureData->Multisampled);
+		GL_RenderbufferStorage(GL_DEPTH_COMPONENT16,
+			texture->Width,
+			texture->Height,
+			textureData->Multisampled);
 #else
-		GL_RenderbufferStorage(
-			GL_DEPTH_COMPONENT24, width, height, textureData->Multisampled);
+		GL_RenderbufferStorage(GL_DEPTH_COMPONENT24,
+			texture->Width,
+			texture->Height,
+			textureData->Multisampled);
 #endif
 		CHECK_GL();
 
 		glGenRenderbuffers(1, &textureData->StencilRBO);
 		glBindRenderbuffer(GL_RENDERBUFFER, textureData->StencilRBO);
-		GL_RenderbufferStorage(GL_STENCIL_INDEX8, width, height, textureData->Multisampled);
+		GL_RenderbufferStorage(GL_STENCIL_INDEX8,
+			texture->Width,
+			texture->Height,
+			textureData->Multisampled);
 		CHECK_GL();
 #endif
 #endif
-
-		width *= RetinaScale;
-		height *= RetinaScale;
 		break;
 	}
-	case SDL_TEXTUREACCESS_STREAMING: {
-		texture->Pitch = texture->Width * SDL_BYTESPERPIXEL(texture->Format);
-
+	case TextureAccess_STREAMING: {
 		size_t size = texture->Pitch * texture->Height;
-		if (texture->Format == SDL_PIXELFORMAT_YV12 ||
-			texture->Format == SDL_PIXELFORMAT_IYUV) {
+#ifdef GL_HAVE_YUV
+		if (texture->Format == TextureFormat_YV12 ||
+			texture->Format == TextureFormat_IYUV ||
+			texture->Format == TextureFormat_NV12 ||
+			texture->Format == TextureFormat_NV21) {
 			// Need to add size for the U and V planes.
 			size += 2 * ((texture->Height + 1) / 2) * ((texture->Pitch + 1) / 2);
 		}
-		if (texture->Format == SDL_PIXELFORMAT_NV12 ||
-			texture->Format == SDL_PIXELFORMAT_NV21) {
-			// Need to add size for the U/V plane.
-			size += 2 * ((texture->Height + 1) / 2) * ((texture->Pitch + 1) / 2);
-		}
-		texture->Pixels = calloc(1, size);
+#endif
+		texture->Pixels = Memory::Realloc(texture->Pixels, size);
 		break;
 	}
+	}
+
+	// Keep a buffer allocated for converting between formats.
+	if (texture->KeepDriverPixelsResident()) {
+		size_t bpp = Texture::GetFormatBytesPerPixel(texture->DriverFormat);
+		size_t size = texture->Width * texture->Height * bpp;
+
+		texture->DriverPixelData = Memory::Calloc(size, sizeof(Uint8));
 	}
 
 	// Get appropriate texture filter
@@ -1797,8 +1820,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		glTexImage2D(textureData->TextureTarget,
 			0,
 			textureData->TextureStorageFormat,
-			width,
-			height,
+			texture->Width,
+			texture->Height,
 			0,
 			textureData->PixelDataFormat,
 			textureData->PixelDataType,
@@ -1813,8 +1836,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 			glTexImage2DMultisample(textureData->TextureTarget,
 				Graphics::MultisamplingEnabled,
 				textureData->PixelDataFormat,
-				width,
-				height,
+				texture->Width,
+				texture->Height,
 				GL_TRUE);
 			CHECK_GL();
 
@@ -1824,8 +1847,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 			glTexImage2D(GL_TEXTURE_2D,
 				0,
 				textureData->TextureStorageFormat,
-				width,
-				height,
+				texture->Width,
+				texture->Height,
 				0,
 				textureData->PixelDataFormat,
 				textureData->PixelDataType,
@@ -1841,7 +1864,7 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		break;
 	}
 
-	if (texture->Format == SDL_PIXELFORMAT_YV12 || texture->Format == SDL_PIXELFORMAT_IYUV) {
+	if (texture->Format == TextureFormat_YV12 || texture->Format == TextureFormat_IYUV) {
 #ifdef GL_HAVE_YUV
 		textureData->YUV = true;
 
@@ -1854,8 +1877,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		glTexImage2D(textureData->TextureTarget,
 			0,
 			textureData->TextureStorageFormat,
-			(width + 1) / 2,
-			(height + 1) / 2,
+			(texture->Width + 1) / 2,
+			(texture->Height + 1) / 2,
 			0,
 			textureData->PixelDataFormat,
 			textureData->PixelDataType,
@@ -1868,8 +1891,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 		glTexImage2D(textureData->TextureTarget,
 			0,
 			textureData->TextureStorageFormat,
-			(width + 1) / 2,
-			(height + 1) / 2,
+			(texture->Width + 1) / 2,
+			(texture->Height + 1) / 2,
 			0,
 			textureData->PixelDataFormat,
 			textureData->PixelDataType,
@@ -1968,9 +1991,33 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 	glBindTexture(textureData->TextureTarget, 0);
 
 	texture->ID = textureData->TextureID;
+	texture->DriverData = textureData;
+
+	return true;
+}
+Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+	Texture* texture = Texture::New(format, access, width, height);
+
+	GL_CreateTexture(texture);
+
 	Graphics::TextureMap->Put(texture->ID, texture);
 
 	return texture;
+}
+bool GLRenderer::ReinitializeTexture(Texture* texture,
+	Uint32 format,
+	Uint32 access,
+	Uint32 width,
+	Uint32 height) {
+	if (texture->DriverData != nullptr) {
+		GLRenderer::DisposeTexture(texture);
+	}
+
+	if (!Texture::Reinitialize(texture, format, access, width, height)) {
+		return false;
+	}
+
+	return GL_CreateTexture(texture);
 }
 int GLRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
@@ -1996,12 +2043,30 @@ int GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int
 		}
 	}
 
+	if (texture->Format != texture->DriverFormat) {
+		size_t bpp = Texture::GetFormatBytesPerPixel(texture->DriverFormat);
+
+		if (texture->DriverPixelData == nullptr) {
+			texture->DriverPixelData = Memory::Calloc(texture->Width * texture->Height, bpp);
+		}
+
+		Texture::Convert(pixels,
+			texture->Format,
+			texture->Pitch,
+			0,
+			0,
+			texture->DriverPixelData,
+			texture->DriverFormat,
+			texture->Width * bpp,
+			0,
+			0,
+			inputPixelsW,
+			inputPixelsH);
+
+		pixels = texture->DriverPixelData;
+	}
+
 	GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
-
-	textureData->TextureStorageFormat = GL_RGBA;
-	textureData->PixelDataFormat = GL_RGBA;
-	textureData->PixelDataType = GL_UNSIGNED_BYTE;
-
 	glBindTexture(textureData->TextureTarget, textureData->TextureID);
 	glTexSubImage2D(textureData->TextureTarget,
 		0,
@@ -2013,6 +2078,12 @@ int GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int
 		textureData->PixelDataType,
 		pixels);
 	CHECK_GL();
+
+	if (!texture->KeepDriverPixelsResident()) {
+		Memory::Free(texture->DriverPixelData);
+		texture->DriverPixelData = nullptr;
+	}
+
 	return 0;
 }
 int GLRenderer::UpdateTextureYUV(Texture* texture,
@@ -2024,7 +2095,6 @@ int GLRenderer::UpdateTextureYUV(Texture* texture,
 	void* pixelsV,
 	int pitchV) {
 #ifdef GL_HAVE_YUV
-	// YUV textures can't be SDL_TEXTUREACCESS_TARGET, so no similar check here.
 	int inputPixelsX = 0;
 	int inputPixelsY = 0;
 	int inputPixelsW = texture->Width;
@@ -2056,8 +2126,8 @@ int GLRenderer::UpdateTextureYUV(Texture* texture,
 	inputPixelsH = (inputPixelsH + 1) / 2;
 
 	glBindTexture(textureData->TextureTarget,
-		texture->Format != SDL_PIXELFORMAT_YV12 ? textureData->TextureV
-							: textureData->TextureU);
+		texture->Format != TextureFormat_YV12 ? textureData->TextureV
+						      : textureData->TextureU);
 
 	glTexSubImage2D(textureData->TextureTarget,
 		0,
@@ -2071,8 +2141,8 @@ int GLRenderer::UpdateTextureYUV(Texture* texture,
 	CHECK_GL();
 
 	glBindTexture(textureData->TextureTarget,
-		texture->Format != SDL_PIXELFORMAT_YV12 ? textureData->TextureU
-							: textureData->TextureV);
+		texture->Format != TextureFormat_YV12 ? textureData->TextureU
+						      : textureData->TextureV);
 
 	glTexSubImage2D(textureData->TextureTarget,
 		0,
@@ -2086,6 +2156,93 @@ int GLRenderer::UpdateTextureYUV(Texture* texture,
 	CHECK_GL();
 #endif
 	return 0;
+}
+void GLRenderer::CopyTexturePixels(Texture* dest,
+	int destX,
+	int destY,
+	Texture* src,
+	int srcX,
+	int srcY,
+	int srcWidth,
+	int srcHeight) {
+	GL_TextureData* destTextureData = (GL_TextureData*)dest->DriverData;
+	GL_TextureData* srcTextureData = (GL_TextureData*)src->DriverData;
+
+	if (destTextureData == nullptr || srcTextureData == nullptr) {
+		return;
+	}
+
+	int destWidth, destHeight;
+
+	if (!Texture::ClipCopyRegion(src->Width,
+		    src->Height,
+		    srcX,
+		    srcY,
+		    srcWidth,
+		    srcHeight,
+		    dest->Width,
+		    dest->Height,
+		    destX,
+		    destY,
+		    destWidth,
+		    destHeight)) {
+		return;
+	}
+
+	if (srcTextureData->Framebuffer) {
+#ifdef GL_SUPPORTS_MULTISAMPLING
+		if (srcTextureData->Multisampled) {
+			GL_BlitMultisampledTexture(src);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, srcTextureData->NonMultisampledFBO);
+		}
+		else
+#endif
+		{
+#ifdef GL_ES
+			glBindFramebuffer(GL_FRAMEBUFFER, srcTextureData->FBO);
+#else
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, srcTextureData->FBO);
+#endif
+		}
+
+		// TODO: Reading the entire texture isn't as efficient.
+		ReadFramebuffer(src->Pixels, 0, 0, src->Width, src->Height);
+
+#ifdef GL_ES
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#else
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+#endif
+
+		// Convert from RGBA to the texture's actual format
+		if (src->Format != Graphics::TextureFormat) {
+			Texture::Convert(src->Pixels,
+				Graphics::TextureFormat,
+				src->Pitch,
+				srcX,
+				srcY,
+				src->Pixels,
+				src->Format,
+				src->Pitch,
+				srcX,
+				srcY,
+				srcWidth,
+				srcHeight);
+		}
+	}
+
+	Texture::Convert((Uint8*)src->Pixels,
+		src->Format,
+		src->Pitch,
+		srcX,
+		srcY,
+		(Uint8*)dest->Pixels,
+		dest->Format,
+		dest->Pitch,
+		destX,
+		destY,
+		destWidth,
+		destHeight);
 }
 GLenum GL_GetTextureMinFilterMode(int filterMode) {
 	switch (filterMode) {
@@ -2154,9 +2311,6 @@ void GLRenderer::DisposeTexture(Texture* texture) {
 		}
 #endif
 	}
-	else if (texture->Access == SDL_TEXTUREACCESS_STREAMING) {
-		// free(texture->Pixels);
-	}
 #ifdef GL_HAVE_YUV
 	if (textureData->YUV) {
 		glDeleteTextures(1, &textureData->TextureU);
@@ -2171,7 +2325,10 @@ void GLRenderer::DisposeTexture(Texture* texture) {
 		glDeleteTextures(1, &textureData->NonMultisampledTextureID);
 	}
 #endif
+
 	Memory::Free(textureData);
+
+	texture->DriverData = nullptr;
 }
 
 // Viewport and view-related functions
@@ -2199,8 +2356,8 @@ bool GLRenderer::SetRenderTarget(Texture* texture) {
 
 	return true;
 }
-void GLRenderer::ReadFramebuffer(void* pixels, int width, int height) {
-	glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+void GLRenderer::ReadFramebuffer(void* pixels, int x, int y, int width, int height) {
+	glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
 	if (Graphics::CurrentRenderTarget) {
 		return;
@@ -2255,11 +2412,11 @@ void GL_PrepareScreenTexture() {
 		}
 	}
 
-	GLRenderer::ReadFramebuffer(GL_ReadPixelsResult, maxWidth, maxHeight);
+	GLRenderer::ReadFramebuffer(GL_ReadPixelsResult, 0, 0, maxWidth, maxHeight);
 
 	if (allocTexture) {
-		GL_ScreenTexture = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_STREAMING,
+		GL_ScreenTexture = Graphics::CreateTexture(TextureFormat_RGBA8888,
+			TextureAccess_STREAMING,
 			GL_ScreenTextureWidth,
 			GL_ScreenTextureHeight);
 	}
@@ -2763,74 +2920,6 @@ void GLRenderer::FillEllipse(float x, float y, float w, float h) {
 	}
 #endif
 }
-void GLRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothFill) {
-		glEnable(GL_POLYGON_SMOOTH);
-	}
-#endif
-
-	GL_Vec2 v[3];
-	v[0] = GL_Vec2{x1, y1};
-	v[1] = GL_Vec2{x2, y2};
-	v[2] = GL_Vec2{x3, y3};
-
-	GL_Predraw(NULL);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glVertexAttribPointer(CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-	CHECK_GL();
-
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothFill) {
-		glDisable(GL_POLYGON_SMOOTH);
-	}
-#endif
-}
-void GLRenderer::FillTriangleBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3) {
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothFill) {
-		glEnable(GL_POLYGON_SMOOTH);
-	}
-#endif
-
-	GL_Predraw(NULL, 0, true);
-
-	GLShader* shader = GLRenderer::CurrentShader;
-
-	GL_Vec2 v[3];
-	v[0] = GL_Vec2{x1, y1};
-	v[1] = GL_Vec2{x2, y2};
-	v[2] = GL_Vec2{x3, y3};
-
-	float c[4 * 3];
-	ColorUtils::SeparateRGB(c1, &c[0]);
-	c[3] = 1.0;
-	ColorUtils::SeparateRGB(c2, &c[4]);
-	c[7] = 1.0;
-	ColorUtils::SeparateRGB(c3, &c[8]);
-	c[11] = 1.0;
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glVertexAttribPointer(shader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
-	glVertexAttribPointer(shader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, 0, c);
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 3);
-	CHECK_GL();
-
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothFill) {
-		glDisable(GL_POLYGON_SMOOTH);
-	}
-#endif
-}
 void GLRenderer::FillRectangle(float x, float y, float w, float h) {
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothFill) {
@@ -2856,14 +2945,67 @@ void GLRenderer::FillRectangle(float x, float y, float w, float h) {
 	}
 #endif
 }
-void GLRenderer::FillQuad(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4) {
+void GLRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	GL_Vec2 v[3];
+	v[0] = GL_Vec2{x1, y1};
+	v[1] = GL_Vec2{x2, y2};
+	v[2] = GL_Vec2{x3, y3};
+
+	GL_Predraw(NULL);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	CHECK_GL();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
+void GLRenderer::FillTriangleBlend(float* xc, float* yc, int* colors) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glEnable(GL_POLYGON_SMOOTH);
+	}
+#endif
+
+	GL_Predraw(NULL, 0, true);
+
+	GLShader* shader = GLRenderer::CurrentShader;
+
+	GL_Vec2 v[3];
+	v[0] = GL_Vec2{xc[0], yc[0]};
+	v[1] = GL_Vec2{xc[1], yc[1]};
+	v[2] = GL_Vec2{xc[2], yc[2]};
+
+	float c[4 * 3];
+	ColorUtils::SeparateRGB(colors[0], &c[0]);
+	c[3] = 1.0;
+	ColorUtils::SeparateRGB(colors[1], &c[4]);
+	c[7] = 1.0;
+	ColorUtils::SeparateRGB(colors[2], &c[8]);
+	c[11] = 1.0;
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(shader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glVertexAttribPointer(shader->LocVaryingColor, 4, GL_FLOAT, GL_FALSE, 0, c);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 3);
+	CHECK_GL();
+
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothFill) {
+		glDisable(GL_POLYGON_SMOOTH);
+	}
+#endif
+}
+void GLRenderer::FillQuad(float* xc, float* yc) {
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothFill) {
 		glEnable(GL_POLYGON_SMOOTH);
@@ -2872,14 +3014,16 @@ void GLRenderer::FillQuad(float x1,
 
 	GL_Predraw(NULL);
 
+	GLShader* shader = GLRenderer::CurrentShader;
+
 	GL_Vec2 v[4];
-	v[0] = GL_Vec2{x1, y1};
-	v[1] = GL_Vec2{x2, y2};
-	v[2] = GL_Vec2{x3, y3};
-	v[3] = GL_Vec2{x4, y4};
+	v[0] = GL_Vec2{xc[0], yc[0]};
+	v[1] = GL_Vec2{xc[1], yc[1]};
+	v[2] = GL_Vec2{xc[2], yc[2]};
+	v[3] = GL_Vec2{xc[3], yc[3]};
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glVertexAttribPointer(shader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 	CHECK_GL();
 
@@ -2889,18 +3033,7 @@ void GLRenderer::FillQuad(float x1,
 	}
 #endif
 }
-void GLRenderer::FillQuadBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4) {
+void GLRenderer::FillQuadBlend(float* xc, float* yc, int* colors) {
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothFill) {
 		glEnable(GL_POLYGON_SMOOTH);
@@ -2912,19 +3045,19 @@ void GLRenderer::FillQuadBlend(float x1,
 	GLShader* shader = GLRenderer::CurrentShader;
 
 	GL_Vec2 v[4];
-	v[0] = GL_Vec2{x1, y1};
-	v[1] = GL_Vec2{x2, y2};
-	v[2] = GL_Vec2{x3, y3};
-	v[3] = GL_Vec2{x4, y4};
+	v[0] = GL_Vec2{xc[0], yc[0]};
+	v[1] = GL_Vec2{xc[1], yc[1]};
+	v[2] = GL_Vec2{xc[2], yc[2]};
+	v[3] = GL_Vec2{xc[3], yc[3]};
 
 	float c[4 * 4];
-	ColorUtils::SeparateRGB(c1, &c[0]);
+	ColorUtils::SeparateRGB(colors[0], &c[0]);
 	c[3] = 1.0;
-	ColorUtils::SeparateRGB(c2, &c[4]);
+	ColorUtils::SeparateRGB(colors[1], &c[4]);
 	c[7] = 1.0;
-	ColorUtils::SeparateRGB(c3, &c[8]);
+	ColorUtils::SeparateRGB(colors[2], &c[8]);
 	c[11] = 1.0;
-	ColorUtils::SeparateRGB(c4, &c[12]);
+	ColorUtils::SeparateRGB(colors[3], &c[12]);
 	c[15] = 1.0;
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -2939,51 +3072,41 @@ void GLRenderer::FillQuadBlend(float x1,
 	}
 #endif
 }
-void GLRenderer::DrawTriangleTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3) {
+void GLRenderer::DrawTriangle(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothFill) {
 		glEnable(GL_POLYGON_SMOOTH);
 	}
 #endif
 
-	GL_Predraw(texturePtr, 0, true);
+	GL_Predraw(texture, 0, true);
 
 	GLShader* shader = GLRenderer::CurrentShader;
 
 	GL_Vec2 v[3];
-	v[0] = GL_Vec2{x1, y1};
-	v[1] = GL_Vec2{x2, y2};
-	v[2] = GL_Vec2{x3, y3};
+	v[0] = GL_Vec2{xc[0], yc[0]};
+	v[1] = GL_Vec2{xc[1], yc[1]};
+	v[2] = GL_Vec2{xc[2], yc[2]};
 
 	float texCoords[2 * 3];
-	texCoords[0] = u1;
-	texCoords[1] = v1;
-	texCoords[2] = u2;
-	texCoords[3] = v2;
-	texCoords[4] = u3;
-	texCoords[5] = v3;
+	texCoords[0] = tu[0];
+	texCoords[1] = tv[0];
+	texCoords[2] = tu[1];
+	texCoords[3] = tv[1];
+	texCoords[4] = tu[2];
+	texCoords[5] = tv[2];
 
 	float c[4 * 3];
-	ColorUtils::SeparateRGB(c1, &c[0]);
+	ColorUtils::SeparateRGB(colors[0], &c[0]);
 	c[3] = 1.0;
-	ColorUtils::SeparateRGB(c2, &c[4]);
+	ColorUtils::SeparateRGB(colors[1], &c[4]);
 	c[7] = 1.0;
-	ColorUtils::SeparateRGB(c3, &c[8]);
+	ColorUtils::SeparateRGB(colors[2], &c[8]);
 	c[11] = 1.0;
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -2999,61 +3122,46 @@ void GLRenderer::DrawTriangleTextured(Texture* texturePtr,
 	}
 #endif
 }
-void GLRenderer::DrawQuadTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3,
-	float u4,
-	float v4) {
+void GLRenderer::DrawQuad(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothFill) {
 		glEnable(GL_POLYGON_SMOOTH);
 	}
 #endif
 
-	GL_Predraw(texturePtr, 0, true);
+	GL_Predraw(texture, 0, true);
 
 	GLShader* shader = GLRenderer::CurrentShader;
 
 	GL_Vec2 v[4];
-	v[0] = GL_Vec2{x1, y1};
-	v[1] = GL_Vec2{x2, y2};
-	v[2] = GL_Vec2{x3, y3};
-	v[3] = GL_Vec2{x4, y4};
+	v[0] = GL_Vec2{xc[0], yc[0]};
+	v[1] = GL_Vec2{xc[1], yc[1]};
+	v[2] = GL_Vec2{xc[2], yc[2]};
+	v[3] = GL_Vec2{xc[3], yc[3]};
 
 	float texCoords[2 * 4];
-	texCoords[0] = u1;
-	texCoords[1] = v1;
-	texCoords[2] = u2;
-	texCoords[3] = v2;
-	texCoords[4] = u3;
-	texCoords[5] = v3;
-	texCoords[6] = u4;
-	texCoords[7] = v4;
+	texCoords[0] = tu[0];
+	texCoords[1] = tv[0];
+	texCoords[2] = tu[1];
+	texCoords[3] = tv[1];
+	texCoords[4] = tu[2];
+	texCoords[5] = tv[2];
+	texCoords[6] = tu[3];
+	texCoords[7] = tv[3];
 
 	float c[4 * 4];
-	ColorUtils::SeparateRGB(c1, &c[0]);
+	ColorUtils::SeparateRGB(colors[0], &c[0]);
 	c[3] = 1.0;
-	ColorUtils::SeparateRGB(c2, &c[4]);
+	ColorUtils::SeparateRGB(colors[1], &c[4]);
 	c[7] = 1.0;
-	ColorUtils::SeparateRGB(c3, &c[8]);
+	ColorUtils::SeparateRGB(colors[2], &c[8]);
 	c[11] = 1.0;
-	ColorUtils::SeparateRGB(c4, &c[12]);
+	ColorUtils::SeparateRGB(colors[3], &c[12]);
 	c[15] = 1.0;
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -3278,7 +3386,7 @@ void GLRenderer::DrawVertexBuffer(Uint32 vertexBufferIndex,
 	polyRenderer.NormalMatrix = normalMatrix;
 	polyRenderer.DrawMode = scene->DrawMode;
 	polyRenderer.FaceCullMode = scene->FaceCullMode;
-	polyRenderer.CurrentColor = ColorUtils::ToRGB(Graphics::BlendColors);
+	polyRenderer.CurrentColor = ColorUtils::ToRGBA(Graphics::BlendColors);
 	polyRenderer.DrawVertexBuffer();
 
 	GL_VertexBuffer* driverData = (GL_VertexBuffer*)vertexBuffer->DriverData;

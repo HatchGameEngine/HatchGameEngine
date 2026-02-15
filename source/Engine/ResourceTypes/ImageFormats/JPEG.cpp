@@ -152,6 +152,7 @@ JPEG* JPEG::Load(Stream* stream) {
 
 	jpeg->Width = cinfo.output_width;
 	jpeg->Height = cinfo.output_height;
+	jpeg->BytesPerPixel = sizeof(Uint32);
 	jpeg->Paletted = false;
 	jpeg->NumPaletteColors = 0;
 
@@ -165,10 +166,10 @@ JPEG* JPEG::Load(Stream* stream) {
 		goto JPEG_Load_FAIL;
 	}
 
-	jpeg->Data = (Uint32*)Memory::TrackedMalloc(
-		"JPEG::Data", jpeg->Width * jpeg->Height * sizeof(Uint32));
+	Uint32* data = (Uint32*)Memory::TrackedMalloc(
+		"JPEG::Data", jpeg->Width * jpeg->Height * jpeg->BytesPerPixel);
 	for (Uint32 i = 0; i < jpeg->Width * (jpeg->Height / 2); i++) {
-		jpeg->Data[i] = 0xFF41D1F2;
+		data[i] = 0xFF41D1F2;
 	}
 
 	// /* Decompress the image */
@@ -179,53 +180,23 @@ JPEG* JPEG::Load(Stream* stream) {
 	}
 	jpeg_finish_decompress(&cinfo);
 
-	doConvert = false;
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
-		Amask = (num_channels == 4) ? 0xFF000000 : 0;
-		Bmask = 0x00FF0000;
-		Gmask = 0x0000FF00;
-		Rmask = 0x000000FF;
-		if (num_channels != 4) {
-			doConvert = true;
-		}
+	if (Graphics::PreferredPixelFormat == PixelFormat_RGBA8888 && num_channels == 4) {
+		memcpy(data, pixelData, jpeg->Width * jpeg->Height * jpeg->BytesPerPixel);
 	}
-	else if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ARGB8888) {
-		Amask = (num_channels == 4) ? 0xFF000000 : 0;
-		Rmask = 0x00FF0000;
-		Gmask = 0x0000FF00;
-		Bmask = 0x000000FF;
-		doConvert = true;
-	}
-
-	if (doConvert) {
-		Uint8* px;
-		Uint32 a, b, g, r;
+	else {
 		int pc = 0, size = jpeg->Width * jpeg->Height;
-		if (Amask) {
-			for (Uint32* i = pixelData; pc < size; i++, pc++) {
-				px = (Uint8*)i;
-				r = px[0] | px[0] << 8 | px[0] << 16 | px[0] << 24;
-				g = px[1] | px[1] << 8 | px[1] << 16 | px[1] << 24;
-				b = px[2] | px[2] << 8 | px[2] << 16 | px[2] << 24;
-				a = px[3] | px[3] << 8 | px[3] << 16 | px[3] << 24;
-				jpeg->Data[pc] =
-					(r & Rmask) | (g & Gmask) | (b & Bmask) | (a & Amask);
+		if (num_channels == 4) {
+			for (Uint32* px = pixelData; pc < size; px++, pc++) {
+				data[pc] = ColorUtils::Convert(*px, PixelFormat_RGBA8888, Graphics::PreferredPixelFormat);
 			}
 		}
 		else {
-			for (Uint8* i = (Uint8*)pixelData; pc < size; i += 3, pc++) {
-				px = (Uint8*)i;
-				r = px[0] | px[0] << 8 | px[0] << 16 | px[0] << 24;
-				g = px[1] | px[1] << 8 | px[1] << 16 | px[1] << 24;
-				b = px[2] | px[2] << 8 | px[2] << 16 | px[2] << 24;
-				jpeg->Data[pc] =
-					(r & Rmask) | (g & Gmask) | (b & Bmask) | 0xFF000000;
+			for (Uint8* px = (Uint8*)pixelData; pc < size; px += num_channels, pc++) {
+				data[pc] = ColorUtils::Make(px[0], px[1], px[2], 0xFF, Graphics::PreferredPixelFormat);
 			}
 		}
 	}
-	else {
-		memcpy(jpeg->Data, pixelData, jpeg->Width * jpeg->Height * sizeof(Uint32));
-	}
+	jpeg->Data = data;
 	free(pixelData);
 
 	goto JPEG_Load_Success;

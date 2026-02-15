@@ -14,14 +14,7 @@ enum AVPixelFormat supported_list[] = {AV_PIX_FMT_YUV420P,
 	AV_PIX_FMT_UYVY422,
 	AV_PIX_FMT_NV12,
 	AV_PIX_FMT_NV21,
-	AV_PIX_FMT_RGB24,
-	AV_PIX_FMT_BGR24,
-	AV_PIX_FMT_RGB555,
-	AV_PIX_FMT_BGR555,
-	AV_PIX_FMT_RGB565,
-	AV_PIX_FMT_BGR565,
-	AV_PIX_FMT_BGRA,
-	AV_PIX_FMT_RGBA,
+	AV_PIX_FMT_ARGB,
 	AV_PIX_FMT_NONE};
 
 struct VideoPacket {
@@ -58,7 +51,7 @@ VideoDecoder::VideoDecoder(MediaSource* src, int stream_index) {
 	// Set format configs
 	Width = this->CodecCtx->width;
 	Height = this->CodecCtx->height;
-	Format = FindSDLPixelFormat(output_format);
+	Format = FindEnginePixelFormat(output_format);
 
 	// Create scaler for handling format changes
 	this->SWS = sws_getContext(this->CodecCtx->width, // Source w
@@ -115,50 +108,46 @@ void VideoDecoder::FreeVideoPacket(void* p) {
 // Unique format info functions
 AVPixelFormat VideoDecoder::FindAVPixelFormat(Uint32 format) {
 	switch (format) {
-	case SDL_PIXELFORMAT_YV12:
+	case TextureFormat_YV12:
 		return AV_PIX_FMT_YUV420P;
-	case SDL_PIXELFORMAT_YUY2:
+	case TextureFormat_YUY2:
 		return AV_PIX_FMT_YUYV422;
-	case SDL_PIXELFORMAT_UYVY:
+	case TextureFormat_UYVY:
 		return AV_PIX_FMT_UYVY422;
-	case SDL_PIXELFORMAT_NV12:
+	case TextureFormat_NV12:
 		return AV_PIX_FMT_NV12;
-	case SDL_PIXELFORMAT_NV21:
+	case TextureFormat_NV21:
 		return AV_PIX_FMT_NV21;
-	case SDL_PIXELFORMAT_ARGB32:
-		return AV_PIX_FMT_ARGB;
-	case SDL_PIXELFORMAT_RGBA32:
+	case TextureFormat_RGBA8888:
 		return AV_PIX_FMT_RGBA;
-	case SDL_PIXELFORMAT_BGR24:
-		return AV_PIX_FMT_BGR24;
-	case SDL_PIXELFORMAT_RGB24:
-		return AV_PIX_FMT_RGB24;
-	case SDL_PIXELFORMAT_RGB555:
-		return AV_PIX_FMT_RGB555;
-	case SDL_PIXELFORMAT_BGR555:
-		return AV_PIX_FMT_BGR555;
-	case SDL_PIXELFORMAT_RGB565:
-		return AV_PIX_FMT_RGB565;
-	case SDL_PIXELFORMAT_BGR565:
-		return AV_PIX_FMT_BGR565;
+	case TextureFormat_ABGR8888:
+		return AV_PIX_FMT_ABGR;
+	case TextureFormat_ARGB8888:
+		return AV_PIX_FMT_ARGB;
 	default:
 		return AV_PIX_FMT_NONE;
 	}
 }
-int VideoDecoder::FindSDLPixelFormat(AVPixelFormat fmt) {
+int VideoDecoder::FindEnginePixelFormat(AVPixelFormat fmt) {
 	switch (fmt) {
 	case AV_PIX_FMT_YUV420P:
-		return SDL_PIXELFORMAT_YV12;
+		return TextureFormat_YV12;
 	case AV_PIX_FMT_YUYV422:
-		return SDL_PIXELFORMAT_YUY2;
+		return TextureFormat_YUY2;
 	case AV_PIX_FMT_UYVY422:
-		return SDL_PIXELFORMAT_UYVY;
+		return TextureFormat_UYVY;
 	case AV_PIX_FMT_NV12:
-		return SDL_PIXELFORMAT_NV12;
+		return TextureFormat_NV12;
 	case AV_PIX_FMT_NV21:
-		return SDL_PIXELFORMAT_NV21;
+		return TextureFormat_NV21;
+	case AV_PIX_FMT_RGBA:
+		return TextureFormat_RGBA8888;
+	case AV_PIX_FMT_ABGR:
+		return TextureFormat_ABGR8888;
+	case AV_PIX_FMT_ARGB:
+		return TextureFormat_ARGB8888;
 	default:
-		return SDL_PIXELFORMAT_RGBA32;
+		return TextureFormat_RGBA8888;
 	}
 }
 
@@ -335,8 +324,8 @@ int VideoDecoder::GetVideoDecoderData(Texture* texture) {
 	// For video, we *try* to return a frame, even if we are out of
 	// sync. It is better than not showing anything.
 	switch (Format) {
-	case SDL_PIXELFORMAT_YV12:
-	case SDL_PIXELFORMAT_IYUV:
+	case TextureFormat_YV12:
+	case TextureFormat_IYUV:
 		Graphics::UpdateYUVTexture(texture,
 			NULL,
 			packet->frame->data[0],

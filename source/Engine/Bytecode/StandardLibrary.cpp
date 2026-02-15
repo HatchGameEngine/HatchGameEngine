@@ -8,6 +8,7 @@
 #include <Engine/Bytecode/TypeImpl/FontImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
+#include <Engine/Bytecode/TypeImpl/TextureImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
@@ -34,7 +35,6 @@
 #include <Engine/Network/WebSocketClient.h>
 #include <Engine/Platforms/Capability.h>
 #include <Engine/Rendering/Software/SoftwareRenderer.h>
-#include <Engine/Rendering/ViewTexture.h>
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
@@ -433,22 +433,57 @@ inline Image* GetImage(VMValue* args, int index, Uint32 threadID) {
 
 	return Scene::ImageList[where]->AsImage;
 }
-inline GameTexture* GetTexture(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::TextureList.size()) {
-		if (THROW_ERROR("Texture index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+inline ObjTexture* GetTexture(VMValue* args, int index, Uint32 threadID) {
+	ObjTexture* value = nullptr;
+	if (ScriptManager::Lock()) {
+		if (IS_TEXTURE(args[index])) {
+			value = AS_TEXTURE(args[index]);
 		}
-
-		return NULL;
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(TextureImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
 	}
+	return value;
+}
+inline Texture* GetDrawable(VMValue* args, int index, Uint32 threadID) {
+	Texture* texture = nullptr;
+	if (ScriptManager::Lock()) {
+		if (IS_TEXTURE(args[index])) {
+			ObjTexture* textureObj = AS_TEXTURE(args[index]);
 
-	if (!Scene::TextureList[where]) {
-		return NULL;
+			texture = (Texture*)TextureImpl::GetTexture(textureObj);
+
+			if (texture == nullptr) {
+				THROW_ERROR("Texture is no longer valid!");
+			}
+		}
+		else if (IS_INTEGER(args[index])) {
+			ScriptManager::Unlock();
+
+			Image* image = GetImage(args, index, threadID);
+			if (!image) {
+				return nullptr;
+			}
+
+			return image->TexturePtr;
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(TextureImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
 	}
-
-	return Scene::TextureList[where];
+	return texture;
 }
 inline ISound* GetSound(VMValue* args, int index, Uint32 threadID) {
 	int where = GetInteger(args, index, threadID);
@@ -563,6 +598,12 @@ ISprite* StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
 }
 Image* StandardLibrary::GetImage(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetImage(args, index, threadID);
+}
+ObjTexture* StandardLibrary::GetTexture(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetTexture(args, index, threadID);
+}
+Texture* StandardLibrary::GetDrawable(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetDrawable(args, index, threadID);
 }
 ISound* StandardLibrary::GetSound(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetSound(args, index, threadID);
@@ -4360,15 +4401,15 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
 
-	GameTexture* gameTexture = GET_ARG(0, GetTexture);
+	ObjTexture* textureObj = GET_ARG(0, GetTexture);
 	float x = GET_ARG(1, GetDecimal);
 	float y = GET_ARG(2, GetDecimal);
 
-	if (!gameTexture) {
+	if (!textureObj) {
 		return NULL_VAL;
 	}
 
-	Texture* texture = gameTexture->GetTexture();
+	Texture* texture = (Texture*)TextureImpl::GetTexture(textureObj);
 	if (texture) {
 		Graphics::DrawTexture(texture,
 			0,
@@ -4379,6 +4420,9 @@ VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
 			y,
 			texture->Width,
 			texture->Height);
+	}
+	else {
+		THROW_ERROR("Texture is no longer valid!");
 	}
 	return NULL_VAL;
 }
@@ -4395,19 +4439,22 @@ VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_TextureSized(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
 
-	GameTexture* gameTexture = GET_ARG(0, GetTexture);
+	ObjTexture* textureObj = GET_ARG(0, GetTexture);
 	float x = GET_ARG(1, GetDecimal);
 	float y = GET_ARG(2, GetDecimal);
 	float w = GET_ARG(3, GetDecimal);
 	float h = GET_ARG(4, GetDecimal);
 
-	if (!gameTexture) {
+	if (!textureObj) {
 		return NULL_VAL;
 	}
 
-	Texture* texture = gameTexture->GetTexture();
+	Texture* texture = (Texture*)TextureImpl::GetTexture(textureObj);
 	if (texture) {
 		Graphics::DrawTexture(texture, 0, 0, texture->Width, texture->Height, x, y, w, h);
+	}
+	else {
+		THROW_ERROR("Texture is no longer valid!");
 	}
 	return NULL_VAL;
 }
@@ -4426,7 +4473,7 @@ VMValue Draw_TextureSized(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(7);
 
-	GameTexture* gameTexture = GET_ARG(0, GetTexture);
+	ObjTexture* textureObj = GET_ARG(0, GetTexture);
 	float sx = GET_ARG(1, GetDecimal);
 	float sy = GET_ARG(2, GetDecimal);
 	float sw = GET_ARG(3, GetDecimal);
@@ -4434,13 +4481,16 @@ VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
 	float x = GET_ARG(5, GetDecimal);
 	float y = GET_ARG(6, GetDecimal);
 
-	if (!gameTexture) {
+	if (!textureObj) {
 		return NULL_VAL;
 	}
 
-	Texture* texture = gameTexture->GetTexture();
+	Texture* texture = (Texture*)TextureImpl::GetTexture(textureObj);
 	if (texture) {
 		Graphics::DrawTexture(texture, sx, sy, sw, sh, x, y, sw, sh);
+	}
+	else {
+		THROW_ERROR("Texture is no longer valid!");
 	}
 	return NULL_VAL;
 }
@@ -5160,10 +5210,16 @@ VMValue Draw_SetBlendColor(int argCount, VMValue* args, Uint32 threadID) {
 		CHECK_ARGCOUNT(2);
 		int hex = GET_ARG(0, GetInteger);
 		float alpha = GET_ARG(1, GetDecimal);
-		Graphics::SetBlendColor((hex >> 16 & 0xFF) / 255.f,
-			(hex >> 8 & 0xFF) / 255.f,
-			(hex & 0xFF) / 255.f,
-			alpha);
+#if HATCH_BIG_ENDIAN
+		int red = (hex >> 24) & 0xFF;
+		int green = (hex >> 16) & 0xFF;
+		int blue = (hex >> 8) & 0xFF;
+#else
+		int red = (hex >> 16) & 0xFF;
+		int green = (hex >> 8) & 0xFF;
+		int blue = hex & 0xFF;
+#endif
+		Graphics::SetBlendColor(red / 255.f, green / 255.f, blue / 255.f, alpha);
 		return NULL_VAL;
 	}
 	CHECK_ARGCOUNT(4);
@@ -5244,7 +5300,6 @@ VMValue Draw_SetBlendFactorExtended(int argCount, VMValue* args, Uint32 threadID
 VMValue Draw_SetCompareColor(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int hex = GET_ARG(0, GetInteger);
-	// SoftwareRenderer::CompareColor = 0xFF000000U | (hex & 0xF8F8F8);
 	SoftwareRenderer::CompareColor = 0xFF000000U | (hex & 0xFFFFFF);
 	return NULL_VAL;
 }
@@ -5260,10 +5315,16 @@ VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
 		CHECK_ARGCOUNT(2);
 		int hex = GET_ARG(0, GetInteger);
 		float alpha = GET_ARG(1, GetDecimal);
-		Graphics::SetTintColor((hex >> 16 & 0xFF) / 255.f,
-			(hex >> 8 & 0xFF) / 255.f,
-			(hex & 0xFF) / 255.f,
-			alpha);
+#if HATCH_BIG_ENDIAN
+		int red = (hex >> 24) & 0xFF;
+		int green = (hex >> 16) & 0xFF;
+		int blue = (hex >> 8) & 0xFF;
+#else
+		int red = (hex >> 16) & 0xFF;
+		int green = (hex >> 8) & 0xFF;
+		int blue = hex & 0xFF;
+#endif
+		Graphics::SetTintColor(red / 255.f, green / 255.f, blue / 255.f, alpha);
 		return NULL_VAL;
 	}
 	CHECK_ARGCOUNT(4);
@@ -5587,15 +5648,22 @@ VMValue Draw_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(9);
-	Graphics::FillTriangleBlend(GET_ARG(0, GetDecimal),
-		GET_ARG(1, GetDecimal),
-		GET_ARG(2, GetDecimal),
-		GET_ARG(3, GetDecimal),
-		GET_ARG(4, GetDecimal),
-		GET_ARG(5, GetDecimal),
-		GET_ARG(6, GetInteger),
-		GET_ARG(7, GetInteger),
-		GET_ARG(8, GetInteger));
+
+	float xc[3];
+	float yc[3];
+	int colors[3];
+
+	xc[0] = GET_ARG(0, GetDecimal);
+	yc[0] = GET_ARG(1, GetDecimal);
+	xc[1] = GET_ARG(2, GetDecimal);
+	yc[1] = GET_ARG(3, GetDecimal);
+	xc[2] = GET_ARG(4, GetDecimal);
+	yc[2] = GET_ARG(5, GetDecimal);
+	colors[0] = GET_ARG(6, GetInteger);
+	colors[1] = GET_ARG(7, GetInteger);
+	colors[2] = GET_ARG(8, GetInteger);
+
+	Graphics::FillTriangleBlend(xc, yc, colors);
 	return NULL_VAL;
 }
 /***
@@ -5613,14 +5681,20 @@ VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(8);
-	Graphics::FillQuad(GET_ARG(0, GetDecimal),
-		GET_ARG(1, GetDecimal),
-		GET_ARG(2, GetDecimal),
-		GET_ARG(3, GetDecimal),
-		GET_ARG(4, GetDecimal),
-		GET_ARG(5, GetDecimal),
-		GET_ARG(6, GetDecimal),
-		GET_ARG(7, GetDecimal));
+
+	float xc[4];
+	float yc[4];
+
+	xc[0] = GET_ARG(0, GetDecimal);
+	yc[0] = GET_ARG(1, GetDecimal);
+	xc[1] = GET_ARG(2, GetDecimal);
+	yc[1] = GET_ARG(3, GetDecimal);
+	xc[2] = GET_ARG(4, GetDecimal);
+	yc[2] = GET_ARG(5, GetDecimal);
+	xc[3] = GET_ARG(6, GetDecimal);
+	yc[3] = GET_ARG(7, GetDecimal);
+
+	Graphics::FillQuad(xc, yc);
 	return NULL_VAL;
 }
 /***
@@ -5642,18 +5716,25 @@ VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(12);
-	Graphics::FillQuadBlend(GET_ARG(0, GetDecimal),
-		GET_ARG(1, GetDecimal),
-		GET_ARG(2, GetDecimal),
-		GET_ARG(3, GetDecimal),
-		GET_ARG(4, GetDecimal),
-		GET_ARG(5, GetDecimal),
-		GET_ARG(6, GetDecimal),
-		GET_ARG(7, GetDecimal),
-		GET_ARG(8, GetInteger),
-		GET_ARG(9, GetInteger),
-		GET_ARG(10, GetInteger),
-		GET_ARG(11, GetInteger));
+
+	float xc[4];
+	float yc[4];
+	int colors[4];
+
+	xc[0] = GET_ARG(0, GetDecimal);
+	yc[0] = GET_ARG(1, GetDecimal);
+	xc[1] = GET_ARG(2, GetDecimal);
+	yc[1] = GET_ARG(3, GetDecimal);
+	xc[2] = GET_ARG(4, GetDecimal);
+	yc[2] = GET_ARG(5, GetDecimal);
+	xc[3] = GET_ARG(6, GetDecimal);
+	yc[3] = GET_ARG(7, GetDecimal);
+	colors[0] = GET_ARG(8, GetInteger);
+	colors[1] = GET_ARG(9, GetInteger);
+	colors[2] = GET_ARG(10, GetInteger);
+	colors[3] = GET_ARG(11, GetInteger);
+
+	Graphics::FillQuadBlend(xc, yc, colors);
 	return NULL_VAL;
 }
 /***
@@ -5680,26 +5761,30 @@ VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(7);
 
-	Image* image = GET_ARG(0, GetImage);
-	if (image) {
-		Graphics::DrawTriangleTextured(image->TexturePtr,
-			GET_ARG(1, GetDecimal),
-			GET_ARG(2, GetDecimal),
-			GET_ARG(3, GetDecimal),
-			GET_ARG(4, GetDecimal),
-			GET_ARG(5, GetDecimal),
-			GET_ARG(6, GetDecimal),
-			GET_ARG_OPT(7, GetInteger, 0xFFFFFF),
-			GET_ARG_OPT(8, GetInteger, 0xFFFFFF),
-			GET_ARG_OPT(9, GetInteger, 0xFFFFFF),
-			GET_ARG_OPT(10, GetDecimal, 0.0),
-			GET_ARG_OPT(11, GetDecimal, 0.0),
-			GET_ARG_OPT(12, GetDecimal, 1.0),
-			GET_ARG_OPT(13, GetDecimal, 0.0),
-			GET_ARG_OPT(14, GetDecimal, 1.0),
-			GET_ARG_OPT(15, GetDecimal, 1.0));
-	}
+	float xc[3];
+	float yc[3];
+	int colors[3];
+	float tu[3];
+	float tv[3];
 
+	Texture* texture = GET_ARG(0, GetDrawable);
+	xc[0] = GET_ARG(1, GetDecimal);
+	yc[0] = GET_ARG(2, GetDecimal);
+	xc[1] = GET_ARG(3, GetDecimal);
+	yc[1] = GET_ARG(4, GetDecimal);
+	xc[2] = GET_ARG(5, GetDecimal);
+	yc[2] = GET_ARG(6, GetDecimal);
+	colors[0] = GET_ARG_OPT(7, GetInteger, 0xFFFFFF);
+	colors[1] = GET_ARG_OPT(8, GetInteger, 0xFFFFFF);
+	colors[2] = GET_ARG_OPT(9, GetInteger, 0xFFFFFF);
+	tu[0] = GET_ARG_OPT(10, GetDecimal, 0.0);
+	tv[0] = GET_ARG_OPT(11, GetDecimal, 0.0);
+	tu[1] = GET_ARG_OPT(12, GetDecimal, 1.0);
+	tv[1] = GET_ARG_OPT(13, GetDecimal, 0.0);
+	tu[2] = GET_ARG_OPT(14, GetDecimal, 1.0);
+	tv[2] = GET_ARG_OPT(15, GetDecimal, 1.0);
+
+	Graphics::DrawTriangle(texture, xc, yc, tu, tv, colors);
 	return NULL_VAL;
 }
 /***
@@ -5731,31 +5816,35 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(9);
 
-	Image* image = GET_ARG(0, GetImage);
-	if (image) {
-		Graphics::DrawQuadTextured(image->TexturePtr,
-			GET_ARG(1, GetDecimal),
-			GET_ARG(2, GetDecimal),
-			GET_ARG(3, GetDecimal),
-			GET_ARG(4, GetDecimal),
-			GET_ARG(5, GetDecimal),
-			GET_ARG(6, GetDecimal),
-			GET_ARG(7, GetDecimal),
-			GET_ARG(8, GetDecimal),
-			GET_ARG_OPT(9, GetInteger, 0xFFFFFF),
-			GET_ARG_OPT(10, GetInteger, 0xFFFFFF),
-			GET_ARG_OPT(11, GetInteger, 0xFFFFFF),
-			GET_ARG_OPT(12, GetInteger, 0xFFFFFF),
-			GET_ARG_OPT(13, GetDecimal, 0.0),
-			GET_ARG_OPT(14, GetDecimal, 0.0),
-			GET_ARG_OPT(15, GetDecimal, 1.0),
-			GET_ARG_OPT(16, GetDecimal, 0.0),
-			GET_ARG_OPT(17, GetDecimal, 1.0),
-			GET_ARG_OPT(18, GetDecimal, 1.0),
-			GET_ARG_OPT(19, GetDecimal, 0.0),
-			GET_ARG_OPT(20, GetDecimal, 1.0));
-	}
+	float xc[4];
+	float yc[4];
+	int colors[4];
+	float tu[4];
+	float tv[4];
 
+	Texture* texture = GET_ARG(0, GetDrawable);
+	xc[0] = GET_ARG(1, GetDecimal);
+	yc[0] = GET_ARG(2, GetDecimal);
+	xc[1] = GET_ARG(3, GetDecimal);
+	yc[1] = GET_ARG(4, GetDecimal);
+	xc[2] = GET_ARG(5, GetDecimal);
+	yc[2] = GET_ARG(6, GetDecimal);
+	xc[3] = GET_ARG(7, GetDecimal);
+	yc[3] = GET_ARG(8, GetDecimal);
+	colors[0] = GET_ARG_OPT(9, GetInteger, 0xFFFFFF);
+	colors[1] = GET_ARG_OPT(10, GetInteger, 0xFFFFFF);
+	colors[2] = GET_ARG_OPT(11, GetInteger, 0xFFFFFF);
+	colors[3] = GET_ARG_OPT(12, GetInteger, 0xFFFFFF);
+	tu[0] = GET_ARG_OPT(13, GetDecimal, 0.0);
+	tv[0] = GET_ARG_OPT(14, GetDecimal, 0.0);
+	tu[1] = GET_ARG_OPT(15, GetDecimal, 1.0);
+	tv[1] = GET_ARG_OPT(16, GetDecimal, 0.0);
+	tu[2] = GET_ARG_OPT(17, GetDecimal, 1.0);
+	tv[2] = GET_ARG_OPT(18, GetDecimal, 1.0);
+	tu[3] = GET_ARG_OPT(19, GetDecimal, 0.0);
+	tv[3] = GET_ARG_OPT(20, GetDecimal, 1.0);
+
+	Graphics::DrawQuad(texture, xc, yc, tu, tv, colors);
 	return NULL_VAL;
 }
 /***
@@ -6039,15 +6128,25 @@ VMValue Draw_Translate(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Draw_SetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 
-	GameTexture* gameTexture = GET_ARG(0, GetTexture);
-	if (!gameTexture) {
+	ObjTexture* textureObj = GET_ARG(0, GetTexture);
+	if (!textureObj) {
 		return NULL_VAL;
 	}
 
-	Texture* texture = gameTexture->GetTexture();
+	Texture* texture = (Texture*)TextureImpl::GetTexture(textureObj);
 	if (texture) {
+		if (texture->Access != TextureAccess_RENDERTARGET) {
+			THROW_ERROR(
+				"Cannot use a texture as a render target if it was not created with TEXTUREACCESS_RENDERTARGET!");
+			return NULL_VAL;
+		}
+
 		Graphics::SetRenderTarget(texture);
 	}
+	else {
+		THROW_ERROR("Texture is no longer valid!");
+	}
+
 	return NULL_VAL;
 }
 /***
@@ -6133,12 +6232,12 @@ VMValue Draw_GetCurrentDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	GameTexture* gameTexture = GET_ARG(0, GetTexture);
-	if (!gameTexture) {
+	ObjTexture* textureObj = GET_ARG(0, GetTexture);
+	if (!textureObj) {
 		return NULL_VAL;
 	}
 
-	Texture* texture = gameTexture->GetTexture();
+	Texture* texture = (Texture*)TextureImpl::GetTexture(textureObj);
 	if (texture) {
 		int width = Graphics::CurrentViewport.Width;
 		int height = Graphics::CurrentViewport.Height;
@@ -6165,6 +6264,9 @@ VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
 			texture->Width,
 			texture->Height,
 			texture);
+	}
+	else {
+		THROW_ERROR("Texture is no longer valid!");
 	}
 	return NULL_VAL;
 }
@@ -6824,7 +6926,7 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 
 	VertexAttribute data[3];
 
-	Image* image = GET_ARG(0, GetImage);
+	Texture* texture = GET_ARG(0, GetDrawable);
 
 	VERTEX_ARGS(3, 1);
 	VERTEX_COLOR_ARGS(3);
@@ -6842,11 +6944,11 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 
 	GET_MATRICES(argOffset);
 
-	if (image) {
+	if (texture) {
 		DrawPolygon3D(data,
 			3,
 			VertexType_Position | VertexType_UV | VertexType_Color,
-			image->TexturePtr,
+			texture,
 			matrixModelArr,
 			matrixNormalArr);
 	}
@@ -6889,7 +6991,7 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 
 	VertexAttribute data[4];
 
-	Image* image = GET_ARG(0, GetImage);
+	Texture* texture = GET_ARG(0, GetDrawable);
 
 	VERTEX_ARGS(4, 1);
 	VERTEX_COLOR_ARGS(4);
@@ -6909,11 +7011,11 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
 
 	GET_MATRICES(argOffset);
 
-	if (image) {
+	if (texture) {
 		DrawPolygon3D(data,
 			4,
 			VertexType_Position | VertexType_UV | VertexType_Color,
-			image->TexturePtr,
+			texture,
 			matrixModelArr,
 			matrixNormalArr);
 	}
@@ -11848,9 +11950,9 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 										[palIndex]
 										[(col << 4) | d] =
 											0xFF000000U |
-										Color[0] << 16 |
+										Color[0] |
 										Color[1] << 8 |
-										Color[2];
+										Color[2] << 16;
 								}
 								Graphics::ConvertFromARGBtoNative(
 									&Graphics::PaletteColors
@@ -11883,8 +11985,8 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 								Graphics::PaletteColors
 									[palIndex][(col << 4) | d] =
 										0xFF000000U |
-									Color[0] << 16 |
-									Color[1] << 8 | Color[2];
+									Color[0] |
+									Color[1] << 8 | Color[2] << 16;
 							}
 							Graphics::ConvertFromARGBtoNative(
 								&Graphics::PaletteColors[palIndex][(
@@ -11934,11 +12036,10 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
 											[lineStart |
 												d] =
 												0xFF000000U |
-											Color[0]
-												<< 16 |
+											Color[0] |
 											Color[1]
 												<< 8 |
-											Color[2];
+											Color[2] << 16;
 									}
 									Graphics::ConvertFromARGBtoNative(
 										&Graphics::PaletteColors
@@ -12043,16 +12144,23 @@ VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
 	Texture* texture = image->TexturePtr;
 
 	size_t x = 0;
+	size_t length = texture->Width;
+	if (length > 0x100) {
+		length = 0x100;
+	}
+
+	int pixelFormat = Texture::TextureFormatToPixelFormat(texture->Format);
 
 	for (size_t y = 0; y < texture->Height; y++) {
 		Uint32* line = (Uint32*)texture->Pixels + (y * texture->Width);
-		size_t length = texture->Width;
-		if (length > 0x100) {
-			length = 0x100;
-		}
+		for (size_t src = 0; src < length && x < 0x100; x++) {
+			Uint32 color = line[src++];
 
-		for (size_t src = 0; src < length && x < 0x100;) {
-			Graphics::PaletteColors[palIndex][x++] = 0xFF000000 | line[src++];
+			if (pixelFormat != Graphics::PreferredPixelFormat) {
+				color = ColorUtils::Convert(color, pixelFormat, Graphics::PreferredPixelFormat);
+			}
+
+			Graphics::PaletteColors[palIndex][x] = 0xFF000000 | color;
 		}
 		Graphics::PaletteUpdated = true;
 		if (x >= 0x100) {
@@ -12077,8 +12185,11 @@ VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_PALETTE_INDEX(palIndex);
 	CHECK_COLOR_INDEX(colorIndex);
 	Uint32 color = Graphics::PaletteColors[palIndex][colorIndex];
-	Graphics::ConvertFromARGBtoNative(&color, 1);
-	return INTEGER_VAL((int)(color & 0xFFFFFFU));
+	color = ColorUtils::Convert(color, Graphics::PreferredPixelFormat, PixelFormat_RGB888);
+#if HATCH_LITTLE_ENDIAN
+	color = ((color & 0xFF) << 16) | (color & 0x00FF00) | ((color >> 16) & 0xFF);
+#endif
+	return INTEGER_VAL((int)color);
 }
 /***
  * Palette.SetColor
@@ -12095,9 +12206,17 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
 	Uint32 hex = (Uint32)GET_ARG(2, GetInteger);
 	CHECK_PALETTE_INDEX(palIndex);
 	CHECK_COLOR_INDEX(colorIndex);
+#if HATCH_BIG_ENDIAN
+	int red = (hex >> 24) & 0xFF;
+	int green = (hex >> 16) & 0xFF;
+	int blue = (hex >> 8) & 0xFF;
+#else
+	int red = (hex >> 16) & 0xFF;
+	int green = (hex >> 8) & 0xFF;
+	int blue = hex & 0xFF;
+#endif
 	Uint32* color = &Graphics::PaletteColors[palIndex][colorIndex];
-	*color = (hex & 0xFFFFFFU) | 0xFF000000U;
-	Graphics::ConvertFromARGBtoNative(color, 1);
+	*color = ColorUtils::Make(red, green, blue, 0xFF, Graphics::PreferredPixelFormat);
 	Graphics::PaletteUpdated = true;
 	return NULL_VAL;
 }
@@ -17728,52 +17847,6 @@ VMValue String_FromCodepoints(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
-// #region Texture
-/***
- * Texture.Create
- * \desc
- * \return
- * \ns Texture
- */
-VMValue Texture_Create(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
-
-	int width = GET_ARG(0, GetInteger);
-	int height = GET_ARG(1, GetInteger);
-	int unloadPolicy = GET_ARG(2, GetInteger);
-
-	GameTexture* texture = new GameTexture(width, height, unloadPolicy);
-	size_t i = Scene::AddGameTexture(texture);
-
-	return INTEGER_VAL((int)i);
-}
-/***
- * Texture.Copy
- * \desc
- * \return
- * \ns Texture
- */
-VMValue Texture_Copy(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(2);
-
-	GameTexture* textureA = GET_ARG(0, GetTexture);
-	GameTexture* textureB = GET_ARG(1, GetTexture);
-
-	if (!textureA || !textureB) {
-		return NULL_VAL;
-	}
-
-	Texture* destTexture = textureA->GetTexture();
-	Texture* srcTexture = textureB->GetTexture();
-
-	if (destTexture && srcTexture) {
-		destTexture->Copy(srcTexture);
-	}
-
-	return NULL_VAL;
-}
-// #endregion
-
 // #region Touch
 /***
  * Touch.GetX
@@ -18982,14 +19055,13 @@ VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	size_t i = 0;
-
-	if (!Scene::FindGameTextureByID(-(view_index + 1), i)) {
-		GameTexture* texture = new ViewTexture(view_index);
-		i = Scene::AddGameTexture(texture);
+	Texture* texture = Scene::Views[view_index].DrawTarget;
+	ObjTexture* textureObj = TextureImpl::GetTextureObject((void*)texture);
+	if (textureObj == nullptr) {
+		return NULL_VAL;
 	}
-
-	return INTEGER_VAL((int)i);
+	textureObj->IsViewTexture = true;
+	return OBJECT_VAL(textureObj);
 }
 /***
  * View.SetShader
@@ -20465,6 +20537,58 @@ Draw provides functions to draw images, sprites, and textures; as well as primit
 	DEF_NATIVE(Draw, CopyScreen);
 
 	/***
+	* \enum TEXTUREACCESS_STATIC
+	* \desc The texture is created with the given pixel data and never updated again, or it updates rarely.
+	*/
+	DEF_CONST_INT("TEXTUREACCESS_STATIC", TextureAccess_STATIC);
+	/***
+	* \enum TEXTUREACCESS_STREAMING
+	* \desc The texture is expected to be updated often.
+	*/
+	DEF_CONST_INT("TEXTUREACCESS_STREAMING", TextureAccess_STREAMING);
+	/***
+	* \enum TEXTUREACCESS_RENDERTARGET
+	* \desc The texture can be used as a render target. A texture of this kind cannot be reinitialized; which is to say, if you want to change its size or type, a new texture must be created.
+	*/
+	DEF_CONST_INT("TEXTUREACCESS_RENDERTARGET", TextureAccess_RENDERTARGET);
+
+	/***
+	* \enum TEXTUREFORMAT_RGBA8888
+	* \desc RGBA8888 texture format.
+	*/
+	DEF_CONST_INT("TEXTUREFORMAT_RGBA8888", TextureFormat_RGBA8888);
+	/***
+	* \enum TEXTUREFORMAT_ABGR8888
+	* \desc ABGR8888 texture format.
+	*/
+	DEF_CONST_INT("TEXTUREFORMAT_ABGR8888", TextureFormat_ABGR8888);
+	/***
+	* \enum TEXTUREFORMAT_ARGB8888
+	* \desc ARGB8888 texture format.
+	*/
+	DEF_CONST_INT("TEXTUREFORMAT_ARGB8888", TextureFormat_ARGB8888);
+	/***
+	* \enum TEXTUREFORMAT_RGA888
+	* \desc RGB888 texture format.
+	*/
+	DEF_CONST_INT("TEXTUREFORMAT_RGB888", TextureFormat_RGB888);
+	/***
+	* \enum TEXTUREFORMAT_BGR888
+	* \desc BGR888 texture format.
+	*/
+	DEF_CONST_INT("TEXTUREFORMAT_BGR888", TextureFormat_BGR888);
+	/***
+	* \enum TEXTUREFORMAT_INDEXED
+	* \desc Indexed (palette) texture format.
+	*/
+	DEF_CONST_INT("TEXTUREFORMAT_INDEXED", TextureFormat_INDEXED);
+	/***
+	* \enum TEXTUREFORMAT_NATIVE
+	* \desc The native texture format of the renderer.
+	*/
+	DEF_CONST_INT("TEXTUREFORMAT_NATIVE", TextureFormat_NATIVE);
+
+	/***
     * \enum DrawMode_LINES
     * \desc Draws the faces with lines, using a solid color determined by the face's existing colors (and if not, the blend color.)
     */
@@ -21850,16 +21974,6 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(String, ParseDecimal);
 	DEF_NATIVE(String, GetCodepoints);
 	DEF_NATIVE(String, FromCodepoints);
-	// #endregion
-
-	// #region Texture
-	/***
-    * \class Texture
-    * \desc Texture manipulation functions.
-    */
-	INIT_CLASS(Texture);
-	DEF_NATIVE(Texture, Create);
-	DEF_NATIVE(Texture, Copy);
 	// #endregion
 
 	// #region Touch

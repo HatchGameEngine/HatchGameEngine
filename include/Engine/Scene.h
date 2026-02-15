@@ -11,7 +11,6 @@ class DrawGroupList;
 #include <Engine/Includes/HashMap.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Math/Math.h>
-#include <Engine/Rendering/GameTexture.h>
 #include <Engine/ResourceTypes/Image.h>
 #include <Engine/ResourceTypes/ResourceType.h>
 #include <Engine/Scene/SceneConfig.h>
@@ -52,7 +51,6 @@ private:
 	static void InitTileCollisions();
 	static void ClearTileCollisions(TileConfig* cfg, size_t numTiles);
 	static void SetTileCount(size_t tileCount);
-	static bool GetTextureListSpace(size_t* out);
 	static void SetupViewMatrices(View* currentView);
 	static void SetupView2D(View* currentView);
 	static void SetupView3D(View* currentView);
@@ -95,7 +93,6 @@ public:
 	static vector<ResourceType*> MusicList;
 	static vector<ResourceType*> ModelList;
 	static vector<ResourceType*> MediaList;
-	static vector<GameTexture*> TextureList;
 	static vector<Animator*> AnimatorList;
 	static int Frame;
 	static bool Paused;
@@ -216,8 +213,6 @@ public:
 	static void DisposeInScope(Uint32 scope);
 	static void Dispose();
 	static void UnloadTilesets();
-	static size_t AddGameTexture(GameTexture* texture);
-	static bool FindGameTextureByID(int id, size_t& out);
 	static void
 	SetTile(int layer, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB);
 	static int CollisionAt(int x, int y, int collisionField, int collideSide, int* angle);

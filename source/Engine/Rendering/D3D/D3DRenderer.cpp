@@ -271,33 +271,16 @@ const char* D3D_GetResultString(HRESULT result) {
 }
 D3DFORMAT D3D_PixelFormatToD3DFORMAT(Uint32 format) {
 	switch (format) {
-	case SDL_PIXELFORMAT_RGB565:
-		return D3DFMT_R5G6B5;
-	case SDL_PIXELFORMAT_RGB888:
-		return D3DFMT_X8R8G8B8;
-	case SDL_PIXELFORMAT_ARGB8888:
+	case TextureFormat_ARGB8888:
 		return D3DFMT_A8R8G8B8;
-	case SDL_PIXELFORMAT_YV12:
-	case SDL_PIXELFORMAT_IYUV:
-	case SDL_PIXELFORMAT_NV12:
-	case SDL_PIXELFORMAT_NV21:
+	case TextureFormat_YV12:
+	case TextureFormat_IYUV:
+	case TextureFormat_NV12:
+	case TextureFormat_NV21:
 		return D3DFMT_L8;
 	default:
 		return D3DFMT_UNKNOWN;
 	}
-}
-Uint32 D3D_D3DFORMATToPixelFormat(D3DFORMAT format) {
-	switch (format) {
-	case D3DFMT_R5G6B5:
-		return SDL_PIXELFORMAT_RGB565;
-	case D3DFMT_X8R8G8B8:
-		return SDL_PIXELFORMAT_RGB888;
-	case D3DFMT_A8R8G8B8:
-		return SDL_PIXELFORMAT_ARGB8888;
-	default:
-		return SDL_PIXELFORMAT_UNKNOWN;
-	}
-	return SDL_PIXELFORMAT_UNKNOWN;
 }
 int D3D_SetError(const char* error, HRESULT result) {
 	Log::Print(Log::LOG_ERROR, "D3D: %s (%s)", error, D3D_GetResultString(result));
@@ -305,7 +288,7 @@ int D3D_SetError(const char* error, HRESULT result) {
 	return 0;
 }
 
-void D3D_CreateTexture(Texture* texture) {
+bool D3D_CreateTexture(Texture* texture) {
 	texture->DriverData =
 		Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(D3D_TextureData));
 
@@ -314,7 +297,7 @@ void D3D_CreateTexture(Texture* texture) {
 	textureData->ScaleMode = Graphics::TextureInterpolate ? D3DTEXF_LINEAR : D3DTEXF_POINT;
 
 	DWORD usage = 0;
-	if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
+	if (texture->Access == TextureAccess_RENDERTARGET) {
 		usage = D3DUSAGE_RENDERTARGET;
 	}
 
@@ -345,8 +328,10 @@ void D3D_CreateTexture(Texture* texture) {
 			texture->Height,
 			1,
 			usage);
-		exit(-1);
+		return false;
 	}
+
+	return true;
 }
 int D3D_RecreateTexture(Texture* texture) {
 	D3D_TextureData* textureData = (D3D_TextureData*)texture->DriverData;
@@ -442,7 +427,7 @@ void D3D_Reset() {
 
 	/* Release application render targets */
 	for (Texture* texture = Graphics::TextureHead; texture != NULL; texture = texture->Next) {
-		if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
+		if (texture->Access == TextureAccess_RENDERTARGET) {
 			D3DRenderer::DisposeTexture(texture);
 		}
 		else {
@@ -465,7 +450,7 @@ void D3D_Reset() {
 
 	/* Allocate application render targets */
 	for (Texture* texture = Graphics::TextureHead; texture != NULL; texture = texture->Next) {
-		if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
+		if (texture->Access == TextureAccess_RENDERTARGET) {
 			D3D_CreateTexture(texture);
 		}
 	}
@@ -657,7 +642,7 @@ void D3D_DrawTextureRaw(Texture* texture,
 	// NOTE: We do this because Direct3D9's origin for render
 	// targets is top-left,
 	//    instead of the usual bottom-left.
-	if (texture->Access == SDL_TEXTUREACCESS_TARGET) {
+	if (texture->Access == TextureAccess_RENDERTARGET) {
 		// miny = y + h;
 		// maxy = y;
 		// if (Graphics::CurrentRenderTarget != NULL)
@@ -725,7 +710,7 @@ void D3D_DrawTextureRaw(Texture* texture,
 		// sizeof(float) * 16);
 		Graphics::Save();
 		Graphics::Translate(x, y, 0.0f);
-		if (texture->Access != SDL_TEXTUREACCESS_TARGET) {
+		if (texture->Access != TextureAccess_RENDERTARGET) {
 			Graphics::Translate(-0.5f * fx, 0.5f * fy, 0.0f);
 		}
 		else {
@@ -771,7 +756,8 @@ void D3D_EndDrawShape(Vertex* shapeBuffer, D3DPRIMITIVETYPE prim, int triangleCo
 
 // Initialization and disposal functions
 void D3DRenderer::Init() {
-	Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
+	Graphics::PreferredPixelFormat = PixelFormat_ARGB8888;
+	Graphics::TextureFormat = TextureFormat_ARGB8888;
 	D3D_MatrixIdentity = Matrix4x4::Create();
 
 	renderData = (D3D_RenderData*)calloc(1, sizeof(D3D_RenderData));
@@ -965,6 +951,7 @@ void D3DRenderer::SetGraphicsFunctions() {
 
 	// Texture management functions
 	Graphics::Internal.CreateTexture = D3DRenderer::CreateTexture;
+	Graphics::Internal.ReinitializeTexture = D3DRenderer::ReinitializeTexture;
 	Graphics::Internal.LockTexture = D3DRenderer::LockTexture;
 	Graphics::Internal.UpdateTexture = D3DRenderer::UpdateTexture;
 	Graphics::Internal.UnlockTexture = D3DRenderer::UnlockTexture;
@@ -999,13 +986,13 @@ void D3DRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.StrokeRectangle = D3DRenderer::StrokeRectangle;
 	Graphics::Internal.FillCircle = D3DRenderer::FillCircle;
 	Graphics::Internal.FillEllipse = D3DRenderer::FillEllipse;
+	Graphics::Internal.FillRectangle = D3DRenderer::FillRectangle;
 	Graphics::Internal.FillTriangle = D3DRenderer::FillTriangle;
 	Graphics::Internal.FillTriangleBlend = D3DRenderer::FillTriangleBlend;
-	Graphics::Internal.FillRectangle = D3DRenderer::FillRectangle;
 	Graphics::Internal.FillQuad = D3DRenderer::FillQuad;
 	Graphics::Internal.FillQuadBlend = D3DRenderer::FillQuadBlend;
-	Graphics::Internal.DrawTriangleTextured = D3DRenderer::DrawTriangleTextured;
-	Graphics::Internal.DrawQuadTextured = D3DRenderer::DrawQuadTextured;
+	Graphics::Internal.DrawTriangle = D3DRenderer::DrawTriangle;
+	Graphics::Internal.DrawQuad = D3DRenderer::DrawQuad;
 
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = D3DRenderer::DrawTexture;
@@ -1041,12 +1028,31 @@ void D3DRenderer::Dispose() {
 Texture* D3DRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
 	Texture* texture = Texture::New(format, access, width, height);
 
-	D3D_CreateTexture(texture);
+	if (!D3D_CreateTexture(texture)) {
+		Memory::Free(texture);
+
+		return nullptr;
+	}
 
 	texture->ID = Graphics::TextureMap->Count() + 1;
 	Graphics::TextureMap->Put(texture->ID, texture);
 
 	return texture;
+}
+bool D3DRenderer::ReinitializeTexture(Texture* texture,
+	Uint32 format,
+	Uint32 access,
+	Uint32 width,
+	Uint32 height) {
+	if (texture->DriverData != nullptr) {
+		D3DRenderer::DisposeTexture(texture);
+	}
+
+	if (!Texture::Reinitialize(texture, format, access, width, height)) {
+		return false;
+	}
+
+	return D3D_CreateTexture(texture);
 }
 int D3DRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
@@ -1459,6 +1465,19 @@ void D3DRenderer::FillEllipse(float x, float y, float w, float h) {
 
 	D3D_EndDrawShape(D3D_BufferCircleFill, D3DPT_TRIANGLEFAN, 360);
 }
+void D3DRenderer::FillRectangle(float x, float y, float w, float h) {
+	D3D_BeginDrawShape(D3D_BufferSquareFill, 4);
+
+	Graphics::Save();
+	Graphics::Translate(x, y, 0.0f);
+	Graphics::Scale(w, h, 1.0f);
+	D3DMATRIX matrix;
+	memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
+	IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
+	Graphics::Restore();
+
+	D3D_EndDrawShape(D3D_BufferSquareFill, D3DPT_TRIANGLEFAN, 2);
+}
 void D3DRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
 	Vertex vertices[3];
 	vertices[0] = Vertex{x1, y1, 0.0f, D3D_BlendColorsAsHex, 0.0f, 0.0f};
@@ -1473,85 +1492,21 @@ void D3DRenderer::FillTriangle(float x1, float y1, float x2, float y2, float x3,
 
 	D3D_EndDrawShape(vertices, D3DPT_TRIANGLEFAN, 1);
 }
-void D3DRenderer::FillTriangleBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3) {}
-void D3DRenderer::FillRectangle(float x, float y, float w, float h) {
-	D3D_BeginDrawShape(D3D_BufferSquareFill, 4);
-
-	Graphics::Save();
-	Graphics::Translate(x, y, 0.0f);
-	Graphics::Scale(w, h, 1.0f);
-	D3DMATRIX matrix;
-	memcpy(&matrix.m, Graphics::ModelViewMatrix->Values, sizeof(float) * 16);
-	IDirect3DDevice9_SetTransform(renderData->Device, D3DTS_VIEW, &matrix);
-	Graphics::Restore();
-
-	D3D_EndDrawShape(D3D_BufferSquareFill, D3DPT_TRIANGLEFAN, 2);
-}
-void D3DRenderer::FillQuad(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4) {}
-void D3DRenderer::FillQuadBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4) {}
-void D3DRenderer::DrawTriangleTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3) {}
-void D3DRenderer::DrawQuadTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3,
-	float u4,
-	float v4) {}
+void D3DRenderer::FillTriangleBlend(float* xc, float* yc, int* colors) {}
+void D3DRenderer::FillQuad(float* xc, float* yc) {}
+void D3DRenderer::FillQuadBlend(float* xc, float* yc, int* colors) {}
+void D3DRenderer::DrawTriangle(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {}
+void D3DRenderer::DrawQuad(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {}
 
 // Texture drawing functions
 void D3DRenderer::DrawTexture(Texture* texture,
@@ -1579,7 +1534,7 @@ void D3DRenderer::DrawTexture(Texture* texture,
 		w,
 		h,
 		false,
-		texture->Access != SDL_TEXTUREACCESS_TARGET);
+		texture->Access != TextureAccess_RENDERTARGET);
 }
 void D3DRenderer::DrawSprite(ISprite* sprite,
 	int animation,

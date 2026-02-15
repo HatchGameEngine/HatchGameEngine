@@ -85,8 +85,11 @@ void DISCORD_CALLBACK OnCurrentUserUpdateCallback(void* callback_data) {
 }
 
 int CreateImageResource(DiscordIntegrationUserAvatar* avatar) {
-	Texture* texture = Graphics::CreateTextureFromPixels(
-		avatar->Width, avatar->Height, avatar->Data, avatar->Width * sizeof(Uint32));
+	Texture* texture = Graphics::CreateTextureFromPixels(TextureFormat_RGBA8888,
+		avatar->Width,
+		avatar->Height,
+		avatar->Data,
+		avatar->Width * sizeof(Uint32));
 	if (texture == nullptr) {
 		return -1;
 	}

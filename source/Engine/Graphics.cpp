@@ -28,7 +28,8 @@ bool Graphics::SupportsShaders = false;
 bool Graphics::SupportsBatching = false;
 bool Graphics::TextureBlend = false;
 bool Graphics::TextureInterpolate = false;
-Uint32 Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
+Uint32 Graphics::PreferredPixelFormat = PixelFormat_RGBA8888;
+Uint32 Graphics::TextureFormat = TextureFormat_RGBA8888;
 Uint32 Graphics::MaxTextureWidth = 1;
 Uint32 Graphics::MaxTextureHeight = 1;
 Uint32 Graphics::MaxTextureUnits = 1;
@@ -354,23 +355,33 @@ Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uin
 
 	return texture;
 }
-Texture* Graphics::CreateTextureFromPixels(Uint32 width, Uint32 height, void* pixels, int pitch) {
-	Texture* texture = Graphics::CreateTexture(
-		SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, width, height);
+Texture* Graphics::CreateTextureFromPixels(Uint32 format,
+	Uint32 width,
+	Uint32 height,
+	void* pixels,
+	int pitch) {
+	Texture* texture = Graphics::CreateTexture(format, TextureAccess_STATIC, width, height);
 	if (texture) {
 		Graphics::UpdateTexture(texture, NULL, pixels, pitch);
 	}
 
 	return texture;
 }
-Texture* Graphics::CreateTextureFromSurface(SDL_Surface* surface) {
-	Texture* texture = Graphics::CreateTexture(
-		surface->format->format, SDL_TEXTUREACCESS_STATIC, surface->w, surface->h);
-	if (texture) {
-		Graphics::GfxFunctions->UpdateTexture(
-			texture, NULL, surface->pixels, surface->pitch);
+bool Graphics::ReinitializeTexture(Texture* texture,
+	Uint32 format,
+	Uint32 access,
+	Uint32 width,
+	Uint32 height) {
+	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
+		Graphics::NoInternalTextures) {
+		return Texture::Reinitialize(texture, format, access, width, height);
 	}
-	return texture;
+	else if (Graphics::GfxFunctions->ReinitializeTexture) {
+		return Graphics::GfxFunctions->ReinitializeTexture(
+			texture, format, access, width, height);
+	}
+
+	return false;
 }
 int Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
@@ -380,9 +391,8 @@ int Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return Graphics::GfxFunctions->LockTexture(texture, pixels, pitch);
 }
 int Graphics::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
-	memcpy(texture->Pixels, pixels, sizeof(Uint32) * texture->Width * texture->Height);
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures) {
+	memcpy(texture->Pixels, pixels, pitch * texture->Height);
+	if (Graphics::NoInternalTextures) {
 		return 1;
 	}
 	return Graphics::GfxFunctions->UpdateTexture(texture, src, pixels, pitch);
@@ -404,6 +414,26 @@ int Graphics::UpdateYUVTexture(Texture* texture,
 	}
 	return Graphics::GfxFunctions->UpdateYUVTexture(
 		texture, src, pixelsY, pitchY, pixelsU, pitchU, pixelsV, pitchV);
+}
+void Graphics::CopyTexturePixels(Texture* dest,
+	int destX,
+	int destY,
+	Texture* src,
+	int srcX,
+	int srcY,
+	int srcWidth,
+	int srcHeight) {
+	if (Graphics::GfxFunctions->CopyTexturePixels) {
+		Graphics::GfxFunctions->CopyTexturePixels(
+			dest, destX, destY, src, srcX, srcY, srcWidth, srcHeight);
+	}
+	else {
+		dest->CopyPixels(src, srcX, srcY, srcWidth, srcHeight, destX, destY);
+	}
+}
+bool Graphics::ResizeTexture(Texture* texture, Uint32 width, Uint32 height) {
+	return Graphics::ReinitializeTexture(
+		texture, texture->Format, texture->Access, width, height);
 }
 int Graphics::SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors) {
 	texture->SetPalette((Uint32*)palette, numPaletteColors);
@@ -644,8 +674,8 @@ void Graphics::SoftwareEnd(int viewIndex) {
 
 void Graphics::UpdateGlobalPalette() {
 	if (Graphics::PaletteTexture == nullptr) {
-		Graphics::PaletteTexture = CreateTexture(SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_STREAMING,
+		Graphics::PaletteTexture = CreateTexture(Graphics::TextureFormat,
+			TextureAccess_STREAMING,
 			PALETTE_ROW_SIZE,
 			MAX_PALETTE_COUNT);
 
@@ -665,8 +695,8 @@ void Graphics::UpdateGlobalPalette() {
 }
 void Graphics::UpdatePaletteIndexTable() {
 	if (Graphics::PaletteIndexTexture == nullptr) {
-		Graphics::PaletteIndexTexture = CreateTexture(SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_STREAMING,
+		Graphics::PaletteIndexTexture = CreateTexture(TextureFormat_RGBA8888,
+			TextureAccess_STREAMING,
 			PALETTE_INDEX_TEXTURE_SIZE,
 			PALETTE_INDEX_TEXTURE_SIZE);
 
@@ -759,7 +789,7 @@ bool Graphics::CreateFramebufferTexture() {
 
 	if (createTexture) {
 		FramebufferTexture = CreateTexture(
-			SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, maxWidth, maxHeight);
+			Graphics::TextureFormat, TextureAccess_STREAMING, maxWidth, maxHeight);
 
 		if (FramebufferTexture == nullptr) {
 			return false;
@@ -778,6 +808,8 @@ bool Graphics::UpdateFramebufferTexture() {
 	}
 
 	Graphics::GfxFunctions->ReadFramebuffer(Graphics::FramebufferTexture->Pixels,
+		0,
+		0,
 		Graphics::FramebufferTexture->Width,
 		Graphics::FramebufferTexture->Height);
 	Graphics::GfxFunctions->UpdateTexture(Graphics::FramebufferTexture,
@@ -881,7 +913,7 @@ void Graphics::CopyScreen(int source_x,
 
 	if (source_x == 0 && source_y == 0 && dest_x == 0 && dest_y == 0 && dest_w == source_w &&
 		dest_h == source_h) {
-		Graphics::GfxFunctions->ReadFramebuffer(texture->Pixels, dest_w, dest_h);
+		Graphics::GfxFunctions->ReadFramebuffer(texture->Pixels, 0, 0, dest_w, dest_h);
 		return;
 	}
 
@@ -891,7 +923,7 @@ void Graphics::CopyScreen(int source_x,
 
 	void* fbPixels = FramebufferTexture->Pixels;
 
-	Graphics::GfxFunctions->ReadFramebuffer(fbPixels, source_w, source_h);
+	Graphics::GfxFunctions->ReadFramebuffer(fbPixels, 0, 0, source_w, source_h);
 
 	Uint32* d = (Uint32*)texture->Pixels;
 	Uint32* s = (Uint32*)fbPixels;
@@ -1107,8 +1139,12 @@ void Graphics::PopState() {
 
 	Graphics::SetDepthTesting(Graphics::UseDepthTesting);
 
-	Graphics::GfxFunctions->UpdateViewport();
-	Graphics::GfxFunctions->UpdateClipRect();
+	if (Graphics::GfxFunctions->UpdateViewport) {
+		Graphics::GfxFunctions->UpdateViewport();
+	}
+	if (Graphics::GfxFunctions->UpdateClipRect) {
+		Graphics::GfxFunctions->UpdateClipRect();
+	}
 
 	StateStack.pop();
 
@@ -1120,7 +1156,10 @@ void Graphics::SetBlendColor(float r, float g, float b, float a) {
 	Graphics::BlendColors[1] = Math::Clamp(g, 0.0f, 1.0f);
 	Graphics::BlendColors[2] = Math::Clamp(b, 0.0f, 1.0f);
 	Graphics::BlendColors[3] = Math::Clamp(a, 0.0f, 1.0f);
-	Graphics::GfxFunctions->SetBlendColor(r, g, b, a);
+
+	if (Graphics::GfxFunctions->SetBlendColor) {
+		Graphics::GfxFunctions->SetBlendColor(r, g, b, a);
+	}
 }
 void Graphics::SetBlendMode(int blendMode) {
 	Graphics::BlendMode = blendMode;
@@ -1157,152 +1196,116 @@ void Graphics::SetBlendMode(int blendMode) {
 	}
 }
 void Graphics::SetBlendMode(int srcC, int dstC, int srcA, int dstA) {
-	Graphics::GfxFunctions->SetBlendMode(srcC, dstC, srcA, dstA);
+	if (Graphics::GfxFunctions->SetBlendMode) {
+		Graphics::GfxFunctions->SetBlendMode(srcC, dstC, srcA, dstA);
+	}
 }
 void Graphics::SetTintColor(float r, float g, float b, float a) {
 	Graphics::TintColors[0] = Math::Clamp(r, 0.0f, 1.0f);
 	Graphics::TintColors[1] = Math::Clamp(g, 0.0f, 1.0f);
 	Graphics::TintColors[2] = Math::Clamp(b, 0.0f, 1.0f);
 	Graphics::TintColors[3] = Math::Clamp(a, 0.0f, 1.0f);
-	Graphics::GfxFunctions->SetTintColor(r, g, b, a);
+
+	if (Graphics::GfxFunctions->SetTintColor) {
+		Graphics::GfxFunctions->SetTintColor(r, g, b, a);
+	}
 }
 void Graphics::SetTintMode(int mode) {
 	Graphics::TintMode = mode;
-	Graphics::GfxFunctions->SetTintMode(mode);
+
+	if (Graphics::GfxFunctions->SetTintMode) {
+		Graphics::GfxFunctions->SetTintMode(mode);
+	}
 }
 void Graphics::SetTintEnabled(bool enabled) {
 	Graphics::UseTinting = enabled;
-	Graphics::GfxFunctions->SetTintEnabled(enabled);
+
+	if (Graphics::GfxFunctions->SetTintEnabled) {
+		Graphics::GfxFunctions->SetTintEnabled(enabled);
+	}
 }
 void Graphics::SetLineWidth(float n) {
-	Graphics::GfxFunctions->SetLineWidth(n);
+	if (Graphics::GfxFunctions->SetLineWidth) {
+		Graphics::GfxFunctions->SetLineWidth(n);
+	}
 }
 
 void Graphics::StrokeLine(float x1, float y1, float x2, float y2) {
-	Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
+	if (Graphics::GfxFunctions->StrokeLine) {
+		Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
+	}
 }
 void Graphics::StrokeCircle(float x, float y, float rad, float thickness) {
-	Graphics::GfxFunctions->StrokeCircle(x, y, rad, thickness);
+	if (Graphics::GfxFunctions->StrokeCircle) {
+		Graphics::GfxFunctions->StrokeCircle(x, y, rad, thickness);
+	}
 }
 void Graphics::StrokeEllipse(float x, float y, float w, float h) {
-	Graphics::GfxFunctions->StrokeEllipse(x, y, w, h);
+	if (Graphics::GfxFunctions->StrokeEllipse) {
+		Graphics::GfxFunctions->StrokeEllipse(x, y, w, h);
+	}
 }
 void Graphics::StrokeTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-	Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
-	Graphics::GfxFunctions->StrokeLine(x2, y2, x3, y3);
-	Graphics::GfxFunctions->StrokeLine(x3, y3, x1, y1);
+	if (Graphics::GfxFunctions->StrokeLine) {
+		Graphics::GfxFunctions->StrokeLine(x1, y1, x2, y2);
+		Graphics::GfxFunctions->StrokeLine(x2, y2, x3, y3);
+		Graphics::GfxFunctions->StrokeLine(x3, y3, x1, y1);
+	}
 }
 void Graphics::StrokeRectangle(float x, float y, float w, float h) {
-	Graphics::GfxFunctions->StrokeRectangle(x, y, w, h);
+	if (Graphics::GfxFunctions->StrokeRectangle) {
+		Graphics::GfxFunctions->StrokeRectangle(x, y, w, h);
+	}
 }
 void Graphics::FillCircle(float x, float y, float rad) {
-	Graphics::GfxFunctions->FillCircle(x, y, rad);
+	if (Graphics::GfxFunctions->FillCircle) {
+		Graphics::GfxFunctions->FillCircle(x, y, rad);
+	}
 }
 void Graphics::FillEllipse(float x, float y, float w, float h) {
-	Graphics::GfxFunctions->FillEllipse(x, y, w, h);
-}
-void Graphics::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
-	Graphics::GfxFunctions->FillTriangle(x1, y1, x2, y2, x3, y3);
-}
-void Graphics::FillTriangleBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3) {
-	Graphics::GfxFunctions->FillTriangleBlend(x1, y1, x2, y2, x3, y3, c1, c2, c3);
+	if (Graphics::GfxFunctions->FillEllipse) {
+		Graphics::GfxFunctions->FillEllipse(x, y, w, h);
+	}
 }
 void Graphics::FillRectangle(float x, float y, float w, float h) {
-	Graphics::GfxFunctions->FillRectangle(x, y, w, h);
+	if (Graphics::GfxFunctions->FillRectangle) {
+		Graphics::GfxFunctions->FillRectangle(x, y, w, h);
+	}
 }
-void Graphics::FillQuad(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4) {
-	Graphics::GfxFunctions->FillQuad(x1, y1, x2, y2, x3, y3, x4, y4);
+void Graphics::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {
+	if (Graphics::GfxFunctions->FillTriangle) {
+		Graphics::GfxFunctions->FillTriangle(x1, y1, x2, y2, x3, y3);
+	}
 }
-void Graphics::FillQuadBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4) {
-	Graphics::GfxFunctions->FillQuadBlend(x1, y1, x2, y2, x3, y3, x4, y4, c1, c2, c3, c4);
+void Graphics::FillTriangleBlend(float* xc, float* yc, int* colors) {
+	if (Graphics::GfxFunctions->FillTriangleBlend) {
+		Graphics::GfxFunctions->FillTriangleBlend(xc, yc, colors);
+	}
 }
-void Graphics::DrawTriangleTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3) {
-	Graphics::GfxFunctions->DrawTriangleTextured(
-		texturePtr, x1, y1, x2, y2, x3, y3, c1, c2, c3, u1, v1, u2, v2, u3, v3);
+void Graphics::FillQuad(float* xc, float* yc) {
+	if (Graphics::GfxFunctions->FillQuad) {
+		Graphics::GfxFunctions->FillQuad(xc, yc);
+	}
 }
-void Graphics::DrawQuadTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3,
-	float u4,
-	float v4) {
-	Graphics::GfxFunctions->DrawQuadTextured(texturePtr,
-		x1,
-		y1,
-		x2,
-		y2,
-		x3,
-		y3,
-		x4,
-		y4,
-		c1,
-		c2,
-		c3,
-		c4,
-		u1,
-		v1,
-		u2,
-		v2,
-		u3,
-		v3,
-		u4,
-		v4);
+void Graphics::FillQuadBlend(float* xc, float* yc, int* colors) {
+	if (Graphics::GfxFunctions->FillQuadBlend) {
+		Graphics::GfxFunctions->FillQuadBlend(xc, yc, colors);
+	}
+}
+void Graphics::DrawTriangle(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {
+	if (Graphics::GfxFunctions->DrawQuad) {
+		Graphics::GfxFunctions->DrawTriangle(texture, xc, yc, tu, tv, colors);
+	}
+}
+void Graphics::DrawQuad(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors) {
+	if (Graphics::GfxFunctions->DrawQuad) {
+		Graphics::GfxFunctions->DrawQuad(texture, xc, yc, tu, tv, colors);
+	}
 }
 
 void Graphics::DrawTexture(Texture* texture,
@@ -1315,11 +1318,13 @@ void Graphics::DrawTexture(Texture* texture,
 	float w,
 	float h,
 	int paletteID) {
-	if (Graphics::UsePaletteIndexLines) {
-		paletteID = PALETTE_INDEX_TABLE_ID;
-	}
+	if (Graphics::GfxFunctions->DrawTexture) {
+		if (Graphics::UsePaletteIndexLines) {
+			paletteID = PALETTE_INDEX_TABLE_ID;
+		}
 
-	Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
+		Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
+	}
 }
 void Graphics::DrawSprite(ISprite* sprite,
 	int animation,
@@ -1332,12 +1337,14 @@ void Graphics::DrawSprite(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::UsePaletteIndexLines) {
-		paletteID = PALETTE_INDEX_TABLE_ID;
-	}
+	if (Graphics::GfxFunctions->DrawSprite) {
+		if (Graphics::UsePaletteIndexLines) {
+			paletteID = PALETTE_INDEX_TABLE_ID;
+		}
 
-	Graphics::GfxFunctions->DrawSprite(
-		sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
+		Graphics::GfxFunctions->DrawSprite(
+			sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
+	}
 }
 void Graphics::DrawSpritePart(ISprite* sprite,
 	int animation,
@@ -1354,25 +1361,27 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::UsePaletteIndexLines) {
-		paletteID = PALETTE_INDEX_TABLE_ID;
-	}
+	if (Graphics::GfxFunctions->DrawSpritePart) {
+		if (Graphics::UsePaletteIndexLines) {
+			paletteID = PALETTE_INDEX_TABLE_ID;
+		}
 
-	Graphics::GfxFunctions->DrawSpritePart(sprite,
-		animation,
-		frame,
-		sx,
-		sy,
-		sw,
-		sh,
-		x,
-		y,
-		flipX,
-		flipY,
-		scaleW,
-		scaleH,
-		rotation,
-		paletteID);
+		Graphics::GfxFunctions->DrawSpritePart(sprite,
+			animation,
+			frame,
+			sx,
+			sy,
+			sw,
+			sh,
+			x,
+			y,
+			flipX,
+			flipY,
+			scaleW,
+			scaleH,
+			rotation,
+			paletteID);
+	}
 }
 void Graphics::DrawTexture(Texture* texture,
 	float sx,
@@ -1383,8 +1392,10 @@ void Graphics::DrawTexture(Texture* texture,
 	float y,
 	float w,
 	float h) {
-	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
-	Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
+	if (Graphics::GfxFunctions->DrawTexture) {
+		int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
+		Graphics::GfxFunctions->DrawTexture(texture, sx, sy, sw, sh, x, y, w, h, paletteID);
+	}
 }
 void Graphics::DrawSprite(ISprite* sprite,
 	int animation,
@@ -1397,7 +1408,7 @@ void Graphics::DrawSprite(ISprite* sprite,
 	float scaleH,
 	float rotation) {
 	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
-	DrawSprite(
+	Graphics::DrawSprite(
 		sprite, animation, frame, x, y, flipX, flipY, scaleW, scaleH, rotation, paletteID);
 }
 void Graphics::DrawSpritePart(ISprite* sprite,
@@ -1415,7 +1426,7 @@ void Graphics::DrawSpritePart(ISprite* sprite,
 	float scaleH,
 	float rotation) {
 	int paletteID = Graphics::UsePaletteIndexLines ? PALETTE_INDEX_TABLE_ID : 0;
-	DrawSpritePart(sprite,
+	Graphics::DrawSpritePart(sprite,
 		animation,
 		frame,
 		sx,
@@ -3110,15 +3121,11 @@ bool Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {
 	return false;
 }
 
-void Graphics::ConvertFromARGBtoNative(Uint32* argb, int count) {
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
-		ColorUtils::ConvertFromARGBtoABGR(argb, count);
-	}
+void Graphics::ConvertFromARGBtoNative(Uint32* colors, int count) {
+	ColorUtils::Convert(colors, count, PixelFormat_ARGB8888, Graphics::PreferredPixelFormat);
 }
-void Graphics::ConvertFromNativeToARGB(Uint32* argb, int count) {
-	if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ABGR8888) {
-		ColorUtils::ConvertFromABGRtoARGB(argb, count);
-	}
+void Graphics::ConvertFromNativeToARGB(Uint32* colors, int count) {
+	ColorUtils::Convert(colors, count, Graphics::PreferredPixelFormat, PixelFormat_ARGB8888);
 }
 
 void Graphics::SetStencilEnabled(bool enabled) {

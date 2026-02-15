@@ -48,7 +48,8 @@ void SDL2Renderer::Init() {
 
 	Graphics::SupportsShaders = false;
 	Graphics::SupportsBatching = false;
-	Graphics::PreferredPixelFormat = SDL_PIXELFORMAT_ARGB8888;
+	Graphics::PreferredPixelFormat = PixelFormat_RGBA8888;
+	Graphics::TextureFormat = TextureFormat_RGBA8888;
 
 	Graphics::MaxTextureWidth = rendererInfo.max_texture_width;
 	Graphics::MaxTextureHeight = rendererInfo.max_texture_height;
@@ -80,6 +81,7 @@ void SDL2Renderer::SetGraphicsFunctions() {
 
 	// Texture management functions
 	Graphics::Internal.CreateTexture = SDL2Renderer::CreateTexture;
+	Graphics::Internal.ReinitializeTexture = SDL2Renderer::ReinitializeTexture;
 	Graphics::Internal.LockTexture = SDL2Renderer::LockTexture;
 	Graphics::Internal.UpdateTexture = SDL2Renderer::UpdateTexture;
 	Graphics::Internal.UpdateYUVTexture = SDL2Renderer::UpdateTextureYUV;
@@ -115,13 +117,13 @@ void SDL2Renderer::SetGraphicsFunctions() {
 	Graphics::Internal.StrokeRectangle = SDL2Renderer::StrokeRectangle;
 	Graphics::Internal.FillCircle = SDL2Renderer::FillCircle;
 	Graphics::Internal.FillEllipse = SDL2Renderer::FillEllipse;
+	Graphics::Internal.FillRectangle = SDL2Renderer::FillRectangle;
 	Graphics::Internal.FillTriangle = SDL2Renderer::FillTriangle;
 	Graphics::Internal.FillTriangleBlend = SDL2Renderer::FillTriangleBlend;
-	Graphics::Internal.FillRectangle = SDL2Renderer::FillRectangle;
 	Graphics::Internal.FillQuad = SDL2Renderer::FillQuad;
 	Graphics::Internal.FillQuadBlend = SDL2Renderer::FillQuadBlend;
-	Graphics::Internal.DrawTriangleTextured = SDL2Renderer::DrawTriangleTextured;
-	Graphics::Internal.DrawQuadTextured = SDL2Renderer::DrawQuadTextured;
+	Graphics::Internal.DrawTriangle = SDL2Renderer::DrawTriangle;
+	Graphics::Internal.DrawQuad = SDL2Renderer::DrawQuad;
 
 	// Texture drawing functions
 	Graphics::Internal.DrawTexture = SDL2Renderer::DrawTexture;
@@ -135,25 +137,107 @@ void SDL2Renderer::Dispose() {
 }
 
 // Texture management functions
-Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
-	Texture* texture = Texture::New(format, access, width, height);
+bool SDL2Renderer::InitializeTexture(Texture* texture) {
+	int format = 0;
+	int access = 0;
+
+	switch (texture->Format) {
+	case TextureFormat_RGBA8888:
+		format = SDL_PIXELFORMAT_RGBA32;
+		break;
+	case TextureFormat_ABGR8888:
+		format = SDL_PIXELFORMAT_ABGR32;
+		break;
+	case TextureFormat_ARGB8888:
+		format = SDL_PIXELFORMAT_ARGB32;
+		break;
+	case TextureFormat_RGB888:
+		format = SDL_PIXELFORMAT_RGB24;
+		break;
+	case TextureFormat_BGR888:
+		format = SDL_PIXELFORMAT_BGR24;
+		break;
+	case TextureFormat_INDEXED:
+		format = SDL_PIXELFORMAT_RGBA32;
+		break;
+	case TextureFormat_YV12:
+		format = SDL_PIXELFORMAT_YV12;
+		break;
+	case TextureFormat_YUY2:
+		format = SDL_PIXELFORMAT_YUY2;
+		break;
+	case TextureFormat_UYVY:
+		format = SDL_PIXELFORMAT_UYVY;
+		break;
+	case TextureFormat_NV12:
+		format = SDL_PIXELFORMAT_NV12;
+		break;
+	case TextureFormat_NV21:
+		format = SDL_PIXELFORMAT_NV21;
+		break;
+	default:
+		return false;
+	}
+
+	switch (texture->Access) {
+	case TextureAccess_STATIC:
+		access = SDL_TEXTUREACCESS_STATIC;
+		break;
+	case TextureAccess_STREAMING:
+		access = SDL_TEXTUREACCESS_STREAMING;
+		break;
+	case TextureAccess_RENDERTARGET:
+		access = SDL_TEXTUREACCESS_TARGET;
+		break;
+	default:
+		return false;
+	}
+
 	texture->DriverData = Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(SDL_Texture*));
+	texture->DriverFormat = PixelFormat_ARGB8888;
 
 	SDL_Texture** textureData = (SDL_Texture**)texture->DriverData;
 
-	*textureData = SDL_CreateTexture(Renderer, format, access, width, height);
+	*textureData = SDL_CreateTexture(Renderer, format, access, texture->Width, texture->Height);
 	SDL_SetTextureBlendMode(*textureData, SDL_BLENDMODE_BLEND);
+
+	return true;
+}
+Texture* SDL2Renderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+	Texture* texture = Texture::New(format, access, width, height);
+
+	if (!SDL2Renderer::InitializeTexture(texture)) {
+		Memory::Free(texture);
+
+		return nullptr;
+	}
 
 	FindTextureID(texture);
 	Graphics::TextureMap->Put(texture->ID, texture);
 
 	return texture;
 }
+bool SDL2Renderer::ReinitializeTexture(Texture* texture,
+	Uint32 format,
+	Uint32 access,
+	Uint32 width,
+	Uint32 height) {
+	if (texture->DriverData != nullptr) {
+		SDL2Renderer::DisposeTexture(texture);
+	}
+
+	if (!Texture::Reinitialize(texture, format, access, width, height)) {
+		return false;
+	}
+
+	return SDL2Renderer::InitializeTexture(texture);
+}
 int SDL2Renderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
 }
 int SDL2Renderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
 	SDL_Texture* textureData = *(SDL_Texture**)texture->DriverData;
+
 	return SDL_UpdateTexture(textureData, src, pixels, pitch);
 }
 int SDL2Renderer::UpdateTextureYUV(Texture* texture,
@@ -164,8 +248,6 @@ int SDL2Renderer::UpdateTextureYUV(Texture* texture,
 	int pitchU,
 	void* pixelsV,
 	int pitchV) {
-	// SDL_Texture* textureData =
-	// *(SDL_Texture**)texture->DriverData;
 	return 0;
 }
 void SDL2Renderer::UnlockTexture(Texture* texture) {}
@@ -199,11 +281,30 @@ void SDL2Renderer::CopyScreen(void* pixels, int width, int height) {
 
 	SDL_Rect r = {0, 0, width, height};
 
-	SDL_RenderReadPixels(Renderer,
-		&r,
-		Graphics::PreferredPixelFormat,
-		pixels,
-		width * SDL_BYTESPERPIXEL(Graphics::PreferredPixelFormat));
+	int format = 0;
+
+	switch (Graphics::TextureFormat) {
+	case TextureFormat_RGBA8888:
+		format = SDL_PIXELFORMAT_RGBA32;
+		break;
+	case TextureFormat_ABGR8888:
+		format = SDL_PIXELFORMAT_ABGR32;
+		break;
+	case TextureFormat_ARGB8888:
+		format = SDL_PIXELFORMAT_ARGB32;
+		break;
+	case TextureFormat_RGB888:
+		format = SDL_PIXELFORMAT_RGB24;
+		break;
+	case TextureFormat_BGR888:
+		format = SDL_PIXELFORMAT_BGR24;
+		break;
+	default:
+		return;
+	}
+
+	SDL_RenderReadPixels(
+		Renderer, &r, format, pixels, width * SDL_BYTESPERPIXEL(format));
 }
 void SDL2Renderer::UpdateWindowSize(int width, int height) {
 	SDL2Renderer::UpdateViewport();
@@ -319,74 +420,23 @@ void SDL2Renderer::StrokeEllipse(float x, float y, float w, float h) {}
 void SDL2Renderer::StrokeRectangle(float x, float y, float w, float h) {}
 void SDL2Renderer::FillCircle(float x, float y, float rad) {}
 void SDL2Renderer::FillEllipse(float x, float y, float w, float h) {}
-void SDL2Renderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {}
-void SDL2Renderer::FillTriangleBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3) {}
 void SDL2Renderer::FillRectangle(float x, float y, float w, float h) {}
-void SDL2Renderer::FillQuad(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4) {}
-void SDL2Renderer::FillQuadBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4) {}
-void SDL2Renderer::DrawTriangleTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3) {}
-void SDL2Renderer::DrawQuadTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3,
-	float u4,
-	float v4) {}
+void SDL2Renderer::FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3) {}
+void SDL2Renderer::FillTriangleBlend(float* xc, float* yc, int* colors) {}
+void SDL2Renderer::FillQuad(float* xc, float* yc) {}
+void SDL2Renderer::FillQuadBlend(float* xc, float* yc, int* colors) {}
+void SDL2Renderer::DrawTriangle(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {}
+void SDL2Renderer::DrawQuad(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {}
 // Texture drawing functions
 void SDL2Renderer::DrawTexture(Texture* texture,
 	float sx,
