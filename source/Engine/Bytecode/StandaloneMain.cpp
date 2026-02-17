@@ -56,7 +56,7 @@ bool PrintGarbageCollectionOutput = false;
 
 const char* InputFilename = nullptr;
 const char* OutputFilename = nullptr;
-const char* ScriptsDirectory = nullptr;
+std::string ScriptsDirectory;
 
 #ifdef HSL_COMPILER
 const char* SourceFilename = nullptr;
@@ -170,7 +170,20 @@ bool ShouldShowGarbageCollectionOutput() {
 }
 
 const char* GetScriptsDirectory() {
-	return ScriptsDirectory;
+	if (ScriptsDirectory.size() > 0) {
+		return ScriptsDirectory.c_str();
+	}
+
+	return nullptr;
+}
+
+void SetScriptsDirectory(const char* path) {
+	if (path == nullptr) {
+		ScriptsDirectory = "";
+		return;
+	}
+
+	ScriptsDirectory = std::string(path);
 }
 
 const char* GetVersionText() {
@@ -243,7 +256,7 @@ bool RunnerMain(const char* filename) {
 	}
 #ifdef HSL_COMPILER
 	else {
-		module = ScriptManager::CompileScriptFromStream(stream, filename);
+		module = ScriptManager::CompileScriptFromStream(thread, stream, filename);
 	}
 #endif
 
@@ -540,7 +553,7 @@ void ParseArgs(int argc, char* args[]) {
 		else if (arg == "--scripts-dir") {
 			if (i + 1 < argc && nextArg != "--") {
 				i++;
-				ScriptsDirectory = args[i];
+				ScriptsDirectory = nextArg;
 			}
 			else {
 				printf("Must specify path\n");

@@ -852,7 +852,7 @@ bool ScriptEntity::ChangeClass(const char* className) {
 		return false;
 	}
 
-	if (!ScriptManager::LoadObjectClass(className)) {
+	if (!ScriptManager::LoadObjectClass(&ScriptManager::Threads[0], className)) {
 		return false;
 	}
 

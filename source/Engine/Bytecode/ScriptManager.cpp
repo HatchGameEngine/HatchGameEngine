@@ -62,9 +62,12 @@ static HashMap<SourceFile*>* SourceFiles = nullptr;
 #ifdef USE_SDL
 SDL_mutex* ScriptManager::GlobalLock = NULL;
 #endif
+
+#ifdef HSL_LIBRARY
+hsl_ImportScriptHandler ScriptManager::ImportScriptHandler;
+hsl_ImportClassHandler ScriptManager::ImportClassHandler;
 #endif
 
-#ifdef HSL_VM
 // #define DEBUG_STRESS_GC
 
 void ScriptManager::RequestGarbageCollection(bool doLog) {
@@ -215,6 +218,11 @@ void ScriptManager::Dispose() {
 		Constants = nullptr;
 		delete Constants;
 	}
+
+#ifdef HSL_LIBRARY
+	ImportScriptHandler = NULL;
+	ImportClassHandler = NULL;
+#endif
 
 #ifdef HSL_VM
 	if (Globals) {
@@ -726,6 +734,7 @@ VMValue ScriptManager::FindFunction(const char* functionName) {
 
 	return callable;
 }
+#ifndef HSL_STANDALONE
 BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash) {
 	if (Sources->Exists(filenameHash)) {
 		return Sources->Get(filenameHash);
@@ -738,15 +747,11 @@ BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash
 	std::string filenameForHash = GetBytecodeFilenameForHash(filenameHash);
 	const char* filename = filenameForHash.c_str();
 
-#ifndef HSL_STANDALONE
 	if (!ResourceManager::ResourceExists(filename)) {
 		return bytecode;
 	}
 
 	ResourceStream* stream = ResourceStream::New(filename);
-#else
-	Stream* stream = File::Open(filename, File::READ_ACCESS);
-#endif
 	if (!stream) {
 		// Object doesn't exist?
 		return bytecode;
@@ -769,15 +774,11 @@ bool ScriptManager::BytecodeForFilenameHashExists(Uint32 filenameHash) {
 	std::string filenameForHash = GetBytecodeFilenameForHash(filenameHash);
 	const char* filename = filenameForHash.c_str();
 
-#ifndef HSL_STANDALONE
 	if (!ResourceManager::ResourceExists(filename)) {
 		return false;
 	}
 
 	ResourceStream* stream = ResourceStream::New(filename);
-#else
-	Stream* stream = File::Open(filename, File::READ_ACCESS);
-#endif
 	if (!stream) {
 		return false;
 	}
@@ -785,6 +786,14 @@ bool ScriptManager::BytecodeForFilenameHashExists(Uint32 filenameHash) {
 	stream->Close();
 
 	return true;
+}
+#endif
+bool ScriptManager::ScriptExists(const char* name) {
+#ifdef HSL_STANDALONE
+	return true;
+#else
+	return BytecodeForFilenameHashExists(MakeFilenameHash(name));
+#endif
 }
 bool ScriptManager::ClassExists(const char* objectName) {
 #ifdef HSL_STANDALONE
@@ -806,13 +815,18 @@ bool ScriptManager::IsClassLoaded(const char* className) {
 bool ScriptManager::IsStandardLibraryClass(const char* className) {
 	return IS_CLASS(Constants->Get(className));
 }
-bool ScriptManager::LoadScript(const char* filename) {
+bool ScriptManager::LoadScript(VMThread* thread, const char* filename) {
 	if (!filename || !*filename) {
 		return false;
 	}
 
-#if defined(HSL_STANDALONE) && defined(HSL_COMPILER)
-	// TODO: Handle this for HSL_LIBRARY
+#ifdef HSL_LIBRARY
+	if (ImportScriptHandler && ImportScriptHandler(filename, (hsl_Thread*)thread) != 0) {
+		return true;
+	}
+
+	return false;
+#elif defined(HSL_STANDALONE) && defined(HSL_COMPILER)
 	std::string fullPath = "";
 	const char* scriptsDir = GetScriptsDirectory();
 	if (scriptsDir != nullptr) {
@@ -827,7 +841,7 @@ bool ScriptManager::LoadScript(const char* filename) {
 		return false;
 	}
 
-	bool succeeded = LoadScriptFromStream(stream, filename);
+	bool succeeded = LoadScriptFromStream(thread, stream, filename);
 	stream->Close();
 	return succeeded;
 #else
@@ -838,20 +852,19 @@ bool ScriptManager::LoadScript(const char* filename) {
 			return false;
 		}
 
-		return RunBytecode(&Threads[0], bytecode, hash);
+		return RunBytecode(thread, bytecode, hash);
 	}
 
 	return true;
 #endif
 }
 #ifdef HSL_COMPILER
-bool ScriptManager::LoadScriptFromStream(Stream* stream, const char* filename) {
-	ObjModule* module = CompileScriptFromStream(stream, filename);
+bool ScriptManager::LoadScriptFromStream(VMThread* thread, Stream* stream, const char* filename) {
+	ObjModule* module = CompileScriptFromStream(thread, stream, filename);
 	if (!module) {
 		return false;
 	}
 
-	VMThread* thread = &ScriptManager::Threads[0];
 	ObjFunction* function = (*module->Functions)[0];
 	if (thread->Call(function, 0)) {
 		thread->RunInstructionSet();
@@ -860,7 +873,7 @@ bool ScriptManager::LoadScriptFromStream(Stream* stream, const char* filename) {
 
 	return false;
 }
-ObjModule* ScriptManager::CompileScriptFromStream(Stream* stream, const char* filename) {
+ObjModule* ScriptManager::CompileScriptFromStream(VMThread* thread, Stream* stream, const char* filename) {
 	size_t size = stream->Length();
 	char* code = (char*)Memory::Calloc(size + 1, sizeof(char));
 	if (!code) {
@@ -871,14 +884,14 @@ ObjModule* ScriptManager::CompileScriptFromStream(Stream* stream, const char* fi
 
 	ObjModule* module = nullptr;
 	try {
-		module = CompileAndLoad(code, filename, Compiler::Settings);
+		module = CompileAndLoad(thread, code, filename, Compiler::Settings);
 	} catch (const CompilerErrorException& error) {
 		Log::Print(Log::LOG_ERROR, "Could not compile script \"%s\"!\n%s", filename, error.what());
 	}
 	Memory::Free(code);
 	return module;
 }
-ObjModule* ScriptManager::CompileAndLoad(const char* code, const char* filename, CompilerSettings settings) {
+ObjModule* ScriptManager::CompileAndLoad(VMThread* thread, const char* code, const char* filename, CompilerSettings settings) {
 	Compiler::PrepareCompiling();
 
 	Compiler* compiler = new Compiler;
@@ -891,7 +904,7 @@ ObjModule* ScriptManager::CompileAndLoad(const char* code, const char* filename,
 
 	ObjModule* module = nullptr;
 	try {
-		module = CompileAndLoad(&ScriptManager::Threads[0], compiler, code, filename);
+		module = CompileAndLoad(thread, compiler, code, filename);
 	} catch (const CompilerErrorException& error) {
 		delete compiler;
 		Compiler::FinishCompiling();
@@ -936,21 +949,6 @@ ObjModule* ScriptManager::CompileAndLoad(VMThread* thread, Compiler* compiler, c
 
 	return module;
 }
-bool ScriptManager::CompileAndExecute(const char* code, const char* filename, CompilerSettings settings) {
-	ObjModule* module = CompileAndLoad(code, filename, settings);
-	if (!module) {
-		return false;
-	}
-
-	VMThread* thread = &ScriptManager::Threads[0];
-	ObjFunction* function = (*module->Functions)[0];
-	if (thread->Call(function, 0)) {
-		thread->RunInstructionSet();
-		return true;
-	}
-
-	return false;
-}
 #endif
 bool ScriptManager::IsScriptLoaded(const char* filename) {
 	Uint32 hash = MakeFilenameHash(filename);
@@ -993,7 +991,17 @@ ObjFunction* ScriptManager::GetFunctionAtScriptLine(ObjModule* module, int lineN
 
 	return nullptr;
 }
-bool ScriptManager::LoadObjectClass(const char* objectName) {
+#ifdef HSL_LIBRARY
+void ScriptManager::SetImportScriptHandler(hsl_ImportScriptHandler handler) {
+	ImportScriptHandler = handler;
+}
+void ScriptManager::SetImportClassHandler(hsl_ImportClassHandler handler) {
+	ImportClassHandler = handler;
+}
+#endif
+bool ScriptManager::LoadObjectClass(VMThread* thread, const char* objectName) {
+	bool succeeded = true;
+
 	if (ScriptManager::IsClassLoaded(objectName)) {
 		return true;
 	}
@@ -1002,7 +1010,15 @@ bool ScriptManager::LoadObjectClass(const char* objectName) {
 		return false;
 	}
 
-	// TODO: Handle this for HSL_LIBRARY
+#ifdef HSL_LIBRARY
+	if (!ImportClassHandler) {
+		return false;
+	}
+
+	if (ImportClassHandler(objectName, (hsl_Thread*)thread) != 0) {
+		succeeded = true;
+	}
+#endif
 
 #ifndef HSL_STANDALONE
 	vector<Uint32>* filenameHashList = SourceFileMap::ClassMap->Get(objectName);
@@ -1027,12 +1043,12 @@ bool ScriptManager::LoadObjectClass(const char* objectName) {
 					(int)filenameHashList->size());
 			}
 
-			RunBytecode(&Threads[0], bytecode, filenameHash);
+			RunBytecode(thread, bytecode, filenameHash);
 		}
 	}
 #endif
 
-	if (!IsStandardLibraryClass(objectName) && !Classes->Exists(objectName)) {
+	if (succeeded && !IsStandardLibraryClass(objectName) && !Classes->Exists(objectName)) {
 		ObjClass* klass = GetObjectClass(objectName);
 		if (!klass) {
 			Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
@@ -1041,7 +1057,7 @@ bool ScriptManager::LoadObjectClass(const char* objectName) {
 		Classes->Put(objectName, klass);
 	}
 
-	return true;
+	return succeeded;
 }
 ObjClass* ScriptManager::GetObjectClass(const char* className) {
 	VMValue value = Globals->Get(className);

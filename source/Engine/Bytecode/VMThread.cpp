@@ -3358,12 +3358,16 @@ bool VMThread::Import(VMValue value) {
 		else {
 			char* className = AS_CSTRING(value);
 			if (ScriptManager::ClassExists(className)) {
-				ScriptManager::LoadObjectClass(className);
-				result = true;
+				result = ScriptManager::LoadObjectClass(this, className);
 			}
 			else {
 				ScriptManager::Unlock();
+#ifdef HSL_LIBRARY
+				ThrowRuntimeError(
+					false, "Could not import \"%s\"!", className);
+#else
 				return ImportModule(value);
+#endif
 			}
 		}
 	}
@@ -3379,11 +3383,16 @@ bool VMThread::ImportModule(VMValue value) {
 		}
 		else {
 			char* scriptName = AS_CSTRING(value);
-			if (ScriptManager::LoadScript(scriptName)) {
+			if (ScriptManager::LoadScript(this, scriptName)) {
 				result = true;
 			}
 			else {
+#ifdef HSL_LIBRARY
+				ThrowRuntimeError(
+					false, "Could not import \"%s\"!", scriptName);
+#else
 				Log::Print(Log::LOG_ERROR, "Could not import \"%s\"!", scriptName);
+#endif
 			}
 		}
 	}

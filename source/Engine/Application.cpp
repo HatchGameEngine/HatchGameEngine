@@ -1692,7 +1692,7 @@ void Application::StartGame(const char* startingScene) {
 	Scene::Initialize();
 
 	// Load initial scripts
-	ScriptManager::LoadScript("init.hsl");
+	ScriptManager::LoadScript(&ScriptManager::Threads[0], "init.hsl");
 
 	if (ScriptManager::LoadAllClasses) {
 		ScriptManager::LoadClasses();

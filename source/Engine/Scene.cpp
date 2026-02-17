@@ -2198,7 +2198,7 @@ ObjectList* Scene::NewObjectList(const char* objectName) {
 #ifdef SCRIPTABLE_ENTITY
 	// Load the bytecode for this class if it exists
 	if (ScriptManager::ClassExists(objectName) && !ScriptManager::IsClassLoaded(objectName)) {
-		ScriptManager::LoadObjectClass(objectName);
+		ScriptManager::LoadObjectClass(&ScriptManager::Threads[0], objectName);
 	}
 
 	// The above must have loaded the given scripted class if there is one.

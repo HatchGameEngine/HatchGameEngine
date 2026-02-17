@@ -30,6 +30,18 @@ const char* hsl_get_compile_error() {
     return nullptr;
 }
 
+void hsl_set_scripts_directory(const char* directory) {
+    SetScriptsDirectory(directory);
+}
+
+void hsl_set_import_script_handler(hsl_ImportScriptHandler handler) {
+    ScriptManager::SetImportScriptHandler(handler);
+}
+
+void hsl_set_import_class_handler(hsl_ImportClassHandler handler) {
+    ScriptManager::SetImportClassHandler(handler);
+}
+
 void hsl_set_log_callback(hsl_LogCallback callback) {
     Log::SetCallback(callback);
 }
@@ -63,10 +75,10 @@ hsl_Result hsl_compile_internal(const char* code, struct hsl_CompilerSettings* s
 
     CompilerSettings currentSettings = Compiler::Settings;
     if (settings) {
-        currentSettings.ShowWarnings = settings->showWarnings;
-        currentSettings.WriteDebugInfo = settings->writeDebugInfo;
-        currentSettings.WriteSourceFilename = settings->writeSourceFilename;
-        currentSettings.DoOptimizations = settings->doOptimizations;
+        currentSettings.ShowWarnings = settings->show_warnings;
+        currentSettings.WriteDebugInfo = settings->write_debug_info;
+        currentSettings.WriteSourceFilename = settings->write_source_filename;
+        currentSettings.DoOptimizations = settings->do_optimizations;
     }
 
     Compiler* compiler = new Compiler;
@@ -225,7 +237,10 @@ hsl_Result hsl_run_call_frame(struct hsl_Thread* thread) {
 
     while (true) {
         int ret = vmThread->RunInstruction();
-        if (ret != INTERPRET_OK) {
+        if (ret == INTERPRET_FINISHED) {
+            break;
+        }
+        else if (ret != INTERPRET_OK) {
             return HSL_RUNTIME_ERROR;
         }
 #ifdef VM_DEBUG
@@ -245,7 +260,7 @@ hsl_Result hsl_run_call_frame_instruction(struct hsl_Thread* thread) {
     }
 
     int ret = vmThread->RunInstruction();
-    if (ret != INTERPRET_OK) {
+    if (ret != INTERPRET_OK && ret != INTERPRET_FINISHED) {
         return HSL_RUNTIME_ERROR;
     }
 

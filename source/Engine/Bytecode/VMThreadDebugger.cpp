@@ -987,15 +987,13 @@ ObjFunction* VMThreadDebugger::GetFunctionForBreakpoint(std::vector<char*> args,
 			}
 		}
 
-		Uint32 hash = ScriptManager::MakeFilenameHash(arg);
-
-		if (ScriptManager::BytecodeForFilenameHashExists(hash)) {
-			if (!ScriptManager::IsScriptLoaded(hash)) {
+		if (ScriptManager::ScriptExists(arg)) {
+			if (!ScriptManager::IsScriptLoaded(arg)) {
 				printf("Script \"%s\" is not loaded\n", arg);
 				return nullptr;
 			}
 
-			ObjModule* module = ScriptManager::GetScriptModule(hash);
+			ObjModule* module = ScriptManager::GetScriptModule(arg);
 			if (!module) {
 				printf("Script \"%s\" is not loaded\n", arg);
 				return nullptr;

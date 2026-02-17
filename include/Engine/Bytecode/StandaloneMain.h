@@ -24,6 +24,7 @@ hsl_ErrorResponse HandleVMRuntimeError(hsl_Result error, std::string text);
 
 bool ShouldShowGarbageCollectionOutput();
 const char* GetScriptsDirectory();
+void SetScriptsDirectory(const char* directory);
 const char* GetVersionText();
 #endif
 

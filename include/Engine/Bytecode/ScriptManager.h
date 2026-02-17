@@ -20,6 +20,10 @@ class ScriptEntity;
 #include <Engine/ResourceTypes/ISprite.h>
 #endif
 
+#ifdef HSL_LIBRARY
+#include <Engine/Bytecode/API.h>
+#endif
+
 #ifdef USE_SDL
 #include <Engine/Includes/StandardSDL2.h>
 #endif
@@ -28,6 +32,11 @@ class ScriptEntity;
 
 class ScriptManager {
 private:
+#ifdef HSL_LIBRARY
+	static hsl_ImportScriptHandler ImportScriptHandler;
+	static hsl_ImportClassHandler ImportClassHandler;
+#endif
+
 #if defined(HSL_VM) && defined(VM_DEBUG)
 	static Uint32 GetBranchLimit();
 	static void LoadSourceCodeLines(SourceFile* sourceFile, char* text);
@@ -101,26 +110,32 @@ public:
 	static bool RunBytecode(VMThread* thread, Stream* stream, Uint32 filenameHash);
 	static bool CallFunction(const char* functionName);
 	static VMValue FindFunction(const char* functionName);
+#ifndef HSL_STANDALONE
 	static BytecodeContainer GetBytecodeFromFilenameHash(Uint32 filenameHash);
 	static bool BytecodeForFilenameHashExists(Uint32 filenameHash);
+#endif
+	static bool ScriptExists(const char* name);
 	static bool ClassExists(const char* objectName);
 	static bool ClassExists(Uint32 hash);
 	static bool IsClassLoaded(const char* className);
 	static bool IsStandardLibraryClass(const char* className);
-	static bool LoadScript(const char* filename);
+	static bool LoadScript(VMThread* thread, const char* filename);
 #ifdef HSL_COMPILER
-	static bool LoadScriptFromStream(Stream* stream, const char* filename);
-	static ObjModule* CompileScriptFromStream(Stream* stream, const char* filename);
-	static ObjModule* CompileAndLoad(const char* code, const char* filename, CompilerSettings settings);
+	static bool LoadScriptFromStream(VMThread* thread, Stream* stream, const char* filename);
+	static ObjModule* CompileScriptFromStream(VMThread* thread, Stream* stream, const char* filename);
+	static ObjModule* CompileAndLoad(VMThread* thread, const char* code, const char* filename, CompilerSettings settings);
 	static ObjModule* CompileAndLoad(VMThread* thread, Compiler* compiler, const char* code, const char* filename);
-	static bool CompileAndExecute(const char* code, const char* filename, CompilerSettings settings);
 #endif
 	static bool IsScriptLoaded(const char* filename);
 	static bool IsScriptLoaded(Uint32 filenameHash);
 	static ObjModule* GetScriptModule(const char* filename);
 	static ObjModule* GetScriptModule(Uint32 filenameHash);
 	static ObjFunction* GetFunctionAtScriptLine(ObjModule* module, int lineNum);
-	static bool LoadObjectClass(const char* objectName);
+#ifdef HSL_LIBRARY
+	static void SetImportScriptHandler(hsl_ImportScriptHandler handler);
+	static void SetImportClassHandler(hsl_ImportClassHandler handler);
+#endif
+	static bool LoadObjectClass(VMThread* thread, const char* objectName);
 	static ObjClass* GetObjectClass(const char* className);
 #ifndef HSL_STANDALONE
 	static void LoadClasses();
