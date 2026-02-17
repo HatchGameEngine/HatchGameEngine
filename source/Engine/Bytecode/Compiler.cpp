@@ -11,8 +11,11 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Exceptions/CompilerErrorException.h>
+#include <Engine/Utilities/StringUtils.h>
 
+#ifndef HSL_STANDALONE
 #include <Engine/Application.h>
+#endif
 
 Parser Compiler::parser;
 Scanner Compiler::scanner;
@@ -4083,7 +4086,7 @@ void Compiler::Init() {
 	Settings.PrintToLog = true;
 	Settings.PrintChunks = false;
 	Settings.ShowWarnings = false;
-#if DEVELOPER_MODE
+#ifdef DEVELOPER_MODE
 	Settings.WriteDebugInfo = true;
 	Settings.WriteSourceFilename = true;
 #else
@@ -4092,6 +4095,7 @@ void Compiler::Init() {
 #endif
 	Settings.DoOptimizations = true;
 
+#ifndef HSL_STANDALONE
 	Application::Settings->GetBool("compiler", "log", &Compiler::DoLogging);
 	if (Compiler::DoLogging) {
 		Application::Settings->GetBool("compiler", "showWarnings", &Settings.ShowWarnings);
@@ -4103,6 +4107,7 @@ void Compiler::Init() {
 	Application::Settings->GetBool("compiler", "optimizations", &Settings.DoOptimizations);
 
 	Application::Settings->GetBool("dev", "debugCompiler", &Settings.PrintChunks);
+#endif
 }
 void Compiler::GetStandardConstants() {
 	if (Compiler::StandardConstants == NULL) {

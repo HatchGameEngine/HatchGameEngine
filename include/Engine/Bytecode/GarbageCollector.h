@@ -10,7 +10,9 @@ private:
 	static void GrayValue(VMValue value);
 	static void GrayHashMapItem(Uint32, VMValue value);
 	static void BlackenObject(Obj* object);
+#ifndef HSL_STANDALONE
 	static void CollectResources();
+#endif
 
 public:
 	static vector<Obj*> GrayList;
@@ -23,7 +25,7 @@ public:
 	static int FilterSweepType;
 
 	static void Init();
-	static void Collect();
+	static void Collect(bool doLog);
 	static void GrayObject(void* obj);
 	static void GrayHashMap(void* pointer);
 	static void Dispose();

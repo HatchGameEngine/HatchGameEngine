@@ -1,5 +1,8 @@
-#include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/IO/MemoryStream.h>
+
+#ifdef USE_ZLIB
+#include <Engine/IO/Compression/ZLibStream.h>
+#endif
 
 MemoryStream* MemoryStream::New(size_t size) {
 	void* data = Memory::Malloc(size);
@@ -89,6 +92,7 @@ size_t MemoryStream::ReadBytes(void* data, size_t n) {
 	return n;
 }
 Uint32 MemoryStream::ReadCompressed(void* out) {
+#ifdef USE_ZLIB
 	Uint32 compressed_size = ReadUInt32() - 4;
 	Uint32 uncompressed_size = ReadUInt32BE();
 
@@ -96,8 +100,12 @@ Uint32 MemoryStream::ReadCompressed(void* out) {
 	pointer += compressed_size;
 
 	return uncompressed_size;
+#else
+	return 0;
+#endif
 }
 Uint32 MemoryStream::ReadCompressed(void* out, size_t outSz) {
+#ifdef USE_ZLIB
 	Uint32 compressed_size = ReadUInt32() - 4;
 	ReadUInt32BE();
 
@@ -105,6 +113,9 @@ Uint32 MemoryStream::ReadCompressed(void* out, size_t outSz) {
 	pointer += compressed_size;
 
 	return (Uint32)outSz;
+#else
+	return 0;
+#endif
 }
 
 size_t MemoryStream::WriteBytes(void* data, size_t n) {

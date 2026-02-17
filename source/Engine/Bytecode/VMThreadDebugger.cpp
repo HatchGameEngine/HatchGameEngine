@@ -2,23 +2,28 @@
 
 #ifdef VM_DEBUG
 #include <Engine/Bytecode/Bytecode.h>
-#include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/ScriptREPL.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
-#include <Engine/Exceptions/CompilerErrorException.h>
+#include <Engine/Exceptions/ScriptREPLException.h>
+#include <Engine/IO/TerminalInput.h>
 #include <Engine/Utilities/StringUtils.h>
+
+#ifdef HSL_COMPILER
+#include <Engine/Bytecode/Compiler.h>
+#endif
+
+#ifdef HSL_STANDALONE
+#include <Engine/Bytecode/StandaloneMain.h>
+#endif
 
 #ifdef USING_LINENOISE
 #include <Libraries/linenoise-ng/linenoise.h>
 
 void DebuggerCompletionCallback(const char *buf, linenoiseCompletions *completions);
 #endif
-
-#include <iostream>
-
-#define PROMPT "> "
 
 typedef bool (VMThreadDebugger::*DebuggerCommandFunc)(std::vector<char*>, const char*);
 
@@ -171,25 +176,6 @@ void VMThreadDebugger::Enter() {
 #endif
 }
 
-bool VMThreadDebugger::ReadLine(std::string& line) {
-#ifdef USING_LINENOISE
-	char* read = linenoise(PROMPT);
-	if (!read) {
-		return false;
-	}
-
-	line = std::string(read);
-
-	free(read);
-#else
-	printf(PROMPT);
-
-	std::getline(std::cin, line);
-#endif
-
-	return true;
-}
-
 #ifdef USING_LINENOISE
 void DebuggerCompletionCallback(const char *buf, linenoiseCompletions *completions) {
 	if (buf[0] == '\0') {
@@ -208,51 +194,19 @@ void DebuggerCompletionCallback(const char *buf, linenoiseCompletions *completio
 void VMThreadDebugger::MainLoop() {
 	while (Active) {
 		// Read the line
-		std::string read;
-
-		if (!ReadLine(read)) {
-			continue;
-		}
-
-		// Trim the line
-		const char* trim_chars = " \t\r\v\f";
-		size_t pos = read.find_first_not_of(trim_chars);
-		if (pos != std::string::npos) {
-			read.erase(0, pos);
-			pos = read.find_last_not_of(trim_chars);
-			if (pos != std::string::npos) {
-				read.erase(pos + 1);
-			}
-			else {
-				read.clear();
-			}
-		}
-
-		// Do nothing if the entire string is empty
+		std::string read = TerminalInput::GetLine("> ");
 		if (read.size() == 0) {
 			continue;
 		}
-
-		// Do nothing if the entire string is whitespace
-		bool isWhitespace = std::all_of(read.cbegin(), read.cend(), [](char c) {
-			return std::isspace(c);
-		});
-		if (isWhitespace) {
-			continue;
-		}
-
-#ifdef USING_LINENOISE
-		linenoiseHistoryAdd(read.c_str());
-#endif
 
 		// Split string by whitespace
 		// TODO: This needs to be able to capture text in quotes correctly
 		std::vector<char*> args;
 		char* line = StringUtils::Create(read.c_str());
-		char* tok = strtok(line, trim_chars);
+		char* tok = strtok(line, REPL_TRIM_CHARS);
 		while (tok != NULL) {
 			args.push_back(tok);
-			tok = strtok(NULL, trim_chars);
+			tok = strtok(NULL, REPL_TRIM_CHARS);
 		}
 
 		// Interpret the line
@@ -312,8 +266,14 @@ bool VMThreadDebugger::InterpretCommand(std::vector<char*> args, const char* ful
 		}
 	}
 
+#ifdef HSL_COMPILER
 	// Treat it as code
 	return ExecuteCode(fullLine);
+#else
+	printf("Unknown command %s\n", args[0]);
+
+	return false;
+#endif
 }
 
 bool VMThreadDebugger::Cmd_Continue(std::vector<char*> args, const char* fullLine) {
@@ -762,7 +722,9 @@ bool VMThreadDebugger::Cmd_Breakpoint(std::vector<char*> args, const char* fullL
 
 		printf(", line %d, column %d\n", line, pos);
 
-		PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
+		if (function->Module->HasSourceFilename) {
+			PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
+		}
 	}
 	else {
 		printf("\n");
@@ -803,7 +765,9 @@ bool VMThreadDebugger::Cmd_TempBreakpoint(std::vector<char*> args, const char* f
 
 		printf(", line %d, column %d\n", line, pos);
 
-		PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
+		if (function->Module->HasSourceFilename) {
+			PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
+		}
 	}
 	else {
 		printf("\n");
@@ -915,7 +879,7 @@ bool VMThreadDebugger::Cmd_ListBreakpoints(std::vector<char*> args, const char* 
 
 		printf("\n");
 
-		if (line > 0) {
+		if (line > 0 && function->Module->HasSourceFilename) {
 			PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
 		}
 	}
@@ -957,213 +921,22 @@ bool VMThreadDebugger::Cmd_Help(std::vector<char*> args, const char* fullLine) {
 }
 
 bool VMThreadDebugger::ExecuteCode(const char* code) {
+#ifdef HSL_COMPILER
 	if (Thread->FrameCount && DebugFrame != Thread->FrameCount - 1) {
 		printf("Cannot execute code outside of top frame\n");
 		return false;
 	}
 
 	CallFrame* frame = GetCallFrame();
-	ObjFunction* function = nullptr;
-	Chunk* chunk = nullptr;
-	Chunk* firstChunk = nullptr;
-
-	bool didCompile = false;
-	bool didExecute = false;
-
-	if (Thread->FrameCount == FRAMES_MAX) {
-		printf("No call frame available for executing code\n");
-		return false;
-	}
-
-	if (frame) {
-		function = frame->Function;
-		chunk = &function->Chunk;
-		firstChunk = &(*function->Module->Functions)[0]->Chunk;
-	}
-
-	// Prepare the compiler
-	Compiler::PrepareCompiling();
 
 	CompilerSettings settings = Compiler::Settings;
 	settings.PrintToLog = false;
 
-	Compiler* compiler = new Compiler;
-	compiler->InREPL = true;
-	compiler->CurrentSettings = settings;
-
-	if (!function || function->Index == 0) {
-		compiler->Type = FUNCTIONTYPE_TOPLEVEL;
-		compiler->ScopeDepth = 0;
-	}
-	else {
-		compiler->Type = FUNCTIONTYPE_FUNCTION;
-		compiler->ScopeDepth = 1;
-	}
-
-	compiler->Initialize();
-
-	// Only the first chunk in the module contains module locals
-	if (firstChunk && firstChunk->ModuleLocals) {
-		for (size_t i = 0; i < firstChunk->ModuleLocals->size(); i++) {
-			ChunkLocal local = (*firstChunk->ModuleLocals)[i];
-
-			Local* compilerLocal;
-			Local constLocal;
-
-			if (local.Constant) {
-				if (local.Index >= chunk->Constants->size()) {
-					continue;
-				}
-
-				VMValue constVal = Thread->GetConstant(chunk, local.Index);
-				compilerLocal = &constLocal;
-				compilerLocal->Index = compiler->MakeConstant(constVal);
-				compilerLocal->ConstantVal = constVal;
-				compilerLocal->Constant = true;
-			}
-			else {
-				if (Compiler::ModuleLocals.size() == 0xFFFF) {
-					continue;
-				}
-
-				int index = compiler->AddModuleLocal();
-				compilerLocal = &Compiler::ModuleLocals[index];
-				compilerLocal->Index = local.Index;
-			}
-
-			compilerLocal->Depth = 0;
-			compilerLocal->Resolved = true;
-
-			Compiler::RenameLocal(compilerLocal, local.Name);
-
-			if (function->Chunk.Lines) {
-				Token* nameToken = &compilerLocal->Name;
-				nameToken->Line = function->Chunk.Lines[local.Position] & 0xFFFF;
-				nameToken->Pos =
-					(function->Chunk.Lines[local.Position] >> 16) & 0xFFFF;
-			}
-
-			if (local.Constant) {
-				compiler->Constants.push_back(constLocal);
-			}
-		}
-	}
-
-	if (chunk && chunk->Locals) {
-		for (size_t i = 0; i < chunk->Locals->size(); i++) {
-			ChunkLocal local = (*chunk->Locals)[i];
-
-			Local* compilerLocal;
-			Local constLocal;
-
-			if (local.Constant) {
-				if (local.Index >= chunk->Constants->size()) {
-					continue;
-				}
-
-				VMValue constVal = Thread->GetConstant(chunk, local.Index);
-				compilerLocal = &constLocal;
-				compilerLocal->Index = compiler->MakeConstant(constVal);
-				compilerLocal->ConstantVal = constVal;
-				compilerLocal->Constant = true;
-			}
-			else {
-				if (local.Index >= Thread->StackTop - frame->Slots ||
-					compiler->LocalCount == 0xFF) {
-					continue;
-				}
-
-				int index = compiler->AddLocal();
-				compilerLocal = &compiler->Locals[index];
-				compilerLocal->Index = local.Index;
-				compilerLocal->Constant = false;
-			}
-
-			compilerLocal->Depth = compiler->ScopeDepth;
-			compilerLocal->Resolved = true;
-
-			Compiler::RenameLocal(compilerLocal, local.Name);
-
-			if (function->Chunk.Lines) {
-				Token* nameToken = &compilerLocal->Name;
-				nameToken->Line = function->Chunk.Lines[local.Position] & 0xFFFF;
-				nameToken->Pos =
-					(function->Chunk.Lines[local.Position] >> 16) & 0xFFFF;
-			}
-
-			if (local.Constant) {
-				compiler->Constants.push_back(constLocal);
-			}
-		}
-	}
-
-	compiler->SetupLocals();
-
-	// Compile the code
-	ObjModule* module = nullptr;
+	VMValue result;
 	try {
-		module = CompileCode(compiler, code);
-		didCompile = true;
-	} catch (const CompilerErrorException& error) {
+		result = ScriptREPL::ExecuteCode(Thread, frame, code, settings);
+	} catch (const ScriptREPLException& error) {
 		printf("%s\n", error.what());
-	}
-
-	delete compiler;
-	Compiler::FinishCompiling();
-
-	if (!didCompile) {
-		return false;
-	}
-
-	VMValue result = NULL_VAL;
-
-	// Execute the code
-	if (module) {
-		ObjFunction* newFunction = (*module->Functions)[0];
-
-		// Add any new module locals to the current module
-		if (firstChunk && firstChunk->ModuleLocals && newFunction->Chunk.ModuleLocals) {
-			size_t start = firstChunk->ModuleLocals->size();
-			for (size_t i = start; i < newFunction->Chunk.ModuleLocals->size(); i++) {
-				ChunkLocal copy = (*newFunction->Chunk.ModuleLocals)[i];
-				copy.Name = StringUtils::Duplicate(copy.Name);
-				firstChunk->ModuleLocals->push_back(copy);
-			}
-		}
-
-		VMValue* lastStackTop = Thread->StackTop;
-		int lastFrame = Thread->FrameCount;
-		int lastReturnFrame = Thread->ReturnFrame;
-
-		Thread->ReturnFrame = Thread->FrameCount;
-
-		if (Thread->Call(newFunction, 0)) {
-			VMValue lastInterpretResult = Thread->InterpretResult;
-			Thread->InterpretResult = NULL_VAL;
-
-			if (lastFrame > 0) {
-				CallFrame* currentCallFrame = &Thread->Frames[Thread->FrameCount - 1];
-				CallFrame* lastCallFrame = &Thread->Frames[lastFrame - 1];
-
-				currentCallFrame->Slots = lastCallFrame->Slots;
-				currentCallFrame->ModuleLocals = lastCallFrame->ModuleLocals;
-			}
-
-			ScriptManager::AddSourceFile("repl", StringUtils::Duplicate(code));
-
-			Thread->RunInstructionSet();
-			result = Thread->InterpretResult;
-			Thread->InterpretResult = lastInterpretResult;
-
-			didExecute = true;
-		}
-
-		Thread->ReturnFrame = lastReturnFrame;
-		Thread->FrameCount = lastFrame;
-		Thread->StackTop = lastStackTop;
-	}
-	else {
-		printf("Could not compile code\n");
 		return false;
 	}
 
@@ -1177,38 +950,12 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 	}
 	printf("\n");
 
-	return didExecute;
-}
+	ScriptManager::RequestGarbageCollection(false);
 
-ObjModule* VMThreadDebugger::CompileCode(Compiler* compiler, const char* code) {
-	bool didCompile = false;
-
-	MemoryStream* memStream = MemoryStream::New(0x100);
-	if (!memStream) {
-		return nullptr;
-	}
-
-	try {
-		didCompile = compiler->Compile(nullptr, code, memStream);
-	} catch (const CompilerErrorException& error) {
-		memStream->Close();
-
-		throw error;
-	}
-
-	ObjModule* module = nullptr;
-
-	if (didCompile) {
-		BytecodeContainer bytecode;
-		bytecode.Data = memStream->pointer_start;
-		bytecode.Size = memStream->Position();
-
-		module = ScriptManager::LoadBytecode(Thread, bytecode, 0x00000000);
-	}
-
-	memStream->Close();
-
-	return module;
+	return true;
+#else
+	return false;
+#endif
 }
 
 ObjFunction* VMThreadDebugger::GetFunctionForBreakpoint(std::vector<char*> args, Uint32& position) {
@@ -1350,7 +1097,9 @@ void VMThreadDebugger::PrintCallFrameSourceLine(CallFrame* frame,
 	if (line > -1 && pos > -1) {
 		printf(", line %d, column %d\n", line, pos);
 
-		PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
+		if (function->Module->HasSourceFilename) {
+			PrintSourceLineAndPosition(function->Module->SourceFilename, line, pos);
+		}
 	}
 	else {
 		printf("\n");
@@ -1373,7 +1122,15 @@ void VMThreadDebugger::PrintCallFrameSourceLine(CallFrame* frame, size_t bpos, b
 bool VMThreadDebugger::PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos) {
 	std::string filePath = "";
 	if (sourceFilename) {
-		filePath = std::string(SCRIPTS_DIRECTORY_NAME) + "/" + std::string(sourceFilename);
+#ifndef HSL_STANDALONE
+		filePath = std::string(SCRIPTS_DIRECTORY_NAME) + "/";
+#else
+		const char* scriptsDir = GetScriptsDirectory();
+		if (scriptsDir) {
+			filePath = std::string(scriptsDir) + "/";
+		}
+#endif
+		filePath += std::string(sourceFilename);
 	}
 	else {
 		filePath = "repl";

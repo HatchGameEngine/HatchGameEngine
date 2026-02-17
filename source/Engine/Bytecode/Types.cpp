@@ -1,7 +1,5 @@
 #include <Engine/Bytecode/Types.h>
-
 #include <Engine/Bytecode/Bytecode.h>
-#include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
@@ -19,20 +17,33 @@
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/Utilities/StringUtils.h>
 
+#ifdef HSL_VM
+#include <Engine/Bytecode/GarbageCollector.h>
+#endif
+
 #define ALLOCATE_OBJ(type, objectType) (type*)AllocateObject(sizeof(type), objectType)
 #define ALLOCATE(type, size) (type*)Memory::TrackedMalloc(#type, sizeof(type) * size)
 
 #define GROW_CAPACITY(val) ((val) < 8 ? 8 : val << 1)
 
+#ifdef HSL_VM
+#define ROOT_OBJECT GarbageCollector::RootObject
+#else
+static Obj* RootObject;
+#define ROOT_OBJECT RootObject
+#endif
+
 Obj* AllocateObject(size_t size, ObjType type) {
+#ifdef HSL_VM
 	// Only do this when allocating more memory
 	GarbageCollector::GarbageSize += size;
+#endif
 
 	Obj* object = (Obj*)Memory::TrackedCalloc("AllocateObject", 1, size);
 	object->Size = size;
 	object->Type = type;
-	object->Next = GarbageCollector::RootObject;
-	GarbageCollector::RootObject = object;
+	object->Next = ROOT_OBJECT;
+	ROOT_OBJECT = object;
 
 	return object;
 }
@@ -77,8 +88,9 @@ ObjString* AllocString(size_t length) {
 	return AllocateString(heapChars, length, 0x00000000);
 }
 
+#ifdef HSL_VM
 static VMValue VM_GetClass(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptManager::CheckArgCount(argCount, 1);
 
 	if (IS_OBJECT(args[0])) {
 		return OBJECT_VAL(AS_OBJECT(args[0])->Class);
@@ -86,6 +98,7 @@ static VMValue VM_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 
 	return NULL_VAL;
 }
+#endif
 
 ObjFunction* NewFunction() {
 	return (ObjFunction*)FunctionImpl::New();
@@ -124,7 +137,9 @@ ObjClass* NewClass(Uint32 hash) {
 	klass->Initializer = NULL_VAL;
 	klass->Type = CLASS_TYPE_NORMAL;
 	klass->Name = StringUtils::Create(GetClassName(hash));
+#ifdef HSL_VM
 	ScriptManager::DefineNative(klass, "GetClass", VM_GetClass);
+#endif
 	return klass;
 }
 ObjClass* NewClass(const char* className) {
@@ -139,7 +154,11 @@ ObjInstance* NewInstance(ObjClass* klass) {
 	return instance;
 }
 ObjEntity* NewEntity(ObjClass* klass) {
+#ifndef HSL_STANDALONE
 	return (ObjEntity*)EntityImpl::New(klass);
+#else
+	return nullptr;
+#endif
 }
 ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method) {
 	ObjBoundMethod* bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
@@ -193,11 +212,14 @@ Obj* NewNativeInstance(size_t size) {
 }
 
 std::string GetClassName(Uint32 hash) {
+#ifdef HSL_VM
 	if (ScriptManager::Tokens && ScriptManager::Tokens->Exists(hash)) {
 		char* t = ScriptManager::Tokens->Get(hash);
 		return std::string(t);
 	}
-	else {
+	else
+#endif
+	{
 		char nameHash[9];
 		snprintf(nameHash, sizeof(nameHash), "%8X", hash);
 		return std::string(nameHash);

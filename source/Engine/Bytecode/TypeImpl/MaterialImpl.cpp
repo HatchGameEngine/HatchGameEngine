@@ -170,7 +170,7 @@ void MaterialImpl::Init() {
 	TypeImpl::DefinePrintableName(Class, "material");
 }
 
-#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (ScriptManager::argFunction(args, argIndex, threadID))
 
 /***
  * \constructor
@@ -203,7 +203,7 @@ VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 	ObjMaterial* objMaterial = AS_MATERIAL(args[0]);
 	Material* material = objMaterial->MaterialPtr;
 
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 
 	char* name = GET_ARG(1, GetString);
 

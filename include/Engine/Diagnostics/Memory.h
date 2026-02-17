@@ -5,13 +5,19 @@
 
 class Memory {
 private:
+#ifdef MEMORY_TRACKING
 	static vector<void*> TrackedMemory;
 	static vector<size_t> TrackedSizes;
 	static vector<const char*> TrackedMemoryNames;
 
+	static void Remove(void* pointer);
+#endif
+
 public:
+#ifdef MEMORY_TRACKING
 	static size_t MemoryUsage;
 	static bool IsTracking;
+#endif
 
 	static void Memset4(void* dst, Uint32 val, size_t dwords);
 	static void* Malloc(size_t size);
@@ -21,9 +27,7 @@ public:
 	static void* TrackedCalloc(const char* identifier, size_t count, size_t size);
 	static void Track(void* pointer, const char* identifier);
 	static void Track(void* pointer, size_t size, const char* identifier);
-	static void TrackLast(const char* identifier);
 	static void Free(void* pointer);
-	static void Remove(void* pointer);
 	static const char* GetName(void* pointer);
 	static void ClearTrackedMemory();
 	static size_t CheckLeak();

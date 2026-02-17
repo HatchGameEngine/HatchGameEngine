@@ -2,6 +2,14 @@
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/Standard.h>
 
+#ifdef HSL_STANDALONE
+#include <Engine/Bytecode/StandaloneMain.h>
+#endif
+
+#ifdef HSL_LIBRARY
+#include <Engine/Bytecode/API.h>
+#endif
+
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -29,6 +37,7 @@ FILE* Log::File = nullptr;
 bool Log::Initialized = false;
 char* Log::Buffer = nullptr;
 size_t Log::BufferSize = 0;
+LogCallback Log::Callback;
 
 #if WIN32 || LINUX
 #define USING_COLOR_CODES 1
@@ -43,6 +52,14 @@ void Log::OpenFile(const char* filename) {
 		return;
 	}
 
+#ifdef HSL_STANDALONE
+	File = fopen(filename, "w");
+
+	if (!File) {
+		Log::Print(Log::LOG_ERROR, "Couldn't open log file '%s' for writing!", filename);
+		StandaloneExit("Couldn't open log file");
+	}
+#else
 	std::string pathToLogFile;
 	bool pathIsValid;
 
@@ -69,10 +86,19 @@ void Log::OpenFile(const char* filename) {
 		Log::Print(Log::LOG_ERROR, "Couldn't open log file '%s' for writing!", logFilename);
 		WriteToFile = false;
 	}
+#endif
+}
+
+bool Log::IsLoggingToFile() {
+	return File != nullptr;
 }
 
 void Log::SetLogLevel(int sev) {
 	Log::LogLevel = sev;
+}
+
+void Log::SetCallback(LogCallback callback) {
+	Log::Callback = callback;
 }
 
 void Log::Close() {
@@ -115,8 +141,6 @@ void Log::Print(int sev, const char* format, ...) {
 		return;
 	}
 
-	const char* severityText = NULL;
-
 	va_list args;
 	va_start(args, format);
 	int written_chars = vsnprintf(Buffer, BufferSize, format, args);
@@ -133,6 +157,11 @@ void Log::Print(int sev, const char* format, ...) {
 		va_start(args, format);
 		vsnprintf(Buffer, BufferSize, format, args);
 		va_end(args);
+	}
+
+	if (Log::Callback) {
+		Log::HandleCallback(sev, Buffer);
+		return;
 	}
 
 #if defined(ANDROID)
@@ -210,6 +239,8 @@ void Log::Print(int sev, const char* format, ...) {
 	printf("\x1b[%d;1m", ColorCode);
 #endif
 
+	const char* severityText = "";
+
 	switch (sev) {
 	case LOG_VERBOSE:
 		severityText = "  VERBOSE: ";
@@ -254,23 +285,30 @@ void Log::Print(int sev, const char* format, ...) {
 	}
 }
 
+#define PRINT_VARIADIC_ARGS(fmt) { \
+	va_list args; \
+	va_start(args, fmt); \
+	int written_chars = vsnprintf(Buffer, BufferSize, fmt, args); \
+	va_end(args); \
+	if (written_chars <= 0) { \
+		return; \
+	} \
+	else if (written_chars + 1 >= BufferSize) { \
+		if (!ResizeBuffer(written_chars)) { \
+			return; \
+		} \
+		va_start(args, fmt); \
+		vsnprintf(Buffer, BufferSize, fmt, args); \
+		va_end(args); \
+	} \
+}
+
 void Log::PrintSimple(const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-	int written_chars = vsnprintf(Buffer, BufferSize, format, args);
-	va_end(args);
+	PRINT_VARIADIC_ARGS(format);
 
-	if (written_chars <= 0) {
+	if (Log::Callback) {
+		Log::HandleCallback(LOG_INFO, Buffer);
 		return;
-	}
-	else if (written_chars + 1 >= BufferSize) {
-		if (!ResizeBuffer(written_chars)) {
-			return;
-		}
-
-		va_start(args, format);
-		vsnprintf(Buffer, BufferSize, format, args);
-		va_end(args);
 	}
 
 	printf("%s", Buffer);
@@ -279,4 +317,44 @@ void Log::PrintSimple(const char* format, ...) {
 	if (File) {
 		fprintf(File, "%s", Buffer);
 	}
+}
+
+void Log::HandleCallback(int sev, const char* text) {
+#ifdef HSL_LIBRARY
+	switch (sev) {
+	case LOG_VERBOSE:
+		sev = HSL_LOG_VERBOSE;
+		break;
+	case LOG_INFO:
+		sev = HSL_LOG_INFO;
+		break;
+	case LOG_WARN:
+		sev = HSL_LOG_WARN;
+		break;
+	case LOG_ERROR:
+		sev = HSL_LOG_ERROR;
+		break;
+	case LOG_FATAL:
+		sev = HSL_LOG_FATAL;
+		break;
+	case LOG_IMPORTANT:
+		sev = HSL_LOG_IMPORTANT;
+		break;
+	case LOG_API:
+		sev = HSL_LOG_API;
+		break;
+	}
+#endif
+
+	Log::Callback(sev, text);
+}
+
+void Log::Write(const char* format, ...) {
+	if (!File) {
+		return;
+	}
+
+	PRINT_VARIADIC_ARGS(format);
+
+	fprintf(File, "%s", Buffer);
 }

@@ -124,9 +124,9 @@ bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 }
 
 // Events/methods called from VM
-#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (ScriptManager::argFunction(args, argIndex, threadID))
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
-	(argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
+	(argIndex < argCount ? GET_ARG(argIndex, ScriptManager::argFunction) : argDefault)
 #define GET_ENTITY(argIndex) (GetScriptEntity(args, argIndex, threadID))
 ScriptEntity* GetScriptEntity(VMValue* args, int index, Uint32 threadID) {
 	ObjEntity* entity = GET_ARG(index, GetEntity);
@@ -147,7 +147,7 @@ ScriptEntity* GetScriptEntity(VMValue* args, int index, Uint32 threadID) {
  * \ns Entity
  */
 VMValue EntityImpl::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptManager::CheckArgCount(argCount, 3);
 	ScriptEntity* self = GET_ENTITY(0);
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
@@ -192,7 +192,7 @@ VMValue EntityImpl::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID
  * \ns Entity
  */
 VMValue EntityImpl::VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptManager::CheckArgCount(argCount, 3);
 	ScriptEntity* self = GET_ENTITY(0);
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
@@ -235,7 +235,7 @@ VMValue EntityImpl::VM_ResetAnimation(int argCount, VMValue* args, Uint32 thread
  * \ns Entity
  */
 VMValue EntityImpl::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptManager::CheckArgCount(argCount, 1);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (self) {
 		self->Entity::Animate();
@@ -250,7 +250,7 @@ VMValue EntityImpl::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Entity
  */
 VMValue EntityImpl::VM_GetUpdatePriority(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptManager::CheckArgCount(argCount, 1);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (self) {
 		return INTEGER_VAL(self->UpdatePriority);
@@ -264,7 +264,7 @@ VMValue EntityImpl::VM_GetUpdatePriority(int argCount, VMValue* args, Uint32 thr
  * \ns Entity
  */
 VMValue EntityImpl::VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	int priority = GET_ARG(1, GetInteger);
 
@@ -282,7 +282,7 @@ VMValue EntityImpl::VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 thr
  * \ns Entity
  */
 VMValue EntityImpl::VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptManager::CheckArgCount(argCount, 1);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!self) {
 		return NULL_VAL;
@@ -298,7 +298,7 @@ VMValue EntityImpl::VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 thre
  * \ns Entity
  */
 VMValue EntityImpl::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* registry = GET_ARG(1, GetString);
 
@@ -327,7 +327,7 @@ VMValue EntityImpl::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadI
  * \ns Entity
  */
 VMValue EntityImpl::VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* registry = GET_ARG(1, GetString);
 
@@ -346,7 +346,7 @@ VMValue EntityImpl::VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID
  * \ns Entity
  */
 VMValue EntityImpl::VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* registry = GET_ARG(1, GetString);
 
@@ -366,7 +366,7 @@ VMValue EntityImpl::VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 th
  * \ns Entity
  */
 VMValue EntityImpl::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptManager::CheckArgCount(argCount, 1);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (self) {
 		self->Entity::ApplyMotion();
@@ -385,7 +385,7 @@ VMValue EntityImpl::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID)
  * \ns Entity
  */
 VMValue EntityImpl::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 6);
+	ScriptManager::CheckArgCount(argCount, 6);
 	// Entity* self = (Entity*)AS_INSTANCE(args[0])->EntityPtr;
 	int view = GET_ARG(1, GetInteger);
 	float x = GET_ARG(2, GetDecimal);
@@ -416,7 +416,7 @@ VMValue EntityImpl::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Entity
  */
 VMValue EntityImpl::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!self) {
@@ -472,7 +472,7 @@ VMValue EntityImpl::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 th
  * \ns Entity
  */
 VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckAtLeastArgCount(argCount, 4);
+	ScriptManager::CheckAtLeastArgCount(argCount, 4);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISprite* sprite = GET_ARG(1, GetSprite);
 	int animationID = GET_ARG(2, GetInteger);
@@ -582,7 +582,7 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 		hitboxArgNum = 1;
 	}
 	else {
-		StandardLibrary::CheckAtLeastArgCount(argCount, 4);
+		ScriptManager::CheckAtLeastArgCount(argCount, 4);
 		sprite = GET_ARG(1, GetSprite);
 		animationID = GET_ARG(2, GetInteger);
 		frameID = GET_ARG(3, GetInteger);
@@ -664,7 +664,7 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
  * \ns Entity
  */
 VMValue EntityImpl::VM_CollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	ScriptEntity* other = GET_ENTITY(1);
 	if (self && other) {
@@ -680,7 +680,7 @@ VMValue EntityImpl::VM_CollideWithObject(int argCount, VMValue* args, Uint32 thr
  * \ns Entity
  */
 VMValue EntityImpl::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptManager::CheckArgCount(argCount, 3);
 	ScriptEntity* self = GET_ENTITY(0);
 	ScriptEntity* other = GET_ENTITY(1);
 	int flag = GET_ARG(2, GetInteger);
@@ -697,7 +697,7 @@ VMValue EntityImpl::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint3
  * \ns Entity
  */
 VMValue EntityImpl::VM_TopSolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptManager::CheckArgCount(argCount, 3);
 	ScriptEntity* self = GET_ENTITY(0);
 	ScriptEntity* other = GET_ENTITY(1);
 	int flag = GET_ARG(2, GetInteger);
@@ -708,7 +708,7 @@ VMValue EntityImpl::VM_TopSolidCollideWithObject(int argCount, VMValue* args, Ui
 }
 
 VMValue EntityImpl::VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptManager::CheckArgCount(argCount, 1);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (self) {
 		self->ApplyPhysics();
@@ -724,7 +724,7 @@ VMValue EntityImpl::VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID
  * \ns Entity
  */
 VMValue EntityImpl::VM_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* property = GET_ARG(1, GetString);
 	if (self && self->Properties && self->Properties->Exists(property)) {
@@ -740,7 +740,7 @@ VMValue EntityImpl::VM_PropertyExists(int argCount, VMValue* args, Uint32 thread
  * \ns Entity
  */
 VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* property = GET_ARG(1, GetString);
 	if (self && self->Properties && self->Properties->Exists(property)) {
@@ -757,7 +757,7 @@ VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID)
  * \ns Entity
  */
 VMValue EntityImpl::VM_SetViewVisibility(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptManager::CheckArgCount(argCount, 3);
 	ScriptEntity* self = GET_ENTITY(0);
 	int viewIndex = GET_ARG(1, GetInteger);
 	bool visible = GET_ARG(2, GetInteger);
@@ -780,7 +780,7 @@ VMValue EntityImpl::VM_SetViewVisibility(int argCount, VMValue* args, Uint32 thr
  * \ns Entity
  */
 VMValue EntityImpl::VM_SetViewOverride(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptManager::CheckArgCount(argCount, 3);
 	ScriptEntity* self = GET_ENTITY(0);
 	int viewIndex = GET_ARG(1, GetInteger);
 	bool override = GET_ARG(2, GetInteger);
@@ -803,7 +803,7 @@ VMValue EntityImpl::VM_SetViewOverride(int argCount, VMValue* args, Uint32 threa
  * \ns Entity
  */
 VMValue EntityImpl::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!self) {
 		return NULL_VAL;
@@ -830,7 +830,7 @@ VMValue EntityImpl::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 thread
  * \ns Entity
  */
 VMValue EntityImpl::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!self) {
 		return INTEGER_VAL(false);
@@ -856,7 +856,7 @@ VMValue EntityImpl::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadI
  * \ns Entity
  */
 VMValue EntityImpl::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!self) {
 		return NULL_VAL;
@@ -887,7 +887,7 @@ VMValue EntityImpl::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 t
  * \ns Entity
  */
 VMValue EntityImpl::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
+	ScriptManager::CheckAtLeastArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISound* audio = GET_ARG(1, GetSound);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
@@ -913,7 +913,7 @@ VMValue EntityImpl::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Entity
  */
 VMValue EntityImpl::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
+	ScriptManager::CheckAtLeastArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISound* audio = GET_ARG(1, GetSound);
 	int loopPoint = GET_ARG_OPT(2, GetInteger, 0);
@@ -935,7 +935,7 @@ VMValue EntityImpl::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Entity
  */
 VMValue EntityImpl::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISound* audio = GET_ARG(1, GetSound);
 	if (self) {
@@ -949,7 +949,7 @@ VMValue EntityImpl::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Entity
  */
 VMValue EntityImpl::VM_StopAllSounds(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptManager::CheckArgCount(argCount, 1);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (self) {
 		AudioManager::StopAllOriginSounds((void*)self);

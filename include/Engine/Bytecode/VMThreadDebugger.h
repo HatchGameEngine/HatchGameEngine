@@ -1,7 +1,6 @@
 #ifndef ENGINE_BYTECODE_VMTHREADDEBUGGER_H
 #define ENGINE_BYTECODE_VMTHREADDEBUGGER_H
 
-#include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/VMThread.h>
 #include <Engine/Includes/Standard.h>
@@ -38,7 +37,6 @@ private:
 	bool Cmd_ListBreakpoints(std::vector<char*> args, const char* fullLine);
 	bool Cmd_ClearBreakpoints(std::vector<char*> args, const char* fullLine);
 
-	ObjModule* CompileCode(Compiler* compiler, const char* code);
 	ObjFunction* GetFunctionForBreakpoint(std::vector<char*> args, Uint32& position);
 	CallFrame* GetCallFrame();
 	bool PrintSourceLineAndPosition(const char* sourceFilename, int line, int pos);

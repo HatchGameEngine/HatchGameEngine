@@ -12,7 +12,9 @@ public:
 
 	static Obj* New();
 
+#ifdef HSL_VM
 	static VMValue VM_Bind(int argCount, VMValue* args, Uint32 threadID);
+#endif
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_FUNCTIONIMPL_H */

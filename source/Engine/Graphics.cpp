@@ -2806,6 +2806,7 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 	}
 }
 void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
+#ifdef HSL_VM
 	VMThread* thread = &ScriptManager::Threads[0];
 	if (func->Arity == 0) {
 		thread->RunEntityFunction(func, 0);
@@ -2814,6 +2815,7 @@ void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
 		thread->Push(INTEGER_VAL(layerIndex));
 		thread->RunEntityFunction(func, 1);
 	}
+#endif
 }
 
 // 3D drawing

@@ -3,7 +3,9 @@
 
 #include <Engine/Bytecode/CompilerEnums.h>
 #include <Engine/Bytecode/Types.h>
-#include <Engine/IO/MemoryStream.h>
+#include <Engine/IO/Stream.h>
+
+#define BYTECODE_MAGIC "HTVM"
 
 #define BYTECODE_FLAG_DEBUGINFO (1 << 0)
 #define BYTECODE_FLAG_SOURCEFILENAME (1 << 1)
@@ -35,7 +37,8 @@ public:
 	Bytecode();
 	~Bytecode();
 	bool Read(BytecodeContainer bytecode, HashMap<char*>* tokens);
-	ObjFunction* ReadChunk(MemoryStream* stream);
+	bool Read(Stream* stream, HashMap<char*>* tokens);
+	ObjFunction* ReadChunk(Stream* stream);
 	void ReadLocals(Stream* stream, vector<ChunkLocal>* locals, int numLocals);
 	void Write(Stream* stream, HashMap<Token>* tokenMap);
 	void WriteChunk(Stream* stream, ObjFunction* function);

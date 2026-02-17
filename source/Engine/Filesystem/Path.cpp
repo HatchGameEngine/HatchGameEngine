@@ -1,8 +1,12 @@
-#include <Engine/Application.h>
+#include <Engine/Diagnostics/Memory.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/Path.h>
-#include <Engine/Includes/StandardSDL2.h>
 #include <Engine/Utilities/StringUtils.h>
+
+#ifndef HSL_STANDALONE
+#include <Engine/Application.h>
+#include <Engine/Includes/StandardSDL2.h>
+#endif
 
 #if WIN32
 #include <direct.h>
@@ -235,6 +239,8 @@ std::string Path::GetConsolePrefPath() {
 std::string Path::GetBasePath() {
 #ifdef CONSOLE_FILESYSTEM
 	return GetConsoleBasePath();
+#elif defined(HSL_STANDALONE)
+	return "";
 #else
 	char* basePath = SDL_GetBasePath();
 	if (basePath == nullptr) {
@@ -252,7 +258,7 @@ std::string Path::GetBasePath() {
 std::string Path::GetPrefPath() {
 #ifdef CONSOLE_FILESYSTEM
 	return GetConsolePrefPath();
-#elif defined(PORTABLE_MODE)
+#elif defined(PORTABLE_MODE) || defined(HSL_STANDALONE)
 	return GetPortableModePath();
 #else
 	const char* devName = Application::GetDeveloperIdentifier();
@@ -288,6 +294,7 @@ std::string Path::GetXdgPath(const char* xdg_env, const char* fallback_path) {
 #endif
 
 std::string Path::GetGameNamePath() {
+#ifndef HSL_STANDALONE
 	const char* gameName = Application::GetGameIdentifier();
 	if (gameName == nullptr) {
 		return "";
@@ -299,6 +306,9 @@ std::string Path::GetGameNamePath() {
 	}
 
 	return Concat(std::string(devName), std::string(gameName));
+#else
+	return "";
+#endif
 }
 
 std::string Path::GetBaseUserPath() {
@@ -320,7 +330,7 @@ std::string Path::GetFallbackLocalPath(std::string suffix) {
 }
 
 std::string Path::GetBaseConfigPath() {
-#ifdef PORTABLE_MODE
+#if defined(PORTABLE_MODE) || defined(HSL_STANDALONE)
 	return GetPortableModePath();
 #elif WIN32
 	std::string gamePath = GetGameNamePath();
@@ -362,7 +372,7 @@ std::string Path::GetBaseConfigPath() {
 }
 
 std::string Path::GetStatePath() {
-#ifdef PORTABLE_MODE
+#if defined(PORTABLE_MODE) || defined(HSL_STANDALONE)
 	return GetPortableModePath();
 #elif WIN32
 	// Returns %LocalAppData%
@@ -385,7 +395,7 @@ std::string Path::GetStatePath() {
 }
 
 std::string Path::GetCachePath() {
-#ifdef PORTABLE_MODE
+#if defined(PORTABLE_MODE) || defined(HSL_STANDALONE)
 	std::string workingDir = GetPortableModePath();
 	if (workingDir == "") {
 		return "";
@@ -429,22 +439,26 @@ std::string Path::GetForLocation(PathLocation location) {
 	// save://
 	case PathLocation::SAVEGAME:
 		finalPath = GetBaseUserPath();
+#ifndef HSL_STANDALONE
 		if (finalPath != "") {
 			suffix = Application::GetSavesDir();
 			if (suffix != nullptr) {
 				finalPath = Concat(finalPath, std::string(suffix));
 			}
 		}
+#endif
 		break;
 	// config://
 	case PathLocation::PREFERENCES:
 		finalPath = GetBaseConfigPath();
+#ifndef HSL_STANDALONE
 		if (finalPath != "") {
 			suffix = Application::GetPreferencesDir();
 			if (suffix != nullptr) {
 				finalPath = Concat(finalPath, std::string(suffix));
 			}
 		}
+#endif
 		break;
 	// Log file location (no URL)
 	case PathLocation::LOGFILE:

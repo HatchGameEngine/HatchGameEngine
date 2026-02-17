@@ -110,6 +110,7 @@ void ExecuteImageFetchCallback(DiscordIntegrationCallback* callback,
 		funcPtr(avatar);
 		break;
 	}
+#ifdef HSL_VM
 	case DiscordIntegrationCallbackType_Script: {
 		VMThreadCallback* scriptCallback = (VMThreadCallback*)callback->Function;
 
@@ -130,6 +131,7 @@ void ExecuteImageFetchCallback(DiscordIntegrationCallback* callback,
 		thread->StackTop = stackTop;
 		break;
 	}
+#endif
 	}
 }
 

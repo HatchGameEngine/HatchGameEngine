@@ -13,6 +13,7 @@ struct CompilerSettings {
 	bool PrintChunks;
 };
 
+// FIXME: Why are these here?
 class Parser {
 public:
 	Token Current;
@@ -31,6 +32,7 @@ public:
 	char* SourceStart;
 };
 
+#ifdef HSL_COMPILER
 enum Precedence {
 	PREC_NONE,
 	PREC_ASSIGNMENT, // =
@@ -76,5 +78,6 @@ enum FunctionType {
 	FUNCTIONTYPE_CONSTRUCTOR,
 	FUNCTIONTYPE_METHOD
 };
+#endif
 
 #endif /* ENGINE_COMPILER_ENUMS */

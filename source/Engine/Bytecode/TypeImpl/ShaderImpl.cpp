@@ -6,6 +6,7 @@
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Graphics.h>
+#include <Engine/IO/ResourceStream.h>
 #include <Engine/Rendering/Shader.h>
 
 /***
@@ -87,7 +88,7 @@ bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 	return false;
 }
 
-#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (ScriptManager::argFunction(args, argIndex, threadID))
 
 /***
  * \constructor
@@ -133,7 +134,7 @@ void ShaderImpl::Dispose(Obj* object) {
  * \ns Shader
  */
 VMValue ShaderImpl::VM_HasStage(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -156,7 +157,7 @@ VMValue ShaderImpl::VM_HasStage(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Shader
  */
 VMValue ShaderImpl::VM_CanCompile(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptManager::CheckArgCount(argCount, 1);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -177,7 +178,7 @@ VMValue ShaderImpl::VM_CanCompile(int argCount, VMValue* args, Uint32 threadID) 
  * \ns Shader
  */
 VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptManager::CheckArgCount(argCount, 1);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -206,7 +207,7 @@ VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Shader
  */
 VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptManager::CheckArgCount(argCount, 3);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -276,7 +277,7 @@ VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Shader
  */
 VMValue ShaderImpl::VM_AddStageFromString(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptManager::CheckArgCount(argCount, 3);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -316,7 +317,7 @@ VMValue ShaderImpl::VM_AddStageFromString(int argCount, VMValue* args, Uint32 th
  * \ns Shader
  */
 VMValue ShaderImpl::VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -344,7 +345,7 @@ VMValue ShaderImpl::VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 thr
  * \ns Shader
  */
 VMValue ShaderImpl::VM_GetTextureUnit(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -381,7 +382,7 @@ VMValue ShaderImpl::VM_GetTextureUnit(int argCount, VMValue* args, Uint32 thread
  * \ns Shader
  */
 VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptManager::CheckArgCount(argCount, 1);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;
@@ -412,7 +413,7 @@ VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Shader
  */
 VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;
@@ -434,7 +435,7 @@ VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, Uint32 threadID) 
  * \ns Shader
  */
 VMValue ShaderImpl::VM_GetUniformType(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;
@@ -470,7 +471,7 @@ VMValue ShaderImpl::VM_GetUniformType(int argCount, VMValue* args, Uint32 thread
  * \ns Shader
  */
 VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckAtLeastArgCount(argCount, 3);
+	ScriptManager::CheckAtLeastArgCount(argCount, 3);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	char* uniformName = GET_ARG(1, GetString);
@@ -928,7 +929,7 @@ void ThrowElementTypeMismatchError(size_t element, const char* expected, const c
  * \ns Shader
  */
 VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 3);
+	ScriptManager::CheckArgCount(argCount, 3);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;
@@ -962,7 +963,7 @@ VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) 
  * \ns Shader
  */
 VMValue ShaderImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
+	ScriptManager::CheckArgCount(argCount, 1);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;

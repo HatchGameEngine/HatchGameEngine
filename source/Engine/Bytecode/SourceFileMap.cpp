@@ -1,5 +1,3 @@
-#include <Engine/Application.h>
-#include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Diagnostics/Log.h>
@@ -7,11 +5,22 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Path.h>
+#include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/IO/ResourceStream.h>
-#include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Utilities/StringUtils.h>
+
+#ifdef HSL_COMPILER
+#include <Engine/Bytecode/Compiler.h>
+#endif
+
+#ifdef HSL_STANDALONE
+#include <Engine/Bytecode/StandaloneMain.h>
+#else
+#include <Engine/Application.h>
+#include <Engine/ResourceTypes/ResourceManager.h>
+#endif
 
 #define SOURCEFILEMAP_NAME "cache://SourceFileMap.bin"
 
@@ -36,6 +45,7 @@ void SourceFileMap::CheckInit() {
 		SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(Murmur::EncryptData, 16);
 	}
 
+#ifndef HSL_STANDALONE
 	if (ResourceManager::ResourceExists(OBJECTS_HCM_NAME)) {
 		ResourceStream* stream = ResourceStream::New(OBJECTS_HCM_NAME);
 		if (stream) {
@@ -71,8 +81,9 @@ void SourceFileMap::CheckInit() {
 	else {
 		Log::Print(Log::LOG_ERROR, "Could not find ClassMap!");
 	}
+#endif
 
-#ifndef NO_SCRIPT_COMPILING
+#if defined(HSL_COMPILER) && !defined(NO_SCRIPT_COMPILING)
 	SourceFileMap::AllowCompilation = true;
 
 	if (File::ProtectedExists(SOURCEFILEMAP_NAME, true)) {
@@ -95,7 +106,7 @@ void SourceFileMap::CheckInit() {
 bool SourceFileMap::CheckForUpdate() {
 	SourceFileMap::CheckInit();
 
-#ifndef NO_SCRIPT_COMPILING
+#if defined(HSL_COMPILER) && !defined(NO_SCRIPT_COMPILING)
 	if (!SourceFileMap::AllowCompilation) {
 		return false;
 	}
@@ -311,9 +322,11 @@ bool SourceFileMap::CheckForUpdate() {
 	return false;
 #endif
 }
+#ifdef HSL_COMPILER
 void SourceFileMap::HandleCompileError(const char* error) {
 	Log::Print(Log::LOG_ERROR, error);
 
+#ifndef HSL_STANDALONE
 	const SDL_MessageBoxButtonData buttons[] = {
 		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "Exit"},
 	};
@@ -333,6 +346,9 @@ void SourceFileMap::HandleCompileError(const char* error) {
 
 	Application::Cleanup();
 	exit(-1);
+#else
+	StandaloneExit(std::string(error));
+#endif
 }
 void SourceFileMap::AddToList(Compiler* compiler, Uint32 filenameHash) {
 	for (size_t h = 0; h < compiler->ClassHashList.size(); h++) {
@@ -360,6 +376,7 @@ void SourceFileMap::AddToList(Compiler* compiler, Uint32 filenameHash) {
 		}
 	}
 }
+#endif
 
 void SourceFileMap::Dispose() {
 	if (SourceFileMap::Checksums) {

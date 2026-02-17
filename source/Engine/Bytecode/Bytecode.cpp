@@ -1,10 +1,10 @@
 #include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
 #define BYTECODE_VERSION 0x0005
 
-const char* Bytecode::Magic = "HTVM";
 Uint32 Bytecode::LatestVersion = BYTECODE_VERSION;
 vector<const char*> Bytecode::FunctionNames{"<anonymous-fn>", "main"};
 
@@ -99,17 +99,11 @@ Bytecode::~Bytecode() {
 	Memory::Free(SourceFilename);
 }
 
-bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
-	MemoryStream* stream = MemoryStream::New(bytecode.Data, bytecode.Size);
-	if (!stream) {
-		return false;
-	}
-
+bool Bytecode::Read(Stream* stream, HashMap<char*>* tokens) {
 	Uint8 magic[4];
 	stream->ReadBytes(magic, 4);
-	if (memcmp(Bytecode::Magic, magic, 4) != 0) {
+	if (memcmp(BYTECODE_MAGIC, magic, 4) != 0) {
 		Log::Print(Log::LOG_ERROR, "Incorrect magic!");
-		stream->Close();
 		return false;
 	}
 
@@ -117,7 +111,6 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 
 	if (Version > BYTECODE_VERSION) {
 		Log::Print(Log::LOG_ERROR, "Unsupported bytecode version 0x%02X!", Version);
-		stream->Close();
 		return false;
 	}
 
@@ -131,7 +124,6 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 	int chunkCount = stream->ReadInt32();
 	if (!chunkCount) {
 		Log::Print(Log::LOG_ERROR, "Bytecode contains no chunks!");
-		stream->Close();
 		return false;
 	}
 
@@ -181,10 +173,19 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 		SourceFilename = stream->ReadString();
 	}
 
-	stream->Close();
 	return true;
 }
-ObjFunction* Bytecode::ReadChunk(MemoryStream* stream) {
+bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
+	MemoryStream* stream = MemoryStream::New(bytecode.Data, bytecode.Size);
+	if (!stream) {
+		return false;
+	}
+
+	bool success = Read(stream, tokens);
+	stream->Close();
+	return success;
+}
+ObjFunction* Bytecode::ReadChunk(Stream* stream) {
 	int length = stream->ReadInt32();
 	int arity, minArity;
 	int opcodeCount = 0;
@@ -212,14 +213,14 @@ ObjFunction* Bytecode::ReadChunk(MemoryStream* stream) {
 	Chunk* chunk = &function->Chunk;
 	chunk->Count = length;
 	chunk->OpcodeCount = opcodeCount;
-	chunk->OwnsMemory = false;
+	chunk->OwnsMemory = true;
 
-	chunk->Code = stream->pointer;
-	stream->Skip(length * sizeof(Uint8));
+	chunk->Code = (Uint8*)Memory::Malloc(length * sizeof(Uint8));
+	stream->ReadBytes(chunk->Code, length * sizeof(Uint8));
 
 	if (HasDebugInfo) {
-		chunk->Lines = (int*)stream->pointer;
-		stream->Skip(length * sizeof(int));
+		chunk->Lines = (int*)Memory::Malloc(length * sizeof(int));
+		stream->ReadBytes(chunk->Lines, length * sizeof(int));
 	}
 
 	int constantCount = stream->ReadInt32();
@@ -242,8 +243,10 @@ ObjFunction* Bytecode::ReadChunk(MemoryStream* stream) {
 			break;
 		}
 		case Bytecode::VALUE_TYPE_STRING:
-			chunk->AddConstant(
-				OBJECT_VAL(TakeString(stream->ReadString())));
+			chunk->AddConstant(OBJECT_VAL(TakeString(stream->ReadString())));
+			break;
+		default:
+			chunk->AddConstant(NULL_VAL);
 			break;
 		}
 	}
@@ -310,7 +313,7 @@ void Bytecode::Write(Stream* stream, HashMap<Token>* tokenMap) {
 		Flags |= BYTECODE_FLAG_SOURCEFILENAME;
 	}
 
-	stream->WriteBytes((char*)Bytecode::Magic, 4);
+	stream->WriteBytes((char*)BYTECODE_MAGIC, 4);
 	stream->WriteByte(Version);
 	stream->WriteByte(Flags);
 	stream->WriteByte(0x00);

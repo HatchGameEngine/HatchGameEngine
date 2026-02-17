@@ -2,11 +2,9 @@
 #include <Engine/Bytecode/StandardLibrary.h>
 
 #include <Engine/Audio/AudioManager.h>
-#include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/TypeImpl/FontImpl.h>
-#include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
@@ -16,7 +14,6 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Graphics.h>
-#include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/IO/FileStream.h>
@@ -57,7 +54,7 @@
 
 #include <Libraries/nanoprintf.h>
 
-#define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
+#define THROW_ERROR VM_THROW_ERROR
 
 #define CHECK_ARGCOUNT(expects) \
 	if (argCount != expects) { \
@@ -78,531 +75,7 @@
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
 	(argIndex < argCount ? GET_ARG(argIndex, argFunction) : argDefault)
 
-// Get([0-9A-Za-z]+)\(([0-9A-Za-z]+), ([0-9A-Za-z]+)\)
-// Get$1($2, $3, threadID)
-
-namespace LOCAL {
-inline int GetInteger(VMValue* args, int index, Uint32 threadID) {
-	int value = 0;
-	switch (args[index].Type) {
-	case VAL_INTEGER:
-	case VAL_LINKED_INTEGER:
-		value = AS_INTEGER(args[index]);
-		break;
-	default:
-		if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-			    index + 1,
-			    GetTypeString(VAL_INTEGER),
-			    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-	}
-	return value;
-}
-inline float GetDecimal(VMValue* args, int index, Uint32 threadID) {
-	float value = 0.0f;
-	switch (args[index].Type) {
-	case VAL_DECIMAL:
-	case VAL_LINKED_DECIMAL:
-		value = AS_DECIMAL(args[index]);
-		break;
-	case VAL_INTEGER:
-	case VAL_LINKED_INTEGER:
-		value = AS_DECIMAL(Value::CastAsDecimal(args[index]));
-		break;
-	default:
-		if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-			    index + 1,
-			    GetTypeString(VAL_DECIMAL),
-			    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-	}
-	return value;
-}
-inline char* GetString(VMValue* args, int index, Uint32 threadID) {
-	char* value = NULL;
-	if (ScriptManager::Lock()) {
-		if (IS_STRING(args[index])) {
-			value = AS_CSTRING(args[index]);
-		}
-		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_STRING),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Unlock();
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-inline ObjString* GetVMString(VMValue* args, int index, Uint32 threadID) {
-	ObjString* value = NULL;
-	if (ScriptManager::Lock()) {
-		if (IS_STRING(args[index])) {
-			value = AS_STRING(args[index]);
-		}
-		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_STRING),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Unlock();
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-inline ObjArray* GetArray(VMValue* args, int index, Uint32 threadID) {
-	ObjArray* value = NULL;
-	if (ScriptManager::Lock()) {
-		if (IS_ARRAY(args[index])) {
-			value = (ObjArray*)(AS_OBJECT(args[index]));
-		}
-		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_ARRAY),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-inline ObjMap* GetMap(VMValue* args, int index, Uint32 threadID) {
-	ObjMap* value = NULL;
-	if (ScriptManager::Lock()) {
-		if (IS_MAP(args[index])) {
-			value = (ObjMap*)(AS_OBJECT(args[index]));
-		}
-		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_MAP),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-inline CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
-	CollisionBox box;
-	if (IS_HITBOX(args[index])) {
-		Sint16* values = AS_HITBOX(args[index]);
-		box.Left = values[HITBOX_LEFT];
-		box.Top = values[HITBOX_TOP];
-		box.Right = values[HITBOX_RIGHT];
-		box.Bottom = values[HITBOX_BOTTOM];
-	}
-	else if (IS_ARRAY(args[index])) {
-		if (ScriptManager::Lock()) {
-			Sint16 values[NUM_HITBOX_SIDES];
-
-			ObjArray* array = AS_ARRAY(args[index]);
-
-			if (array->Values->size() != NUM_HITBOX_SIDES) {
-				if (THROW_ERROR("Expected array to have %d elements instead of %d.",
-					    NUM_HITBOX_SIDES,
-					    array->Values->size()) == ERROR_RES_CONTINUE) {
-					ScriptManager::Threads[threadID].ReturnFromNative();
-				}
-				ScriptManager::Unlock();
-				return box;
-			}
-
-			for (int i = 0; i < NUM_HITBOX_SIDES; i++) {
-				VMValue value = (*array->Values)[i];
-				if (!IS_INTEGER(value)) {
-					THROW_ERROR(
-						"Expected value at index %d to be of type %s instead of %s.",
-						i,
-						GetTypeString(VAL_INTEGER),
-						GetValueTypeString(value));
-					ScriptManager::Unlock();
-					return box;
-				}
-				values[i] = AS_INTEGER(value);
-			}
-
-			box.Left = values[HITBOX_LEFT];
-			box.Top = values[HITBOX_TOP];
-			box.Right = values[HITBOX_RIGHT];
-			box.Bottom = values[HITBOX_BOTTOM];
-
-			ScriptManager::Unlock();
-		}
-	}
-	else {
-		if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-			    index + 1,
-			    GetTypeString(VAL_HITBOX),
-			    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-	}
-	return box;
-}
-inline ObjBoundMethod* GetBoundMethod(VMValue* args, int index, Uint32 threadID) {
-	ObjBoundMethod* value = NULL;
-	if (ScriptManager::Lock()) {
-		if (IS_BOUND_METHOD(args[index])) {
-			value = (ObjBoundMethod*)(AS_OBJECT(args[index]));
-		}
-		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_BOUND_METHOD),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-inline ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
-	ObjFunction* value = NULL;
-	if (ScriptManager::Lock()) {
-		if (IS_FUNCTION(args[index])) {
-			value = (ObjFunction*)(AS_OBJECT(args[index]));
-		}
-		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_FUNCTION),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-inline VMValue GetCallable(VMValue* args, int index, Uint32 threadID) {
-	VMValue value = NULL_VAL;
-	if (ScriptManager::Lock()) {
-		if (IS_CALLABLE(args[index])) {
-			value = args[index];
-		}
-		else {
-			if (THROW_ERROR(
-				    "Expected argument %d to be of type callable instead of %s.",
-				    index + 1,
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-inline ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
-	ObjInstance* value = NULL;
-	if (ScriptManager::Lock()) {
-		if (IS_INSTANCEABLE(args[index])) {
-			value = AS_INSTANCE(args[index]);
-		}
-		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_INSTANCE),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-inline ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID) {
-	ObjEntity* value = NULL;
-	if (ScriptManager::Lock()) {
-		if (IS_ENTITY(args[index])) {
-			value = AS_ENTITY(args[index]);
-		}
-		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    GetObjectTypeString(OBJ_ENTITY),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-inline ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
-	ObjStream* value = NULL;
-	if (ScriptManager::Lock()) {
-		if (IS_STREAM(args[index])) {
-			value = AS_STREAM(args[index]);
-		}
-		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    Value::GetObjectTypeName(StreamImpl::Class),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-inline ObjShader* GetShader(VMValue* args, int index, Uint32 threadID) {
-	ObjShader* value = nullptr;
-	if (ScriptManager::Lock()) {
-		if (IS_SHADER(args[index])) {
-			value = AS_SHADER(args[index]);
-		}
-		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    Value::GetObjectTypeName(ShaderImpl::Class),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-inline ObjFont* GetFont(VMValue* args, int index, Uint32 threadID) {
-	ObjFont* value = nullptr;
-	if (ScriptManager::Lock()) {
-		if (IS_FONT(args[index])) {
-			value = AS_FONT(args[index]);
-		}
-		else {
-			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
-				    index + 1,
-				    Value::GetObjectTypeName(FontImpl::Class),
-				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
-			}
-		}
-		ScriptManager::Unlock();
-	}
-	return value;
-}
-
-inline ISprite* GetSpriteIndex(int where, Uint32 threadID) {
-	if (where < 0 || where >= (int)Scene::SpriteList.size()) {
-		if (THROW_ERROR("Sprite index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::SpriteList[where]) {
-		return NULL;
-	}
-
-	return Scene::SpriteList[where]->AsSprite;
-}
-inline ISprite* GetSprite(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	return GetSpriteIndex(where, threadID);
-}
-inline Image* GetImage(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::ImageList.size()) {
-		if (THROW_ERROR("Image index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::ImageList[where]) {
-		return NULL;
-	}
-
-	return Scene::ImageList[where]->AsImage;
-}
-inline GameTexture* GetTexture(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::TextureList.size()) {
-		if (THROW_ERROR("Texture index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::TextureList[where]) {
-		return NULL;
-	}
-
-	return Scene::TextureList[where];
-}
-inline ISound* GetSound(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::SoundList.size()) {
-		if (THROW_ERROR("Sound index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::SoundList[where]) {
-		return NULL;
-	}
-
-	return Scene::SoundList[where]->AsSound;
-}
-inline ISound* GetMusic(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::MusicList.size()) {
-		if (THROW_ERROR("Music index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::MusicList[where]) {
-		return NULL;
-	}
-
-	return Scene::MusicList[where]->AsMusic;
-}
-inline IModel* GetModel(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::ModelList.size()) {
-		if (THROW_ERROR("Model index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::ModelList[where]) {
-		return NULL;
-	}
-
-	return Scene::ModelList[where]->AsModel;
-}
-inline MediaBag* GetVideo(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::MediaList.size()) {
-		if (THROW_ERROR("Video index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::MediaList[where]) {
-		return NULL;
-	}
-
-	return Scene::MediaList[where]->AsMedia;
-}
-inline Animator* GetAnimator(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	if (where < 0 || where >= (int)Scene::AnimatorList.size()) {
-		if (THROW_ERROR("Animator index \"%d\" outside bounds of list.", where) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-
-		return NULL;
-	}
-
-	if (!Scene::AnimatorList[where]) {
-		return NULL;
-	}
-
-	return Scene::AnimatorList[where];
-}
-} // namespace LOCAL
-
-// NOTE:
-// Integers specifically need to be whole integers.
-// Floats can be just any countable real number.
-int StandardLibrary::GetInteger(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetInteger(args, index, threadID);
-}
-float StandardLibrary::GetDecimal(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetDecimal(args, index, threadID);
-}
-char* StandardLibrary::GetString(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetString(args, index, threadID);
-}
-ObjString* StandardLibrary::GetVMString(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetVMString(args, index, threadID);
-}
-ObjArray* StandardLibrary::GetArray(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetArray(args, index, threadID);
-}
-ObjMap* StandardLibrary::GetMap(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetMap(args, index, threadID);
-}
-ISprite* StandardLibrary::GetSprite(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetSprite(args, index, threadID);
-}
-Image* StandardLibrary::GetImage(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetImage(args, index, threadID);
-}
-ISound* StandardLibrary::GetSound(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetSound(args, index, threadID);
-}
-ObjInstance* StandardLibrary::GetInstance(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetInstance(args, index, threadID);
-}
-ObjEntity* StandardLibrary::GetEntity(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetEntity(args, index, threadID);
-}
-ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetFunction(args, index, threadID);
-}
-ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetShader(args, index, threadID);
-}
-ObjFont* StandardLibrary::GetFont(VMValue* args, int index, Uint32 threadID) {
-	return LOCAL::GetFont(args, index, threadID);
-}
-
-void StandardLibrary::CheckArgCount(int argCount, int expects) {
-	Uint32 threadID = 0;
-	if (argCount != expects) {
-		if (THROW_ERROR("Expected %d arguments but got %d.", expects, argCount) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-	}
-}
-void StandardLibrary::CheckAtLeastArgCount(int argCount, int expects) {
-	Uint32 threadID = 0;
-	if (argCount < expects) {
-		if (THROW_ERROR("Expected at least %d arguments but got %d.", expects, argCount) ==
-			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
-		}
-	}
-}
-
-using namespace LOCAL;
+using namespace ScriptTypes;
 
 Uint8 String_ToUpperCase_Map_ExtendedASCII[0x100];
 Uint8 String_ToLowerCase_Map_ExtendedASCII[0x100];
@@ -18171,7 +17644,7 @@ int _Thread_RunEvent(void* op) {
 
 	free(bundle);
 
-	ScriptManager::ThreadCount--;
+	ScriptManager::DisposeThread(thread);
 	Log::Print(Log::LOG_IMPORTANT, "Thread %d closed.", ScriptManager::ThreadCount);
 	return 0;
 }
@@ -18201,12 +17674,17 @@ VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
 
 	int subArgCount = argCount - 1;
 
+	VMThread* thread = ScriptManager::NewThread();
+	if (!thread) {
+		return NULL_VAL;
+	}
+
 	_Thread_Bundle* bundle =
 		(_Thread_Bundle*)malloc(sizeof(_Thread_Bundle) + subArgCount * sizeof(VMValue));
 	bundle->Callback = *callback;
 	bundle->Callback.Object.Next = NULL;
 	bundle->ArgCount = subArgCount;
-	bundle->ThreadIndex = ScriptManager::ThreadCount++;
+	bundle->ThreadIndex = thread->ID;
 	if (subArgCount > 0) {
 		memcpy(bundle + 1, args + 1, subArgCount * sizeof(VMValue));
 	}

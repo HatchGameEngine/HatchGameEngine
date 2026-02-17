@@ -50,6 +50,7 @@ public:
 		CLOSED = 3,
 	};
 	char Name[THREAD_NAME_MAX];
+	bool Active;
 	Uint32 ID;
 #ifdef VM_DEBUG
 	bool DebugInfo;
@@ -99,6 +100,7 @@ public:
 	VMValue GetConstant(Chunk* chunk, Uint32 index);
 	int RunInstruction();
 	void RunInstructionSet();
+	bool InREPL();
 	void RunValue(VMValue value, int argCount);
 	void RunFunction(ObjFunction* func, int argCount);
 	int Invoke(VMValue receiver, Uint8 argCount, Uint32 hash);

@@ -18,7 +18,9 @@ public:
 	static XMLNode* Parse();
 	static XMLNode* ParseFromStream(TextStream* stream);
 	static XMLNode* ParseFromStream(Stream* streamSrc);
+#ifndef HSL_STANDALONE
 	static XMLNode* ParseFromResource(const char* filename);
+#endif
 	static char* TokenToString(Token tok);
 	static std::string TokenToStdString(Token tok);
 	static void CopyTokenToString(Token tok, char* buffer, size_t size);

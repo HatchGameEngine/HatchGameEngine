@@ -1,31 +1,29 @@
 #include <Engine/Bytecode/GarbageCollector.h>
 
-#include <Engine/Bytecode/Compiler.h>
-#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
-#include <Engine/Scene.h>
 
-#define GC_HEAP_GROW_FACTOR 2
+#ifdef USE_CLOCK
+#include <Engine/Diagnostics/Clock.h>
+#endif
+
+#ifndef HSL_STANDALONE
+#include <Engine/Bytecode/ScriptEntity.h>
+#include <Engine/Scene.h>
+#endif
 
 vector<Obj*> GarbageCollector::GrayList;
 Obj* GarbageCollector::RootObject;
 
-size_t GarbageCollector::NextGC = 1024;
+size_t GarbageCollector::NextGC = 0;
 size_t GarbageCollector::GarbageSize = 0;
-double GarbageCollector::MaxTimeAlotted = 1.0; // 1ms
-
-bool GarbageCollector::Print = false;
-bool GarbageCollector::FilterSweepEnabled = false;
-int GarbageCollector::FilterSweepType = 0;
 
 void GarbageCollector::Init() {
 	GarbageCollector::RootObject = NULL;
 	GarbageCollector::NextGC = 0x100000;
 }
 
-void GarbageCollector::Collect() {
+void GarbageCollector::Collect(bool doLog) {
 	// Nothing to do
 	if (!RootObject) {
 		return;
@@ -33,7 +31,9 @@ void GarbageCollector::Collect() {
 
 	GrayList.clear();
 
+#ifdef USE_CLOCK
 	double grayElapsed = Clock::GetTicks();
+#endif
 
 	// Mark threads (should lock here for safety)
 	for (Uint32 t = 0; t < ScriptManager::ThreadCount; t++) {
@@ -54,11 +54,13 @@ void GarbageCollector::Collect() {
 	// Mark constants
 	GrayHashMap(ScriptManager::Constants);
 
+#ifndef HSL_STANDALONE
 	// Mark objects
 	for (Entity* ent = Scene::ObjectFirst; ent; ent = ent->NextSceneEntity) {
 		ScriptEntity* scriptEntity = (ScriptEntity*)ent;
 		GrayObject(scriptEntity->Instance);
 	}
+#endif
 
 	// Mark modules
 	for (size_t i = 0; i < ScriptManager::ModuleList.size(); i++) {
@@ -70,21 +72,27 @@ void GarbageCollector::Collect() {
 		GrayObject(ScriptManager::ClassImplList[i]);
 	}
 
+#ifndef HSL_STANDALONE
 	// Mark resources
 	CollectResources();
+#endif
 
+#ifdef USE_CLOCK
 	grayElapsed = Clock::GetTicks() - grayElapsed;
 
 	double blackenElapsed = Clock::GetTicks();
+#endif
 
 	// Traverse references
 	for (size_t i = 0; i < GrayList.size(); i++) {
 		BlackenObject(GrayList[i]);
 	}
 
+#ifdef USE_CLOCK
 	blackenElapsed = Clock::GetTicks() - blackenElapsed;
 
 	double freeElapsed = Clock::GetTicks();
+#endif
 
 	int objectTypeFreed[MAX_OBJ_TYPE] = {0};
 	int objectTypeCounts[MAX_OBJ_TYPE] = {0};
@@ -112,31 +120,39 @@ void GarbageCollector::Collect() {
 		}
 	}
 
+#ifdef USE_CLOCK
 	freeElapsed = Clock::GetTicks() - freeElapsed;
+#endif
 
-	Log::Print(Log::LOG_VERBOSE, "Sweep: Graying took %.1f ms", grayElapsed);
-	Log::Print(Log::LOG_VERBOSE, "Sweep: Blackening took %.1f ms", blackenElapsed);
-	Log::Print(Log::LOG_VERBOSE, "Sweep: Freeing took %.1f ms", freeElapsed);
+	if (doLog) {
+#ifdef USE_CLOCK
+		Log::Print(Log::LOG_VERBOSE, "Sweep: Graying took %.1f ms", grayElapsed);
+		Log::Print(Log::LOG_VERBOSE, "Sweep: Blackening took %.1f ms", blackenElapsed);
+		Log::Print(Log::LOG_VERBOSE, "Sweep: Freeing took %.1f ms", freeElapsed);
+#endif
 
-	for (size_t i = 0; i < MAX_OBJ_TYPE; i++) {
-		if (objectTypeFreed[i] && objectTypeCounts[i]) {
-			Log::Print(Log::LOG_VERBOSE,
-				"Freed %d %s objects out of %d.",
-				objectTypeFreed[i],
-				GetObjectTypeString(i),
-				objectTypeCounts[i]);
+		for (size_t i = 0; i < MAX_OBJ_TYPE; i++) {
+			if (objectTypeFreed[i] && objectTypeCounts[i]) {
+				Log::Print(Log::LOG_VERBOSE,
+					"Freed %d %s objects out of %d.",
+					objectTypeFreed[i],
+					GetObjectTypeString(i),
+					objectTypeCounts[i]);
+			}
 		}
 	}
 
 	GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
 }
 
+#ifndef HSL_STANDALONE
 void GarbageCollector::CollectResources() {
 	// Mark model materials
 	for (size_t i = 0; i < Material::List.size(); i++) {
 		GrayObject(Material::List[i]->Object);
 	}
 }
+#endif
 
 void GarbageCollector::FreeObject(Obj* object) {
 	ScriptManager::DestroyObject(object);
@@ -223,11 +239,13 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		GrayHashMap(instance->Fields);
 		break;
 	}
+#ifndef HSL_STANDALONE
 	case OBJ_ENTITY: {
 		ObjEntity* entity = (ObjEntity*)object;
 		((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
 		break;
 	}
+#endif
 	case OBJ_ARRAY: {
 		ObjArray* array = (ObjArray*)object;
 		for (size_t i = 0; i < array->Values->size(); i++) {

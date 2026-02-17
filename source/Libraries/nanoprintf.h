@@ -685,7 +685,7 @@ ObjString* npf_getarg_str(void* ctx) {
 
 	ObjString* result = NULL;
 	if (index < pc_cnt->argcount) {
-		result = StandardLibrary::GetVMString(pc_cnt->args, index, pc_cnt->thread);
+		result = ScriptManager::GetVMString(pc_cnt->args, index, pc_cnt->thread);
 	}
 	else {
 		THROW_TOO_FEW_FMT_ERR(pc_cnt->thread);
@@ -701,7 +701,7 @@ int npf_getarg_int(void* ctx) {
 
 	int result = 0;
 	if (index < pc_cnt->argcount) {
-		result = StandardLibrary::GetInteger(pc_cnt->args, index, pc_cnt->thread);
+		result = ScriptManager::GetInteger(pc_cnt->args, index, pc_cnt->thread);
 	}
 	else {
 		THROW_TOO_FEW_FMT_ERR(pc_cnt->thread);
@@ -717,7 +717,7 @@ float npf_getarg_float(void* ctx) {
 
 	float result = 0.0f;
 	if (index < pc_cnt->argcount) {
-		result = StandardLibrary::GetDecimal(pc_cnt->args, index, pc_cnt->thread);
+		result = ScriptManager::GetDecimal(pc_cnt->args, index, pc_cnt->thread);
 	}
 	else {
 		THROW_TOO_FEW_FMT_ERR(pc_cnt->thread);

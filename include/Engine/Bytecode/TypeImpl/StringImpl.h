@@ -13,8 +13,10 @@ public:
 	static Obj* New(char* chars, size_t length, Uint32 hash);
 	static void Dispose(Obj* object);
 
+#ifdef HSL_VM
 	static bool VM_ElementGet(Obj* object, VMValue at, VMValue* result, Uint32 threadID);
 	static bool VM_ElementSet(Obj* object, VMValue at, VMValue value, Uint32 threadID);
+#endif
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_STRINGIMPL_H */

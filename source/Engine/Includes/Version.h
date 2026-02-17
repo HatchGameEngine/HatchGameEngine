@@ -7,4 +7,6 @@
 #define VERSION_PRERELEASE "indev"
 // #define VERSION_CODENAME
 
+#define HSL_VERSION "1.4.0"
+
 #endif

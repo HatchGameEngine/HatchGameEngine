@@ -13,7 +13,6 @@
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/Hashing/MD5.h>
-#include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
@@ -1570,12 +1569,12 @@ void Scene::Render() {
 
 void Scene::AfterScene() {
 	ScriptManager::ResetStack();
-	ScriptManager::RequestGarbageCollection();
+	ScriptManager::RequestGarbageCollection(true);
 
 	bool& doRestart = Scene::DoRestart;
 
 	if (Scene::NextScene[0]) {
-		ScriptManager::ForceGarbageCollection();
+		ScriptManager::ForceGarbageCollection(true);
 
 		Scene::LoadScene(Scene::NextScene);
 		Scene::NextScene[0] = '\0';
@@ -1867,7 +1866,7 @@ void Scene::FinishLoad() {
 	Scene::Initializing = false;
 
 	ScriptManager::ResetStack();
-	ScriptManager::RequestGarbageCollection();
+	ScriptManager::RequestGarbageCollection(true);
 
 	Application::FirstFrame = true;
 }
@@ -2012,7 +2011,7 @@ void Scene::LoadScene(const char* sceneFilename) {
 
 	// Force garbage collect
 	ScriptManager::ResetStack();
-	ScriptManager::ForceGarbageCollection();
+	ScriptManager::ForceGarbageCollection(true);
 
 #if 0
     MemoryPools::RunGC(MemoryPools::MEMPOOL_HASHMAP);

@@ -8,8 +8,10 @@ ObjClass* ArrayImpl::Class = nullptr;
 void ArrayImpl::Init() {
 	Class = NewClass(CLASS_ARRAY);
 
+#ifdef HSL_VM
 	ScriptManager::DefineNative(Class, "iterate", ArrayImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", ArrayImpl::VM_IteratorValue);
+#endif
 
 	TypeImpl::RegisterClass(Class);
 }
@@ -32,10 +34,11 @@ void ArrayImpl::Dispose(Obj* object) {
 	delete array->Values;
 }
 
-#define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
+#ifdef HSL_VM
+#define GET_ARG(argIndex, argFunction) (ScriptManager::argFunction(args, argIndex, threadID))
 
 VMValue ArrayImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 
 	ObjArray* array = GET_ARG(0, GetArray);
 
@@ -53,7 +56,7 @@ VMValue ArrayImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
 }
 
 VMValue ArrayImpl::VM_IteratorValue(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2);
 
 	ObjArray* array = GET_ARG(0, GetArray);
 	int index = GET_ARG(1, GetInteger);
@@ -67,3 +70,4 @@ VMValue ArrayImpl::VM_IteratorValue(int argCount, VMValue* args, Uint32 threadID
 
 	return (*array->Values)[index];
 }
+#endif

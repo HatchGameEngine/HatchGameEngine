@@ -30,10 +30,12 @@ CPPFILES := \
 	source/Engine/Audio/AudioManager.cpp \
 	source/Engine/Audio/AudioPlayback.cpp \
 	source/Engine/Bytecode/Bytecode.cpp \
+	source/Engine/Bytecode/BytecodeDebugger.cpp \
 	source/Engine/Bytecode/Compiler.cpp \
 	source/Engine/Bytecode/GarbageCollector.cpp \
 	source/Engine/Bytecode/ScriptEntity.cpp \
 	source/Engine/Bytecode/ScriptManager.cpp \
+	source/Engine/Bytecode/ScriptREPL.cpp \
 	source/Engine/Bytecode/SourceFileMap.cpp \
 	source/Engine/Bytecode/StandardLibrary.cpp \
 	source/Engine/Bytecode/TypeImpl/ArrayImpl.cpp \
@@ -96,6 +98,7 @@ CPPFILES := \
 	source/Engine/IO/Serializer.cpp \
 	source/Engine/IO/StandardIOStream.cpp \
 	source/Engine/IO/Stream.cpp \
+	source/Engine/IO/TerminalInput.cpp \
 	source/Engine/IO/TextStream.cpp \
 	source/Engine/IO/VirtualFileStream.cpp \
 	source/Engine/Main.cpp \
@@ -191,7 +194,9 @@ PRVHFILES := \
 	source/Engine/Bytecode/Types.h \
 	source/Engine/Diagnostics/MemoryPools.h \
 	source/Engine/Diagnostics/PerformanceTypes.h \
+	source/Engine/Exceptions/CompilerErrorException.h \
 	source/Engine/Exceptions/ScriptException.h \
+	source/Engine/Exceptions/ScriptREPLException.h \
 	source/Engine/Includes/BijectiveMap.h \
 	source/Engine/Includes/ChainedHashMap.h \
 	source/Engine/Includes/DateTime.h \
@@ -274,6 +279,7 @@ PUBHFILES := \
 	include/Engine/Bytecode/GarbageCollector.h \
 	include/Engine/Bytecode/ScriptEntity.h \
 	include/Engine/Bytecode/ScriptManager.h \
+	include/Engine/Bytecode/ScriptREPL.h \
 	include/Engine/Bytecode/SourceFileMap.h \
 	include/Engine/Bytecode/StandardLibrary.h \
 	include/Engine/Bytecode/TypeImpl/ArrayImpl.h \
@@ -334,6 +340,7 @@ PUBHFILES := \
 	include/Engine/IO/Serializer.h \
 	include/Engine/IO/StandardIOStream.h \
 	include/Engine/IO/Stream.h \
+	include/Engine/IO/TerminalInput.h \
 	include/Engine/IO/TextStream.h \
 	include/Engine/IO/VirtualFileStream.h \
 	include/Engine/Math/Clipper.h \

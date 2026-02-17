@@ -3,9 +3,12 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Hashing/CRC32.h>
-#include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
+
+#ifdef USE_ZLIB
+#include <Engine/IO/Compression/ZLibStream.h>
+#endif
 
 #define MAGIC_HATCH_SIZE 5
 
@@ -185,6 +188,7 @@ bool HatchVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
 
 	// Decompress it if it's compressed
 	if (entry->Flags & VFSE_COMPRESSED) {
+#ifdef USE_ZLIB
 		Uint8* compressedMemory = (Uint8*)Memory::Malloc(entry->CompressedSize);
 		if (!compressedMemory) {
 			Memory::Free(memory);
@@ -211,6 +215,10 @@ bool HatchVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
 		}
 
 		Memory::Free(compressedMemory);
+#else
+		Memory::Free(memory);
+		return false;
+#endif
 	}
 
 	return true;

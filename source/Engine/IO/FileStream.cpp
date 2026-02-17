@@ -101,6 +101,7 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 		return nullptr;
 	}
 
+#ifdef USE_MEMORY_CACHE
 	// If using a cache:// URL, and the in-memory cache is enabled:
 	if (location == PathLocation::CACHE && MemoryCache::Using) {
 		// Use the original filename instead of the resolved one.
@@ -108,6 +109,7 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 
 		return MemoryCache::OpenStream(resolvedPath.c_str(), access);
 	}
+#endif
 
 	// Open the stream
 	Uint32 streamAccess;
@@ -186,11 +188,13 @@ bool FileStream::Exists(const char* filename, bool allowURLs) {
 		return false;
 	}
 
+#ifdef USE_MEMORY_CACHE
 	if (location == PathLocation::CACHE && MemoryCache::Using) {
 		resolvedPath = Path::StripURL(filename);
 
 		return MemoryCache::Exists(resolvedPath.c_str());
 	}
+#endif
 
 	return File::Exists(resolvedPath.c_str());
 }

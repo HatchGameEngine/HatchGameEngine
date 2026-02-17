@@ -1,12 +1,18 @@
-#include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Error.h>
 #include <Engine/Includes/Standard.h>
+
+#ifdef HSL_STANDALONE
+#include <Engine/Bytecode/StandaloneMain.h>
+#else
+#include <Engine/Application.h>
 #include <Engine/Includes/StandardSDL2.h>
+#endif
 
 void Error::ShowFatal(const char* errorString, bool showMessageBox) {
 	Log::Print(Log::LOG_FATAL, "%s", errorString);
 
+#ifndef HSL_STANDALONE
 	if (showMessageBox) {
 		// This doesn't check the return code because the error is already logged.
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", errorString, nullptr);
@@ -14,6 +20,9 @@ void Error::ShowFatal(const char* errorString, bool showMessageBox) {
 
 	Application::Cleanup();
 	exit(-1);
+#else
+	StandaloneExit(errorString);
+#endif
 }
 
 void Error::Fatal(const char* errorMessage, ...) {

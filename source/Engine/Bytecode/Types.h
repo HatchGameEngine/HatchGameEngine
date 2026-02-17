@@ -21,6 +21,13 @@ typedef enum {
 	ERROR_RES_CONTINUE,
 } ErrorResult;
 
+enum ThreadReturnCodes {
+	INTERPRET_EXIT_FROM_DEBUGGER = -200,
+	INTERPRET_RUNTIME_ERROR = -100,
+	INTERPRET_FINISHED = -1,
+	INTERPRET_OK = 0,
+};
+
 typedef enum {
 	VAL_NULL,
 	VAL_INTEGER,
@@ -302,6 +309,7 @@ struct ObjModule {
 	std::vector<struct ObjFunction*>* Functions;
 	std::vector<VMValue>* Locals;
 	char* SourceFilename;
+	bool HasSourceFilename;
 };
 struct ObjFunction {
 	Obj Object;
@@ -429,11 +437,6 @@ ObjNamespace* NewNamespace(const char* nsName);
 ObjEnum* NewEnum(Uint32 hash);
 ObjModule* NewModule();
 Obj* NewNativeInstance(size_t size);
-
-#define FREE_OBJ(obj) \
-	assert(GarbageCollector::GarbageSize >= ((Obj*)(obj))->Size); \
-	GarbageCollector::GarbageSize -= ((Obj*)(obj))->Size; \
-	Memory::Free(obj)
 
 std::string GetClassName(Uint32 hash);
 Uint32 GetClassHash(const char* name);

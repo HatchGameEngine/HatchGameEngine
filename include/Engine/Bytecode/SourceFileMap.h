@@ -1,16 +1,20 @@
 #ifndef ENGINE_BYTECODE_SOURCEFILEMAP_H
 #define ENGINE_BYTECODE_SOURCEFILEMAP_H
 
-#include <Engine/Bytecode/Compiler.h>
-#include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Includes/HashMap.h>
+
+#ifdef HSL_COMPILER
+#include <Engine/Bytecode/Compiler.h>
+#endif
 
 #define SCRIPTS_DIRECTORY_NAME "Scripts"
 
 class SourceFileMap {
+#ifdef HSL_COMPILER
 private:
 	static void AddToList(Compiler* compiler, Uint32 filenameHash);
 	static void HandleCompileError(const char* error);
+#endif
 
 public:
 	static bool Initialized;

@@ -3,10 +3,13 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Error.h>
-#include <Engine/IO/ResourceStream.h>
 #include <Engine/IO/TextStream.h>
 #include <Engine/Includes/Token.h>
 #include <Engine/Utilities/StringUtils.h>
+
+#ifndef HSL_STANDALONE
+#include <Engine/IO/ResourceStream.h>
+#endif
 
 Parser parser;
 Scanner scanner;
@@ -540,6 +543,7 @@ XMLNode* XMLParser::ParseFromStream(Stream* streamSrc) {
 	}
 	return XMLParser::ParseFromStream(stream);
 }
+#ifndef HSL_STANDALONE
 XMLNode* XMLParser::ParseFromResource(const char* filename) {
 	ResourceStream* res = ResourceStream::New(filename);
 	if (!res) {
@@ -555,6 +559,7 @@ XMLNode* XMLParser::ParseFromResource(const char* filename) {
 
 	return XMLParser::ParseFromStream(textStream);
 }
+#endif
 
 char* XMLParser::TokenToString(Token tok) {
 	char* string = StringUtils::Create(tok);

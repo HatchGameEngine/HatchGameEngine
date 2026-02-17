@@ -1,15 +1,27 @@
-#include <Engine/Application.h>
 #include <Engine/Bytecode/Bytecode.h>
-#include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/VMThread.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Utilities/StringUtils.h>
+
+#ifdef HSL_STANDALONE
+#include <Engine/Bytecode/StandaloneMain.h>
+#else
+#include <Engine/Application.h>
+#include <Engine/Bytecode/ScriptEntity.h>
+#endif
+
+#ifdef HSL_LIBRARY
+#include <Engine/Bytecode/API.h>
+#endif
 
 #ifdef VM_DEBUG
+#ifndef HSL_STANDALONE
 #include <Engine/Audio/AudioManager.h>
+#endif
 #include <Engine/Bytecode/VMThreadDebugger.h>
 #endif
 
@@ -205,6 +217,8 @@ void VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
 	}
 }
 int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
+	int errResult = ERROR_RES_EXIT;
+
 	bool showMessageBox = true;
 	if (VMThread::InstructionIgnoreMap[000000000]) {
 		showMessageBox = false;
@@ -223,17 +237,18 @@ int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
 
 	MakeErrorMessage(&buffer, errorString);
 
+#ifndef HSL_LIBRARY
 	Log::Print(Log::LOG_ERROR, textBuffer);
 
-#ifdef VM_DEBUG
-	if (AttachedDebuggerCount) {
+	if (InREPL()) {
 		free(textBuffer);
 		return ERROR_RES_CONTINUE;
 	}
-#endif
 
 	PrintStack();
+#endif
 
+#ifndef HSL_STANDALONE
 	if (!showMessageBox) {
 		free(textBuffer);
 		return ERROR_RES_CONTINUE;
@@ -275,8 +290,22 @@ int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
 	}
 
 	return ERROR_RES_CONTINUE;
+#else
+#ifdef HSL_LIBRARY
+	hsl_ErrorResponse result = HandleVMRuntimeError(fatal ? HSL_FATAL_ERROR : HSL_RUNTIME_ERROR, std::string(textBuffer));
+	if (result == HSL_ERROR_RES_CONTINUE) {
+		errResult = ERROR_RES_CONTINUE;
+	}
+#else
+	StandaloneExit(std::string(textBuffer));
+#endif
+	free(textBuffer);
+	return errResult;
+#endif
 }
 int VMThread::ShowErrorFromScript(const char* errorString, bool detailed) {
+	int errResult = ERROR_RES_EXIT;
+
 	char* textBuffer = (char*)malloc(512);
 	PrintBuffer buffer;
 	buffer.Buffer = &textBuffer;
@@ -290,15 +319,16 @@ int VMThread::ShowErrorFromScript(const char* errorString, bool detailed) {
 		buffer_printf(&buffer, "%s", errorString);
 	}
 
+#ifndef HSL_LIBRARY
 	Log::Print(Log::LOG_ERROR, textBuffer);
 
-#ifdef VM_DEBUG
-	if (AttachedDebuggerCount) {
+	if (InREPL()) {
 		free(textBuffer);
 		return ERROR_RES_CONTINUE;
 	}
 #endif
 
+#ifndef HSL_STANDALONE
 	const SDL_MessageBoxButtonData buttonsError[] = {
 		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"},
 		{SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 0, "Continue"},
@@ -324,6 +354,18 @@ int VMThread::ShowErrorFromScript(const char* errorString, bool detailed) {
 	}
 
 	return ERROR_RES_CONTINUE;
+#else
+#ifdef HSL_LIBRARY
+	hsl_ErrorResponse result = HandleVMRuntimeError(HSL_SCRIPT_ERROR, std::string(textBuffer));
+	if (result == HSL_ERROR_RES_CONTINUE) {
+		errResult = ERROR_RES_CONTINUE;
+	}
+#else
+	StandaloneExit(std::string(textBuffer));
+#endif
+	free(textBuffer);
+	return errResult;
+#endif
 }
 void VMThread::ShowErrorLocation(const char* errorMessage) {
 	char* textBuffer = (char*)malloc(512);
@@ -362,10 +404,12 @@ void VMThread::Breakpoint(VMThreadBreakpoint* breakpoint) {
 	CallFrame* frame = &Frames[FrameCount - 1];
 	ObjFunction* function = frame->Function;
 
+#ifndef HSL_STANDALONE
 	bool wasInterrupted = AudioManager::Interrupted;
 	if (!wasInterrupted) {
 		AudioManager::SetInterrupted(true);
 	}
+#endif
 
 	VMThreadDebugger* debugger = new VMThreadDebugger(this);
 
@@ -399,11 +443,15 @@ void VMThread::Breakpoint(VMThreadBreakpoint* breakpoint) {
 
 	delete debugger;
 
+#ifndef HSL_STANDALONE
 	if (!wasInterrupted) {
 		AudioManager::SetInterrupted(false);
 	}
+#endif
 }
 bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
+	bool errResult = true;
+
 	va_list args;
 	char errorString[2048];
 	va_start(args, errorMessage);
@@ -418,20 +466,23 @@ bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 
 	MakeErrorMessage(&buffer, errorString);
 
+#ifndef HSL_LIBRARY
 	Log::Print(Log::LOG_WARN, textBuffer);
 
-	if (AttachedDebuggerCount) {
+	if (InREPL()) {
 		free(textBuffer);
 		return true;
 	}
 
 	PrintStack();
+#endif
 
 	if (VMThread::InstructionIgnoreMap[000000001]) {
 		free(textBuffer);
 		return false;
 	}
 
+#ifndef HSL_STANDALONE
 	const SDL_MessageBoxButtonData buttons[] = {
 		{SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 1, "Exit Game"},
 		{0, 2, "Ignore All"},
@@ -451,7 +502,9 @@ bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 	if (SDL_ShowMessageBox(&messageBoxData, &buttonClicked) < 0) {
 		buttonClicked = 0;
 	}
+#endif
 
+#ifndef HSL_STANDALONE
 	free(textBuffer);
 
 	switch (buttonClicked) {
@@ -467,8 +520,19 @@ bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 	case 0:
 		return false;
 	}
+#else
+#ifdef HSL_LIBRARY
+	hsl_ErrorResponse result = HandleVMRuntimeError(HSL_HIT_BRANCH_LIMIT, std::string(textBuffer));
+	if (result == HSL_ERROR_RES_EXIT) {
+		errResult = false;
+	}
+#else
+	StandaloneExit(std::string(textBuffer));
+#endif
+	free(textBuffer);
+#endif
 
-	return true;
+	return errResult;
 }
 bool VMThread::CheckBranchLimit(CallFrame* frame) {
 	if (BranchLimit && ++frame->BranchCount >= BranchLimit) {
@@ -631,13 +695,6 @@ void VMThread::ResetStack() {
 // #endregion
 
 // #region Instruction stuff
-enum ThreadReturnCodes {
-	INTERPRET_EXIT_FROM_DEBUGGER = -200,
-	INTERPRET_RUNTIME_ERROR = -100,
-	INTERPRET_FINISHED = -1,
-	INTERPRET_OK = 0,
-};
-
 // NOTE: These should be inlined
 Uint8 VMThread::ReadByte(CallFrame* frame) {
 	frame->IP += sizeof(Uint8);
@@ -1771,7 +1828,11 @@ int VMThread::RunInstruction() {
 		buffer.BufferSize = 64;
 		ValuePrinter::Print(&buffer, v);
 
-		Log::Print(Log::LOG_INFO, textBuffer);
+#ifndef HSL_STANDALONE
+		Log::Print(Log::LOG_INFO, "%s", textBuffer);
+#else
+		Log::PrintSimple("%s\n", textBuffer);
+#endif
 
 		free(textBuffer);
 
@@ -1941,6 +2002,7 @@ int VMThread::RunInstruction() {
 				break;
 			}
 			else if (IS_STRING(receiver)) {
+#ifndef HSL_STANDALONE
 				// iterate through objectlist
 				char* objectNameChar = AS_CSTRING(receiver);
 				ObjectList* objectList = NULL;
@@ -2021,6 +2083,11 @@ int VMThread::RunInstruction() {
 				// Replace receiver
 				frame->Slots[receiverSlot] = OBJECT_VAL(objectStart->Instance);
 				break;
+#else
+				Pop(); // pop receiver
+				JUMP(offset);
+				break;
+#endif
 			}
 			else if (IS_INSTANCEABLE(receiver)) {
 				// Backup original receiver
@@ -2048,6 +2115,7 @@ int VMThread::RunInstruction() {
 			// Restore original receiver
 			frame->Slots[receiverSlot] = originalReceiver;
 
+#ifndef HSL_STANDALONE
 			// If in list,
 			if (it.entity) {
 				Entity* objectNext = NULL;
@@ -2100,6 +2168,7 @@ int VMThread::RunInstruction() {
 				PrintStack();
 				assert(false);
 			}
+#endif
 			break;
 		}
 		case WITH_STATE_FINISH: {
@@ -2534,6 +2603,22 @@ void VMThread::RunInstructionSet() {
 		}
 #endif
 	}
+}
+
+bool VMThread::InREPL() {
+#ifdef HSL_STANDALONE_REPL
+	if (InStandaloneREPL()) {
+		return true;
+	}
+#endif
+
+#ifdef VM_DEBUG
+	if (AttachedDebuggerCount) {
+		return true;
+	}
+#endif
+
+	return false;
 }
 // #endregion
 

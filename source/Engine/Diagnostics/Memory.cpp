@@ -1,11 +1,14 @@
-#include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+
+#ifdef MEMORY_TRACKING
+#include <Engine/Diagnostics/Log.h>
 
 vector<void*> Memory::TrackedMemory;
 vector<size_t> Memory::TrackedSizes;
 vector<const char*> Memory::TrackedMemoryNames;
 size_t Memory::MemoryUsage = 0;
 bool Memory::IsTracking = false;
+#endif
 
 void Memory::Memset4(void* dst, Uint32 val, size_t dwords) {
 #if defined(__GNUC__) && defined(i386)
@@ -41,7 +44,7 @@ void Memory::Memset4(void* dst, Uint32 val, size_t dwords) {
 
 void* Memory::Malloc(size_t size) {
 	void* mem = malloc(size);
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	if (Memory::IsTracking) {
 		if (mem) {
 			MemoryUsage += size;
@@ -59,7 +62,7 @@ void* Memory::Malloc(size_t size) {
 }
 void* Memory::Calloc(size_t count, size_t size) {
 	void* mem = calloc(count, size);
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	if (Memory::IsTracking) {
 		if (mem) {
 			MemoryUsage += count * size;
@@ -77,7 +80,7 @@ void* Memory::Calloc(size_t count, size_t size) {
 }
 void* Memory::Realloc(void* pointer, size_t size) {
 	void* mem = realloc(pointer, size);
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	if (Memory::IsTracking) {
 		if (mem) {
 			for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
@@ -100,7 +103,7 @@ void* Memory::Realloc(void* pointer, size_t size) {
 // Tracking functions
 void* Memory::TrackedMalloc(const char* identifier, size_t size) {
 	void* mem = malloc(size);
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	if (Memory::IsTracking) {
 		if (mem) {
 			MemoryUsage += size;
@@ -118,7 +121,7 @@ void* Memory::TrackedMalloc(const char* identifier, size_t size) {
 }
 void* Memory::TrackedCalloc(const char* identifier, size_t count, size_t size) {
 	void* mem = calloc(count, size);
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	if (Memory::IsTracking) {
 		if (mem) {
 			MemoryUsage += count * size;
@@ -135,7 +138,7 @@ void* Memory::TrackedCalloc(const char* identifier, size_t count, size_t size) {
 	return mem;
 }
 void Memory::Track(void* pointer, const char* identifier) {
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	if (Memory::IsTracking) {
 		for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
 			if (TrackedMemory[i] == pointer) {
@@ -147,7 +150,7 @@ void Memory::Track(void* pointer, const char* identifier) {
 #endif
 }
 void Memory::Track(void* pointer, size_t size, const char* identifier) {
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	if (Memory::IsTracking) {
 		for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
 			if (TrackedMemory[i] == pointer) {
@@ -163,18 +166,8 @@ void Memory::Track(void* pointer, size_t size, const char* identifier) {
 	}
 #endif
 }
-void Memory::TrackLast(const char* identifier) {
-#ifdef DEBUG
-	if (Memory::IsTracking) {
-		if (TrackedMemoryNames.size() == 0) {
-			return;
-		}
-		TrackedMemoryNames[TrackedMemoryNames.size() - 1] = identifier;
-	}
-#endif
-}
 void Memory::Free(void* pointer) {
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	if (Memory::IsTracking) {
 		for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
 			if (TrackedMemory[i] == pointer) {
@@ -209,17 +202,15 @@ void Memory::Free(void* pointer) {
 
 	free(pointer);
 }
+#ifdef MEMORY_TRACKING
 void Memory::Remove(void* pointer) {
 	if (!pointer) {
 		return;
 	}
-#ifdef DEBUG
 	if (Memory::IsTracking) {
 		for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
 			if (TrackedMemory[i] == pointer) {
 				MemoryUsage -= TrackedSizes[i];
-				// printf("TrackedSizes[i]: %zu\n",
-				// TrackedSizes[i]);
 
 				TrackedMemoryNames.erase(TrackedMemoryNames.begin() + i);
 				TrackedMemory.erase(TrackedMemory.begin() + i);
@@ -228,11 +219,11 @@ void Memory::Remove(void* pointer) {
 			}
 		}
 	}
-#endif
 }
+#endif
 
 const char* Memory::GetName(void* pointer) {
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	if (Memory::IsTracking) {
 		for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
 			if (TrackedMemory[i] == pointer) {
@@ -245,7 +236,7 @@ const char* Memory::GetName(void* pointer) {
 }
 
 void Memory::ClearTrackedMemory() {
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
 		Memory::Free(TrackedMemory[i]);
 	}
@@ -256,7 +247,7 @@ void Memory::ClearTrackedMemory() {
 }
 size_t Memory::CheckLeak() {
 	size_t total = 0;
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
 		total += TrackedSizes[i];
 	}
@@ -264,7 +255,7 @@ size_t Memory::CheckLeak() {
 	return total;
 }
 void Memory::PrintLeak() {
-#ifdef DEBUG
+#ifdef MEMORY_TRACKING
 	if (Memory::IsTracking) {
 		size_t total = 0;
 		Log::Print(Log::LOG_VERBOSE,

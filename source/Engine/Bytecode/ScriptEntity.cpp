@@ -1,5 +1,4 @@
 #include <Engine/Application.h>
-#include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>

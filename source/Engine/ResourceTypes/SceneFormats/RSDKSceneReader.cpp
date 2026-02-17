@@ -6,7 +6,6 @@
 #include <Engine/Error.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/CombinedHash.h>
-#include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/Includes/HashMap.h>

@@ -16,6 +16,7 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
+#include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
@@ -174,7 +175,9 @@ void Application::Init(int argc, char* args[]) {
 
 	Log::Init();
 
+#if 0
 	MemoryPools::Init();
+#endif
 
 	Application::InitPerformanceMetrics();
 
@@ -262,21 +265,25 @@ void Application::Init(int argc, char* args[]) {
 void Application::InitScripting() {
 	GarbageCollector::Init();
 
+#ifdef HSL_COMPILER
 	Compiler::Init();
+#endif
 
 	ScriptManager::Init();
 	ScriptManager::ResetStack();
 	ScriptManager::LinkStandardLibrary();
 	ScriptManager::LinkExtensions();
 
+#ifdef HSL_COMPILER
 	Compiler::GetStandardConstants();
+#endif
 
 #ifdef VM_DEBUG
 	VMThreadDebugger::Initialize();
 #endif
 
 	if (SourceFileMap::CheckForUpdate()) {
-		ScriptManager::ForceGarbageCollection();
+		ScriptManager::ForceGarbageCollection(false);
 	}
 }
 void Application::LogEngineVersion() {
@@ -1901,7 +1908,9 @@ void Application::Cleanup() {
 	Memory::PrintLeak();
 	Memory::ClearTrackedMemory();
 
+#if 0
 	MemoryPools::Dispose();
+#endif
 
 	Log::Close();
 
@@ -1916,7 +1925,9 @@ void Application::Cleanup() {
 void Application::TerminateScripting() {
 	ScriptManager::Dispose();
 	SourceFileMap::Dispose();
+#ifdef HSL_COMPILER
 	Compiler::Dispose();
+#endif
 	GarbageCollector::Dispose();
 #ifdef VM_DEBUG
 	VMThreadDebugger::Dispose();

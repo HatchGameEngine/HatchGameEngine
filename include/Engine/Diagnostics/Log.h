@@ -3,6 +3,8 @@
 
 #include <Engine/Includes/Standard.h>
 
+typedef void (*LogCallback)(int level, const char* text);
+
 class Log {
 private:
 	static FILE* File;
@@ -10,7 +12,11 @@ private:
 	static char* Buffer;
 	static size_t BufferSize;
 
+	static LogCallback Callback;
+
 	static bool ResizeBuffer(int written_chars);
+
+	static void HandleCallback(int sev, const char* text);
 
 public:
 	enum LogLevels {
@@ -28,9 +34,12 @@ public:
 	static void Init();
 	static void OpenFile(const char* filename);
 	static void Close();
+	static bool IsLoggingToFile();
 	static void SetLogLevel(int sev);
+	static void SetCallback(LogCallback callback);
 	static void Print(int sev, const char* format, ...);
 	static void PrintSimple(const char* format, ...);
+	static void Write(const char* format, ...);
 };
 
 #endif /* ENGINE_DIAGNOSTICS_LOG_H */

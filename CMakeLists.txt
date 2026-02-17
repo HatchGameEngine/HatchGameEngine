@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13.0)
 
 # set the project name and version
 project(HatchGameEngine VERSION 1.4.0)
@@ -51,23 +51,30 @@ if(TARGET_NAME)
   set(HATCH_TARGET_NAME ${TARGET_NAME})
 endif()
 
+add_executable(${PROJECT_NAME} ${C_SOURCES} ${CPP_SOURCES} ${LIBRARY_SOURCES})
+target_compile_definitions(${PROJECT_NAME} PUBLIC USE_SDL USE_MEMORY_CACHE USE_ZLIB USE_CLOCK HSL_COMPILER)
+
+if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DMEMORY_TRACKING)
+endif()
+
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  add_definitions(-DTARGET_NAME=\"${HATCH_TARGET_NAME}\"
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DTARGET_NAME=\"${HATCH_TARGET_NAME}\"
    -DNO_LIBAV
   )
   if(NINTENDO_SWITCH)
-    add_definitions(-DSWITCH -DCONSOLE_FILESYSTEM)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC -DSWITCH -DCONSOLE_FILESYSTEM)
   else()
-    add_definitions(-DLINUX)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC -DLINUX)
   endif()
 
   set(CONSOLE_BASE_PATH "" CACHE STRING "Optional base path (must end with '/')")
   if(NOT CONSOLE_BASE_PATH STREQUAL "")
-    add_definitions(-DCONSOLE_BASE_PATH="${CONSOLE_BASE_PATH}")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC -DCONSOLE_BASE_PATH="${CONSOLE_BASE_PATH}")
   endif()
 else()
   # Cross compiling a Windows executable
-  add_definitions(-DWIN32 -DTARGET_NAME=\"${HATCH_TARGET_NAME}\"
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DWIN32 -DTARGET_NAME=\"${HATCH_TARGET_NAME}\"
    -DNO_LIBAV
    -DGLEW_STATIC
    -D_WINDOWS
@@ -75,6 +82,9 @@ else()
 endif()
 
 # Build options
+option(USING_HSL_VM "Build with HSL VM" ON)
+option(USING_HSL_COMPILER "Build with HSL compiler" ON)
+option(USING_HSL_STANDARD_LIBRARY "Build with HSL standard library" ON)
 option(ENABLE_SCRIPT_COMPILING "Enable script compiling" ON)
 option(ENABLE_USING_VM_FUNCPTRS "Enable function-pointer based VM" ON)
 
@@ -116,28 +126,33 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 endif()
 
 if(USING_OPENGL)
-  add_definitions(-DUSING_OPENGL)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSING_OPENGL)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows" AND USING_DIRECT3D)
-  add_definitions(-DUSING_DIRECT3D)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSING_DIRECT3D)
+endif()
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC -DHSL_VM)
+
+if(USING_HSL_STANDARD_LIBRARY)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DHSL_STDLIB)
 endif()
 
 if(NOT ENABLE_SCRIPT_COMPILING)
-  add_definitions(-DNO_SCRIPT_COMPILING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DNO_SCRIPT_COMPILING)
 endif()
 
-if(ENABLE_USING_VM_FUNCPTRS)
-  add_definitions(-DUSING_VM_FUNCPTRS)
+if(USING_HSL_VM AND ENABLE_USING_VM_FUNCPTRS)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSING_VM_FUNCPTRS)
 endif()
 
 if(ENABLE_VM_DEBUGGING)
-  add_definitions(-DVM_DEBUG)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DVM_DEBUG)
 
-  if (ENABLE_USING_LINENOISE)
-    add_definitions(-DUSING_LINENOISE)
-
-    list(APPEND LIBRARY_SOURCES
+  if(ENABLE_USING_LINENOISE)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSING_LINENOISE)
+    target_sources(${PROJECT_NAME} PUBLIC
       source/Libraries/linenoise-ng/linenoise.cpp
       source/Libraries/linenoise-ng/wcwidth.cpp
     )
@@ -145,36 +160,34 @@ if(ENABLE_VM_DEBUGGING)
 endif()
 
 if(DEVELOPER_MODE)
-  add_definitions(-DDEVELOPER_MODE)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DDEVELOPER_MODE)
 endif()
 
 if(PORTABLE_MODE)
-  add_definitions(-DPORTABLE_MODE)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DPORTABLE_MODE)
 endif()
 
 if(ALLOW_COMMAND_LINE_RESOURCE_LOAD)
-  add_definitions(-DALLOW_COMMAND_LINE_RESOURCE_LOAD)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DALLOW_COMMAND_LINE_RESOURCE_LOAD)
 endif()
 
 if(USE_DEFAULT_FONTS)
-  add_definitions(-DUSE_DEFAULT_FONTS)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSE_DEFAULT_FONTS)
 endif()
 
-add_definitions(-DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME )
+target_compile_definitions(${PROJECT_NAME} PUBLIC -DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME)
 
 find_file(REPO_DIR NAMES .git PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
 
-if (REPO_DIR)
+if(REPO_DIR)
   execute_process(
     COMMAND git log -1 --format=%H
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_COMMIT_HASH
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-  add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+  target_compile_definitions(${PROJECT_NAME} PUBLIC "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 endif()
-
-add_executable(${PROJECT_NAME} ${C_SOURCES} ${CPP_SOURCES} ${LIBRARY_SOURCES})
 
 set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
 
@@ -197,18 +210,18 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   find_package(SDL2 REQUIRED)
   find_package(PNG)
   if(PNG_FOUND)
-    add_definitions(-DUSING_LIBPNG)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSING_LIBPNG)
   endif()
   if(USE_OPEN_ASSET_IMPORT_LIBRARY)
     if(NINTENDO_SWITCH)
-      add_definitions(-DUSING_ASSIMP)
+      target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSING_ASSIMP)
       # No need to duplicate headers, use the ones for Windows
       set(ASSIMP_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/")
       set(ASSIMP_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/nx/lib/libassimp.a" "-lz -lminizip")
     else()
       find_package(assimp)
       if(assimp_FOUND)
-        add_definitions(-DUSING_ASSIMP)
+        target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSING_ASSIMP)
         set(ASSIMP_INCLUDE_DIRS "${assimp_INCLUDE_DIRS}")
         set(ASSIMP_LIBRARIES "${assimp_LIBRARIES}")
       endif()
@@ -229,7 +242,7 @@ else()
     endif()
   else()
     if(USE_OPEN_ASSET_IMPORT_LIBRARY)
-      add_definitions(-DUSING_ASSIMP)
+      target_compile_definitions(${PROJECT_NAME} PUBLIC -DUSING_ASSIMP)
       set(ASSIMP_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/meta/win/include/assimp/")
       set(ASSIMP_LIBRARIES "${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libassimp.a;${CMAKE_CURRENT_LIST_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libzlibstatic.a")
     endif()
@@ -240,7 +253,7 @@ else()
 endif()
 
 # Add needed directories
-include_directories(
+target_include_directories(${PROJECT_NAME} PUBLIC
   include
   source
   ${SDL2_INCLUDE_DIRS}
@@ -248,13 +261,13 @@ include_directories(
 )
 
 if(USE_OPEN_ASSET_IMPORT_LIBRARY)
-  include_directories(${ASSIMP_INCLUDE_DIRS})
+  target_include_directories(${PROJECT_NAME} PUBLIC ${ASSIMP_INCLUDE_DIRS})
 endif()
 
 # Include libraries
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   # Add all of the Windows include files
-  include_directories(
+  target_include_directories(${PROJECT_NAME} PUBLIC
     meta/win/include
   )
   if(WINDOWS_USE_RESOURCE_FILE)
@@ -278,7 +291,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
       target_link_libraries(${PROJECT_NAME} -mwindows)
     endif()
   endif()
-  add_definitions(-DSDL_MAIN_HANDLED)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC -DSDL_MAIN_HANDLED)
 else()
   target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
 endif()
@@ -296,12 +309,149 @@ endif()
 if(NINTENDO_SWITCH)
   set(ICON_FILE "meta/nx/icon.jpg" CACHE FILEPATH "Optional path to a jpg icon")
   set(ROMFS_PATH "" CACHE PATH "Optional path to a folder containing game data")
-  if (NOT ROMFS_PATH STREQUAL "")
+  if(NOT ROMFS_PATH STREQUAL "")
     message(STATUS "SWITCH: Building with romfs: ${ROMFS_PATH}")
-    add_definitions(-DSWITCH_ROMFS)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC -DSWITCH_ROMFS)
     nx_create_nro(${PROJECT_NAME} ICON ${ICON_FILE} ROMFS ${ROMFS_PATH})
   else()
     message(STATUS "SWITCH: Building without romfs")
     nx_create_nro(${PROJECT_NAME} ICON ${ICON_FILE})
   endif()
+endif()
+
+# HSL standalone program
+set(HSL_MAIN_SOURCES
+  source/Engine/Bytecode/Bytecode.cpp
+  source/Engine/Bytecode/BytecodeDebugger.cpp
+  source/Engine/Bytecode/ScriptManager.cpp
+  source/Engine/Bytecode/ScriptREPL.cpp
+  source/Engine/Bytecode/TypeImpl/ArrayImpl.cpp
+  source/Engine/Bytecode/TypeImpl/FunctionImpl.cpp
+  source/Engine/Bytecode/TypeImpl/InstanceImpl.cpp
+  source/Engine/Bytecode/TypeImpl/MapImpl.cpp
+  source/Engine/Bytecode/TypeImpl/StreamImpl.cpp
+  source/Engine/Bytecode/TypeImpl/StringImpl.cpp
+  source/Engine/Bytecode/TypeImpl/TypeImpl.cpp
+  source/Engine/Bytecode/Types.cpp
+  source/Engine/Bytecode/Value.cpp
+  source/Engine/Bytecode/ValuePrinter.cpp
+  source/Engine/Diagnostics/Log.cpp
+  source/Engine/Diagnostics/Memory.cpp
+  source/Engine/Error.cpp
+  source/Engine/Filesystem/Directory.cpp
+  source/Engine/Filesystem/File.cpp
+  source/Engine/Filesystem/Path.cpp
+  source/Engine/Hashing/CombinedHash.cpp
+  source/Engine/Hashing/CRC32.cpp
+  source/Engine/Hashing/FNV1A.cpp
+  source/Engine/Hashing/MD5.cpp
+  source/Engine/Hashing/Murmur.cpp
+  source/Engine/IO/FileStream.cpp
+  source/Engine/IO/MemoryStream.cpp
+  source/Engine/IO/StandardIOStream.cpp
+  source/Engine/IO/Stream.cpp
+  source/Engine/IO/TerminalInput.cpp
+  source/Engine/IO/TextStream.cpp
+  source/Engine/Utilities/PrintBuffer.cpp
+  source/Engine/Utilities/StringUtils.cpp
+)
+set(HSL_VM_SOURCES
+  source/Engine/Bytecode/GarbageCollector.cpp
+  source/Engine/Bytecode/VMThread.cpp
+  source/Engine/Bytecode/VMThreadDebugger.cpp
+)
+set(HSL_COMPILER_SOURCES
+  source/Engine/Bytecode/Compiler.cpp
+  source/Engine/Bytecode/SourceFileMap.cpp
+)
+
+add_executable(hsl ${HSL_MAIN_SOURCES} source/Engine/Main.cpp source/Engine/Bytecode/StandaloneMain.cpp)
+
+option(ENABLE_REPL "Enable REPL" ON)
+option(ENABLE_LOG_FILE "Enable logging output to a file" ON)
+if(USING_HSL_STANDARD_LIBRARY)
+  option(USING_CLOCK "Build with clock" ON)
+else()
+  option(USING_CLOCK "Build with clock" OFF)
+endif()
+
+target_compile_definitions(hsl PUBLIC -DHSL_STANDALONE -DNO_SCRIPT_COMPILING -DTARGET_NAME=\"hsl\")
+if(DEFINED GIT_COMMIT_HASH)
+  target_compile_definitions(hsl PUBLIC "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+endif()
+target_include_directories(hsl PUBLIC
+  include
+  source
+)
+if(ENABLE_LOG_FILE)
+  target_compile_definitions(hsl PUBLIC -DUSE_LOG_FILE)
+endif()
+if(USING_CLOCK)
+  target_compile_definitions(hsl PUBLIC -DUSE_CLOCK)
+  target_sources(hsl PUBLIC source/Engine/Diagnostics/Clock.cpp)
+endif()
+if(USING_HSL_VM)
+  target_compile_definitions(hsl PUBLIC -DHSL_VM -DHSL_STANDALONE_RUNNER)
+  target_sources(hsl PUBLIC ${HSL_VM_SOURCES})
+endif()
+if(USING_HSL_COMPILER)
+  target_compile_definitions(hsl PUBLIC -DHSL_COMPILER)
+  target_sources(hsl PUBLIC ${HSL_COMPILER_SOURCES})
+endif()
+if(USING_HSL_VM AND ENABLE_VM_DEBUGGING)
+  target_compile_definitions(hsl PUBLIC -DVM_DEBUG)
+endif()
+if(USING_HSL_VM AND ENABLE_USING_VM_FUNCPTRS)
+  target_compile_definitions(hsl PUBLIC -DUSING_VM_FUNCPTRS)
+endif()
+if(ENABLE_USING_LINENOISE)
+  target_sources(hsl PUBLIC
+    source/Libraries/linenoise-ng/linenoise.cpp
+    source/Libraries/linenoise-ng/wcwidth.cpp
+  )
+  target_compile_definitions(hsl PUBLIC -DUSING_LINENOISE)
+endif()
+if(ENABLE_REPL)
+  target_compile_definitions(hsl PUBLIC -DHSL_STANDALONE_REPL)
+endif()
+
+# HSL compiler
+add_executable(hslc ${HSL_MAIN_SOURCES} ${HSL_COMPILER_SOURCES} source/Engine/Main.cpp source/Engine/Bytecode/StandaloneMain.cpp)
+
+target_compile_definitions(hslc PUBLIC -DHSL_STANDALONE -DHSL_COMPILER -DNO_SCRIPT_COMPILING -DTARGET_NAME=\"hslc\")
+if(DEFINED GIT_COMMIT_HASH)
+  target_compile_definitions(hslc PUBLIC "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+endif()
+target_include_directories(hslc PUBLIC
+  include
+  source
+)
+
+# HSL library
+add_library(libhsl SHARED ${HSL_MAIN_SOURCES} source/Engine/Bytecode/API.cpp source/Engine/Bytecode/StandaloneMain.cpp)
+set_target_properties(libhsl PROPERTIES OUTPUT_NAME hsl)
+set_target_properties(libhsl PROPERTIES VERSION 0.0.1 SOVERSION 0)
+
+target_compile_definitions(libhsl PUBLIC -DHSL_LIBRARY -DHSL_STANDALONE -DNO_SCRIPT_COMPILING -DTARGET_NAME=\"libhsl\")
+if(DEFINED GIT_COMMIT_HASH)
+  target_compile_definitions(libhsl PUBLIC "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+endif()
+target_include_directories(libhsl PUBLIC
+  include
+  source
+)
+target_compile_definitions(libhsl PUBLIC)
+if(USING_HSL_VM)
+  target_compile_definitions(libhsl PUBLIC -DHSL_VM -DHSL_STANDALONE_RUNNER)
+  target_sources(libhsl PUBLIC ${HSL_VM_SOURCES})
+endif()
+if(USING_HSL_COMPILER)
+  target_compile_definitions(libhsl PUBLIC -DHSL_COMPILER)
+  target_sources(libhsl PUBLIC ${HSL_COMPILER_SOURCES})
+endif()
+if(USING_HSL_VM AND ENABLE_VM_DEBUGGING)
+  target_compile_definitions(libhsl PUBLIC -DVM_DEBUG)
+endif()
+if(USING_HSL_VM AND ENABLE_USING_VM_FUNCPTRS)
+  target_compile_definitions(libhsl PUBLIC -DUSING_VM_FUNCPTRS)
 endif()

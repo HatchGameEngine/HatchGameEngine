@@ -2,12 +2,15 @@
 
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
-#include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/Types/Entity.h>
 #include <Engine/Utilities/StringUtils.h>
+
+#ifdef USE_ZLIB
+#include <Engine/IO/Compression/ZLibStream.h>
+#endif
 
 #define TILE_FLIPX_MASK 0x80000000U
 #define TILE_FLIPY_MASK 0x40000000U
@@ -492,6 +495,7 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 			}
 
 			if (data->attributes.Exists("compression")) {
+#ifdef USE_ZLIB
 				if (XMLParser::MatchToken(
 					    data->attributes.Get("compression"), "zlib")) {
 					int* decomp_tile_buffer =
@@ -504,7 +508,9 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 
 					tile_buffer = decomp_tile_buffer;
 				}
-				else {
+				else
+#endif
+				{
 					Log::Print(Log::LOG_ERROR,
 						"Unsupported tile layer compression format!");
 					return false;

@@ -166,6 +166,7 @@ char* Stream::ReadHeaderedString() {
 	return data;
 }
 Uint32 Stream::ReadCompressed(void* out) {
+#ifdef USE_ZLIB
 	Uint32 compressed_size = ReadUInt32() - 4;
 	Uint32 uncompressed_size = ReadUInt32BE();
 
@@ -176,8 +177,12 @@ Uint32 Stream::ReadCompressed(void* out) {
 	Memory::Free(buffer);
 
 	return uncompressed_size;
+#else
+	return 0;
+#endif
 }
 Uint32 Stream::ReadCompressed(void* out, size_t outSz) {
+#ifdef USE_ZLIB
 	Uint32 compressed_size = ReadUInt32() - 4;
 	ReadUInt32BE(); // uncompressed_size
 
@@ -188,6 +193,9 @@ Uint32 Stream::ReadCompressed(void* out, size_t outSz) {
 	Memory::Free(buffer);
 
 	return (Uint32)outSz;
+#else
+	return 0;
+#endif
 }
 
 size_t Stream::WriteBytes(void* data, size_t n) {
