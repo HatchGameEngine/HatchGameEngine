@@ -96,6 +96,10 @@ else()
   option(DEVELOPER_MODE "Developer mode" OFF)
 endif()
 
+option(BUILD_HSL_PROGRAM "Build hsl program" OFF)
+option(BUILD_HSLC_PROGRAM "Build hslc program" OFF)
+option(BUILD_LIBHSL "Build libhsl" OFF)
+
 if(NOT NINTENDO_SWITCH)
 option(ENABLE_USING_LINENOISE "Use linenoise-ng for the script debugger command line interface" ON)
 endif()
@@ -319,7 +323,6 @@ if(NINTENDO_SWITCH)
   endif()
 endif()
 
-# HSL standalone program
 set(HSL_MAIN_SOURCES
   source/Engine/Bytecode/Bytecode.cpp
   source/Engine/Bytecode/BytecodeDebugger.cpp
@@ -365,93 +368,100 @@ set(HSL_COMPILER_SOURCES
   source/Engine/Bytecode/SourceFileMap.cpp
 )
 
-add_executable(hsl ${HSL_MAIN_SOURCES} source/Engine/Main.cpp source/Engine/Bytecode/StandaloneMain.cpp)
+# HSL standalone program
+if(BUILD_HSL_PROGRAM)
+  add_executable(hsl ${HSL_MAIN_SOURCES} source/Engine/Main.cpp source/Engine/Bytecode/StandaloneMain.cpp)
 
-option(ENABLE_REPL "Enable REPL" ON)
-option(ENABLE_LOG_FILE "Enable logging output to a file" ON)
-if(USING_HSL_STANDARD_LIBRARY)
-  option(USING_CLOCK "Build with clock" ON)
-else()
-  option(USING_CLOCK "Build with clock" OFF)
-endif()
+  option(ENABLE_REPL "Enable REPL" ON)
+  option(ENABLE_LOG_FILE "Enable logging output to a file" ON)
+  if(USING_HSL_STANDARD_LIBRARY)
+    option(USING_CLOCK "Build with clock" ON)
+  else()
+    option(USING_CLOCK "Build with clock" OFF)
+  endif()
 
-target_compile_definitions(hsl PUBLIC -DHSL_STANDALONE -DNO_SCRIPT_COMPILING -DTARGET_NAME=\"hsl\")
-if(DEFINED GIT_COMMIT_HASH)
-  target_compile_definitions(hsl PUBLIC "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
-endif()
-target_include_directories(hsl PUBLIC
-  include
-  source
-)
-if(ENABLE_LOG_FILE)
-  target_compile_definitions(hsl PUBLIC -DUSE_LOG_FILE)
-endif()
-if(USING_CLOCK)
-  target_compile_definitions(hsl PUBLIC -DUSE_CLOCK)
-  target_sources(hsl PUBLIC source/Engine/Diagnostics/Clock.cpp)
-endif()
-if(USING_HSL_VM)
-  target_compile_definitions(hsl PUBLIC -DHSL_VM -DHSL_STANDALONE_RUNNER)
-  target_sources(hsl PUBLIC ${HSL_VM_SOURCES})
-endif()
-if(USING_HSL_COMPILER)
-  target_compile_definitions(hsl PUBLIC -DHSL_COMPILER)
-  target_sources(hsl PUBLIC ${HSL_COMPILER_SOURCES})
-endif()
-if(USING_HSL_VM AND ENABLE_VM_DEBUGGING)
-  target_compile_definitions(hsl PUBLIC -DVM_DEBUG)
-endif()
-if(USING_HSL_VM AND ENABLE_USING_VM_FUNCPTRS)
-  target_compile_definitions(hsl PUBLIC -DUSING_VM_FUNCPTRS)
-endif()
-if(ENABLE_USING_LINENOISE)
-  target_sources(hsl PUBLIC
-    source/Libraries/linenoise-ng/linenoise.cpp
-    source/Libraries/linenoise-ng/wcwidth.cpp
+  target_compile_definitions(hsl PUBLIC -DHSL_STANDALONE -DNO_SCRIPT_COMPILING -DTARGET_NAME=\"hsl\")
+  if(DEFINED GIT_COMMIT_HASH)
+    target_compile_definitions(hsl PUBLIC "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+  endif()
+  target_include_directories(hsl PUBLIC
+    include
+    source
   )
-  target_compile_definitions(hsl PUBLIC -DUSING_LINENOISE)
-endif()
-if(ENABLE_REPL)
-  target_compile_definitions(hsl PUBLIC -DHSL_STANDALONE_REPL)
+  if(ENABLE_LOG_FILE)
+    target_compile_definitions(hsl PUBLIC -DUSE_LOG_FILE)
+  endif()
+  if(USING_CLOCK)
+    target_compile_definitions(hsl PUBLIC -DUSE_CLOCK)
+    target_sources(hsl PUBLIC source/Engine/Diagnostics/Clock.cpp)
+  endif()
+  if(USING_HSL_VM)
+    target_compile_definitions(hsl PUBLIC -DHSL_VM -DHSL_STANDALONE_RUNNER)
+    target_sources(hsl PUBLIC ${HSL_VM_SOURCES})
+  endif()
+  if(USING_HSL_COMPILER)
+    target_compile_definitions(hsl PUBLIC -DHSL_COMPILER)
+    target_sources(hsl PUBLIC ${HSL_COMPILER_SOURCES})
+  endif()
+  if(USING_HSL_VM AND ENABLE_VM_DEBUGGING)
+    target_compile_definitions(hsl PUBLIC -DVM_DEBUG)
+  endif()
+  if(USING_HSL_VM AND ENABLE_USING_VM_FUNCPTRS)
+    target_compile_definitions(hsl PUBLIC -DUSING_VM_FUNCPTRS)
+  endif()
+  if(ENABLE_USING_LINENOISE)
+    target_sources(hsl PUBLIC
+      source/Libraries/linenoise-ng/linenoise.cpp
+      source/Libraries/linenoise-ng/wcwidth.cpp
+    )
+    target_compile_definitions(hsl PUBLIC -DUSING_LINENOISE)
+  endif()
+  if(ENABLE_REPL)
+    target_compile_definitions(hsl PUBLIC -DHSL_STANDALONE_REPL)
+  endif()
 endif()
 
 # HSL compiler
-add_executable(hslc ${HSL_MAIN_SOURCES} ${HSL_COMPILER_SOURCES} source/Engine/Main.cpp source/Engine/Bytecode/StandaloneMain.cpp)
+if(BUILD_HSLC_PROGRAM)
+  add_executable(hslc ${HSL_MAIN_SOURCES} ${HSL_COMPILER_SOURCES} source/Engine/Main.cpp source/Engine/Bytecode/StandaloneMain.cpp)
 
-target_compile_definitions(hslc PUBLIC -DHSL_STANDALONE -DHSL_COMPILER -DNO_SCRIPT_COMPILING -DTARGET_NAME=\"hslc\")
-if(DEFINED GIT_COMMIT_HASH)
-  target_compile_definitions(hslc PUBLIC "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+  target_compile_definitions(hslc PUBLIC -DHSL_STANDALONE -DHSL_COMPILER -DNO_SCRIPT_COMPILING -DTARGET_NAME=\"hslc\")
+  if(DEFINED GIT_COMMIT_HASH)
+    target_compile_definitions(hslc PUBLIC "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+  endif()
+  target_include_directories(hslc PUBLIC
+    include
+    source
+  )
 endif()
-target_include_directories(hslc PUBLIC
-  include
-  source
-)
 
 # HSL library
-add_library(libhsl SHARED ${HSL_MAIN_SOURCES} source/Engine/Bytecode/API.cpp source/Engine/Bytecode/StandaloneMain.cpp)
-set_target_properties(libhsl PROPERTIES OUTPUT_NAME hsl)
-set_target_properties(libhsl PROPERTIES VERSION 0.0.1 SOVERSION 0)
+if(BUILD_LIBHSL)
+  add_library(libhsl SHARED ${HSL_MAIN_SOURCES} source/Engine/Bytecode/API.cpp source/Engine/Bytecode/StandaloneMain.cpp)
+  set_target_properties(libhsl PROPERTIES OUTPUT_NAME hsl)
+  set_target_properties(libhsl PROPERTIES VERSION 0.0.1 SOVERSION 0)
 
-target_compile_definitions(libhsl PUBLIC -DHSL_LIBRARY -DHSL_STANDALONE -DNO_SCRIPT_COMPILING -DTARGET_NAME=\"libhsl\")
-if(DEFINED GIT_COMMIT_HASH)
-  target_compile_definitions(libhsl PUBLIC "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
-endif()
-target_include_directories(libhsl PUBLIC
-  include
-  source
-)
-target_compile_definitions(libhsl PUBLIC)
-if(USING_HSL_VM)
-  target_compile_definitions(libhsl PUBLIC -DHSL_VM -DHSL_STANDALONE_RUNNER)
-  target_sources(libhsl PUBLIC ${HSL_VM_SOURCES})
-endif()
-if(USING_HSL_COMPILER)
-  target_compile_definitions(libhsl PUBLIC -DHSL_COMPILER)
-  target_sources(libhsl PUBLIC ${HSL_COMPILER_SOURCES})
-endif()
-if(USING_HSL_VM AND ENABLE_VM_DEBUGGING)
-  target_compile_definitions(libhsl PUBLIC -DVM_DEBUG)
-endif()
-if(USING_HSL_VM AND ENABLE_USING_VM_FUNCPTRS)
-  target_compile_definitions(libhsl PUBLIC -DUSING_VM_FUNCPTRS)
+  target_compile_definitions(libhsl PUBLIC -DHSL_LIBRARY -DHSL_STANDALONE -DNO_SCRIPT_COMPILING -DTARGET_NAME=\"libhsl\")
+  if(DEFINED GIT_COMMIT_HASH)
+    target_compile_definitions(libhsl PUBLIC "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+  endif()
+  target_include_directories(libhsl PUBLIC
+    include
+    source
+  )
+  target_compile_definitions(libhsl PUBLIC)
+  if(USING_HSL_VM)
+    target_compile_definitions(libhsl PUBLIC -DHSL_VM -DHSL_STANDALONE_RUNNER)
+    target_sources(libhsl PUBLIC ${HSL_VM_SOURCES})
+  endif()
+  if(USING_HSL_COMPILER)
+    target_compile_definitions(libhsl PUBLIC -DHSL_COMPILER)
+    target_sources(libhsl PUBLIC ${HSL_COMPILER_SOURCES})
+  endif()
+  if(USING_HSL_VM AND ENABLE_VM_DEBUGGING)
+    target_compile_definitions(libhsl PUBLIC -DVM_DEBUG)
+  endif()
+  if(USING_HSL_VM AND ENABLE_USING_VM_FUNCPTRS)
+    target_compile_definitions(libhsl PUBLIC -DUSING_VM_FUNCPTRS)
+  endif()
 endif()
