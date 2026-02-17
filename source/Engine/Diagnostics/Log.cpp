@@ -44,12 +44,23 @@ LogCallback Log::Callback;
 #endif
 
 void Log::Init() {
+	if (Initialized) {
+		return;
+	}
+
+	LogLevel = -1;
+	WriteToFile = true;
 	Initialized = true;
 }
 
 void Log::OpenFile(const char* filename) {
 	if (!Initialized || !WriteToFile) {
 		return;
+	}
+
+	if (File) {
+		fclose(File);
+		File = nullptr;
 	}
 
 #ifdef HSL_STANDALONE
@@ -102,11 +113,21 @@ void Log::SetCallback(LogCallback callback) {
 }
 
 void Log::Close() {
+	if (Initialized) {
+		return;
+	}
+
+	Initialized = false;
+	Callback = nullptr;
+
 	if (File) {
 		fclose(File);
 		File = nullptr;
 	}
-	free(Buffer);
+	if (Buffer) {
+		free(Buffer);
+		Buffer = nullptr;
+	}
 }
 
 bool Log::ResizeBuffer(int written_chars) {
@@ -304,6 +325,10 @@ void Log::Print(int sev, const char* format, ...) {
 }
 
 void Log::PrintSimple(const char* format, ...) {
+	if (!Initialized) {
+		return;
+	}
+
 	PRINT_VARIADIC_ARGS(format);
 
 	if (Log::Callback) {
@@ -350,7 +375,7 @@ void Log::HandleCallback(int sev, const char* text) {
 }
 
 void Log::Write(const char* format, ...) {
-	if (!File) {
+	if (!Initialized || !File) {
 		return;
 	}
 
