@@ -25,14 +25,13 @@
 #define DEFAULT_SETTINGS_FILENAME "config://config.ini"
 
 #define DEFAULT_SAVES_DIR "saves"
-#define DEFAULT_SCREENSHOTS_DIR "screenshots"
 
 class Application {
 private:
 	static char GameIdentifier[256];
 	static char DeveloperIdentifier[256];
 	static char SavesDir[256];
-	static char ScreenshotsDir[256];
+	static char ScreenshotsPath[256];
 	static char PreferencesDir[256];
 
 	static std::unordered_map<std::string, Capability> CapabilityMap;
@@ -161,7 +160,7 @@ public:
 	static const char* GetDeveloperIdentifier();
 	static const char* GetGameIdentifier();
 	static const char* GetSavesDir();
-	static const char* GetScreenshotsDir();
+	static const char* GetScreenshotsPath();
 	static const char* GetPreferencesDir();
 	static std::string GetScreenshotPath();
 	static void TakeScreenshot(const char* path, Operation operation);

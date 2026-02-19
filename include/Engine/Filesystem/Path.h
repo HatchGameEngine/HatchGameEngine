@@ -13,6 +13,7 @@
 #define PATHLOCATION_SAVEGAME_URL "save://"
 #define PATHLOCATION_SCREENSHOTS_URL "screenshots://"
 #define PATHLOCATION_PREFERENCES_URL "config://"
+#define PATHLOCATION_PICTURES_URL "pictures://"
 #define PATHLOCATION_CACHE_URL "cache://"
 
 enum PathLocation {
@@ -27,8 +28,7 @@ enum PathLocation {
 	// The equivalent URL is "game://"
 	GAME,
 
-	// The user location.
-	// This is persistent storage, and the path varies on the system.
+	// The user location. This is persistent storage.
 	//
 	// On Windows, this is one of:
 	// * C:/Users/username/AppData/Roaming/GameDeveloper/GameName/
@@ -42,8 +42,7 @@ enum PathLocation {
 	// The equivalent URL is "user://"
 	USER,
 
-	// The saves location.
-	// This is persistent storage, and the path varies on the system.
+	// The saves location. This is persistent storage.
 	//
 	// Typically, the path used is "user://saves/"
 	//
@@ -51,15 +50,22 @@ enum PathLocation {
 	SAVEGAME,
 
 	// The screenshots location.
-	// This is persistent storage, and the path varies on the system.
 	//
-	// Typically, the path used is "user://screenshots/"
+	// If not set, defaults are used. On Windows, this is one of:
+	// * C:/Users/username/Pictures/GameName/
+	// * C:/Users/username/AppData/Local/GameDeveloper/GameName/screenshots/
+	// * C:/Users/username/AppData/Local/GameName/screenshots/
+	//
+	// On Unix, this follows the XDG Base Directory specification.
+	// Specifically, one of the following is used:
+	// * $XDG_PICTURES_DIR/GameName/
+	// * $XDG_DATA_HOME/GameDeveloper/GameName/screenshots/
+	// * $XDG_DATA_HOME/GameName/screenshots/
 	//
 	// The equivalent URL is "screenshots://"
 	SCREENSHOTS,
 
-	// The preferences location.
-	// This is non-roaming storage, and the path varies on the system.
+	// The preferences location. This is not persistent storage.
 	//
 	// On Windows, this is one of:
 	// * C:/Users/username/AppData/Local/GameDeveloper/GameName/
@@ -73,8 +79,21 @@ enum PathLocation {
 	// The equivalent URL is "config://"
 	PREFERENCES,
 
-	// The logfile location.
-	// This is non-roaming storage, and the path varies on the system.
+	// The pictures location.
+	//
+	// On Windows, this is:
+	// * C:/Users/username/Pictures/GameName/
+	//
+	// On Unix, this follows the XDG Base Directory specification.
+	// Specifically, one of the following is used:
+	// * $XDG_PICTURES_DIR/GameName/
+	// * $XDG_DATA_HOME/GameDeveloper/GameName/pictures/
+	// * $XDG_DATA_HOME/GameName/pictures/
+	//
+	// The equivalent URL is "pictures://"
+	PICTURES,
+
+	// The logfile location. This is not persistent storage.
 	//
 	// On Windows, this is the same as PREFERENCES.
 	//
@@ -84,8 +103,7 @@ enum PathLocation {
 	// * $XDG_STATE_HOME/GameName/
 	LOGFILE,
 
-	// The cache location.
-	// This is non-roaming storage, and the path varies on the system.
+	// The cache location. This is not persistent storage.
 	//
 	// On Windows, this is one of:
 	// * C:/Users/username/AppData/Local/GameDeveloper/GameName/cache/
@@ -112,16 +130,22 @@ private:
 	static std::string GetBasePath();
 	static std::string GetPrefPath();
 	static std::string GetFallbackLocalPath(std::string suffix);
-#if LINUX
-	static std::string GetXdgPath(const char* xdg_env, const char* fallback_path);
+#if UNIX
+	static bool LoadXdgUserDirs();
+	static std::string GetXdgPath(const char* env, const char* fallbackPath);
+	static std::string GetXdgUserDir(const char* userDir);
 #endif
 	static std::string GetGameNamePath();
 	static std::string GetBaseUserPath();
 	static std::string GetBaseConfigPath();
 	static std::string GetStatePath();
 	static std::string GetCachePath();
-	static std::string GetForLocation(PathLocation location);
-	static std::string StripLocationFromURL(const char* filename, PathLocation& location);
+	static std::string GetPicturesPath();
+	static std::string GetScreenshotsPath(bool makeDirs);
+	static std::string
+	GetForLocation(PathLocation location, bool makeDirs, bool allowIndirection);
+	static std::string
+	StripLocationFromURL(const char* filename, PathLocation& location, bool allowIndirection);
 	static bool ValidateForLocation(const char* path);
 
 public:
@@ -134,13 +158,20 @@ public:
 	static bool HasRelativeComponents(const char* path);
 	static std::string Normalize(std::string path);
 	static std::string Normalize(const char* path);
-	static std::string GetLocationFromRealPath(const char* filename, PathLocation location);
+	static std::string
+	GetLocationFromRealPath(const char* filename, PathLocation location, bool allowIndirection);
 	static bool IsAbsolute(const char* filename);
 	static bool IsValidDefaultLocation(const char* filename);
-	static bool
-	FromLocation(std::string path, PathLocation location, std::string& result, bool makeDirs);
-	static bool
-	FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs);
+	static bool FromLocation(std::string path,
+		PathLocation location,
+		std::string& result,
+		bool makeDirs,
+		bool allowIndirection);
+	static bool FromURL(const char* filename,
+		std::string& result,
+		PathLocation& location,
+		bool makeDirs,
+		bool allowIndirection);
 	static bool FromURL(const char* filename, std::string& result);
 	static void FromURL(const char* filename, char* buf, size_t bufSize);
 	static std::string StripURL(const char* filename);

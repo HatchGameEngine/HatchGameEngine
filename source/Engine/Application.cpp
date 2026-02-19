@@ -102,7 +102,7 @@ char Application::GameDeveloper[256];
 char Application::GameIdentifier[256];
 char Application::DeveloperIdentifier[256];
 char Application::SavesDir[256];
-char Application::ScreenshotsDir[256];
+char Application::ScreenshotsPath[256];
 char Application::PreferencesDir[256];
 
 std::unordered_map<std::string, Capability> Application::CapabilityMap;
@@ -617,12 +617,12 @@ const char* Application::GetSavesDir() {
 }
 
 // Returns the name of the screenshots directory
-const char* Application::GetScreenshotsDir() {
-	if (ScreenshotsDir[0] == '\0') {
+const char* Application::GetScreenshotsPath() {
+	if (ScreenshotsPath[0] == '\0') {
 		return nullptr;
 	}
 
-	return ScreenshotsDir;
+	return ScreenshotsPath;
 }
 
 // Returns the name of the preferences directory
@@ -1015,7 +1015,7 @@ bool Application::SetNextGame(const char* path,
 	std::string resolved = "";
 	PathLocation location;
 
-	if (Path::FromURL(path, resolved, location, false) &&
+	if (Path::FromURL(path, resolved, location, false, false) &&
 		(location == PathLocation::GAME || location == PathLocation::USER)) {
 		if (path[strlen(path) - 1] == '/') {
 			exists = Directory::Exists(resolved.c_str());
@@ -2163,7 +2163,8 @@ void Application::InitGameInfo() {
 
 	StringUtils::Copy(GameIdentifier, DEFAULT_GAME_IDENTIFIER, sizeof(GameIdentifier));
 	StringUtils::Copy(SavesDir, DEFAULT_SAVES_DIR, sizeof(SavesDir));
-	StringUtils::Copy(ScreenshotsDir, DEFAULT_SCREENSHOTS_DIR, sizeof(ScreenshotsDir));
+
+	memset(ScreenshotsPath, '\0', sizeof(ScreenshotsPath));
 }
 
 void Application::LoadGameInfo() {
@@ -2249,10 +2250,10 @@ void Application::LoadGameInfo() {
 			Memory::Free(id);
 		}
 
-		node = XMLParser::SearchNode(root, "screenshotsDir");
+		node = XMLParser::SearchNode(root, "screenshotsPath");
 		if (node) {
 			char* id = XMLParser::TokenToString(node->children[0]->name);
-			ValidateAndSetIdentifier("screenshots directory", id, ScreenshotsDir, sizeof(ScreenshotsDir));
+			ValidateAndSetIdentifier("screenshots path", id, ScreenshotsPath, sizeof(ScreenshotsPath));
 			Memory::Free(id);
 		}
 
