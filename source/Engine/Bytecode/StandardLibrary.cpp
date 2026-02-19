@@ -899,7 +899,7 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
 	animator->AnimationTimer += animator->AnimationSpeed;
 
 	// TODO: Animate Retro Model if Frames = AnimFrame* 1 (no size?), else:
-	while (animator->Duration && animator->AnimationTimer > animator->Duration) {
+	while (animator->AnimationTimer > animator->Duration) {
 		++animator->CurrentFrame;
 
 		animator->AnimationTimer -= animator->Duration;
@@ -3460,7 +3460,7 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
  * \paramOpt rotation (number): Rotation of the drawn sprite in radians, or in integer if <param useInteger> is `true`.
- * \paramOpt useInteger (number): Whether the rotation argument is already in radians.
+ * \paramOpt useInteger (boolean): Whether the rotation argument is already in radians.
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */

@@ -16,7 +16,6 @@ struct PNGMetadata {
 class PNG : public ImageFormat {
 public:
 	static PNG* Load(Stream* stream);
-	void ReadPixelDataARGB(Uint32* pixelData, int num_channels);
 	void ReadPixelBitstream(Uint8* pixelData, size_t bit_depth);
 	static bool Save(PNG* png, const char* filename);
 	static bool Save(Texture* texture, const char* filename);
