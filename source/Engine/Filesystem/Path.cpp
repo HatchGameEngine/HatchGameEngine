@@ -769,8 +769,12 @@ Path::StripLocationFromURL(const char* filename, PathLocation& location, bool al
 }
 
 bool Path::IsAbsolute(const char* filename) {
-	if (filename[0] == '/' || StringUtils::StartsWith(&filename[1], ":\\") ||
-		StringUtils::StartsWith(&filename[1], ":/")) {
+	if (filename[0] == '/') {
+		return true;
+	}
+
+	if (filename[0] != '\0' && (StringUtils::StartsWith(&filename[1], ":\\") ||
+		StringUtils::StartsWith(&filename[1], ":/"))) {
 		return true;
 	}
 
@@ -905,4 +909,10 @@ std::string Path::StripURL(const char* filename) {
 	PathLocation location = PathLocation::DEFAULT;
 
 	return StripLocationFromURL(filename, location, true);
+}
+
+bool Path::IsValid(const char* filename) {
+	std::string resolved = "";
+
+	return FromURL(filename, resolved);
 }

@@ -162,7 +162,7 @@ public:
 	static const char* GetSavesDir();
 	static const char* GetScreenshotsPath();
 	static const char* GetPreferencesDir();
-	static std::string GetScreenshotPath();
+	static std::string GetFilenameForScreenshot();
 	static void TakeScreenshot(const char* path, Operation operation);
 	static void TakeScreenshot();
 	static void LoadDefaultFont();

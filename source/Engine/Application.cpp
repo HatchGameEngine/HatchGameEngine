@@ -634,7 +634,7 @@ const char* Application::GetPreferencesDir() {
 	return PreferencesDir;
 }
 
-std::string Application::GetScreenshotPath() {
+std::string Application::GetFilenameForScreenshot() {
 	std::string filename = Screenshot::GetFilename();
 
 	return PATHLOCATION_SCREENSHOTS_URL + filename;
@@ -1672,7 +1672,7 @@ void Application::TakeScreenshot(const char* path, Operation operation) {
 	else {
 		const char* extension = ".png";
 
-		std::string basePath = Application::GetScreenshotPath();
+		std::string basePath = Application::GetFilenameForScreenshot();
 		std::string path = basePath + extension;
 
 		if (Screenshot::Exists(path)) {
@@ -2252,9 +2252,23 @@ void Application::LoadGameInfo() {
 
 		node = XMLParser::SearchNode(root, "screenshotsPath");
 		if (node) {
-			char* id = XMLParser::TokenToString(node->children[0]->name);
-			ValidateAndSetIdentifier("screenshots path", id, ScreenshotsPath, sizeof(ScreenshotsPath));
-			Memory::Free(id);
+			char* path = XMLParser::TokenToString(node->children[0]->name);
+
+			bool isPathValid = false;
+			if (!Path::IsAbsolute(path) && !StringUtils::StartsWith(path, PATHLOCATION_SCREENSHOTS_URL) && Path::IsValid(path)) {
+				isPathValid = true;
+			}
+
+			if (isPathValid) {
+				StringUtils::Copy(ScreenshotsPath, path, sizeof(ScreenshotsPath));
+			}
+			else {
+				Log::Print(Log::LOG_ERROR,
+					"screenshotsPath \"%s\" is not valid!",
+					path);
+			}
+
+			Memory::Free(path);
 		}
 
 		node = XMLParser::SearchNode(root, "preferencesDir");

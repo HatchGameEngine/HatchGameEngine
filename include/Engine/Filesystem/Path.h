@@ -175,6 +175,7 @@ public:
 	static bool FromURL(const char* filename, std::string& result);
 	static void FromURL(const char* filename, char* buf, size_t bufSize);
 	static std::string StripURL(const char* filename);
+	static bool IsValid(const char* filename);
 };
 
 #endif /* ENGINE_FILESYSTEM_PATH_H */
