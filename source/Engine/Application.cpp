@@ -1681,7 +1681,15 @@ void Application::TakeScreenshot(const char* path, Operation operation) {
 				attempt++;
 
 				if (attempt == INT32_MAX) {
-					Log::Print(Log::LOG_ERROR, "Could not save screenshot \"%s\"!", basePath.c_str());
+					const char* realPath = basePath.c_str();
+					std::string resolved = "";
+					if (Path::FromURL(realPath, resolved)) {
+						realPath = resolved.c_str();
+					}
+
+					Log::Print(Log::LOG_ERROR,
+						"Could not save screenshot at \"%s\"!",
+						realPath);
 					return;
 				}
 
@@ -1705,13 +1713,18 @@ void Application::TakeScreenshot() {
 }
 
 void Application::TakeScreenshotCallback(OperationResult result) {
-	const char* filename = StringUtils::GetFilename((const char*)result.Output);
+	const char* filename = (const char*)result.Output;
+
+	std::string resolved = "";
+	if (Path::FromURL(filename, resolved)) {
+		filename = resolved.c_str();
+	}
 
 	if (result.Success) {
-		Log::Print(Log::LOG_VERBOSE, "Saved screenshot \"%s\"", filename);
+		Log::Print(Log::LOG_VERBOSE, "Saved screenshot at \"%s\"", filename);
 	}
 	else {
-		Log::Print(Log::LOG_ERROR, "Could not save screenshot \"%s\"!", filename);
+		Log::Print(Log::LOG_ERROR, "Could not save screenshot at \"%s\"!", filename);
 	}
 }
 
