@@ -898,7 +898,7 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
 	animator->AnimationTimer += animator->AnimationSpeed;
 
 	// TODO: Animate Retro Model if Frames = AnimFrame* 1 (no size?), else:
-	while (animator->Duration && animator->AnimationTimer > animator->Duration) {
+	while (animator->AnimationTimer > animator->Duration) {
 		++animator->CurrentFrame;
 
 		animator->AnimationTimer -= animator->Duration;
