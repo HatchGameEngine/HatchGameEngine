@@ -47,6 +47,7 @@ enum class Platforms { Windows, MacOS, Linux, Switch, PlayStation, Xbox, Android
 
 enum class KeyBind {
 	Fullscreen,
+	Screenshot,
 	ToggleFPSCounter,
 
 	DevRestartApp,
@@ -131,6 +132,10 @@ typedef int64_t Sint64;
 #define NEW_STRUCT_MACRO(n) (n)
 #else
 #define NEW_STRUCT_MACRO(n) n
+#endif
+
+#if defined(__unix__) && !defined(UNIX)
+#define UNIX __unix__
 #endif
 
 #endif // STANDARDLIBS_H
