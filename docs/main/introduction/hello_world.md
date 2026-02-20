@@ -562,15 +562,7 @@ By default, Hatch will load an empty scene, but you can specify a scene file. Th
 [tileset.png](tileset.png)  
 [background.png](background.png)  
 
-The `scene.tmx` file is the scene file we'll be loading. It's pretty simple; it has only two layers, and one object, the chick. The tileset images are the files `tileset.png` and `background.png`. Hatch supports loading external Tiled tileset files (TSX) if specified by the map, but `scene.tmx` stores its tileset internally.
-
-Go back to `init.hsl`. Remove the call to @ref Instance.Create:
-
-```diff
-- Instance.Create("Chick", 48.0, 48.0);
-```
-
-And in your `GameConfig.xml`, add this line:
+The `scene.tmx` file is the scene file we'll be loading. It's pretty simple; it has only two layers, and one object, the chick. The tileset images are the files `tileset.png` and `background.png`. Hatch supports loading external Tiled tileset files (TSX) if specified by the map, but `scene.tmx` stores its tileset internally. To make Hatch load `scene.tmx` when it opens, add this line to `GameConfig.xml`:
 
 ```diff
  <?xml version="1.0" encoding="UTF-8"?>
@@ -578,6 +570,12 @@ And in your `GameConfig.xml`, add this line:
      <name>My Hatch Game</name>
 +    <startscene>scene.tmx</startscene>
  </gameconfig>
+```
+
+Since `scene.tmx` has an instance of the `Chick` object, your script doesn't need to create one anymore. Go back to `init.hsl`, and remove the call to @ref Instance.Create:
+
+```diff
+- Instance.Create("Chick", 48.0, 48.0);
 ```
 
 Press F1, and you should see this:
