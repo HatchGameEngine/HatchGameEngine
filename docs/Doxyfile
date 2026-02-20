@@ -1442,6 +1442,7 @@ HTML_EXTRA_FILES       = main/files/scene.tmx \
                          main/files/tileset.png \
                          main/files/background.png \
                          main/files/hatch.png \
+                         main/files/collision.bin \
                          main/media/tutorial-4.mp4 \
                          main/media/tutorial-5.mp4 \
                          main/media/tutorial-6.mp4 \
