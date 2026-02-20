@@ -97,7 +97,10 @@
       <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
+      <Command>if not exist "$(SolutionDir)..\builds\win" (
+    mkdir "$(SolutionDir)..\builds\win"
+)
+copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -117,7 +120,10 @@
       <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Command>
+      <Command>if not exist "$(SolutionDir)..\builds\win" (
+    mkdir "$(SolutionDir)..\builds\win"
+)
+copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -127,7 +133,10 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
+      <Command>if not exist "$(SolutionDir)..\builds\win" (
+    mkdir "$(SolutionDir)..\builds\win"
+)
+copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
     </PostBuildEvent>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
