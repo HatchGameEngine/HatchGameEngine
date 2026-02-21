@@ -2787,7 +2787,7 @@ void Application::DevMenu_MainMenu() {
 
 	if (DevMenu.Selection == 2 && SceneInfo::Categories.empty()) {
 		DrawDevString("Warning: No scene list is loaded.", 160, 101, ALIGN_LEFT, false);
-		DrawDevString("This option is disabled.", 160, 101, ALIGN_LEFT, false);
+		DrawDevString("This option is disabled.", 160, 116, ALIGN_LEFT, false);
 	}
 
 	int actionUp = InputManager::GetActionID("Up");
