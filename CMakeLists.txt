@@ -25,13 +25,6 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE -DTARGET_NAME=\"${HATCH_TARGET_NAME}\")
-
-set(CONSOLE_BASE_PATH "" CACHE STRING "Optional base path (must end with '/')")
-if(NOT CONSOLE_BASE_PATH STREQUAL "")
-  target_compile_definitions(${PROJECT_NAME} PRIVATE -DCONSOLE_BASE_PATH="${CONSOLE_BASE_PATH}")
-endif()
-
 # Build options
 option(ENABLE_SCRIPT_COMPILING "Enable script compiling" ON)
 option(ENABLE_USING_VM_FUNCPTRS "Enable function-pointer based VM" ON)
@@ -54,10 +47,24 @@ option(USE_DEFAULT_FONTS "Build with default fonts" ON)
 # Renderers
 option(USING_OPENGL "Use OpenGL" ON)
 
+# Find platform cmake file
+find_file(PLATFORM_FILE NAMES "${CMAKE_SYSTEM_NAME}.cmake" PATHS "${CMAKE_SOURCE_DIR}/cmake/Platforms" NO_DEFAULT_PATH)
+if(NOT PLATFORM_FILE)
+  message(FATAL_ERROR "Could not find cmake file for target: '${CMAKE_SYSTEM_NAME}'")
+endif()
+include(${PLATFORM_FILE})
+
+set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
+
+# Change executable name
+if(EXECUTABLE_NAME)
+  set(OUT_EXEC_NAME ${EXECUTABLE_NAME})
+endif()
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}")
+
 if(USING_OPENGL)
   target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSING_OPENGL)
 endif()
-
 
 if(NOT ENABLE_SCRIPT_COMPILING)
   target_compile_definitions(${PROJECT_NAME} PRIVATE -DNO_SCRIPT_COMPILING)
@@ -89,6 +96,13 @@ endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE -DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME)
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE -DTARGET_NAME=\"${HATCH_TARGET_NAME}\")
+
+set(CONSOLE_BASE_PATH "" CACHE STRING "Optional base path (must end with '/')")
+if(NOT CONSOLE_BASE_PATH STREQUAL "")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DCONSOLE_BASE_PATH="${CONSOLE_BASE_PATH}")
+endif()
+
 find_file(REPO_DIR NAMES .git PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
 
 if (REPO_DIR)
@@ -100,21 +114,6 @@ if (REPO_DIR)
 
   target_compile_definitions(${PROJECT_NAME} PRIVATE "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 endif()
-
-# Find platform cmake file
-find_file(PLATFORM_FILE NAMES "${CMAKE_SYSTEM_NAME}.cmake" PATHS "${CMAKE_SOURCE_DIR}/cmake/Platforms" NO_DEFAULT_PATH)
-if(NOT PLATFORM_FILE)
-  message(FATAL_ERROR "Could not find cmake file for target: '${CMAKE_SYSTEM_NAME}'")
-endif()
-include(${PLATFORM_FILE})
-
-set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
-
-# Change executable name
-if(EXECUTABLE_NAME)
-  set(OUT_EXEC_NAME ${EXECUTABLE_NAME})
-endif()
-set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}")
 
 # Add needed directories
 include_directories(
