@@ -25,43 +25,25 @@ if(RESOURCE_FILE)
   set(WIN_RES_FILE ${RESOURCE_FILE})
 endif()
 
-set(SDL2_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/meta/win/include/SDL2/")
-
 if(USING_OPENGL)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE -DGLEW_STATIC)
+  include(cmake/Dependencies/FetchGLEW.cmake)
 endif()
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-  set(USE_OPEN_ASSET_IMPORT_LIBRARY OFF)
-
-  if(USING_OPENGL)
-    set(OPENGL_LIBRARIES "${CMAKE_SOURCE_DIR}/meta/win/lib/msvc/x64/glew32s.lib")
-  endif()
-else()
-  if(USE_OPEN_ASSET_IMPORT_LIBRARY)
-    set(assimp_FOUND TRUE)
-    set(ASSIMP_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/meta/win/include/assimp/")
-    set(ASSIMP_LIBRARIES "${CMAKE_SOURCE_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libassimp.a;${CMAKE_SOURCE_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libzlibstatic.a")
-  endif()
-
-  if(USING_OPENGL)
-    set(OPENGL_LIBRARIES "${CMAKE_SOURCE_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libglew32.a;-lgdi32;-lopengl32")
-  endif()
-endif()
-
-# Add all of the Windows include files
-include_directories("${CMAKE_SOURCE_DIR}/meta/win/include")
 
 if(WINDOWS_USE_RESOURCE_FILE)
   target_sources(${PROJECT_NAME} PRIVATE ${WIN_RES_FILE})
 endif()
 
+include(cmake/Dependencies/FetchSDL2.cmake)
+
+if(USE_OPEN_ASSET_IMPORT_LIBRARY)
+  include(cmake/Dependencies/Fetchassimp.cmake)
+endif()
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-  target_link_libraries(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/meta/win/lib/msvc/x64/SDL2.lib"
+  target_link_libraries(${PROJECT_NAME}
     Ws2_32.lib opengl32.lib winmm.lib imm32.lib version.lib setupapi.lib)
 else()
   target_link_libraries(${PROJECT_NAME}
-    "${CMAKE_SOURCE_DIR}/meta/win/lib/mingw/${TOOLCHAIN_PREFIX}/libSDL2.a"
     -static -lmingw32 -lm -ldinput8 -ldxguid -ldxerr8
     -luser32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32
     -lversion -luuid -lhid -lsetupapi -lws2_32)

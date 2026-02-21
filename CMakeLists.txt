@@ -123,9 +123,7 @@ include_directories(
 )
 
 # Add libraries
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-  target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
-endif()
+target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
 
 if(PNG_FOUND)
   target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSING_LIBPNG)
