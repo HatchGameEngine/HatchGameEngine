@@ -122,10 +122,6 @@ include_directories(
   ${SDL2_INCLUDE_DIRS}
 )
 
-if(USE_OPEN_ASSET_IMPORT_LIBRARY)
-  include_directories(${ASSIMP_INCLUDE_DIRS})
-endif()
-
 # Add libraries
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES})
@@ -138,6 +134,7 @@ endif()
 
 if(USE_OPEN_ASSET_IMPORT_LIBRARY)
   if(assimp_FOUND)
+    include_directories(${ASSIMP_INCLUDE_DIRS})
     target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSING_ASSIMP)
     target_link_libraries(${PROJECT_NAME} ${ASSIMP_LIBRARIES})
   endif()
