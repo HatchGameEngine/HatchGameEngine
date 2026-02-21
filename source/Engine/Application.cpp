@@ -1541,6 +1541,10 @@ void Application::RunFrame(int runFrames) {
 
 	FrameTimeStart = Clock::GetTicks();
 
+	Metrics.Clear.Begin();
+	Graphics::Clear();
+	Metrics.Clear.End();
+
 	// Event loop
 	Metrics.Event.Begin();
 	Application::PollEvents();
@@ -1627,10 +1631,6 @@ void Application::RunFrame(int runFrames) {
 #endif
 
 	// Rendering
-	Metrics.Clear.Begin();
-	Graphics::Clear();
-	Metrics.Clear.End();
-
 	Metrics.Render.Begin();
 	Scene::Render();
 	Metrics.Render.End();
