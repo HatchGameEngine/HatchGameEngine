@@ -354,6 +354,14 @@ void ScriptEntity::LinkFields() {
     * \desc Whether <ref Entity.Animate> is automatically called for this entity.
     */
 	LINK_INT(AutoAnimate);
+	/***
+	* \field AnimationFrameSkip
+	* \type boolean
+	* \default true
+	* \ns Entity
+	* \desc Whether <ref Entity.Animate> has skip-capable animating. Entities with this on can skip animation frames if <ref Entity.AnimationSpeed> passes multiples of <ref Entity.AnimationFrameDuration>.
+	*/
+	LINK_INT(AnimationFrameSkip);
 
 	/***
     * \field OnScreen
