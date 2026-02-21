@@ -6,10 +6,9 @@ find_package(SDL2 REQUIRED)
 find_package(PNG)
 
 if(USE_OPEN_ASSET_IMPORT_LIBRARY)
-  set(assimp_FOUND TRUE)
-  # No need to duplicate headers, use the ones for Windows
-  set(ASSIMP_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/meta/win/include/")
-  set(ASSIMP_LIBRARIES "${CMAKE_SOURCE_DIR}/meta/nx/lib/libassimp.a" "-lz -lminizip")
+  # Force find zlib dependency
+  find_package(ZLIB REQUIRED)
+  include(cmake/Dependencies/Fetchassimp.cmake)
 endif()
 
 if(USING_OPENGL)
