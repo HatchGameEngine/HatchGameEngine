@@ -11659,6 +11659,21 @@ VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(AudioManager::IsPlayingMusic(audio));
 }
 /***
+ * Music.GetDuration
+ * \desc Gets the duration of the current track playing.
+ * \param music (integer): The music index to get the duration (in seconds) of.
+ * \return decimal Returns a decimal value.
+ * \ns Music
+ */
+VMValue Music_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetMusic);
+	if (!audio) {
+		return DECIMAL_VAL(0.0);
+	}
+	return DECIMAL_VAL((float)AudioManager::GetMusicDuration(audio));
+}
+/***
  * Music.GetPosition
  * \desc Gets the position of the current track playing.
  * \param music (integer): The music index to get the current position (in seconds) of.
@@ -21303,6 +21318,7 @@ This class also houses the input action system.
 	DEF_NATIVE(Music, Resume);
 	DEF_NATIVE(Music, Clear);
 	DEF_NATIVE(Music, IsPlaying);
+	DEF_NATIVE(Music, GetDuration);
 	DEF_NATIVE(Music, GetPosition);
 	DEF_NATIVE(Music, Alter);
 	DEF_NATIVE(Music, GetLoopPoint);
