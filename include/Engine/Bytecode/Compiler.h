@@ -63,7 +63,6 @@ public:
 	Token PeekNextToken();
 	Token PrevToken();
 	bool MatchToken(int expectedType);
-	bool MatchAssignmentToken();
 	bool CheckToken(int expectedType);
 	void ConsumeToken(int type, const char* message);
 	void ConsumeIdentifier(const char* message);
@@ -86,18 +85,14 @@ public:
 	void EmitGetOperation(Uint8 getOp, int arg, Token name);
 	void EmitAssignmentToken(Token assignmentToken);
 	void EmitCopy(Uint8 count);
+	void EmitCopyAndLoadIndirect();
 	void EmitCall(const char* name, int argCount, bool isSuper);
 	void EmitCall(Token name, int argCount, bool isSuper);
 	void EmitCallOpcode(int argCount, bool isSuper);
-	bool ResolveNamedVariable(Token name, Uint8& getOp, Uint8& setOp, Local& local, int& arg);
-	void DoVariableAssignment(Token name,
-		Local local,
-		Uint8 getOp,
-		Uint8 setOp,
-		int arg,
-		Token assignmentToken,
-		bool isPrefix);
-	void NamedVariable(Token name, bool canAssign);
+	void EmitDirectOrIndirectLoad();
+	bool MakeIndirectPropertyChainDirect(Chunk* chunk, Uint8* op, int index);
+	Uint8 IndirectLoadOpcodeToDirect(Uint8 op);
+	ExprContext NamedVariable(Token name, Local& local, ExprContext context);
 	void ScopeBegin();
 	void ScopeEnd();
 	void ClearToScope(int depth);
@@ -113,33 +108,31 @@ public:
 	int AddModuleLocal(Token name);
 	int ResolveModuleLocal(Token* name, Local* result = NULL);
 	Uint8 GetArgumentList();
-	void GetThis(bool canAssign);
-	void GetSuper(bool canAssign);
-	void GetDot(bool canAssign);
-	void GetElement(bool canAssign);
-	void GetGrouping(bool canAssign);
-	void GetLiteral(bool canAssign);
-	void GetInteger(bool canAssign);
-	void GetDecimal(bool canAssign);
+	ExprContext GetThis(ExprContext context);
+	ExprContext GetSuper(ExprContext context);
+	ExprContext GetDot(ExprContext context);
+	ExprContext GetElement(ExprContext context);
+	ExprContext GetGrouping(ExprContext context);
+	ExprContext GetLiteral(ExprContext context);
+	ExprContext GetInteger(ExprContext context);
+	ExprContext GetDecimal(ExprContext context);
 	ObjString* MakeString(Token token);
-	void GetString(bool canAssign);
-	void GetArray(bool canAssign);
-	void GetMap(bool canAssign);
-	bool IsConstant();
-	void GetConstant(bool canAssign);
-	void GetVariable(bool canAssign);
-	void GetLogicalAND(bool canAssign);
-	void GetLogicalOR(bool canAssign);
-	void GetConditional(bool canAssign);
-	void GetUnary(bool canAssign);
-	void UnaryIncrement(Token name, Token assignmentToken, bool canAssign);
-	void GetNew(bool canAssign);
-	void GetHitbox(bool canAssign);
-	void GetBinary(bool canAssign);
-	void GetHas(bool canAssign);
-	void GetSuffix(bool canAssign);
-	void GetCall(bool canAssign);
-	void GetExpression();
+	ExprContext GetString(ExprContext context);
+	ExprContext GetArray(ExprContext context);
+	ExprContext GetMap(ExprContext context);
+	ExprContext GetVariable(ExprContext context);
+	ExprContext GetLogicalAND(ExprContext context);
+	ExprContext GetLogicalOR(ExprContext context);
+	ExprContext GetConditional(ExprContext context);
+	ExprContext GetUnary(ExprContext context);
+	ExprContext GetNew(ExprContext context);
+	ExprContext GetHitbox(ExprContext context);
+	ExprContext GetBinary(ExprContext context);
+	ExprContext GetAssignment(ExprContext context);
+	ExprContext GetHas(ExprContext context);
+	ExprContext GetCall(ExprContext context);
+	ExprContext GetExpression();
+	void GetValueExpression();
 	void GetPrintStatement();
 	void GetExpressionStatement();
 	void GetContinueStatement();
@@ -172,11 +165,13 @@ public:
 	void GetDeclaration();
 	static void MakeRules();
 	ParseRule* GetRule(int type);
-	void ParsePrecedence(Precedence precedence);
+	ExprContext ParsePrecedence(Precedence precedence, ExprContext context);
+	ExprContext ParsePrecedence(Precedence precedence);
 	Uint32 GetHash(char* string);
 	Uint32 GetHash(Token token);
 	Chunk* CurrentChunk();
 	int CodePointer();
+	Uint8* GetLastOpcodePtr(Chunk* chunk, int index);
 	void EmitByte(Uint8 byte);
 	void EmitBytes(Uint8 byte1, Uint8 byte2);
 	void EmitUint16(Uint16 value);
