@@ -1,5 +1,5 @@
 add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
-add_definitions(-DSWITCH -DCONSOLE_FILESYSTEM)
+target_compile_definitions(${PROJECT_NAME} PRIVATE -DSWITCH -DCONSOLE_FILESYSTEM)
 
 find_package(SDL2 REQUIRED)
 
@@ -20,7 +20,7 @@ set(ICON_FILE "meta/nx/icon.jpg" CACHE FILEPATH "Optional path to a jpg icon")
 set(ROMFS_PATH "" CACHE PATH "Optional path to a folder containing game data")
 if (NOT ROMFS_PATH STREQUAL "")
   message(STATUS "SWITCH: Building with romfs: ${ROMFS_PATH}")
-  add_definitions(-DSWITCH_ROMFS)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DSWITCH_ROMFS)
   nx_create_nro(${PROJECT_NAME} ICON ${ICON_FILE} ROMFS ${ROMFS_PATH})
 else()
   message(STATUS "SWITCH: Building without romfs")

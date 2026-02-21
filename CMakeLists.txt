@@ -25,11 +25,11 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-add_definitions(-DTARGET_NAME=\"${HATCH_TARGET_NAME}\")
+target_compile_definitions(${PROJECT_NAME} PRIVATE -DTARGET_NAME=\"${HATCH_TARGET_NAME}\")
 
 set(CONSOLE_BASE_PATH "" CACHE STRING "Optional base path (must end with '/')")
 if(NOT CONSOLE_BASE_PATH STREQUAL "")
-  add_definitions(-DCONSOLE_BASE_PATH="${CONSOLE_BASE_PATH}")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DCONSOLE_BASE_PATH="${CONSOLE_BASE_PATH}")
 endif()
 
 # Build options
@@ -55,39 +55,39 @@ option(USE_DEFAULT_FONTS "Build with default fonts" ON)
 option(USING_OPENGL "Use OpenGL" ON)
 
 if(USING_OPENGL)
-  add_definitions(-DUSING_OPENGL)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSING_OPENGL)
 endif()
 
 
 if(NOT ENABLE_SCRIPT_COMPILING)
-  add_definitions(-DNO_SCRIPT_COMPILING)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DNO_SCRIPT_COMPILING)
 endif()
 
 if(ENABLE_USING_VM_FUNCPTRS)
-  add_definitions(-DUSING_VM_FUNCPTRS)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSING_VM_FUNCPTRS)
 endif()
 
 if(ENABLE_VM_DEBUGGING)
-  add_definitions(-DVM_DEBUG)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DVM_DEBUG)
 endif()
 
 if(DEVELOPER_MODE)
-  add_definitions(-DDEVELOPER_MODE)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DDEVELOPER_MODE)
 endif()
 
 if(PORTABLE_MODE)
-  add_definitions(-DPORTABLE_MODE)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DPORTABLE_MODE)
 endif()
 
 if(ALLOW_COMMAND_LINE_RESOURCE_LOAD)
-  add_definitions(-DALLOW_COMMAND_LINE_RESOURCE_LOAD)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DALLOW_COMMAND_LINE_RESOURCE_LOAD)
 endif()
 
 if(USE_DEFAULT_FONTS)
-  add_definitions(-DUSE_DEFAULT_FONTS)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSE_DEFAULT_FONTS)
 endif()
 
-add_definitions(-DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME)
+target_compile_definitions(${PROJECT_NAME} PRIVATE -DMINIZ_NO_ARCHIVE_APIS -DMINIZ_NO_ARCHIVE_WRITING_APIS -DMINIZ_NO_TIME)
 
 find_file(REPO_DIR NAMES .git PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
 
@@ -98,7 +98,7 @@ if (REPO_DIR)
     OUTPUT_VARIABLE GIT_COMMIT_HASH
     OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-  add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE "-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 endif()
 
 # Find platform cmake file
@@ -133,13 +133,13 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 endif()
 
 if(PNG_FOUND)
-  add_definitions(-DUSING_LIBPNG)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSING_LIBPNG)
   target_link_libraries(${PROJECT_NAME} ${PNG_LIBRARIES})
 endif()
 
 if(USE_OPEN_ASSET_IMPORT_LIBRARY)
   if(assimp_FOUND)
-    add_definitions(-DUSING_ASSIMP)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSING_ASSIMP)
     target_link_libraries(${PROJECT_NAME} ${ASSIMP_LIBRARIES})
   endif()
 endif()

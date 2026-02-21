@@ -1,5 +1,5 @@
 add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
-add_definitions(-DLINUX)
+target_compile_definitions(${PROJECT_NAME} PRIVATE -DLINUX)
 
 find_package(SDL2 REQUIRED)
 

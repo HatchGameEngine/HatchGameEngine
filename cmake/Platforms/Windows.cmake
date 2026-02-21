@@ -1,5 +1,5 @@
 add_executable(${PROJECT_NAME} ${HATCH_SOURCES})
-add_definitions(-DWIN32 -D_WINDOWS)
+target_compile_definitions(${PROJECT_NAME} PRIVATE -DWIN32 -D_WINDOWS)
 
 option(WINDOWS_USE_RESOURCE_FILE "Use resource file (Windows)" ON)
 
@@ -16,7 +16,7 @@ endif()
 option(USING_DIRECT3D "Use Direct3D" OFF)
 
 if(USING_DIRECT3D)
-  add_definitions(-DUSING_DIRECT3D)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSING_DIRECT3D)
 endif()
 
 set(WIN_RES_FILE "${CMAKE_SOURCE_DIR}/meta/win/HatchGameEngine.rc")
@@ -28,7 +28,7 @@ endif()
 set(SDL2_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/meta/win/include/SDL2/")
 
 if(USING_OPENGL)
-  add_definitions(-DGLEW_STATIC)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE -DGLEW_STATIC)
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
@@ -70,4 +70,4 @@ else()
     target_link_libraries(${PROJECT_NAME} -mwindows)
   endif()
 endif()
-add_definitions(-DSDL_MAIN_HANDLED)
+target_compile_definitions(${PROJECT_NAME} PRIVATE -DSDL_MAIN_HANDLED)
