@@ -3505,7 +3505,7 @@ ExprContext Compiler::ParsePrecedence(Precedence precedence, ExprContext context
 		}
 	}
 
-	VariableLocal.Index = -1;
+	VariableLocal.Type = VARTYPE_UNKNOWN;
 	VariableLocal.Constant = false;
 
 	if (initialContext == EXPRCONTEXT_VALUE && context == EXPRCONTEXT_LOCATION) {
