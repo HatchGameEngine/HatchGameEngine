@@ -9,9 +9,7 @@ else()
   option(WINDOWS_COMPILE_AS_CONSOLE_APP "Compile as a console application" OFF)
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4244 /wd4267 /wd4305 /wd4717 /EHsc")
-endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4244 /wd4267 /wd4305 /wd4717 /EHsc")
 
 option(USING_DIRECT3D "Use Direct3D" OFF)
 
@@ -39,17 +37,11 @@ if(USE_OPEN_ASSET_IMPORT_LIBRARY)
   include(cmake/Dependencies/Fetchassimp.cmake)
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-  target_link_libraries(${PROJECT_NAME}
-    Ws2_32.lib opengl32.lib winmm.lib imm32.lib version.lib setupapi.lib)
-else()
-  target_link_libraries(${PROJECT_NAME}
-    -static -lmingw32 -lm -ldinput8 -ldxguid -ldxerr8
-    -luser32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32
-    -lversion -luuid -lhid -lsetupapi -lws2_32)
+target_link_libraries(${PROJECT_NAME}
+  Ws2_32.lib opengl32.lib winmm.lib imm32.lib version.lib setupapi.lib)
 
-  if(NOT WINDOWS_COMPILE_AS_CONSOLE_APP)
-    target_link_libraries(${PROJECT_NAME} -mwindows)
-  endif()
+if(NOT WINDOWS_COMPILE_AS_CONSOLE_APP)
+  target_link_libraries(${PROJECT_NAME} -mwindows)
 endif()
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE -DSDL_MAIN_HANDLED)
