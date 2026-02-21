@@ -421,6 +421,18 @@ void AudioManager::AlterMusic(float pan, float speed, float volume) {
 	}
 	AudioManager::Unlock();
 }
+double AudioManager::GetMusicDuration(ISound* music) {
+	AudioManager::Lock();
+	double duration = 0.0;
+	for (size_t i = 0; i < MusicStack.size(); i++) {
+		if (MusicStack[i]->Audio == music) {
+			duration = MusicStack[i]->Playback->SoundData->GetDuration();
+			break;
+		}
+	}
+	AudioManager::Unlock();
+	return duration;
+}
 double AudioManager::GetMusicPosition(ISound* music) {
 	AudioManager::Lock();
 	double position = 0.0;
