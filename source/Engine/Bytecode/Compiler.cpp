@@ -1062,7 +1062,7 @@ int Compiler::DeclareVariable(Token* name, bool constant) {
 	if (!constant) {
 		return AddLocal(*name);
 	}
-	Constants.push_back({*name, LOCALTYPE_STACK, 0, ScopeDepth, false, false, true});
+	Constants.push_back({*name, VARTYPE_LOCAL, 0, ScopeDepth, false, false, true});
 	return ((int)Constants.size()) - 1;
 }
 int Compiler::ParseModuleVariable(const char* errorMessage, bool constant) {
@@ -1094,7 +1094,7 @@ int Compiler::DeclareModuleVariable(Token* name, bool constant) {
 		return AddModuleLocal(*name);
 	}
 
-	Compiler::ModuleConstants.push_back({*name, LOCALTYPE_MODULE, 0, 0, false, false, true});
+	Compiler::ModuleConstants.push_back({*name, VARTYPE_MODULE_LOCAL, 0, 0, false, false, true});
 	return ((int)Compiler::ModuleConstants.size()) - 1;
 }
 void Compiler::WarnVariablesUnusedUnset() {
@@ -1411,9 +1411,9 @@ ExprContext Compiler::NamedVariable(Token name, Local& currentLocal, ExprContext
 			getOp = OP_LOCATION_STACK;
 		}
 
-		if (currentLocal.Index == -1) {
+		if (currentLocal.Type == VARTYPE_UNKNOWN) {
 			currentLocal = local;
-			currentLocal.Type = LOCALTYPE_STACK;
+			currentLocal.Type = VARTYPE_LOCAL;
 			currentLocal.Index = arg;
 		}
 	}
@@ -1428,9 +1428,9 @@ ExprContext Compiler::NamedVariable(Token name, Local& currentLocal, ExprContext
 				getOp = OP_LOCATION_MODULE_LOCAL;
 			}
 
-			if (currentLocal.Index == -1) {
+			if (currentLocal.Type == VARTYPE_UNKNOWN) {
 				currentLocal = local;
-				currentLocal.Type = LOCALTYPE_MODULE;
+				currentLocal.Type = VARTYPE_MODULE_LOCAL;
 				currentLocal.Index = arg;
 			}
 		}
@@ -1446,9 +1446,10 @@ ExprContext Compiler::NamedVariable(Token name, Local& currentLocal, ExprContext
 		}
 	}
 
-	if (currentLocal.Index == -1) {
+	if (currentLocal.Type == VARTYPE_UNKNOWN) {
 		currentLocal = local;
-		currentLocal.Index = 0;
+		currentLocal.Type = VARTYPE_GLOBAL;
+		currentLocal.Index = -1;
 	}
 
 	if (local.Constant && local.ConstantVal.Type != VAL_ERROR) {
@@ -2108,13 +2109,11 @@ ExprContext Compiler::GetAssignment(ExprContext context) {
 
 	CHECK_LVALUE();
 
-	if (VariableLocal.Index >= 0) {
-		if (VariableLocal.Type == LOCALTYPE_STACK) {
-			Locals[VariableLocal.Index].WasSet = true;
-		}
-		else if (VariableLocal.Type == LOCALTYPE_MODULE) {
-			ModuleLocals[VariableLocal.Index].WasSet = true;
-		}
+	if (VariableLocal.Type == VARTYPE_LOCAL) {
+		Locals[VariableLocal.Index].WasSet = true;
+	}
+	else if (VariableLocal.Type == VARTYPE_MODULE_LOCAL) {
+		ModuleLocals[VariableLocal.Index].WasSet = true;
 	}
 
 	Token assignmentToken = parser.Previous;
@@ -3078,7 +3077,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 		DefineVariableToken(token, constant);
 		if (constant && variable == -1) {
 			// treat it like a module constant
-			ModuleConstants.push_back({token, LOCALTYPE_MODULE, 0, 0, false, false, true, value});
+			ModuleConstants.push_back({token, VARTYPE_MODULE_LOCAL, 0, 0, false, false, true, value});
 		}
 	} while (MatchToken(TOKEN_COMMA));
 
@@ -3301,7 +3300,7 @@ void Compiler::GetEnumDeclaration() {
 				if (variable == -1) {
 					// treat it as a module constant
 					ModuleConstants.push_back(
-						{token, LOCALTYPE_MODULE, 0, 0, false, false, true, current});
+						{token, VARTYPE_MODULE_LOCAL, 0, 0, false, false, true, current});
 				}
 			}
 		} while (MatchToken(TOKEN_COMMA));

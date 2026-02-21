@@ -49,14 +49,16 @@ enum ExprContext {
 class Compiler;
 typedef ExprContext (Compiler::*ParseFn)(ExprContext context);
 
-enum LocalType {
-	LOCALTYPE_STACK,
-	LOCALTYPE_MODULE
+enum VariableType {
+	VARTYPE_UNKNOWN,
+	VARTYPE_LOCAL,
+	VARTYPE_MODULE_LOCAL,
+	VARTYPE_GLOBAL
 };
 
 struct Local {
 	Token Name;
-	LocalType Type;
+	VariableType Type = VARTYPE_UNKNOWN;
 	int Index = -1;
 	int Depth = -1;
 	bool Resolved = false;
