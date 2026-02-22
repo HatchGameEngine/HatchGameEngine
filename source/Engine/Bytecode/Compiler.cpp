@@ -26,6 +26,12 @@ HashMap<Token>* Compiler::TokenMap = NULL;
 bool Compiler::DoLogging = false;
 CompilerSettings Compiler::Settings;
 
+Local VariableLocal;
+Token VariableToken = Token{0, NULL, 0, 0, 0};
+Token InstanceToken = Token{0, NULL, 0, 0, 0};
+
+bool ShouldEmitValue = false;
+
 // Order these by C/C++ precedence operators
 enum TokenTYPE {
 	// Other
@@ -699,32 +705,6 @@ bool Compiler::MatchToken(int expectedType) {
 	AdvanceToken();
 	return true;
 }
-bool Compiler::MatchAssignmentToken() {
-	switch (parser.Current.Type) {
-	case TOKEN_ASSIGNMENT:
-	case TOKEN_ASSIGNMENT_MULTIPLY:
-	case TOKEN_ASSIGNMENT_DIVISION:
-	case TOKEN_ASSIGNMENT_MODULO:
-	case TOKEN_ASSIGNMENT_PLUS:
-	case TOKEN_ASSIGNMENT_MINUS:
-	case TOKEN_ASSIGNMENT_BITWISE_LEFT:
-	case TOKEN_ASSIGNMENT_BITWISE_RIGHT:
-	case TOKEN_ASSIGNMENT_BITWISE_AND:
-	case TOKEN_ASSIGNMENT_BITWISE_XOR:
-	case TOKEN_ASSIGNMENT_BITWISE_OR:
-		AdvanceToken();
-		return true;
-
-	case TOKEN_INCREMENT:
-	case TOKEN_DECREMENT:
-		AdvanceToken();
-		return true;
-
-	default:
-		break;
-	}
-	return false;
-}
 bool Compiler::CheckToken(int expectedType) {
 	return parser.Current.Type == expectedType;
 }
@@ -929,7 +909,7 @@ int Compiler::DeclareVariable(Token* name, bool constant) {
 	if (!constant) {
 		return AddLocal(*name);
 	}
-	Constants.push_back({*name, ScopeDepth, -1, false, false, true});
+	Constants.push_back({*name, VARTYPE_LOCAL, -1, ScopeDepth, false, false, true});
 	return ((int)Constants.size()) - 1;
 }
 int Compiler::ParseModuleVariable(const char* errorMessage, bool constant) {
@@ -961,7 +941,7 @@ int Compiler::DeclareModuleVariable(Token* name, bool constant) {
 		return AddModuleLocal(*name);
 	}
 
-	Compiler::ModuleConstants.push_back({*name, 0, -1, false, false, true});
+	Compiler::ModuleConstants.push_back({*name, VARTYPE_MODULE_LOCAL, -1, 0, false, false, true});
 	return ((int)Compiler::ModuleConstants.size()) - 1;
 }
 void Compiler::WarnVariablesUnusedUnset() {
@@ -1036,16 +1016,18 @@ void Compiler::EmitGetOperation(Uint8 getOp, int arg, Token name) {
 	switch (getOp) {
 	case OP_GET_GLOBAL:
 	case OP_GET_PROPERTY:
+	case OP_LOCATION_PROPERTY:
+	case OP_LOCATION_SUPER_PROPERTY:
+	case OP_LOCATION_GLOBAL:
 		EmitByte(getOp);
 		EmitStringHash(name);
 		break;
 	case OP_GET_LOCAL:
+	case OP_LOCATION_STACK:
 		EmitBytes(getOp, (Uint8)arg);
 		break;
-	case OP_GET_ELEMENT:
-		EmitByte(getOp);
-		break;
 	case OP_GET_MODULE_LOCAL:
+	case OP_LOCATION_MODULE_LOCAL:
 		EmitByte(getOp);
 		EmitUint16((Uint16)arg);
 	default:
@@ -1098,6 +1080,19 @@ void Compiler::EmitCopy(Uint8 count) {
 	EmitByte(OP_COPY);
 	EmitByte(count);
 }
+void Compiler::EmitCopyAndLoadIndirect() {
+	Uint8* op = GetLastOpcodePtr(CurrentChunk(), 0);
+	if (*op == OP_LOCATION_PROPERTY || *op == OP_LOCATION_SUPER_PROPERTY) {
+		EmitCopy(2);
+	}
+	else if (*op == OP_LOCATION_ELEMENT) {
+		EmitCopy(3);
+	}
+	else {
+		EmitCopy(1);
+	}
+	EmitByte(OP_LOAD_INDIRECT);
+}
 
 void Compiler::EmitCall(const char* name, int argCount, bool isSuper) {
 	EmitCallOpcode(argCount, isSuper);
@@ -1112,104 +1107,207 @@ void Compiler::EmitCallOpcode(int argCount, bool isSuper) {
 	EmitByte(argCount);
 }
 
-bool Compiler::ResolveNamedVariable(Token name,
-	Uint8& getOp,
-	Uint8& setOp,
-	Local& local,
-	int& arg) {
-	local.Constant = false;
+void Compiler::EmitDirectOrIndirectLoad() {
+	if (!CurrentSettings.DoOptimizations) {
+		EmitByte(OP_LOAD_INDIRECT);
+		return;
+	}
 
-	arg = ResolveLocal(&name, &local);
+	Chunk* chunk = CurrentChunk();
+	Uint8* op = GetLastOpcodePtr(chunk, 0);
+	if (*op == OP_LOCATION_PROPERTY) {
+		if (!MakeIndirectPropertyChainDirect(chunk, op, 0)) {
+			EmitByte(OP_LOAD_INDIRECT);
+		}
+	}
+	else if (*op == OP_LOCATION_SUPER_PROPERTY) {
+		Uint8* last = GetLastOpcodePtr(chunk, 1);
+		Uint8 direct = IndirectLoadOpcodeToDirect(*last);
+		if (direct == OP_NOP) {
+			EmitByte(OP_LOAD_INDIRECT);
+			return;
+		}
+
+		Uint32 hash = *(Uint32*)(op + 1);
+		chunk->Count = (last - chunk->Code) + Bytecode::GetTotalOpcodeSize(last);
+		*last = direct;
+		EmitByte(OP_GET_SUPERCLASS);
+		EmitByte(OP_GET_PROPERTY);
+		EmitUint32(hash);
+	}
+	else {
+		Uint8 direct = IndirectLoadOpcodeToDirect(*op);
+		if (direct == OP_NOP) {
+			EmitByte(OP_LOAD_INDIRECT);
+		}
+		else {
+			*op = direct;
+		}
+	}
+}
+bool Compiler::MakeIndirectPropertyChainDirect(Chunk* chunk, Uint8* op, int index) {
+	std::vector<size_t> propOp;
+	propOp.push_back(op - chunk->Code);
+
+	index++;
+
+	while (true) {
+		Uint8* ptr = GetLastOpcodePtr(chunk, index);
+		index++;
+
+		if (!ptr) {
+			return false;
+		}
+
+		if (*ptr == OP_LOCATION_SUPER_PROPERTY) {
+			Uint8* last = GetLastOpcodePtr(chunk, index);
+			if (!last) {
+				return false;
+			}
+
+			Uint8 direct = IndirectLoadOpcodeToDirect(*last);
+			if (direct != OP_GET_GLOBAL &&
+				direct != OP_GET_LOCAL &&
+				direct != OP_GET_MODULE_LOCAL) {
+				return false;
+			}
+
+			Uint8* code_block_copy = NULL;
+			int* line_block_copy = NULL;
+			int code_block_start = ptr - chunk->Code;
+			int code_block_length = chunk->Count - code_block_start;
+
+			// Copy code block
+			code_block_copy = (Uint8*)malloc(code_block_length * sizeof(Uint8));
+			memcpy(code_block_copy, &chunk->Code[code_block_start], code_block_length * sizeof(Uint8));
+			code_block_copy[0] = OP_GET_PROPERTY;
+
+			// Copy line info block
+			line_block_copy = (int*)malloc(code_block_length * sizeof(int));
+			memcpy(line_block_copy, &chunk->Lines[code_block_start], code_block_length * sizeof(int));
+
+			*last = direct;
+
+			chunk->Count -= code_block_length;
+			EmitByte(OP_GET_SUPERCLASS);
+			for (int i = 0; i < code_block_length; i++) {
+				chunk->Write(code_block_copy[i], line_block_copy[i]);
+			}
+			free(code_block_copy);
+			free(line_block_copy);
+
+			for (size_t i = 0; i < propOp.size(); i++) {
+				propOp[i]++;
+			}
+
+			break;
+		}
+		else {
+			Uint8 direct = IndirectLoadOpcodeToDirect(*ptr);
+			if (direct == OP_GET_PROPERTY) {
+				propOp.push_back(ptr - chunk->Code);
+			}
+			else if (direct == OP_NOP) {
+				return false;
+			}
+			else {
+				*ptr = direct;
+				break;
+			}
+		}
+	}
+
+	for (size_t i = 0; i < propOp.size(); i++) {
+		chunk->Code[propOp[i]] = OP_GET_PROPERTY;
+	}
+
+	return true;
+}
+Uint8 Compiler::IndirectLoadOpcodeToDirect(Uint8 op) {
+	if (op == OP_LOCATION_GLOBAL) {
+		return OP_GET_GLOBAL;
+	}
+	else if (op == OP_LOCATION_STACK) {
+		return OP_GET_LOCAL;
+	}
+	else if (op == OP_LOCATION_MODULE_LOCAL) {
+		return OP_GET_MODULE_LOCAL;
+	}
+	else if (op == OP_LOCATION_PROPERTY) {
+		return OP_GET_PROPERTY;
+	}
+
+	return OP_NOP;
+}
+
+ExprContext Compiler::NamedVariable(Token name, Local& currentLocal, ExprContext context) {
+	bool emitValue = ShouldEmitValue || context == EXPRCONTEXT_VALUE;
+	Uint8 getOp;
+
+	VariableToken = name;
+
+	Local local;
+	int arg = ResolveLocal(&name, &local);
 
 	// Determine whether local or global
 	if (arg != -1) {
-		getOp = OP_GET_LOCAL;
-		setOp = OP_SET_LOCAL;
+		if (emitValue) {
+			getOp = OP_GET_LOCAL;
+		}
+		else {
+			getOp = OP_LOCATION_STACK;
+		}
+
+		if (currentLocal.Type == VARTYPE_UNKNOWN) {
+			currentLocal = local;
+			currentLocal.Type = VARTYPE_LOCAL;
+			currentLocal.Index = arg;
+		}
 	}
 	else {
 		arg = ResolveModuleLocal(&name, &local);
 		VMValue value;
 		if (arg != -1) {
-			getOp = OP_GET_MODULE_LOCAL;
-			setOp = OP_SET_MODULE_LOCAL;
+			if (emitValue) {
+				getOp = OP_GET_MODULE_LOCAL;
+			}
+			else {
+				getOp = OP_LOCATION_MODULE_LOCAL;
+			}
+
+			if (currentLocal.Type == VARTYPE_UNKNOWN) {
+				currentLocal = local;
+				currentLocal.Type = VARTYPE_MODULE_LOCAL;
+				currentLocal.Index = arg;
+			}
 		}
-		else if (StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
+		else if (emitValue && StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
 			EmitConstant(value);
-			return true;
+			return EXPRCONTEXT_VALUE;
+		}
+		else if (emitValue) {
+			getOp = OP_GET_GLOBAL;
 		}
 		else {
-			getOp = OP_GET_GLOBAL;
-			setOp = OP_SET_GLOBAL;
+			getOp = OP_LOCATION_GLOBAL;
 		}
 	}
 
-	return false;
-}
-void Compiler::DoVariableAssignment(Token name,
-	Local local,
-	Uint8 getOp,
-	Uint8 setOp,
-	int arg,
-	Token assignmentToken,
-	bool isPrefix) {
-	if (local.Constant) {
-		ErrorAt(&name, "Attempted to assign to constant!", true);
-	}
-	else if (getOp == OP_GET_LOCAL) {
-		Locals[arg].WasSet = true;
-	}
-	else if (getOp == OP_GET_MODULE_LOCAL) {
-		ModuleLocals[arg].WasSet = true;
+	if (currentLocal.Type == VARTYPE_UNKNOWN) {
+		currentLocal = local;
+		currentLocal.Type = VARTYPE_GLOBAL;
+		currentLocal.Index = -1;
 	}
 
-	if (assignmentToken.Type == TOKEN_INCREMENT || assignmentToken.Type == TOKEN_DECREMENT) {
-		EmitGetOperation(getOp, arg, name);
-
-		// If postfix, we push the value BEFORE the increment/decrement happens
-		// If prefix, we leave the incremented/decremented value on the stack
-		if (!isPrefix) {
-			EmitCopy(1);
-			EmitByte(OP_SAVE_VALUE); // Save value. (value)
-		}
-
-		EmitAssignmentToken(assignmentToken);
-		EmitSetOperation(setOp, arg, name);
-
-		if (!isPrefix) {
-			EmitByte(OP_POP);
-			EmitByte(OP_LOAD_VALUE); // Load value. (value)
-		}
-	}
-	else {
-		if (assignmentToken.Type != TOKEN_ASSIGNMENT) {
-			EmitGetOperation(getOp, arg, name);
-		}
-
-		GetExpression();
-
-		EmitAssignmentToken(assignmentToken);
-		EmitSetOperation(setOp, arg, name);
-	}
-}
-void Compiler::NamedVariable(Token name, bool canAssign) {
-	Uint8 getOp, setOp;
-	Local local;
-	int arg;
-
-	if (ResolveNamedVariable(name, getOp, setOp, local, arg)) {
-		return;
-	}
-
-	if (canAssign && MatchAssignmentToken()) {
-		Token assignmentToken = parser.Previous;
-		DoVariableAssignment(name, local, getOp, setOp, arg, assignmentToken, false);
-	}
-	else if (local.Constant && local.ConstantVal.Type != VAL_ERROR) {
+	if (local.Constant && local.ConstantVal.Type != VAL_ERROR) {
 		EmitConstant(local.ConstantVal);
+		return EXPRCONTEXT_VALUE;
 	}
 	else {
 		EmitGetOperation(getOp, arg, name);
 	}
+
+	return emitValue ? EXPRCONTEXT_VALUE : EXPRCONTEXT_LOCATION;
 }
 void Compiler::ScopeBegin() {
 	ScopeDepth++;
@@ -1416,135 +1514,94 @@ Uint8 Compiler::GetArgumentList() {
 	return argumentCount;
 }
 
-Token InstanceToken = Token{0, NULL, 0, 0, 0};
-void Compiler::GetThis(bool canAssign) {
+#define CHECK_LVALUE() \
+	if (context != EXPRCONTEXT_LOCATION) { \
+		Error("Not an lvalue."); \
+	}
+#define CHECK_RVALUE() \
+	if (context != EXPRCONTEXT_VALUE) { \
+		Error("Not an rvalue."); \
+	}
+#define CONVERT_LVALUE_TO_RVALUE() \
+	if (context == EXPRCONTEXT_LOCATION) { \
+		EmitDirectOrIndirectLoad(); \
+	}
+
+ExprContext Compiler::GetThis(ExprContext context) {
 	InstanceToken = parser.Previous;
-	NamedVariable(parser.Previous, false);
+	VariableLocal = Locals[0];
+	return NamedVariable(parser.Previous, VariableLocal, EXPRCONTEXT_LOCATION);
 }
-void Compiler::GetSuper(bool canAssign) {
+ExprContext Compiler::GetSuper(ExprContext context) {
 	InstanceToken = parser.Previous;
+	VariableLocal = Locals[0];
 	if (!CheckToken(TOKEN_DOT)) {
 		Error("Expect '.' after 'super'.");
 	}
-	EmitBytes(OP_GET_LOCAL, 0);
+
+	if (ShouldEmitValue) {
+		EmitBytes(OP_GET_LOCAL, 0);
+		return EXPRCONTEXT_VALUE;
+	}
+	else {
+		EmitBytes(OP_LOCATION_STACK, 0);
+		return EXPRCONTEXT_LOCATION;
+	}
 }
-void Compiler::GetDot(bool canAssign) {
+ExprContext Compiler::GetDot(ExprContext context) {
 	bool isSuper = InstanceToken.Type == TOKEN_SUPER;
 	InstanceToken.Type = -1;
 
 	ConsumeIdentifier("Expect property name after '.'.");
 	Token nameToken = parser.Previous;
 
-	if (canAssign && MatchAssignmentToken()) {
-		if (isSuper) {
-			EmitByte(OP_GET_SUPERCLASS);
-		}
+	if (MatchToken(TOKEN_LEFT_PAREN)) {
+		CONVERT_LVALUE_TO_RVALUE();
 
-		Token assignmentToken = parser.Previous;
-		if (assignmentToken.Type == TOKEN_INCREMENT ||
-			assignmentToken.Type == TOKEN_DECREMENT) {
-			// (this)
-			EmitCopy(1); // Copy property holder. (this,
-			// this)
-			EmitGetOperation(OP_GET_PROPERTY, -1,
-				nameToken); // Pops a property holder.
-			// (value, this)
-
-			EmitCopy(1); // Copy value. (value, value,
-			// this)
-			EmitByte(OP_SAVE_VALUE); // Save value.
-			// (value, this)
-			EmitAssignmentToken(assignmentToken); // OP_DECREMENT
-			// (value - 1, this)
-
-			EmitSetOperation(OP_SET_PROPERTY, -1, nameToken);
-			// Pops the value and then pops the instance,
-			// pushes the value (value - 1)
-
-			EmitByte(OP_POP); // ()
-			EmitByte(OP_LOAD_VALUE); // Load value. (value)
-		}
-		else {
-			if (assignmentToken.Type != TOKEN_ASSIGNMENT) {
-				EmitCopy(1);
-				EmitGetOperation(OP_GET_PROPERTY, -1, nameToken);
-			}
-
-			GetExpression();
-
-			EmitAssignmentToken(assignmentToken);
-			EmitSetOperation(OP_SET_PROPERTY, -1, nameToken);
-		}
-	}
-	else if (MatchToken(TOKEN_LEFT_PAREN)) {
 		uint8_t argCount = GetArgumentList();
 
 		EmitCall(nameToken, argCount, isSuper);
+
+		return EXPRCONTEXT_VALUE;
 	}
-	else {
+
+	if (ShouldEmitValue) {
 		if (isSuper) {
 			EmitByte(OP_GET_SUPERCLASS);
 		}
-
 		EmitGetOperation(OP_GET_PROPERTY, -1, nameToken);
+		return EXPRCONTEXT_VALUE;
+	}
+	else {
+		Uint8 opcode = isSuper ? OP_LOCATION_SUPER_PROPERTY : OP_LOCATION_PROPERTY;
+		EmitGetOperation(opcode, -1, nameToken);
+		return EXPRCONTEXT_LOCATION;
 	}
 }
-void Compiler::GetElement(bool canAssign) {
+ExprContext Compiler::GetElement(ExprContext context) {
 	Token blank;
 	memset(&blank, 0, sizeof(blank));
 	GetExpression();
 	ConsumeToken(TOKEN_RIGHT_SQUARE_BRACE, "Expected matching ']'.");
 
-	if (canAssign && MatchAssignmentToken()) {
-		Token assignmentToken = parser.Previous;
-		if (assignmentToken.Type == TOKEN_INCREMENT ||
-			assignmentToken.Type == TOKEN_DECREMENT) {
-			// (index, array)
-			EmitCopy(2); // Copy array & index.
-			EmitGetOperation(OP_GET_ELEMENT, -1,
-				blank); // Pops a array and index.
-			// (value)
-
-			EmitCopy(1); // Copy value. (value, value,
-			// index)
-			EmitByte(OP_SAVE_VALUE); // Save value.
-			// (value, index)
-			EmitAssignmentToken(assignmentToken); // OP_DECREMENT
-			// (value - 1,
-			// index)
-
-			EmitSetOperation(OP_SET_ELEMENT, -1, blank);
-			// Pops the value and then pops the instance,
-			// pushes the value (value - 1)
-
-			EmitByte(OP_POP); // ()
-			EmitByte(OP_LOAD_VALUE); // Load value. (value)
-		}
-		else {
-			if (assignmentToken.Type != TOKEN_ASSIGNMENT) {
-				EmitCopy(2);
-				EmitGetOperation(OP_GET_ELEMENT, -1, blank);
-			}
-
-			// Get right-hand side
-			GetExpression();
-
-			EmitAssignmentToken(assignmentToken);
-			EmitSetOperation(OP_SET_ELEMENT, -1, blank);
-		}
+	if (ShouldEmitValue) {
+		EmitByte(OP_GET_ELEMENT);
+		return EXPRCONTEXT_VALUE;
 	}
 	else {
-		EmitGetOperation(OP_GET_ELEMENT, -1, blank);
+		EmitByte(OP_LOCATION_ELEMENT);
+		return EXPRCONTEXT_LOCATION;
 	}
 }
 
 // Reading expressions
 bool negateConstant = false;
-void Compiler::GetGrouping(bool canAssign) {
-	GetExpression();
+ExprContext Compiler::GetGrouping(ExprContext context) {
+	ExprContext result = GetExpression();
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected \")\" after expression.");
+	return result;
 }
-void Compiler::GetLiteral(bool canAssign) {
+ExprContext Compiler::GetLiteral(ExprContext context) {
 	switch (parser.Previous.Type) {
 	case TOKEN_NULL:
 		EmitByte(OP_NULL);
@@ -1556,10 +1613,12 @@ void Compiler::GetLiteral(bool canAssign) {
 		EmitByte(OP_FALSE);
 		break;
 	default:
-		return; // Unreachable.
+		break;
 	}
+
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetInteger(bool canAssign) {
+ExprContext Compiler::GetInteger(ExprContext context) {
 	int value = 0;
 	char* start = parser.Previous.Start;
 	if (start[0] == '0' && (start[1] == 'x' || start[1] == 'X')) {
@@ -1575,8 +1634,10 @@ void Compiler::GetInteger(bool canAssign) {
 	negateConstant = false;
 
 	EmitConstant(INTEGER_VAL(value));
+
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetDecimal(bool canAssign) {
+ExprContext Compiler::GetDecimal(ExprContext context) {
 	float value = 0;
 	value = (float)atof(parser.Previous.Start);
 
@@ -1586,6 +1647,8 @@ void Compiler::GetDecimal(bool canAssign) {
 	negateConstant = false;
 
 	EmitConstant(DECIMAL_VAL(value));
+
+	return EXPRCONTEXT_VALUE;
 }
 ObjString* Compiler::MakeString(Token token) {
 	ObjString* string = CopyString(token.Start + 1, token.Length - 2);
@@ -1626,11 +1689,12 @@ ObjString* Compiler::MakeString(Token token) {
 	return string;
 }
 
-void Compiler::GetString(bool canAssign) {
+ExprContext Compiler::GetString(ExprContext context) {
 	ObjString* string = Compiler::MakeString(parser.Previous);
 	EmitConstant(OBJECT_VAL(string));
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetArray(bool canAssign) {
+ExprContext Compiler::GetArray(ExprContext context) {
 	Uint32 count = 0;
 
 	while (!MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
@@ -1645,13 +1709,15 @@ void Compiler::GetArray(bool canAssign) {
 
 	EmitByte(OP_NEW_ARRAY);
 	EmitUint32(count);
+
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetMap(bool canAssign) {
+ExprContext Compiler::GetMap(ExprContext context) {
 	Uint32 count = 0;
 
 	while (!MatchToken(TOKEN_RIGHT_BRACE)) {
 		ConsumeToken(TOKEN_STRING, "Expected string for map key.");
-		GetString(false);
+		GetString(EXPRCONTEXT_VALUE);
 
 		ConsumeToken(TOKEN_COLON, "Expected \":\" after key string.");
 		GetExpression();
@@ -1665,82 +1731,27 @@ void Compiler::GetMap(bool canAssign) {
 
 	EmitByte(OP_NEW_MAP);
 	EmitUint32(count);
+
+	return EXPRCONTEXT_VALUE;
 }
-bool Compiler::IsConstant() {
-	switch (PeekToken().Type) {
-	case TOKEN_NULL:
-	case TOKEN_TRUE:
-	case TOKEN_FALSE:
-		return true;
-	case TOKEN_STRING:
-		return true;
-	case TOKEN_NUMBER:
-		return true;
-	case TOKEN_DECIMAL:
-		return true;
-	case TOKEN_MINUS: {
-		switch (PeekNextToken().Type) {
-		case TOKEN_NUMBER:
-			return true;
-		case TOKEN_DECIMAL:
-			return true;
-		default:
-			return false;
-		}
-		break;
-	}
-	default:
-		return false;
-	}
+ExprContext Compiler::GetVariable(ExprContext context) {
+	return NamedVariable(parser.Previous, VariableLocal, EXPRCONTEXT_LOCATION);
 }
-void Compiler::GetConstant(bool canAssign) {
-	switch (NextToken().Type) {
-	case TOKEN_NULL:
-	case TOKEN_TRUE:
-	case TOKEN_FALSE:
-		GetLiteral(canAssign);
-		break;
-	case TOKEN_STRING:
-		GetString(canAssign);
-		break;
-	case TOKEN_NUMBER:
-		GetInteger(canAssign);
-		break;
-	case TOKEN_DECIMAL:
-		GetDecimal(canAssign);
-		break;
-	case TOKEN_MINUS: {
-		negateConstant = true;
-		switch (NextToken().Type) {
-		case TOKEN_NUMBER:
-			GetInteger(canAssign);
-			break;
-		case TOKEN_DECIMAL:
-			GetDecimal(canAssign);
-			break;
-		default:
-			Error("Invalid value after negative sign!");
-			break;
-		}
-		break;
-	}
-	default:
-		Error("Invalid value!");
-		break;
-	}
-}
-void Compiler::GetVariable(bool canAssign) {
-	NamedVariable(parser.Previous, canAssign);
-}
-void Compiler::GetLogicalAND(bool canAssign) {
+ExprContext Compiler::GetLogicalAND(ExprContext context) {
+	CONVERT_LVALUE_TO_RVALUE();
+
 	int endJump = EmitJump(OP_JUMP_IF_FALSE);
 
 	EmitByte(OP_POP);
 	ParsePrecedence(PREC_AND);
 
 	PatchJump(endJump);
+
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetLogicalOR(bool canAssign) {
+ExprContext Compiler::GetLogicalOR(ExprContext context) {
+	CONVERT_LVALUE_TO_RVALUE();
+
 	int elseJump = EmitJump(OP_JUMP_IF_FALSE);
 	int endJump = EmitJump(OP_JUMP);
 
@@ -1749,8 +1760,12 @@ void Compiler::GetLogicalOR(bool canAssign) {
 
 	ParsePrecedence(PREC_OR);
 	PatchJump(endJump);
+
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetConditional(bool canAssign) {
+ExprContext Compiler::GetConditional(ExprContext context) {
+	CONVERT_LVALUE_TO_RVALUE();
+
 	int thenJump = EmitJump(OP_JUMP_IF_FALSE);
 	EmitByte(OP_POP);
 	ParsePrecedence(PREC_TERNARY);
@@ -1762,79 +1777,66 @@ void Compiler::GetConditional(bool canAssign) {
 	EmitByte(OP_POP);
 	ParsePrecedence(PREC_TERNARY);
 	PatchJump(elseJump);
+
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetUnary(bool canAssign) {
+ExprContext Compiler::GetUnary(ExprContext context) {
 	Token previousToken = parser.Previous;
-	Token currentToken = parser.Current;
 
-	int position = CodePointer();
-
-	ParsePrecedence(PREC_UNARY);
+	context = ParsePrecedence(PREC_UNARY, EXPRCONTEXT_LOCATION);
 
 	switch (previousToken.Type) {
 	case TOKEN_MINUS:
+		CONVERT_LVALUE_TO_RVALUE();
 		EmitByte(OP_NEGATE);
 		break;
 	case TOKEN_BITWISE_NOT:
+		CONVERT_LVALUE_TO_RVALUE();
 		EmitByte(OP_BW_NOT);
 		break;
 	case TOKEN_LOGICAL_NOT:
+		CONVERT_LVALUE_TO_RVALUE();
 		EmitByte(OP_LG_NOT);
 		break;
 	case TOKEN_TYPEOF:
+		CONVERT_LVALUE_TO_RVALUE();
 		EmitByte(OP_TYPEOF);
 		break;
 	case TOKEN_INCREMENT:
-	case TOKEN_DECREMENT:
-		if (currentToken.Type == TOKEN_IDENTIFIER) {
-			CurrentChunk()->Count = position;
-		}
-
-		UnaryIncrement(currentToken, previousToken, canAssign);
+		CHECK_LVALUE();
+		EmitCopyAndLoadIndirect();
+		EmitByte(OP_INCREMENT);
+		EmitByte(OP_STORE_INDIRECT);
 		break;
-	default:
-		return; // Unreachable.
+	case TOKEN_DECREMENT:
+		CHECK_LVALUE();
+		EmitCopyAndLoadIndirect();
+		EmitByte(OP_DECREMENT);
+		EmitByte(OP_STORE_INDIRECT);
+		break;
 	}
+
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::UnaryIncrement(Token name, Token assignmentToken, bool canAssign) {
-	Uint8 getOp, setOp;
+ExprContext Compiler::GetNew(ExprContext context) {
+	CHECK_RVALUE();
+
 	Local local;
-	int arg;
 
-	if (name.Type != TOKEN_IDENTIFIER) {
-		EmitAssignmentToken(assignmentToken);
-		return;
-	}
-
-	if (ResolveNamedVariable(name, getOp, setOp, local, arg)) {
-		return;
-	}
-
-	if (canAssign) {
-		DoVariableAssignment(name, local, getOp, setOp, arg, assignmentToken, true);
-	}
-	else if (local.Constant && local.ConstantVal.Type != VAL_ERROR) {
-		EmitConstant(local.ConstantVal);
-	}
-	else {
-		EmitGetOperation(getOp, arg, name);
-		EmitAssignmentToken(assignmentToken);
-	}
-}
-void Compiler::GetNew(bool canAssign) {
 	ConsumeIdentifier("Expect class name.");
-	NamedVariable(parser.Previous, false);
+	NamedVariable(parser.Previous, local, EXPRCONTEXT_VALUE);
 
 	uint8_t argCount = 0;
 	if (MatchToken(TOKEN_LEFT_PAREN)) {
 		argCount = GetArgumentList();
 	}
 	EmitBytes(OP_NEW, argCount);
+
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetHitbox(bool canAssign) {
+ExprContext Compiler::GetHitbox(ExprContext context) {
 	if (!MatchToken(TOKEN_LEFT_BRACE)) {
-		Compiler::GetVariable(canAssign);
-		return;
+		return GetVariable(EXPRCONTEXT_LOCATION);
 	}
 
 	int pre;
@@ -1879,7 +1881,7 @@ void Compiler::GetHitbox(bool canAssign) {
 
 	if (count == 0) {
 		EmitConstant(HITBOX_VAL(0, 0, 0, 0));
-		return;
+		return EXPRCONTEXT_VALUE;
 	}
 	else if (count != 4) {
 		Error("Must construct hitbox with exactly four values.");
@@ -1888,12 +1890,16 @@ void Compiler::GetHitbox(bool canAssign) {
 	if (allConstants) {
 		CurrentChunk()->Count = codePointer;
 		EmitConstant(HITBOX_VAL(values.data()));
-		return;
+		return EXPRCONTEXT_VALUE;
 	}
 
 	EmitByte(OP_NEW_HITBOX);
+
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetBinary(bool canAssign) {
+ExprContext Compiler::GetBinary(ExprContext context) {
+	CONVERT_LVALUE_TO_RVALUE();
+
 	Token operato = parser.Previous;
 	int operatorType = operato.Type;
 
@@ -1961,22 +1967,72 @@ void Compiler::GetBinary(bool canAssign) {
 		break;
 	default:
 		ErrorAt(&operato, "Unknown binary operator.", true);
-		return; // Unreachable.
+		break;
 	}
+
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetHas(bool canAssign) {
+ExprContext Compiler::GetAssignment(ExprContext context) {
+	if (VariableLocal.Constant) {
+		ErrorAt(&VariableToken, "Attempted to assign to constant!", true);
+	}
+
+	CHECK_LVALUE();
+
+	if (VariableLocal.Type == VARTYPE_LOCAL) {
+		Locals[VariableLocal.Index].WasSet = true;
+	}
+	else if (VariableLocal.Type == VARTYPE_MODULE_LOCAL) {
+		ModuleLocals[VariableLocal.Index].WasSet = true;
+	}
+
+	Token assignmentToken = parser.Previous;
+	if (assignmentToken.Type != TOKEN_ASSIGNMENT) {
+		EmitCopyAndLoadIndirect();
+	}
+
+	bool incOrDec = false;
+
+	if (assignmentToken.Type == TOKEN_INCREMENT || assignmentToken.Type == TOKEN_DECREMENT) {
+		EmitCopy(1);
+		EmitByte(OP_SAVE_VALUE);
+		incOrDec = true;
+	}
+	else {
+		GetExpression();
+	}
+
+	EmitAssignmentToken(assignmentToken);
+	EmitByte(OP_STORE_INDIRECT);
+
+	if (incOrDec) {
+		EmitByte(OP_POP);
+		EmitByte(OP_LOAD_VALUE);
+	}
+
+	return EXPRCONTEXT_VALUE;
+}
+ExprContext Compiler::GetHas(ExprContext context) {
+	CONVERT_LVALUE_TO_RVALUE();
 	ConsumeIdentifier("Expect property name.");
 	EmitByte(OP_HAS_PROPERTY);
 	EmitStringHash(parser.Previous);
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetSuffix(bool canAssign) {}
-void Compiler::GetCall(bool canAssign) {
+ExprContext Compiler::GetCall(ExprContext context) {
+	CONVERT_LVALUE_TO_RVALUE();
 	Uint8 argCount = GetArgumentList();
 	EmitByte(OP_CALL);
 	EmitByte(argCount);
+	return EXPRCONTEXT_VALUE;
 }
-void Compiler::GetExpression() {
-	ParsePrecedence(PREC_ASSIGNMENT);
+ExprContext Compiler::GetExpression() {
+	return ParsePrecedence(PREC_ASSIGNMENT, EXPRCONTEXT_VALUE);
+}
+void Compiler::GetValueExpression() {
+	ShouldEmitValue = true;
+	ParsePrecedence(PREC_ASSIGNMENT, EXPRCONTEXT_VALUE);
+	ShouldEmitValue = false;
 }
 // Reading statements
 struct switch_case {
@@ -2899,7 +2955,12 @@ void Compiler::GetVariableDeclaration(bool constant) {
 
 		int pre = CodePointer();
 		if (MatchToken(TOKEN_ASSIGNMENT)) {
-			GetExpression();
+			if (constant) {
+				GetValueExpression();
+			}
+			else {
+				GetExpression();
+			}
 		}
 		else {
 			if (constant) { // don't play nice
@@ -2932,7 +2993,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 		DefineVariableToken(token, constant);
 		if (constant && variable == -1) {
 			// treat it like a module constant
-			ModuleConstants.push_back({token, 0, constantIndex, false, false, true, value});
+			ModuleConstants.push_back({token, VARTYPE_MODULE_LOCAL, constantIndex, 0, false, false, true, value});
 		}
 	} while (MatchToken(TOKEN_COMMA));
 
@@ -2954,7 +3015,12 @@ void Compiler::GetModuleVariableDeclaration() {
 
 			int pre = CodePointer();
 			if (MatchToken(TOKEN_ASSIGNMENT)) {
-				GetExpression();
+				if (constant) {
+					GetValueExpression();
+				}
+				else {
+					GetExpression();
+				}
 			}
 			else {
 				if (constant) { // don't play nice
@@ -2997,7 +3063,8 @@ void Compiler::GetPropertyDeclaration(Token propertyName) {
 	do {
 		ParseVariable("Expected property name.", false);
 
-		NamedVariable(propertyName, false);
+		Local local;
+		NamedVariable(propertyName, local, EXPRCONTEXT_VALUE);
 
 		Token token = parser.Previous;
 
@@ -3049,15 +3116,16 @@ void Compiler::GetClassDeclaration() {
 	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
 
 	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
+		Local local;
 		if (MatchToken(TOKEN_EVENT)) {
-			NamedVariable(className, false);
+			NamedVariable(className, local, EXPRCONTEXT_VALUE);
 			GetMethod(className);
 		}
 		else if (MatchToken(TOKEN_STATIC)) {
 			GetPropertyDeclaration(className);
 		}
 		else {
-			NamedVariable(className, false);
+			NamedVariable(className, local, EXPRCONTEXT_VALUE);
 			GetMethod(className);
 		}
 	}
@@ -3097,14 +3165,15 @@ void Compiler::GetEnumDeclaration() {
 
 			// Push the enum class to the stack
 			if (isNamed) {
-				NamedVariable(enumName, false);
+				Local local;
+				NamedVariable(enumName, local, EXPRCONTEXT_VALUE);
 			}
 
 			int constantIndex = -1;
 
 			if (MatchToken(TOKEN_ASSIGNMENT)) {
 				int pre = CodePointer();
-				GetExpression();
+				GetValueExpression();
 				if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) !=
 						CodePointer() ||
 					!CurrentChunk()->GetConstant(pre, &current, &constantIndex)) {
@@ -3147,10 +3216,9 @@ void Compiler::GetEnumDeclaration() {
 			else {
 				DefineVariableToken(token, true);
 				if (variable == -1) {
-					// treat it as a module
-					// constant
+					// treat it as a module constant
 					ModuleConstants.push_back(
-						{token, 0, constantIndex, false, false, true, current});
+						{token, VARTYPE_MODULE_LOCAL, constantIndex, 0, false, false, true, current});
 				}
 			}
 		} while (MatchToken(TOKEN_COMMA));
@@ -3253,89 +3321,88 @@ void Compiler::MakeRules() {
 		"Compiler::Rules", TOKEN_EOF + 1, sizeof(ParseRule));
 	// Single-character tokens.
 	Rules[TOKEN_LEFT_PAREN] =
-		ParseRule{&Compiler::GetGrouping, &Compiler::GetCall, NULL, PREC_CALL};
-	Rules[TOKEN_RIGHT_PAREN] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_LEFT_BRACE] = ParseRule{&Compiler::GetMap, NULL, NULL, PREC_CALL};
-	Rules[TOKEN_RIGHT_BRACE] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+		ParseRule{&Compiler::GetGrouping, &Compiler::GetCall, PREC_CALL};
+	Rules[TOKEN_RIGHT_PAREN] = ParseRule{NULL, NULL, PREC_NONE};
+	Rules[TOKEN_LEFT_BRACE] = ParseRule{&Compiler::GetMap, NULL, PREC_CALL};
+	Rules[TOKEN_RIGHT_BRACE] = ParseRule{NULL, NULL, PREC_NONE};
 	Rules[TOKEN_LEFT_SQUARE_BRACE] =
-		ParseRule{&Compiler::GetArray, &Compiler::GetElement, NULL, PREC_CALL};
-	Rules[TOKEN_RIGHT_SQUARE_BRACE] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_COMMA] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_DOT] = ParseRule{NULL, &Compiler::GetDot, NULL, PREC_CALL};
-	Rules[TOKEN_SEMICOLON] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+		ParseRule{&Compiler::GetArray, &Compiler::GetElement, PREC_CALL};
+	Rules[TOKEN_RIGHT_SQUARE_BRACE] = ParseRule{NULL, NULL, PREC_NONE};
+	Rules[TOKEN_COMMA] = ParseRule{NULL, NULL, PREC_NONE};
+	Rules[TOKEN_DOT] = ParseRule{NULL, &Compiler::GetDot, PREC_CALL};
+	Rules[TOKEN_SEMICOLON] = ParseRule{NULL, NULL, PREC_NONE};
 	// Operators
-	Rules[TOKEN_MINUS] = ParseRule{&Compiler::GetUnary, &Compiler::GetBinary, NULL, PREC_TERM};
-	Rules[TOKEN_PLUS] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_TERM};
+	Rules[TOKEN_MINUS] = ParseRule{&Compiler::GetUnary, &Compiler::GetBinary, PREC_TERM};
+	Rules[TOKEN_PLUS] = ParseRule{NULL, &Compiler::GetBinary, PREC_TERM};
 	Rules[TOKEN_DECREMENT] =
-		ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_CALL}; // &Compiler::GetSuffix
+		ParseRule{&Compiler::GetUnary, &Compiler::GetAssignment, PREC_CALL};
 	Rules[TOKEN_INCREMENT] =
-		ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_CALL}; // &Compiler::GetSuffix
-	Rules[TOKEN_DIVISION] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_FACTOR};
-	Rules[TOKEN_MULTIPLY] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_FACTOR};
-	Rules[TOKEN_MODULO] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_FACTOR};
-	Rules[TOKEN_BITWISE_XOR] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_XOR};
-	Rules[TOKEN_BITWISE_AND] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_AND};
-	Rules[TOKEN_BITWISE_OR] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_OR};
-	Rules[TOKEN_BITWISE_LEFT] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_SHIFT};
+		ParseRule{&Compiler::GetUnary, &Compiler::GetAssignment, PREC_CALL};
+	Rules[TOKEN_DIVISION] = ParseRule{NULL, &Compiler::GetBinary, PREC_FACTOR};
+	Rules[TOKEN_MULTIPLY] = ParseRule{NULL, &Compiler::GetBinary, PREC_FACTOR};
+	Rules[TOKEN_MODULO] = ParseRule{NULL, &Compiler::GetBinary, PREC_FACTOR};
+	Rules[TOKEN_BITWISE_XOR] = ParseRule{NULL, &Compiler::GetBinary, PREC_BITWISE_XOR};
+	Rules[TOKEN_BITWISE_AND] = ParseRule{NULL, &Compiler::GetBinary, PREC_BITWISE_AND};
+	Rules[TOKEN_BITWISE_OR] = ParseRule{NULL, &Compiler::GetBinary, PREC_BITWISE_OR};
+	Rules[TOKEN_BITWISE_LEFT] = ParseRule{NULL, &Compiler::GetBinary, PREC_BITWISE_SHIFT};
 	Rules[TOKEN_BITWISE_RIGHT] =
-		ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_BITWISE_SHIFT};
-	Rules[TOKEN_BITWISE_NOT] = ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_UNARY};
-	Rules[TOKEN_TERNARY] = ParseRule{NULL, &Compiler::GetConditional, NULL, PREC_TERNARY};
-	Rules[TOKEN_COLON] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_LOGICAL_AND] = ParseRule{NULL, &Compiler::GetLogicalAND, NULL, PREC_AND};
-	Rules[TOKEN_LOGICAL_OR] = ParseRule{NULL, &Compiler::GetLogicalOR, NULL, PREC_OR};
-	Rules[TOKEN_LOGICAL_NOT] = ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_UNARY};
-	Rules[TOKEN_TYPEOF] = ParseRule{&Compiler::GetUnary, NULL, NULL, PREC_UNARY};
-	Rules[TOKEN_NEW] = ParseRule{&Compiler::GetNew, NULL, NULL, PREC_UNARY};
-	Rules[TOKEN_NOT_EQUALS] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY};
-	Rules[TOKEN_EQUALS] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_EQUALITY};
-	Rules[TOKEN_HAS] = ParseRule{NULL, &Compiler::GetHas, NULL, PREC_EQUALITY};
-	Rules[TOKEN_GREATER] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
-	Rules[TOKEN_GREATER_EQUAL] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
-	Rules[TOKEN_LESS] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
-	Rules[TOKEN_LESS_EQUAL] = ParseRule{NULL, &Compiler::GetBinary, NULL, PREC_COMPARISON};
+		ParseRule{NULL, &Compiler::GetBinary, PREC_BITWISE_SHIFT};
+	Rules[TOKEN_BITWISE_NOT] = ParseRule{&Compiler::GetUnary, NULL, PREC_UNARY};
+	Rules[TOKEN_TERNARY] = ParseRule{NULL, &Compiler::GetConditional, PREC_TERNARY};
+	Rules[TOKEN_COLON] = ParseRule{NULL, NULL, PREC_NONE};
+	Rules[TOKEN_LOGICAL_AND] = ParseRule{NULL, &Compiler::GetLogicalAND, PREC_AND};
+	Rules[TOKEN_LOGICAL_OR] = ParseRule{NULL, &Compiler::GetLogicalOR, PREC_OR};
+	Rules[TOKEN_LOGICAL_NOT] = ParseRule{&Compiler::GetUnary, NULL, PREC_UNARY};
+	Rules[TOKEN_TYPEOF] = ParseRule{&Compiler::GetUnary, NULL, PREC_UNARY};
+	Rules[TOKEN_NEW] = ParseRule{&Compiler::GetNew, NULL, PREC_UNARY};
+	Rules[TOKEN_NOT_EQUALS] = ParseRule{NULL, &Compiler::GetBinary, PREC_EQUALITY};
+	Rules[TOKEN_EQUALS] = ParseRule{NULL, &Compiler::GetBinary, PREC_EQUALITY};
+	Rules[TOKEN_HAS] = ParseRule{NULL, &Compiler::GetHas, PREC_EQUALITY};
+	Rules[TOKEN_GREATER] = ParseRule{NULL, &Compiler::GetBinary, PREC_COMPARISON};
+	Rules[TOKEN_GREATER_EQUAL] = ParseRule{NULL, &Compiler::GetBinary, PREC_COMPARISON};
+	Rules[TOKEN_LESS] = ParseRule{NULL, &Compiler::GetBinary, PREC_COMPARISON};
+	Rules[TOKEN_LESS_EQUAL] = ParseRule{NULL, &Compiler::GetBinary, PREC_COMPARISON};
 	// Assignment
-	Rules[TOKEN_ASSIGNMENT] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_MULTIPLY] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_DIVISION] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_MODULO] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_PLUS] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_MINUS] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_BITWISE_LEFT] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_BITWISE_RIGHT] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_BITWISE_AND] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_BITWISE_XOR] = ParseRule{NULL, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_ASSIGNMENT_BITWISE_OR] = ParseRule{NULL, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_ASSIGNMENT] = ParseRule{NULL, &Compiler::GetAssignment, PREC_ASSIGNMENT};
+	Rules[TOKEN_ASSIGNMENT_MULTIPLY] = ParseRule{NULL, &Compiler::GetAssignment, PREC_ASSIGNMENT};
+	Rules[TOKEN_ASSIGNMENT_DIVISION] = ParseRule{NULL, &Compiler::GetAssignment, PREC_ASSIGNMENT};
+	Rules[TOKEN_ASSIGNMENT_MODULO] = ParseRule{NULL, &Compiler::GetAssignment, PREC_ASSIGNMENT};
+	Rules[TOKEN_ASSIGNMENT_PLUS] = ParseRule{NULL, &Compiler::GetAssignment, PREC_ASSIGNMENT};
+	Rules[TOKEN_ASSIGNMENT_MINUS] = ParseRule{NULL, &Compiler::GetAssignment, PREC_ASSIGNMENT};
+	Rules[TOKEN_ASSIGNMENT_BITWISE_LEFT] = ParseRule{NULL, &Compiler::GetAssignment, PREC_ASSIGNMENT};
+	Rules[TOKEN_ASSIGNMENT_BITWISE_RIGHT] = ParseRule{NULL, &Compiler::GetAssignment, PREC_ASSIGNMENT};
+	Rules[TOKEN_ASSIGNMENT_BITWISE_AND] = ParseRule{NULL, &Compiler::GetAssignment, PREC_ASSIGNMENT};
+	Rules[TOKEN_ASSIGNMENT_BITWISE_XOR] = ParseRule{NULL, &Compiler::GetAssignment, PREC_ASSIGNMENT};
+	Rules[TOKEN_ASSIGNMENT_BITWISE_OR] = ParseRule{NULL, &Compiler::GetAssignment, PREC_ASSIGNMENT};
 	// Keywords
-	Rules[TOKEN_THIS] = ParseRule{&Compiler::GetThis, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_SUPER] = ParseRule{&Compiler::GetSuper, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_THIS] = ParseRule{&Compiler::GetThis, NULL, PREC_NONE};
+	Rules[TOKEN_SUPER] = ParseRule{&Compiler::GetSuper, NULL, PREC_NONE};
 	// Constants or whatever
-	Rules[TOKEN_NULL] = ParseRule{&Compiler::GetLiteral, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_TRUE] = ParseRule{&Compiler::GetLiteral, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_FALSE] = ParseRule{&Compiler::GetLiteral, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_STRING] = ParseRule{&Compiler::GetString, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_NUMBER] = ParseRule{&Compiler::GetInteger, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_DECIMAL] = ParseRule{&Compiler::GetDecimal, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_IDENTIFIER] = ParseRule{&Compiler::GetVariable, NULL, NULL, PREC_NONE};
-	Rules[TOKEN_HITBOX] = ParseRule{&Compiler::GetHitbox, NULL, NULL, PREC_NONE};
+	Rules[TOKEN_NULL] = ParseRule{&Compiler::GetLiteral, NULL, PREC_NONE};
+	Rules[TOKEN_TRUE] = ParseRule{&Compiler::GetLiteral, NULL, PREC_NONE};
+	Rules[TOKEN_FALSE] = ParseRule{&Compiler::GetLiteral, NULL, PREC_NONE};
+	Rules[TOKEN_STRING] = ParseRule{&Compiler::GetString, NULL, PREC_NONE};
+	Rules[TOKEN_NUMBER] = ParseRule{&Compiler::GetInteger, NULL, PREC_NONE};
+	Rules[TOKEN_DECIMAL] = ParseRule{&Compiler::GetDecimal, NULL, PREC_NONE};
+	Rules[TOKEN_IDENTIFIER] = ParseRule{&Compiler::GetVariable, NULL, PREC_NONE};
+	Rules[TOKEN_HITBOX] = ParseRule{&Compiler::GetHitbox, NULL, PREC_NONE};
 }
 ParseRule* Compiler::GetRule(int type) {
 	return &Compiler::Rules[(int)type];
 }
 
-void Compiler::ParsePrecedence(Precedence precedence) {
+ExprContext Compiler::ParsePrecedence(Precedence precedence, ExprContext context) {
 	AdvanceToken();
 	ParseFn prefixRule = GetRule(parser.Previous.Type)->Prefix;
 	if (prefixRule == NULL) {
 		Error("Expected expression.");
-		return;
 	}
 
 	int preCount = CurrentChunk()->Count;
 	int preConstant = CurrentChunk()->Constants->size();
 
-	bool canAssign = precedence <= PREC_ASSIGNMENT;
-	(this->*prefixRule)(canAssign);
+	ExprContext initialContext = context;
+	context = (this->*prefixRule)(initialContext);
 
 	if (CurrentSettings.DoOptimizations) {
 		preConstant = CheckPrefixOptimize(preCount, preConstant, prefixRule);
@@ -3345,17 +3412,25 @@ void Compiler::ParsePrecedence(Precedence precedence) {
 		AdvanceToken();
 		ParseFn infixRule = GetRule(parser.Previous.Type)->Infix;
 		if (infixRule) {
-			(this->*infixRule)(canAssign);
+			context = (this->*infixRule)(context);
 		}
 		if (CurrentSettings.DoOptimizations) {
 			preConstant = CheckInfixOptimize(preCount, preConstant, infixRule);
 		}
 	}
 
-	if (canAssign && MatchAssignmentToken()) {
-		Error("Invalid assignment target.");
-		GetExpression();
+	VariableLocal.Type = VARTYPE_UNKNOWN;
+	VariableLocal.Constant = false;
+
+	if (initialContext == EXPRCONTEXT_VALUE && context == EXPRCONTEXT_LOCATION) {
+		EmitDirectOrIndirectLoad();
+		return EXPRCONTEXT_VALUE;
 	}
+
+	return context;
+}
+ExprContext Compiler::ParsePrecedence(Precedence precedence) {
+	return ParsePrecedence(precedence, EXPRCONTEXT_VALUE);
 }
 Uint32 Compiler::GetHash(char* string) {
 	return Murmur::EncryptString(string);
@@ -3369,6 +3444,28 @@ Chunk* Compiler::CurrentChunk() {
 }
 int Compiler::CodePointer() {
 	return CurrentChunk()->Count;
+}
+Uint8* Compiler::GetLastOpcodePtr(Chunk* chunk, int n) {
+	if (chunk->Count == 0) {
+		return nullptr;
+	}
+
+	int opcodeCount = 0;
+	for (int offset = 0; offset < chunk->Count;) {
+		offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+		opcodeCount++;
+	}
+
+	if (n >= opcodeCount) {
+		return nullptr;
+	}
+
+	Uint8* ptr = chunk->Code;
+	for (int op = 0; op < opcodeCount - n - 1; op++) {
+		ptr += Bytecode::GetTotalOpcodeSize(ptr);
+	}
+
+	return ptr;
 }
 void Compiler::EmitByte(Uint8 byte) {
 	CurrentChunk()->Write(byte,
@@ -3694,8 +3791,6 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 
 	if (checkConstant >= preConstant) {
 		CurrentChunk()->Constants->pop_back();
-		// Log::PrintSimple("Constant eaten: %d\n",
-		// checkConstant);
 	}
 	if (!IS_NULL(out)) {
 		EmitConstant(out);
@@ -3706,30 +3801,14 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 		}
 	}
 
-	///////////
-	// printf("------AFTER : @ %d %d\n", preCount,
-	// CurrentChunk()->Constants->size()); for (int i = preCount; i
-	// < CurrentChunk()->Count;)
-	//     i = DebugInstruction(CurrentChunk(), i);
-	// printf("----------------- @ %d\n", preCount);
-	///////////
-
 	return preConstant;
 }
 
 int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
-	///////////
-	// printf("------InfixOptimize @ %d %d\n", preCount,
-	// preConstant); for (int i = preCount; i <
-	// CurrentChunk()->Count;)
-	//     i = DebugInstruction(CurrentChunk(), i);
-	///////////
-
 	if (fn == &Compiler::GetBinary) {
-		// this is gonna be really basic for now (constant
-		// constant OP) some of the stuff that passes through
-		// here are much longer than that, but this is a very
-		// solid start that already can shrink a good amount
+		// this is gonna be really basic for now (constant constant OP)
+		// some of the stuff that passes through here are much longer than that,
+		// but this is a very solid start that already can shrink a good amount
 
 		int off1 = preCount;
 		Uint8 op1 = CurrentChunk()->Code[off1];
@@ -3739,8 +3818,7 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		}
 		Uint8 op2 = CurrentChunk()->Code[off2];
 		int offB = Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + off2) + off2;
-		if (offB != CodePointer() - 1) { // CHANGE TO >= ONCE
-			// CASCADING IS ADDED
+		if (offB != CodePointer() - 1) { // CHANGE TO >= ONCE CASCADING IS ADDED
 			return preConstant;
 		}
 		Uint8 opB = CurrentChunk()->Code[offB];

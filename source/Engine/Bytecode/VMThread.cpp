@@ -838,6 +838,14 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_EVENT),
 		VM_ADD_DISPATCH(OP_METHOD),
 		VM_ADD_DISPATCH(OP_NEW_HITBOX),
+		VM_ADD_DISPATCH(OP_LOCATION_STACK),
+		VM_ADD_DISPATCH(OP_LOCATION_MODULE_LOCAL),
+		VM_ADD_DISPATCH(OP_LOCATION_GLOBAL),
+		VM_ADD_DISPATCH(OP_LOCATION_PROPERTY),
+		VM_ADD_DISPATCH(OP_LOCATION_SUPER_PROPERTY),
+		VM_ADD_DISPATCH(OP_LOCATION_ELEMENT),
+		VM_ADD_DISPATCH(OP_LOAD_INDIRECT),
+		VM_ADD_DISPATCH(OP_STORE_INDIRECT)
 	};
 #define VM_START(ins) \
 	goto* dispatch_table[(ins)]; \
@@ -899,93 +907,13 @@ int VMThread::RunInstruction() {
 	// Globals (heap)
 	VM_CASE(OP_GET_GLOBAL) {
 		Uint32 hash = ReadUInt32(frame);
-		if (ScriptManager::Lock()) {
-			VMValue result;
-			if (!ScriptManager::Constants->GetIfExists(hash, &result) &&
-				!ScriptManager::Globals->GetIfExists(hash, &result)) {
-				if (ThrowRuntimeError(false,
-					    "Variable %s does not exist.",
-					    GetVariableOrMethodName(hash)) == ERROR_RES_CONTINUE) {
-					goto FAIL_OP_GET_GLOBAL;
-				}
-				Push(NULL_VAL);
-				return INTERPRET_RUNTIME_ERROR;
-			}
-
-			Push(Value::Delink(result));
-			ScriptManager::Unlock();
-		}
-		VM_BREAK;
-
-	FAIL_OP_GET_GLOBAL:
-		ScriptManager::Unlock();
-		Push(NULL_VAL);
+		Push(GetGlobal(hash));
 		VM_BREAK;
 	}
 	VM_CASE(OP_SET_GLOBAL) {
 		Uint32 hash = ReadUInt32(frame);
-		if (ScriptManager::Lock()) {
-			if (!ScriptManager::Globals->Exists(hash)) {
-				if (ScriptManager::Constants->Exists(hash)) {
-					// Can't do that
-					if (ThrowRuntimeError(false,
-						    "Cannot redefine constant %s!",
-						    GetVariableOrMethodName(hash)) ==
-						ERROR_RES_CONTINUE) {
-						goto FAIL_OP_SET_GLOBAL;
-					}
-				}
-				else if (ThrowRuntimeError(false,
-						 "Global variable %s does not exist.",
-						 GetVariableOrMethodName(hash)) ==
-					ERROR_RES_CONTINUE) {
-					goto FAIL_OP_SET_GLOBAL;
-				}
-				return INTERPRET_RUNTIME_ERROR;
-			}
-
-			VMValue LHS = ScriptManager::Globals->Get(hash);
-			VMValue value = Peek(0);
-			switch (LHS.Type) {
-			case VAL_LINKED_INTEGER: {
-				VMValue result = Value::CastAsInteger(value);
-				if (IS_NULL(result)) {
-					// Conversion failed
-					if (ThrowRuntimeError(false,
-						    "Expected value to be of type %s instead of %s.",
-						    GetTypeString(VAL_INTEGER),
-						    GetValueTypeString(value)) ==
-						ERROR_RES_CONTINUE) {
-						goto FAIL_OP_SET_GLOBAL;
-					}
-				}
-				AS_LINKED_INTEGER(LHS) = AS_INTEGER(result);
-				break;
-			}
-			case VAL_LINKED_DECIMAL: {
-				VMValue result = Value::CastAsDecimal(value);
-				if (IS_NULL(result)) {
-					// Conversion failed
-					if (ThrowRuntimeError(false,
-						    "Expected value to be of type %s instead of %s.",
-						    GetTypeString(VAL_DECIMAL),
-						    GetValueTypeString(value)) ==
-						ERROR_RES_CONTINUE) {
-						goto FAIL_OP_SET_GLOBAL;
-					}
-				}
-				AS_LINKED_DECIMAL(LHS) = AS_DECIMAL(result);
-				break;
-			}
-			default:
-				ScriptManager::Globals->Put(hash, value);
-			}
-			ScriptManager::Unlock();
-		}
-		VM_BREAK;
-
-	FAIL_OP_SET_GLOBAL:
-		ScriptManager::Unlock();
+		VMValue value = Peek(0);
+		SetGlobal(hash, value);
 		VM_BREAK;
 	}
 	VM_CASE(OP_DEFINE_GLOBAL) {
@@ -1078,187 +1006,19 @@ int VMThread::RunInstruction() {
 	// Object Properties (heap)
 	VM_CASE(OP_GET_PROPERTY) {
 		Uint32 hash = ReadUInt32(frame);
+		VMValue object = Pop();
 
-		VMValue object = Peek(0);
-		VMValue result;
+		Push(GetProperty(object, hash));
 
-		// If it's an instance,
-		if (IS_INSTANCEABLE(object)) {
-			ObjInstance* instance = AS_INSTANCE(object);
-
-			if (ScriptManager::Lock()) {
-				// Fields have priority over methods
-				if (instance->Fields->GetIfExists(hash, &result)) {
-					Pop();
-					Push(Value::Delink(result));
-					ScriptManager::Unlock();
-					VM_BREAK;
-				}
-
-				ObjClass* klass = instance->Object.Class;
-				if (GetProperty((Obj*)instance,
-					    klass,
-					    hash,
-					    false,
-					    instance->Object.PropertyGet)) {
-					ScriptManager::Unlock();
-					VM_BREAK;
-				}
-
-				ThrowRuntimeError(false,
-					"Could not find %s in instance!",
-					GetVariableOrMethodName(hash));
-				goto FAIL_OP_GET_PROPERTY;
-			}
-		}
-		// Otherwise, if it's a class,
-		else if (IS_CLASS(object)) {
-			ObjClass* klass = AS_CLASS(object);
-
-			if (ScriptManager::Lock()) {
-				if (GetProperty(klass, hash)) {
-					ScriptManager::Unlock();
-					VM_BREAK;
-				}
-
-				ThrowRuntimeError(false,
-					"Could not find %s in class!",
-					GetVariableOrMethodName(hash));
-				goto FAIL_OP_GET_PROPERTY;
-			}
-		}
-		// Otherwise, if it's a namespace,
-		else if (IS_NAMESPACE(object)) {
-			ObjNamespace* ns = AS_NAMESPACE(object);
-
-			if (ScriptManager::Lock()) {
-				if (ns->Fields->GetIfExists(hash, &result)) {
-					Pop();
-					Push(Value::Delink(result));
-					ScriptManager::Unlock();
-					VM_BREAK;
-				}
-
-				ThrowRuntimeError(false,
-					"Could not find %s in namespace!",
-					GetVariableOrMethodName(hash));
-				goto FAIL_OP_GET_PROPERTY;
-			}
-		}
-		// If it's any other object,
-		else if (IS_OBJECT(object)) {
-			Obj* objPtr = AS_OBJECT(object);
-
-			if (ScriptManager::Lock()) {
-				bool succeeded = objPtr->Class != nullptr
-					? GetProperty(objPtr,
-						  objPtr->Class,
-						  hash,
-						  false,
-						  objPtr->PropertyGet)
-					: GetProperty(objPtr, hash, objPtr->PropertyGet);
-
-				if (succeeded) {
-					ScriptManager::Unlock();
-					VM_BREAK;
-				}
-
-				ThrowRuntimeError(false,
-					"Could not find %s in object!",
-					GetVariableOrMethodName(hash));
-			}
-
-			goto FAIL_OP_GET_PROPERTY;
-		}
-		else {
-			ThrowRuntimeError(false,
-				"Only instances and classes have properties; value was of type %s.",
-				GetValueTypeString(object));
-			goto FAIL_OP_GET_PROPERTY;
-		}
-		VM_BREAK;
-
-	FAIL_OP_GET_PROPERTY:
-		Pop();
-		Push(NULL_VAL);
-		ScriptManager::Unlock();
 		VM_BREAK;
 	}
 	VM_CASE(OP_SET_PROPERTY) {
 		Uint32 hash = ReadUInt32(frame);
-		VMValue field;
-		VMValue value;
-		VMValue object;
-		Table* fields;
-		ObjClass* klass;
-		Obj* objPtr;
+		VMValue value = Pop();
+		VMValue object = Pop();
 
-		object = Peek(1);
-		objPtr = AS_OBJECT(object);
+		Push(SetProperty(object, hash, value));
 
-		if (IS_INSTANCEABLE(object)) {
-			ObjInstance* instance = AS_INSTANCE(object);
-			klass = instance->Object.Class;
-			fields = instance->Fields;
-		}
-		else if (IS_CLASS(object)) {
-			klass = AS_CLASS(object);
-			fields = klass->Fields;
-		}
-		else if (IS_OBJECT(object) && objPtr->Class) {
-			klass = objPtr->Class;
-			fields = klass->Fields;
-		}
-		else if (IS_NAMESPACE(object)) {
-			if (ThrowRuntimeError(false, "Cannot modify a namespace.") ==
-				ERROR_RES_CONTINUE) {
-				goto FAIL_OP_SET_PROPERTY;
-			}
-		}
-		else if (IS_ENUM(object)) {
-			if (ThrowRuntimeError(
-				    false, "Cannot modify the values of an enumeration.") ==
-				ERROR_RES_CONTINUE) {
-				goto FAIL_OP_SET_PROPERTY;
-			}
-		}
-		else {
-			ThrowRuntimeError(false,
-				"Only instances and classes have properties; value was of type %s.",
-				GetValueTypeString(object));
-
-			goto FAIL_OP_SET_PROPERTY;
-		}
-
-		if (ScriptManager::Lock()) {
-			value = Pop();
-
-			if (fields->GetIfExists(hash, &field)) {
-				if (!SetProperty(fields, hash, field, value)) {
-					goto FAIL_OP_SET_PROPERTY;
-				}
-			}
-			else {
-				ValueSetFn setter = objPtr->PropertySet;
-				if (setter && setter(objPtr, hash, value, this->ID)) {
-					goto SUCCESS_OP_SET_PROPERTY;
-				}
-
-				fields->Put(hash, value);
-			}
-
-		SUCCESS_OP_SET_PROPERTY:
-			Pop(); // Instance / Class
-			Push(value);
-			ScriptManager::Unlock();
-		}
-		VM_BREAK;
-
-	FAIL_OP_SET_PROPERTY:
-		Pop();
-		Pop(); // Instance / Class
-		Push(NULL_VAL);
-		ScriptManager::Unlock();
 		VM_BREAK;
 	}
 	VM_CASE(OP_HAS_PROPERTY) {
@@ -1349,203 +1109,14 @@ int VMThread::RunInstruction() {
 	VM_CASE(OP_GET_ELEMENT) {
 		VMValue at = Pop();
 		VMValue obj = Pop();
-		VMValue result;
-
-		if (IS_ARRAY(obj)) {
-			if (!IS_INTEGER(at)) {
-				if (ThrowRuntimeError(false,
-					    "Cannot get value from array using non-Integer value as an index.") ==
-					ERROR_RES_CONTINUE) {
-					goto FAIL_OP_GET_ELEMENT;
-				}
-			}
-
-			if (ScriptManager::Lock()) {
-				ObjArray* array = AS_ARRAY(obj);
-				int index = AS_INTEGER(at);
-				if (index < 0 || (Uint32)index >= array->Values->size()) {
-					if (ThrowRuntimeError(false,
-						    "Index %d is out of bounds of array of size %d.",
-						    index,
-						    (int)array->Values->size()) ==
-						ERROR_RES_CONTINUE) {
-						goto FAIL_OP_GET_ELEMENT;
-					}
-				}
-				result = (*array->Values)[index];
-				Push(result);
-				ScriptManager::Unlock();
-			}
-		}
-		else if (IS_MAP(obj)) {
-			if (!IS_STRING(at)) {
-				if (ThrowRuntimeError(false,
-					    "Cannot get value from map using non-String value as an index.") ==
-					ERROR_RES_CONTINUE) {
-					goto FAIL_OP_GET_ELEMENT;
-				}
-			}
-
-			if (ScriptManager::Lock()) {
-				ObjMap* map = AS_MAP(obj);
-				char* index = AS_CSTRING(at);
-				if (!*index) {
-					if (ThrowRuntimeError(
-						    false, "Cannot find value at empty key.") ==
-						ERROR_RES_CONTINUE) {
-						goto FAIL_OP_GET_ELEMENT;
-					}
-				}
-
-				if (!map->Values->GetIfExists(index, &result)) {
-					goto FAIL_OP_GET_ELEMENT;
-				}
-
-				Push(result);
-				ScriptManager::Unlock();
-			}
-		}
-		else if (IS_HITBOX(obj)) {
-			if (!IS_INTEGER(at)) {
-				if (ThrowRuntimeError(false,
-					    "Cannot get value from hitbox using non-Integer value as an index.") ==
-					ERROR_RES_CONTINUE) {
-					goto FAIL_OP_GET_ELEMENT;
-				}
-			}
-
-			Sint16* hitbox = AS_HITBOX(obj);
-			int index = AS_INTEGER(at);
-			if (index < HITBOX_LEFT || index > HITBOX_BOTTOM) {
-				if (ThrowRuntimeError(false,
-					    "%d is not a valid hitbox slot. (0 - 3)",
-					    index) == ERROR_RES_CONTINUE) {
-					goto FAIL_OP_GET_ELEMENT;
-				}
-			}
-			result = INTEGER_VAL(hitbox[index]);
-			Push(result);
-		}
-		else {
-			if (!IS_OBJECT(obj)) {
-				if (ThrowRuntimeError(false,
-					    "Cannot get element of %s.",
-					    GetValueTypeString(obj)) == ERROR_RES_CONTINUE) {
-					goto FAIL_OP_GET_ELEMENT;
-				}
-			}
-			else {
-				Obj* objPtr = AS_OBJECT(obj);
-				if (objPtr->ElementGet &&
-					objPtr->ElementGet(objPtr, at, &result, this->ID)) {
-					Push(result);
-					ScriptManager::Unlock();
-					VM_BREAK;
-				}
-			}
-
-			ThrowRuntimeError(false,
-				"Cannot get value in object of type %s.",
-				GetValueTypeString(obj));
-			goto FAIL_OP_GET_ELEMENT;
-		}
-		VM_BREAK;
-
-	FAIL_OP_GET_ELEMENT:
-		Push(NULL_VAL);
-		ScriptManager::Unlock();
+		Push(GetElement(obj, at));
 		VM_BREAK;
 	}
 	VM_CASE(OP_SET_ELEMENT) {
-		VMValue value = Peek(0);
-		VMValue at = Peek(1);
-		VMValue obj = Peek(2);
-
-		if (IS_ARRAY(obj)) {
-			if (!IS_INTEGER(at)) {
-				if (ThrowRuntimeError(false,
-					    "Cannot set value from array using non-Integer value as an index.") ==
-					ERROR_RES_CONTINUE) {
-					goto FAIL_OP_SET_ELEMENT;
-				}
-			}
-
-			if (ScriptManager::Lock()) {
-				ObjArray* array = AS_ARRAY(obj);
-				int index = AS_INTEGER(at);
-				if (index < 0 || (Uint32)index >= array->Values->size()) {
-					if (ThrowRuntimeError(false,
-						    "Index %d is out of bounds of array of size %d.",
-						    index,
-						    (int)array->Values->size()) ==
-						ERROR_RES_CONTINUE) {
-						goto FAIL_OP_SET_ELEMENT;
-					}
-				}
-				(*array->Values)[index] = value;
-				ScriptManager::Unlock();
-			}
-		}
-		else if (IS_MAP(obj)) {
-			if (!IS_STRING(at)) {
-				if (ThrowRuntimeError(false,
-					    "Cannot get value from map using non-String value as an index.") ==
-					ERROR_RES_CONTINUE) {
-					goto FAIL_OP_SET_ELEMENT;
-				}
-			}
-
-			if (ScriptManager::Lock()) {
-				ObjMap* map = AS_MAP(obj);
-				char* index = AS_CSTRING(at);
-				if (!*index) {
-					if (ThrowRuntimeError(
-						    false, "Cannot find value at empty key.") ==
-						ERROR_RES_CONTINUE) {
-						goto FAIL_OP_SET_ELEMENT;
-					}
-				}
-
-				map->Values->Put(index, value);
-				map->Keys->Put(index, StringUtils::Duplicate(index));
-				ScriptManager::Unlock();
-			}
-		}
-		else {
-			if (!IS_OBJECT(obj)) {
-				ThrowRuntimeError(false,
-					"Cannot set element of %s.",
-					GetValueTypeString(obj));
-
-				goto FAIL_OP_SET_ELEMENT;
-			}
-			else {
-				Obj* objPtr = AS_OBJECT(obj);
-				if (objPtr->ElementSet &&
-					objPtr->ElementSet(objPtr, at, value, this->ID)) {
-					goto SUCCESS_OP_SET_ELEMENT;
-				}
-			}
-
-			ThrowRuntimeError(false,
-				"Cannot set value in object of type %s.",
-				GetValueTypeString(obj));
-			goto FAIL_OP_SET_ELEMENT;
-		}
-
-	SUCCESS_OP_SET_ELEMENT:
-		Pop(); // value
-		Pop(); // at
-		Pop(); // Array
-		Push(value);
-		VM_BREAK;
-
-	FAIL_OP_SET_ELEMENT:
-		Pop(); // value
-		Pop(); // at
-		Pop(); // Array
-		Push(NULL_VAL);
-		ScriptManager::Unlock();
+		VMValue value = Pop();
+		VMValue at = Pop();
+		VMValue obj = Pop();
+		Push(SetElement(value, at, obj));
 		VM_BREAK;
 	}
 
@@ -2369,7 +1940,7 @@ int VMThread::RunInstruction() {
 		ObjClass* klass = nullptr;
 		VMValue object = Peek(0);
 
-		// Otherwise, if it's a class,
+		// If it's a class,
 		if (IS_CLASS(object)) {
 			klass = AS_CLASS(object);
 		}
@@ -2386,17 +1957,14 @@ int VMThread::RunInstruction() {
 			goto FAIL_OP_GET_SUPERCLASS;
 		}
 
-		if (ScriptManager::Lock()) {
-			ObjClass* parentClass = klass->Parent;
-			if (parentClass) {
-				Pop();
-				Push(OBJECT_VAL(parentClass));
-				VM_BREAK;
-			}
-			else {
-				ThrowRuntimeError(
-					false, "Class '%s' has no superclass!", klass->Name);
-			}
+		if (klass->Parent) {
+			Pop();
+			Push(OBJECT_VAL(klass->Parent));
+			VM_BREAK;
+		}
+		else {
+			ThrowRuntimeError(
+				false, "Class '%s' has no superclass!", klass->Name);
 		}
 
 	FAIL_OP_GET_SUPERCLASS:
@@ -2498,6 +2066,227 @@ int VMThread::RunInstruction() {
 
 		Push(HITBOX_VAL(
 			AS_INTEGER(left), AS_INTEGER(top), AS_INTEGER(right), AS_INTEGER(bottom)));
+		VM_BREAK;
+	}
+
+	VM_CASE(OP_LOCATION_STACK) {
+		Uint8 slot = ReadByte(frame);
+		Push(LOCATION_VAL(STACK_LOCATION(slot)));
+		VM_BREAK;
+	}
+	VM_CASE(OP_LOCATION_MODULE_LOCAL) {
+		Uint16 slot = ReadUInt16(frame);
+		Push(LOCATION_VAL(MODULE_LOCATION(slot)));
+		VM_BREAK;
+	}
+	VM_CASE(OP_LOCATION_GLOBAL) {
+		Uint32 hash = ReadUInt32(frame);
+		Push(LOCATION_VAL(GLOBAL_LOCATION(hash)));
+		VM_BREAK;
+	}
+
+	VM_CASE(OP_LOCATION_PROPERTY) {
+		Uint32 hash = ReadUInt32(frame);
+
+		if (IS_LOCATION(Peek(0))) {
+			VMLocation location = AS_LOCATION(Pop());
+
+			// This is just what OP_LOAD_INDIRECT does.
+			switch (location.Type) {
+			case LOC_STACK:
+				Push(frame->Slots[location.as.Slot]);
+				break;
+			case LOC_MODULE:
+				Push((*frame->Module->Locals)[location.as.Slot]);
+				break;
+			case LOC_GLOBAL:
+				Push(GetGlobal(location.as.Hash));
+				break;
+			case LOC_PROPERTY: {
+				VMValue object = Pop();
+				Push(GetProperty(object, location.as.Hash));
+				break;
+			}
+			case LOC_ELEMENT: {
+				VMValue at = Pop();
+				VMValue obj = Pop();
+				Push(GetElement(obj, at));
+				break;
+			}
+			}
+		}
+
+		Push(LOCATION_VAL(PROPERTY_LOCATION(hash)));
+
+		VM_BREAK;
+	}
+	VM_CASE(OP_LOCATION_SUPER_PROPERTY) {
+		Uint32 hash = ReadUInt32(frame);
+		ObjClass* klass = nullptr;
+		VMValue value;
+
+		if (IS_LOCATION(Peek(0))) {
+			VMLocation location = AS_LOCATION(Pop());
+
+			// This is just what OP_LOAD_INDIRECT does.
+			switch (location.Type) {
+			case LOC_STACK:
+				value = frame->Slots[location.as.Slot];
+				break;
+			case LOC_MODULE:
+				value = (*frame->Module->Locals)[location.as.Slot];
+				break;
+			case LOC_GLOBAL:
+				value = GetGlobal(location.as.Hash);
+				break;
+			case LOC_PROPERTY: {
+				VMValue object = Pop();
+				value = GetProperty(object, location.as.Hash);
+				break;
+			}
+			case LOC_ELEMENT: {
+				VMValue at = Pop();
+				VMValue obj = Pop();
+				value = GetElement(obj, at);
+				break;
+			}
+			}
+		}
+		else {
+			value = Pop();
+		}
+
+		// If it's a class,
+		if (IS_CLASS(value)) {
+			klass = AS_CLASS(value);
+		}
+		// If it's any other object,
+		else if (IS_OBJECT(value)) {
+			klass = AS_OBJECT(value)->Class;
+		}
+
+		if (!klass) {
+			ThrowRuntimeError(false,
+				"Only instances and classes have superclasses; value was of type %s.",
+				GetValueTypeString(value));
+			Push(NULL_VAL);
+			VM_BREAK;
+		}
+		else if (!klass->Parent) {
+			ThrowRuntimeError(
+				false, "Class '%s' has no superclass!", klass->Name);
+			Push(NULL_VAL);
+			VM_BREAK;
+		}
+
+		Push(OBJECT_VAL(klass->Parent));
+		Push(LOCATION_VAL(PROPERTY_LOCATION(hash)));
+		VM_BREAK;
+	}
+	VM_CASE(OP_LOCATION_ELEMENT) {
+		if (IS_LOCATION(Peek(1))) {
+			VMValue value = Pop();
+			VMLocation location = AS_LOCATION(Pop());
+
+			// This is just what OP_LOAD_INDIRECT does.
+			switch (location.Type) {
+			case LOC_STACK:
+				Push(frame->Slots[location.as.Slot]);
+				break;
+			case LOC_MODULE:
+				Push((*frame->Module->Locals)[location.as.Slot]);
+				break;
+			case LOC_GLOBAL:
+				Push(GetGlobal(location.as.Hash));
+				break;
+			case LOC_PROPERTY: {
+				VMValue object = Pop();
+				Push(GetProperty(object, location.as.Hash));
+				break;
+			}
+			case LOC_ELEMENT: {
+				VMValue at = Pop();
+				VMValue obj = Pop();
+				Push(GetElement(obj, at));
+				break;
+			}
+			}
+
+			Push(value);
+		}
+
+		Push(LOCATION_VAL(ELEMENT_LOCATION()));
+		VM_BREAK;
+	}
+
+	VM_CASE(OP_LOAD_INDIRECT) {
+		if (!IS_LOCATION(Peek(0))) {
+			ThrowRuntimeError(false, "Cannot indirectly load from value.");
+			Push(NULL_VAL);
+			VM_BREAK;
+		}
+
+		VMLocation location = AS_LOCATION(Pop());
+
+		switch (location.Type) {
+		case LOC_STACK:
+			Push(frame->Slots[location.as.Slot]);
+			break;
+		case LOC_MODULE:
+			Push((*frame->Module->Locals)[location.as.Slot]);
+			break;
+		case LOC_GLOBAL:
+			Push(GetGlobal(location.as.Hash));
+			break;
+		case LOC_PROPERTY: {
+			VMValue object = Pop();
+			Push(GetProperty(object, location.as.Hash));
+			break;
+		}
+		case LOC_ELEMENT: {
+			VMValue at = Pop();
+			VMValue obj = Pop();
+			Push(GetElement(obj, at));
+			break;
+		}
+		}
+
+		VM_BREAK;
+	}
+	VM_CASE(OP_STORE_INDIRECT) {
+		if (!IS_LOCATION(Peek(1))) {
+			ThrowRuntimeError(false, "Cannot indirectly store on value.");
+			VM_BREAK;
+		}
+
+		VMValue value = Pop();
+		VMLocation location = AS_LOCATION(Pop());
+
+		switch (location.Type) {
+		case LOC_STACK:
+			frame->Slots[location.as.Slot] = value;
+			break;
+		case LOC_MODULE:
+			(*frame->Module->Locals)[location.as.Slot] = value;
+			break;
+		case LOC_GLOBAL:
+			SetGlobal(location.as.Hash, value);
+			break;
+		case LOC_PROPERTY: {
+			VMValue object = Pop();
+			SetProperty(object, location.as.Hash, value);
+			break;
+		}
+		case LOC_ELEMENT: {
+			VMValue at = Pop();
+			VMValue object = Pop();
+			SetElement(object, at, value);
+			break;
+		}
+		}
+
+		Push(value);
+
 		VM_BREAK;
 	}
 
@@ -2737,6 +2526,402 @@ void VMThread::CallInitializer(VMValue value) {
 	FunctionToInvoke = NULL_VAL;
 }
 
+VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
+	VMValue result;
+
+	// If it's an instance,
+	if (IS_INSTANCEABLE(object)) {
+		ObjInstance* instance = AS_INSTANCE(object);
+
+		if (ScriptManager::Lock()) {
+			// Fields have priority over methods
+			if (instance->Fields->GetIfExists(hash, &result)) {
+				result = Value::Delink(result);
+				ScriptManager::Unlock();
+				return result;
+			}
+
+			ObjClass* klass = instance->Object.Class;
+			if (GetProperty((Obj*)instance,
+				    klass,
+				    hash,
+				    false,
+				    instance->Object.PropertyGet)) {
+				result = Pop();
+				ScriptManager::Unlock();
+				return result;
+			}
+
+			ThrowRuntimeError(false,
+				"Could not find %s in instance!",
+				GetVariableOrMethodName(hash));
+			ScriptManager::Unlock();
+			return NULL_VAL;
+		}
+	}
+	// Otherwise, if it's a class,
+	else if (IS_CLASS(object)) {
+		ObjClass* klass = AS_CLASS(object);
+
+		if (ScriptManager::Lock()) {
+			if (GetProperty(klass, hash)) {
+				result = Pop();
+				ScriptManager::Unlock();
+				return result;
+			}
+
+			ThrowRuntimeError(false,
+				"Could not find %s in class!",
+				GetVariableOrMethodName(hash));
+			ScriptManager::Unlock();
+			return NULL_VAL;
+		}
+	}
+	// Otherwise, if it's a namespace,
+	else if (IS_NAMESPACE(object)) {
+		ObjNamespace* ns = AS_NAMESPACE(object);
+
+		if (ScriptManager::Lock()) {
+			if (ns->Fields->GetIfExists(hash, &result)) {
+				result = Value::Delink(result);
+				ScriptManager::Unlock();
+				return result;
+			}
+
+			ThrowRuntimeError(false,
+				"Could not find %s in namespace!",
+				GetVariableOrMethodName(hash));
+			ScriptManager::Unlock();
+			return NULL_VAL;
+		}
+	}
+	// If it's any other object,
+	else if (IS_OBJECT(object)) {
+		Obj* objPtr = AS_OBJECT(object);
+
+		if (ScriptManager::Lock()) {
+			bool succeeded = objPtr->Class != nullptr
+				? GetProperty(objPtr,
+					  objPtr->Class,
+					  hash,
+					  false,
+					  objPtr->PropertyGet)
+				: GetProperty(objPtr, hash, objPtr->PropertyGet);
+
+			if (succeeded) {
+				result = Pop();
+				ScriptManager::Unlock();
+				return result;
+			}
+
+			ThrowRuntimeError(false,
+				"Could not find %s in object!",
+				GetVariableOrMethodName(hash));
+			ScriptManager::Unlock();
+		}
+
+		return NULL_VAL;
+	}
+	else {
+		ThrowRuntimeError(false,
+			"Only instances and classes have properties; value was of type %s.",
+			GetValueTypeString(object));
+		return NULL_VAL;
+	}
+
+	return NULL_VAL;
+}
+VMValue VMThread::SetProperty(VMValue object, Uint32 hash, VMValue value) {
+	Table* fields;
+	ObjClass* klass;
+	Obj* objPtr = AS_OBJECT(object);
+
+	if (IS_INSTANCEABLE(object)) {
+		ObjInstance* instance = AS_INSTANCE(object);
+		klass = instance->Object.Class;
+		fields = instance->Fields;
+	}
+	else if (IS_CLASS(object)) {
+		klass = AS_CLASS(object);
+		fields = klass->Fields;
+	}
+	else if (IS_OBJECT(object) && objPtr->Class) {
+		klass = objPtr->Class;
+		fields = klass->Fields;
+	}
+	else if (IS_NAMESPACE(object)) {
+		ThrowRuntimeError(false, "Cannot modify a namespace.");
+		return value;
+	}
+	else if (IS_ENUM(object)) {
+		ThrowRuntimeError(false, "Cannot modify the values of an enumeration.");
+		return value;
+	}
+	else {
+		ThrowRuntimeError(false,
+			"Only instances and classes have properties; value was of type %s.",
+			GetValueTypeString(object));
+		return value;
+	}
+
+	if (ScriptManager::Lock()) {
+		VMValue field;
+		if (fields->GetIfExists(hash, &field)) {
+			if (!SetProperty(fields, hash, field, value)) {
+				ScriptManager::Unlock();
+				return value;
+			}
+		}
+		else {
+			ValueSetFn setter = objPtr->PropertySet;
+			if (setter && setter(objPtr, hash, value, this->ID)) {
+				ScriptManager::Unlock();
+				return value;
+			}
+
+			fields->Put(hash, value);
+		}
+
+		ScriptManager::Unlock();
+		return value;
+	}
+
+	return value;
+}
+
+VMValue VMThread::GetElement(VMValue object, VMValue at) {
+	if (IS_ARRAY(object)) {
+		if (!IS_INTEGER(at)) {
+			ThrowRuntimeError(false,
+				"Cannot get value from array using non-Integer value as an index.");
+			return NULL_VAL;
+		}
+
+		if (ScriptManager::Lock()) {
+			ObjArray* array = AS_ARRAY(object);
+			int index = AS_INTEGER(at);
+			if (index < 0 || (Uint32)index >= array->Values->size()) {
+				ThrowRuntimeError(false,
+					"Index %d is out of bounds of array of size %d.",
+					index,
+					(int)array->Values->size());
+				ScriptManager::Unlock();
+				return NULL_VAL;
+			}
+			VMValue result = (*array->Values)[index];
+			ScriptManager::Unlock();
+			return result;
+		}
+	}
+	else if (IS_MAP(object)) {
+		if (!IS_STRING(at)) {
+			ThrowRuntimeError(false,
+				"Cannot get value from map using non-String value as an index.");
+			return NULL_VAL;
+		}
+
+		if (ScriptManager::Lock()) {
+			ObjMap* map = AS_MAP(object);
+			char* index = AS_CSTRING(at);
+			if (!*index) {
+				ThrowRuntimeError(false, "Cannot find value at empty key.");
+				ScriptManager::Unlock();
+				return NULL_VAL;
+			}
+
+			VMValue result;
+			if (!map->Values->GetIfExists(index, &result)) {
+				result = NULL_VAL;
+			}
+
+			ScriptManager::Unlock();
+			return result;
+		}
+	}
+	else if (IS_HITBOX(object)) {
+		if (!IS_INTEGER(at)) {
+			ThrowRuntimeError(false,
+				"Cannot get value from hitbox using non-Integer value as an index.");
+			return NULL_VAL;
+		}
+
+		Sint16* hitbox = AS_HITBOX(object);
+		int index = AS_INTEGER(at);
+		if (index < HITBOX_LEFT || index > HITBOX_BOTTOM) {
+			ThrowRuntimeError(false,
+				"%d is not a valid hitbox slot. (0 - 3)",
+				index);
+		}
+		return INTEGER_VAL(hitbox[index]);
+	}
+	else {
+		if (!IS_OBJECT(object)) {
+			ThrowRuntimeError(false,
+				"Cannot get element of %s.",
+				GetValueTypeString(object));
+			return NULL_VAL;
+		}
+		else {
+			Obj* objPtr = AS_OBJECT(object);
+			VMValue result;
+			if (objPtr->ElementGet &&
+				objPtr->ElementGet(objPtr, at, &result, this->ID)) {
+				ScriptManager::Unlock();
+				return result;
+			}
+		}
+
+		ThrowRuntimeError(false,
+			"Cannot get value in object of type %s.",
+			GetValueTypeString(object));
+	}
+
+	return NULL_VAL;
+}
+VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
+	if (IS_ARRAY(object)) {
+		if (!IS_INTEGER(at)) {
+			ThrowRuntimeError(false,
+				"Cannot set value from array using non-Integer value as an index.");
+			return value;
+		}
+
+		if (ScriptManager::Lock()) {
+			ObjArray* array = AS_ARRAY(object);
+			int index = AS_INTEGER(at);
+			if (index < 0 || (Uint32)index >= array->Values->size()) {
+				ThrowRuntimeError(false,
+					"Index %d is out of bounds of array of size %d.",
+					index,
+					(int)array->Values->size());
+				ScriptManager::Unlock();
+				return value;
+			}
+			(*array->Values)[index] = value;
+			ScriptManager::Unlock();
+		}
+	}
+	else if (IS_MAP(object)) {
+		if (!IS_STRING(at)) {
+			ThrowRuntimeError(false,
+				"Cannot get value from map using non-String value as an index.");
+			return value;
+		}
+
+		if (ScriptManager::Lock()) {
+			ObjMap* map = AS_MAP(object);
+			char* index = AS_CSTRING(at);
+			if (!*index) {
+				ThrowRuntimeError(false, "Cannot find value at empty key.");
+				ScriptManager::Unlock();
+				return value;
+			}
+
+			map->Values->Put(index, value);
+			map->Keys->Put(index, StringUtils::Duplicate(index));
+			ScriptManager::Unlock();
+		}
+	}
+	else {
+		if (!IS_OBJECT(object)) {
+			ThrowRuntimeError(false,
+				"Cannot set element of %s.",
+				GetValueTypeString(object));
+			return value;
+		}
+		else {
+			Obj* objPtr = AS_OBJECT(object);
+			if (objPtr->ElementSet &&
+				objPtr->ElementSet(objPtr, at, value, this->ID)) {
+				return value;
+			}
+		}
+
+		ThrowRuntimeError(false,
+			"Cannot set value in object of type %s.",
+			GetValueTypeString(object));
+	}
+
+	return value;
+}
+
+VMValue VMThread::GetGlobal(Uint32 hash) {
+	if (ScriptManager::Lock()) {
+		VMValue result;
+		if (!ScriptManager::Constants->GetIfExists(hash, &result) &&
+			!ScriptManager::Globals->GetIfExists(hash, &result)) {
+			ThrowRuntimeError(false,
+				"Variable %s does not exist.",
+				GetVariableOrMethodName(hash));
+			ScriptManager::Unlock();
+			return NULL_VAL;
+		}
+
+		result = Value::Delink(result);
+		ScriptManager::Unlock();
+		return result;
+	}
+
+	return NULL_VAL;
+}
+void VMThread::SetGlobal(Uint32 hash, VMValue value) {
+	if (!ScriptManager::Lock()) {
+		return;
+	}
+
+	if (!ScriptManager::Globals->Exists(hash)) {
+		if (ScriptManager::Constants->Exists(hash)) {
+			ThrowRuntimeError(false,
+			    "Cannot redefine constant %s!",
+			    GetVariableOrMethodName(hash));
+			ScriptManager::Unlock();
+			return;
+		}
+		else {
+			ThrowRuntimeError(false,
+				"Global variable %s does not exist.",
+				GetVariableOrMethodName(hash));
+			ScriptManager::Unlock();
+			return;
+		}
+	}
+
+	VMValue LHS = ScriptManager::Globals->Get(hash);
+	switch (LHS.Type) {
+	case VAL_LINKED_INTEGER: {
+		VMValue result = Value::CastAsInteger(value);
+		if (IS_NULL(result)) {
+			// Conversion failed
+			ThrowRuntimeError(false,
+				"Expected value to be of type %s instead of %s.",
+				GetTypeString(VAL_INTEGER),
+				GetValueTypeString(value));
+			break;
+		}
+		AS_LINKED_INTEGER(LHS) = AS_INTEGER(result);
+		break;
+	}
+	case VAL_LINKED_DECIMAL: {
+		VMValue result = Value::CastAsDecimal(value);
+		if (IS_NULL(result)) {
+			// Conversion failed
+			ThrowRuntimeError(false,
+				"Expected value to be of type %s instead of %s.",
+				GetTypeString(VAL_DECIMAL),
+				GetValueTypeString(value));
+			break;
+		}
+		AS_LINKED_DECIMAL(LHS) = AS_DECIMAL(result);
+		break;
+	}
+	default:
+		ScriptManager::Globals->Put(hash, value);
+		break;
+	}
+
+	ScriptManager::Unlock();
+}
+
 bool VMThread::GetProperty(Obj* object,
 	ObjClass* klass,
 	Uint32 hash,
@@ -2747,13 +2932,11 @@ bool VMThread::GetProperty(Obj* object,
 
 		if (checkFields && klass->Fields->GetIfExists(hash, &value)) {
 			// Fields have priority over methods
-			Pop();
 			Push(Value::Delink(value));
 			ScriptManager::Unlock();
 			return true;
 		}
 		else if (klass->Methods->GetIfExists(hash, &value)) {
-			Pop();
 			Push(value);
 			ScriptManager::Unlock();
 			return true;
@@ -2762,13 +2945,11 @@ bool VMThread::GetProperty(Obj* object,
 		if (getter) {
 			try {
 				if (getter(object, hash, &value, this->ID)) {
-					Pop();
 					Push(value);
 					ScriptManager::Unlock();
 					return true;
 				}
 			} catch (const ScriptException& error) {
-				Pop(); // Instance.
 				Push(NULL_VAL);
 
 				ThrowRuntimeError(false, "%s", error.what());
@@ -2788,7 +2969,6 @@ bool VMThread::GetProperty(Obj* object,
 		else {
 			ThrowRuntimeError(
 				false, "Undefined property %s.", GetVariableOrMethodName(hash));
-			Pop(); // Instance.
 			Push(NULL_VAL);
 		}
 	}
@@ -2800,14 +2980,12 @@ bool VMThread::GetProperty(Obj* object, Uint32 hash, ValueGetFn getter) {
 		VMValue value;
 
 		if (getter && getter(object, hash, &value, this->ID)) {
-			Pop();
 			Push(value);
 			ScriptManager::Unlock();
 			return true;
 		}
 
 		ThrowRuntimeError(false, "Undefined property %s.", GetVariableOrMethodName(hash));
-		Pop(); // Instance.
 		Push(NULL_VAL);
 	}
 	ScriptManager::Unlock();
@@ -2819,13 +2997,11 @@ bool VMThread::GetProperty(ObjClass* klass, Uint32 hash, bool checkFields) {
 
 		if (checkFields && klass->Fields->GetIfExists(hash, &value)) {
 			// Fields have priority over methods
-			Pop();
 			Push(Value::Delink(value));
 			ScriptManager::Unlock();
 			return true;
 		}
 		else if (klass->Methods->GetIfExists(hash, &value)) {
-			Pop();
 			Push(value);
 			ScriptManager::Unlock();
 			return true;
@@ -2839,7 +3015,6 @@ bool VMThread::GetProperty(ObjClass* klass, Uint32 hash, bool checkFields) {
 		else {
 			ThrowRuntimeError(
 				false, "Undefined property %s.", GetVariableOrMethodName(hash));
-			Pop(); // Instance.
 			Push(NULL_VAL);
 		}
 	}
@@ -2852,13 +3027,11 @@ bool VMThread::GetProperty(ObjClass* klass, Uint32 hash) {
 
 		if (klass->Fields->GetIfExists(hash, &value)) {
 			// Fields have priority over methods
-			Pop();
 			Push(Value::Delink(value));
 			ScriptManager::Unlock();
 			return true;
 		}
 		else if (klass->Methods->GetIfExists(hash, &value)) {
-			Pop();
 			Push(value);
 			ScriptManager::Unlock();
 			return true;
@@ -2872,7 +3045,6 @@ bool VMThread::GetProperty(ObjClass* klass, Uint32 hash) {
 		else {
 			ThrowRuntimeError(
 				false, "Undefined property %s.", GetVariableOrMethodName(hash));
-			Pop(); // Instance.
 			Push(NULL_VAL);
 		}
 	}
@@ -3066,6 +3238,31 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 		ScriptManager::Unlock();
 		return CallValue(callee, argCount);
 	}
+	return false;
+}
+bool VMThread::GetArity(VMValue callee, int& minArity, int& maxArity) {
+	if (ScriptManager::Lock() && IS_OBJECT(callee)) {
+		switch (OBJECT_TYPE(callee)) {
+		case OBJ_BOUND_METHOD: {
+			ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
+			minArity = bound->Method->MinArity;
+			maxArity = bound->Method->Arity;
+			ScriptManager::Unlock();
+			return true;
+		}
+		case OBJ_FUNCTION: {
+			ObjFunction* function = AS_FUNCTION(callee);
+			minArity = function->MinArity;
+			maxArity = function->Arity;
+			ScriptManager::Unlock();
+			return true;
+		}
+		case OBJ_NATIVE_FUNCTION: // No way to know. (Yet)
+		default:
+			break;
+		}
+	}
+	ScriptManager::Unlock();
 	return false;
 }
 bool VMThread::InstantiateClass(VMValue callee, int argCount) {

@@ -26,6 +26,7 @@
 #include <Engine/Includes/DateTime.h>
 #include <Engine/Input/Controller.h>
 #include <Engine/Input/Input.h>
+#include <Engine/Includes/Operation.h>
 #include <Engine/Math/Ease.h>
 #include <Engine/Math/Geometry.h>
 #include <Engine/Math/Math.h>
@@ -897,8 +898,7 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
 
 	animator->AnimationTimer += animator->AnimationSpeed;
 
-	// TODO: Animate Retro Model if Frames = AnimFrame* 1 (no size?), else:
-	while (animator->Duration && animator->AnimationTimer > animator->Duration) {
+	while (animator->AnimationTimer > animator->Duration) {
 		++animator->CurrentFrame;
 
 		animator->AnimationTimer -= animator->Duration;
@@ -2013,6 +2013,72 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 		return INTEGER_VAL(1);
 	}
 	return INTEGER_VAL(0);
+}
+/***
+ * Application.TakeScreenshot
+ * \desc Saves a screenshot to `path`. This operation only completes at the end of the frame, so you may optionally provide a callback.
+ * \paramOpt path (string): The path to save the screenshot to. If not passed, the screenshot is saved to the default screenshot path.
+ * \paramOpt callback (function): The function to call when the screenshot operation finishes. When called, it receives two arguments: a boolean indicating whether the screenshot was saved, and the path the screenshot was saved to, as a string. The function may have less than two parameters, but no more than two.
+ * \ns Application
+ */
+struct ScriptScreenshotOpData {
+	Uint32 ThreadID;
+	VMValue Callable;
+};
+void ScriptTakeScreenshotCallback(OperationResult result) {
+	ScriptScreenshotOpData* data = (ScriptScreenshotOpData*)result.Input;
+	const char* filename = (const char*)result.Output;
+
+	if (!IS_NULL(data->Callable)) {
+		VMThread* thread = ScriptManager::Threads + data->ThreadID;
+		VMValue* stackTop = thread->StackTop;
+
+		thread->Push(INTEGER_VAL(result.Success));
+		if (filename) {
+			thread->Push(ReturnString(filename));
+		}
+
+		VMValue callable = data->Callable;
+		int numArgs = thread->StackTop - stackTop;
+		int minArity, maxArity;
+		if (thread->GetArity(callable, minArity, maxArity) && numArgs > maxArity) {
+			numArgs = maxArity;
+			thread->StackTop = stackTop + numArgs;
+		}
+
+		thread->RunValue(callable, numArgs);
+		thread->StackTop = stackTop;
+	}
+
+	Memory::Free(data);
+}
+VMValue Application_TakeScreenshot(int argCount, VMValue* args, Uint32 threadID) {
+	char* path = nullptr;
+	VMValue callable = NULL_VAL;
+
+	if (argCount == 1 && IS_CALLABLE(args[0])) {
+		callable = args[0];
+	}
+	else if (argCount > 0) {
+		path = GET_ARG(0, GetString);
+		callable = GET_ARG_OPT(1, GetCallable, NULL_VAL);
+	}
+
+	ScriptScreenshotOpData* data = (ScriptScreenshotOpData*)Memory::Malloc(sizeof(ScriptScreenshotOpData));
+	if (!data) {
+		return NULL_VAL;
+	}
+
+	data->ThreadID = threadID;
+	data->Callable = callable;
+
+	Operation operation;
+	operation.Callback = ScriptTakeScreenshotCallback;
+	operation.Data = data;
+
+	Application::TakeScreenshot(path, operation);
+
+	return NULL_VAL;
 }
 /***
  * Application.Error
@@ -3393,7 +3459,7 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
  * \paramOpt rotation (number): Rotation of the drawn sprite in radians, or in integer if <param useInteger> is `true`.
- * \paramOpt useInteger (number): Whether the rotation argument is already in radians.
+ * \paramOpt useInteger (boolean): Whether the rotation argument is already in radians.
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
@@ -11590,6 +11656,21 @@ VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 		return INTEGER_VAL(0);
 	}
 	return INTEGER_VAL(AudioManager::IsPlayingMusic(audio));
+}
+/***
+ * Music.GetDuration
+ * \desc Gets the duration of the current track playing.
+ * \param music (integer): The music index to get the duration (in seconds) of.
+ * \return decimal Returns a decimal value.
+ * \ns Music
+ */
+VMValue Music_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetMusic);
+	if (!audio) {
+		return DECIMAL_VAL(0.0);
+	}
+	return DECIMAL_VAL((float)AudioManager::GetMusicDuration(audio));
 }
 /***
  * Music.GetPosition
@@ -19806,6 +19887,7 @@ They require the Game SDK library to be present.
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, TakeScreenshot);
 	DEF_NATIVE(Application, Error);
 	DEF_NATIVE(Application, SetDefaultFont);
 	DEF_NATIVE(Application, ChangeGame);
@@ -19815,6 +19897,11 @@ They require the Game SDK library to be present.
     * \desc Fullscreen keybind.
     */
 	DEF_ENUM_CLASS(KeyBind, Fullscreen);
+	/***
+    * \enum KeyBind_Screenshot
+    * \desc Screenshot keybind.
+    */
+	DEF_ENUM_CLASS(KeyBind, Screenshot);
 	/***
     * \enum KeyBind_ToggleFPSCounter
     * \desc FPS counter toggle keybind.
@@ -21235,6 +21322,7 @@ This class also houses the input action system.
 	DEF_NATIVE(Music, Resume);
 	DEF_NATIVE(Music, Clear);
 	DEF_NATIVE(Music, IsPlaying);
+	DEF_NATIVE(Music, GetDuration);
 	DEF_NATIVE(Music, GetPosition);
 	DEF_NATIVE(Music, Alter);
 	DEF_NATIVE(Music, GetLoopPoint);

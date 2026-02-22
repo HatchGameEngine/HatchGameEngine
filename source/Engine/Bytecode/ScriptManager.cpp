@@ -168,14 +168,14 @@ Uint32 ScriptManager::GetBranchLimit() {
 void ScriptManager::Dispose() {
 	if (Globals) {
 		Globals->Clear();
-		Globals = nullptr;
 		delete Globals;
+		Globals = nullptr;
 	}
 
 	if (Constants) {
 		Constants->Clear();
-		Constants = nullptr;
 		delete Constants;
+		Constants = nullptr;
 	}
 
 	ClassImplList.clear();

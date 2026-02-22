@@ -16,10 +16,12 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
+#include <Engine/ResourceTypes/ImageFormats/PNG.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
+#include <Engine/Utilities/Screenshot.h>
 #include <Engine/Utilities/StringUtils.h>
 
 #include <Engine/Media/MediaPlayer.h>
@@ -101,6 +103,7 @@ char Application::GameDeveloper[256];
 char Application::GameIdentifier[256];
 char Application::DeveloperIdentifier[256];
 char Application::SavesDir[256];
+char Application::ScreenshotsPath[256];
 char Application::PreferencesDir[256];
 
 std::unordered_map<std::string, Capability> Application::CapabilityMap;
@@ -119,6 +122,8 @@ bool Application::Step = false;
 int Application::MasterVolume = 100;
 int Application::MusicVolume = 100;
 int Application::SoundVolume = 100;
+
+bool HitScreenshotKey = false;
 
 bool Application::DisableDefaultActions = false;
 bool Application::DevMenuActivated = false;
@@ -142,7 +147,7 @@ bool UseMemoryFileCache = false;
 bool DevMode = false;
 bool ToggleDebugger = false;
 bool ViewPerformance = false;
-bool TakeSnapshot = false;
+bool TakePerfSnapshot = false;
 bool DoNothing = false;
 int UpdatesPerFastForward = 4;
 
@@ -617,6 +622,15 @@ const char* Application::GetSavesDir() {
 	return SavesDir;
 }
 
+// Returns the name of the screenshots directory
+const char* Application::GetScreenshotsPath() {
+	if (ScreenshotsPath[0] == '\0') {
+		return nullptr;
+	}
+
+	return ScreenshotsPath;
+}
+
 // Returns the name of the preferences directory
 const char* Application::GetPreferencesDir() {
 	if (PreferencesDir[0] == '\0') {
@@ -624,6 +638,12 @@ const char* Application::GetPreferencesDir() {
 	}
 
 	return PreferencesDir;
+}
+
+std::string Application::GetFilenameForScreenshot() {
+	std::string filename = Screenshot::GetFilename();
+
+	return PATHLOCATION_SCREENSHOTS_URL + filename;
 }
 
 void Application::LoadDefaultFont() {
@@ -1001,7 +1021,7 @@ bool Application::SetNextGame(const char* path,
 	std::string resolved = "";
 	PathLocation location;
 
-	if (Path::FromURL(path, resolved, location, false) &&
+	if (Path::FromURL(path, resolved, location, false, false) &&
 		(location == PathLocation::GAME || location == PathLocation::USER)) {
 		if (path[strlen(path) - 1] == '/') {
 			exists = Directory::Exists(resolved.c_str());
@@ -1141,6 +1161,7 @@ void Application::LoadKeyBinds() {
 	}
 
 	GET_KEY("fullscreen", Fullscreen, Key_F4);
+	GET_KEY("screenshot", Screenshot, Key_UNKNOWN);
 	GET_KEY("toggleFPSCounter", ToggleFPSCounter, Key_F2);
 	GET_KEY("devRestartApp", DevRestartApp, Key_F1);
 	GET_KEY("devRestartScene", DevRestartScene, Key_F6);
@@ -1356,6 +1377,13 @@ void Application::PollEvents() {
 					!Application::GetWindowFullscreen());
 				break;
 			}
+			// Screenshot
+			else if (key == KeyBindsSDL[(int)KeyBind::Screenshot]) {
+				if (!HitScreenshotKey) {
+					Application::TakeScreenshot();
+					HitScreenshotKey = true;
+				}
+			}
 			// Toggle FPS counter
 			else if (key == KeyBindsSDL[(int)KeyBind::ToggleFPSCounter]) {
 				Application::ShowFPS = !Application::ShowFPS;
@@ -1415,7 +1443,7 @@ void Application::PollEvents() {
 				}
 				// Print performance snapshot (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevPerfSnapshot]) {
-					TakeSnapshot = true;
+					TakePerfSnapshot = true;
 					break;
 				}
 				// Recompile and restart scene (dev)
@@ -1440,6 +1468,8 @@ void Application::PollEvents() {
 					BenchmarkCounter = 0.0f;
 
 					InputManager::ControllerStopRumble();
+					AudioManager::AudioStopAll();
+					AudioManager::ClearMusic();
 
 					if (Application::DevMenuActivated) {
 						Application::CloseDevMenu();
@@ -1523,6 +1553,10 @@ void Application::RunFrame(int runFrames) {
 	Metrics.Frame.Begin();
 
 	FrameTimeStart = Clock::GetTicks();
+
+	Metrics.Clear.Begin();
+	Graphics::Clear();
+	Metrics.Clear.End();
 
 	// Event loop
 	Metrics.Event.Begin();
@@ -1610,10 +1644,6 @@ void Application::RunFrame(int runFrames) {
 #endif
 
 	// Rendering
-	Metrics.Clear.Begin();
-	Graphics::Clear();
-	Metrics.Clear.End();
-
 	Metrics.Render.Begin();
 	Scene::Render();
 	Metrics.Render.End();
@@ -1632,12 +1662,85 @@ DO_NOTHING:
 	DrawPerformance();
 	Metrics.FPSCounter.End();
 
+	// Take screenshots
+	if (!Screenshot::IsQueueEmpty()) {
+		Screenshot::TakeQueued();
+	}
+
+	HitScreenshotKey = false;
+
 	Metrics.Present.Begin();
 	Graphics::Present();
 	Metrics.Present.End();
 
 	Metrics.Frame.End();
 }
+
+void Application::TakeScreenshot(const char* path, Operation operation) {
+	ScreenshotOperation op;
+
+	if (path) {
+		op.Path = std::string(path);
+	}
+	else {
+		const char* extension = ".png";
+
+		std::string basePath = Application::GetFilenameForScreenshot();
+		std::string path = basePath + extension;
+
+		if (Screenshot::Exists(path)) {
+			int attempt = 0;
+			do {
+				attempt++;
+
+				if (attempt == INT32_MAX) {
+					const char* realPath = basePath.c_str();
+					std::string resolved = "";
+					if (Path::FromURL(realPath, resolved)) {
+						realPath = resolved.c_str();
+					}
+
+					Log::Print(Log::LOG_ERROR,
+						"Could not save screenshot at \"%s\"!",
+						realPath);
+					return;
+				}
+
+				path = basePath + "-" + std::to_string(attempt) + extension;
+			} while (Screenshot::Exists(path));
+		}
+
+		op.Path = path;
+	}
+
+	op.OnFinish = operation;
+
+	Screenshot::QueueOperation(op);
+}
+void Application::TakeScreenshot() {
+	Operation operation;
+	operation.Callback = Application::TakeScreenshotCallback;
+	operation.Data = nullptr;
+
+	TakeScreenshot(nullptr, operation);
+}
+
+void Application::TakeScreenshotCallback(OperationResult result) {
+	const char* filename = (const char*)result.Output;
+
+	std::string resolved = "";
+	if (Path::FromURL(filename, resolved)) {
+		filename = resolved.c_str();
+	}
+
+	if (result.Success) {
+		Log::Print(Log::LOG_VERBOSE, "Saved screenshot at \"%s\"", filename);
+	}
+	else {
+		Log::Print(Log::LOG_ERROR, "Could not save screenshot at \"%s\"!", filename);
+	}
+}
+
 void Application::DrawPerformance() {
 	if (DefaultFont == nullptr) {
 		return;
@@ -1843,12 +1946,12 @@ void Application::MainLoop() {
 		if (tickStart - AutomaticPerformanceSnapshotLastTime >
 			AutomaticPerformanceSnapshotMinInterval) {
 			AutomaticPerformanceSnapshotLastTime = tickStart;
-			TakeSnapshot = true;
+			TakePerfSnapshot = true;
 		}
 	}
 
-	if (TakeSnapshot) {
-		TakeSnapshot = false;
+	if (TakePerfSnapshot) {
+		TakePerfSnapshot = false;
 		Application::GetPerformanceSnapshot();
 	}
 
@@ -2119,6 +2222,8 @@ void Application::InitGameInfo() {
 
 	StringUtils::Copy(GameIdentifier, DEFAULT_GAME_IDENTIFIER, sizeof(GameIdentifier));
 	StringUtils::Copy(SavesDir, DEFAULT_SAVES_DIR, sizeof(SavesDir));
+
+	memset(ScreenshotsPath, '\0', sizeof(ScreenshotsPath));
 }
 
 void Application::LoadGameInfo() {
@@ -2202,6 +2307,27 @@ void Application::LoadGameInfo() {
 			char* id = XMLParser::TokenToString(node->children[0]->name);
 			ValidateAndSetIdentifier("saves directory", id, SavesDir, sizeof(SavesDir));
 			Memory::Free(id);
+		}
+
+		node = XMLParser::SearchNode(root, "screenshotsPath");
+		if (node) {
+			char* path = XMLParser::TokenToString(node->children[0]->name);
+
+			bool isPathValid = false;
+			if (!Path::IsAbsolute(path) && !StringUtils::StartsWith(path, PATHLOCATION_SCREENSHOTS_URL) && Path::IsValid(path)) {
+				isPathValid = true;
+			}
+
+			if (isPathValid) {
+				StringUtils::Copy(ScreenshotsPath, path, sizeof(ScreenshotsPath));
+			}
+			else {
+				Log::Print(Log::LOG_ERROR,
+					"screenshotsPath \"%s\" is not valid!",
+					path);
+			}
+
+			Memory::Free(path);
 		}
 
 		node = XMLParser::SearchNode(root, "preferencesDir");
@@ -2707,7 +2833,7 @@ void Application::DevMenu_MainMenu() {
 
 	if (DevMenu.Selection == 2 && SceneInfo::Categories.empty()) {
 		DrawDevString("Warning: No scene list is loaded.", 160, 101, ALIGN_LEFT, false);
-		DrawDevString("This option is disabled.", 160, 101, ALIGN_LEFT, false);
+		DrawDevString("This option is disabled.", 160, 116, ALIGN_LEFT, false);
 	}
 
 	int actionUp = InputManager::GetActionID("Up");
@@ -2758,6 +2884,8 @@ void Application::DevMenu_MainMenu() {
 			CloseDevMenu();
 			BenchmarkFrame = 0;
 			InputManager::ControllerStopRumble();
+			AudioManager::AudioStopAll();
+			AudioManager::ClearMusic();
 			Scene::Restart();
 			UpdateWindowTitle();
 			break;

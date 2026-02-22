@@ -2,7 +2,7 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Utilities/StringUtils.h>
 
-#define BYTECODE_VERSION 0x0005
+#define BYTECODE_VERSION 0x0006
 
 const char* Bytecode::Magic = "HTVM";
 Uint32 Bytecode::LatestVersion = BYTECODE_VERSION;
@@ -89,7 +89,15 @@ const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_NOP",
 	"OP_SUPER_INVOKE",
 	"OP_EVENT",
 	"OP_METHOD",
-	"OP_NEW_HITBOX"};
+	"OP_NEW_HITBOX",
+	"OP_LOCATION_STACK",
+	"OP_LOCATION_MODULE_LOCAL",
+	"OP_LOCATION_GLOBAL",
+	"OP_LOCATION_PROPERTY",
+	"OP_LOCATION_SUPER_PROPERTY",
+	"OP_LOCATION_ELEMENT",
+	"OP_LOAD_INDIRECT",
+	"OP_STORE_INDIRECT"};
 
 Bytecode::Bytecode() {
 	Version = LatestVersion;
@@ -538,6 +546,19 @@ int Bytecode::GetTotalOpcodeSize(uint8_t* op) {
 		return 7;
 	case OP_METHOD_V4:
 		return 6;
+	case OP_LOCATION_STACK:
+		return 2;
+	case OP_LOCATION_MODULE_LOCAL:
+		return 3;
+	case OP_LOCATION_GLOBAL:
+	case OP_LOCATION_PROPERTY:
+	case OP_LOCATION_SUPER_PROPERTY:
+		return 5;
+	case OP_LOCATION_ELEMENT:
+		return 1;
+	case OP_LOAD_INDIRECT:
+	case OP_STORE_INDIRECT:
+		return 1;
 	}
 	return 1;
 }

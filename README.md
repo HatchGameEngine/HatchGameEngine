@@ -28,5 +28,4 @@ Optional:
 - [Open Asset Import Library
   (`assimp`)](https://github.com/assimp/assimp)
 - libpng
-- libjpeg
 - libogg
