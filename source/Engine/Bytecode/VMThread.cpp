@@ -978,7 +978,7 @@ int VMThread::RunInstruction() {
 		VMValue value = Pop();
 		VMValue at = Pop();
 		VMValue obj = Pop();
-		Push(SetElement(value, at, obj));
+		Push(SetElement(obj, at, value));
 		VM_BREAK;
 	}
 
