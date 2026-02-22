@@ -13,6 +13,8 @@ public:
 	bool Paletted = false;
 	Uint16 NumPaletteColors = 0;
 
+	void ReadPixelData(Uint8* pixelData, int numChannels);
+
 	Uint32* GetPalette();
 	virtual bool Save(const char* filename);
 	virtual ~ImageFormat();

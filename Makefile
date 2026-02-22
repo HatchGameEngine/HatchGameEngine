@@ -170,6 +170,7 @@ CPPFILES := \
 	source/Engine/Types/Tileset.cpp \
 	source/Engine/Utilities/ColorUtils.cpp \
 	source/Engine/Utilities/PrintBuffer.cpp \
+	source/Engine/Utilities/Screenshot.cpp \
 	source/Engine/Utilities/StringUtils.cpp \
 	source/Libraries/Clipper2/clipper.engine.cpp \
 	source/Libraries/Clipper2/clipper.offset.cpp \
@@ -194,6 +195,7 @@ PRVHFILES := \
 	source/Engine/Includes/DateTime.h \
 	source/Engine/Includes/Endian.h \
 	source/Engine/Includes/HashMap.h \
+	source/Engine/Includes/Operation.h \
 	source/Engine/Includes/Standard.h \
 	source/Engine/Includes/StandardSDL2.h \
 	source/Engine/Includes/Token.h \
@@ -407,6 +409,7 @@ PUBHFILES := \
 	include/Engine/Types/Tileset.h \
 	include/Engine/Utilities/ColorUtils.h \
 	include/Engine/Utilities/PrintBuffer.h \
+	include/Engine/Utilities/Screenshot.h \
 	include/Engine/Utilities/StringUtils.h
 
 DEFINES := \

@@ -1,14 +1,9 @@
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
 
-#include <Engine/Application.h>
-#include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Graphics.h>
 #include <Engine/IO/FileStream.h>
-#include <Engine/IO/MemoryStream.h>
-#include <Engine/IO/ResourceStream.h>
-#include <Engine/Rendering/Software/SoftwareRenderer.h>
 
 #ifdef USING_LIBPNG
 #include "png.h"
@@ -22,8 +17,19 @@ void png_read_fn(png_structp ctx, png_bytep area, png_size_t size) {
 #endif
 #endif
 
+#ifdef USING_LIBPNG
+#ifdef PNG_WRITE_SUPPORTED
+#define CAN_SAVE_PNG
+void png_write_fn(png_structp ctx, png_bytep area, png_size_t size) {
+	Stream* stream = (Stream*)png_get_io_ptr(ctx);
+	stream->WriteBytes(area, size);
+}
+#endif
+#endif
+
 #ifndef USING_LIBPNG
 #define USING_SPNG
+#define CAN_SAVE_PNG
 #endif
 
 #ifdef USING_SPNG
@@ -32,9 +38,6 @@ void png_read_fn(png_structp ctx, png_bytep area, png_size_t size) {
 #define SPNG_USE_SIMD
 #endif
 #include <Libraries/spng.h>
-#else
-#define STB_IMAGE_IMPLEMENTATION
-#include <Libraries/stb_image.h>
 #endif
 
 PNG* PNG::Load(Stream* stream) {
@@ -120,6 +123,7 @@ PNG* PNG::Load(Stream* stream) {
 	free(row_pointers);
 
 	if (usePalette) {
+		Uint8* data = pixelData;
 		if (bit_depth != 8) {
 			png->ReadPixelBitstream(pixelData, bit_depth);
 		}
@@ -190,7 +194,7 @@ PNG_Load_Success:
 	spng_set_chunk_limits(ctx, limit, limit);
 	spng_set_png_buffer(ctx, buffer, buffer_len);
 
-	struct spng_ihdr ihdr;
+	spng_ihdr ihdr;
 	ret = spng_get_ihdr(ctx, &ihdr);
 	if (ret) {
 		Log::Print(Log::LOG_ERROR, "spng_ctx_new() failed! %s", spng_strerror(ret));
@@ -284,72 +288,8 @@ PNG_Load_Success:
 	free(pixelData);
 	return png;
 #else
-	PNG* png = new PNG;
-	Uint8* pixelData = NULL;
-	int num_channels;
-	int width, height;
-	Uint8* buffer = NULL;
-	size_t buffer_len = 0;
-
-	buffer_len = stream->Length();
-	buffer = (Uint8*)malloc(buffer_len);
-	stream->ReadBytes(buffer, buffer_len);
-
-	pixelData = (Uint8*)stbi_load_from_memory(
-		buffer, buffer_len, &width, &height, &num_channels, STBI_rgb_alpha);
-	if (!pixelData) {
-		Log::Print(Log::LOG_ERROR, "stbi_load failed: %s", stbi_failure_reason());
-		goto PNG_Load_FAIL;
-	}
-
-	png->Width = width;
-	png->Height = height;
-	png->BytesPerPixel = sizeof(Uint32);
-	png->Data = (Uint32*)Memory::TrackedMalloc(
-		"PNG::Data", png->Width * png->Height * png->BytesPerPixel);
-
-	png->ReadPixelData(pixelData, num_channels);
-
-	png->Colors = nullptr;
-	png->Paletted = false;
-	png->NumPaletteColors = 0;
-
-	goto PNG_Load_Success;
-
-PNG_Load_FAIL:
-	delete png;
-	png = NULL;
-
-PNG_Load_Success:
-	if (buffer) {
-		free(buffer);
-	}
-	if (pixelData) {
-		stbi_image_free(pixelData);
-	}
-	return png;
-#endif
 	return NULL;
-}
-void PNG::ReadPixelData(Uint8* pixelData, int num_channels) {
-	Uint32* dest = (Uint32*)Data;
-
-	if (Graphics::PreferredPixelFormat == PixelFormat_RGBA8888 && num_channels == 4) {
-		memcpy(dest, pixelData, Width * Height * sizeof(Uint32));
-		return;
-	}
-
-	int pc = 0, size = Width * Height;
-	if (num_channels == 4) {
-		for (Uint32* px = (Uint32*)pixelData; pc < size; px++, pc++) {
-			dest[pc] = ColorUtils::Convert(*px, PixelFormat_RGBA8888, Graphics::PreferredPixelFormat);
-		}
-	}
-	else {
-		for (Uint8* px = pixelData; pc < size; px += num_channels, pc++) {
-			dest[pc] = ColorUtils::Make(px[0], px[1], px[2], 0xFF, Graphics::PreferredPixelFormat);
-		}
-	}
+#endif
 }
 void PNG::ReadPixelBitstream(Uint8* pixelData, size_t bit_depth) {
 	size_t scanline_width = (((bit_depth * Width) + 15) / 8) - 1;
@@ -384,13 +324,205 @@ bool PNG::Save(PNG* png, const char* filename) {
 }
 
 bool PNG::Save(const char* filename) {
-	Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
+	return false;
+}
+
+#ifdef CAN_SAVE_PNG
+#if defined(USING_LIBPNG) && defined(PNG_TEXT_SUPPORTED)
+static void
+AddTextLibpng(png_structp png_ptr, png_infop png_info_ptr, std::vector<PNGMetadata>* metadata) {
+	size_t numMetadata = metadata->size();
+	if (numMetadata == 0) {
+		return;
+	}
+
+	png_text* png_text_p = (png_text*)Memory::Calloc(numMetadata, sizeof(png_text));
+	size_t numStrings = 0;
+
+	for (size_t i = 0; i < numMetadata; i++) {
+		char* keyword = (*metadata)[i].Keyword;
+		std::string& textString = (*metadata)[i].Text;
+		if (keyword[0] == '\0') {
+			continue;
+		}
+
+		png_text_p[numStrings].key = keyword;
+		png_text_p[numStrings].text = (char*)textString.c_str();
+
+		numStrings++;
+	}
+
+	if (numStrings > 0) {
+		png_set_text(png_ptr, png_info_ptr, png_text_p, numStrings);
+	}
+
+	Memory::Free(png_text_p);
+}
+#elif defined(USING_SPNG)
+static void AddTextLibspng(spng_ctx* ctx, std::vector<PNGMetadata>* metadata) {
+	size_t numMetadata = metadata->size();
+	if (numMetadata == 0) {
+		return;
+	}
+
+	spng_text* text = (spng_text*)Memory::Calloc(numMetadata, sizeof(spng_text));
+	uint32_t n_text = 0;
+
+	for (size_t i = 0; i < numMetadata; i++) {
+		char* keyword = (*metadata)[i].Keyword;
+		std::string& textString = (*metadata)[i].Text;
+		size_t textLength = textString.size();
+		if (keyword[0] == '\0' || textLength == 0) {
+			continue;
+		}
+
+		memcpy(text[n_text].keyword, keyword, sizeof(text[n_text].keyword));
+		text[n_text].text = (char*)textString.c_str();
+		text[n_text].length = textLength;
+		text[n_text].type = SPNG_TEXT;
+
+		n_text++;
+	}
+
+	if (n_text > 0) {
+		int ret = spng_set_text(ctx, text, n_text);
+		if (ret) {
+			Log::Print(Log::LOG_WARN, "spng_set_text() failed! %s", spng_strerror(ret));
+		}
+	}
+
+	Memory::Free(text);
+}
+#endif
+#endif
+
+bool PNG::Save(Texture* texture, const char* filename, std::vector<PNGMetadata>* metadata) {
+#ifdef CAN_SAVE_PNG
+	Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS, true);
 	if (!stream) {
 		return false;
 	}
 
+#ifdef USING_LIBPNG
+	png_structp png_ptr;
+	png_infop png_info_ptr;
+	png_bytepp row_pointers;
+	png_bytep data_ptr;
+	Uint32 row_bytes;
+
+	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	if (!png_ptr) {
+		Log::Print(Log::LOG_ERROR, "Couldn't create PNG write struct!");
+		return false;
+	}
+
+	png_info_ptr = png_create_info_struct(png_ptr);
+	if (!png_info_ptr) {
+		Log::Print(Log::LOG_ERROR, "Couldn't create PNG information struct!");
+		png_destroy_write_struct(&png_ptr, NULL);
+		return false;
+	}
+
+	if (setjmp(*png_set_longjmp_fn(png_ptr, longjmp, sizeof(jmp_buf)))) {
+		Log::Print(Log::LOG_ERROR, "Couldn't write PNG file!");
+		png_destroy_write_struct(&png_ptr, &png_info_ptr);
+		stream->Close();
+		return false;
+	}
+
+	// TODO: Write the PNG as PNG_COLOR_TYPE_PALETTE if the Texture is palettized
+	png_set_write_fn(png_ptr, stream, png_write_fn, NULL);
+	png_set_IHDR(png_ptr,
+		png_info_ptr,
+		texture->Width,
+		texture->Height,
+		8,
+		PNG_COLOR_TYPE_RGBA,
+		PNG_INTERLACE_NONE,
+		PNG_COMPRESSION_TYPE_DEFAULT,
+		PNG_FILTER_TYPE_DEFAULT);
+#ifdef PNG_TEXT_SUPPORTED
+	if (metadata) {
+		AddTextLibpng(png_ptr, png_info_ptr, metadata);
+	}
+#endif
+	png_write_info(png_ptr, png_info_ptr);
+
+	row_pointers = (png_bytepp)Memory::Malloc(texture->Height * sizeof(png_bytep));
+	row_bytes = texture->Width * sizeof(Uint32);
+	data_ptr = (png_bytep)texture->Pixels;
+
+	for (int y = 0; y < texture->Height; y++) {
+		row_pointers[y] = data_ptr;
+		data_ptr += row_bytes;
+	}
+
+	png_write_image(png_ptr, row_pointers);
+	Memory::Free(row_pointers);
+
+	png_write_end(png_ptr, png_info_ptr);
+	png_destroy_write_struct(&png_ptr, &png_info_ptr);
+#elif defined(USING_SPNG)
+	spng_ctx* ctx;
+	spng_ihdr ihdr = {0};
+
+	int ret;
+	void* outData;
+	size_t outSize;
+
+	ctx = spng_ctx_new(SPNG_CTX_ENCODER);
+	if (ctx == NULL) {
+		Log::Print(Log::LOG_ERROR, "spng_ctx_new() failed!");
+		goto PNG_Save_FAIL;
+	}
+
+	// TODO: Use SPNG_COLOR_TYPE_INDEXED and spng_set_plte() if the Texture is palettized
+	ihdr.width = texture->Width;
+	ihdr.height = texture->Height;
+	ihdr.color_type = SPNG_COLOR_TYPE_TRUECOLOR_ALPHA;
+	ihdr.bit_depth = 8;
+
+	spng_set_ihdr(ctx, &ihdr);
+	spng_set_option(ctx, SPNG_ENCODE_TO_BUFFER, 1);
+
+	if (metadata) {
+		AddTextLibspng(ctx, metadata);
+	}
+
+	ret = spng_encode_image(ctx,
+		texture->Pixels,
+		texture->Width * texture->Height * sizeof(Uint32),
+		SPNG_FMT_PNG,
+		SPNG_ENCODE_FINALIZE);
+
+	if (ret) {
+		Log::Print(Log::LOG_ERROR, "spng_encode_image() failed! %s", spng_strerror(ret));
+		goto PNG_Save_FAIL;
+	}
+
+	outData = spng_get_png_buffer(ctx, &outSize, &ret);
+	if (outData == NULL) {
+		Log::Print(Log::LOG_ERROR, "spng_get_png_buffer() failed! %s", spng_strerror(ret));
+		goto PNG_Save_FAIL;
+	}
+
+	stream->WriteBytes(outData, outSize);
+
+	free(outData);
+
+PNG_Save_FAIL:
+	spng_ctx_free(ctx);
+#endif
+
 	stream->Close();
 	return true;
+#else
+	Log::Print(Log::LOG_ERROR, "Cannot save PNG files in this build!");
+	return false;
+#endif
+}
+bool PNG::Save(Texture* texture, const char* filename) {
+	return Save(texture, filename, nullptr);
 }
 
 PNG::~PNG() {}

@@ -51,7 +51,7 @@ void Log::OpenFile(const char* filename) {
 		logFilename = DEFAULT_LOG_FILENAME;
 	}
 
-	pathIsValid = Path::FromLocation(logFilename, PathLocation::LOGFILE, pathToLogFile, true);
+	pathIsValid = Path::FromLocation(logFilename, PathLocation::LOGFILE, pathToLogFile, true, false);
 	if (pathToLogFile.size() > 0) {
 		logFilename = pathToLogFile.c_str();
 	}

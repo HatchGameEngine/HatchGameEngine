@@ -79,6 +79,7 @@ public:
 	static void ClearSounds();
 	static void FadeOutMusic(double seconds);
 	static void AlterMusic(float pan, float speed, float volume);
+	static double GetMusicDuration(ISound* music);
 	static double GetMusicPosition(ISound* music);
 	static void Lock();
 	static void Unlock();
