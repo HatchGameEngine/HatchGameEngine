@@ -35,6 +35,13 @@ Token InstanceToken = Token{0, NULL, 0, 0, 0};
 
 bool ShouldEmitValue = false;
 
+struct VariableWarning {
+	int Line;
+	std::string VariableName;
+	bool IsUnused;
+	bool IsUnset;
+};
+
 #define Panic(returnMe) \
 	if (parser.PanicMode) { \
 		SynchronizeToken(); \
@@ -1020,6 +1027,12 @@ void Compiler::MarkInitialized() {
 	}
 	Locals[LocalCount - 1].Depth = ScopeDepth;
 }
+void Compiler::MarkResolved() {
+	if (ScopeDepth == 0) {
+		return;
+	}
+	Locals[LocalCount - 1].Resolved = true;
+}
 void Compiler::DefineVariableToken(Token global, bool constant) {
 	if (ScopeDepth > 0) {
 		if (!constant) {
@@ -1098,50 +1111,66 @@ int Compiler::DeclareModuleVariable(Token* name, bool constant) {
 	return ((int)Compiler::ModuleConstants.size()) - 1;
 }
 void Compiler::WarnVariablesUnusedUnset() {
+	std::vector<VariableWarning> warningList;
+	std::string message;
+	char temp[4096];
+
 	if (!Compiler::ShowWarnings) {
 		return;
 	}
 
-	size_t numUnused = UnusedVariables->size();
-	std::string message;
-	char temp[4096];
-	if (numUnused) {
-		for (int i = numUnused - 1; i >= 0; i--) {
-			Local& local = (*UnusedVariables)[i];
+	for (size_t i = 0; i < UnusedVariables->size(); i++) {
+		VariableWarning warning;
+		Local& local = (*UnusedVariables)[i];
+		warning.Line = local.Name.Line;
+		warning.VariableName = local.Name.ToString();
+		warning.IsUnused = true;
+		warningList.push_back(warning);
+	}
+
+	for (size_t i = 0; i < UnsetVariables->size(); i++) {
+		VariableWarning warning;
+		Local& local = (*UnsetVariables)[i];
+		warning.Line = local.Name.Line;
+		warning.VariableName = local.Name.ToString();
+		warning.IsUnset = true;
+		warningList.push_back(warning);
+	}
+
+	if (warningList.size() == 0) {
+		return;
+	}
+
+	std::sort(
+		warningList.begin(), warningList.end(), [](VariableWarning& a, VariableWarning& b) -> bool {
+			return a.Line < b.Line;
+		});
+
+	for (size_t i = 0; i < warningList.size(); i++) {
+		VariableWarning& warning = warningList[i];
+
+		if (warning.IsUnset) {
 			snprintf(temp,
 				sizeof(temp),
-				"Variable '%.*s' is unused. (Declared on line %d)",
-				(int)local.Name.Length,
-				local.Name.Start,
-				local.Name.Line);
-			message += std::string(temp);
-			if (i != 0) {
-				message += "\n    ";
-			}
+				"Variable '%s' can be const. (Declared on line %d)",
+				warning.VariableName.c_str(),
+				warning.Line);
+		}
+		else if (warning.IsUnused) {
+			snprintf(temp,
+				sizeof(temp),
+				"Variable '%s' is unused. (Declared on line %d)",
+				warning.VariableName.c_str(),
+				warning.Line);
+		}
+
+		message += std::string(temp);
+		if (i < warningList.size() - 1) {
+			message += "\n    ";
 		}
 	}
 
-	size_t numUnset = UnsetVariables->size();
-
-	if (numUnset) {
-		for (int i = numUnset - 1; i >= 0; i--) {
-			Local& local = (*UnsetVariables)[i];
-			snprintf(temp,
-				sizeof(temp),
-				"Variable '%.*s' can be const. (Declared on line %d)",
-				(int)local.Name.Length,
-				local.Name.Start,
-				local.Name.Line);
-			message += std::string(temp);
-			if (i != 0 || numUnused) {
-				message += "\n    ";
-			}
-		}
-	}
-
-	if (numUnset + numUnused != 0) {
-		WarningInFunction("%s", message.c_str());
-	}
+	WarningInFunction("%s", message.c_str());
 }
 
 void Compiler::EmitSetOperation(Uint8 setOp, int arg, Token name) {
@@ -1472,13 +1501,7 @@ void Compiler::ScopeEnd() {
 void Compiler::ClearToScope(int depth) {
 	int popCount = 0;
 	while (LocalCount > 0 && Locals[LocalCount - 1].Depth > depth) {
-		if (!Locals[LocalCount - 1].Resolved) {
-			UnusedVariables->push_back(Locals[LocalCount - 1]);
-		}
-		else if (Locals[LocalCount - 1].ConstantVal.Type != VAL_ERROR &&
-			!Locals[LocalCount - 1].WasSet) {
-			UnsetVariables->push_back(Locals[LocalCount - 1]);
-		}
+		CheckLocalUnusedOrUnset(Locals[LocalCount - 1]);
 
 		popCount++; // pop locals
 
@@ -1514,6 +1537,14 @@ void Compiler::PopMultiple(int count) {
 		count -= max;
 	}
 }
+void Compiler::CheckLocalUnusedOrUnset(Local& local) {
+	if (!local.Resolved) {
+		UnusedVariables->push_back(local);
+	}
+	else if (local.ConstantVal.Type != VAL_ERROR && !local.WasSet) {
+		UnsetVariables->push_back(local);
+	}
+}
 int Compiler::AddLocal(Token name) {
 	if (LocalCount == 0xFF) {
 		Error("Too many local variables in function.");
@@ -1523,6 +1554,7 @@ int Compiler::AddLocal(Token name) {
 	local->Name = name;
 	local->Depth = -1;
 	local->Resolved = false;
+	local->WasSet = false;
 	local->Constant = false;
 	local->ConstantVal = VMValue{VAL_ERROR};
 	return LocalCount - 1;
@@ -1535,9 +1567,9 @@ int Compiler::AddLocal(const char* name, size_t len) {
 	Local* local = &Locals[LocalCount++];
 	local->Depth = -1;
 	local->Resolved = false;
+	local->WasSet = false;
 	local->Constant = false;
 	local->ConstantVal = VMValue{VAL_ERROR};
-	;
 	RenameLocal(local, name, len);
 	return LocalCount - 1;
 }
@@ -1585,6 +1617,14 @@ int Compiler::ResolveLocal(Token* name, Local* result) {
 	}
 
 	return -1;
+}
+void Compiler::MarkLocalAsSet(Local& local) {
+	if (local.Type == VARTYPE_LOCAL) {
+		Locals[local.Index].WasSet = true;
+	}
+	else if (local.Type == VARTYPE_MODULE_LOCAL) {
+		ModuleLocals[local.Index].WasSet = true;
+	}
 }
 int Compiler::AddModuleLocal(Token name) {
 	if (Compiler::ModuleLocals.size() == 0xFFFF) {
@@ -1934,17 +1974,21 @@ ExprContext Compiler::GetUnary(ExprContext context) {
 		break;
 	case TOKEN_INCREMENT:
 		CHECK_LVALUE();
+		MarkLocalAsSet(VariableLocal);
 		EmitCopyAndLoadIndirect();
 		EmitByte(OP_INCREMENT);
 		EmitByte(OP_STORE_INDIRECT);
 		break;
 	case TOKEN_DECREMENT:
 		CHECK_LVALUE();
+		MarkLocalAsSet(VariableLocal);
 		EmitCopyAndLoadIndirect();
 		EmitByte(OP_DECREMENT);
 		EmitByte(OP_STORE_INDIRECT);
 		break;
 	}
+
+	ResetVariableLocal();
 
 	return EXPRCONTEXT_VALUE;
 }
@@ -2109,12 +2153,7 @@ ExprContext Compiler::GetAssignment(ExprContext context) {
 
 	CHECK_LVALUE();
 
-	if (VariableLocal.Type == VARTYPE_LOCAL) {
-		Locals[VariableLocal.Index].WasSet = true;
-	}
-	else if (VariableLocal.Type == VARTYPE_MODULE_LOCAL) {
-		ModuleLocals[VariableLocal.Index].WasSet = true;
-	}
+	MarkLocalAsSet(VariableLocal);
 
 	Token assignmentToken = parser.Previous;
 	if (assignmentToken.Type != TOKEN_ASSIGNMENT) {
@@ -2157,11 +2196,16 @@ ExprContext Compiler::GetCall(ExprContext context) {
 	return EXPRCONTEXT_VALUE;
 }
 ExprContext Compiler::GetExpression() {
-	return ParsePrecedence(PREC_ASSIGNMENT, EXPRCONTEXT_VALUE);
+	ExprContext context = ParsePrecedence(PREC_ASSIGNMENT, EXPRCONTEXT_VALUE);
+
+	ResetVariableLocal();
+
+	return context;
 }
 void Compiler::GetValueExpression() {
 	ShouldEmitValue = true;
 	ParsePrecedence(PREC_ASSIGNMENT, EXPRCONTEXT_VALUE);
+	ResetVariableLocal();
 	ShouldEmitValue = false;
 }
 // Reading statements
@@ -2294,8 +2338,8 @@ void Compiler::GetRepeatStatement() {
 		EmitConstant(INTEGER_VAL(-1));
 		AddLocal(variableToken);
 		MarkInitialized();
-		Locals[LocalCount - 1].Constant = true; // trick the compiler into ensuring it
-		// doesn't get modified
+		// trick the compiler into ensuring it doesn't get modified
+		Locals[LocalCount - 1].Constant = true;
 	}
 
 	int loopStart = CurrentChunk()->Count;
@@ -2974,6 +3018,7 @@ int Compiler::GetFunction(int type, string className) {
 
 			compiler->ParseVariable("Expect parameter name.", false);
 			compiler->DefineVariableToken(parser.Previous, false);
+			compiler->MarkResolved();
 
 			compiler->Function->Arity++;
 			if (compiler->Function->Arity > 255) {
@@ -2994,6 +3039,10 @@ int Compiler::GetFunction(int type, string className) {
 	// The body.
 	compiler->ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
 	compiler->GetBlockStatement();
+
+	for (int i = 0; i < compiler->LocalCount; i++) {
+		compiler->CheckLocalUnusedOrUnset(compiler->Locals[i]);
+	}
 
 	compiler->Finish();
 
@@ -3350,6 +3399,7 @@ void Compiler::GetEventDeclaration() {
 	// if (ScopeDepth > 0) {
 	//     DeclareVariable(&constantToken);
 	//     MarkInitialized();
+	//     MarkResolved();
 	// }
 
 	// Compile the old instruction if it fits under uint8.
@@ -3505,9 +3555,6 @@ ExprContext Compiler::ParsePrecedence(Precedence precedence, ExprContext context
 		}
 	}
 
-	VariableLocal.Type = VARTYPE_UNKNOWN;
-	VariableLocal.Constant = false;
-
 	if (initialContext == EXPRCONTEXT_VALUE && context == EXPRCONTEXT_LOCATION) {
 		EmitDirectOrIndirectLoad();
 		return EXPRCONTEXT_VALUE;
@@ -3516,7 +3563,15 @@ ExprContext Compiler::ParsePrecedence(Precedence precedence, ExprContext context
 	return context;
 }
 ExprContext Compiler::ParsePrecedence(Precedence precedence) {
-	return ParsePrecedence(precedence, EXPRCONTEXT_VALUE);
+	ExprContext context = ParsePrecedence(precedence, EXPRCONTEXT_VALUE);
+
+	ResetVariableLocal();
+
+	return context;
+}
+void Compiler::ResetVariableLocal() {
+	VariableLocal.Type = VARTYPE_UNKNOWN;
+	VariableLocal.Constant = false;
 }
 Uint32 Compiler::GetHash(char* string) {
 	return Murmur::EncryptString(string);
@@ -4696,6 +4751,7 @@ void Compiler::Initialize(Compiler* enclosing, int scope, int type) {
 
 	Local* local = &Locals[LocalCount++];
 	local->Depth = ScopeDepth;
+	local->Resolved = true;
 
 	if (HasThis()) {
 		// In a method, it holds the receiver, "this".
