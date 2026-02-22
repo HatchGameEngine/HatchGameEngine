@@ -168,13 +168,16 @@ CPPFILES := \
 	source/Engine/Scene/View.cpp \
 	source/Engine/TextFormats/INI/INI.cpp \
 	source/Engine/TextFormats/XML/XMLParser.cpp \
+	source/Engine/Types/Camera.cpp \
 	source/Engine/Types/DrawGroupList.cpp \
 	source/Engine/Types/Entity.cpp \
 	source/Engine/Types/ObjectList.cpp \
 	source/Engine/Types/ObjectRegistry.cpp \
+	source/Engine/Types/Property.cpp \
 	source/Engine/Types/Tileset.cpp \
 	source/Engine/Utilities/ColorUtils.cpp \
 	source/Engine/Utilities/PrintBuffer.cpp \
+	source/Engine/Utilities/Screenshot.cpp \
 	source/Engine/Utilities/StringUtils.cpp \
 	source/Libraries/Clipper2/clipper.engine.cpp \
 	source/Libraries/Clipper2/clipper.offset.cpp \
@@ -199,6 +202,7 @@ PRVHFILES := \
 	source/Engine/Includes/DateTime.h \
 	source/Engine/Includes/Endian.h \
 	source/Engine/Includes/HashMap.h \
+	source/Engine/Includes/Operation.h \
 	source/Engine/Includes/Standard.h \
 	source/Engine/Includes/StandardSDL2.h \
 	source/Engine/Includes/Token.h \
@@ -410,13 +414,16 @@ PUBHFILES := \
 	include/Engine/Scene/View.h \
 	include/Engine/TextFormats/INI/INI.h \
 	include/Engine/TextFormats/XML/XMLParser.h \
+	include/Engine/Types/Camera.h \
 	include/Engine/Types/DrawGroupList.h \
 	include/Engine/Types/Entity.h \
 	include/Engine/Types/ObjectList.h \
 	include/Engine/Types/ObjectRegistry.h \
+	include/Engine/Types/Property.h \
 	include/Engine/Types/Tileset.h \
 	include/Engine/Utilities/ColorUtils.h \
 	include/Engine/Utilities/PrintBuffer.h \
+	include/Engine/Utilities/Screenshot.h \
 	include/Engine/Utilities/StringUtils.h
 
 DEFINES := \

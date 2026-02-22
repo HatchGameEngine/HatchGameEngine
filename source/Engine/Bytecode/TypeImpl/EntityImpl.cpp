@@ -1,9 +1,12 @@
+#include <Engine/Audio/AudioManager.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Types.h>
+#include <Engine/Bytecode/Value.h>
+#include <Engine/Types/ObjectRegistry.h>
 
 /***
 * \class Entity
@@ -766,7 +769,7 @@ VMValue EntityImpl::VM_PropertyExists(int argCount, VMValue* args, Uint32 thread
 	StandardLibrary::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* property = GET_ARG(1, GetString);
-	if (self && self->Properties->Exists(property)) {
+	if (self && self->Properties && self->Properties->Exists(property)) {
 		return INTEGER_VAL(1);
 	}
 	return INTEGER_VAL(0);
@@ -782,8 +785,8 @@ VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID)
 	StandardLibrary::CheckArgCount(argCount, 2);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* property = GET_ARG(1, GetString);
-	if (self && self->Properties->Exists(property)) {
-		return self->Properties->Get(property);
+	if (self && self->Properties && self->Properties->Exists(property)) {
+		return Value::FromProperty(self->Properties->Get(property));
 	}
 	return NULL_VAL;
 }

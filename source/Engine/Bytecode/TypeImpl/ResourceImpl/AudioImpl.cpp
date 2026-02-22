@@ -2,6 +2,7 @@
 #include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/AudioImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/ResourceTypes/ISound.h>
 
 /***
 * \class Audio

@@ -1,3 +1,4 @@
+#include <Engine/Application.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/FontImpl.h>
@@ -6,6 +7,7 @@
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Data/DefaultFonts.h>
+#include <Engine/Math/Math.h>
 #include <Engine/ResourceTypes/Font.h>
 
 /***

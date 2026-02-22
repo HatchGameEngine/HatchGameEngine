@@ -70,16 +70,9 @@ void GarbageCollector::Collect() {
 		GrayObject(scriptEntity->Instance);
 	}
 
-	// Mark Scene properties
-	if (Scene::Properties) {
-		GrayHashMap(Scene::Properties);
-	}
-
-	// Mark Layer properties
-	for (size_t i = 0; i < Scene::Layers.size(); i++) {
-		if (Scene::Layers[i].Properties) {
-			GrayHashMap(Scene::Layers[i].Properties);
-		}
+	// Mark modules
+	for (size_t i = 0; i < ScriptManager::ModuleList.size(); i++) {
+		GrayObject(ScriptManager::ModuleList[i]);
 	}
 
 	// Mark model materials
@@ -280,9 +273,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_ENTITY: {
 		ObjEntity* entity = (ObjEntity*)object;
-		ScriptEntity* scriptEntity = (ScriptEntity*)entity->EntityPtr;
-		GrayHashMap(entity->InstanceObj.Fields);
-		GrayHashMap(scriptEntity->Properties);
+		((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
 		break;
 	}
 	case OBJ_ARRAY: {

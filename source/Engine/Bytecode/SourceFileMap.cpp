@@ -10,6 +10,7 @@
 #include <Engine/IO/FileStream.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
+#include <Engine/Utilities/StringUtils.h>
 
 #define SOURCEFILEMAP_NAME "cache://SourceFileMap.bin"
 
@@ -77,8 +78,8 @@ void SourceFileMap::CheckInit() {
 		char* bytes;
 		size_t len = File::ReadAllBytes(SOURCEFILEMAP_NAME, &bytes, true);
 		if (len >= sizeof(Uint32) * 3) {
-			SourceFileMap::Checksums->FromBytes(
-				(Uint8*)bytes, (len - sizeof(Uint32)) / (sizeof(Uint32) + sizeof(Uint32)));
+			SourceFileMap::Checksums->FromBytes((Uint8*)bytes,
+				(len - sizeof(Uint32)) / (sizeof(Uint32) + sizeof(Uint32)));
 			SourceFileMap::DirectoryChecksum = *(Uint32*)(bytes + len - sizeof(Uint32));
 		}
 		else {
@@ -247,7 +248,8 @@ bool SourceFileMap::CheckForUpdate() {
 		Stream* stream =
 			FileStream::New(SOURCEFILEMAP_NAME, FileStream::WRITE_ACCESS, true);
 		if (stream) {
-			size_t size = SourceFileMap::Checksums->Count() * (sizeof(Uint32) + sizeof(Uint32));
+			size_t size = SourceFileMap::Checksums->Count() *
+				(sizeof(Uint32) + sizeof(Uint32));
 			Uint8* data = (Uint8*)Memory::Malloc(size);
 			if (data) {
 				SourceFileMap::Checksums->GetBytes(data);

@@ -4,6 +4,7 @@
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/SpriteImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
+#include <Engine/Graphics.h>
 
 /***
 * \class Sprite

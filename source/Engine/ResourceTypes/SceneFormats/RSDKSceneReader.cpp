@@ -1,26 +1,20 @@
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
 
-#include <Engine/Bytecode/Compiler.h>
-#include <Engine/Bytecode/ScriptEntity.h>
-#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Error.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/CombinedHash.h>
-#include <Engine/Hashing/FNV1A.h>
 #include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/Includes/HashMap.h>
-#include <Engine/Rendering/Software/SoftwareRenderer.h>
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
-
-#include <Engine/TextFormats/XML/XMLParser.h>
-#include <Engine/Utilities/StringUtils.h>
+#include <Engine/Types/Entity.h>
 
 #define TILE_FLIPX_MASK 0x80000000U
 #define TILE_FLIPY_MASK 0x40000000U
@@ -355,15 +349,11 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 	ObjectList* objectList = Scene::GetStaticObjectList(objectName);
 	if (!objectList) {
 		if (objectName != NULL) {
-			Log::Print(Log::LOG_ERROR,
-				"Could not create object list for '%s'!",
-				objectName);
+			Log::Print(Log::LOG_WARN, "Class \"%s\" does not exist!", objectName);
 		}
 		else {
-			Log::Print(Log::LOG_ERROR, "Could not create object list!");
+			Log::Print(Log::LOG_WARN, "Class for hash 0x%08X does not exist!", objectNameHash);
 		}
-		r->Close();
-		return false;
 	}
 
 	// Read arguments
@@ -380,7 +370,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 	}
 
 #if 0
-    if (objectList->SpawnFunction) {
+    if (objectList) {
         Log::Print(Log::LOG_VERBOSE, "Object Hash: 0x%08XU (0x%08XU) Count: %d Argument Count: %d (%s)", objectNameHash, 3, entityCount, argumentCount, objectName);
 
         for (int a = 1; a < argumentCount; a++) {
@@ -408,117 +398,96 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 
 	int entityCount = r->ReadUInt16();
 	for (int n = 0; n < entityCount; n++) {
-		bool doAdd = true;
-		int SlotID = r->ReadUInt16();
-		if (SlotID >= maxObjSlots) {
+		bool doAdd = objectList != nullptr;
+		int slotID = r->ReadUInt16();
+		if (doAdd && slotID >= maxObjSlots && objectNameHash2 != HACK_PlayerNameHash) {
 			Log::Print(Log::LOG_ERROR,
-				"Too many objects in scene! (Count: %d, Max: %d)",
-				SlotID + 1,
+				"Too many objects in scene! (ID: %d, Max: %d)",
+				slotID,
 				maxObjSlots);
 			doAdd = false;
 		}
 
-		Entity* obj = nullptr;
-		Uint32 X = r->ReadUInt32();
-		Uint32 Y = r->ReadUInt32();
+		// Read positions
+		Uint32 posX = r->ReadUInt32();
+		Uint32 posY = r->ReadUInt32();
 
-		if (objectList->SpawnFunction) {
-			obj = objectList->Spawn();
-		}
+		// Read all properties
+		// No need to allocate the HashMap if the entity won't be added.
+		// We still have to keep reading the stream though.
+		HashMap<Property>* properties = nullptr;
 
-		if (obj != nullptr) {
-			Entity* obj = objectList->Spawn();
-			obj->X = (X / 65536.f);
-			obj->Y = (Y / 65536.f);
-			obj->InitialX = obj->X;
-			obj->InitialY = obj->Y;
-			obj->List = objectList;
-			obj->SlotID = SlotID + Scene::ReservedSlotIDs;
+		if (doAdd) {
+			properties = new HashMap<Property>();
 
 			for (int a = 1; a < argumentCount; a++) {
-				VMValue val = NULL_VAL;
+				Property val = Property::MakeNull();
 				switch (argumentTypes[a]) {
 				case 0x0:
-					val = INTEGER_VAL(r->ReadByte());
+					val = Property::MakeInteger(r->ReadByte());
 					break;
 				case 0x1:
-					val = INTEGER_VAL(r->ReadUInt16());
+					val = Property::MakeInteger(r->ReadUInt16());
 					break;
 				case 0x2:
-					val = INTEGER_VAL((int)r->ReadUInt32());
+					val = Property::MakeInteger((int)r->ReadUInt32());
 					break;
 				case 0x3:
-					val = INTEGER_VAL((Sint8)r->ReadByte());
+					val = Property::MakeInteger((Sint8)r->ReadByte());
 					break;
 				case 0x4:
-					val = INTEGER_VAL(r->ReadInt16());
+					val = Property::MakeInteger(r->ReadInt16());
 					break;
 				case 0x5:
-					val = INTEGER_VAL(r->ReadInt32());
+					val = Property::MakeInteger(r->ReadInt32());
 					break;
 				// Var
 				case 0x6:
-					val = INTEGER_VAL(r->ReadInt32());
+					val = Property::MakeInteger(r->ReadInt32());
 					break;
 				// Bool
 				case 0x7:
-					val = INTEGER_VAL((int)r->ReadUInt32());
+					val = Property::MakeBool((bool)r->ReadUInt32());
 					break;
 				// String
 				case 0x8: {
-					ObjString* str = AllocString(r->ReadUInt16());
-					for (size_t c = 0; c < str->Length; c++) {
-						str->Chars[c] = (char)(Uint8)r->ReadUInt16();
+					Uint16 strLength = r->ReadUInt16();
+					char* strVar = (char*)malloc(strLength);
+					if (!strVar) {
+						Error::Fatal(
+							"Out of memory in HatchSceneReader::ReadEntities!");
 					}
-					val = OBJECT_VAL(str);
+
+					for (size_t i = 0; i < strLength; i++) {
+						strVar[i] = r->ReadInt16();
+					}
+
+					val = Property::MakeString(strVar, strLength);
+					free(strVar);
 					break;
 				}
 				// Position
 				case 0x9: {
-					ObjArray* array = NewArray();
-					array->Values->push_back(
-						DECIMAL_VAL(r->ReadInt32() / 65536.f));
-					array->Values->push_back(
-						DECIMAL_VAL(r->ReadInt32() / 65536.f));
-					val = OBJECT_VAL(array);
+					float fx = r->ReadInt32() / 65536.f;
+					float fy = r->ReadInt32() / 65536.f;
+
+					PropertyArray array;
+					PropertyArray::Init(&array);
+					AddPropertyToArray(&array, Property::MakeDecimal(fx));
+					AddPropertyToArray(&array, Property::MakeDecimal(fy));
+
+					val = Property::MakeArray(array);
 					break;
 				}
 				// Color
 				case 0xB:
-					val = INTEGER_VAL((int)r->ReadUInt32());
+					val = Property::MakeInteger((int)r->ReadUInt32());
 					break;
 				}
 
 				if (PropertyHashes->Exists(argumentHashes[a])) {
-					((ScriptEntity*)obj)
-						->Properties->Put(
-							PropertyHashes->Get(argumentHashes[a]),
-							val);
+					properties->Put(PropertyHashes->Get(argumentHashes[a]), val);
 				}
-			}
-
-			if (PropertyHashes->Exists(FilterHash)) {
-				obj->Filter =
-					((ScriptEntity*)obj)->Properties->Get("filter").as.Integer;
-			}
-			else {
-				obj->Filter = 0xFF;
-			}
-
-			if (!obj->Filter) {
-				obj->Filter = 0xFF;
-			}
-
-			if (!(obj->Filter & Scene::Filter)) {
-				doAdd = false;
-			}
-
-			// HACK: This is so Player ends up in the current SlotID, since this currently cannot be changed during runtime.
-			if (objectNameHash2 == HACK_PlayerNameHash) {
-				Scene::AddStatic(obj->List, obj);
-			}
-			else if (doAdd) {
-				objSlots[SlotID] = obj;
 			}
 		}
 		else {
@@ -566,6 +535,53 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 					break;
 				}
 			}
+
+			// Can't add this entity
+			continue;
+		}
+
+		// Determine whether to spawn the entity
+		int filter = 0xFF;
+		if (PropertyHashes->Exists(FilterHash)) {
+			Property prop = properties->Get("filter");
+			if (prop.Type == PROPERTY_INTEGER) {
+				filter = prop.as.Integer;
+			}
+		}
+
+		if (!filter) {
+			filter = 0xFF;
+		}
+
+		// Can't spawn in this scene
+		if (!(filter & Scene::Filter)) {
+			properties->ForAll([](Uint32, Property property) -> void {
+				Property::Delete(property);
+			});
+			delete properties;
+			continue;
+		}
+
+		// Spawn the entity
+		Entity* obj = Scene::TrySpawnObject(objectList, posX / 65536.f, posY / 65536.f);
+		if (obj != nullptr) {
+			obj->SlotID = slotID + Scene::ReservedSlotIDs;
+			obj->Filter = filter;
+			obj->Properties = properties;
+
+			// HACK: This is so Player ends up in the current SlotID, since this currently cannot be changed during runtime.
+			if (objectNameHash2 == HACK_PlayerNameHash) {
+				Scene::AddStatic(obj->List, obj);
+			}
+			else {
+				objSlots[slotID] = obj;
+			}
+		}
+		else {
+			properties->ForAll([](Uint32, Property property) -> void {
+				Property::Delete(property);
+			});
+			delete properties;
 		}
 	}
 

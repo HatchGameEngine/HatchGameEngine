@@ -1,26 +1,63 @@
 #include <Engine/Application.h>
 #include <Engine/Bytecode/Compiler.h>
+#include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/ResourceTypes/Resource.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Scene.h>
 
 Uint32 ScriptEntity::FixedUpdateEarlyHash = 0;
 Uint32 ScriptEntity::FixedUpdateHash = 0;
 Uint32 ScriptEntity::FixedUpdateLateHash = 0;
 
-bool ScriptEntity::DisableAutoAnimate = false;
-
 #define LINK_INT(VAR) Instance->InstanceObj.Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
 #define LINK_DEC(VAR) Instance->InstanceObj.Fields->Put(#VAR, DECIMAL_LINK_VAL(&VAR))
 #define LINK_BOOL(VAR) Instance->InstanceObj.Fields->Put(#VAR, INTEGER_LINK_VAL(&VAR))
 
-#define ENTITY_FIELD(name) Uint32 Hash_##name = 0;
+#define ENTITY_FIELD(name) Uint32 ScriptEntity::Hash_##name = 0;
 ENTITY_FIELDS_LIST
 #undef ENTITY_FIELD
 
+Entity* ScriptEntity::Spawn() {
+	throw std::runtime_error("Cannot directly spawn ScriptEntity!");
+}
+Entity* ScriptEntity::SpawnNamed(const char* objectName) {
+	// If this class is implemented natively, we can use Entity::SpawnNamed.
+	// This works because all native entities descend from ScriptEntity.
+	// Otherwise, this must be a script-side class, so we spawn a regular ScriptEntity.
+	Entity* object = Entity::SpawnNamed(objectName);
+	if (object) {
+		return object;
+	}
+
+	if (!ScriptManager::IsClassLoaded(objectName)) {
+		Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
+		return nullptr;
+	}
+
+	ScriptEntity* scriptEntity = new ScriptEntity;
+	if (!ScriptEntity::SpawnForClass(scriptEntity, objectName)) {
+		Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
+		delete scriptEntity;
+		return nullptr;
+	}
+
+	return (Entity*)scriptEntity;
+}
+bool ScriptEntity::SpawnForClass(ScriptEntity* entity, const char* objectName) {
+	ObjClass* klass = ScriptManager::GetObjectClass(objectName);
+	if (!klass) {
+		return false;
+	}
+
+	entity->Link(NewEntity(klass));
+
+	return true;
+}
+
 void ScriptEntity::Init() {
-#define ENTITY_FIELD(name) Hash_##name = Murmur::EncryptString(#name);
+#define ENTITY_FIELD(name) ScriptEntity::Hash_##name = Murmur::EncryptString(#name);
 	ENTITY_FIELDS_LIST
 #undef ENTITY_FIELD
 
@@ -30,7 +67,6 @@ void ScriptEntity::Init() {
 void ScriptEntity::Link(ObjEntity* entity) {
 	Instance = entity;
 	Instance->EntityPtr = this;
-	Properties = new HashMap<VMValue>(NULL, 4);
 
 	LinkFields();
 	AddEntityClassMethods();
@@ -319,6 +355,14 @@ void ScriptEntity::LinkFields() {
     * \desc Whether <ref Entity.Animate> is automatically called for this entity.
     */
 	LINK_INT(AutoAnimate);
+	/***
+	* \field AnimationFrameSkip
+	* \type boolean
+	* \default true
+	* \ns Entity
+	* \desc Whether <ref Entity.Animate> has skip-capable animating. Entities with this on can skip animation frames if <ref Entity.AnimationSpeed> passes multiples of <ref Entity.AnimationFrameDuration>.
+	*/
+	LINK_INT(AnimationFrameSkip);
 
 	/***
     * \field OnScreen
@@ -795,8 +839,8 @@ bool ScriptEntity::RunCreateFunction(VMValue flag) {
 	return false;
 }
 bool ScriptEntity::RunInitializer() {
-	if (!HasInitializer(Instance->Object.Class)) {
-		return true;
+	if (!Instance || !HasInitializer(Instance->Object.Class)) {
+		return false;
 	}
 
 	VMThread* thread = ScriptManager::Threads + 0;
@@ -818,8 +862,7 @@ bool ScriptEntity::ChangeClass(const char* className) {
 		return false;
 	}
 
-	if (!ScriptManager::Classes->Exists(className) &&
-		!ScriptManager::LoadObjectClass(className)) {
+	if (!ScriptManager::LoadObjectClass(className)) {
 		return false;
 	}
 
@@ -854,14 +897,20 @@ void ScriptEntity::Copy(ScriptEntity* other, bool copyClass) {
 	}
 
 	// Copy properties
-	HashMap<VMValue>* srcProperties = Properties;
-	HashMap<VMValue>* destProperties = other->Properties;
+	if (other->Properties) {
+		other->Properties->WithAll([](Uint32 key, Property value) -> void {
+			Property::Delete(value);
+		});
+		other->Properties->Clear();
+	}
 
-	destProperties->Clear();
+	if (Properties) {
+		other->InitProperties();
 
-	srcProperties->WithAll([destProperties](Uint32 key, VMValue value) -> void {
-		destProperties->Put(key, value);
-	});
+		Properties->WithAll([other](Uint32 key, Property value) -> void {
+			other->Properties->Put(key, value);
+		});
+	}
 }
 
 void ScriptEntity::CopyFields(ScriptEntity* other) {
@@ -890,79 +939,13 @@ void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 	other->AddEntityClassMethods();
 }
 
+void ScriptEntity::MarkForGarbageCollection() {
+	GarbageCollector::GrayHashMap(Instance->InstanceObj.Fields);
+}
+
 // Events called from C++
 void ScriptEntity::Initialize() {
-	if (!Instance) {
-		return;
-	}
-
-	// Set defaults
-	Active = true;
-	Pauseable = true;
-	Activity = ACTIVE_BOUNDS;
-	InRange = false;
-
-	SpeedX = 0.0f;
-	SpeedY = 0.0f;
-	GroundSpeed = 0.0f;
-	GravitySpeed = 0.0f;
-	OnGround = false;
-
-	WasOffScreen = false;
-	OnScreen = true;
-	OnScreenHitboxW = 0.0f;
-	OnScreenHitboxH = 0.0f;
-	OnScreenRegionTop = 0.0f;
-	OnScreenRegionLeft = 0.0f;
-	OnScreenRegionRight = 0.0f;
-	OnScreenRegionBottom = 0.0f;
-	Visible = true;
-	ViewRenderFlag = 0xFFFFFFFF;
-	ViewOverrideFlag = 0;
-	RenderRegionW = 0.0f;
-	RenderRegionH = 0.0f;
-	RenderRegionTop = 0.0f;
-	RenderRegionLeft = 0.0f;
-	RenderRegionRight = 0.0f;
-	RenderRegionBottom = 0.0f;
-
-	Angle = 0;
-	AngleMode = 0;
-	Rotation = 0.0;
-	AutoPhysics = false;
-
-	Priority = 0;
-	PriorityListIndex = -1;
-	PriorityOld = -1;
-
-	if (Sprite != nullptr) {
-		Resource::Release((ResourceType*)Sprite);
-		Sprite = nullptr;
-	}
-	CurrentAnimation = -1;
-	CurrentFrame = -1;
-	CurrentFrameCount = 0;
-	AnimationSpeedMult = 1.0;
-	AnimationSpeedAdd = 0;
-	AutoAnimate = ScriptEntity::DisableAutoAnimate ? false : true;
-	AnimationSpeed = 0;
-	AnimationTimer = 0.0;
-	AnimationFrameDuration = 0;
-	AnimationLoopIndex = 0;
-	RotationStyle = ROTSTYLE_NONE;
-
-	Hitbox.Clear();
-
-	Direction = 0;
-	TileCollisions = TILECOLLISION_NONE;
-	CollisionLayers = 0;
-	CollisionPlane = 0;
-	CollisionMode = CMODE_FLOOR;
-
-	Persistence = Persistence_NONE;
-	Interactable = true;
-
-	SetUpdatePriority(0);
+	Entity::Initialize();
 
 	RunInitializer();
 }
@@ -1032,12 +1015,7 @@ void ScriptEntity::FixedUpdateLate() {
 
 	RunFunction(FixedUpdateLateHash);
 
-	if (AutoAnimate) {
-		Animate();
-	}
-	if (AutoPhysics) {
-		ApplyMotion();
-	}
+	Entity::FixedUpdateLate();
 }
 void ScriptEntity::RenderEarly() {
 	if (!Active) {
@@ -1051,9 +1029,7 @@ void ScriptEntity::Render() {
 		return;
 	}
 
-	if (RunFunction(Hash_Render)) {
-		// Default render
-	}
+	RunFunction(Hash_Render);
 }
 void ScriptEntity::RenderLate() {
 	if (!Active) {
@@ -1121,22 +1097,15 @@ void ScriptEntity::Remove() {
 	if (Removed) {
 		return;
 	}
-	if (!Instance) {
-		return;
+
+	if (Instance && Created) {
+		RunFunction(Hash_Dispose);
 	}
 
-	RunFunction(Hash_Dispose);
-
-	Active = false;
-	Removed = true;
-
-	SetSprite(nullptr);
+	Entity::Remove();
 }
 void ScriptEntity::Dispose() {
 	Entity::Dispose();
-	if (Properties) {
-		delete Properties;
-	}
 	if (Instance) {
 		Instance = NULL;
 	}

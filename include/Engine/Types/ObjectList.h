@@ -15,7 +15,7 @@ public:
 	std::string GlobalUpdateFunctionName;
 	std::string GlobalFixedUpdateFunctionName;
 	ObjectListPerformance Performance;
-	Entity* (*SpawnFunction)(ObjectList*) = nullptr;
+	NamedEntitySpawnFunction SpawnFunction = nullptr;
 
 	ObjectList(const char* name);
 	~ObjectList();

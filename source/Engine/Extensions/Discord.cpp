@@ -39,7 +39,7 @@ struct AvatarFetchCallbackData {
 	DiscordIntegrationCallback* Callback;
 };
 
-void DiscordLogHook(void* hook_data, EDiscordLogLevel level, const char* message) {
+void DISCORD_API DiscordLogHook(void* hook_data, EDiscordLogLevel level, const char* message) {
 	Log::Print(Log::LOG_API, "Discord: %s", message);
 }
 

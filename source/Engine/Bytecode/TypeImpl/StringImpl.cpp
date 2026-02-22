@@ -5,7 +5,7 @@
 
 ObjClass* StringImpl::Class = nullptr;
 
-#define CLASS_STRING "$$StringImpl"
+#define CLASS_STRING "StringImpl"
 
 void StringImpl::Init() {
 	Class = NewClass(CLASS_STRING);

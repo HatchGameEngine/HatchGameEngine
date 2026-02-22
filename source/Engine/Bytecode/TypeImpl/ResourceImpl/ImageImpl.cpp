@@ -2,6 +2,7 @@
 #include <Engine/Bytecode/TypeImpl/AssetImpl.h>
 #include <Engine/Bytecode/TypeImpl/ResourceImpl/ImageImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/ResourceTypes/Image.h>
 
 /***
 * \class Image

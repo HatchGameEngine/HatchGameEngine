@@ -5,7 +5,7 @@
 
 ObjClass* FunctionImpl::Class = nullptr;
 
-#define CLASS_FUNCTION "$$FunctionImpl"
+#define CLASS_FUNCTION "FunctionImpl"
 
 void FunctionImpl::Init() {
 	Class = NewClass(CLASS_FUNCTION);

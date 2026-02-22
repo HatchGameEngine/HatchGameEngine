@@ -1,11 +1,10 @@
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 ObjClass* InstanceImpl::Class = nullptr;
 
-#define CLASS_INSTANCE "$$InstanceImpl"
+#define CLASS_INSTANCE "InstanceImpl"
 
 void InstanceImpl::Init() {
 	Class = NewClass(CLASS_INSTANCE);

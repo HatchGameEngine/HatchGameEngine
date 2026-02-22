@@ -1,4 +1,4 @@
-This is the documentation for Hatch, an open-source multiplatform game engine. It's divided into the following parts:
+This is the documentation for the [Hatch Game Engine](https://github.com/HatchGameEngine/HatchGameEngine), an open-source multiplatform game engine. It's divided into the following parts:
 
 ### Introduction
 

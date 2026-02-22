@@ -1471,7 +1471,8 @@ void Graphics::DrawGlyph(Font* font,
 	float y,
 	float scale,
 	float glyphScale,
-	float ascent) {
+	float ascent,
+	int paletteID) {
 	// For performance, this doesn't check if font or font->Sprite are nullptr.
 	// Also, RequestGlyph must have been called before for this codepoint.
 	FontGlyph& glyph = font->Glyphs[codepoint];
@@ -1490,7 +1491,8 @@ void Graphics::DrawGlyph(Font* font,
 		false,
 		glyphScale,
 		glyphScale,
-		0.0f);
+		0.0f,
+		paletteID);
 }
 
 void Graphics::DrawEllipsis(Font* font,
@@ -1498,7 +1500,8 @@ void Graphics::DrawEllipsis(Font* font,
 	float y,
 	float scale,
 	float glyphScale,
-	float ascent) {
+	float ascent,
+	int paletteID) {
 	if (font->HasGlyph(ELLIPSIS_CODE_POINT) && font->RequestGlyph(ELLIPSIS_CODE_POINT)) {
 		DrawGlyph(font, ELLIPSIS_CODE_POINT, x, y, scale, glyphScale, ascent);
 	}
@@ -1506,7 +1509,7 @@ void Graphics::DrawEllipsis(Font* font,
 		float currX = x;
 
 		for (size_t i = 0; i < 3; i++) {
-			DrawGlyph(font, 0x002E, currX, y, scale, glyphScale, ascent);
+			DrawGlyph(font, 0x002E, currX, y, scale, glyphScale, ascent, paletteID);
 
 			currX += font->Glyphs[FULL_STOP_CODE_POINT].Advance * scale;
 		}
@@ -1517,7 +1520,8 @@ void Graphics::DrawEllipsisLegacy(ISprite* sprite,
 	float x,
 	float y,
 	float advance,
-	float baseline) {
+	float baseline,
+	int paletteID) {
 	int glyph = '.';
 
 	advance = sprite->Animations[0].Frames[glyph].ID * advance;
@@ -1532,13 +1536,19 @@ void Graphics::DrawEllipsisLegacy(ISprite* sprite,
 			false,
 			1.0f,
 			1.0f,
-			0.0f);
+			0.0f,
+			paletteID);
 
 		x += advance;
 	}
 }
 
-void Graphics::DrawText(Font* font, const char* text, float x, float y, TextDrawParams* params) {
+void Graphics::DrawText(Font* font,
+	const char* text,
+	float x,
+	float y,
+	TextDrawParams* params,
+	int paletteID) {
 	// Obtain codepoints and check if the font needs to be updated
 	std::vector<Uint32> codepoints = GetTextCodepoints(font, text);
 
@@ -1581,7 +1591,7 @@ void Graphics::DrawText(Font* font, const char* text, float x, float y, TextDraw
 
 		FontGlyph& glyph = font->Glyphs[codepoint];
 
-		DrawGlyph(font, codepoint, currX, currY, scale, xyScale, ascent);
+		DrawGlyph(font, codepoint, currX, currY, scale, xyScale, ascent, paletteID);
 
 		currX += glyph.Advance * scale;
 	}
@@ -1592,7 +1602,8 @@ void Graphics::DrawTextWrapped(Font* font,
 	const char* text,
 	float x,
 	float y,
-	TextDrawParams* params) {
+	TextDrawParams* params,
+	int paletteID) {
 	// Obtain codepoints and check if the font needs to be updated
 	std::vector<Uint32> codepoints = GetTextCodepoints(font, text);
 
@@ -1688,8 +1699,13 @@ void Graphics::DrawTextWrapped(Font* font,
 					if (isLastLine && drawEllipsis &&
 						(currX - x) + advance >
 							params->MaxWidth - ellipsisWidth) {
-						Graphics::DrawEllipsis(
-							font, currX, currY, scale, xyScale, ascent);
+						Graphics::DrawEllipsis(font,
+							currX,
+							currY,
+							scale,
+							xyScale,
+							ascent,
+							paletteID);
 						Graphics::TextureBlend = texBlend;
 						return;
 					}
@@ -1701,7 +1717,8 @@ void Graphics::DrawTextWrapped(Font* font,
 							currY,
 							scale,
 							xyScale,
-							ascent);
+							ascent,
+							paletteID);
 					}
 
 					currX += advance;
@@ -1711,8 +1728,13 @@ void Graphics::DrawTextWrapped(Font* font,
 					// Draw ellipsis if the text no longer fits AND there is still space
 					if (drawEllipsis &&
 						(currX - x) < params->MaxWidth - ellipsisWidth) {
-						Graphics::DrawEllipsis(
-							font, currX, currY, scale, xyScale, ascent);
+						Graphics::DrawEllipsis(font,
+							currX,
+							currY,
+							scale,
+							xyScale,
+							ascent,
+							paletteID);
 					}
 
 					Graphics::TextureBlend = texBlend;
@@ -1740,12 +1762,13 @@ void Graphics::DrawTextWrapped(Font* font,
 
 		// Draw ellipsis if the text no longer fits
 		if (drawEllipsis && (currX - x) + advance > params->MaxWidth - ellipsisWidth) {
-			Graphics::DrawEllipsis(font, currX, currY, scale, xyScale, ascent);
+			Graphics::DrawEllipsis(
+				font, currX, currY, scale, xyScale, ascent, paletteID);
 			break;
 		}
 
 		if (*o != 0x0020 && *o != 0x000A) {
-			DrawGlyph(font, *o, currX, currY, scale, xyScale, ascent);
+			DrawGlyph(font, *o, currX, currY, scale, xyScale, ascent, paletteID);
 		}
 
 		currX += advance;
@@ -1757,16 +1780,22 @@ void Graphics::DrawTextEllipsis(Font* font,
 	const char* text,
 	float x,
 	float y,
-	TextDrawParams* params) {
+	TextDrawParams* params,
+	int paletteID) {
 	TextDrawParams localParams = *params;
 
 	localParams.Flags |= TEXTDRAW_ELLIPSIS;
 
-	DrawTextWrapped(font, text, x, y, &localParams);
+	DrawTextWrapped(font, text, x, y, &localParams, paletteID);
 }
 
 // StandardLibrary calls this.
-void Graphics::DrawGlyph(Font* font, Uint32 codepoint, float x, float y, TextDrawParams* params) {
+void Graphics::DrawGlyph(Font* font,
+	Uint32 codepoint,
+	float x,
+	float y,
+	TextDrawParams* params,
+	int paletteID) {
 	if (!(font->IsValidCodepoint(codepoint) && font->RequestGlyph(codepoint))) {
 		return;
 	}
@@ -1786,7 +1815,7 @@ void Graphics::DrawGlyph(Font* font, Uint32 codepoint, float x, float y, TextDra
 
 	FontGlyph& glyph = font->Glyphs[codepoint];
 
-	DrawGlyph(font, codepoint, x, y, scale, xyScale, ascent);
+	DrawGlyph(font, codepoint, x, y, scale, xyScale, ascent, paletteID);
 
 	Graphics::TextureBlend = texBlend;
 }
@@ -1979,7 +2008,8 @@ void Graphics::DrawTextLegacy(ISprite* sprite,
 	const char* text,
 	float basex,
 	float basey,
-	LegacyTextDrawParams* params) {
+	LegacyTextDrawParams* params,
+	int paletteID) {
 	float x = basex;
 	float y = basey;
 	float* lineWidths;
@@ -2041,7 +2071,8 @@ void Graphics::DrawTextLegacy(ISprite* sprite,
 			false,
 			1.0f,
 			1.0f,
-			0.0f);
+			0.0f,
+			paletteID);
 		x += sprite->Animations[0].Frames[l].ID * params->Advance;
 	}
 
@@ -2051,7 +2082,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 	const char* text,
 	float basex,
 	float basey,
-	LegacyTextDrawParams* params) {
+	LegacyTextDrawParams* params,
+	int paletteID) {
 	float x = basex;
 	float y = basey;
 
@@ -2117,7 +2149,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 							x,
 							y,
 							params->Advance,
-							params->Baseline);
+							params->Baseline,
+							paletteID);
 						return;
 					}
 
@@ -2132,7 +2165,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 						false,
 						1.0f,
 						1.0f,
-						0.0f);
+						0.0f,
+						paletteID);
 					x += advance;
 				}
 
@@ -2144,7 +2178,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 							x,
 							y,
 							params->Advance,
-							params->Baseline);
+							params->Baseline,
+							paletteID);
 					}
 					return;
 				}
@@ -2190,7 +2225,7 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 		// Draw ellipsis if the text no longer fits
 		if (drawEllipsis && (x - startx) + advance > params->MaxWidth - ellipsisWidth) {
 			Graphics::DrawEllipsisLegacy(
-				sprite, x, y, params->Advance, params->Baseline);
+				sprite, x, y, params->Advance, params->Baseline, paletteID);
 			return;
 		}
 
@@ -2203,7 +2238,8 @@ void Graphics::DrawTextWrappedLegacy(ISprite* sprite,
 			false,
 			1.0f,
 			1.0f,
-			0.0f);
+			0.0f,
+			paletteID);
 		x += advance;
 	}
 }
@@ -2211,19 +2247,21 @@ void Graphics::DrawTextEllipsisLegacy(ISprite* sprite,
 	const char* text,
 	float basex,
 	float basey,
-	LegacyTextDrawParams* params) {
+	LegacyTextDrawParams* params,
+	int paletteID) {
 	LegacyTextDrawParams localParams = *params;
 
 	localParams.Flags |= TEXTDRAW_ELLIPSIS;
 
-	DrawTextWrappedLegacy(sprite, text, basex, basey, &localParams);
+	DrawTextWrappedLegacy(sprite, text, basex, basey, &localParams, paletteID);
 }
 
 void Graphics::DrawGlyphLegacy(ISprite* sprite,
 	Uint32 codepoint,
 	float basex,
 	float basey,
-	LegacyTextDrawParams* params) {
+	LegacyTextDrawParams* params,
+	int paletteID) {
 	char l = _Text_GetLetter((Uint8)codepoint);
 	float charWidth = sprite->Animations[0].Frames[l].ID * params->Advance;
 	basex -= sprite->Animations[0].Frames[l].OffsetX;
@@ -2237,7 +2275,8 @@ void Graphics::DrawGlyphLegacy(ISprite* sprite,
 		false,
 		1.0f,
 		1.0f,
-		0.0f);
+		0.0f,
+		paletteID);
 }
 
 void Graphics::MeasureTextLegacy(ISprite* sprite,

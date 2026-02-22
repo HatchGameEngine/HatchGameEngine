@@ -3,12 +3,15 @@
 
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/IO/Stream.h>
+#include <Engine/TextFormats/XML/XMLNode.h>
+#include <Engine/Types/Property.h>
+#include <Engine/Types/Tileset.h>
 
 class TiledMapReader {
 private:
-	static VMValue ParseProperty(XMLNode* property);
-	static void ParsePropertyNode(XMLNode* node, HashMap<VMValue>* properties);
-	static ObjArray* ParsePolyPoints(XMLNode* node);
+	static Property ParseProperty(XMLNode* property);
+	static void ParsePropertyNode(XMLNode* node, HashMap<Property>* properties);
+	static PropertyArray ParsePolyPoints(XMLNode* node);
 	static Tileset* ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder);
 	static void
 	ParseTileAnimation(int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node);
