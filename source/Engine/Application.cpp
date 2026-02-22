@@ -2555,6 +2555,7 @@ void Application::InitSettings() {
 	Application::Settings->SetInteger("display", "frameSkip", DEFAULT_MAX_FRAMESKIP);
 
 #ifdef DEVELOPER_MODE
+	DevMode = true;
 	Application::Settings->SetBool("dev", "devMenu", true);
 	if (!Running) {
 		Application::Settings->SetBool("dev", "writeLogFile", true);
