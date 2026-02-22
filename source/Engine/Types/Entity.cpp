@@ -63,11 +63,10 @@ void Entity::Animate() {
 		return;
 	}
 
-	AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
-
 	if (AnimationFrameSkip) {
 		// Skip-capable animation behavior
 		// (supports skipping animation frames if AnimationTimer passes multiples of AnimationFrameDuration)
+		AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
 		while (AnimationTimer > AnimationFrameDuration) {
 			CurrentFrame++;
 			AnimationTimer -= AnimationFrameDuration;
@@ -105,7 +104,6 @@ void Entity::Animate() {
 			AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
 			if ((float)AnimationFrameDuration - AnimationTimer <= 0.0f) {
 				CurrentFrame++;
-				AnimationTimer = 0.0f; // Wipe leftover time
 
 				if (CurrentFrame >= CurrentFrameCount) {
 					CurrentFrame = AnimationLoopIndex;
@@ -125,7 +123,12 @@ void Entity::Animate() {
 				else {
 					AnimationFrameDuration = 1;
 				}
+
+				AnimationTimer = 0.0f; // Wipe leftover time
 			}
+		}
+		else {
+			AnimationTimer = 0.0f;
 		}
 	}
 }
