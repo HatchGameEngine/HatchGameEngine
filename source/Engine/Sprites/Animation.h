@@ -17,33 +17,17 @@ struct AnimFrame {
 	int OffsetY;
 	int SheetNumber;
 	int Duration;
+	int ID;
 	int BufferOffset;
-	int Advance;
 
 	std::vector<CollisionBox> Boxes;
 };
 struct Animation {
-	char* Name;
-	int AnimationSpeed;
+	std::string Name;
+	int Speed;
 	int FrameToLoop;
 	int Flags;
 	vector<AnimFrame> Frames;
-	int FrameListOffset;
-	int FrameCount;
-};
-struct Animator {
-	vector<AnimFrame> Frames;
-	int Sprite = -1;
-	int CurrentAnimation = -1;
-	int CurrentFrame = -1;
-	int PrevAnimation = 0;
-	int AnimationSpeed = 0;
-	int AnimationTimer = 0;
-	int Duration = 0;
-	int FrameCount = 0;
-	int LoopIndex = 0;
-	int RotationStyle = 0;
-	Uint32 UnloadPolicy = 0;
 };
 
 enum {

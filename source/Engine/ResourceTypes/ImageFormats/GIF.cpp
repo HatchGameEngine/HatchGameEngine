@@ -631,7 +631,6 @@ bool GIF::Save(const char* filename) {
 
 	stream->WriteByte(0x3B);
 
-	stream->Close();
 	return true;
 }
 

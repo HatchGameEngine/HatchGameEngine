@@ -1039,7 +1039,7 @@ void D3DRenderer::Dispose() {
 
 // Texture management functions
 Texture* D3DRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
-	Texture* texture = Texture::New(format, access, width, height);
+	Texture* texture = new Texture(format, access, width, height);
 
 	D3D_CreateTexture(texture);
 

@@ -1,14 +1,14 @@
 #ifndef ENGINE_RESOURCETYPES_IMODEL_H
 #define ENGINE_RESOURCETYPES_IMODEL_H
 
-#include <Engine/Graphics.h>
 #include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/3D.h>
 #include <Engine/Rendering/Material.h>
 #include <Engine/Rendering/Mesh.h>
+#include <Engine/ResourceTypes/Asset.h>
 
-class IModel {
+class IModel : public Asset {
 private:
 	void UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame);
 
@@ -20,10 +20,10 @@ public:
 	vector<Material*> Materials;
 	vector<ModelAnim*> Animations;
 	vector<Armature*> Armatures;
+	size_t BoneCount;
 	bool UseVertexAnimation;
 	Armature* BaseArmature;
 	Matrix4x4* GlobalInverseMatrix;
-	bool LoadFailed;
 
 	IModel(const char* filename);
 	static bool IsFile(Stream* stream);
@@ -52,7 +52,7 @@ public:
 	int GetAnimationIndex(const char* animationName);
 	int NewArmature();
 	void DeleteArmature(size_t index);
-	void Dispose();
+	void Unload();
 	~IModel();
 };
 

@@ -84,16 +84,14 @@ void DISCORD_CALLBACK OnCurrentUserUpdateCallback(void* callback_data) {
 	Discord::User::Update();
 }
 
-int CreateImageResource(DiscordIntegrationUserAvatar* avatar) {
+Image* CreateImageResource(DiscordIntegrationUserAvatar* avatar) {
 	Texture* texture = Graphics::CreateTextureFromPixels(
 		avatar->Width, avatar->Height, avatar->Data, avatar->Width * sizeof(Uint32));
 	if (texture == nullptr) {
-		return -1;
+		return nullptr;
 	}
 
-	Image* image = new Image(texture);
-
-	return Scene::AddImageResource(image, avatar->Identifier, SCOPE_GAME);
+	return new Image(texture);
 }
 
 void ExecuteImageFetchCallback(DiscordIntegrationCallback* callback,
@@ -118,9 +116,9 @@ void ExecuteImageFetchCallback(DiscordIntegrationCallback* callback,
 
 		VMValue value = NULL_VAL;
 		if (avatar) {
-			int imageIndex = CreateImageResource(avatar);
-			if (imageIndex != -1) {
-				value = INTEGER_VAL(imageIndex);
+			Image* image = CreateImageResource(avatar);
+			if (image != nullptr) {
+				value = OBJECT_VAL(image->GetVMObject());
 			}
 		}
 

@@ -4,8 +4,8 @@
 #include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Types.h>
-#include <Engine/Error.h>
 #include <Engine/Rendering/Material.h>
+#include <Engine/ResourceTypes/Resource.h>
 
 /***
 * \class Material
@@ -14,32 +14,32 @@
 
 ObjClass* MaterialImpl::Class = nullptr;
 
-Uint32 Hash_Name = 0;
+static Uint32 Hash_Name = 0;
 
-Uint32 Hash_DiffuseRed = 0;
-Uint32 Hash_DiffuseGreen = 0;
-Uint32 Hash_DiffuseBlue = 0;
-Uint32 Hash_DiffuseAlpha = 0;
-Uint32 Hash_DiffuseTexture = 0;
+static Uint32 Hash_DiffuseRed = 0;
+static Uint32 Hash_DiffuseGreen = 0;
+static Uint32 Hash_DiffuseBlue = 0;
+static Uint32 Hash_DiffuseAlpha = 0;
+static Uint32 Hash_DiffuseTexture = 0;
 
-Uint32 Hash_SpecularRed = 0;
-Uint32 Hash_SpecularGreen = 0;
-Uint32 Hash_SpecularBlue = 0;
-Uint32 Hash_SpecularAlpha = 0;
-Uint32 Hash_SpecularTexture = 0;
+static Uint32 Hash_SpecularRed = 0;
+static Uint32 Hash_SpecularGreen = 0;
+static Uint32 Hash_SpecularBlue = 0;
+static Uint32 Hash_SpecularAlpha = 0;
+static Uint32 Hash_SpecularTexture = 0;
 
-Uint32 Hash_AmbientRed = 0;
-Uint32 Hash_AmbientGreen = 0;
-Uint32 Hash_AmbientBlue = 0;
-Uint32 Hash_AmbientAlpha = 0;
-Uint32 Hash_AmbientTexture = 0;
+static Uint32 Hash_AmbientRed = 0;
+static Uint32 Hash_AmbientGreen = 0;
+static Uint32 Hash_AmbientBlue = 0;
+static Uint32 Hash_AmbientAlpha = 0;
+static Uint32 Hash_AmbientTexture = 0;
 
 #ifdef MATERIAL_EXPOSE_EMISSIVE
-Uint32 Hash_EmissiveRed = 0;
-Uint32 Hash_EmissiveGreen = 0;
-Uint32 Hash_EmissiveBlue = 0;
-Uint32 Hash_EmissiveAlpha = 0;
-Uint32 Hash_EmissiveTexture = 0;
+static Uint32 Hash_EmissiveRed = 0;
+static Uint32 Hash_EmissiveGreen = 0;
+static Uint32 Hash_EmissiveBlue = 0;
+static Uint32 Hash_EmissiveAlpha = 0;
+static Uint32 Hash_EmissiveTexture = 0;
 #endif
 
 void MaterialImpl::Init() {
@@ -194,14 +194,14 @@ ObjMaterial* MaterialImpl::New(void* materialPtr) {
 void MaterialImpl::Dispose(Obj* object) {
 	ObjMaterial* material = (ObjMaterial*)object;
 
-	Material::Remove(material->MaterialPtr);
+	Material::Remove((Material*)material->MaterialPtr);
 
 	InstanceImpl::Dispose(object);
 }
 
 VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 	ObjMaterial* objMaterial = AS_MATERIAL(args[0]);
-	Material* material = objMaterial->MaterialPtr;
+	Material* material = (Material*)objMaterial->MaterialPtr;
 
 	StandardLibrary::CheckArgCount(argCount, 2);
 
@@ -226,9 +226,9 @@ VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 #define GET_TEXTURE(type) \
 	{ \
 		if (hash == Hash_##type##Texture) { \
-			Image* image = material->Texture##type; \
-			if (image != nullptr) { \
-				*result = INTEGER_VAL(image->ID); \
+			Image* resource = (Image*)material->Texture##type; \
+			if (resource != nullptr) { \
+				*result = OBJECT_VAL(resource->GetVMObject()); \
 			} \
 			else { \
 				*result = NULL_VAL; \
@@ -239,12 +239,7 @@ VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 
 bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
 	ObjMaterial* objMaterial = (ObjMaterial*)object;
-	Material* material = objMaterial->MaterialPtr;
-	if (material == nullptr) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Material is no longer valid!");
-		return false;
-	}
+	Material* material = (Material*)objMaterial->MaterialPtr;
 
 	if (hash == Hash_Name) {
 		if (ScriptManager::Lock()) {
@@ -298,40 +293,15 @@ bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 		} \
 	}
 
-static void DoTextureRemoval(Image** image) {
-	if (*image) {
-		if ((*image)->TakeRef()) {
-			Error::Fatal("Unexpected reference count for Image!");
-		}
-
-		(*image) = nullptr;
-	}
-}
-
-static void DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
-	ResourceType* resource = Scene::GetImageResource(imageID);
-	if (!resource) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Image index \"%d\" is not valid!", imageID);
-		return;
-	}
-
-	DoTextureRemoval(image);
-
-	Image* newImage = resource->AsImage;
-	newImage->AddRef();
-	(*image) = newImage;
-}
-
 #define SET_TEXTURE(type) \
 	{ \
 		if (hash == Hash_##type##Texture) { \
 			if (IS_NULL(value)) { \
-				DoTextureRemoval(&material->Texture##type); \
+				material->SetTexture(&material->Texture##type, nullptr); \
 			} \
-			else if (ScriptManager::DoIntegerConversion(value, threadID)) { \
-				DoTextureReplacement( \
-					AS_INTEGER(value), &material->Texture##type, threadID); \
+			else { \
+				Image* image = (Image*)StandardLibrary::GetAsset(ASSET_IMAGE, value, threadID); \
+				material->SetTexture(&material->Texture##type, (void*)image); \
 			} \
 			return true; \
 		} \
@@ -339,12 +309,7 @@ static void DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
 
 bool MaterialImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
 	ObjMaterial* objMaterial = (ObjMaterial*)object;
-	Material* material = objMaterial->MaterialPtr;
-	if (material == nullptr) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
-			false, "Material is no longer valid!");
-		return false;
-	}
+	Material* material = (Material*)objMaterial->MaterialPtr;
 
 	if (hash == Hash_Name) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(

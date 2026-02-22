@@ -1,3 +1,4 @@
+#include <Engine/Application.h>
 #include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
@@ -12,10 +13,10 @@
 #include <Engine/Filesystem/File.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/FNV1A.h>
+#include <Engine/ResourceTypes/Resource.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
+#include <Engine/Scene.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
-
-#include <Engine/Bytecode/Compiler.h>
 
 bool ScriptManager::LoadAllClasses = false;
 

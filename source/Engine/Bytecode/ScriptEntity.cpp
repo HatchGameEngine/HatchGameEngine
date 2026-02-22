@@ -2,6 +2,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
+#include <Engine/ResourceTypes/Resource.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Scene.h>
@@ -252,12 +253,12 @@ void ScriptEntity::LinkFields() {
 
 	/***
     * \field Sprite
-    * \type integer
-    * \default -1
+    * \type Sprite
+    * \default null
     * \ns Entity
-    * \desc The sprite index of the entity.
+    * \desc The sprite of the entity.
     */
-	LINK_INT(Sprite);
+	// See ScriptEntity::VM_Getter and ScriptEntity::VM_Setter
 	/***
     * \field CurrentAnimation
     * \type integer
@@ -956,7 +957,7 @@ void ScriptEntity::Create(VMValue flag) {
 	Created = true;
 
 	RunCreateFunction(flag);
-	if (Sprite >= 0 && CurrentAnimation < 0) {
+	if (Sprite != nullptr && CurrentAnimation < 0) {
 		SetAnimation(0, 0);
 	}
 }

@@ -4,6 +4,8 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
+#define CLASS_SHADER "Shader"
+
 #define IS_SHADER(value) IsNativeInstance(value, CLASS_SHADER)
 #define AS_SHADER(value) ((ObjShader*)AS_OBJECT(value))
 

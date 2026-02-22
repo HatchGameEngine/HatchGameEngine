@@ -587,7 +587,7 @@ Texture* Font::CreateAtlasTexture(Uint8* data, unsigned size, bool useAntialias,
 
 void Font::InitSprite() {
 	Sprite = new ISprite();
-	Sprite->Filename = StringUtils::Duplicate("Font Sprite");
+	Sprite->TakeRef();
 	Sprite->AddAnimation("Font", 0, 0);
 }
 
@@ -732,7 +732,7 @@ void Font::Unload() {
 	GlyphRanges.clear();
 
 	if (Sprite) {
-		delete Sprite;
+		Sprite->Release();
 		Sprite = nullptr;
 	}
 }

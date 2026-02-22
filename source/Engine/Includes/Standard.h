@@ -55,6 +55,7 @@ enum class KeyBind {
 	DevRecompile,
 	DevPerfSnapshot,
 	DevLayerInfo,
+	DevResourceInfo,
 	DevFastForward,
 	DevFrameStepper,
 	DevStepFrame,
@@ -98,8 +99,10 @@ struct DeveloperMenu {
 #define MAX_DEFORM_LINES 0x400
 #define MAX_FRAMEBUFFER_HEIGHT 4096
 
-#define SCOPE_SCENE 0
-#define SCOPE_GAME 1
+enum {
+	SCOPE_SCENE,
+	SCOPE_GAME
+};
 
 #define PALETTE_INDEX_TABLE_ID -1
 

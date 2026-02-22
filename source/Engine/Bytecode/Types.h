@@ -6,10 +6,6 @@
 
 #include <Engine/IO/Stream.h>
 
-#include <Engine/Rendering/Material.h>
-
-#include <Engine/ResourceTypes/Font.h>
-
 #define FRAMES_MAX 64
 #define STACK_SIZE_MAX (FRAMES_MAX * 256)
 #define THREAD_NAME_MAX 64
@@ -264,6 +260,8 @@ enum ObjType {
 	OBJ_CLASS,
 	OBJ_NAMESPACE,
 	OBJ_ENUM,
+	OBJ_RESOURCE,
+	OBJ_ASSET,
 	OBJ_INSTANCE,
 	OBJ_ENTITY,
 	OBJ_NATIVE_FUNCTION,
@@ -271,17 +269,6 @@ enum ObjType {
 
 	MAX_OBJ_TYPE
 };
-
-#define CLASS_ARRAY "ArrayImpl"
-#define CLASS_ENTITY "EntityImpl"
-#define CLASS_FONT "Font"
-#define CLASS_FUNCTION "FunctionImpl"
-#define CLASS_INSTANCE "InstanceImpl"
-#define CLASS_MAP "MapImpl"
-#define CLASS_MATERIAL "Material"
-#define CLASS_SHADER "Shader"
-#define CLASS_STREAM "StreamImpl"
-#define CLASS_STRING "StringImpl"
 
 #define OBJECT_TYPE(value) (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value) IsObjectType(value, OBJ_BOUND_METHOD)
@@ -412,6 +399,16 @@ struct ObjEnum {
 	Uint32 Hash;
 	Table* Fields;
 };
+struct ObjResource {
+	Obj Object;
+	void* ResourcePtr;
+	ValueGetFn GetAssetField;
+	ValueSetFn SetAssetField;
+};
+struct ObjAsset {
+	Obj Object;
+	void* AssetPtr;
+};
 
 #define UNION_INSTANCEABLE \
 	union { \
@@ -431,7 +428,7 @@ struct ObjStream {
 };
 struct ObjMaterial {
 	UNION_INSTANCEABLE;
-	Material* MaterialPtr;
+	void* MaterialPtr;
 };
 struct ObjShader {
 	UNION_INSTANCEABLE;
@@ -439,7 +436,7 @@ struct ObjShader {
 };
 struct ObjFont {
 	UNION_INSTANCEABLE;
-	Font* FontPtr;
+	void* FontPtr;
 };
 
 #undef UNION_INSTANCEABLE
@@ -449,7 +446,7 @@ ObjString* TakeString(char* chars, size_t length);
 ObjString* TakeString(char* chars);
 ObjString* CopyString(const char* chars, size_t length);
 ObjString* CopyString(const char* chars);
-ObjString* CopyString(std::string path);
+ObjString* CopyString(std::string string);
 ObjString* CopyString(ObjString* string);
 ObjString* AllocString(size_t length);
 ObjFunction* NewFunction();
@@ -457,7 +454,7 @@ ObjNative* NewNative(NativeFn function);
 ObjUpvalue* NewUpvalue(VMValue* slot);
 ObjClosure* NewClosure(ObjFunction* function);
 ObjClass* NewClass(Uint32 hash);
-ObjClass* NewClass(const char* className);
+ObjClass* NewClass(const char* name);
 ObjInstance* NewInstance(ObjClass* klass);
 ObjEntity* NewEntity(ObjClass* klass);
 ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method);
@@ -476,6 +473,10 @@ Obj* NewNativeInstance(size_t size);
 
 std::string GetClassName(Uint32 hash);
 Uint32 GetClassHash(const char* name);
+
+#define VM_THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
+#define VM_OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) \
+	VM_THROW_ERROR(eType " %d out of range. (%d - %d)", eIdx, eMin, eMax)
 
 static inline bool IsObjectType(VMValue value, ObjType type) {
 	return IS_OBJECT(value) && AS_OBJECT(value)->Type == type;

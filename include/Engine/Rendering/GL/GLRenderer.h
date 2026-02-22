@@ -269,6 +269,7 @@ public:
 	static void* CreateVertexBuffer(Uint32 maxVertices);
 	static void DeleteVertexBuffer(void* vtxBuf);
 	static void MakeFrameBufferID(ISprite* sprite);
+	static void UpdateFrameBufferID(ISprite* sprite, AnimFrame* frame);
 	static void DeleteFrameBufferID(ISprite* sprite);
 	static void SetDepthTesting(bool enable);
 	static bool CheckError(int line);
