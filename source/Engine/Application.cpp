@@ -904,6 +904,7 @@ void Application::EndGame() {
 	Entity::UnloadAll();
 
 	Entity::DisableAutoAnimate = false;
+	Entity::UseAnimationFrameSkip = true;
 }
 
 void Application::UnloadGame() {

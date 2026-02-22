@@ -123,6 +123,7 @@ public:
 	int AnimationSpeedAdd = 0;
 	int PrevAnimation = -1;
 	int AutoAnimate = true;
+	int AnimationFrameSkip = true;
 	float AnimationSpeed = 0.0;
 	float AnimationTimer = 0.0;
 	int AnimationFrameDuration = 0;
@@ -153,6 +154,7 @@ public:
 
 	static HashMap<EntitySpawnFunction>* SpawnFunctions;
 	static bool DisableAutoAnimate;
+	static bool UseAnimationFrameSkip;
 
 	static void InitAll();
 	static void UnloadAll();

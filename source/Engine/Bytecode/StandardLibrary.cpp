@@ -9638,6 +9638,17 @@ VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID
 	return NULL_VAL;
 }
 /***
+ * Instance.UseAnimationFrameSkip
+ * \desc Lets entities skip animation frames when their associated AnimationTimer passes multiples of the AnimationFrameDuration.
+ * \param allowAnimationFrameSkip (boolean): Whether to turn on the engine automatically applying AnimationFrameSkip when entities are initialized.
+ * \ns Instance
+ */
+VMValue Instance_UseAnimationFrameSkip(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	Entity::UseAnimationFrameSkip = !!GET_ARG(0, GetInteger);
+	return NULL_VAL;
+}
+/***
  * Instance.SetUseRenderRegions
  * \desc Sets whether entities will use Render Regions when rendering. If false, entities will use their Update Regions instead.
  * \param useRenderRegions (boolean): Whether render regions will be used.
@@ -21150,6 +21161,7 @@ This class also houses the input action system.
 	DEF_NATIVE(Instance, GetNextInstance);
 	DEF_NATIVE(Instance, GetBySlotID);
 	DEF_NATIVE(Instance, DisableAutoAnimate);
+	DEF_NATIVE(Instance, UseAnimationFrameSkip);
 	DEF_NATIVE(Instance, SetUseRenderRegions);
 	DEF_NATIVE(Instance, Copy);
 	DEF_NATIVE(Instance, ChangeClass);
