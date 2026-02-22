@@ -101,27 +101,30 @@ void Entity::Animate() {
 	else {
 		// Strict animation behavior
 		// (never skips animation frames, and resets AnimationTimer to 0.0 upon any changed frame)
-		if ((float)AnimationFrameDuration - AnimationTimer <= 0.0f) {
-			CurrentFrame++;
-			AnimationTimer = 0.0f; // Wipe leftover time
+		if ((float)AnimationFrameDuration - AnimationTimer > 0.0f) {
+			AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
+			if ((float)AnimationFrameDuration - AnimationTimer <= 0.0f) {
+				CurrentFrame++;
+				AnimationTimer = 0.0f; // Wipe leftover time
 
-			if (CurrentFrame >= CurrentFrameCount) {
-				CurrentFrame = AnimationLoopIndex;
-				OnAnimationFinish();
+				if (CurrentFrame >= CurrentFrameCount) {
+					CurrentFrame = AnimationLoopIndex;
+					OnAnimationFinish();
 
-				// Sprite may have changed after a call to OnAnimationFinish
-				ResourceType* resource = Scene::GetSpriteResource(Sprite);
-                sprite = resource ? resource->AsSprite : nullptr;
-			}
+					// Sprite may have changed after a call to OnAnimationFinish
+					ResourceType* resource = Scene::GetSpriteResource(Sprite);
+					sprite = resource ? resource->AsSprite : nullptr;
+				}
 
-			// Update duration for the new frame
-			// Check range for strange loop points or if CurrentAnimation is now invalid
-			if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
-				&& CurrentAnimation < sprite->Animations.size()) {
-				AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
-			}
-			else {
-				AnimationFrameDuration = 1;
+				// Update duration for the new frame
+				// Check range for strange loop points or if CurrentAnimation is now invalid
+				if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
+					&& CurrentAnimation < sprite->Animations.size()) {
+					AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
+				}
+				else {
+					AnimationFrameDuration = 1;
+				}
 			}
 		}
 	}
