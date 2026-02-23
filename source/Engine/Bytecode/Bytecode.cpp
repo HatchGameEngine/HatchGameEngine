@@ -54,11 +54,11 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 
 	for (int i = 0; i < chunkCount; i++) {
 		int length = stream->ReadInt32();
-		int arity, minArity;
+		Uint8 arity, minArity;
 		int opcodeCount = 0;
 
 		if (Version < 0x0001) {
-			arity = stream->ReadInt32();
+			arity = (Uint8)stream->ReadInt32();
 			minArity = arity;
 		}
 		else {

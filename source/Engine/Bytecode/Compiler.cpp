@@ -3010,6 +3010,9 @@ int Compiler::GetFunction(int type, string className) {
 
 	bool isOptional = false;
 
+	int arity = 0;
+	int minArity = 0;
+
 	if (!compiler->CheckToken(TOKEN_RIGHT_PAREN)) {
 		do {
 			if (!isOptional && compiler->MatchToken(TOKEN_LEFT_SQUARE_BRACE)) {
@@ -3020,19 +3023,22 @@ int Compiler::GetFunction(int type, string className) {
 			compiler->DefineVariableToken(parser.Previous, false);
 			compiler->MarkResolved();
 
-			compiler->Function->Arity++;
-			if (compiler->Function->Arity > 255) {
+			arity++;
+			if (arity > 255) {
 				compiler->Error("Cannot have more than 255 parameters.");
 			}
 
 			if (!isOptional) {
-				compiler->Function->MinArity++;
+				minArity++;
 			}
 			else if (compiler->MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
 				break;
 			}
 		} while (compiler->MatchToken(TOKEN_COMMA));
 	}
+
+	compiler->Function->Arity = (Uint8)arity;
+	compiler->Function->MinArity = (Uint8)minArity;
 
 	compiler->ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
 

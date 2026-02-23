@@ -76,7 +76,6 @@ struct Chunk {
 	int Count;
 	int Capacity;
 	Uint8* Code;
-	Uint8* Failsafe;
 	int* Lines;
 	vector<VMValue>* Constants;
 	bool OwnsMemory;
@@ -338,8 +337,8 @@ struct ObjModule {
 };
 struct ObjFunction {
 	Obj Object;
-	int Arity;
-	int MinArity;
+	Uint8 Arity;
+	Uint8 MinArity;
 	struct Chunk Chunk;
 	ObjModule* Module;
 	char* Name;

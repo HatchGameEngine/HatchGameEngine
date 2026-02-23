@@ -2149,9 +2149,7 @@ int VMThread::RunInstruction() {
 	}
 
 	VM_CASE(OP_FAILSAFE) {
-		int offset = ReadUInt16(frame);
-		frame->Function->Chunk.Failsafe = frame->IPStart + offset;
-		// frame->IP = frame->IPStart + offset;
+		ReadUInt16(frame);
 		VM_BREAK;
 	}
 
@@ -3198,31 +3196,31 @@ bool VMThread::InstantiateClass(VMValue callee, int argCount) {
 }
 bool VMThread::Call(ObjFunction* function, int argCount) {
 	if (function->MinArity < function->Arity) {
-		if (argCount < function->MinArity) {
+		if (argCount < (int)function->MinArity) {
 			ThrowRuntimeError(false,
 				"Expected at least %d arguments to function call, got %d.",
-				function->MinArity,
+				(int)function->MinArity,
 				argCount);
 			return false;
 		}
-		else if (argCount > function->Arity) {
+		else if (argCount > (int)function->Arity) {
 			ThrowRuntimeError(false,
 				"Expected at most %d arguments to function call, got %d.",
-				function->Arity,
+				(int)function->Arity,
 				argCount);
 			return false;
 		}
 
-		if (argCount < function->Arity) {
-			for (int i = argCount; i < function->Arity; i++) {
+		if (argCount < (int)function->Arity) {
+			for (int i = argCount; i < (int)function->Arity; i++) {
 				Push(NULL_VAL);
 			}
 		}
 	}
-	else if (argCount != function->Arity) {
+	else if (argCount != (int)function->Arity) {
 		ThrowRuntimeError(false,
 			"Expected %d arguments to function call, got %d.",
-			function->Arity,
+			(int)function->Arity,
 			argCount);
 		return false;
 	}
