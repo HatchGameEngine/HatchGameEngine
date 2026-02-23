@@ -597,11 +597,9 @@ void Scene::RemoveObject(Entity* obj) {
 	// Remove it from the scene
 	Scene::RemoveFromScene(obj);
 
-	// If this object is unreachable script-side, that means it can
-	// be deleted during garbage collection.
-	// It doesn't really matter if it's still active or not, since
-	// it won't be in any object list or draw groups at this point.
-	obj->Remove();
+	// Delete it
+	obj->Dispose();
+	delete obj;
 }
 void Scene::Clear(Entity** first, Entity** last, int* count) {
 	(*first) = NULL;
@@ -642,14 +640,6 @@ void Scene::AddDynamic(ObjectList* objectList, Entity* obj) {
 		obj);
 
 	obj->Dynamic = true;
-}
-void Scene::DeleteRemoved(Entity* obj) {
-	if (!obj->Removed) {
-		return;
-	}
-
-	obj->Dispose();
-	delete obj;
 }
 
 void Scene::OnEvent(Uint32 event) {
@@ -1890,7 +1880,6 @@ void Scene::ClearPriorityLists() {
 }
 void Scene::DeleteObjects(Entity** first, Entity** last, int* count) {
 	Scene::Iterate(*first, [](Entity* ent) -> void {
-		// Garbage collection will take care of it later.
 		Scene::RemoveObject(ent);
 	});
 	Scene::Clear(first, last, count);
@@ -1954,8 +1943,6 @@ void Scene::Unload() {
 	Scene::DisposeInScope(SCOPE_SCENE);
 
 	// Clear and dispose of non-persistent objects
-	// We force garbage collection right after, meaning that
-	// non-persistent objects may get deleted.
 	Scene::RemoveNonPersistentObjects(
 		&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
 	Scene::RemoveNonPersistentObjects(

@@ -738,6 +738,10 @@ void Entity::Remove() {
 }
 
 void Entity::Dispose() {
+	if (!Removed) {
+		Remove();
+	}
+
 	if (Properties) {
 		Properties->ForAll([](Uint32, Property property) -> void {
 			Property::Delete(property);
