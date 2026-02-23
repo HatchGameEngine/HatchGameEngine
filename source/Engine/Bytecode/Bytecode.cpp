@@ -50,6 +50,8 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 		return false;
 	}
 
+	std::vector<Uint32> functionHashes;
+
 	for (int i = 0; i < chunkCount; i++) {
 		int length = stream->ReadInt32();
 		int arity, minArity;
@@ -68,12 +70,11 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 			opcodeCount = stream->ReadUInt32();
 		}
 
-		Uint32 hash = stream->ReadUInt32();
+		functionHashes.push_back(stream->ReadUInt32());
 
 		ObjFunction* function = NewFunction();
 		function->Arity = arity;
 		function->MinArity = minArity;
-		function->NameHash = hash;
 		function->Chunk.Count = length;
 		function->Chunk.OpcodeCount = opcodeCount;
 		function->Chunk.OwnsMemory = false;
@@ -129,10 +130,10 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 				}
 			}
 
-			for (ObjFunction* function : Functions) {
-				if (tokens->Exists(function->NameHash)) {
-					function->Name = StringUtils::Duplicate(
-						tokens->Get(function->NameHash));
+			for (size_t i = 0; i < Functions.size(); i++) {
+				Uint32 hash = functionHashes[i];
+				if (tokens->Exists(hash)) {
+					Functions[i]->Name = StringUtils::Duplicate(tokens->Get(hash));
 				}
 			}
 		}
@@ -144,9 +145,9 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 	}
 	else {
 		char fnHash[9];
-		for (ObjFunction* function : Functions) {
-			snprintf(fnHash, sizeof(fnHash), "%08X", function->NameHash);
-			function->Name = StringUtils::Duplicate(fnHash);
+		for (size_t i = 0; i < Functions.size(); i++) {
+			snprintf(fnHash, sizeof(fnHash), "%08X", functionHashes[i]);
+			Functions[i]->Name = StringUtils::Duplicate(fnHash);
 		}
 	}
 

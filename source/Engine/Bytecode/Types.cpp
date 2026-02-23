@@ -16,7 +16,6 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
-#include <Engine/Hashing/FNV1A.h>
 #include <Engine/Utilities/StringUtils.h>
 
 #define ALLOCATE_OBJ(type, objectType) (type*)AllocateObject(sizeof(type), objectType)
@@ -37,25 +36,22 @@ Obj* AllocateObject(size_t size, ObjType type) {
 	return object;
 }
 
-static ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
-	return (ObjString*)StringImpl::New(chars, length, hash);
+static ObjString* AllocateString(char* chars, size_t length) {
+	return (ObjString*)StringImpl::New(chars, length);
 }
 
 ObjString* TakeString(char* chars, size_t length) {
-	Uint32 hash = FNV1A::EncryptData(chars, length);
-	return AllocateString(chars, length, hash);
+	return AllocateString(chars, length);
 }
 ObjString* TakeString(char* chars) {
 	return TakeString(chars, strlen(chars));
 }
 ObjString* CopyString(const char* chars, size_t length) {
-	Uint32 hash = FNV1A::EncryptData(chars, length);
-
 	char* heapChars = ALLOCATE(char, length + 1);
 	memcpy(heapChars, chars, length);
 	heapChars[length] = '\0';
 
-	return AllocateString(heapChars, length, hash);
+	return AllocateString(heapChars, length);
 }
 ObjString* CopyString(const char* chars) {
 	return CopyString(chars, strlen(chars));
@@ -68,13 +64,13 @@ ObjString* CopyString(ObjString* string) {
 	memcpy(heapChars, string->Chars, string->Length);
 	heapChars[string->Length] = '\0';
 
-	return AllocateString(heapChars, string->Length, string->Hash);
+	return AllocateString(heapChars, string->Length);
 }
 ObjString* AllocString(size_t length) {
 	char* heapChars = ALLOCATE(char, length + 1);
 	heapChars[length] = '\0';
 
-	return AllocateString(heapChars, length, 0x00000000);
+	return AllocateString(heapChars, length);
 }
 
 static VMValue VM_GetClass(int argCount, VMValue* args, Uint32 threadID) {
@@ -103,6 +99,7 @@ ObjUpvalue* NewUpvalue(VMValue* slot) {
 	return upvalue;
 }
 ObjClosure* NewClosure(ObjFunction* function) {
+#if 0
 	ObjUpvalue** upvalues = ALLOCATE(ObjUpvalue*, function->UpvalueCount);
 	for (int i = 0; i < function->UpvalueCount; i++) {
 		upvalues[i] = NULL;
@@ -113,16 +110,17 @@ ObjClosure* NewClosure(ObjFunction* function) {
 	closure->Upvalues = upvalues;
 	closure->UpvalueCount = function->UpvalueCount;
 	return closure;
+#else
+	return nullptr;
+#endif
 }
 ObjClass* NewClass(Uint32 hash) {
 	ObjClass* klass = ALLOCATE_OBJ(ObjClass, OBJ_CLASS);
 	Memory::Track(klass, "NewClass");
 	klass->Hash = hash;
-	klass->Object.Destructor = ScriptManager::FreeClass;
 	klass->Methods = new Table(NULL, 4);
 	klass->Fields = new Table(NULL, 16);
 	klass->Initializer = NULL_VAL;
-	klass->Type = CLASS_TYPE_NORMAL;
 	klass->Name = StringUtils::Create(GetClassName(hash));
 	ScriptManager::DefineNative(klass, "GetClass", VM_GetClass);
 	return klass;
@@ -157,8 +155,6 @@ ObjMap* NewMap() {
 ObjNamespace* NewNamespace(Uint32 hash) {
 	ObjNamespace* ns = ALLOCATE_OBJ(ObjNamespace, OBJ_NAMESPACE);
 	Memory::Track(ns, "NewNamespace");
-	ns->Object.Destructor = ScriptManager::FreeNamespace;
-	ns->Hash = hash;
 	ns->Fields = new Table(NULL, 16);
 	ns->Name = StringUtils::Create(GetClassName(hash));
 	return ns;
@@ -172,8 +168,6 @@ ObjNamespace* NewNamespace(const char* nsName) {
 ObjEnum* NewEnum(Uint32 hash) {
 	ObjEnum* enumeration = ALLOCATE_OBJ(ObjEnum, OBJ_ENUM);
 	Memory::Track(enumeration, "NewEnum");
-	enumeration->Object.Destructor = ScriptManager::FreeEnumeration;
-	enumeration->Hash = hash;
 	enumeration->Fields = new Table(NULL, 16);
 	enumeration->Name = StringUtils::Create(GetClassName(hash));
 	return enumeration;
@@ -181,7 +175,6 @@ ObjEnum* NewEnum(Uint32 hash) {
 ObjModule* NewModule() {
 	ObjModule* module = ALLOCATE_OBJ(ObjModule, OBJ_MODULE);
 	Memory::Track(module, "NewModule");
-	module->Object.Destructor = ScriptManager::FreeModule;
 	module->Functions = new vector<ObjFunction*>();
 	module->Locals = new vector<VMValue>();
 	return module;

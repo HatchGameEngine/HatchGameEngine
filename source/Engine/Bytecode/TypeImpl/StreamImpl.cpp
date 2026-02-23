@@ -19,7 +19,7 @@ ObjStream* StreamImpl::New(void* streamPtr, bool writable) {
 	ObjStream* stream = (ObjStream*)NewNativeInstance(sizeof(ObjStream));
 	Memory::Track(stream, "NewStream");
 	stream->Object.Class = Class;
-	stream->Object.Destructor = Dispose;
+	stream->InstanceObj.Destructor = Dispose;
 	stream->StreamPtr = (Stream*)streamPtr;
 	stream->Writable = writable;
 	stream->Closed = false;
