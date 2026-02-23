@@ -28,10 +28,11 @@ JPEG* JPEG::Load(Stream* stream) {
 
 	jpeg->Width = width;
 	jpeg->Height = height;
-	jpeg->Data = (Uint32*)Memory::TrackedMalloc(
-		"JPEG::Data", jpeg->Width * jpeg->Height * sizeof(Uint32));
+	jpeg->BytesPerPixel = 4;
+	jpeg->Data = (Uint8*)Memory::TrackedMalloc(
+		"JPEG::Data", jpeg->Width * jpeg->Height * jpeg->BytesPerPixel);
 
-	jpeg->ReadPixelDataARGB(pixelData, num_channels);
+	jpeg->ReadPixelData(pixelData, num_channels);
 
 	jpeg->Colors = nullptr;
 	jpeg->Paletted = false;

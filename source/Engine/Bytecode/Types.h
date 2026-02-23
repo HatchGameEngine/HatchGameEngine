@@ -441,6 +441,10 @@ struct ObjFont {
 	UNION_INSTANCEABLE;
 	Font* FontPtr;
 };
+struct ObjTexture {
+	UNION_INSTANCEABLE;
+	bool IsViewTexture;
+};
 
 #undef UNION_INSTANCEABLE
 

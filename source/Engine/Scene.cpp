@@ -128,7 +128,6 @@ vector<ResourceType*> Scene::SoundList;
 vector<ResourceType*> Scene::MusicList;
 vector<ResourceType*> Scene::ModelList;
 vector<ResourceType*> Scene::MediaList;
-vector<GameTexture*> Scene::TextureList;
 vector<Animator*> Scene::AnimatorList;
 
 Entity* StaticObject = NULL;
@@ -737,8 +736,8 @@ void Scene::Init() {
 		Scene::Views[i].Stride = Math::CeilPOT(Scene::Views[i].Width);
 		Scene::Views[i].FOV = 45.0f;
 		Scene::Views[i].UsePerspective = false;
-		Scene::Views[i].DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_TARGET,
+		Scene::Views[i].DrawTarget = Graphics::CreateTexture(Graphics::TextureFormat,
+			TextureAccess_RENDERTARGET,
 			Scene::Views[i].Width,
 			Scene::Views[i].Height);
 		Scene::Views[i].UseDrawTarget = true;
@@ -942,15 +941,16 @@ bool Scene::SetView(int viewIndex) {
 		Texture* tar = currentView->DrawTarget;
 
 		size_t stride = currentView->Software ? (size_t)currentView->Stride : view_w;
-		if (tar->Width != stride || tar->Height != view_h) {
+		int format = currentView->Software ? TextureFormat_RGBA8888 : Graphics::TextureFormat;
+		if (tar->Width != stride || tar->Height != view_h || tar->Format != format) {
 			Graphics::GfxFunctions = &Graphics::Internal;
-			Graphics::DisposeTexture(tar);
 			Graphics::SetTextureInterpolation(false);
-			currentView->DrawTarget = Graphics::CreateTexture(
-				SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, stride, view_h);
+			if (!Graphics::ReinitializeTexture(tar, format, tar->Access, stride, view_h)) {
+				return false;
+			}
 		}
 
-		if (!Graphics::SetRenderTarget(currentView->DrawTarget)) {
+		if (!Graphics::SetRenderTarget(tar)) {
 			return false;
 		}
 
@@ -3289,7 +3289,7 @@ int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
 	PlayerInfo playerInfo;
 	Player->GetInfo(&playerInfo);
 	VideoTexture = Graphics::CreateTexture(playerInfo.Video.Output.Format,
-		SDL_TEXTUREACCESS_STATIC,
+		TextureAccess_STREAMING,
 		playerInfo.Video.Output.Width,
 		playerInfo.Video.Output.Height);
 	if (!VideoTexture) {
@@ -3447,17 +3447,6 @@ void Scene::DisposeInScope(Uint32 scope) {
 		Scene::MediaList[i] = NULL;
 	}
 	AudioManager::Unlock();
-	// Textures
-	for (size_t i = 0, i_sz = Scene::TextureList.size(); i < i_sz; i++) {
-		if (!Scene::TextureList[i]) {
-			continue;
-		}
-		if (Scene::TextureList[i]->UnloadPolicy > scope) {
-			continue;
-		}
-		delete Scene::TextureList[i];
-		Scene::TextureList[i] = NULL;
-	}
 	// Animators
 	for (size_t i = 0, i_sz = Scene::AnimatorList.size(); i < i_sz; i++) {
 		if (!Scene::AnimatorList[i]) {
@@ -3504,7 +3493,6 @@ void Scene::Dispose() {
 	Scene::MusicList.clear();
 	Scene::ModelList.clear();
 	Scene::MediaList.clear();
-	Scene::TextureList.clear();
 	Scene::AnimatorList.clear();
 
 	// Dispose of StaticObject
@@ -3583,39 +3571,6 @@ void Scene::UnloadTilesets() {
 	}
 	Scene::Tilesets.clear();
 	Scene::TileSpriteInfos.clear();
-}
-
-bool Scene::GetTextureListSpace(size_t* out) {
-	for (size_t i = 0, listSz = TextureList.size(); i < listSz; i++) {
-		if (!TextureList[i]) {
-			*out = i;
-			return true;
-		}
-	}
-	return false;
-}
-size_t Scene::AddGameTexture(GameTexture* texture) {
-	size_t i = 0;
-	bool foundEmpty = GetTextureListSpace(&i);
-
-	if (foundEmpty) {
-		TextureList[i] = texture;
-	}
-	else {
-		i = TextureList.size();
-		TextureList.push_back(texture);
-	}
-
-	return i;
-}
-bool Scene::FindGameTextureByID(int id, size_t& out) {
-	for (size_t i = 0, listSz = TextureList.size(); i < listSz; i++) {
-		if (TextureList[i] && TextureList[i]->GetID() == id) {
-			out = i;
-			return true;
-		}
-	}
-	return false;
 }
 
 // Tile Batching
