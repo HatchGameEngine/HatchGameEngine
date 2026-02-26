@@ -10,7 +10,7 @@ public:
 
 	static void Init();
 
-	static Obj* New(char* chars, size_t length, Uint32 hash);
+	static Obj* New(char* chars, size_t length);
 	static void Dispose(Obj* object);
 
 	static bool VM_ElementGet(Obj* object, VMValue at, VMValue* result, Uint32 threadID);

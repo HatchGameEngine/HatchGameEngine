@@ -906,7 +906,7 @@ int VMThread::RunInstruction() {
 					    klass,
 					    hash,
 					    false,
-					    instance->Object.PropertyGet)) {
+					    instance->PropertyGet)) {
 					Pop();
 					Push(INTEGER_VAL(true));
 					ScriptManager::Unlock();
@@ -940,16 +940,13 @@ int VMThread::RunInstruction() {
 			}
 		}
 		// If it's any other object,
-		else if (IS_OBJECT(object)) {
+		else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
 			Obj* objPtr = AS_OBJECT(object);
 			if (ScriptManager::Lock()) {
-				bool hasProperty = objPtr->Class != nullptr
-					? HasProperty(objPtr,
-						  objPtr->Class,
-						  hash,
-						  false,
-						  objPtr->PropertyGet)
-					: HasProperty(objPtr, hash, objPtr->PropertyGet);
+				bool hasProperty = false;
+				if (HasProperty(objPtr, objPtr->Class, hash, false, objPtr->Class->PropertyGet)) {
+					hasProperty = true;
+				}
 
 				Pop();
 				Push(INTEGER_VAL(hasProperty));
@@ -1629,10 +1626,9 @@ int VMThread::RunInstruction() {
 	}
 	VM_CASE(OP_CLASS) {
 		Uint32 hash = ReadUInt32(frame);
-		Uint8 type = ReadByte(frame);
+		Uint8 type = ReadByte(frame); // Unused
 
 		ObjClass* klass = NewClass(hash);
-		klass->Type = type;
 
 		Push(OBJECT_VAL(klass));
 		VM_BREAK;
@@ -2153,9 +2149,7 @@ int VMThread::RunInstruction() {
 	}
 
 	VM_CASE(OP_FAILSAFE) {
-		int offset = ReadUInt16(frame);
-		frame->Function->Chunk.Failsafe = frame->IPStart + offset;
-		// frame->IP = frame->IPStart + offset;
+		ReadUInt16(frame);
 		VM_BREAK;
 	}
 
@@ -2413,7 +2407,7 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 				    klass,
 				    hash,
 				    false,
-				    instance->Object.PropertyGet)) {
+				    instance->PropertyGet)) {
 				result = Pop();
 				ScriptManager::Unlock();
 				return result;
@@ -2463,19 +2457,11 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 		}
 	}
 	// If it's any other object,
-	else if (IS_OBJECT(object)) {
+	else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
 		Obj* objPtr = AS_OBJECT(object);
 
 		if (ScriptManager::Lock()) {
-			bool succeeded = objPtr->Class != nullptr
-				? GetProperty(objPtr,
-					  objPtr->Class,
-					  hash,
-					  false,
-					  objPtr->PropertyGet)
-				: GetProperty(objPtr, hash, objPtr->PropertyGet);
-
-			if (succeeded) {
+			if (GetProperty(objPtr, objPtr->Class, hash, false, objPtr->Class->PropertyGet)) {
 				result = Pop();
 				ScriptManager::Unlock();
 				return result;
@@ -2502,11 +2488,13 @@ VMValue VMThread::SetProperty(VMValue object, Uint32 hash, VMValue value) {
 	Table* fields;
 	ObjClass* klass;
 	Obj* objPtr = AS_OBJECT(object);
+	ValueSetFn setter = nullptr;
 
 	if (IS_INSTANCEABLE(object)) {
 		ObjInstance* instance = AS_INSTANCE(object);
 		klass = instance->Object.Class;
 		fields = instance->Fields;
+		setter = instance->PropertySet;
 	}
 	else if (IS_CLASS(object)) {
 		klass = AS_CLASS(object);
@@ -2515,6 +2503,7 @@ VMValue VMThread::SetProperty(VMValue object, Uint32 hash, VMValue value) {
 	else if (IS_OBJECT(object) && objPtr->Class) {
 		klass = objPtr->Class;
 		fields = klass->Fields;
+		setter = klass->PropertySet;
 	}
 	else if (IS_NAMESPACE(object)) {
 		ThrowRuntimeError(false, "Cannot modify a namespace.");
@@ -2540,7 +2529,6 @@ VMValue VMThread::SetProperty(VMValue object, Uint32 hash, VMValue value) {
 			}
 		}
 		else {
-			ValueSetFn setter = objPtr->PropertySet;
 			if (setter && setter(objPtr, hash, value, this->ID)) {
 				ScriptManager::Unlock();
 				return value;
@@ -2628,14 +2616,25 @@ VMValue VMThread::GetElement(VMValue object, VMValue at) {
 				GetValueTypeString(object));
 			return NULL_VAL;
 		}
-		else {
+		else if (ScriptManager::Lock()) {
 			Obj* objPtr = AS_OBJECT(object);
 			VMValue result;
-			if (objPtr->ElementGet &&
-				objPtr->ElementGet(objPtr, at, &result, this->ID)) {
+
+			if (IS_INSTANCEABLE(object)) {
+				ObjInstance* instance = AS_INSTANCE(object);
+				if (instance->ElementGet &&
+					instance->ElementGet(objPtr, at, &result, this->ID)) {
+					ScriptManager::Unlock();
+					return result;
+				}
+			}
+			else if (objPtr->Class && objPtr->Class->ElementGet &&
+				objPtr->Class->ElementGet(objPtr, at, &result, this->ID)) {
 				ScriptManager::Unlock();
 				return result;
 			}
+
+			ScriptManager::Unlock();
 		}
 
 		ThrowRuntimeError(false,
@@ -2696,12 +2695,24 @@ VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
 				GetValueTypeString(object));
 			return value;
 		}
-		else {
+		else if (ScriptManager::Lock()) {
 			Obj* objPtr = AS_OBJECT(object);
-			if (objPtr->ElementSet &&
-				objPtr->ElementSet(objPtr, at, value, this->ID)) {
+
+			if (IS_INSTANCEABLE(object)) {
+				ObjInstance* instance = AS_INSTANCE(object);
+				if (instance->ElementSet &&
+					instance->ElementSet(objPtr, at, value, this->ID)) {
+					ScriptManager::Unlock();
+					return value;
+				}
+			}
+			else if (objPtr->Class && objPtr->Class->ElementSet &&
+				objPtr->Class->ElementSet(objPtr, at, value, this->ID)) {
+				ScriptManager::Unlock();
 				return value;
 			}
+
+			ScriptManager::Unlock();
 		}
 
 		ThrowRuntimeError(false,
@@ -3185,31 +3196,31 @@ bool VMThread::InstantiateClass(VMValue callee, int argCount) {
 }
 bool VMThread::Call(ObjFunction* function, int argCount) {
 	if (function->MinArity < function->Arity) {
-		if (argCount < function->MinArity) {
+		if (argCount < (int)function->MinArity) {
 			ThrowRuntimeError(false,
 				"Expected at least %d arguments to function call, got %d.",
-				function->MinArity,
+				(int)function->MinArity,
 				argCount);
 			return false;
 		}
-		else if (argCount > function->Arity) {
+		else if (argCount > (int)function->Arity) {
 			ThrowRuntimeError(false,
 				"Expected at most %d arguments to function call, got %d.",
-				function->Arity,
+				(int)function->Arity,
 				argCount);
 			return false;
 		}
 
-		if (argCount < function->Arity) {
-			for (int i = argCount; i < function->Arity; i++) {
+		if (argCount < (int)function->Arity) {
+			for (int i = argCount; i < (int)function->Arity; i++) {
 				Push(NULL_VAL);
 			}
 		}
 	}
-	else if (argCount != function->Arity) {
+	else if (argCount != (int)function->Arity) {
 		ThrowRuntimeError(false,
 			"Expected %d arguments to function call, got %d.",
-			function->Arity,
+			(int)function->Arity,
 			argCount);
 		return false;
 	}

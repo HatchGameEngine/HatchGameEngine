@@ -31,8 +31,6 @@ void GarbageCollector::Collect() {
 		return;
 	}
 
-	GrayList.clear();
-
 	double grayElapsed = Clock::GetTicks();
 
 	// Mark threads (should lock here for safety)
@@ -94,20 +92,17 @@ void GarbageCollector::Collect() {
 	while (*object != NULL) {
 		objectTypeCounts[(*object)->Type]++;
 
-		if (!((*object)->IsDark)) {
+		if (std::find(GrayList.begin(), GrayList.end(), *object) == GrayList.end()) {
 			objectTypeFreed[(*object)->Type]++;
 
-			// This object wasn't reached, so remove it
-			// from the list and free it.
+			// This object wasn't reached, so remove it from the list and free it.
 			Obj* unreached = *object;
 			*object = unreached->Next;
 
 			GarbageCollector::FreeObject(unreached);
 		}
 		else {
-			// This object was reached, so unmark it (for
-			// the next GC) and move on to the next.
-			(*object)->IsDark = false;
+			// This object was reached, so move on to the next.
 			object = &(*object)->Next;
 		}
 	}
@@ -129,6 +124,8 @@ void GarbageCollector::Collect() {
 	}
 
 	GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
+
+	GrayList.clear();
 }
 
 void GarbageCollector::CollectResources() {
@@ -153,11 +150,9 @@ void GarbageCollector::GrayObject(void* obj) {
 	}
 
 	Obj* object = (Obj*)obj;
-	if (object->IsDark) {
+	if (std::find(GrayList.begin(), GrayList.end(), obj) != GrayList.end()) {
 		return;
 	}
-
-	object->IsDark = true;
 
 	GrayList.push_back(object);
 }

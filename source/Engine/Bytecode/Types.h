@@ -76,7 +76,6 @@ struct Chunk {
 	int Count;
 	int Capacity;
 	Uint8* Code;
-	Uint8* Failsafe;
 	int* Lines;
 	vector<VMValue>* Constants;
 	bool OwnsMemory;
@@ -322,20 +321,13 @@ typedef HashMap<VMValue> Table;
 struct Obj {
 	ObjType Type;
 	size_t Size;
-	bool IsDark;
 	struct ObjClass* Class;
-	ValueGetFn PropertyGet;
-	ValueSetFn PropertySet;
-	StructGetFn ElementGet;
-	StructSetFn ElementSet;
-	ObjectDestructor Destructor;
 	struct Obj* Next;
 };
 struct ObjString {
 	Obj Object;
 	size_t Length;
 	char* Chars;
-	Uint32 Hash;
 };
 struct ObjModule {
 	Obj Object;
@@ -345,14 +337,12 @@ struct ObjModule {
 };
 struct ObjFunction {
 	Obj Object;
-	int Arity;
-	int MinArity;
-	int UpvalueCount;
+	Uint8 Arity;
+	Uint8 MinArity;
 	struct Chunk Chunk;
 	ObjModule* Module;
 	char* Name;
 	struct ObjClass* Class;
-	Uint32 NameHash;
 };
 struct ObjNative {
 	Obj Object;
@@ -378,12 +368,20 @@ struct ObjClass {
 	Table* Fields;
 	VMValue Initializer;
 	ClassNewFn NewFn;
-	Uint8 Type;
+	ValueGetFn PropertyGet;
+	ValueSetFn PropertySet;
+	StructGetFn ElementGet;
+	StructSetFn ElementSet;
 	ObjClass* Parent;
 };
 struct ObjInstance {
 	Obj Object;
 	Table* Fields;
+	ValueGetFn PropertyGet;
+	ValueSetFn PropertySet;
+	StructGetFn ElementGet;
+	StructSetFn ElementSet;
+	ObjectDestructor Destructor;
 };
 struct ObjBoundMethod {
 	Obj Object;
@@ -402,14 +400,12 @@ struct ObjMap {
 struct ObjNamespace {
 	Obj Object;
 	char* Name;
-	Uint32 Hash;
 	Table* Fields;
 	bool InUse;
 };
 struct ObjEnum {
 	Obj Object;
 	char* Name;
-	Uint32 Hash;
 	Table* Fields;
 };
 

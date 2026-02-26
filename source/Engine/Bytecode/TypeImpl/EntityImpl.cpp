@@ -54,9 +54,9 @@ Obj* EntityImpl::New(ObjClass* klass) {
 	ObjEntity* entity = (ObjEntity*)InstanceImpl::New(sizeof(ObjEntity), OBJ_ENTITY);
 	Memory::Track(entity, "NewEntity");
 	entity->Object.Class = klass;
-	entity->Object.PropertyGet = VM_PropertyGet;
-	entity->Object.PropertySet = VM_PropertySet;
-	entity->Object.Destructor = InstanceImpl::Dispose;
+	entity->InstanceObj.PropertyGet = VM_PropertyGet;
+	entity->InstanceObj.PropertySet = VM_PropertySet;
+	entity->InstanceObj.Destructor = InstanceImpl::Dispose;
 	return (Obj*)entity;
 }
 

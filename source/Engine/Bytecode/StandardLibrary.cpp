@@ -19767,7 +19767,7 @@ void StandardLibrary::Link() {
 
 #define INIT_NAMESPACE(nsName) \
 	ObjNamespace* ns_##nsName = NewNamespace(#nsName); \
-	ScriptManager::Constants->Put(ns_##nsName->Hash, OBJECT_VAL(ns_##nsName)); \
+	ScriptManager::Constants->Put(#nsName, OBJECT_VAL(ns_##nsName)); \
 	ScriptManager::AllNamespaces.push_back(ns_##nsName)
 #define INIT_NAMESPACED_CLASS(nsName, className) \
 	klass = NewClass(#className); \
