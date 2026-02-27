@@ -135,7 +135,7 @@ using std::string;
 using std::vector;
 using std::unique_ptr;
 
-#if __cplusplus < 202002L
+#ifndef __cpp_char8_t
 typedef unsigned char char8_t;
 #endif
 
@@ -3359,7 +3359,7 @@ int linenoiseHistorySave(const char* filename) {
 
   for (int j = 0; j < historyLen; ++j) {
     if (history[j][0] != '\0') {
-      fprintf(fp, "%s\n", history[j]);
+      fprintf(fp, "%s\n", reinterpret_cast<const char*>(history[j]));
     }
   }
 
