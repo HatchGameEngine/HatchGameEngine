@@ -957,6 +957,29 @@ VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(animator->CurrentFrame);
 }
 /***
+ * Animator.GetFrameID
+ * \desc Gets the frame ID of the current frame of an animator.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns the frame ID of the animator's current sprite frame.
+ * \ns Sprite
+ */
+VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
+		animator->CurrentFrame >= 0) {
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
+
+		if (!sprite || animator->CurrentAnimation > sprite->Animations.size()
+			|| animator->CurrentFrame > sprite->Animations[animator->CurrentFrame].Frames.size()) {
+			return INTEGER_VAL(0);
+		}
+
+		return INTEGER_VAL(sprite->Animations[animator->CurrentAnimation].Frames[animator->CurrentFrame].Advance);
+	}
+	return INTEGER_VAL(0);
+}
+/***
  * Animator.GetHitbox
  * \desc Gets the hitbox of an animation and frame of an animator.
  * \param animator (integer): The index of the animator.
@@ -19753,6 +19776,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, GetSprite);
 	DEF_NATIVE(Animator, GetCurrentAnimation);
 	DEF_NATIVE(Animator, GetCurrentFrame);
+	DEF_NATIVE(Animator, GetFrameID);
 	DEF_NATIVE(Animator, GetHitbox);
 	DEF_NATIVE(Animator, GetPrevAnimation);
 	DEF_NATIVE(Animator, GetAnimationSpeed);
