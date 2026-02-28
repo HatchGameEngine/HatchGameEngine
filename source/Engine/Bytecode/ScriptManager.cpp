@@ -295,16 +295,14 @@ void ScriptManager::DestroyObject(Obj* object) {
 		FreeEnumeration(object);
 		break;
 	case OBJ_INSTANCE:
-	case OBJ_NATIVE_INSTANCE: {
+	case OBJ_NATIVE_INSTANCE:
+	case OBJ_ENTITY: {
 		ObjInstance* instance = (ObjInstance*)object;
 		if (instance->Destructor != nullptr) {
 			instance->Destructor(object);
 		}
 		break;
 	}
-	case OBJ_ENTITY:
-		EntityImpl::Dispose(object);
-		break;
 	default:
 		break;
 	}

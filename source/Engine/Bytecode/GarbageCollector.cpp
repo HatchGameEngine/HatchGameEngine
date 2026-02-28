@@ -220,7 +220,9 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_ENTITY: {
 		ObjEntity* entity = (ObjEntity*)object;
-		((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
+		if (entity->EntityPtr) {
+			((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
+		}
 		break;
 	}
 	case OBJ_ARRAY: {
