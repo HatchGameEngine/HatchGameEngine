@@ -825,7 +825,7 @@ void Scene::FixedUpdate() {
 		next = ent->NextSceneEntity;
 		FixedUpdateObjectLate(ent);
 
-		// Removes the object from the scene, but doesn't delete it yet.
+		// Removes the object from the scene, and deletes it.
 		if (ent->Dynamic && !ent->Active) {
 			Scene::Remove(&Scene::DynamicObjectFirst,
 				&Scene::DynamicObjectLast,
