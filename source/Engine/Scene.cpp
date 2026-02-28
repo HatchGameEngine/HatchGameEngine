@@ -548,10 +548,6 @@ void Scene::AddToScene(Entity* obj) {
 	Scene::ObjectCount++;
 }
 void Scene::RemoveFromScene(Entity* obj) {
-	if (obj->NextSceneEntity == nullptr && obj->PrevSceneEntity == nullptr) {
-		return;
-	}
-
 	if (Scene::ObjectFirst == obj) {
 		Scene::ObjectFirst = obj->NextSceneEntity;
 	}
