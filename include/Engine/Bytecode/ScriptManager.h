@@ -35,6 +35,7 @@ private:
 #ifdef HSL_LIBRARY
 	static hsl_ImportScriptHandler ImportScriptHandler;
 	static hsl_ImportClassHandler ImportClassHandler;
+	static hsl_WithIteratorHandler WithIteratorHandler;
 #endif
 
 #if defined(HSL_VM) && defined(VM_DEBUG)
@@ -48,6 +49,9 @@ public:
 	static bool LoadAllClasses;
 #ifdef VM_DEBUG
 	static bool BreakpointsEnabled;
+#endif
+#ifdef HSL_LIBRARY
+	static bool HasWithIteratorHandler;
 #endif
 	static HashMap<VMValue>* Globals;
 	static VMThread Threads[8];
@@ -134,6 +138,8 @@ public:
 #ifdef HSL_LIBRARY
 	static void SetImportScriptHandler(hsl_ImportScriptHandler handler);
 	static void SetImportClassHandler(hsl_ImportClassHandler handler);
+	static void SetWithIteratorHandler(hsl_WithIteratorHandler handler);
+	static bool CallWithIteratorHandler(int state, VMValue receiver, int* index, VMValue** newReceiver);
 #endif
 	static bool LoadObjectClass(VMThread* thread, const char* objectName);
 	static ObjClass* GetObjectClass(const char* className);

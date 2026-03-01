@@ -228,6 +228,8 @@ void ScriptManager::Dispose() {
 #ifdef HSL_LIBRARY
 	ImportScriptHandler = NULL;
 	ImportClassHandler = NULL;
+	WithIteratorHandler = NULL;
+	HasWithIteratorHandler = false;
 #endif
 
 #ifdef HSL_VM
@@ -1034,6 +1036,15 @@ void ScriptManager::SetImportScriptHandler(hsl_ImportScriptHandler handler) {
 }
 void ScriptManager::SetImportClassHandler(hsl_ImportClassHandler handler) {
 	ImportClassHandler = handler;
+}
+void ScriptManager::SetWithIteratorHandler(hsl_WithIteratorHandler handler) {
+	WithIteratorHandler = handler;
+	HasWithIteratorHandler = handler != nullptr;
+}
+bool ScriptManager::CallWithIteratorHandler(int state, VMValue receiver, int* index, VMValue** newReceiver) {
+	int result = WithIteratorHandler(state, (hsl_Value*)&receiver, index, (hsl_Value**)newReceiver);
+
+	return result != 0;
 }
 #endif
 bool ScriptManager::LoadObjectClass(VMThread* thread, const char* objectName) {

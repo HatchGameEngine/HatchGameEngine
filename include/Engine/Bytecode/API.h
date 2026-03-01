@@ -9,6 +9,16 @@ extern "C" {
 
 #include <stddef.h>
 
+#define HSL_FRAMES_MAX 64
+#define HSL_FRAME_STACK_MAX 256 // Cannot be higher than this
+#define HSL_STACK_SIZE_MAX (HSL_FRAMES_MAX * HSL_FRAME_STACK_MAX)
+
+#define HSL_WITH_ITERATION_MAX 16
+
+#define HSL_VM_THREAD_NAME_MAX 64
+
+#define HSL_DEFAULT_BRANCH_LIMIT 100000
+
 enum hsl_Result {
     HSL_OK,
     HSL_INVALID_ARGUMENT,
@@ -32,6 +42,12 @@ enum hsl_ErrorResponse {
     HSL_ERROR_RES_CONTINUE
 };
 
+enum hsl_WithState {
+    HSL_WITH_STATE_INIT,
+    HSL_WITH_STATE_ITERATE,
+    HSL_WITH_STATE_FINISH
+};
+
 enum hsl_LogSeverity {
     HSL_LOG_VERBOSE = -1,
     HSL_LOG_INFO,
@@ -52,9 +68,11 @@ struct hsl_CompilerSettings {
 struct hsl_Thread;
 struct hsl_Module;
 struct hsl_Function;
+struct hsl_Value;
 
 typedef int (*hsl_ImportScriptHandler)(const char* name, struct hsl_Thread* thread);
 typedef int (*hsl_ImportClassHandler)(const char* name, struct hsl_Thread* thread);
+typedef int (*hsl_WithIteratorHandler)(int state, hsl_Value* receiver, int* index, hsl_Value** new_receiver);
 typedef enum hsl_ErrorResponse (*hsl_RuntimeErrorHandler)(enum hsl_Result result, const char* text);
 typedef void (*hsl_LogCallback)(int level, const char* text);
 
@@ -74,6 +92,8 @@ void hsl_set_scripts_directory(const char* directory);
 void hsl_set_import_script_handler(hsl_ImportScriptHandler handler);
 // Sets the handler for 'import' statements.
 void hsl_set_import_class_handler(hsl_ImportClassHandler handler);
+// Sets the handler for 'with' iterators.
+void hsl_set_with_iterator_handler(hsl_WithIteratorHandler handler);
 // Sets a log callback.
 void hsl_set_log_callback(hsl_LogCallback callback);
 // Sets the runtime error handler.

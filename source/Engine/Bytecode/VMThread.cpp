@@ -1563,6 +1563,50 @@ int VMThread::RunInstruction() {
 		switch (state) {
 		case WITH_STATE_INIT:
 		case WITH_STATE_INIT_SLOTTED: {
+			size_t numIterators = frame->WithReceiverStackTop - frame->WithReceiverStack;
+			if (numIterators >= MAX_WITH_ITERATION) {
+				ThrowRuntimeError(false, "Too many 'with' iterators in this frame! (%d/%d)", (int)numIterators, MAX_WITH_ITERATION);
+				Pop(); // pop receiver
+				JUMP(offset);
+				break;
+			}
+#ifdef HSL_LIBRARY
+			VMValue receiver = Peek(0);
+			bool result = false;
+			int startIndex = 0;
+			VMValue* newReceiver = nullptr;
+			if (ScriptManager::HasWithIteratorHandler) {
+				result = ScriptManager::CallWithIteratorHandler(WITH_STATE_INIT, receiver, &startIndex, &newReceiver);
+			}
+
+			Pop(); // pop receiver
+
+			if (!result) {
+				JUMP(offset);
+				break;
+			}
+
+			// Add iterator
+			*frame->WithIteratorStackTop = NEW_STRUCT_MACRO(WithIter){
+				NULL, NULL, startIndex, NULL, receiverSlot};
+			frame->WithIteratorStackTop++;
+
+			// Backup original receiver
+			*frame->WithReceiverStackTop = frame->Slots[receiverSlot];
+			frame->WithReceiverStackTop++;
+			// Replace receiver
+			if (newReceiver) {
+				frame->Slots[receiverSlot] = *newReceiver;
+			}
+			else {
+				frame->Slots[receiverSlot] = NULL_VAL;
+			}
+			break;
+#elif defined(HSL_STANDALONE)
+			Pop(); // pop receiver
+			JUMP(offset);
+			break;
+#else
 			VMValue receiver = Peek(0);
 			if (receiver.Type == VAL_NULL) {
 				JUMP(offset);
@@ -1570,7 +1614,6 @@ int VMThread::RunInstruction() {
 				break;
 			}
 			else if (IS_STRING(receiver)) {
-#ifndef HSL_STANDALONE
 				// iterate through objectlist
 				char* objectNameChar = AS_CSTRING(receiver);
 				ObjectList* objectList = NULL;
@@ -1651,11 +1694,6 @@ int VMThread::RunInstruction() {
 				// Replace receiver
 				frame->Slots[receiverSlot] = OBJECT_VAL(objectStart->Instance);
 				break;
-#else
-				Pop(); // pop receiver
-				JUMP(offset);
-				break;
-#endif
 			}
 			else if (IS_INSTANCEABLE(receiver)) {
 				// Backup original receiver
@@ -1673,6 +1711,7 @@ int VMThread::RunInstruction() {
 				break;
 			}
 			break;
+#endif
 		}
 		case WITH_STATE_ITERATE: {
 			WithIter it = frame->WithIteratorStackTop[-1];
@@ -1683,7 +1722,29 @@ int VMThread::RunInstruction() {
 			// Restore original receiver
 			frame->Slots[receiverSlot] = originalReceiver;
 
-#ifndef HSL_STANDALONE
+#ifdef HSL_LIBRARY
+			bool result = false;
+			VMValue* newReceiver = nullptr;
+			if (ScriptManager::HasWithIteratorHandler) {
+				result = ScriptManager::CallWithIteratorHandler(WITH_STATE_ITERATE, NULL_VAL, &it.index, &newReceiver);
+			}
+			if (result) {
+				JUMP_BACK(offset);
+
+				// Put iterator back onto stack
+				frame->WithIteratorStackTop[-1] = it;
+
+				// Backup original receiver
+				frame->WithReceiverStackTop[-1] = originalReceiver;
+				// Replace receiver
+				if (newReceiver) {
+					frame->Slots[receiverSlot] = *newReceiver;
+				}
+				else {
+					frame->Slots[receiverSlot] = NULL_VAL;
+				}
+			}
+#elif !defined(HSL_STANDALONE)
 			// If in list,
 			if (it.entity) {
 				Entity* objectNext = NULL;
@@ -1741,6 +1802,12 @@ int VMThread::RunInstruction() {
 		}
 		case WITH_STATE_FINISH: {
 			WithIter it = frame->WithIteratorStackTop[-1];
+
+#ifdef HSL_LIBRARY
+			if (ScriptManager::HasWithIteratorHandler) {
+				ScriptManager::CallWithIteratorHandler(WITH_STATE_FINISH, NULL_VAL, &it.index, nullptr);
+			}
+#endif
 
 			frame->WithReceiverStackTop--;
 

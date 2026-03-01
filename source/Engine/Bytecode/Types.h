@@ -14,6 +14,8 @@
 #define STACK_SIZE_MAX (FRAMES_MAX * 256)
 #define THREAD_NAME_MAX 64
 
+#define MAX_WITH_ITERATION 16
+
 #define DEFAULT_BRANCH_LIMIT 100000
 
 typedef enum {
@@ -579,9 +581,9 @@ struct CallFrame {
 	OpcodeFunc* OpcodeFunctions;
 #endif
 
-	VMValue WithReceiverStack[16];
+	VMValue WithReceiverStack[MAX_WITH_ITERATION];
 	VMValue* WithReceiverStackTop = WithReceiverStack;
-	WithIter WithIteratorStack[16];
+	WithIter WithIteratorStack[MAX_WITH_ITERATION];
 	WithIter* WithIteratorStackTop = WithIteratorStack;
 };
 enum OpCode : uint8_t {

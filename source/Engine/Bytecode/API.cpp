@@ -42,6 +42,10 @@ void hsl_set_import_class_handler(hsl_ImportClassHandler handler) {
     ScriptManager::SetImportClassHandler(handler);
 }
 
+void hsl_set_with_iterator_handler(hsl_WithIteratorHandler handler) {
+    ScriptManager::SetWithIteratorHandler(handler);
+}
+
 void hsl_set_log_callback(hsl_LogCallback callback) {
     Log::SetCallback(callback);
 }
