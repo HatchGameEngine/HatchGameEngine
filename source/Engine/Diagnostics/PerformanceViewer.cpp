@@ -187,6 +187,7 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 
 	listY += 50.0;
 
+#ifdef MEMORY_TRACKING
 	if (Memory::IsTracking) {
 		float count = (float)Memory::MemoryUsage;
 		const char* moniker = "B";
@@ -222,6 +223,7 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 
 		listY += (maxH * 0.6) * 1.5;
 	}
+#endif
 
 	vector<ObjectList*> objListPerf = Scene::GetObjectListPerformance();
 	for (size_t i = 0; i < objListPerf.size(); i++) {

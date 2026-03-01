@@ -54,9 +54,9 @@ Obj* EntityImpl::New(ObjClass* klass) {
 	ObjEntity* entity = (ObjEntity*)InstanceImpl::New(sizeof(ObjEntity), OBJ_ENTITY);
 	Memory::Track(entity, "NewEntity");
 	entity->Object.Class = klass;
-	entity->Object.PropertyGet = VM_PropertyGet;
-	entity->Object.PropertySet = VM_PropertySet;
-	entity->Object.Destructor = Dispose;
+	entity->InstanceObj.PropertyGet = VM_PropertyGet;
+	entity->InstanceObj.PropertySet = VM_PropertySet;
+	entity->InstanceObj.Destructor = InstanceImpl::Dispose;
 	return (Obj*)entity;
 }
 
@@ -66,25 +66,25 @@ bool EntityImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 
 	if (hash == Hash_HitboxLeft) {
 		if (result) {
-			*result = DECIMAL_VAL(entity->Hitbox.GetLeft());
+			*result = DECIMAL_VAL(entity ? entity->Hitbox.GetLeft() : 0.0f);
 		}
 		return true;
 	}
 	else if (hash == Hash_HitboxTop) {
 		if (result) {
-			*result = DECIMAL_VAL(entity->Hitbox.GetTop());
+			*result = DECIMAL_VAL(entity ? entity->Hitbox.GetTop() : 0.0f);
 		}
 		return true;
 	}
 	else if (hash == Hash_HitboxRight) {
 		if (result) {
-			*result = DECIMAL_VAL(entity->Hitbox.GetRight());
+			*result = DECIMAL_VAL(entity ? entity->Hitbox.GetRight() : 0.0f);
 		}
 		return true;
 	}
 	else if (hash == Hash_HitboxBottom) {
 		if (result) {
-			*result = DECIMAL_VAL(entity->Hitbox.GetBottom());
+			*result = DECIMAL_VAL(entity ? entity->Hitbox.GetBottom() : 0.0f);
 		}
 		return true;
 	}
@@ -97,25 +97,33 @@ bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 
 	if (hash == Hash_HitboxLeft) {
 		if (ScriptManager::DoDecimalConversion(value, threadID)) {
-			entity->Hitbox.SetLeft(AS_DECIMAL(value));
+			if (entity) {
+				entity->Hitbox.SetLeft(AS_DECIMAL(value));
+			}
 		}
 		return true;
 	}
 	else if (hash == Hash_HitboxTop) {
 		if (ScriptManager::DoDecimalConversion(value, threadID)) {
-			entity->Hitbox.SetTop(AS_DECIMAL(value));
+			if (entity) {
+				entity->Hitbox.SetTop(AS_DECIMAL(value));
+			}
 		}
 		return true;
 	}
 	else if (hash == Hash_HitboxRight) {
 		if (ScriptManager::DoDecimalConversion(value, threadID)) {
-			entity->Hitbox.SetRight(AS_DECIMAL(value));
+			if (entity) {
+				entity->Hitbox.SetRight(AS_DECIMAL(value));
+			}
 		}
 		return true;
 	}
 	else if (hash == Hash_HitboxBottom) {
 		if (ScriptManager::DoDecimalConversion(value, threadID)) {
-			entity->Hitbox.SetBottom(AS_DECIMAL(value));
+			if (entity) {
+				entity->Hitbox.SetBottom(AS_DECIMAL(value));
+			}
 		}
 		return true;
 	}
@@ -955,12 +963,4 @@ VMValue EntityImpl::VM_StopAllSounds(int argCount, VMValue* args, Uint32 threadI
 		AudioManager::StopAllOriginSounds((void*)self);
 	}
 	return NULL_VAL;
-}
-
-void EntityImpl::Dispose(Obj* object) {
-	ObjEntity* entity = (ObjEntity*)object;
-
-	Scene::DeleteRemoved((Entity*)entity->EntityPtr);
-
-	InstanceImpl::Dispose(object);
 }

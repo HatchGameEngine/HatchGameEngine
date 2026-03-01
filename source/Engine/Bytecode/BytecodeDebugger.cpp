@@ -185,6 +185,9 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_ENUM_NEXT:
 	case OP_NEW_HITBOX:
 	case OP_UNUSED_1:
+	case OP_LOAD_INDIRECT:
+	case OP_STORE_INDIRECT:
+	case OP_LOCATION_ELEMENT:
 		return SimpleInstruction(instruction, chunk, offset);
 	case OP_COPY:
 	case OP_CALL:
@@ -196,6 +199,7 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 		return ShortInstruction(instruction, chunk, offset);
 	case OP_GET_LOCAL:
 	case OP_SET_LOCAL:
+	case OP_LOCATION_STACK:
 		return LocalInstruction(instruction, chunk, offset);
 	case OP_GET_GLOBAL:
 	case OP_DEFINE_GLOBAL:
@@ -206,9 +210,13 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_HAS_PROPERTY:
 	case OP_USE_NAMESPACE:
 	case OP_INHERIT:
+	case OP_LOCATION_GLOBAL:
+	case OP_LOCATION_PROPERTY:
+	case OP_LOCATION_SUPER_PROPERTY:
 		return HashInstruction(instruction, chunk, offset);
 	case OP_SET_MODULE_LOCAL:
 	case OP_GET_MODULE_LOCAL:
+	case OP_LOCATION_MODULE_LOCAL:
 		return ShortInstruction(instruction, chunk, offset);
 	case OP_NEW_ARRAY:
 	case OP_NEW_MAP:
@@ -223,26 +231,6 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 		return InvokeInstruction(instruction, chunk, offset);
 	case OP_INVOKE_V3:
 		return InvokeInstructionV3(instruction, chunk, offset);
-
-	case OP_PRINT_STACK: {
-		offset++;
-		uint8_t constant = chunk->Code[offset++];
-		DEBUGGER_LOG("%-16s %4d ", Bytecode::OpcodeNames[instruction], constant);
-		ValuePrinter::Print((*chunk->Constants)[constant]);
-		DEBUGGER_LOG("\n");
-
-		ObjFunction* function = AS_FUNCTION((*chunk->Constants)[constant]);
-		for (int j = 0; j < function->UpvalueCount; j++) {
-			int isLocal = chunk->Code[offset++];
-			int index = chunk->Code[offset++];
-			DEBUGGER_LOG("%04d   |                     %s %d\n",
-				offset - 2,
-				isLocal ? "local" : "upvalue",
-				index);
-		}
-
-		return offset;
-	}
 	case OP_WITH:
 		return WithInstruction(instruction, chunk, offset);
 	case OP_CLASS:

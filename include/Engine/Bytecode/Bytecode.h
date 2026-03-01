@@ -38,7 +38,7 @@ public:
 	~Bytecode();
 	bool Read(BytecodeContainer bytecode, HashMap<char*>* tokens);
 	bool Read(Stream* stream, HashMap<char*>* tokens);
-	ObjFunction* ReadChunk(Stream* stream);
+	ObjFunction* ReadChunk(Stream* stream, std::vector<Uint32>* functionHashes);
 	void ReadLocals(Stream* stream, vector<ChunkLocal>* locals, int numLocals);
 	void Write(Stream* stream, HashMap<Token>* tokenMap);
 	void WriteChunk(Stream* stream, ObjFunction* function);

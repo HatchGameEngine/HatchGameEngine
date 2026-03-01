@@ -181,11 +181,11 @@ bool ResourceManager::Init(const char* dataFilePath) {
 				"Ensure that the application has read access permissions.";
 		}
 
-#if LINUX
+#if UNIX
 		Error::FatalNoMessageBox("%s not found! %s", datafilename, additionalError.c_str());
 #else
 		Error::Fatal("%s not found! %s", datafilename, additionalError.c_str());
-#endif // #if LINUX
+#endif // #if UNIX
 #endif // #if WIN32
 #endif // #ifdef DEVELOPER_MODE
 

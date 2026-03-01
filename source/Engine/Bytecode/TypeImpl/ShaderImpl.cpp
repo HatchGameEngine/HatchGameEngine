@@ -109,8 +109,8 @@ ObjShader* ShaderImpl::New(void* shaderPtr) {
 	ObjShader* shader = (ObjShader*)NewNativeInstance(sizeof(ObjShader));
 	Memory::Track(shader, "NewShader");
 	shader->Object.Class = Class;
-	shader->Object.PropertyGet = VM_PropertyGet;
-	shader->Object.Destructor = Dispose;
+	shader->InstanceObj.PropertyGet = VM_PropertyGet;
+	shader->InstanceObj.Destructor = Dispose;
 	shader->ShaderPtr = shaderPtr;
 	return shader;
 }

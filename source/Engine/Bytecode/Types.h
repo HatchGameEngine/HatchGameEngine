@@ -36,12 +36,29 @@ typedef enum {
 	VAL_LINKED_INTEGER,
 	VAL_LINKED_DECIMAL,
 	VAL_HITBOX,
+	VAL_LOCATION,
 	VAL_ERROR
 } ValueType;
 
 enum { CLASS_TYPE_NORMAL, CLASS_TYPE_EXTENDED };
 
 struct Obj;
+
+enum {
+	LOC_STACK,
+	LOC_MODULE,
+	LOC_GLOBAL,
+	LOC_PROPERTY,
+	LOC_ELEMENT
+};
+
+struct VMLocation {
+	Uint8 Type;
+	union {
+		int Slot;
+		Uint32 Hash;
+	} as;
+};
 
 struct VMValue {
 	Uint8 Type;
@@ -52,6 +69,7 @@ struct VMValue {
 		int* LinkedInteger;
 		float* LinkedDecimal;
 		Sint16 Hitbox[NUM_HITBOX_SIDES];
+		VMLocation Location;
 	} as;
 };
 
@@ -125,12 +143,14 @@ const char* GetValueTypeString(VMValue value);
 #define IS_INTEGER(value) ((value).Type == VAL_INTEGER)
 #define IS_DECIMAL(value) ((value).Type == VAL_DECIMAL)
 #define IS_OBJECT(value) ((value).Type == VAL_OBJECT)
+#define IS_LOCATION(value) ((value).Type == VAL_LOCATION)
 
 #define AS_INTEGER(value) \
 	(value.Type == VAL_INTEGER ? (value).as.Integer : *((value).as.LinkedInteger))
 #define AS_DECIMAL(value) \
 	(value.Type == VAL_DECIMAL ? (value).as.Decimal : *((value).as.LinkedDecimal))
 #define AS_OBJECT(value) ((value).as.Object)
+#define AS_LOCATION(value) ((value).as.Location)
 
 #ifdef WIN32
 #define NULL_VAL (VMValue{})
@@ -152,6 +172,12 @@ static inline VMValue OBJECT_VAL(void* value) {
 	val.as.Object = (Obj*)value;
 	return val;
 }
+static inline VMValue LOCATION_VAL(VMLocation location) {
+	VMValue val;
+	val.Type = VAL_LOCATION;
+	val.as.Location = location;
+	return val;
+}
 static inline VMValue INTEGER_LINK_VAL(int* value) {
 	VMValue val;
 	val.Type = VAL_LINKED_INTEGER;
@@ -169,6 +195,7 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 #define INTEGER_VAL(value) ((VMValue){VAL_INTEGER, {.Integer = value}})
 #define DECIMAL_VAL(value) ((VMValue){VAL_DECIMAL, {.Decimal = value}})
 #define OBJECT_VAL(object) ((VMValue){VAL_OBJECT, {.Object = (Obj*)object}})
+#define LOCATION_VAL(location) ((VMValue){VAL_LOCATION, {.Location = location}})
 #define INTEGER_LINK_VAL(value) ((VMValue){VAL_LINKED_INTEGER, {.LinkedInteger = value}})
 #define DECIMAL_LINK_VAL(value) ((VMValue){VAL_LINKED_DECIMAL, {.LinkedDecimal = value}})
 #endif
@@ -207,6 +234,45 @@ static inline VMValue HITBOX_VAL(Sint16* values) {
 
 #define IS_HITBOX(value) ((value).Type == VAL_HITBOX)
 #define AS_HITBOX(value) (&((value).as.Hitbox[0]))
+
+#ifdef WIN32
+static inline VMLocation STACK_LOCATION(int index) {
+	VMLocation location;
+	location.Type = LOC_STACK;
+	location.as.Slot = index;
+	return location;
+}
+static inline VMLocation MODULE_LOCATION(int index) {
+	VMLocation location;
+	location.Type = LOC_MODULE;
+	location.as.Slot = index;
+	return location;
+}
+static inline VMLocation GLOBAL_LOCATION(Uint32 hash) {
+	VMLocation location;
+	location.Type = LOC_GLOBAL;
+	location.as.Hash = hash;
+	return location;
+}
+static inline VMLocation PROPERTY_LOCATION(Uint32 hash) {
+	VMLocation location;
+	location.Type = LOC_PROPERTY;
+	location.as.Hash = hash;
+	return location;
+}
+static inline VMLocation ELEMENT_LOCATION() {
+	VMLocation location;
+	location.Type = LOC_ELEMENT;
+	location.as.Slot = 0;
+	return location;
+}
+#else
+#define STACK_LOCATION(index) ((VMLocation){LOC_STACK, {.Slot = index}})
+#define MODULE_LOCATION(index) ((VMLocation){LOC_MODULE, {.Slot = index}})
+#define GLOBAL_LOCATION(hash) ((VMLocation){LOC_GLOBAL, {.Hash = hash}})
+#define PROPERTY_LOCATION(hash) ((VMLocation){LOC_PROPERTY, {.Hash = hash}})
+#define ELEMENT_LOCATION() ((VMLocation){LOC_ELEMENT, {.Slot = 0}})
+#endif
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 
@@ -289,20 +355,13 @@ typedef HashMap<VMValue> Table;
 struct Obj {
 	ObjType Type;
 	size_t Size;
-	bool IsDark;
 	struct ObjClass* Class;
-	ValueGetFn PropertyGet;
-	ValueSetFn PropertySet;
-	StructGetFn ElementGet;
-	StructSetFn ElementSet;
-	ObjectDestructor Destructor;
 	struct Obj* Next;
 };
 struct ObjString {
 	Obj Object;
 	size_t Length;
 	char* Chars;
-	Uint32 Hash;
 };
 struct ObjModule {
 	Obj Object;
@@ -313,14 +372,12 @@ struct ObjModule {
 };
 struct ObjFunction {
 	Obj Object;
-	int Arity;
-	int MinArity;
-	int UpvalueCount;
+	Uint8 Arity;
+	Uint8 MinArity;
 	struct Chunk Chunk;
 	ObjModule* Module;
 	char* Name;
 	struct ObjClass* Class;
-	Uint32 NameHash;
 	size_t Index;
 };
 struct ObjNative {
@@ -347,12 +404,20 @@ struct ObjClass {
 	Table* Fields;
 	VMValue Initializer;
 	ClassNewFn NewFn;
-	Uint8 Type;
+	ValueGetFn PropertyGet;
+	ValueSetFn PropertySet;
+	StructGetFn ElementGet;
+	StructSetFn ElementSet;
 	ObjClass* Parent;
 };
 struct ObjInstance {
 	Obj Object;
 	Table* Fields;
+	ValueGetFn PropertyGet;
+	ValueSetFn PropertySet;
+	StructGetFn ElementGet;
+	StructSetFn ElementSet;
+	ObjectDestructor Destructor;
 };
 struct ObjBoundMethod {
 	Obj Object;
@@ -371,14 +436,12 @@ struct ObjMap {
 struct ObjNamespace {
 	Obj Object;
 	char* Name;
-	Uint32 Hash;
 	Table* Fields;
 	bool InUse;
 };
 struct ObjEnum {
 	Obj Object;
 	char* Name;
-	Uint32 Hash;
 	Table* Fields;
 };
 
@@ -618,6 +681,15 @@ enum OpCode : uint8_t {
 	OP_EVENT,
 	OP_METHOD,
 	OP_NEW_HITBOX,
+	// Indirect Addressing
+	OP_LOCATION_STACK,
+	OP_LOCATION_MODULE_LOCAL,
+	OP_LOCATION_GLOBAL,
+	OP_LOCATION_PROPERTY,
+	OP_LOCATION_SUPER_PROPERTY,
+	OP_LOCATION_ELEMENT,
+	OP_LOAD_INDIRECT,
+	OP_STORE_INDIRECT,
 
 	OP_LAST
 };

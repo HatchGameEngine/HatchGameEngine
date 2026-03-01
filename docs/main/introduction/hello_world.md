@@ -562,15 +562,7 @@ By default, Hatch will load an empty scene, but you can specify a scene file. Th
 [tileset.png](tileset.png)  
 [background.png](background.png)  
 
-The `scene.tmx` file is the scene file we'll be loading. It's pretty simple; it has only two layers, and one object, the chick. The tileset images are the files `tileset.png` and `background.png`. Hatch supports loading external Tiled tileset files (TSX) if specified by the map, but `scene.tmx` stores its tileset internally.
-
-Go back to `init.hsl`. Remove the call to @ref Instance.Create:
-
-```diff
-- Instance.Create("Chick", 48.0, 48.0);
-```
-
-And in your `GameConfig.xml`, add this line:
+The `scene.tmx` file is the scene file we'll be loading. It's pretty simple; it has only two layers, and one object, the chick. The tileset images are the files `tileset.png` and `background.png`. Hatch supports loading external Tiled tileset files (TSX) if specified by the map, but `scene.tmx` stores its tileset internally. To make Hatch load `scene.tmx` when it opens, add this line to `GameConfig.xml`:
 
 ```diff
  <?xml version="1.0" encoding="UTF-8"?>
@@ -578,6 +570,12 @@ And in your `GameConfig.xml`, add this line:
      <name>My Hatch Game</name>
 +    <startscene>scene.tmx</startscene>
  </gameconfig>
+```
+
+Since `scene.tmx` has an instance of the `Chick` object, your script doesn't need to create one anymore. Go back to `init.hsl`, and remove the call to @ref Instance.Create:
+
+```diff
+- Instance.Create("Chick", 48.0, 48.0);
 ```
 
 Press F1, and you should see this:
@@ -684,14 +682,14 @@ You can try changing `blendColor` by opening the scene file in Tiled, or by dire
 
 ## Physics and tile collision
 
-Most games need to perform some sort of basic physics simulations, even if it's just for visuals. @ref Entity has fields called @ref Entity.XSpeed, @ref Entity.YSpeed, and @ref Entity.Gravity, which we will use to accomplish basic platformer physics. Eevery frame the `Chick` will add its gravity value to its vertical speed, and add @ref Entity.XSpeed and @ref Entity.YSpeed to @ref Entity.X and @ref Entity.Y. Hatch performs this automatically if @ref Entity.AutoPhysics is set to `true`, or if @ref Entity.ApplyMotion is called every frame, but writing your own code always allows you to be more flexible.
+Most games need to perform some sort of basic physics simulations, even if it's just for visuals. @ref Entity has fields called @ref Entity.SpeedX, @ref Entity.SpeedY, and @ref Entity.GravitySpeed, which we will use to accomplish basic platformer physics. Eevery frame the `Chick` will add its gravity value to its vertical speed, and add @ref Entity.SpeedX and @ref Entity.SpeedY to @ref Entity.X and @ref Entity.Y. Hatch performs this automatically if @ref Entity.AutoPhysics is set to `true`, or if @ref Entity.ApplyMotion is called every frame, but writing your own code always allows you to be more flexible.
 
-By default, @ref Entity.Gravity is `0.0`, so we need to set it to some value. At the end of `Create`, add this line:
+By default, @ref Entity.GravitySpeed is `0.0`, so we need to set it to some value. At the end of `Create`, add this line:
 
 ```diff
  event Create() {
      [...]
-+    this.Gravity = 0.25; // YSpeed increases by 0.25 each frame
++    this.GravitySpeed = 0.25; // SpeedY increases by 0.25 each frame
  }
 ```
 
@@ -704,21 +702,21 @@ event Update() {
     const deceleration = 0.25;
 
     if (Input.IsActionHeld(0, "Left")) {
-        this.XSpeed = Math.Clamp(this.XSpeed - acceleration, -maxSpeed, maxSpeed);
+        this.SpeedX = Math.Clamp(this.SpeedX - acceleration, -maxSpeed, maxSpeed);
     }
     else if (Input.IsActionHeld(0, "Right")) {
-        this.XSpeed = Math.Clamp(this.XSpeed + acceleration, -maxSpeed, maxSpeed);
+        this.SpeedX = Math.Clamp(this.SpeedX + acceleration, -maxSpeed, maxSpeed);
     }
-    else if (this.XSpeed < 0.0) {
-        this.XSpeed = Math.Min(this.XSpeed + deceleration, 0.0);
+    else if (this.SpeedX < 0.0) {
+        this.SpeedX = Math.Min(this.SpeedX + deceleration, 0.0);
     }
-    else if (this.XSpeed > 0.0) {
-        this.XSpeed = Math.Max(this.XSpeed - deceleration, 0.0);
+    else if (this.SpeedX > 0.0) {
+        this.SpeedX = Math.Max(this.SpeedX - deceleration, 0.0);
     }
 
-    this.YSpeed += this.Gravity;
-    this.X += this.XSpeed;
-    this.Y += this.YSpeed;
+    this.SpeedY += this.GravitySpeed;
+    this.X += this.SpeedX;
+    this.Y += this.SpeedY;
 }
 ```
 
@@ -758,28 +756,28 @@ The best way to do this is by using @ref TileCollision.Line. Add this code to `U
      const deceleration = 0.25;
 
      if (Input.IsActionHeld(0, "Left")) {
-         this.XSpeed = Math.Clamp(this.XSpeed - acceleration, -maxSpeed, maxSpeed);
+         this.SpeedX = Math.Clamp(this.SpeedX - acceleration, -maxSpeed, maxSpeed);
      }
      else if (Input.IsActionHeld(0, "Right")) {
-         this.XSpeed = Math.Clamp(this.XSpeed + acceleration, -maxSpeed, maxSpeed);
+         this.SpeedX = Math.Clamp(this.SpeedX + acceleration, -maxSpeed, maxSpeed);
      }
-     else if (this.XSpeed < 0.0) {
-         this.XSpeed = Math.Min(this.XSpeed + deceleration, 0.0);
+     else if (this.SpeedX < 0.0) {
+         this.SpeedX = Math.Min(this.SpeedX + deceleration, 0.0);
      }
-     else if (this.XSpeed > 0.0) {
-         this.XSpeed = Math.Max(this.XSpeed - deceleration, 0.0);
+     else if (this.SpeedX > 0.0) {
+         this.SpeedX = Math.Max(this.SpeedX - deceleration, 0.0);
      }
 
-     this.YSpeed += this.Gravity;
+     this.SpeedY += this.GravitySpeed;
 +
 +    const lineLength = 32.0;
 +    if (TileCollision.Line(this.X + 32.0, this.Y + 32.0, SensorDirection_Down, lineLength, 0, -1, this)) {
-+        this.YSpeed = 0.0;
++        this.SpeedY = 0.0;
 +        this.Y = this.SensorY - 64.0;
 +    }
 +
-     this.X += this.XSpeed;
-     this.Y += this.YSpeed;
+     this.X += this.SpeedX;
+     this.Y += this.SpeedY;
 }
 ```
 
@@ -791,18 +789,18 @@ Press F1. The `Chick` now properly collides with the floor:
 </video>
 @endhtmlonly
 
-One more thing we can add is a jump button: we check if @ref Entity.YSpeed is zero, and if the `A` input is being pressed.
+One more thing we can add is a jump button: we check if @ref Entity.SpeedY is zero, and if the `A` input is being pressed.
 
 ```diff
  event Update() {
      [...]
 
-+    if (this.YSpeed == 0.0 && Input.IsActionPressed(0, "A")) {
-+        this.YSpeed = -6.0;
++    if (this.SpeedY == 0.0 && Input.IsActionPressed(0, "A")) {
++        this.SpeedY = -6.0;
 +    }
 
-     this.X += this.XSpeed;
-     this.Y += this.YSpeed;
+     this.X += this.SpeedX;
+     this.Y += this.SpeedY;
  }
 ```
 

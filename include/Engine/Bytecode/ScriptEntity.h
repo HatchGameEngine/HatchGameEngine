@@ -76,6 +76,7 @@ public:
 	void OnSceneRestart();
 	void GameStart();
 	void Remove();
+	void Unlink();
 	void Dispose();
 	bool IsValid();
 };

@@ -1,5 +1,6 @@
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Filesystem/File.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/TextFormats/INI/INI.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -68,7 +69,7 @@ bool INI::Save() {
 	return Save(Filename);
 }
 bool INI::IsPersisted() {
-	return FileStream::Exists(Filename, true);
+	return File::ProtectedExists(Filename, true);
 }
 void INI::SetFilename(const char* filename) {
 	Memory::Free(Filename);

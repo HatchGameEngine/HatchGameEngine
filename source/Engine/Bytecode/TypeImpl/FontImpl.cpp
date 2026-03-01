@@ -159,7 +159,7 @@ ObjFont* FontImpl::New(void* fontPtr) {
 	ObjFont* font = (ObjFont*)NewNativeInstance(sizeof(ObjFont));
 	Memory::Track(font, "NewFont");
 	font->Object.Class = Class;
-	font->Object.Destructor = Dispose;
+	font->InstanceObj.Destructor = Dispose;
 	font->FontPtr = (Font*)fontPtr;
 	return font;
 }

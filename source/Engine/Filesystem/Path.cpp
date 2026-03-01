@@ -8,6 +8,10 @@
 #include <Engine/Includes/StandardSDL2.h>
 #endif
 
+#if UNIX
+#include <Engine/Filesystem/File.h>
+#endif
+
 #if WIN32
 #include <direct.h>
 #include <shlobj.h>
@@ -16,12 +20,31 @@
 #include <unistd.h>
 #endif
 
+#ifdef HSL_STANDALONE
+#define GetEnv getenv
+#else
+#define GetEnv SDL_getenv
+#endif
+
+#define CONFIG_DIR_NAME "config"
+#define LOCAL_DIR_NAME "local"
+#define CACHE_DIR_NAME "cache"
+#define PICTURES_DIR_NAME "pictures"
+#define SCREENSHOTS_DIR_NAME "screenshots"
+
 std::pair<std::string, PathLocation> urlToLocationType[] = {
 	std::make_pair(PATHLOCATION_GAME_URL, PathLocation::GAME),
 	std::make_pair(PATHLOCATION_USER_URL, PathLocation::USER),
 	std::make_pair(PATHLOCATION_SAVEGAME_URL, PathLocation::SAVEGAME),
+	std::make_pair(PATHLOCATION_SCREENSHOTS_URL, PathLocation::SCREENSHOTS),
+	std::make_pair(PATHLOCATION_PICTURES_URL, PathLocation::PICTURES),
 	std::make_pair(PATHLOCATION_PREFERENCES_URL, PathLocation::PREFERENCES),
 	std::make_pair(PATHLOCATION_CACHE_URL, PathLocation::CACHE)};
+
+#if UNIX
+std::unordered_map<std::string, std::string> XdgUserDirs;
+int LoadedXdgUserDirs = 0;
+#endif
 
 std::string Path::ToString(std::filesystem::path path) {
 #if __cplusplus >= 202002L
@@ -277,19 +300,136 @@ std::string Path::GetPrefPath() {
 #endif
 }
 
-#if LINUX
-std::string Path::GetXdgPath(const char* xdg_env, const char* fallback_path) {
-	const char* env_path = SDL_getenv(xdg_env);
-	if (!env_path) {
-		env_path = SDL_getenv("HOME");
-		if (env_path == nullptr) {
+#if UNIX
+bool Path::LoadXdgUserDirs() {
+	std::string xdgPath = GetXdgPath("XDG_CONFIG_HOME", ".config");
+	if (xdgPath == "") {
+		LoadedXdgUserDirs = -1;
+		return false;
+	}
+
+	std::string userDirsPath = Concat(xdgPath, "user-dirs.dirs");
+	Stream* stream = File::Open(userDirsPath.c_str(), File::READ_ACCESS);
+	if (!stream) {
+		LoadedXdgUserDirs = -1;
+		return false;
+	}
+
+	const char* homePath = GetEnv("HOME");
+	std::string homePathStr = "";
+	if (homePath != nullptr) {
+		homePathStr = std::string(homePath);
+	}
+
+	while (stream->Position() < stream->Length()) {
+		char* line = stream->ReadLine();
+		if (line[0] == '#') {
+			Memory::Free(line);
+			continue;
+		}
+
+		char* key = line;
+		char* value;
+		std::string valueStr = "";
+
+		char* ptr = strchr(line, '=');
+		if (!ptr || ptr[1] == '\0') {
+			Memory::Free(line);
+			continue;
+		}
+
+		*ptr = '\0';
+		ptr++;
+
+		ptr += strspn(ptr, " ");
+		if (*ptr == '\0') {
+			Memory::Free(line);
+			continue;
+		}
+
+		ptr = strchr(ptr, '"');
+		if (!ptr || ptr[1] == '\0') {
+			Memory::Free(line);
+			continue;
+		}
+
+		ptr++;
+		value = ptr;
+
+		ptr = strchr(ptr, '"');
+		if (ptr) {
+			*ptr = '\0';
+		}
+		else {
+			Memory::Free(line);
+			continue;
+		}
+
+		if (StringUtils::StartsWith(value, "$HOME")) {
+			if (homePathStr == "") {
+				Memory::Free(line);
+				continue;
+			}
+
+			valueStr = Normalize(homePathStr + std::string(&value[5]));
+		}
+		else if (isspace(*ptr) || *ptr == '$') {
+			Memory::Free(line);
+			continue;
+		}
+		else {
+			valueStr = std::string(value);
+		}
+
+		if (valueStr != "") {
+			std::string keyStr = std::string(key);
+			XdgUserDirs[keyStr] = valueStr;
+		}
+
+		Memory::Free(line);
+	}
+
+	stream->Close();
+
+	LoadedXdgUserDirs = 1;
+
+	return true;
+}
+
+std::string Path::GetXdgPath(const char* env, const char* fallbackPath) {
+	const char* envPath = GetEnv(env);
+	if (!envPath) {
+		envPath = GetEnv("HOME");
+		if (envPath == nullptr) {
 			return "";
 		}
 
-		return Concat(env_path, fallback_path);
+		return Concat(envPath, fallbackPath);
 	}
 
-	return std::string(env_path);
+	return std::string(envPath);
+}
+
+std::string Path::GetXdgUserDir(const char* userDir) {
+	const char* envPath = GetEnv(userDir);
+	if (envPath) {
+		return std::string(envPath);
+	}
+
+	if (!LoadedXdgUserDirs) {
+		LoadXdgUserDirs();
+	}
+
+	if (LoadedXdgUserDirs < 0) {
+		return "";
+	}
+
+	std::string userDirStr = std::string(userDir);
+	if (!XdgUserDirs.count(userDirStr)) {
+		return "";
+	}
+
+	return XdgUserDirs[userDirStr];
 }
 #endif
 
@@ -330,7 +470,9 @@ std::string Path::GetFallbackLocalPath(std::string suffix) {
 }
 
 std::string Path::GetBaseConfigPath() {
-#if defined(PORTABLE_MODE) || defined(HSL_STANDALONE)
+#if HSL_STANDALONE
+	return GetFallbackLocalPath(CONFIG_DIR_NAME);
+#elif PORTABLE_MODE
 	return GetPortableModePath();
 #elif WIN32
 	std::string gamePath = GetGameNamePath();
@@ -354,7 +496,7 @@ std::string Path::GetBaseConfigPath() {
 	}
 
 	return Concat(basePath, gamePath);
-#elif LINUX
+#elif UNIX
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
 		return "";
@@ -367,17 +509,19 @@ std::string Path::GetBaseConfigPath() {
 
 	return Concat(xdgPath, gamePath);
 #else
-	return GetFallbackLocalPath("config");
+	return GetFallbackLocalPath(CONFIG_DIR_NAME);
 #endif
 }
 
 std::string Path::GetStatePath() {
-#if defined(PORTABLE_MODE) || defined(HSL_STANDALONE)
+#if HSL_STANDALONE
+	return GetFallbackLocalPath(LOCAL_DIR_NAME);
+#elif PORTABLE_MODE
 	return GetPortableModePath();
 #elif WIN32
 	// Returns %LocalAppData%
 	return GetBaseConfigPath();
-#elif LINUX
+#elif UNIX
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
 		return "";
@@ -390,22 +534,24 @@ std::string Path::GetStatePath() {
 
 	return Concat(xdgPath, gamePath);
 #else
-	return GetFallbackLocalPath("local");
+	return GetFallbackLocalPath(LOCAL_DIR_NAME);
 #endif
 }
 
 std::string Path::GetCachePath() {
-#if defined(PORTABLE_MODE) || defined(HSL_STANDALONE)
+#if HSL_STANDALONE
+	return GetFallbackLocalPath(CACHE_DIR_NAME);
+#elif PORTABLE_MODE
 	std::string workingDir = GetPortableModePath();
 	if (workingDir == "") {
 		return "";
 	}
 
-	return Concat(workingDir, "cache");
+	return Concat(workingDir, CACHE_DIR_NAME);
 #elif WIN32
 	// Returns %LocalAppData%
 	return GetBaseConfigPath();
-#elif LINUX
+#elif UNIX
 	std::string gamePath = GetGameNamePath();
 	if (gamePath == "") {
 		return "";
@@ -418,14 +564,110 @@ std::string Path::GetCachePath() {
 
 	return Concat(xdgPath, gamePath);
 #else
-	return GetFallbackLocalPath("cache");
+	return GetFallbackLocalPath(CACHE_DIR_NAME);
 #endif
 }
 
-std::string Path::GetForLocation(PathLocation location) {
+std::string Path::GetPicturesPath() {
+#if HSL_STANDALONE
+	return GetFallbackLocalPath(PICTURES_DIR_NAME);
+#elif PORTABLE_MODE
+	std::string workingDir = GetPortableModePath();
+	if (workingDir == "") {
+		return "";
+	}
+
+	return Concat(workingDir, PICTURES_DIR_NAME);
+#elif WIN32
+	const char* gameName = Application::GetGameIdentifier();
+	if (gameName == nullptr) {
+		return "";
+	}
+
+	std::string basePath;
+
+	wchar_t* winPath = nullptr;
+	if (SHGetKnownFolderPath(FOLDERID_Pictures, 0, nullptr, &winPath) == S_OK) {
+		std::filesystem::path fsPath = std::filesystem::path(winPath);
+
+		basePath = ToString(fsPath);
+		std::replace(basePath.begin(), basePath.end(), '\\', '/');
+
+		CoTaskMemFree(winPath);
+	}
+	else {
+		return "";
+	}
+
+	return Concat(basePath, std::string(gameName));
+#elif UNIX
+	const char* gameName = Application::GetGameIdentifier();
+	if (gameName == nullptr) {
+		return "";
+	}
+
+	std::string envPath = GetXdgUserDir("XDG_PICTURES_DIR");
+	if (envPath != "") {
+		return Concat(envPath, std::string(gameName));
+	}
+
+	return "";
+#else
+	return GetFallbackLocalPath(PICTURES_DIR_NAME);
+#endif
+}
+
+std::string Path::GetScreenshotsPath(bool makeDirs) {
+#ifndef HSL_STANDALONE
+	const char* screenshotsPath = Application::GetScreenshotsPath();
+
+	if (screenshotsPath != nullptr) {
+		PathLocation location;
+		std::string resolved;
+
+		if (Path::FromURL(screenshotsPath, resolved, location, makeDirs, false)) {
+			return resolved;
+		}
+	}
+	else
+#endif
+	{
+#ifdef PORTABLE_MODE
+		std::string workingDir = GetPortableModePath();
+		if (workingDir != "") {
+			return Concat(workingDir, SCREENSHOTS_DIR_NAME);
+		}
+#else
+		std::string picturesPath = GetPicturesPath();
+		if (picturesPath != "") {
+			return picturesPath;
+		}
+
+#ifdef WIN32
+		std::string prefix = GetBaseConfigPath();
+#else
+		std::string prefix = GetBaseUserPath();
+#endif
+		if (prefix != "") {
+			return Concat(prefix, SCREENSHOTS_DIR_NAME);
+		}
+#endif
+	}
+
+	return "";
+}
+
+std::string Path::GetForLocation(PathLocation location, bool makeDirs, bool allowIndirection) {
 	std::string finalPath = "";
 
 	const char* suffix = nullptr;
+
+	static int recursion = 0;
+	if (recursion >= 100) {
+		return "";
+	}
+
+	recursion++;
 
 	switch (location) {
 	// game://
@@ -448,6 +690,12 @@ std::string Path::GetForLocation(PathLocation location) {
 		}
 #endif
 		break;
+	// screenshots://
+	case PathLocation::SCREENSHOTS:
+		if (allowIndirection) {
+			finalPath = GetScreenshotsPath(makeDirs);
+		}
+		break;
 	// config://
 	case PathLocation::PREFERENCES:
 		finalPath = GetBaseConfigPath();
@@ -460,6 +708,10 @@ std::string Path::GetForLocation(PathLocation location) {
 		}
 #endif
 		break;
+	// pictures://
+	case PathLocation::PICTURES:
+		finalPath = GetPicturesPath();
+		break;
 	// Log file location (no URL)
 	case PathLocation::LOGFILE:
 		finalPath = GetStatePath();
@@ -471,6 +723,8 @@ std::string Path::GetForLocation(PathLocation location) {
 	default:
 		break;
 	}
+
+	recursion--;
 
 // FIXME: If using root "/" as current working directory, this fails to find files
 #ifndef CONSOLE_FILESYSTEM
@@ -487,8 +741,9 @@ std::string Path::GetForLocation(PathLocation location) {
 	return finalPath;
 }
 
-std::string Path::GetLocationFromRealPath(const char* filename, PathLocation location) {
-	std::string pathForLocation = GetForLocation(location);
+std::string
+Path::GetLocationFromRealPath(const char* filename, PathLocation location, bool allowIndirection) {
+	std::string pathForLocation = GetForLocation(location, false, allowIndirection);
 	if (pathForLocation == "") {
 		return "";
 	}
@@ -510,7 +765,8 @@ std::string Path::GetLocationFromRealPath(const char* filename, PathLocation loc
 	return Path::ToString(pathFs).substr(Path::ToString(locFs).size());
 }
 
-std::string Path::StripLocationFromURL(const char* filename, PathLocation& location) {
+std::string
+Path::StripLocationFromURL(const char* filename, PathLocation& location, bool allowIndirection) {
 	std::string startingString = "";
 
 	location = PathLocation::DEFAULT;
@@ -523,8 +779,12 @@ std::string Path::StripLocationFromURL(const char* filename, PathLocation& locat
 			location = pair.second;
 			break;
 		}
-		else {
-			std::string fromRealPath = GetLocationFromRealPath(filename, pair.second);
+	}
+
+	if (startingString == "") {
+		for (std::pair<std::string, PathLocation> pair : urlToLocationType) {
+			std::string fromRealPath =
+				GetLocationFromRealPath(filename, pair.second, allowIndirection);
 
 			if (fromRealPath != "") {
 				location = pair.second;
@@ -543,8 +803,12 @@ std::string Path::StripLocationFromURL(const char* filename, PathLocation& locat
 }
 
 bool Path::IsAbsolute(const char* filename) {
-	if (filename[0] == '/' || StringUtils::StartsWith(&filename[1], ":\\") ||
-		StringUtils::StartsWith(&filename[1], ":/")) {
+	if (filename[0] == '/') {
+		return true;
+	}
+
+	if (filename[0] != '\0' && (StringUtils::StartsWith(&filename[1], ":\\") ||
+		StringUtils::StartsWith(&filename[1], ":/"))) {
 		return true;
 	}
 
@@ -585,7 +849,8 @@ bool Path::ValidateForLocation(const char* path) {
 bool Path::FromLocation(std::string path,
 	PathLocation location,
 	std::string& result,
-	bool makeDirs) {
+	bool makeDirs,
+	bool allowIndirection) {
 	if (location == PathLocation::DEFAULT) {
 		// Validate the path
 		if (path.size() == 0) {
@@ -604,7 +869,7 @@ bool Path::FromLocation(std::string path,
 	}
 
 	// Attempt to resolve the path
-	std::string pathForLocation = GetForLocation(location);
+	std::string pathForLocation = GetForLocation(location, makeDirs, allowIndirection);
 	if (pathForLocation == "") {
 		return false;
 	}
@@ -645,18 +910,19 @@ bool Path::FromLocation(std::string path,
 bool Path::FromURL(const char* filename,
 	std::string& result,
 	PathLocation& location,
-	bool makeDirs) {
-	std::string detectedPath = StripLocationFromURL(filename, location);
+	bool makeDirs,
+	bool allowIndirection) {
+	std::string detectedPath = StripLocationFromURL(filename, location, allowIndirection);
 
-	return FromLocation(detectedPath, location, result, makeDirs);
+	return FromLocation(detectedPath, location, result, makeDirs, allowIndirection);
 }
 
 bool Path::FromURL(const char* filename, std::string& result) {
 	PathLocation location;
 
-	std::string detectedPath = StripLocationFromURL(filename, location);
+	std::string detectedPath = StripLocationFromURL(filename, location, true);
 
-	return FromLocation(detectedPath, location, result, false);
+	return FromLocation(detectedPath, location, result, false, true);
 }
 
 void Path::FromURL(const char* filename, char* buf, size_t bufSize) {
@@ -676,5 +942,11 @@ void Path::FromURL(const char* filename, char* buf, size_t bufSize) {
 std::string Path::StripURL(const char* filename) {
 	PathLocation location = PathLocation::DEFAULT;
 
-	return StripLocationFromURL(filename, location);
+	return StripLocationFromURL(filename, location, true);
+}
+
+bool Path::IsValid(const char* filename) {
+	std::string resolved = "";
+
+	return FromURL(filename, resolved);
 }

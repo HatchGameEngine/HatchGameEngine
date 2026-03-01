@@ -52,13 +52,26 @@ enum Precedence {
 	PREC_PRIMARY
 };
 
+enum ExprContext {
+	EXPRCONTEXT_VALUE,
+	EXPRCONTEXT_LOCATION
+};
+
 class Compiler;
-typedef void (Compiler::*ParseFn)(bool canAssign);
+typedef ExprContext (Compiler::*ParseFn)(ExprContext context);
+
+enum VariableType {
+	VARTYPE_UNKNOWN,
+	VARTYPE_LOCAL,
+	VARTYPE_MODULE_LOCAL,
+	VARTYPE_GLOBAL
+};
 
 struct Local {
 	Token Name;
-	int Depth = -1;
+	VariableType Type = VARTYPE_UNKNOWN;
 	int Index = -1;
+	int Depth = -1;
 	bool Resolved = false;
 	bool WasSet = false;
 	bool Constant = false;
@@ -68,7 +81,6 @@ struct Local {
 struct ParseRule {
 	ParseFn Prefix;
 	ParseFn Infix;
-	ParseFn Suffix;
 	enum Precedence Precedence;
 };
 

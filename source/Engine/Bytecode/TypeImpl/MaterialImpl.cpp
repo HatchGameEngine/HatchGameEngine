@@ -185,9 +185,9 @@ ObjMaterial* MaterialImpl::New(void* materialPtr) {
 	ObjMaterial* material = (ObjMaterial*)NewNativeInstance(sizeof(ObjMaterial));
 	Memory::Track(material, "NewMaterial");
 	material->Object.Class = Class;
-	material->Object.PropertyGet = VM_PropertyGet;
-	material->Object.PropertySet = VM_PropertySet;
-	material->Object.Destructor = Dispose;
+	material->InstanceObj.PropertyGet = VM_PropertyGet;
+	material->InstanceObj.PropertySet = VM_PropertySet;
+	material->InstanceObj.Destructor = Dispose;
 	material->MaterialPtr = (Material*)materialPtr;
 	return material;
 }

@@ -2,7 +2,13 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/StandardLibrary.h>
+#include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/EntityImpl.h>
+#include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
+#include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
+#include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
+#include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
@@ -215,8 +221,8 @@ Uint32 ScriptManager::GetBranchLimit() {
 void ScriptManager::Dispose() {
 	if (Constants) {
 		Constants->Clear();
-		Constants = nullptr;
 		delete Constants;
+		Constants = nullptr;
 	}
 
 #ifdef HSL_LIBRARY
@@ -227,8 +233,8 @@ void ScriptManager::Dispose() {
 #ifdef HSL_VM
 	if (Globals) {
 		Globals->Clear();
-		Globals = nullptr;
 		delete Globals;
+		Globals = nullptr;
 	}
 
 	ClassImplList.clear();
@@ -410,8 +416,39 @@ bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
 }
 #endif
 void ScriptManager::DestroyObject(Obj* object) {
-	if (object->Destructor != nullptr) {
-		object->Destructor(object);
+	switch (object->Type) {
+	case OBJ_STRING:
+		StringImpl::Dispose(object);
+		break;
+	case OBJ_ARRAY:
+		ArrayImpl::Dispose(object);
+		break;
+	case OBJ_MAP:
+		MapImpl::Dispose(object);
+		break;
+	case OBJ_MODULE:
+		FreeModule(object);
+		break;
+	case OBJ_CLASS:
+		FreeClass(object);
+		break;
+	case OBJ_NAMESPACE:
+		FreeNamespace(object);
+		break;
+	case OBJ_ENUM:
+		FreeEnumeration(object);
+		break;
+	case OBJ_INSTANCE:
+	case OBJ_NATIVE_INSTANCE:
+	case OBJ_ENTITY: {
+		ObjInstance* instance = (ObjInstance*)object;
+		if (instance->Destructor != nullptr) {
+			instance->Destructor(object);
+		}
+		break;
+	}
+	default:
+		break;
 	}
 
 #ifdef HSL_VM

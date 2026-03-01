@@ -23,6 +23,7 @@
 #include <Engine/Includes/DateTime.h>
 #include <Engine/Input/Controller.h>
 #include <Engine/Input/Input.h>
+#include <Engine/Includes/Operation.h>
 #include <Engine/Math/Ease.h>
 #include <Engine/Math/Geometry.h>
 #include <Engine/Math/Math.h>
@@ -370,8 +371,7 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
 
 	animator->AnimationTimer += animator->AnimationSpeed;
 
-	// TODO: Animate Retro Model if Frames = AnimFrame* 1 (no size?), else:
-	while (animator->Duration && animator->AnimationTimer > animator->Duration) {
+	while (animator->AnimationTimer > animator->Duration) {
 		++animator->CurrentFrame;
 
 		animator->AnimationTimer -= animator->Duration;
@@ -430,6 +430,29 @@ VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(animator->CurrentFrame);
 }
 /***
+ * Animator.GetFrameID
+ * \desc Gets the frame ID of the current frame of an animator.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns the frame ID of the animator's current sprite frame.
+ * \ns Sprite
+ */
+VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
+		animator->CurrentFrame >= 0) {
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
+
+		if (!sprite || animator->CurrentAnimation >= sprite->Animations.size()
+			|| animator->CurrentFrame >= sprite->Animations[animator->CurrentFrame].Frames.size()) {
+			return INTEGER_VAL(0);
+		}
+
+		return INTEGER_VAL(sprite->Animations[animator->CurrentAnimation].Frames[animator->CurrentFrame].Advance);
+	}
+	return INTEGER_VAL(0);
+}
+/***
  * Animator.GetHitbox
  * \desc Gets the hitbox of an animation and frame of an animator.
  * \param animator (integer): The index of the animator.
@@ -449,11 +472,11 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 			return NULL_VAL;
 		}
 
-		if (animator->CurrentAnimation > sprite->Animations.size()) {
+		if (animator->CurrentAnimation >= sprite->Animations.size()) {
 			return NULL_VAL;
 		}
 
-		if (animator->CurrentFrame >
+		if (animator->CurrentFrame >=
 			sprite->Animations[animator->CurrentFrame].Frames.size()) {
 			return NULL_VAL;
 		}
@@ -1488,6 +1511,72 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
 	return INTEGER_VAL(0);
 }
 /***
+ * Application.TakeScreenshot
+ * \desc Saves a screenshot to `path`. This operation only completes at the end of the frame, so you may optionally provide a callback.
+ * \paramOpt path (string): The path to save the screenshot to. If not passed, the screenshot is saved to the default screenshot path.
+ * \paramOpt callback (function): The function to call when the screenshot operation finishes. When called, it receives two arguments: a boolean indicating whether the screenshot was saved, and the path the screenshot was saved to, as a string. The function may have less than two parameters, but no more than two.
+ * \ns Application
+ */
+struct ScriptScreenshotOpData {
+	Uint32 ThreadID;
+	VMValue Callable;
+};
+void ScriptTakeScreenshotCallback(OperationResult result) {
+	ScriptScreenshotOpData* data = (ScriptScreenshotOpData*)result.Input;
+	const char* filename = (const char*)result.Output;
+
+	if (!IS_NULL(data->Callable)) {
+		VMThread* thread = ScriptManager::Threads + data->ThreadID;
+		VMValue* stackTop = thread->StackTop;
+
+		thread->Push(INTEGER_VAL(result.Success));
+		if (filename) {
+			thread->Push(ReturnString(filename));
+		}
+
+		VMValue callable = data->Callable;
+		int numArgs = thread->StackTop - stackTop;
+		int minArity, maxArity;
+		if (thread->GetArity(callable, minArity, maxArity) && numArgs > maxArity) {
+			numArgs = maxArity;
+			thread->StackTop = stackTop + numArgs;
+		}
+
+		thread->RunValue(callable, numArgs);
+		thread->StackTop = stackTop;
+	}
+
+	Memory::Free(data);
+}
+VMValue Application_TakeScreenshot(int argCount, VMValue* args, Uint32 threadID) {
+	char* path = nullptr;
+	VMValue callable = NULL_VAL;
+
+	if (argCount == 1 && IS_CALLABLE(args[0])) {
+		callable = args[0];
+	}
+	else if (argCount > 0) {
+		path = GET_ARG(0, GetString);
+		callable = GET_ARG_OPT(1, GetCallable, NULL_VAL);
+	}
+
+	ScriptScreenshotOpData* data = (ScriptScreenshotOpData*)Memory::Malloc(sizeof(ScriptScreenshotOpData));
+	if (!data) {
+		return NULL_VAL;
+	}
+
+	data->ThreadID = threadID;
+	data->Callable = callable;
+
+	Operation operation;
+	operation.Callback = ScriptTakeScreenshotCallback;
+	operation.Data = data;
+
+	Application::TakeScreenshot(path, operation);
+
+	return NULL_VAL;
+}
+/***
  * Application.Error
  * \desc Shows an error message to the user through a dialog box, if possible. The error message is also logged.
  * \param message (string): The error message to show to the user.
@@ -2085,7 +2174,7 @@ VMValue Collision_ProcessEntityMovement(int argCount, VMValue* args, Uint32 thre
 	CollisionBox outerBox = GET_ARG(1, GetHitbox);
 	CollisionBox innerBox = GET_ARG(2, GetHitbox);
 
-	if (entity) {
+	if (entity && entity->EntityPtr) {
 		Scene::ProcessEntityMovement((Entity*)entity->EntityPtr, &outerBox, &innerBox);
 	}
 	return NULL_VAL;
@@ -2113,6 +2202,10 @@ VMValue Collision_CheckTileCollision(int argCount, VMValue* args, Uint32 threadI
 	int yOffset = GET_ARG(5, GetInteger);
 	int setPos = GET_ARG(6, GetInteger);
 
+	if (!entity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
+
 	return INTEGER_VAL(Scene::CheckTileCollision(
 		(Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
 }
@@ -2139,6 +2232,10 @@ VMValue Collision_CheckTileGrip(int argCount, VMValue* args, Uint32 threadID) {
 	int yOffset = GET_ARG(5, GetInteger);
 	float tolerance = GET_ARG(6, GetDecimal);
 
+	if (!entity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
+
 	return INTEGER_VAL(Scene::CheckTileGrip(
 		(Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
 }
@@ -2158,6 +2255,10 @@ VMValue Collision_CheckEntityTouch(int argCount, VMValue* args, Uint32 threadID)
 	CollisionBox thisBox = GET_ARG(1, GetHitbox);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
+
+	if (!thisEntity->EntityPtr || !otherEntity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
 
 	return INTEGER_VAL(!!Scene::CheckEntityTouch((Entity*)thisEntity->EntityPtr,
 		&thisBox,
@@ -2180,6 +2281,10 @@ VMValue Collision_CheckEntityCircle(int argCount, VMValue* args, Uint32 threadID
 	float thisRadius = GET_ARG(1, GetDecimal);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	float otherRadius = GET_ARG(3, GetDecimal);
+
+	if (!thisEntity->EntityPtr || !otherEntity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
 
 	return INTEGER_VAL(!!Scene::CheckEntityCircle((Entity*)thisEntity->EntityPtr,
 		thisRadius,
@@ -2205,6 +2310,10 @@ VMValue Collision_CheckEntityBox(int argCount, VMValue* args, Uint32 threadID) {
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
+	if (!thisEntity->EntityPtr || !otherEntity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
+
 	return INTEGER_VAL(Scene::CheckEntityBox((Entity*)thisEntity->EntityPtr,
 		&thisBox,
 		(Entity*)otherEntity->EntityPtr,
@@ -2229,6 +2338,10 @@ VMValue Collision_CheckEntityPlatform(int argCount, VMValue* args, Uint32 thread
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
+
+	if (!thisEntity->EntityPtr || !otherEntity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
 
 	return INTEGER_VAL(!!Scene::CheckEntityPlatform((Entity*)thisEntity->EntityPtr,
 		&thisBox,
@@ -2866,7 +2979,7 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
  * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
  * \paramOpt rotation (number): Rotation of the drawn sprite in radians, or in integer if <param useInteger> is `true`.
- * \paramOpt useInteger (number): Whether the rotation argument is already in radians.
+ * \paramOpt useInteger (boolean): Whether the rotation argument is already in radians.
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
@@ -2941,10 +3054,10 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
-	Entity* entity = (Entity*)instance->EntityPtr;
-	int x = (int)GET_ARG_OPT(1, GetDecimal, entity->X);
-	int y = (int)GET_ARG_OPT(2, GetDecimal, entity->Y);
-	ISprite* sprite = GetSpriteIndex(entity->Sprite, threadID);
+	Entity* entity = instance ? (Entity*)instance->EntityPtr : nullptr;
+	int x = (int)GET_ARG_OPT(1, GetDecimal, entity ? entity->X : 0);
+	int y = (int)GET_ARG_OPT(2, GetDecimal, entity ? entity->Y : 0);
+	ISprite* sprite = entity ? GetSpriteIndex(entity->Sprite, threadID) : nullptr;
 	float rotation = 0.0f;
 
 	if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
@@ -3153,9 +3266,9 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 	Animator* animator = GET_ARG(0, GetAnimator);
 	ObjEntity* instance = GET_ARG(1, GetEntity);
-	Entity* entity = (Entity*)instance->EntityPtr;
-	int x = (int)GET_ARG_OPT(2, GetDecimal, entity->X);
-	int y = (int)GET_ARG_OPT(3, GetDecimal, entity->Y);
+	Entity* entity = instance ? (Entity*)instance->EntityPtr : nullptr;
+	int x = (int)GET_ARG_OPT(2, GetDecimal, entity ? entity->X : 0);
+	int y = (int)GET_ARG_OPT(3, GetDecimal, entity ? entity->Y : 0);
 	float rotation = 0.0f;
 
 	if (!animator || !animator->Frames.size()) {
@@ -8912,6 +9025,10 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 	ObjEntity* instance = GET_ARG(0, GetEntity);
 	char* objectName = GET_ARG(1, GetString);
 
+	if (!instance) {
+		return INTEGER_VAL(false);
+	}
+
 	Entity* self = (Entity*)instance->EntityPtr;
 	if (!self) {
 		return INTEGER_VAL(false);
@@ -8939,6 +9056,9 @@ VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
+	if (!instance) {
+		return NULL_VAL;
+	}
 
 	Entity* self = (Entity*)instance->EntityPtr;
 	if (!self || !self->List) {
@@ -8978,7 +9098,7 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
-	Entity* self = (Entity*)instance->EntityPtr;
+	Entity* self = instance ? (Entity*)instance->EntityPtr : nullptr;
 	int n = GET_ARG(1, GetInteger);
 
 	if (!self) {
@@ -9045,6 +9165,17 @@ VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID
 	return NULL_VAL;
 }
 /***
+ * Instance.UseAnimationFrameSkip
+ * \desc Lets entities skip animation frames when their associated AnimationTimer passes multiples of the AnimationFrameDuration.
+ * \param allowAnimationFrameSkip (boolean): Whether to turn on the engine automatically applying AnimationFrameSkip when entities are initialized.
+ * \ns Instance
+ */
+VMValue Instance_UseAnimationFrameSkip(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	Entity::UseAnimationFrameSkip = !!GET_ARG(0, GetInteger);
+	return NULL_VAL;
+}
+/***
  * Instance.SetUseRenderRegions
  * \desc Sets whether entities will use Render Regions when rendering. If false, entities will use their Update Regions instead.
  * \param useRenderRegions (boolean): Whether render regions will be used.
@@ -9069,6 +9200,10 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 	ObjEntity* srcInstance = GET_ARG(1, GetEntity);
 	bool copyClass = !!GET_ARG_OPT(2, GetInteger, true);
 
+	if (!destInstance || !srcInstance) {
+		return INTEGER_VAL(false);
+	}
+
 	ScriptEntity* destEntity = (ScriptEntity*)destInstance->EntityPtr;
 	ScriptEntity* srcEntity = (ScriptEntity*)srcInstance->EntityPtr;
 	if (destEntity && srcEntity) {
@@ -9090,6 +9225,10 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
 	char* className = GET_ARG(1, GetString);
+
+	if (!instance) {
+		return INTEGER_VAL(false);
+	}
 
 	ScriptEntity* self = (ScriptEntity*)instance->EntityPtr;
 	if (!self) {
@@ -11063,6 +11202,21 @@ VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
 		return INTEGER_VAL(0);
 	}
 	return INTEGER_VAL(AudioManager::IsPlayingMusic(audio));
+}
+/***
+ * Music.GetDuration
+ * \desc Gets the duration of the current track playing.
+ * \param music (integer): The music index to get the duration (in seconds) of.
+ * \return decimal Returns a decimal value.
+ * \ns Music
+ */
+VMValue Music_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	ISound* audio = GET_ARG(0, GetMusic);
+	if (!audio) {
+		return DECIMAL_VAL(0.0);
+	}
+	return DECIMAL_VAL((float)AudioManager::GetMusicDuration(audio));
 }
 /***
  * Music.GetPosition
@@ -16058,6 +16212,10 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	if (argCount <= 2 && IS_ENTITY(args[0])) {
 		ObjEntity* ent = GET_ARG(0, GetEntity);
 		Entity* entity = (Entity*)ent->EntityPtr;
+		if (!entity) {
+			return NULL_VAL;
+		}
+
 		hitboxArgNum = 1;
 
 		sprite = GetSpriteIndex(entity->Sprite, threadID);
@@ -17364,7 +17522,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 	int compareAngle = GET_ARG(5, GetInteger);
 	ObjEntity* entity = GET_ARG(6, GetEntity);
 
-	if (!entity->EntityPtr) {
+	if (!entity || !entity->EntityPtr) {
 		return INTEGER_VAL(false);
 	}
 
@@ -18703,8 +18861,11 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
-	Entity* self = (Entity*)instance->EntityPtr;
+	if (!instance) {
+		return INTEGER_VAL(false);
+	}
 
+	Entity* self = (Entity*)instance->EntityPtr;
 	if (!self) {
 		return INTEGER_VAL(false);
 	}
@@ -19107,7 +19268,7 @@ void StandardLibrary::Link() {
 
 #define INIT_NAMESPACE(nsName) \
 	ObjNamespace* ns_##nsName = NewNamespace(#nsName); \
-	ScriptManager::Constants->Put(ns_##nsName->Hash, OBJECT_VAL(ns_##nsName)); \
+	ScriptManager::Constants->Put(#nsName, OBJECT_VAL(ns_##nsName)); \
 	ScriptManager::AllNamespaces.push_back(ns_##nsName)
 #define INIT_NAMESPACED_CLASS(nsName, className) \
 	klass = NewClass(#className); \
@@ -19139,6 +19300,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, GetSprite);
 	DEF_NATIVE(Animator, GetCurrentAnimation);
 	DEF_NATIVE(Animator, GetCurrentFrame);
+	DEF_NATIVE(Animator, GetFrameID);
 	DEF_NATIVE(Animator, GetHitbox);
 	DEF_NATIVE(Animator, GetPrevAnimation);
 	DEF_NATIVE(Animator, GetAnimationSpeed);
@@ -19284,6 +19446,7 @@ They require the Game SDK library to be present.
 	DEF_NATIVE(Application, SetGameDescription);
 	DEF_NATIVE(Application, SetCursorVisible);
 	DEF_NATIVE(Application, GetCursorVisible);
+	DEF_NATIVE(Application, TakeScreenshot);
 	DEF_NATIVE(Application, Error);
 	DEF_NATIVE(Application, SetDefaultFont);
 	DEF_NATIVE(Application, ChangeGame);
@@ -19293,6 +19456,11 @@ They require the Game SDK library to be present.
     * \desc Fullscreen keybind.
     */
 	DEF_ENUM_CLASS(KeyBind, Fullscreen);
+	/***
+    * \enum KeyBind_Screenshot
+    * \desc Screenshot keybind.
+    */
+	DEF_ENUM_CLASS(KeyBind, Screenshot);
 	/***
     * \enum KeyBind_ToggleFPSCounter
     * \desc FPS counter toggle keybind.
@@ -20546,6 +20714,7 @@ This class also houses the input action system.
 	DEF_NATIVE(Instance, GetNextInstance);
 	DEF_NATIVE(Instance, GetBySlotID);
 	DEF_NATIVE(Instance, DisableAutoAnimate);
+	DEF_NATIVE(Instance, UseAnimationFrameSkip);
 	DEF_NATIVE(Instance, SetUseRenderRegions);
 	DEF_NATIVE(Instance, Copy);
 	DEF_NATIVE(Instance, ChangeClass);
@@ -20713,6 +20882,7 @@ This class also houses the input action system.
 	DEF_NATIVE(Music, Resume);
 	DEF_NATIVE(Music, Clear);
 	DEF_NATIVE(Music, IsPlaying);
+	DEF_NATIVE(Music, GetDuration);
 	DEF_NATIVE(Music, GetPosition);
 	DEF_NATIVE(Music, Alter);
 	DEF_NATIVE(Music, GetLoopPoint);

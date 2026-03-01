@@ -3,7 +3,7 @@
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
-#define BYTECODE_VERSION 0x0005
+#define BYTECODE_VERSION 0x0006
 
 Uint32 Bytecode::LatestVersion = BYTECODE_VERSION;
 vector<const char*> Bytecode::FunctionNames{"<anonymous-fn>", "main"};
@@ -89,7 +89,15 @@ const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_NOP",
 	"OP_SUPER_INVOKE",
 	"OP_EVENT",
 	"OP_METHOD",
-	"OP_NEW_HITBOX"};
+	"OP_NEW_HITBOX",
+	"OP_LOCATION_STACK",
+	"OP_LOCATION_MODULE_LOCAL",
+	"OP_LOCATION_GLOBAL",
+	"OP_LOCATION_PROPERTY",
+	"OP_LOCATION_SUPER_PROPERTY",
+	"OP_LOCATION_ELEMENT",
+	"OP_LOAD_INDIRECT",
+	"OP_STORE_INDIRECT"};
 
 Bytecode::Bytecode() {
 	Version = LatestVersion;
@@ -127,8 +135,10 @@ bool Bytecode::Read(Stream* stream, HashMap<char*>* tokens) {
 		return false;
 	}
 
+	std::vector<Uint32>* functionHashes = new std::vector<Uint32>();
+
 	for (int i = 0; i < chunkCount; i++) {
-		ObjFunction* function = ReadChunk(stream);
+		ObjFunction* function = ReadChunk(stream, functionHashes);
 
 		function->Index = (size_t)i;
 
@@ -149,9 +159,10 @@ bool Bytecode::Read(Stream* stream, HashMap<char*>* tokens) {
 				}
 			}
 
-			for (ObjFunction* function : Functions) {
-				if (tokens->Exists(function->NameHash)) {
-					function->Name = StringUtils::Duplicate(tokens->Get(function->NameHash));
+			for (size_t i = 0; i < Functions.size(); i++) {
+				Uint32 hash = (*functionHashes)[i];
+				if (tokens->Exists(hash)) {
+					Functions[i]->Name = StringUtils::Duplicate(tokens->Get(hash));
 				}
 			}
 		}
@@ -163,11 +174,13 @@ bool Bytecode::Read(Stream* stream, HashMap<char*>* tokens) {
 	}
 	else {
 		char fnHash[9];
-		for (ObjFunction* function : Functions) {
-			snprintf(fnHash, sizeof(fnHash), "%08X", function->NameHash);
-			function->Name = StringUtils::Duplicate(fnHash);
+		for (size_t i = 0; i < Functions.size(); i++) {
+			snprintf(fnHash, sizeof(fnHash), "%08X", (*functionHashes)[i]);
+			Functions[i]->Name = StringUtils::Duplicate(fnHash);
 		}
 	}
+
+	delete functionHashes;
 
 	if (hasSourceFilename) {
 		SourceFilename = stream->ReadString();
@@ -185,13 +198,13 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 	stream->Close();
 	return success;
 }
-ObjFunction* Bytecode::ReadChunk(Stream* stream) {
+ObjFunction* Bytecode::ReadChunk(Stream* stream, std::vector<Uint32>* functionHashes) {
 	int length = stream->ReadInt32();
-	int arity, minArity;
+	Uint8 arity, minArity;
 	int opcodeCount = 0;
 
 	if (Version < 0x0001) {
-		arity = stream->ReadInt32();
+		arity = (Uint8)stream->ReadInt32();
 		minArity = arity;
 	}
 	else {
@@ -204,11 +217,13 @@ ObjFunction* Bytecode::ReadChunk(Stream* stream) {
 	}
 
 	Uint32 hash = stream->ReadUInt32();
+	if (functionHashes) {
+		functionHashes->push_back(hash);
+	}
 
 	ObjFunction* function = NewFunction();
 	function->Arity = arity;
 	function->MinArity = minArity;
-	function->NameHash = hash;
 
 	Chunk* chunk = &function->Chunk;
 	chunk->Count = length;
@@ -541,6 +556,19 @@ int Bytecode::GetTotalOpcodeSize(uint8_t* op) {
 		return 7;
 	case OP_METHOD_V4:
 		return 6;
+	case OP_LOCATION_STACK:
+		return 2;
+	case OP_LOCATION_MODULE_LOCAL:
+		return 3;
+	case OP_LOCATION_GLOBAL:
+	case OP_LOCATION_PROPERTY:
+	case OP_LOCATION_SUPER_PROPERTY:
+		return 5;
+	case OP_LOCATION_ELEMENT:
+		return 1;
+	case OP_LOAD_INDIRECT:
+	case OP_STORE_INDIRECT:
+		return 1;
 	}
 	return 1;
 }

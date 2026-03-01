@@ -29,8 +29,6 @@ void GarbageCollector::Collect(bool doLog) {
 		return;
 	}
 
-	GrayList.clear();
-
 #ifdef USE_CLOCK
 	double grayElapsed = Clock::GetTicks();
 #endif
@@ -102,20 +100,17 @@ void GarbageCollector::Collect(bool doLog) {
 	while (*object != NULL) {
 		objectTypeCounts[(*object)->Type]++;
 
-		if (!((*object)->IsDark)) {
+		if (std::find(GrayList.begin(), GrayList.end(), *object) == GrayList.end()) {
 			objectTypeFreed[(*object)->Type]++;
 
-			// This object wasn't reached, so remove it
-			// from the list and free it.
+			// This object wasn't reached, so remove it from the list and free it.
 			Obj* unreached = *object;
 			*object = unreached->Next;
 
 			GarbageCollector::FreeObject(unreached);
 		}
 		else {
-			// This object was reached, so unmark it (for
-			// the next GC) and move on to the next.
-			(*object)->IsDark = false;
+			// This object was reached, so move on to the next.
 			object = &(*object)->Next;
 		}
 	}
@@ -143,6 +138,8 @@ void GarbageCollector::Collect(bool doLog) {
 	}
 
 	GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
+
+	GrayList.clear();
 }
 
 #ifndef HSL_STANDALONE
@@ -169,11 +166,9 @@ void GarbageCollector::GrayObject(void* obj) {
 	}
 
 	Obj* object = (Obj*)obj;
-	if (object->IsDark) {
+	if (std::find(GrayList.begin(), GrayList.end(), obj) != GrayList.end()) {
 		return;
 	}
-
-	object->IsDark = true;
 
 	GrayList.push_back(object);
 }
@@ -242,7 +237,9 @@ void GarbageCollector::BlackenObject(Obj* object) {
 #ifndef HSL_STANDALONE
 	case OBJ_ENTITY: {
 		ObjEntity* entity = (ObjEntity*)object;
-		((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
+		if (entity->EntityPtr) {
+			((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
+		}
 		break;
 	}
 #endif
