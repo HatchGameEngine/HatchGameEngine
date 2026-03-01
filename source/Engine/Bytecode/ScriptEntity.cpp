@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
+#include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Scene.h>
 
@@ -354,6 +355,14 @@ void ScriptEntity::LinkFields() {
     * \desc Whether <ref Entity.Animate> is automatically called for this entity.
     */
 	LINK_INT(AutoAnimate);
+	/***
+	* \field AnimationFrameSkip
+	* \type boolean
+	* \default true
+	* \ns Entity
+	* \desc Whether <ref Entity.Animate> has skip-capable animating. Entities with this on can skip animation frames if <ref Entity.AnimationSpeed> passes multiples of <ref Entity.AnimationFrameDuration>.
+	*/
+	LINK_INT(AnimationFrameSkip);
 
 	/***
     * \field OnScreen
@@ -1093,13 +1102,29 @@ void ScriptEntity::Remove() {
 		RunFunction(Hash_Dispose);
 	}
 
+	Unlink();
+
 	Entity::Remove();
 }
-void ScriptEntity::Dispose() {
-	Entity::Dispose();
+void ScriptEntity::Unlink() {
 	if (Instance) {
+		Table* fields = Instance->InstanceObj.Fields;
+		fields->WithAll([fields](Uint32 key, VMValue value) -> void {
+			if (IS_LINKED_INTEGER(value) || IS_LINKED_DECIMAL(value)) {
+				fields->Put(key, Value::Delink(value));
+			}
+		});
+
+		Instance->EntityPtr = NULL;
 		Instance = NULL;
 	}
+}
+void ScriptEntity::Dispose() {
+	if (Instance) {
+		Unlink();
+	}
+
+	Entity::Dispose();
 }
 bool ScriptEntity::IsValid() {
 	return Active && !Removed;

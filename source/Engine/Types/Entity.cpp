@@ -5,6 +5,7 @@
 
 HashMap<EntitySpawnFunction>* Entity::SpawnFunctions = nullptr;
 bool Entity::DisableAutoAnimate = false;
+bool Entity::UseAnimationFrameSkip = true;
 
 void Entity::InitAll() {
 	SpawnFunctions = new HashMap<EntitySpawnFunction>();
@@ -62,62 +63,74 @@ void Entity::Animate() {
 		return;
 	}
 
-#ifdef USE_RSDK_ANIMATE
-	AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
-
-	while (AnimationTimer > AnimationFrameDuration) {
-		CurrentFrame++;
-
-		AnimationTimer -= AnimationFrameDuration;
-		if (CurrentFrame >= CurrentFrameCount) {
-			CurrentFrame = AnimationLoopIndex;
-			OnAnimationFinish();
-		}
-
-		AnimationFrameDuration =
-			sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
-	}
-#else
-	if ((float)AnimationFrameDuration - AnimationTimer > 0.0f) {
+	if (AnimationFrameSkip) {
+		// Skip-capable animation behavior
+		// (supports skipping animation frames if AnimationTimer passes multiples of AnimationFrameDuration)
 		AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
-		if ((float)AnimationFrameDuration - AnimationTimer <= 0.0f) {
+		while (AnimationTimer > AnimationFrameDuration) {
 			CurrentFrame++;
+			AnimationTimer -= AnimationFrameDuration;
+
 			if (CurrentFrame >= CurrentFrameCount) {
 				CurrentFrame = AnimationLoopIndex;
 				OnAnimationFinish();
 
-				// Sprite may have changed after a call
-				// to OnAnimationFinish
+				// Sprite may have changed after a call to OnAnimationFinish
 				ResourceType* resource = Scene::GetSpriteResource(Sprite);
 				if (resource) {
-					sprite = Scene::GetSpriteResource(Sprite)->AsSprite;
+					sprite = resource->AsSprite;
 				}
 				else {
 					sprite = nullptr;
+					break;
 				}
 			}
 
-			// Do a basic range check, for strange loop
-			// points (or just in case CurrentAnimation
-			// happens to be invalid, which is very
-			// possible)
-			if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0 &&
-				CurrentAnimation < sprite->Animations.size()) {
-				AnimationFrameDuration = sprite->Animations[CurrentAnimation]
-								 .Frames[CurrentFrame]
-								 .Duration;
+			// Update duration for the new frame
+			// Check range for strange loop points or if CurrentAnimation is now invalid
+			if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
+				&& CurrentAnimation < sprite->Animations.size()) {
+				AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
 			}
 			else {
-				AnimationFrameDuration = 1.0f;
+				AnimationFrameDuration = 1;
 			}
-
-			AnimationTimer = 0.0f;
 		}
 	}
 	else {
-		AnimationTimer = 0.0f;
+		// Strict animation behavior
+		// (never skips animation frames, and resets AnimationTimer to 0.0 upon any changed frame)
+		if ((float)AnimationFrameDuration - AnimationTimer > 0.0f) {
+			AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
+			if ((float)AnimationFrameDuration - AnimationTimer <= 0.0f) {
+				CurrentFrame++;
+
+				if (CurrentFrame >= CurrentFrameCount) {
+					CurrentFrame = AnimationLoopIndex;
+					OnAnimationFinish();
+
+					// Sprite may have changed after a call to OnAnimationFinish
+					ResourceType* resource = Scene::GetSpriteResource(Sprite);
+					sprite = resource ? resource->AsSprite : nullptr;
+				}
+
+				// Update duration for the new frame
+				// Check range for strange loop points or if CurrentAnimation is now invalid
+				if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
+					&& CurrentAnimation < sprite->Animations.size()) {
+					AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
+				}
+				else {
+					AnimationFrameDuration = 1;
+				}
+
+				AnimationTimer = 0.0f; // Wipe leftover time
+			}
+		}
+		else {
+			AnimationTimer = 0.0f;
+		}
 	}
-#endif
 }
 void Entity::SetAnimation(int animation, int frame) {
 	if (CurrentAnimation != animation) {
@@ -579,6 +592,7 @@ void Entity::CopyFields(Entity* other) {
 	COPY(AnimationSpeedAdd);
 	COPY(PrevAnimation);
 	COPY(AutoAnimate);
+	COPY(AnimationFrameSkip);
 	COPY(AnimationSpeed);
 	COPY(AnimationTimer);
 	COPY(AnimationFrameDuration);
@@ -655,6 +669,7 @@ void Entity::Initialize() {
 	AnimationSpeedMult = 1.0;
 	AnimationSpeedAdd = 0;
 	AutoAnimate = Entity::DisableAutoAnimate ? false : true;
+	AnimationFrameSkip = Entity::UseAnimationFrameSkip;
 	AnimationSpeed = 0;
 	AnimationTimer = 0.0;
 	AnimationFrameDuration = 0;
@@ -723,6 +738,10 @@ void Entity::Remove() {
 }
 
 void Entity::Dispose() {
+	if (!Removed) {
+		Remove();
+	}
+
 	if (Properties) {
 		Properties->ForAll([](Uint32, Property property) -> void {
 			Property::Delete(property);

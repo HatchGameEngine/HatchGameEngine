@@ -1521,11 +1521,7 @@ Uint32 GLRenderer::GetWindowFlags() {
 		SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 0);
 	}
 
-#ifdef USE_DEPTH_COMPONENT16
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-#else
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-#endif
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
 #ifdef GL_SUPPORTS_MULTISAMPLING
@@ -1742,13 +1738,8 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 			GL_DEPTH24_STENCIL8, width, height, textureData->Multisampled);
 		CHECK_GL();
 #else
-#ifdef USE_DEPTH_COMPONENT16
-		GL_RenderbufferStorage(
-			GL_DEPTH_COMPONENT16, width, height, textureData->Multisampled);
-#else
 		GL_RenderbufferStorage(
 			GL_DEPTH_COMPONENT24, width, height, textureData->Multisampled);
-#endif
 		CHECK_GL();
 
 		glGenRenderbuffers(1, &textureData->StencilRBO);
@@ -1892,10 +1883,12 @@ Texture* GLRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, U
 #ifdef GL_SUPPORTS_RENDERBUFFER
 		glBindRenderbuffer(GL_RENDERBUFFER, textureData->RBO);
 #ifdef USE_PACKED_DEPTH_STENCIL_RENDERBUFFER
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER,
-			GL_DEPTH_STENCIL_ATTACHMENT,
-			GL_RENDERBUFFER,
-			textureData->RBO);
+		glFramebufferRenderbuffer(
+			GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, textureData->RBO);
+		CHECK_GL();
+
+		glFramebufferRenderbuffer(
+			GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, textureData->RBO);
 #else
 		glFramebufferRenderbuffer(
 			GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, textureData->RBO);

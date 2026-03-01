@@ -143,8 +143,10 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 		return false;
 	}
 
+	std::vector<Uint32>* functionHashes = new std::vector<Uint32>();
+
 	for (int i = 0; i < chunkCount; i++) {
-		ObjFunction* function = ReadChunk(stream);
+		ObjFunction* function = ReadChunk(stream, functionHashes);
 
 		function->Index = (size_t)i;
 
@@ -165,9 +167,10 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 				}
 			}
 
-			for (ObjFunction* function : Functions) {
-				if (tokens->Exists(function->NameHash)) {
-					function->Name = StringUtils::Duplicate(tokens->Get(function->NameHash));
+			for (size_t i = 0; i < Functions.size(); i++) {
+				Uint32 hash = (*functionHashes)[i];
+				if (tokens->Exists(hash)) {
+					Functions[i]->Name = StringUtils::Duplicate(tokens->Get(hash));
 				}
 			}
 		}
@@ -179,11 +182,13 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 	}
 	else {
 		char fnHash[9];
-		for (ObjFunction* function : Functions) {
-			snprintf(fnHash, sizeof(fnHash), "%08X", function->NameHash);
-			function->Name = StringUtils::Duplicate(fnHash);
+		for (size_t i = 0; i < Functions.size(); i++) {
+			snprintf(fnHash, sizeof(fnHash), "%08X", (*functionHashes)[i]);
+			Functions[i]->Name = StringUtils::Duplicate(fnHash);
 		}
 	}
+
+	delete functionHashes;
 
 	if (hasSourceFilename) {
 		SourceFilename = stream->ReadString();
@@ -192,13 +197,13 @@ bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
 	stream->Close();
 	return true;
 }
-ObjFunction* Bytecode::ReadChunk(MemoryStream* stream) {
+ObjFunction* Bytecode::ReadChunk(MemoryStream* stream, std::vector<Uint32>* functionHashes) {
 	int length = stream->ReadInt32();
-	int arity, minArity;
+	Uint8 arity, minArity;
 	int opcodeCount = 0;
 
 	if (Version < 0x0001) {
-		arity = stream->ReadInt32();
+		arity = (Uint8)stream->ReadInt32();
 		minArity = arity;
 	}
 	else {
@@ -211,11 +216,13 @@ ObjFunction* Bytecode::ReadChunk(MemoryStream* stream) {
 	}
 
 	Uint32 hash = stream->ReadUInt32();
+	if (functionHashes) {
+		functionHashes->push_back(hash);
+	}
 
 	ObjFunction* function = NewFunction();
 	function->Arity = arity;
 	function->MinArity = minArity;
-	function->NameHash = hash;
 
 	Chunk* chunk = &function->Chunk;
 	chunk->Count = length;

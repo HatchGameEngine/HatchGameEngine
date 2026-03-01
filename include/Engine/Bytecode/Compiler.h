@@ -76,6 +76,7 @@ public:
 	int ParseVariable(const char* errorMessage, bool constant);
 	bool IdentifiersEqual(Token* a, Token* b);
 	void MarkInitialized();
+	void MarkResolved();
 	void DefineVariableToken(Token global, bool constant);
 	int DeclareVariable(Token* name, bool constant);
 	int ParseModuleVariable(const char* errorMessage, bool constant);
@@ -98,6 +99,7 @@ public:
 	void ClearToScope(int depth);
 	void PopToScope(int depth);
 	void PopMultiple(int count);
+	void CheckLocalUnusedOrUnset(Local& local);
 	int AddLocal();
 	int AddLocal(Token name);
 	int AddLocal(const char* name, size_t len);
@@ -106,6 +108,7 @@ public:
 	static void RenameLocal(Local* local, const char* name);
 	static void RenameLocal(Local* local, Token name);
 	int ResolveLocal(Token* name, Local* result = NULL);
+	void MarkLocalAsSet(Local& local);
 	int AddModuleLocal(Token name);
 	int AddModuleLocal();
 	int ResolveModuleLocal(Token* name, Local* result = NULL);
@@ -171,6 +174,7 @@ public:
 	ParseRule* GetRule(int type);
 	ExprContext ParsePrecedence(Precedence precedence, ExprContext context);
 	ExprContext ParsePrecedence(Precedence precedence);
+	void ResetVariableLocal();
 	Uint32 GetHash(char* string);
 	Uint32 GetHash(Token token);
 	Chunk* CurrentChunk();

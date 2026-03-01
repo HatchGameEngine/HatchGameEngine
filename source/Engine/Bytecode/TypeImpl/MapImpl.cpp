@@ -20,7 +20,6 @@ Obj* MapImpl::New() {
 	ObjMap* map = (ObjMap*)AllocateObject(sizeof(ObjMap), OBJ_MAP);
 	Memory::Track(map, "NewMap");
 	map->Object.Class = Class;
-	map->Object.Destructor = Dispose;
 	map->Values = new OrderedHashMap<VMValue>(NULL, 4);
 	map->Keys = new OrderedHashMap<char*>(NULL, 4);
 	return (Obj*)map;
