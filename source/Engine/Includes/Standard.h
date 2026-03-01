@@ -62,6 +62,7 @@ enum class KeyBind {
 	DevObjectRegions,
 	DevViewHitboxes,
 	DevMenuToggle,
+	DevScriptDebugger,
 	DevQuit,
 
 	Max

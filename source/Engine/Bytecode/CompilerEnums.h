@@ -4,6 +4,15 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Token.h>
 
+struct CompilerSettings {
+	bool PrintToLog;
+	bool ShowWarnings;
+	bool WriteDebugInfo;
+	bool WriteSourceFilename;
+	bool DoOptimizations;
+	bool PrintChunks;
+};
+
 class Parser {
 public:
 	Token Current;
@@ -71,6 +80,13 @@ struct ParseRule {
 	ParseFn Prefix;
 	ParseFn Infix;
 	enum Precedence Precedence;
+};
+
+enum FunctionType {
+	FUNCTIONTYPE_TOPLEVEL,
+	FUNCTIONTYPE_FUNCTION,
+	FUNCTIONTYPE_CONSTRUCTOR,
+	FUNCTIONTYPE_METHOD
 };
 
 #endif /* ENGINE_COMPILER_ENUMS */
