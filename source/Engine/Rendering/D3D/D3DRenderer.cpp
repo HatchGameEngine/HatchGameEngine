@@ -1592,10 +1592,6 @@ void D3DRenderer::DrawSprite(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
-		return;
-	}
-
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 
 	float fX = flipX ? -1.0 : 1.0;
@@ -1638,10 +1634,6 @@ void D3DRenderer::DrawSpritePart(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
-		return;
-	}
-
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 	if (sx == animframe.Width) {
 		return;

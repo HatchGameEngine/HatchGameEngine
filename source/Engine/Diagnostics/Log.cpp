@@ -68,7 +68,9 @@ void Log::OpenFile(const char* filename) {
 
 	if (!File) {
 		Log::Print(Log::LOG_ERROR, "Couldn't open log file '%s' for writing!", filename);
+#ifndef HSL_LIBRARY
 		StandaloneExit("Couldn't open log file");
+#endif
 	}
 #else
 	std::string pathToLogFile;

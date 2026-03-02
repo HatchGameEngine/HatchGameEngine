@@ -124,6 +124,8 @@ int Application::MasterVolume = 100;
 int Application::MusicVolume = 100;
 int Application::SoundVolume = 100;
 
+ScriptManager* Application::GlobalScriptManager = nullptr;
+
 bool HitScreenshotKey = false;
 
 bool Application::DisableDefaultActions = false;
@@ -268,19 +270,18 @@ void Application::Init(int argc, char* args[]) {
 	Running = true;
 }
 void Application::InitScripting() {
-	GarbageCollector::Init();
-
 #ifdef HSL_COMPILER
 	Compiler::Init();
 #endif
 
 	ScriptManager::Init();
-	ScriptManager::ResetStack();
-	ScriptManager::LinkStandardLibrary();
-	ScriptManager::LinkExtensions();
+
+	GlobalScriptManager = new ScriptManager;
+	GlobalScriptManager->NewThread();
+	GlobalScriptManager->LinkStandardLibrary();
 
 #ifdef HSL_COMPILER
-	Compiler::GetStandardConstants();
+	Compiler::GetStandardConstants(GlobalScriptManager);
 #endif
 
 #ifdef VM_DEBUG
@@ -288,7 +289,7 @@ void Application::InitScripting() {
 #endif
 
 	if (SourceFileMap::CheckForUpdate()) {
-		ScriptManager::ForceGarbageCollection(false);
+		GlobalScriptManager->ForceGarbageCollection(false);
 	}
 }
 void Application::LogEngineVersion() {
@@ -841,7 +842,9 @@ void Application::GetPerformanceSnapshot() {
 			totalRender / 1000.0);
 	}
 
-	Log::Print(Log::LOG_IMPORTANT, "Garbage Size: %u", (Uint32)GarbageCollector::GarbageSize);
+	if (GlobalScriptManager && GlobalScriptManager->GC) {
+		Log::Print(Log::LOG_IMPORTANT, "Garbage Size: %u", (Uint32)GlobalScriptManager->GC->GarbageSize);
+	}
 }
 double Application::GetOverdelay() {
 	return Overdelay;
@@ -912,9 +915,9 @@ void Application::EndGame() {
 	SceneInfo::Dispose();
 	Graphics::UnloadData();
 
-	Application::TerminateScripting();
+	Entity::UnloadAll(GlobalScriptManager);
 
-	Entity::UnloadAll();
+	Application::TerminateScripting();
 
 	Entity::DisableAutoAnimate = false;
 	Entity::UseAnimationFrameSkip = true;
@@ -1791,17 +1794,17 @@ void Application::StartGame(const char* startingScene) {
 	Application::LoadDefaultFont();
 	Application::InitScripting();
 
-	Entity::InitAll();
+	Entity::InitAll(GlobalScriptManager);
 
 	Scene::Init();
 	Scene::Prepare();
 	Scene::Initialize();
 
 	// Load initial scripts
-	ScriptManager::LoadScript(&ScriptManager::Threads[0], "init.hsl");
+	GlobalScriptManager->LoadScript(&GlobalScriptManager->Threads[0], "init.hsl");
 
 	if (ScriptManager::LoadAllClasses) {
-		ScriptManager::LoadClasses();
+		GlobalScriptManager->LoadClasses();
 	}
 
 	// Load Static class
@@ -1908,7 +1911,7 @@ void Application::MainLoop() {
 	}
 
 #ifdef VM_DEBUG
-	if (ToggleDebugger && ScriptManager::ThreadCount > 0) {
+	if (ToggleDebugger && GlobalScriptManager->ThreadCount > 0) {
 		VMThreadDebugger* debugger;
 		bool wasInterrupted;
 
@@ -1921,7 +1924,7 @@ void Application::MainLoop() {
 			AudioManager::SetInterrupted(true);
 		}
 
-		debugger = new VMThreadDebugger(&ScriptManager::Threads[0]);
+		debugger = new VMThreadDebugger(&GlobalScriptManager->Threads[0]);
 		debugger->Enter();
 		debugger->MainLoop();
 		debugger->Exit();
@@ -2029,15 +2032,18 @@ void Application::Cleanup() {
 #endif
 }
 void Application::TerminateScripting() {
+	if (GlobalScriptManager) {
+		delete GlobalScriptManager;
+		GlobalScriptManager = nullptr;
+	}
+
 	ScriptManager::Dispose();
 	SourceFileMap::Dispose();
 #ifdef HSL_COMPILER
 	Compiler::Dispose();
 #endif
-	GarbageCollector::Dispose();
 #ifdef VM_DEBUG
 	VMThreadDebugger::Dispose();
-	ScriptManager::BreakpointsEnabled = false;
 #endif
 
 	ScriptManager::LoadAllClasses = false;

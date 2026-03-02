@@ -2,20 +2,20 @@
 #define ENGINE_BYTECODE_TYPEIMPL_ARRAYIMPL_H
 
 #include <Engine/Bytecode/Types.h>
-#include <Engine/Includes/Standard.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
-class ArrayImpl {
+class ScriptManager;
+
+class ArrayImpl : public TypeImpl {
 public:
-	static ObjClass* Class;
+	ArrayImpl(ScriptManager* manager);
 
-	static void Init();
-
-	static Obj* New();
+	Obj* New();
 	static void Dispose(Obj* object);
 
 #ifdef HSL_VM
-	static VMValue VM_Iterate(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_IteratorValue(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_Iterate(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_IteratorValue(int argCount, VMValue* args, VMThread* thread);
 #endif
 };
 

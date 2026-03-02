@@ -114,7 +114,7 @@ void ExecuteImageFetchCallback(DiscordIntegrationCallback* callback,
 	case DiscordIntegrationCallbackType_Script: {
 		VMThreadCallback* scriptCallback = (VMThreadCallback*)callback->Function;
 
-		VMThread* thread = ScriptManager::Threads + scriptCallback->ThreadID;
+		VMThread* thread = (VMThread*)scriptCallback->Thread;
 		VMValue* stackTop = thread->StackTop;
 
 		VMValue value = NULL_VAL;

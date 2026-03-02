@@ -5,10 +5,10 @@
 
 class Camera : public ENTITY_PARENT_CLASS {
 public:
-	static void ClassLoad();
-	static void ClassUnload();
+	static void ClassLoad(void* manager);
+	static void ClassUnload(void* manager);
 
-	static Entity* Spawn();
+	static Entity* Spawn(void* manager);
 
 	Entity* TargetEntity;
 	int ViewIndex;

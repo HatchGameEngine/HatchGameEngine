@@ -162,13 +162,13 @@ void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
 		return;
 	}
 
-	ScriptManager::CallFunction(list->LoadFunctionName.c_str());
+	Application::GlobalScriptManager->CallFunction(list->LoadFunctionName.c_str());
 }
 void ObjectList_CallUpdateFunction(ObjectList* list, const char* functionName) {
 	if (list->Activity == ACTIVE_ALWAYS ||
 		(list->Activity == ACTIVE_NORMAL && !Scene::Paused) ||
 		(list->Activity == ACTIVE_PAUSED && Scene::Paused)) {
-		ScriptManager::CallFunction(functionName);
+		Application::GlobalScriptManager->CallFunction(functionName);
 	}
 }
 void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
@@ -1554,13 +1554,13 @@ void Scene::Render() {
 }
 
 void Scene::AfterScene() {
-	ScriptManager::ResetStack();
-	ScriptManager::RequestGarbageCollection(true);
+	Application::GlobalScriptManager->ResetStack();
+	Application::GlobalScriptManager->RequestGarbageCollection(true);
 
 	bool& doRestart = Scene::DoRestart;
 
 	if (Scene::NextScene[0]) {
-		ScriptManager::ForceGarbageCollection(true);
+		Application::GlobalScriptManager->ForceGarbageCollection(true);
 
 		Scene::LoadScene(Scene::NextScene);
 		Scene::NextScene[0] = '\0';
@@ -1851,8 +1851,8 @@ void Scene::FinishLoad() {
 	Scene::Loaded = true;
 	Scene::Initializing = false;
 
-	ScriptManager::ResetStack();
-	ScriptManager::RequestGarbageCollection(true);
+	Application::GlobalScriptManager->ResetStack();
+	Application::GlobalScriptManager->RequestGarbageCollection(true);
 
 	Application::FirstFrame = true;
 }
@@ -1993,8 +1993,8 @@ void Scene::LoadScene(const char* sceneFilename) {
 	Scene::Unload();
 
 	// Force garbage collect
-	ScriptManager::ResetStack();
-	ScriptManager::ForceGarbageCollection(true);
+	Application::GlobalScriptManager->ResetStack();
+	Application::GlobalScriptManager->ForceGarbageCollection(true);
 
 #if 0
     MemoryPools::RunGC(MemoryPools::MEMPOOL_HASHMAP);
@@ -2128,7 +2128,7 @@ void Scene::ProcessSceneTimer() {
 //      - Call it, and return the entity
 //    - else, return nullptr
 Entity* Scene::SpawnObject(ObjectList* list, float x, float y) {
-	Entity* entity = list->Spawn();
+	Entity* entity = list->Spawn(Application::GlobalScriptManager);
 	if (!entity) {
 		char error[128];
 		snprintf(error,
@@ -2179,14 +2179,16 @@ Entity* Scene::TrySpawnObject(const char* objectName, float x, float y) {
 
 ObjectList* Scene::NewObjectList(const char* objectName) {
 #ifdef SCRIPTABLE_ENTITY
+	ScriptManager* manager = Application::GlobalScriptManager;
+
 	// Load the bytecode for this class if it exists
-	if (ScriptManager::ClassExists(objectName) && !ScriptManager::IsClassLoaded(objectName)) {
-		ScriptManager::LoadObjectClass(&ScriptManager::Threads[0], objectName);
+	if (manager->ClassExists(objectName) && !manager->IsClassLoaded(objectName)) {
+		manager->LoadObjectClass(&manager->Threads[0], objectName);
 	}
 
 	// The above must have loaded the given scripted class if there is one.
 	// If there is still no class, then it doesn't exist natively or script-side.
-	if (!ScriptManager::GetObjectClass(objectName)) {
+	if (!manager->GetObjectClass(objectName)) {
 		return nullptr;
 	}
 #endif
@@ -2205,7 +2207,8 @@ ObjectList* Scene::NewObjectList(const char* objectName) {
 	return objectList;
 }
 void Scene::AddStaticClass() {
-	if (StaticObject != nullptr || !ScriptManager::ClassExists("Static")) {
+	ScriptManager* manager = Application::GlobalScriptManager;
+	if (StaticObject != nullptr || !manager->ClassExists("Static")) {
 		return;
 	}
 
@@ -2214,7 +2217,7 @@ void Scene::AddStaticClass() {
 		return;
 	}
 
-	Entity* obj = StaticObjectList->Spawn();
+	Entity* obj = StaticObjectList->Spawn(manager);
 	if (obj) {
 		obj->X = 0.0f;
 		obj->Y = 0.0f;
@@ -2223,7 +2226,7 @@ void Scene::AddStaticClass() {
 		obj->List = StaticObjectList;
 		obj->Persistence = Persistence_GAME;
 
-		ScriptManager::Globals->Put("global", OBJECT_VAL(((ScriptEntity*)obj)->Instance));
+		manager->Globals->Put("global", OBJECT_VAL(((ScriptEntity*)obj)->Instance));
 	}
 
 	StaticObject = obj;
@@ -2249,7 +2252,7 @@ ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFuncti
 		Scene::ObjectLists->Put(objectNameHash, objectList);
 
 		if (callListLoadFunction) {
-			ScriptManager::CallFunction(objectList->LoadFunctionName.c_str());
+			Application::GlobalScriptManager->CallFunction(objectList->LoadFunctionName.c_str());
 		}
 	}
 

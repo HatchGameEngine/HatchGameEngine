@@ -12,26 +12,19 @@
 All spawned entities inherit from this class. Entities must be spawned with <ref Instance.Create>.
 */
 
-ObjClass* EntityImpl::Class = nullptr;
-ObjClass* EntityImpl::ParentClass = nullptr;
-
 #define ENTITY_CLASS_NAME "Entity"
 #define NATIVEENTITY_CLASS_NAME "NativeEntity"
 
-Uint32 Hash_HitboxLeft = 0;
-Uint32 Hash_HitboxTop = 0;
-Uint32 Hash_HitboxRight = 0;
-Uint32 Hash_HitboxBottom = 0;
-
-void EntityImpl::Init() {
-	Class = NewClass(ENTITY_CLASS_NAME);
-	ParentClass = NewClass(NATIVEENTITY_CLASS_NAME);
+EntityImpl::EntityImpl(ScriptManager* manager) {
+	Manager = manager;
+	Class = Manager->NewClass(ENTITY_CLASS_NAME);
+	ParentClass = Manager->NewClass(NATIVEENTITY_CLASS_NAME);
 
 	Class->Parent = ParentClass;
 
 #define ENTITY_NATIVE_FN(name) \
 	{ \
-		ObjNative* native = NewNative(EntityImpl::VM_##name); \
+		ObjNative* native = Manager->NewNative(VM_##name); \
 		Class->Methods->Put(#name, OBJECT_VAL(native)); \
 		ParentClass->Methods->Put(#name, OBJECT_VAL(native)); \
 	}
@@ -43,15 +36,15 @@ void EntityImpl::Init() {
 	Hash_HitboxRight = Murmur::EncryptString("HitboxRight");
 	Hash_HitboxBottom = Murmur::EncryptString("HitboxBottom");
 
-	TypeImpl::RegisterClass(Class);
-	TypeImpl::RegisterClass(ParentClass);
+	TypeImpl::RegisterClass(manager, Class);
+	TypeImpl::RegisterClass(manager, ParentClass);
 
 	// NativeEntity is not put into Globals so that you can't do anything with it.
-	ScriptManager::Globals->Put(Class->Hash, OBJECT_VAL(Class));
+	Manager->Globals->Put(Class->Hash, OBJECT_VAL(Class));
 }
 
 Obj* EntityImpl::New(ObjClass* klass) {
-	ObjEntity* entity = (ObjEntity*)InstanceImpl::New(sizeof(ObjEntity), OBJ_ENTITY);
+	ObjEntity* entity = (ObjEntity*)Manager->ImplInstance->New(sizeof(ObjEntity), OBJ_ENTITY);
 	Memory::Track(entity, "NewEntity");
 	entity->Object.Class = klass;
 	entity->InstanceObj.PropertyGet = VM_PropertyGet;
@@ -60,29 +53,31 @@ Obj* EntityImpl::New(ObjClass* klass) {
 	return (Obj*)entity;
 }
 
-bool EntityImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
+#define IS_FIELD(fieldName) (hash == thread->Manager->ImplEntity->Hash_##fieldName)
+
+bool EntityImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, VMThread* thread) {
 	ObjEntity* objEntity = (ObjEntity*)object;
 	Entity* entity = (Entity*)objEntity->EntityPtr;
 
-	if (hash == Hash_HitboxLeft) {
+	if (IS_FIELD(HitboxLeft)) {
 		if (result) {
 			*result = DECIMAL_VAL(entity ? entity->Hitbox.GetLeft() : 0.0f);
 		}
 		return true;
 	}
-	else if (hash == Hash_HitboxTop) {
+	else if (IS_FIELD(HitboxTop)) {
 		if (result) {
 			*result = DECIMAL_VAL(entity ? entity->Hitbox.GetTop() : 0.0f);
 		}
 		return true;
 	}
-	else if (hash == Hash_HitboxRight) {
+	else if (IS_FIELD(HitboxRight)) {
 		if (result) {
 			*result = DECIMAL_VAL(entity ? entity->Hitbox.GetRight() : 0.0f);
 		}
 		return true;
 	}
-	else if (hash == Hash_HitboxBottom) {
+	else if (IS_FIELD(HitboxBottom)) {
 		if (result) {
 			*result = DECIMAL_VAL(entity ? entity->Hitbox.GetBottom() : 0.0f);
 		}
@@ -91,36 +86,36 @@ bool EntityImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 
 	return false;
 }
-bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
+bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, VMThread* thread) {
 	ObjEntity* objEntity = (ObjEntity*)object;
 	Entity* entity = (Entity*)objEntity->EntityPtr;
 
-	if (hash == Hash_HitboxLeft) {
-		if (ScriptManager::DoDecimalConversion(value, threadID)) {
+	if (IS_FIELD(HitboxLeft)) {
+		if (thread->DoDecimalConversion(value)) {
 			if (entity) {
 				entity->Hitbox.SetLeft(AS_DECIMAL(value));
 			}
 		}
 		return true;
 	}
-	else if (hash == Hash_HitboxTop) {
-		if (ScriptManager::DoDecimalConversion(value, threadID)) {
+	else if (IS_FIELD(HitboxTop)) {
+		if (thread->DoDecimalConversion(value)) {
 			if (entity) {
 				entity->Hitbox.SetTop(AS_DECIMAL(value));
 			}
 		}
 		return true;
 	}
-	else if (hash == Hash_HitboxRight) {
-		if (ScriptManager::DoDecimalConversion(value, threadID)) {
+	else if (IS_FIELD(HitboxRight)) {
+		if (thread->DoDecimalConversion(value)) {
 			if (entity) {
 				entity->Hitbox.SetRight(AS_DECIMAL(value));
 			}
 		}
 		return true;
 	}
-	else if (hash == Hash_HitboxBottom) {
-		if (ScriptManager::DoDecimalConversion(value, threadID)) {
+	else if (IS_FIELD(HitboxBottom)) {
+		if (thread->DoDecimalConversion(value)) {
 			if (entity) {
 				entity->Hitbox.SetBottom(AS_DECIMAL(value));
 			}
@@ -131,12 +126,14 @@ bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 	return false;
 }
 
+#undef IS_FIELD
+
 // Events/methods called from VM
-#define GET_ARG(argIndex, argFunction) (ScriptManager::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (thread->Manager->argFunction(args, argIndex, thread))
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
-	(argIndex < argCount ? GET_ARG(argIndex, ScriptManager::argFunction) : argDefault)
-#define GET_ENTITY(argIndex) (GetScriptEntity(args, argIndex, threadID))
-ScriptEntity* GetScriptEntity(VMValue* args, int index, Uint32 threadID) {
+	(argIndex < argCount ? GET_ARG(argIndex, argFunction) : argDefault)
+#define GET_ENTITY(argIndex) (GetScriptEntity(args, argIndex, thread))
+ScriptEntity* GetScriptEntity(VMValue* args, int index, VMThread* thread) {
 	ObjEntity* entity = GET_ARG(index, GetEntity);
 	if (entity) {
 		ScriptEntity* self = (ScriptEntity*)entity->EntityPtr;
@@ -154,8 +151,8 @@ ScriptEntity* GetScriptEntity(VMValue* args, int index, Uint32 threadID) {
  * \param frame (integer): The frame index.
  * \ns Entity
  */
-VMValue EntityImpl::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 3);
+VMValue EntityImpl::VM_SetAnimation(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 3, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
@@ -166,25 +163,25 @@ VMValue EntityImpl::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID
 
 	ResourceType* resource = Scene::GetSpriteResource(self->Sprite);
 	if (!resource) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Sprite is not set!", animation);
 		return NULL_VAL;
 	}
 
 	ISprite* sprite = resource->AsSprite;
 	if (!sprite) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Sprite is not set!", animation);
 		return NULL_VAL;
 	}
 
 	if (!(animation >= 0 && (size_t)animation < sprite->Animations.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
 	if (!(frame >= 0 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;
 	}
@@ -199,8 +196,8 @@ VMValue EntityImpl::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID
  * \param frame (integer): The frame index.
  * \ns Entity
  */
-VMValue EntityImpl::VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 3);
+VMValue EntityImpl::VM_ResetAnimation(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 3, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
@@ -211,25 +208,25 @@ VMValue EntityImpl::VM_ResetAnimation(int argCount, VMValue* args, Uint32 thread
 
 	ResourceType* resource = Scene::GetSpriteResource(self->Sprite);
 	if (!resource) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Sprite %d does not exist!", self->Sprite);
 		return NULL_VAL;
 	}
 
 	ISprite* sprite = resource->AsSprite;
 	if (!sprite) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Sprite %d does not exist!", self->Sprite);
 		return NULL_VAL;
 	}
 
 	if (!(animation >= 0 && (Uint32)animation < sprite->Animations.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
 	if (!(frame >= 0 && (Uint32)frame < sprite->Animations[animation].Frames.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;
 	}
@@ -242,8 +239,8 @@ VMValue EntityImpl::VM_ResetAnimation(int argCount, VMValue* args, Uint32 thread
  * \desc Animates the entity.
  * \ns Entity
  */
-VMValue EntityImpl::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue EntityImpl::VM_Animate(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (self) {
 		self->Entity::Animate();
@@ -257,8 +254,8 @@ VMValue EntityImpl::VM_Animate(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Entity
  */
-VMValue EntityImpl::VM_GetUpdatePriority(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue EntityImpl::VM_GetUpdatePriority(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (self) {
 		return INTEGER_VAL(self->UpdatePriority);
@@ -271,8 +268,8 @@ VMValue EntityImpl::VM_GetUpdatePriority(int argCount, VMValue* args, Uint32 thr
  * \param priority (integer): The priority value.
  * \ns Entity
  */
-VMValue EntityImpl::VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_SetUpdatePriority(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	int priority = GET_ARG(1, GetInteger);
 
@@ -289,8 +286,8 @@ VMValue EntityImpl::VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 thr
  * \return integer Returns an integer value.
  * \ns Entity
  */
-VMValue EntityImpl::VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue EntityImpl::VM_GetIDWithinClass(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!self) {
 		return NULL_VAL;
@@ -305,8 +302,8 @@ VMValue EntityImpl::VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 thre
  * \param registry (string): The registry name.
  * \ns Entity
  */
-VMValue EntityImpl::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_AddToRegistry(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* registry = GET_ARG(1, GetString);
 
@@ -334,8 +331,8 @@ VMValue EntityImpl::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadI
  * \return boolean Returns a boolean value.
  * \ns Entity
  */
-VMValue EntityImpl::VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_IsInRegistry(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* registry = GET_ARG(1, GetString);
 
@@ -353,8 +350,8 @@ VMValue EntityImpl::VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID
  * \param registry (string): The registry name.
  * \ns Entity
  */
-VMValue EntityImpl::VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_RemoveFromRegistry(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* registry = GET_ARG(1, GetString);
 
@@ -373,8 +370,8 @@ VMValue EntityImpl::VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 th
  * \desc Applies gravity and velocities to the entity.
  * \ns Entity
  */
-VMValue EntityImpl::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue EntityImpl::VM_ApplyMotion(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (self) {
 		self->Entity::ApplyMotion();
@@ -392,8 +389,8 @@ VMValue EntityImpl::VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID)
  * \return boolean Returns whether the specified positions and ranges are within the specified view.
  * \ns Entity
  */
-VMValue EntityImpl::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 6);
+VMValue EntityImpl::VM_InView(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 6, thread);
 	// Entity* self = (Entity*)AS_INSTANCE(args[0])->EntityPtr;
 	int view = GET_ARG(1, GetInteger);
 	float x = GET_ARG(2, GetDecimal);
@@ -423,8 +420,8 @@ VMValue EntityImpl::VM_InView(int argCount, VMValue* args, Uint32 threadID) {
  * \return <ref Entity> Returns the entity that was collided with, or `null` if it did not collide with any entity.
  * \ns Entity
  */
-VMValue EntityImpl::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_CollidedWithObject(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!self) {
@@ -479,8 +476,8 @@ VMValue EntityImpl::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 th
  * \paramOpt hitbox (string): The hitbox name or index. Defaults to `0`.
  * \ns Entity
  */
-VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckAtLeastArgCount(argCount, 4);
+VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckAtLeastArgCount(argCount, 4, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISprite* sprite = GET_ARG(1, GetSprite);
 	int animationID = GET_ARG(2, GetInteger);
@@ -492,12 +489,12 @@ VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 t
 	}
 
 	if (!(animationID > -1 && (size_t)animationID < sprite->Animations.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animationID);
 		return NULL_VAL;
 	}
 	if (!(frameID > -1 && (size_t)frameID < sprite->Animations[animationID].Frames.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frameID, animationID);
 		return NULL_VAL;
 	}
@@ -520,7 +517,7 @@ VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 t
 				hitboxID = boxIndex;
 			}
 			else {
-				ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+				thread->ThrowRuntimeError(false,
 					"No hitbox named \"%s\" in frame %d of animation %d.",
 					name,
 					frameID,
@@ -561,7 +558,7 @@ VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 t
  * \return hitbox Returns a hitbox value.
  * \ns Entity
  */
-VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID) {
+VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, VMThread* thread) {
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!self) {
 		return NULL_VAL;
@@ -573,13 +570,13 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 
 	if (argCount <= 2) {
 		if (self->Sprite < 0 || self->Sprite >= (int)Scene::SpriteList.size()) {
-			ScriptManager::Threads[threadID].ThrowRuntimeError(
+			thread->ThrowRuntimeError(
 				false, "Sprite index \"%d\" outside bounds of list.", self->Sprite);
 			return NULL_VAL;
 		}
 
 		if (!Scene::SpriteList[self->Sprite]) {
-			ScriptManager::Threads[threadID].ThrowRuntimeError(
+			thread->ThrowRuntimeError(
 				false, "Sprite %d does not exist!", self->Sprite);
 			return NULL_VAL;
 		}
@@ -590,7 +587,7 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 		hitboxArgNum = 1;
 	}
 	else {
-		ScriptManager::CheckAtLeastArgCount(argCount, 4);
+		ScriptManager::CheckAtLeastArgCount(argCount, 4, thread);
 		sprite = GET_ARG(1, GetSprite);
 		animationID = GET_ARG(2, GetInteger);
 		frameID = GET_ARG(3, GetInteger);
@@ -598,18 +595,18 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 	}
 
 	if (!sprite) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Sprite %d does not exist!", self->Sprite);
 		return NULL_VAL;
 	}
 
 	if (!(animationID >= 0 && (Uint32)animationID < sprite->Animations.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animationID);
 		return NULL_VAL;
 	}
 	if (!(frameID >= 0 && (Uint32)frameID < sprite->Animations[animationID].Frames.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frameID, animationID);
 		return NULL_VAL;
 	}
@@ -632,7 +629,7 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 				hitboxID = boxIndex;
 			}
 			else {
-				ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+				thread->ThrowRuntimeError(false,
 					"No hitbox named \"%s\" in frame %d of animation %d.",
 					name,
 					frameID,
@@ -645,14 +642,14 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 	}
 
 	if (frame.Boxes.size() == 0) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+		thread->ThrowRuntimeError(false,
 			"Frame %d of animation %d contains no hitboxes.",
 			frameID,
 			animationID);
 		return NULL_VAL;
 	}
 	else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+		thread->ThrowRuntimeError(false,
 			"Hitbox %d is not in bounds of frame %d of animation %d.",
 			hitboxID,
 			frameID,
@@ -671,8 +668,8 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
  * \return boolean Returns whether the entity collided.
  * \ns Entity
  */
-VMValue EntityImpl::VM_CollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_CollideWithObject(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	ScriptEntity* other = GET_ENTITY(1);
 	if (self && other) {
@@ -687,8 +684,8 @@ VMValue EntityImpl::VM_CollideWithObject(int argCount, VMValue* args, Uint32 thr
  * \return boolean Returns whether the entity collided.
  * \ns Entity
  */
-VMValue EntityImpl::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 3);
+VMValue EntityImpl::VM_SolidCollideWithObject(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 3, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	ScriptEntity* other = GET_ENTITY(1);
 	int flag = GET_ARG(2, GetInteger);
@@ -704,8 +701,8 @@ VMValue EntityImpl::VM_SolidCollideWithObject(int argCount, VMValue* args, Uint3
  * \return boolean Returns whether the entity collided.
  * \ns Entity
  */
-VMValue EntityImpl::VM_TopSolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 3);
+VMValue EntityImpl::VM_TopSolidCollideWithObject(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 3, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	ScriptEntity* other = GET_ENTITY(1);
 	int flag = GET_ARG(2, GetInteger);
@@ -715,8 +712,8 @@ VMValue EntityImpl::VM_TopSolidCollideWithObject(int argCount, VMValue* args, Ui
 	return NULL_VAL;
 }
 
-VMValue EntityImpl::VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue EntityImpl::VM_ApplyPhysics(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (self) {
 		self->ApplyPhysics();
@@ -731,8 +728,8 @@ VMValue EntityImpl::VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID
  * \return boolean Returns whether the property exists.
  * \ns Entity
  */
-VMValue EntityImpl::VM_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_PropertyExists(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* property = GET_ARG(1, GetString);
 	if (self && self->Properties && self->Properties->Exists(property)) {
@@ -747,12 +744,12 @@ VMValue EntityImpl::VM_PropertyExists(int argCount, VMValue* args, Uint32 thread
  * \return value Returns the property if it exists, or `null` if the property does not exist.
  * \ns Entity
  */
-VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	char* property = GET_ARG(1, GetString);
 	if (self && self->Properties && self->Properties->Exists(property)) {
-		return Value::FromProperty(self->Properties->Get(property));
+		return thread->Manager->ValueFromProperty(self->Properties->Get(property));
 	}
 	return NULL_VAL;
 }
@@ -764,8 +761,8 @@ VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID)
  * \param visible (boolean): Whether the entity will be visible or not on the specified view.
  * \ns Entity
  */
-VMValue EntityImpl::VM_SetViewVisibility(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 3);
+VMValue EntityImpl::VM_SetViewVisibility(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 3, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	int viewIndex = GET_ARG(1, GetInteger);
 	bool visible = GET_ARG(2, GetInteger);
@@ -787,8 +784,8 @@ VMValue EntityImpl::VM_SetViewVisibility(int argCount, VMValue* args, Uint32 thr
  * \param visible (boolean): Whether the entity will always be visible or not on the specified view.
  * \ns Entity
  */
-VMValue EntityImpl::VM_SetViewOverride(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 3);
+VMValue EntityImpl::VM_SetViewOverride(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 3, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	int viewIndex = GET_ARG(1, GetInteger);
 	bool override = GET_ARG(2, GetInteger);
@@ -810,15 +807,15 @@ VMValue EntityImpl::VM_SetViewOverride(int argCount, VMValue* args, Uint32 threa
  * \param drawGroup (integer): The draw group.
  * \ns Entity
  */
-VMValue EntityImpl::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_AddToDrawGroup(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!self) {
 		return NULL_VAL;
 	}
 	int drawGroup = GET_ARG(1, GetInteger);
 	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+		thread->ThrowRuntimeError(false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
 			MAX_PRIORITY_PER_LAYER - 1);
@@ -837,15 +834,15 @@ VMValue EntityImpl::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 thread
  * \return boolean Returns whether the entity is in the specified draw group.
  * \ns Entity
  */
-VMValue EntityImpl::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_IsInDrawGroup(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!self) {
 		return INTEGER_VAL(false);
 	}
 	int drawGroup = GET_ARG(1, GetInteger);
 	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+		thread->ThrowRuntimeError(false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
 			MAX_PRIORITY_PER_LAYER - 1);
@@ -863,15 +860,15 @@ VMValue EntityImpl::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadI
  * \param drawGroup (integer): The draw group.
  * \ns Entity
  */
-VMValue EntityImpl::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_RemoveFromDrawGroup(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (!self) {
 		return NULL_VAL;
 	}
 	int drawGroup = GET_ARG(1, GetInteger);
 	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+		thread->ThrowRuntimeError(false,
 			"Draw group %d out of range. (0 - %d)",
 			drawGroup,
 			MAX_PRIORITY_PER_LAYER - 1);
@@ -894,8 +891,8 @@ VMValue EntityImpl::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 t
  * \return integer Returns the channel index where the sound began to play, or `-1` if no channel was available.
  * \ns Entity
  */
-VMValue EntityImpl::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckAtLeastArgCount(argCount, 2);
+VMValue EntityImpl::VM_PlaySound(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckAtLeastArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISound* audio = GET_ARG(1, GetSound);
 	float panning = GET_ARG_OPT(2, GetDecimal, 0.0f);
@@ -920,8 +917,8 @@ VMValue EntityImpl::VM_PlaySound(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the channel index where the sound began to play, or `-1` if no channel was available.
  * \ns Entity
  */
-VMValue EntityImpl::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckAtLeastArgCount(argCount, 2);
+VMValue EntityImpl::VM_LoopSound(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckAtLeastArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISound* audio = GET_ARG(1, GetSound);
 	int loopPoint = GET_ARG_OPT(2, GetInteger, 0);
@@ -942,8 +939,8 @@ VMValue EntityImpl::VM_LoopSound(int argCount, VMValue* args, Uint32 threadID) {
  * \param sound (integer): The sound index to interrupt.
  * \ns Entity
  */
-VMValue EntityImpl::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue EntityImpl::VM_StopSound(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	ISound* audio = GET_ARG(1, GetSound);
 	if (self) {
@@ -956,8 +953,8 @@ VMValue EntityImpl::VM_StopSound(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Stops all sounds the entity is playing.
  * \ns Entity
  */
-VMValue EntityImpl::VM_StopAllSounds(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue EntityImpl::VM_StopAllSounds(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 	ScriptEntity* self = GET_ENTITY(0);
 	if (self) {
 		AudioManager::StopAllOriginSounds((void*)self);

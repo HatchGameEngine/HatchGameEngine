@@ -12,40 +12,11 @@
 * \desc Representation of a 3D model material.
 */
 
-ObjClass* MaterialImpl::Class = nullptr;
-
-Uint32 Hash_Name = 0;
-
-Uint32 Hash_DiffuseRed = 0;
-Uint32 Hash_DiffuseGreen = 0;
-Uint32 Hash_DiffuseBlue = 0;
-Uint32 Hash_DiffuseAlpha = 0;
-Uint32 Hash_DiffuseTexture = 0;
-
-Uint32 Hash_SpecularRed = 0;
-Uint32 Hash_SpecularGreen = 0;
-Uint32 Hash_SpecularBlue = 0;
-Uint32 Hash_SpecularAlpha = 0;
-Uint32 Hash_SpecularTexture = 0;
-
-Uint32 Hash_AmbientRed = 0;
-Uint32 Hash_AmbientGreen = 0;
-Uint32 Hash_AmbientBlue = 0;
-Uint32 Hash_AmbientAlpha = 0;
-Uint32 Hash_AmbientTexture = 0;
-
-#ifdef MATERIAL_EXPOSE_EMISSIVE
-Uint32 Hash_EmissiveRed = 0;
-Uint32 Hash_EmissiveGreen = 0;
-Uint32 Hash_EmissiveBlue = 0;
-Uint32 Hash_EmissiveAlpha = 0;
-Uint32 Hash_EmissiveTexture = 0;
-#endif
-
-void MaterialImpl::Init() {
-	Class = NewClass(CLASS_MATERIAL);
+MaterialImpl::MaterialImpl(ScriptManager* manager) {
+	Manager = manager;
+	Class = Manager->NewClass(CLASS_MATERIAL);
 	Class->NewFn = New;
-	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
+	Class->Initializer = OBJECT_VAL(Manager->NewNative(VM_Initializer));
 
 	Hash_Name = Murmur::EncryptString("Name");
 
@@ -165,24 +136,25 @@ void MaterialImpl::Init() {
 	Hash_EmissiveTexture = Murmur::EncryptString("EmissiveTexture");
 #endif
 
-	TypeImpl::RegisterClass(Class);
-	TypeImpl::ExposeClass(CLASS_MATERIAL, Class);
+	TypeImpl::RegisterClass(manager, Class);
+	TypeImpl::ExposeClass(manager, CLASS_MATERIAL, Class);
+
 	TypeImpl::DefinePrintableName(Class, "material");
 }
 
-#define GET_ARG(argIndex, argFunction) (ScriptManager::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (thread->Manager->argFunction(args, argIndex, thread))
 
 /***
  * \constructor
  * \desc Creates a material.
  * \ns Material
  */
-Obj* MaterialImpl::New() {
+Obj* MaterialImpl::New(VMThread* thread) {
 	Material* materialPtr = Material::Create(nullptr);
-	return (Obj*)New((void*)materialPtr);
+	return (Obj*)thread->Manager->ImplMaterial->New((void*)materialPtr);
 }
 ObjMaterial* MaterialImpl::New(void* materialPtr) {
-	ObjMaterial* material = (ObjMaterial*)NewNativeInstance(sizeof(ObjMaterial));
+	ObjMaterial* material = (ObjMaterial*)Manager->NewNativeInstance(sizeof(ObjMaterial));
 	Memory::Track(material, "NewMaterial");
 	material->Object.Class = Class;
 	material->InstanceObj.PropertyGet = VM_PropertyGet;
@@ -199,11 +171,11 @@ void MaterialImpl::Dispose(Obj* object) {
 	InstanceImpl::Dispose(object);
 }
 
-VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, VMThread* thread) {
 	ObjMaterial* objMaterial = AS_MATERIAL(args[0]);
 	Material* material = objMaterial->MaterialPtr;
 
-	ScriptManager::CheckArgCount(argCount, 2);
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	char* name = GET_ARG(1, GetString);
 
@@ -214,9 +186,11 @@ VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 
 #undef GET_ARG
 
+#define IS_FIELD(fieldName) (hash == thread->Manager->ImplMaterial->Hash_##fieldName)
+
 #define GET_COLOR(type, col, idx) \
 	{ \
-		if (hash == Hash_##type##col) { \
+		if (hash == thread->Manager->ImplMaterial->Hash_##type##col) { \
 			if (result) \
 				*result = DECIMAL_VAL(material->Color##type[idx]); \
 			return true; \
@@ -225,7 +199,7 @@ VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 
 #define GET_TEXTURE(type) \
 	{ \
-		if (hash == Hash_##type##Texture) { \
+		if (hash == thread->Manager->ImplMaterial->Hash_##type##Texture) { \
 			Image* image = material->Texture##type; \
 			if (image != nullptr) { \
 				*result = INTEGER_VAL(image->ID); \
@@ -237,19 +211,19 @@ VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 		} \
 	}
 
-bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
+bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, VMThread* thread) {
 	ObjMaterial* objMaterial = (ObjMaterial*)object;
 	Material* material = objMaterial->MaterialPtr;
 	if (material == nullptr) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Material is no longer valid!");
 		return false;
 	}
 
-	if (hash == Hash_Name) {
-		if (ScriptManager::Lock()) {
-			ObjString* string = CopyString(material->Name);
-			ScriptManager::Unlock();
+	if (IS_FIELD(Name)) {
+		if (thread->Manager->Lock()) {
+			ObjString* string = thread->Manager->CopyString(material->Name);
+			thread->Manager->Unlock();
 			*result = OBJECT_VAL(string);
 		}
 		else {
@@ -291,8 +265,8 @@ bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uin
 
 #define SET_COLOR(type, col, idx) \
 	{ \
-		if (hash == Hash_##type##col) { \
-			if (ScriptManager::DoDecimalConversion(value, threadID)) \
+		if (hash == thread->Manager->ImplMaterial->Hash_##type##col) { \
+			if (thread->DoDecimalConversion(value)) \
 				material->Color##type[idx] = AS_DECIMAL(value); \
 			return true; \
 		} \
@@ -308,10 +282,10 @@ static void DoTextureRemoval(Image** image) {
 	}
 }
 
-static void DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
+static void DoTextureReplacement(int imageID, Image** image, VMThread* thread) {
 	ResourceType* resource = Scene::GetImageResource(imageID);
 	if (!resource) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Image index \"%d\" is not valid!", imageID);
 		return;
 	}
@@ -325,29 +299,29 @@ static void DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
 
 #define SET_TEXTURE(type) \
 	{ \
-		if (hash == Hash_##type##Texture) { \
+		if (hash == thread->Manager->ImplMaterial->Hash_##type##Texture) { \
 			if (IS_NULL(value)) { \
 				DoTextureRemoval(&material->Texture##type); \
 			} \
-			else if (ScriptManager::DoIntegerConversion(value, threadID)) { \
+			else if (thread->DoIntegerConversion(value)) { \
 				DoTextureReplacement( \
-					AS_INTEGER(value), &material->Texture##type, threadID); \
+					AS_INTEGER(value), &material->Texture##type, thread); \
 			} \
 			return true; \
 		} \
 	}
 
-bool MaterialImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
+bool MaterialImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, VMThread* thread) {
 	ObjMaterial* objMaterial = (ObjMaterial*)object;
 	Material* material = objMaterial->MaterialPtr;
 	if (material == nullptr) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Material is no longer valid!");
 		return false;
 	}
 
-	if (hash == Hash_Name) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+	if (IS_FIELD(Name)) {
+		thread->ThrowRuntimeError(
 			false, "Field cannot be written to!");
 		return true;
 	}
@@ -380,5 +354,7 @@ bool MaterialImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint3
 
 	return false;
 }
+
+#undef IS_FIELD
 
 #undef SET_TEXTURE

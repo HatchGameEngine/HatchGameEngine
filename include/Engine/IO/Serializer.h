@@ -4,6 +4,8 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
+class ScriptManager;
+
 class Serializer {
 private:
 	void WriteValue(VMValue val);
@@ -27,6 +29,7 @@ public:
 	std::map<Obj*, Uint32> ObjToID;
 	std::vector<Obj*> ObjList;
 	Stream* StreamPtr;
+	ScriptManager* Manager;
 	size_t StoredStreamPos;
 	size_t StoredChunkPos;
 	Uint32 CurrentChunkType;
@@ -55,7 +58,7 @@ public:
 	static Uint32 Magic;
 	static Uint32 Version;
 
-	Serializer(Stream* stream);
+	Serializer(Stream* stream, ScriptManager* manager);
 	void Store(VMValue val);
 	bool ReadObjectsChunk();
 	bool ReadTextChunk();

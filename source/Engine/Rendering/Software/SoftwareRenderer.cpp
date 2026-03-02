@@ -3663,10 +3663,6 @@ void SoftwareRenderer::DrawSprite(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
-		return;
-	}
-
 	View* currentView = Graphics::CurrentView;
 	if (!currentView) {
 		return;
@@ -3779,10 +3775,6 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
-		return;
-	}
-
 	View* currentView = Graphics::CurrentView;
 	if (!currentView) {
 		return;

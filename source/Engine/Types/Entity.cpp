@@ -7,13 +7,13 @@ HashMap<EntitySpawnFunction>* Entity::SpawnFunctions = nullptr;
 bool Entity::DisableAutoAnimate = false;
 bool Entity::UseAnimationFrameSkip = true;
 
-void Entity::InitAll() {
+void Entity::InitAll(void* manager) {
 	SpawnFunctions = new HashMap<EntitySpawnFunction>();
 
 	// Init all C++ side classes here.
 	ENTITY_INIT(Camera);
 }
-void Entity::UnloadAll() {
+void Entity::UnloadAll(void* manager) {
 	// De-init all C++ side classes here.
 	ENTITY_DEINIT(Camera);
 
@@ -22,13 +22,13 @@ void Entity::UnloadAll() {
 	SpawnFunctions = nullptr;
 }
 
-Entity* Entity::Spawn() {
+Entity* Entity::Spawn(void* manager) {
 	throw std::runtime_error("Cannot directly spawn Entity!");
 }
-Entity* Entity::SpawnNamed(const char* objectName) {
+Entity* Entity::SpawnNamed(void* manager, const char* objectName) {
 	EntitySpawnFunction spawnFunction;
 	if (SpawnFunctions->GetIfExists(objectName, &spawnFunction)) {
-		return spawnFunction();
+		return spawnFunction(manager);
 	}
 	return nullptr;
 }

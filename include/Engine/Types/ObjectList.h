@@ -23,7 +23,7 @@ public:
 	bool Contains(Entity* obj);
 	void Remove(Entity* obj);
 	void Clear();
-	Entity* Spawn();
+	Entity* Spawn(void* Manager);
 	void Iterate(std::function<void(Entity* e)> func);
 	void RemoveNonPersistentFromLinkedList(Entity* first, int persistence);
 	void RemoveNonPersistentFromLinkedList(Entity* first);

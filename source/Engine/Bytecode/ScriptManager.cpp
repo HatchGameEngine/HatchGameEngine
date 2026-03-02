@@ -2,13 +2,6 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/StandardLibrary.h>
-#include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
-#include <Engine/Bytecode/TypeImpl/EntityImpl.h>
-#include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
-#include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
-#include <Engine/Bytecode/TypeImpl/MapImpl.h>
-#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
-#include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
@@ -29,59 +22,27 @@
 
 #ifndef HSL_STANDALONE
 #include <Engine/Bytecode/ScriptEntity.h>
-#include <Engine/Bytecode/TypeImpl/EntityImpl.h>
-#include <Engine/Bytecode/TypeImpl/FontImpl.h>
-#include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #else
 #include <Engine/Bytecode/StandaloneMain.h>
 #endif
 
-HashMap<VMValue>* ScriptManager::Constants = NULL;
-
 #ifdef HSL_VM
 bool ScriptManager::LoadAllClasses = false;
-#ifdef VM_DEBUG
-bool ScriptManager::BreakpointsEnabled = false;
-#endif
-
-VMThread ScriptManager::Threads[8];
-Uint32 ScriptManager::ThreadCount = 1;
-
-HashMap<VMValue>* ScriptManager::Globals = NULL;
-
-vector<ObjModule*> ScriptManager::ModuleList;
-vector<ObjModule*> ScriptManager::TempModuleList;
-
-HashMap<BytecodeContainer>* ScriptManager::Sources = NULL;
-HashMap<ObjClass*>* ScriptManager::Classes = NULL;
-HashMap<ObjModule*>* ScriptManager::Modules = NULL;
-HashMap<char*>* ScriptManager::Tokens = NULL;
-vector<ObjNamespace*> ScriptManager::AllNamespaces;
-vector<ObjClass*> ScriptManager::ClassImplList;
-
-#ifdef VM_DEBUG
-static HashMap<SourceFile*>* SourceFiles = nullptr;
-#endif
-
-#ifdef USE_SDL
-SDL_mutex* ScriptManager::GlobalLock = NULL;
-#endif
-
-#ifdef HSL_LIBRARY
-hsl_ImportScriptHandler ScriptManager::ImportScriptHandler;
-hsl_ImportClassHandler ScriptManager::ImportClassHandler;
-#endif
 
 // #define DEBUG_STRESS_GC
 
 void ScriptManager::RequestGarbageCollection(bool doLog) {
+	if (!GC) {
+		return;
+	}
+
 #ifndef DEBUG_STRESS_GC
-	if (GarbageCollector::GarbageSize > GarbageCollector::NextGC)
+	if (GC->GarbageSize > GC->NextGC)
 #endif
 	{
-		size_t startSize = GarbageCollector::GarbageSize;
+		size_t startSize = GC->GarbageSize;
 
 		ForceGarbageCollection(doLog);
 
@@ -94,91 +55,79 @@ void ScriptManager::RequestGarbageCollection(bool doLog) {
 				"Freed garbage from %u to %u (%d), next GC at %d",
 #endif
 				(Uint32)startSize,
-				(Uint32)GarbageCollector::GarbageSize,
-				GarbageCollector::GarbageSize - startSize,
-				GarbageCollector::NextGC);
+				(Uint32)GC->GarbageSize,
+				GC->GarbageSize - startSize,
+				GC->NextGC);
 		}
 	}
 }
 void ScriptManager::ForceGarbageCollection(bool doLog) {
-	if (ScriptManager::Lock()) {
-		if (ScriptManager::ThreadCount > 1) {
-			ScriptManager::Unlock();
+	if (Lock()) {
+		if (ThreadCount > 1) {
+			Unlock();
 			return;
 		}
 
-		GarbageCollector::Collect(doLog);
+		GC->Collect(doLog);
 
-		ScriptManager::Unlock();
+		Unlock();
 	}
 }
 
 void ScriptManager::ResetStack() {
-	Threads[0].ResetStack();
+	if (ThreadCount > 0) {
+		Threads[0].ResetStack();
+	}
 }
 #endif
 
 // #region Life Cycle
-void ScriptManager::Init() {
-	if (Constants == NULL) {
-		Constants = new HashMap<VMValue>(NULL, 8);
-	}
+ScriptManager::ScriptManager() {
+	Constants = new HashMap<VMValue>(NULL, 8);
 
 #ifdef HSL_VM
-	if (Globals == NULL) {
-		Globals = new HashMap<VMValue>(NULL, 8);
-	}
-	if (Sources == NULL) {
-		Sources = new HashMap<BytecodeContainer>(NULL, 8);
-	}
-	if (Classes == NULL) {
-		Classes = new HashMap<ObjClass*>(NULL, 8);
-	}
-	if (Modules == NULL) {
-		Modules = new HashMap<ObjModule*>(NULL, 8);
-	}
-	if (Tokens == NULL) {
-		Tokens = new HashMap<char*>(NULL, 64);
-	}
-
-	memset(VMThread::InstructionIgnoreMap, 0, sizeof(VMThread::InstructionIgnoreMap));
+	Globals = new HashMap<VMValue>(NULL, 8);
+	Sources = new HashMap<BytecodeContainer>(NULL, 8);
+	Classes = new HashMap<ObjClass*>(NULL, 8);
+	Modules = new HashMap<ObjModule*>(NULL, 8);
+	Tokens = new HashMap<char*>(NULL, 64);
 
 #ifdef USE_SDL
 	GlobalLock = SDL_CreateMutex();
 #endif
 
 #ifdef VM_DEBUG
-	int branchLimit = GetBranchLimit();
 	SourceFiles = new HashMap<SourceFile*>(NULL, 8);
 #endif
 
-	for (Uint32 i = 0; i < sizeof(Threads) / sizeof(VMThread); i++) {
-		memset(&Threads[i].Stack, 0, sizeof(Threads[i].Stack));
-		memset(&Threads[i].RegisterValue, 0, sizeof(Threads[i].RegisterValue));
-		memset(&Threads[i].Frames, 0, sizeof(Threads[i].Frames));
-		memset(&Threads[i].Name, 0, sizeof(Threads[i].Name));
-
-		Threads[i].FrameCount = 0;
-		Threads[i].ReturnFrame = 0;
-
-		Threads[i].ID = i;
-		Threads[i].Active = false;
-		Threads[i].StackTop = Threads[i].Stack;
-
-#ifdef VM_DEBUG
-		Threads[i].DebugInfo = false;
-		Threads[i].AttachedDebuggerCount = 0;
-		Threads[i].CurrentBreakpointIndex = 0;
-		Threads[i].BranchLimit = branchLimit;
+	GC = new GarbageCollector(this);
 #endif
-	}
 
-#ifdef HSL_LIBRARY
+	ImplClasses = new HashMap<ObjClass*>(NULL, 8);
+
+	ImplArray = new ArrayImpl(this);
+	ImplFunction = new FunctionImpl(this);
+	ImplInstance = new InstanceImpl(this);
+	ImplMap = new MapImpl(this);
+	ImplStream = new StreamImpl(this);
+	ImplString = new StringImpl(this);
+
+#ifndef HSL_STANDALONE
+	ImplFont = new FontImpl(this);
+	ImplEntity = new EntityImpl(this);
+	ImplMaterial = new MaterialImpl(this);
+	ImplShader = new ShaderImpl(this);
+#endif
+
+#ifdef HSL_VM
 	ThreadCount = 0;
-#else
-	ThreadCount = 1;
-	Threads[0].Active = true;
-#endif
+
+	for (int i = 0; i < MAX_VM_THREADS; i++) {
+		InitThread(&Threads[i]);
+
+		Threads[i].Manager = this;
+		Threads[i].ID = i;
+	}
 
 #if defined(DEVELOPER_MODE) && defined(VM_DEBUG)
 #if defined(WIN32) || defined(LINUX) || defined(MACOSX)
@@ -188,12 +137,17 @@ void ScriptManager::Init() {
 	Application::Settings->GetBool("dev", "enableScriptBreakpoints", &BreakpointsEnabled);
 #endif
 #endif
+#endif
+}
+void ScriptManager::Init() {
+	TypeImpl::Init();
 
 #ifndef HSL_STANDALONE
 	ScriptEntity::Init();
 #endif
 
-	TypeImpl::Init();
+#ifdef HSL_STDLIB
+	StandardLibrary::Init();
 #endif
 }
 #if defined(HSL_VM) && defined(VM_DEBUG)
@@ -218,7 +172,7 @@ Uint32 ScriptManager::GetBranchLimit() {
 	return (Uint32)branchLimit;
 }
 #endif
-void ScriptManager::Dispose() {
+ScriptManager::~ScriptManager() {
 	if (Constants) {
 		Constants->Clear();
 		delete Constants;
@@ -230,16 +184,26 @@ void ScriptManager::Dispose() {
 	ImportClassHandler = NULL;
 	WithIteratorHandler = NULL;
 	HasWithIteratorHandler = false;
+
+	if (LastCompileError) {
+		Memory::Free(LastCompileError);
+		LastCompileError = nullptr;
+	}
 #endif
 
 #ifdef HSL_VM
+	if (ImplClasses) {
+		ImplClasses->Clear();
+		delete ImplClasses;
+		ImplClasses = nullptr;
+	}
+
 	if (Globals) {
 		Globals->Clear();
 		delete Globals;
 		Globals = nullptr;
 	}
 
-	ClassImplList.clear();
 	AllNamespaces.clear();
 	ModuleList.clear();
 	TempModuleList.clear();
@@ -259,7 +223,6 @@ void ScriptManager::Dispose() {
 		Threads[0].FrameCount = 0;
 		Threads[0].ResetStack();
 	}
-	ThreadCount = 0;
 
 #ifdef HSL_STANDALONE
 	ForceGarbageCollection(ShouldShowGarbageCollectionOutput());
@@ -294,6 +257,11 @@ void ScriptManager::Dispose() {
 		Tokens = NULL;
 	}
 
+	if (GC) {
+		delete GC;
+		GC = NULL;
+	}
+
 #ifdef VM_DEBUG
 	if (SourceFiles) {
 		SourceFiles->WithAll([](Uint32, SourceFile* sourceFile) -> void {
@@ -313,6 +281,53 @@ void ScriptManager::Dispose() {
 	}
 #endif
 #endif
+
+	if (ImplArray) {
+		delete ImplArray;
+		ImplArray = nullptr;
+	}
+	if (ImplFunction) {
+		delete ImplFunction;
+		ImplFunction = nullptr;
+	}
+	if (ImplInstance) {
+		delete ImplInstance;
+		ImplInstance = nullptr;
+	}
+	if (ImplMap) {
+		delete ImplMap;
+		ImplMap = nullptr;
+	}
+	if (ImplStream) {
+		delete ImplStream;
+		ImplStream = nullptr;
+	}
+	if (ImplString) {
+		delete ImplString;
+		ImplString = nullptr;
+	}
+
+#ifndef HSL_STANDALONE
+	if (ImplFont) {
+		delete ImplFont;
+		ImplFont = nullptr;
+	}
+	if (ImplEntity) {
+		delete ImplEntity;
+		ImplEntity = nullptr;
+	}
+	if (ImplMaterial) {
+		delete ImplMaterial;
+		ImplMaterial = nullptr;
+	}
+	if (ImplShader) {
+		delete ImplShader;
+		ImplShader = nullptr;
+	}
+#endif
+}
+void ScriptManager::Dispose() {
+	TypeImpl::Dispose();
 }
 void ScriptManager::FreeFunction(Obj* object) {
 	ObjFunction* function = (ObjFunction*)object;
@@ -340,6 +355,10 @@ void ScriptManager::FreeClass(Obj* object) {
 
 	delete klass->Methods;
 	delete klass->Fields;
+
+	if (ImplClasses) {
+		ImplClasses->Remove(klass->Hash);
+	}
 }
 void ScriptManager::FreeEnumeration(Obj* object) {
 	ObjEnum* enumeration = (ObjEnum*)object;
@@ -374,11 +393,33 @@ void ScriptManager::RemoveTemporaryModules() {
 
 	TempModuleList.clear();
 }
+void ScriptManager::InitThread(VMThread* thread) {
+	memset(&thread->Stack, 0, sizeof(thread->Stack));
+	memset(&thread->RegisterValue, 0, sizeof(thread->RegisterValue));
+	memset(&thread->Frames, 0, sizeof(thread->Frames));
+	memset(&thread->Name, 0, sizeof(thread->Name));
+	memset(&thread->InstructionIgnoreMap, 0, sizeof(thread->InstructionIgnoreMap));
+
+	thread->FrameCount = 0;
+	thread->ReturnFrame = 0;
+
+	thread->Active = false;
+	thread->StackTop = thread->Stack;
+
+#ifdef VM_DEBUG
+	thread->DebugInfo = false;
+	thread->AttachedDebuggerCount = 0;
+	thread->CurrentBreakpointIndex = 0;
+	thread->BranchLimit = GetBranchLimit();
+#endif
+}
 VMThread* ScriptManager::NewThread() {
-	for (Uint32 i = 0; i < sizeof(Threads) / sizeof(VMThread); i++) {
-		if (Threads[i].Active == false) {
-			Threads[i].Active = true;
-			return &Threads[i];
+	for (int i = 0; i < MAX_VM_THREADS; i++) {
+		VMThread* thread = &Threads[i];
+		if (!thread->Active) {
+			InitThread(thread);
+			thread->Active = true;
+			return thread;
 		}
 	}
 	return nullptr;
@@ -390,43 +431,17 @@ void ScriptManager::DisposeThread(VMThread* thread) {
 // #endregion
 
 // #region ValueFuncs
-bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 threadID) {
-	VMValue result = Value::CastAsInteger(value);
-	if (IS_NULL(result)) {
-		// Conversion failed
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
-			"Expected value to be of type %s; value was of type %s.",
-			GetTypeString(VAL_INTEGER),
-			GetValueTypeString(value));
-		return false;
-	}
-	value = result;
-	return true;
-}
-bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
-	VMValue result = Value::CastAsDecimal(value);
-	if (IS_NULL(result)) {
-		// Conversion failed
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
-			"Expected value to be of type %s; value was of type %s.",
-			GetTypeString(VAL_DECIMAL),
-			GetValueTypeString(value));
-		return false;
-	}
-	value = result;
-	return true;
-}
 #endif
 void ScriptManager::DestroyObject(Obj* object) {
 	switch (object->Type) {
 	case OBJ_STRING:
-		StringImpl::Dispose(object);
+		ImplString->Dispose(object);
 		break;
 	case OBJ_ARRAY:
-		ArrayImpl::Dispose(object);
+		ImplArray->Dispose(object);
 		break;
 	case OBJ_MAP:
-		MapImpl::Dispose(object);
+		ImplMap->Dispose(object);
 		break;
 	case OBJ_MODULE:
 		FreeModule(object);
@@ -454,8 +469,10 @@ void ScriptManager::DestroyObject(Obj* object) {
 	}
 
 #ifdef HSL_VM
-	assert(GarbageCollector::GarbageSize >= object->Size);
-	GarbageCollector::GarbageSize -= object->Size;
+	if (GC) {
+		assert(GC->GarbageSize >= object->Size);
+		GC->GarbageSize -= object->Size;
+	}
 #endif
 
 	Memory::Free(object);
@@ -596,8 +613,8 @@ ObjClass* ScriptManager::GetClassParent(Obj* object, ObjClass* klass) {
 #ifndef HSL_STANDALONE
 	if (klass->Parent == nullptr && object->Type == OBJ_ENTITY) {
 		ObjEntity* entity = (ObjEntity*)object;
-		if (entity->EntityPtr && klass != EntityImpl::ParentClass) {
-			return EntityImpl::Class;
+		if (entity->EntityPtr && klass != ImplEntity->ParentClass) {
+			return ImplEntity->Class;
 		}
 	}
 #endif
@@ -611,17 +628,16 @@ bool ScriptManager::ClassHasMethod(ObjClass* klass, Uint32 hash) {
 
 void ScriptManager::LinkStandardLibrary() {
 #ifdef HSL_STDLIB
-	StandardLibrary::Link();
+	StandardLibrary::Link(this);
 #endif
 }
-void ScriptManager::LinkExtensions() {}
 // #endregion
 
 // #region ObjectFuncs
 #ifdef HSL_VM
 Bytecode* ScriptManager::ReadBytecode(BytecodeContainer bytecodeContainer) {
 	Bytecode* bytecode = new Bytecode();
-	if (!bytecode->Read(bytecodeContainer, Tokens)) {
+	if (!bytecode->Read(bytecodeContainer, this, Tokens)) {
 		delete bytecode;
 		return nullptr;
 	}
@@ -630,7 +646,7 @@ Bytecode* ScriptManager::ReadBytecode(BytecodeContainer bytecodeContainer) {
 }
 Bytecode* ScriptManager::ReadBytecode(Stream *stream) {
 	Bytecode* bytecode = new Bytecode();
-	if (!bytecode->Read(stream, Tokens)) {
+	if (!bytecode->Read(stream, this, Tokens)) {
 		delete bytecode;
 		return nullptr;
 	}
@@ -886,7 +902,7 @@ bool ScriptManager::LoadScript(VMThread* thread, const char* filename) {
 #else
 	Uint32 hash = MakeFilenameHash(filename);
 	if (!Sources->Exists(hash)) {
-		BytecodeContainer bytecode = ScriptManager::GetBytecodeFromFilenameHash(hash);
+		BytecodeContainer bytecode = GetBytecodeFromFilenameHash(hash);
 		if (!bytecode.Data) {
 			return false;
 		}
@@ -933,7 +949,7 @@ ObjModule* ScriptManager::CompileScriptFromStream(VMThread* thread, Stream* stre
 ObjModule* ScriptManager::CompileAndLoad(VMThread* thread, const char* code, const char* filename, CompilerSettings settings) {
 	Compiler::PrepareCompiling();
 
-	Compiler* compiler = new Compiler;
+	Compiler* compiler = new Compiler(this);
 	compiler->InREPL = false;
 	compiler->CurrentSettings = settings;
 	compiler->Type = FUNCTIONTYPE_TOPLEVEL;
@@ -1075,8 +1091,7 @@ bool ScriptManager::LoadObjectClass(VMThread* thread, const char* objectName) {
 		Uint32 filenameHash = (*filenameHashList)[fn];
 
 		if (!Sources->Exists(filenameHash)) {
-			BytecodeContainer bytecode =
-				ScriptManager::GetBytecodeFromFilenameHash(filenameHash);
+			BytecodeContainer bytecode = GetBytecodeFromFilenameHash(filenameHash);
 			if (!bytecode.Data) {
 				Log::Print(Log::LOG_WARN,
 					"Code for the object class \"%s\" does not exist!",
@@ -1118,12 +1133,11 @@ ObjClass* ScriptManager::GetObjectClass(const char* className) {
 }
 #ifndef HSL_STANDALONE
 void ScriptManager::LoadClasses() {
-	SourceFileMap::ClassMap->ForAll([](Uint32, vector<Uint32>* filenameHashList) -> void {
+	SourceFileMap::ClassMap->WithAll([this](Uint32, vector<Uint32>* filenameHashList) -> void {
 		for (size_t fn = 0; fn < filenameHashList->size(); fn++) {
 			Uint32 filenameHash = (*filenameHashList)[fn];
 
-			BytecodeContainer bytecode =
-				ScriptManager::GetBytecodeFromFilenameHash(filenameHash);
+			BytecodeContainer bytecode = GetBytecodeFromFilenameHash(filenameHash);
 			if (!bytecode.Data) {
 				Log::Print(
 					Log::LOG_WARN, "Class %08X does not exist!", filenameHash);
@@ -1236,7 +1250,7 @@ std::string ScriptManager::GetBytecodeFilenameForHash(Uint32 filenameHash) {
 
 #ifdef HSL_VM
 namespace ScriptTypes {
-int GetInteger(VMValue* args, int index, Uint32 threadID) {
+int GetInteger(VMValue* args, int index, VMThread* thread) {
 	int value = 0;
 	switch (args[index].Type) {
 	case VAL_INTEGER:
@@ -1248,12 +1262,12 @@ int GetInteger(VMValue* args, int index, Uint32 threadID) {
 			    index + 1,
 			    GetTypeString(VAL_INTEGER),
 			    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 	}
 	return value;
 }
-float GetDecimal(VMValue* args, int index, Uint32 threadID) {
+float GetDecimal(VMValue* args, int index, VMThread* thread) {
 	float value = 0.0f;
 	switch (args[index].Type) {
 	case VAL_DECIMAL:
@@ -1269,14 +1283,14 @@ float GetDecimal(VMValue* args, int index, Uint32 threadID) {
 			    index + 1,
 			    GetTypeString(VAL_DECIMAL),
 			    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 	}
 	return value;
 }
-char* GetString(VMValue* args, int index, Uint32 threadID) {
+char* GetString(VMValue* args, int index, VMThread* thread) {
 	char* value = NULL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_STRING(args[index])) {
 			value = AS_CSTRING(args[index]);
 		}
@@ -1285,17 +1299,17 @@ char* GetString(VMValue* args, int index, Uint32 threadID) {
 				    index + 1,
 				    GetObjectTypeString(OBJ_STRING),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Unlock();
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->Manager->Unlock();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
-ObjString* GetVMString(VMValue* args, int index, Uint32 threadID) {
+ObjString* GetVMString(VMValue* args, int index, VMThread* thread) {
 	ObjString* value = NULL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_STRING(args[index])) {
 			value = AS_STRING(args[index]);
 		}
@@ -1304,17 +1318,17 @@ ObjString* GetVMString(VMValue* args, int index, Uint32 threadID) {
 				    index + 1,
 				    GetObjectTypeString(OBJ_STRING),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Unlock();
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->Manager->Unlock();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
-ObjArray* GetArray(VMValue* args, int index, Uint32 threadID) {
+ObjArray* GetArray(VMValue* args, int index, VMThread* thread) {
 	ObjArray* value = NULL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_ARRAY(args[index])) {
 			value = (ObjArray*)(AS_OBJECT(args[index]));
 		}
@@ -1323,16 +1337,16 @@ ObjArray* GetArray(VMValue* args, int index, Uint32 threadID) {
 				    index + 1,
 				    GetObjectTypeString(OBJ_ARRAY),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
-ObjMap* GetMap(VMValue* args, int index, Uint32 threadID) {
+ObjMap* GetMap(VMValue* args, int index, VMThread* thread) {
 	ObjMap* value = NULL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_MAP(args[index])) {
 			value = (ObjMap*)(AS_OBJECT(args[index]));
 		}
@@ -1341,16 +1355,16 @@ ObjMap* GetMap(VMValue* args, int index, Uint32 threadID) {
 				    index + 1,
 				    GetObjectTypeString(OBJ_MAP),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
-ObjBoundMethod* GetBoundMethod(VMValue* args, int index, Uint32 threadID) {
+ObjBoundMethod* GetBoundMethod(VMValue* args, int index, VMThread* thread) {
 	ObjBoundMethod* value = NULL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_BOUND_METHOD(args[index])) {
 			value = (ObjBoundMethod*)(AS_OBJECT(args[index]));
 		}
@@ -1359,16 +1373,16 @@ ObjBoundMethod* GetBoundMethod(VMValue* args, int index, Uint32 threadID) {
 				    index + 1,
 				    GetObjectTypeString(OBJ_BOUND_METHOD),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
-ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
+ObjFunction* GetFunction(VMValue* args, int index, VMThread* thread) {
 	ObjFunction* value = NULL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_FUNCTION(args[index])) {
 			value = (ObjFunction*)(AS_OBJECT(args[index]));
 		}
@@ -1377,16 +1391,16 @@ ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID) {
 				    index + 1,
 				    GetObjectTypeString(OBJ_FUNCTION),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
-VMValue GetCallable(VMValue* args, int index, Uint32 threadID) {
+VMValue GetCallable(VMValue* args, int index, VMThread* thread) {
 	VMValue value = NULL_VAL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_CALLABLE(args[index])) {
 			value = args[index];
 		}
@@ -1395,16 +1409,16 @@ VMValue GetCallable(VMValue* args, int index, Uint32 threadID) {
 				    "Expected argument %d to be of type callable instead of %s.",
 				    index + 1,
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
-ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
+ObjInstance* GetInstance(VMValue* args, int index, VMThread* thread) {
 	ObjInstance* value = NULL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_INSTANCEABLE(args[index])) {
 			value = AS_INSTANCE(args[index]);
 		}
@@ -1413,33 +1427,33 @@ ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID) {
 				    index + 1,
 				    GetObjectTypeString(OBJ_INSTANCE),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
-ObjStream* GetStream(VMValue* args, int index, Uint32 threadID) {
+ObjStream* GetStream(VMValue* args, int index, VMThread* thread) {
 	ObjStream* value = NULL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_STREAM(args[index])) {
 			value = AS_STREAM(args[index]);
 		}
 		else {
 			if (VM_THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
 				    index + 1,
-				    Value::GetObjectTypeName(StreamImpl::Class),
+				    Value::GetClassObjectName(thread->Manager->ImplStream->Class),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
 #ifndef HSL_STANDALONE
-CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
+CollisionBox GetHitbox(VMValue* args, int index, VMThread* thread) {
 	CollisionBox box;
 	if (IS_HITBOX(args[index])) {
 		Sint16* values = AS_HITBOX(args[index]);
@@ -1449,7 +1463,7 @@ CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
 		box.Bottom = values[HITBOX_BOTTOM];
 	}
 	else if (IS_ARRAY(args[index])) {
-		if (ScriptManager::Lock()) {
+		if (thread->Manager->Lock()) {
 			Sint16 values[NUM_HITBOX_SIDES];
 
 			ObjArray* array = AS_ARRAY(args[index]);
@@ -1458,9 +1472,9 @@ CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
 				if (VM_THROW_ERROR("Expected array to have %d elements instead of %d.",
 					    NUM_HITBOX_SIDES,
 					    array->Values->size()) == ERROR_RES_CONTINUE) {
-					ScriptManager::Threads[threadID].ReturnFromNative();
+					thread->ReturnFromNative();
 				}
-				ScriptManager::Unlock();
+				thread->Manager->Unlock();
 				return box;
 			}
 
@@ -1472,7 +1486,7 @@ CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
 						i,
 						GetTypeString(VAL_INTEGER),
 						GetValueTypeString(value));
-					ScriptManager::Unlock();
+					thread->Manager->Unlock();
 					return box;
 				}
 				values[i] = AS_INTEGER(value);
@@ -1483,7 +1497,7 @@ CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
 			box.Right = values[HITBOX_RIGHT];
 			box.Bottom = values[HITBOX_BOTTOM];
 
-			ScriptManager::Unlock();
+			thread->Manager->Unlock();
 		}
 	}
 	else {
@@ -1491,14 +1505,14 @@ CollisionBox GetHitbox(VMValue* args, int index, Uint32 threadID) {
 			    index + 1,
 			    GetTypeString(VAL_HITBOX),
 			    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 	}
 	return box;
 }
-ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID) {
+ObjEntity* GetEntity(VMValue* args, int index, VMThread* thread) {
 	ObjEntity* value = NULL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_ENTITY(args[index])) {
 			value = AS_ENTITY(args[index]);
 		}
@@ -1507,54 +1521,54 @@ ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID) {
 				    index + 1,
 				    GetObjectTypeString(OBJ_ENTITY),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
-ObjShader* GetShader(VMValue* args, int index, Uint32 threadID) {
+ObjShader* GetShader(VMValue* args, int index, VMThread* thread) {
 	ObjShader* value = nullptr;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_SHADER(args[index])) {
 			value = AS_SHADER(args[index]);
 		}
 		else {
 			if (VM_THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
 				    index + 1,
-				    Value::GetObjectTypeName(ShaderImpl::Class),
+				    Value::GetClassObjectName(thread->Manager->ImplShader->Class),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
-ObjFont* GetFont(VMValue* args, int index, Uint32 threadID) {
+ObjFont* GetFont(VMValue* args, int index, VMThread* thread) {
 	ObjFont* value = nullptr;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		if (IS_FONT(args[index])) {
 			value = AS_FONT(args[index]);
 		}
 		else {
 			if (VM_THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
 				    index + 1,
-				    Value::GetObjectTypeName(FontImpl::Class),
+				    Value::GetClassObjectName(thread->Manager->ImplFont->Class),
 				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
-				ScriptManager::Threads[threadID].ReturnFromNative();
+				thread->ReturnFromNative();
 			}
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return value;
 }
-ISprite* GetSpriteIndex(int where, Uint32 threadID) {
+ISprite* GetSpriteIndex(int where, VMThread* thread) {
 	if (where < 0 || where >= (int)Scene::SpriteList.size()) {
 		if (VM_THROW_ERROR("Sprite index \"%d\" outside bounds of list.", where) ==
 			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 
 		return NULL;
@@ -1566,16 +1580,16 @@ ISprite* GetSpriteIndex(int where, Uint32 threadID) {
 
 	return Scene::SpriteList[where]->AsSprite;
 }
-ISprite* GetSprite(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
-	return GetSpriteIndex(where, threadID);
+ISprite* GetSprite(VMValue* args, int index, VMThread* thread) {
+	int where = GetInteger(args, index, thread);
+	return GetSpriteIndex(where, thread);
 }
-Image* GetImage(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
+Image* GetImage(VMValue* args, int index, VMThread* thread) {
+	int where = GetInteger(args, index, thread);
 	if (where < 0 || where >= (int)Scene::ImageList.size()) {
 		if (VM_THROW_ERROR("Image index \"%d\" outside bounds of list.", where) ==
 			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 
 		return NULL;
@@ -1587,12 +1601,12 @@ Image* GetImage(VMValue* args, int index, Uint32 threadID) {
 
 	return Scene::ImageList[where]->AsImage;
 }
-GameTexture* GetTexture(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
+GameTexture* GetTexture(VMValue* args, int index, VMThread* thread) {
+	int where = GetInteger(args, index, thread);
 	if (where < 0 || where >= (int)Scene::TextureList.size()) {
 		if (VM_THROW_ERROR("Texture index \"%d\" outside bounds of list.", where) ==
 			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 
 		return NULL;
@@ -1604,12 +1618,12 @@ GameTexture* GetTexture(VMValue* args, int index, Uint32 threadID) {
 
 	return Scene::TextureList[where];
 }
-ISound* GetSound(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
+ISound* GetSound(VMValue* args, int index, VMThread* thread) {
+	int where = GetInteger(args, index, thread);
 	if (where < 0 || where >= (int)Scene::SoundList.size()) {
 		if (VM_THROW_ERROR("Sound index \"%d\" outside bounds of list.", where) ==
 			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 
 		return NULL;
@@ -1621,12 +1635,12 @@ ISound* GetSound(VMValue* args, int index, Uint32 threadID) {
 
 	return Scene::SoundList[where]->AsSound;
 }
-ISound* GetMusic(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
+ISound* GetMusic(VMValue* args, int index, VMThread* thread) {
+	int where = GetInteger(args, index, thread);
 	if (where < 0 || where >= (int)Scene::MusicList.size()) {
 		if (VM_THROW_ERROR("Music index \"%d\" outside bounds of list.", where) ==
 			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 
 		return NULL;
@@ -1638,12 +1652,12 @@ ISound* GetMusic(VMValue* args, int index, Uint32 threadID) {
 
 	return Scene::MusicList[where]->AsMusic;
 }
-IModel* GetModel(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
+IModel* GetModel(VMValue* args, int index, VMThread* thread) {
+	int where = GetInteger(args, index, thread);
 	if (where < 0 || where >= (int)Scene::ModelList.size()) {
 		if (VM_THROW_ERROR("Model index \"%d\" outside bounds of list.", where) ==
 			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 
 		return NULL;
@@ -1655,12 +1669,12 @@ IModel* GetModel(VMValue* args, int index, Uint32 threadID) {
 
 	return Scene::ModelList[where]->AsModel;
 }
-MediaBag* GetVideo(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
+MediaBag* GetVideo(VMValue* args, int index, VMThread* thread) {
+	int where = GetInteger(args, index, thread);
 	if (where < 0 || where >= (int)Scene::MediaList.size()) {
 		if (VM_THROW_ERROR("Video index \"%d\" outside bounds of list.", where) ==
 			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 
 		return NULL;
@@ -1672,12 +1686,12 @@ MediaBag* GetVideo(VMValue* args, int index, Uint32 threadID) {
 
 	return Scene::MediaList[where]->AsMedia;
 }
-Animator* GetAnimator(VMValue* args, int index, Uint32 threadID) {
-	int where = GetInteger(args, index, threadID);
+Animator* GetAnimator(VMValue* args, int index, VMThread* thread) {
+	int where = GetInteger(args, index, thread);
 	if (where < 0 || where >= (int)Scene::AnimatorList.size()) {
 		if (VM_THROW_ERROR("Animator index \"%d\" outside bounds of list.", where) ==
 			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 
 		return NULL;
@@ -1695,67 +1709,317 @@ Animator* GetAnimator(VMValue* args, int index, Uint32 threadID) {
 // NOTE:
 // Integers specifically need to be whole integers.
 // Floats can be just any countable real number.
-int ScriptManager::GetInteger(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetInteger(args, index, threadID);
+int ScriptManager::GetInteger(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetInteger(args, index, thread);
 }
-float ScriptManager::GetDecimal(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetDecimal(args, index, threadID);
+float ScriptManager::GetDecimal(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetDecimal(args, index, thread);
 }
-char* ScriptManager::GetString(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetString(args, index, threadID);
+char* ScriptManager::GetString(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetString(args, index, thread);
 }
-ObjString* ScriptManager::GetVMString(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetVMString(args, index, threadID);
+ObjString* ScriptManager::GetVMString(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetVMString(args, index, thread);
 }
-ObjArray* ScriptManager::GetArray(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetArray(args, index, threadID);
+ObjArray* ScriptManager::GetArray(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetArray(args, index, thread);
 }
-ObjMap* ScriptManager::GetMap(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetMap(args, index, threadID);
+ObjMap* ScriptManager::GetMap(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetMap(args, index, thread);
 }
-ObjInstance* ScriptManager::GetInstance(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetInstance(args, index, threadID);
+ObjInstance* ScriptManager::GetInstance(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetInstance(args, index, thread);
 }
-ObjFunction* ScriptManager::GetFunction(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetFunction(args, index, threadID);
+ObjFunction* ScriptManager::GetFunction(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetFunction(args, index, thread);
 }
 #ifndef HSL_STANDALONE
-ISprite* ScriptManager::GetSprite(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetSprite(args, index, threadID);
+ISprite* ScriptManager::GetSprite(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetSprite(args, index, thread);
 }
-Image* ScriptManager::GetImage(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetImage(args, index, threadID);
+Image* ScriptManager::GetImage(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetImage(args, index, thread);
 }
-ISound* ScriptManager::GetSound(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetSound(args, index, threadID);
+ISound* ScriptManager::GetSound(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetSound(args, index, thread);
 }
-ObjEntity* ScriptManager::GetEntity(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetEntity(args, index, threadID);
+ObjEntity* ScriptManager::GetEntity(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetEntity(args, index, thread);
 }
-ObjShader* ScriptManager::GetShader(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetShader(args, index, threadID);
+ObjShader* ScriptManager::GetShader(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetShader(args, index, thread);
 }
-ObjFont* ScriptManager::GetFont(VMValue* args, int index, Uint32 threadID) {
-	return ScriptTypes::GetFont(args, index, threadID);
+ObjFont* ScriptManager::GetFont(VMValue* args, int index, VMThread* thread) {
+	return ScriptTypes::GetFont(args, index, thread);
 }
 #endif
 
-void ScriptManager::CheckArgCount(int argCount, int expects) {
-	Uint32 threadID = 0;
+void ScriptManager::CheckArgCount(int argCount, int expects, VMThread* thread) {
 	if (argCount != expects) {
 		if (VM_THROW_ERROR("Expected %d arguments but got %d.", expects, argCount) ==
 			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 	}
 }
-void ScriptManager::CheckAtLeastArgCount(int argCount, int expects) {
-	Uint32 threadID = 0;
+void ScriptManager::CheckAtLeastArgCount(int argCount, int expects, VMThread* thread) {
 	if (argCount < expects) {
 		if (VM_THROW_ERROR("Expected at least %d arguments but got %d.", expects, argCount) ==
 			ERROR_RES_CONTINUE) {
-			ScriptManager::Threads[threadID].ReturnFromNative();
+			thread->ReturnFromNative();
 		}
 	}
 }
 #endif
+
+#define ALLOCATE_OBJ(type, objectType) (type*)AllocateObject(sizeof(type), objectType)
+#define ALLOCATE(type, size) (type*)Memory::TrackedMalloc(#type, sizeof(type) * size)
+
+Obj* ScriptManager::AllocateObject(size_t size, ObjType type) {
+#ifdef HSL_VM
+	if (GC) {
+		// Only do this when allocating more memory
+		GC->GarbageSize += size;
+	}
+#endif
+
+	Obj* object = (Obj*)Memory::TrackedCalloc("AllocateObject", 1, size);
+	object->Size = size;
+	object->Type = type;
+#ifdef HSL_VM
+	object->Next = RootObject;
+	RootObject = object;
+#endif
+
+	return object;
+}
+
+ObjString* ScriptManager::AllocateString(char* chars, size_t length) {
+	return (ObjString*)ImplString->New(chars, length);
+}
+
+ObjString* ScriptManager::TakeString(char* chars, size_t length) {
+	return AllocateString(chars, length);
+}
+ObjString* ScriptManager::TakeString(char* chars) {
+	return TakeString(chars, strlen(chars));
+}
+ObjString* ScriptManager::CopyString(const char* chars, size_t length) {
+	char* heapChars = ALLOCATE(char, length + 1);
+	memcpy(heapChars, chars, length);
+	heapChars[length] = '\0';
+
+	return AllocateString(heapChars, length);
+}
+ObjString* ScriptManager::CopyString(const char* chars) {
+	return CopyString(chars, strlen(chars));
+}
+ObjString* ScriptManager::CopyString(std::string string) {
+	return CopyString(string.c_str());
+}
+ObjString* ScriptManager::CopyString(ObjString* string) {
+	char* heapChars = ALLOCATE(char, string->Length + 1);
+	memcpy(heapChars, string->Chars, string->Length);
+	heapChars[string->Length] = '\0';
+
+	return AllocateString(heapChars, string->Length);
+}
+ObjString* ScriptManager::AllocString(size_t length) {
+	char* heapChars = ALLOCATE(char, length + 1);
+	heapChars[length] = '\0';
+
+	return AllocateString(heapChars, length);
+}
+
+#ifdef HSL_VM
+VMValue ScriptManager::VM_GetClass(int argCount, VMValue* args, VMThread* thread) {
+	CheckArgCount(argCount, 1, thread);
+
+	if (IS_OBJECT(args[0])) {
+		return OBJECT_VAL(AS_OBJECT(args[0])->Class);
+	}
+
+	return NULL_VAL;
+}
+#endif
+
+ObjFunction* ScriptManager::NewFunction() {
+	return (ObjFunction*)ImplFunction->New();
+}
+ObjNative* ScriptManager::NewNative(NativeFn function) {
+	ObjNative* native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE_FUNCTION);
+	Memory::Track(native, "NewNative");
+	native->Function = function;
+	return native;
+}
+ObjUpvalue* ScriptManager::NewUpvalue(VMValue* slot) {
+	ObjUpvalue* upvalue = ALLOCATE_OBJ(ObjUpvalue, OBJ_UPVALUE);
+	upvalue->Closed = NULL_VAL;
+	upvalue->Value = slot;
+	return upvalue;
+}
+ObjClosure* ScriptManager::NewClosure(ObjFunction* function) {
+#if 0
+	ObjUpvalue** upvalues = ALLOCATE(ObjUpvalue*, function->UpvalueCount);
+	for (int i = 0; i < function->UpvalueCount; i++) {
+		upvalues[i] = NULL;
+	}
+
+	ObjClosure* closure = ALLOCATE_OBJ(ObjClosure, OBJ_CLOSURE);
+	closure->Function = function;
+	closure->Upvalues = upvalues;
+	closure->UpvalueCount = function->UpvalueCount;
+	return closure;
+#else
+	return nullptr;
+#endif
+}
+ObjClass* ScriptManager::NewClass(Uint32 hash) {
+	ObjClass* klass = ALLOCATE_OBJ(ObjClass, OBJ_CLASS);
+	Memory::Track(klass, "NewClass");
+	klass->Hash = hash;
+	klass->Methods = new Table(NULL, 4);
+	klass->Fields = new Table(NULL, 16);
+	klass->Initializer = NULL_VAL;
+	klass->Name = StringUtils::Create(GetClassName(hash));
+#ifdef HSL_VM
+	DefineNative(klass, "GetClass", VM_GetClass);
+#endif
+	return klass;
+}
+ObjClass* ScriptManager::NewClass(const char* className) {
+	ObjClass* klass = NewClass(GetClassHash(className));
+	klass->Name = (char*)Memory::Realloc(klass->Name, strlen(className) + 1);
+	memcpy(klass->Name, className, strlen(className) + 1);
+	return klass;
+}
+ObjInstance* ScriptManager::NewInstance(ObjClass* klass) {
+	ObjInstance* instance = (ObjInstance*)ImplInstance->New(sizeof(ObjInstance), OBJ_INSTANCE);
+	instance->Object.Class = klass;
+	return instance;
+}
+ObjEntity* ScriptManager::NewEntity(ObjClass* klass) {
+#ifndef HSL_STANDALONE
+	return (ObjEntity*)ImplEntity->New(klass);
+#else
+	return nullptr;
+#endif
+}
+ObjBoundMethod* ScriptManager::NewBoundMethod(VMValue receiver, ObjFunction* method) {
+	ObjBoundMethod* bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
+	Memory::Track(bound, "NewBoundMethod");
+	bound->Receiver = receiver;
+	bound->Method = method;
+	return bound;
+}
+ObjArray* ScriptManager::NewArray() {
+	return (ObjArray*)ImplArray->New();
+}
+ObjMap* ScriptManager::NewMap() {
+	return (ObjMap*)ImplMap->New();
+}
+ObjNamespace* ScriptManager::NewNamespace(Uint32 hash) {
+	ObjNamespace* ns = ALLOCATE_OBJ(ObjNamespace, OBJ_NAMESPACE);
+	Memory::Track(ns, "NewNamespace");
+	ns->Fields = new Table(NULL, 16);
+	ns->Name = StringUtils::Create(GetClassName(hash));
+	return ns;
+}
+ObjNamespace* ScriptManager::NewNamespace(const char* nsName) {
+	ObjNamespace* ns = NewNamespace(GetClassHash(nsName));
+	ns->Name = (char*)Memory::Realloc(ns->Name, strlen(nsName) + 1);
+	memcpy(ns->Name, nsName, strlen(nsName) + 1);
+	return ns;
+}
+ObjEnum* ScriptManager::NewEnum(Uint32 hash) {
+	ObjEnum* enumeration = ALLOCATE_OBJ(ObjEnum, OBJ_ENUM);
+	Memory::Track(enumeration, "NewEnum");
+	enumeration->Fields = new Table(NULL, 16);
+	enumeration->Name = StringUtils::Create(GetClassName(hash));
+	return enumeration;
+}
+ObjModule* ScriptManager::NewModule() {
+	ObjModule* module = ALLOCATE_OBJ(ObjModule, OBJ_MODULE);
+	Memory::Track(module, "NewModule");
+	module->Functions = new vector<ObjFunction*>();
+	module->Locals = new vector<VMValue>();
+	return module;
+}
+Obj* ScriptManager::NewNativeInstance(size_t size) {
+	Obj* obj = ImplInstance->New(size, OBJ_NATIVE_INSTANCE);
+	Memory::Track(obj, "NewNativeInstance");
+	return obj;
+}
+
+std::string ScriptManager::GetClassName(Uint32 hash) {
+#ifdef HSL_VM
+	if (Tokens && Tokens->Exists(hash)) {
+		char* t = Tokens->Get(hash);
+		return std::string(t);
+	}
+	else
+#endif
+	{
+		char nameHash[9];
+		snprintf(nameHash, sizeof(nameHash), "%8X", hash);
+		return std::string(nameHash);
+	}
+}
+
+VMValue ScriptManager::CastValueAsString(VMValue v) {
+	if (IS_STRING(v)) {
+		return v;
+	}
+
+	char* buffer = (char*)malloc(512);
+	PrintBuffer buffer_info;
+	buffer_info.Buffer = &buffer;
+	buffer_info.WriteIndex = 0;
+	buffer_info.BufferSize = 512;
+	ValuePrinter::Print(&buffer_info, v, false);
+	v = OBJECT_VAL(CopyString(buffer, buffer_info.WriteIndex));
+	free(buffer);
+	return v;
+}
+VMValue ScriptManager::ConcatenateValues(VMValue va, VMValue vb) {
+	ObjString* a = AS_STRING(va);
+	ObjString* b = AS_STRING(vb);
+
+	size_t length = a->Length + b->Length;
+	ObjString* result = AllocString(length);
+
+	memcpy(result->Chars, a->Chars, a->Length);
+	memcpy(result->Chars + a->Length, b->Chars, b->Length);
+	result->Chars[length] = 0;
+	return OBJECT_VAL(result);
+}
+VMValue ScriptManager::ValueFromProperty(Property property) {
+	switch (property.Type) {
+	case PROPERTY_NULL:
+		return NULL_VAL;
+	case PROPERTY_INTEGER:
+		return INTEGER_VAL(property.as.Integer);
+	case PROPERTY_DECIMAL:
+		return DECIMAL_VAL(property.as.Decimal);
+	case PROPERTY_BOOL:
+		return INTEGER_VAL(property.as.Bool ? 1 : 0);
+	case PROPERTY_STRING:
+		return OBJECT_VAL(CopyString(property.as.String));
+	case PROPERTY_ARRAY: {
+		if (ScriptManager::Lock()) {
+			ObjArray* array = NewArray();
+			for (size_t i = 0; i < property.as.Array.Count; i++) {
+				Property* data = (Property*)property.as.Array.Data;
+				array->Values->push_back(ValueFromProperty(data[i]));
+			}
+			ScriptManager::Unlock();
+			return OBJECT_VAL(array);
+		}
+		return NULL_VAL;
+	}
+	default:
+		break;
+	}
+
+	return NULL_VAL;
+}

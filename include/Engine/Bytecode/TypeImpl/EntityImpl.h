@@ -2,7 +2,7 @@
 #define ENGINE_BYTECODE_TYPEIMPL_ENTITYIMPL_H
 
 #include <Engine/Bytecode/Types.h>
-#include <Engine/Includes/Standard.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
 #define ENTITY_NATIVE_FN_LIST \
 	ENTITY_NATIVE_FN(SetAnimation) \
@@ -35,47 +35,55 @@
 	ENTITY_NATIVE_FN(StopSound) \
 	ENTITY_NATIVE_FN(StopAllSounds)
 
-class EntityImpl {
+class ScriptManager;
+
+class EntityImpl : public TypeImpl {
+private:
+	Uint32 Hash_HitboxLeft = 0;
+	Uint32 Hash_HitboxTop = 0;
+	Uint32 Hash_HitboxRight = 0;
+	Uint32 Hash_HitboxBottom = 0;
+
 public:
-	static ObjClass* Class;
-	static ObjClass* ParentClass;
+	ObjClass* ParentClass;
 
-	static void Init();
+	EntityImpl(ScriptManager* manager);
 
-	static Obj* New(ObjClass* klass);
+	Obj* New(ObjClass* klass);
+	static void Dispose(Obj* object);
 
-	static bool VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
-	static bool VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
+	static bool VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, VMThread* thread);
+	static bool VM_PropertySet(Obj* object, Uint32 hash, VMValue value, VMThread* thread);
 
-	static VMValue VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_ResetAnimation(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_Animate(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetUpdatePriority(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_SetUpdatePriority(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetIDWithinClass(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_ApplyMotion(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_InView(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_CollidedWithObject(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_CollideWithObject(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_SolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_TopSolidCollideWithObject(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_PropertyExists(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_SetViewVisibility(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_SetViewOverride(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_PlaySound(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_LoopSound(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_StopSound(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_StopAllSounds(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_SetAnimation(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_ResetAnimation(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_Animate(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_GetUpdatePriority(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_SetUpdatePriority(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_GetIDWithinClass(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_AddToRegistry(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_IsInRegistry(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_RemoveFromRegistry(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_ApplyMotion(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_InView(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_CollidedWithObject(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_GetHitboxFromSprite(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_ReturnHitbox(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_CollideWithObject(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_SolidCollideWithObject(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_TopSolidCollideWithObject(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_ApplyPhysics(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_PropertyExists(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_PropertyGet(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_SetViewVisibility(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_SetViewOverride(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_AddToDrawGroup(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_IsInDrawGroup(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_RemoveFromDrawGroup(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_PlaySound(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_LoopSound(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_StopSound(int argCount, VMValue* args, VMThread* thread);
+	static VMValue VM_StopAllSounds(int argCount, VMValue* args, VMThread* thread);
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_ENTITYIMPL_H */

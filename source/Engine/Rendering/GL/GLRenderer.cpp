@@ -3123,10 +3123,6 @@ void GLRenderer::DrawSprite(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
-		return;
-	}
-
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 	Graphics::Save();
 	Graphics::Translate(x, y, 0.0f);
@@ -3155,10 +3151,6 @@ void GLRenderer::DrawSpritePart(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
-		return;
-	}
-
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 	if (sx == animframe.Width) {
 		return;

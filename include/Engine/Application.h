@@ -26,6 +26,8 @@
 
 #define DEFAULT_SAVES_DIR "saves"
 
+class ScriptManager;
+
 class Application {
 private:
 	static char GameIdentifier[256];
@@ -136,6 +138,7 @@ public:
 	static int MasterVolume;
 	static int MusicVolume;
 	static int SoundVolume;
+	static ScriptManager* GlobalScriptManager;
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
 	static bool DisableDefaultActions;

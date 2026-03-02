@@ -1,12 +1,13 @@
-#include <Engine/IO/Serializer.h>
-
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/IO/Serializer.h>
 #include <Engine/Utilities/StringUtils.h>
 
 Uint32 Serializer::Magic = 0x9D939FF0;
 Uint32 Serializer::Version = 0x00000001;
 
-Serializer::Serializer(Stream* stream) {
+Serializer::Serializer(Stream* stream, ScriptManager* manager) {
+	Manager = manager;
 	StreamPtr = stream;
 	ObjToID.clear();
 	ObjList.clear();
@@ -329,19 +330,19 @@ void Serializer::GetObject() {
 			return;
 		}
 		Uint32 length = StringList[stringID].Length;
-		ObjString* string = AllocString(length);
+		ObjString* string = Manager->AllocString(length);
 		memcpy(string->Chars, StringList[stringID].Chars, length);
 		ObjList.push_back((Obj*)string);
 		return;
 	}
 	case Serializer::OBJ_TYPE_ARRAY: {
-		ObjArray* array = NewArray();
+		ObjArray* array = Manager->NewArray();
 		ObjList.push_back((Obj*)array);
 		StreamPtr->Skip(size);
 		return;
 	}
 	case Serializer::OBJ_TYPE_MAP: {
-		ObjMap* map = NewMap();
+		ObjMap* map = Manager->NewMap();
 		ObjList.push_back((Obj*)map);
 		StreamPtr->Skip(size);
 		return;

@@ -2,18 +2,18 @@
 #define ENGINE_BYTECODE_TYPEIMPL_FUNCTIONIMPL_H
 
 #include <Engine/Bytecode/Types.h>
-#include <Engine/Includes/Standard.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
-class FunctionImpl {
+class ScriptManager;
+
+class FunctionImpl : public TypeImpl {
 public:
-	static ObjClass* Class;
+	FunctionImpl(ScriptManager* manager);
 
-	static void Init();
-
-	static Obj* New();
+	Obj* New();
 
 #ifdef HSL_VM
-	static VMValue VM_Bind(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_Bind(int argCount, VMValue* args, VMThread* thread);
 #endif
 };
 

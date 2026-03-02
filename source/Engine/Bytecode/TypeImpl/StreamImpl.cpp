@@ -6,17 +6,17 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/IO/Stream.h>
 
-ObjClass* StreamImpl::Class = nullptr;
+StreamImpl::StreamImpl(ScriptManager* manager) {
+	Manager = manager;
+	Class = Manager->NewClass(CLASS_STREAM);
 
-void StreamImpl::Init() {
-	Class = NewClass(CLASS_STREAM);
+	TypeImpl::RegisterClass(manager, Class);
 
-	TypeImpl::RegisterClass(Class);
 	TypeImpl::DefinePrintableName(Class, "stream");
 }
 
 ObjStream* StreamImpl::New(void* streamPtr, bool writable) {
-	ObjStream* stream = (ObjStream*)NewNativeInstance(sizeof(ObjStream));
+	ObjStream* stream = (ObjStream*)Manager->NewNativeInstance(sizeof(ObjStream));
 	Memory::Track(stream, "NewStream");
 	stream->Object.Class = Class;
 	stream->InstanceObj.Destructor = Dispose;

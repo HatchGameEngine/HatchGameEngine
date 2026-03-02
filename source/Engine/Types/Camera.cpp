@@ -1,6 +1,8 @@
 #include <Engine/Bytecode/GarbageCollector.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/Types.h>
+#include <Engine/Bytecode/VMThread.h>
 #include <Engine/Scene.h>
 #include <Engine/Types/Camera.h>
 
@@ -12,8 +14,8 @@
 #ifdef SCRIPTABLE_ENTITY
 ObjClass* Camera_Class = nullptr;
 
-bool Camera_VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
-bool Camera_VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
+bool Camera_VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, VMThread* thread);
+bool Camera_VM_PropertySet(Obj* object, Uint32 hash, VMValue value, VMThread* thread);
 #endif
 
 /***
@@ -41,17 +43,17 @@ DECLARE_ENTITY_FIELD(Camera, ViewIndex);
 */
 DECLARE_ENTITY_FIELD(Camera, UseBounds);
 
-void Camera::ClassLoad() {
-	REGISTER_ENTITY(Camera);
+void Camera::ClassLoad(void* manager) {
+	REGISTER_ENTITY(Camera, manager);
 	REGISTER_ENTITY_FIELD(Camera, TargetEntity);
 	REGISTER_ENTITY_FIELD(Camera, ViewIndex);
 	REGISTER_ENTITY_FIELD(Camera, UseBounds);
 }
-void Camera::ClassUnload() {
-	UNREGISTER_ENTITY(Camera);
+void Camera::ClassUnload(void* manager) {
+	UNREGISTER_ENTITY(Camera, manager);
 }
 
-Entity* Camera::Spawn() {
+Entity* Camera::Spawn(void* manager) {
 	Camera* camera = new Camera;
 
 #ifdef SCRIPTABLE_ENTITY
@@ -98,7 +100,7 @@ void Camera::MarkForGarbageCollection() {
 	ScriptEntity::MarkForGarbageCollection();
 
 	if (TargetEntity) {
-		GarbageCollector::GrayObject(((ScriptEntity*)TargetEntity)->Instance);
+		Manager->GC->GrayObject(((ScriptEntity*)TargetEntity)->Instance);
 	}
 }
 #endif
@@ -173,7 +175,7 @@ void Camera::FixedUpdateLate() {
 }
 
 #ifdef SCRIPTABLE_ENTITY
-VMValue Camera_FieldGet_TargetEntity(Camera* camera, Uint32 threadID) {
+VMValue Camera_FieldGet_TargetEntity(Camera* camera, VMThread* thread) {
 	if (camera->TargetEntity) {
 		return OBJECT_VAL(((ScriptEntity*)camera->TargetEntity)->Instance);
 	}
@@ -181,7 +183,7 @@ VMValue Camera_FieldGet_TargetEntity(Camera* camera, Uint32 threadID) {
 		return NULL_VAL;
 	}
 }
-void Camera_FieldSet_TargetEntity(Camera* camera, VMValue value, Uint32 threadID) {
+void Camera_FieldSet_TargetEntity(Camera* camera, VMValue value, VMThread* thread) {
 	if (IS_NULL(value)) {
 		camera->TargetEntity = nullptr;
 	}
@@ -193,11 +195,11 @@ void Camera_FieldSet_TargetEntity(Camera* camera, VMValue value, Uint32 threadID
 	}
 }
 
-VMValue Camera_FieldGet_ViewIndex(Camera* camera, Uint32 threadID) {
+VMValue Camera_FieldGet_ViewIndex(Camera* camera, VMThread* thread) {
 	return INTEGER_VAL(camera->ViewIndex);
 }
-void Camera_FieldSet_ViewIndex(Camera* camera, VMValue value, Uint32 threadID) {
-	if (!ScriptManager::DoIntegerConversion(value, threadID)) {
+void Camera_FieldSet_ViewIndex(Camera* camera, VMValue value, VMThread* thread) {
+	if (!thread->DoIntegerConversion(value)) {
 		return;
 	}
 
@@ -206,7 +208,7 @@ void Camera_FieldSet_ViewIndex(Camera* camera, VMValue value, Uint32 threadID) {
 		camera->ViewIndex = viewIndex;
 	}
 	else {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+		thread->ThrowRuntimeError(false,
 			"View index %d out of range. (%d - %d)",
 			viewIndex,
 			0,
@@ -214,33 +216,33 @@ void Camera_FieldSet_ViewIndex(Camera* camera, VMValue value, Uint32 threadID) {
 	}
 }
 
-VMValue Camera_FieldGet_UseBounds(Camera* camera, Uint32 threadID) {
+VMValue Camera_FieldGet_UseBounds(Camera* camera, VMThread* thread) {
 	return INTEGER_VAL(camera->UseBounds);
 }
-void Camera_FieldSet_UseBounds(Camera* camera, VMValue value, Uint32 threadID) {
-	if (!ScriptManager::DoIntegerConversion(value, threadID)) {
+void Camera_FieldSet_UseBounds(Camera* camera, VMValue value, VMThread* thread) {
+	if (!thread->DoIntegerConversion(value)) {
 		return;
 	}
 
 	camera->UseBounds = AS_INTEGER(value) ? true : false;
 }
 
-bool Camera_VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
+bool Camera_VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, VMThread* thread) {
 	Camera* entity = (Camera*)((ObjEntity*)object)->EntityPtr;
 
 	ENTITY_GET_FIELD(Camera, TargetEntity);
 	ENTITY_GET_FIELD(Camera, ViewIndex);
 	ENTITY_GET_FIELD(Camera, UseBounds);
 
-	return EntityImpl::VM_PropertyGet(object, hash, result, threadID);
+	return EntityImpl::VM_PropertyGet(object, hash, result, thread);
 }
-bool Camera_VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
+bool Camera_VM_PropertySet(Obj* object, Uint32 hash, VMValue value, VMThread* thread) {
 	Camera* entity = (Camera*)((ObjEntity*)object)->EntityPtr;
 
 	ENTITY_SET_FIELD(Camera, TargetEntity);
 	ENTITY_SET_FIELD(Camera, ViewIndex);
 	ENTITY_SET_FIELD(Camera, UseBounds);
 
-	return EntityImpl::VM_PropertySet(object, hash, value, threadID);
+	return EntityImpl::VM_PropertySet(object, hash, value, thread);
 }
 #endif

@@ -79,9 +79,9 @@ void ObjectList::Clear() {
 }
 
 // ObjectList functions
-Entity* ObjectList::Spawn() {
+Entity* ObjectList::Spawn(void* manager) {
 	if (SpawnFunction) {
-		return SpawnFunction(this->ObjectName);
+		return SpawnFunction(manager, ObjectName);
 	}
 	return nullptr;
 }

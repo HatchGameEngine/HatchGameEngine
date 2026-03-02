@@ -29,7 +29,7 @@ VMValue ScriptREPL::ExecuteCode(VMThread* thread, CallFrame* frame, const char* 
 	// Prepare the compiler
 	Compiler::PrepareCompiling();
 
-	Compiler* compiler = new Compiler;
+	Compiler* compiler = new Compiler(thread->Manager);
 	compiler->InREPL = true;
 	compiler->CurrentSettings = settings;
 
@@ -144,7 +144,7 @@ VMValue ScriptREPL::ExecuteCode(VMThread* thread, CallFrame* frame, const char* 
 	// Compile the code
 	ObjModule* module = nullptr;
 	try {
-		module = ScriptManager::CompileAndLoad(thread, compiler, code, nullptr);
+		module = thread->Manager->CompileAndLoad(thread, compiler, code, nullptr);
 	} catch (const CompilerErrorException& error) {
 		delete compiler;
 		Compiler::FinishCompiling();
@@ -190,7 +190,7 @@ VMValue ScriptREPL::ExecuteCode(VMThread* thread, CallFrame* frame, const char* 
 			}
 
 #ifdef VM_DEBUG
-			ScriptManager::AddSourceFile("repl", StringUtils::Duplicate(code));
+			thread->Manager->AddSourceFile("repl", StringUtils::Duplicate(code));
 #endif
 
 			thread->RunInstructionSet();

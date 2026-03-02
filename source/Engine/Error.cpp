@@ -20,6 +20,8 @@ void Error::ShowFatal(const char* errorString, bool showMessageBox) {
 
 	Application::Cleanup();
 	exit(-1);
+#elif HSL_LIBRARY
+	abort();
 #else
 	StandaloneExit(errorString);
 #endif

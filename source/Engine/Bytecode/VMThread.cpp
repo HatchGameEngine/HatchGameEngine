@@ -40,11 +40,6 @@ enum {
 // Bytecode area, which contains function bytecode
 // Tokens & Strings
 
-#define __Tokens__ ScriptManager::Tokens
-
-bool VMThread::InstructionIgnoreMap[0x100];
-std::jmp_buf VMThread::JumpBuffer;
-
 // #region Error Handling & Debug Info
 std::string VMThread::GetFunctionName(ObjFunction* function) {
 	if (function->Index == 0) {
@@ -65,8 +60,8 @@ std::string VMThread::GetFunctionName(ObjFunction* function) {
 char* VMThread::GetToken(Uint32 hash) {
 	static char GetTokenBuffer[256];
 
-	if (__Tokens__ && __Tokens__->Exists(hash)) {
-		return __Tokens__->Get(hash);
+	if (Manager->Tokens && Manager->Tokens->Exists(hash)) {
+		return Manager->Tokens->Get(hash);
 	}
 
 	snprintf(GetTokenBuffer, 15, "%X", hash);
@@ -75,8 +70,8 @@ char* VMThread::GetToken(Uint32 hash) {
 char* VMThread::GetVariableOrMethodName(Uint32 hash) {
 	static char GetTokenBuffer[256];
 
-	if (__Tokens__ && __Tokens__->Exists(hash)) {
-		char* hashStr = __Tokens__->Get(hash);
+	if (Manager->Tokens && Manager->Tokens->Exists(hash)) {
+		char* hashStr = Manager->Tokens->Get(hash);
 		snprintf(GetTokenBuffer, sizeof GetTokenBuffer, "\"%s\"", hashStr);
 	}
 	else {
@@ -220,7 +215,7 @@ int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
 	int errResult = ERROR_RES_EXIT;
 
 	bool showMessageBox = true;
-	if (VMThread::InstructionIgnoreMap[000000000]) {
+	if (InstructionIgnoreMap[000000000]) {
 		showMessageBox = false;
 	}
 
@@ -285,14 +280,14 @@ int VMThread::ThrowRuntimeError(bool fatal, const char* errorMessage, ...) {
 		return ERROR_RES_EXIT;
 	// Ignore All
 	case 2:
-		VMThread::InstructionIgnoreMap[000000000] = true;
+		InstructionIgnoreMap[000000000] = true;
 		return ERROR_RES_CONTINUE;
 	}
 
 	return ERROR_RES_CONTINUE;
 #else
 #ifdef HSL_LIBRARY
-	hsl_ErrorResponse result = HandleVMRuntimeError(fatal ? HSL_FATAL_ERROR : HSL_RUNTIME_ERROR, std::string(textBuffer));
+	hsl_ErrorResponse result = HandleVMRuntimeError(Manager, fatal ? HSL_FATAL_ERROR : HSL_RUNTIME_ERROR, std::string(textBuffer));
 	if (result == HSL_ERROR_RES_CONTINUE) {
 		errResult = ERROR_RES_CONTINUE;
 	}
@@ -356,7 +351,7 @@ int VMThread::ShowErrorFromScript(const char* errorString, bool detailed) {
 	return ERROR_RES_CONTINUE;
 #else
 #ifdef HSL_LIBRARY
-	hsl_ErrorResponse result = HandleVMRuntimeError(HSL_SCRIPT_ERROR, std::string(textBuffer));
+	hsl_ErrorResponse result = HandleVMRuntimeError(Manager, HSL_SCRIPT_ERROR, std::string(textBuffer));
 	if (result == HSL_ERROR_RES_CONTINUE) {
 		errResult = ERROR_RES_CONTINUE;
 	}
@@ -477,7 +472,7 @@ bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 	PrintStack();
 #endif
 
-	if (VMThread::InstructionIgnoreMap[000000001]) {
+	if (InstructionIgnoreMap[000000001]) {
 		free(textBuffer);
 		return false;
 	}
@@ -515,14 +510,14 @@ bool VMThread::ShowBranchLimitMessage(const char* errorMessage, ...) {
 		break;
 	// Ignore All
 	case 2:
-		VMThread::InstructionIgnoreMap[000000001] = true;
+		InstructionIgnoreMap[000000001] = true;
 	// Break Out
 	case 0:
 		return false;
 	}
 #else
 #ifdef HSL_LIBRARY
-	hsl_ErrorResponse result = HandleVMRuntimeError(HSL_HIT_BRANCH_LIMIT, std::string(textBuffer));
+	hsl_ErrorResponse result = HandleVMRuntimeError(Manager, HSL_HIT_BRANCH_LIMIT, std::string(textBuffer));
 	if (result == HSL_ERROR_RES_EXIT) {
 		errResult = false;
 	}
@@ -929,7 +924,7 @@ int VMThread::RunInstruction() {
 	frame->IPLast = frame->IP;
 
 #ifdef VM_DEBUG
-	if (ScriptManager::BreakpointsEnabled && BreakpointsPerFunction.count(frame->Function)) {
+	if (Manager->BreakpointsEnabled && BreakpointsPerFunction.count(frame->Function)) {
 		Uint8* bp = BreakpointsPerFunction[frame->Function];
 		Uint32 position = frame->IP - frame->IPStart;
 
@@ -975,11 +970,11 @@ int VMThread::RunInstruction() {
 	}
 	VM_CASE(OP_DEFINE_GLOBAL) {
 		Uint32 hash = ReadUInt32(frame);
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			VMValue value = Peek(0);
 			// If it already exists,
 			VMValue originalValue;
-			if (ScriptManager::Globals->GetIfExists(hash, &originalValue)) {
+			if (Manager->Globals->GetIfExists(hash, &originalValue)) {
 				// If the value is a class and original
 				// is a class,
 				if (IS_CLASS(value) && IS_CLASS(originalValue)) {
@@ -987,11 +982,11 @@ int VMThread::RunInstruction() {
 				}
 				// Otherwise,
 				else {
-					ScriptManager::Globals->Put(hash, value);
+					Manager->Globals->Put(hash, value);
 				}
 			}
 			// Otherwise, if it's a constant,
-			else if (ScriptManager::Constants->GetIfExists(hash, &originalValue)) {
+			else if (Manager->Constants->GetIfExists(hash, &originalValue)) {
 				// If the value is a class and original
 				// is a class,
 				if (IS_CLASS(value) && IS_CLASS(originalValue)) {
@@ -1006,21 +1001,21 @@ int VMThread::RunInstruction() {
 			}
 			// Otherwise,
 			else {
-				ScriptManager::Globals->Put(hash, value);
+				Manager->Globals->Put(hash, value);
 			}
 			Pop();
-			ScriptManager::Unlock();
+			Manager->Unlock();
 		}
 		VM_BREAK;
 	}
 
 	VM_CASE(OP_DEFINE_CONSTANT) {
 		Uint32 hash = ReadUInt32(frame);
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			VMValue value = Peek(0);
 			// If it already exists,
 			VMValue originalValue;
-			if (ScriptManager::Constants->GetIfExists(hash, &originalValue)) {
+			if (Manager->Constants->GetIfExists(hash, &originalValue)) {
 				// If the value is a class and original
 				// is a class,
 				if (IS_CLASS(value) && IS_CLASS(originalValue)) {
@@ -1036,7 +1031,7 @@ int VMThread::RunInstruction() {
 				}
 			}
 			// Otherwise, if it's a global,
-			if (ScriptManager::Globals->GetIfExists(hash, &originalValue)) {
+			if (Manager->Globals->GetIfExists(hash, &originalValue)) {
 				// If the value is a class and original
 				// is a class,
 				if (IS_CLASS(value) && IS_CLASS(originalValue)) {
@@ -1052,10 +1047,10 @@ int VMThread::RunInstruction() {
 			}
 			// Otherwise,
 			else {
-				ScriptManager::Constants->Put(hash, value);
+				Manager->Constants->Put(hash, value);
 			}
 			Pop();
-			ScriptManager::Unlock();
+			Manager->Unlock();
 		}
 		VM_BREAK;
 	}
@@ -1087,12 +1082,12 @@ int VMThread::RunInstruction() {
 		if (IS_INSTANCEABLE(object)) {
 			ObjInstance* instance = AS_INSTANCE(object);
 
-			if (ScriptManager::Lock()) {
+			if (Manager->Lock()) {
 				// Fields have priority over methods
 				if (instance->Fields->Exists(hash)) {
 					Pop();
 					Push(INTEGER_VAL(true));
-					ScriptManager::Unlock();
+					Manager->Unlock();
 					VM_BREAK;
 				}
 
@@ -1104,7 +1099,7 @@ int VMThread::RunInstruction() {
 					    instance->PropertyGet)) {
 					Pop();
 					Push(INTEGER_VAL(true));
-					ScriptManager::Unlock();
+					Manager->Unlock();
 					VM_BREAK;
 				}
 			}
@@ -1113,11 +1108,11 @@ int VMThread::RunInstruction() {
 		else if (IS_CLASS(object)) {
 			ObjClass* klass = AS_CLASS(object);
 
-			if (ScriptManager::Lock()) {
+			if (Manager->Lock()) {
 				if (HasProperty(klass, hash)) {
 					Pop();
 					Push(INTEGER_VAL(true));
-					ScriptManager::Unlock();
+					Manager->Unlock();
 					VM_BREAK;
 				}
 			}
@@ -1125,11 +1120,11 @@ int VMThread::RunInstruction() {
 		// Otherwise, if it's a namespace,
 		else if (IS_NAMESPACE(object)) {
 			ObjNamespace* ns = AS_NAMESPACE(object);
-			if (ScriptManager::Lock()) {
+			if (Manager->Lock()) {
 				if (ns->Fields->Exists(hash)) {
 					Pop();
 					Push(INTEGER_VAL(true));
-					ScriptManager::Unlock();
+					Manager->Unlock();
 					VM_BREAK;
 				}
 			}
@@ -1137,7 +1132,7 @@ int VMThread::RunInstruction() {
 		// If it's any other object,
 		else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
 			Obj* objPtr = AS_OBJECT(object);
-			if (ScriptManager::Lock()) {
+			if (Manager->Lock()) {
 				bool hasProperty = false;
 				if (HasProperty(objPtr, objPtr->Class, hash, false, objPtr->Class->PropertyGet)) {
 					hasProperty = true;
@@ -1145,7 +1140,7 @@ int VMThread::RunInstruction() {
 
 				Pop();
 				Push(INTEGER_VAL(hasProperty));
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				VM_BREAK;
 			}
 		}
@@ -1157,7 +1152,7 @@ int VMThread::RunInstruction() {
 
 		Pop();
 		Push(INTEGER_VAL(false));
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		VM_BREAK;
 	}
 	VM_CASE(OP_GET_ELEMENT) {
@@ -1189,8 +1184,8 @@ int VMThread::RunInstruction() {
 	// Object Allocations (heap)
 	VM_CASE(OP_NEW_ARRAY) {
 		Uint32 count = ReadUInt32(frame);
-		if (ScriptManager::Lock()) {
-			ObjArray* array = NewArray();
+		if (Manager->Lock()) {
+			ObjArray* array = Manager->NewArray();
 			array->Values->reserve(count);
 			for (int i = count - 1; i >= 0; i--) {
 				array->Values->push_back(Peek(i));
@@ -1199,14 +1194,14 @@ int VMThread::RunInstruction() {
 				Pop();
 			}
 			Push(OBJECT_VAL(array));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 		}
 		VM_BREAK;
 	}
 	VM_CASE(OP_NEW_MAP) {
 		Uint32 count = ReadUInt32(frame);
-		if (ScriptManager::Lock()) {
-			ObjMap* map = NewMap();
+		if (Manager->Lock()) {
+			ObjMap* map = Manager->NewMap();
 			for (int i = count - 1; i >= 0; i--) {
 				char* keystr = AS_CSTRING(Peek(i * 2 + 1));
 				map->Values->Put(keystr, Peek(i * 2));
@@ -1217,7 +1212,7 @@ int VMThread::RunInstruction() {
 				Pop();
 			}
 			Push(OBJECT_VAL(map));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 		}
 		VM_BREAK;
 	}
@@ -1326,10 +1321,10 @@ int VMThread::RunInstruction() {
 			case SWITCH_CASE_TYPE_GLOBAL: {
 				Uint32 hash = ReadUInt32(frame);
 				VMValue global_value = NULL_VAL;
-				if (ScriptManager::Lock()) {
-					if (!ScriptManager::Globals->GetIfExists(
+				if (Manager->Lock()) {
+					if (!Manager->Globals->GetIfExists(
 						    hash, &global_value) &&
-						!ScriptManager::Constants->GetIfExists(
+						!Manager->Constants->GetIfExists(
 							hash, &global_value)) {
 						ThrowRuntimeError(false,
 							"Variable %s does not exist.",
@@ -1338,7 +1333,7 @@ int VMThread::RunInstruction() {
 					else {
 						global_value = Value::Delink(global_value);
 					}
-					ScriptManager::Unlock();
+					Manager->Unlock();
 				}
 				if (Value::SortaEqual(switch_value, global_value)) {
 					frame->IP = end + offset;
@@ -1398,6 +1393,8 @@ int VMThread::RunInstruction() {
 
 #ifndef HSL_STANDALONE
 		Log::Print(Log::LOG_INFO, "%s", textBuffer);
+#elif HSL_LIBRARY
+		printf("%s\n", textBuffer);
 #else
 		Log::PrintSimple("%s\n", textBuffer);
 #endif
@@ -1575,8 +1572,8 @@ int VMThread::RunInstruction() {
 			bool result = false;
 			int startIndex = 0;
 			VMValue* newReceiver = nullptr;
-			if (ScriptManager::HasWithIteratorHandler) {
-				result = ScriptManager::CallWithIteratorHandler(WITH_STATE_INIT, receiver, &startIndex, &newReceiver);
+			if (Manager->HasWithIteratorHandler) {
+				result = Manager->CallWithIteratorHandler(WITH_STATE_INIT, receiver, &startIndex, &newReceiver);
 			}
 
 			Pop(); // pop receiver
@@ -1725,8 +1722,8 @@ int VMThread::RunInstruction() {
 #ifdef HSL_LIBRARY
 			bool result = false;
 			VMValue* newReceiver = nullptr;
-			if (ScriptManager::HasWithIteratorHandler) {
-				result = ScriptManager::CallWithIteratorHandler(WITH_STATE_ITERATE, NULL_VAL, &it.index, &newReceiver);
+			if (Manager->HasWithIteratorHandler) {
+				result = Manager->CallWithIteratorHandler(WITH_STATE_ITERATE, NULL_VAL, &it.index, &newReceiver);
 			}
 			if (result) {
 				JUMP_BACK(offset);
@@ -1804,8 +1801,8 @@ int VMThread::RunInstruction() {
 			WithIter it = frame->WithIteratorStackTop[-1];
 
 #ifdef HSL_LIBRARY
-			if (ScriptManager::HasWithIteratorHandler) {
-				ScriptManager::CallWithIteratorHandler(WITH_STATE_FINISH, NULL_VAL, &it.index, nullptr);
+			if (Manager->HasWithIteratorHandler) {
+				Manager->CallWithIteratorHandler(WITH_STATE_FINISH, NULL_VAL, &it.index, nullptr);
 			}
 #endif
 
@@ -1902,7 +1899,7 @@ int VMThread::RunInstruction() {
 		Uint32 hash = ReadUInt32(frame);
 		Uint8 type = ReadByte(frame); // Unused
 
-		ObjClass* klass = NewClass(hash);
+		ObjClass* klass = Manager->NewClass(hash);
 
 		Push(OBJECT_VAL(klass));
 		VM_BREAK;
@@ -1911,7 +1908,7 @@ int VMThread::RunInstruction() {
 		ObjClass* klass = AS_CLASS(Peek(0));
 		Uint32 hashSuper = ReadUInt32(frame);
 
-		if (!ScriptManager::ClassExists(hashSuper)) {
+		if (!Manager->ClassExists(hashSuper)) {
 			const char* className = GetVariableOrMethodName(hashSuper);
 			if (ThrowRuntimeError(false, "Class %s does not exist!", className) ==
 				ERROR_RES_CONTINUE) {
@@ -1930,7 +1927,7 @@ int VMThread::RunInstruction() {
 		}
 
 		VMValue parent;
-		if (ScriptManager::Globals->GetIfExists(hashSuper, &parent) && IS_CLASS(parent)) {
+		if (Manager->Globals->GetIfExists(hashSuper, &parent) && IS_CLASS(parent)) {
 			if (klass->Parent != nullptr) {
 				if (ThrowRuntimeError(false,
 					    "Class \"%s\" already has a parent!",
@@ -1983,7 +1980,7 @@ int VMThread::RunInstruction() {
 		Uint16 index = ReadUInt16(frame);
 		Uint32 hash = ReadUInt32(frame);
 		if ((unsigned)index < frame->Module->Functions->size()) {
-			ScriptManager::DefineMethod(this, (*frame->Module->Functions)[index], hash);
+			Manager->DefineMethod(this, (*frame->Module->Functions)[index], hash);
 		}
 		VM_BREAK;
 	}
@@ -1999,7 +1996,7 @@ int VMThread::RunInstruction() {
 		Uint8 index = ReadByte(frame);
 		Uint32 hash = ReadUInt32(frame);
 		if ((unsigned)index < frame->Module->Functions->size()) {
-			ScriptManager::DefineMethod(this, (*frame->Module->Functions)[index], hash);
+			Manager->DefineMethod(this, (*frame->Module->Functions)[index], hash);
 		}
 		VM_BREAK;
 	}
@@ -2019,7 +2016,7 @@ int VMThread::RunInstruction() {
 
 	VM_CASE(OP_NEW_ENUM) {
 		Uint32 hash = ReadUInt32(frame);
-		ObjEnum* enumeration = NewEnum(hash);
+		ObjEnum* enumeration = Manager->NewEnum(hash);
 		Push(OBJECT_VAL(enumeration));
 		VM_BREAK;
 	}
@@ -2051,12 +2048,12 @@ int VMThread::RunInstruction() {
 			goto FAIL_OP_ADD_ENUM;
 		}
 
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			VMValue value = Pop();
 			enumeration->Fields->Put(hash, value);
 			Pop();
 			Push(value);
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			VM_BREAK;
 		}
 
@@ -2064,7 +2061,7 @@ int VMThread::RunInstruction() {
 		Pop();
 		Pop();
 		Push(NULL_VAL);
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		VM_BREAK;
 	}
 
@@ -2102,7 +2099,7 @@ int VMThread::RunInstruction() {
 	FAIL_OP_GET_SUPERCLASS:
 		Pop();
 		Push(NULL_VAL);
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		VM_BREAK;
 	}
 
@@ -2130,20 +2127,20 @@ int VMThread::RunInstruction() {
 
 	VM_CASE(OP_USE_NAMESPACE) {
 		Uint32 hash = ReadUInt32(frame);
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			VMValue result;
-			if (!ScriptManager::Globals->GetIfExists(hash, &result) &&
-				!ScriptManager::Constants->GetIfExists(hash, &result)) {
+			if (!Manager->Globals->GetIfExists(hash, &result) &&
+				!Manager->Constants->GetIfExists(hash, &result)) {
 				ThrowRuntimeError(false,
 					"Namespace %s does not exist.",
 					GetVariableOrMethodName(hash));
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				VM_BREAK;
 			}
 
 			if (!IS_NAMESPACE(result)) {
 				ThrowRuntimeError(false, "Value was not a namespace.");
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				VM_BREAK;
 			}
 
@@ -2151,7 +2148,7 @@ int VMThread::RunInstruction() {
 
 			// Namespace already in use, so do nothing
 			if (ns->InUse) {
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				VM_BREAK;
 			}
 
@@ -2160,8 +2157,8 @@ int VMThread::RunInstruction() {
 
 				bool replace = true;
 
-				if (ScriptManager::Globals->GetIfExists(hash, &originalValue) ||
-					ScriptManager::Constants->GetIfExists(
+				if (Manager->Globals->GetIfExists(hash, &originalValue) ||
+					Manager->Constants->GetIfExists(
 						hash, &originalValue)) {
 					if (IS_CLASS(value) && IS_CLASS(originalValue)) {
 						DoClassExtension(value, originalValue, false);
@@ -2170,13 +2167,13 @@ int VMThread::RunInstruction() {
 				}
 
 				if (replace) {
-					ScriptManager::Globals->Put(hash, value);
+					Manager->Globals->Put(hash, value);
 				}
 			});
 
 			ns->InUse = true;
 
-			ScriptManager::Unlock();
+			Manager->Unlock();
 		}
 
 		VM_BREAK;
@@ -2589,7 +2586,7 @@ int VMThread::SuperInvoke(VMValue receiver, ObjClass* klass, Uint8 argCount, Uin
 		return INVOKE_FAIL;
 	}
 
-	ObjClass* parentClass = ScriptManager::GetClassParent(obj, klass);
+	ObjClass* parentClass = Manager->GetClassParent(obj, klass);
 	if (!parentClass) {
 		ThrowRuntimeError(false,
 			"Class '%s' does not have a parent to call method from!",
@@ -2598,7 +2595,7 @@ int VMThread::SuperInvoke(VMValue receiver, ObjClass* klass, Uint8 argCount, Uin
 	}
 
 	VMValue callable;
-	if (!ScriptManager::GetClassMethod(obj, parentClass, hash, &callable)) {
+	if (!Manager->GetClassMethod(obj, parentClass, hash, &callable)) {
 		return INVOKE_FAIL;
 	}
 
@@ -2681,11 +2678,11 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 	if (IS_INSTANCEABLE(object)) {
 		ObjInstance* instance = AS_INSTANCE(object);
 
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			// Fields have priority over methods
 			if (instance->Fields->GetIfExists(hash, &result)) {
 				result = Value::Delink(result);
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return result;
 			}
 
@@ -2696,14 +2693,14 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 				    false,
 				    instance->PropertyGet)) {
 				result = Pop();
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return result;
 			}
 
 			ThrowRuntimeError(false,
 				"Could not find %s in instance!",
 				GetVariableOrMethodName(hash));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return NULL_VAL;
 		}
 	}
@@ -2711,17 +2708,17 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 	else if (IS_CLASS(object)) {
 		ObjClass* klass = AS_CLASS(object);
 
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			if (GetProperty(klass, hash)) {
 				result = Pop();
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return result;
 			}
 
 			ThrowRuntimeError(false,
 				"Could not find %s in class!",
 				GetVariableOrMethodName(hash));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return NULL_VAL;
 		}
 	}
@@ -2729,17 +2726,17 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 	else if (IS_NAMESPACE(object)) {
 		ObjNamespace* ns = AS_NAMESPACE(object);
 
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			if (ns->Fields->GetIfExists(hash, &result)) {
 				result = Value::Delink(result);
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return result;
 			}
 
 			ThrowRuntimeError(false,
 				"Could not find %s in namespace!",
 				GetVariableOrMethodName(hash));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return NULL_VAL;
 		}
 	}
@@ -2747,17 +2744,17 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 	else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
 		Obj* objPtr = AS_OBJECT(object);
 
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			if (GetProperty(objPtr, objPtr->Class, hash, false, objPtr->Class->PropertyGet)) {
 				result = Pop();
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return result;
 			}
 
 			ThrowRuntimeError(false,
 				"Could not find %s in object!",
 				GetVariableOrMethodName(hash));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 		}
 
 		return NULL_VAL;
@@ -2807,24 +2804,24 @@ VMValue VMThread::SetProperty(VMValue object, Uint32 hash, VMValue value) {
 		return value;
 	}
 
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		VMValue field;
 		if (fields->GetIfExists(hash, &field)) {
 			if (!SetProperty(fields, hash, field, value)) {
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return value;
 			}
 		}
 		else {
-			if (setter && setter(objPtr, hash, value, this->ID)) {
-				ScriptManager::Unlock();
+			if (setter && setter(objPtr, hash, value, this)) {
+				Manager->Unlock();
 				return value;
 			}
 
 			fields->Put(hash, value);
 		}
 
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		return value;
 	}
 
@@ -2839,7 +2836,7 @@ VMValue VMThread::GetElement(VMValue object, VMValue at) {
 			return NULL_VAL;
 		}
 
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			ObjArray* array = AS_ARRAY(object);
 			int index = AS_INTEGER(at);
 			if (index < 0 || (Uint32)index >= array->Values->size()) {
@@ -2847,11 +2844,11 @@ VMValue VMThread::GetElement(VMValue object, VMValue at) {
 					"Index %d is out of bounds of array of size %d.",
 					index,
 					(int)array->Values->size());
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return NULL_VAL;
 			}
 			VMValue result = (*array->Values)[index];
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return result;
 		}
 	}
@@ -2862,12 +2859,12 @@ VMValue VMThread::GetElement(VMValue object, VMValue at) {
 			return NULL_VAL;
 		}
 
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			ObjMap* map = AS_MAP(object);
 			char* index = AS_CSTRING(at);
 			if (!*index) {
 				ThrowRuntimeError(false, "Cannot find value at empty key.");
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return NULL_VAL;
 			}
 
@@ -2876,7 +2873,7 @@ VMValue VMThread::GetElement(VMValue object, VMValue at) {
 				result = NULL_VAL;
 			}
 
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return result;
 		}
 	}
@@ -2903,25 +2900,25 @@ VMValue VMThread::GetElement(VMValue object, VMValue at) {
 				GetValueTypeString(object));
 			return NULL_VAL;
 		}
-		else if (ScriptManager::Lock()) {
+		else if (Manager->Lock()) {
 			Obj* objPtr = AS_OBJECT(object);
 			VMValue result;
 
 			if (IS_INSTANCEABLE(object)) {
 				ObjInstance* instance = AS_INSTANCE(object);
 				if (instance->ElementGet &&
-					instance->ElementGet(objPtr, at, &result, this->ID)) {
-					ScriptManager::Unlock();
+					instance->ElementGet(objPtr, at, &result, this)) {
+					Manager->Unlock();
 					return result;
 				}
 			}
 			else if (objPtr->Class && objPtr->Class->ElementGet &&
-				objPtr->Class->ElementGet(objPtr, at, &result, this->ID)) {
-				ScriptManager::Unlock();
+				objPtr->Class->ElementGet(objPtr, at, &result, this)) {
+				Manager->Unlock();
 				return result;
 			}
 
-			ScriptManager::Unlock();
+			Manager->Unlock();
 		}
 
 		ThrowRuntimeError(false,
@@ -2939,7 +2936,7 @@ VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
 			return value;
 		}
 
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			ObjArray* array = AS_ARRAY(object);
 			int index = AS_INTEGER(at);
 			if (index < 0 || (Uint32)index >= array->Values->size()) {
@@ -2947,11 +2944,11 @@ VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
 					"Index %d is out of bounds of array of size %d.",
 					index,
 					(int)array->Values->size());
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return value;
 			}
 			(*array->Values)[index] = value;
-			ScriptManager::Unlock();
+			Manager->Unlock();
 		}
 	}
 	else if (IS_MAP(object)) {
@@ -2961,18 +2958,18 @@ VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
 			return value;
 		}
 
-		if (ScriptManager::Lock()) {
+		if (Manager->Lock()) {
 			ObjMap* map = AS_MAP(object);
 			char* index = AS_CSTRING(at);
 			if (!*index) {
 				ThrowRuntimeError(false, "Cannot find value at empty key.");
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return value;
 			}
 
 			map->Values->Put(index, value);
 			map->Keys->Put(index, StringUtils::Duplicate(index));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 		}
 	}
 	else {
@@ -2982,24 +2979,24 @@ VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
 				GetValueTypeString(object));
 			return value;
 		}
-		else if (ScriptManager::Lock()) {
+		else if (Manager->Lock()) {
 			Obj* objPtr = AS_OBJECT(object);
 
 			if (IS_INSTANCEABLE(object)) {
 				ObjInstance* instance = AS_INSTANCE(object);
 				if (instance->ElementSet &&
-					instance->ElementSet(objPtr, at, value, this->ID)) {
-					ScriptManager::Unlock();
+					instance->ElementSet(objPtr, at, value, this)) {
+					Manager->Unlock();
 					return value;
 				}
 			}
 			else if (objPtr->Class && objPtr->Class->ElementSet &&
-				objPtr->Class->ElementSet(objPtr, at, value, this->ID)) {
-				ScriptManager::Unlock();
+				objPtr->Class->ElementSet(objPtr, at, value, this)) {
+				Manager->Unlock();
 				return value;
 			}
 
-			ScriptManager::Unlock();
+			Manager->Unlock();
 		}
 
 		ThrowRuntimeError(false,
@@ -3011,47 +3008,47 @@ VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
 }
 
 VMValue VMThread::GetGlobal(Uint32 hash) {
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		VMValue result;
-		if (!ScriptManager::Constants->GetIfExists(hash, &result) &&
-			!ScriptManager::Globals->GetIfExists(hash, &result)) {
+		if (!Manager->Constants->GetIfExists(hash, &result) &&
+			!Manager->Globals->GetIfExists(hash, &result)) {
 			ThrowRuntimeError(false,
 				"Variable %s does not exist.",
 				GetVariableOrMethodName(hash));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return NULL_VAL;
 		}
 
 		result = Value::Delink(result);
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		return result;
 	}
 
 	return NULL_VAL;
 }
 void VMThread::SetGlobal(Uint32 hash, VMValue value) {
-	if (!ScriptManager::Lock()) {
+	if (!Manager->Lock()) {
 		return;
 	}
 
-	if (!ScriptManager::Globals->Exists(hash)) {
-		if (ScriptManager::Constants->Exists(hash)) {
+	if (!Manager->Globals->Exists(hash)) {
+		if (Manager->Constants->Exists(hash)) {
 			ThrowRuntimeError(false,
 			    "Cannot redefine constant %s!",
 			    GetVariableOrMethodName(hash));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return;
 		}
 		else {
 			ThrowRuntimeError(false,
 				"Global variable %s does not exist.",
 				GetVariableOrMethodName(hash));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return;
 		}
 	}
 
-	VMValue LHS = ScriptManager::Globals->Get(hash);
+	VMValue LHS = Manager->Globals->Get(hash);
 	switch (LHS.Type) {
 	case VAL_LINKED_INTEGER: {
 		VMValue result = Value::CastAsInteger(value);
@@ -3080,11 +3077,11 @@ void VMThread::SetGlobal(Uint32 hash, VMValue value) {
 		break;
 	}
 	default:
-		ScriptManager::Globals->Put(hash, value);
+		Manager->Globals->Put(hash, value);
 		break;
 	}
 
-	ScriptManager::Unlock();
+	Manager->Unlock();
 }
 
 bool VMThread::GetProperty(Obj* object,
@@ -3092,26 +3089,26 @@ bool VMThread::GetProperty(Obj* object,
 	Uint32 hash,
 	bool checkFields,
 	ValueGetFn getter) {
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		VMValue value;
 
 		if (checkFields && klass->Fields->GetIfExists(hash, &value)) {
 			// Fields have priority over methods
 			Push(Value::Delink(value));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 		else if (klass->Methods->GetIfExists(hash, &value)) {
 			Push(value);
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 
 		if (getter) {
 			try {
-				if (getter(object, hash, &value, this->ID)) {
+				if (getter(object, hash, &value, this)) {
 					Push(value);
-					ScriptManager::Unlock();
+					Manager->Unlock();
 					return true;
 				}
 			} catch (const ScriptException& error) {
@@ -3119,16 +3116,16 @@ bool VMThread::GetProperty(Obj* object,
 
 				ThrowRuntimeError(false, "%s", error.what());
 
-				ScriptManager::Unlock();
+				Manager->Unlock();
 
 				// This already pushes to the stack, so it has to return true.
 				return true;
 			}
 		}
 
-		ObjClass* parentClass = ScriptManager::GetClassParent(object, klass);
+		ObjClass* parentClass = Manager->GetClassParent(object, klass);
 		if (parentClass) {
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return GetProperty(parentClass, hash, checkFields);
 		}
 		else {
@@ -3137,44 +3134,44 @@ bool VMThread::GetProperty(Obj* object,
 			Push(NULL_VAL);
 		}
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return false;
 }
 bool VMThread::GetProperty(Obj* object, Uint32 hash, ValueGetFn getter) {
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		VMValue value;
 
-		if (getter && getter(object, hash, &value, this->ID)) {
+		if (getter && getter(object, hash, &value, this)) {
 			Push(value);
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 
 		ThrowRuntimeError(false, "Undefined property %s.", GetVariableOrMethodName(hash));
 		Push(NULL_VAL);
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return false;
 }
 bool VMThread::GetProperty(ObjClass* klass, Uint32 hash, bool checkFields) {
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		VMValue value;
 
 		if (checkFields && klass->Fields->GetIfExists(hash, &value)) {
 			// Fields have priority over methods
 			Push(Value::Delink(value));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 		else if (klass->Methods->GetIfExists(hash, &value)) {
 			Push(value);
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 
 		ObjClass* parentClass = klass->Parent;
 		if (parentClass) {
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return GetProperty(parentClass, hash);
 		}
 		else {
@@ -3183,28 +3180,28 @@ bool VMThread::GetProperty(ObjClass* klass, Uint32 hash, bool checkFields) {
 			Push(NULL_VAL);
 		}
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return false;
 }
 bool VMThread::GetProperty(ObjClass* klass, Uint32 hash) {
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		VMValue value;
 
 		if (klass->Fields->GetIfExists(hash, &value)) {
 			// Fields have priority over methods
 			Push(Value::Delink(value));
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 		else if (klass->Methods->GetIfExists(hash, &value)) {
 			Push(value);
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 
 		ObjClass* parentClass = klass->Parent;
 		if (parentClass) {
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return GetProperty(parentClass, hash);
 		}
 		else {
@@ -3213,7 +3210,7 @@ bool VMThread::GetProperty(ObjClass* klass, Uint32 hash) {
 			Push(NULL_VAL);
 		}
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return false;
 }
 bool VMThread::HasProperty(Obj* object,
@@ -3221,96 +3218,96 @@ bool VMThread::HasProperty(Obj* object,
 	Uint32 hash,
 	bool checkFields,
 	ValueGetFn getter) {
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		if (checkFields && klass->Fields->Exists(hash)) {
 			// Fields have priority over methods
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 		else if (klass->Methods->Exists(hash)) {
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 
 		if (getter) {
 			try {
-				if (getter(object, hash, nullptr, this->ID)) {
-					ScriptManager::Unlock();
+				if (getter(object, hash, nullptr, this)) {
+					Manager->Unlock();
 					return true;
 				}
 			} catch (const ScriptException& error) {
 				ThrowRuntimeError(false, "%s", error.what());
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return false;
 			}
 		}
 
 		ObjClass* parentClass = klass->Parent;
 		if (parentClass) {
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return HasProperty(parentClass, hash, checkFields);
 		}
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return false;
 }
 bool VMThread::HasProperty(Obj* object, Uint32 hash, ValueGetFn getter) {
-	if (ScriptManager::Lock()) {
-		if (getter && getter(object, hash, nullptr, this->ID)) {
-			ScriptManager::Unlock();
+	if (Manager->Lock()) {
+		if (getter && getter(object, hash, nullptr, this)) {
+			Manager->Unlock();
 			return true;
 		}
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return false;
 }
 bool VMThread::HasProperty(ObjClass* klass, Uint32 hash, bool checkFields) {
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		if (checkFields && klass->Fields->Exists(hash)) {
 			// Fields have priority over methods
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 		else if (klass->Methods->Exists(hash)) {
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 
 		ObjClass* parentClass = klass->Parent;
 		if (parentClass) {
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return HasProperty(parentClass, hash, checkFields);
 		}
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return false;
 }
 bool VMThread::HasProperty(ObjClass* klass, Uint32 hash) {
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		if (klass->Methods->Exists(hash)) {
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 
 		ObjClass* parentClass = klass->Parent;
 		if (parentClass) {
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return HasProperty(parentClass, hash);
 		}
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return false;
 }
 bool VMThread::SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value) {
 	switch (field.Type) {
 	case VAL_LINKED_INTEGER:
-		if (!ScriptManager::DoIntegerConversion(value, this->ID)) {
+		if (!DoIntegerConversion(value)) {
 			return false;
 		}
 		AS_LINKED_INTEGER(field) = AS_INTEGER(value);
 		break;
 	case VAL_LINKED_DECIMAL:
-		if (!ScriptManager::DoDecimalConversion(value, this->ID)) {
+		if (!DoDecimalConversion(value)) {
 			return false;
 		}
 		AS_LINKED_DECIMAL(field) = AS_DECIMAL(value);
@@ -3321,7 +3318,7 @@ bool VMThread::SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue va
 	return true;
 }
 bool VMThread::BindMethod(VMValue receiver, VMValue method) {
-	ObjBoundMethod* bound = NewBoundMethod(receiver, AS_FUNCTION(method));
+	ObjBoundMethod* bound = Manager->NewBoundMethod(receiver, AS_FUNCTION(method));
 	Push(OBJECT_VAL(bound));
 	return true;
 }
@@ -3339,7 +3336,7 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 	}
 
 	bool result = false;
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		switch (OBJECT_TYPE(callee)) {
 		case OBJ_BOUND_METHOD:
 			result = CallBoundMethod(AS_BOUND_METHOD(callee), argCount);
@@ -3352,7 +3349,7 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 
 			VMValue returnValue = NULL_VAL;
 			try {
-				returnValue = nativeFn(argCount, StackTop - argCount, ID);
+				returnValue = nativeFn(argCount, StackTop - argCount, this);
 			} catch (const ScriptException& error) {
 				ThrowRuntimeError(false, "%s", error.what());
 			}
@@ -3368,7 +3365,7 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 			break;
 		}
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return result;
 }
 bool VMThread::CallForObject(VMValue callee, int argCount) {
@@ -3378,16 +3375,16 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 		return false;
 	}
 
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		// Special case for native functions
 		if (OBJECT_TYPE(callee) == OBJ_NATIVE_FUNCTION) {
-			NativeFn native = AS_NATIVE_FUNCTION(callee);
+			NativeFn nativeFn = AS_NATIVE_FUNCTION(callee);
 
 			VMValue returnValue = NULL_VAL;
 			try {
 				// Calling a native function for an object needs to correctly pass the receiver,
 				// which is the reason these +1 and -1 are here.
-				returnValue = native(argCount + 1, StackTop - argCount - 1, ID);
+				returnValue = nativeFn(argCount + 1, StackTop - argCount - 1, this);
 			} catch (const ScriptException& error) {
 				ThrowRuntimeError(false, "%s", error.what());
 			}
@@ -3396,30 +3393,30 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 			StackTop -= 1; // Pop receiver / class
 			Push(returnValue); // Push returned value
 
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		return CallValue(callee, argCount);
 	}
 	return false;
 }
 bool VMThread::GetArity(VMValue callee, int& minArity, int& maxArity) {
-	if (ScriptManager::Lock() && IS_OBJECT(callee)) {
+	if (Manager->Lock() && IS_OBJECT(callee)) {
 		switch (OBJECT_TYPE(callee)) {
 		case OBJ_BOUND_METHOD: {
 			ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
 			minArity = bound->Method->MinArity;
 			maxArity = bound->Method->Arity;
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 		case OBJ_FUNCTION: {
 			ObjFunction* function = AS_FUNCTION(callee);
 			minArity = function->MinArity;
 			maxArity = function->Arity;
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return true;
 		}
 		case OBJ_NATIVE_FUNCTION: // No way to know. (Yet)
@@ -3427,17 +3424,17 @@ bool VMThread::GetArity(VMValue callee, int& minArity, int& maxArity) {
 			break;
 		}
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return false;
 }
 bool VMThread::InstantiateClass(VMValue callee, int argCount) {
-	if (!ScriptManager::Lock()) {
+	if (!Manager->Lock()) {
 		return false;
 	}
 
 	if (!IS_OBJECT(callee) || OBJECT_TYPE(callee) != OBJ_CLASS) {
 		ThrowRuntimeError(false, "Cannot instantiate non-class.");
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		return false;
 	}
 
@@ -3447,20 +3444,20 @@ bool VMThread::InstantiateClass(VMValue callee, int argCount) {
 	Obj* instance;
 	if (klass->NewFn) {
 		try {
-			instance = klass->NewFn();
+			instance = klass->NewFn(this);
 		} catch (const ScriptException& error) {
 			ThrowRuntimeError(false, "%s", error.what());
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return false;
 		}
 	}
 	else {
-		instance = (Obj*)NewInstance(klass);
+		instance = (Obj*)Manager->NewInstance(klass);
 	}
 
 	if (instance == nullptr) {
 		StackTop[-argCount - 1] = NULL_VAL;
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		return false;
 	}
 
@@ -3469,16 +3466,16 @@ bool VMThread::InstantiateClass(VMValue callee, int argCount) {
 	// Call the initializer, if there is one.
 	if (HasInitializer(klass)) {
 		// Handles native functions correctly!
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		return CallForObject(klass->Initializer, argCount);
 	}
 	else if (argCount != 0) {
 		ThrowRuntimeError(false, "Expected no arguments to initializer, got %d.", argCount);
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		return false;
 	}
 
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return true;
 }
 bool VMThread::Call(ObjFunction* function, int argCount) {
@@ -3539,7 +3536,7 @@ bool VMThread::Call(ObjFunction* function, int argCount) {
 	return true;
 }
 bool VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		VMValue method;
 		if (klass->Methods->GetIfExists(hash, &method)) {
 			// Found the method, so just call it
@@ -3550,11 +3547,11 @@ bool VMThread::InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount) {
 			// inheritance chain until we find the method.
 			ObjClass* parentClass = klass->Parent;
 			if (parentClass) {
-				ScriptManager::Unlock();
+				Manager->Unlock();
 				return InvokeFromClass(parentClass, hash, argCount);
 			}
 		}
-		ScriptManager::Unlock();
+		Manager->Unlock();
 	}
 	return false;
 }
@@ -3564,33 +3561,33 @@ bool VMThread::InvokeForInstance(ObjInstance* instance,
 	int argCount) {
 	VMValue callable;
 
-	if (!ScriptManager::Lock()) {
+	if (!Manager->Lock()) {
 		return false;
 	}
 
 	// Look for a field in the instance which may shadow a method.
 	if (instance->Fields->GetIfExists(hash, &callable)) {
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		return CallForObject(callable, argCount);
 	}
 
 	// There is no field with that name, so look for methods in the class.
 	if (klass->Methods->GetIfExists(hash, &callable)) {
-		ScriptManager::Unlock();
+		Manager->Unlock();
 		return CallForObject(callable, argCount);
 	}
 
 	// No method found, so look in the parent class.
 	// Walk up the inheritance chain and get the expected method.
-	ObjClass* parentClass = ScriptManager::GetClassParent((Obj*)instance, klass);
-	if (ScriptManager::GetClassMethod((Obj*)instance, parentClass, hash, &callable)) {
-		ScriptManager::Unlock();
+	ObjClass* parentClass = Manager->GetClassParent((Obj*)instance, klass);
+	if (Manager->GetClassMethod((Obj*)instance, parentClass, hash, &callable)) {
+		Manager->Unlock();
 
 		// Call it, finally.
 		return CallForObject(callable, argCount);
 	}
 
-	ScriptManager::Unlock();
+	Manager->Unlock();
 
 	return false;
 }
@@ -3627,18 +3624,18 @@ bool VMThread::DoClassExtension(VMValue value, VMValue originalValue, bool clear
 }
 bool VMThread::Import(VMValue value) {
 	bool result = false;
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		if (!IS_OBJECT(value) || OBJECT_TYPE(value) != OBJ_STRING) {
 			ThrowRuntimeError(
 				false, "Cannot import from a %s.", GetValueTypeString(value));
 		}
 		else {
 			char* className = AS_CSTRING(value);
-			if (ScriptManager::ClassExists(className)) {
-				result = ScriptManager::LoadObjectClass(this, className);
+			if (Manager->ClassExists(className)) {
+				result = Manager->LoadObjectClass(this, className);
 			}
 			else {
-				ScriptManager::Unlock();
+				Manager->Unlock();
 #ifdef HSL_LIBRARY
 				ThrowRuntimeError(
 					false, "Could not import \"%s\"!", className);
@@ -3648,19 +3645,19 @@ bool VMThread::Import(VMValue value) {
 			}
 		}
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return result;
 }
 bool VMThread::ImportModule(VMValue value) {
 	bool result = false;
-	if (ScriptManager::Lock()) {
+	if (Manager->Lock()) {
 		if (!IS_OBJECT(value) || OBJECT_TYPE(value) != OBJ_STRING) {
 			ThrowRuntimeError(
 				false, "Cannot import from a %s.", GetValueTypeString(value));
 		}
 		else {
 			char* scriptName = AS_CSTRING(value);
-			if (ScriptManager::LoadScript(this, scriptName)) {
+			if (Manager->LoadScript(this, scriptName)) {
 				result = true;
 			}
 			else {
@@ -3673,7 +3670,7 @@ bool VMThread::ImportModule(VMValue value) {
 			}
 		}
 	}
-	ScriptManager::Unlock();
+	Manager->Unlock();
 	return result;
 }
 
@@ -3756,13 +3753,13 @@ VMValue VMThread::Values_Plus() {
 	VMValue b = Peek(0);
 	VMValue a = Peek(1);
 	if (IS_STRING(a) || IS_STRING(b)) {
-		if (ScriptManager::Lock()) {
-			VMValue str_b = Value::CastAsString(b);
-			VMValue str_a = Value::CastAsString(a);
-			VMValue out = Value::Concatenate(str_a, str_b);
+		if (Manager->Lock()) {
+			VMValue str_b = Manager->CastValueAsString(b);
+			VMValue str_a = Manager->CastValueAsString(a);
+			VMValue out = Manager->ConcatenateValues(str_a, str_b);
 			Pop();
 			Pop();
-			ScriptManager::Unlock();
+			Manager->Unlock();
 			return out;
 		}
 	}
@@ -4088,6 +4085,33 @@ VMValue VMThread::Value_TypeOf() {
 
 	const char* valueType = GetTypeOfValue(value);
 
-	return OBJECT_VAL(CopyString(valueType));
+	return OBJECT_VAL(Manager->CopyString(valueType));
 }
 // #endregion
+
+bool VMThread::DoIntegerConversion(VMValue& value) {
+	VMValue result = Value::CastAsInteger(value);
+	if (IS_NULL(result)) {
+		// Conversion failed
+		ThrowRuntimeError(false,
+			"Expected value to be of type %s; value was of type %s.",
+			GetTypeString(VAL_INTEGER),
+			GetValueTypeString(value));
+		return false;
+	}
+	value = result;
+	return true;
+}
+bool VMThread::DoDecimalConversion(VMValue& value) {
+	VMValue result = Value::CastAsDecimal(value);
+	if (IS_NULL(result)) {
+		// Conversion failed
+		ThrowRuntimeError(false,
+			"Expected value to be of type %s; value was of type %s.",
+			GetTypeString(VAL_DECIMAL),
+			GetValueTypeString(value));
+		return false;
+	}
+	value = result;
+	return true;
+}

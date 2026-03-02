@@ -437,10 +437,6 @@ void SDL2Renderer::DrawSprite(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
-		return;
-	}
-
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 	float fX = flipX ? -1.0 : 1.0;
 	float fY = flipY ? -1.0 : 1.0;
@@ -473,10 +469,6 @@ void SDL2Renderer::DrawSpritePart(ISprite* sprite,
 	float scaleH,
 	float rotation,
 	int paletteID) {
-	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
-		return;
-	}
-
 	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
 	if (sx == animframe.Width) {
 		return;

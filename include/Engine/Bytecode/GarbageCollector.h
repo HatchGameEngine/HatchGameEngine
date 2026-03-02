@@ -2,33 +2,31 @@
 #define ENGINE_BYTECODE_GARBAGECOLLECTOR_H
 
 #include <Engine/Bytecode/Types.h>
-#include <Engine/Includes/HashMap.h>
+
+#include <set>
+
+class ScriptManager;
 
 class GarbageCollector {
 private:
-	static void FreeObject(Obj* object);
-	static void GrayValue(VMValue value);
-	static void GrayHashMapItem(Uint32, VMValue value);
-	static void BlackenObject(Obj* object);
+	void FreeObject(Obj* object);
+	void GrayValue(VMValue value);
+	void BlackenObject(Obj* object);
 #ifndef HSL_STANDALONE
-	static void CollectResources();
+	void CollectResources();
 #endif
 
 public:
-	static vector<Obj*> GrayList;
-	static Obj* RootObject;
-	static size_t NextGC;
-	static size_t GarbageSize;
-	static double MaxTimeAlotted;
-	static bool Print;
-	static bool FilterSweepEnabled;
-	static int FilterSweepType;
+	std::vector<Obj*> GrayList;
+	std::set<Obj*> GraySet;
+	ScriptManager* Manager;
+	size_t NextGC;
+	size_t GarbageSize;
 
-	static void Init();
-	static void Collect(bool doLog);
-	static void GrayObject(void* obj);
-	static void GrayHashMap(void* pointer);
-	static void Dispose();
+	GarbageCollector(ScriptManager* manager);
+	void Collect(bool doLog);
+	void GrayObject(void* obj);
+	void GrayHashMap(void* pointer);
 };
 
 #endif /* ENGINE_BYTECODE_GARBAGECOLLECTOR_H */

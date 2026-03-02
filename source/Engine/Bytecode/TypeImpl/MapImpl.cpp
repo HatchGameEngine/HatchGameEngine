@@ -3,23 +3,22 @@
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
-ObjClass* MapImpl::Class = nullptr;
-
-void MapImpl::Init() {
-	Class = NewClass(CLASS_MAP);
+MapImpl::MapImpl(ScriptManager* manager) {
+	Manager = manager;
+	Class = Manager->NewClass(CLASS_MAP);
 
 #ifdef HSL_VM
-	ScriptManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
-	ScriptManager::DefineNative(Class, "remove", MapImpl::VM_RemoveKey);
-	ScriptManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);
-	ScriptManager::DefineNative(Class, "iteratorValue", MapImpl::VM_IteratorValue);
+	Manager->DefineNative(Class, "keys", VM_GetKeys);
+	Manager->DefineNative(Class, "remove", VM_RemoveKey);
+	Manager->DefineNative(Class, "iterate", VM_Iterate);
+	Manager->DefineNative(Class, "iteratorValue", VM_IteratorValue);
 #endif
 
-	TypeImpl::RegisterClass(Class);
+	TypeImpl::RegisterClass(manager, Class);
 }
 
 Obj* MapImpl::New() {
-	ObjMap* map = (ObjMap*)AllocateObject(sizeof(ObjMap), OBJ_MAP);
+	ObjMap* map = (ObjMap*)Manager->AllocateObject(sizeof(ObjMap), OBJ_MAP);
 	Memory::Track(map, "NewMap");
 	map->Object.Class = Class;
 	map->Values = new OrderedHashMap<VMValue>(NULL, 4);
@@ -43,24 +42,24 @@ void MapImpl::Dispose(Obj* object) {
 }
 
 #ifdef HSL_VM
-#define GET_ARG(argIndex, argFunction) (ScriptManager::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (thread->Manager->argFunction(args, argIndex, thread))
 
-VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjMap* map = GET_ARG(0, GetMap);
 
-	ObjArray* array = NewArray();
+	ObjArray* array = thread->Manager->NewArray();
 
-	map->Keys->WithAllOrdered([array](Uint32, char* key) -> void {
-		array->Values->push_back(OBJECT_VAL(CopyString(key)));
+	map->Keys->WithAllOrdered([thread, array](Uint32, char* key) -> void {
+		array->Values->push_back(OBJECT_VAL(thread->Manager->CopyString(key)));
 	});
 
 	return OBJECT_VAL(array);
 }
 
-VMValue MapImpl::VM_RemoveKey(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue MapImpl::VM_RemoveKey(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjMap* map = GET_ARG(0, GetMap);
 	const char* key = GET_ARG(1, GetString);
@@ -71,8 +70,8 @@ VMValue MapImpl::VM_RemoveKey(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 
-VMValue MapImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue MapImpl::VM_Iterate(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjMap* map = GET_ARG(0, GetMap);
 
@@ -91,8 +90,8 @@ VMValue MapImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 
-VMValue MapImpl::VM_IteratorValue(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue MapImpl::VM_IteratorValue(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjMap* map = GET_ARG(0, GetMap);
 	int key = GET_ARG(1, GetInteger);

@@ -3,21 +3,20 @@
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
-ObjClass* ArrayImpl::Class = nullptr;
-
-void ArrayImpl::Init() {
-	Class = NewClass(CLASS_ARRAY);
+ArrayImpl::ArrayImpl(ScriptManager* manager) {
+	Manager = manager;
+	Class = Manager->NewClass(CLASS_ARRAY);
 
 #ifdef HSL_VM
-	ScriptManager::DefineNative(Class, "iterate", ArrayImpl::VM_Iterate);
-	ScriptManager::DefineNative(Class, "iteratorValue", ArrayImpl::VM_IteratorValue);
+	Manager->DefineNative(Class, "iterate", VM_Iterate);
+	Manager->DefineNative(Class, "iteratorValue", VM_IteratorValue);
 #endif
 
-	TypeImpl::RegisterClass(Class);
+	TypeImpl::RegisterClass(manager, Class);
 }
 
 Obj* ArrayImpl::New() {
-	ObjArray* array = (ObjArray*)AllocateObject(sizeof(ObjArray), OBJ_ARRAY);
+	ObjArray* array = (ObjArray*)Manager->AllocateObject(sizeof(ObjArray), OBJ_ARRAY);
 	Memory::Track(array, "NewArray");
 	array->Object.Class = Class;
 	array->Values = new vector<VMValue>();
@@ -34,10 +33,10 @@ void ArrayImpl::Dispose(Obj* object) {
 }
 
 #ifdef HSL_VM
-#define GET_ARG(argIndex, argFunction) (ScriptManager::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (thread->Manager->argFunction(args, argIndex, thread))
 
-VMValue ArrayImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue ArrayImpl::VM_Iterate(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjArray* array = GET_ARG(0, GetArray);
 
@@ -54,13 +53,13 @@ VMValue ArrayImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 
-VMValue ArrayImpl::VM_IteratorValue(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue ArrayImpl::VM_IteratorValue(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjArray* array = GET_ARG(0, GetArray);
 	int index = GET_ARG(1, GetInteger);
 	if (index < 0 || (Uint32)index >= array->Values->size()) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+		thread->ThrowRuntimeError(false,
 			"Index %d is out of bounds of array of size %d.",
 			index,
 			(int)array->Values->size());

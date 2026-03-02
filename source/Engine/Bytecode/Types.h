@@ -10,6 +10,8 @@
 
 #include <Engine/ResourceTypes/Font.h>
 
+class VMThread;
+
 #define FRAMES_MAX 64
 #define STACK_SIZE_MAX (FRAMES_MAX * 256)
 #define THREAD_NAME_MAX 64
@@ -76,7 +78,6 @@ struct VMValue {
 };
 
 #ifdef USING_VM_FUNCPTRS
-class VMThread;
 struct CallFrame;
 typedef int (VMThread::*OpcodeFunc)(CallFrame* frame);
 #endif
@@ -276,16 +277,18 @@ static inline VMLocation ELEMENT_LOCATION() {
 #define ELEMENT_LOCATION() ((VMLocation){LOC_ELEMENT, {.Slot = 0}})
 #endif
 
-typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
+class ScriptManager;
 
-typedef Obj* (*ClassNewFn)(void);
+typedef VMValue (*NativeFn)(int, VMValue*, VMThread*);
+
+typedef Obj* (*ClassNewFn)(VMThread* thread);
 typedef void (*ObjectDestructor)(Obj*);
 
-typedef bool (*ValueGetFn)(Obj* object, Uint32 hash, VMValue* value, Uint32 threadID);
-typedef bool (*ValueSetFn)(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
+typedef bool (*ValueGetFn)(Obj* object, Uint32 hash, VMValue* value, VMThread* thread);
+typedef bool (*ValueSetFn)(Obj* object, Uint32 hash, VMValue value, VMThread* thread);
 
-typedef bool (*StructGetFn)(Obj* object, VMValue at, VMValue* value, Uint32 threadID);
-typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threadID);
+typedef bool (*StructGetFn)(Obj* object, VMValue at, VMValue* value, VMThread* thread);
+typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, VMThread* thread);
 
 enum ObjType {
 	OBJ_STRING,
@@ -478,32 +481,6 @@ struct ObjFont {
 
 #undef UNION_INSTANCEABLE
 
-Obj* AllocateObject(size_t size, ObjType type);
-ObjString* TakeString(char* chars, size_t length);
-ObjString* TakeString(char* chars);
-ObjString* CopyString(const char* chars, size_t length);
-ObjString* CopyString(const char* chars);
-ObjString* CopyString(std::string path);
-ObjString* CopyString(ObjString* string);
-ObjString* AllocString(size_t length);
-ObjFunction* NewFunction();
-ObjNative* NewNative(NativeFn function);
-ObjUpvalue* NewUpvalue(VMValue* slot);
-ObjClosure* NewClosure(ObjFunction* function);
-ObjClass* NewClass(Uint32 hash);
-ObjClass* NewClass(const char* className);
-ObjInstance* NewInstance(ObjClass* klass);
-ObjEntity* NewEntity(ObjClass* klass);
-ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method);
-ObjArray* NewArray();
-ObjMap* NewMap();
-ObjNamespace* NewNamespace(Uint32 hash);
-ObjNamespace* NewNamespace(const char* nsName);
-ObjEnum* NewEnum(Uint32 hash);
-ObjModule* NewModule();
-Obj* NewNativeInstance(size_t size);
-
-std::string GetClassName(Uint32 hash);
 Uint32 GetClassHash(const char* name);
 const char* GetModuleName(ObjModule* module);
 
@@ -542,7 +519,7 @@ struct WithIter {
 };
 
 struct VMThreadCallback {
-	Uint32 ThreadID;
+	void* Thread;
 	VMValue Callable;
 };
 

@@ -2,6 +2,7 @@
 
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Includes/HashMap.h>
 
 #ifdef USE_CLOCK
 #include <Engine/Diagnostics/Clock.h>
@@ -12,20 +13,15 @@
 #include <Engine/Scene.h>
 #endif
 
-vector<Obj*> GarbageCollector::GrayList;
-Obj* GarbageCollector::RootObject;
-
-size_t GarbageCollector::NextGC = 0;
-size_t GarbageCollector::GarbageSize = 0;
-
-void GarbageCollector::Init() {
-	GarbageCollector::RootObject = NULL;
-	GarbageCollector::NextGC = 0x100000;
+GarbageCollector::GarbageCollector(ScriptManager* manager) {
+	Manager = manager;
+	NextGC = 0x100000;
+	GarbageSize = 0;
 }
 
 void GarbageCollector::Collect(bool doLog) {
 	// Nothing to do
-	if (!RootObject) {
+	if (!Manager->RootObject) {
 		return;
 	}
 
@@ -34,23 +30,25 @@ void GarbageCollector::Collect(bool doLog) {
 #endif
 
 	// Mark threads (should lock here for safety)
-	for (Uint32 t = 0; t < ScriptManager::ThreadCount; t++) {
-		VMThread* thread = ScriptManager::Threads + t;
-		// Mark stack roots
-		for (VMValue* slot = thread->Stack; slot < thread->StackTop; slot++) {
-			GrayValue(*slot);
-		}
-		// Mark frame modules
-		for (Uint32 i = 0; i < thread->FrameCount; i++) {
-			GrayObject(thread->Frames[i].Module);
+	for (Uint32 t = 0; t < MAX_VM_THREADS; t++) {
+		VMThread* thread = &Manager->Threads[t];
+		if (thread->Active) {
+			// Mark stack roots
+			for (VMValue* slot = thread->Stack; slot < thread->StackTop; slot++) {
+				GrayValue(*slot);
+			}
+			// Mark frame modules
+			for (Uint32 i = 0; i < thread->FrameCount; i++) {
+				GrayObject(thread->Frames[i].Module);
+			}
 		}
 	}
 
 	// Mark global roots
-	GrayHashMap(ScriptManager::Globals);
+	GrayHashMap(Manager->Globals);
 
 	// Mark constants
-	GrayHashMap(ScriptManager::Constants);
+	GrayHashMap(Manager->Constants);
 
 #ifndef HSL_STANDALONE
 	// Mark objects
@@ -61,13 +59,15 @@ void GarbageCollector::Collect(bool doLog) {
 #endif
 
 	// Mark modules
-	for (size_t i = 0; i < ScriptManager::ModuleList.size(); i++) {
-		GrayObject(ScriptManager::ModuleList[i]);
+	for (size_t i = 0; i < Manager->ModuleList.size(); i++) {
+		GrayObject(Manager->ModuleList[i]);
 	}
 
 	// Mark classes
-	for (size_t i = 0; i < ScriptManager::ClassImplList.size(); i++) {
-		GrayObject(ScriptManager::ClassImplList[i]);
+	if (Manager->ImplClasses) {
+		Manager->ImplClasses->WithAll([this](Uint32 hash, ObjClass* klass) {
+			GrayObject((Obj*)klass);
+		});
 	}
 
 #ifndef HSL_STANDALONE
@@ -96,18 +96,18 @@ void GarbageCollector::Collect(bool doLog) {
 	int objectTypeCounts[MAX_OBJ_TYPE] = {0};
 
 	// Collect the white objects
-	Obj** object = &GarbageCollector::RootObject;
+	Obj** object = &Manager->RootObject;
 	while (*object != NULL) {
 		objectTypeCounts[(*object)->Type]++;
 
-		if (std::find(GrayList.begin(), GrayList.end(), *object) == GrayList.end()) {
+		if (GraySet.count(*object) == 0) {
 			objectTypeFreed[(*object)->Type]++;
 
 			// This object wasn't reached, so remove it from the list and free it.
 			Obj* unreached = *object;
 			*object = unreached->Next;
 
-			GarbageCollector::FreeObject(unreached);
+			FreeObject(unreached);
 		}
 		else {
 			// This object was reached, so move on to the next.
@@ -137,9 +137,10 @@ void GarbageCollector::Collect(bool doLog) {
 		}
 	}
 
-	GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
+	NextGC = GarbageSize + (1024 * 1024);
 
 	GrayList.clear();
+	GraySet.clear();
 }
 
 #ifndef HSL_STANDALONE
@@ -152,7 +153,7 @@ void GarbageCollector::CollectResources() {
 #endif
 
 void GarbageCollector::FreeObject(Obj* object) {
-	ScriptManager::DestroyObject(object);
+	Manager->DestroyObject(object);
 }
 
 void GarbageCollector::GrayValue(VMValue value) {
@@ -166,20 +167,20 @@ void GarbageCollector::GrayObject(void* obj) {
 	}
 
 	Obj* object = (Obj*)obj;
-	if (std::find(GrayList.begin(), GrayList.end(), obj) != GrayList.end()) {
-		return;
+	if (GraySet.count(object) == 0) {
+		GrayList.push_back(object);
+		GraySet.insert(object);
 	}
-
-	GrayList.push_back(object);
-}
-void GarbageCollector::GrayHashMapItem(Uint32, VMValue value) {
-	GrayValue(value);
 }
 void GarbageCollector::GrayHashMap(void* pointer) {
 	if (!pointer) {
 		return;
 	}
-	((HashMap<VMValue>*)pointer)->ForAll(GrayHashMapItem);
+
+	HashMap<VMValue>* hashMap = (HashMap<VMValue>*)pointer;
+	hashMap->WithAll([this, hashMap](Uint32, VMValue value) -> void {
+		GrayValue(value);
+	});
 }
 
 void GarbageCollector::BlackenObject(Obj* object) {
@@ -252,7 +253,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_MAP: {
 		ObjMap* map = (ObjMap*)object;
-		map->Values->ForAll([](Uint32, VMValue v) -> void {
+		map->Values->WithAll([this](Uint32, VMValue v) -> void {
 			GrayValue(v);
 		});
 		break;
@@ -261,10 +262,4 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		// No references
 		break;
 	}
-}
-
-void GarbageCollector::Dispose() {
-	Init();
-
-	vector<Obj*>().swap(GrayList);
 }

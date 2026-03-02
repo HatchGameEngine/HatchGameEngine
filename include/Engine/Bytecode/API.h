@@ -20,51 +20,52 @@ extern "C" {
 #define HSL_DEFAULT_BRANCH_LIMIT 100000
 
 enum hsl_Result {
-    HSL_OK,
-    HSL_INVALID_ARGUMENT,
-    HSL_OUT_OF_MEMORY,
-    HSL_COMPILE_ERROR,
-    HSL_BYTECODE_LOAD_ERROR,
-    HSL_TOO_MANY_THREADS,
-    HSL_ARG_COUNT_MISMATCH,
-    HSL_NOT_ENOUGH_ARGS,
-    HSL_CALL_FRAME_OVERFLOW,
-    HSL_NO_CALL_FRAMES,
-    HSL_COULD_NOT_CALL,
-    HSL_RUNTIME_ERROR,
-    HSL_FATAL_ERROR,
-    HSL_SCRIPT_ERROR,
-    HSL_HIT_BRANCH_LIMIT
+	HSL_OK,
+	HSL_INVALID_ARGUMENT,
+	HSL_OUT_OF_MEMORY,
+	HSL_COMPILE_ERROR,
+	HSL_BYTECODE_LOAD_ERROR,
+	HSL_TOO_MANY_THREADS,
+	HSL_ARG_COUNT_MISMATCH,
+	HSL_NOT_ENOUGH_ARGS,
+	HSL_CALL_FRAME_OVERFLOW,
+	HSL_NO_CALL_FRAMES,
+	HSL_COULD_NOT_CALL,
+	HSL_RUNTIME_ERROR,
+	HSL_FATAL_ERROR,
+	HSL_SCRIPT_ERROR,
+	HSL_HIT_BRANCH_LIMIT
 };
 
 enum hsl_ErrorResponse {
-    HSL_ERROR_RES_EXIT,
-    HSL_ERROR_RES_CONTINUE
+	HSL_ERROR_RES_EXIT,
+	HSL_ERROR_RES_CONTINUE
 };
 
 enum hsl_WithState {
-    HSL_WITH_STATE_INIT,
-    HSL_WITH_STATE_ITERATE,
-    HSL_WITH_STATE_FINISH
+	HSL_WITH_STATE_INIT,
+	HSL_WITH_STATE_ITERATE,
+	HSL_WITH_STATE_FINISH
 };
 
 enum hsl_LogSeverity {
-    HSL_LOG_VERBOSE = -1,
-    HSL_LOG_INFO,
-    HSL_LOG_WARN,
-    HSL_LOG_ERROR,
-    HSL_LOG_IMPORTANT,
-    HSL_LOG_FATAL,
-    HSL_LOG_API
+	HSL_LOG_VERBOSE = -1,
+	HSL_LOG_INFO,
+	HSL_LOG_WARN,
+	HSL_LOG_ERROR,
+	HSL_LOG_IMPORTANT,
+	HSL_LOG_FATAL,
+	HSL_LOG_API
 };
 
 struct hsl_CompilerSettings {
-    int show_warnings;
-    int write_debug_info;
-    int write_source_filename;
-    int do_optimizations;
+	int show_warnings;
+	int write_debug_info;
+	int write_source_filename;
+	int do_optimizations;
 };
 
+struct hsl_Context;
 struct hsl_Thread;
 struct hsl_Module;
 struct hsl_Function;
@@ -72,44 +73,53 @@ struct hsl_Value;
 
 typedef int (*hsl_ImportScriptHandler)(const char* name, struct hsl_Thread* thread);
 typedef int (*hsl_ImportClassHandler)(const char* name, struct hsl_Thread* thread);
-typedef int (*hsl_WithIteratorHandler)(int state, hsl_Value* receiver, int* index, hsl_Value** new_receiver);
+typedef int (*hsl_WithIteratorHandler)(int state, struct hsl_Value* receiver, int* index, struct hsl_Value** new_receiver);
 typedef enum hsl_ErrorResponse (*hsl_RuntimeErrorHandler)(enum hsl_Result result, const char* text);
 typedef void (*hsl_LogCallback)(int level, const char* text);
 
+// Returns the HSL version the library was compiled with.
+const char* hsl_get_version();
+
 // Initializes the library.
-void hsl_init();
+enum hsl_Result hsl_init();
 // Disposes of the library.
 void hsl_finish();
 
-// Returns the HSL version the library was compiled with.
-const char* hsl_get_version();
-// Returns the last compilation error.
-const char* hsl_get_compile_error();
+// Creates a context.
+struct hsl_Context* hsl_new_context();
+// Disposes of a context.
+enum hsl_Result hsl_free_context(struct hsl_Context* context);
 
 // Sets the directory where scripts are located. This is only used for the debugger.
-void hsl_set_scripts_directory(const char* directory);
+enum hsl_Result hsl_set_scripts_directory(const char* directory);
 // Sets the handler for 'import from' statements.
-void hsl_set_import_script_handler(hsl_ImportScriptHandler handler);
+enum hsl_Result hsl_set_import_script_handler(struct hsl_Context* context, hsl_ImportScriptHandler handler);
 // Sets the handler for 'import' statements.
-void hsl_set_import_class_handler(hsl_ImportClassHandler handler);
+enum hsl_Result hsl_set_import_class_handler(struct hsl_Context* context, hsl_ImportClassHandler handler);
 // Sets the handler for 'with' iterators.
-void hsl_set_with_iterator_handler(hsl_WithIteratorHandler handler);
-// Sets a log callback.
-void hsl_set_log_callback(hsl_LogCallback callback);
+enum hsl_Result hsl_set_with_iterator_handler(struct hsl_Context* context, hsl_WithIteratorHandler handler);
 // Sets the runtime error handler.
-void hsl_set_runtime_error_handler(hsl_RuntimeErrorHandler handler);
+enum hsl_Result hsl_set_runtime_error_handler(struct hsl_Context* context, hsl_RuntimeErrorHandler handler);
+// Sets the log callback.
+enum hsl_Result hsl_set_log_callback(hsl_LogCallback callback);
 
 // Creates a new thread.
-enum hsl_Result hsl_new_thread(struct hsl_Thread** thread);
+struct hsl_Thread* hsl_new_thread(struct hsl_Context* context);
 // Disposes of a thread.
 void hsl_free_thread(struct hsl_Thread* thread);
 
+// Gets the context that a thread belongs to.
+struct hsl_Context* hsl_get_thread_context(struct hsl_Thread* thread);
+
 // Compiles a script into bytecode.
-enum hsl_Result hsl_compile(const char* code, struct hsl_CompilerSettings* settings, char** out_bytecode, size_t *out_size, const char* input_filename);
+enum hsl_Result hsl_compile(struct hsl_Context* context, const char* code, struct hsl_CompilerSettings* settings, char** out_bytecode, size_t *out_size, const char* input_filename);
 // Compiles a script into bytecode, and loads the bytecode.
 enum hsl_Result hsl_load_script(const char* code, struct hsl_CompilerSettings* settings, struct hsl_Thread* thread, struct hsl_Module** module, const char* input_filename);
 // Loads bytecode.
 enum hsl_Result hsl_load_bytecode(char* code, size_t size, struct hsl_Thread* thread, struct hsl_Module** module, const char* input_filename);
+
+// Returns the last compilation error.
+const char* hsl_get_compile_error(struct hsl_Context* context);
 
 // Returns the amount of functions in the module.
 int hsl_get_module_function_count(struct hsl_Module* module);

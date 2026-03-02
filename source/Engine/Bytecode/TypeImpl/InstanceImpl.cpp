@@ -2,16 +2,15 @@
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
-ObjClass* InstanceImpl::Class = nullptr;
+InstanceImpl::InstanceImpl(ScriptManager* manager) {
+	Manager = manager;
+	Class = Manager->NewClass(CLASS_INSTANCE);
 
-void InstanceImpl::Init() {
-	Class = NewClass(CLASS_INSTANCE);
-
-	TypeImpl::RegisterClass(Class);
+	TypeImpl::RegisterClass(manager, Class);
 }
 
 Obj* InstanceImpl::New(size_t size, ObjType type) {
-	ObjInstance* instance = (ObjInstance*)AllocateObject(size, type);
+	ObjInstance* instance = (ObjInstance*)Manager->AllocateObject(size, type);
 	Memory::Track(instance, "NewInstance");
 	instance->Fields = new Table(NULL, 16);
 	instance->Destructor = Dispose;

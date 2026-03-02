@@ -1,6 +1,8 @@
 #ifndef ENGINE_BYTECODE_VMTHREAD_H
 #define ENGINE_BYTECODE_VMTHREAD_H
 
+class ScriptManager;
+
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Utilities/PrintBuffer.h>
@@ -58,6 +60,7 @@ public:
 	char Name[THREAD_NAME_MAX];
 	bool Active;
 	Uint32 ID;
+	ScriptManager* Manager;
 #ifdef VM_DEBUG
 	bool DebugInfo;
 	int AttachedDebuggerCount;
@@ -66,12 +69,11 @@ public:
 	std::vector<VMThreadBreakpoint*> Breakpoints;
 	std::unordered_map<ObjFunction*, Uint8*> BreakpointsPerFunction;
 #endif
-	static bool InstructionIgnoreMap[0x100];
-	static std::jmp_buf JumpBuffer;
+	bool InstructionIgnoreMap[0x100];
 
-	static char* GetToken(Uint32 hash);
-	static char* GetVariableOrMethodName(Uint32 hash);
-	static std::string GetFunctionName(ObjFunction* function);
+	char* GetToken(Uint32 hash);
+	char* GetVariableOrMethodName(Uint32 hash);
+	std::string GetFunctionName(ObjFunction* function);
 	void PrintFunctionArgs(CallFrame* frame, PrintBuffer* buffer);
 	void MakeErrorMessage(PrintBuffer* buffer, const char* errorString);
 	int ThrowRuntimeError(bool fatal, const char* errorMessage, ...);
@@ -142,6 +144,8 @@ public:
 	VMValue Values_LogicalNOT();
 	VMValue Values_BitwiseNOT();
 	VMValue Value_TypeOf();
+	bool DoIntegerConversion(VMValue& value);
+	bool DoDecimalConversion(VMValue& value);
 
 #if USING_VM_FUNCPTRS
 	int RunOpcodeFunc(CallFrame* frame);

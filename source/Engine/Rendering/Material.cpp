@@ -1,7 +1,5 @@
 #include <Engine/Rendering/Material.h>
 
-#include <Engine/Bytecode/TypeImpl/MaterialImpl.h>
-#include <Engine/Bytecode/Types.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Scene.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -10,8 +8,6 @@ std::vector<Material*> Material::List;
 
 Material* Material::Create(char* name) {
 	Material* material = new Material(name);
-
-	material->Object = (void*)MaterialImpl::New((void*)material);
 
 	List.push_back(material);
 

@@ -12,6 +12,8 @@
 #define BYTECODE_FLAG_VARNAMES (1 << 2)
 #define BYTECODE_FLAG_BREAKPOINTS (1 << 3)
 
+class ScriptManager;
+
 class Bytecode {
 private:
 	enum {
@@ -36,9 +38,9 @@ public:
 
 	Bytecode();
 	~Bytecode();
-	bool Read(BytecodeContainer bytecode, HashMap<char*>* tokens);
-	bool Read(Stream* stream, HashMap<char*>* tokens);
-	ObjFunction* ReadChunk(Stream* stream, std::vector<Uint32>* functionHashes);
+	bool Read(BytecodeContainer bytecode, ScriptManager* manager, HashMap<char*>* tokens);
+	bool Read(Stream* stream, ScriptManager* manager, HashMap<char*>* tokens);
+	ObjFunction* ReadChunk(Stream* stream, ScriptManager* manager, std::vector<Uint32>* functionHashes);
 	void ReadLocals(Stream* stream, vector<ChunkLocal>* locals, int numLocals);
 	void Write(Stream* stream, HashMap<Token>* tokenMap);
 	void WriteChunk(Stream* stream, ObjFunction* function);

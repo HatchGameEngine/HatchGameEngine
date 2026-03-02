@@ -50,6 +50,10 @@ hsl_RuntimeErrorHandler VMRuntimeErrorHandler;
 
 #include <cstdio>
 
+#ifndef HSL_LIBRARY
+ScriptManager* GlobalScriptManager = nullptr;
+#endif
+
 bool CompileCode = false;
 bool PrintChunks = false;
 bool PrintGarbageCollectionOutput = false;
@@ -90,24 +94,11 @@ void InitSubsystems() {
 	Clock::Init();
 #endif
 
-#ifdef HSL_STANDALONE_RUNNER
-	GarbageCollector::Init();
-#endif
-
 #ifdef HSL_COMPILER
 	Compiler::Init();
 #endif
 
 	ScriptManager::Init();
-#ifdef HSL_VM
-	ScriptManager::ResetStack();
-#endif
-	ScriptManager::LinkStandardLibrary();
-	ScriptManager::LinkExtensions();
-
-#ifdef HSL_COMPILER
-	Compiler::GetStandardConstants();
-#endif
 
 #ifdef VM_DEBUG
 	VMThreadDebugger::Initialize();
@@ -123,9 +114,6 @@ void DisposeSubsystems() {
 #ifdef HSL_COMPILER
 	SourceFileMap::Dispose();
 	Compiler::Dispose();
-#endif
-#ifdef HSL_STANDALONE_RUNNER
-	GarbageCollector::Dispose();
 #endif
 #ifdef VM_DEBUG
 	VMThreadDebugger::Dispose();
@@ -146,13 +134,9 @@ void StandaloneExit(std::string error) {
 }
 
 #ifdef HSL_LIBRARY
-void SetVMRuntimeErrorHandler(hsl_RuntimeErrorHandler handler) {
-	VMRuntimeErrorHandler = handler;
-}
-
-hsl_ErrorResponse HandleVMRuntimeError(hsl_Result error, std::string text) {
-	if (VMRuntimeErrorHandler) {
-		return VMRuntimeErrorHandler(error, text.c_str());
+hsl_ErrorResponse HandleVMRuntimeError(ScriptManager* manager, hsl_Result error, std::string text) {
+	if (manager->RuntimeErrorHandler) {
+		return manager->RuntimeErrorHandler(error, text.c_str());
 	}
 
 	Log::Print(Log::LOG_ERROR, text.c_str());
@@ -194,13 +178,13 @@ const char* GetVersionText() {
 #endif
 }
 
-#ifdef VM_DEBUG
+#if defined(VM_DEBUG) && !defined(HSL_LIBRARY)
 void DebuggerLoop() {
 	VMThreadDebugger* debugger;
 
 	printf("Entering debugger.\n");
 
-	debugger = new VMThreadDebugger(&ScriptManager::Threads[0]);
+	debugger = new VMThreadDebugger(&GlobalScriptManager->Threads[0]);
 	debugger->Enter();
 	debugger->MainLoop();
 	debugger->Exit();
@@ -237,7 +221,7 @@ bool RunnerMain(const char* filename) {
 	stream->Seek(0);
 #endif
 
-	VMThread* thread = &ScriptManager::Threads[0];
+	VMThread* thread = &GlobalScriptManager->Threads[0];
 	ObjModule* module = nullptr;
 
 #ifdef HSL_COMPILER
@@ -252,17 +236,17 @@ bool RunnerMain(const char* filename) {
 			hash = hashFromFilename;
 		}
 
-		module = ScriptManager::LoadBytecode(thread, stream, hash);
+		module = GlobalScriptManager->LoadBytecode(thread, stream, hash);
 	}
 #ifdef HSL_COMPILER
 	else {
-		module = ScriptManager::CompileScriptFromStream(thread, stream, filename);
+		module = GlobalScriptManager->CompileScriptFromStream(thread, stream, filename);
 	}
 #endif
 
 	if (PrintChunks) {
 		BytecodeDebugger* debugger = new BytecodeDebugger;
-		debugger->Tokens = ScriptManager::Tokens;
+		debugger->Tokens = GlobalScriptManager->Tokens;
 
 		for (size_t i = 0; i < module->Functions->size(); i++) {
 			Chunk* chunk = &(*module->Functions)[i]->Chunk;
@@ -283,7 +267,7 @@ bool RunnerMain(const char* filename) {
 	}
 
 	if (ExecuteCode) {
-		VMThread* thread = &ScriptManager::Threads[0];
+		VMThread* thread = &GlobalScriptManager->Threads[0];
 		ObjFunction* function = (*module->Functions)[0];
 		if (thread->Call(function, 0)) {
 #ifdef VM_DEBUG
@@ -336,7 +320,7 @@ bool CompilerMain(const char* inputFilename, const char* outputFilename) {
 		return false;
 	}
 
-	Compiler* compiler = new Compiler;
+	Compiler* compiler = new Compiler(nullptr);
 	compiler->InREPL = false;
 	compiler->CurrentSettings = Compiler::Settings;
 	compiler->Type = FUNCTIONTYPE_TOPLEVEL;
@@ -363,7 +347,7 @@ bool CompilerMain(const char* inputFilename, const char* outputFilename) {
 
 	if (outputFilename == nullptr) {
 		static char filenameBuffer[13];
-		Uint32 filenameHash = ScriptManager::MakeFilenameHash(SourceFilename);
+		Uint32 filenameHash = GlobalScriptManager->MakeFilenameHash(SourceFilename);
 		snprintf(filenameBuffer, sizeof filenameBuffer, "%08X.ibc", filenameHash);
 		outputFilename = filenameBuffer;
 	}
@@ -385,7 +369,7 @@ bool CompilerMain(const char* inputFilename, const char* outputFilename) {
 
 #ifdef HSL_STANDALONE_REPL
 void REPLMain() {
-	VMThread* thread = &ScriptManager::Threads[0];
+	VMThread* thread = &GlobalScriptManager->Threads[0];
 
 	Compiler::Settings.WriteDebugInfo = true;
 	Compiler::Settings.PrintToLog = Log::IsLoggingToFile();
@@ -430,7 +414,7 @@ void REPLMain() {
 				Log::PrintSimple("\n");
 			}
 
-			ScriptManager::RequestGarbageCollection(PrintGarbageCollectionOutput);
+			GlobalScriptManager->RequestGarbageCollection(PrintGarbageCollectionOutput);
 		} catch (const ScriptREPLException& error) {
 			Log::PrintSimple("%s\n", error.what());
 		}
@@ -650,6 +634,17 @@ int StandaloneMain(int argc, char* args[]) {
 	int result = 0;
 
 	InitSubsystems();
+
+	GlobalScriptManager = new ScriptManager;
+#ifdef HSL_VM
+	GlobalScriptManager->NewThread();
+#endif
+	GlobalScriptManager->LinkStandardLibrary();
+
+#ifdef HSL_COMPILER
+	Compiler::GetStandardConstants(GlobalScriptManager);
+#endif
+
 	ParseArgs(argc, args);
 
 #ifdef USE_LOG_FILE
@@ -688,6 +683,11 @@ int StandaloneMain(int argc, char* args[]) {
 #endif
 	{
 		result = InterpretArguments(argc, args);
+	}
+
+	if (GlobalScriptManager) {
+		delete GlobalScriptManager;
+		GlobalScriptManager = nullptr;
 	}
 
 	DisposeSubsystems();

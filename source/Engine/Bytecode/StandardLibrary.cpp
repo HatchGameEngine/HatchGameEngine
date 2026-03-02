@@ -72,14 +72,11 @@
 			return NULL_VAL; \
 		return NULL_VAL; \
 	}
-#define GET_ARG(argIndex, argFunction) (argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (argFunction(args, argIndex, thread))
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
 	(argIndex < argCount ? GET_ARG(argIndex, argFunction) : argDefault)
 
 using namespace ScriptTypes;
-
-Uint8 String_ToUpperCase_Map_ExtendedASCII[0x100];
-Uint8 String_ToLowerCase_Map_ExtendedASCII[0x100];
 
 typedef float MatrixHelper[4][4];
 
@@ -96,17 +93,19 @@ void MatrixHelper_CopyTo(MatrixHelper* helper, ObjArray* array) {
 	}
 }
 
-VMValue ReturnString(const char* str) {
-	if (str && ScriptManager::Lock()) {
-		ObjString* string = CopyString(str);
-		ScriptManager::Unlock();
+#define COPY_STRING(str) thread->Manager->CopyString(str)
+
+VMValue ReturnString(VMThread* thread, const char* str) {
+	if (str && thread->Manager->Lock()) {
+		ObjString* string = COPY_STRING(str);
+		thread->Manager->Unlock();
 		return OBJECT_VAL(string);
 	}
 	return NULL_VAL;
 }
 
-VMValue ReturnString(std::string str) {
-	return ReturnString(str.c_str());
+VMValue ReturnString(VMThread* thread, std::string str) {
+	return ReturnString(thread, str.c_str());
 }
 
 void AddToMap(ObjMap* map, const char* key, VMValue value) {
@@ -226,7 +225,7 @@ bool GetAnimatorSpace(vector<Animator*>* list, size_t* index, bool* foundEmpty) 
  * \return integer Returns the index of the Animator.
  * \ns Animator
  */
-VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_Create(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(0);
 
 	Animator* animator = new Animator();
@@ -256,7 +255,7 @@ VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
  * \param animator (integer): The index of the animator.
  * \ns Animator
  */
-VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_Remove(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int animator = GET_ARG(0, GetInteger);
 	if (animator < 0 || animator >= (int)Scene::AnimatorList.size()) {
@@ -279,7 +278,7 @@ VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
  * \param forceApply (boolean): Whether to force the animation to go back to the frame if the animation is the same as the current animation.
  * \ns Animator
  */
-VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetAnimation(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	int spriteIndex = GET_ARG(1, GetInteger);
@@ -343,7 +342,7 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
  * \param animator (integer): The index of the animator.
  * \ns Animator
  */
-VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_Animate(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 
@@ -391,7 +390,7 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Animator
  */
-VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetSprite(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -406,7 +405,7 @@ VMValue Animator_GetSprite(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Animator
  */
-VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -421,7 +420,7 @@ VMValue Animator_GetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
  * \return integer Returns an integer value.
  * \ns Animator
  */
-VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -436,12 +435,12 @@ VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the frame ID of the animator's current sprite frame.
  * \ns Sprite
  */
-VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetFrameID(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, thread);
 
 		if (!sprite || animator->CurrentAnimation >= sprite->Animations.size()
 			|| animator->CurrentFrame >= sprite->Animations[animator->CurrentFrame].Frames.size()) {
@@ -460,14 +459,14 @@ VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
  * \return hitbox Returns a Hitbox value.
  * \ns Animator
  */
-VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetHitbox(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	int hitboxID = GET_ARG_OPT(1, GetInteger, 0);
 	// Do not throw errors here because Animators are allowed to have negative sprite, animation, and frame indexes
 	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, thread);
 		if (!sprite) {
 			return NULL_VAL;
 		}
@@ -512,7 +511,7 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Animator
  */
-VMValue Animator_GetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetPrevAnimation(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -527,7 +526,7 @@ VMValue Animator_GetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) 
  * \return integer Returns an integer value.
  * \ns Animator
  */
-VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -542,7 +541,7 @@ VMValue Animator_GetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
  * \return integer Returns an integer value.
  * \ns Animator
  */
-VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -557,7 +556,7 @@ VMValue Animator_GetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
  * \return integer Returns an integer value.
  * \ns Animator
  */
-VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetDuration(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -572,7 +571,7 @@ VMValue Animator_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Animator
  */
-VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetFrameCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -587,7 +586,7 @@ VMValue Animator_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Animator
  */
-VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetLoopIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -602,7 +601,7 @@ VMValue Animator_GetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Animator
  */
-VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_GetRotationStyle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -617,7 +616,7 @@ VMValue Animator_GetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
  * \param spriteID (integer): The sprite ID.
  * \ns Animator
  */
-VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetSprite(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -633,7 +632,7 @@ VMValue Animator_SetSprite(int argCount, VMValue* args, Uint32 threadID) {
  * \param animationID (integer): The animation ID.
  * \ns Animator
  */
-VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -649,7 +648,7 @@ VMValue Animator_SetCurrentAnimation(int argCount, VMValue* args, Uint32 threadI
  * \param frameID (integer): The frame ID.
  * \ns Animator
  */
-VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -665,7 +664,7 @@ VMValue Animator_SetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
  * \param prevAnimationID (integer): The animation ID.
  * \ns Animator
  */
-VMValue Animator_SetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetPrevAnimation(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -681,7 +680,7 @@ VMValue Animator_SetPrevAnimation(int argCount, VMValue* args, Uint32 threadID) 
  * \param speed (integer): The animation speed.
  * \ns Animator
  */
-VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -697,7 +696,7 @@ VMValue Animator_SetAnimationSpeed(int argCount, VMValue* args, Uint32 threadID)
  * \param timer (integer): The animation timer.
  * \ns Animator
  */
-VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -713,7 +712,7 @@ VMValue Animator_SetAnimationTimer(int argCount, VMValue* args, Uint32 threadID)
  * \param duration (integer): The animator's changed duration.
  * \ns Animator
  */
-VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetDuration(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -729,7 +728,7 @@ VMValue Animator_SetDuration(int argCount, VMValue* args, Uint32 threadID) {
  * \param frameCount (integer): The animator's changed frame count.
  * \ns Animator
  */
-VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetFrameCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -745,7 +744,7 @@ VMValue Animator_SetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  * \param loopIndex (integer): The animator's changed loop index.
  * \ns Animator
  */
-VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetLoopIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -761,7 +760,7 @@ VMValue Animator_SetLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  * \param rotationStyle (integer): The animator's changed rotation style.
  * \ns Animator
  */
-VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_SetRotationStyle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -777,7 +776,7 @@ VMValue Animator_SetRotationStyle(int argCount, VMValue* args, Uint32 threadID) 
  * \param amount (integer): The amount to adjust the animator's animation ID.
  * \ns Animator
  */
-VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -793,7 +792,7 @@ VMValue Animator_AdjustCurrentAnimation(int argCount, VMValue* args, Uint32 thre
  * \param amount (integer): The amount to adjust the animator's frame ID.
  * \ns Animator
  */
-VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -809,7 +808,7 @@ VMValue Animator_AdjustCurrentFrame(int argCount, VMValue* args, Uint32 threadID
  * \param amount (integer): The amount to adjust the animator's animation speed.
  * \ns Animator
  */
-VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -825,7 +824,7 @@ VMValue Animator_AdjustAnimationSpeed(int argCount, VMValue* args, Uint32 thread
  * \param amount (integer): The amount to adjust the animator's animation timer.
  * \ns Animator
  */
-VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -841,7 +840,7 @@ VMValue Animator_AdjustAnimationTimer(int argCount, VMValue* args, Uint32 thread
  * \param amount (integer): The amount to adjust the animator's duration.
  * \ns Animator
  */
-VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_AdjustDuration(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -857,7 +856,7 @@ VMValue Animator_AdjustDuration(int argCount, VMValue* args, Uint32 threadID) {
  * \param amount (integer): The amount to adjust the animator's duration.
  * \ns Animator
  */
-VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -873,7 +872,7 @@ VMValue Animator_AdjustFrameCount(int argCount, VMValue* args, Uint32 threadID) 
  * \param amount (integer): The amount to adjust the animator's loop index.
  * \ns Animator
  */
-VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (!animator) {
@@ -892,7 +891,7 @@ VMValue Animator_AdjustLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an API response code.
  * \ns API.Discord
  */
-VMValue Discord_Init(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_Init(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	const char* applicationID = GET_ARG(0, GetString);
 	int result = Discord::Init(applicationID);
@@ -929,7 +928,7 @@ The integration must have been initialized with `API.Discord.Init` before callin
  * \paramOpt startTime (integer): A Unix timestamp of when the activity started. If `0`, the timer is disabled.
  * \ns API.Discord
  */
-VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_UpdateRichPresence(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	const char* details = GET_ARG(0, GetString);
 	const char* state = GET_ARG_OPT(1, GetString, nullptr);
@@ -972,7 +971,7 @@ This doesn't update the user's presence; you must call `API.Discord.UpdateActivi
  * \param details (string): The first line of text in the Rich Presence.
  * \ns API.Discord
  */
-VMValue Discord_SetActivityDetails(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_SetActivityDetails(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	const char* details = GET_ARG(0, GetString);
 
@@ -991,7 +990,7 @@ This doesn't update the user's presence; you must call `API.Discord.UpdateActivi
  * \param details (string): The second line of text, appearing below details.
  * \ns API.Discord
  */
-VMValue Discord_SetActivityState(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_SetActivityState(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	const char* state = GET_ARG(0, GetString);
 
@@ -1011,7 +1010,7 @@ This doesn't update the user's presence; you must call `API.Discord.UpdateActivi
  * \paramOpt largeImageText (string): The hover text of the large image.
  * \ns API.Discord
  */
-VMValue Discord_SetActivityLargeImage(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_SetActivityLargeImage(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	const char* key = GET_ARG(0, GetString);
 	const char* text = GET_ARG_OPT(1, GetString, nullptr);
@@ -1037,7 +1036,7 @@ This doesn't update the user's presence; you must call `API.Discord.UpdateActivi
  * \paramOpt smallImageText (string): The hover text of the small image.
  * \ns API.Discord
  */
-VMValue Discord_SetActivitySmallImage(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_SetActivitySmallImage(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	const char* key = GET_ARG(0, GetString);
 	const char* text = GET_ARG_OPT(1, GetString, nullptr);
@@ -1062,7 +1061,7 @@ This doesn't update the user's presence; you must call `API.Discord.UpdateActivi
  * \param timestamp (integer): A Unix timestamp of when the timer started. If `0`, the timer is disabled.
  * \ns API.Discord
  */
-VMValue Discord_SetActivityElapsedTimer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_SetActivityElapsedTimer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int timestamp = GET_ARG(0, GetInteger);
 
@@ -1081,7 +1080,7 @@ This doesn't update the user's presence; you must call `API.Discord.UpdateActivi
  * \param timestamp (integer): A Unix timestamp of when the timer will end. If `0`, the timer is disabled.
  * \ns API.Discord
  */
-VMValue Discord_SetActivityRemainingTimer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_SetActivityRemainingTimer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int timestamp = GET_ARG(0, GetInteger);
 
@@ -1101,7 +1100,7 @@ This doesn't update the user's presence; you must call `API.Discord.UpdateActivi
  * \paramOpt maxSize (integer): The max size of the party.
  * \ns API.Discord
  */
-VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	int currentSize = GET_ARG(0, GetInteger);
 	int maxSize = GET_ARG_OPT(1, GetInteger, 0);
@@ -1124,7 +1123,7 @@ The integration must have been initialized with `API.Discord.Init` before callin
  * \param details (string): The first line of text in the Rich Presence.
  * \ns API.Discord
  */
-VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_UpdateActivity(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 
 	if (!Discord::Initialized) {
@@ -1142,7 +1141,7 @@ This returns `null` if the integration hasn't received the user's information ye
  * \return string Returns a string value, or `null`.
  * \ns API.Discord
  */
-VMValue Discord_GetCurrentUsername(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_GetCurrentUsername(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 
 	if (!Discord::Initialized) {
@@ -1154,7 +1153,7 @@ VMValue Discord_GetCurrentUsername(int argCount, VMValue* args, Uint32 threadID)
 		return NULL_VAL;
 	}
 
-	return ReturnString(details->Username);
+	return ReturnString(thread, details->Username);
 }
 /***
  * API.Discord.GetCurrentUserID
@@ -1163,7 +1162,7 @@ This returns `null` if the integration hasn't received the user's information ye
  * \return string Returns a string value, or `null`.
  * \ns API.Discord
  */
-VMValue Discord_GetCurrentUserID(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_GetCurrentUserID(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 
 	if (!Discord::Initialized) {
@@ -1175,7 +1174,7 @@ VMValue Discord_GetCurrentUserID(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	return ReturnString(details->ID);
+	return ReturnString(thread, details->ID);
 }
 /***
  * API.Discord.GetCurrentUserAvatar
@@ -1185,7 +1184,7 @@ The callback function must have two parameters: `responseCode` and `image`. `res
  * \param callback (function): The callback to execute.
  * \ns API.Discord
  */
-VMValue Discord_GetCurrentUserAvatar(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Discord_GetCurrentUserAvatar(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	if (!Discord::Initialized) {
@@ -1208,7 +1207,7 @@ VMValue Discord_GetCurrentUserAvatar(int argCount, VMValue* args, Uint32 threadI
 	if (!callbackData) {
 		return NULL_VAL;
 	}
-	callbackData->ThreadID = threadID;
+	callbackData->Thread = thread;
 	callbackData->Callable = callable;
 
 	DiscordIntegrationCallback* callback =
@@ -1233,15 +1232,15 @@ VMValue Discord_GetCurrentUserAvatar(int argCount, VMValue* args, Uint32 threadI
  * \return array Returns an array of string values.
  * \ns Application
  */
-VMValue Application_GetCommandLineArguments(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetCommandLineArguments(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	if (ScriptManager::Lock()) {
-		ObjArray* array = NewArray();
+	if (thread->Manager->Lock()) {
+		ObjArray* array = thread->Manager->NewArray();
 		for (size_t i = 0; i < Application::CmdLineArgs.size(); i++) {
-			ObjString* argString = CopyString(Application::CmdLineArgs[i]);
+			ObjString* argString = COPY_STRING(Application::CmdLineArgs[i]);
 			array->Values->push_back(OBJECT_VAL(argString));
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(array);
 	}
 	return NULL_VAL;
@@ -1252,9 +1251,9 @@ VMValue Application_GetCommandLineArguments(int argCount, VMValue* args, Uint32 
  * \return string Returns a string value.
  * \ns Application
  */
-VMValue Application_GetEngineVersionString(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetEngineVersionString(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	return ReturnString(Application::EngineVersion);
+	return ReturnString(thread, Application::EngineVersion);
 }
 /***
  * Application.GetEngineVersionMajor
@@ -1262,7 +1261,7 @@ VMValue Application_GetEngineVersionString(int argCount, VMValue* args, Uint32 t
  * \return integer Returns an integer value.
  * \ns Application
  */
-VMValue Application_GetEngineVersionMajor(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetEngineVersionMajor(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(VERSION_MAJOR);
 }
@@ -1272,7 +1271,7 @@ VMValue Application_GetEngineVersionMajor(int argCount, VMValue* args, Uint32 th
  * \return integer Returns an integer value.
  * \ns Application
  */
-VMValue Application_GetEngineVersionMinor(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetEngineVersionMinor(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(VERSION_MINOR);
 }
@@ -1282,7 +1281,7 @@ VMValue Application_GetEngineVersionMinor(int argCount, VMValue* args, Uint32 th
  * \return integer Returns an integer value.
  * \ns Application
  */
-VMValue Application_GetEngineVersionPatch(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetEngineVersionPatch(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(VERSION_PATCH);
 }
@@ -1292,10 +1291,10 @@ VMValue Application_GetEngineVersionPatch(int argCount, VMValue* args, Uint32 th
  * \return string Returns a string value, or `null`.
  * \ns Application
  */
-VMValue Application_GetEngineVersionPrerelease(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetEngineVersionPrerelease(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 #ifdef VERSION_PRERELEASE
-	return ReturnString(VERSION_PRERELEASE);
+	return ReturnString(thread, VERSION_PRERELEASE);
 #else
 	return NULL_VAL;
 #endif
@@ -1306,10 +1305,10 @@ VMValue Application_GetEngineVersionPrerelease(int argCount, VMValue* args, Uint
  * \return string Returns a string value, or `null`.
  * \ns Application
  */
-VMValue Application_GetEngineVersionCodename(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetEngineVersionCodename(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 #ifdef VERSION_CODENAME
-	return ReturnString(VERSION_CODENAME);
+	return ReturnString(thread, VERSION_CODENAME);
 #else
 	return NULL_VAL;
 #endif
@@ -1320,7 +1319,7 @@ VMValue Application_GetEngineVersionCodename(int argCount, VMValue* args, Uint32
  * \return integer Returns an integer value.
  * \ns Application
  */
-VMValue Application_GetTargetFrameRate(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetTargetFrameRate(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::TargetFPS);
 }
@@ -1330,7 +1329,7 @@ VMValue Application_GetTargetFrameRate(int argCount, VMValue* args, Uint32 threa
  * \param framerate (integer): The target frame rate.
  * \ns Application
  */
-VMValue Application_SetTargetFrameRate(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetTargetFrameRate(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int framerate = GET_ARG(0, GetInteger);
 	if (framerate < 1 || framerate > MAX_TARGET_FRAMERATE) {
@@ -1346,7 +1345,7 @@ VMValue Application_SetTargetFrameRate(int argCount, VMValue* args, Uint32 threa
  * \param useFixedTimestep (boolean): Whether to use fixed timestep.
  * \ns Application
  */
-VMValue Application_UseFixedTimestep(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_UseFixedTimestep(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	bool useFixedTimestep = GET_ARG(0, GetInteger);
 	Application::ShouldUseFixedTimestep = useFixedTimestep;
@@ -1359,7 +1358,7 @@ VMValue Application_UseFixedTimestep(int argCount, VMValue* args, Uint32 threadI
  * \return decimal Returns a decimal value.
  * \ns Application
  */
-VMValue Application_GetFPS(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetFPS(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return DECIMAL_VAL(Application::CurrentFPS);
 }
@@ -1369,7 +1368,7 @@ VMValue Application_GetFPS(int argCount, VMValue* args, Uint32 threadID) {
  * \param show (boolean): Whether to show the FPS counter.
  * \ns Application
  */
-VMValue Application_ShowFPSCounter(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_ShowFPSCounter(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Application::ShowFPS = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
@@ -1381,7 +1380,7 @@ VMValue Application_ShowFPSCounter(int argCount, VMValue* args, Uint32 threadID)
  * \return <ref KeyBind_*> Returns the key ID of the keybind.
  * \ns Application
  */
-VMValue Application_GetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetKeyBind(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int bind = GET_ARG(0, GetInteger);
 	return INTEGER_VAL(Application::GetKeyBind(bind));
@@ -1393,7 +1392,7 @@ VMValue Application_GetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
  * \param keyID (<ref Key_*>): The key ID.
  * \ns Application
  */
-VMValue Application_SetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetKeyBind(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int bind = GET_ARG(0, GetInteger);
 	int key = GET_ARG(1, GetInteger);
@@ -1405,36 +1404,36 @@ VMValue Application_SetKeyBind(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Gets the game title of the application.
  * \ns Application
  */
-VMValue Application_GetGameTitle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetGameTitle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	return ReturnString(Application::GameTitle);
+	return ReturnString(thread, Application::GameTitle);
 }
 /***
  * Application.GetGameTitleShort
  * \desc Gets the short game title of the application.
  * \ns Application
  */
-VMValue Application_GetGameTitleShort(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetGameTitleShort(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	return ReturnString(Application::GameTitleShort);
+	return ReturnString(thread, Application::GameTitleShort);
 }
 /***
  * Application.GetGameVersion
  * \desc Gets the version of the application.
  * \ns Application
  */
-VMValue Application_GetGameVersion(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetGameVersion(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	return ReturnString(Application::GameVersion);
+	return ReturnString(thread, Application::GameVersion);
 }
 /***
  * Application.GetGameDescription
  * \desc Gets the description of the game.
  * \ns Application
  */
-VMValue Application_GetGameDescription(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetGameDescription(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	return ReturnString(Application::GameDescription);
+	return ReturnString(thread, Application::GameDescription);
 }
 /***
  * Application.SetGameTitle
@@ -1442,7 +1441,7 @@ VMValue Application_GetGameDescription(int argCount, VMValue* args, Uint32 threa
  * \param title (string): Game title.
  * \ns Application
  */
-VMValue Application_SetGameTitle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetGameTitle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	const char* string = GET_ARG(0, GetString);
 	StringUtils::Copy(Application::GameTitle, string, sizeof(Application::GameTitle));
@@ -1454,7 +1453,7 @@ VMValue Application_SetGameTitle(int argCount, VMValue* args, Uint32 threadID) {
  * \param title (string): Short game title.
  * \ns Application
  */
-VMValue Application_SetGameTitleShort(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetGameTitleShort(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	const char* string = GET_ARG(0, GetString);
 	StringUtils::Copy(Application::GameTitleShort, string, sizeof(Application::GameTitleShort));
@@ -1466,7 +1465,7 @@ VMValue Application_SetGameTitleShort(int argCount, VMValue* args, Uint32 thread
  * \param title (string): Game version.
  * \ns Application
  */
-VMValue Application_SetGameVersion(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetGameVersion(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	const char* string = GET_ARG(0, GetString);
 	StringUtils::Copy(Application::GameVersion, string, sizeof(Application::GameVersion));
@@ -1478,7 +1477,7 @@ VMValue Application_SetGameVersion(int argCount, VMValue* args, Uint32 threadID)
  * \param title (string): Game description.
  * \ns Application
  */
-VMValue Application_SetGameDescription(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetGameDescription(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	const char* string = GET_ARG(0, GetString);
 	StringUtils::Copy(
@@ -1491,7 +1490,7 @@ VMValue Application_SetGameDescription(int argCount, VMValue* args, Uint32 threa
  * \param cursorVisible (boolean): Whether the cursor is visible.
  * \ns Application
  */
-VMValue Application_SetCursorVisible(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetCursorVisible(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	SDL_ShowCursor(!!GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -1502,7 +1501,7 @@ VMValue Application_SetCursorVisible(int argCount, VMValue* args, Uint32 threadI
  * \return boolean Returns whether the cursor is visible.
  * \ns Application
  */
-VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_GetCursorVisible(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	int state = SDL_ShowCursor(SDL_QUERY);
 	if (state == SDL_ENABLE) {
@@ -1518,7 +1517,7 @@ VMValue Application_GetCursorVisible(int argCount, VMValue* args, Uint32 threadI
  * \ns Application
  */
 struct ScriptScreenshotOpData {
-	Uint32 ThreadID;
+	void* ThreadPtr;
 	VMValue Callable;
 };
 void ScriptTakeScreenshotCallback(OperationResult result) {
@@ -1526,12 +1525,12 @@ void ScriptTakeScreenshotCallback(OperationResult result) {
 	const char* filename = (const char*)result.Output;
 
 	if (!IS_NULL(data->Callable)) {
-		VMThread* thread = ScriptManager::Threads + data->ThreadID;
+		VMThread* thread = (VMThread*)data->ThreadPtr;
 		VMValue* stackTop = thread->StackTop;
 
 		thread->Push(INTEGER_VAL(result.Success));
 		if (filename) {
-			thread->Push(ReturnString(filename));
+			thread->Push(ReturnString(thread, filename));
 		}
 
 		VMValue callable = data->Callable;
@@ -1548,7 +1547,7 @@ void ScriptTakeScreenshotCallback(OperationResult result) {
 
 	Memory::Free(data);
 }
-VMValue Application_TakeScreenshot(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_TakeScreenshot(int argCount, VMValue* args, VMThread* thread) {
 	char* path = nullptr;
 	VMValue callable = NULL_VAL;
 
@@ -1565,7 +1564,7 @@ VMValue Application_TakeScreenshot(int argCount, VMValue* args, Uint32 threadID)
 		return NULL_VAL;
 	}
 
-	data->ThreadID = threadID;
+	data->ThreadPtr = thread;
 	data->Callable = callable;
 
 	Operation operation;
@@ -1583,12 +1582,12 @@ VMValue Application_TakeScreenshot(int argCount, VMValue* args, Uint32 threadID)
  * \paramOpt detailed (boolean): Whether to show the stack trace alongside the error. (default: `true`)
  * \ns Application
  */
-VMValue Application_Error(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_Error(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	char* errorString = GET_ARG(0, GetString);
 	bool detailed = GET_ARG_OPT(1, GetInteger, true);
 
-	ScriptManager::Threads[threadID].ShowErrorFromScript(errorString, detailed);
+	thread->ShowErrorFromScript(errorString, detailed);
 
 	return NULL_VAL;
 }
@@ -1604,7 +1603,7 @@ VMValue Application_Error(int argCount, VMValue* args, Uint32 threadID) {
  * \param font (array): The list of fonts. Passing `null` to this argument will change the default font to the one the application was built with, if one is present.
  * \ns Application
  */
-VMValue Application_SetDefaultFont(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_SetDefaultFont(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	std::vector<std::string> fontList;
@@ -1626,19 +1625,19 @@ VMValue Application_SetDefaultFont(int argCount, VMValue* args, Uint32 threadID)
 		}
 
 		for (size_t i = 0; i < array->Values->size(); i++) {
-			if (ScriptManager::Lock()) {
+			if (thread->Manager->Lock()) {
 				VMValue value = (*array->Values)[i];
 				if (IS_STRING(value)) {
 					char* filename = AS_CSTRING(value);
 					fontList.push_back(std::string(filename));
 				}
 				else {
-					ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+					thread->ThrowRuntimeError(false,
 						"Expected argument to be of type %s instead of %s.",
 						GetObjectTypeString(OBJ_STRING),
 						GetValueTypeString(value));
 				}
-				ScriptManager::Unlock();
+				thread->Manager->Unlock();
 			}
 		}
 	}
@@ -1706,7 +1705,7 @@ The following <b>cannot</b> be changed between games:<ul>\
  * \return boolean Returns whether the game will change.
  * \ns Application
  */
-VMValue Application_ChangeGame(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_ChangeGame(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	char* path = GET_ARG(0, GetString);
 	char* startingScene = nullptr;
@@ -1739,7 +1738,7 @@ VMValue Application_ChangeGame(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Closes the application.
  * \ns Application
  */
-VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Application_Quit(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	Application::Running = false;
 	return NULL_VAL;
@@ -1755,11 +1754,11 @@ VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
  * \return value A reference value to the array.
  * \ns Array
  */
-VMValue Array_Create(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Array_Create(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
-	if (ScriptManager::Lock()) {
-		ObjArray* array = NewArray();
+	if (thread->Manager->Lock()) {
+		ObjArray* array = thread->Manager->NewArray();
 		int length = GET_ARG(0, GetInteger);
 		VMValue initialValue = NULL_VAL;
 		if (argCount == 2) {
@@ -1770,7 +1769,7 @@ VMValue Array_Create(int argCount, VMValue* args, Uint32 threadID) {
 			array->Values->push_back(initialValue);
 		}
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(array);
 	}
 	return NULL_VAL;
@@ -1782,13 +1781,13 @@ VMValue Array_Create(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Length of the array.
  * \ns Array
  */
-VMValue Array_Length(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Array_Length(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int size = (int)array->Values->size();
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return INTEGER_VAL(size);
 	}
 	return INTEGER_VAL(0);
@@ -1800,13 +1799,13 @@ VMValue Array_Length(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (value): Value to add to the array.
  * \ns Array
  */
-VMValue Array_Push(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Array_Push(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		array->Values->push_back(args[1]);
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return NULL_VAL;
 }
@@ -1817,19 +1816,19 @@ VMValue Array_Push(int argCount, VMValue* args, Uint32 threadID) {
  * \return value The value from the end of the array.
  * \ns Array
  */
-VMValue Array_Pop(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Array_Pop(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		if (array->Values->size() == 0) {
-			ScriptManager::Unlock();
+			thread->Manager->Unlock();
 			THROW_ERROR("Array is empty!");
 			return NULL_VAL;
 		}
 		VMValue value = array->Values->back();
 		array->Values->pop_back();
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return value;
 	}
 	return NULL_VAL;
@@ -1842,21 +1841,21 @@ VMValue Array_Pop(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (value): Value to insert.
  * \ns Array
  */
-VMValue Array_Insert(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Array_Insert(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int index = GET_ARG(1, GetInteger);
 		if (index < 0 || index > (int)array->Values->size()) { // Not a typo
-			ScriptManager::Unlock();
+			thread->Manager->Unlock();
 			THROW_ERROR("Index %d is out of bounds of array of size %d.",
 				index,
 				(int)array->Values->size());
 			return NULL_VAL;
 		}
 		array->Values->insert(array->Values->begin() + index, args[2]);
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return NULL_VAL;
 }
@@ -1867,21 +1866,21 @@ VMValue Array_Insert(int argCount, VMValue* args, Uint32 threadID) {
  * \param index (integer): Index to erase value.
  * \ns Array
  */
-VMValue Array_Erase(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Array_Erase(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int index = GET_ARG(1, GetInteger);
 		if (index < 0 || index >= (int)array->Values->size()) {
-			ScriptManager::Unlock();
+			thread->Manager->Unlock();
 			THROW_ERROR("Index %d is out of bounds of array of size %d.",
 				index,
 				(int)array->Values->size());
 			return NULL_VAL;
 		}
 		array->Values->erase(array->Values->begin() + index);
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return NULL_VAL;
 }
@@ -1891,13 +1890,13 @@ VMValue Array_Erase(int argCount, VMValue* args, Uint32 threadID) {
  * \param array (array): Array to clear.
  * \ns Array
  */
-VMValue Array_Clear(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Array_Clear(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		array->Values->clear();
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return NULL_VAL;
 }
@@ -1908,9 +1907,9 @@ VMValue Array_Clear(int argCount, VMValue* args, Uint32 threadID) {
  * \param toRight (boolean): Whether to rotate the array to the right or not.
  * \ns Array
  */
-VMValue Array_Shift(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Array_Shift(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int toright = GET_ARG(1, GetInteger);
 
@@ -1928,7 +1927,7 @@ VMValue Array_Shift(int argCount, VMValue* args, Uint32 threadID) {
 			}
 		}
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return NULL_VAL;
 }
@@ -1941,9 +1940,9 @@ VMValue Array_Shift(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (value): Value to set to.
  * \ns Array
  */
-VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Array_SetAll(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		size_t startIndex = GET_ARG(1, GetInteger);
 		size_t endIndex = GET_ARG(2, GetInteger);
@@ -1970,7 +1969,7 @@ VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
 			}
 		}
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return NULL_VAL;
 }
@@ -1982,9 +1981,9 @@ VMValue Array_SetAll(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt endIndex (integer): End range. (default: size of array)
  * \ns Array
  */
-VMValue Array_Reverse(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Array_Reverse(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		int startIndex = GET_ARG_OPT(1, GetInteger, 0);
 		int endIndex = GET_ARG_OPT(2, GetInteger, array->Values->size());
@@ -2003,7 +2002,7 @@ VMValue Array_Reverse(int argCount, VMValue* args, Uint32 threadID) {
 		std::reverse(
 			array->Values->begin() + startIndex, array->Values->begin() + endIndex);
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return NULL_VAL;
 }
@@ -2014,15 +2013,13 @@ VMValue Array_Reverse(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt compFunction (function): Comparison function. If not given, a default comparison function is used; the entries of the array are sorted in ascending order, and non-numeric values do not participate in the comparison.
  * \ns Array
  */
-VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Array_Sort(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ObjArray* array = GET_ARG(0, GetArray);
 		ObjFunction* function = GET_ARG_OPT(1, GetFunction, nullptr);
 
 		if (function) {
-			VMThread* thread = &ScriptManager::Threads[threadID];
-
 			std::stable_sort(array->Values->begin(),
 				array->Values->end(),
 				[array, thread, function](const VMValue& a, const VMValue& b) {
@@ -2057,7 +2054,7 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
 				});
 		}
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return NULL_VAL;
 }
@@ -2070,7 +2067,7 @@ VMValue Array_Sort(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The master volume, from 0 to 100.
  * \ns Audio
  */
-VMValue Audio_GetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Audio_GetMasterVolume(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::MasterVolume);
 }
@@ -2080,7 +2077,7 @@ VMValue Audio_GetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The music volume, from 0 to 100.
  * \ns Audio
  */
-VMValue Audio_GetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Audio_GetMusicVolume(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::MusicVolume);
 }
@@ -2090,7 +2087,7 @@ VMValue Audio_GetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The sound effect volume, from 0 to 100.
  * \ns Audio
  */
-VMValue Audio_GetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Audio_GetSoundVolume(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::SoundVolume);
 }
@@ -2100,7 +2097,7 @@ VMValue Audio_GetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
  * \param volume (integer): The master volume, from 0 to 100.
  * \ns Audio
  */
-VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Audio_SetMasterVolume(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int volume = GET_ARG(0, GetInteger);
 	if (volume < 0) {
@@ -2121,7 +2118,7 @@ VMValue Audio_SetMasterVolume(int argCount, VMValue* args, Uint32 threadID) {
  * \param volume (integer): The music volume, from 0 to 100.
  * \ns Audio
  */
-VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Audio_SetMusicVolume(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int volume = GET_ARG(0, GetInteger);
 	if (volume < 0) {
@@ -2142,7 +2139,7 @@ VMValue Audio_SetMusicVolume(int argCount, VMValue* args, Uint32 threadID) {
  * \param volume (integer): The sound effect volume, from 0 to 100.
  * \ns Audio
  */
-VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Audio_SetSoundVolume(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int volume = GET_ARG(0, GetInteger);
 	if (volume < 0) {
@@ -2168,7 +2165,7 @@ VMValue Audio_SetSoundVolume(int argCount, VMValue* args, Uint32 threadID) {
  * \param inner (hitbox): The inner hitbox.
  * \ns Collision
  */
-VMValue Collision_ProcessEntityMovement(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_ProcessEntityMovement(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ObjEntity* entity = GET_ARG(0, GetEntity);
 	CollisionBox outerBox = GET_ARG(1, GetHitbox);
@@ -2192,7 +2189,7 @@ VMValue Collision_ProcessEntityMovement(int argCount, VMValue* args, Uint32 thre
  * \return boolean Returns whether the instance has collided with a tile.
  * \ns Collision
  */
-VMValue Collision_CheckTileCollision(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckTileCollision(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(7);
 	ObjEntity* entity = GET_ARG(0, GetEntity);
 	int cLayers = GET_ARG(1, GetInteger);
@@ -2222,7 +2219,7 @@ VMValue Collision_CheckTileCollision(int argCount, VMValue* args, Uint32 threadI
  * \return boolean Returns whether to grip the instance.
  * \ns Collision
  */
-VMValue Collision_CheckTileGrip(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckTileGrip(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(7);
 	ObjEntity* entity = GET_ARG(0, GetEntity);
 	int cLayers = GET_ARG(1, GetInteger);
@@ -2249,7 +2246,7 @@ VMValue Collision_CheckTileGrip(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the entities are touching.
  * \ns Collision
  */
-VMValue Collision_CheckEntityTouch(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityTouch(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	CollisionBox thisBox = GET_ARG(1, GetHitbox);
@@ -2275,7 +2272,7 @@ VMValue Collision_CheckEntityTouch(int argCount, VMValue* args, Uint32 threadID)
  * \return boolean Returns whether the entities have collided.
  * \ns Collision
  */
-VMValue Collision_CheckEntityCircle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityCircle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	float thisRadius = GET_ARG(1, GetDecimal);
@@ -2302,7 +2299,7 @@ VMValue Collision_CheckEntityCircle(int argCount, VMValue* args, Uint32 threadID
  * \return <ref C_*> Returns the side the entities are colliding on.
  * \ns Collision
  */
-VMValue Collision_CheckEntityBox(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityBox(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	CollisionBox thisBox = GET_ARG(1, GetHitbox);
@@ -2331,7 +2328,7 @@ VMValue Collision_CheckEntityBox(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the entities have collided.
  * \ns Collision
  */
-VMValue Collision_CheckEntityPlatform(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Collision_CheckEntityPlatform(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 	ObjEntity* thisEntity = GET_ARG(0, GetEntity);
 	CollisionBox thisBox = GET_ARG(1, GetHitbox);
@@ -2358,7 +2355,7 @@ VMValue Collision_CheckEntityPlatform(int argCount, VMValue* args, Uint32 thread
  * \return integer Returns the amount of connected controllers in the device.
  * \ns Controller
  */
-VMValue Controller_GetCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_GetCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(InputManager::NumControllers);
 }
@@ -2369,7 +2366,7 @@ VMValue Controller_GetCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the controller at the index is connected.
  * \ns Controller
  */
-VMValue Controller_IsConnected(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_IsConnected(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	if (index < 0) {
@@ -2379,14 +2376,14 @@ VMValue Controller_IsConnected(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(InputManager::ControllerIsConnected(index));
 }
 #define CONTROLLER_GET_BOOL(str) \
-	VMValue Controller_##str(int argCount, VMValue* args, Uint32 threadID) { \
+	VMValue Controller_##str(int argCount, VMValue* args, VMThread* thread) { \
 		CHECK_ARGCOUNT(1); \
 		int index = GET_ARG(0, GetInteger); \
 		CHECK_CONTROLLER_INDEX(index); \
 		return INTEGER_VAL(InputManager::Controller##str(index)); \
 	}
 #define CONTROLLER_GET_INT(str) \
-	VMValue Controller_##str(int argCount, VMValue* args, Uint32 threadID) { \
+	VMValue Controller_##str(int argCount, VMValue* args, VMThread* thread) { \
 		CHECK_ARGCOUNT(1); \
 		int index = GET_ARG(0, GetInteger); \
 		CHECK_CONTROLLER_INDEX(index); \
@@ -2448,7 +2445,7 @@ CONTROLLER_GET_BOOL(HasPaddles)
  * \return boolean Returns a boolean value.
  * \ns Controller
  */
-VMValue Controller_IsButtonHeld(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_IsButtonHeld(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int button = GET_ARG(1, GetInteger);
@@ -2467,7 +2464,7 @@ VMValue Controller_IsButtonHeld(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Controller
  */
-VMValue Controller_IsButtonPressed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_IsButtonPressed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int button = GET_ARG(1, GetInteger);
@@ -2487,8 +2484,8 @@ VMValue Controller_IsButtonPressed(int argCount, VMValue* args, Uint32 threadID)
  * \deprecated Use <ref Controller.IsButtonHeld> instead.
  * \ns Controller
  */
-VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
-	return Controller_IsButtonHeld(argCount, args, threadID);
+VMValue Controller_GetButton(int argCount, VMValue* args, VMThread* thread) {
+	return Controller_IsButtonHeld(argCount, args, thread);
 }
 /***
  * Controller.GetAxis
@@ -2498,7 +2495,7 @@ VMValue Controller_GetButton(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the axis value from the controller at the index.
  * \ns Controller
  */
-VMValue Controller_GetAxis(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_GetAxis(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int axis = GET_ARG(1, GetInteger);
@@ -2524,13 +2521,13 @@ CONTROLLER_GET_INT(GetType)
  * \return string Returns the name of the controller at the index.
  * \ns Controller
  */
-VMValue Controller_GetName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_GetName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 
 	CHECK_CONTROLLER_INDEX(index);
 
-	return ReturnString(InputManager::ControllerGetName(index));
+	return ReturnString(thread, InputManager::ControllerGetName(index));
 }
 /***
  * Controller.SetPlayerIndex
@@ -2539,7 +2536,7 @@ VMValue Controller_GetName(int argCount, VMValue* args, Uint32 threadID) {
  * \param playerIndex (integer): The player index. Use `-1` to disable the controller's LEDs.
  * \ns Controller
  */
-VMValue Controller_SetPlayerIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_SetPlayerIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int player_index = GET_ARG(1, GetInteger);
@@ -2571,7 +2568,7 @@ CONTROLLER_GET_BOOL(IsRumbleActive)
  * \param duration (integer): Duration in milliseconds. Use `0` for infinite duration.
  * \ns Controller
  */
-VMValue Controller_Rumble(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_Rumble(int argCount, VMValue* args, VMThread* thread) {
 	if (argCount <= 3) {
 		CHECK_ARGCOUNT(3);
 		int index = GET_ARG(0, GetInteger);
@@ -2619,7 +2616,7 @@ VMValue Controller_Rumble(int argCount, VMValue* args, Uint32 threadID) {
  * \param controllerIndex (integer): Index of the controller to stop.
  * \ns Controller
  */
-VMValue Controller_StopRumble(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_StopRumble(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_CONTROLLER_INDEX(index);
@@ -2640,7 +2637,7 @@ CONTROLLER_GET_BOOL(IsRumblePaused)
  * \param controllerIndex (integer): Index of the controller.
  * \ns Controller
  */
-VMValue Controller_SetRumblePaused(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_SetRumblePaused(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	bool paused = !!GET_ARG(1, GetInteger);
@@ -2656,7 +2653,7 @@ VMValue Controller_SetRumblePaused(int argCount, VMValue* args, Uint32 threadID)
  * \deprecated Use <ref Controller.Rumble> instead.
  * \ns Controller
  */
-VMValue Controller_SetLargeMotorFrequency(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_SetLargeMotorFrequency(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	float frequency = GET_ARG(1, GetDecimal);
@@ -2676,7 +2673,7 @@ VMValue Controller_SetLargeMotorFrequency(int argCount, VMValue* args, Uint32 th
  * \deprecated Use <ref Controller.Rumble> instead.
  * \ns Controller
  */
-VMValue Controller_SetSmallMotorFrequency(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Controller_SetSmallMotorFrequency(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	float frequency = GET_ARG(1, GetDecimal);
@@ -2699,7 +2696,7 @@ VMValue Controller_SetSmallMotorFrequency(int argCount, VMValue* args, Uint32 th
  * \return integer The amount of seconds from epoch.
  * \ns Date
  */
-VMValue Date_GetEpoch(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Date_GetEpoch(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL((int)time(NULL));
 }
@@ -2709,7 +2706,7 @@ VMValue Date_GetEpoch(int argCount, VMValue* args, Uint32 threadID) {
  * \return <ref WEEKDAY_*> The day of the week.
  * \ns Date
  */
-VMValue Date_GetWeekday(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Date_GetWeekday(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL((((int)time(NULL) / 86400) + 3) % 7);
 }
@@ -2719,7 +2716,7 @@ VMValue Date_GetWeekday(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The second of the minute (from 0 to 59).
  * \ns Date
  */
-VMValue Date_GetSecond(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Date_GetSecond(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL((int)time(NULL) % 60);
 }
@@ -2729,7 +2726,7 @@ VMValue Date_GetSecond(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The minute of the hour (from 0 to 59).
  * \ns Date
  */
-VMValue Date_GetMinute(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Date_GetMinute(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(((int)time(NULL) / 60) % 60);
 }
@@ -2739,7 +2736,7 @@ VMValue Date_GetMinute(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The hour of the day (from 0 to 23).
  * \ns Date
  */
-VMValue Date_GetHour(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Date_GetHour(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(((int)time(NULL) / 3600) % 24);
 }
@@ -2749,7 +2746,7 @@ VMValue Date_GetHour(int argCount, VMValue* args, Uint32 threadID) {
  * \return <ref TIMEOFDAY_*> The time of day based on the current hour.
  * \ns Date
  */
-VMValue Date_GetTimeOfDay(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Date_GetTimeOfDay(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	int hour = ((int)time(NULL) / 3600) % 24;
 
@@ -2772,7 +2769,7 @@ VMValue Date_GetTimeOfDay(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns milliseconds since the application began running.
  * \ns Date
  */
-VMValue Date_GetTicks(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Date_GetTicks(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return DECIMAL_VAL((float)Clock::GetTicks());
 }
@@ -2785,7 +2782,7 @@ VMValue Date_GetTicks(int argCount, VMValue* args, Uint32 threadID) {
  * \return <ref Platform_*> Returns the current platform.
  * \ns Device
  */
-VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Device_GetPlatform(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL((int)Application::Platform);
 }
@@ -2795,7 +2792,7 @@ VMValue Device_GetPlatform(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the device running on a computer OS.
  * \ns Device
  */
-VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Device_IsPC(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	bool isPC = Application::IsPC();
 	return INTEGER_VAL((int)isPC);
@@ -2806,7 +2803,7 @@ VMValue Device_IsPC(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the device is running on a mobile OS.
  * \ns Device
  */
-VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Device_IsMobile(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	bool isMobile = Application::IsMobile();
 	return INTEGER_VAL((int)isMobile);
@@ -2818,7 +2815,7 @@ VMValue Device_IsMobile(int argCount, VMValue* args, Uint32 threadID) {
  * \return value The return value of this function depends on the capability being queried; however, if the capability is not present, this function returns `null`.
  * \ns Device
  */
-VMValue Device_GetCapability(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Device_GetCapability(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* capType = GET_ARG(0, GetString);
 
@@ -2832,9 +2829,9 @@ VMValue Device_GetCapability(int argCount, VMValue* args, Uint32 threadID) {
 	case Capability::TYPE_BOOL:
 		return INTEGER_VAL(capability.AsBoolean ? 1 : 0);
 	case Capability::TYPE_STRING:
-		if (ScriptManager::Lock()) {
-			VMValue value = OBJECT_VAL(TakeString(capability.AsString));
-			ScriptManager::Unlock();
+		if (thread->Manager->Lock()) {
+			VMValue value = OBJECT_VAL(thread->Manager->TakeString(capability.AsString));
+			thread->Manager->Unlock();
 			return value;
 		}
 		else {
@@ -2855,7 +2852,7 @@ VMValue Device_GetCapability(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether folder creation was successful.
  * \ns Directory
  */
-VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Directory_Create(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* directory = GET_ARG(0, GetString);
 	return INTEGER_VAL(Directory::Create(directory));
@@ -2867,7 +2864,7 @@ VMValue Directory_Create(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the folder exists.
  * \ns Directory
  */
-VMValue Directory_Exists(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Directory_Exists(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* directory = GET_ARG(0, GetString);
 	return INTEGER_VAL(Directory::Exists(directory));
@@ -2881,7 +2878,7 @@ VMValue Directory_Exists(int argCount, VMValue* args, Uint32 threadID) {
  * \return array Returns an array containing the filepaths as strings.
  * \ns Directory
  */
-VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Directory_GetFiles(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ObjArray* array = NULL;
 	char* directory = GET_ARG(0, GetString);
@@ -2891,14 +2888,14 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 	std::vector<std::filesystem::path> fileList;
 	Directory::GetFiles(&fileList, directory, pattern, allDirs);
 
-	if (ScriptManager::Lock()) {
-		array = NewArray();
+	if (thread->Manager->Lock()) {
+		array = thread->Manager->NewArray();
 		for (size_t i = 0; i < fileList.size(); i++) {
 			std::string asStr = Path::ToString(fileList[i]);
-			ObjString* part = CopyString(asStr);
+			ObjString* part = COPY_STRING(asStr);
 			array->Values->push_back(OBJECT_VAL(part));
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 
 	return OBJECT_VAL(array);
@@ -2912,7 +2909,7 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
  * \return array Returns an array containing the filepaths as strings.
  * \ns Directory
  */
-VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Directory_GetDirectories(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ObjArray* array = NULL;
 	char* directory = GET_ARG(0, GetString);
@@ -2922,14 +2919,14 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 	std::vector<std::filesystem::path> fileList;
 	Directory::GetDirectories(&fileList, directory, pattern, allDirs);
 
-	if (ScriptManager::Lock()) {
-		array = NewArray();
+	if (thread->Manager->Lock()) {
+		array = thread->Manager->NewArray();
 		for (size_t i = 0; i < fileList.size(); i++) {
 			std::string asStr = Path::ToString(fileList[i]);
-			ObjString* part = CopyString(asStr);
+			ObjString* part = COPY_STRING(asStr);
 			array->Values->push_back(OBJECT_VAL(part));
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 
 	return OBJECT_VAL(array);
@@ -2944,7 +2941,7 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the width of the current display.
  * \ns Display
  */
-VMValue Display_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Display_GetWidth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	SDL_DisplayMode dm;
 	SDL_GetCurrentDisplayMode(0, &dm);
@@ -2957,7 +2954,7 @@ VMValue Display_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the height of the current display.
  * \ns Display
  */
-VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Display_GetHeight(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	SDL_DisplayMode dm;
 	SDL_GetCurrentDisplayMode(0, &dm);
@@ -2983,7 +2980,7 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Sprite(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(7);
 
 	ISprite* sprite = (GET_ARG(0, GetInteger) > -1) ? GET_ARG(0, GetSprite) : NULL;
@@ -3002,6 +2999,13 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_PALETTE_INDEX(paletteID);
 
 	if (sprite && animation >= 0 && frame >= 0) {
+		try {
+			Graphics::SpriteRangeCheck(sprite, animation, frame);
+		} catch (const std::runtime_error& error) {
+			thread->ThrowRuntimeError(false, "%s", error.what());
+			return NULL_VAL;
+		}
+
 		if (useInteger) {
 			int rot = (int)rotation;
 			switch (int rotationStyle = sprite->Animations[animation].Flags) {
@@ -3050,17 +3054,24 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt y (number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \ns Draw
  */
-VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SpriteBasic(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* entity = instance ? (Entity*)instance->EntityPtr : nullptr;
 	int x = (int)GET_ARG_OPT(1, GetDecimal, entity ? entity->X : 0);
 	int y = (int)GET_ARG_OPT(2, GetDecimal, entity ? entity->Y : 0);
-	ISprite* sprite = entity ? GetSpriteIndex(entity->Sprite, threadID) : nullptr;
+	ISprite* sprite = entity ? GetSpriteIndex(entity->Sprite, thread) : nullptr;
 	float rotation = 0.0f;
 
 	if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
+		try {
+			Graphics::SpriteRangeCheck(sprite, entity->CurrentAnimation, entity->CurrentFrame);
+		} catch (const std::runtime_error& error) {
+			thread->ThrowRuntimeError(false, "%s", error.what());
+			return NULL_VAL;
+		}
+
 		int rot = (int)entity->Rotation;
 		int frame = entity->CurrentFrame;
 		switch (entity->RotationStyle) {
@@ -3192,7 +3203,7 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt rotation (number): Rotation of the drawn sprite, from 0-511. (default: `0.0`)
  * \ns Draw
  */
-VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Animator(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 
 	Animator* animator = GET_ARG(0, GetAnimator);
@@ -3210,8 +3221,15 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, thread);
 		if (!sprite) {
+			return NULL_VAL;
+		}
+
+		try {
+			Graphics::SpriteRangeCheck(sprite, animator->CurrentAnimation, animator->CurrentFrame);
+		} catch (const std::runtime_error& error) {
+			thread->ThrowRuntimeError(false, "%s", error.what());
 			return NULL_VAL;
 		}
 
@@ -3261,7 +3279,7 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt y (number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
  * \ns Draw
  */
-VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_AnimatorBasic(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 
 	Animator* animator = GET_ARG(0, GetAnimator);
@@ -3277,8 +3295,15 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (entity && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
-		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, thread);
 		if (!sprite) {
+			return NULL_VAL;
+		}
+
+		try {
+			Graphics::SpriteRangeCheck(sprite, animator->CurrentAnimation, animator->CurrentFrame);
+		} catch (const std::runtime_error& error) {
+			thread->ThrowRuntimeError(false, "%s", error.what());
 			return NULL_VAL;
 		}
 
@@ -3421,7 +3446,7 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SpritePart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(11);
 
 	ISprite* sprite = (GET_ARG(0, GetInteger) > -1) ? GET_ARG(0, GetSprite) : NULL;
@@ -3444,6 +3469,13 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_PALETTE_INDEX(paletteID);
 
 	if (sprite && animation >= 0 && frame >= 0) {
+		try {
+			Graphics::SpriteRangeCheck(sprite, animation, frame);
+		} catch (const std::runtime_error& error) {
+			thread->ThrowRuntimeError(false, "%s", error.what());
+			return NULL_VAL;
+		}
+
 		if (useInteger) {
 			int rot = (int)rotation;
 			switch (int rotationStyle = sprite->Animations[animation].Flags) {
@@ -3497,7 +3529,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Image(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	Image* image = GET_ARG(0, GetImage);
@@ -3534,7 +3566,7 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_ImagePart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(7);
 
 	Image* image = GET_ARG(0, GetImage);
@@ -3564,7 +3596,7 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_ImageSized(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 
 	Image* image = GET_ARG(0, GetImage);
@@ -3605,7 +3637,7 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_ImagePartSized(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(9);
 
 	Image* image = GET_ARG(0, GetImage);
@@ -3632,7 +3664,7 @@ VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param layerIndex (integer): Index of layer.
  * \ns Draw
  */
-VMValue Draw_Layer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Layer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -3670,7 +3702,7 @@ VMValue Draw_Layer(int argCount, VMValue* args, Uint32 threadID) {
 	Scene::RenderView(view_index, false); \
 	Scene::SetView(current_view); \
 	Graphics::PopState()
-VMValue Draw_View(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_View(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	int view_index = GET_ARG(0, GetInteger);
@@ -3705,7 +3737,7 @@ VMValue Draw_View(int argCount, VMValue* args, Uint32 threadID) {
  * \param partH (integer): Height of part of view to draw.
  * \ns Draw
  */
-VMValue Draw_ViewPart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_ViewPart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(7);
 
 	int view_index = GET_ARG(0, GetInteger);
@@ -3733,7 +3765,7 @@ VMValue Draw_ViewPart(int argCount, VMValue* args, Uint32 threadID) {
  * \param height (number): Height to draw the view.
  * \ns Draw
  */
-VMValue Draw_ViewSized(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_ViewSized(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 
 	int view_index = GET_ARG(0, GetInteger);
@@ -3764,7 +3796,7 @@ VMValue Draw_ViewSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param height (number): Height to draw the view.
  * \ns Draw
  */
-VMValue Draw_ViewPartSized(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_ViewPartSized(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(9);
 
 	int view_index = GET_ARG(0, GetInteger);
@@ -3790,7 +3822,7 @@ VMValue Draw_ViewPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Draw
  */
-VMValue Draw_Video(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Video(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	MediaBag* video = GET_ARG(0, GetVideo);
@@ -3814,7 +3846,7 @@ VMValue Draw_Video(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Draw
  */
-VMValue Draw_VideoPart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_VideoPart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(7);
 
 	MediaBag* video = GET_ARG(0, GetVideo);
@@ -3834,7 +3866,7 @@ VMValue Draw_VideoPart(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Draw
  */
-VMValue Draw_VideoSized(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_VideoSized(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 
 	MediaBag* video = GET_ARG(0, GetVideo);
@@ -3864,7 +3896,7 @@ VMValue Draw_VideoSized(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Draw
  */
-VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_VideoPartSized(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(9);
 
 	MediaBag* video = GET_ARG(0, GetVideo);
@@ -3894,7 +3926,7 @@ VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Tile(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	Uint32 id = GET_ARG(0, GetInteger);
@@ -3943,7 +3975,7 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (number): Y position of where to draw the texture.
  * \ns Draw
  */
-VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Texture(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	GameTexture* gameTexture = GET_ARG(0, GetTexture);
@@ -3978,7 +4010,7 @@ VMValue Draw_Texture(int argCount, VMValue* args, Uint32 threadID) {
  * \param height (number): Height to draw the texture.
  * \ns Draw
  */
-VMValue Draw_TextureSized(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_TextureSized(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 
 	GameTexture* gameTexture = GET_ARG(0, GetTexture);
@@ -4009,7 +4041,7 @@ VMValue Draw_TextureSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (number): Y position of where to draw the texture.
  * \ns Draw
  */
-VMValue Draw_TexturePart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_TexturePart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(7);
 
 	GameTexture* gameTexture = GET_ARG(0, GetTexture);
@@ -4037,7 +4069,7 @@ This does not affect text drawn using a Font.
  * \param baseline (integer): 0 for left, 1 for center, 2 for right.
  * \ns Draw
  */
-VMValue Draw_SetTextAlign(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetTextAlign(int argCount, VMValue* args, VMThread* thread) {
 	textAlign = GET_ARG(0, GetInteger) / 2.0f;
 	return NULL_VAL;
 }
@@ -4048,7 +4080,7 @@ This does not affect text drawn using a Font.
  * \param baseline (integer): 0 for top, 1 for baseline, 2 for bottom.
  * \ns Draw
  */
-VMValue Draw_SetTextBaseline(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetTextBaseline(int argCount, VMValue* args, VMThread* thread) {
 	textBaseline = GET_ARG(0, GetInteger) / 2.0f;
 	return NULL_VAL;
 }
@@ -4059,7 +4091,7 @@ This does not affect text drawn using a Font.
  * \param ascent (number): Multiplier for character spacing.
  * \ns Draw
  */
-VMValue Draw_SetTextAdvance(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetTextAdvance(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	textAdvance = GET_ARG(0, GetDecimal);
 	return NULL_VAL;
@@ -4071,7 +4103,7 @@ This does not affect text drawn using a Font.
  * \param ascent (number): Multiplier for line height.
  * \ns Draw
  */
-VMValue Draw_SetTextLineAscent(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetTextLineAscent(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	textAscent = GET_ARG(0, GetDecimal);
 	return NULL_VAL;
@@ -4086,7 +4118,7 @@ VMValue Draw_SetTextLineAscent(int argCount, VMValue* args, Uint32 threadID) {
  * \return array Returns the array inputted into the function.
  * \ns Draw
  */
-VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_MeasureText(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	ObjArray* array = GET_ARG(0, GetArray);
@@ -4121,11 +4153,11 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
 		}
 	}
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		array->Values->clear();
 		array->Values->push_back(DECIMAL_VAL(maxW));
 		array->Values->push_back(DECIMAL_VAL(maxH));
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(array);
 	}
 	return NULL_VAL;
@@ -4142,7 +4174,7 @@ VMValue Draw_MeasureText(int argCount, VMValue* args, Uint32 threadID) {
  * \return array Returns the array inputted into the function.
  * \ns Draw
  */
-VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(4);
 
 	ObjArray* array = GET_ARG(0, GetArray);
@@ -4186,11 +4218,11 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
 		}
 	}
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		array->Values->clear();
 		array->Values->push_back(DECIMAL_VAL(maxW));
 		array->Values->push_back(DECIMAL_VAL(maxH));
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(array);
 	}
 	return NULL_VAL;
@@ -4206,7 +4238,7 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Text(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(4);
 
 	char* text = GET_ARG(1, GetString);
@@ -4261,7 +4293,7 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_TextWrapped(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 
 	char* text = GET_ARG(1, GetString);
@@ -4325,7 +4357,7 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_TextEllipsis(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 
 	char* text = GET_ARG(1, GetString);
@@ -4387,7 +4419,7 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Glyph(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(4);
 
 	Uint32 codepoint = GET_ARG(1, GetInteger);
@@ -4444,9 +4476,9 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
-VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_TextArray(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(9);
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ISprite* sprite = GET_ARG(0, GetSprite);
 		int animation = GET_ARG(1, GetInteger);
 		float x = GET_ARG(2, GetDecimal);
@@ -4480,8 +4512,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
+						if (thread->DoIntegerConversion(
+							    val)) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
@@ -4493,15 +4525,15 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 							VMValue xVal = (*charOffsetsX
 									->Values)[charOffsetIndex];
 							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    xVal, threadID)) {
+							if (thread->DoDecimalConversion(
+								    xVal)) {
 								xOffset = AS_DECIMAL(xVal);
 							}
 							VMValue yVal = (*charOffsetsY
 									->Values)[charOffsetIndex];
 							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    yVal, threadID)) {
+							if (thread->DoDecimalConversion(
+								    yVal)) {
 								yOffset = AS_DECIMAL(yVal);
 							}
 							Graphics::DrawSprite(sprite,
@@ -4524,8 +4556,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
+						if (thread->DoIntegerConversion(
+							    val)) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
@@ -4560,8 +4592,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; endFrame >= startFrame; --endFrame) {
 						VMValue val = (*string->Values)[endFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
+						if (thread->DoIntegerConversion(
+							    val)) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
@@ -4573,15 +4605,15 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 							VMValue xVal = (*charOffsetsX
 									->Values)[charOffsetIndex];
 							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    xVal, threadID)) {
+							if (thread->DoDecimalConversion(
+								    xVal)) {
 								xOffset = AS_DECIMAL(xVal);
 							}
 							VMValue yVal = (*charOffsetsY
 									->Values)[charOffsetIndex];
 							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    yVal, threadID)) {
+							if (thread->DoDecimalConversion(
+								    yVal)) {
 								yOffset = AS_DECIMAL(yVal);
 							}
 							Graphics::DrawSprite(sprite,
@@ -4604,8 +4636,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; endFrame >= startFrame; --endFrame) {
 						VMValue val = (*string->Values)[endFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
+						if (thread->DoIntegerConversion(
+							    val)) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
@@ -4636,7 +4668,7 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 				for (int pos = startFrame; pos < endFrame; ++pos) {
 					VMValue val = (*string->Values)[pos];
 					int curChar = 0;
-					if (ScriptManager::DoIntegerConversion(val, threadID)) {
+					if (thread->DoIntegerConversion(val)) {
 						curChar = AS_INTEGER(val);
 					}
 					if (curChar >= 0 &&
@@ -4656,8 +4688,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
+						if (thread->DoIntegerConversion(
+							    val)) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
@@ -4669,15 +4701,15 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 							VMValue xVal = (*charOffsetsX
 									->Values)[charOffsetIndex];
 							float xOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    xVal, threadID)) {
+							if (thread->DoDecimalConversion(
+								    xVal)) {
 								xOffset = AS_DECIMAL(xVal);
 							}
 							VMValue yVal = (*charOffsetsY
 									->Values)[charOffsetIndex];
 							float yOffset = 0.0f;
-							if (ScriptManager::DoDecimalConversion(
-								    yVal, threadID)) {
+							if (thread->DoDecimalConversion(
+								    yVal)) {
 								yOffset = AS_DECIMAL(yVal);
 							}
 							Graphics::DrawSprite(sprite,
@@ -4700,8 +4732,8 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 					for (; startFrame < endFrame; ++startFrame) {
 						VMValue val = (*string->Values)[startFrame];
 						int curChar = 0;
-						if (ScriptManager::DoIntegerConversion(
-							    val, threadID)) {
+						if (thread->DoIntegerConversion(
+							    val)) {
 							curChar = AS_INTEGER(val);
 						}
 						if (curChar >= 0 &&
@@ -4729,7 +4761,7 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 			}
 		}
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return NULL_VAL;
 	}
 	return NULL_VAL;
@@ -4741,7 +4773,7 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
  * \param alpha (number): Opacity to use for drawing, 0.0 to 1.0.
  * \ns Draw
  */
-VMValue Draw_SetBlendColor(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetBlendColor(int argCount, VMValue* args, VMThread* thread) {
 	if (argCount <= 2) {
 		CHECK_ARGCOUNT(2);
 		int hex = GET_ARG(0, GetInteger);
@@ -4765,7 +4797,7 @@ VMValue Draw_SetBlendColor(int argCount, VMValue* args, Uint32 threadID) {
  * \param doBlend (boolean): Whether to use blending.
  * \ns Draw
  */
-VMValue Draw_SetTextureBlend(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetTextureBlend(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Graphics::TextureBlend = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
@@ -4777,7 +4809,7 @@ VMValue Draw_SetTextureBlend(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Draw
  */
-VMValue Draw_SetBlendMode(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetBlendMode(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int blendMode = GET_ARG(0, GetInteger);
 	if (blendMode < 0 || blendMode > BlendMode_MATCH_NOT_EQUAL) {
@@ -4795,7 +4827,7 @@ VMValue Draw_SetBlendMode(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Draw
  */
-VMValue Draw_SetBlendFactor(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetBlendFactor(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int src = GET_ARG(0, GetInteger);
 	int dst = GET_ARG(1, GetInteger);
@@ -4812,7 +4844,7 @@ VMValue Draw_SetBlendFactor(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Draw
  */
-VMValue Draw_SetBlendFactorExtended(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetBlendFactorExtended(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	int srcC = GET_ARG(0, GetInteger);
 	int dstC = GET_ARG(1, GetInteger);
@@ -4827,7 +4859,7 @@ VMValue Draw_SetBlendFactorExtended(int argCount, VMValue* args, Uint32 threadID
  * \param hex (integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)
  * \ns Draw
  */
-VMValue Draw_SetCompareColor(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetCompareColor(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int hex = GET_ARG(0, GetInteger);
 	// SoftwareRenderer::CompareColor = 0xFF000000U | (hex & 0xF8F8F8);
@@ -4841,7 +4873,7 @@ VMValue Draw_SetCompareColor(int argCount, VMValue* args, Uint32 threadID) {
  * \param amount (number): Tint amount, from 0.0 to 1.0.
  * \ns Draw
  */
-VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetTintColor(int argCount, VMValue* args, VMThread* thread) {
 	if (argCount <= 2) {
 		CHECK_ARGCOUNT(2);
 		int hex = GET_ARG(0, GetInteger);
@@ -4866,7 +4898,7 @@ VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Draw
  */
-VMValue Draw_SetTintMode(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetTintMode(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int tintMode = GET_ARG(0, GetInteger);
 	if (tintMode < 0 || tintMode > TintMode_DST_BLEND) {
@@ -4882,7 +4914,7 @@ VMValue Draw_SetTintMode(int argCount, VMValue* args, Uint32 threadID) {
  * \param useTinting (boolean): Whether to use color tinting when drawing.
  * \ns Draw
  */
-VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_UseTinting(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int useTinting = GET_ARG(0, GetInteger);
 	Graphics::SetTintEnabled(useTinting);
@@ -4894,7 +4926,7 @@ VMValue Draw_UseTinting(int argCount, VMValue* args, Uint32 threadID) {
  * \param shader (Shader): The shader, or `null` to unset the shader.
  * \ns Draw
  */
-VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetShader(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	if (IS_NULL(args[0])) {
@@ -4914,7 +4946,7 @@ VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
 
 		Graphics::SetUserShader(shader);
 	} catch (const std::runtime_error& error) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+		thread->ThrowRuntimeError(false, "%s", error.what());
 	}
 
 	return NULL_VAL;
@@ -4925,7 +4957,7 @@ VMValue Draw_SetShader(int argCount, VMValue* args, Uint32 threadID) {
  * \param filterType (<ref Filter_*>): The filter type.
  * \ns Draw
  */
-VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetFilter(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int filterType = GET_ARG(0, GetInteger);
 	if (filterType < 0 || filterType > Filter_INVERT) {
@@ -4941,7 +4973,7 @@ VMValue Draw_SetFilter(int argCount, VMValue* args, Uint32 threadID) {
  * \param enabled (boolean): Whether to enable or disable stencil operations.
  * \ns Draw
  */
-VMValue Draw_UseStencil(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_UseStencil(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Graphics::SetStencilEnabled(!!GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -4952,7 +4984,7 @@ VMValue Draw_UseStencil(int argCount, VMValue* args, Uint32 threadID) {
  * \param stencilTest (<ref StencilTest_*>): One of the stencil test functions.
  * \ns Draw
  */
-VMValue Draw_SetStencilTestFunction(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetStencilTestFunction(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int stencilTest = GET_ARG(0, GetInteger);
 	if (stencilTest < StencilTest_Never || stencilTest > StencilTest_GEqual) {
@@ -4971,7 +5003,7 @@ VMValue Draw_SetStencilTestFunction(int argCount, VMValue* args, Uint32 threadID
  * \param stencilOp (<ref StencilTest_*>): One of the stencil operation.
  * \ns Draw
  */
-VMValue Draw_SetStencilPassOperation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetStencilPassOperation(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int stencilOp = GET_ARG(0, GetInteger);
 	if (stencilOp < StencilOp_Keep || stencilOp > StencilOp_DecrWrap) {
@@ -4988,7 +5020,7 @@ VMValue Draw_SetStencilPassOperation(int argCount, VMValue* args, Uint32 threadI
  * \param stencilOp (<ref StencilTest_*>): One of the stencil operations.
  * \ns Draw
  */
-VMValue Draw_SetStencilFailOperation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetStencilFailOperation(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int stencilOp = GET_ARG(0, GetInteger);
 	if (stencilOp < StencilOp_Keep || stencilOp > StencilOp_DecrWrap) {
@@ -5005,7 +5037,7 @@ VMValue Draw_SetStencilFailOperation(int argCount, VMValue* args, Uint32 threadI
  * \param value (integer): The stencil value. This value is clamped by the stencil buffer's bit depth.
  * \ns Draw
  */
-VMValue Draw_SetStencilValue(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetStencilValue(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int value = GET_ARG(0, GetInteger);
 	Graphics::SetStencilValue(value);
@@ -5017,7 +5049,7 @@ VMValue Draw_SetStencilValue(int argCount, VMValue* args, Uint32 threadID) {
  * \param mask (integer): The stencil mask. This value is clamped by the stencil buffer's bit depth.
  * \ns Draw
  */
-VMValue Draw_SetStencilMask(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetStencilMask(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int mask = GET_ARG(0, GetInteger);
 	Graphics::SetStencilMask(mask);
@@ -5028,7 +5060,7 @@ VMValue Draw_SetStencilMask(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Clears the stencil.
  * \ns Draw
  */
-VMValue Draw_ClearStencil(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_ClearStencil(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	Graphics::ClearStencil();
 	return NULL_VAL;
@@ -5039,7 +5071,7 @@ VMValue Draw_ClearStencil(int argCount, VMValue* args, Uint32 threadID) {
  * \param mask (integer): The mask.
  * \ns Draw
  */
-VMValue Draw_SetDotMask(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetDotMask(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	SoftwareRenderer::SetDotMask(GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -5050,7 +5082,7 @@ VMValue Draw_SetDotMask(int argCount, VMValue* args, Uint32 threadID) {
  * \param mask (integer): The mask.
  * \ns Draw
  */
-VMValue Draw_SetHorizontalDotMask(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetHorizontalDotMask(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	SoftwareRenderer::SetDotMaskH(GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -5061,7 +5093,7 @@ VMValue Draw_SetHorizontalDotMask(int argCount, VMValue* args, Uint32 threadID) 
  * \param mask (integer): The mask.
  * \ns Draw
  */
-VMValue Draw_SetVerticalDotMask(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetVerticalDotMask(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	SoftwareRenderer::SetDotMaskV(GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -5072,7 +5104,7 @@ VMValue Draw_SetVerticalDotMask(int argCount, VMValue* args, Uint32 threadID) {
  * \param offsetH (integer): The offset.
  * \ns Draw
  */
-VMValue Draw_SetHorizontalDotMaskOffset(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetHorizontalDotMaskOffset(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	SoftwareRenderer::SetDotMaskOffsetH(GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -5083,7 +5115,7 @@ VMValue Draw_SetHorizontalDotMaskOffset(int argCount, VMValue* args, Uint32 thre
  * \param offsetV (integer): The offset.
  * \ns Draw
  */
-VMValue Draw_SetVerticalDotMaskOffset(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetVerticalDotMaskOffset(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	SoftwareRenderer::SetDotMaskOffsetV(GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -5097,7 +5129,7 @@ VMValue Draw_SetVerticalDotMaskOffset(int argCount, VMValue* args, Uint32 thread
  * \param y2 (number): Y position of where to end drawing the line.
  * \ns Draw
  */
-VMValue Draw_Line(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Line(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	Graphics::StrokeLine(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -5113,7 +5145,7 @@ VMValue Draw_Line(int argCount, VMValue* args, Uint32 threadID) {
  * \param radius (number): Radius of the circle.
  * \ns Draw
  */
-VMValue Draw_Circle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Circle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	Graphics::FillCircle(
 		GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal), GET_ARG(2, GetDecimal));
@@ -5128,7 +5160,7 @@ VMValue Draw_Circle(int argCount, VMValue* args, Uint32 threadID) {
  * \param height (number): Height to draw the ellipse at.
  * \ns Draw
  */
-VMValue Draw_Ellipse(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Ellipse(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	Graphics::FillEllipse(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -5147,7 +5179,7 @@ VMValue Draw_Ellipse(int argCount, VMValue* args, Uint32 threadID) {
  * \param y3 (number): Y position of the third vertex.
  * \ns Draw
  */
-VMValue Draw_Triangle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Triangle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(6);
 	Graphics::FillTriangle(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -5171,7 +5203,7 @@ VMValue Draw_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  * \param color3 (integer): Color of the third vertex.
  * \ns Draw
  */
-VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_TriangleBlend(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(9);
 	Graphics::FillTriangleBlend(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -5197,7 +5229,7 @@ VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
  * \param y4 (number): Y position of the fourth vertex.
  * \ns Draw
  */
-VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Quad(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(8);
 	Graphics::FillQuad(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -5226,7 +5258,7 @@ VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
  * \param color4 (integer): Color of the fourth vertex.
  * \ns Draw
  */
-VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_QuadBlend(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(12);
 	Graphics::FillQuadBlend(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -5263,7 +5295,7 @@ VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt v3 (number): Texture V of the third vertex.
  * \ns Draw
  */
-VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_TriangleTextured(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(7);
 
 	Image* image = GET_ARG(0, GetImage);
@@ -5314,7 +5346,7 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt v4 (number): Texture V of the fourth vertex.
  * \ns Draw
  */
-VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_QuadTextured(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(9);
 
 	Image* image = GET_ARG(0, GetImage);
@@ -5353,7 +5385,7 @@ VMValue Draw_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
  * \param height (number): Height to draw the rectangle at.
  * \ns Draw
  */
-VMValue Draw_Rectangle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Rectangle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	Graphics::FillRectangle(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -5370,7 +5402,7 @@ VMValue Draw_Rectangle(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt thickness (number): Thickness of the circle.
  * \ns Draw
  */
-VMValue Draw_CircleStroke(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_CircleStroke(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(3);
 	Graphics::StrokeCircle(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -5387,7 +5419,7 @@ VMValue Draw_CircleStroke(int argCount, VMValue* args, Uint32 threadID) {
  * \param height (number): Height to draw the ellipse at.
  * \ns Draw
  */
-VMValue Draw_EllipseStroke(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_EllipseStroke(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	Graphics::StrokeEllipse(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -5406,7 +5438,7 @@ VMValue Draw_EllipseStroke(int argCount, VMValue* args, Uint32 threadID) {
  * \param y3 (number): Y position of the third vertex.
  * \ns Draw
  */
-VMValue Draw_TriangleStroke(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_TriangleStroke(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(6);
 	Graphics::StrokeTriangle(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -5425,7 +5457,7 @@ VMValue Draw_TriangleStroke(int argCount, VMValue* args, Uint32 threadID) {
  * \param height (number): Height to draw the rectangle at.
  * \ns Draw
  */
-VMValue Draw_RectangleStroke(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_RectangleStroke(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	Graphics::StrokeRectangle(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -5440,7 +5472,7 @@ VMValue Draw_RectangleStroke(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Draw
  */
-VMValue Draw_UseFillSmoothing(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_UseFillSmoothing(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Graphics::SmoothFill = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
@@ -5451,7 +5483,7 @@ VMValue Draw_UseFillSmoothing(int argCount, VMValue* args, Uint32 threadID) {
  * \param smoothStroke (boolean): Whether to use smoothing.
  * \ns Draw
  */
-VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Graphics::SmoothStroke = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
@@ -5466,7 +5498,7 @@ VMValue Draw_UseStrokeSmoothing(int argCount, VMValue* args, Uint32 threadID) {
  * \param height (number): Height of the draw region.
  * \ns Draw
  */
-VMValue Draw_SetClip(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetClip(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	if (GET_ARG(2, GetDecimal) >= 0.0 && GET_ARG(3, GetDecimal) >= 0.0) {
 		Graphics::SetClip((int)GET_ARG(0, GetDecimal),
@@ -5481,7 +5513,7 @@ VMValue Draw_SetClip(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Resets the drawing region.
  * \ns Draw
  */
-VMValue Draw_ClearClip(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_ClearClip(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	Graphics::ClearClip();
 	return NULL_VAL;
@@ -5492,7 +5524,7 @@ VMValue Draw_ClearClip(int argCount, VMValue* args, Uint32 threadID) {
   * \return integer The X position if clipping is enabled, else 0.
   * \ns Draw
   */
-VMValue Draw_GetClipX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_GetClipX(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.X)
 					     : INTEGER_VAL(0);
@@ -5503,7 +5535,7 @@ VMValue Draw_GetClipX(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The Y position if clipping is enabled, else 0.
  * \ns Draw
  */
-VMValue Draw_GetClipY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_GetClipY(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Y)
 					     : INTEGER_VAL(0);
@@ -5514,7 +5546,7 @@ VMValue Draw_GetClipY(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The width if clipping is enabled, else 0.
  * \ns Draw
  */
-VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_GetClipWidth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Width)
 					     : INTEGER_VAL((int)Graphics::CurrentView->Width);
@@ -5525,7 +5557,7 @@ VMValue Draw_GetClipWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The height if clipping is enabled, else 0.
  * \ns Draw
  */
-VMValue Draw_GetClipHeight(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_GetClipHeight(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return Graphics::CurrentClip.Enabled ? INTEGER_VAL((int)Graphics::CurrentClip.Height)
 					     : INTEGER_VAL((int)Graphics::CurrentView->Height);
@@ -5535,7 +5567,7 @@ VMValue Draw_GetClipHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Saves the current transform matrix to the stack.
  * \ns Draw
  */
-VMValue Draw_Save(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Save(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	Graphics::Save();
 	return NULL_VAL;
@@ -5548,7 +5580,7 @@ VMValue Draw_Save(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt z (number): Desired Z scale. (default: `1.0`)
  * \ns Draw
  */
-VMValue Draw_Scale(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Scale(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	float x = GET_ARG(0, GetDecimal);
 	float y = GET_ARG(1, GetDecimal);
@@ -5573,7 +5605,7 @@ VMValue Draw_Scale(int argCount, VMValue* args, Uint32 threadID) {
  * \param angle (number): Desired rotation angle.
  * \ns Draw
  */
-VMValue Draw_Rotate(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Rotate(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	if (argCount == 3) {
 		float x = GET_ARG(0, GetDecimal);
@@ -5592,7 +5624,7 @@ VMValue Draw_Rotate(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Restores the last saved transform matrix from the stack.
  * \ns Draw
  */
-VMValue Draw_Restore(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Restore(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	Graphics::Restore();
 	return NULL_VAL;
@@ -5605,7 +5637,7 @@ VMValue Draw_Restore(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt z (number): Desired Z translation. (default: `0.0`)
  * \ns Draw
  */
-VMValue Draw_Translate(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Translate(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	float x = GET_ARG(0, GetDecimal);
 	float y = GET_ARG(1, GetDecimal);
@@ -5622,7 +5654,7 @@ VMValue Draw_Translate(int argCount, VMValue* args, Uint32 threadID) {
  * \param texture (integer): The texture target.
  * \ns Draw
  */
-VMValue Draw_SetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetTextureTarget(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	GameTexture* gameTexture = GET_ARG(0, GetTexture);
@@ -5641,7 +5673,7 @@ VMValue Draw_SetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Clears the screen.
  * \ns Draw
  */
-VMValue Draw_Clear(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_Clear(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	Graphics::Clear();
 	return NULL_VAL;
@@ -5651,7 +5683,7 @@ VMValue Draw_Clear(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Resets the current render target.
  * \ns Draw
  */
-VMValue Draw_ResetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_ResetTextureTarget(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	if (Graphics::CurrentView) {
 		Graphics::SetRenderTarget(!Graphics::CurrentView->UseDrawTarget
@@ -5667,7 +5699,7 @@ VMValue Draw_ResetTextureTarget(int argCount, VMValue* args, Uint32 threadID) {
  * \param useDeform (boolean): Whether to use sprite deform when drawing.
  * \ns Draw
  */
-VMValue Draw_UseSpriteDeform(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_UseSpriteDeform(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int useDeform = GET_ARG(0, GetInteger);
 	SoftwareRenderer::UseSpriteDeform = useDeform;
@@ -5680,7 +5712,7 @@ VMValue Draw_UseSpriteDeform(int argCount, VMValue* args, Uint32 threadID) {
  * \param deformValue (decimal): Deform value.
  * \ns Draw
  */
-VMValue Draw_SetSpriteDeformLine(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_SetSpriteDeformLine(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int lineIndex = GET_ARG(0, GetInteger);
 	int deformValue = (int)GET_ARG(1, GetDecimal);
@@ -5694,7 +5726,7 @@ VMValue Draw_SetSpriteDeformLine(int argCount, VMValue* args, Uint32 threadID) {
  * \param useDepthTesting (boolean): Whether to do depth tests when drawing.
  * \ns Draw
  */
-VMValue Draw_UseDepthTesting(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_UseDepthTesting(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int useDepthTesting = GET_ARG(0, GetInteger);
 	Graphics::UseDepthTesting = useDepthTesting;
@@ -5707,7 +5739,7 @@ VMValue Draw_UseDepthTesting(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Draw
  */
-VMValue Draw_GetCurrentDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_GetCurrentDrawGroup(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::CurrentDrawGroup);
 }
@@ -5717,7 +5749,7 @@ VMValue Draw_GetCurrentDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
  * \param texture (integer): Texture index.
  * \ns Draw
  */
-VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw_CopyScreen(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	GameTexture* gameTexture = GET_ARG(0, GetTexture);
 	if (!gameTexture) {
@@ -5763,7 +5795,7 @@ VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
  * \param vertexBufferIndex (integer): Sets the vertex buffer to bind.
  * \ns Draw3D
  */
-VMValue Draw3D_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_BindVertexBuffer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
 	if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
@@ -5779,7 +5811,7 @@ VMValue Draw3D_BindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Unbinds the currently bound vertex buffer.
  * \ns Draw3D
  */
-VMValue Draw3D_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_UnbindVertexBuffer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	Graphics::UnbindVertexBuffer();
 	return NULL_VAL;
@@ -5796,7 +5828,7 @@ VMValue Draw3D_UnbindVertexBuffer(int argCount, VMValue* args, Uint32 threadID) 
  * \param scene3DIndex (integer): Sets the 3D scene to bind.
  * \ns Draw3D
  */
-VMValue Draw3D_BindScene(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_BindScene(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
@@ -5827,7 +5859,7 @@ static void PrepareMatrix(Matrix4x4* output, ObjArray* input) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming model normals.
  * \ns Draw3D
  */
-VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_Model(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	IModel* model = GET_ARG(0, GetModel);
@@ -5871,7 +5903,7 @@ VMValue Draw3D_Model(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming model normals.
  * \ns Draw3D
  */
-VMValue Draw3D_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_ModelSkinned(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 
 	IModel* model = GET_ARG(0, GetModel);
@@ -5918,7 +5950,7 @@ VMValue Draw3D_ModelSkinned(int argCount, VMValue* args, Uint32 threadID) {
  * \param rz (number): Z rotation in radians
  * \ns Draw3D
  */
-VMValue Draw3D_ModelSimple(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_ModelSimple(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(9);
 
 	IModel* model = GET_ARG(0, GetModel);
@@ -6032,7 +6064,7 @@ static void DrawPolygon3D(VertexAttribute* data,
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_Triangle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_Triangle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(9);
 
 	VertexAttribute data[3];
@@ -6072,7 +6104,7 @@ VMValue Draw3D_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_Quad(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_Quad(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(12);
 
 	VertexAttribute data[4];
@@ -6107,7 +6139,7 @@ VMValue Draw3D_Quad(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_Sprite(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(8);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
@@ -6129,7 +6161,10 @@ VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 
 	GET_MATRICES(10);
 
-	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
+	try {
+		Graphics::SpriteRangeCheck(sprite, animation, frame);
+	} catch (const std::runtime_error& error) {
+		thread->ThrowRuntimeError(false, "%s", error.what());
 		return NULL_VAL;
 	}
 
@@ -6183,7 +6218,7 @@ VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_SpritePart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(12);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
@@ -6209,7 +6244,10 @@ VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 
 	GET_MATRICES(14);
 
-	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
+	try {
+		Graphics::SpriteRangeCheck(sprite, animation, frame);
+	} catch (const std::runtime_error& error) {
+		thread->ThrowRuntimeError(false, "%s", error.what());
 		return NULL_VAL;
 	}
 
@@ -6246,7 +6284,7 @@ VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_Image(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_Image(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(4);
 
 	Image* image = GET_ARG(0, GetImage);
@@ -6288,7 +6326,7 @@ VMValue Draw3D_Image(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_ImagePart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(8);
 
 	Image* image = GET_ARG(0, GetImage);
@@ -6331,7 +6369,7 @@ VMValue Draw3D_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_Tile(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(6);
 
 	Uint32 id = GET_ARG(0, GetInteger);
@@ -6405,7 +6443,7 @@ VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(10);
 
 	VertexAttribute data[3];
@@ -6470,7 +6508,7 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_QuadTextured(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(13);
 
 	VertexAttribute data[4];
@@ -6533,7 +6571,7 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_SpritePoints(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(17);
 
 	VertexAttribute data[4];
@@ -6544,7 +6582,10 @@ VMValue Draw3D_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
 	int flipX = GET_ARG(3, GetInteger);
 	int flipY = GET_ARG(4, GetInteger);
 
-	if (Graphics::SpriteRangeCheck(sprite, animation, frame)) {
+	try {
+		Graphics::SpriteRangeCheck(sprite, animation, frame);
+	} catch (const std::runtime_error& error) {
+		thread->ThrowRuntimeError(false, "%s", error.what());
 		return NULL_VAL;
 	}
 
@@ -6597,7 +6638,7 @@ VMValue Draw3D_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_TilePoints(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(15);
 
 	VertexAttribute data[4];
@@ -6646,7 +6687,7 @@ VMValue Draw3D_TilePoints(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_SceneLayer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_SceneLayer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	int layerID = GET_ARG(0, GetInteger);
 
@@ -6672,7 +6713,7 @@ VMValue Draw3D_SceneLayer(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
-VMValue Draw3D_SceneLayerPart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_SceneLayerPart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 	int layerID = GET_ARG(0, GetInteger);
 	int sx = (int)GET_ARG(1, GetDecimal);
@@ -6717,7 +6758,7 @@ VMValue Draw3D_SceneLayerPart(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Draw3D
  */
-VMValue Draw3D_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_VertexBuffer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
 	if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
@@ -6738,7 +6779,7 @@ VMValue Draw3D_VertexBuffer(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt drawMode (integer): The type of drawing to use for the vertices in the 3D scene.
  * \ns Draw3D
  */
-VMValue Draw3D_RenderScene(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Draw3D_RenderScene(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	Uint32 drawMode = GET_ARG_OPT(1, GetInteger, 0);
@@ -6756,7 +6797,7 @@ VMValue Draw3D_RenderScene(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InSine(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InSine(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InSine(GET_ARG(0, GetDecimal)));
 }
@@ -6767,7 +6808,7 @@ VMValue Ease_InSine(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutSine(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_OutSine(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::OutSine(GET_ARG(0, GetDecimal)));
 }
@@ -6778,7 +6819,7 @@ VMValue Ease_OutSine(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutSine(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InOutSine(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InOutSine(GET_ARG(0, GetDecimal)));
 }
@@ -6789,7 +6830,7 @@ VMValue Ease_InOutSine(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InQuad(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InQuad(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InQuad(GET_ARG(0, GetDecimal)));
 }
@@ -6800,7 +6841,7 @@ VMValue Ease_InQuad(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutQuad(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_OutQuad(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::OutQuad(GET_ARG(0, GetDecimal)));
 }
@@ -6811,7 +6852,7 @@ VMValue Ease_OutQuad(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutQuad(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InOutQuad(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InOutQuad(GET_ARG(0, GetDecimal)));
 }
@@ -6822,7 +6863,7 @@ VMValue Ease_InOutQuad(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InCubic(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InCubic(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InCubic(GET_ARG(0, GetDecimal)));
 }
@@ -6833,7 +6874,7 @@ VMValue Ease_InCubic(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutCubic(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_OutCubic(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::OutCubic(GET_ARG(0, GetDecimal)));
 }
@@ -6844,7 +6885,7 @@ VMValue Ease_OutCubic(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutCubic(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InOutCubic(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InOutCubic(GET_ARG(0, GetDecimal)));
 }
@@ -6855,7 +6896,7 @@ VMValue Ease_InOutCubic(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InQuart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InQuart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InQuart(GET_ARG(0, GetDecimal)));
 }
@@ -6866,7 +6907,7 @@ VMValue Ease_InQuart(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutQuart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_OutQuart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::OutQuart(GET_ARG(0, GetDecimal)));
 }
@@ -6877,7 +6918,7 @@ VMValue Ease_OutQuart(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutQuart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InOutQuart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InOutQuart(GET_ARG(0, GetDecimal)));
 }
@@ -6888,7 +6929,7 @@ VMValue Ease_InOutQuart(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InQuint(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InQuint(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InQuint(GET_ARG(0, GetDecimal)));
 }
@@ -6899,7 +6940,7 @@ VMValue Ease_InQuint(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutQuint(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_OutQuint(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::OutQuint(GET_ARG(0, GetDecimal)));
 }
@@ -6910,7 +6951,7 @@ VMValue Ease_OutQuint(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutQuint(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InOutQuint(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InOutQuint(GET_ARG(0, GetDecimal)));
 }
@@ -6921,7 +6962,7 @@ VMValue Ease_InOutQuint(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InExpo(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InExpo(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InExpo(GET_ARG(0, GetDecimal)));
 }
@@ -6932,7 +6973,7 @@ VMValue Ease_InExpo(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutExpo(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_OutExpo(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::OutExpo(GET_ARG(0, GetDecimal)));
 }
@@ -6943,7 +6984,7 @@ VMValue Ease_OutExpo(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutExpo(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InOutExpo(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InOutExpo(GET_ARG(0, GetDecimal)));
 }
@@ -6954,7 +6995,7 @@ VMValue Ease_InOutExpo(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InCirc(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InCirc(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InCirc(GET_ARG(0, GetDecimal)));
 }
@@ -6965,7 +7006,7 @@ VMValue Ease_InCirc(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutCirc(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_OutCirc(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::OutCirc(GET_ARG(0, GetDecimal)));
 }
@@ -6976,7 +7017,7 @@ VMValue Ease_OutCirc(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutCirc(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InOutCirc(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InOutCirc(GET_ARG(0, GetDecimal)));
 }
@@ -6987,7 +7028,7 @@ VMValue Ease_InOutCirc(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InBack(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InBack(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InBack(GET_ARG(0, GetDecimal)));
 }
@@ -6998,7 +7039,7 @@ VMValue Ease_InBack(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutBack(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_OutBack(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::OutBack(GET_ARG(0, GetDecimal)));
 }
@@ -7009,7 +7050,7 @@ VMValue Ease_OutBack(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutBack(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InOutBack(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InOutBack(GET_ARG(0, GetDecimal)));
 }
@@ -7020,7 +7061,7 @@ VMValue Ease_InOutBack(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InElastic(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InElastic(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InElastic(GET_ARG(0, GetDecimal)));
 }
@@ -7031,7 +7072,7 @@ VMValue Ease_InElastic(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutElastic(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_OutElastic(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::OutElastic(GET_ARG(0, GetDecimal)));
 }
@@ -7042,7 +7083,7 @@ VMValue Ease_OutElastic(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutElastic(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InOutElastic(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InOutElastic(GET_ARG(0, GetDecimal)));
 }
@@ -7053,7 +7094,7 @@ VMValue Ease_InOutElastic(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InBounce(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InBounce(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InBounce(GET_ARG(0, GetDecimal)));
 }
@@ -7064,7 +7105,7 @@ VMValue Ease_InBounce(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_OutBounce(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_OutBounce(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::OutBounce(GET_ARG(0, GetDecimal)));
 }
@@ -7075,7 +7116,7 @@ VMValue Ease_OutBounce(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_InOutBounce(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_InOutBounce(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::InOutBounce(GET_ARG(0, GetDecimal)));
 }
@@ -7086,7 +7127,7 @@ VMValue Ease_InOutBounce(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Eased Number value between 0.0 and 1.0.
  * \ns Ease
  */
-VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Ease_Triangle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Ease::Triangle(GET_ARG(0, GetDecimal)));
 }
@@ -7100,7 +7141,7 @@ VMValue Ease_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the file exists.
  * \ns File
  */
-VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
+VMValue File_Exists(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* filePath = GET_ARG(0, GetString);
 	return INTEGER_VAL(File::ProtectedExists(filePath, true));
@@ -7112,7 +7153,7 @@ VMValue File_Exists(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns all the text in the file as a string value if it can be read, otherwise it returns a `null` value if it cannot be read.
  * \ns File
  */
-VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
+VMValue File_ReadAllText(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* filePath = GET_ARG(0, GetString);
 	Stream* stream = FileStream::New(filePath, FileStream::READ_ACCESS, true);
@@ -7120,12 +7161,12 @@ VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		size_t size = stream->Length();
-		ObjString* text = AllocString(size);
+		ObjString* text = thread->Manager->AllocString(size);
 		stream->ReadBytes(text->Chars, size);
 		stream->Close();
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(text);
 	}
 	return NULL_VAL;
@@ -7138,24 +7179,24 @@ VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the file was written successfully.
  * \ns File
  */
-VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
+VMValue File_WriteAllText(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* filePath = GET_ARG(0, GetString);
 	// To verify 2nd argument is string
 	GET_ARG(1, GetString);
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ObjString* text = AS_STRING(args[1]);
 
 		Stream* stream = FileStream::New(filePath, FileStream::WRITE_ACCESS, true);
 		if (!stream) {
-			ScriptManager::Unlock();
+			thread->Manager->Unlock();
 			return INTEGER_VAL(false);
 		}
 
 		stream->WriteBytes(text->Chars, text->Length);
 		stream->Close();
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return INTEGER_VAL(true);
 	}
 	return INTEGER_VAL(false);
@@ -7163,7 +7204,7 @@ VMValue File_WriteAllText(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Geometry
-static vector<FVector2> GetPolygonPoints(ObjArray* array, const char* arrName, int threadID) {
+static vector<FVector2> GetPolygonPoints(ObjArray* array, const char* arrName, VMThread* thread) {
 	vector<FVector2> input;
 	input.reserve(array->Values->size());
 
@@ -7240,13 +7281,13 @@ static vector<FVector2> GetPolygonPoints(ObjArray* array, const char* arrName, i
  * \return array Returns an array containing a list of triangles, or `null` if the polygon could not be triangulated.
  * \ns Geometry
  */
-VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Geometry_Triangulate(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
 	ObjArray* arrPoly = GET_ARG(0, GetArray);
 	ObjArray* arrHoles = GET_ARG_OPT(1, GetArray, nullptr);
 
-	vector<FVector2> points = GetPolygonPoints(arrPoly, "polygon array", threadID);
+	vector<FVector2> points = GetPolygonPoints(arrPoly, "polygon array", thread);
 	if (!points.size()) {
 		return NULL_VAL;
 	}
@@ -7266,7 +7307,7 @@ VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
 				return NULL_VAL;
 			}
 
-			Polygon2D hole(GetPolygonPoints(AS_ARRAY(value), "holes array", threadID));
+			Polygon2D hole(GetPolygonPoints(AS_ARRAY(value), "holes array", thread));
 			inputHoles.push_back(hole);
 		}
 
@@ -7293,14 +7334,14 @@ VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	ObjArray* result = NewArray();
+	ObjArray* result = thread->Manager->NewArray();
 
 	for (unsigned i = 0; i < output->size(); i++) {
 		Polygon2D poly = (*output)[i];
-		ObjArray* triArr = NewArray();
+		ObjArray* triArr = thread->Manager->NewArray();
 
 		for (unsigned j = 0; j < 3; j++) {
-			ObjArray* vtx = NewArray();
+			ObjArray* vtx = thread->Manager->NewArray();
 			vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].X));
 			vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].Y));
 			triArr->Values->push_back(OBJECT_VAL(vtx));
@@ -7323,7 +7364,7 @@ VMValue Geometry_Triangulate(int argCount, VMValue* args, Uint32 threadID) {
  * \return array Returns an array containing a list of intersected polygons, or `null` if the polygon could not be intersected.
  * \ns Geometry
  */
-VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Geometry_Intersect(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 
 	ObjArray* subjects = GET_ARG(0, GetArray);
@@ -7360,7 +7401,7 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
 			return NULL_VAL;
 		}
 
-		Polygon2D subject(GetPolygonPoints(AS_ARRAY(value), "subject array", threadID));
+		Polygon2D subject(GetPolygonPoints(AS_ARRAY(value), "subject array", thread));
 		inputSubjects.push_back(subject);
 	}
 
@@ -7376,7 +7417,7 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
 			return NULL_VAL;
 		}
 
-		Polygon2D clip(GetPolygonPoints(AS_ARRAY(value), "clip array", threadID));
+		Polygon2D clip(GetPolygonPoints(AS_ARRAY(value), "clip array", thread));
 		inputClips.push_back(clip);
 	}
 
@@ -7386,14 +7427,14 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	ObjArray* result = NewArray();
+	ObjArray* result = thread->Manager->NewArray();
 
 	for (unsigned i = 0; i < output->size(); i++) {
 		Polygon2D& poly = (*output)[i];
-		ObjArray* polyArr = NewArray();
+		ObjArray* polyArr = thread->Manager->NewArray();
 
 		for (unsigned j = 0; j < poly.Points.size(); j++) {
-			ObjArray* vtx = NewArray();
+			ObjArray* vtx = thread->Manager->NewArray();
 			vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].X));
 			vtx->Values->push_back(DECIMAL_VAL(poly.Points[j].Y));
 			polyArr->Values->push_back(OBJECT_VAL(vtx));
@@ -7415,14 +7456,14 @@ VMValue Geometry_Intersect(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the point is inside.
  * \ns Geometry
  */
-VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	ObjArray* arr = GET_ARG(0, GetArray);
 	float pointX = GET_ARG(1, GetDecimal);
 	float pointY = GET_ARG(2, GetDecimal);
 
-	Polygon2D polygon(GetPolygonPoints(arr, "polygon array", threadID));
+	Polygon2D polygon(GetPolygonPoints(arr, "polygon array", thread));
 
 	return INTEGER_VAL(polygon.IsPointInside(pointX, pointY));
 }
@@ -7437,7 +7478,7 @@ VMValue Geometry_IsPointInsidePolygon(int argCount, VMValue* args, Uint32 thread
  * \return boolean Returns whether the line segment is intersecting the polygon.
  * \ns Geometry
  */
-VMValue Geometry_IsLineIntersectingPolygon(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Geometry_IsLineIntersectingPolygon(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 
 	ObjArray* arr = GET_ARG(0, GetArray);
@@ -7446,7 +7487,7 @@ VMValue Geometry_IsLineIntersectingPolygon(int argCount, VMValue* args, Uint32 t
 	float x2 = GET_ARG(3, GetDecimal);
 	float y2 = GET_ARG(4, GetDecimal);
 
-	Polygon2D polygon(GetPolygonPoints(arr, "polygon array", threadID));
+	Polygon2D polygon(GetPolygonPoints(arr, "polygon array", thread));
 
 	return INTEGER_VAL(polygon.IsLineSegmentIntersecting(x1, y1, x2, y2));
 }
@@ -7481,7 +7522,7 @@ int _HTTP_GetToFile(void* opaque) {
  * \return
  * \ns HTTP
  */
-VMValue HTTP_GetString(int argCount, VMValue* args, Uint32 threadID) {
+VMValue HTTP_GetString(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* url = NULL;
 	ObjBoundMethod* callback = NULL;
@@ -7498,9 +7539,9 @@ VMValue HTTP_GetString(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	VMValue obj = NULL_VAL;
-	if (ScriptManager::Lock()) {
-		obj = OBJECT_VAL(TakeString((char*)data, length));
-		ScriptManager::Unlock();
+	if (thread->Manager->Lock()) {
+		obj = OBJECT_VAL(thread->Manager->TakeString((char*)data, length));
+		thread->Manager->Unlock();
 	}
 	return obj;
 }
@@ -7510,7 +7551,7 @@ VMValue HTTP_GetString(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns HTTP
  */
-VMValue HTTP_GetToFile(int argCount, VMValue* args, Uint32 threadID) {
+VMValue HTTP_GetToFile(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	char* url = GET_ARG(0, GetString);
 	char* filename = GET_ARG(1, GetString);
@@ -7542,7 +7583,7 @@ VMValue HTTP_GetToFile(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Image
  */
-VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Image_GetWidth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Image* image = GET_ARG(0, GetImage);
 	if (image) {
@@ -7558,7 +7599,7 @@ VMValue Image_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Image
  */
-VMValue Image_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Image_GetHeight(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Image* image = GET_ARG(0, GetImage);
 	if (image) {
@@ -7576,7 +7617,7 @@ VMValue Image_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns cursor's X position in relation to the window.
  * \ns Input
  */
-VMValue Input_GetMouseX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetMouseX(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	int value;
 	SDL_GetMouseState(&value, NULL);
@@ -7588,7 +7629,7 @@ VMValue Input_GetMouseX(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns cursor's Y position in relation to the window.
  * \ns Input
  */
-VMValue Input_GetMouseY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetMouseY(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	int value;
 	SDL_GetMouseState(NULL, &value);
@@ -7606,7 +7647,7 @@ VMValue Input_GetMouseY(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the mouse button is currently down.
  * \ns Input
  */
-VMValue Input_IsMouseButtonDown(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsMouseButtonDown(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int button = GET_ARG(0, GetInteger);
 	return INTEGER_VAL((InputManager::MouseDown >> button) & 1);
@@ -7623,7 +7664,7 @@ VMValue Input_IsMouseButtonDown(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the mouse button started pressing during the current frame.
  * \ns Input
  */
-VMValue Input_IsMouseButtonPressed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsMouseButtonPressed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int button = GET_ARG(0, GetInteger);
 	return INTEGER_VAL((InputManager::MousePressed >> button) & 1);
@@ -7640,7 +7681,7 @@ VMValue Input_IsMouseButtonPressed(int argCount, VMValue* args, Uint32 threadID)
  * \return boolean Returns whether the mouse button released during the current frame.
  * \ns Input
  */
-VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int button = GET_ARG(0, GetInteger);
 	return INTEGER_VAL((InputManager::MouseReleased >> button) & 1);
@@ -7651,7 +7692,7 @@ VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID
  * \return <ref MOUSEMODE_*> Returns the current mouse mode.
  * \ns Input
  */
-VMValue Input_GetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetMouseMode(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(InputManager::MouseMode);
 }
@@ -7661,7 +7702,7 @@ VMValue Input_GetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
  * \param mouseMode (<ref MOUSEMODE_*>): The mouse mode to set.
  * \ns Input
  */
-VMValue Input_SetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_SetMouseMode(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int mouseMode = GET_ARG(0, GetInteger);
 	if (mouseMode < 0 || mouseMode > MOUSEMODE_RELATIVE) {
@@ -7678,7 +7719,7 @@ VMValue Input_SetMouseMode(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the key is currently down.
  * \ns Input
  */
-VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsKeyDown(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int key = GET_ARG(0, GetInteger);
 	CHECK_KEYBOARD_KEY(key);
@@ -7691,7 +7732,7 @@ VMValue Input_IsKeyDown(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the key started pressing during the current frame.
  * \ns Input
  */
-VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsKeyPressed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int key = GET_ARG(0, GetInteger);
 	CHECK_KEYBOARD_KEY(key);
@@ -7704,7 +7745,7 @@ VMValue Input_IsKeyPressed(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the key released during the current frame.
  * \ns Input
  */
-VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsKeyReleased(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int key = GET_ARG(0, GetInteger);
 	CHECK_KEYBOARD_KEY(key);
@@ -7717,11 +7758,11 @@ VMValue Input_IsKeyReleased(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Input
  */
-VMValue Input_GetKeyName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetKeyName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int key = GET_ARG(0, GetInteger);
 	CHECK_KEYBOARD_KEY(key);
-	return ReturnString(InputManager::GetKeyName(key));
+	return ReturnString(thread, InputManager::GetKeyName(key));
 }
 /***
  * Input.GetButtonName
@@ -7730,11 +7771,11 @@ VMValue Input_GetKeyName(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Input
  */
-VMValue Input_GetButtonName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetButtonName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int button = GET_ARG(0, GetInteger);
 	CHECK_CONTROLLER_BUTTON(button);
-	return ReturnString(InputManager::GetButtonName(button));
+	return ReturnString(thread, InputManager::GetButtonName(button));
 }
 /***
  * Input.GetAxisName
@@ -7743,11 +7784,11 @@ VMValue Input_GetButtonName(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Input
  */
-VMValue Input_GetAxisName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetAxisName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int axis = GET_ARG(0, GetInteger);
 	CHECK_CONTROLLER_AXIS(axis);
-	return ReturnString(InputManager::GetAxisName(axis));
+	return ReturnString(thread, InputManager::GetAxisName(axis));
 }
 /***
  * Input.ParseKeyName
@@ -7756,7 +7797,7 @@ VMValue Input_GetAxisName(int argCount, VMValue* args, Uint32 threadID) {
  * \return <ref Key_*> Returns the parsed key, or `null` if it could not be parsed.
  * \ns Input
  */
-VMValue Input_ParseKeyName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_ParseKeyName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* key = GET_ARG(0, GetString);
 	int parsed = InputManager::ParseKeyName(key);
@@ -7772,7 +7813,7 @@ VMValue Input_ParseKeyName(int argCount, VMValue* args, Uint32 threadID) {
  * \return <ref Button_*> Returns the parsed button, or `null` if it could not be parsed.
  * \ns Input
  */
-VMValue Input_ParseButtonName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_ParseButtonName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* button = GET_ARG(0, GetString);
 	int parsed = InputManager::ParseButtonName(button);
@@ -7788,7 +7829,7 @@ VMValue Input_ParseButtonName(int argCount, VMValue* args, Uint32 threadID) {
  * \return <ref Axis_*> Returns the parsed axis, or `null` if it could not be parsed.
  * \ns Input
  */
-VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_ParseAxisName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* axis = GET_ARG(0, GetString);
 	int parsed = InputManager::ParseAxisName(axis);
@@ -7803,7 +7844,7 @@ VMValue Input_ParseAxisName(int argCount, VMValue* args, Uint32 threadID) {
  * \return array Returns an array value, or `null` if no actions are registered.
  * \ns Input
  */
-VMValue Input_GetActionList(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetActionList(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 
 	size_t count = InputManager::Actions.size();
@@ -7811,12 +7852,12 @@ VMValue Input_GetActionList(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	ObjArray* array = NewArray();
+	ObjArray* array = thread->Manager->NewArray();
 
 	for (size_t i = 0; i < count; i++) {
 		InputAction& action = InputManager::Actions[i];
 
-		ObjString* actionName = CopyString(action.Name);
+		ObjString* actionName = COPY_STRING(action.Name);
 
 		array->Values->push_back(OBJECT_VAL(actionName));
 	}
@@ -7830,7 +7871,7 @@ VMValue Input_GetActionList(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_ActionExists(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_ActionExists(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* actionName = GET_ARG(0, GetString);
 	int actionID = InputManager::GetActionID(actionName);
@@ -7848,7 +7889,7 @@ VMValue Input_ActionExists(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsActionHeld(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsActionHeld(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -7876,7 +7917,7 @@ VMValue Input_IsActionHeld(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsActionPressed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsActionPressed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -7905,7 +7946,7 @@ VMValue Input_IsActionPressed(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsActionReleased(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -7933,7 +7974,7 @@ VMValue Input_IsActionReleased(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsActionHeldByAny(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	char* actionName = GET_ARG(0, GetString);
 	int actionID = InputManager::GetActionID(actionName);
@@ -7958,7 +7999,7 @@ VMValue Input_IsActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsActionPressedByAny(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsActionPressedByAny(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	char* actionName = GET_ARG(0, GetString);
 	int actionID = InputManager::GetActionID(actionName);
@@ -7983,7 +8024,7 @@ VMValue Input_IsActionPressedByAny(int argCount, VMValue* args, Uint32 threadID)
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsActionReleasedByAny(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	char* actionName = GET_ARG(0, GetString);
 	int actionID = InputManager::GetActionID(actionName);
@@ -8008,7 +8049,7 @@ VMValue Input_IsActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsAnyActionHeld(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsAnyActionHeld(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	int playerID = GET_ARG(0, GetInteger);
 	CHECK_INPUT_PLAYER_INDEX(playerID);
@@ -8029,7 +8070,7 @@ VMValue Input_IsAnyActionHeld(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsAnyActionPressed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsAnyActionPressed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	int playerID = GET_ARG(0, GetInteger);
 	CHECK_INPUT_PLAYER_INDEX(playerID);
@@ -8050,7 +8091,7 @@ VMValue Input_IsAnyActionPressed(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	int playerID = GET_ARG(0, GetInteger);
 	CHECK_INPUT_PLAYER_INDEX(playerID);
@@ -8070,7 +8111,7 @@ VMValue Input_IsAnyActionReleased(int argCount, VMValue* args, Uint32 threadID) 
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsAnyActionHeldByAny(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsAnyActionHeldByAny(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(0);
 	if (argCount >= 1) {
 		int inputDevice = GET_ARG(0, GetInteger);
@@ -8088,7 +8129,7 @@ VMValue Input_IsAnyActionHeldByAny(int argCount, VMValue* args, Uint32 threadID)
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsAnyActionPressedByAny(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsAnyActionPressedByAny(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(0);
 	if (argCount >= 1) {
 		int inputDevice = GET_ARG(0, GetInteger);
@@ -8106,7 +8147,7 @@ VMValue Input_IsAnyActionPressedByAny(int argCount, VMValue* args, Uint32 thread
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsAnyActionReleasedByAny(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsAnyActionReleasedByAny(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(0);
 	if (argCount >= 1) {
 		int inputDevice = GET_ARG(0, GetInteger);
@@ -8125,7 +8166,7 @@ VMValue Input_IsAnyActionReleasedByAny(int argCount, VMValue* args, Uint32 threa
  * \return decimal Returns a decimal value.
  * \ns Input
  */
-VMValue Input_GetAnalogActionInput(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetAnalogActionInput(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8137,10 +8178,10 @@ VMValue Input_GetAnalogActionInput(int argCount, VMValue* args, Uint32 threadID)
 	CHECK_INPUT_PLAYER_INDEX(playerID);
 	return DECIMAL_VAL(InputManager::GetAnalogActionInput(playerID, actionID));
 }
-static KeyboardBind* GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
+static KeyboardBind* GetKeyboardActionBind(ObjMap* map, VMThread* thread) {
 	KeyboardBind* bind = new KeyboardBind();
 
-	map->Keys->WithAllOrdered([bind, map, threadID](Uint32 hash, char* key) -> void {
+	map->Keys->WithAllOrdered([bind, map, thread](Uint32 hash, char* key) -> void {
 		VMValue value;
 
 		// key: Integer
@@ -8179,10 +8220,10 @@ static KeyboardBind* GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
 
 	return bind;
 }
-static ControllerButtonBind* GetControllerButtonActionBind(ObjMap* map, Uint32 threadID) {
+static ControllerButtonBind* GetControllerButtonActionBind(ObjMap* map, VMThread* thread) {
 	ControllerButtonBind* bind = new ControllerButtonBind();
 
-	map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, char* key) -> void {
+	map->Keys->WithAllOrdered([&bind, map, thread](Uint32 hash, char* key) -> void {
 		VMValue value;
 
 		// button: Integer
@@ -8210,10 +8251,10 @@ static ControllerButtonBind* GetControllerButtonActionBind(ObjMap* map, Uint32 t
 
 	return bind;
 }
-static ControllerAxisBind* GetControllerAxisActionBind(ObjMap* map, Uint32 threadID) {
+static ControllerAxisBind* GetControllerAxisActionBind(ObjMap* map, VMThread* thread) {
 	ControllerAxisBind* bind = new ControllerAxisBind();
 
-	map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, char* key) -> void {
+	map->Keys->WithAllOrdered([&bind, map, thread](Uint32 hash, char* key) -> void {
 		VMValue value;
 
 		// axis: Integer
@@ -8285,37 +8326,37 @@ static ControllerAxisBind* GetControllerAxisActionBind(ObjMap* map, Uint32 threa
 
 	return bind;
 }
-static ObjMap* CreateKeyboardActionMap(KeyboardBind* bind) {
-	if (bind != nullptr && ScriptManager::Lock()) {
-		ObjMap* map = NewMap();
+static ObjMap* CreateKeyboardActionMap(VMThread* thread, KeyboardBind* bind) {
+	if (bind != nullptr && thread->Manager->Lock()) {
+		ObjMap* map = thread->Manager->NewMap();
 
 		AddToMap(map, "key", (bind->Key != -1) ? INTEGER_VAL(bind->Key) : NULL_VAL);
 		AddToMap(map, "modifiers", INTEGER_VAL(bind->Modifiers));
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 
 		return map;
 	}
 
 	return nullptr;
 }
-static ObjMap* CreateControllerButtonActionMap(ControllerButtonBind* bind) {
-	if (bind != nullptr && ScriptManager::Lock()) {
-		ObjMap* map = NewMap();
+static ObjMap* CreateControllerButtonActionMap(VMThread* thread, ControllerButtonBind* bind) {
+	if (bind != nullptr && thread->Manager->Lock()) {
+		ObjMap* map = thread->Manager->NewMap();
 
 		AddToMap(
 			map, "button", (bind->Button != -1) ? INTEGER_VAL(bind->Button) : NULL_VAL);
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 
 		return map;
 	}
 
 	return nullptr;
 }
-static ObjMap* CreateControllerAxisActionMap(ControllerAxisBind* bind) {
-	if (bind != nullptr && ScriptManager::Lock()) {
-		ObjMap* map = NewMap();
+static ObjMap* CreateControllerAxisActionMap(VMThread* thread, ControllerAxisBind* bind) {
+	if (bind != nullptr && thread->Manager->Lock()) {
+		ObjMap* map = thread->Manager->NewMap();
 
 		AddToMap(map, "axis", (bind->Axis != -1) ? INTEGER_VAL(bind->Axis) : NULL_VAL);
 		AddToMap(map, "axis_deadzone", DECIMAL_VAL((float)bind->AxisDeadzone));
@@ -8324,14 +8365,14 @@ static ObjMap* CreateControllerAxisActionMap(ControllerAxisBind* bind) {
 			DECIMAL_VAL((float)bind->AxisDigitalThreshold));
 		AddToMap(map, "axis_negative", INTEGER_VAL(bind->IsAxisNegative));
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 
 		return map;
 	}
 
 	return nullptr;
 }
-static ObjMap* CreateInputActionMap(InputBind* bind) {
+static ObjMap* CreateInputActionMap(VMThread* thread, InputBind* bind) {
 	if (bind == nullptr) {
 		return nullptr;
 	}
@@ -8340,21 +8381,21 @@ static ObjMap* CreateInputActionMap(InputBind* bind) {
 
 	switch (bind->Type) {
 	case INPUT_BIND_KEYBOARD:
-		map = CreateKeyboardActionMap(static_cast<KeyboardBind*>(bind));
+		map = CreateKeyboardActionMap(thread, static_cast<KeyboardBind*>(bind));
 		if (map != nullptr) {
-			AddToMap(map, "type", OBJECT_VAL(CopyString("key")));
+			AddToMap(map, "type", OBJECT_VAL(COPY_STRING("key")));
 		}
 		break;
 	case INPUT_BIND_CONTROLLER_BUTTON:
-		map = CreateControllerButtonActionMap(static_cast<ControllerButtonBind*>(bind));
+		map = CreateControllerButtonActionMap(thread, static_cast<ControllerButtonBind*>(bind));
 		if (map != nullptr) {
-			AddToMap(map, "type", OBJECT_VAL(CopyString("controller_button")));
+			AddToMap(map, "type", OBJECT_VAL(COPY_STRING("controller_button")));
 		}
 		break;
 	case INPUT_BIND_CONTROLLER_AXIS:
-		map = CreateControllerAxisActionMap(static_cast<ControllerAxisBind*>(bind));
+		map = CreateControllerAxisActionMap(thread, static_cast<ControllerAxisBind*>(bind));
 		if (map != nullptr) {
-			AddToMap(map, "type", OBJECT_VAL(CopyString("controller_axis")));
+			AddToMap(map, "type", OBJECT_VAL(COPY_STRING("controller_axis")));
 		}
 		break;
 	}
@@ -8370,7 +8411,7 @@ static ObjMap* CreateInputActionMap(InputBind* bind) {
  * \return map Returns a map value, or `null` if the input action is not bound.
  * \ns Input
  */
-VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetActionBind(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8386,7 +8427,7 @@ VMValue Input_GetActionBind(int argCount, VMValue* args, Uint32 threadID) {
 
 	InputBind* bind = InputManager::GetPlayerInputBind(playerID, actionID, bindIndex, false);
 	if (bind != nullptr) {
-		ObjMap* map = CreateInputActionMap(bind);
+		ObjMap* map = CreateInputActionMap(thread, bind);
 		if (map != nullptr) {
 			return OBJECT_VAL(map);
 		}
@@ -8401,7 +8442,7 @@ static VMValue SetActionBindFromArg(int playerID,
 	int argIndex,
 	bool setDefault,
 	VMValue* args,
-	Uint32 threadID) {
+	VMThread* thread) {
 	InputBind* bind = nullptr;
 
 	switch (inputBindType) {
@@ -8413,7 +8454,7 @@ static VMValue SetActionBindFromArg(int playerID,
 		}
 		else {
 			ObjMap* map = GET_ARG(argIndex, GetMap);
-			bind = GetKeyboardActionBind(map, threadID);
+			bind = GetKeyboardActionBind(map, thread);
 		}
 		break;
 	}
@@ -8425,7 +8466,7 @@ static VMValue SetActionBindFromArg(int playerID,
 		}
 		else {
 			ObjMap* map = GET_ARG(argIndex, GetMap);
-			bind = GetControllerButtonActionBind(map, threadID);
+			bind = GetControllerButtonActionBind(map, thread);
 		}
 		break;
 	}
@@ -8437,7 +8478,7 @@ static VMValue SetActionBindFromArg(int playerID,
 		}
 		else {
 			ObjMap* map = GET_ARG(argIndex, GetMap);
-			bind = GetControllerAxisActionBind(map, threadID);
+			bind = GetControllerAxisActionBind(map, thread);
 		}
 		break;
 	}
@@ -8485,7 +8526,7 @@ static VMValue SetActionBindFromArg(int playerID,
  * \paramOpt bindIndex (integer): Which bind index to set.
  * \ns Input
  */
-VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_SetActionBind(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(4);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8503,7 +8544,7 @@ VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_INPUT_BIND_TYPE(inputBindType);
 
 	return SetActionBindFromArg(
-		playerID, actionID, bindIndex, inputBindType, 3, false, args, threadID);
+		playerID, actionID, bindIndex, inputBindType, 3, false, args, thread);
 }
 /***
  * Input.AddActionBind
@@ -8525,7 +8566,7 @@ VMValue Input_SetActionBind(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the index of the added input action as an integer value.
  * \ns Input
  */
-VMValue Input_AddActionBind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_AddActionBind(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8542,7 +8583,7 @@ VMValue Input_AddActionBind(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_INPUT_BIND_TYPE(inputBindType);
 
 	return SetActionBindFromArg(
-		playerID, actionID, -1, inputBindType, 3, false, args, threadID);
+		playerID, actionID, -1, inputBindType, 3, false, args, thread);
 }
 /***
  * Input.RemoveActionBind
@@ -8552,7 +8593,7 @@ VMValue Input_AddActionBind(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt bindIndex (integer): Which bind index to remove. If not passed, this removes all binds from the given action.
  * \ns Input
  */
-VMValue Input_RemoveActionBind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_RemoveActionBind(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8575,15 +8616,15 @@ VMValue Input_RemoveActionBind(int argCount, VMValue* args, Uint32 threadID) {
 
 	return NULL_VAL;
 }
-static ObjArray* GetBoundActionList(int playerID, int actionID, bool isDefault) {
-	ObjArray* array = NewArray();
+static ObjArray* GetBoundActionList(VMThread* thread, int playerID, int actionID, bool isDefault) {
+	ObjArray* array = thread->Manager->NewArray();
 
 	size_t count = InputManager::GetPlayerInputBindCount(playerID, actionID, isDefault);
 
 	for (size_t i = 0; i < count; i++) {
 		InputBind* bind =
 			InputManager::GetPlayerInputBind(playerID, actionID, i, isDefault);
-		ObjMap* map = CreateInputActionMap(bind);
+		ObjMap* map = CreateInputActionMap(thread, bind);
 		if (map != nullptr) {
 			array->Values->push_back(OBJECT_VAL(map));
 		}
@@ -8599,7 +8640,7 @@ static ObjArray* GetBoundActionList(int playerID, int actionID, bool isDefault) 
  * \return array Returns an array of map values.
  * \ns Input
  */
-VMValue Input_GetBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetBoundActionList(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8612,7 +8653,7 @@ VMValue Input_GetBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	return OBJECT_VAL(GetBoundActionList(playerID, actionID, false));
+	return OBJECT_VAL(GetBoundActionList(thread, playerID, actionID, false));
 }
 /***
  * Input.GetBoundActionCount
@@ -8622,7 +8663,7 @@ VMValue Input_GetBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Input
  */
-VMValue Input_GetBoundActionCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetBoundActionCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8644,7 +8685,7 @@ VMValue Input_GetBoundActionCount(int argCount, VMValue* args, Uint32 threadID) 
  * \return map Returns a map value, or `null` if no actions are registered.
  * \ns Input
  */
-VMValue Input_GetBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetBoundActionMap(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int playerID = GET_ARG(0, GetInteger);
 
@@ -8653,13 +8694,13 @@ VMValue Input_GetBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	ObjMap* map = NewMap();
+	ObjMap* map = thread->Manager->NewMap();
 
 	for (size_t i = 0; i < count; i++) {
 		InputAction& action = InputManager::Actions[i];
 		AddToMap(map,
 			action.Name.c_str(),
-			OBJECT_VAL(GetBoundActionList(playerID, i, false)));
+			OBJECT_VAL(GetBoundActionList(thread, playerID, i, false)));
 	}
 
 	return OBJECT_VAL(map);
@@ -8673,7 +8714,7 @@ VMValue Input_GetBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
  * \return map Returns a map value, or `null` if the input action is not bound.
  * \ns Input
  */
-VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8689,7 +8730,7 @@ VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 
 	InputBind* bind = InputManager::GetPlayerInputBind(playerID, actionID, bindIndex, true);
 	if (bind != nullptr) {
-		ObjMap* map = CreateInputActionMap(bind);
+		ObjMap* map = CreateInputActionMap(thread, bind);
 		if (map != nullptr) {
 			return OBJECT_VAL(map);
 		}
@@ -8717,7 +8758,7 @@ VMValue Input_GetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
  * \paramOpt bindIndex (integer): Which bind index to set.
  * \ns Input
  */
-VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(4);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8735,7 +8776,7 @@ VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 	CHECK_INPUT_BIND_TYPE(inputBindType);
 
 	return SetActionBindFromArg(
-		playerID, actionID, bindIndex, inputBindType, 3, true, args, threadID);
+		playerID, actionID, bindIndex, inputBindType, 3, true, args, thread);
 }
 /***
  * Input.AddDefaultActionBind
@@ -8747,7 +8788,7 @@ VMValue Input_SetDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
  * \return integer Returns the index of the added input action as an integer value.
  * \ns Input
  */
-VMValue Input_AddDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_AddDefaultActionBind(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8763,7 +8804,7 @@ VMValue Input_AddDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
 
 	CHECK_INPUT_BIND_TYPE(inputBindType);
 
-	return SetActionBindFromArg(playerID, actionID, -1, inputBindType, 3, true, args, threadID);
+	return SetActionBindFromArg(playerID, actionID, -1, inputBindType, 3, true, args, thread);
 }
 /***
  * Input.RemoveDefaultActionBind
@@ -8773,7 +8814,7 @@ VMValue Input_AddDefaultActionBind(int argCount, VMValue* args, Uint32 threadID)
  * \paramOpt bindIndex (integer): Which bind index to remove. If not passed, this removes all binds from the given action.
  * \ns Input
  */
-VMValue Input_RemoveDefaultActionBind(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_RemoveDefaultActionBind(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8804,7 +8845,7 @@ VMValue Input_RemoveDefaultActionBind(int argCount, VMValue* args, Uint32 thread
  * \return array Returns an array of map values.
  * \ns Input
  */
-VMValue Input_GetDefaultBoundActionList(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetDefaultBoundActionList(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8817,7 +8858,7 @@ VMValue Input_GetDefaultBoundActionList(int argCount, VMValue* args, Uint32 thre
 		return NULL_VAL;
 	}
 
-	return OBJECT_VAL(GetBoundActionList(playerID, actionID, true));
+	return OBJECT_VAL(GetBoundActionList(thread, playerID, actionID, true));
 }
 /***
  * Input.GetDefaultBoundActionCount
@@ -8827,7 +8868,7 @@ VMValue Input_GetDefaultBoundActionList(int argCount, VMValue* args, Uint32 thre
  * \return integer Returns an integer value.
  * \ns Input
  */
-VMValue Input_GetDefaultBoundActionCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetDefaultBoundActionCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	char* actionName = GET_ARG(1, GetString);
@@ -8849,7 +8890,7 @@ VMValue Input_GetDefaultBoundActionCount(int argCount, VMValue* args, Uint32 thr
  * \return map Returns a map value, or `null` if no actions are registered.
  * \ns Input
  */
-VMValue Input_GetDefaultBoundActionMap(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetDefaultBoundActionMap(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int playerID = GET_ARG(0, GetInteger);
 
@@ -8858,13 +8899,13 @@ VMValue Input_GetDefaultBoundActionMap(int argCount, VMValue* args, Uint32 threa
 		return NULL_VAL;
 	}
 
-	ObjMap* map = NewMap();
+	ObjMap* map = thread->Manager->NewMap();
 
 	for (size_t i = 0; i < count; i++) {
 		InputAction& action = InputManager::Actions[i];
 		AddToMap(map,
 			action.Name.c_str(),
-			OBJECT_VAL(GetBoundActionList(playerID, i, true)));
+			OBJECT_VAL(GetBoundActionList(thread, playerID, i, true)));
 	}
 
 	return OBJECT_VAL(map);
@@ -8875,7 +8916,7 @@ VMValue Input_GetDefaultBoundActionMap(int argCount, VMValue* args, Uint32 threa
  * \param playerID (integer): Index of the player.
  * \ns Input
  */
-VMValue Input_ResetActionBindsToDefaults(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_ResetActionBindsToDefaults(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int playerID = GET_ARG(0, GetInteger);
 	CHECK_INPUT_PLAYER_INDEX(playerID);
@@ -8890,7 +8931,7 @@ VMValue Input_ResetActionBindsToDefaults(int argCount, VMValue* args, Uint32 thr
  * \return boolean Returns a boolean value.
  * \ns Input
  */
-VMValue Input_IsPlayerUsingDevice(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_IsPlayerUsingDevice(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	int inputDevice = GET_ARG(1, GetInteger);
@@ -8905,7 +8946,7 @@ VMValue Input_IsPlayerUsingDevice(int argCount, VMValue* args, Uint32 threadID) 
  * \return index Returns the index of the controller, or `-1` if there is no controller assigned.
  * \ns Input
  */
-VMValue Input_GetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_GetPlayerControllerIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int playerID = GET_ARG(0, GetInteger);
 	CHECK_INPUT_PLAYER_INDEX(playerID);
@@ -8918,7 +8959,7 @@ VMValue Input_GetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threa
  * \param controllerID (integer): Index of the controller to assign, or `null` to unassign.
  * \ns Input
  */
-VMValue Input_SetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Input_SetPlayerControllerIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int playerID = GET_ARG(0, GetInteger);
 	int controllerID = -1;
@@ -8944,7 +8985,7 @@ VMValue Input_SetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threa
  * \return Entity Returns the new instance.
  * \ns Instance
  */
-VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_Create(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	char* objectName = GET_ARG(0, GetString);
@@ -8956,7 +8997,7 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	try {
 		obj = (ScriptEntity*)Scene::SpawnObject(objectName, x, y);
 	} catch (const std::runtime_error& error) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+		thread->ThrowRuntimeError(false, "%s", error.what());
 		return NULL_VAL;
 	}
 
@@ -8988,7 +9029,7 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
  * \return Entity Returns n'th of object class' instances, `null` if instance cannot be found or class does not exist.
  * \ns Instance
  */
-VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_GetNth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	char* objectName = GET_ARG(0, GetString);
@@ -9015,7 +9056,7 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the instance is of a specified object class.
  * \ns Instance
  */
-VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_IsClass(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	if (IS_NULL(args[0])) {
@@ -9052,7 +9093,7 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Instance
  */
-VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_GetClass(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
@@ -9065,7 +9106,7 @@ VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	return ReturnString(self->List->ObjectName);
+	return ReturnString(thread, self->List->ObjectName);
 }
 /***
  * Instance.GetCount
@@ -9074,7 +9115,7 @@ VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns count of currently active instances in an object class.
  * \ns Instance
  */
-VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_GetCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	char* objectName = GET_ARG(0, GetString);
@@ -9094,7 +9135,7 @@ VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return Entity Returns the desired instance.
  * \ns Instance
  */
-VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_GetNextInstance(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
@@ -9136,7 +9177,7 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
  * \return Entity Returns the instance corresponding to the specified slot ID, or `null` if no instance was found.
  * \ns Instance
  */
-VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_GetBySlotID(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	int slotID = GET_ARG(0, GetInteger);
@@ -9159,7 +9200,7 @@ VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
  * \param disableAutoAnimate (boolean): Whether to turn off the engine automatically applying AutoAnimate when entities are initialized.
  * \ns Instance
  */
-VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Entity::DisableAutoAnimate = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
@@ -9170,7 +9211,7 @@ VMValue Instance_DisableAutoAnimate(int argCount, VMValue* args, Uint32 threadID
  * \param allowAnimationFrameSkip (boolean): Whether to turn on the engine automatically applying AnimationFrameSkip when entities are initialized.
  * \ns Instance
  */
-VMValue Instance_UseAnimationFrameSkip(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_UseAnimationFrameSkip(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Entity::UseAnimationFrameSkip = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
@@ -9181,7 +9222,7 @@ VMValue Instance_UseAnimationFrameSkip(int argCount, VMValue* args, Uint32 threa
  * \param useRenderRegions (boolean): Whether render regions will be used.
  * \ns Instance
  */
-VMValue Instance_SetUseRenderRegions(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_SetUseRenderRegions(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Scene::UseRenderRegions = !!GET_ARG(0, GetInteger);
 	return NULL_VAL;
@@ -9194,7 +9235,7 @@ VMValue Instance_SetUseRenderRegions(int argCount, VMValue* args, Uint32 threadI
  * \paramOpt copyClass (boolean): Whether to copy the class of the source entity. (default: `true`)
  * \ns Instance
  */
-VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_Copy(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	ObjEntity* destInstance = GET_ARG(0, GetEntity);
 	ObjEntity* srcInstance = GET_ARG(1, GetEntity);
@@ -9220,7 +9261,7 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the instance was swapped.
  * \ns Instance
  */
-VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Instance_ChangeClass(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
@@ -9247,10 +9288,10 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region JSON
-static int JSON_FillMap(ObjMap*, const char*, jsmntok_t*, size_t);
-static int JSON_FillArray(ObjArray*, const char*, jsmntok_t*, size_t);
+static int JSON_FillMap(VMThread*, ObjMap*, const char*, jsmntok_t*, size_t);
+static int JSON_FillArray(VMThread*, ObjArray*, const char*, jsmntok_t*, size_t);
 
-static int JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t count) {
+static int JSON_FillMap(VMThread* thread, ObjMap* map, const char* text, jsmntok_t* t, size_t count) {
 	jsmntok_t* key;
 	jsmntok_t* value;
 	if (count == 0) {
@@ -9309,7 +9350,7 @@ static int JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t coun
 						}
 					}
 					else {
-						val = OBJECT_VAL(CopyString(text + value->start,
+						val = OBJECT_VAL(thread->Manager->CopyString(text + value->start,
 							value->end - value->start));
 					}
 				}
@@ -9317,7 +9358,7 @@ static int JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t coun
 			case JSMN_STRING: {
 				tokcount += 1;
 				val = OBJECT_VAL(
-					CopyString(text + value->start, value->end - value->start));
+					thread->Manager->CopyString(text + value->start, value->end - value->start));
 
 				char* o = AS_CSTRING(val);
 				for (const char* l = text + value->start; l < text + value->end;
@@ -9366,15 +9407,15 @@ static int JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t coun
 			}
 			// /*
 			case JSMN_OBJECT: {
-				ObjMap* subMap = NewMap();
-				tokcount += JSON_FillMap(subMap, text, value, count - tokcount);
+				ObjMap* subMap = thread->Manager->NewMap();
+				tokcount += JSON_FillMap(thread, subMap, text, value, count - tokcount);
 				val = OBJECT_VAL(subMap);
 				break;
 			}
 			//*/
 			case JSMN_ARRAY: {
-				ObjArray* subArray = NewArray();
-				tokcount += JSON_FillArray(subArray, text, value, count - tokcount);
+				ObjArray* subArray = thread->Manager->NewArray();
+				tokcount += JSON_FillArray(thread, subArray, text, value, count - tokcount);
 				val = OBJECT_VAL(subArray);
 				break;
 			}
@@ -9386,7 +9427,7 @@ static int JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t coun
 	}
 	return tokcount + 1;
 }
-static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t count) {
+static int JSON_FillArray(VMThread* thread, ObjArray* arr, const char* text, jsmntok_t* t, size_t count) {
 	jsmntok_t* value;
 	if (count == 0) {
 		return 0;
@@ -9434,7 +9475,7 @@ static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t 
 					}
 				}
 				else {
-					val = OBJECT_VAL(CopyString(
+					val = OBJECT_VAL(thread->Manager->CopyString(
 						text + value->start, value->end - value->start));
 				}
 			}
@@ -9442,7 +9483,7 @@ static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t 
 		case JSMN_STRING: {
 			tokcount += 1;
 			val = OBJECT_VAL(
-				CopyString(text + value->start, value->end - value->start));
+				thread->Manager->CopyString(text + value->start, value->end - value->start));
 
 			char* o = AS_CSTRING(val);
 			for (const char* l = text + value->start; l < text + value->end; l++) {
@@ -9489,14 +9530,14 @@ static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t 
 			break;
 		}
 		case JSMN_OBJECT: {
-			ObjMap* subMap = NewMap();
-			tokcount += JSON_FillMap(subMap, text, value, count - tokcount);
+			ObjMap* subMap = thread->Manager->NewMap();
+			tokcount += JSON_FillMap(thread, subMap, text, value, count - tokcount);
 			val = OBJECT_VAL(subMap);
 			break;
 		}
 		case JSMN_ARRAY: {
-			ObjArray* subArray = NewArray();
-			tokcount += JSON_FillArray(subArray, text, value, count - tokcount);
+			ObjArray* subArray = thread->Manager->NewArray();
+			tokcount += JSON_FillArray(thread, subArray, text, value, count - tokcount);
 			val = OBJECT_VAL(subArray);
 			break;
 		}
@@ -9515,15 +9556,15 @@ static int JSON_FillArray(ObjArray* arr, const char* text, jsmntok_t* t, size_t 
  * \return map Returns a map value if the text can be decoded, otherwise returns `null`.
  * \ns JSON
  */
-VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
+VMValue JSON_Parse(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjString* string = GET_ARG(0, GetVMString);
 	if (!string) {
 		return NULL_VAL;
 	}
 
-	if (ScriptManager::Lock()) {
-		ObjMap* map = NewMap();
+	if (thread->Manager->Lock()) {
+		ObjMap* map = thread->Manager->NewMap();
 
 		jsmn_parser p;
 		jsmntok_t* tok;
@@ -9544,7 +9585,7 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 						(jsmntok_t*)realloc(tok, sizeof(*tok) * tokcount);
 					if (tempTok == NULL) {
 						free(tok);
-						ScriptManager::Unlock();
+						thread->Manager->Unlock();
 						return NULL_VAL;
 					}
 					tok = tempTok;
@@ -9552,13 +9593,13 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
 				}
 			}
 			else {
-				JSON_FillMap(map, string->Chars, tok, p.toknext);
+				JSON_FillMap(thread, map, string->Chars, tok, p.toknext);
 			}
 			break;
 		}
 		free(tok);
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(map);
 	}
 	return NULL_VAL;
@@ -9571,7 +9612,7 @@ VMValue JSON_Parse(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a JSON string based on the value.
  * \ns JSON
  */
-VMValue JSON_ToString(int argCount, VMValue* args, Uint32 threadID) {
+VMValue JSON_ToString(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	VMValue value = args[0];
 	bool prettyPrint = !!GET_ARG_OPT(1, GetInteger, false);
@@ -9582,7 +9623,7 @@ VMValue JSON_ToString(int argCount, VMValue* args, Uint32 threadID) {
 	buffer_info.WriteIndex = 0;
 	buffer_info.BufferSize = 512;
 	ValuePrinter::Print(&buffer_info, value, prettyPrint, true);
-	value = OBJECT_VAL(CopyString(buffer, buffer_info.WriteIndex));
+	value = OBJECT_VAL(thread->Manager->CopyString(buffer, buffer_info.WriteIndex));
 	free(buffer);
 	return value;
 }
@@ -9596,7 +9637,7 @@ VMValue JSON_ToString(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal The cosine of x radians.
  * \ns Math
  */
-VMValue Math_Cos(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Cos(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Math::Cos(GET_ARG(0, GetDecimal)));
 }
@@ -9607,7 +9648,7 @@ VMValue Math_Cos(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal The sine of x radians.
  * \ns Math
  */
-VMValue Math_Sin(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Sin(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Math::Sin(GET_ARG(0, GetDecimal)));
 }
@@ -9618,7 +9659,7 @@ VMValue Math_Sin(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal The tangent of x radians.
  * \ns Math
  */
-VMValue Math_Tan(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Tan(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Math::Tan(GET_ARG(0, GetDecimal)));
 }
@@ -9629,7 +9670,7 @@ VMValue Math_Tan(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the angle (in radians) as a decimal value.
  * \ns Math
  */
-VMValue Math_Acos(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Acos(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Math::Acos(GET_ARG(0, GetDecimal)));
 }
@@ -9640,7 +9681,7 @@ VMValue Math_Acos(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the angle (in radians) as a decimal value.
  * \ns Math
  */
-VMValue Math_Asin(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Asin(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Math::Asin(GET_ARG(0, GetDecimal)));
 }
@@ -9652,7 +9693,7 @@ VMValue Math_Asin(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal The angle from x and y.
  * \ns Math
  */
-VMValue Math_Atan(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Atan(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	return DECIMAL_VAL(Math::Atan(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
 }
@@ -9666,7 +9707,7 @@ VMValue Math_Atan(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the distance from (x1,y1) to (x2,y2) as a decimal value.
  * \ns Math
  */
-VMValue Math_Distance(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Distance(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	return DECIMAL_VAL(Math::Distance(GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal),
@@ -9683,7 +9724,7 @@ VMValue Math_Distance(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the angle from (x1,y1) to (x2,y2) as a decimal value.
  * \ns Math
  */
-VMValue Math_Direction(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Direction(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	return DECIMAL_VAL(Math::Atan(GET_ARG(2, GetDecimal) - GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal) - GET_ARG(3, GetDecimal)));
@@ -9695,7 +9736,7 @@ VMValue Math_Direction(int argCount, VMValue* args, Uint32 threadID) {
  * \return number Returns the absolute value of n.
  * \ns Math
  */
-VMValue Math_Abs(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Abs(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return IS_INTEGER(args[0]) ? INTEGER_VAL((int)Math::Abs(GET_ARG(0, GetDecimal)))
 				   : DECIMAL_VAL(Math::Abs(GET_ARG(0, GetDecimal)));
@@ -9708,7 +9749,7 @@ VMValue Math_Abs(int argCount, VMValue* args, Uint32 threadID) {
  * \return number Returns the lesser value of a and b.
  * \ns Math
  */
-VMValue Math_Min(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Min(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1])) {
 		return INTEGER_VAL((int)Math::Min(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
@@ -9725,7 +9766,7 @@ VMValue Math_Min(int argCount, VMValue* args, Uint32 threadID) {
  * \return number Returns the greater value of a and b.
  * \ns Math
  */
-VMValue Math_Max(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Max(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1])) {
 		return INTEGER_VAL((int)Math::Max(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
@@ -9743,7 +9784,7 @@ VMValue Math_Max(int argCount, VMValue* args, Uint32 threadID) {
  * \return number Returns the Number value if within the range, otherwise returns closest range value.
  * \ns Math
  */
-VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Clamp(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	if (IS_INTEGER(args[0]) && IS_INTEGER(args[1]) && IS_INTEGER(args[2])) {
 		return INTEGER_VAL((int)Math::Clamp(
@@ -9761,7 +9802,7 @@ VMValue Math_Clamp(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns `-1` if <param n> is negative, `1` if positive, and `0` if otherwise.
  * \ns Math
  */
-VMValue Math_Sign(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Sign(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Math::Sign(GET_ARG(0, GetDecimal)));
 }
@@ -9772,7 +9813,7 @@ VMValue Math_Sign(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the converted value.
  * \ns Math
  */
-VMValue Math_Uint8(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Uint8(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL((int)(Uint8)GET_ARG(0, GetInteger));
 }
@@ -9783,7 +9824,7 @@ VMValue Math_Uint8(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the converted value.
  * \ns Math
  */
-VMValue Math_Uint16(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Uint16(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL((int)(Uint16)GET_ARG(0, GetInteger));
 }
@@ -9794,7 +9835,7 @@ VMValue Math_Uint16(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the converted value.
  * \ns Math
  */
-VMValue Math_Uint32(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Uint32(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL((int)(Uint32)GET_ARG(0, GetInteger));
 }
@@ -9805,7 +9846,7 @@ VMValue Math_Uint32(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the converted value.
  * \ns Math
  */
-VMValue Math_Uint64(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Uint64(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL((int)(Uint64)GET_ARG(0, GetInteger));
 }
@@ -9815,7 +9856,7 @@ VMValue Math_Uint64(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the random number.
  * \ns Math
  */
-VMValue Math_Random(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Random(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return DECIMAL_VAL(Math::Random());
 }
@@ -9826,7 +9867,7 @@ VMValue Math_Random(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the random number.
  * \ns Math
  */
-VMValue Math_RandomMax(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_RandomMax(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Math::RandomMax(GET_ARG(0, GetDecimal)));
 }
@@ -9838,7 +9879,7 @@ VMValue Math_RandomMax(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the random number.
  * \ns Math
  */
-VMValue Math_RandomRange(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_RandomRange(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	return DECIMAL_VAL(Math::RandomRange(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
 }
@@ -9848,7 +9889,7 @@ VMValue Math_RandomRange(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer of the engine's random seed value.
  * \ns RSDK.Math
  */
-VMValue Math_GetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_GetRandSeed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Math::RSDK_GetRandSeed());
 }
@@ -9858,7 +9899,7 @@ VMValue Math_GetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
  * \param key (integer): Value to set the seed to.
  * \ns RSDK.Math
  */
-VMValue Math_SetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_SetRandSeed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Math::RSDK_SetRandSeed(GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -9871,7 +9912,7 @@ VMValue Math_SetRandSeed(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the random number as an integer.
  * \ns RSDK.Math
  */
-VMValue Math_RandomInteger(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_RandomInteger(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	return INTEGER_VAL(
 		Math::RSDK_RandomInteger(GET_ARG(0, GetInteger), GET_ARG(1, GetInteger)));
@@ -9885,7 +9926,7 @@ VMValue Math_RandomInteger(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the random number.
  * \ns RSDK.Math
  */
-VMValue Math_RandomIntegerSeeded(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_RandomIntegerSeeded(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	if (argCount < 3) {
 		return INTEGER_VAL(0);
@@ -9900,7 +9941,7 @@ VMValue Math_RandomIntegerSeeded(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the floored number value.
  * \ns Math
  */
-VMValue Math_Floor(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Floor(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(std::floor(GET_ARG(0, GetDecimal)));
 }
@@ -9911,7 +9952,7 @@ VMValue Math_Floor(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the ceiling-ed number value.
  * \ns Math
  */
-VMValue Math_Ceil(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Ceil(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(std::ceil(GET_ARG(0, GetDecimal)));
 }
@@ -9922,7 +9963,7 @@ VMValue Math_Ceil(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the rounded number value.
  * \ns Math
  */
-VMValue Math_Round(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Round(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(std::round(GET_ARG(0, GetDecimal)));
 }
@@ -9933,7 +9974,7 @@ VMValue Math_Round(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the square root of the number n.
  * \ns Math
  */
-VMValue Math_Sqrt(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Sqrt(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(sqrt(GET_ARG(0, GetDecimal)));
 }
@@ -9945,7 +9986,7 @@ VMValue Math_Sqrt(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the number n to the power of p.
  * \ns Math
  */
-VMValue Math_Pow(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Pow(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	return DECIMAL_VAL(pow(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
 }
@@ -9956,7 +9997,7 @@ VMValue Math_Pow(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the result number.
  * \ns Math
  */
-VMValue Math_Exp(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Exp(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(std::exp(GET_ARG(0, GetDecimal)));
 }
@@ -9968,7 +10009,7 @@ VMValue Math_Exp(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Clears the engine's angle lookup tables.
  * \ns RSDK.Math
  */
-VMValue Math_ClearTrigLookupTables(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_ClearTrigLookupTables(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	Math::ClearTrigLookupTables();
 	return NULL_VAL;
@@ -9978,7 +10019,7 @@ VMValue Math_ClearTrigLookupTables(int argCount, VMValue* args, Uint32 threadID)
  * \desc Sets the engine's angle lookup tables.
  * \ns RSDK.Math
  */
-VMValue Math_CalculateTrigAngles(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_CalculateTrigAngles(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	Math::CalculateTrigAngles();
 	return NULL_VAL;
@@ -9990,7 +10031,7 @@ VMValue Math_CalculateTrigAngles(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The sine 1024 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_Sin1024(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Sin1024(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::Sin1024(GET_ARG(0, GetInteger)));
 }
@@ -10001,7 +10042,7 @@ VMValue Math_Sin1024(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The cosine 1024 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_Cos1024(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Cos1024(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::Cos1024(GET_ARG(0, GetInteger)));
 }
@@ -10012,7 +10053,7 @@ VMValue Math_Cos1024(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The tangent 1024 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_Tan1024(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Tan1024(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::Tan1024(GET_ARG(0, GetInteger)));
 }
@@ -10023,7 +10064,7 @@ VMValue Math_Tan1024(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The arc sine 1024 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_ASin1024(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_ASin1024(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::ASin1024(GET_ARG(0, GetInteger)));
 }
@@ -10034,7 +10075,7 @@ VMValue Math_ASin1024(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The arc cosine 1024 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_ACos1024(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_ACos1024(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::ACos1024(GET_ARG(0, GetInteger)));
 }
@@ -10045,7 +10086,7 @@ VMValue Math_ACos1024(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The sine 512 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_Sin512(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Sin512(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::Sin512(GET_ARG(0, GetInteger)));
 }
@@ -10056,7 +10097,7 @@ VMValue Math_Sin512(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The cosine 512 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_Cos512(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Cos512(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::Cos512(GET_ARG(0, GetInteger)));
 }
@@ -10067,7 +10108,7 @@ VMValue Math_Cos512(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The tangent 512 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_Tan512(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Tan512(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::Tan512(GET_ARG(0, GetInteger)));
 }
@@ -10078,7 +10119,7 @@ VMValue Math_Tan512(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The arc sine 512 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_ASin512(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_ASin512(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::ASin512(GET_ARG(0, GetInteger)));
 }
@@ -10089,7 +10130,7 @@ VMValue Math_ASin512(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The arc cosine 512 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_ACos512(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_ACos512(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::ACos512(GET_ARG(0, GetInteger)));
 }
@@ -10100,7 +10141,7 @@ VMValue Math_ACos512(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The sine 256 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_Sin256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Sin256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::Sin256(GET_ARG(0, GetInteger)));
 }
@@ -10111,7 +10152,7 @@ VMValue Math_Sin256(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The cosine 256 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_Cos256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Cos256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::Cos256(GET_ARG(0, GetInteger)));
 }
@@ -10122,7 +10163,7 @@ VMValue Math_Cos256(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The tangent 256 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_Tan256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Tan256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::Tan256(GET_ARG(0, GetInteger)));
 }
@@ -10133,7 +10174,7 @@ VMValue Math_Tan256(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The arc sine 256 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_ASin256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_ASin256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::ASin256(GET_ARG(0, GetInteger)));
 }
@@ -10144,7 +10185,7 @@ VMValue Math_ASin256(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The arc cosine 256 of the angle.
  * \ns RSDK.Math
  */
-VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_ACos256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Math::ACos256(GET_ARG(0, GetInteger)));
 }
@@ -10156,7 +10197,7 @@ VMValue Math_ACos256(int argCount, VMValue* args, Uint32 threadID) {
   * \return integer The arc tangent of the position.
   * \ns RSDK.Math
   */
-VMValue Math_ATan2(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_ATan2(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	return INTEGER_VAL((int)Math::ArcTanLookup((int)(GET_ARG(0, GetDecimal) * 65536.0f),
 		(int)(GET_ARG(1, GetDecimal) * 65536.0f)));
@@ -10168,7 +10209,7 @@ VMValue Math_ATan2(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer An integer value of the converted radian.
  * \ns RSDK.Math
  */
-VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_RadianToInteger(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL((int)((float)GET_ARG(0, GetDecimal) * 256.0 / M_PI));
 }
@@ -10179,7 +10220,7 @@ VMValue Math_RadianToInteger(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal A radian decimal value of the converted integer.
  * \ns RSDK.Math
  */
-VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_IntegerToRadian(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL((float)(GET_ARG(0, GetInteger) * M_PI / 256.0));
 }
@@ -10190,7 +10231,7 @@ VMValue Math_IntegerToRadian(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the converted fixed-point Number value.
  * \ns RSDK.Math
  */
-VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_ToFixed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL((int)(GET_ARG(0, GetDecimal) * 65536.0f));
 }
@@ -10201,7 +10242,7 @@ VMValue Math_ToFixed(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the converted decimal Number value.
  * \ns RSDK.Math
  */
-VMValue Math_FromFixed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_FromFixed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL((float)GET_ARG(0, GetInteger) / 65536.0f);
 }
@@ -10222,9 +10263,9 @@ vertex positions." - Tommy (https://stackoverflow.com/questions/5550620/the-purp
  * \return array Returns the matrix as an array.
  * \ns Matrix
  */
-VMValue Matrix_Create(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Create(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	ObjArray* array = NewArray();
+	ObjArray* array = thread->Manager->NewArray();
 	for (int i = 0; i < 16; i++) {
 		array->Values->push_back(DECIMAL_VAL(0.0));
 	}
@@ -10245,7 +10286,7 @@ VMValue Matrix_Create(int argCount, VMValue* args, Uint32 threadID) {
  * \param matrix (matrix): The matrix to set to the identity.
  * \ns Matrix
  */
-VMValue Matrix_Identity(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Identity(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjArray* array = GET_ARG(0, GetArray);
 
@@ -10269,7 +10310,7 @@ VMValue Matrix_Identity(int argCount, VMValue* args, Uint32 threadID) {
  * \param aspect (number): The aspect ratio.
  * \ns Matrix
  */
-VMValue Matrix_Perspective(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Perspective(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 	ObjArray* array = GET_ARG(0, GetArray);
 	float fov = GET_ARG(1, GetDecimal);
@@ -10293,7 +10334,7 @@ VMValue Matrix_Perspective(int argCount, VMValue* args, Uint32 threadID) {
  * \param matrixSource (matrix): Source.
  * \ns Matrix
  */
-VMValue Matrix_Copy(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Copy(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjArray* matrixDestination = GET_ARG(0, GetArray);
 	ObjArray* matrixSource = GET_ARG(1, GetArray);
@@ -10310,7 +10351,7 @@ VMValue Matrix_Copy(int argCount, VMValue* args, Uint32 threadID) {
  * \param b (matrix): The second matrix to use for multiplying.
  * \ns Matrix
  */
-VMValue Matrix_Multiply(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Multiply(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ObjArray* out = GET_ARG(0, GetArray);
 	ObjArray* Oa = GET_ARG(1, GetArray);
@@ -10355,7 +10396,7 @@ VMValue Matrix_Multiply(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt actuallyTranslate (boolean): Adds the translation components to the matrix instead of overwriting them (Preserves older code functionality, please fix me!). (default: `false`)
  * \ns Matrix
  */
-VMValue Matrix_Translate(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Translate(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(4);
 	ObjArray* out = GET_ARG(0, GetArray);
 	// ObjArray* a = out;
@@ -10398,7 +10439,7 @@ VMValue Matrix_Translate(int argCount, VMValue* args, Uint32 threadID) {
  * \param z (number): Z scale value.
  * \ns Matrix
  */
-VMValue Matrix_Scale(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Scale(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	ObjArray* out = GET_ARG(0, GetArray);
 	float x = GET_ARG(1, GetDecimal);
@@ -10422,7 +10463,7 @@ VMValue Matrix_Scale(int argCount, VMValue* args, Uint32 threadID) {
  * \param z (number): Z rotation value.
  * \ns Matrix
  */
-VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Rotate(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	ObjArray* out = GET_ARG(0, GetArray);
 	// ObjArray* a = out;
@@ -10471,9 +10512,9 @@ VMValue Matrix_Rotate(int argCount, VMValue* args, Uint32 threadID) {
  * \return array Returns the matrix as an array.
  * \ns RSDK.Matrix
  */
-VMValue Matrix_Create256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Create256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	ObjArray* array = NewArray();
+	ObjArray* array = thread->Manager->NewArray();
 	for (int i = 0; i < 16; i++) {
 		array->Values->push_back(DECIMAL_VAL(0.0));
 	}
@@ -10485,7 +10526,7 @@ VMValue Matrix_Create256(int argCount, VMValue* args, Uint32 threadID) {
  * \param matrix (matrix): The matrix to output the values to.
  * \ns RSDK.Matrix
  */
-VMValue Matrix_Identity256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Identity256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjArray* array = GET_ARG(0, GetArray);
 	MatrixHelper helper;
@@ -10517,7 +10558,7 @@ VMValue Matrix_Identity256(int argCount, VMValue* args, Uint32 threadID) {
  * \param b (matrix): The second matrix to use for multiplying.
  * \ns RSDK.Matrix
  */
-VMValue Matrix_Multiply256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Multiply256(int argCount, VMValue* args, VMThread* thread) {
 	ObjArray* dest = GET_ARG(0, GetArray);
 	ObjArray* matrixA = GET_ARG(1, GetArray);
 	ObjArray* matrixB = GET_ARG(2, GetArray);
@@ -10544,7 +10585,7 @@ VMValue Matrix_Multiply256(int argCount, VMValue* args, Uint32 threadID) {
  * \param setIdentity (boolean): Whether to set the matrix as the identity.
  * \ns RSDK.Matrix
  */
-VMValue Matrix_Translate256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Translate256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 	ObjArray* matrix = GET_ARG(0, GetArray);
 	int x = GET_ARG(1, GetDecimal);
@@ -10583,7 +10624,7 @@ VMValue Matrix_Translate256(int argCount, VMValue* args, Uint32 threadID) {
  * \param scaleZ (number): Z scale value.
  * \ns RSDK.Matrix
  */
-VMValue Matrix_Scale256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Scale256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	ObjArray* matrix = GET_ARG(0, GetArray);
 	int scaleX = GET_ARG(1, GetDecimal);
@@ -10617,7 +10658,7 @@ VMValue Matrix_Scale256(int argCount, VMValue* args, Uint32 threadID) {
  * \param rotationY (number): X rotation value.
  * \ns RSDK.Matrix
  */
-VMValue Matrix_RotateX256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_RotateX256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjArray* matrix = GET_ARG(0, GetArray);
 	int rotationX = GET_ARG(1, GetDecimal);
@@ -10651,7 +10692,7 @@ VMValue Matrix_RotateX256(int argCount, VMValue* args, Uint32 threadID) {
  * \param rotationY (number): Y rotation value.
  * \ns RSDK.Matrix
  */
-VMValue Matrix_RotateY256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_RotateY256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjArray* matrix = GET_ARG(0, GetArray);
 	int rotationY = GET_ARG(1, GetDecimal);
@@ -10685,7 +10726,7 @@ VMValue Matrix_RotateY256(int argCount, VMValue* args, Uint32 threadID) {
  * \param rotationZ (number): Z rotation value.
  * \ns RSDK.Matrix
  */
-VMValue Matrix_RotateZ256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_RotateZ256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjArray* matrix = GET_ARG(0, GetArray);
 	int rotationZ = GET_ARG(1, GetDecimal);
@@ -10721,7 +10762,7 @@ VMValue Matrix_RotateZ256(int argCount, VMValue* args, Uint32 threadID) {
  * \param rotationZ (number): Z rotation value.
  * \ns RSDK.Matrix
  */
-VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Matrix_Rotate256(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	ObjArray* matrix = GET_ARG(0, GetArray);
 	int rotationX = GET_ARG(1, GetDecimal);
@@ -10777,7 +10818,7 @@ VMValue Matrix_Rotate256(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The vertex count.
  * \ns Model
  */
-VMValue Model_GetVertexCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_GetVertexCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	IModel* model = GET_ARG(0, GetModel);
 	if (!model) {
@@ -10792,7 +10833,7 @@ VMValue Model_GetVertexCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Model
  */
-VMValue Model_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_GetAnimationCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	IModel* model = GET_ARG(0, GetModel);
 	if (!model) {
@@ -10808,7 +10849,7 @@ VMValue Model_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns the animation name, or `null` if the model contains no animations.
  * \ns Model
  */
-VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_GetAnimationName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	IModel* model = GET_ARG(0, GetModel);
@@ -10825,7 +10866,7 @@ VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	return ReturnString(animationName);
+	return ReturnString(thread, animationName);
 }
 /***
  * Model.GetAnimationIndex
@@ -10835,7 +10876,7 @@ VMValue Model_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the animation index, or `-1` if the animation could not be found. Will always return `-1` if the model contains no animations.
  * \ns Model
  */
-VMValue Model_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_GetAnimationIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	IModel* model = GET_ARG(0, GetModel);
 	if (!model) {
@@ -10852,7 +10893,7 @@ VMValue Model_GetAnimationIndex(int argCount, VMValue* args, Uint32 threadID) {
  * \deprecated Use <ref Model.GetAnimationLength> instead.
  * \ns Model
  */
-VMValue Model_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_GetFrameCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	IModel* model = GET_ARG(0, GetModel);
 	if (!model) {
@@ -10868,7 +10909,7 @@ VMValue Model_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The number of keyframes in the animation.
  * \ns Model
  */
-VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_GetAnimationLength(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	IModel* model = GET_ARG(0, GetModel);
 	int animation = GET_ARG(1, GetInteger);
@@ -10886,7 +10927,7 @@ VMValue Model_GetAnimationLength(int argCount, VMValue* args, Uint32 threadID) {
  * \deprecated Use <ref Model.GetMaterialCount> instead.
  * \ns Model
  */
-VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_HasMaterials(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	IModel* model = GET_ARG(0, GetModel);
 	if (!model) {
@@ -10901,7 +10942,7 @@ VMValue Model_HasMaterials(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the model has bones.
  * \ns Model
  */
-VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_HasBones(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	IModel* model = GET_ARG(0, GetModel);
 	if (!model) {
@@ -10916,7 +10957,7 @@ VMValue Model_HasBones(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Model
  */
-VMValue Model_GetMaterialCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_GetMaterialCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	IModel* model = GET_ARG(0, GetModel);
 	if (!model) {
@@ -10940,7 +10981,7 @@ VMValue Model_GetMaterialCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return Material Returns a <ref Material>, or `null` if the model has no materials.
  * \ns Model
  */
-VMValue Model_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_GetMaterial(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	IModel* model = GET_ARG(0, GetModel);
@@ -10969,6 +11010,10 @@ VMValue Model_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
 		material = model->Materials[idx];
 	}
 
+	if (material->Object == nullptr) {
+		material->Object = (void*)thread->Manager->ImplMaterial->New((void*)material);
+	}
+
 	return OBJECT_VAL(material->Object);
 }
 /***
@@ -10978,7 +11023,7 @@ VMValue Model_GetMaterial(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the index of the armature.
  * \ns Model
  */
-VMValue Model_CreateArmature(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_CreateArmature(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	IModel* model = GET_ARG(0, GetModel);
 	if (!model) {
@@ -10995,7 +11040,7 @@ VMValue Model_CreateArmature(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt frame (decimal): Frame to pose the armature.
  * \ns Model
  */
-VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_PoseArmature(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	IModel* model = GET_ARG(0, GetModel);
 	int armature = GET_ARG(1, GetInteger);
@@ -11032,7 +11077,7 @@ VMValue Model_PoseArmature(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Model
  */
-VMValue Model_ResetArmature(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_ResetArmature(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	IModel* model = GET_ARG(0, GetModel);
 	int armature = GET_ARG(1, GetInteger);
@@ -11051,7 +11096,7 @@ VMValue Model_ResetArmature(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Model
  */
-VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Model_DeleteArmature(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	IModel* model = GET_ARG(0, GetModel);
 	int armature = GET_ARG(1, GetInteger);
@@ -11080,7 +11125,7 @@ VMValue Model_DeleteArmature(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt fadeInAfterFinished (decimal): The time period to fade in the previous music track after the currently playing track finishes playing, in seconds. (default: `0.0`)
  * \ns Music
  */
-VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_Play(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
 	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
@@ -11125,7 +11170,7 @@ VMValue Music_Play(int argCount, VMValue* args, Uint32 threadID) {
  * \param music (integer): The music index to stop.
  * \ns Music
  */
-VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_Stop(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
 	if (audio) {
@@ -11139,7 +11184,7 @@ VMValue Music_Stop(int argCount, VMValue* args, Uint32 threadID) {
  * \param seconds (decimal): The time period to fade out the music, in seconds.
  * \ns Music
  */
-VMValue Music_StopWithFadeOut(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_StopWithFadeOut(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	float seconds = GET_ARG(0, GetDecimal);
 	if (seconds < 0.f) {
@@ -11154,7 +11199,7 @@ VMValue Music_StopWithFadeOut(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Music
  */
-VMValue Music_Pause(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_Pause(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	AudioManager::Lock();
 	if (AudioManager::MusicStack.size() > 0) {
@@ -11169,7 +11214,7 @@ VMValue Music_Pause(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Music
  */
-VMValue Music_Resume(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_Resume(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	AudioManager::Lock();
 	if (AudioManager::MusicStack.size() > 0) {
@@ -11183,7 +11228,7 @@ VMValue Music_Resume(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Completely clears the music stack, stopping all music.
  * \ns Music
  */
-VMValue Music_Clear(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_Clear(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	AudioManager::ClearMusic();
 	return NULL_VAL;
@@ -11195,7 +11240,7 @@ VMValue Music_Clear(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Music
  */
-VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_IsPlaying(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
 	if (!audio) {
@@ -11210,7 +11255,7 @@ VMValue Music_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Music
  */
-VMValue Music_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_GetDuration(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
 	if (!audio) {
@@ -11225,7 +11270,7 @@ VMValue Music_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Music
  */
-VMValue Music_GetPosition(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_GetPosition(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
 	if (!audio) {
@@ -11241,7 +11286,7 @@ VMValue Music_GetPosition(int argCount, VMValue* args, Uint32 threadID) {
  * \param volume (decimal): Controls the volume of the audio. 0.0 is muted, 1.0 is normal volume.
  * \ns Music
  */
-VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_Alter(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	float panning = GET_ARG(0, GetDecimal);
 	float speed = GET_ARG(1, GetDecimal);
@@ -11257,7 +11302,7 @@ VMValue Music_Alter(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the loop point in samples, as an integer value, or `null` if the audio does not have one.
  * \ns Music
  */
-VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_GetLoopPoint(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetMusic);
 	if (!audio || audio->LoopPoint == -1) {
@@ -11272,7 +11317,7 @@ VMValue Music_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \param loopPoint (integer): The loop point in samples, or `null` to remove the audio's loop point.
  * \ns Music
  */
-VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Music_SetLoopPoint(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ISound* audio = GET_ARG(0, GetMusic);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
@@ -11295,7 +11340,7 @@ VMValue Music_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Number
  */
-VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Number_ToString(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
 	int base = 10;
@@ -11310,7 +11355,7 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
 		char temp[16];
 		snprintf(temp, sizeof temp, "%f", n);
 
-		return ReturnString(temp);
+		return ReturnString(thread, temp);
 	}
 	case VAL_INTEGER:
 	case VAL_LINKED_INTEGER: {
@@ -11323,7 +11368,7 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
 			snprintf(temp, sizeof temp, "%d", n);
 		}
 
-		return ReturnString(temp);
+		return ReturnString(thread, temp);
 	}
 	default:
 		THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
@@ -11341,7 +11386,7 @@ VMValue Number_ToString(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Number
  */
-VMValue Number_AsInteger(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Number_AsInteger(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL((int)GET_ARG(0, GetDecimal));
 }
@@ -11352,7 +11397,7 @@ VMValue Number_AsInteger(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Number
  */
-VMValue Number_AsDecimal(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Number_AsDecimal(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(GET_ARG(0, GetDecimal));
 }
@@ -11366,7 +11411,7 @@ VMValue Number_AsDecimal(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the class is loaded.
  * \ns Object
  */
-VMValue Object_Loaded(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Object_Loaded(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	char* objectName = GET_ARG(0, GetString);
@@ -11381,7 +11426,7 @@ VMValue Object_Loaded(int argCount, VMValue* args, Uint32 threadID) {
  * \param Activity (integer): The active state to set the object to.
  * \ns Object
  */
-VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Object_SetActivity(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	char* objectName = GET_ARG(0, GetString);
@@ -11400,7 +11445,7 @@ VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
  * \return <ref ACTIVE_*> Returns the active state of the object if it is loaded, otherwise returns -1.
  * \ns Object
  */
-VMValue Object_GetActivity(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Object_GetActivity(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	char* objectName = GET_ARG(0, GetString);
@@ -11421,7 +11466,7 @@ VMValue Object_GetActivity(int argCount, VMValue* args, Uint32 threadID) {
  * \param usePalettes (boolean): Whether to use palettes.
  * \ns Palette
  */
-VMValue Palette_EnablePaletteUsage(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_EnablePaletteUsage(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int usePalettes = GET_ARG(0, GetInteger);
 	Graphics::UsePalettes = usePalettes;
@@ -11440,7 +11485,7 @@ VMValue Palette_EnablePaletteUsage(int argCount, VMValue* args, Uint32 threadID)
  * \paramOpt activeRows (bitfield): Which rows of 16 colors will not be loaded for .act, .col, and .gif files, from bottom to top.
  * \ns Palette
  */
-VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_LoadFromResource(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int palIndex = GET_ARG(0, GetInteger);
 	char* filename = GET_ARG(1, GetString);
@@ -11656,7 +11701,7 @@ VMValue Palette_LoadFromResource(int argCount, VMValue* args, Uint32 threadID) {
  * \param image (integer): Index of the loaded image.
  * \ns Palette
  */
-VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_LoadFromImage(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int palIndex = GET_ARG(0, GetInteger);
 	Image* image = GET_ARG(1, GetImage);
@@ -11697,7 +11742,7 @@ VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Palette
  */
-VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_GetColor(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int palIndex = GET_ARG(0, GetInteger);
 	int colorIndex = GET_ARG(1, GetInteger);
@@ -11715,7 +11760,7 @@ VMValue Palette_GetColor(int argCount, VMValue* args, Uint32 threadID) {
  * \param hex (integer): Hexadecimal color value to set the color to. (format: 0xRRGGBB)
  * \ns Palette
  */
-VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_SetColor(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int palIndex = GET_ARG(0, GetInteger);
 	int colorIndex = GET_ARG(1, GetInteger);
@@ -11736,7 +11781,7 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Palette
  */
-VMValue Palette_GetColorTransparent(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_GetColorTransparent(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int palIndex = GET_ARG(0, GetInteger);
 	int colorIndex = GET_ARG(1, GetInteger);
@@ -11755,7 +11800,7 @@ VMValue Palette_GetColorTransparent(int argCount, VMValue* args, Uint32 threadID
  * \param isTransparent (boolean): Whether to make the color transparent.
  * \ns Palette
  */
-VMValue Palette_SetColorTransparent(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_SetColorTransparent(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int palIndex = GET_ARG(0, GetInteger);
 	int colorIndex = GET_ARG(1, GetInteger);
@@ -11790,7 +11835,7 @@ inline Uint32 PMP_ColorBlend(Uint32 color1, Uint32 color2, int percent) {
 	g += (((color2 & 0x00FF00U) - g) * percent) >> 8;
 	return (rb & 0xFF00FFU) | (g & 0x00FF00U);
 }
-VMValue Palette_MixPalettes(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_MixPalettes(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(6);
 	int palIndexDest = GET_ARG(0, GetInteger);
 	int palIndex1 = GET_ARG(1, GetInteger);
@@ -11828,7 +11873,7 @@ VMValue Palette_MixPalettes(int argCount, VMValue* args, Uint32 threadID) {
  * \param colorCount (integer): Amount of colors to shift.
  * \ns Palette
  */
-VMValue Palette_RotateColorsLeft(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_RotateColorsLeft(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int palIndex = GET_ARG(0, GetInteger);
 	int colorIndexStart = GET_ARG(1, GetInteger);
@@ -11857,7 +11902,7 @@ VMValue Palette_RotateColorsLeft(int argCount, VMValue* args, Uint32 threadID) {
  * \param colorCount (integer): Amount of colors to shift.
  * \ns Palette
  */
-VMValue Palette_RotateColorsRight(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_RotateColorsRight(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int palIndex = GET_ARG(0, GetInteger);
 	int colorIndexStart = GET_ARG(1, GetInteger);
@@ -11888,7 +11933,7 @@ VMValue Palette_RotateColorsRight(int argCount, VMValue* args, Uint32 threadID) 
  * \param colorCount (integer): Amount of colors to be copied.
  * \ns Palette
  */
-VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_CopyColors(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 	int palIndexFrom = GET_ARG(0, GetInteger);
 	int colorIndexStartFrom = GET_ARG(1, GetInteger);
@@ -11921,7 +11966,7 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
  * \param usePaletteIndexLines (boolean): Whether to use the global palette index table.
  * \ns Palette
  */
-VMValue Palette_UsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_UsePaletteIndexLines(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int usePaletteIndexLines = GET_ARG(0, GetInteger);
 	Graphics::UsePaletteIndexLines = usePaletteIndexLines;
@@ -11935,7 +11980,7 @@ VMValue Palette_UsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
  * \param lineEnd (number): Line where to stop setting the palette.
  * \ns Palette
  */
-VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int palIndex = GET_ARG(0, GetInteger);
 	Sint32 lineStart = (int)GET_ARG(1, GetDecimal);
@@ -11968,7 +12013,7 @@ VMValue Palette_SetPaletteIndexLines(int argCount, VMValue* args, Uint32 threadI
  * \param seed (integer): The seed.
  * \ns Random
  */
-VMValue Random_SetSeed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Random_SetSeed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Sint32 seed = GET_ARG(0, GetInteger);
 	Random::SetSeed(seed);
@@ -11980,7 +12025,7 @@ VMValue Random_SetSeed(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Random
  */
-VMValue Random_GetSeed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Random_GetSeed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Random::Seed);
 }
@@ -11991,7 +12036,7 @@ VMValue Random_GetSeed(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Random
  */
-VMValue Random_Max(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Random_Max(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return DECIMAL_VAL(Random::Max(GET_ARG(0, GetDecimal)));
 }
@@ -12003,7 +12048,7 @@ VMValue Random_Max(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Random
  */
-VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Random_Range(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	return DECIMAL_VAL(Random::Range(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
 }
@@ -12018,7 +12063,7 @@ VMValue Random_Range(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
-VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Resources_LoadSprite(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
@@ -12036,7 +12081,7 @@ VMValue Resources_LoadSprite(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
-VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	char* fallbackFolder = GET_ARG(0, GetString);
 	char* name = GET_ARG(1, GetString);
@@ -12064,7 +12109,7 @@ VMValue Resources_LoadDynamicSprite(int argCount, VMValue* args, Uint32 threadID
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
-VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Resources_LoadImage(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
@@ -12081,7 +12126,7 @@ VMValue Resources_LoadImage(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
-VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Resources_LoadModel(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
@@ -12098,7 +12143,7 @@ VMValue Resources_LoadModel(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
-VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Resources_LoadMusic(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
@@ -12115,7 +12160,7 @@ VMValue Resources_LoadMusic(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
-VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Resources_LoadSound(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
@@ -12132,7 +12177,7 @@ VMValue Resources_LoadSound(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the index of the Resource.
  * \ns Resources
  */
-VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Resources_LoadVideo(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* filename = GET_ARG(0, GetString);
 	int unloadPolicy = GET_ARG(1, GetInteger);
@@ -12148,7 +12193,7 @@ VMValue Resources_LoadVideo(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the Resource exists.
  * \ns Resources
  */
-VMValue Resources_FileExists(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Resources_FileExists(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* filename = GET_ARG(0, GetString);
 	if (ResourceManager::ResourceExists(filename)) {
@@ -12163,7 +12208,7 @@ VMValue Resources_FileExists(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns all the text in the resource as a string value if it can be read, otherwise it returns a `null` value if it cannot be read.
  * \ns Resources
  */
-VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Resources_ReadAllText(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* filePath = GET_ARG(0, GetString);
 	Stream* stream = ResourceStream::New(filePath);
@@ -12171,12 +12216,12 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		size_t size = stream->Length();
-		ObjString* text = AllocString(size);
+		ObjString* text = thread->Manager->AllocString(size);
 		stream->ReadBytes(text->Chars, size);
 		stream->Close();
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(text);
 	}
 	return NULL_VAL;
@@ -12202,7 +12247,7 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt persistency (boolean): Whether the scene should load with persistency.
  * \ns Scene
  */
-VMValue Scene_Load(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_Load(int argCount, VMValue* args, VMThread* thread) {
 	bool loadFromResource = false;
 	bool noPersistency = false;
 
@@ -12258,7 +12303,7 @@ This does not load the scene. You must call <ref Scene.Load>.
  * \param scene (string): Scene name. If the scene name is not found but the category name is, the first scene in the category is used.
  * \ns Scene
  */
-VMValue Scene_Change(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_Change(int argCount, VMValue* args, VMThread* thread) {
 	if (argCount == 1) {
 		const char* sceneName = GET_ARG(0, GetString);
 		Scene::SetCurrent(SCENEINFO_GLOBAL_CATEGORY_NAME, sceneName);
@@ -12278,7 +12323,7 @@ VMValue Scene_Change(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt tilesetID (integer): Tileset to load tile collisions for.
  * \ns Scene
  */
-VMValue Scene_LoadTileCollisions(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_LoadTileCollisions(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	char* filename = GET_ARG(0, GetString);
 	int tilesetID = GET_ARG_OPT(1, GetInteger, 0);
@@ -12291,7 +12336,7 @@ VMValue Scene_LoadTileCollisions(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether tile collisions are loaded.
  * \ns Scene
  */
-VMValue Scene_AreTileCollisionsLoaded(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_AreTileCollisionsLoaded(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL((int)Scene::TileCfgLoaded);
 }
@@ -12302,7 +12347,7 @@ VMValue Scene_AreTileCollisionsLoaded(int argCount, VMValue* args, Uint32 thread
  * \return boolean Returns whether the tileset was added to the scene.
  * \ns Scene
  */
-VMValue Scene_AddTileset(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_AddTileset(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* tileset = GET_ARG(0, GetString);
 	return INTEGER_VAL(Scene::AddTileset(tileset));
@@ -12312,7 +12357,7 @@ VMValue Scene_AddTileset(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Restarts the active scene.
  * \ns Scene
  */
-VMValue Scene_Restart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_Restart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	Scene::DoRestart = true;
 	return NULL_VAL;
@@ -12324,7 +12369,7 @@ VMValue Scene_Restart(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
-VMValue Scene_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_PropertyExists(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* property = GET_ARG(0, GetString);
 	if (!Scene::Properties) {
@@ -12339,13 +12384,13 @@ VMValue Scene_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
  * \return value Returns the property.
  * \ns Scene
  */
-VMValue Scene_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetProperty(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* property = GET_ARG(0, GetString);
 	if (!Scene::Properties || !Scene::Properties->Exists(property)) {
 		return NULL_VAL;
 	}
-	return Value::FromProperty(Scene::Properties->Get(property));
+	return thread->Manager->ValueFromProperty(Scene::Properties->Get(property));
 }
 /***
  * Scene.GetLayerCount
@@ -12353,7 +12398,7 @@ VMValue Scene_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the amount of layers in the active scene.
  * \ns Scene
  */
-VMValue Scene_GetLayerCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL((int)Scene::Layers.size());
 }
@@ -12364,7 +12409,7 @@ VMValue Scene_GetLayerCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the layer index, or `-1` if the layer could not be found.
  * \ns Scene
  */
-VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* layername = GET_ARG(0, GetString);
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
@@ -12381,11 +12426,11 @@ VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Scene
  */
-VMValue Scene_GetLayerName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return ReturnString(Scene::Layers[index].Name);
+	return ReturnString(thread, Scene::Layers[index].Name);
 }
 /***
  * Scene.GetLayerVisible
@@ -12394,7 +12439,7 @@ VMValue Scene_GetLayerName(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
-VMValue Scene_GetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerVisible(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -12407,7 +12452,7 @@ VMValue Scene_GetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Scene
  */
-VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -12420,7 +12465,7 @@ VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
  * \return Shader Returns a Shader, or `null`.
  * \ns Scene
  */
-VMValue Scene_GetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerShader(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -12439,7 +12484,7 @@ VMValue Scene_GetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
-VMValue Scene_GetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerUsePaletteIndexLines(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -12453,12 +12498,12 @@ VMValue Scene_GetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 t
  * \return value Returns the property.
  * \ns Scene
  */
-VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerProperty(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	char* property = GET_ARG(1, GetString);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return Value::FromProperty(Scene::Layers[index].PropertyGet(property));
+	return thread->Manager->ValueFromProperty(Scene::Layers[index].PropertyGet(property));
 }
 /***
  * Scene.GetLayerExists
@@ -12468,7 +12513,7 @@ VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
  * \deprecated
  * \ns Scene
  */
-VMValue Scene_GetLayerExists(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerExists(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -12481,7 +12526,7 @@ VMValue Scene_GetLayerExists(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetLayerDeformSplitLine(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerDeformSplitLine(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -12494,7 +12539,7 @@ VMValue Scene_GetLayerDeformSplitLine(int argCount, VMValue* args, Uint32 thread
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerDeformOffsetA(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -12507,7 +12552,7 @@ VMValue Scene_GetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerDeformOffsetB(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -12521,7 +12566,7 @@ VMValue Scene_GetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
-VMValue Scene_LayerPropertyExists(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_LayerPropertyExists(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	char* property = GET_ARG(1, GetString);
@@ -12534,9 +12579,9 @@ VMValue Scene_LayerPropertyExists(int argCount, VMValue* args, Uint32 threadID) 
  * \return string Returns the name of the active scene.
  * \ns Scene
  */
-VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	return ReturnString(Scene::CurrentScene);
+	return ReturnString(thread, Scene::CurrentScene);
 }
 /***
  * Scene.GetType
@@ -12544,7 +12589,7 @@ VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
  * \return <ref SCENETYPE_*> Returns the type of the active scene.
  * \ns Scene
  */
-VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetType(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::SceneType);
 }
@@ -12554,7 +12599,7 @@ VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetWidth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	int v = 0;
 	if (Scene::Layers.size() > 0) {
@@ -12575,7 +12620,7 @@ VMValue Scene_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetHeight(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	int v = 0;
 	if (Scene::Layers.size() > 0) {
@@ -12597,7 +12642,7 @@ VMValue Scene_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetLayerWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerWidth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int layer = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(layer);
@@ -12610,7 +12655,7 @@ VMValue Scene_GetLayerWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetLayerHeight(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerHeight(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int layer = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(layer);
@@ -12623,7 +12668,7 @@ VMValue Scene_GetLayerHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Scene
  */
-VMValue Scene_GetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerOffsetX(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -12636,7 +12681,7 @@ VMValue Scene_GetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Scene
  */
-VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -12649,7 +12694,7 @@ VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -12662,7 +12707,7 @@ VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
-VMValue Scene_GetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerHorizontalRepeat(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	int index = GET_ARG(0, GetInteger);
@@ -12681,7 +12726,7 @@ VMValue Scene_GetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threa
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
-VMValue Scene_GetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLayerVerticalRepeat(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	int index = GET_ARG(0, GetInteger);
@@ -12699,7 +12744,7 @@ VMValue Scene_GetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetTilesetCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTilesetCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL((int)Scene::Tilesets.size());
 }
@@ -12710,7 +12755,7 @@ VMValue Scene_GetTilesetCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the tileset index, or `-1` if there is no tileset with said filename.
  * \ns Scene
  */
-VMValue Scene_GetTilesetIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTilesetIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* name = GET_ARG(0, GetString);
 	for (size_t i = 0; i < Scene::Tilesets.size(); i++) {
@@ -12732,11 +12777,11 @@ VMValue Scene_GetTilesetIndex(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Scene
  */
-VMValue Scene_GetTilesetName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTilesetName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_TILESET_INDEX
-	return ReturnString(Scene::Tilesets[index].Filename);
+	return ReturnString(thread, Scene::Tilesets[index].Filename);
 }
 /***
  * Scene.GetTilesetTileCount
@@ -12745,7 +12790,7 @@ VMValue Scene_GetTilesetName(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetTilesetTileCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTilesetTileCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_TILESET_INDEX
@@ -12758,7 +12803,7 @@ VMValue Scene_GetTilesetTileCount(int argCount, VMValue* args, Uint32 threadID) 
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetTilesetFirstTileID(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTilesetFirstTileID(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_TILESET_INDEX
@@ -12771,7 +12816,7 @@ VMValue Scene_GetTilesetFirstTileID(int argCount, VMValue* args, Uint32 threadID
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTilesetPaletteIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_TILESET_INDEX
@@ -12783,7 +12828,7 @@ VMValue Scene_GetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadI
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetTileWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTileWidth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::TileWidth);
 }
@@ -12793,7 +12838,7 @@ VMValue Scene_GetTileWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetTileHeight(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTileHeight(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::TileHeight);
 }
@@ -12806,7 +12851,7 @@ VMValue Scene_GetTileHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetTileID(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTileID(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int layer = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal);
@@ -12829,7 +12874,7 @@ VMValue Scene_GetTileID(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the tile's horizontally flipped.
  * \ns Scene
  */
-VMValue Scene_GetTileFlipX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTileFlipX(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int layer = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal);
@@ -12852,7 +12897,7 @@ VMValue Scene_GetTileFlipX(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the tile's vertically flipped.
  * \ns Scene
  */
-VMValue Scene_GetTileFlipY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTileFlipY(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int layer = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal);
@@ -12872,7 +12917,7 @@ VMValue Scene_GetTileFlipY(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::PriorityPerLayer);
 }
@@ -12883,7 +12928,7 @@ VMValue Scene_GetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
-VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int drawGroup = GET_ARG(0, GetInteger);
 	if (drawGroup < 0 || drawGroup >= MAX_PRIORITY_PER_LAYER) {
@@ -12899,9 +12944,9 @@ VMValue Scene_GetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
  * \return string Returns a string value.
  * \ns Scene
  */
-VMValue Scene_GetCurrentFolder(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetCurrentFolder(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	return ReturnString(Scene::CurrentFolder);
+	return ReturnString(thread, Scene::CurrentFolder);
 }
 /***
  * Scene.GetCurrentID
@@ -12909,9 +12954,9 @@ VMValue Scene_GetCurrentFolder(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Scene
  */
-VMValue Scene_GetCurrentID(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetCurrentID(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	return ReturnString(Scene::CurrentID);
+	return ReturnString(thread, Scene::CurrentID);
 }
 /***
  * Scene.GetCurrentResourceFolder
@@ -12919,9 +12964,9 @@ VMValue Scene_GetCurrentID(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Scene
  */
-VMValue Scene_GetCurrentResourceFolder(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetCurrentResourceFolder(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	return ReturnString(Scene::CurrentResourceFolder);
+	return ReturnString(thread, Scene::CurrentResourceFolder);
 }
 /***
  * Scene.GetCurrentCategory
@@ -12929,9 +12974,9 @@ VMValue Scene_GetCurrentResourceFolder(int argCount, VMValue* args, Uint32 threa
  * \return string Returns a string value.
  * \ns Scene
  */
-VMValue Scene_GetCurrentCategory(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetCurrentCategory(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
-	return ReturnString(Scene::CurrentCategory);
+	return ReturnString(thread, Scene::CurrentCategory);
 }
 /***
  * Scene.GetDebugMode
@@ -12939,7 +12984,7 @@ VMValue Scene_GetCurrentCategory(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetDebugMode(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::DebugMode);
 }
@@ -12949,7 +12994,7 @@ VMValue Scene_GetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
  * \return Entity Returns the first active instance in the scene, or `null` if there are no instances in the scene.
  * \ns Scene
  */
-VMValue Scene_GetFirstInstance(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetFirstInstance(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 
 	ScriptEntity* object = (ScriptEntity*)Scene::ObjectFirst;
@@ -12965,7 +13010,7 @@ VMValue Scene_GetFirstInstance(int argCount, VMValue* args, Uint32 threadID) {
  * \return Entity Returns the last active instance in the scene, or `null` if there are no instances in the scene.
  * \ns Scene
  */
-VMValue Scene_GetLastInstance(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetLastInstance(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 
 	ScriptEntity* object = (ScriptEntity*)Scene::ObjectLast;
@@ -12981,7 +13026,7 @@ VMValue Scene_GetLastInstance(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns how many reserved slot IDs are being used.
  * \ns Scene
  */
-VMValue Scene_GetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetReservedSlotIDs(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::ReservedSlotIDs);
 }
@@ -12991,7 +13036,7 @@ VMValue Scene_GetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the amount of instances in the scene.
  * \ns Scene
  */
-VMValue Scene_GetInstanceCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetInstanceCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::ObjectCount);
 }
@@ -13001,7 +13046,7 @@ VMValue Scene_GetInstanceCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the amount of instances in the scene.
  * \ns Scene
  */
-VMValue Scene_GetStaticInstanceCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetStaticInstanceCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::StaticObjectCount);
 }
@@ -13011,7 +13056,7 @@ VMValue Scene_GetStaticInstanceCount(int argCount, VMValue* args, Uint32 threadI
  * \return integer Returns the amount of instances in the scene.
  * \ns Scene
  */
-VMValue Scene_GetDynamicInstanceCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetDynamicInstanceCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::DynamicObjectCount);
 }
@@ -13021,7 +13066,7 @@ VMValue Scene_GetDynamicInstanceCount(int argCount, VMValue* args, Uint32 thread
  * \return integer Returns 0 if tile animation is disabled, 1 if it's enabled, and 2 if tiles animate even if the scene is paused.
  * \ns Scene
  */
-VMValue Scene_GetTileAnimationEnabled(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTileAnimationEnabled(int argCount, VMValue* args, VMThread* thread) {
 	return INTEGER_VAL((int)Scene::TileAnimationEnabled);
 }
 /***
@@ -13031,7 +13076,7 @@ VMValue Scene_GetTileAnimationEnabled(int argCount, VMValue* args, Uint32 thread
  * \return array Returns an array of tile IDs.
  * \ns Scene
  */
-VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int tileID = GET_ARG(0, GetInteger);
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size()) {
@@ -13044,8 +13089,8 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
 		return NULL_VAL;
 	}
 
-	if (ScriptManager::Lock()) {
-		ObjArray* array = NewArray();
+	if (thread->Manager->Lock()) {
+		ObjArray* array = thread->Manager->NewArray();
 		ISprite* tileSprite = animator->Sprite;
 		Animation* animation = animator->GetCurrentAnimation();
 		for (int i = 0; i < animation->Frames.size(); i++) {
@@ -13054,7 +13099,7 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
 			int tileID = ((y * tileset->NumCols) + x) + tileset->StartTile;
 			array->Values->push_back(INTEGER_VAL(tileID));
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(array);
 	}
 
@@ -13067,7 +13112,7 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
  * \return array Returns an array of frame durations.
  * \ns Scene
  */
-VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int tileID = GET_ARG(0, GetInteger);
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size()) {
@@ -13080,14 +13125,14 @@ VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 t
 		return NULL_VAL;
 	}
 
-	if (ScriptManager::Lock()) {
-		ObjArray* array = NewArray();
+	if (thread->Manager->Lock()) {
+		ObjArray* array = thread->Manager->NewArray();
 		ISprite* tileSprite = animator->Sprite;
 		Animation* animation = animator->GetCurrentAnimation();
 		for (int i = 0; i < animation->Frames.size(); i++) {
 			array->Values->push_back(INTEGER_VAL(animation->Frames[i].Duration));
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(array);
 	}
 
@@ -13100,7 +13145,7 @@ VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 t
  * \return boolean Whether the animation is paused.
  * \ns Scene
  */
-VMValue Scene_GetTileAnimSequencePaused(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTileAnimSequencePaused(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int tileID = GET_ARG(0, GetInteger);
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size()) {
@@ -13121,7 +13166,7 @@ VMValue Scene_GetTileAnimSequencePaused(int argCount, VMValue* args, Uint32 thre
  * \return decimal The frame speed.
  * \ns Scene
  */
-VMValue Scene_GetTileAnimSequenceSpeed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTileAnimSequenceSpeed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int tileID = GET_ARG(0, GetInteger);
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size()) {
@@ -13142,7 +13187,7 @@ VMValue Scene_GetTileAnimSequenceSpeed(int argCount, VMValue* args, Uint32 threa
  * \return integer The frame index.
  * \ns Scene
  */
-VMValue Scene_GetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetTileAnimSequenceFrame(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int tileID = GET_ARG(0, GetInteger);
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size()) {
@@ -13162,7 +13207,7 @@ VMValue Scene_GetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
-VMValue Scene_IsCurrentEntryValid(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_IsCurrentEntryValid(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	if (SceneInfo::IsEntryValid(Scene::ActiveCategory, Scene::CurrentSceneInList)) {
 		return INTEGER_VAL(true);
@@ -13176,7 +13221,7 @@ VMValue Scene_IsCurrentEntryValid(int argCount, VMValue* args, Uint32 threadID) 
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
-VMValue Scene_IsUsingFolder(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_IsUsingFolder(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	const char* checkFolder = GET_ARG(0, GetString);
@@ -13199,7 +13244,7 @@ VMValue Scene_IsUsingFolder(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
-VMValue Scene_IsUsingID(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_IsUsingID(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	const char* checkID = GET_ARG(0, GetString);
@@ -13221,7 +13266,7 @@ VMValue Scene_IsUsingID(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Scene
  */
-VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_IsPaused(int argCount, VMValue* args, VMThread* thread) {
 	return INTEGER_VAL((int)Scene::Paused);
 }
 /***
@@ -13230,7 +13275,7 @@ VMValue Scene_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
  * \param amount (integer): How many reserved slot IDs to use.
  * \ns Scene
  */
-VMValue Scene_SetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetReservedSlotIDs(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Scene::ReservedSlotIDs = GET_ARG(0, GetInteger);
 	return NULL_VAL;
@@ -13240,7 +13285,7 @@ VMValue Scene_SetReservedSlotIDs(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Sets whether Debug Mode has been turned on in the current scene.
  * \ns Scene
  */
-VMValue Scene_SetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetDebugMode(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Scene::DebugMode = GET_ARG(0, GetInteger);
 	return NULL_VAL;
@@ -13258,7 +13303,7 @@ VMValue Scene_SetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt collisionMaskB (integer): Collision mask to use for the tile on Plane B. (0: No collision, 1: Top-side collision only, 2: Left-right-bottom-side collision only, 3: All-side collision)
  * \ns Scene
  */
-VMValue Scene_SetTile(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetTile(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(6);
 	int layer = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal);
@@ -13310,7 +13355,7 @@ VMValue Scene_SetTile(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Scene
  */
-VMValue Scene_SetTileCollisionSides(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetTileCollisionSides(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 	int layer = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal);
@@ -13338,7 +13383,7 @@ VMValue Scene_SetTileCollisionSides(int argCount, VMValue* args, Uint32 threadID
  * \param isPaused (boolean): Whether the scene is paused.
  * \ns Scene
  */
-VMValue Scene_SetPaused(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetPaused(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Scene::Paused = GET_ARG(0, GetInteger);
 	return NULL_VAL;
@@ -13349,7 +13394,7 @@ VMValue Scene_SetPaused(int argCount, VMValue* args, Uint32 threadID) {
  * \param isEnabled (integer): 0 disables tile animation, 1 enables it, and 2 makes tiles animate even if the scene is paused.
  * \ns Scene
  */
-VMValue Scene_SetTileAnimationEnabled(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetTileAnimationEnabled(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Scene::TileAnimationEnabled = GET_ARG(0, GetInteger);
 	return NULL_VAL;
@@ -13362,7 +13407,7 @@ VMValue Scene_SetTileAnimationEnabled(int argCount, VMValue* args, Uint32 thread
  * \paramOpt frameDurations (array): Frame duration list.
  * \ns Scene
  */
-VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 
 	int tileID = GET_ARG(0, GetInteger);
@@ -13430,7 +13475,7 @@ VMValue Scene_SetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
  * \param animationIndex (integer): Animation index in sprite.
  * \ns Scene
  */
-VMValue Scene_SetTileAnimSequenceFromSprite(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetTileAnimSequenceFromSprite(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	int tileID = GET_ARG(0, GetInteger);
@@ -13460,7 +13505,7 @@ VMValue Scene_SetTileAnimSequenceFromSprite(int argCount, VMValue* args, Uint32 
  * \param isPaused (boolean): Whether the animation is paused.
  * \ns Scene
  */
-VMValue Scene_SetTileAnimSequencePaused(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetTileAnimSequencePaused(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int tileID = GET_ARG(0, GetInteger);
 	bool isPaused = GET_ARG(1, GetInteger);
@@ -13482,7 +13527,7 @@ VMValue Scene_SetTileAnimSequencePaused(int argCount, VMValue* args, Uint32 thre
  * \param speed (decimal): The frame speed.
  * \ns Scene
  */
-VMValue Scene_SetTileAnimSequenceSpeed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetTileAnimSequenceSpeed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int tileID = GET_ARG(0, GetInteger);
 	float speed = GET_ARG(1, GetDecimal);
@@ -13507,7 +13552,7 @@ VMValue Scene_SetTileAnimSequenceSpeed(int argCount, VMValue* args, Uint32 threa
  * \param index (integer): The frame index.
  * \ns Scene
  */
-VMValue Scene_SetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetTileAnimSequenceFrame(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int tileID = GET_ARG(0, GetInteger);
 	int frameIndex = GET_ARG(1, GetInteger);
@@ -13529,7 +13574,7 @@ VMValue Scene_SetTileAnimSequenceFrame(int argCount, VMValue* args, Uint32 threa
  * \param paletteIndex (integer): The palette index.
  * \ns Scene
  */
-VMValue Scene_SetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetTilesetPaletteIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int palIndex = GET_ARG(1, GetInteger);
@@ -13546,7 +13591,7 @@ VMValue Scene_SetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadI
  * \param isVisible (boolean): Whether the layer can be seen.
  * \ns Scene
  */
-VMValue Scene_SetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerVisible(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int visible = GET_ARG(1, GetInteger);
@@ -13561,7 +13606,7 @@ VMValue Scene_SetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
  * \param isVisible (boolean): Whether the layer can be collided with.
  * \ns Scene
  */
-VMValue Scene_SetLayerCollidable(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerCollidable(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int visible = GET_ARG(1, GetInteger);
@@ -13579,7 +13624,7 @@ VMValue Scene_SetLayerCollidable(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Do not use this.
  * \ns Scene
  */
-VMValue Scene_SetLayerInternalSize(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerInternalSize(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int index = GET_ARG(0, GetInteger);
 	int w = GET_ARG(1, GetInteger);
@@ -13601,7 +13646,7 @@ VMValue Scene_SetLayerInternalSize(int argCount, VMValue* args, Uint32 threadID)
  * \param offsetY (number): Offset Y position.
  * \ns Scene
  */
-VMValue Scene_SetLayerOffsetPosition(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerOffsetPosition(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int index = GET_ARG(0, GetInteger);
 	float offsetX = GET_ARG(1, GetDecimal);
@@ -13618,7 +13663,7 @@ VMValue Scene_SetLayerOffsetPosition(int argCount, VMValue* args, Uint32 threadI
  * \param offsetX (number): Offset X position.
  * \ns Scene
  */
-VMValue Scene_SetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerOffsetX(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	float offsetX = GET_ARG(1, GetDecimal);
@@ -13633,7 +13678,7 @@ VMValue Scene_SetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
  * \param offsetY (number): Offset Y position.
  * \ns Scene
  */
-VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	float offsetY = GET_ARG(1, GetDecimal);
@@ -13648,7 +13693,7 @@ VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
  * \param drawGroup (integer): Number between 0 to the result of <ref Scene.GetDrawGroupCount>.
  * \ns Scene
  */
-VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int drawGroup = GET_ARG(1, GetInteger);
@@ -13668,7 +13713,7 @@ VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
  * \param drawBehavior (<ref DrawBehavior_*>): The draw behavior.
  * \ns Scene
  */
-VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int drawBehavior = GET_ARG(1, GetInteger);
@@ -13683,7 +13728,7 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
  * \param doesRepeat (boolean): Whether the layer repeats.
  * \ns Scene
  */
-VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	bool doesRepeat = !!GET_ARG(1, GetInteger);
@@ -13705,7 +13750,7 @@ VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, Uint32 threadID) {
  * \param doesRepeat (boolean): Whether the layer repeats horizontally.
  * \ns Scene
  */
-VMValue Scene_SetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerHorizontalRepeat(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	bool doesRepeat = !!GET_ARG(1, GetInteger);
@@ -13725,7 +13770,7 @@ VMValue Scene_SetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threa
  * \param doesRepeat (boolean): Whether the layer repeats vertically.
  * \ns Scene
  */
-VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	bool doesRepeat = !!GET_ARG(1, GetInteger);
@@ -13745,7 +13790,7 @@ VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
  * \deprecated
  * \ns Scene
  */
-VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int count = GET_ARG(0, GetInteger);
 	if (count < 1) {
@@ -13767,7 +13812,7 @@ VMValue Scene_SetDrawGroupCount(int argCount, VMValue* args, Uint32 threadID) {
  * \param useEntityDepth (boolean): Whether to sort objects by depth.
  * \ns Scene
  */
-VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int drawGroup = GET_ARG(0, GetInteger);
 	bool useEntityDepth = !!GET_ARG(1, GetInteger);
@@ -13790,7 +13835,7 @@ VMValue Scene_SetDrawGroupEntityDepthSorting(int argCount, VMValue* args, Uint32
  * \paramOpt blendMode (<ref BlendMode_*>): The desired blend mode.
  * \ns Scene
  */
-VMValue Scene_SetLayerBlend(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerBlend(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -13805,7 +13850,7 @@ VMValue Scene_SetLayerBlend(int argCount, VMValue* args, Uint32 threadID) {
  * \param opacity (decimal): Opacity from 0.0 to 1.0.
  * \ns Scene
  */
-VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	float opacity = GET_ARG(1, GetDecimal);
@@ -13826,7 +13871,7 @@ VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
  * \param shader (Shader): The shader, or `null` to unset the shader.
  * \ns Scene
  */
-VMValue Scene_SetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerShader(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	ObjShader* objShader = GET_ARG(1, GetShader);
@@ -13849,7 +13894,7 @@ VMValue Scene_SetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
 
 		Scene::Layers[index].CurrentShader = shader;
 	} catch (const std::runtime_error& error) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+		thread->ThrowRuntimeError(false, "%s", error.what());
 		return NULL_VAL;
 	}
 
@@ -13862,7 +13907,7 @@ VMValue Scene_SetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
  * \param usePaletteIndexLines (boolean): Whether the layer is using the global palette index table.
  * \ns Scene
  */
-VMValue Scene_SetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerUsePaletteIndexLines(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int usePaletteIndexLines = !!GET_ARG(1, GetInteger);
@@ -13878,7 +13923,7 @@ VMValue Scene_SetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 t
  * \param constant (decimal): How many pixels to move the layer per frame.
  * \ns Scene
  */
-VMValue Scene_SetLayerScroll(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerScroll(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int index = GET_ARG(0, GetInteger);
 	float relative = GET_ARG(1, GetDecimal);
@@ -13903,7 +13948,7 @@ std::vector<BufferedScrollInfo> BufferedScrollInfos;
  * \param layerIndex (integer): Index of layer.
  * \ns Scene
  */
-VMValue Scene_SetLayerSetParallaxLinesBegin(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerSetParallaxLinesBegin(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -13927,7 +13972,7 @@ VMValue Scene_SetLayerSetParallaxLinesBegin(int argCount, VMValue* args, Uint32 
  * \param canDeform (boolean): Whether the parallax lines can be deformed.
  * \ns Scene
  */
-VMValue Scene_SetLayerSetParallaxLines(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerSetParallaxLines(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(5);
 	int lineStart = GET_ARG(0, GetInteger);
 	int lineEnd = GET_ARG(1, GetInteger);
@@ -13973,7 +14018,7 @@ VMValue Scene_SetLayerSetParallaxLines(int argCount, VMValue* args, Uint32 threa
  * \desc Ends setup for changing the parallax lines and submits the changes.
  * \ns Scene
  */
-VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	if (!BufferedScrollLines) {
 		THROW_ERROR("Did not start scroll line setup before ending.");
@@ -14022,7 +14067,7 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
  * \param deformB (number): Deform value below the Deform Split Line.
  * \ns Scene
  */
-VMValue Scene_SetLayerTileDeforms(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerTileDeforms(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	int index = GET_ARG(0, GetInteger);
 	int lineIndex = GET_ARG(1, GetInteger);
@@ -14045,7 +14090,7 @@ VMValue Scene_SetLayerTileDeforms(int argCount, VMValue* args, Uint32 threadID) 
  * \param deformPosition (number): The position on screen where the Deform Split Line should be. (Y when horizontal parallax, X when vertical.)
  * \ns Scene
  */
-VMValue Scene_SetLayerTileDeformSplitLine(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerTileDeformSplitLine(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int deformPosition = (int)GET_ARG(1, GetDecimal);
@@ -14062,7 +14107,7 @@ VMValue Scene_SetLayerTileDeformSplitLine(int argCount, VMValue* args, Uint32 th
  * \param deformBOffset (number): Offset for the deforms below the Deform Split Line.
  * \ns Scene
  */
-VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int index = GET_ARG(0, GetInteger);
 	int deformAOffset = (int)GET_ARG(1, GetDecimal);
@@ -14080,7 +14125,7 @@ VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 thre
  * \param deformA (number): Deform value above the Deform Split Line.
  * \ns Scene
  */
-VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int deformA = (int)GET_ARG(1, GetDecimal);
@@ -14096,7 +14141,7 @@ VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
  * \param deformA (number): Deform value below the Deform Split Line.
  * \ns Scene
  */
-VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	int deformB = (int)GET_ARG(1, GetDecimal);
@@ -14112,7 +14157,7 @@ VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
  * \param function (function): Function to be used before tile drawing for generating scanlines. (Use `null` to reset functionality.)
  * \ns Scene
  */
-VMValue Scene_SetLayerCustomScanlineFunction(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerCustomScanlineFunction(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -14139,7 +14184,7 @@ VMValue Scene_SetLayerCustomScanlineFunction(int argCount, VMValue* args, Uint32
  * \paramOpt maxVertCells (number):
  * \ns Scene
  */
-VMValue Scene_SetTileScanline(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetTileScanline(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(5);
 	int scanlineIndex = GET_ARG(0, GetInteger);
 
@@ -14173,7 +14218,7 @@ VMValue Scene_SetTileScanline(int argCount, VMValue* args, Uint32 threadID) {
  * \param function (function): Function to call to render the layer. (Use `null` to reset functionality.)
  * \ns Scene
  */
-VMValue Scene_SetLayerCustomRenderFunction(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetLayerCustomRenderFunction(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
@@ -14194,7 +14239,7 @@ VMValue Scene_SetLayerCustomRenderFunction(int argCount, VMValue* args, Uint32 t
  * \param enableViewRender (boolean): Whether entities can render on the specified view.
  * \ns Scene
  */
-VMValue Scene_SetObjectViewRender(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetObjectViewRender(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	int enabled = !!GET_ARG(1, GetDecimal);
@@ -14217,7 +14262,7 @@ VMValue Scene_SetObjectViewRender(int argCount, VMValue* args, Uint32 threadID) 
  * \param enableViewRender (boolean): Whether tiles can render on the specified view.
  * \ns Scene
  */
-VMValue Scene_SetTileViewRender(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_SetTileViewRender(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	int enabled = !!GET_ARG(1, GetDecimal);
@@ -14244,7 +14289,7 @@ VMValue Scene_SetTileViewRender(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns SceneList
  */
-VMValue SceneList_Get(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SceneList_Get(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	int categoryID = -1;
@@ -14270,7 +14315,7 @@ VMValue SceneList_Get(int argCount, VMValue* args, Uint32 threadID) {
 		}
 	}
 
-	return ReturnString(SceneInfo::GetFilename(categoryID, entryID));
+	return ReturnString(thread, SceneInfo::GetFilename(categoryID, entryID));
 }
 /***
  * SceneList.GetEntryID
@@ -14280,7 +14325,7 @@ VMValue SceneList_Get(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the entry ID, or `-1` if not found.
  * \ns SceneList
  */
-VMValue SceneList_GetEntryID(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SceneList_GetEntryID(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* categoryName = GET_ARG(0, GetString);
 	char* entryName = GET_ARG(1, GetString);
@@ -14297,7 +14342,7 @@ VMValue SceneList_GetEntryID(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the category ID, or `-1` if not found.
  * \ns SceneList
  */
-VMValue SceneList_GetCategoryID(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SceneList_GetCategoryID(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* categoryName = GET_ARG(0, GetString);
 	int categoryID = SceneInfo::GetCategoryID(categoryName);
@@ -14311,7 +14356,7 @@ VMValue SceneList_GetCategoryID(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns the entry name.
  * \ns SceneList
  */
-VMValue SceneList_GetEntryName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SceneList_GetEntryName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	int categoryID = -1;
@@ -14329,7 +14374,7 @@ VMValue SceneList_GetEntryName(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	std::string name = SceneInfo::GetName(categoryID, entryID);
-	return ReturnString(name);
+	return ReturnString(thread, name);
 }
 /***
  * SceneList.GetCategoryName
@@ -14338,13 +14383,13 @@ VMValue SceneList_GetEntryName(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns the category name, or `-1` if not valid.
  * \ns SceneList
  */
-VMValue SceneList_GetCategoryName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SceneList_GetCategoryName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int categoryID = GET_ARG(0, GetInteger);
 	if (!SceneInfo::IsCategoryValid(categoryID)) {
 		return NULL_VAL;
 	}
-	return ReturnString(SceneInfo::Categories[categoryID].Name);
+	return ReturnString(thread, SceneInfo::Categories[categoryID].Name);
 }
 /***
  * SceneList.GetEntryProperty
@@ -14355,7 +14400,7 @@ VMValue SceneList_GetCategoryName(int argCount, VMValue* args, Uint32 threadID) 
  * \return string Returns a string value, or `null` if the entry has no such property.
  * \ns SceneList
  */
-VMValue SceneList_GetEntryProperty(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SceneList_GetEntryProperty(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	int categoryID = -1;
@@ -14388,7 +14433,7 @@ VMValue SceneList_GetEntryProperty(int argCount, VMValue* args, Uint32 threadID)
 		return NULL_VAL;
 	}
 
-	return ReturnString(property);
+	return ReturnString(thread, property);
 }
 /***
  * SceneList.GetCategoryProperty
@@ -14398,7 +14443,7 @@ VMValue SceneList_GetEntryProperty(int argCount, VMValue* args, Uint32 threadID)
  * \return string Returns a string value, or `null` if the category has no such property.
  * \ns SceneList
  */
-VMValue SceneList_GetCategoryProperty(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SceneList_GetCategoryProperty(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	int categoryID = -1;
@@ -14420,7 +14465,7 @@ VMValue SceneList_GetCategoryProperty(int argCount, VMValue* args, Uint32 thread
 		return NULL_VAL;
 	}
 
-	return ReturnString(property);
+	return ReturnString(thread, property);
 }
 /***
  * SceneList.HasEntryProperty
@@ -14431,7 +14476,7 @@ VMValue SceneList_GetCategoryProperty(int argCount, VMValue* args, Uint32 thread
  * \return boolean Returns whether the property exists.
  * \ns SceneList
  */
-VMValue SceneList_HasEntryProperty(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SceneList_HasEntryProperty(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	int categoryID = -1;
@@ -14468,7 +14513,7 @@ VMValue SceneList_HasEntryProperty(int argCount, VMValue* args, Uint32 threadID)
  * \return boolean Returns whether the property exists.
  * \ns SceneList
  */
-VMValue SceneList_HasCategoryProperty(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SceneList_HasCategoryProperty(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	int categoryID = -1;
@@ -14491,7 +14536,7 @@ VMValue SceneList_HasCategoryProperty(int argCount, VMValue* args, Uint32 thread
  * \return integer Returns an integer value.
  * \ns SceneList
  */
-VMValue SceneList_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SceneList_GetCategoryCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL((int)SceneInfo::Categories.size());
 }
@@ -14508,7 +14553,7 @@ VMValue SceneList_GetCategoryCount(int argCount, VMValue* args, Uint32 threadID)
  * \return integer Returns the number of scenes in the category.
  * \ns SceneList
  */
-VMValue SceneList_GetSceneCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SceneList_GetSceneCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(0);
 	if (argCount >= 1) {
 		int categoryID = -1;
@@ -14537,7 +14582,7 @@ VMValue SceneList_GetSceneCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The index of the created 3D scene.
  * \ns Scene3D
  */
-VMValue Scene3D_Create(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_Create(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Uint32 unloadPolicy = GET_ARG(0, GetInteger);
 	Uint32 scene3DIndex = Graphics::CreateScene3D(unloadPolicy);
@@ -14553,7 +14598,7 @@ VMValue Scene3D_Create(int argCount, VMValue* args, Uint32 threadID) {
  * \param scene3DIndex (integer): The index of the 3D scene to delete.
  * \ns Scene3D
  */
-VMValue Scene3D_Delete(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_Delete(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
@@ -14570,7 +14615,7 @@ VMValue Scene3D_Delete(int argCount, VMValue* args, Uint32 threadID) {
  * \param drawMode (<ref DrawMode_*>): The type of drawing to use for the vertices in the 3D scene.
  * \ns Scene3D
  */
-VMValue Scene3D_SetDrawMode(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetDrawMode(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	Uint32 drawMode = GET_ARG(1, GetInteger);
@@ -14585,7 +14630,7 @@ VMValue Scene3D_SetDrawMode(int argCount, VMValue* args, Uint32 threadID) {
  * \param cullMode (<ref FaceCull_*>): The type of face culling to use for the vertices in the 3D scene.
  * \ns Scene3D
  */
-VMValue Scene3D_SetFaceCullMode(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetFaceCullMode(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	int cullMode = GET_ARG(1, GetInteger);
@@ -14604,7 +14649,7 @@ VMValue Scene3D_SetFaceCullMode(int argCount, VMValue* args, Uint32 threadID) {
  * \param fieldOfView (matrix): The field of view value.
  * \ns Scene3D
  */
-VMValue Scene3D_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetFieldOfView(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	float fieldOfView = GET_ARG(1, GetDecimal);
@@ -14619,7 +14664,7 @@ VMValue Scene3D_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
  * \param farClippingPlane (matrix): The far clipping plane value.
  * \ns Scene3D
  */
-VMValue Scene3D_SetFarClippingPlane(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetFarClippingPlane(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	float farClippingPlane = GET_ARG(1, GetDecimal);
@@ -14634,7 +14679,7 @@ VMValue Scene3D_SetFarClippingPlane(int argCount, VMValue* args, Uint32 threadID
  * \param farClippingPlane (matrix): The near clipping plane value.
  * \ns Scene3D
  */
-VMValue Scene3D_SetNearClippingPlane(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetNearClippingPlane(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	float nearClippingPlane = GET_ARG(1, GetDecimal);
@@ -14649,7 +14694,7 @@ VMValue Scene3D_SetNearClippingPlane(int argCount, VMValue* args, Uint32 threadI
  * \param viewMatrix (matrix): The view matrix.
  * \ns Scene3D
  */
-VMValue Scene3D_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetViewMatrix(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	ObjArray* viewMatrix = GET_ARG(1, GetArray);
@@ -14671,7 +14716,7 @@ VMValue Scene3D_SetViewMatrix(int argCount, VMValue* args, Uint32 threadID) {
  * \param projMatrix (matrix): The projection matrix.
  * \ns Scene3D
  */
-VMValue Scene3D_SetCustomProjectionMatrix(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetCustomProjectionMatrix(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	ObjArray* projMatrix;
@@ -14710,7 +14755,7 @@ VMValue Scene3D_SetCustomProjectionMatrix(int argCount, VMValue* args, Uint32 th
  * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
-VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
@@ -14729,7 +14774,7 @@ VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID)
  * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
-VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
@@ -14748,7 +14793,7 @@ VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID)
  * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
-VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
@@ -14765,7 +14810,7 @@ VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID
  * \param fogEquation (<ref FogEquation_*>): The fog equation to use.
  * \ns Scene3D
  */
-VMValue Scene3D_SetFogEquation(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetFogEquation(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	int fogEquation = GET_ARG(1, GetInteger);
@@ -14784,7 +14829,7 @@ VMValue Scene3D_SetFogEquation(int argCount, VMValue* args, Uint32 threadID) {
  * \param start (number): The start value.
  * \ns Scene3D
  */
-VMValue Scene3D_SetFogStart(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetFogStart(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	GET_SCENE_3D();
@@ -14798,7 +14843,7 @@ VMValue Scene3D_SetFogStart(int argCount, VMValue* args, Uint32 threadID) {
  * \param end (number): The end value.
  * \ns Scene3D
  */
-VMValue Scene3D_SetFogEnd(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetFogEnd(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	GET_SCENE_3D();
@@ -14812,7 +14857,7 @@ VMValue Scene3D_SetFogEnd(int argCount, VMValue* args, Uint32 threadID) {
  * \param density (number): The fog density.
  * \ns Scene3D
  */
-VMValue Scene3D_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetFogDensity(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	GET_SCENE_3D();
@@ -14828,7 +14873,7 @@ VMValue Scene3D_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
  * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
-VMValue Scene3D_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetFogColor(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
@@ -14845,7 +14890,7 @@ VMValue Scene3D_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
  * \param smoothness (number): The smoothness, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
-VMValue Scene3D_SetFogSmoothness(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetFogSmoothness(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	float smoothness = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
@@ -14860,7 +14905,7 @@ VMValue Scene3D_SetFogSmoothness(int argCount, VMValue* args, Uint32 threadID) {
  * \param pointSize (decimal): The point size.
  * \ns Scene3D
  */
-VMValue Scene3D_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_SetPointSize(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	float pointSize = !!GET_ARG(1, GetDecimal);
@@ -14874,7 +14919,7 @@ VMValue Scene3D_SetPointSize(int argCount, VMValue* args, Uint32 threadID) {
  * \param scene3DIndex (integer): The index of the 3D scene.
  * \ns Scene3D
  */
-VMValue Scene3D_Clear(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene3D_Clear(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
 	if (scene3DIndex < 0 || scene3DIndex >= MAX_3D_SCENES) {
@@ -14896,12 +14941,12 @@ VMValue Scene3D_Clear(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (value): The value to serialize.
  * \ns Serializer
  */
-VMValue Serializer_WriteToStream(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Serializer_WriteToStream(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_WRITE_STREAM;
 
-	Serializer serializer(stream->StreamPtr);
+	Serializer serializer(stream->StreamPtr, thread->Manager);
 	serializer.Store(args[1]);
 
 	return NULL_VAL;
@@ -14913,12 +14958,12 @@ VMValue Serializer_WriteToStream(int argCount, VMValue* args, Uint32 threadID) {
  * \return value The deserialized value.
  * \ns Serializer
  */
-VMValue Serializer_ReadFromStream(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Serializer_ReadFromStream(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
 
-	Serializer serializer(stream->StreamPtr);
+	Serializer serializer(stream->StreamPtr, thread->Manager);
 	return serializer.Retrieve();
 }
 // #endregion
@@ -14930,7 +14975,7 @@ VMValue Serializer_ReadFromStream(int argCount, VMValue* args, Uint32 threadID) 
  * \param filename (string): Filepath of config.
  * \ns Settings
  */
-VMValue Settings_Load(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_Load(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Application::ReloadSettings(GET_ARG(0, GetString));
 	return NULL_VAL;
@@ -14946,7 +14991,7 @@ VMValue Settings_Load(int argCount, VMValue* args, Uint32 threadID) {
  * \param filename (string): Filepath of config. This does not change the filepath of the current settings; use <ref Settings.SetFilename> to do that.
  * \ns Settings
  */
-VMValue Settings_Save(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_Save(int argCount, VMValue* args, VMThread* thread) {
 	if (argCount != 0) {
 		CHECK_ARGCOUNT(1);
 		Application::SaveSettings(GET_ARG(0, GetString));
@@ -14962,7 +15007,7 @@ VMValue Settings_Save(int argCount, VMValue* args, Uint32 threadID) {
  * \param filename (string): Filepath of config. This does not save the current settings.
  * \ns Settings
  */
-VMValue Settings_SetFilename(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_SetFilename(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Application::SetSettingsFilename(GET_ARG(0, GetString));
 	return NULL_VAL;
@@ -14975,7 +15020,7 @@ VMValue Settings_SetFilename(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns the property as a string, or `null` if the section or property aren't valid.
  * \ns Settings
  */
-VMValue Settings_GetString(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_GetString(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	char* section = NULL;
@@ -14992,7 +15037,7 @@ VMValue Settings_GetString(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	return ReturnString(result);
+	return ReturnString(thread, result);
 }
 /***
  * Settings.GetNumber
@@ -15002,7 +15047,7 @@ VMValue Settings_GetString(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the property as a number, or `null` if the section or property aren't valid.
  * \ns Settings
  */
-VMValue Settings_GetNumber(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_GetNumber(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	char* section = NULL;
@@ -15029,7 +15074,7 @@ VMValue Settings_GetNumber(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the property as an integer, or `null` if the section or property aren't valid.
  * \ns Settings
  */
-VMValue Settings_GetInteger(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_GetInteger(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	char* section = NULL;
@@ -15056,7 +15101,7 @@ VMValue Settings_GetInteger(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns the property as a boolean, or `null` if the section or property aren't valid.
  * \ns Settings
  */
-VMValue Settings_GetBool(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_GetBool(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	char* section = NULL;
@@ -15083,7 +15128,7 @@ VMValue Settings_GetBool(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (string): The value of the property.
  * \ns Settings
  */
-VMValue Settings_SetString(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_SetString(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	char* section = NULL;
@@ -15102,7 +15147,7 @@ VMValue Settings_SetString(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (number): The value of the property.
  * \ns Settings
  */
-VMValue Settings_SetNumber(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_SetNumber(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	char* section = NULL;
@@ -15121,7 +15166,7 @@ VMValue Settings_SetNumber(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value of the property.
  * \ns Settings
  */
-VMValue Settings_SetInteger(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_SetInteger(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	char* section = NULL;
@@ -15141,7 +15186,7 @@ VMValue Settings_SetInteger(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (boolean): The value of the property.
  * \ns Settings
  */
-VMValue Settings_SetBool(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_SetBool(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	char* section = NULL;
@@ -15158,7 +15203,7 @@ VMValue Settings_SetBool(int argCount, VMValue* args, Uint32 threadID) {
  * \param section (string): The section name.
  * \ns Settings
  */
-VMValue Settings_AddSection(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_AddSection(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Application::Settings->AddSection(GET_ARG(0, GetString));
 	return NULL_VAL;
@@ -15169,7 +15214,7 @@ VMValue Settings_AddSection(int argCount, VMValue* args, Uint32 threadID) {
  * \param section (string): The section name.
  * \ns Settings
  */
-VMValue Settings_RemoveSection(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_RemoveSection(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	char* section = NULL;
@@ -15191,7 +15236,7 @@ VMValue Settings_RemoveSection(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the section exists.
  * \ns Settings
  */
-VMValue Settings_SectionExists(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_SectionExists(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	return INTEGER_VAL(Application::Settings->SectionExists(GET_ARG(0, GetString)));
 }
@@ -15201,7 +15246,7 @@ VMValue Settings_SectionExists(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the total section count.
  * \ns Settings
  */
-VMValue Settings_GetSectionCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_GetSectionCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::Settings->GetSectionCount());
 }
@@ -15213,7 +15258,7 @@ VMValue Settings_GetSectionCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the property exists.
  * \ns Settings
  */
-VMValue Settings_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_PropertyExists(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	char* section = NULL;
@@ -15234,7 +15279,7 @@ VMValue Settings_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
  * \param property (string): The property to remove.
  * \ns Settings
  */
-VMValue Settings_RemoveProperty(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_RemoveProperty(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	char* section = NULL;
@@ -15256,7 +15301,7 @@ VMValue Settings_RemoveProperty(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The total section count, as an integer.
  * \ns Settings
  */
-VMValue Settings_GetPropertyCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Settings_GetPropertyCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	char* section = NULL;
@@ -15280,7 +15325,7 @@ WebSocketClient* client = NULL;
  * \return
  * \ns SocketClient
  */
-VMValue SocketClient_Open(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SocketClient_Open(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* url = GET_ARG(0, GetString);
 
@@ -15297,7 +15342,7 @@ VMValue SocketClient_Open(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns SocketClient
  */
-VMValue SocketClient_Close(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SocketClient_Close(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	if (!client) {
 		return NULL_VAL;
@@ -15314,7 +15359,7 @@ VMValue SocketClient_Close(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns SocketClient
  */
-VMValue SocketClient_IsOpen(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SocketClient_IsOpen(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	if (!client || client->readyState != WebSocketClient::OPEN) {
 		return INTEGER_VAL(false);
@@ -15328,7 +15373,7 @@ VMValue SocketClient_IsOpen(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns SocketClient
  */
-VMValue SocketClient_Poll(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SocketClient_Poll(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int timeout = GET_ARG(0, GetInteger);
 
@@ -15345,7 +15390,7 @@ VMValue SocketClient_Poll(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns SocketClient
  */
-VMValue SocketClient_BytesToRead(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SocketClient_BytesToRead(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	if (!client) {
 		return INTEGER_VAL(0);
@@ -15359,7 +15404,7 @@ VMValue SocketClient_BytesToRead(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns SocketClient
  */
-VMValue SocketClient_ReadDecimal(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SocketClient_ReadDecimal(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	if (!client) {
 		return NULL_VAL;
@@ -15373,7 +15418,7 @@ VMValue SocketClient_ReadDecimal(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns SocketClient
  */
-VMValue SocketClient_ReadInteger(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SocketClient_ReadInteger(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	if (!client) {
 		return NULL_VAL;
@@ -15387,17 +15432,17 @@ VMValue SocketClient_ReadInteger(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns SocketClient
  */
-VMValue SocketClient_ReadString(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SocketClient_ReadString(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	if (!client) {
 		return NULL_VAL;
 	}
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		char* str = client->ReadString();
-		ObjString* objStr = TakeString(str, strlen(str));
+		ObjString* objStr = thread->Manager->TakeString(str, strlen(str));
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(objStr);
 	}
 	return NULL_VAL;
@@ -15408,7 +15453,7 @@ VMValue SocketClient_ReadString(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns SocketClient
  */
-VMValue SocketClient_WriteDecimal(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SocketClient_WriteDecimal(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	float value = GET_ARG(0, GetDecimal);
 	if (!client) {
@@ -15424,7 +15469,7 @@ VMValue SocketClient_WriteDecimal(int argCount, VMValue* args, Uint32 threadID) 
  * \return
  * \ns SocketClient
  */
-VMValue SocketClient_WriteInteger(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SocketClient_WriteInteger(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int value = GET_ARG(0, GetInteger);
 	if (!client) {
@@ -15440,7 +15485,7 @@ VMValue SocketClient_WriteInteger(int argCount, VMValue* args, Uint32 threadID) 
  * \return
  * \ns SocketClient
  */
-VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
+VMValue SocketClient_WriteString(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* value = GET_ARG(0, GetString);
 	if (!client) {
@@ -15464,7 +15509,7 @@ VMValue SocketClient_WriteString(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the channel index where the sound began to play, or `-1` if no channel was available.
  * \ns Sound
  */
-VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_Play(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
 	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
@@ -15503,7 +15548,7 @@ VMValue Sound_Play(int argCount, VMValue* args, Uint32 threadID) {
  * \param sound (integer): The sound index to stop.
  * \ns Sound
  */
-VMValue Sound_Stop(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_Stop(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
 	if (audio) {
@@ -15517,7 +15562,7 @@ VMValue Sound_Stop(int argCount, VMValue* args, Uint32 threadID) {
  * \param sound (integer): The sound index to pause.
  * \ns Sound
  */
-VMValue Sound_Pause(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_Pause(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
 	if (audio) {
@@ -15531,7 +15576,7 @@ VMValue Sound_Pause(int argCount, VMValue* args, Uint32 threadID) {
  * \param sound (integer): The sound index to resume.
  * \ns Sound
  */
-VMValue Sound_Resume(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_Resume(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
 	if (audio) {
@@ -15544,7 +15589,7 @@ VMValue Sound_Resume(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Stops all actively playing sounds.
  * \ns Sound
  */
-VMValue Sound_StopAll(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_StopAll(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	AudioManager::AudioStopAll();
 	return NULL_VAL;
@@ -15554,7 +15599,7 @@ VMValue Sound_StopAll(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Pauses all actively playing sounds.
  * \ns Sound
  */
-VMValue Sound_PauseAll(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_PauseAll(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	AudioManager::AudioPauseAll();
 	return NULL_VAL;
@@ -15564,7 +15609,7 @@ VMValue Sound_PauseAll(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Resumes all actively playing sounds.
  * \ns Sound
  */
-VMValue Sound_ResumeAll(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_ResumeAll(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	AudioManager::AudioUnpauseAll();
 	return NULL_VAL;
@@ -15576,7 +15621,7 @@ VMValue Sound_ResumeAll(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Sound
  */
-VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_IsPlaying(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
 	if (!audio) {
@@ -15595,7 +15640,7 @@ VMValue Sound_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the channel index where the sound began to play, or `-1` if no channel was available.
  * \ns Sound
  */
-VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_PlayMultiple(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
 	int loopPoint = IS_NULL(args[1]) ? AUDIO_LOOP_DEFAULT
@@ -15639,7 +15684,7 @@ VMValue Sound_PlayMultiple(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Sound
  */
-VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_PlayAtChannel(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int channel = GET_ARG(0, GetInteger);
 	ISound* audio = GET_ARG(1, GetSound);
@@ -15684,7 +15729,7 @@ VMValue Sound_PlayAtChannel(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Sound
  */
-VMValue Sound_StopChannel(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_StopChannel(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int channel = GET_ARG(0, GetInteger);
 	if (channel < 0) {
@@ -15701,7 +15746,7 @@ VMValue Sound_StopChannel(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Sound
  */
-VMValue Sound_PauseChannel(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_PauseChannel(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int channel = GET_ARG(0, GetInteger);
 	if (channel < 0) {
@@ -15718,7 +15763,7 @@ VMValue Sound_PauseChannel(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Sound
  */
-VMValue Sound_ResumeChannel(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_ResumeChannel(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int channel = GET_ARG(0, GetInteger);
 	if (channel < 0) {
@@ -15738,7 +15783,7 @@ VMValue Sound_ResumeChannel(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Sound
  */
-VMValue Sound_AlterChannel(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_AlterChannel(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	int channel = GET_ARG(0, GetInteger);
 	float panning = GET_ARG(1, GetDecimal);
@@ -15758,7 +15803,7 @@ VMValue Sound_AlterChannel(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the available channel index, or `-1` if no channel was available.
  * \ns Sound
  */
-VMValue Sound_GetFreeChannel(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_GetFreeChannel(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(AudioManager::GetFreeChannel());
 }
@@ -15768,7 +15813,7 @@ VMValue Sound_GetFreeChannel(int argCount, VMValue* args, Uint32 threadID) {
  * \param sound (integer): The channel index.
  * \ns Sound
  */
-VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_IsChannelFree(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int channel = GET_ARG(0, GetInteger);
 	if (channel < 0) {
@@ -15784,7 +15829,7 @@ VMValue Sound_IsChannelFree(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the loop point in samples, as an integer value, or `null` if the audio does not have one.
  * \ns Sound
  */
-VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_GetLoopPoint(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISound* audio = GET_ARG(0, GetSound);
 	if (!audio || audio->LoopPoint == -1) {
@@ -15799,7 +15844,7 @@ VMValue Sound_GetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \param loopPoint (integer): The loop point in samples, or `null` to remove the audio's loop point.
  * \ns Sound
  */
-VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sound_SetLoopPoint(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ISound* audio = GET_ARG(0, GetSound);
 	int loopPoint = IS_NULL(args[1]) ? -1 : GET_ARG(1, GetInteger);
@@ -15833,7 +15878,7 @@ VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the amount of animations in the sprite.
  * \ns Sprite
  */
-VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (!sprite) {
@@ -15849,7 +15894,7 @@ VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns the name of the specified animation index.
  * \ns Sprite
  */
-VMValue Sprite_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetAnimationName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int index = GET_ARG(1, GetInteger);
@@ -15857,7 +15902,7 @@ VMValue Sprite_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 	CHECK_ANIMATION_INDEX(index);
-	return ReturnString(sprite->Animations[index].Name);
+	return ReturnString(thread, sprite->Animations[index].Name);
 }
 /***
  * Sprite.GetAnimationIndexByName
@@ -15867,7 +15912,7 @@ VMValue Sprite_GetAnimationName(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the first animation index with the specified name, or -1 if there was no match.
  * \ns Sprite
  */
-VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	char* name = GET_ARG(1, GetString);
@@ -15890,7 +15935,7 @@ VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threa
  * \return boolean Returns whether the frame is valid.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetFrameExists(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -15909,7 +15954,7 @@ VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the frame loop index.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -15927,7 +15972,7 @@ VMValue Sprite_GetFrameLoopIndex(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the frame count in the specified animation.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetFrameCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -15946,7 +15991,7 @@ VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the frame duration (in game frames) of the specified sprite frame.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -15965,7 +16010,7 @@ VMValue Sprite_GetFrameDuration(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -15984,7 +16029,7 @@ VMValue Sprite_GetFrameSpeed(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the frame width (in pixels) of the specified sprite frame.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -16004,7 +16049,7 @@ VMValue Sprite_GetFrameWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the frame height (in pixels) of the specified sprite frame.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -16024,7 +16069,7 @@ VMValue Sprite_GetFrameHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the frame ID of the specified sprite frame.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetFrameID(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -16044,7 +16089,7 @@ VMValue Sprite_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the X offset of the specified sprite frame.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -16064,7 +16109,7 @@ VMValue Sprite_GetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the Y offset of the specified sprite frame.
  * \ns Sprite
  */
-VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -16085,7 +16130,7 @@ VMValue Sprite_GetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Sprite
  */
-VMValue Sprite_GetHitboxName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetHitboxName(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animationID = GET_ARG(1, GetInteger);
@@ -16109,7 +16154,7 @@ VMValue Sprite_GetHitboxName(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
-	return ReturnString(frame.Boxes[hitboxID].Name);
+	return ReturnString(thread, frame.Boxes[hitboxID].Name);
 }
 /***
  * Sprite.GetHitboxIndex
@@ -16121,7 +16166,7 @@ VMValue Sprite_GetHitboxName(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value, or `null` if no such hitbox exists with that name.
  * \ns Sprite
  */
-VMValue Sprite_GetHitboxIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetHitboxIndex(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animationID = GET_ARG(1, GetInteger);
@@ -16152,7 +16197,7 @@ VMValue Sprite_GetHitboxIndex(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns Sprite
  */
-VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animationID = GET_ARG(1, GetInteger);
@@ -16203,7 +16248,7 @@ VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return hitbox Returns a Hitbox value.
  * \ns Sprite
  */
-VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetHitbox(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	ISprite* sprite;
 	int animationID, frameID, hitboxID = 0;
@@ -16218,7 +16263,7 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 
 		hitboxArgNum = 1;
 
-		sprite = GetSpriteIndex(entity->Sprite, threadID);
+		sprite = GetSpriteIndex(entity->Sprite, thread);
 		if (!sprite) {
 			return NULL_VAL;
 		}
@@ -16294,13 +16339,13 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
  * \return array Returns an array of sprite indexes per character in the text.
  * \ns Sprite
  */
-VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetTextArray(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
 	char* string = GET_ARG(2, GetString);
 
-	ObjArray* textArray = NewArray();
+	ObjArray* textArray = thread->Manager->NewArray();
 
 	if (!sprite || !string) {
 		return OBJECT_VAL(textArray);
@@ -16343,10 +16388,10 @@ VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
  * \param spacing (integer): The spacing (in pixels) between frames.
  * \ns Sprite
  */
-VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_GetTextWidth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(6);
 
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		ISprite* sprite = GET_ARG(0, GetSprite);
 		int animation = GET_ARG(1, GetInteger);
 		ObjArray* text = GET_ARG(2, GetArray);
@@ -16355,7 +16400,7 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 		int spacing = GET_ARG(5, GetInteger);
 
 		if (!sprite || !text->Values) {
-			ScriptManager::Unlock();
+			thread->Manager->Unlock();
 			return INTEGER_VAL(0);
 		}
 
@@ -16375,7 +16420,7 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 				if (charFrame < anim.Frames.size()) {
 					w += anim.Frames[charFrame].Width;
 					if (c + 1 >= length) {
-						ScriptManager::Unlock();
+						thread->Manager->Unlock();
 						return INTEGER_VAL(w);
 					}
 
@@ -16383,7 +16428,7 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 				}
 			}
 
-			ScriptManager::Unlock();
+			thread->Manager->Unlock();
 			return INTEGER_VAL(w);
 		}
 	}
@@ -16396,7 +16441,7 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \param paletteIndex (integer): The palette index.
  * \ns Sprite
  */
-VMValue Sprite_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_MakePalettized(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int palIndex = GET_ARG(1, GetInteger);
@@ -16413,7 +16458,7 @@ VMValue Sprite_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
  * \param sprite (integer): The sprite index.
  * \ns Sprite
  */
-VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (sprite) {
@@ -16433,18 +16478,18 @@ VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
  * \return stream Returns the newly opened stream.
  * \ns Stream
  */
-VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_FromResource(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		char* filename = GET_ARG(0, GetString);
 		ResourceStream* streamPtr = ResourceStream::New(filename);
 		if (!streamPtr) {
-			ScriptManager::Unlock();
+			thread->Manager->Unlock();
 			THROW_ERROR("Could not open resource stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
-		ObjStream* stream = StreamImpl::New((void*)streamPtr, false);
-		ScriptManager::Unlock();
+		ObjStream* stream = thread->Manager->ImplStream->New((void*)streamPtr, false);
+		thread->Manager->Unlock();
 		return OBJECT_VAL(stream);
 	}
 	return NULL_VAL;
@@ -16457,20 +16502,20 @@ VMValue Stream_FromResource(int argCount, VMValue* args, Uint32 threadID) {
  * \return stream Returns the newly opened stream.
  * \ns Stream
  */
-VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_FromFile(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		char* filename = GET_ARG(0, GetString);
 		int access = GET_ARG(1, GetInteger);
 		FileStream* streamPtr = FileStream::New(filename, access, true);
 		if (!streamPtr) {
-			ScriptManager::Unlock();
+			thread->Manager->Unlock();
 			THROW_ERROR("Could not open file stream \"%s\"!", filename);
 			return NULL_VAL;
 		}
 		ObjStream* stream =
-			StreamImpl::New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
-		ScriptManager::Unlock();
+			thread->Manager->ImplStream->New((void*)streamPtr, access == FileStream::WRITE_ACCESS);
+		thread->Manager->Unlock();
 		return OBJECT_VAL(stream);
 	}
 	return NULL_VAL;
@@ -16481,7 +16526,7 @@ VMValue Stream_FromFile(int argCount, VMValue* args, Uint32 threadID) {
  * \param stream (stream): The stream to close.
  * \ns Stream
  */
-VMValue Stream_Close(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_Close(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	if (stream->Closed) {
@@ -16499,7 +16544,7 @@ VMValue Stream_Close(int argCount, VMValue* args, Uint32 threadID) {
  * \param offset (integer): Offset to seek to.
  * \ns Stream
  */
-VMValue Stream_Seek(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_Seek(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint64 offset = GET_ARG(1, GetInteger);
@@ -16517,7 +16562,7 @@ VMValue Stream_Seek(int argCount, VMValue* args, Uint32 threadID) {
  * \param offset (integer): Offset to seek to.
  * \ns Stream
  */
-VMValue Stream_SeekEnd(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_SeekEnd(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint64 offset = GET_ARG(1, GetInteger);
@@ -16535,7 +16580,7 @@ VMValue Stream_SeekEnd(int argCount, VMValue* args, Uint32 threadID) {
  * \param offset (integer): How many bytes to skip.
  * \ns Stream
  */
-VMValue Stream_Skip(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_Skip(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint64 offset = GET_ARG(1, GetInteger);
@@ -16553,7 +16598,7 @@ VMValue Stream_Skip(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The current position of the stream.
  * \ns Stream
  */
-VMValue Stream_Position(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_Position(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	if (stream->Closed) {
@@ -16569,7 +16614,7 @@ VMValue Stream_Position(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The length of the stream.
  * \ns Stream
  */
-VMValue Stream_Length(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_Length(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	if (stream->Closed) {
@@ -16585,7 +16630,7 @@ VMValue Stream_Length(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an unsigned 8-bit number as an integer value.
  * \ns Stream
  */
-VMValue Stream_ReadByte(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadByte(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16598,7 +16643,7 @@ VMValue Stream_ReadByte(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an unsigned 16-bit number as an integer value.
  * \ns Stream
  */
-VMValue Stream_ReadUInt16(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadUInt16(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16611,7 +16656,7 @@ VMValue Stream_ReadUInt16(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an unsigned big-endian 16-bit number as an integer value.
  * \ns Stream
  */
-VMValue Stream_ReadUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadUInt16BE(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16624,7 +16669,7 @@ VMValue Stream_ReadUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an unsigned 32-bit number as an integer value.
  * \ns Stream
  */
-VMValue Stream_ReadUInt32(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadUInt32(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16637,7 +16682,7 @@ VMValue Stream_ReadUInt32(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an unsigned big-endian 32-bit number as an integer value.
  * \ns Stream
  */
-VMValue Stream_ReadUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadUInt32BE(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16650,7 +16695,7 @@ VMValue Stream_ReadUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an unsigned 64-bit number as an integer value.
  * \ns Stream
  */
-VMValue Stream_ReadUInt64(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadUInt64(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16663,7 +16708,7 @@ VMValue Stream_ReadUInt64(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns a signed 16-bit number as an integer value.
  * \ns Stream
  */
-VMValue Stream_ReadInt16(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadInt16(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16676,7 +16721,7 @@ VMValue Stream_ReadInt16(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns a signed big-endian 16-bit number as an integer value.
  * \ns Stream
  */
-VMValue Stream_ReadInt16BE(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadInt16BE(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16689,7 +16734,7 @@ VMValue Stream_ReadInt16BE(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns a signed 32-bit number as an integer value.
  * \ns Stream
  */
-VMValue Stream_ReadInt32(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadInt32(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16702,7 +16747,7 @@ VMValue Stream_ReadInt32(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns a signed big-endian 32-bit number as an integer value.
  * \ns Stream
  */
-VMValue Stream_ReadInt32BE(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadInt32BE(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16715,7 +16760,7 @@ VMValue Stream_ReadInt32BE(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns a signed 64-bit Integer value.
  * \ns Stream
  */
-VMValue Stream_ReadInt64(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadInt64(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16728,7 +16773,7 @@ VMValue Stream_ReadInt64(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Stream
  */
-VMValue Stream_ReadFloat(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadFloat(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
@@ -16741,15 +16786,15 @@ VMValue Stream_ReadFloat(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Stream
  */
-VMValue Stream_ReadString(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadString(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
 	VMValue obj = NULL_VAL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		char* line = stream->StreamPtr->ReadString();
-		obj = OBJECT_VAL(TakeString(line));
-		ScriptManager::Unlock();
+		obj = OBJECT_VAL(thread->Manager->TakeString(line));
+		thread->Manager->Unlock();
 	}
 	return obj;
 }
@@ -16760,15 +16805,15 @@ VMValue Stream_ReadString(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns Stream
  */
-VMValue Stream_ReadLine(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_ReadLine(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	CHECK_READ_STREAM;
 	VMValue obj = NULL_VAL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		char* line = stream->StreamPtr->ReadLine();
-		obj = OBJECT_VAL(TakeString(line));
-		ScriptManager::Unlock();
+		obj = OBJECT_VAL(thread->Manager->TakeString(line));
+		thread->Manager->Unlock();
 	}
 	return obj;
 }
@@ -16779,7 +16824,7 @@ VMValue Stream_ReadLine(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteByte(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteByte(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint8 byte = GET_ARG(1, GetInteger);
@@ -16794,7 +16839,7 @@ VMValue Stream_WriteByte(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteUInt16(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteUInt16(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint16 val = GET_ARG(1, GetInteger);
@@ -16809,7 +16854,7 @@ VMValue Stream_WriteUInt16(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteUInt16BE(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint16 val = GET_ARG(1, GetInteger);
@@ -16824,7 +16869,7 @@ VMValue Stream_WriteUInt16BE(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteUInt32(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteUInt32(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint32 val = GET_ARG(1, GetInteger);
@@ -16839,7 +16884,7 @@ VMValue Stream_WriteUInt32(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteUInt32BE(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint32 val = GET_ARG(1, GetInteger);
@@ -16854,7 +16899,7 @@ VMValue Stream_WriteUInt32BE(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteUInt64(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteUInt64(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Uint64 val = GET_ARG(1, GetInteger);
@@ -16869,7 +16914,7 @@ VMValue Stream_WriteUInt64(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteInt16(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteInt16(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint16 val = GET_ARG(1, GetInteger);
@@ -16884,7 +16929,7 @@ VMValue Stream_WriteInt16(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteInt16BE(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteInt16BE(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint16 val = GET_ARG(1, GetInteger);
@@ -16899,7 +16944,7 @@ VMValue Stream_WriteInt16BE(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteInt32(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteInt32(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint32 val = GET_ARG(1, GetInteger);
@@ -16914,7 +16959,7 @@ VMValue Stream_WriteInt32(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteInt32BE(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteInt32BE(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint32 val = GET_ARG(1, GetInteger);
@@ -16929,7 +16974,7 @@ VMValue Stream_WriteInt32BE(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (integer): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteInt64(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteInt64(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	Sint64 val = GET_ARG(1, GetInteger);
@@ -16944,7 +16989,7 @@ VMValue Stream_WriteInt64(int argCount, VMValue* args, Uint32 threadID) {
  * \param value (decimal): The value to write.
  * \ns Stream
  */
-VMValue Stream_WriteFloat(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteFloat(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	float val = GET_ARG(1, GetDecimal);
@@ -16959,7 +17004,7 @@ VMValue Stream_WriteFloat(int argCount, VMValue* args, Uint32 threadID) {
  * \param string (string): The string to write.
  * \ns Stream
  */
-VMValue Stream_WriteString(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Stream_WriteString(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	ObjStream* stream = GET_ARG(0, GetStream);
 	char* string = GET_ARG(1, GetString);
@@ -17014,19 +17059,19 @@ A <b>width sub-specifier</b> is used in conjunction with the flags:<br/>\
  * \return string Returns a string value.
  * \ns String
  */
-VMValue String_Format(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_Format(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	char* fmtString = GET_ARG(0, GetString);
 
-	if (fmtString && ScriptManager::Lock()) {
+	if (fmtString && thread->Manager->Lock()) {
 		ObjString* newString;
 		if (argCount > 1) {
-			newString = npf_vpprintf(fmtString, argCount - 1, args + 1, threadID);
+			newString = npf_vpprintf(fmtString, argCount - 1, args + 1, thread);
 		}
 		else {
-			newString = CopyString(fmtString);
+			newString = COPY_STRING(fmtString);
 		}
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(newString);
 	}
 
@@ -17040,23 +17085,23 @@ VMValue String_Format(int argCount, VMValue* args, Uint32 threadID) {
  * \return array Returns an array of string values.
  * \ns String
  */
-VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_Split(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* string = GET_ARG(0, GetString);
 	char* delimt = GET_ARG(1, GetString);
 
-	if (ScriptManager::Lock()) {
-		ObjArray* array = NewArray();
+	if (thread->Manager->Lock()) {
+		ObjArray* array = thread->Manager->NewArray();
 
 		char* input = StringUtils::Duplicate(string);
 		char* tok = strtok(input, delimt);
 		while (tok != NULL) {
-			array->Values->push_back(OBJECT_VAL(CopyString(tok)));
+			array->Values->push_back(OBJECT_VAL(COPY_STRING(tok)));
 			tok = strtok(NULL, delimt);
 		}
 		Memory::Free(input);
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 		return OBJECT_VAL(array);
 	}
 	return NULL_VAL;
@@ -17069,7 +17114,7 @@ VMValue String_Split(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the value as an integer.
  * \ns String
  */
-VMValue String_CharAt(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_CharAt(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	char* string = GET_ARG(0, GetString);
 	int n = GET_ARG(1, GetInteger);
@@ -17084,7 +17129,7 @@ VMValue String_CharAt(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the value as an integer.
  * \ns String
  */
-VMValue String_CodepointAt(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_CodepointAt(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	char* string = GET_ARG(0, GetString);
 	int n = GET_ARG(1, GetInteger);
@@ -17098,7 +17143,7 @@ VMValue String_CodepointAt(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the length of the string value as an integer.
  * \ns String
  */
-VMValue String_Length(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_Length(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
 	return INTEGER_VAL((int)strlen(string));
@@ -17111,7 +17156,7 @@ VMValue String_Length(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the comparison result as an integer. The return value is a negative integer if <param stringA> appears before `stringB` lexicographically, a positive integer if <param stringA> appears after <param stringB> lexicographically, and zero if <param stringA> and <param stringB> are equal.
  * \ns String
  */
-VMValue String_Compare(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_Compare(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* stringA = GET_ARG(0, GetString);
 	char* stringB = GET_ARG(1, GetString);
@@ -17125,7 +17170,7 @@ VMValue String_Compare(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the index as an integer.
  * \ns String
  */
-VMValue String_IndexOf(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_IndexOf(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* string = GET_ARG(0, GetString);
 	char* substring = GET_ARG(1, GetString);
@@ -17143,7 +17188,7 @@ VMValue String_IndexOf(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns String
  */
-VMValue String_Contains(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_Contains(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* string = GET_ARG(0, GetString);
 	char* substring = GET_ARG(1, GetString);
@@ -17158,7 +17203,7 @@ VMValue String_Contains(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns String
  */
-VMValue String_Substring(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_Substring(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	char* string = GET_ARG(0, GetString);
 	size_t index = GET_ARG(1, GetInteger);
@@ -17170,9 +17215,9 @@ VMValue String_Substring(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	VMValue obj = NULL_VAL;
-	if (ScriptManager::Lock()) {
-		obj = OBJECT_VAL(CopyString(string + index, length));
-		ScriptManager::Unlock();
+	if (thread->Manager->Lock()) {
+		obj = OBJECT_VAL(thread->Manager->CopyString(string + index, length));
+		thread->Manager->Unlock();
 	}
 	return obj;
 }
@@ -17183,13 +17228,13 @@ VMValue String_Substring(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a uppercase string value.
  * \ns String
  */
-VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_ToUpperCase(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
 
 	VMValue obj = NULL_VAL;
-	if (ScriptManager::Lock()) {
-		ObjString* objStr = CopyString(string);
+	if (thread->Manager->Lock()) {
+		ObjString* objStr = COPY_STRING(string);
 		for (char* a = objStr->Chars; *a; a++) {
 			if (*a >= 'a' && *a <= 'z') {
 				*a += 'A' - 'a';
@@ -17199,7 +17244,7 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
 			}
 		}
 		obj = OBJECT_VAL(objStr);
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return obj;
 }
@@ -17210,20 +17255,20 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a lowercase string value.
  * \ns String
  */
-VMValue String_ToLowerCase(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_ToLowerCase(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
 
 	VMValue obj = NULL_VAL;
-	if (ScriptManager::Lock()) {
-		ObjString* objStr = CopyString(string);
+	if (thread->Manager->Lock()) {
+		ObjString* objStr = COPY_STRING(string);
 		for (char* a = objStr->Chars; *a; a++) {
 			if (*a >= 'A' && *a <= 'Z') {
 				*a += 'a' - 'A';
 			}
 		}
 		obj = OBJECT_VAL(objStr);
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return obj;
 }
@@ -17235,7 +17280,7 @@ VMValue String_ToLowerCase(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the index as an integer.
  * \ns String
  */
-VMValue String_LastIndexOf(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_LastIndexOf(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	char* string = GET_ARG(0, GetString);
 	char* substring = GET_ARG(1, GetString);
@@ -17269,7 +17314,7 @@ Else, the number is assumed to be in base 10.
  * \return integer Returns the value as an integer.
  * \ns String
  */
-VMValue String_ParseInteger(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_ParseInteger(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
 	int radix = GET_ARG_OPT(1, GetInteger, 10);
@@ -17286,7 +17331,7 @@ VMValue String_ParseInteger(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns the value as a decimal.
  * \ns String
  */
-VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_ParseDecimal(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
 	return DECIMAL_VAL((float)strtod(string, NULL));
@@ -17298,11 +17343,11 @@ VMValue String_ParseDecimal(int argCount, VMValue* args, Uint32 threadID) {
  * \return array Returns an array of Integer values.
  * \ns String
  */
-VMValue String_GetCodepoints(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_GetCodepoints(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
 
-	ObjArray* array = NewArray();
+	ObjArray* array = thread->Manager->NewArray();
 
 	if (string) {
 		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
@@ -17321,7 +17366,7 @@ VMValue String_GetCodepoints(int argCount, VMValue* args, Uint32 threadID) {
  * \return string Returns a string value.
  * \ns String
  */
-VMValue String_FromCodepoints(int argCount, VMValue* args, Uint32 threadID) {
+VMValue String_FromCodepoints(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjArray* array = GET_ARG(0, GetArray);
 	if (!array) {
@@ -17351,11 +17396,11 @@ VMValue String_FromCodepoints(int argCount, VMValue* args, Uint32 threadID) {
 	try {
 		result = StringUtils::FromCodepoints(codepoints);
 	} catch (const std::runtime_error& error) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+		thread->ThrowRuntimeError(false, "%s", error.what());
 		return NULL_VAL;
 	}
 
-	return ReturnString(result);
+	return ReturnString(thread, result);
 }
 // #endregion
 
@@ -17366,7 +17411,7 @@ VMValue String_FromCodepoints(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Texture
  */
-VMValue Texture_Create(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Texture_Create(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 
 	int width = GET_ARG(0, GetInteger);
@@ -17384,7 +17429,7 @@ VMValue Texture_Create(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Texture
  */
-VMValue Texture_Copy(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Texture_Copy(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 
 	GameTexture* textureA = GET_ARG(0, GetTexture);
@@ -17413,7 +17458,7 @@ VMValue Texture_Copy(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Touch
  */
-VMValue Touch_GetX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Touch_GetX(int argCount, VMValue* args, VMThread* thread) {
 	int touch_index = GET_ARG(0, GetInteger);
 	return DECIMAL_VAL(InputManager::TouchGetX(touch_index));
 }
@@ -17424,7 +17469,7 @@ VMValue Touch_GetX(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Touch
  */
-VMValue Touch_GetY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Touch_GetY(int argCount, VMValue* args, VMThread* thread) {
 	int touch_index = GET_ARG(0, GetInteger);
 	return DECIMAL_VAL(InputManager::TouchGetY(touch_index));
 }
@@ -17435,7 +17480,7 @@ VMValue Touch_GetY(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Touch
  */
-VMValue Touch_IsDown(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Touch_IsDown(int argCount, VMValue* args, VMThread* thread) {
 	int touch_index = GET_ARG(0, GetInteger);
 	return INTEGER_VAL(InputManager::TouchIsDown(touch_index));
 }
@@ -17446,7 +17491,7 @@ VMValue Touch_IsDown(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Touch
  */
-VMValue Touch_IsPressed(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Touch_IsPressed(int argCount, VMValue* args, VMThread* thread) {
 	int touch_index = GET_ARG(0, GetInteger);
 	return INTEGER_VAL(InputManager::TouchIsPressed(touch_index));
 }
@@ -17457,7 +17502,7 @@ VMValue Touch_IsPressed(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns Touch
  */
-VMValue Touch_IsReleased(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Touch_IsReleased(int argCount, VMValue* args, VMThread* thread) {
 	int touch_index = GET_ARG(0, GetInteger);
 	return INTEGER_VAL(InputManager::TouchIsReleased(touch_index));
 }
@@ -17472,7 +17517,7 @@ VMValue Touch_IsReleased(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns TileCollision
  */
-VMValue TileCollision_Point(int argCount, VMValue* args, Uint32 threadID) {
+VMValue TileCollision_Point(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int x = (int)std::floor(GET_ARG(0, GetDecimal));
 	int y = (int)std::floor(GET_ARG(1, GetDecimal));
@@ -17490,7 +17535,7 @@ VMValue TileCollision_Point(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the angle of the ground if successful, `-1` if otherwise.
  * \ns TileCollision
  */
-VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID) {
+VMValue TileCollision_PointExtended(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	int x = (int)std::floor(GET_ARG(0, GetDecimal));
 	int y = (int)std::floor(GET_ARG(1, GetDecimal));
@@ -17512,7 +17557,7 @@ VMValue TileCollision_PointExtended(int argCount, VMValue* args, Uint32 threadID
  * \return boolean Returns `true` if tile collision happened, and sets <ref Entity.SensorCollided>, <ref Entity.SensorX>, <ref Entity.SensorY>, and <ref Entity.SensorAngle>. Otherwise, just returns `false`.
  * \ns TileCollision
  */
-VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
+VMValue TileCollision_Line(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(7);
 	int x = (int)std::floor(GET_ARG(0, GetDecimal));
 	int y = (int)std::floor(GET_ARG(1, GetDecimal));
@@ -17556,7 +17601,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
  * \param frameIndex (integer): Frame index. (`-1` for default tile frame)
  * \ns TileInfo
  */
-VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
+VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	int tileID = GET_ARG(0, GetInteger);
 	int spriteIndex = GET_ARG(1, GetInteger);
@@ -17591,7 +17636,7 @@ VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the tile is empty space.
  * \ns TileInfo
  */
-VMValue TileInfo_IsEmptySpace(int argCount, VMValue* args, Uint32 threadID) {
+VMValue TileInfo_IsEmptySpace(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int tileID = GET_ARG(0, GetInteger);
 	return INTEGER_VAL(tileID == Scene::EmptyTile);
@@ -17602,7 +17647,7 @@ VMValue TileInfo_IsEmptySpace(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the ID of the scene's empty tile space.
  * \ns TileInfo
  */
-VMValue TileInfo_GetEmptyTile(int argCount, VMValue* args, Uint32 threadID) {
+VMValue TileInfo_GetEmptyTile(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::EmptyTile);
 }
@@ -17618,7 +17663,7 @@ VMValue TileInfo_GetEmptyTile(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Collision position on the tile, X position if the directionType is Left/Right, Y position if the directionType is Up/Down, -1 if there was no collision.
  * \ns TileInfo
  */
-VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
+VMValue TileInfo_GetCollision(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(4);
 	int tileID = GET_ARG(0, GetInteger);
 	int collisionField = GET_ARG(1, GetInteger);
@@ -17677,7 +17722,7 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Angle value between 0x00 to 0xFF at the specified direction.
  * \ns TileInfo
  */
-VMValue TileInfo_GetAngle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue TileInfo_GetAngle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(3);
 	int tileID = GET_ARG(0, GetInteger);
 	int collisionField = GET_ARG(1, GetInteger);
@@ -17724,7 +17769,7 @@ VMValue TileInfo_GetAngle(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Behavior flag of the tile.
  * \ns TileInfo
  */
-VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
+VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int tileID = GET_ARG(0, GetInteger);
 	int collisionPlane = GET_ARG(1, GetInteger);
@@ -17751,7 +17796,7 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the tile is a ceiling tile.
  * \ns TileInfo
  */
-VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
+VMValue TileInfo_IsCeiling(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int tileID = GET_ARG(0, GetInteger);
 	int collisionPlane = GET_ARG(1, GetInteger);
@@ -17776,7 +17821,7 @@ VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
 struct _Thread_Bundle {
 	ObjFunction Callback;
 	int ArgCount;
-	int ThreadIndex;
+	void* Thread;
 };
 
 int _Thread_RunEvent(void* op) {
@@ -17784,12 +17829,12 @@ int _Thread_RunEvent(void* op) {
 	bundle = (_Thread_Bundle*)op;
 
 	VMValue* args = (VMValue*)(bundle + 1);
-	VMThread* thread = ScriptManager::Threads + bundle->ThreadIndex;
+	VMThread* thread = (VMThread*)bundle->Thread;
 	VMValue callbackVal = OBJECT_VAL(&bundle->Callback);
 
 	// if (bundle->Callback.Method == NULL) {
 	//     Log::Print(Log::LOG_ERROR, "No callback.");
-	//     ScriptManager::ThreadCount--;
+	//     thread->Manager->ThreadCount--;
 	//     free(bundle);
 	//     return 0;
 	// }
@@ -17802,8 +17847,8 @@ int _Thread_RunEvent(void* op) {
 
 	free(bundle);
 
-	ScriptManager::DisposeThread(thread);
-	Log::Print(Log::LOG_IMPORTANT, "Thread %d closed.", ScriptManager::ThreadCount);
+	thread->Manager->DisposeThread(thread);
+	Log::Print(Log::LOG_IMPORTANT, "Thread %d closed.", thread->Manager->ThreadCount);
 	return 0;
 }
 /***
@@ -17812,7 +17857,7 @@ int _Thread_RunEvent(void* op) {
  * \return
  * \ns Thread
  */
-VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Thread_RunEvent(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
 	ObjFunction* callback = NULL;
@@ -17832,8 +17877,8 @@ VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
 
 	int subArgCount = argCount - 1;
 
-	VMThread* thread = ScriptManager::NewThread();
-	if (!thread) {
+	VMThread* newThread = thread->Manager->NewThread();
+	if (!newThread) {
 		return NULL_VAL;
 	}
 
@@ -17842,7 +17887,7 @@ VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
 	bundle->Callback = *callback;
 	bundle->Callback.Object.Next = NULL;
 	bundle->ArgCount = subArgCount;
-	bundle->ThreadIndex = thread->ID;
+	bundle->Thread = newThread;
 	if (subArgCount > 0) {
 		memcpy(bundle + 1, args + 1, subArgCount * sizeof(VMValue));
 	}
@@ -17858,7 +17903,7 @@ VMValue Thread_RunEvent(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Thread
  */
-VMValue Thread_Sleep(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Thread_Sleep(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	SDL_Delay(GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -17874,7 +17919,7 @@ VMValue Thread_Sleep(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer The index of the created vertex buffer.
  * \ns VertexBuffer
  */
-VMValue VertexBuffer_Create(int argCount, VMValue* args, Uint32 threadID) {
+VMValue VertexBuffer_Create(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 numVertices = GET_ARG(0, GetInteger);
 	Uint32 unloadPolicy = GET_ARG(1, GetInteger);
@@ -17893,7 +17938,7 @@ VMValue VertexBuffer_Create(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns VertexBuffer
  */
-VMValue VertexBuffer_Resize(int argCount, VMValue* args, Uint32 threadID) {
+VMValue VertexBuffer_Resize(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
 	Uint32 numVertices = GET_ARG(1, GetInteger);
@@ -17914,7 +17959,7 @@ VMValue VertexBuffer_Resize(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns VertexBuffer
  */
-VMValue VertexBuffer_Clear(int argCount, VMValue* args, Uint32 threadID) {
+VMValue VertexBuffer_Clear(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
 	if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
@@ -17934,7 +17979,7 @@ VMValue VertexBuffer_Clear(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns VertexBuffer
  */
-VMValue VertexBuffer_Delete(int argCount, VMValue* args, Uint32 threadID) {
+VMValue VertexBuffer_Delete(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Uint32 vertexBufferIndex = GET_ARG(0, GetInteger);
 	if (vertexBufferIndex < 0 || vertexBufferIndex >= MAX_VERTEX_BUFFERS) {
@@ -17953,7 +17998,7 @@ VMValue VertexBuffer_Delete(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_Play(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_Play(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
@@ -17967,7 +18012,7 @@ VMValue Video_Play(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_Pause(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_Pause(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
@@ -17981,7 +18026,7 @@ VMValue Video_Pause(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_Resume(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_Resume(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
@@ -17995,7 +18040,7 @@ VMValue Video_Resume(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_Stop(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_Stop(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
@@ -18010,7 +18055,7 @@ VMValue Video_Stop(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_Close(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_Close(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 
@@ -18042,7 +18087,7 @@ VMValue Video_Close(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_IsBuffering(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_IsBuffering(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
@@ -18056,7 +18101,7 @@ VMValue Video_IsBuffering(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_IsPlaying(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
@@ -18070,7 +18115,7 @@ VMValue Video_IsPlaying(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_IsPaused(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
@@ -18084,7 +18129,7 @@ VMValue Video_IsPaused(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_SetPosition(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	MediaBag* video = GET_ARG(0, GetVideo);
 	float position = GET_ARG(1, GetDecimal);
@@ -18099,7 +18144,7 @@ VMValue Video_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_SetBufferDuration(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_SetBufferDuration(int argCount, VMValue* args, VMThread* thread) {
 	return NULL_VAL;
 }
 /***
@@ -18108,7 +18153,7 @@ VMValue Video_SetBufferDuration(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_SetTrackEnabled(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_SetTrackEnabled(int argCount, VMValue* args, VMThread* thread) {
 	return NULL_VAL;
 }
 /***
@@ -18117,7 +18162,7 @@ VMValue Video_SetTrackEnabled(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_GetPosition(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetPosition(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
@@ -18131,7 +18176,7 @@ VMValue Video_GetPosition(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetDuration(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
@@ -18145,7 +18190,7 @@ VMValue Video_GetDuration(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_GetBufferDuration(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetBufferDuration(int argCount, VMValue* args, VMThread* thread) {
 	return NULL_VAL;
 }
 /***
@@ -18154,7 +18199,7 @@ VMValue Video_GetBufferDuration(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_GetBufferEnd(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetBufferEnd(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 #ifdef USING_FFMPEG
@@ -18168,7 +18213,7 @@ VMValue Video_GetBufferEnd(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_GetTrackCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetTrackCount(int argCount, VMValue* args, VMThread* thread) {
 	return NULL_VAL;
 }
 /***
@@ -18177,7 +18222,7 @@ VMValue Video_GetTrackCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_GetTrackEnabled(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetTrackEnabled(int argCount, VMValue* args, VMThread* thread) {
 	return NULL_VAL;
 }
 /***
@@ -18186,7 +18231,7 @@ VMValue Video_GetTrackEnabled(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_GetTrackName(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetTrackName(int argCount, VMValue* args, VMThread* thread) {
 	return NULL_VAL;
 }
 /***
@@ -18195,7 +18240,7 @@ VMValue Video_GetTrackName(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_GetTrackLanguage(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetTrackLanguage(int argCount, VMValue* args, VMThread* thread) {
 	return NULL_VAL;
 }
 /***
@@ -18204,7 +18249,7 @@ VMValue Video_GetTrackLanguage(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_GetDefaultVideoTrack(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetDefaultVideoTrack(int argCount, VMValue* args, VMThread* thread) {
 	return NULL_VAL;
 }
 /***
@@ -18213,7 +18258,7 @@ VMValue Video_GetDefaultVideoTrack(int argCount, VMValue* args, Uint32 threadID)
  * \return
  * \ns Video
  */
-VMValue Video_GetDefaultAudioTrack(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetDefaultAudioTrack(int argCount, VMValue* args, VMThread* thread) {
 	return NULL_VAL;
 }
 /***
@@ -18222,7 +18267,7 @@ VMValue Video_GetDefaultAudioTrack(int argCount, VMValue* args, Uint32 threadID)
  * \return
  * \ns Video
  */
-VMValue Video_GetDefaultSubtitleTrack(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetDefaultSubtitleTrack(int argCount, VMValue* args, VMThread* thread) {
 	return NULL_VAL;
 }
 /***
@@ -18231,7 +18276,7 @@ VMValue Video_GetDefaultSubtitleTrack(int argCount, VMValue* args, Uint32 thread
  * \return
  * \ns Video
  */
-VMValue Video_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetWidth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 	if (video->VideoTexture) {
@@ -18246,7 +18291,7 @@ VMValue Video_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns Video
  */
-VMValue Video_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Video_GetHeight(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	MediaBag* video = GET_ARG(0, GetVideo);
 	if (video->VideoTexture) {
@@ -18265,7 +18310,7 @@ VMValue Video_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (number): Desired X position.
  * \ns View
  */
-VMValue View_SetX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetX(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	float value = GET_ARG(1, GetDecimal);
@@ -18280,7 +18325,7 @@ VMValue View_SetX(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (number): Desired Y position.
  * \ns View
  */
-VMValue View_SetY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetY(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	float value = GET_ARG(1, GetDecimal);
@@ -18295,7 +18340,7 @@ VMValue View_SetY(int argCount, VMValue* args, Uint32 threadID) {
  * \param z (number): Desired Z position.
  * \ns View
  */
-VMValue View_SetZ(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetZ(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	float value = GET_ARG(1, GetDecimal);
@@ -18312,7 +18357,7 @@ VMValue View_SetZ(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt z (number): Desired Z position.
  * \ns View
  */
-VMValue View_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetPosition(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(3);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18330,7 +18375,7 @@ VMValue View_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (number): Desired X adjust amount.
  * \ns View
  */
-VMValue View_AdjustX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_AdjustX(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18344,7 +18389,7 @@ VMValue View_AdjustX(int argCount, VMValue* args, Uint32 threadID) {
 * \param y (number): Desired Y adjust amount.
 * \ns View
 */
-VMValue View_AdjustY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_AdjustY(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18358,7 +18403,7 @@ VMValue View_AdjustY(int argCount, VMValue* args, Uint32 threadID) {
 * \param z (number): Desired Z adjust amount.
 * \ns View
 */
-VMValue View_AdjustZ(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_AdjustZ(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18374,7 +18419,7 @@ VMValue View_AdjustZ(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt z (number): Desired Z scale.
  * \ns View
  */
-VMValue View_SetScale(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetScale(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18392,7 +18437,7 @@ VMValue View_SetScale(int argCount, VMValue* args, Uint32 threadID) {
  * \param z (number): Desired Z angle.
  * \ns View
  */
-VMValue View_SetAngle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetAngle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18410,7 +18455,7 @@ VMValue View_SetAngle(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns View
  */
-VMValue View_SetSize(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetSize(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int view_index = GET_ARG(0, GetInteger);
 	float view_w = GET_ARG(1, GetDecimal);
@@ -18426,7 +18471,7 @@ VMValue View_SetSize(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (number): Desired X position.
  * \ns View
  */
-VMValue View_SetOutputX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetOutputX(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	float value = GET_ARG(1, GetDecimal);
@@ -18441,7 +18486,7 @@ VMValue View_SetOutputX(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (number): Desired Y position.
  * \ns View
  */
-VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetOutputY(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	float value = GET_ARG(1, GetDecimal);
@@ -18457,7 +18502,7 @@ VMValue View_SetOutputY(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (number): Desired Y position.
  * \ns View
  */
-VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetOutputPosition(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(3);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18473,7 +18518,7 @@ VMValue View_SetOutputPosition(int argCount, VMValue* args, Uint32 threadID) {
  * \param height (number): Desired height.
  * \ns View
  */
-VMValue View_SetOutputSize(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetOutputSize(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(3);
 	int view_index = GET_ARG(0, GetInteger);
 	float view_w = GET_ARG(1, GetDecimal);
@@ -18490,7 +18535,7 @@ VMValue View_SetOutputSize(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns View
  */
-VMValue View_GetX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetX(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18503,7 +18548,7 @@ VMValue View_GetX(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns View
  */
-VMValue View_GetY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetY(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18516,7 +18561,7 @@ VMValue View_GetY(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns View
  */
-VMValue View_GetZ(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetZ(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18529,7 +18574,7 @@ VMValue View_GetZ(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns View
  */
-VMValue View_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetWidth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18542,7 +18587,7 @@ VMValue View_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns View
  */
-VMValue View_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetHeight(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18555,7 +18600,7 @@ VMValue View_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns View
  */
-VMValue View_GetCenterX(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetCenterX(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18568,7 +18613,7 @@ VMValue View_GetCenterX(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns View
  */
-VMValue View_GetCenterY(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetCenterY(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18581,7 +18626,7 @@ VMValue View_GetCenterY(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns View
  */
-VMValue View_IsUsingDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_IsUsingDrawTarget(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18594,7 +18639,7 @@ VMValue View_IsUsingDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
  * \param useDrawTarget (boolean): Whether to use a draw target.
  * \ns View
  */
-VMValue View_SetUseDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetUseDrawTarget(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	int usedrawtar = GET_ARG(1, GetInteger);
@@ -18609,7 +18654,7 @@ VMValue View_SetUseDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns View
  */
-VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetDrawTarget(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18634,7 +18679,7 @@ VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
  * \param shader (Shader): The shader, or `null` to unset the shader.
  * \ns View
  */
-VMValue View_SetShader(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetShader(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	Shader* shader = nullptr;
@@ -18661,7 +18706,7 @@ VMValue View_SetShader(int argCount, VMValue* args, Uint32 threadID) {
  * \return Shader Returns a Shader, or `null`.
  * \ns View
  */
-VMValue View_GetShader(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetShader(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 
@@ -18681,7 +18726,7 @@ VMValue View_GetShader(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns View
  */
-VMValue View_IsUsingSoftwareRenderer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_IsUsingSoftwareRenderer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18694,7 +18739,7 @@ VMValue View_IsUsingSoftwareRenderer(int argCount, VMValue* args, Uint32 threadI
  * \param useSoftwareRenderer (boolean): Whether to use the software renderer.
  * \ns View
  */
-VMValue View_SetUseSoftwareRenderer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetUseSoftwareRenderer(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	int usedswrend = GET_ARG(1, GetInteger);
@@ -18708,7 +18753,7 @@ VMValue View_SetUseSoftwareRenderer(int argCount, VMValue* args, Uint32 threadID
  * \return
  * \ns View
  */
-VMValue View_SetUsePerspective(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetUsePerspective(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 	int view_index = GET_ARG(0, GetInteger);
 	int useperspec = GET_ARG(1, GetInteger);
@@ -18727,7 +18772,7 @@ VMValue View_SetUsePerspective(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns View
  */
-VMValue View_IsEnabled(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_IsEnabled(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18740,7 +18785,7 @@ VMValue View_IsEnabled(int argCount, VMValue* args, Uint32 threadID) {
  * \param enabled (boolean): Whether the camera should be enabled.
  * \ns View
  */
-VMValue View_SetEnabled(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetEnabled(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	int enabled = !!GET_ARG(1, GetInteger);
@@ -18755,7 +18800,7 @@ VMValue View_SetEnabled(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns a boolean value.
  * \ns View
  */
-VMValue View_IsVisible(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_IsVisible(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18768,7 +18813,7 @@ VMValue View_IsVisible(int argCount, VMValue* args, Uint32 threadID) {
  * \param visible (boolean): Whether the camera should be visible.
  * \ns View
  */
-VMValue View_SetVisible(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetVisible(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	int visible = GET_ARG(1, GetInteger);
@@ -18782,7 +18827,7 @@ VMValue View_SetVisible(int argCount, VMValue* args, Uint32 threadID) {
  * \return
  * \ns View
  */
-VMValue View_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetFieldOfView(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	float fovy = GET_ARG(1, GetDecimal);
@@ -18797,7 +18842,7 @@ VMValue View_SetFieldOfView(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns View
  */
-VMValue View_SetPriority(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_SetPriority(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	int view_index = GET_ARG(0, GetInteger);
 	int priority = GET_ARG(1, GetInteger);
@@ -18812,7 +18857,7 @@ VMValue View_SetPriority(int argCount, VMValue* args, Uint32 threadID) {
  * \param priority (integer):
  * \ns View
  */
-VMValue View_GetPriority(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetPriority(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int view_index = GET_ARG(0, GetInteger);
 	CHECK_VIEW_INDEX();
@@ -18824,7 +18869,7 @@ VMValue View_GetPriority(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns View
  */
-VMValue View_GetCurrent(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetCurrent(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::ViewCurrent);
 }
@@ -18834,7 +18879,7 @@ VMValue View_GetCurrent(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns View
  */
-VMValue View_GetCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(MAX_SCENE_VIEWS);
 }
@@ -18844,7 +18889,7 @@ VMValue View_GetCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns an integer value.
  * \ns View
  */
-VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_GetActiveCount(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Scene::ViewsActive);
 }
@@ -18857,7 +18902,7 @@ VMValue View_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the instance is on screen in any view.
  * \ns View
  */
-VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_CheckOnScreen(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
@@ -18892,7 +18937,7 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the position is on screen in any view.
  * \ns View
  */
-VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
+VMValue View_CheckPosOnScreen(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(4);
 
 	return INTEGER_VAL(Scene::CheckPosOnScreen(GET_ARG(0, GetDecimal),
@@ -18910,7 +18955,7 @@ VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
  * \param height (number): Window height
  * \ns Window
  */
-VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_SetSize(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	if (!Application::IsWindowResizeable()) {
 		return NULL_VAL;
@@ -18930,7 +18975,7 @@ VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
  * \param isFullscreen (boolean): Whether the window should be fullscreen.
  * \ns Window
  */
-VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_SetFullscreen(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Application::SetWindowFullscreen(!!GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -18941,7 +18986,7 @@ VMValue Window_SetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
  * \param scale (integer): Window scale.
  * \ns Window
  */
-VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_SetScale(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	int scale = GET_ARG(0, GetInteger);
 	Application::SetWindowScale(scale);
@@ -18953,7 +18998,7 @@ VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
  * \param isBorderless (boolean): Whether the window should be borderless.
  * \ns Window
  */
-VMValue Window_SetBorderless(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_SetBorderless(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Application::SetWindowBorderless(!!GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -18964,7 +19009,7 @@ VMValue Window_SetBorderless(int argCount, VMValue* args, Uint32 threadID) {
  * \param enableVsync (boolean): Whether the window should use V-Sync.
  * \ns Window
  */
-VMValue Window_SetVSync(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_SetVSync(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	Graphics::SetVSync((SDL_bool)!GET_ARG(0, GetInteger));
 	return NULL_VAL;
@@ -18976,7 +19021,7 @@ VMValue Window_SetVSync(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (number): Window y
  * \ns Window
  */
-VMValue Window_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_SetPosition(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(2);
 	SDL_SetWindowPosition(Application::Window, GET_ARG(0, GetInteger), GET_ARG(1, GetInteger));
 	return NULL_VAL;
@@ -18986,7 +19031,7 @@ VMValue Window_SetPosition(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Sets the position of the active window to the center of the display.
  * \ns Window
  */
-VMValue Window_SetPositionCentered(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_SetPositionCentered(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	SDL_SetWindowPosition(Application::Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 	return NULL_VAL;
@@ -18997,7 +19042,7 @@ VMValue Window_SetPositionCentered(int argCount, VMValue* args, Uint32 threadID)
  * \param title (string): Window title
  * \ns Window
  */
-VMValue Window_SetTitle(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_SetTitle(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
 	Application::SetWindowTitle(string);
@@ -19009,7 +19054,7 @@ VMValue Window_SetTitle(int argCount, VMValue* args, Uint32 threadID) {
  * \param shader (Shader): The shader, or `null` to unset the shader.
  * \ns Window
  */
-VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 
 	if (IS_NULL(args[0])) {
@@ -19029,7 +19074,7 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
 
 		Graphics::SetPostProcessShader(shader);
 	} catch (const std::runtime_error& error) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
+		thread->ThrowRuntimeError(false, "%s", error.what());
 	}
 
 	return NULL_VAL;
@@ -19040,7 +19085,7 @@ VMValue Window_SetPostProcessingShader(int argCount, VMValue* args, Uint32 threa
  * \return integer Returns the width of the active window.
  * \ns Window
  */
-VMValue Window_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_GetWidth(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	int v;
 	SDL_GetWindowSize(Application::Window, &v, NULL);
@@ -19052,7 +19097,7 @@ VMValue Window_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the height of the active window.
  * \ns Window
  */
-VMValue Window_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_GetHeight(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	int v;
 	SDL_GetWindowSize(Application::Window, NULL, &v);
@@ -19064,7 +19109,7 @@ VMValue Window_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the window is fullscreen.
  * \ns Window
  */
-VMValue Window_GetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_GetFullscreen(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::GetWindowFullscreen());
 }
@@ -19074,7 +19119,7 @@ VMValue Window_GetFullscreen(int argCount, VMValue* args, Uint32 threadID) {
  * \return integer Returns the scale of the window.
  * \ns Window
  */
-VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_GetScale(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::WindowScale);
 }
@@ -19084,15 +19129,15 @@ VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the window is resizeable.
  * \ns Window
  */
-VMValue Window_IsResizeable(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_IsResizeable(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::IsWindowResizeable());
 }
 // #endregion
 
 // #region XML
-static VMValue XML_FillMap(XMLNode* parent) {
-	ObjMap* map = NewMap();
+static VMValue XML_FillMap(VMThread *thread, XMLNode* parent) {
+	ObjMap* map = thread->Manager->NewMap();
 	Uint32 keyHash;
 
 	XMLAttributes* attributes = &parent->attributes;
@@ -19106,10 +19151,10 @@ static VMValue XML_FillMap(XMLNode* parent) {
 			char* textKey = StringUtils::Duplicate("#text");
 			keyHash = map->Keys->HashFunction(textKey, 5);
 			map->Keys->Put(keyHash, textKey);
-			map->Values->Put(keyHash, OBJECT_VAL(CopyString(text.Start, text.Length)));
+			map->Values->Put(keyHash, OBJECT_VAL(thread->Manager->CopyString(text.Start, text.Length)));
 		}
 		else {
-			return OBJECT_VAL(CopyString(text.Start, text.Length));
+			return OBJECT_VAL(thread->Manager->CopyString(text.Start, text.Length));
 		}
 	}
 	else {
@@ -19126,7 +19171,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
 
 				// Turn the value into an array if it isn't one
 				if (!IS_ARRAY(thisVal)) {
-					thisArray = NewArray();
+					thisArray = thread->Manager->NewArray();
 					thisArray->Values->push_back(thisVal);
 					map->Values->Put(keyHash, OBJECT_VAL(thisArray));
 				}
@@ -19134,12 +19179,12 @@ static VMValue XML_FillMap(XMLNode* parent) {
 					thisArray = AS_ARRAY(thisVal);
 				}
 
-				thisArray->Values->push_back(XML_FillMap(node));
+				thisArray->Values->push_back(XML_FillMap(thread, node));
 			}
 			else {
 				map->Keys->Put(keyHash,
 					StringUtils::Duplicate(nodeName->Start, nodeName->Length));
-				map->Values->Put(keyHash, XML_FillMap(node));
+				map->Values->Put(keyHash, XML_FillMap(thread, node));
 			}
 		}
 	}
@@ -19169,7 +19214,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
 
 		keyHash = map->Keys->HashFunction(attrName, attrNameSize - 1);
 		map->Keys->Put(keyHash, StringUtils::Duplicate(attrName));
-		map->Values->Put(keyHash, OBJECT_VAL(CopyString(value)));
+		map->Values->Put(keyHash, OBJECT_VAL(COPY_STRING(value)));
 
 		Memory::Free(value);
 	}
@@ -19185,7 +19230,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
  * \return map Returns a map value if the text can be decoded, otherwise returns `null`.
  * \ns XML
  */
-VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
+VMValue XML_Parse(int argCount, VMValue* args, VMThread* thread) {
 	CHECK_ARGCOUNT(1);
 	ObjString* string = GET_ARG(0, GetVMString);
 	if (!string) {
@@ -19193,14 +19238,14 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	VMValue mapValue = NULL_VAL;
-	if (ScriptManager::Lock()) {
+	if (thread->Manager->Lock()) {
 		char* text = StringUtils::Duplicate(string->Chars);
 
 		MemoryStream* stream = MemoryStream::New(text, strlen(text));
 		if (stream) {
 			XMLNode* xmlRoot = XMLParser::ParseFromStream(stream);
 			if (xmlRoot) {
-				mapValue = XML_FillMap(xmlRoot);
+				mapValue = XML_FillMap(thread, xmlRoot);
 
 				// XMLParser will realloc text, so the stream needs to free it.
 				stream->owns_memory = true;
@@ -19214,67 +19259,45 @@ VMValue XML_Parse(int argCount, VMValue* args, Uint32 threadID) {
 			Memory::Free(text);
 		}
 
-		ScriptManager::Unlock();
+		thread->Manager->Unlock();
 	}
 	return mapValue;
 }
 // #endregion
 
-#define String_CaseMapBind(lowerCase, upperCase) \
-	String_ToUpperCase_Map_ExtendedASCII[(Uint8)lowerCase] = (Uint8)upperCase; \
-	String_ToLowerCase_Map_ExtendedASCII[(Uint8)upperCase] = (Uint8)lowerCase;
-
-#define DEF_CONST_INT(a, b) ScriptManager::GlobalConstInteger(NULL, a, b)
-#define DEF_LINK_INT(a, b) ScriptManager::GlobalLinkInteger(NULL, a, b)
-#define DEF_CONST_DECIMAL(a, b) ScriptManager::GlobalConstDecimal(NULL, a, b)
-#define DEF_LINK_DECIMAL(a, b) ScriptManager::GlobalLinkDecimal(NULL, a, b)
+#define DEF_CONST_INT(a, b) manager->GlobalConstInteger(NULL, a, b)
+#define DEF_LINK_INT(a, b) manager->GlobalLinkInteger(NULL, a, b)
+#define DEF_CONST_DECIMAL(a, b) manager->GlobalConstDecimal(NULL, a, b)
+#define DEF_LINK_DECIMAL(a, b) manager->GlobalLinkDecimal(NULL, a, b)
 #define DEF_ENUM(a) DEF_CONST_INT(#a, a)
 #define DEF_ENUM_CLASS(a, b) DEF_CONST_INT(#a "_" #b, (int)a::b)
 #define DEF_ENUM_NAMED(a, b, c) DEF_CONST_INT(a "_" #c, (int)b::c)
-#define DEF_ENUM_IN_CLASS(a, b) ScriptManager::GlobalConstInteger(klass, a, b)
+#define DEF_ENUM_IN_CLASS(a, b) manager->GlobalConstInteger(klass, a, b)
 
-void StandardLibrary::Link() {
-	ObjClass* klass;
-
-	for (int i = 0; i < 0x100; i++) {
-		String_ToUpperCase_Map_ExtendedASCII[i] = (Uint8)i;
-		String_ToLowerCase_Map_ExtendedASCII[i] = (Uint8)i;
-	}
-	for (int i = 'a'; i <= 'z'; i++) {
-		int upperCase = i + ('A' - 'a');
-		String_ToUpperCase_Map_ExtendedASCII[i] = (Uint8)upperCase;
-		String_ToLowerCase_Map_ExtendedASCII[upperCase] = (Uint8)i;
-	}
-	String_CaseMapBind(L'ç', L'Ç');
-	String_CaseMapBind(L'ü', L'Ü');
-	String_CaseMapBind(L'á', L'Ç');
-	String_CaseMapBind(L'é', L'É');
-	String_CaseMapBind(L'ç', L'Ç');
-	String_CaseMapBind(L'ç', L'Ç');
-	String_CaseMapBind(L'ç', L'Ç');
-	String_CaseMapBind(L'ç', L'Ç');
-	String_CaseMapBind(L'ç', L'Ç');
-
+void StandardLibrary::Init() {
 	textAlign = 0.0f;
 	textBaseline = 0.0f;
 	textAscent = 1.25f;
 	textAdvance = 1.0f;
+}
+void StandardLibrary::Link(ScriptManager* manager) {
+	ObjClass* klass;
 
 #define INIT_CLASS(className) \
-	klass = NewClass(#className); \
-	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
+	klass = manager->NewClass(#className); \
+	manager->Constants->Put(klass->Hash, OBJECT_VAL(klass));
 #define DEF_NATIVE(className, funcName) \
-	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
+	manager->DefineNative(klass, #funcName, className##_##funcName)
 
 #define INIT_NAMESPACE(nsName) \
-	ObjNamespace* ns_##nsName = NewNamespace(#nsName); \
-	ScriptManager::Constants->Put(#nsName, OBJECT_VAL(ns_##nsName)); \
-	ScriptManager::AllNamespaces.push_back(ns_##nsName)
+	ObjNamespace* ns_##nsName = manager->NewNamespace(#nsName); \
+	manager->Constants->Put(#nsName, OBJECT_VAL(ns_##nsName)); \
+	manager->AllNamespaces.push_back(ns_##nsName)
 #define INIT_NAMESPACED_CLASS(nsName, className) \
-	klass = NewClass(#className); \
+	klass = manager->NewClass(#className); \
 	ns_##nsName->Fields->Put(klass->Hash, OBJECT_VAL(klass))
 #define DEF_NAMESPACED_NATIVE(className, funcName) \
-	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
+	manager->DefineNative(klass, #funcName, className##_##funcName)
 
 	/***
     * \namespace RSDK

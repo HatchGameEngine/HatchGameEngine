@@ -40,7 +40,7 @@ extern "C" {
 // This function returns an ObjString containing the fully-formatted string.
 
 NPF_VISIBILITY ObjString*
-npf_vpprintf(char const* format, int argCount, VMValue* args, Uint32 threadID);
+npf_vpprintf(char const* format, int argCount, VMValue* args, VMThread* thread);
 
 #ifdef __cplusplus
 }
@@ -660,7 +660,7 @@ typedef struct npf_cnt_putc_ctx {
 	VMValue* args;
 	int argcount;
 	int curarg;
-	Uint32 thread;
+	VMThread* thread;
 	PrintBuffer buffer;
 } npf_cnt_putc_ctx_t;
 
@@ -674,8 +674,8 @@ static void npf_putc_cnt(char c, void* ctx) {
 		npf_putc_cnt((char)(VAL), &pc_cnt); \
 	} while (0)
 
-#define THROW_TOO_FEW_FMT_ERR(threadID) \
-	ScriptManager::Threads[threadID].ThrowRuntimeError( \
+#define THROW_TOO_FEW_FMT_ERR(thread) \
+	thread->ThrowRuntimeError( \
 		false, "Too few arguments for format string!")
 
 ObjString* npf_getarg_str(void* ctx) {
@@ -684,11 +684,12 @@ ObjString* npf_getarg_str(void* ctx) {
 	pc_cnt->curarg++;
 
 	ObjString* result = NULL;
+	VMThread* thread = pc_cnt->thread;
 	if (index < pc_cnt->argcount) {
-		result = ScriptManager::GetVMString(pc_cnt->args, index, pc_cnt->thread);
+		result = pc_cnt->thread->Manager->GetVMString(pc_cnt->args, index, thread);
 	}
 	else {
-		THROW_TOO_FEW_FMT_ERR(pc_cnt->thread);
+		THROW_TOO_FEW_FMT_ERR(thread);
 	}
 
 	return result;
@@ -700,11 +701,12 @@ int npf_getarg_int(void* ctx) {
 	pc_cnt->curarg++;
 
 	int result = 0;
+	VMThread* thread = pc_cnt->thread;
 	if (index < pc_cnt->argcount) {
-		result = ScriptManager::GetInteger(pc_cnt->args, index, pc_cnt->thread);
+		result = pc_cnt->thread->Manager->GetInteger(pc_cnt->args, index, thread);
 	}
 	else {
-		THROW_TOO_FEW_FMT_ERR(pc_cnt->thread);
+		THROW_TOO_FEW_FMT_ERR(thread);
 	}
 
 	return result;
@@ -716,11 +718,12 @@ float npf_getarg_float(void* ctx) {
 	pc_cnt->curarg++;
 
 	float result = 0.0f;
+	VMThread* thread = pc_cnt->thread;
 	if (index < pc_cnt->argcount) {
-		result = ScriptManager::GetDecimal(pc_cnt->args, index, pc_cnt->thread);
+		result = pc_cnt->thread->Manager->GetDecimal(pc_cnt->args, index, thread);
 	}
 	else {
-		THROW_TOO_FEW_FMT_ERR(pc_cnt->thread);
+		THROW_TOO_FEW_FMT_ERR(thread);
 	}
 
 	return result;
@@ -728,14 +731,14 @@ float npf_getarg_float(void* ctx) {
 
 #undef THROW_TOO_FEW_FMT_ERR
 
-ObjString* npf_vpprintf(char const* format, int argCount, VMValue* args, Uint32 threadID) {
+ObjString* npf_vpprintf(char const* format, int argCount, VMValue* args, VMThread* thread) {
 	npf_format_spec_t fs;
 	char const* cur = format;
 	npf_cnt_putc_ctx_t pc_cnt;
 	pc_cnt.args = args;
 	pc_cnt.curarg = 0;
 	pc_cnt.argcount = argCount;
-	pc_cnt.thread = threadID;
+	pc_cnt.thread = thread;
 
 	char* textBuffer = (char*)malloc(512);
 	pc_cnt.buffer.Buffer = &textBuffer;
@@ -1026,7 +1029,7 @@ ObjString* npf_vpprintf(char const* format, int argCount, VMValue* args, Uint32 
 #endif
 	}
 
-	ObjString* result = CopyString(textBuffer, pc_cnt.buffer.WriteIndex);
+	ObjString* result = pc_cnt.thread->Manager->CopyString(textBuffer, pc_cnt.buffer.WriteIndex);
 
 	free(textBuffer);
 

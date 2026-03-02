@@ -18,8 +18,9 @@ void DisposeSubsystems();
 void StandaloneExit(std::string error);
 
 #ifdef HSL_LIBRARY
-void SetVMRuntimeErrorHandler(hsl_RuntimeErrorHandler handler);
-hsl_ErrorResponse HandleVMRuntimeError(hsl_Result error, std::string text);
+class ScriptManager;
+
+hsl_ErrorResponse HandleVMRuntimeError(ScriptManager* manager, hsl_Result error, std::string text);
 #endif
 
 bool ShouldShowGarbageCollectionOutput();

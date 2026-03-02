@@ -3,19 +3,18 @@
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
-ObjClass* StringImpl::Class = nullptr;
-
-void StringImpl::Init() {
-	Class = NewClass(CLASS_STRING);
+StringImpl::StringImpl(ScriptManager* manager) {
+	Manager = manager;
+	Class = Manager->NewClass(CLASS_STRING);
 #ifdef HSL_VM
 	Class->ElementGet = VM_ElementGet;
 #endif
 
-	TypeImpl::RegisterClass(Class);
+	TypeImpl::RegisterClass(manager, Class);
 }
 
 Obj* StringImpl::New(char* chars, size_t length) {
-	ObjString* string = (ObjString*)AllocateObject(sizeof(ObjString), OBJ_STRING);
+	ObjString* string = (ObjString*)Manager->AllocateObject(sizeof(ObjString), OBJ_STRING);
 	Memory::Track(string, "NewString");
 	string->Object.Class = Class;
 	string->Length = length;
@@ -30,7 +29,7 @@ void StringImpl::Dispose(Obj* object) {
 }
 
 #ifdef HSL_VM
-bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* result, Uint32 threadID) {
+bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* result, VMThread* thread) {
 	ObjString* string = (ObjString*)object;
 
 	if (!IS_INTEGER(at)) {
@@ -57,7 +56,7 @@ bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* result, Uint32 
 	}
 
 	if (result) {
-		*result = OBJECT_VAL(CopyString(&string->Chars[index], 1));
+		*result = OBJECT_VAL(thread->Manager->CopyString(&string->Chars[index], 1));
 	}
 	return true;
 }

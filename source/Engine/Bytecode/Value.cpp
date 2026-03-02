@@ -40,7 +40,7 @@ const char* Value::GetObjectTypeName(Uint32 type) {
 	return "unknown object type";
 }
 
-const char* Value::GetObjectTypeName(ObjClass* klass) {
+const char* Value::GetClassObjectName(ObjClass* klass) {
 	const char* printableName = TypeImpl::GetPrintableName(klass);
 	if (printableName != nullptr) {
 		return printableName;
@@ -49,6 +49,9 @@ const char* Value::GetObjectTypeName(ObjClass* klass) {
 }
 
 const char* Value::GetObjectTypeName(VMValue value) {
+	if (!IS_OBJECT(value)) {
+		return nullptr;
+	}
 	Obj* object = AS_OBJECT(value);
 	const char* printableName = TypeImpl::GetPrintableName(object->Class);
 	if (printableName != nullptr) {
@@ -99,21 +102,6 @@ std::string Value::ToString(VMValue v) {
 	free(buffer);
 	return result;
 }
-VMValue Value::CastAsString(VMValue v) {
-	if (IS_STRING(v)) {
-		return v;
-	}
-
-	char* buffer = (char*)malloc(512);
-	PrintBuffer buffer_info;
-	buffer_info.Buffer = &buffer;
-	buffer_info.WriteIndex = 0;
-	buffer_info.BufferSize = 512;
-	ValuePrinter::Print(&buffer_info, v, false);
-	v = OBJECT_VAL(CopyString(buffer, buffer_info.WriteIndex));
-	free(buffer);
-	return v;
-}
 VMValue Value::CastAsInteger(VMValue v) {
 	float a;
 	switch (v.Type) {
@@ -147,18 +135,6 @@ VMValue Value::CastAsDecimal(VMValue v) {
 		break;
 	}
 	return NULL_VAL;
-}
-VMValue Value::Concatenate(VMValue va, VMValue vb) {
-	ObjString* a = AS_STRING(va);
-	ObjString* b = AS_STRING(vb);
-
-	size_t length = a->Length + b->Length;
-	ObjString* result = AllocString(length);
-
-	memcpy(result->Chars, a->Chars, a->Length);
-	memcpy(result->Chars + a->Length, b->Chars, b->Length);
-	result->Chars[length] = 0;
-	return OBJECT_VAL(result);
 }
 
 bool Value::SortaEqual(VMValue a, VMValue b) {
@@ -254,35 +230,4 @@ VMValue Value::Delink(VMValue val) {
 	}
 
 	return val;
-}
-
-VMValue Value::FromProperty(Property property) {
-	switch (property.Type) {
-	case PROPERTY_NULL:
-		return NULL_VAL;
-	case PROPERTY_INTEGER:
-		return INTEGER_VAL(property.as.Integer);
-	case PROPERTY_DECIMAL:
-		return DECIMAL_VAL(property.as.Decimal);
-	case PROPERTY_BOOL:
-		return INTEGER_VAL(property.as.Bool ? 1 : 0);
-	case PROPERTY_STRING:
-		return OBJECT_VAL(CopyString(property.as.String));
-	case PROPERTY_ARRAY: {
-		if (ScriptManager::Lock()) {
-			ObjArray* array = NewArray();
-			for (size_t i = 0; i < property.as.Array.Count; i++) {
-				Property* data = (Property*)property.as.Array.Data;
-				array->Values->push_back(Value::FromProperty(data[i]));
-			}
-			ScriptManager::Unlock();
-			return OBJECT_VAL(array);
-		}
-		return NULL_VAL;
-	}
-	default:
-		break;
-	}
-
-	return NULL_VAL;
 }

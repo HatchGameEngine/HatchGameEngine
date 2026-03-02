@@ -167,7 +167,7 @@ void VMThreadDebugger::Enter() {
 	DebugFrame = Thread->FrameCount - 1;
 
 	CodeDebugger = new BytecodeDebugger;
-	CodeDebugger->Tokens = ScriptManager::Tokens;
+	CodeDebugger->Tokens = Thread->Manager->Tokens;
 
 	Thread->AttachedDebuggerCount++;
 
@@ -226,8 +226,8 @@ void VMThreadDebugger::Exit() {
 		delete CodeDebugger;
 	}
 
-	ScriptManager::RemoveTemporaryModules();
-	ScriptManager::RemoveSourceFile("repl");
+	Thread->Manager->RemoveTemporaryModules();
+	Thread->Manager->RemoveSourceFile("repl");
 
 	if (Thread) {
 		Thread->AttachedDebuggerCount--;
@@ -299,7 +299,7 @@ bool VMThreadDebugger::Cmd_Backtrace(std::vector<char*> args, const char* fullLi
 			line = fr2->Function->Chunk.Lines[fr2->IPLast - fr2->IPStart] & 0xFFFF;
 		}
 
-		std::string functionName = VMThread::GetFunctionName(function);
+		std::string functionName = Thread->GetFunctionName(function);
 		printf("  %c (%d) %s", DebugFrame == i ? '>' : ' ', (int)i, functionName.c_str());
 
 		Thread->PrintFunctionArgs(frame, nullptr);
@@ -671,8 +671,8 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 		}
 	}
 
-	if (value.Type == VAL_ERROR && !ScriptManager::Constants->GetIfExists(varName, &value) &&
-		!ScriptManager::Globals->GetIfExists(varName, &value)) {
+	if (value.Type == VAL_ERROR && !Thread->Manager->Constants->GetIfExists(varName, &value) &&
+		!Thread->Manager->Globals->GetIfExists(varName, &value)) {
 		printf("No variable named \"%s\"\n", varName);
 		return false;
 	}
@@ -950,7 +950,7 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 	}
 	printf("\n");
 
-	ScriptManager::RequestGarbageCollection(false);
+	Thread->Manager->RequestGarbageCollection(false);
 
 	return true;
 #else
@@ -987,26 +987,26 @@ ObjFunction* VMThreadDebugger::GetFunctionForBreakpoint(std::vector<char*> args,
 			}
 		}
 
-		if (ScriptManager::ScriptExists(arg)) {
-			if (!ScriptManager::IsScriptLoaded(arg)) {
+		if (Thread->Manager->ScriptExists(arg)) {
+			if (!Thread->Manager->IsScriptLoaded(arg)) {
 				printf("Script \"%s\" is not loaded\n", arg);
 				return nullptr;
 			}
 
-			ObjModule* module = ScriptManager::GetScriptModule(arg);
+			ObjModule* module = Thread->Manager->GetScriptModule(arg);
 			if (!module) {
 				printf("Script \"%s\" is not loaded\n", arg);
 				return nullptr;
 			}
 
-			function = ScriptManager::GetFunctionAtScriptLine(module, lineNum);
+			function = Thread->Manager->GetFunctionAtScriptLine(module, lineNum);
 			if (!function) {
 				printf("Cannot set breakpoint at line %d\n", lineNum);
 				return nullptr;
 			}
 		}
 		else {
-			VMValue callable = ScriptManager::FindFunction(arg);
+			VMValue callable = Thread->Manager->FindFunction(arg);
 
 			if (IS_NULL(callable)) {
 				printf("No function named \"%s\"\n", arg);
@@ -1080,7 +1080,7 @@ void VMThreadDebugger::PrintCallFrameSourceLine(CallFrame* frame,
 	const char* sourceFilename = GetModuleName(function->Module);
 
 	if (showFunction) {
-		std::string functionName = VMThread::GetFunctionName(function);
+		std::string functionName = Thread->GetFunctionName(function);
 
 		printf("%s", functionName.c_str());
 
@@ -1135,7 +1135,7 @@ bool VMThreadDebugger::PrintSourceLineAndPosition(const char* sourceFilename, in
 	}
 
 	// TODO: This doesn't watch for changes in the source file
-	char* sourceLine = ScriptManager::GetSourceCodeLine(filePath.c_str(), line);
+	char* sourceLine = Thread->Manager->GetSourceCodeLine(filePath.c_str(), line);
 	if (!sourceLine) {
 		return false;
 	}

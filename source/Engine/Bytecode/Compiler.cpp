@@ -1313,7 +1313,7 @@ ExprContext Compiler::NamedVariable(Token name, Local& currentLocal, ExprContext
 				currentLocal.Index = arg;
 			}
 		}
-		else if (emitValue && StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
+		else if (emitValue && StandardConstants && StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
 			EmitConstant(value);
 			return EXPRCONTEXT_VALUE;
 		}
@@ -1694,7 +1694,7 @@ ExprContext Compiler::GetDecimal(ExprContext context) {
 	return EXPRCONTEXT_VALUE;
 }
 ObjString* Compiler::MakeString(Token token) {
-	ObjString* string = CopyString(token.Start + 1, token.Length - 2);
+	ObjString* string = Manager->CopyString(token.Start + 1, token.Length - 2);
 
 	// Escape the string
 	char* dst = string->Chars;
@@ -2942,7 +2942,7 @@ int Compiler::GetFunction(int type, string className) {
 
 	char* name = StringUtils::Create(parser.Previous.Start, parser.Previous.Length);
 
-	Compiler* compiler = new Compiler;
+	Compiler* compiler = new Compiler(Manager);
 	compiler->CurrentSettings = CurrentSettings;
 	compiler->ClassName = className;
 	compiler->Type = type;
@@ -3906,9 +3906,9 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		// Numeric Operations
 		case OP_ADD: {
 			if (IS_STRING(a) || IS_STRING(b)) {
-				VMValue str_b = Value::CastAsString(b);
-				VMValue str_a = Value::CastAsString(a);
-				out = Value::Concatenate(str_a, str_b);
+				VMValue str_b = Manager->CastValueAsString(b);
+				VMValue str_a = Manager->CastValueAsString(a);
+				out = Manager->ConcatenateValues(str_a, str_b);
 				break;
 			}
 			else if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b)) {
@@ -4248,14 +4248,14 @@ void Compiler::Init() {
 	Application::Settings->GetBool("dev", "debugCompiler", &Settings.PrintChunks);
 #endif
 }
-void Compiler::GetStandardConstants() {
+void Compiler::GetStandardConstants(ScriptManager* manager) {
 	if (Compiler::StandardConstants == NULL) {
 		Compiler::StandardConstants =
-			new HashMap<VMValue>(NULL, ScriptManager::Constants->Count());
+			new HashMap<VMValue>(NULL, manager->Constants->Count());
 	}
 	Compiler::StandardConstants->Clear();
 
-	ScriptManager::Constants->ForAll([](Uint32 hash, VMValue val) {
+	manager->Constants->ForAll([](Uint32 hash, VMValue val) {
 		if (IS_NUMBER(val) || OBJECT_TYPE(val) == OBJ_STRING) {
 			Compiler::StandardConstants->Put(hash, val);
 		}
@@ -4267,7 +4267,7 @@ void Compiler::PrepareCompiling() {
 	}
 }
 void Compiler::Initialize(char* name) {
-	Function = NewFunction();
+	Function = Manager->NewFunction();
 	Function->Name = name;
 
 	UnusedVariables = new vector<Local>();
@@ -4547,7 +4547,6 @@ void Compiler::AddBreakpointsToChunk(Chunk* chunk) {
 	}
 }
 
-Compiler::~Compiler() {}
 void Compiler::FinishCompiling() {
 	Compiler::Functions.clear();
 	Compiler::ModuleLocals.clear();
@@ -4567,4 +4566,8 @@ void Compiler::Dispose() {
 		Memory::Free(Rules);
 		Rules = NULL;
 	}
+}
+
+Compiler::Compiler(ScriptManager* manager) {
+	Manager = manager;
 }

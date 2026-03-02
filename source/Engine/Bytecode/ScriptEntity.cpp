@@ -1,8 +1,10 @@
 #include <Engine/Application.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/Value.h>
+#include <Engine/Bytecode/VMThread.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Scene.h>
 
@@ -18,25 +20,27 @@ Uint32 ScriptEntity::FixedUpdateLateHash = 0;
 ENTITY_FIELDS_LIST
 #undef ENTITY_FIELD
 
-Entity* ScriptEntity::Spawn() {
+Entity* ScriptEntity::Spawn(void* managerPtr) {
 	throw std::runtime_error("Cannot directly spawn ScriptEntity!");
 }
-Entity* ScriptEntity::SpawnNamed(const char* objectName) {
+Entity* ScriptEntity::SpawnNamed(void* managerPtr, const char* objectName) {
+	ScriptManager* manager = (ScriptManager*)managerPtr;
+
 	// If this class is implemented natively, we can use Entity::SpawnNamed.
 	// This works because all native entities descend from ScriptEntity.
 	// Otherwise, this must be a script-side class, so we spawn a regular ScriptEntity.
-	Entity* object = Entity::SpawnNamed(objectName);
+	Entity* object = Entity::SpawnNamed(manager, objectName);
 	if (object) {
 		return object;
 	}
 
-	if (!ScriptManager::IsClassLoaded(objectName)) {
+	if (!manager->IsClassLoaded(objectName)) {
 		Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
 		return nullptr;
 	}
 
 	ScriptEntity* scriptEntity = new ScriptEntity;
-	if (!ScriptEntity::SpawnForClass(scriptEntity, objectName)) {
+	if (!ScriptEntity::SpawnForClass(manager, scriptEntity, objectName)) {
 		Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
 		delete scriptEntity;
 		return nullptr;
@@ -44,13 +48,15 @@ Entity* ScriptEntity::SpawnNamed(const char* objectName) {
 
 	return (Entity*)scriptEntity;
 }
-bool ScriptEntity::SpawnForClass(ScriptEntity* entity, const char* objectName) {
-	ObjClass* klass = ScriptManager::GetObjectClass(objectName);
+bool ScriptEntity::SpawnForClass(void* managerPtr, ScriptEntity* entity, const char* objectName) {
+	ScriptManager* manager = (ScriptManager*)managerPtr;
+
+	ObjClass* klass = manager->GetObjectClass(objectName);
 	if (!klass) {
 		return false;
 	}
 
-	entity->Link(NewEntity(klass));
+	entity->Link(manager, manager->NewEntity(klass));
 
 	return true;
 }
@@ -63,7 +69,8 @@ void ScriptEntity::Init() {
 	SetUseFixedTimestep(Application::UseFixedTimestep);
 }
 
-void ScriptEntity::Link(ObjEntity* entity) {
+void ScriptEntity::Link(ScriptManager* manager, ObjEntity* entity) {
+	Manager = manager;
 	Instance = entity;
 	Instance->EntityPtr = this;
 
@@ -752,10 +759,10 @@ void ScriptEntity::LinkFields() {
 // This copies Entity's methods into the instance's fields.
 // If there is a method in the class with the same name, it's not copied.
 void ScriptEntity::AddEntityClassMethods() {
-	HashMap<VMValue>* srcMethods = EntityImpl::Class->Methods;
+	HashMap<VMValue>* srcMethods = Manager->ImplEntity->Class->Methods;
 
 	srcMethods->WithAll([this](Uint32 methodHash, VMValue value) -> void {
-		if (!ScriptManager::ClassHasMethod(Instance->Object.Class, methodHash)) {
+		if (!Manager->ClassHasMethod(Instance->Object.Class, methodHash)) {
 			Instance->InstanceObj.Fields->Put(methodHash, value);
 		}
 	});
@@ -784,7 +791,7 @@ bool ScriptEntity::GetCallableValue(Uint32 hash, VMValue& value) {
 	}
 
 	ObjClass* klass = Instance->Object.Class;
-	if (ScriptManager::GetClassMethod((Obj*)Instance, klass, hash, &result)) {
+	if (Manager->GetClassMethod((Obj*)Instance, klass, hash, &result)) {
 		value = result;
 		return true;
 	}
@@ -804,7 +811,7 @@ bool ScriptEntity::RunFunction(Uint32 hash) {
 		return false;
 	}
 
-	VMThread* thread = ScriptManager::Threads + 0;
+	VMThread* thread = &Manager->Threads[0];
 	VMValue* stackTop = thread->StackTop;
 
 	thread->Push(OBJECT_VAL(Instance));
@@ -820,7 +827,7 @@ bool ScriptEntity::RunCreateFunction(VMValue flag) {
 		return false;
 	}
 
-	VMThread* thread = ScriptManager::Threads + 0;
+	VMThread* thread = &Manager->Threads[0];
 	VMValue* stackTop = thread->StackTop;
 	thread->Push(OBJECT_VAL(Instance));
 
@@ -842,7 +849,7 @@ bool ScriptEntity::RunInitializer() {
 		return false;
 	}
 
-	VMThread* thread = ScriptManager::Threads + 0;
+	VMThread* thread = &Manager->Threads[0];
 
 	VMValue* stackTop = thread->StackTop;
 
@@ -857,15 +864,15 @@ bool ScriptEntity::RunInitializer() {
 }
 
 bool ScriptEntity::ChangeClass(const char* className) {
-	if (!ScriptManager::ClassExists(className)) {
+	if (!Manager->ClassExists(className)) {
 		return false;
 	}
 
-	if (!ScriptManager::LoadObjectClass(&ScriptManager::Threads[0], className)) {
+	if (!Manager->LoadObjectClass(&Manager->Threads[0], className)) {
 		return false;
 	}
 
-	ObjClass* newClass = ScriptManager::GetObjectClass(className);
+	ObjClass* newClass = Manager->GetObjectClass(className);
 	if (!newClass) {
 		return false;
 	}
@@ -939,7 +946,9 @@ void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 }
 
 void ScriptEntity::MarkForGarbageCollection() {
-	GarbageCollector::GrayHashMap(Instance->InstanceObj.Fields);
+	if (Manager->GC) {
+		Manager->GC->GrayHashMap(Instance->InstanceObj.Fields);
+	}
 }
 
 // Events called from C++
@@ -1048,7 +1057,7 @@ void ScriptEntity::SetAnimation(int animation, int frame) {
 		return;
 	}
 
-	VMThread* thread = ScriptManager::Threads + 0;
+	VMThread* thread = &Manager->Threads[0];
 	VMValue* stackTop = thread->StackTop;
 	thread->Push(OBJECT_VAL(Instance));
 	thread->Push(INTEGER_VAL(animation));
@@ -1063,7 +1072,7 @@ void ScriptEntity::ResetAnimation(int animation, int frame) {
 		return;
 	}
 
-	VMThread* thread = ScriptManager::Threads + 0;
+	VMThread* thread = &Manager->Threads[0];
 	VMValue* stackTop = thread->StackTop;
 	thread->Push(OBJECT_VAL(Instance));
 	thread->Push(INTEGER_VAL(animation));

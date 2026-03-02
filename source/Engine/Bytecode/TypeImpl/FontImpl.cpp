@@ -14,42 +14,42 @@
 * \desc Representation of a TrueType font.
 */
 
-ObjClass* FontImpl::Class = nullptr;
-
-void FontImpl::Init() {
-	Class = NewClass(CLASS_FONT);
+FontImpl::FontImpl(ScriptManager* manager) {
+	Manager = manager;
+	Class = Manager->NewClass(CLASS_FONT);
 	Class->NewFn = New;
-	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
+	Class->Initializer = OBJECT_VAL(Manager->NewNative(VM_Initializer));
 
-	ScriptManager::DefineNative(Class, "GetPixelsPerUnit", VM_GetPixelsPerUnit);
-	ScriptManager::DefineNative(Class, "GetAscent", VM_GetAscent);
-	ScriptManager::DefineNative(Class, "GetDescent", VM_GetDescent);
-	ScriptManager::DefineNative(Class, "GetLeading", VM_GetLeading);
-	ScriptManager::DefineNative(Class, "GetSpaceWidth", VM_GetSpaceWidth);
-	ScriptManager::DefineNative(Class, "GetOversampling", VM_GetOversampling);
-	ScriptManager::DefineNative(
+	Manager->DefineNative(Class, "GetPixelsPerUnit", VM_GetPixelsPerUnit);
+	Manager->DefineNative(Class, "GetAscent", VM_GetAscent);
+	Manager->DefineNative(Class, "GetDescent", VM_GetDescent);
+	Manager->DefineNative(Class, "GetLeading", VM_GetLeading);
+	Manager->DefineNative(Class, "GetSpaceWidth", VM_GetSpaceWidth);
+	Manager->DefineNative(Class, "GetOversampling", VM_GetOversampling);
+	Manager->DefineNative(
 		Class, "GetPixelCoverageThreshold", VM_GetPixelCoverageThreshold);
-	ScriptManager::DefineNative(Class, "GetGlyphAdvance", VM_GetGlyphAdvance);
-	ScriptManager::DefineNative(Class, "IsAntialiasingEnabled", VM_IsAntialiasingEnabled);
-	ScriptManager::DefineNative(Class, "HasGlyph", VM_HasGlyph);
-	ScriptManager::DefineNative(Class, "SetPixelsPerUnit", VM_SetPixelsPerUnit);
-	ScriptManager::DefineNative(Class, "SetAscent", VM_SetAscent);
-	ScriptManager::DefineNative(Class, "SetDescent", VM_SetDescent);
-	ScriptManager::DefineNative(Class, "SetLeading", VM_SetLeading);
-	ScriptManager::DefineNative(Class, "SetSpaceWidth", VM_SetSpaceWidth);
-	ScriptManager::DefineNative(Class, "SetOversampling", VM_SetOversampling);
-	ScriptManager::DefineNative(
+	Manager->DefineNative(Class, "GetGlyphAdvance", VM_GetGlyphAdvance);
+	Manager->DefineNative(Class, "IsAntialiasingEnabled", VM_IsAntialiasingEnabled);
+	Manager->DefineNative(Class, "HasGlyph", VM_HasGlyph);
+	Manager->DefineNative(Class, "SetPixelsPerUnit", VM_SetPixelsPerUnit);
+	Manager->DefineNative(Class, "SetAscent", VM_SetAscent);
+	Manager->DefineNative(Class, "SetDescent", VM_SetDescent);
+	Manager->DefineNative(Class, "SetLeading", VM_SetLeading);
+	Manager->DefineNative(Class, "SetSpaceWidth", VM_SetSpaceWidth);
+	Manager->DefineNative(Class, "SetOversampling", VM_SetOversampling);
+	Manager->DefineNative(
 		Class, "SetPixelCoverageThreshold", VM_SetPixelCoverageThreshold);
-	ScriptManager::DefineNative(Class, "SetAntialiasing", VM_SetAntialiasing);
+	Manager->DefineNative(Class, "SetAntialiasing", VM_SetAntialiasing);
 
-	TypeImpl::RegisterClass(Class);
-	TypeImpl::ExposeClass(CLASS_FONT, Class);
+	TypeImpl::RegisterClass(manager, Class);
+	TypeImpl::ExposeClass(manager, CLASS_FONT, Class);
+
 	TypeImpl::DefinePrintableName(Class, "font");
 }
 
-#define GET_ARG(argIndex, argFunction) (ScriptManager::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (thread->Manager->argFunction(args, argIndex, thread))
 
-Stream* GetFontStream(VMValue value, bool& closeStream, Uint32 threadID) {
+Stream* GetFontStream(VMValue value, bool& closeStream, VMThread* thread) {
 	closeStream = false;
 
 	if (IS_STREAM(value)) {
@@ -70,17 +70,17 @@ Stream* GetFontStream(VMValue value, bool& closeStream, Uint32 threadID) {
 	else {
 		char* filename = nullptr;
 
-		if (ScriptManager::Lock()) {
+		if (thread->Manager->Lock()) {
 			if (IS_STRING(value)) {
 				filename = AS_CSTRING(value);
 			}
 			else {
-				ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+				thread->ThrowRuntimeError(false,
 					"Expected argument to be of type %s instead of %s.",
 					GetObjectTypeString(OBJ_STRING),
 					GetValueTypeString(value));
 			}
-			ScriptManager::Unlock();
+			thread->Manager->Unlock();
 		}
 
 		if (!filename) {
@@ -150,24 +150,24 @@ void GetDefaultFonts(std::vector<Stream*>& streamList, std::vector<bool>& closeS
  * \paramOpt font (array): The list of fonts. If this argument is not given, it will use font the application was built with, if one is present.
  * \ns Font
  */
-Obj* FontImpl::New() {
+Obj* FontImpl::New(VMThread* thread) {
 	Font* font = new Font();
-	ObjFont* obj = New((void*)font);
+	ObjFont* obj = thread->Manager->ImplFont->New((void*)font);
 	return (Obj*)obj;
 }
 ObjFont* FontImpl::New(void* fontPtr) {
-	ObjFont* font = (ObjFont*)NewNativeInstance(sizeof(ObjFont));
+	ObjFont* font = (ObjFont*)Manager->NewNativeInstance(sizeof(ObjFont));
 	Memory::Track(font, "NewFont");
 	font->Object.Class = Class;
 	font->InstanceObj.Destructor = Dispose;
 	font->FontPtr = (Font*)fontPtr;
 	return font;
 }
-VMValue FontImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
+VMValue FontImpl::VM_Initializer(int argCount, VMValue* args, VMThread* thread) {
 	ObjFont* objFont = AS_FONT(args[0]);
 	Font* font = objFont->FontPtr;
 
-	ScriptManager::CheckAtLeastArgCount(argCount, 1);
+	ScriptManager::CheckAtLeastArgCount(argCount, 1, thread);
 
 	std::vector<Stream*> streamList;
 	std::vector<bool> closeStream;
@@ -182,7 +182,7 @@ VMValue FontImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 #define GET_STREAM(value) \
 	try { \
 		bool close; \
-		Stream* stream = GetFontStream(value, close, threadID); \
+		Stream* stream = GetFontStream(value, close, thread); \
 		streamList.push_back(stream); \
 		closeStream.push_back(close); \
 	} catch (const std::runtime_error& error) { \
@@ -238,8 +238,8 @@ void FontImpl::Dispose(Obj* object) {
  * \return decimal Returns a decimal value.
  * \ns Font
  */
-VMValue FontImpl::VM_GetPixelsPerUnit(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue FontImpl::VM_GetPixelsPerUnit(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	if (objFont == nullptr) {
@@ -256,8 +256,8 @@ VMValue FontImpl::VM_GetPixelsPerUnit(int argCount, VMValue* args, Uint32 thread
  * \return decimal Returns a decimal value.
  * \ns Font
  */
-VMValue FontImpl::VM_GetAscent(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue FontImpl::VM_GetAscent(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	if (objFont == nullptr) {
@@ -274,8 +274,8 @@ VMValue FontImpl::VM_GetAscent(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Font
  */
-VMValue FontImpl::VM_GetDescent(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue FontImpl::VM_GetDescent(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	if (objFont == nullptr) {
@@ -292,8 +292,8 @@ VMValue FontImpl::VM_GetDescent(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Font
  */
-VMValue FontImpl::VM_GetLeading(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue FontImpl::VM_GetLeading(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	if (objFont == nullptr) {
@@ -310,8 +310,8 @@ VMValue FontImpl::VM_GetLeading(int argCount, VMValue* args, Uint32 threadID) {
  * \return decimal Returns a decimal value.
  * \ns Font
  */
-VMValue FontImpl::VM_GetSpaceWidth(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue FontImpl::VM_GetSpaceWidth(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	if (objFont == nullptr) {
@@ -328,8 +328,8 @@ VMValue FontImpl::VM_GetSpaceWidth(int argCount, VMValue* args, Uint32 threadID)
  * \return integer Returns an integer value.
  * \ns Font
  */
-VMValue FontImpl::VM_GetOversampling(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue FontImpl::VM_GetOversampling(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	if (objFont == nullptr) {
@@ -346,8 +346,8 @@ VMValue FontImpl::VM_GetOversampling(int argCount, VMValue* args, Uint32 threadI
  * \return decimal Returns a decimal value.
  * \ns Font
  */
-VMValue FontImpl::VM_GetPixelCoverageThreshold(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue FontImpl::VM_GetPixelCoverageThreshold(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	if (objFont == nullptr) {
@@ -365,8 +365,8 @@ VMValue FontImpl::VM_GetPixelCoverageThreshold(int argCount, VMValue* args, Uint
  * \return decimal Returns a decimal value, or `null` if no glyph representing the given code point exists in the font.
  * \ns Font
  */
-VMValue FontImpl::VM_GetGlyphAdvance(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue FontImpl::VM_GetGlyphAdvance(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	int codepoint = GET_ARG(1, GetInteger);
@@ -392,8 +392,8 @@ VMValue FontImpl::VM_GetGlyphAdvance(int argCount, VMValue* args, Uint32 threadI
  * \return boolean Returns whether anti-aliasing is enabled.
  * \ns Font
  */
-VMValue FontImpl::VM_IsAntialiasingEnabled(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue FontImpl::VM_IsAntialiasingEnabled(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	if (objFont == nullptr) {
@@ -411,8 +411,8 @@ VMValue FontImpl::VM_IsAntialiasingEnabled(int argCount, VMValue* args, Uint32 t
  * \return boolean Returns whether there is a glyph for the given code point.
  * \ns Font
  */
-VMValue FontImpl::VM_HasGlyph(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue FontImpl::VM_HasGlyph(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	int codepoint = GET_ARG(1, GetInteger);
@@ -431,8 +431,8 @@ VMValue FontImpl::VM_HasGlyph(int argCount, VMValue* args, Uint32 threadID) {
  * \param pixelsPerUnit (number): The pixels per unit value.
  * \ns Font
  */
-VMValue FontImpl::VM_SetPixelsPerUnit(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue FontImpl::VM_SetPixelsPerUnit(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	float pixelsPerUnit = GET_ARG(1, GetDecimal);
@@ -453,8 +453,8 @@ VMValue FontImpl::VM_SetPixelsPerUnit(int argCount, VMValue* args, Uint32 thread
  * \param ascent (number): The distance.
  * \ns Font
  */
-VMValue FontImpl::VM_SetAscent(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue FontImpl::VM_SetAscent(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	float ascent = GET_ARG(1, GetDecimal);
@@ -473,8 +473,8 @@ VMValue FontImpl::VM_SetAscent(int argCount, VMValue* args, Uint32 threadID) {
  * \param descent (number): The distance.
  * \ns Font
  */
-VMValue FontImpl::VM_SetDescent(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue FontImpl::VM_SetDescent(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	float descent = GET_ARG(1, GetDecimal);
@@ -493,8 +493,8 @@ VMValue FontImpl::VM_SetDescent(int argCount, VMValue* args, Uint32 threadID) {
  * \param leading (number): The distance.
  * \ns Font
  */
-VMValue FontImpl::VM_SetLeading(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue FontImpl::VM_SetLeading(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	float leading = GET_ARG(1, GetDecimal);
@@ -513,8 +513,8 @@ VMValue FontImpl::VM_SetLeading(int argCount, VMValue* args, Uint32 threadID) {
  * \param spaceWidth (number): The width.
  * \ns Font
  */
-VMValue FontImpl::VM_SetSpaceWidth(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue FontImpl::VM_SetSpaceWidth(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	float spaceWidth = GET_ARG(1, GetDecimal);
@@ -533,8 +533,8 @@ VMValue FontImpl::VM_SetSpaceWidth(int argCount, VMValue* args, Uint32 threadID)
  * \param oversampling (integer): The oversampling value.
  * \ns Font
  */
-VMValue FontImpl::VM_SetOversampling(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue FontImpl::VM_SetOversampling(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	int oversampling = GET_ARG(1, GetInteger);
@@ -556,8 +556,8 @@ VMValue FontImpl::VM_SetOversampling(int argCount, VMValue* args, Uint32 threadI
  * \param threshold (decimal): The threshold value, from `0.0` to `1.0`.
  * \ns Font
  */
-VMValue FontImpl::VM_SetPixelCoverageThreshold(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue FontImpl::VM_SetPixelCoverageThreshold(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	float threshold = GET_ARG(1, GetDecimal);
@@ -567,7 +567,7 @@ VMValue FontImpl::VM_SetPixelCoverageThreshold(int argCount, VMValue* args, Uint
 	}
 
 	if (threshold < 0.0 || threshold > 1.0) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(
+		thread->ThrowRuntimeError(
 			false, "Threshold %f out of range. (0.0 - 1.0)", threshold);
 		return NULL_VAL;
 	}
@@ -588,8 +588,8 @@ VMValue FontImpl::VM_SetPixelCoverageThreshold(int argCount, VMValue* args, Uint
  * \param useAntialiasing (boolean): Whether or not to use anti-aliasing.
  * \ns Font
  */
-VMValue FontImpl::VM_SetAntialiasing(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue FontImpl::VM_SetAntialiasing(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjFont* objFont = GET_ARG(0, GetFont);
 	bool useAntialiasing = GET_ARG(1, GetInteger);

@@ -22,32 +22,32 @@ void ReadFloatVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, 
 void ReadIntVectorArray(ObjArray* array, size_t arrIndex, size_t numElements, void* values);
 void ThrowElementTypeMismatchError(size_t element, const char* expected, const char* elementType);
 
-ObjClass* ShaderImpl::Class = nullptr;
-
 Uint32 Hash_Uniforms = 0;
 
-void ShaderImpl::Init() {
-	Class = NewClass(CLASS_SHADER);
+ShaderImpl::ShaderImpl(ScriptManager* manager) {
+	Manager = manager;
+	Class = Manager->NewClass(CLASS_SHADER);
 	Class->NewFn = New;
 
 	Hash_Uniforms = Murmur::EncryptString("Uniforms");
 
-	ScriptManager::DefineNative(Class, "HasStage", VM_HasStage);
-	ScriptManager::DefineNative(Class, "CanCompile", VM_CanCompile);
-	ScriptManager::DefineNative(Class, "IsValid", VM_IsValid);
-	ScriptManager::DefineNative(Class, "AddStage", VM_AddStage);
-	ScriptManager::DefineNative(Class, "AddStageFromString", VM_AddStageFromString);
-	ScriptManager::DefineNative(Class, "AssignTextureUnit", VM_AssignTextureUnit);
-	ScriptManager::DefineNative(Class, "GetTextureUnit", VM_GetTextureUnit);
-	ScriptManager::DefineNative(Class, "Compile", VM_Compile);
-	ScriptManager::DefineNative(Class, "HasUniform", VM_HasUniform);
-	ScriptManager::DefineNative(Class, "GetUniformType", VM_GetUniformType);
-	ScriptManager::DefineNative(Class, "SetUniform", VM_SetUniform);
-	ScriptManager::DefineNative(Class, "SetTexture", VM_SetTexture);
-	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
+	Manager->DefineNative(Class, "HasStage", VM_HasStage);
+	Manager->DefineNative(Class, "CanCompile", VM_CanCompile);
+	Manager->DefineNative(Class, "IsValid", VM_IsValid);
+	Manager->DefineNative(Class, "AddStage", VM_AddStage);
+	Manager->DefineNative(Class, "AddStageFromString", VM_AddStageFromString);
+	Manager->DefineNative(Class, "AssignTextureUnit", VM_AssignTextureUnit);
+	Manager->DefineNative(Class, "GetTextureUnit", VM_GetTextureUnit);
+	Manager->DefineNative(Class, "Compile", VM_Compile);
+	Manager->DefineNative(Class, "HasUniform", VM_HasUniform);
+	Manager->DefineNative(Class, "GetUniformType", VM_GetUniformType);
+	Manager->DefineNative(Class, "SetUniform", VM_SetUniform);
+	Manager->DefineNative(Class, "SetTexture", VM_SetTexture);
+	Manager->DefineNative(Class, "Delete", VM_Delete);
 
-	TypeImpl::RegisterClass(Class);
-	TypeImpl::ExposeClass(CLASS_SHADER, Class);
+	TypeImpl::RegisterClass(manager, Class);
+	TypeImpl::ExposeClass(manager, CLASS_SHADER, Class);
+
 	TypeImpl::DefinePrintableName(Class, "shader");
 }
 
@@ -56,7 +56,7 @@ void ShaderImpl::Init() {
 		throw ScriptException("Shader has been deleted!"); \
 	}
 
-bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
+bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, VMThread* thread) {
 	ObjShader* objShader = (ObjShader*)object;
 	if (objShader == nullptr) {
 		return false;
@@ -70,17 +70,17 @@ bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 			throw ScriptException("Cannot access this field before compilation!");
 		}
 
-		if (ScriptManager::Lock()) {
-			ObjArray* array = NewArray();
+		if (thread->Manager->Lock()) {
+			ObjArray* array = thread->Manager->NewArray();
 
 			for (auto it = shader->UniformMap.begin(); it != shader->UniformMap.end();
 				it++) {
-				ObjString* name = CopyString(it->first.c_str());
+				ObjString* name = thread->Manager->CopyString(it->first.c_str());
 				array->Values->push_back(OBJECT_VAL(name));
 			}
 
 			*result = OBJECT_VAL(array);
-			ScriptManager::Unlock();
+			thread->Manager->Unlock();
 			return true;
 		}
 	}
@@ -88,25 +88,25 @@ bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 	return false;
 }
 
-#define GET_ARG(argIndex, argFunction) (ScriptManager::argFunction(args, argIndex, threadID))
+#define GET_ARG(argIndex, argFunction) (thread->Manager->argFunction(args, argIndex, thread))
 
 /***
  * \constructor
  * \desc Creates a shader program.
  * \ns Shader
  */
-Obj* ShaderImpl::New() {
+Obj* ShaderImpl::New(VMThread* thread) {
 	Shader* shader = Graphics::CreateShader();
 	if (shader == nullptr) {
 		throw ScriptException("Could not create shader!");
 	}
 
-	ObjShader* obj = New((void*)shader);
+	ObjShader* obj = thread->Manager->ImplShader->New((void*)shader);
 	shader->Object = (void*)obj;
 	return (Obj*)obj;
 }
 ObjShader* ShaderImpl::New(void* shaderPtr) {
-	ObjShader* shader = (ObjShader*)NewNativeInstance(sizeof(ObjShader));
+	ObjShader* shader = (ObjShader*)Manager->NewNativeInstance(sizeof(ObjShader));
 	Memory::Track(shader, "NewShader");
 	shader->Object.Class = Class;
 	shader->InstanceObj.PropertyGet = VM_PropertyGet;
@@ -133,8 +133,8 @@ void ShaderImpl::Dispose(Obj* object) {
  * \return boolean Returns whether there is a shader stage of the given type.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_HasStage(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue ShaderImpl::VM_HasStage(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -156,8 +156,8 @@ VMValue ShaderImpl::VM_HasStage(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether the shader can be compiled.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_CanCompile(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue ShaderImpl::VM_CanCompile(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -177,8 +177,8 @@ VMValue ShaderImpl::VM_CanCompile(int argCount, VMValue* args, Uint32 threadID) 
  * \return boolean Returns whether the shader can be used.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -206,8 +206,8 @@ VMValue ShaderImpl::VM_IsValid(int argCount, VMValue* args, Uint32 threadID) {
  * \param shader (stream): A stream containing shader code.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 3);
+VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 3, thread);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -260,7 +260,7 @@ VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
 
 		errorMessage += std::string(error.what());
 
-		ScriptManager::Threads[threadID].ShowErrorLocation(errorMessage.c_str());
+		thread->ShowErrorLocation(errorMessage.c_str());
 	}
 
 	if (closeStream) {
@@ -276,8 +276,8 @@ VMValue ShaderImpl::VM_AddStage(int argCount, VMValue* args, Uint32 threadID) {
  * \param shader (string): A String that contains shader code.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_AddStageFromString(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 3);
+VMValue ShaderImpl::VM_AddStageFromString(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 3, thread);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -303,7 +303,7 @@ VMValue ShaderImpl::VM_AddStageFromString(int argCount, VMValue* args, Uint32 th
 
 		errorMessage += std::string(error.what());
 
-		ScriptManager::Threads[threadID].ShowErrorLocation(errorMessage.c_str());
+		thread->ShowErrorLocation(errorMessage.c_str());
 	}
 
 	stream->Close();
@@ -316,8 +316,8 @@ VMValue ShaderImpl::VM_AddStageFromString(int argCount, VMValue* args, Uint32 th
  * \param uniform (string): The name of the uniform.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue ShaderImpl::VM_AssignTextureUnit(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -344,8 +344,8 @@ VMValue ShaderImpl::VM_AssignTextureUnit(int argCount, VMValue* args, Uint32 thr
  * \return integer Returns an integer value, or `null` if no texture unit was assigned.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_GetTextureUnit(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue ShaderImpl::VM_GetTextureUnit(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjShader* objShader = GET_ARG(0, GetShader);
 	if (objShader == nullptr) {
@@ -381,8 +381,8 @@ VMValue ShaderImpl::VM_GetTextureUnit(int argCount, VMValue* args, Uint32 thread
  * \return boolean Returns whether the shader was compiled.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;
@@ -400,7 +400,7 @@ VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
 
 		errorMessage += std::string(error.what());
 
-		ScriptManager::Threads[threadID].ShowErrorLocation(errorMessage.c_str());
+		thread->ShowErrorLocation(errorMessage.c_str());
 	}
 
 	return INTEGER_VAL(success);
@@ -412,8 +412,8 @@ VMValue ShaderImpl::VM_Compile(int argCount, VMValue* args, Uint32 threadID) {
  * \return boolean Returns whether there is an uniform with the given name.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;
@@ -434,8 +434,8 @@ VMValue ShaderImpl::VM_HasUniform(int argCount, VMValue* args, Uint32 threadID) 
  * \return <ref SHADERSTAGE_*> Returns the data type of the uniform, or `null` if there is no uniform with that name.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_GetUniformType(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 2);
+VMValue ShaderImpl::VM_GetUniformType(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 2, thread);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;
@@ -470,8 +470,8 @@ VMValue ShaderImpl::VM_GetUniformType(int argCount, VMValue* args, Uint32 thread
  * \paramOpt dataType (<ref SHADERDATATYPE_*>): The data type of the value being sent. This is required if the value being passed is an array.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckAtLeastArgCount(argCount, 3);
+VMValue ShaderImpl::VM_SetUniform(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckAtLeastArgCount(argCount, 3, thread);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	char* uniformName = GET_ARG(1, GetString);
@@ -928,8 +928,8 @@ void ThrowElementTypeMismatchError(size_t element, const char* expected, const c
  * \param image (integer): The image index to bind to the uniform.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 3);
+VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 3, thread);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;
@@ -962,8 +962,8 @@ VMValue ShaderImpl::VM_SetTexture(int argCount, VMValue* args, Uint32 threadID) 
  * \desc Deletes a shader. It can no longer be used after this function is called.
  * \ns Shader
  */
-VMValue ShaderImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {
-	ScriptManager::CheckArgCount(argCount, 1);
+VMValue ShaderImpl::VM_Delete(int argCount, VMValue* args, VMThread* thread) {
+	ScriptManager::CheckArgCount(argCount, 1, thread);
 
 	ObjShader* objShader = AS_SHADER(args[0]);
 	Shader* shader = (Shader*)objShader->ShaderPtr;

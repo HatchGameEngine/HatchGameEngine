@@ -4,6 +4,8 @@
 #include <Engine/Bytecode/CompilerEnums.h>
 #include <Engine/Bytecode/Types.h>
 
+class ScriptManager;
+
 class Compiler {
 private:
 	void WarnVariablesUnusedUnset();
@@ -21,6 +23,7 @@ public:
 	static bool DoLogging;
 	static CompilerSettings Settings;
 	CompilerSettings CurrentSettings;
+	ScriptManager* Manager = nullptr;
 	ObjFunction* Function = nullptr;
 	int Type = FUNCTIONTYPE_TOPLEVEL;
 	bool InREPL = false;
@@ -218,7 +221,7 @@ public:
 	void AddBreakpoint(Token token);
 	void AddBreakpointsToChunk(Chunk* chunk);
 	static void Init();
-	static void GetStandardConstants();
+	static void GetStandardConstants(ScriptManager* manager);
 	static void PrepareCompiling();
 	void Initialize(char* name);
 	void Initialize();
@@ -227,9 +230,10 @@ public:
 	void Cleanup();
 	static void DeleteFunctions();
 	void Finish();
-	~Compiler();
 	static void FinishCompiling();
 	static void Dispose();
+
+	Compiler(ScriptManager* manager);
 };
 
 #endif /* ENGINE_BYTECODE_COMPILER_H */

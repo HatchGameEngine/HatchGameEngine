@@ -228,7 +228,7 @@ bool SourceFileMap::CheckForUpdate() {
 			if (memStream) {
 				bool didCompile = false;
 
-				Compiler* compiler = new Compiler;
+				Compiler* compiler = new Compiler(Application::GlobalScriptManager);
 				compiler->CurrentSettings = Compiler::Settings;
 
 				compiler->Initialize();

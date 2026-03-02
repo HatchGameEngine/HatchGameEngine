@@ -1,8 +1,10 @@
 #ifndef ENGINE_BYTECODE_SCRIPTENTITY_H
 #define ENGINE_BYTECODE_SCRIPTENTITY_H
 
-#include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/Types.h>
 #include <Engine/Types/Entity.h>
+
+class ScriptManager;
 
 #define ENTITY_FIELDS_LIST \
 	ENTITY_FIELD(Create) \
@@ -38,13 +40,14 @@ public:
 #undef ENTITY_FIELD
 
 	ObjEntity* Instance = NULL;
+	ScriptManager* Manager = NULL;
 
-	static Entity* Spawn();
-	static Entity* SpawnNamed(const char* objectName);
-	static bool SpawnForClass(ScriptEntity* entity, const char* objectName);
+	static Entity* Spawn(void* managerPtr);
+	static Entity* SpawnNamed(void* managerPtr, const char* objectName);
+	static bool SpawnForClass(void* managerPtr, ScriptEntity* entity, const char* objectName);
 
 	static void Init();
-	void Link(ObjEntity* entity);
+	void Link(ScriptManager* manager, ObjEntity* entity);
 	virtual void LinkFields();
 	void AddEntityClassMethods();
 	static void SetUseFixedTimestep(bool useFixedTimestep);

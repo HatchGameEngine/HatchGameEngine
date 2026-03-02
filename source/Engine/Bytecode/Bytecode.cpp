@@ -1,4 +1,5 @@
 #include <Engine/Bytecode/Bytecode.h>
+#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -107,7 +108,7 @@ Bytecode::~Bytecode() {
 	Memory::Free(SourceFilename);
 }
 
-bool Bytecode::Read(Stream* stream, HashMap<char*>* tokens) {
+bool Bytecode::Read(Stream* stream, ScriptManager* manager, HashMap<char*>* tokens) {
 	Uint8 magic[4];
 	stream->ReadBytes(magic, 4);
 	if (memcmp(BYTECODE_MAGIC, magic, 4) != 0) {
@@ -138,7 +139,7 @@ bool Bytecode::Read(Stream* stream, HashMap<char*>* tokens) {
 	std::vector<Uint32>* functionHashes = new std::vector<Uint32>();
 
 	for (int i = 0; i < chunkCount; i++) {
-		ObjFunction* function = ReadChunk(stream, functionHashes);
+		ObjFunction* function = ReadChunk(stream, manager, functionHashes);
 
 		function->Index = (size_t)i;
 
@@ -188,17 +189,17 @@ bool Bytecode::Read(Stream* stream, HashMap<char*>* tokens) {
 
 	return true;
 }
-bool Bytecode::Read(BytecodeContainer bytecode, HashMap<char*>* tokens) {
+bool Bytecode::Read(BytecodeContainer bytecode, ScriptManager* manager, HashMap<char*>* tokens) {
 	MemoryStream* stream = MemoryStream::New(bytecode.Data, bytecode.Size);
 	if (!stream) {
 		return false;
 	}
 
-	bool success = Read(stream, tokens);
+	bool success = Read(stream, manager, tokens);
 	stream->Close();
 	return success;
 }
-ObjFunction* Bytecode::ReadChunk(Stream* stream, std::vector<Uint32>* functionHashes) {
+ObjFunction* Bytecode::ReadChunk(Stream* stream, ScriptManager* manager, std::vector<Uint32>* functionHashes) {
 	int length = stream->ReadInt32();
 	Uint8 arity, minArity;
 	int opcodeCount = 0;
@@ -221,7 +222,7 @@ ObjFunction* Bytecode::ReadChunk(Stream* stream, std::vector<Uint32>* functionHa
 		functionHashes->push_back(hash);
 	}
 
-	ObjFunction* function = NewFunction();
+	ObjFunction* function = manager->NewFunction();
 	function->Arity = arity;
 	function->MinArity = minArity;
 
@@ -257,9 +258,12 @@ ObjFunction* Bytecode::ReadChunk(Stream* stream, std::vector<Uint32>* functionHa
 			chunk->AddConstant(HITBOX_VAL(left, top, right, bottom));
 			break;
 		}
-		case Bytecode::VALUE_TYPE_STRING:
-			chunk->AddConstant(OBJECT_VAL(TakeString(stream->ReadString())));
+		case Bytecode::VALUE_TYPE_STRING: {
+			char* chars = stream->ReadString();
+			ObjString* string = manager->TakeString(chars);
+			chunk->AddConstant(OBJECT_VAL(string));
 			break;
+		}
 		default:
 			chunk->AddConstant(NULL_VAL);
 			break;

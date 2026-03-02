@@ -2,15 +2,15 @@
 #define ENGINE_BYTECODE_TYPEIMPL_INSTANCEMPL_H
 
 #include <Engine/Bytecode/Types.h>
-#include <Engine/Includes/Standard.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
-class InstanceImpl {
+class ScriptManager;
+
+class InstanceImpl : public TypeImpl {
 public:
-	static ObjClass* Class;
+	InstanceImpl(ScriptManager* manager);
 
-	static void Init();
-
-	static Obj* New(size_t size, ObjType type);
+	Obj* New(size_t size, ObjType type);
 	static void Dispose(Obj* object);
 };
 

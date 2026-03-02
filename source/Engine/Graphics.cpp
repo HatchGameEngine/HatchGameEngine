@@ -2807,7 +2807,11 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 }
 void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
 #ifdef HSL_VM
-	VMThread* thread = &ScriptManager::Threads[0];
+	if (!Application::GlobalScriptManager) {
+		return;
+	}
+
+	VMThread* thread = &Application::GlobalScriptManager->Threads[0];
 	if (func->Arity == 0) {
 		thread->RunEntityFunction(func, 0);
 	}
@@ -3094,19 +3098,23 @@ bool Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {
 		return true;
 	}
 	if (animation < 0 || animation >= (int)sprite->Animations.size()) {
-		ScriptManager::Threads[0].ThrowRuntimeError(false,
+		char message[128];
+		snprintf(message,
+			sizeof message,
 			"Animation %d does not exist in sprite %s!",
 			animation,
 			sprite->Filename);
-		return true;
+		throw std::runtime_error(message);
 	}
 	if (frame < 0 || frame >= (int)sprite->Animations[animation].Frames.size()) {
-		ScriptManager::Threads[0].ThrowRuntimeError(false,
+		char message[128];
+		snprintf(message,
+			sizeof message,
 			"Frame %d in animation \"%s\" does not exist in sprite %s!",
 			frame,
 			sprite->Animations[animation].Name,
 			sprite->Filename);
-		return true;
+		throw std::runtime_error(message);
 	}
 	// #endif
 	return false;
