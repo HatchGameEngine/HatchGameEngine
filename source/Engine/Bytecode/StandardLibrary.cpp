@@ -9473,7 +9473,6 @@ VMValue Input_SetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threa
  */
 VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(3);
-
 	char* objectName = GET_ARG(0, GetString);
 	float x = GET_ARG(1, GetDecimal);
 	float y = GET_ARG(2, GetDecimal);
@@ -9517,7 +9516,6 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-
 	char* objectName = GET_ARG(0, GetString);
 	int n = GET_ARG(1, GetInteger);
 
@@ -9544,7 +9542,6 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-
 	if (IS_NULL(args[0])) {
 		return INTEGER_VAL(false);
 	}
@@ -9581,7 +9578,6 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-
 	ObjEntity* instance = GET_ARG(0, GetEntity);
 	if (!instance) {
 		return NULL_VAL;
@@ -9603,7 +9599,6 @@ VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-
 	char* objectName = GET_ARG(0, GetString);
 
 	if (!Scene::ObjectLists->Exists(objectName)) {
@@ -9612,6 +9607,32 @@ VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjectList* objectList = Scene::ObjectLists->Get(objectName);
 	return INTEGER_VAL(objectList->Count());
+}
+/***
+ * Instance.GetCountOnScreen
+ * \desc Gets amount of active instances in an object class that are currently within their update region.
+ * \param className (string): Name of the object class.
+ * \return integer Returns count of currently active instances on screen in an object class.
+ * \ns Instance
+ */
+VMValue Instance_GetCountOnScreen(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	char* objectName = GET_ARG(0, GetString);
+
+	int count = 0;
+
+	if (!Scene::ObjectLists->Exists(objectName)) {
+		return INTEGER_VAL(count);
+	}
+
+	ObjectList* objectList = Scene::ObjectLists->Get(objectName);
+	if (objectList) {
+		for (Entity* ent = objectList->EntityFirst; ent != nullptr; ent = ent->NextEntityInList) {
+			if (ent->OnScreen >= 1)
+				count++;
+		}
+	}
+	return INTEGER_VAL(count);
 }
 /***
  * Instance.GetNextInstance
@@ -9623,7 +9644,6 @@ VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-
 	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* self = instance ? (Entity*)instance->EntityPtr : nullptr;
 	int n = GET_ARG(1, GetInteger);
@@ -9665,7 +9685,6 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-
 	int slotID = GET_ARG(0, GetInteger);
 	if (slotID < 0) {
 		return NULL_VAL;
@@ -21233,6 +21252,7 @@ This class also houses the input action system.
 	DEF_NATIVE(Instance, IsClass);
 	DEF_NATIVE(Instance, GetClass);
 	DEF_NATIVE(Instance, GetCount);
+	DEF_NATIVE(Instance, GetCountOnScreen);
 	DEF_NATIVE(Instance, GetNextInstance);
 	DEF_NATIVE(Instance, GetBySlotID);
 	DEF_NATIVE(Instance, DisableAutoAnimate);
