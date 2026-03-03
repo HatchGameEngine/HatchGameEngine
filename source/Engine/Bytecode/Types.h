@@ -280,6 +280,7 @@ static inline VMLocation ELEMENT_LOCATION() {
 class ScriptManager;
 
 typedef VMValue (*NativeFn)(int, VMValue*, VMThread*);
+typedef int (*APINativeFn)(int, VMValue*, VMThread*, VMValue*);
 
 typedef Obj* (*ClassNewFn)(VMThread* thread);
 typedef void (*ObjectDestructor)(Obj*);
@@ -305,6 +306,7 @@ enum ObjType {
 	OBJ_INSTANCE,
 	OBJ_ENTITY,
 	OBJ_NATIVE_FUNCTION,
+	OBJ_API_NATIVE_FUNCTION,
 	OBJ_NATIVE_INSTANCE,
 
 	MAX_OBJ_TYPE
@@ -327,6 +329,7 @@ enum ObjType {
 #define IS_CLOSURE(value) IsObjectType(value, OBJ_CLOSURE)
 #define IS_FUNCTION(value) IsObjectType(value, OBJ_FUNCTION)
 #define IS_NATIVE_FUNCTION(value) IsObjectType(value, OBJ_NATIVE_FUNCTION)
+#define IS_API_NATIVE_FUNCTION(value) IsObjectType(value, OBJ_API_NATIVE_FUNCTION)
 #define IS_INSTANCE(value) IsObjectType(value, OBJ_INSTANCE)
 #define IS_STRING(value) IsObjectType(value, OBJ_STRING)
 #define IS_ARRAY(value) IsObjectType(value, OBJ_ARRAY)
@@ -346,6 +349,7 @@ enum ObjType {
 #define AS_FUNCTION(value) ((ObjFunction*)AS_OBJECT(value))
 #define AS_INSTANCE(value) ((ObjInstance*)AS_OBJECT(value))
 #define AS_NATIVE_FUNCTION(value) (((ObjNative*)AS_OBJECT(value))->Function)
+#define AS_API_NATIVE_FUNCTION(value) (((ObjAPINative*)AS_OBJECT(value))->Function)
 #define AS_STRING(value) ((ObjString*)AS_OBJECT(value))
 #define AS_CSTRING(value) (((ObjString*)AS_OBJECT(value))->Chars)
 #define AS_ARRAY(value) ((ObjArray*)AS_OBJECT(value))
@@ -388,6 +392,10 @@ struct ObjFunction {
 struct ObjNative {
 	Obj Object;
 	NativeFn Function;
+};
+struct ObjAPINative {
+	Obj Object;
+	APINativeFn Function;
 };
 struct ObjUpvalue {
 	Obj Object;

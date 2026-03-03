@@ -18,6 +18,7 @@ const char* Value::GetObjectTypeName(Uint32 type) {
 	case OBJ_ENTITY:
 		return "entity";
 	case OBJ_NATIVE_FUNCTION:
+	case OBJ_API_NATIVE_FUNCTION:
 		return "native function";
 	case OBJ_NATIVE_INSTANCE:
 		return "native instance";

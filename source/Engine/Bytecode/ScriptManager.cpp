@@ -1057,8 +1057,8 @@ void ScriptManager::SetWithIteratorHandler(hsl_WithIteratorHandler handler) {
 	WithIteratorHandler = handler;
 	HasWithIteratorHandler = handler != nullptr;
 }
-bool ScriptManager::CallWithIteratorHandler(int state, VMValue receiver, int* index, VMValue** newReceiver) {
-	int result = WithIteratorHandler(state, (hsl_Value*)&receiver, index, (hsl_Value**)newReceiver);
+bool ScriptManager::CallWithIteratorHandler(int state, VMValue receiver, int* index, VMValue* newReceiver) {
+	int result = WithIteratorHandler(state, (hsl_Value*)&receiver, index, (hsl_Value*)newReceiver);
 
 	return result != 0;
 }
@@ -1806,7 +1806,14 @@ ObjString* ScriptManager::TakeString(char* chars) {
 }
 ObjString* ScriptManager::CopyString(const char* chars, size_t length) {
 	char* heapChars = ALLOCATE(char, length + 1);
-	memcpy(heapChars, chars, length);
+	if (!heapChars) {
+		return nullptr;
+	}
+
+	if (chars) {
+		memcpy(heapChars, chars, length);
+	}
+
 	heapChars[length] = '\0';
 
 	return AllocateString(heapChars, length);
@@ -1819,6 +1826,10 @@ ObjString* ScriptManager::CopyString(std::string string) {
 }
 ObjString* ScriptManager::CopyString(ObjString* string) {
 	char* heapChars = ALLOCATE(char, string->Length + 1);
+	if (!heapChars) {
+		return nullptr;
+	}
+
 	memcpy(heapChars, string->Chars, string->Length);
 	heapChars[string->Length] = '\0';
 
@@ -1849,6 +1860,12 @@ ObjFunction* ScriptManager::NewFunction() {
 ObjNative* ScriptManager::NewNative(NativeFn function) {
 	ObjNative* native = ALLOCATE_OBJ(ObjNative, OBJ_NATIVE_FUNCTION);
 	Memory::Track(native, "NewNative");
+	native->Function = function;
+	return native;
+}
+ObjAPINative* ScriptManager::NewAPINative(APINativeFn function) {
+	ObjAPINative* native = ALLOCATE_OBJ(ObjAPINative, OBJ_API_NATIVE_FUNCTION);
+	Memory::Track(native, "NewAPINative");
 	native->Function = function;
 	return native;
 }

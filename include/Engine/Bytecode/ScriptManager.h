@@ -174,7 +174,7 @@ public:
 	void SetImportScriptHandler(hsl_ImportScriptHandler handler);
 	void SetImportClassHandler(hsl_ImportClassHandler handler);
 	void SetWithIteratorHandler(hsl_WithIteratorHandler handler);
-	bool CallWithIteratorHandler(int state, VMValue receiver, int* index, VMValue** newReceiver);
+	bool CallWithIteratorHandler(int state, VMValue receiver, int* index, VMValue* newReceiver);
 #endif
 	bool LoadObjectClass(VMThread* thread, const char* objectName);
 	ObjClass* GetObjectClass(const char* className);
@@ -225,6 +225,7 @@ public:
 	ObjString* AllocString(size_t length);
 	ObjFunction* NewFunction();
 	ObjNative* NewNative(NativeFn function);
+	ObjAPINative* NewAPINative(APINativeFn function);
 	ObjUpvalue* NewUpvalue(VMValue* slot);
 	ObjClosure* NewClosure(ObjFunction* function);
 	ObjClass* NewClass(Uint32 hash);

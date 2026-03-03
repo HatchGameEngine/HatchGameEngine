@@ -81,6 +81,7 @@ void ValuePrinter::PrintObject(VMValue value, int indent) {
 		}
 		break;
 	case OBJ_NATIVE_FUNCTION:
+	case OBJ_API_NATIVE_FUNCTION:
 	case OBJ_UPVALUE:
 		if (IsJSON) {
 			buffer_printf(Buffer, "\"%s\"", Value::GetObjectTypeName(value));

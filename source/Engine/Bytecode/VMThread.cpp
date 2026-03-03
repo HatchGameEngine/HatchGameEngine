@@ -170,7 +170,7 @@ void VMThread::MakeErrorMessage(PrintBuffer* buffer, const char* errorString) {
 		PrintStackTrace(buffer);
 	}
 	else if (IS_OBJECT(FunctionToInvoke)) {
-		if (OBJECT_TYPE(FunctionToInvoke) == OBJ_NATIVE_FUNCTION) {
+		if (IS_NATIVE_FUNCTION(FunctionToInvoke) || IS_API_NATIVE_FUNCTION(FunctionToInvoke)) {
 			buffer_printf(
 				buffer, "While calling native function:\n\n    %s\n", errorString);
 		}
@@ -1571,7 +1571,7 @@ int VMThread::RunInstruction() {
 			VMValue receiver = Peek(0);
 			bool result = false;
 			int startIndex = 0;
-			VMValue* newReceiver = nullptr;
+			VMValue newReceiver = VMValue{VAL_ERROR};
 			if (Manager->HasWithIteratorHandler) {
 				result = Manager->CallWithIteratorHandler(WITH_STATE_INIT, receiver, &startIndex, &newReceiver);
 			}
@@ -1592,8 +1592,8 @@ int VMThread::RunInstruction() {
 			*frame->WithReceiverStackTop = frame->Slots[receiverSlot];
 			frame->WithReceiverStackTop++;
 			// Replace receiver
-			if (newReceiver) {
-				frame->Slots[receiverSlot] = *newReceiver;
+			if (newReceiver.Type != VAL_ERROR) {
+				frame->Slots[receiverSlot] = newReceiver;
 			}
 			else {
 				frame->Slots[receiverSlot] = NULL_VAL;
@@ -1721,7 +1721,7 @@ int VMThread::RunInstruction() {
 
 #ifdef HSL_LIBRARY
 			bool result = false;
-			VMValue* newReceiver = nullptr;
+			VMValue newReceiver = NULL_VAL;
 			if (Manager->HasWithIteratorHandler) {
 				result = Manager->CallWithIteratorHandler(WITH_STATE_ITERATE, NULL_VAL, &it.index, &newReceiver);
 			}
@@ -1734,8 +1734,8 @@ int VMThread::RunInstruction() {
 				// Backup original receiver
 				frame->WithReceiverStackTop[-1] = originalReceiver;
 				// Replace receiver
-				if (newReceiver) {
-					frame->Slots[receiverSlot] = *newReceiver;
+				if (newReceiver.Type != VAL_ERROR) {
+					frame->Slots[receiverSlot] = newReceiver;
 				}
 				else {
 					frame->Slots[receiverSlot] = NULL_VAL;
@@ -1802,7 +1802,8 @@ int VMThread::RunInstruction() {
 
 #ifdef HSL_LIBRARY
 			if (Manager->HasWithIteratorHandler) {
-				Manager->CallWithIteratorHandler(WITH_STATE_FINISH, NULL_VAL, &it.index, nullptr);
+				VMValue newReceiver = NULL_VAL;
+				Manager->CallWithIteratorHandler(WITH_STATE_FINISH, NULL_VAL, &it.index, &newReceiver);
 			}
 #endif
 
@@ -3361,6 +3362,21 @@ bool VMThread::CallValue(VMValue callee, int argCount) {
 			result = true;
 			break;
 		}
+#ifdef HSL_LIBRARY
+		case OBJ_API_NATIVE_FUNCTION: {
+			APINativeFn nativeFn = AS_API_NATIVE_FUNCTION(callee);
+
+			VMValue returnValue = NULL_VAL;
+			nativeFn(argCount, StackTop - argCount, this, &returnValue);
+
+			StackTop -= argCount; // Pop arguments
+			StackTop -= 1; // Pop receiver / class
+			Push(returnValue); // Push result
+
+			result = true;
+			break;
+		}
+#endif
 		default:
 			break;
 		}
@@ -3396,6 +3412,21 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 			Manager->Unlock();
 			return true;
 		}
+#ifdef HSL_LIBRARY
+		else if (OBJECT_TYPE(callee) == OBJ_API_NATIVE_FUNCTION) {
+			APINativeFn nativeFn = AS_API_NATIVE_FUNCTION(callee);
+
+			VMValue returnValue = NULL_VAL;
+			nativeFn(argCount + 1, StackTop - argCount - 1, this, &returnValue);
+
+			StackTop -= argCount; // Pop arguments
+			StackTop -= 1; // Pop receiver / class
+			Push(returnValue); // Push returned value
+
+			Manager->Unlock();
+			return true;
+		}
+#endif
 
 		Manager->Unlock();
 		return CallValue(callee, argCount);
@@ -3419,7 +3450,9 @@ bool VMThread::GetArity(VMValue callee, int& minArity, int& maxArity) {
 			Manager->Unlock();
 			return true;
 		}
-		case OBJ_NATIVE_FUNCTION: // No way to know. (Yet)
+		// No way to know. (Yet)
+		case OBJ_NATIVE_FUNCTION:
+		case OBJ_API_NATIVE_FUNCTION:
 		default:
 			break;
 		}
@@ -4056,6 +4089,7 @@ static const char* GetTypeOfValue(VMValue value) {
 		case OBJ_CLOSURE:
 			return "closure";
 		case OBJ_NATIVE_FUNCTION:
+		case OBJ_API_NATIVE_FUNCTION:
 			return "native function";
 		case OBJ_STRING:
 			return "string";

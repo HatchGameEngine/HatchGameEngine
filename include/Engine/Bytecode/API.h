@@ -23,9 +23,9 @@ enum hsl_Result {
 	HSL_OK,
 	HSL_INVALID_ARGUMENT,
 	HSL_OUT_OF_MEMORY,
+	HSL_COULD_NOT_ACQUIRE_LOCK,
 	HSL_COMPILE_ERROR,
 	HSL_BYTECODE_LOAD_ERROR,
-	HSL_TOO_MANY_THREADS,
 	HSL_ARG_COUNT_MISMATCH,
 	HSL_NOT_ENOUGH_ARGS,
 	HSL_CALL_FRAME_OVERFLOW,
@@ -34,7 +34,11 @@ enum hsl_Result {
 	HSL_RUNTIME_ERROR,
 	HSL_FATAL_ERROR,
 	HSL_SCRIPT_ERROR,
-	HSL_HIT_BRANCH_LIMIT
+	HSL_HIT_BRANCH_LIMIT,
+	HSL_STACK_OVERFLOW,
+	HSL_STACK_UNDERFLOW,
+	HSL_DOES_NOT_EXIST,
+	HSL_CANNOT_REDEFINE_CONSTANT
 };
 
 enum hsl_ErrorResponse {
@@ -58,6 +62,37 @@ enum hsl_LogSeverity {
 	HSL_LOG_API
 };
 
+enum hsl_ValueType {
+	HSL_VAL_INVALID,
+	HSL_VAL_NULL,
+	HSL_VAL_INTEGER,
+	HSL_VAL_DECIMAL,
+	HSL_VAL_OBJECT,
+	HSL_VAL_LINKED_INTEGER,
+	HSL_VAL_LINKED_DECIMAL,
+	HSL_VAL_HITBOX,
+	HSL_VAL_LOCATION
+};
+
+enum hsl_ObjType {
+	HSL_OBJ_INVALID,
+	HSL_OBJ_STRING,
+	HSL_OBJ_ARRAY,
+	HSL_OBJ_MAP,
+	HSL_OBJ_FUNCTION,
+	HSL_OBJ_BOUND_METHOD,
+	HSL_OBJ_MODULE,
+	HSL_OBJ_CLOSURE,
+	HSL_OBJ_UPVALUE,
+	HSL_OBJ_CLASS,
+	HSL_OBJ_NAMESPACE,
+	HSL_OBJ_ENUM,
+	HSL_OBJ_INSTANCE,
+	HSL_OBJ_ENTITY,
+	HSL_OBJ_NATIVE_FUNCTION,
+	HSL_OBJ_NATIVE_INSTANCE
+};
+
 struct hsl_CompilerSettings {
 	int show_warnings;
 	int write_debug_info;
@@ -70,12 +105,16 @@ struct hsl_Thread;
 struct hsl_Module;
 struct hsl_Function;
 struct hsl_Value;
+struct hsl_Object;
+struct hsl_Class;
 
 typedef int (*hsl_ImportScriptHandler)(const char* name, struct hsl_Thread* thread);
 typedef int (*hsl_ImportClassHandler)(const char* name, struct hsl_Thread* thread);
-typedef int (*hsl_WithIteratorHandler)(int state, struct hsl_Value* receiver, int* index, struct hsl_Value** new_receiver);
+typedef int (*hsl_WithIteratorHandler)(int state, struct hsl_Value* receiver, int* index, struct hsl_Value* new_receiver);
 typedef enum hsl_ErrorResponse (*hsl_RuntimeErrorHandler)(enum hsl_Result result, const char* text);
 typedef void (*hsl_LogCallback)(int level, const char* text);
+
+typedef int (*hsl_NativeFn)(int num_args, struct hsl_Value* args, struct hsl_Thread* thread, struct hsl_Value* result);
 
 // Returns the HSL version the library was compiled with.
 const char* hsl_get_version();
@@ -129,11 +168,115 @@ enum hsl_Result hsl_get_module_function(struct hsl_Module* module, size_t index,
 struct hsl_Function* hsl_get_main_function(struct hsl_Module* module);
 
 // Sets up a new call frame for the thread.
-enum hsl_Result hsl_setup_call_frame(struct hsl_Thread* thread, struct hsl_Function* function, int num_args);
+enum hsl_Result hsl_setup_call_frame(struct hsl_Thread* thread, struct hsl_Function* function, size_t num_args);
 // Runs code in the thread's current frame until it returns.
 enum hsl_Result hsl_run_call_frame(struct hsl_Thread* thread);
 // Runs the current instruction in the thread's current frame.
 enum hsl_Result hsl_run_call_frame_instruction(struct hsl_Thread* thread);
+// Calls a value in the stack, passing the values in the stack as arguments.
+enum hsl_Result hsl_call(struct hsl_Thread* thread, size_t arg_count);
+// Gets the return value of a call to a function.
+struct hsl_Value* hsl_get_result(struct hsl_Thread* thread);
+
+// Gets the type of a value.
+enum hsl_ValueType hsl_value_type(struct hsl_Value* value);
+// Gets the type of an object.
+enum hsl_ObjType hsl_object_type(struct hsl_Object* object);
+
+// Converts a value to an integer.
+int hsl_value_as_integer(struct hsl_Value* value);
+// Converts a value to a decimal.
+float hsl_value_as_decimal(struct hsl_Value* value);
+// Converts a value to a string. This does not return a copy of the string.
+char* hsl_value_as_string(struct hsl_Value* value);
+// Converts a value to an object.
+struct hsl_Object* hsl_value_as_object(struct hsl_Value* value);
+
+// Pushes an integer to the stack.
+enum hsl_Result hsl_push_integer(struct hsl_Thread* thread, int value);
+// Pushes a decimal to the stack.
+enum hsl_Result hsl_push_decimal(struct hsl_Thread* thread, float value);
+// Pushes a string to the stack.
+enum hsl_Result hsl_push_string(struct hsl_Thread* thread, const char* value);
+// Pushes a string with a specific length to the stack.
+enum hsl_Result hsl_push_sized_string(struct hsl_Thread* thread, const char* value, size_t sz);
+// Pushes an object to the stack.
+enum hsl_Result hsl_push_object(struct hsl_Thread* thread, struct hsl_Object* object);
+// Pushes null to the stack.
+enum hsl_Result hsl_push_null(struct hsl_Thread* thread);
+
+// Pops an integer from the stack.
+int hsl_pop_integer(struct hsl_Thread* thread);
+// Pops a decimal from the stack.
+float hsl_pop_decimal(struct hsl_Thread* thread);
+// Pops a string from the stack. This returns a copy of the string.
+char* hsl_pop_string(struct hsl_Thread* thread);
+// Pops an object from the stack.
+struct hsl_Object* hsl_pop_object(struct hsl_Thread* thread);
+// Pops a value from the stack.
+enum hsl_Result hsl_pop(struct hsl_Thread* thread);
+
+// Gets a pointer to a specific stack location.
+struct hsl_Value* hsl_stack_get(struct hsl_Thread* thread, size_t index);
+// Copies a value to a specific stack location.
+enum hsl_Result hsl_stack_set(struct hsl_Thread* thread, struct hsl_Value* value, size_t index);
+// Copies a value from a specific stack location into a pointer to a value.
+enum hsl_Result hsl_stack_copy(struct hsl_Thread* thread, size_t index, struct hsl_Value* dest);
+// Gets the stack size.
+size_t hsl_stack_size(struct hsl_Thread* thread);
+
+// Copies a integer into a pointer to a value.
+enum hsl_Result hsl_copy_integer(int value, struct hsl_Value* dest);
+// Copies a decimal into a pointer to a value.
+enum hsl_Result hsl_copy_decimal(float value, struct hsl_Value* dest);
+// Copies an object into a pointer to a value.
+enum hsl_Result hsl_copy_object(struct hsl_Object* object, struct hsl_Value* dest);
+// Copies null into a pointer to a value.
+enum hsl_Result hsl_copy_null(struct hsl_Value* dest);
+
+// Returns 1 if the global exists, 0 if not.
+int hsl_global_exists(struct hsl_Context* context, const char* name);
+// Gets the type of a global.
+enum hsl_ValueType hsl_global_type(struct hsl_Context* context, const char* name);
+// Gets a global as an integer.
+int hsl_get_global_as_integer(struct hsl_Context* context, const char* name);
+// Gets a global as a decimal.
+float hsl_get_global_as_decimal(struct hsl_Context* context, const char* name);
+// Gets a global as a string. This does not return a copy of the string.
+char* hsl_get_global_as_string(struct hsl_Context* context, const char* name);
+// Gets a global as an object.
+struct hsl_Object* hsl_get_global_as_object(struct hsl_Context* context, const char* name);
+// Sets a global.
+enum hsl_Result hsl_set_global(struct hsl_Context* context, const char* name, struct hsl_Value* value);
+// Removes a global.
+enum hsl_Result hsl_remove_global(struct hsl_Context* context, const char* name);
+
+// Creates a new native function.
+struct hsl_Object* hsl_native_new(struct hsl_Context* context, hsl_NativeFn native);
+
+// Creates a new class.
+struct hsl_Object* hsl_class_new(struct hsl_Context* context, const char* name);
+// Defines a method in the class.
+enum hsl_Result hsl_class_define_method(struct hsl_Object* object, const char* name, struct hsl_Function* function);
+// Defines a native function in the class.
+enum hsl_Result hsl_class_define_native(struct hsl_Object* object, const char* name, struct hsl_Object* nativeObj);
+// Defines the initializer of the class.
+enum hsl_Result hsl_class_set_initializer(struct hsl_Object* object, struct hsl_Function* function);
+
+// Creates a new array.
+struct hsl_Object* hsl_array_new(struct hsl_Context* context);
+// Creates a new array, popping the values from the stack into the array.
+struct hsl_Object* hsl_array_new_from_stack(struct hsl_Thread* thread, size_t count);
+// Pushes a copy of a value into the array.
+enum hsl_Result hsl_array_push(struct hsl_Object* object, struct hsl_Value* value);
+// Pops a value from the array.
+enum hsl_Result hsl_array_pop(struct hsl_Object* object, struct hsl_Value* value);
+// Gets a pointer to a specific position in the array.
+struct hsl_Value* hsl_array_get(struct hsl_Object* object, int index);
+// Copies a value into a specific position in the array.
+enum hsl_Result hsl_array_set(struct hsl_Object* object, int index, struct hsl_Value* value);
+// Gets the size of the array.
+size_t hsl_array_size(struct hsl_Object* object);
 
 #ifdef __cplusplus
 }
