@@ -1080,6 +1080,10 @@ hsl_Object* hsl_array_new_from_stack(hsl_Thread* thread, size_t count) {
 		return nullptr;
 	}
 
+	if (vmThread->StackTop - count - 1 < vmThread->Stack) {
+		return nullptr;
+	}
+
 	if (vmThread->Manager->Lock()) {
 		ObjArray* array = vmThread->Manager->NewArray();
 		array->Values->reserve(count);
