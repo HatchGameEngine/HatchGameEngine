@@ -6,6 +6,7 @@
 #include <Engine/Bytecode/VMThread.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Exceptions/CompilerErrorException.h>
+#include <Engine/Hashing/Murmur.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -973,6 +974,68 @@ hsl_Result hsl_remove_global(hsl_Context* context, const char* name) {
 	return HSL_OK;
 }
 
+hsl_Result hsl_invoke(hsl_Thread* thread, const char* name, size_t num_args) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !name) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	if (vmThread->StackTop - num_args - 1 < vmThread->Stack) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = Murmur::EncryptString(name);
+
+	int status = vmThread->Invoke(vmThread->Peek(num_args), num_args, hash);
+	if (status != INVOKE_OK) {
+		return HSL_COULD_NOT_CALL;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_invoke_callable(hsl_Thread* thread, hsl_Object* callable, size_t num_args) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !callable) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	VMValue callableValue = OBJECT_VAL(callable);
+	if (!IS_CALLABLE(callableValue)) {
+		return HSL_COULD_NOT_CALL;
+	}
+
+	if (!vmThread->CallForObject(callableValue, num_args)) {
+		return HSL_COULD_NOT_CALL;
+	}
+
+	return HSL_OK;
+}
+
+int hsl_callable_get_arity(hsl_Object* callable) {
+	if (!callable) {
+		return 0;
+	}
+
+	int minArity, maxArity;
+	if (ScriptManager::GetArity(OBJECT_VAL(callable), minArity, maxArity)) {
+		return maxArity;
+	}
+	return 0;
+}
+
+int hsl_callable_get_min_arity(hsl_Object* callable) {
+	if (!callable) {
+		return 0;
+	}
+
+	int minArity, maxArity;
+	if (ScriptManager::GetArity(OBJECT_VAL(callable), minArity, maxArity)) {
+		return minArity;
+	}
+	return 0;
+}
+
 hsl_Object* hsl_native_new(hsl_Context* context, hsl_NativeFn native) {
 	ScriptManager* manager = (ScriptManager*)context;
 	if (!manager) {
@@ -1042,8 +1105,42 @@ hsl_Result hsl_class_define_native(hsl_Object* object, const char* name, hsl_Obj
 	return HSL_OK;
 }
 
-hsl_Result hsl_class_set_initializer(hsl_Object* object, hsl_Function* function) {
-	if (!object || !function) {
+int hsl_class_has_initializer(hsl_Object* object) {
+	if (!object) {
+		return 0;
+	}
+
+	if (((Obj*)object)->Type != OBJ_CLASS) {
+		return 0;
+	}
+
+	ObjClass* klass = (ObjClass*)object;
+	if (HasInitializer(klass)) {
+		return 1;
+	}
+
+	return 0;
+}
+
+hsl_Object* hsl_class_get_initializer(hsl_Object* object) {
+	if (!object) {
+		return nullptr;
+	}
+
+	if (((Obj*)object)->Type != OBJ_CLASS) {
+		return nullptr;
+	}
+
+	ObjClass* klass = (ObjClass*)object;
+	if (!HasInitializer(klass)) {
+		return nullptr;
+	}
+
+	return (hsl_Object*)AS_OBJECT(klass->Initializer);
+}
+
+hsl_Result hsl_class_set_initializer(hsl_Object* object, hsl_Function* initializer) {
+	if (!object || !initializer) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
@@ -1052,12 +1149,121 @@ hsl_Result hsl_class_set_initializer(hsl_Object* object, hsl_Function* function)
 	}
 
 	ObjClass* klass = (ObjClass*)object;
-	ObjFunction* objFunction = (ObjFunction*)function;
 
-	klass->Initializer = OBJECT_VAL(objFunction);
+	klass->Initializer = OBJECT_VAL(initializer);
 
-	objFunction->Class = klass;
+	return HSL_OK;
+}
 
+hsl_Object* hsl_class_get_parent(hsl_Object* object) {
+	if (!object) {
+		return nullptr;
+	}
+
+	if (((Obj*)object)->Type != OBJ_CLASS) {
+		return nullptr;
+	}
+
+	ObjClass* klass = (ObjClass*)object;
+
+	return (hsl_Object*)klass->Parent;
+}
+
+hsl_Result hsl_class_set_parent(hsl_Object* object, hsl_Object* parent) {
+	if (!object || !parent) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	if (((Obj*)object)->Type != OBJ_CLASS) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	if (((Obj*)parent)->Type != OBJ_CLASS) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	ObjClass* klass = (ObjClass*)object;
+
+	klass->Parent = (ObjClass*)parent;
+
+	return HSL_OK;
+}
+
+Obj* hsl_instance_new_internal(VMThread* vmThread, ObjClass* classObj) {
+	if (classObj->NewFn) {
+		try {
+			return classObj->NewFn(vmThread);
+		} catch (const ScriptException& error) {
+			vmThread->ThrowRuntimeError(false, "%s", error.what());
+			return nullptr;
+		}
+	}
+	else {
+		return (Obj*)vmThread->Manager->NewInstance(classObj);
+	}
+}
+
+hsl_Object* hsl_instance_new(hsl_Thread* thread, hsl_Object* klass) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !klass) {
+		return nullptr;
+	}
+
+	if (((Obj*)klass)->Type != OBJ_CLASS) {
+		return nullptr;
+	}
+
+	if (!vmThread->Manager->Lock()) {
+		return nullptr;
+	}
+
+	Obj* instance = hsl_instance_new_internal(vmThread, (ObjClass*)klass);
+
+	vmThread->Manager->Unlock();
+
+	return (hsl_Object*)instance;
+}
+
+hsl_Result hsl_instance_new_from_stack(hsl_Thread* thread, size_t num_args) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	if (vmThread->StackTop - num_args - 1 < vmThread->Stack) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	VMValue callee = vmThread->Peek(num_args);
+	if (!IS_OBJECT(callee) || OBJECT_TYPE(callee) != OBJ_CLASS) {
+		return HSL_COULD_NOT_CALL;
+	}
+
+	if (!vmThread->Manager->Lock()) {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	ObjClass* klass = AS_CLASS(callee);
+	Obj* instance = hsl_instance_new_internal(vmThread, (ObjClass*)klass);
+	if (instance == nullptr) {
+		vmThread->StackTop[-num_args - 1] = NULL_VAL;
+		vmThread->Manager->Unlock();
+		return HSL_COULD_NOT_INSTANTIATE;
+	}
+
+	vmThread->StackTop[-num_args - 1] = OBJECT_VAL(instance);
+
+	if (HasInitializer(klass)) {
+		vmThread->Manager->Unlock();
+		Obj* callable = AS_OBJECT(klass->Initializer);
+		return hsl_invoke_callable(thread, (hsl_Object*)callable, num_args);
+	}
+	else if (num_args != 0) {
+		vmThread->Manager->Unlock();
+		return HSL_ARG_COUNT_MISMATCH;
+	}
+
+	vmThread->Manager->Unlock();
 	return HSL_OK;
 }
 

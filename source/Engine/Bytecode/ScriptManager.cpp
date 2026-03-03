@@ -2003,6 +2003,31 @@ Obj* ScriptManager::NewNativeInstance(size_t size) {
 	return obj;
 }
 
+bool ScriptManager::GetArity(VMValue callee, int& minArity, int& maxArity) {
+	if (IS_OBJECT(callee)) {
+		switch (OBJECT_TYPE(callee)) {
+		case OBJ_BOUND_METHOD: {
+			ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
+			minArity = bound->Method->MinArity;
+			maxArity = bound->Method->Arity;
+			return true;
+		}
+		case OBJ_FUNCTION: {
+			ObjFunction* function = AS_FUNCTION(callee);
+			minArity = function->MinArity;
+			maxArity = function->Arity;
+			return true;
+		}
+		// No way to know. (Yet)
+		case OBJ_NATIVE_FUNCTION:
+		case OBJ_API_NATIVE_FUNCTION:
+		default:
+			break;
+		}
+	}
+	return false;
+}
+
 std::string ScriptManager::GetClassName(Uint32 hash) {
 #ifdef HSL_VM
 	if (Tokens && Tokens->Exists(hash)) {

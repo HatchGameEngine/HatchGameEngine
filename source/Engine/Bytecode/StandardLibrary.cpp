@@ -1536,7 +1536,7 @@ void ScriptTakeScreenshotCallback(OperationResult result) {
 		VMValue callable = data->Callable;
 		int numArgs = thread->StackTop - stackTop;
 		int minArity, maxArity;
-		if (thread->GetArity(callable, minArity, maxArity) && numArgs > maxArity) {
+		if (ScriptManager::GetArity(callable, minArity, maxArity) && numArgs > maxArity) {
 			numArgs = maxArity;
 			thread->StackTop = stackTop + numArgs;
 		}

@@ -20,6 +20,12 @@ class VMThread;
 
 #define DEFAULT_BRANCH_LIMIT 100000
 
+enum {
+	INVOKE_OK,
+	INVOKE_FAIL,
+	INVOKE_RUNTIME_ERROR,
+};
+
 typedef enum {
 	ERROR_RES_EXIT,
 	ERROR_RES_CONTINUE,

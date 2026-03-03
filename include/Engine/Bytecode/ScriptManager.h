@@ -244,6 +244,8 @@ public:
 	ObjModule* NewModule();
 	Obj* NewNativeInstance(size_t size);
 
+	static bool GetArity(VMValue callee, int& minArity, int& maxArity);
+
 	std::string GetClassName(Uint32 hash);
 
 	VMValue CastValueAsString(VMValue v);

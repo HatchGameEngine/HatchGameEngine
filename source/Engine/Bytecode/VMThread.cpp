@@ -29,12 +29,6 @@
 #define USING_VM_DISPATCH_TABLE
 #endif
 
-enum {
-	INVOKE_OK,
-	INVOKE_FAIL,
-	INVOKE_RUNTIME_ERROR,
-};
-
 // Locks are only in 3 places:
 // Heap, which contains object memory and globals
 // Bytecode area, which contains function bytecode
@@ -3431,33 +3425,6 @@ bool VMThread::CallForObject(VMValue callee, int argCount) {
 		Manager->Unlock();
 		return CallValue(callee, argCount);
 	}
-	return false;
-}
-bool VMThread::GetArity(VMValue callee, int& minArity, int& maxArity) {
-	if (Manager->Lock() && IS_OBJECT(callee)) {
-		switch (OBJECT_TYPE(callee)) {
-		case OBJ_BOUND_METHOD: {
-			ObjBoundMethod* bound = AS_BOUND_METHOD(callee);
-			minArity = bound->Method->MinArity;
-			maxArity = bound->Method->Arity;
-			Manager->Unlock();
-			return true;
-		}
-		case OBJ_FUNCTION: {
-			ObjFunction* function = AS_FUNCTION(callee);
-			minArity = function->MinArity;
-			maxArity = function->Arity;
-			Manager->Unlock();
-			return true;
-		}
-		// No way to know. (Yet)
-		case OBJ_NATIVE_FUNCTION:
-		case OBJ_API_NATIVE_FUNCTION:
-		default:
-			break;
-		}
-	}
-	Manager->Unlock();
 	return false;
 }
 bool VMThread::InstantiateClass(VMValue callee, int argCount) {

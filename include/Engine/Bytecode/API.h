@@ -37,7 +37,7 @@ enum hsl_Result {
 	HSL_STACK_OVERFLOW,
 	HSL_STACK_UNDERFLOW,
 	HSL_DOES_NOT_EXIST,
-	HSL_CANNOT_REDEFINE_CONSTANT
+	HSL_COULD_NOT_INSTANTIATE
 };
 
 enum hsl_ErrorResponse {
@@ -175,7 +175,7 @@ enum hsl_Result hsl_run_call_frame(struct hsl_Thread* thread);
 // Runs the current instruction in the thread's current frame.
 enum hsl_Result hsl_run_call_frame_instruction(struct hsl_Thread* thread);
 // Calls a value in the stack, passing the values in the stack as arguments.
-enum hsl_Result hsl_call(struct hsl_Thread* thread, size_t arg_count);
+enum hsl_Result hsl_call(struct hsl_Thread* thread, size_t num_args);
 // Gets the return value of a call to a function.
 struct hsl_Value* hsl_get_result(struct hsl_Thread* thread);
 
@@ -252,6 +252,16 @@ enum hsl_Result hsl_set_global(struct hsl_Context* context, const char* name, st
 // Removes a global.
 enum hsl_Result hsl_remove_global(struct hsl_Context* context, const char* name);
 
+// Invokes a callable by name for an instance on the stack.
+enum hsl_Result hsl_invoke(struct hsl_Thread* thread, const char* name, size_t num_args);
+// Invokes a callable directly for an instance on the stack.
+enum hsl_Result hsl_invoke_callable(struct hsl_Thread* thread, struct hsl_Object* callable, size_t num_args);
+
+// Gets the arity of a callable.
+int hsl_callable_get_arity(struct hsl_Object* callable);
+// Gets the minimum arity of a callable.
+int hsl_callable_get_min_arity(struct hsl_Object* callable);
+
 // Creates a new native function.
 struct hsl_Object* hsl_native_new(struct hsl_Context* context, hsl_NativeFn native);
 
@@ -261,8 +271,21 @@ struct hsl_Object* hsl_class_new(struct hsl_Context* context, const char* name);
 enum hsl_Result hsl_class_define_method(struct hsl_Object* object, const char* name, struct hsl_Function* function);
 // Defines a native function in the class.
 enum hsl_Result hsl_class_define_native(struct hsl_Object* object, const char* name, struct hsl_Object* nativeObj);
+// Returns 1 if the class has an initializer, 0 if it does not.
+int hsl_class_has_initializer(struct hsl_Object* object);
+// Returns the initializer of the class.
+struct hsl_Object* hsl_class_get_initializer(struct hsl_Object* object);
 // Defines the initializer of the class.
-enum hsl_Result hsl_class_set_initializer(struct hsl_Object* object, struct hsl_Function* function);
+enum hsl_Result hsl_class_set_initializer(struct hsl_Object* object, struct hsl_Object* function);
+// Returns the parent of the class.
+struct hsl_Object* hsl_class_get_parent(struct hsl_Object* object);
+// Defines the parent of the class.
+enum hsl_Result hsl_class_set_parent(struct hsl_Object* object, struct hsl_Object* parent);
+
+// Instantiates a class. Doesn't call the initializer.
+struct hsl_Object* hsl_instance_new(struct hsl_Thread* thread, hsl_Object* klass);
+// Instantiates a class on the stack, passing the values from the stack to the initializer.
+enum hsl_Result hsl_instance_new_from_stack(struct hsl_Thread* thread, size_t num_args);
 
 // Creates a new array.
 struct hsl_Object* hsl_array_new(struct hsl_Context* context);

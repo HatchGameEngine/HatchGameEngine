@@ -37,7 +37,6 @@ private:
 	bool SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value);
 	bool BindMethod(VMValue receiver, VMValue method);
 	bool CallBoundMethod(ObjBoundMethod* bound, int argCount);
-	bool CallForObject(VMValue callee, int argCount);
 	bool InstantiateClass(VMValue callee, int argCount);
 	bool DoClassExtension(VMValue value, VMValue originalValue, bool clearSrc);
 
@@ -115,9 +114,9 @@ public:
 	void InvokeForEntity(VMValue value, int argCount);
 	VMValue RunEntityFunction(ObjFunction* function, int argCount);
 	void CallInitializer(VMValue value);
+	bool CallForObject(VMValue callee, int argCount);
 	bool CallValue(VMValue callee, int argCount);
 	bool Call(ObjFunction* function, int argCount);
-	bool GetArity(VMValue callee, int& minArity, int& maxArity);
 	bool InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount);
 	bool InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount);
 	bool Import(VMValue value);
