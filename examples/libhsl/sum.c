@@ -19,11 +19,8 @@ struct hsl_Thread* load_code(struct hsl_Context* context, const char* code) {
 	settings.show_warnings = true;
 	settings.do_optimizations = true;
 
-	char* out_bytecode = NULL;
-	size_t out_size = 0;
-
-	int result = hsl_compile(context, code, &settings, &out_bytecode, &out_size, NULL);
-	if (result != HSL_OK) {
+	struct hsl_Module* module = hsl_load_script(context, code, &settings, NULL);
+	if (module == NULL) {
 		printf("Could not compile code");
 
 		const char* error = hsl_get_compile_error(context);
@@ -42,25 +39,9 @@ struct hsl_Thread* load_code(struct hsl_Context* context, const char* code) {
 		return NULL;
 	}
 
-	struct hsl_Module* module;
-	result = hsl_load_bytecode(out_bytecode, out_size, thread, &module, NULL);
+	enum hsl_Result result = hsl_run_module(thread, module);
 	if (result != HSL_OK) {
-		printf("hsl_load_bytecode failed: %d\n", result);
-		return NULL;
-	}
-
-	free(out_bytecode);
-
-	struct hsl_Function* function = hsl_get_main_function(module);
-	result = hsl_setup_call_frame(thread, function, 0);
-	if (result != HSL_OK) {
-		printf("hsl_setup_call_frame failed: %d\n", result);
-		return NULL;
-	}
-
-	result = hsl_run_call_frame(thread);
-	if (result != HSL_OK) {
-		printf("hsl_run_call_frame failed: %d\n", result);
+		printf("hsl_run_module failed: %d\n", result);
 		return NULL;
 	}
 

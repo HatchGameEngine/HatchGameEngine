@@ -142,11 +142,14 @@ public:
 #ifdef HSL_VM
 	Bytecode* ReadBytecode(BytecodeContainer bytecodeContainer);
 	Bytecode* ReadBytecode(Stream* stream);
-	ObjModule* LoadBytecode(VMThread* thread, Bytecode* bytecode, Uint32 filenameHash);
-	ObjModule* LoadBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
-	ObjModule* LoadBytecode(VMThread* thread, Stream* stream, Uint32 filenameHash);
+	ObjModule* LoadBytecode(Bytecode* bytecode, Uint32 filenameHash);
+	ObjModule* LoadBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash);
+	ObjModule* LoadBytecode(Stream* stream, Uint32 filenameHash);
 	bool RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
 	bool RunBytecode(VMThread* thread, Stream* stream, Uint32 filenameHash);
+#ifdef VM_DEBUG
+	void AddModuleBreakpoints(VMThread* thread, ObjModule* module);
+#endif
 	bool CallFunction(const char* functionName);
 	VMValue FindFunction(const char* functionName);
 #ifndef HSL_STANDALONE

@@ -25,7 +25,6 @@ enum hsl_Result {
 	HSL_OUT_OF_MEMORY,
 	HSL_COULD_NOT_ACQUIRE_LOCK,
 	HSL_COMPILE_ERROR,
-	HSL_BYTECODE_LOAD_ERROR,
 	HSL_ARG_COUNT_MISMATCH,
 	HSL_NOT_ENOUGH_ARGS,
 	HSL_CALL_FRAME_OVERFLOW,
@@ -153,19 +152,21 @@ struct hsl_Context* hsl_get_thread_context(struct hsl_Thread* thread);
 // Compiles a script into bytecode.
 enum hsl_Result hsl_compile(struct hsl_Context* context, const char* code, struct hsl_CompilerSettings* settings, char** out_bytecode, size_t *out_size, const char* input_filename);
 // Compiles a script into bytecode, and loads the bytecode.
-enum hsl_Result hsl_load_script(const char* code, struct hsl_CompilerSettings* settings, struct hsl_Thread* thread, struct hsl_Module** module, const char* input_filename);
+struct hsl_Module* hsl_load_script(struct hsl_Context* context, const char* code, struct hsl_CompilerSettings* settings, const char* input_filename);
 // Loads bytecode.
-enum hsl_Result hsl_load_bytecode(char* code, size_t size, struct hsl_Thread* thread, struct hsl_Module** module, const char* input_filename);
+struct hsl_Module* hsl_load_bytecode(struct hsl_Context* context, char* code, size_t size, const char* input_filename);
 
 // Returns the last compilation error.
 const char* hsl_get_compile_error(struct hsl_Context* context);
 
+// Runs a module.
+enum hsl_Result hsl_run_module(struct hsl_Thread* thread, struct hsl_Module* module);
 // Returns the amount of functions in the module.
-int hsl_get_module_function_count(struct hsl_Module* module);
+size_t hsl_module_function_count(struct hsl_Module* module);
 // Returns a function from the module by index.
-enum hsl_Result hsl_get_module_function(struct hsl_Module* module, size_t index, struct hsl_Function** function);
+enum hsl_Result hsl_module_get_function(struct hsl_Module* module, size_t index, struct hsl_Function** function);
 // Returns the main function of the module.
-struct hsl_Function* hsl_get_main_function(struct hsl_Module* module);
+struct hsl_Function* hsl_module_get_main_function(struct hsl_Module* module);
 
 // Sets up a new call frame for the thread.
 enum hsl_Result hsl_setup_call_frame(struct hsl_Thread* thread, struct hsl_Function* function, size_t num_args);

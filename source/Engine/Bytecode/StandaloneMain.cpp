@@ -236,13 +236,23 @@ bool RunnerMain(const char* filename) {
 			hash = hashFromFilename;
 		}
 
-		module = GlobalScriptManager->LoadBytecode(thread, stream, hash);
+		module = GlobalScriptManager->LoadBytecode(stream, hash);
 	}
 #ifdef HSL_COMPILER
 	else {
 		module = GlobalScriptManager->CompileScriptFromStream(thread, stream, filename);
 	}
 #endif
+
+#ifdef VM_DEBUG
+	if (module && GlobalScriptManager->BreakpointsEnabled) {
+		GlobalScriptManager->AddModuleBreakpoints(thread, module);
+	}
+#endif
+
+	if (!module) {
+		return false;
+	}
 
 	if (PrintChunks) {
 		BytecodeDebugger* debugger = new BytecodeDebugger;
@@ -260,10 +270,6 @@ bool RunnerMain(const char* filename) {
 		}
 
 		debugger->Tokens = nullptr;
-	}
-
-	if (!module) {
-		return false;
 	}
 
 	if (ExecuteCode) {

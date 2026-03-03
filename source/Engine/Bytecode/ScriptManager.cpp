@@ -653,7 +653,7 @@ Bytecode* ScriptManager::ReadBytecode(Stream *stream) {
 
 	return bytecode;
 }
-ObjModule* ScriptManager::LoadBytecode(VMThread* thread, Bytecode* bytecode, Uint32 filenameHash) {
+ObjModule* ScriptManager::LoadBytecode(Bytecode* bytecode, Uint32 filenameHash) {
 	ObjModule* module = NewModule();
 
 	for (size_t i = 0; i < bytecode->Functions.size(); i++) {
@@ -665,12 +665,6 @@ ObjModule* ScriptManager::LoadBytecode(VMThread* thread, Bytecode* bytecode, Uin
 		function->Module = module;
 #if USING_VM_FUNCPTRS
 		chunk->SetupOpfuncs();
-#endif
-
-#ifdef VM_DEBUG
-		if (BreakpointsEnabled) {
-			thread->AddFunctionBreakpoints(function);
-		}
 #endif
 	}
 
@@ -694,46 +688,81 @@ ObjModule* ScriptManager::LoadBytecode(VMThread* thread, Bytecode* bytecode, Uin
 		TempModuleList.push_back(module);
 	}
 
-	delete bytecode;
-
 	return module;
 }
-ObjModule* ScriptManager::LoadBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+ObjModule* ScriptManager::LoadBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
 	Bytecode* bytecode = ReadBytecode(bytecodeContainer);
 	if (bytecode) {
-		return LoadBytecode(thread, bytecode, filenameHash);
+		ObjModule* module = LoadBytecode(bytecode, filenameHash);
+		delete bytecode;
+		return module;
 	}
 	return nullptr;
 }
-ObjModule* ScriptManager::LoadBytecode(VMThread* thread, Stream* stream, Uint32 filenameHash) {
+ObjModule* ScriptManager::LoadBytecode(Stream* stream, Uint32 filenameHash) {
 	Bytecode* bytecode = ReadBytecode(stream);
 	if (bytecode) {
-		return LoadBytecode(thread, bytecode, filenameHash);
+		ObjModule* module = LoadBytecode(bytecode, filenameHash);
+		delete bytecode;
+		return module;
 	}
 	return nullptr;
 }
 bool ScriptManager::RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
-	ObjModule* module = LoadBytecode(thread, bytecodeContainer, filenameHash);
+	Bytecode* bytecode = ReadBytecode(bytecodeContainer);
+	if (!bytecode) {
+		return false;
+	}
+
+	ObjModule* module = LoadBytecode(bytecode, filenameHash);
+
+	delete bytecode;
 
 	if (!module) {
 		return false;
 	}
+
+#ifdef VM_DEBUG
+	if (BreakpointsEnabled) {
+		AddModuleBreakpoints(thread, module);
+	}
+#endif
 
 	thread->RunFunction((*module->Functions)[0], 0);
 
 	return true;
 }
 bool ScriptManager::RunBytecode(VMThread* thread, Stream* stream, Uint32 filenameHash) {
-	ObjModule* module = LoadBytecode(thread, stream, filenameHash);
+	Bytecode* bytecode = ReadBytecode(stream);
+	if (!bytecode) {
+		return false;
+	}
+
+	ObjModule* module = LoadBytecode(bytecode, filenameHash);
+
+	delete bytecode;
 
 	if (!module) {
 		return false;
 	}
 
+#ifdef VM_DEBUG
+	if (BreakpointsEnabled) {
+		AddModuleBreakpoints(thread, module);
+	}
+#endif
+
 	thread->RunFunction((*module->Functions)[0], 0);
 
 	return true;
 }
+#ifdef VM_DEBUG
+void ScriptManager::AddModuleBreakpoints(VMThread* thread, ObjModule* module) {
+	for (size_t i = 0; i < module->Functions->size(); i++) {
+		thread->AddFunctionBreakpoints((*module->Functions)[i]);
+	}
+}
+#endif
 bool ScriptManager::CallFunction(const char* functionName) {
 	if (!Globals->Exists(functionName)) {
 		return false;
@@ -997,7 +1026,13 @@ ObjModule* ScriptManager::CompileAndLoad(VMThread* thread, Compiler* compiler, c
 
 		memStream->Seek(0);
 
-		module = ScriptManager::LoadBytecode(thread, memStream, filenameHash);
+		module = LoadBytecode(memStream, filenameHash);
+
+#ifdef VM_DEBUG
+		if (module && BreakpointsEnabled) {
+			AddModuleBreakpoints(thread, module);
+		}
+#endif
 	}
 
 	memStream->Close();
