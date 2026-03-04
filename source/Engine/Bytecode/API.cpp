@@ -1513,7 +1513,7 @@ hsl_Result hsl_field_set(hsl_Object* object, const char* name, hsl_Value* value,
 	return HSL_OK;
 }
 
-hsl_Result hsl_field_set_to_integer(hsl_Object* object, const char* name, int value, hsl_Thread* thread) {
+hsl_Result hsl_field_set_integer(hsl_Object* object, const char* name, int value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !value) {
 		return HSL_INVALID_ARGUMENT;
@@ -1531,7 +1531,7 @@ hsl_Result hsl_field_set_to_integer(hsl_Object* object, const char* name, int va
 	return HSL_OK;
 }
 
-hsl_Result hsl_field_set_to_decimal(hsl_Object* object, const char* name, float value, hsl_Thread* thread) {
+hsl_Result hsl_field_set_decimal(hsl_Object* object, const char* name, float value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !value) {
 		return HSL_INVALID_ARGUMENT;
@@ -1549,7 +1549,7 @@ hsl_Result hsl_field_set_to_decimal(hsl_Object* object, const char* name, float 
 	return HSL_OK;
 }
 
-hsl_Result hsl_field_set_to_string(hsl_Object* object, const char* name, const char* value, hsl_Thread* thread) {
+hsl_Result hsl_field_set_string(hsl_Object* object, const char* name, const char* value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !value) {
 		return HSL_INVALID_ARGUMENT;
@@ -1580,7 +1580,7 @@ hsl_Result hsl_field_set_to_string(hsl_Object* object, const char* name, const c
 	return HSL_OK;
 }
 
-hsl_Result hsl_field_set_to_string_sized(hsl_Object* object, const char* name, const char* value, size_t sz, hsl_Thread* thread) {
+hsl_Result hsl_field_set_string_sized(hsl_Object* object, const char* name, const char* value, size_t sz, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object  || (!value && sz > 0)) {
 		return HSL_INVALID_ARGUMENT;
@@ -1611,7 +1611,7 @@ hsl_Result hsl_field_set_to_string_sized(hsl_Object* object, const char* name, c
 	return HSL_OK;
 }
 
-hsl_Result hsl_field_set_to_object(hsl_Object* object, const char* name, hsl_Object* value, hsl_Thread* thread) {
+hsl_Result hsl_field_set_object(hsl_Object* object, const char* name, hsl_Object* value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !value) {
 		return HSL_INVALID_ARGUMENT;
@@ -1629,7 +1629,7 @@ hsl_Result hsl_field_set_to_object(hsl_Object* object, const char* name, hsl_Obj
 	return HSL_OK;
 }
 
-hsl_Result hsl_field_set_direct(hsl_Object* object, const char* name, hsl_Value* value, hsl_Thread* thread) {
+hsl_Result hsl_field_replace(hsl_Object* object, const char* name, hsl_Value* value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !value) {
 		return HSL_INVALID_ARGUMENT;
@@ -1647,7 +1647,7 @@ hsl_Result hsl_field_set_direct(hsl_Object* object, const char* name, hsl_Value*
 	return HSL_OK;
 }
 
-hsl_Result hsl_field_set_to_integer_direct(hsl_Object* object, const char* name, int value, hsl_Thread* thread) {
+hsl_Result hsl_field_replace_with_integer(hsl_Object* object, const char* name, int value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !value) {
 		return HSL_INVALID_ARGUMENT;
@@ -1665,7 +1665,7 @@ hsl_Result hsl_field_set_to_integer_direct(hsl_Object* object, const char* name,
 	return HSL_OK;
 }
 
-hsl_Result hsl_field_set_to_decimal_direct(hsl_Object* object, const char* name, float value, hsl_Thread* thread) {
+hsl_Result hsl_field_replace_with_decimal(hsl_Object* object, const char* name, float value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !value) {
 		return HSL_INVALID_ARGUMENT;
@@ -1683,7 +1683,7 @@ hsl_Result hsl_field_set_to_decimal_direct(hsl_Object* object, const char* name,
 	return HSL_OK;
 }
 
-hsl_Result hsl_field_set_to_string_direct(hsl_Object* object, const char* name, const char* value, hsl_Thread* thread) {
+hsl_Result hsl_field_replace_with_string(hsl_Object* object, const char* name, const char* value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !value) {
 		return HSL_INVALID_ARGUMENT;
@@ -1710,7 +1710,7 @@ hsl_Result hsl_field_set_to_string_direct(hsl_Object* object, const char* name, 
 	return HSL_OK;
 }
 
-hsl_Result hsl_field_set_to_string_sized_direct(hsl_Object* object, const char* name, const char* value, size_t sz, hsl_Thread* thread) {
+hsl_Result hsl_field_replace_with_string_sized(hsl_Object* object, const char* name, const char* value, size_t sz, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object  || (!value && sz > 0)) {
 		return HSL_INVALID_ARGUMENT;
@@ -1741,7 +1741,7 @@ hsl_Result hsl_field_set_to_string_sized_direct(hsl_Object* object, const char* 
 	return HSL_OK;
 }
 
-hsl_Result hsl_field_set_to_object_direct(hsl_Object* object, const char* name, hsl_Object* value, hsl_Thread* thread) {
+hsl_Result hsl_field_replace_with_object(hsl_Object* object, const char* name, hsl_Object* value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !value) {
 		return HSL_INVALID_ARGUMENT;

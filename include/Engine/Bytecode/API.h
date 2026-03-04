@@ -286,28 +286,28 @@ enum hsl_ValueType hsl_field_type_direct(struct hsl_Object* object, const char* 
 // Sets a field of an object. Calls any setters.
 enum hsl_Result hsl_field_set(struct hsl_Object* object, const char* name, struct hsl_Value* value, struct hsl_Thread* thread);
 // Sets a field of an object to an integer. Calls any setters.
-enum hsl_Result hsl_field_set_to_integer(struct hsl_Object* object, const char* name, int value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_integer(struct hsl_Object* object, const char* name, int value, struct hsl_Thread* thread);
 // Sets a field of an object to a decimal. Calls any setters.
-enum hsl_Result hsl_field_set_to_decimal(struct hsl_Object* object, const char* name, float value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_decimal(struct hsl_Object* object, const char* name, float value, struct hsl_Thread* thread);
 // Sets a field of an object to a string. Calls any setters.
-enum hsl_Result hsl_field_set_to_string(struct hsl_Object* object, const char* name, const char* value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_string(struct hsl_Object* object, const char* name, const char* value, struct hsl_Thread* thread);
 // Sets a field of an object to a string with a specific length. Calls any setters.
-enum hsl_Result hsl_field_set_to_string_sized(struct hsl_Object* object, const char* name, const char* value, size_t sz, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_string_sized(struct hsl_Object* object, const char* name, const char* value, size_t sz, struct hsl_Thread* thread);
 // Sets a field of an object to an object. Calls any setters.
-enum hsl_Result hsl_field_set_to_object(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_object(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
 
 // Sets a field of an object. Doesn't call any setters.
-enum hsl_Result hsl_field_set_direct(struct hsl_Object* object, const char* name, struct hsl_Value* value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_replace(struct hsl_Object* object, const char* name, struct hsl_Value* value, struct hsl_Thread* thread);
 // Sets a field of an object to an integer. Doesn't call any setters.
-enum hsl_Result hsl_field_set_to_integer_direct(struct hsl_Object* object, const char* name, int value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_replace_with_integer(struct hsl_Object* object, const char* name, int value, struct hsl_Thread* thread);
 // Sets a field of an object to a decimal. Doesn't call any setters.
-enum hsl_Result hsl_field_set_to_decimal_direct(struct hsl_Object* object, const char* name, float value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_replace_with_decimal(struct hsl_Object* object, const char* name, float value, struct hsl_Thread* thread);
 // Sets a field of an object to a string. Doesn't call any setters.
-enum hsl_Result hsl_field_set_to_string_direct(struct hsl_Object* object, const char* name, const char* value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_replace_with_string(struct hsl_Object* object, const char* name, const char* value, struct hsl_Thread* thread);
 // Sets a field of an object to a string with a specific length. Doesn't call any setters.
-enum hsl_Result hsl_field_set_to_string_sized_direct(struct hsl_Object* object, const char* name, const char* value, size_t sz, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_replace_with_string_sized(struct hsl_Object* object, const char* name, const char* value, size_t sz, struct hsl_Thread* thread);
 // Sets a field of an object to an object. Doesn't call any setters.
-enum hsl_Result hsl_field_set_to_object_direct(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_replace_with_object(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
 
 // Removes a field from an object.
 enum hsl_Result hsl_remove_field(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
