@@ -1353,6 +1353,14 @@ int hsl_callable_get_min_arity(hsl_Object* callable) {
 	return 0;
 }
 
+hsl_Object* hsl_object_get_class(hsl_Object* object) {
+	if (!object) {
+		return nullptr;
+	}
+
+	return (hsl_Object*)((Obj*)object)->Class;
+}
+
 hsl_Object* hsl_native_new(hsl_Context* context, hsl_NativeFn native) {
 	ScriptManager* manager = (ScriptManager*)context;
 	if (!manager) {

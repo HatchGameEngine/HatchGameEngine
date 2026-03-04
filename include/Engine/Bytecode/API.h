@@ -287,6 +287,9 @@ int hsl_callable_get_arity(struct hsl_Object* callable);
 // Gets the minimum arity of a callable.
 int hsl_callable_get_min_arity(struct hsl_Object* callable);
 
+// Gets the class of the object.
+struct hsl_Object* hsl_object_get_class(struct hsl_Object* object);
+
 // Creates a new native function.
 struct hsl_Object* hsl_native_new(struct hsl_Context* context, hsl_NativeFn native);
 
