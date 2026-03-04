@@ -307,6 +307,9 @@ enum hsl_Result hsl_set_field_to_string_sized_direct(struct hsl_Object* object, 
 // Sets a field of an object to an object. Doesn't call any setters.
 enum hsl_Result hsl_set_field_to_object_direct(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
 
+// Removes a field from an object.
+enum hsl_Result hsl_remove_field(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+
 // Invokes a callable by name for an instance on the stack.
 enum hsl_Result hsl_invoke(struct hsl_Thread* thread, const char* name, size_t num_args);
 // Invokes a callable directly for an instance on the stack.

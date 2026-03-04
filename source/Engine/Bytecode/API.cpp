@@ -1665,6 +1665,58 @@ hsl_Result hsl_set_field_to_object_direct(hsl_Object* object, const char* name, 
 	return HSL_OK;
 }
 
+hsl_Result hsl_remove_field_internal(VMThread* thread, VMValue object, Uint32 hash) {
+	Table* fields = nullptr;
+
+	if (IS_INSTANCEABLE(object)) {
+		ObjInstance* instance = AS_INSTANCE(object);
+		ObjClass* klass = instance->Object.Class;
+		fields = instance->Fields;
+	}
+	else if (IS_CLASS(object)) {
+		ObjClass* klass = AS_CLASS(object);
+		fields = klass->Fields;
+	}
+	else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
+		Obj* objPtr = AS_OBJECT(object);
+		ObjClass* klass = objPtr->Class;
+		fields = klass->Fields;
+	}
+	else {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	if (!thread->Manager->Lock()) {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	if (!fields->Exists(hash)) {
+		thread->Manager->Unlock();
+		return HSL_DOES_NOT_EXIST;
+	}
+
+	fields->Remove(hash);
+
+	thread->Manager->Unlock();
+	return HSL_OK;
+}
+
+hsl_Result hsl_remove_field(hsl_Object* object, const char* name, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	hsl_Result result = hsl_remove_field_internal(vmThread, OBJECT_VAL(object), hash);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
 hsl_Result hsl_invoke(hsl_Thread* thread, const char* name, size_t num_args) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !name) {
