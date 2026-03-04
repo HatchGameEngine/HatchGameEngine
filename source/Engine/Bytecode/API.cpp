@@ -1039,6 +1039,24 @@ hsl_Result hsl_get_field_internal(VMThread* thread, VMValue object, Uint32 hash,
 	return callResult;
 }
 
+int hsl_has_field(hsl_Object* object, const char* name, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return 0;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, true, value);
+	if (result != HSL_OK) {
+		return 0;
+	}
+
+	return 1;
+}
+
 int hsl_get_field_as_integer(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
@@ -1163,6 +1181,24 @@ hsl_ValueType hsl_get_field_type(hsl_Object* object, const char* name, hsl_Threa
 	}
 
 	return ValueTypeToAPIValueType((ValueType)value.Type);
+}
+
+int hsl_has_field_direct(hsl_Object* object, const char* name, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return 0;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, false, value);
+	if (result != HSL_OK) {
+		return 0;
+	}
+
+	return 1;
 }
 
 int hsl_get_field_as_integer_direct(hsl_Object* object, const char* name, hsl_Thread* thread) {

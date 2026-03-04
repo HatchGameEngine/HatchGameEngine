@@ -251,6 +251,8 @@ enum hsl_Result hsl_set_global(struct hsl_Context* context, const char* name, st
 // Removes a global.
 enum hsl_Result hsl_remove_global(struct hsl_Context* context, const char* name);
 
+// Returns 1 if the object has the given field, 0 if it does not. Calls any getters.
+int hsl_has_field(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as an integer. Calls any getters.
 int hsl_get_field_as_integer(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as a decimal. Calls any getters.
@@ -261,9 +263,11 @@ char* hsl_get_field_as_string(struct hsl_Object* object, const char* name, struc
 struct hsl_Object* hsl_get_field_as_object(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Pushes a field of an object into the stack. Calls any getters.
 enum hsl_Result hsl_push_field_to_stack(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
-// Gets the type a field of an object. Calls any getters.
+// Gets the type of a field of an object. Calls any getters.
 enum hsl_ValueType hsl_get_field_type(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 
+// Returns 1 if the object has the given field, 0 if it does not. Doesn't call any getters.
+int hsl_has_field_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as an integer. Doesn't call any getters.
 int hsl_get_field_as_integer_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as a decimal. Doesn't call any getters.
@@ -274,7 +278,7 @@ char* hsl_get_field_as_string_direct(struct hsl_Object* object, const char* name
 struct hsl_Object* hsl_get_field_as_object_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Pushes a field of an object into the stack. Doesn't call any getters.
 enum hsl_Result hsl_push_field_to_stack_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
-// Gets the type a field of an object. Doesn't call any getters.
+// Gets the type of a field of an object. Doesn't call any getters.
 enum hsl_ValueType hsl_get_field_type_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 
 // Sets a field of an object. Calls any setters.
