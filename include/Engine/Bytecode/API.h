@@ -239,73 +239,73 @@ int hsl_global_exists(struct hsl_Context* context, const char* name);
 // Gets the type of a global.
 enum hsl_ValueType hsl_global_type(struct hsl_Context* context, const char* name);
 // Gets a global as an integer.
-int hsl_get_global_as_integer(struct hsl_Context* context, const char* name);
+int hsl_global_as_integer(struct hsl_Context* context, const char* name);
 // Gets a global as a decimal.
-float hsl_get_global_as_decimal(struct hsl_Context* context, const char* name);
+float hsl_global_as_decimal(struct hsl_Context* context, const char* name);
 // Gets a global as a string. This does not return a copy of the string.
-char* hsl_get_global_as_string(struct hsl_Context* context, const char* name);
+char* hsl_global_as_string(struct hsl_Context* context, const char* name);
 // Gets a global as an object.
-struct hsl_Object* hsl_get_global_as_object(struct hsl_Context* context, const char* name);
+struct hsl_Object* hsl_global_as_object(struct hsl_Context* context, const char* name);
 // Sets a global.
-enum hsl_Result hsl_set_global(struct hsl_Context* context, const char* name, struct hsl_Value* value);
+enum hsl_Result hsl_global_set(struct hsl_Context* context, const char* name, struct hsl_Value* value);
 // Removes a global.
-enum hsl_Result hsl_remove_global(struct hsl_Context* context, const char* name);
+enum hsl_Result hsl_global_remove(struct hsl_Context* context, const char* name);
 
 // Returns 1 if the object has the given field, 0 if it does not. Calls any getters.
-int hsl_has_field(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+int hsl_field_exists(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as an integer. Calls any getters.
-int hsl_get_field_as_integer(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+int hsl_field_as_integer(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as a decimal. Calls any getters.
-float hsl_get_field_as_decimal(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+float hsl_field_as_decimal(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as a string. Calls any getters.
-char* hsl_get_field_as_string(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+char* hsl_field_as_string(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as an object. Calls any getters.
-struct hsl_Object* hsl_get_field_as_object(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+struct hsl_Object* hsl_field_as_object(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Pushes a field of an object into the stack. Calls any getters.
-enum hsl_Result hsl_push_field_to_stack(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_push_to_stack(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets the type of a field of an object. Calls any getters.
-enum hsl_ValueType hsl_get_field_type(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+enum hsl_ValueType hsl_field_type(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 
 // Returns 1 if the object has the given field, 0 if it does not. Doesn't call any getters.
-int hsl_has_field_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+int hsl_field_exists_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as an integer. Doesn't call any getters.
-int hsl_get_field_as_integer_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+int hsl_field_as_integer_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as a decimal. Doesn't call any getters.
-float hsl_get_field_as_decimal_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+float hsl_field_as_decimal_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as a string. Doesn't call any getters.
-char* hsl_get_field_as_string_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+char* hsl_field_as_string_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as an object. Doesn't call any getters.
-struct hsl_Object* hsl_get_field_as_object_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+struct hsl_Object* hsl_field_as_object_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Pushes a field of an object into the stack. Doesn't call any getters.
-enum hsl_Result hsl_push_field_to_stack_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_push_to_stack_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets the type of a field of an object. Doesn't call any getters.
-enum hsl_ValueType hsl_get_field_type_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
+enum hsl_ValueType hsl_field_type_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 
 // Sets a field of an object. Calls any setters.
-enum hsl_Result hsl_set_field(struct hsl_Object* object, const char* name, struct hsl_Value* value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set(struct hsl_Object* object, const char* name, struct hsl_Value* value, struct hsl_Thread* thread);
 // Sets a field of an object to an integer. Calls any setters.
-enum hsl_Result hsl_set_field_to_integer(struct hsl_Object* object, const char* name, int value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_to_integer(struct hsl_Object* object, const char* name, int value, struct hsl_Thread* thread);
 // Sets a field of an object to a decimal. Calls any setters.
-enum hsl_Result hsl_set_field_to_decimal(struct hsl_Object* object, const char* name, float value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_to_decimal(struct hsl_Object* object, const char* name, float value, struct hsl_Thread* thread);
 // Sets a field of an object to a string. Calls any setters.
-enum hsl_Result hsl_set_field_to_string(struct hsl_Object* object, const char* name, const char* value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_to_string(struct hsl_Object* object, const char* name, const char* value, struct hsl_Thread* thread);
 // Sets a field of an object to a string with a specific length. Calls any setters.
-enum hsl_Result hsl_set_field_to_string_sized(struct hsl_Object* object, const char* name, const char* value, size_t sz, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_to_string_sized(struct hsl_Object* object, const char* name, const char* value, size_t sz, struct hsl_Thread* thread);
 // Sets a field of an object to an object. Calls any setters.
-enum hsl_Result hsl_set_field_to_object(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_to_object(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
 
 // Sets a field of an object. Doesn't call any setters.
-enum hsl_Result hsl_set_field_direct(struct hsl_Object* object, const char* name, struct hsl_Value* value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_direct(struct hsl_Object* object, const char* name, struct hsl_Value* value, struct hsl_Thread* thread);
 // Sets a field of an object to an integer. Doesn't call any setters.
-enum hsl_Result hsl_set_field_to_integer_direct(struct hsl_Object* object, const char* name, int value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_to_integer_direct(struct hsl_Object* object, const char* name, int value, struct hsl_Thread* thread);
 // Sets a field of an object to a decimal. Doesn't call any setters.
-enum hsl_Result hsl_set_field_to_decimal_direct(struct hsl_Object* object, const char* name, float value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_to_decimal_direct(struct hsl_Object* object, const char* name, float value, struct hsl_Thread* thread);
 // Sets a field of an object to a string. Doesn't call any setters.
-enum hsl_Result hsl_set_field_to_string_direct(struct hsl_Object* object, const char* name, const char* value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_to_string_direct(struct hsl_Object* object, const char* name, const char* value, struct hsl_Thread* thread);
 // Sets a field of an object to a string with a specific length. Doesn't call any setters.
-enum hsl_Result hsl_set_field_to_string_sized_direct(struct hsl_Object* object, const char* name, const char* value, size_t sz, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_to_string_sized_direct(struct hsl_Object* object, const char* name, const char* value, size_t sz, struct hsl_Thread* thread);
 // Sets a field of an object to an object. Doesn't call any setters.
-enum hsl_Result hsl_set_field_to_object_direct(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
+enum hsl_Result hsl_field_set_to_object_direct(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
 
 // Removes a field from an object.
 enum hsl_Result hsl_remove_field(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
