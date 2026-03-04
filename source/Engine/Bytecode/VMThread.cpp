@@ -1,8 +1,8 @@
 #include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Bytecode/VMThread.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
+#include <Engine/Bytecode/VMThread.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Utilities/StringUtils.h>

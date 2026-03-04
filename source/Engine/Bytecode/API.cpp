@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandaloneMain.h>
+#include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/VMThread.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Exceptions/CompilerErrorException.h>
@@ -974,6 +975,322 @@ hsl_Result hsl_remove_global(hsl_Context* context, const char* name) {
 	return HSL_OK;
 }
 
+Uint32 hsl_get_hash_internal(const char* name) {
+	return Murmur::EncryptString(name);
+}
+
+hsl_Result hsl_call_getter_internal(VMThread* thread, Obj* object, ValueGetFn getter, Uint32 hash, VMValue& result) {
+	try {
+		VMValue value;
+		if (getter(object, hash, &value, thread)) {
+			result = value;
+			return HSL_OK;
+		}
+	} catch (const ScriptException& error) {
+		return HSL_RUNTIME_ERROR;
+	}
+
+	return HSL_DOES_NOT_EXIST;
+}
+
+hsl_Result hsl_get_field_internal(VMThread* thread, VMValue object, Uint32 hash, bool callGetter, VMValue& result) {
+	if (!thread->Manager->Lock()) {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	VMValue value;
+
+	hsl_Result callResult = HSL_DOES_NOT_EXIST;
+
+	if (IS_INSTANCEABLE(object)) {
+		ObjInstance* instance = AS_INSTANCE(object);
+		if (instance->Fields->GetIfExists(hash, &value)) {
+			result = Value::Delink(value);
+			callResult = HSL_OK;
+		}
+		else if (callGetter) {
+			callResult = hsl_call_getter_internal(thread, AS_OBJECT(object), instance->PropertyGet, hash, result);
+		}
+	}
+	else if (IS_CLASS(object)) {
+		ObjClass* klass = AS_CLASS(object);
+		if (klass->Fields->GetIfExists(hash, &value)) {
+			result = Value::Delink(value);
+			callResult = HSL_OK;
+		}
+	}
+	else if (IS_NAMESPACE(object)) {
+		ObjNamespace* ns = AS_NAMESPACE(object);
+		if (ns->Fields->GetIfExists(hash, &value)) {
+			result = Value::Delink(result);
+			callResult = HSL_OK;
+		}
+	}
+	else if (callGetter && IS_OBJECT(object) && AS_OBJECT(object)->Class) {
+		Obj* objPtr = AS_OBJECT(object);
+		callResult = hsl_call_getter_internal(thread, AS_OBJECT(object), objPtr->Class->PropertyGet, hash, result);
+	}
+	else {
+		callResult = HSL_INVALID_ARGUMENT;
+	}
+
+	thread->Manager->Unlock();
+
+	return callResult;
+}
+
+int hsl_get_field_as_integer(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return 0;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, true, value);
+	if (result != HSL_OK) {
+		return 0;
+	}
+
+	if (IS_INTEGER(value)) {
+		return AS_INTEGER(value);
+	}
+
+	return 0;
+}
+
+float hsl_get_field_as_decimal(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return 0.0f;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, true, value);
+	if (result != HSL_OK) {
+		return 0.0f;
+	}
+
+	if (IS_DECIMAL(value)) {
+		return AS_DECIMAL(value);
+	}
+
+	return 0.0f;
+}
+
+char* hsl_get_field_as_string(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return nullptr;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, true, value);
+	if (result != HSL_OK) {
+		return nullptr;
+	}
+
+	if (IS_STRING(value)) {
+		return AS_CSTRING(value);
+	}
+
+	return nullptr;
+}
+
+hsl_Object* hsl_get_field_as_object(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return nullptr;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, true, value);
+	if (result != HSL_OK) {
+		return nullptr;
+	}
+
+	if (IS_OBJECT(value)) {
+		return (hsl_Object*)AS_OBJECT(value);
+	}
+
+	return nullptr;
+}
+
+hsl_Result hsl_push_field_to_stack(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, true, value);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	vmThread->Push(value);
+
+	return HSL_OK;
+}
+
+hsl_ValueType hsl_get_field_type(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return HSL_VAL_INVALID;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, true, value);
+	if (result != HSL_OK) {
+		return HSL_VAL_INVALID;
+	}
+
+	return ValueTypeToAPIValueType((ValueType)value.Type);
+}
+
+int hsl_get_field_as_integer_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return 0;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, false, value);
+	if (result != HSL_OK) {
+		return 0;
+	}
+
+	if (IS_INTEGER(value)) {
+		return AS_INTEGER(value);
+	}
+
+	return 0;
+}
+
+float hsl_get_field_as_decimal_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return 0.0f;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, false, value);
+	if (result != HSL_OK) {
+		return 0.0f;
+	}
+
+	if (IS_DECIMAL(value)) {
+		return AS_DECIMAL(value);
+	}
+
+	return 0.0f;
+}
+
+char* hsl_get_field_as_string_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return nullptr;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, false, value);
+	if (result != HSL_OK) {
+		return nullptr;
+	}
+
+	if (IS_STRING(value)) {
+		return AS_CSTRING(value);
+	}
+
+	return nullptr;
+}
+
+hsl_Object* hsl_get_field_as_object_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return nullptr;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, false, value);
+	if (result != HSL_OK) {
+		return nullptr;
+	}
+
+	if (IS_OBJECT(value)) {
+		return (hsl_Object*)AS_OBJECT(value);
+	}
+
+	return nullptr;
+}
+
+hsl_Result hsl_push_field_to_stack_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, false, value);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	vmThread->Push(value);
+
+	return HSL_OK;
+}
+
+hsl_ValueType hsl_get_field_type_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !name) {
+		return HSL_VAL_INVALID;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue value;
+
+	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, false, value);
+	if (result != HSL_OK) {
+		return HSL_VAL_INVALID;
+	}
+
+	return ValueTypeToAPIValueType((ValueType)value.Type);
+}
+
 hsl_Result hsl_invoke(hsl_Thread* thread, const char* name, size_t num_args) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !name) {
@@ -984,7 +1301,7 @@ hsl_Result hsl_invoke(hsl_Thread* thread, const char* name, size_t num_args) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	Uint32 hash = Murmur::EncryptString(name);
+	Uint32 hash = hsl_get_hash_internal(name);
 
 	int status = vmThread->Invoke(vmThread->Peek(num_args), num_args, hash);
 	if (status != INVOKE_OK) {

@@ -40,27 +40,6 @@ enum hsl_Result {
 	HSL_COULD_NOT_INSTANTIATE
 };
 
-enum hsl_ErrorResponse {
-	HSL_ERROR_RES_EXIT,
-	HSL_ERROR_RES_CONTINUE
-};
-
-enum hsl_WithState {
-	HSL_WITH_STATE_INIT,
-	HSL_WITH_STATE_ITERATE,
-	HSL_WITH_STATE_FINISH
-};
-
-enum hsl_LogSeverity {
-	HSL_LOG_VERBOSE = -1,
-	HSL_LOG_INFO,
-	HSL_LOG_WARN,
-	HSL_LOG_ERROR,
-	HSL_LOG_IMPORTANT,
-	HSL_LOG_FATAL,
-	HSL_LOG_API
-};
-
 enum hsl_ValueType {
 	HSL_VAL_INVALID,
 	HSL_VAL_NULL,
@@ -92,11 +71,25 @@ enum hsl_ObjType {
 	HSL_OBJ_NATIVE_INSTANCE
 };
 
-struct hsl_CompilerSettings {
-	int show_warnings;
-	int write_debug_info;
-	int write_source_filename;
-	int do_optimizations;
+enum hsl_ErrorResponse {
+	HSL_ERROR_RES_EXIT,
+	HSL_ERROR_RES_CONTINUE
+};
+
+enum hsl_WithState {
+	HSL_WITH_STATE_INIT,
+	HSL_WITH_STATE_ITERATE,
+	HSL_WITH_STATE_FINISH
+};
+
+enum hsl_LogSeverity {
+	HSL_LOG_VERBOSE = -1,
+	HSL_LOG_INFO,
+	HSL_LOG_WARN,
+	HSL_LOG_ERROR,
+	HSL_LOG_IMPORTANT,
+	HSL_LOG_FATAL,
+	HSL_LOG_API
 };
 
 struct hsl_Context;
@@ -106,6 +99,13 @@ struct hsl_Function;
 struct hsl_Value;
 struct hsl_Object;
 struct hsl_Class;
+
+struct hsl_CompilerSettings {
+	int show_warnings;
+	int write_debug_info;
+	int write_source_filename;
+	int do_optimizations;
+};
 
 typedef int (*hsl_ImportScriptHandler)(const char* name, struct hsl_Thread* thread);
 typedef int (*hsl_ImportClassHandler)(const char* name, struct hsl_Thread* thread);
@@ -251,6 +251,32 @@ struct hsl_Object* hsl_get_global_as_object(struct hsl_Context* context, const c
 enum hsl_Result hsl_set_global(struct hsl_Context* context, const char* name, struct hsl_Value* value);
 // Removes a global.
 enum hsl_Result hsl_remove_global(struct hsl_Context* context, const char* name);
+
+// Gets a field of an object as an integer. Calls any getters.
+int hsl_get_field_as_integer(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
+// Gets a field of an object as a decimal. Calls any getters.
+float hsl_get_field_as_decimal(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
+// Gets a field of an object as a string. Calls any getters.
+char* hsl_get_field_as_string(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
+// Gets a field of an object as a decimal. Calls any getters.
+struct hsl_Object* hsl_get_field_as_object(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
+// Pushes a field of an object into the stack. Calls any getters.
+enum hsl_Result hsl_push_field_to_stack(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
+// Gets the type a field of an object. Calls any getters.
+enum hsl_ValueType hsl_get_field_type(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
+
+// Gets a field of an object as an integer. Doesn't call any getters.
+int hsl_get_field_as_integer_direct(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
+// Gets a field of an object as a decimal. Doesn't call any getters.
+float hsl_get_field_as_decimal_direct(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
+// Gets a field of an object as a string. Doesn't call any getters.
+char* hsl_get_field_as_string_direct(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
+// Gets a field of an object as a decimal. Doesn't call any getters.
+struct hsl_Object* hsl_get_field_as_object_direct(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
+// Pushes a field of an object into the stack. Doesn't call any getters.
+enum hsl_Result hsl_push_field_to_stack_direct(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
+// Gets the type a field of an object. Doesn't call any getters.
+enum hsl_ValueType hsl_get_field_type_direct(struct hsl_Thread* thread, struct hsl_Object* object, const char* name);
 
 // Invokes a callable by name for an instance on the stack.
 enum hsl_Result hsl_invoke(struct hsl_Thread* thread, const char* name, size_t num_args);
