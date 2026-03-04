@@ -1383,6 +1383,41 @@ hsl_Object* hsl_class_new(hsl_Context* context, const char* name) {
 	return nullptr;
 }
 
+int hsl_class_has_method(hsl_Object* object, const char* name) {
+	if (!object || !name) {
+		return 0;
+	}
+
+	if (((Obj*)object)->Type != OBJ_CLASS) {
+		return 0;
+	}
+
+	ObjClass* klass = (ObjClass*)object;
+	if (klass->Methods->Exists(name)) {
+		return 1;
+	}
+
+	return 0;
+}
+
+hsl_Object* hsl_class_get_method(hsl_Object* object, const char* name) {
+	if (!object || !name) {
+		return nullptr;
+	}
+
+	if (((Obj*)object)->Type != OBJ_CLASS) {
+		return nullptr;
+	}
+
+	ObjClass* klass = (ObjClass*)object;
+	if (klass->Methods->Exists(name)) {
+		VMValue callable = klass->Methods->Get(name);
+		return (hsl_Object*)AS_OBJECT(callable);
+	}
+
+	return nullptr;
+}
+
 hsl_Result hsl_class_define_method(hsl_Object* object, const char* name, hsl_Function* function) {
 	if (!object || !name || !function) {
 		return HSL_INVALID_ARGUMENT;

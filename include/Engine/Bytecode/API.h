@@ -98,7 +98,6 @@ struct hsl_Module;
 struct hsl_Function;
 struct hsl_Value;
 struct hsl_Object;
-struct hsl_Class;
 
 struct hsl_CompilerSettings {
 	int show_warnings;
@@ -293,6 +292,10 @@ struct hsl_Object* hsl_native_new(struct hsl_Context* context, hsl_NativeFn nati
 
 // Creates a new class.
 struct hsl_Object* hsl_class_new(struct hsl_Context* context, const char* name);
+// Returns 1 if the class has the given method, 0 if it does not.
+int hsl_class_has_method(struct hsl_Object* object, const char* name);
+// Gets a method in the class.
+struct hsl_Object* hsl_class_get_method(struct hsl_Object* object, const char* name);
 // Defines a method in the class.
 enum hsl_Result hsl_class_define_method(struct hsl_Object* object, const char* name, struct hsl_Function* function);
 // Defines a native function in the class.
@@ -309,7 +312,7 @@ struct hsl_Object* hsl_class_get_parent(struct hsl_Object* object);
 enum hsl_Result hsl_class_set_parent(struct hsl_Object* object, struct hsl_Object* parent);
 
 // Instantiates a class. Doesn't call the initializer.
-struct hsl_Object* hsl_instance_new(struct hsl_Thread* thread, hsl_Object* klass);
+struct hsl_Object* hsl_instance_new(struct hsl_Thread* thread, struct hsl_Object* klass);
 // Instantiates a class on the stack, passing the values from the stack to the initializer.
 enum hsl_Result hsl_instance_new_from_stack(struct hsl_Thread* thread, size_t num_args);
 
