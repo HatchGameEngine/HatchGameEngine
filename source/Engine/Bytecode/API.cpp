@@ -979,11 +979,9 @@ Uint32 hsl_get_hash_internal(const char* name) {
 	return Murmur::EncryptString(name);
 }
 
-hsl_Result hsl_call_getter_internal(VMThread* thread, Obj* object, ValueGetFn getter, Uint32 hash, VMValue& result) {
+hsl_Result hsl_call_getter_internal(VMThread* thread, Obj* object, ValueGetFn getter, Uint32 hash, VMValue* result) {
 	try {
-		VMValue value;
-		if (getter(object, hash, &value, thread)) {
-			result = value;
+		if (getter(object, hash, result, thread)) {
 			return HSL_OK;
 		}
 	} catch (const ScriptException& error) {
@@ -1009,7 +1007,10 @@ hsl_Result hsl_get_field_internal(VMThread* thread, VMValue object, Uint32 hash,
 			callResult = HSL_OK;
 		}
 		else if (callGetter) {
-			callResult = hsl_call_getter_internal(thread, AS_OBJECT(object), instance->PropertyGet, hash, result);
+			callResult = hsl_call_getter_internal(thread, AS_OBJECT(object), instance->PropertyGet, hash, &value);
+			if (callResult == HSL_OK) {
+				result = value;
+			}
 		}
 	}
 	else if (IS_CLASS(object)) {
@@ -1028,7 +1029,51 @@ hsl_Result hsl_get_field_internal(VMThread* thread, VMValue object, Uint32 hash,
 	}
 	else if (callGetter && IS_OBJECT(object) && AS_OBJECT(object)->Class) {
 		Obj* objPtr = AS_OBJECT(object);
-		callResult = hsl_call_getter_internal(thread, AS_OBJECT(object), objPtr->Class->PropertyGet, hash, result);
+		callResult = hsl_call_getter_internal(thread, objPtr, objPtr->Class->PropertyGet, hash, &value);
+		if (callResult == HSL_OK) {
+			result = value;
+		}
+	}
+	else {
+		callResult = HSL_INVALID_ARGUMENT;
+	}
+
+	thread->Manager->Unlock();
+
+	return callResult;
+}
+
+hsl_Result hsl_has_field_internal(VMThread* thread, VMValue object, Uint32 hash, bool callGetter) {
+	if (!thread->Manager->Lock()) {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	hsl_Result callResult = HSL_DOES_NOT_EXIST;
+
+	if (IS_INSTANCEABLE(object)) {
+		ObjInstance* instance = AS_INSTANCE(object);
+		if (instance->Fields->Exists(hash)) {
+			callResult = HSL_OK;
+		}
+		else if (callGetter) {
+			callResult = hsl_call_getter_internal(thread, AS_OBJECT(object), instance->PropertyGet, hash, nullptr);
+		}
+	}
+	else if (IS_CLASS(object)) {
+		ObjClass* klass = AS_CLASS(object);
+		if (klass->Fields->Exists(hash)) {
+			callResult = HSL_OK;
+		}
+	}
+	else if (IS_NAMESPACE(object)) {
+		ObjNamespace* ns = AS_NAMESPACE(object);
+		if (ns->Fields->Exists(hash)) {
+			callResult = HSL_OK;
+		}
+	}
+	else if (callGetter && IS_OBJECT(object) && AS_OBJECT(object)->Class) {
+		Obj* objPtr = AS_OBJECT(object);
+		callResult = hsl_call_getter_internal(thread, objPtr, objPtr->Class->PropertyGet, hash, nullptr);
 	}
 	else {
 		callResult = HSL_INVALID_ARGUMENT;
@@ -1047,9 +1092,7 @@ int hsl_has_field(hsl_Object* object, const char* name, hsl_Thread* thread) {
 
 	Uint32 hash = hsl_get_hash_internal(name);
 
-	VMValue value;
-
-	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, true, value);
+	hsl_Result result = hsl_has_field_internal(vmThread, OBJECT_VAL(object), hash, true);
 	if (result != HSL_OK) {
 		return 0;
 	}
@@ -1191,9 +1234,7 @@ int hsl_has_field_direct(hsl_Object* object, const char* name, hsl_Thread* threa
 
 	Uint32 hash = hsl_get_hash_internal(name);
 
-	VMValue value;
-
-	hsl_Result result = hsl_get_field_internal(vmThread, OBJECT_VAL(object), hash, false, value);
+	hsl_Result result = hsl_has_field_internal(vmThread, OBJECT_VAL(object), hash, false);
 	if (result != HSL_OK) {
 		return 0;
 	}
