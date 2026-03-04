@@ -248,6 +248,8 @@ char* hsl_global_as_string(struct hsl_Context* context, const char* name);
 struct hsl_Object* hsl_global_as_object(struct hsl_Context* context, const char* name);
 // Sets a global.
 enum hsl_Result hsl_global_set(struct hsl_Context* context, const char* name, struct hsl_Value* value);
+// Sets a global directly.
+enum hsl_Result hsl_global_replace(struct hsl_Context* context, const char* name, struct hsl_Value* value);
 // Removes a global.
 enum hsl_Result hsl_global_remove(struct hsl_Context* context, const char* name);
 

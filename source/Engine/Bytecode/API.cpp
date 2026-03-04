@@ -955,7 +955,52 @@ hsl_Result hsl_global_set(hsl_Context* context, const char* name, hsl_Value* val
 		return HSL_INVALID_ARGUMENT;
 	}
 
+	if (!manager->Lock()) {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	hsl_Result result = HSL_OK;
+	VMValue vmValue = *((VMValue*)value);
+
+	VMValue LHS = manager->Globals->Get(name);
+	switch (LHS.Type) {
+	case VAL_LINKED_INTEGER:
+		vmValue = Value::CastAsInteger(vmValue);
+		if (IS_NULL(vmValue)) {
+			result = HSL_INVALID_ARGUMENT;
+			break;
+		}
+		AS_LINKED_INTEGER(LHS) = AS_INTEGER(vmValue);
+		break;
+	case VAL_LINKED_DECIMAL:
+		vmValue = Value::CastAsDecimal(vmValue);
+		if (IS_NULL(vmValue)) {
+			result = HSL_INVALID_ARGUMENT;
+			break;
+		}
+		AS_LINKED_DECIMAL(LHS) = AS_DECIMAL(vmValue);
+		break;
+	default:
+		manager->Globals->Put(name, vmValue);
+		break;
+	}
+
+	manager->Unlock();
+	return result;
+}
+
+hsl_Result hsl_global_replace(hsl_Context* context, const char* name, hsl_Value* value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	if (!manager->Lock()) {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
 	manager->Globals->Put(name, *((VMValue*)value));
+	manager->Unlock();
 
 	return HSL_OK;
 }
@@ -966,11 +1011,18 @@ hsl_Result hsl_global_remove(hsl_Context* context, const char* name) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
+	if (!manager->Lock()) {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
 	if (!manager->Globals->Exists(name)) {
+		manager->Unlock();
 		return HSL_DOES_NOT_EXIST;
 	}
 
 	manager->Globals->Remove(name);
+
+	manager->Unlock();
 
 	return HSL_OK;
 }
@@ -1426,6 +1478,7 @@ hsl_Result hsl_field_set_internal(VMThread* thread, VMValue object, Uint32 hash,
 				break;
 			default:
 				fields->Put(hash, value);
+				break;
 			}
 		}
 	}
