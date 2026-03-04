@@ -198,7 +198,7 @@ enum hsl_Result hsl_push_integer(struct hsl_Thread* thread, int value);
 enum hsl_Result hsl_push_decimal(struct hsl_Thread* thread, float value);
 // Pushes a string to the stack.
 enum hsl_Result hsl_push_string(struct hsl_Thread* thread, const char* value);
-// Pushes a string with a specific length to the stack.
+// Pushes a string of a specific length to the stack.
 enum hsl_Result hsl_push_string_sized(struct hsl_Thread* thread, const char* value, size_t sz);
 // Pushes an object to the stack.
 enum hsl_Result hsl_push_object(struct hsl_Thread* thread, struct hsl_Object* object);
@@ -248,7 +248,7 @@ char* hsl_global_as_string(struct hsl_Context* context, const char* name);
 struct hsl_Object* hsl_global_as_object(struct hsl_Context* context, const char* name);
 // Sets a global.
 enum hsl_Result hsl_global_set(struct hsl_Context* context, const char* name, struct hsl_Value* value);
-// Sets a global directly.
+// Replaces a global directly.
 enum hsl_Result hsl_global_replace(struct hsl_Context* context, const char* name, struct hsl_Value* value);
 // Removes a global.
 enum hsl_Result hsl_global_remove(struct hsl_Context* context, const char* name);
@@ -283,30 +283,30 @@ enum hsl_Result hsl_field_push_to_stack_direct(struct hsl_Object* object, const 
 // Gets the type of a field of an object. Doesn't call any getters.
 enum hsl_ValueType hsl_field_type_direct(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 
-// Sets a field of an object. Calls any setters.
+// Sets a field of an object. Calls setters.
 enum hsl_Result hsl_field_set(struct hsl_Object* object, const char* name, struct hsl_Value* value, struct hsl_Thread* thread);
-// Sets a field of an object to an integer. Calls any setters.
+// Sets a field of an object to an integer. Calls setters.
 enum hsl_Result hsl_field_set_integer(struct hsl_Object* object, const char* name, int value, struct hsl_Thread* thread);
-// Sets a field of an object to a decimal. Calls any setters.
+// Sets a field of an object to a decimal. Calls setters.
 enum hsl_Result hsl_field_set_decimal(struct hsl_Object* object, const char* name, float value, struct hsl_Thread* thread);
-// Sets a field of an object to a string. Calls any setters.
+// Sets a field of an object to a string. Calls setters.
 enum hsl_Result hsl_field_set_string(struct hsl_Object* object, const char* name, const char* value, struct hsl_Thread* thread);
-// Sets a field of an object to a string with a specific length. Calls any setters.
+// Sets a field of an object to a string of a specific length. Calls setters.
 enum hsl_Result hsl_field_set_string_sized(struct hsl_Object* object, const char* name, const char* value, size_t sz, struct hsl_Thread* thread);
-// Sets a field of an object to an object. Calls any setters.
+// Sets a field of an object to an object. Calls setters.
 enum hsl_Result hsl_field_set_object(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
 
-// Sets a field of an object. Doesn't call any setters.
+// Replaces a field of an object directly. Doesn't call any setters.
 enum hsl_Result hsl_field_replace(struct hsl_Object* object, const char* name, struct hsl_Value* value, struct hsl_Thread* thread);
-// Sets a field of an object to an integer. Doesn't call any setters.
+// Replaces a field of an object with an integer directly. Doesn't call any setters.
 enum hsl_Result hsl_field_replace_with_integer(struct hsl_Object* object, const char* name, int value, struct hsl_Thread* thread);
-// Sets a field of an object to a decimal. Doesn't call any setters.
+// Replaces a field of an object with a decimal directly. Doesn't call any setters.
 enum hsl_Result hsl_field_replace_with_decimal(struct hsl_Object* object, const char* name, float value, struct hsl_Thread* thread);
-// Sets a field of an object to a string. Doesn't call any setters.
+// Replaces a field of an object with a string directly. Doesn't call any setters.
 enum hsl_Result hsl_field_replace_with_string(struct hsl_Object* object, const char* name, const char* value, struct hsl_Thread* thread);
-// Sets a field of an object to a string with a specific length. Doesn't call any setters.
+// Replaces a field of an object with a string of a specific length directly. Doesn't call any setters.
 enum hsl_Result hsl_field_replace_with_string_sized(struct hsl_Object* object, const char* name, const char* value, size_t sz, struct hsl_Thread* thread);
-// Sets a field of an object to an object. Doesn't call any setters.
+// Replaces a field of an object with an object directly. Doesn't call any setters.
 enum hsl_Result hsl_field_replace_with_object(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
 
 // Removes a field from an object.
