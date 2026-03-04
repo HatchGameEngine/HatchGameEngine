@@ -603,7 +603,7 @@ hsl_Result hsl_push_string(hsl_Thread* thread, const char* value) {
 	return HSL_COULD_NOT_ACQUIRE_LOCK;
 }
 
-hsl_Result hsl_push_sized_string(hsl_Thread* thread, const char* value, size_t sz) {
+hsl_Result hsl_push_string_sized(hsl_Thread* thread, const char* value, size_t sz) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || (!value && sz > 0)) {
 		return HSL_INVALID_ARGUMENT;
@@ -1039,7 +1039,7 @@ hsl_Result hsl_get_field_internal(VMThread* thread, VMValue object, Uint32 hash,
 	return callResult;
 }
 
-int hsl_get_field_as_integer(hsl_Thread* thread, hsl_Object* object, const char* name) {
+int hsl_get_field_as_integer(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return 0;
@@ -1061,7 +1061,7 @@ int hsl_get_field_as_integer(hsl_Thread* thread, hsl_Object* object, const char*
 	return 0;
 }
 
-float hsl_get_field_as_decimal(hsl_Thread* thread, hsl_Object* object, const char* name) {
+float hsl_get_field_as_decimal(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return 0.0f;
@@ -1083,7 +1083,7 @@ float hsl_get_field_as_decimal(hsl_Thread* thread, hsl_Object* object, const cha
 	return 0.0f;
 }
 
-char* hsl_get_field_as_string(hsl_Thread* thread, hsl_Object* object, const char* name) {
+char* hsl_get_field_as_string(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return nullptr;
@@ -1105,7 +1105,7 @@ char* hsl_get_field_as_string(hsl_Thread* thread, hsl_Object* object, const char
 	return nullptr;
 }
 
-hsl_Object* hsl_get_field_as_object(hsl_Thread* thread, hsl_Object* object, const char* name) {
+hsl_Object* hsl_get_field_as_object(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return nullptr;
@@ -1127,7 +1127,7 @@ hsl_Object* hsl_get_field_as_object(hsl_Thread* thread, hsl_Object* object, cons
 	return nullptr;
 }
 
-hsl_Result hsl_push_field_to_stack(hsl_Thread* thread, hsl_Object* object, const char* name) {
+hsl_Result hsl_push_field_to_stack(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return HSL_INVALID_ARGUMENT;
@@ -1147,7 +1147,7 @@ hsl_Result hsl_push_field_to_stack(hsl_Thread* thread, hsl_Object* object, const
 	return HSL_OK;
 }
 
-hsl_ValueType hsl_get_field_type(hsl_Thread* thread, hsl_Object* object, const char* name) {
+hsl_ValueType hsl_get_field_type(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return HSL_VAL_INVALID;
@@ -1165,7 +1165,7 @@ hsl_ValueType hsl_get_field_type(hsl_Thread* thread, hsl_Object* object, const c
 	return ValueTypeToAPIValueType((ValueType)value.Type);
 }
 
-int hsl_get_field_as_integer_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+int hsl_get_field_as_integer_direct(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return 0;
@@ -1187,7 +1187,7 @@ int hsl_get_field_as_integer_direct(hsl_Thread* thread, hsl_Object* object, cons
 	return 0;
 }
 
-float hsl_get_field_as_decimal_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+float hsl_get_field_as_decimal_direct(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return 0.0f;
@@ -1209,7 +1209,7 @@ float hsl_get_field_as_decimal_direct(hsl_Thread* thread, hsl_Object* object, co
 	return 0.0f;
 }
 
-char* hsl_get_field_as_string_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+char* hsl_get_field_as_string_direct(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return nullptr;
@@ -1231,7 +1231,7 @@ char* hsl_get_field_as_string_direct(hsl_Thread* thread, hsl_Object* object, con
 	return nullptr;
 }
 
-hsl_Object* hsl_get_field_as_object_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+hsl_Object* hsl_get_field_as_object_direct(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return nullptr;
@@ -1253,7 +1253,7 @@ hsl_Object* hsl_get_field_as_object_direct(hsl_Thread* thread, hsl_Object* objec
 	return nullptr;
 }
 
-hsl_Result hsl_push_field_to_stack_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+hsl_Result hsl_push_field_to_stack_direct(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return HSL_INVALID_ARGUMENT;
@@ -1273,7 +1273,7 @@ hsl_Result hsl_push_field_to_stack_direct(hsl_Thread* thread, hsl_Object* object
 	return HSL_OK;
 }
 
-hsl_ValueType hsl_get_field_type_direct(hsl_Thread* thread, hsl_Object* object, const char* name) {
+hsl_ValueType hsl_get_field_type_direct(hsl_Object* object, const char* name, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread || !object || !name) {
 		return HSL_VAL_INVALID;
@@ -1289,6 +1289,344 @@ hsl_ValueType hsl_get_field_type_direct(hsl_Thread* thread, hsl_Object* object, 
 	}
 
 	return ValueTypeToAPIValueType((ValueType)value.Type);
+}
+
+hsl_Result hsl_set_field_internal(VMThread* thread, VMValue object, Uint32 hash, bool callSetter, VMValue value) {
+	Table* fields = nullptr;
+	ValueSetFn setter = nullptr;
+
+	if (IS_INSTANCEABLE(object)) {
+		ObjInstance* instance = AS_INSTANCE(object);
+		ObjClass* klass = instance->Object.Class;
+		fields = instance->Fields;
+		if (callSetter) {
+			setter = instance->PropertySet;
+		}
+	}
+	else if (IS_CLASS(object)) {
+		ObjClass* klass = AS_CLASS(object);
+		fields = klass->Fields;
+	}
+	else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
+		Obj* objPtr = AS_OBJECT(object);
+		ObjClass* klass = objPtr->Class;
+		fields = klass->Fields;
+		if (callSetter) {
+			setter = klass->PropertySet;
+		}
+	}
+	else {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	if (!thread->Manager->Lock()) {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	VMValue field;
+	if (fields->GetIfExists(hash, &field)) {
+		if (!callSetter) {
+			fields->Put(hash, value);
+		}
+		else {
+			VMThread converted;
+			switch (field.Type) {
+			case VAL_LINKED_INTEGER:
+				value = Value::CastAsInteger(value);
+				if (IS_NULL(value)) {
+					thread->Manager->Unlock();
+					return HSL_INVALID_ARGUMENT;
+				}
+				AS_LINKED_INTEGER(field) = AS_INTEGER(value);
+				break;
+			case VAL_LINKED_DECIMAL:
+				value = Value::CastAsDecimal(value);
+				if (IS_NULL(value)) {
+					thread->Manager->Unlock();
+					return HSL_INVALID_ARGUMENT;
+				}
+				AS_LINKED_DECIMAL(field) = AS_DECIMAL(value);
+				break;
+			default:
+				fields->Put(hash, value);
+			}
+		}
+	}
+	else {
+		if (setter && setter(AS_OBJECT(object), hash, value, thread)) {
+			thread->Manager->Unlock();
+			return HSL_OK;
+		}
+
+		fields->Put(hash, value);
+	}
+
+	thread->Manager->Unlock();
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field(hsl_Object* object, const char* name, hsl_Value* value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = *((VMValue*)value);
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, true, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field_to_integer(hsl_Object* object, const char* name, int value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = INTEGER_VAL(value);
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, true, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field_to_decimal(hsl_Object* object, const char* name, float value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = DECIMAL_VAL(value);
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, true, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field_to_string(hsl_Object* object, const char* name, const char* value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = NULL_VAL;
+
+	if (vmThread->Manager->Lock()) {
+		ObjString* string = vmThread->Manager->CopyString(value);
+		if (!string) {
+			vmThread->Manager->Unlock();
+			return HSL_OUT_OF_MEMORY;
+		}
+		vmValue = OBJECT_VAL(string);
+		vmThread->Manager->Unlock();
+	}
+	else {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, true, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field_to_string_sized(hsl_Object* object, const char* name, const char* value, size_t sz, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object  || (!value && sz > 0)) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = NULL_VAL;
+
+	if (vmThread->Manager->Lock()) {
+		ObjString* string = vmThread->Manager->CopyString(value, sz);
+		if (!string) {
+			vmThread->Manager->Unlock();
+			return HSL_OUT_OF_MEMORY;
+		}
+		vmValue = OBJECT_VAL(string);
+		vmThread->Manager->Unlock();
+	}
+	else {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, true, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field_to_object(hsl_Object* object, const char* name, hsl_Object* value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = OBJECT_VAL(value);
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, true, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field_direct(hsl_Object* object, const char* name, hsl_Value* value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = *((VMValue*)value);
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field_to_integer_direct(hsl_Object* object, const char* name, int value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = INTEGER_VAL(value);
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field_to_decimal_direct(hsl_Object* object, const char* name, float value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = DECIMAL_VAL(value);
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field_to_string_direct(hsl_Object* object, const char* name, const char* value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = NULL_VAL;
+
+	if (vmThread->Manager->Lock()) {
+		ObjString* string = vmThread->Manager->CopyString(value);
+		vmValue = OBJECT_VAL(string);
+		vmThread->Manager->Unlock();
+	}
+	else {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field_to_string_sized_direct(hsl_Object* object, const char* name, const char* value, size_t sz, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object  || (!value && sz > 0)) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = NULL_VAL;
+
+	if (vmThread->Manager->Lock()) {
+		ObjString* string = vmThread->Manager->CopyString(value, sz);
+		if (!string) {
+			vmThread->Manager->Unlock();
+			return HSL_OUT_OF_MEMORY;
+		}
+		vmValue = OBJECT_VAL(string);
+		vmThread->Manager->Unlock();
+	}
+	else {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_field_to_object_direct(hsl_Object* object, const char* name, hsl_Object* value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = OBJECT_VAL(value);
+
+	hsl_Result result = hsl_set_field_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
 }
 
 hsl_Result hsl_invoke(hsl_Thread* thread, const char* name, size_t num_args) {
