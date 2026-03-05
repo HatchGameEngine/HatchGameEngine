@@ -248,8 +248,28 @@ char* hsl_global_as_string(struct hsl_Context* context, const char* name);
 struct hsl_Object* hsl_global_as_object(struct hsl_Context* context, const char* name);
 // Sets a global.
 enum hsl_Result hsl_global_set(struct hsl_Context* context, const char* name, struct hsl_Value* value);
+// Sets a global to an integer.
+enum hsl_Result hsl_global_set_integer(struct hsl_Context* context, const char* name, int value);
+// Sets a global to a decimal.
+enum hsl_Result hsl_global_set_decimal(struct hsl_Context* context, const char* name, float value);
+// Sets a global to a string.
+enum hsl_Result hsl_global_set_string(struct hsl_Context* context, const char* name, const char* value);
+// Sets a global to a string of a specific length.
+enum hsl_Result hsl_global_set_string_sized(struct hsl_Context* context, const char* name, const char* value, size_t sz);
+// Sets a global to an object.
+enum hsl_Result hsl_global_set_object(struct hsl_Context* context, const char* name, struct hsl_Object* value);
 // Replaces a global directly.
 enum hsl_Result hsl_global_replace(struct hsl_Context* context, const char* name, struct hsl_Value* value);
+// Replaces a global directly with an integer.
+enum hsl_Result hsl_global_replace_with_integer(struct hsl_Context* context, const char* name, int value);
+// Replaces a global directly with a decimal.
+enum hsl_Result hsl_global_replace_with_decimal(struct hsl_Context* context, const char* name, float value);
+// Replaces a global directly with a string.
+enum hsl_Result hsl_global_replace_with_string(struct hsl_Context* context, const char* name, const char* value);
+// Replaces a global directly with a string of a specific length.
+enum hsl_Result hsl_global_replace_with_string_sized(struct hsl_Context* context, const char* name, const char* value, size_t sz);
+// Replaces a global directly with an object.
+enum hsl_Result hsl_global_replace_with_object(struct hsl_Context* context, const char* name, struct hsl_Object* value);
 // Removes a global.
 enum hsl_Result hsl_global_remove(struct hsl_Context* context, const char* name);
 

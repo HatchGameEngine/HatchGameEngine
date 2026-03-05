@@ -880,11 +880,11 @@ hsl_ValueType hsl_global_type(hsl_Context* context, const char* name) {
 int hsl_global_as_integer(hsl_Context* context, const char* name) {
 	ScriptManager* manager = (ScriptManager*)context;
 	if (!manager || !name) {
-		return HSL_INVALID_ARGUMENT;
+		return 0;
 	}
 
 	if (!manager->Globals->Exists(name)) {
-		return HSL_DOES_NOT_EXIST;
+		return 0;
 	}
 
 	VMValue value = manager->Globals->Get(name);
@@ -898,11 +898,11 @@ int hsl_global_as_integer(hsl_Context* context, const char* name) {
 float hsl_global_as_decimal(hsl_Context* context, const char* name) {
 	ScriptManager* manager = (ScriptManager*)context;
 	if (!manager || !name) {
-		return HSL_INVALID_ARGUMENT;
+		return 0.0f;
 	}
 
 	if (!manager->Globals->Exists(name)) {
-		return HSL_DOES_NOT_EXIST;
+		return 0.0f;
 	}
 
 	VMValue value = manager->Globals->Get(name);
@@ -949,44 +949,130 @@ hsl_Object* hsl_global_as_object(hsl_Context* context, const char* name) {
 	return nullptr;
 }
 
+hsl_Result hsl_global_set_internal(ScriptManager* manager, const char* name, VMValue value, bool replace) {
+	if (!manager->Lock()) {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	if (replace) {
+		manager->Globals->Put(name, value);
+		manager->Unlock();
+		return HSL_OK;
+	}
+
+	hsl_Result result = HSL_OK;
+
+	VMValue LHS = manager->Globals->Get(name);
+	switch (LHS.Type) {
+	case VAL_LINKED_INTEGER:
+		value = Value::CastAsInteger(value);
+		if (IS_NULL(value)) {
+			result = HSL_INVALID_ARGUMENT;
+			break;
+		}
+		AS_LINKED_INTEGER(LHS) = AS_INTEGER(value);
+		break;
+	case VAL_LINKED_DECIMAL:
+		value = Value::CastAsDecimal(value);
+		if (IS_NULL(value)) {
+			result = HSL_INVALID_ARGUMENT;
+			break;
+		}
+		AS_LINKED_DECIMAL(LHS) = AS_DECIMAL(value);
+		break;
+	default:
+		manager->Globals->Put(name, value);
+		break;
+	}
+
+	manager->Unlock();
+	return result;
+}
+
 hsl_Result hsl_global_set(hsl_Context* context, const char* name, hsl_Value* value) {
 	ScriptManager* manager = (ScriptManager*)context;
 	if (!manager || !name || !value) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	if (!manager->Lock()) {
+	VMValue vmValue = *((VMValue*)value);
+
+	return hsl_global_set_internal(manager, name, vmValue, false);
+}
+
+hsl_Result hsl_global_set_integer(hsl_Context* context, const char* name, int value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	return hsl_global_set_internal(manager, name, INTEGER_VAL(value), false);
+}
+
+hsl_Result hsl_global_set_decimal(hsl_Context* context, const char* name, float value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	return hsl_global_set_internal(manager, name, DECIMAL_VAL(value), false);
+}
+
+hsl_Result hsl_global_set_string(hsl_Context* context, const char* name, const char* value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	VMValue vmValue = NULL_VAL;
+
+	if (manager->Lock()) {
+		ObjString* string = manager->CopyString(value);
+		if (!string) {
+			manager->Unlock();
+			return HSL_OUT_OF_MEMORY;
+		}
+		vmValue = OBJECT_VAL(string);
+		manager->Unlock();
+	}
+	else {
 		return HSL_COULD_NOT_ACQUIRE_LOCK;
 	}
 
-	hsl_Result result = HSL_OK;
-	VMValue vmValue = *((VMValue*)value);
+	return hsl_global_set_internal(manager, name, vmValue, false);
+}
 
-	VMValue LHS = manager->Globals->Get(name);
-	switch (LHS.Type) {
-	case VAL_LINKED_INTEGER:
-		vmValue = Value::CastAsInteger(vmValue);
-		if (IS_NULL(vmValue)) {
-			result = HSL_INVALID_ARGUMENT;
-			break;
-		}
-		AS_LINKED_INTEGER(LHS) = AS_INTEGER(vmValue);
-		break;
-	case VAL_LINKED_DECIMAL:
-		vmValue = Value::CastAsDecimal(vmValue);
-		if (IS_NULL(vmValue)) {
-			result = HSL_INVALID_ARGUMENT;
-			break;
-		}
-		AS_LINKED_DECIMAL(LHS) = AS_DECIMAL(vmValue);
-		break;
-	default:
-		manager->Globals->Put(name, vmValue);
-		break;
+hsl_Result hsl_global_set_string_sized(hsl_Context* context, const char* name, const char* value, size_t sz) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name || (!value && sz > 0)) {
+		return HSL_INVALID_ARGUMENT;
 	}
 
-	manager->Unlock();
-	return result;
+	VMValue vmValue = NULL_VAL;
+
+	if (manager->Lock()) {
+		ObjString* string = manager->CopyString(value, sz);
+		if (!string) {
+			manager->Unlock();
+			return HSL_OUT_OF_MEMORY;
+		}
+		vmValue = OBJECT_VAL(string);
+		manager->Unlock();
+	}
+	else {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	return hsl_global_set_internal(manager, name, vmValue, false);
+}
+
+hsl_Result hsl_global_set_object(hsl_Context* context, const char* name, hsl_Object* value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	return hsl_global_set_internal(manager, name, OBJECT_VAL(value), false);
 }
 
 hsl_Result hsl_global_replace(hsl_Context* context, const char* name, hsl_Value* value) {
@@ -995,14 +1081,84 @@ hsl_Result hsl_global_replace(hsl_Context* context, const char* name, hsl_Value*
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	if (!manager->Lock()) {
+	VMValue vmValue = *((VMValue*)value);
+
+	return hsl_global_set_internal(manager, name, vmValue, true);
+}
+
+hsl_Result hsl_global_replace_with_integer(hsl_Context* context, const char* name, int value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	return hsl_global_set_internal(manager, name, INTEGER_VAL(value), true);
+}
+
+hsl_Result hsl_global_replace_with_decimal(hsl_Context* context, const char* name, float value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	return hsl_global_set_internal(manager, name, DECIMAL_VAL(value), true);
+}
+
+hsl_Result hsl_global_replace_with_string(hsl_Context* context, const char* name, const char* value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	VMValue vmValue = NULL_VAL;
+
+	if (manager->Lock()) {
+		ObjString* string = manager->CopyString(value);
+		if (!string) {
+			manager->Unlock();
+			return HSL_OUT_OF_MEMORY;
+		}
+		vmValue = OBJECT_VAL(string);
+		manager->Unlock();
+	}
+	else {
 		return HSL_COULD_NOT_ACQUIRE_LOCK;
 	}
 
-	manager->Globals->Put(name, *((VMValue*)value));
-	manager->Unlock();
+	return hsl_global_set_internal(manager, name, vmValue, true);
+}
 
-	return HSL_OK;
+hsl_Result hsl_global_replace_with_string_sized(hsl_Context* context, const char* name, const char* value, size_t sz) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name || (!value && sz > 0)) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	VMValue vmValue = NULL_VAL;
+
+	if (manager->Lock()) {
+		ObjString* string = manager->CopyString(value, sz);
+		if (!string) {
+			manager->Unlock();
+			return HSL_OUT_OF_MEMORY;
+		}
+		vmValue = OBJECT_VAL(string);
+		manager->Unlock();
+	}
+	else {
+		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	}
+
+	return hsl_global_set_internal(manager, name, vmValue, true);
+}
+
+hsl_Result hsl_global_replace_with_object(hsl_Context* context, const char* name, hsl_Object* value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	return hsl_global_set_internal(manager, name, OBJECT_VAL(value), true);
 }
 
 hsl_Result hsl_global_remove(hsl_Context* context, const char* name) {
@@ -1582,7 +1738,7 @@ hsl_Result hsl_field_set_string(hsl_Object* object, const char* name, const char
 
 hsl_Result hsl_field_set_string_sized(hsl_Object* object, const char* name, const char* value, size_t sz, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
-	if (!vmThread || !object  || (!value && sz > 0)) {
+	if (!vmThread || !object || (!value && sz > 0)) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
@@ -1712,7 +1868,7 @@ hsl_Result hsl_field_replace_with_string(hsl_Object* object, const char* name, c
 
 hsl_Result hsl_field_replace_with_string_sized(hsl_Object* object, const char* name, const char* value, size_t sz, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
-	if (!vmThread || !object  || (!value && sz > 0)) {
+	if (!vmThread || !object || (!value && sz > 0)) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
