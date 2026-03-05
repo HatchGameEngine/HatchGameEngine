@@ -93,6 +93,7 @@ enum hsl_LogSeverity {
 };
 
 struct hsl_Context;
+struct hsl_Compiler;
 struct hsl_Thread;
 struct hsl_Module;
 struct hsl_Function;
@@ -115,17 +116,17 @@ typedef void (*hsl_LogCallback)(int level, const char* text);
 typedef int (*hsl_NativeFn)(int num_args, struct hsl_Value* args, struct hsl_Thread* thread, struct hsl_Value* result);
 
 // Returns the HSL version the library was compiled with.
-const char* hsl_get_version();
+const char* hsl_get_version(void);
 
 // Initializes the library.
-enum hsl_Result hsl_init();
+enum hsl_Result hsl_init(void);
 // Disposes of the library.
-void hsl_finish();
+void hsl_finish(void);
 
 // Creates a context.
-struct hsl_Context* hsl_new_context();
+struct hsl_Context* hsl_context_new(void);
 // Disposes of a context.
-enum hsl_Result hsl_free_context(struct hsl_Context* context);
+enum hsl_Result hsl_context_free(struct hsl_Context* context);
 
 // Sets the directory where scripts are located. This is only used for the debugger.
 enum hsl_Result hsl_set_scripts_directory(const char* directory);
@@ -141,15 +142,21 @@ enum hsl_Result hsl_set_runtime_error_handler(struct hsl_Context* context, hsl_R
 enum hsl_Result hsl_set_log_callback(hsl_LogCallback callback);
 
 // Creates a new thread.
-struct hsl_Thread* hsl_new_thread(struct hsl_Context* context);
-// Disposes of a thread.
-void hsl_free_thread(struct hsl_Thread* thread);
+struct hsl_Thread* hsl_thread_new(struct hsl_Context* context);
+// Gets the context that the thread belongs to.
+struct hsl_Context* hsl_thread_get_context(struct hsl_Thread* thread);
+// Disposes of the thread.
+void hsl_thread_free(struct hsl_Thread* thread);
 
-// Gets the context that a thread belongs to.
-struct hsl_Context* hsl_get_thread_context(struct hsl_Thread* thread);
+// Creates a new compiler.
+struct hsl_Compiler* hsl_compiler_new(struct hsl_Context* context);
+// Sets the settings of the compiler.
+enum hsl_Result hsl_compiler_set_settings(struct hsl_Compiler* compiler, struct hsl_CompilerSettings* settings);
+// Disposes of the compiler.
+enum hsl_Result hsl_compiler_free(struct hsl_Compiler* compiler);
 
 // Compiles a script into bytecode.
-enum hsl_Result hsl_compile(struct hsl_Context* context, const char* code, struct hsl_CompilerSettings* settings, char** out_bytecode, size_t *out_size, const char* input_filename);
+enum hsl_Result hsl_compile(struct hsl_Compiler* compiler, const char* code, char** out_bytecode, size_t *out_size, const char* input_filename);
 // Compiles a script into bytecode, and loads the bytecode.
 struct hsl_Module* hsl_load_script(struct hsl_Context* context, const char* code, struct hsl_CompilerSettings* settings, const char* input_filename);
 // Loads bytecode.

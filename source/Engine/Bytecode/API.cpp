@@ -86,12 +86,12 @@ void hsl_finish() {
 	DisposeSubsystems();
 }
 
-hsl_Context* hsl_new_context() {
+hsl_Context* hsl_context_new() {
 	ScriptManager* manager = new ScriptManager;
 	return (hsl_Context*)manager;
 }
 
-hsl_Result hsl_free_context(hsl_Context* context) {
+hsl_Result hsl_context_free(hsl_Context* context) {
 	ScriptManager* manager = (ScriptManager*)context;
 	if (!manager) {
 		return HSL_INVALID_ARGUMENT;
@@ -158,7 +158,7 @@ hsl_Result hsl_set_log_callback(hsl_LogCallback callback) {
 	return HSL_OK;
 }
 
-hsl_Thread* hsl_new_thread(hsl_Context* context) {
+hsl_Thread* hsl_thread_new(hsl_Context* context) {
 	ScriptManager* manager = (ScriptManager*)context;
 	if (!manager) {
 		return nullptr;
@@ -172,16 +172,7 @@ hsl_Thread* hsl_new_thread(hsl_Context* context) {
 	return (hsl_Thread*)vmThread;
 }
 
-void hsl_free_thread(hsl_Thread* thread) {
-	VMThread* vmThread = (VMThread*)thread;
-	if (!vmThread) {
-		return;
-	}
-
-	vmThread->Manager->DisposeThread(vmThread);
-}
-
-hsl_Context* hsl_get_thread_context(hsl_Thread* thread) {
+hsl_Context* hsl_thread_get_context(hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
 	if (!vmThread) {
 		return nullptr;
@@ -190,14 +181,34 @@ hsl_Context* hsl_get_thread_context(hsl_Thread* thread) {
 	return (hsl_Context*)vmThread->Manager;
 }
 
-hsl_Result hsl_compile_internal(ScriptManager* manager, const char* code, hsl_CompilerSettings* settings, MemoryStream** stream, const char* input_filename) {
-	if (!manager || !code || !settings || !stream) {
-		return HSL_INVALID_ARGUMENT;
+void hsl_thread_free(hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread) {
+		return;
 	}
 
-	MemoryStream* memStream = MemoryStream::New(0x100);
-	if (!memStream) {
-		return HSL_OUT_OF_MEMORY;
+	vmThread->Manager->DisposeThread(vmThread);
+}
+
+hsl_Compiler* hsl_compiler_new(hsl_Context* context) {
+	if (!context) {
+		return nullptr;
+	}
+
+	Compiler* compiler = new Compiler((ScriptManager*)context);
+	compiler->InREPL = false;
+	compiler->CurrentSettings = Compiler::Settings;
+	compiler->Type = FUNCTIONTYPE_TOPLEVEL;
+	compiler->ScopeDepth = 0;
+	compiler->Initialize();
+	compiler->SetupLocals();
+
+	return (hsl_Compiler*)compiler;
+}
+
+hsl_Result hsl_compiler_set_settings(hsl_Compiler* compiler, hsl_CompilerSettings* settings) {
+	if (!compiler) {
+		return HSL_INVALID_ARGUMENT;
 	}
 
 	CompilerSettings currentSettings = Compiler::Settings;
@@ -208,29 +219,47 @@ hsl_Result hsl_compile_internal(ScriptManager* manager, const char* code, hsl_Co
 		currentSettings.DoOptimizations = settings->do_optimizations;
 	}
 
+	Compiler* compilerPtr = (Compiler*)compiler;
+	compilerPtr->CurrentSettings = currentSettings;
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_compiler_free(hsl_Compiler* compiler) {
+	if (!compiler) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Compiler* compilerPtr = (Compiler*)compiler;
+	delete compilerPtr;
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_compile_internal(Compiler* compiler, const char* code, MemoryStream** stream, const char* input_filename) {
+	if (!compiler || !code || !stream) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	MemoryStream* memStream = MemoryStream::New(0x100);
+	if (!memStream) {
+		return HSL_OUT_OF_MEMORY;
+	}
+
 	Compiler::PrepareCompiling();
 
-	Compiler* compiler = new Compiler(manager);
-	compiler->InREPL = false;
-	compiler->CurrentSettings = currentSettings;
-	compiler->Type = FUNCTIONTYPE_TOPLEVEL;
-	compiler->ScopeDepth = 0;
-	compiler->Initialize();
-	compiler->SetupLocals();
-
-	if (manager->LastCompileError) {
-		Memory::Free(manager->LastCompileError);
-		manager->LastCompileError = nullptr;
+	if (compiler->Manager->LastCompileError) {
+		Memory::Free(compiler->Manager->LastCompileError);
+		compiler->Manager->LastCompileError = nullptr;
 	}
 
 	bool didCompile = false;
 	try {
 		didCompile = compiler->Compile(input_filename, code, memStream);
 	} catch (const CompilerErrorException& error) {
-		manager->LastCompileError = StringUtils::Duplicate(error.what());
+		compiler->Manager->LastCompileError = StringUtils::Duplicate(error.what());
 	}
 
-	delete compiler;
 	Compiler::FinishCompiling();
 
 	if (!didCompile) {
@@ -242,10 +271,10 @@ hsl_Result hsl_compile_internal(ScriptManager* manager, const char* code, hsl_Co
 	return HSL_OK;
 }
 
-hsl_Result hsl_compile(hsl_Context* context, const char* code, hsl_CompilerSettings* settings, char** out_bytecode, size_t *out_size, const char* input_filename) {
+hsl_Result hsl_compile(hsl_Compiler* compiler, const char* code, char** out_bytecode, size_t *out_size, const char* input_filename) {
 	MemoryStream* memStream = nullptr;
 
-	hsl_Result result = hsl_compile_internal((ScriptManager*)context, code, settings, &memStream, input_filename);
+	hsl_Result result = hsl_compile_internal((Compiler*)compiler, code, &memStream, input_filename);
 	if (result != HSL_OK) {
 		return result;
 	}
@@ -263,21 +292,32 @@ hsl_Result hsl_compile(hsl_Context* context, const char* code, hsl_CompilerSetti
 hsl_Module* hsl_load_script(hsl_Context* context, const char* code, hsl_CompilerSettings* settings, const char* input_filename) {
 	MemoryStream* memStream = nullptr;
 	ObjModule* loadedModule = nullptr;
-	ScriptManager* manager = (ScriptManager*)context;
+	hsl_Compiler* compiler = hsl_compiler_new(context);
+	if (!compiler) {
+		return nullptr;
+	}
 
-	hsl_Result result = hsl_compile_internal(manager, code, settings, &memStream, input_filename);
+	if (settings) {
+		hsl_compiler_set_settings(compiler, settings);
+	}
+
+	Compiler* compilerPtr = (Compiler*)compiler;
+	hsl_Result result = hsl_compile_internal(compilerPtr, code, &memStream, input_filename);
 	if (result != HSL_OK) {
+		hsl_compiler_free(compiler);
 		return nullptr;
 	}
 
 	Uint32 filenameHash = 0xABCDABCD;
 	if (input_filename) {
-		filenameHash = manager->MakeFilenameHash(input_filename);
+		filenameHash = ScriptManager::MakeFilenameHash(input_filename);
 	}
 
 	memStream->Seek(0);
-	loadedModule = manager->LoadBytecode(memStream, filenameHash);
+	loadedModule = compilerPtr->Manager->LoadBytecode(memStream, filenameHash);
 	memStream->Close();
+
+	hsl_compiler_free(compiler);
 
 	return (hsl_Module*)loadedModule;
 }
@@ -290,7 +330,7 @@ hsl_Module* hsl_load_bytecode(hsl_Context* context, char* code, size_t size, con
 
 	Uint32 filenameHash = 0xABCDABCD;
 	if (input_filename) {
-		filenameHash = manager->MakeFilenameHash(input_filename);
+		filenameHash = ScriptManager::MakeFilenameHash(input_filename);
 	}
 
 	MemoryStream* memStream = MemoryStream::New(code, size);
