@@ -273,6 +273,33 @@ enum hsl_Result hsl_global_replace_with_object(struct hsl_Context* context, cons
 // Removes a global.
 enum hsl_Result hsl_global_remove(struct hsl_Context* context, const char* name);
 
+// Returns 1 if the constant exists, 0 if not.
+int hsl_constant_exists(struct hsl_Context* context, const char* name);
+// Gets the type of a constant.
+enum hsl_ValueType hsl_constant_type(struct hsl_Context* context, const char* name);
+// Gets a constant as an integer.
+int hsl_constant_as_integer(struct hsl_Context* context, const char* name);
+// Gets a constant as a decimal.
+float hsl_constant_as_decimal(struct hsl_Context* context, const char* name);
+// Gets a constant as a string. This does not return a copy of the string.
+char* hsl_constant_as_string(struct hsl_Context* context, const char* name);
+// Gets a constant as an object.
+struct hsl_Object* hsl_constant_as_object(struct hsl_Context* context, const char* name);
+// Defines a constant.
+enum hsl_Result hsl_constant_define(struct hsl_Context* context, const char* name, struct hsl_Value* value);
+// Defines an integer constant.
+enum hsl_Result hsl_constant_define_integer(struct hsl_Context* context, const char* name, int value);
+// Defines a decimal constant.
+enum hsl_Result hsl_constant_define_decimal(struct hsl_Context* context, const char* name, float value);
+// Defines a string constant.
+enum hsl_Result hsl_constant_define_string(struct hsl_Context* context, const char* name, const char* value);
+// Defines a string constant of a specific length.
+enum hsl_Result hsl_constant_define_string_sized(struct hsl_Context* context, const char* name, const char* value, size_t sz);
+// Defines an object constant.
+enum hsl_Result hsl_constant_define_object(struct hsl_Context* context, const char* name, struct hsl_Object* value);
+// Removes a constant.
+enum hsl_Result hsl_constant_remove(struct hsl_Context* context, const char* name);
+
 // Returns 1 if the object has the given field, 0 if it does not. Calls any getters.
 int hsl_field_exists(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);
 // Gets a field of an object as an integer. Calls any getters.
