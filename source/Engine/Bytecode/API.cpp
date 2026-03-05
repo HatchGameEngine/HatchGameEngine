@@ -654,17 +654,11 @@ hsl_Result hsl_push_string(hsl_Thread* thread, const char* value) {
 		return HSL_STACK_OVERFLOW;
 	}
 
-	if (vmThread->Manager->Lock()) {
-		ObjString* string = vmThread->Manager->CopyString(value);
+	ObjString* string = vmThread->Manager->CopyString(value);
 
-		vmThread->Push(OBJECT_VAL(string));
+	vmThread->Push(OBJECT_VAL(string));
 
-		vmThread->Manager->Unlock();
-
-		return HSL_OK;
-	}
-
-	return HSL_COULD_NOT_ACQUIRE_LOCK;
+	return HSL_OK;
 }
 
 hsl_Result hsl_push_string_sized(hsl_Thread* thread, const char* value, size_t sz) {
@@ -677,21 +671,14 @@ hsl_Result hsl_push_string_sized(hsl_Thread* thread, const char* value, size_t s
 		return HSL_STACK_OVERFLOW;
 	}
 
-	if (vmThread->Manager->Lock()) {
-		ObjString* string = vmThread->Manager->CopyString(value, sz);
-		if (!string) {
-			vmThread->Manager->Unlock();
-			return HSL_OUT_OF_MEMORY;
-		}
-
-		vmThread->Push(OBJECT_VAL(string));
-
-		vmThread->Manager->Unlock();
-
-		return HSL_OK;
+	ObjString* string = vmThread->Manager->CopyString(value, sz);
+	if (!string) {
+		return HSL_OUT_OF_MEMORY;
 	}
 
-	return HSL_COULD_NOT_ACQUIRE_LOCK;
+	vmThread->Push(OBJECT_VAL(string));
+
+	return HSL_OK;
 }
 
 hsl_Result hsl_push_object(hsl_Thread* thread, hsl_Object* object) {
@@ -915,13 +902,8 @@ hsl_Result hsl_copy_null(hsl_Value* dest) {
 }
 
 hsl_Result hsl_table_set_internal(ScriptManager* manager, Table* table, const char* name, VMValue value, bool replace) {
-	if (!manager->Lock()) {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
-	}
-
 	if (replace) {
 		table->Put(name, value);
-		manager->Unlock();
 		return HSL_OK;
 	}
 
@@ -950,7 +932,6 @@ hsl_Result hsl_table_set_internal(ScriptManager* manager, Table* table, const ch
 		break;
 	}
 
-	manager->Unlock();
 	return result;
 }
 
@@ -1088,22 +1069,12 @@ hsl_Result hsl_global_set_string(hsl_Context* context, const char* name, const c
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	VMValue vmValue = NULL_VAL;
-
-	if (manager->Lock()) {
-		ObjString* string = manager->CopyString(value);
-		if (!string) {
-			manager->Unlock();
-			return HSL_OUT_OF_MEMORY;
-		}
-		vmValue = OBJECT_VAL(string);
-		manager->Unlock();
-	}
-	else {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	ObjString* string = manager->CopyString(value);
+	if (!string) {
+		return HSL_OUT_OF_MEMORY;
 	}
 
-	return hsl_table_set_internal(manager, manager->Globals, name, vmValue, false);
+	return hsl_table_set_internal(manager, manager->Globals, name, OBJECT_VAL(string), false);
 }
 
 hsl_Result hsl_global_set_string_sized(hsl_Context* context, const char* name, const char* value, size_t sz) {
@@ -1112,22 +1083,12 @@ hsl_Result hsl_global_set_string_sized(hsl_Context* context, const char* name, c
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	VMValue vmValue = NULL_VAL;
-
-	if (manager->Lock()) {
-		ObjString* string = manager->CopyString(value, sz);
-		if (!string) {
-			manager->Unlock();
-			return HSL_OUT_OF_MEMORY;
-		}
-		vmValue = OBJECT_VAL(string);
-		manager->Unlock();
-	}
-	else {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	ObjString* string = manager->CopyString(value, sz);
+	if (!string) {
+		return HSL_OUT_OF_MEMORY;
 	}
 
-	return hsl_table_set_internal(manager, manager->Globals, name, vmValue, false);
+	return hsl_table_set_internal(manager, manager->Globals, name, OBJECT_VAL(string), false);
 }
 
 hsl_Result hsl_global_set_object(hsl_Context* context, const char* name, hsl_Object* value) {
@@ -1174,22 +1135,12 @@ hsl_Result hsl_global_replace_with_string(hsl_Context* context, const char* name
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	VMValue vmValue = NULL_VAL;
-
-	if (manager->Lock()) {
-		ObjString* string = manager->CopyString(value);
-		if (!string) {
-			manager->Unlock();
-			return HSL_OUT_OF_MEMORY;
-		}
-		vmValue = OBJECT_VAL(string);
-		manager->Unlock();
-	}
-	else {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	ObjString* string = manager->CopyString(value);
+	if (!string) {
+		return HSL_OUT_OF_MEMORY;
 	}
 
-	return hsl_table_set_internal(manager, manager->Globals, name, vmValue, true);
+	return hsl_table_set_internal(manager, manager->Globals, name, OBJECT_VAL(string), true);
 }
 
 hsl_Result hsl_global_replace_with_string_sized(hsl_Context* context, const char* name, const char* value, size_t sz) {
@@ -1198,22 +1149,12 @@ hsl_Result hsl_global_replace_with_string_sized(hsl_Context* context, const char
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	VMValue vmValue = NULL_VAL;
-
-	if (manager->Lock()) {
-		ObjString* string = manager->CopyString(value, sz);
-		if (!string) {
-			manager->Unlock();
-			return HSL_OUT_OF_MEMORY;
-		}
-		vmValue = OBJECT_VAL(string);
-		manager->Unlock();
-	}
-	else {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	ObjString* string = manager->CopyString(value, sz);
+	if (!string) {
+		return HSL_OUT_OF_MEMORY;
 	}
 
-	return hsl_table_set_internal(manager, manager->Globals, name, vmValue, true);
+	return hsl_table_set_internal(manager, manager->Globals, name, OBJECT_VAL(string), true);
 }
 
 hsl_Result hsl_global_replace_with_object(hsl_Context* context, const char* name, hsl_Object* value) {
@@ -1231,18 +1172,11 @@ hsl_Result hsl_global_remove(hsl_Context* context, const char* name) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	if (!manager->Lock()) {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
-	}
-
 	if (!manager->Globals->Exists(name)) {
-		manager->Unlock();
 		return HSL_DOES_NOT_EXIST;
 	}
 
 	manager->Globals->Remove(name);
-
-	manager->Unlock();
 
 	return HSL_OK;
 }
@@ -1381,22 +1315,12 @@ hsl_Result hsl_constant_define_string(hsl_Context* context, const char* name, co
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	VMValue vmValue = NULL_VAL;
-
-	if (manager->Lock()) {
-		ObjString* string = manager->CopyString(value);
-		if (!string) {
-			manager->Unlock();
-			return HSL_OUT_OF_MEMORY;
-		}
-		vmValue = OBJECT_VAL(string);
-		manager->Unlock();
-	}
-	else {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	ObjString* string = manager->CopyString(value);
+	if (!string) {
+		return HSL_OUT_OF_MEMORY;
 	}
 
-	return hsl_table_set_internal(manager, manager->Constants, name, vmValue, true);
+	return hsl_table_set_internal(manager, manager->Constants, name, OBJECT_VAL(string), true);
 }
 
 hsl_Result hsl_constant_define_string_sized(hsl_Context* context, const char* name, const char* value, size_t sz) {
@@ -1405,22 +1329,12 @@ hsl_Result hsl_constant_define_string_sized(hsl_Context* context, const char* na
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	VMValue vmValue = NULL_VAL;
-
-	if (manager->Lock()) {
-		ObjString* string = manager->CopyString(value, sz);
-		if (!string) {
-			manager->Unlock();
-			return HSL_OUT_OF_MEMORY;
-		}
-		vmValue = OBJECT_VAL(string);
-		manager->Unlock();
-	}
-	else {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	ObjString* string = manager->CopyString(value, sz);
+	if (!string) {
+		return HSL_OUT_OF_MEMORY;
 	}
 
-	return hsl_table_set_internal(manager, manager->Constants, name, vmValue, true);
+	return hsl_table_set_internal(manager, manager->Constants, name, OBJECT_VAL(string), true);
 }
 
 hsl_Result hsl_constant_define_object(hsl_Context* context, const char* name, hsl_Object* value) {
@@ -1438,18 +1352,11 @@ hsl_Result hsl_constant_remove(hsl_Context* context, const char* name) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	if (!manager->Lock()) {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
-	}
-
 	if (!manager->Constants->Exists(name)) {
-		manager->Unlock();
 		return HSL_DOES_NOT_EXIST;
 	}
 
 	manager->Constants->Remove(name);
-
-	manager->Unlock();
 
 	return HSL_OK;
 }
@@ -1471,10 +1378,6 @@ hsl_Result hsl_call_getter_internal(VMThread* thread, Obj* object, ValueGetFn ge
 }
 
 hsl_Result hsl_get_field_internal(VMThread* thread, VMValue object, Uint32 hash, bool callGetter, VMValue& result) {
-	if (!thread->Manager->Lock()) {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
-	}
-
 	VMValue value;
 
 	hsl_Result callResult = HSL_DOES_NOT_EXIST;
@@ -1517,16 +1420,10 @@ hsl_Result hsl_get_field_internal(VMThread* thread, VMValue object, Uint32 hash,
 		callResult = HSL_INVALID_ARGUMENT;
 	}
 
-	thread->Manager->Unlock();
-
 	return callResult;
 }
 
 hsl_Result hsl_field_exists_internal(VMThread* thread, VMValue object, Uint32 hash, bool callGetter) {
-	if (!thread->Manager->Lock()) {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
-	}
-
 	hsl_Result callResult = HSL_DOES_NOT_EXIST;
 
 	if (IS_INSTANCEABLE(object)) {
@@ -1557,8 +1454,6 @@ hsl_Result hsl_field_exists_internal(VMThread* thread, VMValue object, Uint32 ha
 	else {
 		callResult = HSL_INVALID_ARGUMENT;
 	}
-
-	thread->Manager->Unlock();
 
 	return callResult;
 }
@@ -1875,10 +1770,6 @@ hsl_Result hsl_field_set_internal(VMThread* thread, VMValue object, Uint32 hash,
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	if (!thread->Manager->Lock()) {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
-	}
-
 	VMValue field;
 	if (fields->GetIfExists(hash, &field)) {
 		if (!callSetter) {
@@ -1890,7 +1781,6 @@ hsl_Result hsl_field_set_internal(VMThread* thread, VMValue object, Uint32 hash,
 			case VAL_LINKED_INTEGER:
 				value = Value::CastAsInteger(value);
 				if (IS_NULL(value)) {
-					thread->Manager->Unlock();
 					return HSL_INVALID_ARGUMENT;
 				}
 				AS_LINKED_INTEGER(field) = AS_INTEGER(value);
@@ -1898,7 +1788,6 @@ hsl_Result hsl_field_set_internal(VMThread* thread, VMValue object, Uint32 hash,
 			case VAL_LINKED_DECIMAL:
 				value = Value::CastAsDecimal(value);
 				if (IS_NULL(value)) {
-					thread->Manager->Unlock();
 					return HSL_INVALID_ARGUMENT;
 				}
 				AS_LINKED_DECIMAL(field) = AS_DECIMAL(value);
@@ -1911,14 +1800,12 @@ hsl_Result hsl_field_set_internal(VMThread* thread, VMValue object, Uint32 hash,
 	}
 	else {
 		if (setter && setter(AS_OBJECT(object), hash, value, thread)) {
-			thread->Manager->Unlock();
 			return HSL_OK;
 		}
 
 		fields->Put(hash, value);
 	}
 
-	thread->Manager->Unlock();
 	return HSL_OK;
 }
 
@@ -1984,22 +1871,12 @@ hsl_Result hsl_field_set_string(hsl_Object* object, const char* name, const char
 
 	Uint32 hash = hsl_get_hash_internal(name);
 
-	VMValue vmValue = NULL_VAL;
-
-	if (vmThread->Manager->Lock()) {
-		ObjString* string = vmThread->Manager->CopyString(value);
-		if (!string) {
-			vmThread->Manager->Unlock();
-			return HSL_OUT_OF_MEMORY;
-		}
-		vmValue = OBJECT_VAL(string);
-		vmThread->Manager->Unlock();
-	}
-	else {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	ObjString* string = vmThread->Manager->CopyString(value);
+	if (!string) {
+		return HSL_OUT_OF_MEMORY;
 	}
 
-	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, true, vmValue);
+	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, true, OBJECT_VAL(string));
 	if (result != HSL_OK) {
 		return result;
 	}
@@ -2015,22 +1892,12 @@ hsl_Result hsl_field_set_string_sized(hsl_Object* object, const char* name, cons
 
 	Uint32 hash = hsl_get_hash_internal(name);
 
-	VMValue vmValue = NULL_VAL;
-
-	if (vmThread->Manager->Lock()) {
-		ObjString* string = vmThread->Manager->CopyString(value, sz);
-		if (!string) {
-			vmThread->Manager->Unlock();
-			return HSL_OUT_OF_MEMORY;
-		}
-		vmValue = OBJECT_VAL(string);
-		vmThread->Manager->Unlock();
-	}
-	else {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	ObjString* string = vmThread->Manager->CopyString(value, sz);
+	if (!string) {
+		return HSL_OUT_OF_MEMORY;
 	}
 
-	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, true, vmValue);
+	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, true, OBJECT_VAL(string));
 	if (result != HSL_OK) {
 		return result;
 	}
@@ -2118,18 +1985,12 @@ hsl_Result hsl_field_replace_with_string(hsl_Object* object, const char* name, c
 
 	Uint32 hash = hsl_get_hash_internal(name);
 
-	VMValue vmValue = NULL_VAL;
-
-	if (vmThread->Manager->Lock()) {
-		ObjString* string = vmThread->Manager->CopyString(value);
-		vmValue = OBJECT_VAL(string);
-		vmThread->Manager->Unlock();
-	}
-	else {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	ObjString* string = vmThread->Manager->CopyString(value);
+	if (!string) {
+		return HSL_OUT_OF_MEMORY;
 	}
 
-	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
+	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, false, OBJECT_VAL(string));
 	if (result != HSL_OK) {
 		return result;
 	}
@@ -2145,22 +2006,12 @@ hsl_Result hsl_field_replace_with_string_sized(hsl_Object* object, const char* n
 
 	Uint32 hash = hsl_get_hash_internal(name);
 
-	VMValue vmValue = NULL_VAL;
-
-	if (vmThread->Manager->Lock()) {
-		ObjString* string = vmThread->Manager->CopyString(value, sz);
-		if (!string) {
-			vmThread->Manager->Unlock();
-			return HSL_OUT_OF_MEMORY;
-		}
-		vmValue = OBJECT_VAL(string);
-		vmThread->Manager->Unlock();
-	}
-	else {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
+	ObjString* string = vmThread->Manager->CopyString(value, sz);
+	if (!string) {
+		return HSL_OUT_OF_MEMORY;
 	}
 
-	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
+	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, false, OBJECT_VAL(string));
 	if (result != HSL_OK) {
 		return result;
 	}
@@ -2207,18 +2058,12 @@ hsl_Result hsl_remove_field_internal(VMThread* thread, VMValue object, Uint32 ha
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	if (!thread->Manager->Lock()) {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
-	}
-
 	if (!fields->Exists(hash)) {
-		thread->Manager->Unlock();
 		return HSL_DOES_NOT_EXIST;
 	}
 
 	fields->Remove(hash);
 
-	thread->Manager->Unlock();
 	return HSL_OK;
 }
 
@@ -2314,13 +2159,8 @@ hsl_Object* hsl_native_new(hsl_Context* context, hsl_NativeFn native) {
 		return nullptr;
 	}
 
-	if (manager->Lock()) {
-		ObjAPINative* nativeObj = manager->NewAPINative((APINativeFn)native);
-		manager->Unlock();
-		return (hsl_Object*)nativeObj;
-	}
-
-	return nullptr;
+	ObjAPINative* nativeObj = manager->NewAPINative((APINativeFn)native);
+	return (hsl_Object*)nativeObj;
 }
 
 hsl_Object* hsl_class_new(hsl_Context* context, const char* name) {
@@ -2329,13 +2169,8 @@ hsl_Object* hsl_class_new(hsl_Context* context, const char* name) {
 		return nullptr;
 	}
 
-	if (manager->Lock()) {
-		ObjClass* klass = manager->NewClass(name);
-		manager->Unlock();
-		return (hsl_Object*)klass;
-	}
-
-	return nullptr;
+	ObjClass* klass = manager->NewClass(name);
+	return (hsl_Object*)klass;
 }
 
 int hsl_class_has_method(hsl_Object* object, const char* name) {
@@ -2520,14 +2355,7 @@ hsl_Object* hsl_instance_new(hsl_Thread* thread, hsl_Object* klass) {
 		return nullptr;
 	}
 
-	if (!vmThread->Manager->Lock()) {
-		return nullptr;
-	}
-
 	Obj* instance = hsl_instance_new_internal(vmThread, (ObjClass*)klass);
-
-	vmThread->Manager->Unlock();
-
 	return (hsl_Object*)instance;
 }
 
@@ -2546,31 +2374,23 @@ hsl_Result hsl_instance_new_from_stack(hsl_Thread* thread, size_t num_args) {
 		return HSL_COULD_NOT_CALL;
 	}
 
-	if (!vmThread->Manager->Lock()) {
-		return HSL_COULD_NOT_ACQUIRE_LOCK;
-	}
-
 	ObjClass* klass = AS_CLASS(callee);
 	Obj* instance = hsl_instance_new_internal(vmThread, (ObjClass*)klass);
 	if (instance == nullptr) {
 		vmThread->StackTop[-num_args - 1] = NULL_VAL;
-		vmThread->Manager->Unlock();
 		return HSL_COULD_NOT_INSTANTIATE;
 	}
 
 	vmThread->StackTop[-num_args - 1] = OBJECT_VAL(instance);
 
 	if (HasInitializer(klass)) {
-		vmThread->Manager->Unlock();
 		Obj* callable = AS_OBJECT(klass->Initializer);
 		return hsl_invoke_callable(thread, (hsl_Object*)callable, num_args);
 	}
 	else if (num_args != 0) {
-		vmThread->Manager->Unlock();
 		return HSL_ARG_COUNT_MISMATCH;
 	}
 
-	vmThread->Manager->Unlock();
 	return HSL_OK;
 }
 
@@ -2580,13 +2400,8 @@ hsl_Object* hsl_array_new(hsl_Context* context) {
 		return nullptr;
 	}
 
-	if (manager->Lock()) {
-		ObjArray* array = manager->NewArray();
-		manager->Unlock();
-		return (hsl_Object*)array;
-	}
-
-	return nullptr;
+	ObjArray* array = manager->NewArray();
+	return (hsl_Object*)array;
 }
 
 hsl_Object* hsl_array_new_from_stack(hsl_Thread* thread, size_t count) {
@@ -2599,20 +2414,15 @@ hsl_Object* hsl_array_new_from_stack(hsl_Thread* thread, size_t count) {
 		return nullptr;
 	}
 
-	if (vmThread->Manager->Lock()) {
-		ObjArray* array = vmThread->Manager->NewArray();
-		array->Values->reserve(count);
-		for (int i = (int)count - 1; i >= 0; i--) {
-			array->Values->push_back(vmThread->Peek(i));
-		}
-		for (int i = (int)count - 1; i >= 0; i--) {
-			vmThread->Pop();
-		}
-		vmThread->Manager->Unlock();
-		return (hsl_Object*)array;
+	ObjArray* array = vmThread->Manager->NewArray();
+	array->Values->reserve(count);
+	for (int i = (int)count - 1; i >= 0; i--) {
+		array->Values->push_back(vmThread->Peek(i));
 	}
-
-	return nullptr;
+	for (int i = (int)count - 1; i >= 0; i--) {
+		vmThread->Pop();
+	}
+	return (hsl_Object*)array;
 }
 
 
