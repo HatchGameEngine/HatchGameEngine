@@ -91,6 +91,30 @@ hsl_Context* hsl_context_new() {
 	return (hsl_Context*)manager;
 }
 
+hsl_Result hsl_context_lock(hsl_Context* context) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	if (manager->Lock()) {
+		return HSL_OK;
+	}
+
+	return HSL_COULD_NOT_ACQUIRE_LOCK;
+}
+
+hsl_Result hsl_context_unlock(hsl_Context* context) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	manager->Unlock();
+
+	return HSL_OK;
+}
+
 hsl_Result hsl_context_free(hsl_Context* context) {
 	ScriptManager* manager = (ScriptManager*)context;
 	if (!manager) {

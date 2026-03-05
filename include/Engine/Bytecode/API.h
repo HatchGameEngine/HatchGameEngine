@@ -125,7 +125,11 @@ void hsl_finish(void);
 
 // Creates a context.
 struct hsl_Context* hsl_context_new(void);
-// Disposes of a context.
+// Acquires a lock on the context.
+enum hsl_Result hsl_context_lock(struct hsl_Context* context);
+// Releases a previously acquired lock on the context.
+enum hsl_Result hsl_context_unlock(struct hsl_Context* context);
+// Disposes of the context.
 enum hsl_Result hsl_context_free(struct hsl_Context* context);
 
 // Sets the directory where scripts are located. This is only used for the debugger.
