@@ -308,7 +308,26 @@ endif()
 
 # HSL library
 if(BUILD_LIBHSL)
-  add_library(libhsl SHARED ${HSL_MAIN_SOURCES} source/Engine/Bytecode/API.cpp source/Engine/Bytecode/StandaloneMain.cpp)
+  add_library(libhsl SHARED
+    ${HSL_MAIN_SOURCES}
+    source/Engine/Bytecode/API/API.cpp
+    source/Engine/Bytecode/API/Array.cpp
+    source/Engine/Bytecode/API/Call.cpp
+    source/Engine/Bytecode/API/Callable.cpp
+    source/Engine/Bytecode/API/Class.cpp
+    source/Engine/Bytecode/API/Compiler.cpp
+    source/Engine/Bytecode/API/Context.cpp
+    source/Engine/Bytecode/API/Global.cpp
+    source/Engine/Bytecode/API/Instance.cpp
+    source/Engine/Bytecode/API/Module.cpp
+    source/Engine/Bytecode/API/Native.cpp
+    source/Engine/Bytecode/API/Object.cpp
+    source/Engine/Bytecode/API/Script.cpp
+    source/Engine/Bytecode/API/Stack.cpp
+    source/Engine/Bytecode/API/Thread.cpp
+    source/Engine/Bytecode/API/Value.cpp
+    source/Engine/Bytecode/StandaloneMain.cpp
+  )
   set_target_properties(libhsl PROPERTIES OUTPUT_NAME hsl)
   set_target_properties(libhsl PROPERTIES VERSION 0.0.1 SOVERSION 0)
 
