@@ -84,9 +84,10 @@ public:
 	HashMap<ObjModule*>* Modules = nullptr;
 	HashMap<char*>* Tokens = nullptr;
 	vector<ObjNamespace*> AllNamespaces;
+#endif
+
 #ifdef USE_SDL
 	SDL_mutex* GlobalLock = nullptr;
-#endif
 #endif
 
 	HashMap<VMValue>* Constants = nullptr;
@@ -123,7 +124,7 @@ public:
 	static void Init();
 	static void Dispose();
 	bool Lock();
-	void Unlock();
+	bool Unlock();
 #ifdef HSL_VM
 	VMThread* NewThread();
 	void DisposeThread(VMThread* thread);

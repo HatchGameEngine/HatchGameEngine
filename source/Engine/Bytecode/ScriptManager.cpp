@@ -92,10 +92,6 @@ ScriptManager::ScriptManager() {
 	Modules = new HashMap<ObjModule*>(NULL, 8);
 	Tokens = new HashMap<char*>(NULL, 64);
 
-#ifdef USE_SDL
-	GlobalLock = SDL_CreateMutex();
-#endif
-
 #ifdef VM_DEBUG
 	SourceFiles = new HashMap<SourceFile*>(NULL, 8);
 #endif
@@ -137,6 +133,10 @@ ScriptManager::ScriptManager() {
 	Application::Settings->GetBool("dev", "enableScriptBreakpoints", &BreakpointsEnabled);
 #endif
 #endif
+#endif
+
+#ifdef USE_SDL
+	GlobalLock = SDL_CreateMutex();
 #endif
 }
 void ScriptManager::Init() {
@@ -273,13 +273,6 @@ ScriptManager::~ScriptManager() {
 		SourceFiles = NULL;
 	}
 #endif
-
-#ifdef USE_SDL
-	if (GlobalLock) {
-		SDL_DestroyMutex(GlobalLock);
-		GlobalLock = NULL;
-	}
-#endif
 #endif
 
 	if (ImplArray) {
@@ -323,6 +316,13 @@ ScriptManager::~ScriptManager() {
 	if (ImplShader) {
 		delete ImplShader;
 		ImplShader = nullptr;
+	}
+#endif
+
+#ifdef USE_SDL
+	if (GlobalLock) {
+		SDL_DestroyMutex(GlobalLock);
+		GlobalLock = nullptr;
 	}
 #endif
 }
@@ -481,27 +481,21 @@ void ScriptManager::DestroyObject(Obj* object) {
 
 // #region GlobalFuncs
 bool ScriptManager::Lock() {
-#ifdef HSL_VM
-	if (ScriptManager::ThreadCount == 1) {
-		return true;
-	}
-
-#ifdef USE_SDL
+#ifdef HSL_STANDALONE
+	return LockScriptManager((void*)this);
+#elif defined(USE_SDL)
 	return SDL_LockMutex(GlobalLock) == 0;
 #else
 	return true;
 #endif
+}
+bool ScriptManager::Unlock() {
+#ifdef HSL_STANDALONE
+	return UnlockScriptManager((void*)this);
+#elif defined(USE_SDL)
+	return SDL_UnlockMutex(GlobalLock) == 0;
 #else
 	return true;
-#endif
-}
-void ScriptManager::Unlock() {
-#ifdef HSL_VM
-#ifdef USE_SDL
-	if (ScriptManager::ThreadCount > 1) {
-		SDL_UnlockMutex(GlobalLock);
-	}
-#endif
 #endif
 }
 

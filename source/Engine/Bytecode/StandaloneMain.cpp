@@ -15,10 +15,6 @@
 #include <Engine/Diagnostics/Clock.h>
 #endif
 
-#ifdef HSL_LIBRARY
-hsl_RuntimeErrorHandler VMRuntimeErrorHandler;
-#endif
-
 #ifdef HSL_COMPILER
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/SourceFileMap.h>
@@ -69,6 +65,9 @@ bool DoOptimizations = true;
 bool WriteDebugInfo = true;
 bool WriteSourceFilename = true;
 #endif
+
+hsl_LockFunction LockFunction = nullptr;
+hsl_UnlockFunction UnlockFunction = nullptr;
 
 #ifdef HSL_STANDALONE_RUNNER
 bool ExecuteCode = true;
@@ -168,6 +167,30 @@ void SetScriptsDirectory(const char* path) {
 	}
 
 	ScriptsDirectory = std::string(path);
+}
+
+bool LockScriptManager(void* manager) {
+	if (!LockFunction || !UnlockFunction) {
+		return true;
+	}
+
+	return LockFunction((hsl_Context*)manager);
+}
+
+bool UnlockScriptManager(void* manager) {
+	if (!LockFunction || !UnlockFunction) {
+		return true;
+	}
+
+	return UnlockFunction((hsl_Context*)manager);
+}
+
+void SetScriptManagerLockFunction(hsl_LockFunction function) {
+	LockFunction = function;
+}
+
+void SetScriptManagerUnlockFunction(hsl_UnlockFunction function) {
+	UnlockFunction = function;
 }
 
 const char* GetVersionText() {

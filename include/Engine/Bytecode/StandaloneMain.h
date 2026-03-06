@@ -4,9 +4,9 @@
 #ifdef HSL_STANDALONE
 #include <string>
 
-#ifdef HSL_LIBRARY
 #include <Engine/Bytecode/API.h>
-#else
+
+#ifndef HSL_LIBRARY
 int StandaloneMain(int argc, char* args[]);
 #endif
 
@@ -14,6 +14,12 @@ bool InStandaloneREPL();
 
 void InitSubsystems();
 void DisposeSubsystems();
+
+bool LockScriptManager(void* manager);
+bool UnlockScriptManager(void* manager);
+
+void SetScriptManagerLockFunction(hsl_LockFunction function);
+void SetScriptManagerUnlockFunction(hsl_UnlockFunction function);
 
 void StandaloneExit(std::string error);
 

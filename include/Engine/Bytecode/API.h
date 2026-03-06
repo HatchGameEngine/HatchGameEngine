@@ -24,6 +24,7 @@ enum hsl_Result {
 	HSL_INVALID_ARGUMENT,
 	HSL_OUT_OF_MEMORY,
 	HSL_COULD_NOT_ACQUIRE_LOCK,
+	HSL_COULD_NOT_RELEASE_LOCK,
 	HSL_COMPILE_ERROR,
 	HSL_ARG_COUNT_MISMATCH,
 	HSL_NOT_ENOUGH_ARGS,
@@ -111,6 +112,8 @@ typedef int (*hsl_ImportScriptHandler)(const char* name, struct hsl_Thread* thre
 typedef int (*hsl_ImportClassHandler)(const char* name, struct hsl_Thread* thread);
 typedef int (*hsl_WithIteratorHandler)(int state, struct hsl_Value* receiver, int* index, struct hsl_Value* new_receiver);
 typedef enum hsl_ErrorResponse (*hsl_RuntimeErrorHandler)(enum hsl_Result result, const char* text);
+typedef int (*hsl_LockFunction)(struct hsl_Context* context);
+typedef int (*hsl_UnlockFunction)(struct hsl_Context* context);
 typedef void (*hsl_LogCallback)(int level, const char* text);
 
 typedef int (*hsl_NativeFn)(int num_args, struct hsl_Value* args, struct hsl_Thread* thread, struct hsl_Value* result);
@@ -123,6 +126,15 @@ enum hsl_Result hsl_init(void);
 // Disposes of the library.
 void hsl_finish(void);
 
+// Sets the directory where scripts are located. This is only used for the debugger.
+enum hsl_Result hsl_set_scripts_directory(const char* directory);
+// Sets the lock function.
+enum hsl_Result hsl_set_lock_function(hsl_LockFunction function);
+// Sets the unlock function.
+enum hsl_Result hsl_set_unlock_function(hsl_UnlockFunction function);
+// Sets the log callback.
+enum hsl_Result hsl_set_log_callback(hsl_LogCallback callback);
+
 // Creates a context.
 struct hsl_Context* hsl_context_new(void);
 // Acquires a lock on the context.
@@ -132,8 +144,6 @@ enum hsl_Result hsl_context_unlock(struct hsl_Context* context);
 // Disposes of the context.
 enum hsl_Result hsl_context_free(struct hsl_Context* context);
 
-// Sets the directory where scripts are located. This is only used for the debugger.
-enum hsl_Result hsl_set_scripts_directory(const char* directory);
 // Sets the handler for 'import from' statements.
 enum hsl_Result hsl_set_import_script_handler(struct hsl_Context* context, hsl_ImportScriptHandler handler);
 // Sets the handler for 'import' statements.
@@ -142,8 +152,6 @@ enum hsl_Result hsl_set_import_class_handler(struct hsl_Context* context, hsl_Im
 enum hsl_Result hsl_set_with_iterator_handler(struct hsl_Context* context, hsl_WithIteratorHandler handler);
 // Sets the runtime error handler.
 enum hsl_Result hsl_set_runtime_error_handler(struct hsl_Context* context, hsl_RuntimeErrorHandler handler);
-// Sets the log callback.
-enum hsl_Result hsl_set_log_callback(hsl_LogCallback callback);
 
 // Creates a new thread.
 struct hsl_Thread* hsl_thread_new(struct hsl_Context* context);

@@ -86,6 +86,30 @@ void hsl_finish() {
 	DisposeSubsystems();
 }
 
+hsl_Result hsl_set_scripts_directory(const char* directory) {
+	SetScriptsDirectory(directory);
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_lock_function(hsl_LockFunction function) {
+	SetScriptManagerLockFunction(function);
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_unlock_function(hsl_UnlockFunction function) {
+	SetScriptManagerUnlockFunction(function);
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_set_log_callback(hsl_LogCallback callback) {
+	Log::SetCallback(callback);
+
+	return HSL_OK;
+}
+
 hsl_Context* hsl_context_new() {
 	ScriptManager* manager = new ScriptManager;
 	return (hsl_Context*)manager;
@@ -110,9 +134,11 @@ hsl_Result hsl_context_unlock(hsl_Context* context) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	manager->Unlock();
+	if (manager->Unlock()) {
+		return HSL_OK;
+	}
 
-	return HSL_OK;
+	return HSL_COULD_NOT_RELEASE_LOCK;
 }
 
 hsl_Result hsl_context_free(hsl_Context* context) {
@@ -122,12 +148,6 @@ hsl_Result hsl_context_free(hsl_Context* context) {
 	}
 
 	delete manager;
-
-	return HSL_OK;
-}
-
-hsl_Result hsl_set_scripts_directory(const char* directory) {
-	SetScriptsDirectory(directory);
 
 	return HSL_OK;
 }
@@ -172,12 +192,6 @@ hsl_Result hsl_set_runtime_error_handler(hsl_Context* context, hsl_RuntimeErrorH
 	}
 
 	manager->RuntimeErrorHandler = handler;
-
-	return HSL_OK;
-}
-
-hsl_Result hsl_set_log_callback(hsl_LogCallback callback) {
-	Log::SetCallback(callback);
 
 	return HSL_OK;
 }
