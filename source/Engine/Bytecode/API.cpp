@@ -837,7 +837,13 @@ hsl_Result hsl_stack_set(hsl_Thread* thread, hsl_Value* value, size_t index) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	*stackPointer = *((VMValue*)value);
+	VMValue vmValue = *(VMValue*)value;
+
+	if (IS_LINKED_INTEGER(vmValue) || IS_LINKED_DECIMAL(vmValue)) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	*stackPointer = vmValue;
 
 	return HSL_OK;
 }
@@ -1054,7 +1060,7 @@ hsl_Result hsl_global_set(hsl_Context* context, const char* name, hsl_Value* val
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	VMValue vmValue = *((VMValue*)value);
+	VMValue vmValue = *(VMValue*)value;
 
 	return hsl_table_set_internal(manager, manager->Globals, name, vmValue, false);
 }
@@ -1120,7 +1126,7 @@ hsl_Result hsl_global_replace(hsl_Context* context, const char* name, hsl_Value*
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	VMValue vmValue = *((VMValue*)value);
+	VMValue vmValue = *(VMValue*)value;
 
 	return hsl_table_set_internal(manager, manager->Globals, name, vmValue, true);
 }
@@ -1300,7 +1306,7 @@ hsl_Result hsl_constant_define(hsl_Context* context, const char* name, hsl_Value
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	VMValue vmValue = *((VMValue*)value);
+	VMValue vmValue = *(VMValue*)value;
 
 	return hsl_table_set_internal(manager, manager->Constants, name, vmValue, true);
 }
@@ -1831,7 +1837,7 @@ hsl_Result hsl_field_set(hsl_Object* object, const char* name, hsl_Value* value,
 
 	Uint32 hash = hsl_get_hash_internal(name);
 
-	VMValue vmValue = *((VMValue*)value);
+	VMValue vmValue = *(VMValue*)value;
 
 	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, true, vmValue);
 	if (result != HSL_OK) {
@@ -1945,7 +1951,7 @@ hsl_Result hsl_field_replace(hsl_Object* object, const char* name, hsl_Value* va
 
 	Uint32 hash = hsl_get_hash_internal(name);
 
-	VMValue vmValue = *((VMValue*)value);
+	VMValue vmValue = *(VMValue*)value;
 
 	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
 	if (result != HSL_OK) {
@@ -2449,9 +2455,15 @@ hsl_Result hsl_array_push(hsl_Object* object, hsl_Value* value) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
+	VMValue vmValue = *(VMValue*)value;
+
+	if (IS_LINKED_INTEGER(vmValue) || IS_LINKED_DECIMAL(vmValue) || IS_LOCATION(vmValue)) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
 	ObjArray* array = (ObjArray*)object;
 
-	array->Values->push_back(*((VMValue*)value));
+	array->Values->push_back(vmValue);
 
 	return HSL_OK;
 }
@@ -2509,7 +2521,13 @@ hsl_Result hsl_array_set(hsl_Object* object, int index, hsl_Value* value) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
-	(*array->Values)[index] = *((VMValue*)value);
+	VMValue vmValue = *(VMValue*)value;
+
+	if (IS_LINKED_INTEGER(vmValue) || IS_LINKED_DECIMAL(vmValue) || IS_LOCATION(vmValue)) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	(*array->Values)[index] = vmValue;
 
 	return HSL_OK;
 }
