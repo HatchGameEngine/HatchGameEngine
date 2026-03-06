@@ -289,6 +289,10 @@ enum hsl_Result hsl_global_replace_with_string(struct hsl_Context* context, cons
 enum hsl_Result hsl_global_replace_with_string_sized(struct hsl_Context* context, const char* name, const char* value, size_t sz);
 // Replaces a global directly with an object.
 enum hsl_Result hsl_global_replace_with_object(struct hsl_Context* context, const char* name, struct hsl_Object* value);
+// Replaces a global directly with a linked integer.
+enum hsl_Result hsl_global_replace_with_linked_integer(struct hsl_Context* context, const char* name, int* value);
+// Replaces a global directly with a linked decimal.
+enum hsl_Result hsl_global_replace_with_linked_decimal(struct hsl_Context* context, const char* name, float* value);
 // Removes a global.
 enum hsl_Result hsl_global_remove(struct hsl_Context* context, const char* name);
 
@@ -316,6 +320,10 @@ enum hsl_Result hsl_constant_define_string(struct hsl_Context* context, const ch
 enum hsl_Result hsl_constant_define_string_sized(struct hsl_Context* context, const char* name, const char* value, size_t sz);
 // Defines an object constant.
 enum hsl_Result hsl_constant_define_object(struct hsl_Context* context, const char* name, struct hsl_Object* value);
+// Defines a linked integer constant.
+enum hsl_Result hsl_constant_define_linked_integer(struct hsl_Context* context, const char* name, int* value);
+// Defines a linked decimal constant.
+enum hsl_Result hsl_constant_define_linked_decimal(struct hsl_Context* context, const char* name, float* value);
 // Removes a constant.
 enum hsl_Result hsl_constant_remove(struct hsl_Context* context, const char* name);
 
@@ -374,6 +382,10 @@ enum hsl_Result hsl_field_replace_with_string(struct hsl_Object* object, const c
 enum hsl_Result hsl_field_replace_with_string_sized(struct hsl_Object* object, const char* name, const char* value, size_t sz, struct hsl_Thread* thread);
 // Replaces a field of an object with an object directly. Doesn't call any setters.
 enum hsl_Result hsl_field_replace_with_object(struct hsl_Object* object, const char* name, struct hsl_Object* value, struct hsl_Thread* thread);
+// Replaces a field of an object with a linked integer directly. Doesn't call any setters.
+enum hsl_Result hsl_field_replace_with_linked_integer(struct hsl_Object* object, const char* name, int* value, struct hsl_Thread* thread);
+// Replaces a field of an object with a linked decimal directly. Doesn't call any setters.
+enum hsl_Result hsl_field_replace_with_linked_decimal(struct hsl_Object* object, const char* name, float* value, struct hsl_Thread* thread);
 
 // Removes a field from an object.
 enum hsl_Result hsl_remove_field(struct hsl_Object* object, const char* name, struct hsl_Thread* thread);

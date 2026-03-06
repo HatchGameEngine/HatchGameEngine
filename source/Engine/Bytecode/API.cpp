@@ -1186,6 +1186,24 @@ hsl_Result hsl_global_replace_with_object(hsl_Context* context, const char* name
 	return hsl_table_set_internal(manager, manager->Globals, name, OBJECT_VAL(value), true);
 }
 
+hsl_Result hsl_global_replace_with_linked_integer(hsl_Context* context, const char* name, int* value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	return hsl_table_set_internal(manager, manager->Globals, name, INTEGER_LINK_VAL(value), true);
+}
+
+hsl_Result hsl_global_replace_with_linked_decimal(hsl_Context* context, const char* name, float* value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	return hsl_table_set_internal(manager, manager->Globals, name, DECIMAL_LINK_VAL(value), true);
+}
+
 hsl_Result hsl_global_remove(hsl_Context* context, const char* name) {
 	ScriptManager* manager = (ScriptManager*)context;
 	if (!manager || !name) {
@@ -1364,6 +1382,24 @@ hsl_Result hsl_constant_define_object(hsl_Context* context, const char* name, hs
 	}
 
 	return hsl_table_set_internal(manager, manager->Constants, name, OBJECT_VAL(value), true);
+}
+
+hsl_Result hsl_constant_define_linked_integer(hsl_Context* context, const char* name, int* value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	return hsl_table_set_internal(manager, manager->Constants, name, INTEGER_LINK_VAL(value), true);
+}
+
+hsl_Result hsl_constant_define_linked_decimal(hsl_Context* context, const char* name, float* value) {
+	ScriptManager* manager = (ScriptManager*)context;
+	if (!manager || !name || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	return hsl_table_set_internal(manager, manager->Constants, name, DECIMAL_LINK_VAL(value), true);
 }
 
 hsl_Result hsl_constant_remove(hsl_Context* context, const char* name) {
@@ -1849,7 +1885,7 @@ hsl_Result hsl_field_set(hsl_Object* object, const char* name, hsl_Value* value,
 
 hsl_Result hsl_field_set_integer(hsl_Object* object, const char* name, int value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
-	if (!vmThread || !object || !value) {
+	if (!vmThread || !object) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
@@ -1867,7 +1903,7 @@ hsl_Result hsl_field_set_integer(hsl_Object* object, const char* name, int value
 
 hsl_Result hsl_field_set_decimal(hsl_Object* object, const char* name, float value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
-	if (!vmThread || !object || !value) {
+	if (!vmThread || !object) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
@@ -1963,7 +1999,7 @@ hsl_Result hsl_field_replace(hsl_Object* object, const char* name, hsl_Value* va
 
 hsl_Result hsl_field_replace_with_integer(hsl_Object* object, const char* name, int value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
-	if (!vmThread || !object || !value) {
+	if (!vmThread || !object) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
@@ -1981,7 +2017,7 @@ hsl_Result hsl_field_replace_with_integer(hsl_Object* object, const char* name, 
 
 hsl_Result hsl_field_replace_with_decimal(hsl_Object* object, const char* name, float value, hsl_Thread* thread) {
 	VMThread* vmThread = (VMThread*)thread;
-	if (!vmThread || !object || !value) {
+	if (!vmThread || !object) {
 		return HSL_INVALID_ARGUMENT;
 	}
 
@@ -2048,6 +2084,42 @@ hsl_Result hsl_field_replace_with_object(hsl_Object* object, const char* name, h
 	Uint32 hash = hsl_get_hash_internal(name);
 
 	VMValue vmValue = OBJECT_VAL(value);
+
+	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_field_replace_with_linked_integer(hsl_Object* object, const char* name, int* value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = INTEGER_LINK_VAL(value);
+
+	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
+	if (result != HSL_OK) {
+		return result;
+	}
+
+	return HSL_OK;
+}
+
+hsl_Result hsl_field_replace_with_linked_decimal(hsl_Object* object, const char* name, float* value, hsl_Thread* thread) {
+	VMThread* vmThread = (VMThread*)thread;
+	if (!vmThread || !object || !value) {
+		return HSL_INVALID_ARGUMENT;
+	}
+
+	Uint32 hash = hsl_get_hash_internal(name);
+
+	VMValue vmValue = DECIMAL_LINK_VAL(value);
 
 	hsl_Result result = hsl_field_set_internal(vmThread, OBJECT_VAL(object), hash, false, vmValue);
 	if (result != HSL_OK) {
