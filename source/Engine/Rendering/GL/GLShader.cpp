@@ -225,11 +225,15 @@ GL_ProcessedShader GLShader::ProcessFragmentShaderText(char* text) {
 std::vector<char*> GLShader::GetShaderSources(GL_ProcessedShader processed) {
 	std::vector<char*> shaderSources;
 
+#if ANDROID
+	std::string versionString = "#version 100\n";
+#else
 	std::string versionString = "#version 130\n";
+#endif
 	shaderSources.push_back(StringUtils::Create(versionString));
 
-#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
-	std::string precisionString = "precision mediump float;\n";
+#ifdef GL_ES
+	std::string precisionString = "precision highp float;\n";
 	shaderSources.push_back(StringUtils::Create(precisionString));
 #endif
 
