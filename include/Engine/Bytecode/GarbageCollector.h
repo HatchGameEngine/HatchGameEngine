@@ -13,7 +13,7 @@ private:
 	static void CollectResources();
 
 public:
-	static vector<Obj*> GrayList;
+	static std::vector<Obj*> GrayList;
 	static Obj* RootObject;
 	static size_t NextGC;
 	static size_t GarbageSize;

@@ -9,7 +9,7 @@
 
 #define GC_HEAP_GROW_FACTOR 2
 
-vector<Obj*> GarbageCollector::GrayList;
+std::vector<Obj*> GarbageCollector::GrayList;
 Obj* GarbageCollector::RootObject;
 
 size_t GarbageCollector::NextGC = 1024;
@@ -92,7 +92,7 @@ void GarbageCollector::Collect() {
 	while (*object != NULL) {
 		objectTypeCounts[(*object)->Type]++;
 
-		if (std::find(GrayList.begin(), GrayList.end(), *object) == GrayList.end()) {
+		if (!(*object)->IsDark) {
 			objectTypeFreed[(*object)->Type]++;
 
 			// This object wasn't reached, so remove it from the list and free it.
@@ -102,7 +102,8 @@ void GarbageCollector::Collect() {
 			GarbageCollector::FreeObject(unreached);
 		}
 		else {
-			// This object was reached, so move on to the next.
+			// This object was reached, so unmark it (for the next GC) and move on to the next.
+			(*object)->IsDark = false;
 			object = &(*object)->Next;
 		}
 	}
@@ -150,9 +151,11 @@ void GarbageCollector::GrayObject(void* obj) {
 	}
 
 	Obj* object = (Obj*)obj;
-	if (std::find(GrayList.begin(), GrayList.end(), obj) != GrayList.end()) {
+	if (object->IsDark) {
 		return;
 	}
+
+	object->IsDark = true;
 
 	GrayList.push_back(object);
 }
