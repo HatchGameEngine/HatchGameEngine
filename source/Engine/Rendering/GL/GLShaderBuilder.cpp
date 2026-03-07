@@ -286,7 +286,7 @@ GLShaderBuilder GLShaderBuilder::Vertex(GLShaderLinkage inputs,
 	builder.Options = options;
 
 #ifdef GL_ES
-	builder.AddText("precision mediump float;\n");
+	builder.AddText("precision highp float;\n");
 #endif
 
 	builder.AddInputsToVertexShaderText();
@@ -305,7 +305,7 @@ GLShaderBuilder GLShaderBuilder::Fragment(GLShaderLinkage inputs,
 	builder.Options = options;
 
 #ifdef GL_ES
-	builder.AddText("precision mediump float;\n");
+	builder.AddText("precision highp float;\n");
 #endif
 
 	if (uniforms.u_palette) {

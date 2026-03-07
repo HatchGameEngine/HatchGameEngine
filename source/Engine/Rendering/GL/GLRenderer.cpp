@@ -1437,11 +1437,6 @@ void GLRenderer::Init() {
 		glGetString(GL_RENDERER));
 	Log::Print(Log::LOG_INFO, "Drawable Size: %d x %d", w, h);
 
-	if (Application::Platform == Platforms::iOS ||
-		Application::Platform == Platforms::Android) {
-		UseDepthTesting = false;
-	}
-
 	// Enable/Disable GL features
 	glEnable(GL_BLEND);
 	GLRenderer::SetDepthTesting(Graphics::UseDepthTesting);
@@ -1506,7 +1501,13 @@ Uint32 GLRenderer::GetWindowFlags() {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 #endif
 
+#ifdef ANDROID
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+#else
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+#endif
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
