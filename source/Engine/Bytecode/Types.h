@@ -350,6 +350,7 @@ struct Obj {
 	size_t Size;
 	struct ObjClass* Class;
 	struct Obj* Next;
+	bool IsDark;
 };
 struct ObjString {
 	Obj Object;
