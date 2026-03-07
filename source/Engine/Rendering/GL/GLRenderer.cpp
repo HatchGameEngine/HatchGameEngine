@@ -1437,11 +1437,6 @@ void GLRenderer::Init() {
 		glGetString(GL_RENDERER));
 	Log::Print(Log::LOG_INFO, "Drawable Size: %d x %d", w, h);
 
-	if (Application::Platform == Platforms::iOS ||
-		Application::Platform == Platforms::Android) {
-		UseDepthTesting = false;
-	}
-
 	// Enable/Disable GL features
 	glEnable(GL_BLEND);
 	GLRenderer::SetDepthTesting(Graphics::UseDepthTesting);
