@@ -98,12 +98,6 @@ ObjString* CopyString(ObjString* string) {
 
 	return AllocateString(heapChars, string->Length);
 }
-ObjString* AllocString(size_t length) {
-	char* heapChars = ALLOCATE(char, length + 1);
-	heapChars[length] = '\0';
-
-	return AllocateString(heapChars, length);
-}
 
 static VMValue VM_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
