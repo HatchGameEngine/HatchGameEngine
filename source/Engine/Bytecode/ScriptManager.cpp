@@ -32,6 +32,7 @@ Uint32 ScriptManager::ThreadCount = 1;
 
 HashMap<VMValue>* ScriptManager::Globals = NULL;
 HashMap<VMValue>* ScriptManager::Constants = NULL;
+ankerl::unordered_dense::map<std::string_view, ObjString*>* ScriptManager::Strings = NULL;
 
 vector<ObjModule*> ScriptManager::ModuleList;
 vector<ObjModule*> ScriptManager::TempModuleList;
@@ -98,6 +99,9 @@ void ScriptManager::Init() {
 	}
 	if (Constants == NULL) {
 		Constants = new HashMap<VMValue>(NULL, 8);
+	}
+	if (Strings == NULL) {
+		Strings = new ankerl::unordered_dense::map<std::string_view, ObjString*>();
 	}
 	if (Sources == NULL) {
 		Sources = new HashMap<BytecodeContainer>(NULL, 8);
@@ -184,6 +188,11 @@ void ScriptManager::Dispose() {
 		Constants->Clear();
 		delete Constants;
 		Constants = nullptr;
+	}
+
+	if (Strings) {
+		delete Strings;
+		Strings = nullptr;
 	}
 
 	Registry.clear();
