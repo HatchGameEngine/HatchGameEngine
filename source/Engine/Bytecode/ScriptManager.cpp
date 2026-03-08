@@ -397,12 +397,9 @@ void ScriptManager::DestroyObject(Obj* object) {
 	case OBJ_STRING:
 		// Remove interned string
 		if (Strings) {
-			for (auto it = Strings->begin(); it != Strings->end(); it++) {
-				if (it->second == (ObjString*)object) {
-					Strings->erase(it);
-					break;
-				}
-			}
+			ObjString* string = (ObjString*)object;
+			std::string_view view(string->Chars, string->Length);
+			Strings->erase(view);
 		}
 
 		StringImpl::Dispose(object);
