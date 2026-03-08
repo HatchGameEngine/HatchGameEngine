@@ -30,6 +30,7 @@ public:
 #endif
 	static HashMap<VMValue>* Globals;
 	static HashMap<VMValue>* Constants;
+	static ankerl::unordered_dense::map<std::string_view, ObjString*>* Strings;
 	static VMThread Threads[8];
 	static Uint32 ThreadCount;
 	static vector<ObjModule*> ModuleList;
