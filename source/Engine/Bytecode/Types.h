@@ -476,7 +476,6 @@ ObjString* CopyString(const char* chars, size_t length);
 ObjString* CopyString(const char* chars);
 ObjString* CopyString(std::string path);
 ObjString* CopyString(ObjString* string);
-ObjString* AllocString(size_t length);
 ObjFunction* NewFunction();
 ObjNative* NewNative(NativeFn function);
 ObjUpvalue* NewUpvalue(VMValue* slot);
