@@ -100,7 +100,7 @@ void GarbageCollector::Collect(bool doLog) {
 	while (*object != NULL) {
 		objectTypeCounts[(*object)->Type]++;
 
-		if (GraySet.count(*object) == 0) {
+		if (!(*object)->IsDark) {
 			objectTypeFreed[(*object)->Type]++;
 
 			// This object wasn't reached, so remove it from the list and free it.
@@ -110,7 +110,8 @@ void GarbageCollector::Collect(bool doLog) {
 			FreeObject(unreached);
 		}
 		else {
-			// This object was reached, so move on to the next.
+			// This object was reached, so unmark it (for the next GC) and move on to the next.
+			(*object)->IsDark = false;
 			object = &(*object)->Next;
 		}
 	}
@@ -140,7 +141,6 @@ void GarbageCollector::Collect(bool doLog) {
 	NextGC = GarbageSize + (1024 * 1024);
 
 	GrayList.clear();
-	GraySet.clear();
 }
 
 #ifndef HSL_STANDALONE
@@ -167,10 +167,13 @@ void GarbageCollector::GrayObject(void* obj) {
 	}
 
 	Obj* object = (Obj*)obj;
-	if (GraySet.count(object) == 0) {
-		GrayList.push_back(object);
-		GraySet.insert(object);
+	if (object->IsDark) {
+		return;
 	}
+
+	object->IsDark = true;
+
+	GrayList.push_back(object);
 }
 void GarbageCollector::GrayHashMap(void* pointer) {
 	if (!pointer) {

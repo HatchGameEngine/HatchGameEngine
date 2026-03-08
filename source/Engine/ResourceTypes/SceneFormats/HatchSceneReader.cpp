@@ -209,11 +209,11 @@ void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
 }
 
 void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer* layer) {
-	for (Uint16 i = 0; i < layer->ScrollInfoCount; i++) {
+	for (int i = 0; i < layer->ScrollInfoCount; i++) {
 		ScrollingInfo* info = &layer->ScrollInfos[i];
 
-		Uint16 relativeParallax = r->ReadInt16();
-		Uint16 constantParallax = r->ReadInt16();
+		Sint16 relativeParallax = r->ReadInt16();
+		Sint16 constantParallax = r->ReadInt16();
 
 		info->RelativeParallax = (float)relativeParallax / 0x100;
 		info->ConstantParallax = (float)constantParallax / 0x100;

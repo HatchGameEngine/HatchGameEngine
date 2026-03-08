@@ -370,6 +370,7 @@ typedef HashMap<VMValue> Table;
 
 struct Obj {
 	ObjType Type;
+	bool IsDark;
 	size_t Size;
 	struct ObjClass* Class;
 	struct Obj* Next;

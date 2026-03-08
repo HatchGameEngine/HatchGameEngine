@@ -18,7 +18,6 @@ private:
 
 public:
 	std::vector<Obj*> GrayList;
-	std::set<Obj*> GraySet;
 	ScriptManager* Manager;
 	size_t NextGC;
 	size_t GarbageSize;
