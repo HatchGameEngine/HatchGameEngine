@@ -347,6 +347,16 @@ bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
 void ScriptManager::DestroyObject(Obj* object) {
 	switch (object->Type) {
 	case OBJ_STRING:
+		// Remove interned string
+		if (Strings) {
+			for (auto it = Strings->begin(); it != Strings->end(); it++) {
+				if (it->second == (ObjString*)object) {
+					Strings->erase(it);
+					break;
+				}
+			}
+		}
+
 		StringImpl::Dispose(object);
 		break;
 	case OBJ_ARRAY:
