@@ -123,6 +123,9 @@
     <ClCompile Include="..\source\engine\filesystem\vfs\ArchiveVFS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\filesystem\vfs\EggVFS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\filesystem\vfs\FileSystemVFS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

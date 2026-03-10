@@ -14,26 +14,23 @@ char MAGIC_HATCH[MAGIC_HATCH_SIZE] = {0x48, 0x41, 0x54, 0x43, 0x48}; // HATCH
 #define ENTRY_NAME_LENGTH 8
 
 bool HatchVFS::Open(Stream* stream) {
-	Uint16 fileCount;
-	Uint8 magicHATCH[MAGIC_HATCH_SIZE];
-	stream->ReadBytes(magicHATCH, MAGIC_HATCH_SIZE);
-	if (memcmp(magicHATCH, MAGIC_HATCH, MAGIC_HATCH_SIZE)) {
-		Log::Print(Log::LOG_ERROR,
-			"Invalid HATCH data file! (%02X %02X %02X %02X %02X)",
-			magicHATCH[0],
-			magicHATCH[1],
-			magicHATCH[2],
-			magicHATCH[3],
-			magicHATCH[4]);
+	if (!IsFile(stream)) {
+		Log::Print(Log::LOG_ERROR, "Not a HATCH data file!");
 		return false;
 	}
+
+	return Open(stream, stream->Position());
+}
+bool HatchVFS::Open(Stream* stream, size_t position) {
+	StreamPtr = stream;
+	StreamPtr->Seek(position);
 
 	// Uint8 major, minor, pad;
 	stream->ReadByte();
 	stream->ReadByte();
 	stream->ReadByte();
 
-	fileCount = stream->ReadUInt16();
+	Uint16 fileCount = stream->ReadUInt16();
 	for (int i = 0; i < fileCount; i++) {
 		Uint32 crc32 = stream->ReadUInt32();
 		Uint64 offset = stream->ReadUInt64();
@@ -59,6 +56,19 @@ bool HatchVFS::Open(Stream* stream) {
 		entry->Flags = entry->FileFlags = entryFlags;
 		entry->CompressedSize = compressedSize;
 
+		// Preload it
+		if (Flags & VFS_PRELOAD) {
+			entry->CachedData = (Uint8*)Memory::Calloc(entry->Size, sizeof(Uint8));
+
+			if (entry->CachedData) {
+				size_t currentPosition = stream->Position();
+
+				ReadEntryData(entry, entry->CachedData, entry->Size);
+
+				stream->Seek(currentPosition);
+			}
+		}
+
 		if (!ArchiveVFS::AddEntry(entry)) {
 			delete entry;
 
@@ -68,10 +78,21 @@ bool HatchVFS::Open(Stream* stream) {
 		}
 	}
 
-	StreamPtr = stream;
 	Opened = true;
 
 	return true;
+}
+
+bool HatchVFS::IsFile(Stream* stream) {
+	Uint8 magicHATCH[MAGIC_HATCH_SIZE];
+	stream->ReadBytes(magicHATCH, MAGIC_HATCH_SIZE);
+
+	if (memcmp(magicHATCH, MAGIC_HATCH, MAGIC_HATCH_SIZE) == 0) {
+		return true;
+	}
+
+	stream->Skip(-MAGIC_HATCH_SIZE);
+	return false;
 }
 
 std::string HatchVFS::TransformFilename(const char* filename) {
@@ -171,6 +192,11 @@ bool HatchVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
 		copyLength = memSize;
 	}
 
+	// Nothing to read
+	if (copyLength == 0) {
+		return true;
+	}
+
 	StreamPtr->Seek(entry->Offset);
 	StreamPtr->ReadBytes(memory, copyLength);
 
@@ -246,32 +272,6 @@ VFSEnumeration HatchVFS::EnumerateFiles(const char* path) {
 	}
 
 	return ArchiveVFS::EnumerateFiles(path);
-}
-
-Stream* HatchVFS::OpenMemStreamForEntry(VFSEntry* entry) {
-	if (entry == nullptr) {
-		return nullptr;
-	}
-
-	MemoryStream* memStream = MemoryStream::New(entry->Size);
-	if (memStream == nullptr) {
-		return nullptr;
-	}
-
-	Uint8* memory = memStream->pointer_start;
-
-	// Read cached data if available
-	if (entry->CachedData) {
-		memcpy(memory, entry->CachedData, entry->Size);
-	}
-	// Else, read from file
-	else if (!ReadEntryData(entry, memory, entry->Size)) {
-		memStream->Close();
-
-		return nullptr;
-	}
-
-	return (Stream*)memStream;
 }
 
 bool HatchVFS::Flush() {
@@ -498,19 +498,6 @@ bool HatchVFS::Flush() {
 	out->Close();
 
 	return success;
-}
-
-void HatchVFS::Close() {
-	if (NeedsRepacking) {
-		Flush();
-	}
-
-	if (StreamPtr) {
-		StreamPtr->Close();
-		StreamPtr = nullptr;
-	}
-
-	ArchiveVFS::Close();
 }
 
 HatchVFS::~HatchVFS() {

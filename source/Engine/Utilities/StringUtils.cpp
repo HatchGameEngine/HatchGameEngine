@@ -107,6 +107,42 @@ bool StringUtils::StartsWithCaseInsensitive(std::string string, std::string comp
 
 	return true;
 }
+char* StringUtils::EndsWith(const char* string, const char* compare) {
+	size_t cmpLen = strlen(compare);
+	if (cmpLen == 0) {
+		return nullptr;
+	}
+
+	const char* end = (string + strlen(string)) - cmpLen;
+	if (end < string) {
+		return nullptr;
+	}
+
+	if (memcmp(end, compare, cmpLen) == 0) {
+		return (char*)end;
+	}
+
+	return nullptr;
+}
+char* StringUtils::EndsWithCaseInsensitive(const char* string, const char* compare) {
+	size_t cmpLen = strlen(compare);
+	if (cmpLen == 0) {
+		return nullptr;
+	}
+
+	const char* end = (string + strlen(string)) - cmpLen;
+	if (end < string) {
+		return nullptr;
+	}
+
+	for (size_t i = 0; i < cmpLen; i++) {
+		if (tolower(end[i]) != tolower(compare[i])) {
+			return nullptr;
+		}
+	}
+
+	return (char*)end;
+}
 char* StringUtils::StrCaseStr(const char* haystack, const char* needle) {
 	if (!needle[0]) {
 		return (char*)haystack;
@@ -193,9 +229,9 @@ size_t StringUtils::Concat(char* dst, const char* src, size_t sz) {
 
 	return dlen + (s - src); // count does not include NUL
 }
-bool StringUtils::ToNumber(int* dst, const char* src) {
+bool StringUtils::ToNumber(int* dst, const char* src, int base) {
 	char* end;
-	long num = strtol(src, &end, 10);
+	long num = strtol(src, &end, base);
 
 	if (*end != '\0') {
 		return false;
@@ -224,11 +260,28 @@ bool StringUtils::ToDecimal(double* dst, const char* src) {
 	(*dst) = num;
 	return true;
 }
-bool StringUtils::ToNumber(int* dst, string src) {
-	return ToNumber(dst, src.c_str());
+bool StringUtils::ToNumber(int* dst, std::string src, int base) {
+	return ToNumber(dst, src.c_str(), base);
 }
-bool StringUtils::ToDecimal(double* dst, string src) {
+bool StringUtils::ToDecimal(double* dst, std::string src) {
 	return ToDecimal(dst, src.c_str());
+}
+bool StringUtils::OctalToBase10(size_t* dst, const char* src) {
+	char* end;
+	long num = strtol(src, &end, 8);
+
+	if (*end != '\0') {
+		return false;
+	}
+	else if (num > INT_MAX || (errno == ERANGE && num == LONG_MAX)) {
+		return false;
+	}
+	else if (num < INT_MIN || (errno == ERANGE && num == LONG_MIN)) {
+		return false;
+	}
+
+	(*dst) = num;
+	return true;
 }
 bool StringUtils::HexToUint32(Uint32* dst, const char* hexstr) {
 	if (hexstr == nullptr || *hexstr == '\0') {

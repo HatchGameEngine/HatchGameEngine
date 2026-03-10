@@ -10,6 +10,8 @@ protected:
 	std::vector<std::string> EntryNames;
 	size_t NumEntries = 0;
 
+	Stream* StreamPtr = nullptr;
+
 	bool NeedsRepacking = false;
 
 	bool AddEntry(VFSEntry* entry);

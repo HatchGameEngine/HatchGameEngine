@@ -1,6 +1,4 @@
 #include <Engine/Application.h>
-#include <Engine/Graphics.h>
-
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
@@ -15,7 +13,11 @@
 #include <Engine/Extensions/Discord.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
+#include <Engine/Filesystem/VFS/EggVFS.h>
 #include <Engine/Filesystem/VFS/MemoryCache.h>
+#include <Engine/Graphics.h>
+#include <Engine/Media/MediaPlayer.h>
+#include <Engine/Media/MediaSource.h>
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
@@ -23,9 +25,6 @@
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/Utilities/Screenshot.h>
 #include <Engine/Utilities/StringUtils.h>
-
-#include <Engine/Media/MediaPlayer.h>
-#include <Engine/Media/MediaSource.h>
 
 #ifdef IOS
 extern "C" {
@@ -136,6 +135,8 @@ bool Application::AllowCmdLineSceneLoad = false;
 ApplicationMetrics Application::Metrics;
 std::vector<PerformanceMeasure*> Application::AllMetrics;
 
+std::string ResourceFilename;
+
 char StartingScene[MAX_RESOURCE_PATH_LENGTH];
 char NextGame[MAX_PATH_LENGTH];
 char NextGameStartingScene[MAX_RESOURCE_PATH_LENGTH];
@@ -220,11 +221,11 @@ void Application::Init(int argc, char* args[]) {
 	// Load game stuff.
 #ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
 	if (argc > 1 && !!StringUtils::StrCaseStr(args[1], ".hatch")) {
-		ResourceManager::Init(args[1]);
+		ResourceFilename = std::string(args[1]);
 	}
-	else
 #endif
-		ResourceManager::Init(NULL);
+
+	ResourceManager::Init(ResourceFilename.c_str());
 
 	Application::LoadGameConfig();
 	Application::InitGameInfo();
@@ -1824,7 +1825,7 @@ void Application::Run(int argc, char* args[]) {
 	StringUtils::Copy(scenePath, StartingScene, sizeof scenePath);
 
 	// Run scene from command line argument
-	if (argc > 1 && AllowCmdLineSceneLoad) {
+	if (AllowCmdLineSceneLoad && argc > 1 && !StringUtils::StartsWith(args[1], "--")) {
 		char* pathStart = StringUtils::StrCaseStr(args[1], "/Resources/");
 		if (pathStart == NULL) {
 			pathStart = StringUtils::StrCaseStr(args[1], "\\Resources\\");

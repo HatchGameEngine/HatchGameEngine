@@ -1,8 +1,8 @@
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
-
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Path.h>
+#include <Engine/Filesystem/VFS/EggVFS.h>
 #include <Engine/Filesystem/VFS/FileSystemVFS.h>
 #include <Engine/Filesystem/VFS/HatchVFS.h>
 #include <Engine/Filesystem/VFS/MemoryVFS.h>
@@ -65,11 +65,41 @@ VFSMountStatus VirtualFileSystem::Mount(const char* name,
 			return VFSMountStatus::NOT_FOUND;
 		}
 
+		bool wasDetected = false;
+		int eggCompressionType = EGG_COMPRESSION_TYPE_NONE;
+
+		if (type == VFSType::NONE) {
+			if (HatchVFS::IsFile(stream)) {
+				type = VFSType::HATCH;
+			}
+			else if (EggVFS::IsFile(stream, eggCompressionType)) {
+				type = VFSType::EGG;
+			}
+
+			wasDetected = true;
+		}
+
 		switch (type) {
 		case VFSType::HATCH: {
 			HatchVFS* hatchVfs = new HatchVFS(flags);
-			hatchVfs->Open(stream);
+			if (wasDetected) {
+				hatchVfs->Open(stream, stream->Position());
+			}
+			else {
+				hatchVfs->Open(stream);
+			}
 			vfs = hatchVfs;
+			break;
+		}
+		case VFSType::EGG: {
+			EggVFS* eggVfs = new EggVFS(flags);
+			if (wasDetected) {
+				eggVfs->Open(stream, eggCompressionType, stream->Position());
+			}
+			else {
+				eggVfs->Open(stream);
+			}
+			vfs = eggVfs;
 			break;
 		}
 		default:
@@ -79,7 +109,11 @@ VFSMountStatus VirtualFileSystem::Mount(const char* name,
 		}
 	}
 
-	if (vfs == nullptr || !vfs->IsOpen()) {
+	if (vfs == nullptr) {
+		return VFSMountStatus::COULD_NOT_MOUNT;
+	}
+	else if (!vfs->IsOpen()) {
+		delete vfs;
 		return VFSMountStatus::COULD_NOT_MOUNT;
 	}
 

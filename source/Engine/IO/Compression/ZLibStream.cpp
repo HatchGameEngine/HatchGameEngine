@@ -2,10 +2,6 @@
 #include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/IO/MemoryStream.h>
 
-#undef min
-#undef max
-
-#define MINIZ_HEADER_FILE_ONLY
 #include <Libraries/miniz.h>
 
 // TODO: Implement

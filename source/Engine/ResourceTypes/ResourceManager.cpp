@@ -1,5 +1,3 @@
-#include <Engine/ResourceTypes/ResourceManager.h>
-
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Error.h>
@@ -7,6 +5,7 @@
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/IO/FileStream.h>
+#include <Engine/ResourceTypes/ResourceManager.h>
 
 #define RESOURCES_VFS_NAME "main"
 
@@ -15,60 +14,34 @@
 VirtualFileSystem* vfs = nullptr;
 VFSProvider* mainResource = nullptr;
 
+std::vector<std::string> ResourceManager::DataFilePaths;
 bool ResourceManager::UsingDataFolder = false;
 
-const char* data_files[] = {PATHLOCATION_GAME_URL "Data.hatch",
-	PATHLOCATION_GAME_URL "Game.hatch",
-	PATHLOCATION_GAME_URL TARGET_NAME ".hatch"};
+std::pair<const char*, VFSType> ExtensionToVFSType[] = {std::make_pair(".hatch", VFSType::HATCH),
+	std::make_pair(".egg", VFSType::EGG),
+	std::make_pair(".egg.gz", VFSType::EGG),
+	std::make_pair(".egg.tar", VFSType::EGG),
+	std::make_pair(".egg.tar.gz", VFSType::EGG)};
 
-struct DataFileCandidate {
-	std::string Path;
-	bool Valid;
-};
-
-std::vector<DataFileCandidate> FindDataFiles() {
-	std::vector<DataFileCandidate> candidates;
-
-	for (size_t i = 0; i < sizeof(data_files) / sizeof(data_files[0]); i++) {
-		const char* filename = data_files[i];
-
-		std::string resolved = "";
-		if (Path::FromURL(filename, resolved)) {
-			DataFileCandidate candidate;
-			candidate.Path = resolved;
-			candidate.Valid = File::Exists(resolved.c_str());
-			candidates.push_back(candidate);
-		}
-	}
-
-	return candidates;
-}
-
-char* GetDataFileCandidate(std::vector<DataFileCandidate> candidates) {
-	for (size_t i = 0; i < candidates.size(); i++) {
-		if (candidates[i].Valid) {
-			return StringUtils::Create(candidates[i].Path);
-		}
-	}
-
-	return nullptr;
-}
+const char* BaseDataFileNames[] = {"Data", "Game", TARGET_NAME};
 
 bool ResourceManager::Init(const char* dataFilePath) {
 	bool foundDataFile = false;
 	bool isDirectory = false;
 	char* filename = nullptr;
 
-	std::vector<DataFileCandidate> candidates = FindDataFiles();
+	std::vector<DataFileCandidate> candidates;
 
 	bool useResourcesFolder = true;
-
 	UsingDataFolder = false;
+
+	InitDataFileList();
+	candidates = FindDataFiles();
 
 	vfs = new VirtualFileSystem();
 
 	// Note that in this case, the filename should not be an URL.
-	if (dataFilePath != nullptr) {
+	if (dataFilePath != nullptr && dataFilePath[0] != '\0') {
 		bool found = false;
 
 		useResourcesFolder = false;
@@ -123,8 +96,7 @@ bool ResourceManager::Init(const char* dataFilePath) {
 
 		Log::Print(Log::LOG_VERBOSE, "Loading \"%s\"...", filenameOnly);
 
-		ResourceManager::Mount(
-			RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
+		ResourceManager::Mount(RESOURCES_VFS_NAME, filename, nullptr, VFSType::NONE, VFS_READABLE);
 	}
 	else if (useResourcesFolder) {
 		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME,
@@ -154,7 +126,13 @@ bool ResourceManager::Init(const char* dataFilePath) {
 		if (candidates.size() > 0) {
 			error += "Ensure that it's named one of the following:\n";
 			for (size_t i = 0; i < candidates.size(); i++) {
-				error += "* " + candidates[i].Path;
+				std::string path = candidates[i].Path;
+				if (StringUtils::EndsWith(path.c_str(), ".tar") ||
+					StringUtils::EndsWith(path.c_str(), ".tar.gz")) {
+					continue;
+				}
+
+				error += "* " + path;
 				if (i < candidates.size() - 1) {
 					error += "\n";
 				}
@@ -163,7 +141,7 @@ bool ResourceManager::Init(const char* dataFilePath) {
 
 		Error::FatalNoMessageBox("%s", error.c_str());
 #else
-		const char* datafilename = StringUtils::GetFilename(data_files[0]);
+		const char* datafilename = StringUtils::GetFilename(DataFilePaths[0].c_str());
 
 #if WIN32
 		Error::Fatal(
@@ -197,6 +175,7 @@ bool ResourceManager::Init(const char* dataFilePath) {
 
 	return true;
 }
+
 bool ResourceManager::Mount(const char* name,
 	const char* filename,
 	const char* mountPoint,
@@ -231,6 +210,54 @@ bool ResourceManager::Unmount(const char* name) {
 	}
 
 	return false;
+}
+
+void ResourceManager::InitDataFileList() {
+	for (std::pair<const char*, VFSType> pair : ExtensionToVFSType) {
+		size_t numBaseDataFileNames =
+			sizeof(BaseDataFileNames) / sizeof(BaseDataFileNames[0]);
+		for (size_t i = 0; i < numBaseDataFileNames; i++) {
+			std::string combined = std::string(PATHLOCATION_GAME_URL) +
+				BaseDataFileNames[i] + pair.first;
+			DataFilePaths.push_back(combined);
+		}
+	}
+}
+
+std::vector<DataFileCandidate> ResourceManager::FindDataFiles() {
+	std::vector<DataFileCandidate> candidates;
+
+	for (size_t i = 0; i < DataFilePaths.size(); i++) {
+		std::string resolved = "";
+		if (Path::FromURL(DataFilePaths[i].c_str(), resolved)) {
+			DataFileCandidate candidate;
+			candidate.Path = resolved;
+			candidate.Valid = File::Exists(resolved.c_str());
+			candidates.push_back(candidate);
+		}
+	}
+
+	return candidates;
+}
+
+char* ResourceManager::GetDataFileCandidate(std::vector<DataFileCandidate> candidates) {
+	for (size_t i = 0; i < candidates.size(); i++) {
+		if (candidates[i].Valid) {
+			return StringUtils::Create(candidates[i].Path);
+		}
+	}
+
+	return nullptr;
+}
+
+VFSType ResourceManager::DetectVFSTypeByFilename(const char* filename) {
+	for (std::pair<const char*, VFSType> pair : ExtensionToVFSType) {
+		if (StringUtils::EndsWith(filename, pair.first)) {
+			return pair.second;
+		}
+	}
+
+	return VFSType::NONE;
 }
 
 VirtualFileSystem* ResourceManager::GetVFS() {
@@ -268,4 +295,6 @@ void ResourceManager::Dispose() {
 	delete vfs;
 	vfs = nullptr;
 	mainResource = nullptr;
+
+	DataFilePaths.clear();
 }

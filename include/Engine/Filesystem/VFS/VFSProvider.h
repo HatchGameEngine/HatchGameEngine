@@ -6,10 +6,11 @@
 #include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
 
-enum VFSType { FILESYSTEM, HATCH, MEMORY };
+enum VFSType { NONE, FILESYSTEM, HATCH, EGG, MEMORY };
 
-#define VFS_READABLE 1
-#define VFS_WRITABLE 2
+#define VFS_READABLE (1 << 0)
+#define VFS_WRITABLE (1 << 1)
+#define VFS_PRELOAD (1 << 2)
 
 struct VFSOpenStream {
 	VFSEntry* EntryPtr;
@@ -33,9 +34,9 @@ struct VFSEnumeration {
 class VFSProvider {
 private:
 	std::string MountPoint;
-	Uint16 Flags;
 
 protected:
+	Uint16 Flags;
 	bool Opened;
 	std::vector<VFSOpenStream> OpenStreams;
 

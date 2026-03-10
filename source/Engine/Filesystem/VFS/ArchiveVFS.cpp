@@ -1,3 +1,4 @@
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/VFS/ArchiveVFS.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -76,7 +77,20 @@ bool ArchiveVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 }
 
 bool ArchiveVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
-	return false;
+	size_t copyLength = entry->Size;
+	if (copyLength > memSize) {
+		copyLength = memSize;
+	}
+
+	// Nothing to read
+	if (copyLength == 0) {
+		return true;
+	}
+
+	StreamPtr->Seek(entry->Offset);
+	StreamPtr->ReadBytes(memory, copyLength);
+
+	return true;
 }
 
 bool ArchiveVFS::PutFile(const char* filename, VFSEntry* entry) {
@@ -145,7 +159,7 @@ VFSEnumeration ArchiveVFS::EnumerateFiles(const char* path) {
 }
 
 Stream* ArchiveVFS::OpenMemStreamForEntry(VFSEntry* entry) {
-	if (entry == nullptr || entry->CachedData == nullptr) {
+	if (entry == nullptr) {
 		return nullptr;
 	}
 
@@ -154,8 +168,18 @@ Stream* ArchiveVFS::OpenMemStreamForEntry(VFSEntry* entry) {
 		return nullptr;
 	}
 
-	memset(memStream->pointer_start, 0x00, entry->Size);
-	memcpy(memStream->pointer_start, entry->CachedData, entry->Size);
+	Uint8* memory = memStream->pointer_start;
+
+	// Read cached data if available
+	if (entry->CachedData) {
+		memcpy(memory, entry->CachedData, entry->Size);
+	}
+	// Else, read from file
+	else if (!ReadEntryData(entry, memory, entry->Size)) {
+		memStream->Close();
+
+		return nullptr;
+	}
 
 	return (Stream*)memStream;
 }
@@ -263,6 +287,15 @@ void ArchiveVFS::Close() {
 
 	Entries.clear();
 	EntryNames.clear();
+
+	if (NeedsRepacking) {
+		Flush();
+	}
+
+	if (StreamPtr) {
+		StreamPtr->Close();
+		StreamPtr = nullptr;
+	}
 
 	VFSProvider::Close();
 }
