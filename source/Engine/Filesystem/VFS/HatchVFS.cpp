@@ -60,6 +60,8 @@ bool HatchVFS::Open(Stream* stream) {
 		entry->CompressedSize = compressedSize;
 
 		if (!ArchiveVFS::AddEntry(entry)) {
+			delete entry;
+
 			Log::Print(Log::LOG_WARN,
 				"HATCH file has duplicate entry \"%s\", ignoring",
 				entryName);
