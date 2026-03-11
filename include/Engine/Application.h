@@ -147,6 +147,10 @@ public:
 	static std::vector<PerformanceMeasure*> AllMetrics;
 
 	static void Init(int argc, char* args[]);
+	static bool HasCmdLineArg(std::string match);
+	static int GetCmdLineArgIndex(std::string match);
+	static std::string GetCmdLineOption(std::string match);
+	static void ParseCommandLineArgs();
 	static void InitScripting();
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();

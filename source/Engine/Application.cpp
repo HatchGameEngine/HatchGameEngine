@@ -218,13 +218,10 @@ void Application::Init(int argc, char* args[]) {
 	InputManager::Init();
 	Clock::Init();
 
-	// Load game stuff.
-#ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
-	if (argc > 1 && !!StringUtils::StrCaseStr(args[1], ".hatch")) {
-		ResourceFilename = std::string(args[1]);
-	}
-#endif
+	// Parse command line arguments
+	Application::ParseCommandLineArgs();
 
+	// Load game stuff.
 	ResourceManager::Init(ResourceFilename.c_str());
 
 	Application::LoadGameConfig();
@@ -265,6 +262,43 @@ void Application::Init(int argc, char* args[]) {
 
 	Running = true;
 }
+
+bool Application::HasCmdLineArg(std::string match) {
+	return GetCmdLineArgIndex(match) != -1;
+}
+int Application::GetCmdLineArgIndex(std::string match) {
+	for (size_t i = 0; i < Application::CmdLineArgs.size(); i++) {
+		if (Application::CmdLineArgs[i] == match) {
+			return (int)i;
+		}
+	}
+	return -1;
+}
+std::string Application::GetCmdLineOption(std::string match) {
+	size_t numArgs = Application::CmdLineArgs.size();
+	for (size_t i = 0; i < numArgs; i++) {
+		if (Application::CmdLineArgs[i] == match && i + 1 < numArgs) {
+			std::string option = Application::CmdLineArgs[i + 1];
+			if (!StringUtils::StartsWith(option.c_str(), "--")) {
+				return option;
+			}
+		}
+	}
+	return "";
+}
+void Application::ParseCommandLineArgs() {
+	if (Application::CmdLineArgs.size() == 0) {
+		return;
+	}
+
+#ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
+	std::string filename = GetCmdLineOption("--resource-file");
+	if (filename.size() > 0) {
+		ResourceFilename = filename;
+	}
+#endif
+}
+
 void Application::InitScripting() {
 	GarbageCollector::Init();
 
