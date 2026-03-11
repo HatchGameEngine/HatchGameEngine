@@ -62,6 +62,7 @@ private:
 	static void Restart(bool keepScene);
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
+	static void LoadVFSSettings();
 	static void LoadKeyBinds();
 	static void LoadDevSettings();
 	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest);

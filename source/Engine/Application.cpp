@@ -1226,6 +1226,21 @@ void Application::LoadAudioSettings() {
 
 #undef CLAMP_VOLUME
 
+void Application::LoadVFSSettings() {
+	const char* property = Application::Settings->GetProperty("vfs", "preload");
+	if (property) {
+		if (strcmp(property, "none") == 0) {
+			ResourceManager::PreloadResources = PRELOAD_NONE;
+		}
+		else if (strcmp(property, "default") == 0) {
+			ResourceManager::PreloadResources = PRELOAD_DEFAULT;
+		}
+		else if (strcmp(property, "all") == 0) {
+			ResourceManager::PreloadResources = PRELOAD_ALL;
+		}
+	}
+}
+
 SDL_Keycode KeyBindsSDL[(int)KeyBind::Max];
 
 void Application::LoadKeyBinds() {
@@ -2667,6 +2682,7 @@ bool Application::LoadSettings(const char* filename) {
 void Application::ReadSettings() {
 	Application::LoadVideoSettings();
 	Application::LoadAudioSettings();
+	Application::LoadVFSSettings();
 	Application::LoadDevSettings();
 	Application::LoadKeyBinds();
 }
