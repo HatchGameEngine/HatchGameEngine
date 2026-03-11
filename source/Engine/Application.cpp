@@ -297,6 +297,62 @@ void Application::ParseCommandLineArgs() {
 		ResourceFilename = filename;
 	}
 #endif
+
+	std::string option = GetCmdLineOption("--egg-max-compressed-preload-size");
+	if (option.size() > 0) {
+		int size = 0;
+		int unitMultiply = 1;
+
+		char* end;
+		char preloadSizeString[16];
+		StringUtils::Copy(preloadSizeString, option.c_str(), sizeof preloadSizeString);
+
+		end = StringUtils::EndsWithCaseInsensitive(preloadSizeString, "k");
+		if (!end) {
+			end = StringUtils::EndsWithCaseInsensitive(preloadSizeString, "kib");
+		}
+		if (end) {
+			unitMultiply = 1024;
+			*end = '\0';
+		}
+
+		if (!end) {
+			end = StringUtils::EndsWithCaseInsensitive(preloadSizeString, "m");
+			if (!end) {
+				end = StringUtils::EndsWithCaseInsensitive(
+					preloadSizeString, "mib");
+			}
+			if (end) {
+				unitMultiply = 1024 * 1024;
+				*end = '\0';
+			}
+		}
+
+		if (StringUtils::ToNumber(&size, preloadSizeString) && size >= 0) {
+			EggVFS::MaxCompressedPreloadSize = size * unitMultiply;
+
+			const char* unit;
+			if (unitMultiply == 1024 * 1024) {
+				unit = "MiB";
+			}
+			else if (unitMultiply == 1024) {
+				unit = "KiB";
+			}
+			else {
+				unit = "bytes";
+			}
+
+			Log::Print(Log::LOG_VERBOSE,
+				"Set egg-max-compressed-preload-size to %d %s",
+				size,
+				unit);
+		}
+		else {
+			Log::Print(Log::LOG_WARN,
+				"Invalid value \"%s\" for egg-max-compressed-preload-size!",
+				option.c_str());
+		}
+	}
 }
 
 void Application::InitScripting() {
