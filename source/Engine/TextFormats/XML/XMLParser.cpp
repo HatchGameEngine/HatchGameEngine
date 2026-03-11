@@ -477,7 +477,9 @@ void XMLParser::DoParsing() {
 			}
 
 			Token data = PeekToken();
-			data.Length = scanner.Current - data.Start;
+			if (data.Type != TOKEN_STRING) {
+				data.Length = scanner.Current - data.Start;
+			}
 			data.Type = TOKEN_CDATA;
 
 			XMLNode* node = new (std::nothrow) XMLNode;
