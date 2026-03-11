@@ -584,6 +584,64 @@ bool EggVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
 	return true;
 }
 
+bool EggVFS::PreloadFiles(std::vector<std::string> list) {
+	// Read all entries sequentially
+	for (size_t i = 0; i < NumEntries; i++) {
+		std::string entryName = EntryNames[i];
+		if (std::find(list.begin(), list.end(), entryName) == list.end()) {
+			continue;
+		}
+
+		VFSEntry* entry = Entries[entryName];
+		if (entry->CachedData) {
+			// Already loaded
+			continue;
+		}
+
+		Log::Print(Log::LOG_VERBOSE, "Preloading %s...", entryName.c_str());
+
+		// Allocate entry data
+		entry->CachedData = (Uint8*)Memory::Calloc(entry->Size, sizeof(Uint8));
+		if (!entry->CachedData) {
+			Log::Print(Log::LOG_ERROR, "Could not preload %s!", entryName.c_str());
+			return false;
+		}
+
+		// Seek to the expected position
+		int ret = Seek(entry->Offset);
+		if (CompressionType != EGG_COMPRESSION_TYPE_NONE) {
+			if (ret != Z_OK) {
+				Log::Print(Log::LOG_ERROR,
+					"Could not preload %s! (%s)",
+					entryName.c_str(),
+					mz_error(ret));
+				Memory::Free(entry->CachedData);
+				return false;
+			}
+		}
+
+		if (CompressionType != EGG_COMPRESSION_TYPE_NONE) {
+			// Decompress the entry
+			int ret = Decompress(entry->CachedData, entry->Size);
+			if (ret != Z_OK && ret != Z_STREAM_END) {
+				Log::Print(Log::LOG_ERROR,
+					"Could not preload %s! (%s)",
+					entryName.c_str(),
+					mz_error(ret));
+				Memory::Free(entry->CachedData);
+				return false;
+			}
+		}
+		else {
+			// Read the entry
+			StreamPtr->ReadBytes(entry->CachedData, entry->Size);
+			StreamPosition += entry->Size;
+		}
+	}
+
+	return true;
+}
+
 void EggVFS::Close() {
 	if (InflateStream) {
 		inflateEnd((z_stream*)InflateStream);

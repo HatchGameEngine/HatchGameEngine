@@ -179,6 +179,55 @@ bool VirtualFileSystem::FileExists(const char* filename) {
 	return false;
 }
 
+bool VirtualFileSystem::PreloadFiles(std::vector<std::string> filenames) {
+	if (filenames.size() == 0) {
+		return true;
+	}
+
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount& mount = LoadedVFS[i];
+		VFSProvider* vfs = mount.VFSPtr;
+
+		VFSEnumeration enumeration = vfs->EnumerateFiles(nullptr);
+		if (enumeration.Result != VFSEnumerationResult::SUCCESS) {
+			continue;
+		}
+
+		std::vector<std::string> matches;
+
+		for (size_t e = 0; e < enumeration.Entries.size(); e++) {
+			std::string entryName = enumeration.Entries[e];
+			for (size_t f = 0; f < filenames.size(); f++) {
+				// Try a wildcard match. This only works with real filenames (no transformation)
+				if (StringUtils::WildcardMatch(entryName.c_str(), filenames[f].c_str())) {
+					matches.push_back(entryName);
+				}
+				else {
+					// Try with the transformed filename. Won't support wildcards
+					std::string transformedFilename = vfs->TransformFilename(filenames[f].c_str());
+					if (transformedFilename == entryName) {
+						matches.push_back(filenames[f]);
+					}
+					// Finally try with the entry name itself
+					else if (filenames[f] == entryName) {
+						matches.push_back(filenames[f]);
+					}
+				}
+			}
+		}
+
+		if (matches.size() == 0) {
+			continue;
+		}
+
+		if (!vfs->PreloadFiles(matches)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 Stream* VirtualFileSystem::OpenReadStream(const char* filename) {
 	for (size_t i = 0; i < LoadedVFS.size(); i++) {
 		VFSMount& mount = LoadedVFS[i];

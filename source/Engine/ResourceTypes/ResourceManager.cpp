@@ -15,6 +15,8 @@ VirtualFileSystem* vfs = nullptr;
 VFSProvider* mainResource = nullptr;
 
 std::vector<std::string> ResourceManager::DataFilePaths;
+std::vector<std::string> ResourceManager::PreloadList;
+int ResourceManager::PreloadResources = PRELOAD_DEFAULT;
 bool ResourceManager::UsingDataFolder = false;
 
 std::pair<const char*, VFSType> ExtensionToVFSType[] = {std::make_pair(".hatch", VFSType::HATCH),
@@ -260,6 +262,26 @@ VFSType ResourceManager::DetectVFSTypeByFilename(const char* filename) {
 	return VFSType::NONE;
 }
 
+bool ResourceManager::Preload(std::vector<std::string> filenames) {
+	if (!vfs) {
+		return false;
+	}
+
+	if (PreloadResources == PRELOAD_NONE) {
+		return true;
+	}
+	else if (PreloadResources == PRELOAD_ALL) {
+		filenames.clear();
+		filenames.push_back("*");
+	}
+
+	if (filenames.size() == 0) {
+		return true;
+	}
+
+	return vfs->PreloadFiles(filenames);
+}
+
 VirtualFileSystem* ResourceManager::GetVFS() {
 	return vfs;
 }
@@ -296,5 +318,6 @@ void ResourceManager::Dispose() {
 	vfs = nullptr;
 	mainResource = nullptr;
 
+	PreloadList.clear();
 	DataFilePaths.clear();
 }

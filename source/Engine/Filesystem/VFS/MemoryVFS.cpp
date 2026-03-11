@@ -45,6 +45,10 @@ bool MemoryVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
 	return true;
 }
 
+bool MemoryVFS::PreloadFiles(std::vector<std::string> list) {
+	return true;
+}
+
 bool MemoryVFS::Flush() {
 	return true;
 }

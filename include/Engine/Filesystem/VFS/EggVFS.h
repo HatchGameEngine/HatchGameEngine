@@ -42,6 +42,7 @@ public:
 	static bool IsFile(Stream* stream, int& compressionType);
 
 	virtual bool ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize);
+	virtual bool PreloadFiles(std::vector<std::string> list);
 	virtual void Close();
 
 	static Uint64 MaxCompressedPreloadSize;

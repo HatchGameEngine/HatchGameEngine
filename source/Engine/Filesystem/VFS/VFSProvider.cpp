@@ -56,6 +56,10 @@ bool VFSProvider::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	return false;
 }
 
+bool VFSProvider::PreloadFiles(std::vector<std::string> list) {
+	return false;
+}
+
 bool VFSProvider::PutFile(const char* filename, VFSEntry* entry) {
 	return false;
 }

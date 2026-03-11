@@ -12,6 +12,7 @@ public:
 
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);
 	virtual bool ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize);
+	virtual bool PreloadFiles(std::vector<std::string> list);
 	virtual bool Flush();
 };
 

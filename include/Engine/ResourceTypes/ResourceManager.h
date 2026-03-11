@@ -10,6 +10,18 @@ struct DataFileCandidate {
 	bool Valid;
 };
 
+// Resource preloading behaviors.
+enum {
+	// Do not preload anything.
+	PRELOAD_NONE,
+
+	// Use default preloading behavior.
+	PRELOAD_DEFAULT,
+
+	// Preload everything.
+	PRELOAD_ALL
+};
+
 class ResourceManager {
 private:
 	static std::vector<std::string> DataFilePaths;
@@ -20,6 +32,8 @@ private:
 	static VFSType DetectVFSTypeByFilename(const char* filename);
 
 public:
+	static std::vector<std::string> PreloadList;
+	static int PreloadResources;
 	static bool UsingDataFolder;
 
 	static bool Init(const char* dataFilePath);
@@ -29,6 +43,7 @@ public:
 		VFSType type,
 		Uint16 flags);
 	static bool Unmount(const char* name);
+	static bool Preload(std::vector<std::string> filenames);
 	static VirtualFileSystem* GetVFS();
 	static VFSProvider* GetMainResource();
 	static void SetMainResourceWritable(bool writable);

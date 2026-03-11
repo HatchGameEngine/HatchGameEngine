@@ -1,3 +1,4 @@
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Filesystem/VFS/FileSystemVFS.h>
@@ -52,7 +53,7 @@ bool FileSystemVFS::HasFile(const char* filename) {
 }
 
 VFSEntry* FileSystemVFS::CacheEntry(const char* filename, Stream* stream) {
-	std::string entryName = TransformFilename(filename);
+	std::string entryName = std::string(filename);
 
 	VFSEntry* entry = nullptr;
 	VFSEntryMap::iterator it = Cache.find(entryName);
@@ -72,7 +73,7 @@ VFSEntry* FileSystemVFS::CacheEntry(const char* filename, Stream* stream) {
 }
 
 VFSEntry* FileSystemVFS::GetCachedEntry(const char* filename) {
-	std::string entryName = TransformFilename(filename);
+	std::string entryName = std::string(filename);
 	VFSEntryMap::iterator it = Cache.find(entryName);
 	if (it != Cache.end()) {
 		return it->second;
@@ -82,7 +83,7 @@ VFSEntry* FileSystemVFS::GetCachedEntry(const char* filename) {
 }
 
 void FileSystemVFS::RemoveFromCache(const char* filename) {
-	std::string entryName = TransformFilename(filename);
+	std::string entryName = std::string(filename);
 	VFSEntryMap::iterator it = Cache.find(entryName);
 	if (it != Cache.end()) {
 		delete it->second;
@@ -128,6 +129,50 @@ bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 
 	*out = memory;
 	*size = length;
+
+	return true;
+}
+
+bool FileSystemVFS::PreloadFiles(std::vector<std::string> list) {
+	for (size_t i = 0; i < list.size(); i++) {
+		std::string name = list[i];
+		VFSEntry* entry = GetCachedEntry(name.c_str());
+		if (entry && entry->CachedData) {
+			// Already loaded
+			continue;
+		}
+
+		Log::Print(Log::LOG_VERBOSE, "Preloading %s...", name.c_str());
+
+		char resourcePath[MAX_RESOURCE_PATH_LENGTH];
+		if (!GetPath(name.c_str(), resourcePath, sizeof resourcePath)) {
+			Log::Print(Log::LOG_ERROR, "Could not preload %s!", name.c_str());
+			return false;
+		}
+
+		Stream* stream = FileStream::New(resourcePath, FileStream::READ_ACCESS, true);
+		if (stream == nullptr) {
+			Log::Print(Log::LOG_ERROR, "Could not preload %s!", name.c_str());
+			return false;
+		}
+
+		if (!entry) {
+			entry = CacheEntry(name.c_str(), stream);
+		}
+
+		AddOpenStream(entry, stream);
+
+		entry->CachedData = (Uint8*)Memory::Calloc(entry->Size, sizeof(Uint8));
+		if (!entry->CachedData) {
+			Log::Print(Log::LOG_ERROR, "Could not preload %s!", name.c_str());
+			CloseStream(stream);
+			return false;
+		}
+
+		stream->ReadBytes(entry->CachedData, entry->Size);
+
+		CloseStream(stream);
+	}
 
 	return true;
 }
@@ -198,7 +243,7 @@ VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path) {
 	Directory::GetFiles(&results, fullPath.c_str(), "*", true);
 
 	for (size_t i = 0; i < results.size(); i++) {
-		std::string filename = Path::ToString(results[i]);
+		std::string filename = Path::Normalize(Path::ToString(results[i]));
 		const char* relPath = filename.c_str() + fullPathLength;
 
 		enumeration.Entries.push_back(std::string(relPath));

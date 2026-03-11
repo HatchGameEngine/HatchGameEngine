@@ -76,6 +76,38 @@ bool ArchiveVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	return true;
 }
 
+bool ArchiveVFS::PreloadFiles(std::vector<std::string> list) {
+	for (size_t i = 0; i < list.size(); i++) {
+		std::string name = list[i];
+		if (Entries.find(name) == Entries.end()) {
+			name = TransformFilename(name.c_str());
+		}
+
+		VFSEntry* entry = Entries[name];
+		if (!entry || entry->CachedData) {
+			// Already loaded, or doesn't exist
+			continue;
+		}
+
+		Log::Print(Log::LOG_VERBOSE, "Preloading %s...", name.c_str());
+
+		entry->CachedData = (Uint8*)Memory::Calloc(entry->Size, sizeof(Uint8));
+		if (!entry->CachedData) {
+			Log::Print(Log::LOG_ERROR, "Could not preload %s!", name.c_str());
+			return false;
+		}
+
+		// Seek and read
+		if (!ReadEntryData(entry, entry->CachedData, entry->Size)) {
+			Log::Print(Log::LOG_ERROR, "Could not preload %s!", name.c_str());
+			Memory::Free(entry->CachedData);
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool ArchiveVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
 	size_t copyLength = entry->Size;
 	if (copyLength > memSize) {

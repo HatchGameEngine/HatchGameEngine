@@ -229,6 +229,8 @@ void Application::Init(int argc, char* args[]) {
 	Application::LoadGameInfo();
 	Application::ReloadSettings();
 
+	ResourceManager::Preload(ResourceManager::PreloadList);
+
 	// Open the log file immediately after
 	Log::OpenFile(LogFilename);
 
@@ -1072,6 +1074,8 @@ bool Application::ChangeGame(const char* path) {
 			Application::InitSettings();
 		}
 	}
+
+	ResourceManager::Preload(ResourceManager::PreloadList);
 
 	if (UseMemoryFileCache) {
 		MemoryCache::Init();
@@ -2199,6 +2203,18 @@ void Application::LoadGameConfig() {
 		ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
 		ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
 		ParseGameConfigText(node, "settingsFile", SettingsFile, sizeof SettingsFile);
+
+		XMLNode* child = XMLParser::SearchNode(node, "preloadResources");
+		if (child) {
+			for (size_t i = 0; i < child->children.size(); i++) {
+				XMLNode* grandchild = child->children[i];
+				if (XMLParser::MatchToken(grandchild->name, "name") &&
+					grandchild->children.size() > 0) {
+					std::string name = grandchild->children[0]->name.ToString();
+					ResourceManager::PreloadList.push_back(name);
+				}
+			}
+		}
 
 		if (!Running) {
 			ParseGameConfigBool(node, "writeLogFile", Log::WriteToFile);
