@@ -448,7 +448,7 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	}
 }
 
-bool TiledMapReader::ParseLayer(XMLNode* layer) {
+bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 	int layer_width = (int)XMLParser::TokenToNumber(layer->attributes.Get("width"));
 	int layer_height = (int)XMLParser::TokenToNumber(layer->attributes.Get("height"));
 
@@ -550,6 +550,11 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 	}
 	if (layer->attributes.Exists("parallaxy")) {
 		scenelayer.RelativeY = XMLParser::TokenToNumber(layer->attributes.Get("parallaxy"));
+	}
+
+	if (group) {
+		scenelayer.RelativeX *= group->ParallaxX;
+		scenelayer.RelativeY *= group->ParallaxY;
 	}
 
 #if HATCH_BIG_ENDIAN
@@ -703,9 +708,9 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 
 	return true;
 }
-bool TiledMapReader::ParseGroupable(XMLNode* node) {
+bool TiledMapReader::ParseGroupable(XMLNode* node, LayerGroup* group) {
 	if (XMLParser::MatchToken(node->name, "layer")) {
-		if (!ParseLayer(node)) {
+		if (!ParseLayer(node, group)) {
 			return false;
 		}
 	}
@@ -716,17 +721,30 @@ bool TiledMapReader::ParseGroupable(XMLNode* node) {
 	}
 	else if (XMLParser::MatchToken(node->name, "group")) {
 		// Groups can be nested
-		if (!ParseGroup(node)) {
+		if (!ParseGroup(node, group)) {
 			return false;
 		}
 	}
 
 	return true;
 }
-bool TiledMapReader::ParseGroup(XMLNode* group) {
-	// TODO: Read and store these groups if they can be relevant.
-	for (size_t i = 0; i < group->children.size(); i++) {
-		if (!ParseGroupable(group->children[i])) {
+bool TiledMapReader::ParseGroup(XMLNode* node, LayerGroup* parent) {
+	LayerGroup group;
+
+	if (node->attributes.Exists("parallaxx")) {
+		group.ParallaxX = XMLParser::TokenToNumber(node->attributes.Get("parallaxx"));
+	}
+	if (node->attributes.Exists("parallaxy")) {
+		group.ParallaxY = XMLParser::TokenToNumber(node->attributes.Get("parallaxy"));
+	}
+
+	if (parent) {
+		group.ParallaxX *= parent->ParallaxX;
+		group.ParallaxY *= parent->ParallaxY;
+	}
+
+	for (size_t i = 0; i < node->children.size(); i++) {
+		if (!ParseGroupable(node->children[i], &group)) {
 			return false;
 		}
 	}
@@ -793,11 +811,11 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 			}
 		}
 		else if (XMLParser::MatchToken(map->children[i]->name, "group")) {
-			if (!ParseGroup(map->children[i])) {
+			if (!ParseGroup(map->children[i], nullptr)) {
 				goto FREE;
 			}
 		}
-		else if (!ParseGroupable(map->children[i])) {
+		else if (!ParseGroupable(map->children[i], nullptr)) {
 			goto FREE;
 		}
 	}

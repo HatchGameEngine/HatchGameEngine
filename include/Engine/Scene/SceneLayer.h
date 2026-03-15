@@ -3,7 +3,6 @@
 
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
-#include <Engine/Scene/ScrollingIndex.h>
 #include <Engine/Scene/ScrollingInfo.h>
 #include <Engine/Types/Property.h>
 
