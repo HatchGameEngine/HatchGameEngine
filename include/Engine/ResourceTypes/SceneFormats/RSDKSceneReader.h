@@ -2,14 +2,14 @@
 #define ENGINE_RESOURCETYPES_SCENEFORMATS_RSDKSCENEREADER_H
 
 #include <Engine/IO/Stream.h>
-#include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileLayer.h>
 #include <Engine/Types/Entity.h>
 
 class RSDKSceneReader {
 private:
 	static void LoadObjectList();
 	static void LoadPropertyList();
-	static SceneLayer ReadLayer(Stream* r);
+	static TileLayer* ReadLayer(Stream* r);
 	static bool LoadTileset(const char* parentFolder);
 
 public:

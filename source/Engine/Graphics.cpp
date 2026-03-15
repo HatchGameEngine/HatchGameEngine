@@ -2373,7 +2373,7 @@ void Graphics::MeasureTextWrappedLegacy(ISprite* sprite,
 	}
 }
 
-Sint64 Graphics::CalcHorizontalParallaxPosition(SceneLayer* layer,
+Sint64 Graphics::CalcHorizontalParallaxPosition(TileLayer* layer,
 	float viewX,
 	float constant,
 	float relative) {
@@ -2393,7 +2393,7 @@ Sint64 Graphics::CalcHorizontalParallaxPosition(SceneLayer* layer,
 
 	return position;
 }
-void Graphics::CalcScanlineDeforms(SceneLayer* layer,
+void Graphics::CalcScanlineDeforms(TileLayer* layer,
 	int start,
 	int end,
 	float viewX,
@@ -2440,7 +2440,7 @@ void Graphics::CalcScanlineDeforms(SceneLayer* layer,
 	}
 }
 
-void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
+void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentView) {
 	int layerHeight = layer->Height * Scene::TileHeight;
 	int viewHeight = (int)std::ceil(currentView->GetScaledHeight());
 
@@ -2578,7 +2578,7 @@ void Graphics::DrawTilePart(int tile,
 		0.0,
 		(int)paletteID);
 }
-void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
+void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView) {
 	float viewX = currentView->X;
 	float viewY = currentView->Y;
 
@@ -2685,7 +2685,7 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 		}
 	}
 }
-void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView) {
+void Graphics::DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* currentView) {
 	int viewWidth = (int)std::ceil(currentView->GetScaledWidth());
 	int max_y = (int)std::ceil(currentView->GetScaledHeight());
 
@@ -2777,14 +2777,15 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 	View* currentView,
 	int layerIndex,
 	bool useCustomFunction) {
-	// If possible, uses optimized software-renderer call instead.
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
-		SoftwareRenderer::DrawSceneLayer(layer, currentView, layerIndex, useCustomFunction);
+	if (layer->UsingCustomRenderFunction && useCustomFunction) {
+		Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
 		return;
 	}
 
-	if (layer->UsingCustomRenderFunction && useCustomFunction) {
-		Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
+	// If possible, uses optimized software-renderer call instead.
+	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions &&
+		layer->Type == SceneLayer::TYPE_TILE) {
+		SoftwareRenderer::DrawTileLayer((TileLayer*)layer, layerIndex, currentView);
 		return;
 	}
 
@@ -2793,16 +2794,170 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 		Graphics::SetUserShader(shader);
 	}
 
-	if (layer->UsingScrollIndexes) {
-		Graphics::DrawSceneLayer_InitTileScanLines(layer, currentView);
-		Graphics::DrawSceneLayer_HorizontalScrollIndexes(layer, currentView);
-	}
-	else {
-		Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView);
+	switch (layer->Type) {
+	case SceneLayer::TYPE_TILE:
+		DrawTileLayer((TileLayer*)layer, currentView);
+		break;
+	case SceneLayer::TYPE_IMAGE:
+		DrawImageLayer((ImageLayer*)layer, currentView);
+		break;
 	}
 
 	if (shader) {
 		Graphics::SetUserShader(nullptr);
+	}
+}
+void Graphics::DrawTileLayer(TileLayer* layer, View* currentView) {
+	if (Scene::Tilesets.size() == 0) {
+		return;
+	}
+
+	if (layer->UsingScrollIndexes) {
+		Graphics::DrawTileLayer_InitTileScanLines(layer, currentView);
+		Graphics::DrawTileLayer_HorizontalScrollIndexes(layer, currentView);
+	}
+	else {
+		Graphics::DrawTileLayer_HorizontalParallax(layer, currentView);
+	}
+}
+void Graphics::DrawImageLayer(ImageLayer* layer, View* currentView) {
+	Image* image = layer->ImagePtr;
+	if (!image || !image->TexturePtr) {
+		return;
+	}
+
+	float viewX = currentView->X;
+	float viewY = currentView->Y;
+
+	float constantVerticalOffset = Scene::Frame * layer->ConstantY;
+
+	float x = -(viewX + layer->OffsetX);
+	float y = -(constantVerticalOffset + ((viewY + layer->OffsetY) * layer->RelativeY));
+
+	Uint32 repeatFlags =
+		layer->Flags & (SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y);
+	if (repeatFlags == 0) {
+		Graphics::DrawTexture(image->TexturePtr,
+			0,
+			0,
+			image->TexturePtr->Width,
+			image->TexturePtr->Height,
+			viewX + x,
+			viewY + y,
+			image->TexturePtr->Width,
+			image->TexturePtr->Height,
+			0);
+		return;
+	}
+
+	float viewWidth, viewHeight;
+
+	Translate(viewX, viewY, 0.0f);
+
+	switch (repeatFlags) {
+	case SceneLayer::FLAGS_REPEAT_X:
+		viewWidth = std::ceil(currentView->GetScaledWidth());
+		DrawTextureLoopHorizontal(image->TexturePtr, x, y, viewWidth);
+		break;
+	case SceneLayer::FLAGS_REPEAT_Y:
+		viewHeight = std::ceil(currentView->GetScaledHeight());
+		DrawTextureLoopVertical(image->TexturePtr, x, y, viewHeight);
+		break;
+	case SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y:
+		viewWidth = std::ceil(currentView->GetScaledWidth());
+		viewHeight = std::ceil(currentView->GetScaledHeight());
+		DrawTextureLoopHV(image->TexturePtr, x, y, viewWidth, viewHeight);
+		break;
+	}
+
+	Translate(-viewX, -viewY, 0.0f);
+}
+void Graphics::DrawTextureLoopHorizontal(Texture* texture, float x, float y, float maxWidth) {
+	int max = std::ceil(maxWidth / texture->Width) + 1;
+
+	x = fmod(x, texture->Width);
+
+	for (int i = 0; i < max; i++) {
+		if (x > maxWidth) {
+			break;
+		}
+
+		Graphics::DrawTexture(texture,
+			0,
+			0,
+			texture->Width,
+			texture->Height,
+			x,
+			y,
+			texture->Width,
+			texture->Height,
+			0);
+
+		x += texture->Width;
+	}
+}
+void Graphics::DrawTextureLoopVertical(Texture* texture, float x, float y, float maxHeight) {
+	int max = std::ceil(maxHeight / texture->Height) + 1;
+
+	y = fmod(y, texture->Height);
+
+	for (int i = 0; i < max; i++) {
+		if (y > maxHeight) {
+			break;
+		}
+
+		Graphics::DrawTexture(texture,
+			0,
+			0,
+			texture->Width,
+			texture->Height,
+			x,
+			y,
+			texture->Width,
+			texture->Height,
+			0);
+
+		y += texture->Height;
+	}
+}
+void Graphics::DrawTextureLoopHV(Texture* texture,
+	float x,
+	float y,
+	float maxWidth,
+	float maxHeight) {
+	int maxW = std::ceil(maxWidth / texture->Width) + 1;
+	int maxH = std::ceil(maxHeight / texture->Height) + 1;
+
+	float xStart = fmod(x, texture->Width);
+	y = fmod(y, texture->Height);
+
+	for (int ly = 0; ly < maxH; ly++) {
+		if (y > maxHeight) {
+			break;
+		}
+
+		float x = xStart;
+
+		for (int lx = 0; lx < maxW; lx++) {
+			if (x > maxWidth) {
+				break;
+			}
+
+			Graphics::DrawTexture(texture,
+				0,
+				0,
+				texture->Width,
+				texture->Height,
+				x,
+				y,
+				texture->Width,
+				texture->Height,
+				0);
+
+			x += texture->Width;
+		}
+
+		y += texture->Height;
 	}
 }
 void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {

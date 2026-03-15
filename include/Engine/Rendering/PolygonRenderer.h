@@ -8,7 +8,7 @@
 #include <Engine/Rendering/Scene3D.h>
 #include <Engine/Rendering/VertexBuffer.h>
 #include <Engine/ResourceTypes/IModel.h>
-#include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileLayer.h>
 
 class PolygonRenderer {
 public:
@@ -32,7 +32,7 @@ public:
 	bool SetBuffers();
 	void
 	DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture);
-	void DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh);
+	void DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw, int sh);
 	void DrawModel(IModel* model, Uint16 animation, Uint32 frame);
 	void DrawModelSkinned(IModel* model, Uint16 armature);
 	void DrawVertexBuffer();

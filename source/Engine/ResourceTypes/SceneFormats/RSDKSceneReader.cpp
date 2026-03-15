@@ -14,6 +14,7 @@
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileLayer.h>
 #include <Engine/Types/Entity.h>
 
 #define TILE_FLIPX_MASK 0x80000000U
@@ -239,7 +240,7 @@ bool RSDKSceneReader::Read(const char* filename, const char* parentFolder) {
 
 	return RSDKSceneReader::Read(r, parentFolder);
 }
-SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
+TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 	r->ReadByte(); // Ignored Byte
 
 	char* Name = r->ReadHeaderedString();
@@ -250,55 +251,56 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 	Uint16 relativeY = r->ReadInt16();
 	Uint16 constantY = r->ReadInt16();
 
-	SceneLayer layer(Width, Height);
+	TileLayer* layer = new TileLayer(Width, Height);
 	if (layerDrawBehavior == 3) {
-		layerDrawBehavior = DrawBehavior_HorizontalParallax;
+		layer->DrawBehavior = DrawBehavior_HorizontalParallax;
 	}
-	layer.DrawBehavior = layerDrawBehavior;
-
-	layer.Name = Name;
-
-	layer.RelativeY = (float)relativeY / 0x100;
-	layer.ConstantY = (float)constantY / 0x100;
-
-	layer.Flags = 0;
-
-	if (layer.Name[0] == 'F' && layer.Name[1] == 'G') {
-		layer.Flags |= SceneLayer::FLAGS_COLLIDEABLE;
+	else {
+		layer->DrawBehavior = layerDrawBehavior;
 	}
 
-	if (strcmp(layer.Name, "Move") != 0) {
-		layer.Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
+	layer->Name = Name;
+
+	layer->RelativeY = (float)relativeY / 0x100;
+	layer->ConstantY = (float)constantY / 0x100;
+
+	if (layer->Name[0] == 'F' && layer->Name[1] == 'G') {
+		layer->Flags |= SceneLayer::FLAGS_COLLIDEABLE;
 	}
 
-	layer.DrawGroup = DrawGroup & 0xF;
+	if (strcmp(layer->Name, "Move") != 0) {
+		layer->Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
+	}
+
+	layer->DrawGroup = DrawGroup & 0xF;
 	if (DrawGroup & 0x10) {
-		layer.Visible = false;
+		layer->Visible = false;
 	}
 
-	layer.UsingScrollIndexes = true;
-	layer.ScrollInfoCount = (int)r->ReadUInt16();
-	layer.ScrollInfos =
-		(ScrollingInfo*)Memory::Malloc(layer.ScrollInfoCount * sizeof(ScrollingInfo));
-	for (int g = 0; g < layer.ScrollInfoCount; g++) {
+	layer->UsingScrollIndexes = true;
+	layer->ScrollIndexes = (Uint8*)Memory::Malloc(16 * layer->HeightData);
+	layer->ScrollInfoCount = (int)r->ReadUInt16();
+	layer->ScrollInfos =
+		(ScrollingInfo*)Memory::Malloc(layer->ScrollInfoCount * sizeof(ScrollingInfo));
+	for (int g = 0; g < layer->ScrollInfoCount; g++) {
 		Sint16 relativeParallax = r->ReadInt16();
 		Sint16 constantParallax = r->ReadInt16();
 
-		layer.ScrollInfos[g].RelativeParallax = (float)relativeParallax / 0x100;
-		layer.ScrollInfos[g].ConstantParallax = (float)constantParallax / 0x100;
+		layer->ScrollInfos[g].RelativeParallax = (float)relativeParallax / 0x100;
+		layer->ScrollInfos[g].ConstantParallax = (float)constantParallax / 0x100;
 
-		layer.ScrollInfos[g].CanDeform = (bool)r->ReadByte();
+		layer->ScrollInfos[g].CanDeform = (bool)r->ReadByte();
 		r->ReadByte();
 	}
 
 	Uint16* tileBoys = (Uint16*)malloc(sizeof(Uint16) * Width * Height);
 
-	Uint32 scrollIndexRead = r->ReadCompressed(layer.ScrollIndexes, 16 * layer.HeightData);
-	if (scrollIndexRead > 16 * layer.HeightData) {
+	Uint32 scrollIndexRead = r->ReadCompressed(layer->ScrollIndexes, 16 * layer->HeightData);
+	if (scrollIndexRead > 16 * layer->HeightData) {
 		Log::Print(Log::LOG_ERROR,
 			"Read more parallax indexes (%u) than buffer (%d) allows!",
 			scrollIndexRead,
-			16 * layer.HeightData);
+			16 * layer->HeightData);
 	}
 	Uint32 tileBoysRead = r->ReadCompressed(tileBoys, sizeof(Uint16) * Width * Height);
 	if (tileBoysRead > sizeof(Uint16) * Width * Height) {
@@ -310,9 +312,9 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 
 	// Convert to Hatch tiles
 	int t = 0;
-	Uint32* tileRow = &layer.Tiles[0];
-	for (int y = 0; y < layer.Height; y++) {
-		for (int x = 0; x < layer.Width; x++) {
+	Uint32* tileRow = &layer->Tiles[0];
+	for (int y = 0; y < layer->Height; y++) {
+		for (int x = 0; x < layer->Width; x++) {
 			tileRow[x] = (tileBoys[t] & 0x3FF);
 			tileRow[x] |= (tileBoys[t] & 0x400) << 21; // Flip X
 			tileRow[x] |= (tileBoys[t] & 0x800) << 19; // Flip Y
@@ -320,9 +322,9 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 			tileRow[x] |= (tileBoys[t] & 0x3000) << 16; // Collision A
 			t++;
 		}
-		tileRow += layer.WidthData;
+		tileRow += layer->WidthData;
 	}
-	memcpy(layer.TilesBackup, layer.Tiles, layer.DataSize);
+	memcpy(layer->TilesBackup, layer->Tiles, layer->DataSize);
 
 	free(tileBoys);
 
@@ -352,7 +354,9 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 			Log::Print(Log::LOG_WARN, "Class \"%s\" does not exist!", objectName);
 		}
 		else {
-			Log::Print(Log::LOG_WARN, "Class for hash 0x%08X does not exist!", objectNameHash);
+			Log::Print(Log::LOG_WARN,
+				"Class for hash 0x%08X does not exist!",
+				objectNameHash);
 		}
 	}
 
@@ -486,7 +490,8 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 				}
 
 				if (PropertyHashes->Exists(argumentHashes[a])) {
-					properties->Put(PropertyHashes->Get(argumentHashes[a]), val);
+					properties->Put(
+						PropertyHashes->Get(argumentHashes[a]), val);
 				}
 			}
 		}
@@ -623,15 +628,15 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 		Uint32 layerCount = r->ReadByte();
 		Scene::Layers.resize(layerCount);
 		for (Uint32 i = 0; i < layerCount; i++) {
-			SceneLayer layer = RSDKSceneReader::ReadLayer(r);
+			TileLayer* layer = RSDKSceneReader::ReadLayer(r);
 
 			Log::Print(Log::LOG_VERBOSE,
 				"Layer %d (%s): Width (%d) Height (%d) DrawGroup (%d)",
 				i,
-				layer.Name,
-				layer.Width,
-				layer.Height,
-				layer.DrawGroup);
+				layer->Name,
+				layer->Width,
+				layer->Height,
+				layer->DrawGroup);
 
 			Scene::Layers[i] = layer;
 		}

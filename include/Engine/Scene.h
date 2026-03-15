@@ -80,7 +80,7 @@ public:
 	static vector<Tileset> Tilesets;
 	static vector<TileSpriteInfo> TileSpriteInfos;
 	static Uint16 EmptyTile;
-	static vector<SceneLayer> Layers;
+	static vector<SceneLayer*> Layers;
 	static bool AnyLayerTileChange;
 	static int TileCount;
 	static int TileWidth;
@@ -217,8 +217,14 @@ public:
 	static void UnloadTilesets();
 	static size_t AddGameTexture(GameTexture* texture);
 	static bool FindGameTextureByID(int id, size_t& out);
-	static void
-	SetTile(int layer, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB);
+	static void SetTile(int layerIndex,
+		int x,
+		int y,
+		int tileID,
+		int flip_x,
+		int flip_y,
+		int collA,
+		int collB);
 	static int CollisionAt(int x, int y, int collisionField, int collideSide, int* angle);
 	static int CollisionInLine(int x,
 		int y,

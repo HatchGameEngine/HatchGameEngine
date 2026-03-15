@@ -18,8 +18,10 @@ class IModel;
 #include <Engine/ResourceTypes/Font.h>
 #include <Engine/ResourceTypes/IModel.h>
 #include <Engine/ResourceTypes/ISprite.h>
+#include <Engine/Scene/ImageLayer.h>
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileLayer.h>
 #include <Engine/Scene/View.h>
 #include <Engine/Utilities/ColorUtils.h>
 
@@ -32,11 +34,11 @@ private:
 	static void DeleteShaders();
 	static void DeleteVertexBuffers();
 	static std::vector<Uint32> GetTextCodepoints(Font* font, const char* text);
-	static Sint64 CalcHorizontalParallaxPosition(SceneLayer* layer,
+	static Sint64 CalcHorizontalParallaxPosition(TileLayer* layer,
 		float viewX,
 		float constant,
 		float relative);
-	static void CalcScanlineDeforms(SceneLayer* layer,
+	static void CalcScanlineDeforms(TileLayer* layer,
 		int start,
 		int end,
 		float viewX,
@@ -443,13 +445,19 @@ public:
 		bool flipX,
 		bool flipY,
 		bool usePaletteIndexLines);
-	static void DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView);
+	static void DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentView);
+	static void DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView);
+	static void DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* currentView);
 	static void DrawSceneLayer(SceneLayer* layer,
 		View* currentView,
 		int layerIndex,
 		bool useCustomFunction);
+	static void DrawTileLayer(TileLayer* layer, View* currentView);
+	static void DrawImageLayer(ImageLayer* layer, View* currentView);
+	static void DrawTextureLoopHorizontal(Texture* texture, float x, float y, float maxWidth);
+	static void DrawTextureLoopVertical(Texture* texture, float x, float y, float maxHeight);
+	static void
+	DrawTextureLoopHV(Texture* texture, float x, float y, float maxWidth, float maxHeight);
 	static void RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex);
 	static void DrawPolygon3D(void* data,
 		int vertexCount,

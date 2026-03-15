@@ -678,6 +678,17 @@ float textAdvance;
 		return NULL_VAL; \
 	}
 
+#define CHECK_IS_TILE_LAYER(layerIdx) \
+	if (Scene::Layers[layerIdx]->Type != SceneLayer::TYPE_TILE) { \
+		THROW_ERROR("Layer index %d is not a tile layer!", layerIdx); \
+		return NULL_VAL; \
+	}
+
+#define RETURN_IF_TILE_LAYER(layerIdx, val) \
+	if (Scene::Layers[layerIdx]->Type != SceneLayer::TYPE_TILE) { \
+		return val; \
+	}
+
 #define CHECK_INPUT_PLAYER_INDEX(playerNum) \
 	if (playerNum < 0 || playerNum >= InputManager::GetPlayerCount()) { \
 		OUT_OF_RANGE_ERROR( \
@@ -4164,8 +4175,7 @@ VMValue Draw_Layer(int argCount, VMValue* args, Uint32 threadID) {
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
 	if (Graphics::CurrentView) {
-		Graphics::DrawSceneLayer(
-			&Scene::Layers[index], Graphics::CurrentView, index, false);
+		Graphics::DrawSceneLayer(Scene::Layers[index], Graphics::CurrentView, index, false);
 	}
 	return NULL_VAL;
 }
@@ -7182,7 +7192,9 @@ VMValue Draw3D_SceneLayer(int argCount, VMValue* args, Uint32 threadID) {
 
 	CHECK_SCENE_LAYER_INDEX(layerID);
 
-	SceneLayer* layer = &Scene::Layers[layerID];
+	CHECK_IS_TILE_LAYER(layerID);
+
+	TileLayer* layer = (TileLayer*)Scene::Layers[layerID];
 	Graphics::DrawSceneLayer3D(
 		layer, 0, 0, layer->Width, layer->Height, matrixModel, matrixNormal);
 	return NULL_VAL;
@@ -7211,8 +7223,9 @@ VMValue Draw3D_SceneLayerPart(int argCount, VMValue* args, Uint32 threadID) {
 	PREPARE_MATRICES(matrixModelArr, matrixNormalArr);
 
 	CHECK_SCENE_LAYER_INDEX(layerID);
+	CHECK_IS_TILE_LAYER(layerID);
 
-	SceneLayer* layer = &Scene::Layers[layerID];
+	TileLayer* layer = (TileLayer*)Scene::Layers[layerID];
 	if (sx < 0) {
 		sx = 0;
 	}
@@ -12711,9 +12724,8 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 // #endregion
 
 // #region Scene
-#define CHECK_TILE_LAYER_POS_BOUNDS() \
-	if (layer < 0 || layer >= (int)Scene::Layers.size() || x < 0 || y < 0 || \
-		x >= Scene::Layers[layer].Width || y >= Scene::Layers[layer].Height) \
+#define CHECK_TILE_LAYER_POS_BOUNDS(layerPtr) \
+	if (x < 0 || y < 0 || x >= layerPtr->Width || y >= layerPtr->Height) \
 		return NULL_VAL;
 
 /***
@@ -12895,7 +12907,7 @@ VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* layername = GET_ARG(0, GetString);
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
-		if (strcmp(Scene::Layers[i].Name, layername) == 0) {
+		if (strcmp(Scene::Layers[i]->Name, layername) == 0) {
 			return INTEGER_VAL((int)i);
 		}
 	}
@@ -12912,7 +12924,7 @@ VMValue Scene_GetLayerName(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return ReturnString(Scene::Layers[index].Name);
+	return ReturnString(Scene::Layers[index]->Name);
 }
 /***
  * Scene.GetLayerVisible
@@ -12925,7 +12937,7 @@ VMValue Scene_GetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(!!Scene::Layers[index].Visible);
+	return INTEGER_VAL(!!Scene::Layers[index]->Visible);
 }
 /***
  * Scene.GetLayerOpacity
@@ -12938,7 +12950,7 @@ VMValue Scene_GetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return DECIMAL_VAL(Scene::Layers[index].Opacity);
+	return DECIMAL_VAL(Scene::Layers[index]->Opacity);
 }
 /***
  * Scene.GetLayerShader
@@ -12952,7 +12964,7 @@ VMValue Scene_GetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
 
-	Shader* shader = (Shader*)Scene::Layers[index].CurrentShader;
+	Shader* shader = (Shader*)Scene::Layers[index]->CurrentShader;
 	if (shader != nullptr) {
 		return OBJECT_VAL(shader->Object);
 	}
@@ -12970,7 +12982,7 @@ VMValue Scene_GetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 t
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(Scene::Layers[index].UsePaletteIndexLines);
+	return INTEGER_VAL(Scene::Layers[index]->UsePaletteIndexLines);
 }
 /***
  * Scene.GetLayerProperty
@@ -12985,7 +12997,7 @@ VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
 	int index = GET_ARG(0, GetInteger);
 	char* property = GET_ARG(1, GetString);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return Value::FromProperty(Scene::Layers[index].PropertyGet(property));
+	return Value::FromProperty(Scene::Layers[index]->PropertyGet(property));
 }
 /***
  * Scene.GetLayerExists
@@ -13012,7 +13024,9 @@ VMValue Scene_GetLayerDeformSplitLine(int argCount, VMValue* args, Uint32 thread
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(Scene::Layers[index].DeformSplitLine);
+	CHECK_IS_TILE_LAYER(index);
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	return INTEGER_VAL(layer->DeformSplitLine);
 }
 /***
  * Scene.GetLayerDeformOffsetA
@@ -13025,7 +13039,9 @@ VMValue Scene_GetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(Scene::Layers[index].DeformOffsetA);
+	CHECK_IS_TILE_LAYER(index);
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	return INTEGER_VAL(layer->DeformOffsetA);
 }
 /***
  * Scene.GetLayerDeformOffsetB
@@ -13038,7 +13054,9 @@ VMValue Scene_GetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(Scene::Layers[index].DeformOffsetB);
+	CHECK_IS_TILE_LAYER(index);
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	return INTEGER_VAL(layer->DeformOffsetB);
 }
 /***
  * Scene.LayerPropertyExists
@@ -13053,7 +13071,7 @@ VMValue Scene_LayerPropertyExists(int argCount, VMValue* args, Uint32 threadID) 
 	int index = GET_ARG(0, GetInteger);
 	char* property = GET_ARG(1, GetString);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(!!Scene::Layers[index].PropertyExists(property));
+	return INTEGER_VAL(!!Scene::Layers[index]->PropertyExists(property));
 }
 /***
  * Scene.GetName
@@ -13085,12 +13103,12 @@ VMValue Scene_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	int v = 0;
 	if (Scene::Layers.size() > 0) {
-		v = Scene::Layers[0].Width;
+		v = Scene::Layers[0]->Width;
 	}
 
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
-		if (strcmp(Scene::Layers[i].Name, "FG Low") == 0) {
-			return INTEGER_VAL(Scene::Layers[i].Width);
+		if (strcmp(Scene::Layers[i]->Name, "FG Low") == 0) {
+			return INTEGER_VAL(Scene::Layers[i]->Width);
 		}
 	}
 
@@ -13106,12 +13124,12 @@ VMValue Scene_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	int v = 0;
 	if (Scene::Layers.size() > 0) {
-		v = Scene::Layers[0].Height;
+		v = Scene::Layers[0]->Height;
 	}
 
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
-		if (strcmp(Scene::Layers[i].Name, "FG Low") == 0) {
-			return INTEGER_VAL(Scene::Layers[i].Height);
+		if (strcmp(Scene::Layers[i]->Name, "FG Low") == 0) {
+			return INTEGER_VAL(Scene::Layers[i]->Height);
 		}
 	}
 
@@ -13128,7 +13146,7 @@ VMValue Scene_GetLayerWidth(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int layer = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(layer);
-	return INTEGER_VAL(Scene::Layers[layer].Width);
+	return INTEGER_VAL(Scene::Layers[layer]->Width);
 }
 /***
  * Scene.GetLayerHeight
@@ -13141,7 +13159,7 @@ VMValue Scene_GetLayerHeight(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int layer = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(layer);
-	return INTEGER_VAL(Scene::Layers[layer].Height);
+	return INTEGER_VAL(Scene::Layers[layer]->Height);
 }
 /***
  * Scene.GetLayerOffsetX
@@ -13154,7 +13172,7 @@ VMValue Scene_GetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return DECIMAL_VAL(Scene::Layers[index].OffsetX);
+	return DECIMAL_VAL(Scene::Layers[index]->OffsetX);
 }
 /***
  * Scene.GetLayerOffsetY
@@ -13167,7 +13185,7 @@ VMValue Scene_GetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return DECIMAL_VAL(Scene::Layers[index].OffsetY);
+	return DECIMAL_VAL(Scene::Layers[index]->OffsetY);
 }
 /***
  * Scene.GetLayerDrawGroup
@@ -13180,7 +13198,7 @@ VMValue Scene_GetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(Scene::Layers[index].DrawGroup);
+	return INTEGER_VAL(Scene::Layers[index]->DrawGroup);
 }
 /***
  * Scene.GetLayerHorizontalRepeat
@@ -13195,7 +13213,7 @@ VMValue Scene_GetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threa
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
 
-	if (Scene::Layers[index].Flags & SceneLayer::FLAGS_REPEAT_X) {
+	if (Scene::Layers[index]->Flags & SceneLayer::FLAGS_REPEAT_X) {
 		return INTEGER_VAL(true);
 	}
 
@@ -13214,7 +13232,7 @@ VMValue Scene_GetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
 
-	if (Scene::Layers[index].Flags & SceneLayer::FLAGS_REPEAT_Y) {
+	if (Scene::Layers[index]->Flags & SceneLayer::FLAGS_REPEAT_Y) {
 		return INTEGER_VAL(true);
 	}
 
@@ -13335,17 +13353,19 @@ VMValue Scene_GetTileHeight(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetTileID(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
-	int layer = GET_ARG(0, GetInteger);
+	int layerIdx = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal);
 	int y = (int)GET_ARG(2, GetDecimal);
 
-	CHECK_SCENE_LAYER_INDEX(layer);
+	CHECK_SCENE_LAYER_INDEX(layerIdx);
 
-	CHECK_TILE_LAYER_POS_BOUNDS();
+	CHECK_IS_TILE_LAYER(layerIdx);
 
-	return INTEGER_VAL(
-		(int)(Scene::Layers[layer].Tiles[x + (y << Scene::Layers[layer].WidthInBits)] &
-			TILE_IDENT_MASK));
+	TileLayer* layer = (TileLayer*)Scene::Layers[layerIdx];
+
+	CHECK_TILE_LAYER_POS_BOUNDS(layer);
+
+	return INTEGER_VAL((int)(layer->Tiles[x + (y << layer->WidthInBits)] & TILE_IDENT_MASK));
 }
 /***
  * Scene.GetTileFlipX
@@ -13358,17 +13378,19 @@ VMValue Scene_GetTileID(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetTileFlipX(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
-	int layer = GET_ARG(0, GetInteger);
+	int layerIdx = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal);
 	int y = (int)GET_ARG(2, GetDecimal);
 
-	CHECK_SCENE_LAYER_INDEX(layer);
+	CHECK_SCENE_LAYER_INDEX(layerIdx);
 
-	CHECK_TILE_LAYER_POS_BOUNDS();
+	CHECK_IS_TILE_LAYER(layerIdx);
 
-	return INTEGER_VAL(
-		!!(Scene::Layers[layer].Tiles[x + (y << Scene::Layers[layer].WidthInBits)] &
-			TILE_FLIPX_MASK));
+	TileLayer* layer = (TileLayer*)Scene::Layers[layerIdx];
+
+	CHECK_TILE_LAYER_POS_BOUNDS(layer);
+
+	return INTEGER_VAL(!!(layer->Tiles[x + (y << layer->WidthInBits)] & TILE_FLIPX_MASK));
 }
 /***
  * Scene.GetTileFlipY
@@ -13381,17 +13403,19 @@ VMValue Scene_GetTileFlipX(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetTileFlipY(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(3);
-	int layer = GET_ARG(0, GetInteger);
+	int layerIdx = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal);
 	int y = (int)GET_ARG(2, GetDecimal);
 
-	CHECK_SCENE_LAYER_INDEX(layer);
+	CHECK_SCENE_LAYER_INDEX(layerIdx);
 
-	CHECK_TILE_LAYER_POS_BOUNDS();
+	CHECK_IS_TILE_LAYER(layerIdx);
 
-	return INTEGER_VAL(
-		!!(Scene::Layers[layer].Tiles[x + (y << Scene::Layers[layer].WidthInBits)] &
-			TILE_FLIPY_MASK));
+	TileLayer* layer = (TileLayer*)Scene::Layers[layerIdx];
+
+	CHECK_TILE_LAYER_POS_BOUNDS(layer);
+
+	return INTEGER_VAL(!!(layer->Tiles[x + (y << layer->WidthInBits)] & TILE_FLIPY_MASK));
 }
 /***
  * Scene.GetDrawGroupCount
@@ -13787,7 +13811,7 @@ VMValue Scene_SetDebugMode(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_SetTile(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(6);
-	int layer = GET_ARG(0, GetInteger);
+	int layerIdx = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal);
 	int y = (int)GET_ARG(2, GetDecimal);
 	int tileID = GET_ARG(3, GetInteger);
@@ -13797,19 +13821,21 @@ VMValue Scene_SetTile(int argCount, VMValue* args, Uint32 threadID) {
 	int collA = TILE_COLLA_MASK, collB = TILE_COLLB_MASK;
 	if (argCount == 7) {
 		collA = collB = GET_ARG(6, GetInteger);
-		// collA <<= 28;
-		// collB <<= 26;
 	}
 	else if (argCount == 8) {
 		collA = GET_ARG(6, GetInteger);
 		collB = GET_ARG(7, GetInteger);
 	}
 
-	CHECK_SCENE_LAYER_INDEX(layer);
+	CHECK_SCENE_LAYER_INDEX(layerIdx);
 
-	CHECK_TILE_LAYER_POS_BOUNDS();
+	CHECK_IS_TILE_LAYER(layerIdx);
 
-	Uint32* tile = &Scene::Layers[layer].Tiles[x + (y << Scene::Layers[layer].WidthInBits)];
+	TileLayer* layer = (TileLayer*)Scene::Layers[layerIdx];
+
+	CHECK_TILE_LAYER_POS_BOUNDS(layer);
+
+	Uint32* tile = &layer->Tiles[x + (y << layer->WidthInBits)];
 
 	*tile = tileID & TILE_IDENT_MASK;
 	if (flip_x) {
@@ -13839,17 +13865,21 @@ VMValue Scene_SetTile(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_SetTileCollisionSides(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(5);
-	int layer = GET_ARG(0, GetInteger);
+	int layerIdx = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal);
 	int y = (int)GET_ARG(2, GetDecimal);
 	int collA = GET_ARG(3, GetInteger) << 28;
 	int collB = GET_ARG(4, GetInteger) << 26;
 
-	CHECK_SCENE_LAYER_INDEX(layer);
+	CHECK_SCENE_LAYER_INDEX(layerIdx);
 
-	CHECK_TILE_LAYER_POS_BOUNDS();
+	CHECK_IS_TILE_LAYER(layerIdx);
 
-	Uint32* tile = &Scene::Layers[layer].Tiles[x + (y << Scene::Layers[layer].WidthInBits)];
+	TileLayer* layer = (TileLayer*)Scene::Layers[layerIdx];
+
+	CHECK_TILE_LAYER_POS_BOUNDS(layer);
+
+	Uint32* tile = &layer->Tiles[x + (y << layer->WidthInBits)];
 
 	*tile &= TILE_FLIPX_MASK | TILE_FLIPY_MASK | TILE_IDENT_MASK;
 	*tile |= collA;
@@ -14078,7 +14108,7 @@ VMValue Scene_SetLayerVisible(int argCount, VMValue* args, Uint32 threadID) {
 	int index = GET_ARG(0, GetInteger);
 	int visible = GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].Visible = visible;
+	Scene::Layers[index]->Visible = visible;
 	return NULL_VAL;
 }
 /***
@@ -14094,10 +14124,10 @@ VMValue Scene_SetLayerCollidable(int argCount, VMValue* args, Uint32 threadID) {
 	int visible = GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
 	if (visible) {
-		Scene::Layers[index].Flags |= SceneLayer::FLAGS_COLLIDEABLE;
+		Scene::Layers[index]->Flags |= SceneLayer::FLAGS_COLLIDEABLE;
 	}
 	else {
-		Scene::Layers[index].Flags &= ~SceneLayer::FLAGS_COLLIDEABLE;
+		Scene::Layers[index]->Flags &= ~SceneLayer::FLAGS_COLLIDEABLE;
 	}
 	return NULL_VAL;
 }
@@ -14113,10 +14143,10 @@ VMValue Scene_SetLayerInternalSize(int argCount, VMValue* args, Uint32 threadID)
 	int h = GET_ARG(2, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
 	if (w > 0) {
-		Scene::Layers[index].Width = w;
+		Scene::Layers[index]->Width = w;
 	}
 	if (h > 0) {
-		Scene::Layers[index].Height = h;
+		Scene::Layers[index]->Height = h;
 	}
 	return NULL_VAL;
 }
@@ -14134,8 +14164,8 @@ VMValue Scene_SetLayerOffsetPosition(int argCount, VMValue* args, Uint32 threadI
 	float offsetX = GET_ARG(1, GetDecimal);
 	float offsetY = GET_ARG(2, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].OffsetX = offsetX;
-	Scene::Layers[index].OffsetY = offsetY;
+	Scene::Layers[index]->OffsetX = offsetX;
+	Scene::Layers[index]->OffsetY = offsetY;
 	return NULL_VAL;
 }
 /***
@@ -14150,7 +14180,7 @@ VMValue Scene_SetLayerOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 	int index = GET_ARG(0, GetInteger);
 	float offsetX = GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].OffsetX = offsetX;
+	Scene::Layers[index]->OffsetX = offsetX;
 	return NULL_VAL;
 }
 /***
@@ -14165,7 +14195,7 @@ VMValue Scene_SetLayerOffsetY(int argCount, VMValue* args, Uint32 threadID) {
 	int index = GET_ARG(0, GetInteger);
 	float offsetY = GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].OffsetY = offsetY;
+	Scene::Layers[index]->OffsetY = offsetY;
 	return NULL_VAL;
 }
 /***
@@ -14185,7 +14215,7 @@ VMValue Scene_SetLayerDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 	Scene::GetDrawGroup(drawGroup); // In case it doesn't exist already
-	Scene::Layers[index].DrawGroup = drawGroup;
+	Scene::Layers[index]->DrawGroup = drawGroup;
 	return NULL_VAL;
 }
 /***
@@ -14200,7 +14230,7 @@ VMValue Scene_SetLayerDrawBehavior(int argCount, VMValue* args, Uint32 threadID)
 	int index = GET_ARG(0, GetInteger);
 	int drawBehavior = GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].DrawBehavior = drawBehavior;
+	Scene::Layers[index]->DrawBehavior = drawBehavior;
 	return NULL_VAL;
 }
 /***
@@ -14216,11 +14246,11 @@ VMValue Scene_SetLayerRepeat(int argCount, VMValue* args, Uint32 threadID) {
 	bool doesRepeat = !!GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
 	if (doesRepeat) {
-		Scene::Layers[index].Flags |=
+		Scene::Layers[index]->Flags |=
 			SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
 	}
 	else {
-		Scene::Layers[index].Flags &=
+		Scene::Layers[index]->Flags &=
 			~(SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y);
 	}
 	return NULL_VAL;
@@ -14238,10 +14268,10 @@ VMValue Scene_SetLayerHorizontalRepeat(int argCount, VMValue* args, Uint32 threa
 	bool doesRepeat = !!GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
 	if (doesRepeat) {
-		Scene::Layers[index].Flags |= SceneLayer::FLAGS_REPEAT_X;
+		Scene::Layers[index]->Flags |= SceneLayer::FLAGS_REPEAT_X;
 	}
 	else {
-		Scene::Layers[index].Flags &= ~SceneLayer::FLAGS_REPEAT_X;
+		Scene::Layers[index]->Flags &= ~SceneLayer::FLAGS_REPEAT_X;
 	}
 	return NULL_VAL;
 }
@@ -14258,10 +14288,10 @@ VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
 	bool doesRepeat = !!GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
 	if (doesRepeat) {
-		Scene::Layers[index].Flags |= SceneLayer::FLAGS_REPEAT_Y;
+		Scene::Layers[index]->Flags |= SceneLayer::FLAGS_REPEAT_Y;
 	}
 	else {
-		Scene::Layers[index].Flags &= ~SceneLayer::FLAGS_REPEAT_Y;
+		Scene::Layers[index]->Flags &= ~SceneLayer::FLAGS_REPEAT_Y;
 	}
 	return NULL_VAL;
 }
@@ -14321,8 +14351,8 @@ VMValue Scene_SetLayerBlend(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].Blending = !!GET_ARG(1, GetInteger);
-	Scene::Layers[index].BlendMode = argCount >= 3 ? GET_ARG(2, GetInteger) : BlendMode_NORMAL;
+	Scene::Layers[index]->UseBlending = !!GET_ARG(1, GetInteger);
+	Scene::Layers[index]->BlendMode = argCount >= 3 ? GET_ARG(2, GetInteger) : BlendMode_NORMAL;
 	return NULL_VAL;
 }
 /***
@@ -14343,7 +14373,7 @@ VMValue Scene_SetLayerOpacity(int argCount, VMValue* args, Uint32 threadID) {
 	else if (opacity > 1.0) {
 		THROW_ERROR("Opacity cannot be higher than 1.0.");
 	}
-	Scene::Layers[index].Opacity = opacity;
+	Scene::Layers[index]->Opacity = opacity;
 	return NULL_VAL;
 }
 /***
@@ -14361,7 +14391,7 @@ VMValue Scene_SetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_SCENE_LAYER_INDEX(index);
 
 	if (IS_NULL(args[1])) {
-		Scene::Layers[index].CurrentShader = nullptr;
+		Scene::Layers[index]->CurrentShader = nullptr;
 		return NULL_VAL;
 	}
 
@@ -14374,7 +14404,7 @@ VMValue Scene_SetLayerShader(int argCount, VMValue* args, Uint32 threadID) {
 	try {
 		shader->Validate();
 
-		Scene::Layers[index].CurrentShader = shader;
+		Scene::Layers[index]->CurrentShader = shader;
 	} catch (const std::runtime_error& error) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "%s", error.what());
 		return NULL_VAL;
@@ -14394,7 +14424,7 @@ VMValue Scene_SetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 t
 	int index = GET_ARG(0, GetInteger);
 	int usePaletteIndexLines = !!GET_ARG(1, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].UsePaletteIndexLines = usePaletteIndexLines;
+	Scene::Layers[index]->UsePaletteIndexLines = usePaletteIndexLines;
 	return NULL_VAL;
 }
 /***
@@ -14411,8 +14441,8 @@ VMValue Scene_SetLayerScroll(int argCount, VMValue* args, Uint32 threadID) {
 	float relative = GET_ARG(1, GetDecimal);
 	float constant = GET_ARG(2, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].RelativeY = relative;
-	Scene::Layers[index].ConstantY = constant;
+	Scene::Layers[index]->RelativeY = relative;
+	Scene::Layers[index]->ConstantY = constant;
 	return NULL_VAL;
 }
 struct BufferedScrollInfo {
@@ -14434,11 +14464,13 @@ VMValue Scene_SetLayerSetParallaxLinesBegin(int argCount, VMValue* args, Uint32 
 	CHECK_ARGCOUNT(1);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
 	if (BufferedScrollLines) {
 		THROW_ERROR("Did not end scroll line setup before beginning new one");
 		Memory::Free(BufferedScrollLines);
 	}
-	BufferedScrollLinesMax = Scene::Layers[index].HeightData * Scene::TileWidth;
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	BufferedScrollLinesMax = layer->HeightData * Scene::TileWidth;
 	BufferedScrollLines = (Uint8*)Memory::Malloc(BufferedScrollLinesMax);
 	BufferedScrollSetupLayer = index;
 	BufferedScrollInfos.clear();
@@ -14512,7 +14544,7 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 		return NULL_VAL;
 	}
 
-	SceneLayer* layer = &Scene::Layers[BufferedScrollSetupLayer];
+	TileLayer* layer = (TileLayer*)Scene::Layers[BufferedScrollSetupLayer];
 	Memory::Free(layer->ScrollInfos);
 	Memory::Free(layer->ScrollIndexes);
 
@@ -14558,11 +14590,13 @@ VMValue Scene_SetLayerTileDeforms(int argCount, VMValue* args, Uint32 threadID) 
 	const int maxDeformLineMask = MAX_DEFORM_LINES - 1;
 
 	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
 
 	lineIndex &= maxDeformLineMask;
-	Scene::Layers[index].DeformSetA[lineIndex] = deformA;
-	Scene::Layers[index].DeformSetB[lineIndex] = deformB;
-	Scene::Layers[index].UsingScrollIndexes = true;
+	layer->DeformSetA[lineIndex] = deformA;
+	layer->DeformSetB[lineIndex] = deformB;
+	layer->UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -14577,8 +14611,10 @@ VMValue Scene_SetLayerTileDeformSplitLine(int argCount, VMValue* args, Uint32 th
 	int index = GET_ARG(0, GetInteger);
 	int deformPosition = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].DeformSplitLine = deformPosition;
-	Scene::Layers[index].UsingScrollIndexes = true;
+	CHECK_IS_TILE_LAYER(index);
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	layer->DeformSplitLine = deformPosition;
+	layer->UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -14595,9 +14631,11 @@ VMValue Scene_SetLayerTileDeformOffsets(int argCount, VMValue* args, Uint32 thre
 	int deformAOffset = (int)GET_ARG(1, GetDecimal);
 	int deformBOffset = (int)GET_ARG(2, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].DeformOffsetA = deformAOffset;
-	Scene::Layers[index].DeformOffsetB = deformBOffset;
-	Scene::Layers[index].UsingScrollIndexes = true;
+	CHECK_IS_TILE_LAYER(index);
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	layer->DeformOffsetA = deformAOffset;
+	layer->DeformOffsetB = deformBOffset;
+	layer->UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -14612,8 +14650,10 @@ VMValue Scene_SetLayerDeformOffsetA(int argCount, VMValue* args, Uint32 threadID
 	int index = GET_ARG(0, GetInteger);
 	int deformA = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].DeformOffsetA = deformA;
-	Scene::Layers[index].UsingScrollIndexes = true;
+	CHECK_IS_TILE_LAYER(index);
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	layer->DeformOffsetA = deformA;
+	layer->UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -14628,8 +14668,10 @@ VMValue Scene_SetLayerDeformOffsetB(int argCount, VMValue* args, Uint32 threadID
 	int index = GET_ARG(0, GetInteger);
 	int deformB = (int)GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
-	Scene::Layers[index].DeformOffsetB = deformB;
-	Scene::Layers[index].UsingScrollIndexes = true;
+	CHECK_IS_TILE_LAYER(index);
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	layer->DeformOffsetB = deformB;
+	layer->UsingScrollIndexes = true;
 	return NULL_VAL;
 }
 /***
@@ -14643,13 +14685,15 @@ VMValue Scene_SetLayerCustomScanlineFunction(int argCount, VMValue* args, Uint32
 	CHECK_ARGCOUNT(2);
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
 	if (args[0].Type == VAL_NULL) {
-		Scene::Layers[index].UsingCustomScanlineFunction = false;
+		layer->UsingCustomScanlineFunction = false;
 	}
 	else {
 		ObjFunction* function = GET_ARG(1, GetFunction);
-		Scene::Layers[index].CustomScanlineFunction = *function;
-		Scene::Layers[index].UsingCustomScanlineFunction = true;
+		layer->CustomScanlineFunction = *function;
+		layer->UsingCustomScanlineFunction = true;
 	}
 	return NULL_VAL;
 }
@@ -14705,12 +14749,12 @@ VMValue Scene_SetLayerCustomRenderFunction(int argCount, VMValue* args, Uint32 t
 	int index = GET_ARG(0, GetInteger);
 	CHECK_SCENE_LAYER_INDEX(index);
 	if (args[0].Type == VAL_NULL) {
-		Scene::Layers[index].UsingCustomRenderFunction = false;
+		Scene::Layers[index]->UsingCustomRenderFunction = false;
 	}
 	else {
 		ObjFunction* function = GET_ARG(1, GetFunction);
-		Scene::Layers[index].CustomRenderFunction = *function;
-		Scene::Layers[index].UsingCustomRenderFunction = true;
+		Scene::Layers[index]->CustomRenderFunction = *function;
+		Scene::Layers[index]->UsingCustomRenderFunction = true;
 	}
 	return NULL_VAL;
 }

@@ -5,6 +5,7 @@
 #include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileLayer.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 #include <Engine/Types/Entity.h>
 #include <Engine/Utilities/StringUtils.h>
@@ -448,18 +449,18 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	}
 }
 
-bool TiledMapReader::ParseLayer(XMLNode* layer) {
-	int layer_width = (int)XMLParser::TokenToNumber(layer->attributes.Get("width"));
-	int layer_height = (int)XMLParser::TokenToNumber(layer->attributes.Get("height"));
+bool TiledMapReader::ParseTileLayer(XMLNode* mapLayer) {
+	int layer_width = (int)XMLParser::TokenToNumber(mapLayer->attributes.Get("width"));
+	int layer_height = (int)XMLParser::TokenToNumber(mapLayer->attributes.Get("height"));
 
 	size_t layer_size_in_bytes = layer_width * layer_height * sizeof(int);
 
 	int* tile_buffer = NULL;
 	HashMap<Property>* layer_properties = NULL;
 
-	for (size_t e = 0; e < layer->children.size(); e++) {
-		if (XMLParser::MatchToken(layer->children[e]->name, "data")) {
-			XMLNode* data = layer->children[e];
+	for (size_t e = 0; e < mapLayer->children.size(); e++) {
+		if (XMLParser::MatchToken(mapLayer->children[e]->name, "data")) {
+			XMLNode* data = mapLayer->children[e];
 			XMLNode* data_text = data->children[0];
 
 			int tile_buffer_len = 0;
@@ -511,8 +512,8 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 				}
 			}
 		}
-		else if (XMLParser::MatchToken(layer->children[e]->name, "properties")) {
-			XMLNode* properties = layer->children[e];
+		else if (XMLParser::MatchToken(mapLayer->children[e]->name, "properties")) {
+			XMLNode* properties = mapLayer->children[e];
 			for (size_t pr = 0; pr < properties->children.size(); pr++) {
 				if (!XMLParser::MatchToken(
 					    properties->children[pr]->name, "property")) {
@@ -529,27 +530,20 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 		}
 	}
 
-	Token name = layer->attributes.Get("name");
+	Token name = mapLayer->attributes.Get("name");
 
-	SceneLayer scenelayer(layer_width, layer_height);
-	scenelayer.Name = StringUtils::Duplicate(name.Start, name.Length);
+	TileLayer* layer = new TileLayer(layer_width, layer_height);
+	layer->Name = StringUtils::Duplicate(name.Start, name.Length);
+	layer->Flags = SceneLayer::FLAGS_COLLIDEABLE;
+	layer->Properties = layer_properties;
 
-	scenelayer.RelativeY = 1.0;
-	scenelayer.ConstantY = 0;
-	scenelayer.ScrollInfoCount = 0;
-	scenelayer.ScrollInfos = nullptr;
-	scenelayer.UsingScrollIndexes = false;
-	scenelayer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
-	scenelayer.DrawGroup = 0;
-	scenelayer.Properties = layer_properties;
-
-	if (layer->attributes.Exists("visible") &&
-		XMLParser::MatchToken(layer->attributes.Get("visible"), "0")) {
-		scenelayer.Visible = false;
+	if (mapLayer->attributes.Exists("visible") &&
+		XMLParser::MatchToken(mapLayer->attributes.Get("visible"), "0")) {
+		layer->Visible = false;
 	}
-	if (layer->attributes.Exists("opacity")) {
-		scenelayer.Blending = true;
-		scenelayer.Opacity = XMLParser::TokenToNumber(layer->attributes.Get("opacity"));
+	if (mapLayer->attributes.Exists("opacity")) {
+		layer->UseBlending = true;
+		layer->Opacity = XMLParser::TokenToNumber(mapLayer->attributes.Get("opacity"));
 	}
 
 #if HATCH_BIG_ENDIAN
@@ -571,16 +565,93 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 
 	// Fills the tiles from the buffer
 	for (int i = 0, iH = 0; i < layer_height; i++) {
-		memcpy(&scenelayer.Tiles[iH],
-			&tile_buffer[i * layer_width],
-			layer_width * sizeof(int));
-		iH += scenelayer.WidthData;
+		memcpy(&layer->Tiles[iH], &tile_buffer[i * layer_width], layer_width * sizeof(int));
+		iH += layer->WidthData;
 	}
-	memcpy(scenelayer.TilesBackup, scenelayer.Tiles, scenelayer.DataSize);
+	memcpy(layer->TilesBackup, layer->Tiles, layer->DataSize);
 
-	Scene::Layers.push_back(scenelayer);
+	Scene::Layers.push_back(layer);
 
 	Memory::Free(tile_buffer);
+
+	return true;
+}
+bool TiledMapReader::ParseImageLayer(XMLNode* mapLayer, const char* parentFolder) {
+	int layer_width = 0;
+	int layer_height = 0;
+
+	HashMap<Property>* layer_properties = NULL;
+
+	Image* image = nullptr;
+
+	for (size_t e = 0; e < mapLayer->children.size(); e++) {
+		if (XMLParser::MatchToken(mapLayer->children[e]->name, "image")) {
+			XMLNode* node = mapLayer->children[e];
+			if (node->attributes.Exists("source") && image == nullptr) {
+				char imagePath[MAX_RESOURCE_PATH_LENGTH];
+
+				Token image_source = node->attributes.Get("source");
+				snprintf(imagePath,
+					sizeof(imagePath),
+					"%s%.*s",
+					parentFolder,
+					(int)image_source.Length,
+					image_source.Start);
+
+				image = new Image(imagePath);
+				if (image->TexturePtr) {
+					layer_width = image->TexturePtr->Width;
+					layer_height = image->TexturePtr->Height;
+				}
+				else {
+					delete image;
+					image = nullptr;
+				}
+			}
+		}
+		else if (XMLParser::MatchToken(mapLayer->children[e]->name, "properties")) {
+			XMLNode* properties = mapLayer->children[e];
+			for (size_t pr = 0; pr < properties->children.size(); pr++) {
+				if (!XMLParser::MatchToken(
+					    properties->children[pr]->name, "property")) {
+					continue;
+				}
+
+				if (layer_properties == NULL) {
+					layer_properties = new HashMap<Property>(NULL, 4);
+				}
+
+				TiledMapReader::ParsePropertyNode(
+					properties->children[pr], layer_properties);
+			}
+		}
+	}
+
+	Token name = mapLayer->attributes.Get("name");
+
+	ImageLayer* layer = new ImageLayer(layer_width, layer_height);
+	layer->Name = StringUtils::Duplicate(name.Start, name.Length);
+	layer->ImagePtr = image;
+	layer->Properties = layer_properties;
+
+	if (mapLayer->attributes.Exists("visible") &&
+		XMLParser::MatchToken(mapLayer->attributes.Get("visible"), "0")) {
+		layer->Visible = false;
+	}
+	if (mapLayer->attributes.Exists("opacity")) {
+		layer->UseBlending = true;
+		layer->Opacity = XMLParser::TokenToNumber(mapLayer->attributes.Get("opacity"));
+	}
+	if (mapLayer->attributes.Exists("repeatx") &&
+		XMLParser::MatchToken(mapLayer->attributes.Get("repeatx"), "1")) {
+		layer->Flags |= SceneLayer::FLAGS_REPEAT_X;
+	}
+	if (mapLayer->attributes.Exists("repeaty") &&
+		XMLParser::MatchToken(mapLayer->attributes.Get("repeaty"), "1")) {
+		layer->Flags |= SceneLayer::FLAGS_REPEAT_Y;
+	}
+
+	Scene::Layers.push_back(layer);
 
 	return true;
 }
@@ -703,9 +774,14 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 
 	return true;
 }
-bool TiledMapReader::ParseGroupable(XMLNode* node) {
+bool TiledMapReader::ParseGroupable(XMLNode* node, const char* parentFolder) {
 	if (XMLParser::MatchToken(node->name, "layer")) {
-		if (!ParseLayer(node)) {
+		if (!ParseTileLayer(node)) {
+			return false;
+		}
+	}
+	else if (XMLParser::MatchToken(node->name, "imagelayer")) {
+		if (!ParseImageLayer(node, parentFolder)) {
 			return false;
 		}
 	}
@@ -716,17 +792,17 @@ bool TiledMapReader::ParseGroupable(XMLNode* node) {
 	}
 	else if (XMLParser::MatchToken(node->name, "group")) {
 		// Groups can be nested
-		if (!ParseGroup(node)) {
+		if (!ParseGroup(node, parentFolder)) {
 			return false;
 		}
 	}
 
 	return true;
 }
-bool TiledMapReader::ParseGroup(XMLNode* group) {
+bool TiledMapReader::ParseGroup(XMLNode* group, const char* parentFolder) {
 	// TODO: Read and store these groups if they can be relevant.
 	for (size_t i = 0; i < group->children.size(); i++) {
-		if (!ParseGroupable(group->children[i])) {
+		if (!ParseGroupable(group->children[i], parentFolder)) {
 			return false;
 		}
 	}
@@ -742,11 +818,6 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 	}
 
 	XMLNode* map = tileMapXML->children[0];
-#if 0
-    if (!XMLParser::MatchToken(map->attributes.Get("version"), "1.2")) {
-        Log::Print(Log::LOG_VERBOSE, "Official support is for Tiled version 1.2; this may still work, however.");
-    }
-#endif
 
 	// 'infinite' maps will not work
 	if (XMLParser::MatchToken(map->attributes.Get("infinite"), "1")) {
@@ -793,11 +864,11 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 			}
 		}
 		else if (XMLParser::MatchToken(map->children[i]->name, "group")) {
-			if (!ParseGroup(map->children[i])) {
+			if (!ParseGroup(map->children[i], parentFolder)) {
 				goto FREE;
 			}
 		}
-		else if (!ParseGroupable(map->children[i])) {
+		else if (!ParseGroupable(map->children[i], parentFolder)) {
 			goto FREE;
 		}
 	}

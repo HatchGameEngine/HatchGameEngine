@@ -3219,7 +3219,7 @@ void GLRenderer::DrawSceneLayer3D(void* layer,
 	if (renderer != nullptr) {
 		renderer->ModelMatrix = modelMatrix;
 		renderer->NormalMatrix = normalMatrix;
-		renderer->DrawSceneLayer3D((SceneLayer*)layer, sx, sy, sw, sh);
+		renderer->DrawSceneLayer3D((TileLayer*)layer, sx, sy, sw, sh);
 	}
 }
 void GLRenderer::DrawModel(void* inModel,

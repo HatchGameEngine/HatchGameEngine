@@ -84,8 +84,15 @@ void Camera::Initialize() {
 	MaxZ = 0.0;
 
 	if (Scene::Layers.size() > 0) {
-		MaxX = Scene::Layers[0].Width * Scene::TileWidth;
-		MaxY = Scene::Layers[0].Height * Scene::TileHeight;
+		SceneLayer* layer = Scene::Layers[0];
+
+		MaxX = layer->Width;
+		MaxY = layer->Height;
+
+		if (layer->Type == SceneLayer::TYPE_TILE) {
+			MaxX *= Scene::TileWidth;
+			MaxY *= Scene::TileHeight;
+		}
 	}
 
 #ifdef SCRIPTABLE_ENTITY

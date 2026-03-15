@@ -17,10 +17,11 @@ private:
 	ParseTileAnimation(int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node);
 	static void ParseTile(Tileset* tilesetPtr, XMLNode* node);
 	static void LoadTileset(XMLNode* tileset, const char* parentFolder);
-	static bool ParseLayer(XMLNode* group);
+	static bool ParseTileLayer(XMLNode* group);
+	static bool ParseImageLayer(XMLNode* group, const char* parentFolder);
 	static bool ParseObjectGroup(XMLNode* group);
-	static bool ParseGroupable(XMLNode* group);
-	static bool ParseGroup(XMLNode* group);
+	static bool ParseGroupable(XMLNode* group, const char* parentFolder);
+	static bool ParseGroup(XMLNode* group, const char* parentFolder);
 
 public:
 	static void Read(const char* sourceF, const char* parentFolder);

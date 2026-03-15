@@ -744,7 +744,7 @@ void Application::GetPerformanceSnapshot() {
 			layerText[0] = 0;
 			double tilesTotal = 0.0;
 			for (size_t li = 0; li < Scene::Layers.size(); li++) {
-				SceneLayer* layer = &Scene::Layers[li];
+				SceneLayer* layer = Scene::Layers[li];
 				char temp[128];
 				snprintf(temp,
 					sizeof(temp),
@@ -1424,21 +1424,21 @@ void Application::PollEvents() {
 				// Show layer info (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevLayerInfo]) {
 					for (size_t li = 0; li < Scene::Layers.size(); li++) {
-						SceneLayer& layer = Scene::Layers[li];
+						SceneLayer* layer = Scene::Layers[li];
 						Log::Print(Log::LOG_IMPORTANT,
 							"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeY: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
 							li,
-							layer.Name,
-							layer.Visible,
-							layer.Width,
-							layer.Height,
-							layer.OffsetX,
-							layer.OffsetY,
-							layer.RelativeY,
-							layer.ConstantY,
-							layer.DrawGroup,
-							layer.DrawBehavior,
-							layer.Flags);
+							layer->Name,
+							layer->Visible,
+							layer->Width,
+							layer->Height,
+							layer->OffsetX,
+							layer->OffsetY,
+							layer->RelativeY,
+							layer->ConstantY,
+							layer->DrawGroup,
+							layer->DrawBehavior,
+							layer->Flags);
 					}
 					break;
 				}

@@ -1,7 +1,7 @@
 #ifndef ENGINE_RENDERING_ENUMS
 #define ENGINE_RENDERING_ENUMS
 
-#include "Engine/Includes/Standard.h"
+#include <Engine/Includes/Standard.h>
 
 enum {
 	TextureFilter_NEAREST,
