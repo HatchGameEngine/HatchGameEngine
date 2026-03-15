@@ -2378,7 +2378,7 @@ Sint64 Graphics::CalcHorizontalParallaxPosition(SceneLayer* layer,
 	float constant,
 	float relative) {
 	float offset = Scene::Frame * constant;
-	float viewOffset = viewX + layer->OffsetX;
+	float viewOffset = (viewX + layer->OffsetX) * layer->RelativeX;
 	Sint64 position = (Sint64)(offset + (viewOffset * relative));
 
 	if (layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
@@ -2494,7 +2494,8 @@ void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* current
 		break;
 	}
 	case DrawBehavior_CustomTileScanLines: {
-		Sint64 scrollPositionX = (Sint64)(currentView->X + layer->OffsetX);
+		float horzOffset = currentView->X + layer->OffsetX;
+		Sint64 scrollPositionX = (Sint64)(horzOffset * layer->RelativeX);
 		scrollPositionX %= layer->Width * Scene::TileWidth;
 		scrollPositionX <<= 16;
 
@@ -2600,9 +2601,10 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	int endX = (int)viewWidth + tileWidth;
 	int endY = (int)viewHeight + tileHeight;
 
-	float scrollOffset = Scene::Frame * layer->ConstantY;
-	int srcY = (int)(scrollOffset + ((viewY + layer->OffsetY) * layer->RelativeY));
-	int rowStartX = (int)(viewX + layer->OffsetX);
+	float verticalScrollOffset = Scene::Frame * layer->ConstantY;
+
+	int rowStartX = (int)((viewX + layer->OffsetX) * layer->RelativeX);
+	int srcY = (int)(verticalScrollOffset + ((viewY + layer->OffsetY) * layer->RelativeY));
 
 	// Draw more of the view if it is being rotated on the Z axis
 	if (currentView->RotateZ != 0.0f) {

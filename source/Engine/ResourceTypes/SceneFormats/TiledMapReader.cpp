@@ -533,14 +533,7 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 
 	SceneLayer scenelayer(layer_width, layer_height);
 	scenelayer.Name = StringUtils::Duplicate(name.Start, name.Length);
-
-	scenelayer.RelativeY = 1.0;
-	scenelayer.ConstantY = 0;
-	scenelayer.ScrollInfoCount = 0;
-	scenelayer.ScrollInfos = nullptr;
-	scenelayer.UsingScrollIndexes = false;
 	scenelayer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
-	scenelayer.DrawGroup = 0;
 	scenelayer.Properties = layer_properties;
 
 	if (layer->attributes.Exists("visible") &&
@@ -550,6 +543,13 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 	if (layer->attributes.Exists("opacity")) {
 		scenelayer.Blending = true;
 		scenelayer.Opacity = XMLParser::TokenToNumber(layer->attributes.Get("opacity"));
+	}
+
+	if (layer->attributes.Exists("parallaxx")) {
+		scenelayer.RelativeX = XMLParser::TokenToNumber(layer->attributes.Get("parallaxx"));
+	}
+	if (layer->attributes.Exists("parallaxy")) {
+		scenelayer.RelativeY = XMLParser::TokenToNumber(layer->attributes.Get("parallaxy"));
 	}
 
 #if HATCH_BIG_ENDIAN

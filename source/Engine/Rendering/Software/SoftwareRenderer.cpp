@@ -4719,9 +4719,9 @@ void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
 	// TODO: Implement view rotation
 	if (currentView->IsScaled()) {
 		float scrollOffset = Scene::Frame * layer->ConstantY;
+		Sint64 srcX = FP16_TO((currentView->X + layer->OffsetX) * layer->RelativeX);
 		Sint64 srcY = FP16_TO(
 			scrollOffset + ((currentView->Y + layer->OffsetY) * layer->RelativeY));
-		Sint64 rowStartX = FP16_TO(currentView->X + layer->OffsetX);
 		Sint64 iScaleX, iScaleY;
 
 		float scaleX = currentView->ScaleX;
@@ -4735,7 +4735,7 @@ void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
 
 		for (int i = 0; i < currentView->Height; i++) {
 			TileScanLine* scanLine = &Graphics::TileScanLineBuffer[i];
-			scanLine->SrcX = rowStartX;
+			scanLine->SrcX = srcX;
 			scanLine->SrcY = srcY;
 			scanLine->DeltaX = iScaleX;
 			scanLine->DeltaY = 0;
