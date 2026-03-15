@@ -95,8 +95,6 @@ void Camera::Initialize() {
 
 #ifdef SCRIPTABLE_ENTITY
 void Camera::MarkForGarbageCollection() {
-	ScriptEntity::MarkForGarbageCollection();
-
 	if (TargetEntity) {
 		GarbageCollector::GrayObject(((ScriptEntity*)TargetEntity)->Instance);
 	}

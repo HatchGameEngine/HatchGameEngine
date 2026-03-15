@@ -939,9 +939,7 @@ void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 	other->AddEntityClassMethods();
 }
 
-void ScriptEntity::MarkForGarbageCollection() {
-	GarbageCollector::GrayHashMap(Instance->InstanceObj.Fields);
-}
+void ScriptEntity::MarkForGarbageCollection() {}
 
 // Events called from C++
 void ScriptEntity::Initialize() {
