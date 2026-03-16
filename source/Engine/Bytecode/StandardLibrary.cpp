@@ -13221,6 +13221,45 @@ VMValue Scene_GetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
 	return INTEGER_VAL(false);
 }
 /***
+ * Scene.GetLayerHorizontalParallaxFactor
+ * \desc Gets the horizontal parallax scroll factor of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerHorizontalParallaxFactor(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return DECIMAL_VAL(Scene::Layers[index].RelativeX);
+}
+/***
+ * Scene.GetLayerVerticalParallaxFactor
+ * \desc Gets the vertical parallax scroll factor of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerVerticalParallaxFactor(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return DECIMAL_VAL(Scene::Layers[index].RelativeY);
+}
+/***
+ * Scene.GetLayerVerticalConstantScroll
+ * \desc Gets the vertical constant scroll amount of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerVerticalConstantScroll(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return DECIMAL_VAL(Scene::Layers[index].ConstantY);
+}
+/***
  * Scene.GetTilesetCount
  * \desc Gets the amount of tilesets in the current scene.
  * \return integer Returns an integer value.
@@ -21590,6 +21629,9 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(Scene, GetLayerDrawGroup);
 	DEF_NATIVE(Scene, GetLayerHorizontalRepeat);
 	DEF_NATIVE(Scene, GetLayerVerticalRepeat);
+	DEF_NATIVE(Scene, GetLayerHorizontalParallaxFactor);
+	DEF_NATIVE(Scene, GetLayerVerticalParallaxFactor);
+	DEF_NATIVE(Scene, GetLayerVerticalConstantScroll);
 	DEF_NATIVE(Scene, GetTileWidth);
 	DEF_NATIVE(Scene, GetTileHeight);
 	DEF_NATIVE(Scene, GetTileID);
