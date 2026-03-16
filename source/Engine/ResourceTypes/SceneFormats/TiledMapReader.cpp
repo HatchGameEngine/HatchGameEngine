@@ -448,6 +448,49 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	}
 }
 
+void TiledMapReader::ParseSharedLayerFields(TiledLayer* layer, XMLNode* node) {
+	for (size_t e = 0; e < node->children.size(); e++) {
+		if (XMLParser::MatchToken(node->children[e]->name, "properties")) {
+			XMLNode* properties = node->children[e];
+			for (size_t pr = 0; pr < properties->children.size(); pr++) {
+				if (!XMLParser::MatchToken(
+					    properties->children[pr]->name, "property")) {
+					continue;
+				}
+
+				if (layer->Properties == NULL) {
+					layer->Properties = new HashMap<Property>(NULL, 4);
+				}
+
+				TiledMapReader::ParsePropertyNode(
+					properties->children[pr], layer->Properties);
+			}
+		}
+	}
+
+	if (node->attributes.Exists("visible") &&
+		XMLParser::MatchToken(node->attributes.Get("visible"), "0")) {
+		layer->Visible = false;
+	}
+	if (node->attributes.Exists("opacity")) {
+		layer->Opacity = XMLParser::TokenToNumber(node->attributes.Get("opacity"));
+	}
+
+	if (node->attributes.Exists("offsetx")) {
+		layer->OffsetX = XMLParser::TokenToNumber(node->attributes.Get("offsetx"));
+	}
+	if (node->attributes.Exists("offsety")) {
+		layer->OffsetY = XMLParser::TokenToNumber(node->attributes.Get("offsety"));
+	}
+
+	if (node->attributes.Exists("parallaxx")) {
+		layer->ParallaxX = XMLParser::TokenToNumber(node->attributes.Get("parallaxx"));
+	}
+	if (node->attributes.Exists("parallaxy")) {
+		layer->ParallaxY = XMLParser::TokenToNumber(node->attributes.Get("parallaxy"));
+	}
+}
+
 bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 	int layer_width = (int)XMLParser::TokenToNumber(layer->attributes.Get("width"));
 	int layer_height = (int)XMLParser::TokenToNumber(layer->attributes.Get("height"));
@@ -455,7 +498,9 @@ bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 	size_t layer_size_in_bytes = layer_width * layer_height * sizeof(int);
 
 	int* tile_buffer = NULL;
-	HashMap<Property>* layer_properties = NULL;
+
+	TiledLayer tiledLayer;
+	ParseSharedLayerFields(&tiledLayer, layer);
 
 	for (size_t e = 0; e < layer->children.size(); e++) {
 		if (XMLParser::MatchToken(layer->children[e]->name, "data")) {
@@ -511,22 +556,6 @@ bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 				}
 			}
 		}
-		else if (XMLParser::MatchToken(layer->children[e]->name, "properties")) {
-			XMLNode* properties = layer->children[e];
-			for (size_t pr = 0; pr < properties->children.size(); pr++) {
-				if (!XMLParser::MatchToken(
-					    properties->children[pr]->name, "property")) {
-					continue;
-				}
-
-				if (layer_properties == NULL) {
-					layer_properties = new HashMap<Property>(NULL, 4);
-				}
-
-				TiledMapReader::ParsePropertyNode(
-					properties->children[pr], layer_properties);
-			}
-		}
 	}
 
 	Token name = layer->attributes.Get("name");
@@ -534,29 +563,16 @@ bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 	SceneLayer scenelayer(layer_width, layer_height);
 	scenelayer.Name = StringUtils::Duplicate(name.Start, name.Length);
 	scenelayer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
-	scenelayer.Properties = layer_properties;
+	scenelayer.Properties = tiledLayer.Properties;
+	scenelayer.Visible = tiledLayer.Visible;
+	scenelayer.Opacity = tiledLayer.Opacity;
+	scenelayer.OffsetX = tiledLayer.OffsetX;
+	scenelayer.OffsetY = tiledLayer.OffsetY;
+	scenelayer.RelativeX = tiledLayer.ParallaxX;
+	scenelayer.RelativeY = tiledLayer.ParallaxY;
 
-	if (layer->attributes.Exists("visible") &&
-		XMLParser::MatchToken(layer->attributes.Get("visible"), "0")) {
-		scenelayer.Visible = false;
-	}
-	if (layer->attributes.Exists("opacity")) {
+	if (scenelayer.Opacity != 1.0) {
 		scenelayer.Blending = true;
-		scenelayer.Opacity = XMLParser::TokenToNumber(layer->attributes.Get("opacity"));
-	}
-
-	if (layer->attributes.Exists("offsetx")) {
-		scenelayer.OffsetX = XMLParser::TokenToNumber(layer->attributes.Get("offsetx"));
-	}
-	if (layer->attributes.Exists("offsety")) {
-		scenelayer.OffsetY = XMLParser::TokenToNumber(layer->attributes.Get("offsety"));
-	}
-
-	if (layer->attributes.Exists("parallaxx")) {
-		scenelayer.RelativeX = XMLParser::TokenToNumber(layer->attributes.Get("parallaxx"));
-	}
-	if (layer->attributes.Exists("parallaxy")) {
-		scenelayer.RelativeY = XMLParser::TokenToNumber(layer->attributes.Get("parallaxy"));
 	}
 
 	if (group) {
@@ -739,22 +755,14 @@ bool TiledMapReader::ParseGroupable(XMLNode* node, LayerGroup* group) {
 	return true;
 }
 bool TiledMapReader::ParseGroup(XMLNode* node, LayerGroup* parent) {
+	TiledLayer tiledLayer;
+	ParseSharedLayerFields(&tiledLayer, node);
+
 	LayerGroup group;
-
-	// Read group properties
-	if (node->attributes.Exists("offsetx")) {
-		group.OffsetX = XMLParser::TokenToNumber(node->attributes.Get("offsetx"));
-	}
-	if (node->attributes.Exists("offsety")) {
-		group.OffsetY = XMLParser::TokenToNumber(node->attributes.Get("offsety"));
-	}
-
-	if (node->attributes.Exists("parallaxx")) {
-		group.ParallaxX = XMLParser::TokenToNumber(node->attributes.Get("parallaxx"));
-	}
-	if (node->attributes.Exists("parallaxy")) {
-		group.ParallaxY = XMLParser::TokenToNumber(node->attributes.Get("parallaxy"));
-	}
+	group.OffsetX = tiledLayer.OffsetX;
+	group.OffsetY = tiledLayer.OffsetY;
+	group.ParallaxX = tiledLayer.ParallaxX;
+	group.ParallaxY = tiledLayer.ParallaxY;
 
 	if (parent) {
 		group.OffsetX += parent->OffsetX;
@@ -762,6 +770,10 @@ bool TiledMapReader::ParseGroup(XMLNode* node, LayerGroup* parent) {
 
 		group.ParallaxX *= parent->ParallaxX;
 		group.ParallaxY *= parent->ParallaxY;
+	}
+
+	if (tiledLayer.Properties) {
+		delete tiledLayer.Properties;
 	}
 
 	for (size_t i = 0; i < node->children.size(); i++) {

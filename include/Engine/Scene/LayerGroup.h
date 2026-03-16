@@ -3,6 +3,8 @@
 
 class LayerGroup {
 public:
+	bool Visible;
+	float Opacity = 1.0;
 	float OffsetX = 0.0;
 	float OffsetY = 0.0;
 	float ParallaxX = 1.0;
