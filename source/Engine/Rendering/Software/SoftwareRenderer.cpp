@@ -4564,8 +4564,6 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 	}
 
 	int layerWidthInBits = layer->WidthInBits;
-	int layerWidthTileMask = layer->WidthMask;
-	int layerHeightTileMask = layer->HeightMask;
 	int tile, sourceTileCellX, sourceTileCellY;
 
 	Uint32 color;
@@ -4636,8 +4634,8 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 			int srcTX = srcX >> 16;
 			int srcTY = srcY >> 16;
 
-			sourceTileCellX = (srcX >> 20) & layerWidthTileMask;
-			sourceTileCellY = (srcY >> 20) & layerHeightTileMask;
+			sourceTileCellX = (srcX >> 20) % layer->Width;
+			sourceTileCellY = (srcY >> 20) % layer->Height;
 
 			if (maxHorzCells != 0) {
 				sourceTileCellX %= maxHorzCells;
@@ -4718,10 +4716,10 @@ void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
 
 	// TODO: Implement view rotation
 	if (currentView->IsScaled()) {
-		float scrollOffset = Scene::Frame * layer->ConstantY;
-		Sint64 srcX = FP16_TO((currentView->X + layer->OffsetX) * layer->RelativeX);
+		float constantScrollV = Scene::Frame * layer->ConstantY;
+		Sint64 srcX = FP16_TO((currentView->X * layer->RelativeX) + layer->OffsetX);
 		Sint64 srcY = FP16_TO(
-			scrollOffset + ((currentView->Y + layer->OffsetY) * layer->RelativeY));
+			constantScrollV + (currentView->Y * layer->RelativeY) + layer->OffsetY);
 		Sint64 iScaleX, iScaleY;
 
 		float scaleX = currentView->ScaleX;
