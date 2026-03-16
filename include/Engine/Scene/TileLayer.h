@@ -2,7 +2,6 @@
 #define ENGINE_SCENE_TILELAYER_H
 
 #include <Engine/Scene/SceneLayer.h>
-#include <Engine/Scene/ScrollingIndex.h>
 #include <Engine/Scene/ScrollingInfo.h>
 
 class TileLayer : public SceneLayer {

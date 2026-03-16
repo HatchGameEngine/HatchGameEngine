@@ -2,10 +2,24 @@
 #define ENGINE_RESOURCETYPES_SCENEFORMATS_TILEDMAPREADER_H
 
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Includes/HashMap.h>
 #include <Engine/IO/Stream.h>
+#include <Engine/Scene/LayerGroup.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/Types/Property.h>
 #include <Engine/Types/Tileset.h>
+
+struct TiledLayer {
+	bool Visible;
+	float Opacity = 1.0;
+	float OffsetX = 0.0;
+	float OffsetY = 0.0;
+	float ParallaxX = 1.0;
+	float ParallaxY = 1.0;
+	float ConstantScrollX = 0.0;
+	float ConstantScrollY = 0.0;
+	HashMap<Property>* Properties = nullptr;
+};
 
 class TiledMapReader {
 private:
@@ -17,11 +31,12 @@ private:
 	ParseTileAnimation(int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node);
 	static void ParseTile(Tileset* tilesetPtr, XMLNode* node);
 	static void LoadTileset(XMLNode* tileset, const char* parentFolder);
-	static bool ParseTileLayer(XMLNode* group);
-	static bool ParseImageLayer(XMLNode* group, const char* parentFolder);
-	static bool ParseObjectGroup(XMLNode* group);
-	static bool ParseGroupable(XMLNode* group, const char* parentFolder);
-	static bool ParseGroup(XMLNode* group, const char* parentFolder);
+	static void ParseSharedLayerFields(TiledLayer* layer, XMLNode* node);
+	static bool ParseTileLayer(XMLNode* mapLayer, LayerGroup* group);
+	static bool ParseImageLayer(XMLNode* mapLayer, LayerGroup* group, const char* parentFolder);
+	static bool ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group);
+	static bool ParseGroupable(XMLNode* node, LayerGroup* group, const char* parentFolder);
+	static bool ParseGroup(XMLNode* node, LayerGroup* parent, const char* parentFolder);
 
 public:
 	static void Read(const char* sourceF, const char* parentFolder);

@@ -449,14 +449,69 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	}
 }
 
-bool TiledMapReader::ParseTileLayer(XMLNode* mapLayer) {
+void TiledMapReader::ParseSharedLayerFields(TiledLayer* layer, XMLNode* node) {
+	for (size_t e = 0; e < node->children.size(); e++) {
+		if (XMLParser::MatchToken(node->children[e]->name, "properties")) {
+			XMLNode* properties = node->children[e];
+			for (size_t pr = 0; pr < properties->children.size(); pr++) {
+				if (!XMLParser::MatchToken(
+					    properties->children[pr]->name, "property")) {
+					continue;
+				}
+
+				if (layer->Properties == NULL) {
+					layer->Properties = new HashMap<Property>(NULL, 4);
+				}
+
+				TiledMapReader::ParsePropertyNode(
+					properties->children[pr], layer->Properties);
+			}
+		}
+	}
+
+	if (node->attributes.Exists("visible") &&
+		XMLParser::MatchToken(node->attributes.Get("visible"), "0")) {
+		layer->Visible = false;
+	}
+	if (node->attributes.Exists("opacity")) {
+		layer->Opacity = XMLParser::TokenToNumber(node->attributes.Get("opacity"));
+	}
+
+	if (node->attributes.Exists("offsetx")) {
+		layer->OffsetX = XMLParser::TokenToNumber(node->attributes.Get("offsetx"));
+	}
+	if (node->attributes.Exists("offsety")) {
+		layer->OffsetY = XMLParser::TokenToNumber(node->attributes.Get("offsety"));
+	}
+
+	if (node->attributes.Exists("parallaxx")) {
+		layer->ParallaxX = XMLParser::TokenToNumber(node->attributes.Get("parallaxx"));
+	}
+	if (node->attributes.Exists("parallaxy")) {
+		layer->ParallaxY = XMLParser::TokenToNumber(node->attributes.Get("parallaxy"));
+	}
+
+	if (layer->Properties) {
+		Property prop;
+		if (layer->Properties->GetIfExists("ConstantScrollX", &prop) && PROPERTY_IS_NUMBER(prop)) {
+			layer->ConstantScrollX = PROPERTY_AS_NUMBER(prop);
+		}
+		if (layer->Properties->GetIfExists("ConstantScrollY", &prop) && PROPERTY_IS_NUMBER(prop)) {
+			layer->ConstantScrollY = PROPERTY_AS_NUMBER(prop);
+		}
+	}
+}
+
+bool TiledMapReader::ParseTileLayer(XMLNode* mapLayer, LayerGroup* group) {
 	int layer_width = (int)XMLParser::TokenToNumber(mapLayer->attributes.Get("width"));
 	int layer_height = (int)XMLParser::TokenToNumber(mapLayer->attributes.Get("height"));
 
 	size_t layer_size_in_bytes = layer_width * layer_height * sizeof(int);
 
 	int* tile_buffer = NULL;
-	HashMap<Property>* layer_properties = NULL;
+
+	TiledLayer tiledLayer;
+	ParseSharedLayerFields(&tiledLayer, mapLayer);
 
 	for (size_t e = 0; e < mapLayer->children.size(); e++) {
 		if (XMLParser::MatchToken(mapLayer->children[e]->name, "data")) {
@@ -512,22 +567,6 @@ bool TiledMapReader::ParseTileLayer(XMLNode* mapLayer) {
 				}
 			}
 		}
-		else if (XMLParser::MatchToken(mapLayer->children[e]->name, "properties")) {
-			XMLNode* properties = mapLayer->children[e];
-			for (size_t pr = 0; pr < properties->children.size(); pr++) {
-				if (!XMLParser::MatchToken(
-					    properties->children[pr]->name, "property")) {
-					continue;
-				}
-
-				if (layer_properties == NULL) {
-					layer_properties = new HashMap<Property>(NULL, 4);
-				}
-
-				TiledMapReader::ParsePropertyNode(
-					properties->children[pr], layer_properties);
-			}
-		}
 	}
 
 	Token name = mapLayer->attributes.Get("name");
@@ -535,15 +574,29 @@ bool TiledMapReader::ParseTileLayer(XMLNode* mapLayer) {
 	TileLayer* layer = new TileLayer(layer_width, layer_height);
 	layer->Name = StringUtils::Duplicate(name.Start, name.Length);
 	layer->Flags = SceneLayer::FLAGS_COLLIDEABLE;
-	layer->Properties = layer_properties;
+	layer->Properties = tiledLayer.Properties;
+	layer->Visible = tiledLayer.Visible;
+	layer->Opacity = tiledLayer.Opacity;
+	layer->OffsetX = -tiledLayer.OffsetX;
+	layer->OffsetY = -tiledLayer.OffsetY;
+	layer->RelativeX = tiledLayer.ParallaxX;
+	layer->RelativeY = tiledLayer.ParallaxY;
+	layer->ConstantX = tiledLayer.ConstantScrollX;
+	layer->ConstantY = tiledLayer.ConstantScrollY;
 
-	if (mapLayer->attributes.Exists("visible") &&
-		XMLParser::MatchToken(mapLayer->attributes.Get("visible"), "0")) {
-		layer->Visible = false;
-	}
-	if (mapLayer->attributes.Exists("opacity")) {
+	if (layer->Opacity != 1.0) {
 		layer->UseBlending = true;
-		layer->Opacity = XMLParser::TokenToNumber(mapLayer->attributes.Get("opacity"));
+	}
+
+	if (group) {
+		layer->OffsetX -= group->OffsetX;
+		layer->OffsetY -= group->OffsetY;
+
+		layer->RelativeX *= group->ParallaxX;
+		layer->RelativeY *= group->ParallaxY;
+
+		layer->ConstantX += group->ConstantScrollX;
+		layer->ConstantY += group->ConstantScrollY;
 	}
 
 #if HATCH_BIG_ENDIAN
@@ -576,11 +629,12 @@ bool TiledMapReader::ParseTileLayer(XMLNode* mapLayer) {
 
 	return true;
 }
-bool TiledMapReader::ParseImageLayer(XMLNode* mapLayer, const char* parentFolder) {
+bool TiledMapReader::ParseImageLayer(XMLNode* mapLayer, LayerGroup* group, const char* parentFolder) {
 	int layer_width = 0;
 	int layer_height = 0;
 
-	HashMap<Property>* layer_properties = NULL;
+	TiledLayer tiledLayer;
+	ParseSharedLayerFields(&tiledLayer, mapLayer);
 
 	Image* image = nullptr;
 
@@ -609,22 +663,6 @@ bool TiledMapReader::ParseImageLayer(XMLNode* mapLayer, const char* parentFolder
 				}
 			}
 		}
-		else if (XMLParser::MatchToken(mapLayer->children[e]->name, "properties")) {
-			XMLNode* properties = mapLayer->children[e];
-			for (size_t pr = 0; pr < properties->children.size(); pr++) {
-				if (!XMLParser::MatchToken(
-					    properties->children[pr]->name, "property")) {
-					continue;
-				}
-
-				if (layer_properties == NULL) {
-					layer_properties = new HashMap<Property>(NULL, 4);
-				}
-
-				TiledMapReader::ParsePropertyNode(
-					properties->children[pr], layer_properties);
-			}
-		}
 	}
 
 	Token name = mapLayer->attributes.Get("name");
@@ -632,16 +670,16 @@ bool TiledMapReader::ParseImageLayer(XMLNode* mapLayer, const char* parentFolder
 	ImageLayer* layer = new ImageLayer(layer_width, layer_height);
 	layer->Name = StringUtils::Duplicate(name.Start, name.Length);
 	layer->ImagePtr = image;
-	layer->Properties = layer_properties;
+	layer->Properties = tiledLayer.Properties;
+	layer->Visible = tiledLayer.Visible;
+	layer->Opacity = tiledLayer.Opacity;
+	layer->OffsetX = -tiledLayer.OffsetX;
+	layer->OffsetY = -tiledLayer.OffsetY;
+	layer->RelativeX = tiledLayer.ParallaxX;
+	layer->RelativeY = tiledLayer.ParallaxY;
+	layer->ConstantX = tiledLayer.ConstantScrollX;
+	layer->ConstantY = tiledLayer.ConstantScrollY;
 
-	if (mapLayer->attributes.Exists("visible") &&
-		XMLParser::MatchToken(mapLayer->attributes.Get("visible"), "0")) {
-		layer->Visible = false;
-	}
-	if (mapLayer->attributes.Exists("opacity")) {
-		layer->UseBlending = true;
-		layer->Opacity = XMLParser::TokenToNumber(mapLayer->attributes.Get("opacity"));
-	}
 	if (mapLayer->attributes.Exists("repeatx") &&
 		XMLParser::MatchToken(mapLayer->attributes.Get("repeatx"), "1")) {
 		layer->Flags |= SceneLayer::FLAGS_REPEAT_X;
@@ -651,11 +689,33 @@ bool TiledMapReader::ParseImageLayer(XMLNode* mapLayer, const char* parentFolder
 		layer->Flags |= SceneLayer::FLAGS_REPEAT_Y;
 	}
 
+	if (group) {
+		layer->OffsetX -= group->OffsetX;
+		layer->OffsetY -= group->OffsetY;
+
+		layer->RelativeX *= group->ParallaxX;
+		layer->RelativeY *= group->ParallaxY;
+
+		layer->ConstantX += group->ConstantScrollX;
+		layer->ConstantY += group->ConstantScrollY;
+	}
+
 	Scene::Layers.push_back(layer);
 
 	return true;
 }
-bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
+bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
+	TiledLayer tiledLayer;
+	ParseSharedLayerFields(&tiledLayer, objectgroup);
+
+	float offsetX = tiledLayer.OffsetX;
+	float offsetY = tiledLayer.OffsetY;
+
+	if (group) {
+		offsetX += group->OffsetX;
+		offsetY += group->OffsetY;
+	}
+
 	for (size_t o = 0; o < objectgroup->children.size(); o++) {
 		XMLNode* object = objectgroup->children[o];
 		if (!XMLParser::MatchToken(object->name, "object")) {
@@ -669,6 +729,9 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 
 		float object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
 		float object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
+
+		object_x += offsetX;
+		object_y += offsetY;
 
 		int filter = object->attributes.Exists("filter")
 			? (int)XMLParser::TokenToNumber(object->attributes.Get("filter"))
@@ -774,35 +837,60 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 
 	return true;
 }
-bool TiledMapReader::ParseGroupable(XMLNode* node, const char* parentFolder) {
+bool TiledMapReader::ParseGroupable(XMLNode* node, LayerGroup* group, const char* parentFolder) {
 	if (XMLParser::MatchToken(node->name, "layer")) {
-		if (!ParseTileLayer(node)) {
+		if (!ParseTileLayer(node, group)) {
 			return false;
 		}
 	}
 	else if (XMLParser::MatchToken(node->name, "imagelayer")) {
-		if (!ParseImageLayer(node, parentFolder)) {
+		if (!ParseImageLayer(node, group, parentFolder)) {
 			return false;
 		}
 	}
 	else if (XMLParser::MatchToken(node->name, "objectgroup")) {
-		if (!ParseObjectGroup(node)) {
+		if (!ParseObjectGroup(node, group)) {
 			return false;
 		}
 	}
 	else if (XMLParser::MatchToken(node->name, "group")) {
 		// Groups can be nested
-		if (!ParseGroup(node, parentFolder)) {
+		if (!ParseGroup(node, group, parentFolder)) {
 			return false;
 		}
 	}
 
 	return true;
 }
-bool TiledMapReader::ParseGroup(XMLNode* group, const char* parentFolder) {
-	// TODO: Read and store these groups if they can be relevant.
-	for (size_t i = 0; i < group->children.size(); i++) {
-		if (!ParseGroupable(group->children[i], parentFolder)) {
+bool TiledMapReader::ParseGroup(XMLNode* node, LayerGroup* parent, const char* parentFolder) {
+	TiledLayer tiledLayer;
+	ParseSharedLayerFields(&tiledLayer, node);
+
+	LayerGroup group;
+	group.OffsetX = tiledLayer.OffsetX;
+	group.OffsetY = tiledLayer.OffsetY;
+	group.ParallaxX = tiledLayer.ParallaxX;
+	group.ParallaxY = tiledLayer.ParallaxY;
+	group.ConstantScrollX = tiledLayer.ConstantScrollX;
+	group.ConstantScrollY = tiledLayer.ConstantScrollY;
+
+	if (parent) {
+		group.OffsetX += parent->OffsetX;
+		group.OffsetY += parent->OffsetY;
+
+		group.ParallaxX *= parent->ParallaxX;
+		group.ParallaxY *= parent->ParallaxY;
+
+		group.ConstantScrollX += parent->ConstantScrollX;
+		group.ConstantScrollY += parent->ConstantScrollY;
+	}
+
+	if (tiledLayer.Properties) {
+		delete tiledLayer.Properties;
+	}
+
+	for (size_t i = 0; i < node->children.size(); i++) {
+		if (!ParseGroupable(node->children[i], &group, parentFolder)) {
 			return false;
 		}
 	}
@@ -864,11 +952,11 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 			}
 		}
 		else if (XMLParser::MatchToken(map->children[i]->name, "group")) {
-			if (!ParseGroup(map->children[i], parentFolder)) {
+			if (!ParseGroup(map->children[i], nullptr, parentFolder)) {
 				goto FREE;
 			}
 		}
-		else if (!ParseGroupable(map->children[i], parentFolder)) {
+		else if (!ParseGroupable(map->children[i], nullptr, parentFolder)) {
 			goto FREE;
 		}
 	}
