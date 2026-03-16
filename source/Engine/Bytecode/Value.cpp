@@ -68,7 +68,7 @@ const char* Value::GetPrintableObjectName(VMValue value) {
 	case OBJ_FUNCTION:
 		return AS_FUNCTION(value)->Name;
 	case OBJ_MODULE:
-		return AS_MODULE(value)->SourceFilename;
+		return GetModuleName(AS_MODULE(value));
 	case OBJ_INSTANCE:
 	case OBJ_NATIVE_INSTANCE:
 	case OBJ_ENTITY:

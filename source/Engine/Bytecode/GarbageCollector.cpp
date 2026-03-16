@@ -9,7 +9,7 @@
 
 #define GC_HEAP_GROW_FACTOR 2
 
-vector<Obj*> GarbageCollector::GrayList;
+std::vector<Obj*> GarbageCollector::GrayList;
 Obj* GarbageCollector::RootObject;
 
 size_t GarbageCollector::NextGC = 1024;
@@ -30,8 +30,6 @@ void GarbageCollector::Collect() {
 	if (!RootObject) {
 		return;
 	}
-
-	GrayList.clear();
 
 	double grayElapsed = Clock::GetTicks();
 
@@ -94,19 +92,17 @@ void GarbageCollector::Collect() {
 	while (*object != NULL) {
 		objectTypeCounts[(*object)->Type]++;
 
-		if (!((*object)->IsDark)) {
+		if (!(*object)->IsDark) {
 			objectTypeFreed[(*object)->Type]++;
 
-			// This object wasn't reached, so remove it
-			// from the list and free it.
+			// This object wasn't reached, so remove it from the list and free it.
 			Obj* unreached = *object;
 			*object = unreached->Next;
 
 			GarbageCollector::FreeObject(unreached);
 		}
 		else {
-			// This object was reached, so unmark it (for
-			// the next GC) and move on to the next.
+			// This object was reached, so unmark it (for the next GC) and move on to the next.
 			(*object)->IsDark = false;
 			object = &(*object)->Next;
 		}
@@ -129,6 +125,8 @@ void GarbageCollector::Collect() {
 	}
 
 	GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
+
+	GrayList.clear();
 }
 
 void GarbageCollector::CollectResources() {
@@ -225,7 +223,10 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_ENTITY: {
 		ObjEntity* entity = (ObjEntity*)object;
-		((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
+		GrayHashMap(entity->InstanceObj.Fields);
+		if (entity->EntityPtr) {
+			((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
+		}
 		break;
 	}
 	case OBJ_ARRAY: {

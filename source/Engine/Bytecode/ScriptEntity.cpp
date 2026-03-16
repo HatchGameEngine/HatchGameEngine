@@ -3,6 +3,7 @@
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
+#include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Scene.h>
 
@@ -938,9 +939,7 @@ void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 	other->AddEntityClassMethods();
 }
 
-void ScriptEntity::MarkForGarbageCollection() {
-	GarbageCollector::GrayHashMap(Instance->InstanceObj.Fields);
-}
+void ScriptEntity::MarkForGarbageCollection() {}
 
 // Events called from C++
 void ScriptEntity::Initialize() {
@@ -1101,13 +1100,29 @@ void ScriptEntity::Remove() {
 		RunFunction(Hash_Dispose);
 	}
 
+	Unlink();
+
 	Entity::Remove();
 }
-void ScriptEntity::Dispose() {
-	Entity::Dispose();
+void ScriptEntity::Unlink() {
 	if (Instance) {
+		Table* fields = Instance->InstanceObj.Fields;
+		fields->WithAll([fields](Uint32 key, VMValue value) -> void {
+			if (IS_LINKED_INTEGER(value) || IS_LINKED_DECIMAL(value)) {
+				fields->Put(key, Value::Delink(value));
+			}
+		});
+
+		Instance->EntityPtr = NULL;
 		Instance = NULL;
 	}
+}
+void ScriptEntity::Dispose() {
+	if (Instance) {
+		Unlink();
+	}
+
+	Entity::Dispose();
 }
 bool ScriptEntity::IsValid() {
 	return Active && !Removed;

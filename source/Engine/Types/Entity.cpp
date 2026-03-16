@@ -63,11 +63,10 @@ void Entity::Animate() {
 		return;
 	}
 
-	AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
-
 	if (AnimationFrameSkip) {
 		// Skip-capable animation behavior
 		// (supports skipping animation frames if AnimationTimer passes multiples of AnimationFrameDuration)
+		AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
 		while (AnimationTimer > AnimationFrameDuration) {
 			CurrentFrame++;
 			AnimationTimer -= AnimationFrameDuration;
@@ -101,28 +100,35 @@ void Entity::Animate() {
 	else {
 		// Strict animation behavior
 		// (never skips animation frames, and resets AnimationTimer to 0.0 upon any changed frame)
-		if ((float)AnimationFrameDuration - AnimationTimer <= 0.0f) {
-			CurrentFrame++;
-			AnimationTimer = 0.0f; // Wipe leftover time
+		if ((float)AnimationFrameDuration - AnimationTimer > 0.0f) {
+			AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
+			if ((float)AnimationFrameDuration - AnimationTimer <= 0.0f) {
+				CurrentFrame++;
 
-			if (CurrentFrame >= CurrentFrameCount) {
-				CurrentFrame = AnimationLoopIndex;
-				OnAnimationFinish();
+				if (CurrentFrame >= CurrentFrameCount) {
+					CurrentFrame = AnimationLoopIndex;
+					OnAnimationFinish();
 
-				// Sprite may have changed after a call to OnAnimationFinish
-				ResourceType* resource = Scene::GetSpriteResource(Sprite);
-                sprite = resource ? resource->AsSprite : nullptr;
-			}
+					// Sprite may have changed after a call to OnAnimationFinish
+					ResourceType* resource = Scene::GetSpriteResource(Sprite);
+					sprite = resource ? resource->AsSprite : nullptr;
+				}
 
-			// Update duration for the new frame
-			// Check range for strange loop points or if CurrentAnimation is now invalid
-			if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
-				&& CurrentAnimation < sprite->Animations.size()) {
-				AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
+				// Update duration for the new frame
+				// Check range for strange loop points or if CurrentAnimation is now invalid
+				if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
+					&& CurrentAnimation < sprite->Animations.size()) {
+					AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
+				}
+				else {
+					AnimationFrameDuration = 1;
+				}
+
+				AnimationTimer = 0.0f; // Wipe leftover time
 			}
-			else {
-				AnimationFrameDuration = 1;
-			}
+		}
+		else {
+			AnimationTimer = 0.0f;
 		}
 	}
 }
@@ -732,6 +738,10 @@ void Entity::Remove() {
 }
 
 void Entity::Dispose() {
+	if (!Removed) {
+		Remove();
+	}
+
 	if (Properties) {
 		Properties->ForAll([](Uint32, Property property) -> void {
 			Property::Delete(property);

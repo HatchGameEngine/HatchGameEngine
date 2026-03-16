@@ -95,8 +95,6 @@ void Camera::Initialize() {
 
 #ifdef SCRIPTABLE_ENTITY
 void Camera::MarkForGarbageCollection() {
-	ScriptEntity::MarkForGarbageCollection();
-
 	if (TargetEntity) {
 		GarbageCollector::GrayObject(((ScriptEntity*)TargetEntity)->Instance);
 	}
@@ -174,7 +172,7 @@ void Camera::FixedUpdateLate() {
 
 #ifdef SCRIPTABLE_ENTITY
 VMValue Camera_FieldGet_TargetEntity(Camera* camera, Uint32 threadID) {
-	if (camera->TargetEntity) {
+	if (camera && camera->TargetEntity) {
 		return OBJECT_VAL(((ScriptEntity*)camera->TargetEntity)->Instance);
 	}
 	else {
@@ -183,9 +181,17 @@ VMValue Camera_FieldGet_TargetEntity(Camera* camera, Uint32 threadID) {
 }
 void Camera_FieldSet_TargetEntity(Camera* camera, VMValue value, Uint32 threadID) {
 	if (IS_NULL(value)) {
+		if (!camera) {
+			return;
+		}
+
 		camera->TargetEntity = nullptr;
 	}
 	else if (IS_ENTITY(value)) {
+		if (!camera) {
+			return;
+		}
+
 		camera->TargetEntity = (Entity*)AS_ENTITY(value)->EntityPtr;
 	}
 	else {
@@ -194,6 +200,10 @@ void Camera_FieldSet_TargetEntity(Camera* camera, VMValue value, Uint32 threadID
 }
 
 VMValue Camera_FieldGet_ViewIndex(Camera* camera, Uint32 threadID) {
+	if (!camera) {
+		return INTEGER_VAL(0);
+	}
+
 	return INTEGER_VAL(camera->ViewIndex);
 }
 void Camera_FieldSet_ViewIndex(Camera* camera, VMValue value, Uint32 threadID) {
@@ -203,6 +213,10 @@ void Camera_FieldSet_ViewIndex(Camera* camera, VMValue value, Uint32 threadID) {
 
 	int viewIndex = AS_INTEGER(value);
 	if (viewIndex >= 0 && viewIndex < MAX_SCENE_VIEWS) {
+		if (!camera) {
+			return;
+		}
+
 		camera->ViewIndex = viewIndex;
 	}
 	else {
@@ -215,6 +229,10 @@ void Camera_FieldSet_ViewIndex(Camera* camera, VMValue value, Uint32 threadID) {
 }
 
 VMValue Camera_FieldGet_UseBounds(Camera* camera, Uint32 threadID) {
+	if (!camera) {
+		return INTEGER_VAL(false);
+	}
+
 	return INTEGER_VAL(camera->UseBounds);
 }
 void Camera_FieldSet_UseBounds(Camera* camera, VMValue value, Uint32 threadID) {

@@ -998,6 +998,29 @@ VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(animator->CurrentFrame);
 }
 /***
+ * Animator.GetFrameID
+ * \desc Gets the frame ID of the current frame of an animator.
+ * \param animator (integer): The index of the animator.
+ * \return integer Returns the frame ID of the animator's current sprite frame.
+ * \ns Sprite
+ */
+VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	Animator* animator = GET_ARG(0, GetAnimator);
+	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
+		animator->CurrentFrame >= 0) {
+		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
+
+		if (!sprite || animator->CurrentAnimation >= sprite->Animations.size()
+			|| animator->CurrentFrame >= sprite->Animations[animator->CurrentFrame].Frames.size()) {
+			return INTEGER_VAL(0);
+		}
+
+		return INTEGER_VAL(sprite->Animations[animator->CurrentAnimation].Frames[animator->CurrentFrame].Advance);
+	}
+	return INTEGER_VAL(0);
+}
+/***
  * Animator.GetHitbox
  * \desc Gets the hitbox of an animation and frame of an animator.
  * \param animator (integer): The index of the animator.
@@ -1017,11 +1040,11 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 			return NULL_VAL;
 		}
 
-		if (animator->CurrentAnimation > sprite->Animations.size()) {
+		if (animator->CurrentAnimation >= sprite->Animations.size()) {
 			return NULL_VAL;
 		}
 
-		if (animator->CurrentFrame >
+		if (animator->CurrentFrame >=
 			sprite->Animations[animator->CurrentFrame].Frames.size()) {
 			return NULL_VAL;
 		}
@@ -2719,7 +2742,7 @@ VMValue Collision_ProcessEntityMovement(int argCount, VMValue* args, Uint32 thre
 	CollisionBox outerBox = GET_ARG(1, GetHitbox);
 	CollisionBox innerBox = GET_ARG(2, GetHitbox);
 
-	if (entity) {
+	if (entity && entity->EntityPtr) {
 		Scene::ProcessEntityMovement((Entity*)entity->EntityPtr, &outerBox, &innerBox);
 	}
 	return NULL_VAL;
@@ -2747,6 +2770,10 @@ VMValue Collision_CheckTileCollision(int argCount, VMValue* args, Uint32 threadI
 	int yOffset = GET_ARG(5, GetInteger);
 	int setPos = GET_ARG(6, GetInteger);
 
+	if (!entity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
+
 	return INTEGER_VAL(Scene::CheckTileCollision(
 		(Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, setPos));
 }
@@ -2773,6 +2800,10 @@ VMValue Collision_CheckTileGrip(int argCount, VMValue* args, Uint32 threadID) {
 	int yOffset = GET_ARG(5, GetInteger);
 	float tolerance = GET_ARG(6, GetDecimal);
 
+	if (!entity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
+
 	return INTEGER_VAL(Scene::CheckTileGrip(
 		(Entity*)entity->EntityPtr, cLayers, cMode, cPlane, xOffset, yOffset, tolerance));
 }
@@ -2792,6 +2823,10 @@ VMValue Collision_CheckEntityTouch(int argCount, VMValue* args, Uint32 threadID)
 	CollisionBox thisBox = GET_ARG(1, GetHitbox);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
+
+	if (!thisEntity->EntityPtr || !otherEntity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
 
 	return INTEGER_VAL(!!Scene::CheckEntityTouch((Entity*)thisEntity->EntityPtr,
 		&thisBox,
@@ -2814,6 +2849,10 @@ VMValue Collision_CheckEntityCircle(int argCount, VMValue* args, Uint32 threadID
 	float thisRadius = GET_ARG(1, GetDecimal);
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	float otherRadius = GET_ARG(3, GetDecimal);
+
+	if (!thisEntity->EntityPtr || !otherEntity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
 
 	return INTEGER_VAL(!!Scene::CheckEntityCircle((Entity*)thisEntity->EntityPtr,
 		thisRadius,
@@ -2839,6 +2878,10 @@ VMValue Collision_CheckEntityBox(int argCount, VMValue* args, Uint32 threadID) {
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
 
+	if (!thisEntity->EntityPtr || !otherEntity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
+
 	return INTEGER_VAL(Scene::CheckEntityBox((Entity*)thisEntity->EntityPtr,
 		&thisBox,
 		(Entity*)otherEntity->EntityPtr,
@@ -2863,6 +2906,10 @@ VMValue Collision_CheckEntityPlatform(int argCount, VMValue* args, Uint32 thread
 	ObjEntity* otherEntity = GET_ARG(2, GetEntity);
 	CollisionBox otherBox = GET_ARG(3, GetHitbox);
 	bool setValues = !!GET_ARG(4, GetInteger);
+
+	if (!thisEntity->EntityPtr || !otherEntity->EntityPtr) {
+		return INTEGER_VAL(false);
+	}
 
 	return INTEGER_VAL(!!Scene::CheckEntityPlatform((Entity*)thisEntity->EntityPtr,
 		&thisBox,
@@ -3575,10 +3622,10 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
-	Entity* entity = (Entity*)instance->EntityPtr;
-	int x = (int)GET_ARG_OPT(1, GetDecimal, entity->X);
-	int y = (int)GET_ARG_OPT(2, GetDecimal, entity->Y);
-	ISprite* sprite = GetSpriteIndex(entity->Sprite, threadID);
+	Entity* entity = instance ? (Entity*)instance->EntityPtr : nullptr;
+	int x = (int)GET_ARG_OPT(1, GetDecimal, entity ? entity->X : 0);
+	int y = (int)GET_ARG_OPT(2, GetDecimal, entity ? entity->Y : 0);
+	ISprite* sprite = entity ? GetSpriteIndex(entity->Sprite, threadID) : nullptr;
 	float rotation = 0.0f;
 
 	if (entity && sprite && entity->CurrentAnimation >= 0 && entity->CurrentFrame >= 0) {
@@ -3787,9 +3834,9 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 
 	Animator* animator = GET_ARG(0, GetAnimator);
 	ObjEntity* instance = GET_ARG(1, GetEntity);
-	Entity* entity = (Entity*)instance->EntityPtr;
-	int x = (int)GET_ARG_OPT(2, GetDecimal, entity->X);
-	int y = (int)GET_ARG_OPT(3, GetDecimal, entity->Y);
+	Entity* entity = instance ? (Entity*)instance->EntityPtr : nullptr;
+	int x = (int)GET_ARG_OPT(2, GetDecimal, entity ? entity->X : 0);
+	int y = (int)GET_ARG_OPT(3, GetDecimal, entity ? entity->Y : 0);
 	float rotation = 0.0f;
 
 	if (!animator || !animator->Frames.size()) {
@@ -9607,6 +9654,10 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 	ObjEntity* instance = GET_ARG(0, GetEntity);
 	char* objectName = GET_ARG(1, GetString);
 
+	if (!instance) {
+		return INTEGER_VAL(false);
+	}
+
 	Entity* self = (Entity*)instance->EntityPtr;
 	if (!self) {
 		return INTEGER_VAL(false);
@@ -9634,6 +9685,9 @@ VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
+	if (!instance) {
+		return NULL_VAL;
+	}
 
 	Entity* self = (Entity*)instance->EntityPtr;
 	if (!self || !self->List) {
@@ -9673,7 +9727,7 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
-	Entity* self = (Entity*)instance->EntityPtr;
+	Entity* self = instance ? (Entity*)instance->EntityPtr : nullptr;
 	int n = GET_ARG(1, GetInteger);
 
 	if (!self) {
@@ -9775,6 +9829,10 @@ VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 	ObjEntity* srcInstance = GET_ARG(1, GetEntity);
 	bool copyClass = !!GET_ARG_OPT(2, GetInteger, true);
 
+	if (!destInstance || !srcInstance) {
+		return INTEGER_VAL(false);
+	}
+
 	ScriptEntity* destEntity = (ScriptEntity*)destInstance->EntityPtr;
 	ScriptEntity* srcEntity = (ScriptEntity*)srcInstance->EntityPtr;
 	if (destEntity && srcEntity) {
@@ -9796,6 +9854,10 @@ VMValue Instance_ChangeClass(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
 	char* className = GET_ARG(1, GetString);
+
+	if (!instance) {
+		return INTEGER_VAL(false);
+	}
 
 	ScriptEntity* self = (ScriptEntity*)instance->EntityPtr;
 	if (!self) {
@@ -16796,6 +16858,10 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	if (argCount <= 2 && IS_ENTITY(args[0])) {
 		ObjEntity* ent = GET_ARG(0, GetEntity);
 		Entity* entity = (Entity*)ent->EntityPtr;
+		if (!entity) {
+			return NULL_VAL;
+		}
+
 		hitboxArgNum = 1;
 
 		sprite = GetSpriteIndex(entity->Sprite, threadID);
@@ -18056,7 +18122,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 	int compareAngle = GET_ARG(5, GetInteger);
 	ObjEntity* entity = GET_ARG(6, GetEntity);
 
-	if (!entity->EntityPtr) {
+	if (!entity || !entity->EntityPtr) {
 		return INTEGER_VAL(false);
 	}
 
@@ -19389,8 +19455,11 @@ VMValue View_CheckOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
 
 	ObjEntity* instance = GET_ARG(0, GetEntity);
-	Entity* self = (Entity*)instance->EntityPtr;
+	if (!instance) {
+		return INTEGER_VAL(false);
+	}
 
+	Entity* self = (Entity*)instance->EntityPtr;
 	if (!self) {
 		return INTEGER_VAL(false);
 	}
@@ -19793,7 +19862,7 @@ void StandardLibrary::Link() {
 
 #define INIT_NAMESPACE(nsName) \
 	ObjNamespace* ns_##nsName = NewNamespace(#nsName); \
-	ScriptManager::Constants->Put(ns_##nsName->Hash, OBJECT_VAL(ns_##nsName)); \
+	ScriptManager::Constants->Put(#nsName, OBJECT_VAL(ns_##nsName)); \
 	ScriptManager::AllNamespaces.push_back(ns_##nsName)
 #define INIT_NAMESPACED_CLASS(nsName, className) \
 	klass = NewClass(#className); \
@@ -19825,6 +19894,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, GetSprite);
 	DEF_NATIVE(Animator, GetCurrentAnimation);
 	DEF_NATIVE(Animator, GetCurrentFrame);
+	DEF_NATIVE(Animator, GetFrameID);
 	DEF_NATIVE(Animator, GetHitbox);
 	DEF_NATIVE(Animator, GetPrevAnimation);
 	DEF_NATIVE(Animator, GetAnimationSpeed);
@@ -20050,6 +20120,11 @@ They require the Game SDK library to be present.
 	* \desc Open/close dev menu keybind. (dev)
 	*/
 	DEF_ENUM_CLASS(KeyBind, DevMenuToggle);
+	/***
+	* \enum KeyBind_DevScriptDebugger
+	* \desc Script debugger keybind.
+	*/
+	DEF_ENUM_CLASS(KeyBind, DevScriptDebugger);
 	/***
     * \enum KeyBind_DevQuit
     * \desc App quit keybind. (dev)

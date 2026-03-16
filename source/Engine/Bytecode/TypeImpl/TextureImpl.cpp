@@ -37,7 +37,7 @@ Obj* TextureImpl::New() {
 	ObjTexture* texture = (ObjTexture*)NewNativeInstance(sizeof(ObjTexture));
 	Memory::Track(texture, "NewTexture");
 	texture->Object.Class = Class;
-	texture->Object.Destructor = Dispose;
+	texture->InstanceObj.Destructor = Dispose;
 	return (Obj*)texture;
 }
 /***

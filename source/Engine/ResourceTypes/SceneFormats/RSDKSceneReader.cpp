@@ -281,8 +281,8 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 	layer.ScrollInfos =
 		(ScrollingInfo*)Memory::Malloc(layer.ScrollInfoCount * sizeof(ScrollingInfo));
 	for (int g = 0; g < layer.ScrollInfoCount; g++) {
-		Uint16 relativeParallax = r->ReadInt16();
-		Uint16 constantParallax = r->ReadInt16();
+		Sint16 relativeParallax = r->ReadInt16();
+		Sint16 constantParallax = r->ReadInt16();
 
 		layer.ScrollInfos[g].RelativeParallax = (float)relativeParallax / 0x100;
 		layer.ScrollInfos[g].ConstantParallax = (float)constantParallax / 0x100;

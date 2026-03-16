@@ -10,10 +10,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Set up CMake modules path
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-file(GLOB_RECURSE C_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "source/*.c")
-file(GLOB_RECURSE CPP_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "source/*.cpp")
+file(GLOB_RECURSE C_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "source/Engine/*.c")
+file(GLOB_RECURSE CPP_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "source/Engine/*.cpp")
 
-set(HATCH_SOURCES ${C_SOURCES} ${CPP_SOURCES})
+set(LIBRARY_SOURCES
+  source/Libraries/miniz.c
+  source/Libraries/spng.c
+  source/Libraries/stb_vorbis.c
+)
+
+list(APPEND LIBRARY_SOURCES
+  source/Libraries/Clipper2/clipper.engine.cpp
+  source/Libraries/Clipper2/clipper.offset.cpp
+  source/Libraries/Clipper2/clipper.rectclip.cpp
+)
+
+list(APPEND LIBRARY_SOURCES
+  source/Libraries/poly2tri/common/shapes.cpp
+  source/Libraries/poly2tri/sweep/advancing_front.cpp
+  source/Libraries/poly2tri/sweep/cdt.cpp
+  source/Libraries/poly2tri/sweep/sweep.cpp
+  source/Libraries/poly2tri/sweep/sweep_context.cpp
+)
 
 set(HATCH_TARGET_NAME ${PROJECT_NAME})
 if(TARGET_NAME)
@@ -37,6 +55,16 @@ else()
   option(DEVELOPER_MODE "Developer mode" OFF)
 endif()
 
+if(NOT NINTENDO_SWITCH)
+  option(ENABLE_USING_LINENOISE "Use linenoise-ng for the script debugger command line interface" ON)
+  if (ENABLE_USING_LINENOISE)
+    list(APPEND LIBRARY_SOURCES
+      source/Libraries/linenoise-ng/linenoise.cpp
+      source/Libraries/linenoise-ng/wcwidth.cpp
+    )
+  endif()
+endif()
+
 option(PORTABLE_MODE "Portable mode" OFF)
 option(ALLOW_COMMAND_LINE_RESOURCE_LOAD "Allow loading resource files from command line" ON)
 
@@ -46,6 +74,9 @@ option(USE_DEFAULT_FONTS "Build with default fonts" ON)
 
 # Renderers
 option(USING_OPENGL "Use OpenGL" ON)
+
+# Set sources
+set(HATCH_SOURCES ${C_SOURCES} ${CPP_SOURCES} ${LIBRARY_SOURCES})
 
 # Find platform cmake file
 find_file(PLATFORM_FILE NAMES "${CMAKE_SYSTEM_NAME}.cmake" PATHS "${CMAKE_SOURCE_DIR}/cmake/Platforms" NO_DEFAULT_PATH)
@@ -76,6 +107,10 @@ endif()
 
 if(ENABLE_VM_DEBUGGING)
   target_compile_definitions(${PROJECT_NAME} PRIVATE -DVM_DEBUG)
+
+  if (ENABLE_USING_LINENOISE)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSING_LINENOISE)
+  endif()
 endif()
 
 if(DEVELOPER_MODE)

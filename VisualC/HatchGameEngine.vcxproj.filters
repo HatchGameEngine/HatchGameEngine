@@ -81,6 +81,9 @@
     <ClCompile Include="..\source\engine\bytecode\VMThread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\VMThreadDebugger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\data\DefaultFonts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -475,6 +478,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\Libraries\clipper2\clipper.rectclip.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Libraries\linenoise-ng\linenoise.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Libraries\wcwidth.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\EntityImpl.cpp">
