@@ -16,6 +16,8 @@ struct TiledLayer {
 	float OffsetY = 0.0;
 	float ParallaxX = 1.0;
 	float ParallaxY = 1.0;
+	float ConstantScrollX = 0.0;
+	float ConstantScrollY = 0.0;
 	HashMap<Property>* Properties = nullptr;
 };
 

@@ -489,6 +489,16 @@ void TiledMapReader::ParseSharedLayerFields(TiledLayer* layer, XMLNode* node) {
 	if (node->attributes.Exists("parallaxy")) {
 		layer->ParallaxY = XMLParser::TokenToNumber(node->attributes.Get("parallaxy"));
 	}
+
+	if (layer->Properties) {
+		Property prop;
+		if (layer->Properties->GetIfExists("ConstantScrollX", &prop) && PROPERTY_IS_NUMBER(prop)) {
+			layer->ConstantScrollX = PROPERTY_AS_NUMBER(prop);
+		}
+		if (layer->Properties->GetIfExists("ConstantScrollY", &prop) && PROPERTY_IS_NUMBER(prop)) {
+			layer->ConstantScrollY = PROPERTY_AS_NUMBER(prop);
+		}
+	}
 }
 
 bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
@@ -570,6 +580,8 @@ bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 	scenelayer.OffsetY = tiledLayer.OffsetY;
 	scenelayer.RelativeX = tiledLayer.ParallaxX;
 	scenelayer.RelativeY = tiledLayer.ParallaxY;
+	scenelayer.ConstantX = tiledLayer.ConstantScrollX;
+	scenelayer.ConstantY = tiledLayer.ConstantScrollY;
 
 	if (scenelayer.Opacity != 1.0) {
 		scenelayer.Blending = true;
@@ -581,6 +593,9 @@ bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 
 		scenelayer.RelativeX *= group->ParallaxX;
 		scenelayer.RelativeY *= group->ParallaxY;
+
+		scenelayer.ConstantX += group->ConstantScrollX;
+		scenelayer.ConstantY += group->ConstantScrollY;
 	}
 
 #if HATCH_BIG_ENDIAN
@@ -763,6 +778,8 @@ bool TiledMapReader::ParseGroup(XMLNode* node, LayerGroup* parent) {
 	group.OffsetY = tiledLayer.OffsetY;
 	group.ParallaxX = tiledLayer.ParallaxX;
 	group.ParallaxY = tiledLayer.ParallaxY;
+	group.ConstantScrollX = tiledLayer.ConstantScrollX;
+	group.ConstantScrollY = tiledLayer.ConstantScrollY;
 
 	if (parent) {
 		group.OffsetX += parent->OffsetX;
@@ -770,6 +787,9 @@ bool TiledMapReader::ParseGroup(XMLNode* node, LayerGroup* parent) {
 
 		group.ParallaxX *= parent->ParallaxX;
 		group.ParallaxY *= parent->ParallaxY;
+
+		group.ConstantScrollX += parent->ConstantScrollX;
+		group.ConstantScrollY += parent->ConstantScrollY;
 	}
 
 	if (tiledLayer.Properties) {
