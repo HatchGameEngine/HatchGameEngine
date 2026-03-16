@@ -630,7 +630,18 @@ bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 
 	return true;
 }
-bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
+bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
+	TiledLayer tiledLayer;
+	ParseSharedLayerFields(&tiledLayer, objectgroup);
+
+	float offsetX = tiledLayer.OffsetX;
+	float offsetY = tiledLayer.OffsetY;
+
+	if (group) {
+		offsetX += group->OffsetX;
+		offsetY += group->OffsetY;
+	}
+
 	for (size_t o = 0; o < objectgroup->children.size(); o++) {
 		XMLNode* object = objectgroup->children[o];
 		if (!XMLParser::MatchToken(object->name, "object")) {
@@ -644,6 +655,9 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 
 		float object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
 		float object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
+
+		object_x += offsetX;
+		object_y += offsetY;
 
 		int filter = object->attributes.Exists("filter")
 			? (int)XMLParser::TokenToNumber(object->attributes.Get("filter"))
@@ -756,7 +770,7 @@ bool TiledMapReader::ParseGroupable(XMLNode* node, LayerGroup* group) {
 		}
 	}
 	else if (XMLParser::MatchToken(node->name, "objectgroup")) {
-		if (!ParseObjectGroup(node)) {
+		if (!ParseObjectGroup(node, group)) {
 			return false;
 		}
 	}

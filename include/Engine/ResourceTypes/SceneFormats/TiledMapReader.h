@@ -33,7 +33,7 @@ private:
 	static void LoadTileset(XMLNode* tileset, const char* parentFolder);
 	static void ParseSharedLayerFields(TiledLayer* layer, XMLNode* node);
 	static bool ParseLayer(XMLNode* layer, LayerGroup* group);
-	static bool ParseObjectGroup(XMLNode* objectgroup);
+	static bool ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group);
 	static bool ParseGroupable(XMLNode* node, LayerGroup* group);
 	static bool ParseGroup(XMLNode* node, LayerGroup* parent);
 
