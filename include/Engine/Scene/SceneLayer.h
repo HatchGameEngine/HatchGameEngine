@@ -22,6 +22,7 @@ public:
 	Uint32 ScrollIndexCount = 0;
 	float RelativeX = 1.0;
 	float RelativeY = 1.0;
+	float ConstantX = 0.0;
 	float ConstantY = 0.0;
 	float OffsetX = 0.0;
 	float OffsetY = 0.0;

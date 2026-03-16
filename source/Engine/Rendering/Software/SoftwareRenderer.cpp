@@ -4716,8 +4716,10 @@ void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
 
 	// TODO: Implement view rotation
 	if (currentView->IsScaled()) {
+		float constantScrollH = Scene::Frame * layer->ConstantX;
 		float constantScrollV = Scene::Frame * layer->ConstantY;
-		Sint64 srcX = FP16_TO((currentView->X * layer->RelativeX) + layer->OffsetX);
+		Sint64 srcX = FP16_TO(
+			constantScrollH + (currentView->X * layer->RelativeX) + layer->OffsetX);
 		Sint64 srcY = FP16_TO(
 			constantScrollV + (currentView->Y * layer->RelativeY) + layer->OffsetY);
 		Sint64 iScaleX, iScaleY;

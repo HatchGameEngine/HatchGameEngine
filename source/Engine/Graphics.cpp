@@ -2428,7 +2428,7 @@ void Graphics::CalcScanlineDeforms(SceneLayer* layer,
 		}
 		else {
 			scanLine->SrcX = Graphics::CalcHorizontalParallaxPosition(
-				layer, viewX, 0.0, layer->RelativeX);
+				layer, viewX, layer->ConstantX, layer->RelativeX);
 		}
 		scanLine->SrcX <<= 16;
 		scanLine->SrcY = scrollLine << 16;
@@ -2452,7 +2452,7 @@ void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* current
 			ScrollingInfo* info = &layer->ScrollInfos[i];
 			info->Position = Graphics::CalcHorizontalParallaxPosition(layer,
 				viewX,
-				info->ConstantParallax,
+				layer->ConstantX * info->ConstantParallax,
 				layer->RelativeX * info->RelativeParallax);
 		}
 
@@ -2599,9 +2599,10 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	int endX = (int)viewWidth + tileWidth;
 	int endY = (int)viewHeight + tileHeight;
 
+	float constantScrollH = Scene::Frame * layer->ConstantX;
 	float constantScrollV = Scene::Frame * layer->ConstantY;
 
-	int rowStartX = (int)((viewX * layer->RelativeX) + layer->OffsetX);
+	int rowStartX = (int)(constantScrollH + (viewX * layer->RelativeX) + layer->OffsetX);
 	int srcY = (int)(constantScrollV + (viewY * layer->RelativeY) + layer->OffsetY);
 
 	// Draw more of the view if it is being rotated on the Z axis

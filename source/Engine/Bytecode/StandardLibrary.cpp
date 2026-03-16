@@ -13247,6 +13247,19 @@ VMValue Scene_GetLayerVerticalParallaxFactor(int argCount, VMValue* args, Uint32
 	return DECIMAL_VAL(Scene::Layers[index].RelativeY);
 }
 /***
+ * Scene.GetLayerHorizontalConstantScroll
+ * \desc Gets the horizontal constant scroll amount of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerHorizontalConstantScroll(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return DECIMAL_VAL(Scene::Layers[index].ConstantX);
+}
+/***
  * Scene.GetLayerVerticalConstantScroll
  * \desc Gets the vertical constant scroll amount of the layer.
  * \param layerIndex (integer): Index of layer.
@@ -14483,6 +14496,21 @@ VMValue Scene_SetLayerVerticalParallaxFactor(int argCount, VMValue* args, Uint32
 	float scrollFactor = GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].RelativeY = scrollFactor;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerHorizontalConstantScroll
+ * \desc Sets the horizontal constant scroll amount of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param constant (decimal): How many pixels to move the layer horizontally per frame.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerHorizontalConstantScroll(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	float constant = GET_ARG(1, GetDecimal);
+	CHECK_SCENE_LAYER_INDEX(index);
+	Scene::Layers[index].ConstantX = constant;
 	return NULL_VAL;
 }
 /***
@@ -21631,6 +21659,7 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(Scene, GetLayerVerticalRepeat);
 	DEF_NATIVE(Scene, GetLayerHorizontalParallaxFactor);
 	DEF_NATIVE(Scene, GetLayerVerticalParallaxFactor);
+	DEF_NATIVE(Scene, GetLayerHorizontalConstantScroll);
 	DEF_NATIVE(Scene, GetLayerVerticalConstantScroll);
 	DEF_NATIVE(Scene, GetTileWidth);
 	DEF_NATIVE(Scene, GetTileHeight);
@@ -21698,6 +21727,7 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(Scene, SetLayerScroll);
 	DEF_NATIVE(Scene, SetLayerHorizontalParallaxFactor);
 	DEF_NATIVE(Scene, SetLayerVerticalParallaxFactor);
+	DEF_NATIVE(Scene, SetLayerHorizontalConstantScroll);
 	DEF_NATIVE(Scene, SetLayerVerticalConstantScroll);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesBegin);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLines);
