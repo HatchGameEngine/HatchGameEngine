@@ -576,8 +576,8 @@ bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 	scenelayer.Properties = tiledLayer.Properties;
 	scenelayer.Visible = tiledLayer.Visible;
 	scenelayer.Opacity = tiledLayer.Opacity;
-	scenelayer.OffsetX = tiledLayer.OffsetX;
-	scenelayer.OffsetY = tiledLayer.OffsetY;
+	scenelayer.OffsetX = -tiledLayer.OffsetX;
+	scenelayer.OffsetY = -tiledLayer.OffsetY;
 	scenelayer.RelativeX = tiledLayer.ParallaxX;
 	scenelayer.RelativeY = tiledLayer.ParallaxY;
 	scenelayer.ConstantX = tiledLayer.ConstantScrollX;
@@ -588,8 +588,8 @@ bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 	}
 
 	if (group) {
-		scenelayer.OffsetX += group->OffsetX;
-		scenelayer.OffsetY += group->OffsetY;
+		scenelayer.OffsetX -= group->OffsetX;
+		scenelayer.OffsetY -= group->OffsetY;
 
 		scenelayer.RelativeX *= group->ParallaxX;
 		scenelayer.RelativeY *= group->ParallaxY;
