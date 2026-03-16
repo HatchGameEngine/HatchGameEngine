@@ -14401,8 +14401,9 @@ VMValue Scene_SetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 t
  * Scene.SetLayerScroll
  * \desc Sets the scroll values of the layer. (Horizontal Parallax = Up/Down values, Vertical Parallax = Left/Right values)
  * \param layerIndex (integer): Index of layer.
- * \param relative (decimal): How much to move the layer relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
- * \param constant (decimal): How many pixels to move the layer per frame.
+ * \param relative (decimal): How much to move the layer vertically relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
+ * \param constant (decimal): How many pixels to move the layer vertically per frame.
+ * \deprecated Use <ref Scene.SetLayerVerticalParallaxFactor> and <ref Scene.SetLayerVerticalConstantScroll> instead.
  * \ns Scene
  */
 VMValue Scene_SetLayerScroll(int argCount, VMValue* args, Uint32 threadID) {
@@ -14412,6 +14413,51 @@ VMValue Scene_SetLayerScroll(int argCount, VMValue* args, Uint32 threadID) {
 	float constant = GET_ARG(2, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].RelativeY = relative;
+	Scene::Layers[index].ConstantY = constant;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerHorizontalParallaxFactor
+ * \desc Sets the horizontal parallax scroll factor of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param scrollFactor (decimal): How much to move the layer horizontally relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
+ * \ns Scene
+ */
+VMValue Scene_SetLayerHorizontalParallaxFactor(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	float scrollFactor = GET_ARG(1, GetDecimal);
+	CHECK_SCENE_LAYER_INDEX(index);
+	Scene::Layers[index].RelativeX = scrollFactor;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerVerticalParallaxFactor
+ * \desc Sets the vertical parallax scroll factor of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param scrollFactor (decimal): How much to move the layer vertically relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
+ * \ns Scene
+ */
+VMValue Scene_SetLayerVerticalParallaxFactor(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	float scrollFactor = GET_ARG(1, GetDecimal);
+	CHECK_SCENE_LAYER_INDEX(index);
+	Scene::Layers[index].RelativeY = scrollFactor;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerVerticalConstantScroll
+ * \desc Sets the vertical constant scroll amount of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param constant (decimal): How many pixels to move the layer vertically per frame.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerVerticalConstantScroll(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	float constant = GET_ARG(1, GetDecimal);
+	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].ConstantY = constant;
 	return NULL_VAL;
 }
@@ -21608,6 +21654,9 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(Scene, SetLayerShader);
 	DEF_NATIVE(Scene, SetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, SetLayerScroll);
+	DEF_NATIVE(Scene, SetLayerHorizontalParallaxFactor);
+	DEF_NATIVE(Scene, SetLayerVerticalParallaxFactor);
+	DEF_NATIVE(Scene, SetLayerVerticalConstantScroll);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesBegin);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLines);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesEnd);
