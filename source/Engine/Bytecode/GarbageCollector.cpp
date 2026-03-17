@@ -223,6 +223,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_ENTITY: {
 		ObjEntity* entity = (ObjEntity*)object;
+		GrayHashMap(entity->InstanceObj.Fields);
 		if (entity->EntityPtr) {
 			((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
 		}
