@@ -905,6 +905,8 @@ void Application::EndGame() {
 	SceneInfo::Dispose();
 	Graphics::UnloadData();
 
+	AudioManager::LowPassFilter = 0.0f;
+
 	Application::TerminateScripting();
 
 	Entity::UnloadAll();
@@ -1471,6 +1473,7 @@ void Application::PollEvents() {
 					InputManager::ControllerStopRumble();
 					AudioManager::AudioStopAll();
 					AudioManager::ClearMusic();
+					AudioManager::LowPassFilter = 0.0f;
 
 					if (Application::DevMenuActivated) {
 						Application::CloseDevMenu();
@@ -2888,6 +2891,7 @@ void Application::DevMenu_MainMenu() {
 			InputManager::ControllerStopRumble();
 			AudioManager::AudioStopAll();
 			AudioManager::ClearMusic();
+			AudioManager::LowPassFilter = 0.0f;
 			Scene::Restart();
 			UpdateWindowTitle();
 			break;
@@ -3071,6 +3075,7 @@ void Application::DevMenu_SceneSelectMenu() {
 		CloseDevMenu();
 		AudioManager::AudioStopAll();
 		AudioManager::ClearMusic();
+		AudioManager::LowPassFilter = 0.0f;
 
 		const char* categoryName = list->Name;
 		const char* sceneName = list->Entries[DevMenu.SubSelection].Name;
