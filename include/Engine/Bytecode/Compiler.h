@@ -65,7 +65,6 @@ public:
 	Token PrevToken();
 	bool MatchToken(int expectedType);
 	bool CheckToken(int expectedType);
-	bool CheckToken(Token tok, const char* string);
 	void ConsumeToken(int type, const char* message);
 	bool MatchIdentifier();
 	void ConsumeIdentifier(const char* message);

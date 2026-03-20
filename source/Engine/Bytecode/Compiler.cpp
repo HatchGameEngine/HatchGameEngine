@@ -748,18 +748,6 @@ bool Compiler::MatchToken(int expectedType) {
 bool Compiler::CheckToken(int expectedType) {
 	return parser.Current.Type == expectedType;
 }
-bool Compiler::CheckToken(Token tok, const char* string) {
-	if (tok.Length == 0) {
-		return false;
-	}
-
-	size_t len = strlen(string);
-	if (tok.Length != len) {
-		return false;
-	}
-
-	return memcmp(string, tok.Start, tok.Length) == 0;
-}
 void Compiler::ConsumeToken(int type, const char* message) {
 	if (parser.Current.Type == type) {
 		AdvanceToken();
