@@ -9473,7 +9473,6 @@ VMValue Input_SetPlayerControllerIndex(int argCount, VMValue* args, Uint32 threa
  */
 VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(3);
-
 	char* objectName = GET_ARG(0, GetString);
 	float x = GET_ARG(1, GetDecimal);
 	float y = GET_ARG(2, GetDecimal);
@@ -9517,7 +9516,6 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-
 	char* objectName = GET_ARG(0, GetString);
 	int n = GET_ARG(1, GetInteger);
 
@@ -9544,7 +9542,6 @@ VMValue Instance_GetNth(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-
 	if (IS_NULL(args[0])) {
 		return INTEGER_VAL(false);
 	}
@@ -9581,7 +9578,6 @@ VMValue Instance_IsClass(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-
 	ObjEntity* instance = GET_ARG(0, GetEntity);
 	if (!instance) {
 		return NULL_VAL;
@@ -9598,19 +9594,29 @@ VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
  * Instance.GetCount
  * \desc Gets amount of currently active instances in an object class.
  * \param className (string): Name of the object class.
+ * \paramOpt onScreen (boolean): Whether to only count instances that are currently within their update region. (default: `false`)
  * \return integer Returns count of currently active instances in an object class.
  * \ns Instance
  */
 VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-
+	CHECK_AT_LEAST_ARGCOUNT(1);
 	char* objectName = GET_ARG(0, GetString);
+	bool onScreen = !!GET_ARG_OPT(1, GetInteger, false);
 
 	if (!Scene::ObjectLists->Exists(objectName)) {
 		return INTEGER_VAL(0);
 	}
 
 	ObjectList* objectList = Scene::ObjectLists->Get(objectName);
+	if (onScreen) {
+		int count = 0;
+		for (Entity* ent = objectList->EntityFirst; ent != nullptr; ent = ent->NextEntityInList) {
+			if (ent->OnScreen)
+				count++;
+		}
+		return INTEGER_VAL(count);
+    }
+
 	return INTEGER_VAL(objectList->Count());
 }
 /***
@@ -9623,7 +9629,6 @@ VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-
 	ObjEntity* instance = GET_ARG(0, GetEntity);
 	Entity* self = instance ? (Entity*)instance->EntityPtr : nullptr;
 	int n = GET_ARG(1, GetInteger);
@@ -9665,7 +9670,6 @@ VMValue Instance_GetNextInstance(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Instance_GetBySlotID(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-
 	int slotID = GET_ARG(0, GetInteger);
 	if (slotID < 0) {
 		return NULL_VAL;
