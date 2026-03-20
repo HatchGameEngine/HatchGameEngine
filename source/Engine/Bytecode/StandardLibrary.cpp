@@ -9594,45 +9594,30 @@ VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
  * Instance.GetCount
  * \desc Gets amount of currently active instances in an object class.
  * \param className (string): Name of the object class.
+ * \paramOpt onScreen (boolean): Whether to only count instances that are currently within their update region. (default: `false`)
  * \return integer Returns count of currently active instances in an object class.
  * \ns Instance
  */
 VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* objectName = GET_ARG(0, GetString);
+	bool onScreen = !!GET_ARG_OPT(2, GetInteger, false);
 
 	if (!Scene::ObjectLists->Exists(objectName)) {
 		return INTEGER_VAL(0);
 	}
 
 	ObjectList* objectList = Scene::ObjectLists->Get(objectName);
-	return INTEGER_VAL(objectList->Count());
-}
-/***
- * Instance.GetCountOnScreen
- * \desc Gets amount of active instances in an object class that are currently within their update region.
- * \param className (string): Name of the object class.
- * \return integer Returns count of currently active instances on screen in an object class.
- * \ns Instance
- */
-VMValue Instance_GetCountOnScreen(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	char* objectName = GET_ARG(0, GetString);
-
-	int count = 0;
-
-	if (!Scene::ObjectLists->Exists(objectName)) {
-		return INTEGER_VAL(count);
-	}
-
-	ObjectList* objectList = Scene::ObjectLists->Get(objectName);
-	if (objectList) {
+	if (objectList && onScreen) {
+		int count = 0;
 		for (Entity* ent = objectList->EntityFirst; ent != nullptr; ent = ent->NextEntityInList) {
 			if (ent->OnScreen >= 1)
 				count++;
 		}
-	}
-	return INTEGER_VAL(count);
+		return INTEGER_VAL(count);
+    }
+
+	return INTEGER_VAL(objectList->Count());
 }
 /***
  * Instance.GetNextInstance
@@ -21252,7 +21237,6 @@ This class also houses the input action system.
 	DEF_NATIVE(Instance, IsClass);
 	DEF_NATIVE(Instance, GetClass);
 	DEF_NATIVE(Instance, GetCount);
-	DEF_NATIVE(Instance, GetCountOnScreen);
 	DEF_NATIVE(Instance, GetNextInstance);
 	DEF_NATIVE(Instance, GetBySlotID);
 	DEF_NATIVE(Instance, DisableAutoAnimate);
