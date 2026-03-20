@@ -1554,9 +1554,11 @@ int VMThread::RunInstruction() {
 
 					for (Entity* ent = objectList->EntityFirst; ent;
 						ent = ent->NextEntityInList) {
-						CHECK_IF_ENTITY_MATCHES_FILTER(ent);
-						objectStart = (ScriptEntity*)ent;
-						break;
+						if (ent->Active) {
+							CHECK_IF_ENTITY_MATCHES_FILTER(ent);
+							objectStart = (ScriptEntity*)ent;
+							break;
+						}
 					}
 				}
 				// Otherwise in registry,
@@ -1569,7 +1571,7 @@ int VMThread::RunInstruction() {
 
 					for (int o = 0; o < count; o++) {
 						Entity* ent = registry->GetNth(o);
-						if (ent) {
+						if (ent->Active) {
 							CHECK_IF_ENTITY_MATCHES_FILTER(ent);
 							objectStart = (ScriptEntity*)ent;
 							startIndex = o;
@@ -1629,11 +1631,11 @@ int VMThread::RunInstruction() {
 				Entity* objectNext = NULL;
 				for (Entity* ent = (Entity*)it.EntityNext; ent;
 					ent = ent->NextEntityInList) {
-
-					CHECK_IF_ENTITY_MATCHES_FILTER(ent);
-
-					objectNext = (ScriptEntity*)ent;
-					break;
+					if (ent->Active) {
+						CHECK_IF_ENTITY_MATCHES_FILTER(ent);
+						objectNext = (ScriptEntity*)ent;
+						break;
+					}
 				}
 
 				if (objectNext) {
@@ -1657,6 +1659,9 @@ int VMThread::RunInstruction() {
 				ObjectRegistry* registry = (ObjectRegistry*)it.Registry;
 				while (++it.Index < registry->Count()) {
 					Entity* ent = registry->GetNth(it.Index);
+					if (!ent->Active) {
+						continue;
+					}
 
 					CHECK_IF_ENTITY_MATCHES_FILTER(ent);
 
