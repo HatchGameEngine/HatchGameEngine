@@ -12918,6 +12918,45 @@ VMValue Scene_Change(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Scene.ChangeFromPath
+ * \desc Searches for a scene by its file path and sets it as the current scene.<br/>\
+This does not load the scene. You must call <ref Scene.Load>.
+ * \param scene (string): The file path of the scene to change.
+ * \paramOpt filter (integer): Filter to match 
+ * \ns Scene
+ */
+VMValue Scene_ChangeFromPath(int argCount, VMValue* args, Uint32 threadID) {
+    CHECK_AT_LEAST_ARGCOUNT(1);
+	const char* scenePath = GET_ARG(0, GetString);
+    int filter = GET_ARG_OPT(1, GetInteger, 0xFF);
+
+	if (filter == 0)
+		filter = 0xFF;
+	if (filter < 0)
+		return NULL_VAL;
+
+	bool found = false;
+	for (size_t i = 0; i < SceneInfo::Categories.size(); i++) {
+        SceneListCategory& category = SceneInfo::Categories[i];
+
+		for (size_t j = 0; j < category.Entries.size(); j++) {
+			SceneListEntry& scene = category.Entries[j];
+
+			if (!strcmp(scenePath, SceneInfo::GetFilename(i, j).c_str())) {
+				if (argCount == 2 && !(scene.Filter & filter))
+					continue;
+				Scene::SetCurrent(category.Name, scene.Name);
+				found = true;
+				break;
+			}
+		}
+		if (found) {
+			break;
+		}
+    }
+	return NULL_VAL;
+}
+/***
  * Scene.LoadTileCollisions
  * \desc Load tile collisions from a resource file.
  * \param filename (string): Filename of tile collision file.
@@ -21638,6 +21677,7 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	INIT_CLASS(Scene);
 	DEF_NATIVE(Scene, Load);
 	DEF_NATIVE(Scene, Change);
+	DEF_NATIVE(Scene, ChangeFromPath);
 	DEF_NATIVE(Scene, LoadTileCollisions);
 	DEF_NATIVE(Scene, AreTileCollisionsLoaded);
 	DEF_NATIVE(Scene, AddTileset);

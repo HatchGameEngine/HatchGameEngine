@@ -1157,7 +1157,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 				}
 
 				// Show render region
-				if (showObjectRegions) {
+				if (showObjectRegions && Scene::UseRenderRegions) {
 					Graphics::SetBlendColor(0.0f, 0.0f, 1.0f, 0.5f);
 					Graphics::FillRectangle(entX1 + _vx,
 						entY1 + _vy,
