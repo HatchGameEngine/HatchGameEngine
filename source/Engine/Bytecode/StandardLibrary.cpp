@@ -9599,19 +9599,19 @@ VMValue Instance_GetClass(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Instance
  */
 VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
+	CHECK_AT_LEAST_ARGCOUNT(1);
 	char* objectName = GET_ARG(0, GetString);
-	bool onScreen = !!GET_ARG_OPT(2, GetInteger, false);
+	bool onScreen = !!GET_ARG_OPT(1, GetInteger, false);
 
 	if (!Scene::ObjectLists->Exists(objectName)) {
 		return INTEGER_VAL(0);
 	}
 
 	ObjectList* objectList = Scene::ObjectLists->Get(objectName);
-	if (objectList && onScreen) {
+	if (onScreen) {
 		int count = 0;
 		for (Entity* ent = objectList->EntityFirst; ent != nullptr; ent = ent->NextEntityInList) {
-			if (ent->OnScreen >= 1)
+			if (ent->OnScreen)
 				count++;
 		}
 		return INTEGER_VAL(count);
