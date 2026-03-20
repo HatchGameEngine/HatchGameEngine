@@ -622,6 +622,101 @@ void Entity::CopyFields(Entity* other) {
 
 void Entity::ApplyPhysics() {}
 
+bool Entity::IsInRenderRange() {
+	float entX1, entX2;
+	float entY1, entY2;
+
+	if (!GetRenderRegion(entX1, entY1, entX2, entY2)) {
+		return true;
+	}
+
+	for (int s = 0; s < MAX_SCENE_VIEWS; ++s) {
+		if (Scene::Views[s].Active && entX2 >= Scene::Views[s].X &&
+			entY2 >= Scene::Views[s].Y &&
+			entX1 < Scene::Views[s].X + Scene::Views[s].Width &&
+			entY1 < Scene::Views[s].Y + Scene::Views[s].Height) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Entity::GetRenderRegion(float& entX1, float& entY1, float& entX2, float& entY2) {
+	if (Scene::UseRenderRegions) {
+		if (RenderRegionLeft || RenderRegionRight) {
+			if (RenderRegionLeft == 0.0f && RenderRegionRight == 0.0f) {
+				return false;
+			}
+
+			entX1 = X - RenderRegionLeft;
+			entX2 = X + RenderRegionRight;
+		}
+		else {
+			if (RenderRegionW == 0.0f) {
+				return false;
+			}
+
+			entX1 = X - RenderRegionW * 0.5f;
+			entX2 = X + RenderRegionW * 0.5f;
+		}
+
+		if (RenderRegionTop || RenderRegionBottom) {
+			if (RenderRegionTop == 0.0f && RenderRegionBottom == 0.0f) {
+				return false;
+			}
+
+			entY1 = Y - RenderRegionTop;
+			entY2 = Y + RenderRegionBottom;
+		}
+		else {
+			if (RenderRegionH == 0.0f) {
+				return false;
+			}
+
+			entY1 = Y - RenderRegionH * 0.5f;
+			entY2 = Y + RenderRegionH * 0.5f;
+		}
+	}
+	else {
+		if (OnScreenRegionLeft || OnScreenRegionRight) {
+			if (OnScreenRegionLeft == 0.0f && OnScreenRegionRight == 0.0f) {
+				return false;
+			}
+
+			entX1 = X - OnScreenRegionLeft;
+			entX2 = X + OnScreenRegionRight;
+		}
+		else {
+			if (OnScreenHitboxW == 0.0f) {
+				return false;
+			}
+
+			entX1 = X - OnScreenHitboxW * 0.5f;
+			entX2 = X + OnScreenHitboxW * 0.5f;
+		}
+
+		if (OnScreenRegionTop || OnScreenRegionBottom) {
+			if (OnScreenRegionTop == 0.0f && OnScreenRegionBottom == 0.0f) {
+				return false;
+			}
+
+			entY1 = Y - OnScreenRegionTop;
+			entY2 = Y + OnScreenRegionBottom;
+		}
+		else {
+			if (OnScreenHitboxH == 0.0f) {
+				return false;
+			}
+
+			entY1 = Y - OnScreenHitboxH * 0.5f;
+			entY2 = Y + OnScreenHitboxH * 0.5f;
+		}
+	}
+
+	return true;
+}
+
 void Entity::Initialize() {
 	// Set defaults
 	Active = true;

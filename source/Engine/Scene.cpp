@@ -1046,10 +1046,10 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	bool showObjectRegions = Scene::ShowObjectRegions;
 
 	// Render Objects and Layer Tiles
-	float _vx = currentView->X;
-	float _vy = currentView->Y;
-	float _vw = currentView->GetScaledWidth();
-	float _vh = currentView->GetScaledHeight();
+	float vx = currentView->X;
+	float vy = currentView->Y;
+	float vw = currentView->GetScaledWidth();
+	float vh = currentView->GetScaledHeight();
 	double objectTimeTotal = 0.0;
 	DrawGroupList* drawGroupList;
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
@@ -1059,8 +1059,6 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 		double elapsed;
 		double objectTime;
-		float _ox;
-		float _oy;
 		float entX1, entX2;
 		float entY1, entY2;
 		objectTime = Clock::GetTicks();
@@ -1074,98 +1072,21 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 					continue;
 				}
 
-				_ox = ent->X - _vx;
-				_oy = ent->Y - _vy;
-
-				if (Scene::UseRenderRegions) {
-					if (ent->RenderRegionLeft || ent->RenderRegionRight) {
-						if (ent->RenderRegionLeft == 0.0f &&
-							ent->RenderRegionRight == 0.0f) {
-							goto DoCheckRender;
-						}
-
-						entX1 = _ox - ent->RenderRegionLeft;
-						entX2 = _ox + ent->RenderRegionRight;
-					}
-					else {
-						if (ent->RenderRegionW == 0.0f) {
-							goto DoCheckRender;
-						}
-
-						entX1 = _ox - ent->RenderRegionW * 0.5f;
-						entX2 = _ox + ent->RenderRegionW * 0.5f;
+				if (ent->GetRenderRegion(entX1, entY1, entX2, entY2)) {
+					if (entX2 < vx || entX1 >= vx + vw || entY2 < vy || entY1 >= vy + vh) {
+						continue;
 					}
 
-					if (ent->RenderRegionTop || ent->RenderRegionBottom) {
-						if (ent->RenderRegionTop == 0.0f &&
-							ent->RenderRegionBottom == 0.0f) {
-							goto DoCheckRender;
-						}
-
-						entY1 = _oy - ent->RenderRegionTop;
-						entY2 = _oy + ent->RenderRegionBottom;
-					}
-					else {
-						if (ent->RenderRegionH == 0.0f) {
-							goto DoCheckRender;
-						}
-
-						entY1 = _oy - ent->RenderRegionH * 0.5f;
-						entY2 = _oy + ent->RenderRegionH * 0.5f;
-					}
-				}
-				else {
-					if (ent->OnScreenRegionLeft || ent->OnScreenRegionRight) {
-						if (ent->OnScreenRegionLeft == 0.0f &&
-							ent->OnScreenRegionRight == 0.0f) {
-							goto DoCheckRender;
-						}
-
-						entX1 = _ox - ent->OnScreenRegionLeft;
-						entX2 = _ox + ent->OnScreenRegionRight;
-					}
-					else {
-						if (ent->OnScreenHitboxW == 0.0f) {
-							goto DoCheckRender;
-						}
-
-						entX1 = _ox - ent->OnScreenHitboxW * 0.5f;
-						entX2 = _ox + ent->OnScreenHitboxW * 0.5f;
-					}
-
-					if (ent->OnScreenRegionTop || ent->OnScreenRegionBottom) {
-						if (ent->OnScreenRegionTop == 0.0f &&
-							ent->OnScreenRegionBottom == 0.0f) {
-							goto DoCheckRender;
-						}
-
-						entY1 = _oy - ent->OnScreenRegionTop;
-						entY2 = _oy + ent->OnScreenRegionBottom;
-					}
-					else {
-						if (ent->OnScreenHitboxH == 0.0f) {
-							goto DoCheckRender;
-						}
-
-						entY1 = _oy - ent->OnScreenHitboxH * 0.5f;
-						entY2 = _oy + ent->OnScreenHitboxH * 0.5f;
+					// Show render region
+					if (showObjectRegions && Scene::UseRenderRegions) {
+						Graphics::SetBlendColor(0.0f, 0.0f, 1.0f, 0.5f);
+						Graphics::FillRectangle(entX1,
+							entY1,
+							entX2 - entX1,
+							entY2 - entY1);
 					}
 				}
 
-				if (entX2 < 0.0f || entX1 >= _vw || entY2 < 0.0f || entY1 >= _vh) {
-					continue;
-				}
-
-				// Show render region
-				if (showObjectRegions && Scene::UseRenderRegions) {
-					Graphics::SetBlendColor(0.0f, 0.0f, 1.0f, 0.5f);
-					Graphics::FillRectangle(entX1 + _vx,
-						entY1 + _vy,
-						entX2 - entX1,
-						entY2 - entY1);
-				}
-
-			DoCheckRender:
 				// Show update region
 				if (showObjectRegions) {
 					if (ent->OnScreenRegionLeft || ent->OnScreenRegionRight) {

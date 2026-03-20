@@ -540,8 +540,11 @@ int Bytecode::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_INVOKE_V3:
 		return 7;
 	case OP_WITH:
-		if (*(op + 1) == 3) {
+		if (*(op + 1) == WITH_STATE_INIT_SLOTTED) {
 			return 5;
+		}
+		else if (*(op + 1) == WITH_STATE_INIT_FILTER) {
+			return 6;
 		}
 		return 4;
 	case OP_CLASS:

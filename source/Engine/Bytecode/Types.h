@@ -529,12 +529,20 @@ static inline bool HasInitializer(ObjClass* klass) {
 	return !IS_NULL(klass->Initializer);
 }
 
+enum { WITH_STATE_INIT, WITH_STATE_ITERATE, WITH_STATE_FINISH, WITH_STATE_INIT_SLOTTED, WITH_STATE_INIT_FILTER };
+
+#define WITH_FILTER_INTERACTABLE (1 << 0)
+#define WITH_FILTER_INRANGE (1 << 1)
+#define WITH_FILTER_ONSCREEN (1 << 2)
+#define WITH_FILTER_VISIBLE (1 << 3)
+
 struct WithIter {
-	void* entity;
-	void* entityNext;
-	int index;
-	void* registry;
-	Uint8 receiverSlot;
+	void* Entity;
+	void* EntityNext;
+	int Index;
+	void* Registry;
+	Uint8 ReceiverSlot;
+	Uint8 Filter;
 };
 
 struct VMThreadCallback {

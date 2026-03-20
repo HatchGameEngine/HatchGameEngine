@@ -109,25 +109,29 @@ int BytecodeDebugger::EnumInstruction(uint8_t opcode, Chunk* chunk, int offset) 
 	return BytecodeDebugger::HashInstruction(opcode, chunk, offset);
 }
 int BytecodeDebugger::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+	int initialOffset = offset;
 	uint8_t type = chunk->Code[offset + 1];
 	uint8_t slot = 0;
+	uint8_t flags = 0;
 	if (type == 3) {
 		slot = chunk->Code[offset + 2];
 		offset++;
 	}
+	else if (type == 4) {
+		slot = chunk->Code[offset + 2];
+		flags = chunk->Code[offset + 3];
+		offset += 2;
+	}
 	uint16_t jump = (uint16_t)(chunk->Code[offset + 2]);
 	jump |= chunk->Code[offset + 3] << 8;
 	if (slot > 0) {
-		DEBUGGER_LOG("%-16s %1d %7d -> %d\n", Bytecode::OpcodeNames[opcode], type, slot, jump);
+		DEBUGGER_LOG("%-16s %1d %7d 0x%02X -> %d\n", Bytecode::OpcodeNames[opcode], type, slot, flags, jump);
 	}
 	else {
 		DEBUGGER_LOG(
-			"%-16s %1d %7d 'this' -> %d\n", Bytecode::OpcodeNames[opcode], type, slot, jump);
+			"%-16s %1d %7d 'this' 0x%02X -> %d\n", Bytecode::OpcodeNames[opcode], type, slot, flags, jump);
 	}
-	if (type == 3) {
-		offset--;
-	}
-	return offset + Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+	return initialOffset + Bytecode::GetTotalOpcodeSize(chunk->Code + initialOffset);
 }
 int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	DEBUGGER_LOG("%04d ", offset);

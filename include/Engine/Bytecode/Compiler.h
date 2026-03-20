@@ -65,8 +65,11 @@ public:
 	Token PrevToken();
 	bool MatchToken(int expectedType);
 	bool CheckToken(int expectedType);
+	bool CheckToken(Token tok, const char* string);
 	void ConsumeToken(int type, const char* message);
+	bool MatchIdentifier();
 	void ConsumeIdentifier(const char* message);
+	bool IsContextualKeyword(Token token);
 	bool ReportError(int line, int pos, bool fatal, const char* string, ...);
 	void ErrorAt(Token* token, const char* message, bool fatal);
 	void Error(const char* message);

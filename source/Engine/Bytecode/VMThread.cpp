@@ -1484,24 +1484,39 @@ int VMThread::RunInstruction() {
 
 	// Functions
 	VM_CASE(OP_WITH) {
-		enum {
-			WITH_STATE_INIT,
-			WITH_STATE_ITERATE,
-			WITH_STATE_FINISH,
-			WITH_STATE_INIT_SLOTTED,
-		};
-
 		Uint8 receiverSlot = 0;
+		Uint8 filter = WITH_FILTER_INTERACTABLE;
 
 		int state = ReadByte(frame);
 		if (state == WITH_STATE_INIT_SLOTTED) {
 			receiverSlot = ReadByte(frame);
 		}
+		else if (state == WITH_STATE_INIT_FILTER) {
+			receiverSlot = ReadByte(frame);
+			filter = ReadByte(frame);
+		}
+
+#define CHECK_IF_ENTITY_MATCHES_FILTER(entity) { \
+	if ((filter & WITH_FILTER_INTERACTABLE) != 0 && !entity->Interactable) { \
+		continue; \
+	} \
+	if ((filter & WITH_FILTER_INRANGE) != 0 && !entity->InRange) { \
+		continue; \
+	} \
+	if ((filter & WITH_FILTER_ONSCREEN) != 0 && !entity->IsInRenderRange()) { \
+		continue; \
+	} \
+	if ((filter & WITH_FILTER_VISIBLE) != 0 && !entity->Visible) { \
+		continue; \
+	} \
+}
+
 		int offset = ReadSInt16(frame);
 
 		switch (state) {
 		case WITH_STATE_INIT:
-		case WITH_STATE_INIT_SLOTTED: {
+		case WITH_STATE_INIT_SLOTTED:
+		case WITH_STATE_INIT_FILTER: {
 			VMValue receiver = Peek(0);
 			if (receiver.Type == VAL_NULL) {
 				JUMP(offset);
@@ -1539,10 +1554,9 @@ int VMThread::RunInstruction() {
 
 					for (Entity* ent = objectList->EntityFirst; ent;
 						ent = ent->NextEntityInList) {
-						if (ent->Active && ent->Interactable) {
-							objectStart = (ScriptEntity*)ent;
-							break;
-						}
+						CHECK_IF_ENTITY_MATCHES_FILTER(ent);
+						objectStart = (ScriptEntity*)ent;
+						break;
 					}
 				}
 				// Otherwise in registry,
@@ -1555,7 +1569,8 @@ int VMThread::RunInstruction() {
 
 					for (int o = 0; o < count; o++) {
 						Entity* ent = registry->GetNth(o);
-						if (ent && ent->Active && ent->Interactable) {
+						if (ent) {
+							CHECK_IF_ENTITY_MATCHES_FILTER(ent);
 							objectStart = (ScriptEntity*)ent;
 							startIndex = o;
 							break;
@@ -1571,7 +1586,7 @@ int VMThread::RunInstruction() {
 				// Add iterator
 				if (registry) {
 					*frame->WithIteratorStackTop = NEW_STRUCT_MACRO(WithIter){
-						NULL, NULL, startIndex, registry, receiverSlot};
+						NULL, NULL, startIndex, registry, receiverSlot, filter};
 				}
 				else {
 					*frame->WithIteratorStackTop =
@@ -1579,7 +1594,8 @@ int VMThread::RunInstruction() {
 							objectStart->NextEntityInList,
 							0,
 							NULL,
-							receiverSlot};
+							receiverSlot,
+							filter};
 				}
 				frame->WithIteratorStackTop++;
 
@@ -1590,19 +1606,10 @@ int VMThread::RunInstruction() {
 				frame->Slots[receiverSlot] = OBJECT_VAL(objectStart->Instance);
 				break;
 			}
-			else if (IS_INSTANCEABLE(receiver)) {
-				// Backup original receiver
-				*frame->WithReceiverStackTop = frame->Slots[receiverSlot];
-				frame->WithReceiverStackTop++;
-				// Replace receiver
-				frame->Slots[receiverSlot] = receiver;
-
+			else {
+				ThrowRuntimeError(false, "Not a valid value for 'with'!");
+				JUMP(offset);
 				Pop(); // pop receiver
-
-				// Add dummy iterator
-				*frame->WithIteratorStackTop =
-					NEW_STRUCT_MACRO(WithIter){NULL, NULL, 0, NULL};
-				frame->WithIteratorStackTop++;
 				break;
 			}
 			break;
@@ -1610,26 +1617,28 @@ int VMThread::RunInstruction() {
 		case WITH_STATE_ITERATE: {
 			WithIter it = frame->WithIteratorStackTop[-1];
 
-			receiverSlot = it.receiverSlot;
+			receiverSlot = it.ReceiverSlot;
+			filter = it.Filter;
 
 			VMValue originalReceiver = frame->WithReceiverStackTop[-1];
 			// Restore original receiver
 			frame->Slots[receiverSlot] = originalReceiver;
 
 			// If in list,
-			if (it.entity) {
+			if (it.Entity) {
 				Entity* objectNext = NULL;
-				for (Entity* ent = (Entity*)it.entityNext; ent;
+				for (Entity* ent = (Entity*)it.EntityNext; ent;
 					ent = ent->NextEntityInList) {
-					if (ent->Active && ent->Interactable) {
-						objectNext = (ScriptEntity*)ent;
-						break;
-					}
+
+					CHECK_IF_ENTITY_MATCHES_FILTER(ent);
+
+					objectNext = (ScriptEntity*)ent;
+					break;
 				}
 
 				if (objectNext) {
-					it.entity = objectNext;
-					it.entityNext = objectNext->NextEntityInList;
+					it.Entity = objectNext;
+					it.EntityNext = objectNext->NextEntityInList;
 
 					JUMP_BACK(offset);
 
@@ -1639,14 +1648,18 @@ int VMThread::RunInstruction() {
 					// Backup original receiver
 					frame->WithReceiverStackTop[-1] = originalReceiver;
 					// Replace receiver
-					ScriptEntity* object = (ScriptEntity*)it.entity;
+					ScriptEntity* object = (ScriptEntity*)objectNext;
 					frame->Slots[receiverSlot] = OBJECT_VAL(object->Instance);
 				}
 			}
 			// Otherwise in registry,
-			else if (it.registry) {
-				ObjectRegistry* registry = (ObjectRegistry*)it.registry;
-				if (++it.index < registry->Count()) {
+			else if (it.Registry) {
+				ObjectRegistry* registry = (ObjectRegistry*)it.Registry;
+				while (++it.Index < registry->Count()) {
+					Entity* ent = registry->GetNth(it.Index);
+
+					CHECK_IF_ENTITY_MATCHES_FILTER(ent);
+
 					JUMP_BACK(offset);
 
 					// Put iterator back onto stack
@@ -1655,18 +1668,9 @@ int VMThread::RunInstruction() {
 					// Backup original receiver
 					frame->WithReceiverStackTop[-1] = originalReceiver;
 					// Replace receiver
-					ScriptEntity* object =
-						(ScriptEntity*)registry->GetNth(it.index);
+					ScriptEntity* object = (ScriptEntity*)ent;
 					frame->Slots[receiverSlot] = OBJECT_VAL(object->Instance);
 				}
-			}
-			else {
-				Log::Print(Log::LOG_ERROR,
-					"hey you might need to handle the stack here (receiverStack: %d, iterator: %d)",
-					frame->WithReceiverStackTop - frame->WithReceiverStack,
-					frame->WithIteratorStackTop - frame->WithIteratorStack);
-				PrintStack();
-				assert(false);
 			}
 			break;
 		}
@@ -1676,12 +1680,13 @@ int VMThread::RunInstruction() {
 			frame->WithReceiverStackTop--;
 
 			VMValue originalReceiver = *frame->WithReceiverStackTop;
-			frame->Slots[it.receiverSlot] = originalReceiver;
+			frame->Slots[it.ReceiverSlot] = originalReceiver;
 
 			frame->WithIteratorStackTop--;
 			break;
 		}
 		}
+#undef CHECK_IF_ENTITY_MATCHES_FILTER
 		VM_BREAK;
 	}
 	VM_CASE(OP_CALL) {

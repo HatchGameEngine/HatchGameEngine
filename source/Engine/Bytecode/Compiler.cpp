@@ -152,6 +152,11 @@ enum TokenTYPE {
 
 	TOKEN_PRINT,
 	TOKEN_BREAKPOINT,
+	TOKEN_INTERACTABLE,
+	TOKEN_INRANGE,
+	TOKEN_ONSCREEN,
+	TOKEN_VISIBLE,
+	TOKEN_ANY,
 
 	TOKEN_ERROR,
 	TOKEN_EOF
@@ -308,7 +313,15 @@ int Compiler::GetKeywordType() {
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
 			case 'n':
-				return CheckKeyword(2, 1, "d", TOKEN_AND);
+				if (scanner.Current - scanner.Start > 2) {
+					switch (*(scanner.Start + 2)) {
+					case 'd':
+						return CheckKeyword(3, 0, NULL, TOKEN_AND);
+					case 'y':
+						return CheckKeyword(3, 0, NULL, TOKEN_ANY);
+					}
+				}
+				break;
 			case 's':
 				return CheckKeyword(2, 0, NULL, TOKEN_AS);
 			}
@@ -414,7 +427,18 @@ int Compiler::GetKeywordType() {
 			case 'f':
 				return CheckKeyword(2, 0, NULL, TOKEN_IF);
 			case 'n':
-				return CheckKeyword(2, 0, NULL, TOKEN_IN);
+				if (scanner.Current - scanner.Start > 2) {
+					switch (*(scanner.Start + 2)) {
+					case 'r':
+						return CheckKeyword(3, 4, "ange", TOKEN_INRANGE);
+					case 't':
+						return CheckKeyword(3, 9, "eractable", TOKEN_INTERACTABLE);
+					}
+				}
+				else {
+					return CheckKeyword(2, 0, NULL, TOKEN_IN);
+				}
+				break;
 			case 'm':
 				return CheckKeyword(2, 4, "port", TOKEN_IMPORT);
 			}
@@ -437,6 +461,8 @@ int Compiler::GetKeywordType() {
 	case 'o':
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
+			case 'n':
+				return CheckKeyword(2, 6, "screen", TOKEN_ONSCREEN);
 			case 'r':
 				return CheckKeyword(2, 0, NULL, TOKEN_OR);
 			}
@@ -499,7 +525,14 @@ int Compiler::GetKeywordType() {
 	case 'u':
 		return CheckKeyword(1, 4, "sing", TOKEN_USING);
 	case 'v':
-		return CheckKeyword(1, 2, "ar", TOKEN_VAR);
+		if (scanner.Current - scanner.Start > 1) {
+			switch (*(scanner.Start + 1)) {
+			case 'a':
+				return CheckKeyword(2, 1, "r", TOKEN_VAR);
+			case 'i':
+				return CheckKeyword(2, 5, "sible", TOKEN_VISIBLE);
+			}
+		}
 	case 'w':
 		if (scanner.Current - scanner.Start > 1) {
 			switch (*(scanner.Start + 1)) {
@@ -715,6 +748,18 @@ bool Compiler::MatchToken(int expectedType) {
 bool Compiler::CheckToken(int expectedType) {
 	return parser.Current.Type == expectedType;
 }
+bool Compiler::CheckToken(Token tok, const char* string) {
+	if (tok.Length == 0) {
+		return false;
+	}
+
+	size_t len = strlen(string);
+	if (tok.Length != len) {
+		return false;
+	}
+
+	return memcmp(string, tok.Start, tok.Length) == 0;
+}
 void Compiler::ConsumeToken(int type, const char* message) {
 	if (parser.Current.Type == type) {
 		AdvanceToken();
@@ -723,16 +768,39 @@ void Compiler::ConsumeToken(int type, const char* message) {
 
 	ErrorAtCurrent(message);
 }
-void Compiler::ConsumeIdentifier(const char* message) {
-	// Contextual keywords
+bool Compiler::MatchIdentifier() {
 	switch (parser.Current.Type) {
-	case TOKEN_HITBOX:
-	case TOKEN_BREAKPOINT:
+	case TOKEN_IDENTIFIER:
+		AdvanceToken();
+		return true;
+	default:
+		if (IsContextualKeyword(parser.Current)) {
+			return true;
+		}
+		return false;
+	}
+}
+void Compiler::ConsumeIdentifier(const char* message) {
+	if (IsContextualKeyword(parser.Current)) {
 		AdvanceToken();
 		return;
 	}
 
 	ConsumeToken(TOKEN_IDENTIFIER, message);
+}
+bool Compiler::IsContextualKeyword(Token token) {
+	switch (parser.Current.Type) {
+	case TOKEN_HITBOX:
+	case TOKEN_BREAKPOINT:
+	case TOKEN_INTERACTABLE:
+	case TOKEN_INRANGE:
+	case TOKEN_ONSCREEN:
+	case TOKEN_VISIBLE:
+	case TOKEN_ANY:
+		return true;
+	}
+
+	return false;
 }
 
 // Error handling
@@ -2519,8 +2587,6 @@ void Compiler::GetBlockStatement() {
 	ConsumeToken(TOKEN_RIGHT_BRACE, "Expected \"}\" after block.");
 }
 void Compiler::GetWithStatement() {
-	enum { WITH_STATE_INIT, WITH_STATE_ITERATE, WITH_STATE_FINISH, WITH_STATE_INIT_SLOTTED };
-
 	bool useOther = true;
 	bool useOtherSlot = false;
 	bool hasThis = HasThis();
@@ -2552,8 +2618,46 @@ void Compiler::GetWithStatement() {
 	// For 'as'
 	Token receiverName;
 
-	// With "expression"
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'with'.");
+
+	// Match filters
+	bool useFilter = false;
+	Uint8 filter = 0;
+
+	while (IsContextualKeyword(parser.Current)) {
+		bool done = false;
+
+		switch (parser.Current.Type) {
+		case TOKEN_INTERACTABLE:
+			filter |= WITH_FILTER_INTERACTABLE;
+			break;
+		case TOKEN_INRANGE:
+			filter |= WITH_FILTER_INRANGE;
+			break;
+		case TOKEN_ONSCREEN:
+			filter |= WITH_FILTER_ONSCREEN;
+			break;
+		case TOKEN_VISIBLE:
+			filter |= WITH_FILTER_VISIBLE;
+			break;
+		case TOKEN_ANY:
+			filter = 0;
+			break;
+		default:
+			done = true;
+			break;
+		}
+
+		if (done) {
+			break;
+		}
+
+		AdvanceToken();
+
+		useFilter = true;
+	}
+
+	// With "expression"
 	GetExpression();
 	if (MatchToken(TOKEN_AS)) {
 		ConsumeIdentifier("Expect receiver name.");
@@ -2585,10 +2689,14 @@ void Compiler::GetWithStatement() {
 	// Init "with" iteration
 	EmitByte(OP_WITH);
 
-	if (useOtherSlot) {
+	if (useFilter) {
+		EmitByte(WITH_STATE_INIT_FILTER);
+		EmitByte(useOtherSlot ? otherSlot : 0); // Store the slot where the receiver will land
+		EmitByte(filter);
+	}
+	else if (useOtherSlot) {
 		EmitByte(WITH_STATE_INIT_SLOTTED);
-		EmitByte(otherSlot); // Store the slot where the
-		// receiver will land
+		EmitByte(otherSlot); // Store the slot where the receiver will land
 	}
 	else {
 		EmitByte(WITH_STATE_INIT);
@@ -3191,7 +3299,7 @@ void Compiler::GetEnumDeclaration() {
 	Token enumName;
 	bool isNamed = false;
 
-	if (MatchToken(TOKEN_IDENTIFIER)) {
+	if (MatchIdentifier()) {
 		enumName = parser.Previous;
 		DeclareVariable(&enumName, false);
 
@@ -3442,6 +3550,11 @@ void Compiler::MakeRules() {
 	Rules[TOKEN_DECIMAL] = ParseRule{&Compiler::GetDecimal, NULL, PREC_NONE};
 	Rules[TOKEN_IDENTIFIER] = ParseRule{&Compiler::GetVariable, NULL, PREC_NONE};
 	Rules[TOKEN_HITBOX] = ParseRule{&Compiler::GetHitbox, NULL, PREC_NONE};
+	Rules[TOKEN_INTERACTABLE] = ParseRule{&Compiler::GetVariable, NULL, PREC_NONE};
+	Rules[TOKEN_INRANGE] = ParseRule{&Compiler::GetVariable, NULL, PREC_NONE};
+	Rules[TOKEN_ONSCREEN] = ParseRule{&Compiler::GetVariable, NULL, PREC_NONE};
+	Rules[TOKEN_VISIBLE] = ParseRule{&Compiler::GetVariable, NULL, PREC_NONE};
+	Rules[TOKEN_ANY] = ParseRule{&Compiler::GetVariable, NULL, PREC_NONE};
 }
 ParseRule* Compiler::GetRule(int type) {
 	return &Compiler::Rules[(int)type];

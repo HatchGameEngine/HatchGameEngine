@@ -180,6 +180,8 @@ public:
 	virtual int SolidCollideWithObject(Entity* other, int flag);
 	virtual bool TopSolidCollideWithObject(Entity* other, int flag);
 	virtual void ApplyPhysics();
+	bool IsInRenderRange();
+	bool GetRenderRegion(float& entX1, float& entY1, float& entX2, float& entY2);
 	virtual void Initialize();
 	virtual void Create();
 	virtual void PostCreate();
