@@ -267,6 +267,14 @@ int Math::CeilPOT(int n) {
 	return n;
 }
 
+int Math::RoundDown(int x, int y) {
+	int n = x % y;
+	if (n < 0) {
+		n += y;
+	}
+	return x - n;
+}
+
 // Deterministic functions
 float Math::Abs(float n) {
 	return std::abs(n);

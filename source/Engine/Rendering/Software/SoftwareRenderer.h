@@ -272,6 +272,7 @@ public:
 		float rotation,
 		int paletteID);
 	static void DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView);
+	static void DrawTileLayer_HorizontalParallax_16x16(TileLayer* layer, View* currentView);
 	static void DrawTileLayer_VerticalParallax(TileLayer* layer, View* currentView);
 	static void DrawTileLayer_CustomTileScanLines(TileLayer* layer, View* currentView);
 	static void DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer, View* currentView);
