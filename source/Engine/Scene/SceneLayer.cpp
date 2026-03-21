@@ -1,5 +1,6 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Math/Math.h>
+#include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
 
 SceneLayer::SceneLayer() {}
@@ -36,7 +37,7 @@ SceneLayer::SceneLayer(int w, int h) {
 	Tiles = (Uint32*)Memory::TrackedCalloc("SceneLayer::Tiles", w * h, sizeof(Uint32));
 	TilesBackup =
 		(Uint32*)Memory::TrackedCalloc("SceneLayer::TilesBackup", w * h, sizeof(Uint32));
-	ScrollIndexes = (Uint8*)Memory::Calloc(ScrollIndexCount * 16, sizeof(Uint8));
+	ScrollIndexes = (Uint8*)Memory::Calloc(ScrollIndexCount * Scene::TileHeight, sizeof(Uint8));
 	UsingScrollIndexes = false;
 }
 bool SceneLayer::PropertyExists(char* property) {

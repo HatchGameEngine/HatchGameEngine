@@ -757,10 +757,27 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 	}
 
 	Scene::SceneType = SCENETYPE_TILED;
-
 	Scene::EmptyTile = 0;
-	Scene::TileWidth = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
-	Scene::TileHeight = (int)XMLParser::TokenToNumber(map->attributes.Get("tileheight"));
+
+	int tileWidth = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
+	int tileHeight = (int)XMLParser::TokenToNumber(map->attributes.Get("tileheight"));
+
+	if (tileWidth < TILE_SIZE_MIN || tileWidth > TILE_SIZE_MAX || tileHeight < TILE_SIZE_MIN ||
+		tileHeight > TILE_SIZE_MAX) {
+		Log::Print(Log::LOG_ERROR,
+			"Unsupported tile size %dx%d! (Minimum is %dx%d, maximum is %dx%d)",
+			tileWidth,
+			tileHeight,
+			TILE_SIZE_MIN,
+			TILE_SIZE_MIN,
+			TILE_SIZE_MAX,
+			TILE_SIZE_MAX);
+		XMLParser::Free(tileMapXML);
+		return;
+	}
+
+	Scene::TileWidth = tileWidth;
+	Scene::TileHeight = tileHeight;
 
 	Scene::FreePriorityLists();
 	Scene::PriorityPerLayer = BASE_PRIORITY_PER_LAYER;

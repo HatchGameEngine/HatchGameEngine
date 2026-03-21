@@ -14438,7 +14438,7 @@ VMValue Scene_SetLayerSetParallaxLinesBegin(int argCount, VMValue* args, Uint32 
 		THROW_ERROR("Did not end scroll line setup before beginning new one");
 		Memory::Free(BufferedScrollLines);
 	}
-	BufferedScrollLinesMax = Scene::Layers[index].HeightData * Scene::TileWidth;
+	BufferedScrollLinesMax = Scene::Layers[index].HeightData * Scene::TileHeight;
 	BufferedScrollLines = (Uint8*)Memory::Malloc(BufferedScrollLinesMax);
 	BufferedScrollSetupLayer = index;
 	BufferedScrollInfos.clear();
@@ -14525,13 +14525,8 @@ VMValue Scene_SetLayerSetParallaxLinesEnd(int argCount, VMValue* args, Uint32 th
 		layer->ScrollInfos[g].CanDeform = BufferedScrollInfos[g].canDeform;
 	}
 
-	int length16 = layer->HeightData * 16;
-	if (layer->WidthData > layer->HeightData) {
-		length16 = layer->WidthData * 16;
-	}
-
 	layer->UsingScrollIndexes = true;
-	layer->ScrollIndexes = (Uint8*)Memory::Calloc(length16, sizeof(Uint8));
+	layer->ScrollIndexes = (Uint8*)Memory::Calloc(layer->HeightData * Scene::TileHeight, sizeof(Uint8));
 	memcpy(layer->ScrollIndexes, BufferedScrollLines, BufferedScrollLinesMax);
 
 	// Cleanup

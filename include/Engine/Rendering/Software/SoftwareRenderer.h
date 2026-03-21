@@ -327,6 +327,7 @@ public:
 		float rotation,
 		int paletteID);
 	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
+	static void DrawSceneLayer_HorizontalParallax_16x16(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer(SceneLayer* layer,
