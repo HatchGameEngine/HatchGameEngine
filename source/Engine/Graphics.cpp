@@ -92,7 +92,6 @@ bool Graphics::SmoothFill = false;
 bool Graphics::SmoothStroke = false;
 
 float Graphics::PixelOffset = 0.0f;
-bool Graphics::NoInternalTextures = false;
 bool Graphics::UsePalettes = false;
 bool Graphics::UsePaletteIndexLines = false;
 bool Graphics::UseTinting = false;
@@ -332,8 +331,7 @@ Point Graphics::ProjectToScreen(float x, float y, float z) {
 
 Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
 	Texture* texture;
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures) {
+	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
 		texture = Texture::New(format, access, width, height);
 		if (!texture) {
 			return NULL;
@@ -372,8 +370,7 @@ bool Graphics::ReinitializeTexture(Texture* texture,
 	Uint32 access,
 	Uint32 width,
 	Uint32 height) {
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures) {
+	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
 		return Texture::Reinitialize(texture, format, access, width, height);
 	}
 	else if (Graphics::GfxFunctions->ReinitializeTexture) {
@@ -384,8 +381,7 @@ bool Graphics::ReinitializeTexture(Texture* texture,
 	return false;
 }
 int Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures) {
+	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
 		return 1;
 	}
 	return Graphics::GfxFunctions->LockTexture(texture, pixels, pitch);
@@ -393,10 +389,6 @@ int Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
 int Graphics::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
 	if (texture->Pixels != pixels) {
 		memcpy(texture->Pixels, pixels, pitch * texture->Height);
-	}
-
-	if (Graphics::NoInternalTextures) {
-		return 1;
 	}
 
 	if (texture->DriverPixelData || texture->Format != texture->DriverFormat) {
@@ -453,8 +445,7 @@ int Graphics::UpdateYUVTexture(Texture* texture,
 	if (!Graphics::GfxFunctions->UpdateYUVTexture) {
 		return 0;
 	}
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures) {
+	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
 		return 1;
 	}
 	return Graphics::GfxFunctions->UpdateYUVTexture(
@@ -483,15 +474,14 @@ bool Graphics::ResizeTexture(Texture* texture, Uint32 width, Uint32 height) {
 int Graphics::SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors) {
 	texture->SetPalette((Uint32*)palette, numPaletteColors);
 	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		!Graphics::GfxFunctions->SetTexturePalette || Graphics::NoInternalTextures) {
+		!Graphics::GfxFunctions->SetTexturePalette) {
 		return 1;
 	}
 	return Graphics::GfxFunctions->SetTexturePalette(texture, palette, numPaletteColors);
 }
 int Graphics::ConvertTextureToRGBA(Texture* texture) {
 	texture->ConvertToRGBA();
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures) {
+	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
 		return 1;
 	}
 	return Graphics::GfxFunctions->UpdateTexture(
@@ -508,8 +498,7 @@ int Graphics::ConvertTextureToPalette(Texture* texture, unsigned paletteNumber) 
 	texture->ConvertToPalette(colors, 256);
 	texture->SetPalette(colors, 256);
 
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions ||
-		Graphics::NoInternalTextures) {
+	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
 		return 1;
 	}
 

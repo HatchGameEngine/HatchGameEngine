@@ -183,14 +183,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 
 	stream->Close();
 
-	bool forceSoftwareTextures = false;
-	Application::Settings->GetBool("display", "forceSoftwareTextures", &forceSoftwareTextures);
-	if (forceSoftwareTextures) {
-		Graphics::NoInternalTextures = true;
-	}
-
-	if (!forceSoftwareTextures &&
-		(width > Graphics::MaxTextureWidth || height > Graphics::MaxTextureHeight)) {
+	if (width > Graphics::MaxTextureWidth || height > Graphics::MaxTextureHeight) {
 		Log::Print(Log::LOG_WARN,
 			"Image file \"%s\" of size %d x %d is larger than maximum size of %d x %d!",
 			filename,
@@ -198,7 +191,6 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			height,
 			Graphics::MaxTextureWidth,
 			Graphics::MaxTextureHeight);
-		// return NULL;
 	}
 
 	Uint32 textureFormat = paletteColors ? TextureFormat_INDEXED : Graphics::TextureFormat;
@@ -206,8 +198,6 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 	Texture* texture = Graphics::CreateTextureFromPixels(
 		textureFormat, width, height, data, width * bpp);
 	Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
-
-	Graphics::NoInternalTextures = false;
 
 	Memory::Free(data);
 

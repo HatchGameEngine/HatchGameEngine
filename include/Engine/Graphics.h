@@ -105,7 +105,6 @@ public:
 	static bool SmoothFill;
 	static bool SmoothStroke;
 	static float PixelOffset;
-	static bool NoInternalTextures;
 	static bool UsePalettes;
 	static bool UsePaletteIndexLines;
 	static bool UseTinting;

@@ -2023,15 +2023,6 @@ int GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int
 		inputPixelsH = src->h;
 	}
 
-	if (Graphics::NoInternalTextures) {
-		if (inputPixelsW > Graphics::MaxTextureWidth) {
-			inputPixelsW = Graphics::MaxTextureWidth;
-		}
-		if (inputPixelsH > Graphics::MaxTextureHeight) {
-			inputPixelsH = Graphics::MaxTextureHeight;
-		}
-	}
-
 	GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
 	glBindTexture(textureData->TextureTarget, textureData->TextureID);
 	glTexSubImage2D(textureData->TextureTarget,
