@@ -67,6 +67,10 @@ static Uint8* GetPixelDataFromArray(ObjArray* pixelsArray,
 		throw ScriptException(errorString);
 	}
 
+	if (numPixels == 0) {
+		return nullptr;
+	}
+
 	int x1 = srcX;
 	int y1 = srcY;
 	int x2 = srcX + copyWidth;
@@ -86,6 +90,10 @@ static Uint8* GetPixelDataFromArray(ObjArray* pixelsArray,
 			srcHeight);
 
 		throw ScriptException(errorString);
+	}
+
+	if (x1 == x2 || y1 == y2) {
+		return nullptr;
 	}
 
 	size_t bpp = Texture::GetFormatBytesPerPixel(format);
@@ -184,11 +192,11 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 	char errorString[128];
 
 	if (width < 1) {
-		throw ScriptException("Width cannot be lower than 1.");
+		throw ScriptException("Width cannot be less than 1.");
 	}
 
 	if (height < 1) {
-		throw ScriptException("Height cannot be lower than 1.");
+		throw ScriptException("Height cannot be less than 1.");
 	}
 
 	if (access < 0 || access > TextureAccess_RENDERTARGET) {
@@ -378,11 +386,11 @@ VMValue TextureImpl::VM_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (width < 1) {
-		throw ScriptException("Width cannot be lower than 1.");
+		throw ScriptException("Width cannot be less than 1.");
 	}
 
 	if (height < 1) {
-		throw ScriptException("Height cannot be lower than 1.");
+		throw ScriptException("Height cannot be less than 1.");
 	}
 
 	Uint32* pixels = Texture::Crop(texture, 0, 0, width, height);
@@ -419,11 +427,11 @@ VMValue TextureImpl::VM_Scale(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (width < 1) {
-		throw ScriptException("Width cannot be lower than 1.");
+		throw ScriptException("Width cannot be less than 1.");
 	}
 
 	if (height < 1) {
-		throw ScriptException("Height cannot be lower than 1.");
+		throw ScriptException("Height cannot be less than 1.");
 	}
 
 	Uint32* pixels = Texture::Scale(texture, width, height);
@@ -526,8 +534,8 @@ VMValue TextureImpl::VM_GetPixelData(int argCount, VMValue* args, Uint32 threadI
 	if (argCount >= 4) {
 		width = GET_ARG(3, GetInteger);
 
-		if (width < 1) {
-			throw ScriptException("Width cannot be lower than 1.");
+		if (width < 0) {
+			throw ScriptException("Width cannot be less than zero.");
 		}
 	}
 	else {
@@ -536,49 +544,54 @@ VMValue TextureImpl::VM_GetPixelData(int argCount, VMValue* args, Uint32 threadI
 	if (argCount >= 5) {
 		height = GET_ARG(4, GetInteger);
 
-		if (height < 1) {
-			throw ScriptException("Height cannot be lower than 1.");
+		if (height < 0) {
+			throw ScriptException("Height cannot be less than zero.");
 		}
 	}
 	else {
 		height = texture->Height;
 	}
 
-	if (x < 0 || x + width > texture->Width || y < 0 || y + height > texture->Height) {
+	int x1 = x;
+	int y1 = y;
+	int x2 = x + width;
+	int y2 = y + height;
+
+	if (x1 == x2 || y1 == y2) {
+		return OBJECT_VAL(NewArray());
+	}
+
+	if (x1 < 0 || x2 > texture->Width || y1 < 0 || y2 > texture->Height) {
 		char errorString[128];
 
 		snprintf(errorString,
 			sizeof errorString,
-			"Invalid region! (X: %d, Y: %d, Width: %d, Height: %d)",
-			x,
-			y,
+			"Invalid region! (X1: %d, Y1: %d, X2: %d, Y2: %d, Width: %d, Height: %d)",
+			x1,
+			y1,
+			x2,
+			y2,
 			width,
 			height);
 
 		throw ScriptException(errorString);
 	}
 
-	if (ScriptManager::Lock()) {
-		ObjArray* array = NewArray();
+	ObjArray* array = NewArray();
 
-		for (int yy = y; yy < y + height; yy++) {
-			for (int xx = x; xx < x + width; xx++) {
-				int pixel = texture->GetPixel(xx, yy);
+	for (y = y1; y < y2; y++) {
+		for (x = x1; x < x2; x++) {
+			int pixel = texture->GetPixel(x, y);
 
 #if HATCH_LITTLE_ENDIAN
-				CONVERT_TEXTURE_PIXEL(pixel);
+			CONVERT_TEXTURE_PIXEL(pixel);
 #endif
 
-				array->Values->push_back(INTEGER_VAL(pixel));
-			}
+			array->Values->push_back(INTEGER_VAL(pixel));
 		}
-
-		ScriptManager::Unlock();
-
-		return OBJECT_VAL(array);
 	}
 
-	return NULL_VAL;
+	return OBJECT_VAL(array);
 }
 /***
  * \method SetPixel
@@ -759,15 +772,19 @@ VMValue TextureImpl::VM_CopyPixelData(int argCount, VMValue* args, Uint32 thread
 		destHeight = srcHeight;
 	}
 
-	if (srcWidth < 1) {
-		throw ScriptException("Width of the source cannot be lower than 1.");
+	if (srcWidth < 0) {
+		throw ScriptException("Width of the source cannot be less than zero.");
 	}
-	if (srcHeight < 1) {
-		throw ScriptException("Height of the source cannot be lower than 1.");
+	if (srcHeight < 0) {
+		throw ScriptException("Height of the source cannot be less than zero.");
 	}
 
-	if (destWidth < 1) {
-		throw ScriptException("Width of the region to copy cannot be lower than 1.");
+	if (srcWidth == 0 || srcHeight == 0) {
+		return NULL_VAL;
+	}
+
+	if (destWidth < 0) {
+		throw ScriptException("Width of the region to copy cannot be less than zero.");
 	}
 	else if (destWidth > srcWidth) {
 		snprintf(errorString,
@@ -777,8 +794,8 @@ VMValue TextureImpl::VM_CopyPixelData(int argCount, VMValue* args, Uint32 thread
 
 		throw ScriptException(errorString);
 	}
-	if (destHeight < 1) {
-		throw ScriptException("Height of the region to copy cannot be lower than 1.");
+	if (destHeight < 0) {
+		throw ScriptException("Height of the region to copy cannot be less than zero.");
 	}
 	else if (destHeight > srcHeight) {
 		snprintf(errorString,
@@ -787,6 +804,10 @@ VMValue TextureImpl::VM_CopyPixelData(int argCount, VMValue* args, Uint32 thread
 			srcHeight);
 
 		throw ScriptException(errorString);
+	}
+
+	if (destWidth == 0 || destHeight == 0) {
+		return NULL_VAL;
 	}
 
 	Uint8* pixels = nullptr;
