@@ -72,6 +72,7 @@ public:
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
+	static Uint32* GetTextureData(Texture* texture);
 	static bool SetRenderTarget(Texture* texture);
 	static void ReadFramebuffer(void* pixels, int x, int y, int width, int height);
 	static void UpdateWindowSize(int width, int height);

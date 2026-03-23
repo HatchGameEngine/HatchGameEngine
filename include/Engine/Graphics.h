@@ -181,14 +181,23 @@ public:
 	static bool UpdateFramebufferTexture();
 	static void SetPostProcessShader(Shader* shader);
 	static void DoScreenPostProcess();
-	static void CopyScreen(int source_x,
-		int source_y,
-		int source_w,
-		int source_h,
-		int dest_x,
-		int dest_y,
-		int dest_w,
-		int dest_h,
+	static void CopyFramebuffer(int sourceX,
+		int sourceY,
+		int sourceW,
+		int sourceH,
+		int destX,
+		int destY,
+		int destW,
+		int destH,
+		Texture* texture);
+	static void CopyScreen(int sourceX,
+		int sourceY,
+		int sourceW,
+		int sourceH,
+		int destX,
+		int destY,
+		int destW,
+		int destH,
 		Texture* texture);
 	static void UpdateOrtho(float width, float height);
 	static void UpdateOrthoFlipped(float width, float height);

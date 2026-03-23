@@ -394,10 +394,53 @@ int Graphics::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int p
 	if (texture->Pixels != pixels) {
 		memcpy(texture->Pixels, pixels, pitch * texture->Height);
 	}
+
 	if (Graphics::NoInternalTextures) {
 		return 1;
 	}
-	return Graphics::GfxFunctions->UpdateTexture(texture, src, pixels, pitch);
+
+	if (texture->DriverPixelData || texture->Format != texture->DriverFormat) {
+		Uint32 inputPixelsX = 0;
+		Uint32 inputPixelsY = 0;
+		Uint32 inputPixelsW = texture->Width;
+		Uint32 inputPixelsH = texture->Height;
+		if (src) {
+			inputPixelsX = src->x;
+			inputPixelsY = src->y;
+			inputPixelsW = src->w;
+			inputPixelsH = src->h;
+		}
+
+		size_t bpp = Texture::GetFormatBytesPerPixel(texture->DriverFormat);
+
+		if (texture->DriverPixelData == nullptr) {
+			texture->DriverPixelData = Memory::Calloc(texture->Width * texture->Height, bpp);
+		}
+
+		Texture::Convert(pixels,
+			texture->Format,
+			texture->Pitch,
+			0,
+			0,
+			texture->DriverPixelData,
+			texture->DriverFormat,
+			texture->Width * bpp,
+			inputPixelsX,
+			inputPixelsY,
+			inputPixelsW,
+			inputPixelsH);
+
+		pixels = texture->DriverPixelData;
+	}
+
+	int result = Graphics::GfxFunctions->UpdateTexture(texture, src, pixels, pitch);
+
+	if (!texture->KeepDriverPixelsResident()) {
+		Memory::Free(texture->DriverPixelData);
+		texture->DriverPixelData = nullptr;
+	}
+
+	return result;
 }
 int Graphics::UpdateYUVTexture(Texture* texture,
 	SDL_Rect* src,
@@ -689,7 +732,7 @@ void Graphics::UpdateGlobalPalette() {
 	Graphics::UpdateTexture(Graphics::PaletteTexture,
 		nullptr,
 		(Uint32*)Graphics::PaletteColors,
-		PALETTE_ROW_SIZE * sizeof(Uint32));
+		Graphics::PaletteTexture->Pitch);
 
 	if (Graphics::GfxFunctions->UpdateGlobalPalette) {
 		Graphics::GfxFunctions->UpdateGlobalPalette(Graphics::PaletteTexture);
@@ -719,7 +762,7 @@ void Graphics::UpdatePaletteIndexTable() {
 	Graphics::UpdateTexture(Graphics::PaletteIndexTexture,
 		nullptr,
 		Graphics::PaletteIndexTextureData,
-		PALETTE_INDEX_TEXTURE_SIZE * sizeof(Uint32));
+		Graphics::PaletteIndexTexture->Pitch);
 
 	if (Graphics::GfxFunctions->UpdatePaletteIndexTable) {
 		Graphics::GfxFunctions->UpdatePaletteIndexTable(Graphics::PaletteIndexTexture);
@@ -817,7 +860,7 @@ bool Graphics::UpdateFramebufferTexture() {
 	Graphics::GfxFunctions->UpdateTexture(Graphics::FramebufferTexture,
 		nullptr,
 		(Uint32*)Graphics::FramebufferTexture->Pixels,
-		Graphics::FramebufferTexture->Width * sizeof(Uint32));
+		Graphics::FramebufferTexture->Pitch);
 
 	return true;
 }
@@ -855,14 +898,14 @@ void Graphics::DoScreenPostProcess() {
 		Application::WindowHeight);
 	Graphics::SetUserShader(nullptr);
 }
-void Graphics::CopyScreen(int source_x,
-	int source_y,
-	int source_w,
-	int source_h,
-	int dest_x,
-	int dest_y,
-	int dest_w,
-	int dest_h,
+void Graphics::CopyFramebuffer(int sourceX,
+	int sourceY,
+	int sourceW,
+	int sourceH,
+	int destX,
+	int destY,
+	int destW,
+	int destH,
 	Texture* texture) {
 	if (!Graphics::GfxFunctions->ReadFramebuffer) {
 		return;
@@ -875,47 +918,47 @@ void Graphics::CopyScreen(int source_x,
 	int maxWidth, maxHeight;
 	Graphics::GetScreenSize(maxWidth, maxHeight);
 
-	if (source_x < 0) {
-		source_x = 0;
+	if (sourceX < 0) {
+		sourceX = 0;
 	}
-	if (source_y < 0) {
-		source_y = 0;
+	if (sourceY < 0) {
+		sourceY = 0;
 	}
-	if (source_w > maxWidth) {
-		source_w = maxWidth;
+	if (sourceW < 0 || sourceW > maxWidth) {
+		sourceW = maxWidth;
 	}
-	if (source_h > maxHeight) {
-		source_h = maxHeight;
+	if (sourceH < 0 || sourceH > maxHeight) {
+		sourceH = maxHeight;
 	}
-	if (source_x >= source_w || source_y >= source_h) {
+	if (sourceX >= sourceW || sourceY >= sourceH) {
 		return;
 	}
-	if (source_w <= 0 || source_h <= 0) {
-		return;
-	}
-
-	if (dest_x < 0) {
-		dest_x = 0;
-	}
-	if (dest_y < 0) {
-		dest_y = 0;
-	}
-	if (dest_w > texture->Width) {
-		dest_w = texture->Width;
-	}
-	if (dest_h > texture->Height) {
-		dest_h = texture->Height;
-	}
-	if (dest_x >= dest_w || dest_y >= source_h) {
-		return;
-	}
-	if (dest_w <= 0 || dest_h <= 0) {
+	if (sourceW <= 0 || sourceH <= 0) {
 		return;
 	}
 
-	if (source_x == 0 && source_y == 0 && dest_x == 0 && dest_y == 0 && dest_w == source_w &&
-		dest_h == source_h) {
-		Graphics::GfxFunctions->ReadFramebuffer(texture->Pixels, 0, 0, dest_w, dest_h);
+	if (destX < 0) {
+		destX = 0;
+	}
+	if (destY < 0) {
+		destY = 0;
+	}
+	if (destW > texture->Width) {
+		destW = texture->Width;
+	}
+	if (destH > texture->Height) {
+		destH = texture->Height;
+	}
+	if (destX >= destW || destY >= sourceH) {
+		return;
+	}
+	if (destW <= 0 || destH <= 0) {
+		return;
+	}
+
+	if (sourceX == 0 && sourceY == 0 && destX == 0 && destY == 0 && destW == sourceW &&
+		destH == sourceH) {
+		Graphics::GfxFunctions->ReadFramebuffer(texture->Pixels, 0, 0, destW, destH);
 		return;
 	}
 
@@ -925,29 +968,59 @@ void Graphics::CopyScreen(int source_x,
 
 	void* fbPixels = FramebufferTexture->Pixels;
 
-	Graphics::GfxFunctions->ReadFramebuffer(fbPixels, 0, 0, source_w, source_h);
+	Graphics::GfxFunctions->ReadFramebuffer(fbPixels, 0, 0, sourceW, sourceH);
 
 	Uint32* d = (Uint32*)texture->Pixels;
 	Uint32* s = (Uint32*)fbPixels;
 
-	int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_w << 16, source_w << 16));
-	int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(dest_h << 16, source_h << 16));
+	int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(destW << 16, sourceW << 16));
+	int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(destH << 16, sourceH << 16));
 
-	for (int read_y = source_y << 16, write_y = dest_y; write_y < dest_h;
+	for (int read_y = sourceY << 16, write_y = destY; write_y < destH;
 		write_y++, read_y += ys) {
 		int isy = read_y >> 16;
-		if (isy >= source_h) {
-			return;
+		if (isy >= sourceH) {
+			break;
 		}
-		for (int read_x = source_x << 16, write_x = dest_x; write_x < dest_w;
+		for (int read_x = sourceX << 16, write_x = destX; write_x < destW;
 			write_x++, read_x += xs) {
 			int isx = read_x >> 16;
-			if (isx >= source_w) {
+			if (isx >= sourceW) {
 				break;
 			}
-			d[(write_y * texture->Width) + write_x] = s[(isy * source_w) + isx];
+			d[(write_y * texture->Width) + write_x] = s[(isy * sourceW) + isx];
 		}
 	}
+}
+void Graphics::CopyScreen(int sourceX,
+	int sourceY,
+	int sourceW,
+	int sourceH,
+	int destX,
+	int destY,
+	int destW,
+	int destH,
+	Texture* texture) {
+	if (!texture) {
+		return;
+	}
+
+	GraphicsFunctions* lastGfxFunctions = Graphics::GfxFunctions;
+	Graphics::GfxFunctions = &Graphics::Internal;
+
+	Texture* lastRenderTarget = Graphics::CurrentRenderTarget;
+	if (lastRenderTarget && !Graphics::SetRenderTarget(nullptr)) {
+		Graphics::GfxFunctions = lastGfxFunctions;
+		return;
+	}
+
+	CopyFramebuffer(sourceX, sourceY, sourceW, sourceH, destX, destY, destW, destH, texture);
+
+	if (lastRenderTarget) {
+		Graphics::SetRenderTarget(lastRenderTarget);
+	}
+
+	Graphics::GfxFunctions = lastGfxFunctions;
 }
 void Graphics::UpdateOrtho(float width, float height) {
 	Graphics::GfxFunctions->UpdateOrtho(0.0f, 0.0f, width, height);

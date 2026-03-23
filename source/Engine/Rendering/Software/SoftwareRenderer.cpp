@@ -220,37 +220,24 @@ int SoftwareRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
 }
 int SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
-	const int preferredFormat = TextureFormat_RGBA8888;
-
-	if (texture->DriverPixelData == nullptr && texture->Format == preferredFormat) {
-		return 0;
+	if (Graphics::Internal.UpdateTexture) {
+		return Graphics::Internal.UpdateTexture(texture, src, pixels, pitch);
 	}
-
-	size_t bpp = Texture::GetFormatBytesPerPixel(preferredFormat);
-
-	if (texture->DriverPixelData == nullptr) {
-		texture->DriverPixelData = Memory::Calloc(texture->Width * texture->Height, bpp);
-	}
-
-	texture->DriverFormat = preferredFormat;
-
-	Texture::Convert(pixels,
-		texture->Format,
-		texture->Pitch,
-		0,
-		0,
-		texture->DriverPixelData,
-		preferredFormat,
-		texture->Width * bpp,
-		0,
-		0,
-		texture->Width,
-		texture->Height);
-
 	return 1;
 }
 void SoftwareRenderer::UnlockTexture(Texture* texture) {}
 void SoftwareRenderer::DisposeTexture(Texture* texture) {}
+
+Uint32* SoftwareRenderer::GetTextureData(Texture* texture) {
+	if (texture->DriverPixelData && texture->DriverFormat == TextureFormat_RGBA8888) {
+		return (Uint32*)texture->DriverPixelData;
+	}
+	else if (texture->Format == TextureFormat_RGBA8888) {
+		return (Uint32*)texture->Pixels;
+	}
+
+	return nullptr;
+}
 
 // Viewport and view-related functions
 bool SoftwareRenderer::SetRenderTarget(Texture* texture) {
@@ -258,7 +245,7 @@ bool SoftwareRenderer::SetRenderTarget(Texture* texture) {
 }
 void SoftwareRenderer::ReadFramebuffer(void* pixels, int x, int y, int width, int height) {
 	if (Graphics::Internal.ReadFramebuffer) {
-		Graphics::Internal.ReadFramebuffer(pixels, 0, 0, width, height);
+		Graphics::Internal.ReadFramebuffer(pixels, x, y, width, height);
 	}
 }
 void SoftwareRenderer::UpdateWindowSize(int width, int height) {
@@ -2905,7 +2892,7 @@ void DrawSpriteImage(Texture* texture,
 	int flipFlag,
 	int paletteID,
 	BlendState blendState) {
-	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
+	Uint32* srcPx = SoftwareRenderer::GetTextureData(texture);
 	Uint32 srcStride = texture->Width;
 	Uint32* srcPxLine;
 
@@ -3161,7 +3148,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 	int rotation,
 	int paletteID,
 	BlendState blendState) {
-	Uint32* srcPx = (Uint32*)(texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels);
+	Uint32* srcPx = SoftwareRenderer::GetTextureData(texture);
 	Uint32 srcStride = texture->Width;
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
@@ -3913,10 +3900,10 @@ void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
-		void* texturePixelData = texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels;
+		Uint32* texturePixelData = SoftwareRenderer::GetTextureData(texture);
 		srcStrides.push_back(srcStride = texture->Width);
 		tileSources.push_back(
-			(&((Uint32*)texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
+			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
 		isPalettedSources.push_back(
 			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
 		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
@@ -4512,10 +4499,10 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
-		void* texturePixelData = texture->DriverPixelData ? texture->DriverPixelData : texture->Pixels;
+		Uint32* texturePixelData = SoftwareRenderer::GetTextureData(texture);
 		srcStrides.push_back(srcStride = texture->Width);
 		tileSources.push_back(
-			(&((Uint32*)texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
+			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
 		isPalettedSources.push_back(
 			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
 		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);

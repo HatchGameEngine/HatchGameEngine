@@ -245,6 +245,10 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 	}
 
 	Texture* texture = Graphics::CreateTexture(format, access, width, height);
+	if (!texture) {
+		Memory::Free(pixels);
+		return NULL_VAL;
+	}
 
 	ScriptManager::RegistryAdd(texture, (Obj*)objTexture);
 

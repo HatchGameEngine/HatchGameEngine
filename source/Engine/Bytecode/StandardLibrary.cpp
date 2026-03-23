@@ -6339,7 +6339,7 @@ VMValue Draw_GetCurrentDrawGroup(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.CopyScreen
- * \desc Copies the contents of the screen into a texture.
+ * \desc Copies the contents of the screen into a texture. This also uploads the texture to the GPU.
  * \param texture (integer): Texture index.
  * \ns Draw
  */
@@ -6352,31 +6352,20 @@ VMValue Draw_CopyScreen(int argCount, VMValue* args, Uint32 threadID) {
 
 	Texture* texture = (Texture*)TextureImpl::GetTexture(textureObj);
 	if (texture) {
-		int width = Graphics::CurrentViewport.Width;
-		int height = Graphics::CurrentViewport.Height;
-
-		View* currentView = Graphics::CurrentView;
-		if (currentView) {
-			// If we are using a draw target, then we can't reliably use the viewport's dimensions,
-			// because it might not match the view's size
-			if (currentView->UseDrawTarget && currentView->DrawTarget) {
-				width = Graphics::CurrentView->Width;
-				height = Graphics::CurrentView->Height;
-			}
-		}
-
 		Graphics::CopyScreen(
 			// source
 			0,
 			0,
-			width,
-			height,
+			-1,
+			-1,
 			// dest
 			0,
 			0,
 			texture->Width,
 			texture->Height,
 			texture);
+
+		Graphics::UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
 	}
 	else {
 		THROW_ERROR("Texture is no longer valid!");
@@ -18097,13 +18086,18 @@ VMValue Texture_Copy(int argCount, VMValue* args, Uint32 threadID) {
 	ObjTexture* textureA = GET_ARG(0, GetTexture);
 	Texture* textureB = GET_ARG(1, GetDrawable);
 
-	if (!textureA || !textureB) {
+	if (!textureA) {
+		THROW_ERROR("Texture is no longer valid!");
 		return NULL_VAL;
 	}
 
-	Texture* texture = (Texture*)TextureImpl::GetTexture(textureA);
-	if (texture) {
-		Graphics::CopyTexturePixels(texture, 0, 0, textureB, 0, 0, textureB->Width, textureB->Height);
+	if (!textureB) {
+		return NULL_VAL;
+	}
+
+	Texture* destTexture = (Texture*)TextureImpl::GetTexture(textureA);
+	if (destTexture) {
+		Graphics::CopyTexturePixels(destTexture, 0, 0, textureB, 0, 0, textureB->Width, textureB->Height);
 	}
 
 	return NULL_VAL;

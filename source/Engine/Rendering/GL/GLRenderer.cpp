@@ -2032,29 +2032,6 @@ int GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int
 		}
 	}
 
-	if (texture->Format != texture->DriverFormat) {
-		size_t bpp = Texture::GetFormatBytesPerPixel(texture->DriverFormat);
-
-		if (texture->DriverPixelData == nullptr) {
-			texture->DriverPixelData = Memory::Calloc(texture->Width * texture->Height, bpp);
-		}
-
-		Texture::Convert(pixels,
-			texture->Format,
-			texture->Pitch,
-			0,
-			0,
-			texture->DriverPixelData,
-			texture->DriverFormat,
-			texture->Width * bpp,
-			0,
-			0,
-			inputPixelsW,
-			inputPixelsH);
-
-		pixels = texture->DriverPixelData;
-	}
-
 	GL_TextureData* textureData = (GL_TextureData*)texture->DriverData;
 	glBindTexture(textureData->TextureTarget, textureData->TextureID);
 	glTexSubImage2D(textureData->TextureTarget,
@@ -2067,11 +2044,6 @@ int GLRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int
 		textureData->PixelDataType,
 		pixels);
 	CHECK_GL();
-
-	if (!texture->KeepDriverPixelsResident()) {
-		Memory::Free(texture->DriverPixelData);
-		texture->DriverPixelData = nullptr;
-	}
 
 	return 0;
 }

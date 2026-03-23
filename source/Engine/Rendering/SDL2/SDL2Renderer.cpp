@@ -194,7 +194,14 @@ bool SDL2Renderer::InitializeTexture(Texture* texture) {
 	}
 
 	texture->DriverData = Memory::TrackedCalloc("Texture::DriverData", 1, sizeof(SDL_Texture*));
-	texture->DriverFormat = PixelFormat_ARGB8888;
+
+	// Set format
+	if (texture->Format == TextureFormat_INDEXED) {
+		texture->DriverFormat = TextureFormat_RGBA8888;
+	}
+	else {
+		texture->DriverFormat = texture->Format;
+	}
 
 	SDL_Texture** textureData = (SDL_Texture**)texture->DriverData;
 

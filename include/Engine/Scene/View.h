@@ -43,6 +43,7 @@ public:
 	Matrix4x4* ViewMatrix = NULL;
 	Shader* CurrentShader = NULL;
 
+	bool IsUsingDrawTarget();
 	bool IsScaled();
 	bool IsRotated();
 	float GetScaledWidth();

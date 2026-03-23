@@ -921,7 +921,7 @@ bool Scene::SetView(int viewIndex) {
 
 	Graphics::CurrentView = currentView;
 
-	if (currentView->UseDrawTarget && currentView->DrawTarget) {
+	if (currentView->IsUsingDrawTarget()) {
 		float view_w = currentView->Width;
 		float view_h = currentView->Height;
 		Texture* tar = currentView->DrawTarget;
@@ -986,7 +986,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	Texture* drawTarget = currentView->DrawTarget;
 
 	PERF_START(RenderSetupTime);
-	if (currentView->UseDrawTarget && drawTarget) {
+	if (currentView->IsUsingDrawTarget()) {
 		useDrawTarget = true;
 	}
 	else if (!currentView->Visible) {
@@ -1309,7 +1309,7 @@ void Scene::SetupViewMatrices(View* currentView) {
 
 void Scene::SetupView2D(View* currentView) {
 	Graphics::UpdateOrtho(currentView->Width, currentView->Height);
-	if (!currentView->UseDrawTarget) {
+	if (!(currentView->UseDrawTarget || currentView->Software)) {
 		Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
 	}
 
@@ -1452,7 +1452,7 @@ void Scene::Render() {
 		Scene::RenderView(viewIndex, true);
 
 		double renderFinishTime = Clock::GetTicks();
-		if (currentView->UseDrawTarget && currentView->DrawTarget) {
+		if (currentView->IsUsingDrawTarget()) {
 			Graphics::SetRenderTarget(NULL);
 			if (currentView->Visible) {
 				Matrix4x4::Identity(Graphics::ViewMatrix);
