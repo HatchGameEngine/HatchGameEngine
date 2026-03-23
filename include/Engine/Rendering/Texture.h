@@ -31,6 +31,7 @@ public:
 	static int TextureFormatToPixelFormat(int textureFormat);
 	static int FormatWithAlphaChannel(int textureFormat);
 	static int FormatWithoutAlphaChannel(int textureFormat);
+	static bool AreFormatsCompatible(int sourceFormat, int destFormat);
 	static bool CanConvertBetweenFormats(int sourceFormat, int destFormat);
 	bool KeepDriverPixelsResident();
 	bool ConvertToRGBA();
@@ -55,6 +56,7 @@ public:
 		int destX,
 		int destY);
 	void CopyPixels(void* srcPixels,
+		int srcFormat,
 		int srcX,
 		int srcY,
 		int srcWidth,

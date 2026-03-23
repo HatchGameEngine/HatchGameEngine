@@ -140,11 +140,24 @@ int Texture::FormatWithoutAlphaChannel(int textureFormat) {
 		return PixelFormat_RGB888;
 	}
 }
-bool Texture::CanConvertBetweenFormats(int sourceFormat, int destFormat) {
+bool Texture::AreFormatsCompatible(int sourceFormat, int destFormat) {
 	if (sourceFormat == destFormat) {
 		return true;
 	}
 
+	if (TEXTUREFORMAT_IS_RGBA(sourceFormat) || TEXTUREFORMAT_IS_RGB(sourceFormat)) {
+		return TEXTUREFORMAT_IS_RGBA(destFormat) || TEXTUREFORMAT_IS_RGB(destFormat);
+	}
+
+	return false;
+}
+bool Texture::CanConvertBetweenFormats(int sourceFormat, int destFormat) {
+	if (AreFormatsCompatible(sourceFormat, destFormat)) {
+		return true;
+	}
+
+	// It's permitted to convert an indexed texture to RGBA.
+	// The OpenGL renderer, for example, requires indexed textures to be stored as RGBA.
 	if (TEXTUREFORMAT_IS_RGBA(sourceFormat) || TEXTUREFORMAT_IS_RGB(sourceFormat) || sourceFormat == TextureFormat_INDEXED) {
 		return TEXTUREFORMAT_IS_RGBA(destFormat) || TEXTUREFORMAT_IS_RGB(destFormat) || destFormat == TextureFormat_INDEXED;
 	}
@@ -376,6 +389,7 @@ void Texture::CopyPixels(Texture* srcTexture,
 }
 
 void Texture::CopyPixels(void* srcPixels,
+	int srcFormat,
 	int srcX,
 	int srcY,
 	int srcWidth,
@@ -404,8 +418,8 @@ void Texture::CopyPixels(void* srcPixels,
 	}
 
 	Texture::Convert((Uint8*)srcPixels,
-		Format,
-		srcWidth * BytesPerPixel,
+		srcFormat,
+		srcWidth * GetFormatBytesPerPixel(srcFormat),
 		srcX,
 		srcY,
 		(Uint8*)Pixels,

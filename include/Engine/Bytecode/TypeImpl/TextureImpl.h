@@ -29,7 +29,7 @@ public:
 	static VMValue VM_GetPixel(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetPixelData(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetPixel(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_SetPixelData(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_CopyPixelData(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Delete(int argCount, VMValue* args, Uint32 threadID);
 };
 
