@@ -375,6 +375,48 @@ void Texture::CopyPixels(Texture* srcTexture,
 		destHeight);
 }
 
+void Texture::CopyPixels(void* srcPixels,
+	int srcX,
+	int srcY,
+	int srcWidth,
+	int srcHeight,
+	int destX,
+	int destY) {
+	if (!Pixels || !srcPixels) {
+		return;
+	}
+
+	int destWidth, destHeight;
+
+	if (!Texture::ClipCopyRegion(srcWidth,
+		    srcHeight,
+		    srcX,
+		    srcY,
+		    srcWidth,
+		    srcHeight,
+		    Width,
+		    Height,
+		    destX,
+		    destY,
+		    destWidth,
+		    destHeight)) {
+		return;
+	}
+
+	Texture::Convert((Uint8*)srcPixels,
+		Format,
+		srcWidth * BytesPerPixel,
+		srcX,
+		srcY,
+		(Uint8*)Pixels,
+		Format,
+		Pitch,
+		destX,
+		destY,
+		destWidth,
+		destHeight);
+}
+
 bool Texture::ClipCopyRegion(int srcTextureWidth,
 	int srcTextureHeight,
 	int& srcX,
@@ -504,9 +546,6 @@ Uint32* Texture::Scale(Texture* source, Uint32 destWidth, Uint32 destHeight) {
 int Texture::GetPixel(int x, int y) {
 	Uint8* pixels = (Uint8*)Pixels;
 
-	x %= Width;
-	y %= Height;
-
 	pixels += y * Pitch;
 	pixels += x * BytesPerPixel;
 
@@ -522,6 +561,28 @@ int Texture::GetPixel(int x, int y) {
 	}
 
 	return 0;
+}
+
+void Texture::SetPixel(int x, int y, int color) {
+	Uint8* pixels = (Uint8*)Pixels;
+
+	pixels += y * Pitch;
+	pixels += x * BytesPerPixel;
+
+	if (Format == TextureFormat_INDEXED) {
+		*pixels = color;
+	}
+	else if (BytesPerPixel == 4) {
+		pixels[0] = (color >> 24) & 0xFF;
+		pixels[1] = (color >> 16) & 0xFF;
+		pixels[2] = (color >> 8) & 0xFF;
+		pixels[3] = color & 0xFF;
+	}
+	else {
+		pixels[0] = (color >> 16) & 0xFF;
+		pixels[1] = (color >> 8) & 0xFF;
+		pixels[2] = color & 0xFF;
+	}
 }
 
 void Texture::Dispose() {

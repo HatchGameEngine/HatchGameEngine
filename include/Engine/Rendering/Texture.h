@@ -54,6 +54,13 @@ public:
 		int srcHeight,
 		int destX,
 		int destY);
+	void CopyPixels(void* srcPixels,
+		int srcX,
+		int srcY,
+		int srcWidth,
+		int srcHeight,
+		int destX,
+		int destY);
 	static bool ClipCopyRegion(int srcTextureWidth,
 		int srcTextureHeight,
 		int& srcX,
@@ -69,6 +76,7 @@ public:
 	static Uint32* Crop(Texture* source, int cropX, int cropY, int cropWidth, int cropHeight);
 	static Uint32* Scale(Texture* source, Uint32 destWidth, Uint32 destHeight);
 	int GetPixel(int x, int y);
+	void SetPixel(int x, int y, int color);
 	void Dispose();
 };
 

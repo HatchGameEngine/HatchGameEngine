@@ -22,6 +22,9 @@ void TextureImpl::Init() {
 	ScriptManager::DefineNative(Class, "SetSize", VM_SetSize);
 	ScriptManager::DefineNative(Class, "Scale", VM_Scale);
 	ScriptManager::DefineNative(Class, "GetPixel", VM_GetPixel);
+	ScriptManager::DefineNative(Class, "GetPixelData", VM_GetPixelData);
+	ScriptManager::DefineNative(Class, "SetPixel", VM_SetPixel);
+	ScriptManager::DefineNative(Class, "SetPixelData", VM_SetPixelData);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
 	TypeImpl::RegisterClass(Class);
@@ -40,102 +43,60 @@ Obj* TextureImpl::New() {
 	texture->InstanceObj.Destructor = Dispose;
 	return (Obj*)texture;
 }
-/***
- * \constructor
- * \desc Creates a texture with the given dimensions.
- * \param width (integer): The width of the texture.
- * \param height (integer): The height of the texture.
- * \paramOpt access (<ref TEXTUREACCESS_*>): The access mode of the texture. (default: <ref TEXTUREACCESS_STATIC>)
- * \paramOpt format (<ref TEXTUREFORMAT_*>): The format of the texture. The default is <ref TEXTUREFORMAT_RGB888>, or <ref TEXTUREFORMAT_NATIVE> for render target textures.
- * \paramOpt pixels (array): An array of pixels to initialize the texture with. The length of the array must match the dimensions of the texture (e.g., for a 64x64 texture, you must pass an array of exactly 4096 values.)
- * \ns Texture
- */
-VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
-	ObjTexture* objTexture = AS_TEXTURE(args[0]);
 
-	StandardLibrary::CheckAtLeastArgCount(argCount, 3);
-
-	int width = GET_ARG(1, GetInteger);
-	int height = GET_ARG(2, GetInteger);
-	int access = GET_ARG_OPT(3, GetInteger, TextureAccess_STATIC);
-	int format = GET_ARG_OPT(4,
-		GetInteger,
-		access == TextureAccess_RENDERTARGET ? TextureFormat_NATIVE
-						     : TextureFormat_RGB888);
-	ObjArray* pixelsArray = GET_ARG_OPT(5, GetArray, nullptr);
-
+static Uint8* GetPixelDataFromArray(ObjArray* pixelsArray,
+	int srcX,
+	int srcY,
+	int srcWidth,
+	int srcHeight,
+	int copyWidth,
+	int copyHeight,
+	int format) {
 	char errorString[128];
 
-	if (width < 1) {
-		throw ScriptException("Width cannot be lower than 1.");
-	}
+	size_t numPixels = srcWidth * srcHeight;
+	size_t numArrayPixels = pixelsArray->Values->size();
 
-	if (height < 1) {
-		throw ScriptException("Height cannot be lower than 1.");
-	}
-
-	if (access < 0 || access > TextureAccess_RENDERTARGET) {
+	if (numArrayPixels != numPixels) {
 		snprintf(errorString,
 			sizeof errorString,
-			"Texture access mode %d out of range. (%d - %d)",
-			access,
-			0,
-			TextureAccess_RENDERTARGET);
+			"Expected array of pixels to have %d elements, but it had %d elements instead.",
+			(int)numPixels,
+			(int)numArrayPixels);
 
 		throw ScriptException(errorString);
 	}
 
-	if (format == TextureFormat_NATIVE) {
-		format = Graphics::TextureFormat;
+	int x1 = srcX;
+	int y1 = srcY;
+	int x2 = srcX + copyWidth;
+	int y2 = srcY + copyHeight;
+
+	if (x1 < 0 || x2 > srcWidth || y1 < 0 || y2 > srcHeight || copyWidth < 1 || copyHeight < 1) {
+		char errorString[128];
+
+		snprintf(errorString,
+			sizeof errorString,
+			"Invalid region! (X1: %d, Y1: %d, X2: %d, Y2: %d, Width: %d, Height: %d)",
+			x1,
+			y1,
+			x2,
+			y2,
+			srcWidth,
+			srcHeight);
+
+		throw ScriptException(errorString);
 	}
-	else {
-		if (access == TextureAccess_RENDERTARGET) {
-			throw ScriptException(
-				"Texture format of a render target texture must be TEXTUREFORMAT_NATIVE!");
-		}
 
-		if (format < 0 || format > TextureFormat_INDEXED) {
-			snprintf(errorString,
-				sizeof errorString,
-				"Texture format %d out of range. (%d - %d)",
-				format,
-				0,
-				TextureFormat_INDEXED);
-
-			throw ScriptException(errorString);
-		}
-	}
-
-	Uint8* pixels = nullptr;
-	unsigned numPaletteColors = 256;
-
-	size_t numPixels = width * height;
 	size_t bpp = Texture::GetFormatBytesPerPixel(format);
 
-	if (pixelsArray != nullptr) {
-		if (access == TextureAccess_RENDERTARGET) {
-			throw ScriptException("Cannot create a render target texture with pixel data!");
-		}
+	Uint8* pixels = (Uint8*)Memory::Calloc(copyWidth * copyHeight, bpp);
+	Uint8* dest = pixels;
 
-		size_t numArrayPixels = pixelsArray->Values->size();
-
-		if (numArrayPixels != numPixels) {
-			snprintf(errorString,
-				sizeof errorString,
-				"Expected array of pixels to have %d elements, but it had %d elements instead.",
-				(int)numPixels,
-				(int)numArrayPixels);
-
-			throw ScriptException(errorString);
-		}
-
-		pixels = (Uint8*)Memory::Calloc(numPixels, bpp);
-
-		Uint8* dest = pixels;
-		int pixelFormat = Texture::TextureFormatToPixelFormat(format);
-
-		for (size_t i = 0; i < pixelsArray->Values->size(); i++) {
-			VMValue element = (*pixelsArray->Values)[i];
+	for (int yy = y1; yy < y2; yy++) {
+		for (int xx = x1; xx < x2; xx++) {
+			size_t index = (yy * srcWidth) + xx;
+			VMValue element = (*pixelsArray->Values)[index];
 			VMValue result = Value::CastAsInteger(element);
 
 			if (IS_NULL(result)) {
@@ -144,7 +105,7 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 				snprintf(errorString,
 					sizeof errorString,
 					"Expected value at index %d to be of type %s; value was of type %s.",
-					(int)i,
+					(int)index,
 					GetTypeString(VAL_INTEGER),
 					GetValueTypeString(element));
 
@@ -194,6 +155,87 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 		}
 	}
 
+	return pixels;
+}
+
+/***
+ * \constructor
+ * \desc Creates a texture with the given dimensions.
+ * \param width (integer): The width of the texture.
+ * \param height (integer): The height of the texture.
+ * \paramOpt access (<ref TEXTUREACCESS_*>): The access mode of the texture. (default: <ref TEXTUREACCESS_STATIC>)
+ * \paramOpt format (<ref TEXTUREFORMAT_*>): The format of the texture. The default is <ref TEXTUREFORMAT_RGB888>, or <ref TEXTUREFORMAT_NATIVE> for render target textures.
+ * \paramOpt pixels (array): An array of pixels to initialize the texture with. The length of the array must match the dimensions of the texture (e.g., for a 64x64 texture, you must pass an array of exactly 4096 values.)
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+
+	StandardLibrary::CheckAtLeastArgCount(argCount, 3);
+
+	int width = GET_ARG(1, GetInteger);
+	int height = GET_ARG(2, GetInteger);
+	int access = GET_ARG_OPT(3, GetInteger, TextureAccess_STATIC);
+	int format = GET_ARG_OPT(4,
+		GetInteger,
+		access == TextureAccess_RENDERTARGET ? TextureFormat_NATIVE : TextureFormat_RGB888);
+	ObjArray* pixelsArray = GET_ARG_OPT(5, GetArray, nullptr);
+
+	char errorString[128];
+
+	if (width < 1) {
+		throw ScriptException("Width cannot be lower than 1.");
+	}
+
+	if (height < 1) {
+		throw ScriptException("Height cannot be lower than 1.");
+	}
+
+	if (access < 0 || access > TextureAccess_RENDERTARGET) {
+		snprintf(errorString,
+			sizeof errorString,
+			"Texture access mode %d out of range. (%d - %d)",
+			access,
+			0,
+			TextureAccess_RENDERTARGET);
+
+		throw ScriptException(errorString);
+	}
+
+	if (format == TextureFormat_NATIVE) {
+		format = Graphics::TextureFormat;
+	}
+	else {
+		if (access == TextureAccess_RENDERTARGET) {
+			throw ScriptException(
+				"Texture format of a render target texture must be TEXTUREFORMAT_NATIVE!");
+		}
+
+		if (format < 0 || format > TextureFormat_INDEXED) {
+			snprintf(errorString,
+				sizeof errorString,
+				"Texture format %d out of range. (%d - %d)",
+				format,
+				0,
+				TextureFormat_INDEXED);
+
+			throw ScriptException(errorString);
+		}
+	}
+
+	Uint8* pixels = nullptr;
+	unsigned numPaletteColors = 256;
+
+	if (pixelsArray != nullptr) {
+		if (access == TextureAccess_RENDERTARGET) {
+			throw ScriptException(
+				"Cannot create a render target texture with pixel data!");
+		}
+
+		pixels = GetPixelDataFromArray(
+			pixelsArray, 0, 0, width, height, width, height, format);
+	}
+
 	Texture* texture = Graphics::CreateTexture(format, access, width, height);
 
 	ScriptManager::RegistryAdd(texture, (Obj*)objTexture);
@@ -210,7 +252,8 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 		for (unsigned i = 0; i < numPaletteColors; i++) {
 			Uint8 brightness = (int)(i * std::ceil(255.0 / numPaletteColors));
 
-			palette[i] = ColorUtils::Make(i, i, i, 0xFF, Graphics::PreferredPixelFormat);
+			palette[i] =
+				ColorUtils::Make(i, i, i, 0xFF, Graphics::PreferredPixelFormat);
 		}
 
 		Graphics::SetTexturePalette(texture, palette, numPaletteColors);
@@ -285,7 +328,9 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 		return NULL_VAL;
 	}
 
-	if (!Texture::CanConvertBetweenFormats(srcTexture->Format, texture->Format) || texture->Format == TextureFormat_INDEXED || srcTexture->Format == TextureFormat_INDEXED) {
+	if (!Texture::CanConvertBetweenFormats(srcTexture->Format, texture->Format) ||
+		texture->Format == TextureFormat_INDEXED ||
+		srcTexture->Format == TextureFormat_INDEXED) {
 		throw ScriptException("Incompatible texture formats!");
 	}
 
@@ -372,8 +417,7 @@ VMValue TextureImpl::VM_Scale(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_EXISTS(texture);
 
 	if (objTexture->IsViewTexture) {
-		throw ScriptException(
-			"Cannot scale a draw target texture that belongs to a view!");
+		throw ScriptException("Cannot scale a draw target texture that belongs to a view!");
 	}
 
 	if (width < 1) {
@@ -396,9 +440,25 @@ VMValue TextureImpl::VM_Scale(int argCount, VMValue* args, Uint32 threadID) {
 
 	return NULL_VAL;
 }
+#define CONVERT_TEXTURE_PIXEL(px) \
+	{ \
+		if (TEXTUREFORMAT_IS_RGB(texture->Format)) { \
+			int red = px & 0xFF; \
+			int green = (px >> 8) & 0xFF; \
+			int blue = (px >> 16) & 0xFF; \
+			px = (red << 16) | (green << 8) | blue; \
+		} \
+		else if (TEXTUREFORMAT_IS_RGBA(texture->Format)) { \
+			int red = px & 0xFF; \
+			int green = (px >> 8) & 0xFF; \
+			int blue = (px >> 16) & 0xFF; \
+			int alpha = (px >> 24) & 0xFF; \
+			px = (red << 24) | (green << 16) | (blue << 8) | alpha; \
+		} \
+	}
 /***
  * \method GetPixel
- * \desc Gets the pixel at the specified coordinates. If the coordinates are not within the texture's dimensions, they wrap around.
+ * \desc Gets the pixel at the specified coordinates.
  * \param x (integer): The X coordinate of the pixel to get.
  * \param y (integer): The Y coordinate of the pixel to get.
  * \return integer Returns a color in the pixel format of the texture.
@@ -415,31 +475,322 @@ VMValue TextureImpl::VM_GetPixel(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_EXISTS(texture);
 
 	if (texture->Access == TextureAccess_RENDERTARGET) {
-		throw ScriptException(
-			"Cannot directly get the color of a draw target texture!");
+		throw ScriptException("Cannot directly get a pixel of a draw target texture!");
+	}
+
+	if (x < 0 || x >= texture->Width || y < 0 || y >= texture->Height) {
+		char errorString[128];
+
+		snprintf(errorString,
+			sizeof errorString,
+			"Invalid coordinates! (X: %d, Y: %d, Width: %d, Height: %d)",
+			x,
+			y,
+			texture->Width,
+			texture->Height);
+
+		throw ScriptException(errorString);
 	}
 
 	int pixel = texture->GetPixel(x, y);
 
 #if HATCH_LITTLE_ENDIAN
-	if (TEXTUREFORMAT_IS_RGB(texture->Format)) {
-		int red = pixel & 0xFF;
-		int green = (pixel >> 8) & 0xFF;
-		int blue = (pixel >> 16) & 0xFF;
-
-		pixel = (red << 16) | (green << 8) | blue;
-	}
-	else if (TEXTUREFORMAT_IS_RGBA(texture->Format)) {
-		int red = pixel & 0xFF;
-		int green = (pixel >> 8) & 0xFF;
-		int blue = (pixel >> 16) & 0xFF;
-		int alpha = (pixel >> 24) & 0xFF;
-
-		pixel = (red << 24) | (green << 16) | (blue << 8) | alpha;
-	}
+	CONVERT_TEXTURE_PIXEL(pixel);
 #endif
 
 	return INTEGER_VAL(pixel);
+}
+/***
+ * \method GetPixelData
+ * \desc Gets an array of pixels of the given dimensions at the specified coordinates.
+ * \paramOpt x (integer): The X coordinate of the region. (default: `0`)
+ * \paramOpt y (integer): The Y coordinate of the region. (default: `0`)
+ * \paramOpt width (integer): The width of the region. (default: width of texture)
+ * \paramOpt height (integer): The height of the region. (default: height of texture)
+ * \return array Returns an array of pixels in the pixel format of the texture.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_GetPixelData(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 1);
+
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+	int x = GET_ARG_OPT(1, GetInteger, 0);
+	int y = GET_ARG_OPT(2, GetInteger, 0);
+	int width, height;
+
+	Texture* texture = (Texture*)GetTexture(objTexture);
+	CHECK_EXISTS(texture);
+
+	if (texture->Access == TextureAccess_RENDERTARGET) {
+		throw ScriptException("Cannot directly get the pixels of a draw target texture!");
+	}
+
+	if (argCount >= 4) {
+		width = GET_ARG(3, GetInteger);
+
+		if (width < 1) {
+			throw ScriptException("Width cannot be lower than 1.");
+		}
+	}
+	else {
+		width = texture->Width;
+	}
+	if (argCount >= 5) {
+		height = GET_ARG(4, GetInteger);
+
+		if (height < 1) {
+			throw ScriptException("Height cannot be lower than 1.");
+		}
+	}
+	else {
+		height = texture->Height;
+	}
+
+	if (x < 0 || x + width > texture->Width || y < 0 || y + height > texture->Height) {
+		char errorString[128];
+
+		snprintf(errorString,
+			sizeof errorString,
+			"Invalid region! (X: %d, Y: %d, Width: %d, Height: %d)",
+			x,
+			y,
+			width,
+			height);
+
+		throw ScriptException(errorString);
+	}
+
+	if (ScriptManager::Lock()) {
+		ObjArray* array = NewArray();
+
+		for (int yy = y; yy < y + height; yy++) {
+			for (int xx = x; xx < x + width; xx++) {
+				int pixel = texture->GetPixel(xx, yy);
+
+#if HATCH_LITTLE_ENDIAN
+				CONVERT_TEXTURE_PIXEL(pixel);
+#endif
+
+				array->Values->push_back(INTEGER_VAL(pixel));
+			}
+		}
+
+		ScriptManager::Unlock();
+
+		return OBJECT_VAL(array);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * \method SetPixel
+ * \desc Sets the pixel at the specified coordinates.
+ * \param x (integer): The X coordinate of the pixel to set.
+ * \param y (integer): The Y coordinate of the pixel to set.
+ * \param color (integer): The color in the pixel format of the texture.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 4);
+
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+	int x = GET_ARG(1, GetInteger);
+	int y = GET_ARG(2, GetInteger);
+	int color = GET_ARG(3, GetInteger);
+
+	char errorString[128];
+
+	Texture* texture = (Texture*)GetTexture(objTexture);
+	CHECK_EXISTS(texture);
+
+	if (texture->Access == TextureAccess_RENDERTARGET) {
+		throw ScriptException("Cannot directly change a pixel of a draw target texture!");
+	}
+
+	if (x < 0 || x >= texture->Width || y < 0 || y >= texture->Height) {
+		snprintf(errorString,
+			sizeof errorString,
+			"Invalid coordinates! (X: %d, Y: %d, Width: %d, Height: %d)",
+			x,
+			y,
+			texture->Width,
+			texture->Height);
+
+		throw ScriptException(errorString);
+	}
+
+	if (texture->Format == TextureFormat_INDEXED && (color < 0 || color > 255)) {
+		snprintf(errorString,
+			sizeof errorString,
+			"Pixel value %d out of range. (0 - 255)",
+			color);
+
+		throw ScriptException(errorString);
+	}
+
+#if HATCH_BIG_ENDIAN
+	CONVERT_TEXTURE_PIXEL(color);
+#endif
+
+	texture->SetPixel(x, y, color);
+
+	return NULL_VAL;
+}
+#undef CONVERT_TEXTURE_PIXEL
+/***
+ * \method SetPixelData
+ * \desc Copies an array of pixels into the specified coordinates.
+ * \param srcPixels (array): An array of pixels in the pixel format of the texture.
+ * \ns Texture
+ */
+/***
+ * \method SetPixelData
+ * \desc Copies an array of pixels into the specified coordinates.
+ * \param srcPixels (array): An array of pixels in the pixel format of the texture.
+ * \param srcWidth (integer): The width of the source.
+ * \param srcHeight (integer): The height of the source.
+ * \ns Texture
+ */
+/***
+ * \method SetPixelData
+ * \desc Copies an array of pixels into the specified coordinates.
+ * \param srcPixels (array): An array of pixels in the pixel format of the texture.
+ * \param srcWidth (integer): The width of the source.
+ * \param srcHeight (integer): The height of the source.
+ * \param destX (integer): The X coordinate in the destination to copy the pixels to.
+ * \param destY (integer): The Y coordinate in the destination to copy the pixels to.
+ * \ns Texture
+ */
+/***
+ * \method SetPixelData
+ * \desc Copies an array of pixels into the specified coordinates.
+ * \param srcPixels (array): An array of pixels in the pixel format of the texture.
+ * \param srcWidth (integer): The width of the source.
+ * \param srcHeight (integer): The height of the source.
+ * \param srcX (integer): The X coordinate in the source to start copying the pixels from.
+ * \param srcY (integer): The Y coordinate in the source to start copying the pixels from.
+ * \param destX (integer): The X coordinate in the destination to copy the pixels to.
+ * \param destY (integer): The Y coordinate in the destination to copy the pixels to.
+ * \param destWidth (integer): The width of the region to copy.
+ * \param destHeight (integer): The height of the region to copy.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_SetPixelData(int argCount, VMValue* args, Uint32 threadID) {
+	if (argCount != 2 && argCount != 4 && argCount != 6 && argCount != 10) {
+		StandardLibrary::CheckArgCount(argCount, 2);
+	}
+
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+	ObjArray* srcPixelsArray = GET_ARG(1, GetArray);
+	int srcX, srcY;
+	int srcWidth, srcHeight;
+	int destX, destY;
+	int destWidth, destHeight;
+
+	char errorString[128];
+
+	Texture* texture = (Texture*)GetTexture(objTexture);
+	CHECK_EXISTS(texture);
+
+	if (texture->Access == TextureAccess_RENDERTARGET) {
+		throw ScriptException(
+			"Cannot directly change the pixels of a draw target texture!");
+	}
+
+	if (!srcPixelsArray) {
+		return NULL_VAL;
+	}
+
+	if (argCount >= 4) {
+		srcWidth = GET_ARG(2, GetInteger);
+		srcHeight = GET_ARG(3, GetInteger);
+	}
+	else {
+		srcWidth = texture->Width;
+		srcHeight = texture->Height;
+	}
+
+	if (argCount == 10) {
+		srcX = GET_ARG(4, GetInteger);
+		srcY = GET_ARG(5, GetInteger);
+
+		destX = GET_ARG(6, GetInteger);
+		destY = GET_ARG(7, GetInteger);
+
+		destWidth = GET_ARG(8, GetInteger);
+		destHeight = GET_ARG(9, GetInteger);
+	}
+	else {
+		if (argCount == 6) {
+			destX = GET_ARG(4, GetInteger);
+			destY = GET_ARG(5, GetInteger);
+		}
+		else {
+			destX = 0;
+			destY = 0;
+		}
+
+		srcX = 0;
+		srcY = 0;
+
+		destWidth = srcWidth;
+		destHeight = srcHeight;
+	}
+
+	if (srcWidth < 1) {
+		throw ScriptException("Width of the source cannot be lower than 1.");
+	}
+	if (srcHeight < 1) {
+		throw ScriptException("Height of the source cannot be lower than 1.");
+	}
+
+	if (destWidth < 1) {
+		throw ScriptException("Width of the region to copy cannot be lower than 1.");
+	}
+	else if (destWidth > srcWidth) {
+		snprintf(errorString,
+			sizeof errorString,
+			"Width of the region to copy cannot be higher than %d.",
+			srcWidth);
+
+		throw ScriptException(errorString);
+	}
+	if (destHeight < 1) {
+		throw ScriptException("Height of the region to copy cannot be lower than 1.");
+	}
+	else if (destHeight > srcHeight) {
+		snprintf(errorString,
+			sizeof errorString,
+			"Height of the region to copy cannot be higher than %d.",
+			srcHeight);
+
+		throw ScriptException(errorString);
+	}
+
+	Uint8* pixels = nullptr;
+
+	if (ScriptManager::Lock()) {
+		try {
+			pixels = GetPixelDataFromArray(srcPixelsArray,
+				srcX,
+				srcY,
+				srcWidth,
+				srcHeight,
+				destWidth,
+				destHeight,
+				texture->Format);
+		} catch (const ScriptException& error) {
+			ScriptManager::Unlock();
+			throw;
+		}
+		ScriptManager::Unlock();
+	}
+
+	texture->CopyPixels(pixels, 0, 0, destWidth, destHeight, destX, destY);
+
+	Memory::Free(pixels);
+
+	return NULL_VAL;
 }
 /***
  * \method Delete
