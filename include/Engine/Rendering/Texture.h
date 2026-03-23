@@ -23,8 +23,10 @@ public:
 	unsigned NumPaletteColors;
 
 	static Texture* New(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	static bool Initialize(Texture* texture, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	static bool Reinitialize(Texture* texture, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static bool
+	Initialize(Texture* texture, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static bool
+	Reinitialize(Texture* texture, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	void SetPalette(Uint32* palette, unsigned numPaletteColors);
 	static int GetFormatBytesPerPixel(int textureFormat);
 	static int PixelFormatToTextureFormat(int pixelFormat);
@@ -48,6 +50,7 @@ public:
 		int destY,
 		int width,
 		int height);
+	static void ConvertPixel(Uint8* srcPtr, int srcFormat, Uint8* destPtr, int destFormat);
 	void CopyPixels(Texture* srcTexture,
 		int srcX,
 		int srcY,
@@ -75,8 +78,26 @@ public:
 		int& destY,
 		int& destWidth,
 		int& destHeight);
-	static Uint32* Crop(Texture* source, int cropX, int cropY, int cropWidth, int cropHeight);
-	static Uint32* Scale(Texture* source, Uint32 destWidth, Uint32 destHeight);
+	static void* Crop(Texture* source, int cropX, int cropY, int cropWidth, int cropHeight);
+	static void ScaleIntoBuffer(Texture* source,
+		int srcX,
+		int srcY,
+		int srcWidth,
+		int srcHeight,
+		void* destPixels,
+		int destWidth,
+		int destHeight,
+		int destFormat);
+	static void
+	ScaleInto(Texture* source, int srcX, int srcY, int srcWidth, int srcHeight, Texture* dest);
+	static void* GetScaledPixels(Texture* source,
+		int srcX,
+		int srcY,
+		int srcWidth,
+		int srcHeight,
+		int destWidth,
+		int destHeight,
+		int destFormat);
 	int GetPixel(int x, int y);
 	void SetPixel(int x, int y, int color);
 	void Dispose();

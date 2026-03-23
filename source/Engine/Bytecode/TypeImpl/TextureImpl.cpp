@@ -76,7 +76,8 @@ static Uint8* GetPixelDataFromArray(ObjArray* pixelsArray,
 	int x2 = srcX + copyWidth;
 	int y2 = srcY + copyHeight;
 
-	if (x1 < 0 || x2 > srcWidth || y1 < 0 || y2 > srcHeight || copyWidth < 1 || copyHeight < 1) {
+	if (x1 < 0 || x2 > srcWidth || y1 < 0 || y2 > srcHeight || copyWidth < 1 ||
+		copyHeight < 1) {
 		char errorString[128];
 
 		snprintf(errorString,
@@ -399,7 +400,7 @@ VMValue TextureImpl::VM_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 		throw ScriptException("Height cannot be less than 1.");
 	}
 
-	Uint32* pixels = Texture::Crop(texture, 0, 0, width, height);
+	void* pixels = Texture::Crop(texture, 0, 0, width, height);
 	if (pixels == nullptr) {
 		throw ScriptException("Could not resize texture!");
 	}
@@ -440,7 +441,8 @@ VMValue TextureImpl::VM_Scale(int argCount, VMValue* args, Uint32 threadID) {
 		throw ScriptException("Height cannot be less than 1.");
 	}
 
-	Uint32* pixels = Texture::Scale(texture, width, height);
+	void* pixels = (Uint8*)Texture::GetScaledPixels(
+		texture, 0, 0, texture->Width, texture->Height, width, height, texture->Format);
 	if (pixels == nullptr) {
 		throw ScriptException("Could not scale texture!");
 	}

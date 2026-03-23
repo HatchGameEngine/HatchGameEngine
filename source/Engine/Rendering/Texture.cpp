@@ -31,8 +31,9 @@ bool Texture::Initialize(Texture* texture,
 	texture->Height = height;
 	texture->BytesPerPixel = Texture::GetFormatBytesPerPixel(format);
 	texture->Pitch = width * texture->BytesPerPixel;
-	texture->Pixels = Memory::TrackedCalloc(
-		"Texture::Pixels", texture->Width * texture->Height, GetFormatBytesPerPixel(format));
+	texture->Pixels = Memory::TrackedCalloc("Texture::Pixels",
+		texture->Width * texture->Height,
+		GetFormatBytesPerPixel(format));
 
 	return texture->Pixels != nullptr;
 }
@@ -158,8 +159,10 @@ bool Texture::CanConvertBetweenFormats(int sourceFormat, int destFormat) {
 
 	// It's permitted to convert an indexed texture to RGBA.
 	// The OpenGL renderer, for example, requires indexed textures to be stored as RGBA.
-	if (TEXTUREFORMAT_IS_RGBA(sourceFormat) || TEXTUREFORMAT_IS_RGB(sourceFormat) || sourceFormat == TextureFormat_INDEXED) {
-		return TEXTUREFORMAT_IS_RGBA(destFormat) || TEXTUREFORMAT_IS_RGB(destFormat) || destFormat == TextureFormat_INDEXED;
+	if (TEXTUREFORMAT_IS_RGBA(sourceFormat) || TEXTUREFORMAT_IS_RGB(sourceFormat) ||
+		sourceFormat == TextureFormat_INDEXED) {
+		return TEXTUREFORMAT_IS_RGBA(destFormat) || TEXTUREFORMAT_IS_RGB(destFormat) ||
+			destFormat == TextureFormat_INDEXED;
 	}
 
 	return false;
@@ -265,84 +268,88 @@ void Texture::Convert(void* srcPixels,
 			Uint8* srcPtr = src + srcPos;
 			Uint8* destPtr = dest + destPos;
 
-			Uint8 red = 0;
-			Uint8 green = 0;
-			Uint8 blue = 0;
-			Uint8 alpha = 0;
-
-			switch (srcFormat) {
-			case TextureFormat_RGBA8888:
-				red = srcPtr[0];
-				green = srcPtr[1];
-				blue = srcPtr[2];
-				alpha = srcPtr[3];
-				break;
-			case TextureFormat_ARGB8888:
-				alpha = srcPtr[0];
-				red = srcPtr[1];
-				green = srcPtr[2];
-				blue = srcPtr[3];
-				break;
-			case TextureFormat_ABGR8888:
-				alpha = srcPtr[0];
-				blue = srcPtr[1];
-				green = srcPtr[2];
-				red = srcPtr[3];
-				break;
-			case TextureFormat_RGB888:
-				red = srcPtr[0];
-				green = srcPtr[1];
-				blue = srcPtr[2];
-				alpha = 0xFF;
-				break;
-			case TextureFormat_BGR888:
-				blue = srcPtr[0];
-				green = srcPtr[1];
-				red = srcPtr[2];
-				alpha = 0xFF;
-				break;
-			case TextureFormat_INDEXED:
-				red = srcPtr[0];
-				break;
-			}
-
-			switch (destFormat) {
-			case TextureFormat_RGBA8888:
-				destPtr[0] = red;
-				destPtr[1] = green;
-				destPtr[2] = blue;
-				destPtr[3] = alpha;
-				break;
-			case TextureFormat_ARGB8888:
-				destPtr[0] = alpha;
-				destPtr[1] = red;
-				destPtr[2] = green;
-				destPtr[3] = blue;
-				break;
-			case TextureFormat_ABGR8888:
-				destPtr[0] = alpha;
-				destPtr[1] = blue;
-				destPtr[2] = green;
-				destPtr[3] = red;
-				break;
-			case TextureFormat_RGB888:
-				destPtr[0] = red;
-				destPtr[1] = green;
-				destPtr[2] = blue;
-				break;
-			case TextureFormat_BGR888:
-				destPtr[0] = blue;
-				destPtr[1] = green;
-				destPtr[2] = red;
-				break;
-			case TextureFormat_INDEXED:
-				destPtr[0] = red;
-				break;
-			}
+			ConvertPixel(srcPtr, srcFormat, destPtr, destFormat);
 
 			srcPos += srcBytesPerPixel;
 			destPos += destBytesPerPixel;
 		}
+	}
+}
+
+void Texture::ConvertPixel(Uint8* srcPtr, int srcFormat, Uint8* destPtr, int destFormat) {
+	Uint8 red = 0;
+	Uint8 green = 0;
+	Uint8 blue = 0;
+	Uint8 alpha = 0;
+
+	switch (srcFormat) {
+	case TextureFormat_RGBA8888:
+		red = srcPtr[0];
+		green = srcPtr[1];
+		blue = srcPtr[2];
+		alpha = srcPtr[3];
+		break;
+	case TextureFormat_ARGB8888:
+		alpha = srcPtr[0];
+		red = srcPtr[1];
+		green = srcPtr[2];
+		blue = srcPtr[3];
+		break;
+	case TextureFormat_ABGR8888:
+		alpha = srcPtr[0];
+		blue = srcPtr[1];
+		green = srcPtr[2];
+		red = srcPtr[3];
+		break;
+	case TextureFormat_RGB888:
+		red = srcPtr[0];
+		green = srcPtr[1];
+		blue = srcPtr[2];
+		alpha = 0xFF;
+		break;
+	case TextureFormat_BGR888:
+		blue = srcPtr[0];
+		green = srcPtr[1];
+		red = srcPtr[2];
+		alpha = 0xFF;
+		break;
+	case TextureFormat_INDEXED:
+		red = srcPtr[0];
+		break;
+	}
+
+	switch (destFormat) {
+	case TextureFormat_RGBA8888:
+		destPtr[0] = red;
+		destPtr[1] = green;
+		destPtr[2] = blue;
+		destPtr[3] = alpha;
+		break;
+	case TextureFormat_ARGB8888:
+		destPtr[0] = alpha;
+		destPtr[1] = red;
+		destPtr[2] = green;
+		destPtr[3] = blue;
+		break;
+	case TextureFormat_ABGR8888:
+		destPtr[0] = alpha;
+		destPtr[1] = blue;
+		destPtr[2] = green;
+		destPtr[3] = red;
+		break;
+	case TextureFormat_RGB888:
+		destPtr[0] = red;
+		destPtr[1] = green;
+		destPtr[2] = blue;
+		break;
+	case TextureFormat_BGR888:
+		destPtr[0] = blue;
+		destPtr[1] = green;
+		destPtr[2] = red;
+		break;
+	case TextureFormat_INDEXED:
+		destPtr[0] = red;
+		break;
 	}
 }
 
@@ -502,7 +509,7 @@ bool Texture::ClipCopyRegion(int srcTextureWidth,
 	return true;
 }
 
-Uint32* Texture::Crop(Texture* source, int cropX, int cropY, int cropWidth, int cropHeight) {
+void* Texture::Crop(Texture* source, int cropX, int cropY, int cropWidth, int cropHeight) {
 	if (cropX < 0 || cropY < 0 || cropWidth <= 0 || cropHeight <= 0) {
 		return nullptr;
 	}
@@ -515,11 +522,11 @@ Uint32* Texture::Crop(Texture* source, int cropX, int cropY, int cropWidth, int 
 
 	int bpp = source->BytesPerPixel;
 
-	Uint32* pixels = (Uint32*)Memory::Calloc(cropWidth * cropHeight, bpp);
+	Uint8* pixels = (Uint8*)Memory::Calloc(cropWidth * cropHeight, bpp);
 
 	if (copyWidth > 0 && copyHeight > 0) {
 		Uint8* src = (Uint8*)source->Pixels + (cropY * source->Pitch);
-		Uint8* dest = (Uint8*)pixels;
+		Uint8* dest = pixels;
 
 		for (int srcY = 0; srcY < copyHeight; srcY++) {
 			memcpy(dest, src + (cropX * bpp), copyWidth * bpp);
@@ -532,28 +539,87 @@ Uint32* Texture::Crop(Texture* source, int cropX, int cropY, int cropWidth, int 
 	return pixels;
 }
 
-Uint32* Texture::Scale(Texture* source, Uint32 destWidth, Uint32 destHeight) {
-	int bpp = source->BytesPerPixel;
-	Uint32* pixels = (Uint32*)Memory::Malloc(destWidth * destHeight * bpp);
+void Texture::ScaleIntoBuffer(Texture* source,
+	int srcX,
+	int srcY,
+	int srcWidth,
+	int srcHeight,
+	void* destPixels,
+	int destWidth,
+	int destHeight,
+	int destFormat) {
+	int srcBytesPerPixel = source->BytesPerPixel;
+	int destBytesPerPixel = GetFormatBytesPerPixel(destFormat);
 
-	Uint32 maxWidth = source->Width << 16;
-	Uint32 maxHeight = source->Height << 16;
+	Uint32 xStep, yStep;
 
-	Uint32 xStep = FP16_DIVIDE(FP16_TO(1.0f), FP16_DIVIDE(destWidth << 16, maxWidth));
-	Uint32 yStep = FP16_DIVIDE(FP16_TO(1.0f), FP16_DIVIDE(destHeight << 16, maxHeight));
+	Uint32 maxWidth = std::min((Uint32)srcWidth, source->Width) << 16;
+	Uint32 maxHeight = std::min((Uint32)srcHeight, source->Height) << 16;
 
-	Uint32* src = (Uint32*)source->Pixels;
-	Uint32* dest = pixels;
-
-	for (Uint32 srcY = 0; srcY < maxHeight; srcY += yStep) {
-		Uint32* row = src + ((srcY >> 16) * source->Width);
-
-		for (Uint32 srcX = 0; srcX < maxWidth; srcX += xStep) {
-			*dest = row[srcX >> 16];
-			dest++;
-		}
+	if (maxWidth == 0 || maxHeight == 0) {
+		return;
 	}
 
+	xStep = FP16_DIVIDE(FP16_TO(1.0f), FP16_DIVIDE(destWidth << 16, maxWidth));
+	yStep = FP16_DIVIDE(FP16_TO(1.0f), FP16_DIVIDE(destHeight << 16, maxHeight));
+
+	srcX <<= 16;
+	srcY <<= 16;
+
+	Uint8* dest = (Uint8*)destPixels;
+
+	for (Uint32 sy = srcY; sy < srcY + maxHeight; sy += yStep) {
+		Uint8* row = (Uint8*)source->Pixels + ((sy >> 16) * source->Pitch);
+
+		for (Uint32 sx = srcX; sx < srcX + maxWidth; sx += xStep) {
+			ConvertPixel(row + ((sx >> 16) * srcBytesPerPixel),
+				source->Format,
+				dest,
+				destFormat);
+
+			dest += destBytesPerPixel;
+		}
+	}
+}
+
+void Texture::ScaleInto(Texture* source,
+	int srcX,
+	int srcY,
+	int srcWidth,
+	int srcHeight,
+	Texture* dest) {
+	Texture::ScaleIntoBuffer(source,
+		srcX,
+		srcY,
+		srcWidth,
+		srcHeight,
+		dest->Pixels,
+		dest->Width,
+		dest->Height,
+		dest->Format);
+}
+
+void* Texture::GetScaledPixels(Texture* source,
+	int srcX,
+	int srcY,
+	int srcWidth,
+	int srcHeight,
+	int destWidth,
+	int destHeight,
+	int destFormat) {
+	int destBytesPerPixel = GetFormatBytesPerPixel(destFormat);
+	void* pixels = Memory::Malloc(destWidth * destHeight * destBytesPerPixel);
+	if (pixels) {
+		Texture::ScaleIntoBuffer(source,
+			srcX,
+			srcY,
+			srcWidth,
+			srcHeight,
+			pixels,
+			destWidth,
+			destHeight,
+			destFormat);
+	}
 	return pixels;
 }
 

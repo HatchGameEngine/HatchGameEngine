@@ -406,7 +406,8 @@ int Graphics::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int p
 		size_t bpp = Texture::GetFormatBytesPerPixel(texture->DriverFormat);
 
 		if (texture->DriverPixelData == nullptr) {
-			texture->DriverPixelData = Memory::Calloc(texture->Width * texture->Height, bpp);
+			texture->DriverPixelData =
+				Memory::Calloc(texture->Width * texture->Height, bpp);
 		}
 
 		Texture::Convert(pixels,
@@ -955,31 +956,10 @@ void Graphics::CopyFramebuffer(int sourceX,
 		return;
 	}
 
-	void* fbPixels = FramebufferTexture->Pixels;
+	Graphics::GfxFunctions->ReadFramebuffer(
+		FramebufferTexture->Pixels, sourceX, sourceY, sourceW, sourceH);
 
-	Graphics::GfxFunctions->ReadFramebuffer(fbPixels, 0, 0, sourceW, sourceH);
-
-	Uint32* d = (Uint32*)texture->Pixels;
-	Uint32* s = (Uint32*)fbPixels;
-
-	int xs = FP16_DIVIDE(0x10000, FP16_DIVIDE(destW << 16, sourceW << 16));
-	int ys = FP16_DIVIDE(0x10000, FP16_DIVIDE(destH << 16, sourceH << 16));
-
-	for (int read_y = sourceY << 16, write_y = destY; write_y < destH;
-		write_y++, read_y += ys) {
-		int isy = read_y >> 16;
-		if (isy >= sourceH) {
-			break;
-		}
-		for (int read_x = sourceX << 16, write_x = destX; write_x < destW;
-			write_x++, read_x += xs) {
-			int isx = read_x >> 16;
-			if (isx >= sourceW) {
-				break;
-			}
-			d[(write_y * texture->Width) + write_x] = s[(isy * sourceW) + isx];
-		}
-	}
+	Texture::ScaleInto(FramebufferTexture, 0, 0, sourceW, sourceH, texture);
 }
 void Graphics::CopyScreen(int sourceX,
 	int sourceY,
