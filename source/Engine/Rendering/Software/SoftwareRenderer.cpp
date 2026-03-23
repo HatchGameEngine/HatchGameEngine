@@ -207,6 +207,9 @@ void SoftwareRenderer::RenderEnd(int viewIndex) {}
 // Texture management functions
 Texture*
 SoftwareRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
+	if (Graphics::Internal.CreateTexture) {
+		return Graphics::Internal.CreateTexture(format, access, width, height);
+	}
 	return nullptr;
 }
 bool SoftwareRenderer::ReinitializeTexture(Texture* texture,

@@ -330,18 +330,9 @@ Point Graphics::ProjectToScreen(float x, float y, float z) {
 }
 
 Texture* Graphics::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
-	Texture* texture;
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
-		texture = Texture::New(format, access, width, height);
-		if (!texture) {
-			return NULL;
-		}
-	}
-	else {
-		texture = Graphics::GfxFunctions->CreateTexture(format, access, width, height);
-		if (!texture) {
-			return NULL;
-		}
+	Texture* texture = Graphics::GfxFunctions->CreateTexture(format, access, width, height);
+	if (!texture) {
+		return NULL;
 	}
 
 	texture->Next = Graphics::TextureHead;
