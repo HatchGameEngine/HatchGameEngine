@@ -391,7 +391,9 @@ int Graphics::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return Graphics::GfxFunctions->LockTexture(texture, pixels, pitch);
 }
 int Graphics::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
-	memcpy(texture->Pixels, pixels, pitch * texture->Height);
+	if (texture->Pixels != pixels) {
+		memcpy(texture->Pixels, pixels, pitch * texture->Height);
+	}
 	if (Graphics::NoInternalTextures) {
 		return 1;
 	}
@@ -669,7 +671,7 @@ void Graphics::SoftwareEnd(int viewIndex) {
 	Graphics::UpdateTexture(Graphics::CurrentRenderTarget,
 		NULL,
 		Graphics::CurrentRenderTarget->Pixels,
-		Graphics::CurrentRenderTarget->Width * 4);
+		Graphics::CurrentRenderTarget->Pitch);
 }
 
 void Graphics::UpdateGlobalPalette() {

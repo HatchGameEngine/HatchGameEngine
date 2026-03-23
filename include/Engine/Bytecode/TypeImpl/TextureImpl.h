@@ -20,7 +20,7 @@ public:
 	static void Dispose(Obj* object);
 
 	static void* GetTexture(ObjTexture* object);
-	static ObjTexture* GetTextureObject(void* texture);
+	static ObjTexture* GetTextureObject(void* texture, bool isViewTexture);
 
 	static VMValue VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Apply(int argCount, VMValue* args, Uint32 threadID);

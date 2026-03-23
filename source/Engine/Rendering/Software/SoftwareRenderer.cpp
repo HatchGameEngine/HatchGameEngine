@@ -220,11 +220,9 @@ int SoftwareRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
 }
 int SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
-	int preferredFormat = TextureFormat_RGBA8888;
+	const int preferredFormat = TextureFormat_RGBA8888;
 
-	texture->DriverFormat = preferredFormat;
-
-	if (texture->Format == preferredFormat) {
+	if (texture->DriverPixelData == nullptr && texture->Format == preferredFormat) {
 		return 0;
 	}
 
@@ -233,6 +231,8 @@ int SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixel
 	if (texture->DriverPixelData == nullptr) {
 		texture->DriverPixelData = Memory::Calloc(texture->Width * texture->Height, bpp);
 	}
+
+	texture->DriverFormat = preferredFormat;
 
 	Texture::Convert(pixels,
 		texture->Format,

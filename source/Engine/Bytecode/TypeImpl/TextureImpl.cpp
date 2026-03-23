@@ -278,7 +278,7 @@ void TextureImpl::Dispose(Obj* object) {
 void* TextureImpl::GetTexture(ObjTexture* object) {
 	return ScriptManager::RegistryGet((Obj*)object);
 }
-ObjTexture* TextureImpl::GetTextureObject(void* texture) {
+ObjTexture* TextureImpl::GetTextureObject(void* texture, bool isViewTexture) {
 	if (texture == nullptr) {
 		return nullptr;
 	}
@@ -290,7 +290,9 @@ ObjTexture* TextureImpl::GetTextureObject(void* texture) {
 
 	obj = ScriptManager::RegistryAdd(texture, TextureImpl::New());
 
-	return (ObjTexture*)obj;
+	ObjTexture* textureObj = (ObjTexture*)obj;
+	textureObj->IsViewTexture = isViewTexture;
+	return textureObj;
 }
 
 #define CHECK_EXISTS(ptr) \

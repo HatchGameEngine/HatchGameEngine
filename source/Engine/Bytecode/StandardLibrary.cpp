@@ -19257,11 +19257,15 @@ VMValue View_GetDrawTarget(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	Texture* texture = Scene::Views[view_index].DrawTarget;
-	ObjTexture* textureObj = TextureImpl::GetTextureObject((void*)texture);
+	ObjTexture* textureObj = TextureImpl::GetTextureObject((void*)texture, true);
 	if (textureObj == nullptr) {
 		return NULL_VAL;
 	}
-	textureObj->IsViewTexture = true;
+
+	if (Scene::Views[view_index].Software) {
+		Graphics::UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
+	}
+
 	return OBJECT_VAL(textureObj);
 }
 /***
