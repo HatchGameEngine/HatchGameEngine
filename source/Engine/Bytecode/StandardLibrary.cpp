@@ -18048,6 +18048,68 @@ VMValue String_FromCodepoints(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region Texture
+/***
+ * Texture.Create
+ * \desc Creates a texture with the given dimensions.
+ * \param width (integer): The width of the texture.
+ * \param height (integer): The height of the texture.
+ * \return Texture Returns a texture.
+ * \deprecated Use the <Texture> constructor instead.
+ * \ns Texture
+ */
+VMValue Texture_Create(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(2);
+
+	int width = GET_ARG(0, GetInteger);
+	int height = GET_ARG(1, GetInteger);
+
+	if (width < 1) {
+		THROW_ERROR("Width cannot be less than 1.");
+		return NULL_VAL;
+	}
+
+	if (height < 1) {
+		THROW_ERROR("Height cannot be less than 1.");
+		return NULL_VAL;
+	}
+
+	Texture* texture = Graphics::CreateTexture(TextureFormat_NATIVE, TextureAccess_STREAMING, width, height);
+	if (texture) {
+		Obj* objTexture = TextureImpl::New();
+		ScriptManager::RegistryAdd(texture, objTexture);
+		return OBJECT_VAL(objTexture);
+	}
+
+	return NULL_VAL;
+}
+/***
+ * Texture.Copy
+ * \desc Copies pixels from <param srcDrawable> into <param destTexture>.
+ * \param destTexture (Texture): The texture to copy pixels into.
+ * \param srcDrawable (Drawable): The drawable to copy pixels from.
+ * \deprecated Use <ref Texture.CopyPixels> instead.
+ * \ns Texture
+ */
+VMValue Texture_Copy(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+
+	ObjTexture* textureA = GET_ARG(0, GetTexture);
+	Texture* textureB = GET_ARG(1, GetDrawable);
+
+	if (!textureA || !textureB) {
+		return NULL_VAL;
+	}
+
+	Texture* texture = (Texture*)TextureImpl::GetTexture(textureA);
+	if (texture) {
+		Graphics::CopyTexturePixels(texture, 0, 0, textureB, 0, 0, textureB->Width, textureB->Height);
+	}
+
+	return NULL_VAL;
+}
+// #endregion
+
 // #region Touch
 /***
  * Touch.GetX
@@ -19904,6 +19966,8 @@ void StandardLibrary::Link() {
 #define INIT_CLASS(className) \
 	klass = NewClass(#className); \
 	ScriptManager::Constants->Put(klass->Hash, OBJECT_VAL(klass));
+#define GET_CLASS(className) \
+	klass = AS_CLASS(ScriptManager::Globals->Get(#className))
 #define DEF_NATIVE(className, funcName) \
 	ScriptManager::DefineNative(klass, #funcName, className##_##funcName)
 
@@ -22197,6 +22261,16 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(String, ParseDecimal);
 	DEF_NATIVE(String, GetCodepoints);
 	DEF_NATIVE(String, FromCodepoints);
+	// #endregion
+
+	// #region Texture
+	/***
+    * \class Texture
+    * \desc Texture manipulation functions.
+    */
+	GET_CLASS(Texture);
+	DEF_NATIVE(Texture, Create);
+	DEF_NATIVE(Texture, Copy);
 	// #endregion
 
 	// #region Touch
