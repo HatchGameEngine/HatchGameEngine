@@ -193,17 +193,13 @@ Uint32 ColorUtils::Make(Uint8 red, Uint8 green, Uint8 blue, Uint8 alpha, int pix
 
 	return color;
 }
-Uint32 ColorUtils::Convert(Uint32 color, int srcPixelFormat, int destPixelFormat) {
-	if (srcPixelFormat == destPixelFormat) {
-		return color;
-	}
-
-	Uint8 red = 0;
-	Uint8 green = 0;
-	Uint8 blue = 0;
-	Uint8 alpha = 0;
-
-	switch (srcPixelFormat) {
+void ColorUtils::GetChannels(Uint32 color,
+	int pixelFormat,
+	Uint8& red,
+	Uint8& green,
+	Uint8& blue,
+	Uint8& alpha) {
+	switch (pixelFormat) {
 	case PixelFormat_RGBA8888:
 #if HATCH_BIG_ENDIAN
 		red = (color >> 24) & 0xFF;
@@ -268,6 +264,40 @@ Uint32 ColorUtils::Convert(Uint32 color, int srcPixelFormat, int destPixelFormat
 		alpha = 0xFF;
 		break;
 	}
+}
+Uint8 ColorUtils::GetAlphaChannel(Uint32 color, int pixelFormat) {
+	switch (pixelFormat) {
+	case PixelFormat_RGBA8888:
+#if HATCH_BIG_ENDIAN
+		return color & 0xFF;
+#else
+		return (color >> 24) & 0xFF;
+#endif
+	case PixelFormat_ARGB8888:
+		return (color >> 24) & 0xFF;
+	case PixelFormat_ABGR8888:
+#if HATCH_BIG_ENDIAN
+		return (color >> 24) & 0xFF;
+#else
+		return color & 0xFF;
+#endif
+	case PixelFormat_RGB888:
+	case PixelFormat_BGR888:
+		return 0xFF;
+	default:
+		break;
+	}
+
+	return 0x00;
+}
+Uint32 ColorUtils::Convert(Uint32 color, int srcPixelFormat, int destPixelFormat) {
+	if (srcPixelFormat == destPixelFormat) {
+		return color;
+	}
+
+	Uint8 red, green, blue, alpha;
+
+	GetChannels(color, srcPixelFormat, red, green, blue, alpha);
 
 	return ColorUtils::Make(red, green, blue, alpha, destPixelFormat);
 }
@@ -277,7 +307,11 @@ void ColorUtils::Convert(Uint32* colors, int count, int srcPixelFormat, int dest
 	}
 
 	for (int p = 0; p < count; p++) {
-		*colors = ColorUtils::Convert(*colors, srcPixelFormat, destPixelFormat);
+		Uint8 red, green, blue, alpha;
+
+		GetChannels(*colors, srcPixelFormat, red, green, blue, alpha);
+
+		*colors = ColorUtils::Make(red, green, blue, alpha, destPixelFormat);
 		colors++;
 	}
 }

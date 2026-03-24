@@ -12381,10 +12381,9 @@ VMValue Palette_GetColorTransparent(int argCount, VMValue* args, Uint32 threadID
 	int colorIndex = GET_ARG(1, GetInteger);
 	CHECK_PALETTE_INDEX(palIndex);
 	CHECK_COLOR_INDEX(colorIndex);
-	if (Graphics::PaletteColors[palIndex][colorIndex] & 0xFF000000U) {
-		return INTEGER_VAL(false);
-	}
-	return INTEGER_VAL(true);
+	Uint32 color = Graphics::PaletteColors[palIndex][colorIndex];
+	Uint8 alpha = ColorUtils::GetAlphaChannel(color, Graphics::PreferredPixelFormat);
+	return INTEGER_VAL(alpha == 0);
 }
 /***
  * Palette.SetColorTransparent
@@ -12401,13 +12400,15 @@ VMValue Palette_SetColorTransparent(int argCount, VMValue* args, Uint32 threadID
 	bool isTransparent = !!GET_ARG(2, GetInteger);
 	CHECK_PALETTE_INDEX(palIndex);
 	CHECK_COLOR_INDEX(colorIndex);
+
+	Uint8 red, green, blue, alpha;
+
 	Uint32* color = &Graphics::PaletteColors[palIndex][colorIndex];
-	if (isTransparent) {
-		*color &= ~0xFF000000U;
-	}
-	else {
-		*color |= 0xFF000000U;
-	}
+	ColorUtils::GetChannels(*color, Graphics::PreferredPixelFormat, red, green, blue, alpha);
+
+	alpha = isTransparent ? 0 : 0xFF;
+	*color = ColorUtils::Make(red, green, blue, alpha, Graphics::PreferredPixelFormat);
+
 	Graphics::PaletteUpdated = true;
 	return NULL_VAL;
 }
@@ -17082,7 +17083,7 @@ VMValue Sprite_MakePalettized(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 	CHECK_PALETTE_INDEX(palIndex);
-	sprite->ConvertToPalette(palIndex);
+	sprite->ConvertToIndexed(Graphics::PaletteColors[palIndex], 256);
 	return NULL_VAL;
 }
 /***
@@ -17095,7 +17096,7 @@ VMValue Sprite_MakeNonPalettized(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	if (sprite) {
-		sprite->ConvertToRGBA();
+		sprite->ConvertToNonIndexed(nullptr, 256);
 	}
 	return NULL_VAL;
 }

@@ -5,6 +5,7 @@
 #include <Engine/Math/FixedPoint.h>
 #include <Engine/Rendering/Texture.h>
 #include <Engine/Utilities/ColorUtils.h>
+#include <Libraries/ankerl/unordered_dense.h>
 
 Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
 	Texture* texture = (Texture*)Memory::TrackedCalloc("Texture::Texture", 1, sizeof(Texture));
@@ -176,56 +177,77 @@ bool Texture::KeepDriverPixelsResident() {
 	return Format != DriverFormat;
 }
 
-bool Texture::ConvertToRGBA() {
-	if (Format != TextureFormat_INDEXED) {
-		return false;
+Uint8* Texture::GetPalettizedPixels(Uint32* palColors,
+	unsigned numPaletteColors,
+	unsigned transparentIndex) {
+	if (!palColors || Format == TextureFormat_INDEXED) {
+		return nullptr;
 	}
 
-	Uint32* pixels = (Uint32*)Pixels;
-
-	for (size_t i = 0; i < Width * Height; i++) {
-		if (pixels[i]) {
-			pixels[i] = PaletteColors[pixels[i]];
-		}
+	Uint8* srcPixels = (Uint8*)Pixels;
+	Uint8* destPixels = (Uint8*)Memory::Malloc(Width * Height);
+	if (!destPixels) {
+		return nullptr;
 	}
 
-	SetPalette(nullptr, 0);
-
-	Format = TextureFormat_ARGB8888;
-
-	return true;
-}
-bool Texture::ConvertToPalette(Uint32* palColors, unsigned numPaletteColors) {
-	ConvertToRGBA();
-
-	Uint32* pixels = (Uint32*)Pixels;
-	int nearestColor;
-
-	HashMap<int>* colorsHash = new HashMap<int>(NULL, 256);
+	ankerl::unordered_dense::map<Uint32, Uint8> colorsMap;
 
 	for (size_t i = 0; i < Width * Height; i++) {
-		Uint32 color = pixels[i];
-		if (color & 0xFF000000) {
-			if (!colorsHash->GetIfExists(color, &nearestColor)) {
-				Uint8 rgb[3];
-				ColorUtils::SeparateRGB(color, rgb);
-				nearestColor = ColorUtils::NearestColor(
-					rgb[0], rgb[1], rgb[2], palColors, numPaletteColors);
-				colorsHash->Put(color, nearestColor);
+		Uint8 rgba[4];
+		ConvertPixel(srcPixels, Format, rgba, TextureFormat_RGBA8888);
+
+		if (rgba[3]) {
+			// The order doesn't matter; this is just being used as a hash
+			Uint32 color = rgba[0] | rgba[1] << 8 | rgba[2] << 16 | rgba[3] << 24;
+
+			if (colorsMap.count(color) > 0) {
+				destPixels[i] = colorsMap[color];
 			}
-
-			pixels[i] = nearestColor;
+			else {
+				Uint8 nearestColor = ColorUtils::NearestColor(
+					rgba[0], rgba[1], rgba[2], palColors, numPaletteColors);
+				destPixels[i] = nearestColor;
+				colorsMap[color] = nearestColor;
+			}
 		}
 		else {
-			pixels[i] = 0;
+			destPixels[i] = transparentIndex;
 		}
+
+		srcPixels += BytesPerPixel;
 	}
 
-	delete colorsHash;
+	return destPixels;
+}
 
-	Format = TextureFormat_INDEXED;
+void* Texture::GetNonIndexedPixels(int destFormat, Uint32* palColors) {
+	if (!palColors || Format != TextureFormat_INDEXED) {
+		return nullptr;
+	}
 
-	return true;
+	int srcPixelFormat = PixelFormatToTextureFormat(Graphics::PreferredPixelFormat);
+	int destPixelFormat = TextureFormatToPixelFormat(destFormat);
+	int destBytesPerPixel = GetFormatBytesPerPixel(destFormat);
+
+	Uint8* srcPixels = (Uint8*)Pixels;
+	void* destPixels = Memory::Malloc(Width * Height * destBytesPerPixel);
+	if (!destPixels) {
+		return nullptr;
+	}
+
+	Uint8* destPtr = (Uint8*)destPixels;
+
+	for (size_t i = 0; i < Width * Height; i++) {
+		Uint32 color = palColors[srcPixels[i]];
+
+		color = ColorUtils::Convert(color, Graphics::PreferredPixelFormat, destPixelFormat);
+
+		ConvertPixel((Uint8*)&color, srcPixelFormat, destPtr, destFormat);
+
+		destPtr += destBytesPerPixel;
+	}
+
+	return destPixels;
 }
 
 void Texture::Convert(void* srcPixels,

@@ -54,8 +54,8 @@ public:
 		int sheetNumber);
 	void RemoveFrames(int animID);
 	void RefreshGraphicsID();
-	void ConvertToRGBA();
-	void ConvertToPalette(unsigned paletteNumber);
+	void ConvertToNonIndexed(Uint32* palColors, unsigned numPaletteColors);
+	void ConvertToIndexed(Uint32* palColors, unsigned numPaletteColors);
 	static bool IsFile(Stream* stream);
 	bool LoadAnimation(const char* filename);
 	int FindAnimation(const char* animname);

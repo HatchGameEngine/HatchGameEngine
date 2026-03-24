@@ -151,8 +151,11 @@ public:
 		int srcHeight);
 	static bool ResizeTexture(Texture* texture, Uint32 width, Uint32 height);
 	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
-	static int ConvertTextureToRGBA(Texture* texture);
-	static int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);
+	static bool ConvertTextureToFormat(Texture* texture,
+		int destFormat,
+		Uint32* palColors,
+		unsigned numPaletteColors,
+		unsigned transparentPixel);
 	static void SetTextureMinFilter(Texture* texture, int filterMode);
 	static void SetTextureMagFilter(Texture* texture, int filterMode);
 	static void UnlockTexture(Texture* texture);
@@ -174,6 +177,7 @@ public:
 	static void SoftwareEnd(int viewIndex);
 	static void UpdateGlobalPalette();
 	static void UpdatePaletteIndexTable();
+	static int GetPaletteTransparentColor(Uint32* palColors, unsigned numPaletteColors);
 	static void UnloadSceneData();
 	static bool SetRenderTarget(Texture* texture);
 	static bool CreateFramebufferTexture();

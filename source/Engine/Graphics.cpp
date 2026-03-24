@@ -471,41 +471,70 @@ int Graphics::SetTexturePalette(Texture* texture, void* palette, unsigned numPal
 	}
 	return Graphics::GfxFunctions->SetTexturePalette(texture, palette, numPaletteColors);
 }
-int Graphics::ConvertTextureToRGBA(Texture* texture) {
-	texture->ConvertToRGBA();
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
-		return 1;
-	}
-	return Graphics::GfxFunctions->UpdateTexture(
-		texture, NULL, texture->Pixels, texture->Pitch);
-}
-int Graphics::ConvertTextureToPalette(Texture* texture, unsigned paletteNumber) {
-	Uint32* colors = (Uint32*)Memory::TrackedMalloc("Texture::Colors", 256 * sizeof(Uint32));
-	if (!colors) {
-		return 0;
+bool Graphics::ConvertTextureToFormat(Texture* texture,
+	int destFormat,
+	Uint32* palColors,
+	unsigned numPaletteColors,
+	unsigned transparentPixel) {
+	if (texture->Format == destFormat) {
+		return true;
 	}
 
-	memcpy(colors, Graphics::PaletteColors[paletteNumber], 256 * sizeof(Uint32));
+	void* pixels = nullptr;
 
-	texture->ConvertToPalette(colors, 256);
-	texture->SetPalette(colors, 256);
+	if (destFormat == TextureFormat_INDEXED) {
+		pixels =
+			texture->GetPalettizedPixels(palColors, numPaletteColors, transparentPixel);
+		if (!pixels) {
+			return false;
+		}
+	}
+	else if (texture->Format == TextureFormat_INDEXED) {
+		pixels = texture->GetNonIndexedPixels(destFormat, palColors);
+		if (!pixels) {
+			return false;
+		}
+	}
+	else {
+		int destBytesPerPixel = Texture::GetFormatBytesPerPixel(destFormat);
 
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
-		return 1;
+		pixels = Memory::Malloc(texture->Width * texture->Height * destBytesPerPixel);
+		if (!pixels) {
+			return false;
+		}
+
+		Texture::Convert(texture->Pixels,
+			texture->Format,
+			texture->Pitch,
+			0,
+			0,
+			pixels,
+			destFormat,
+			texture->Width * destBytesPerPixel,
+			0,
+			0,
+			texture->Width,
+			texture->Height);
 	}
 
-	int ok = Graphics::GfxFunctions->UpdateTexture(
-		texture, NULL, texture->Pixels, texture->Pitch);
-	if (!ok) {
-		return 0;
+	if (!ReinitializeTexture(
+		    texture, destFormat, texture->Access, texture->Width, texture->Height)) {
+		Memory::Free(pixels);
+
+		return false;
 	}
 
-	if (Graphics::GfxFunctions->SetTexturePalette) {
-		ok |= Graphics::GfxFunctions->SetTexturePalette(
-			texture, texture->PaletteColors, texture->NumPaletteColors);
+	UpdateTexture(texture, NULL, pixels, texture->Pitch);
+
+	if (destFormat == TextureFormat_INDEXED) {
+		Uint32* palette = (Uint32*)Memory::Malloc(numPaletteColors * sizeof(Uint32));
+		memcpy(palette, palColors, numPaletteColors * sizeof(Uint32));
+		texture->SetPalette(palette, numPaletteColors);
 	}
 
-	return ok;
+	Memory::Free(pixels);
+
+	return true;
 }
 void Graphics::SetTextureMinFilter(Texture* texture, int filterMode) {
 	if (texture && Graphics::GfxFunctions->SetTextureMinFilter) {
@@ -748,6 +777,16 @@ void Graphics::UpdatePaletteIndexTable() {
 	if (Graphics::GfxFunctions->UpdatePaletteIndexTable) {
 		Graphics::GfxFunctions->UpdatePaletteIndexTable(Graphics::PaletteIndexTexture);
 	}
+}
+int Graphics::GetPaletteTransparentColor(Uint32* palColors, unsigned numPaletteColors) {
+	for (unsigned i = 0; i < numPaletteColors; i++) {
+		Uint8 alpha = ColorUtils::GetAlphaChannel(palColors[i], Graphics::PreferredPixelFormat);
+		if (alpha == 0) {
+			return (int)i;
+		}
+	}
+
+	return -1;
 }
 
 void Graphics::UnloadSceneData() {

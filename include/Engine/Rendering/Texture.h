@@ -36,8 +36,10 @@ public:
 	static bool AreFormatsCompatible(int sourceFormat, int destFormat);
 	static bool CanConvertBetweenFormats(int sourceFormat, int destFormat);
 	bool KeepDriverPixelsResident();
-	bool ConvertToRGBA();
-	bool ConvertToPalette(Uint32* palColors, unsigned numPaletteColors);
+	Uint8* GetPalettizedPixels(Uint32* palColors,
+		unsigned numPaletteColors,
+		unsigned transparentIndex);
+	void* GetNonIndexedPixels(int destFormat, Uint32* palColors);
 	static void Convert(void* srcPixels,
 		int srcFormat,
 		int srcPitch,
