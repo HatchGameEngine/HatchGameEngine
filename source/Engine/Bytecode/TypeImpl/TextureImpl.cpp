@@ -212,6 +212,16 @@ static Uint8* GetPixelDataFromArray(ObjArray* pixelsArray,
  * \paramOpt pixels (array): An array of pixels to initialize the texture with. The length of the array must match the dimensions of the texture (e.g., for a 64x64 texture, you must pass an array of exactly 4096 values.)
  * \ns Texture
  */
+/***
+ * \constructor
+ * \desc Creates a texture with the given dimensions, access mode, and format.
+ * \param width (integer): The width of the texture.
+ * \param height (integer): The height of the texture.
+ * \paramOpt access (<ref TEXTUREACCESS_*>): The access mode of the texture. (default: <ref TEXTUREACCESS_STATIC>)
+ * \paramOpt format (<ref TEXTUREFORMAT_*>): The format of the texture. The default is <ref TEXTUREFORMAT_RGB888>, or <ref TEXTUREFORMAT_NATIVE> for render target textures.
+ * \paramOpt source (Drawable): The Drawable to initialize the texture with. The formats must be compatible.
+ * \ns Texture
+ */
 VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
 	ObjTexture* objTexture = AS_TEXTURE(args[0]);
 
@@ -223,7 +233,8 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 	int format = GET_ARG_OPT(4,
 		GetInteger,
 		access == TextureAccess_RENDERTARGET ? TextureFormat_NATIVE : TextureFormat_RGB888);
-	ObjArray* pixelsArray = GET_ARG_OPT(5, GetArray, nullptr);
+	Texture* srcTexture = nullptr;
+	ObjArray* pixelsArray = nullptr;
 
 	char errorString[128];
 
@@ -270,14 +281,28 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 	Uint8* pixels = nullptr;
 	unsigned numPaletteColors = 256;
 
-	if (pixelsArray != nullptr) {
+	if (argCount >= 6) {
+		if (IS_ARRAY(args[5])) {
+			pixelsArray = GET_ARG(5, GetArray);
+		}
+		else {
+			srcTexture = GET_ARG(5, GetDrawable);
+		}
+	}
+
+	if (srcTexture || pixelsArray) {
 		if (access == TextureAccess_RENDERTARGET) {
 			throw ScriptException(
 				"Cannot create a render target texture with pixel data!");
 		}
 
-		pixels = GetPixelDataFromArray(
-			pixelsArray, 0, 0, width, height, width, height, format);
+		if (pixelsArray) {
+			pixels = GetPixelDataFromArray(
+				pixelsArray, 0, 0, width, height, width, height, format);
+		}
+		else if (!Texture::AreFormatsCompatible(srcTexture->Format, format)) {
+			throw ScriptException("Incompatible texture formats!");
+		}
 	}
 
 	Texture* texture = Graphics::CreateTexture(format, access, width, height);
@@ -288,7 +313,11 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 
 	ScriptManager::RegistryAdd(texture, (Obj*)objTexture);
 
-	if (pixels) {
+	if (srcTexture) {
+		Graphics::CopyTexturePixels(
+			texture, 0, 0, srcTexture, 0, 0, srcTexture->Width, srcTexture->Height);
+	}
+	else if (pixels) {
 		Graphics::UpdateTexture(texture, NULL, pixels, texture->Pitch);
 
 		Memory::Free(pixels);
@@ -700,13 +729,13 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
 #undef CONVERT_TEXTURE_PIXEL
 /***
  * \method CopyPixels
- * \desc Copies pixels from a Drawable into the specified coordinates.
+ * \desc Copies pixels from a Drawable into the specified coordinates. The formats must be compatible.
  * \param srcDrawable (Drawable): The Drawable to copy pixels from.
  * \ns Texture
  */
 /***
  * \method CopyPixels
- * \desc Copies pixels from a Drawable into the specified coordinates.
+ * \desc Copies pixels from a Drawable into the specified coordinates. The formats must be compatible.
  * \param srcDrawable (Drawable): The Drawable to copy pixels from.
  * \param destX (integer): The X coordinate in the destination to copy the pixels to.
  * \param destY (integer): The Y coordinate in the destination to copy the pixels to.
@@ -714,7 +743,7 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  */
 /***
  * \method CopyPixels
- * \desc Copies a region of pixels from a Drawable into the specified coordinates.
+ * \desc Copies a region of pixels from a Drawable into the specified coordinates. The formats must be compatible.
  * \param srcDrawable (Drawable): The Drawable to copy pixels from.
  * \param srcX (integer): The X coordinate in the source to start copying the pixels from.
  * \param srcY (integer): The Y coordinate in the source to start copying the pixels from.
@@ -734,14 +763,14 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \method CopyPixels
  * \desc Copies pixels from an array into the specified coordinates.
  * \param srcPixels (array): An array of pixels in the pixel format of the texture.
- * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array.
+ * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array. Must be compatible with the texture's format.
  * \ns Texture
  */
 /***
  * \method CopyPixels
  * \desc Copies pixels from an array into the specified coordinates.
  * \param srcPixels (array): An array of pixels in the pixel format of the texture.
- * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array.
+ * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array. Must be compatible with the texture's format.
  * \param srcWidth (integer): The width of the source.
  * \param srcHeight (integer): The height of the source.
  * \ns Texture
@@ -750,7 +779,7 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \method CopyPixels
  * \desc Copies a region of pixels from an array into the specified coordinates.
  * \param srcPixels (array): An array of pixels in the pixel format of the texture.
- * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array.
+ * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array. Must be compatible with the texture's format.
  * \param srcWidth (integer): The width of the source.
  * \param srcHeight (integer): The height of the source.
  * \param destX (integer): The X coordinate in the destination to copy the pixels to.
@@ -761,7 +790,7 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \method CopyPixels
  * \desc Copies a region of pixels from an array into the specified coordinates.
  * \param srcPixels (array): An array of pixels in the pixel format of the texture.
- * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array.
+ * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array. Must be compatible with the texture's format.
  * \param srcX (integer): The X coordinate in the source to start copying the pixels from.
  * \param srcY (integer): The Y coordinate in the source to start copying the pixels from.
  * \param srcWidth (integer): The width of the source.
