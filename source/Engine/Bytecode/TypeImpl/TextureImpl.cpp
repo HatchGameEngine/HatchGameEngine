@@ -169,7 +169,7 @@ static Uint8* GetPixelDataFromArray(ObjArray* pixelsArray,
 
 /***
  * \constructor
- * \desc Creates a texture with the given dimensions.
+ * \desc Creates a texture with the given dimensions, access mode, and format.
  * \param width (integer): The width of the texture.
  * \param height (integer): The height of the texture.
  * \paramOpt access (<ref TEXTUREACCESS_*>): The access mode of the texture. (default: <ref TEXTUREACCESS_STATIC>)
@@ -313,8 +313,8 @@ ObjTexture* TextureImpl::GetTextureObject(void* texture, bool isViewTexture) {
 
 /***
  * \method CopyPixels
- * \desc Copies pixels from another Texture or Image into the texture.
- * \param srcTexture (Texture): The texture or image to copy pixels from.
+ * \desc Copies pixels from a Drawable into the texture.
+ * \param srcDrawable (Drawable): The Drawable to copy pixels from.
  * \paramOpt srcX (integer): The X offset of the region to copy.
  * \paramOpt srcY (integer): The Y offset of the region to copy.
  * \paramOpt srcWidth (integer): The width of the region to copy.

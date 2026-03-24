@@ -5853,7 +5853,7 @@ VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.TriangleTextured
  * \desc Draws a textured triangle.
- * \param image (integer): Image to draw triangle with.
+ * \param drawable (Drawable): Drawable to draw triangle with.
  * \param x1 (number): X position of the first vertex.
  * \param y1 (number): Y position of the first vertex.
  * \param x2 (number): X position of the second vertex.
@@ -5903,7 +5903,7 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.QuadTextured
  * \desc Draws a textured quad.
- * \param image (integer): Image to draw quad with.
+ * \param drawable (Drawable): Drawable to draw quad with.
  * \param x1 (number): X position of the first vertex.
  * \param y1 (number): Y position of the first vertex.
  * \param x2 (number): X position of the second vertex.
@@ -7000,7 +7000,7 @@ VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.TriangleTextured
  * \desc Draws a textured triangle in 3D space. The texture source should be an image.
- * \param image (integer): Index of the loaded image.
+ * \param drawable (Drawable): Drawable to draw triangle with.
  * \param x1 (number): X position of the first vertex.
  * \param y1 (number): Y position of the first vertex.
  * \param z1 (number): Z position of the first vertex.
@@ -7059,7 +7059,7 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw3D.QuadTextured
  * \desc Draws a textured quad in 3D space. The texture source should be an image.
- * \param image (integer): Index of the loaded image.
+ * \param drawable (Drawable): Drawable to draw quad with.
  * \param x1 (number): X position of the first vertex.
  * \param y1 (number): Y position of the first vertex.
  * \param z1 (number): Z position of the first vertex.
