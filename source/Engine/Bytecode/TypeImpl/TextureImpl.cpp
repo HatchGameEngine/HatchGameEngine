@@ -12,10 +12,44 @@
 
 ObjClass* TextureImpl::Class = nullptr;
 
+Uint32 Hash_Width = 0;
+Uint32 Hash_Height = 0;
+Uint32 Hash_Format = 0;
+Uint32 Hash_Access = 0;
+
 void TextureImpl::Init() {
 	Class = NewClass(CLASS_TEXTURE);
 	Class->NewFn = New;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
+
+	/***
+    * \field Width
+    * \type integer
+    * \ns Texture
+    * \desc The width of the texture.
+    */
+	Hash_Width = Murmur::EncryptString("Width");
+	/***
+    * \field Height
+    * \type integer
+    * \ns Texture
+    * \desc The height of the texture.
+    */
+	Hash_Height = Murmur::EncryptString("Height");
+	/***
+    * \field Format
+    * \type <ref TEXTUREFORMAT_*>
+    * \ns Texture
+    * \desc The format of the texture.
+    */
+	Hash_Format = Murmur::EncryptString("Format");
+	/***
+    * \field Access
+    * \type <ref TEXTUREACCESS_*>
+    * \ns Texture
+    * \desc The access mode of the texture.
+    */
+	Hash_Access = Murmur::EncryptString("Access");
 
 	ScriptManager::DefineNative(Class, "SetSize", VM_SetSize);
 	ScriptManager::DefineNative(Class, "Scale", VM_Scale);
@@ -39,6 +73,8 @@ Obj* TextureImpl::New() {
 	ObjTexture* texture = (ObjTexture*)NewNativeInstance(sizeof(ObjTexture));
 	Memory::Track(texture, "NewTexture");
 	texture->Object.Class = Class;
+	texture->InstanceObj.PropertyGet = VM_PropertyGet;
+	texture->InstanceObj.PropertySet = VM_PropertySet;
 	texture->InstanceObj.Destructor = Dispose;
 	return (Obj*)texture;
 }
@@ -277,6 +313,71 @@ void TextureImpl::Dispose(Obj* object) {
 	// Yes, this leaks memory.
 	// Use Delete() in your script for a texture you no longer need!
 	InstanceImpl::Dispose(object);
+}
+
+bool TextureImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
+	ObjTexture* objTexture = (ObjTexture*)object;
+	Texture* texture = (Texture*)GetTexture(objTexture);
+	if (texture == nullptr) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Texture is no longer valid!");
+		return false;
+	}
+
+	if (hash == Hash_Width) {
+		if (result) {
+			*result = INTEGER_VAL((int)texture->Width);
+		}
+		return true;
+	}
+	else if (hash == Hash_Height) {
+		if (result) {
+			*result = INTEGER_VAL((int)texture->Height);
+		}
+		return true;
+	}
+	else if (hash == Hash_Format) {
+		if (result) {
+			*result = INTEGER_VAL((int)texture->Format);
+		}
+		return true;
+	}
+	else if (hash == Hash_Access) {
+		if (result) {
+			*result = INTEGER_VAL((int)texture->Access);
+		}
+		return true;
+	}
+
+	return false;
+}
+
+bool TextureImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
+	ObjTexture* objTexture = (ObjTexture*)object;
+	Texture* texture = (Texture*)GetTexture(objTexture);
+	if (texture == nullptr) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Texture is no longer valid!");
+		return false;
+	}
+
+#define CHECK_CANNOT_MODIFY(name) \
+	{ \
+		if (hash == Hash_##name) { \
+			ScriptManager::Threads[threadID].ThrowRuntimeError( \
+				false, "Field \"" #name "\" cannot be written to!"); \
+			return true; \
+		} \
+	}
+
+	CHECK_CANNOT_MODIFY(Width)
+	CHECK_CANNOT_MODIFY(Height)
+	CHECK_CANNOT_MODIFY(Format)
+	CHECK_CANNOT_MODIFY(Access)
+
+#undef CHECK_CANNOT_MODIFY
+
+	return false;
 }
 
 void* TextureImpl::GetTexture(ObjTexture* object) {
