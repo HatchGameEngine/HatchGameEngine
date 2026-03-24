@@ -22,14 +22,13 @@ public:
 	static void* GetTexture(ObjTexture* object);
 	static ObjTexture* GetTextureObject(void* texture, bool isViewTexture);
 
-	static VMValue VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_Apply(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetSize(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Scale(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetPixel(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetPixelData(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetPixel(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_CopyPixelData(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_Apply(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Delete(int argCount, VMValue* args, Uint32 threadID);
 };
 

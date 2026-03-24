@@ -17,14 +17,13 @@ void TextureImpl::Init() {
 	Class->NewFn = New;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 
-	ScriptManager::DefineNative(Class, "CopyPixels", VM_CopyPixels);
-	ScriptManager::DefineNative(Class, "Apply", VM_Apply);
 	ScriptManager::DefineNative(Class, "SetSize", VM_SetSize);
 	ScriptManager::DefineNative(Class, "Scale", VM_Scale);
 	ScriptManager::DefineNative(Class, "GetPixel", VM_GetPixel);
 	ScriptManager::DefineNative(Class, "GetPixelData", VM_GetPixelData);
 	ScriptManager::DefineNative(Class, "SetPixel", VM_SetPixel);
-	ScriptManager::DefineNative(Class, "CopyPixelData", VM_CopyPixelData);
+	ScriptManager::DefineNative(Class, "CopyPixels", VM_CopyPixels);
+	ScriptManager::DefineNative(Class, "Apply", VM_Apply);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
 	TypeImpl::RegisterClass(Class);
@@ -311,65 +310,6 @@ ObjTexture* TextureImpl::GetTextureObject(void* texture, bool isViewTexture) {
 			"Cannot update a texture that is a draw target belonging to a view!"); \
 	}
 
-/***
- * \method CopyPixels
- * \desc Copies pixels from a Drawable into the texture.
- * \param srcDrawable (Drawable): The Drawable to copy pixels from.
- * \paramOpt srcX (integer): The X offset of the region to copy.
- * \paramOpt srcY (integer): The Y offset of the region to copy.
- * \paramOpt srcWidth (integer): The width of the region to copy.
- * \paramOpt srcHeight (integer): The height of the region to copy.
- * \paramOpt destX (integer): The X offset of the destination.
- * \paramOpt destY (integer): The Y offset of the destination.
- * \ns Texture
- */
-VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckAtLeastArgCount(argCount, 2);
-
-	ObjTexture* objTexture = AS_TEXTURE(args[0]);
-	Texture* srcTexture = GET_ARG(1, GetDrawable);
-	int srcX = GET_ARG_OPT(2, GetInteger, 0);
-	int srcY = GET_ARG_OPT(3, GetInteger, 0);
-	int srcWidth = GET_ARG_OPT(4, GetInteger, srcTexture ? srcTexture->Width : 0);
-	int srcHeight = GET_ARG_OPT(5, GetInteger, srcTexture ? srcTexture->Height : 0);
-	int destX = GET_ARG_OPT(6, GetInteger, 0);
-	int destY = GET_ARG_OPT(7, GetInteger, 0);
-
-	Texture* texture = (Texture*)GetTexture(objTexture);
-	CHECK_EXISTS(texture);
-	CHECK_NOT_TRYING_TO_UPDATE(objTexture);
-
-	if (srcTexture == nullptr) {
-		return NULL_VAL;
-	}
-
-	if (!Texture::AreFormatsCompatible(srcTexture->Format, texture->Format)) {
-		throw ScriptException("Incompatible texture formats!");
-	}
-
-	Graphics::CopyTexturePixels(
-		texture, destX, destY, srcTexture, srcX, srcY, srcWidth, srcHeight);
-
-	return NULL_VAL;
-}
-/***
- * \method Apply
- * \desc Uploads all changes made to the texture to the GPU. This is an expensive operation, so change the most amount of pixels as possible before calling this.
- * \ns Texture
- */
-VMValue TextureImpl::VM_Apply(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckArgCount(argCount, 1);
-
-	ObjTexture* objTexture = AS_TEXTURE(args[0]);
-	Texture* texture = (Texture*)GetTexture(objTexture);
-
-	CHECK_EXISTS(texture);
-	CHECK_NOT_TRYING_TO_UPDATE(objTexture);
-
-	Graphics::UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
-
-	return NULL_VAL;
-}
 /***
  * \method SetSize
  * \desc Changes the dimensions of the texture, without scaling the pixels.
@@ -658,21 +598,47 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
 }
 #undef CONVERT_TEXTURE_PIXEL
 /***
- * \method CopyPixelData
- * \desc Copies an array of pixels into the specified coordinates.
+ * \method CopyPixels
+ * \desc Copies pixels from a Drawable into the specified coordinates.
+ * \param srcDrawable (Drawable): The Drawable to copy pixels from.
+ * \ns Texture
+ */
+/***
+ * \method CopyPixels
+ * \desc Copies pixels from a Drawable into the specified coordinates.
+ * \param srcDrawable (Drawable): The Drawable to copy pixels from.
+ * \param destX (integer): The X coordinate in the destination to copy the pixels to.
+ * \param destY (integer): The Y coordinate in the destination to copy the pixels to.
+ * \ns Texture
+ */
+/***
+ * \method CopyPixels
+ * \desc Copies pixels from a Drawable into the specified coordinates.
+ * \param srcDrawable (Drawable): The Drawable to copy pixels from.
+ * \param srcX (integer): The X coordinate in the source to start copying the pixels from.
+ * \param srcY (integer): The Y coordinate in the source to start copying the pixels from.
+ * \param destX (integer): The X coordinate in the destination to copy the pixels to.
+ * \param destY (integer): The Y coordinate in the destination to copy the pixels to.
+ * \param destWidth (integer): The width of the region to copy.
+ * \param destHeight (integer): The height of the region to copy.
+ * \ns Texture
+ */
+/***
+ * \method CopyPixels
+ * \desc Copies pixels from an array into the specified coordinates.
  * \param srcPixels (array): An array of pixels in the pixel format of the texture.
  * \ns Texture
  */
 /***
- * \method CopyPixelData
- * \desc Copies an array of pixels into the specified coordinates.
+ * \method CopyPixels
+ * \desc Copies pixels from an array into the specified coordinates.
  * \param srcPixels (array): An array of pixels in the pixel format of the texture.
  * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array.
  * \ns Texture
  */
 /***
- * \method CopyPixelData
- * \desc Copies an array of pixels into the specified coordinates.
+ * \method CopyPixels
+ * \desc Copies pixels from an array into the specified coordinates.
  * \param srcPixels (array): An array of pixels in the pixel format of the texture.
  * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array.
  * \param srcWidth (integer): The width of the source.
@@ -680,8 +646,8 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Texture
  */
 /***
- * \method CopyPixelData
- * \desc Copies an array of pixels into the specified coordinates.
+ * \method CopyPixels
+ * \desc Copies pixels from an array into the specified coordinates.
  * \param srcPixels (array): An array of pixels in the pixel format of the texture.
  * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array.
  * \param srcWidth (integer): The width of the source.
@@ -691,8 +657,8 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Texture
  */
 /***
- * \method CopyPixelData
- * \desc Copies an array of pixels into the specified coordinates.
+ * \method CopyPixels
+ * \desc Copies pixels from an array into the specified coordinates.
  * \param srcPixels (array): An array of pixels in the pixel format of the texture.
  * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array.
  * \param srcWidth (integer): The width of the source.
@@ -705,18 +671,12 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \param destHeight (integer): The height of the region to copy.
  * \ns Texture
  */
-VMValue TextureImpl::VM_CopyPixelData(int argCount, VMValue* args, Uint32 threadID) {
-	if (argCount != 2 && argCount != 3 && argCount != 5 && argCount != 7 && argCount != 11) {
-		StandardLibrary::CheckArgCount(argCount, 2);
-	}
-
+VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID) {
 	ObjTexture* objTexture = AS_TEXTURE(args[0]);
-	ObjArray* srcPixelsArray = GET_ARG(1, GetArray);
+	Texture* srcTexture = nullptr;
+	ObjArray* srcPixelsArray = nullptr;
 	int srcFormat;
-	int srcX, srcY;
 	int srcWidth, srcHeight;
-	int destX, destY;
-	int destWidth, destHeight;
 
 	char errorString[128];
 
@@ -729,66 +689,85 @@ VMValue TextureImpl::VM_CopyPixelData(int argCount, VMValue* args, Uint32 thread
 			"Cannot directly change the pixels of a draw target texture!");
 	}
 
-	if (!srcPixelsArray) {
-		return NULL_VAL;
-	}
+	int remainingArgCount;
 
-	if (argCount >= 3) {
-		srcFormat = GET_ARG(2, GetInteger);
-	}
-	else {
-		srcFormat = texture->Format;
-	}
+	if (IS_ARRAY(args[1])) {
+		if (argCount != 2 && argCount != 3 && argCount != 5 && argCount != 7 && argCount != 11) {
+			StandardLibrary::CheckArgCount(argCount, 2);
+		}
 
-	if (!Texture::AreFormatsCompatible(srcFormat, texture->Format)) {
-		throw ScriptException("Incompatible texture formats!");
-	}
+		srcPixelsArray = GET_ARG(1, GetArray);
 
-	if (argCount >= 5) {
-		srcWidth = GET_ARG(3, GetInteger);
-		srcHeight = GET_ARG(4, GetInteger);
-	}
-	else {
-		srcWidth = texture->Width;
-		srcHeight = texture->Height;
-	}
+		if (!srcPixelsArray) {
+			return NULL_VAL;
+		}
 
-	if (argCount == 11) {
-		srcX = GET_ARG(5, GetInteger);
-		srcY = GET_ARG(6, GetInteger);
-
-		destX = GET_ARG(7, GetInteger);
-		destY = GET_ARG(8, GetInteger);
-
-		destWidth = GET_ARG(9, GetInteger);
-		destHeight = GET_ARG(10, GetInteger);
-	}
-	else {
-		if (argCount == 7) {
-			destX = GET_ARG(5, GetInteger);
-			destY = GET_ARG(6, GetInteger);
+		if (argCount >= 3) {
+			srcFormat = GET_ARG(2, GetInteger);
 		}
 		else {
-			destX = 0;
-			destY = 0;
+			srcFormat = texture->Format;
 		}
 
-		srcX = 0;
-		srcY = 0;
+		if (argCount >= 5) {
+			srcWidth = GET_ARG(3, GetInteger);
+			srcHeight = GET_ARG(4, GetInteger);
+		}
+		else {
+			srcWidth = texture->Width;
+			srcHeight = texture->Height;
+		}
 
-		destWidth = srcWidth;
-		destHeight = srcHeight;
+		if (srcWidth < 0) {
+			throw ScriptException("Width of the source cannot be less than zero.");
+		}
+		if (srcHeight < 0) {
+			throw ScriptException("Height of the source cannot be less than zero.");
+		}
+
+		if (srcWidth == 0 || srcHeight == 0) {
+			return NULL_VAL;
+		}
+
+		remainingArgCount = 5;
+	}
+	else {
+		if (argCount != 2 && argCount != 4 && argCount != 8) {
+			StandardLibrary::CheckArgCount(argCount, 2);
+		}
+
+		srcTexture = GET_ARG(1, GetDrawable);
+		if (srcTexture == nullptr) {
+			return NULL_VAL;
+		}
+
+		srcFormat = srcTexture->Format;
+		srcWidth = srcTexture->Width;
+		srcHeight = srcTexture->Height;
+
+		remainingArgCount = 2;
 	}
 
-	if (srcWidth < 0) {
-		throw ScriptException("Width of the source cannot be less than zero.");
-	}
-	if (srcHeight < 0) {
-		throw ScriptException("Height of the source cannot be less than zero.");
-	}
+	args += remainingArgCount;
+	argCount -= remainingArgCount;
 
-	if (srcWidth == 0 || srcHeight == 0) {
-		return NULL_VAL;
+	int destX = 0, destY = 0;
+	int srcX = 0, srcY = 0;
+	int destWidth = srcWidth, destHeight = srcHeight;
+
+	if (argCount == 6) {
+		srcX = GET_ARG(0, GetInteger);
+		srcY = GET_ARG(1, GetInteger);
+
+		destX = GET_ARG(2, GetInteger);
+		destY = GET_ARG(3, GetInteger);
+
+		destWidth = GET_ARG(4, GetInteger);
+		destHeight = GET_ARG(5, GetInteger);
+	}
+	else if (argCount == 2) {
+		destX = GET_ARG(0, GetInteger);
+		destY = GET_ARG(1, GetInteger);
 	}
 
 	if (destWidth < 0) {
@@ -814,32 +793,64 @@ VMValue TextureImpl::VM_CopyPixelData(int argCount, VMValue* args, Uint32 thread
 		throw ScriptException(errorString);
 	}
 
+	if (!Texture::AreFormatsCompatible(srcFormat, texture->Format)) {
+		throw ScriptException("Incompatible texture formats!");
+	}
+
 	if (destWidth == 0 || destHeight == 0) {
 		return NULL_VAL;
 	}
 
-	Uint8* pixels = nullptr;
+	if (srcPixelsArray) {
+		Uint8* pixels = nullptr;
 
-	if (ScriptManager::Lock()) {
-		try {
-			pixels = GetPixelDataFromArray(srcPixelsArray,
-				srcX,
-				srcY,
-				srcWidth,
-				srcHeight,
-				destWidth,
-				destHeight,
-				srcFormat);
-		} catch (const ScriptException& error) {
+		if (ScriptManager::Lock()) {
+			try {
+				pixels = GetPixelDataFromArray(srcPixelsArray,
+					srcX,
+					srcY,
+					srcWidth,
+					srcHeight,
+					destWidth,
+					destHeight,
+					srcFormat);
+			} catch (const ScriptException& error) {
+				ScriptManager::Unlock();
+				throw;
+			}
 			ScriptManager::Unlock();
-			throw;
 		}
-		ScriptManager::Unlock();
+
+		texture->CopyPixels(pixels, srcFormat, 0, 0, destWidth, destHeight, destX, destY);
+
+		Memory::Free(pixels);
+	}
+	else {
+		if (!Texture::AreFormatsCompatible(srcTexture->Format, texture->Format)) {
+			throw ScriptException("Incompatible texture formats!");
+		}
+
+		Graphics::CopyTexturePixels(
+			texture, destX, destY, srcTexture, srcX, srcY, destWidth, destHeight);
 	}
 
-	texture->CopyPixels(pixels, srcFormat, 0, 0, destWidth, destHeight, destX, destY);
+	return NULL_VAL;
+}
+/***
+ * \method Apply
+ * \desc Uploads all changes made to the texture to the GPU. This is an expensive operation, so change the most amount of pixels as possible before calling this.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_Apply(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
 
-	Memory::Free(pixels);
+	ObjTexture* objTexture = AS_TEXTURE(args[0]);
+	Texture* texture = (Texture*)GetTexture(objTexture);
+
+	CHECK_EXISTS(texture);
+	CHECK_NOT_TRYING_TO_UPDATE(objTexture);
+
+	Graphics::UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
 
 	return NULL_VAL;
 }
