@@ -272,29 +272,78 @@ void Texture::Convert(void* srcPixels,
 	Uint8* src = (Uint8*)srcPixels;
 	Uint8* dest = (Uint8*)destPixels;
 
-	if (srcFormat == destFormat) {
-		for (int y = 0; y < height; y++) {
-			size_t srcPos = ((srcY + y) * srcPitch) + (srcX * srcBytesPerPixel);
-			size_t destPos = ((destY + y) * destPitch) + (destX * destBytesPerPixel);
+	Uint8* buffer = nullptr;
 
-			memmove(&dest[destPos], &src[srcPos], (size_t)width * destBytesPerPixel);
+	size_t srcPosStart = (srcY * srcPitch) + (srcX * srcBytesPerPixel);
+	size_t srcPosEnd = srcPosStart + (height * srcPitch);
+
+	size_t destPosStart = (destY * destPitch) + (destX * destBytesPerPixel);
+	size_t destPtrAdvance = destPitch;
+
+	size_t srcPos = srcPosStart;
+	size_t destPos = destPosStart;
+
+	// Handle overlapping regions
+	if (src == dest && srcX < (destX + width) && (srcX + width) > destX &&
+		srcY < (destY + height) && (srcY + height) > destY) {
+		size_t bufferPitch = width * destBytesPerPixel;
+		size_t bufferSize = bufferPitch * height;
+
+		buffer = (Uint8*)Memory::Malloc(bufferSize);
+		if (!buffer) {
+			return;
 		}
-		return;
+
+		dest = buffer;
+		destPos = 0;
+		destPtrAdvance = width * destBytesPerPixel;
 	}
 
-	for (int y = 0; y < height; y++) {
-		size_t srcPos = ((srcY + y) * srcPitch) + (srcX * srcBytesPerPixel);
-		size_t destPos = ((destY + y) * destPitch) + (destX * destBytesPerPixel);
+	size_t copyLength = width * destBytesPerPixel;
 
-		for (int x = 0; x < width; x++) {
-			Uint8* srcPtr = src + srcPos;
-			Uint8* destPtr = dest + destPos;
+	if (srcFormat == destFormat) {
+		Uint8* srcPtr = src + srcPos;
+		Uint8* srcPtrEnd = src + srcPosEnd;
+		Uint8* destPtr = dest + destPos;
 
-			ConvertPixel(srcPtr, srcFormat, destPtr, destFormat);
+		while (srcPtr < srcPtrEnd) {
+			memcpy(destPtr, srcPtr, copyLength);
 
-			srcPos += srcBytesPerPixel;
-			destPos += destBytesPerPixel;
+			srcPtr += srcPitch;
+			destPtr += destPtrAdvance;
 		}
+	}
+	else {
+		while (srcPos < srcPosEnd) {
+			Uint8* srcPtr = src + srcPos;
+			Uint8* rowPtr = dest + destPos;
+			Uint8* rowPtrEnd = rowPtr + copyLength;
+
+			while (rowPtr < rowPtrEnd) {
+				ConvertPixel(srcPtr, srcFormat, rowPtr, destFormat);
+
+				srcPtr += srcBytesPerPixel;
+				rowPtr += destBytesPerPixel;
+			}
+
+			srcPos += srcPitch;
+			destPos += destPtrAdvance;
+		}
+	}
+
+	if (buffer) {
+		Uint8* bufferPtr = buffer;
+		Uint8* destPtr = (Uint8*)destPixels + destPosStart;
+		Uint8* destPtrEnd = destPtr + (height * destPitch);
+
+		while (destPtr < destPtrEnd) {
+			memcpy(destPtr, bufferPtr, copyLength);
+
+			bufferPtr += destPtrAdvance;
+			destPtr += destPitch;
+		}
+
+		Memory::Free(buffer);
 	}
 }
 
