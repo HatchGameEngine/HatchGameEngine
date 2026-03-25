@@ -483,14 +483,24 @@ bool Graphics::ConvertTextureToFormat(Texture* texture,
 	void* pixels = nullptr;
 
 	if (destFormat == TextureFormat_INDEXED) {
-		pixels =
-			texture->GetPalettizedPixels(palColors, numPaletteColors, transparentPixel);
+		pixels = Texture::GetPalettizedPixels(texture->Pixels,
+			texture->Format,
+			texture->Width,
+			texture->Height,
+			palColors,
+			numPaletteColors,
+			transparentPixel);
 		if (!pixels) {
 			return false;
 		}
 	}
 	else if (texture->Format == TextureFormat_INDEXED) {
-		pixels = texture->GetNonIndexedPixels(destFormat, palColors);
+		pixels = Texture::GetNonIndexedPixels(texture->Pixels,
+			texture->Width,
+			texture->Height,
+			destFormat,
+			palColors,
+			numPaletteColors);
 		if (!pixels) {
 			return false;
 		}
@@ -780,7 +790,8 @@ void Graphics::UpdatePaletteIndexTable() {
 }
 int Graphics::GetPaletteTransparentColor(Uint32* palColors, unsigned numPaletteColors) {
 	for (unsigned i = 0; i < numPaletteColors; i++) {
-		Uint8 alpha = ColorUtils::GetAlphaChannel(palColors[i], Graphics::PreferredPixelFormat);
+		Uint8 alpha =
+			ColorUtils::GetAlphaChannel(palColors[i], Graphics::PreferredPixelFormat);
 		if (alpha == 0) {
 			return (int)i;
 		}

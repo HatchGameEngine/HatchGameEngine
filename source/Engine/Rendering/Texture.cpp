@@ -142,24 +142,16 @@ int Texture::FormatWithoutAlphaChannel(int textureFormat) {
 		return PixelFormat_RGB888;
 	}
 }
-bool Texture::AreFormatsCompatible(int sourceFormat, int destFormat) {
-	if (sourceFormat == destFormat) {
-		return true;
-	}
-
-	if (TEXTUREFORMAT_IS_RGBA(sourceFormat) || TEXTUREFORMAT_IS_RGB(sourceFormat)) {
-		return TEXTUREFORMAT_IS_RGBA(destFormat) || TEXTUREFORMAT_IS_RGB(destFormat);
-	}
-
-	return false;
-}
 bool Texture::CanConvertBetweenFormats(int sourceFormat, int destFormat) {
-	if (AreFormatsCompatible(sourceFormat, destFormat)) {
+	if (sourceFormat == destFormat) {
 		return true;
 	}
 
 	// It's permitted to convert an indexed texture to RGBA.
 	// The OpenGL renderer, for example, requires indexed textures to be stored as RGBA.
+	// But this only copies the color index into the red channel, and vice versa.
+	// No conversion between a palette and RGBA actually takes place.
+	// That is a special case that TextureImpl (HSL's implementation of Texture) handles.
 	if (TEXTUREFORMAT_IS_RGBA(sourceFormat) || TEXTUREFORMAT_IS_RGB(sourceFormat) ||
 		sourceFormat == TextureFormat_INDEXED) {
 		return TEXTUREFORMAT_IS_RGBA(destFormat) || TEXTUREFORMAT_IS_RGB(destFormat) ||
@@ -177,24 +169,30 @@ bool Texture::KeepDriverPixelsResident() {
 	return Format != DriverFormat;
 }
 
-Uint8* Texture::GetPalettizedPixels(Uint32* palColors,
+Uint8* Texture::GetPalettizedPixels(void* srcPixels,
+	int srcFormat,
+	int srcWidth,
+	int srcHeight,
+	Uint32* palColors,
 	unsigned numPaletteColors,
 	unsigned transparentIndex) {
-	if (!palColors || Format == TextureFormat_INDEXED) {
+	if (!palColors || srcFormat == TextureFormat_INDEXED) {
 		return nullptr;
 	}
 
-	Uint8* srcPixels = (Uint8*)Pixels;
-	Uint8* destPixels = (Uint8*)Memory::Malloc(Width * Height);
+	Uint8* srcPtr = (Uint8*)srcPixels;
+	Uint8* destPixels = (Uint8*)Memory::Malloc(srcWidth * srcHeight);
 	if (!destPixels) {
 		return nullptr;
 	}
 
+	int srcBytesPerPixel = GetFormatBytesPerPixel(srcFormat);
+
 	ankerl::unordered_dense::map<Uint32, Uint8> colorsMap;
 
-	for (size_t i = 0; i < Width * Height; i++) {
+	for (size_t i = 0; i < srcWidth * srcHeight; i++) {
 		Uint8 rgba[4];
-		ConvertPixel(srcPixels, Format, rgba, TextureFormat_RGBA8888);
+		ConvertPixel(srcPtr, srcFormat, rgba, TextureFormat_RGBA8888);
 
 		if (rgba[3]) {
 			// The order doesn't matter; this is just being used as a hash
@@ -214,14 +212,19 @@ Uint8* Texture::GetPalettizedPixels(Uint32* palColors,
 			destPixels[i] = transparentIndex;
 		}
 
-		srcPixels += BytesPerPixel;
+		srcPtr += srcBytesPerPixel;
 	}
 
 	return destPixels;
 }
 
-void* Texture::GetNonIndexedPixels(int destFormat, Uint32* palColors) {
-	if (!palColors || Format != TextureFormat_INDEXED) {
+void* Texture::GetNonIndexedPixels(void* srcPixels,
+	int srcWidth,
+	int srcHeight,
+	int destFormat,
+	Uint32* palColors,
+	unsigned numPaletteColors) {
+	if (!palColors || numPaletteColors == 0) {
 		return nullptr;
 	}
 
@@ -229,21 +232,26 @@ void* Texture::GetNonIndexedPixels(int destFormat, Uint32* palColors) {
 	int destPixelFormat = TextureFormatToPixelFormat(destFormat);
 	int destBytesPerPixel = GetFormatBytesPerPixel(destFormat);
 
-	Uint8* srcPixels = (Uint8*)Pixels;
-	void* destPixels = Memory::Malloc(Width * Height * destBytesPerPixel);
+	Uint8* srcPtr = (Uint8*)srcPixels;
+	void* destPixels = Memory::Malloc(srcWidth * srcHeight * destBytesPerPixel);
 	if (!destPixels) {
 		return nullptr;
 	}
 
 	Uint8* destPtr = (Uint8*)destPixels;
 
-	for (size_t i = 0; i < Width * Height; i++) {
-		Uint32 color = palColors[srcPixels[i]];
+	for (size_t i = 0; i < srcWidth * srcHeight; i++) {
+		Uint8 index = *srcPtr;
+		if (index >= numPaletteColors) {
+			index = numPaletteColors - 1;
+		}
 
-		color = ColorUtils::Convert(color, Graphics::PreferredPixelFormat, destPixelFormat);
+		Uint32 color = ColorUtils::Convert(
+			palColors[index], Graphics::PreferredPixelFormat, destPixelFormat);
 
 		ConvertPixel((Uint8*)&color, srcPixelFormat, destPtr, destFormat);
 
+		srcPtr++;
 		destPtr += destBytesPerPixel;
 	}
 
@@ -473,7 +481,9 @@ void Texture::CopyPixels(void* srcPixels,
 	int srcWidth,
 	int srcHeight,
 	int destX,
-	int destY) {
+	int destY,
+	int copyWidth,
+	int copyHeight) {
 	if (!Pixels || !srcPixels) {
 		return;
 	}
@@ -484,8 +494,8 @@ void Texture::CopyPixels(void* srcPixels,
 		    srcHeight,
 		    srcX,
 		    srcY,
-		    srcWidth,
-		    srcHeight,
+		    copyWidth,
+		    copyHeight,
 		    Width,
 		    Height,
 		    destX,

@@ -33,13 +33,21 @@ public:
 	static int TextureFormatToPixelFormat(int textureFormat);
 	static int FormatWithAlphaChannel(int textureFormat);
 	static int FormatWithoutAlphaChannel(int textureFormat);
-	static bool AreFormatsCompatible(int sourceFormat, int destFormat);
 	static bool CanConvertBetweenFormats(int sourceFormat, int destFormat);
 	bool KeepDriverPixelsResident();
-	Uint8* GetPalettizedPixels(Uint32* palColors,
+	static Uint8* GetPalettizedPixels(void* srcPixels,
+		int srcFormat,
+		int srcWidth,
+		int srcHeight,
+		Uint32* palColors,
 		unsigned numPaletteColors,
 		unsigned transparentIndex);
-	void* GetNonIndexedPixels(int destFormat, Uint32* palColors);
+	static void* GetNonIndexedPixels(void* srcPixels,
+		int srcWidth,
+		int srcHeight,
+		int destFormat,
+		Uint32* palColors,
+		unsigned numPaletteColors);
 	static void Convert(void* srcPixels,
 		int srcFormat,
 		int srcPitch,
@@ -67,7 +75,9 @@ public:
 		int srcWidth,
 		int srcHeight,
 		int destX,
-		int destY);
+		int destY,
+		int copyWidth,
+		int copyHeight);
 	static bool ClipCopyRegion(int srcTextureWidth,
 		int srcTextureHeight,
 		int& srcX,
