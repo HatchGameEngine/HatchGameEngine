@@ -265,6 +265,7 @@ static Uint32* GetPaletteFromArray(ObjArray* paletteArray, unsigned& numPaletteC
  * \paramOpt access (<ref TEXTUREACCESS_*>): The access mode of the texture. (default: <ref TEXTUREACCESS_STATIC>)
  * \paramOpt format (<ref TEXTUREFORMAT_*>): The format of the texture. The default is <ref TEXTUREFORMAT_RGB888>, or <ref TEXTUREFORMAT_NATIVE> for render target textures.
  * \paramOpt pixels (array): An array of pixels to initialize the texture with. The length of the array must match the dimensions of the texture (e.g., for a 64x64 texture, you must pass an array of exactly 4096 values.)
+ * \paramOpt palette (array): The palette of the texture, format 0xRRGGBB.
  * \ns Texture
  */
 /***
@@ -274,7 +275,8 @@ static Uint32* GetPaletteFromArray(ObjArray* paletteArray, unsigned& numPaletteC
  * \param height (integer): The height of the texture.
  * \paramOpt access (<ref TEXTUREACCESS_*>): The access mode of the texture. (default: <ref TEXTUREACCESS_STATIC>)
  * \paramOpt format (<ref TEXTUREFORMAT_*>): The format of the texture. The default is <ref TEXTUREFORMAT_RGB888>, or <ref TEXTUREFORMAT_NATIVE> for render target textures.
- * \paramOpt source (Drawable): The Drawable to initialize the texture with. The formats must be compatible.
+ * \paramOpt source (Drawable): The Drawable to initialize the texture with.
+ * \paramOpt palette (array): The palette of the Drawable, format 0xRRGGBB.
  * \ns Texture
  */
 VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID) {
@@ -290,6 +292,7 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 		access == TextureAccess_RENDERTARGET ? TextureFormat_NATIVE : TextureFormat_RGB888);
 	Texture* srcTexture = nullptr;
 	ObjArray* pixelsArray = nullptr;
+	ObjArray* paletteArray = nullptr;
 
 	char errorString[128];
 
@@ -334,14 +337,22 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 	}
 
 	Uint8* pixels = nullptr;
+	Uint32* palette = nullptr;
+	Uint32* paletteCopy = nullptr;
+	unsigned numPaletteColors = 0;
+	bool doIndexedConversion = false;
 
-	if (argCount >= 6) {
+	if (argCount >= 6 && !IS_NULL(args[5])) {
 		if (IS_ARRAY(args[5])) {
 			pixelsArray = GET_ARG(5, GetArray);
 		}
 		else {
 			srcTexture = GET_ARG(5, GetDrawable);
 		}
+	}
+
+	if (argCount >= 7) {
+		paletteArray = GET_ARG(6, GetArray);
 	}
 
 	if (srcTexture || pixelsArray) {
@@ -354,48 +365,143 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 			pixels = GetPixelDataFromArray(
 				pixelsArray, 0, 0, width, height, width, height, format);
 		}
-		else if (!Texture::CanConvertBetweenFormats(srcTexture->Format, format)) {
-			throw ScriptException("Incompatible texture formats!");
+		// If the formats don't match
+		else if (format != srcTexture->Format) {
+			// If either format is indexed
+			if (format == TextureFormat_INDEXED ||
+				srcTexture->Format == TextureFormat_INDEXED) {
+				doIndexedConversion = true;
+			}
+			else if (!Texture::CanConvertBetweenFormats(format, srcTexture->Format)) {
+				throw ScriptException("Incompatible texture formats!");
+			}
+		}
+	}
+	else if (paletteArray && format != TextureFormat_INDEXED) {
+		throw ScriptException("Cannot create a non-indexed texture with a palette!");
+	}
+
+	// Determine which palette to use
+	if (paletteArray) {
+		try {
+			paletteCopy = GetPaletteFromArray(paletteArray, numPaletteColors);
+		} catch (const ScriptException& error) {
+			Memory::Free(pixels);
+			throw error;
+		}
+
+		palette = paletteCopy;
+	}
+	else if (srcTexture) {
+		palette = srcTexture->PaletteColors;
+		numPaletteColors = srcTexture->NumPaletteColors;
+	}
+
+	// If no palette was given when one is needed, create a grayscale palette of 256 colors
+	if (!palette && format == TextureFormat_INDEXED) {
+		numPaletteColors = 256;
+		paletteCopy = (Uint32*)Memory::Malloc(numPaletteColors * sizeof(Uint32));
+		if (!paletteCopy) {
+			Memory::Free(pixels);
+			throw ScriptException(
+				"Could not create a default palette for the texture!");
+		}
+
+		palette = paletteCopy;
+
+		for (unsigned i = 0; i < numPaletteColors; i++) {
+			Uint8 brightness = (int)(i * std::ceil(255.0 / numPaletteColors));
+
+			palette[i] =
+				ColorUtils::Make(i, i, i, 0xFF, Graphics::PreferredPixelFormat);
+		}
+	}
+
+	// Check if pixels need to be converted between indexed and non-indexed formats
+	if (doIndexedConversion) {
+		if (format == TextureFormat_INDEXED) {
+			int transparentIndex =
+				Graphics::GetPaletteTransparentColor(palette, numPaletteColors);
+			if (transparentIndex == -1) {
+				transparentIndex = 0;
+			}
+
+			pixels = Texture::GetPalettizedPixels(srcTexture->Pixels,
+				srcTexture->Format,
+				srcTexture->Width,
+				srcTexture->Height,
+				palette,
+				numPaletteColors,
+				transparentIndex);
+		}
+		else {
+			// The source texture is indexed
+			pixels = (Uint8*)Texture::GetNonIndexedPixels(srcTexture->Pixels,
+				srcTexture->Width,
+				srcTexture->Height,
+				format,
+				palette,
+				numPaletteColors);
+		}
+
+		if (!pixels) {
+			Memory::Free(paletteCopy);
+			throw ScriptException("Could not convert pixels!");
 		}
 	}
 
 	Texture* texture = Graphics::CreateTexture(format, access, width, height);
 	if (!texture) {
 		Memory::Free(pixels);
+		Memory::Free(paletteCopy);
 		return NULL_VAL;
 	}
 
 	ScriptManager::RegistryAdd(texture, (Obj*)objTexture);
 
 	if (srcTexture) {
-		Graphics::CopyTexturePixels(
-			texture, 0, 0, srcTexture, 0, 0, srcTexture->Width, srcTexture->Height);
-	}
-	else if (pixels) {
-		Graphics::UpdateTexture(texture, NULL, pixels, texture->Pitch);
-
-		Memory::Free(pixels);
-	}
-
-	if (format == TextureFormat_INDEXED) {
-		Uint32* srcPalette = srcTexture ? srcTexture->PaletteColors : nullptr;
-		unsigned numPaletteColors = srcTexture ? srcTexture->NumPaletteColors : 256;
-
-		Uint32* destPalette = (Uint32*)Memory::Malloc(numPaletteColors * sizeof(Uint32));
-
-		if (srcPalette) {
-			memcpy(destPalette, srcPalette, numPaletteColors * sizeof(Uint32));
+		if (doIndexedConversion) {
+			texture->CopyPixels(pixels,
+				texture->Format,
+				0,
+				0,
+				srcTexture->Width,
+				srcTexture->Height,
+				0,
+				0,
+				width,
+				height);
 		}
 		else {
-			for (unsigned i = 0; i < numPaletteColors; i++) {
-				Uint8 brightness = (int)(i * std::ceil(255.0 / numPaletteColors));
-
-				destPalette[i] = ColorUtils::Make(
-					i, i, i, 0xFF, Graphics::PreferredPixelFormat);
-			}
+			Graphics::CopyTexturePixels(texture,
+				0,
+				0,
+				srcTexture,
+				0,
+				0,
+				srcTexture->Width,
+				srcTexture->Height);
 		}
 
-		Graphics::SetTexturePalette(texture, destPalette, numPaletteColors);
+		// Update the texture
+		Graphics::UpdateTexture(texture, NULL, texture->Pixels, texture->Pitch);
+	}
+	else if (pixels) {
+		// Copy the pixels and update the texture
+		Graphics::UpdateTexture(texture, NULL, pixels, texture->Pitch);
+	}
+
+	Memory::Free(pixels);
+
+	// Define the palette
+	if (format == TextureFormat_INDEXED) {
+		// If no palette was given but a source texture was given, copy the palette of the source
+		if (!paletteCopy) {
+			paletteCopy = (Uint32*)Memory::Malloc(numPaletteColors * sizeof(Uint32));
+			memcpy(paletteCopy, palette, numPaletteColors * sizeof(Uint32));
+		}
+
+		Graphics::SetTexturePalette(texture, paletteCopy, numPaletteColors);
 	}
 
 	return OBJECT_VAL(objTexture);
@@ -793,7 +899,7 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \method CopyPixels
  * \desc Copies pixels from a Drawable into the specified coordinates. The formats must be compatible.
  * \param srcDrawable (Drawable): The Drawable to copy pixels from.
- * \paramOpt srcPalette (Array): The palette of the source, format 0xRRGGBB.
+ * \paramOpt srcPalette (array): The palette of the source, format 0xRRGGBB.
  * \ns Texture
  */
 /***
@@ -802,7 +908,7 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \param srcDrawable (Drawable): The Drawable to copy pixels from.
  * \param destX (integer): The X coordinate in the destination to copy the pixels to.
  * \param destY (integer): The Y coordinate in the destination to copy the pixels to.
- * \paramOpt srcPalette (Array): The palette of the source, format 0xRRGGBB.
+ * \paramOpt srcPalette (array): The palette of the source, format 0xRRGGBB.
  * \ns Texture
  */
 /***
@@ -815,14 +921,14 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \param destY (integer): The Y coordinate in the destination to copy the pixels to.
  * \param destWidth (integer): The width of the region to copy.
  * \param destHeight (integer): The height of the region to copy.
- * \paramOpt srcPalette (Array): The palette of the source, format 0xRRGGBB.
+ * \paramOpt srcPalette (array): The palette of the source, format 0xRRGGBB.
  * \ns Texture
  */
 /***
  * \method CopyPixels
  * \desc Copies pixels from an array into the specified coordinates.
  * \param srcPixels (array): An array of pixels in the pixel format of the texture.
- * \paramOpt srcPalette (Array): The palette of the source, format 0xRRGGBB.
+ * \paramOpt srcPalette (array): The palette of the source, format 0xRRGGBB.
  * \ns Texture
  */
 /***
@@ -830,7 +936,7 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Copies pixels from an array into the specified coordinates.
  * \param srcPixels (array): An array of pixels in the pixel format of the texture.
  * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array.
- * \paramOpt srcPalette (Array): The palette of the source, format 0xRRGGBB. Required if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, and the format of the destination texture is not `TEXTUREFORMAT_INDEXED`.
+ * \paramOpt srcPalette (array): The palette of the source, format 0xRRGGBB. Required if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, and the format of the destination texture is not `TEXTUREFORMAT_INDEXED`.
  * \ns Texture
  */
 /***
@@ -840,7 +946,7 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \param srcFormat (<ref TEXTUREFORMAT_*>): The format of the pixels in the array.
  * \param srcWidth (integer): The width of the source.
  * \param srcHeight (integer): The height of the source.
- * \paramOpt srcPalette (Array): The palette of the source, format 0xRRGGBB. Required if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, and the format of the destination texture is not `TEXTUREFORMAT_INDEXED`.
+ * \paramOpt srcPalette (array): The palette of the source, format 0xRRGGBB. Required if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, and the format of the destination texture is not `TEXTUREFORMAT_INDEXED`.
  * \ns Texture
  */
 /***
@@ -852,7 +958,7 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \param srcHeight (integer): The height of the source.
  * \param destX (integer): The X coordinate in the destination to copy the pixels to.
  * \param destY (integer): The Y coordinate in the destination to copy the pixels to.
- * \paramOpt srcPalette (Array): The palette of the source, format 0xRRGGBB. Required if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, and the format of the destination texture is not `TEXTUREFORMAT_INDEXED`.
+ * \paramOpt srcPalette (array): The palette of the source, format 0xRRGGBB. Required if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, and the format of the destination texture is not `TEXTUREFORMAT_INDEXED`.
  * \ns Texture
  */
 /***
@@ -868,7 +974,7 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
  * \param destY (integer): The Y coordinate in the destination to copy the pixels to.
  * \param destWidth (integer): The width of the region to copy.
  * \param destHeight (integer): The height of the region to copy.
- * \paramOpt srcPalette (Array): The palette of the source, format 0xRRGGBB. Required if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, and the format of the destination texture is not `TEXTUREFORMAT_INDEXED`.
+ * \paramOpt srcPalette (array): The palette of the source, format 0xRRGGBB. Required if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, and the format of the destination texture is not `TEXTUREFORMAT_INDEXED`.
  * \ns Texture
  */
 VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID) {
@@ -1046,7 +1152,7 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 	Uint32* srcPalette = nullptr;
 	Uint32* paletteFromArray = nullptr;
 	unsigned numPaletteColors = 0;
-	int transparentPaletteIndex = 0;
+	int transparentIndex = 0;
 
 	// If converting FROM indexed, it uses the source texture's palette, or the srcPalette
 	// parameter, which is mandatory if the source is an array.
@@ -1076,10 +1182,10 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 			throw ScriptException("Must specify palette!");
 		}
 
-		transparentPaletteIndex =
+		transparentIndex =
 			Graphics::GetPaletteTransparentColor(srcPalette, numPaletteColors);
-		if (transparentPaletteIndex == -1) {
-			transparentPaletteIndex = 0;
+		if (transparentIndex == -1) {
+			transparentIndex = 0;
 		}
 	}
 
@@ -1099,7 +1205,7 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 			} catch (const ScriptException& error) {
 				Memory::Free(paletteFromArray);
 				ScriptManager::Unlock();
-				throw;
+				throw error;
 			}
 			ScriptManager::Unlock();
 		}
@@ -1117,7 +1223,7 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 					destHeight,
 					srcPalette,
 					numPaletteColors,
-					transparentPaletteIndex);
+					transparentIndex);
 			}
 			else {
 				// The source array is indexed
@@ -1168,7 +1274,7 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 							 : texture->PaletteColors,
 					paletteFromArray ? numPaletteColors
 							 : texture->NumPaletteColors,
-					transparentPaletteIndex);
+					transparentIndex);
 			}
 			else {
 				// The source texture is indexed
