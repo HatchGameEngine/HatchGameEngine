@@ -35,6 +35,16 @@ public:
 	static int FormatWithoutAlphaChannel(int textureFormat);
 	static bool CanConvertBetweenFormats(int sourceFormat, int destFormat);
 	bool KeepDriverPixelsResident();
+	static void CopyRegionIntoBuffer(void* destPixels,
+		void* srcPixels,
+		int srcFormat,
+		int srcPitch,
+		int srcX,
+		int srcY,
+		int width,
+		int height);
+	void*
+	GetRegion(int srcX, int srcY, int srcWidth, int srcHeight, int* outWidth, int* outHeight);
 	static void ConvertPixelsToIndexed(void* destPixels,
 		void* srcPixels,
 		int srcFormat,

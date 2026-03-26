@@ -1296,48 +1296,56 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 	}
 	else {
 		if (doIndexedConversion) {
-			// TODO: Don't convert the entire buffer, only the region that needs to be copied
-			void* result;
+			int copyWidth, copyHeight;
+			void* region = srcTexture->GetRegion(
+				srcX, srcY, destWidth, destHeight, &copyWidth, &copyHeight);
 
-			// The target texture is indexed
-			if (texture->Format == TextureFormat_INDEXED) {
-				result = Texture::GetPalettizedPixels(srcTexture->Pixels,
-					srcTexture->Format,
-					srcTexture->Width,
-					srcTexture->Height,
-					paletteFromArray ? paletteFromArray
-							 : texture->PaletteColors,
-					paletteFromArray ? numPaletteColors
-							 : texture->NumPaletteColors,
-					transparentIndex);
-			}
-			else {
-				// The source texture is indexed
-				result = Texture::GetNonIndexedPixels(srcTexture->Pixels,
-					srcTexture->Width,
-					srcTexture->Height,
+			// If there's nothing to copy, GetRegion returns nullptr, which is fine.
+			if (region) {
+				void* result;
+
+				// The target texture is indexed
+				if (texture->Format == TextureFormat_INDEXED) {
+					result = Texture::GetPalettizedPixels(region,
+						srcTexture->Format,
+						copyWidth,
+						copyHeight,
+						paletteFromArray ? paletteFromArray
+								 : texture->PaletteColors,
+						paletteFromArray ? numPaletteColors
+								 : texture->NumPaletteColors,
+						transparentIndex);
+				}
+				else {
+					// The source texture is indexed
+					result = Texture::GetNonIndexedPixels(region,
+						copyWidth,
+						copyHeight,
+						texture->Format,
+						srcPalette,
+						numPaletteColors);
+				}
+
+				Memory::Free(region);
+
+				if (!result) {
+					Memory::Free(paletteFromArray);
+					throw ScriptException("Could not convert pixels!");
+				}
+
+				texture->CopyPixels(result,
 					texture->Format,
-					srcPalette,
-					numPaletteColors);
+					0,
+					0,
+					copyWidth,
+					copyHeight,
+					destX,
+					destY,
+					copyWidth,
+					copyHeight);
+
+				Memory::Free(result);
 			}
-
-			if (!result) {
-				Memory::Free(paletteFromArray);
-				throw ScriptException("Could not convert pixels!");
-			}
-
-			texture->CopyPixels(result,
-				texture->Format,
-				srcX,
-				srcY,
-				srcTexture->Width,
-				srcTexture->Height,
-				destX,
-				destY,
-				destWidth,
-				destHeight);
-
-			Memory::Free(result);
 		}
 		else {
 			Graphics::CopyTexturePixels(texture,

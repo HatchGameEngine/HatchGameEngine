@@ -169,6 +169,70 @@ bool Texture::KeepDriverPixelsResident() {
 	return Format != DriverFormat;
 }
 
+void Texture::CopyRegionIntoBuffer(void* destPixels,
+	void* srcPixels,
+	int srcFormat,
+	int srcPitch,
+	int srcX,
+	int srcY,
+	int width,
+	int height) {
+	int srcBytesPerPixel = GetFormatBytesPerPixel(srcFormat);
+
+	Uint8* src = (Uint8*)srcPixels + (srcY * srcPitch) + (srcX * srcBytesPerPixel);
+	Uint8* srcEnd = src + (height * srcPitch);
+	Uint8* dest = (Uint8*)destPixels;
+
+	while (src < srcEnd) {
+		memcpy(dest, src, width * srcBytesPerPixel);
+
+		src += srcPitch;
+		dest += width * srcBytesPerPixel;
+	}
+}
+
+void* Texture::GetRegion(int srcX,
+	int srcY,
+	int srcWidth,
+	int srcHeight,
+	int* outWidth,
+	int* outHeight) {
+	if (!Pixels) {
+		return nullptr;
+	}
+
+	int destX = 0, destY = 0;
+	int destWidth, destHeight;
+
+	if (!Texture::ClipCopyRegion(srcWidth,
+		    srcHeight,
+		    srcX,
+		    srcY,
+		    srcWidth,
+		    srcHeight,
+		    Width,
+		    Height,
+		    destX,
+		    destY,
+		    destWidth,
+		    destHeight)) {
+		return nullptr;
+	}
+
+	void* dest = (Uint8*)Memory::Malloc(destWidth * destHeight * BytesPerPixel);
+	if (!dest) {
+		return nullptr;
+	}
+
+	Texture::CopyRegionIntoBuffer(
+		dest, Pixels, Format, Pitch, destX, destY, destWidth, destHeight);
+
+	*outWidth = destWidth;
+	*outHeight = destHeight;
+
+	return dest;
+}
+
 void Texture::ConvertPixelsToIndexed(void* destPixels,
 	void* srcPixels,
 	int srcFormat,
