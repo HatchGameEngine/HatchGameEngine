@@ -1365,7 +1365,7 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * Texture.Convert
- * \desc Converts the format of the pixels in <param srcPixels> from <param srcFormat> into <param targetFormat>. If <param srcFormat> and <param targetFormat> are the same, this simply copies the pixels from <param srcDrawable> into <param destPixels>.
+ * \desc Converts the format of the pixels in <param srcPixels> from <param srcFormat> into <param targetFormat>. If <param srcFormat> and <param targetFormat> are the same, this just copies the pixels from <param srcDrawable> into <param destPixels>.
  * \param srcDrawable (Drawable): The Drawable to convert.
  * \param srcFormat (<ref TEXTUREFORMAT_*>): The source format.
  * \param destPixels (array): The destination array.
@@ -1375,12 +1375,22 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
  */
 /***
  * Texture.Convert
- * \desc Converts the format of the pixels in <param srcPixels> from <param srcFormat> into <param targetFormat>. If <param srcFormat> and <param targetFormat> are the same, this simply copies the pixels from <param srcPixels> into <param destPixels>.
+ * \desc Converts the format of the pixels in <param srcPixels> from <param srcFormat> into <param targetFormat>. If <param srcFormat> and <param targetFormat> are the same, this just copies the pixels from <param srcPixels> into <param destPixels>.
  * \param srcPixels (array): An array of pixels.
  * \param srcFormat (<ref TEXTUREFORMAT_*>): The source format.
  * \param destPixels (array): The destination array.
  * \param targetFormat (<ref TEXTUREFORMAT_*>): The target format.
  * \paramOpt palette (array): The palette of the source if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, or the palette of the target if <param targetFormat> is `TEXTUREFORMAT_INDEXED`. Format 0xRRGGBB. Required if <param srcFormat> is `TEXTUREFORMAT_INDEXED`.
+ * \ns Texture
+ */
+/***
+ * Texture.Convert
+ * \desc Converts <param color> from <param srcFormat> into <param targetFormat>. If <param srcFormat> and <param targetFormat> are the same, this just returns <param color>.
+ * \param color (integer): The color to convert.
+ * \param srcFormat (<ref TEXTUREFORMAT_*>): The source format.
+ * \param targetFormat (<ref TEXTUREFORMAT_*>): The target format.
+ * \paramOpt palette (array): The palette of the source if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, or the palette of the target if <param targetFormat> is `TEXTUREFORMAT_INDEXED`. Format 0xRRGGBB. Required if <param srcFormat> is `TEXTUREFORMAT_INDEXED`.
+ * \return integer Returns <param color> converted to <param targetFormat>.
  * \ns Texture
  */
 VMValue TextureImpl::VM_Convert(int argCount, VMValue* args, Uint32 threadID) {
@@ -1393,12 +1403,24 @@ VMValue TextureImpl::VM_Convert(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjArray* srcPixelsArray = nullptr;
 	Texture* srcTexture = nullptr;
+	VMValue srcColor = NULL_VAL;
 	int srcFormat;
 	ObjArray* destPixelsArray = nullptr;
 	int targetFormat;
 	ObjArray* paletteArray = nullptr;
 
-	if (IS_ARRAY(args[0])) {
+	if (IS_INTEGER(args[0])) {
+		srcColor = args[0];
+		srcFormat = GET_ARG(1, GetInteger);
+		targetFormat = GET_ARG(2, GetInteger);
+		paletteArray = GET_ARG_OPT(3, GetArray, nullptr);
+
+		// Easy
+		if (srcFormat == targetFormat) {
+			return srcColor;
+		}
+	}
+	else if (IS_ARRAY(args[0])) {
 		srcPixelsArray = GET_ARG(0, GetArray);
 		if (!srcPixelsArray) {
 			return NULL_VAL;
@@ -1467,7 +1489,44 @@ VMValue TextureImpl::VM_Convert(int argCount, VMValue* args, Uint32 threadID) {
 		throw ScriptException("Must specify palette!");
 	}
 
-	if (srcPixelsArray) {
+	if (!IS_NULL(srcColor)) {
+		int color = AS_INTEGER(srcColor);
+		int destColor = 0;
+
+#if HATCH_LITTLE_ENDIAN
+		CONVERT_TEXTURE_PIXEL(color, srcFormat);
+#endif
+
+		if (srcFormat == TextureFormat_INDEXED) {
+			Texture::ConvertPixelsToNonIndexed(&destColor,
+				&color,
+				1,
+				targetFormat,
+				palette,
+				numPaletteColors);
+		}
+		else if (targetFormat == TextureFormat_INDEXED) {
+			Texture::ConvertPixelsToIndexed(&destColor,
+				&color,
+				srcFormat,
+				1,
+				palette,
+				numPaletteColors,
+				transparentIndex);
+		}
+		else {
+			Texture::ConvertPixel((Uint8*)&color, srcFormat, (Uint8*)&destColor, targetFormat);
+		}
+
+		Memory::Free(paletteFromArray);
+
+#if HATCH_LITTLE_ENDIAN
+		CONVERT_TEXTURE_PIXEL(destColor, targetFormat);
+#endif
+
+		return INTEGER_VAL(destColor);
+	}
+	else if (srcPixelsArray) {
 		Uint8* pixels = nullptr;
 
 		if (ScriptManager::Lock()) {
