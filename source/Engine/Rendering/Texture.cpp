@@ -247,6 +247,22 @@ void Texture::ConvertPixelsToIndexed(void* destPixels,
 	Uint8* srcPtr = (Uint8*)srcPixels;
 	Uint8* destPtr = (Uint8*)destPixels;
 
+	if (srcLength == 1) {
+		Uint8 rgba[4];
+		ConvertPixel(srcPtr, srcFormat, rgba, TextureFormat_RGBA8888);
+
+		if (rgba[3]) {
+			Uint8 nearestColor = ColorUtils::NearestColor(
+				rgba[0], rgba[1], rgba[2], palColors, numPaletteColors);
+			*destPtr = nearestColor;
+		}
+		else {
+			*destPtr = transparentIndex;
+		}
+
+		return;
+	}
+
 	int srcBytesPerPixel = GetFormatBytesPerPixel(srcFormat);
 
 	ankerl::unordered_dense::map<Uint32, Uint8> colorsMap;
