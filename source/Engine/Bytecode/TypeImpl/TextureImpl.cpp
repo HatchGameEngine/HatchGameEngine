@@ -293,6 +293,22 @@ static Uint32* GetPaletteFromArray(ObjArray* paletteArray, unsigned& numPaletteC
 	return palette;
 }
 
+#define VALIDATE_TEXTURE_FORMAT(textureFormat) \
+	{ \
+		if (textureFormat == TextureFormat_NATIVE) { \
+			textureFormat = Graphics::TextureFormat; \
+		} \
+		else if (textureFormat < 0 || textureFormat > TextureFormat_INDEXED) { \
+			char errorString[128]; \
+			snprintf(errorString, \
+				sizeof errorString, \
+				"Texture format %d out of range. (0 - %d)", \
+				textureFormat, \
+				TextureFormat_INDEXED); \
+			throw ScriptException(errorString); \
+		} \
+	}
+
 /***
  * \constructor
  * \desc Creates a texture with the given dimensions, access mode, and format.
@@ -360,16 +376,7 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 				"Texture format of a render target texture must be TEXTUREFORMAT_NATIVE!");
 		}
 
-		if (format < 0 || format > TextureFormat_INDEXED) {
-			snprintf(errorString,
-				sizeof errorString,
-				"Texture format %d out of range. (%d - %d)",
-				format,
-				0,
-				TextureFormat_INDEXED);
-
-			throw ScriptException(errorString);
-		}
+		VALIDATE_TEXTURE_FORMAT(format);
 	}
 
 	Uint8* pixels = nullptr;
@@ -1068,6 +1075,8 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 
 		if (argCount >= 3) {
 			srcFormat = GET_ARG(2, GetInteger);
+
+			VALIDATE_TEXTURE_FORMAT(srcFormat);
 		}
 		else {
 			srcFormat = texture->Format;
@@ -1415,6 +1424,9 @@ VMValue TextureImpl::VM_Convert(int argCount, VMValue* args, Uint32 threadID) {
 		targetFormat = GET_ARG(2, GetInteger);
 		paletteArray = GET_ARG_OPT(3, GetArray, nullptr);
 
+		VALIDATE_TEXTURE_FORMAT(srcFormat);
+		VALIDATE_TEXTURE_FORMAT(targetFormat);
+
 		// Easy
 		if (srcFormat == targetFormat) {
 			return srcColor;
@@ -1435,6 +1447,9 @@ VMValue TextureImpl::VM_Convert(int argCount, VMValue* args, Uint32 threadID) {
 
 		targetFormat = GET_ARG(3, GetInteger);
 		paletteArray = GET_ARG_OPT(4, GetArray, nullptr);
+
+		VALIDATE_TEXTURE_FORMAT(srcFormat);
+		VALIDATE_TEXTURE_FORMAT(targetFormat);
 	}
 	else {
 		srcTexture = GET_ARG(0, GetDrawable);
@@ -1456,6 +1471,8 @@ VMValue TextureImpl::VM_Convert(int argCount, VMValue* args, Uint32 threadID) {
 
 		targetFormat = GET_ARG(2, GetInteger);
 		paletteArray = GET_ARG_OPT(3, GetArray, nullptr);
+
+		VALIDATE_TEXTURE_FORMAT(targetFormat);
 	}
 
 	void* destPixels = nullptr;
@@ -1498,12 +1515,8 @@ VMValue TextureImpl::VM_Convert(int argCount, VMValue* args, Uint32 threadID) {
 #endif
 
 		if (srcFormat == TextureFormat_INDEXED) {
-			Texture::ConvertPixelsToNonIndexed(&destColor,
-				&color,
-				1,
-				targetFormat,
-				palette,
-				numPaletteColors);
+			Texture::ConvertPixelsToNonIndexed(
+				&destColor, &color, 1, targetFormat, palette, numPaletteColors);
 		}
 		else if (targetFormat == TextureFormat_INDEXED) {
 			Texture::ConvertPixelsToIndexed(&destColor,
@@ -1515,7 +1528,8 @@ VMValue TextureImpl::VM_Convert(int argCount, VMValue* args, Uint32 threadID) {
 				transparentIndex);
 		}
 		else {
-			Texture::ConvertPixel((Uint8*)&color, srcFormat, (Uint8*)&destColor, targetFormat);
+			Texture::ConvertPixel(
+				(Uint8*)&color, srcFormat, (Uint8*)&destColor, targetFormat);
 		}
 
 		Memory::Free(paletteFromArray);
@@ -1629,6 +1643,7 @@ VMValue TextureImpl::VM_Convert(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 #undef CONVERT_TEXTURE_PIXEL
+#undef VALIDATE_TEXTURE_FORMAT
 /***
  * \method Apply
  * \desc Uploads all changes made to the texture to the GPU. This is an expensive operation, so change the most amount of pixels as possible before calling this.
