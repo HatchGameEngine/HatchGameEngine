@@ -153,6 +153,7 @@ void Graphics::Init() {
 }
 void Graphics::InitCapabilities() {
 	Application::AddCapability("graphics_shaders", Graphics::SupportsShaders);
+	Application::AddCapability("gpu_textureFormat", (int)Graphics::TextureFormat);
 	Application::AddCapability("gpu_maxTextureWidth", (int)Graphics::MaxTextureWidth);
 	Application::AddCapability("gpu_maxTextureHeight", (int)Graphics::MaxTextureHeight);
 	Application::AddCapability("gpu_maxTextureUnits", (int)Graphics::MaxTextureUnits);
