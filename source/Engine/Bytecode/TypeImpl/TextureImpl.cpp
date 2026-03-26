@@ -58,6 +58,7 @@ void TextureImpl::Init() {
 	ScriptManager::DefineNative(Class, "SetPixel", VM_SetPixel);
 	ScriptManager::DefineNative(Class, "CopyPixels", VM_CopyPixels);
 	ScriptManager::DefineNative(Class, "Apply", VM_Apply);
+	ScriptManager::DefineNative(Class, "Convert", VM_Convert);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
 	TypeImpl::RegisterClass(Class);
@@ -79,6 +80,61 @@ Obj* TextureImpl::New() {
 	return (Obj*)texture;
 }
 
+static void
+GetPixelFromArray(ObjArray* pixelsArray, size_t index, int format, size_t bpp, Uint8* dest) {
+	char errorString[128];
+
+	VMValue element = (*pixelsArray->Values)[index];
+	VMValue result = Value::CastAsInteger(element);
+
+	if (IS_NULL(result)) {
+		snprintf(errorString,
+			sizeof errorString,
+			"Expected value at index %d to be of type %s; value was of type %s.",
+			(int)index,
+			GetTypeString(VAL_INTEGER),
+			GetValueTypeString(element));
+
+		throw ScriptException(errorString);
+	}
+
+	int value = AS_INTEGER(result);
+
+	if (format == TextureFormat_INDEXED) {
+		if (value < 0 || value > 255) {
+			snprintf(errorString,
+				sizeof errorString,
+				"Pixel value %d out of range. (0 - 255)",
+				value);
+
+			throw ScriptException(errorString);
+		}
+
+		*dest = value;
+	}
+	else {
+#if HATCH_BIG_ENDIAN
+		dest[0] = (value >> 24) & 0xFF;
+		dest[1] = (value >> 16) & 0xFF;
+		dest[2] = (value >> 8) & 0xFF;
+		if (bpp == 4) {
+			dest[3] = value & 0xFF;
+		}
+#else
+		if (bpp == 4) {
+			dest[0] = (value >> 24) & 0xFF;
+			dest[1] = (value >> 16) & 0xFF;
+			dest[2] = (value >> 8) & 0xFF;
+			dest[3] = value & 0xFF;
+		}
+		else {
+			dest[0] = (value >> 16) & 0xFF;
+			dest[1] = (value >> 8) & 0xFF;
+			dest[2] = value & 0xFF;
+		}
+#endif
+	}
+}
 static Uint8* GetPixelDataFromArray(ObjArray* pixelsArray,
 	int srcX,
 	int srcY,
@@ -113,8 +169,6 @@ static Uint8* GetPixelDataFromArray(ObjArray* pixelsArray,
 
 	if (x1 < 0 || x2 > srcWidth || y1 < 0 || y2 > srcHeight || copyWidth < 1 ||
 		copyHeight < 1) {
-		char errorString[128];
-
 		snprintf(errorString,
 			sizeof errorString,
 			"Invalid region! (X1: %d, Y1: %d, X2: %d, Y2: %d, Width: %d, Height: %d)",
@@ -135,68 +189,50 @@ static Uint8* GetPixelDataFromArray(ObjArray* pixelsArray,
 	size_t bpp = Texture::GetFormatBytesPerPixel(format);
 
 	Uint8* pixels = (Uint8*)Memory::Calloc(copyWidth * copyHeight, bpp);
+	if (!pixels) {
+		throw ScriptException("Out of memory!");
+	}
+
 	Uint8* dest = pixels;
+	try {
+		for (int yy = y1; yy < y2; yy++) {
+			for (int xx = x1; xx < x2; xx++) {
+				size_t index = (yy * srcWidth) + xx;
 
-	for (int yy = y1; yy < y2; yy++) {
-		for (int xx = x1; xx < x2; xx++) {
-			size_t index = (yy * srcWidth) + xx;
-			VMValue element = (*pixelsArray->Values)[index];
-			VMValue result = Value::CastAsInteger(element);
+				GetPixelFromArray(pixelsArray, index, format, bpp, dest);
 
-			if (IS_NULL(result)) {
-				Memory::Free(pixels);
-
-				snprintf(errorString,
-					sizeof errorString,
-					"Expected value at index %d to be of type %s; value was of type %s.",
-					(int)index,
-					GetTypeString(VAL_INTEGER),
-					GetValueTypeString(element));
-
-				throw ScriptException(errorString);
+				dest += bpp;
 			}
+		}
+	} catch (const ScriptException& error) {
+		Memory::Free(pixels);
+		throw error;
+	}
 
-			int value = AS_INTEGER(result);
+	return pixels;
+}
+static Uint8* GetPixelDataFromArray(ObjArray* pixelsArray, int format) {
+	size_t numArrayPixels = pixelsArray->Values->size();
+	if (numArrayPixels == 0) {
+		return nullptr;
+	}
 
-			if (format == TextureFormat_INDEXED) {
-				if (value < 0 || value > 255) {
-					Memory::Free(pixels);
+	size_t bpp = Texture::GetFormatBytesPerPixel(format);
 
-					snprintf(errorString,
-						sizeof errorString,
-						"Pixel value %d out of range. (0 - 255)",
-						value);
+	Uint8* pixels = (Uint8*)Memory::Calloc(numArrayPixels, bpp);
+	if (!pixels) {
+		throw ScriptException("Out of memory!");
+	}
 
-					throw ScriptException(errorString);
-				}
-
-				*dest = value;
-			}
-			else {
-#if HATCH_BIG_ENDIAN
-				dest[0] = (value >> 24) & 0xFF;
-				dest[1] = (value >> 16) & 0xFF;
-				dest[2] = (value >> 8) & 0xFF;
-				if (bpp == 4) {
-					dest[3] = value & 0xFF;
-				}
-#else
-				if (bpp == 4) {
-					dest[0] = (value >> 24) & 0xFF;
-					dest[1] = (value >> 16) & 0xFF;
-					dest[2] = (value >> 8) & 0xFF;
-					dest[3] = value & 0xFF;
-				}
-				else {
-					dest[0] = (value >> 16) & 0xFF;
-					dest[1] = (value >> 8) & 0xFF;
-					dest[2] = value & 0xFF;
-				}
-#endif
-			}
-
+	Uint8* dest = pixels;
+	try {
+		for (size_t index = 0; index < numArrayPixels; index++) {
+			GetPixelFromArray(pixelsArray, index, format, bpp, dest);
 			dest += bpp;
 		}
+	} catch (const ScriptException& error) {
+		Memory::Free(pixels);
+		throw error;
 	}
 
 	return pixels;
@@ -692,15 +728,15 @@ VMValue TextureImpl::VM_Scale(int argCount, VMValue* args, Uint32 threadID) {
 
 	return NULL_VAL;
 }
-#define CONVERT_TEXTURE_PIXEL(px) \
+#define CONVERT_TEXTURE_PIXEL(px, textureFormat) \
 	{ \
-		if (TEXTUREFORMAT_IS_RGB(texture->Format)) { \
+		if (TEXTUREFORMAT_IS_RGB(textureFormat)) { \
 			int red = px & 0xFF; \
 			int green = (px >> 8) & 0xFF; \
 			int blue = (px >> 16) & 0xFF; \
 			px = (red << 16) | (green << 8) | blue; \
 		} \
-		else if (TEXTUREFORMAT_IS_RGBA(texture->Format)) { \
+		else if (TEXTUREFORMAT_IS_RGBA(textureFormat)) { \
 			int red = px & 0xFF; \
 			int green = (px >> 8) & 0xFF; \
 			int blue = (px >> 16) & 0xFF; \
@@ -747,7 +783,7 @@ VMValue TextureImpl::VM_GetPixel(int argCount, VMValue* args, Uint32 threadID) {
 	int pixel = texture->GetPixel(x, y);
 
 #if HATCH_LITTLE_ENDIAN
-	CONVERT_TEXTURE_PIXEL(pixel);
+	CONVERT_TEXTURE_PIXEL(pixel, texture->Format);
 #endif
 
 	return INTEGER_VAL(pixel);
@@ -830,7 +866,7 @@ VMValue TextureImpl::VM_GetPixelData(int argCount, VMValue* args, Uint32 threadI
 			int pixel = texture->GetPixel(x, y);
 
 #if HATCH_LITTLE_ENDIAN
-			CONVERT_TEXTURE_PIXEL(pixel);
+			CONVERT_TEXTURE_PIXEL(pixel, texture->Format);
 #endif
 
 			array->Values->push_back(INTEGER_VAL(pixel));
@@ -887,14 +923,13 @@ VMValue TextureImpl::VM_SetPixel(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 #if HATCH_BIG_ENDIAN
-	CONVERT_TEXTURE_PIXEL(color);
+	CONVERT_TEXTURE_PIXEL(color, texture->Format);
 #endif
 
 	texture->SetPixel(x, y, color);
 
 	return NULL_VAL;
 }
-#undef CONVERT_TEXTURE_PIXEL
 /***
  * \method CopyPixels
  * \desc Copies pixels from a Drawable into the specified coordinates. The formats must be compatible.
@@ -1320,6 +1355,213 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
 
 	return NULL_VAL;
 }
+/***
+ * Texture.Convert
+ * \desc Converts the format of the pixels in <param srcPixels> from <param srcFormat> into <param targetFormat>. If <param srcFormat> and <param targetFormat> are the same, this simply copies the pixels from <param srcDrawable> into <param destPixels>.
+ * \param srcDrawable (Drawable): The Drawable to convert.
+ * \param srcFormat (<ref TEXTUREFORMAT_*>): The source format.
+ * \param destPixels (array): The destination array.
+ * \param targetFormat (<ref TEXTUREFORMAT_*>): The target format.
+ * \paramOpt palette (array): The palette of the source if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, or the palette of the target if <param targetFormat> is `TEXTUREFORMAT_INDEXED`. Format 0xRRGGBB.
+ * \ns Texture
+ */
+/***
+ * Texture.Convert
+ * \desc Converts the format of the pixels in <param srcPixels> from <param srcFormat> into <param targetFormat>. If <param srcFormat> and <param targetFormat> are the same, this simply copies the pixels from <param srcPixels> into <param destPixels>.
+ * \param srcPixels (array): An array of pixels.
+ * \param srcFormat (<ref TEXTUREFORMAT_*>): The source format.
+ * \param destPixels (array): The destination array.
+ * \param targetFormat (<ref TEXTUREFORMAT_*>): The target format.
+ * \paramOpt palette (array): The palette of the source if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, or the palette of the target if <param targetFormat> is `TEXTUREFORMAT_INDEXED`. Format 0xRRGGBB. Required if <param srcFormat> is `TEXTUREFORMAT_INDEXED`.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_Convert(int argCount, VMValue* args, Uint32 threadID) {
+	if (argCount > 0 && IS_ARRAY(args[0])) {
+		StandardLibrary::CheckAtLeastArgCount(argCount, 4);
+	}
+	else {
+		StandardLibrary::CheckAtLeastArgCount(argCount, 3);
+	}
+
+	ObjArray* srcPixelsArray = nullptr;
+	Texture* srcTexture = nullptr;
+	int srcFormat;
+	ObjArray* destPixelsArray = nullptr;
+	int targetFormat;
+	ObjArray* paletteArray = nullptr;
+
+	if (IS_ARRAY(args[0])) {
+		srcPixelsArray = GET_ARG(0, GetArray);
+		if (!srcPixelsArray) {
+			return NULL_VAL;
+		}
+
+		srcFormat = GET_ARG(1, GetInteger);
+
+		destPixelsArray = GET_ARG(2, GetArray);
+		if (!destPixelsArray) {
+			return NULL_VAL;
+		}
+
+		targetFormat = GET_ARG(3, GetInteger);
+		paletteArray = GET_ARG_OPT(4, GetArray, nullptr);
+	}
+	else {
+		srcTexture = GET_ARG(0, GetDrawable);
+		if (srcTexture == nullptr) {
+			return NULL_VAL;
+		}
+
+		srcFormat = srcTexture->Format;
+
+		if (srcTexture->Access == TextureAccess_RENDERTARGET) {
+			throw ScriptException(
+				"Cannot directly get a pixel of a draw target texture!");
+		}
+
+		destPixelsArray = GET_ARG(1, GetArray);
+		if (!destPixelsArray) {
+			return NULL_VAL;
+		}
+
+		targetFormat = GET_ARG(2, GetInteger);
+		paletteArray = GET_ARG_OPT(3, GetArray, nullptr);
+	}
+
+	void* destPixels = nullptr;
+	size_t numPixels = 0;
+
+	size_t targetBpp = Texture::GetFormatBytesPerPixel(targetFormat);
+
+	Uint32* palette = nullptr;
+	Uint32* paletteFromArray = nullptr;
+	unsigned numPaletteColors = 0;
+	int transparentIndex = 0;
+
+	// Determine which palette to use
+	if (paletteArray) {
+		paletteFromArray = GetPaletteFromArray(paletteArray, numPaletteColors);
+		palette = paletteFromArray;
+	}
+	else if (srcTexture) {
+		palette = srcTexture->PaletteColors;
+		numPaletteColors = srcTexture->NumPaletteColors;
+	}
+
+	if (palette) {
+		transparentIndex = Graphics::GetPaletteTransparentColor(palette, numPaletteColors);
+		if (transparentIndex == -1) {
+			transparentIndex = 0;
+		}
+	}
+	else if (srcFormat != targetFormat &&
+		(srcFormat == TextureFormat_INDEXED || targetFormat == TextureFormat_INDEXED)) {
+		throw ScriptException("Must specify palette!");
+	}
+
+	if (srcPixelsArray) {
+		Uint8* pixels = nullptr;
+
+		if (ScriptManager::Lock()) {
+			try {
+				pixels = GetPixelDataFromArray(srcPixelsArray, srcFormat);
+			} catch (const ScriptException& error) {
+				Memory::Free(paletteFromArray);
+				ScriptManager::Unlock();
+				throw error;
+			}
+			ScriptManager::Unlock();
+		}
+
+		numPixels = srcPixelsArray->Values->size();
+
+		if (srcFormat != targetFormat) {
+			if (targetFormat == TextureFormat_INDEXED) {
+				destPixels = Texture::GetPalettizedPixels(pixels,
+					srcFormat,
+					numPixels,
+					palette,
+					numPaletteColors,
+					transparentIndex);
+			}
+			else {
+				destPixels = Texture::GetNonIndexedPixels(
+					pixels, numPixels, targetFormat, palette, numPaletteColors);
+			}
+
+			Memory::Free(pixels);
+
+			if (!destPixels) {
+				Memory::Free(paletteFromArray);
+				throw ScriptException("Could not convert pixels!");
+			}
+		}
+		else {
+			destPixels = pixels;
+		}
+	}
+	else {
+		numPixels = srcTexture->Width * srcTexture->Height;
+		destPixels = Memory::Malloc(numPixels * targetBpp);
+		if (!destPixels) {
+			Memory::Free(paletteFromArray);
+			throw ScriptException("Could not convert pixels!");
+		}
+
+		if (srcFormat == targetFormat) {
+			memcpy(destPixels, srcTexture->Pixels, numPixels * targetBpp);
+		}
+		else if (srcFormat == TextureFormat_INDEXED) {
+			Texture::ConvertPixelsToNonIndexed(destPixels,
+				srcTexture->Pixels,
+				numPixels,
+				targetFormat,
+				palette,
+				numPaletteColors);
+		}
+		else if (targetFormat == TextureFormat_INDEXED) {
+			Texture::ConvertPixelsToIndexed(destPixels,
+				srcTexture->Pixels,
+				srcFormat,
+				numPixels,
+				palette,
+				numPaletteColors,
+				transparentIndex);
+		}
+		else {
+			Texture::Convert(srcTexture->Pixels,
+				srcTexture->Format,
+				srcTexture->Pitch,
+				0,
+				0,
+				(Uint8*)destPixels,
+				targetFormat,
+				srcTexture->Width * targetBpp,
+				0,
+				0,
+				srcTexture->Width,
+				srcTexture->Height);
+		}
+	}
+
+	destPixelsArray->Values->clear();
+
+	for (size_t i = 0; i < numPixels; i++) {
+		int pixel = Texture::GetPixel(destPixels, i, targetBpp);
+
+#if HATCH_LITTLE_ENDIAN
+		CONVERT_TEXTURE_PIXEL(pixel, targetFormat);
+#endif
+
+		destPixelsArray->Values->push_back(INTEGER_VAL(pixel));
+	}
+
+	Memory::Free(destPixels);
+	Memory::Free(paletteFromArray);
+
+	return NULL_VAL;
+}
+#undef CONVERT_TEXTURE_PIXEL
 /***
  * \method Apply
  * \desc Uploads all changes made to the texture to the GPU. This is an expensive operation, so change the most amount of pixels as possible before calling this.

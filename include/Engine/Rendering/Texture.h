@@ -35,6 +35,13 @@ public:
 	static int FormatWithoutAlphaChannel(int textureFormat);
 	static bool CanConvertBetweenFormats(int sourceFormat, int destFormat);
 	bool KeepDriverPixelsResident();
+	static void ConvertPixelsToIndexed(void* destPixels,
+		void* srcPixels,
+		int srcFormat,
+		size_t srcLength,
+		Uint32* palColors,
+		unsigned numPaletteColors,
+		unsigned transparentIndex);
 	static Uint8* GetPalettizedPixels(void* srcPixels,
 		int srcFormat,
 		int srcWidth,
@@ -42,6 +49,23 @@ public:
 		Uint32* palColors,
 		unsigned numPaletteColors,
 		unsigned transparentIndex);
+	static Uint8* GetPalettizedPixels(void* srcPixels,
+		int srcFormat,
+		size_t srcLength,
+		Uint32* palColors,
+		unsigned numPaletteColors,
+		unsigned transparentIndex);
+	static void ConvertPixelsToNonIndexed(void* destPixels,
+		void* srcPixels,
+		size_t srcLength,
+		int destFormat,
+		Uint32* palColors,
+		unsigned numPaletteColors);
+	static void* GetNonIndexedPixels(void* srcPixels,
+		size_t srcLength,
+		int destFormat,
+		Uint32* palColors,
+		unsigned numPaletteColors);
 	static void* GetNonIndexedPixels(void* srcPixels,
 		int srcWidth,
 		int srcHeight,
@@ -110,6 +134,7 @@ public:
 		int destWidth,
 		int destHeight,
 		int destFormat);
+	static int GetPixel(void* src, size_t index, size_t bytesPerPixel);
 	int GetPixel(int x, int y);
 	void SetPixel(int x, int y, int color);
 	void Dispose();

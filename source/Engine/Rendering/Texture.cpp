@@ -169,28 +169,25 @@ bool Texture::KeepDriverPixelsResident() {
 	return Format != DriverFormat;
 }
 
-Uint8* Texture::GetPalettizedPixels(void* srcPixels,
+void Texture::ConvertPixelsToIndexed(void* destPixels,
+	void* srcPixels,
 	int srcFormat,
-	int srcWidth,
-	int srcHeight,
+	size_t srcLength,
 	Uint32* palColors,
 	unsigned numPaletteColors,
 	unsigned transparentIndex) {
-	if (!palColors || srcFormat == TextureFormat_INDEXED) {
-		return nullptr;
+	if (!palColors || numPaletteColors == 0 || srcFormat == TextureFormat_INDEXED) {
+		return;
 	}
 
 	Uint8* srcPtr = (Uint8*)srcPixels;
-	Uint8* destPixels = (Uint8*)Memory::Malloc(srcWidth * srcHeight);
-	if (!destPixels) {
-		return nullptr;
-	}
+	Uint8* destPtr = (Uint8*)destPixels;
 
 	int srcBytesPerPixel = GetFormatBytesPerPixel(srcFormat);
 
 	ankerl::unordered_dense::map<Uint32, Uint8> colorsMap;
 
-	for (size_t i = 0; i < srcWidth * srcHeight; i++) {
+	while (srcLength > 0) {
 		Uint8 rgba[4];
 		ConvertPixel(srcPtr, srcFormat, rgba, TextureFormat_RGBA8888);
 
@@ -199,33 +196,74 @@ Uint8* Texture::GetPalettizedPixels(void* srcPixels,
 			Uint32 color = rgba[0] | rgba[1] << 8 | rgba[2] << 16 | rgba[3] << 24;
 
 			if (colorsMap.count(color) > 0) {
-				destPixels[i] = colorsMap[color];
+				*destPtr = colorsMap[color];
 			}
 			else {
 				Uint8 nearestColor = ColorUtils::NearestColor(
 					rgba[0], rgba[1], rgba[2], palColors, numPaletteColors);
-				destPixels[i] = nearestColor;
+				*destPtr = nearestColor;
 				colorsMap[color] = nearestColor;
 			}
 		}
 		else {
-			destPixels[i] = transparentIndex;
+			*destPtr = transparentIndex;
 		}
 
 		srcPtr += srcBytesPerPixel;
+		destPtr++;
+		srcLength--;
 	}
+}
+
+Uint8* Texture::GetPalettizedPixels(void* srcPixels,
+	int srcFormat,
+	size_t srcLength,
+	Uint32* palColors,
+	unsigned numPaletteColors,
+	unsigned transparentIndex) {
+	if (!palColors || srcFormat == TextureFormat_INDEXED) {
+		return nullptr;
+	}
+
+	Uint8* destPixels = (Uint8*)Memory::Malloc(srcLength);
+	if (!destPixels) {
+		return nullptr;
+	}
+
+	ConvertPixelsToIndexed(destPixels,
+		srcPixels,
+		srcFormat,
+		srcLength,
+		palColors,
+		numPaletteColors,
+		transparentIndex);
 
 	return destPixels;
 }
 
-void* Texture::GetNonIndexedPixels(void* srcPixels,
+Uint8* Texture::GetPalettizedPixels(void* srcPixels,
+	int srcFormat,
 	int srcWidth,
 	int srcHeight,
+	Uint32* palColors,
+	unsigned numPaletteColors,
+	unsigned transparentIndex) {
+	return GetPalettizedPixels(srcPixels,
+		srcFormat,
+		(size_t)(srcWidth * srcHeight),
+		palColors,
+		numPaletteColors,
+		transparentIndex);
+}
+
+void Texture::ConvertPixelsToNonIndexed(void* destPixels,
+	void* srcPixels,
+	size_t srcLength,
 	int destFormat,
 	Uint32* palColors,
 	unsigned numPaletteColors) {
 	if (!palColors || numPaletteColors == 0) {
-		return nullptr;
+		return;
 	}
 
 	int srcPixelFormat = PixelFormatToTextureFormat(Graphics::PreferredPixelFormat);
@@ -233,14 +271,9 @@ void* Texture::GetNonIndexedPixels(void* srcPixels,
 	int destBytesPerPixel = GetFormatBytesPerPixel(destFormat);
 
 	Uint8* srcPtr = (Uint8*)srcPixels;
-	void* destPixels = Memory::Malloc(srcWidth * srcHeight * destBytesPerPixel);
-	if (!destPixels) {
-		return nullptr;
-	}
-
 	Uint8* destPtr = (Uint8*)destPixels;
 
-	for (size_t i = 0; i < srcWidth * srcHeight; i++) {
+	for (size_t i = 0; i < srcLength; i++) {
 		Uint8 index = *srcPtr;
 		if (index >= numPaletteColors) {
 			index = numPaletteColors - 1;
@@ -254,8 +287,37 @@ void* Texture::GetNonIndexedPixels(void* srcPixels,
 		srcPtr++;
 		destPtr += destBytesPerPixel;
 	}
+}
+
+void* Texture::GetNonIndexedPixels(void* srcPixels,
+	size_t srcLength,
+	int destFormat,
+	Uint32* palColors,
+	unsigned numPaletteColors) {
+	if (!palColors || numPaletteColors == 0) {
+		return nullptr;
+	}
+
+	int destBytesPerPixel = GetFormatBytesPerPixel(destFormat);
+	void* destPixels = Memory::Malloc(srcLength * destBytesPerPixel);
+	if (!destPixels) {
+		return nullptr;
+	}
+
+	ConvertPixelsToNonIndexed(
+		destPixels, srcPixels, srcLength, destFormat, palColors, numPaletteColors);
 
 	return destPixels;
+}
+
+void* Texture::GetNonIndexedPixels(void* srcPixels,
+	int srcWidth,
+	int srcHeight,
+	int destFormat,
+	Uint32* palColors,
+	unsigned numPaletteColors) {
+	return GetNonIndexedPixels(
+		srcPixels, (size_t)(srcWidth * srcHeight), destFormat, palColors, numPaletteColors);
 }
 
 void Texture::Convert(void* srcPixels,
@@ -704,13 +766,12 @@ void* Texture::GetScaledPixels(Texture* source,
 	return pixels;
 }
 
-int Texture::GetPixel(int x, int y) {
-	Uint8* pixels = (Uint8*)Pixels;
+int Texture::GetPixel(void* src, size_t index, size_t bytesPerPixel) {
+	Uint8* pixels = (Uint8*)src;
 
-	pixels += y * Pitch;
-	pixels += x * BytesPerPixel;
+	pixels += index * bytesPerPixel;
 
-	switch (BytesPerPixel) {
+	switch (bytesPerPixel) {
 	case 4:
 		return pixels[0] | (pixels[1] << 8) | (pixels[2] << 16) | (pixels[3] << 24);
 	case 3:
@@ -721,7 +782,12 @@ int Texture::GetPixel(int x, int y) {
 		return pixels[0];
 	}
 
+	// Unreachable.
 	return 0;
+}
+
+int Texture::GetPixel(int x, int y) {
+	return GetPixel(Pixels, (y * Width) + x, BytesPerPixel);
 }
 
 void Texture::SetPixel(int x, int y, int color) {
