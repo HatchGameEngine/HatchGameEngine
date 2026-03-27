@@ -110,6 +110,7 @@ public:
 	static bool UseTinting;
 	static bool UseDepthTesting;
 	static bool UseSoftwareRenderer;
+	static bool UseIntegerRotation;
 	static unsigned CurrentFrame;
 	// Rendering functions
 	static GraphicsFunctions Internal;
