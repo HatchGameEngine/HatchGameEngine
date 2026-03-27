@@ -3973,7 +3973,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 	float scaleX = GET_ARG_OPT(11, GetDecimal, 1.0f);
 	float scaleY = GET_ARG_OPT(12, GetDecimal, 1.0f);
 	float rotation = GET_ARG_OPT(13, GetDecimal, 0.0f);
-	int paletteID = GET_ARG_OPT(14,GetInteger, 0);
+	int paletteID = GET_ARG_OPT(14, GetInteger, 0);
 
 	CHECK_PALETTE_INDEX(paletteID);
 
