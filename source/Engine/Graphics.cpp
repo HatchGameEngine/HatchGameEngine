@@ -97,6 +97,7 @@ bool Graphics::UsePaletteIndexLines = false;
 bool Graphics::UseTinting = false;
 bool Graphics::UseDepthTesting = false;
 bool Graphics::UseSoftwareRenderer = false;
+bool Graphics::UseIntegerRotation = false;
 
 unsigned Graphics::CurrentFrame = 0;
 
@@ -230,6 +231,7 @@ void Graphics::Reset() {
 		Graphics::UseSoftwareRenderer = false;
 		Graphics::UsePalettes = false;
 		Graphics::UsePaletteIndexLines = false;
+		Graphics::UseIntegerRotation = false;
 	}
 
 	Graphics::BlendColors[0] = Graphics::BlendColors[1] = Graphics::BlendColors[2] =
