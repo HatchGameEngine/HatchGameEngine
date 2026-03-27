@@ -97,6 +97,7 @@ bool Graphics::UsePaletteIndexLines = false;
 bool Graphics::UseTinting = false;
 bool Graphics::UseDepthTesting = false;
 bool Graphics::UseSoftwareRenderer = false;
+bool Graphics::UseIntegerRotation = false;
 
 unsigned Graphics::CurrentFrame = 0;
 
