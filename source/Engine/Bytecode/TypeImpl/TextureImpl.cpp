@@ -60,6 +60,7 @@ void TextureImpl::Init() {
 	ScriptManager::DefineNative(Class, "Apply", VM_Apply);
 	ScriptManager::DefineNative(Class, "Convert", VM_Convert);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
+	ScriptManager::DefineNative(Class, "CanConvertBetweenFormats", VM_CanConvertBetweenFormats);
 
 	TypeImpl::RegisterClass(Class);
 	TypeImpl::ExposeClass(CLASS_TEXTURE, Class);
@@ -1643,7 +1644,6 @@ VMValue TextureImpl::VM_Convert(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 #undef CONVERT_TEXTURE_PIXEL
-#undef VALIDATE_TEXTURE_FORMAT
 /***
  * \method Apply
  * \desc Uploads all changes made to the texture to the GPU. This is an expensive operation, so change the most amount of pixels as possible before calling this.
@@ -1684,7 +1684,27 @@ VMValue TextureImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {
 
 	return NULL_VAL;
 }
+/***
+ * Texture.CanConvertBetweenFormats
+ * \desc Returns whether <param srcFormat> can be converted into <param targetFormat>.
+ * \param srcFormat (<ref TEXTUREFORMAT_*>): The source format.
+ * \param targetFormat (<ref TEXTUREFORMAT_*>): The target format.
+ * \return boolean Returns a boolean value.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_CanConvertBetweenFormats(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
 
+	int srcFormat = GET_ARG(0, GetInteger);
+	int targetFormat = GET_ARG(1, GetInteger);
+
+	VALIDATE_TEXTURE_FORMAT(srcFormat);
+	VALIDATE_TEXTURE_FORMAT(targetFormat);
+
+	return INTEGER_VAL(Texture::CanConvertBetweenFormats(srcFormat, targetFormat));
+}
+
+#undef VALIDATE_TEXTURE_FORMAT
 #undef CHECK_EXISTS
 #undef CHECK_NOT_TRYING_TO_UPDATE
 #undef GET_ARG

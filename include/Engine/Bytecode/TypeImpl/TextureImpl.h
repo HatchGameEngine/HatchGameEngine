@@ -34,6 +34,7 @@ public:
 	static VMValue VM_Convert(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Apply(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Delete(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_CanConvertBetweenFormats(int argCount, VMValue* args, Uint32 threadID);
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_TEXTUREIMPL_H */
