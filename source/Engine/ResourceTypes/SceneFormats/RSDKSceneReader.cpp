@@ -62,11 +62,7 @@ void RSDKSceneReader::StageConfig_GetColors(const char* filename) {
 						if ((bitmap & (1 << col)) != 0) {
 							for (int d = 0; d < 16; d++) {
 								memoryReader->ReadBytes(Color, 3);
-								Graphics::PaletteColors
-									[i][(col << 4) | d] =
-										0xFF000000U |
-									Color[0] << 16 |
-									Color[1] << 8 | Color[2];
+								Graphics::PaletteColors[i][(col << 4) | d] = 0xFF000000U | Color[0] | Color[1] << 8 | Color[2] << 16;
 							}
 							Graphics::ConvertFromARGBtoNative(
 								&Graphics::PaletteColors[i][(
@@ -123,11 +119,7 @@ void RSDKSceneReader::GameConfig_GetColors(const char* filename) {
 						if ((bitmap & (1 << col)) != 0) {
 							for (int d = 0; d < 16; d++) {
 								memoryReader->ReadBytes(Color, 3);
-								Graphics::PaletteColors
-									[i][(col << 4) | d] =
-										0xFF000000U |
-									Color[0] << 16 |
-									Color[1] << 8 | Color[2];
+								Graphics::PaletteColors[i][(col << 4) | d] = 0xFF000000U | Color[0] | Color[1] << 8 | Color[2] << 16;
 							}
 							Graphics::ConvertFromARGBtoNative(
 								&Graphics::PaletteColors[i][(
@@ -346,7 +338,10 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 			objectNameHash);
 	}
 
-	ObjectList* objectList = Scene::GetStaticObjectList(objectName);
+	ObjectList* objectList = nullptr;
+	if (objectName) {
+		objectList = Scene::GetStaticObjectList(objectName);
+	}
 	if (!objectList) {
 		if (objectName != NULL) {
 			Log::Print(Log::LOG_WARN, "Class \"%s\" does not exist!", objectName);
@@ -358,8 +353,8 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 
 	// Read arguments
 	int argumentCount = r->ReadByte();
-	int argumentTypes[0x10];
-	Uint32 argumentHashes[0x10];
+	int argumentTypes[0x100];
+	Uint32 argumentHashes[0x100];
 
 	argumentTypes[0] = 8;
 	argumentHashes[0] = 0x00000000U;
