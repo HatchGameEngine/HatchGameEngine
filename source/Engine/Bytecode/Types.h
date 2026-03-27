@@ -564,6 +564,7 @@ struct CallFrame {
 	Uint8* IPLast;
 	Uint8* IPStart;
 	VMValue* Slots;
+	Uint8 ArgCount;
 	ObjModule* Module;
 	std::vector<VMValue>* ModuleLocals;
 
@@ -655,7 +656,7 @@ enum OpCode : uint8_t {
 	OP_NEW_MAP,
 	//
 	OP_SWITCH_TABLE,
-	OP_UNUSED_2, // Formerly OP_FAILSAFE
+	OP_SET_ARGUMENT_SLOT,
 	OP_EVENT_V4,
 	OP_TYPEOF,
 	OP_NEW,

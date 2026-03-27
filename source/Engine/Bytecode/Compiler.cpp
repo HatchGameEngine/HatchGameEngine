@@ -2916,6 +2916,16 @@ void Compiler::CompileFunction() {
 				Error("Cannot have more than 255 parameters.");
 			}
 
+			if (MatchToken(TOKEN_ASSIGNMENT)) {
+				if (isOptional) {
+					GetValueExpression();
+					EmitBytes(OP_SET_ARGUMENT_SLOT, arity);
+				}
+				else {
+					Error("Only optional parameters can receive a default value.");
+				}
+			}
+
 			if (!isOptional) {
 				minArity++;
 			}

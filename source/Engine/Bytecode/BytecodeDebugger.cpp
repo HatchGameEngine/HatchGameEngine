@@ -200,6 +200,7 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_GET_LOCAL:
 	case OP_SET_LOCAL:
 	case OP_LOCATION_STACK:
+	case OP_SET_ARGUMENT_SLOT:
 		return LocalInstruction(instruction, chunk, offset);
 	case OP_GET_GLOBAL:
 	case OP_DEFINE_GLOBAL:
