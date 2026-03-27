@@ -1378,7 +1378,6 @@ VMValue TextureImpl::VM_CopyPixels(int argCount, VMValue* args, Uint32 threadID)
  * Texture.Convert
  * \desc Converts the format of the pixels in <param srcPixels> from <param srcFormat> into <param targetFormat>. If <param srcFormat> and <param targetFormat> are the same, this just copies the pixels from <param srcDrawable> into <param destPixels>.
  * \param srcDrawable (Drawable): The Drawable to convert.
- * \param srcFormat (<ref TEXTUREFORMAT_*>): The source format.
  * \param destPixels (array): The destination array.
  * \param targetFormat (<ref TEXTUREFORMAT_*>): The target format.
  * \paramOpt palette (array): The palette of the source if <param srcFormat> is `TEXTUREFORMAT_INDEXED`, or the palette of the target if <param targetFormat> is `TEXTUREFORMAT_INDEXED`. Format 0xRRGGBB.
