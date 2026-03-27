@@ -395,9 +395,9 @@ PUBHFILES := \
 	include/Engine/ResourceTypes/SoundFormats/SoundFormat.h \
 	include/Engine/ResourceTypes/SoundFormats/WAV.h \
 	include/Engine/Scene.h \
+	include/Engine/Scene/LayerGroup.h \
 	include/Engine/Scene/SceneInfo.h \
 	include/Engine/Scene/SceneLayer.h \
-	include/Engine/Scene/ScrollingIndex.h \
 	include/Engine/Scene/ScrollingInfo.h \
 	include/Engine/Scene/TileConfig.h \
 	include/Engine/Scene/TileSpriteInfo.h \

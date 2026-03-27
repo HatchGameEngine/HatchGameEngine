@@ -2379,9 +2379,7 @@ Sint64 Graphics::CalcHorizontalParallaxPosition(SceneLayer* layer,
 	float viewX,
 	float constant,
 	float relative) {
-	float offset = Scene::Frame * constant;
-	float viewOffset = viewX + layer->OffsetX;
-	Sint64 position = (Sint64)(offset + (viewOffset * relative));
+	Sint64 position = (Sint64)((Scene::Frame * constant) + (viewX * relative) + layer->OffsetX);
 
 	if (layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 		int layerWidth = layer->Width * Scene::TileWidth;
@@ -2431,8 +2429,8 @@ void Graphics::CalcScanlineDeforms(SceneLayer* layer,
 			}
 		}
 		else {
-			scanLine->SrcX =
-				Graphics::CalcHorizontalParallaxPosition(layer, viewX, 0.0, 1.0);
+			scanLine->SrcX = Graphics::CalcHorizontalParallaxPosition(
+				layer, viewX, layer->ConstantX, layer->RelativeX);
 		}
 		scanLine->SrcX <<= 16;
 		scanLine->SrcY = scrollLine << 16;
@@ -2454,14 +2452,15 @@ void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* current
 		// Set parallax positions
 		for (int i = 0; i < layer->ScrollInfoCount; i++) {
 			ScrollingInfo* info = &layer->ScrollInfos[i];
-			info->Position = Graphics::CalcHorizontalParallaxPosition(
-				layer, viewX, info->ConstantParallax, info->RelativeParallax);
+			info->Position = Graphics::CalcHorizontalParallaxPosition(layer,
+				viewX,
+				layer->ConstantX * info->ConstantParallax,
+				layer->RelativeX * info->RelativeParallax);
 		}
 
 		// Create scanlines
-		float scrollOffset = Scene::Frame * layer->ConstantY;
-		int scrollLine =
-			(int)(scrollOffset + ((viewY + layer->OffsetY) * layer->RelativeY));
+		int scrollLine = (int)((Scene::Frame * layer->ConstantY) +
+			(viewY * layer->RelativeY) + layer->OffsetY);
 		scrollLine %= layerHeight;
 		if (scrollLine < 0) {
 			scrollLine += layerHeight;
@@ -2496,13 +2495,15 @@ void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* current
 		break;
 	}
 	case DrawBehavior_CustomTileScanLines: {
-		Sint64 scrollPositionX = (Sint64)(currentView->X + layer->OffsetX);
+		Sint64 scrollPositionX = (Sint64)(currentView->X * layer->RelativeX);
+		scrollPositionX += (Sint64)layer->OffsetX;
 		scrollPositionX %= layer->Width * Scene::TileWidth;
 		scrollPositionX <<= 16;
 
 		float scrollOffset = Scene::Frame * layer->ConstantY;
-		float vertOffset = currentView->Y + layer->OffsetY;
-		Sint64 scrollPositionY = (Sint64)(scrollOffset + (vertOffset * layer->RelativeY));
+		Sint64 scrollPositionY =
+			(Sint64)(scrollOffset + (currentView->Y * layer->RelativeY));
+		scrollPositionY += (Sint64)layer->OffsetY;
 		scrollPositionY %= layerHeight;
 		scrollPositionY <<= 16;
 
@@ -2592,8 +2593,6 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	int layerWidthInBits = layer->WidthInBits;
 	int layerWidthInPixels = layer->Width * tileWidth;
 	int layerHeightInPixels = layer->Height * tileHeight;
-	int layerWidthTileMask = layer->WidthMask;
-	int layerHeightTileMask = layer->HeightMask;
 
 	float viewWidth = std::ceil(currentView->GetScaledWidth());
 	float viewHeight = std::ceil(currentView->GetScaledHeight());
@@ -2602,9 +2601,11 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 	int endX = (int)viewWidth + tileWidth;
 	int endY = (int)viewHeight + tileHeight;
 
-	float scrollOffset = Scene::Frame * layer->ConstantY;
-	int srcY = (int)(scrollOffset + ((viewY + layer->OffsetY) * layer->RelativeY));
-	int rowStartX = (int)(viewX + layer->OffsetX);
+	float constantScrollH = Scene::Frame * layer->ConstantX;
+	float constantScrollV = Scene::Frame * layer->ConstantY;
+
+	int rowStartX = (int)(constantScrollH + (viewX * layer->RelativeX) + layer->OffsetX);
+	int srcY = (int)(constantScrollV + (viewY * layer->RelativeY) + layer->OffsetY);
 
 	// Draw more of the view if it is being rotated on the Z axis
 	if (currentView->RotateZ != 0.0f) {
@@ -2643,7 +2644,8 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 			}
 
 			if (srcY < 0) {
-				srcY = -(srcY % layerHeightInPixels);
+				srcY %= layerHeightInPixels;
+				srcY = layerHeightInPixels + srcY;
 			}
 			else {
 				srcY %= layerHeightInPixels;
@@ -2658,15 +2660,16 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 				}
 
 				if (srcX < 0) {
-					srcX = -(srcX % layerWidthInPixels);
+					srcX %= layerWidthInPixels;
+					srcX = layerWidthInPixels + srcX;
 				}
 				else {
 					srcX %= layerWidthInPixels;
 				}
 			}
 
-			int sourceTileCellX = (srcX / tileWidth) & layerWidthTileMask;
-			int sourceTileCellY = (srcY / tileHeight) & layerHeightTileMask;
+			int sourceTileCellX = (srcX / tileWidth) % layer->Width;
+			int sourceTileCellY = (srcY / tileHeight) % layer->Height;
 			int tile = layer->Tiles[sourceTileCellX +
 				(sourceTileCellY << layerWidthInBits)];
 
@@ -2698,8 +2701,6 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 
 	int layerWidthInBits = layer->WidthInBits;
 	int layerWidthInPixels = layer->Width * tileWidth;
-	int layerWidthTileMask = layer->WidthMask;
-	int layerHeightTileMask = layer->HeightMask;
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
@@ -2728,7 +2729,8 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 			bool isInLayer = srcX >= 0 && srcX < layerWidthInPixels;
 			if (!isInLayer && layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 				if (srcX < 0) {
-					srcX = -(srcX % layerWidthInPixels);
+					srcX %= layerWidthInPixels;
+					srcX = layerWidthInPixels + srcX;
 				}
 				else {
 					srcX %= layerWidthInPixels;
@@ -2740,8 +2742,8 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 				continue;
 			}
 
-			int sourceTileCellX = (srcX / Scene::TileWidth) & layerWidthTileMask;
-			int sourceTileCellY = (srcY / Scene::TileHeight) & layerHeightTileMask;
+			int sourceTileCellX = (srcX / tileWidth) % layer->Width;
+			int sourceTileCellY = (srcY / tileHeight) % layer->Height;
 			int tile = layer->Tiles[sourceTileCellX +
 				(sourceTileCellY << layerWidthInBits)];
 
