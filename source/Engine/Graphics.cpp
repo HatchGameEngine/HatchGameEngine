@@ -231,6 +231,7 @@ void Graphics::Reset() {
 		Graphics::UseSoftwareRenderer = false;
 		Graphics::UsePalettes = false;
 		Graphics::UsePaletteIndexLines = false;
+		Graphics::UseIntegerRotation = false;
 	}
 
 	Graphics::BlendColors[0] = Graphics::BlendColors[1] = Graphics::BlendColors[2] =
