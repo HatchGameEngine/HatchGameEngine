@@ -61,6 +61,7 @@ void TextureImpl::Init() {
 	ScriptManager::DefineNative(Class, "Convert", VM_Convert);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 	ScriptManager::DefineNative(Class, "CanConvertBetweenFormats", VM_CanConvertBetweenFormats);
+	ScriptManager::DefineNative(Class, "FormatHasAlphaChannel", VM_FormatHasAlphaChannel);
 
 	TypeImpl::RegisterClass(Class);
 	TypeImpl::ExposeClass(CLASS_TEXTURE, Class);
@@ -1702,6 +1703,22 @@ VMValue TextureImpl::VM_CanConvertBetweenFormats(int argCount, VMValue* args, Ui
 	VALIDATE_TEXTURE_FORMAT(targetFormat);
 
 	return INTEGER_VAL(Texture::CanConvertBetweenFormats(srcFormat, targetFormat));
+}
+/***
+ * Texture.FormatHasAlphaChannel
+ * \desc Returns whether <param format> has an alpha channel.
+ * \param format (<ref TEXTUREFORMAT_*>): The texture format to check.
+ * \return boolean Returns a boolean value.
+ * \ns Texture
+ */
+VMValue TextureImpl::VM_FormatHasAlphaChannel(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	int format = GET_ARG(0, GetInteger);
+
+	VALIDATE_TEXTURE_FORMAT(format);
+
+	return INTEGER_VAL(Texture::FormatHasAlphaChannel(format));
 }
 
 #undef VALIDATE_TEXTURE_FORMAT

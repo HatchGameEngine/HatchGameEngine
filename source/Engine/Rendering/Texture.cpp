@@ -121,6 +121,17 @@ int Texture::TextureFormatToPixelFormat(int textureFormat) {
 		return PixelFormat_RGBA8888;
 	}
 }
+
+bool Texture::FormatHasAlphaChannel(int textureFormat) {
+	switch (textureFormat) {
+	case TextureFormat_RGBA8888:
+	case TextureFormat_ARGB8888:
+	case TextureFormat_ABGR8888:
+		return true;
+	default:
+		return false;
+	}
+}
 int Texture::FormatWithAlphaChannel(int textureFormat) {
 	switch (textureFormat) {
 	case TextureFormat_RGB888:
@@ -142,6 +153,7 @@ int Texture::FormatWithoutAlphaChannel(int textureFormat) {
 		return PixelFormat_RGB888;
 	}
 }
+
 bool Texture::CanConvertBetweenFormats(int sourceFormat, int destFormat) {
 	if (sourceFormat == destFormat) {
 		return true;
