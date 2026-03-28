@@ -1242,7 +1242,7 @@ void Application::LoadDevSettings() {
 
 	int logLevel = 0;
 #ifdef DEBUG
-	logLevel = -1;
+	logLevel = -2;
 #endif
 
 	bool hasLogLevelSetting = Application::Settings->GetInteger("dev", "logLevel", &logLevel);
@@ -2616,7 +2616,7 @@ void Application::InitSettings() {
 	Application::Settings->SetInteger("dev", "fastForward", 4);
 	int logLevel = 0;
 #ifdef DEBUG
-	logLevel = -1;
+	logLevel = -2;
 #endif
 	Application::Settings->SetInteger("dev", "logLevel", logLevel);
 	Application::Settings->SetBool("dev", "trackMemory", false);
