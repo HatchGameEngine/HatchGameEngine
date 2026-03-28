@@ -1648,7 +1648,6 @@ VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, Uint32 threadI
  * API.Discord.UpdateActivity
  * \desc Updates the user's presence.<br/>\
 The integration must have been initialized with `API.Discord.Init` before calling this.
- * \param details (string): The first line of text in the Rich Presence.
  * \ns API.Discord
  */
 VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
