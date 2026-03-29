@@ -23,7 +23,7 @@ extern "C" {
 
 #define DEFAULT_LOG_FILENAME TARGET_NAME ".log"
 
-int Log::LogLevel = -1;
+int Log::LogLevel = -2;
 bool Log::WriteToFile = true;
 FILE* Log::File = nullptr;
 bool Log::Initialized = false;

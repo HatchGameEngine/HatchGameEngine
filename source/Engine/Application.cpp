@@ -1242,7 +1242,7 @@ void Application::LoadDevSettings() {
 
 	int logLevel = 0;
 #ifdef DEBUG
-	logLevel = -1;
+	logLevel = -2;
 #endif
 
 	bool hasLogLevelSetting = Application::Settings->GetInteger("dev", "logLevel", &logLevel);
@@ -1428,7 +1428,7 @@ void Application::PollEvents() {
 					for (size_t li = 0; li < Scene::Layers.size(); li++) {
 						SceneLayer& layer = Scene::Layers[li];
 						Log::Print(Log::LOG_IMPORTANT,
-							"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeY: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
+							"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeX: %f, RelativeY: %f, ConstantX: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
 							li,
 							layer.Name,
 							layer.Visible,
@@ -1436,7 +1436,9 @@ void Application::PollEvents() {
 							layer.Height,
 							layer.OffsetX,
 							layer.OffsetY,
+							layer.RelativeX,
 							layer.RelativeY,
+							layer.ConstantX,
 							layer.ConstantY,
 							layer.DrawGroup,
 							layer.DrawBehavior,
@@ -2614,7 +2616,7 @@ void Application::InitSettings() {
 	Application::Settings->SetInteger("dev", "fastForward", 4);
 	int logLevel = 0;
 #ifdef DEBUG
-	logLevel = -1;
+	logLevel = -2;
 #endif
 	Application::Settings->SetInteger("dev", "logLevel", logLevel);
 	Application::Settings->SetBool("dev", "trackMemory", false);

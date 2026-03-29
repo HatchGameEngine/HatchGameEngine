@@ -1689,7 +1689,6 @@ VMValue Discord_SetActivityPartySize(int argCount, VMValue* args, Uint32 threadI
  * API.Discord.UpdateActivity
  * \desc Updates the user's presence.<br/>\
 The integration must have been initialized with `API.Discord.Init` before calling this.
- * \param details (string): The first line of text in the Rich Presence.
  * \ns API.Discord
  */
 VMValue Discord_UpdateActivity(int argCount, VMValue* args, Uint32 threadID) {
@@ -4014,7 +4013,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 	float scaleX = GET_ARG_OPT(11, GetDecimal, 1.0f);
 	float scaleY = GET_ARG_OPT(12, GetDecimal, 1.0f);
 	float rotation = GET_ARG_OPT(13, GetDecimal, 0.0f);
-	int paletteID = GET_ARG_OPT(14,GetInteger, 0);
+	int paletteID = GET_ARG_OPT(14, GetInteger, 0);
 
 	CHECK_PALETTE_INDEX(paletteID);
 
@@ -13392,6 +13391,58 @@ VMValue Scene_GetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
 	return INTEGER_VAL(false);
 }
 /***
+ * Scene.GetLayerHorizontalParallaxFactor
+ * \desc Gets the horizontal parallax scroll factor of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerHorizontalParallaxFactor(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return DECIMAL_VAL(Scene::Layers[index].RelativeX);
+}
+/***
+ * Scene.GetLayerVerticalParallaxFactor
+ * \desc Gets the vertical parallax scroll factor of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerVerticalParallaxFactor(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return DECIMAL_VAL(Scene::Layers[index].RelativeY);
+}
+/***
+ * Scene.GetLayerHorizontalConstantScroll
+ * \desc Gets the horizontal constant scroll amount of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerHorizontalConstantScroll(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return DECIMAL_VAL(Scene::Layers[index].ConstantX);
+}
+/***
+ * Scene.GetLayerVerticalConstantScroll
+ * \desc Gets the vertical constant scroll amount of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return decimal Returns a decimal value.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerVerticalConstantScroll(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return DECIMAL_VAL(Scene::Layers[index].ConstantY);
+}
+/***
  * Scene.GetTilesetCount
  * \desc Gets the amount of tilesets in the current scene.
  * \return integer Returns an integer value.
@@ -14572,8 +14623,9 @@ VMValue Scene_SetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 t
  * Scene.SetLayerScroll
  * \desc Sets the scroll values of the layer. (Horizontal Parallax = Up/Down values, Vertical Parallax = Left/Right values)
  * \param layerIndex (integer): Index of layer.
- * \param relative (decimal): How much to move the layer relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
- * \param constant (decimal): How many pixels to move the layer per frame.
+ * \param relative (decimal): How much to move the layer vertically relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
+ * \param constant (decimal): How many pixels to move the layer vertically per frame.
+ * \deprecated Use <ref Scene.SetLayerVerticalParallaxFactor> and <ref Scene.SetLayerVerticalConstantScroll> instead.
  * \ns Scene
  */
 VMValue Scene_SetLayerScroll(int argCount, VMValue* args, Uint32 threadID) {
@@ -14583,6 +14635,66 @@ VMValue Scene_SetLayerScroll(int argCount, VMValue* args, Uint32 threadID) {
 	float constant = GET_ARG(2, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].RelativeY = relative;
+	Scene::Layers[index].ConstantY = constant;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerHorizontalParallaxFactor
+ * \desc Sets the horizontal parallax scroll factor of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param scrollFactor (decimal): How much to move the layer horizontally relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
+ * \ns Scene
+ */
+VMValue Scene_SetLayerHorizontalParallaxFactor(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	float scrollFactor = GET_ARG(1, GetDecimal);
+	CHECK_SCENE_LAYER_INDEX(index);
+	Scene::Layers[index].RelativeX = scrollFactor;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerVerticalParallaxFactor
+ * \desc Sets the vertical parallax scroll factor of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param scrollFactor (decimal): How much to move the layer vertically relative to the camera. (0.0 = no movement, 1.0 = moves opposite to speed of camera, 2.0 = moves twice the speed opposite to camera)
+ * \ns Scene
+ */
+VMValue Scene_SetLayerVerticalParallaxFactor(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	float scrollFactor = GET_ARG(1, GetDecimal);
+	CHECK_SCENE_LAYER_INDEX(index);
+	Scene::Layers[index].RelativeY = scrollFactor;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerHorizontalConstantScroll
+ * \desc Sets the horizontal constant scroll amount of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param constant (decimal): How many pixels to move the layer horizontally per frame.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerHorizontalConstantScroll(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	float constant = GET_ARG(1, GetDecimal);
+	CHECK_SCENE_LAYER_INDEX(index);
+	Scene::Layers[index].ConstantX = constant;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerVerticalConstantScroll
+ * \desc Sets the vertical constant scroll amount of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param constant (decimal): How many pixels to move the layer vertically per frame.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerVerticalConstantScroll(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	float constant = GET_ARG(1, GetDecimal);
+	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index].ConstantY = constant;
 	return NULL_VAL;
 }
@@ -21795,6 +21907,10 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(Scene, GetLayerDrawGroup);
 	DEF_NATIVE(Scene, GetLayerHorizontalRepeat);
 	DEF_NATIVE(Scene, GetLayerVerticalRepeat);
+	DEF_NATIVE(Scene, GetLayerHorizontalParallaxFactor);
+	DEF_NATIVE(Scene, GetLayerVerticalParallaxFactor);
+	DEF_NATIVE(Scene, GetLayerHorizontalConstantScroll);
+	DEF_NATIVE(Scene, GetLayerVerticalConstantScroll);
 	DEF_NATIVE(Scene, GetTileWidth);
 	DEF_NATIVE(Scene, GetTileHeight);
 	DEF_NATIVE(Scene, GetTileID);
@@ -21859,6 +21975,10 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(Scene, SetLayerShader);
 	DEF_NATIVE(Scene, SetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, SetLayerScroll);
+	DEF_NATIVE(Scene, SetLayerHorizontalParallaxFactor);
+	DEF_NATIVE(Scene, SetLayerVerticalParallaxFactor);
+	DEF_NATIVE(Scene, SetLayerHorizontalConstantScroll);
+	DEF_NATIVE(Scene, SetLayerVerticalConstantScroll);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesBegin);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLines);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesEnd);
