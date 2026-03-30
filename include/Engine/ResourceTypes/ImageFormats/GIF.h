@@ -7,24 +7,24 @@
 
 class GIF : public ImageFormat {
 private:
-	static inline Uint32 ReadCode(Stream* stream,
+	static Uint32 ReadCode(Stream* stream,
 		int codeSize,
 		int* blockLength,
 		int* bitCache,
 		int* bitCacheLength);
-	static inline void WriteCode(Stream* stream,
+	static void WriteCode(Stream* stream,
 		int* offset,
 		int* partial,
 		Uint8* buffer,
 		uint16_t key,
 		int key_size);
-	inline void WriteFrame(Stream* stream, Uint32* data);
+	void WriteFrame(Stream* stream, Uint8* data);
 	static void* NewNode(Uint16 key, int degree);
 	static void* NewTree(int degree, int* nkeys);
 	static void FreeTree(void* root, int degree);
 
 public:
-	vector<Uint32*> Frames;
+	vector<Uint8*> Frames;
 
 	static GIF* Load(Stream* stream);
 	static bool Save(GIF* gif, const char* filename);

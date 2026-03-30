@@ -3,7 +3,6 @@
 
 #include <Engine/IO/Stream.h>
 #include <Engine/Includes/Standard.h>
-#include <Engine/Rendering/GameTexture.h>
 #include <Engine/Rendering/Texture.h>
 
 enum { IMAGE_FORMAT_UNKNOWN, IMAGE_FORMAT_PNG, IMAGE_FORMAT_GIF, IMAGE_FORMAT_JPEG };
