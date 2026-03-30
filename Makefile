@@ -47,6 +47,7 @@ CPPFILES := \
 	source/Engine/Bytecode/TypeImpl/ShaderImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StreamImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/TextureImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/TypeImpl.cpp \
 	source/Engine/Bytecode/Types.cpp \
 	source/Engine/Bytecode/Value.cpp \
@@ -120,7 +121,6 @@ CPPFILES := \
 	source/Engine/Network/WebSocketClient.cpp \
 	source/Engine/Rendering/D3D/D3DRenderer.cpp \
 	source/Engine/Rendering/FaceInfo.cpp \
-	source/Engine/Rendering/GameTexture.cpp \
 	source/Engine/Rendering/GL/GLRenderer.cpp \
 	source/Engine/Rendering/GL/GLShader.cpp \
 	source/Engine/Rendering/GL/GLShaderBuilder.cpp \
@@ -136,7 +136,6 @@ CPPFILES := \
 	source/Engine/Rendering/Texture.cpp \
 	source/Engine/Rendering/TextureReference.cpp \
 	source/Engine/Rendering/VertexBuffer.cpp \
-	source/Engine/Rendering/ViewTexture.cpp \
 	source/Engine/ResourceTypes/Font.cpp \
 	source/Engine/ResourceTypes/Image.cpp \
 	source/Engine/ResourceTypes/ImageFormats/GIF.cpp \
