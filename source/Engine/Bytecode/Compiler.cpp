@@ -206,6 +206,9 @@ bool Compiler::IsIdentifierStart(char c) {
 bool Compiler::IsIdentifierBody(char c) {
 	return IsIdentifierStart(c) || IsDigit(c);
 }
+bool Compiler::IsDot(char c) {
+	return c == '.';
+}
 
 bool Compiler::MatchChar(char expected) {
 	if (IsEOF()) {
@@ -546,6 +549,7 @@ Token Compiler::StringToken() {
 	return MakeToken(TOKEN_STRING);
 }
 Token Compiler::NumberToken() {
+	// If it starts with "0x", it's in hexadecimal notation.
 	if (*scanner.Start == '0' && (PeekChar() == 'x' || PeekChar() == 'X')) {
 		AdvanceChar(); // x
 		while (IsHexDigit(PeekChar())) {
@@ -553,13 +557,21 @@ Token Compiler::NumberToken() {
 		}
 		return MakeToken(TOKEN_NUMBER);
 	}
+	// If it starts with a dot, it's a decimal with an implicit integer part.
+	else if (IsDot(*scanner.Start) && IsDigit(PeekChar())) {
+		while (IsDigit(PeekChar())) {
+			AdvanceChar();
+		}
+		return MakeToken(TOKEN_DECIMAL);
+	}
 
 	while (IsDigit(PeekChar())) {
 		AdvanceChar();
 	}
 
-	// Look for a fractional part.
-	if (PeekChar() == '.' && IsDigit(PeekNextChar())) {
+	// If there's a dot after the digits, it's a decimal.
+	// The fractional part can be omitted.
+	if (IsDot(PeekChar())) {
 		// Consume the "."
 		AdvanceChar();
 
@@ -590,10 +602,10 @@ Token Compiler::ScanToken() {
 
 	char c = AdvanceChar();
 
-	if (IsDigit(c)) {
+	if (IsDigit(c) || (IsDot(c) && IsDigit(PeekChar()))) {
 		return NumberToken();
 	}
-	if (IsIdentifierStart(c)) {
+	else if (IsIdentifierStart(c)) {
 		return IdentifierToken();
 	}
 
@@ -1678,8 +1690,7 @@ ExprContext Compiler::GetInteger(ExprContext context) {
 	return EXPRCONTEXT_VALUE;
 }
 ExprContext Compiler::GetDecimal(ExprContext context) {
-	float value = 0;
-	value = (float)atof(parser.Previous.Start);
+	float value = (float)atof(parser.Previous.Start);
 
 	if (negateConstant) {
 		value = -value;
