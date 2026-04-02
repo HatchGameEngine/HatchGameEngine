@@ -10286,15 +10286,40 @@ VMValue Math_Asin(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Math.Atan
+ * \desc Returns the arctangent angle (in radians) from n.
+ * \param n (decimal): n value.
+ * \return decimal The angle from n.
+ * \ns Math
+ */
+/***
+ * Math.Atan
+ * \desc Returns the arctangent angle (in radians) from n and a.
+ * \param n (decimal): n value.
+ * \param a (decimal): a value.
+ * \return decimal The angle from n and a.
+ * \deprecated Use <ref Math.Atan2> instead.
+ * \ns Math
+ */
+VMValue Math_Atan(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(1);
+
+	if (argCount == 1)
+		return DECIMAL_VAL(Math::Atan(GET_ARG(0, GetDecimal)));
+	// Check for an extra argument for compatibility purposes.
+	CHECK_ARGCOUNT(2);
+	return DECIMAL_VAL(Math::Atan2(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
+}
+/***
+ * Math.Atan2
  * \desc Returns the arctangent angle (in radians) from x and y.
  * \param x (decimal): x value.
  * \param y (decimal): y value.
  * \return decimal The angle from x and y.
  * \ns Math
  */
-VMValue Math_Atan(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Math_Atan2(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	return DECIMAL_VAL(Math::Atan(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
+	return DECIMAL_VAL(Math::Atan2(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
 }
 /***
  * Math.Distance
@@ -10325,7 +10350,7 @@ VMValue Math_Distance(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Math_Direction(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(4);
-	return DECIMAL_VAL(Math::Atan(GET_ARG(2, GetDecimal) - GET_ARG(0, GetDecimal),
+	return DECIMAL_VAL(Math::Atan2(GET_ARG(2, GetDecimal) - GET_ARG(0, GetDecimal),
 		GET_ARG(1, GetDecimal) - GET_ARG(3, GetDecimal)));
 }
 /***
@@ -21642,6 +21667,7 @@ This class also houses the input action system.
 	DEF_NATIVE(Math, Acos);
 	DEF_NATIVE(Math, Asin);
 	DEF_NATIVE(Math, Atan);
+	DEF_NATIVE(Math, Atan2);
 	DEF_NATIVE(Math, Distance);
 	DEF_NATIVE(Math, Direction);
 	DEF_NATIVE(Math, Abs);

@@ -45,11 +45,10 @@ float Math::Asin(float x) {
 float Math::Acos(float x) {
 	return std::acos(x);
 }
-float Math::Atan(float x, float y) {
-	if (x == 0.0f && y == 0.0f) {
-		return 0.0f;
-	}
-
+float Math::Atan(float n) {
+	return std::atan(n);
+}
+float Math::Atan2(float x, float y) {
 	return std::atan2(y, x);
 }
 float Math::Distance(float x1, float y1, float x2, float y2) {
