@@ -123,6 +123,31 @@ struct VMColor {
 		result.Alpha = this->Alpha / b;
 		return result;
 	}
+
+	int AsRGB() {
+		int red = std::max(0, std::min((int)(Red * 255.0f), 0xFF));
+		int green = std::max(0, std::min((int)(Green * 255.0f), 0xFF));
+		int blue = std::max(0, std::min((int)(Blue * 255.0f), 0xFF));
+
+#if HATCH_BIG_ENDIAN
+		return red << 24 | green << 16 | blue << 8 | 0xFF;
+#else
+		return 0xFF000000 | red << 16 | green << 8 | blue;
+#endif
+	}
+
+	int AsRGBA() {
+		int red = std::max(0, std::min((int)(Red * 255.0f), 0xFF));
+		int green = std::max(0, std::min((int)(Green * 255.0f), 0xFF));
+		int blue = std::max(0, std::min((int)(Blue * 255.0f), 0xFF));
+		int alpha = std::max(0, std::min((int)(Alpha * 255.0f), 0xFF));
+
+#if HATCH_BIG_ENDIAN
+		return red << 24 | green << 16 | blue << 8 | alpha;
+#else
+		return alpha << 24 | red << 16 | green << 8 | blue;
+#endif
+	}
 };
 
 typedef union {
