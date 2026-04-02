@@ -22886,7 +22886,7 @@ This is preferred over <ref Math>'s random functions if you require consistency,
     */
 	DEF_CONST_DECIMAL("Math_TAU", M_PI * 2.0);
 	/***
-	* \constant Math_PI_HALF
+	* \constant Math_TAU
 	* \type decimal
 	* \desc The ratio of a circle's circumference to its radius.
 	*/
