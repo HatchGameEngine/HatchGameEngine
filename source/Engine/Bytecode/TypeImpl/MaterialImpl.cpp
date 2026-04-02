@@ -177,9 +177,9 @@ void MaterialImpl::Init() {
  * \desc Creates a material.
  * \ns Material
  */
-Obj* MaterialImpl::New() {
+VMValue MaterialImpl::New() {
 	Material* materialPtr = Material::Create(nullptr);
-	return (Obj*)New((void*)materialPtr);
+	return OBJECT_VAL(New((void*)materialPtr));
 }
 ObjMaterial* MaterialImpl::New(void* materialPtr) {
 	ObjMaterial* material = (ObjMaterial*)NewNativeInstance(sizeof(ObjMaterial));
@@ -237,8 +237,8 @@ VMValue MaterialImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadI
 		} \
 	}
 
-bool MaterialImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
-	ObjMaterial* objMaterial = (ObjMaterial*)object;
+bool MaterialImpl::VM_PropertyGet(VMValue instance, Uint32 hash, VMValue* result, Uint32 threadID) {
+	ObjMaterial* objMaterial = AS_MATERIAL(instance);
 	Material* material = objMaterial->MaterialPtr;
 	if (material == nullptr) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
@@ -337,8 +337,8 @@ static void DoTextureReplacement(int imageID, Image** image, Uint32 threadID) {
 		} \
 	}
 
-bool MaterialImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
-	ObjMaterial* objMaterial = (ObjMaterial*)object;
+bool MaterialImpl::VM_PropertySet(VMValue& instance, Uint32 hash, VMValue value, Uint32 threadID) {
+	ObjMaterial* objMaterial = AS_MATERIAL(instance);
 	Material* material = objMaterial->MaterialPtr;
 	if (material == nullptr) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(

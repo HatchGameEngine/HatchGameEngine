@@ -19,12 +19,15 @@ private:
 	VMValue LoadIndirect(VMLocation location);
 	VMValue StoreIndirect(VMLocation location, VMValue value);
 	VMValue GetElement(VMValue object, VMValue at);
-	VMValue SetElement(VMValue object, VMValue at, VMValue value);
+	VMValue SetElement(VMValue& object, VMValue at, VMValue value);
 	VMValue GetGlobal(Uint32 hash);
 	void SetGlobal(Uint32 hash, VMValue value);
+	void LoadIndirect(CallFrame* frame);
+	void StoreIndirect(CallFrame* frame);
+	VMValue LoadLocation(VMLocation* location, CallFrame* frame);
 	bool
-	GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
-	bool GetProperty(Obj* object, Uint32 hash, ValueGetFn getter);
+	GetProperty(VMValue instance, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
+	bool GetProperty(VMValue instance, Uint32 hash, ValueGetFn getter);
 	bool GetProperty(ObjClass* klass, Uint32 hash, bool checkFields);
 	bool GetProperty(ObjClass* klass, Uint32 hash);
 	bool
@@ -37,7 +40,7 @@ private:
 	bool CallBoundMethod(ObjBoundMethod* bound, int argCount);
 	bool CallValue(VMValue callee, int argCount);
 	bool CallForObject(VMValue callee, int argCount);
-	bool InstantiateClass(VMValue callee, int argCount);
+	bool Instantiate(VMValue callee, int argCount);
 	bool DoClassExtension(VMValue value, VMValue originalValue, bool clearSrc);
 
 public:
@@ -91,7 +94,7 @@ public:
 #endif
 	bool HasProperty(VMValue object, Uint32 hash);
 	VMValue GetProperty(VMValue object, Uint32 hash);
-	VMValue SetProperty(VMValue object, Uint32 hash, VMValue value);
+	VMValue SetProperty(VMValue& object, Uint32 hash, VMValue value);
 	void Push(VMValue value);
 	VMValue Pop();
 	void Pop(unsigned amount);

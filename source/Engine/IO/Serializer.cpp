@@ -39,6 +39,15 @@ void Serializer::WriteValue(VMValue val) {
 		StreamPtr->WriteInt16(hitbox[HITBOX_BOTTOM]);
 		return;
 	}
+	case VAL_COLOR: {
+		VMColor color = AS_COLOR(val);
+		StreamPtr->WriteByte(Serializer::VAL_TYPE_COLOR);
+		StreamPtr->WriteFloat(color.Red);
+		StreamPtr->WriteFloat(color.Green);
+		StreamPtr->WriteFloat(color.Blue);
+		StreamPtr->WriteFloat(color.Alpha);
+		return;
+	}
 	case VAL_OBJECT: {
 		Obj* obj = AS_OBJECT(val);
 		Uint32 objectID = GetUniqueObjectID(obj);
@@ -417,6 +426,13 @@ VMValue Serializer::ReadValue() {
 		Sint16 right = StreamPtr->ReadInt16();
 		Sint16 bottom = StreamPtr->ReadInt16();
 		return HITBOX_VAL(left, top, right, bottom);
+	}
+	case Serializer::VAL_TYPE_COLOR: {
+		float red = StreamPtr->ReadFloat();
+		float green = StreamPtr->ReadFloat();
+		float blue = StreamPtr->ReadFloat();
+		float alpha = StreamPtr->ReadFloat();
+		return COLOR_VAL(red, green, blue, alpha);
 	}
 	case Serializer::VAL_TYPE_NULL:
 		break;

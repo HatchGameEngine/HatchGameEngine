@@ -12,8 +12,8 @@
 #ifdef SCRIPTABLE_ENTITY
 ObjClass* Camera_Class = nullptr;
 
-bool Camera_VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
-bool Camera_VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
+bool Camera_VM_PropertyGet(VMValue instance, Uint32 hash, VMValue* result, Uint32 threadID);
+bool Camera_VM_PropertySet(VMValue& instance, Uint32 hash, VMValue value, Uint32 threadID);
 #endif
 
 /***
@@ -243,22 +243,22 @@ void Camera_FieldSet_UseBounds(Camera* camera, VMValue value, Uint32 threadID) {
 	camera->UseBounds = AS_INTEGER(value) ? true : false;
 }
 
-bool Camera_VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
-	Camera* entity = (Camera*)((ObjEntity*)object)->EntityPtr;
+bool Camera_VM_PropertyGet(VMValue instance, Uint32 hash, VMValue* result, Uint32 threadID) {
+	Camera* entity = (Camera*)(AS_ENTITY(instance))->EntityPtr;
 
 	ENTITY_GET_FIELD(Camera, TargetEntity);
 	ENTITY_GET_FIELD(Camera, ViewIndex);
 	ENTITY_GET_FIELD(Camera, UseBounds);
 
-	return EntityImpl::VM_PropertyGet(object, hash, result, threadID);
+	return EntityImpl::VM_PropertyGet(instance, hash, result, threadID);
 }
-bool Camera_VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
-	Camera* entity = (Camera*)((ObjEntity*)object)->EntityPtr;
+bool Camera_VM_PropertySet(VMValue& instance, Uint32 hash, VMValue value, Uint32 threadID) {
+	Camera* entity = (Camera*)(AS_ENTITY(instance))->EntityPtr;
 
 	ENTITY_SET_FIELD(Camera, TargetEntity);
 	ENTITY_SET_FIELD(Camera, ViewIndex);
 	ENTITY_SET_FIELD(Camera, UseBounds);
 
-	return EntityImpl::VM_PropertySet(object, hash, value, threadID);
+	return EntityImpl::VM_PropertySet(instance, hash, value, threadID);
 }
 #endif

@@ -537,14 +537,14 @@ bool ScriptManager::GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, VM
 		}
 
 		// Otherwise, walk up the inheritance chain until we find the method.
-		klass = GetClassParent(object, klass);
+		klass = GetClassParent(OBJECT_VAL(object), klass);
 	}
 
 	return false;
 }
-ObjClass* ScriptManager::GetClassParent(Obj* object, ObjClass* klass) {
-	if (klass->Parent == nullptr && object->Type == OBJ_ENTITY) {
-		ObjEntity* entity = (ObjEntity*)object;
+ObjClass* ScriptManager::GetClassParent(VMValue instance, ObjClass* klass) {
+	if (klass->Parent == nullptr && IS_ENTITY(instance)) {
+		ObjEntity* entity = AS_ENTITY(instance);
 		if (entity->EntityPtr && klass != EntityImpl::ParentClass) {
 			return EntityImpl::Class;
 		}

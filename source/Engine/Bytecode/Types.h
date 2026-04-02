@@ -29,6 +29,7 @@ typedef enum {
 	VAL_LINKED_INTEGER,
 	VAL_LINKED_DECIMAL,
 	VAL_HITBOX,
+	VAL_COLOR,
 	VAL_LOCATION,
 	VAL_ERROR
 } ValueType;
@@ -45,6 +46,85 @@ enum {
 	LOC_ELEMENT
 };
 
+struct VMColor {
+	float Red;
+	float Green;
+	float Blue;
+	float Alpha;
+
+	VMColor operator+(const VMColor& b) {
+		VMColor result;
+		result.Red = this->Red + b.Red;
+		result.Green = this->Green + b.Green;
+		result.Blue = this->Blue + b.Blue;
+		result.Alpha = this->Alpha + b.Alpha;
+		return result;
+	}
+
+	VMColor operator-(const VMColor& b) {
+		VMColor result;
+		result.Red = this->Red - b.Red;
+		result.Green = this->Green - b.Green;
+		result.Blue = this->Blue - b.Blue;
+		result.Alpha = this->Alpha - b.Alpha;
+		return result;
+	}
+
+	VMColor operator*(const VMColor& b) {
+		VMColor result;
+		result.Red = this->Red * b.Red;
+		result.Green = this->Green * b.Green;
+		result.Blue = this->Blue * b.Blue;
+		result.Alpha = this->Alpha * b.Alpha;
+		return result;
+	}
+
+	VMColor operator*(const float& b) {
+		VMColor result;
+		result.Red = this->Red * b;
+		result.Green = this->Green * b;
+		result.Blue = this->Blue * b;
+		result.Alpha = this->Alpha * b;
+		return result;
+	}
+
+	VMColor operator*(const int& b) {
+		VMColor result;
+		result.Red = this->Red * b;
+		result.Green = this->Green * b;
+		result.Blue = this->Blue * b;
+		result.Alpha = this->Alpha * b;
+		return result;
+	}
+
+	VMColor operator/(const VMColor& b) {
+		VMColor result;
+		result.Red = this->Red / b.Red;
+		result.Green = this->Green / b.Green;
+		result.Blue = this->Blue / b.Blue;
+		result.Alpha = this->Alpha / b.Alpha;
+		return result;
+	}
+
+	VMColor operator/(const float& b) {
+		VMColor result;
+		result.Red = this->Red / b;
+		result.Green = this->Green / b;
+		result.Blue = this->Blue / b;
+		result.Alpha = this->Alpha / b;
+		return result;
+	}
+
+	VMColor operator/(const int& b) {
+		VMColor result;
+		result.Red = this->Red / b;
+		result.Green = this->Green / b;
+		result.Blue = this->Blue / b;
+		result.Alpha = this->Alpha / b;
+		return result;
+	}
+};
+
 typedef union {
 	int Integer;
 	float Decimal;
@@ -52,6 +132,7 @@ typedef union {
 	int* LinkedInteger;
 	float* LinkedDecimal;
 	Sint16 Hitbox[NUM_HITBOX_SIDES];
+	VMColor Color;
 } VMValueUnion;
 
 struct VMLocation {
@@ -220,6 +301,9 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 	(!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && \
 		!IS_LINKED_INTEGER(value))
 
+#define IS_HITBOX(value) ((value).Type == VAL_HITBOX)
+#define AS_HITBOX(value) (&((value).as.Value.Hitbox[0]))
+
 static inline VMValue HITBOX_VAL(Sint16 left, Sint16 top, Sint16 right, Sint16 bottom) {
 	VMValue val;
 	val.Type = VAL_HITBOX;
@@ -240,8 +324,25 @@ static inline VMValue HITBOX_VAL(Sint16* values) {
 	return val;
 }
 
-#define IS_HITBOX(value) ((value).Type == VAL_HITBOX)
-#define AS_HITBOX(value) (&((value).as.Value.Hitbox[0]))
+#define IS_COLOR(value) ((value).Type == VAL_COLOR)
+#define AS_COLOR(value) ((value).as.Value.Color)
+
+static inline VMValue COLOR_VAL(float red, float green, float blue, float alpha) {
+	VMValue val;
+	val.Type = VAL_COLOR;
+	AS_COLOR(val).Red = red;
+	AS_COLOR(val).Green = green;
+	AS_COLOR(val).Blue = blue;
+	AS_COLOR(val).Alpha = alpha;
+	return val;
+}
+
+static inline VMValue COLOR_VAL(VMColor color) {
+	VMValue val;
+	val.Type = VAL_COLOR;
+	AS_COLOR(val) = color;
+	return val;
+}
 
 #ifdef WIN32
 static inline VMLocation STACK_LOCATION(VMValue* slot) {
@@ -305,14 +406,14 @@ static inline bool IsStructureLocationValueObject(VMLocation location) {
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 
-typedef Obj* (*ClassNewFn)(void);
+typedef VMValue (*ClassNewFn)(void);
 typedef void (*ObjectDestructor)(Obj*);
 
-typedef bool (*ValueGetFn)(Obj* object, Uint32 hash, VMValue* value, Uint32 threadID);
-typedef bool (*ValueSetFn)(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
+typedef bool (*ValueGetFn)(VMValue instance, Uint32 hash, VMValue* value, Uint32 threadID);
+typedef bool (*ValueSetFn)(VMValue& instance, Uint32 hash, VMValue value, Uint32 threadID);
 
-typedef bool (*StructGetFn)(Obj* object, VMValue at, VMValue* value, Uint32 threadID);
-typedef bool (*StructSetFn)(Obj* object, VMValue at, VMValue value, Uint32 threadID);
+typedef bool (*ElementGetFn)(VMValue instance, VMValue at, VMValue* value, Uint32 threadID);
+typedef bool (*ElementSetFn)(VMValue& instance, VMValue at, VMValue value, Uint32 threadID);
 
 enum ObjType {
 	OBJ_STRING,
@@ -336,6 +437,7 @@ enum ObjType {
 
 #define CLASS_ARRAY "ArrayImpl"
 #define CLASS_ENTITY "EntityImpl"
+#define CLASS_COLOR "Color"
 #define CLASS_FONT "Font"
 #define CLASS_FUNCTION "FunctionImpl"
 #define CLASS_INSTANCE "InstanceImpl"
@@ -435,8 +537,8 @@ struct ObjClass {
 	ClassNewFn NewFn;
 	ValueGetFn PropertyGet;
 	ValueSetFn PropertySet;
-	StructGetFn ElementGet;
-	StructSetFn ElementSet;
+	ElementGetFn ElementGet;
+	ElementSetFn ElementSet;
 	ObjClass* Parent;
 };
 struct ObjInstance {
@@ -444,8 +546,8 @@ struct ObjInstance {
 	Table* Fields;
 	ValueGetFn PropertyGet;
 	ValueSetFn PropertySet;
-	StructGetFn ElementGet;
-	StructSetFn ElementSet;
+	ElementGetFn ElementGet;
+	ElementSetFn ElementSet;
 	ObjectDestructor Destructor;
 };
 struct ObjBoundMethod {

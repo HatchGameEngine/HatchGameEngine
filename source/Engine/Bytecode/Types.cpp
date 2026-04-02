@@ -255,6 +255,8 @@ const char* GetTypeString(Uint32 type) {
 		return "decimal";
 	case VAL_HITBOX:
 		return "hitbox";
+	case VAL_COLOR:
+		return "color";
 	case VAL_OBJECT:
 		return "object";
 	case VAL_LOCATION:

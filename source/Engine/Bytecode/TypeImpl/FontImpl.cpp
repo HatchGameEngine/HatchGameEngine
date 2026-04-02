@@ -149,10 +149,10 @@ void GetDefaultFonts(std::vector<Stream*>& streamList, std::vector<bool>& closeS
  * \paramOpt font (array): The list of fonts. If this argument is not given, it will use font the application was built with, if one is present.
  * \ns Font
  */
-Obj* FontImpl::New() {
+VMValue FontImpl::New() {
 	Font* font = new Font();
 	ObjFont* obj = New((void*)font);
-	return (Obj*)obj;
+	return OBJECT_VAL(obj);
 }
 ObjFont* FontImpl::New(void* fontPtr) {
 	ObjFont* font = (ObjFont*)NewNativeInstance(sizeof(ObjFont));

@@ -72,7 +72,7 @@ public:
 	static void GlobalLinkDecimal(ObjClass* klass, const char* name, float* value);
 	static void GlobalConstInteger(ObjClass* klass, const char* name, int value);
 	static void GlobalConstDecimal(ObjClass* klass, const char* name, float value);
-	static ObjClass* GetClassParent(Obj* object, ObjClass* klass);
+	static ObjClass* GetClassParent(VMValue instance, ObjClass* klass);
 	static bool GetClassMethod(ObjClass* klass, Uint32 hash, VMValue* callable);
 	static bool GetClassMethod(Obj* object, ObjClass* klass, Uint32 hash, VMValue* callable);
 	static bool ClassHasMethod(ObjClass* klass, Uint32 hash);

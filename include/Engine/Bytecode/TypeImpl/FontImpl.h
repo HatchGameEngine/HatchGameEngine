@@ -13,7 +13,7 @@ public:
 
 	static void Init();
 
-	static Obj* New(void);
+	static VMValue New(void);
 	static ObjFont* New(void* fontPtr);
 	static void Dispose(Obj* object);
 

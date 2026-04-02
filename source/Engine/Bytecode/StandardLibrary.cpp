@@ -5,6 +5,7 @@
 #include <Engine/Bytecode/Compiler.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/ColorImpl.h>
 #include <Engine/Bytecode/TypeImpl/FontImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
@@ -571,6 +572,24 @@ inline Animator* GetAnimator(VMValue* args, int index, Uint32 threadID) {
 
 	return Scene::AnimatorList[where];
 }
+inline VMColor GetColor(VMValue* args, int index, Uint32 threadID) {
+	VMColor value;
+	if (ScriptManager::Lock()) {
+		if (IS_COLOR(args[index])) {
+			value = AS_COLOR(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(ColorImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 } // namespace LOCAL
 
 // NOTE:
@@ -623,6 +642,9 @@ ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID)
 }
 ObjFont* StandardLibrary::GetFont(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetFont(args, index, threadID);
+}
+VMColor StandardLibrary::GetColor(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetColor(args, index, threadID);
 }
 
 void StandardLibrary::CheckArgCount(int argCount, int expects) {
@@ -18252,7 +18274,7 @@ VMValue Texture_Create(int argCount, VMValue* args, Uint32 threadID) {
 
 	Texture* texture = Graphics::CreateTexture(TextureFormat_NATIVE, TextureAccess_STREAMING, width, height);
 	if (texture) {
-		Obj* objTexture = TextureImpl::New();
+		Obj* objTexture = AS_OBJECT(TextureImpl::New());
 		ScriptManager::RegistryAdd(texture, objTexture);
 		return OBJECT_VAL(objTexture);
 	}
