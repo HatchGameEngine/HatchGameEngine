@@ -10286,10 +10286,18 @@ VMValue Math_Asin(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Math.Atan
- * \desc Returns the arctangent angle (in radians) from n, you may also provide an optional argument to get the same behaviour as Atan2.
+ * \desc Returns the arctangent angle (in radians) from n.
+ * \param n (decimal): n value.
+ * \return decimal The angle from n.
+ * \ns Math
+ */
+/***
+ * Math.Atan
+ * \desc Returns the arctangent angle (in radians) from n and a.
  * \param n (decimal): n value.
  * \param a (decimal): a value.
- * \return decimal The angle from n or the angle from n and a.
+ * \return decimal The angle from n and a.
+ * \deprecated Use <ref Math.Atan2> instead.
  * \ns Math
  */
 VMValue Math_Atan(int argCount, VMValue* args, Uint32 threadID) {
