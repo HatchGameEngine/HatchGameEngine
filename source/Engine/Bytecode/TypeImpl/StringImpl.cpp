@@ -19,9 +19,9 @@ void StringImpl::Init() {
 	TypeImpl::ExposeClass(Class);
 }
 
-Obj* StringImpl::Constructor() {
+VMValue StringImpl::Constructor() {
 	throw ScriptException("Cannot directly construct String!");
-	return nullptr;
+	return NULL_VAL;
 }
 
 Obj* StringImpl::New(char* chars, size_t length) {
@@ -41,8 +41,8 @@ void StringImpl::Dispose(Obj* object) {
 
 #define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
 
-bool StringImpl::VM_ElementGet(Obj* object, VMValue at, VMValue* result, Uint32 threadID) {
-	ObjString* string = (ObjString*)object;
+bool StringImpl::VM_ElementGet(VMValue instance, VMValue at, VMValue* result, Uint32 threadID) {
+	ObjString* string = (ObjString*)AS_OBJECT(instance);
 
 	if (!IS_INTEGER(at)) {
 		THROW_ERROR("Cannot get value from array using non-Integer value as an index.");

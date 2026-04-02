@@ -15,7 +15,7 @@ public:
 
 	static void Init();
 
-	static Obj* Constructor();
+	static VMValue Constructor();
 	static ObjStream* New(void* streamPtr, bool writable);
 	static void Dispose(Obj* object);
 };

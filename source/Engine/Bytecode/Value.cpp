@@ -253,6 +253,8 @@ bool Value::Equal(VMValue a, VMValue b) {
 		return AS_OBJECT(a) == AS_OBJECT(b);
 	case VAL_HITBOX:
 		return memcmp(AS_HITBOX(a), AS_HITBOX(b), sizeof(Sint16) * NUM_HITBOX_SIDES) == 0;
+	case VAL_COLOR:
+		return memcmp(&AS_COLOR(a), &AS_COLOR(b), sizeof(VMColor)) == 0;
 	case VAL_NULL:
 		return true;
 	}
@@ -273,6 +275,8 @@ bool Value::ExactlyEqual(VMValue a, VMValue b) {
 		return AS_OBJECT(a) == AS_OBJECT(b);
 	case VAL_HITBOX:
 		return memcmp(AS_HITBOX(a), AS_HITBOX(b), sizeof(Sint16) * NUM_HITBOX_SIDES) == 0;
+	case VAL_COLOR:
+		return memcmp(&AS_COLOR(a), &AS_COLOR(b), sizeof(VMColor)) == 0;
 	}
 	return false;
 }

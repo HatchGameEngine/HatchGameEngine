@@ -15,13 +15,13 @@ public:
 
 	static void Init();
 
-	static Obj* Constructor();
+	static VMValue Constructor();
 	static ObjMaterial* New(void* materialPtr);
 	static void Dispose(Obj* object);
 
 	static VMValue VM_Initializer(int argCount, VMValue* args, Uint32 threadID);
-	static bool VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
-	static bool VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
+	static bool VM_PropertyGet(VMValue instance, Uint32 hash, VMValue* result, Uint32 threadID);
+	static bool VM_PropertySet(VMValue& instance, Uint32 hash, VMValue value, Uint32 threadID);
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_MATERIALIMPL_H */

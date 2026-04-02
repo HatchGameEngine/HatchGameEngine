@@ -54,8 +54,8 @@ void ShaderImpl::Init() {
 		throw ScriptException("Shader has been deleted!"); \
 	}
 
-bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
-	ObjShader* objShader = (ObjShader*)object;
+bool ShaderImpl::VM_PropertyGet(VMValue instance, Uint32 hash, VMValue* result, Uint32 threadID) {
+	ObjShader* objShader = AS_SHADER(instance);
 	if (objShader == nullptr) {
 		return false;
 	}
@@ -93,7 +93,7 @@ bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
  * \desc Creates a shader program.
  * \ns Shader
  */
-Obj* ShaderImpl::Constructor() {
+VMValue ShaderImpl::Constructor() {
 	Shader* shader = Graphics::CreateShader();
 	if (shader == nullptr) {
 		throw ScriptException("Could not create shader!");
@@ -101,7 +101,7 @@ Obj* ShaderImpl::Constructor() {
 
 	ObjShader* obj = New((void*)shader);
 	shader->Object = (void*)obj;
-	return (Obj*)obj;
+	return OBJECT_VAL(obj);
 }
 ObjShader* ShaderImpl::New(void* shaderPtr) {
 	ObjShader* shader = (ObjShader*)NewNativeInstance(sizeof(ObjShader));

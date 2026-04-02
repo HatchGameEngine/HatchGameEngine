@@ -33,13 +33,13 @@ void MapImpl::Init() {
  * \desc Creates a map.
  * \ns Map
  */
-Obj* MapImpl::Constructor() {
+VMValue MapImpl::Constructor() {
 	ObjMap* map = (ObjMap*)AllocateObject(sizeof(ObjMap), OBJ_MAP);
 	Memory::Track(map, "NewMap");
 	map->Object.Class = Class;
 	map->Values = new OrderedHashMap<VMValue>(NULL, 4);
 	map->Keys = new OrderedHashMap<VMValue>(NULL, 4);
-	return (Obj*)map;
+	return OBJECT_VAL(map);
 }
 
 void MapImpl::Dispose(Obj* object) {

@@ -60,8 +60,8 @@ Obj* EntityImpl::New(ObjClass* klass) {
 	return (Obj*)entity;
 }
 
-bool EntityImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
-	ObjEntity* objEntity = (ObjEntity*)object;
+bool EntityImpl::VM_PropertyGet(VMValue instance, Uint32 hash, VMValue* result, Uint32 threadID) {
+	ObjEntity* objEntity = AS_ENTITY(instance);
 	Entity* entity = (Entity*)objEntity->EntityPtr;
 
 	if (hash == Hash_HitboxLeft) {
@@ -91,8 +91,8 @@ bool EntityImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
 
 	return false;
 }
-bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
-	ObjEntity* objEntity = (ObjEntity*)object;
+bool EntityImpl::VM_PropertySet(VMValue& instance, Uint32 hash, VMValue value, Uint32 threadID) {
+	ObjEntity* objEntity = AS_ENTITY(instance);
 	Entity* entity = (Entity*)objEntity->EntityPtr;
 
 	if (hash == Hash_HitboxLeft) {

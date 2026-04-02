@@ -1,6 +1,7 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
+#include <Engine/Bytecode/TypeImpl/ColorImpl.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/FontImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
@@ -15,6 +16,7 @@
 
 void TypeImpl::Init() {
 	ArrayImpl::Init();
+	ColorImpl::Init();
 	EntityImpl::Init();
 	FontImpl::Init();
 	FunctionImpl::Init();

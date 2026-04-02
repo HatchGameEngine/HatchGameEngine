@@ -22,9 +22,9 @@ void FunctionImpl::Init() {
 	TypeImpl::ExposeClass(Class);
 }
 
-Obj* FunctionImpl::Constructor() {
+VMValue FunctionImpl::Constructor() {
 	throw ScriptException("Cannot directly construct Function!");
-	return nullptr;
+	return NULL_VAL;
 }
 
 Obj* FunctionImpl::New() {

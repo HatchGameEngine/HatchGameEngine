@@ -10,7 +10,7 @@ public:
 
 	static void Init();
 
-	static Obj* Constructor();
+	static VMValue Constructor();
 	static void Dispose(Obj* object);
 
 	static VMValue VM_Length(int argCount, VMValue* args, Uint32 threadID);

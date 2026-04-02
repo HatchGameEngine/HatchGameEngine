@@ -15,7 +15,7 @@ public:
 
 	static void Init();
 
-	static Obj* Constructor();
+	static VMValue Constructor();
 	static ObjFont* New(void* fontPtr);
 	static void Dispose(Obj* object);
 

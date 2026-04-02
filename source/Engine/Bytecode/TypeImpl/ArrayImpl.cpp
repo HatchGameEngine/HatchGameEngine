@@ -22,12 +22,12 @@ void ArrayImpl::Init() {
 	TypeImpl::ExposeClass(Class);
 }
 
-Obj* ArrayImpl::Constructor() {
+VMValue ArrayImpl::Constructor() {
 	ObjArray* array = (ObjArray*)AllocateObject(sizeof(ObjArray), OBJ_ARRAY);
 	Memory::Track(array, "NewArray");
 	array->Object.Class = Class;
 	array->Values = new vector<VMValue>();
-	return (Obj*)array;
+	return OBJECT_VAL(array);
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))

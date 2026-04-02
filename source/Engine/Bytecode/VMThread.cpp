@@ -2,6 +2,7 @@
 #include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/ColorImpl.h>
 #include <Engine/Bytecode/VMThread.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
@@ -1797,7 +1798,7 @@ int VMThread::RunInstruction() {
 	}
 	VM_CASE(OP_NEW) {
 		int argCount = ReadByte(frame);
-		if (!InstantiateClass(Peek(argCount), argCount)) {
+		if (!Instantiate(Peek(argCount), argCount)) {
 			ThrowRuntimeError(false, "Could not instantiate class!");
 			VM_BREAK;
 		}
@@ -2316,9 +2317,19 @@ int VMThread::Invoke(VMValue receiver, Uint8 argCount, Uint32 hash) {
 
 		return INVOKE_DOES_NOT_EXIST;
 	}
-	else if (IS_OBJECT(receiver)) {
-		Obj* obj = AS_OBJECT(receiver);
-		ObjClass* klass = obj->Class;
+	else {
+		ObjClass* klass = nullptr;
+		if (IS_OBJECT(receiver)) {
+			klass = AS_OBJECT(receiver)->Class;
+		}
+		else if (IS_COLOR(receiver)) {
+			klass = ColorImpl::Class;
+		}
+		else {
+			ThrowRuntimeError(false, "Only instances and classes have methods.");
+			return INVOKE_FAIL;
+		}
+
 		if (klass != nullptr) {
 			VMValue result;
 			if (klass->Methods->GetIfExists(hash, &result)) {
@@ -2343,13 +2354,13 @@ int VMThread::Invoke(VMValue receiver, Uint8 argCount, Uint32 hash) {
 			ThrowRuntimeError(false,
 				"Method %s does not exist in value of type %s!",
 				GetVariableOrMethodName(hash),
-				Value::GetObjectTypeName(obj->Type));
+				Value::GetObjectTypeName(OBJECT_TYPE(receiver)));
 		}
 
 		return INVOKE_DOES_NOT_EXIST;
 	}
 
-	ThrowRuntimeError(false, "Only instances and classes have methods.");
+	ThrowRuntimeError(false, "Method %s does not exist in %s.", GetVariableOrMethodName(hash), GetValueTypeString(receiver));
 
 	return INVOKE_FAIL;
 }
@@ -2370,7 +2381,7 @@ int VMThread::SuperInvoke(VMValue receiver, ObjClass* klass, Uint8 argCount, Uin
 		return INVOKE_FAIL;
 	}
 
-	ObjClass* parentClass = ScriptManager::GetClassParent(obj, klass);
+	ObjClass* parentClass = ScriptManager::GetClassParent(OBJECT_VAL(obj), klass);
 	if (!parentClass) {
 		ThrowRuntimeError(false,
 			"Class %s does not have a parent to call method from!",
@@ -2493,7 +2504,6 @@ bool VMThread::HasProperty(VMValue object, Uint32 hash) {
 VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 	VMValue result;
 
-	// If it's an instance,
 	if (IS_INSTANCEABLE(object)) {
 		ObjInstance* instance = AS_INSTANCE(object);
 
@@ -2506,7 +2516,7 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 			}
 
 			ObjClass* klass = instance->Object.Class;
-			if (GetProperty((Obj*)instance,
+			if (GetProperty(object,
 				    klass,
 				    hash,
 				    false,
@@ -2523,7 +2533,6 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 			return NULL_VAL;
 		}
 	}
-	// Otherwise, if it's a class,
 	else if (IS_CLASS(object)) {
 		ObjClass* klass = AS_CLASS(object);
 
@@ -2577,12 +2586,11 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 			return NULL_VAL;
 		}
 	}
-	// If it's any other object,
 	else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
 		Obj* objPtr = AS_OBJECT(object);
 
 		if (ScriptManager::Lock()) {
-			if (GetProperty(objPtr, objPtr->Class, hash, false, objPtr->Class->PropertyGet)) {
+			if (GetProperty(object, objPtr->Class, hash, false, objPtr->Class->PropertyGet)) {
 				result = Pop();
 				ScriptManager::Unlock();
 				return result;
@@ -2596,19 +2604,26 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 
 		return NULL_VAL;
 	}
-	else {
+	else if (IS_COLOR(object)) {
+		if (ColorImpl::VM_PropertyGet(object, hash, &result, this->ID)) {
+			return result;
+		}
+
 		ThrowRuntimeError(false,
-			"Only instances and classes have properties; value was of type %s.",
+			"Could not find %s in %s!",
+			GetVariableOrMethodName(hash),
 			GetValueTypeString(object));
 		return NULL_VAL;
 	}
 
+	ThrowRuntimeError(false,
+		"Only instances and classes have properties; value was of type %s.",
+		GetValueTypeString(object));
 	return NULL_VAL;
 }
-VMValue VMThread::SetProperty(VMValue object, Uint32 hash, VMValue value) {
+VMValue VMThread::SetProperty(VMValue& object, Uint32 hash, VMValue value) {
 	Table* fields;
 	ObjClass* klass;
-	Obj* objPtr = AS_OBJECT(object);
 	ValueSetFn setter = nullptr;
 
 	if (IS_INSTANCEABLE(object)) {
@@ -2621,8 +2636,8 @@ VMValue VMThread::SetProperty(VMValue object, Uint32 hash, VMValue value) {
 		klass = AS_CLASS(object);
 		fields = klass->Fields;
 	}
-	else if (IS_OBJECT(object) && objPtr->Class) {
-		klass = objPtr->Class;
+	else if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
+		klass = AS_OBJECT(object)->Class;
 		fields = klass->Fields;
 		setter = klass->PropertySet;
 	}
@@ -2632,6 +2647,17 @@ VMValue VMThread::SetProperty(VMValue object, Uint32 hash, VMValue value) {
 	}
 	else if (IS_ENUM(object)) {
 		ThrowRuntimeError(false, "Cannot modify the values of an enumeration.");
+		return value;
+	}
+	else if (IS_COLOR(object)) {
+		if (ColorImpl::VM_PropertySet(object, hash, value, this->ID)) {
+			return value;
+		}
+
+		ThrowRuntimeError(false,
+			"Could not find %s in %s!",
+			GetVariableOrMethodName(hash),
+			GetValueTypeString(object));
 		return value;
 	}
 	else {
@@ -2650,7 +2676,7 @@ VMValue VMThread::SetProperty(VMValue object, Uint32 hash, VMValue value) {
 			}
 		}
 		else {
-			if (setter && setter(objPtr, hash, value, this->ID)) {
+			if (setter && setter(object, hash, value, this->ID)) {
 				ScriptManager::Unlock();
 				return value;
 			}
@@ -2659,7 +2685,6 @@ VMValue VMThread::SetProperty(VMValue object, Uint32 hash, VMValue value) {
 		}
 
 		ScriptManager::Unlock();
-		return value;
 	}
 
 	return value;
@@ -2719,6 +2744,11 @@ VMValue VMThread::GetElement(VMValue object, VMValue at) {
 		}
 		return INTEGER_VAL(hitbox[index]);
 	}
+	else if (IS_COLOR(object)) {
+		VMValue result = NULL_VAL;
+		ColorImpl::VM_ElementGet(object, at, &result, this->ID);
+		return result;
+	}
 	else {
 		if (!IS_OBJECT(object)) {
 			ThrowRuntimeError(false,
@@ -2733,13 +2763,13 @@ VMValue VMThread::GetElement(VMValue object, VMValue at) {
 			if (IS_INSTANCEABLE(object)) {
 				ObjInstance* instance = AS_INSTANCE(object);
 				if (instance->ElementGet &&
-					instance->ElementGet(objPtr, at, &result, this->ID)) {
+					instance->ElementGet(object, at, &result, this->ID)) {
 					ScriptManager::Unlock();
 					return result;
 				}
 			}
 			else if (objPtr->Class && objPtr->Class->ElementGet &&
-				objPtr->Class->ElementGet(objPtr, at, &result, this->ID)) {
+				objPtr->Class->ElementGet(object, at, &result, this->ID)) {
 				ScriptManager::Unlock();
 				return result;
 			}
@@ -2754,7 +2784,7 @@ VMValue VMThread::GetElement(VMValue object, VMValue at) {
 
 	return NULL_VAL;
 }
-VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
+VMValue VMThread::SetElement(VMValue& object, VMValue at, VMValue value) {
 	if (IS_ARRAY(object)) {
 		if (!IS_INTEGER(at)) {
 			ThrowRuntimeError(false,
@@ -2786,6 +2816,10 @@ VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
 			ScriptManager::Unlock();
 		}
 	}
+	else if (IS_COLOR(object)) {
+		ColorImpl::VM_ElementSet(object, at, value, this->ID);
+		return value;
+	}
 	else {
 		if (!IS_OBJECT(object)) {
 			ThrowRuntimeError(false,
@@ -2799,13 +2833,13 @@ VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
 			if (IS_INSTANCEABLE(object)) {
 				ObjInstance* instance = AS_INSTANCE(object);
 				if (instance->ElementSet &&
-					instance->ElementSet(objPtr, at, value, this->ID)) {
+					instance->ElementSet(object, at, value, this->ID)) {
 					ScriptManager::Unlock();
 					return value;
 				}
 			}
 			else if (objPtr->Class && objPtr->Class->ElementSet &&
-				objPtr->Class->ElementSet(objPtr, at, value, this->ID)) {
+				objPtr->Class->ElementSet(object, at, value, this->ID)) {
 				ScriptManager::Unlock();
 				return value;
 			}
@@ -2898,7 +2932,7 @@ void VMThread::SetGlobal(Uint32 hash, VMValue value) {
 	ScriptManager::Unlock();
 }
 
-bool VMThread::GetProperty(Obj* object,
+bool VMThread::GetProperty(VMValue instance,
 	ObjClass* klass,
 	Uint32 hash,
 	bool checkFields,
@@ -2920,7 +2954,7 @@ bool VMThread::GetProperty(Obj* object,
 
 		if (getter) {
 			try {
-				if (getter(object, hash, &value, this->ID)) {
+				if (getter(instance, hash, &value, this->ID)) {
 					Push(value);
 					ScriptManager::Unlock();
 					return true;
@@ -2937,7 +2971,7 @@ bool VMThread::GetProperty(Obj* object,
 			}
 		}
 
-		ObjClass* parentClass = ScriptManager::GetClassParent(object, klass);
+		ObjClass* parentClass = ScriptManager::GetClassParent(instance, klass);
 		if (parentClass) {
 			ScriptManager::Unlock();
 			return GetProperty(parentClass, hash, checkFields);
@@ -2951,11 +2985,11 @@ bool VMThread::GetProperty(Obj* object,
 	ScriptManager::Unlock();
 	return false;
 }
-bool VMThread::GetProperty(Obj* object, Uint32 hash, ValueGetFn getter) {
+bool VMThread::GetProperty(VMValue instance, Uint32 hash, ValueGetFn getter) {
 	if (ScriptManager::Lock()) {
 		VMValue value;
 
-		if (getter && getter(object, hash, &value, this->ID)) {
+		if (getter && getter(instance, hash, &value, this->ID)) {
 			Push(value);
 			ScriptManager::Unlock();
 			return true;
@@ -2998,34 +3032,7 @@ bool VMThread::GetProperty(ObjClass* klass, Uint32 hash, bool checkFields) {
 	return false;
 }
 bool VMThread::GetProperty(ObjClass* klass, Uint32 hash) {
-	if (ScriptManager::Lock()) {
-		VMValue value;
-
-		if (klass->Fields->GetIfExists(hash, &value)) {
-			// Fields have priority over methods
-			Push(Value::Delink(value));
-			ScriptManager::Unlock();
-			return true;
-		}
-		else if (klass->Methods->GetIfExists(hash, &value)) {
-			Push(value);
-			ScriptManager::Unlock();
-			return true;
-		}
-
-		ObjClass* parentClass = klass->Parent;
-		if (parentClass) {
-			ScriptManager::Unlock();
-			return GetProperty(parentClass, hash);
-		}
-		else {
-			ThrowRuntimeError(
-				false, "Undefined property %s.", GetVariableOrMethodName(hash));
-			Push(NULL_VAL);
-		}
-	}
-	ScriptManager::Unlock();
-	return false;
+	return GetProperty(klass, hash, true);
 }
 bool VMThread::HasProperty(Obj* object,
 	ObjClass* klass,
@@ -3045,7 +3052,7 @@ bool VMThread::HasProperty(Obj* object,
 
 		if (getter) {
 			try {
-				if (getter(object, hash, nullptr, this->ID)) {
+				if (getter(OBJECT_VAL(object), hash, nullptr, this->ID)) {
 					ScriptManager::Unlock();
 					return true;
 				}
@@ -3067,7 +3074,7 @@ bool VMThread::HasProperty(Obj* object,
 }
 bool VMThread::HasProperty(Obj* object, Uint32 hash, ValueGetFn getter) {
 	if (ScriptManager::Lock()) {
-		if (getter && getter(object, hash, nullptr, this->ID)) {
+		if (getter && getter(OBJECT_VAL(object), hash, nullptr, this->ID)) {
 			ScriptManager::Unlock();
 			return true;
 		}
@@ -3256,7 +3263,7 @@ bool VMThread::GetArity(VMValue callee, int& minArity, int& maxArity) {
 	ScriptManager::Unlock();
 	return false;
 }
-bool VMThread::InstantiateClass(VMValue callee, int argCount) {
+bool VMThread::Instantiate(VMValue callee, int argCount) {
 	if (!ScriptManager::Lock()) {
 		return false;
 	}
@@ -3270,27 +3277,29 @@ bool VMThread::InstantiateClass(VMValue callee, int argCount) {
 	ObjClass* klass = AS_CLASS(callee);
 
 	// Create the instance.
-	Obj* instance;
+	VMValue instance;
 	if (klass->NewFn) {
 		try {
 			instance = klass->NewFn();
 		} catch (const ScriptException& error) {
-			ThrowRuntimeError(false, "%s", error.what());
+			StackTop[-argCount - 1] = NULL_VAL;
 			ScriptManager::Unlock();
+			ThrowRuntimeError(false, "%s", error.what());
 			return false;
 		}
 	}
 	else {
-		instance = (Obj*)NewInstance(klass);
+		Obj* instanceObj = (Obj*)NewInstance(klass);
+		if (instanceObj == nullptr) {
+			StackTop[-argCount - 1] = NULL_VAL;
+			ScriptManager::Unlock();
+			return false;
+		}
+
+		instance = OBJECT_VAL(instanceObj);
 	}
 
-	if (instance == nullptr) {
-		StackTop[-argCount - 1] = NULL_VAL;
-		ScriptManager::Unlock();
-		return false;
-	}
-
-	StackTop[-argCount - 1] = OBJECT_VAL(instance);
+	StackTop[-argCount - 1] = instance;
 
 	// Call the initializer, if there is one.
 	if (HasInitializer(klass)) {
@@ -3415,7 +3424,7 @@ int VMThread::InvokeForInstance(ObjInstance* instance,
 
 	// No method found, so look in the parent class.
 	// Walk up the inheritance chain and get the expected method.
-	ObjClass* parentClass = ScriptManager::GetClassParent((Obj*)instance, klass);
+	ObjClass* parentClass = ScriptManager::GetClassParent(OBJECT_VAL(instance), klass);
 	if (ScriptManager::GetClassMethod((Obj*)instance, parentClass, hash, &callable)) {
 		ScriptManager::Unlock();
 
@@ -3520,11 +3529,33 @@ VMValue VMThread::Values_Multiply() {
 	VMValue b = Peek(0);
 	VMValue a = Peek(1);
 
+	if (IS_COLOR(a)) {
+		VMColor colorA = AS_COLOR(a);
+		if (IS_COLOR(b)) {
+			VMColor colorB = AS_COLOR(b);
+			Pop(2);
+			return COLOR_VAL(colorA * colorB);
+		}
+		else if (IS_DECIMAL(b)) {
+			Pop(2);
+			return COLOR_VAL(colorA * AS_DECIMAL(b));
+		}
+		else if (IS_INTEGER(b)) {
+			Pop(2);
+			return COLOR_VAL(colorA * AS_INTEGER(b));
+		}
+		else {
+			ThrowRuntimeError(false,
+				"Cannot multiply color value by value of type %s.",
+				GetValueTypeString(b));
+			return a;
+		}
+	}
+
 	CHECK_IS_NUM(a, "multiply", DECIMAL_VAL(0.0f));
 	CHECK_IS_NUM(b, "multiply", DECIMAL_VAL(0.0f));
 
-	Pop();
-	Pop();
+	Pop(2);
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
 		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
@@ -3538,6 +3569,40 @@ VMValue VMThread::Values_Multiply() {
 VMValue VMThread::Values_Division() {
 	VMValue b = Pop();
 	VMValue a = Pop();
+
+	if (IS_COLOR(a)) {
+		VMColor colorA = AS_COLOR(a);
+		if (IS_COLOR(b)) {
+			VMColor colorB = AS_COLOR(b);
+			if (colorB.Red == 0.0 || colorB.Green == 0.0 || colorB.Blue == 0.0 || colorB.Alpha == 0.0) {
+				ThrowRuntimeError(false, "Cannot divide color by zero.");
+				return COLOR_VAL(0.0, 0.0, 0.0, 0.0);
+			}
+			return COLOR_VAL(colorA / colorB);
+		}
+		else if (IS_DECIMAL(b)) {
+			float b_d = AS_DECIMAL(b);
+			if (b_d == 0) {
+				ThrowRuntimeError(false, "Cannot divide color by zero.");
+				return COLOR_VAL(0.0, 0.0, 0.0, 0.0);
+			}
+			return COLOR_VAL(colorA / b_d);
+		}
+		else if (IS_INTEGER(b)) {
+			int b_d = AS_INTEGER(b);
+			if (b_d == 0) {
+				ThrowRuntimeError(false, "Cannot divide color by zero.");
+				return COLOR_VAL(0.0, 0.0, 0.0, 0.0);
+			}
+			return COLOR_VAL(colorA / b_d);
+		}
+		else {
+			ThrowRuntimeError(false,
+				"Cannot divide color value by value of type %s.",
+				GetValueTypeString(b));
+			return a;
+		}
+	}
 
 	CHECK_IS_NUM(a, "division", DECIMAL_VAL(1.0f));
 	CHECK_IS_NUM(b, "division", DECIMAL_VAL(1.0f));
@@ -3586,16 +3651,30 @@ VMValue VMThread::Values_Modulo() {
 VMValue VMThread::Values_Plus() {
 	VMValue b = Peek(0);
 	VMValue a = Peek(1);
+
 	if (IS_STRING(a) || IS_STRING(b)) {
 		if (ScriptManager::Lock()) {
 			VMValue str_b = Value::CastAsString(b);
 			VMValue str_a = Value::CastAsString(a);
 			VMValue out = Value::Concatenate(str_a, str_b);
-			Pop();
-			Pop();
+			Pop(2);
 			ScriptManager::Unlock();
 			return out;
 		}
+		return NULL_VAL;
+	}
+	else if (IS_COLOR(a)) {
+		VMColor colorA = AS_COLOR(a);
+		if (!IS_COLOR(b)) {
+			ThrowRuntimeError(false,
+				"Expected value to be of type %s instead of %s.",
+				GetTypeString(VAL_COLOR),
+				GetValueTypeString(b));
+			return a;
+		}
+		VMColor colorB = AS_COLOR(b);
+		Pop(2);
+		return COLOR_VAL(colorA + colorB);
 	}
 
 	CHECK_IS_NUM(a, "plus", DECIMAL_VAL(0.0f));
@@ -3604,25 +3683,37 @@ VMValue VMThread::Values_Plus() {
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
 		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
 		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
-		Pop();
-		Pop();
+		Pop(2);
 		return DECIMAL_VAL(a_d + b_d);
 	}
 	int a_d = AS_INTEGER(a);
 	int b_d = AS_INTEGER(b);
-	Pop();
-	Pop();
+	Pop(2);
 	return INTEGER_VAL(a_d + b_d);
 }
 VMValue VMThread::Values_Minus() {
 	VMValue b = Peek(0);
 	VMValue a = Peek(1);
 
+	if (IS_COLOR(a)) {
+		VMColor colorA = AS_COLOR(a);
+		if (!IS_COLOR(b)) {
+			ThrowRuntimeError(false,
+				"Expected value to be of type %s instead of %s.",
+				GetTypeString(VAL_COLOR),
+				GetValueTypeString(b));
+			return a;
+		}
+		VMColor colorB = AS_COLOR(b);
+		Pop();
+		Pop();
+		return COLOR_VAL(colorA - colorB);
+	}
+
 	CHECK_IS_NUM(a, "minus", DECIMAL_VAL(0.0f));
 	CHECK_IS_NUM(b, "minus", DECIMAL_VAL(0.0f));
 
-	Pop();
-	Pop();
+	Pop(2);
 
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
 		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
@@ -3832,6 +3923,11 @@ VMValue VMThread::Values_Decrement() {
 VMValue VMThread::Values_Negate() {
 	VMValue a = Pop();
 
+	if (IS_COLOR(a)) {
+		VMColor color = AS_COLOR(a);
+		return COLOR_VAL(1.0 - color.Red, 1.0 - color.Green, 1.0 - color.Blue, 1.0 - color.Alpha);
+	}
+
 	CHECK_IS_NUM(a, "negate", INTEGER_VAL(0));
 
 	if (a.Type == VAL_DECIMAL) {
@@ -3880,6 +3976,8 @@ static const char* GetTypeOfValue(VMValue value) {
 		return "decimal";
 	case VAL_HITBOX:
 		return "hitbox";
+	case VAL_COLOR:
+		return "color";
 	case VAL_OBJECT:
 		switch (OBJECT_TYPE(value)) {
 		case OBJ_FUNCTION:

@@ -15,11 +15,11 @@ public:
 
 	static void Init();
 
-	static Obj* Constructor();
+	static VMValue Constructor();
 	static ObjShader* New(void* shaderPtr);
 	static void Dispose(Obj* object);
 
-	static bool VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
+	static bool VM_PropertyGet(VMValue instance, Uint32 hash, VMValue* result, Uint32 threadID);
 
 	static VMValue VM_HasStage(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_CanCompile(int argCount, VMValue* args, Uint32 threadID);

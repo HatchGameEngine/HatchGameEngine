@@ -49,6 +49,16 @@ void ValuePrinter::PrintValue(VMValue value, int indent) {
 			hitbox[HITBOX_BOTTOM]);
 		break;
 	}
+	case VAL_COLOR: {
+		VMColor color = AS_COLOR(value);
+		buffer_printf(Buffer,
+			"(%f, %f, %f, %f)",
+			color.Red,
+			color.Green,
+			color.Blue,
+			color.Alpha);
+		break;
+	}
 	case VAL_OBJECT:
 		PrintObject(value, indent);
 		break;

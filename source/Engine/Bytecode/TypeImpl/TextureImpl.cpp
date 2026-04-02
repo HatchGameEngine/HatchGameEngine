@@ -71,14 +71,14 @@ void TextureImpl::Init() {
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
 	(argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
 
-Obj* TextureImpl::Constructor() {
+VMValue TextureImpl::Constructor() {
 	ObjTexture* texture = (ObjTexture*)NewNativeInstance(sizeof(ObjTexture));
 	Memory::Track(texture, "NewTexture");
 	texture->Object.Class = Class;
 	texture->InstanceObj.PropertyGet = VM_PropertyGet;
 	texture->InstanceObj.PropertySet = VM_PropertySet;
 	texture->InstanceObj.Destructor = Dispose;
-	return (Obj*)texture;
+	return OBJECT_VAL(texture);
 }
 
 static void
@@ -553,8 +553,8 @@ void TextureImpl::Dispose(Obj* object) {
 	InstanceImpl::Dispose(object);
 }
 
-bool TextureImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID) {
-	ObjTexture* objTexture = (ObjTexture*)object;
+bool TextureImpl::VM_PropertyGet(VMValue instance, Uint32 hash, VMValue* result, Uint32 threadID) {
+	ObjTexture* objTexture = AS_TEXTURE(instance);
 	Texture* texture = (Texture*)GetTexture(objTexture);
 	if (texture == nullptr) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
@@ -590,8 +590,8 @@ bool TextureImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint
 	return false;
 }
 
-bool TextureImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
-	ObjTexture* objTexture = (ObjTexture*)object;
+bool TextureImpl::VM_PropertySet(VMValue& instance, Uint32 hash, VMValue value, Uint32 threadID) {
+	ObjTexture* objTexture = AS_TEXTURE(instance);
 	Texture* texture = (Texture*)GetTexture(objTexture);
 	if (texture == nullptr) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
@@ -631,7 +631,7 @@ ObjTexture* TextureImpl::GetTextureObject(void* texture, bool isViewTexture) {
 		return (ObjTexture*)obj;
 	}
 
-	obj = ScriptManager::RegistryAdd(texture, TextureImpl::Constructor());
+	obj = ScriptManager::RegistryAdd(texture, AS_OBJECT(TextureImpl::Constructor()));
 
 	ObjTexture* textureObj = (ObjTexture*)obj;
 	textureObj->IsViewTexture = isViewTexture;

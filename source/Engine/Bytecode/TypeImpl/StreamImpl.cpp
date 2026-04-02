@@ -22,9 +22,9 @@ void StreamImpl::Init() {
 	TypeImpl::ExposeClass(Class);
 }
 
-Obj* StreamImpl::Constructor() {
+VMValue StreamImpl::Constructor() {
 	throw ScriptException("Cannot directly construct Stream! Use Stream.FromResource or Stream.FromFile.");
-	return nullptr;
+	return NULL_VAL;
 }
 
 ObjStream* StreamImpl::New(void* streamPtr, bool writable) {

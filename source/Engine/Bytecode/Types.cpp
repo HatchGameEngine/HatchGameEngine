@@ -212,10 +212,10 @@ ObjBoundMethod* NewBoundMethod(ObjFunction* method, VMValue* args, Uint8 argCoun
 	return bound;
 }
 ObjArray* NewArray() {
-	return (ObjArray*)ArrayImpl::Constructor();
+	return AS_ARRAY(ArrayImpl::Constructor());
 }
 ObjMap* NewMap() {
-	return (ObjMap*)MapImpl::Constructor();
+	return AS_MAP(MapImpl::Constructor());
 }
 ObjNamespace* NewNamespace(Uint32 hash) {
 	ObjNamespace* ns = ALLOCATE_OBJ(ObjNamespace, OBJ_NAMESPACE);
@@ -285,6 +285,8 @@ const char* GetTypeString(Uint32 type) {
 		return "decimal";
 	case VAL_HITBOX:
 		return "hitbox";
+	case VAL_COLOR:
+		return "color";
 	case VAL_OBJECT:
 		return "object";
 	case VAL_LOCATION:
