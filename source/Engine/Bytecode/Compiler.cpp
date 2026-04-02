@@ -2990,6 +2990,7 @@ void Compiler::CompileFunction() {
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
 
 	bool isOptional = false;
+	bool matchedLeftSquareBrace = false;
 
 	int arity = 0;
 	int minArity = 0;
@@ -2998,6 +2999,7 @@ void Compiler::CompileFunction() {
 		do {
 			if (!isOptional && MatchToken(TOKEN_LEFT_SQUARE_BRACE)) {
 				isOptional = true;
+				matchedLeftSquareBrace = true;
 			}
 
 			ParseVariable("Expect parameter name.", false);
@@ -3009,10 +3011,19 @@ void Compiler::CompileFunction() {
 				Error("Cannot have more than 255 parameters.");
 			}
 
+			if (MatchToken(TOKEN_ASSIGNMENT)) {
+				isOptional = true;
+				GetValueExpression();
+				EmitBytes(OP_SET_ARGUMENT_SLOT, arity);
+			}
+			else if (isOptional && !matchedLeftSquareBrace) {
+				Error("Cannot have required parameters after optional parameters.");
+			}
+
 			if (!isOptional) {
 				minArity++;
 			}
-			else if (MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
+			else if (matchedLeftSquareBrace && MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
 				break;
 			}
 		} while (MatchToken(TOKEN_COMMA));

@@ -814,7 +814,7 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_NEW_ARRAY),
 		VM_ADD_DISPATCH(OP_NEW_MAP),
 		VM_ADD_DISPATCH(OP_SWITCH_TABLE),
-		VM_ADD_DISPATCH_NULL(OP_UNUSED_2),
+		VM_ADD_DISPATCH(OP_SET_ARGUMENT_SLOT),
 		VM_ADD_DISPATCH(OP_EVENT_V4),
 		VM_ADD_DISPATCH(OP_TYPEOF),
 		VM_ADD_DISPATCH(OP_NEW),
@@ -1126,6 +1126,14 @@ int VMThread::RunInstruction() {
 	VM_CASE(OP_SET_LOCAL) {
 		Uint8 slot = ReadByte(frame);
 		frame->Slots[slot] = Peek(0);
+		VM_BREAK;
+	}
+	VM_CASE(OP_SET_ARGUMENT_SLOT) {
+		Uint8 slot = ReadByte(frame);
+		VMValue value = Pop();
+		if (slot > frame->ArgCount) {
+			frame->Slots[slot] = value;
+		}
 		VM_BREAK;
 	}
 
@@ -2292,9 +2300,6 @@ int VMThread::RunInstruction() {
 	VM_CASE(OP_UNUSED_1) {
 		VM_BREAK;
 	}
-	VM_CASE(OP_UNUSED_2) {
-		VM_BREAK;
-	}
 	VM_END();
 
 #ifdef VM_DEBUG_INSTRUCTIONS
@@ -3370,6 +3375,7 @@ bool VMThread::Call(ObjFunction* function, int argCount) {
 	frame->IPStart = frame->IP;
 	frame->Function = function;
 	frame->Slots = StackTop - (function->Arity + 1);
+	frame->ArgCount = (Uint8)argCount;
 	frame->WithReceiverStackTop = frame->WithReceiverStack;
 	frame->WithIteratorStackTop = frame->WithIteratorStack;
 	frame->Module = function->Module;

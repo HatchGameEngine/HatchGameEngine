@@ -66,7 +66,7 @@ const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_NOP",
 	"OP_NEW_ARRAY",
 	"OP_NEW_MAP",
 	"OP_SWITCH_TABLE",
-	"OP_UNUSED_2",
+	"OP_SET_ARGUMENT_SLOT",
 	"OP_EVENT_V4",
 	"OP_TYPEOF",
 	"OP_NEW",
@@ -566,6 +566,8 @@ int Bytecode::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_LOAD_INDIRECT:
 	case OP_STORE_INDIRECT:
 		return 1;
+	case OP_SET_ARGUMENT_SLOT:
+		return 2;
 	}
 	return 1;
 }
