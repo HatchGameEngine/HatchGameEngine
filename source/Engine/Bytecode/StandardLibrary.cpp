@@ -22880,15 +22880,15 @@ This is preferred over <ref Math>'s random functions if you require consistency,
     */
 	DEF_CONST_DECIMAL("Math_PI_DOUBLE", M_PI * 2.0);
 	/***
-    * \constant Math_PI_HALF
+    * \constant Math_TAU
     * \type decimal
-    * \desc Half of the value of pi. (DEPRECATED)
+    * \desc The ratio of a circle's circumference to its radius.
     */
 	DEF_CONST_DECIMAL("Math_TAU", M_PI * 2.0);
 	/***
-	* \constant Math_TAU
+	* \constant Math_PI_HALF
 	* \type decimal
-	* \desc The ratio of a circle's circumference to its radius.
+	* \desc Half of the value of pi.
 	*/
 	DEF_CONST_DECIMAL("Math_PI_HALF", M_PI / 2.0);
 	/***
