@@ -590,6 +590,28 @@ inline VMColor GetColor(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
+inline int GetColorAsRGB(VMValue* args, int index, Uint32 threadID) {
+	int value;
+	if (ScriptManager::Lock()) {
+		if (IS_COLOR(args[index])) {
+			VMColor color = AS_COLOR(args[index]);
+			value = color.AsRGB();
+		}
+		else if (IS_INTEGER(args[index])) {
+			value = AS_INTEGER(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(ColorImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 } // namespace LOCAL
 
 // NOTE:
@@ -5342,14 +5364,32 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetBlendColor
  * \desc Sets the color to be used for drawing and blending.
+ * \param color (Color): Desired RGBA color.
+ * \ns Draw
+ */
+/***
+ * Draw.SetBlendColor
+ * \desc Sets the color to be used for drawing and blending.
+ * \param color (Color): Desired RGB color.
+ * \param alpha (number): Opacity to use for drawing, 0.0 to 1.0.
+ * \ns Draw
+ */
+/***
+ * Draw.SetBlendColor
+ * \desc Sets the color to be used for drawing and blending.
  * \param hex (integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)
  * \param alpha (number): Opacity to use for drawing, 0.0 to 1.0.
  * \ns Draw
  */
 VMValue Draw_SetBlendColor(int argCount, VMValue* args, Uint32 threadID) {
-	if (argCount <= 2) {
+	if (argCount == 1) {
+		VMColor color = GET_ARG(0, GetColor);
+		Graphics::SetBlendColor(color.Red, color.Green, color.Blue, color.Alpha);
+		return NULL_VAL;
+	}
+	else if (argCount <= 2) {
 		CHECK_ARGCOUNT(2);
-		int hex = GET_ARG(0, GetInteger);
+		int hex = GET_ARG(0, GetColorAsRGB);
 		float alpha = GET_ARG(1, GetDecimal);
 #if HATCH_BIG_ENDIAN
 		int red = (hex >> 24) & 0xFF;
@@ -5447,14 +5487,32 @@ VMValue Draw_SetCompareColor(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Draw.SetTintColor
  * \desc Sets the color to be used for tinting.
+ * \param color (Color): Desired RGBA color.
+ * \ns Draw
+ */
+/***
+ * Draw.SetTintColor
+ * \desc Sets the color to be used for tinting.
+ * \param color (Color): Desired RGB color.
+ * \param amount (number): Tint amount, from 0.0 to 1.0.
+ * \ns Draw
+ */
+/***
+ * Draw.SetTintColor
+ * \desc Sets the color to be used for tinting.
  * \param hex (integer): Hexadecimal format of desired color. (ex: Red = 0xFF0000, Green = 0x00FF00, Blue = 0x0000FF)
  * \param amount (number): Tint amount, from 0.0 to 1.0.
  * \ns Draw
  */
 VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
-	if (argCount <= 2) {
+	if (argCount == 1) {
+		VMColor color = GET_ARG(0, GetColor);
+		Graphics::SetBlendColor(color.Red, color.Green, color.Blue, color.Alpha);
+		return NULL_VAL;
+	}
+	else if (argCount <= 2) {
 		CHECK_ARGCOUNT(2);
-		int hex = GET_ARG(0, GetInteger);
+		int hex = GET_ARG(0, GetColorAsRGB);
 		float alpha = GET_ARG(1, GetDecimal);
 #if HATCH_BIG_ENDIAN
 		int red = (hex >> 24) & 0xFF;
@@ -5782,9 +5840,9 @@ VMValue Draw_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  * \param y2 (number): Y position of the second vertex.
  * \param x3 (number): X position of the third vertex.
  * \param y3 (number): Y position of the third vertex.
- * \param color1 (integer): Color of the first vertex.
- * \param color2 (integer): Color of the second vertex.
- * \param color3 (integer): Color of the third vertex.
+ * \param color1 (Color): Color of the first vertex.
+ * \param color2 (Color): Color of the second vertex.
+ * \param color3 (Color): Color of the third vertex.
  * \ns Draw
  */
 VMValue Draw_TriangleBlend(int argCount, VMValue* args, Uint32 threadID) {
@@ -5849,10 +5907,10 @@ VMValue Draw_Quad(int argCount, VMValue* args, Uint32 threadID) {
  * \param y3 (number): Y position of the third vertex.
  * \param x4 (number): X position of the fourth vertex.
  * \param y4 (number): Y position of the fourth vertex.
- * \param color1 (integer): Color of the first vertex.
- * \param color2 (integer): Color of the second vertex.
- * \param color3 (integer): Color of the third vertex.
- * \param color4 (integer): Color of the fourth vertex.
+ * \param color1 (Color): Color of the first vertex.
+ * \param color2 (Color): Color of the second vertex.
+ * \param color3 (Color): Color of the third vertex.
+ * \param color4 (Color): Color of the fourth vertex.
  * \ns Draw
  */
 VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
@@ -5888,9 +5946,9 @@ VMValue Draw_QuadBlend(int argCount, VMValue* args, Uint32 threadID) {
  * \param y2 (number): Y position of the second vertex.
  * \param x3 (number): X position of the third vertex.
  * \param y3 (number): Y position of the third vertex.
- * \paramOpt color1 (integer): Color of the first vertex.
- * \paramOpt color2 (integer): Color of the second vertex.
- * \paramOpt color3 (integer): Color of the third vertex.
+ * \paramOpt color1 (Color): Color of the first vertex.
+ * \paramOpt color2 (Color): Color of the second vertex.
+ * \paramOpt color3 (Color): Color of the third vertex.
  * \paramOpt u1 (number): Texture U of the first vertex.
  * \paramOpt v1 (number): Texture V of the first vertex.
  * \paramOpt u2 (number): Texture U of the second vertex.
@@ -5940,10 +5998,10 @@ VMValue Draw_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
  * \param y3 (number): Y position of the third vertex.
  * \param x4 (number): X position of the fourth vertex.
  * \param y4 (number): Y position of the fourth vertex.
- * \paramOpt color1 (integer): Color of the first vertex.
- * \paramOpt color2 (integer): Color of the second vertex.
- * \paramOpt color3 (integer): Color of the third vertex.
- * \paramOpt color4 (integer): Color of the fourth vertex.
+ * \paramOpt color1 (Color): Color of the first vertex.
+ * \paramOpt color2 (Color): Color of the second vertex.
+ * \paramOpt color3 (Color): Color of the third vertex.
+ * \paramOpt color4 (Color): Color of the fourth vertex.
  * \paramOpt u1 (number): Texture U of the first vertex.
  * \paramOpt v1 (number): Texture V of the first vertex.
  * \paramOpt u2 (number): Texture U of the second vertex.
@@ -6646,7 +6704,7 @@ static void DrawPolygon3D(VertexAttribute* data,
 		if (argCount <= i + argOffset) \
 			break; \
 		if (!IS_NULL(args[i + argOffset])) \
-			data[i].Color = GET_ARG(i + argOffset, GetInteger); \
+			data[i].Color = GET_ARG(i + argOffset, GetColorAsRGB); \
 		else \
 			data[i].Color = 0xFFFFFF; \
 	} \
@@ -6683,9 +6741,9 @@ static void DrawPolygon3D(VertexAttribute* data,
  * \param x3 (number): X position of the third vertex.
  * \param y3 (number): Y position of the third vertex.
  * \param z3 (number): Z position of the third vertex.
- * \paramOpt color1 (integer): Color of the first vertex.
- * \paramOpt color2 (integer): Color of the second vertex.
- * \paramOpt color3 (integer): Color of the third vertex.
+ * \paramOpt color1 (Color): Color of the first vertex.
+ * \paramOpt color2 (Color): Color of the second vertex.
+ * \paramOpt color3 (Color): Color of the third vertex.
  * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
@@ -6722,10 +6780,10 @@ VMValue Draw3D_Triangle(int argCount, VMValue* args, Uint32 threadID) {
  * \param x4 (number): X position of the fourth vertex.
  * \param y4 (number): Y position of the fourth vertex.
  * \param z4 (number): Z position of the fourth vertex.
- * \paramOpt color1 (integer): Color of the first vertex.
- * \paramOpt color2 (integer): Color of the second vertex.
- * \paramOpt color3 (integer): Color of the third vertex.
- * \paramOpt color4 (integer): Color of the fourth vertex.
+ * \paramOpt color1 (Color): Color of the first vertex.
+ * \paramOpt color2 (Color): Color of the second vertex.
+ * \paramOpt color3 (Color): Color of the third vertex.
+ * \paramOpt color4 (Color): Color of the fourth vertex.
  * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
@@ -7050,9 +7108,9 @@ VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
  * \param x3 (number): X position of the third vertex.
  * \param y3 (number): Y position of the third vertex.
  * \param z3 (number): Z position of the third vertex.
- * \paramOpt color1 (integer): Color of the first vertex.
- * \paramOpt color2 (integer): Color of the second vertex.
- * \paramOpt color3 (integer): Color of the third vertex.
+ * \paramOpt color1 (Color): Color of the first vertex.
+ * \paramOpt color2 (Color): Color of the second vertex.
+ * \paramOpt color3 (Color): Color of the third vertex.
  * \paramOpt u1 (number): Texture U of the first vertex.
  * \paramOpt v1 (number): Texture V of the first vertex.
  * \paramOpt u2 (number): Texture U of the second vertex.
@@ -7112,10 +7170,10 @@ VMValue Draw3D_TriangleTextured(int argCount, VMValue* args, Uint32 threadID) {
  * \param x4 (number): X position of the fourth vertex.
  * \param y4 (number): Y position of the fourth vertex.
  * \param z4 (number): Z position of the fourth vertex.
- * \paramOpt color1 (integer): Color of the first vertex.
- * \paramOpt color2 (integer): Color of the second vertex.
- * \paramOpt color3 (integer): Color of the third vertex.
- * \paramOpt color4 (integer): Color of the fourth vertex.
+ * \paramOpt color1 (Color): Color of the first vertex.
+ * \paramOpt color2 (Color): Color of the second vertex.
+ * \paramOpt color3 (Color): Color of the third vertex.
+ * \paramOpt color4 (Color): Color of the fourth vertex.
  * \paramOpt u1 (number): Texture U of the first vertex.
  * \paramOpt v1 (number): Texture V of the first vertex.
  * \paramOpt u2 (number): Texture U of the second vertex.
@@ -7183,10 +7241,10 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
  * \param x4 (number): X position of the fourth vertex.
  * \param y4 (number): Y position of the fourth vertex.
  * \param z4 (number): Z position of the fourth vertex.
- * \paramOpt color1 (integer): Color of the first vertex.
- * \paramOpt color2 (integer): Color of the second vertex.
- * \paramOpt color3 (integer): Color of the third vertex.
- * \paramOpt color4 (integer): Color of the fourth vertex.
+ * \paramOpt color1 (Color): Color of the first vertex.
+ * \paramOpt color2 (Color): Color of the second vertex.
+ * \paramOpt color3 (Color): Color of the third vertex.
+ * \paramOpt color4 (Color): Color of the fourth vertex.
  * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
@@ -7247,10 +7305,10 @@ VMValue Draw3D_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
  * \param x4 (number): X position of the fourth vertex.
  * \param y4 (number): Y position of the fourth vertex.
  * \param z4 (number): Z position of the fourth vertex.
- * \paramOpt color1 (integer): Color of the first vertex.
- * \paramOpt color2 (integer): Color of the second vertex.
- * \paramOpt color3 (integer): Color of the third vertex.
- * \paramOpt color4 (integer): Color of the fourth vertex.
+ * \paramOpt color1 (Color): Color of the first vertex.
+ * \paramOpt color2 (Color): Color of the second vertex.
+ * \paramOpt color3 (Color): Color of the third vertex.
+ * \paramOpt color4 (Color): Color of the fourth vertex.
  * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
@@ -15592,21 +15650,49 @@ VMValue Scene3D_SetCustomProjectionMatrix(int argCount, VMValue* args, Uint32 th
  * Scene3D.SetAmbientLighting
  * \desc Sets the ambient lighting of the 3D scene.
  * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param color (Color): The color to use.
+ * \ns Scene3D
+ */
+/***
+ * Scene3D.SetAmbientLighting
+ * \desc Sets the ambient lighting of the 3D scene.
+ * \param scene3DIndex (integer): The index of the 3D scene.
  * \param red (number): The red color value, bounded by 0.0 - 1.0.
  * \param green (number): The green color value, bounded by 0.0 - 1.0.
  * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
 VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+	Uint32 scene3DIndex;
+	float r, g, b;
+	if (argCount == 2) {
+		scene3DIndex = GET_ARG(0, GetInteger);
+		VMColor color = GET_ARG(1, GetColor);
+		r = color.Red;
+		g = color.Green;
+		b = color.Blue;
+	}
+	else {
+		CHECK_ARGCOUNT(4);
+		scene3DIndex = GET_ARG(0, GetInteger);
+		r = GET_ARG(1, GetDecimal);
+		g = GET_ARG(2, GetDecimal);
+		b = GET_ARG(3, GetDecimal);
+	}
+	r = Math::Clamp(r, 0.0f, 1.0f);
+	g = Math::Clamp(g, 0.0f, 1.0f);
+	b = Math::Clamp(b, 0.0f, 1.0f);
 	GET_SCENE_3D();
 	scene3D->SetAmbientLighting(r, g, b);
 	return NULL_VAL;
 }
+/***
+ * Scene3D.SetDiffuseLighting
+ * \desc Sets the diffuse lighting of the 3D scene.
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param color (Color): The color to use.
+ * \ns Scene3D
+ */
 /***
  * Scene3D.SetDiffuseLighting
  * \desc Sets the diffuse lighting of the 3D scene.
@@ -15617,15 +15703,36 @@ VMValue Scene3D_SetAmbientLighting(int argCount, VMValue* args, Uint32 threadID)
  * \ns Scene3D
  */
 VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+	Uint32 scene3DIndex;
+	float r, g, b;
+	if (argCount == 2) {
+		scene3DIndex = GET_ARG(0, GetInteger);
+		VMColor color = GET_ARG(1, GetColor);
+		r = color.Red;
+		g = color.Green;
+		b = color.Blue;
+	}
+	else {
+		CHECK_ARGCOUNT(4);
+		scene3DIndex = GET_ARG(0, GetInteger);
+		r = GET_ARG(1, GetDecimal);
+		g = GET_ARG(2, GetDecimal);
+		b = GET_ARG(3, GetDecimal);
+	}
+	r = Math::Clamp(r, 0.0f, 1.0f);
+	g = Math::Clamp(g, 0.0f, 1.0f);
+	b = Math::Clamp(b, 0.0f, 1.0f);
 	GET_SCENE_3D();
 	scene3D->SetDiffuseLighting(r, g, b);
 	return NULL_VAL;
 }
+/***
+ * Scene3D.SetSpecularLighting
+ * \desc Sets the specular lighting of the 3D scene.
+ * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param color (Color): The color to use.
+ * \ns Scene3D
+ */
 /***
  * Scene3D.SetSpecularLighting
  * \desc Sets the specular lighting of the 3D scene.
@@ -15636,11 +15743,25 @@ VMValue Scene3D_SetDiffuseLighting(int argCount, VMValue* args, Uint32 threadID)
  * \ns Scene3D
  */
 VMValue Scene3D_SetSpecularLighting(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+	Uint32 scene3DIndex;
+	float r, g, b;
+	if (argCount == 2) {
+		scene3DIndex = GET_ARG(0, GetInteger);
+		VMColor color = GET_ARG(1, GetColor);
+		r = color.Red;
+		g = color.Green;
+		b = color.Blue;
+	}
+	else {
+		CHECK_ARGCOUNT(4);
+		scene3DIndex = GET_ARG(0, GetInteger);
+		r = GET_ARG(1, GetDecimal);
+		g = GET_ARG(2, GetDecimal);
+		b = GET_ARG(3, GetDecimal);
+	}
+	r = Math::Clamp(r, 0.0f, 1.0f);
+	g = Math::Clamp(g, 0.0f, 1.0f);
+	b = Math::Clamp(b, 0.0f, 1.0f);
 	GET_SCENE_3D();
 	scene3D->SetSpecularLighting(r, g, b);
 	return NULL_VAL;
@@ -15710,17 +15831,38 @@ VMValue Scene3D_SetFogDensity(int argCount, VMValue* args, Uint32 threadID) {
  * Scene3D.SetFogColor
  * \desc Sets the fog color of the 3D scene.
  * \param scene3DIndex (integer): The index of the 3D scene.
+ * \param color (Color): The color to use.
+ * \ns Scene3D
+ */
+/***
+ * Scene3D.SetFogColor
+ * \desc Sets the fog color of the 3D scene.
+ * \param scene3DIndex (integer): The index of the 3D scene.
  * \param red (number): The red color value, bounded by 0.0 - 1.0.
  * \param green (number): The green color value, bounded by 0.0 - 1.0.
  * \param blue (number): The blue color value, bounded by 0.0 - 1.0.
  * \ns Scene3D
  */
 VMValue Scene3D_SetFogColor(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
-	Uint32 scene3DIndex = GET_ARG(0, GetInteger);
-	float r = Math::Clamp(GET_ARG(1, GetDecimal), 0.0f, 1.0f);
-	float g = Math::Clamp(GET_ARG(2, GetDecimal), 0.0f, 1.0f);
-	float b = Math::Clamp(GET_ARG(3, GetDecimal), 0.0f, 1.0f);
+	Uint32 scene3DIndex;
+	float r, g, b;
+	if (argCount == 2) {
+		scene3DIndex = GET_ARG(0, GetInteger);
+		VMColor color = GET_ARG(1, GetColor);
+		r = color.Red;
+		g = color.Green;
+		b = color.Blue;
+	}
+	else {
+		CHECK_ARGCOUNT(4);
+		scene3DIndex = GET_ARG(0, GetInteger);
+		r = GET_ARG(1, GetDecimal);
+		g = GET_ARG(2, GetDecimal);
+		b = GET_ARG(3, GetDecimal);
+	}
+	r = Math::Clamp(r, 0.0f, 1.0f);
+	g = Math::Clamp(g, 0.0f, 1.0f);
+	b = Math::Clamp(b, 0.0f, 1.0f);
 	GET_SCENE_3D();
 	scene3D->SetFogColor(r, g, b);
 	return NULL_VAL;
