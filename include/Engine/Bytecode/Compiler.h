@@ -121,6 +121,8 @@ public:
 	ExprContext GetLiteral(ExprContext context);
 	ExprContext GetInteger(ExprContext context);
 	ExprContext GetDecimal(ExprContext context);
+	int ParseHexChars(Uint32* codepoint, char* src, char* srcEnd, int maxChars);
+	std::string ParseUnicodeString(char* src, char* srcEnd, int maxChars);
 	ObjString* MakeString(Token token);
 	ExprContext GetString(ExprContext context);
 	ExprContext GetArray(ExprContext context);

@@ -1690,34 +1690,116 @@ ExprContext Compiler::GetDecimal(ExprContext context) {
 
 	return EXPRCONTEXT_VALUE;
 }
+int Compiler::ParseHexChars(Uint32* codepoint, char* src, char* srcEnd, int maxChars) {
+	int count = 0;
+
+	do {
+		int chr = *src++;
+		if (!IsHexDigit(chr)) {
+			break;
+		}
+
+		*codepoint <<= 4;
+
+		if (chr <= '9') {
+			*codepoint |= chr - '0';
+		}
+		else {
+			*codepoint |= (tolower(chr) - 'a') + 10;
+		}
+
+		count++;
+		if (count == maxChars) {
+			break;
+		}
+	}
+	while (src < srcEnd);
+
+	return count;
+}
+std::string Compiler::ParseUnicodeString(char* src, char* srcEnd, int maxChars) {
+	Uint32 codepoint = 0;
+
+	int count = Compiler::ParseHexChars(&codepoint, src, srcEnd, maxChars);
+	if (count != maxChars) {
+		Error("Invalid Unicode escape sequence.");
+	}
+
+	std::string result;
+	try {
+		result = StringUtils::FromCodepoint(codepoint);
+	} catch (const std::runtime_error& error) {
+		Error(error.what());
+	}
+
+	return result;
+}
 ObjString* Compiler::MakeString(Token token) {
 	ObjString* string = CopyString(token.Start + 1, token.Length - 2);
 
 	// Escape the string
 	char* dst = string->Chars;
+	char* srcEnd = token.Start + token.Length - 1;
 	string->Length = 0;
 
-	for (char* src = token.Start + 1; src < token.Start + token.Length - 1; src++) {
+	for (char* src = token.Start + 1; src < srcEnd; src++) {
 		if (*src == '\\') {
 			src++;
 			switch (*src) {
 			case 'n':
 				*dst++ = '\n';
+				string->Length++;
 				break;
 			case '"':
 				*dst++ = '"';
+				string->Length++;
 				break;
 			case '\'':
 				*dst++ = '\'';
+				string->Length++;
 				break;
 			case '\\':
 				*dst++ = '\\';
+				string->Length++;
 				break;
-			default:
-				Error("Unknown escape character");
+			case 'x': {
+				Uint32 digits = 0;
+
+				int count = Compiler::ParseHexChars(&digits, src + 1, srcEnd, 2);
+				if (count != 2) {
+					Error("Invalid escape sequence.");
+				}
+
+				*dst++ = digits & 0xFF;
+				src += 2;
+
+				string->Length++;
 				break;
 			}
-			string->Length++;
+			case 'u': {
+				std::string result = ParseUnicodeString(src + 1, srcEnd, 4);
+
+				memcpy(dst, result.c_str(), result.size());
+				dst += result.size();
+				src += 4;
+
+				string->Length += result.size();
+				break;
+			}
+			case 'U': {
+				std::string result = ParseUnicodeString(src + 1, srcEnd, 8);
+
+				memcpy(dst, result.c_str(), result.size());
+				dst += result.size();
+				src += 8;
+
+				string->Length += result.size();
+				break;
+			}
+			default:
+				Error("Unknown escape character.");
+				break;
+			}
 		}
 		else {
 			*dst++ = *src;
