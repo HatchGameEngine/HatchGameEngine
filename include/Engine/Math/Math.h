@@ -11,7 +11,8 @@ public:
 	static float Tan(float n);
 	static float Asin(float x);
 	static float Acos(float x);
-	static float Atan(float x, float y);
+	static float Atan(float n);
+	static float Atan2(float x, float y);
 	static float Distance(float x1, float y1, float x2, float y2);
 	static float Hypot(float a, float b, float c);
 	static void ClearTrigLookupTables();
