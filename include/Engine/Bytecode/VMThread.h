@@ -16,8 +16,6 @@ private:
 	void Breakpoint(VMThreadBreakpoint* breakpoint);
 	bool ShowBranchLimitMessage(const char* errorMessage, ...);
 #endif
-	VMValue GetProperty(VMValue object, Uint32 hash);
-	VMValue SetProperty(VMValue object, Uint32 hash, VMValue value);
 	VMValue GetElement(VMValue object, VMValue at);
 	VMValue SetElement(VMValue object, VMValue at, VMValue value);
 	VMValue GetGlobal(Uint32 hash);
@@ -89,6 +87,8 @@ public:
 	void RemoveBreakpointsForModule(ObjModule* module);
 	void DisposeBreakpoints();
 #endif
+	VMValue GetProperty(VMValue object, Uint32 hash);
+	VMValue SetProperty(VMValue object, Uint32 hash, VMValue value);
 	void Push(VMValue value);
 	VMValue Pop();
 	void Pop(unsigned amount);

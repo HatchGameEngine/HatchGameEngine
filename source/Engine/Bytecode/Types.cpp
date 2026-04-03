@@ -83,6 +83,22 @@ static VMValue VM_GetClass(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 
+static VMValue VM_GetField(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	Uint32 hash = Murmur::EncryptString(AS_CSTRING(args[1]));
+
+	return ScriptManager::Threads[threadID].GetProperty(args[0], hash);;
+}
+
+static VMValue VM_SetField(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	Uint32 hash = Murmur::EncryptString(AS_CSTRING(args[1]));
+
+	return ScriptManager::Threads[threadID].SetProperty(args[0], hash, args[2]);;
+}
+
 ObjFunction* NewFunction() {
 	return (ObjFunction*)FunctionImpl::New();
 }
@@ -123,6 +139,8 @@ ObjClass* NewClass(Uint32 hash) {
 	klass->Initializer = NULL_VAL;
 	klass->Name = StringUtils::Create(GetClassName(hash));
 	ScriptManager::DefineNative(klass, "GetClass", VM_GetClass);
+	ScriptManager::DefineNative(klass, "GetField", VM_GetField);
+	ScriptManager::DefineNative(klass, "SetField", VM_SetField);
 	return klass;
 }
 ObjClass* NewClass(const char* className) {
