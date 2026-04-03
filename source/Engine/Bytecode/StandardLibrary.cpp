@@ -3541,24 +3541,24 @@ VMValue Display_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
  * \param frame (integer): Index of the frame in the animation entry.
  * \param x (number): X position of where to draw the sprite.
  * \param y (number): Y position of where to draw the sprite.
- * \param flipX (integer): Whether to flip the sprite horizontally.
- * \param flipY (integer): Whether to flip the sprite vertically.
- * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (number): Rotation of the drawn sprite.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt flipX (boolean): Whether to flip the sprite horizontally. (default: `false`)
+ * \paramOpt flipY (boolean): Whether to flip the sprite vertically. (default: `false`)
+ * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally. (default: `1.0`)
+ * \paramOpt scaleY (number): Scale multiplier of the sprite vertically. (default: `1.0`)
+ * \paramOpt rotation (number): Rotation of the drawn sprite in radians. (default: `0.0`)
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(7);
+	CHECK_AT_LEAST_ARGCOUNT(5);
 
 	ISprite* sprite = (GET_ARG(0, GetInteger) > -1) ? GET_ARG(0, GetSprite) : NULL;
 	int animation = GET_ARG(1, GetInteger);
 	int frame = GET_ARG(2, GetInteger);
 	int x = (int)GET_ARG(3, GetDecimal);
 	int y = (int)GET_ARG(4, GetDecimal);
-	int flipX = GET_ARG(5, GetInteger);
-	int flipY = GET_ARG(6, GetInteger);
+	bool flipX = GET_ARG_OPT(5, GetInteger, false);
+	bool flipY = GET_ARG_OPT(6, GetInteger, false);
 	float scaleX = GET_ARG_OPT(7, GetDecimal, 1.0f);
 	float scaleY = GET_ARG_OPT(8, GetDecimal, 1.0f);
 	float rotation = GET_ARG_OPT(9, GetDecimal, 0.0f);
@@ -3754,21 +3754,21 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
  * \param animator (integer): The animator to draw.
  * \param x (number): X position of where to draw the sprite.
  * \param y (number): Y position of where to draw the sprite.
- * \param flipX (integer): Whether to flip the sprite horizontally.
- * \param flipY (integer): Whether to flip the sprite vertically.
+ * \paramOpt flipX (boolean): Whether to flip the sprite horizontally. (default: `false`)
+ * \paramOpt flipY (boolean): Whether to flip the sprite vertically. (default: `false`)
  * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally. (default: `1.0`)
  * \paramOpt scaleY (number): Scale multiplier of the sprite vertically. (default: `1.0`)
- * \paramOpt rotation (number): Rotation of the drawn sprite, from 0-511. (default: `0.0`)
+ * \paramOpt rotation (number): Rotation of the drawn sprite in radians. (default: `0.0`)
  * \ns Draw
  */
 VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(5);
+	CHECK_AT_LEAST_ARGCOUNT(3);
 
 	Animator* animator = GET_ARG(0, GetAnimator);
 	int x = (int)GET_ARG(1, GetDecimal);
 	int y = (int)GET_ARG(2, GetDecimal);
-	int flipX = GET_ARG(3, GetInteger);
-	int flipY = GET_ARG(4, GetInteger);
+	bool flipX = GET_ARG_OPT(3, GetInteger, false);
+	bool flipY = GET_ARG_OPT(4, GetInteger, false);
 	float scaleX = (argCount > 5) ? GET_ARG(5, GetDecimal) : 1.0f;
 	float scaleY = (argCount > 6) ? GET_ARG(6, GetDecimal) : 1.0f;
 	float rotation = (argCount > 7) ? GET_ARG(7, GetDecimal) : 0.0f;
@@ -3988,16 +3988,16 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
  * \param partY (integer): Y coordinate of part of frame to draw.
  * \param partW (integer): Width of part of frame to draw.
  * \param partH (integer): Height of part of frame to draw.
- * \param flipX (integer): Whether to flip the sprite horizontally.
- * \param flipY (integer): Whether to flip the sprite vertically.
- * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
- * \paramOpt rotation (number): Rotation of the drawn sprite in radians, or in integer if <param useInteger> is `true`.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt flipX (boolean): Whether to flip the sprite horizontally. (default: `false`)
+ * \paramOpt flipY (boolean): Whether to flip the sprite vertically. (default: `false`)
+ * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally. (default: `1.0`)
+ * \paramOpt scaleY (number): Scale multiplier of the sprite vertically. (default: `1.0`)
+ * \paramOpt rotation (number): Rotation of the drawn sprite in radians. (default: `0.0`)
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(11);
+	CHECK_AT_LEAST_ARGCOUNT(9);
 
 	ISprite* sprite = (GET_ARG(0, GetInteger) > -1) ? GET_ARG(0, GetSprite) : NULL;
 	int animation = GET_ARG(1, GetInteger);
@@ -4008,8 +4008,8 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 	int sy = (int)GET_ARG(6, GetDecimal);
 	int sw = (int)GET_ARG(7, GetDecimal);
 	int sh = (int)GET_ARG(8, GetDecimal);
-	int flipX = GET_ARG(9, GetInteger);
-	int flipY = GET_ARG(10, GetInteger);
+	bool flipX = GET_ARG_OPT(9, GetInteger, false);
+	bool flipY = GET_ARG_OPT(10, GetInteger, false);
 	float scaleX = GET_ARG_OPT(11, GetDecimal, 1.0f);
 	float scaleY = GET_ARG_OPT(12, GetDecimal, 1.0f);
 	float rotation = GET_ARG_OPT(13, GetDecimal, 0.0f);
@@ -4068,7 +4068,7 @@ VMValue Draw_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
  * \param image (integer): Index of the loaded image.
  * \param x (number): X position of where to draw the image.
  * \param y (number): Y position of where to draw the image.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
@@ -4105,7 +4105,7 @@ VMValue Draw_Image(int argCount, VMValue* args, Uint32 threadID) {
  * \param partH (integer): Height of part of image to draw.
  * \param x (number): X position of where to draw the image.
  * \param y (number): Y position of where to draw the image.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
@@ -4135,7 +4135,7 @@ VMValue Draw_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (number): Y position of where to draw the image.
  * \param width (number): Width to draw the image.
  * \param height (number): Height to draw the image.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
@@ -4176,7 +4176,7 @@ VMValue Draw_ImageSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param y (number): Y position of where to draw the image.
  * \param width (number): Width to draw the image.
  * \param height (number): Height to draw the image.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_ImagePartSized(int argCount, VMValue* args, Uint32 threadID) {
@@ -4460,12 +4460,12 @@ VMValue Draw_VideoPartSized(int argCount, VMValue* args, Uint32 threadID) {
  * \param ID (integer): ID of the tile to draw.
  * \param x (number): X position of where to draw the tile.
  * \param y (number): Y position of where to draw the tile.
- * \paramOpt flipX (integer): Whether to flip the tile horizontally.
- * \paramOpt flipY (integer): Whether to flip the tile vertically.
- * \paramOpt scaleX (number): Horizontal scale multiplier of the tile.
- * \paramOpt scaleY (number): Vertical scale multiplier of the tile.
- * \paramOpt rotation (number): Rotation of the drawn tile in radians.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt flipX (boolean): Whether to flip the tile horizontally. (default: `false`)
+ * \paramOpt flipY (boolean): Whether to flip the tile vertically. (default: `false`)
+ * \paramOpt scaleX (number): Horizontal scale multiplier of the tile. (default: `1.0`)
+ * \paramOpt scaleY (number): Vertical scale multiplier of the tile. (default: `1.0`)
+ * \paramOpt rotation (number): Rotation of the drawn tile in radians. (default: `0.0`)
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
@@ -4474,8 +4474,8 @@ VMValue Draw_Tile(int argCount, VMValue* args, Uint32 threadID) {
 	Uint32 id = GET_ARG(0, GetInteger);
 	int x = (int)GET_ARG(1, GetDecimal) + 8;
 	int y = (int)GET_ARG(2, GetDecimal) + 8;
-	int flipX = GET_ARG_OPT(3, GetInteger, false);
-	int flipY = GET_ARG_OPT(4, GetInteger, false);
+	bool flipX = GET_ARG_OPT(3, GetInteger, false);
+	bool flipY = GET_ARG_OPT(4, GetInteger, false);
 	float scaleX = GET_ARG_OPT(5, GetDecimal, 1.0f);
 	float scaleY = GET_ARG_OPT(6, GetDecimal, 1.0f);
 	float rotation = GET_ARG_OPT(7, GetDecimal, 0.0f);
@@ -4786,7 +4786,7 @@ VMValue Draw_MeasureTextWrapped(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (number): X position of where to draw the text.
  * \param y (number): Y position of where to draw the text.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
@@ -4841,7 +4841,7 @@ VMValue Draw_Text(int argCount, VMValue* args, Uint32 threadID) {
  * \param maxWidth (number): Max width the text can draw in.
  * \paramOpt maxLines (integer): Max lines of text to draw. Use `null` to draw all lines.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
@@ -4905,7 +4905,7 @@ VMValue Draw_TextWrapped(int argCount, VMValue* args, Uint32 threadID) {
  * \param maxWidth (number): Max width the text can draw in.
  * \paramOpt maxLines (integer): Max lines of text to draw. Use `null` to draw all lines.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
@@ -4967,7 +4967,7 @@ VMValue Draw_TextEllipsis(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (number): X position of where to draw the glyph.
  * \param y (number): Y position of where to draw the glyph.
  * \paramOpt fontSize (number): The size of the font. If this argument is not given, this uses the pixels per unit value that the font was configured with.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
@@ -5024,7 +5024,7 @@ VMValue Draw_Glyph(int argCount, VMValue* args, Uint32 threadID) {
  * \param spacing (integer): The space between drawn sprites.
  * \paramOpt charOffsetsX (array): The X offsets at which to draw per frame. Must also have <param charOffsetsY> to be used.
  * \paramOpt charOffsetsY (array): The Y offsets at which to draw per frame.
- * \paramOpt paletteID (integer): Which palette index to use.
+ * \paramOpt paletteID (integer): Which palette index to use. (default: `0`)
  * \ns Draw
  */
 VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
@@ -6735,16 +6735,16 @@ VMValue Draw3D_Quad(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (number): X position of where to draw the sprite.
  * \param y (number): Y position of where to draw the sprite.
  * \param z (number): Z position of where to draw the sprite.
- * \param flipX (integer): Whether to flip the sprite horizontally.
- * \param flipY (integer): Whether to flip the sprite vertically.
- * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
+ * \paramOpt flipX (boolean): Whether to flip the sprite horizontally. (default: `false`)
+ * \paramOpt flipY (boolean): Whether to flip the sprite vertically. (default: `false`)
+ * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally. (default: `1.0`)
+ * \paramOpt scaleY (number): Scale multiplier of the sprite vertically. (default: `1.0`)
  * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(8);
+	CHECK_AT_LEAST_ARGCOUNT(6);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -6752,16 +6752,10 @@ VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
 	float x = GET_ARG(3, GetDecimal);
 	float y = GET_ARG(4, GetDecimal);
 	float z = GET_ARG(5, GetDecimal);
-	int flipX = GET_ARG(6, GetInteger);
-	int flipY = GET_ARG(7, GetInteger);
-	float scaleX = 1.0f;
-	float scaleY = 1.0f;
-	if (argCount > 8) {
-		scaleX = GET_ARG(8, GetDecimal);
-	}
-	if (argCount > 9) {
-		scaleY = GET_ARG(9, GetDecimal);
-	}
+	bool flipX = GET_ARG_OPT(6, GetInteger, false);
+	bool flipY = GET_ARG_OPT(7, GetInteger, false);
+	float scaleX = GET_ARG_OPT(8, GetDecimal, 1.0f);
+	float scaleY = GET_ARG_OPT(9, GetDecimal, 1.0f);
 
 	GET_MATRICES(10);
 
@@ -6811,16 +6805,16 @@ VMValue Draw3D_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * \param partY (integer): Y coordinate of part of frame to draw.
  * \param partW (integer): Width of part of frame to draw.
  * \param partH (integer): Height of part of frame to draw.
- * \param flipX (integer): Whether to flip the sprite horizontally.
- * \param flipY (integer): Whether to flip the sprite vertically.
- * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally.
- * \paramOpt scaleY (number): Scale multiplier of the sprite vertically.
+ * \paramOpt flipX (boolean): Whether to flip the sprite horizontally. (default: `false`)
+ * \paramOpt flipY (boolean): Whether to flip the sprite vertically. (default: `false`)
+ * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally. (default: `1.0`)
+ * \paramOpt scaleY (number): Scale multiplier of the sprite vertically. (default: `1.0`)
  * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(12);
+	CHECK_AT_LEAST_ARGCOUNT(10);
 
 	ISprite* sprite = GET_ARG(0, GetSprite);
 	int animation = GET_ARG(1, GetInteger);
@@ -6832,16 +6826,10 @@ VMValue Draw3D_SpritePart(int argCount, VMValue* args, Uint32 threadID) {
 	int sy = (int)GET_ARG(7, GetDecimal);
 	int sw = (int)GET_ARG(8, GetDecimal);
 	int sh = (int)GET_ARG(9, GetDecimal);
-	int flipX = GET_ARG(10, GetInteger);
-	int flipY = GET_ARG(11, GetInteger);
-	float scaleX = 1.0f;
-	float scaleY = 1.0f;
-	if (argCount > 12) {
-		scaleX = GET_ARG(12, GetDecimal);
-	}
-	if (argCount > 13) {
-		scaleY = GET_ARG(13, GetDecimal);
-	}
+	bool flipX = GET_ARG_OPT(10, GetInteger, false);
+	bool flipY = GET_ARG_OPT(11, GetInteger, false);
+	float scaleX = GET_ARG_OPT(12, GetDecimal, 1.0f);
+	float scaleY = GET_ARG_OPT(13, GetDecimal, 1.0f);
 
 	GET_MATRICES(14);
 
@@ -6961,21 +6949,21 @@ VMValue Draw3D_ImagePart(int argCount, VMValue* args, Uint32 threadID) {
  * \param x (number): X position of where to draw the tile.
  * \param y (number): Y position of where to draw the tile.
  * \param z (number): Z position of where to draw the tile.
- * \param flipX (integer): Whether to flip the tile horizontally.
- * \param flipY (integer): Whether to flip the tile vertically.
+ * \paramOpt flipX (boolean): Whether to flip the tile horizontally. (default: `false`)
+ * \paramOpt flipY (boolean): Whether to flip the tile vertically. (default: `false`)
  * \paramOpt matrixModel (matrix): Matrix for transforming coordinates to world space.
  * \paramOpt matrixNormal (matrix): Matrix for transforming normals.
  * \ns Draw3D
  */
 VMValue Draw3D_Tile(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_AT_LEAST_ARGCOUNT(6);
+	CHECK_AT_LEAST_ARGCOUNT(4);
 
 	Uint32 id = GET_ARG(0, GetInteger);
 	float x = GET_ARG(1, GetDecimal);
 	float y = GET_ARG(2, GetDecimal);
 	float z = GET_ARG(3, GetDecimal);
-	int flipX = GET_ARG(4, GetInteger);
-	int flipY = GET_ARG(5, GetInteger);
+	bool flipX = GET_ARG_OPT(4, GetInteger, false);
+	bool flipY = GET_ARG_OPT(5, GetInteger, false);
 
 	GET_MATRICES(6);
 
@@ -7147,8 +7135,8 @@ VMValue Draw3D_QuadTextured(int argCount, VMValue* args, Uint32 threadID) {
  * \param sprite (integer): Index of the loaded sprite.
  * \param animation (integer): Index of the animation entry.
  * \param frame (integer): Index of the frame in the animation entry.
- * \param flipX (integer): Whether to flip the sprite horizontally.
- * \param flipY (integer): Whether to flip the sprite vertically.
+ * \param flipX (boolean): Whether to flip the sprite horizontally.
+ * \param flipY (boolean): Whether to flip the sprite vertically.
  * \param x1 (number): X position of the first vertex.
  * \param y1 (number): Y position of the first vertex.
  * \param z1 (number): Z position of the first vertex.
@@ -7211,8 +7199,8 @@ VMValue Draw3D_SpritePoints(int argCount, VMValue* args, Uint32 threadID) {
  * Draw3D.TilePoints
  * \desc Draws a textured rectangle in 3D space.
  * \param ID (integer): ID of the tile to draw.
- * \param flipX (integer): Whether to flip the tile horizontally.
- * \param flipY (integer): Whether to flip the tile vertically.
+ * \param flipX (boolean): Whether to flip the tile horizontally.
+ * \param flipY (boolean): Whether to flip the tile vertically.
  * \param x1 (number): X position of the first vertex.
  * \param y1 (number): Y position of the first vertex.
  * \param z1 (number): Z position of the first vertex.
@@ -18469,8 +18457,8 @@ VMValue TileInfo_GetEmptyTile(int argCount, VMValue* args, Uint32 threadID) {
  * \param collisionField (integer): The collision plane of the tile to get the collision from.
  * \param directionType (<ref SensorDirection_*>): Ordinal direction to check in.
  * \param position (integer): Position on the tile to check, X position if the directionType is Up/Down, Y position if the directionType is Left/Right.
- * \paramOpt flipX (boolean): Whether to check the collision with the tile horizontally flipped.
- * \paramOpt flipY (boolean): Whether to check the collision with the tile vertically flipped.
+ * \paramOpt flipX (boolean): Whether to check the collision with the tile horizontally flipped. (default: `false`)
+ * \paramOpt flipY (boolean): Whether to check the collision with the tile vertically flipped. (default: `false`)
  * \return integer Collision position on the tile, X position if the directionType is Left/Right, Y position if the directionType is Up/Down, -1 if there was no collision.
  * \ns TileInfo
  */
@@ -18528,8 +18516,8 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
  * \param tileID (integer): ID of the tile to get the value of.
  * \param collisionField (integer): The collision plane of the tile to get the angle from.
  * \param directionType (<ref SensorDirection_*>): Ordinal direction to check in.
- * \paramOpt flipX (boolean): Whether to check the angle with the tile horizontally flipped.
- * \paramOpt flipY (boolean): Whether to check the angle with the tile vertically flipped.
+ * \paramOpt flipX (boolean): Whether to check the angle with the tile horizontally flipped. (default: `false`)
+ * \paramOpt flipY (boolean): Whether to check the angle with the tile vertically flipped. (default: `false`)
  * \return integer Angle value between 0x00 to 0xFF at the specified direction.
  * \ns TileInfo
  */
