@@ -946,6 +946,7 @@ void ScriptEntity::Initialize() {
 	Entity::Initialize();
 
 	Instance->InstanceObj.Fields->Clear();
+	AddEntityClassMethods();
 	LinkFields();
 
 	RunInitializer();
