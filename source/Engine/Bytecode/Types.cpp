@@ -100,7 +100,8 @@ static VMValue VM_GetField(int argCount, VMValue* args, Uint32 threadID) {
 static VMValue VM_SetField(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 3);
 
-	Uint32 hash = Murmur::EncryptString(AS_CSTRING(args[1]));
+	const char* name = StandardLibrary::GetString(args, 1, threadID);
+	Uint32 hash = Murmur::EncryptString(name);
 
 	return ScriptManager::Threads[threadID].SetProperty(args[0], hash, args[2]);;
 }
