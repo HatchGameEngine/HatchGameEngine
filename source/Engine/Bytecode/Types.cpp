@@ -93,7 +93,7 @@ static VMValue VM_GetField(int argCount, VMValue* args, Uint32 threadID) {
 	if (thread.HasProperty(args[0], hash))
 		return thread.GetProperty(args[0], hash);
 
-	thread.ThrowRuntimeError(false, "Could not find %s in class!", AS_CSTRING(args[1]));
+	thread.ThrowRuntimeError(false, "Could not find %s in %s!", name, GetValueTypeString(args[0]));
 	return NULL_VAL;
 }
 
