@@ -2523,9 +2523,7 @@ void VMThread::CallInitializer(VMValue value) {
 }
 
 bool VMThread::HasProperty(VMValue object, Uint32 hash) {
-	bool result;
 
-	// If it's an instance,
 	if (IS_INSTANCEABLE(object)) {
 		ObjInstance* instance = AS_INSTANCE(object);
 
@@ -2546,7 +2544,6 @@ bool VMThread::HasProperty(VMValue object, Uint32 hash) {
 				instance->PropertyGet);
 		}
 	}
-	// Otherwise, if it's a class,
 	else if (IS_CLASS(object)) {
 		ObjClass* klass = AS_CLASS(object);
 
@@ -2555,25 +2552,6 @@ bool VMThread::HasProperty(VMValue object, Uint32 hash) {
 			return HasProperty(klass, hash);
 		}
 	}
-	// Otherwise, if it's a namespace,
-	// else if (IS_NAMESPACE(object)) {
-	// 	ObjNamespace* ns = AS_NAMESPACE(object);
-	//
-	// 	if (ScriptManager::Lock()) {
-	// 		if (ns->Fields->GetIfExists(hash, &result)) {
-	// 			result = Value::Delink(result);
-	// 			ScriptManager::Unlock();
-	// 			return result;
-	// 		}
-	//
-	// 		ThrowRuntimeError(false,
-	// 			"Could not find %s in namespace!",
-	// 			GetVariableOrMethodName(hash));
-	// 		ScriptManager::Unlock();
-	// 		return NULL_VAL;
-	// 	}
-	// }
-	// If it's any other object,
 	if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
 		Obj* objPtr = AS_OBJECT(object);
 
