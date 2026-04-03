@@ -87,8 +87,13 @@ static VMValue VM_GetField(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	Uint32 hash = Murmur::EncryptString(AS_CSTRING(args[1]));
+	VMThread thread = ScriptManager::Threads[threadID];
 
-	return ScriptManager::Threads[threadID].GetProperty(args[0], hash);;
+	if (thread.HasProperty(args[0], hash))
+		return thread.GetProperty(args[0], hash);
+
+	thread.ThrowRuntimeError(false, "Could not find %s in class!", AS_CSTRING(args[1]));
+	return NULL_VAL;
 }
 
 static VMValue VM_SetField(int argCount, VMValue* args, Uint32 threadID) {

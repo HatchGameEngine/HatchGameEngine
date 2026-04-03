@@ -87,6 +87,7 @@ public:
 	void RemoveBreakpointsForModule(ObjModule* module);
 	void DisposeBreakpoints();
 #endif
+	bool HasProperty(VMValue object, Uint32 hash);
 	VMValue GetProperty(VMValue object, Uint32 hash);
 	VMValue SetProperty(VMValue object, Uint32 hash, VMValue value);
 	void Push(VMValue value);

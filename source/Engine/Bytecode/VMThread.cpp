@@ -2522,6 +2522,71 @@ void VMThread::CallInitializer(VMValue value) {
 	FunctionToInvoke = NULL_VAL;
 }
 
+bool VMThread::HasProperty(VMValue object, Uint32 hash) {
+	bool result;
+
+	// If it's an instance,
+	if (IS_INSTANCEABLE(object)) {
+		ObjInstance* instance = AS_INSTANCE(object);
+
+		if (ScriptManager::Lock()) {
+			// Fields have priority over methods
+			if (instance->Fields->Exists(hash)) {
+				ScriptManager::Unlock();
+				return true;
+			}
+
+			ObjClass* klass = instance->Object.Class;
+
+			ScriptManager::Unlock();
+			return HasProperty((Obj*)instance,
+				klass,
+				hash,
+				false,
+				instance->PropertyGet);
+		}
+	}
+	// Otherwise, if it's a class,
+	else if (IS_CLASS(object)) {
+		ObjClass* klass = AS_CLASS(object);
+
+		if (ScriptManager::Lock()) {
+			ScriptManager::Unlock();
+			return HasProperty(klass, hash);
+		}
+	}
+	// Otherwise, if it's a namespace,
+	// else if (IS_NAMESPACE(object)) {
+	// 	ObjNamespace* ns = AS_NAMESPACE(object);
+	//
+	// 	if (ScriptManager::Lock()) {
+	// 		if (ns->Fields->GetIfExists(hash, &result)) {
+	// 			result = Value::Delink(result);
+	// 			ScriptManager::Unlock();
+	// 			return result;
+	// 		}
+	//
+	// 		ThrowRuntimeError(false,
+	// 			"Could not find %s in namespace!",
+	// 			GetVariableOrMethodName(hash));
+	// 		ScriptManager::Unlock();
+	// 		return NULL_VAL;
+	// 	}
+	// }
+	// If it's any other object,
+	if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
+		Obj* objPtr = AS_OBJECT(object);
+
+		if (ScriptManager::Lock()) {
+			ScriptManager::Unlock();
+			return HasProperty(objPtr, objPtr->Class, hash, false, objPtr->Class->PropertyGet);
+		}
+
+		return false;
+	}
+
+	return false;
+}
 VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 	VMValue result;
 
