@@ -2547,20 +2547,12 @@ bool VMThread::HasProperty(VMValue object, Uint32 hash) {
 	else if (IS_CLASS(object)) {
 		ObjClass* klass = AS_CLASS(object);
 
-		if (ScriptManager::Lock()) {
-			ScriptManager::Unlock();
-			return HasProperty(klass, hash);
-		}
+		return HasProperty(klass, hash);
 	}
 	if (IS_OBJECT(object) && AS_OBJECT(object)->Class) {
 		Obj* objPtr = AS_OBJECT(object);
 
-		if (ScriptManager::Lock()) {
-			ScriptManager::Unlock();
-			return HasProperty(objPtr, objPtr->Class, hash, false, objPtr->Class->PropertyGet);
-		}
-
-		return false;
+		return HasProperty(objPtr, objPtr->Class, hash, false, objPtr->Class->PropertyGet);
 	}
 
 	return false;
