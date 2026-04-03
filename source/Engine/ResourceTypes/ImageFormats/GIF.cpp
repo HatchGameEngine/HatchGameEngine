@@ -250,18 +250,18 @@ GIF* GIF::Load(Stream* stream) {
 	transparentColorIndex = stream->ReadByte();
 	stream->Skip(1); // pixelAspectRatio = stream->ReadByte();
 
-	if ((logicalScreenDesc & 0x80) == 0) {
-		Log::Print(Log::LOG_ERROR, "GIF missing palette table!");
-		goto GIF_Load_FAIL;
-	}
-
 	gif->Width = width;
 	gif->Height = height;
 	gif->BytesPerPixel = loadPalette ? sizeof(Uint8) : sizeof(Uint32);
 
 	colorBitDepth = ((logicalScreenDesc & 0x70) >> 4) + 1; // normally 7, sometimes it is 4 (wrong)
 	// sortFlag = (logicalScreenDesc & 0x8) != 0; // This is unneeded.
-	paletteTableSize = 2 << (logicalScreenDesc & 0x7);
+	if ((logicalScreenDesc & 0x80) != 0) {
+		paletteTableSize = 2 << (logicalScreenDesc & 0x7);
+	}
+	else {
+		paletteTableSize = 0;
+	}
 
 #ifdef DO_GIF_PERF
 	MARK_PERF_LABEL("gif header read");
@@ -270,7 +270,7 @@ GIF* GIF::Load(Stream* stream) {
 	// Prepare image data
 	gif->Data = (Uint8*)Memory::TrackedMalloc("GIF::Data", width * height * gif->BytesPerPixel);
 	// Load Palette Table
-	gif->Colors = (Uint32*)Memory::TrackedMalloc("GIF::Colors", 0x100 * sizeof(Uint32));
+	gif->Colors = (Uint32*)Memory::TrackedCalloc("GIF::Colors", 0x100, sizeof(Uint32));
 	for (int p = 0; p < paletteTableSize; p++) {
 		// Load 'red'
 		Uint8 red = stream->ReadByte();
@@ -289,8 +289,6 @@ GIF* GIF::Load(Stream* stream) {
 
 	gif->Paletted = loadPalette;
 	gif->NumPaletteColors = loadPalette ? 256 : 0;
-
-	memset(gif->Colors + paletteTableSize, 0, (0x100 - paletteTableSize) * sizeof(Uint32));
 
 	width--;
 	height--;
