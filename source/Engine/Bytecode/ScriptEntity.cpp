@@ -945,6 +945,9 @@ void ScriptEntity::MarkForGarbageCollection() {}
 void ScriptEntity::Initialize() {
 	Entity::Initialize();
 
+	Instance->InstanceObj.Fields->Clear();
+	LinkFields();
+
 	RunInitializer();
 }
 void ScriptEntity::Create(VMValue flag) {
