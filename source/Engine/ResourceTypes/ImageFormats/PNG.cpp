@@ -50,6 +50,11 @@ PNG* PNG::Load(Stream* stream) {
 	Uint32 width, height;
 	int bit_depth, color_type, palette_size;
 	bool usePalette = false;
+	bool hasTransparency = false;
+	bool hasTransValues = false;
+	png_bytep trans;
+	int num_trans;
+	png_color_16p trans_values;
 	png_colorp palette;
 	Uint8* pixelData = NULL;
 	png_bytep* row_pointers = NULL;
@@ -93,7 +98,15 @@ PNG* PNG::Load(Stream* stream) {
 		}
 	}
 
-	if (!usePalette && png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS)) {
+	if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS)) {
+		hasTransparency = true;
+
+		if (png_get_tRNS(png_ptr, info_ptr, &trans, &num_trans, &trans_values) == PNG_INFO_tRNS) {
+			hasTransValues = true;
+		}
+	}
+
+	if (!usePalette && hasTransparency) {
 		png_set_tRNS_to_alpha(png_ptr);
 	}
 	else if (color_type != PNG_COLOR_TYPE_RGB_ALPHA &&
@@ -139,7 +152,12 @@ PNG* PNG::Load(Stream* stream) {
 		png->Paletted = true;
 
 		for (size_t i = 0; i < png->NumPaletteColors; i++, palette++) {
-			png->Colors[i] = ColorUtils::Make(palette->red, palette->green, palette->blue, 0xFF, Graphics::PreferredPixelFormat);
+			Uint8 alpha = 0xFF;
+			if (hasTransValues && i < (size_t)num_trans) {
+				alpha = trans[i];
+			}
+
+			png->Colors[i] = ColorUtils::Make(palette->red, palette->green, palette->blue, alpha, Graphics::PreferredPixelFormat);
 		}
 	}
 	else {

@@ -278,9 +278,11 @@ GIF* GIF::Load(Stream* stream) {
 		Uint8 green = stream->ReadByte();
 		// Load 'blue'
 		Uint8 blue = stream->ReadByte();
+		// Set alpha
+		Uint8 alpha = p == transparentColorIndex ? 0 : 0xFF;
 
 		// Store color
-		gif->Colors[p] = ColorUtils::Make(red, green, blue, 0xFF, Graphics::PreferredPixelFormat);
+		gif->Colors[p] = ColorUtils::Make(red, green, blue, alpha, Graphics::PreferredPixelFormat);
 	}
 
 #ifdef DO_GIF_PERF
