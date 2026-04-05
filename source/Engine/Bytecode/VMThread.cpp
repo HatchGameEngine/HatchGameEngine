@@ -3599,20 +3599,16 @@ VMValue VMThread::Values_Division() {
 		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
 		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 		if (b_d == 0.0) {
-			if (ThrowRuntimeError(false, "Cannot divide decimal by zero.") ==
-				ERROR_RES_CONTINUE) {
-				return DECIMAL_VAL(0.f);
-			}
+			ThrowRuntimeError(false, "Cannot divide decimal by zero.");
+			return DECIMAL_VAL(0.f);
 		}
 		return DECIMAL_VAL(a_d / b_d);
 	}
 	int a_d = AS_INTEGER(a);
 	int b_d = AS_INTEGER(b);
 	if (b_d == 0) {
-		if (ThrowRuntimeError(false, "Cannot divide integer by zero.") ==
-			ERROR_RES_CONTINUE) {
-			return INTEGER_VAL(0);
-		}
+		ThrowRuntimeError(false, "Cannot divide integer by zero.");
+		return INTEGER_VAL(0);
 	}
 	return INTEGER_VAL(a_d / b_d);
 }
@@ -3626,10 +3622,18 @@ VMValue VMThread::Values_Modulo() {
 	if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
 		float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
 		float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
+		if (b_d == 0.0) {
+			ThrowRuntimeError(false, "Cannot perform modulo by zero.");
+			return DECIMAL_VAL(0.f);
+		}
 		return DECIMAL_VAL(fmod(a_d, b_d));
 	}
 	int a_d = AS_INTEGER(a);
 	int b_d = AS_INTEGER(b);
+	if (b_d == 0) {
+		ThrowRuntimeError(false, "Cannot perform modulo by zero.");
+		return INTEGER_VAL(0);
+	}
 	return INTEGER_VAL(a_d % b_d);
 }
 VMValue VMThread::Values_Plus() {
