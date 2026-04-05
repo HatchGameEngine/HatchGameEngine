@@ -179,8 +179,19 @@ bool Value::SortaEqual(VMValue a, VMValue b) {
 	if (IS_BOUND_METHOD(a) && IS_BOUND_METHOD(b)) {
 		ObjBoundMethod* abm = AS_BOUND_METHOD(a);
 		ObjBoundMethod* bbm = AS_BOUND_METHOD(b);
-		return Value::ExactlyEqual(abm->Receiver, bbm->Receiver) &&
-			abm->Method == bbm->Method;
+
+		if (abm->Method != bbm->Method || abm->ArgumentCount != bbm->ArgumentCount ||
+			abm->HasReceiver != bbm->HasReceiver) {
+			return false;
+		}
+
+		for (Uint8 i = 0; i < abm->ArgumentCount; i++) {
+			if (!Value::ExactlyEqual(abm->Arguments[i], bbm->Arguments[i])) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	return Value::Equal(a, b);

@@ -13,6 +13,7 @@ public:
 	static Obj* New();
 
 	static VMValue VM_Bind(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_BindArguments(int argCount, VMValue* args, Uint32 threadID);
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_FUNCTIONIMPL_H */

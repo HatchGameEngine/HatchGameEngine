@@ -51,6 +51,7 @@ public:
 	static void FreeClass(Obj* object);
 	static void FreeEnumeration(Obj* object);
 	static void FreeNamespace(Obj* object);
+	static void FreeBoundMethod(Obj* object);
 	static void RemoveTemporaryModules();
 	static void RequestGarbageCollection();
 	static void ForceGarbageCollection();

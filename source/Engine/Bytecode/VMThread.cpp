@@ -3208,16 +3208,31 @@ bool VMThread::SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue va
 	}
 	return true;
 }
-bool VMThread::BindMethod(VMValue receiver, VMValue method) {
-	ObjBoundMethod* bound = NewBoundMethod(receiver, AS_FUNCTION(method));
-	Push(OBJECT_VAL(bound));
-	return true;
-}
 bool VMThread::CallBoundMethod(ObjBoundMethod* bound, int argCount) {
-	// Replace the bound method with the receiver so it's in the
-	// right slot when the method is called.
-	StackTop[-argCount - 1] = bound->Receiver;
-	return Call(bound->Method, argCount);
+	Uint8 numBound = bound->HasReceiver ? bound->ArgumentCount - 1 : bound->ArgumentCount;
+
+	// Check if there's enough space in the stack.
+	if (StackSize() + numBound + argCount >= STACK_SIZE_MAX) {
+		ThrowRuntimeError(false, "Not enough space in stack for calling bound method!");
+	    return false;
+	}
+
+	// Move the passed arguments to make space for the bound arguments.
+	if (argCount > 0) {
+		memmove(&StackTop[-argCount + numBound], &StackTop[-argCount], argCount * sizeof(VMValue));
+	}
+
+	// Copy the bound arguments to the stack.
+	// This replaces the receiver if the bound method has one.
+	VMValue* args = bound->HasReceiver ? &StackTop[-argCount - 1] : &StackTop[-argCount];
+	for (Uint8 i = 0; i < bound->ArgumentCount; i++) {
+		args[i] = bound->Arguments[i];
+	}
+
+	// Offset the stack top.
+	StackTop += numBound;
+
+	return Call(bound->Method, numBound + argCount);
 }
 bool VMThread::CallValue(VMValue callee, int argCount) {
 	if (!IS_CALLABLE(callee)) {
