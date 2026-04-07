@@ -16,6 +16,8 @@ private:
 	void Breakpoint(VMThreadBreakpoint* breakpoint);
 	bool ShowBranchLimitMessage(const char* errorMessage, ...);
 #endif
+	VMValue LoadIndirect(VMLocation location);
+	VMValue StoreIndirect(VMLocation location, VMValue value);
 	VMValue GetElement(VMValue object, VMValue at);
 	VMValue SetElement(VMValue object, VMValue at, VMValue value);
 	VMValue GetGlobal(Uint32 hash);

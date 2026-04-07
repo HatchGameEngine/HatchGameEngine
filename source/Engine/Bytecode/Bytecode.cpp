@@ -394,10 +394,10 @@ void Bytecode::WriteChunk(Stream* stream, ObjFunction* function) {
 			break;
 		case VAL_HITBOX:
 			stream->WriteByte(Bytecode::VALUE_TYPE_HITBOX);
-			stream->WriteInt16(constt.as.Hitbox[HITBOX_LEFT]);
-			stream->WriteInt16(constt.as.Hitbox[HITBOX_TOP]);
-			stream->WriteInt16(constt.as.Hitbox[HITBOX_RIGHT]);
-			stream->WriteInt16(constt.as.Hitbox[HITBOX_BOTTOM]);
+			stream->WriteInt16(constt.as.Value.Hitbox[HITBOX_LEFT]);
+			stream->WriteInt16(constt.as.Value.Hitbox[HITBOX_TOP]);
+			stream->WriteInt16(constt.as.Value.Hitbox[HITBOX_RIGHT]);
+			stream->WriteInt16(constt.as.Value.Hitbox[HITBOX_BOTTOM]);
 			break;
 		case VAL_OBJECT:
 			if (OBJECT_TYPE(constt) == OBJ_STRING) {

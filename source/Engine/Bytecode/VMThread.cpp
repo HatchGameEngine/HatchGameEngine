@@ -2075,12 +2075,14 @@ int VMThread::RunInstruction() {
 
 	VM_CASE(OP_LOCATION_STACK) {
 		Uint8 slot = ReadByte(frame);
-		Push(LOCATION_VAL(STACK_LOCATION(slot)));
+		VMValue* value = &frame->Slots[slot];
+		Push(LOCATION_VAL(STACK_LOCATION(value)));
 		VM_BREAK;
 	}
 	VM_CASE(OP_LOCATION_MODULE_LOCAL) {
 		Uint16 slot = ReadUInt16(frame);
-		Push(LOCATION_VAL(MODULE_LOCATION(slot)));
+		VMValue* value = &((*frame->Module->Locals)[slot]);
+		Push(LOCATION_VAL(MODULE_LOCATION(value)));
 		VM_BREAK;
 	}
 	VM_CASE(OP_LOCATION_GLOBAL) {
@@ -2091,70 +2093,33 @@ int VMThread::RunInstruction() {
 
 	VM_CASE(OP_LOCATION_PROPERTY) {
 		Uint32 hash = ReadUInt32(frame);
+		VMValue location = Peek(0);
+		VMValue object;
 
-		if (IS_LOCATION(Peek(0))) {
-			VMLocation location = AS_LOCATION(Pop());
-
-			// This is just what OP_LOAD_INDIRECT does.
-			switch (location.Type) {
-			case LOC_STACK:
-				Push(frame->Slots[location.as.Slot]);
-				break;
-			case LOC_MODULE:
-				Push((*frame->Module->Locals)[location.as.Slot]);
-				break;
-			case LOC_GLOBAL:
-				Push(GetGlobal(location.as.Hash));
-				break;
-			case LOC_PROPERTY: {
-				VMValue object = Pop();
-				Push(GetProperty(object, location.as.Hash));
-				break;
-			}
-			case LOC_ELEMENT: {
-				VMValue at = Pop();
-				VMValue obj = Pop();
-				Push(GetElement(obj, at));
-				break;
-			}
+		if (IS_LOCATION(location)) {
+			VMLocation loc = AS_LOCATION(location);
+			object = LoadIndirect(loc);
+			if (!IsStructureLocation(loc) || IS_OBJECT(object)) {
+				Pop();
 			}
 		}
+		else {
+			object = Pop();
+		}
 
-		Push(LOCATION_VAL(PROPERTY_LOCATION(hash)));
-
+		location = LOCATION_VAL(PROPERTY_LOCATION(object, hash));
+		Push(location);
 		VM_BREAK;
 	}
 	VM_CASE(OP_LOCATION_SUPER_PROPERTY) {
 		Uint32 hash = ReadUInt32(frame);
 		ObjClass* klass = nullptr;
+		VMValue location = Peek(0);
 		VMValue value;
 
-		if (IS_LOCATION(Peek(0))) {
-			VMLocation location = AS_LOCATION(Pop());
-
-			// This is just what OP_LOAD_INDIRECT does.
-			switch (location.Type) {
-			case LOC_STACK:
-				value = frame->Slots[location.as.Slot];
-				break;
-			case LOC_MODULE:
-				value = (*frame->Module->Locals)[location.as.Slot];
-				break;
-			case LOC_GLOBAL:
-				value = GetGlobal(location.as.Hash);
-				break;
-			case LOC_PROPERTY: {
-				VMValue object = Pop();
-				value = GetProperty(object, location.as.Hash);
-				break;
-			}
-			case LOC_ELEMENT: {
-				VMValue at = Pop();
-				VMValue obj = Pop();
-				value = GetElement(obj, at);
-				break;
-			}
-			}
+		if (IS_LOCATION(location)) {
+			Pop();
+			value = LoadIndirect(AS_LOCATION(location));
 		}
 		else {
 			value = Pop();
@@ -2183,43 +2148,28 @@ int VMThread::RunInstruction() {
 			VM_BREAK;
 		}
 
-		Push(OBJECT_VAL(klass->Parent));
-		Push(LOCATION_VAL(PROPERTY_LOCATION(hash)));
+		location = LOCATION_VAL(PROPERTY_LOCATION(OBJECT_VAL(klass->Parent), hash));
+		Push(location);
 		VM_BREAK;
 	}
 	VM_CASE(OP_LOCATION_ELEMENT) {
-		if (IS_LOCATION(Peek(1))) {
-			VMValue value = Pop();
-			VMLocation location = AS_LOCATION(Pop());
+		VMValue at = Pop();
+		VMValue location = Peek(0);
+		VMValue object;
 
-			// This is just what OP_LOAD_INDIRECT does.
-			switch (location.Type) {
-			case LOC_STACK:
-				Push(frame->Slots[location.as.Slot]);
-				break;
-			case LOC_MODULE:
-				Push((*frame->Module->Locals)[location.as.Slot]);
-				break;
-			case LOC_GLOBAL:
-				Push(GetGlobal(location.as.Hash));
-				break;
-			case LOC_PROPERTY: {
-				VMValue object = Pop();
-				Push(GetProperty(object, location.as.Hash));
-				break;
+		if (IS_LOCATION(location)) {
+			VMLocation loc = AS_LOCATION(location);
+			object = LoadIndirect(loc);
+			if (!IsStructureLocation(loc) && IS_OBJECT(object)) {
+				Pop();
 			}
-			case LOC_ELEMENT: {
-				VMValue at = Pop();
-				VMValue obj = Pop();
-				Push(GetElement(obj, at));
-				break;
-			}
-			}
-
-			Push(value);
+		}
+		else {
+			object = Pop();
 		}
 
-		Push(LOCATION_VAL(ELEMENT_LOCATION()));
+		location = LOCATION_VAL(ELEMENT_LOCATION(object, at));
+		Push(location);
 		VM_BREAK;
 	}
 
@@ -2230,30 +2180,7 @@ int VMThread::RunInstruction() {
 			VM_BREAK;
 		}
 
-		VMLocation location = AS_LOCATION(Pop());
-
-		switch (location.Type) {
-		case LOC_STACK:
-			Push(frame->Slots[location.as.Slot]);
-			break;
-		case LOC_MODULE:
-			Push((*frame->Module->Locals)[location.as.Slot]);
-			break;
-		case LOC_GLOBAL:
-			Push(GetGlobal(location.as.Hash));
-			break;
-		case LOC_PROPERTY: {
-			VMValue object = Pop();
-			Push(GetProperty(object, location.as.Hash));
-			break;
-		}
-		case LOC_ELEMENT: {
-			VMValue at = Pop();
-			VMValue obj = Pop();
-			Push(GetElement(obj, at));
-			break;
-		}
-		}
+		Push(LoadIndirect(AS_LOCATION(Pop())));
 
 		VM_BREAK;
 	}
@@ -2266,29 +2193,7 @@ int VMThread::RunInstruction() {
 		VMValue value = Pop();
 		VMLocation location = AS_LOCATION(Pop());
 
-		switch (location.Type) {
-		case LOC_STACK:
-			frame->Slots[location.as.Slot] = value;
-			break;
-		case LOC_MODULE:
-			(*frame->Module->Locals)[location.as.Slot] = value;
-			break;
-		case LOC_GLOBAL:
-			SetGlobal(location.as.Hash, value);
-			break;
-		case LOC_PROPERTY: {
-			VMValue object = Pop();
-			SetProperty(object, location.as.Hash, value);
-			break;
-		}
-		case LOC_ELEMENT: {
-			VMValue at = Pop();
-			VMValue object = Pop();
-			SetElement(object, at, value);
-			break;
-		}
-		}
-
+		value = StoreIndirect(location, value);
 		Push(value);
 
 		VM_BREAK;
@@ -2310,6 +2215,66 @@ int VMThread::RunInstruction() {
 #endif
 
 	return result;
+}
+
+VMValue VMThread::LoadIndirect(VMLocation location) {
+	switch (location.Type) {
+	case LOC_STACK:
+	case LOC_MODULE:
+		return *location.as.Slot;
+	case LOC_GLOBAL:
+		return GetGlobal(location.as.Global);
+	case LOC_PROPERTY: {
+		VMValue object;
+		object.Type = location.as.Property.ObjectType;
+		object.as.Value = location.as.Property.Object;
+		return GetProperty(object, location.as.Property.Hash);
+	}
+	case LOC_ELEMENT: {
+		VMValue object;
+		VMValue at;
+		object.Type = location.as.Element.ObjectType;
+		object.as.Value = location.as.Element.Object;
+		at.Type = location.as.Element.AtType;
+		at.as.Value = location.as.Element.At;
+		return GetElement(object, at);
+	}
+	}
+
+	return NULL_VAL;
+}
+VMValue VMThread::StoreIndirect(VMLocation location, VMValue value) {
+	VMValue object;
+
+	switch (location.Type) {
+	case LOC_STACK:
+	case LOC_MODULE:
+		*location.as.Slot = value;
+		break;
+	case LOC_GLOBAL:
+		SetGlobal(location.as.Global, value);
+		break;
+	case LOC_PROPERTY:
+		object.Type = location.as.Property.ObjectType;
+		object.as.Value = location.as.Property.Object;
+		SetProperty(object, location.as.Property.Hash, value);
+		break;
+	case LOC_ELEMENT: {
+		object.Type = location.as.Element.ObjectType;
+		object.as.Value = location.as.Element.Object;
+		VMValue at;
+		at.Type = location.as.Element.AtType;
+		at.as.Value = location.as.Element.At;
+		SetElement(object, at, value);
+		break;
+	}
+	}
+
+	if (IsStructureLocation(location) && !IsStructureLocationValueObject(location)) {
+		StoreIndirect(AS_LOCATION(Pop()), object);
+	}
+
+	return value;
 }
 
 void VMThread::RunInstructionSet() {

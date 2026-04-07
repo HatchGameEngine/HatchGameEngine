@@ -1122,16 +1122,7 @@ void Compiler::EmitCopy(Uint8 count) {
 	EmitByte(count);
 }
 void Compiler::EmitCopyAndLoadIndirect() {
-	Uint8* op = GetLastOpcodePtr(CurrentChunk(), 0);
-	if (*op == OP_LOCATION_PROPERTY || *op == OP_LOCATION_SUPER_PROPERTY) {
-		EmitCopy(2);
-	}
-	else if (*op == OP_LOCATION_ELEMENT) {
-		EmitCopy(3);
-	}
-	else {
-		EmitCopy(1);
-	}
+	EmitCopy(1);
 	EmitByte(OP_LOAD_INDIRECT);
 }
 
@@ -3350,10 +3341,10 @@ void Compiler::GetEnumDeclaration() {
 						current = NULL_VAL;
 					}
 					else if (IS_DECIMAL(current)) {
-						current.as.Decimal += 1;
+						current.as.Value.Decimal += 1;
 					}
 					else if (IS_INTEGER(current)) {
-						current.as.Integer++;
+						current.as.Value.Integer++;
 					}
 					EmitByte(OP_LOAD_VALUE);
 					EmitConstant(INTEGER_VAL(1));
@@ -3679,13 +3670,13 @@ int Compiler::EmitConstant(VMValue value) {
 		}
 		else {
 			EmitByte(OP_INTEGER);
-			EmitSint32(value.as.Integer);
+			EmitSint32(value.as.Value.Integer);
 		}
 		return -1;
 	}
 	else if (value.Type == VAL_DECIMAL) {
 		EmitByte(OP_DECIMAL);
-		EmitFloat(value.as.Decimal);
+		EmitFloat(value.as.Value.Decimal);
 		return -1;
 	}
 	else if (value.Type == VAL_NULL) {

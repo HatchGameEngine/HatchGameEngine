@@ -45,23 +45,38 @@ enum {
 	LOC_ELEMENT
 };
 
+typedef union {
+	int Integer;
+	float Decimal;
+	Obj* Object;
+	int* LinkedInteger;
+	float* LinkedDecimal;
+	Sint16 Hitbox[NUM_HITBOX_SIDES];
+} VMValueUnion;
+
 struct VMLocation {
 	Uint8 Type;
 	union {
-		int Slot;
-		Uint32 Hash;
+		struct VMValue* Slot;
+		Uint32 Global;
+		struct {
+			VMValueUnion Object;
+			Uint8 ObjectType;
+			Uint32 Hash;
+		} Property;
+		struct {
+			VMValueUnion Object;
+			Uint8 ObjectType;
+			VMValueUnion At;
+			Uint8 AtType;
+		} Element;
 	} as;
 };
 
 struct VMValue {
 	Uint8 Type;
 	union {
-		int Integer;
-		float Decimal;
-		Obj* Object;
-		int* LinkedInteger;
-		float* LinkedDecimal;
-		Sint16 Hitbox[NUM_HITBOX_SIDES];
+		VMValueUnion Value;
 		VMLocation Location;
 	} as;
 };
@@ -139,10 +154,10 @@ const char* GetValueTypeString(VMValue value);
 #define IS_LOCATION(value) ((value).Type == VAL_LOCATION)
 
 #define AS_INTEGER(value) \
-	(value.Type == VAL_INTEGER ? (value).as.Integer : *((value).as.LinkedInteger))
+	(value.Type == VAL_INTEGER ? (value).as.Value.Integer : *((value).as.Value.LinkedInteger))
 #define AS_DECIMAL(value) \
-	(value.Type == VAL_DECIMAL ? (value).as.Decimal : *((value).as.LinkedDecimal))
-#define AS_OBJECT(value) ((value).as.Object)
+	(value.Type == VAL_DECIMAL ? (value).as.Value.Decimal : *((value).as.Value.LinkedDecimal))
+#define AS_OBJECT(value) ((value).as.Value.Object)
 #define AS_LOCATION(value) ((value).as.Location)
 
 #ifdef WIN32
@@ -150,19 +165,19 @@ const char* GetValueTypeString(VMValue value);
 static inline VMValue INTEGER_VAL(int value) {
 	VMValue val;
 	val.Type = VAL_INTEGER;
-	val.as.Integer = value;
+	val.as.Value.Integer = value;
 	return val;
 }
 static inline VMValue DECIMAL_VAL(float value) {
 	VMValue val;
 	val.Type = VAL_DECIMAL;
-	val.as.Decimal = value;
+	val.as.Value.Decimal = value;
 	return val;
 }
 static inline VMValue OBJECT_VAL(void* value) {
 	VMValue val;
 	val.Type = VAL_OBJECT;
-	val.as.Object = (Obj*)value;
+	val.as.Value.Object = (Obj*)value;
 	return val;
 }
 static inline VMValue LOCATION_VAL(VMLocation location) {
@@ -174,29 +189,29 @@ static inline VMValue LOCATION_VAL(VMLocation location) {
 static inline VMValue INTEGER_LINK_VAL(int* value) {
 	VMValue val;
 	val.Type = VAL_LINKED_INTEGER;
-	val.as.LinkedInteger = value;
+	val.as.Value.LinkedInteger = value;
 	return val;
 }
 static inline VMValue DECIMAL_LINK_VAL(float* value) {
 	VMValue val;
 	val.Type = VAL_LINKED_DECIMAL;
-	val.as.LinkedDecimal = value;
+	val.as.Value.LinkedDecimal = value;
 	return val;
 }
 #else
-#define NULL_VAL ((VMValue){VAL_NULL, {.Integer = 0}})
-#define INTEGER_VAL(value) ((VMValue){VAL_INTEGER, {.Integer = value}})
-#define DECIMAL_VAL(value) ((VMValue){VAL_DECIMAL, {.Decimal = value}})
-#define OBJECT_VAL(object) ((VMValue){VAL_OBJECT, {.Object = (Obj*)object}})
+#define NULL_VAL ((VMValue){VAL_NULL, {{.Integer = 0}}})
+#define INTEGER_VAL(value) ((VMValue){VAL_INTEGER, {{.Integer = value}}})
+#define DECIMAL_VAL(value) ((VMValue){VAL_DECIMAL, {{.Decimal = value}}})
+#define OBJECT_VAL(object) ((VMValue){VAL_OBJECT, {{.Object = (Obj*)object}}})
 #define LOCATION_VAL(location) ((VMValue){VAL_LOCATION, {.Location = location}})
-#define INTEGER_LINK_VAL(value) ((VMValue){VAL_LINKED_INTEGER, {.LinkedInteger = value}})
-#define DECIMAL_LINK_VAL(value) ((VMValue){VAL_LINKED_DECIMAL, {.LinkedDecimal = value}})
+#define INTEGER_LINK_VAL(value) ((VMValue){VAL_LINKED_INTEGER, {{.LinkedInteger = value}}})
+#define DECIMAL_LINK_VAL(value) ((VMValue){VAL_LINKED_DECIMAL, {{.LinkedDecimal = value}}})
 #endif
 
 #define IS_LINKED_INTEGER(value) ((value).Type == VAL_LINKED_INTEGER)
 #define IS_LINKED_DECIMAL(value) ((value).Type == VAL_LINKED_DECIMAL)
-#define AS_LINKED_INTEGER(value) (*((value).as.LinkedInteger))
-#define AS_LINKED_DECIMAL(value) (*((value).as.LinkedDecimal))
+#define AS_LINKED_INTEGER(value) (*((value).as.Value.LinkedInteger))
+#define AS_LINKED_DECIMAL(value) (*((value).as.Value.LinkedDecimal))
 
 #define IS_NUMBER(value) \
 	(IS_DECIMAL(value) || IS_INTEGER(value) || IS_LINKED_DECIMAL(value) || \
@@ -208,64 +223,85 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 static inline VMValue HITBOX_VAL(Sint16 left, Sint16 top, Sint16 right, Sint16 bottom) {
 	VMValue val;
 	val.Type = VAL_HITBOX;
-	val.as.Hitbox[HITBOX_LEFT] = left;
-	val.as.Hitbox[HITBOX_TOP] = top;
-	val.as.Hitbox[HITBOX_RIGHT] = right;
-	val.as.Hitbox[HITBOX_BOTTOM] = bottom;
+	val.as.Value.Hitbox[HITBOX_LEFT] = left;
+	val.as.Value.Hitbox[HITBOX_TOP] = top;
+	val.as.Value.Hitbox[HITBOX_RIGHT] = right;
+	val.as.Value.Hitbox[HITBOX_BOTTOM] = bottom;
 	return val;
 }
 
 static inline VMValue HITBOX_VAL(Sint16* values) {
 	VMValue val;
 	val.Type = VAL_HITBOX;
-	val.as.Hitbox[HITBOX_LEFT] = values[HITBOX_LEFT];
-	val.as.Hitbox[HITBOX_TOP] = values[HITBOX_TOP];
-	val.as.Hitbox[HITBOX_RIGHT] = values[HITBOX_RIGHT];
-	val.as.Hitbox[HITBOX_BOTTOM] = values[HITBOX_BOTTOM];
+	val.as.Value.Hitbox[HITBOX_LEFT] = values[HITBOX_LEFT];
+	val.as.Value.Hitbox[HITBOX_TOP] = values[HITBOX_TOP];
+	val.as.Value.Hitbox[HITBOX_RIGHT] = values[HITBOX_RIGHT];
+	val.as.Value.Hitbox[HITBOX_BOTTOM] = values[HITBOX_BOTTOM];
 	return val;
 }
 
 #define IS_HITBOX(value) ((value).Type == VAL_HITBOX)
-#define AS_HITBOX(value) (&((value).as.Hitbox[0]))
+#define AS_HITBOX(value) (&((value).as.Value.Hitbox[0]))
 
 #ifdef WIN32
-static inline VMLocation STACK_LOCATION(int index) {
+static inline VMLocation STACK_LOCATION(VMValue* slot) {
 	VMLocation location;
 	location.Type = LOC_STACK;
-	location.as.Slot = index;
+	location.as.Slot = slot;
 	return location;
 }
-static inline VMLocation MODULE_LOCATION(int index) {
+static inline VMLocation MODULE_LOCATION(VMValue* slot) {
 	VMLocation location;
 	location.Type = LOC_MODULE;
-	location.as.Slot = index;
+	location.as.Slot = slot;
 	return location;
 }
 static inline VMLocation GLOBAL_LOCATION(Uint32 hash) {
 	VMLocation location;
 	location.Type = LOC_GLOBAL;
-	location.as.Hash = hash;
-	return location;
-}
-static inline VMLocation PROPERTY_LOCATION(Uint32 hash) {
-	VMLocation location;
-	location.Type = LOC_PROPERTY;
-	location.as.Hash = hash;
-	return location;
-}
-static inline VMLocation ELEMENT_LOCATION() {
-	VMLocation location;
-	location.Type = LOC_ELEMENT;
-	location.as.Slot = 0;
+	location.as.Global = hash;
 	return location;
 }
 #else
-#define STACK_LOCATION(index) ((VMLocation){LOC_STACK, {.Slot = index}})
-#define MODULE_LOCATION(index) ((VMLocation){LOC_MODULE, {.Slot = index}})
-#define GLOBAL_LOCATION(hash) ((VMLocation){LOC_GLOBAL, {.Hash = hash}})
-#define PROPERTY_LOCATION(hash) ((VMLocation){LOC_PROPERTY, {.Hash = hash}})
-#define ELEMENT_LOCATION() ((VMLocation){LOC_ELEMENT, {.Slot = 0}})
+#define STACK_LOCATION(slot) ((VMLocation){LOC_STACK, {.Slot = slot}})
+#define MODULE_LOCATION(slot) ((VMLocation){LOC_MODULE, {.Slot = slot}})
+#define GLOBAL_LOCATION(hash) ((VMLocation){LOC_GLOBAL, {.Global = hash}})
 #endif
+
+static inline VMLocation PROPERTY_LOCATION(VMValue object, Uint32 hash) {
+	VMLocation location;
+	location.Type = LOC_PROPERTY;
+	location.as.Property.ObjectType = object.Type;
+	location.as.Property.Object = object.as.Value;
+	location.as.Property.Hash = hash;
+	return location;
+}
+static inline VMLocation ELEMENT_LOCATION(VMValue object, VMValue at) {
+	VMLocation location;
+	location.Type = LOC_ELEMENT;
+	location.as.Element.ObjectType = object.Type;
+	location.as.Element.Object = object.as.Value;
+	location.as.Element.AtType = at.Type;
+	location.as.Element.At = at.as.Value;
+	return location;
+}
+
+static inline bool IsStructureLocation(VMLocation location) {
+	return location.Type == LOC_PROPERTY || location.Type == LOC_ELEMENT;
+}
+
+static inline bool IsStructureLocationValueObject(VMLocation location) {
+	if (IsStructureLocation(location)) {
+		switch (location.Type) {
+		case LOC_PROPERTY:
+			return location.as.Property.ObjectType == VAL_OBJECT;
+		case LOC_ELEMENT:
+			return location.as.Element.ObjectType == VAL_OBJECT;
+		}
+	}
+
+	return false;
+}
 
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 
