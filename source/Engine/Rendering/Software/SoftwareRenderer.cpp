@@ -4488,8 +4488,9 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 		return;
 	}
 
+	int layerWidthInPixels = layer->Width * Scene::TileWidth;
+	int layerHeightInPixels = layer->Height * Scene::TileHeight;
 	int layerWidthInBits = layer->WidthInBits;
-	int tile, sourceTileCellX, sourceTileCellY;
 
 	Uint32 color;
 	Uint32* index;
@@ -4561,8 +4562,22 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 			int srcTX = srcX >> 16;
 			int srcTY = srcY >> 16;
 
-			sourceTileCellX = (srcX >> 20) % layer->Width;
-			sourceTileCellY = (srcY >> 20) % layer->Height;
+			if (srcTX < 0) {
+				srcTX = -(srcTX % layerWidthInPixels);
+			}
+			else {
+				srcTX %= layerWidthInPixels;
+			}
+
+			if (srcTY < 0) {
+				srcTY = -(srcTY % layerHeightInPixels);
+			}
+			else {
+				srcTY %= layerHeightInPixels;
+			}
+
+			int sourceTileCellX = srcTX / Scene::TileWidth;
+			int sourceTileCellY = srcTY / Scene::TileHeight;
 
 			if (maxHorzCells != 0) {
 				sourceTileCellX %= maxHorzCells;
@@ -4571,11 +4586,9 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 				sourceTileCellY %= maxVertCells;
 			}
 
-			tile = layer->Tiles[sourceTileCellX +
-				(sourceTileCellY << layerWidthInBits)];
-
+			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID != Scene::EmptyTile && tileID < (int)Scene::TileSpriteInfos.size()) {
+			if (tileID != Scene::EmptyTile) {
 				if (usePaletteIndexLines) {
 					index = &Graphics::PaletteColors
 							[Graphics::PaletteIndexLines[dst_y]][0];
