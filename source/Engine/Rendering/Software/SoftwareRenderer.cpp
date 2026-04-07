@@ -4574,9 +4574,8 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 			tile = layer->Tiles[sourceTileCellX +
 				(sourceTileCellY << layerWidthInBits)];
 
-			if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
-				int tileID = tile & TILE_IDENT_MASK;
-
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID != Scene::EmptyTile && tileID < (int)Scene::TileSpriteInfos.size()) {
 				if (usePaletteIndexLines) {
 					index = &Graphics::PaletteColors
 							[Graphics::PaletteIndexLines[dst_y]][0];
