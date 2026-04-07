@@ -12602,7 +12602,7 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
  * Palette.SwapColors
  * \desc Swaps colors from Palette A to Palette B
  * \param paletteIndexA (integer): Index of palette to be swapped.
- * \param paletteIndexB (integer): Index of swapped pallete.
+ * \param paletteIndexB (integer): Index of swapped palette.
  * \ns Palette
  */
 VMValue Palette_SwapColors(int argCount, VMValue* args, Uint32 threadID) {
