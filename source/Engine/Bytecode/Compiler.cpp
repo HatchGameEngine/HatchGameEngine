@@ -32,6 +32,12 @@ Token InstanceToken = Token{0, NULL, 0, 0, 0};
 
 bool ShouldEmitValue = false;
 
+enum {
+	BRANCH_MAYBE_TAKEN,
+	BRANCH_ALWAYS_TAKEN,
+	BRANCH_NEVER_TAKEN
+};
+
 struct VariableWarning {
 	int Line;
 	std::string VariableName;
@@ -776,7 +782,7 @@ bool Compiler::ReportError(int line, int pos, bool fatal, const char* string, ..
 	}
 
 	buffer_printf(&buffer,
-		"line %d, position %d:\n    %s\n\n",
+		"line %d, position %d:\n    %s\n",
 		line,
 		pos,
 		message);
@@ -2181,6 +2187,9 @@ void Compiler::GetValueExpression() {
 // Reading statements
 struct switch_case {
 	bool IsDefault;
+	bool IsConstant;
+	VMValue ConstantVal;
+	Token CaseLocation;
 	Uint32 CasePosition;
 	Uint32 JumpPosition;
 	Uint32 CodeLength;
@@ -2370,16 +2379,32 @@ void Compiler::GetRepeatStatement() {
 	ScopeEnd();
 }
 void Compiler::GetSwitchStatement() {
+	bool onlyHasDefault = true;
+	bool isConstant = false;
+	bool allCasesConstant = true;
+	bool didMatchConstantCase = false;
+
 	Chunk* chunk = CurrentChunk();
 
 	StartBreakJumpList();
 	StartContinueJumpList();
 	StartBreakpointList();
 
+	Token stmtLocation = parser.Previous;
+	int codeLocation = CodePointer();
+
 	// Evaluate the condition
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'switch'.");
 	GetExpression();
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
+
+	VMValue switchValue;
+	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
+	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+		    CurrentChunk()->GetConstant(codeLocation, &switchValue)) {
+		WarningAt(&stmtLocation, "Expression in statement is constant; might only execute one clause.");
+		isConstant = true;
+	}
 
 	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before statements.");
 
@@ -2413,9 +2438,21 @@ void Compiler::GetSwitchStatement() {
 	for (size_t i = 0; i < cases.size(); i++) {
 		switch_case& case_info = cases[i];
 
+		if (!case_info.IsConstant) {
+			allCasesConstant = false;
+		}
+
 		if (case_info.IsDefault) {
 			defaultCase = &cases[i];
 			continue;
+		}
+		else {
+			onlyHasDefault = false;
+		}
+
+		if (isConstant && case_info.IsConstant && Value::ExactlyEqual(case_info.ConstantVal, switchValue)) {
+			WarningAt(&case_info.CaseLocation, "Clause will always be executed.");
+			didMatchConstantCase = true;
 		}
 
 		EmitCopy(1);
@@ -2434,6 +2471,19 @@ void Compiler::GetSwitchStatement() {
 		PatchJump(jumpToPatch);
 
 		EmitByte(OP_POP);
+	}
+
+	if (isConstant && allCasesConstant && !didMatchConstantCase) {
+		if (defaultCase) {
+			WarningAt(&defaultCase->CaseLocation, "Clause will always be executed.");
+		}
+		else {
+			WarningAt(&stmtLocation, "No clauses will be executed.");
+		}
+	}
+
+	if (onlyHasDefault) {
+		WarningAt(&stmtLocation, "Only has a default clause.");
 	}
 
 	EmitByte(OP_POP);
@@ -2504,6 +2554,10 @@ void Compiler::GetCaseStatement() {
 
 	Chunk* chunk = CurrentChunk();
 
+	switch_case case_info;
+	case_info.IsDefault = false;
+	case_info.CaseLocation = parser.Previous;
+
 	int code_block_start = CodePointer();
 	int code_block_length = code_block_start;
 	Uint8* code_block_copy = NULL;
@@ -2511,12 +2565,16 @@ void Compiler::GetCaseStatement() {
 
 	GetExpression();
 
+	uint8_t* codePtr = chunk->Code + code_block_start;
+	if (code_block_start + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+		    chunk->GetConstant(code_block_start, &case_info.ConstantVal)) {
+		case_info.IsConstant = true;
+	}
+
 	ConsumeToken(TOKEN_COLON, "Expected ':' after 'case'.");
 
 	code_block_length = CodePointer() - code_block_start;
 
-	switch_case case_info;
-	case_info.IsDefault = false;
 	case_info.CasePosition = code_block_start;
 	case_info.CodeLength = code_block_length;
 
@@ -2538,7 +2596,7 @@ void Compiler::GetCaseStatement() {
 }
 void Compiler::GetDefaultStatement() {
 	if (SwitchJumpListStack.size() == 0) {
-		Error("Cannot use default label outside of switch statement.");
+		Error("Cannot use default clause outside of switch statement.");
 	}
 
 	// Check if there already is a default clause, and prevent compilation if so.
@@ -2553,6 +2611,7 @@ void Compiler::GetDefaultStatement() {
 
 	switch_case case_info;
 	case_info.IsDefault = true;
+	case_info.CaseLocation = parser.Previous;
 	case_info.CasePosition = CodePointer();
 
 	top->push_back(case_info);
@@ -2561,10 +2620,28 @@ void Compiler::GetWhileStatement() {
 	// Set the start of the loop to before the condition
 	int loopStart = CodePointer();
 
+	Token stmtLocation = parser.Previous;
+	int codeLocation = CodePointer();
+
 	// Evaluate the condition
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'while'.");
 	GetExpression();
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
+
+	VMValue value;
+	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
+	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+		    CurrentChunk()->GetConstant(codeLocation, &value)) {
+		if (IS_INTEGER(value) && AS_INTEGER(value) == 0) {
+			// "while (true)" is most of the time intended.
+			// "while (false)" isn't as useful.
+			WarningAt(&stmtLocation, "Condition is always false.");
+
+			if (CurrentSettings.DoOptimizations) {
+				DoNotEmit = true;
+			}
+		}
+	}
 
 	// Jump if false (or 0)
 	int exitJump = EmitJump(OP_JUMP_IF_FALSE);
@@ -2598,6 +2675,8 @@ void Compiler::GetWhileStatement() {
 	// Pop jump list off break stack, patch all breaks to this code
 	// point
 	EndBreakJumpList();
+
+	DoNotEmit = false;
 }
 void Compiler::GetBreakStatement() {
 	if (BreakJumpListStack.size() == 0) {
@@ -2916,22 +2995,80 @@ void Compiler::GetForEachBlock() {
 	EndBreakJumpList();
 }
 void Compiler::GetIfStatement() {
+	Token stmtLocation = parser.Previous;
+
+	int prediction = BRANCH_MAYBE_TAKEN;
+	int codeLocation = CodePointer();
+
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'if'.");
 	GetExpression();
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
-	int thenJump = EmitJump(OP_JUMP_IF_FALSE);
-	EmitByte(OP_POP);
+	VMValue value;
+	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
+	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+		    CurrentChunk()->GetConstant(codeLocation, &value)) {
+		if (IS_INTEGER(value)) {
+			if (AS_INTEGER(value) == 0) {
+				WarningAt(&stmtLocation, "Condition is always false.");
+				prediction = BRANCH_NEVER_TAKEN;
+			}
+			else {
+				WarningAt(&stmtLocation, "Condition is always true.");
+				prediction = BRANCH_ALWAYS_TAKEN;
+			}
+		}
+	}
+
+	int branchOptimization = BRANCH_MAYBE_TAKEN;
+	if (CurrentSettings.DoOptimizations) {
+		branchOptimization = prediction;
+	}
+
+	int thenJump;
+	if (branchOptimization != BRANCH_MAYBE_TAKEN) {
+		// The expression is known to always be true or false.
+		// Remove the emitted bytecode for the condition.
+		CurrentChunk()->Count = codeLocation;
+	}
+	else {
+		thenJump = EmitJump(OP_JUMP_IF_FALSE);
+		EmitByte(OP_POP);
+	}
+
+	// Don't emit bytecode if this 'if' branch will never be taken
+	if (branchOptimization == BRANCH_NEVER_TAKEN) {
+		DoNotEmit = true;
+	}
 	GetStatement();
+	DoNotEmit = false;
 
-	int elseJump = EmitJump(OP_JUMP);
-
-	PatchJump(thenJump);
-	EmitByte(OP_POP); // Only Pop if OP_JUMP_IF_FALSE, as it
-	// doesn't pop
+	int elseJump;
+	if (branchOptimization == BRANCH_MAYBE_TAKEN) {
+		elseJump = EmitJump(OP_JUMP);
+		PatchJump(thenJump);
+		EmitByte(OP_POP); // Only pop if OP_JUMP_IF_FALSE, as it doesn't pop
+	}
 
 	if (MatchToken(TOKEN_ELSE)) {
+		if (prediction == BRANCH_ALWAYS_TAKEN) {
+			WarningAt(&parser.Previous, "Branch will never be taken.");
+
+			// Don't emit bytecode if this 'else' branch will never be taken
+			if (branchOptimization == prediction) {
+				DoNotEmit = true;
+			}
+		}
+		else if (prediction == BRANCH_NEVER_TAKEN) {
+			WarningAt(&parser.Previous, "Branch will always be taken.");
+		}
+
 		GetStatement();
+		DoNotEmit = false;
+	}
+
+	if (branchOptimization != BRANCH_MAYBE_TAKEN) {
+		return;
 	}
 
 	PatchJump(elseJump);
@@ -3671,6 +3808,10 @@ Uint8* Compiler::GetLastOpcodePtr(Chunk* chunk, int n) {
 	return ptr;
 }
 void Compiler::EmitByte(Uint8 byte) {
+	if (DoNotEmit) {
+		return;
+	}
+
 	CurrentChunk()->Write(byte,
 		(int)((parser.Previous.Pos & 0xFFFF) << 16 | (parser.Previous.Line & 0xFFFF)));
 }
