@@ -175,10 +175,7 @@ bool Value::SortaEqual(VMValue a, VMValue b) {
 	}
 
 	if (IS_STRING(a) && IS_STRING(b)) {
-		ObjString* astr = AS_STRING(a);
-		ObjString* bstr = AS_STRING(b);
-		return astr->Length == bstr->Length &&
-			!memcmp(astr->Chars, bstr->Chars, astr->Length);
+		return AS_OBJECT(a) == AS_OBJECT(b);
 	}
 
 	if (IS_BOUND_METHOD(a) && IS_BOUND_METHOD(b)) {
