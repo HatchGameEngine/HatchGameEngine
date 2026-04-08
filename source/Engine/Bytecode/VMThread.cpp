@@ -1891,8 +1891,8 @@ int VMThread::RunInstruction() {
 
 	VM_CASE(OP_NEW_ENUM) {
 		Uint32 hash = ReadUInt32(frame);
-		ObjEnum* enumeration = NewEnum(hash);
-		Push(OBJECT_VAL(enumeration));
+		ObjEnum* enumObj = NewEnum(hash);
+		Push(OBJECT_VAL(enumObj));
 		VM_BREAK;
 	}
 	VM_CASE(OP_ENUM_NEXT) {
@@ -1900,8 +1900,7 @@ int VMThread::RunInstruction() {
 		VMValue a = Peek(1);
 
 		if (IS_NOT_NUMBER(a) || IS_NOT_NUMBER(b)) {
-			Pop();
-			Pop();
+			Pop(2);
 			Push(NULL_VAL);
 			VM_BREAK;
 		}
@@ -2608,6 +2607,24 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 
 			ThrowRuntimeError(false,
 				"Could not find %s in class!",
+				GetVariableOrMethodName(hash));
+			ScriptManager::Unlock();
+			return NULL_VAL;
+		}
+	}
+	// Otherwise, if it's an enum,
+	else if (IS_ENUM(object)) {
+		ObjEnum* enumObj = AS_ENUM(object);
+
+		if (ScriptManager::Lock()) {
+			if (enumObj->Fields->GetIfExists(hash, &result)) {
+				result = Value::Delink(result);
+				ScriptManager::Unlock();
+				return result;
+			}
+
+			ThrowRuntimeError(false,
+				"Could not find %s in enumeration!",
 				GetVariableOrMethodName(hash));
 			ScriptManager::Unlock();
 			return NULL_VAL;
