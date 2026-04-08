@@ -12599,6 +12599,36 @@ VMValue Palette_CopyColors(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Palette.SwapColors
+ * \desc Swaps colors from Palette A to Palette B
+ * \param paletteIndexA (integer): Index of palette to be swapped.
+ * \param paletteIndexB (integer): Index of swapped palette.
+ * \ns Palette
+ */
+VMValue Palette_SwapColors(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int palIndexFrom = GET_ARG(0, GetInteger);
+	int palIndexTo = GET_ARG(1, GetInteger);
+
+	CHECK_PALETTE_INDEX(palIndexFrom);
+	CHECK_PALETTE_INDEX(palIndexTo);
+
+	size_t palSize = MAX_PALETTE_COLOR_COUNT * sizeof(Uint32);
+
+	void* palTemp = malloc(palSize);
+
+	memcpy(palTemp, &Graphics::PaletteColors[palIndexTo], palSize);
+
+	memcpy(&Graphics::PaletteColors[palIndexTo], &Graphics::PaletteColors[palIndexFrom], palSize);
+	memcpy(&Graphics::PaletteColors[palIndexFrom], palTemp, palSize);
+
+	Graphics::PaletteUpdated = true;
+
+	free(palTemp);
+
+	return NULL_VAL;
+}
+/***
  * Palette.UsePaletteIndexLines
  * \desc Enables or disables the global palette index table.
  * \param usePaletteIndexLines (boolean): Whether to use the global palette index table.
@@ -21849,6 +21879,7 @@ Use <ref Palette.EnablePaletteUsage> to enable palettes.
 	DEF_NATIVE(Palette, RotateColorsLeft);
 	DEF_NATIVE(Palette, RotateColorsRight);
 	DEF_NATIVE(Palette, CopyColors);
+	DEF_NATIVE(Palette, SwapColors);
 	DEF_NATIVE(Palette, UsePaletteIndexLines);
 	DEF_NATIVE(Palette, SetPaletteIndexLines);
 	// #endregion
