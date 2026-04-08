@@ -12333,30 +12333,37 @@ VMValue Palette_LoadFromImage(int argCount, VMValue* args, Uint32 threadID) {
 
 	Texture* texture = image->TexturePtr;
 
-	size_t x = 0;
+	size_t colorIndex = 0;
 	size_t length = texture->Width;
-	if (length > 0x100) {
-		length = 0x100;
+	if (length > MAX_PALETTE_COLOR_COUNT) {
+		length = MAX_PALETTE_COLOR_COUNT;
 	}
 
 	int pixelFormat = Texture::TextureFormatToPixelFormat(texture->Format);
+	Uint8* src = (Uint8*)texture->Pixels;
 
-	for (size_t y = 0; y < texture->Height; y++) {
-		Uint32* line = (Uint32*)texture->Pixels + (y * texture->Width);
-		for (size_t src = 0; src < length && x < 0x100; x++) {
-			Uint32 color = line[src++];
+	for (size_t y = 0; y < texture->Height && colorIndex < MAX_PALETTE_COLOR_COUNT; y++) {
+		for (size_t xx = 0; xx < length && colorIndex < MAX_PALETTE_COLOR_COUNT; xx++) {
+			Uint32 color;
 
-			if (pixelFormat != Graphics::PreferredPixelFormat) {
-				color = ColorUtils::Convert(color, pixelFormat, Graphics::PreferredPixelFormat);
+			if (texture->Format == TextureFormat_INDEXED) {
+				color = texture->PaletteColors[src[xx]];
+			}
+			else {
+				color = Texture::GetPixel(src, xx, texture->BytesPerPixel);
+
+				if (pixelFormat != Graphics::PreferredPixelFormat) {
+					color = ColorUtils::Convert(color, pixelFormat, Graphics::PreferredPixelFormat);
+				}
 			}
 
-			Graphics::PaletteColors[palIndex][x] = 0xFF000000 | color;
+			Graphics::PaletteColors[palIndex][colorIndex++] = color;
 		}
-		Graphics::PaletteUpdated = true;
-		if (x >= 0x100) {
-			break;
-		}
+
+		src += texture->Pitch;
 	}
+
+	Graphics::PaletteUpdated = true;
 
 	return NULL_VAL;
 }
