@@ -12613,7 +12613,7 @@ VMValue Palette_SwapColors(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_PALETTE_INDEX(palIndexFrom);
 	CHECK_PALETTE_INDEX(palIndexTo);
 
-	size_t palSize = MAX_PALETTE_COUNT * sizeof(Uint32);
+	size_t palSize = MAX_PALETTE_COLOR_COUNT * sizeof(Uint32);
 
 	void* palTemp = malloc(palSize);
 
