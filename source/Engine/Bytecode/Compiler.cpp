@@ -35,8 +35,8 @@ bool ShouldEmitValue = false;
 struct VariableWarning {
 	int Line;
 	std::string VariableName;
-	bool IsUnused;
-	bool IsUnset;
+	bool IsUnused = false;
+	bool IsUnset = false;
 };
 
 // Order these by C/C++ precedence operators
