@@ -1055,7 +1055,6 @@ int VMThread::RunInstruction() {
 		// Otherwise, if it's a class,
 		else if (IS_CLASS(object)) {
 			ObjClass* klass = AS_CLASS(object);
-
 			if (ScriptManager::Lock()) {
 				if (HasProperty(klass, hash)) {
 					Pop();
@@ -1065,11 +1064,11 @@ int VMThread::RunInstruction() {
 				}
 			}
 		}
-		// Otherwise, if it's an enum,
+		// Otherwise, if it's an enumeration,
 		else if (IS_ENUM(object)) {
-			ObjEnum* enumObj = AS_ENUM(object);
+			ObjEnum* enumeration = AS_ENUM(object);
 			if (ScriptManager::Lock()) {
-				if (enumObj->Fields->Exists(hash)) {
+				if (enumeration->Fields->Exists(hash)) {
 					Pop();
 					Push(INTEGER_VAL(true));
 					ScriptManager::Unlock();
@@ -1903,8 +1902,8 @@ int VMThread::RunInstruction() {
 
 	VM_CASE(OP_NEW_ENUM) {
 		Uint32 hash = ReadUInt32(frame);
-		ObjEnum* enumObj = NewEnum(hash);
-		Push(OBJECT_VAL(enumObj));
+		ObjEnum* enumeration = NewEnum(hash);
+		Push(OBJECT_VAL(enumeration));
 		VM_BREAK;
 	}
 	VM_CASE(OP_ENUM_NEXT) {
@@ -1921,24 +1920,23 @@ int VMThread::RunInstruction() {
 		VM_BREAK;
 	}
 	VM_CASE(OP_ADD_ENUM) {
-		ObjEnum* enumeration = nullptr;
+		ObjEnum* enumeration;
 		VMValue object = Peek(1);
 		Uint32 hash = ReadUInt32(frame);
 
 		if (IS_ENUM(object)) {
 			enumeration = AS_ENUM(object);
 		}
-		else if (ThrowRuntimeError(false,
-				 "Unexpected value type; value was of type %s.",
-				 GetValueTypeString(object)) == ERROR_RES_CONTINUE) {
+		else {
+			ThrowRuntimeError(false,
+				 "Expected an enumeration, but value was of type %s.",
+				 GetValueTypeString(object));
 			goto FAIL_OP_ADD_ENUM;
 		}
 
 		if (ScriptManager::Lock()) {
 			VMValue value = Pop();
 			enumeration->Fields->Put(hash, value);
-			Pop();
-			Push(value);
 			ScriptManager::Unlock();
 			VM_BREAK;
 		}
@@ -2624,12 +2622,12 @@ VMValue VMThread::GetProperty(VMValue object, Uint32 hash) {
 			return NULL_VAL;
 		}
 	}
-	// Otherwise, if it's an enum,
+	// Otherwise, if it's an enumeration,
 	else if (IS_ENUM(object)) {
-		ObjEnum* enumObj = AS_ENUM(object);
+		ObjEnum* enumeration = AS_ENUM(object);
 
 		if (ScriptManager::Lock()) {
-			if (enumObj->Fields->GetIfExists(hash, &result)) {
+			if (enumeration->Fields->GetIfExists(hash, &result)) {
 				result = Value::Delink(result);
 				ScriptManager::Unlock();
 				return result;

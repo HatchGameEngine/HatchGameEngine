@@ -1309,8 +1309,18 @@ ExprContext Compiler::NamedVariable(Token name, Local& currentLocal, ExprContext
 		}
 	}
 	else {
+		// Look for a constant in this scope
+		for (int i = Constants.size() - 1; i >= 0; i--) {
+			Local* constLocal = &Constants[i];
+			if (IdentifiersEqual(&name, &constLocal->Name)) {
+				constLocal->Resolved = true;
+				EmitConstant(constLocal->ConstantVal);
+				return EXPRCONTEXT_VALUE;
+			}
+		}
+
+		// Resolve module local
 		arg = ResolveModuleLocal(&name, &local);
-		VMValue value;
 		if (arg != -1) {
 			if (emitValue) {
 				getOp = OP_GET_MODULE_LOCAL;
@@ -1325,15 +1335,31 @@ ExprContext Compiler::NamedVariable(Token name, Local& currentLocal, ExprContext
 				currentLocal.Index = arg;
 			}
 		}
-		else if (emitValue && StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
-			EmitConstant(value);
-			return EXPRCONTEXT_VALUE;
-		}
-		else if (emitValue) {
-			getOp = OP_GET_GLOBAL;
-		}
 		else {
-			getOp = OP_LOCATION_GLOBAL;
+			// Look for a module constant
+			for (int i = ModuleConstants.size() - 1; i >= 0; i--) {
+				Local* constLocal = &ModuleConstants[i];
+				if (IdentifiersEqual(&name, &constLocal->Name)) {
+					constLocal->Resolved = true;
+					EmitConstant(constLocal->ConstantVal);
+					return EXPRCONTEXT_VALUE;
+				}
+			}
+
+			// Must be a StandardLibrary constant or a global
+			if (emitValue) {
+				VMValue value;
+				if (StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
+					EmitConstant(value);
+					return EXPRCONTEXT_VALUE;
+				}
+				else {
+					getOp = OP_GET_GLOBAL;
+				}
+			}
+			else {
+				getOp = OP_LOCATION_GLOBAL;
+			}
 		}
 	}
 
@@ -1485,17 +1511,6 @@ int Compiler::ResolveLocal(Token* name, Local* result) {
 		}
 	}
 
-	for (int i = Constants.size() - 1; i >= 0; i--) {
-		Local* local = &Constants[i];
-		if (IdentifiersEqual(name, &local->Name)) {
-			local->Resolved = true;
-			if (result) {
-				*result = *local;
-			}
-			return i;
-		}
-	}
-
 	return -1;
 }
 void Compiler::MarkLocalAsSet(Local& local) {
@@ -1532,17 +1547,6 @@ int Compiler::ResolveModuleLocal(Token* name, Local* result) {
 			if (local.Depth == -1) {
 				Error("Cannot read local variable in its own initializer.");
 			}
-			local.Resolved = true;
-			if (result) {
-				*result = local;
-			}
-			return i;
-		}
-	}
-
-	for (int i = Compiler::ModuleConstants.size() - 1; i >= 0; i--) {
-		Local& local = Compiler::ModuleConstants[i];
-		if (IdentifiersEqual(name, &local.Name)) {
 			local.Resolved = true;
 			if (result) {
 				*result = local;
@@ -3166,7 +3170,11 @@ void Compiler::GetModuleVariableDeclaration() {
 		Error("Cannot use local declaration outside of top-level code.");
 	}
 
-	if (parser.Current.Type == TOKEN_VAR || parser.Current.Type == TOKEN_CONST) {
+	if (parser.Current.Type == TOKEN_ENUM) {
+		AdvanceToken();
+		GetEnumDeclaration(true);
+	}
+	else if (parser.Current.Type == TOKEN_VAR || parser.Current.Type == TOKEN_CONST) {
 		bool constant = parser.Current.Type == TOKEN_CONST;
 		vector<Local>* vec = constant ? &ModuleConstants : &ModuleLocals;
 		AdvanceToken();
@@ -3218,7 +3226,7 @@ void Compiler::GetModuleVariableDeclaration() {
 		ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
 	}
 	else {
-		ErrorAtCurrent("Expected \"var\" or \"const\" after \"local\" declaration.");
+		ErrorAtCurrent("Expected \"var\", \"const\", or \"enum\" after \"local\" declaration.");
 	}
 }
 void Compiler::GetPropertyDeclaration(Token propertyName) {
@@ -3294,25 +3302,32 @@ void Compiler::GetClassDeclaration() {
 
 	ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 }
-void Compiler::GetEnumDeclaration() {
+void Compiler::GetEnumDeclaration(bool isLocal) {
 	Token enumName;
 	bool isNamed = false;
 
 	if (MatchToken(TOKEN_IDENTIFIER)) {
 		enumName = parser.Previous;
 		DeclareVariable(&enumName, false);
+		MarkInitialized();
 
 		EmitByte(OP_NEW_ENUM);
 		EmitStringHash(enumName);
 
-		DefineVariableToken(enumName, true);
+		if (isLocal) {
+			int index = DeclareModuleVariable(&enumName, false);
+			Compiler::DefineModuleVariable(index);
+		}
+		else {
+			DefineVariableToken(enumName, true);
+		}
 
 		isNamed = true;
 	}
 
-	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before enum body.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before enumeration body.");
 
-	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
+	while (true) {
 		bool didStart = false;
 
 		VMValue current = INTEGER_VAL(0);
@@ -3321,12 +3336,21 @@ void Compiler::GetEnumDeclaration() {
 				break;
 			}
 
-			int variable = ParseVariable("Expected constant name.", true);
+			int variable;
+			if (isNamed) {
+				ConsumeIdentifier("Expected constant name.");
+			}
+			else if (isLocal) {
+				variable = ParseModuleVariable("Expected constant name.", true);
+			}
+			else {
+				variable = ParseVariable("Expected constant name.", true);
+			}
 
 			Token token = parser.Previous;
 
-			// Push the enum class to the stack
-			if (isNamed) {
+			// Push the enumeration to the stack if it's global
+			if (isNamed && ScopeDepth == 0) {
 				Local local;
 				NamedVariable(enumName, local, EXPRCONTEXT_VALUE);
 			}
@@ -3340,7 +3364,7 @@ void Compiler::GetEnumDeclaration() {
 						CodePointer() ||
 					!CurrentChunk()->GetConstant(pre, &current, &constantIndex)) {
 					ErrorAt(&token,
-						"Manual enum value must be constant.",
+						"Manual enumeration value must be constant.",
 						true);
 				}
 				EmitCopy(1);
@@ -3349,7 +3373,7 @@ void Compiler::GetEnumDeclaration() {
 			else {
 				if (didStart) {
 					if (IS_NOT_NUMBER(current)) {
-						Warning("Current enum base is a non-number, this enum value will be null!");
+						Warning("Current enumeration base is a non-number; this value will be null!");
 						current = NULL_VAL;
 					}
 					else if (IS_DECIMAL(current)) {
@@ -3374,19 +3398,30 @@ void Compiler::GetEnumDeclaration() {
 			if (isNamed) {
 				EmitByte(OP_ADD_ENUM);
 				EmitStringHash(token);
+
+				// Pop the enumeration from the stack if it's global
+				if (ScopeDepth == 0) {
+					EmitByte(OP_POP);
+				}
+			}
+			else if (isLocal) {
+				ModuleConstants[variable].ConstantVal = current;
+			}
+			else if (ScopeDepth > 0) {
+				Constants[variable].ConstantVal = current;
 			}
 			else {
 				DefineVariableToken(token, true);
-				if (variable == -1) {
-					// treat it as a module constant
-					ModuleConstants.push_back(
-						{token, VARTYPE_MODULE_LOCAL, constantIndex, 0, false, false, true, current});
-				}
+
+				// treat it as a module constant
+				ModuleConstants.push_back(
+					{token, VARTYPE_MODULE_LOCAL, constantIndex, 0, false, false, true, current});
 			}
 		} while (MatchToken(TOKEN_COMMA));
-	}
 
-	ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after enum body.");
+		ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after enumeration body.");
+		break;
+	}
 }
 void Compiler::GetImportDeclaration() {
 	bool importModules = MatchToken(TOKEN_FROM);
@@ -3454,7 +3489,7 @@ void Compiler::GetDeclaration() {
 		GetClassDeclaration();
 	}
 	else if (MatchToken(TOKEN_ENUM)) {
-		GetEnumDeclaration();
+		GetEnumDeclaration(false);
 	}
 	else if (MatchToken(TOKEN_IMPORT)) {
 		GetImportDeclaration();
