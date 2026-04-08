@@ -3613,6 +3613,7 @@ VMValue Draw_Sprite(int argCount, VMValue* args, Uint32 threadID) {
  * \param entity (Entity): The entity to draw.
  * \paramOpt x (number): X position of where to draw the sprite, otherwise uses the entity's X value.
  * \paramOpt y (number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
@@ -3624,6 +3625,10 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	int x = (int)GET_ARG_OPT(1, GetDecimal, entity->X);
 	int y = (int)GET_ARG_OPT(2, GetDecimal, entity->Y);
+	int paletteID = GET_ARG_OPT(3, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
+
 	ISprite* sprite = GetSpriteIndex(entity->Sprite, threadID);
 	float rotation = entity->Rotation;
 
@@ -3737,7 +3742,8 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
 			entity->Direction & FLIP_Y,
 			entity->ScaleX,
 			entity->ScaleY,
-			rotation);
+			rotation,
+			(unsigned)paletteID);
 
 		Graphics::SetBlendMode(blendMode);
 		Graphics::TextureBlend = textureBlend;
@@ -3759,6 +3765,7 @@ VMValue Draw_SpriteBasic(int argCount, VMValue* args, Uint32 threadID) {
  * \paramOpt scaleX (number): Scale multiplier of the sprite horizontally. (default: `1.0`)
  * \paramOpt scaleY (number): Scale multiplier of the sprite vertically. (default: `1.0`)
  * \paramOpt rotation (number): Rotation of the drawn sprite in radians. (default: `0.0`)
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
@@ -3769,9 +3776,12 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 	int y = (int)GET_ARG(2, GetDecimal);
 	bool flipX = GET_ARG_OPT(3, GetInteger, false);
 	bool flipY = GET_ARG_OPT(4, GetInteger, false);
-	float scaleX = (argCount > 5) ? GET_ARG(5, GetDecimal) : 1.0f;
-	float scaleY = (argCount > 6) ? GET_ARG(6, GetDecimal) : 1.0f;
-	float rotation = (argCount > 7) ? GET_ARG(7, GetDecimal) : 0.0f;
+	float scaleX = GET_ARG_OPT(5, GetDecimal, 1.0f);
+	float scaleY = GET_ARG_OPT(6, GetDecimal, 1.0f);
+	float rotation = GET_ARG_OPT(7, GetDecimal, 0.0f);
+	int paletteID = GET_ARG_OPT(8, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (!animator || !animator->Frames.size()) {
 		return NULL_VAL;
@@ -3819,7 +3829,8 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
 			flipY,
 			scaleX,
 			scaleY,
-			rotation);
+			rotation,
+			(unsigned)paletteID);
 	}
 	return NULL_VAL;
 }
@@ -3830,6 +3841,7 @@ VMValue Draw_Animator(int argCount, VMValue* args, Uint32 threadID) {
  * \param entity (Entity): The entity to pull other values from.
  * \paramOpt x (number): X position of where to draw the sprite, otherwise uses the entity's X value.
  * \paramOpt y (number): Y position of where to draw the sprite, otherwise uses the entity's Y value.
+ * \paramOpt paletteID (integer): Which palette index to use.
  * \ns Draw
  */
 VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
@@ -3842,7 +3854,9 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	int x = (int)GET_ARG_OPT(2, GetDecimal, entity->X);
 	int y = (int)GET_ARG_OPT(3, GetDecimal, entity->Y);
-	float rotation = Graphics::UseIntegerRotation ? 0.0f : entity->Rotation;
+	int paletteID = GET_ARG_OPT(4, GetInteger, 0);
+
+	CHECK_PALETTE_INDEX(paletteID);
 
 	if (!animator || !animator->Frames.size()) {
 		return NULL_VAL;
@@ -3856,6 +3870,7 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 		}
 
 		int frame = animator->CurrentFrame;
+		float rotation;
 
 		if (Graphics::UseIntegerRotation) {
 			int rot = (int)entity->Rotation;
@@ -3942,6 +3957,9 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 			}
 			rotation = (float)rot * M_PI / 256.0f;
 		}
+		else {
+			rotation = entity->Rotation;
+		}
 
 		int blendMode = Graphics::BlendMode;
 		int textureBlend = Graphics::TextureBlend;
@@ -3965,7 +3983,8 @@ VMValue Draw_AnimatorBasic(int argCount, VMValue* args, Uint32 threadID) {
 			entity->Direction & FLIP_Y,
 			entity->ScaleX,
 			entity->ScaleY,
-			rotation);
+			rotation,
+			(unsigned)paletteID);
 
 		Graphics::SetBlendMode(blendMode);
 		Graphics::TextureBlend = textureBlend;
