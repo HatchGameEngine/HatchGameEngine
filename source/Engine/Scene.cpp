@@ -3644,6 +3644,8 @@ void Scene::Dispose() {
 		delete Scene::Properties;
 	}
 	Scene::Properties = NULL;
+
+	Scene::Loaded = false;
 }
 
 void Scene::UnloadTilesets() {
