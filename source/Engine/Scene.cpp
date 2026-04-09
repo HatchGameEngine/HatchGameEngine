@@ -765,7 +765,7 @@ void Scene::FrameUpdate() {
 	Scene::SortEntities();
 }
 void Scene::Update() {
-	// Call Scene.OnUpdateStart
+	// Call Scene.UpdateStart
 	ScriptManager::CallStaticClassFunction("Scene", "UpdateStart");
 
 	// Call global updates
@@ -773,7 +773,7 @@ void Scene::Update() {
 		Scene::ObjectLists->ForAllOrdered(ObjectList_CallGlobalUpdates);
 	}
 
-	// Call Scene.OnUpdateEarly
+	// Call Scene.UpdateEarly
 	ScriptManager::CallStaticClassFunction("Scene", "UpdateEarly");
 
 	// Early Update
@@ -782,7 +782,7 @@ void Scene::Update() {
 		UpdateObjectEarly(ent);
 	}
 
-	// Call Scene.OnUpdate
+	// Call Scene.Update
 	ScriptManager::CallStaticClassFunction("Scene", "Update");
 
 	// Update objects
@@ -795,7 +795,7 @@ void Scene::Update() {
 		UpdateObject(ent);
 	}
 
-	// Call Scene.OnUpdateLate
+	// Call Scene.UpdateLate
 	ScriptManager::CallStaticClassFunction("Scene", "UpdateLate");
 
 	// Late Update
@@ -804,11 +804,11 @@ void Scene::Update() {
 		UpdateObjectLate(ent);
 	}
 
-	// Call Scene.OnUpdateEnd
+	// Call Scene.UpdateFinish
 	ScriptManager::CallStaticClassFunction("Scene", "UpdateFinish");
 }
 void Scene::FixedUpdate() {
-	// Call Scene.OnFixedUpdateStart
+	// Call Scene.FixedUpdateStart
 	if (!Application::UseFixedTimestep) {
 		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateStart");
 	}
@@ -826,7 +826,7 @@ void Scene::FixedUpdate() {
 				: ObjectList_CallGlobalFixedUpdates);
 	}
 
-	// Call Scene.OnFixedUpdateEarly
+	// Call Scene.FixedUpdateEarly
 	if (!Application::UseFixedTimestep) {
 		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateEarly");
 	}
@@ -840,7 +840,7 @@ void Scene::FixedUpdate() {
 		FixedUpdateObjectEarly(ent);
 	}
 
-	// Call Scene.OnFixedUpdate
+	// Call Scene.FixedUpdate
 	if (!Application::UseFixedTimestep) {
 		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdate");
 	}
@@ -858,7 +858,7 @@ void Scene::FixedUpdate() {
 		FixedUpdateObject(ent);
 	}
 
-	// Call Scene.OnFixedUpdateLate
+	// Call Scene.FixedUpdateLate
 	if (!Application::UseFixedTimestep) {
 		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateLate");
 	}
@@ -885,7 +885,7 @@ void Scene::FixedUpdate() {
 		Scene::ProcessSceneTimer();
 	}
 
-	// Call Scene.OnFixedUpdateEnd
+	// Call Scene.FixedUpdateFinish
 	if (!Application::UseFixedTimestep) {
 		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateFinish");
 	}
@@ -1078,10 +1078,12 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	// RenderEarly
 	PERF_START(ObjectRenderEarlyTime);
+	// Call Scene.RenderStart
 	ScriptManager::CallStaticClassFunction("Scene", "RenderStart");
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
 		Scene::CurrentDrawGroup = l;
 
+		// Call Scene.RenderEarlyDrawGroupStart
 		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
 		ScriptManager::CallStaticClassFunction("Scene", "RenderEarlyDrawGroupStart", args);
 
@@ -1100,6 +1102,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			}
 		}
 
+		// Call Scene.RenderEarlyDrawGroupFinish
 		ScriptManager::CallStaticClassFunction("Scene", "RenderEarlyDrawGroupFinish", args);
 	}
 	PERF_END(ObjectRenderEarlyTime);
@@ -1115,6 +1118,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
 		Scene::CurrentDrawGroup = l;
 
+		// Call Scene.RenderDrawGroupStart
 		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
 		ScriptManager::CallStaticClassFunction("Scene", "RenderDrawGroupStart", args);
 
@@ -1320,6 +1324,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		Graphics::TextureBlend = texBlend;
 
 	finish_tile_render:
+		// Call Scene.RenderDrawGroupFinish
 		ScriptManager::CallStaticClassFunction("Scene", "RenderDrawGroupFinish", args);
 	}
 	if (viewPerf) {
@@ -1331,6 +1336,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
 		Scene::CurrentDrawGroup = l;
 
+		// Call Scene.RenderLateDrawGroupStart
 		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
 		ScriptManager::CallStaticClassFunction("Scene", "RenderLateDrawGroupStart", args);
 
@@ -1349,8 +1355,10 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			}
 		}
 
+		// Call Scene.RenderLateDrawGroupFinish
 		ScriptManager::CallStaticClassFunction("Scene", "RenderLateDrawGroupFinish", args);
 	}
+	// Call Scene.RenderFinish
 	ScriptManager::CallStaticClassFunction("Scene", "RenderFinish");
 	Scene::CurrentDrawGroup = -1;
 	PERF_END(ObjectRenderLateTime);
