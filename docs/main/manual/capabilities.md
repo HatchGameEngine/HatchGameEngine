@@ -9,6 +9,7 @@ The following is a categorized list of all capabilities:
 | Name             | Type             | Description        |
 | ---------------- | ---------------- | ------------------ |
 | `graphics_shaders` | boolean | Whether shaders are supported by the current renderer. See @ref rendering. |
+| `graphics_textureFormat` | enum | The native texture format. See @ref rendering. |
 | `gpu_maxTextureWidth` | integer | The maximum texture width supported by the GPU. |
 | `gpu_maxTextureHeight` | integer | The maximum texture height supported by the GPU. |
 | `gpu_maxTextureUnits` | integer | The maximum amount of texture units supported by the GPU. |
