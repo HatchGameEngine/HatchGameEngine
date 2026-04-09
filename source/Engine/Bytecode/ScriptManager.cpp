@@ -646,6 +646,10 @@ bool ScriptManager::CallStaticClassFunction(ObjClass* klass, const char* functio
 	Threads[0].InvokeForEntity(callable, 0);
 	return true;
 }
+bool ScriptManager::CallStaticClassFunction(const char* className, const char* functionName) {
+	ObjClass* klass = GetGlobalClass(className);
+	return CallStaticClassFunction(klass, functionName);
+}
 VMValue ScriptManager::FindFunction(const char* functionName) {
 	VMValue callable;
 

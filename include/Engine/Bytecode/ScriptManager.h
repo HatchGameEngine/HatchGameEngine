@@ -82,6 +82,7 @@ public:
 	static bool RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
 	static bool CallGlobalFunction(const char* functionName);
 	static bool CallStaticClassFunction(ObjClass* klass, const char* functionName);
+	static bool CallStaticClassFunction(const char* className, const char* functionName);
 	static VMValue FindFunction(const char* functionName);
 	static Entity* SpawnObject(const char* objectName);
 	static Uint32 MakeFilenameHash(const char* filename);

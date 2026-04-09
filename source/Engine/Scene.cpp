@@ -765,16 +765,25 @@ void Scene::FrameUpdate() {
 	Scene::SortEntities();
 }
 void Scene::Update() {
+	// Call Scene.OnUpdateStart
+	ScriptManager::CallStaticClassFunction("Scene", "OnUpdateStart");
+
 	// Call global updates
 	if (Scene::ObjectLists) {
 		Scene::ObjectLists->ForAllOrdered(ObjectList_CallGlobalUpdates);
 	}
+
+	// Call Scene.OnUpdateEarly
+	ScriptManager::CallStaticClassFunction("Scene", "OnUpdateEarly");
 
 	// Early Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		UpdateObjectEarly(ent);
 	}
+
+	// Call Scene.OnUpdate
+	ScriptManager::CallStaticClassFunction("Scene", "OnUpdate");
 
 	// Update objects
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
@@ -786,13 +795,27 @@ void Scene::Update() {
 		UpdateObject(ent);
 	}
 
+	// Call Scene.OnUpdateLate
+	ScriptManager::CallStaticClassFunction("Scene", "OnUpdateLate");
+
 	// Late Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		UpdateObjectLate(ent);
 	}
+
+	// Call Scene.OnUpdateEnd
+	ScriptManager::CallStaticClassFunction("Scene", "OnUpdateEnd");
 }
 void Scene::FixedUpdate() {
+	// Call Scene.OnFixedUpdateStart
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "OnFixedUpdateStart");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "OnUpdateStart");
+	}
+
 	// Animate tiles
 	Scene::RunTileAnimations();
 
@@ -803,10 +826,26 @@ void Scene::FixedUpdate() {
 				: ObjectList_CallGlobalFixedUpdates);
 	}
 
+	// Call Scene.OnFixedUpdateEarly
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "OnFixedUpdateEarly");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "OnUpdateEarly");
+	}
+
 	// Early Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		FixedUpdateObjectEarly(ent);
+	}
+
+	// Call Scene.OnFixedUpdate
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "OnFixedUpdate");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "OnUpdate");
 	}
 
 	// Update objects
@@ -817,6 +856,14 @@ void Scene::FixedUpdate() {
 
 		// Execute whatever on object
 		FixedUpdateObject(ent);
+	}
+
+	// Call Scene.OnFixedUpdateLate
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "OnFixedUpdateLate");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "OnUpdateLate");
 	}
 
 	// Late Update
@@ -836,6 +883,14 @@ void Scene::FixedUpdate() {
 	if (!Scene::Paused) {
 		Scene::Frame++;
 		Scene::ProcessSceneTimer();
+	}
+
+	// Call Scene.OnFixedUpdateEnd
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "OnFixedUpdateEnd");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "OnUpdateEnd");
 	}
 }
 void Scene::RunTileAnimations() {
@@ -1010,6 +1065,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		viewPerf->RecreatedDrawTarget = true;
 	}
 
+	DrawGroupList* drawGroupList;
 	int viewRenderFlag = 1 << viewIndex;
 
 	// Adjust projection
@@ -1019,27 +1075,28 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	// RenderEarly
 	PERF_START(ObjectRenderEarlyTime);
+	ScriptManager::CallStaticClassFunction("Scene", "OnRenderStart");
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-		if (DEV_NoObjectRender) {
-			break;
-		}
-
-		DrawGroupList* drawGroupList = PriorityLists[l];
-		if (!drawGroupList) {
-			continue;
-		}
-
-		if (drawGroupList->NeedsSorting) {
-			drawGroupList->Sort();
-		}
-
 		Scene::CurrentDrawGroup = l;
 
-		for (Entity* ent : *drawGroupList->Entities) {
-			if (ent->Active) {
-				ent->RenderEarly();
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderEarlyDrawGroupStart");
+
+		if (!DEV_NoObjectRender) {
+			drawGroupList = PriorityLists[l];
+			if (drawGroupList) {
+				if (drawGroupList->NeedsSorting) {
+					drawGroupList->Sort();
+				}
+
+				for (Entity* ent : *drawGroupList->Entities) {
+					if (ent->Active) {
+						ent->RenderEarly();
+					}
+				}
 			}
 		}
+
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderEarlyDrawGroupEnd");
 	}
 	PERF_END(ObjectRenderEarlyTime);
 
@@ -1051,8 +1108,11 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	float _vw = currentView->GetScaledWidth();
 	float _vh = currentView->GetScaledHeight();
 	double objectTimeTotal = 0.0;
-	DrawGroupList* drawGroupList;
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
+		Scene::CurrentDrawGroup = l;
+
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderDrawGroupStart");
+
 		if (DEV_NoObjectRender) {
 			goto DEV_NoTilesCheck;
 		}
@@ -1063,9 +1123,8 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		float _oy;
 		float entX1, entX2;
 		float entY1, entY2;
+		bool texBlend;
 		objectTime = Clock::GetTicks();
-
-		Scene::CurrentDrawGroup = l;
 
 		drawGroupList = PriorityLists[l];
 		if (drawGroupList) {
@@ -1215,18 +1274,18 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	DEV_NoTilesCheck:
 		if (DEV_NoTiles) {
-			continue;
+			goto finish_tile_render;
 		}
 
 		if (Scene::Tilesets.size() == 0) {
-			continue;
+			goto finish_tile_render;
 		}
 
 		if ((Scene::TileViewRenderFlag & viewRenderFlag) == 0) {
-			continue;
+			goto finish_tile_render;
 		}
 
-		bool texBlend = Graphics::TextureBlend;
+		texBlend = Graphics::TextureBlend;
 		for (size_t li = 0; li < Layers.size(); li++) {
 			SceneLayer* layer = &Layers[li];
 			// Skip layer tile render if already rendered
@@ -1254,6 +1313,9 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			}
 		}
 		Graphics::TextureBlend = texBlend;
+
+	finish_tile_render:
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderDrawGroupEnd");
 	}
 	if (viewPerf) {
 		viewPerf->ObjectRenderTime = objectTimeTotal;
@@ -1262,21 +1324,28 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	// RenderLate
 	PERF_START(ObjectRenderLateTime);
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-		if (DEV_NoObjectRender) {
-			break;
-		}
-
 		Scene::CurrentDrawGroup = l;
 
-		DrawGroupList* drawGroupList = PriorityLists[l];
-		if (drawGroupList) {
-			for (Entity* ent : *drawGroupList->Entities) {
-				if (ent->Active) {
-					ent->RenderLate();
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderLateDrawGroupStart");
+
+		if (!DEV_NoObjectRender) {
+			drawGroupList = PriorityLists[l];
+			if (drawGroupList) {
+				if (drawGroupList->NeedsSorting) {
+					drawGroupList->Sort();
+				}
+
+				for (Entity* ent : *drawGroupList->Entities) {
+					if (ent->Active) {
+						ent->RenderLate();
+					}
 				}
 			}
 		}
+
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderLateDrawGroupEnd");
 	}
+	ScriptManager::CallStaticClassFunction("Scene", "OnRenderEnd");
 	Scene::CurrentDrawGroup = -1;
 	PERF_END(ObjectRenderLateTime);
 
@@ -1561,6 +1630,9 @@ void Scene::AfterScene() {
 	bool& doRestart = Scene::DoRestart;
 
 	if (Scene::NextScene[0]) {
+		// Call Scene.OnChange
+		ScriptManager::CallStaticClassFunction("Scene", "OnChange");
+
 		ScriptManager::ForceGarbageCollection();
 
 		Scene::LoadScene(Scene::NextScene);
@@ -1839,6 +1911,14 @@ void Scene::Restart() {
 	FinishLoad();
 }
 void Scene::FinishLoad() {
+	// Call Scene.OnRestart or Scene.OnLoad
+	if (Scene::Loaded) {
+		ScriptManager::CallStaticClassFunction("Scene", "OnRestart");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "OnLoad");
+	}
+
 	// Run "OnSceneLoad" or "OnSceneRestart" on all objects
 	Scene::IterateAll(Scene::ObjectFirst, [](Entity* ent) -> void {
 		if (Scene::Loaded) {
