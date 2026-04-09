@@ -1808,7 +1808,7 @@ void Application::StartGame(const char* startingScene) {
 		Scene::LoadScene(startingScene);
 	}
 
-	// Call Static's GameStart here
+	// Call Application's OnGameStart here
 	Scene::CallGameStart();
 
 	// Start scene

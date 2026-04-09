@@ -162,13 +162,13 @@ void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
 		return;
 	}
 
-	ScriptManager::CallFunction(list->LoadFunctionName.c_str());
+	ScriptManager::CallGlobalFunction(list->LoadFunctionName.c_str());
 }
 void ObjectList_CallUpdateFunction(ObjectList* list, const char* functionName) {
 	if (list->Activity == ACTIVE_ALWAYS ||
 		(list->Activity == ACTIVE_NORMAL && !Scene::Paused) ||
 		(list->Activity == ACTIVE_PAUSED && Scene::Paused)) {
-		ScriptManager::CallFunction(functionName);
+		ScriptManager::CallGlobalFunction(functionName);
 	}
 }
 void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
@@ -2187,7 +2187,7 @@ ObjectList* Scene::NewObjectList(const char* objectName) {
 
 	// The above must have loaded the given scripted class if there is one.
 	// If there is still no class, then it doesn't exist natively or script-side.
-	if (!ScriptManager::GetObjectClass(objectName)) {
+	if (!ScriptManager::GetClass(objectName)) {
 		return nullptr;
 	}
 #endif
@@ -2230,6 +2230,11 @@ void Scene::AddStaticClass() {
 	StaticObject = obj;
 }
 void Scene::CallGameStart() {
+	ObjClass* klass = ScriptManager::GetGlobalClass("Application");
+	if (ScriptManager::CallStaticClassFunction(klass, "OnGameStart")) {
+		return;
+	}
+
 	if (StaticObject) {
 		StaticObject->GameStart();
 	}
@@ -2250,7 +2255,7 @@ ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFuncti
 		Scene::ObjectLists->Put(objectNameHash, objectList);
 
 		if (callListLoadFunction) {
-			ScriptManager::CallFunction(objectList->LoadFunctionName.c_str());
+			ScriptManager::CallGlobalFunction(objectList->LoadFunctionName.c_str());
 		}
 	}
 
