@@ -67,6 +67,7 @@ void ValuePrinter::PrintObject(VMValue value, int indent) {
 	case OBJ_FUNCTION:
 	case OBJ_MODULE:
 	case OBJ_NAMESPACE:
+	case OBJ_ENUM:
 		if (IsJSON) {
 			buffer_printf(Buffer,
 				"\"%s %s\"",
