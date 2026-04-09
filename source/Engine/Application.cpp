@@ -1024,6 +1024,9 @@ bool Application::ChangeGame(const char* path) {
 	Application::StartGame(startingScene);
 	Application::UpdateWindowTitle();
 
+	// Call Application.OnGameChange
+	ScriptManager::CallStaticClassFunction("Application", "OnGameChange");
+
 	return true;
 }
 
