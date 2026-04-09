@@ -1068,6 +1068,9 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	DrawGroupList* drawGroupList;
 	int viewRenderFlag = 1 << viewIndex;
 
+	std::vector<VMValue> args;
+	args.push_back(NULL_VAL);
+
 	// Adjust projection
 	PERF_START(ProjectionSetupTime);
 	SetupViewMatrices(currentView);
@@ -1079,7 +1082,8 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
 		Scene::CurrentDrawGroup = l;
 
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderEarlyDrawGroupStart");
+		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderEarlyDrawGroupStart", args);
 
 		if (!DEV_NoObjectRender) {
 			drawGroupList = PriorityLists[l];
@@ -1096,7 +1100,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			}
 		}
 
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderEarlyDrawGroupEnd");
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderEarlyDrawGroupEnd", args);
 	}
 	PERF_END(ObjectRenderEarlyTime);
 
@@ -1111,7 +1115,8 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
 		Scene::CurrentDrawGroup = l;
 
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderDrawGroupStart");
+		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderDrawGroupStart", args);
 
 		if (DEV_NoObjectRender) {
 			goto DEV_NoTilesCheck;
@@ -1315,7 +1320,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		Graphics::TextureBlend = texBlend;
 
 	finish_tile_render:
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderDrawGroupEnd");
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderDrawGroupEnd", args);
 	}
 	if (viewPerf) {
 		viewPerf->ObjectRenderTime = objectTimeTotal;
@@ -1326,7 +1331,8 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
 		Scene::CurrentDrawGroup = l;
 
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderLateDrawGroupStart");
+		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderLateDrawGroupStart", args);
 
 		if (!DEV_NoObjectRender) {
 			drawGroupList = PriorityLists[l];
@@ -1343,7 +1349,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			}
 		}
 
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderLateDrawGroupEnd");
+		ScriptManager::CallStaticClassFunction("Scene", "OnRenderLateDrawGroupEnd", args);
 	}
 	ScriptManager::CallStaticClassFunction("Scene", "OnRenderEnd");
 	Scene::CurrentDrawGroup = -1;
@@ -1631,7 +1637,11 @@ void Scene::AfterScene() {
 
 	if (Scene::NextScene[0]) {
 		// Call Scene.OnChange
-		ScriptManager::CallStaticClassFunction("Scene", "OnChange");
+		std::vector<VMValue> args;
+		if (ScriptManager::Lock()) {
+			args.push_back(OBJECT_VAL(CopyString(Scene::NextScene)));
+		}
+		ScriptManager::CallStaticClassFunction("Scene", "OnChange", args);
 
 		ScriptManager::ForceGarbageCollection();
 
@@ -1911,12 +1921,20 @@ void Scene::Restart() {
 	FinishLoad();
 }
 void Scene::FinishLoad() {
-	// Call Scene.OnRestart or Scene.OnLoad
-	if (Scene::Loaded) {
-		ScriptManager::CallStaticClassFunction("Scene", "OnRestart");
+	// Call Scene.OnLoad or Scene.OnRestart
+	std::vector<VMValue> args;
+	if (Scene::CurrentScene[0] && ScriptManager::Lock()) {
+		args.push_back(OBJECT_VAL(CopyString(Scene::CurrentScene)));
 	}
 	else {
-		ScriptManager::CallStaticClassFunction("Scene", "OnLoad");
+		args.push_back(NULL_VAL);
+	}
+
+	if (Scene::Loaded) {
+		ScriptManager::CallStaticClassFunction("Scene", "OnRestart", args);
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "OnLoad", args);
 	}
 
 	// Run "OnSceneLoad" or "OnSceneRestart" on all objects

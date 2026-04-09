@@ -83,6 +83,8 @@ public:
 	static bool CallGlobalFunction(const char* functionName);
 	static bool CallStaticClassFunction(ObjClass* klass, const char* functionName);
 	static bool CallStaticClassFunction(const char* className, const char* functionName);
+	static bool CallStaticClassFunction(ObjClass* klass, const char* functionName, std::vector<VMValue> args);
+	static bool CallStaticClassFunction(const char* className, const char* functionName, std::vector<VMValue> args);
 	static VMValue FindFunction(const char* functionName);
 	static Entity* SpawnObject(const char* objectName);
 	static Uint32 MakeFilenameHash(const char* filename);

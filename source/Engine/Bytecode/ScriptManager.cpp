@@ -634,7 +634,7 @@ bool ScriptManager::CallGlobalFunction(const char* functionName) {
 		return false;
 	}
 
-	Threads[0].InvokeForEntity(callable, 0);
+	Threads[0].RunValue(callable, 0);
 	return true;
 }
 bool ScriptManager::CallStaticClassFunction(ObjClass* klass, const char* functionName) {
@@ -643,12 +643,43 @@ bool ScriptManager::CallStaticClassFunction(ObjClass* klass, const char* functio
 		return false;
 	}
 
-	Threads[0].InvokeForEntity(callable, 0);
+	VMThread* thread = &ScriptManager::Threads[0];
+	VMValue* stackTop = thread->StackTop;
+	thread->RunValue(callable, 0);
+	thread->StackTop = stackTop;
+
 	return true;
 }
 bool ScriptManager::CallStaticClassFunction(const char* className, const char* functionName) {
-	ObjClass* klass = GetGlobalClass(className);
-	return CallStaticClassFunction(klass, functionName);
+	return CallStaticClassFunction(GetGlobalClass(className), functionName);
+}
+bool ScriptManager::CallStaticClassFunction(ObjClass* klass, const char* functionName, std::vector<VMValue> args) {
+	VMValue callable;
+	if (!klass || !klass->Methods->GetIfExists(functionName, &callable)) {
+		return false;
+	}
+
+	VMThread* thread = &ScriptManager::Threads[0];
+	VMValue* stackTop = thread->StackTop;
+
+	for (size_t i = 0; i < args.size(); i++) {
+		thread->Push(args[i]);
+	}
+
+	int numArgs = thread->StackTop - stackTop;
+	int minArity, maxArity;
+	if (thread->GetArity(callable, minArity, maxArity) && numArgs > maxArity) {
+		numArgs = maxArity;
+		thread->StackTop = stackTop + numArgs;
+	}
+
+	thread->RunValue(callable, numArgs);
+	thread->StackTop = stackTop;
+
+	return true;
+}
+bool ScriptManager::CallStaticClassFunction(const char* className, const char* functionName, std::vector<VMValue> args) {
+	return CallStaticClassFunction(GetGlobalClass(className), functionName, args);
 }
 VMValue ScriptManager::FindFunction(const char* functionName) {
 	VMValue callable;
