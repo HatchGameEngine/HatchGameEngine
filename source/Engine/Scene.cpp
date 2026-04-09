@@ -766,7 +766,7 @@ void Scene::FrameUpdate() {
 }
 void Scene::Update() {
 	// Call Scene.OnUpdateStart
-	ScriptManager::CallStaticClassFunction("Scene", "OnUpdateStart");
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateStart");
 
 	// Call global updates
 	if (Scene::ObjectLists) {
@@ -774,7 +774,7 @@ void Scene::Update() {
 	}
 
 	// Call Scene.OnUpdateEarly
-	ScriptManager::CallStaticClassFunction("Scene", "OnUpdateEarly");
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateEarly");
 
 	// Early Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
@@ -783,7 +783,7 @@ void Scene::Update() {
 	}
 
 	// Call Scene.OnUpdate
-	ScriptManager::CallStaticClassFunction("Scene", "OnUpdate");
+	ScriptManager::CallStaticClassFunction("Scene", "Update");
 
 	// Update objects
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
@@ -796,7 +796,7 @@ void Scene::Update() {
 	}
 
 	// Call Scene.OnUpdateLate
-	ScriptManager::CallStaticClassFunction("Scene", "OnUpdateLate");
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateLate");
 
 	// Late Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
@@ -805,15 +805,15 @@ void Scene::Update() {
 	}
 
 	// Call Scene.OnUpdateEnd
-	ScriptManager::CallStaticClassFunction("Scene", "OnUpdateEnd");
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateFinish");
 }
 void Scene::FixedUpdate() {
 	// Call Scene.OnFixedUpdateStart
 	if (!Application::UseFixedTimestep) {
-		ScriptManager::CallStaticClassFunction("Scene", "OnFixedUpdateStart");
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateStart");
 	}
 	else {
-		ScriptManager::CallStaticClassFunction("Scene", "OnUpdateStart");
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateStart");
 	}
 
 	// Animate tiles
@@ -828,10 +828,10 @@ void Scene::FixedUpdate() {
 
 	// Call Scene.OnFixedUpdateEarly
 	if (!Application::UseFixedTimestep) {
-		ScriptManager::CallStaticClassFunction("Scene", "OnFixedUpdateEarly");
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateEarly");
 	}
 	else {
-		ScriptManager::CallStaticClassFunction("Scene", "OnUpdateEarly");
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateEarly");
 	}
 
 	// Early Update
@@ -842,10 +842,10 @@ void Scene::FixedUpdate() {
 
 	// Call Scene.OnFixedUpdate
 	if (!Application::UseFixedTimestep) {
-		ScriptManager::CallStaticClassFunction("Scene", "OnFixedUpdate");
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdate");
 	}
 	else {
-		ScriptManager::CallStaticClassFunction("Scene", "OnUpdate");
+		ScriptManager::CallStaticClassFunction("Scene", "Update");
 	}
 
 	// Update objects
@@ -860,10 +860,10 @@ void Scene::FixedUpdate() {
 
 	// Call Scene.OnFixedUpdateLate
 	if (!Application::UseFixedTimestep) {
-		ScriptManager::CallStaticClassFunction("Scene", "OnFixedUpdateLate");
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateLate");
 	}
 	else {
-		ScriptManager::CallStaticClassFunction("Scene", "OnUpdateLate");
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateLate");
 	}
 
 	// Late Update
@@ -887,10 +887,10 @@ void Scene::FixedUpdate() {
 
 	// Call Scene.OnFixedUpdateEnd
 	if (!Application::UseFixedTimestep) {
-		ScriptManager::CallStaticClassFunction("Scene", "OnFixedUpdateEnd");
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateFinish");
 	}
 	else {
-		ScriptManager::CallStaticClassFunction("Scene", "OnUpdateEnd");
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateFinish");
 	}
 }
 void Scene::RunTileAnimations() {
@@ -1078,12 +1078,12 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	// RenderEarly
 	PERF_START(ObjectRenderEarlyTime);
-	ScriptManager::CallStaticClassFunction("Scene", "OnRenderStart");
+	ScriptManager::CallStaticClassFunction("Scene", "RenderStart");
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
 		Scene::CurrentDrawGroup = l;
 
 		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderEarlyDrawGroupStart", args);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderEarlyDrawGroupStart", args);
 
 		if (!DEV_NoObjectRender) {
 			drawGroupList = PriorityLists[l];
@@ -1100,7 +1100,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			}
 		}
 
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderEarlyDrawGroupEnd", args);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderEarlyDrawGroupFinish", args);
 	}
 	PERF_END(ObjectRenderEarlyTime);
 
@@ -1116,7 +1116,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		Scene::CurrentDrawGroup = l;
 
 		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderDrawGroupStart", args);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderDrawGroupStart", args);
 
 		if (DEV_NoObjectRender) {
 			goto DEV_NoTilesCheck;
@@ -1320,7 +1320,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		Graphics::TextureBlend = texBlend;
 
 	finish_tile_render:
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderDrawGroupEnd", args);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderDrawGroupFinish", args);
 	}
 	if (viewPerf) {
 		viewPerf->ObjectRenderTime = objectTimeTotal;
@@ -1332,7 +1332,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		Scene::CurrentDrawGroup = l;
 
 		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderLateDrawGroupStart", args);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderLateDrawGroupStart", args);
 
 		if (!DEV_NoObjectRender) {
 			drawGroupList = PriorityLists[l];
@@ -1349,9 +1349,9 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			}
 		}
 
-		ScriptManager::CallStaticClassFunction("Scene", "OnRenderLateDrawGroupEnd", args);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderLateDrawGroupFinish", args);
 	}
-	ScriptManager::CallStaticClassFunction("Scene", "OnRenderEnd");
+	ScriptManager::CallStaticClassFunction("Scene", "RenderFinish");
 	Scene::CurrentDrawGroup = -1;
 	PERF_END(ObjectRenderLateTime);
 
