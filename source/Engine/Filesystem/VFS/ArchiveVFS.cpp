@@ -70,7 +70,9 @@ bool ArchiveVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	}
 
 	*out = memory;
-	*size = (size_t)entry->Size;
+	if (size) {
+		*size = (size_t)entry->Size;
+	}
 
 	return true;
 }
@@ -121,7 +123,7 @@ bool ArchiveVFS::EraseFile(const char* filename) {
 	return false;
 }
 
-VFSEnumeration ArchiveVFS::EnumerateFiles(const char* path) {
+VFSEnumeration ArchiveVFS::EnumerateFiles(const char* path, const char* wildcard) {
 	VFSEnumeration enumeration;
 
 	if (NumEntries == 0) {
@@ -133,6 +135,10 @@ VFSEnumeration ArchiveVFS::EnumerateFiles(const char* path) {
 		std::string entryName = EntryNames[i];
 		if (path != nullptr && path[0] != '\0' &&
 			!StringUtils::StartsWith(entryName.c_str(), path)) {
+			continue;
+		}
+
+		if (wildcard != nullptr && !StringUtils::WildcardMatch(entryName.c_str(), wildcard)) {
 			continue;
 		}
 

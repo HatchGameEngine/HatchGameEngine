@@ -208,9 +208,9 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\filesystem\File.cpp" />
     <ClCompile Include="..\source\engine\filesystem\Path.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\ArchiveVFS.cpp" />
+    <ClCompile Include="..\source\engine\filesystem\vfs\FileCache.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\FileSystemVFS.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\HatchVFS.cpp" />
-    <ClCompile Include="..\source\engine\filesystem\vfs\MemoryCache.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\MemoryVFS.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\VFSEntry.cpp" />
     <ClCompile Include="..\source\engine\filesystem\vfs\VFSProvider.cpp" />

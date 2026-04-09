@@ -9,22 +9,23 @@
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/IO/FileStream.h>
-#include <Engine/IO/ResourceStream.h>
+#include <Engine/IO/VirtualFileStream.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Utilities/StringUtils.h>
 
 #define SOURCEFILEMAP_NAME "cache://SourceFileMap.bin"
 
-#define OBJECTS_HCM_NAME OBJECTS_DIR_NAME "Objects.hcm"
+#define OBJECTS_HCM_NAME OBJECTS_DIR_NAME "/Objects.hcm"
 
 bool SourceFileMap::Initialized = false;
 bool SourceFileMap::AllowCompilation = false;
+VirtualFileSystem* SourceFileMap::ScriptsVFS = NULL;
 HashMap<Uint32>* SourceFileMap::Checksums = NULL;
 HashMap<vector<Uint32>*>* SourceFileMap::ClassMap = NULL;
 Uint32 SourceFileMap::DirectoryChecksum = 0;
 Uint32 SourceFileMap::Magic = MAGIC_LE32("HMAP");
 
-void SourceFileMap::CheckInit() {
+void SourceFileMap::Initialize() {
 	if (SourceFileMap::Initialized) {
 		return;
 	}
@@ -36,36 +37,17 @@ void SourceFileMap::CheckInit() {
 		SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(Murmur::EncryptData, 16);
 	}
 
-	if (ResourceManager::ResourceExists(OBJECTS_HCM_NAME)) {
-		ResourceStream* stream = ResourceStream::New(OBJECTS_HCM_NAME);
+	VirtualFileSystem* bytecodeVfs = ScriptManager::BytecodeVFS;
+	if (bytecodeVfs && bytecodeVfs->FileExists(OBJECTS_HCM_NAME)) {
+		VirtualFileStream* stream = VirtualFileStream::New(bytecodeVfs,
+			OBJECTS_HCM_NAME,
+			VirtualFileStream::READ_ACCESS);
 		if (stream) {
-			Uint32 magic_got;
-			if ((magic_got = stream->ReadUInt32()) == SourceFileMap::Magic) {
-				stream->ReadByte(); // Version
-				stream->ReadByte(); // Version
-				stream->ReadByte(); // Version
-				stream->ReadByte(); // Version
-
-				Uint32 count = stream->ReadUInt32();
-				for (Uint32 ch = 0; ch < count; ch++) {
-					Uint32 classHash = stream->ReadUInt32();
-					Uint32 fnCount = stream->ReadUInt32();
-
-					vector<Uint32>* fnList = new vector<Uint32>();
-					for (Uint32 fn = 0; fn < fnCount; fn++) {
-						fnList->push_back(stream->ReadUInt32());
-					}
-
-					SourceFileMap::ClassMap->Put(classHash, fnList);
-				}
-			}
-			else {
-				Log::Print(Log::LOG_ERROR,
-					"Invalid ClassMap! (Expected %08X, was %08X)",
-					SourceFileMap::Magic,
-					magic_got);
-			}
+			ReadClassMap(stream);
 			stream->Close();
+		}
+		else {
+			Log::Print(Log::LOG_ERROR, "Could not read ClassMap!");
 		}
 	}
 	else {
@@ -88,53 +70,100 @@ void SourceFileMap::CheckInit() {
 		}
 		Memory::Free(bytes);
 	}
+
+	ScriptsVFS = new VirtualFileSystem();
+
+	const char* scriptsPath = Application::GetScriptsPath();
+	if (scriptsPath && !MountScriptsVFS(scriptsPath)) {
+		Log::Print(Log::LOG_ERROR, "Could not access scripts path \"%s\"!", scriptsPath);
+	}
 #endif
 
 	SourceFileMap::Initialized = true;
 }
+bool SourceFileMap::ReadClassMap(Stream* stream) {
+	Uint32 magic = stream->ReadUInt32();
+	if (magic != SourceFileMap::Magic) {
+		Log::Print(Log::LOG_ERROR,
+			"Invalid ClassMap! (Expected %08X, was %08X)",
+			SourceFileMap::Magic,
+			magic);
+		return false;
+	}
+
+	stream->ReadByte(); // Version
+	stream->ReadByte(); // Version
+	stream->ReadByte(); // Version
+	stream->ReadByte(); // Version
+
+	Uint32 count = stream->ReadUInt32();
+	for (Uint32 ch = 0; ch < count; ch++) {
+		Uint32 classHash = stream->ReadUInt32();
+		Uint32 fnCount = stream->ReadUInt32();
+
+		vector<Uint32>* fnList = new vector<Uint32>();
+		for (Uint32 fn = 0; fn < fnCount; fn++) {
+			fnList->push_back(stream->ReadUInt32());
+		}
+
+		SourceFileMap::ClassMap->Put(classHash, fnList);
+	}
+
+	return true;
+}
+bool SourceFileMap::MountScriptsVFS(const char* scriptsPath) {
+	if (scriptsPath[strlen(scriptsPath) - 1] == '/') {
+		return ScriptsVFS->Mount(
+			"scripts", scriptsPath, nullptr, VFSType::FILESYSTEM, VFS_READABLE);
+	}
+	else {
+		return ScriptsVFS->Mount(
+			"scripts", scriptsPath, nullptr, VFSType::HATCH, VFS_READABLE);
+	}
+}
 bool SourceFileMap::CheckForUpdate() {
-	SourceFileMap::CheckInit();
+	if (!SourceFileMap::Initialized) {
+		SourceFileMap::Initialize();
+	}
 
 #ifndef NO_SCRIPT_COMPILING
+	bool anyChanges = false;
+
 	if (!SourceFileMap::AllowCompilation) {
 		return false;
 	}
 
-	VFSProvider* mainVfs = ResourceManager::GetMainResource();
-	if (!mainVfs || !mainVfs->IsWritable()) {
+	if (!ScriptsVFS) {
 		return false;
 	}
 
-	bool anyChanges = false;
-
-	if (!Directory::Exists(SCRIPTS_DIRECTORY_NAME)) {
+	if (ScriptsVFS->IsEmpty()) {
+		Log::Print(Log::LOG_WARN, "No scripts to be compiled.");
 		return false;
 	}
 
-	vector<std::filesystem::path> list;
-	Directory::GetFiles(&list, SCRIPTS_DIRECTORY_NAME, "*.hsl", true);
-
-	if (list.size() == 0) {
-		list.clear();
-		list.shrink_to_fit();
+	VirtualFileSystem* bytecodeVfs = ScriptManager::BytecodeVFS;
+	if (!bytecodeVfs || !bytecodeVfs->IsWritable()) {
 		return false;
 	}
 
-	if (!mainVfs->HasFile(OBJECTS_HCM_NAME)) {
+	VFSProvider* provider = ScriptsVFS->GetByMountPoint(DEFAULT_MOUNT_POINT);
+	VFSEnumeration enumeration = provider->EnumerateFiles(nullptr, "*.hsl");
+	if (enumeration.Result != VFSEnumerationResult::SUCCESS) {
+		return false;
+	}
+
+	if (!bytecodeVfs->FileExists(OBJECTS_HCM_NAME)) {
 		anyChanges = true;
 	}
-
-	size_t scriptFolderNameLen = strlen(SCRIPTS_DIRECTORY_NAME);
 
 	Uint32 oldDirectoryChecksum = SourceFileMap::DirectoryChecksum;
 
 	SourceFileMap::DirectoryChecksum = 0x0;
-	for (size_t i = 0; i < list.size(); i++) {
-		std::string asStr = Path::ToString(list[i]);
-		const char* listEntry = asStr.c_str();
-		const char* filename = listEntry + scriptFolderNameLen;
+	for (size_t i = 0; i < enumeration.Entries.size(); i++) {
+		std::string entry = enumeration.Entries[i];
 		SourceFileMap::DirectoryChecksum = FNV1A::EncryptData(
-			filename, (Uint32)strlen(filename), SourceFileMap::DirectoryChecksum);
+			entry.c_str(), entry.size(), SourceFileMap::DirectoryChecksum);
 	}
 
 	if (oldDirectoryChecksum != SourceFileMap::DirectoryChecksum &&
@@ -154,19 +183,10 @@ bool SourceFileMap::CheckForUpdate() {
 		SourceFileMap::ClassMap->Clear();
 	}
 
-	std::string scriptFolderPathStr = std::string(SCRIPTS_DIRECTORY_NAME) + "/";
-	const char* scriptFolderPath = scriptFolderPathStr.c_str();
-	size_t scriptFolderPathLen = scriptFolderPathStr.size();
-
-	for (size_t i = 0; i < list.size(); i++) {
-		std::string asStr = Path::ToString(list[i]);
-		const char* listEntry = asStr.c_str();
-		const char* filename = strrchr(listEntry, '/');
-		Uint32 filenameHash = 0;
-		if (filename) {
-			filenameHash = ScriptManager::MakeFilenameHash(
-				listEntry + scriptFolderNameLen + 1);
-		}
+	for (size_t i = 0; i < enumeration.Entries.size(); i++) {
+		std::string entry = enumeration.Entries[i];
+		const char* listEntry = entry.c_str();
+		Uint32 filenameHash = ScriptManager::MakeFilenameHash(listEntry);
 		if (!filenameHash) {
 			continue;
 		}
@@ -175,9 +195,13 @@ bool SourceFileMap::CheckForUpdate() {
 		Uint32 oldChecksum = 0;
 		bool doRecompile = false;
 
-		char* source;
-		File::ReadAllBytes(listEntry, &source, false);
-		newChecksum = Murmur::EncryptString(source);
+		Uint8* source;
+		size_t sourceLength;
+		if (!ScriptsVFS->LoadFile(listEntry, &source, &sourceLength)) {
+			Log::Print(Log::LOG_ERROR, "Couldn't read script '%s'!", listEntry);
+			continue;
+		}
+		newChecksum = Murmur::EncryptData(source, sourceLength);
 
 		Memory::Track(source, "SourceFileMap::SourceText");
 
@@ -192,24 +216,16 @@ bool SourceFileMap::CheckForUpdate() {
 		const char* outFile = filenameForHash.c_str();
 
 		// If changed, then compile.
-		if (doRecompile || !mainVfs->HasFile(outFile)) {
+		if (doRecompile || !bytecodeVfs->FileExists(outFile)) {
 			Compiler::PrepareCompiling();
-
-			const char* scriptFilename = listEntry;
-			if (StringUtils::StartsWith(scriptFilename, scriptFolderPath)) {
-				scriptFilename += scriptFolderPathLen;
-			}
 
 			if (Compiler::DoLogging) {
 				if (doRecompile) {
-					Log::Print(Log::LOG_VERBOSE,
-						"Recompiling %s...",
-						scriptFilename);
+					Log::Print(
+						Log::LOG_VERBOSE, "Recompiling %s...", listEntry);
 				}
 				else {
-					Log::Print(Log::LOG_VERBOSE,
-						"Compiling %s...",
-						scriptFilename);
+					Log::Print(Log::LOG_VERBOSE, "Compiling %s...", listEntry);
 				}
 			}
 
@@ -224,17 +240,18 @@ bool SourceFileMap::CheckForUpdate() {
 				compiler->SetupLocals();
 
 				try {
-					didCompile = compiler->Compile(scriptFilename, source, memStream);
-				}
-				catch (const CompilerErrorException& error) {
+					didCompile = compiler->Compile(
+						listEntry, (char*)source, sourceLength, memStream);
+				} catch (const CompilerErrorException& error) {
 					HandleCompileError(error.what());
 				}
 
 				if (didCompile) {
-					Stream* stream = mainVfs->OpenWriteStream(outFile);
+					Stream* stream = bytecodeVfs->OpenWriteStream(outFile);
 					if (stream) {
-						stream->WriteBytes(memStream->pointer_start, memStream->Position());
-						mainVfs->CloseStream(stream);
+						stream->WriteBytes(memStream->pointer_start,
+							memStream->Position());
+						bytecodeVfs->CloseStream(stream);
 					}
 					else {
 						Log::Print(Log::LOG_ERROR,
@@ -254,7 +271,9 @@ bool SourceFileMap::CheckForUpdate() {
 				delete compiler;
 			}
 			else {
-				Log::Print(Log::LOG_ERROR, "Not enough memory for compiling '%s'!", outFile);
+				Log::Print(Log::LOG_ERROR,
+					"Not enough memory for compiling '%s'!",
+					outFile);
 			}
 
 			Compiler::FinishCompiling();
@@ -281,7 +300,7 @@ bool SourceFileMap::CheckForUpdate() {
 			stream->Close();
 		}
 
-		stream = mainVfs->OpenWriteStream(OBJECTS_HCM_NAME);
+		stream = bytecodeVfs->OpenWriteStream(OBJECTS_HCM_NAME);
 		if (stream) {
 			stream->WriteUInt32(SourceFileMap::Magic);
 			stream->WriteByte(0x00); // Version
@@ -299,12 +318,9 @@ bool SourceFileMap::CheckForUpdate() {
 					}
 				});
 
-			mainVfs->CloseStream(stream);
+			bytecodeVfs->CloseStream(stream);
 		}
 	}
-
-	list.clear();
-	list.shrink_to_fit();
 
 	return anyChanges;
 #else
@@ -362,6 +378,10 @@ void SourceFileMap::AddToList(Compiler* compiler, Uint32 filenameHash) {
 }
 
 void SourceFileMap::Dispose() {
+	if (SourceFileMap::ScriptsVFS) {
+		delete SourceFileMap::ScriptsVFS;
+		SourceFileMap::ScriptsVFS = nullptr;
+	}
 	if (SourceFileMap::Checksums) {
 		delete SourceFileMap::Checksums;
 	}
@@ -375,6 +395,6 @@ void SourceFileMap::Dispose() {
 	}
 
 	SourceFileMap::Initialized = false;
-	SourceFileMap::Checksums = NULL;
-	SourceFileMap::ClassMap = NULL;
+	SourceFileMap::Checksums = nullptr;
+	SourceFileMap::ClassMap = nullptr;
 }

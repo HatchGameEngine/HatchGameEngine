@@ -15,7 +15,7 @@
 #include <Engine/Extensions/Discord.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
-#include <Engine/Filesystem/VFS/MemoryCache.h>
+#include <Engine/Filesystem/VFS/FileCache.h>
 #include <Engine/ResourceTypes/ImageFormats/PNG.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene/SceneInfo.h>
@@ -103,7 +103,8 @@ char Application::GameDeveloper[256];
 char Application::GameIdentifier[256];
 char Application::DeveloperIdentifier[256];
 char Application::SavesDir[256];
-char Application::ScreenshotsPath[256];
+char Application::ScriptsPath[MAX_PATH_LENGTH];
+char Application::ScreenshotsPath[MAX_PATH_LENGTH];
 char Application::PreferencesDir[256];
 
 std::unordered_map<std::string, Capability> Application::CapabilityMap;
@@ -252,9 +253,7 @@ void Application::Init(int argc, char* args[]) {
 	Math::Init();
 	Graphics::Init();
 
-	if (UseMemoryFileCache) {
-		MemoryCache::Init();
-	}
+	FileCache::Init(UseMemoryFileCache);
 
 	if (Application::Settings && !Application::Settings->IsPersisted()) {
 		Application::Settings->Save();
@@ -613,6 +612,15 @@ const char* Application::GetGameIdentifier() {
 	return GameIdentifier;
 }
 
+// Returns the scripts path
+const char* Application::GetScriptsPath() {
+	if (ScriptsPath[0] == '\0') {
+		return nullptr;
+	}
+
+	return ScriptsPath;
+}
+
 // Returns the name of the saves directory
 const char* Application::GetSavesDir() {
 	if (SavesDir[0] == '\0') {
@@ -622,7 +630,7 @@ const char* Application::GetSavesDir() {
 	return SavesDir;
 }
 
-// Returns the name of the screenshots directory
+// Returns the path to the screenshots directory
 const char* Application::GetScreenshotsPath() {
 	if (ScreenshotsPath[0] == '\0') {
 		return nullptr;
@@ -644,6 +652,36 @@ std::string Application::GetFilenameForScreenshot() {
 	std::string filename = Screenshot::GetFilename();
 
 	return PATHLOCATION_SCREENSHOTS_URL + filename;
+}
+
+bool Application::SetScriptsPath(const char* path) {
+	bool isPathValid = false;
+
+	std::string resolved = "";
+	PathLocation location;
+	if (Path::FromURL(path, resolved, location, false, false) && location == PathLocation::GAME) {
+		if (path[strlen(path) - 1] == '/') {
+			isPathValid = Directory::Exists(resolved.c_str());
+		}
+		else {
+			isPathValid = File::Exists(resolved.c_str());
+		}
+	}
+
+	if (!isPathValid) {
+		return false;
+	}
+
+	return SetScriptsPathDirect(resolved.c_str());
+}
+
+bool Application::SetScriptsPathDirect(const char* path) {
+	if (path && path[0] != '\0') {
+		StringUtils::Copy(ScriptsPath, path, sizeof(ScriptsPath));
+		return true;
+	}
+
+	return false;
 }
 
 void Application::LoadDefaultFont() {
@@ -918,7 +956,7 @@ void Application::EndGame() {
 void Application::UnloadGame() {
 	Application::EndGame();
 
-	MemoryCache::Dispose();
+	FileCache::Dispose();
 	ResourceManager::Dispose();
 
 	InputManager::ClearPlayers();
@@ -984,17 +1022,13 @@ bool Application::ChangeGame(const char* path) {
 		}
 	}
 
-	if (UseMemoryFileCache) {
-		MemoryCache::Init();
-	}
+	FileCache::Init(UseMemoryFileCache);
 
 	Application::LoadSceneInfo(0, 0, false);
 	Application::InitPlayerControls();
 	Application::DisposeGameConfig();
 
 	FirstFrame = true;
-
-	SourceFileMap::AllowCompilation = false;
 
 	if (startingScene[0] == '\0') {
 		StringUtils::Copy(startingScene, StartingScene, sizeof startingScene);
@@ -1986,7 +2020,7 @@ void Application::Cleanup() {
 
 	Application::DisposeSettings();
 
-	MemoryCache::Dispose();
+	FileCache::Dispose();
 	ResourceManager::Dispose();
 	AudioManager::Dispose();
 	InputManager::Dispose();
@@ -2032,6 +2066,7 @@ void Application::TerminateScripting() {
 	ScriptManager::BreakpointsEnabled = false;
 #endif
 
+	ScriptManager::LoadPrecompiledCode = true;
 	ScriptManager::LoadAllClasses = false;
 }
 
@@ -2109,6 +2144,7 @@ void Application::LoadGameConfig() {
 			node, "allowCmdLineSceneLoad", Application::AllowCmdLineSceneLoad);
 		ParseGameConfigBool(
 			node, "disableDefaultActions", Application::DisableDefaultActions);
+		ParseGameConfigBool(node, "loadPrecompiledCode", ScriptManager::LoadPrecompiledCode);
 		ParseGameConfigBool(node, "loadAllClasses", ScriptManager::LoadAllClasses);
 		ParseGameConfigBool(node, "useSoftwareRenderer", Graphics::UseSoftwareRenderer);
 		ParseGameConfigBool(node, "enablePaletteUsage", Graphics::UsePalettes);
@@ -2221,6 +2257,9 @@ string Application::ParseGameVersion(XMLNode* versionNode) {
 }
 
 void Application::InitGameInfo() {
+	memset(ScriptsPath, '\0', sizeof(ScriptsPath));
+	memset(ScreenshotsPath, '\0', sizeof(ScreenshotsPath));
+
 	StringUtils::Copy(GameTitle, DEFAULT_GAME_TITLE, sizeof(GameTitle));
 	StringUtils::Copy(GameTitleShort, DEFAULT_GAME_SHORT_TITLE, sizeof(GameTitleShort));
 	StringUtils::Copy(GameVersion, DEFAULT_GAME_VERSION, sizeof(GameVersion));
@@ -2229,7 +2268,7 @@ void Application::InitGameInfo() {
 	StringUtils::Copy(GameIdentifier, DEFAULT_GAME_IDENTIFIER, sizeof(GameIdentifier));
 	StringUtils::Copy(SavesDir, DEFAULT_SAVES_DIR, sizeof(SavesDir));
 
-	memset(ScreenshotsPath, '\0', sizeof(ScreenshotsPath));
+	Application::SetScriptsPath(DEFAULT_SCRIPTS_PATH);
 }
 
 void Application::LoadGameInfo() {
@@ -2307,6 +2346,19 @@ void Application::LoadGameInfo() {
 		}
 
 		ParseGameConfigBool(root, "useDeveloperIdentifierInPaths", shouldSetGameDevId);
+
+		node = XMLParser::SearchNode(root, "scriptsPath");
+		if (node) {
+			char* path = XMLParser::TokenToString(node->children[0]->name);
+
+			if (!Application::SetScriptsPath(path)) {
+				Log::Print(Log::LOG_ERROR,
+					"scriptsPath \"%s\" is not valid!",
+					path);
+			}
+
+			Memory::Free(path);
+		}
 
 		node = XMLParser::SearchNode(root, "savesDir");
 		if (node) {

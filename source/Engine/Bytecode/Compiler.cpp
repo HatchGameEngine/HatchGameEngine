@@ -189,7 +189,7 @@ Token Compiler::ErrorToken(const char* message) {
 }
 
 bool Compiler::IsEOF() {
-	return *scanner.Current == 0;
+	return scanner.Current >= scanner.End;
 }
 bool Compiler::IsDigit(char c) {
 	return c >= '0' && c <= '9';
@@ -4438,9 +4438,10 @@ void Compiler::WriteBytecode(Stream* stream, const char* filename) {
 		TokenMap->Clear();
 	}
 }
-bool Compiler::Compile(const char* filename, const char* source, Stream* output) {
+bool Compiler::Compile(const char* filename, const char* source, size_t sourceLength, Stream* output) {
 	scanner.Line = 1;
 	scanner.Start = (char*)source;
+	scanner.End = scanner.Start + sourceLength;
 	scanner.Current = (char*)source;
 	scanner.LinePos = (char*)source;
 	scanner.SourceFilename = (char*)filename;

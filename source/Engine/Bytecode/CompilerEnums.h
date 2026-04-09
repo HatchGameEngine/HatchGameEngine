@@ -25,6 +25,7 @@ class Scanner {
 public:
 	int Line;
 	char* Start;
+	char* End;
 	char* Current;
 	char* LinePos;
 	char* SourceFilename;

@@ -20,7 +20,9 @@ bool MemoryVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	memcpy(memory, entry->CachedData, entry->Size);
 
 	*out = memory;
-	*size = (size_t)entry->Size;
+	if (size) {
+		*size = (size_t)entry->Size;
+	}
 
 	return true;
 }

@@ -1,10 +1,10 @@
 #ifndef ENGINE_BYTECODE_SCRIPTMANAGER_H
 #define ENGINE_BYTECODE_SCRIPTMANAGER_H
-class ScriptEntity;
 
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Bytecode/VMThread.h>
 #include <Engine/Exceptions/ScriptException.h>
+#include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/IO/Stream.h>
@@ -13,7 +13,7 @@ class ScriptEntity;
 #include <Engine/Types/Entity.h>
 #include <set>
 
-#define OBJECTS_DIR_NAME "Objects/"
+#define OBJECTS_DIR_NAME "Objects"
 
 class ScriptManager {
 private:
@@ -27,6 +27,8 @@ private:
 #endif
 
 public:
+	static VirtualFileSystem* BytecodeVFS;
+	static bool LoadPrecompiledCode;
 	static bool LoadAllClasses;
 #ifdef VM_DEBUG
 	static bool BreakpointsEnabled;

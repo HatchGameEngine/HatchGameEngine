@@ -34,6 +34,7 @@ public:
 	size_t GetIndex(const char* name);
 	VFSProvider* Get(const char* name);
 	VFSProvider* Get(size_t index);
+	VFSProvider* GetByMountPoint(const char* mountPoint);
 	VFSMountStatus Mount(const char* name,
 		const char* filename,
 		const char* mountPoint,
@@ -45,6 +46,9 @@ public:
 
 	bool LoadFile(const char* filename, Uint8** out, size_t* size);
 	bool FileExists(const char* filename);
+
+	bool IsWritable();
+	bool IsEmpty();
 
 	Stream* OpenReadStream(const char* filename);
 	Stream* OpenWriteStream(const char* filename);

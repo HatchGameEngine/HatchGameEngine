@@ -1189,7 +1189,7 @@ ObjModule* VMThreadDebugger::CompileCode(Compiler* compiler, const char* code) {
 	}
 
 	try {
-		didCompile = compiler->Compile(nullptr, code, memStream);
+		didCompile = compiler->Compile(nullptr, code, strlen(code), memStream);
 	} catch (const CompilerErrorException& error) {
 		memStream->Close();
 

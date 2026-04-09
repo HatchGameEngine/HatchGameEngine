@@ -1,7 +1,7 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Filesystem/Path.h>
-#include <Engine/Filesystem/VFS/MemoryCache.h>
+#include <Engine/Filesystem/VFS/FileCache.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/Includes/StandardSDL2.h>
 
@@ -103,11 +103,11 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 	}
 
 	// If using a cache:// URL, and the in-memory cache is enabled:
-	if (location == PathLocation::CACHE && MemoryCache::Using) {
+	if (location == PathLocation::CACHE && FileCache::InMemory) {
 		// Use the original filename instead of the resolved one.
 		resolvedPath = Path::StripURL(filename);
 
-		return MemoryCache::OpenStream(resolvedPath.c_str(), access);
+		return FileCache::OpenStream(resolvedPath.c_str(), access);
 	}
 
 	// Open the stream
@@ -187,10 +187,10 @@ bool FileStream::Exists(const char* filename, bool allowURLs) {
 		return false;
 	}
 
-	if (location == PathLocation::CACHE && MemoryCache::Using) {
+	if (location == PathLocation::CACHE && FileCache::InMemory) {
 		resolvedPath = Path::StripURL(filename);
 
-		return MemoryCache::Exists(resolvedPath.c_str());
+		return FileCache::Exists(resolvedPath.c_str());
 	}
 
 	return File::Exists(resolvedPath.c_str());

@@ -15,13 +15,17 @@
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Filesystem/File.h>
+#include <Engine/Filesystem/VFS/FileCache.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/FNV1A.h>
+#include <Engine/IO/VirtualFileStream.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 
 #include <Engine/Bytecode/Compiler.h>
 
+VirtualFileSystem* ScriptManager::BytecodeVFS = nullptr;
+bool ScriptManager::LoadPrecompiledCode = true;
 bool ScriptManager::LoadAllClasses = false;
 #ifdef VM_DEBUG
 bool ScriptManager::BreakpointsEnabled = false;
@@ -152,6 +156,13 @@ void ScriptManager::Init() {
 	ScriptEntity::Init();
 
 	TypeImpl::Init();
+
+	if (LoadPrecompiledCode) {
+		BytecodeVFS = ResourceManager::GetVFS();
+	}
+	else {
+		BytecodeVFS = FileCache::GetVFS();
+	}
 }
 #ifdef VM_DEBUG
 Uint32 ScriptManager::GetBranchLimit() {
@@ -564,7 +575,9 @@ void ScriptManager::LinkExtensions() {}
 // #endregion
 
 // #region ObjectFuncs
-ObjModule* ScriptManager::LoadBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+ObjModule* ScriptManager::LoadBytecode(VMThread* thread,
+	BytecodeContainer bytecodeContainer,
+	Uint32 filenameHash) {
 	Bytecode* bytecode = new Bytecode();
 	if (!bytecode->Read(bytecodeContainer, Tokens)) {
 		delete bytecode;
@@ -613,7 +626,9 @@ ObjModule* ScriptManager::LoadBytecode(VMThread* thread, BytecodeContainer bytec
 
 	return module;
 }
-bool ScriptManager::RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+bool ScriptManager::RunBytecode(VMThread* thread,
+	BytecodeContainer bytecodeContainer,
+	Uint32 filenameHash) {
 	ObjModule* module = LoadBytecode(thread, bytecodeContainer, filenameHash);
 
 	if (!module) {
@@ -688,8 +703,8 @@ Uint32 ScriptManager::MakeFilenameHash(const char* filename) {
 	return CombinedHash::EncryptData((const void*)filename, length);
 }
 std::string ScriptManager::GetBytecodeFilenameForHash(Uint32 filenameHash) {
-	char filename[sizeof(OBJECTS_DIR_NAME) + 12];
-	snprintf(filename, sizeof filename, "%s%08X.ibc", OBJECTS_DIR_NAME, filenameHash);
+	char filename[sizeof(OBJECTS_DIR_NAME) + 13];
+	snprintf(filename, sizeof filename, "%s/%08X.ibc", OBJECTS_DIR_NAME, filenameHash);
 	return std::string(filename);
 }
 BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash) {
@@ -704,11 +719,12 @@ BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash
 	std::string filenameForHash = GetBytecodeFilenameForHash(filenameHash);
 	const char* filename = filenameForHash.c_str();
 
-	if (!ResourceManager::ResourceExists(filename)) {
+	if (!BytecodeVFS->FileExists(filename)) {
 		return bytecode;
 	}
 
-	ResourceStream* stream = ResourceStream::New(filename);
+	VirtualFileStream* stream =
+		VirtualFileStream::New(BytecodeVFS, filename, VirtualFileStream::READ_ACCESS);
 	if (!stream) {
 		// Object doesn't exist?
 		return bytecode;
@@ -731,16 +747,9 @@ bool ScriptManager::BytecodeForFilenameHashExists(Uint32 filenameHash) {
 	std::string filenameForHash = GetBytecodeFilenameForHash(filenameHash);
 	const char* filename = filenameForHash.c_str();
 
-	if (!ResourceManager::ResourceExists(filename)) {
+	if (!BytecodeVFS->FileExists(filename)) {
 		return false;
 	}
-
-	ResourceStream* stream = ResourceStream::New(filename);
-	if (!stream) {
-		return false;
-	}
-
-	stream->Close();
 
 	return true;
 }
@@ -944,7 +953,9 @@ char* ScriptManager::GetSourceCodeLine(const char* sourceFilename, int line) {
 		}
 
 		if (!sourceFile->Exists) {
-			Log::Print(Log::LOG_WARN, "Source file \"%s\" does not exist.", sourceFilename);
+			Log::Print(Log::LOG_WARN,
+				"Source file \"%s\" does not exist.",
+				sourceFilename);
 		}
 
 		SourceFiles->Put(sourceFilename, sourceFile);

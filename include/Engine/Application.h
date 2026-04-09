@@ -22,6 +22,8 @@
 #define DEFAULT_GAME_DESCRIPTION "Cluck cluck I'm a chicken"
 #define DEFAULT_GAME_IDENTIFIER "hatch"
 
+#define DEFAULT_SCRIPTS_PATH "game://Scripts/"
+
 #define DEFAULT_SETTINGS_FILENAME "config://config.ini"
 
 #define DEFAULT_SAVES_DIR "saves"
@@ -31,7 +33,8 @@ private:
 	static char GameIdentifier[256];
 	static char DeveloperIdentifier[256];
 	static char SavesDir[256];
-	static char ScreenshotsPath[256];
+	static char ScriptsPath[MAX_PATH_LENGTH];
+	static char ScreenshotsPath[MAX_PATH_LENGTH];
 	static char PreferencesDir[256];
 
 	static std::unordered_map<std::string, Capability> CapabilityMap;
@@ -159,9 +162,12 @@ public:
 	static bool HasCapability(std::string capability);
 	static const char* GetDeveloperIdentifier();
 	static const char* GetGameIdentifier();
+	static const char* GetScriptsPath();
 	static const char* GetSavesDir();
 	static const char* GetScreenshotsPath();
 	static const char* GetPreferencesDir();
+	static bool SetScriptsPath(const char* path);
+	static bool SetScriptsPathDirect(const char* path);
 	static std::string GetFilenameForScreenshot();
 	static void TakeScreenshot(const char* path, Operation operation);
 	static void TakeScreenshot();

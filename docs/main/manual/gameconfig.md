@@ -18,6 +18,7 @@ Configures basic information about the game.
 | `gameIdentifier` | string | The game's identifier. If not set, this is generated from the short game title. | `"hatch"` |
 | `developerIdentifier` | string | The identifier of the developer. If not set, this is generated from the developer name. | |
 | `useDeveloperIdentifierInPaths` | boolean | Whether to use `developerIdentifier` in paths. | |
+| `scriptsPath` | string | The path to the resource file or directory where the game's scripts are located. If the path leads to a directory, it must end with a forward slash. URLs are supported. | `"game://Scripts/"` |
 | `savesDir` | string | The name of the saves directory. | `"saves"` |
 | `preferencesDir` | string | The name of the preferences directory. | |
 | `activeCategory` | string/integer | Which scene list category to use when the game starts. | `0` |
@@ -46,6 +47,7 @@ Configures general engine options.
 | `framerate` | integer | The rate of all fixed timestep updates. | `60` |
 | `useFixedTimestep` | boolean | Whether to use a fixed timestep, instead of a variable timestep. | `true` |
 | `enablePaletteUsage` | boolean | Whether to enable palette usage by default. | `false` |
+| `loadPrecompiledCode` | boolean | Whether to load bytecode from the resources. If this is `true`, all scripts located in `scriptsPath` are compiled into the main VFS (e.g. the `Resources` directory) when the game loads. Otherwise, bytecode is compiled to the cache and loaded from it. Change this option if the VFS is read-only, or if the game's scripts are meant to be separate from its resources. | `true` |
 | `loadAllClasses` | boolean | Whether to load all classes when loading the game. | `false` |
 | `useSoftwareRenderer` | boolean | Whether to enable the software renderer by default. | `false` |
 | `disableDefaultActions` | boolean | Whether to not add the default set of input actions. | `false` |

@@ -68,9 +68,9 @@ CPPFILES := \
 	source/Engine/Filesystem/File.cpp \
 	source/Engine/Filesystem/Path.cpp \
 	source/Engine/Filesystem/VFS/ArchiveVFS.cpp \
+	source/Engine/Filesystem/VFS/FileCache.cpp \
 	source/Engine/Filesystem/VFS/FileSystemVFS.cpp \
 	source/Engine/Filesystem/VFS/HatchVFS.cpp \
-	source/Engine/Filesystem/VFS/MemoryCache.cpp \
 	source/Engine/Filesystem/VFS/MemoryVFS.cpp \
 	source/Engine/Filesystem/VFS/VFSEntry.cpp \
 	source/Engine/Filesystem/VFS/VFSProvider.cpp \
@@ -318,9 +318,9 @@ PUBHFILES := \
 	include/Engine/Filesystem/File.h \
 	include/Engine/Filesystem/Path.h \
 	include/Engine/Filesystem/VFS/ArchiveVFS.h \
+	include/Engine/Filesystem/VFS/FileCache.h \
 	include/Engine/Filesystem/VFS/FileSystemVFS.h \
 	include/Engine/Filesystem/VFS/HatchVFS.h \
-	include/Engine/Filesystem/VFS/MemoryCache.h \
 	include/Engine/Filesystem/VFS/MemoryVFS.h \
 	include/Engine/Filesystem/VFS/VFSEntry.h \
 	include/Engine/Filesystem/VFS/VFSProvider.h \

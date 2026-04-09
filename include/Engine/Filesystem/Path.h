@@ -139,7 +139,6 @@ private:
 	static std::string GetBaseUserPath();
 	static std::string GetBaseConfigPath();
 	static std::string GetStatePath();
-	static std::string GetCachePath();
 	static std::string GetPicturesPath();
 	static std::string GetScreenshotsPath(bool makeDirs);
 	static std::string
@@ -176,6 +175,7 @@ public:
 	static void FromURL(const char* filename, char* buf, size_t bufSize);
 	static std::string StripURL(const char* filename);
 	static bool IsValid(const char* filename);
+	static std::string GetCachePath();
 };
 
 #endif /* ENGINE_FILESYSTEM_PATH_H */

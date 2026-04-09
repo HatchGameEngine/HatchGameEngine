@@ -64,7 +64,7 @@ bool VFSProvider::EraseFile(const char* filename) {
 }
 
 // Note that this may return the transformed filenames, depending on the provider.
-VFSEnumeration VFSProvider::EnumerateFiles(const char* path) {
+VFSEnumeration VFSProvider::EnumerateFiles(const char* path, const char* wildcard) {
 	VFSEnumeration enumeration;
 	enumeration.Result = VFSEnumerationResult::NO_RESULTS;
 

@@ -227,7 +227,7 @@ public:
 	void Initialize(char* name);
 	void Initialize();
 	void SetupLocals();
-	bool Compile(const char* filename, const char* source, Stream* output);
+	bool Compile(const char* filename, const char* source, size_t sourceLength, Stream* output);
 	void Cleanup();
 	static void DeleteFunctions();
 	void Finish();

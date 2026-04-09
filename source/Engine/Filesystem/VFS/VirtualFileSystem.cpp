@@ -34,6 +34,17 @@ VFSProvider* VirtualFileSystem::Get(size_t index) {
 
 	return nullptr;
 }
+VFSProvider* VirtualFileSystem::GetByMountPoint(const char* mountPoint) {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount& mount = LoadedVFS[i];
+
+		if (strcmp(mount.MountPoint.c_str(), mountPoint) == 0) {
+			return mount.VFSPtr;
+		}
+	}
+
+	return nullptr;
+}
 
 VFSMountStatus VirtualFileSystem::Mount(const char* name,
 	const char* filename,
@@ -143,6 +154,31 @@ bool VirtualFileSystem::FileExists(const char* filename) {
 	}
 
 	return false;
+}
+
+bool VirtualFileSystem::IsWritable() {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount& mount = LoadedVFS[i];
+		VFSProvider* vfs = mount.VFSPtr;
+
+		if (vfs->IsWritable()) {
+			return true;
+		}
+	}
+
+	return false;
+}
+bool VirtualFileSystem::IsEmpty() {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount& mount = LoadedVFS[i];
+		VFSProvider* vfs = mount.VFSPtr;
+
+		if (!vfs->IsEmpty()) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 Stream* VirtualFileSystem::OpenReadStream(const char* filename) {

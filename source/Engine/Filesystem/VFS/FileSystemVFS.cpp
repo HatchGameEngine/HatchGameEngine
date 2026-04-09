@@ -127,7 +127,9 @@ bool FileSystemVFS::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	CloseStream(stream);
 
 	*out = memory;
-	*size = length;
+	if (size) {
+		*size = length;
+	}
 
 	return true;
 }
@@ -171,7 +173,7 @@ bool FileSystemVFS::EraseFile(const char* filename) {
 	return false;
 }
 
-VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path) {
+VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path, const char* wildcard) {
 	VFSEnumeration enumeration;
 
 	std::string fullPath = ParentPath;
@@ -194,11 +196,15 @@ VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path) {
 		fullPathLength++;
 	}
 
+	if (wildcard == nullptr) {
+		wildcard = "*";
+	}
+
 	std::vector<std::filesystem::path> results;
-	Directory::GetFiles(&results, fullPath.c_str(), "*", true);
+	Directory::GetFiles(&results, fullPath.c_str(), wildcard, true);
 
 	for (size_t i = 0; i < results.size(); i++) {
-		std::string filename = Path::ToString(results[i]);
+		std::string filename = Path::Normalize(Path::ToString(results[i]));
 		const char* relPath = filename.c_str() + fullPathLength;
 
 		enumeration.Entries.push_back(std::string(relPath));
