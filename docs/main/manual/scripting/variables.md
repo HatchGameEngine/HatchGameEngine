@@ -42,7 +42,7 @@ There are three types of variable scope:
 
 When a variable is declared inside of a block, it's called a *local variable*. When a variable is declared outside of a block, it can be either a *global variable* a *script variable*. A global variable is any `var` or `const` declaration in top-level code, and a script variable is any `local var` or `local const` declaration in top-level code; since it's *local* to the script it's declared, it cannot be accessed from other scripts.
 
-In script scope or block scope, a local variable cannot reuse the identifier of another local variable in the same scope:
+In script scope or block scope, a local variable cannot reuse the identifier of another local variable in the same scope.
 
 ```java
 event printHello() {
@@ -66,22 +66,22 @@ event printFruit() {
 	if (preferBananas) {
 		const fruit = "banana";
 
-		print(fruit); // Prints "banana"
+		print fruit; // Prints "banana"
 	}
 
-	print(fruit); // Prints "apple"
+	print fruit; // Prints "apple"
 }
 
 printFruit();
 ```
 
-In global scope, a global variable can reuse the identifier of another global variable:
+In global scope, a global variable can reuse the identifier of another global variable.
 
 ```java
 var hello = "hello";
 var hello = "hi"; // This declaration overrides the earlier one.
 
-print(hello); // Prints "hi"
+print hello; // Prints "hi"
 ```
 
 A variable in script or block scope can be declared with the same identifier as a variable in global scope, temporarily overriding the global variable, until it goes out of scope.
@@ -92,10 +92,10 @@ var hello = "hello";
 if (hello) {
 	var hello = "hi";
 
-	print(hello); // Prints "hi"
+	print hello; // Prints "hi"
 }
 
-print(hello); // Prints "hello"
+print hello; // Prints "hello"
 ```
 
 Finally, a variable declared in block scope can no longer be accessed once the block ends (that is, after the `}`.)
@@ -136,27 +136,28 @@ A hitbox type can be constructed with integer literals, or integer variables. Th
 
 ```java
 var playerBox = hitbox{-16, -16, 16, 16};
-print(playerBox); // Prints "[-16, -16, 16, 16]"
+print playerBox; // Prints "[-16, -16, 16, 16]"
 
 var enemySize = 32;
 var enemyBox = hitbox{-enemySize, -enemySize, enemySize, enemySize};
-print(enemyBox); // Prints "[-32, -32, 32, 32]"
+print enemyBox; // Prints "[-32, -32, 32, 32]"
 ```
 
-The individual sides of a hitbox can be retrieved using the element-access syntax:
+The individual sides of a hitbox can be retrieved using the element-access syntax.
 
 ```java
 var playerBox = hitbox{-16, -24, 16, 24};
-print(playerBox[HITBOX_LEFT]); // Prints "-16"
-print(playerBox[HITBOX_TOP]); // Prints "-24"
-print(playerBox[HITBOX_RIGHT]); // Prints "16"
-print(playerBox[HITBOX_BOTTOM]); // Prints "24"
+print playerBox[HITBOX_LEFT]; // Prints "-16"
+print playerBox[HITBOX_TOP]; // Prints "-24"
+print playerBox[HITBOX_RIGHT]; // Prints "16"
+print playerBox[HITBOX_BOTTOM]; // Prints "24"
 ```
 
-Despite being a keyword, `hitbox` can still be used as an identifier:
+Despite being a keyword, `hitbox` can still be used as an identifier.
+
 ```java
 var hitbox = hitbox{-16, -24, 16, 24};
-print(hitbox); // Prints "[-16, -16, 16, 16]"
+print hitbox; // Prints "[-16, -16, 16, 16]"
 ```
 
 A hitbox is immutable.
@@ -177,7 +178,7 @@ if (color == "red") {
 }
 
 if (isVehicle == true && isRed == true) {
-	print("Is a red vehicle");
+	print "Is a red vehicle";
 }
 ```
 
@@ -195,17 +196,3 @@ The following are considered object types in HSL:
 | Bound method | A method with arguments bound to it. | `IsVehicle.bind(car);` |
 | Instance | An instance of a class. | `new Car()` |
 | Entity | A game object in a scene. | `Instance.Create("Car", 200.0, 192.0);` |
-
-# The `typeof` operator
-
-`typeof` can be used to retrieve the *type of* a variable. It returns a string.
-
-```java
-var item = "candy bar";
-var quantity = 10;
-var cost = 1.50;
-
-print(typeof item); // Prints "string"
-print(typeof quantity); // Prints "integer"
-print(typeof cost); // Prints "decimal"
-```

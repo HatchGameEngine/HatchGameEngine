@@ -1,8 +1,8 @@
-@page statements_and_expressions Statements and expressions
+@page expressions Expressions
 
-# Introduction
+# Expressions
 
-TODO
+An expression is a statement that results into a value. Expressions may be written without an accompanying statement.
 
 ## Constant expressions
 
@@ -50,7 +50,7 @@ Changing the above variables to `const` makes the warning disappear, but now a d
     Variable 'total' can be const. (Declared on line 9)
 ```
 
-Since the compiler can now determine `quantity * cost` is a constant expression, it started to warn about it. Changing `total` to be `const` makes all warnings disappear.
+Since the compiler can now determine `quantity * cost` is a constant expression, it started to warn about it. Changing `total` to be `const` makes all warnings disappear:
 
 ```java
 var item = "candy bar";
@@ -130,52 +130,4 @@ byte   ln
 0017    | OP_RETURN
 0018   14 OP_NULL
 0019    | OP_RETURN
-```
-
-## Operations with numbers
-
-If a binary operation consists of numbers, and either value is a decimal, the result is always a decimal.
-
-```java
-var value = 1 / 3;
-print(value); // Prints "0"
-
-var value = 1 / 3.0;
-print(value); // Prints "0.333333"
-
-var value = 1.0 / 3;
-print(value); // Also prints "0.333333"
-
-var value = 10 * 0.125;
-print(value); // Prints "1.250000"
-```
-
-```java
-var quantity = 10;
-var cost = 1.50;
-var total = quantity * cost;
-
-print(total); // Prints "15.000000"
-```
-
-Numbers can be casted to integers with @ref Number.AsInteger, and to decimals with @ref Number.AsDecimal.
-
-```java
-var value = 15.235;
-var valueAsInteger = Number.AsInteger(value);
-print(valueAsInteger); // Prints "15"
-
-var valueAsDecimal = Number.AsDecimal(valueAsInteger);
-print(valueAsDecimal); // Prints "15.000000"
-```
-
-Strings can be concatenated with numbers.
-
-```java
-var item = "candy bar";
-var quantity = 10;
-var cost = 1.50;
-
-// Prints "If you want 10 of a candy bar, that is going to cost $15.000000."
-print("If you want " + quantity + " of a " + item + ", that is going to cost $" + (quantity * cost) + ".");
 ```
