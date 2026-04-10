@@ -15,8 +15,6 @@ var _allReady;
 
 if (playersInGame > 0) {
 	_allReady = playersInGame == MAX_PLAYERS_IN_GAME;
-
-	return _allReady;
 }
 ```
 
