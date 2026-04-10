@@ -1,7 +1,5 @@
 @page statements Statements
 
-# Introduction
-
 A statement is something that performs an action. A semicolon character (`;`) is used to separate statements.
 
 ## Block statements

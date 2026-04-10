@@ -1,7 +1,5 @@
 @page expressions_and_operators Expressions and operators
 
-# Introduction
-
 An expression is a statement that results into a value. Expressions may be written without an accompanying statement.
 
 ## Constant expressions

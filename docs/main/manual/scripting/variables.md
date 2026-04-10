@@ -1,7 +1,5 @@
 @page variables Variables
 
-# Introduction
-
 A variable is used to store and retrieve data. There are five types of values in HSL: integers, numbers, objects, hitboxes, and `null`. The type of a variable is inferred from the value it's assigned to, and a variable can be reassigned to a different type from what it was initialized with.
 
 ## Declaring a variable
