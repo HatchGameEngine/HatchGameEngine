@@ -56,7 +56,7 @@ local var hello = "hello";
 local var hello = "hi"; // Compile error: "Local with this name already declared in this module."
 ```
 
-A variable in block scope is permitted to be declared with the same identifier as another previously declared variable in block scope if the latter declaration is in a deeper scope than the former declaration.
+A variable in block scope can be declared with the same identifier as another previously declared variable if the latter declaration is in a deeper block scope.
 
 ```java
 event printFruit() {
