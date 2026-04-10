@@ -2,7 +2,7 @@
 
 # Introduction
 
-A variable is used to store and retrieve data. They can be declared using `var` or `const`. Variables are scoped to the block they are declared; those are called *local variables*. However, when declared in top-level code, they are called *global variables*, because they can be accessed from any script. To make a variable declared in top-level code only accessible from the script it lives in, it must be declared using `local var` or `local const`. There are five types of variables in HSL: integers, numbers, objects, hitboxes, and `null`. All types are passed by value, except objects, which are passed by reference.
+A variable is used to store and retrieve data. Variables can be declared using `var` or `const`. Variables are scoped to the block they are declared; those are called *local variables*. However, when declared in top-level code, they are called *global variables*, because they can be accessed from any script. To make a variable declared in top-level code only accessible from the script it lives in, it must be declared using `local var` or `local const`. There are five types of variables in HSL: integers, numbers, objects, hitboxes, and `null`. All types are passed by value, except objects, which are passed by reference.
 
 ## Declaring a variable
 
