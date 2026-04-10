@@ -2,54 +2,74 @@
 
 # Introduction
 
-A variable is used to store and retrieve data. They can be declared using `var` or `const`. There are five types of variables in HSL: integers, numbers, objects, hitboxes, and `null`. All types are passed by value, except objects, which are passed by reference.
+A variable is used to store and retrieve data. They can be declared using `var` or `const`. Variables are scoped to the block they are declared; those are called *local variables*. However, when declared in top-level code, they are called *global variables*, because they can be accessed from any script. To make a variable declared in top-level code only accessible from the script it lives in, it must be declared using `local var` or `local const`. There are five types of variables in HSL: integers, numbers, objects, hitboxes, and `null`. All types are passed by value, except objects, which are passed by reference.
 
 ## Declaring a variable
 
-Variables can be declared using `var`, for variables that are mutable, and `const`, for variables that are immutable and are a constant value. A variable declared with `var` may be assigned to, but `const` variables must be assigned to a constant expression.
-
-### Naming variables
-
-A variable can start with an alphabetic letter, `$`, or `_`, and the remaining characters can be digits.
+Variables declared using `var` are mutable and may be initialized with an expression, and variables declared with `const` must be assigned to a constant expression. The name of a variable is called an *identifier*. An identifier can start with an alphabetic letter, `_`, or `$`, and the remaining characters can be digits. Variable names are case sensitive: `playerName`, `PlayerName`, and `PLAYERNAME` are different variables. Examples of valid identifiers are: `onMainMenu`, `top10`, `MAX_HIGH_SCORES`, `$total`, and `_average`.
 
 ```java
+const MAX_PLAYERS_IN_GAME = 4;
 var playersInGame = 2;
 var _allReady;
 
 if (playersInGame > 0) {
-	var has4Players = playersInGame == 4;
-
-	_allReady = has4Players;
+	_allReady = playersInGame == MAX_PLAYERS_IN_GAME;
 
 	return _allReady;
 }
 ```
 
-### Global variables
-
-A variable can be declared in top-level code, which makes them global variables. If a variable declared with `var` is not assigned to, it's initialized as `null`.
+A variable cannot reuse the identifier of another variable in the same scope.
 
 ```java
-var PlayersInGame; // Can be accessed from another script
-
-const MAX_PLAYERS_IN_GAME = 4; // Can also be accessed from another script
-
-PlayersInGame = 2;
+event printHello() {
+	var hello = "hello";
+	var hello = "hi"; // Compile error: "Variable with this name already declared in this scope."
+}
 ```
 
-### Local variables
-
-A variable declared in top-level code can be *local*, which makes them inaccessible to other scripts.
+The exception is top-level code. The latter declaration overrides the earlier one.
 
 ```java
-local var PlayersInGame; // Cannot be accessed from another script
+var hello = "hello";
+var hello = "hi";
 
-local const MAX_PLAYERS_IN_GAME = 4; // Also cannot be accessed from another script
-
-PlayersInGame = 2;
+print(hello); // Prints "hi"
 ```
 
-### Scoping
+A local variable can be declared with the same name as a global variable, and it does not permanently override the global variable. The local variable only exists in its scope.
+
+```java
+var hello = "hello";
+
+if (hello) {
+	var hello = "hi";
+
+	print(hello); // Prints "hi"
+}
+
+print(hello); // Prints "hello"
+```
+
+A local variable is permitted to *shadow* another variable if it's in a deeper scope than the variable it's shadowing.
+
+```java
+event printFruit() {
+	const preferBananas = true;
+	const fruit = "apple";
+
+	if (preferBananas) {
+		const fruit = "banana";
+
+		print(fruit); // Prints "banana"
+	}
+
+	print(fruit); // Prints "apple"
+}
+
+printFruit();
+```
 
 A variable declared inside of a block can no longer be accessed once that block ends (that is, after the `}`.)
 
@@ -67,28 +87,6 @@ if (PlayersInGame != MAX_PLAYERS_IN_GAME) {
 
 	// remainingPlayers can no longer be accessed after this line
 }
-else {
-	text = "All players have joined!";
-}
-
-print("Waiting for " + text + " to join...");
-```
-
-### Shadowing
-
-A variable is permitted to *shadow* another variable if it's in a deeper scope than the variable it's shadowing.
-
-```java
-const preferBananas = true;
-const fruit = "apple";
-
-if (preferBananas) {
-	const fruit = "banana";
-
-	print(fruit); // Prints "banana"
-}
-
-print(fruit); // Prints "apple"
 ```
 
 # Types
@@ -171,9 +169,9 @@ The following are considered object types in HSL:
 | Instance | An instance of a class. | `new Car()` |
 | Entity | A game object in a scene. | `Instance.Create("Car", 200.0, 192.0);` |
 
-## The `typeof` operator
+# The `typeof` operator
 
-`typeof` can be used to retrieve the *type of* a variable.
+`typeof` can be used to retrieve the *type of* a variable. It returns a string.
 
 ```java
 var item = "candy bar";
