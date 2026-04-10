@@ -6,7 +6,7 @@ A variable is used to store and retrieve data. They can be declared using `var` 
 
 ## Declaring a variable
 
-Variables declared using `var` are mutable and may be initialized with an expression, and variables declared with `const` must be assigned to a constant expression. The name of a variable is called an *identifier*. An identifier can start with an alphabetic letter, `_`, or `$`, and the remaining characters can be digits. Variable names are case sensitive: `playerName`, `PlayerName`, and `PLAYERNAME` are different variables. Examples of valid identifiers are: `onMainMenu`, `top10`, `MAX_HIGH_SCORES`, `$total`, and `_average`.
+Variables declared using `var` are mutable and may be initialized with an expression. Variables declared with `const` are immutable and must be initialized with a constant expression. The name of a variable is called an *identifier*. An identifier can start with an alphabetic letter, `_`, or `$`, and the remaining characters can be digits. Variable names are case sensitive: `playerName`, `PlayerName`, and `PLAYERNAME` are different variables. Examples of valid identifiers are: `onMainMenu`, `top10`, `MAX_HIGH_SCORES`, `$total`, and `_average`.
 
 ```java
 const MAX_PLAYERS_IN_GAME = 4;
@@ -38,7 +38,7 @@ var hello = "hi";
 print(hello); // Prints "hi"
 ```
 
-A local variable can be declared with the same name as a global variable, and it does not permanently override the global variable. The local variable only exists in its scope.
+A local variable can be declared with the same identifier as a global variable, and it does not permanently override the global variable. The local variable only exists in its scope.
 
 ```java
 var hello = "hello";
