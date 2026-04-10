@@ -3,4 +3,4 @@
 All concepts related to HSL as a language. WIP!
 
 - @subpage variables
-- @subpage expressions
+- @subpage statements_and_expressions
