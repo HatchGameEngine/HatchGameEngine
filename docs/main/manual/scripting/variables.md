@@ -2,14 +2,29 @@
 
 # Introduction
 
-A variable is used to store and retrieve data. Variables can be declared using `var` or `const`. Variables are scoped to the block they are declared; those are called *local variables*. However, when declared in top-level code, they are called *global variables*, because they can be accessed from any script. To make a variable declared in top-level code only accessible from the script it lives in, it must be declared using `local var` or `local const`. There are five types of variables in HSL: integers, numbers, objects, hitboxes, and `null`. All types are passed by value, except objects, which are passed by reference.
+A variable is used to store and retrieve data. There are five types of values in HSL: integers, numbers, objects, hitboxes, and `null`. The type of a variable is inferred from the value it's assigned to, and a variable can be reassigned to a different type from what it was initialized with.
 
 ## Declaring a variable
 
-Variables declared using `var` are mutable and may be initialized with an expression. Variables declared with `const` are immutable and must be initialized with a constant expression. The name of a variable is called an *identifier*. An identifier can start with an alphabetic letter, `_`, or `$`, and the remaining characters can be digits. Variable names are case sensitive: `playerName`, `PlayerName`, and `PLAYERNAME` are different variables. Examples of valid identifiers are: `onMainMenu`, `top10`, `MAX_HIGH_SCORES`, `$total`, and `_average`.
+Variables can be declared using `var` or `const`. Variables declared using `var` are mutable and may be initialized with an expression. If a `var` is not assigned to any value, it's initialized to `null`.
+
+```java
+var x = 5;
+var y; // Implied to be null
+```
+
+Variables declared with `const` are immutable and must be initialized with a constant expression.
 
 ```java
 const MAX_PLAYERS_IN_GAME = 4;
+const MAX_LIVES; // Compile error: ""const" variables must have an explicit constant declaration."
+```
+
+The name of a variable is called an *identifier*. An identifier can start with an alphabetic letter, `_`, or `$`, and the remaining characters can be digits. Variable names are case sensitive: `playerName`, `PlayerName`, and `PLAYERNAME` are different variables. Examples of valid identifiers are: `onMainMenu`, `top10`, `MAX_HIGH_SCORES`, `$total`, and `_average`.
+
+```java
+const MAX_PLAYERS_IN_GAME = 4;
+
 var playersInGame = 2;
 var _allReady;
 
@@ -18,7 +33,16 @@ if (playersInGame > 0) {
 }
 ```
 
-A variable cannot reuse the identifier of another variable in the same scope.
+## Scope of a variable
+
+There are three types of variable scope:
+- Global scope: The variable can be accessed from any script.
+- Script scope: The variable can only be accessed the script it was declared in.
+- Block scope: The variable can only be accessed in the block statement (a pair of curly braces) it was declared in, and all blocks found inside of that block.
+
+When a variable is declared inside of a block, it's called a *local variable*. When a variable is declared outside of a block, it can be either a *global variable* a *script variable*. A global variable is any `var` or `const` declaration in top-level code, and a script variable is any `local var` or `local const` declaration in top-level code; since it's *local* to the script it's declared, it cannot be accessed from other scripts.
+
+In script scope or block scope, a local variable cannot reuse the identifier of another local variable in the same scope:
 
 ```java
 event printHello() {
@@ -27,30 +51,12 @@ event printHello() {
 }
 ```
 
-The exception is top-level code. The latter declaration overrides the earlier one.
-
 ```java
-var hello = "hello";
-var hello = "hi";
-
-print(hello); // Prints "hi"
+local var hello = "hello";
+local var hello = "hi"; // Compile error: "Local with this name already declared in this module."
 ```
 
-A local variable can be declared with the same identifier as a global variable, and it does not permanently override the global variable. The local variable only exists in its scope.
-
-```java
-var hello = "hello";
-
-if (hello) {
-	var hello = "hi";
-
-	print(hello); // Prints "hi"
-}
-
-print(hello); // Prints "hello"
-```
-
-A local variable is permitted to *shadow* another variable if it's in a deeper scope than the variable it's shadowing.
+A variable in block scope is permitted to be declared with the same identifier as another previously declared variable in block scope if the latter declaration is in a deeper scope than the former declaration.
 
 ```java
 event printFruit() {
@@ -69,7 +75,30 @@ event printFruit() {
 printFruit();
 ```
 
-A variable declared inside of a block can no longer be accessed once that block ends (that is, after the `}`.)
+In global scope, a global variable can reuse the identifier of another global variable:
+
+```java
+var hello = "hello";
+var hello = "hi"; // This declaration overrides the earlier one.
+
+print(hello); // Prints "hi"
+```
+
+A variable in script or block scope can be declared with the same identifier as a variable in global scope, temporarily overriding the global variable, until it goes out of scope.
+
+```java
+var hello = "hello";
+
+if (hello) {
+	var hello = "hi";
+
+	print(hello); // Prints "hi"
+}
+
+print(hello); // Prints "hello"
+```
+
+Finally, a variable declared in block scope can no longer be accessed once the block ends (that is, after the `}`.)
 
 ```java
 var text;
@@ -89,7 +118,7 @@ if (PlayersInGame != MAX_PLAYERS_IN_GAME) {
 
 # Types
 
-The following are considered basic types in HSL:
+In HSL, all types are passed by value, except objects, which are passed by reference. The following are considered basic types in HSL:
 
 ## Basic types
 
