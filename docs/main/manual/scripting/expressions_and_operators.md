@@ -1,6 +1,81 @@
 @page expressions_and_operators Expressions and operators
 
-An **expression** is a statement that results into a value. Expressions may be written without an accompanying statement.
+An **expression** is a statement that results into a value. Most expressions are used with **operators**. For example, `x = 2` is an expression that uses the assignment operator (`=`) to assign the literal `2` to the variable `x`.
+
+Operators have precedence, which changes the order the code is executed.
+
+```java
+var a = 4 + 2 * 3;
+var b = 11 - 7 / 2;
+```
+
+Since `*` and `/` have higher precedence than `+` and `-`, the above expressions result in `10` and `8`. Using parentheses to create a *grouped expression* changes the precedence of the operators.
+
+```java
+var a = (4 + 2) * 3;
+var b = (11 - 7) / 2;
+```
+
+The grouped expressions are evaluated first, so they result in `18` and `2`.
+
+## Unary and binary operators
+
+Operators in HSL can be either *unary*, *binary*, or *ternary*.
+
+Unary operators require a single operand before or after the operator.
+
+```
+operator operand // Prefix
+operand operator // Postfix
+```
+
+When an unary operator is placed before the operand, it's called a *prefix unary operator*. Otherwise, if an unary operator is placed after the operand, it's called a *postfix unary operator*. Examples of expressions with unary operators are `++a`, `!value`, `typeof text`, and `b--`.
+
+Binary operators require two operands: one before the operator, and one after the operator.
+
+```
+operand operator operand // Infix
+```
+
+The above is called an *infix binary operator* because the operator is between the two operands. Examples of expressions with binary operators are `5 + 3`, `a > b`, and `10 /= 2`.
+
+HSL only has one kind of ternary operator:
+
+```
+condition ? expressionIfTruthy : expressionIfFalsey
+```
+
+This operator evaluates `condition`, and if it's a truthy value, evaluates the `expressionIfTruthy` expression and skips the `expressionIfFalsey` expression. Otherwise, if `condition` evaluates to a falsey value, the operator skips the `expressionIfTruthy` expression and evaluates the `expressionIfFalsey` expression.
+
+This can be used as an alternative for `if`-`else` statements.
+
+```java
+event getPlayerAliveOrDead(health) {
+    var playerAliveOrDead = health > 0 ? "alive" : "dead";
+    return playerAliveOrDead;
+}
+
+print(getPlayerAliveOrDead(10)); // Prints "alive"
+print(getPlayerAliveOrDead(0)); // Prints "dead"
+```
+
+The code above is equivalent to the code below:
+
+```java
+event getPlayerAliveOrDead(health) {
+    var playerAliveOrDead;
+    if (health > 0) {
+        playerAliveOrDead = "alive";
+    }
+    else {
+        playerAliveOrDead = "dead";
+    }
+    return playerAliveOrDead;
+}
+
+print(getPlayerAliveOrDead(10)); // Prints "alive"
+print(getPlayerAliveOrDead(0)); // Prints "dead"
+```
 
 ## Constant expressions
 
