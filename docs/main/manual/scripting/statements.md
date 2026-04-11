@@ -2,9 +2,9 @@
 
 A statement is something that performs an action. A semicolon character (`;`) is used to separate statements.
 
-## Block statements
+## Block statement
 
-The most commonly used kind of statement is a **block statement**. It begins with a left curly brace and ends with a right curly brace.
+The most commonly used kind of statement is a **block statement**. It begins with a left curly brace (`{`) and ends with a right curly brace (`}`).
 
 ```java
 {
@@ -19,9 +19,9 @@ The most commonly used kind of statement is a **block statement**. It begins wit
 }
 ```
 
-## `print` statements
+## `print` statement
 
-`print` is also a statement. It requires an expression.
+`print` is a statement that prints the result of the expression into the log.
 
 ```java
 print "Hello world!";
@@ -39,9 +39,15 @@ print Application;
      INFO: <class Application>
 ```
 
-## Conditional statements
+## Control flow statements
 
-Statements are used to introduce control flow. In HSL, conditional statements are `if`, `if`-`else`, and `switch`.
+Statements can be used to introduce control flow into a script. In HSL, the following statements are **control flow statements**:
+- `if`: Executes a statement if a condition is a truthy value.
+- `else`: Executes a statement if the condition of an `if` statement was not a truthy value.
+- `switch`: Matches a value with `case` labels.
+- `continue`: Finishes the current iteration of a loop.
+- `break`: Interrupts execution of a loop or `switch`.
+- `return`: Interrupts the execution of a function, and return a value.
 
 ### `if` and `else` statements
 
@@ -125,7 +131,6 @@ switch (drink) {
         break;
 }
 ```
-
 ```
      INFO: Drinking juice.
 ```
@@ -215,7 +220,7 @@ event calculate(a, b, operation) {
 print calculate(5, 2, "plus"); // Prints "7"
 ```
 
-A variable cannot be declared inside a `switch` statement without a block.
+Declarations cannot be written inside of a `switch` statement, without using a block.
 
 ```java
 event calculate(a, b, operation) {
@@ -236,7 +241,7 @@ event calculate(a, b, operation) {
 }
 ```
 
-Using a block after a label lets you declare variables:
+Using a block after a label lets you use declarations:
 
 ```java
 event calculate(a, b, operation) {
@@ -263,9 +268,154 @@ event calculate(a, b, operation) {
 print calculate(5, 2, "plus"); // Prints "7"
 ```
 
+### `continue` statement
+
+A `continue` statement finishes the current iteration of a loop, and begins the next iteration.
+
+```java
+repeat (10, counter, remaining) {
+    print "Counter: " + counter;
+
+    if (counter < 7) {
+        continue;
+    }
+
+    print "Loop will end in " + remaining;
+}
+```
+```
+     INFO: Counter: 0
+     INFO: Counter: 1
+     INFO: Counter: 2
+     INFO: Counter: 3
+     INFO: Counter: 4
+     INFO: Counter: 5
+     INFO: Counter: 6
+     INFO: Counter: 7
+     INFO: Loop will end in 3
+     INFO: Counter: 8
+     INFO: Loop will end in 2
+     INFO: Counter: 9
+     INFO: Loop will end in 1
+```
+
+### `break` statement
+
+A `break` statement exits a loop immediately.
+
+```java
+repeat (10, counter) {
+    print "Counter: " + counter;
+
+    if (counter == 3) {
+        print "Stopping.";
+        break;
+    }
+}
+```
+```
+     INFO: Counter: 0
+     INFO: Counter: 1
+     INFO: Counter: 2
+     INFO: Counter: 3
+     INFO: Stopping.
+```
+
+`break` can also exit a `switch`.
+
+```java
+event printWeekday(weekday) {
+    switch (weekday) {
+        case WEEKDAY_MONDAY:
+            print "Start of business days";
+        case WEEKDAY_TUESDAY:
+        case WEEKDAY_WEDNESDAY:
+        case WEEKDAY_THURSDAY:
+        case WEEKDAY_FRIDAY:
+            print "Weekday";
+            break;
+        case WEEKDAY_SATURDAY:
+        case WEEKDAY_SUNDAY:
+            print "Weekend";
+    }
+}
+
+printWeekday(WEEKDAY_MONDAY);
+printWeekday(WEEKDAY_TUESDAY);
+printWeekday(WEEKDAY_FRIDAY);
+printWeekday(WEEKDAY_SATURDAY);
+```
+```
+     INFO: Start of business days
+     INFO: Weekday
+     INFO: Weekday
+     INFO: Weekday
+     INFO: Weekend
+```
+
+A `break` is not necessary on the last `case` label, since the `switch` will exit anyway.
+
+### `return` statement
+
+A `return` statement ends the execution of a function, and optionally specifies a value to be returned. At most one value can be returned from a function.
+
+```java
+event returnHello() {
+    return "Hello";
+}
+
+var hello = returnHello();
+print(hello);
+```
+```
+     INFO: Hello
+```
+
+If `return` is followed by a semicolon (`;`) instead of an expression, `null` is returned.
+
+```java
+var result;
+
+event divide(a, b) {
+    if (b == 0) {
+        return;
+    }
+
+    return a / b;
+}
+
+result = divide(10, 2);
+print(result);
+
+result = divide(7, 3.0);
+print(result);
+
+result = divide(5, 0);
+print(result);
+```
+```
+     INFO: 5
+     INFO: 2.333333
+     INFO: null
+```
+
+Top-level code cannot be returned from.
+
+```java
+var a = 10;
+var b = 2;
+
+if (b == 0) {
+    return; // Compile error: "Cannot return from top-level code."
+}
+
+var result = a / b;
+print(result);
+```
+
 ## Loop and iteration statements
 
-A **loop** is a way to execute a specific piece of code many times. The simplest kind of loop is a `repeat`, but there are conventional `while`, `do`-`while`, and `for` loops as well. In any loop, `continue` can be used to finish the current iteration and begin the next one, and `break` can be used to exit the entire loop immediately.
+A **loop** is a way to execute a specific piece of code many times. The simplest kind of loop is a `repeat`, but there are conventional `while`, `do`-`while`, and `for` loops as well.
 
 ### `repeat` loops
 
@@ -381,55 +531,6 @@ repeat (10, counter) {
         counter = 8; // Compile error: "Attempted to assign to constant!"
     }
 }
-```
-
-`continue` can be used to finish the current iteration of the loop.
-
-```java
-repeat (10, counter, remaining) {
-    print "Counter: " + counter;
-
-    if (counter < 7) {
-        continue;
-    }
-
-    print "Loop will end in " + remaining;
-}
-```
-```
-     INFO: Counter: 0
-     INFO: Counter: 1
-     INFO: Counter: 2
-     INFO: Counter: 3
-     INFO: Counter: 4
-     INFO: Counter: 5
-     INFO: Counter: 6
-     INFO: Counter: 7
-     INFO: Loop will end in 3
-     INFO: Counter: 8
-     INFO: Loop will end in 2
-     INFO: Counter: 9
-     INFO: Loop will end in 1
-```
-
-`break` can be used to interrupt the execution of the loop.
-
-```java
-repeat (10, counter) {
-    print "Counter: " + counter;
-
-    if (counter == 3) {
-        print "Stopping.";
-        break;
-    }
-}
-```
-```
-     INFO: Counter: 0
-     INFO: Counter: 1
-     INFO: Counter: 2
-     INFO: Counter: 3
-     INFO: Stopping.
 ```
 
 ### `while` and `do`-`while` loops
@@ -617,3 +718,15 @@ How `for`-`in` works is as following:
 2. If `iterate` returns `null`, the iteration ends.
 3. `iteratorValue` is called. The value that `iterate` returned is passed to `index`. It must return the value that will be used in this iteration.
 4. If the loop wasn't interrupted using `break` or `return`, go back to step 1.
+
+## Declaration statements
+
+In HSL, the following statements are **declaration statements**:
+- `var`: Declares a variable. Assignment is optional.
+- `const`: Declares a constant variable. Requires assignment with a constant expression.
+- `local`: Declares a variable or a constant in script scope.
+- `event`: Declares a function or a method.
+- `class`: Declares a class.
+- `enum`: Declares an enumeration.
+- `import`: Imports a script or a class.
+- `using`: Places the classes or constants of a namespace into global scope.

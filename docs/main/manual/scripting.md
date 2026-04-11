@@ -1,6 +1,6 @@
 @page scripting Scripting
 
-All concepts related to HSL as a language. WIP!
+All concepts related to HSL as a language. This documentation is a heavy work in progress!
 
 - @subpage variables
 - @subpage statements

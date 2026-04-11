@@ -4,7 +4,7 @@ A **variable** is used to store and retrieve data. There are five types of value
 
 ## Declaring a variable
 
-Variables can be declared using `var` or `const`. Variables declared using `var` are mutable and may be initialized with an expression. If a `var` is not assigned to any value, it's initialized to `null`.
+Variables can be declared using the `var` or `const` statements. Variables declared using `var` are mutable and may be initialized with an expression. If a `var` is not assigned to any value, it's initialized to `null`.
 
 ```java
 var x = 5;
@@ -114,11 +114,11 @@ if (PlayersInGame != MAX_PLAYERS_IN_GAME) {
 }
 ```
 
-# Types
+## Types
 
 In HSL, all variable types are passed by value, except objects, which are passed by reference. The following are considered **basic types**:
 
-## Basic types
+### Basic types
 
 | Type             | Description      | Examples         |
 | ---------------- | ---------------- | ---------------- |
@@ -128,7 +128,7 @@ In HSL, all variable types are passed by value, except objects, which are passed
 | Hitbox | A rectangular shape, used for collision. | `hitbox{-16, -16, 16, 16}` |
 | `null` | Absence of a value. | `null` |
 
-### Hitboxes
+#### Hitboxes
 
 A **hitbox** type can be constructed with integer literals, or integer variables. The values *must* be integers; they cannot be decimals. The order of the values are: left, top, right, and bottom.
 
@@ -165,7 +165,7 @@ var playerBox = hitbox{-16, -24, 16, 24};
 playerBox[HITBOX_LEFT] = 5; // Throws a runtime error: "Cannot set element of hitbox."
 ```
 
-### Booleans
+#### Booleans
 
 While HSL doesn't natively have a boolean type, `true` and `false` are accepted and considered the same as `1` and `0` respectively.
 
@@ -180,7 +180,7 @@ if (isVehicle == true && isRed == true) {
 }
 ```
 
-## Object types
+### Object types
 
 The following are considered **object types** in HSL:
 
