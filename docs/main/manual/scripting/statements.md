@@ -577,7 +577,7 @@ for (book in bookcase) {
 ```
 
 How `for`-`in` works is as following:
-1. Call `iterate`. When the iteration begins, `null` is passed to `state`; this signals to the method that the iteration began. If the iteration was already ongoing, `state` is the value that `iterate` last returned.
+1. `iterate` is called. When the iteration begins, `null` is passed to `state`. If the iteration was already ongoing, `state` is the value that `iterate` last returned.
 2. If `iterate` returns `null`, the iteration ends.
-3. Call `iteratorValue` passing the value that `iterate` returned to `index`. It must return the value that will be used in this iteration.
-4. If the loop wasn't interrupted, go back to step 1.
+3. `iteratorValue` is called. The value that `iterate` returned is passed to `index`. It must return the value that will be used in this iteration.
+4. If the loop wasn't interrupted using `break` or `return`, go back to step 1.
