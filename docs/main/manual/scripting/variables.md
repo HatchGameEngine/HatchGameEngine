@@ -1,6 +1,6 @@
 @page variables Variables
 
-A variable is used to store and retrieve data. There are five types of values in HSL: integers, numbers, objects, hitboxes, and `null`. The type of a variable is inferred from the value it's assigned to, and a variable can be reassigned to a different type from what it was initialized with.
+A **variable** is used to store and retrieve data. There are five types of values in HSL: integers, numbers, objects, hitboxes, and `null`. The type of a variable is inferred from the value it's assigned to, and a variable can be reassigned to a different type from what it was initialized with.
 
 ## Declaring a variable
 
@@ -33,7 +33,7 @@ if (playersInGame > 0) {
 
 ## Scope of a variable
 
-There are three types of variable scope:
+There are three types of **variable scope**:
 - Global scope: The variable can be accessed from any script.
 - Script scope: The variable can only be accessed the script it was declared in.
 - Block scope: The variable can only be accessed in the block statement (a pair of curly braces) it was declared in, and all blocks found inside of that block.
@@ -116,7 +116,7 @@ if (PlayersInGame != MAX_PLAYERS_IN_GAME) {
 
 # Types
 
-In HSL, all types are passed by value, except objects, which are passed by reference. The following are considered basic types in HSL:
+In HSL, all variable types are passed by value, except objects, which are passed by reference. The following are considered **basic types**:
 
 ## Basic types
 
@@ -130,7 +130,7 @@ In HSL, all types are passed by value, except objects, which are passed by refer
 
 ### Hitboxes
 
-A hitbox type can be constructed with integer literals, or integer variables. The values *must* be integers; they cannot be decimals. The order of the values are: left, top, right, and bottom.
+A **hitbox** type can be constructed with integer literals, or integer variables. The values *must* be integers; they cannot be decimals. The order of the values are: left, top, right, and bottom.
 
 ```java
 var playerBox = hitbox{-16, -16, 16, 16};
@@ -182,7 +182,7 @@ if (isVehicle == true && isRed == true) {
 
 ## Object types
 
-The following are considered object types in HSL:
+The following are considered **object types** in HSL:
 
 | Type             | Description      | Example          |
 | ---------------- | ---------------- | ---------------- |

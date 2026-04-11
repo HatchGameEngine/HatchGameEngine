@@ -1,10 +1,10 @@
 @page expressions_and_operators Expressions and operators
 
-An expression is a statement that results into a value. Expressions may be written without an accompanying statement.
+An **expression** is a statement that results into a value. Expressions may be written without an accompanying statement.
 
 ## Constant expressions
 
-A constant expression is one that can be evaluated at compile time. They can be assigned to a `var` or a `const` variable, but `const` variables require a constant expression.
+A **constant expression** is one that can be evaluated at compile time. They can be assigned to a `var` or a `const` variable, but `const` variables require a constant expression.
 
 ```java
 const value = 2 + 2;
