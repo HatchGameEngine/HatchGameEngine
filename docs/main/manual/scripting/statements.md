@@ -32,7 +32,6 @@ print 2 + 2;
 
 print Application;
 ```
-
 ```
      INFO: Hello world!
      INFO: Good evening.
@@ -270,7 +269,7 @@ A **loop** is a way to execute a specific piece of code many times. The simplest
 
 ### `repeat` loops
 
-A `repeat` loop executes code a specific amount of times. In its basic form, it looks like the following:
+A `repeat` loop executes its statement a specific amount of times. In its basic form, it looks like the following:
 
 ```java
 repeat (expression)
@@ -284,7 +283,6 @@ repeat (3) {
     print "Hello world!";
 }
 ```
-
 ```
      INFO: Hello world!
      INFO: Hello world!
@@ -432,6 +430,44 @@ repeat (10, counter) {
      INFO: Counter: 2
      INFO: Counter: 3
      INFO: Stopping.
+```
+
+### `while` and `do`-`while` loops
+
+A `while` loop executes its statement as long as its condition evaluates to a truthy value. The condition is checked before the iteration.
+
+```java
+var i = 0;
+while (i < 3) {
+    print "Hello world!";
+    i++;
+}
+```
+```
+     INFO: Hello world!
+     INFO: Hello world!
+     INFO: Hello world!
+```
+
+A `do`-`while` loop is the same as a `while` loop, but its statement executes at least once, and then the condition is checked after the iteration.
+
+```java
+var i = 4;
+do {
+    // This loop will execute at least once, even though its condition is never truthy.
+    print "Hello world!";
+    i++;
+} while (i < 3);
+
+var j = 4;
+while (j < 3) {
+    // This loop is guaranteed to never execute.
+    print "Hello world!";
+    j++;
+}
+```
+```
+     INFO: Hello world!
 ```
 
 ### `for` loops
