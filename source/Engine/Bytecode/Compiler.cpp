@@ -2533,6 +2533,8 @@ void Compiler::GetCaseStatement() {
 	SwitchJumpListStack.top()->push_back(case_info);
 }
 void Compiler::GetDefaultStatement() {
+	Token defaultStatement = parser.Previous;
+
 	if (SwitchJumpListStack.size() == 0) {
 		Error("Cannot use default label outside of switch statement.");
 	}
@@ -2543,7 +2545,7 @@ void Compiler::GetDefaultStatement() {
 	vector<switch_case>* top = SwitchJumpListStack.top();
 	for (size_t i = 0; i < top->size(); i++) {
 		if ((*top)[i].IsDefault) {
-			Error("Cannot have multiple default clauses.");
+			ErrorAt(&defaultStatement, "Cannot have multiple default clauses.", true);
 		}
 	}
 
