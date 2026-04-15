@@ -913,6 +913,8 @@ void Application::EndGame() {
 
 	Entity::DisableAutoAnimate = false;
 	Entity::UseAnimationFrameSkip = true;
+
+	Discord::Dispose();
 }
 
 void Application::UnloadGame() {
