@@ -26,6 +26,7 @@ int Graphics::MultisamplingEnabled = 0;
 int Graphics::FontDPI = 1;
 bool Graphics::SupportsShaders = false;
 bool Graphics::SupportsBatching = false;
+bool Graphics::LayerTileBufferingEnabled = true;
 bool Graphics::TextureBlend = false;
 bool Graphics::TextureInterpolate = false;
 Uint32 Graphics::PreferredPixelFormat = PixelFormat_RGBA8888;

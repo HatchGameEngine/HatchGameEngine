@@ -79,7 +79,6 @@ public:
 	static Uint16 EmptyTile;
 	static vector<SceneLayer> Layers;
 	static bool AnyLayerTileChange;
-	static bool LayerTileBufferingEnabled;
 	static int TileCount;
 	static int TileWidth;
 	static int TileHeight;

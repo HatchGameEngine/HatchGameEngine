@@ -1077,6 +1077,8 @@ void Application::LoadVideoSettings() {
 			"graphics", "multisample", &Graphics::MultisamplingEnabled);
 		Application::Settings->GetBool(
 			"graphics", "precompileShaders", &Graphics::PrecompileShaders);
+		Application::Settings->GetBool(
+			"graphics", "layerTileBuffering", &Graphics::LayerTileBufferingEnabled);
 
 		if (Graphics::MultisamplingEnabled < 0) {
 			Graphics::MultisamplingEnabled = 0;

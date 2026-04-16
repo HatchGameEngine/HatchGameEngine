@@ -45,7 +45,6 @@ bool Scene::RefreshTileAnimations = false;
 // Layering variables
 vector<SceneLayer> Scene::Layers;
 bool Scene::AnyLayerTileChange = false;
-bool Scene::LayerTileBufferingEnabled = true;
 int Scene::PriorityPerLayer = 0;
 DrawGroupList** Scene::PriorityLists = nullptr;
 
@@ -1849,7 +1848,7 @@ void Scene::Restart() {
 	});
 
 	// Make layer tile buffers
-	if (Scene::LayerTileBufferingEnabled) {
+	if (Graphics::LayerTileBufferingEnabled) {
 		for (int l = 0; l < (int)Layers.size(); l++) {
 			Graphics::MakeLayerTileBuffers(&Layers[l]);
 		}
@@ -3606,7 +3605,7 @@ void Scene::SetTile(int layerIndex,
 	*tile |= collA << 28;
 	*tile |= collB << 26;
 
-	if (Scene::LayerTileBufferingEnabled) {
+	if (Graphics::LayerTileBufferingEnabled) {
 		Graphics::UpdateLayerBatchedTile(layer, x, y);
 	}
 }

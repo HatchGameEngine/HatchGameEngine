@@ -58,6 +58,7 @@ public:
 	static int FontDPI;
 	static bool SupportsShaders;
 	static bool SupportsBatching;
+	static bool LayerTileBufferingEnabled;
 	static bool TextureBlend;
 	static bool TextureInterpolate;
 	static Uint32 PreferredPixelFormat;
