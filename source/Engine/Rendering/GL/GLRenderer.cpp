@@ -63,6 +63,12 @@ PolygonRenderer polyRenderer;
 // TARGET_TEXTURES), and drawing functions should scale based on the
 // current render target.
 
+struct GL_TextureBatchState {
+	Texture* TexturePtr;
+	int PaletteID;
+	std::vector<GL_AnimFrameVert> Data;
+};
+
 struct GL_VertexBufferEntry {
 	float X, Y, Z;
 	float TextureU, TextureV;
@@ -134,6 +140,9 @@ GLenum GL_ActiveCullMode;
 bool GL_ClippingEnabled;
 
 int GL_CurrentTextureUnit = 0;
+
+bool GL_TextureBatchingEnabled = false;
+GL_TextureBatchState GL_CurrentTextureBatch;
 
 void GL_PrepareScreenTexture();
 void GL_MakeYUVShader();
@@ -1633,6 +1642,12 @@ void GLRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.DrawTexture = GLRenderer::DrawTexture;
 	Graphics::Internal.DrawSprite = GLRenderer::DrawSprite;
 	Graphics::Internal.DrawSpritePart = GLRenderer::DrawSpritePart;
+
+	// Texture batching functions
+	Graphics::Internal.BeginTextureBatching = GLRenderer::BeginTextureBatching;
+	Graphics::Internal.BatchSprite = GLRenderer::BatchSprite;
+	Graphics::Internal.BatchSpritePart = GLRenderer::BatchSpritePart;
+	Graphics::Internal.FinishTextureBatching = GLRenderer::FinishTextureBatching;
 
 	// 3D drawing functions
 	Graphics::Internal.DrawPolygon3D = GLRenderer::DrawPolygon3D;
@@ -3261,6 +3276,150 @@ void GLRenderer::DrawSpritePart(ISprite* sprite,
 
 	Graphics::Restore();
 }
+
+// Texture batching functions
+void GLRenderer::BeginTextureBatching() {
+	GL_TextureBatchingEnabled = true;
+
+	GL_CurrentTextureBatch.TexturePtr = nullptr;
+	GL_CurrentTextureBatch.PaletteID = 0;
+	GL_CurrentTextureBatch.Data.clear();
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+void GL_DrawTextureBatch() {
+	GL_TextureBatchState* batch = &GL_CurrentTextureBatch;
+	if (batch->Data.size() == 0) {
+		return;
+	}
+
+	void* data = batch->Data.data();
+
+	GL_Predraw(batch->TexturePtr, batch->PaletteID, false);
+
+	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition,
+		2,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(GL_AnimFrameVert),
+		data);
+	glVertexAttribPointer(GLRenderer::CurrentShader->LocTexCoord,
+		2,
+		GL_FLOAT,
+		GL_FALSE,
+		sizeof(GL_AnimFrameVert),
+		(char*)data + offsetof(GL_AnimFrameVert, u));
+
+	glDrawArrays(GL_TRIANGLES, 0, batch->Data.size());
+
+	batch->Data.clear();
+}
+void GL_BatchTexture(Texture* texture,
+	float sx,
+	float sy,
+	float sw,
+	float sh,
+	float x,
+	float y,
+	float w,
+	float h,
+	int paletteID) {
+	GL_TextureBatchState* batch = &GL_CurrentTextureBatch;
+	if (batch->TexturePtr != texture || batch->PaletteID != paletteID) {
+		GL_DrawTextureBatch();
+
+		batch->TexturePtr = texture;
+		batch->PaletteID = paletteID;
+	}
+
+	float ffU0 = sx / (float)texture->Width;
+	float ffV0 = sy / (float)texture->Height;
+	float ffU1 = (sx + sw) / (float)texture->Width;
+	float ffV1 = (sy + sh) / (float)texture->Height;
+
+	batch->Data.push_back(GL_AnimFrameVert{x, y, ffU0, ffV0});
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y, ffU1, ffV0});
+	batch->Data.push_back(GL_AnimFrameVert{x, y + h, ffU0, ffV1});
+
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y, ffU1, ffV0});
+	batch->Data.push_back(GL_AnimFrameVert{x, y + h, ffU0, ffV1});
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y + h, ffU1, ffV1});
+}
+void GLRenderer::BatchSprite(ISprite* sprite,
+	int animation,
+	int frame,
+	float x,
+	float y,
+	bool flipX,
+	bool flipY,
+	float scaleW,
+	float scaleH,
+	int paletteID) {
+	float fX = flipX ? -1.0 : 1.0;
+	float fY = flipY ? -1.0 : 1.0;
+
+	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
+	GL_BatchTexture(sprite->Spritesheets[animframe.SheetNumber],
+		animframe.X,
+		animframe.Y,
+		animframe.Width,
+		animframe.Height,
+		x + (fX * animframe.OffsetX),
+		y + (fY * animframe.OffsetY),
+		fX * animframe.Width * scaleW,
+		fY * animframe.Height * scaleH,
+		paletteID);
+}
+void GLRenderer::BatchSpritePart(ISprite* sprite,
+	int animation,
+	int frame,
+	int sx,
+	int sy,
+	int sw,
+	int sh,
+	float x,
+	float y,
+	bool flipX,
+	bool flipY,
+	float scaleW,
+	float scaleH,
+	int paletteID) {
+	AnimFrame animframe = sprite->Animations[animation].Frames[frame];
+	if (sx == animframe.Width) {
+		return;
+	}
+	if (sy == animframe.Height) {
+		return;
+	}
+
+	float fX = flipX ? -1.0 : 1.0;
+	float fY = flipY ? -1.0 : 1.0;
+	if (sw >= animframe.Width - sx) {
+		sw = animframe.Width - sx;
+	}
+	if (sh >= animframe.Height - sy) {
+		sh = animframe.Height - sy;
+	}
+
+	GL_BatchTexture(sprite->Spritesheets[animframe.SheetNumber],
+		animframe.X + sx,
+		animframe.Y + sy,
+		sw,
+		sh,
+		x + (fX * (sx + animframe.OffsetX)),
+		y + (fY * (sy + animframe.OffsetY)),
+		fX * sw * scaleW,
+		fY * sh * scaleH,
+		paletteID);
+}
+void GLRenderer::FinishTextureBatching() {
+	if (GL_TextureBatchingEnabled) {
+		GL_DrawTextureBatch();
+	}
+
+	GL_TextureBatchingEnabled = false;
+}
+
 // 3D drawing functions
 void GLRenderer::DrawPolygon3D(void* data,
 	int vertexCount,

@@ -134,6 +134,33 @@ struct GraphicsFunctions {
 		float rotation,
 		int paletteID);
 
+	void (*BeginTextureBatching)();
+	void (*BatchSprite)(ISprite* sprite,
+		int animation,
+		int frame,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		int paletteID);
+	void (*BatchSpritePart)(ISprite* sprite,
+		int animation,
+		int frame,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		int paletteID);
+	void (*FinishTextureBatching)();
+
 	void (*DrawPolygon3D)(void* data,
 		int vertexCount,
 		int vertexFlag,

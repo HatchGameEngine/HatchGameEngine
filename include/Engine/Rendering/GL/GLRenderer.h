@@ -11,6 +11,7 @@
 #include <Engine/Rendering/GL/Includes.h>
 #include <Engine/Rendering/Texture.h>
 #include <Engine/ResourceTypes/ISprite.h>
+#include <Engine/Scene/SceneLayer.h>
 
 #ifdef DEBUG
 #define GL_DO_ERROR_CHECKING
@@ -183,6 +184,32 @@ public:
 		float scaleH,
 		float rotation,
 		int paletteID);
+	static void BeginTextureBatching();
+	static void BatchSprite(ISprite* sprite,
+		int animation,
+		int frame,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		int paletteID);
+	static void BatchSpritePart(ISprite* sprite,
+		int animation,
+		int frame,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		int paletteID);
+	static void FinishTextureBatching();
 	static void DrawPolygon3D(void* data,
 		int vertexCount,
 		int vertexFlag,

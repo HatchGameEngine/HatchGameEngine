@@ -20,6 +20,7 @@ class IModel;
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileSpriteInfo.h>
 #include <Engine/Scene/View.h>
 #include <Engine/Utilities/ColorUtils.h>
 
@@ -405,9 +406,13 @@ public:
 		LegacyTextDrawParams* params,
 		float& maxW,
 		float& maxH);
-	static void
-	DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines);
-	static void DrawTilePart(int tile,
+	static void DrawTile(TileSpriteInfo& info,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void DrawTilePart(TileSpriteInfo& info,
 		int sx,
 		int sy,
 		int sw,
@@ -425,6 +430,24 @@ public:
 		int layerIndex,
 		bool useCustomFunction);
 	static void RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex);
+	static void BeginTextureBatching();
+	static void BatchTile(TileSpriteInfo& info,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void BatchTilePart(TileSpriteInfo& info,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void FinishTextureBatching();
 	static void DrawPolygon3D(void* data,
 		int vertexCount,
 		int vertexFlag,
