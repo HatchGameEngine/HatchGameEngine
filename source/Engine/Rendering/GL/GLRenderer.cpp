@@ -4233,7 +4233,7 @@ void GLRenderer::DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIn
 }
 
 void GLRenderer::UpdateLayerBatchedTile(SceneLayer* layer, int x, int y) {
-	if (!layer->UsingTileBuffers) {
+	if (!layer->UsingTileBuffers || layer->RemakeTileBuffers) {
 		return;
 	}
 
