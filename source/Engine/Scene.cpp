@@ -3594,6 +3594,7 @@ void Scene::SetTile(int layerIndex,
 	int collB) {
 	SceneLayer* layer = &Scene::Layers[layerIndex];
 	Uint32* tile = &layer->Tiles[x + (y << layer->WidthInBits)];
+	Uint32 oldTileData = (*tile) & (TILE_IDENT_MASK | TILE_FLIPX_MASK | TILE_FLIPY_MASK);
 
 	*tile = tileID & TILE_IDENT_MASK;
 	if (flip_x) {
@@ -3605,7 +3606,8 @@ void Scene::SetTile(int layerIndex,
 	*tile |= collA << 28;
 	*tile |= collB << 26;
 
-	if (Graphics::LayerTileBufferingEnabled) {
+	Uint32 newTileData = (*tile) & (TILE_IDENT_MASK | TILE_FLIPX_MASK | TILE_FLIPY_MASK);
+	if (oldTileData != newTileData && Graphics::LayerTileBufferingEnabled) {
 		Graphics::UpdateLayerBatchedTile(layer, x, y);
 	}
 
