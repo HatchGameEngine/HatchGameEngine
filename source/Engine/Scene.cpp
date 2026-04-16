@@ -1855,6 +1855,8 @@ void Scene::Restart() {
 		}
 	}
 
+	Scene::RefreshTileAnimations = false;
+
 	FinishLoad();
 }
 void Scene::FinishLoad() {
