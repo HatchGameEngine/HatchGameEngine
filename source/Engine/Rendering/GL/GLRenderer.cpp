@@ -1672,7 +1672,7 @@ void GLRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.DeleteLayerTileBuffers = GLRenderer::DeleteLayerTileBuffers;
 	Graphics::Internal.RefreshTileBuffersForTileset = GLRenderer::RefreshTileBuffersForTileset;
 	Graphics::Internal.DeleteTileBuffersForTileset = GLRenderer::DeleteTileBuffersForTileset;
-	Graphics::Internal.UpdateLayerBatchedTile = GLRenderer::UpdateLayerBatchedTile;
+	Graphics::Internal.UpdateBufferedLayerTile = GLRenderer::UpdateBufferedLayerTile;
 	Graphics::Internal.RefreshLayerTileAnimations = GLRenderer::RefreshLayerTileAnimations;
 
 	Graphics::Internal.SetDepthTesting = GLRenderer::SetDepthTesting;
@@ -4232,7 +4232,7 @@ void GLRenderer::DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIn
 	layer->TileBuffers[tilesetIndex] = nullptr;
 }
 
-void GLRenderer::UpdateLayerBatchedTile(SceneLayer* layer, int x, int y) {
+void GLRenderer::UpdateBufferedLayerTile(SceneLayer* layer, int x, int y) {
 	if (!layer->UsingTileBuffers || layer->RemakeTileBuffers) {
 		return;
 	}

@@ -3608,7 +3608,7 @@ void Scene::SetTile(int layerIndex,
 
 	Uint32 newTileData = (*tile) & (TILE_IDENT_MASK | TILE_FLIPX_MASK | TILE_FLIPY_MASK);
 	if (oldTileData != newTileData && Graphics::LayerTileBufferingEnabled) {
-		Graphics::UpdateLayerBatchedTile(layer, x, y);
+		Graphics::UpdateBufferedLayerTile(layer, x, y);
 	}
 
 	Scene::AnyLayerTileChange = true;

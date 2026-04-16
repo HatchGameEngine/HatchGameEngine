@@ -3379,9 +3379,9 @@ void Graphics::DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetInde
 		Graphics::GfxFunctions->DeleteTileBuffersForTileset(layer, tilesetIndex);
 	}
 }
-void Graphics::UpdateLayerBatchedTile(SceneLayer* layer, int x, int y) {
-	if (Graphics::GfxFunctions->UpdateLayerBatchedTile) {
-		Graphics::GfxFunctions->UpdateLayerBatchedTile(layer, x, y);
+void Graphics::UpdateBufferedLayerTile(SceneLayer* layer, int x, int y) {
+	if (Graphics::GfxFunctions->UpdateBufferedLayerTile) {
+		Graphics::GfxFunctions->UpdateBufferedLayerTile(layer, x, y);
 	}
 }
 void Graphics::RefreshLayerTileAnimations(SceneLayer* layer) {

@@ -511,7 +511,7 @@ public:
 	static void DeleteLayerTileBuffers(SceneLayer* layer);
 	static void RefreshTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
 	static void DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
-	static void UpdateLayerBatchedTile(SceneLayer* layer, int x, int y);
+	static void UpdateBufferedLayerTile(SceneLayer* layer, int x, int y);
 	static void RefreshLayerTileAnimations(SceneLayer* layer);
 	static void SetDepthTesting(bool enabled);
 	static bool SpriteRangeCheck(ISprite* sprite, int animation, int frame);

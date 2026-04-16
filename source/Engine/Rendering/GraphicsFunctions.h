@@ -203,7 +203,7 @@ struct GraphicsFunctions {
 	void (*DeleteLayerTileBuffers)(SceneLayer* layer);
 	void (*RefreshTileBuffersForTileset)(SceneLayer* layer, size_t tilesetIndex);
 	void (*DeleteTileBuffersForTileset)(SceneLayer* layer, size_t tilesetIndex);
-	void (*UpdateLayerBatchedTile)(SceneLayer* layer, int x, int y);
+	void (*UpdateBufferedLayerTile)(SceneLayer* layer, int x, int y);
 	void (*RefreshLayerTileAnimations)(SceneLayer *layer);
 
 	void (*SetStencilEnabled)(bool enabled);
