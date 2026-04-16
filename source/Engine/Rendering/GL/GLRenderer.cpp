@@ -3958,8 +3958,6 @@ static void GL_MakeBatchedTileData(GL_AnimFrameVert* vert, AnimFrame* frame, flo
 }
 
 void GLRenderer::MakeLayerTileBuffers(SceneLayer* layer) {
-	GL_AnimFrameVert vert[6];
-
 	DeleteLayerTileBuffers(layer);
 
 	layer->TileBufferIndexes = (size_t*)Memory::Malloc(layer->WidthData * layer->HeightData * sizeof(size_t));
@@ -4004,16 +4002,21 @@ void GLRenderer::MakeLayerTileBuffers(SceneLayer* layer) {
 		}
 	}
 
+#define VERT_BUF_SIZE(numTiles) ((numTiles) * sizeof(GL_AnimFrameVert) * 6)
+
 	for (size_t i = 0; i < layer->TileBuffers.size(); i++) {
 		LayerTileBuffers* batch = layer->TileBuffers[i];
 
 		for (std::unordered_map<Texture*, LayerTextureBatch>::iterator it = batch->TextureBatches.begin();
 			it != batch->TextureBatches.end();
 			it++) {
-			glBindBuffer(GL_ARRAY_BUFFER, it->second.BufferID);
-			glBufferData(GL_ARRAY_BUFFER, it->second.NumTiles * sizeof(vert), NULL, GL_DYNAMIC_DRAW);
-			CHECK_GL();
+			GL_AnimFrameVert* data = (GL_AnimFrameVert*)Memory::Malloc(VERT_BUF_SIZE(it->second.NumTiles));
+			if (!data) {
+				DeleteLayerTileBuffers(layer);
+				return;
+			}
 
+			it->second.Data = data;
 			it->second.NumTiles = 0;
 		}
 	}
@@ -4049,6 +4052,8 @@ void GLRenderer::MakeLayerTileBuffers(SceneLayer* layer) {
 			LayerTileBuffers* batch = layer->TileBuffers[info.TilesetID];
 			LayerTextureBatch& texBatch = batch->TextureBatches[texture];
 
+			GL_AnimFrameVert* data = (GL_AnimFrameVert*)texBatch.Data;
+			GL_AnimFrameVert* vert = &data[texBatch.NumTiles * 6];
 			GL_MakeBatchedTileData(vert, frame, tileX, tileY, flipX, flipY, texture->Width, texture->Height);
 
 			if (texBatch.BufferID != lastBoundBuffer) {
@@ -4056,10 +4061,25 @@ void GLRenderer::MakeLayerTileBuffers(SceneLayer* layer) {
 				lastBoundBuffer = texBatch.BufferID;
 			}
 
-			glBufferSubData(GL_ARRAY_BUFFER, texBatch.NumTiles * sizeof(vert), sizeof(vert), vert);
 			texBatch.NumTiles++;
 		}
 	}
+
+	for (size_t i = 0; i < layer->TileBuffers.size(); i++) {
+		LayerTileBuffers* batch = layer->TileBuffers[i];
+
+		for (std::unordered_map<Texture*, LayerTextureBatch>::iterator it = batch->TextureBatches.begin();
+			it != batch->TextureBatches.end();
+			it++) {
+			glBindBuffer(GL_ARRAY_BUFFER, it->second.BufferID);
+			glBufferData(GL_ARRAY_BUFFER, VERT_BUF_SIZE(it->second.NumTiles), it->second.Data, GL_DYNAMIC_DRAW);
+
+			Memory::Free(it->second.Data);
+			it->second.Data = nullptr;
+		}
+	}
+
+#undef VERT_BUF_SIZE
 
 	CHECK_GL();
 
@@ -4077,6 +4097,7 @@ void GLRenderer::DeleteLayerTileBuffers(SceneLayer* layer) {
 				it != batch->TextureBatches.end();
 				it++) {
 				glDeleteBuffers(1, (GLuint*)&it->second.BufferID);
+				Memory::Free(it->second.Data);
 			}
 
 			delete batch;

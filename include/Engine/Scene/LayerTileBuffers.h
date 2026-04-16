@@ -4,6 +4,7 @@
 struct LayerTextureBatch {
 	size_t NumTiles = 0;
 	Uint32 BufferID = 0;
+	void* Data = nullptr;
 };
 
 struct LayerTileBuffers {
