@@ -242,6 +242,13 @@ public:
 	static void DeleteVertexBuffer(void* vtxBuf);
 	static void MakeFrameBufferID(ISprite* sprite);
 	static void DeleteFrameBufferID(ISprite* sprite);
+	static void DrawBufferedSceneLayer(SceneLayer* layer);
+	static void MakeLayerTileBuffers(SceneLayer* layer);
+	static void DeleteLayerTileBuffers(SceneLayer* layer);
+	static void RefreshTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
+	static void DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
+	static void UpdateLayerBatchedTile(SceneLayer* layer, int x, int y);
+	static void RefreshLayerTileAnimations(SceneLayer* layer);
 	static void SetDepthTesting(bool enable);
 	static bool CheckError(int line);
 };

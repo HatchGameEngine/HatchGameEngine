@@ -111,7 +111,11 @@ void Tileset::AddTileAnimSequence(int tileID,
 	TileAnimator animator(tileSpriteInfo, tileSprite, animID);
 	animator.RestartAnimation();
 
+	tileSpriteInfo->IsAnimated = true;
+
 	AnimatorMap.insert({tileID, animator});
+
+	Scene::RefreshTileAnimations = true;
 }
 
 void Tileset::AddTileAnimSequence(int tileID,
@@ -126,7 +130,11 @@ void Tileset::AddTileAnimSequence(int tileID,
 	TileAnimator animator(tileSpriteInfo, animSprite, animID);
 	animator.RestartAnimation();
 
+	tileSpriteInfo->IsAnimated = true;
+
 	AnimatorMap.insert({tileID, animator});
+
+	Scene::RefreshTileAnimations = true;
 }
 
 TileAnimator* Tileset::GetTileAnimSequence(int tileID) {

@@ -624,7 +624,7 @@ bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 	}
 	memcpy(scenelayer.TilesBackup, scenelayer.Tiles, scenelayer.DataSize);
 
-	Scene::Layers.push_back(scenelayer);
+	Scene::AddLayer(scenelayer);
 
 	Memory::Free(tile_buffer);
 

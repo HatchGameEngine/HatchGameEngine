@@ -51,9 +51,8 @@ private:
 	static void InitTileCollisions();
 	static void ClearTileCollisions(TileConfig* cfg, size_t numTiles);
 	static void SetTileCount(size_t tileCount);
-	static void SetupViewMatrices(View* currentView);
-	static void SetupView2D(View* currentView);
-	static void SetupView3D(View* currentView);
+	static void SetupView2D(View* currentView, float viewX, float viewY, float viewZ);
+	static void SetupView3D(View* currentView, float viewX, float viewY, float viewZ);
 
 public:
 	static int ShowTileCollisionFlag;
@@ -80,6 +79,7 @@ public:
 	static Uint16 EmptyTile;
 	static vector<SceneLayer> Layers;
 	static bool AnyLayerTileChange;
+	static bool LayerTileBufferingEnabled;
 	static int TileCount;
 	static int TileWidth;
 	static int TileHeight;
@@ -100,6 +100,7 @@ public:
 	static bool Initializing;
 	static bool NeedEntitySort;
 	static int TileAnimationEnabled;
+	static bool RefreshTileAnimations;
 	static View Views[MAX_SCENE_VIEWS];
 	static int ViewCurrent;
 	static int ViewsActive;
@@ -165,6 +166,7 @@ public:
 	static void SortViews();
 	static bool SetView(int viewIndex);
 	static bool CheckPosOnScreen(float posX, float posY, float rangeX, float rangeY);
+	static void SetupViewMatrices(View* currentView, float viewX, float viewY, float viewZ);
 	static void RenderView(int viewIndex, bool doPerf);
 	static void Render();
 	static void AfterScene();
@@ -187,8 +189,9 @@ public:
 	static ObjectList* GetStaticObjectList(const char* objectName);
 	static void AddManagers();
 	static std::vector<ObjectList*> GetObjectListPerformance();
-	static void FreePriorityLists();
+	static void AddLayer(SceneLayer layer);
 	static void InitPriorityLists();
+	static void FreePriorityLists();
 	static void SetPriorityPerLayer(int count);
 	static DrawGroupList* GetDrawGroup(int index);
 	static DrawGroupList* GetDrawGroupNoCheck(int index);
@@ -213,7 +216,7 @@ public:
 	static void Dispose();
 	static void UnloadTilesets();
 	static void
-	SetTile(int layer, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB);
+	SetTile(int layerIndex, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB);
 	static int CollisionAt(int x, int y, int collisionField, int collideSide, int* angle);
 	static int CollisionInLine(int x,
 		int y,

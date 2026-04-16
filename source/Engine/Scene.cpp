@@ -40,10 +40,12 @@ bool Scene::Loaded = false;
 bool Scene::Initializing = false;
 bool Scene::NeedEntitySort = false;
 int Scene::TileAnimationEnabled = 1;
+bool Scene::RefreshTileAnimations = false;
 
 // Layering variables
 vector<SceneLayer> Scene::Layers;
 bool Scene::AnyLayerTileChange = false;
+bool Scene::LayerTileBufferingEnabled = true;
 int Scene::PriorityPerLayer = 0;
 DrawGroupList** Scene::PriorityLists = nullptr;
 
@@ -845,6 +847,16 @@ void Scene::RunTileAnimations() {
 			tileset.RunAnimations();
 		}
 	}
+
+	if (Scene::RefreshTileAnimations) {
+		for (size_t i = 0; i < Scene::Layers.size(); i++) {
+			if (Scene::Layers[i].UsingTileBuffers) {
+				Graphics::RefreshLayerTileAnimations(&Scene::Layers[i]);
+			}
+		}
+
+		Scene::RefreshTileAnimations = false;
+	}
 }
 Tileset* Scene::GetTileset(int tileID) {
 	// TODO: Optimize this.
@@ -1014,7 +1026,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	// Adjust projection
 	PERF_START(ProjectionSetupTime);
-	SetupViewMatrices(currentView);
+	SetupViewMatrices(currentView, currentView->X, currentView->Y, currentView->Z);
 	PERF_END(ProjectionSetupTime);
 
 	// RenderEarly
@@ -1292,14 +1304,14 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	}
 }
 
-void Scene::SetupViewMatrices(View* currentView) {
+void Scene::SetupViewMatrices(View* currentView, float viewX, float viewY, float viewZ) {
 	Matrix4x4::Identity(currentView->ViewMatrix);
 
 	if (currentView->UsePerspective) {
-		Scene::SetupView3D(currentView);
+		Scene::SetupView3D(currentView, viewX, viewY, viewZ);
 	}
 	else {
-		Scene::SetupView2D(currentView);
+		Scene::SetupView2D(currentView, viewX, viewY, viewZ);
 	}
 
 	Matrix4x4::Copy(Graphics::ViewMatrix, currentView->ViewMatrix);
@@ -1307,7 +1319,7 @@ void Scene::SetupViewMatrices(View* currentView) {
 	Graphics::UpdateProjectionMatrix();
 }
 
-void Scene::SetupView2D(View* currentView) {
+void Scene::SetupView2D(View* currentView, float viewX, float viewY, float viewZ) {
 	Graphics::UpdateOrtho(currentView->Width, currentView->Height);
 	if (!(currentView->UseDrawTarget || currentView->Software)) {
 		Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
@@ -1363,20 +1375,16 @@ void Scene::SetupView2D(View* currentView) {
 	}
 
 	// Translate
-	float cx = currentView->X;
-	float cy = currentView->Y;
-	float cz = currentView->Z;
-
 	if (!isScaled && !isRotated) {
-		cx = std::floor(cx);
-		cy = std::floor(cy);
-		cz = std::floor(cz);
+		viewX = std::floor(viewX);
+		viewY = std::floor(viewY);
+		viewZ = std::floor(viewZ);
 	}
 
-	Matrix4x4::Translate(currentView->ViewMatrix, currentView->ViewMatrix, -cx, -cy, -cz);
+	Matrix4x4::Translate(currentView->ViewMatrix, currentView->ViewMatrix, -viewX, -viewY, -viewZ);
 }
 
-void Scene::SetupView3D(View* currentView) {
+void Scene::SetupView3D(View* currentView, float viewX, float viewY, float viewZ) {
 	Graphics::UpdatePerspective(currentView->FOV,
 		currentView->Width / currentView->Height,
 		currentView->NearPlane,
@@ -1412,9 +1420,9 @@ void Scene::SetupView3D(View* currentView) {
 	// Translate
 	Matrix4x4::Translate(currentView->ViewMatrix,
 		currentView->ViewMatrix,
-		-currentView->X,
-		-currentView->Y,
-		-currentView->Z);
+		-viewX,
+		-viewY,
+		-viewZ);
 }
 
 void Scene::Render() {
@@ -1763,6 +1771,10 @@ void Scene::Restart() {
 	}
 
 	// Restart tile animations
+	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
+		Scene::TileSpriteInfos[i].IsAnimated = false;
+	}
+
 	for (Tileset& tileset : Scene::Tilesets) {
 		tileset.RestartAnimations();
 	}
@@ -1835,6 +1847,13 @@ void Scene::Restart() {
 			ent->PostCreate();
 		}
 	});
+
+	// Make layer tile buffers
+	if (Scene::LayerTileBufferingEnabled) {
+		for (int l = 0; l < (int)Layers.size(); l++) {
+			Graphics::MakeLayerTileBuffers(&Layers[l]);
+		}
+	}
 
 	FinishLoad();
 }
@@ -1954,6 +1973,7 @@ void Scene::Unload() {
 
 	// Dispose of layers
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
+		Graphics::DeleteLayerTileBuffers(&Scene::Layers[i]);
 		Scene::Layers[i].Dispose();
 	}
 	Scene::Layers.clear();
@@ -1974,6 +1994,7 @@ void Scene::Unload() {
 	Scene::FreePriorityLists();
 
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
+		Graphics::DeleteLayerTileBuffers(&Scene::Layers[i]);
 		Scene::Layers[i].Dispose();
 	}
 	Scene::Layers.clear();
@@ -2327,6 +2348,10 @@ std::vector<ObjectList*> Scene::GetObjectListPerformance() {
 	}
 
 	return ListList;
+}
+
+void Scene::AddLayer(SceneLayer layer) {
+	Scene::Layers.push_back(layer);
 }
 
 void Scene::InitPriorityLists() {
@@ -3503,6 +3528,7 @@ void Scene::Dispose() {
 	Scene::FreePriorityLists();
 
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
+		Graphics::DeleteLayerTileBuffers(&Scene::Layers[i]);
 		Scene::Layers[i].Dispose();
 	}
 	Scene::Layers.clear();
@@ -3557,7 +3583,7 @@ void Scene::UnloadTilesets() {
 }
 
 // Tile Batching
-void Scene::SetTile(int layer,
+void Scene::SetTile(int layerIndex,
 	int x,
 	int y,
 	int tileID,
@@ -3565,7 +3591,8 @@ void Scene::SetTile(int layer,
 	int flip_y,
 	int collA,
 	int collB) {
-	Uint32* tile = &Scene::Layers[layer].Tiles[x + (y << Scene::Layers[layer].WidthInBits)];
+	SceneLayer* layer = &Scene::Layers[layerIndex];
+	Uint32* tile = &layer->Tiles[x + (y << layer->WidthInBits)];
 
 	*tile = tileID & TILE_IDENT_MASK;
 	if (flip_x) {
@@ -3576,6 +3603,10 @@ void Scene::SetTile(int layer,
 	}
 	*tile |= collA << 28;
 	*tile |= collB << 26;
+
+	if (Scene::LayerTileBufferingEnabled) {
+		Graphics::UpdateLayerBatchedTile(layer, x, y);
+	}
 }
 
 // Tile Collision
