@@ -3608,6 +3608,8 @@ void Scene::SetTile(int layerIndex,
 	if (Graphics::LayerTileBufferingEnabled) {
 		Graphics::UpdateLayerBatchedTile(layer, x, y);
 	}
+
+	Scene::AnyLayerTileChange = true;
 }
 
 // Tile Collision
