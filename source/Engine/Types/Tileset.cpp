@@ -71,6 +71,7 @@ void Tileset::AddTileAnimSequence(int tileID,
 
 	if (!tileIDs.size()) {
 		AnimatorMap.erase(tileID);
+		Scene::RefreshTileAnimations = true;
 		return;
 	}
 
@@ -124,6 +125,7 @@ void Tileset::AddTileAnimSequence(int tileID,
 	int animID) {
 	if (animSprite == nullptr) {
 		AnimatorMap.erase(tileID);
+		Scene::RefreshTileAnimations = true;
 		return;
 	}
 
