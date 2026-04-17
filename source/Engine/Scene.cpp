@@ -2990,6 +2990,15 @@ bool Scene::AddTileset(char* path) {
 
 	Scene::SetTileCount(Scene::TileCount + (cols * rows));
 
+	// Remake layer tile buffers
+	if (Graphics::LayerTileBufferingEnabled) {
+		for (int l = 0; l < (int)Layers.size(); l++) {
+			if (Layers[l].UsingTileBuffers) {
+				Layers[l].RemakeTileBuffers = true;
+			}
+		}
+	}
+
 	return true;
 }
 void Scene::SetTileCount(size_t tileCount) {
