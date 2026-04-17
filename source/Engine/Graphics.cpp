@@ -3343,6 +3343,10 @@ void Graphics::DeleteFrameBufferID(ISprite* sprite) {
 }
 
 bool Graphics::CanBuildLayerTileBuffers(SceneLayer* layer) {
+	if (Scene::Tilesets.size() == 0) {
+		return false;
+	}
+
 	if (layer->UsingScrollIndexes) {
 		return false;
 	}
