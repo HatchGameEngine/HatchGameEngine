@@ -14100,20 +14100,7 @@ VMValue Scene_SetTile(int argCount, VMValue* args, Uint32 threadID) {
 
 	CHECK_TILE_LAYER_POS_BOUNDS();
 
-	Uint32* tile = &Scene::Layers[layer].Tiles[x + (y << Scene::Layers[layer].WidthInBits)];
-
-	*tile = tileID & TILE_IDENT_MASK;
-	if (flip_x) {
-		*tile |= TILE_FLIPX_MASK;
-	}
-	if (flip_y) {
-		*tile |= TILE_FLIPY_MASK;
-	}
-
-	*tile |= collA;
-	*tile |= collB;
-
-	Scene::AnyLayerTileChange = true;
+	Scene::SetTile(layer, x, y, tileID, flip_x, flip_y, collA, collB);
 
 	return NULL_VAL;
 }

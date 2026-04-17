@@ -3,6 +3,7 @@
 
 #include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/Scene/SceneLayer.h>
 
 struct GraphicsFunctions {
 	void (*Init)();
@@ -196,6 +197,14 @@ struct GraphicsFunctions {
 	void (*DeleteVertexBuffer)(void* vtxBuf);
 	void (*MakeFrameBufferID)(ISprite* sprite);
 	void (*DeleteFrameBufferID)(ISprite* sprite);
+
+	void (*DrawBufferedSceneLayer)(SceneLayer* layer);
+	void (*MakeLayerTileBuffers)(SceneLayer* layer);
+	void (*DeleteLayerTileBuffers)(SceneLayer* layer);
+	void (*RefreshTileBuffersForTileset)(SceneLayer* layer, size_t tilesetIndex);
+	void (*DeleteTileBuffersForTileset)(SceneLayer* layer, size_t tilesetIndex);
+	void (*UpdateBufferedLayerTile)(SceneLayer* layer, int x, int y);
+	void (*RefreshLayerTileAnimations)(SceneLayer *layer);
 
 	void (*SetStencilEnabled)(bool enabled);
 	void (*SetStencilTestFunc)(int stencilTest);

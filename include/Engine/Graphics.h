@@ -45,6 +45,8 @@ private:
 		int* deformValues,
 		int deformOffset,
 		TileScanLine* scanLine);
+	static bool CanBuildLayerTileBuffers(SceneLayer* layer);
+	static bool CanDrawBufferedSceneLayer(SceneLayer* layer);
 
 public:
 	static bool Initialized;
@@ -56,6 +58,7 @@ public:
 	static int FontDPI;
 	static bool SupportsShaders;
 	static bool SupportsBatching;
+	static bool LayerTileBufferingEnabled;
 	static bool TextureBlend;
 	static bool TextureInterpolate;
 	static Uint32 PreferredPixelFormat;
@@ -423,8 +426,9 @@ public:
 		bool flipY,
 		bool usePaletteIndexLines);
 	static void DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
+	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView, bool onlyAnimated);
 	static void DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView);
+	static void DrawBufferedSceneLayer(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer(SceneLayer* layer,
 		View* currentView,
 		int layerIndex,
@@ -503,6 +507,12 @@ public:
 		int frameH);
 	static void MakeFrameBufferID(ISprite* sprite);
 	static void DeleteFrameBufferID(ISprite* sprite);
+	static void MakeLayerTileBuffers(SceneLayer* layer);
+	static void DeleteLayerTileBuffers(SceneLayer* layer);
+	static void RefreshTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
+	static void DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
+	static void UpdateBufferedLayerTile(SceneLayer* layer, int x, int y);
+	static void RefreshLayerTileAnimations(SceneLayer* layer);
 	static void SetDepthTesting(bool enabled);
 	static bool SpriteRangeCheck(ISprite* sprite, int animation, int frame);
 	static void ConvertFromARGBtoNative(Uint32* argb, int count);
