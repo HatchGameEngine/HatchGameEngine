@@ -20,6 +20,7 @@ public:
 	static std::vector<std::filesystem::path>
 	GetDirectories(const char* path, const char* searchPattern, bool allDirs);
 	static bool IsEmpty(const char* path);
+	static void SortEntries(std::vector<std::filesystem::path>* files);
 };
 
 #endif /* ENGINE_FILESYSTEM_DIRECTORY_H */

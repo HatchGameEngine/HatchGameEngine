@@ -3457,6 +3457,7 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 
 	std::vector<std::filesystem::path> fileList;
 	Directory::GetFiles(&fileList, directory, pattern, allDirs);
+	Directory::SortEntries(&fileList);
 
 	if (ScriptManager::Lock()) {
 		array = NewArray();
@@ -3488,6 +3489,7 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 
 	std::vector<std::filesystem::path> fileList;
 	Directory::GetDirectories(&fileList, directory, pattern, allDirs);
+	Directory::SortEntries(&fileList);
 
 	if (ScriptManager::Lock()) {
 		array = NewArray();
