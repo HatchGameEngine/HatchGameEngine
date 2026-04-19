@@ -1533,6 +1533,12 @@ void Application::PollEvents() {
 			}
 			break;
 		}
+		case SDL_MOUSEWHEEL: {
+			float motionX = e.wheel.preciseX;
+			float motionY = e.wheel.preciseY;
+			InputManager::HandleMouseWheelEvent(motionX, motionY);
+			break;
+		}
 		case SDL_WINDOWEVENT: {
 			switch (e.window.event) {
 			case SDL_WINDOWEVENT_RESIZED:
@@ -1570,6 +1576,7 @@ void Application::RunFrame(int runFrames) {
 
 	// Event loop
 	Metrics.Event.Begin();
+	InputManager::OnFrameBegin();
 	Application::PollEvents();
 	Metrics.Event.End();
 
