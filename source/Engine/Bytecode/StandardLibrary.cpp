@@ -8291,6 +8291,16 @@ VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID
 	return INTEGER_VAL((InputManager::MouseReleased >> button) & 1);
 }
 /***
+ * Input.GetMouseWheelMotion
+ * \desc Gets the current vertical movement of the mouse wheel. A positive value indicates the wheel is being scrolled up, and a negative value indicates the wheel is being scrolled down.
+ * \return decimal Returns a decimal value.
+ * \ns Input
+ */
+VMValue Input_GetMouseWheelMotion(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return DECIMAL_VAL(InputManager::MouseWheelY);
+}
+/***
  * Input.GetMouseMode
  * \desc Gets the current mouse mode.
  * \return <ref MOUSEMODE_*> Returns the current mouse mode.
@@ -21559,6 +21569,7 @@ This class also houses the input action system.
 	DEF_NATIVE(Input, IsMouseButtonDown);
 	DEF_NATIVE(Input, IsMouseButtonPressed);
 	DEF_NATIVE(Input, IsMouseButtonReleased);
+	DEF_NATIVE(Input, GetMouseWheelMotion);
 	DEF_NATIVE(Input, GetMouseMode);
 	DEF_NATIVE(Input, SetMouseMode);
 	DEF_NATIVE(Input, IsKeyDown);
