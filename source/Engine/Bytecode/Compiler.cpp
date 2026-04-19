@@ -4478,9 +4478,6 @@ void Compiler::SetupIntrinsics() {
 
 #define CHECK_ARGCOUNT(count) { \
 	if (argCount != count) { \
-		char error[64]; \
-		snprintf(error, sizeof error, "Expected %d arguments to function call, got %d.", count, argCount); \
-		compiler->Error(error); \
 		return false; \
 	} \
 }
