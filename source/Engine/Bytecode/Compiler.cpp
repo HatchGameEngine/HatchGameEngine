@@ -4501,7 +4501,118 @@ void Compiler::SetupIntrinsics() {
 		return true;
 	};
 
+	Intrinsics["Resources.LoadSprite"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(2);
+		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_SPRITE);
+	};
+	Intrinsics["Resources.LoadImage"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(2);
+		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_IMAGE);
+	};
+	Intrinsics["Resources.LoadModel"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(2);
+		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_MODEL);
+	};
+	Intrinsics["Resources.LoadMusic"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(2);
+		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_MUSIC);
+	};
+	Intrinsics["Resources.LoadSound"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(2);
+		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_SOUND);
+	};
+	Intrinsics["Resources.LoadVideo"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(2);
+		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_MEDIA);
+	};
+	Intrinsics["Resources.ReadAllText"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(1);
+		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_TEXT);
+	};
+	Intrinsics["Resources.FileExists"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(1);
+		return compiler->Intrinsic_ResourceExists(argStart, argCount);
+	};
+
 #undef CHECK_ARGCOUNT
+}
+bool Compiler::Intrinsic_LoadResource(Uint8* argStart, int argCount, Uint8 type) {
+	Chunk* chunk = CurrentChunk();
+	Uint32 argStartOffset = argStart - chunk->Code;
+	Uint32 offset = argStartOffset;
+	size_t opcodeSize = Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+
+	VMValue nameString;
+	if (!chunk->GetConstant(offset, &nameString, nullptr)) {
+		return false;
+	}
+
+	if (!IS_STRING(nameString)) {
+		return false;
+	}
+
+	for (int i = 0; i < argCount; i++) {
+		offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+	}
+
+	if (offset < chunk->Count) {
+		return false;
+	}
+
+	EraseChunkCode(chunk, argStartOffset, opcodeSize);
+
+	Uint32 hash = CRC32::EncryptString(AS_CSTRING(nameString));
+
+	EmitOpcode(OP_LOAD_GAME_RESOURCE);
+	EmitByte(type);
+	EmitUint32(hash);
+
+	return true;
+}
+bool Compiler::Intrinsic_ResourceExists(Uint8* argStart, int argCount) {
+	Chunk* chunk = CurrentChunk();
+	Uint32 argStartOffset = argStart - chunk->Code;
+	Uint32 offset = argStartOffset;
+	size_t opcodeSize = Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+
+	VMValue nameString;
+	if (!chunk->GetConstant(offset, &nameString, nullptr)) {
+		return false;
+	}
+
+	if (!IS_STRING(nameString)) {
+		return false;
+	}
+
+	for (int i = 0; i < argCount; i++) {
+		offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+	}
+
+	if (offset < chunk->Count) {
+		return false;
+	}
+
+	EraseChunkCode(chunk, argStartOffset, opcodeSize);
+
+	Uint32 hash = CRC32::EncryptString(AS_CSTRING(nameString));
+
+	EmitOpcode(OP_CHECK_GAME_RESOURCE);
+	EmitUint32(hash);
+
+	return true;
+}
+void Compiler::EraseChunkCode(Chunk* chunk, size_t offset, size_t length) {
+	Uint32 block_copy_length = (chunk->Count - offset) - length;
+
+	Uint8* dest_code_block = &chunk->Code[offset];
+	int* dest_line_block = &chunk->Lines[offset];
+	Uint8* src_code_block = &chunk->Code[offset + length];
+	int* src_line_block = &chunk->Lines[offset + length];
+
+	memmove(dest_code_block, src_code_block, block_copy_length * sizeof(Uint8));
+	memmove(dest_line_block, src_line_block, block_copy_length * sizeof(int));
+
+	chunk->Count -= length;
 }
 void Compiler::PrepareCompiling() {
 	if (Compiler::TokenMap == NULL) {

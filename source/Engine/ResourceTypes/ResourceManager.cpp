@@ -258,9 +258,21 @@ bool ResourceManager::LoadResource(const char* filename, Uint8** out, size_t* si
 	}
 	return false;
 }
+bool ResourceManager::LoadResource(Uint32 hash, Uint8** out, size_t* size) {
+	if (vfs) {
+		return vfs->LoadFile(hash, out, size);
+	}
+	return false;
+}
 bool ResourceManager::ResourceExists(const char* filename) {
 	if (vfs) {
 		return vfs->FileExists(filename);
+	}
+	return false;
+}
+bool ResourceManager::ResourceExists(Uint32 hash) {
+	if (vfs) {
+		return vfs->FileExists(hash);
 	}
 	return false;
 }

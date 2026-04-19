@@ -37,7 +37,10 @@ private:
 
 protected:
 	bool Opened;
+	bool HasHashLookup = false;
+
 	std::vector<VFSOpenStream> OpenStreams;
+	std::unordered_map<Uint32, std::string> HashLookup;
 
 	void AddOpenStream(VFSEntry* entry, Stream* stream);
 
@@ -55,11 +58,14 @@ public:
 	void SetWritable(bool writable);
 
 	virtual std::string TransformFilename(const char* filename);
+	virtual void BuildHashLookup();
 	virtual bool SupportsCompression();
 	virtual bool SupportsEncryption();
 	virtual bool IsEmpty();
 	virtual bool HasFile(const char* filename);
+	virtual bool HasFile(Uint32 hash);
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);
+	virtual bool ReadFile(Uint32 hash, Uint8** out, size_t* size);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
 	virtual bool EraseFile(const char* filename);
 	virtual VFSEnumeration EnumerateFiles(const char* path);

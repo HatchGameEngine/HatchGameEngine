@@ -17,7 +17,6 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/File.h>
 #include <Engine/Graphics.h>
-#include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/FNV1A.h>
 #include <Engine/IO/FileStream.h>

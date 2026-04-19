@@ -19,6 +19,8 @@ public:
 	bool Open(Stream* stream);
 
 	virtual std::string TransformFilename(const char* filename);
+	virtual bool HasFile(Uint32 hash);
+	virtual bool ReadFile(Uint32 hash, Uint8** out, size_t* size);
 	virtual bool SupportsCompression();
 	virtual bool SupportsEncryption();
 	virtual bool ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize);

@@ -125,7 +125,20 @@ bool VirtualFileSystem::LoadFile(const char* filename, Uint8** out, size_t* size
 		VFSMount& mount = LoadedVFS[i];
 		VFSProvider* vfs = mount.VFSPtr;
 
-		if (vfs->ReadFile(GetFilename(mount, filename), out, size)) {
+		std::string entryName = vfs->TransformFilename(GetFilename(mount, filename));
+		if (vfs->ReadFile(entryName.c_str(), out, size)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+bool VirtualFileSystem::LoadFile(Uint32 hash, Uint8** out, size_t* size) {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount& mount = LoadedVFS[i];
+		VFSProvider* vfs = mount.VFSPtr;
+
+		if (vfs->ReadFile(hash, out, size)) {
 			return true;
 		}
 	}
@@ -137,7 +150,20 @@ bool VirtualFileSystem::FileExists(const char* filename) {
 		VFSMount& mount = LoadedVFS[i];
 		VFSProvider* vfs = mount.VFSPtr;
 
-		if (vfs->HasFile(GetFilename(mount, filename))) {
+		std::string entryName = vfs->TransformFilename(GetFilename(mount, filename));
+		if (vfs->HasFile(entryName.c_str())) {
+			return true;
+		}
+	}
+
+	return false;
+}
+bool VirtualFileSystem::FileExists(Uint32 hash) {
+	for (size_t i = 0; i < LoadedVFS.size(); i++) {
+		VFSMount& mount = LoadedVFS[i];
+		VFSProvider* vfs = mount.VFSPtr;
+
+		if (vfs->HasFile(hash)) {
 			return true;
 		}
 	}
@@ -154,7 +180,8 @@ Stream* VirtualFileSystem::OpenReadStream(const char* filename) {
 			continue;
 		}
 
-		Stream* stream = vfs->OpenReadStream(GetFilename(mount, filename));
+		std::string entryName = vfs->TransformFilename(GetFilename(mount, filename));
+		Stream* stream = vfs->OpenReadStream(entryName.c_str());
 		if (stream) {
 			return stream;
 		}
@@ -171,7 +198,8 @@ Stream* VirtualFileSystem::OpenWriteStream(const char* filename) {
 			continue;
 		}
 
-		Stream* stream = vfs->OpenWriteStream(GetFilename(mount, filename));
+		std::string entryName = vfs->TransformFilename(GetFilename(mount, filename));
+		Stream* stream = vfs->OpenWriteStream(entryName.c_str());
 		if (stream) {
 			return stream;
 		}
@@ -188,7 +216,8 @@ Stream* VirtualFileSystem::OpenAppendStream(const char* filename) {
 			continue;
 		}
 
-		Stream* stream = vfs->OpenAppendStream(GetFilename(mount, filename));
+		std::string entryName = vfs->TransformFilename(GetFilename(mount, filename));
+		Stream* stream = vfs->OpenAppendStream(entryName.c_str());
 		if (stream) {
 			return stream;
 		}

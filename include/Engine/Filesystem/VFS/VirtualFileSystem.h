@@ -44,7 +44,9 @@ public:
 	const char* GetFilename(VFSMount mount, const char* filename);
 
 	bool LoadFile(const char* filename, Uint8** out, size_t* size);
+	bool LoadFile(Uint32 hash, Uint8** out, size_t* size);
 	bool FileExists(const char* filename);
+	bool FileExists(Uint32 hash);
 
 	Stream* OpenReadStream(const char* filename);
 	Stream* OpenWriteStream(const char* filename);

@@ -7,6 +7,7 @@
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/ResourceTypes/ResourceManager.h>
 
 #ifdef VM_DEBUG
 #include <Engine/Audio/AudioManager.h>
@@ -847,6 +848,8 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_LOAD_INDIRECT),
 		VM_ADD_DISPATCH(OP_STORE_INDIRECT),
 		VM_ADD_DISPATCH(OP_LENGTH),
+		VM_ADD_DISPATCH(OP_LOAD_GAME_RESOURCE),
+		VM_ADD_DISPATCH(OP_CHECK_GAME_RESOURCE)
 	};
 #define VM_START(ins) \
 	goto* dispatch_table[(ins)]; \
@@ -2322,6 +2325,19 @@ int VMThread::RunInstruction() {
 			Push(NULL_VAL);
 		}
 
+		VM_BREAK;
+	}
+	VM_CASE(OP_LOAD_GAME_RESOURCE) {
+		Uint8 type = ReadByte(frame);
+		Uint32 hash = ReadUInt32(frame);
+		VMValue result = Intrinsic_LoadResource(type, hash);
+		Push(result);
+		VM_BREAK;
+	}
+	VM_CASE(OP_CHECK_GAME_RESOURCE) {
+		Uint32 hash = ReadUInt32(frame);
+		VMValue result = Intrinsic_CheckResource(hash);
+		Push(result);
 		VM_BREAK;
 	}
 
@@ -4024,3 +4040,75 @@ VMValue VMThread::Value_TypeOf() {
 	return OBJECT_VAL(CopyString(valueType));
 }
 // #endregion
+
+VMValue VMThread::Intrinsic_LoadResource(Uint8 type, Uint32 hash) {
+	int index = -1;
+	int unloadPolicy = 0;
+
+	switch (type) {
+	case INTRINSIC_RESOURCE_SPRITE:
+	case INTRINSIC_RESOURCE_IMAGE:
+	case INTRINSIC_RESOURCE_SOUND:
+	case INTRINSIC_RESOURCE_MUSIC:
+	case INTRINSIC_RESOURCE_MODEL:
+	case INTRINSIC_RESOURCE_MEDIA: {
+		VMValue scope = Pop();
+
+		if (!IS_INTEGER(scope)) {
+			ThrowRuntimeError(false,
+			    "Expected argument %d to be of type %s instead of %s.",
+			    2,
+			    GetTypeString(VAL_INTEGER),
+			    GetValueTypeString(scope));
+			return NULL_VAL;
+		}
+
+		unloadPolicy = AS_INTEGER(scope);
+	}
+	}
+
+	switch (type) {
+	case INTRINSIC_RESOURCE_SPRITE:
+		index = Scene::LoadSpriteResource(hash, unloadPolicy);
+		break;
+	case INTRINSIC_RESOURCE_IMAGE:
+		index = Scene::LoadImageResource(hash, unloadPolicy);
+		break;
+	case INTRINSIC_RESOURCE_SOUND:
+		index = Scene::LoadSoundResource(hash, unloadPolicy);
+		break;
+	case INTRINSIC_RESOURCE_MUSIC:
+		index = Scene::LoadMusicResource(hash, unloadPolicy);
+		break;
+	case INTRINSIC_RESOURCE_MODEL:
+		index = Scene::LoadModelResource(hash, unloadPolicy);
+		break;
+	case INTRINSIC_RESOURCE_MEDIA:
+		index = Scene::LoadVideoResource(hash, unloadPolicy);
+		break;
+	case INTRINSIC_RESOURCE_TEXT: {
+		Stream* stream = ResourceStream::New(hash);
+		if (!stream) {
+			return NULL_VAL;
+		}
+
+		if (ScriptManager::Lock()) {
+			size_t size = stream->Length();
+			ObjString* text = AllocString(size);
+			stream->ReadBytes(text->Chars, size);
+			stream->Close();
+			ScriptManager::Unlock();
+			return OBJECT_VAL(text);
+		}
+		return NULL_VAL;
+	}
+	}
+
+	return INTEGER_VAL(index);
+}
+VMValue VMThread::Intrinsic_CheckResource(Uint32 hash) {
+	if (ResourceManager::ResourceExists(hash)) {
+		return INTEGER_VAL(true);
+	}
+	return INTEGER_VAL(false);
+}

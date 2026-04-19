@@ -9,6 +9,11 @@ private:
 	void WarnVariablesUnusedUnset();
 	void WriteBytecode(Stream* stream, const char* filename);
 
+	bool Intrinsic_LoadResource(Uint8* argStart, int argCount, Uint8 type);
+	bool Intrinsic_ResourceExists(Uint8* argStart, int argCount);
+
+	static void EraseChunkCode(Chunk* chunk, size_t offset, size_t length);
+
 	std::vector<Uint8*> EmittedOpcodes;
 
 public:

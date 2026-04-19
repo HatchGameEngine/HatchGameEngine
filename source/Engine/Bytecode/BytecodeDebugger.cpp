@@ -129,6 +129,13 @@ int BytecodeDebugger::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) 
 	}
 	return offset + Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
 }
+int BytecodeDebugger::ResourceInstruction(uint8_t opcode, Chunk* chunk, int offset) {
+	uint8_t type = chunk->Code[offset + 1];
+	uint32_t hash = *(uint32_t*)&chunk->Code[offset + 2];
+	DEBUGGER_LOG("%-16s %d #%08X", Bytecode::OpcodeNames[opcode], type, hash);
+	DEBUGGER_LOG("\n");
+	return offset + Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+}
 
 int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	DEBUGGER_LOG("%04d ", offset);
@@ -216,6 +223,7 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_LOCATION_GLOBAL:
 	case OP_LOCATION_PROPERTY:
 	case OP_LOCATION_SUPER_PROPERTY:
+	case OP_CHECK_GAME_RESOURCE:
 		return HashInstruction(instruction, chunk, offset);
 	case OP_SET_MODULE_LOCAL:
 	case OP_GET_MODULE_LOCAL:
@@ -245,6 +253,8 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 		return MethodInstruction(instruction, chunk, offset);
 	case OP_METHOD_V4:
 		return MethodInstructionV4(instruction, chunk, offset);
+	case OP_LOAD_GAME_RESOURCE:
+		return ResourceInstruction(instruction, chunk, offset);
 	default:
 		if (instruction < OP_LAST) {
 			DEBUGGER_LOG("No viewer for opcode %s\n", Bytecode::OpcodeNames[instruction]);

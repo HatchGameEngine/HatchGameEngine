@@ -14,18 +14,19 @@ private:
 
 public:
 	vector<Mesh*> Meshes;
-	size_t VertexCount;
-	size_t VertexIndexCount;
-	Uint8 VertexPerFace;
+	size_t VertexCount = 0;
+	size_t VertexIndexCount = 0;
+	Uint8 VertexPerFace = 0;
 	vector<Material*> Materials;
 	vector<ModelAnim*> Animations;
 	vector<Armature*> Armatures;
-	bool UseVertexAnimation;
-	Armature* BaseArmature;
-	Matrix4x4* GlobalInverseMatrix;
+	bool UseVertexAnimation = false;
+	Armature* BaseArmature = nullptr;
+	Matrix4x4* GlobalInverseMatrix = nullptr;
 	bool LoadFailed;
 
 	IModel(const char* filename);
+	IModel(Stream* stream);
 	static bool IsFile(Stream* stream);
 	bool Load(Stream* stream, const char* filename);
 	size_t FindMaterial(const char* name);

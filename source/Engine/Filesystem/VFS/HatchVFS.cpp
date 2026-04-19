@@ -70,6 +70,7 @@ bool HatchVFS::Open(Stream* stream) {
 
 	StreamPtr = stream;
 	Opened = true;
+	HasHashLookup = true;
 
 	return true;
 }
@@ -82,6 +83,17 @@ std::string HatchVFS::TransformFilename(const char* filename) {
 	snprintf(transformedFilename, sizeof transformedFilename, "%08x", crc32);
 
 	return std::string(transformedFilename);
+}
+
+bool HatchVFS::HasFile(Uint32 hash) {
+	char filename[9];
+	snprintf(filename, sizeof filename, "%08x", hash);
+	return ArchiveVFS::HasFile(filename);
+}
+bool HatchVFS::ReadFile(Uint32 hash, Uint8** out, size_t* size) {
+	char filename[9];
+	snprintf(filename, sizeof filename, "%08x", hash);
+	return ArchiveVFS::ReadFile(filename, out, size);
 }
 
 bool HatchVFS::SupportsCompression() {

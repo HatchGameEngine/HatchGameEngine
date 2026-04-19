@@ -98,7 +98,9 @@ const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_NOP",
 	"OP_LOCATION_ELEMENT",
 	"OP_LOAD_INDIRECT",
 	"OP_STORE_INDIRECT",
-	"OP_LENGTH"};
+	"OP_LENGTH",
+	"OP_LOAD_GAME_RESOURCE",
+	"OP_CHECK_GAME_RESOURCE"};
 
 Bytecode::Bytecode() {
 	Version = LatestVersion;
@@ -571,6 +573,10 @@ int Bytecode::GetTotalOpcodeSize(uint8_t* op) {
 		return 2;
 	case OP_LENGTH:
 		return 1;
+	case OP_LOAD_GAME_RESOURCE:
+		return 6;
+	case OP_CHECK_GAME_RESOURCE:
+		return 5;
 	}
 	return 1;
 }

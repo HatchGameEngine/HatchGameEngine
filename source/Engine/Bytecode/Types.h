@@ -533,6 +533,16 @@ static inline bool HasInitializer(ObjClass* klass) {
 	return !IS_NULL(klass->Initializer);
 }
 
+enum {
+	INTRINSIC_RESOURCE_SPRITE,
+	INTRINSIC_RESOURCE_IMAGE,
+	INTRINSIC_RESOURCE_SOUND,
+	INTRINSIC_RESOURCE_MUSIC,
+	INTRINSIC_RESOURCE_MODEL,
+	INTRINSIC_RESOURCE_MEDIA,
+	INTRINSIC_RESOURCE_TEXT
+};
+
 struct WithIter {
 	void* entity;
 	void* entityNext;
@@ -695,6 +705,8 @@ enum OpCode : uint8_t {
 	OP_STORE_INDIRECT,
 	//
 	OP_LENGTH,
+	OP_LOAD_GAME_RESOURCE,
+	OP_CHECK_GAME_RESOURCE,
 
 	OP_LAST
 };

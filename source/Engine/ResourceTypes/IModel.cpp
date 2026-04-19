@@ -14,19 +14,6 @@
 #include <Engine/Utilities/StringUtils.h>
 
 IModel::IModel(const char* filename) {
-	VertexCount = 0;
-	VertexIndexCount = 0;
-	VertexPerFace = 0;
-
-	Meshes.clear();
-	Materials.clear();
-	Animations.clear();
-	Armatures.clear();
-
-	BaseArmature = nullptr;
-	GlobalInverseMatrix = nullptr;
-	UseVertexAnimation = false;
-
 	LoadFailed = true;
 
 	ResourceStream* resourceStream = ResourceStream::New(filename);
@@ -38,6 +25,12 @@ IModel::IModel(const char* filename) {
 
 	resourceStream->Close();
 }
+IModel::IModel(Stream* stream) {
+	LoadFailed = !Load(stream, nullptr);
+
+	stream->Close();
+}
+
 bool IModel::IsFile(Stream* stream) {
 	if (HatchModel::IsMagic(stream)) {
 		return true;
@@ -55,7 +48,7 @@ bool IModel::IsFile(Stream* stream) {
 	return false;
 }
 bool IModel::Load(Stream* stream, const char* filename) {
-	if (!stream || !filename) {
+	if (!stream) {
 		return false;
 	}
 
@@ -78,19 +71,37 @@ bool IModel::Load(Stream* stream, const char* filename) {
 	}
 
 	if (!success) {
-		Log::Print(Log::LOG_ERROR, "Could not load model \"%s\"!", filename);
+		if (filename) {
+			Log::Print(Log::LOG_ERROR, "Could not load model \"%s\"!", filename);
+		}
+		else {
+			Log::Print(Log::LOG_ERROR, "Could not load model!", filename);
+		}
 		return false;
 	}
 
-	Log::Print(Log::LOG_VERBOSE, "Model load took %.3f ms (%s)", Clock::End(), filename);
+	if (filename) {
+		Log::Print(Log::LOG_VERBOSE, "Model load took %.3f ms (%s)", Clock::End(), filename);
+	}
+	else {
+		Log::Print(Log::LOG_VERBOSE, "Model load took %.3f ms", Clock::End());
+	}
 
 	if (Application::DevConvertModels && !isHatchModel) {
-		Log::Print(Log::LOG_VERBOSE, "Converting model \"%s\" to HatchModel...", filename);
+		if (filename) {
+			Log::Print(Log::LOG_VERBOSE, "Converting model \"%s\" to HatchModel...", filename);
+		}
+		else {
+			Log::Print(Log::LOG_VERBOSE, "Converting model to HatchModel...");
+		}
 
-		std::string newFilename = std::string(filename);
-		size_t pos = newFilename.find_last_of('.');
-		if (pos != std::string::npos) {
-			newFilename = newFilename.substr(0, pos);
+		std::string newFilename = "export";
+		if (filename) {
+			newFilename = std::string(filename);
+			size_t pos = newFilename.find_last_of('.');
+			if (pos != std::string::npos) {
+				newFilename = newFilename.substr(0, pos);
+			}
 		}
 		newFilename = "./Resources/" + newFilename + ".hmdl";
 

@@ -1,4 +1,5 @@
 #include <Engine/Filesystem/VFS/ArchiveVFS.h>
+#include <Engine/Hashing/CRC32.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -22,11 +23,19 @@ bool ArchiveVFS::IsEmpty() {
 	return Entries.size() == 0;
 }
 
+void ArchiveVFS::BuildHashLookup() {
+	for (size_t i = 0; i < NumEntries; i++) {
+		std::string entryName = EntryNames[i];
+		Uint32 hash = CRC32::EncryptString(entryName.c_str());
+		HashLookup[hash] = entryName;
+	}
+
+	HasHashLookup = true;
+}
+
 bool ArchiveVFS::HasFile(const char* filename) {
 	if (IsReadable()) {
-		std::string entryName = TransformFilename(filename);
-
-		VFSEntryMap::iterator it = Entries.find(entryName);
+		VFSEntryMap::iterator it = Entries.find(std::string(filename));
 
 		return it != Entries.end();
 	}
@@ -36,9 +45,7 @@ bool ArchiveVFS::HasFile(const char* filename) {
 
 VFSEntry* ArchiveVFS::FindFile(const char* filename) {
 	if (IsReadable()) {
-		std::string entryName = TransformFilename(filename);
-
-		VFSEntryMap::iterator it = Entries.find(entryName);
+		VFSEntryMap::iterator it = Entries.find(std::string(filename));
 		if (it != Entries.end()) {
 			return it->second;
 		}
@@ -81,7 +88,7 @@ bool ArchiveVFS::ReadEntryData(VFSEntry* entry, Uint8* memory, size_t memSize) {
 
 bool ArchiveVFS::PutFile(const char* filename, VFSEntry* entry) {
 	if (IsWritable()) {
-		std::string entryName = TransformFilename(filename);
+		std::string entryName = std::string(filename);
 
 		VFSEntryMap::iterator it = Entries.find(entryName);
 		if (it == Entries.end()) {
@@ -101,7 +108,7 @@ bool ArchiveVFS::PutFile(const char* filename, VFSEntry* entry) {
 
 bool ArchiveVFS::EraseFile(const char* filename) {
 	if (IsWritable()) {
-		std::string entryName = TransformFilename(filename);
+		std::string entryName = std::string(filename);
 
 		VFSEntryMap::iterator it = Entries.find(entryName);
 

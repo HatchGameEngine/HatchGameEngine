@@ -14,6 +14,9 @@ enum { AUDIO_FORMAT_UNKNOWN, AUDIO_FORMAT_OGG, AUDIO_FORMAT_WAV };
 #define AUDIO_LOOP_DEFAULT (-1)
 
 class ISound {
+private:
+	void LoadFromStream(Stream* stream);
+
 public:
 	SDL_AudioSpec Format;
 	int BytesPerSample;
@@ -25,9 +28,12 @@ public:
 
 	ISound(const char* filename);
 	ISound(const char* filename, bool streamFromFile);
+	ISound(Stream* stream);
+	ISound(Stream* stream, bool streamFromFile);
 	static Uint8 DetectFormat(Stream* stream);
 	static bool IsFile(Stream* stream);
 	void Load(const char* filename, bool streamFromFile);
+	void Load(Stream* stream, bool streamFromFile);
 	AudioPlayback* CreatePlayer();
 	void Dispose();
 };

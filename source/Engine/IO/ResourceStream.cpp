@@ -24,6 +24,24 @@ FREE:
 	delete stream;
 	return NULL;
 }
+ResourceStream* ResourceStream::New(Uint32 hash) {
+	ResourceStream* stream = new (std::nothrow) ResourceStream;
+	if (!stream) {
+		return NULL;
+	}
+
+	if (!ResourceManager::LoadResource(hash, &stream->pointer_start, &stream->size)) {
+		goto FREE;
+	}
+
+	stream->pointer = stream->pointer_start;
+
+	return stream;
+
+FREE:
+	delete stream;
+	return NULL;
+}
 
 bool ResourceStream::IsReadable() {
 	return true;

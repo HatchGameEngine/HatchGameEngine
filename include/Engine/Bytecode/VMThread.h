@@ -141,6 +141,8 @@ public:
 	VMValue Values_LogicalNOT();
 	VMValue Values_BitwiseNOT();
 	VMValue Value_TypeOf();
+	VMValue Intrinsic_LoadResource(Uint8 type, Uint32 hash);
+	VMValue Intrinsic_CheckResource(Uint32 hash);
 
 #if USING_VM_FUNCPTRS
 	int RunOpcodeFunc(CallFrame* frame);
@@ -237,6 +239,8 @@ public:
 	VM_ADD_OPFUNC(OP_LOAD_INDIRECT);
 	VM_ADD_OPFUNC(OP_STORE_INDIRECT);
 	VM_ADD_OPFUNC(OP_LENGTH);
+	VM_ADD_OPFUNC(OP_LOAD_GAME_RESOURCE);
+	VM_ADD_OPFUNC(OP_CHECK_GAME_RESOURCE);
 #endif
 };
 

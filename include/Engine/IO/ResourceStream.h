@@ -11,6 +11,7 @@ public:
 	size_t size = 0;
 
 	static ResourceStream* New(const char* filename);
+	static ResourceStream* New(Uint32 hash);
 	bool IsReadable();
 	bool IsWritable();
 	bool MakeReadable(bool readable);

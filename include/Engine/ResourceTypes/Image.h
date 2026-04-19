@@ -11,10 +11,11 @@ class Image {
 public:
 	int ID = -1;
 	int References = 0;
-	char* Filename;
-	Texture* TexturePtr = NULL;
+	char* Filename = nullptr;
+	Texture* TexturePtr = nullptr;
 
 	Image(const char* filename);
+	Image(Stream* stream);
 	Image(Texture* texturePtr);
 	void AddRef();
 	bool TakeRef();
@@ -24,6 +25,7 @@ public:
 	static Uint8 DetectFormat(Stream* stream);
 	static bool IsFile(Stream* stream);
 	static Texture* LoadTextureFromResource(const char* filename);
+	static Texture* LoadTextureFromStream(Stream* stream, const char* filename);
 };
 
 #endif /* ENGINE_RESOURCETYPES_IMAGE_H */

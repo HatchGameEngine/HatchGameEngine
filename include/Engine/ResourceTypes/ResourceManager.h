@@ -21,6 +21,8 @@ public:
 	static void SetMainResourceWritable(bool writable);
 	static bool LoadResource(const char* filename, Uint8** out, size_t* size);
 	static bool ResourceExists(const char* filename);
+	static bool LoadResource(Uint32 hash, Uint8** out, size_t* size);
+	static bool ResourceExists(Uint32 hash);
 	static void Dispose();
 };
 

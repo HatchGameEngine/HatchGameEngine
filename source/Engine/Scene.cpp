@@ -3177,23 +3177,6 @@ int Scene::LoadImageResource(const char* filename, int unloadPolicy) {
 		return -1;
 	}
 
-	resource->AsImage->ID = (int)index;
-
-	return (int)index;
-}
-int Scene::AddImageResource(Image* image, const char* filename, int unloadPolicy) {
-	ResourceType* resource = new (std::nothrow) ResourceType();
-	resource->FilenameHash = CRC32::EncryptString(filename);
-	resource->UnloadPolicy = unloadPolicy;
-
-	size_t index = 0;
-	vector<ResourceType*>* list = &Scene::ImageList;
-	if (Scene::GetResource(list, resource, index)) {
-		return (int)index;
-	}
-
-	resource->AsImage = image;
-
 	return (int)index;
 }
 int Scene::LoadModelResource(const char* filename, int unloadPolicy) {
@@ -3271,24 +3254,209 @@ int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
 		return (int)index;
 	}
 
-	Texture* VideoTexture = NULL;
-	MediaSource* Source = NULL;
-	MediaPlayer* Player = NULL;
-
 	Stream* stream = ResourceStream::New(filename);
 	if (!stream) {
-		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 		delete resource;
 		(*list)[index] = NULL;
 		return -1;
 	}
 
-	Source = MediaSource::CreateSourceFromStream(stream);
-	if (!Source) {
+	MediaBag* newMediaBag = LoadVideo(stream);
+	if (!newMediaBag) {
 		delete resource;
-		stream->Close();
 		(*list)[index] = NULL;
 		return -1;
+	}
+
+	resource->AsMedia = newMediaBag;
+	return (int)index;
+#else
+	return -1;
+#endif
+}
+
+int Scene::LoadSpriteResource(Uint32 hash, int unloadPolicy) {
+	ResourceType* resource = new (std::nothrow) ResourceType();
+	resource->FilenameHash = hash;
+	resource->UnloadPolicy = unloadPolicy;
+
+	size_t index = 0;
+	vector<ResourceType*>* list = &Scene::SpriteList;
+	if (Scene::GetResource(list, resource, index)) {
+		return (int)index;
+	}
+
+	ResourceStream* stream = ResourceStream::New(hash);
+	if (!stream) {
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	resource->AsSprite = new (std::nothrow) ISprite(stream);
+	if (resource->AsSprite->LoadFailed) {
+		delete resource->AsSprite;
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	return (int)index;
+}
+int Scene::LoadImageResource(Uint32 hash, int unloadPolicy) {
+	ResourceType* resource = new (std::nothrow) ResourceType();
+	resource->FilenameHash = hash;
+	resource->UnloadPolicy = unloadPolicy;
+
+	size_t index = 0;
+	vector<ResourceType*>* list = &Scene::ImageList;
+	if (Scene::GetResource(list, resource, index)) {
+		return (int)index;
+	}
+
+	ResourceStream* stream = ResourceStream::New(hash);
+	if (!stream) {
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	resource->AsImage = new (std::nothrow) Image(stream);
+	if (!resource->AsImage->TexturePtr) {
+		delete resource->AsImage;
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	return (int)index;
+}
+int Scene::LoadModelResource(Uint32 hash, int unloadPolicy) {
+	ResourceType* resource = new (std::nothrow) ResourceType();
+	resource->FilenameHash = hash;
+	resource->UnloadPolicy = unloadPolicy;
+
+	size_t index = 0;
+	vector<ResourceType*>* list = &Scene::ModelList;
+	if (Scene::GetResource(list, resource, index)) {
+		return (int)index;
+	}
+
+	ResourceStream* stream = ResourceStream::New(hash);
+	if (!stream) {
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	resource->AsModel = new (std::nothrow) IModel(stream);
+	if (resource->AsModel->LoadFailed) {
+		delete resource->AsModel;
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	return (int)index;
+}
+int Scene::LoadMusicResource(Uint32 hash, int unloadPolicy) {
+	ResourceType* resource = new (std::nothrow) ResourceType();
+	resource->FilenameHash = hash;
+	resource->UnloadPolicy = unloadPolicy;
+
+	size_t index = 0;
+	vector<ResourceType*>* list = &Scene::MusicList;
+	if (Scene::GetResource(list, resource, index)) {
+		return (int)index;
+	}
+
+	ResourceStream* stream = ResourceStream::New(hash);
+	if (!stream) {
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	resource->AsMusic = new (std::nothrow) ISound(stream);
+	if (resource->AsMusic->LoadFailed) {
+		delete resource->AsMusic;
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	return (int)index;
+}
+int Scene::LoadSoundResource(Uint32 hash, int unloadPolicy) {
+	ResourceType* resource = new (std::nothrow) ResourceType();
+	resource->FilenameHash = hash;
+	resource->UnloadPolicy = unloadPolicy;
+
+	size_t index = 0;
+	vector<ResourceType*>* list = &Scene::SoundList;
+	if (Scene::GetResource(list, resource, index)) {
+		return (int)index;
+	}
+
+	ResourceStream* stream = ResourceStream::New(hash);
+	if (!stream) {
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	resource->AsSound = new (std::nothrow) ISound(stream);
+	if (resource->AsSound->LoadFailed) {
+		delete resource->AsSound;
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	return (int)index;
+}
+int Scene::LoadVideoResource(Uint32 hash, int unloadPolicy) {
+#ifdef USING_FFMPEG
+	ResourceType* resource = new (std::nothrow) ResourceType();
+	resource->FilenameHash = hash;
+	resource->UnloadPolicy = unloadPolicy;
+
+	size_t index = 0;
+	vector<ResourceType*>* list = &Scene::MediaList;
+	if (Scene::GetResource(list, resource, index)) {
+		return (int)index;
+	}
+
+	Stream* stream = ResourceStream::New(hash);
+	if (!stream) {
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	MediaBag* newMediaBag = LoadVideo(stream);
+	if (!newMediaBag) {
+		delete resource;
+		(*list)[index] = NULL;
+		return -1;
+	}
+
+	resource->AsMedia = newMediaBag;
+	return (int)index;
+#else
+	return -1;
+#endif
+}
+
+MediaBag* Scene::LoadVideo(Stream* stream) {
+#ifdef USING_FFMPEG
+	Texture* VideoTexture = NULL;
+	MediaSource* Source = NULL;
+	MediaPlayer* Player = NULL;
+
+	Source = MediaSource::CreateSourceFromStream(stream);
+	if (!Source) {
+		return nullptr;
 	}
 
 	Player = MediaPlayer::Create(Source,
@@ -3299,9 +3467,7 @@ int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
 		Scene::Views[0].Height);
 	if (!Player) {
 		Source->Close();
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
+		return nullptr;
 	}
 
 	PlayerInfo playerInfo;
@@ -3313,9 +3479,7 @@ int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
 	if (!VideoTexture) {
 		Player->Close();
 		Source->Close();
-		delete resource;
-		(*list)[index] = NULL;
-		return -1;
+		return nullptr;
 	}
 
 	if (Player->GetVideoStream() > -1) {
@@ -3340,10 +3504,9 @@ int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
 	newMediaBag->Player = Player;
 	newMediaBag->VideoTexture = VideoTexture;
 
-	resource->AsMedia = newMediaBag;
-	return (int)index;
+	return newMediaBag;
 #else
-	return -1;
+	return nullptr;
 #endif
 }
 
@@ -3368,6 +3531,22 @@ ResourceType* Scene::GetImageResource(int index) {
 	}
 
 	return Scene::ImageList[index];
+}
+
+int Scene::AddImageResource(Image* image, const char* filename, int unloadPolicy) {
+	ResourceType* resource = new (std::nothrow) ResourceType();
+	resource->FilenameHash = CRC32::EncryptString(filename);
+	resource->UnloadPolicy = unloadPolicy;
+
+	size_t index = 0;
+	vector<ResourceType*>* list = &Scene::ImageList;
+	if (Scene::GetResource(list, resource, index)) {
+		return (int)index;
+	}
+
+	resource->AsImage = image;
+
+	return (int)index;
 }
 
 void Scene::DisposeInScope(Uint32 scope) {

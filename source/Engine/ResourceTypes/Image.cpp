@@ -20,10 +20,14 @@ Image::Image(const char* filename) {
 	Filename = StringUtils::Duplicate(filename);
 	TexturePtr = Image::LoadTextureFromResource(Filename);
 }
+Image::Image(Stream* stream) {
+	AddRef();
+	TexturePtr = Image::LoadTextureFromStream(stream, nullptr);
+	stream->Close();
+}
 
 Image::Image(Texture* texturePtr) {
 	AddRef();
-	Filename = nullptr;
 	TexturePtr = texturePtr;
 }
 
@@ -83,30 +87,42 @@ bool Image::IsFile(Stream* stream) {
 }
 
 Texture* Image::LoadTextureFromResource(const char* filename) {
+	Stream* stream = ResourceStream::New(filename);
+	if (!stream) {
+		return NULL;
+	}
+
+	Texture* texture = LoadTextureFromStream(stream, filename);
+
+	stream->Close();
+
+	return texture;
+}
+Texture* Image::LoadTextureFromStream(Stream* stream, const char* filename) {
 	Uint8* data = NULL;
 	Uint32 width = 0;
 	Uint32 height = 0;
 	Uint32* paletteColors = NULL;
 	unsigned numPaletteColors = 0;
 
-	Uint8 format = IMAGE_FORMAT_UNKNOWN;
-	Stream* stream = ResourceStream::New(filename);
-	if (stream) {
-		format = DetectFormat(stream);
-		stream->Seek(0);
-	}
-	else {
-		return NULL;
-	}
+	Uint8 format = DetectFormat(stream);
+	stream->Seek(0);
 
 	if (format == IMAGE_FORMAT_PNG) {
 		Clock::Start();
 		PNG* png = PNG::Load(stream);
 		if (png) {
-			Log::Print(Log::LOG_VERBOSE,
-				"PNG load took %.3f ms (%s)",
-				Clock::End(),
-				filename);
+			if (filename) {
+				Log::Print(Log::LOG_VERBOSE,
+					"PNG load took %.3f ms (%s)",
+					Clock::End(),
+					filename);
+			}
+			else {
+				Log::Print(Log::LOG_VERBOSE,
+					"PNG load took %.3f ms",
+					Clock::End());
+			}
 			width = (Uint32)png->Width;
 			height = (Uint32)png->Height;
 
@@ -121,8 +137,12 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			delete png;
 		}
 		else {
-			stream->Close();
-			Log::Print(Log::LOG_ERROR, "PNG \"%s\" could not be loaded!", filename);
+			if (filename) {
+				Log::Print(Log::LOG_ERROR, "PNG \"%s\" could not be loaded!", filename);
+			}
+			else {
+				Log::Print(Log::LOG_ERROR, "PNG could not be loaded!");
+			}
 			return NULL;
 		}
 	}
@@ -130,10 +150,17 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		Clock::Start();
 		JPEG* jpeg = JPEG::Load(stream);
 		if (jpeg) {
-			Log::Print(Log::LOG_VERBOSE,
-				"JPEG load took %.3f ms (%s)",
-				Clock::End(),
-				filename);
+			if (filename) {
+				Log::Print(Log::LOG_VERBOSE,
+					"JPEG load took %.3f ms (%s)",
+					Clock::End(),
+					filename);
+			}
+			else {
+				Log::Print(Log::LOG_VERBOSE,
+					"JPEG load took %.3f ms",
+					Clock::End());
+			}
 			width = (Uint32)jpeg->Width;
 			height = (Uint32)jpeg->Height;
 
@@ -143,8 +170,12 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			delete jpeg;
 		}
 		else {
-			stream->Close();
-			Log::Print(Log::LOG_ERROR, "JPEG \"%s\" could not be loaded!", filename);
+			if (filename) {
+				Log::Print(Log::LOG_ERROR, "JPEG \"%s\" could not be loaded!", filename);
+			}
+			else {
+				Log::Print(Log::LOG_ERROR, "JPEG could not be loaded!");
+			}
 			return NULL;
 		}
 	}
@@ -152,10 +183,17 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		Clock::Start();
 		GIF* gif = GIF::Load(stream);
 		if (gif) {
-			Log::Print(Log::LOG_VERBOSE,
-				"GIF load took %.3f ms (%s)",
-				Clock::End(),
-				filename);
+			if (filename) {
+				Log::Print(Log::LOG_VERBOSE,
+					"GIF load took %.3f ms (%s)",
+					Clock::End(),
+					filename);
+			}
+			else {
+				Log::Print(Log::LOG_VERBOSE,
+					"GIF load took %.3f ms",
+					Clock::End());
+			}
 			width = (Uint32)gif->Width;
 			height = (Uint32)gif->Height;
 
@@ -170,23 +208,28 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 			delete gif;
 		}
 		else {
-			stream->Close();
-			Log::Print(Log::LOG_ERROR, "GIF \"%s\" could not be loaded!", filename);
+			if (filename) {
+				Log::Print(Log::LOG_ERROR, "GIF \"%s\" could not be loaded!", filename);
+			}
+			else {
+				Log::Print(Log::LOG_ERROR, "GIF could not be loaded!");
+			}
 			return NULL;
 		}
 	}
 	else {
-		stream->Close();
-		Log::Print(Log::LOG_ERROR, "Unsupported image format for file \"%s\"!", filename);
+		if (filename) {
+			Log::Print(Log::LOG_ERROR, "Unsupported image format for file \"%s\"!", filename);
+		}
+		else {
+			Log::Print(Log::LOG_ERROR, "Unsupported image format!", filename);
+		}
 		return NULL;
 	}
 
-	stream->Close();
-
 	if (width > Graphics::MaxTextureWidth || height > Graphics::MaxTextureHeight) {
 		Log::Print(Log::LOG_WARN,
-			"Image file \"%s\" of size %d x %d is larger than maximum size of %d x %d!",
-			filename,
+			"Image file of size %d x %d is larger than maximum size of %d x %d!",
 			width,
 			height,
 			Graphics::MaxTextureWidth,

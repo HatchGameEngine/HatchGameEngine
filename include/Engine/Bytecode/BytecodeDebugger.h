@@ -24,6 +24,7 @@ public:
 	int ClassInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	int EnumInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	int WithInstruction(uint8_t opcode, Chunk* chunk, int offset);
+	int ResourceInstruction(uint8_t opcode, Chunk* chunk, int offset);
 	int DebugInstruction(Chunk* chunk, int offset);
 	void DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity);
 	~BytecodeDebugger();

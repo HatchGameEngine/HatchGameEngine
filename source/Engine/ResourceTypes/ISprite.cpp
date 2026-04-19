@@ -33,6 +33,15 @@ ISprite::ISprite(const char* filename) {
 	Filename = StringUtils::NormalizePath(filename);
 	LoadFailed = !LoadAnimation(Filename);
 }
+ISprite::ISprite(Stream* stream) {
+	Spritesheets.clear();
+	Spritesheets.shrink_to_fit();
+	SpritesheetFilenames.clear();
+	SpritesheetFilenames.shrink_to_fit();
+	Filename = nullptr;
+	LoadFailed = !LoadAnimation(stream, nullptr);
+	stream->Close();
+}
 
 size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
 	std::string sheetPath = Path::Normalize(sheetFilename);
@@ -196,10 +205,8 @@ void ISprite::ConvertToIndexed(Uint32* palColors, unsigned numPaletteColors) {
 bool ISprite::IsFile(Stream* stream) {
 	return stream->ReadUInt32() == RSDK_SPRITE_MAGIC;
 }
-bool ISprite::LoadAnimation(const char* filename) {
-	char* str;
-	int animationCount, previousAnimationCount;
 
+bool ISprite::LoadAnimation(const char* filename) {
 	Stream* reader = ResourceStream::New(filename);
 	if (!reader) {
 		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
@@ -210,9 +217,18 @@ bool ISprite::LoadAnimation(const char* filename) {
 	Log::Print(Log::LOG_VERBOSE, "\"%s\"", filename);
 #endif
 
+	bool didLoad = LoadAnimation(reader, filename);
+
+	reader->Close();
+
+	return didLoad;
+}
+bool ISprite::LoadAnimation(Stream* reader, const char* filename) {
+	char* str;
+	int animationCount, previousAnimationCount;
+
 	// Check MAGIC
 	if (!IsFile(reader)) {
-		reader->Close();
 		return false;
 	}
 
@@ -372,8 +388,6 @@ bool ISprite::LoadAnimation(const char* filename) {
 	for (int i = 0; i < hitboxCount; i++) {
 		Memory::Free(hitboxNames[i]);
 	}
-
-	reader->Close();
 
 	return true;
 }

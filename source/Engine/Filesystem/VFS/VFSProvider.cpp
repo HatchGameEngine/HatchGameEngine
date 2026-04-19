@@ -35,6 +35,9 @@ void VFSProvider::SetWritable(bool writable) {
 std::string VFSProvider::TransformFilename(const char* filename) {
 	return std::string(filename);
 }
+void VFSProvider::BuildHashLookup() {
+	HasHashLookup = true;
+}
 
 bool VFSProvider::SupportsCompression() {
 	return false;
@@ -49,11 +52,35 @@ bool VFSProvider::IsEmpty() {
 bool VFSProvider::HasFile(const char* filename) {
 	return false;
 }
+bool VFSProvider::HasFile(Uint32 hash) {
+	if (!HasHashLookup) {
+		BuildHashLookup();
+	}
+
+	if (!HashLookup.count(hash)) {
+		return false;
+	}
+
+	std::string filename = HashLookup[hash];
+	return HasFile(filename.c_str());
+}
 VFSEntry* VFSProvider::FindFile(const char* filename) {
 	return nullptr;
 }
 bool VFSProvider::ReadFile(const char* filename, Uint8** out, size_t* size) {
 	return false;
+}
+bool VFSProvider::ReadFile(Uint32 hash, Uint8** out, size_t* size) {
+	if (!HasHashLookup) {
+		BuildHashLookup();
+	}
+
+	if (!HashLookup.count(hash)) {
+		return false;
+	}
+
+	std::string filename = HashLookup[hash];
+	return ReadFile(filename.c_str(), out, size);
 }
 
 bool VFSProvider::PutFile(const char* filename, VFSEntry* entry) {

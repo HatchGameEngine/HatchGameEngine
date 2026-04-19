@@ -10,10 +10,17 @@
 #include <Engine/ResourceTypes/SoundFormats/WAV.h>
 
 ISound::ISound(const char* filename) {
-	ISound::Load(filename, true);
+	Load(filename, true);
 }
 ISound::ISound(const char* filename, bool streamFromFile) {
-	ISound::Load(filename, streamFromFile);
+	Load(filename, streamFromFile);
+}
+
+ISound::ISound(Stream* stream) {
+	Load(stream, true);
+}
+ISound::ISound(Stream* stream, bool streamFromFile) {
+	Load(stream, streamFromFile);
 }
 
 Uint8 ISound::DetectFormat(Stream* stream) {
@@ -40,17 +47,25 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 	StreamFromFile = streamFromFile;
 	Filename = StringUtils::NormalizePath(filename);
 
-	double ticks = Clock::GetTicks();
-
-	Uint8 format = AUDIO_FORMAT_UNKNOWN;
 	Stream* stream = ResourceStream::New(Filename);
-	if (stream) {
-		format = DetectFormat(stream);
-		stream->Seek(0);
-	}
-	else {
+	if (!stream) {
 		return;
 	}
+
+	LoadFromStream(stream);
+}
+void ISound::Load(Stream* stream, bool streamFromFile) {
+	LoadFailed = true;
+	StreamFromFile = streamFromFile;
+	Filename = nullptr;
+
+	LoadFromStream(stream);
+}
+void ISound::LoadFromStream(Stream* stream) {
+	double ticks = Clock::GetTicks();
+
+	Uint8 format = format = DetectFormat(stream);
+	stream->Seek(0);
 
 	// .OGG format
 	if (format == AUDIO_FORMAT_OGG) {
@@ -65,10 +80,17 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 
 		LoopPoint = SoundData->LoopPoint;
 
-		Log::Print(Log::LOG_VERBOSE,
-			"OGG load took %.3f ms (%s)",
-			Clock::GetTicks() - ticks,
-			Filename);
+		if (Filename) {
+			Log::Print(Log::LOG_VERBOSE,
+				"OGG load took %.3f ms (%s)",
+				Clock::GetTicks() - ticks,
+				Filename);
+		}
+		else {
+			Log::Print(Log::LOG_VERBOSE,
+				"OGG load took %.3f ms",
+				Clock::GetTicks() - ticks);
+		}
 	}
 	// .WAV format
 	else if (format == AUDIO_FORMAT_WAV) {
@@ -81,15 +103,27 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 
 		Format = SoundData->InputFormat;
 
-		Log::Print(Log::LOG_VERBOSE,
-			"WAV load took %.3f ms (%s)",
-			Clock::GetTicks() - ticks,
-			Filename);
+		if (Filename) {
+			Log::Print(Log::LOG_VERBOSE,
+				"WAV load took %.3f ms (%s)",
+				Clock::GetTicks() - ticks,
+				Filename);
+		}
+		else {
+			Log::Print(Log::LOG_VERBOSE,
+				"WAV load took %.3f ms",
+				Clock::GetTicks() - ticks);
+		}
 	}
 	// Unsupported format
 	else {
 		stream->Close();
-		Log::Print(Log::LOG_ERROR, "Unsupported audio format for file \"%s\"!", Filename);
+		if (Filename) {
+			Log::Print(Log::LOG_ERROR, "Unsupported audio format!");
+		}
+		else {
+			Log::Print(Log::LOG_ERROR, "Unsupported audio format for file \"%s\"!", Filename);
+		}
 		return;
 	}
 

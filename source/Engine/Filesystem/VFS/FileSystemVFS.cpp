@@ -1,6 +1,7 @@
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Filesystem/VFS/FileSystemVFS.h>
+#include <Engine/Hashing/CRC32.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -36,6 +37,21 @@ bool FileSystemVFS::IsEmpty() {
 	return Directory::IsEmpty(ParentPath.c_str());
 }
 
+void FileSystemVFS::BuildHashLookup() {
+	VFSEnumeration enumeration = EnumerateFiles(nullptr);
+	if (enumeration.Result != VFSEnumerationResult::SUCCESS) {
+		return;
+	}
+
+	for (size_t i = 0; i < enumeration.Entries.size(); i++) {
+		std::string entryName = enumeration.Entries[i];
+		Uint32 hash = CRC32::EncryptString(entryName.c_str());
+		HashLookup[hash] = entryName;
+	}
+
+	HasHashLookup = true;
+}
+
 bool FileSystemVFS::HasFile(const char* filename) {
 	if (!IsReadable()) {
 		return false;
@@ -52,7 +68,7 @@ bool FileSystemVFS::HasFile(const char* filename) {
 }
 
 VFSEntry* FileSystemVFS::CacheEntry(const char* filename, Stream* stream) {
-	std::string entryName = TransformFilename(filename);
+	std::string entryName = std::string(filename);
 
 	VFSEntry* entry = nullptr;
 	VFSEntryMap::iterator it = Cache.find(entryName);
@@ -72,8 +88,7 @@ VFSEntry* FileSystemVFS::CacheEntry(const char* filename, Stream* stream) {
 }
 
 VFSEntry* FileSystemVFS::GetCachedEntry(const char* filename) {
-	std::string entryName = TransformFilename(filename);
-	VFSEntryMap::iterator it = Cache.find(entryName);
+	VFSEntryMap::iterator it = Cache.find(std::string(filename));
 	if (it != Cache.end()) {
 		return it->second;
 	}
@@ -82,8 +97,7 @@ VFSEntry* FileSystemVFS::GetCachedEntry(const char* filename) {
 }
 
 void FileSystemVFS::RemoveFromCache(const char* filename) {
-	std::string entryName = TransformFilename(filename);
-	VFSEntryMap::iterator it = Cache.find(entryName);
+	VFSEntryMap::iterator it = Cache.find(std::string(filename));
 	if (it != Cache.end()) {
 		delete it->second;
 	}
@@ -199,10 +213,10 @@ VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path) {
 	Directory::SortEntries(&results);
 
 	for (size_t i = 0; i < results.size(); i++) {
-		std::string filename = Path::ToString(results[i]);
+		std::string filename = Path::Normalize(Path::ToString(results[i]));
 		const char* relPath = filename.c_str() + fullPathLength;
 
-		enumeration.Entries.push_back(std::string(relPath));
+		enumeration.Entries.push_back(relPath);
 	}
 
 	if (enumeration.Entries.size() > 0) {

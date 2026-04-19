@@ -18,6 +18,7 @@ public:
 
 	ISprite();
 	ISprite(const char* filename);
+	ISprite(Stream* stream);
 	Texture* AddSpriteSheet(const char* sheetFilename);
 	size_t FindOrAddSpriteSheet(const char* sheetFilename);
 	void ReserveAnimationCount(int count);
@@ -58,6 +59,7 @@ public:
 	void ConvertToIndexed(Uint32* palColors, unsigned numPaletteColors);
 	static bool IsFile(Stream* stream);
 	bool LoadAnimation(const char* filename);
+	bool LoadAnimation(Stream* stream, const char* filename);
 	int FindAnimation(const char* animname);
 	void LinkAnimation(vector<Animation> ani);
 	bool SaveAnimation(const char* filename);
