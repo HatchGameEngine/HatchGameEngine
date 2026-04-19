@@ -120,6 +120,8 @@ bool SourceFileMap::CheckForUpdate() {
 		return false;
 	}
 
+	Directory::SortEntries(&list);
+
 	if (!mainVfs->HasFile(OBJECTS_HCM_NAME)) {
 		anyChanges = true;
 	}

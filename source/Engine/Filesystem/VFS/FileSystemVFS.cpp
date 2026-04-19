@@ -196,6 +196,7 @@ VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path) {
 
 	std::vector<std::filesystem::path> results;
 	Directory::GetFiles(&results, fullPath.c_str(), "*", true);
+	Directory::SortEntries(&results);
 
 	for (size_t i = 0; i < results.size(); i++) {
 		std::string filename = Path::ToString(results[i]);
