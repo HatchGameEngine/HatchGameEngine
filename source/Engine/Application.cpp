@@ -275,6 +275,7 @@ void Application::InitScripting() {
 	ScriptManager::LinkExtensions();
 
 	Compiler::GetStandardConstants();
+	Compiler::SetupIntrinsics();
 
 #ifdef VM_DEBUG
 	VMThreadDebugger::Initialize();

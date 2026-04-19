@@ -129,6 +129,7 @@ int BytecodeDebugger::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) 
 	}
 	return offset + Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
 }
+
 int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	DEBUGGER_LOG("%04d ", offset);
 	if (offset > 0 && (chunk->Lines[offset] & 0xFFFF) == (chunk->Lines[offset - 1] & 0xFFFF)) {
@@ -188,6 +189,7 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_LOAD_INDIRECT:
 	case OP_STORE_INDIRECT:
 	case OP_LOCATION_ELEMENT:
+	case OP_LENGTH:
 		return SimpleInstruction(instruction, chunk, offset);
 	case OP_COPY:
 	case OP_CALL:

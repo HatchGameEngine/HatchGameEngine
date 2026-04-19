@@ -97,7 +97,8 @@ const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_NOP",
 	"OP_LOCATION_SUPER_PROPERTY",
 	"OP_LOCATION_ELEMENT",
 	"OP_LOAD_INDIRECT",
-	"OP_STORE_INDIRECT"};
+	"OP_STORE_INDIRECT",
+	"OP_LENGTH"};
 
 Bytecode::Bytecode() {
 	Version = LatestVersion;
@@ -568,6 +569,8 @@ int Bytecode::GetTotalOpcodeSize(uint8_t* op) {
 		return 1;
 	case OP_SET_ARGUMENT_SLOT:
 		return 2;
+	case OP_LENGTH:
+		return 1;
 	}
 	return 1;
 }

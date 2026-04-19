@@ -1,8 +1,4 @@
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include <Engine/Application.h>
 #include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Bytecode/BytecodeDebugger.h>
 #include <Engine/Bytecode/Compiler.h>
@@ -11,8 +7,7 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Exceptions/CompilerErrorException.h>
-
-#include <Engine/Application.h>
+#include <Engine/Hashing/CRC32.h>
 
 Parser Compiler::parser;
 Scanner Compiler::scanner;
@@ -31,6 +26,8 @@ Token VariableToken = Token{0, NULL, 0, 0, 0};
 Token InstanceToken = Token{0, NULL, 0, 0, 0};
 
 bool ShouldEmitValue = false;
+
+std::unordered_map<std::string, std::function<bool(Compiler*, Uint8*, int)>> Intrinsics;
 
 struct VariableWarning {
 	int Line;
@@ -704,9 +701,16 @@ Token Compiler::PeekToken() {
 Token Compiler::PeekNextToken() {
 	Parser previousParser = parser;
 	Scanner previousScanner = scanner;
-	Token next;
 
-	AdvanceToken();
+	Token next;
+	while (true) {
+		parser.Current = ScanToken();
+		if (parser.Current.Type != TOKEN_ERROR) {
+			break;
+		}
+
+		ErrorAtCurrent(parser.Current.Start);
+	}
 	next = parser.Current;
 
 	parser = previousParser;
@@ -945,7 +949,7 @@ int Compiler::ParseModuleVariable(const char* errorMessage, bool constant) {
 	return DeclareModuleVariable(&parser.Previous, constant);
 }
 void Compiler::DefineModuleVariable(int local) {
-	EmitByte(OP_DEFINE_MODULE_LOCAL);
+	EmitOpcode(OP_DEFINE_MODULE_LOCAL);
 	Compiler::ModuleLocals[local].Depth = 0;
 }
 int Compiler::DeclareModuleVariable(Token* name, bool constant) {
@@ -1039,17 +1043,17 @@ void Compiler::EmitSetOperation(Uint8 setOp, int arg, Token name) {
 	switch (setOp) {
 	case OP_SET_GLOBAL:
 	case OP_SET_PROPERTY:
-		EmitByte(setOp);
+		EmitOpcode(setOp);
 		EmitStringHash(name);
 		break;
 	case OP_SET_LOCAL:
-		EmitBytes(setOp, (Uint8)arg);
+		EmitOpcode(setOp, (Uint8)arg);
 		break;
 	case OP_SET_ELEMENT:
-		EmitByte(setOp);
+		EmitOpcode(setOp);
 		break;
 	case OP_SET_MODULE_LOCAL:
-		EmitByte(setOp);
+		EmitOpcode(setOp);
 		EmitUint16((Uint16)arg);
 		break;
 	default:
@@ -1063,16 +1067,16 @@ void Compiler::EmitGetOperation(Uint8 getOp, int arg, Token name) {
 	case OP_LOCATION_PROPERTY:
 	case OP_LOCATION_SUPER_PROPERTY:
 	case OP_LOCATION_GLOBAL:
-		EmitByte(getOp);
+		EmitOpcode(getOp);
 		EmitStringHash(name);
 		break;
 	case OP_GET_LOCAL:
 	case OP_LOCATION_STACK:
-		EmitBytes(getOp, (Uint8)arg);
+		EmitOpcode(getOp, (Uint8)arg);
 		break;
 	case OP_GET_MODULE_LOCAL:
 	case OP_LOCATION_MODULE_LOCAL:
-		EmitByte(getOp);
+		EmitOpcode(getOp);
 		EmitUint16((Uint16)arg);
 	default:
 		break;
@@ -1081,48 +1085,47 @@ void Compiler::EmitGetOperation(Uint8 getOp, int arg, Token name) {
 void Compiler::EmitAssignmentToken(Token assignmentToken) {
 	switch (assignmentToken.Type) {
 	case TOKEN_ASSIGNMENT_PLUS:
-		EmitByte(OP_ADD);
+		EmitOpcode(OP_ADD);
 		break;
 	case TOKEN_ASSIGNMENT_MINUS:
-		EmitByte(OP_SUBTRACT);
+		EmitOpcode(OP_SUBTRACT);
 		break;
 	case TOKEN_ASSIGNMENT_MODULO:
-		EmitByte(OP_MODULO);
+		EmitOpcode(OP_MODULO);
 		break;
 	case TOKEN_ASSIGNMENT_DIVISION:
-		EmitByte(OP_DIVIDE);
+		EmitOpcode(OP_DIVIDE);
 		break;
 	case TOKEN_ASSIGNMENT_MULTIPLY:
-		EmitByte(OP_MULTIPLY);
+		EmitOpcode(OP_MULTIPLY);
 		break;
 	case TOKEN_ASSIGNMENT_BITWISE_OR:
-		EmitByte(OP_BW_OR);
+		EmitOpcode(OP_BW_OR);
 		break;
 	case TOKEN_ASSIGNMENT_BITWISE_AND:
-		EmitByte(OP_BW_AND);
+		EmitOpcode(OP_BW_AND);
 		break;
 	case TOKEN_ASSIGNMENT_BITWISE_XOR:
-		EmitByte(OP_BW_XOR);
+		EmitOpcode(OP_BW_XOR);
 		break;
 	case TOKEN_ASSIGNMENT_BITWISE_LEFT:
-		EmitByte(OP_BITSHIFT_LEFT);
+		EmitOpcode(OP_BITSHIFT_LEFT);
 		break;
 	case TOKEN_ASSIGNMENT_BITWISE_RIGHT:
-		EmitByte(OP_BITSHIFT_RIGHT);
+		EmitOpcode(OP_BITSHIFT_RIGHT);
 		break;
 	case TOKEN_INCREMENT:
-		EmitByte(OP_INCREMENT);
+		EmitOpcode(OP_INCREMENT);
 		break;
 	case TOKEN_DECREMENT:
-		EmitByte(OP_DECREMENT);
+		EmitOpcode(OP_DECREMENT);
 		break;
 	default:
 		break;
 	}
 }
 void Compiler::EmitCopy(Uint8 count) {
-	EmitByte(OP_COPY);
-	EmitByte(count);
+	EmitOpcode(OP_COPY, count);
 }
 void Compiler::EmitCopyAndLoadIndirect() {
 	Uint8* op = GetLastOpcodePtr(CurrentChunk(), 0);
@@ -1135,7 +1138,7 @@ void Compiler::EmitCopyAndLoadIndirect() {
 	else {
 		EmitCopy(1);
 	}
-	EmitByte(OP_LOAD_INDIRECT);
+	EmitOpcode(OP_LOAD_INDIRECT);
 }
 
 void Compiler::EmitCall(const char* name, int argCount, bool isSuper) {
@@ -1147,42 +1150,37 @@ void Compiler::EmitCall(Token name, int argCount, bool isSuper) {
 	EmitStringHash(name);
 }
 void Compiler::EmitCallOpcode(int argCount, bool isSuper) {
-	EmitByte(isSuper ? OP_SUPER_INVOKE : OP_INVOKE);
+	EmitOpcode(isSuper ? OP_SUPER_INVOKE : OP_INVOKE);
 	EmitByte(argCount);
 }
 
-void Compiler::EmitDirectOrIndirectLoad() {
-	if (!CurrentSettings.DoOptimizations) {
-		EmitByte(OP_LOAD_INDIRECT);
-		return;
-	}
-
+void Compiler::ConvertLvalueToRvalue() {
 	Chunk* chunk = CurrentChunk();
 	Uint8* op = GetLastOpcodePtr(chunk, 0);
 	if (*op == OP_LOCATION_PROPERTY) {
 		if (!MakeIndirectPropertyChainDirect(chunk, op, 0)) {
-			EmitByte(OP_LOAD_INDIRECT);
+			EmitOpcode(OP_LOAD_INDIRECT);
 		}
 	}
 	else if (*op == OP_LOCATION_SUPER_PROPERTY) {
 		Uint8* last = GetLastOpcodePtr(chunk, 1);
 		Uint8 direct = IndirectLoadOpcodeToDirect(*last);
 		if (direct == OP_NOP) {
-			EmitByte(OP_LOAD_INDIRECT);
+			EmitOpcode(OP_LOAD_INDIRECT);
 			return;
 		}
 
 		Uint32 hash = *(Uint32*)(op + 1);
 		chunk->Count = (last - chunk->Code) + Bytecode::GetTotalOpcodeSize(last);
 		*last = direct;
-		EmitByte(OP_GET_SUPERCLASS);
-		EmitByte(OP_GET_PROPERTY);
+		EmitOpcode(OP_GET_SUPERCLASS);
+		EmitOpcode(OP_GET_PROPERTY);
 		EmitUint32(hash);
 	}
 	else {
 		Uint8 direct = IndirectLoadOpcodeToDirect(*op);
 		if (direct == OP_NOP) {
-			EmitByte(OP_LOAD_INDIRECT);
+			EmitOpcode(OP_LOAD_INDIRECT);
 		}
 		else {
 			*op = direct;
@@ -1233,7 +1231,7 @@ bool Compiler::MakeIndirectPropertyChainDirect(Chunk* chunk, Uint8* op, int inde
 			*last = direct;
 
 			chunk->Count -= code_block_length;
-			EmitByte(OP_GET_SUPERCLASS);
+			EmitOpcode(OP_GET_SUPERCLASS);
 			for (int i = 0; i < code_block_length; i++) {
 				chunk->Write(code_block_copy[i], line_block_copy[i]);
 			}
@@ -1386,7 +1384,7 @@ void Compiler::PopToScope(int depth) {
 }
 void Compiler::PopMultiple(int count) {
 	if (count == 1) {
-		EmitByte(OP_POP);
+		EmitOpcode(OP_POP);
 		return;
 	}
 
@@ -1395,7 +1393,7 @@ void Compiler::PopMultiple(int count) {
 		if (max > 0xFF) {
 			max = 0xFF;
 		}
-		EmitBytes(OP_POPN, max);
+		EmitOpcode(OP_POPN, max);
 		count -= max;
 	}
 }
@@ -1568,6 +1566,45 @@ Uint8 Compiler::GetArgumentList() {
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after arguments.");
 	return argumentCount;
 }
+std::function<bool(Compiler*, Uint8*, int)> Compiler::DetectInstrinsic(Token name) {
+	std::vector<Token> tokens;
+	Uint8* start = nullptr;
+
+	for (int i = (int)EmittedOpcodes.size() - 1; i >= 0; i--) {
+		Uint8* opcode = EmittedOpcodes[i];
+		if (*opcode == OP_GET_GLOBAL || *opcode == OP_GET_PROPERTY) {
+			Uint32 hash = *(Uint32*)(opcode + 1);
+			tokens.insert(tokens.begin(), TokenMap->Get(hash));
+			if (*opcode == OP_GET_GLOBAL) {
+				start = opcode;
+				break;
+			}
+		}
+		else {
+			return nullptr;
+		}
+	}
+
+	if (tokens.size() == 0) {
+		return nullptr;
+	}
+
+	std::string instrinsic;
+	for (size_t i = 0; i < tokens.size(); i++) {
+		instrinsic += tokens[i].ToString();
+		if (i < tokens.size() - 1) {
+			instrinsic += ".";
+		}
+	}
+	instrinsic += "." + name.ToString();
+
+	if (Intrinsics.count(instrinsic)) {
+		CurrentChunk()->Count = start - CurrentChunk()->Code;
+		return Intrinsics[instrinsic];
+	}
+
+	return nullptr;
+}
 
 #define CHECK_LVALUE() \
 	if (context != EXPRCONTEXT_LOCATION) { \
@@ -1579,7 +1616,7 @@ Uint8 Compiler::GetArgumentList() {
 	}
 #define CONVERT_LVALUE_TO_RVALUE() \
 	if (context == EXPRCONTEXT_LOCATION) { \
-		EmitDirectOrIndirectLoad(); \
+		ConvertLvalueToRvalue(); \
 	}
 
 ExprContext Compiler::GetThis(ExprContext context) {
@@ -1595,11 +1632,11 @@ ExprContext Compiler::GetSuper(ExprContext context) {
 	}
 
 	if (ShouldEmitValue) {
-		EmitBytes(OP_GET_LOCAL, 0);
+		EmitOpcode(OP_GET_LOCAL, 0);
 		return EXPRCONTEXT_VALUE;
 	}
 	else {
-		EmitBytes(OP_LOCATION_STACK, 0);
+		EmitOpcode(OP_LOCATION_STACK, 0);
 		return EXPRCONTEXT_LOCATION;
 	}
 }
@@ -1613,16 +1650,70 @@ ExprContext Compiler::GetDot(ExprContext context) {
 	if (MatchToken(TOKEN_LEFT_PAREN)) {
 		CONVERT_LVALUE_TO_RVALUE();
 
-		uint8_t argCount = GetArgumentList();
+		Chunk* chunk = CurrentChunk();
+		int pre = chunk->Count;
 
-		EmitCall(nameToken, argCount, isSuper);
+		std::function<bool(Compiler*, Uint8*, int)> intrinsic = nullptr;
+
+		if (CurrentSettings.DoOptimizations) {
+			intrinsic = DetectInstrinsic(nameToken);
+		}
+
+		if (intrinsic) {
+			// DetectInstrinsic deletes code, so chunk->Count < pre
+			int code_block_start = chunk->Count;
+			int code_block_length = pre - code_block_start;
+
+			// Copy code block
+			Uint8* code_block_copy = (Uint8*)malloc(code_block_length * sizeof(Uint8));
+			memcpy(code_block_copy, &chunk->Code[code_block_start], code_block_length * sizeof(Uint8));
+
+			// Copy line info block
+			int* line_block_copy = (int*)malloc(code_block_length * sizeof(int));
+			memcpy(line_block_copy, &chunk->Lines[code_block_start], code_block_length * sizeof(int));
+
+			uint8_t argCount = GetArgumentList();
+			int arg_code_block_length = chunk->Count - code_block_start;
+
+			bool didUseIntrinsic = intrinsic(this, chunk->Code + code_block_start, argCount);
+			if (!didUseIntrinsic) {
+				// Copy code block
+				Uint8* arg_code_block_copy = (Uint8*)malloc(arg_code_block_length * sizeof(Uint8));
+				memcpy(arg_code_block_copy, &chunk->Code[code_block_start], arg_code_block_length * sizeof(Uint8));
+
+				// Copy line info block
+				int* arg_line_block_copy = (int*)malloc(arg_code_block_length * sizeof(int));
+				memcpy(arg_line_block_copy, &chunk->Lines[code_block_start], arg_code_block_length * sizeof(int));
+
+				chunk->Count = code_block_start;
+
+				for (int i = 0; i < code_block_length; i++) {
+					chunk->Write(code_block_copy[i], line_block_copy[i]);
+				}
+				for (int i = 0; i < arg_code_block_length; i++) {
+					chunk->Write(arg_code_block_copy[i], arg_line_block_copy[i]);
+				}
+
+				free(arg_code_block_copy);
+				free(arg_line_block_copy);
+
+				EmitCall(nameToken, argCount, isSuper);
+			}
+
+			free(code_block_copy);
+			free(line_block_copy);
+		}
+		else {
+			uint8_t argCount = GetArgumentList();
+			EmitCall(nameToken, argCount, isSuper);
+		}
 
 		return EXPRCONTEXT_VALUE;
 	}
 
 	if (ShouldEmitValue) {
 		if (isSuper) {
-			EmitByte(OP_GET_SUPERCLASS);
+			EmitOpcode(OP_GET_SUPERCLASS);
 		}
 		EmitGetOperation(OP_GET_PROPERTY, -1, nameToken);
 		return EXPRCONTEXT_VALUE;
@@ -1640,11 +1731,11 @@ ExprContext Compiler::GetElement(ExprContext context) {
 	ConsumeToken(TOKEN_RIGHT_SQUARE_BRACE, "Expected matching ']'.");
 
 	if (ShouldEmitValue) {
-		EmitByte(OP_GET_ELEMENT);
+		EmitOpcode(OP_GET_ELEMENT);
 		return EXPRCONTEXT_VALUE;
 	}
 	else {
-		EmitByte(OP_LOCATION_ELEMENT);
+		EmitOpcode(OP_LOCATION_ELEMENT);
 		return EXPRCONTEXT_LOCATION;
 	}
 }
@@ -1659,13 +1750,13 @@ ExprContext Compiler::GetGrouping(ExprContext context) {
 ExprContext Compiler::GetLiteral(ExprContext context) {
 	switch (parser.Previous.Type) {
 	case TOKEN_NULL:
-		EmitByte(OP_NULL);
+		EmitOpcode(OP_NULL);
 		break;
 	case TOKEN_TRUE:
-		EmitByte(OP_TRUE);
+		EmitOpcode(OP_TRUE);
 		break;
 	case TOKEN_FALSE:
-		EmitByte(OP_FALSE);
+		EmitOpcode(OP_FALSE);
 		break;
 	default:
 		break;
@@ -1843,7 +1934,7 @@ ExprContext Compiler::GetArray(ExprContext context) {
 		}
 	}
 
-	EmitByte(OP_NEW_ARRAY);
+	EmitOpcode(OP_NEW_ARRAY);
 	EmitUint32(count);
 
 	return EXPRCONTEXT_VALUE;
@@ -1865,7 +1956,7 @@ ExprContext Compiler::GetMap(ExprContext context) {
 		}
 	}
 
-	EmitByte(OP_NEW_MAP);
+	EmitOpcode(OP_NEW_MAP);
 	EmitUint32(count);
 
 	return EXPRCONTEXT_VALUE;
@@ -1878,7 +1969,7 @@ ExprContext Compiler::GetLogicalAND(ExprContext context) {
 
 	int endJump = EmitJump(OP_JUMP_IF_FALSE);
 
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 	ParsePrecedence(PREC_AND);
 
 	PatchJump(endJump);
@@ -1892,7 +1983,7 @@ ExprContext Compiler::GetLogicalOR(ExprContext context) {
 	int endJump = EmitJump(OP_JUMP);
 
 	PatchJump(elseJump);
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 
 	ParsePrecedence(PREC_OR);
 	PatchJump(endJump);
@@ -1903,14 +1994,14 @@ ExprContext Compiler::GetConditional(ExprContext context) {
 	CONVERT_LVALUE_TO_RVALUE();
 
 	int thenJump = EmitJump(OP_JUMP_IF_FALSE);
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 	ParsePrecedence(PREC_TERNARY);
 
 	int elseJump = EmitJump(OP_JUMP);
 	ConsumeToken(TOKEN_COLON, "Expected ':' after conditional condition.");
 
 	PatchJump(thenJump);
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 	ParsePrecedence(PREC_TERNARY);
 	PatchJump(elseJump);
 
@@ -1924,33 +2015,33 @@ ExprContext Compiler::GetUnary(ExprContext context) {
 	switch (previousToken.Type) {
 	case TOKEN_MINUS:
 		CONVERT_LVALUE_TO_RVALUE();
-		EmitByte(OP_NEGATE);
+		EmitOpcode(OP_NEGATE);
 		break;
 	case TOKEN_BITWISE_NOT:
 		CONVERT_LVALUE_TO_RVALUE();
-		EmitByte(OP_BW_NOT);
+		EmitOpcode(OP_BW_NOT);
 		break;
 	case TOKEN_LOGICAL_NOT:
 		CONVERT_LVALUE_TO_RVALUE();
-		EmitByte(OP_LG_NOT);
+		EmitOpcode(OP_LG_NOT);
 		break;
 	case TOKEN_TYPEOF:
 		CONVERT_LVALUE_TO_RVALUE();
-		EmitByte(OP_TYPEOF);
+		EmitOpcode(OP_TYPEOF);
 		break;
 	case TOKEN_INCREMENT:
 		CHECK_LVALUE();
 		MarkLocalAsSet(VariableLocal);
 		EmitCopyAndLoadIndirect();
-		EmitByte(OP_INCREMENT);
-		EmitByte(OP_STORE_INDIRECT);
+		EmitOpcode(OP_INCREMENT);
+		EmitOpcode(OP_STORE_INDIRECT);
 		break;
 	case TOKEN_DECREMENT:
 		CHECK_LVALUE();
 		MarkLocalAsSet(VariableLocal);
 		EmitCopyAndLoadIndirect();
-		EmitByte(OP_DECREMENT);
-		EmitByte(OP_STORE_INDIRECT);
+		EmitOpcode(OP_DECREMENT);
+		EmitOpcode(OP_STORE_INDIRECT);
 		break;
 	}
 
@@ -1970,7 +2061,7 @@ ExprContext Compiler::GetNew(ExprContext context) {
 	if (MatchToken(TOKEN_LEFT_PAREN)) {
 		argCount = GetArgumentList();
 	}
-	EmitBytes(OP_NEW, argCount);
+	EmitOpcode(OP_NEW, argCount);
 
 	return EXPRCONTEXT_VALUE;
 }
@@ -2033,7 +2124,7 @@ ExprContext Compiler::GetHitbox(ExprContext context) {
 		return EXPRCONTEXT_VALUE;
 	}
 
-	EmitByte(OP_NEW_HITBOX);
+	EmitOpcode(OP_NEW_HITBOX);
 
 	return EXPRCONTEXT_VALUE;
 }
@@ -2049,61 +2140,61 @@ ExprContext Compiler::GetBinary(ExprContext context) {
 	switch (operatorType) {
 		// Numeric Operations
 	case TOKEN_PLUS:
-		EmitByte(OP_ADD);
+		EmitOpcode(OP_ADD);
 		break;
 	case TOKEN_MINUS:
-		EmitByte(OP_SUBTRACT);
+		EmitOpcode(OP_SUBTRACT);
 		break;
 	case TOKEN_MULTIPLY:
-		EmitByte(OP_MULTIPLY);
+		EmitOpcode(OP_MULTIPLY);
 		break;
 	case TOKEN_DIVISION:
-		EmitByte(OP_DIVIDE);
+		EmitOpcode(OP_DIVIDE);
 		break;
 	case TOKEN_MODULO:
-		EmitByte(OP_MODULO);
+		EmitOpcode(OP_MODULO);
 		break;
 		// Bitwise Operations
 	case TOKEN_BITWISE_LEFT:
-		EmitByte(OP_BITSHIFT_LEFT);
+		EmitOpcode(OP_BITSHIFT_LEFT);
 		break;
 	case TOKEN_BITWISE_RIGHT:
-		EmitByte(OP_BITSHIFT_RIGHT);
+		EmitOpcode(OP_BITSHIFT_RIGHT);
 		break;
 	case TOKEN_BITWISE_OR:
-		EmitByte(OP_BW_OR);
+		EmitOpcode(OP_BW_OR);
 		break;
 	case TOKEN_BITWISE_AND:
-		EmitByte(OP_BW_AND);
+		EmitOpcode(OP_BW_AND);
 		break;
 	case TOKEN_BITWISE_XOR:
-		EmitByte(OP_BW_XOR);
+		EmitOpcode(OP_BW_XOR);
 		break;
 		// Logical Operations
 	case TOKEN_LOGICAL_AND:
-		EmitByte(OP_LG_AND);
+		EmitOpcode(OP_LG_AND);
 		break;
 	case TOKEN_LOGICAL_OR:
-		EmitByte(OP_LG_OR);
+		EmitOpcode(OP_LG_OR);
 		break;
 		// Equality and Comparison Operators
 	case TOKEN_NOT_EQUALS:
-		EmitByte(OP_EQUAL_NOT);
+		EmitOpcode(OP_EQUAL_NOT);
 		break;
 	case TOKEN_EQUALS:
-		EmitByte(OP_EQUAL);
+		EmitOpcode(OP_EQUAL);
 		break;
 	case TOKEN_GREATER:
-		EmitByte(OP_GREATER);
+		EmitOpcode(OP_GREATER);
 		break;
 	case TOKEN_GREATER_EQUAL:
-		EmitByte(OP_GREATER_EQUAL);
+		EmitOpcode(OP_GREATER_EQUAL);
 		break;
 	case TOKEN_LESS:
-		EmitByte(OP_LESS);
+		EmitOpcode(OP_LESS);
 		break;
 	case TOKEN_LESS_EQUAL:
-		EmitByte(OP_LESS_EQUAL);
+		EmitOpcode(OP_LESS_EQUAL);
 		break;
 	default:
 		ErrorAt(&operato, "Unknown binary operator.", true);
@@ -2130,7 +2221,7 @@ ExprContext Compiler::GetAssignment(ExprContext context) {
 
 	if (assignmentToken.Type == TOKEN_INCREMENT || assignmentToken.Type == TOKEN_DECREMENT) {
 		EmitCopy(1);
-		EmitByte(OP_SAVE_VALUE);
+		EmitOpcode(OP_SAVE_VALUE);
 		incOrDec = true;
 	}
 	else {
@@ -2138,11 +2229,11 @@ ExprContext Compiler::GetAssignment(ExprContext context) {
 	}
 
 	EmitAssignmentToken(assignmentToken);
-	EmitByte(OP_STORE_INDIRECT);
+	EmitOpcode(OP_STORE_INDIRECT);
 
 	if (incOrDec) {
-		EmitByte(OP_POP);
-		EmitByte(OP_LOAD_VALUE);
+		EmitOpcode(OP_POP);
+		EmitOpcode(OP_LOAD_VALUE);
 	}
 
 	return EXPRCONTEXT_VALUE;
@@ -2150,14 +2241,14 @@ ExprContext Compiler::GetAssignment(ExprContext context) {
 ExprContext Compiler::GetHas(ExprContext context) {
 	CONVERT_LVALUE_TO_RVALUE();
 	ConsumeIdentifier("Expect property name.");
-	EmitByte(OP_HAS_PROPERTY);
+	EmitOpcode(OP_HAS_PROPERTY);
 	EmitStringHash(parser.Previous);
 	return EXPRCONTEXT_VALUE;
 }
 ExprContext Compiler::GetCall(ExprContext context) {
 	CONVERT_LVALUE_TO_RVALUE();
 	Uint8 argCount = GetArgumentList();
-	EmitByte(OP_CALL);
+	EmitOpcode(OP_CALL);
 	EmitByte(argCount);
 	return EXPRCONTEXT_VALUE;
 }
@@ -2170,8 +2261,7 @@ ExprContext Compiler::GetExpression() {
 }
 void Compiler::GetValueExpression() {
 	ShouldEmitValue = true;
-	ParsePrecedence(PREC_ASSIGNMENT, EXPRCONTEXT_VALUE);
-	ResetVariableLocal();
+	GetExpression();
 	ShouldEmitValue = false;
 }
 // Reading statements
@@ -2193,7 +2283,7 @@ stack<int> SwitchScopeStack;
 void Compiler::GetPrintStatement() {
 	GetExpression();
 	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after value.");
-	EmitByte(OP_PRINT);
+	EmitOpcode(OP_PRINT);
 }
 void Compiler::GetBreakpointStatement() {
 	Token previousToken = parser.Previous;
@@ -2208,7 +2298,7 @@ void Compiler::GetExpressionStatement() {
 		return;
 	}
 
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 
 	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after expression.");
 }
@@ -2252,7 +2342,7 @@ void Compiler::GetDoWhileStatement() {
 	int exitJump = EmitJump(OP_JUMP_IF_FALSE);
 
 	// Pop while expression value off the stack.
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 
 	// After block, return to evaluation of while expression.
 	EmitLoop(loopStart);
@@ -2262,7 +2352,7 @@ void Compiler::GetDoWhileStatement() {
 
 	// Pop value since OP_JUMP_IF_FALSE doesn't pop off expression
 	// value
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 
 	// Pop jump list off break stack, patch all breaks to this code
 	// point
@@ -2283,7 +2373,7 @@ void Compiler::GetReturnStatement() {
 
 		GetExpression();
 		ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after return value.");
-		EmitByte(OP_RETURN);
+		EmitOpcode(OP_RETURN);
 	}
 }
 void Compiler::GetRepeatStatement() {
@@ -2309,7 +2399,7 @@ void Compiler::GetRepeatStatement() {
 	if (!remaining) {
 		remaining = AddHiddenLocal(" remaining", 11);
 	}
-	EmitByte(OP_INCREMENT); // increment remaining as we're about
+	EmitOpcode(OP_INCREMENT); // increment remaining as we're about
 	// to decrement it, so we can cheat
 	// continue
 
@@ -2326,11 +2416,11 @@ void Compiler::GetRepeatStatement() {
 	if (variableToken.Type != TOKEN_ERROR) {
 		// decrement it and set it back, but keep it on the
 		// stack
-		EmitBytes(OP_GET_LOCAL, remaining);
-		EmitByte(OP_DECREMENT);
+		EmitOpcode(OP_GET_LOCAL, remaining);
+		EmitOpcode(OP_DECREMENT);
 	}
 	else {
-		EmitByte(OP_DECREMENT);
+		EmitOpcode(OP_DECREMENT);
 	}
 
 	StartBreakJumpList();
@@ -2341,9 +2431,9 @@ void Compiler::GetRepeatStatement() {
 	if (variableToken.Type != TOKEN_ERROR) {
 		// save, pop the decrement off the stack, and increment
 		// our int
-		EmitBytes(OP_SET_LOCAL, remaining);
-		EmitByte(OP_POP);
-		EmitByte(OP_INCREMENT);
+		EmitOpcode(OP_SET_LOCAL, remaining);
+		EmitOpcode(OP_POP);
+		EmitOpcode(OP_INCREMENT);
 	}
 
 	// Repeat Code Body
@@ -2358,7 +2448,7 @@ void Compiler::GetRepeatStatement() {
 	// if we jumped from ending we have a loose end we have to
 	// remove
 	if (variableToken.Type != TOKEN_ERROR) {
-		EmitByte(OP_POP);
+		EmitOpcode(OP_POP);
 	}
 
 	EndBreakJumpList();
@@ -2420,7 +2510,7 @@ void Compiler::GetSwitchStatement() {
 			chunk->Write(case_info.CodeBlock[i], case_info.LineBlock[i]);
 		}
 
-		EmitByte(OP_EQUAL);
+		EmitOpcode(OP_EQUAL);
 		int jumpToPatch = EmitJump(OP_JUMP_IF_FALSE);
 
 		PopMultiple(2);
@@ -2429,10 +2519,10 @@ void Compiler::GetSwitchStatement() {
 
 		PatchJump(jumpToPatch);
 
-		EmitByte(OP_POP);
+		EmitOpcode(OP_POP);
 	}
 
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 
 	if (defaultCase) {
 		defaultCase->JumpPosition = EmitJump(OP_JUMP);
@@ -2566,7 +2656,7 @@ void Compiler::GetWhileStatement() {
 	int exitJump = EmitJump(OP_JUMP_IF_FALSE);
 
 	// Pop while expression value off the stack.
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 
 	// Push new jump list on break stack
 	StartBreakJumpList();
@@ -2589,7 +2679,7 @@ void Compiler::GetWhileStatement() {
 
 	// Pop value since OP_JUMP_IF_FALSE doesn't pop off expression
 	// value
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 
 	// Pop jump list off break stack, patch all breaks to this code
 	// point
@@ -2625,7 +2715,7 @@ void Compiler::GetWithStatement() {
 	ScopeBegin();
 
 	// Reserve stack slot for where "other" will be at
-	EmitByte(OP_NULL);
+	EmitOpcode(OP_NULL);
 
 	// Add "other"
 	int otherSlot = AddHiddenLocal("other", 5);
@@ -2633,9 +2723,9 @@ void Compiler::GetWithStatement() {
 	// If the function has "this", make a copy of "this" (which is
 	// at the first slot) into "other"
 	if (hasThis) {
-		EmitBytes(OP_GET_LOCAL, 0);
-		EmitBytes(OP_SET_LOCAL, otherSlot);
-		EmitByte(OP_POP);
+		EmitOpcode(OP_GET_LOCAL, 0);
+		EmitOpcode(OP_SET_LOCAL, otherSlot);
+		EmitOpcode(OP_POP);
 	}
 	else {
 		// If the function does not have "this", we cannot
@@ -2679,7 +2769,7 @@ void Compiler::GetWithStatement() {
 	}
 
 	// Init "with" iteration
-	EmitByte(OP_WITH);
+	EmitOpcode(OP_WITH);
 
 	if (useOtherSlot) {
 		EmitByte(WITH_STATE_INIT_SLOTTED);
@@ -2709,7 +2799,7 @@ void Compiler::GetWithStatement() {
 	EndContinueJumpList();
 
 	// Loop back?
-	EmitByte(OP_WITH);
+	EmitOpcode(OP_WITH);
 	EmitByte(WITH_STATE_ITERATE);
 
 	int offset = CurrentChunk()->Count - loopStart + 2;
@@ -2725,7 +2815,7 @@ void Compiler::GetWithStatement() {
 	EndBreakJumpList();
 
 	// End
-	EmitByte(OP_WITH);
+	EmitOpcode(OP_WITH);
 	EmitByte(WITH_STATE_FINISH);
 	EmitByte(0xFF);
 	EmitByte(0xFF);
@@ -2773,7 +2863,7 @@ void Compiler::GetForStatement() {
 
 		// Jump out of the loop if the condition is false.
 		exitJump = EmitJump(OP_JUMP_IF_FALSE);
-		EmitByte(OP_POP); // Condition.
+		EmitOpcode(OP_POP); // Condition.
 	}
 
 	// Incremental
@@ -2782,7 +2872,7 @@ void Compiler::GetForStatement() {
 
 		int incrementStart = CurrentChunk()->Count;
 		GetExpression();
-		EmitByte(OP_POP);
+		EmitOpcode(OP_POP);
 		ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
 
 		EmitLoop(loopStart);
@@ -2808,7 +2898,7 @@ void Compiler::GetForStatement() {
 
 	if (exitJump != -1) {
 		PatchJump(exitJump);
-		EmitByte(OP_POP); // Condition.
+		EmitOpcode(OP_POP); // Condition.
 	}
 
 	// Pop jump list off break stack, patch all break to this code
@@ -2847,7 +2937,7 @@ void Compiler::GetForEachBlock() {
 
 	// Add a local for the iteration state
 	// Its initial value is null
-	EmitByte(OP_NULL);
+	EmitOpcode(OP_NULL);
 
 	int iterValue = AddHiddenLocal(" iterValue", 10);
 
@@ -2859,21 +2949,21 @@ void Compiler::GetForEachBlock() {
 	// Call $iterObj.$iterate($iterValue)
 	// $iterValue is initially null, which signals that the
 	// iteration just began.
-	EmitBytes(OP_GET_LOCAL, iterObj);
-	EmitBytes(OP_GET_LOCAL, iterValue);
+	EmitOpcode(OP_GET_LOCAL, iterObj);
+	EmitOpcode(OP_GET_LOCAL, iterValue);
 	EmitCall("iterate", 1, false);
 
 	// Set the result to iterValue, updating the iteration state
-	EmitBytes(OP_SET_LOCAL, iterValue);
+	EmitOpcode(OP_SET_LOCAL, iterValue);
 
 	// If it returns null, the iteration ends
-	EmitBytes(OP_NULL, OP_EQUAL_NOT);
+	EmitOpcode(OP_NULL, OP_EQUAL_NOT);
 	exitJump = EmitJump(OP_JUMP_IF_FALSE);
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 
 	// Call $iterObj.$iteratorValue($iterValue)
-	EmitBytes(OP_GET_LOCAL, iterObj);
-	EmitBytes(OP_GET_LOCAL, iterValue);
+	EmitOpcode(OP_GET_LOCAL, iterObj);
+	EmitOpcode(OP_GET_LOCAL, iterValue);
 	EmitCall("iteratorValue", 1, false);
 
 	// Push new jump list on break stack
@@ -2905,7 +2995,7 @@ void Compiler::GetForEachBlock() {
 
 	// We land here if $iterate returns null, so we need to pop the
 	// value left on the stack
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 
 	// Pop jump list off break stack, patch all break to this code
 	// point
@@ -2917,13 +3007,13 @@ void Compiler::GetIfStatement() {
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
 	int thenJump = EmitJump(OP_JUMP_IF_FALSE);
-	EmitByte(OP_POP);
+	EmitOpcode(OP_POP);
 	GetStatement();
 
 	int elseJump = EmitJump(OP_JUMP);
 
 	PatchJump(thenJump);
-	EmitByte(OP_POP); // Only Pop if OP_JUMP_IF_FALSE, as it
+	EmitOpcode(OP_POP); // Only Pop if OP_JUMP_IF_FALSE, as it
 	// doesn't pop
 
 	if (MatchToken(TOKEN_ELSE)) {
@@ -3017,7 +3107,7 @@ void Compiler::CompileFunction() {
 			if (MatchToken(TOKEN_ASSIGNMENT)) {
 				isOptional = true;
 				GetValueExpression();
-				EmitBytes(OP_SET_ARGUMENT_SLOT, arity);
+				EmitOpcode(OP_SET_ARGUMENT_SLOT, arity);
 			}
 			else if (isOptional && !matchedLeftSquareBrace) {
 				Error("Cannot have required parameters after optional parameters.");
@@ -3093,11 +3183,11 @@ void Compiler::GetMethod(Token className) {
 	// Compile the old instruction if it fits under uint8.
 	int index = GetFunction(type, className.ToString());
 	if (index <= UINT8_MAX) {
-		EmitByte(OP_METHOD_V4);
+		EmitOpcode(OP_METHOD_V4);
 		EmitByte(index);
 	}
 	else {
-		EmitByte(OP_METHOD);
+		EmitOpcode(OP_METHOD);
 		EmitUint16(index);
 	}
 
@@ -3130,7 +3220,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 					"'const' variables must have an explicit constant declaration.");
 			}
 
-			EmitByte(OP_NULL);
+			EmitOpcode(OP_NULL);
 		}
 
 		VMValue value;
@@ -3190,7 +3280,7 @@ void Compiler::GetModuleVariableDeclaration() {
 						"'const' variables must have an explicit constant declaration.");
 				}
 
-				EmitByte(OP_NULL);
+				EmitOpcode(OP_NULL);
 			}
 
 			int constantIndex = -1;
@@ -3234,12 +3324,12 @@ void Compiler::GetPropertyDeclaration(Token propertyName) {
 			GetExpression();
 		}
 		else {
-			EmitByte(OP_NULL);
+			EmitOpcode(OP_NULL);
 		}
 
 		EmitSetOperation(OP_SET_PROPERTY, -1, token);
 
-		EmitByte(OP_POP);
+		EmitOpcode(OP_POP);
 	} while (MatchToken(TOKEN_COMMA));
 
 	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after property declaration.");
@@ -3250,7 +3340,7 @@ void Compiler::GetClassDeclaration() {
 	Token className = parser.Previous;
 	DeclareVariable(&className, false);
 
-	EmitByte(OP_CLASS);
+	EmitOpcode(OP_CLASS);
 	EmitStringHash(className);
 
 	ClassHashList.push_back(GetHash(className));
@@ -3269,7 +3359,7 @@ void Compiler::GetClassDeclaration() {
 		ConsumeIdentifier("Expect base class name.");
 		Token superName = parser.Previous;
 
-		EmitByte(OP_INHERIT);
+		EmitOpcode(OP_INHERIT);
 		EmitStringHash(superName);
 	}
 
@@ -3302,7 +3392,7 @@ void Compiler::GetEnumDeclaration() {
 		enumName = parser.Previous;
 		DeclareVariable(&enumName, false);
 
-		EmitByte(OP_NEW_ENUM);
+		EmitOpcode(OP_NEW_ENUM);
 		EmitStringHash(enumName);
 
 		DefineVariableToken(enumName, true);
@@ -3344,7 +3434,7 @@ void Compiler::GetEnumDeclaration() {
 						true);
 				}
 				EmitCopy(1);
-				EmitByte(OP_SAVE_VALUE);
+				EmitOpcode(OP_SAVE_VALUE);
 			}
 			else {
 				if (didStart) {
@@ -3358,21 +3448,21 @@ void Compiler::GetEnumDeclaration() {
 					else if (IS_INTEGER(current)) {
 						current.as.Integer++;
 					}
-					EmitByte(OP_LOAD_VALUE);
+					EmitOpcode(OP_LOAD_VALUE);
 					EmitConstant(INTEGER_VAL(1));
-					EmitByte(OP_ENUM_NEXT);
+					EmitOpcode(OP_ENUM_NEXT);
 				}
 				else {
 					EmitConstant(INTEGER_VAL(0));
 				}
 				EmitCopy(1);
-				EmitByte(OP_SAVE_VALUE);
+				EmitOpcode(OP_SAVE_VALUE);
 			}
 
 			didStart = true;
 
 			if (isNamed) {
-				EmitByte(OP_ADD_ENUM);
+				EmitOpcode(OP_ADD_ENUM);
 				EmitStringHash(token);
 			}
 			else {
@@ -3413,7 +3503,7 @@ void Compiler::GetUsingDeclaration() {
 	do {
 		ConsumeIdentifier("Expected namespace name.");
 		Token nsName = parser.Previous;
-		EmitByte(OP_USE_NAMESPACE);
+		EmitOpcode(OP_USE_NAMESPACE);
 		EmitStringHash(nsName);
 	} while (MatchToken(TOKEN_COMMA));
 
@@ -3436,16 +3526,16 @@ void Compiler::GetEventDeclaration() {
 	// Compile the old instruction if it fits under uint8.
 	int index = GetFunction(FUNCTIONTYPE_FUNCTION);
 	if (index <= UINT8_MAX) {
-		EmitByte(OP_EVENT_V4);
+		EmitOpcode(OP_EVENT_V4);
 		EmitByte(index);
 	}
 	else {
-		EmitByte(OP_EVENT);
+		EmitOpcode(OP_EVENT);
 		EmitUint16(index);
 	}
 
 	// if (ScopeDepth == 0) {
-	EmitByte(OP_DEFINE_GLOBAL);
+	EmitOpcode(OP_DEFINE_GLOBAL);
 	EmitStringHash(constantToken);
 	// }
 }
@@ -3583,7 +3673,7 @@ ExprContext Compiler::ParsePrecedence(Precedence precedence, ExprContext context
 	}
 
 	if (initialContext == EXPRCONTEXT_VALUE && context == EXPRCONTEXT_LOCATION) {
-		EmitDirectOrIndirectLoad();
+		ConvertLvalueToRvalue();
 		return EXPRCONTEXT_VALUE;
 	}
 
@@ -3666,6 +3756,14 @@ void Compiler::EmitFloat(float value) {
 	EmitByte(*bytes++);
 	EmitByte(*bytes);
 }
+void Compiler::EmitOpcode(Uint8 byte) {
+	EmitByte(byte);
+	EmittedOpcodes.push_back(CurrentChunk()->Code + (GetPosition() - 1));
+}
+void Compiler::EmitOpcode(Uint8 opcode, Uint8 byte) {
+	EmitOpcode(opcode);
+	EmitByte(byte);
+}
 
 int Compiler::GetConstantIndex(VMValue value) {
 	int index = FindConstant(value);
@@ -3681,32 +3779,32 @@ int Compiler::EmitConstant(VMValue value) {
 			EmitByte(!i ? OP_FALSE : OP_TRUE);
 		}
 		else {
-			EmitByte(OP_INTEGER);
+			EmitOpcode(OP_INTEGER);
 			EmitSint32(value.as.Integer);
 		}
 		return -1;
 	}
 	else if (value.Type == VAL_DECIMAL) {
-		EmitByte(OP_DECIMAL);
+		EmitOpcode(OP_DECIMAL);
 		EmitFloat(value.as.Decimal);
 		return -1;
 	}
 	else if (value.Type == VAL_NULL) {
-		EmitByte(OP_NULL);
+		EmitOpcode(OP_NULL);
 		return -1;
 	}
 
 	// anything else gets added to the const table
 	int index = GetConstantIndex(value);
 
-	EmitByte(OP_CONSTANT);
+	EmitOpcode(OP_CONSTANT);
 	EmitUint32(index);
 
 	return index;
 }
 
 void Compiler::EmitLoop(int loopStart) {
-	EmitByte(OP_JUMP_BACK);
+	EmitOpcode(OP_JUMP_BACK);
 
 	int offset = CurrentChunk()->Count - loopStart + 2;
 	if (offset > UINT16_MAX) {
@@ -3762,12 +3860,12 @@ void Compiler::EmitStringHash(Token token) {
 void Compiler::EmitReturn() {
 	if (Type == FUNCTIONTYPE_CONSTRUCTOR) {
 		// return the new instance built from the constructor
-		EmitBytes(OP_GET_LOCAL, 0);
+		EmitOpcode(OP_GET_LOCAL, 0);
 	}
 	else if (EmitNullOnReturn) {
-		EmitByte(OP_NULL);
+		EmitOpcode(OP_NULL);
 	}
-	EmitByte(OP_RETURN);
+	EmitOpcode(OP_RETURN);
 }
 
 // Advanced Jumping
@@ -3899,10 +3997,10 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 
 			switch (constant.Type) {
 			case VAL_NULL:
-				EmitByte(OP_TRUE);
+				EmitOpcode(OP_TRUE);
 				break;
 			case VAL_OBJECT:
-				EmitByte(OP_FALSE);
+				EmitOpcode(OP_FALSE);
 				break;
 			case VAL_DECIMAL:
 				EmitByte((float)(AS_DECIMAL(constant) == 0.0) ? OP_TRUE : OP_FALSE);
@@ -4374,6 +4472,36 @@ void Compiler::GetStandardConstants() {
 			Compiler::StandardConstants->Put(hash, val);
 		}
 	});
+}
+void Compiler::SetupIntrinsics() {
+	Intrinsics.clear();
+
+#define CHECK_ARGCOUNT(count) { \
+	if (argCount != count) { \
+		char error[64]; \
+		snprintf(error, sizeof error, "Expected %d arguments to function call, got %d.", count, argCount); \
+		compiler->Error(error); \
+		return false; \
+	} \
+}
+
+	Intrinsics["String.Length"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(1);
+
+		compiler->EmitOpcode(OP_LENGTH);
+
+		return true;
+	};
+
+	Intrinsics["Array.Length"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(1);
+
+		compiler->EmitOpcode(OP_LENGTH);
+
+		return true;
+	};
+
+#undef CHECK_ARGCOUNT
 }
 void Compiler::PrepareCompiling() {
 	if (Compiler::TokenMap == NULL) {

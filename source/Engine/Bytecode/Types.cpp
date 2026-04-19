@@ -469,6 +469,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_LOCATION_ELEMENT);
 			OPCASE(OP_LOAD_INDIRECT);
 			OPCASE(OP_STORE_INDIRECT);
+			OPCASE(OP_LENGTH);
 		}
 		assert((func != NULL));
 		OpcodeFuncs[i] = func;

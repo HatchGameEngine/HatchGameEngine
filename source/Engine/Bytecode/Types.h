@@ -693,6 +693,8 @@ enum OpCode : uint8_t {
 	OP_LOCATION_ELEMENT,
 	OP_LOAD_INDIRECT,
 	OP_STORE_INDIRECT,
+	//
+	OP_LENGTH,
 
 	OP_LAST
 };

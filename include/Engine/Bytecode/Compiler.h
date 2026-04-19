@@ -9,6 +9,8 @@ private:
 	void WarnVariablesUnusedUnset();
 	void WriteBytecode(Stream* stream, const char* filename);
 
+	std::vector<Uint8*> EmittedOpcodes;
+
 public:
 	static Parser parser;
 	static Scanner scanner;
@@ -92,7 +94,7 @@ public:
 	void EmitCall(const char* name, int argCount, bool isSuper);
 	void EmitCall(Token name, int argCount, bool isSuper);
 	void EmitCallOpcode(int argCount, bool isSuper);
-	void EmitDirectOrIndirectLoad();
+	void ConvertLvalueToRvalue();
 	bool MakeIndirectPropertyChainDirect(Chunk* chunk, Uint8* op, int index);
 	Uint8 IndirectLoadOpcodeToDirect(Uint8 op);
 	ExprContext NamedVariable(Token name, Local& local, ExprContext context);
@@ -115,6 +117,7 @@ public:
 	int AddModuleLocal();
 	int ResolveModuleLocal(Token* name, Local* result = NULL);
 	Uint8 GetArgumentList();
+	std::function<bool(Compiler*, Uint8*, int)> DetectInstrinsic(Token name);
 	ExprContext GetThis(ExprContext context);
 	ExprContext GetSuper(ExprContext context);
 	ExprContext GetDot(ExprContext context);
@@ -191,6 +194,8 @@ public:
 	void EmitUint32(Uint32 value);
 	void EmitSint32(Sint32 value);
 	void EmitFloat(float value);
+	void EmitOpcode(Uint8 byte);
+	void EmitOpcode(Uint8 opcode, Uint8 byte);
 	int GetConstantIndex(VMValue value);
 	int EmitConstant(VMValue value);
 	void EmitLoop(int loopStart);
@@ -223,6 +228,7 @@ public:
 	void AddBreakpointsToChunk(Chunk* chunk);
 	static void Init();
 	static void GetStandardConstants();
+	static void SetupIntrinsics();
 	static void PrepareCompiling();
 	void Initialize(char* name);
 	void Initialize();

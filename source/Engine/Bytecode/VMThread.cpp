@@ -845,7 +845,8 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_LOCATION_SUPER_PROPERTY),
 		VM_ADD_DISPATCH(OP_LOCATION_ELEMENT),
 		VM_ADD_DISPATCH(OP_LOAD_INDIRECT),
-		VM_ADD_DISPATCH(OP_STORE_INDIRECT)
+		VM_ADD_DISPATCH(OP_STORE_INDIRECT),
+		VM_ADD_DISPATCH(OP_LENGTH),
 	};
 #define VM_START(ins) \
 	goto* dispatch_table[(ins)]; \
@@ -2301,6 +2302,25 @@ int VMThread::RunInstruction() {
 		}
 
 		Push(value);
+
+		VM_BREAK;
+	}
+	VM_CASE(OP_LENGTH) {
+		VMValue value = Pop();
+		if (IS_STRING(value)) {
+			ObjString* string = AS_STRING(value);
+			Push(INTEGER_VAL((int)string->Length));
+		}
+		else if (IS_ARRAY(value)) {
+			ObjArray* array = AS_ARRAY(value);
+			Push(INTEGER_VAL((int)array->Values->size()));
+		}
+		else {
+			ThrowRuntimeError(false,
+				"Value of type %s does not have a length.",
+				GetValueTypeString(value));
+			Push(NULL_VAL);
+		}
 
 		VM_BREAK;
 	}
