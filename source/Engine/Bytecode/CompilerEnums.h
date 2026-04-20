@@ -10,6 +10,8 @@ struct CompilerSettings {
 	bool WriteDebugInfo;
 	bool WriteSourceFilename;
 	bool DoOptimizations;
+	bool UseIntrinsics;
+	bool UseResourcesIntrinsics;
 	bool PrintChunks;
 };
 

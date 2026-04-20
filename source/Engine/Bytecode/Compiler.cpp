@@ -1655,7 +1655,7 @@ ExprContext Compiler::GetDot(ExprContext context) {
 
 		std::function<bool(Compiler*, Uint8*, int)> intrinsic = nullptr;
 
-		if (CurrentSettings.DoOptimizations) {
+		if (CurrentSettings.UseIntrinsics) {
 			intrinsic = DetectInstrinsic(nameToken);
 		}
 
@@ -4447,6 +4447,8 @@ void Compiler::Init() {
 	Settings.WriteSourceFilename = false;
 #endif
 	Settings.DoOptimizations = true;
+	Settings.UseIntrinsics = true;
+	Settings.UseResourcesIntrinsics = false;
 
 	Application::Settings->GetBool("compiler", "log", &Compiler::DoLogging);
 	if (Compiler::DoLogging) {
@@ -4457,6 +4459,8 @@ void Compiler::Init() {
 	Application::Settings->GetBool(
 		"compiler", "writeSourceFilename", &Settings.WriteSourceFilename);
 	Application::Settings->GetBool("compiler", "optimizations", &Settings.DoOptimizations);
+	Application::Settings->GetBool("compiler", "intrinsics", &Settings.UseIntrinsics);
+	Application::Settings->GetBool("compiler", "useResourcesIntrinsics", &Settings.UseResourcesIntrinsics);
 
 	Application::Settings->GetBool("dev", "debugCompiler", &Settings.PrintChunks);
 }
@@ -4475,6 +4479,10 @@ void Compiler::GetStandardConstants() {
 }
 void Compiler::SetupIntrinsics() {
 	Intrinsics.clear();
+
+	if (!Settings.UseIntrinsics) {
+		return;
+	}
 
 #define CHECK_ARGCOUNT(count) { \
 	if (argCount != count) { \
@@ -4498,38 +4506,40 @@ void Compiler::SetupIntrinsics() {
 		return true;
 	};
 
-	Intrinsics["Resources.LoadSprite"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
-		CHECK_ARGCOUNT(2);
-		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_SPRITE);
-	};
-	Intrinsics["Resources.LoadImage"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
-		CHECK_ARGCOUNT(2);
-		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_IMAGE);
-	};
-	Intrinsics["Resources.LoadModel"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
-		CHECK_ARGCOUNT(2);
-		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_MODEL);
-	};
-	Intrinsics["Resources.LoadMusic"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
-		CHECK_ARGCOUNT(2);
-		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_MUSIC);
-	};
-	Intrinsics["Resources.LoadSound"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
-		CHECK_ARGCOUNT(2);
-		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_SOUND);
-	};
-	Intrinsics["Resources.LoadVideo"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
-		CHECK_ARGCOUNT(2);
-		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_MEDIA);
-	};
-	Intrinsics["Resources.ReadAllText"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
-		CHECK_ARGCOUNT(1);
-		return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_TEXT);
-	};
-	Intrinsics["Resources.FileExists"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
-		CHECK_ARGCOUNT(1);
-		return compiler->Intrinsic_ResourceExists(argStart, argCount);
-	};
+	if (Settings.UseResourcesIntrinsics) {
+		Intrinsics["Resources.LoadSprite"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+			CHECK_ARGCOUNT(2);
+			return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_SPRITE);
+		};
+		Intrinsics["Resources.LoadImage"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+			CHECK_ARGCOUNT(2);
+			return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_IMAGE);
+		};
+		Intrinsics["Resources.LoadModel"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+			CHECK_ARGCOUNT(2);
+			return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_MODEL);
+		};
+		Intrinsics["Resources.LoadMusic"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+			CHECK_ARGCOUNT(2);
+			return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_MUSIC);
+		};
+		Intrinsics["Resources.LoadSound"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+			CHECK_ARGCOUNT(2);
+			return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_SOUND);
+		};
+		Intrinsics["Resources.LoadVideo"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+			CHECK_ARGCOUNT(2);
+			return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_MEDIA);
+		};
+		Intrinsics["Resources.ReadAllText"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+			CHECK_ARGCOUNT(1);
+			return compiler->Intrinsic_LoadResource(argStart, argCount, INTRINSIC_RESOURCE_TEXT);
+		};
+		Intrinsics["Resources.FileExists"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+			CHECK_ARGCOUNT(1);
+			return compiler->Intrinsic_ResourceExists(argStart, argCount);
+		};
+	}
 
 #undef CHECK_ARGCOUNT
 }
