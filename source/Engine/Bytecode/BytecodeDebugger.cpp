@@ -226,6 +226,7 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_LOCATION_PROPERTY:
 	case OP_LOCATION_SUPER_PROPERTY:
 	case OP_CHECK_GAME_RESOURCE:
+	case OP_OPEN_GAME_RESOURCE_STREAM:
 		return HashInstruction(instruction, chunk, offset);
 	case OP_SET_MODULE_LOCAL:
 	case OP_GET_MODULE_LOCAL:

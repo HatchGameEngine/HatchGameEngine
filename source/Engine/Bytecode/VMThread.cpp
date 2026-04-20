@@ -2,6 +2,7 @@
 #include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/VMThread.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
@@ -851,7 +852,8 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_CAST_AS_DECIMAL),
 		VM_ADD_DISPATCH(OP_LENGTH),
 		VM_ADD_DISPATCH(OP_LOAD_GAME_RESOURCE),
-		VM_ADD_DISPATCH(OP_CHECK_GAME_RESOURCE)
+		VM_ADD_DISPATCH(OP_CHECK_GAME_RESOURCE),
+		VM_ADD_DISPATCH(OP_OPEN_GAME_RESOURCE_STREAM)
 	};
 #define VM_START(ins) \
 	goto* dispatch_table[(ins)]; \
@@ -2361,6 +2363,23 @@ int VMThread::RunInstruction() {
 	VM_CASE(OP_CHECK_GAME_RESOURCE) {
 		Uint32 hash = ReadUInt32(frame);
 		VMValue result = Intrinsic_CheckResource(hash);
+		Push(result);
+		VM_BREAK;
+	}
+	VM_CASE(OP_OPEN_GAME_RESOURCE_STREAM) {
+		Uint32 hash = ReadUInt32(frame);
+		VMValue result = NULL_VAL;
+		if (ScriptManager::Lock()) {
+			ResourceStream* streamPtr = ResourceStream::New(hash);
+			if (streamPtr) {
+				ObjStream* stream = StreamImpl::New((void*)streamPtr, false);
+				result = OBJECT_VAL(stream);
+			}
+			else {
+				ThrowRuntimeError(false, "Could not open resource stream!");
+			}
+			ScriptManager::Unlock();
+		}
 		Push(result);
 		VM_BREAK;
 	}

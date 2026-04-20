@@ -102,7 +102,8 @@ const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_NOP",
 	"OP_CAST_AS_DECIMAL",
 	"OP_LENGTH",
 	"OP_LOAD_GAME_RESOURCE",
-	"OP_CHECK_GAME_RESOURCE"};
+	"OP_CHECK_GAME_RESOURCE",
+	"OP_OPEN_GAME_RESOURCE_STREAM"};
 
 Bytecode::Bytecode() {
 	Version = LatestVersion;
@@ -580,6 +581,7 @@ int Bytecode::GetTotalOpcodeSize(uint8_t* op) {
 	case OP_LOAD_GAME_RESOURCE:
 		return 6;
 	case OP_CHECK_GAME_RESOURCE:
+	case OP_OPEN_GAME_RESOURCE_STREAM:
 		return 5;
 	}
 	return 1;

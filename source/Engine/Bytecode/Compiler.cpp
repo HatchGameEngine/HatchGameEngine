@@ -4553,13 +4553,35 @@ void Compiler::SetupIntrinsics() {
 		};
 		Intrinsics["Resources.FileExists"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
 			CHECK_ARGCOUNT(1);
-			return compiler->Intrinsic_ResourceExists(argStart, argCount);
+
+			Uint32 hash = compiler->Intrinsic_GetResourceHash(argStart, argCount);
+			if (!hash) {
+				return false;
+			}
+
+			compiler->EmitOpcode(OP_CHECK_GAME_RESOURCE);
+			compiler->EmitUint32(hash);
+
+			return true;
+		};
+		Intrinsics["Stream.FromResource"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+			CHECK_ARGCOUNT(1);
+
+			Uint32 hash = compiler->Intrinsic_GetResourceHash(argStart, argCount);
+			if (!hash) {
+				return false;
+			}
+
+			compiler->EmitOpcode(OP_OPEN_GAME_RESOURCE_STREAM);
+			compiler->EmitUint32(hash);
+
+			return true;
 		};
 	}
 
 #undef CHECK_ARGCOUNT
 }
-bool Compiler::Intrinsic_LoadResource(Uint8* argStart, int argCount, Uint8 type) {
+Uint32 Compiler::Intrinsic_GetResourceHash(Uint8* argStart, int argCount) {
 	Chunk* chunk = CurrentChunk();
 	Uint32 argStartOffset = argStart - chunk->Code;
 	Uint32 offset = argStartOffset;
@@ -4567,11 +4589,11 @@ bool Compiler::Intrinsic_LoadResource(Uint8* argStart, int argCount, Uint8 type)
 
 	VMValue nameString;
 	if (!chunk->GetConstant(offset, &nameString, nullptr)) {
-		return false;
+		return 0;
 	}
 
 	if (!IS_STRING(nameString)) {
-		return false;
+		return 0;
 	}
 
 	for (int i = 0; i < argCount; i++) {
@@ -4579,47 +4601,23 @@ bool Compiler::Intrinsic_LoadResource(Uint8* argStart, int argCount, Uint8 type)
 	}
 
 	if (offset < chunk->Count) {
-		return false;
+		return 0;
 	}
 
 	EraseChunkCode(chunk, argStartOffset, opcodeSize);
 
 	Uint32 hash = CRC32::EncryptString(AS_CSTRING(nameString));
+
+	return hash;
+}
+bool Compiler::Intrinsic_LoadResource(Uint8* argStart, int argCount, Uint8 type) {
+	Uint32 hash = Intrinsic_GetResourceHash(argStart, argCount);
+	if (!hash) {
+		return false;
+	}
 
 	EmitOpcode(OP_LOAD_GAME_RESOURCE);
 	EmitByte(type);
-	EmitUint32(hash);
-
-	return true;
-}
-bool Compiler::Intrinsic_ResourceExists(Uint8* argStart, int argCount) {
-	Chunk* chunk = CurrentChunk();
-	Uint32 argStartOffset = argStart - chunk->Code;
-	Uint32 offset = argStartOffset;
-	size_t opcodeSize = Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
-
-	VMValue nameString;
-	if (!chunk->GetConstant(offset, &nameString, nullptr)) {
-		return false;
-	}
-
-	if (!IS_STRING(nameString)) {
-		return false;
-	}
-
-	for (int i = 0; i < argCount; i++) {
-		offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
-	}
-
-	if (offset < chunk->Count) {
-		return false;
-	}
-
-	EraseChunkCode(chunk, argStartOffset, opcodeSize);
-
-	Uint32 hash = CRC32::EncryptString(AS_CSTRING(nameString));
-
-	EmitOpcode(OP_CHECK_GAME_RESOURCE);
 	EmitUint32(hash);
 
 	return true;

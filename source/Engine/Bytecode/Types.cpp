@@ -474,6 +474,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_LENGTH);
 			OPCASE(OP_LOAD_GAME_RESOURCE);
 			OPCASE(OP_CHECK_GAME_RESOURCE);
+			OPCASE(OP_OPEN_GAME_RESOURCE_STREAM);
 		}
 		assert((func != NULL));
 		OpcodeFuncs[i] = func;
