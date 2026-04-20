@@ -12062,7 +12062,7 @@ VMValue Object_Loaded(int argCount, VMValue* args, Uint32 threadID) {
  * Object.SetActivity
  * \desc Sets the active state of an object to determine if/when it runs its GlobalUpdate function.
  * \param className (string): Name of the object class.
- * \param Activity (integer): The active state to set the object to.
+ * \param activity (<ref ACTIVE_*>): The active state to set the object to.
  * \ns Object
  */
 VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
@@ -17914,7 +17914,7 @@ VMValue String_Format(int argCount, VMValue* args, Uint32 threadID) {
  * String.Split
  * \desc Splits a string by a delimiter.
  * \param string (string): The string to split.
- * \param delimiter (integer): The delimiter string.
+ * \param delimiter (string): The delimiter string.
  * \return array Returns an array of string values.
  * \ns String
  */
@@ -17986,7 +17986,7 @@ VMValue String_Length(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Compares two strings lexicographically.
  * \param stringA (string): The first string to compare.
  * \param stringB (string): The second string to compare.
- * \return integer Returns the comparison result as an integer. The return value is a negative integer if <param stringA> appears before `stringB` lexicographically, a positive integer if <param stringA> appears after <param stringB> lexicographically, and zero if <param stringA> and <param stringB> are equal.
+ * \return integer Returns the comparison result as an integer. The return value is a negative integer if <param stringA> appears before <param stringB> lexicographically, a positive integer if <param stringA> appears after <param stringB> lexicographically, and zero if <param stringA> and <param stringB> are equal.
  * \ns String
  */
 VMValue String_Compare(int argCount, VMValue* args, Uint32 threadID) {
@@ -18244,7 +18244,7 @@ VMValue String_FromCodepoints(int argCount, VMValue* args, Uint32 threadID) {
  * \param width (integer): The width of the texture.
  * \param height (integer): The height of the texture.
  * \return Texture Returns a texture.
- * \deprecated Use the <Texture> constructor instead.
+ * \deprecated Use the <ref Texture> constructor instead.
  * \ns Texture
  */
 VMValue Texture_Create(int argCount, VMValue* args, Uint32 threadID) {
