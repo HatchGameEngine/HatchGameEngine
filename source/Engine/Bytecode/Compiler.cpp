@@ -4892,6 +4892,7 @@ void Compiler::Finish() {
 	EmitReturn();
 	EndBreakpointList();
 	AddBreakpointsToChunk(chunk);
+	RebuildConstantsList();
 }
 void Compiler::AddBreakpointsToChunk(Chunk* chunk) {
 	chunk->BreakpointCount = (Uint16)Breakpoints.size();
@@ -4904,6 +4905,31 @@ void Compiler::AddBreakpointsToChunk(Chunk* chunk) {
 
 	for (Uint16 i = 0; i < chunk->BreakpointCount; i++) {
 		chunk->Breakpoints[i] = Breakpoints[i];
+	}
+}
+// This removes any unused constants.
+void Compiler::RebuildConstantsList() {
+	Chunk* chunk = CurrentChunk();
+	size_t numConstants = chunk->Constants->size();
+	if (numConstants == 0) {
+		return;
+	}
+
+	std::map<Uint32*, VMValue> constantToValue;
+
+	for (int offset = 0; offset < chunk->Count;) {
+		Uint8* opcode = chunk->Code + offset;
+		if (Bytecode::IsConstantIndexOpcode(*opcode)) {
+			Uint32* index = (Uint32*)(opcode + 1);
+			constantToValue[index] = (*chunk->Constants)[*index];
+		}
+		offset += Bytecode::GetTotalOpcodeSize(opcode);
+	}
+
+	chunk->Constants->clear();
+
+	for (auto it = constantToValue.begin(); it != constantToValue.end(); it++) {
+		*it->first = GetConstantIndex(it->second);
 	}
 }
 

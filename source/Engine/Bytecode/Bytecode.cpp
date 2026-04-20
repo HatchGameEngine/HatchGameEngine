@@ -580,3 +580,14 @@ int Bytecode::GetTotalOpcodeSize(uint8_t* op) {
 	}
 	return 1;
 }
+
+bool Bytecode::IsConstantIndexOpcode(Uint8 opcode) {
+	switch (opcode) {
+	case OP_CONSTANT:
+	case OP_IMPORT:
+	case OP_IMPORT_MODULE:
+		return true;
+	default:
+		return false;
+	}
+}
