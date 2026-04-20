@@ -4490,7 +4490,7 @@ void Compiler::SetupIntrinsics() {
 	} \
 }
 
-	Intrinsics["String.Length"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+	Intrinsics["Array.Length"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
 		CHECK_ARGCOUNT(1);
 
 		compiler->EmitOpcode(OP_LENGTH);
@@ -4498,7 +4498,23 @@ void Compiler::SetupIntrinsics() {
 		return true;
 	};
 
-	Intrinsics["Array.Length"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+	Intrinsics["Number.AsInteger"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(1);
+
+		compiler->EmitOpcode(OP_CAST_AS_INTEGER);
+
+		return true;
+	};
+
+	Intrinsics["Number.AsDecimal"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
+		CHECK_ARGCOUNT(1);
+
+		compiler->EmitOpcode(OP_CAST_AS_DECIMAL);
+
+		return true;
+	};
+
+	Intrinsics["String.Length"] = [](Compiler* compiler, Uint8* argStart, int argCount) {
 		CHECK_ARGCOUNT(1);
 
 		compiler->EmitOpcode(OP_LENGTH);

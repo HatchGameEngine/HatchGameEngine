@@ -196,6 +196,8 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_LOAD_INDIRECT:
 	case OP_STORE_INDIRECT:
 	case OP_LOCATION_ELEMENT:
+	case OP_CAST_AS_INTEGER:
+	case OP_CAST_AS_DECIMAL:
 	case OP_LENGTH:
 		return SimpleInstruction(instruction, chunk, offset);
 	case OP_COPY:

@@ -847,6 +847,8 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_LOCATION_ELEMENT),
 		VM_ADD_DISPATCH(OP_LOAD_INDIRECT),
 		VM_ADD_DISPATCH(OP_STORE_INDIRECT),
+		VM_ADD_DISPATCH(OP_CAST_AS_INTEGER),
+		VM_ADD_DISPATCH(OP_CAST_AS_DECIMAL),
 		VM_ADD_DISPATCH(OP_LENGTH),
 		VM_ADD_DISPATCH(OP_LOAD_GAME_RESOURCE),
 		VM_ADD_DISPATCH(OP_CHECK_GAME_RESOURCE)
@@ -2306,6 +2308,28 @@ int VMThread::RunInstruction() {
 
 		Push(value);
 
+		VM_BREAK;
+	}
+	VM_CASE(OP_CAST_AS_INTEGER) {
+		VMValue value = Pop();
+		VMValue casted = Value::CastAsInteger(value);
+		if (IS_NULL(casted)) {
+			ThrowRuntimeError(false,
+				"Cannot cast value of type %s to an integer.",
+				GetValueTypeString(value));
+		}
+		Push(casted);
+		VM_BREAK;
+	}
+	VM_CASE(OP_CAST_AS_DECIMAL) {
+		VMValue value = Pop();
+		VMValue casted = Value::CastAsDecimal(value);
+		if (IS_NULL(casted)) {
+			ThrowRuntimeError(false,
+				"Cannot cast value of type %s to a decimal.",
+				GetValueTypeString(value));
+		}
+		Push(casted);
 		VM_BREAK;
 	}
 	VM_CASE(OP_LENGTH) {

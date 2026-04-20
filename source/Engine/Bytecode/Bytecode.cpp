@@ -98,6 +98,8 @@ const char* Bytecode::OpcodeNames[OP_LAST] = {"OP_NOP",
 	"OP_LOCATION_ELEMENT",
 	"OP_LOAD_INDIRECT",
 	"OP_STORE_INDIRECT",
+	"OP_CAST_AS_INTEGER",
+	"OP_CAST_AS_DECIMAL",
 	"OP_LENGTH",
 	"OP_LOAD_GAME_RESOURCE",
 	"OP_CHECK_GAME_RESOURCE"};
@@ -571,6 +573,8 @@ int Bytecode::GetTotalOpcodeSize(uint8_t* op) {
 		return 1;
 	case OP_SET_ARGUMENT_SLOT:
 		return 2;
+	case OP_CAST_AS_INTEGER:
+	case OP_CAST_AS_DECIMAL:
 	case OP_LENGTH:
 		return 1;
 	case OP_LOAD_GAME_RESOURCE:
