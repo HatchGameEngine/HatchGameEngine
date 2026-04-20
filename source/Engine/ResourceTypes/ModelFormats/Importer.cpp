@@ -14,6 +14,14 @@ char* ModelImporter::ParentDirectory;
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
+#define NUM_HINT_EXTENSIONS 3
+
+static const char* HintExtensions[] = {
+	"fbx",
+	"dae",
+	"obj"
+};
+
 #define LOG_FMT(s) \
 	char s[1024]; \
 	va_list args; \
@@ -547,7 +555,6 @@ bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
 		stream->ReadBytes(data, size);
 	}
 	else {
-		Log::Print(Log::LOG_ERROR, "Out of memory importing model %s!", path);
 		return false;
 	}
 
@@ -555,23 +562,43 @@ bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
 
 	int flags = GetConversionFlags();
 
-	const struct aiScene* scene =
-		importer.ReadFileFromMemory(data, size, flags, StringUtils::GetExtension(path));
+	const char* modelName = path;
+	const char* extension = StringUtils::GetExtension(path);
+	if (!modelName) {
+		modelName = "model";
+	}
+
+	const struct aiScene* scene = nullptr;
+	if (extension) {
+		scene = importer.ReadFileFromMemory(data, size, flags, extension);
+	}
+	else {
+		int i = 0;
+		do {
+			extension = HintExtensions[i++];
+			scene = importer.ReadFileFromMemory(data, size, flags, extension);
+			if (i >= NUM_HINT_EXTENSIONS) {
+				break;
+			}
+		}
+		while (scene == nullptr);
+	}
+
 	if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
 		if (!scene) {
 			const char* error = importer.GetErrorString();
 			if (error[0]) {
-				LogError("Couldn't import %s: %s", path, error);
+				LogError("Couldn't import %s: %s", modelName, error);
 			}
 			else { // No error?
-				LogError("Couldn't import %s", path);
+				LogError("Couldn't import %s", modelName);
 			}
 		}
 		else if (!scene->mRootNode) {
-			LogError("Couldn't import %s: No root node", path);
+			LogError("Couldn't import %s: No root node", modelName);
 		}
 		else if (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
-			LogError("Couldn't import %s: Scene is incomplete", path);
+			LogError("Couldn't import %s: Scene is incomplete", modelName);
 		}
 
 		Memory::Free(data);
@@ -579,8 +606,12 @@ bool ModelImporter::Convert(IModel* model, Stream* stream, const char* path) {
 		return false;
 	}
 
+	if (!path) {
+		LogWarn("No parent directory for this %s model. Textures might be missing.", extension);
+	}
+
 	MeshIDs.clear();
-	ParentDirectory = StringUtils::GetPath(path);
+	ParentDirectory = StringUtils::GetPath(modelName);
 
 	bool success = DoConversion(scene, model);
 
