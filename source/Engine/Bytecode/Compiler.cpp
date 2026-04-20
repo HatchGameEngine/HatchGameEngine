@@ -4559,7 +4559,7 @@ void Compiler::SetupIntrinsics() {
 				return false;
 			}
 
-			compiler->EmitOpcode(OP_CHECK_GAME_RESOURCE);
+			compiler->EmitOpcode(OP_CHECK_RESOURCE);
 			compiler->EmitUint32(hash);
 
 			return true;
@@ -4572,7 +4572,7 @@ void Compiler::SetupIntrinsics() {
 				return false;
 			}
 
-			compiler->EmitOpcode(OP_OPEN_GAME_RESOURCE_STREAM);
+			compiler->EmitOpcode(OP_OPEN_RESOURCE_STREAM);
 			compiler->EmitUint32(hash);
 
 			return true;
@@ -4616,7 +4616,7 @@ bool Compiler::Intrinsic_LoadResource(Uint8* argStart, int argCount, Uint8 type)
 		return false;
 	}
 
-	EmitOpcode(OP_LOAD_GAME_RESOURCE);
+	EmitOpcode(OP_LOAD_RESOURCE);
 	EmitByte(type);
 	EmitUint32(hash);
 

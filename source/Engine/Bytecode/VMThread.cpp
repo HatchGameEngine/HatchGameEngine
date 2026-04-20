@@ -851,9 +851,9 @@ int VMThread::RunInstruction() {
 		VM_ADD_DISPATCH(OP_CAST_AS_INTEGER),
 		VM_ADD_DISPATCH(OP_CAST_AS_DECIMAL),
 		VM_ADD_DISPATCH(OP_LENGTH),
-		VM_ADD_DISPATCH(OP_LOAD_GAME_RESOURCE),
-		VM_ADD_DISPATCH(OP_CHECK_GAME_RESOURCE),
-		VM_ADD_DISPATCH(OP_OPEN_GAME_RESOURCE_STREAM)
+		VM_ADD_DISPATCH(OP_LOAD_RESOURCE),
+		VM_ADD_DISPATCH(OP_CHECK_RESOURCE),
+		VM_ADD_DISPATCH(OP_OPEN_RESOURCE_STREAM)
 	};
 #define VM_START(ins) \
 	goto* dispatch_table[(ins)]; \
@@ -2353,20 +2353,20 @@ int VMThread::RunInstruction() {
 
 		VM_BREAK;
 	}
-	VM_CASE(OP_LOAD_GAME_RESOURCE) {
+	VM_CASE(OP_LOAD_RESOURCE) {
 		Uint8 type = ReadByte(frame);
 		Uint32 hash = ReadUInt32(frame);
 		VMValue result = Intrinsic_LoadResource(type, hash);
 		Push(result);
 		VM_BREAK;
 	}
-	VM_CASE(OP_CHECK_GAME_RESOURCE) {
+	VM_CASE(OP_CHECK_RESOURCE) {
 		Uint32 hash = ReadUInt32(frame);
 		VMValue result = Intrinsic_CheckResource(hash);
 		Push(result);
 		VM_BREAK;
 	}
-	VM_CASE(OP_OPEN_GAME_RESOURCE_STREAM) {
+	VM_CASE(OP_OPEN_RESOURCE_STREAM) {
 		Uint32 hash = ReadUInt32(frame);
 		VMValue result = NULL_VAL;
 		if (ScriptManager::Lock()) {

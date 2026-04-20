@@ -225,8 +225,8 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 	case OP_LOCATION_GLOBAL:
 	case OP_LOCATION_PROPERTY:
 	case OP_LOCATION_SUPER_PROPERTY:
-	case OP_CHECK_GAME_RESOURCE:
-	case OP_OPEN_GAME_RESOURCE_STREAM:
+	case OP_CHECK_RESOURCE:
+	case OP_OPEN_RESOURCE_STREAM:
 		return HashInstruction(instruction, chunk, offset);
 	case OP_SET_MODULE_LOCAL:
 	case OP_GET_MODULE_LOCAL:
@@ -256,7 +256,7 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 		return MethodInstruction(instruction, chunk, offset);
 	case OP_METHOD_V4:
 		return MethodInstructionV4(instruction, chunk, offset);
-	case OP_LOAD_GAME_RESOURCE:
+	case OP_LOAD_RESOURCE:
 		return ResourceInstruction(instruction, chunk, offset);
 	default:
 		if (instruction < OP_LAST) {
