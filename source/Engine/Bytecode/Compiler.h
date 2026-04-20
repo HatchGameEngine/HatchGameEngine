@@ -225,6 +225,7 @@ public:
 	int CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn);
 	void AddBreakpoint(Token token);
 	void AddBreakpointsToChunk(Chunk* chunk);
+	void RebuildConstantsList();
 	static void Init();
 	static void GetStandardConstants();
 	static void PrepareCompiling();
