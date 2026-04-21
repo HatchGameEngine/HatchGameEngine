@@ -10,18 +10,21 @@ class ISprite {
 public:
 	char* Filename = nullptr;
 	bool LoadFailed = true;
-	vector<Texture*> Spritesheets;
-	vector<string> SpritesheetFilenames;
+	Texture** Spritesheets;
+	char** SpritesheetFilenames;
 	Animation* Animations = nullptr;
 	AnimFrame* Frames = nullptr;
 	size_t AnimationCount = 0;
 	size_t AnimationsCapacity = 1;
 	size_t FrameCount = 0;
 	size_t FramesCapacity = 1;
+	size_t SpritesheetCount = 0;
+	size_t SpritesheetsCapacity = 1;
 	int ID = 0;
 
 	ISprite();
 	ISprite(const char* filename);
+	void AddSpriteSheet(Texture* texture, char* filename);
 	Texture* AddSpriteSheet(const char* sheetFilename);
 	size_t FindOrAddSpriteSheet(const char* sheetFilename);
 	void ReserveAnimationCount(int count);

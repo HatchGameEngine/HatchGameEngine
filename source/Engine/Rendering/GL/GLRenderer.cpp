@@ -3850,7 +3850,7 @@ void GLRenderer::MakeFrameBufferID(ISprite* sprite) {
 			AnimFrame* frame = &sprite->Animations[a].Frames[i];
 			GL_AnimFrameVert* vert = &vertices[0];
 
-			if (frame->SheetNumber >= sprite->Spritesheets.size()) {
+			if (frame->SheetNumber >= sprite->SpritesheetCount) {
 				continue;
 			}
 

@@ -9,7 +9,7 @@ Tileset::Tileset(ISprite* sprite,
 	size_t startTile,
 	size_t tileCount,
 	char* filename) {
-	if (sprite->Spritesheets.size() < 1) {
+	if (sprite->SpritesheetCount < 1) {
 		return;
 	}
 
@@ -87,11 +87,11 @@ void Tileset::AddTileAnimSequence(int tileID,
 		if (otherTileID >= StartTile + TileCount) {
 			Tileset* otherTileset = Scene::GetTileset(otherTileID);
 			ISprite* otherTileSprite = otherTileset->Sprite;
-			if (otherTileSprite && otherTileSprite->Spritesheets.size() > 0) {
+			if (otherTileSprite && otherTileSprite->SpritesheetCount > 0) {
 				tileset = otherTileset;
 				otherTileID -= otherTileset->StartTile;
 				sheetID = tileSprite->FindOrAddSpriteSheet(
-					otherTileSprite->SpritesheetFilenames[0].c_str());
+					otherTileSprite->SpritesheetFilenames[0]);
 			}
 		}
 

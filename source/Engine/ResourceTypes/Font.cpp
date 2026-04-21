@@ -448,8 +448,7 @@ void Font::UpdateSprite() {
 		return;
 	}
 
-	Sprite->Spritesheets.clear();
-	Sprite->SpritesheetFilenames.clear();
+	Sprite->SpritesheetCount = 0;
 	Sprite->Animations[0].FrameCount = 0;
 
 	for (size_t i = 0; i < GlyphRanges.size(); i++) {
@@ -458,8 +457,7 @@ void Font::UpdateSprite() {
 			continue;
 		}
 
-		Sprite->Spritesheets.push_back(range->Atlas);
-		Sprite->SpritesheetFilenames.push_back("");
+		Sprite->AddSpriteSheet(range->Atlas, nullptr);
 
 		for (std::unordered_map<Uint32, FontGlyph>::iterator it = range->Glyphs.begin();
 			it != range->Glyphs.end();

@@ -887,6 +887,7 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 
+	frames.reserve(anim.FrameCount);
 	for (size_t i = 0; i < anim.FrameCount; i++) {
 		frames.push_back(anim.Frames[i]);
 	}

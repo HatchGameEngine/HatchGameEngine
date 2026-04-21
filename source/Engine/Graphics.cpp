@@ -1643,7 +1643,7 @@ void Graphics::DrawText(Font* font,
 
 	font->Update();
 
-	if (font->Sprite == nullptr || font->Sprite->Spritesheets.size() == 0) {
+	if (font->Sprite == nullptr || font->Sprite->SpritesheetCount == 0) {
 		return;
 	}
 
@@ -1698,7 +1698,7 @@ void Graphics::DrawTextWrapped(Font* font,
 
 	font->Update();
 
-	if (font->Sprite == nullptr || font->Sprite->Spritesheets.size() == 0) {
+	if (font->Sprite == nullptr || font->Sprite->SpritesheetCount == 0) {
 		return;
 	}
 
@@ -1886,7 +1886,7 @@ void Graphics::DrawGlyph(Font* font,
 
 	font->Update();
 
-	if (font->Sprite == nullptr || font->Sprite->Spritesheets.size() == 0) {
+	if (font->Sprite == nullptr || font->Sprite->SpritesheetCount == 0) {
 		return;
 	}
 

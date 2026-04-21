@@ -2,7 +2,7 @@
 #define ENGINE_SPRITES_ANIMATION_H
 
 struct CollisionBox {
-	char* Name;
+	char Name[256];
 	int Left = 0;
 	int Top = 0;
 	int Right = 0;

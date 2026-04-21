@@ -19,18 +19,10 @@
 #define RSDK_SPRITE_MAGIC 0x00525053
 
 ISprite::ISprite() {
-	Spritesheets.clear();
-	Spritesheets.shrink_to_fit();
-	SpritesheetFilenames.clear();
-	SpritesheetFilenames.shrink_to_fit();
 	LoadFailed = true;
 	Filename = nullptr;
 }
 ISprite::ISprite(const char* filename) {
-	Spritesheets.clear();
-	Spritesheets.shrink_to_fit();
-	SpritesheetFilenames.clear();
-	SpritesheetFilenames.shrink_to_fit();
 	Filename = StringUtils::NormalizePath(filename);
 	LoadFailed = !LoadAnimation(Filename);
 }
@@ -38,15 +30,27 @@ ISprite::ISprite(const char* filename) {
 size_t ISprite::FindOrAddSpriteSheet(const char* sheetFilename) {
 	std::string sheetPath = Path::Normalize(sheetFilename);
 
-	for (size_t i = 0; i < SpritesheetFilenames.size(); i++) {
-		if (SpritesheetFilenames[i] == sheetPath) {
+	for (size_t i = 0; i < SpritesheetCount; i++) {
+		if (strcmp(SpritesheetFilenames[i], sheetPath.c_str()) == 0) {
 			return i;
 		}
 	}
 
 	AddSpriteSheet(sheetFilename);
 
-	return Spritesheets.size() - 1;
+	return SpritesheetCount - 1;
+}
+
+void ISprite::AddSpriteSheet(Texture* texture, char* filename) {
+	SpritesheetCount++;
+	if (!Spritesheets || SpritesheetCount > SpritesheetsCapacity) {
+		SpritesheetsCapacity *= 2;
+		Spritesheets = (Texture**)Memory::Realloc(Spritesheets, SpritesheetsCapacity * sizeof(Texture*));
+		SpritesheetFilenames = (char**)Memory::Realloc(SpritesheetFilenames, SpritesheetsCapacity * sizeof(char*));
+	}
+
+	Spritesheets[SpritesheetCount - 1] = texture;
+	SpritesheetFilenames[SpritesheetCount - 1] = filename;
 }
 
 Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
@@ -58,19 +62,16 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 
 	TextureReference* textureRef = Graphics::GetSpriteSheet(sheetPath);
 	if (textureRef != nullptr) {
-		SpritesheetFilenames.push_back(sheetPath);
-		Spritesheets.push_back(textureRef->TexturePtr);
-		Memory::Free(filename);
+		AddSpriteSheet(textureRef->TexturePtr, filename);
+
 		return textureRef->TexturePtr;
 	}
 
 	texture = Image::LoadTextureFromResource(filename);
 
 	Graphics::AddSpriteSheet(sheetPath, texture);
-	Spritesheets.push_back(texture);
-	SpritesheetFilenames.push_back(sheetPath);
 
-	Memory::Free(filename);
+	AddSpriteSheet(texture, filename);
 
 	return texture;
 }
@@ -196,7 +197,7 @@ void ISprite::RefreshGraphicsID() {
 }
 
 void ISprite::ConvertToNonIndexed(Uint32* palColors, unsigned numPaletteColors) {
-	for (int a = 0; a < Spritesheets.size(); a++) {
+	for (int a = 0; a < SpritesheetCount; a++) {
 		Uint32* palette = palColors;
 		if (!palette) {
 			if (Spritesheets[a]->PaletteColors) {
@@ -222,7 +223,7 @@ void ISprite::ConvertToIndexed(Uint32* palColors, unsigned numPaletteColors) {
 		}
 	}
 
-	for (int a = 0; a < Spritesheets.size(); a++) {
+	for (int a = 0; a < SpritesheetCount; a++) {
 		Graphics::ConvertTextureToFormat(Spritesheets[a],
 			TextureFormat_INDEXED,
 			palColors,
@@ -260,9 +261,12 @@ bool ISprite::LoadAnimation(const char* filename) {
 
 	// Get texture count
 	unsigned spritesheetCount = reader->ReadByte();
+	SpritesheetsCapacity = Math::CeilPOT(SpritesheetsCapacity + spritesheetCount);
+	Spritesheets = (Texture**)Memory::Malloc(sizeof(Texture*) * SpritesheetsCapacity);
+	SpritesheetFilenames = (char**)Memory::Malloc(sizeof(char*) * SpritesheetsCapacity);
 
 	// Load textures
-	for (int i = 0; i < spritesheetCount; i++) {
+	for (size_t i = 0; i < spritesheetCount; i++) {
 		char fullPath[MAX_RESOURCE_PATH_LENGTH];
 
 		str = reader->ReadHeaderedString();
@@ -329,8 +333,9 @@ bool ISprite::LoadAnimation(const char* filename) {
 
 	// Read collision groups names
 	std::vector<char*> hitboxNames;
+	hitboxNames.resize(hitboxCount);
 	for (int i = 0; i < hitboxCount; i++) {
-		hitboxNames.push_back(reader->ReadHeaderedString());
+		hitboxNames[i] = reader->ReadHeaderedString();
 	}
 
 	previousAnimationCount = AnimationCount;
@@ -389,11 +394,11 @@ bool ISprite::LoadAnimation(const char* filename) {
 			AnimFrame* anfrm = &an->Frames[i];
 			anfrm->SheetNumber = reader->ReadByte();
 
-			if (anfrm->SheetNumber >= Spritesheets.size()) {
+			if (anfrm->SheetNumber >= SpritesheetCount) {
 				Log::Print(Log::LOG_ERROR,
 					"Sheet number %d outside of range of sheet count %d! (Animation %d, Frame %d)",
 					anfrm->SheetNumber,
-					Spritesheets.size(),
+					SpritesheetCount,
 					a,
 					i);
 			}
@@ -413,7 +418,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 
 				for (size_t h = 0; h < anfrm->BoxCount; h++) {
 					CollisionBox* box = &anfrm->Boxes[h];
-					box->Name = StringUtils::Duplicate(hitboxNames[h]);
+					StringUtils::Copy(box->Name, hitboxNames[h], sizeof box->Name);
 					box->Left = reader->ReadInt16();
 					box->Top = reader->ReadInt16();
 					box->Right = reader->ReadInt16();
@@ -468,18 +473,18 @@ bool ISprite::SaveAnimation(const char* filename) {
 		return false;
 	}
 
-	// Check MAGIC
+	// Write MAGIC
 	stream->WriteUInt32(RSDK_SPRITE_MAGIC);
 
-	// Total frame count
+	// Write total frame count
 	stream->WriteUInt32(FrameCount);
 
-	// Get texture count
-	stream->WriteByte(this->Spritesheets.size());
+	// Write texture count
+	stream->WriteByte(SpritesheetCount);
 
-	// Load textures
-	for (int i = 0; i < this->Spritesheets.size(); i++) {
-		stream->WriteHeaderedString(SpritesheetFilenames[i].c_str());
+	// Write textures
+	for (int i = 0; i < SpritesheetCount; i++) {
+		stream->WriteHeaderedString(SpritesheetFilenames[i]);
 	}
 
 	// Get collision group count
@@ -515,7 +520,7 @@ bool ISprite::SaveAnimation(const char* filename) {
 		stream->WriteHeaderedString(boxNames[i].c_str());
 	}
 
-	// Get animation count
+	// Write animation count
 	stream->WriteUInt16(AnimationCount);
 
 	// Write animations
@@ -576,33 +581,33 @@ bool ISprite::SaveAnimation(const char* filename) {
 
 void ISprite::Dispose() {
 	for (size_t f = 0; f < FrameCount; f++) {
-		for (size_t h = 0; h < Frames[f].BoxCount; h++) {
-			CollisionBox* box = &Frames[f].Boxes[h];
-			Memory::Free(box->Name);
-		}
-
 		Memory::Free(Frames[f].Boxes);
 	}
+	FrameCount = 0;
+	FramesCapacity = 0;
+	Memory::Free(Frames);
+	Frames = nullptr;
 
 	for (size_t a = 0; a < AnimationCount; a++) {
 		Memory::Free(Animations[a].Name);
 	}
-
+	AnimationCount = 0;
+	AnimationsCapacity = 0;
 	Memory::Free(Animations);
-	Memory::Free(Frames);
+	Animations = nullptr;
 
-	for (size_t i = 0; i < Spritesheets.size(); i++) {
-		std::string sheetFilename = SpritesheetFilenames[i];
-		if (sheetFilename.size() > 0) {
+	for (size_t i = 0; i < SpritesheetCount; i++) {
+		char* sheetFilename = SpritesheetFilenames[i];
+		if (sheetFilename) {
 			Graphics::DisposeSpriteSheet(sheetFilename);
+			Memory::Free(sheetFilename);
 		}
 	}
+	SpritesheetCount = 0;
+	SpritesheetsCapacity = 0;
 
-	Spritesheets.clear();
-	Spritesheets.shrink_to_fit();
-
-	SpritesheetFilenames.clear();
-	SpritesheetFilenames.shrink_to_fit();
+	Memory::Free(Spritesheets);
+	Memory::Free(SpritesheetFilenames);
 
 	Graphics::DeleteFrameBufferID(this);
 
