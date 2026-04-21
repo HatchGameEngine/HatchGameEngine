@@ -59,7 +59,7 @@ void Entity::Animate() {
 
 	ISprite* sprite = resource->AsSprite;
 	if (!sprite || CurrentAnimation < 0 ||
-		(size_t)CurrentAnimation >= sprite->Animations.size()) {
+		(size_t)CurrentAnimation >= sprite->AnimationCount) {
 		return;
 	}
 
@@ -89,7 +89,7 @@ void Entity::Animate() {
 			// Update duration for the new frame
 			// Check range for strange loop points or if CurrentAnimation is now invalid
 			if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
-				&& CurrentAnimation < sprite->Animations.size()) {
+				&& CurrentAnimation < sprite->AnimationCount) {
 				AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
 			}
 			else {
@@ -117,7 +117,7 @@ void Entity::Animate() {
 				// Update duration for the new frame
 				// Check range for strange loop points or if CurrentAnimation is now invalid
 				if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
-					&& CurrentAnimation < sprite->Animations.size()) {
+					&& CurrentAnimation < sprite->AnimationCount) {
 					AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
 				}
 				else {
@@ -144,11 +144,11 @@ void Entity::ResetAnimation(int animation, int frame) {
 	}
 
 	ISprite* sprite = resource->AsSprite;
-	if (!sprite || animation < 0 || (size_t)animation >= sprite->Animations.size()) {
+	if (!sprite || animation < 0 || (size_t)animation >= sprite->AnimationCount) {
 		return;
 	}
 
-	if (frame < 0 || (size_t)frame >= sprite->Animations[animation].Frames.size()) {
+	if (frame < 0 || (size_t)frame >= sprite->Animations[animation].FrameCount) {
 		return;
 	}
 
@@ -156,7 +156,7 @@ void Entity::ResetAnimation(int animation, int frame) {
 	CurrentAnimation = animation;
 	AnimationTimer = 0.0;
 	CurrentFrame = frame;
-	CurrentFrameCount = (int)sprite->Animations[CurrentAnimation].Frames.size();
+	CurrentFrameCount = (int)sprite->Animations[CurrentAnimation].FrameCount;
 	AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
 	AnimationSpeed = sprite->Animations[CurrentAnimation].AnimationSpeed;
 	AnimationLoopIndex = sprite->Animations[CurrentAnimation].FrameToLoop;

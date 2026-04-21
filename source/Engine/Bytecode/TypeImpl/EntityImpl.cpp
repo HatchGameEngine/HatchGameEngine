@@ -178,12 +178,12 @@ VMValue EntityImpl::VM_SetAnimation(int argCount, VMValue* args, Uint32 threadID
 		return NULL_VAL;
 	}
 
-	if (!(animation >= 0 && (size_t)animation < sprite->Animations.size())) {
+	if (!(animation >= 0 && (size_t)animation < sprite->AnimationCount)) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
-	if (!(frame >= 0 && (size_t)frame < sprite->Animations[animation].Frames.size())) {
+	if (!(frame >= 0 && (size_t)frame < sprite->Animations[animation].FrameCount)) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;
@@ -223,12 +223,12 @@ VMValue EntityImpl::VM_ResetAnimation(int argCount, VMValue* args, Uint32 thread
 		return NULL_VAL;
 	}
 
-	if (!(animation >= 0 && (Uint32)animation < sprite->Animations.size())) {
+	if (!(animation >= 0 && (Uint32)animation < sprite->AnimationCount)) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animation);
 		return NULL_VAL;
 	}
-	if (!(frame >= 0 && (Uint32)frame < sprite->Animations[animation].Frames.size())) {
+	if (!(frame >= 0 && (Uint32)frame < sprite->Animations[animation].FrameCount)) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frame, animation);
 		return NULL_VAL;
@@ -491,12 +491,12 @@ VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 t
 		return NULL_VAL;
 	}
 
-	if (!(animationID > -1 && (size_t)animationID < sprite->Animations.size())) {
+	if (!(animationID > -1 && (size_t)animationID < sprite->AnimationCount)) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animationID);
 		return NULL_VAL;
 	}
-	if (!(frameID > -1 && (size_t)frameID < sprite->Animations[animationID].Frames.size())) {
+	if (!(frameID > -1 && (size_t)frameID < sprite->Animations[animationID].FrameCount)) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frameID, animationID);
 		return NULL_VAL;
@@ -509,8 +509,8 @@ VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 t
 		if (name) {
 			int boxIndex = -1;
 
-			for (size_t i = 0; i < frame.Boxes.size(); i++) {
-				if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+			for (size_t i = 0; i < frame.BoxCount; i++) {
+				if (strcmp(frame.Boxes[i].Name, name) == 0) {
 					boxIndex = (int)i;
 					break;
 				}
@@ -532,7 +532,7 @@ VMValue EntityImpl::VM_GetHitboxFromSprite(int argCount, VMValue* args, Uint32 t
 		hitboxID = GET_ARG_OPT(4, GetInteger, 0);
 	}
 
-	if (hitboxID >= 0 && hitboxID < (int)frame.Boxes.size()) {
+	if (hitboxID >= 0 && hitboxID < (int)frame.BoxCount) {
 		self->Hitbox.Set(frame.Boxes[hitboxID]);
 	}
 	else {
@@ -603,12 +603,12 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 		return NULL_VAL;
 	}
 
-	if (!(animationID >= 0 && (Uint32)animationID < sprite->Animations.size())) {
+	if (!(animationID >= 0 && (Uint32)animationID < sprite->AnimationCount)) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Animation %d is not in bounds of sprite.", animationID);
 		return NULL_VAL;
 	}
-	if (!(frameID >= 0 && (Uint32)frameID < sprite->Animations[animationID].Frames.size())) {
+	if (!(frameID >= 0 && (Uint32)frameID < sprite->Animations[animationID].FrameCount)) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(
 			false, "Frame %d is not in bounds of animation %d.", frameID, animationID);
 		return NULL_VAL;
@@ -621,8 +621,8 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 		if (name) {
 			int boxIndex = -1;
 
-			for (size_t i = 0; i < frame.Boxes.size(); i++) {
-				if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+			for (size_t i = 0; i < frame.BoxCount; i++) {
+				if (strcmp(frame.Boxes[i].Name, name) == 0) {
 					boxIndex = (int)i;
 					break;
 				}
@@ -644,14 +644,14 @@ VMValue EntityImpl::VM_ReturnHitbox(int argCount, VMValue* args, Uint32 threadID
 		hitboxID = GET_ARG_OPT(hitboxArgNum, GetInteger, 0);
 	}
 
-	if (frame.Boxes.size() == 0) {
+	if (frame.BoxCount == 0) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 			"Frame %d of animation %d contains no hitboxes.",
 			frameID,
 			animationID);
 		return NULL_VAL;
 	}
-	else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+	else if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
 		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
 			"Hitbox %d is not in bounds of frame %d of animation %d.",
 			hitboxID,

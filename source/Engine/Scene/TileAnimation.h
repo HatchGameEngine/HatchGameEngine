@@ -26,10 +26,10 @@ struct TileAnimator {
 	}
 
 	void SetAnimation(int animation, int frame) {
-		if (animation < 0 || (size_t)animation >= Sprite->Animations.size()) {
+		if (animation < 0 || (size_t)animation >= Sprite->AnimationCount) {
 			return;
 		}
-		if (frame < 0 || (size_t)frame >= Sprite->Animations[animation].Frames.size()) {
+		if (frame < 0 || (size_t)frame >= Sprite->Animations[animation].FrameCount) {
 			return;
 		}
 
@@ -37,7 +37,7 @@ struct TileAnimator {
 		AnimationIndex = animation;
 		FrameIndex = frame;
 		FrameDuration = animationPtr->Frames[FrameIndex].Duration;
-		FrameCount = (int)animationPtr->Frames.size();
+		FrameCount = (int)animationPtr->FrameCount;
 		LoopIndex = animationPtr->FrameToLoop;
 		Speed = animationPtr->AnimationSpeed;
 		Timer = 0.0;

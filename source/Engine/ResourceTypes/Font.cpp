@@ -450,7 +450,7 @@ void Font::UpdateSprite() {
 
 	Sprite->Spritesheets.clear();
 	Sprite->SpritesheetFilenames.clear();
-	Sprite->Animations[0].Frames.clear();
+	Sprite->Animations[0].FrameCount = 0;
 
 	for (size_t i = 0; i < GlyphRanges.size(); i++) {
 		FontGlyphRange* range = GlyphRanges[i];
@@ -471,7 +471,7 @@ void Font::UpdateSprite() {
 				continue;
 			}
 
-			glyph.FrameID = Sprite->Animations[0].Frames.size();
+			glyph.FrameID = Sprite->Animations[0].FrameCount;
 
 			// Offsets are handled when rendering
 			Sprite->AddFrame(0,

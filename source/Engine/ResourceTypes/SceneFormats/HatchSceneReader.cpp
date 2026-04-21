@@ -375,7 +375,7 @@ bool HatchSceneReader::LoadTileset(const char* parentFolder) {
 	for (int i = 0; i < cols * rows; i++) {
 		info.Sprite = tileSprite;
 		info.AnimationIndex = 0;
-		info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+		info.FrameIndex = (int)tileSprite->Animations[0].FrameCount;
 		info.TilesetID = Scene::Tilesets.size();
 		Scene::TileSpriteInfos.push_back(info);
 
@@ -393,7 +393,7 @@ bool HatchSceneReader::LoadTileset(const char* parentFolder) {
 	// Add empty tile
 	info.Sprite = tileSprite;
 	info.AnimationIndex = 0;
-	info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+	info.FrameIndex = (int)tileSprite->Animations[0].FrameCount;
 	info.TilesetID = Scene::Tilesets.size();
 	Scene::TileSpriteInfos.push_back(info);
 

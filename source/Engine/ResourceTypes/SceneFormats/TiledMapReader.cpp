@@ -321,7 +321,7 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const ch
 	for (int i = (int)curTileCount; i < firstgid; i++) {
 		info.Sprite = tileSprite;
 		info.AnimationIndex = 0;
-		info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+		info.FrameIndex = (int)tileSprite->Animations[0].FrameCount;
 		info.TilesetID = Scene::Tilesets.size();
 		Scene::TileSpriteInfos.push_back(info);
 
@@ -332,7 +332,7 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const ch
 	for (int i = 0; i < cols * rows; i++) {
 		info.Sprite = tileSprite;
 		info.AnimationIndex = 0;
-		info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+		info.FrameIndex = (int)tileSprite->Animations[0].FrameCount;
 		info.TilesetID = Scene::Tilesets.size();
 		Scene::TileSpriteInfos.push_back(info);
 

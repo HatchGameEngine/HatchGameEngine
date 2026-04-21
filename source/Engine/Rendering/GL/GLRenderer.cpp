@@ -3845,8 +3845,8 @@ void GLRenderer::MakeFrameBufferID(ISprite* sprite) {
 	CHECK_GL();
 
 	size_t fc = 0;
-	for (size_t a = 0; a < sprite->Animations.size(); ++a) {
-		for (size_t i = 0; i < sprite->Animations[a].Frames.size(); ++i) {
+	for (size_t a = 0; a < sprite->AnimationCount; ++a) {
+		for (size_t i = 0; i < sprite->Animations[a].FrameCount; ++i) {
 			AnimFrame* frame = &sprite->Animations[a].Frames[i];
 			GL_AnimFrameVert* vert = &vertices[0];
 

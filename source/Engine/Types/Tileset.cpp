@@ -64,7 +64,7 @@ void Tileset::AddTileAnimSequence(int tileID,
 	}
 	else {
 		tileSprite->AddAnimation(nameBuf, 1, 0);
-		animID = tileSprite->Animations.size() - 1;
+		animID = tileSprite->AnimationCount - 1;
 	}
 
 	tileSprite->RemoveFrames(animID);

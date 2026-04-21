@@ -3405,14 +3405,14 @@ bool Graphics::SpriteRangeCheck(ISprite* sprite, int animation, int frame) {
 	if (!sprite) {
 		return true;
 	}
-	if (animation < 0 || animation >= (int)sprite->Animations.size()) {
+	if (animation < 0 || animation >= (int)sprite->AnimationCount) {
 		ScriptManager::Threads[0].ThrowRuntimeError(false,
 			"Animation %d does not exist in sprite %s!",
 			animation,
 			sprite->Filename);
 		return true;
 	}
-	if (frame < 0 || frame >= (int)sprite->Animations[animation].Frames.size()) {
+	if (frame < 0 || frame >= (int)sprite->Animations[animation].FrameCount) {
 		ScriptManager::Threads[0].ThrowRuntimeError(false,
 			"Frame %d in animation \"%s\" does not exist in sprite %s!",
 			frame,

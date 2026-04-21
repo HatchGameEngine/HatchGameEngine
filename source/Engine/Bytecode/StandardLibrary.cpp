@@ -870,21 +870,25 @@ VMValue Animator_SetAnimation(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	ISprite* sprite = Scene::SpriteList[spriteIndex]->AsSprite;
-	if (!sprite || animationID < 0 || animationID >= (int)sprite->Animations.size()) {
+	if (!sprite || animationID < 0 || animationID >= (int)sprite->AnimationCount) {
 		animator->CurrentAnimation = -1;
 		return NULL_VAL;
 	}
 
-	if (frameID < 0 || frameID >= (int)sprite->Animations[animationID].Frames.size()) {
+	if (frameID < 0 || frameID >= (int)sprite->Animations[animationID].FrameCount) {
 		animator->CurrentFrame = -1;
 		return NULL_VAL;
 	}
 
 	Animation anim = sprite->Animations[animationID];
-	vector<AnimFrame> frames = anim.Frames;
+	vector<AnimFrame> frames;
 
 	if (animator->CurrentAnimation == animationID && !forceApply) {
 		return NULL_VAL;
+	}
+
+	for (size_t i = 0; i < anim.FrameCount; i++) {
+		frames.push_back(anim.Frames[i]);
 	}
 
 	animator->Frames = frames;
@@ -930,10 +934,10 @@ VMValue Animator_Animate(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	if (animator->CurrentAnimation < 0 ||
-		animator->CurrentAnimation >= (int)sprite->Animations.size() ||
+		animator->CurrentAnimation >= (int)sprite->AnimationCount ||
 		animator->CurrentFrame < 0 ||
 		animator->CurrentFrame >=
-			(int)sprite->Animations[animator->CurrentAnimation].Frames.size()) {
+			(int)sprite->Animations[animator->CurrentAnimation].FrameCount) {
 		return NULL_VAL;
 	}
 
@@ -1011,8 +1015,8 @@ VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 		animator->CurrentFrame >= 0) {
 		ISprite* sprite = GetSpriteIndex(animator->Sprite, threadID);
 
-		if (!sprite || animator->CurrentAnimation >= sprite->Animations.size()
-			|| animator->CurrentFrame >= sprite->Animations[animator->CurrentFrame].Frames.size()) {
+		if (!sprite || animator->CurrentAnimation >= sprite->AnimationCount
+			|| animator->CurrentFrame >= sprite->Animations[animator->CurrentFrame].FrameCount) {
 			return INTEGER_VAL(0);
 		}
 
@@ -1040,25 +1044,25 @@ VMValue Animator_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 			return NULL_VAL;
 		}
 
-		if (animator->CurrentAnimation >= sprite->Animations.size()) {
+		if (animator->CurrentAnimation >= sprite->AnimationCount) {
 			return NULL_VAL;
 		}
 
 		if (animator->CurrentFrame >=
-			sprite->Animations[animator->CurrentFrame].Frames.size()) {
+			sprite->Animations[animator->CurrentFrame].FrameCount) {
 			return NULL_VAL;
 		}
 
 		AnimFrame frame = sprite->Animations[animator->CurrentAnimation]
 					  .Frames[animator->CurrentFrame];
 
-		if (frame.Boxes.size() == 0) {
+		if (frame.BoxCount == 0) {
 			THROW_ERROR("Frame %d of animation %d contains no hitboxes.",
 				animator->CurrentFrame,
 				animator->CurrentAnimation);
 			return NULL_VAL;
 		}
-		else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+		else if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
 			THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
 				hitboxID,
 				animator->CurrentFrame,
@@ -5067,7 +5071,7 @@ VMValue Draw_TextArray(int argCount, VMValue* args, Uint32 threadID) {
 		CHECK_PALETTE_INDEX(paletteID);
 
 		if (sprite && string && animation >= 0 &&
-			animation < (int)sprite->Animations.size()) {
+			animation < (int)sprite->AnimationCount) {
 			startFrame =
 				(int)Math::Clamp(startFrame, 0, (int)string->Values->size() - 1);
 
@@ -13878,7 +13882,7 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
 		ObjArray* array = NewArray();
 		ISprite* tileSprite = animator->Sprite;
 		Animation* animation = animator->GetCurrentAnimation();
-		for (int i = 0; i < animation->Frames.size(); i++) {
+		for (int i = 0; i < animation->FrameCount; i++) {
 			int x = animation->Frames[i].X / tileset->TileWidth;
 			int y = animation->Frames[i].Y / tileset->TileHeight;
 			int tileID = ((y * tileset->NumCols) + x) + tileset->StartTile;
@@ -13914,7 +13918,7 @@ VMValue Scene_GetTileAnimSequenceDurations(int argCount, VMValue* args, Uint32 t
 		ObjArray* array = NewArray();
 		ISprite* tileSprite = animator->Sprite;
 		Animation* animation = animator->GetCurrentAnimation();
-		for (int i = 0; i < animation->Frames.size(); i++) {
+		for (int i = 0; i < animation->FrameCount; i++) {
 			array->Values->push_back(INTEGER_VAL(animation->Frames[i].Duration));
 		}
 		ScriptManager::Unlock();
@@ -16693,15 +16697,15 @@ VMValue Sound_SetLoopPoint(int argCount, VMValue* args, Uint32 threadID) {
 
 // #region Sprite
 #define CHECK_ANIMATION_INDEX(idx) \
-	if (idx < 0 || idx >= (int)sprite->Animations.size()) { \
-		OUT_OF_RANGE_ERROR("Animation index", idx, 0, sprite->Animations.size() - 1); \
+	if (idx < 0 || idx >= (int)sprite->AnimationCount) { \
+		OUT_OF_RANGE_ERROR("Animation index", idx, 0, sprite->AnimationCount - 1); \
 		return NULL_VAL; \
 	}
 #define CHECK_ANIMFRAME_INDEX(anim, idx) \
 	CHECK_ANIMATION_INDEX(anim); \
-	if (idx < 0 || idx >= (int)sprite->Animations[anim].Frames.size()) { \
+	if (idx < 0 || idx >= (int)sprite->Animations[anim].FrameCount) { \
 		OUT_OF_RANGE_ERROR( \
-			"Frame index", idx, 0, sprite->Animations[anim].Frames.size() - 1); \
+			"Frame index", idx, 0, sprite->Animations[anim].FrameCount - 1); \
 		return NULL_VAL; \
 	}
 /***
@@ -16717,7 +16721,7 @@ VMValue Sprite_GetAnimationCount(int argCount, VMValue* args, Uint32 threadID) {
 	if (!sprite) {
 		return INTEGER_VAL(0);
 	}
-	return INTEGER_VAL((int)sprite->Animations.size());
+	return INTEGER_VAL((int)sprite->AnimationCount);
 }
 /***
  * Sprite.GetAnimationName
@@ -16752,7 +16756,7 @@ VMValue Sprite_GetAnimationIndexByName(int argCount, VMValue* args, Uint32 threa
 	if (!sprite) {
 		return INTEGER_VAL(-1);
 	}
-	for (size_t i = 0; i < sprite->Animations.size(); i++) {
+	for (size_t i = 0; i < sprite->AnimationCount; i++) {
 		if (strcmp(name, sprite->Animations[i].Name) == 0) {
 			return INTEGER_VAL((int)i);
 		}
@@ -16776,8 +16780,8 @@ VMValue Sprite_GetFrameExists(int argCount, VMValue* args, Uint32 threadID) {
 	if (!sprite) {
 		return INTEGER_VAL(false);
 	}
-	return (INTEGER_VAL((animation >= 0 && animation < (int)sprite->Animations.size()) &&
-		(frame >= 0 && frame < (int)sprite->Animations[animation].Frames.size())));
+	return (INTEGER_VAL((animation >= 0 && animation < (int)sprite->AnimationCount) &&
+		(frame >= 0 && frame < (int)sprite->Animations[animation].FrameCount)));
 }
 /***
  * Sprite.GetFrameLoopIndex
@@ -16813,7 +16817,7 @@ VMValue Sprite_GetFrameCount(int argCount, VMValue* args, Uint32 threadID) {
 		return INTEGER_VAL(0);
 	}
 	CHECK_ANIMATION_INDEX(animation);
-	return INTEGER_VAL((int)sprite->Animations[animation].Frames.size());
+	return INTEGER_VAL((int)sprite->Animations[animation].FrameCount);
 }
 /***
  * Sprite.GetFrameDuration
@@ -16975,11 +16979,11 @@ VMValue Sprite_GetHitboxName(int argCount, VMValue* args, Uint32 threadID) {
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
-	if (frame.Boxes.size() == 0) {
+	if (frame.BoxCount == 0) {
 		THROW_ERROR("Frame %d of animation %d contains no hitboxes.", frameID, animationID);
 		return NULL_VAL;
 	}
-	else if (!(hitboxID > -1 && hitboxID < frame.Boxes.size())) {
+	else if (!(hitboxID > -1 && hitboxID < frame.BoxCount)) {
 		THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
 			hitboxID,
 			frameID,
@@ -17012,8 +17016,8 @@ VMValue Sprite_GetHitboxIndex(int argCount, VMValue* args, Uint32 threadID) {
 	if (name != nullptr) {
 		AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
-		for (size_t i = 0; i < frame.Boxes.size(); i++) {
-			if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+		for (size_t i = 0; i < frame.BoxCount; i++) {
+			if (strcmp(frame.Boxes[i].Name, name) == 0) {
 				return INTEGER_VAL((int)i);
 			}
 		}
@@ -17041,7 +17045,7 @@ VMValue Sprite_GetHitboxCount(int argCount, VMValue* args, Uint32 threadID) {
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
 
-	size_t numHitboxes = frame.Boxes.size();
+	size_t numHitboxes = frame.BoxCount;
 
 	return INTEGER_VAL((int)numHitboxes);
 }
@@ -17120,7 +17124,7 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ANIMFRAME_INDEX(animationID, frameID);
 
 	AnimFrame frame = sprite->Animations[animationID].Frames[frameID];
-	if (frame.Boxes.size() == 0) {
+	if (frame.BoxCount == 0) {
 		THROW_ERROR("Frame %d of animation %d contains no hitboxes.", frameID, animationID);
 		return NULL_VAL;
 	}
@@ -17130,8 +17134,8 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		if (name) {
 			int boxIndex = -1;
 
-			for (size_t i = 0; i < frame.Boxes.size(); i++) {
-				if (strcmp(frame.Boxes[i].Name.c_str(), name) == 0) {
+			for (size_t i = 0; i < frame.BoxCount; i++) {
+				if (strcmp(frame.Boxes[i].Name, name) == 0) {
 					boxIndex = (int)i;
 					break;
 				}
@@ -17152,7 +17156,7 @@ VMValue Sprite_GetHitbox(int argCount, VMValue* args, Uint32 threadID) {
 		hitboxID = GET_ARG_OPT(hitboxArgNum, GetInteger, 0);
 	}
 
-	if (hitboxID < 0 || hitboxID >= (int)frame.Boxes.size()) {
+	if (hitboxID < 0 || hitboxID >= (int)frame.BoxCount) {
 		THROW_ERROR("Hitbox %d is not in bounds of frame %d of animation %d.",
 			hitboxID,
 			frameID,
@@ -17184,7 +17188,7 @@ VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
 		return OBJECT_VAL(textArray);
 	}
 
-	if (animation >= 0 && animation < (int)sprite->Animations.size()) {
+	if (animation >= 0 && animation < (int)sprite->AnimationCount) {
 		std::vector<Uint32> codepoints = StringUtils::GetCodepoints(string);
 
 		for (Uint32 codepoint : codepoints) {
@@ -17194,7 +17198,7 @@ VMValue Sprite_GetTextArray(int argCount, VMValue* args, Uint32 threadID) {
 			}
 
 			bool found = false;
-			for (int f = 0; f < (int)sprite->Animations[animation].Frames.size(); f++) {
+			for (int f = 0; f < (int)sprite->Animations[animation].FrameCount; f++) {
 				if (sprite->Animations[animation].Frames[f].Advance ==
 					(int)codepoint) {
 					textArray->Values->push_back(INTEGER_VAL(f));
@@ -17237,7 +17241,7 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 			return INTEGER_VAL(0);
 		}
 
-		if (animation >= 0 && animation <= (int)sprite->Animations.size()) {
+		if (animation >= 0 && animation <= (int)sprite->AnimationCount) {
 			Animation anim = sprite->Animations[animation];
 
 			startIndex = (int)Math::Clamp(startIndex, 0, (int)text->Values->size() - 1);
@@ -17250,7 +17254,7 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 			for (int c = startIndex; c < length; c++) {
 				int charFrame =
 					AS_INTEGER(Value::CastAsInteger((*text->Values)[c]));
-				if (charFrame < anim.Frames.size()) {
+				if (charFrame < anim.FrameCount) {
 					w += anim.Frames[charFrame].Width;
 					if (c + 1 >= length) {
 						ScriptManager::Unlock();

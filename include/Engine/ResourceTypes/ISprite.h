@@ -12,9 +12,13 @@ public:
 	bool LoadFailed = true;
 	vector<Texture*> Spritesheets;
 	vector<string> SpritesheetFilenames;
-	vector<Animation> Animations;
+	Animation* Animations = nullptr;
+	AnimFrame* Frames = nullptr;
+	size_t AnimationCount = 0;
+	size_t AnimationsCapacity = 1;
+	size_t FrameCount = 0;
+	size_t FramesCapacity = 1;
 	int ID = 0;
-	int FrameCount = 0;
 
 	ISprite();
 	ISprite(const char* filename);
@@ -59,7 +63,6 @@ public:
 	static bool IsFile(Stream* stream);
 	bool LoadAnimation(const char* filename);
 	int FindAnimation(const char* animname);
-	void LinkAnimation(vector<Animation> ani);
 	bool SaveAnimation(const char* filename);
 	void Dispose();
 	~ISprite();

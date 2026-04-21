@@ -2956,7 +2956,6 @@ bool Scene::AddTileset(char* path) {
 	int cols = spriteSheet->Width / Scene::TileWidth;
 	int rows = spriteSheet->Height / Scene::TileHeight;
 
-	tileSprite->ReserveAnimationCount(1);
 	tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
 
 	Tileset sceneTileset(tileSprite,
@@ -2973,7 +2972,7 @@ bool Scene::AddTileset(char* path) {
 	for (int i = 0; i < cols * rows; i++) {
 		info.Sprite = tileSprite;
 		info.AnimationIndex = 0;
-		info.FrameIndex = (int)tileSprite->Animations[0].Frames.size();
+		info.FrameIndex = (int)tileSprite->Animations[0].FrameCount;
 		info.TilesetID = Scene::Tilesets.size() - 1;
 		Scene::TileSpriteInfos.push_back(info);
 

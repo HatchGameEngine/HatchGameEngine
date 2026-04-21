@@ -7,6 +7,7 @@
 #include <Engine/ResourceTypes/Image.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 
+#include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 
@@ -75,23 +76,43 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 }
 
 void ISprite::ReserveAnimationCount(int count) {
-	Animations.reserve(count);
+	int capacity = Math::CeilPOT(count);
+	if (capacity > AnimationsCapacity) {
+		size_t previousAnimationsCapacity = AnimationsCapacity;
+		AnimationsCapacity = capacity;
+		Animations = (Animation*)Memory::Realloc(Animations, AnimationsCapacity * sizeof(Animation));
+		memset(&Animations[previousAnimationsCapacity], 0x00, (AnimationsCapacity - previousAnimationsCapacity) * sizeof(Animation));
+	}
 }
 void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop) {
-	size_t strl = strlen(name);
+	AnimationCount++;
+	if (AnimationCount >= AnimationsCapacity) {
+		AnimationsCapacity *= 2;
+		Animations = (Animation*)Memory::Realloc(Animations, AnimationsCapacity * sizeof(Animation));
+	}
 
-	Animation an;
-	an.Name = (char*)Memory::Malloc(strl + 1);
-	strcpy(an.Name, name);
-	an.Name[strl] = 0;
-	an.AnimationSpeed = animationSpeed;
-	an.FrameToLoop = frameToLoop;
-	an.Flags = 0;
-	Animations.push_back(an);
+	Animation* an = &Animations[AnimationCount - 1];
+	an->Name = StringUtils::Duplicate(name);
+	an->AnimationSpeed = animationSpeed;
+	an->FrameToLoop = frameToLoop;
+	an->Flags = 0;
+	an->FrameListOffset = FrameCount;
+	an->Frames = &Frames[an->FrameListOffset];
+	an->FrameCount = 0;
 }
 void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop, int frmAlloc) {
+	if (frmAlloc > 0) {
+		size_t previousFramesCapacity = FramesCapacity;
+		FramesCapacity = Math::CeilPOT(FramesCapacity + frmAlloc);
+		Frames = (AnimFrame*)Memory::Realloc(Frames, FramesCapacity * sizeof(AnimFrame));
+		memset(&Frames[previousFramesCapacity], 0x00, (FramesCapacity - previousFramesCapacity) * sizeof(AnimFrame));
+
+		for (size_t a = 0; a < AnimationCount; a++) {
+			Animations[a].Frames = &Frames[Animations[a].FrameListOffset];
+		}
+	}
+
 	AddAnimation(name, animationSpeed, frameToLoop);
-	Animations.back().Frames.reserve(frmAlloc);
 }
 void ISprite::AddFrame(int duration,
 	int left,
@@ -110,7 +131,7 @@ void ISprite::AddFrame(int duration,
 	int pivotX,
 	int pivotY,
 	int id) {
-	AddFrame(Animations.size() - 1, duration, left, top, width, height, pivotX, pivotY, id);
+	AddFrame(AnimationCount - 1, duration, left, top, width, height, pivotX, pivotY, id);
 }
 void ISprite::AddFrame(int animID,
 	int duration,
@@ -133,24 +154,41 @@ void ISprite::AddFrame(int animID,
 	int pivotY,
 	int id,
 	int sheetNumber) {
-	AnimFrame anfrm;
-	anfrm.Advance = id;
-	anfrm.Duration = duration;
-	anfrm.X = left;
-	anfrm.Y = top;
-	anfrm.Width = width;
-	anfrm.Height = height;
-	anfrm.OffsetX = pivotX;
-	anfrm.OffsetY = pivotY;
-	anfrm.SheetNumber = sheetNumber;
+	// TODO
+	if (animID != AnimationCount - 1) {
+		return;
+	}
 
 	FrameCount++;
+	if (FrameCount >= FramesCapacity) {
+		size_t previousFramesCapacity = FramesCapacity;
+		FramesCapacity *= 2;
+		Frames = (AnimFrame*)Memory::Realloc(Frames, FramesCapacity * sizeof(AnimFrame));
+		memset(&Frames[previousFramesCapacity], 0x00, (FramesCapacity - previousFramesCapacity) * sizeof(AnimFrame));
 
-	Animations[animID].Frames.push_back(anfrm);
+		for (size_t a = 0; a < AnimationCount; a++) {
+			Animations[a].Frames = &Frames[Animations[a].FrameListOffset];
+		}
+	}
+
+	AnimFrame* anfrm = &Frames[FrameCount - 1];
+	anfrm->Advance = id;
+	anfrm->Duration = duration;
+	anfrm->X = left;
+	anfrm->Y = top;
+	anfrm->Width = width;
+	anfrm->Height = height;
+	anfrm->OffsetX = pivotX;
+	anfrm->OffsetY = pivotY;
+	anfrm->SheetNumber = sheetNumber;
+	anfrm->BoxCount = 0;
+	anfrm->Boxes = nullptr;
+
+	Animations[animID].FrameCount++;
 }
 void ISprite::RemoveFrames(int animID) {
-	FrameCount -= Animations[animID].Frames.size();
-	Animations[animID].Frames.clear();
+	// TODO
+	FrameCount -= Animations[animID].FrameCount;
 }
 
 void ISprite::RefreshGraphicsID() {
@@ -198,7 +236,8 @@ bool ISprite::IsFile(Stream* stream) {
 }
 bool ISprite::LoadAnimation(const char* filename) {
 	char* str;
-	int animationCount, previousAnimationCount;
+	size_t totalFrameCount, previousFrameCount;
+	size_t animationCount, previousAnimationCount;
 
 	Stream* reader = ResourceStream::New(filename);
 	if (!reader) {
@@ -216,8 +255,8 @@ bool ISprite::LoadAnimation(const char* filename) {
 		return false;
 	}
 
-	// Total frame count
-	reader->ReadUInt32();
+	// Read total frame count
+	totalFrameCount = reader->ReadUInt32();
 
 	// Get texture count
 	unsigned spritesheetCount = reader->ReadByte();
@@ -272,6 +311,19 @@ bool ISprite::LoadAnimation(const char* filename) {
 		}
 	}
 
+	Clock::Start();
+
+	previousFrameCount = FrameCount;
+	FrameCount += totalFrameCount;
+	if (FrameCount && (Frames == nullptr || FrameCount > FramesCapacity)) {
+		FramesCapacity = Math::CeilPOT(FrameCount);
+		Frames = (AnimFrame*)Memory::Realloc(Frames, FramesCapacity * sizeof(AnimFrame));
+
+		for (size_t a = 0; a < AnimationCount; a++) {
+			Animations[a].Frames = &Frames[Animations[a].FrameListOffset];
+		}
+	}
+
 	// Get collision group count
 	int hitboxCount = reader->ReadByte();
 
@@ -281,19 +333,23 @@ bool ISprite::LoadAnimation(const char* filename) {
 		hitboxNames.push_back(reader->ReadHeaderedString());
 	}
 
+	previousAnimationCount = AnimationCount;
 	animationCount = reader->ReadUInt16();
-	previousAnimationCount = (int)Animations.size();
-	Animations.resize(previousAnimationCount + animationCount);
+	AnimationCount += animationCount;
+	if (Animations == nullptr || AnimationCount > AnimationsCapacity) {
+		AnimationsCapacity = Math::CeilPOT(AnimationCount);
+		Animations = (Animation*)Memory::Realloc(Animations, AnimationsCapacity * sizeof(Animation));
+	}
 
 	// Load animations
-	int frameID = 0;
-	for (int a = 0; a < animationCount; a++) {
-		Animation an;
-		an.Name = reader->ReadHeaderedString();
-		an.FrameCount = reader->ReadUInt16();
-		an.FrameListOffset = frameID;
-		an.AnimationSpeed = reader->ReadUInt16();
-		an.FrameToLoop = reader->ReadByte();
+	size_t frameID = previousFrameCount;
+	for (size_t a = 0; a < animationCount; a++) {
+		Animation* an = &Animations[previousAnimationCount + a];
+		an->Name = reader->ReadHeaderedString();
+		an->FrameCount = reader->ReadUInt16();
+		an->FrameListOffset = frameID;
+		an->AnimationSpeed = reader->ReadUInt16();
+		an->FrameToLoop = reader->ReadByte();
 
 		// 0: No rotation
 		// 1: Full rotation
@@ -301,69 +357,86 @@ bool ISprite::LoadAnimation(const char* filename) {
 		// 3: Snaps to multiples of 90 degrees
 		// 4: Snaps to multiples of 180 degrees
 		// 5: Static rotation using extra frames
-		an.Flags = reader->ReadByte();
+		an->Flags = reader->ReadByte();
 
 #ifdef ISPRITE_DEBUG
 		Log::Print(Log::LOG_VERBOSE,
 			"    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)",
-			an.Name,
+			an->Name,
 			a,
-			an.Flags,
-			an.FrameToLoop,
-			an.AnimationSpeed,
-			an.FrameCount);
+			an->Flags,
+			an->FrameToLoop,
+			an->AnimationSpeed,
+			an->FrameCount);
 #endif
 
-		an.Frames.resize(an.FrameCount);
+		frameID += an->FrameCount;
+		if (frameID > FrameCount) {
+			FrameCount = frameID;
+			FramesCapacity = Math::CeilPOT(FrameCount);
+			Frames = (AnimFrame*)Memory::Realloc(Frames, FramesCapacity * sizeof(AnimFrame));
 
-		for (int i = 0; i < an.FrameCount; i++) {
-			AnimFrame anfrm;
-			anfrm.SheetNumber = reader->ReadByte();
-			frameID++;
+			for (size_t lastAnimIndex = 0; lastAnimIndex < a; lastAnimIndex++) {
+				Animations[lastAnimIndex].Frames = &Frames[Animations[lastAnimIndex].FrameListOffset];
+			}
+		}
 
-			if (anfrm.SheetNumber >= Spritesheets.size()) {
+		an->Frames = &Frames[an->FrameListOffset];
+
+		for (size_t i = 0; i < an->FrameCount; i++) {
+			AnimFrame* anfrm = &an->Frames[i];
+			anfrm->SheetNumber = reader->ReadByte();
+
+			if (anfrm->SheetNumber >= Spritesheets.size()) {
 				Log::Print(Log::LOG_ERROR,
 					"Sheet number %d outside of range of sheet count %d! (Animation %d, Frame %d)",
-					anfrm.SheetNumber,
+					anfrm->SheetNumber,
 					Spritesheets.size(),
 					a,
 					i);
 			}
 
-			anfrm.Duration = reader->ReadInt16();
-			anfrm.Advance = reader->ReadUInt16();
-			anfrm.X = reader->ReadUInt16();
-			anfrm.Y = reader->ReadUInt16();
-			anfrm.Width = reader->ReadUInt16();
-			anfrm.Height = reader->ReadUInt16();
-			anfrm.OffsetX = reader->ReadInt16();
-			anfrm.OffsetY = reader->ReadInt16();
+			anfrm->Duration = reader->ReadInt16();
+			anfrm->Advance = reader->ReadUInt16();
+			anfrm->X = reader->ReadUInt16();
+			anfrm->Y = reader->ReadUInt16();
+			anfrm->Width = reader->ReadUInt16();
+			anfrm->Height = reader->ReadUInt16();
+			anfrm->OffsetX = reader->ReadInt16();
+			anfrm->OffsetY = reader->ReadInt16();
+			anfrm->BoxCount = hitboxCount;
 
-			for (int h = 0; h < hitboxCount; h++) {
-				CollisionBox box;
-				box.Name = std::string(hitboxNames[h]);
-				box.Left = reader->ReadInt16();
-				box.Top = reader->ReadInt16();
-				box.Right = reader->ReadInt16();
-				box.Bottom = reader->ReadInt16();
-				anfrm.Boxes.push_back(box);
+			if (anfrm->BoxCount) {
+				anfrm->Boxes = (CollisionBox*)Memory::Malloc(anfrm->BoxCount * sizeof(CollisionBox));
+
+				for (size_t h = 0; h < anfrm->BoxCount; h++) {
+					CollisionBox* box = &anfrm->Boxes[h];
+					box->Name = StringUtils::Duplicate(hitboxNames[h]);
+					box->Left = reader->ReadInt16();
+					box->Top = reader->ReadInt16();
+					box->Right = reader->ReadInt16();
+					box->Bottom = reader->ReadInt16();
+				}
+			}
+			else {
+				anfrm->Boxes = nullptr;
 			}
 
 #ifdef ISPRITE_DEBUG
 			Log::Print(Log::LOG_VERBOSE,
 				"       (X: %d, Y: %d, W: %d, H: %d, OffX: %d, OffY: %d)",
-				anfrm.X,
-				anfrm.Y,
-				anfrm.Width,
-				anfrm.Height,
-				anfrm.OffsetX,
-				anfrm.OffsetY);
+				anfrm->X,
+				anfrm->Y,
+				anfrm->Width,
+				anfrm->Height,
+				anfrm->OffsetX,
+				anfrm->OffsetY);
 #endif
-			an.Frames[i] = anfrm;
 		}
-		Animations[previousAnimationCount + a] = an;
 	}
 	FrameCount = frameID;
+
+	Log::Print(Log::LOG_VERBOSE, "Sprite \"%s\" took %.3f ms to load", filename, Clock::End());
 
 	// Possibly buffer the position in the renderer.
 	Graphics::MakeFrameBufferID(this);
@@ -378,16 +451,13 @@ bool ISprite::LoadAnimation(const char* filename) {
 	return true;
 }
 int ISprite::FindAnimation(const char* animname) {
-	for (Uint32 a = 0; a < Animations.size(); a++) {
+	for (Uint32 a = 0; a < AnimationCount; a++) {
 		if (Animations[a].Name[0] == animname[0] && !strcmp(Animations[a].Name, animname)) {
 			return a;
 		}
 	}
 
 	return -1;
-}
-void ISprite::LinkAnimation(vector<Animation> ani) {
-	Animations = ani;
 }
 bool ISprite::SaveAnimation(const char* filename) {
 	Stream* stream = FileStream::New(filename, FileStream::WRITE_ACCESS);
@@ -400,11 +470,7 @@ bool ISprite::SaveAnimation(const char* filename) {
 	stream->WriteUInt32(RSDK_SPRITE_MAGIC);
 
 	// Total frame count
-	Uint32 totalFrameCount = 0;
-	for (size_t a = 0; a < Animations.size(); a++) {
-		totalFrameCount += Animations[a].Frames.size();
-	}
-	stream->WriteUInt32(totalFrameCount);
+	stream->WriteUInt32(FrameCount);
 
 	// Get texture count
 	stream->WriteByte(this->Spritesheets.size());
@@ -420,17 +486,17 @@ bool ISprite::SaveAnimation(const char* filename) {
 	// hitbox names. Frames hitboxes with a matching entry in boxNames are saved in that order.
 	std::vector<std::string> boxNames;
 
-	for (size_t a = 0; a < Animations.size(); a++) {
-		Animation an = Animations[a];
+	for (size_t a = 0; a < AnimationCount; a++) {
+		Animation* an = &Animations[a];
 
-		for (size_t i = 0; i < an.Frames.size(); i++) {
-			AnimFrame anfrm = an.Frames[i];
+		for (size_t i = 0; i < an->FrameCount; i++) {
+			AnimFrame* anfrm = &an->Frames[i];
 
-			for (size_t h = 0; h < anfrm.Boxes.size(); h++) {
-				CollisionBox box = anfrm.Boxes[h];
-				auto it = std::find(boxNames.begin(), boxNames.end(), box.Name);
+			for (size_t h = 0; h < anfrm->BoxCount; h++) {
+				CollisionBox* box = &anfrm->Boxes[h];
+				auto it = std::find(boxNames.begin(), boxNames.end(), box->Name);
 				if (it == boxNames.end()) {
-					boxNames.push_back(box.Name);
+					boxNames.push_back(box->Name);
 				}
 			}
 		}
@@ -448,15 +514,15 @@ bool ISprite::SaveAnimation(const char* filename) {
 	}
 
 	// Get animation count
-	stream->WriteUInt16(Animations.size());
+	stream->WriteUInt16(AnimationCount);
 
 	// Write animations
-	for (size_t a = 0; a < Animations.size(); a++) {
-		Animation an = Animations[a];
-		stream->WriteHeaderedString(an.Name);
-		stream->WriteUInt16(an.Frames.size());
-		stream->WriteUInt16(an.AnimationSpeed);
-		stream->WriteByte(an.FrameToLoop);
+	for (size_t a = 0; a < AnimationCount; a++) {
+		Animation* an = &Animations[a];
+		stream->WriteHeaderedString(an->Name);
+		stream->WriteUInt16(an->FrameCount);
+		stream->WriteUInt16(an->AnimationSpeed);
+		stream->WriteByte(an->FrameToLoop);
 
 		// 0: No rotation
 		// 1: Full rotation
@@ -464,25 +530,25 @@ bool ISprite::SaveAnimation(const char* filename) {
 		// 3: Snaps to multiples of 90 degrees
 		// 4: Snaps to multiples of 180 degrees
 		// 5: Static rotation using extra frames
-		stream->WriteByte(an.Flags);
+		stream->WriteByte(an->Flags);
 
-		for (size_t i = 0; i < an.Frames.size(); i++) {
-			AnimFrame anfrm = an.Frames[i];
-			stream->WriteByte(anfrm.SheetNumber);
-			stream->WriteUInt16(anfrm.Duration);
-			stream->WriteUInt16(anfrm.Advance);
-			stream->WriteUInt16(anfrm.X);
-			stream->WriteUInt16(anfrm.Y);
-			stream->WriteUInt16(anfrm.Width);
-			stream->WriteUInt16(anfrm.Height);
-			stream->WriteInt16(anfrm.OffsetX);
-			stream->WriteInt16(anfrm.OffsetY);
+		for (size_t i = 0; i < an->FrameCount; i++) {
+			AnimFrame* anfrm = &an->Frames[i];
+			stream->WriteByte(anfrm->SheetNumber);
+			stream->WriteUInt16(anfrm->Duration);
+			stream->WriteUInt16(anfrm->Advance);
+			stream->WriteUInt16(anfrm->X);
+			stream->WriteUInt16(anfrm->Y);
+			stream->WriteUInt16(anfrm->Width);
+			stream->WriteUInt16(anfrm->Height);
+			stream->WriteInt16(anfrm->OffsetX);
+			stream->WriteInt16(anfrm->OffsetY);
 
 			for (size_t b = 0; b < totalBoxes; b++) {
 				size_t h = 0;
 
-				for (; h < anfrm.Boxes.size(); h++) {
-					CollisionBox box = anfrm.Boxes[h];
+				for (; h < anfrm->BoxCount; h++) {
+					CollisionBox box = anfrm->Boxes[h];
 					if (boxNames[b] == box.Name) {
 						stream->WriteUInt16(box.Left);
 						stream->WriteUInt16(box.Top);
@@ -492,7 +558,7 @@ bool ISprite::SaveAnimation(const char* filename) {
 					}
 				}
 
-				if (h == anfrm.Boxes.size()) {
+				if (h == anfrm->BoxCount) {
 					stream->WriteUInt16(0);
 					stream->WriteUInt16(0);
 					stream->WriteUInt16(0);
@@ -507,20 +573,21 @@ bool ISprite::SaveAnimation(const char* filename) {
 }
 
 void ISprite::Dispose() {
-	for (size_t a = 0; a < Animations.size(); a++) {
-		if (Animations[a].Name) {
-			Memory::Free(Animations[a].Name);
-			Animations[a].Name = NULL;
+	for (size_t f = 0; f < FrameCount; f++) {
+		for (size_t h = 0; h < Frames[f].BoxCount; h++) {
+			CollisionBox* box = &Frames[f].Boxes[h];
+			Memory::Free(box->Name);
 		}
 
-		RemoveFrames(a);
-
-		Animations[a].Frames.clear();
-		Animations[a].Frames.shrink_to_fit();
+		Memory::Free(Frames[f].Boxes);
 	}
 
-	Animations.clear();
-	Animations.shrink_to_fit();
+	for (size_t a = 0; a < AnimationCount; a++) {
+		Memory::Free(Animations[a].Name);
+	}
+
+	Memory::Free(Animations);
+	Memory::Free(Frames);
 
 	for (size_t i = 0; i < Spritesheets.size(); i++) {
 		std::string sheetFilename = SpritesheetFilenames[i];
