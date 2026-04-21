@@ -371,6 +371,8 @@ bool ISprite::LoadAnimation(const char* filename) {
 #endif
 
 		frameID += an->FrameCount;
+
+		// Safeguard in case totalFrameCount was zero
 		if (frameID > FrameCount) {
 			FrameCount = frameID;
 			FramesCapacity = Math::CeilPOT(FrameCount);
