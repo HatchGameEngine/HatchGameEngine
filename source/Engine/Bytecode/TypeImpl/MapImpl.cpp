@@ -26,6 +26,11 @@ void MapImpl::Init() {
 	TypeImpl::ExposeClass(Class);
 }
 
+/***
+ * \constructor
+ * \desc Creates a map.
+ * \ns Map
+ */
 Obj* MapImpl::Constructor() {
 	ObjMap* map = (ObjMap*)AllocateObject(sizeof(ObjMap), OBJ_MAP);
 	Memory::Track(map, "NewMap");
