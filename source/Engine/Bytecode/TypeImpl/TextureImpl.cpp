@@ -19,7 +19,7 @@ Uint32 Hash_Access = 0;
 
 void TextureImpl::Init() {
 	Class = NewClass(CLASS_TEXTURE);
-	Class->NewFn = New;
+	Class->NewFn = Constructor;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 
 	/***
@@ -64,15 +64,14 @@ void TextureImpl::Init() {
 	ScriptManager::DefineNative(Class, "FormatHasAlphaChannel", VM_FormatHasAlphaChannel);
 
 	TypeImpl::RegisterClass(Class);
-	TypeImpl::ExposeClass(CLASS_TEXTURE, Class);
-	TypeImpl::DefinePrintableName(Class, "texture");
+	TypeImpl::ExposeClass(Class);
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
 	(argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
 
-Obj* TextureImpl::New() {
+Obj* TextureImpl::Constructor() {
 	ObjTexture* texture = (ObjTexture*)NewNativeInstance(sizeof(ObjTexture));
 	Memory::Track(texture, "NewTexture");
 	texture->Object.Class = Class;
@@ -635,7 +634,7 @@ ObjTexture* TextureImpl::GetTextureObject(void* texture, bool isViewTexture) {
 		return (ObjTexture*)obj;
 	}
 
-	obj = ScriptManager::RegistryAdd(texture, TextureImpl::New());
+	obj = ScriptManager::RegistryAdd(texture, TextureImpl::Constructor());
 
 	ObjTexture* textureObj = (ObjTexture*)obj;
 	textureObj->IsViewTexture = isViewTexture;

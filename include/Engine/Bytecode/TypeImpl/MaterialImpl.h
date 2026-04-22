@@ -4,6 +4,8 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
+#define CLASS_MATERIAL "Material"
+
 #define IS_MATERIAL(value) IsNativeInstance(value, CLASS_MATERIAL)
 #define AS_MATERIAL(value) ((ObjMaterial*)AS_OBJECT(value))
 
@@ -13,7 +15,7 @@ public:
 
 	static void Init();
 
-	static Obj* New(void);
+	static Obj* Constructor();
 	static ObjMaterial* New(void* materialPtr);
 	static void Dispose(Obj* object);
 

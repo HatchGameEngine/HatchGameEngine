@@ -2319,7 +2319,7 @@ VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Creates an array.
  * \param size (integer): Size of the array.
  * \paramOpt initialValue (value): Initial value to set the array elements to.
- * \return value A reference value to the array.
+ * \return array Returns the created array.
  * \ns Array
  */
 VMValue Array_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -18265,7 +18265,7 @@ VMValue Texture_Create(int argCount, VMValue* args, Uint32 threadID) {
 
 	Texture* texture = Graphics::CreateTexture(TextureFormat_NATIVE, TextureAccess_STREAMING, width, height);
 	if (texture) {
-		Obj* objTexture = TextureImpl::New();
+		Obj* objTexture = TextureImpl::Constructor();
 		ScriptManager::RegistryAdd(texture, objTexture);
 		return OBJECT_VAL(objTexture);
 	}
@@ -20438,11 +20438,8 @@ They require the Game SDK library to be present.
 	// #endregion
 
 	// #region Array
-	/***
-    * \class Array
-    * \desc Array manipulation.
-    */
-	INIT_CLASS(Array);
+	// TODO: Move to ArrayImpl
+	GET_CLASS(Array);
 	DEF_NATIVE(Array, Create);
 	DEF_NATIVE(Array, Length);
 	DEF_NATIVE(Array, Push);
@@ -22388,11 +22385,8 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #endregion
 
 	// #region Stream
-	/***
-    * \class Stream
-    * \desc Functions for opening streams, as well as functions for reading and writing data.
-    */
-	INIT_CLASS(Stream);
+	// TODO: Move to StreamImpl
+	GET_CLASS(Stream);
 	DEF_NATIVE(Stream, FromResource);
 	DEF_NATIVE(Stream, FromFile);
 	DEF_NATIVE(Stream, Close);
@@ -22446,11 +22440,8 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #endregion
 
 	// #region String
-	/***
-    * \class String
-    * \desc String manipulation functions.
-    */
-	INIT_CLASS(String);
+	// TODO: Move to StringImpl
+	GET_CLASS(String);
 	DEF_NATIVE(String, Format);
 	DEF_NATIVE(String, Split);
 	DEF_NATIVE(String, CharAt);

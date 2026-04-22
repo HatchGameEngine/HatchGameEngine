@@ -4,6 +4,8 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
+#define CLASS_SHADER "Shader"
+
 #define IS_SHADER(value) IsNativeInstance(value, CLASS_SHADER)
 #define AS_SHADER(value) ((ObjShader*)AS_OBJECT(value))
 
@@ -13,7 +15,7 @@ public:
 
 	static void Init();
 
-	static Obj* New(void);
+	static Obj* Constructor();
 	static ObjShader* New(void* shaderPtr);
 	static void Dispose(Obj* object);
 
