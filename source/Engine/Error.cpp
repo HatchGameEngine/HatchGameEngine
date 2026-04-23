@@ -7,7 +7,11 @@
 void Error::ShowFatal(const char* errorString, bool showMessageBox) {
 	Log::Print(Log::LOG_FATAL, "%s", errorString);
 
-	if (showMessageBox) {
+	// Always display a message box on Android for easier debug
+#if !ANDROID
+	if (showMessageBox)
+#endif
+	{
 		// This doesn't check the return code because the error is already logged.
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Fatal Error", errorString, nullptr);
 	}
