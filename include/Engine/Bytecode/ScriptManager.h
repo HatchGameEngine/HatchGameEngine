@@ -80,7 +80,11 @@ public:
 	static void LinkExtensions();
 	static ObjModule* LoadBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
 	static bool RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
-	static bool CallFunction(const char* functionName);
+	static bool CallGlobalFunction(const char* functionName);
+	static bool CallStaticClassFunction(ObjClass* klass, const char* functionName);
+	static bool CallStaticClassFunction(const char* className, const char* functionName);
+	static bool CallStaticClassFunction(ObjClass* klass, const char* functionName, std::vector<VMValue> args);
+	static bool CallStaticClassFunction(const char* className, const char* functionName, std::vector<VMValue> args);
 	static VMValue FindFunction(const char* functionName);
 	static Entity* SpawnObject(const char* objectName);
 	static Uint32 MakeFilenameHash(const char* filename);
@@ -100,7 +104,8 @@ public:
 	static ObjModule* GetScriptModule(Uint32 filenameHash);
 	static ObjFunction* GetFunctionAtScriptLine(ObjModule* module, int lineNum);
 	static bool LoadObjectClass(const char* objectName);
-	static ObjClass* GetObjectClass(const char* className);
+	static ObjClass* GetClass(const char* className);
+	static ObjClass* GetGlobalClass(const char* className);
 	static void LoadClasses();
 #ifdef VM_DEBUG
 	static char* GetSourceCodeLine(const char* sourceFilename, int line);

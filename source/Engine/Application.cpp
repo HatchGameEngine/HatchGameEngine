@@ -892,6 +892,14 @@ void Application::UpdateWindowTitle() {
 }
 
 void Application::EndGame() {
+	// Call Application.OnGameEnd
+	ScriptManager::CallStaticClassFunction("Application", "OnGameEnd");
+
+	if (!Running) {
+		// Call Application.OnQuit if no longer running
+		ScriptManager::CallStaticClassFunction("Application", "OnQuit");
+	}
+
 	Application::UnloadDefaultFont();
 	Application::DefaultFontList.clear();
 
@@ -938,9 +946,12 @@ void Application::Restart(bool keepScene) {
 	Application::InitGameInfo();
 	Application::LoadGameInfo();
 	Application::ReloadSettings();
-	keepScene
-		? Application::LoadSceneInfo(Scene::ActiveCategory, Scene::CurrentSceneInList, true)
-		: Application::LoadSceneInfo(0, 0, false);
+	if (keepScene) {
+		Application::LoadSceneInfo(Scene::ActiveCategory, Scene::CurrentSceneInList, true);
+	}
+	else {
+		Application::LoadSceneInfo(0, 0, false);
+	}
 	Application::DisposeGameConfig();
 
 	FirstFrame = true;
@@ -1014,6 +1025,9 @@ bool Application::ChangeGame(const char* path) {
 
 	Application::StartGame(startingScene);
 	Application::UpdateWindowTitle();
+
+	// Call Application.OnGameChange
+	ScriptManager::CallStaticClassFunction("Application", "OnGameChange");
 
 	return true;
 }
@@ -1819,7 +1833,7 @@ void Application::StartGame(const char* startingScene) {
 		Scene::LoadScene(startingScene);
 	}
 
-	// Call Static's GameStart here
+	// Call Application's OnGameStart here
 	Scene::CallGameStart();
 
 	// Start scene
@@ -1882,8 +1896,7 @@ void Application::Run(int argc, char* args[]) {
 		MainLoop();
 	}
 
-	Scene::Dispose();
-
+	Application::EndGame();
 	Application::Cleanup();
 #endif
 }

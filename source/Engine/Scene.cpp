@@ -163,13 +163,13 @@ void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
 		return;
 	}
 
-	ScriptManager::CallFunction(list->LoadFunctionName.c_str());
+	ScriptManager::CallGlobalFunction(list->LoadFunctionName.c_str());
 }
 void ObjectList_CallUpdateFunction(ObjectList* list, const char* functionName) {
 	if (list->Activity == ACTIVE_ALWAYS ||
 		(list->Activity == ACTIVE_NORMAL && !Scene::Paused) ||
 		(list->Activity == ACTIVE_PAUSED && Scene::Paused)) {
-		ScriptManager::CallFunction(functionName);
+		ScriptManager::CallGlobalFunction(functionName);
 	}
 }
 void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
@@ -766,16 +766,25 @@ void Scene::FrameUpdate() {
 	Scene::SortEntities();
 }
 void Scene::Update() {
+	// Call Scene.UpdateStart
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateStart");
+
 	// Call global updates
 	if (Scene::ObjectLists) {
 		Scene::ObjectLists->ForAllOrdered(ObjectList_CallGlobalUpdates);
 	}
+
+	// Call Scene.UpdateEarly
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateEarly");
 
 	// Early Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		UpdateObjectEarly(ent);
 	}
+
+	// Call Scene.Update
+	ScriptManager::CallStaticClassFunction("Scene", "Update");
 
 	// Update objects
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
@@ -787,13 +796,27 @@ void Scene::Update() {
 		UpdateObject(ent);
 	}
 
+	// Call Scene.UpdateLate
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateLate");
+
 	// Late Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		UpdateObjectLate(ent);
 	}
+
+	// Call Scene.UpdateFinish
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateFinish");
 }
 void Scene::FixedUpdate() {
+	// Call Scene.FixedUpdateStart
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateStart");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateStart");
+	}
+
 	// Animate tiles
 	Scene::RunTileAnimations();
 
@@ -804,10 +827,26 @@ void Scene::FixedUpdate() {
 				: ObjectList_CallGlobalFixedUpdates);
 	}
 
+	// Call Scene.FixedUpdateEarly
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateEarly");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateEarly");
+	}
+
 	// Early Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		FixedUpdateObjectEarly(ent);
+	}
+
+	// Call Scene.FixedUpdate
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdate");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "Update");
 	}
 
 	// Update objects
@@ -818,6 +857,14 @@ void Scene::FixedUpdate() {
 
 		// Execute whatever on object
 		FixedUpdateObject(ent);
+	}
+
+	// Call Scene.FixedUpdateLate
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateLate");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateLate");
 	}
 
 	// Late Update
@@ -837,6 +884,14 @@ void Scene::FixedUpdate() {
 	if (!Scene::Paused) {
 		Scene::Frame++;
 		Scene::ProcessSceneTimer();
+	}
+
+	// Call Scene.FixedUpdateFinish
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateFinish");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateFinish");
 	}
 }
 void Scene::RunTileAnimations() {
@@ -1021,7 +1076,11 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		viewPerf->RecreatedDrawTarget = true;
 	}
 
+	DrawGroupList* drawGroupList;
 	int viewRenderFlag = 1 << viewIndex;
+
+	std::vector<VMValue> args;
+	args.push_back(NULL_VAL);
 
 	// Adjust projection
 	PERF_START(ProjectionSetupTime);
@@ -1030,27 +1089,32 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	// RenderEarly
 	PERF_START(ObjectRenderEarlyTime);
+	// Call Scene.RenderStart
+	ScriptManager::CallStaticClassFunction("Scene", "RenderStart");
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-		if (DEV_NoObjectRender) {
-			break;
-		}
-
-		DrawGroupList* drawGroupList = PriorityLists[l];
-		if (!drawGroupList) {
-			continue;
-		}
-
-		if (drawGroupList->NeedsSorting) {
-			drawGroupList->Sort();
-		}
-
 		Scene::CurrentDrawGroup = l;
 
-		for (Entity* ent : *drawGroupList->Entities) {
-			if (ent->Active) {
-				ent->RenderEarly();
+		// Call Scene.RenderEarlyDrawGroupStart
+		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderEarlyDrawGroupStart", args);
+
+		if (!DEV_NoObjectRender) {
+			drawGroupList = PriorityLists[l];
+			if (drawGroupList) {
+				if (drawGroupList->NeedsSorting) {
+					drawGroupList->Sort();
+				}
+
+				for (Entity* ent : *drawGroupList->Entities) {
+					if (ent->Active) {
+						ent->RenderEarly();
+					}
+				}
 			}
 		}
+
+		// Call Scene.RenderEarlyDrawGroupFinish
+		ScriptManager::CallStaticClassFunction("Scene", "RenderEarlyDrawGroupFinish", args);
 	}
 	PERF_END(ObjectRenderEarlyTime);
 
@@ -1062,8 +1126,13 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	float _vw = currentView->GetScaledWidth();
 	float _vh = currentView->GetScaledHeight();
 	double objectTimeTotal = 0.0;
-	DrawGroupList* drawGroupList;
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
+		Scene::CurrentDrawGroup = l;
+
+		// Call Scene.RenderDrawGroupStart
+		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderDrawGroupStart", args);
+
 		if (DEV_NoObjectRender) {
 			goto DEV_NoTilesCheck;
 		}
@@ -1074,9 +1143,8 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		float _oy;
 		float entX1, entX2;
 		float entY1, entY2;
+		bool texBlend;
 		objectTime = Clock::GetTicks();
-
-		Scene::CurrentDrawGroup = l;
 
 		drawGroupList = PriorityLists[l];
 		if (drawGroupList) {
@@ -1226,18 +1294,18 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	DEV_NoTilesCheck:
 		if (DEV_NoTiles) {
-			continue;
+			goto finish_tile_render;
 		}
 
 		if (Scene::Tilesets.size() == 0) {
-			continue;
+			goto finish_tile_render;
 		}
 
 		if ((Scene::TileViewRenderFlag & viewRenderFlag) == 0) {
-			continue;
+			goto finish_tile_render;
 		}
 
-		bool texBlend = Graphics::TextureBlend;
+		texBlend = Graphics::TextureBlend;
 		for (size_t li = 0; li < Layers.size(); li++) {
 			SceneLayer* layer = &Layers[li];
 			// Skip layer tile render if already rendered
@@ -1265,6 +1333,10 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			}
 		}
 		Graphics::TextureBlend = texBlend;
+
+	finish_tile_render:
+		// Call Scene.RenderDrawGroupFinish
+		ScriptManager::CallStaticClassFunction("Scene", "RenderDrawGroupFinish", args);
 	}
 	if (viewPerf) {
 		viewPerf->ObjectRenderTime = objectTimeTotal;
@@ -1273,21 +1345,32 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	// RenderLate
 	PERF_START(ObjectRenderLateTime);
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-		if (DEV_NoObjectRender) {
-			break;
-		}
-
 		Scene::CurrentDrawGroup = l;
 
-		DrawGroupList* drawGroupList = PriorityLists[l];
-		if (drawGroupList) {
-			for (Entity* ent : *drawGroupList->Entities) {
-				if (ent->Active) {
-					ent->RenderLate();
+		// Call Scene.RenderLateDrawGroupStart
+		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderLateDrawGroupStart", args);
+
+		if (!DEV_NoObjectRender) {
+			drawGroupList = PriorityLists[l];
+			if (drawGroupList) {
+				if (drawGroupList->NeedsSorting) {
+					drawGroupList->Sort();
+				}
+
+				for (Entity* ent : *drawGroupList->Entities) {
+					if (ent->Active) {
+						ent->RenderLate();
+					}
 				}
 			}
 		}
+
+		// Call Scene.RenderLateDrawGroupFinish
+		ScriptManager::CallStaticClassFunction("Scene", "RenderLateDrawGroupFinish", args);
 	}
+	// Call Scene.RenderFinish
+	ScriptManager::CallStaticClassFunction("Scene", "RenderFinish");
 	Scene::CurrentDrawGroup = -1;
 	PERF_END(ObjectRenderLateTime);
 
@@ -1568,6 +1651,13 @@ void Scene::AfterScene() {
 	bool& doRestart = Scene::DoRestart;
 
 	if (Scene::NextScene[0]) {
+		// Call Scene.OnChange
+		std::vector<VMValue> args;
+		if (ScriptManager::Lock()) {
+			args.push_back(OBJECT_VAL(CopyString(Scene::NextScene)));
+		}
+		ScriptManager::CallStaticClassFunction("Scene", "OnChange", args);
+
 		ScriptManager::ForceGarbageCollection();
 
 		Scene::LoadScene(Scene::NextScene);
@@ -1859,6 +1949,22 @@ void Scene::Restart() {
 	FinishLoad();
 }
 void Scene::FinishLoad() {
+	// Call Scene.OnLoad or Scene.OnRestart
+	std::vector<VMValue> args;
+	if (Scene::CurrentScene[0] && ScriptManager::Lock()) {
+		args.push_back(OBJECT_VAL(CopyString(Scene::CurrentScene)));
+	}
+	else {
+		args.push_back(NULL_VAL);
+	}
+
+	if (Scene::Loaded) {
+		ScriptManager::CallStaticClassFunction("Scene", "OnRestart", args);
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "OnLoad", args);
+	}
+
 	// Run "OnSceneLoad" or "OnSceneRestart" on all objects
 	Scene::IterateAll(Scene::ObjectFirst, [](Entity* ent) -> void {
 		if (Scene::Loaded) {
@@ -2209,7 +2315,7 @@ ObjectList* Scene::NewObjectList(const char* objectName) {
 
 	// The above must have loaded the given scripted class if there is one.
 	// If there is still no class, then it doesn't exist natively or script-side.
-	if (!ScriptManager::GetObjectClass(objectName)) {
+	if (!ScriptManager::GetClass(objectName)) {
 		return nullptr;
 	}
 #endif
@@ -2252,6 +2358,11 @@ void Scene::AddStaticClass() {
 	StaticObject = obj;
 }
 void Scene::CallGameStart() {
+	ObjClass* klass = ScriptManager::GetGlobalClass("Application");
+	if (ScriptManager::CallStaticClassFunction(klass, "OnGameStart")) {
+		return;
+	}
+
 	if (StaticObject) {
 		StaticObject->GameStart();
 	}
@@ -2272,7 +2383,7 @@ ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFuncti
 		Scene::ObjectLists->Put(objectNameHash, objectList);
 
 		if (callListLoadFunction) {
-			ScriptManager::CallFunction(objectList->LoadFunctionName.c_str());
+			ScriptManager::CallGlobalFunction(objectList->LoadFunctionName.c_str());
 		}
 	}
 
@@ -3577,6 +3688,8 @@ void Scene::Dispose() {
 		delete Scene::Properties;
 	}
 	Scene::Properties = NULL;
+
+	Scene::Loaded = false;
 }
 
 void Scene::UnloadTilesets() {
