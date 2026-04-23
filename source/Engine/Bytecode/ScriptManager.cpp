@@ -292,6 +292,11 @@ void ScriptManager::FreeNamespace(Obj* object) {
 
 	delete ns->Fields;
 }
+void ScriptManager::FreeBoundMethod(Obj* object) {
+	ObjBoundMethod* boundMethod = (ObjBoundMethod*)object;
+
+	Memory::Free(boundMethod->Arguments);
+}
 void ScriptManager::RemoveTemporaryModules() {
 	for (size_t i = 0; i < TempModuleList.size(); i++) {
 		ObjModule* module = TempModuleList[i];
@@ -405,6 +410,9 @@ void ScriptManager::DestroyObject(Obj* object) {
 		break;
 	case OBJ_ENUM:
 		FreeEnumeration(object);
+		break;
+	case OBJ_BOUND_METHOD:
+		FreeBoundMethod(object);
 		break;
 	case OBJ_INSTANCE:
 	case OBJ_NATIVE_INSTANCE:

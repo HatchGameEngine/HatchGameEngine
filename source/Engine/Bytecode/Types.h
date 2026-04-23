@@ -414,8 +414,10 @@ struct ObjInstance {
 };
 struct ObjBoundMethod {
 	Obj Object;
-	VMValue Receiver;
 	ObjFunction* Method;
+	VMValue* Arguments;
+	Uint8 ArgumentCount;
+	bool HasReceiver;
 };
 struct ObjArray {
 	Obj Object;
@@ -489,7 +491,7 @@ ObjClass* NewClass(Uint32 hash);
 ObjClass* NewClass(const char* className);
 ObjInstance* NewInstance(ObjClass* klass);
 ObjEntity* NewEntity(ObjClass* klass);
-ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method);
+ObjBoundMethod* NewBoundMethod(ObjFunction* method, VMValue* args, Uint8 argCount);
 ObjArray* NewArray();
 ObjMap* NewMap();
 ObjNamespace* NewNamespace(Uint32 hash);

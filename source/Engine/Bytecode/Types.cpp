@@ -174,11 +174,13 @@ ObjInstance* NewInstance(ObjClass* klass) {
 ObjEntity* NewEntity(ObjClass* klass) {
 	return (ObjEntity*)EntityImpl::New(klass);
 }
-ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method) {
+ObjBoundMethod* NewBoundMethod(ObjFunction* method, VMValue* args, Uint8 argCount) {
 	ObjBoundMethod* bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
 	Memory::Track(bound, "NewBoundMethod");
-	bound->Receiver = receiver;
 	bound->Method = method;
+	bound->Arguments = (VMValue*)Memory::Malloc(argCount * sizeof(VMValue));
+	bound->ArgumentCount = argCount;
+	memcpy(bound->Arguments, args, argCount * sizeof(VMValue));
 	return bound;
 }
 ObjArray* NewArray() {
