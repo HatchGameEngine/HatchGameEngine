@@ -10529,9 +10529,7 @@ VMValue Math_RandomMax(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.RandomRange
  * \desc Gets a random number between specified minimum and a specified maximum.
- * \param min (number): Minimum non-incl
- *
- * usive value.
+ * \param min (number): Minimum non-inclusive value.
  * \param max (number): Maximum non-inclusive value.
  * \return decimal Returns the random number.
  * \ns Math
