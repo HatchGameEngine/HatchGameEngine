@@ -13,6 +13,7 @@ public:
 	static float Acos(float x);
 	static float Atan(float n);
 	static float Atan2(float x, float y);
+	static float AngleDifference(float from, float to);
 	static float Distance(float x1, float y1, float x2, float y2);
 	static float Hypot(float a, float b, float c);
 	static void ClearTrigLookupTables();

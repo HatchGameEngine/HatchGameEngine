@@ -10341,6 +10341,18 @@ VMValue Math_Atan2(int argCount, VMValue* args, Uint32 threadID) {
 	return DECIMAL_VAL(Math::Atan2(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
 }
 /***
+ * Math.AngleDifference
+ * \desc Gets the difference from one angle to another.
+ * \param from (number): from angle.
+ * \param to (number): to angle.
+ * \return decimal Returns the difference of (from,to) as a decimal value.
+ * \ns Math
+ */
+VMValue Math_AngleDifference(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	return DECIMAL_VAL(Math::AngleDifference(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
+}
+/***
  * Math.Distance
  * \desc Gets the distance from (x1,y1) to (x2,y2) in pixels.
  * \param x1 (number): X position of first point.
@@ -10517,7 +10529,9 @@ VMValue Math_RandomMax(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Math.RandomRange
  * \desc Gets a random number between specified minimum and a specified maximum.
- * \param min (number): Minimum non-inclusive value.
+ * \param min (number): Minimum non-incl
+ *
+ * usive value.
  * \param max (number): Maximum non-inclusive value.
  * \return decimal Returns the random number.
  * \ns Math
@@ -21712,6 +21726,7 @@ This class also houses the input action system.
 	DEF_NATIVE(Math, Asin);
 	DEF_NATIVE(Math, Atan);
 	DEF_NATIVE(Math, Atan2);
+	DEF_NATIVE(Math, AngleDifference);
 	DEF_NATIVE(Math, Distance);
 	DEF_NATIVE(Math, Direction);
 	DEF_NATIVE(Math, Abs);
