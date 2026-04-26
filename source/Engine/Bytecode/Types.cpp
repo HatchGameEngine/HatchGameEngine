@@ -182,10 +182,10 @@ ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method) {
 	return bound;
 }
 ObjArray* NewArray() {
-	return (ObjArray*)ArrayImpl::New();
+	return (ObjArray*)ArrayImpl::Constructor();
 }
 ObjMap* NewMap() {
-	return (ObjMap*)MapImpl::New();
+	return (ObjMap*)MapImpl::Constructor();
 }
 ObjNamespace* NewNamespace(Uint32 hash) {
 	ObjNamespace* ns = ALLOCATE_OBJ(ObjNamespace, OBJ_NAMESPACE);
@@ -263,7 +263,11 @@ const char* GetTypeString(Uint32 type) {
 	return "unknown type";
 }
 const char* GetObjectTypeString(Uint32 type) {
-	return Value::GetObjectTypeName(type);
+	const char* typeString = Value::GetObjectTypeName(type);
+	if (typeString) {
+		return typeString;
+	}
+	return "unknown object type";
 }
 const char* GetValueTypeString(VMValue value) {
 	if (value.Type == VAL_OBJECT) {

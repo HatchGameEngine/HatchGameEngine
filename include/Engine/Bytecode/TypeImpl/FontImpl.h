@@ -4,6 +4,8 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
+#define CLASS_FONT "Font"
+
 #define IS_FONT(value) IsNativeInstance(value, CLASS_FONT)
 #define AS_FONT(value) ((ObjFont*)AS_OBJECT(value))
 
@@ -13,7 +15,7 @@ public:
 
 	static void Init();
 
-	static Obj* New(void);
+	static Obj* Constructor();
 	static ObjFont* New(void* fontPtr);
 	static void Dispose(Obj* object);
 

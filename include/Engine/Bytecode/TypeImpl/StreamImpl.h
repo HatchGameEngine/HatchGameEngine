@@ -4,6 +4,8 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 
+#define CLASS_STREAM "Stream"
+
 #define IS_STREAM(value) IsNativeInstance(value, CLASS_STREAM)
 #define AS_STREAM(value) ((ObjStream*)AS_OBJECT(value))
 
@@ -13,6 +15,7 @@ public:
 
 	static void Init();
 
+	static Obj* Constructor();
 	static ObjStream* New(void* streamPtr, bool writable);
 	static void Dispose(Obj* object);
 };

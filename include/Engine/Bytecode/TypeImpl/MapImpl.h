@@ -10,11 +10,12 @@ public:
 
 	static void Init();
 
-	static Obj* New();
+	static Obj* Constructor();
 	static void Dispose(Obj* object);
 
+	static VMValue VM_Length(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_GetKeys(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_RemoveKey(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_Remove(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Iterate(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_IteratorValue(int argCount, VMValue* args, Uint32 threadID);
 };

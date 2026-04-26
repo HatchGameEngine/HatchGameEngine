@@ -9,10 +9,7 @@ public:
 	static void Init();
 
 	static void RegisterClass(ObjClass* klass);
-	static void ExposeClass(const char* name, ObjClass* klass);
-
-	static void DefinePrintableName(ObjClass* klass, const char* name);
-	static const char* GetPrintableName(ObjClass* klass);
+	static void ExposeClass(ObjClass* klass);
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_TYPEIMPL_H */

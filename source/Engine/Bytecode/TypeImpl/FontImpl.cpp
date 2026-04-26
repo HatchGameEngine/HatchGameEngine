@@ -17,7 +17,7 @@ ObjClass* FontImpl::Class = nullptr;
 
 void FontImpl::Init() {
 	Class = NewClass(CLASS_FONT);
-	Class->NewFn = New;
+	Class->NewFn = Constructor;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 
 	ScriptManager::DefineNative(Class, "GetPixelsPerUnit", VM_GetPixelsPerUnit);
@@ -42,8 +42,7 @@ void FontImpl::Init() {
 	ScriptManager::DefineNative(Class, "SetAntialiasing", VM_SetAntialiasing);
 
 	TypeImpl::RegisterClass(Class);
-	TypeImpl::ExposeClass(CLASS_FONT, Class);
-	TypeImpl::DefinePrintableName(Class, "font");
+	TypeImpl::ExposeClass(Class);
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
@@ -149,7 +148,7 @@ void GetDefaultFonts(std::vector<Stream*>& streamList, std::vector<bool>& closeS
  * \paramOpt font (array): The list of fonts. If this argument is not given, it will use font the application was built with, if one is present.
  * \ns Font
  */
-Obj* FontImpl::New() {
+Obj* FontImpl::Constructor() {
 	Font* font = new Font();
 	ObjFont* obj = New((void*)font);
 	return (Obj*)obj;
