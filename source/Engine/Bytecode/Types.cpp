@@ -36,12 +36,44 @@ Obj* AllocateObject(size_t size, ObjType type) {
 	return object;
 }
 
+static ObjString* GetInternedString(std::string_view view) {
+	if (ScriptManager::Strings->count(view) > 0) {
+		return (*ScriptManager::Strings)[view];
+	}
+
+	return nullptr;
+}
+
+static ObjString* CreateInternedString(std::string_view view) {
+	ObjString* string = (ObjString*)StringImpl::New((char*)view.data(), view.length());
+
+	(*ScriptManager::Strings)[view] = string;
+
+	return string;
+}
+
 static ObjString* AllocateString(char* chars, size_t length) {
-	return (ObjString*)StringImpl::New(chars, length);
+	std::string_view view(chars, length);
+
+	ObjString* string = GetInternedString(view);
+	if (string) {
+		return string;
+	}
+
+	return CreateInternedString(view);
 }
 
 ObjString* TakeString(char* chars, size_t length) {
-	return AllocateString(chars, length);
+	std::string_view view(chars, length);
+
+	ObjString* string = GetInternedString(view);
+	if (string) {
+		// This string was already interned, so we have to free chars
+		Memory::Free(chars);
+		return string;
+	}
+
+	return CreateInternedString(view);
 }
 ObjString* TakeString(char* chars) {
 	return TakeString(chars, strlen(chars));
@@ -65,12 +97,6 @@ ObjString* CopyString(ObjString* string) {
 	heapChars[string->Length] = '\0';
 
 	return AllocateString(heapChars, string->Length);
-}
-ObjString* AllocString(size_t length) {
-	char* heapChars = ALLOCATE(char, length + 1);
-	heapChars[length] = '\0';
-
-	return AllocateString(heapChars, length);
 }
 
 static VMValue VM_GetClass(int argCount, VMValue* args, Uint32 threadID) {
