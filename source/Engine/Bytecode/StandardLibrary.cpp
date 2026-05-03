@@ -18088,11 +18088,14 @@ VMValue String_Substring(int argCount, VMValue* args, Uint32 threadID) {
 VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
+	if (string == nullptr) {
+		return NULL_VAL;
+	}
 
 	VMValue obj = NULL_VAL;
 	if (ScriptManager::Lock()) {
-		ObjString* objStr = CopyString(string);
-		for (char* a = objStr->Chars; *a; a++) {
+		char* copy = StringUtils::Duplicate(string);
+		for (char* a = copy; *a; a++) {
 			if (*a >= 'a' && *a <= 'z') {
 				*a += 'A' - 'a';
 			}
@@ -18100,7 +18103,7 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
 				*a += 'A' - 'a';
 			}
 		}
-		obj = OBJECT_VAL(objStr);
+		obj = OBJECT_VAL(CopyString(copy));
 		ScriptManager::Unlock();
 	}
 	return obj;
@@ -18115,16 +18118,19 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
 VMValue String_ToLowerCase(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
+	if (string == nullptr) {
+		return NULL_VAL;
+	}
 
 	VMValue obj = NULL_VAL;
 	if (ScriptManager::Lock()) {
-		ObjString* objStr = CopyString(string);
-		for (char* a = objStr->Chars; *a; a++) {
+		char* copy = StringUtils::Duplicate(string);
+		for (char* a = copy; *a; a++) {
 			if (*a >= 'A' && *a <= 'Z') {
 				*a += 'a' - 'A';
 			}
 		}
-		obj = OBJECT_VAL(objStr);
+		obj = OBJECT_VAL(CopyString(copy));
 		ScriptManager::Unlock();
 	}
 	return obj;
