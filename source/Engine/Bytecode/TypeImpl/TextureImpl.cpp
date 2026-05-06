@@ -278,15 +278,9 @@ static Uint32* GetPaletteFromArray(ObjArray* paletteArray, unsigned& numPaletteC
 
 		int value = AS_INTEGER(result);
 
-#if HATCH_BIG_ENDIAN
-		Uint8 red = (value >> 24) & 0xFF;
-		Uint8 green = (value >> 16) & 0xFF;
-		Uint8 blue = (value >> 8) & 0xFF;
-#else
 		Uint8 red = (value >> 16) & 0xFF;
 		Uint8 green = (value >> 8) & 0xFF;
 		Uint8 blue = value & 0xFF;
-#endif
 
 		palette[i] =
 			ColorUtils::Make(red, green, blue, 0xFF, Graphics::PreferredPixelFormat);
@@ -457,8 +451,11 @@ VMValue TextureImpl::VM_Initializer(int argCount, VMValue* args, Uint32 threadID
 		for (unsigned i = 0; i < numPaletteColors; i++) {
 			Uint8 brightness = (int)(i * std::ceil(255.0 / numPaletteColors));
 
-			palette[i] =
-				ColorUtils::Make(i, i, i, 0xFF, Graphics::PreferredPixelFormat);
+			palette[i] = ColorUtils::Make(brightness,
+				brightness,
+				brightness,
+				0xFF,
+				Graphics::PreferredPixelFormat);
 		}
 	}
 
