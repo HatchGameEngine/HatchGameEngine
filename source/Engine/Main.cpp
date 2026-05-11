@@ -2,7 +2,11 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Includes/Standard.h>
 
+#if defined(WIN32) && !defined(WINDOWS_CONSOLE_APP)
+int WinMain(int argc, char* args[]) {
+#else
 int main(int argc, char* args[]) {
+#endif
 #if SWITCH
 	Log::Init();
 	socketInitializeDefault();
