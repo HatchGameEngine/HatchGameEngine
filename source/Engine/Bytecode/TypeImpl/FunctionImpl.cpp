@@ -41,8 +41,9 @@ Obj* FunctionImpl::New() {
 
 /***
  * \method Bind
- * \desc Binds a receiver to a method.
+ * \desc Binds a receiver, and optionally arguments, to a method.
  * \param receiver (value): The receiver to bind.
+ * \paramOpt ... (varargs): The arguments to bind.
  * \return <ref BoundMethod> Returns a bound method.
  * \ns Function
  */
@@ -77,7 +78,7 @@ VMValue FunctionImpl::VM_Bind(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * \method BindArguments
  * \desc Binds arguments to a method.
- * \param arguments (varargs): The arguments to bind.
+ * \param ... (varargs): The arguments to bind.
  * \return <ref BoundMethod> Returns a bound method.
  * \ns Function
  */
