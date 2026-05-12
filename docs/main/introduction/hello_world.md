@@ -12,14 +12,13 @@ For this tutorial, you will need a build with `DEVELOPER_MODE` enabled, or a deb
 
 The Hatch Scripting Language is an **object-oriented** programming language created for use in Hatch. It emphasizes the use of **classes** to code entities, and provides facilities found in other programming languages you may already be familiar with. Features of HSL include:
 
-- A syntax reminiscent of JavaScript.
+- A syntax reminiscent of C and Java.
 - Dynamic typing.
 - Integer and floating point number types.
 - Arrays, maps, and enumerations.
 - Class-based inheritance.
-- Class extension, without the need to create a subclass.
-- A standard library provided by the engine.
 - I/O streams.
+- A garbage collector.
 
 Most of your Hatch scripts will be the definition of one or more classes. Entities are defined by their classes, and spawning an entity is merely the same as instantiating a class. Let's create our first script, an entity that displays something to the screen and can be moved around.
 

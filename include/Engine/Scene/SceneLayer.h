@@ -3,6 +3,7 @@
 
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
+#include <Engine/Scene/LayerTileBuffers.h>
 #include <Engine/Scene/ScrollingInfo.h>
 #include <Engine/Types/Property.h>
 
@@ -51,9 +52,10 @@ public:
 	ScrollingInfo* ScrollInfos = NULL;
 	Uint8* ScrollIndexes = NULL;
 	bool UsingScrollIndexes = false;
-	Uint32 BufferID = 0;
-	int VertexCount = 0;
-	void* TileBatches = NULL;
+	std::vector<LayerTileBuffers*> TileBuffers;
+	size_t* TileBufferIndexes = NULL;
+	bool UsingTileBuffers = false;
+	bool RemakeTileBuffers = false;
 	enum {
 		FLAGS_COLLIDEABLE = 1,
 		FLAGS_REPEAT_X = 2,

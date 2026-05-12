@@ -2319,7 +2319,7 @@ VMValue Application_Quit(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Creates an array.
  * \param size (integer): Size of the array.
  * \paramOpt initialValue (value): Initial value to set the array elements to.
- * \return value A reference value to the array.
+ * \return array Returns the created array.
  * \ns Array
  */
 VMValue Array_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -3457,6 +3457,7 @@ VMValue Directory_GetFiles(int argCount, VMValue* args, Uint32 threadID) {
 
 	std::vector<std::filesystem::path> fileList;
 	Directory::GetFiles(&fileList, directory, pattern, allDirs);
+	Directory::SortEntries(&fileList);
 
 	if (ScriptManager::Lock()) {
 		array = NewArray();
@@ -3488,6 +3489,7 @@ VMValue Directory_GetDirectories(int argCount, VMValue* args, Uint32 threadID) {
 
 	std::vector<std::filesystem::path> fileList;
 	Directory::GetDirectories(&fileList, directory, pattern, allDirs);
+	Directory::SortEntries(&fileList);
 
 	if (ScriptManager::Lock()) {
 		array = NewArray();
@@ -5348,15 +5350,9 @@ VMValue Draw_SetBlendColor(int argCount, VMValue* args, Uint32 threadID) {
 		CHECK_ARGCOUNT(2);
 		int hex = GET_ARG(0, GetInteger);
 		float alpha = GET_ARG(1, GetDecimal);
-#if HATCH_BIG_ENDIAN
-		int red = (hex >> 24) & 0xFF;
-		int green = (hex >> 16) & 0xFF;
-		int blue = (hex >> 8) & 0xFF;
-#else
 		int red = (hex >> 16) & 0xFF;
 		int green = (hex >> 8) & 0xFF;
 		int blue = hex & 0xFF;
-#endif
 		Graphics::SetBlendColor(red / 255.f, green / 255.f, blue / 255.f, alpha);
 		return NULL_VAL;
 	}
@@ -5453,15 +5449,9 @@ VMValue Draw_SetTintColor(int argCount, VMValue* args, Uint32 threadID) {
 		CHECK_ARGCOUNT(2);
 		int hex = GET_ARG(0, GetInteger);
 		float alpha = GET_ARG(1, GetDecimal);
-#if HATCH_BIG_ENDIAN
-		int red = (hex >> 24) & 0xFF;
-		int green = (hex >> 16) & 0xFF;
-		int blue = (hex >> 8) & 0xFF;
-#else
 		int red = (hex >> 16) & 0xFF;
 		int green = (hex >> 8) & 0xFF;
 		int blue = hex & 0xFF;
-#endif
 		Graphics::SetTintColor(red / 255.f, green / 255.f, blue / 255.f, alpha);
 		return NULL_VAL;
 	}
@@ -7765,11 +7755,17 @@ VMValue File_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (ScriptManager::Lock()) {
 		size_t size = stream->Length();
-		ObjString* text = AllocString(size);
-		stream->ReadBytes(text->Chars, size);
-		stream->Close();
+		char* text = (char*)Memory::Malloc(size + 1);
+		if (!text) {
+			ScriptManager::Unlock();
+			return NULL_VAL;
+		}
+		stream->ReadBytes(text, size);
+		text[size] = '\0'; // Ensure it's NULL-terminated
+
+		ObjString* string = TakeString(text, size);
 		ScriptManager::Unlock();
-		return OBJECT_VAL(text);
+		return OBJECT_VAL(string);
 	}
 	return NULL_VAL;
 }
@@ -8287,6 +8283,16 @@ VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID
 	CHECK_ARGCOUNT(1);
 	int button = GET_ARG(0, GetInteger);
 	return INTEGER_VAL((InputManager::MouseReleased >> button) & 1);
+}
+/***
+ * Input.GetMouseWheelMotion
+ * \desc Gets the current vertical movement of the mouse wheel. A positive value indicates the wheel is being scrolled up, and a negative value indicates the wheel is being scrolled down.
+ * \return decimal Returns a decimal value.
+ * \ns Input
+ */
+VMValue Input_GetMouseWheelMotion(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return DECIMAL_VAL(InputManager::MouseWheelY);
 }
 /***
  * Input.GetMouseMode
@@ -10329,6 +10335,18 @@ VMValue Math_Atan2(int argCount, VMValue* args, Uint32 threadID) {
 	return DECIMAL_VAL(Math::Atan2(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
 }
 /***
+ * Math.AngleDifference
+ * \desc Gets the difference from one angle to another.
+ * \param from (number): from angle.
+ * \param to (number): to angle.
+ * \return decimal Returns the difference of (from,to) as a decimal value.
+ * \ns Math
+ */
+VMValue Math_AngleDifference(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	return DECIMAL_VAL(Math::AngleDifference(GET_ARG(0, GetDecimal), GET_ARG(1, GetDecimal)));
+}
+/***
  * Math.Distance
  * \desc Gets the distance from (x1,y1) to (x2,y2) in pixels.
  * \param x1 (number): X position of first point.
@@ -12050,7 +12068,7 @@ VMValue Object_Loaded(int argCount, VMValue* args, Uint32 threadID) {
  * Object.SetActivity
  * \desc Sets the active state of an object to determine if/when it runs its GlobalUpdate function.
  * \param className (string): Name of the object class.
- * \param Activity (integer): The active state to set the object to.
+ * \param activity (<ref ACTIVE_*>): The active state to set the object to.
  * \ns Object
  */
 VMValue Object_SetActivity(int argCount, VMValue* args, Uint32 threadID) {
@@ -12410,15 +12428,9 @@ VMValue Palette_SetColor(int argCount, VMValue* args, Uint32 threadID) {
 	Uint32 hex = (Uint32)GET_ARG(2, GetInteger);
 	CHECK_PALETTE_INDEX(palIndex);
 	CHECK_COLOR_INDEX(colorIndex);
-#if HATCH_BIG_ENDIAN
-	int red = (hex >> 24) & 0xFF;
-	int green = (hex >> 16) & 0xFF;
-	int blue = (hex >> 8) & 0xFF;
-#else
 	int red = (hex >> 16) & 0xFF;
 	int green = (hex >> 8) & 0xFF;
 	int blue = hex & 0xFF;
-#endif
 	Uint32* color = &Graphics::PaletteColors[palIndex][colorIndex];
 	*color = ColorUtils::Make(red, green, blue, 0xFF, Graphics::PreferredPixelFormat);
 	Graphics::PaletteUpdated = true;
@@ -12900,11 +12912,17 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 
 	if (ScriptManager::Lock()) {
 		size_t size = stream->Length();
-		ObjString* text = AllocString(size);
-		stream->ReadBytes(text->Chars, size);
-		stream->Close();
+		char* text = (char*)Memory::Malloc(size + 1);
+		if (!text) {
+			ScriptManager::Unlock();
+			return NULL_VAL;
+		}
+		stream->ReadBytes(text, size);
+		text[size] = '\0'; // Ensure it's NULL-terminated
+
+		ObjString* string = TakeString(text, size);
 		ScriptManager::Unlock();
-		return OBJECT_VAL(text);
+		return OBJECT_VAL(string);
 	}
 	return NULL_VAL;
 }
@@ -14100,20 +14118,7 @@ VMValue Scene_SetTile(int argCount, VMValue* args, Uint32 threadID) {
 
 	CHECK_TILE_LAYER_POS_BOUNDS();
 
-	Uint32* tile = &Scene::Layers[layer].Tiles[x + (y << Scene::Layers[layer].WidthInBits)];
-
-	*tile = tileID & TILE_IDENT_MASK;
-	if (flip_x) {
-		*tile |= TILE_FLIPX_MASK;
-	}
-	if (flip_y) {
-		*tile |= TILE_FLIPY_MASK;
-	}
-
-	*tile |= collA;
-	*tile |= collB;
-
-	Scene::AnyLayerTileChange = true;
+	Scene::SetTile(layer, x, y, tileID, flip_x, flip_y, collA, collB);
 
 	return NULL_VAL;
 }
@@ -17915,7 +17920,7 @@ VMValue String_Format(int argCount, VMValue* args, Uint32 threadID) {
  * String.Split
  * \desc Splits a string by a delimiter.
  * \param string (string): The string to split.
- * \param delimiter (integer): The delimiter string.
+ * \param delimiter (string): The delimiter string.
  * \return array Returns an array of string values.
  * \ns String
  */
@@ -17987,7 +17992,7 @@ VMValue String_Length(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Compares two strings lexicographically.
  * \param stringA (string): The first string to compare.
  * \param stringB (string): The second string to compare.
- * \return integer Returns the comparison result as an integer. The return value is a negative integer if <param stringA> appears before `stringB` lexicographically, a positive integer if <param stringA> appears after <param stringB> lexicographically, and zero if <param stringA> and <param stringB> are equal.
+ * \return integer Returns the comparison result as an integer. The return value is a negative integer if <param stringA> appears before <param stringB> lexicographically, a positive integer if <param stringA> appears after <param stringB> lexicographically, and zero if <param stringA> and <param stringB> are equal.
  * \ns String
  */
 VMValue String_Compare(int argCount, VMValue* args, Uint32 threadID) {
@@ -18065,11 +18070,14 @@ VMValue String_Substring(int argCount, VMValue* args, Uint32 threadID) {
 VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
+	if (string == nullptr) {
+		return NULL_VAL;
+	}
 
 	VMValue obj = NULL_VAL;
 	if (ScriptManager::Lock()) {
-		ObjString* objStr = CopyString(string);
-		for (char* a = objStr->Chars; *a; a++) {
+		char* copy = StringUtils::Duplicate(string);
+		for (char* a = copy; *a; a++) {
 			if (*a >= 'a' && *a <= 'z') {
 				*a += 'A' - 'a';
 			}
@@ -18077,7 +18085,7 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
 				*a += 'A' - 'a';
 			}
 		}
-		obj = OBJECT_VAL(objStr);
+		obj = OBJECT_VAL(CopyString(copy));
 		ScriptManager::Unlock();
 	}
 	return obj;
@@ -18092,16 +18100,19 @@ VMValue String_ToUpperCase(int argCount, VMValue* args, Uint32 threadID) {
 VMValue String_ToLowerCase(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* string = GET_ARG(0, GetString);
+	if (string == nullptr) {
+		return NULL_VAL;
+	}
 
 	VMValue obj = NULL_VAL;
 	if (ScriptManager::Lock()) {
-		ObjString* objStr = CopyString(string);
-		for (char* a = objStr->Chars; *a; a++) {
+		char* copy = StringUtils::Duplicate(string);
+		for (char* a = copy; *a; a++) {
 			if (*a >= 'A' && *a <= 'Z') {
 				*a += 'a' - 'A';
 			}
 		}
-		obj = OBJECT_VAL(objStr);
+		obj = OBJECT_VAL(CopyString(copy));
 		ScriptManager::Unlock();
 	}
 	return obj;
@@ -18245,7 +18256,7 @@ VMValue String_FromCodepoints(int argCount, VMValue* args, Uint32 threadID) {
  * \param width (integer): The width of the texture.
  * \param height (integer): The height of the texture.
  * \return Texture Returns a texture.
- * \deprecated Use the <Texture> constructor instead.
+ * \deprecated Use the <ref Texture> constructor instead.
  * \ns Texture
  */
 VMValue Texture_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -18266,7 +18277,7 @@ VMValue Texture_Create(int argCount, VMValue* args, Uint32 threadID) {
 
 	Texture* texture = Graphics::CreateTexture(TextureFormat_NATIVE, TextureAccess_STREAMING, width, height);
 	if (texture) {
-		Obj* objTexture = TextureImpl::New();
+		Obj* objTexture = TextureImpl::Constructor();
 		ScriptManager::RegistryAdd(texture, objTexture);
 		return OBJECT_VAL(objTexture);
 	}
@@ -20439,11 +20450,8 @@ They require the Game SDK library to be present.
 	// #endregion
 
 	// #region Array
-	/***
-    * \class Array
-    * \desc Array manipulation.
-    */
-	INIT_CLASS(Array);
+	// TODO: Move to ArrayImpl
+	GET_CLASS(Array);
 	DEF_NATIVE(Array, Create);
 	DEF_NATIVE(Array, Length);
 	DEF_NATIVE(Array, Push);
@@ -21570,6 +21578,7 @@ This class also houses the input action system.
 	DEF_NATIVE(Input, IsMouseButtonDown);
 	DEF_NATIVE(Input, IsMouseButtonPressed);
 	DEF_NATIVE(Input, IsMouseButtonReleased);
+	DEF_NATIVE(Input, GetMouseWheelMotion);
 	DEF_NATIVE(Input, GetMouseMode);
 	DEF_NATIVE(Input, SetMouseMode);
 	DEF_NATIVE(Input, IsKeyDown);
@@ -21712,6 +21721,7 @@ This class also houses the input action system.
 	DEF_NATIVE(Math, Asin);
 	DEF_NATIVE(Math, Atan);
 	DEF_NATIVE(Math, Atan2);
+	DEF_NATIVE(Math, AngleDifference);
 	DEF_NATIVE(Math, Distance);
 	DEF_NATIVE(Math, Direction);
 	DEF_NATIVE(Math, Abs);
@@ -22388,11 +22398,8 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #endregion
 
 	// #region Stream
-	/***
-    * \class Stream
-    * \desc Functions for opening streams, as well as functions for reading and writing data.
-    */
-	INIT_CLASS(Stream);
+	// TODO: Move to StreamImpl
+	GET_CLASS(Stream);
 	DEF_NATIVE(Stream, FromResource);
 	DEF_NATIVE(Stream, FromFile);
 	DEF_NATIVE(Stream, Close);
@@ -22446,11 +22453,8 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #endregion
 
 	// #region String
-	/***
-    * \class String
-    * \desc String manipulation functions.
-    */
-	INIT_CLASS(String);
+	// TODO: Move to StringImpl
+	GET_CLASS(String);
 	DEF_NATIVE(String, Format);
 	DEF_NATIVE(String, Split);
 	DEF_NATIVE(String, CharAt);

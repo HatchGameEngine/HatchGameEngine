@@ -76,7 +76,6 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 
 	// Read layers
 	Uint8 numLayers = r->ReadByte();
-	Scene::Layers.resize(numLayers);
 	for (Uint32 i = 0; i < numLayers; i++) {
 		SceneLayer layer = HatchSceneReader::ReadLayer(r);
 
@@ -89,7 +88,7 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 			layer.Height);
 #endif
 
-		Scene::Layers[i] = layer;
+		Scene::AddLayer(layer);
 	}
 
 	// Read classes and entities

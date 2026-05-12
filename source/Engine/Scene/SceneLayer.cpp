@@ -49,20 +49,17 @@ Property SceneLayer::PropertyGet(char* property) {
 	return Properties->Get(property);
 }
 void SceneLayer::Dispose() {
-	if (Name) {
-		Memory::Free(Name);
-	}
+	Memory::Free(Name);
+	Memory::Free(Tiles);
+	Memory::Free(TilesBackup);
+	Memory::Free(TileBufferIndexes);
+	Memory::Free(ScrollIndexes);
+	Memory::Free(ScrollInfos);
+
 	if (Properties) {
 		Properties->ForAll([](Uint32, Property property) -> void {
 			Property::Delete(property);
 		});
 		delete Properties;
 	}
-	if (ScrollInfos) {
-		Memory::Free(ScrollInfos);
-	}
-
-	Memory::Free(Tiles);
-	Memory::Free(TilesBackup);
-	Memory::Free(ScrollIndexes);
 }

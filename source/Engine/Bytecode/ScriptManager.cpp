@@ -32,6 +32,7 @@ Uint32 ScriptManager::ThreadCount = 1;
 
 HashMap<VMValue>* ScriptManager::Globals = NULL;
 HashMap<VMValue>* ScriptManager::Constants = NULL;
+ankerl::unordered_dense::map<std::string_view, ObjString*>* ScriptManager::Strings = NULL;
 
 vector<ObjModule*> ScriptManager::ModuleList;
 vector<ObjModule*> ScriptManager::TempModuleList;
@@ -98,6 +99,9 @@ void ScriptManager::Init() {
 	}
 	if (Constants == NULL) {
 		Constants = new HashMap<VMValue>(NULL, 8);
+	}
+	if (Strings == NULL) {
+		Strings = new ankerl::unordered_dense::map<std::string_view, ObjString*>();
 	}
 	if (Sources == NULL) {
 		Sources = new HashMap<BytecodeContainer>(NULL, 8);
@@ -184,6 +188,11 @@ void ScriptManager::Dispose() {
 		Constants->Clear();
 		delete Constants;
 		Constants = nullptr;
+	}
+
+	if (Strings) {
+		delete Strings;
+		Strings = nullptr;
 	}
 
 	Registry.clear();
@@ -292,6 +301,11 @@ void ScriptManager::FreeNamespace(Obj* object) {
 
 	delete ns->Fields;
 }
+void ScriptManager::FreeBoundMethod(Obj* object) {
+	ObjBoundMethod* boundMethod = (ObjBoundMethod*)object;
+
+	Memory::Free(boundMethod->Arguments);
+}
 void ScriptManager::RemoveTemporaryModules() {
 	for (size_t i = 0; i < TempModuleList.size(); i++) {
 		ObjModule* module = TempModuleList[i];
@@ -386,6 +400,13 @@ bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
 void ScriptManager::DestroyObject(Obj* object) {
 	switch (object->Type) {
 	case OBJ_STRING:
+		// Remove interned string
+		if (Strings) {
+			ObjString* string = (ObjString*)object;
+			std::string_view view(string->Chars, string->Length);
+			Strings->erase(view);
+		}
+
 		StringImpl::Dispose(object);
 		break;
 	case OBJ_ARRAY:
@@ -405,6 +426,9 @@ void ScriptManager::DestroyObject(Obj* object) {
 		break;
 	case OBJ_ENUM:
 		FreeEnumeration(object);
+		break;
+	case OBJ_BOUND_METHOD:
+		FreeBoundMethod(object);
 		break;
 	case OBJ_INSTANCE:
 	case OBJ_NATIVE_INSTANCE:
@@ -624,18 +648,62 @@ bool ScriptManager::RunBytecode(VMThread* thread, BytecodeContainer bytecodeCont
 
 	return true;
 }
-bool ScriptManager::CallFunction(const char* functionName) {
-	if (!Globals->Exists(functionName)) {
+bool ScriptManager::CallGlobalFunction(const char* functionName) {
+	VMValue callable;
+	if (!Globals->GetIfExists(functionName, &callable)) {
 		return false;
 	}
 
-	VMValue callable = Globals->Get(functionName);
 	if (!IS_CALLABLE(callable)) {
 		return false;
 	}
 
-	Threads[0].InvokeForEntity(callable, 0);
+	Threads[0].RunValue(callable, 0);
 	return true;
+}
+bool ScriptManager::CallStaticClassFunction(ObjClass* klass, const char* functionName) {
+	VMValue callable;
+	if (!klass || !klass->Methods->GetIfExists(functionName, &callable)) {
+		return false;
+	}
+
+	VMThread* thread = &ScriptManager::Threads[0];
+	VMValue* stackTop = thread->StackTop;
+	thread->RunValue(callable, 0);
+	thread->StackTop = stackTop;
+
+	return true;
+}
+bool ScriptManager::CallStaticClassFunction(const char* className, const char* functionName) {
+	return CallStaticClassFunction(GetGlobalClass(className), functionName);
+}
+bool ScriptManager::CallStaticClassFunction(ObjClass* klass, const char* functionName, std::vector<VMValue> args) {
+	VMValue callable;
+	if (!klass || !klass->Methods->GetIfExists(functionName, &callable)) {
+		return false;
+	}
+
+	VMThread* thread = &ScriptManager::Threads[0];
+	VMValue* stackTop = thread->StackTop;
+
+	for (size_t i = 0; i < args.size(); i++) {
+		thread->Push(args[i]);
+	}
+
+	int numArgs = thread->StackTop - stackTop;
+	int minArity, maxArity;
+	if (thread->GetArity(callable, minArity, maxArity) && numArgs > maxArity) {
+		numArgs = maxArity;
+		thread->StackTop = stackTop + numArgs;
+	}
+
+	thread->RunValue(callable, numArgs);
+	thread->StackTop = stackTop;
+
+	return true;
+}
+bool ScriptManager::CallStaticClassFunction(const char* className, const char* functionName, std::vector<VMValue> args) {
+	return CallStaticClassFunction(GetGlobalClass(className), functionName, args);
 }
 VMValue ScriptManager::FindFunction(const char* functionName) {
 	VMValue callable;
@@ -857,7 +925,7 @@ bool ScriptManager::LoadObjectClass(const char* objectName) {
 	}
 
 	if (!IsStandardLibraryClass(objectName) && !Classes->Exists(objectName)) {
-		ObjClass* klass = GetObjectClass(objectName);
+		ObjClass* klass = GetClass(objectName);
 		if (!klass) {
 			Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
 			return false;
@@ -867,9 +935,22 @@ bool ScriptManager::LoadObjectClass(const char* objectName) {
 
 	return true;
 }
-ObjClass* ScriptManager::GetObjectClass(const char* className) {
+ObjClass* ScriptManager::GetClass(const char* className) {
 	VMValue value = Globals->Get(className);
 
+	if (IS_CLASS(value)) {
+		return AS_CLASS(value);
+	}
+
+	return nullptr;
+}
+ObjClass* ScriptManager::GetGlobalClass(const char* className) {
+	ObjClass* klass = GetClass(className);
+	if (klass) {
+		return klass;
+	}
+
+	VMValue value = Constants->Get(className);
 	if (IS_CLASS(value)) {
 		return AS_CLASS(value);
 	}

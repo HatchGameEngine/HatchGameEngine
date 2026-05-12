@@ -31,7 +31,6 @@ private:
 	bool HasProperty(ObjClass* klass, Uint32 hash, bool checkFields);
 	bool HasProperty(ObjClass* klass, Uint32 hash);
 	bool SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value);
-	bool BindMethod(VMValue receiver, VMValue method);
 	bool CallBoundMethod(ObjBoundMethod* bound, int argCount);
 	bool CallValue(VMValue callee, int argCount);
 	bool CallForObject(VMValue callee, int argCount);
@@ -116,7 +115,7 @@ public:
 	bool Call(ObjFunction* function, int argCount);
 	bool GetArity(VMValue callee, int& minArity, int& maxArity);
 	bool InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount);
-	bool InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount);
+	int InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount);
 	bool Import(VMValue value);
 	bool ImportModule(VMValue value);
 	VMValue Values_Multiply();

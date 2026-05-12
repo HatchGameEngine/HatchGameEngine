@@ -36,12 +36,44 @@ Obj* AllocateObject(size_t size, ObjType type) {
 	return object;
 }
 
+static ObjString* GetInternedString(std::string_view view) {
+	if (ScriptManager::Strings->count(view) > 0) {
+		return (*ScriptManager::Strings)[view];
+	}
+
+	return nullptr;
+}
+
+static ObjString* CreateInternedString(std::string_view view) {
+	ObjString* string = (ObjString*)StringImpl::New((char*)view.data(), view.length());
+
+	(*ScriptManager::Strings)[view] = string;
+
+	return string;
+}
+
 static ObjString* AllocateString(char* chars, size_t length) {
-	return (ObjString*)StringImpl::New(chars, length);
+	std::string_view view(chars, length);
+
+	ObjString* string = GetInternedString(view);
+	if (string) {
+		return string;
+	}
+
+	return CreateInternedString(view);
 }
 
 ObjString* TakeString(char* chars, size_t length) {
-	return AllocateString(chars, length);
+	std::string_view view(chars, length);
+
+	ObjString* string = GetInternedString(view);
+	if (string) {
+		// This string was already interned, so we have to free chars
+		Memory::Free(chars);
+		return string;
+	}
+
+	return CreateInternedString(view);
 }
 ObjString* TakeString(char* chars) {
 	return TakeString(chars, strlen(chars));
@@ -65,12 +97,6 @@ ObjString* CopyString(ObjString* string) {
 	heapChars[string->Length] = '\0';
 
 	return AllocateString(heapChars, string->Length);
-}
-ObjString* AllocString(size_t length) {
-	char* heapChars = ALLOCATE(char, length + 1);
-	heapChars[length] = '\0';
-
-	return AllocateString(heapChars, length);
 }
 
 static VMValue VM_GetClass(int argCount, VMValue* args, Uint32 threadID) {
@@ -174,18 +200,20 @@ ObjInstance* NewInstance(ObjClass* klass) {
 ObjEntity* NewEntity(ObjClass* klass) {
 	return (ObjEntity*)EntityImpl::New(klass);
 }
-ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method) {
+ObjBoundMethod* NewBoundMethod(ObjFunction* method, VMValue* args, Uint8 argCount) {
 	ObjBoundMethod* bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
 	Memory::Track(bound, "NewBoundMethod");
-	bound->Receiver = receiver;
 	bound->Method = method;
+	bound->Arguments = (VMValue*)Memory::Malloc(argCount * sizeof(VMValue));
+	bound->ArgumentCount = argCount;
+	memcpy(bound->Arguments, args, argCount * sizeof(VMValue));
 	return bound;
 }
 ObjArray* NewArray() {
-	return (ObjArray*)ArrayImpl::New();
+	return (ObjArray*)ArrayImpl::Constructor();
 }
 ObjMap* NewMap() {
-	return (ObjMap*)MapImpl::New();
+	return (ObjMap*)MapImpl::Constructor();
 }
 ObjNamespace* NewNamespace(Uint32 hash) {
 	ObjNamespace* ns = ALLOCATE_OBJ(ObjNamespace, OBJ_NAMESPACE);
@@ -263,7 +291,11 @@ const char* GetTypeString(Uint32 type) {
 	return "unknown type";
 }
 const char* GetObjectTypeString(Uint32 type) {
-	return Value::GetObjectTypeName(type);
+	const char* typeString = Value::GetObjectTypeName(type);
+	if (typeString) {
+		return typeString;
+	}
+	return "unknown object type";
 }
 const char* GetValueTypeString(VMValue value) {
 	if (value.Type == VAL_OBJECT) {

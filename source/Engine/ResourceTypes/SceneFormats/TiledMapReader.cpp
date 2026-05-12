@@ -103,7 +103,7 @@ int base64_decode_value(int8_t value_in) {
 	}
 	return decoding[(int)value_in];
 }
-int base64_decode_block(const char* code_in, const int length_in, char* plaintext_out) {
+size_t base64_decode_block(const char* code_in, const int length_in, char* plaintext_out) {
 	const char* codechar = code_in;
 	int8_t* plainchar = (int8_t*)plaintext_out;
 	int8_t fragment;
@@ -517,16 +517,24 @@ bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 			XMLNode* data = layer->children[e];
 			XMLNode* data_text = data->children[0];
 
-			int tile_buffer_len = 0;
+			size_t tile_buffer_len = 0;
 			if (data->attributes.Exists("encoding")) {
 				if (XMLParser::MatchToken(
 					    data->attributes.Get("encoding"), "base64")) {
-					// +4 extra space to prevent base64 overflow
-					tile_buffer =
-						(int*)Memory::Calloc(1, layer_size_in_bytes + 4);
+					size_t decoded_buffer_size = ((data_text->name.Length * 3) / 4) + 1;
+					char* decoded_buffer = (char*)Memory::Calloc(decoded_buffer_size, sizeof(char));
+
 					tile_buffer_len = base64_decode_block(data_text->name.Start,
 						(int)data_text->name.Length,
-						(char*)tile_buffer);
+						decoded_buffer);
+
+					tile_buffer = (int*)Memory::Calloc(layer_size_in_bytes, sizeof(Uint8));
+					if (tile_buffer_len > layer_size_in_bytes) {
+						tile_buffer_len = layer_size_in_bytes;
+					}
+					memcpy(tile_buffer, decoded_buffer, tile_buffer_len);
+
+					Memory::Free(decoded_buffer);
 				}
 				else if (XMLParser::MatchToken(
 						 data->attributes.Get("encoding"), "csv")) {
@@ -624,7 +632,7 @@ bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 	}
 	memcpy(scenelayer.TilesBackup, scenelayer.Tiles, scenelayer.DataSize);
 
-	Scene::Layers.push_back(scenelayer);
+	Scene::AddLayer(scenelayer);
 
 	Memory::Free(tile_buffer);
 

@@ -10,6 +10,7 @@ public:
 
 	static void Init();
 
+	static Obj* Constructor();
 	static Obj* New(char* chars, size_t length);
 	static void Dispose(Obj* object);
 
