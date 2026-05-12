@@ -742,9 +742,9 @@ VMValue EntityImpl::VM_PropertyExists(int argCount, VMValue* args, Uint32 thread
 }
 /***
  * \method PropertyGet
- * \desc Gets a property exists from the entity.
+ * \desc Gets a property from the entity.
  * \param property (string): The property name.
- * \return value Returns the property if it exists, or `null` if the property does not exist.
+ * \return value Returns the property, if it exists, or `null` if the property does not exist.
  * \ns Entity
  */
 VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID) {

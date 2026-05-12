@@ -892,6 +892,14 @@ void Application::UpdateWindowTitle() {
 }
 
 void Application::EndGame() {
+	// Call Application.OnGameEnd
+	ScriptManager::CallStaticClassFunction("Application", "OnGameEnd");
+
+	if (!Running) {
+		// Call Application.OnQuit if no longer running
+		ScriptManager::CallStaticClassFunction("Application", "OnQuit");
+	}
+
 	Application::UnloadDefaultFont();
 	Application::DefaultFontList.clear();
 
@@ -905,12 +913,16 @@ void Application::EndGame() {
 	SceneInfo::Dispose();
 	Graphics::UnloadData();
 
+	AudioManager::LowPassFilter = 0.0f;
+
 	Application::TerminateScripting();
 
 	Entity::UnloadAll();
 
 	Entity::DisableAutoAnimate = false;
 	Entity::UseAnimationFrameSkip = true;
+
+	Discord::Dispose();
 }
 
 void Application::UnloadGame() {
@@ -934,9 +946,12 @@ void Application::Restart(bool keepScene) {
 	Application::InitGameInfo();
 	Application::LoadGameInfo();
 	Application::ReloadSettings();
-	keepScene
-		? Application::LoadSceneInfo(Scene::ActiveCategory, Scene::CurrentSceneInList, true)
-		: Application::LoadSceneInfo(0, 0, false);
+	if (keepScene) {
+		Application::LoadSceneInfo(Scene::ActiveCategory, Scene::CurrentSceneInList, true);
+	}
+	else {
+		Application::LoadSceneInfo(0, 0, false);
+	}
 	Application::DisposeGameConfig();
 
 	FirstFrame = true;
@@ -1011,6 +1026,9 @@ bool Application::ChangeGame(const char* path) {
 	Application::StartGame(startingScene);
 	Application::UpdateWindowTitle();
 
+	// Call Application.OnGameChange
+	ScriptManager::CallStaticClassFunction("Application", "OnGameChange");
+
 	return true;
 }
 
@@ -1073,6 +1091,8 @@ void Application::LoadVideoSettings() {
 			"graphics", "multisample", &Graphics::MultisamplingEnabled);
 		Application::Settings->GetBool(
 			"graphics", "precompileShaders", &Graphics::PrecompileShaders);
+		Application::Settings->GetBool(
+			"graphics", "layerTileBuffering", &Graphics::LayerTileBufferingEnabled);
 
 		if (Graphics::MultisamplingEnabled < 0) {
 			Graphics::MultisamplingEnabled = 0;
@@ -1240,7 +1260,7 @@ void Application::LoadDevSettings() {
 
 	int logLevel = 0;
 #ifdef DEBUG
-	logLevel = -1;
+	logLevel = -2;
 #endif
 
 	bool hasLogLevelSetting = Application::Settings->GetInteger("dev", "logLevel", &logLevel);
@@ -1473,6 +1493,7 @@ void Application::PollEvents() {
 					InputManager::ControllerStopRumble();
 					AudioManager::AudioStopAll();
 					AudioManager::ClearMusic();
+					AudioManager::LowPassFilter = 0.0f;
 
 					if (Application::DevMenuActivated) {
 						Application::CloseDevMenu();
@@ -1526,6 +1547,12 @@ void Application::PollEvents() {
 			}
 			break;
 		}
+		case SDL_MOUSEWHEEL: {
+			float motionX = e.wheel.preciseX;
+			float motionY = e.wheel.preciseY;
+			InputManager::HandleMouseWheelEvent(motionX, motionY);
+			break;
+		}
 		case SDL_WINDOWEVENT: {
 			switch (e.window.event) {
 			case SDL_WINDOWEVENT_RESIZED:
@@ -1563,6 +1590,7 @@ void Application::RunFrame(int runFrames) {
 
 	// Event loop
 	Metrics.Event.Begin();
+	InputManager::OnFrameBegin();
 	Application::PollEvents();
 	Metrics.Event.End();
 
@@ -1805,7 +1833,7 @@ void Application::StartGame(const char* startingScene) {
 		Scene::LoadScene(startingScene);
 	}
 
-	// Call Static's GameStart here
+	// Call Application's OnGameStart here
 	Scene::CallGameStart();
 
 	// Start scene
@@ -1868,8 +1896,7 @@ void Application::Run(int argc, char* args[]) {
 		MainLoop();
 	}
 
-	Scene::Dispose();
-
+	Application::EndGame();
 	Application::Cleanup();
 #endif
 }
@@ -2613,7 +2640,7 @@ void Application::InitSettings() {
 	Application::Settings->SetInteger("dev", "fastForward", 4);
 	int logLevel = 0;
 #ifdef DEBUG
-	logLevel = -1;
+	logLevel = -2;
 #endif
 	Application::Settings->SetInteger("dev", "logLevel", logLevel);
 	Application::Settings->SetBool("dev", "trackMemory", false);
@@ -2890,6 +2917,7 @@ void Application::DevMenu_MainMenu() {
 			InputManager::ControllerStopRumble();
 			AudioManager::AudioStopAll();
 			AudioManager::ClearMusic();
+			AudioManager::LowPassFilter = 0.0f;
 			Scene::Restart();
 			UpdateWindowTitle();
 			break;
@@ -3073,6 +3101,7 @@ void Application::DevMenu_SceneSelectMenu() {
 		CloseDevMenu();
 		AudioManager::AudioStopAll();
 		AudioManager::ClearMusic();
+		AudioManager::LowPassFilter = 0.0f;
 
 		const char* categoryName = list->Name;
 		const char* sceneName = list->Entries[DevMenu.SubSelection].Name;

@@ -2,6 +2,7 @@
 #define ENGINE_SCENE_TILELAYER_H
 
 #include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/LayerTileBuffers.h>
 #include <Engine/Scene/ScrollingInfo.h>
 
 class TileLayer : public SceneLayer {
@@ -31,9 +32,10 @@ public:
 	bool UsingCustomScanlineFunction = false;
 	ObjFunction CustomScanlineFunction;
 
-	Uint32 BufferID = 0;
-	int VertexCount = 0;
-	void* TileBatches = NULL;
+	std::vector<LayerTileBuffers*> TileBuffers;
+	size_t* TileBufferIndexes = NULL;
+	bool UsingTileBuffers = false;
+	bool RemakeTileBuffers = false;
 
 	TileLayer();
 	TileLayer(int w, int h);

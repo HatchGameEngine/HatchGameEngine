@@ -11,6 +11,8 @@
 #include <Engine/Rendering/GL/Includes.h>
 #include <Engine/Rendering/Texture.h>
 #include <Engine/ResourceTypes/ISprite.h>
+#include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileLayer.h>
 
 #ifdef DEBUG
 #define GL_DO_ERROR_CHECKING
@@ -54,9 +56,6 @@ public:
 	static SDL_GLContext Context;
 	static GLShader* CurrentShader;
 	static GLShaderContainer* ShaderShape;
-	static GLShaderContainer* ShaderShape3D;
-	static GLShaderContainer* ShaderFogLinear;
-	static GLShaderContainer* ShaderFogExp;
 #ifdef GL_HAVE_YUV
 	static GLShaderContainer* ShaderYUV;
 #endif
@@ -72,6 +71,8 @@ public:
 	static void SetGraphicsFunctions();
 	static void Dispose();
 	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static bool
+	ReinitializeTexture(Texture*, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static int UpdateTextureYUV(Texture* texture,
@@ -82,12 +83,20 @@ public:
 		int pitchU,
 		void* pixelsV,
 		int pitchV);
+	static void CopyTexturePixels(Texture* dest,
+		int destX,
+		int destY,
+		Texture* src,
+		int srcX,
+		int srcY,
+		int srcWidth,
+		int srcHeight);
 	static void SetTextureMinFilter(Texture* texture, int filterMode);
 	static void SetTextureMagFilter(Texture* texture, int filterMode);
 	static void UnlockTexture(Texture* texture);
 	static void DisposeTexture(Texture* texture);
 	static bool SetRenderTarget(Texture* texture);
-	static void ReadFramebuffer(void* pixels, int width, int height);
+	static void ReadFramebuffer(void* pixels, int x, int y, int width, int height);
 	static void UpdateWindowSize(int width, int height);
 	static void UpdateViewport();
 	static void UpdateClipRect();
@@ -129,68 +138,15 @@ public:
 	static void StrokeRectangle(float x, float y, float w, float h);
 	static void FillCircle(float x, float y, float rad);
 	static void FillEllipse(float x, float y, float w, float h);
-	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
-	static void FillTriangleBlend(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3);
 	static void FillRectangle(float x, float y, float w, float h);
+	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
+	static void FillTriangleBlend(float* xc, float* yc, int* colors);
+	static void FillQuad(float* xc, float* yc);
+	static void FillQuadBlend(float* xc, float* yc, int* colors);
 	static void
-	FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
-	static void FillQuadBlend(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4);
-	static void DrawTriangleTextured(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3);
-	static void DrawQuadTextured(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3,
-		float u4,
-		float v4);
+	DrawTriangle(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
+	static void
+	DrawQuad(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
 	static Uint32 CreateTexturedShapeBuffer(float* data, int vertexCount);
 	static void DrawTexturedShapeBuffer(Texture* texture, Uint32 bufferID, int vertexCount);
 	static void DrawTexture(Texture* texture,
@@ -229,6 +185,32 @@ public:
 		float scaleH,
 		float rotation,
 		int paletteID);
+	static void BeginTextureBatching();
+	static void BatchSprite(ISprite* sprite,
+		int animation,
+		int frame,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		int paletteID);
+	static void BatchSpritePart(ISprite* sprite,
+		int animation,
+		int frame,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		int paletteID);
+	static void FinishTextureBatching();
 	static void DrawPolygon3D(void* data,
 		int vertexCount,
 		int vertexFlag,
@@ -261,6 +243,13 @@ public:
 	static void DeleteVertexBuffer(void* vtxBuf);
 	static void MakeFrameBufferID(ISprite* sprite);
 	static void DeleteFrameBufferID(ISprite* sprite);
+	static void DrawBufferedTileLayer(TileLayer* layer);
+	static void MakeLayerTileBuffers(TileLayer* layer);
+	static void DeleteLayerTileBuffers(TileLayer* layer);
+	static void RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIndex);
+	static void DeleteTileBuffersForTileset(TileLayer* layer, size_t tilesetIndex);
+	static void UpdateBufferedLayerTile(TileLayer* layer, int x, int y);
+	static void RefreshLayerTileAnimations(TileLayer* layer);
 	static void SetDepthTesting(bool enable);
 	static bool CheckError(int line);
 };

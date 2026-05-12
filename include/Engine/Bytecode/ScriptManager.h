@@ -17,6 +17,9 @@ class ScriptEntity;
 
 class ScriptManager {
 private:
+	static std::unordered_map<void*, Obj*> Registry;
+	static std::unordered_map<Obj*, void*> UserdataMap;
+
 #ifdef VM_DEBUG
 	static Uint32 GetBranchLimit();
 	static void LoadSourceCodeLines(SourceFile* sourceFile, char* text);
@@ -30,6 +33,7 @@ public:
 #endif
 	static HashMap<VMValue>* Globals;
 	static HashMap<VMValue>* Constants;
+	static ankerl::unordered_dense::map<std::string_view, ObjString*>* Strings;
 	static VMThread Threads[8];
 	static Uint32 ThreadCount;
 	static vector<ObjModule*> ModuleList;
@@ -48,12 +52,18 @@ public:
 	static void FreeClass(Obj* object);
 	static void FreeEnumeration(Obj* object);
 	static void FreeNamespace(Obj* object);
+	static void FreeBoundMethod(Obj* object);
 	static void RemoveTemporaryModules();
 	static void RequestGarbageCollection();
 	static void ForceGarbageCollection();
 	static void ResetStack();
 	static void Init();
 	static void Dispose();
+	static Obj* RegistryAdd(void* ptr, Obj* obj);
+	static Obj* RegistryGet(void* ptr);
+	static void* RegistryGet(Obj* obj);
+	static void RegistryRemove(void* ptr);
+	static void RegistryRemove(Obj* obj);
 	static bool DoIntegerConversion(VMValue& value, Uint32 threadID);
 	static bool DoDecimalConversion(VMValue& value, Uint32 threadID);
 	static bool Lock();
@@ -72,7 +82,11 @@ public:
 	static void LinkExtensions();
 	static ObjModule* LoadBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
 	static bool RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash);
-	static bool CallFunction(const char* functionName);
+	static bool CallGlobalFunction(const char* functionName);
+	static bool CallStaticClassFunction(ObjClass* klass, const char* functionName);
+	static bool CallStaticClassFunction(const char* className, const char* functionName);
+	static bool CallStaticClassFunction(ObjClass* klass, const char* functionName, std::vector<VMValue> args);
+	static bool CallStaticClassFunction(const char* className, const char* functionName, std::vector<VMValue> args);
 	static VMValue FindFunction(const char* functionName);
 	static Entity* SpawnObject(const char* objectName);
 	static Uint32 MakeFilenameHash(const char* filename);
@@ -92,7 +106,8 @@ public:
 	static ObjModule* GetScriptModule(Uint32 filenameHash);
 	static ObjFunction* GetFunctionAtScriptLine(ObjModule* module, int lineNum);
 	static bool LoadObjectClass(const char* objectName);
-	static ObjClass* GetObjectClass(const char* className);
+	static ObjClass* GetClass(const char* className);
+	static ObjClass* GetGlobalClass(const char* className);
 	static void LoadClasses();
 #ifdef VM_DEBUG
 	static char* GetSourceCodeLine(const char* sourceFilename, int line);

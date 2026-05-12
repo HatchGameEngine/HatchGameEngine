@@ -11,9 +11,8 @@ Property SceneLayer::PropertyGet(char* property) {
 	return Properties->Get(property);
 }
 SceneLayer::~SceneLayer() {
-	if (Name) {
-		Memory::Free(Name);
-	}
+	Memory::Free(Name);
+
 	if (Properties) {
 		Properties->ForAll([](Uint32, Property property) -> void {
 			Property::Delete(property);

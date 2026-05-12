@@ -46,7 +46,7 @@ Entity* ScriptEntity::SpawnNamed(const char* objectName) {
 	return (Entity*)scriptEntity;
 }
 bool ScriptEntity::SpawnForClass(ScriptEntity* entity, const char* objectName) {
-	ObjClass* klass = ScriptManager::GetObjectClass(objectName);
+	ObjClass* klass = ScriptManager::GetClass(objectName);
 	if (!klass) {
 		return false;
 	}
@@ -866,7 +866,7 @@ bool ScriptEntity::ChangeClass(const char* className) {
 		return false;
 	}
 
-	ObjClass* newClass = ScriptManager::GetObjectClass(className);
+	ObjClass* newClass = ScriptManager::GetClass(className);
 	if (!newClass) {
 		return false;
 	}
@@ -939,13 +939,15 @@ void ScriptEntity::CopyVMFields(ScriptEntity* other) {
 	other->AddEntityClassMethods();
 }
 
-void ScriptEntity::MarkForGarbageCollection() {
-	GarbageCollector::GrayHashMap(Instance->InstanceObj.Fields);
-}
+void ScriptEntity::MarkForGarbageCollection() {}
 
 // Events called from C++
 void ScriptEntity::Initialize() {
 	Entity::Initialize();
+
+	Instance->InstanceObj.Fields->Clear();
+	AddEntityClassMethods();
+	LinkFields();
 
 	RunInitializer();
 }

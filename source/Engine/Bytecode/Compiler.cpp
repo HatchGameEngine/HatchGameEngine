@@ -35,8 +35,8 @@ bool ShouldEmitValue = false;
 struct VariableWarning {
 	int Line;
 	std::string VariableName;
-	bool IsUnused;
-	bool IsUnset;
+	bool IsUnused = false;
+	bool IsUnset = false;
 };
 
 // Order these by C/C++ precedence operators
@@ -205,6 +205,9 @@ bool Compiler::IsIdentifierStart(char c) {
 }
 bool Compiler::IsIdentifierBody(char c) {
 	return IsIdentifierStart(c) || IsDigit(c);
+}
+bool Compiler::IsDot(char c) {
+	return c == '.';
 }
 
 bool Compiler::MatchChar(char expected) {
@@ -546,6 +549,7 @@ Token Compiler::StringToken() {
 	return MakeToken(TOKEN_STRING);
 }
 Token Compiler::NumberToken() {
+	// If it starts with "0x", it's in hexadecimal notation.
 	if (*scanner.Start == '0' && (PeekChar() == 'x' || PeekChar() == 'X')) {
 		AdvanceChar(); // x
 		while (IsHexDigit(PeekChar())) {
@@ -553,13 +557,21 @@ Token Compiler::NumberToken() {
 		}
 		return MakeToken(TOKEN_NUMBER);
 	}
+	// If it starts with a dot, it's a decimal with an implicit integer part.
+	else if (IsDot(*scanner.Start) && IsDigit(PeekChar())) {
+		while (IsDigit(PeekChar())) {
+			AdvanceChar();
+		}
+		return MakeToken(TOKEN_DECIMAL);
+	}
 
 	while (IsDigit(PeekChar())) {
 		AdvanceChar();
 	}
 
-	// Look for a fractional part.
-	if (PeekChar() == '.' && IsDigit(PeekNextChar())) {
+	// If there's a dot after the digits, it's a decimal.
+	// The fractional part can be omitted.
+	if (IsDot(PeekChar())) {
 		// Consume the "."
 		AdvanceChar();
 
@@ -590,10 +602,10 @@ Token Compiler::ScanToken() {
 
 	char c = AdvanceChar();
 
-	if (IsDigit(c)) {
+	if (IsDigit(c) || (IsDot(c) && IsDigit(PeekChar()))) {
 		return NumberToken();
 	}
-	if (IsIdentifierStart(c)) {
+	else if (IsIdentifierStart(c)) {
 		return IdentifierToken();
 	}
 
@@ -811,6 +823,9 @@ void Compiler::ErrorAtCurrent(const char* message) {
 }
 void Compiler::Warning(const char* message) {
 	ErrorAt(&parser.Current, message, false);
+}
+void Compiler::WarningAt(Token* token, const char* message) {
+	ErrorAt(token, message, false);
 }
 void Compiler::WarningInFunction(const char* format, ...) {
 	if (!CurrentSettings.ShowWarnings) {
@@ -1294,8 +1309,18 @@ ExprContext Compiler::NamedVariable(Token name, Local& currentLocal, ExprContext
 		}
 	}
 	else {
+		// Look for a constant in this scope
+		for (int i = Constants.size() - 1; i >= 0; i--) {
+			Local* constLocal = &Constants[i];
+			if (IdentifiersEqual(&name, &constLocal->Name)) {
+				constLocal->Resolved = true;
+				EmitConstant(constLocal->ConstantVal);
+				return EXPRCONTEXT_VALUE;
+			}
+		}
+
+		// Resolve module local
 		arg = ResolveModuleLocal(&name, &local);
-		VMValue value;
 		if (arg != -1) {
 			if (emitValue) {
 				getOp = OP_GET_MODULE_LOCAL;
@@ -1310,15 +1335,31 @@ ExprContext Compiler::NamedVariable(Token name, Local& currentLocal, ExprContext
 				currentLocal.Index = arg;
 			}
 		}
-		else if (emitValue && StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
-			EmitConstant(value);
-			return EXPRCONTEXT_VALUE;
-		}
-		else if (emitValue) {
-			getOp = OP_GET_GLOBAL;
-		}
 		else {
-			getOp = OP_LOCATION_GLOBAL;
+			// Look for a module constant
+			for (int i = ModuleConstants.size() - 1; i >= 0; i--) {
+				Local* constLocal = &ModuleConstants[i];
+				if (IdentifiersEqual(&name, &constLocal->Name)) {
+					constLocal->Resolved = true;
+					EmitConstant(constLocal->ConstantVal);
+					return EXPRCONTEXT_VALUE;
+				}
+			}
+
+			// Must be a StandardLibrary constant or a global
+			if (emitValue) {
+				VMValue value;
+				if (StandardConstants->GetIfExists(name.ToString().c_str(), &value)) {
+					EmitConstant(value);
+					return EXPRCONTEXT_VALUE;
+				}
+				else {
+					getOp = OP_GET_GLOBAL;
+				}
+			}
+			else {
+				getOp = OP_LOCATION_GLOBAL;
+			}
 		}
 	}
 
@@ -1470,17 +1511,6 @@ int Compiler::ResolveLocal(Token* name, Local* result) {
 		}
 	}
 
-	for (int i = Constants.size() - 1; i >= 0; i--) {
-		Local* local = &Constants[i];
-		if (IdentifiersEqual(name, &local->Name)) {
-			local->Resolved = true;
-			if (result) {
-				*result = *local;
-			}
-			return i;
-		}
-	}
-
 	return -1;
 }
 void Compiler::MarkLocalAsSet(Local& local) {
@@ -1525,17 +1555,6 @@ int Compiler::ResolveModuleLocal(Token* name, Local* result) {
 		}
 	}
 
-	for (int i = Compiler::ModuleConstants.size() - 1; i >= 0; i--) {
-		Local& local = Compiler::ModuleConstants[i];
-		if (IdentifiersEqual(name, &local.Name)) {
-			local.Resolved = true;
-			if (result) {
-				*result = local;
-			}
-			return i;
-		}
-	}
-
 	return -1;
 }
 Uint8 Compiler::GetArgumentList() {
@@ -1550,7 +1569,7 @@ Uint8 Compiler::GetArgumentList() {
 		} while (MatchToken(TOKEN_COMMA));
 	}
 
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected \")\" after arguments.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after arguments.");
 	return argumentCount;
 }
 
@@ -1638,7 +1657,7 @@ ExprContext Compiler::GetElement(ExprContext context) {
 bool negateConstant = false;
 ExprContext Compiler::GetGrouping(ExprContext context) {
 	ExprContext result = GetExpression();
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected \")\" after expression.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after expression.");
 	return result;
 }
 ExprContext Compiler::GetLiteral(ExprContext context) {
@@ -1678,8 +1697,7 @@ ExprContext Compiler::GetInteger(ExprContext context) {
 	return EXPRCONTEXT_VALUE;
 }
 ExprContext Compiler::GetDecimal(ExprContext context) {
-	float value = 0;
-	value = (float)atof(parser.Previous.Start);
+	float value = (float)atof(parser.Previous.Start);
 
 	if (negateConstant) {
 		value = -value;
@@ -1690,34 +1708,116 @@ ExprContext Compiler::GetDecimal(ExprContext context) {
 
 	return EXPRCONTEXT_VALUE;
 }
+int Compiler::ParseHexChars(Uint32* codepoint, char* src, char* srcEnd, int maxChars) {
+	int count = 0;
+
+	do {
+		int chr = *src++;
+		if (!IsHexDigit(chr)) {
+			break;
+		}
+
+		*codepoint <<= 4;
+
+		if (chr <= '9') {
+			*codepoint |= chr - '0';
+		}
+		else {
+			*codepoint |= (tolower(chr) - 'a') + 10;
+		}
+
+		count++;
+		if (count == maxChars) {
+			break;
+		}
+	}
+	while (src < srcEnd);
+
+	return count;
+}
+std::string Compiler::ParseUnicodeString(char* src, char* srcEnd, int maxChars) {
+	Uint32 codepoint = 0;
+
+	int count = Compiler::ParseHexChars(&codepoint, src, srcEnd, maxChars);
+	if (count != maxChars) {
+		Error("Invalid Unicode escape sequence.");
+	}
+
+	std::string result;
+	try {
+		result = StringUtils::FromCodepoint(codepoint);
+	} catch (const std::runtime_error& error) {
+		Error(error.what());
+	}
+
+	return result;
+}
 ObjString* Compiler::MakeString(Token token) {
 	ObjString* string = CopyString(token.Start + 1, token.Length - 2);
 
 	// Escape the string
 	char* dst = string->Chars;
+	char* srcEnd = token.Start + token.Length - 1;
 	string->Length = 0;
 
-	for (char* src = token.Start + 1; src < token.Start + token.Length - 1; src++) {
+	for (char* src = token.Start + 1; src < srcEnd; src++) {
 		if (*src == '\\') {
 			src++;
 			switch (*src) {
 			case 'n':
 				*dst++ = '\n';
+				string->Length++;
 				break;
 			case '"':
 				*dst++ = '"';
+				string->Length++;
 				break;
 			case '\'':
 				*dst++ = '\'';
+				string->Length++;
 				break;
 			case '\\':
 				*dst++ = '\\';
+				string->Length++;
 				break;
-			default:
-				Error("Unknown escape character");
+			case 'x': {
+				Uint32 digits = 0;
+
+				int count = Compiler::ParseHexChars(&digits, src + 1, srcEnd, 2);
+				if (count != 2) {
+					Error("Invalid escape sequence.");
+				}
+
+				*dst++ = digits & 0xFF;
+				src += 2;
+
+				string->Length++;
 				break;
 			}
-			string->Length++;
+			case 'u': {
+				std::string result = ParseUnicodeString(src + 1, srcEnd, 4);
+
+				memcpy(dst, result.c_str(), result.size());
+				dst += result.size();
+				src += 4;
+
+				string->Length += result.size();
+				break;
+			}
+			case 'U': {
+				std::string result = ParseUnicodeString(src + 1, srcEnd, 8);
+
+				memcpy(dst, result.c_str(), result.size());
+				dst += result.size();
+				src += 8;
+
+				string->Length += result.size();
+				break;
+			}
+			default:
+				Error("Unknown escape character.");
+				break;
+			}
 		}
 		else {
 			*dst++ = *src;
@@ -1742,7 +1842,7 @@ ExprContext Compiler::GetArray(ExprContext context) {
 		count++;
 
 		if (!MatchToken(TOKEN_COMMA)) {
-			ConsumeToken(TOKEN_RIGHT_SQUARE_BRACE, "Expected \"]\" at end of array.");
+			ConsumeToken(TOKEN_RIGHT_SQUARE_BRACE, "Expected ']' at end of array.");
 			break;
 		}
 	}
@@ -1759,12 +1859,12 @@ ExprContext Compiler::GetMap(ExprContext context) {
 		ConsumeToken(TOKEN_STRING, "Expected string for map key.");
 		GetString(EXPRCONTEXT_VALUE);
 
-		ConsumeToken(TOKEN_COLON, "Expected \":\" after key string.");
+		ConsumeToken(TOKEN_COLON, "Expected ':' after key string.");
 		GetExpression();
 		count++;
 
 		if (!MatchToken(TOKEN_COMMA)) {
-			ConsumeToken(TOKEN_RIGHT_BRACE, "Expected \"}\" after map.");
+			ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' after map.");
 			break;
 		}
 	}
@@ -1811,7 +1911,7 @@ ExprContext Compiler::GetConditional(ExprContext context) {
 	ParsePrecedence(PREC_TERNARY);
 
 	int elseJump = EmitJump(OP_JUMP);
-	ConsumeToken(TOKEN_COLON, "Expected \":\" after conditional condition.");
+	ConsumeToken(TOKEN_COLON, "Expected ':' after conditional condition.");
 
 	PatchJump(thenJump);
 	EmitByte(OP_POP);
@@ -2096,12 +2196,12 @@ stack<int> ContinueScopeStack;
 stack<int> SwitchScopeStack;
 void Compiler::GetPrintStatement() {
 	GetExpression();
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after value.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after value.");
 	EmitByte(OP_PRINT);
 }
 void Compiler::GetBreakpointStatement() {
 	Token previousToken = parser.Previous;
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after 'breakpoint'.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after 'breakpoint'.");
 	AddBreakpoint(previousToken);
 }
 void Compiler::GetExpressionStatement() {
@@ -2114,7 +2214,7 @@ void Compiler::GetExpressionStatement() {
 
 	EmitByte(OP_POP);
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after expression.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after expression.");
 }
 void Compiler::GetContinueStatement() {
 	if (ContinueJumpListStack.size() == 0) {
@@ -2277,11 +2377,11 @@ void Compiler::GetSwitchStatement() {
 	StartBreakpointList();
 
 	// Evaluate the condition
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'switch'.");
 	GetExpression();
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
 
-	ConsumeToken(TOKEN_LEFT_BRACE, "Expected \"{\" before statements.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before statements.");
 
 	int code_block_start = CodePointer();
 	int code_block_length = code_block_start;
@@ -2411,7 +2511,7 @@ void Compiler::GetCaseStatement() {
 
 	GetExpression();
 
-	ConsumeToken(TOKEN_COLON, "Expected \":\" after \"case\".");
+	ConsumeToken(TOKEN_COLON, "Expected ':' after 'case'.");
 
 	code_block_length = CodePointer() - code_block_start;
 
@@ -2441,8 +2541,6 @@ void Compiler::GetDefaultStatement() {
 		Error("Cannot use default label outside of switch statement.");
 	}
 
-	ConsumeToken(TOKEN_COLON, "Expected \":\" after \"default\".");
-
 	// Check if there already is a default clause, and prevent compilation if so.
 	vector<switch_case>* top = SwitchJumpListStack.top();
 	for (size_t i = 0; i < top->size(); i++) {
@@ -2450,6 +2548,8 @@ void Compiler::GetDefaultStatement() {
 			Error("Cannot have multiple default clauses.");
 		}
 	}
+
+	ConsumeToken(TOKEN_COLON, "Expected ':' after 'default'.");
 
 	switch_case case_info;
 	case_info.IsDefault = true;
@@ -2516,7 +2616,7 @@ void Compiler::GetBlockStatement() {
 		GetDeclaration();
 	}
 
-	ConsumeToken(TOKEN_RIGHT_BRACE, "Expected \"}\" after block.");
+	ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' after block.");
 }
 void Compiler::GetWithStatement() {
 	enum { WITH_STATE_INIT, WITH_STATE_ITERATE, WITH_STATE_FINISH, WITH_STATE_INIT_SLOTTED };
@@ -2897,6 +2997,7 @@ void Compiler::CompileFunction() {
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
 
 	bool isOptional = false;
+	bool matchedLeftSquareBrace = false;
 
 	int arity = 0;
 	int minArity = 0;
@@ -2905,6 +3006,7 @@ void Compiler::CompileFunction() {
 		do {
 			if (!isOptional && MatchToken(TOKEN_LEFT_SQUARE_BRACE)) {
 				isOptional = true;
+				matchedLeftSquareBrace = true;
 			}
 
 			ParseVariable("Expect parameter name.", false);
@@ -2916,10 +3018,19 @@ void Compiler::CompileFunction() {
 				Error("Cannot have more than 255 parameters.");
 			}
 
+			if (MatchToken(TOKEN_ASSIGNMENT)) {
+				isOptional = true;
+				GetValueExpression();
+				EmitBytes(OP_SET_ARGUMENT_SLOT, arity);
+			}
+			else if (isOptional && !matchedLeftSquareBrace) {
+				Error("Cannot have required parameters after optional parameters.");
+			}
+
 			if (!isOptional) {
 				minArity++;
 			}
-			else if (MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
+			else if (matchedLeftSquareBrace && MatchToken(TOKEN_RIGHT_SQUARE_BRACE)) {
 				break;
 			}
 		} while (MatchToken(TOKEN_COMMA));
@@ -3020,7 +3131,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 		else {
 			if (constant) { // don't play nice
 				ErrorAtCurrent(
-					"\"const\" variables must have an explicit constant declaration.");
+					"'const' variables must have an explicit constant declaration.");
 			}
 
 			EmitByte(OP_NULL);
@@ -3042,7 +3153,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 			}
 		}
 		else if (constant) {
-			ErrorAtCurrent("\"const\" variables must be set to a constant.");
+			ErrorAtCurrent("'const' variables must be set to a constant.");
 		}
 
 		DefineVariableToken(token, constant);
@@ -3052,14 +3163,18 @@ void Compiler::GetVariableDeclaration(bool constant) {
 		}
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after variable declaration.");
 }
 void Compiler::GetModuleVariableDeclaration() {
 	if (ScopeDepth > 0) {
 		Error("Cannot use local declaration outside of top-level code.");
 	}
 
-	if (parser.Current.Type == TOKEN_VAR || parser.Current.Type == TOKEN_CONST) {
+	if (parser.Current.Type == TOKEN_ENUM) {
+		AdvanceToken();
+		GetEnumDeclaration(true);
+	}
+	else if (parser.Current.Type == TOKEN_VAR || parser.Current.Type == TOKEN_CONST) {
 		bool constant = parser.Current.Type == TOKEN_CONST;
 		vector<Local>* vec = constant ? &ModuleConstants : &ModuleLocals;
 		AdvanceToken();
@@ -3080,7 +3195,7 @@ void Compiler::GetModuleVariableDeclaration() {
 			else {
 				if (constant) { // don't play nice
 					ErrorAtCurrent(
-						"\"const\" variables must have an explicit constant declaration.");
+						"'const' variables must have an explicit constant declaration.");
 				}
 
 				EmitByte(OP_NULL);
@@ -3099,7 +3214,7 @@ void Compiler::GetModuleVariableDeclaration() {
 			}
 			else if (constant) {
 				ErrorAt(&token,
-					"\"const\" variables must be set to a constant.",
+					"'const' variables must be set to a constant.",
 					true);
 			}
 
@@ -3108,10 +3223,10 @@ void Compiler::GetModuleVariableDeclaration() {
 			}
 		} while (MatchToken(TOKEN_COMMA));
 
-		ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after variable declaration.");
+		ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after variable declaration.");
 	}
 	else {
-		ErrorAtCurrent("Expected \"var\" or \"const\" after \"local\" declaration.");
+		ErrorAtCurrent("Expected 'var', 'const', or 'enum' after 'local' declaration.");
 	}
 }
 void Compiler::GetPropertyDeclaration(Token propertyName) {
@@ -3135,7 +3250,7 @@ void Compiler::GetPropertyDeclaration(Token propertyName) {
 		EmitByte(OP_POP);
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after property declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after property declaration.");
 }
 void Compiler::GetClassDeclaration() {
 	ConsumeIdentifier("Expect class name.");
@@ -3187,25 +3302,32 @@ void Compiler::GetClassDeclaration() {
 
 	ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
 }
-void Compiler::GetEnumDeclaration() {
+void Compiler::GetEnumDeclaration(bool isLocal) {
 	Token enumName;
 	bool isNamed = false;
 
 	if (MatchToken(TOKEN_IDENTIFIER)) {
 		enumName = parser.Previous;
 		DeclareVariable(&enumName, false);
+		MarkInitialized();
 
 		EmitByte(OP_NEW_ENUM);
 		EmitStringHash(enumName);
 
-		DefineVariableToken(enumName, true);
+		if (isLocal) {
+			int index = DeclareModuleVariable(&enumName, false);
+			Compiler::DefineModuleVariable(index);
+		}
+		else {
+			DefineVariableToken(enumName, true);
+		}
 
 		isNamed = true;
 	}
 
-	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before enum body.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before enumeration body.");
 
-	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
+	while (true) {
 		bool didStart = false;
 
 		VMValue current = INTEGER_VAL(0);
@@ -3214,12 +3336,21 @@ void Compiler::GetEnumDeclaration() {
 				break;
 			}
 
-			int variable = ParseVariable("Expected constant name.", true);
+			int variable;
+			if (isNamed) {
+				ConsumeIdentifier("Expected constant name.");
+			}
+			else if (isLocal) {
+				variable = ParseModuleVariable("Expected constant name.", true);
+			}
+			else {
+				variable = ParseVariable("Expected constant name.", true);
+			}
 
 			Token token = parser.Previous;
 
-			// Push the enum class to the stack
-			if (isNamed) {
+			// Push the enumeration to the stack if it's global
+			if (isNamed && ScopeDepth == 0) {
 				Local local;
 				NamedVariable(enumName, local, EXPRCONTEXT_VALUE);
 			}
@@ -3233,7 +3364,7 @@ void Compiler::GetEnumDeclaration() {
 						CodePointer() ||
 					!CurrentChunk()->GetConstant(pre, &current, &constantIndex)) {
 					ErrorAt(&token,
-						"Manual enum value must be constant.",
+						"Manual enumeration value must be constant.",
 						true);
 				}
 				EmitCopy(1);
@@ -3242,7 +3373,7 @@ void Compiler::GetEnumDeclaration() {
 			else {
 				if (didStart) {
 					if (IS_NOT_NUMBER(current)) {
-						Warning("Current enum base is a non-number, this enum value will be null!");
+						Warning("Current enumeration base is a non-number; this value will be null!");
 						current = NULL_VAL;
 					}
 					else if (IS_DECIMAL(current)) {
@@ -3267,19 +3398,30 @@ void Compiler::GetEnumDeclaration() {
 			if (isNamed) {
 				EmitByte(OP_ADD_ENUM);
 				EmitStringHash(token);
+
+				// Pop the enumeration from the stack if it's global
+				if (ScopeDepth == 0) {
+					EmitByte(OP_POP);
+				}
+			}
+			else if (isLocal) {
+				ModuleConstants[variable].ConstantVal = current;
+			}
+			else if (ScopeDepth > 0) {
+				Constants[variable].ConstantVal = current;
 			}
 			else {
 				DefineVariableToken(token, true);
-				if (variable == -1) {
-					// treat it as a module constant
-					ModuleConstants.push_back(
-						{token, VARTYPE_MODULE_LOCAL, constantIndex, 0, false, false, true, current});
-				}
+
+				// treat it as a module constant
+				ModuleConstants.push_back(
+					{token, VARTYPE_MODULE_LOCAL, constantIndex, 0, false, false, true, current});
 			}
 		} while (MatchToken(TOKEN_COMMA));
-	}
 
-	ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after enum body.");
+		ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after enumeration body.");
+		break;
+	}
 }
 void Compiler::GetImportDeclaration() {
 	bool importModules = MatchToken(TOKEN_FROM);
@@ -3294,10 +3436,10 @@ void Compiler::GetImportDeclaration() {
 		EmitUint32(GetConstantIndex(value));
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"import\" declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after 'import' declaration.");
 }
 void Compiler::GetUsingDeclaration() {
-	ConsumeToken(TOKEN_NAMESPACE, "Expected \"namespace\" after \"using\" declaration.");
+	ConsumeToken(TOKEN_NAMESPACE, "Expected 'namespace' after 'using' declaration.");
 
 	if (ScopeDepth > 0) {
 		Error("Cannot use namespaces outside of top-level code.");
@@ -3310,7 +3452,7 @@ void Compiler::GetUsingDeclaration() {
 		EmitStringHash(nsName);
 	} while (MatchToken(TOKEN_COMMA));
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expected \";\" after \"using\" declaration.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after 'using' declaration.");
 }
 void Compiler::GetEventDeclaration() {
 	ConsumeIdentifier("Expected event name.");
@@ -3347,7 +3489,7 @@ void Compiler::GetDeclaration() {
 		GetClassDeclaration();
 	}
 	else if (MatchToken(TOKEN_ENUM)) {
-		GetEnumDeclaration();
+		GetEnumDeclaration(false);
 	}
 	else if (MatchToken(TOKEN_IMPORT)) {
 		GetImportDeclaration();
@@ -3971,6 +4113,7 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
 
 				if (b_d == 0) {
+					WarningAt(&parser.Previous, "Division by zero will raise a runtime error!");
 					return preConstant;
 				}
 				out = DECIMAL_VAL(a_d / b_d);
@@ -3979,6 +4122,7 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 				int a_d = AS_INTEGER(a);
 				int b_d = AS_INTEGER(b);
 				if (b_d == 0) {
+					WarningAt(&parser.Previous, "Division by zero will raise a runtime error!");
 					return preConstant;
 				}
 
@@ -3995,11 +4139,21 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 			if (a.Type == VAL_DECIMAL || b.Type == VAL_DECIMAL) {
 				float a_d = AS_DECIMAL(Value::CastAsDecimal(a));
 				float b_d = AS_DECIMAL(Value::CastAsDecimal(b));
+
+				if (b_d == 0) {
+					WarningAt(&parser.Previous, "Modulo by zero will raise a runtime error!");
+					return preConstant;
+				}
 				out = DECIMAL_VAL(fmod(a_d, b_d));
 			}
 			else {
 				int a_d = AS_INTEGER(a);
 				int b_d = AS_INTEGER(b);
+				if (b_d == 0) {
+					WarningAt(&parser.Previous, "Modulo by zero will raise a runtime error!");
+					return preConstant;
+				}
+
 				out = INTEGER_VAL(a_d % b_d);
 			}
 

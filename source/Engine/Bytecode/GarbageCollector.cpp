@@ -175,7 +175,9 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	switch (object->Type) {
 	case OBJ_BOUND_METHOD: {
 		ObjBoundMethod* bound = (ObjBoundMethod*)object;
-		GrayValue(bound->Receiver);
+		for (Uint8 i = 0; i < bound->ArgumentCount; i++) {
+			GrayValue(bound->Arguments[i]);
+		}
 		GrayObject(bound->Method);
 		break;
 	}
@@ -223,6 +225,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_ENTITY: {
 		ObjEntity* entity = (ObjEntity*)object;
+		GrayHashMap(entity->InstanceObj.Fields);
 		if (entity->EntityPtr) {
 			((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
 		}

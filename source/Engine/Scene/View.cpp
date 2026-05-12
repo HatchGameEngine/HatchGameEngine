@@ -12,6 +12,10 @@ void View::SetSize(float w, float h) {
 	}
 }
 
+bool View::IsUsingDrawTarget() {
+	return UseDrawTarget && DrawTarget != nullptr;
+}
+
 bool View::IsScaled() {
 	bool isScaled = ScaleX != 1.0 || ScaleY != 1.0;
 

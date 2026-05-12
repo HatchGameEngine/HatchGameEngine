@@ -2,6 +2,7 @@
 #define ENGINE_BYTECODE_STANDARDLIBRARY_H
 
 #include <Engine/Bytecode/Types.h>
+#include <Engine/Rendering/Texture.h>
 #include <Engine/ResourceTypes/ISound.h>
 #include <Engine/ResourceTypes/ISprite.h>
 
@@ -15,6 +16,8 @@ public:
 	static ObjMap* GetMap(VMValue* args, int index, Uint32 threadID);
 	static ISprite* GetSprite(VMValue* args, int index, Uint32 threadID);
 	static Image* GetImage(VMValue* args, int index, Uint32 threadID);
+	static ObjTexture* GetTexture(VMValue* args, int index, Uint32 threadID);
+	static Texture* GetDrawable(VMValue* args, int index, Uint32 threadID);
 	static ISound* GetSound(VMValue* args, int index, Uint32 threadID);
 	static ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID);
 	static ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID);

@@ -14,13 +14,13 @@ private:
 
 public:
 	enum LogLevels {
+		LOG_API = -2,
 		LOG_VERBOSE = -1,
 		LOG_INFO = 0,
 		LOG_WARN = 1,
 		LOG_ERROR = 2,
 		LOG_IMPORTANT = 3,
-		LOG_FATAL = 4,
-		LOG_API = 5,
+		LOG_FATAL = 4
 	};
 	static int LogLevel;
 	static bool WriteToFile;

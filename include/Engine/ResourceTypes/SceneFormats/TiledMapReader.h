@@ -10,7 +10,7 @@
 #include <Engine/Types/Tileset.h>
 
 struct TiledLayer {
-	bool Visible;
+	bool Visible = true;
 	float Opacity = 1.0;
 	float OffsetX = 0.0;
 	float OffsetY = 0.0;

@@ -41,11 +41,9 @@ TileLayer::TileLayer(int w, int h) {
 	UsingScrollIndexes = false;
 }
 TileLayer::~TileLayer() {
-	if (ScrollInfos) {
-		Memory::Free(ScrollInfos);
-	}
-
 	Memory::Free(Tiles);
 	Memory::Free(TilesBackup);
+	Memory::Free(TileBufferIndexes);
 	Memory::Free(ScrollIndexes);
+	Memory::Free(ScrollInfos);
 }

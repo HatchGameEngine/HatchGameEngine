@@ -40,6 +40,7 @@ bool Scene::Loaded = false;
 bool Scene::Initializing = false;
 bool Scene::NeedEntitySort = false;
 int Scene::TileAnimationEnabled = 1;
+bool Scene::RefreshTileAnimations = false;
 
 // Layering variables
 vector<SceneLayer*> Scene::Layers;
@@ -128,7 +129,6 @@ vector<ResourceType*> Scene::SoundList;
 vector<ResourceType*> Scene::MusicList;
 vector<ResourceType*> Scene::ModelList;
 vector<ResourceType*> Scene::MediaList;
-vector<GameTexture*> Scene::TextureList;
 vector<Animator*> Scene::AnimatorList;
 
 Entity* StaticObject = NULL;
@@ -163,13 +163,13 @@ void ObjectList_CallLoads(Uint32 key, ObjectList* list) {
 		return;
 	}
 
-	ScriptManager::CallFunction(list->LoadFunctionName.c_str());
+	ScriptManager::CallGlobalFunction(list->LoadFunctionName.c_str());
 }
 void ObjectList_CallUpdateFunction(ObjectList* list, const char* functionName) {
 	if (list->Activity == ACTIVE_ALWAYS ||
 		(list->Activity == ACTIVE_NORMAL && !Scene::Paused) ||
 		(list->Activity == ACTIVE_PAUSED && Scene::Paused)) {
-		ScriptManager::CallFunction(functionName);
+		ScriptManager::CallGlobalFunction(functionName);
 	}
 }
 void ObjectList_CallGlobalUpdates(Uint32, ObjectList* list) {
@@ -723,8 +723,8 @@ void Scene::Init() {
 		Scene::Views[i].Stride = Math::CeilPOT(Scene::Views[i].Width);
 		Scene::Views[i].FOV = 45.0f;
 		Scene::Views[i].UsePerspective = false;
-		Scene::Views[i].DrawTarget = Graphics::CreateTexture(SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_TARGET,
+		Scene::Views[i].DrawTarget = Graphics::CreateTexture(Graphics::TextureFormat,
+			TextureAccess_RENDERTARGET,
 			Scene::Views[i].Width,
 			Scene::Views[i].Height);
 		Scene::Views[i].UseDrawTarget = true;
@@ -766,16 +766,25 @@ void Scene::FrameUpdate() {
 	Scene::SortEntities();
 }
 void Scene::Update() {
+	// Call Scene.UpdateStart
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateStart");
+
 	// Call global updates
 	if (Scene::ObjectLists) {
 		Scene::ObjectLists->ForAllOrdered(ObjectList_CallGlobalUpdates);
 	}
+
+	// Call Scene.UpdateEarly
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateEarly");
 
 	// Early Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		UpdateObjectEarly(ent);
 	}
+
+	// Call Scene.Update
+	ScriptManager::CallStaticClassFunction("Scene", "Update");
 
 	// Update objects
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
@@ -787,13 +796,27 @@ void Scene::Update() {
 		UpdateObject(ent);
 	}
 
+	// Call Scene.UpdateLate
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateLate");
+
 	// Late Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		UpdateObjectLate(ent);
 	}
+
+	// Call Scene.UpdateFinish
+	ScriptManager::CallStaticClassFunction("Scene", "UpdateFinish");
 }
 void Scene::FixedUpdate() {
+	// Call Scene.FixedUpdateStart
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateStart");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateStart");
+	}
+
 	// Animate tiles
 	Scene::RunTileAnimations();
 
@@ -804,10 +827,26 @@ void Scene::FixedUpdate() {
 				: ObjectList_CallGlobalFixedUpdates);
 	}
 
+	// Call Scene.FixedUpdateEarly
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateEarly");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateEarly");
+	}
+
 	// Early Update
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
 		FixedUpdateObjectEarly(ent);
+	}
+
+	// Call Scene.FixedUpdate
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdate");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "Update");
 	}
 
 	// Update objects
@@ -818,6 +857,14 @@ void Scene::FixedUpdate() {
 
 		// Execute whatever on object
 		FixedUpdateObject(ent);
+	}
+
+	// Call Scene.FixedUpdateLate
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateLate");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateLate");
 	}
 
 	// Late Update
@@ -838,6 +885,14 @@ void Scene::FixedUpdate() {
 		Scene::Frame++;
 		Scene::ProcessSceneTimer();
 	}
+
+	// Call Scene.FixedUpdateFinish
+	if (!Application::UseFixedTimestep) {
+		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateFinish");
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "UpdateFinish");
+	}
 }
 void Scene::RunTileAnimations() {
 	if ((Scene::TileAnimationEnabled == 1 && !Scene::Paused) ||
@@ -845,6 +900,21 @@ void Scene::RunTileAnimations() {
 		for (Tileset& tileset : Scene::Tilesets) {
 			tileset.RunAnimations();
 		}
+	}
+
+	if (Scene::RefreshTileAnimations) {
+		for (size_t i = 0; i < Scene::Layers.size(); i++) {
+			if (Scene::Layers[i]->Type != SceneLayer::TYPE_TILE) {
+				continue;
+			}
+
+			TileLayer* tileLayer = (TileLayer*)Scene::Layers[i];
+			if (tileLayer->UsingTileBuffers) {
+				Graphics::RefreshLayerTileAnimations(tileLayer);
+			}
+		}
+
+		Scene::RefreshTileAnimations = false;
 	}
 }
 Tileset* Scene::GetTileset(int tileID) {
@@ -922,21 +992,22 @@ bool Scene::SetView(int viewIndex) {
 
 	Graphics::CurrentView = currentView;
 
-	if (currentView->UseDrawTarget && currentView->DrawTarget) {
+	if (currentView->IsUsingDrawTarget()) {
 		float view_w = currentView->Width;
 		float view_h = currentView->Height;
 		Texture* tar = currentView->DrawTarget;
 
 		size_t stride = currentView->Software ? (size_t)currentView->Stride : view_w;
-		if (tar->Width != stride || tar->Height != view_h) {
+		int format = currentView->Software ? TextureFormat_RGBA8888 : Graphics::TextureFormat;
+		if (tar->Width != stride || tar->Height != view_h || tar->Format != format) {
 			Graphics::GfxFunctions = &Graphics::Internal;
-			Graphics::DisposeTexture(tar);
 			Graphics::SetTextureInterpolation(false);
-			currentView->DrawTarget = Graphics::CreateTexture(
-				SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, stride, view_h);
+			if (!Graphics::ReinitializeTexture(tar, format, tar->Access, stride, view_h)) {
+				return false;
+			}
 		}
 
-		if (!Graphics::SetRenderTarget(currentView->DrawTarget)) {
+		if (!Graphics::SetRenderTarget(tar)) {
 			return false;
 		}
 
@@ -986,7 +1057,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	Texture* drawTarget = currentView->DrawTarget;
 
 	PERF_START(RenderSetupTime);
-	if (currentView->UseDrawTarget && drawTarget) {
+	if (currentView->IsUsingDrawTarget()) {
 		useDrawTarget = true;
 	}
 	else if (!currentView->Visible) {
@@ -1010,36 +1081,45 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		viewPerf->RecreatedDrawTarget = true;
 	}
 
+	DrawGroupList* drawGroupList;
 	int viewRenderFlag = 1 << viewIndex;
+
+	std::vector<VMValue> args;
+	args.push_back(NULL_VAL);
 
 	// Adjust projection
 	PERF_START(ProjectionSetupTime);
-	SetupViewMatrices(currentView);
+	SetupViewMatrices(currentView, currentView->X, currentView->Y, currentView->Z);
 	PERF_END(ProjectionSetupTime);
 
 	// RenderEarly
 	PERF_START(ObjectRenderEarlyTime);
+	// Call Scene.RenderStart
+	ScriptManager::CallStaticClassFunction("Scene", "RenderStart");
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-		if (DEV_NoObjectRender) {
-			break;
-		}
-
-		DrawGroupList* drawGroupList = PriorityLists[l];
-		if (!drawGroupList) {
-			continue;
-		}
-
-		if (drawGroupList->NeedsSorting) {
-			drawGroupList->Sort();
-		}
-
 		Scene::CurrentDrawGroup = l;
 
-		for (Entity* ent : *drawGroupList->Entities) {
-			if (ent->Active) {
-				ent->RenderEarly();
+		// Call Scene.RenderEarlyDrawGroupStart
+		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderEarlyDrawGroupStart", args);
+
+		if (!DEV_NoObjectRender) {
+			drawGroupList = PriorityLists[l];
+			if (drawGroupList) {
+				if (drawGroupList->NeedsSorting) {
+					drawGroupList->Sort();
+				}
+
+				for (Entity* ent : *drawGroupList->Entities) {
+					if (ent->Active) {
+						ent->RenderEarly();
+					}
+				}
 			}
 		}
+
+		// Call Scene.RenderEarlyDrawGroupFinish
+		ScriptManager::CallStaticClassFunction("Scene", "RenderEarlyDrawGroupFinish", args);
 	}
 	PERF_END(ObjectRenderEarlyTime);
 
@@ -1051,8 +1131,13 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	float _vw = currentView->GetScaledWidth();
 	float _vh = currentView->GetScaledHeight();
 	double objectTimeTotal = 0.0;
-	DrawGroupList* drawGroupList;
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
+		Scene::CurrentDrawGroup = l;
+
+		// Call Scene.RenderDrawGroupStart
+		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderDrawGroupStart", args);
+
 		if (DEV_NoObjectRender) {
 			goto DEV_NoTilesCheck;
 		}
@@ -1063,9 +1148,8 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		float _oy;
 		float entX1, entX2;
 		float entY1, entY2;
+		bool texBlend;
 		objectTime = Clock::GetTicks();
-
-		Scene::CurrentDrawGroup = l;
 
 		drawGroupList = PriorityLists[l];
 		if (drawGroupList) {
@@ -1157,7 +1241,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 				}
 
 				// Show render region
-				if (showObjectRegions) {
+				if (showObjectRegions && Scene::UseRenderRegions) {
 					Graphics::SetBlendColor(0.0f, 0.0f, 1.0f, 0.5f);
 					Graphics::FillRectangle(entX1 + _vx,
 						entY1 + _vy,
@@ -1215,14 +1299,14 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 
 	DEV_NoTilesCheck:
 		if (DEV_NoTiles) {
-			continue;
+			goto finish_tile_render;
 		}
 
 		if ((Scene::TileViewRenderFlag & viewRenderFlag) == 0) {
-			continue;
+			goto finish_tile_render;
 		}
 
-		bool texBlend = Graphics::TextureBlend;
+		texBlend = Graphics::TextureBlend;
 		for (size_t li = 0; li < Layers.size(); li++) {
 			SceneLayer* layer = Layers[li];
 			// Skip layer tile render if already rendered
@@ -1250,6 +1334,10 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 			}
 		}
 		Graphics::TextureBlend = texBlend;
+
+	finish_tile_render:
+		// Call Scene.RenderDrawGroupFinish
+		ScriptManager::CallStaticClassFunction("Scene", "RenderDrawGroupFinish", args);
 	}
 	if (viewPerf) {
 		viewPerf->ObjectRenderTime = objectTimeTotal;
@@ -1258,21 +1346,32 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	// RenderLate
 	PERF_START(ObjectRenderLateTime);
 	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-		if (DEV_NoObjectRender) {
-			break;
-		}
-
 		Scene::CurrentDrawGroup = l;
 
-		DrawGroupList* drawGroupList = PriorityLists[l];
-		if (drawGroupList) {
-			for (Entity* ent : *drawGroupList->Entities) {
-				if (ent->Active) {
-					ent->RenderLate();
+		// Call Scene.RenderLateDrawGroupStart
+		args[0] = INTEGER_VAL(Scene::CurrentDrawGroup);
+		ScriptManager::CallStaticClassFunction("Scene", "RenderLateDrawGroupStart", args);
+
+		if (!DEV_NoObjectRender) {
+			drawGroupList = PriorityLists[l];
+			if (drawGroupList) {
+				if (drawGroupList->NeedsSorting) {
+					drawGroupList->Sort();
+				}
+
+				for (Entity* ent : *drawGroupList->Entities) {
+					if (ent->Active) {
+						ent->RenderLate();
+					}
 				}
 			}
 		}
+
+		// Call Scene.RenderLateDrawGroupFinish
+		ScriptManager::CallStaticClassFunction("Scene", "RenderLateDrawGroupFinish", args);
 	}
+	// Call Scene.RenderFinish
+	ScriptManager::CallStaticClassFunction("Scene", "RenderFinish");
 	Scene::CurrentDrawGroup = -1;
 	PERF_END(ObjectRenderLateTime);
 
@@ -1288,14 +1387,14 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 	}
 }
 
-void Scene::SetupViewMatrices(View* currentView) {
+void Scene::SetupViewMatrices(View* currentView, float viewX, float viewY, float viewZ) {
 	Matrix4x4::Identity(currentView->ViewMatrix);
 
 	if (currentView->UsePerspective) {
-		Scene::SetupView3D(currentView);
+		Scene::SetupView3D(currentView, viewX, viewY, viewZ);
 	}
 	else {
-		Scene::SetupView2D(currentView);
+		Scene::SetupView2D(currentView, viewX, viewY, viewZ);
 	}
 
 	Matrix4x4::Copy(Graphics::ViewMatrix, currentView->ViewMatrix);
@@ -1303,9 +1402,9 @@ void Scene::SetupViewMatrices(View* currentView) {
 	Graphics::UpdateProjectionMatrix();
 }
 
-void Scene::SetupView2D(View* currentView) {
+void Scene::SetupView2D(View* currentView, float viewX, float viewY, float viewZ) {
 	Graphics::UpdateOrtho(currentView->Width, currentView->Height);
-	if (!currentView->UseDrawTarget) {
+	if (!(currentView->UseDrawTarget || currentView->Software)) {
 		Graphics::UpdateOrthoFlipped(currentView->Width, currentView->Height);
 	}
 
@@ -1359,20 +1458,16 @@ void Scene::SetupView2D(View* currentView) {
 	}
 
 	// Translate
-	float cx = currentView->X;
-	float cy = currentView->Y;
-	float cz = currentView->Z;
-
 	if (!isScaled && !isRotated) {
-		cx = std::floor(cx);
-		cy = std::floor(cy);
-		cz = std::floor(cz);
+		viewX = std::floor(viewX);
+		viewY = std::floor(viewY);
+		viewZ = std::floor(viewZ);
 	}
 
-	Matrix4x4::Translate(currentView->ViewMatrix, currentView->ViewMatrix, -cx, -cy, -cz);
+	Matrix4x4::Translate(currentView->ViewMatrix, currentView->ViewMatrix, -viewX, -viewY, -viewZ);
 }
 
-void Scene::SetupView3D(View* currentView) {
+void Scene::SetupView3D(View* currentView, float viewX, float viewY, float viewZ) {
 	Graphics::UpdatePerspective(currentView->FOV,
 		currentView->Width / currentView->Height,
 		currentView->NearPlane,
@@ -1408,9 +1503,9 @@ void Scene::SetupView3D(View* currentView) {
 	// Translate
 	Matrix4x4::Translate(currentView->ViewMatrix,
 		currentView->ViewMatrix,
-		-currentView->X,
-		-currentView->Y,
-		-currentView->Z);
+		-viewX,
+		-viewY,
+		-viewZ);
 }
 
 void Scene::Render() {
@@ -1448,7 +1543,7 @@ void Scene::Render() {
 		Scene::RenderView(viewIndex, true);
 
 		double renderFinishTime = Clock::GetTicks();
-		if (currentView->UseDrawTarget && currentView->DrawTarget) {
+		if (currentView->IsUsingDrawTarget()) {
 			Graphics::SetRenderTarget(NULL);
 			if (currentView->Visible) {
 				Matrix4x4::Identity(Graphics::ViewMatrix);
@@ -1557,6 +1652,13 @@ void Scene::AfterScene() {
 	bool& doRestart = Scene::DoRestart;
 
 	if (Scene::NextScene[0]) {
+		// Call Scene.OnChange
+		std::vector<VMValue> args;
+		if (ScriptManager::Lock()) {
+			args.push_back(OBJECT_VAL(CopyString(Scene::NextScene)));
+		}
+		ScriptManager::CallStaticClassFunction("Scene", "OnChange", args);
+
 		ScriptManager::ForceGarbageCollection();
 
 		Scene::LoadScene(Scene::NextScene);
@@ -1764,6 +1866,10 @@ void Scene::Restart() {
 	}
 
 	// Restart tile animations
+	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
+		Scene::TileSpriteInfos[i].IsAnimated = false;
+	}
+
 	for (Tileset& tileset : Scene::Tilesets) {
 		tileset.RestartAnimations();
 	}
@@ -1837,9 +1943,34 @@ void Scene::Restart() {
 		}
 	});
 
+	// Make layer tile buffers
+	if (Graphics::LayerTileBufferingEnabled) {
+		for (int l = 0; l < (int)Layers.size(); l++) {
+			Graphics::MakeLayerTileBuffers(Layers[l]);
+		}
+	}
+
+	Scene::RefreshTileAnimations = false;
+
 	FinishLoad();
 }
 void Scene::FinishLoad() {
+	// Call Scene.OnLoad or Scene.OnRestart
+	std::vector<VMValue> args;
+	if (Scene::CurrentScene[0] && ScriptManager::Lock()) {
+		args.push_back(OBJECT_VAL(CopyString(Scene::CurrentScene)));
+	}
+	else {
+		args.push_back(NULL_VAL);
+	}
+
+	if (Scene::Loaded) {
+		ScriptManager::CallStaticClassFunction("Scene", "OnRestart", args);
+	}
+	else {
+		ScriptManager::CallStaticClassFunction("Scene", "OnLoad", args);
+	}
+
 	// Run "OnSceneLoad" or "OnSceneRestart" on all objects
 	Scene::IterateAll(Scene::ObjectFirst, [](Entity* ent) -> void {
 		if (Scene::Loaded) {
@@ -1955,6 +2086,7 @@ void Scene::Unload() {
 
 	// Dispose of layers
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
+		Graphics::DeleteLayerTileBuffers(Scene::Layers[i]);
 		delete Scene::Layers[i];
 	}
 	Scene::Layers.clear();
@@ -1975,6 +2107,7 @@ void Scene::Unload() {
 	Scene::FreePriorityLists();
 
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
+		Graphics::DeleteLayerTileBuffers(Scene::Layers[i]);
 		delete Scene::Layers[i];
 	}
 	Scene::Layers.clear();
@@ -2188,7 +2321,7 @@ ObjectList* Scene::NewObjectList(const char* objectName) {
 
 	// The above must have loaded the given scripted class if there is one.
 	// If there is still no class, then it doesn't exist natively or script-side.
-	if (!ScriptManager::GetObjectClass(objectName)) {
+	if (!ScriptManager::GetClass(objectName)) {
 		return nullptr;
 	}
 #endif
@@ -2231,6 +2364,11 @@ void Scene::AddStaticClass() {
 	StaticObject = obj;
 }
 void Scene::CallGameStart() {
+	ObjClass* klass = ScriptManager::GetGlobalClass("Application");
+	if (ScriptManager::CallStaticClassFunction(klass, "OnGameStart")) {
+		return;
+	}
+
 	if (StaticObject) {
 		StaticObject->GameStart();
 	}
@@ -2251,7 +2389,7 @@ ObjectList* Scene::GetObjectList(const char* objectName, bool callListLoadFuncti
 		Scene::ObjectLists->Put(objectNameHash, objectList);
 
 		if (callListLoadFunction) {
-			ScriptManager::CallFunction(objectList->LoadFunctionName.c_str());
+			ScriptManager::CallGlobalFunction(objectList->LoadFunctionName.c_str());
 		}
 	}
 
@@ -2328,6 +2466,10 @@ std::vector<ObjectList*> Scene::GetObjectListPerformance() {
 	}
 
 	return ListList;
+}
+
+void Scene::AddLayer(SceneLayer* layer) {
+	Scene::Layers.push_back(layer);
 }
 
 void Scene::InitPriorityLists() {
@@ -2965,6 +3107,20 @@ bool Scene::AddTileset(char* path) {
 
 	Scene::SetTileCount(Scene::TileCount + (cols * rows));
 
+	// Remake layer tile buffers
+	if (Graphics::LayerTileBufferingEnabled) {
+		for (int l = 0; l < (int)Layers.size(); l++) {
+			if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
+				continue;
+			}
+
+			TileLayer* layer = (TileLayer*)Layers[l];
+			if (layer->UsingTileBuffers) {
+				layer->RemakeTileBuffers = true;
+			}
+		}
+	}
+
 	return true;
 }
 void Scene::SetTileCount(size_t tileCount) {
@@ -3273,7 +3429,7 @@ int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
 	PlayerInfo playerInfo;
 	Player->GetInfo(&playerInfo);
 	VideoTexture = Graphics::CreateTexture(playerInfo.Video.Output.Format,
-		SDL_TEXTUREACCESS_STATIC,
+		TextureAccess_STREAMING,
 		playerInfo.Video.Output.Width,
 		playerInfo.Video.Output.Height);
 	if (!VideoTexture) {
@@ -3431,17 +3587,6 @@ void Scene::DisposeInScope(Uint32 scope) {
 		Scene::MediaList[i] = NULL;
 	}
 	AudioManager::Unlock();
-	// Textures
-	for (size_t i = 0, i_sz = Scene::TextureList.size(); i < i_sz; i++) {
-		if (!Scene::TextureList[i]) {
-			continue;
-		}
-		if (Scene::TextureList[i]->UnloadPolicy > scope) {
-			continue;
-		}
-		delete Scene::TextureList[i];
-		Scene::TextureList[i] = NULL;
-	}
 	// Animators
 	for (size_t i = 0, i_sz = Scene::AnimatorList.size(); i < i_sz; i++) {
 		if (!Scene::AnimatorList[i]) {
@@ -3488,7 +3633,6 @@ void Scene::Dispose() {
 	Scene::MusicList.clear();
 	Scene::ModelList.clear();
 	Scene::MediaList.clear();
-	Scene::TextureList.clear();
 	Scene::AnimatorList.clear();
 
 	// Dispose of StaticObject
@@ -3516,6 +3660,7 @@ void Scene::Dispose() {
 	Scene::FreePriorityLists();
 
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
+		Graphics::DeleteLayerTileBuffers(Scene::Layers[i]);
 		delete Scene::Layers[i];
 	}
 	Scene::Layers.clear();
@@ -3554,6 +3699,8 @@ void Scene::Dispose() {
 		delete Scene::Properties;
 	}
 	Scene::Properties = NULL;
+
+	Scene::Loaded = false;
 }
 
 void Scene::UnloadTilesets() {
@@ -3567,39 +3714,6 @@ void Scene::UnloadTilesets() {
 	}
 	Scene::Tilesets.clear();
 	Scene::TileSpriteInfos.clear();
-}
-
-bool Scene::GetTextureListSpace(size_t* out) {
-	for (size_t i = 0, listSz = TextureList.size(); i < listSz; i++) {
-		if (!TextureList[i]) {
-			*out = i;
-			return true;
-		}
-	}
-	return false;
-}
-size_t Scene::AddGameTexture(GameTexture* texture) {
-	size_t i = 0;
-	bool foundEmpty = GetTextureListSpace(&i);
-
-	if (foundEmpty) {
-		TextureList[i] = texture;
-	}
-	else {
-		i = TextureList.size();
-		TextureList.push_back(texture);
-	}
-
-	return i;
-}
-bool Scene::FindGameTextureByID(int id, size_t& out) {
-	for (size_t i = 0, listSz = TextureList.size(); i < listSz; i++) {
-		if (TextureList[i] && TextureList[i]->GetID() == id) {
-			out = i;
-			return true;
-		}
-	}
-	return false;
 }
 
 // Tile Batching
@@ -3617,6 +3731,7 @@ void Scene::SetTile(int layerIndex,
 
 	TileLayer* layer = (TileLayer*)Layers[layerIndex];
 	Uint32* tile = &layer->Tiles[x + (y << layer->WidthInBits)];
+	Uint32 oldTileData = (*tile) & (TILE_IDENT_MASK | TILE_FLIPX_MASK | TILE_FLIPY_MASK);
 
 	*tile = tileID & TILE_IDENT_MASK;
 	if (flip_x) {
@@ -3627,6 +3742,13 @@ void Scene::SetTile(int layerIndex,
 	}
 	*tile |= collA << 28;
 	*tile |= collB << 26;
+
+	Uint32 newTileData = (*tile) & (TILE_IDENT_MASK | TILE_FLIPX_MASK | TILE_FLIPY_MASK);
+	if (oldTileData != newTileData && Graphics::LayerTileBufferingEnabled) {
+		Graphics::UpdateBufferedLayerTile(layer, x, y);
+	}
+
+	Scene::AnyLayerTileChange = true;
 }
 
 // Tile Collision

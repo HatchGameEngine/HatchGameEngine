@@ -179,6 +179,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StreamImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\TextureImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\TypeImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Bytecode.cpp" />
     <ClCompile Include="..\source\engine\bytecode\BytecodeDebugger.cpp" />
@@ -260,7 +261,6 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\network\WebSocketClient.cpp" />
     <ClCompile Include="..\source\engine\rendering\d3d\D3DRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\FaceInfo.cpp" />
-    <ClCompile Include="..\source\engine\rendering\GameTexture.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShader.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShaderBuilder.cpp" />
@@ -276,7 +276,6 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\rendering\Texture.cpp" />
     <ClCompile Include="..\source\engine\rendering\TextureReference.cpp" />
     <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp" />
-    <ClCompile Include="..\source\engine\rendering\ViewTexture.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Font.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\GIF.cpp" />
