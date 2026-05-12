@@ -37,24 +37,25 @@ const char* Value::GetObjectTypeName(Uint32 type) {
 		return "module";
 	}
 
-	return "unknown object type";
+	return nullptr;
 }
 
 const char* Value::GetObjectTypeName(ObjClass* klass) {
-	const char* printableName = TypeImpl::GetPrintableName(klass);
-	if (printableName != nullptr) {
-		return printableName;
-	}
-	return "unknown";
+	return klass->Name;
 }
 
 const char* Value::GetObjectTypeName(VMValue value) {
-	Obj* object = AS_OBJECT(value);
-	const char* printableName = TypeImpl::GetPrintableName(object->Class);
-	if (printableName != nullptr) {
-		return printableName;
+	const char* typeString = GetObjectTypeName(OBJECT_TYPE(value));
+	if (typeString) {
+		return typeString;
 	}
-	return GetObjectTypeName(OBJECT_TYPE(value));
+
+	Obj* object = AS_OBJECT(value);
+	if (object->Class != nullptr) {
+		return GetObjectTypeName(object->Class);
+	}
+
+	return "object";
 }
 
 const char* Value::GetPrintableObjectName(VMValue value) {

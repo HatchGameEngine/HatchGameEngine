@@ -27,7 +27,7 @@ Uint32 Hash_Uniforms = 0;
 
 void ShaderImpl::Init() {
 	Class = NewClass(CLASS_SHADER);
-	Class->NewFn = New;
+	Class->NewFn = Constructor;
 
 	Hash_Uniforms = Murmur::EncryptString("Uniforms");
 
@@ -46,8 +46,7 @@ void ShaderImpl::Init() {
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
 
 	TypeImpl::RegisterClass(Class);
-	TypeImpl::ExposeClass(CLASS_SHADER, Class);
-	TypeImpl::DefinePrintableName(Class, "shader");
+	TypeImpl::ExposeClass(Class);
 }
 
 #define CHECK_EXISTS(ptr) \
@@ -94,7 +93,7 @@ bool ShaderImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint3
  * \desc Creates a shader program.
  * \ns Shader
  */
-Obj* ShaderImpl::New() {
+Obj* ShaderImpl::Constructor() {
 	Shader* shader = Graphics::CreateShader();
 	if (shader == nullptr) {
 		throw ScriptException("Could not create shader!");

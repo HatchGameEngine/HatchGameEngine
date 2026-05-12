@@ -6,10 +6,6 @@
 
 class InstanceImpl {
 public:
-	static ObjClass* Class;
-
-	static void Init();
-
 	static Obj* New(size_t size, ObjType type);
 	static void Dispose(Obj* object);
 };

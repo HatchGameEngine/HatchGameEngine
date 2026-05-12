@@ -15,7 +15,7 @@ public:
 
 	static void Init();
 
-	static Obj* New(void);
+	static Obj* Constructor();
 	static VMValue VM_Initializer(int argCount, VMValue* args, Uint32 threadID);
 	static void Dispose(Obj* object);
 
