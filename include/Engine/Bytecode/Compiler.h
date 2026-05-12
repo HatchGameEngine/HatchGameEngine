@@ -169,7 +169,7 @@ public:
 	void GetModuleVariableDeclaration();
 	void GetPropertyDeclaration(Token propertyName);
 	void GetClassDeclaration();
-	void GetEnumDeclaration();
+	void GetEnumDeclaration(bool isLocal);
 	void GetImportDeclaration();
 	void GetUsingDeclaration();
 	void GetEventDeclaration();
