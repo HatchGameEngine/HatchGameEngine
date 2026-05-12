@@ -6,13 +6,25 @@
 #include <Engine/Bytecode/Types.h>
 #include <Engine/IO/Stream.h>
 
+/***
+* \class Stream
+* \desc An abstraction of a continuous sequence of data.
+Use <ref Stream.FromResource> or <ref Stream.FromFile> to open a stream.
+*/
+
 ObjClass* StreamImpl::Class = nullptr;
 
 void StreamImpl::Init() {
 	Class = NewClass(CLASS_STREAM);
+	Class->NewFn = Constructor;
 
 	TypeImpl::RegisterClass(Class);
-	TypeImpl::DefinePrintableName(Class, "stream");
+	TypeImpl::ExposeClass(Class);
+}
+
+Obj* StreamImpl::Constructor() {
+	throw ScriptException("Cannot directly construct Stream! Use Stream.FromResource or Stream.FromFile.");
+	return nullptr;
 }
 
 ObjStream* StreamImpl::New(void* streamPtr, bool writable) {

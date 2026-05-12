@@ -51,6 +51,12 @@ float Math::Atan(float n) {
 float Math::Atan2(float x, float y) {
 	return std::atan2(y, x);
 }
+
+float Math::AngleDifference(float from, float to) {
+	float difference = fmod(from - to, M_PI * 2.0);
+	return (fmod(2.0f * difference, M_PI * 2.0f) - difference);
+}
+
 float Math::Distance(float x1, float y1, float x2, float y2) {
 	x2 -= x1;
 	x2 *= x2;

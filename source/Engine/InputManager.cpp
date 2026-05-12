@@ -8,6 +8,8 @@ float InputManager::MouseY = 0;
 int InputManager::MouseDown = 0;
 int InputManager::MousePressed = 0;
 int InputManager::MouseReleased = 0;
+float InputManager::MouseWheelX = 0.0f;
+float InputManager::MouseWheelY = 0.0f;
 int InputManager::MouseMode = MOUSEMODE_DEFAULT;
 
 Uint8 InputManager::KeyboardState[0x120];
@@ -361,6 +363,11 @@ void InputManager::RemoveController(int joystickID) {
 	InputManager::Controllers[controller_id]->Close();
 }
 
+void InputManager::OnFrameBegin() {
+	MouseWheelX = 0.0f;
+	MouseWheelY = 0.0f;
+}
+
 void InputManager::Poll() {
 	if (Application::Platform == Platforms::iOS ||
 		Application::Platform == Platforms::Android ||
@@ -514,6 +521,11 @@ void InputManager::SetMouseMode(int mode) {
 	}
 
 	MouseMode = mode;
+}
+
+void InputManager::HandleMouseWheelEvent(float motionX, float motionY) {
+	MouseWheelX += motionX;
+	MouseWheelY += motionY;
 }
 
 Controller* InputManager::GetController(int index) {

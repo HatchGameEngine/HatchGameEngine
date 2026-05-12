@@ -73,6 +73,7 @@ public:
 	void Error(const char* message);
 	void ErrorAtCurrent(const char* message);
 	void Warning(const char* message);
+	void WarningAt(Token* token, const char* message);
 	void WarningInFunction(const char* format, ...);
 	int ParseVariable(const char* errorMessage, bool constant);
 	bool IdentifiersEqual(Token* a, Token* b);

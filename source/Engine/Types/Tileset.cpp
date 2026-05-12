@@ -71,6 +71,7 @@ void Tileset::AddTileAnimSequence(int tileID,
 
 	if (!tileIDs.size()) {
 		AnimatorMap.erase(tileID);
+		Scene::RefreshTileAnimations = true;
 		return;
 	}
 
@@ -111,7 +112,11 @@ void Tileset::AddTileAnimSequence(int tileID,
 	TileAnimator animator(tileSpriteInfo, tileSprite, animID);
 	animator.RestartAnimation();
 
+	tileSpriteInfo->IsAnimated = true;
+
 	AnimatorMap.insert({tileID, animator});
+
+	Scene::RefreshTileAnimations = true;
 }
 
 void Tileset::AddTileAnimSequence(int tileID,
@@ -120,13 +125,18 @@ void Tileset::AddTileAnimSequence(int tileID,
 	int animID) {
 	if (animSprite == nullptr) {
 		AnimatorMap.erase(tileID);
+		Scene::RefreshTileAnimations = true;
 		return;
 	}
 
 	TileAnimator animator(tileSpriteInfo, animSprite, animID);
 	animator.RestartAnimation();
 
+	tileSpriteInfo->IsAnimated = true;
+
 	AnimatorMap.insert({tileID, animator});
+
+	Scene::RefreshTileAnimations = true;
 }
 
 TileAnimator* Tileset::GetTileAnimSequence(int tileID) {

@@ -30,6 +30,8 @@ public:
 	static int MouseDown;
 	static int MousePressed;
 	static int MouseReleased;
+	static float MouseWheelX;
+	static float MouseWheelY;
 	static int MouseMode;
 	static Uint8 KeyboardState[0x120];
 	static Uint8 KeyboardStateLast[0x120];
@@ -53,12 +55,14 @@ public:
 	static void InitControllers();
 	static bool AddController(int index);
 	static void RemoveController(int joystickID);
+	static void OnFrameBegin();
 	static void Poll();
 	static Uint16 CheckKeyModifiers(Uint16 modifiers);
 	static bool IsKeyDown(int key);
 	static bool IsKeyPressed(int key);
 	static bool IsKeyReleased(int key);
 	static void SetMouseMode(int mode);
+	static void HandleMouseWheelEvent(float motionX, float motionY);
 	static Controller* GetController(int index);
 	static bool ControllerIsConnected(int index);
 	static bool ControllerIsXbox(int index);

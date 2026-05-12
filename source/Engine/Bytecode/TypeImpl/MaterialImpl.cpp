@@ -44,7 +44,7 @@ Uint32 Hash_EmissiveTexture = 0;
 
 void MaterialImpl::Init() {
 	Class = NewClass(CLASS_MATERIAL);
-	Class->NewFn = New;
+	Class->NewFn = Constructor;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 
 	Hash_Name = Murmur::EncryptString("Name");
@@ -166,8 +166,7 @@ void MaterialImpl::Init() {
 #endif
 
 	TypeImpl::RegisterClass(Class);
-	TypeImpl::ExposeClass(CLASS_MATERIAL, Class);
-	TypeImpl::DefinePrintableName(Class, "material");
+	TypeImpl::ExposeClass(Class);
 }
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
@@ -177,7 +176,7 @@ void MaterialImpl::Init() {
  * \desc Creates a material.
  * \ns Material
  */
-Obj* MaterialImpl::New() {
+Obj* MaterialImpl::Constructor() {
 	Material* materialPtr = Material::Create(nullptr);
 	return (Obj*)New((void*)materialPtr);
 }

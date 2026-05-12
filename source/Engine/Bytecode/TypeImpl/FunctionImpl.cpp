@@ -3,15 +3,28 @@
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
+/***
+* \class Function
+* \desc A function, defined in a HSL script.
+*/
+
 ObjClass* FunctionImpl::Class = nullptr;
 
 void FunctionImpl::Init() {
-	Class = NewClass(CLASS_FUNCTION);
+	Class = NewClass("Function");
+	Class->NewFn = Constructor;
 
+	ScriptManager::DefineNative(Class, "Bind", FunctionImpl::VM_Bind);
 	ScriptManager::DefineNative(Class, "bind", FunctionImpl::VM_Bind);
 	ScriptManager::DefineNative(Class, "bindArguments", FunctionImpl::VM_BindArguments);
 
 	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(Class);
+}
+
+Obj* FunctionImpl::Constructor() {
+	throw ScriptException("Cannot directly construct Function!");
+	return nullptr;
 }
 
 Obj* FunctionImpl::New() {
@@ -26,6 +39,13 @@ Obj* FunctionImpl::New() {
 
 #define THROW_ERROR(...) ScriptManager::Threads[threadID].ThrowRuntimeError(false, __VA_ARGS__)
 
+/***
+ * \method Bind
+ * \desc Binds a receiver to a method.
+ * \param receiver (value): The receiver to bind.
+ * \return <ref BoundMethod> Returns a bound method.
+ * \ns Function
+ */
 VMValue FunctionImpl::VM_Bind(int argCount, VMValue* args, Uint32 threadID) {
 	if (argCount < 1) {
 		StandardLibrary::CheckAtLeastArgCount(argCount, 1);
@@ -54,6 +74,13 @@ VMValue FunctionImpl::VM_Bind(int argCount, VMValue* args, Uint32 threadID) {
 	return OBJECT_VAL(bound);
 }
 
+/***
+ * \method BindArguments
+ * \desc Binds arguments to a method.
+ * \param arguments (varargs): The arguments to bind.
+ * \return <ref BoundMethod> Returns a bound method.
+ * \ns Function
+ */
 VMValue FunctionImpl::VM_BindArguments(int argCount, VMValue* args, Uint32 threadID) {
 	if (argCount < 1) {
 		StandardLibrary::CheckAtLeastArgCount(argCount, 1);

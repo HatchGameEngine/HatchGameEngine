@@ -616,7 +616,6 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 
 		// Read layers
 		Uint32 layerCount = r->ReadByte();
-		Scene::Layers.resize(layerCount);
 		for (Uint32 i = 0; i < layerCount; i++) {
 			SceneLayer layer = RSDKSceneReader::ReadLayer(r);
 
@@ -628,7 +627,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 				layer.Height,
 				layer.DrawGroup);
 
-			Scene::Layers[i] = layer;
+			Scene::AddLayer(layer);
 		}
 
 		ticks = Clock::GetTicks() - ticks;

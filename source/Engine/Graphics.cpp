@@ -26,6 +26,7 @@ int Graphics::MultisamplingEnabled = 0;
 int Graphics::FontDPI = 1;
 bool Graphics::SupportsShaders = false;
 bool Graphics::SupportsBatching = false;
+bool Graphics::LayerTileBufferingEnabled = true;
 bool Graphics::TextureBlend = false;
 bool Graphics::TextureInterpolate = false;
 Uint32 Graphics::PreferredPixelFormat = PixelFormat_RGBA8888;
@@ -2619,8 +2620,10 @@ void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* current
 	}
 }
 
-void Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
-	TileSpriteInfo info = Scene::TileSpriteInfos[tile];
+void Graphics::DrawTile(TileSpriteInfo& info, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
+	if (!Graphics::GfxFunctions->DrawSprite) {
+		return;
+	}
 
 	int paletteID;
 	if (usePaletteIndexLines) {
@@ -2642,7 +2645,7 @@ void Graphics::DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool use
 		0.0,
 		(int)paletteID);
 }
-void Graphics::DrawTilePart(int tile,
+void Graphics::DrawTilePart(TileSpriteInfo& info,
 	int sx,
 	int sy,
 	int sw,
@@ -2652,7 +2655,9 @@ void Graphics::DrawTilePart(int tile,
 	bool flipX,
 	bool flipY,
 	bool usePaletteIndexLines) {
-	TileSpriteInfo info = Scene::TileSpriteInfos[tile];
+	if (!Graphics::GfxFunctions->DrawSpritePart) {
+		return;
+	}
 
 	int paletteID;
 	if (usePaletteIndexLines) {
@@ -2678,7 +2683,7 @@ void Graphics::DrawTilePart(int tile,
 		0.0,
 		(int)paletteID);
 }
-void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
+void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView, bool onlyAnimated) {
 	float viewX = currentView->X;
 	float viewY = currentView->Y;
 
@@ -2734,6 +2739,8 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
+	Graphics::BeginTextureBatching();
+
 	for (int dst_y = startY; dst_y < endY; dst_y += tileHeight, srcY += tileHeight) {
 		if (srcY < 0 || srcY >= layerHeightInPixels) {
 			if ((layer->Flags & SceneLayer::FLAGS_REPEAT_Y) == 0) {
@@ -2775,10 +2782,15 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 				continue;
 			}
 
+			TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
+			if (onlyAnimated && !info.IsAnimated) {
+				continue;
+			}
+
 			int srcTX = srcX % tileWidth;
 			int srcTY = srcY % tileHeight;
 
-			Graphics::DrawTile(tileID,
+			Graphics::BatchTile(info,
 				viewX + ((dst_x - srcTX) + tileWidthHalf),
 				viewY + ((dst_y - srcTY) + tileHeightHalf),
 				(tile & TILE_FLIPX_MASK) != 0,
@@ -2786,6 +2798,8 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 				usePaletteIndexLines);
 		}
 	}
+
+	Graphics::FinishTextureBatching();
 }
 void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView) {
 	int viewWidth = (int)std::ceil(currentView->GetScaledWidth());
@@ -2800,6 +2814,8 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 	int layerWidthInPixels = layer->Width * tileWidth;
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
+
+	Graphics::BeginTextureBatching();
 
 	TileScanLine* scanLine = TileScanLineBuffer;
 	for (int dst_y = 0; dst_y < max_y;) {
@@ -2846,6 +2862,8 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 
 			if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
 				int tileID = tile & TILE_IDENT_MASK;
+				TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
+
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
 
@@ -2857,7 +2875,7 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 					textureSrcTY = tileHeight - srcTY - tileDrawHeight;
 				}
 
-				Graphics::DrawTilePart(tileID,
+				Graphics::BatchTilePart(info,
 					0,
 					textureSrcTY,
 					tileWidth,
@@ -2873,6 +2891,28 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 		scanLine += tileDrawHeight;
 		dst_y += tileDrawHeight;
 	}
+
+	Graphics::FinishTextureBatching();
+}
+bool Graphics::CanDrawBufferedSceneLayer(SceneLayer* layer) {
+	if (!Graphics::GfxFunctions->DrawBufferedSceneLayer) {
+		return false;
+	}
+
+	if (!layer->UsingTileBuffers || layer->UsingScrollIndexes) {
+		return false;
+	}
+
+	if ((layer->Flags & (SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y)) != 0) {
+		return false;
+	}
+
+	return true;
+}
+void Graphics::DrawBufferedSceneLayer(SceneLayer* layer, View* currentView) {
+	Graphics::GfxFunctions->DrawBufferedSceneLayer(layer);
+
+	Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView, true);
 }
 void Graphics::DrawSceneLayer(SceneLayer* layer,
 	View* currentView,
@@ -2894,12 +2934,35 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 		Graphics::SetUserShader(shader);
 	}
 
-	if (layer->UsingScrollIndexes) {
+	if (Graphics::CanDrawBufferedSceneLayer(layer)) {
+		bool updateViewMatrix = layer->RelativeX != 1.0f || layer->RelativeY != 1.0f ||
+			layer->ConstantX != 0.0f || layer->ConstantX != 0.0f ||
+			layer->OffsetX != 0.0f || layer->OffsetY != 0.0f;
+		if (updateViewMatrix) {
+			float constantScrollH = Scene::Frame * layer->ConstantX;
+			float constantScrollV = Scene::Frame * layer->ConstantY;
+
+			float viewX = (int)(constantScrollH + (currentView->X * layer->RelativeX) +
+				layer->OffsetX);
+			float viewY = (int)(constantScrollV + (currentView->Y * layer->RelativeY) +
+				layer->OffsetY);
+
+			Graphics::Save();
+			Scene::SetupViewMatrices(currentView, viewX, viewY, currentView->Z);
+		}
+
+		Graphics::DrawBufferedSceneLayer(layer, currentView);
+
+		if (updateViewMatrix) {
+			Graphics::Restore();
+		}
+	}
+	else if (layer->UsingScrollIndexes) {
 		Graphics::DrawSceneLayer_InitTileScanLines(layer, currentView);
 		Graphics::DrawSceneLayer_HorizontalScrollIndexes(layer, currentView);
 	}
 	else {
-		Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView);
+		Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView, false);
 	}
 
 	if (shader) {
@@ -2914,6 +2977,104 @@ void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
 	else {
 		thread->Push(INTEGER_VAL(layerIndex));
 		thread->RunEntityFunction(func, 1);
+	}
+}
+
+void Graphics::BeginTextureBatching() {
+	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BeginTextureBatching) {
+		Graphics::GfxFunctions->BeginTextureBatching();
+	}
+}
+void Graphics::BatchTile(TileSpriteInfo& info, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
+	int paletteID;
+	if (usePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+	else {
+		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+	}
+
+	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BatchSprite) {
+		Graphics::GfxFunctions->BatchSprite(info.Sprite,
+			info.AnimationIndex,
+			info.FrameIndex,
+			x,
+			y,
+			flipX,
+			flipY,
+			1.0f,
+			1.0f,
+			(int)paletteID);
+	}
+	else if (Graphics::GfxFunctions->DrawSprite) {
+		Graphics::GfxFunctions->DrawSprite(info.Sprite,
+			info.AnimationIndex,
+			info.FrameIndex,
+			x,
+			y,
+			flipX,
+			flipY,
+			1.0f,
+			1.0f,
+			0.0f,
+			(int)paletteID);
+	}
+}
+void Graphics::BatchTilePart(TileSpriteInfo& info,
+	int sx,
+	int sy,
+	int sw,
+	int sh,
+	int x,
+	int y,
+	bool flipX,
+	bool flipY,
+	bool usePaletteIndexLines) {
+	int paletteID;
+	if (usePaletteIndexLines) {
+		paletteID = PALETTE_INDEX_TABLE_ID;
+	}
+	else {
+		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+	}
+
+	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BatchSpritePart) {
+		Graphics::GfxFunctions->BatchSpritePart(info.Sprite,
+			info.AnimationIndex,
+			info.FrameIndex,
+			sx,
+			sy,
+			sw,
+			sh,
+			x,
+			y,
+			flipX,
+			flipY,
+			1.0f,
+			1.0f,
+			(int)paletteID);
+	}
+	else {
+		Graphics::GfxFunctions->DrawSpritePart(info.Sprite,
+			info.AnimationIndex,
+			info.FrameIndex,
+			sx,
+			sy,
+			sw,
+			sh,
+			x,
+			y,
+			flipX,
+			flipY,
+			1.0f,
+			1.0f,
+			0.0f,
+			(int)paletteID);
+	}
+}
+void Graphics::FinishTextureBatching() {
+	if (Graphics::SupportsBatching && Graphics::GfxFunctions->FinishTextureBatching) {
+		Graphics::GfxFunctions->FinishTextureBatching();
 	}
 }
 
@@ -3178,6 +3339,58 @@ void Graphics::MakeFrameBufferID(ISprite* sprite) {
 void Graphics::DeleteFrameBufferID(ISprite* sprite) {
 	if (Graphics::GfxFunctions->DeleteFrameBufferID) {
 		Graphics::GfxFunctions->DeleteFrameBufferID(sprite);
+	}
+}
+
+bool Graphics::CanBuildLayerTileBuffers(SceneLayer* layer) {
+	if (Scene::Tilesets.size() == 0) {
+		return false;
+	}
+
+	if (layer->UsingScrollIndexes) {
+		return false;
+	}
+
+	if ((layer->Flags & (SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y)) != 0) {
+		return false;
+	}
+
+	return true;
+}
+
+void Graphics::MakeLayerTileBuffers(SceneLayer* layer) {
+	if (!Graphics::CanBuildLayerTileBuffers(layer)) {
+		return;
+	}
+
+	if (Graphics::GfxFunctions->MakeLayerTileBuffers) {
+		Graphics::GfxFunctions->MakeLayerTileBuffers(layer);
+	}
+}
+void Graphics::DeleteLayerTileBuffers(SceneLayer* layer) {
+	if (Graphics::GfxFunctions->DeleteLayerTileBuffers) {
+		Graphics::GfxFunctions->DeleteLayerTileBuffers(layer);
+	}
+}
+
+void Graphics::RefreshTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex) {
+	if (Graphics::GfxFunctions->RefreshTileBuffersForTileset) {
+		Graphics::GfxFunctions->RefreshTileBuffersForTileset(layer, tilesetIndex);
+	}
+}
+void Graphics::DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex) {
+	if (Graphics::GfxFunctions->DeleteTileBuffersForTileset) {
+		Graphics::GfxFunctions->DeleteTileBuffersForTileset(layer, tilesetIndex);
+	}
+}
+void Graphics::UpdateBufferedLayerTile(SceneLayer* layer, int x, int y) {
+	if (Graphics::GfxFunctions->UpdateBufferedLayerTile) {
+		Graphics::GfxFunctions->UpdateBufferedLayerTile(layer, x, y);
+	}
+}
+void Graphics::RefreshLayerTileAnimations(SceneLayer* layer) {
+	if (Graphics::GfxFunctions->RefreshLayerTileAnimations) {
+		Graphics::GfxFunctions->RefreshLayerTileAnimations(layer);
 	}
 }
 

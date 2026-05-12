@@ -37,24 +37,25 @@ const char* Value::GetObjectTypeName(Uint32 type) {
 		return "module";
 	}
 
-	return "unknown object type";
+	return nullptr;
 }
 
 const char* Value::GetObjectTypeName(ObjClass* klass) {
-	const char* printableName = TypeImpl::GetPrintableName(klass);
-	if (printableName != nullptr) {
-		return printableName;
-	}
-	return "unknown";
+	return klass->Name;
 }
 
 const char* Value::GetObjectTypeName(VMValue value) {
-	Obj* object = AS_OBJECT(value);
-	const char* printableName = TypeImpl::GetPrintableName(object->Class);
-	if (printableName != nullptr) {
-		return printableName;
+	const char* typeString = GetObjectTypeName(OBJECT_TYPE(value));
+	if (typeString) {
+		return typeString;
 	}
-	return GetObjectTypeName(OBJECT_TYPE(value));
+
+	Obj* object = AS_OBJECT(value);
+	if (object->Class != nullptr) {
+		return GetObjectTypeName(object->Class);
+	}
+
+	return "object";
 }
 
 const char* Value::GetPrintableObjectName(VMValue value) {
@@ -153,11 +154,16 @@ VMValue Value::Concatenate(VMValue va, VMValue vb) {
 	ObjString* b = AS_STRING(vb);
 
 	size_t length = a->Length + b->Length;
-	ObjString* result = AllocString(length);
+	char* chars = (char*)Memory::Malloc(length + 1);
+	if (!chars) {
+		return NULL_VAL;
+	}
 
-	memcpy(result->Chars, a->Chars, a->Length);
-	memcpy(result->Chars + a->Length, b->Chars, b->Length);
-	result->Chars[length] = 0;
+	memcpy(chars, a->Chars, a->Length);
+	memcpy(chars + a->Length, b->Chars, b->Length);
+	chars[length] = 0;
+
+	ObjString* result = TakeString(chars, length);
 	return OBJECT_VAL(result);
 }
 
@@ -170,10 +176,7 @@ bool Value::SortaEqual(VMValue a, VMValue b) {
 	}
 
 	if (IS_STRING(a) && IS_STRING(b)) {
-		ObjString* astr = AS_STRING(a);
-		ObjString* bstr = AS_STRING(b);
-		return astr->Length == bstr->Length &&
-			!memcmp(astr->Chars, bstr->Chars, astr->Length);
+		return AS_OBJECT(a) == AS_OBJECT(b);
 	}
 
 	if (IS_BOUND_METHOD(a) && IS_BOUND_METHOD(b)) {
