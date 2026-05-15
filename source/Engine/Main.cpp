@@ -3,9 +3,9 @@
 #include <Engine/Includes/Standard.h>
 
 #if defined(WIN32) && !defined(WINDOWS_CONSOLE_APP)
-int WinMain(int argc, char* args[]) {
+int WinMain(int argc, char* argv[]) {
 #else
-int main(int argc, char* args[]) {
+int main(int argc, char* argv[]) {
 #endif
 #if SWITCH
 	Log::Init();
@@ -20,7 +20,7 @@ int main(int argc, char* args[]) {
 	// 1785000000
 #endif
 
-	Application::Run(argc, args);
+	Application::Run(argc, argv);
 
 #if SWITCH
 // pcvSetClockRate(PcvModule_CpuBus, 1020000000);
