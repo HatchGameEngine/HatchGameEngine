@@ -2235,6 +2235,27 @@ void Scene::ReadSceneFile(const char* filename) {
 	}
 }
 
+bool Scene::ChangeFromPath(const char* path, int filter) {
+	for (size_t i = 0; i < SceneInfo::Categories.size(); i++) {
+		SceneListCategory& category = SceneInfo::Categories[i];
+
+		for (size_t j = 0; j < category.Entries.size(); j++) {
+			SceneListEntry& scene = category.Entries[j];
+
+			if (!strcmp(path, SceneInfo::GetFilename(i, j).c_str())) {
+				if (filter != -1 && !(scene.Filter & filter)) {
+					continue;
+				}
+
+				Scene::SetCurrent(category.Name, scene.Name);
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void Scene::ProcessSceneTimer() {
 	if (Scene::TimeEnabled) {
 		Scene::TimeCounter += 100;

@@ -66,7 +66,7 @@ bool Directory::Create(const char* path) {
 void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 	const char* path,
 	const char* searchPattern,
-	bool allDirs) {
+	SearchOptions options) {
 	char fullpath[MAX_PATH_LENGTH];
 
 #if WIN32
@@ -85,8 +85,11 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 				continue;
 			}
 
-			if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-				if (allDirs) {
+			bool isDirectory = (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+			bool isValidPath = false;
+
+			if (isDirectory) {
+				if (options.AllDirs) {
 					snprintf(fullpath,
 						sizeof fullpath,
 						"%s/%s",
@@ -94,8 +97,15 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 						data.cFileName);
 					Directory::GetFiles(files, fullpath, searchPattern, true);
 				}
+				else if (options.ListDirs) {
+					isValidPath = true;
+				}
 			}
 			else if (StringUtils::WildcardMatch(data.cFileName, searchPattern)) {
+				isValidPath = true;
+			}
+
+			if (isValidPath) {
 				std::string entryName = std::string(data.cFileName);
 
 				std::filesystem::path pathFs =
@@ -104,6 +114,10 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 
 				std::string tempPath = Path::ToString(pathFs / entryFs);
 				std::replace(tempPath.begin(), tempPath.end(), '\\', '/');
+
+				if (isDirectory) {
+					tempPath += "/";
+				}
 
 				std::filesystem::path finalPath = std::filesystem::u8path(tempPath);
 
@@ -125,8 +139,11 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 				continue;
 			}
 
-			if (d->d_type == DT_DIR) {
-				if (allDirs) {
+			bool isDirectory = d->d_type == DT_DIR || d->d_type == DT_LNK;
+			bool isValidPath = false;
+
+			if (isDirectory) {
+				if (options.AllDirs) {
 					snprintf(fullpath,
 						sizeof fullpath,
 						"%s/%s",
@@ -134,26 +151,45 @@ void Directory::GetFiles(std::vector<std::filesystem::path>* files,
 						d->d_name);
 					Directory::GetFiles(files, fullpath, searchPattern, true);
 				}
+				else if (options.ListDirs) {
+					isValidPath = true;
+				}
 			}
 			else if (StringUtils::WildcardMatch(d->d_name, searchPattern)) {
+				isValidPath = true;
+			}
+
+			if (isValidPath) {
 				std::string entryName = std::string(d->d_name);
 
 				std::filesystem::path pathFs =
 					std::filesystem::u8path(std::string(path));
 				std::filesystem::path entryFs = std::filesystem::u8path(entryName);
 
-				files->push_back(pathFs / entryFs);
+				std::string tempPath = Path::ToString(pathFs / entryFs);
+				std::replace(tempPath.begin(), tempPath.end(), '\\', '/');
+
+				if (isDirectory) {
+					tempPath += "/";
+				}
+
+				std::filesystem::path finalPath = std::filesystem::u8path(tempPath);
+
+				files->push_back(finalPath);
 			}
 		}
 		closedir(dir);
 	}
 #endif
 }
-std::vector<std::filesystem::path>
-Directory::GetFiles(const char* path, const char* searchPattern, bool allDirs) {
-	std::vector<std::filesystem::path> files;
-	Directory::GetFiles(&files, path, searchPattern, allDirs);
-	return files;
+
+void Directory::GetFiles(std::vector<std::filesystem::path>* files,
+	const char* path,
+	const char* searchPattern,
+	bool allDirs) {
+	SearchOptions options;
+	options.AllDirs = allDirs;
+	GetFiles(files, path, searchPattern, options);
 }
 
 void Directory::GetDirectories(std::vector<std::filesystem::path>* files,

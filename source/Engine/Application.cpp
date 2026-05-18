@@ -129,6 +129,10 @@ bool Application::DisableDefaultActions = false;
 bool Application::DevMenuActivated = false;
 DeveloperMenu Application::DevMenu;
 
+size_t ResourcesBrowserNumEntries = 0;
+std::vector<std::string> ResourcesBrowserEntries;
+std::vector<std::string> ResourcesBrowserPaths;
+
 bool Application::DevConvertModels = false;
 
 bool Application::AllowCmdLineSceneLoad = false;
@@ -2708,6 +2712,16 @@ int Application::HandleAppEvents(void* data, SDL_Event* event) {
 	}
 }
 
+bool Application::IsResourcesBrowserAvailable() {
+	VFSProvider* mainVfs = ResourceManager::GetMainResource();
+	if (!mainVfs) {
+		return false;
+	}
+
+	std::string testPath = "Test/path";
+	return mainVfs->TransformFilename(testPath.c_str()) == testPath;
+}
+
 void Application::DrawDevString(const char* string, int x, int y, int align, bool isSelected) {
 	float scaleX = (float)DevMenu.CurrentWindowWidth / Application::WindowWidth;
 	float scaleY = (float)DevMenu.CurrentWindowHeight / Application::WindowHeight;
@@ -2798,6 +2812,8 @@ void Application::OpenDevMenu() {
 	DevMenu.Fullscreen = Application::WindowFullscreen;
 	DevMenu.WindowBorderless = Application::WindowBorderless;
 
+	DevMenu.ResourcesBrowserAvailable = IsResourcesBrowserAvailable();
+
 	AudioManager::AudioPauseAll();
 	AudioManager::Lock();
 	if (AudioManager::MusicStack.size() > 0) {
@@ -2868,7 +2884,9 @@ void Application::DevMenu_MainMenu() {
 		"Close the application."};
 	DrawDevString(tooltips[DevMenu.Selection], 160, 86, ALIGN_LEFT, true);
 
-	if (DevMenu.Selection == 2 && SceneInfo::Categories.empty()) {
+	if (DevMenu.Selection == 2 &&
+		SceneInfo::Categories.empty() &&
+		!DevMenu.ResourcesBrowserAvailable) {
 		DrawDevString("Warning: No scene list is loaded.", 160, 101, ALIGN_LEFT, false);
 		DrawDevString("This option is disabled.", 160, 116, ALIGN_LEFT, false);
 	}
@@ -2928,7 +2946,10 @@ void Application::DevMenu_MainMenu() {
 			UpdateWindowTitle();
 			break;
 		case 2:
-			if (!SceneInfo::Categories.empty()) {
+			if (SceneInfo::Categories.empty()) {
+				DevMenu_OpenResourcesBrowser();
+			}
+			else {
 				DevMenu.State = Application::DevMenu_CategorySelectMenu;
 			}
 			break;
@@ -3039,6 +3060,246 @@ void Application::DevMenu_CategorySelectMenu() {
 			DevMenu.Timer = 1 * FrameTimeDesired;
 		}
 	}
+}
+
+void Application::DevMenu_OpenResourcesBrowser() {
+	if (!DevMenu.ResourcesBrowserAvailable) {
+		return;
+	}
+
+	std::vector<std::string> paths;
+
+	if (Scene::CurrentScene[0] != '\0') {
+		const char* sep = strrchr(Scene::CurrentScene, '/');
+		if (sep) {
+			std::string currentPath = std::string(Scene::CurrentScene);
+			paths.push_back(currentPath.substr(0, sep - Scene::CurrentScene));
+		}
+	}
+
+	paths.push_back("Scenes");
+	paths.push_back("Stages");
+	paths.push_back("");
+
+	if (!DevMenu_ResourcesBrowserTryGoToPaths(paths)) {
+		return;
+	}
+
+	DevMenu.State = DevMenu_ResourcesBrowserMenu;
+	DevMenu.SubScrollPos = 0;
+}
+
+bool Application::DevMenu_ResourcesBrowserTryGoToPaths(std::vector<std::string> paths) {
+	for (size_t i = 0; i < paths.size(); i++) {
+		std::string path = paths[i];
+
+		if (!DevMenu_GetDirectories(path.c_str())) {
+			continue;
+		}
+
+		if (ResourcesBrowserNumEntries > 0) {
+			// Add the path components
+			ResourcesBrowserPaths.clear();
+
+			if (path != "") {
+				char* currentPath = StringUtils::Duplicate(path.c_str());
+				while (true) {
+					ResourcesBrowserPaths.insert(ResourcesBrowserPaths.begin(),
+						std::string(currentPath) + "/");
+
+					char* sep = strrchr(currentPath, '/');
+					if (!sep) {
+						break;
+					}
+
+					*sep = '\0';
+				}
+				Memory::Free(currentPath);
+			}
+
+			if (path != "") {
+				ResourcesBrowserEntries.insert(ResourcesBrowserEntries.begin(), PARENT_DIRECTORY);
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Application::DevMenu_ResourcesBrowserGoToPath(std::string path, std::string parentPath) {
+	if (path == PARENT_DIRECTORY) {
+		ResourcesBrowserPaths.pop_back();
+
+		if (ResourcesBrowserPaths.size() > 0) {
+			path = ResourcesBrowserPaths.back();
+		}
+		else {
+			path = "";
+		}
+	}
+	else {
+		path = parentPath + path;
+
+		ResourcesBrowserPaths.push_back(path);
+	}
+
+	if (!DevMenu_GetDirectories(path.c_str())) {
+		return false;
+	}
+
+	if (ResourcesBrowserPaths.size() > 0) {
+		ResourcesBrowserEntries.insert(ResourcesBrowserEntries.begin(), PARENT_DIRECTORY);
+	}
+
+	return true;
+}
+
+bool Application::DevMenu_GetDirectories(const char* path) {
+	VFSEnumerationOptions options;
+	options.OnlyCurrentDirectory = true;
+
+	VFSProvider* mainVfs = ResourceManager::GetMainResource();
+	if (!mainVfs) {
+		return false;
+	}
+
+	VFSEnumeration enumeration = mainVfs->EnumerateFiles(path, options);
+	VFSEnumerationResult result = enumeration.Result;
+	if (result != VFSEnumerationResult::NO_RESULTS && result != VFSEnumerationResult::SUCCESS) {
+		return false;
+	}
+
+	ResourcesBrowserEntries.clear();
+
+	for (size_t i = 0; i < enumeration.Entries.size(); i++) {
+		ResourcesBrowserEntries.push_back(enumeration.Entries[i]);
+	}
+
+	ResourcesBrowserNumEntries = ResourcesBrowserEntries.size();
+
+	return true;
+}
+
+void Application::DevMenu_ResourcesBrowserMenu() {
+	DevMenu_DrawMainMenu();
+
+	char title[MAX_PATH_LENGTH + 10];
+	std::string currentPath;
+	if (ResourcesBrowserPaths.size() > 0) {
+		currentPath = ResourcesBrowserPaths.back();
+	}
+	snprintf(title, sizeof title, "Browsing /%s", currentPath.c_str());
+
+	DrawDevString(title, Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+
+	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < ResourcesBrowserEntries.size();
+		i++, y += 14) {
+		const char* entry = ResourcesBrowserEntries[DevMenu.SubScrollPos + i].c_str();
+		if (strcmp(entry, PARENT_DIRECTORY) == 0) {
+			entry = "Back...";
+		}
+
+		DrawDevString(entry,
+			160,
+			y,
+			ALIGN_LEFT,
+			(DevMenu.SubSelection - DevMenu.SubScrollPos) == i);
+	}
+
+	int actionUp = InputManager::GetActionID("Up");
+	int actionDown = InputManager::GetActionID("Down");
+
+	if ((actionUp != -1 &&
+		    (InputManager::IsActionPressedByAny(actionUp) ||
+			    (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
+		(actionDown != -1 &&
+			(InputManager::IsActionPressedByAny(actionDown) ||
+				(InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+
+		DevMenu.SubSelection =
+			(DevMenu.SubSelection +
+				(((actionUp != -1 &&
+					  InputManager::IsActionPressedByAny(actionUp)) ||
+					 (actionUp != -1 &&
+						 InputManager::IsActionHeldByAny(actionUp)))
+						? -1
+						: 1) +
+				(int)ResourcesBrowserEntries.size()) %
+			(int)ResourcesBrowserEntries.size();
+
+		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
+			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 7) {
+				DevMenu.SubScrollPos = DevMenu.SubSelection - 7;
+			}
+		}
+		else {
+			DevMenu.SubScrollPos = DevMenu.SubSelection;
+		}
+
+		DevMenu.Timer = 8 * FrameTimeDesired;
+	}
+
+	if (DevMenu.Timer > 0) {
+		DevMenu.Timer = std::max(DevMenu.Timer - DeltaTime, 0.0);
+	}
+
+	bool confirm = false;
+	for (const char* action : {"A", "Start"}) {
+		int actionID = InputManager::GetActionID(action);
+		if (actionID != -1 && InputManager::IsActionPressedByAny(actionID)) {
+			confirm = true;
+			break;
+		}
+	}
+
+	if (confirm) {
+		std::string path = ResourcesBrowserEntries[DevMenu.SubSelection];
+
+		if (path.back() == '/' || path == PARENT_DIRECTORY) {
+			std::string parentPath;
+			if (ResourcesBrowserPaths.size() > 0) {
+				parentPath = ResourcesBrowserPaths.back();
+			}
+
+			DevMenu_ResourcesBrowserGoToPath(path, parentPath);
+		}
+		else {
+			if (ResourcesBrowserPaths.size() > 0) {
+				path = ResourcesBrowserPaths.back() + path;
+			}
+
+			Scene::ChangeFromPath(path.c_str(), -1);
+			StringUtils::Copy(Scene::NextScene,
+				path.c_str(),
+				sizeof(Scene::NextScene));
+
+			DevMenu_CloseResourcesBrowser();
+			CloseDevMenu();
+			AudioManager::AudioStopAll();
+			AudioManager::ClearMusic();
+			AudioManager::LowPassFilter = 0.0f;
+		}
+
+		DevMenu.SubSelection = 0;
+		DevMenu.SubScrollPos = 0;
+	}
+	else {
+		int actionB = InputManager::GetActionID("B");
+		if (actionB != -1 && InputManager::IsActionPressedByAny(actionB)) {
+			DevMenu_CloseResourcesBrowser();
+
+			DevMenu.State = DevMenu_MainMenu;
+			DevMenu.SubSelection = 0;
+			DevMenu.Timer = 1 * FrameTimeDesired;
+		}
+	}
+}
+
+void Application::DevMenu_CloseResourcesBrowser() {
+	ResourcesBrowserEntries.clear();
+	ResourcesBrowserPaths.clear();
 }
 
 void Application::DevMenu_SceneSelectMenu() {

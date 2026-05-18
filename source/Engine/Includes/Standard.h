@@ -84,6 +84,7 @@ struct DeveloperMenu {
 	int CurrentWindowHeight;
 	int PlayerListPos;
 	bool MusicPausedStore;
+	bool ResourcesBrowserAvailable;
 };
 
 #define DEFAULT_TARGET_FRAMERATE 60
@@ -130,6 +131,8 @@ typedef int64_t Sint64;
 #define HITBOX_RIGHT 2
 #define HITBOX_BOTTOM 3
 #define NUM_HITBOX_SIDES 4
+
+#define PARENT_DIRECTORY ".."
 
 #ifdef IOS
 #define NEW_STRUCT_MACRO(n) (n)
