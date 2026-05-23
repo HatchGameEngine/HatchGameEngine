@@ -42,6 +42,7 @@ target_link_libraries(${PROJECT_NAME}
 
 if(NOT WINDOWS_COMPILE_AS_CONSOLE_APP)
   set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE ON)
+  target_link_options(${PROJECT_NAME} PRIVATE "LINKER:/ENTRY:mainCRTStartup")
 else()
   target_compile_definitions(${PROJECT_NAME} PRIVATE -DWINDOWS_CONSOLE_APP)
 endif()
