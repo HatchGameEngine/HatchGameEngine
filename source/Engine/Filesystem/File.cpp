@@ -9,24 +9,31 @@
 #include <unistd.h>
 #endif
 
+#if ANDROID
+// On Android, use SDLStream to allow reading from the asset directory.
+#include <Engine/IO/SDLStream.h>
+using PrefStream = SDLStream;
+#else
+using PrefStream = StandardIOStream;
+#endif
+
 Stream* File::Open(const char* filename, Uint32 access) {
-	// TODO: On Android, retry with SDLStream.
 	Uint32 streamAccess;
 	switch (access) {
 	case File::READ_ACCESS:
-		streamAccess = StandardIOStream::READ_ACCESS;
+		streamAccess = PrefStream::READ_ACCESS;
 		break;
 	case File::WRITE_ACCESS:
-		streamAccess = StandardIOStream::WRITE_ACCESS;
+		streamAccess = PrefStream::WRITE_ACCESS;
 		break;
 	case File::APPEND_ACCESS:
-		streamAccess = StandardIOStream::APPEND_ACCESS;
+		streamAccess = PrefStream::APPEND_ACCESS;
 		break;
 	default:
 		return nullptr;
 	}
 
-	return StandardIOStream::New(filename, streamAccess);
+	return (Stream*)PrefStream::New(filename, streamAccess);
 }
 
 // Do not expose to HSL.
