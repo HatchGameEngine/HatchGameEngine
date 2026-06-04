@@ -116,6 +116,7 @@ int Scene::CurrentSceneInList;
 char Scene::CurrentFolder[256];
 char Scene::CurrentID[256];
 char Scene::CurrentResourceFolder[256];
+char Scene::PreviousResourceFolder[256];
 char Scene::CurrentCategory[256];
 int Scene::ActiveCategory;
 
@@ -689,6 +690,7 @@ void Scene::SetInfoFromCurrentID() {
 		Scene::CurrentFolder[0] = '\0';
 	}
 
+	StringUtils::Copy(Scene::PreviousResourceFolder, Scene::CurrentResourceFolder, sizeof Scene::PreviousResourceFolder);
 	if (scene.ResourceFolder != nullptr) {
 		strcpy(Scene::CurrentResourceFolder, scene.ResourceFolder);
 	}
@@ -2147,6 +2149,19 @@ void Scene::LoadScene(const char* sceneFilename) {
 			MAX_RESOURCE_PATH_LENGTH);
 		Memory::Free(filename);
 		return;
+	}
+
+	if (SceneInfo::IsEntryValid(Scene::ActiveCategory, Scene::CurrentSceneInList)) {
+		StringUtils::Copy(Scene::PreviousResourceFolder, Scene::CurrentResourceFolder, sizeof Scene::PreviousResourceFolder);
+
+		std::string nextResourceFolder = SceneInfo::GetResourceFolder(Scene::ActiveCategory, Scene::CurrentSceneInList);
+		if (!nextResourceFolder.empty()) {
+			StringUtils::Copy(Scene::CurrentResourceFolder, nextResourceFolder.c_str(), sizeof Scene::CurrentResourceFolder);
+		}
+	}
+
+	if (strcmp(Scene::PreviousResourceFolder, Scene::CurrentResourceFolder)) {
+		Scene::DisposeInScope(SCOPE_GROUP);
 	}
 
 	StringUtils::Copy(Scene::CurrentScene, filename, sizeof Scene::CurrentScene);

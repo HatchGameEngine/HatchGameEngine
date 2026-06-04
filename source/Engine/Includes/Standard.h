@@ -101,7 +101,8 @@ struct DeveloperMenu {
 #define MAX_FRAMEBUFFER_HEIGHT 4096
 
 #define SCOPE_SCENE 0
-#define SCOPE_GAME 1
+#define SCOPE_GROUP 1
+#define SCOPE_GAME 2
 
 #define PALETTE_INDEX_TABLE_ID -1
 

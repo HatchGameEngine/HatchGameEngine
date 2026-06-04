@@ -190,6 +190,16 @@ std::string SceneInfo::GetID(int categoryID, int entryID) {
 	return std::string(entry.ID);
 }
 
+std::string SceneInfo::GetResourceFolder(int categoryID, int entryID) {
+	if (!SceneInfo::IsEntryValid(categoryID, entryID)) {
+		return "";
+	}
+
+	SceneListEntry& entry = Categories[categoryID].Entries[entryID];
+
+	return entry.ResourceFolder;
+}
+
 int SceneInfo::GetFilter(int categoryID, int entryID) {
 	if (!SceneInfo::IsEntryValid(categoryID, entryID)) {
 		return 0xFF;

@@ -122,6 +122,7 @@ public:
 	static char CurrentFolder[256];
 	static char CurrentID[256];
 	static char CurrentResourceFolder[256];
+	static char PreviousResourceFolder[256];
 	static char CurrentCategory[256];
 	static int ActiveCategory;
 	static int DebugMode;
