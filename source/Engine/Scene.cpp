@@ -690,13 +690,7 @@ void Scene::SetInfoFromCurrentID() {
 		Scene::CurrentFolder[0] = '\0';
 	}
 
-	StringUtils::Copy(Scene::PreviousResourceFolder, Scene::CurrentResourceFolder, sizeof Scene::PreviousResourceFolder);
-	if (scene.ResourceFolder != nullptr) {
-		strcpy(Scene::CurrentResourceFolder, scene.ResourceFolder);
-	}
-	else {
-		Scene::CurrentResourceFolder[0] = '\0';
-	}
+	// Resource folder and filter are set in Scene::LoadScene
 }
 
 // Scene Lifecycle
@@ -2151,6 +2145,8 @@ void Scene::LoadScene(const char* sceneFilename) {
 		return;
 	}
 
+	StringUtils::Copy(Scene::CurrentScene, filename, sizeof Scene::CurrentScene);
+
 	if (SceneInfo::IsEntryValid(Scene::ActiveCategory, Scene::CurrentSceneInList)) {
 		StringUtils::Copy(Scene::PreviousResourceFolder, Scene::CurrentResourceFolder, sizeof Scene::PreviousResourceFolder);
 
@@ -2158,13 +2154,14 @@ void Scene::LoadScene(const char* sceneFilename) {
 		if (!nextResourceFolder.empty()) {
 			StringUtils::Copy(Scene::CurrentResourceFolder, nextResourceFolder.c_str(), sizeof Scene::CurrentResourceFolder);
 		}
+		else {
+			Scene::CurrentResourceFolder[0] = '\0';
+		}
 	}
 
 	if (strcmp(Scene::PreviousResourceFolder, Scene::CurrentResourceFolder)) {
 		Scene::DisposeInScope(SCOPE_GROUP);
 	}
-
-	StringUtils::Copy(Scene::CurrentScene, filename, sizeof Scene::CurrentScene);
 
 	Scene::Filter = SceneInfo::GetFilter(Scene::ActiveCategory, Scene::CurrentSceneInList);
 
