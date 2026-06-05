@@ -102,6 +102,7 @@ struct DeveloperMenu {
 
 #define SCOPE_SCENE 0
 #define SCOPE_GAME 1
+#define SCOPE_GROUP 2 // SCOPE_GROUP is intentionally 2 for Hatch backwards compatibility, but behaves as a midpoint of SCOPE_SCENE and SCOPE_GAME.
 
 #define PALETTE_INDEX_TABLE_ID -1
 
