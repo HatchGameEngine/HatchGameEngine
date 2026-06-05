@@ -3499,7 +3499,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::ModelList[i]) {
 			continue;
 		}
-		if (Scene::ModelList[i]->UnloadPolicy > scope) {
+		if (Scene::ModelList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3512,7 +3512,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::ImageList[i]) {
 			continue;
 		}
-		if (Scene::ImageList[i]->UnloadPolicy > scope) {
+		if (Scene::ImageList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 		if (Scene::ImageList[i]->AsImage->References > 1) {
@@ -3528,7 +3528,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::SpriteList[i]) {
 			continue;
 		}
-		if (Scene::SpriteList[i]->UnloadPolicy > scope) {
+		if (Scene::SpriteList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3541,7 +3541,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::SoundList[i]) {
 			continue;
 		}
-		if (Scene::SoundList[i]->UnloadPolicy > scope) {
+		if (Scene::SoundList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3557,7 +3557,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::MusicList[i]) {
 			continue;
 		}
-		if (Scene::MusicList[i]->UnloadPolicy > scope) {
+		if (Scene::MusicList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3574,7 +3574,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::MediaList[i]) {
 			continue;
 		}
-		if (Scene::MediaList[i]->UnloadPolicy > scope) {
+		if (Scene::MediaList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3593,7 +3593,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::AnimatorList[i]) {
 			continue;
 		}
-		if (Scene::AnimatorList[i]->UnloadPolicy > scope) {
+		if (Scene::AnimatorList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3626,6 +3626,8 @@ void Scene::Dispose() {
 		}
 	}
 
+	Scene::DisposeInScope(SCOPE_SCENE);
+	Scene::DisposeInScope(SCOPE_GROUP);
 	Scene::DisposeInScope(SCOPE_GAME);
 	// Dispose of all resources
 	Scene::ImageList.clear();
