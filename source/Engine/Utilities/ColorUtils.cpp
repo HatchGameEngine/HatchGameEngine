@@ -46,19 +46,32 @@ Uint32 ColorUtils::ToRGBA(float* r) {
 	return ToRGB(r[0], r[1], r[2], r[3]);
 }
 void ColorUtils::SeparateRGB(Uint32 color, float* dest) {
+#if HATCH_BIG_ENDIAN
 	Uint8 red = (color >> 24) & 0xFF;
 	Uint8 green = (color >> 16) & 0xFF;
 	Uint8 blue = (color >> 8) & 0xFF;
+#else
+	Uint8 red = color & 0xFF;
+	Uint8 green = (color >> 8) & 0xFF;
+	Uint8 blue = (color >> 16) & 0xFF;
+#endif
 
 	dest[0] = red / 255.f;
 	dest[1] = green / 255.f;
 	dest[2] = blue / 255.f;
 }
 void ColorUtils::Separate(Uint32 color, float* dest) {
+#if HATCH_BIG_ENDIAN
 	Uint8 red = (color >> 24) & 0xFF;
 	Uint8 green = (color >> 16) & 0xFF;
 	Uint8 blue = (color >> 8) & 0xFF;
 	Uint8 alpha = color & 0xFF;
+#else
+	Uint8 red = color & 0xFF;
+	Uint8 green = (color >> 8) & 0xFF;
+	Uint8 blue = (color >> 16) & 0xFF;
+	Uint8 alpha = (color >> 24) & 0xFF;
+#endif
 
 	dest[0] = red / 255.f;
 	dest[1] = green / 255.f;
@@ -66,19 +79,32 @@ void ColorUtils::Separate(Uint32 color, float* dest) {
 	dest[3] = alpha / 255.f;
 }
 void ColorUtils::SeparateRGB(Uint32 color, Uint8* dest) {
+#if HATCH_BIG_ENDIAN
 	Uint8 red = (color >> 24) & 0xFF;
 	Uint8 green = (color >> 16) & 0xFF;
 	Uint8 blue = (color >> 8) & 0xFF;
+#else
+	Uint8 red = color & 0xFF;
+	Uint8 green = (color >> 8) & 0xFF;
+	Uint8 blue = (color >> 16) & 0xFF;
+#endif
 
 	dest[0] = red;
 	dest[1] = green;
 	dest[2] = blue;
 }
 void ColorUtils::Separate(Uint32 color, Uint8* dest) {
+#if HATCH_BIG_ENDIAN
 	Uint8 red = (color >> 24) & 0xFF;
 	Uint8 green = (color >> 16) & 0xFF;
 	Uint8 blue = (color >> 8) & 0xFF;
 	Uint8 alpha = color & 0xFF;
+#else
+	Uint8 red = color & 0xFF;
+	Uint8 green = (color >> 8) & 0xFF;
+	Uint8 blue = (color >> 16) & 0xFF;
+	Uint8 alpha = (color >> 24) & 0xFF;
+#endif
 
 	dest[0] = red;
 	dest[1] = green;
