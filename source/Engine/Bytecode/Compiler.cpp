@@ -2307,8 +2307,27 @@ void Compiler::GetReturnStatement() {
 }
 void Compiler::GetRepeatStatement() {
 	ScopeBegin();
+
+	Token stmtLocation = parser.Previous;
+	int codeLocation = CodePointer();
+
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'repeat'.");
 	GetExpression();
+
+	bool optimizedOut = false;
+
+	VMValue value;
+	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
+	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+		    CurrentChunk()->GetConstant(codeLocation, &value)) {
+		if (IS_INTEGER(value) && AS_INTEGER(value) == 0) {
+			WarningAt(&stmtLocation, "This will never execute.");
+
+			if (CurrentSettings.DoOptimizations) {
+				optimizedOut = true;
+			}
+		}
+	}
 
 	Token variableToken = {TOKEN_ERROR};
 	int remaining = 0;
@@ -2328,6 +2347,13 @@ void Compiler::GetRepeatStatement() {
 	if (!remaining) {
 		remaining = AddHiddenLocal(" remaining", 11);
 	}
+
+	if (optimizedOut) {
+		SetCodePointer(codeLocation);
+
+		DoNotEmit++;
+	}
+
 	EmitByte(OP_INCREMENT); // increment remaining as we're about
 	// to decrement it, so we can cheat
 	// continue
@@ -2383,6 +2409,10 @@ void Compiler::GetRepeatStatement() {
 	EndBreakJumpList();
 
 	ScopeEnd();
+
+	if (optimizedOut) {
+		DoNotEmit--;
+	}
 }
 void Compiler::GetSwitchStatement() {
 	bool onlyHasDefault = true;
