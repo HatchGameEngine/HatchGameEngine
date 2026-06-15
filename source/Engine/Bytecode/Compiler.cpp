@@ -2686,6 +2686,8 @@ void Compiler::GetWhileStatement() {
 	}
 
 	if (optimizedOut) {
+		SetCodePointer(codeLocation);
+
 		DoNotEmit++;
 	}
 
