@@ -2540,6 +2540,9 @@ void Compiler::GetSwitchStatement() {
 	vector<ContinueStatement>* continueTop = ContinueJumpListStack.top();
 	for (size_t i = 0; i < continueTop->size(); i++) {
 		ContinueStatement* stmt = &(*continueTop)[i];
+
+		WarningAt(&stmt->Location, "Statement has the same effect as 'break'.");
+
 		stmt->Position += code_offset;
 	}
 
