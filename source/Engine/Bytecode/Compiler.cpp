@@ -2305,6 +2305,23 @@ void Compiler::GetReturnStatement() {
 		EmitByte(OP_RETURN);
 	}
 }
+int Compiler::DoBranchPrediction(int codeLocation) {
+	VMValue value;
+	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
+	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+		    CurrentChunk()->GetConstant(codeLocation, &value)) {
+		if (IS_INTEGER(value)) {
+			if (AS_INTEGER(value) == 0) {
+				return BRANCH_NEVER_TAKEN;
+			}
+			else {
+				return BRANCH_ALWAYS_TAKEN;
+			}
+		}
+	}
+
+	return BRANCH_MAYBE_TAKEN;
+}
 void Compiler::GetRepeatStatement() {
 	ScopeBegin();
 
@@ -2315,17 +2332,12 @@ void Compiler::GetRepeatStatement() {
 	GetExpression();
 
 	bool optimizedOut = false;
+	int prediction = DoBranchPrediction(codeLocation);
+	if (prediction == BRANCH_NEVER_TAKEN) {
+		WarningAt(&stmtLocation, "This will never execute.");
 
-	VMValue value;
-	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
-	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
-		    CurrentChunk()->GetConstant(codeLocation, &value)) {
-		if (IS_INTEGER(value) && AS_INTEGER(value) == 0) {
-			WarningAt(&stmtLocation, "This will never execute.");
-
-			if (CurrentSettings.DoOptimizations) {
-				optimizedOut = true;
-			}
+		if (CurrentSettings.DoOptimizations) {
+			optimizedOut = true;
 		}
 	}
 
@@ -2669,19 +2681,14 @@ void Compiler::GetWhileStatement() {
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
 	bool optimizedOut = false;
+	int prediction = DoBranchPrediction(codeLocation);
+	if (prediction == BRANCH_NEVER_TAKEN) {
+		// "while (true)" is most of the time intended.
+		// "while (false)" isn't as useful.
+		WarningAt(&stmtLocation, "Condition is always false.");
 
-	VMValue value;
-	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
-	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
-		    CurrentChunk()->GetConstant(codeLocation, &value)) {
-		if (IS_INTEGER(value) && AS_INTEGER(value) == 0) {
-			// "while (true)" is most of the time intended.
-			// "while (false)" isn't as useful.
-			WarningAt(&stmtLocation, "Condition is always false.");
-
-			if (CurrentSettings.DoOptimizations) {
-				optimizedOut = true;
-			}
+		if (CurrentSettings.DoOptimizations) {
+			optimizedOut = true;
 		}
 	}
 
@@ -2909,16 +2916,12 @@ void Compiler::GetForStatement() {
 		GetExpression();
 		ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after loop condition.");
 
-		VMValue value;
-		uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
-		if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
-			    CurrentChunk()->GetConstant(codeLocation, &value)) {
-			if (IS_INTEGER(value) && AS_INTEGER(value) == 0) {
-				WarningAt(&stmtLocation, "Condition is always false.");
+		int prediction = DoBranchPrediction(codeLocation);
+		if (prediction == BRANCH_NEVER_TAKEN) {
+			WarningAt(&stmtLocation, "Condition is always false.");
 
-				if (CurrentSettings.DoOptimizations) {
-					optimizedOut = true;
-				}
+			if (CurrentSettings.DoOptimizations) {
+				optimizedOut = true;
 			}
 		}
 
@@ -3077,28 +3080,18 @@ void Compiler::GetForEachBlock() {
 }
 void Compiler::GetIfStatement() {
 	Token stmtLocation = parser.Previous;
-
-	int prediction = BRANCH_MAYBE_TAKEN;
 	int codeLocation = CodePointer();
 
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'if'.");
 	GetExpression();
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
-	VMValue value;
-	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
-	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
-		    CurrentChunk()->GetConstant(codeLocation, &value)) {
-		if (IS_INTEGER(value)) {
-			if (AS_INTEGER(value) == 0) {
-				WarningAt(&stmtLocation, "Condition is always false.");
-				prediction = BRANCH_NEVER_TAKEN;
-			}
-			else {
-				WarningAt(&stmtLocation, "Condition is always true.");
-				prediction = BRANCH_ALWAYS_TAKEN;
-			}
-		}
+	int prediction = DoBranchPrediction(codeLocation);
+	if (prediction == BRANCH_NEVER_TAKEN) {
+		WarningAt(&stmtLocation, "Condition is always false.");
+	}
+	else if (prediction == BRANCH_ALWAYS_TAKEN) {
+		WarningAt(&stmtLocation, "Condition is always true.");
 	}
 
 	int branchOptimization = BRANCH_MAYBE_TAKEN;

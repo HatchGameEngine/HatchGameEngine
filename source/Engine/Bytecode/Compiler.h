@@ -149,6 +149,7 @@ public:
 	void GetContinueStatement();
 	void GetDoWhileStatement();
 	void GetReturnStatement();
+	int DoBranchPrediction(int codeLocation);
 	void GetRepeatStatement();
 	void GetSwitchStatement();
 	void GetCaseStatement();
