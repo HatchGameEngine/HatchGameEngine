@@ -208,7 +208,7 @@ public:
 	void EmitStringHash(Token token);
 	void EmitReturn();
 	void StartBreakJumpList();
-	void EndBreakJumpList();
+	void EndBreakJumpList(bool patchJumps = true);
 	void StartContinueJumpList();
 	void EndContinueJumpList();
 	void StartSwitchJumpList();

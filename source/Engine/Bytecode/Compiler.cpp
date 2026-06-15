@@ -2262,10 +2262,31 @@ void Compiler::GetDoWhileStatement() {
 
 	// Evaluate the condition
 	ConsumeToken(TOKEN_WHILE, "Expected 'while' at end of 'do' block.");
+
+	Token stmtLocation = parser.Previous;
+	int codeLocation = CodePointer();
+
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'while'.");
 	GetExpression();
+
+	bool optimizedOut = false;
+	int prediction = DoBranchPrediction(codeLocation);
+	if (prediction == BRANCH_NEVER_TAKEN) {
+		WarningAt(&stmtLocation, "Condition is always false.");
+
+		if (CurrentSettings.DoOptimizations) {
+			optimizedOut = true;
+		}
+	}
+
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after ')'.");
+
+	if (optimizedOut) {
+		EndBreakJumpList(false); // End the break jump list but don't patch any code
+		SetCodePointer(loopStart); // Erase all of that code
+		return;
+	}
 
 	// Jump if false (or 0)
 	int exitJump = EmitJump(OP_JUMP_IF_FALSE);
@@ -4053,11 +4074,13 @@ void Compiler::StartBreakJumpList() {
 	BreakJumpListStack.push(new vector<int>());
 	BreakScopeStack.push(ScopeDepth);
 }
-void Compiler::EndBreakJumpList() {
+void Compiler::EndBreakJumpList(bool patchJumps) {
 	vector<int>* top = BreakJumpListStack.top();
-	for (size_t i = 0; i < top->size(); i++) {
-		int offset = (*top)[i];
-		PatchJump(offset);
+	if (patchJumps) {
+		for (size_t i = 0; i < top->size(); i++) {
+			int offset = (*top)[i];
+			PatchJump(offset);
+		}
 	}
 	delete top;
 	BreakJumpListStack.pop();
