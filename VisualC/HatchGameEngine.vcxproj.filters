@@ -500,103 +500,103 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\engine\audio\AudioChannel.h">
+    <ClInclude Include="..\source\engine\audio\AudioChannel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\bytecode\CompilerEnums.h">
+    <ClInclude Include="..\source\engine\bytecode\CompilerEnums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\bytecode\Types.h">
+    <ClInclude Include="..\source\engine\bytecode\Types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\diagnostics\PerformanceTypes.h">
+    <ClInclude Include="..\source\engine\diagnostics\PerformanceTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\includes\BijectiveMap.h">
+    <ClInclude Include="..\source\engine\includes\BijectiveMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\includes\HashMap.h">
+    <ClInclude Include="..\source\engine\includes\HashMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\includes\Standard.h">
+    <ClInclude Include="..\source\engine\includes\Standard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\includes\StandardSDL2.h">
+    <ClInclude Include="..\source\engine\includes\StandardSDL2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\io\compression\CompressionEnums.h">
+    <ClInclude Include="..\source\engine\io\compression\CompressionEnums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\media\includes\AVCodec.h">
+    <ClInclude Include="..\source\engine\media\includes\AVCodec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\media\includes\AVFormat.h">
+    <ClInclude Include="..\source\engine\media\includes\AVFormat.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\media\includes\AVUtils.h">
+    <ClInclude Include="..\source\engine\media\includes\AVUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\media\includes\SWResample.h">
+    <ClInclude Include="..\source\engine\media\includes\SWResample.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\media\includes\SWScale.h">
+    <ClInclude Include="..\source\engine\media\includes\SWScale.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\media\utils\Codec.h">
+    <ClInclude Include="..\source\engine\media\utils\Codec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\network\WebSocketIncludes.h">
+    <ClInclude Include="..\source\engine\network\WebSocketIncludes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\platforms\macos\Filesystem.h">
+    <ClInclude Include="..\source\engine\platforms\macos\Filesystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\rendering\3D.h">
+    <ClInclude Include="..\source\engine\rendering\3D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\rendering\Mesh.h">
+    <ClInclude Include="..\source\engine\rendering\Mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\rendering\ArrayBuffer.h">
+    <ClInclude Include="..\source\engine\rendering\ArrayBuffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\rendering\Enums.h">
+    <ClInclude Include="..\source\engine\rendering\Enums.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\rendering\gl\Includes.h">
+    <ClInclude Include="..\source\engine\rendering\gl\Includes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\rendering\metal\Includes.h">
+    <ClInclude Include="..\source\engine\rendering\metal\Includes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\rendering\metal\MetalFuncs.h">
+    <ClInclude Include="..\source\engine\rendering\metal\MetalFuncs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\rendering\sdl2\SDL2MetalFunc.h">
+    <ClInclude Include="..\source\engine\rendering\sdl2\SDL2MetalFunc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\resourcetypes\modelformats\Importer.h">
+    <ClInclude Include="..\source\engine\resourcetypes\modelformats\Importer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h">
+    <ClInclude Include="..\source\engine\resourcetypes\ResourceType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\sprites\Animation.h">
+    <ClInclude Include="..\source\engine\sprites\Animation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\textformats\ini\INIStructs.h">
+    <ClInclude Include="..\source\engine\textformats\ini\INIStructs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\textformats\json\jsmn.h">
+    <ClInclude Include="..\source\engine\textformats\json\jsmn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\textformats\xml\XMLNode.h">
+    <ClInclude Include="..\source\engine\textformats\xml\XMLNode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\engine\types\EntityTypes.h">
+    <ClInclude Include="..\source\engine\types\EntityTypes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\Engine\Types\DrawGroupList.h">
+    <ClInclude Include="..\source\engine\Types\DrawGroupList.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\source\Libraries\miniz.h">
