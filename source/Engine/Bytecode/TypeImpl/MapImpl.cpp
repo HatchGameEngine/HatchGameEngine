@@ -3,20 +3,35 @@
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
+/***
+* \class Map
+* \desc An associative array, also known as a dictionary, or a map.
+*/
+
 ObjClass* MapImpl::Class = nullptr;
 
 void MapImpl::Init() {
-	Class = NewClass(CLASS_MAP);
+	Class = NewClass("Map");
+	Class->NewFn = Constructor;
 
+	ScriptManager::DefineNative(Class, "Length", MapImpl::VM_Length);
+	ScriptManager::DefineNative(Class, "GetKeys", MapImpl::VM_GetKeys);
 	ScriptManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
-	ScriptManager::DefineNative(Class, "remove", MapImpl::VM_RemoveKey);
+	ScriptManager::DefineNative(Class, "Remove", MapImpl::VM_Remove);
+	ScriptManager::DefineNative(Class, "remove", MapImpl::VM_Remove);
 	ScriptManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", MapImpl::VM_IteratorValue);
 
 	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(Class);
 }
 
-Obj* MapImpl::New() {
+/***
+ * \constructor
+ * \desc Creates a map.
+ * \ns Map
+ */
+Obj* MapImpl::Constructor() {
 	ObjMap* map = (ObjMap*)AllocateObject(sizeof(ObjMap), OBJ_MAP);
 	Memory::Track(map, "NewMap");
 	map->Object.Class = Class;
@@ -42,6 +57,26 @@ void MapImpl::Dispose(Obj* object) {
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
+/***
+ * \method Length
+ * \desc Get the number of items in the map.
+ * \return integer Returns an integer value.
+ * \ns Map
+ */
+VMValue MapImpl::VM_Length(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjMap* map = GET_ARG(0, GetMap);
+
+	return INTEGER_VAL((int)map->Keys->Count());
+}
+
+/***
+ * \method GetKeys
+ * \desc Gets a list of all keys in the map.
+ * \return array Returns an array of strings.
+ * \ns Map
+ */
 VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 
@@ -56,7 +91,13 @@ VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 threadID) {
 	return OBJECT_VAL(array);
 }
 
-VMValue MapImpl::VM_RemoveKey(int argCount, VMValue* args, Uint32 threadID) {
+/***
+ * \method Remove
+ * \desc Removes a key from the map.
+ * \param key (string): The key to remove.
+ * \ns Map
+ */
+VMValue MapImpl::VM_Remove(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ObjMap* map = GET_ARG(0, GetMap);

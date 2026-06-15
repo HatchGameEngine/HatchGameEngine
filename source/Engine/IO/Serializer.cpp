@@ -328,9 +328,18 @@ void Serializer::GetObject() {
 			ObjList.push_back(nullptr);
 			return;
 		}
+
 		Uint32 length = StringList[stringID].Length;
-		ObjString* string = AllocString(length);
-		memcpy(string->Chars, StringList[stringID].Chars, length);
+		char* chars = (char*)Memory::Malloc(length + 1);
+		if (!chars) {
+			ObjList.push_back(nullptr);
+			return;
+		}
+
+		memcpy(chars, StringList[stringID].Chars, length);
+		chars[length] = '\0'; // Ensure it's NULL-terminated
+
+		ObjString* string = TakeString(chars, length);
 		ObjList.push_back((Obj*)string);
 		return;
 	}

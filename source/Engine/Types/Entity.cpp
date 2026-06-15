@@ -351,7 +351,7 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 						other->SpeedY = 0.0;
 					}
 					if (!other->OnGround && other->SpeedY >= 0.0) {
-						other->GroundSpeed = other->SpeedY;
+						other->GroundSpeed = other->SpeedX;
 						other->Angle = 0;
 						other->OnGround = true;
 					}

@@ -20,6 +20,7 @@ class IModel;
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileSpriteInfo.h>
 #include <Engine/Scene/View.h>
 #include <Engine/Utilities/ColorUtils.h>
 
@@ -44,6 +45,8 @@ private:
 		int* deformValues,
 		int deformOffset,
 		TileScanLine* scanLine);
+	static bool CanBuildLayerTileBuffers(SceneLayer* layer);
+	static bool CanDrawBufferedSceneLayer(SceneLayer* layer);
 
 public:
 	static bool Initialized;
@@ -55,9 +58,11 @@ public:
 	static int FontDPI;
 	static bool SupportsShaders;
 	static bool SupportsBatching;
+	static bool LayerTileBufferingEnabled;
 	static bool TextureBlend;
 	static bool TextureInterpolate;
 	static Uint32 PreferredPixelFormat;
+	static Uint32 TextureFormat;
 	static Uint32 MaxTextureWidth;
 	static Uint32 MaxTextureHeight;
 	static Uint32 MaxTextureUnits;
@@ -104,12 +109,12 @@ public:
 	static bool SmoothFill;
 	static bool SmoothStroke;
 	static float PixelOffset;
-	static bool NoInternalTextures;
 	static bool UsePalettes;
 	static bool UsePaletteIndexLines;
 	static bool UseTinting;
 	static bool UseDepthTesting;
 	static bool UseSoftwareRenderer;
+	static bool UseIntegerRotation;
 	static unsigned CurrentFrame;
 	// Rendering functions
 	static GraphicsFunctions Internal;
@@ -124,9 +129,13 @@ public:
 	static void Dispose();
 	static Point ProjectToScreen(float x, float y, float z);
 	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	static Texture*
-	CreateTextureFromPixels(Uint32 width, Uint32 height, void* pixels, int pitch);
-	static Texture* CreateTextureFromSurface(SDL_Surface* surface);
+	static Texture* CreateTextureFromPixels(Uint32 format,
+		Uint32 width,
+		Uint32 height,
+		void* pixels,
+		int pitch);
+	static bool
+	ReinitializeTexture(Texture*, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	static int LockTexture(Texture* texture, void** pixels, int* pitch);
 	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	static int UpdateYUVTexture(Texture* texture,
@@ -137,9 +146,21 @@ public:
 		int pitchU,
 		Uint8* pixelsV,
 		int pitchV);
+	static void CopyTexturePixels(Texture* dest,
+		int destX,
+		int destY,
+		Texture* src,
+		int srcX,
+		int srcY,
+		int srcWidth,
+		int srcHeight);
+	static bool ResizeTexture(Texture* texture, Uint32 width, Uint32 height);
 	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
-	static int ConvertTextureToRGBA(Texture* texture);
-	static int ConvertTextureToPalette(Texture* texture, unsigned paletteNumber);
+	static bool ConvertTextureToFormat(Texture* texture,
+		int destFormat,
+		Uint32* palColors,
+		unsigned numPaletteColors,
+		unsigned transparentPixel);
 	static void SetTextureMinFilter(Texture* texture, int filterMode);
 	static void SetTextureMagFilter(Texture* texture, int filterMode);
 	static void UnlockTexture(Texture* texture);
@@ -161,20 +182,30 @@ public:
 	static void SoftwareEnd(int viewIndex);
 	static void UpdateGlobalPalette();
 	static void UpdatePaletteIndexTable();
+	static int GetPaletteTransparentColor(Uint32* palColors, unsigned numPaletteColors);
 	static void UnloadSceneData();
 	static bool SetRenderTarget(Texture* texture);
 	static bool CreateFramebufferTexture();
 	static bool UpdateFramebufferTexture();
 	static void SetPostProcessShader(Shader* shader);
 	static void DoScreenPostProcess();
-	static void CopyScreen(int source_x,
-		int source_y,
-		int source_w,
-		int source_h,
-		int dest_x,
-		int dest_y,
-		int dest_w,
-		int dest_h,
+	static void CopyFramebuffer(int sourceX,
+		int sourceY,
+		int sourceW,
+		int sourceH,
+		int destX,
+		int destY,
+		int destW,
+		int destH,
+		Texture* texture);
+	static void CopyScreen(int sourceX,
+		int sourceY,
+		int sourceW,
+		int sourceH,
+		int destX,
+		int destY,
+		int destW,
+		int destH,
 		Texture* texture);
 	static void UpdateOrtho(float width, float height);
 	static void UpdateOrthoFlipped(float width, float height);
@@ -214,68 +245,15 @@ public:
 	static void StrokeRectangle(float x, float y, float w, float h);
 	static void FillCircle(float x, float y, float rad);
 	static void FillEllipse(float x, float y, float w, float h);
-	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
-	static void FillTriangleBlend(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3);
 	static void FillRectangle(float x, float y, float w, float h);
+	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
+	static void FillTriangleBlend(float* xc, float* yc, int* colors);
+	static void FillQuad(float* xc, float* yc);
+	static void FillQuadBlend(float* xc, float* yc, int* colors);
 	static void
-	FillQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
-	static void FillQuadBlend(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4);
-	static void DrawTriangleTextured(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3);
-	static void DrawQuadTextured(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3,
-		float u4,
-		float v4);
+	DrawTriangle(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
+	static void
+	DrawQuad(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
 	static void DrawTexture(Texture* texture,
 		float sx,
 		float sy,
@@ -431,9 +409,13 @@ public:
 		LegacyTextDrawParams* params,
 		float& maxW,
 		float& maxH);
-	static void
-	DrawTile(int tile, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines);
-	static void DrawTilePart(int tile,
+	static void DrawTile(TileSpriteInfo& info,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void DrawTilePart(TileSpriteInfo& info,
 		int sx,
 		int sy,
 		int sw,
@@ -444,13 +426,32 @@ public:
 		bool flipY,
 		bool usePaletteIndexLines);
 	static void DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView);
-	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView);
+	static void DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView, bool onlyAnimated);
 	static void DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView);
+	static void DrawBufferedSceneLayer(SceneLayer* layer, View* currentView);
 	static void DrawSceneLayer(SceneLayer* layer,
 		View* currentView,
 		int layerIndex,
 		bool useCustomFunction);
 	static void RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex);
+	static void BeginTextureBatching();
+	static void BatchTile(TileSpriteInfo& info,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void BatchTilePart(TileSpriteInfo& info,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void FinishTextureBatching();
 	static void DrawPolygon3D(void* data,
 		int vertexCount,
 		int vertexFlag,
@@ -506,6 +507,12 @@ public:
 		int frameH);
 	static void MakeFrameBufferID(ISprite* sprite);
 	static void DeleteFrameBufferID(ISprite* sprite);
+	static void MakeLayerTileBuffers(SceneLayer* layer);
+	static void DeleteLayerTileBuffers(SceneLayer* layer);
+	static void RefreshTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
+	static void DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
+	static void UpdateBufferedLayerTile(SceneLayer* layer, int x, int y);
+	static void RefreshLayerTileAnimations(SceneLayer* layer);
 	static void SetDepthTesting(bool enabled);
 	static bool SpriteRangeCheck(ISprite* sprite, int animation, int frame);
 	static void ConvertFromARGBtoNative(Uint32* argb, int count);

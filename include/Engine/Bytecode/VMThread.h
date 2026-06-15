@@ -16,8 +16,6 @@ private:
 	void Breakpoint(VMThreadBreakpoint* breakpoint);
 	bool ShowBranchLimitMessage(const char* errorMessage, ...);
 #endif
-	VMValue GetProperty(VMValue object, Uint32 hash);
-	VMValue SetProperty(VMValue object, Uint32 hash, VMValue value);
 	VMValue GetElement(VMValue object, VMValue at);
 	VMValue SetElement(VMValue object, VMValue at, VMValue value);
 	VMValue GetGlobal(Uint32 hash);
@@ -33,7 +31,6 @@ private:
 	bool HasProperty(ObjClass* klass, Uint32 hash, bool checkFields);
 	bool HasProperty(ObjClass* klass, Uint32 hash);
 	bool SetProperty(Table* fields, Uint32 hash, VMValue field, VMValue value);
-	bool BindMethod(VMValue receiver, VMValue method);
 	bool CallBoundMethod(ObjBoundMethod* bound, int argCount);
 	bool CallValue(VMValue callee, int argCount);
 	bool CallForObject(VMValue callee, int argCount);
@@ -89,6 +86,9 @@ public:
 	void RemoveBreakpointsForModule(ObjModule* module);
 	void DisposeBreakpoints();
 #endif
+	bool HasProperty(VMValue object, Uint32 hash);
+	VMValue GetProperty(VMValue object, Uint32 hash);
+	VMValue SetProperty(VMValue object, Uint32 hash, VMValue value);
 	void Push(VMValue value);
 	VMValue Pop();
 	void Pop(unsigned amount);
@@ -115,7 +115,7 @@ public:
 	bool Call(ObjFunction* function, int argCount);
 	bool GetArity(VMValue callee, int& minArity, int& maxArity);
 	bool InvokeFromClass(ObjClass* klass, Uint32 hash, int argCount);
-	bool InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount);
+	int InvokeForInstance(ObjInstance* instance, ObjClass* klass, Uint32 hash, int argCount);
 	bool Import(VMValue value);
 	bool ImportModule(VMValue value);
 	VMValue Values_Multiply();
@@ -203,7 +203,7 @@ public:
 	VM_ADD_OPFUNC(OP_NEW_ARRAY);
 	VM_ADD_OPFUNC(OP_NEW_MAP);
 	VM_ADD_OPFUNC(OP_SWITCH_TABLE);
-	VM_ADD_OPFUNC(OP_UNUSED_2);
+	VM_ADD_OPFUNC(OP_SET_ARGUMENT_SLOT);
 	VM_ADD_OPFUNC(OP_EVENT_V4);
 	VM_ADD_OPFUNC(OP_TYPEOF);
 	VM_ADD_OPFUNC(OP_NEW);

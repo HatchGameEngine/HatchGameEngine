@@ -12,6 +12,9 @@ enum {
 	PROPERTY_ARRAY
 };
 
+#define PROPERTY_IS_NUMBER(prop) ((prop).Type == PROPERTY_INTEGER || (prop).Type == PROPERTY_DECIMAL)
+#define PROPERTY_AS_NUMBER(prop) ((prop).Type == PROPERTY_DECIMAL ? (prop).as.Decimal : (prop).as.Integer);
+
 struct PropertyArray {
 	void* Data;
 	size_t Count;

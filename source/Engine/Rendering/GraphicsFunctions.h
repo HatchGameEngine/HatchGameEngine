@@ -3,6 +3,7 @@
 
 #include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/Texture.h>
+#include <Engine/Scene/SceneLayer.h>
 
 struct GraphicsFunctions {
 	void (*Init)();
@@ -12,8 +13,16 @@ struct GraphicsFunctions {
 	void (*Dispose)();
 
 	Texture* (*CreateTexture)(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	Texture* (*CreateTextureFromPixels)(Uint32 width, Uint32 height, void* pixels, int pitch);
-	Texture* (*CreateTextureFromSurface)(SDL_Surface* surface);
+	Texture* (*CreateTextureFromPixels)(Uint32 format,
+		Uint32 width,
+		Uint32 height,
+		void* pixels,
+		int pitch);
+	bool (*ReinitializeTexture)(Texture* texture,
+		Uint32 format,
+		Uint32 access,
+		Uint32 width,
+		Uint32 height);
 	int (*LockTexture)(Texture* texture, void** pixels, int* pitch);
 	int (*UpdateTexture)(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
 	int (*UpdateYUVTexture)(Texture* texture,
@@ -24,6 +33,14 @@ struct GraphicsFunctions {
 		int pitchU,
 		void* pixelsV,
 		int pitchV);
+	void (*CopyTexturePixels)(Texture* dest,
+		int destX,
+		int destY,
+		Texture* src,
+		int srcX,
+		int srcY,
+		int srcWidth,
+		int srcHeight);
 	void (*SetTextureMinFilter)(Texture* texture, int filterMode);
 	void (*SetTextureMagFilter)(Texture* texture, int filterMode);
 	int (*SetTexturePalette)(Texture* texture, void* palette, unsigned numPaletteColors);
@@ -52,7 +69,7 @@ struct GraphicsFunctions {
 	void (*Clear)();
 	void (*Present)();
 	bool (*SetRenderTarget)(Texture* texture);
-	void (*ReadFramebuffer)(void* pixels, int width, int height);
+	void (*ReadFramebuffer)(void* pixels, int x, int y, int width, int height);
 	void (*UpdateWindowSize)(int width, int height);
 
 	void (*SetBlendColor)(float r, float g, float b, float a);
@@ -68,74 +85,18 @@ struct GraphicsFunctions {
 	void (*StrokeRectangle)(float x, float y, float w, float h);
 	void (*FillCircle)(float x, float y, float rad);
 	void (*FillEllipse)(float x, float y, float w, float h);
-	void (*FillTriangle)(float x1, float y1, float x2, float y2, float x3, float y3);
-	void (*FillTriangleBlend)(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3);
 	void (*FillRectangle)(float x, float y, float w, float h);
-	void (*FillQuad)(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4);
-	void (*FillQuadBlend)(float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4);
-	void (*DrawTriangleTextured)(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		int c1,
-		int c2,
-		int c3,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3);
-	void (*DrawQuadTextured)(Texture* texturePtr,
-		float x1,
-		float y1,
-		float x2,
-		float y2,
-		float x3,
-		float y3,
-		float x4,
-		float y4,
-		int c1,
-		int c2,
-		int c3,
-		int c4,
-		float u1,
-		float v1,
-		float u2,
-		float v2,
-		float u3,
-		float v3,
-		float u4,
-		float v4);
+	void (*FillTriangle)(float x1, float y1, float x2, float y2, float x3, float y3);
+	void (*FillTriangleBlend)(float* xc, float* yc, int* colors);
+	void (*FillQuad)(float* xc, float* yc);
+	void (*FillQuadBlend)(float* xc, float* yc, int* colors);
+	void (*DrawTriangle)(Texture* texture,
+		float* xc,
+		float* yc,
+		float* tu,
+		float* tv,
+		int* colors);
+	void (*DrawQuad)(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
 
 	void (*DrawTexture)(Texture* texture,
 		float sx,
@@ -174,6 +135,33 @@ struct GraphicsFunctions {
 		float rotation,
 		int paletteID);
 
+	void (*BeginTextureBatching)();
+	void (*BatchSprite)(ISprite* sprite,
+		int animation,
+		int frame,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		int paletteID);
+	void (*BatchSpritePart)(ISprite* sprite,
+		int animation,
+		int frame,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		int paletteID);
+	void (*FinishTextureBatching)();
+
 	void (*DrawPolygon3D)(void* data,
 		int vertexCount,
 		int vertexFlag,
@@ -209,6 +197,14 @@ struct GraphicsFunctions {
 	void (*DeleteVertexBuffer)(void* vtxBuf);
 	void (*MakeFrameBufferID)(ISprite* sprite);
 	void (*DeleteFrameBufferID)(ISprite* sprite);
+
+	void (*DrawBufferedSceneLayer)(SceneLayer* layer);
+	void (*MakeLayerTileBuffers)(SceneLayer* layer);
+	void (*DeleteLayerTileBuffers)(SceneLayer* layer);
+	void (*RefreshTileBuffersForTileset)(SceneLayer* layer, size_t tilesetIndex);
+	void (*DeleteTileBuffersForTileset)(SceneLayer* layer, size_t tilesetIndex);
+	void (*UpdateBufferedLayerTile)(SceneLayer* layer, int x, int y);
+	void (*RefreshLayerTileAnimations)(SceneLayer *layer);
 
 	void (*SetStencilEnabled)(bool enabled);
 	void (*SetStencilTestFunc)(int stencilTest);

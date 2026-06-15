@@ -2,7 +2,11 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Includes/Standard.h>
 
-int main(int argc, char* args[]) {
+#if defined(WIN32) && !defined(WINDOWS_CONSOLE_APP) && !defined(_MSC_VER)
+int WinMain(int argc, char* argv[]) {
+#else
+int main(int argc, char* argv[]) {
+#endif
 #if SWITCH
 	Log::Init();
 	socketInitializeDefault();
@@ -16,7 +20,7 @@ int main(int argc, char* args[]) {
 	// 1785000000
 #endif
 
-	Application::Run(argc, args);
+	Application::Run(argc, argv);
 
 #if SWITCH
 // pcvSetClockRate(PcvModule_CpuBus, 1020000000);

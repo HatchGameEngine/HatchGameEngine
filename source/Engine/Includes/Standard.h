@@ -96,11 +96,13 @@ struct DeveloperMenu {
 
 #define MAX_SCENE_VIEWS 8
 #define MAX_PALETTE_COUNT 256
+#define MAX_PALETTE_COLOR_COUNT 256
 #define MAX_DEFORM_LINES 0x400
 #define MAX_FRAMEBUFFER_HEIGHT 4096
 
 #define SCOPE_SCENE 0
 #define SCOPE_GAME 1
+#define SCOPE_GROUP 2 // SCOPE_GROUP is intentionally 2 for Hatch backwards compatibility, but behaves as a midpoint of SCOPE_SCENE and SCOPE_GAME.
 
 #define PALETTE_INDEX_TABLE_ID -1
 

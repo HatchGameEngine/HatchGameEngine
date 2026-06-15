@@ -30,6 +30,7 @@ CPPFILES := \
 	source/Engine/Audio/AudioManager.cpp \
 	source/Engine/Audio/AudioPlayback.cpp \
 	source/Engine/Bytecode/Bytecode.cpp \
+	source/Engine/Bytecode/BytecodeDebugger.cpp \
 	source/Engine/Bytecode/Compiler.cpp \
 	source/Engine/Bytecode/GarbageCollector.cpp \
 	source/Engine/Bytecode/ScriptEntity.cpp \
@@ -46,6 +47,7 @@ CPPFILES := \
 	source/Engine/Bytecode/TypeImpl/ShaderImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StreamImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/TextureImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/TypeImpl.cpp \
 	source/Engine/Bytecode/Types.cpp \
 	source/Engine/Bytecode/Value.cpp \
@@ -119,7 +121,6 @@ CPPFILES := \
 	source/Engine/Network/WebSocketClient.cpp \
 	source/Engine/Rendering/D3D/D3DRenderer.cpp \
 	source/Engine/Rendering/FaceInfo.cpp \
-	source/Engine/Rendering/GameTexture.cpp \
 	source/Engine/Rendering/GL/GLRenderer.cpp \
 	source/Engine/Rendering/GL/GLShader.cpp \
 	source/Engine/Rendering/GL/GLShaderBuilder.cpp \
@@ -135,7 +136,6 @@ CPPFILES := \
 	source/Engine/Rendering/Texture.cpp \
 	source/Engine/Rendering/TextureReference.cpp \
 	source/Engine/Rendering/VertexBuffer.cpp \
-	source/Engine/Rendering/ViewTexture.cpp \
 	source/Engine/ResourceTypes/Font.cpp \
 	source/Engine/ResourceTypes/Image.cpp \
 	source/Engine/ResourceTypes/ImageFormats/GIF.cpp \
@@ -176,13 +176,13 @@ CPPFILES := \
 	source/Libraries/Clipper2/clipper.engine.cpp \
 	source/Libraries/Clipper2/clipper.offset.cpp \
 	source/Libraries/Clipper2/clipper.rectclip.cpp \
+	source/Libraries/linenoise-ng/linenoise.cpp \
+	source/Libraries/linenoise-ng/wcwidth.cpp \
 	source/Libraries/poly2tri/common/shapes.cpp \
 	source/Libraries/poly2tri/sweep/advancing_front.cpp \
 	source/Libraries/poly2tri/sweep/cdt.cpp \
 	source/Libraries/poly2tri/sweep/sweep.cpp \
-	source/Libraries/poly2tri/sweep/sweep_context.cpp \
-	source/Libraries/linenoise-ng/linenoise.cpp \
-	source/Libraries/linenoise-ng/wcwidth.cpp
+	source/Libraries/poly2tri/sweep/sweep_context.cpp
 MFILES := \
 	source/Engine/Platforms/MacOS/Filesystem.m
 PRVHFILES := \
@@ -192,13 +192,14 @@ PRVHFILES := \
 	source/Engine/Bytecode/Types.h \
 	source/Engine/Diagnostics/MemoryPools.h \
 	source/Engine/Diagnostics/PerformanceTypes.h \
+	source/Engine/Exceptions/CompilerErrorException.h \
 	source/Engine/Exceptions/ScriptException.h \
 	source/Engine/Includes/BijectiveMap.h \
-	source/Engine/Includes/ChainedHashMap.h \
 	source/Engine/Includes/DateTime.h \
 	source/Engine/Includes/Endian.h \
 	source/Engine/Includes/HashMap.h \
 	source/Engine/Includes/Operation.h \
+	source/Engine/Includes/OrderedHashMap.h \
 	source/Engine/Includes/Standard.h \
 	source/Engine/Includes/StandardSDL2.h \
 	source/Engine/Includes/Token.h \
@@ -242,6 +243,8 @@ PRVHFILES := \
 	source/Engine/TextFormats/XML/XMLNode.h \
 	source/Engine/Types/Collision.h \
 	source/Engine/Types/EntityTypes.h \
+	source/Libraries/ankerl/stl.h \
+	source/Libraries/ankerl/unordered_dense.h \
 	source/Libraries/Clipper2/clipper.core.h \
 	source/Libraries/Clipper2/clipper.engine.h \
 	source/Libraries/Clipper2/clipper.export.h \
@@ -252,6 +255,7 @@ PRVHFILES := \
 	source/Libraries/Clipper2/clipper.version.h \
 	source/Libraries/discord_game_sdk.h \
 	source/Libraries/jsmn.h \
+	source/Libraries/linenoise-ng/linenoise.h \
 	source/Libraries/miniz.h \
 	source/Libraries/nanoprintf.h \
 	source/Libraries/poly2tri/common/dll_symbol.h \
@@ -266,12 +270,20 @@ PRVHFILES := \
 	source/Libraries/stb_image.h \
 	source/Libraries/stb_rect_pack.h \
 	source/Libraries/stb_truetype.h \
-	source/Libraries/stb_vorbis.h
+	source/Libraries/stb_vorbis.h \
+	source/Libraries/utfcpp/utf8.h \
+	source/Libraries/utfcpp/utf8/checked.h \
+	source/Libraries/utfcpp/utf8/core.h \
+	source/Libraries/utfcpp/utf8/cpp11.h \
+	source/Libraries/utfcpp/utf8/cpp17.h \
+	source/Libraries/utfcpp/utf8/cpp20.h \
+	source/Libraries/utfcpp/utf8/unchecked.h
 PUBHFILES := \
 	include/Engine/Application.h \
 	include/Engine/Audio/AudioManager.h \
 	include/Engine/Audio/AudioPlayback.h \
 	include/Engine/Bytecode/Bytecode.h \
+	include/Engine/Bytecode/BytecodeDebugger.h \
 	include/Engine/Bytecode/Compiler.h \
 	include/Engine/Bytecode/GarbageCollector.h \
 	include/Engine/Bytecode/ScriptEntity.h \
@@ -395,9 +407,9 @@ PUBHFILES := \
 	include/Engine/ResourceTypes/SoundFormats/SoundFormat.h \
 	include/Engine/ResourceTypes/SoundFormats/WAV.h \
 	include/Engine/Scene.h \
+	include/Engine/Scene/LayerGroup.h \
 	include/Engine/Scene/SceneInfo.h \
 	include/Engine/Scene/SceneLayer.h \
-	include/Engine/Scene/ScrollingIndex.h \
 	include/Engine/Scene/ScrollingInfo.h \
 	include/Engine/Scene/TileConfig.h \
 	include/Engine/Scene/TileSpriteInfo.h \

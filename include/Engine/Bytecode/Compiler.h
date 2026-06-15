@@ -46,6 +46,7 @@ public:
 	bool IsAlpha(char c);
 	bool IsIdentifierStart(char c);
 	bool IsIdentifierBody(char c);
+	bool IsDot(char c);
 	bool MatchChar(char expected);
 	char AdvanceChar();
 	char PrevChar();
@@ -72,6 +73,7 @@ public:
 	void Error(const char* message);
 	void ErrorAtCurrent(const char* message);
 	void Warning(const char* message);
+	void WarningAt(Token* token, const char* message);
 	void WarningInFunction(const char* format, ...);
 	int ParseVariable(const char* errorMessage, bool constant);
 	bool IdentifiersEqual(Token* a, Token* b);
@@ -121,6 +123,8 @@ public:
 	ExprContext GetLiteral(ExprContext context);
 	ExprContext GetInteger(ExprContext context);
 	ExprContext GetDecimal(ExprContext context);
+	int ParseHexChars(Uint32* codepoint, char* src, char* srcEnd, int maxChars);
+	std::string ParseUnicodeString(char* src, char* srcEnd, int maxChars);
 	ObjString* MakeString(Token token);
 	ExprContext GetString(ExprContext context);
 	ExprContext GetArray(ExprContext context);
@@ -165,7 +169,7 @@ public:
 	void GetModuleVariableDeclaration();
 	void GetPropertyDeclaration(Token propertyName);
 	void GetClassDeclaration();
-	void GetEnumDeclaration();
+	void GetEnumDeclaration(bool isLocal);
 	void GetImportDeclaration();
 	void GetUsingDeclaration();
 	void GetEventDeclaration();

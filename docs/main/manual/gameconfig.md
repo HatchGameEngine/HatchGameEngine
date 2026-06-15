@@ -19,6 +19,7 @@ Configures basic information about the game.
 | `developerIdentifier` | string | The identifier of the developer. If not set, this is generated from the developer name. | |
 | `useDeveloperIdentifierInPaths` | boolean | Whether to use `developerIdentifier` in paths. | |
 | `savesDir` | string | The name of the saves directory. | `"saves"` |
+| `screenshotsPath` | string | The path to the screenshots directory. URLs are supported. | |
 | `preferencesDir` | string | The name of the preferences directory. | |
 | `activeCategory` | string/integer | Which scene list category to use when the game starts. | `0` |
 | `startscene` | string | Which scene file to load first. When using a scene list, this is the name of the entry within the active category instead. If both `startscene` and `startSceneNum` are present while a scene list is loaded, this takes priority. | |

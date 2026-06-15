@@ -3,7 +3,7 @@
 
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
-#include <Engine/Scene/ScrollingIndex.h>
+#include <Engine/Scene/LayerTileBuffers.h>
 #include <Engine/Scene/ScrollingInfo.h>
 #include <Engine/Types/Property.h>
 
@@ -21,7 +21,9 @@ public:
 	Uint32 HeightData = 0;
 	Uint32 DataSize = 0;
 	Uint32 ScrollIndexCount = 0;
+	float RelativeX = 1.0;
 	float RelativeY = 1.0;
+	float ConstantX = 0.0;
 	float ConstantY = 0.0;
 	float OffsetX = 0.0;
 	float OffsetY = 0.0;
@@ -50,9 +52,10 @@ public:
 	ScrollingInfo* ScrollInfos = NULL;
 	Uint8* ScrollIndexes = NULL;
 	bool UsingScrollIndexes = false;
-	Uint32 BufferID = 0;
-	int VertexCount = 0;
-	void* TileBatches = NULL;
+	std::vector<LayerTileBuffers*> TileBuffers;
+	size_t* TileBufferIndexes = NULL;
+	bool UsingTileBuffers = false;
+	bool RemakeTileBuffers = false;
 	enum {
 		FLAGS_COLLIDEABLE = 1,
 		FLAGS_REPEAT_X = 2,

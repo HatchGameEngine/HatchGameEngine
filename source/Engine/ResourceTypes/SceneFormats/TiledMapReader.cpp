@@ -103,7 +103,7 @@ int base64_decode_value(int8_t value_in) {
 	}
 	return decoding[(int)value_in];
 }
-int base64_decode_block(const char* code_in, const int length_in, char* plaintext_out) {
+size_t base64_decode_block(const char* code_in, const int length_in, char* plaintext_out) {
 	const char* codechar = code_in;
 	int8_t* plainchar = (int8_t*)plaintext_out;
 	int8_t fragment;
@@ -448,30 +448,93 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	}
 }
 
-bool TiledMapReader::ParseLayer(XMLNode* layer) {
+void TiledMapReader::ParseSharedLayerFields(TiledLayer* layer, XMLNode* node) {
+	for (size_t e = 0; e < node->children.size(); e++) {
+		if (XMLParser::MatchToken(node->children[e]->name, "properties")) {
+			XMLNode* properties = node->children[e];
+			for (size_t pr = 0; pr < properties->children.size(); pr++) {
+				if (!XMLParser::MatchToken(
+					    properties->children[pr]->name, "property")) {
+					continue;
+				}
+
+				if (layer->Properties == NULL) {
+					layer->Properties = new HashMap<Property>(NULL, 4);
+				}
+
+				TiledMapReader::ParsePropertyNode(
+					properties->children[pr], layer->Properties);
+			}
+		}
+	}
+
+	if (node->attributes.Exists("visible") &&
+		XMLParser::MatchToken(node->attributes.Get("visible"), "0")) {
+		layer->Visible = false;
+	}
+	if (node->attributes.Exists("opacity")) {
+		layer->Opacity = XMLParser::TokenToNumber(node->attributes.Get("opacity"));
+	}
+
+	if (node->attributes.Exists("offsetx")) {
+		layer->OffsetX = XMLParser::TokenToNumber(node->attributes.Get("offsetx"));
+	}
+	if (node->attributes.Exists("offsety")) {
+		layer->OffsetY = XMLParser::TokenToNumber(node->attributes.Get("offsety"));
+	}
+
+	if (node->attributes.Exists("parallaxx")) {
+		layer->ParallaxX = XMLParser::TokenToNumber(node->attributes.Get("parallaxx"));
+	}
+	if (node->attributes.Exists("parallaxy")) {
+		layer->ParallaxY = XMLParser::TokenToNumber(node->attributes.Get("parallaxy"));
+	}
+
+	if (layer->Properties) {
+		Property prop;
+		if (layer->Properties->GetIfExists("ConstantScrollX", &prop) && PROPERTY_IS_NUMBER(prop)) {
+			layer->ConstantScrollX = PROPERTY_AS_NUMBER(prop);
+		}
+		if (layer->Properties->GetIfExists("ConstantScrollY", &prop) && PROPERTY_IS_NUMBER(prop)) {
+			layer->ConstantScrollY = PROPERTY_AS_NUMBER(prop);
+		}
+	}
+}
+
+bool TiledMapReader::ParseLayer(XMLNode* layer, LayerGroup* group) {
 	int layer_width = (int)XMLParser::TokenToNumber(layer->attributes.Get("width"));
 	int layer_height = (int)XMLParser::TokenToNumber(layer->attributes.Get("height"));
 
 	size_t layer_size_in_bytes = layer_width * layer_height * sizeof(int);
 
 	int* tile_buffer = NULL;
-	HashMap<Property>* layer_properties = NULL;
+
+	TiledLayer tiledLayer;
+	ParseSharedLayerFields(&tiledLayer, layer);
 
 	for (size_t e = 0; e < layer->children.size(); e++) {
 		if (XMLParser::MatchToken(layer->children[e]->name, "data")) {
 			XMLNode* data = layer->children[e];
 			XMLNode* data_text = data->children[0];
 
-			int tile_buffer_len = 0;
+			size_t tile_buffer_len = 0;
 			if (data->attributes.Exists("encoding")) {
 				if (XMLParser::MatchToken(
 					    data->attributes.Get("encoding"), "base64")) {
-					// +4 extra space to prevent base64 overflow
-					tile_buffer =
-						(int*)Memory::Calloc(1, layer_size_in_bytes + 4);
+					size_t decoded_buffer_size = ((data_text->name.Length * 3) / 4) + 1;
+					char* decoded_buffer = (char*)Memory::Calloc(decoded_buffer_size, sizeof(char));
+
 					tile_buffer_len = base64_decode_block(data_text->name.Start,
 						(int)data_text->name.Length,
-						(char*)tile_buffer);
+						decoded_buffer);
+
+					tile_buffer = (int*)Memory::Calloc(layer_size_in_bytes, sizeof(Uint8));
+					if (tile_buffer_len > layer_size_in_bytes) {
+						tile_buffer_len = layer_size_in_bytes;
+					}
+					memcpy(tile_buffer, decoded_buffer, tile_buffer_len);
+
+					Memory::Free(decoded_buffer);
 				}
 				else if (XMLParser::MatchToken(
 						 data->attributes.Get("encoding"), "csv")) {
@@ -511,45 +574,36 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 				}
 			}
 		}
-		else if (XMLParser::MatchToken(layer->children[e]->name, "properties")) {
-			XMLNode* properties = layer->children[e];
-			for (size_t pr = 0; pr < properties->children.size(); pr++) {
-				if (!XMLParser::MatchToken(
-					    properties->children[pr]->name, "property")) {
-					continue;
-				}
-
-				if (layer_properties == NULL) {
-					layer_properties = new HashMap<Property>(NULL, 4);
-				}
-
-				TiledMapReader::ParsePropertyNode(
-					properties->children[pr], layer_properties);
-			}
-		}
 	}
 
 	Token name = layer->attributes.Get("name");
 
 	SceneLayer scenelayer(layer_width, layer_height);
 	scenelayer.Name = StringUtils::Duplicate(name.Start, name.Length);
-
-	scenelayer.RelativeY = 1.0;
-	scenelayer.ConstantY = 0;
-	scenelayer.ScrollInfoCount = 0;
-	scenelayer.ScrollInfos = nullptr;
-	scenelayer.UsingScrollIndexes = false;
 	scenelayer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
-	scenelayer.DrawGroup = 0;
-	scenelayer.Properties = layer_properties;
+	scenelayer.Properties = tiledLayer.Properties;
+	scenelayer.Visible = tiledLayer.Visible;
+	scenelayer.Opacity = tiledLayer.Opacity;
+	scenelayer.OffsetX = -tiledLayer.OffsetX;
+	scenelayer.OffsetY = -tiledLayer.OffsetY;
+	scenelayer.RelativeX = tiledLayer.ParallaxX;
+	scenelayer.RelativeY = tiledLayer.ParallaxY;
+	scenelayer.ConstantX = tiledLayer.ConstantScrollX;
+	scenelayer.ConstantY = tiledLayer.ConstantScrollY;
 
-	if (layer->attributes.Exists("visible") &&
-		XMLParser::MatchToken(layer->attributes.Get("visible"), "0")) {
-		scenelayer.Visible = false;
-	}
-	if (layer->attributes.Exists("opacity")) {
+	if (scenelayer.Opacity != 1.0) {
 		scenelayer.Blending = true;
-		scenelayer.Opacity = XMLParser::TokenToNumber(layer->attributes.Get("opacity"));
+	}
+
+	if (group) {
+		scenelayer.OffsetX -= group->OffsetX;
+		scenelayer.OffsetY -= group->OffsetY;
+
+		scenelayer.RelativeX *= group->ParallaxX;
+		scenelayer.RelativeY *= group->ParallaxY;
+
+		scenelayer.ConstantX += group->ConstantScrollX;
+		scenelayer.ConstantY += group->ConstantScrollY;
 	}
 
 #if HATCH_BIG_ENDIAN
@@ -578,13 +632,24 @@ bool TiledMapReader::ParseLayer(XMLNode* layer) {
 	}
 	memcpy(scenelayer.TilesBackup, scenelayer.Tiles, scenelayer.DataSize);
 
-	Scene::Layers.push_back(scenelayer);
+	Scene::AddLayer(scenelayer);
 
 	Memory::Free(tile_buffer);
 
 	return true;
 }
-bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
+bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
+	TiledLayer tiledLayer;
+	ParseSharedLayerFields(&tiledLayer, objectgroup);
+
+	float offsetX = tiledLayer.OffsetX;
+	float offsetY = tiledLayer.OffsetY;
+
+	if (group) {
+		offsetX += group->OffsetX;
+		offsetY += group->OffsetY;
+	}
+
 	for (size_t o = 0; o < objectgroup->children.size(); o++) {
 		XMLNode* object = objectgroup->children[o];
 		if (!XMLParser::MatchToken(object->name, "object")) {
@@ -598,6 +663,9 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 
 		float object_x = XMLParser::TokenToNumber(object->attributes.Get("x"));
 		float object_y = XMLParser::TokenToNumber(object->attributes.Get("y"));
+
+		object_x += offsetX;
+		object_y += offsetY;
 
 		int filter = object->attributes.Exists("filter")
 			? (int)XMLParser::TokenToNumber(object->attributes.Get("filter"))
@@ -703,30 +771,55 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup) {
 
 	return true;
 }
-bool TiledMapReader::ParseGroupable(XMLNode* node) {
+bool TiledMapReader::ParseGroupable(XMLNode* node, LayerGroup* group) {
 	if (XMLParser::MatchToken(node->name, "layer")) {
-		if (!ParseLayer(node)) {
+		if (!ParseLayer(node, group)) {
 			return false;
 		}
 	}
 	else if (XMLParser::MatchToken(node->name, "objectgroup")) {
-		if (!ParseObjectGroup(node)) {
+		if (!ParseObjectGroup(node, group)) {
 			return false;
 		}
 	}
 	else if (XMLParser::MatchToken(node->name, "group")) {
 		// Groups can be nested
-		if (!ParseGroup(node)) {
+		if (!ParseGroup(node, group)) {
 			return false;
 		}
 	}
 
 	return true;
 }
-bool TiledMapReader::ParseGroup(XMLNode* group) {
-	// TODO: Read and store these groups if they can be relevant.
-	for (size_t i = 0; i < group->children.size(); i++) {
-		if (!ParseGroupable(group->children[i])) {
+bool TiledMapReader::ParseGroup(XMLNode* node, LayerGroup* parent) {
+	TiledLayer tiledLayer;
+	ParseSharedLayerFields(&tiledLayer, node);
+
+	LayerGroup group;
+	group.OffsetX = tiledLayer.OffsetX;
+	group.OffsetY = tiledLayer.OffsetY;
+	group.ParallaxX = tiledLayer.ParallaxX;
+	group.ParallaxY = tiledLayer.ParallaxY;
+	group.ConstantScrollX = tiledLayer.ConstantScrollX;
+	group.ConstantScrollY = tiledLayer.ConstantScrollY;
+
+	if (parent) {
+		group.OffsetX += parent->OffsetX;
+		group.OffsetY += parent->OffsetY;
+
+		group.ParallaxX *= parent->ParallaxX;
+		group.ParallaxY *= parent->ParallaxY;
+
+		group.ConstantScrollX += parent->ConstantScrollX;
+		group.ConstantScrollY += parent->ConstantScrollY;
+	}
+
+	if (tiledLayer.Properties) {
+		delete tiledLayer.Properties;
+	}
+
+	for (size_t i = 0; i < node->children.size(); i++) {
+		if (!ParseGroupable(node->children[i], &group)) {
 			return false;
 		}
 	}
@@ -810,11 +903,11 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 			}
 		}
 		else if (XMLParser::MatchToken(map->children[i]->name, "group")) {
-			if (!ParseGroup(map->children[i])) {
+			if (!ParseGroup(map->children[i], nullptr)) {
 				goto FREE;
 			}
 		}
-		else if (!ParseGroupable(map->children[i])) {
+		else if (!ParseGroupable(map->children[i], nullptr)) {
 			goto FREE;
 		}
 	}
