@@ -2867,6 +2867,8 @@ void Compiler::GetForStatement() {
 	int exitJump = -1;
 	int loopStart = CurrentChunk()->Count;
 
+	bool optimizedOut = false;
+
 	// Conditional
 	if (!MatchToken(TOKEN_SEMICOLON)) {
 		Token stmtLocation = parser.Current;
@@ -2875,9 +2877,31 @@ void Compiler::GetForStatement() {
 		GetExpression();
 		ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after loop condition.");
 
-		// Jump out of the loop if the condition is false.
-		exitJump = EmitJump(OP_JUMP_IF_FALSE);
-		EmitByte(OP_POP); // Condition.
+		VMValue value;
+		uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
+		if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+			    CurrentChunk()->GetConstant(codeLocation, &value)) {
+			if (IS_INTEGER(value) && AS_INTEGER(value) == 0) {
+				WarningAt(&stmtLocation, "Condition is always false.");
+
+				if (CurrentSettings.DoOptimizations) {
+					optimizedOut = true;
+				}
+			}
+		}
+
+		if (optimizedOut) {
+			CurrentChunk()->Count = codeLocation;
+		}
+		else {
+			// Jump out of the loop if the condition is false.
+			exitJump = EmitJump(OP_JUMP_IF_FALSE);
+			EmitByte(OP_POP); // Condition.
+		}
+	}
+
+	if (optimizedOut) {
+		DoNotEmit++;
 	}
 
 	// Incremental
@@ -2921,6 +2945,10 @@ void Compiler::GetForStatement() {
 
 	// End new scope
 	ScopeEnd();
+
+	if (optimizedOut) {
+		DoNotEmit--;
+	}
 }
 void Compiler::GetForEachStatement() {
 	// Start new scope
