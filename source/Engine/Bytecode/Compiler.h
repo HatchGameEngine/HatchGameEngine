@@ -184,6 +184,8 @@ public:
 	Uint32 GetHash(Token token);
 	Chunk* CurrentChunk();
 	int CodePointer();
+	void SetCodePointer(int codePointer);
+	void EraseBreakpointsAfterOffset(Uint32 codePointer, std::vector<Uint32>* list);
 	Uint8* GetLastOpcodePtr(Chunk* chunk, int index);
 	void EmitByte(Uint8 byte);
 	void EmitBytes(Uint8 byte1, Uint8 byte2);

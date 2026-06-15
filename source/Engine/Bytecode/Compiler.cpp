@@ -1179,7 +1179,7 @@ void Compiler::EmitDirectOrIndirectLoad() {
 		}
 
 		Uint32 hash = *(Uint32*)(op + 1);
-		chunk->Count = (last - chunk->Code) + Bytecode::GetTotalOpcodeSize(last);
+		SetCodePointer((last - chunk->Code) + Bytecode::GetTotalOpcodeSize(last));
 		*last = direct;
 		EmitByte(OP_GET_SUPERCLASS);
 		EmitByte(OP_GET_PROPERTY);
@@ -2038,7 +2038,7 @@ ExprContext Compiler::GetHitbox(ExprContext context) {
 	}
 
 	if (allConstants) {
-		CurrentChunk()->Count = codePointer;
+		SetCodePointer(codePointer);
 		EmitConstant(HITBOX_VAL(values.data()));
 		return EXPRCONTEXT_VALUE;
 	}
@@ -2891,7 +2891,7 @@ void Compiler::GetForStatement() {
 		}
 
 		if (optimizedOut) {
-			CurrentChunk()->Count = codeLocation;
+			SetCodePointer(codeLocation);
 		}
 		else {
 			// Jump out of the loop if the condition is false.
@@ -3081,7 +3081,7 @@ void Compiler::GetIfStatement() {
 	if (branchOptimization != BRANCH_MAYBE_TAKEN) {
 		// The expression is known to always be true or false.
 		// Remove the emitted bytecode for the condition.
-		CurrentChunk()->Count = codeLocation;
+		SetCodePointer(codeLocation);
 	}
 	else {
 		thenJump = EmitJump(OP_JUMP_IF_FALSE);
@@ -3340,7 +3340,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 				locals[variable].ConstantVal = value;
 				locals[variable].Constant = constant;
 				if (constant) {
-					CurrentChunk()->Count = pre;
+					SetCodePointer(pre);
 					locals[variable].Index = constantIndex;
 					AllLocals.push_back(locals[variable]);
 				}
@@ -3402,7 +3402,7 @@ void Compiler::GetModuleVariableDeclaration() {
 				CurrentChunk()->GetConstant(pre, &value, &constantIndex)) {
 				vec->at(local).ConstantVal = value;
 				if (constant) {
-					CurrentChunk()->Count = pre;
+					SetCodePointer(pre);
 					vec->at(local).Index = constantIndex;
 				}
 			}
@@ -3842,6 +3842,22 @@ Chunk* Compiler::CurrentChunk() {
 int Compiler::CodePointer() {
 	return CurrentChunk()->Count;
 }
+void Compiler::SetCodePointer(int codePointer) {
+	CurrentChunk()->Count = codePointer;
+
+	EraseBreakpointsAfterOffset((Uint32)codePointer, &Breakpoints);
+	EraseBreakpointsAfterOffset((Uint32)codePointer, BreakpointListStack.top());
+}
+void Compiler::EraseBreakpointsAfterOffset(Uint32 codePointer, std::vector<Uint32>* list) {
+	for (size_t i = 0; i < list->size();) {
+		if ((*list)[i] >= codePointer) {
+			list->erase(list->begin() + i);
+		}
+		else {
+			i++;
+		}
+	}
+}
 Uint8* Compiler::GetLastOpcodePtr(Chunk* chunk, int n) {
 	if (chunk->Count == 0) {
 		return nullptr;
@@ -4132,7 +4148,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 
 		switch (unOp) {
 		case OP_LG_NOT:
-			CurrentChunk()->Count = preCount;
+			SetCodePointer(preCount);
 
 			switch (constant.Type) {
 			case VAL_NULL:
@@ -4150,7 +4166,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 			break;
 		case OP_NEGATE:
-			CurrentChunk()->Count = preCount;
+			SetCodePointer(preCount);
 
 			if (constant.Type == VAL_DECIMAL) {
 				out = DECIMAL_VAL(-AS_DECIMAL(constant));
@@ -4160,7 +4176,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 			break;
 		case OP_BW_NOT:
-			CurrentChunk()->Count = preCount;
+			SetCodePointer(preCount);
 
 			if (constant.Type == VAL_DECIMAL) {
 				out = DECIMAL_VAL((float)(~(int)AS_DECIMAL(constant)));
@@ -4170,7 +4186,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 			break;
 		case OP_INCREMENT: {
-			CurrentChunk()->Count = preCount;
+			SetCodePointer(preCount);
 
 			if (constant.Type == VAL_DECIMAL) {
 				out = DECIMAL_VAL(++AS_DECIMAL(constant));
@@ -4181,7 +4197,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 			break;
 		}
 		case OP_DECREMENT: {
-			CurrentChunk()->Count = preCount;
+			SetCodePointer(preCount);
 
 			if (constant.Type == VAL_DECIMAL) {
 				out = DECIMAL_VAL(--AS_DECIMAL(constant));
@@ -4536,7 +4552,7 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		}
 		}
 
-		CurrentChunk()->Count = preCount;
+		SetCodePointer(preCount);
 		if (checkConstantA >= preConstant) {
 			CurrentChunk()->Constants->pop_back();
 		}
@@ -4556,6 +4572,10 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 }
 
 void Compiler::AddBreakpoint(Token at) {
+	if (DoNotEmit) {
+		return;
+	}
+
 	std::vector<Uint32>* breakpoints = BreakpointListStack.top();
 	if (breakpoints->size() == MAX_CHUNK_BREAKPOINTS) {
 		char msg[64];
