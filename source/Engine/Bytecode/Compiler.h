@@ -25,7 +25,7 @@ public:
 	int Type = FUNCTIONTYPE_TOPLEVEL;
 	bool InREPL = false;
 	bool EmitNullOnReturn = true;
-	bool DoNotEmit = false;
+	int DoNotEmit = 0;
 	string ClassName;
 	Local Locals[0x100];
 	vector<Local> AllLocals;
