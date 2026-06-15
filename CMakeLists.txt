@@ -152,7 +152,6 @@ endif()
 
 # Add needed directories
 include_directories(
-  include
   source
   ${SDL2_INCLUDE_DIRS}
 )
