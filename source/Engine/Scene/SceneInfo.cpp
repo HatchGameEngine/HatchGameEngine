@@ -196,6 +196,9 @@ std::string SceneInfo::GetResourceFolder(int categoryID, int entryID) {
 	}
 
 	SceneListEntry& entry = Categories[categoryID].Entries[entryID];
+	if (entry.ResourceFolder == nullptr) {
+		return "";
+	}
 
 	return entry.ResourceFolder;
 }
