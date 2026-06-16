@@ -4951,7 +4951,10 @@ void Compiler::Finish() {
 	EmitReturn();
 	EndBreakpointList();
 	AddBreakpointsToChunk(chunk);
-	RebuildConstantsList();
+
+	if (CurrentSettings.DoOptimizations) {
+		RebuildConstantsList();
+	}
 }
 void Compiler::AddBreakpointsToChunk(Chunk* chunk) {
 	chunk->BreakpointCount = (Uint16)Breakpoints.size();
