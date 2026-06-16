@@ -3283,7 +3283,34 @@ void Compiler::CompileFunction() {
 
 	// The body.
 	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before function body.");
-	GetBlockStatement();
+
+	bool foundUnreachableCode = false;
+
+	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
+		if (ReturnedAt != -1 && !foundUnreachableCode) {
+			WarningAt(&parser.Current, "Unreachable code.");
+
+			foundUnreachableCode = true;
+		}
+
+		if (MatchToken(TOKEN_RETURN)) {
+			GetReturnStatement();
+
+			if (ReturnedAt == -1) {
+				ReturnedAt = CodePointer();
+			}
+		}
+		else {
+			GetDeclaration();
+		}
+	}
+
+	ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' after function body.");
+
+	// Delete unreachable code
+	if (CurrentSettings.DoOptimizations && ReturnedAt != -1 && CodePointer() > ReturnedAt) {
+		SetCodePointer(ReturnedAt);
+	}
 }
 int Compiler::GetFunction(int type, string className) {
 	int index = (int)Compiler::Functions.size();
@@ -4948,7 +4975,10 @@ void Compiler::Finish() {
 		}
 	}
 
-	EmitReturn();
+	if (ReturnedAt == -1) {
+		EmitReturn();
+	}
+
 	EndBreakpointList();
 	AddBreakpointsToChunk(chunk);
 

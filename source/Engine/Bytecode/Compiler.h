@@ -25,6 +25,7 @@ public:
 	int Type = FUNCTIONTYPE_TOPLEVEL;
 	bool InREPL = false;
 	bool EmitNullOnReturn = true;
+	int ReturnedAt = -1;
 	int DoNotEmit = 0;
 	string ClassName;
 	Local Locals[0x100];
