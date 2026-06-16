@@ -1158,6 +1158,10 @@ void Compiler::EmitCallOpcode(int argCount, bool isSuper) {
 }
 
 void Compiler::EmitDirectOrIndirectLoad() {
+	if (DoNotEmit) {
+		return;
+	}
+
 	if (!CurrentSettings.DoOptimizations) {
 		EmitByte(OP_LOAD_INDIRECT);
 		return;
@@ -1240,8 +1244,10 @@ bool Compiler::MakeIndirectPropertyChainDirect(Chunk* chunk, Uint8* op, int inde
 
 			chunk->Count -= code_block_length;
 			EmitByte(OP_GET_SUPERCLASS);
-			for (int i = 0; i < code_block_length; i++) {
-				chunk->Write(code_block_copy[i], line_block_copy[i]);
+			if (!DoNotEmit) {
+				for (int i = 0; i < code_block_length; i++) {
+					chunk->Write(code_block_copy[i], line_block_copy[i]);
+				}
 			}
 			free(code_block_copy);
 			free(line_block_copy);
@@ -2526,8 +2532,10 @@ void Compiler::GetSwitchStatement() {
 
 		EmitCopy(1);
 
-		for (Uint32 i = 0; i < case_info.CodeLength; i++) {
-			chunk->Write(case_info.CodeBlock[i], case_info.LineBlock[i]);
+		if (!DoNotEmit) {
+			for (Uint32 i = 0; i < case_info.CodeLength; i++) {
+				chunk->Write(case_info.CodeBlock[i], case_info.LineBlock[i]);
+			}
 		}
 
 		EmitByte(OP_EQUAL);
@@ -2567,8 +2575,10 @@ void Compiler::GetSwitchStatement() {
 	int new_block_pos = CodePointer();
 	// We do this here so that if an allocation is needed, it
 	// happens.
-	for (int i = 0; i < code_block_length; i++) {
-		chunk->Write(code_block_copy[i], line_block_copy[i]);
+	if (!DoNotEmit) {
+		for (int i = 0; i < code_block_length; i++) {
+			chunk->Write(code_block_copy[i], line_block_copy[i]);
+		}
 	}
 	free(code_block_copy);
 	free(line_block_copy);
@@ -2891,9 +2901,11 @@ void Compiler::GetWithStatement() {
 	EmitByte(0xFF);
 	EmitByte(0xFF);
 
-	int jump = CurrentChunk()->Count - loopStart;
-	CurrentChunk()->Code[loopStart - 2] = jump & 0xFF;
-	CurrentChunk()->Code[loopStart - 1] = (jump >> 8) & 0xFF;
+	if (!DoNotEmit) {
+		int jump = CurrentChunk()->Count - loopStart;
+		CurrentChunk()->Code[loopStart - 2] = jump & 0xFF;
+		CurrentChunk()->Code[loopStart - 1] = (jump >> 8) & 0xFF;
+	}
 
 	// End scope (will pop "other")
 	ScopeEnd();
@@ -3869,7 +3881,7 @@ ExprContext Compiler::ParsePrecedence(Precedence precedence, ExprContext context
 	ExprContext initialContext = context;
 	context = (this->*prefixRule)(initialContext);
 
-	if (CurrentSettings.DoOptimizations) {
+	if (CurrentSettings.DoOptimizations && !DoNotEmit) {
 		preConstant = CheckPrefixOptimize(preCount, preConstant, prefixRule);
 	}
 
@@ -3879,7 +3891,7 @@ ExprContext Compiler::ParsePrecedence(Precedence precedence, ExprContext context
 		if (infixRule) {
 			context = (this->*infixRule)(context);
 		}
-		if (CurrentSettings.DoOptimizations) {
+		if (CurrentSettings.DoOptimizations && !DoNotEmit) {
 			preConstant = CheckInfixOptimize(preCount, preConstant, infixRule);
 		}
 	}
