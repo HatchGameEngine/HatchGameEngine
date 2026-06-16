@@ -42,6 +42,7 @@ public:
 	void WriteLocals(Stream* stream, vector<ChunkLocal>* locals, int numLocals);
 
 	static int GetTotalOpcodeSize(uint8_t* op);
+	static bool IsConstantIndexOpcode(Uint8 opcode);
 };
 
 #endif /* ENGINE_BYTECODE_BYTECODE_H */

@@ -32,6 +32,12 @@ Token InstanceToken = Token{0, NULL, 0, 0, 0};
 
 bool ShouldEmitValue = false;
 
+enum {
+	BRANCH_MAYBE_TAKEN,
+	BRANCH_ALWAYS_TAKEN,
+	BRANCH_NEVER_TAKEN
+};
+
 struct VariableWarning {
 	int Line;
 	std::string VariableName;
@@ -776,7 +782,7 @@ bool Compiler::ReportError(int line, int pos, bool fatal, const char* string, ..
 	}
 
 	buffer_printf(&buffer,
-		"line %d, position %d:\n    %s\n\n",
+		"line %d, position %d:\n    %s\n",
 		line,
 		pos,
 		message);
@@ -1152,6 +1158,10 @@ void Compiler::EmitCallOpcode(int argCount, bool isSuper) {
 }
 
 void Compiler::EmitDirectOrIndirectLoad() {
+	if (DoNotEmit) {
+		return;
+	}
+
 	if (!CurrentSettings.DoOptimizations) {
 		EmitByte(OP_LOAD_INDIRECT);
 		return;
@@ -1173,7 +1183,7 @@ void Compiler::EmitDirectOrIndirectLoad() {
 		}
 
 		Uint32 hash = *(Uint32*)(op + 1);
-		chunk->Count = (last - chunk->Code) + Bytecode::GetTotalOpcodeSize(last);
+		SetCodePointer((last - chunk->Code) + Bytecode::GetTotalOpcodeSize(last));
 		*last = direct;
 		EmitByte(OP_GET_SUPERCLASS);
 		EmitByte(OP_GET_PROPERTY);
@@ -1234,8 +1244,10 @@ bool Compiler::MakeIndirectPropertyChainDirect(Chunk* chunk, Uint8* op, int inde
 
 			chunk->Count -= code_block_length;
 			EmitByte(OP_GET_SUPERCLASS);
-			for (int i = 0; i < code_block_length; i++) {
-				chunk->Write(code_block_copy[i], line_block_copy[i]);
+			if (!DoNotEmit) {
+				for (int i = 0; i < code_block_length; i++) {
+					chunk->Write(code_block_copy[i], line_block_copy[i]);
+				}
 			}
 			free(code_block_copy);
 			free(line_block_copy);
@@ -2032,7 +2044,7 @@ ExprContext Compiler::GetHitbox(ExprContext context) {
 	}
 
 	if (allConstants) {
-		CurrentChunk()->Count = codePointer;
+		SetCodePointer(codePointer);
 		EmitConstant(HITBOX_VAL(values.data()));
 		return EXPRCONTEXT_VALUE;
 	}
@@ -2179,8 +2191,15 @@ void Compiler::GetValueExpression() {
 	ShouldEmitValue = false;
 }
 // Reading statements
-struct switch_case {
+struct ContinueStatement {
+	int Position;
+	Token Location;
+};
+struct SwitchCase {
 	bool IsDefault;
+	bool IsConstant;
+	VMValue ConstantVal;
+	Token CaseLocation;
 	Uint32 CasePosition;
 	Uint32 JumpPosition;
 	Uint32 CodeLength;
@@ -2188,8 +2207,8 @@ struct switch_case {
 	int* LineBlock;
 };
 stack<vector<int>*> BreakJumpListStack;
-stack<vector<int>*> ContinueJumpListStack;
-stack<vector<switch_case>*> SwitchJumpListStack;
+stack<vector<ContinueStatement>*> ContinueJumpListStack;
+stack<vector<SwitchCase>*> SwitchJumpListStack;
 stack<vector<Uint32>*> BreakpointListStack;
 stack<int> BreakScopeStack;
 stack<int> ContinueScopeStack;
@@ -2223,10 +2242,29 @@ void Compiler::GetContinueStatement() {
 
 	PopToScope(ContinueScopeStack.top());
 
-	int jump = EmitJump(OP_JUMP);
-	ContinueJumpListStack.top()->push_back(jump);
+	ContinueStatement stmt;
+	stmt.Position = EmitJump(OP_JUMP);
+	stmt.Location = parser.Previous;
+	ContinueJumpListStack.top()->push_back(stmt);
 
 	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after continue.");
+}
+int Compiler::DoBranchPrediction(int codeLocation) {
+	VMValue value;
+	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
+	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+		    CurrentChunk()->GetConstant(codeLocation, &value)) {
+		if (IS_INTEGER(value)) {
+			if (AS_INTEGER(value) == 0) {
+				return BRANCH_NEVER_TAKEN;
+			}
+			else {
+				return BRANCH_ALWAYS_TAKEN;
+			}
+		}
+	}
+
+	return BRANCH_MAYBE_TAKEN;
 }
 void Compiler::GetDoWhileStatement() {
 	// Set the start of the loop to before the condition
@@ -2247,10 +2285,31 @@ void Compiler::GetDoWhileStatement() {
 
 	// Evaluate the condition
 	ConsumeToken(TOKEN_WHILE, "Expected 'while' at end of 'do' block.");
+
+	Token stmtLocation = parser.Previous;
+	int codeLocation = CodePointer();
+
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'while'.");
 	GetExpression();
+
+	bool optimizedOut = false;
+	int prediction = DoBranchPrediction(codeLocation);
+	if (prediction == BRANCH_NEVER_TAKEN) {
+		WarningAt(&stmtLocation, "Condition is always false.");
+
+		if (CurrentSettings.DoOptimizations) {
+			optimizedOut = true;
+		}
+	}
+
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after ')'.");
+
+	if (optimizedOut) {
+		EndBreakJumpList(false); // End the break jump list but don't patch any code
+		SetCodePointer(loopStart); // Erase all of that code
+		return;
+	}
 
 	// Jump if false (or 0)
 	int exitJump = EmitJump(OP_JUMP_IF_FALSE);
@@ -2292,8 +2351,22 @@ void Compiler::GetReturnStatement() {
 }
 void Compiler::GetRepeatStatement() {
 	ScopeBegin();
+
+	Token stmtLocation = parser.Previous;
+	int codeLocation = CodePointer();
+
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'repeat'.");
 	GetExpression();
+
+	bool optimizedOut = false;
+	int prediction = DoBranchPrediction(codeLocation);
+	if (prediction == BRANCH_NEVER_TAKEN) {
+		WarningAt(&stmtLocation, "This will never execute.");
+
+		if (CurrentSettings.DoOptimizations) {
+			optimizedOut = true;
+		}
+	}
 
 	Token variableToken = {TOKEN_ERROR};
 	int remaining = 0;
@@ -2313,6 +2386,13 @@ void Compiler::GetRepeatStatement() {
 	if (!remaining) {
 		remaining = AddHiddenLocal(" remaining", 11);
 	}
+
+	if (optimizedOut) {
+		SetCodePointer(codeLocation);
+
+		DoNotEmit++;
+	}
+
 	EmitByte(OP_INCREMENT); // increment remaining as we're about
 	// to decrement it, so we can cheat
 	// continue
@@ -2368,18 +2448,38 @@ void Compiler::GetRepeatStatement() {
 	EndBreakJumpList();
 
 	ScopeEnd();
+
+	if (optimizedOut) {
+		DoNotEmit--;
+	}
 }
 void Compiler::GetSwitchStatement() {
+	bool onlyHasDefault = true;
+	bool isConstant = false;
+	bool allCasesConstant = true;
+	bool didMatchConstantCase = false;
+
 	Chunk* chunk = CurrentChunk();
 
 	StartBreakJumpList();
 	StartContinueJumpList();
 	StartBreakpointList();
 
+	Token stmtLocation = parser.Previous;
+	int codeLocation = CodePointer();
+
 	// Evaluate the condition
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'switch'.");
 	GetExpression();
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
+
+	VMValue switchValue;
+	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
+	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+		    CurrentChunk()->GetConstant(codeLocation, &switchValue)) {
+		WarningAt(&stmtLocation, "Expression in statement is constant; might only execute one clause.");
+		isConstant = true;
+	}
 
 	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before statements.");
 
@@ -2405,23 +2505,37 @@ void Compiler::GetSwitchStatement() {
 
 	chunk->Count -= code_block_length;
 
-	switch_case* defaultCase = nullptr;
+	SwitchCase* defaultCase = nullptr;
 
 	int exitJump = -1;
 
-	vector<switch_case> cases = *SwitchJumpListStack.top();
+	vector<SwitchCase> cases = *SwitchJumpListStack.top();
 	for (size_t i = 0; i < cases.size(); i++) {
-		switch_case& case_info = cases[i];
+		SwitchCase& case_info = cases[i];
+
+		if (!case_info.IsConstant) {
+			allCasesConstant = false;
+		}
 
 		if (case_info.IsDefault) {
 			defaultCase = &cases[i];
 			continue;
 		}
+		else {
+			onlyHasDefault = false;
+		}
+
+		if (isConstant && case_info.IsConstant && Value::ExactlyEqual(case_info.ConstantVal, switchValue)) {
+			WarningAt(&case_info.CaseLocation, "Clause will always be executed.");
+			didMatchConstantCase = true;
+		}
 
 		EmitCopy(1);
 
-		for (Uint32 i = 0; i < case_info.CodeLength; i++) {
-			chunk->Write(case_info.CodeBlock[i], case_info.LineBlock[i]);
+		if (!DoNotEmit) {
+			for (Uint32 i = 0; i < case_info.CodeLength; i++) {
+				chunk->Write(case_info.CodeBlock[i], case_info.LineBlock[i]);
+			}
 		}
 
 		EmitByte(OP_EQUAL);
@@ -2436,6 +2550,19 @@ void Compiler::GetSwitchStatement() {
 		EmitByte(OP_POP);
 	}
 
+	if (isConstant && allCasesConstant && !didMatchConstantCase) {
+		if (defaultCase) {
+			WarningAt(&defaultCase->CaseLocation, "Clause will always be executed.");
+		}
+		else {
+			WarningAt(&stmtLocation, "No clauses will be executed.");
+		}
+	}
+
+	if (onlyHasDefault) {
+		WarningAt(&stmtLocation, "Only has a default clause.");
+	}
+
 	EmitByte(OP_POP);
 
 	if (defaultCase) {
@@ -2448,8 +2575,10 @@ void Compiler::GetSwitchStatement() {
 	int new_block_pos = CodePointer();
 	// We do this here so that if an allocation is needed, it
 	// happens.
-	for (int i = 0; i < code_block_length; i++) {
-		chunk->Write(code_block_copy[i], line_block_copy[i]);
+	if (!DoNotEmit) {
+		for (int i = 0; i < code_block_length; i++) {
+			chunk->Write(code_block_copy[i], line_block_copy[i]);
+		}
 	}
 	free(code_block_copy);
 	free(line_block_copy);
@@ -2481,9 +2610,13 @@ void Compiler::GetSwitchStatement() {
 	}
 
 	// Set the old continue opcode positions to the newly placed ones
-	top = ContinueJumpListStack.top();
-	for (size_t i = 0; i < top->size(); i++) {
-		(*top)[i] += code_offset;
+	vector<ContinueStatement>* continueTop = ContinueJumpListStack.top();
+	for (size_t i = 0; i < continueTop->size(); i++) {
+		ContinueStatement* stmt = &(*continueTop)[i];
+
+		WarningAt(&stmt->Location, "Statement has the same effect as 'break'.");
+
+		stmt->Position += code_offset;
 	}
 
 	// Set the old breakpoint positions to the newly placed ones and pop list off breakpoint stack
@@ -2504,6 +2637,10 @@ void Compiler::GetCaseStatement() {
 
 	Chunk* chunk = CurrentChunk();
 
+	SwitchCase case_info;
+	case_info.IsDefault = false;
+	case_info.CaseLocation = parser.Previous;
+
 	int code_block_start = CodePointer();
 	int code_block_length = code_block_start;
 	Uint8* code_block_copy = NULL;
@@ -2511,12 +2648,16 @@ void Compiler::GetCaseStatement() {
 
 	GetExpression();
 
+	uint8_t* codePtr = chunk->Code + code_block_start;
+	if (code_block_start + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+		    chunk->GetConstant(code_block_start, &case_info.ConstantVal)) {
+		case_info.IsConstant = true;
+	}
+
 	ConsumeToken(TOKEN_COLON, "Expected ':' after 'case'.");
 
 	code_block_length = CodePointer() - code_block_start;
 
-	switch_case case_info;
-	case_info.IsDefault = false;
 	case_info.CasePosition = code_block_start;
 	case_info.CodeLength = code_block_length;
 
@@ -2538,11 +2679,11 @@ void Compiler::GetCaseStatement() {
 }
 void Compiler::GetDefaultStatement() {
 	if (SwitchJumpListStack.size() == 0) {
-		Error("Cannot use default label outside of switch statement.");
+		Error("Cannot use default clause outside of switch statement.");
 	}
 
 	// Check if there already is a default clause, and prevent compilation if so.
-	vector<switch_case>* top = SwitchJumpListStack.top();
+	vector<SwitchCase>* top = SwitchJumpListStack.top();
 	for (size_t i = 0; i < top->size(); i++) {
 		if ((*top)[i].IsDefault) {
 			Error("Cannot have multiple default clauses.");
@@ -2551,8 +2692,9 @@ void Compiler::GetDefaultStatement() {
 
 	ConsumeToken(TOKEN_COLON, "Expected ':' after 'default'.");
 
-	switch_case case_info;
+	SwitchCase case_info;
 	case_info.IsDefault = true;
+	case_info.CaseLocation = parser.Previous;
 	case_info.CasePosition = CodePointer();
 
 	top->push_back(case_info);
@@ -2561,10 +2703,31 @@ void Compiler::GetWhileStatement() {
 	// Set the start of the loop to before the condition
 	int loopStart = CodePointer();
 
+	Token stmtLocation = parser.Previous;
+	int codeLocation = CodePointer();
+
 	// Evaluate the condition
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'while'.");
 	GetExpression();
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
+
+	bool optimizedOut = false;
+	int prediction = DoBranchPrediction(codeLocation);
+	if (prediction == BRANCH_NEVER_TAKEN) {
+		// "while (true)" is most of the time intended.
+		// "while (false)" isn't as useful.
+		WarningAt(&stmtLocation, "Condition is always false.");
+
+		if (CurrentSettings.DoOptimizations) {
+			optimizedOut = true;
+		}
+	}
+
+	if (optimizedOut) {
+		SetCodePointer(codeLocation);
+
+		DoNotEmit++;
+	}
 
 	// Jump if false (or 0)
 	int exitJump = EmitJump(OP_JUMP_IF_FALSE);
@@ -2598,6 +2761,10 @@ void Compiler::GetWhileStatement() {
 	// Pop jump list off break stack, patch all breaks to this code
 	// point
 	EndBreakJumpList();
+
+	if (optimizedOut) {
+		DoNotEmit--;
+	}
 }
 void Compiler::GetBreakStatement() {
 	if (BreakJumpListStack.size() == 0) {
@@ -2734,9 +2901,11 @@ void Compiler::GetWithStatement() {
 	EmitByte(0xFF);
 	EmitByte(0xFF);
 
-	int jump = CurrentChunk()->Count - loopStart;
-	CurrentChunk()->Code[loopStart - 2] = jump & 0xFF;
-	CurrentChunk()->Code[loopStart - 1] = (jump >> 8) & 0xFF;
+	if (!DoNotEmit) {
+		int jump = CurrentChunk()->Count - loopStart;
+		CurrentChunk()->Code[loopStart - 2] = jump & 0xFF;
+		CurrentChunk()->Code[loopStart - 1] = (jump >> 8) & 0xFF;
+	}
 
 	// End scope (will pop "other")
 	ScopeEnd();
@@ -2770,14 +2939,37 @@ void Compiler::GetForStatement() {
 	int exitJump = -1;
 	int loopStart = CurrentChunk()->Count;
 
+	bool optimizedOut = false;
+
 	// Conditional
 	if (!MatchToken(TOKEN_SEMICOLON)) {
+		Token stmtLocation = parser.Current;
+		int codeLocation = CodePointer();
+
 		GetExpression();
 		ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after loop condition.");
 
-		// Jump out of the loop if the condition is false.
-		exitJump = EmitJump(OP_JUMP_IF_FALSE);
-		EmitByte(OP_POP); // Condition.
+		int prediction = DoBranchPrediction(codeLocation);
+		if (prediction == BRANCH_NEVER_TAKEN) {
+			WarningAt(&stmtLocation, "Condition is always false.");
+
+			if (CurrentSettings.DoOptimizations) {
+				optimizedOut = true;
+			}
+		}
+
+		if (optimizedOut) {
+			SetCodePointer(codeLocation);
+		}
+		else {
+			// Jump out of the loop if the condition is false.
+			exitJump = EmitJump(OP_JUMP_IF_FALSE);
+			EmitByte(OP_POP); // Condition.
+		}
+	}
+
+	if (optimizedOut) {
+		DoNotEmit++;
 	}
 
 	// Incremental
@@ -2821,6 +3013,10 @@ void Compiler::GetForStatement() {
 
 	// End new scope
 	ScopeEnd();
+
+	if (optimizedOut) {
+		DoNotEmit--;
+	}
 }
 void Compiler::GetForEachStatement() {
 	// Start new scope
@@ -2916,22 +3112,78 @@ void Compiler::GetForEachBlock() {
 	EndBreakJumpList();
 }
 void Compiler::GetIfStatement() {
+	Token stmtLocation = parser.Previous;
+	int codeLocation = CodePointer();
+
 	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'if'.");
 	GetExpression();
 	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
-	int thenJump = EmitJump(OP_JUMP_IF_FALSE);
-	EmitByte(OP_POP);
+	int prediction = DoBranchPrediction(codeLocation);
+	if (prediction == BRANCH_NEVER_TAKEN) {
+		WarningAt(&stmtLocation, "Condition is always false.");
+	}
+	else if (prediction == BRANCH_ALWAYS_TAKEN) {
+		WarningAt(&stmtLocation, "Condition is always true.");
+	}
+
+	int branchOptimization = BRANCH_MAYBE_TAKEN;
+	if (CurrentSettings.DoOptimizations) {
+		branchOptimization = prediction;
+	}
+
+	bool ifNotTaken = branchOptimization == BRANCH_NEVER_TAKEN;
+	bool elseNotTaken = branchOptimization == BRANCH_ALWAYS_TAKEN;
+
+	int thenJump;
+	if (branchOptimization != BRANCH_MAYBE_TAKEN) {
+		// The expression is known to always be true or false.
+		// Remove the emitted bytecode for the condition.
+		SetCodePointer(codeLocation);
+	}
+	else {
+		thenJump = EmitJump(OP_JUMP_IF_FALSE);
+		EmitByte(OP_POP);
+	}
+
+	// Don't emit bytecode if this 'if' branch will never be taken
+	if (ifNotTaken) {
+		DoNotEmit++;
+	}
 	GetStatement();
+	if (ifNotTaken) {
+		DoNotEmit--;
+	}
 
-	int elseJump = EmitJump(OP_JUMP);
-
-	PatchJump(thenJump);
-	EmitByte(OP_POP); // Only Pop if OP_JUMP_IF_FALSE, as it
-	// doesn't pop
+	int elseJump;
+	if (branchOptimization == BRANCH_MAYBE_TAKEN) {
+		elseJump = EmitJump(OP_JUMP);
+		PatchJump(thenJump);
+		EmitByte(OP_POP); // Only pop if OP_JUMP_IF_FALSE, as it doesn't pop
+	}
 
 	if (MatchToken(TOKEN_ELSE)) {
+		// Those are just for the warnings.
+		// It's already determined earlier whether the 'else' branch will always or never be taken.
+		if (prediction == BRANCH_ALWAYS_TAKEN) {
+			WarningAt(&parser.Previous, "Branch will never be taken.");
+		}
+		else if (prediction == BRANCH_NEVER_TAKEN) {
+			WarningAt(&parser.Previous, "Branch will always be taken.");
+		}
+
+		// Don't emit bytecode if this 'else' branch will never be taken
+		if (elseNotTaken) {
+			DoNotEmit++;
+		}
 		GetStatement();
+		if (elseNotTaken) {
+			DoNotEmit--;
+		}
+	}
+
+	if (branchOptimization != BRANCH_MAYBE_TAKEN) {
+		return;
 	}
 
 	PatchJump(elseJump);
@@ -3043,7 +3295,34 @@ void Compiler::CompileFunction() {
 
 	// The body.
 	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before function body.");
-	GetBlockStatement();
+
+	bool foundUnreachableCode = false;
+
+	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
+		if (ReturnedAt != -1 && !foundUnreachableCode) {
+			WarningAt(&parser.Current, "Unreachable code.");
+
+			foundUnreachableCode = true;
+		}
+
+		if (MatchToken(TOKEN_RETURN)) {
+			GetReturnStatement();
+
+			if (ReturnedAt == -1) {
+				ReturnedAt = CodePointer();
+			}
+		}
+		else {
+			GetDeclaration();
+		}
+	}
+
+	ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' after function body.");
+
+	// Delete unreachable code
+	if (CurrentSettings.DoOptimizations && ReturnedAt != -1 && CodePointer() > ReturnedAt) {
+		SetCodePointer(ReturnedAt);
+	}
 }
 int Compiler::GetFunction(int type, string className) {
 	int index = (int)Compiler::Functions.size();
@@ -3146,7 +3425,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 				locals[variable].ConstantVal = value;
 				locals[variable].Constant = constant;
 				if (constant) {
-					CurrentChunk()->Count = pre;
+					SetCodePointer(pre);
 					locals[variable].Index = constantIndex;
 					AllLocals.push_back(locals[variable]);
 				}
@@ -3208,7 +3487,7 @@ void Compiler::GetModuleVariableDeclaration() {
 				CurrentChunk()->GetConstant(pre, &value, &constantIndex)) {
 				vec->at(local).ConstantVal = value;
 				if (constant) {
-					CurrentChunk()->Count = pre;
+					SetCodePointer(pre);
 					vec->at(local).Index = constantIndex;
 				}
 			}
@@ -3602,7 +3881,7 @@ ExprContext Compiler::ParsePrecedence(Precedence precedence, ExprContext context
 	ExprContext initialContext = context;
 	context = (this->*prefixRule)(initialContext);
 
-	if (CurrentSettings.DoOptimizations) {
+	if (CurrentSettings.DoOptimizations && !DoNotEmit) {
 		preConstant = CheckPrefixOptimize(preCount, preConstant, prefixRule);
 	}
 
@@ -3612,7 +3891,7 @@ ExprContext Compiler::ParsePrecedence(Precedence precedence, ExprContext context
 		if (infixRule) {
 			context = (this->*infixRule)(context);
 		}
-		if (CurrentSettings.DoOptimizations) {
+		if (CurrentSettings.DoOptimizations && !DoNotEmit) {
 			preConstant = CheckInfixOptimize(preCount, preConstant, infixRule);
 		}
 	}
@@ -3648,6 +3927,22 @@ Chunk* Compiler::CurrentChunk() {
 int Compiler::CodePointer() {
 	return CurrentChunk()->Count;
 }
+void Compiler::SetCodePointer(int codePointer) {
+	CurrentChunk()->Count = codePointer;
+
+	EraseBreakpointsAfterOffset((Uint32)codePointer, &Breakpoints);
+	EraseBreakpointsAfterOffset((Uint32)codePointer, BreakpointListStack.top());
+}
+void Compiler::EraseBreakpointsAfterOffset(Uint32 codePointer, std::vector<Uint32>* list) {
+	for (size_t i = 0; i < list->size();) {
+		if ((*list)[i] >= codePointer) {
+			list->erase(list->begin() + i);
+		}
+		else {
+			i++;
+		}
+	}
+}
 Uint8* Compiler::GetLastOpcodePtr(Chunk* chunk, int n) {
 	if (chunk->Count == 0) {
 		return nullptr;
@@ -3671,6 +3966,10 @@ Uint8* Compiler::GetLastOpcodePtr(Chunk* chunk, int n) {
 	return ptr;
 }
 void Compiler::EmitByte(Uint8 byte) {
+	if (DoNotEmit) {
+		return;
+	}
+
 	CurrentChunk()->Write(byte,
 		(int)((parser.Previous.Pos & 0xFFFF) << 16 | (parser.Previous.Line & 0xFFFF)));
 }
@@ -3771,6 +4070,10 @@ int Compiler::EmitJump(Uint8 instruction, int jump) {
 	return CurrentChunk()->Count - 2;
 }
 void Compiler::PatchJump(int offset, int jump) {
+	if (DoNotEmit) {
+		return;
+	}
+
 	CurrentChunk()->Code[offset] = jump & 0xFF;
 	CurrentChunk()->Code[offset + 1] = (jump >> 8) & 0xFF;
 }
@@ -3810,24 +4113,26 @@ void Compiler::StartBreakJumpList() {
 	BreakJumpListStack.push(new vector<int>());
 	BreakScopeStack.push(ScopeDepth);
 }
-void Compiler::EndBreakJumpList() {
+void Compiler::EndBreakJumpList(bool patchJumps) {
 	vector<int>* top = BreakJumpListStack.top();
-	for (size_t i = 0; i < top->size(); i++) {
-		int offset = (*top)[i];
-		PatchJump(offset);
+	if (patchJumps) {
+		for (size_t i = 0; i < top->size(); i++) {
+			int offset = (*top)[i];
+			PatchJump(offset);
+		}
 	}
 	delete top;
 	BreakJumpListStack.pop();
 	BreakScopeStack.pop();
 }
 void Compiler::StartContinueJumpList() {
-	ContinueJumpListStack.push(new vector<int>());
+	ContinueJumpListStack.push(new vector<ContinueStatement>());
 	ContinueScopeStack.push(ScopeDepth);
 }
 void Compiler::EndContinueJumpList() {
-	vector<int>* top = ContinueJumpListStack.top();
+	vector<ContinueStatement>* top = ContinueJumpListStack.top();
 	for (size_t i = 0; i < top->size(); i++) {
-		int offset = (*top)[i];
+		int offset = (*top)[i].Position;
 		PatchJump(offset);
 	}
 	delete top;
@@ -3835,11 +4140,11 @@ void Compiler::EndContinueJumpList() {
 	ContinueScopeStack.pop();
 }
 void Compiler::StartSwitchJumpList() {
-	SwitchJumpListStack.push(new vector<switch_case>());
+	SwitchJumpListStack.push(new vector<SwitchCase>());
 	SwitchScopeStack.push(ScopeDepth + 1);
 }
 void Compiler::EndSwitchJumpList() {
-	vector<switch_case>* top = SwitchJumpListStack.top();
+	vector<SwitchCase>* top = SwitchJumpListStack.top();
 	for (size_t i = 0; i < top->size(); i++) {
 		if (!(*top)[i].IsDefault) {
 			free((*top)[i].CodeBlock);
@@ -3930,7 +4235,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 
 		switch (unOp) {
 		case OP_LG_NOT:
-			CurrentChunk()->Count = preCount;
+			SetCodePointer(preCount);
 
 			switch (constant.Type) {
 			case VAL_NULL:
@@ -3948,7 +4253,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 			break;
 		case OP_NEGATE:
-			CurrentChunk()->Count = preCount;
+			SetCodePointer(preCount);
 
 			if (constant.Type == VAL_DECIMAL) {
 				out = DECIMAL_VAL(-AS_DECIMAL(constant));
@@ -3958,7 +4263,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 			break;
 		case OP_BW_NOT:
-			CurrentChunk()->Count = preCount;
+			SetCodePointer(preCount);
 
 			if (constant.Type == VAL_DECIMAL) {
 				out = DECIMAL_VAL((float)(~(int)AS_DECIMAL(constant)));
@@ -3968,7 +4273,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 			}
 			break;
 		case OP_INCREMENT: {
-			CurrentChunk()->Count = preCount;
+			SetCodePointer(preCount);
 
 			if (constant.Type == VAL_DECIMAL) {
 				out = DECIMAL_VAL(++AS_DECIMAL(constant));
@@ -3979,7 +4284,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 			break;
 		}
 		case OP_DECREMENT: {
-			CurrentChunk()->Count = preCount;
+			SetCodePointer(preCount);
 
 			if (constant.Type == VAL_DECIMAL) {
 				out = DECIMAL_VAL(--AS_DECIMAL(constant));
@@ -4334,7 +4639,7 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		}
 		}
 
-		CurrentChunk()->Count = preCount;
+		SetCodePointer(preCount);
 		if (checkConstantA >= preConstant) {
 			CurrentChunk()->Constants->pop_back();
 		}
@@ -4354,6 +4659,10 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 }
 
 void Compiler::AddBreakpoint(Token at) {
+	if (DoNotEmit) {
+		return;
+	}
+
 	std::vector<Uint32>* breakpoints = BreakpointListStack.top();
 	if (breakpoints->size() == MAX_CHUNK_BREAKPOINTS) {
 		char msg[64];
@@ -4678,9 +4987,16 @@ void Compiler::Finish() {
 		}
 	}
 
-	EmitReturn();
+	if (ReturnedAt == -1) {
+		EmitReturn();
+	}
+
 	EndBreakpointList();
 	AddBreakpointsToChunk(chunk);
+
+	if (CurrentSettings.DoOptimizations) {
+		RebuildConstantsList();
+	}
 }
 void Compiler::AddBreakpointsToChunk(Chunk* chunk) {
 	chunk->BreakpointCount = (Uint16)Breakpoints.size();
@@ -4693,6 +5009,31 @@ void Compiler::AddBreakpointsToChunk(Chunk* chunk) {
 
 	for (Uint16 i = 0; i < chunk->BreakpointCount; i++) {
 		chunk->Breakpoints[i] = Breakpoints[i];
+	}
+}
+// This removes any unused constants.
+void Compiler::RebuildConstantsList() {
+	Chunk* chunk = CurrentChunk();
+	size_t numConstants = chunk->Constants->size();
+	if (numConstants == 0) {
+		return;
+	}
+
+	std::map<Uint32*, VMValue> constantToValue;
+
+	for (int offset = 0; offset < chunk->Count;) {
+		Uint8* opcode = chunk->Code + offset;
+		if (Bytecode::IsConstantIndexOpcode(*opcode)) {
+			Uint32* index = (Uint32*)(opcode + 1);
+			constantToValue[index] = (*chunk->Constants)[*index];
+		}
+		offset += Bytecode::GetTotalOpcodeSize(opcode);
+	}
+
+	chunk->Constants->clear();
+
+	for (auto it = constantToValue.begin(); it != constantToValue.end(); it++) {
+		*it->first = GetConstantIndex(it->second);
 	}
 }
 
