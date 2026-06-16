@@ -6,6 +6,7 @@
 
 class Compiler {
 private:
+	int DoBranchPrediction(int codeLocation);
 	void WarnVariablesUnusedUnset();
 	void WriteBytecode(Stream* stream, const char* filename);
 
@@ -150,7 +151,6 @@ public:
 	void GetContinueStatement();
 	void GetDoWhileStatement();
 	void GetReturnStatement();
-	int DoBranchPrediction(int codeLocation);
 	void GetRepeatStatement();
 	void GetSwitchStatement();
 	void GetCaseStatement();

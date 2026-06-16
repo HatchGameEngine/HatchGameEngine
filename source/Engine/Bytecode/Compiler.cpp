@@ -2243,6 +2243,23 @@ void Compiler::GetContinueStatement() {
 
 	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after continue.");
 }
+int Compiler::DoBranchPrediction(int codeLocation) {
+	VMValue value;
+	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
+	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
+		    CurrentChunk()->GetConstant(codeLocation, &value)) {
+		if (IS_INTEGER(value)) {
+			if (AS_INTEGER(value) == 0) {
+				return BRANCH_NEVER_TAKEN;
+			}
+			else {
+				return BRANCH_ALWAYS_TAKEN;
+			}
+		}
+	}
+
+	return BRANCH_MAYBE_TAKEN;
+}
 void Compiler::GetDoWhileStatement() {
 	// Set the start of the loop to before the condition
 	int loopStart = CodePointer();
@@ -2325,23 +2342,6 @@ void Compiler::GetReturnStatement() {
 		ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after return value.");
 		EmitByte(OP_RETURN);
 	}
-}
-int Compiler::DoBranchPrediction(int codeLocation) {
-	VMValue value;
-	uint8_t* codePtr = CurrentChunk()->Code + codeLocation;
-	if (codeLocation + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
-		    CurrentChunk()->GetConstant(codeLocation, &value)) {
-		if (IS_INTEGER(value)) {
-			if (AS_INTEGER(value) == 0) {
-				return BRANCH_NEVER_TAKEN;
-			}
-			else {
-				return BRANCH_ALWAYS_TAKEN;
-			}
-		}
-	}
-
-	return BRANCH_MAYBE_TAKEN;
 }
 void Compiler::GetRepeatStatement() {
 	ScopeBegin();
