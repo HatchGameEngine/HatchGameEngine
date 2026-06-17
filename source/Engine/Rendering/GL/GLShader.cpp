@@ -46,7 +46,7 @@ vec4 hatch_sampleTexture2D(sampler2D texture, vec2 textureCoords, int numPalette
         int paletteIndex = int(fPaletteIndex);
         int paletteLine = hatch_getPaletteLine(u_paletteID);
 
-        paletteIndex = clamp(paletteIndex, 0, numPaletteIndices - 1);
+        paletteIndex = int(clamp(float(paletteIndex), 0.0, float(numPaletteIndices - 1)));
 
         return hatch_getColorFromPalette(paletteIndex, u_paletteTexture, paletteLine);
     }
@@ -225,11 +225,15 @@ GL_ProcessedShader GLShader::ProcessFragmentShaderText(char* text) {
 std::vector<char*> GLShader::GetShaderSources(GL_ProcessedShader processed) {
 	std::vector<char*> shaderSources;
 
+#if ANDROID
+	std::string versionString = "#version 100\n";
+#else
 	std::string versionString = "#version 130\n";
+#endif
 	shaderSources.push_back(StringUtils::Create(versionString));
 
-#if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
-	std::string precisionString = "precision mediump float;\n";
+#ifdef GL_ES
+	std::string precisionString = "precision highp float;\n";
 	shaderSources.push_back(StringUtils::Create(precisionString));
 #endif
 
