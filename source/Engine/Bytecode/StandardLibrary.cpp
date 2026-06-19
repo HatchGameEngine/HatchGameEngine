@@ -21983,6 +21983,11 @@ This is preferred over <ref Math>'s random functions if you require consistency,
     */
 	DEF_ENUM(SCOPE_SCENE);
 	/***
+	* \enum SCOPE_GROUP
+	* \desc Group scope, determined by whether the resource folder of the current scene matches the resource folder of the previous scene.
+	*/
+	DEF_ENUM(SCOPE_GROUP);
+	/***
     * \enum SCOPE_GAME
     * \desc Game scope.
     */

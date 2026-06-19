@@ -116,6 +116,7 @@ int Scene::CurrentSceneInList;
 char Scene::CurrentFolder[256];
 char Scene::CurrentID[256];
 char Scene::CurrentResourceFolder[256];
+char Scene::PreviousResourceFolder[256];
 char Scene::CurrentCategory[256];
 int Scene::ActiveCategory;
 
@@ -689,12 +690,7 @@ void Scene::SetInfoFromCurrentID() {
 		Scene::CurrentFolder[0] = '\0';
 	}
 
-	if (scene.ResourceFolder != nullptr) {
-		strcpy(Scene::CurrentResourceFolder, scene.ResourceFolder);
-	}
-	else {
-		Scene::CurrentResourceFolder[0] = '\0';
-	}
+	// Resource folder and filter are set in Scene::LoadScene
 }
 
 // Scene Lifecycle
@@ -2157,6 +2153,22 @@ void Scene::LoadScene(const char* sceneFilename) {
 
 	StringUtils::Copy(Scene::CurrentScene, filename, sizeof Scene::CurrentScene);
 
+	if (SceneInfo::IsEntryValid(Scene::ActiveCategory, Scene::CurrentSceneInList)) {
+		StringUtils::Copy(Scene::PreviousResourceFolder, Scene::CurrentResourceFolder, sizeof Scene::PreviousResourceFolder);
+
+		std::string nextResourceFolder = SceneInfo::GetResourceFolder(Scene::ActiveCategory, Scene::CurrentSceneInList);
+		if (!nextResourceFolder.empty()) {
+			StringUtils::Copy(Scene::CurrentResourceFolder, nextResourceFolder.c_str(), sizeof Scene::CurrentResourceFolder);
+		}
+		else {
+			Scene::CurrentResourceFolder[0] = '\0';
+		}
+	}
+
+	if (strcmp(Scene::PreviousResourceFolder, Scene::CurrentResourceFolder)) {
+		Scene::DisposeInScope(SCOPE_GROUP);
+	}
+
 	Scene::Filter = SceneInfo::GetFilter(Scene::ActiveCategory, Scene::CurrentSceneInList);
 
 	Scene::ReadSceneFile(filename);
@@ -3498,7 +3510,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::ModelList[i]) {
 			continue;
 		}
-		if (Scene::ModelList[i]->UnloadPolicy > scope) {
+		if (Scene::ModelList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3511,7 +3523,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::ImageList[i]) {
 			continue;
 		}
-		if (Scene::ImageList[i]->UnloadPolicy > scope) {
+		if (Scene::ImageList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 		if (Scene::ImageList[i]->AsImage->References > 1) {
@@ -3527,7 +3539,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::SpriteList[i]) {
 			continue;
 		}
-		if (Scene::SpriteList[i]->UnloadPolicy > scope) {
+		if (Scene::SpriteList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3540,7 +3552,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::SoundList[i]) {
 			continue;
 		}
-		if (Scene::SoundList[i]->UnloadPolicy > scope) {
+		if (Scene::SoundList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3556,7 +3568,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::MusicList[i]) {
 			continue;
 		}
-		if (Scene::MusicList[i]->UnloadPolicy > scope) {
+		if (Scene::MusicList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3573,7 +3585,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::MediaList[i]) {
 			continue;
 		}
-		if (Scene::MediaList[i]->UnloadPolicy > scope) {
+		if (Scene::MediaList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3592,7 +3604,7 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (!Scene::AnimatorList[i]) {
 			continue;
 		}
-		if (Scene::AnimatorList[i]->UnloadPolicy > scope) {
+		if (Scene::AnimatorList[i]->UnloadPolicy != scope) {
 			continue;
 		}
 
@@ -3625,6 +3637,8 @@ void Scene::Dispose() {
 		}
 	}
 
+	Scene::DisposeInScope(SCOPE_SCENE);
+	Scene::DisposeInScope(SCOPE_GROUP);
 	Scene::DisposeInScope(SCOPE_GAME);
 	// Dispose of all resources
 	Scene::ImageList.clear();

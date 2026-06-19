@@ -158,7 +158,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Comm
 copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Command>
     </PostBuildEvent>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
@@ -328,39 +328,39 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\Libraries\linenoise-ng\wcwidth.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\engine\audio\AudioChannel.h" />
-    <ClInclude Include="..\include\engine\bytecode\CompilerEnums.h" />
-    <ClInclude Include="..\include\engine\bytecode\Types.h" />
-    <ClInclude Include="..\include\engine\diagnostics\PerformanceTypes.h" />
-    <ClInclude Include="..\include\engine\includes\BijectiveMap.h" />
-    <ClInclude Include="..\include\engine\includes\HashMap.h" />
-    <ClInclude Include="..\include\engine\includes\Standard.h" />
-    <ClInclude Include="..\include\engine\includes\StandardSDL2.h" />
-    <ClInclude Include="..\include\engine\io\compression\CompressionEnums.h" />
-    <ClInclude Include="..\include\engine\media\includes\AVCodec.h" />
-    <ClInclude Include="..\include\engine\media\includes\AVFormat.h" />
-    <ClInclude Include="..\include\engine\media\includes\AVUtils.h" />
-    <ClInclude Include="..\include\engine\media\includes\SWResample.h" />
-    <ClInclude Include="..\include\engine\media\includes\SWScale.h" />
-    <ClInclude Include="..\include\engine\media\utils\Codec.h" />
-    <ClInclude Include="..\include\engine\network\WebSocketIncludes.h" />
-    <ClInclude Include="..\include\engine\platforms\macos\Filesystem.h" />
-    <ClInclude Include="..\include\engine\rendering\3D.h" />
-    <ClInclude Include="..\include\engine\rendering\Mesh.h" />
-    <ClInclude Include="..\include\engine\rendering\ArrayBuffer.h" />
-    <ClInclude Include="..\include\engine\rendering\Enums.h" />
-    <ClInclude Include="..\include\engine\rendering\gl\Includes.h" />
-    <ClInclude Include="..\include\engine\rendering\metal\Includes.h" />
-    <ClInclude Include="..\include\engine\rendering\metal\MetalFuncs.h" />
-    <ClInclude Include="..\include\engine\rendering\sdl2\SDL2MetalFunc.h" />
-    <ClInclude Include="..\include\engine\resourcetypes\modelformats\Importer.h" />
-    <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h" />
-    <ClInclude Include="..\include\engine\sprites\Animation.h" />
-    <ClInclude Include="..\include\engine\textformats\ini\INIStructs.h" />
-    <ClInclude Include="..\include\engine\textformats\json\jsmn.h" />
-    <ClInclude Include="..\include\engine\textformats\xml\XMLNode.h" />
-    <ClInclude Include="..\include\engine\types\DrawGroupList.h" />
-    <ClInclude Include="..\include\engine\types\EntityTypes.h" />
+    <ClInclude Include="..\source\engine\audio\AudioChannel.h" />
+    <ClInclude Include="..\source\engine\bytecode\CompilerEnums.h" />
+    <ClInclude Include="..\source\engine\bytecode\Types.h" />
+    <ClInclude Include="..\source\engine\diagnostics\PerformanceTypes.h" />
+    <ClInclude Include="..\source\engine\includes\BijectiveMap.h" />
+    <ClInclude Include="..\source\engine\includes\HashMap.h" />
+    <ClInclude Include="..\source\engine\includes\Standard.h" />
+    <ClInclude Include="..\source\engine\includes\StandardSDL2.h" />
+    <ClInclude Include="..\source\engine\io\compression\CompressionEnums.h" />
+    <ClInclude Include="..\source\engine\media\includes\AVCodec.h" />
+    <ClInclude Include="..\source\engine\media\includes\AVFormat.h" />
+    <ClInclude Include="..\source\engine\media\includes\AVUtils.h" />
+    <ClInclude Include="..\source\engine\media\includes\SWResample.h" />
+    <ClInclude Include="..\source\engine\media\includes\SWScale.h" />
+    <ClInclude Include="..\source\engine\media\utils\Codec.h" />
+    <ClInclude Include="..\source\engine\network\WebSocketIncludes.h" />
+    <ClInclude Include="..\source\engine\platforms\macos\Filesystem.h" />
+    <ClInclude Include="..\source\engine\rendering\3D.h" />
+    <ClInclude Include="..\source\engine\rendering\Mesh.h" />
+    <ClInclude Include="..\source\engine\rendering\ArrayBuffer.h" />
+    <ClInclude Include="..\source\engine\rendering\Enums.h" />
+    <ClInclude Include="..\source\engine\rendering\gl\Includes.h" />
+    <ClInclude Include="..\source\engine\rendering\metal\Includes.h" />
+    <ClInclude Include="..\source\engine\rendering\metal\MetalFuncs.h" />
+    <ClInclude Include="..\source\engine\rendering\sdl2\SDL2MetalFunc.h" />
+    <ClInclude Include="..\source\engine\resourcetypes\modelformats\Importer.h" />
+    <ClInclude Include="..\source\engine\resourcetypes\ResourceType.h" />
+    <ClInclude Include="..\source\engine\sprites\Animation.h" />
+    <ClInclude Include="..\source\engine\textformats\ini\INIStructs.h" />
+    <ClInclude Include="..\source\engine\textformats\json\jsmn.h" />
+    <ClInclude Include="..\source\engine\textformats\xml\XMLNode.h" />
+    <ClInclude Include="..\source\engine\types\DrawGroupList.h" />
+    <ClInclude Include="..\source\engine\types\EntityTypes.h" />
     <ClInclude Include="..\source\Libraries\miniz.h" />
     <ClInclude Include="..\source\Libraries\stb_image.h" />
     <ClInclude Include="..\source\Libraries\stb_vorbis.h" />
