@@ -1742,15 +1742,9 @@ void Application::RunTasks() {
 	for (size_t i = 0; i < Tasks.size();) {
 		Task* task = Tasks[i];
 
-		if (task->TimeRemainingUntilExecution > 0.0) {
-			task->TimeRemainingUntilExecution -= DeltaTime;
-			if (task->TimeRemainingUntilExecution < 0.0) {
-				task->TimeRemainingUntilExecution = 0.0;
-			}
-			else {
-				i++;
-				continue;
-			}
+		if (task->TimeRemainingUntilExecution > 0.0 && !task->DoWait(DeltaTime)) {
+			i++;
+			continue;
 		}
 
 		int status = task->Run();

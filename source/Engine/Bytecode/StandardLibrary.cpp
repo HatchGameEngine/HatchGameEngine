@@ -22505,6 +22505,22 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 
 	// #region Task
 	/***
+    * \enum TASKSTATE_WAITING
+    * \desc Task is waiting to run.
+    */
+	DEF_CONST_INT("TASKSTATE_WAITING", TASK_STATE_WAITING);
+	/***
+    * \enum TASKSTATE_RUNNING
+    * \desc Task is currently running.
+    */
+	DEF_CONST_INT("TASKSTATE_RUNNING", TASK_STATE_RUNNING);
+	/***
+    * \enum TASKSTATE_STOPPED
+    * \desc Task has stopped.
+    */
+	DEF_CONST_INT("TASKSTATE_STOPPED", TASK_STATE_STOPPED);
+
+	/***
     * \enum TASK_CONTINUE
     * \desc Run the task again next frame.
     */

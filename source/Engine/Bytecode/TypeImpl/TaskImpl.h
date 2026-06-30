@@ -9,9 +9,13 @@
 #define IS_TASK(value) IsNativeInstance(value, CLASS_TASK)
 #define AS_TASK(value) ((ObjTask*)AS_OBJECT(value))
 
+#define TASK_STATE_WAITING 0
+#define TASK_STATE_RUNNING 1
+#define TASK_STATE_STOPPED 2
+
 #define TASK_RESULT_CONTINUE 0
 #define TASK_RESULT_RESTART 1
-#define TASK_RESULT_DONE -1
+#define TASK_RESULT_DONE 2
 
 class TaskImpl {
 private:

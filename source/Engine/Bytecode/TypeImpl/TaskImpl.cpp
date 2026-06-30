@@ -15,6 +15,7 @@ All tasks run concurrently at the end of the frame, in the main thread.
 
 ObjClass* TaskImpl::Class = nullptr;
 
+Uint32 Hash_State = 0;
 Uint32 Hash_Timer = 0;
 Uint32 Hash_DelayTime = 0;
 Uint32 Hash_Priority = 0;
@@ -23,6 +24,13 @@ void TaskImpl::Init() {
 	Class = NewClass(CLASS_TASK);
 	Class->NewFn = Constructor;
 
+	/***
+    * \field State
+    * \type <ref TASKSTATE_*>
+    * \ns Task
+    * \desc The state of the task.
+    */
+	Hash_State = Murmur::EncryptString("State");
 	/***
     * \field Timer
     * \type decimal
@@ -74,7 +82,23 @@ bool TaskImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 
 		return false;
 	}
 
-	if (hash == Hash_Timer) {
+	if (hash == Hash_State) {
+		if (result) {
+			switch (task->State) {
+			case Task::STATE_WAITING:
+				*result = INTEGER_VAL(TASK_STATE_WAITING);
+				break;
+			case Task::STATE_RUNNING:
+				*result = INTEGER_VAL(TASK_STATE_RUNNING);
+				break;
+			case Task::STATE_STOPPED:
+				*result = INTEGER_VAL(TASK_STATE_STOPPED);
+				break;
+			}
+		}
+		return true;
+	}
+	else if (hash == Hash_Timer) {
 		if (result) {
 			*result = DECIMAL_VAL((float)task->TotalExecutionTime / 1000.0f);
 		}
@@ -113,7 +137,8 @@ bool TaskImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 th
 		} \
 	}
 
-	CHECK_CANNOT_MODIFY(Timer)
+	CHECK_CANNOT_MODIFY(State);
+	CHECK_CANNOT_MODIFY(Timer);
 
 #undef CHECK_CANNOT_MODIFY
 
