@@ -1,9 +1,13 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Types/Task.h>
 
-Task::Task(TaskCallback callback, void* userdata) {
+Task::Task(TaskRunCallback callback) {
 	Callback = callback;
-	Userdata = userdata;
+}
+
+Task::Task(TaskRunCallback runCallback, TaskStopCallback stopCallback) {
+	Callback = runCallback;
+	StopCallback = stopCallback;
 }
 
 // Start the task.
@@ -14,7 +18,7 @@ void Task::Start() {
 }
 
 // Tick down the execution delay.
-bool Task::DoWait(float deltaTime) {
+bool Task::Wait(float deltaTime) {
 	State = STATE_WAITING;
 
 	TimeRemainingUntilExecution -= deltaTime;
@@ -24,6 +28,11 @@ bool Task::DoWait(float deltaTime) {
 	}
 
 	return false;
+}
+
+// Repeat the task.
+void Task::Repeat() {
+	TimeRemainingUntilExecution = ExecutionDelay;
 }
 
 // Run the callback.
@@ -37,6 +46,10 @@ int Task::Run() {
 void Task::Stop() {
 	if (State == STATE_STOPPED) {
 		return;
+	}
+
+	if (StopCallback) {
+		StopCallback(this, Userdata);
 	}
 
 	State = STATE_STOPPED;

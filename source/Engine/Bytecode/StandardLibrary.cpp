@@ -22519,17 +22519,16 @@ This is preferred over <ref Math>'s random functions if you require consistency,
     * \desc Task has stopped.
     */
 	DEF_CONST_INT("TASKSTATE_STOPPED", TASK_STATE_STOPPED);
-
 	/***
     * \enum TASK_CONTINUE
     * \desc Run the task again next frame.
     */
 	DEF_CONST_INT("TASK_CONTINUE", TASK_RESULT_CONTINUE);
 	/***
-    * \enum TASK_RESTART
-    * \desc Run the task again next frame, using the delay initially specified, if any. This also resets the task's timer.
+    * \enum TASK_REPEAT
+    * \desc Run the task again next frame, using the delay initially specified, if any.
     */
-	DEF_CONST_INT("TASK_RESTART", TASK_RESULT_RESTART);
+	DEF_CONST_INT("TASK_REPEAT", TASK_RESULT_REPEAT);
 	/***
     * \enum TASK_DONE
     * \desc Stop running the task.

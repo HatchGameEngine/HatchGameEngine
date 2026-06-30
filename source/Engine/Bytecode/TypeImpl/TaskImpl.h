@@ -14,12 +14,13 @@
 #define TASK_STATE_STOPPED 2
 
 #define TASK_RESULT_CONTINUE 0
-#define TASK_RESULT_RESTART 1
+#define TASK_RESULT_REPEAT 1
 #define TASK_RESULT_DONE 2
 
 class TaskImpl {
 private:
-	static int NativeCallback(Task* task, void* userdata);
+	static int NativeRunCallback(Task* task, void* userdata);
+	static void NativeStopCallback(Task* task, void* userdata);
 	static bool VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 threadID);
 	static bool VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
 	static VMValue VM_Create(int argCount, VMValue* args, Uint32 threadID);

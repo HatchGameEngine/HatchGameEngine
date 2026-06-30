@@ -1744,7 +1744,8 @@ void Application::RunTasks() {
 	for (size_t i = 0; i < Tasks.size();) {
 		Task* task = Tasks[i];
 
-		if (task->TimeRemainingUntilExecution > 0.0 && !task->DoWait(DeltaTime)) {
+		if (task->TimeRemainingUntilExecution > 0.0 && !task->Wait(DeltaTime)) {
+			task->TotalExecutionTime += DeltaTime;
 			i++;
 			continue;
 		}
@@ -1755,15 +1756,16 @@ void Application::RunTasks() {
 			task->Stop();
 			Tasks.erase(Tasks.begin() + i);
 			break;
-		case Task::RESTART:
-			task->Start();
+		case Task::REPEAT:
+			task->Repeat();
 			i++;
 			break;
 		default:
-			task->TotalExecutionTime += DeltaTime;
 			i++;
 			break;
 		}
+
+		task->TotalExecutionTime += DeltaTime;
 	}
 }
 

@@ -35,7 +35,7 @@ void TaskImpl::Init() {
     * \field Timer
     * \type decimal
     * \ns Task
-    * \desc How long the task has been active for, in seconds. It does not increment if the task is not running. This value is read-only.
+    * \desc How long the task has been active for, in seconds. It increments when the task's <ref Task.State> is either <ref TASKSTATE_RUNNING> or <ref TASKSTATE_WAITING>. This value is read-only.
     */
 	Hash_Timer = Murmur::EncryptString("Timer");
 	/***
@@ -170,13 +170,18 @@ bool TaskImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 th
 	return false;
 }
 
-int TaskImpl::NativeCallback(Task* task, void* userdata) {
+int TaskImpl::NativeRunCallback(Task* task, void* userdata) {
 	ObjTask* objTask = (ObjTask*)ScriptManager::RegistryGet(task);
-	if (!objTask || !userdata) {
+	if (!objTask) {
 		return Task::DONE;
 	}
 
-	VMValue callable = OBJECT_VAL(userdata);
+	Obj* callback = (Obj*)task->ScriptRunCallback;
+	if (!callback) {
+		return Task::DONE;
+	}
+
+	VMValue callable = OBJECT_VAL(callback);
 	if (!IS_CALLABLE(callable)) {
 		return Task::DONE;
 	}
@@ -193,8 +198,8 @@ int TaskImpl::NativeCallback(Task* task, void* userdata) {
 	switch (AS_INTEGER(thread->InterpretResult)) {
 	case TASK_RESULT_CONTINUE:
 		return Task::CONTINUE;
-	case TASK_RESULT_RESTART:
-		return Task::RESTART;
+	case TASK_RESULT_REPEAT:
+		return Task::REPEAT;
 	case TASK_RESULT_DONE:
 		return Task::DONE;
 	default:
@@ -204,6 +209,28 @@ int TaskImpl::NativeCallback(Task* task, void* userdata) {
 	return Task::DONE;
 }
 
+void TaskImpl::NativeStopCallback(Task* task, void* userdata) {
+	ObjTask* objTask = (ObjTask*)ScriptManager::RegistryGet(task);
+	if (!objTask) {
+		return;
+	}
+
+	Obj* callback = (Obj*)task->ScriptStopCallback;
+	if (!callback) {
+		return;
+	}
+
+	VMValue callable = OBJECT_VAL(callback);
+	if (!IS_CALLABLE(callable)) {
+		return;
+	}
+
+	VMThread* thread = &ScriptManager::Threads[0];
+	thread->Push(callable);
+	thread->Push(OBJECT_VAL(objTask));
+	thread->InvokeForEntity(callable, 1);
+}
+
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
 	(argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
@@ -211,8 +238,9 @@ int TaskImpl::NativeCallback(Task* task, void* userdata) {
 /***
  * Task.Create
  * \desc Creates a task.
- * \param callback (callable): The callback to call for the task. The task itself is passed as the first argument.
+ * \param callback (callable): The callback of the task. The task itself is passed as the first argument.
  * \paramOpt delayTime (decimal): The amount of seconds to delay the execution of the task.
+ * \paramOpt stopCallback (callable): The callable to call when the task stops. This is called when the task returns <ref TASK_DONE>, when it's restarted by <ref Task.Restart>, or when it's stopped by <ref Task.Stop>. Like with <param callback>, the task itself is passed as the first argument. Pass `null` to this argument to make the task have no stop callback.
  * \paramOpt priority (integer): The priority of the task. Higher numbers cause tasks to be executed sooner, and lower numbers cause tasks to be executed later.
  * \return Task Returns the newly created task.
  * \ns Task
@@ -222,13 +250,18 @@ VMValue TaskImpl::VM_Create(int argCount, VMValue* args, Uint32 threadID) {
 
 	VMValue callable = GET_ARG(0, GetCallable);
 	float delay = GET_ARG_OPT(1, GetDecimal, 0.0f);
-	int priority = GET_ARG_OPT(2, GetInteger, 0);
+	VMValue stopCallable = NULL_VAL;
+	int priority = GET_ARG_OPT(3, GetInteger, 0);
 
 	if (IS_NULL(callable)) {
 		return NULL_VAL;
 	}
 	if (delay < 0.0) {
 		throw ScriptException("Delay time cannot be lower than 0.0.");
+	}
+
+	if (argCount >= 3 && !IS_NULL(args[2])) {
+		stopCallable = GET_ARG(2, GetCallable);
 	}
 
 	ObjTask* objTask = (ObjTask*)NewNativeInstance(sizeof(ObjTask));
@@ -238,9 +271,12 @@ VMValue TaskImpl::VM_Create(int argCount, VMValue* args, Uint32 threadID) {
 	objTask->InstanceObj.PropertySet = VM_PropertySet;
 	objTask->InstanceObj.Destructor = Dispose;
 
-	Task* task = new Task(NativeCallback, AS_OBJECT(callable));
+	Task* task = new Task(NativeRunCallback, NativeStopCallback);
 	task->ExecutionDelay = delay * 1000.0f;
 	task->Priority = priority;
+
+	task->ScriptRunCallback = AS_OBJECT(callable);
+	task->ScriptStopCallback = !IS_NULL(stopCallable) ? AS_OBJECT(stopCallable) : nullptr;
 
 	ScriptManager::RegistryAdd(task, (Obj*)objTask);
 
