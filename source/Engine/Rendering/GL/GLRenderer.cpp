@@ -1645,6 +1645,7 @@ void GLRenderer::SetGraphicsFunctions() {
 
 	// Texture batching functions
 	Graphics::Internal.BeginTextureBatching = GLRenderer::BeginTextureBatching;
+	Graphics::Internal.BatchRectangleFill = GLRenderer::BatchRectangleFill;
 	Graphics::Internal.BatchSprite = GLRenderer::BatchSprite;
 	Graphics::Internal.BatchSpritePart = GLRenderer::BatchSpritePart;
 	Graphics::Internal.FinishTextureBatching = GLRenderer::FinishTextureBatching;
@@ -3354,6 +3355,43 @@ void GL_BatchTexture(Texture* texture,
 	batch->Data.push_back(GL_AnimFrameVert{x + w, y, ffU1, ffV0});
 	batch->Data.push_back(GL_AnimFrameVert{x, y + h, ffU0, ffV1});
 	batch->Data.push_back(GL_AnimFrameVert{x + w, y + h, ffU1, ffV1});
+}
+void GLRenderer::BatchRectangleFill(float x, float y, float w, float h, float r, float g, float b, float a) {
+	GL_TextureBatchState* batch = &GL_CurrentTextureBatch;
+
+	bool change = batch->TexturePtr != nullptr;
+	if (r != Graphics::BlendColors[0]) {
+		change = true;
+	}
+	if (g != Graphics::BlendColors[1]) {
+		change = true;
+	}
+	if (b != Graphics::BlendColors[2]) {
+		change = true;
+	}
+	if (a != Graphics::BlendColors[3]) {
+		change = true;
+	}
+
+	if (change) {
+		GL_DrawTextureBatch();
+
+		Graphics::BlendColors[0] = r;
+		Graphics::BlendColors[1] = g;
+		Graphics::BlendColors[2] = b;
+		Graphics::BlendColors[3] = a;
+
+		batch->TexturePtr = nullptr;
+		batch->PaletteID = 0;
+	}
+
+	batch->Data.push_back(GL_AnimFrameVert{x, y, 0.0, 0.0});
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y, 1.0, 0.0});
+	batch->Data.push_back(GL_AnimFrameVert{x, y + h, 0.0, 1.0});
+
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y, 1.0, 0.0});
+	batch->Data.push_back(GL_AnimFrameVert{x, y + h, 0.0, 1.0});
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y + h, 1.0, 1.0});
 }
 void GLRenderer::BatchSprite(ISprite* sprite,
 	int animation,
