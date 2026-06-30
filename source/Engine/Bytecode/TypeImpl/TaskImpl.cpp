@@ -58,6 +58,11 @@ Obj* TaskImpl::Constructor() {
 }
 
 void TaskImpl::Dispose(Obj* object) {
+	Task* task = (Task*)ScriptManager::RegistryGet(object);
+	if (task != nullptr) {
+		task->Dispose();
+	}
+
 	InstanceImpl::Dispose(object);
 }
 

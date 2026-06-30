@@ -25,6 +25,7 @@ public:
 	void Start();
 	int Run();
 	void Stop();
+	void Dispose();
 };
 
 #endif /* ENGINE_TYPES_TASK_H */

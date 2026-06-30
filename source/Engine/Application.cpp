@@ -1780,7 +1780,7 @@ void Application::RemoveTask(Task* task) {
 
 void Application::StopTasks() {
 	for (size_t i = 0; i < Tasks.size(); i++) {
-		Tasks[i]->Stop();
+		Tasks[i]->Dispose();
 	}
 
 	Tasks.clear();
