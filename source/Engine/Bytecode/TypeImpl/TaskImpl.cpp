@@ -1,3 +1,4 @@
+#include <Engine/Application.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
@@ -15,6 +16,7 @@ All tasks run concurrently at the end of the frame, in the main thread.
 ObjClass* TaskImpl::Class = nullptr;
 
 Uint32 Hash_Timer = 0;
+Uint32 Hash_DelayTime = 0;
 Uint32 Hash_Priority = 0;
 
 void TaskImpl::Init() {
@@ -25,14 +27,21 @@ void TaskImpl::Init() {
     * \field Timer
     * \type decimal
     * \ns Task
-    * \desc How long the task has been active for, in seconds. This does not increment if the task is not running.
+    * \desc How long the task has been active for, in seconds. It does not increment if the task is not running. This value is read-only.
     */
 	Hash_Timer = Murmur::EncryptString("Timer");
+	/***
+    * \field DelayTime
+    * \type decimal
+    * \ns Task
+    * \desc The amount of seconds to delay the execution of the task. Changes to this value do not take any effect until the task returns <ref TASK_CONTINUE>.
+    */
+	Hash_DelayTime = Murmur::EncryptString("DelayTime");
 	/***
     * \field Priority
     * \type integer
     * \ns Task
-    * \desc The priority. Higher numbers cause tasks to be executed sooner, and lower numbers cause tasks to be executed later.
+    * \desc The priority. Higher numbers cause tasks to be executed sooner, and lower numbers cause tasks to be executed later. Changes to this value do not take any effect until the next frame.
     */
 	Hash_Priority = Murmur::EncryptString("Priority");
 
@@ -65,9 +74,63 @@ bool TaskImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 
 		}
 		return true;
 	}
+	else if (hash == Hash_DelayTime) {
+		if (result) {
+			*result = DECIMAL_VAL((float)task->ExecutionDelay / 1000.0f);
+		}
+		return true;
+	}
 	else if (hash == Hash_Priority) {
 		if (result) {
 			*result = INTEGER_VAL(task->Priority);
+		}
+		return true;
+	}
+
+	return false;
+}
+
+bool TaskImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID) {
+	Task* task = (Task*)ScriptManager::RegistryGet(object);
+	if (task == nullptr) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Task is no longer valid!");
+		return false;
+	}
+
+#define CHECK_CANNOT_MODIFY(name) \
+	{ \
+		if (hash == Hash_##name) { \
+			ScriptManager::Threads[threadID].ThrowRuntimeError( \
+				false, "Field \"" #name "\" cannot be written to!"); \
+			return true; \
+		} \
+	}
+
+	CHECK_CANNOT_MODIFY(Timer)
+
+#undef CHECK_CANNOT_MODIFY
+
+	if (hash == Hash_DelayTime) {
+		if (ScriptManager::DoDecimalConversion(value, threadID)) {
+			float delay = AS_DECIMAL(value);
+			if (delay < 0.0) {
+				ScriptManager::Threads[threadID].ThrowRuntimeError(
+					false, "Delay time cannot be lower than 0.0.");
+			}
+			else {
+				task->ExecutionDelay = delay * 1000.0f;
+			}
+		}
+		return true;
+	}
+	else if (hash == Hash_Priority) {
+		if (ScriptManager::DoIntegerConversion(value, threadID)) {
+			int priority = AS_INTEGER(value);
+			if (priority != task->Priority) {
+				task->Priority = priority;
+				Application::TaskPriorityChanged = true;
+			}
 		}
 		return true;
 	}
@@ -117,7 +180,7 @@ int TaskImpl::NativeCallback(Task* task, void* userdata) {
  * Task.Create
  * \desc Creates a task.
  * \param callback (callable): The callback to call for the task. The task itself is passed as the first argument.
- * \paramOpt delay (decimal): How many seconds to delay execution of the task.
+ * \paramOpt delayTime (decimal): The amount of seconds to delay the execution of the task.
  * \paramOpt priority (integer): The priority of the task. Higher numbers cause tasks to be executed sooner, and lower numbers cause tasks to be executed later.
  * \return Task Returns the newly created task.
  * \ns Task
@@ -133,13 +196,14 @@ VMValue TaskImpl::VM_Create(int argCount, VMValue* args, Uint32 threadID) {
 		return NULL_VAL;
 	}
 	if (delay < 0.0) {
-		throw ScriptException("Delay cannot be lower than 0.0.");
+		throw ScriptException("Delay time cannot be lower than 0.0.");
 	}
 
 	ObjTask* objTask = (ObjTask*)NewNativeInstance(sizeof(ObjTask));
 	Memory::Track(objTask, "TaskImpl::New");
 	objTask->Object.Class = Class;
 	objTask->InstanceObj.PropertyGet = VM_PropertyGet;
+	objTask->InstanceObj.PropertySet = VM_PropertySet;
 	objTask->InstanceObj.Destructor = Dispose;
 
 	Task* task = new Task(NativeCallback, AS_OBJECT(callable));
