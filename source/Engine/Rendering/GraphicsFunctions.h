@@ -136,6 +136,7 @@ struct GraphicsFunctions {
 		int paletteID);
 
 	void (*BeginTextureBatching)();
+	void (*BatchRectangleFill)(float x, float y, float w, float h, float r, float g, float b, float a);
 	void (*BatchSprite)(ISprite* sprite,
 		int animation,
 		int frame,
