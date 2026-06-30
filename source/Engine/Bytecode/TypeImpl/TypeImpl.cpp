@@ -10,6 +10,7 @@
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
+#include <Engine/Bytecode/TypeImpl/TaskImpl.h>
 #include <Engine/Bytecode/TypeImpl/TextureImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
@@ -23,6 +24,7 @@ void TypeImpl::Init() {
 	ShaderImpl::Init();
 	StreamImpl::Init();
 	StringImpl::Init();
+	TaskImpl::Init();
 	TextureImpl::Init();
 }
 

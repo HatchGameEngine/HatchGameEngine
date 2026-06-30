@@ -47,6 +47,7 @@ CPPFILES := \
 	source/Engine/Bytecode/TypeImpl/ShaderImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StreamImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/StringImpl.cpp \
+	source/Engine/Bytecode/TypeImpl/TaskImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/TextureImpl.cpp \
 	source/Engine/Bytecode/TypeImpl/TypeImpl.cpp \
 	source/Engine/Bytecode/Types.cpp \
@@ -168,6 +169,7 @@ CPPFILES := \
 	source/Engine/Types/ObjectList.cpp \
 	source/Engine/Types/ObjectRegistry.cpp \
 	source/Engine/Types/Property.cpp \
+	source/Engine/Types/Task.cpp \
 	source/Engine/Types/Tileset.cpp \
 	source/Engine/Utilities/ColorUtils.cpp \
 	source/Engine/Utilities/PrintBuffer.cpp \
@@ -246,6 +248,8 @@ PUBHFILES := \
 	source/Engine/Bytecode/TypeImpl/ShaderImpl.h \
 	source/Engine/Bytecode/TypeImpl/StreamImpl.h \
 	source/Engine/Bytecode/TypeImpl/StringImpl.h \
+	source/Engine/Bytecode/TypeImpl/TaskImpl.h \
+	source/Engine/Bytecode/TypeImpl/TextureImpl.h \
 	source/Engine/Bytecode/TypeImpl/TypeImpl.h \
 	source/Engine/Bytecode/Types.h \
 	source/Engine/Bytecode/VMThread.h \
@@ -421,6 +425,7 @@ PUBHFILES := \
 	source/Engine/Types/EntityTypes.h \
 	source/Engine/Types/ObjectList.h \
 	source/Engine/Types/ObjectRegistry.h \
+	source/Engine/Types/Task.h \
 	source/Engine/Types/Property.h \
 	source/Engine/Types/Tileset.h \
 	source/Engine/Utilities/ColorUtils.h \

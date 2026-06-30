@@ -21,6 +21,7 @@
 #include <Engine/Scene/SceneInfo.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
+#include <Engine/Types/Task.h>
 #include <Engine/Utilities/Screenshot.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -118,6 +119,9 @@ int Application::UpdatesPerFrame = 1;
 int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
 bool Application::Stepper = false;
 bool Application::Step = false;
+
+Task* Application::TaskFirst = nullptr;
+Task* Application::TaskLast = nullptr;
 
 int Application::MasterVolume = 100;
 int Application::MusicVolume = 100;
@@ -900,6 +904,8 @@ void Application::EndGame() {
 		ScriptManager::CallStaticClassFunction("Application", "OnQuit");
 	}
 
+	StopTasks();
+
 	Application::UnloadDefaultFont();
 	Application::DefaultFontList.clear();
 
@@ -1232,6 +1238,7 @@ void Application::InitPerformanceMetrics() {
 	AddPerformanceMetric(&Metrics.AfterScene, "Post-Scene", 0.0, 1.0, 0.0);
 	AddPerformanceMetric(&Metrics.Poll, "Input Polling", 0.0, 0.0, 1.0);
 	AddPerformanceMetric(&Metrics.Update, "Entity Update", 1.0, 1.0, 0.0);
+	AddPerformanceMetric(&Metrics.Tasks, "Tasks", 1.0, 0.5, 0.0);
 	AddPerformanceMetric(&Metrics.Clear, "Clear Time", 0.0, 1.0, 1.0);
 	AddPerformanceMetric(&Metrics.Render, "World Render Commands", 1.0, 0.0, 1.0);
 	AddPerformanceMetric(&Metrics.PostProcess,
@@ -1615,6 +1622,7 @@ void Application::RunFrame(int runFrames) {
 		Scene::ResetPerf();
 		Metrics.Poll.Reset();
 		Metrics.Update.Reset();
+		Metrics.Tasks.Reset();
 		if (((Stepper && Step) || !Stepper) && !Application::DevMenuActivated) {
 			// Poll for inputs
 			Metrics.Poll.Begin();
@@ -1637,6 +1645,11 @@ void Application::RunFrame(int runFrames) {
 				}
 			}
 			Metrics.Update.Accumulate();
+
+			// Run tasks
+			Metrics.Tasks.Begin();
+			RunTasks();
+			Metrics.Tasks.Accumulate();
 		}
 		else if (!Application::UseFixedTimestep) {
 			while (FixedUpdateCounter >= FixedFrameTimeDesired) {
@@ -1705,6 +1718,80 @@ DO_NOTHING:
 	Metrics.Present.End();
 
 	Metrics.Frame.End();
+}
+
+void Application::AddTask(Task* task) {
+	task->Prev = TaskLast;
+	task->Next = nullptr;
+
+	if (TaskLast) {
+		TaskLast->Next = task;
+	}
+
+	if (!TaskFirst) {
+		TaskFirst = task;
+	}
+
+	TaskLast = task;
+}
+
+void Application::RunTasks() {
+	for (Task *task = TaskFirst, *next; task; task = next) {
+		next = task->Next;
+
+		if (task->TimeRemainingUntilExecution > 0.0) {
+			task->TimeRemainingUntilExecution -= DeltaTime;
+			if (task->TimeRemainingUntilExecution < 0.0) {
+				task->TimeRemainingUntilExecution = 0.0;
+			}
+			else {
+				continue;
+			}
+		}
+
+		int status = task->Run();
+		switch (status) {
+		case Task::DONE:
+			RemoveTask(task);
+			task->Stop();
+			break;
+		case Task::RESTART:
+			task->Start();
+			break;
+		default:
+			task->TotalExecutionTime += DeltaTime;
+			break;
+		}
+	}
+}
+
+void Application::RemoveTask(Task* task) {
+	if (TaskFirst == task) {
+		TaskFirst = task->Next;
+	}
+	if (TaskLast == task) {
+		TaskLast = task->Prev;
+	}
+
+	if (task->Prev) {
+		task->Prev->Next = task->Next;
+	}
+	if (task->Next) {
+		task->Next->Prev = task->Prev;
+	}
+}
+
+void Application::StopTasks() {
+	for (Task *task = TaskFirst, *next; task; task = next) {
+		next = task->Next;
+
+		RemoveTask(task);
+
+		task->Stop();
+	}
+
+	TaskFirst = nullptr;
+	TaskLast = nullptr;
 }
 
 void Application::TakeScreenshot(const char* path, Operation operation) {

@@ -8,6 +8,7 @@
 #include <Engine/Bytecode/TypeImpl/FontImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
+#include <Engine/Bytecode/TypeImpl/TaskImpl.h>
 #include <Engine/Bytecode/TypeImpl/TextureImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
@@ -44,6 +45,7 @@
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/SceneInfo.h>
+#include <Engine/Types/Task.h>
 #include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
 
@@ -617,6 +619,9 @@ ObjEntity* StandardLibrary::GetEntity(VMValue* args, int index, Uint32 threadID)
 }
 ObjFunction* StandardLibrary::GetFunction(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetFunction(args, index, threadID);
+}
+VMValue StandardLibrary::GetCallable(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetCallable(args, index, threadID);
 }
 ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetShader(args, index, threadID);
@@ -22478,11 +22483,25 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(String, FromCodepoints);
 	// #endregion
 
-	// #region Texture
+	// #region Task
 	/***
-    * \class Texture
-    * \desc Texture manipulation functions.
+    * \enum TASK_CONTINUE
+    * \desc Run the task again next frame.
     */
+	DEF_CONST_INT("TASK_CONTINUE", TASK_RESULT_CONTINUE);
+	/***
+    * \enum TASK_RESTART
+    * \desc Run the task again next frame, using the delay initially specified, if any. This also resets the task's timer.
+    */
+	DEF_CONST_INT("TASK_RESTART", TASK_RESULT_RESTART);
+	/***
+    * \enum TASK_DONE
+    * \desc Stop running the task.
+    */
+	DEF_CONST_INT("TASK_DONE", TASK_RESULT_DONE);
+	// #endregion
+
+	// #region Texture
 	GET_CLASS(Texture);
 	DEF_NATIVE(Texture, Create);
 	DEF_NATIVE(Texture, Copy);

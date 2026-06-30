@@ -16,6 +16,10 @@
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/TextFormats/XML/XMLParser.h>
 
+// I don't feel like including Task.h here.
+// So here's a forward declaration
+class Task;
+
 #define DEFAULT_GAME_TITLE "Hatch Game Engine"
 #define DEFAULT_GAME_SHORT_TITLE DEFAULT_GAME_TITLE
 #define DEFAULT_GAME_VERSION "1.0"
@@ -96,6 +100,8 @@ private:
 	static void DevMenu_SettingsMenu();
 	static void DevMenu_VideoMenu();
 	static void DevMenu_AudioMenu();
+	static void RunTasks();
+	static void StopTasks();
 
 public:
 	static vector<std::string> CmdLineArgs;
@@ -133,6 +139,8 @@ public:
 	static int FrameSkip;
 	static bool Stepper;
 	static bool Step;
+	static Task* TaskFirst;
+	static Task* TaskLast;
 	static int MasterVolume;
 	static int MusicVolume;
 	static int SoundVolume;
@@ -197,6 +205,8 @@ public:
 	static void SaveSettings();
 	static void SaveSettings(const char* filename);
 	static void SetSettingsFilename(const char* filename);
+	static void AddTask(Task* task);
+	static void RemoveTask(Task* task);
 };
 
 #endif /* ENGINE_APPLICATION_H */

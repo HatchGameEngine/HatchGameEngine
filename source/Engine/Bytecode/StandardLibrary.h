@@ -22,6 +22,7 @@ public:
 	static ObjInstance* GetInstance(VMValue* args, int index, Uint32 threadID);
 	static ObjEntity* GetEntity(VMValue* args, int index, Uint32 threadID);
 	static ObjFunction* GetFunction(VMValue* args, int index, Uint32 threadID);
+	static VMValue GetCallable(VMValue* args, int index, Uint32 threadID);
 	static ObjShader* GetShader(VMValue* args, int index, Uint32 threadID);
 	static ObjFont* GetFont(VMValue* args, int index, Uint32 threadID);
 	static void CheckArgCount(int argCount, int expects);

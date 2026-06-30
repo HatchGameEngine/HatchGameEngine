@@ -461,6 +461,9 @@ struct ObjTexture {
 	UNION_INSTANCEABLE;
 	bool IsViewTexture;
 };
+struct ObjTask {
+	UNION_INSTANCEABLE;
+};
 
 #undef UNION_INSTANCEABLE
 

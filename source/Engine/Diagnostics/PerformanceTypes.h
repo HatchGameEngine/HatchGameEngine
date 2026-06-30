@@ -8,6 +8,7 @@ struct ApplicationMetrics {
 	PerformanceMeasure AfterScene;
 	PerformanceMeasure Poll;
 	PerformanceMeasure Update;
+	PerformanceMeasure Tasks;
 	PerformanceMeasure Clear;
 	PerformanceMeasure Render;
 	PerformanceMeasure PostProcess;
