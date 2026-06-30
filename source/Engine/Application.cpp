@@ -120,8 +120,8 @@ int Application::FrameSkip = DEFAULT_MAX_FRAMESKIP;
 bool Application::Stepper = false;
 bool Application::Step = false;
 
-Task* Application::TaskFirst = nullptr;
-Task* Application::TaskLast = nullptr;
+std::vector<Task*> Application::Tasks;
+bool Application::TaskPriorityChanged = false;
 
 int Application::MasterVolume = 100;
 int Application::MusicVolume = 100;
@@ -1721,23 +1721,26 @@ DO_NOTHING:
 }
 
 void Application::AddTask(Task* task) {
-	task->Prev = TaskLast;
-	task->Next = nullptr;
+	Tasks.push_back(task);
 
-	if (TaskLast) {
-		TaskLast->Next = task;
-	}
+	TaskPriorityChanged = true;
+}
 
-	if (!TaskFirst) {
-		TaskFirst = task;
-	}
-
-	TaskLast = task;
+void Application::SortTasks() {
+	std::sort(
+		Tasks.begin(), Tasks.end(), [](Task* a, Task* b) -> bool {
+			return a->Priority > b->Priority;
+		});
 }
 
 void Application::RunTasks() {
-	for (Task *task = TaskFirst, *next; task; task = next) {
-		next = task->Next;
+	if (TaskPriorityChanged) {
+		SortTasks();
+		TaskPriorityChanged = false;
+	}
+
+	for (size_t i = 0; i < Tasks.size();) {
+		Task* task = Tasks[i];
 
 		if (task->TimeRemainingUntilExecution > 0.0) {
 			task->TimeRemainingUntilExecution -= DeltaTime;
@@ -1745,6 +1748,7 @@ void Application::RunTasks() {
 				task->TimeRemainingUntilExecution = 0.0;
 			}
 			else {
+				i++;
 				continue;
 			}
 		}
@@ -1752,46 +1756,35 @@ void Application::RunTasks() {
 		int status = task->Run();
 		switch (status) {
 		case Task::DONE:
-			RemoveTask(task);
 			task->Stop();
+			Tasks.erase(Tasks.begin() + i);
 			break;
 		case Task::RESTART:
 			task->Start();
+			i++;
 			break;
 		default:
 			task->TotalExecutionTime += DeltaTime;
+			i++;
 			break;
 		}
 	}
 }
 
 void Application::RemoveTask(Task* task) {
-	if (TaskFirst == task) {
-		TaskFirst = task->Next;
-	}
-	if (TaskLast == task) {
-		TaskLast = task->Prev;
-	}
-
-	if (task->Prev) {
-		task->Prev->Next = task->Next;
-	}
-	if (task->Next) {
-		task->Next->Prev = task->Prev;
+	auto it = std::find(Tasks.begin(), Tasks.end(), task);
+	if (it != Tasks.end()) {
+		Tasks.erase(it);
 	}
 }
 
 void Application::StopTasks() {
-	for (Task *task = TaskFirst, *next; task; task = next) {
-		next = task->Next;
-
-		RemoveTask(task);
-
-		task->Stop();
+	for (size_t i = 0; i < Tasks.size(); i++) {
+		Tasks[i]->Stop();
 	}
 
-	TaskFirst = nullptr;
-	TaskLast = nullptr;
+	Tasks.clear();
+	TaskPriorityChanged = false;
 }
 
 void Application::TakeScreenshot(const char* path, Operation operation) {

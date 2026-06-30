@@ -18,8 +18,7 @@ public:
 	TaskCallback Callback = nullptr;
 	void* Userdata = nullptr;
 
-	Task* Next = nullptr;
-	Task* Prev = nullptr;
+	int Priority = 0;
 
 	Task(TaskCallback callback, void* userdata);
 

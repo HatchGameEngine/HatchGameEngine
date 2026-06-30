@@ -15,6 +15,7 @@ All tasks run concurrently at the end of the frame, in the main thread.
 ObjClass* TaskImpl::Class = nullptr;
 
 Uint32 Hash_Timer = 0;
+Uint32 Hash_Priority = 0;
 
 void TaskImpl::Init() {
 	Class = NewClass(CLASS_TASK);
@@ -27,6 +28,13 @@ void TaskImpl::Init() {
     * \desc How long the task has been active for, in seconds. This does not increment if the task is not running.
     */
 	Hash_Timer = Murmur::EncryptString("Timer");
+	/***
+    * \field Priority
+    * \type integer
+    * \ns Task
+    * \desc The priority. Higher numbers cause tasks to be executed sooner, and lower numbers cause tasks to be executed later.
+    */
+	Hash_Priority = Murmur::EncryptString("Priority");
 
 	ScriptManager::DefineNative(Class, "Create", VM_Create);
 
@@ -54,6 +62,12 @@ bool TaskImpl::VM_PropertyGet(Obj* object, Uint32 hash, VMValue* result, Uint32 
 	if (hash == Hash_Timer) {
 		if (result) {
 			*result = DECIMAL_VAL((float)task->TotalExecutionTime / 1000.0f);
+		}
+		return true;
+	}
+	else if (hash == Hash_Priority) {
+		if (result) {
+			*result = INTEGER_VAL(task->Priority);
 		}
 		return true;
 	}
@@ -104,6 +118,7 @@ int TaskImpl::NativeCallback(Task* task, void* userdata) {
  * \desc Creates a task.
  * \param callback (callable): The callback to call for the task. The task itself is passed as the first argument.
  * \paramOpt delay (decimal): How many seconds to delay execution of the task.
+ * \paramOpt priority (integer): The priority of the task. Higher numbers cause tasks to be executed sooner, and lower numbers cause tasks to be executed later.
  * \return Task Returns the newly created task.
  * \ns Task
  */
@@ -112,6 +127,7 @@ VMValue TaskImpl::VM_Create(int argCount, VMValue* args, Uint32 threadID) {
 
 	VMValue callable = GET_ARG(0, StandardLibrary::GetCallable);
 	float delay = GET_ARG_OPT(1, GetDecimal, 0.0f);
+	int priority = GET_ARG_OPT(2, GetInteger, 0);
 
 	if (IS_NULL(callable)) {
 		return NULL_VAL;
@@ -128,6 +144,7 @@ VMValue TaskImpl::VM_Create(int argCount, VMValue* args, Uint32 threadID) {
 
 	Task* task = new Task(NativeCallback, AS_OBJECT(callable));
 	task->ExecutionDelay = delay * 1000.0f;
+	task->Priority = priority;
 	task->Start();
 
 	ScriptManager::RegistryAdd(task, (Obj*)objTask);

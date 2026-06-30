@@ -100,6 +100,7 @@ private:
 	static void DevMenu_SettingsMenu();
 	static void DevMenu_VideoMenu();
 	static void DevMenu_AudioMenu();
+	static void SortTasks();
 	static void RunTasks();
 	static void StopTasks();
 
@@ -139,8 +140,8 @@ public:
 	static int FrameSkip;
 	static bool Stepper;
 	static bool Step;
-	static Task* TaskFirst;
-	static Task* TaskLast;
+	static std::vector<Task*> Tasks;
+	static bool TaskPriorityChanged;
 	static int MasterVolume;
 	static int MusicVolume;
 	static int SoundVolume;
