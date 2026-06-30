@@ -46,6 +46,7 @@ void TaskImpl::Init() {
 	Hash_Priority = Murmur::EncryptString("Priority");
 
 	ScriptManager::DefineNative(Class, "Create", VM_Create);
+	ScriptManager::DefineNative(Class, "Restart", VM_Restart);
 
 	TypeImpl::RegisterClass(Class);
 	TypeImpl::ExposeClass(Class);
@@ -188,7 +189,7 @@ int TaskImpl::NativeCallback(Task* task, void* userdata) {
 VMValue TaskImpl::VM_Create(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckAtLeastArgCount(argCount, 1);
 
-	VMValue callable = GET_ARG(0, StandardLibrary::GetCallable);
+	VMValue callable = GET_ARG(0, GetCallable);
 	float delay = GET_ARG_OPT(1, GetDecimal, 0.0f);
 	int priority = GET_ARG_OPT(2, GetInteger, 0);
 
@@ -216,6 +217,27 @@ VMValue TaskImpl::VM_Create(int argCount, VMValue* args, Uint32 threadID) {
 	Application::AddTask(task);
 
 	return OBJECT_VAL(objTask);
+}
+/***
+ * Task.Restart
+ * \desc Restarts a task.
+ * \param task (Task): The task to restart.
+ * \ns Task
+ */
+VMValue TaskImpl::VM_Restart(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjTask* objTask = GET_ARG(0, GetTask);
+	Task* task = (Task*)ScriptManager::RegistryGet((Obj*)objTask);
+	if (task == nullptr) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Task is no longer valid!");
+		return NULL_VAL;
+	}
+
+	task->Start();
+
+	return NULL_VAL;
 }
 
 #undef GET_ARG

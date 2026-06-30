@@ -398,7 +398,24 @@ inline ObjFont* GetFont(VMValue* args, int index, Uint32 threadID) {
 	}
 	return value;
 }
-
+inline ObjTask* GetTask(VMValue* args, int index, Uint32 threadID) {
+	ObjTask* value = nullptr;
+	if (ScriptManager::Lock()) {
+		if (IS_TASK(args[index])) {
+			value = AS_TASK(args[index]);
+		}
+		else {
+			if (THROW_ERROR("Expected argument %d to be of type %s instead of %s.",
+				    index + 1,
+				    Value::GetObjectTypeName(TaskImpl::Class),
+				    GetValueTypeString(args[index])) == ERROR_RES_CONTINUE) {
+				ScriptManager::Threads[threadID].ReturnFromNative();
+			}
+		}
+		ScriptManager::Unlock();
+	}
+	return value;
+}
 inline ISprite* GetSpriteIndex(int where, Uint32 threadID) {
 	if (where < 0 || where >= (int)Scene::SpriteList.size()) {
 		if (THROW_ERROR("Sprite index \"%d\" outside bounds of list.", where) ==
@@ -628,6 +645,9 @@ ObjShader* StandardLibrary::GetShader(VMValue* args, int index, Uint32 threadID)
 }
 ObjFont* StandardLibrary::GetFont(VMValue* args, int index, Uint32 threadID) {
 	return LOCAL::GetFont(args, index, threadID);
+}
+ObjTask* StandardLibrary::GetTask(VMValue* args, int index, Uint32 threadID) {
+	return LOCAL::GetTask(args, index, threadID);
 }
 
 void StandardLibrary::CheckArgCount(int argCount, int expects) {
