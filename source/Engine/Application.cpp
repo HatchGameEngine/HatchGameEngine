@@ -1723,6 +1723,8 @@ DO_NOTHING:
 void Application::AddTask(Task* task) {
 	Tasks.push_back(task);
 
+	task->Start();
+
 	TaskPriorityChanged = true;
 }
 

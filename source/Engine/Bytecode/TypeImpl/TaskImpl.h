@@ -24,6 +24,7 @@ private:
 	static bool VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 threadID);
 	static VMValue VM_Create(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Restart(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_Stop(int argCount, VMValue* args, Uint32 threadID);
 
 public:
 	static ObjClass* Class;

@@ -35,6 +35,10 @@ int Task::Run() {
 
 // Stop the task.
 void Task::Stop() {
+	if (State == STATE_STOPPED) {
+		return;
+	}
+
 	State = STATE_STOPPED;
 }
 

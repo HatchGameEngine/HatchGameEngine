@@ -55,6 +55,7 @@ void TaskImpl::Init() {
 
 	ScriptManager::DefineNative(Class, "Create", VM_Create);
 	ScriptManager::DefineNative(Class, "Restart", VM_Restart);
+	ScriptManager::DefineNative(Class, "Stop", VM_Stop);
 
 	TypeImpl::RegisterClass(Class);
 	TypeImpl::ExposeClass(Class);
@@ -240,7 +241,6 @@ VMValue TaskImpl::VM_Create(int argCount, VMValue* args, Uint32 threadID) {
 	Task* task = new Task(NativeCallback, AS_OBJECT(callable));
 	task->ExecutionDelay = delay * 1000.0f;
 	task->Priority = priority;
-	task->Start();
 
 	ScriptManager::RegistryAdd(task, (Obj*)objTask);
 
@@ -268,7 +268,26 @@ VMValue TaskImpl::VM_Restart(int argCount, VMValue* args, Uint32 threadID) {
 	Application::RemoveTask(task);
 	Application::AddTask(task);
 
-	task->Start();
+	return NULL_VAL;
+}
+/***
+ * Task.Stop
+ * \desc Stops a task.
+ * \param task (Task): The task to stop.
+ * \ns Task
+ */
+VMValue TaskImpl::VM_Stop(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjTask* objTask = GET_ARG(0, GetTask);
+	Task* task = (Task*)ScriptManager::RegistryGet((Obj*)objTask);
+	if (task == nullptr) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(
+			false, "Task is no longer valid!");
+		return NULL_VAL;
+	}
+
+	Application::RemoveTask(task);
 
 	return NULL_VAL;
 }
