@@ -1774,6 +1774,8 @@ void Application::RunTasks() {
 void Application::RemoveTask(Task* task) {
 	auto it = std::find(Tasks.begin(), Tasks.end(), task);
 	if (it != Tasks.end()) {
+		task->Stop();
+
 		Tasks.erase(it);
 	}
 }

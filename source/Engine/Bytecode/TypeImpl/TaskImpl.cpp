@@ -34,7 +34,7 @@ void TaskImpl::Init() {
     * \field DelayTime
     * \type decimal
     * \ns Task
-    * \desc The amount of seconds to delay the execution of the task. Changes to this value do not take any effect until the task returns <ref TASK_CONTINUE>.
+    * \desc The amount of seconds to delay the execution of the task. Changes to this value do not take any effect until the task returns <ref TASK_CONTINUE>, or until <ref Task.Restart> is called for the task.
     */
 	Hash_DelayTime = Murmur::EncryptString("DelayTime");
 	/***
@@ -225,7 +225,7 @@ VMValue TaskImpl::VM_Create(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Task.Restart
- * \desc Restarts a task.
+ * \desc Stops and starts a task.
  * \param task (Task): The task to restart.
  * \ns Task
  */
@@ -239,6 +239,9 @@ VMValue TaskImpl::VM_Restart(int argCount, VMValue* args, Uint32 threadID) {
 			false, "Task is no longer valid!");
 		return NULL_VAL;
 	}
+
+	Application::RemoveTask(task);
+	Application::AddTask(task);
 
 	task->Start();
 
