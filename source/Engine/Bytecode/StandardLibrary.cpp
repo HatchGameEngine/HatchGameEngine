@@ -13543,6 +13543,19 @@ VMValue Scene_GetLayerVerticalConstantScroll(int argCount, VMValue* args, Uint32
 	return DECIMAL_VAL(Scene::Layers[index]->ConstantY);
 }
 /***
+ * Scene.GetLayerType
+ * \desc Gets the type of the layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return <ref LAYERTYPE_*> Returns the type of the layer.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerType(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	return INTEGER_VAL(Scene::Layers[index]->Type);
+}
+/***
  * Scene.GetTilesetCount
  * \desc Gets the amount of tilesets in the current scene.
  * \return integer Returns an integer value.
@@ -21992,7 +22005,8 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #region Scene
 	/***
     * \class Scene
-    * \desc Functions for manipulating and retrieving information about scenes.
+    * \desc Functions for manipulating and retrieving information about scenes and layers.<br/>\
+Some layer-related functions can only be used with layers of type <ref LAYERTYPE_TILE>. To get the type of a layer, use <ref Scene.GetLayerType>.
     */
 	INIT_CLASS(Scene);
 	DEF_NATIVE(Scene, Load);
@@ -22032,6 +22046,7 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(Scene, GetLayerVerticalParallaxFactor);
 	DEF_NATIVE(Scene, GetLayerHorizontalConstantScroll);
 	DEF_NATIVE(Scene, GetLayerVerticalConstantScroll);
+	DEF_NATIVE(Scene, GetLayerType);
 	DEF_NATIVE(Scene, GetTileWidth);
 	DEF_NATIVE(Scene, GetTileHeight);
 	DEF_NATIVE(Scene, GetTileID);
@@ -22134,6 +22149,16 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	* \desc The current scene loaded in the game is an RSDK scene.
 	*/
 	DEF_ENUM(SCENETYPE_RSDK);
+	/***
+	* \enum LAYERTYPE_TILE
+	* \desc Tile layer.
+	*/
+	DEF_CONST_INT("LAYERTYPE_TILE", SceneLayer::TYPE_TILE);
+	/***
+	* \enum LAYERTYPE_IMAGE
+	* \desc Image layer.
+	*/
+	DEF_CONST_INT("LAYERTYPE_IMAGE", SceneLayer::TYPE_IMAGE);
 	/***
     * \enum DrawBehavior_HorizontalParallax
     * \desc Horizontal parallax.
@@ -22514,10 +22539,6 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #endregion
 
 	// #region Texture
-	/***
-    * \class Texture
-    * \desc Texture manipulation functions.
-    */
 	GET_CLASS(Texture);
 	DEF_NATIVE(Texture, Create);
 	DEF_NATIVE(Texture, Copy);

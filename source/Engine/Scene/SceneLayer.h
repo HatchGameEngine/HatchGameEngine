@@ -10,13 +10,13 @@ class SceneLayer {
 public:
 	enum {
 		TYPE_TILE,
-		TYPE_IMAGE,
+		TYPE_IMAGE
 	};
 
 	enum {
 		FLAGS_COLLIDEABLE = 1,
 		FLAGS_REPEAT_X = 2,
-		FLAGS_REPEAT_Y = 4,
+		FLAGS_REPEAT_Y = 4
 	};
 
 	char* Name;
