@@ -26,16 +26,18 @@ private:
 	static Property ParseProperty(XMLNode* property);
 	static void ParsePropertyNode(XMLNode* node, HashMap<Property>* properties);
 	static PropertyArray ParsePolyPoints(XMLNode* node);
+	static bool GetRelativeResourcePath(Token source, const char* parentFolder, char *resourcePath, size_t length);
 	static Tileset* ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder);
 	static void
 	ParseTileAnimation(int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node);
 	static void ParseTile(Tileset* tilesetPtr, XMLNode* node);
 	static void LoadTileset(XMLNode* tileset, const char* parentFolder);
 	static void ParseSharedLayerFields(TiledLayer* layer, XMLNode* node);
-	static bool ParseLayer(XMLNode* layer, LayerGroup* group);
+	static bool ParseTileLayer(XMLNode* mapLayer, LayerGroup* group);
+	static bool ParseImageLayer(XMLNode* mapLayer, LayerGroup* group, const char* parentFolder);
 	static bool ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group);
-	static bool ParseGroupable(XMLNode* node, LayerGroup* group);
-	static bool ParseGroup(XMLNode* node, LayerGroup* parent);
+	static bool ParseGroupable(XMLNode* node, LayerGroup* group, const char* parentFolder);
+	static bool ParseGroup(XMLNode* node, LayerGroup* parent, const char* parentFolder);
 
 public:
 	static void Read(const char* sourceF, const char* parentFolder);

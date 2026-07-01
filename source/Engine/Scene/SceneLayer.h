@@ -3,70 +3,55 @@
 
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
-#include <Engine/Scene/LayerTileBuffers.h>
-#include <Engine/Scene/ScrollingInfo.h>
+#include <Engine/Rendering/Enums.h>
 #include <Engine/Types/Property.h>
 
 class SceneLayer {
 public:
+	enum {
+		TYPE_TILE,
+		TYPE_IMAGE
+	};
+
+	enum {
+		FLAGS_COLLIDEABLE = 1,
+		FLAGS_REPEAT_X = 2,
+		FLAGS_REPEAT_Y = 4
+	};
+
 	char* Name;
+	Uint8 Type;
 	bool Visible = true;
+
 	int Width = 0;
 	int Height = 0;
-	Uint32 WidthMask = 0;
-	Uint32 HeightMask = 0;
-	Uint32 WidthInBits = 0;
-	Uint32 HeightInBits = 0;
-	Uint32 WidthData = 0;
-	Uint32 HeightData = 0;
-	Uint32 DataSize = 0;
-	Uint32 ScrollIndexCount = 0;
+
 	float RelativeX = 1.0;
 	float RelativeY = 1.0;
 	float ConstantX = 0.0;
 	float ConstantY = 0.0;
 	float OffsetX = 0.0;
 	float OffsetY = 0.0;
-	Uint32* Tiles = NULL;
-	Uint32* TilesBackup = NULL;
-	Uint16* TileOffsetY = NULL;
-	int DeformOffsetA = 0;
-	int DeformOffsetB = 0;
-	int DeformSetA[MAX_DEFORM_LINES];
-	int DeformSetB[MAX_DEFORM_LINES];
-	int DeformSplitLine = 0;
-	int Flags = 0x0000;
+
+	Uint32 Flags = 0;
 	int DrawGroup = 0;
 	Uint8 DrawBehavior = 0;
+
 	HashMap<Property>* Properties = NULL;
-	bool Blending = false;
-	Uint8 BlendMode = 0; // BlendMode_NORMAL
+
+	bool UseBlending = false;
+	Uint8 BlendMode = BlendMode_NORMAL;
 	float Opacity = 1.0f;
+
 	void* CurrentShader = nullptr;
 	bool UsePaletteIndexLines = false;
-	bool UsingCustomScanlineFunction = false;
-	ObjFunction CustomScanlineFunction;
+
 	bool UsingCustomRenderFunction = false;
 	ObjFunction CustomRenderFunction;
-	int ScrollInfoCount = 0;
-	ScrollingInfo* ScrollInfos = NULL;
-	Uint8* ScrollIndexes = NULL;
-	bool UsingScrollIndexes = false;
-	std::vector<LayerTileBuffers*> TileBuffers;
-	size_t* TileBufferIndexes = NULL;
-	bool UsingTileBuffers = false;
-	bool RemakeTileBuffers = false;
-	enum {
-		FLAGS_COLLIDEABLE = 1,
-		FLAGS_REPEAT_X = 2,
-		FLAGS_REPEAT_Y = 4,
-	};
 
-	SceneLayer();
-	SceneLayer(int w, int h);
 	bool PropertyExists(char* property);
 	Property PropertyGet(char* property);
-	void Dispose();
+	~SceneLayer();
 };
 
 #endif /* ENGINE_SCENE_SCENELAYER_H */

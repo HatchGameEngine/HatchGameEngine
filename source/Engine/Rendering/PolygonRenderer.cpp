@@ -158,7 +158,7 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
 	vertexBuffer->VertexCount += vertexCount;
 	vertexBuffer->FaceCount++;
 }
-void PolygonRenderer::DrawSceneLayer3D(SceneLayer* layer, int sx, int sy, int sw, int sh) {
+void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw, int sh) {
 	static vector<AnimFrame> animFrames;
 	static vector<Texture*> textureSources;
 	animFrames.clear();

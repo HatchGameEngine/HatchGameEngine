@@ -12,6 +12,7 @@
 #include <Engine/Rendering/Texture.h>
 #include <Engine/ResourceTypes/ISprite.h>
 #include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileLayer.h>
 
 #ifdef DEBUG
 #define GL_DO_ERROR_CHECKING
@@ -242,13 +243,13 @@ public:
 	static void DeleteVertexBuffer(void* vtxBuf);
 	static void MakeFrameBufferID(ISprite* sprite);
 	static void DeleteFrameBufferID(ISprite* sprite);
-	static void DrawBufferedSceneLayer(SceneLayer* layer);
-	static void MakeLayerTileBuffers(SceneLayer* layer);
-	static void DeleteLayerTileBuffers(SceneLayer* layer);
-	static void RefreshTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
-	static void DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
-	static void UpdateBufferedLayerTile(SceneLayer* layer, int x, int y);
-	static void RefreshLayerTileAnimations(SceneLayer* layer);
+	static void DrawBufferedTileLayer(TileLayer* layer);
+	static void MakeLayerTileBuffers(TileLayer* layer);
+	static void DeleteLayerTileBuffers(TileLayer* layer);
+	static void RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIndex);
+	static void DeleteTileBuffersForTileset(TileLayer* layer, size_t tilesetIndex);
+	static void UpdateBufferedLayerTile(TileLayer* layer, int x, int y);
+	static void RefreshLayerTileAnimations(TileLayer* layer);
 	static void SetDepthTesting(bool enable);
 	static bool CheckError(int line);
 };

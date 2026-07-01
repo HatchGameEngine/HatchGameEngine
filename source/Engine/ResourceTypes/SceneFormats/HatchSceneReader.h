@@ -3,14 +3,14 @@
 
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h>
-#include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileLayer.h>
 
 class HatchSceneReader {
 private:
-	static SceneLayer ReadLayer(Stream* r);
-	static void ReadTileData(Stream* r, SceneLayer* layer);
-	static void ConvertTileData(SceneLayer* layer);
-	static void ReadScrollData(Stream* r, SceneLayer* layer);
+	static TileLayer* ReadLayer(Stream* r);
+	static void ReadTileData(Stream* r, TileLayer* layer);
+	static void ConvertTileData(TileLayer* layer);
+	static void ReadScrollData(Stream* r, TileLayer* layer);
 	static SceneClass* FindClass(SceneHash hash);
 	static SceneClassProperty* FindProperty(SceneClass* scnClass, SceneHash hash);
 	static void HashString(char* string, SceneHash* hash);
