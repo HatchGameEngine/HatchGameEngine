@@ -5,6 +5,43 @@
 
 class Ease {
 public:
+	enum Mode {
+		NONE,
+		INSINE,
+		OUTSINE,
+		INOUTSINE,
+		INQUAD,
+		OUTQUAD,
+		INOUTQUAD,
+		INCUBIC,
+		OUTCUBIC,
+		INOUTCUBIC,
+		INQUART,
+		OUTQUART,
+		INOUTQUART,
+		INQUINT,
+		OUTQUINT,
+		INOUTQUINT,
+		INEXPO,
+		OUTEXPO,
+		INOUTEXPO,
+		INCIRC,
+		OUTCIRC,
+		INOUTCIRC,
+		INBACK,
+		OUTBACK,
+		INOUTBACK,
+		INELASTIC,
+		OUTELASTIC,
+		INOUTELASTIC,
+		INBOUNCE,
+		OUTBOUNCE,
+		INOUTBOUNCE,
+		TRIANGLE,
+
+		MAX
+	};
+
 	static float InSine(float t);
 	static float OutSine(float t);
 	static float InOutSine(float t);
@@ -36,6 +73,7 @@ public:
 	static float OutBounce(float t);
 	static float InOutBounce(float t);
 	static float Triangle(float t);
+	static float Do(Ease::Mode easing, float t);
 };
 
 #endif /* ENGINE_MATH_EASE_H */

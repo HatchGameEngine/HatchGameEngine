@@ -59,6 +59,10 @@ void Task::Stop() {
 void Task::Dispose() {
 	Stop();
 
+	if (DeleteCallback) {
+		DeleteCallback(this, Userdata);
+	}
+
 	ScriptManager::RegistryRemove(this);
 
 	delete this;

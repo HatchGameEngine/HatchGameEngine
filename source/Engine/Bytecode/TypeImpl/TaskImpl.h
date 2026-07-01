@@ -31,8 +31,8 @@ public:
 	static ObjClass* Class;
 
 	static void Init();
-
 	static Obj* Constructor();
+	static ObjTask* CreateObject();
 	static void Dispose(Obj* object);
 };
 

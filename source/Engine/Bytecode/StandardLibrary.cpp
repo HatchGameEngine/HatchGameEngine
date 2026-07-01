@@ -48,6 +48,7 @@
 #include <Engine/Types/Task.h>
 #include <Engine/Utilities/ColorUtils.h>
 #include <Engine/Utilities/StringUtils.h>
+#include <Engine/Utilities/Tween.h>
 
 #include <Libraries/jsmn.h>
 
@@ -18341,6 +18342,137 @@ VMValue Texture_Copy(int argCount, VMValue* args, Uint32 threadID) {
 }
 // #endregion
 
+// #region Tween
+/***
+ * Tween.Perform
+ * \desc Tweens a field of an instance, from its current value to <param to>.
+ * \param instance (instance): The instance.
+ * \param field (string): The name of the field.
+ * \param to (decimal): The target value of the field.
+ * \param duration (decimal): The duration of the tween, in seconds.
+ * \paramOpt ease (<ref EASE_*>): The easing. (default: `EASE_NONE`)
+ * \return Task Returns a Task.
+ * \ns Tween
+ */
+VMValue Tween_Perform(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(4);
+
+	ObjInstance* instance = GET_ARG(0, GetInstance);
+	char* field = GET_ARG(1, GetString);
+	double to = GET_ARG(2, GetDecimal);
+	double duration = GET_ARG(3, GetDecimal);
+	int ease = GET_ARG_OPT(4, GetInteger, Ease::NONE);
+
+	if (!instance || !field) {
+		return NULL_VAL;
+	}
+
+	if (duration < 0.0) {
+		THROW_ERROR("Duration cannot be 0.0 or lower.");
+		return NULL_VAL;
+	}
+
+	if (ease < 0 || ease >= Ease::MAX) {
+		OUT_OF_RANGE_ERROR("Easing mode", ease, 0, (int)Ease::MAX - 1);
+		return NULL_VAL;
+	}
+
+	VMValue fromValue;
+	if (!instance->Fields->GetIfExists(field, &fromValue)) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "No field named \"%s\" in the instance.", field);
+		return NULL_VAL;
+	}
+	if (IS_NOT_NUMBER(fromValue)) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "'From' value is not a number.");
+		return NULL_VAL;
+	}
+
+	float from = AS_DECIMAL(Value::CastAsDecimal(fromValue));
+
+	Task* task = Tween::PerformForScript(instance, field, from, to, duration, ease);
+	Obj* objTask = ScriptManager::RegistryGet(task);
+	if (!objTask) {
+		return NULL_VAL;
+	}
+
+	return OBJECT_VAL(objTask);
+}
+/***
+ * Tween.PerformFromTo
+ * \desc Tweens a field of an instance, from <param from> to <param to>.
+ * \param instance (instance): The instance.
+ * \param field (string): The name of the field.
+ * \param from (decimal): The initial value of the field.
+ * \param to (decimal): The target value of the field.
+ * \param duration (decimal): The duration of the tween, in seconds.
+ * \paramOpt ease (<ref EASE_*>): The easing. (default: `EASE_NONE`)
+ * \return Task Returns a Task.
+ * \ns Tween
+ */
+/***
+ * Tween.PerformFromTo
+ * \desc Tweens from <param from> to <param to>, passing the tweened value to a callback.
+ * \param instance (instance): The instance.
+ * \param callback (callable): The callback.
+ * \param from (decimal): The initial value of the field.
+ * \param to (decimal): The target value of the field.
+ * \param duration (decimal): The duration of the tween, in seconds.
+ * \paramOpt ease (<ref EASE_*>): The easing. (default: `EASE_NONE`)
+ * \return Task Returns a Task.
+ * \ns Tween
+ */
+VMValue Tween_PerformFromTo(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_AT_LEAST_ARGCOUNT(5);
+
+	ObjInstance* instance = GET_ARG(0, GetInstance);
+	double from = GET_ARG(2, GetDecimal);
+	double to = GET_ARG(3, GetDecimal);
+	double duration = GET_ARG(4, GetDecimal);
+	int ease = GET_ARG_OPT(5, GetInteger, Ease::NONE);
+
+	if (!instance) {
+		return NULL_VAL;
+	}
+
+	if (duration < 0.0) {
+		THROW_ERROR("Duration cannot be 0.0 or lower.");
+		return NULL_VAL;
+	}
+
+	if (ease < 0 || ease >= Ease::MAX) {
+		OUT_OF_RANGE_ERROR("Easing mode", ease, 0, (int)Ease::MAX - 1);
+		return NULL_VAL;
+	}
+
+	Task* task;
+	if (IS_CALLABLE(args[1])) {
+		VMValue callable = GET_ARG(1, GetCallable);
+		if (IS_NULL(callable)) {
+			return NULL_VAL;
+		}
+
+		Obj* callableObj = AS_OBJECT(callable);
+
+		task = Tween::PerformForScript(instance, (void*)callableObj, from, to, duration, ease);
+	}
+	else {
+		char* field = GET_ARG(1, GetString);
+		if (!field) {
+			return NULL_VAL;
+		}
+
+		task = Tween::PerformForScript(instance, field, from, to, duration, ease);
+	}
+
+	Obj* objTask = ScriptManager::RegistryGet(task);
+	if (!objTask) {
+		return NULL_VAL;
+	}
+
+	return OBJECT_VAL(objTask);
+}
+// #endregion
+
 // #region Touch
 /***
  * Touch.GetX
@@ -21508,6 +21640,166 @@ See https://easings.net/ for more details.
 	DEF_NATIVE(Ease, OutBounce);
 	DEF_NATIVE(Ease, InOutBounce);
 	DEF_NATIVE(Ease, Triangle);
+	/***
+    * \enum EASE_NONE
+    * \desc No easing.
+    */
+    DEF_CONST_INT("EASE_NONE", Ease::NONE);
+    /***
+    * \enum EASE_INSINE
+    * \desc InSine easing.
+    */
+    DEF_CONST_INT("EASE_INSINE", Ease::INSINE);
+    /***
+    * \enum EASE_OUTSINE
+    * \desc OutSine easing.
+    */
+    DEF_CONST_INT("EASE_OUTSINE", Ease::OUTSINE);
+    /***
+    * \enum EASE_INOUTSINE
+    * \desc InOutSine easing.
+    */
+    DEF_CONST_INT("EASE_INOUTSINE", Ease::INOUTSINE);
+    /***
+    * \enum EASE_INQUAD
+    * \desc InQuad easing.
+    */
+    DEF_CONST_INT("EASE_INQUAD", Ease::INQUAD);
+    /***
+    * \enum EASE_OUTQUAD
+    * \desc OutQuad easing.
+    */
+    DEF_CONST_INT("EASE_OUTQUAD", Ease::OUTQUAD);
+    /***
+    * \enum EASE_INOUTQUAD
+    * \desc InOutQuad easing.
+    */
+    DEF_CONST_INT("EASE_INOUTQUAD", Ease::INOUTQUAD);
+    /***
+    * \enum EASE_INCUBIC
+    * \desc InCubic easing.
+    */
+    DEF_CONST_INT("EASE_INCUBIC", Ease::INCUBIC);
+    /***
+    * \enum EASE_OUTCUBIC
+    * \desc OutCubic easing.
+    */
+    DEF_CONST_INT("EASE_OUTCUBIC", Ease::OUTCUBIC);
+    /***
+    * \enum EASE_INOUTCUBIC
+    * \desc InOutCubic easing.
+    */
+    DEF_CONST_INT("EASE_INOUTCUBIC", Ease::INOUTCUBIC);
+    /***
+    * \enum EASE_INQUART
+    * \desc InQuart easing.
+    */
+    DEF_CONST_INT("EASE_INQUART", Ease::INQUART);
+    /***
+    * \enum EASE_OUTQUART
+    * \desc OutQuart easing.
+    */
+    DEF_CONST_INT("EASE_OUTQUART", Ease::OUTQUART);
+    /***
+    * \enum EASE_INOUTQUART
+    * \desc InOutQuart easing.
+    */
+    DEF_CONST_INT("EASE_INOUTQUART", Ease::INOUTQUART);
+    /***
+    * \enum EASE_INQUINT
+    * \desc InQuint easing.
+    */
+    DEF_CONST_INT("EASE_INQUINT", Ease::INQUINT);
+    /***
+    * \enum EASE_OUTQUINT
+    * \desc OutQuint easing.
+    */
+    DEF_CONST_INT("EASE_OUTQUINT", Ease::OUTQUINT);
+    /***
+    * \enum EASE_INOUTQUINT
+    * \desc InOutQuint easing.
+    */
+    DEF_CONST_INT("EASE_INOUTQUINT", Ease::INOUTQUINT);
+    /***
+    * \enum EASE_INEXPO
+    * \desc InExpo easing.
+    */
+    DEF_CONST_INT("EASE_INEXPO", Ease::INEXPO);
+    /***
+    * \enum EASE_OUTEXPO
+    * \desc OutExpo easing.
+    */
+    DEF_CONST_INT("EASE_OUTEXPO", Ease::OUTEXPO);
+    /***
+    * \enum EASE_INOUTEXPO
+    * \desc InOutExpo easing.
+    */
+    DEF_CONST_INT("EASE_INOUTEXPO", Ease::INOUTEXPO);
+    /***
+    * \enum EASE_INCIRC
+    * \desc InCirc easing.
+    */
+    DEF_CONST_INT("EASE_INCIRC", Ease::INCIRC);
+    /***
+    * \enum EASE_OUTCIRC
+    * \desc OutCirc easing.
+    */
+    DEF_CONST_INT("EASE_OUTCIRC", Ease::OUTCIRC);
+    /***
+    * \enum EASE_INOUTCIRC
+    * \desc InOutCirc easing.
+    */
+    DEF_CONST_INT("EASE_INOUTCIRC", Ease::INOUTCIRC);
+    /***
+    * \enum EASE_INBACK
+    * \desc InBack easing.
+    */
+    DEF_CONST_INT("EASE_INBACK", Ease::INBACK);
+    /***
+    * \enum EASE_OUTBACK
+    * \desc OutBack easing.
+    */
+    DEF_CONST_INT("EASE_OUTBACK", Ease::OUTBACK);
+    /***
+    * \enum EASE_INOUTBACK
+    * \desc InOutBack easing.
+    */
+    DEF_CONST_INT("EASE_INOUTBACK", Ease::INOUTBACK);
+    /***
+    * \enum EASE_INELASTIC
+    * \desc InElastic easing.
+    */
+    DEF_CONST_INT("EASE_INELASTIC", Ease::INELASTIC);
+    /***
+    * \enum EASE_OUTELASTIC
+    * \desc OutElastic easing.
+    */
+    DEF_CONST_INT("EASE_OUTELASTIC", Ease::OUTELASTIC);
+    /***
+    * \enum EASE_INOUTELASTIC
+    * \desc InOutElastic easing.
+    */
+    DEF_CONST_INT("EASE_INOUTELASTIC", Ease::INOUTELASTIC);
+    /***
+    * \enum EASE_INBOUNCE
+    * \desc InBounce easing.
+    */
+    DEF_CONST_INT("EASE_INBOUNCE", Ease::INBOUNCE);
+    /***
+    * \enum EASE_OUTBOUNCE
+    * \desc OutBounce easing.
+    */
+    DEF_CONST_INT("EASE_OUTBOUNCE", Ease::OUTBOUNCE);
+    /***
+    * \enum EASE_INOUTBOUNCE
+    * \desc InOutBounce easing.
+    */
+    DEF_CONST_INT("EASE_INOUTBOUNCE", Ease::INOUTBOUNCE);
+    /***
+    * \enum EASE_TRIANGLE
+    * \desc Triangle easing.
+    */
+    DEF_CONST_INT("EASE_TRIANGLE", Ease::TRIANGLE);
 	// #endregion
 
 	// #region File
@@ -22540,6 +22832,16 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	GET_CLASS(Texture);
 	DEF_NATIVE(Texture, Create);
 	DEF_NATIVE(Texture, Copy);
+	// #endregion
+
+	// #region Tween
+	/***
+    * \class Tween
+    * \desc Functions for performing animation related tasks.
+    */
+	INIT_CLASS(Tween);
+	DEF_NATIVE(Tween, Perform);
+	DEF_NATIVE(Tween, PerformFromTo);
 	// #endregion
 
 	// #region Touch

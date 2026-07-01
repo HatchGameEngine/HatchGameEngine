@@ -235,6 +235,16 @@ void TaskImpl::NativeStopCallback(Task* task, void* userdata) {
 #define GET_ARG_OPT(argIndex, argFunction, argDefault) \
 	(argIndex < argCount ? GET_ARG(argIndex, StandardLibrary::argFunction) : argDefault)
 
+ObjTask* TaskImpl::CreateObject() {
+	ObjTask* objTask = (ObjTask*)NewNativeInstance(sizeof(ObjTask));
+	Memory::Track(objTask, "TaskImpl::CreateObject");
+	objTask->Object.Class = Class;
+	objTask->InstanceObj.PropertyGet = VM_PropertyGet;
+	objTask->InstanceObj.PropertySet = VM_PropertySet;
+	objTask->InstanceObj.Destructor = Dispose;
+	return objTask;
+}
+
 /***
  * Task.Create
  * \desc Creates a task.
@@ -264,12 +274,7 @@ VMValue TaskImpl::VM_Create(int argCount, VMValue* args, Uint32 threadID) {
 		stopCallable = GET_ARG(2, GetCallable);
 	}
 
-	ObjTask* objTask = (ObjTask*)NewNativeInstance(sizeof(ObjTask));
-	Memory::Track(objTask, "TaskImpl::New");
-	objTask->Object.Class = Class;
-	objTask->InstanceObj.PropertyGet = VM_PropertyGet;
-	objTask->InstanceObj.PropertySet = VM_PropertySet;
-	objTask->InstanceObj.Destructor = Dispose;
+	ObjTask* objTask = CreateObject();
 
 	Task* task = new Task(NativeRunCallback, NativeStopCallback);
 	task->ExecutionDelay = delay * 1000.0f;

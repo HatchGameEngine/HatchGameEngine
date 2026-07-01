@@ -24,6 +24,8 @@ public:
 
 	TaskRunCallback Callback = nullptr;
 	TaskStopCallback StopCallback = nullptr;
+	TaskStopCallback DeleteCallback = nullptr;
+
 	void* Userdata = nullptr;
 
 	void* ScriptRunCallback = nullptr;

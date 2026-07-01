@@ -175,6 +175,7 @@ CPPFILES := \
 	source/Engine/Utilities/PrintBuffer.cpp \
 	source/Engine/Utilities/Screenshot.cpp \
 	source/Engine/Utilities/StringUtils.cpp \
+	source/Engine/Utilities/Tween.cpp \
 	source/Libraries/Clipper2/clipper.engine.cpp \
 	source/Libraries/Clipper2/clipper.offset.cpp \
 	source/Libraries/Clipper2/clipper.rectclip.cpp \
@@ -431,7 +432,8 @@ PUBHFILES := \
 	source/Engine/Utilities/ColorUtils.h \
 	source/Engine/Utilities/PrintBuffer.h \
 	source/Engine/Utilities/Screenshot.h \
-	source/Engine/Utilities/StringUtils.h
+	source/Engine/Utilities/StringUtils.h \
+	source/Engine/Utilities/Tween.h
 
 DEFINES := \
 	_THREAD_SAFE \

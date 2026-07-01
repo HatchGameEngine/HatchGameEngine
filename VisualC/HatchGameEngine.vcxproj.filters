@@ -441,6 +441,9 @@
     <ClCompile Include="..\source\engine\utilities\StringUtils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\utilities\Tween.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\Engine\Diagnostics\MemoryPools.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

@@ -187,3 +187,72 @@ float Ease::Triangle(float t) {
 		return 2.0 - t * 2.0;
 	}
 }
+
+float Ease::Do(Ease::Mode easing, float t) {
+	switch (easing) {
+	case Ease::INSINE:
+		return Ease::InSine(t);
+	case Ease::OUTSINE:
+		return Ease::OutSine(t);
+	case Ease::INOUTSINE:
+		return Ease::InOutSine(t);
+	case Ease::INQUAD:
+		return Ease::InQuad(t);
+	case Ease::OUTQUAD:
+		return Ease::OutQuad(t);
+	case Ease::INOUTQUAD:
+		return Ease::InOutQuad(t);
+	case Ease::INCUBIC:
+		return Ease::InCubic(t);
+	case Ease::OUTCUBIC:
+		return Ease::OutCubic(t);
+	case Ease::INOUTCUBIC:
+		return Ease::InOutCubic(t);
+	case Ease::INQUART:
+		return Ease::InQuart(t);
+	case Ease::OUTQUART:
+		return Ease::OutQuart(t);
+	case Ease::INOUTQUART:
+		return Ease::InOutQuart(t);
+	case Ease::INQUINT:
+		return Ease::InQuint(t);
+	case Ease::OUTQUINT:
+		return Ease::OutQuint(t);
+	case Ease::INOUTQUINT:
+		return Ease::InOutQuint(t);
+	case Ease::INEXPO:
+		return Ease::InExpo(t);
+	case Ease::OUTEXPO:
+		return Ease::OutExpo(t);
+	case Ease::INOUTEXPO:
+		return Ease::InOutExpo(t);
+	case Ease::INCIRC:
+		return Ease::InCirc(t);
+	case Ease::OUTCIRC:
+		return Ease::OutCirc(t);
+	case Ease::INOUTCIRC:
+		return Ease::InOutCirc(t);
+	case Ease::INBACK:
+		return Ease::InBack(t);
+	case Ease::OUTBACK:
+		return Ease::OutBack(t);
+	case Ease::INOUTBACK:
+		return Ease::InOutBack(t);
+	case Ease::INELASTIC:
+		return Ease::InElastic(t);
+	case Ease::OUTELASTIC:
+		return Ease::OutElastic(t);
+	case Ease::INOUTELASTIC:
+		return Ease::InOutElastic(t);
+	case Ease::INBOUNCE:
+		return Ease::InBounce(t);
+	case Ease::OUTBOUNCE:
+		return Ease::OutBounce(t);
+	case Ease::INOUTBOUNCE:
+		return Ease::InOutBounce(t);
+	case Ease::TRIANGLE:
+		return Ease::Triangle(t);
+	default:
+		return t;
+	}
+}
