@@ -3,6 +3,7 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/IO/Compression/ZLibStream.h>
+#include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/TileLayer.h>
@@ -285,19 +286,39 @@ PropertyArray TiledMapReader::ParsePolyPoints(XMLNode* node) {
 	return array;
 }
 
+bool TiledMapReader::GetRelativeResourcePath(Token source, const char* parentFolder, char *resourcePath, size_t length) {
+	char path[MAX_RESOURCE_PATH_LENGTH];
+	snprintf(path, sizeof(path), "%s%.*s", parentFolder, (int)source.Length, source.Start);
+
+	StringUtils::NormalizePath(path, resourcePath, length);
+
+	// If it starts with "../"
+	if (StringUtils::StartsWith(resourcePath, "../")) {
+		if (ResourceManager::UsingDataFolder) {
+			Log::Print(Log::LOG_WARN, "Path \"%s\" is outside of Resources.", resourcePath);
+		}
+		return false;
+	}
+
+	// If it does not exist
+	if (!ResourceManager::ResourceExists(resourcePath)) {
+		Log::Print(Log::LOG_ERROR, "Resource \"%s\" does not exist!", resourcePath);
+		return false;
+	}
+
+	return true;
+}
+
 Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder) {
-	char imagePath[MAX_RESOURCE_PATH_LENGTH];
+	char resourcePath[MAX_RESOURCE_PATH_LENGTH];
 
 	Token image_source = node->attributes.Get("source");
-	snprintf(imagePath,
-		sizeof(imagePath),
-		"%s%.*s",
-		parentFolder,
-		(int)image_source.Length,
-		image_source.Start);
+	if (!GetRelativeResourcePath(image_source, parentFolder, resourcePath, MAX_RESOURCE_PATH_LENGTH)) {
+		return nullptr;
+	}
 
 	ISprite* tileSprite = new ISprite();
-	Texture* spriteSheet = tileSprite->AddSpriteSheet(imagePath);
+	Texture* spriteSheet = tileSprite->AddSpriteSheet(resourcePath);
 
 	if (!spriteSheet) {
 		delete tileSprite;
@@ -354,7 +375,7 @@ Tileset* TiledMapReader::ParseTilesetImage(XMLNode* node, int firstgid, const ch
 		firstgid,
 		curTileCount + numEmptyTiles,
 		(cols * rows) + 1,
-		imagePath);
+		resourcePath);
 	Scene::Tilesets.push_back(sceneTileset);
 
 	return &Scene::Tilesets.back();
@@ -410,19 +431,16 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	XMLNode* tilesetXML = NULL;
 	XMLNode* tilesetNode = NULL;
 
-	char tilesetXMLPath[MAX_RESOURCE_PATH_LENGTH];
-
 	// If this is an external tileset, read the XML from that file.
 	if (tileset->attributes.Exists("source")) {
-		Token source = tileset->attributes.Get("source");
-		snprintf(tilesetXMLPath,
-			sizeof(tilesetXMLPath),
-			"%s%.*s",
-			parentFolder,
-			(int)source.Length,
-			source.Start);
+		char resourcePath[MAX_RESOURCE_PATH_LENGTH];
 
-		tilesetXML = XMLParser::ParseFromResource(tilesetXMLPath);
+		Token source = tileset->attributes.Get("source");
+		if (!GetRelativeResourcePath(source, parentFolder, resourcePath, MAX_RESOURCE_PATH_LENGTH)) {
+			return;
+		}
+
+		tilesetXML = XMLParser::ParseFromResource(resourcePath);
 		if (!tilesetXML) {
 			return;
 		}
@@ -650,17 +668,15 @@ bool TiledMapReader::ParseImageLayer(XMLNode* mapLayer, LayerGroup* group, const
 		if (XMLParser::MatchToken(mapLayer->children[e]->name, "image")) {
 			XMLNode* node = mapLayer->children[e];
 			if (node->attributes.Exists("source") && image == nullptr) {
-				char imagePath[MAX_RESOURCE_PATH_LENGTH];
+				char resourcePath[MAX_RESOURCE_PATH_LENGTH];
 
 				Token image_source = node->attributes.Get("source");
-				snprintf(imagePath,
-					sizeof(imagePath),
-					"%s%.*s",
-					parentFolder,
-					(int)image_source.Length,
-					image_source.Start);
+				if (!GetRelativeResourcePath(image_source, parentFolder, resourcePath, MAX_RESOURCE_PATH_LENGTH)) {
+					continue;
+				}
 
-				image = new Image(imagePath);
+				image = new Image(resourcePath);
+
 				if (image->TexturePtr) {
 					layer_width = image->TexturePtr->Width;
 					layer_height = image->TexturePtr->Height;
@@ -909,7 +925,7 @@ bool TiledMapReader::ParseGroup(XMLNode* node, LayerGroup* parent, const char* p
 void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 	XMLNode* tileMapXML = XMLParser::ParseFromResource(sourceF);
 	if (!tileMapXML) {
-		Log::Print(Log::LOG_ERROR, "Could not parse from resource \"%s\"", sourceF);
+		Log::Print(Log::LOG_ERROR, "Could not parse resource \"%s\"!", sourceF);
 		return;
 	}
 
