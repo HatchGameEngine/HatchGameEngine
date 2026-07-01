@@ -725,11 +725,6 @@ float textAdvance;
 		return NULL_VAL; \
 	}
 
-#define RETURN_IF_TILE_LAYER(layerIdx, val) \
-	if (Scene::Layers[layerIdx]->Type != SceneLayer::TYPE_TILE) { \
-		return val; \
-	}
-
 #define CHECK_INPUT_PLAYER_INDEX(playerNum) \
 	if (playerNum < 0 || playerNum >= InputManager::GetPlayerCount()) { \
 		OUT_OF_RANGE_ERROR( \
