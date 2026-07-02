@@ -3040,7 +3040,13 @@ void Graphics::DrawImageLayer(ImageLayer* layer, View* currentView) {
 void Graphics::DrawTextureLoopHorizontal(Texture* texture, float x, float y, float maxWidth) {
 	int max = std::ceil(maxWidth / texture->Width) + 1;
 
-	x = fmod(x, texture->Width);
+	if (x > 0) {
+		x = fmod(x, texture->Width);
+		x -= texture->Width;
+	}
+	else {
+		x = fmod(x, texture->Width);
+	}
 
 	for (int i = 0; i < max; i++) {
 		if (x > maxWidth) {
@@ -3064,7 +3070,13 @@ void Graphics::DrawTextureLoopHorizontal(Texture* texture, float x, float y, flo
 void Graphics::DrawTextureLoopVertical(Texture* texture, float x, float y, float maxHeight) {
 	int max = std::ceil(maxHeight / texture->Height) + 1;
 
-	y = fmod(y, texture->Height);
+	if (y > 0) {
+		y = fmod(y, texture->Height);
+		y -= texture->Height;
+	}
+	else {
+		y = fmod(y, texture->Height);
+	}
 
 	for (int i = 0; i < max; i++) {
 		if (y > maxHeight) {
@@ -3094,7 +3106,17 @@ void Graphics::DrawTextureLoopHV(Texture* texture,
 	int maxH = std::ceil(maxHeight / texture->Height) + 1;
 
 	float xStart = fmod(x, texture->Width);
-	y = fmod(y, texture->Height);
+	if (x > 0) {
+		xStart -= texture->Width;
+	}
+
+	if (y > 0) {
+		y = fmod(y, texture->Height);
+		y -= texture->Height;
+	}
+	else {
+		y = fmod(y, texture->Height);
+	}
 
 	for (int ly = 0; ly < maxH; ly++) {
 		if (y > maxHeight) {
