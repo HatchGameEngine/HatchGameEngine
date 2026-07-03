@@ -25,13 +25,18 @@ Task* Tween::PerformForScript(void* tweenable, const char* field, double from, d
 
 	Tween* tween = new Tween;
 	tween->Tweenable = nullptr;
-	tween->ValueFrom = from;
-	tween->ValueTo = to;
+	tween->ValueFrom = (float)from;
+	tween->ValueTo = (float)to;
 	tween->Duration = duration;
 	tween->Easing = easing;
 	tween->FieldHash = Murmur::EncryptString(field);
 
 	objTask->Fields->Put(TASK_TWEENABLE_FIELD, OBJECT_VAL(tweenable));
+
+	// Link the fields of the Tween into the Task instance, so that you can access them.
+	// The Tween exists for as long as the Task does, so this is fine.
+	objTask->Fields->Put("TweenFrom", DECIMAL_LINK_VAL(&tween->ValueFrom));
+	objTask->Fields->Put("TweenTo", DECIMAL_LINK_VAL(&tween->ValueTo));
 
 	Task* task = tween->StartTask(RunCallbackScript);
 	ScriptManager::RegistryAdd(task, (Obj*)objTask);
@@ -44,8 +49,8 @@ Task* Tween::PerformForScript(void* tweenable, void* callback, double from, doub
 
 	Tween* tween = new Tween;
 	tween->Tweenable = nullptr;
-	tween->ValueFrom = from;
-	tween->ValueTo = to;
+	tween->ValueFrom = (float)from;
+	tween->ValueTo = (float)to;
 	tween->Duration = duration;
 	tween->Easing = easing;
 	tween->Callback = callback;
@@ -69,12 +74,12 @@ Task* Tween::StartTask(TaskRunCallback callback) {
 	return task;
 }
 
-double Tween::Do(float from, float to, float lerpValue) {
+float Tween::Do(float from, float to, float lerpValue) {
 	return ((1.0f - lerpValue) * from) + (lerpValue * to);
 }
 
-double Tween::GetValue() {
-	double value;
+float Tween::GetValue() {
+	float value;
 
 	if (Application::UseFixedTimestep) {
 		value = Frame / (Duration * Application::TargetFPS);
@@ -117,7 +122,7 @@ int Tween::RunCallback(Task* task, void* userdata) {
 
 	bool done = tween->Step();
 
-	double value = Do(tween->ValueFrom, tween->ValueTo, tween->GetValue());
+	float value = Do(tween->ValueFrom, tween->ValueTo, tween->GetValue());
 
 	double* field = (double*)tween->Tweenable;
 	*field = value;
@@ -143,16 +148,16 @@ int Tween::RunCallbackScript(Task* task, void* userdata) {
 
 	bool done = tween->Step();
 
-	double value = Do(tween->ValueFrom, tween->ValueTo, tween->GetValue());
+	float value = Do(tween->ValueFrom, tween->ValueTo, tween->GetValue());
 
 	VMThread* thread = &ScriptManager::Threads[0];
 	if (tween->Callback) {
 		thread->Push(tweenable);
-		thread->Push(DECIMAL_VAL((float)value));
+		thread->Push(DECIMAL_VAL(value));
 		thread->InvokeForEntity(OBJECT_VAL(tween->Callback), 1);
 	}
 	else {
-		thread->SetProperty(tweenable, tween->FieldHash, DECIMAL_VAL((float)value));
+		thread->SetProperty(tweenable, tween->FieldHash, DECIMAL_VAL(value));
 	}
 
 	if (done) {

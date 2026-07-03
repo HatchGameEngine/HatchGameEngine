@@ -6,7 +6,7 @@
 class Tween {
 private:
 	Task* StartTask(TaskRunCallback callback);
-	static double Do(float from, float to, float lerpValue);
+	static float Do(float from, float to, float lerpValue);
 	static int RunCallback(class Task* task, void* userdata);
 	static int RunCallbackScript(class Task* task, void* userdata);
 	static void StopCallback(class Task* task, void* userdata);
@@ -17,12 +17,12 @@ public:
 	static Task* PerformForScript(void* tweenable, const char* field, double from, double to, double duration, int easing);
 	static Task* PerformForScript(void* tweenable, void* callback, double from, double to, double duration, int easing);
 
-	double GetValue();
+	float GetValue();
 	bool Step();
 
 	void* Tweenable = nullptr;
-	double ValueFrom = 0.0f;
-	double ValueTo = 0.0f;
+	float ValueFrom = 0.0f;
+	float ValueTo = 0.0f;
 	double Duration = 1.0f;
 	int Easing = 0;
 
