@@ -18359,8 +18359,8 @@ VMValue Tween_Perform(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjInstance* instance = GET_ARG(0, GetInstance);
 	char* field = GET_ARG(1, GetString);
-	double to = GET_ARG(2, GetDecimal);
-	double duration = GET_ARG(3, GetDecimal);
+	float to = GET_ARG(2, GetDecimal);
+	float duration = GET_ARG(3, GetDecimal);
 	int ease = GET_ARG_OPT(4, GetInteger, Ease::NONE);
 
 	if (!instance || !field) {

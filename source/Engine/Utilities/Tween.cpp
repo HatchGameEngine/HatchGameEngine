@@ -7,9 +7,9 @@
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Utilities/Tween.h>
 
-#define TASK_TWEENABLE_FIELD "_tweenable"
+#define TASK_TWEENTARGET_FIELD "TweenTarget"
 
-Task* Tween::Perform(double* field, double from, double to, double duration, int easing) {
+Task* Tween::Perform(float* field, float from, float to, float duration, int easing) {
 	Tween* tween = new Tween;
 	tween->Tweenable = (void*)field;
 	tween->ValueFrom = from;
@@ -20,23 +20,17 @@ Task* Tween::Perform(double* field, double from, double to, double duration, int
 	return tween->StartTask(RunCallback);
 }
 
-Task* Tween::PerformForScript(void* tweenable, const char* field, double from, double to, double duration, int easing) {
+Task* Tween::PerformForScript(void* tweenable, const char* field, float from, float to, float duration, int easing) {
 	ObjInstance* objTask = (ObjInstance*)TaskImpl::CreateObject();
 
 	Tween* tween = new Tween;
 	tween->Tweenable = nullptr;
-	tween->ValueFrom = (float)from;
-	tween->ValueTo = (float)to;
+	tween->ValueFrom = from;
+	tween->ValueTo = to;
 	tween->Duration = duration;
 	tween->Easing = easing;
 	tween->FieldHash = Murmur::EncryptString(field);
-
-	objTask->Fields->Put(TASK_TWEENABLE_FIELD, OBJECT_VAL(tweenable));
-
-	// Link the fields of the Tween into the Task instance, so that you can access them.
-	// The Tween exists for as long as the Task does, so this is fine.
-	objTask->Fields->Put("TweenFrom", DECIMAL_LINK_VAL(&tween->ValueFrom));
-	objTask->Fields->Put("TweenTo", DECIMAL_LINK_VAL(&tween->ValueTo));
+	tween->ExposeFieldsForScript(objTask, tweenable);
 
 	Task* task = tween->StartTask(RunCallbackScript);
 	ScriptManager::RegistryAdd(task, (Obj*)objTask);
@@ -44,23 +38,33 @@ Task* Tween::PerformForScript(void* tweenable, const char* field, double from, d
 	return task;
 }
 
-Task* Tween::PerformForScript(void* tweenable, void* callback, double from, double to, double duration, int easing) {
+Task* Tween::PerformForScript(void* tweenable, void* callback, float from, float to, float duration, int easing) {
 	ObjInstance* objTask = (ObjInstance*)TaskImpl::CreateObject();
 
 	Tween* tween = new Tween;
 	tween->Tweenable = nullptr;
-	tween->ValueFrom = (float)from;
-	tween->ValueTo = (float)to;
+	tween->ValueFrom = from;
+	tween->ValueTo = to;
 	tween->Duration = duration;
 	tween->Easing = easing;
 	tween->Callback = callback;
-
-	objTask->Fields->Put(TASK_TWEENABLE_FIELD, OBJECT_VAL(tweenable));
+	tween->ExposeFieldsForScript(objTask, tweenable);
 
 	Task* task = tween->StartTask(RunCallbackScript);
 	ScriptManager::RegistryAdd(task, (Obj*)objTask);
 
 	return task;
+}
+
+void Tween::ExposeFieldsForScript(void* obj, void* tweenable) {
+	ObjInstance* objTask = (ObjInstance*)obj;
+
+	// The Tween exists for as long as the Task does, so it's okay to link the fields.
+	objTask->Fields->Put(TASK_TWEENTARGET_FIELD, OBJECT_VAL(tweenable));
+	objTask->Fields->Put("TweenFrom", DECIMAL_LINK_VAL(&ValueFrom));
+	objTask->Fields->Put("TweenTo", DECIMAL_LINK_VAL(&ValueTo));
+	objTask->Fields->Put("TweenDuration", DECIMAL_LINK_VAL(&Duration));
+	objTask->Fields->Put("TweenEasing", INTEGER_LINK_VAL(&Easing));
 }
 
 Task* Tween::StartTask(TaskRunCallback callback) {
@@ -124,7 +128,7 @@ int Tween::RunCallback(Task* task, void* userdata) {
 
 	float value = Do(tween->ValueFrom, tween->ValueTo, tween->GetValue());
 
-	double* field = (double*)tween->Tweenable;
+	float* field = (float*)tween->Tweenable;
 	*field = value;
 
 	if (done) {
@@ -141,7 +145,7 @@ int Tween::RunCallbackScript(Task* task, void* userdata) {
 		return Task::DONE;
 	}
 
-	VMValue tweenable = objTask->Fields->Get(TASK_TWEENABLE_FIELD);
+	VMValue tweenable = objTask->Fields->Get(TASK_TWEENTARGET_FIELD);
 	if (IS_NULL(tweenable)) {
 		return Task::DONE;
 	}

@@ -6,6 +6,7 @@
 class Tween {
 private:
 	Task* StartTask(TaskRunCallback callback);
+	void ExposeFieldsForScript(void* obj, void* tweenable);
 	static float Do(float from, float to, float lerpValue);
 	static int RunCallback(class Task* task, void* userdata);
 	static int RunCallbackScript(class Task* task, void* userdata);
@@ -13,9 +14,9 @@ private:
 	static void DeleteCallback(class Task* task, void* userdata);
 
 public:
-	static Task* Perform(double* field, double from, double to, double duration, int easing);
-	static Task* PerformForScript(void* tweenable, const char* field, double from, double to, double duration, int easing);
-	static Task* PerformForScript(void* tweenable, void* callback, double from, double to, double duration, int easing);
+	static Task* Perform(float* field, float from, float to, float duration, int easing);
+	static Task* PerformForScript(void* tweenable, const char* field, float from, float to, float duration, int easing);
+	static Task* PerformForScript(void* tweenable, void* callback, float from, float to, float duration, int easing);
 
 	float GetValue();
 	bool Step();
@@ -23,7 +24,7 @@ public:
 	void* Tweenable = nullptr;
 	float ValueFrom = 0.0f;
 	float ValueTo = 0.0f;
-	double Duration = 1.0f;
+	float Duration = 1.0f;
 	int Easing = 0;
 
 	double Timer = 0.0f;
