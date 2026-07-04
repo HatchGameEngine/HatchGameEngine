@@ -8,6 +8,8 @@ float InputManager::MouseY = 0;
 int InputManager::MouseDown = 0;
 int InputManager::MousePressed = 0;
 int InputManager::MouseReleased = 0;
+float InputManager::MouseMotionX = 0.0f;
+float InputManager::MouseMotionY = 0.0f;
 float InputManager::MouseWheelX = 0.0f;
 float InputManager::MouseWheelY = 0.0f;
 int InputManager::MouseMode = MOUSEMODE_DEFAULT;
@@ -364,6 +366,8 @@ void InputManager::RemoveController(int joystickID) {
 }
 
 void InputManager::OnFrameBegin() {
+	MouseMotionX = 0.0f;
+	MouseMotionY = 0.0f;
 	MouseWheelX = 0.0f;
 	MouseWheelY = 0.0f;
 }
@@ -521,6 +525,11 @@ void InputManager::SetMouseMode(int mode) {
 	}
 
 	MouseMode = mode;
+}
+
+void InputManager::HandleMouseMotionEvent(float motionX, float motionY) {
+	MouseMotionX += motionX;
+	MouseMotionY += motionY;
 }
 
 void InputManager::HandleMouseWheelEvent(float motionX, float motionY) {

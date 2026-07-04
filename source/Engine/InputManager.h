@@ -30,6 +30,8 @@ public:
 	static int MouseDown;
 	static int MousePressed;
 	static int MouseReleased;
+	static float MouseMotionX;
+	static float MouseMotionY;
 	static float MouseWheelX;
 	static float MouseWheelY;
 	static int MouseMode;
@@ -62,6 +64,7 @@ public:
 	static bool IsKeyPressed(int key);
 	static bool IsKeyReleased(int key);
 	static void SetMouseMode(int mode);
+	static void HandleMouseMotionEvent(float motionX, float motionY);
 	static void HandleMouseWheelEvent(float motionX, float motionY);
 	static Controller* GetController(int index);
 	static bool ControllerIsConnected(int index);

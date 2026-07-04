@@ -1547,6 +1547,12 @@ void Application::PollEvents() {
 			}
 			break;
 		}
+		case SDL_MOUSEMOTION: {
+			float motionX = e.motion.xrel;
+			float motionY = e.motion.yrel;
+			InputManager::HandleMouseMotionEvent(motionX, motionY);
+			break;
+		}
 		case SDL_MOUSEWHEEL: {
 			float motionX = e.wheel.preciseX;
 			float motionY = e.wheel.preciseY;
