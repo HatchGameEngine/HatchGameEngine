@@ -8287,22 +8287,22 @@ VMValue Input_IsMouseButtonReleased(int argCount, VMValue* args, Uint32 threadID
 /***
  * Input.GetMouseMotionX
  * \desc Gets the current horizontal movement of the mouse.
- * \return decimal Returns a decimal value.
+ * \return integer Returns an integer value.
  * \ns Input
  */
 VMValue Input_GetMouseMotionX(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return DECIMAL_VAL(InputManager::MouseMotionX);
+	return INTEGER_VAL(InputManager::MouseMotionX);
 }
 /***
  * Input.GetMouseMotionY
  * \desc Gets the current vertical movement of the mouse.
- * \return decimal Returns a decimal value.
+ * \return integer Returns an integer value.
  * \ns Input
  */
 VMValue Input_GetMouseMotionY(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return DECIMAL_VAL(InputManager::MouseMotionY);
+	return INTEGER_VAL(InputManager::MouseMotionY);
 }
 /***
  * Input.GetMouseWheelMotion

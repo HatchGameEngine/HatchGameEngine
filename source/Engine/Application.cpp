@@ -1548,8 +1548,8 @@ void Application::PollEvents() {
 			break;
 		}
 		case SDL_MOUSEMOTION: {
-			float motionX = e.motion.xrel;
-			float motionY = e.motion.yrel;
+			int motionX = e.motion.xrel;
+			int motionY = e.motion.yrel;
 			InputManager::HandleMouseMotionEvent(motionX, motionY);
 			break;
 		}
