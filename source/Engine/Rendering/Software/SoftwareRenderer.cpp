@@ -4090,7 +4090,7 @@ void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View
 			dst_x += pixelsOfTileRemaining;
 		}
 
-		// Draw scanline tiles in batches of 16 pixels
+		// Draw scanline tiles
 		srcTY = srcY % Scene::TileHeight;
 		for (j = maxTileDraw; j; j--, dst_x += Scene::TileWidth) {
 			sourceTileCellX++;
