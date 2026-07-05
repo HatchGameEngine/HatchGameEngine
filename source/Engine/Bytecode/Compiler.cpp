@@ -1595,7 +1595,7 @@ ExprContext Compiler::GetSuper(ExprContext context) {
 	InstanceToken = parser.Previous;
 	VariableLocal = Locals[0];
 	if (!CheckToken(TOKEN_DOT)) {
-		Error("Expect '.' after 'super'.");
+		Error("Expected '.' after 'super'.");
 	}
 
 	if (ShouldEmitValue) {
@@ -1611,7 +1611,7 @@ ExprContext Compiler::GetDot(ExprContext context) {
 	bool isSuper = InstanceToken.Type == TOKEN_SUPER;
 	InstanceToken.Type = -1;
 
-	ConsumeIdentifier("Expect property name after '.'.");
+	ConsumeIdentifier("Expected property name after '.'.");
 	Token nameToken = parser.Previous;
 
 	if (MatchToken(TOKEN_LEFT_PAREN)) {
@@ -1967,7 +1967,7 @@ ExprContext Compiler::GetNew(ExprContext context) {
 
 	Local local;
 
-	ConsumeIdentifier("Expect class name.");
+	ConsumeIdentifier("Expected class name.");
 	NamedVariable(parser.Previous, local, EXPRCONTEXT_VALUE);
 
 	uint8_t argCount = 0;
@@ -2153,7 +2153,7 @@ ExprContext Compiler::GetAssignment(ExprContext context) {
 }
 ExprContext Compiler::GetHas(ExprContext context) {
 	CONVERT_LVALUE_TO_RVALUE();
-	ConsumeIdentifier("Expect property name.");
+	ConsumeIdentifier("Expected property name.");
 	EmitByte(OP_HAS_PROPERTY);
 	EmitStringHash(parser.Previous);
 	return EXPRCONTEXT_VALUE;
@@ -2226,7 +2226,7 @@ void Compiler::GetContinueStatement() {
 	int jump = EmitJump(OP_JUMP);
 	ContinueJumpListStack.top()->push_back(jump);
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after continue.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after continue.");
 }
 void Compiler::GetDoWhileStatement() {
 	// Set the start of the loop to before the condition
@@ -2286,29 +2286,29 @@ void Compiler::GetReturnStatement() {
 		}
 
 		GetExpression();
-		ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after return value.");
+		ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after return value.");
 		EmitByte(OP_RETURN);
 	}
 }
 void Compiler::GetRepeatStatement() {
 	ScopeBegin();
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'repeat'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'repeat'.");
 	GetExpression();
 
 	Token variableToken = {TOKEN_ERROR};
 	int remaining = 0;
 
 	if (MatchToken(TOKEN_COMMA)) {
-		ConsumeIdentifier("Expect variable name.");
+		ConsumeIdentifier("Expected variable name.");
 		variableToken = parser.Previous;
 		if (MatchToken(TOKEN_COMMA)) {
-			ConsumeIdentifier("Expect variable name.");
+			ConsumeIdentifier("Expected variable name.");
 			remaining = AddLocal(parser.Previous);
 			MarkInitialized();
 		}
 	}
 
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
 	if (!remaining) {
 		remaining = AddHiddenLocal(" remaining", 11);
@@ -2377,9 +2377,9 @@ void Compiler::GetSwitchStatement() {
 	StartBreakpointList();
 
 	// Evaluate the condition
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'switch'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'switch'.");
 	GetExpression();
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
 	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before statements.");
 
@@ -2562,9 +2562,9 @@ void Compiler::GetWhileStatement() {
 	int loopStart = CodePointer();
 
 	// Evaluate the condition
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'while'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'while'.");
 	GetExpression();
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
 	// Jump if false (or 0)
 	int exitJump = EmitJump(OP_JUMP_IF_FALSE);
@@ -2609,7 +2609,7 @@ void Compiler::GetBreakStatement() {
 	int jump = EmitJump(OP_JUMP);
 	BreakJumpListStack.top()->push_back(jump);
 
-	ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after break.");
+	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after break.");
 }
 void Compiler::GetBlockStatement() {
 	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
@@ -2653,10 +2653,10 @@ void Compiler::GetWithStatement() {
 	Token receiverName;
 
 	// With "expression"
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'with'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'with'.");
 	GetExpression();
 	if (MatchToken(TOKEN_AS)) {
-		ConsumeIdentifier("Expect receiver name.");
+		ConsumeIdentifier("Expected receiver name.");
 
 		receiverName = parser.Previous;
 
@@ -2673,7 +2673,7 @@ void Compiler::GetWithStatement() {
 		// zero
 		useOtherSlot = true;
 	}
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
 	// Rename "other" to "this" if the function doesn't have "this"
 	if (useOther && !hasThis) {
@@ -2745,7 +2745,7 @@ void Compiler::GetForStatement() {
 	// Start new scope
 	ScopeBegin();
 
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'for'.");
 
 	// Initializer (happens only once)
 	if (MatchToken(TOKEN_VAR)) {
@@ -2773,7 +2773,7 @@ void Compiler::GetForStatement() {
 	// Conditional
 	if (!MatchToken(TOKEN_SEMICOLON)) {
 		GetExpression();
-		ConsumeToken(TOKEN_SEMICOLON, "Expect ';' after loop condition.");
+		ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after loop condition.");
 
 		// Jump out of the loop if the condition is false.
 		exitJump = EmitJump(OP_JUMP_IF_FALSE);
@@ -2787,7 +2787,7 @@ void Compiler::GetForStatement() {
 		int incrementStart = CurrentChunk()->Count;
 		GetExpression();
 		EmitByte(OP_POP);
-		ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
+		ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after for clauses.");
 
 		EmitLoop(loopStart);
 		loopStart = incrementStart;
@@ -2826,7 +2826,7 @@ void Compiler::GetForEachStatement() {
 	// Start new scope
 	ScopeBegin();
 
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'foreach'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'foreach'.");
 
 	GetForEachBlock();
 
@@ -2835,11 +2835,11 @@ void Compiler::GetForEachStatement() {
 }
 void Compiler::GetForEachBlock() {
 	// Variable name
-	ConsumeIdentifier("Expect variable name.");
+	ConsumeIdentifier("Expected variable name.");
 
 	Token variableToken = parser.Previous;
 
-	ConsumeToken(TOKEN_IN, "Expect 'in' after variable name.");
+	ConsumeToken(TOKEN_IN, "Expected 'in' after variable name.");
 
 	// Iterator after 'in'
 	GetExpression();
@@ -2855,7 +2855,7 @@ void Compiler::GetForEachBlock() {
 
 	int iterValue = AddHiddenLocal(" iterValue", 10);
 
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after expression.");
 
 	int exitJump = -1;
 	int loopStart = CurrentChunk()->Count;
@@ -2916,9 +2916,9 @@ void Compiler::GetForEachBlock() {
 	EndBreakJumpList();
 }
 void Compiler::GetIfStatement() {
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after 'if'.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after 'if'.");
 	GetExpression();
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after condition.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after condition.");
 
 	int thenJump = EmitJump(OP_JUMP_IF_FALSE);
 	EmitByte(OP_POP);
@@ -2994,7 +2994,7 @@ void Compiler::GetStatement() {
 // Reading declarations
 void Compiler::CompileFunction() {
 	// Compile the parameter list.
-	ConsumeToken(TOKEN_LEFT_PAREN, "Expect '(' after function name.");
+	ConsumeToken(TOKEN_LEFT_PAREN, "Expected '(' after function name.");
 
 	bool isOptional = false;
 	bool matchedLeftSquareBrace = false;
@@ -3009,7 +3009,7 @@ void Compiler::CompileFunction() {
 				matchedLeftSquareBrace = true;
 			}
 
-			ParseVariable("Expect parameter name.", false);
+			ParseVariable("Expected parameter name.", false);
 			DefineVariableToken(parser.Previous, false);
 			MarkResolved();
 
@@ -3039,10 +3039,10 @@ void Compiler::CompileFunction() {
 	Function->Arity = (Uint8)arity;
 	Function->MinArity = (Uint8)minArity;
 
-	ConsumeToken(TOKEN_RIGHT_PAREN, "Expect ')' after parameters.");
+	ConsumeToken(TOKEN_RIGHT_PAREN, "Expected ')' after parameters.");
 
 	// The body.
-	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before function body.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before function body.");
 	GetBlockStatement();
 }
 int Compiler::GetFunction(int type, string className) {
@@ -3084,7 +3084,7 @@ int Compiler::GetFunction(int type) {
 	return GetFunction(type, "");
 }
 void Compiler::GetMethod(Token className) {
-	ConsumeIdentifier("Expect method name.");
+	ConsumeIdentifier("Expected method name.");
 	Token constantToken = parser.Previous;
 
 	// If the method has the same name as its class, it's an
@@ -3253,7 +3253,7 @@ void Compiler::GetPropertyDeclaration(Token propertyName) {
 	ConsumeToken(TOKEN_SEMICOLON, "Expected ';' after property declaration.");
 }
 void Compiler::GetClassDeclaration() {
-	ConsumeIdentifier("Expect class name.");
+	ConsumeIdentifier("Expected class name.");
 
 	Token className = parser.Previous;
 	DeclareVariable(&className, false);
@@ -3274,7 +3274,7 @@ void Compiler::GetClassDeclaration() {
 	}
 
 	if (MatchToken(TOKEN_LESS)) {
-		ConsumeIdentifier("Expect base class name.");
+		ConsumeIdentifier("Expected base class name.");
 		Token superName = parser.Previous;
 
 		EmitByte(OP_INHERIT);
@@ -3283,7 +3283,7 @@ void Compiler::GetClassDeclaration() {
 
 	DefineVariableToken(className, false);
 
-	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before class body.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before class body.");
 
 	while (!CheckToken(TOKEN_RIGHT_BRACE) && !CheckToken(TOKEN_EOF)) {
 		Local local;
@@ -3300,7 +3300,7 @@ void Compiler::GetClassDeclaration() {
 		}
 	}
 
-	ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after class body.");
+	ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' after class body.");
 }
 void Compiler::GetEnumDeclaration(bool isLocal) {
 	Token enumName;
@@ -3325,7 +3325,7 @@ void Compiler::GetEnumDeclaration(bool isLocal) {
 		isNamed = true;
 	}
 
-	ConsumeToken(TOKEN_LEFT_BRACE, "Expect '{' before enumeration body.");
+	ConsumeToken(TOKEN_LEFT_BRACE, "Expected '{' before enumeration body.");
 
 	while (true) {
 		bool didStart = false;
@@ -3419,7 +3419,7 @@ void Compiler::GetEnumDeclaration(bool isLocal) {
 			}
 		} while (MatchToken(TOKEN_COMMA));
 
-		ConsumeToken(TOKEN_RIGHT_BRACE, "Expect '}' after enumeration body.");
+		ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' after enumeration body.");
 		break;
 	}
 }
@@ -3427,7 +3427,7 @@ void Compiler::GetImportDeclaration() {
 	bool importModules = MatchToken(TOKEN_FROM);
 
 	do {
-		ConsumeToken(TOKEN_STRING, "Expect string after 'import'.");
+		ConsumeToken(TOKEN_STRING, "Expected string after 'import'.");
 
 		Token className = parser.Previous;
 		VMValue value = OBJECT_VAL(Compiler::MakeString(className));

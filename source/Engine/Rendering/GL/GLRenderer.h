@@ -185,6 +185,7 @@ public:
 		float rotation,
 		int paletteID);
 	static void BeginTextureBatching();
+	static void BatchRectangleFill(float x, float y, float w, float h, float r, float g, float b, float a);
 	static void BatchSprite(ISprite* sprite,
 		int animation,
 		int frame,

@@ -2683,7 +2683,7 @@ void Graphics::DrawTilePart(TileSpriteInfo& info,
 		0.0,
 		(int)paletteID);
 }
-void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView, bool onlyAnimated) {
+void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView, bool onlyAnimated, int drawTileCollision) {
 	float viewX = currentView->X;
 	float viewY = currentView->Y;
 
@@ -2739,6 +2739,20 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
+	TileConfig* baseTileCfg = nullptr;
+
+	if (drawTileCollision != 0) {
+		size_t collisionPlane = drawTileCollision - 1;
+		if (collisionPlane < Scene::TileCfg.size()) {
+			baseTileCfg = Scene::TileCfg[collisionPlane];
+		}
+
+		// No tile config?
+		if (baseTileCfg == nullptr) {
+			return;
+		}
+	}
+
 	Graphics::BeginTextureBatching();
 
 	for (int dst_y = startY; dst_y < endY; dst_y += tileHeight, srcY += tileHeight) {
@@ -2779,6 +2793,73 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 
 			int tileID = tile & TILE_IDENT_MASK;
 			if (tileID == Scene::EmptyTile) {
+				continue;
+			}
+
+			// drawTileCollision != 0 means to exclusively draw tile collision data for this layer
+			if (drawTileCollision != 0) {
+				Uint32 collision = 0;
+
+				if (drawTileCollision == 1) {
+					collision = (tile & TILE_COLLA_MASK) >> 28;
+				}
+				else {
+					collision = (tile & TILE_COLLB_MASK) >> 26;
+				}
+
+				if (collision == 0) {
+					continue;
+				}
+
+				float colorR = 0.0, colorG = 0.0, colorB = 0.0;
+
+				switch (collision) {
+				case 1:
+					colorR = 0.0;
+					colorG = 1.0;
+					colorB = 1.0;
+					break;
+				case 2:
+					colorR = 0.0;
+					colorG = 0.0;
+					colorB = 1.0;
+					break;
+				case 3:
+					colorR = 1.0;
+					colorG = 1.0;
+					colorB = 1.0;
+					break;
+				}
+
+				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
+				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
+				int tileFlipOffset = (((flipY) << 1) | flipX) * Scene::TileCount;
+
+				TileConfig* tileCfg = (&baseTileCfg[tileID] + tileFlipOffset);
+				int xx = viewX + (dst_x - (srcX % tileWidth));
+				int yy = viewY + (dst_y - (srcY % tileHeight));
+
+				if (baseTileCfg[tileID].IsCeiling) {
+					for (int gg = 0; gg < tileWidth; gg++) {
+						int col = tileCfg->CollisionBottom[gg];
+						if (col < 0xF0) {
+							col++;
+							BatchRectangleFill(xx, yy, 1, col, colorR, colorG, colorB, 1.0);
+						}
+						xx++;
+					}
+				}
+				else {
+					for (int gg = 0; gg < tileWidth; gg++) {
+						int col = tileCfg->CollisionTop[gg];
+						if (col < 0xF0) {
+							col = (tileHeight - col) + 1;
+							BatchRectangleFill(xx, yy + (tileHeight - col), 1, col, colorR, colorG, colorB, 1.0);
+						}
+						xx++;
+					}
+				}
+
 				continue;
 			}
 
@@ -2962,11 +3043,15 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 		Graphics::DrawSceneLayer_HorizontalScrollIndexes(layer, currentView);
 	}
 	else {
-		Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView, false);
+		Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView);
 	}
 
 	if (shader) {
 		Graphics::SetUserShader(nullptr);
+	}
+
+	if ((layer->Flags & SceneLayer::FLAGS_COLLIDEABLE) != 0 && Scene::ShowTileCollisionFlag != 0) {
+		DrawSceneLayer_HorizontalParallax(layer, currentView, false, Scene::ShowTileCollisionFlag);
 	}
 }
 void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
@@ -2983,6 +3068,16 @@ void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
 void Graphics::BeginTextureBatching() {
 	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BeginTextureBatching) {
 		Graphics::GfxFunctions->BeginTextureBatching();
+	}
+}
+void Graphics::BatchRectangleFill(float x, float y, float w, float h, float r, float g, float b, float a) {
+	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BatchRectangleFill) {
+		Graphics::GfxFunctions->BatchRectangleFill(x, y, w, h, r, g, b, a);
+	}
+	else if (Graphics::GfxFunctions->FillRectangle) {
+		SetBlendColor(r, g, b, a);
+
+		Graphics::GfxFunctions->FillRectangle(x, y, w, h);
 	}
 }
 void Graphics::BatchTile(TileSpriteInfo& info, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
