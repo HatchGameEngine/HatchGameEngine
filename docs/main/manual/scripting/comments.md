@@ -4,13 +4,13 @@
 
 ## Declaring a comment
 
-There are 2 types of comments, one of them is single-line comments, which you can declare by using the `//` prefix.
+There are 2 types of comments, one being single-line comments, which you can declare by using the `//` prefix.
 
 ```java
 // This is a comment!
 ```
 
-The other is multi-line comments which start with `/*` and end with `*/`. Any text between won't get executed.
+The other one is multi-line comments which start with `/*` and end with `*/`. Any text between will be considered as a comment.
 
 ```java
 /*
@@ -25,7 +25,7 @@ This isn't a comment /* but this is. */
 
 ## When to use comments
 
-Comments can be used to leave notes for yourself or other programmers that are working on the project.
+Comments can be used to leave notes for yourself or other programmers that may be working on the same project.
 
 ```java
 
