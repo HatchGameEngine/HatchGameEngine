@@ -20,7 +20,7 @@ Multi-line comments can have multiple lines!
 ```
 
 ```java
-This isn't a comment /* whilst this is */
+This isn't a comment /* but this is. */
 ```
 
 Multi-line comments can also be used to 
