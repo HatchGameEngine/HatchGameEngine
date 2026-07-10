@@ -428,7 +428,7 @@ public:
 		bool flipY,
 		bool usePaletteIndexLines);
 	static void DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentView);
-	static void DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView, bool onlyAnimated);
+	static void DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView, bool onlyAnimated = false, int drawTileCollision = 0);
 	static void DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* currentView);
 	static void DrawBufferedTileLayer(TileLayer* layer, View* currentView);
 	static void DrawSceneLayer(SceneLayer* layer,
@@ -443,6 +443,7 @@ public:
 	DrawTextureLoopHV(Texture* texture, float x, float y, float maxWidth, float maxHeight);
 	static void RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex);
 	static void BeginTextureBatching();
+	static void BatchRectangleFill(float x, float y, float w, float h, float r, float g, float b, float a);
 	static void BatchTile(TileSpriteInfo& info,
 		int x,
 		int y,
