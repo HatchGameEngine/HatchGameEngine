@@ -77,7 +77,7 @@ public:
 	static vector<Tileset> Tilesets;
 	static vector<TileSpriteInfo> TileSpriteInfos;
 	static Uint16 EmptyTile;
-	static vector<SceneLayer> Layers;
+	static vector<SceneLayer*> Layers;
 	static bool AnyLayerTileChange;
 	static int TileCount;
 	static int TileWidth;
@@ -189,7 +189,7 @@ public:
 	static ObjectList* GetStaticObjectList(const char* objectName);
 	static void AddManagers();
 	static std::vector<ObjectList*> GetObjectListPerformance();
-	static void AddLayer(SceneLayer layer);
+	static void AddLayer(SceneLayer* layer);
 	static void InitPriorityLists();
 	static void FreePriorityLists();
 	static void SetPriorityPerLayer(int count);

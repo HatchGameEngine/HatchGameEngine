@@ -1570,7 +1570,7 @@ void SoftwareRenderer::DrawSceneLayer3D(void* layer,
 	Matrix4x4* modelMatrix,
 	Matrix4x4* normalMatrix) {
 	if (SetupPolygonRenderer(modelMatrix, normalMatrix)) {
-		polygonRenderer.DrawSceneLayer3D((SceneLayer*)layer, sx, sy, sw, sh);
+		polygonRenderer.DrawSceneLayer3D((TileLayer*)layer, sx, sy, sw, sh);
 	}
 }
 void SoftwareRenderer::DrawModel(void* model,
@@ -3814,7 +3814,7 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 }
 
 // Default Tile Display Line setup
-void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -4439,8 +4439,8 @@ void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View
 		}
 	}
 }
-void SoftwareRenderer::DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView) {}
-void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_VerticalParallax(TileLayer* layer, View* currentView) {}
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View* currentView) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -4457,15 +4457,15 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 
 	if (Scene::TileWidth == 16 && Scene::TileHeight == 16) {
 		if (blendState.Mode == BlendFlag_OPAQUE) {
-			DrawSceneLayer_CustomTileScanLines_Opaque_16x16(layer, currentView);
+			DrawTileLayer_CustomTileScanLines_Opaque_16x16(layer, currentView);
 		}
 		else {
-			DrawSceneLayer_CustomTileScanLines_16x16(layer, currentView);
+			DrawTileLayer_CustomTileScanLines_16x16(layer, currentView);
 		}
 		return;
 	}
 	else if (blendState.Mode == BlendFlag_OPAQUE) {
-		DrawSceneLayer_CustomTileScanLines_Opaque(layer, currentView);
+		DrawTileLayer_CustomTileScanLines_Opaque(layer, currentView);
 		return;
 	}
 
@@ -4658,7 +4658,7 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 		dst_strideY += dstStride;
 	}
 }
-void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines_Opaque(SceneLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer, View* currentView) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -4807,7 +4807,7 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines_Opaque(SceneLayer* lay
 		dst_strideY += dstStride;
 	}
 }
-void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines_16x16(SceneLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer, View* currentView) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -5003,7 +5003,7 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines_16x16(SceneLayer* laye
 		dst_strideY += dstStride;
 	}
 }
-void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines_Opaque_16x16(SceneLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer* layer, View* currentView) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -5152,12 +5152,8 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines_Opaque_16x16(SceneLaye
 		dst_strideY += dstStride;
 	}
 }
-void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
-	View* currentView,
-	int layerIndex,
-	bool useCustomFunction) {
-	if (layer->UsingCustomRenderFunction && useCustomFunction) {
-		Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
+void SoftwareRenderer::DrawTileLayer(TileLayer* layer, int layerIndex, View* currentView) {
+	if (Scene::Tilesets.size() == 0) {
 		return;
 	}
 
@@ -5166,7 +5162,7 @@ void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
 		Graphics::RunCustomSceneLayerFunction(&layer->CustomScanlineFunction, layerIndex);
 	}
 	else {
-		Graphics::DrawSceneLayer_InitTileScanLines(layer, currentView);
+		Graphics::DrawTileLayer_InitTileScanLines(layer, currentView);
 	}
 
 	// TODO: Implement view rotation
@@ -5197,19 +5193,19 @@ void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
 			srcY += iScaleY;
 		}
 
-		SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(layer, currentView);
+		SoftwareRenderer::DrawTileLayer_CustomTileScanLines(layer, currentView);
 		return;
 	}
 
 	switch (layer->DrawBehavior) {
 	case DrawBehavior_HorizontalParallax:
-		SoftwareRenderer::DrawSceneLayer_HorizontalParallax(layer, currentView);
+		SoftwareRenderer::DrawTileLayer_HorizontalParallax(layer, currentView);
 		break;
 	case DrawBehavior_VerticalParallax:
-		SoftwareRenderer::DrawSceneLayer_VerticalParallax(layer, currentView);
+		SoftwareRenderer::DrawTileLayer_VerticalParallax(layer, currentView);
 		break;
 	case DrawBehavior_CustomTileScanLines:
-		SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(layer, currentView);
+		SoftwareRenderer::DrawTileLayer_CustomTileScanLines(layer, currentView);
 		break;
 	}
 }
