@@ -23,8 +23,6 @@ Multi-line comments can have multiple lines!
 This isn't a comment /* but this is. */
 ```
 
-Multi-line comments can also be used to 
-
 ## When to use comments
 
 Comments can be used to leave notes for yourself or other programmers that are working on the project.
