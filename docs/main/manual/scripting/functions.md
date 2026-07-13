@@ -1,6 +1,6 @@
 @page functions Functions
 
-**Functions** or are blocks of code that execute pre-defined tasks.
+**Functions** are blocks of code that execute a set pre-defined tasks that can be ran at any point in code execution.
 
 ## Declaring a function
 
@@ -40,7 +40,7 @@ INFO: 32
 ```
 ### Optional arguments
 
-A **Optional argument** is a function argument that has a default value that gets used if you don't specify one in the function call. You can declare an optional argument by using the `=` sign after the argument name, one can only be declared after normal arguments.
+An **optional argument** is a function argument that has a default value that gets used if you don't specify one in the function call. You can declare an optional argument by using the `=` sign after the argument name, one can only be declared after normal arguments.
 
 ```java
 event countToNumberInSteps(max, steps = 1) {
@@ -66,8 +66,6 @@ event countToNumberInSteps(max, [steps = 1]) {
 	}
 }
 ```
-
-
 
 If we call this function without specifying the optional argument, it will default to counting in steps of 1 but we can also specify the step count to any arbitrary number we want.
 
@@ -105,7 +103,7 @@ event multiply(a, b) {
 var result = multiply(2, 5);
 print(result);
 
-print(multply(result, 2))
+print(multply(result, 2));
 ```
 
 ```
