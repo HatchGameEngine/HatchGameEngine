@@ -1,10 +1,10 @@
 @page functions Functions
 
-**Functions** are blocks of code that execute a set pre-defined tasks that can be ran at any point in code execution.
+**Functions** are blocks of code that execute a set of pre-defined tasks that can be ran at any point in code execution.
 
 ## Declaring a function
 
-A function can be declared by using the `event` statement followed by an identifier and its arguments. Similar to variables, arguments can store any value, including other functions.
+A function can be declared by using the `event` statement followed by a name and its arguments. Similar to variables, arguments can store any value, including other functions.
 
 ```java
 // This function has 2 arguments that get multiplied, the result is then printed to the screen.
@@ -13,7 +13,7 @@ event multiplyAndPrint(a, b) {
 }
 ```
 
-Functions can then be called from anywhere else in the same scope by typing its identifier and provide its required arguments, calling a function will execute any code stored inside of it.
+Functions can then be called from anywhere as long as it is in same scope by "calling" the name & required arguments of the function, calling a function will execute any code stored inside of it.
 
 ```java
 multiplyAndPrint(4, 2);
@@ -23,13 +23,13 @@ multiplyAndPrint(4, 2);
 INFO: 8
 ```
 
-It's also possible to store functions in variables the same as you do any other type by setting the varible to the function's identifier, omitting the arguments.
+As mentioned in @subpage variables, functions are types that you can set a variables as. You can do so by setting the variable as the function's name, omitting the arguments.
 
 ```java
 var functionVariable = multiplyAndPrint;
 ```
 
-To call the function stored in the variable the same way as any other function with the only difference being that to call the function you use the variable's identifier instead.
+When storing a function inside a variable, the name of the function stored in it becomes the same as the variable's name.
 
 ```java
 functionVariable(4, 8);
@@ -40,7 +40,7 @@ INFO: 32
 ```
 ### Optional arguments
 
-An **optional argument** is a function argument that has a default value that gets used if you don't specify one in the function call. You can declare an optional argument by using the `=` sign after the argument name, one can only be declared after normal arguments.
+An **optional argument** is a function argument that has a default value that gets used if you don't specify one in the function call. You can declare an optional argument by using the `=` sign after the argument name, one can only be declared after the required arguments.
 
 ```java
 event countToNumberInSteps(max, steps = 1) {
@@ -78,12 +78,12 @@ countToNumberInSteps(6, 2);
 
 ```
 INFO: Without specifying a step.
+INFO: 0
 INFO: 1
 INFO: 2
 INFO: 3
 INFO: 4
 INFO: 5
-INFO: 6
 INFO: When specifying a step.
 INFO: 0
 INFO: 2
@@ -111,7 +111,7 @@ INFO: 10
 INFO: 20
 ```
 
-`return` statements will completely stop the execution of a function, which means that any code after the `return` statement won't get executed.
+`return` statements will completely stop the execution of a function, which means that any code after the `return` statement won't get ran.
 
 ```java
 event sendMessage(message = "Hello") {
