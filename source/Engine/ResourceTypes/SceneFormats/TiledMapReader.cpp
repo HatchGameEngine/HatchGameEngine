@@ -424,6 +424,16 @@ void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
 		return;
 	}
 
+	if (node->attributes.Exists("type")) {
+		Token name = node->attributes.Get("type");
+		SetTileProperty(tilesetPtr, tileID, "Class", Property::MakeString(name.Start, (int)name.Length));
+	}
+
+	if (node->attributes.Exists("probability")) {
+		float val = XMLParser::TokenToNumber(node->attributes.Get("probability"));
+		SetTileProperty(tilesetPtr, tileID, "Probability", Property::MakeDecimal(val));
+	}
+
 	for (size_t e = 0; e < node->children.size(); e++) {
 		if (XMLParser::MatchToken(node->children[e]->name, "properties")) {
 			XMLNode* properties = node->children[e];
@@ -445,6 +455,14 @@ void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
 			ParseTileAnimation(globalTileID, firstgid, tilesetPtr, node->children[e]);
 		}
 	}
+}
+
+void TiledMapReader::SetTileProperty(Tileset* tileset, int tileID, const char* name, Property value) {
+	if (tileset->PropertiesPerTile[tileID] == nullptr) {
+		tileset->PropertiesPerTile[tileID] = new HashMap<Property>(NULL, 4);
+	}
+
+	tileset->PropertiesPerTile[tileID]->Put(name, value);
 }
 
 void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
