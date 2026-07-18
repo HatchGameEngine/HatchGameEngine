@@ -470,10 +470,10 @@ void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
 	} \
 }
 
-	CHECK_COLL_SIDE_PROP("TopSolid", CollideSide::TOP);
-	CHECK_COLL_SIDE_PROP("BottomSolid", CollideSide::BOTTOM);
-	CHECK_COLL_SIDE_PROP("LeftSolid", CollideSide::LEFT);
-	CHECK_COLL_SIDE_PROP("RightSolid", CollideSide::RIGHT);
+	CHECK_COLL_SIDE_PROP("TopSolid", TILESIDE_TOP);
+	CHECK_COLL_SIDE_PROP("BottomSolid", TILESIDE_BOTTOM);
+	CHECK_COLL_SIDE_PROP("LeftSolid", TILESIDE_LEFT);
+	CHECK_COLL_SIDE_PROP("RightSolid", TILESIDE_RIGHT);
 
 #undef CHECK_COLL_SIDE_PROP
 }

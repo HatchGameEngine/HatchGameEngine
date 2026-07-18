@@ -13,6 +13,7 @@ public:
 	Uint8 AngleBottom;
 	Uint8 Behavior;
 	Uint8 IsCeiling;
+	Uint8 Solidity;
 };
 
 #endif /* ENGINE_SCENE_TILECONFIG_H */

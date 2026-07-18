@@ -18750,6 +18750,55 @@ VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(tileCfgBase[tileID].IsCeiling);
 }
 /***
+ * TileInfo.GetSolidity
+ * \desc Gets the solidity of the desired tile.
+ * \param tileID (integer): ID of tile to check.
+ * \param collisionPlane (integer): The collision plane of the tile to get the solidity of.
+ * \return <ref TILESIDE_*> Returns which sides are solid.
+ * \ns TileInfo
+ */
+VMValue TileInfo_GetSolidity(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int tileID = GET_ARG(0, GetInteger);
+	int collisionPlane = GET_ARG(1, GetInteger);
+
+	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
+		collisionPlane >= Scene::TileCfg.size()) {
+		return INTEGER_VAL(0);
+	}
+
+	TileConfig* tileCfgBase = Scene::TileCfg[collisionPlane];
+
+	int solidity = Scene::GetTileSolidity(tileCfgBase, (size_t)tileID);
+
+	return INTEGER_VAL(solidity);
+}
+/***
+ * TileInfo.SetSolidity
+ * \desc Sets the solidity of the desired tile.
+ * \param tileID (integer): ID of tile to modify.
+ * \param collisionPlane (integer): The collision plane of the tile to modify the solidity of.
+ * \param sides (<ref TILESIDE_*>): The sides that will be solid.
+ * \ns TileInfo
+ */
+VMValue TileInfo_SetSolidity(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	int tileID = GET_ARG(0, GetInteger);
+	int collisionPlane = GET_ARG(1, GetInteger);
+	int sides = GET_ARG(2, GetInteger);
+
+	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
+		collisionPlane >= Scene::TileCfg.size()) {
+		return NULL_VAL;
+	}
+
+	TileConfig* tileCfgBase = Scene::TileCfg[collisionPlane];
+
+	Scene::SetTileSolidity(tileCfgBase, (size_t)tileID, sides);
+
+	return NULL_VAL;
+}
+/***
  * TileInfo.GetProperty
  * \desc Gets a property of the desired tile.
  * \param tileID (integer): ID of the tile to check.
@@ -22681,8 +22730,35 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(TileInfo, GetAngle);
 	DEF_NATIVE(TileInfo, GetBehaviorFlag);
 	DEF_NATIVE(TileInfo, IsCeiling);
+	DEF_NATIVE(TileInfo, GetSolidity);
+	DEF_NATIVE(TileInfo, SetSolidity);
 	DEF_NATIVE(TileInfo, GetProperty);
 	DEF_NATIVE(TileInfo, PropertyExists);
+	/***
+    * \enum TILESIDE_TOP
+    * \desc Top tile side.
+    */
+	DEF_ENUM(TILESIDE_TOP);
+	/***
+    * \enum TILESIDE_LEFT
+    * \desc Left tile side.
+    */
+	DEF_ENUM(TILESIDE_LEFT);
+	/***
+    * \enum TILESIDE_RIGHT
+    * \desc Right tile side.
+    */
+	DEF_ENUM(TILESIDE_RIGHT);
+	/***
+    * \enum TILESIDE_BOTTOM
+    * \desc Bottom tile side.
+    */
+	DEF_ENUM(TILESIDE_BOTTOM);
+	/***
+    * \enum TILESIDE_ALL
+    * \desc All tile sides.
+    */
+	DEF_ENUM(TILESIDE_ALL);
 	// #endregion
 
 	// #region Thread

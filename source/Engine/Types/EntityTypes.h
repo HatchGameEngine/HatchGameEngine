@@ -31,7 +31,7 @@ enum {
 
 	SIDES = 10,
 	TOP_SIDES = 11,
-	BOTTOM_SIDES = 14,
+	BOTTOM_SIDES = 14
 };
 };
 
