@@ -13,7 +13,11 @@ enum {
 };
 
 #define PROPERTY_IS_NUMBER(prop) ((prop).Type == PROPERTY_INTEGER || (prop).Type == PROPERTY_DECIMAL)
-#define PROPERTY_AS_NUMBER(prop) ((prop).Type == PROPERTY_DECIMAL ? (prop).as.Decimal : (prop).as.Integer);
+#define PROPERTY_AS_NUMBER(prop) ((prop).Type == PROPERTY_DECIMAL ? (prop).as.Decimal : (prop).as.Integer)
+
+#define PROPERTY_IS_BOOL(prop) ((prop).Type == PROPERTY_BOOL)
+#define PROPERTY_IS_TRUE(prop) (PROPERTY_IS_BOOL(prop) ? ((prop).as.Bool != 0) : false)
+#define PROPERTY_IS_FALSE(prop) (PROPERTY_IS_BOOL(prop) ? ((prop).as.Bool == 0) : false)
 
 struct PropertyArray {
 	void* Data;

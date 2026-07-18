@@ -23,6 +23,10 @@ Tileset::Tileset(ISprite* sprite,
 	FirstGlobalTileID = firstgid;
 	Filename = StringUtils::Duplicate(filename);
 	PropertiesPerTile.resize(TileCount);
+	CollisionSides.resize(TileCount);
+	for (size_t i = 0; i < TileCount; i++) {
+		CollisionSides[i] = 0xFF;
+	}
 }
 
 void Tileset::RunAnimations() {

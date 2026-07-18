@@ -19,6 +19,7 @@ public:
 	unsigned PaletteID = 0;
 	std::map<int, TileAnimator> AnimatorMap;
 	std::vector<HashMap<Property>*> PropertiesPerTile;
+	std::vector<Uint8> CollisionSides;
 
 	Tileset(ISprite* sprite,
 		int tileWidth,

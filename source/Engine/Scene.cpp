@@ -2954,7 +2954,11 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 			HCOL_COLLISION_LINE_RIGHT_TOPDOWN_FOUND:;
 			}
 		}
+	}
 
+	SetTileCollisionSides(&Tilesets[tilesetID], TileCfg[0]);
+
+	for (tile = tileBase; tile < maxTile; tile++) {
 		// Interpret angles
 		Uint8 angle = tile->AngleTop;
 		if (angle == 0xFF) {
@@ -3216,6 +3220,28 @@ void Scene::LoadTileCollisions(const char* filename, size_t tilesetID) {
 	}
 
 	tileColReader->Close();
+}
+void Scene::SetTileCollisionSides(Tileset* tileset, TileConfig *tileCfg) {
+	for (size_t i = 0; i < tileset->TileCount; i++) {
+		TileConfig* tile = &tileCfg[tileset->FirstGlobalTileID + i];
+
+		Uint8 sides = tileset->CollisionSides[i];
+
+		for (int c = 0; c < TileWidth; c++) {
+			if ((sides & CollideSide::TOP) == 0) {
+				tile->CollisionTop[c] |= 0xF0;
+			}
+			if ((sides & CollideSide::BOTTOM) == 0) {
+				tile->CollisionBottom[c] |= 0xF0;
+			}
+			if ((sides & CollideSide::LEFT) == 0) {
+				tile->CollisionLeft[c] |= 0xF0;
+			}
+			if ((sides & CollideSide::RIGHT) == 0) {
+				tile->CollisionRight[c] |= 0xF0;
+			}
+		}
+	}
 }
 void Scene::UnloadTileCollisions() {
 	for (size_t i = 0; i < Scene::TileCfg.size(); i++) {

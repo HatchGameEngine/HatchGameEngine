@@ -455,6 +455,47 @@ void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
 			ParseTileAnimation(globalTileID, firstgid, tilesetPtr, node->children[e]);
 		}
 	}
+
+#define CHECK_COLL_SIDE_PROP(name, flag) { \
+	if (HasTileProperty(tilesetPtr, tileID, name)) { \
+		Property prop = GetTileProperty(tilesetPtr, tileID, name); \
+		if (PROPERTY_IS_BOOL(prop)) { \
+			if (PROPERTY_IS_TRUE(prop)) { \
+				tilesetPtr->CollisionSides[tileID] |= flag; \
+			} \
+			else { \
+				tilesetPtr->CollisionSides[tileID] &= ~flag; \
+			} \
+		} \
+	} \
+}
+
+	CHECK_COLL_SIDE_PROP("TopSolid", CollideSide::TOP);
+	CHECK_COLL_SIDE_PROP("BottomSolid", CollideSide::BOTTOM);
+	CHECK_COLL_SIDE_PROP("LeftSolid", CollideSide::LEFT);
+	CHECK_COLL_SIDE_PROP("RightSolid", CollideSide::RIGHT);
+
+#undef CHECK_COLL_SIDE_PROP
+}
+
+bool TiledMapReader::HasTileProperty(Tileset* tileset, int tileID, const char* name) {
+	HashMap<Property>* properties = tileset->PropertiesPerTile[tileID];
+
+	if (properties == nullptr) {
+		return false;
+	}
+
+	return properties->Exists(name);
+}
+
+Property TiledMapReader::GetTileProperty(Tileset* tileset, int tileID, const char* name) {
+	HashMap<Property>* properties = tileset->PropertiesPerTile[tileID];
+
+	if (properties == nullptr || !properties->Exists(name)) {
+		return Property::MakeNull();
+	}
+
+	return properties->Get(name);
 }
 
 void TiledMapReader::SetTileProperty(Tileset* tileset, int tileID, const char* name, Property value) {

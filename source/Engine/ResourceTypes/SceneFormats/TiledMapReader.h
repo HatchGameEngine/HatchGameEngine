@@ -31,6 +31,8 @@ private:
 	static void
 	ParseTileAnimation(int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node);
 	static void ParseTile(Tileset* tilesetPtr, XMLNode* node);
+	static bool HasTileProperty(Tileset* tileset, int tileID, const char* name);
+	static Property GetTileProperty(Tileset* tileset, int tileID, const char* name);
 	static void SetTileProperty(Tileset* tileset, int tileID, const char* name, Property value);
 	static void LoadTileset(XMLNode* tileset, const char* parentFolder);
 	static void ParseSharedLayerFields(TiledLayer* layer, XMLNode* node);
