@@ -200,8 +200,8 @@ public:
 	static DrawGroupList* GetDrawGroupNoCheck(int index);
 	static bool AddTileset(char* path);
 	static void LoadTileCollisions(const char* filename, size_t tilesetID);
-	static int GetTileSolidity(TileConfig *tileCfg, size_t index);
-	static void SetTileSolidity(TileConfig *tileCfg, size_t index, int sides);
+	static int GetTileSolidSides(TileConfig *tileCfg, size_t index);
+	static void SetTileSolidSides(TileConfig *tileCfg, size_t index, int sides);
 	static void UnloadTileCollisions();
 	static bool GetResourceListSpace(vector<ResourceType*>* list,
 		ResourceType* resource,

@@ -3269,12 +3269,12 @@ void Scene::UpdateTileCollisionSides(TileConfig *tile) {
 		}
 	}
 }
-int Scene::GetTileSolidity(TileConfig *tileCfg, size_t index) {
+int Scene::GetTileSolidSides(TileConfig *tileCfg, size_t index) {
 	TileConfig* tile = &tileCfg[index];
 
 	return tile->Solidity;
 }
-void Scene::SetTileSolidity(TileConfig *tileCfg, size_t index, int sides) {
+void Scene::SetTileSolidSides(TileConfig *tileCfg, size_t index, int sides) {
 	TileConfig* tile = &tileCfg[index];
 
 	tile->Solidity = sides;
