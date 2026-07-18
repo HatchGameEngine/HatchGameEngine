@@ -148,3 +148,23 @@ TileAnimator* Tileset::GetTileAnimSequence(int tileID) {
 
 	return &it->second;
 }
+
+void Tileset::Dispose() {
+	if (Sprite) {
+		delete Sprite;
+	}
+
+	if (Filename) {
+		Memory::Free(Filename);
+	}
+
+	for (size_t i = 0; i < TileCount; i++) {
+		HashMap<Property>* properties = PropertiesPerTile[i];
+		if (properties) {
+			properties->ForAll([](Uint32, Property property) -> void {
+				Property::Delete(property);
+			});
+			delete properties;
+		}
+	}
+}

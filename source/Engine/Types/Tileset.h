@@ -38,6 +38,7 @@ public:
 		ISprite* animSprite,
 		int animID);
 	TileAnimator* GetTileAnimSequence(int tileID);
+	void Dispose();
 };
 
 #endif /* ENGINE_TYPES_TILESET_H */
