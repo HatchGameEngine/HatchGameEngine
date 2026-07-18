@@ -18,6 +18,7 @@ public:
 	size_t TileCount = 0;
 	unsigned PaletteID = 0;
 	std::map<int, TileAnimator> AnimatorMap;
+	std::vector<HashMap<Property>*> PropertiesPerTile;
 
 	Tileset(ISprite* sprite,
 		int tileWidth,

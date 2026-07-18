@@ -13147,7 +13147,7 @@ VMValue Scene_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
  * Scene.GetProperty
  * \desc Gets a property.
  * \param property (string): Name of property.
- * \return value Returns the property.
+ * \return value Returns the property, or `null` if it doesn't exist.
  * \ns Scene
  */
 VMValue Scene_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
@@ -13261,7 +13261,7 @@ VMValue Scene_GetLayerUsePaletteIndexLines(int argCount, VMValue* args, Uint32 t
  * \desc Gets a property of the specified layer.
  * \param layerIndex (integer): Index of layer.
  * \param property (string): Name of property.
- * \return value Returns the property.
+ * \return value Returns the property, or `null` if it doesn't exist.
  * \ns Scene
  */
 VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
@@ -18749,6 +18749,64 @@ VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
 
 	return INTEGER_VAL(tileCfgBase[tileID].IsCeiling);
 }
+/***
+ * TileInfo.GetProperty
+ * \desc Gets a property of the desired tile.
+ * \param tileID (integer): ID of the tile to check.
+ * \param property (string): Name of the property to get.
+ * \return value Returns the property, or `null` if it doesn't exist.
+ * \ns TileInfo
+ */
+VMValue TileInfo_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int tileID = GET_ARG(0, GetInteger);
+	char* property = GET_ARG(1, GetString);
+
+	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size()) {
+		return NULL_VAL;
+	}
+
+	Tileset* tileset = Scene::GetTileset(tileID);
+	if (!tileset) {
+		return NULL_VAL;
+	}
+
+	HashMap<Property>* properties = tileset->PropertiesPerTile[tileID];
+	if (!properties || !properties->Exists(property)) {
+		return NULL_VAL;
+	}
+
+	return Value::FromProperty(properties->Get(property));
+}
+/***
+ * TileInfo.PropertyExists
+ * \desc Checks if a property exists in the desired tile.
+ * \param tileID (integer): ID of the tile to check.
+ * \param property (string): Name of the property to check.
+ * \return boolean Returns a boolean value.
+ * \ns TileInfo
+ */
+VMValue TileInfo_PropertyExists(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int tileID = GET_ARG(0, GetInteger);
+	char* property = GET_ARG(1, GetString);
+
+	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size()) {
+		return INTEGER_VAL(false);
+	}
+
+	Tileset* tileset = Scene::GetTileset(tileID);
+	if (!tileset) {
+		return INTEGER_VAL(false);
+	}
+
+	HashMap<Property>* properties = tileset->PropertiesPerTile[tileID];
+	if (!properties) {
+		return INTEGER_VAL(false);
+	}
+
+	return INTEGER_VAL(properties->Exists(property));
+}
 // #endregion
 
 // #region Thread
@@ -22623,6 +22681,8 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(TileInfo, GetAngle);
 	DEF_NATIVE(TileInfo, GetBehaviorFlag);
 	DEF_NATIVE(TileInfo, IsCeiling);
+	DEF_NATIVE(TileInfo, GetProperty);
+	DEF_NATIVE(TileInfo, PropertyExists);
 	// #endregion
 
 	// #region Thread

@@ -413,14 +413,36 @@ void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
 		return;
 	}
 
+	int tileID = (int)XMLParser::TokenToNumber(node->attributes.Get("id"));
+	if (tileID < 0 || (size_t)tileID >= tilesetPtr->TileCount) {
+		return;
+	}
+
+	int firstgid = tilesetPtr->FirstGlobalTileID;
+	int globalTileID = tileID + firstgid;
+	if (globalTileID < 0 || (size_t)globalTileID >= Scene::TileSpriteInfos.size()) {
+		return;
+	}
+
 	for (size_t e = 0; e < node->children.size(); e++) {
-		if (XMLParser::MatchToken(node->children[e]->name, "animation")) {
-			int firstgid = tilesetPtr->FirstGlobalTileID;
-			int tileID = (int)XMLParser::TokenToNumber(node->attributes.Get("id")) +
-				firstgid;
-			if ((size_t)tileID < Scene::TileSpriteInfos.size()) {
-				ParseTileAnimation(tileID, firstgid, tilesetPtr, node->children[e]);
+		if (XMLParser::MatchToken(node->children[e]->name, "properties")) {
+			XMLNode* properties = node->children[e];
+			for (size_t pr = 0; pr < properties->children.size(); pr++) {
+				if (!XMLParser::MatchToken(
+					    properties->children[pr]->name, "property")) {
+					continue;
+				}
+
+				if (tilesetPtr->PropertiesPerTile[tileID] == nullptr) {
+					tilesetPtr->PropertiesPerTile[tileID] = new HashMap<Property>(NULL, 4);
+				}
+
+				TiledMapReader::ParsePropertyNode(
+					properties->children[pr], tilesetPtr->PropertiesPerTile[tileID]);
 			}
+		}
+		else if (XMLParser::MatchToken(node->children[e]->name, "animation")) {
+			ParseTileAnimation(globalTileID, firstgid, tilesetPtr, node->children[e]);
 		}
 	}
 }

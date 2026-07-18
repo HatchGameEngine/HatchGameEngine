@@ -22,6 +22,7 @@ Tileset::Tileset(ISprite* sprite,
 	StartTile = startTile;
 	FirstGlobalTileID = firstgid;
 	Filename = StringUtils::Duplicate(filename);
+	PropertiesPerTile.resize(TileCount);
 }
 
 void Tileset::RunAnimations() {
