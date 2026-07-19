@@ -18665,36 +18665,92 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
  * \param collision (integer): Collision position on the tile, between 0 and the tile height, or -1 for no collision.
  * \ns TileInfo
  */
+/***
+ * TileInfo.SetCollision
+ * \desc Sets the collision value at the pixel position of the desired tile.
+ * \param tileID (integer): ID of the tile to set the collision of.
+ * \param collisionField (integer): The collision plane of the tile to get the collision from.
+ * \param collisions (array): Array of collision positions on the tile, between 0 and the tile height, or -1 for no collision. Array size must match tile width.
+ * \ns TileInfo
+ */
 VMValue TileInfo_SetCollision(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(4);
+	if (argCount != 3) {
+		CHECK_ARGCOUNT(4);
+	}
+
 	int tileID = GET_ARG(0, GetInteger);
 	int collisionField = GET_ARG(1, GetInteger);
-	int position = GET_ARG(2, GetInteger);
-	int collision = GET_ARG(3, GetInteger);
+	int position, collision;
+	ObjArray* collisionArray = nullptr;
+
+	if (argCount != 4) {
+		collisionArray = GET_ARG(2, GetArray);
+	}
+	else {
+		position = GET_ARG(2, GetInteger);
+		collision = GET_ARG(3, GetInteger);
+	}
 
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
 		collisionField >= Scene::TileCfg.size()) {
 		return NULL_VAL;
 	}
 
-	if (position < 0 || position >= Scene::TileWidth) {
-		OUT_OF_RANGE_ERROR("Position", position, 0, Scene::TileWidth - 1);
-		return NULL_VAL;
-	}
-
-	if (collision < -1 || position >= Scene::TileHeight) {
-		OUT_OF_RANGE_ERROR("Collision value", collision, 0, Scene::TileHeight - 1);
-		return NULL_VAL;
+	if (argCount == 4) {
+		if (position < 0 || position >= Scene::TileWidth) {
+			OUT_OF_RANGE_ERROR("Position", position, 0, Scene::TileWidth - 1);
+			return NULL_VAL;
+		}
 	}
 
 	TileConfig* tileCfgBase = Scene::TileCfg[collisionField];
 	TileConfig* tile = &tileCfgBase[tileID];
 
-	if (collision == -1) {
-		tile->CollisionTop[position] = 0xFF;
+	if (collisionArray) {
+		if (ScriptManager::Lock()) {
+			if (collisionArray->Values->size() != Scene::TileWidth) {
+				THROW_ERROR("Expected array to have %d elements instead of %d.",
+				    Scene::TileWidth,
+				    collisionArray->Values->size());
+				ScriptManager::Unlock();
+				return NULL_VAL;
+			}
+
+			for (position = 0; position < Scene::TileWidth; position++) {
+				VMValue value = (*collisionArray->Values)[position];
+
+				if (!IS_INTEGER(value)) {
+					THROW_ERROR("Expected array index %d to be of type %s instead of %s.",
+						position,
+						GetTypeString(VAL_INTEGER),
+						GetValueTypeString(value));
+					continue;
+				}
+
+				collision = AS_INTEGER(value);
+				if (collision < -1) {
+					tile->CollisionTop[position] = 0;
+				}
+				else if (collision >= Scene::TileHeight || collision == -1) {
+					tile->CollisionTop[position] = 0xF0;
+				}
+				else {
+					tile->CollisionTop[position] = collision & 0x0F;
+				}
+			}
+		}
+		ScriptManager::Unlock();
 	}
 	else {
-		tile->CollisionTop[position] = collision & 0xF0;
+		if (collision < -1) {
+			tile->CollisionTop[position] = 0;
+		}
+		else if (collision >= Scene::TileHeight || collision == -1) {
+			tile->CollisionTop[position] = 0xF0;
+		}
+		else {
+			tile->CollisionTop[position] = collision & 0x0F;
+		}
 	}
 
 	Scene::RefreshTileCollision(tileCfgBase, (size_t)tileID);
