@@ -2872,10 +2872,8 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 		// Read collision
 		tileColReader->ReadBytes(collisionBuffer, tileSize);
 
-		Uint8* col;
-		// Interpret up/down collision
 		if (tile->IsCeiling) {
-			col = &collisionBuffer[0];
+			Uint8* col = &collisionBuffer[0];
 			for (int c = 0; c < 16; c++) {
 				if (hasCollision && *col < tileSize) {
 					tile->CollisionTop[c] = 0;
@@ -2886,36 +2884,9 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 				}
 				col++;
 			}
-
-			// Interpret left/right collision
-			for (int y = 15; y >= 0; y--) {
-				// Left-to-right check
-				for (int x = 0; x <= 15; x++) {
-					Uint8 data = tile->CollisionBottom[x];
-					if (data != 0xFF && data >= y) {
-						tile->CollisionLeft[y] = x;
-						goto HCOL_COLLISION_LINE_LEFT_BOTTOMUP_FOUND;
-					}
-				}
-				tile->CollisionLeft[y] = 0xFF;
-
-			HCOL_COLLISION_LINE_LEFT_BOTTOMUP_FOUND:
-
-				// Right-to-left check
-				for (int x = 15; x >= 0; x--) {
-					Uint8 data = tile->CollisionBottom[x];
-					if (data != 0xFF && data >= y) {
-						tile->CollisionRight[y] = x;
-						goto HCOL_COLLISION_LINE_RIGHT_BOTTOMUP_FOUND;
-					}
-				}
-				tile->CollisionRight[y] = 0xFF;
-
-			HCOL_COLLISION_LINE_RIGHT_BOTTOMUP_FOUND:;
-			}
 		}
 		else {
-			col = &collisionBuffer[0];
+			Uint8* col = &collisionBuffer[0];
 			for (int c = 0; c < 16; c++) {
 				if (hasCollision && *col < tileSize) {
 					tile->CollisionTop[c] = *col;
@@ -2926,34 +2897,9 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 				}
 				col++;
 			}
-
-			// Interpret left/right collision
-			for (int y = 0; y <= 15; y++) {
-				// Left-to-right check
-				for (int x = 0; x <= 15; x++) {
-					Uint8 data = tile->CollisionTop[x];
-					if (data != 0xFF && data <= y) {
-						tile->CollisionLeft[y] = x;
-						goto HCOL_COLLISION_LINE_LEFT_TOPDOWN_FOUND;
-					}
-				}
-				tile->CollisionLeft[y] = 0xFF;
-
-			HCOL_COLLISION_LINE_LEFT_TOPDOWN_FOUND:
-
-				// Right-to-left check
-				for (int x = 15; x >= 0; x--) {
-					Uint8 data = tile->CollisionTop[x];
-					if (data != 0xFF && data <= y) {
-						tile->CollisionRight[y] = x;
-						goto HCOL_COLLISION_LINE_RIGHT_TOPDOWN_FOUND;
-					}
-				}
-				tile->CollisionRight[y] = 0xFF;
-
-			HCOL_COLLISION_LINE_RIGHT_TOPDOWN_FOUND:;
-			}
 		}
+
+		SetupLeftRightBottomTileCollision(tile);
 	}
 
 	SetTileCollisionSides(&Tilesets[tilesetID], TileCfg[0]);
@@ -3073,10 +3019,10 @@ void Scene::ClearTileCollisions(TileConfig* cfg, size_t numTiles) {
 	for (size_t i = 0; i < numTiles; i++) {
 		TileConfig* tile = &cfg[i];
 
-		memset(tile->CollisionTop, 16, 16);
-		memset(tile->CollisionBottom, 16, 16);
-		memset(tile->CollisionLeft, 16, 16);
-		memset(tile->CollisionRight, 16, 16);
+		memset(tile->CollisionTop, sizeof tile->CollisionTop, 16);
+		memset(tile->CollisionBottom, sizeof tile->CollisionBottom, 16);
+		memset(tile->CollisionLeft, sizeof tile->CollisionLeft, 16);
+		memset(tile->CollisionRight, sizeof tile->CollisionRight, 16);
 
 		tile->Solidity = TILESIDE_ALL;
 	}
@@ -3233,40 +3179,7 @@ void Scene::SetTileCollisionSides(Tileset* tileset, TileConfig *tileCfg) {
 	for (size_t i = 0; i < tileset->TileCount; i++) {
 		TileConfig* tile = &tileCfg[tileset->FirstGlobalTileID + i];
 
-		tile->Solidity = tileset->CollisionSides[i];
-
-		UpdateTileCollisionSides(tile);
-	}
-}
-void Scene::UpdateTileCollisionSides(TileConfig *tile) {
-	for (int c = 0; c < TileWidth; c++) {
-		if ((tile->Solidity & TILESIDE_TOP) != 0) {
-			tile->CollisionTop[c] &= ~0xF0;
-		}
-		else {
-			tile->CollisionTop[c] |= 0xF0;
-		}
-
-		if ((tile->Solidity & TILESIDE_BOTTOM) != 0) {
-			tile->CollisionBottom[c] &= ~0xF0;
-		}
-		else {
-			tile->CollisionBottom[c] |= 0xF0;
-		}
-
-		if ((tile->Solidity & TILESIDE_LEFT) != 0) {
-			tile->CollisionLeft[c] &= ~0xF0;
-		}
-		else {
-			tile->CollisionLeft[c] |= 0xF0;
-		}
-
-		if ((tile->Solidity & TILESIDE_RIGHT) != 0) {
-			tile->CollisionRight[c] &= ~0xF0;
-		}
-		else {
-			tile->CollisionRight[c] |= 0xF0;;
-		}
+		SetTileSolidSides(tileCfg, tileset->FirstGlobalTileID + i, tileset->CollisionSides[i]);
 	}
 }
 int Scene::GetTileSolidSides(TileConfig *tileCfg, size_t index) {
@@ -3276,11 +3189,117 @@ int Scene::GetTileSolidSides(TileConfig *tileCfg, size_t index) {
 }
 void Scene::SetTileSolidSides(TileConfig *tileCfg, size_t index, int sides) {
 	TileConfig* tile = &tileCfg[index];
+	TileConfig *tileDest;
 
 	tile->Solidity = sides;
 
-	UpdateTileCollisionSides(tile);
+#define SET_LEFT_RIGHT_FLAGS(flags) { \
+	if ((flags & TILESIDE_LEFT) != 0 && (flags & TILESIDE_RIGHT) == 0) { \
+		tileDest->Solidity |= TILESIDE_RIGHT; \
+	} \
+	else if ((flags & TILESIDE_LEFT) == 0 && (flags & TILESIDE_RIGHT) != 0) { \
+		tileDest->Solidity |= TILESIDE_LEFT; \
+	} \
+	else { \
+		tileDest->Solidity |= flags & TILESIDE_LEFT_RIGHT; \
+	} \
+}
+#define SET_TOP_BOTTOM_FLAGS(flags) { \
+	if ((flags & TILESIDE_TOP) != 0 && (flags & TILESIDE_BOTTOM) == 0) { \
+		tileDest->Solidity |= TILESIDE_BOTTOM; \
+	} \
+	else if ((flags & TILESIDE_TOP) == 0 && (flags & TILESIDE_BOTTOM) != 0) { \
+		tileDest->Solidity |= TILESIDE_TOP; \
+	} \
+	else { \
+		tileDest->Solidity |= flags & TILESIDE_TOP_BOTTOM; \
+	} \
+}
+
+	// Flip X
+	tileDest = tile + Scene::TileCount;
+	tileDest->Solidity = sides & TILESIDE_TOP_BOTTOM;
+	SET_LEFT_RIGHT_FLAGS(sides);
+	// Flip Y
+	tileDest = tile + (Scene::TileCount << 1);
+	tileDest->Solidity = sides & TILESIDE_LEFT_RIGHT;
+	SET_TOP_BOTTOM_FLAGS(sides);
+	// Flip XY
+	tileDest = tile + (Scene::TileCount << 1) + Scene::TileCount;
+	tileDest->Solidity = 0;
+	SET_LEFT_RIGHT_FLAGS(sides);
+	SET_TOP_BOTTOM_FLAGS(sides);
+
+#undef SET_LEFT_RIGHT_FLAGS
+#undef SET_TOP_BOTTOM_FLAGS
+}
+void Scene::RefreshTileCollision(TileConfig *tileCfg, size_t index) {
+	TileConfig* tile = &tileCfg[index];
+
+	memset(tile->CollisionBottom, sizeof tile->CollisionBottom, 16);
+	memset(tile->CollisionLeft, sizeof tile->CollisionLeft, 16);
+	memset(tile->CollisionRight, sizeof tile->CollisionRight, 16);
+
+	SetupLeftRightBottomTileCollision(tile);
 	CopyTileFlipData(tile);
+}
+void Scene::SetupLeftRightBottomTileCollision(TileConfig *tile) {
+	if (tile->IsCeiling) {
+		// Interpret left/right collision
+		for (int y = 15; y >= 0; y--) {
+			// Left-to-right check
+			for (int x = 0; x <= 15; x++) {
+				Uint8 data = tile->CollisionBottom[x];
+				if (data != 0xFF && data >= y) {
+					tile->CollisionLeft[y] = x;
+					goto COLLISION_LINE_LEFT_BOTTOMUP_FOUND;
+				}
+			}
+			tile->CollisionLeft[y] = 0xFF;
+
+		COLLISION_LINE_LEFT_BOTTOMUP_FOUND:
+
+			// Right-to-left check
+			for (int x = 15; x >= 0; x--) {
+				Uint8 data = tile->CollisionBottom[x];
+				if (data != 0xFF && data >= y) {
+					tile->CollisionRight[y] = x;
+					goto COLLISION_LINE_RIGHT_BOTTOMUP_FOUND;
+				}
+			}
+			tile->CollisionRight[y] = 0xFF;
+
+		COLLISION_LINE_RIGHT_BOTTOMUP_FOUND:;
+		}
+	}
+	else {
+		// Interpret left/right collision
+		for (int y = 0; y <= 15; y++) {
+			// Left-to-right check
+			for (int x = 0; x <= 15; x++) {
+				Uint8 data = tile->CollisionTop[x];
+				if (data != 0xFF && data <= y) {
+					tile->CollisionLeft[y] = x;
+					goto COLLISION_LINE_LEFT_TOPDOWN_FOUND;
+				}
+			}
+			tile->CollisionLeft[y] = 0xFF;
+
+		COLLISION_LINE_LEFT_TOPDOWN_FOUND:
+
+			// Right-to-left check
+			for (int x = 15; x >= 0; x--) {
+				Uint8 data = tile->CollisionTop[x];
+				if (data != 0xFF && data <= y) {
+					tile->CollisionRight[y] = x;
+					goto COLLISION_LINE_RIGHT_TOPDOWN_FOUND;
+				}
+			}
+			tile->CollisionRight[y] = 0xFF;
+
+		COLLISION_LINE_RIGHT_TOPDOWN_FOUND:;
+		}
+	}
 }
 void Scene::UnloadTileCollisions() {
 	for (size_t i = 0; i < Scene::TileCfg.size(); i++) {
@@ -3821,6 +3840,24 @@ void Scene::SetTile(int layerIndex,
 }
 
 // Tile Collision
+int Scene::CollideSideToTileSide(int collideSide) {
+	int tileSide = 0;
+
+	if (collideSide & CollideSide::TOP) {
+		tileSide |= TILESIDE_TOP;
+	}
+	if (collideSide & CollideSide::BOTTOM) {
+		tileSide |= TILESIDE_BOTTOM;
+	}
+	if (collideSide & CollideSide::LEFT) {
+		tileSide |= TILESIDE_RIGHT;
+	}
+	if (collideSide & CollideSide::RIGHT) {
+		tileSide |= TILESIDE_RIGHT;
+	}
+
+	return tileSide;
+}
 int Scene::CollisionAt(int x, int y, int collisionField, int collideSide, int* angle) {
 	if (collisionField < 0 || collisionField >= Scene::TileCfg.size()) {
 		return -1;
@@ -3855,6 +3892,8 @@ int Scene::CollisionAt(int x, int y, int collisionField, int collideSide, int* a
 		configIndex = 3;
 		break;
 	}
+
+	int tileSide = CollideSideToTileSide(collideSide);
 
 	for (size_t l = 0, lSz = Layers.size(); l < lSz; l++) {
 		if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
@@ -3897,8 +3936,6 @@ int Scene::CollisionAt(int x, int y, int collisionField, int collideSide, int* a
 
 			collisionA = (tileID & TILE_COLLA_MASK) >> 28;
 			collisionB = (tileID & TILE_COLLB_MASK) >> 26;
-			// collisionC = (tileID & TILE_COLLC_MASK) >>
-			// 24;
 			collision = collisionField ? collisionB : collisionA;
 			tileID = tileID & TILE_IDENT_MASK;
 
@@ -3912,14 +3949,15 @@ int Scene::CollisionAt(int x, int y, int collisionField, int collideSide, int* a
 				continue;
 			}
 
+			int solidity = tileSide & tileCfg->Solidity;
+
 			// Check if we can collide with the tile side
-			check = ((collision & 1) && (collideSide & CollideSide::TOP)) ||
+			check = ((collision & 1) && (solidity & TILESIDE_TOP)) ||
 				(wallAsFloorFlag &&
 					((collision & 1) &&
-						(collideSide &
-							(CollideSide::LEFT |
-								CollideSide::RIGHT)))) ||
-				((collision & 2) && (collideSide & CollideSide::BOTTOM_SIDES));
+						(solidity &
+							(TILESIDE_LEFT_RIGHT)))) ||
+				((collision & 2) && (solidity & TILESIDE_LEFT_RIGHT_BOTTOM));
 			if (!check) {
 				continue;
 			}
@@ -3999,9 +4037,6 @@ int Scene::CollisionInLine(int x,
 		break;
 	}
 
-	// probeDeltaX *= 16;
-	// probeDeltaY *= 16;
-
 	sensor->Collided = false;
 	for (size_t l = 0, lSz = Layers.size(); l < lSz; l++) {
 		if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
@@ -4017,9 +4052,6 @@ int Scene::CollisionInLine(int x,
 		y = probeYOG;
 		x += layer->OffsetX;
 		y += layer->OffsetY;
-
-		// x = ((x % temp) + temp) % temp;
-		// y = ((y % temp) + temp) % temp;
 
 		tileX = x >> 4;
 		tileY = y >> 4;
@@ -4048,6 +4080,10 @@ int Scene::CollisionInLine(int x,
 
 				switch (angleMode) {
 				case 0:
+					if ((tileCfg->Solidity & TILESIDE_TOP) == 0) {
+						break;
+					}
+
 					collision = tileCfg->CollisionTop[x & 15];
 					if (collision >= 0xF0) {
 						break;
@@ -4073,6 +4109,10 @@ int Scene::CollisionInLine(int x,
 					}
 					break;
 				case 1:
+					if ((tileCfg->Solidity & TILESIDE_LEFT) == 0) {
+						break;
+					}
+
 					collision = tileCfg->CollisionLeft[y & 15];
 					if (collision >= 0xF0) {
 						break;
@@ -4097,6 +4137,10 @@ int Scene::CollisionInLine(int x,
 					}
 					break;
 				case 2:
+					if ((tileCfg->Solidity & TILESIDE_BOTTOM) == 0) {
+						break;
+					}
+
 					collision = tileCfg->CollisionBottom[x & 15];
 					if (collision >= 0xF0) {
 						break;
@@ -4122,6 +4166,10 @@ int Scene::CollisionInLine(int x,
 					}
 					break;
 				case 3:
+					if ((tileCfg->Solidity & TILESIDE_RIGHT) == 0) {
+						break;
+					}
+
 					collision = tileCfg->CollisionRight[y & 15];
 					if (collision >= 0xF0) {
 						break;
@@ -4523,22 +4571,29 @@ bool Scene::CheckTileCollision(Entity* entity,
 						&tileCfgBase[(tileID & TILE_IDENT_MASK) +
 							flipOffset];
 
-					Uint8* maskDir;
+					Uint8* maskDir = nullptr;
 					switch (cMode) {
 					case CMODE_FLOOR:
-						maskDir = tileCfg->CollisionTop;
+						if (tileCfg->Solidity & TILESIDE_TOP) {
+							maskDir = tileCfg->CollisionTop;
+						}
 						break;
 					case CMODE_ROOF:
-						maskDir = tileCfg->CollisionBottom;
+						if (tileCfg->Solidity & TILESIDE_BOTTOM) {
+							maskDir = tileCfg->CollisionBottom;
+						}
 						break;
 					case CMODE_LWALL:
-						maskDir = tileCfg->CollisionLeft;
+						if (tileCfg->Solidity & TILESIDE_LEFT) {
+							maskDir = tileCfg->CollisionLeft;
+						}
 						break;
 					case CMODE_RWALL:
-						maskDir = tileCfg->CollisionRight;
+						if (tileCfg->Solidity & TILESIDE_RIGHT) {
+							maskDir = tileCfg->CollisionRight;
+						}
 						break;
 					default:
-						maskDir = nullptr;
 						break;
 					}
 
@@ -4649,22 +4704,29 @@ bool Scene::CheckTileGrip(Entity* entity,
 						&tileCfgBase[(tileID & TILE_IDENT_MASK) +
 							flipOffset];
 
-					Uint8* maskDir;
+					Uint8* maskDir = nullptr;
 					switch (cMode) {
 					case CMODE_FLOOR:
-						maskDir = tileCfg->CollisionTop;
+						if (tileCfg->Solidity & TILESIDE_TOP) {
+							maskDir = tileCfg->CollisionTop;
+						}
 						break;
 					case CMODE_ROOF:
-						maskDir = tileCfg->CollisionBottom;
+						if (tileCfg->Solidity & TILESIDE_BOTTOM) {
+							maskDir = tileCfg->CollisionBottom;
+						}
 						break;
 					case CMODE_LWALL:
-						maskDir = tileCfg->CollisionLeft;
+						if (tileCfg->Solidity & TILESIDE_LEFT) {
+							maskDir = tileCfg->CollisionLeft;
+						}
 						break;
 					case CMODE_RWALL:
-						maskDir = tileCfg->CollisionRight;
+						if (tileCfg->Solidity & TILESIDE_RIGHT) {
+							maskDir = tileCfg->CollisionRight;
+						}
 						break;
 					default:
-						maskDir = nullptr;
 						break;
 					}
 
@@ -5500,10 +5562,17 @@ void Scene::CheckVerticalPosition(CollisionSensor* sensor, bool isFloor) {
 										 TILE_IDENT_MASK) +
 										tileFlipOffset];
 
-							int mask = isFloor
-								? tileCfg->CollisionTop[colX & 0xF]
-								: tileCfg->CollisionBottom[colX &
-									  0xF];
+							int mask = 0xFF;
+							if (isFloor) {
+								if (tileCfg->Solidity & TILESIDE_TOP) {
+									mask = tileCfg->CollisionTop[colX & 0xF];
+								}
+							}
+							else {
+								if (tileCfg->Solidity & TILESIDE_BOTTOM) {
+									mask = tileCfg->CollisionBottom[colX & 0xF];
+								}
+							}
 							int ty = cy + mask;
 							int tileAngle = isFloor
 								? tileCfg->AngleTop
@@ -5616,10 +5685,17 @@ void Scene::CheckHorizontalPosition(CollisionSensor* sensor, bool isLeft) {
 										 TILE_IDENT_MASK) +
 										tileFlipOffset];
 
-							int mask = isLeft
-								? tileCfg->CollisionLeft[colY & 0xF]
-								: tileCfg->CollisionRight[colY &
-									  0xF];
+							int mask = 0xFF;
+							if (isLeft) {
+								if (tileCfg->Solidity & TILESIDE_LEFT) {
+									mask = tileCfg->CollisionLeft[colX & 0xF];
+								}
+							}
+							else {
+								if (tileCfg->Solidity & TILESIDE_RIGHT) {
+									mask = tileCfg->CollisionRight[colX & 0xF];
+								}
+							}
 							int tx = cx + mask;
 							int tileAngle = isLeft
 								? tileCfg->AngleLeft
@@ -5711,10 +5787,17 @@ void Scene::CheckVerticalCollision(CollisionSensor* sensor, bool isFloor) {
 										 TILE_IDENT_MASK) +
 										tileFlipOffset];
 
-							int mask = isFloor
-								? tileCfg->CollisionTop[colX & 0xF]
-								: tileCfg->CollisionBottom[colX &
-									  0xF];
+							int mask = 0xFF;
+							if (isFloor) {
+								if (tileCfg->Solidity & TILESIDE_TOP) {
+									mask = tileCfg->CollisionTop[colX & 0xF];
+								}
+							}
+							else {
+								if (tileCfg->Solidity & TILESIDE_BOTTOM) {
+									mask = tileCfg->CollisionBottom[colX & 0xF];
+								}
+							}
 							int ty = cy + mask;
 
 							if (mask < 0xFF) {

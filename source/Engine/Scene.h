@@ -50,12 +50,13 @@ private:
 	static void LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader);
 	static void InitTileCollisions();
 	static void SetTileCollisionSides(Tileset* tileset, TileConfig* tileCfg);
-	static void UpdateTileCollisionSides(TileConfig *tile);
+	static void SetupLeftRightBottomTileCollision(TileConfig *tile);
 	static void CopyTileFlipData(TileConfig *tile);
 	static void ClearTileCollisions(TileConfig* cfg, size_t numTiles);
 	static void SetTileCount(size_t tileCount);
 	static void SetupView2D(View* currentView, float viewX, float viewY, float viewZ);
 	static void SetupView3D(View* currentView, float viewX, float viewY, float viewZ);
+	static int CollideSideToTileSide(int collideSide);
 
 public:
 	static int ShowTileCollisionFlag;
@@ -202,6 +203,7 @@ public:
 	static void LoadTileCollisions(const char* filename, size_t tilesetID);
 	static int GetTileSolidSides(TileConfig *tileCfg, size_t index);
 	static void SetTileSolidSides(TileConfig *tileCfg, size_t index, int sides);
+	static void RefreshTileCollision(TileConfig *tileCfg, size_t index);
 	static void UnloadTileCollisions();
 	static bool GetResourceListSpace(vector<ResourceType*>* list,
 		ResourceType* resource,

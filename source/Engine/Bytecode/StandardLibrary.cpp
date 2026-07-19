@@ -18587,14 +18587,14 @@ VMValue TileInfo_GetEmptyTile(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * TileInfo.GetCollision
- * \desc Gets the collision value at the pixel position of the desired tile, -1 if no collision.
- * \param tileID (integer): ID of the tile to get the value of.
+ * \desc Gets the collision value at the pixel position of the desired tile.
+ * \param tileID (integer): ID of the tile to get the collision of.
  * \param collisionField (integer): The collision plane of the tile to get the collision from.
  * \param directionType (<ref SensorDirection_*>): Ordinal direction to check in.
- * \param position (integer): Position on the tile to check, X position if the directionType is Up/Down, Y position if the directionType is Left/Right.
+ * \param position (integer): Position on the tile to check, X position if <param directionType> is Up/Down, Y position if <param directionType> is Left/Right.
  * \paramOpt flipX (boolean): Whether to check the collision with the tile horizontally flipped. (default: `false`)
  * \paramOpt flipY (boolean): Whether to check the collision with the tile vertically flipped. (default: `false`)
- * \return integer Collision position on the tile, X position if the directionType is Left/Right, Y position if the directionType is Up/Down, -1 if there was no collision.
+ * \return integer Collision position on the tile, X position if <param directionType> is Left/Right, Y position if <param directionType> is Up/Down, or -1 if there is no collision.
  * \ns TileInfo
  */
 VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
@@ -18605,11 +18605,6 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
 	int position = GET_ARG(3, GetInteger);
 	int flipX = GET_ARG_OPT(4, GetInteger, 0);
 	int flipY = GET_ARG_OPT(5, GetInteger, 0);
-
-	if (!Scene::TileCfgLoaded) {
-		THROW_ERROR("Tile collision data is not loaded.");
-		return NULL_VAL;
-	}
 
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
 		collisionField >= Scene::TileCfg.size()) {
@@ -18622,28 +18617,89 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
 	int cValue = -1;
 	switch (directionType) {
 	case 0:
-		if (tileCfgBase->CollisionTop[position] < 0xF0) {
+		if (position < 0 || position >= Scene::TileWidth) {
+			OUT_OF_RANGE_ERROR("Position", position, 0, Scene::TileWidth - 1);
+			return INTEGER_VAL(-1);
+		}
+		else if (tileCfgBase->CollisionTop[position] < 0xF0) {
 			cValue = tileCfgBase->CollisionTop[position];
 		}
 		break;
 	case 1:
-		if (tileCfgBase->CollisionLeft[position] < 0xF0) {
+		if (position < 0 || position >= Scene::TileHeight) {
+			OUT_OF_RANGE_ERROR("Position", position, 0, Scene::TileHeight - 1);
+			return INTEGER_VAL(-1);
+		}
+		else if (tileCfgBase->CollisionLeft[position] < 0xF0) {
 			cValue = tileCfgBase->CollisionLeft[position];
 		}
 		break;
 	case 2:
-		if (tileCfgBase->CollisionBottom[position] < 0xF0) {
+		if (position < 0 || position >= Scene::TileWidth) {
+			OUT_OF_RANGE_ERROR("Position", position, 0, Scene::TileWidth - 1);
+			return INTEGER_VAL(-1);
+		}
+		else if (tileCfgBase->CollisionBottom[position] < 0xF0) {
 			cValue = tileCfgBase->CollisionBottom[position];
 		}
 		break;
 	case 3:
-		if (tileCfgBase->CollisionRight[position] < 0xF0) {
+		if (position < 0 || position >= Scene::TileHeight) {
+			OUT_OF_RANGE_ERROR("Position", position, 0, Scene::TileHeight - 1);
+			return INTEGER_VAL(-1);
+		}
+		else if (tileCfgBase->CollisionRight[position] < 0xF0) {
 			cValue = tileCfgBase->CollisionRight[position];
 		}
 		break;
 	}
 
 	return INTEGER_VAL(cValue);
+}
+/***
+ * TileInfo.SetCollision
+ * \desc Sets the collision value at the pixel position of the desired tile.
+ * \param tileID (integer): ID of the tile to set the collision of.
+ * \param collisionField (integer): The collision plane of the tile to get the collision from.
+ * \param position (integer): X position on the tile to set.
+ * \param collision (integer): Collision position on the tile, between 0 and the tile height, or -1 for no collision.
+ * \ns TileInfo
+ */
+VMValue TileInfo_SetCollision(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(4);
+	int tileID = GET_ARG(0, GetInteger);
+	int collisionField = GET_ARG(1, GetInteger);
+	int position = GET_ARG(2, GetInteger);
+	int collision = GET_ARG(3, GetInteger);
+
+	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
+		collisionField >= Scene::TileCfg.size()) {
+		return NULL_VAL;
+	}
+
+	if (position < 0 || position >= Scene::TileWidth) {
+		OUT_OF_RANGE_ERROR("Position", position, 0, Scene::TileWidth - 1);
+		return NULL_VAL;
+	}
+
+	if (collision < -1 || position >= Scene::TileHeight) {
+		OUT_OF_RANGE_ERROR("Collision value", collision, 0, Scene::TileHeight - 1);
+		return NULL_VAL;
+	}
+
+	TileConfig* tileCfgBase = Scene::TileCfg[collisionField];
+	TileConfig* tile = &tileCfgBase[tileID];
+
+	if (collision == -1) {
+		tile->CollisionTop[position] = 0xFF;
+	}
+	else {
+		tile->CollisionTop[position] = collision & 0xF0;
+	}
+
+	Scene::RefreshTileCollision(tileCfgBase, (size_t)tileID);
+
+	return NULL_VAL;
 }
 /***
  * TileInfo.GetAngle
@@ -18663,11 +18719,6 @@ VMValue TileInfo_GetAngle(int argCount, VMValue* args, Uint32 threadID) {
 	int directionType = GET_ARG(2, GetInteger);
 	int flipX = GET_ARG_OPT(3, GetInteger, 0);
 	int flipY = GET_ARG_OPT(4, GetInteger, 0);
-
-	if (!Scene::TileCfgLoaded) {
-		THROW_ERROR("Tile collision data is not loaded.");
-		return NULL_VAL;
-	}
 
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
 		collisionField >= Scene::TileCfg.size()) {
@@ -18708,11 +18759,6 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
 	int tileID = GET_ARG(0, GetInteger);
 	int collisionPlane = GET_ARG(1, GetInteger);
 
-	if (!Scene::TileCfgLoaded) {
-		THROW_ERROR("Tile Collision is not loaded.");
-		return NULL_VAL;
-	}
-
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
 		collisionPlane >= Scene::TileCfg.size()) {
 		return INTEGER_VAL(0);
@@ -18734,11 +18780,6 @@ VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
 	int tileID = GET_ARG(0, GetInteger);
 	int collisionPlane = GET_ARG(1, GetInteger);
-
-	if (!Scene::TileCfgLoaded) {
-		THROW_ERROR("Tile collision data is not loaded.");
-		return NULL_VAL;
-	}
 
 	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
 		collisionPlane >= Scene::TileCfg.size()) {
@@ -22727,6 +22768,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(TileInfo, IsEmptySpace);
 	DEF_NATIVE(TileInfo, GetEmptyTile);
 	DEF_NATIVE(TileInfo, GetCollision);
+	DEF_NATIVE(TileInfo, SetCollision);
 	DEF_NATIVE(TileInfo, GetAngle);
 	DEF_NATIVE(TileInfo, GetBehaviorFlag);
 	DEF_NATIVE(TileInfo, IsCeiling);
