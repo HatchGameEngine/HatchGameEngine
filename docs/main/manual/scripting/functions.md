@@ -29,7 +29,7 @@ As mentioned in [Variables](@ref variables), functions are types that you can se
 var functionVariable = multiplyAndPrint;
 ```
 
-When storing a function inside a variable, the name of the function stored in it becomes the same as the variable's name.
+When storing a function inside a variable, it can be called by using the variable's name.
 
 ```java
 functionVariable(4, 8);
