@@ -2901,15 +2901,13 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 		}
 
 		SetupLeftRightTileCollision(tile);
-	}
-
-	SetTileCollisionSides(&Tilesets[tilesetID], TileCfg[0]);
-
-	for (tile = tileBase; tile < maxTile; tile++) {
 		SetTileAngle(tile, tile->AngleTop);
 		CopyFlippedTileCollisionData(tile);
 		CopyFlippedTileAngleData(tile);
+		CopyFlippedTileSolidity(tile);
 	}
+
+	SetTileCollisionSides(Tilesets[tilesetID], TileCfg[0]);
 
 	// Copy over to the other planes
 	for (size_t i = 1; i < Scene::TileCfg.size(); i++) {
@@ -2998,26 +2996,36 @@ void Scene::InitTileCollisions() {
 	TileConfig* tileCfgB = (TileConfig*)Memory::TrackedCalloc(
 		"Scene::TileCfgB", totalTileVariantCount, sizeof(TileConfig));
 
-	InitTileData(tileCfgA, Scene::TileCount);
+	InitTileData(tileCfgA, Scene::TileCount, true);
 
 	memcpy(tileCfgB, tileCfgA, totalTileVariantCount * sizeof(TileConfig));
 
 	Scene::TileCfg.push_back(tileCfgA);
 	Scene::TileCfg.push_back(tileCfgB);
 }
-void Scene::InitTileData(TileConfig* cfg, size_t numTiles) {
+void Scene::InitTileData(TileConfig* cfg, size_t numTiles, bool loadDataFromTilesets) {
 	for (size_t i = 0; i < numTiles; i++) {
 		TileConfig* tile = &cfg[i];
 
 		tile->Solidity = TILESIDE_ALL;
+		tile->AngleTop = 0xFF;
 		tile->IsCeiling = false;
 		tile->Behavior = 0;
 
 		memset(tile->CollisionTop, 0xFF, sizeof tile->CollisionTop);
 		memset(tile->CollisionBottom, 0xFF, sizeof tile->CollisionBottom);
+	}
 
-		SetTileAngle(tile, 0xFF);
+	if (loadDataFromTilesets) {
+		for (Tileset& tileset : Tilesets) {
+			SetTileCollisionSides(tileset, cfg);
+		}
+	}
 
+	for (size_t i = 0; i < numTiles; i++) {
+		TileConfig* tile = &cfg[i];
+
+		SetTileAngle(tile, tile->AngleTop);
 		SetupLeftRightTileCollision(tile);
 		CopyFlippedTileCollisionData(tile);
 		CopyFlippedTileAngleData(tile);
@@ -3119,7 +3127,7 @@ void Scene::SetTileCount(size_t tileCount) {
 
 		TileConfig* destCfg = Scene::TileCfg[i];
 
-		InitTileData(destCfg, totalTileVariantCount);
+		InitTileData(destCfg, totalTileVariantCount, false);
 
 		TileConfig* flipX = configFlipX[i];
 		TileConfig* flipY = configFlipY[i];
@@ -3172,11 +3180,11 @@ void Scene::LoadTileCollisions(const char* filename, size_t tilesetID) {
 
 	tileColReader->Close();
 }
-void Scene::SetTileCollisionSides(Tileset* tileset, TileConfig *tileCfg) {
-	for (size_t i = 0; i < tileset->TileCount; i++) {
-		TileConfig* tile = &tileCfg[tileset->FirstGlobalTileID + i];
+void Scene::SetTileCollisionSides(Tileset& tileset, TileConfig *tileCfg) {
+	for (size_t i = 0; i < tileset.TileCount; i++) {
+		TileConfig* tile = &tileCfg[tileset.FirstGlobalTileID + i];
 
-		SetTileSolidSides(tileCfg, tileset->FirstGlobalTileID + i, tileset->CollisionSides[i]);
+		tile->Solidity = tileset.CollisionSides[i];
 	}
 }
 int Scene::GetTileSolidSides(TileConfig *tileCfg, size_t index) {
