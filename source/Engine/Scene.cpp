@@ -3293,6 +3293,41 @@ void Scene::SetTileAngle(TileConfig *tileCfg, size_t index, Uint8 angle) {
 
 	SetTileAngle(tile, angle);
 }
+void Scene::SetTileCeilingFlag(TileConfig *tileCfg, size_t index, bool isCeiling) {
+	TileConfig* tile = &tileCfg[index];
+
+	if (tile->IsCeiling == isCeiling) {
+		return;
+	}
+
+	tile->IsCeiling = isCeiling;
+
+	if (tile->IsCeiling) {
+		for (int c = 0; c < TileWidth; c++) {
+			if (tile->CollisionTop[c] < 0xF0) {
+				tile->CollisionBottom[c] = tile->CollisionTop[c] ^ 15;
+				tile->CollisionTop[c] = 0;
+			}
+			else {
+				tile->CollisionTop[c] = tile->CollisionBottom[c] = 0xFF;
+			}
+		}
+	}
+	else {
+		for (int c = 0; c < TileWidth; c++) {
+			if (tile->CollisionBottom[c] < 0xF0) {
+				tile->CollisionTop[c] = tile->CollisionBottom[c] ^ 15;
+				tile->CollisionBottom[c] = 15;
+			}
+			else {
+				tile->CollisionTop[c] = tile->CollisionBottom[c] = 0xFF;
+			}
+		}
+	}
+
+	SetupLeftRightTileCollision(tile);
+	CopyFlippedTileCollisionData(tile);
+}
 void Scene::SetupLeftRightTileCollision(TileConfig *tile) {
 	if (tile->IsCeiling) {
 		// Interpret left/right collision

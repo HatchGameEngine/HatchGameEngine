@@ -208,6 +208,7 @@ public:
 	static void SetTileSolidSides(TileConfig *tileCfg, size_t index, int sides);
 	static void SetTileCollision(TileConfig *tileCfg, size_t index, Uint8* data);
 	static void SetTileAngle(TileConfig *tileCfg, size_t index, Uint8 angle);
+	static void SetTileCeilingFlag(TileConfig *tileCfg, size_t index, bool isCeiling);
 	static void UnloadTileCollisions();
 	static bool GetResourceListSpace(vector<ResourceType*>* list,
 		ResourceType* resource,

@@ -18529,7 +18529,7 @@ VMValue TileCollision_Line(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * TileInfo.SetSpriteInfo
  * \desc Sets the sprite, animation, and frame to use for specified tile.
- * \param tileID (integer): ID of tile to check.
+ * \param tileID (integer): ID of the tile to check.
  * \param spriteIndex (integer): Sprite index. (`-1` for default tile sprite)
  * \param animationIndex (integer): Animation index.
  * \param frameIndex (integer): Frame index. (`-1` for default tile frame)
@@ -18565,7 +18565,7 @@ VMValue TileInfo_SetSpriteInfo(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * TileInfo.IsEmptySpace
  * \desc Checks to see if a tile at the ID is empty.
- * \param tileID (integer): ID of tile to check.
+ * \param tileID (integer): ID of the tile to check.
  * \param collisionPlane (integer): The collision plane of the tile to check for.
  * \return boolean Returns whether the tile is empty space.
  * \ns TileInfo
@@ -18868,8 +18868,8 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * TileInfo.SetBehaviorFlag
  * \desc Sets the behavior value of the desired tile.
- * \param tileID (integer): ID of the tile to get the value of.
- * \param collisionPlane (integer): The collision plane of the tile to get the behavior from.
+ * \param tileID (integer): ID of the tile to modify.
+ * \param collisionPlane (integer): The collision plane of the tile to set the behavior of.
  * \param behaviorFlag (integer): Behavior flag of the tile. Must be between 0 and 255.
  * \ns TileInfo
  */
@@ -18913,9 +18913,34 @@ VMValue TileInfo_IsCeiling(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(tileCfgBase[tileID].IsCeiling);
 }
 /***
+ * TileInfo.SetCeiling
+ * \desc Sets the ceiling flag of the desired tile.
+ * \param tileID (integer): ID of the tile to modify.
+ * \param collisionPlane (integer): The collision plane of the tile to set the ceiling flag of.
+ * \param isCeiling (boolean): Whether the tile is a ceiling tile.
+ * \ns TileInfo
+ */
+VMValue TileInfo_SetCeiling(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	int tileID = GET_ARG(0, GetInteger);
+	int collisionPlane = GET_ARG(1, GetInteger);
+	bool isCeiling = GET_ARG(2, GetInteger);
+
+	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
+		collisionPlane >= Scene::TileCfg.size()) {
+		return NULL_VAL;
+	}
+
+	TileConfig* tileCfgBase = Scene::TileCfg[collisionPlane];
+
+	Scene::SetTileCeilingFlag(tileCfgBase, tileID, isCeiling);
+
+	return NULL_VAL;
+}
+/***
  * TileInfo.GetSolidSides
  * \desc Gets the solidity of the desired tile.
- * \param tileID (integer): ID of tile to check.
+ * \param tileID (integer): ID of the tile to check.
  * \param collisionPlane (integer): The collision plane of the tile to get the solidity of.
  * \return <ref TILESIDE_*> Returns which sides are solid.
  * \ns TileInfo
@@ -18941,7 +18966,7 @@ VMValue TileInfo_GetSolidSides(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * TileInfo.SetSolidSides
  * \desc Sets the solidity of the desired tile.
- * \param tileID (integer): ID of tile to modify.
+ * \param tileID (integer): ID of the tile to modify.
  * \param collisionPlane (integer): The collision plane of the tile to modify the solidity of.
  * \param sides (<ref TILESIDE_*>): The sides that will be solid.
  * \ns TileInfo
@@ -22900,6 +22925,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(TileInfo, GetBehaviorFlag);
 	DEF_NATIVE(TileInfo, SetBehaviorFlag);
 	DEF_NATIVE(TileInfo, IsCeiling);
+	DEF_NATIVE(TileInfo, SetCeiling);
 	DEF_NATIVE(TileInfo, GetSolidSides);
 	DEF_NATIVE(TileInfo, SetSolidSides);
 	DEF_NATIVE(TileInfo, GetProperty);
