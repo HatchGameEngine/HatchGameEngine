@@ -23,13 +23,13 @@ multiplyAndPrint(4, 2);
 INFO: 8
 ```
 
-As mentioned in [Variables](@ref variables), functions are types that you can set a variables as. You can do so by setting the variable as the function's name, omitting the arguments.
+As mentioned in [Variables](@ref variables), functions are like any other type, meaning you can assign them to a variable. You can do so by setting the variable to the function's name, omitting its arguments.
 
 ```java
 var functionVariable = multiplyAndPrint;
 ```
 
-When storing a function inside a variable, it can be called by using the variable's name.
+After assigning a function to a variable, it can be called by using the variable's name.
 
 ```java
 functionVariable(4, 8);
@@ -40,7 +40,7 @@ INFO: 32
 ```
 ### Optional arguments
 
-An **optional argument** is a function argument that has a default value that gets used if you don't specify one in the function call. You can declare an optional argument by using the `=` sign after the argument name. Optional arguments can only be declared after the required arguments.
+An **optional argument** is a function argument with a default value that gets used in the case a value ins't specified in the function call. You can declare an optional argument by using the `=` sign after the argument name. Optional arguments can only be declared after the required arguments.
 
 ```java
 event countToNumberInSteps(max, steps = 1) {
