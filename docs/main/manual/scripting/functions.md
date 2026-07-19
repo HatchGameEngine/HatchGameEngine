@@ -93,7 +93,7 @@ INFO: 6
 
 ### Return values
 
-Functions can optionally return any value at any point in its execution, you can specify a return value by using the `return` statement.
+Functions can optionally return any value at any point in its execution. You can specify a return value by using the `return` statement.
 
 ```java
 event multiply(a, b) {
