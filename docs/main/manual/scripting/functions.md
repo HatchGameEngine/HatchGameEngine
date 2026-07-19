@@ -1,4 +1,4 @@
-@page functions Functions
+@page hsl_functions Functions
 
 **Functions** are blocks of code that execute a set of pre-defined tasks that can be ran at any point in code execution.
 
