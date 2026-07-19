@@ -2836,6 +2836,47 @@ void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentV
 				int tileFlipOffset = (((flipY) << 1) | flipX) * Scene::TileCount;
 
 				TileConfig* tileCfg = (&baseTileCfg[tileID] + tileFlipOffset);
+
+				switch (tileCfg->Solidity) {
+				case TILESIDE_TOP:
+					colorR = 0.0;
+					colorG = 1.0;
+					colorB = 1.0;
+					break;
+				case TILESIDE_LEFT:
+					colorR = 0.0;
+					colorG = 1.0;
+					colorB = 0.0;
+					break;
+				case TILESIDE_RIGHT:
+					colorR = 0.0;
+					colorG = 0.5;
+					colorB = 0.0;
+					break;
+				case TILESIDE_LEFT_RIGHT:
+					colorR = 1.0;
+					colorG = 0.5;
+					colorB = 0.0;
+					break;
+				case TILESIDE_BOTTOM:
+				case TILESIDE_BOTTOM | TILESIDE_LEFT:
+				case TILESIDE_BOTTOM | TILESIDE_RIGHT:
+					colorR = 1.0;
+					colorG = 0.0;
+					colorB = 1.0;
+					break;
+				default:
+					if (tileCfg->Solidity != TILESIDE_ALL) {
+						colorR = 0.0;
+						colorG = 0.0;
+						colorB = 1.0;
+						break;
+					}
+					else if (tileCfg->Solidity == 0) {
+						continue;
+					}
+				}
+
 				int xx = viewX + (dst_x - (srcX % tileWidth));
 				int yy = viewY + (dst_y - (srcY % tileHeight));
 
