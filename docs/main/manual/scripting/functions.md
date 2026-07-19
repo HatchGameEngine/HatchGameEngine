@@ -40,7 +40,7 @@ INFO: 32
 ```
 ### Optional arguments
 
-An **optional argument** is a function argument with a default value that gets used in the case a value ins't specified in the function call. You can declare an optional argument by using the `=` sign after the argument name. Optional arguments can only be declared after the required arguments.
+An **optional argument** is a function argument with a default value that gets used in the case a value isn't specified in the function call. You can declare an optional argument by using the `=` sign after the argument name. Optional arguments can only be declared after the required arguments.
 
 ```java
 event countToNumberInSteps(max, steps = 1) {
