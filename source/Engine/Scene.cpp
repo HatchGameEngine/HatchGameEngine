@@ -2872,6 +2872,7 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 		// Read collision
 		tileColReader->ReadBytes(collisionBuffer, tileSize);
 
+		// Interpret top/bottom collision
 		if (tile->IsCeiling) {
 			Uint8* col = &collisionBuffer[0];
 			for (int c = 0; c < 16; c++) {
@@ -2899,36 +2900,15 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 			}
 		}
 
-		SetupLeftRightBottomTileCollision(tile);
+		SetupLeftRightTileCollision(tile);
 	}
 
 	SetTileCollisionSides(&Tilesets[tilesetID], TileCfg[0]);
 
 	for (tile = tileBase; tile < maxTile; tile++) {
-		// Interpret angles
-		Uint8 angle = tile->AngleTop;
-		if (angle == 0xFF) {
-			tile->AngleTop = 0x00; // Top
-			tile->AngleLeft = 0xC0; // Left
-			tile->AngleRight = 0x40; // Right
-			tile->AngleBottom = 0x80; // Bottom
-		}
-		else {
-			if (tile->IsCeiling) {
-				tile->AngleTop = 0x00;
-				tile->AngleLeft = angle >= 0x81 && angle <= 0xB6 ? angle : 0xC0;
-				tile->AngleRight = angle >= 0x4A && angle <= 0x7F ? angle : 0x40;
-				tile->AngleBottom = angle;
-			}
-			else {
-				tile->AngleTop = angle;
-				tile->AngleLeft = angle >= 0xCA && angle <= 0xF6 ? angle : 0xC0;
-				tile->AngleRight = angle >= 0x0A && angle <= 0x36 ? angle : 0x40;
-				tile->AngleBottom = 0x80;
-			}
-		}
-
-		CopyTileFlipData(tile);
+		SetTileAngle(tile, tile->AngleTop);
+		CopyFlippedTileCollisionData(tile);
+		CopyFlippedTileAngleData(tile);
 	}
 
 	// Copy over to the other planes
@@ -2942,15 +2922,11 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 		}
 	}
 }
-void Scene::CopyTileFlipData(TileConfig *tile) {
+void Scene::CopyFlippedTileCollisionData(TileConfig *tile) {
 	TileConfig *tileDest, *tileLast;
 
 	// Flip X
 	tileDest = tile + Scene::TileCount;
-	tileDest->AngleTop = -tile->AngleTop;
-	tileDest->AngleLeft = -tile->AngleRight;
-	tileDest->AngleRight = -tile->AngleLeft;
-	tileDest->AngleBottom = -tile->AngleBottom;
 	for (int xD = 0, xS = 15; xD <= 15; xD++, xS--) {
 		tileDest->CollisionTop[xD] = tile->CollisionTop[xS];
 		tileDest->CollisionBottom[xD] = tile->CollisionBottom[xS];
@@ -2960,10 +2936,6 @@ void Scene::CopyTileFlipData(TileConfig *tile) {
 	}
 	// Flip Y
 	tileDest = tile + (Scene::TileCount << 1);
-	tileDest->AngleTop = 0x80 - tile->AngleBottom;
-	tileDest->AngleLeft = 0x80 - tile->AngleLeft;
-	tileDest->AngleRight = 0x80 - tile->AngleRight;
-	tileDest->AngleBottom = 0x80 - tile->AngleTop;
 	for (int xD = 0, xS = 15; xD <= 15; xD++, xS--) {
 		tileDest->CollisionLeft[xD] = tile->CollisionLeft[xS];
 		tileDest->CollisionRight[xD] = tile->CollisionRight[xS];
@@ -2974,16 +2946,35 @@ void Scene::CopyTileFlipData(TileConfig *tile) {
 	// Flip XY
 	tileLast = tileDest;
 	tileDest = tile + (Scene::TileCount << 1) + Scene::TileCount;
-	tileDest->AngleTop = -tileLast->AngleTop;
-	tileDest->AngleLeft = -tileLast->AngleRight;
-	tileDest->AngleRight = -tileLast->AngleLeft;
-	tileDest->AngleBottom = -tileLast->AngleBottom;
 	for (int xD = 0, xS = 15; xD <= 15; xD++, xS--) {
 		tileDest->CollisionTop[xD] = tile->CollisionBottom[xS] ^ 15;
 		tileDest->CollisionLeft[xD] = tile->CollisionRight[xS] ^ 15;
 		tileDest->CollisionRight[xD] = tile->CollisionLeft[xS] ^ 15;
 		tileDest->CollisionBottom[xD] = tile->CollisionTop[xS] ^ 15;
 	}
+}
+void Scene::CopyFlippedTileAngleData(TileConfig *tile) {
+	TileConfig *tileDest, *tileLast;
+
+	// Flip X
+	tileDest = tile + Scene::TileCount;
+	tileDest->AngleTop = -tile->AngleTop;
+	tileDest->AngleLeft = -tile->AngleRight;
+	tileDest->AngleRight = -tile->AngleLeft;
+	tileDest->AngleBottom = -tile->AngleBottom;
+	// Flip Y
+	tileDest = tile + (Scene::TileCount << 1);
+	tileDest->AngleTop = 0x80 - tile->AngleBottom;
+	tileDest->AngleLeft = 0x80 - tile->AngleLeft;
+	tileDest->AngleRight = 0x80 - tile->AngleRight;
+	tileDest->AngleBottom = 0x80 - tile->AngleTop;
+	// Flip XY
+	tileLast = tileDest;
+	tileDest = tile + (Scene::TileCount << 1) + Scene::TileCount;
+	tileDest->AngleTop = -tileLast->AngleTop;
+	tileDest->AngleLeft = -tileLast->AngleRight;
+	tileDest->AngleRight = -tileLast->AngleLeft;
+	tileDest->AngleBottom = -tileLast->AngleBottom;
 }
 void Scene::InitTileCollisions() {
 	if (Scene::TileCount == 0) {
@@ -2999,32 +2990,38 @@ void Scene::InitTileCollisions() {
 	Scene::BaseTileCount = Scene::TileCount;
 	Scene::BaseTilesetCount = Scene::Tilesets.size();
 
-	size_t totalTileVariantCount = Scene::TileCount
-		<< 2; // multiplied by 4: For all combinations of tile
-	// flipping
+	// multiplied by 4: For all combinations of tile flipping
+	size_t totalTileVariantCount = Scene::TileCount * 4;
 
 	TileConfig* tileCfgA = (TileConfig*)Memory::TrackedCalloc(
 		"Scene::TileCfgA", totalTileVariantCount, sizeof(TileConfig));
 	TileConfig* tileCfgB = (TileConfig*)Memory::TrackedCalloc(
 		"Scene::TileCfgB", totalTileVariantCount, sizeof(TileConfig));
 
-	ClearTileCollisions(tileCfgA, totalTileVariantCount);
+	InitTileData(tileCfgA, Scene::TileCount);
 
 	memcpy(tileCfgB, tileCfgA, totalTileVariantCount * sizeof(TileConfig));
 
 	Scene::TileCfg.push_back(tileCfgA);
 	Scene::TileCfg.push_back(tileCfgB);
 }
-void Scene::ClearTileCollisions(TileConfig* cfg, size_t numTiles) {
+void Scene::InitTileData(TileConfig* cfg, size_t numTiles) {
 	for (size_t i = 0; i < numTiles; i++) {
 		TileConfig* tile = &cfg[i];
 
-		memset(tile->CollisionTop, sizeof tile->CollisionTop, 16);
-		memset(tile->CollisionBottom, sizeof tile->CollisionBottom, 16);
-		memset(tile->CollisionLeft, sizeof tile->CollisionLeft, 16);
-		memset(tile->CollisionRight, sizeof tile->CollisionRight, 16);
-
 		tile->Solidity = TILESIDE_ALL;
+		tile->IsCeiling = false;
+		tile->Behavior = 0;
+
+		memset(tile->CollisionTop, sizeof tile->CollisionTop, 0xFF);
+		memset(tile->CollisionBottom, sizeof tile->CollisionBottom, 0xFF);
+
+		SetTileAngle(tile, 0xFF);
+
+		SetupLeftRightTileCollision(tile);
+		CopyFlippedTileCollisionData(tile);
+		CopyFlippedTileAngleData(tile);
+		CopyFlippedTileSolidity(tile);
 	}
 }
 bool Scene::AddTileset(char* path) {
@@ -3122,7 +3119,7 @@ void Scene::SetTileCount(size_t tileCount) {
 
 		TileConfig* destCfg = Scene::TileCfg[i];
 
-		ClearTileCollisions(destCfg, totalTileVariantCount);
+		InitTileData(destCfg, totalTileVariantCount);
 
 		TileConfig* flipX = configFlipX[i];
 		TileConfig* flipY = configFlipY[i];
@@ -3189,9 +3186,15 @@ int Scene::GetTileSolidSides(TileConfig *tileCfg, size_t index) {
 }
 void Scene::SetTileSolidSides(TileConfig *tileCfg, size_t index, int sides) {
 	TileConfig* tile = &tileCfg[index];
-	TileConfig *tileDest;
 
 	tile->Solidity = sides;
+
+	CopyFlippedTileSolidity(tile);
+}
+void Scene::CopyFlippedTileSolidity(TileConfig *tile) {
+	TileConfig *tileDest;
+
+	Uint8 sides = tile->Solidity;
 
 #define SET_LEFT_RIGHT_FLAGS(flags) { \
 	if ((flags & TILESIDE_LEFT) != 0 && (flags & TILESIDE_RIGHT) == 0) { \
@@ -3233,17 +3236,64 @@ void Scene::SetTileSolidSides(TileConfig *tileCfg, size_t index, int sides) {
 #undef SET_LEFT_RIGHT_FLAGS
 #undef SET_TOP_BOTTOM_FLAGS
 }
-void Scene::RefreshTileCollision(TileConfig *tileCfg, size_t index) {
+void Scene::SetTileCollision(TileConfig *tileCfg, size_t index, Uint8* data) {
 	TileConfig* tile = &tileCfg[index];
 
-	memset(tile->CollisionBottom, sizeof tile->CollisionBottom, 16);
-	memset(tile->CollisionLeft, sizeof tile->CollisionLeft, 16);
-	memset(tile->CollisionRight, sizeof tile->CollisionRight, 16);
+	if (tile->IsCeiling) {
+		for (int c = 0; c < TileWidth; c++) {
+			if (data[c] < TileHeight) {
+				tile->CollisionTop[c] = 0;
+				tile->CollisionBottom[c] = data[c] ^ 15;
+			}
+			else {
+				tile->CollisionTop[c] = tile->CollisionBottom[c] = 0xFF;
+			}
+		}
+	}
+	else {
+		for (int c = 0; c < TileWidth; c++) {
+			if (data[c] < TileHeight) {
+				tile->CollisionTop[c] = data[c];
+				tile->CollisionBottom[c] = 15;
+			}
+			else {
+				tile->CollisionTop[c] = tile->CollisionBottom[c] = 0xFF;
+			}
+		}
+	}
 
-	SetupLeftRightBottomTileCollision(tile);
-	CopyTileFlipData(tile);
+	SetupLeftRightTileCollision(tile);
+	CopyFlippedTileCollisionData(tile);
 }
-void Scene::SetupLeftRightBottomTileCollision(TileConfig *tile) {
+void Scene::SetTileAngle(TileConfig *tile, Uint8 angle) {
+	// Interpret angles
+	if (angle == 0xFF) {
+		tile->AngleTop = 0x00; // Top
+		tile->AngleLeft = 0xC0; // Left
+		tile->AngleRight = 0x40; // Right
+		tile->AngleBottom = 0x80; // Bottom
+	}
+	else {
+		if (tile->IsCeiling) {
+			tile->AngleTop = 0x00;
+			tile->AngleLeft = angle >= 0x81 && angle <= 0xB6 ? angle : 0xC0;
+			tile->AngleRight = angle >= 0x4A && angle <= 0x7F ? angle : 0x40;
+			tile->AngleBottom = angle;
+		}
+		else {
+			tile->AngleTop = angle;
+			tile->AngleLeft = angle >= 0xCA && angle <= 0xF6 ? angle : 0xC0;
+			tile->AngleRight = angle >= 0x0A && angle <= 0x36 ? angle : 0x40;
+			tile->AngleBottom = 0x80;
+		}
+	}
+}
+void Scene::SetTileAngle(TileConfig *tileCfg, size_t index, Uint8 angle) {
+	TileConfig* tile = &tileCfg[index];
+
+	SetTileAngle(tile, angle);
+}
+void Scene::SetupLeftRightTileCollision(TileConfig *tile) {
 	if (tile->IsCeiling) {
 		// Interpret left/right collision
 		for (int y = 15; y >= 0; y--) {

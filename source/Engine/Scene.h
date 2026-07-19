@@ -50,9 +50,12 @@ private:
 	static void LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader);
 	static void InitTileCollisions();
 	static void SetTileCollisionSides(Tileset* tileset, TileConfig* tileCfg);
-	static void SetupLeftRightBottomTileCollision(TileConfig *tile);
-	static void CopyTileFlipData(TileConfig *tile);
-	static void ClearTileCollisions(TileConfig* cfg, size_t numTiles);
+	static void SetTileAngle(TileConfig *tile, Uint8 angle);
+	static void SetupLeftRightTileCollision(TileConfig *tile);
+	static void CopyFlippedTileSolidity(TileConfig *tile);
+	static void CopyFlippedTileCollisionData(TileConfig *tile);
+	static void CopyFlippedTileAngleData(TileConfig *tile);
+	static void InitTileData(TileConfig* cfg, size_t numTiles);
 	static void SetTileCount(size_t tileCount);
 	static void SetupView2D(View* currentView, float viewX, float viewY, float viewZ);
 	static void SetupView3D(View* currentView, float viewX, float viewY, float viewZ);
@@ -203,7 +206,8 @@ public:
 	static void LoadTileCollisions(const char* filename, size_t tilesetID);
 	static int GetTileSolidSides(TileConfig *tileCfg, size_t index);
 	static void SetTileSolidSides(TileConfig *tileCfg, size_t index, int sides);
-	static void RefreshTileCollision(TileConfig *tileCfg, size_t index);
+	static void SetTileCollision(TileConfig *tileCfg, size_t index, Uint8* data);
+	static void SetTileAngle(TileConfig *tileCfg, size_t index, Uint8 angle);
 	static void UnloadTileCollisions();
 	static bool GetResourceListSpace(vector<ResourceType*>* list,
 		ResourceType* resource,

@@ -18661,7 +18661,7 @@ VMValue TileInfo_GetCollision(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Sets the collision value at the pixel position of the desired tile.
  * \param tileID (integer): ID of the tile to set the collision of.
  * \param collisionField (integer): The collision plane of the tile to get the collision from.
- * \param position (integer): X position on the tile to set.
+ * \param position (integer): Which column to modify.
  * \param collision (integer): Collision position on the tile, between 0 and the tile height, or -1 for no collision.
  * \ns TileInfo
  */
@@ -18681,6 +18681,7 @@ VMValue TileInfo_SetCollision(int argCount, VMValue* args, Uint32 threadID) {
 	int tileID = GET_ARG(0, GetInteger);
 	int collisionField = GET_ARG(1, GetInteger);
 	int position, collision;
+	Uint8* data = nullptr;
 	ObjArray* collisionArray = nullptr;
 
 	if (argCount != 4) {
@@ -18716,6 +18717,12 @@ VMValue TileInfo_SetCollision(int argCount, VMValue* args, Uint32 threadID) {
 				return NULL_VAL;
 			}
 
+			data = (Uint8*)Memory::Malloc(sizeof(Uint8) * Scene::TileWidth);
+			if (data == nullptr) {
+				ScriptManager::Unlock();
+				return NULL_VAL;
+			}
+
 			for (position = 0; position < Scene::TileWidth; position++) {
 				VMValue value = (*collisionArray->Values)[position];
 
@@ -18729,38 +18736,45 @@ VMValue TileInfo_SetCollision(int argCount, VMValue* args, Uint32 threadID) {
 
 				collision = AS_INTEGER(value);
 				if (collision < -1) {
-					tile->CollisionTop[position] = 0;
+					data[position] = 0;
 				}
 				else if (collision >= Scene::TileHeight || collision == -1) {
-					tile->CollisionTop[position] = 0xF0;
+					data[position] = 0xFF;
 				}
 				else {
-					tile->CollisionTop[position] = collision & 0x0F;
+					data[position] = collision & 0x0F;
 				}
 			}
 		}
 		ScriptManager::Unlock();
 	}
 	else {
+		data = (Uint8*)Memory::Malloc(sizeof(Uint8) * Scene::TileWidth);
+		if (data == nullptr) {
+			return NULL_VAL;
+		}
+
 		if (collision < -1) {
-			tile->CollisionTop[position] = 0;
+			data[position] = 0;
 		}
 		else if (collision >= Scene::TileHeight || collision == -1) {
-			tile->CollisionTop[position] = 0xF0;
+			data[position] = 0xFF;
 		}
 		else {
-			tile->CollisionTop[position] = collision & 0x0F;
+			data[position] = collision & 0x0F;
 		}
 	}
 
-	Scene::RefreshTileCollision(tileCfgBase, (size_t)tileID);
+	Scene::SetTileCollision(tileCfgBase, (size_t)tileID, data);
+
+	Memory::Free(data);
 
 	return NULL_VAL;
 }
 /***
  * TileInfo.GetAngle
  * \desc Gets the angle value of the desired tile.
- * \param tileID (integer): ID of the tile to get the value of.
+ * \param tileID (integer): ID of the tile to get the angle of.
  * \param collisionField (integer): The collision plane of the tile to get the angle from.
  * \param directionType (<ref SensorDirection_*>): Ordinal direction to check in.
  * \paramOpt flipX (boolean): Whether to check the angle with the tile horizontally flipped. (default: `false`)
@@ -18801,6 +18815,33 @@ VMValue TileInfo_GetAngle(int argCount, VMValue* args, Uint32 threadID) {
 	}
 
 	return INTEGER_VAL(cValue);
+}
+/***
+ * TileInfo.SetAngle
+ * \desc Sets the angle value of the desired tile.
+ * \param tileID (integer): ID of the tile to set the angle of.
+ * \param collisionField (integer): The collision plane of the tile to set the angle of.
+ * \param angle (integer): Angle value between 0x00 to 0xFF.
+ * \ns TileInfo
+ */
+VMValue TileInfo_SetAngle(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	int tileID = GET_ARG(0, GetInteger);
+	int collisionField = GET_ARG(1, GetInteger);
+	int angle = GET_ARG(2, GetInteger);
+
+	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
+		collisionField >= Scene::TileCfg.size()) {
+		return NULL_VAL;
+	}
+
+	TileConfig* tileCfgBase = Scene::TileCfg[collisionField];
+
+	angle &= 0xFF;
+
+	Scene::SetTileAngle(tileCfgBase, tileID, angle);
+
+	return NULL_VAL;
 }
 /***
  * TileInfo.GetBehaviorFlag
@@ -22830,6 +22871,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(TileInfo, GetCollision);
 	DEF_NATIVE(TileInfo, SetCollision);
 	DEF_NATIVE(TileInfo, GetAngle);
+	DEF_NATIVE(TileInfo, SetAngle);
 	DEF_NATIVE(TileInfo, GetBehaviorFlag);
 	DEF_NATIVE(TileInfo, IsCeiling);
 	DEF_NATIVE(TileInfo, GetSolidSides);
