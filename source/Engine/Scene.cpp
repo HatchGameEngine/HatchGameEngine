@@ -3013,8 +3013,8 @@ void Scene::InitTileData(TileConfig* cfg, size_t numTiles) {
 		tile->IsCeiling = false;
 		tile->Behavior = 0;
 
-		memset(tile->CollisionTop, sizeof tile->CollisionTop, 0xFF);
-		memset(tile->CollisionBottom, sizeof tile->CollisionBottom, 0xFF);
+		memset(tile->CollisionTop, 0xFF, sizeof tile->CollisionTop);
+		memset(tile->CollisionBottom, 0xFF, sizeof tile->CollisionBottom);
 
 		SetTileAngle(tile, 0xFF);
 
