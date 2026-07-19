@@ -23,7 +23,7 @@ multiplyAndPrint(4, 2);
 INFO: 8
 ```
 
-As mentioned in @subpage variables, functions are types that you can set a variables as. You can do so by setting the variable as the function's name, omitting the arguments.
+As mentioned in [Variables](@ref variables), functions are types that you can set a variables as. You can do so by setting the variable as the function's name, omitting the arguments.
 
 ```java
 var functionVariable = multiplyAndPrint;
