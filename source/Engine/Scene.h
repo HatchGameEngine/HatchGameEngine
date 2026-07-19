@@ -49,7 +49,7 @@ private:
 	static void LoadRSDKTileConfig(int tilesetID, Stream* tileColReader);
 	static void LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader);
 	static void InitTileCollisions();
-	static void SetTileCollisionSides(Tileset& tileset, TileConfig* tileCfg);
+	static void LoadTilesetTileConfig(Tileset& tileset, TileConfig* tileCfg);
 	static void SetTileAngle(TileConfig *tile, Uint8 angle);
 	static void SetupLeftRightTileCollision(TileConfig *tile);
 	static void CopyFlippedTileSolidity(TileConfig *tile);

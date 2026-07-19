@@ -2783,6 +2783,12 @@ void Scene::LoadRSDKTileConfig(int tilesetID, Stream* tileColReader) {
 
 	Scene::TileCfgLoaded = true;
 
+	for (Uint32 i = 0; i < tileCount; i++) {
+		Scene::TileCfg[0][i].Solidity = TILESIDE_ALL;
+	}
+
+	LoadTilesetTileConfig(Tilesets[tilesetID], TileCfg[0]);
+
 	// Read plane A
 	TileConfig* tile = &Scene::TileCfg[0][0];
 
@@ -2865,6 +2871,12 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 	TileConfig* maxTile = &Scene::TileCfg[0][tileStart + tilesToRead];
 
 	for (tile = tileBase; tile < maxTile; tile++) {
+		tile->Solidity = TILESIDE_ALL;
+	}
+
+	LoadTilesetTileConfig(Tilesets[tilesetID], TileCfg[0]);
+
+	for (tile = tileBase; tile < maxTile; tile++) {
 		tile->IsCeiling = tileColReader->ReadByte();
 		tile->AngleTop = tileColReader->ReadByte();
 		bool hasCollision = tileColReader->ReadByte();
@@ -2906,8 +2918,6 @@ void Scene::LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader) {
 		CopyFlippedTileAngleData(tile);
 		CopyFlippedTileSolidity(tile);
 	}
-
-	SetTileCollisionSides(Tilesets[tilesetID], TileCfg[0]);
 
 	// Copy over to the other planes
 	for (size_t i = 1; i < Scene::TileCfg.size(); i++) {
@@ -3018,7 +3028,7 @@ void Scene::InitTileData(TileConfig* cfg, size_t numTiles, bool loadDataFromTile
 
 	if (loadDataFromTilesets) {
 		for (Tileset& tileset : Tilesets) {
-			SetTileCollisionSides(tileset, cfg);
+			LoadTilesetTileConfig(tileset, cfg);
 		}
 	}
 
@@ -3180,11 +3190,11 @@ void Scene::LoadTileCollisions(const char* filename, size_t tilesetID) {
 
 	tileColReader->Close();
 }
-void Scene::SetTileCollisionSides(Tileset& tileset, TileConfig *tileCfg) {
+void Scene::LoadTilesetTileConfig(Tileset& tileset, TileConfig *tileCfg) {
 	for (size_t i = 0; i < tileset.TileCount; i++) {
 		TileConfig* tile = &tileCfg[tileset.FirstGlobalTileID + i];
 
-		tile->Solidity = tileset.CollisionSides[i];
+		tile->Solidity = tileset.TileConfig[i].Solidity;
 	}
 }
 int Scene::GetTileSolidSides(TileConfig *tileCfg, size_t index) {
@@ -3205,10 +3215,10 @@ void Scene::CopyFlippedTileSolidity(TileConfig *tile) {
 	Uint8 sides = tile->Solidity;
 
 #define SET_LEFT_RIGHT_FLAGS(flags) { \
-	if ((flags & TILESIDE_LEFT) != 0 && (flags & TILESIDE_RIGHT) == 0) { \
+	if ((flags & TILESIDE_LEFT_RIGHT) == TILESIDE_LEFT) { \
 		tileDest->Solidity |= TILESIDE_RIGHT; \
 	} \
-	else if ((flags & TILESIDE_LEFT) == 0 && (flags & TILESIDE_RIGHT) != 0) { \
+	else if ((flags & TILESIDE_LEFT_RIGHT) == TILESIDE_RIGHT) { \
 		tileDest->Solidity |= TILESIDE_LEFT; \
 	} \
 	else { \
@@ -3216,10 +3226,10 @@ void Scene::CopyFlippedTileSolidity(TileConfig *tile) {
 	} \
 }
 #define SET_TOP_BOTTOM_FLAGS(flags) { \
-	if ((flags & TILESIDE_TOP) != 0 && (flags & TILESIDE_BOTTOM) == 0) { \
+	if ((flags & TILESIDE_TOP_BOTTOM) == TILESIDE_TOP) { \
 		tileDest->Solidity |= TILESIDE_BOTTOM; \
 	} \
-	else if ((flags & TILESIDE_TOP) == 0 && (flags & TILESIDE_BOTTOM) != 0) { \
+	else if ((flags & TILESIDE_TOP_BOTTOM) == TILESIDE_BOTTOM) { \
 		tileDest->Solidity |= TILESIDE_TOP; \
 	} \
 	else { \

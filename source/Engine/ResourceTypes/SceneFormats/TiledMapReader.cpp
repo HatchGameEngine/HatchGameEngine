@@ -461,10 +461,10 @@ void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
 		Property prop = GetTileProperty(tilesetPtr, tileID, name); \
 		if (PROPERTY_IS_BOOL(prop)) { \
 			if (PROPERTY_IS_TRUE(prop)) { \
-				tilesetPtr->CollisionSides[tileID] |= flag; \
+				tilesetPtr->TileConfig[tileID].Solidity |= flag; \
 			} \
 			else { \
-				tilesetPtr->CollisionSides[tileID] &= ~flag; \
+				tilesetPtr->TileConfig[tileID].Solidity &= ~flag; \
 			} \
 		} \
 	} \

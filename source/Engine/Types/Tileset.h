@@ -3,7 +3,15 @@
 
 #include <Engine/Includes/Standard.h>
 #include <Engine/ResourceTypes/ISprite.h>
+#include <Engine/Scene/SceneEnums.h>
 #include <Engine/Scene/TileAnimation.h>
+
+struct TilesetTileConfig {
+	Uint8 Angle = 0;
+	Uint8 Behavior = 0;
+	bool IsCeiling = false;
+	Uint8 Solidity = TILESIDE_ALL;
+};
 
 class Tileset {
 public:
@@ -19,7 +27,7 @@ public:
 	unsigned PaletteID = 0;
 	std::map<int, TileAnimator> AnimatorMap;
 	std::vector<HashMap<Property>*> PropertiesPerTile;
-	std::vector<Uint8> CollisionSides;
+	std::vector<TilesetTileConfig> TileConfig;
 
 	Tileset(ISprite* sprite,
 		int tileWidth,
