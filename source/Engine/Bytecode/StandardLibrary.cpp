@@ -18866,6 +18866,31 @@ VMValue TileInfo_GetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(tileCfgBase[tileID].Behavior);
 }
 /***
+ * TileInfo.SetBehaviorFlag
+ * \desc Sets the behavior value of the desired tile.
+ * \param tileID (integer): ID of the tile to get the value of.
+ * \param collisionPlane (integer): The collision plane of the tile to get the behavior from.
+ * \param behaviorFlag (integer): Behavior flag of the tile. Must be between 0 and 255.
+ * \ns TileInfo
+ */
+VMValue TileInfo_SetBehaviorFlag(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	int tileID = GET_ARG(0, GetInteger);
+	int collisionPlane = GET_ARG(1, GetInteger);
+	int behaviorFlag = GET_ARG(2, GetInteger);
+
+	if (tileID < 0 || tileID >= (int)Scene::TileSpriteInfos.size() ||
+		collisionPlane >= Scene::TileCfg.size()) {
+		return NULL_VAL;
+	}
+
+	TileConfig* tileCfgBase = Scene::TileCfg[collisionPlane];
+
+	tileCfgBase[tileID].Behavior = behaviorFlag;
+
+	return NULL_VAL;
+}
+/***
  * TileInfo.IsCeiling
  * \desc Checks if the desired tile is a ceiling tile.
  * \param tileID (integer): ID of the tile to check.
@@ -22873,6 +22898,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(TileInfo, GetAngle);
 	DEF_NATIVE(TileInfo, SetAngle);
 	DEF_NATIVE(TileInfo, GetBehaviorFlag);
+	DEF_NATIVE(TileInfo, SetBehaviorFlag);
 	DEF_NATIVE(TileInfo, IsCeiling);
 	DEF_NATIVE(TileInfo, GetSolidSides);
 	DEF_NATIVE(TileInfo, SetSolidSides);
