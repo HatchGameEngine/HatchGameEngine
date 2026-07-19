@@ -3195,6 +3195,7 @@ void Scene::LoadTilesetTileConfig(Tileset& tileset, TileConfig *tileCfg) {
 		TileConfig* tile = &tileCfg[tileset.FirstGlobalTileID + i];
 
 		tile->Solidity = tileset.TileConfig[i].Solidity;
+		tile->Behavior = tileset.TileConfig[i].Behavior;
 	}
 }
 int Scene::GetTileSolidSides(TileConfig *tileCfg, size_t index) {

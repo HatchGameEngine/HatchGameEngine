@@ -476,6 +476,13 @@ void TiledMapReader::ParseTile(Tileset* tilesetPtr, XMLNode* node) {
 	CHECK_COLL_SIDE_PROP("RightSolid", TILESIDE_RIGHT);
 
 #undef CHECK_COLL_SIDE_PROP
+
+	if (HasTileProperty(tilesetPtr, tileID, "BehaviorFlag")) {
+		Property prop = GetTileProperty(tilesetPtr, tileID, "BehaviorFlag");
+		if (PROPERTY_IS_NUMBER(prop)) {
+			tilesetPtr->TileConfig[tileID].Behavior = (Uint8)PROPERTY_AS_NUMBER(prop);
+		}
+	}
 }
 
 bool TiledMapReader::HasTileProperty(Tileset* tileset, int tileID, const char* name) {
