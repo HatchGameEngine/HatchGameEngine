@@ -2853,7 +2853,7 @@ void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentV
 					for (int gg = 0; gg < tileWidth; gg++) {
 						int col = tileCfg->CollisionTop[gg];
 						if (col < 0xF0) {
-							col = (tileHeight - col) + 1;
+							col = tileHeight - col;
 							BatchRectangleFill(xx, yy + (tileHeight - col), 1, col, colorR, colorG, colorB, 1.0);
 						}
 						xx++;
