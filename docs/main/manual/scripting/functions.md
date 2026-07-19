@@ -13,7 +13,7 @@ event multiplyAndPrint(a, b) {
 }
 ```
 
-Functions can then be called from anywhere as long as it is in same scope by "calling" the name & required arguments of the function, calling a function will execute any code stored inside of it.
+Functions can then be called from anywhere as long as it is in same scope by writing the name and required arguments of the function. Calling a function will execute any code stored inside of it.
 
 ```java
 multiplyAndPrint(4, 2);
