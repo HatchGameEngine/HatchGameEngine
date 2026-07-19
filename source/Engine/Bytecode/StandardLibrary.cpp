@@ -18868,6 +18868,8 @@ VMValue TileInfo_GetSolidSides(int argCount, VMValue* args, Uint32 threadID) {
 
 	int solidity = Scene::GetTileSolidSides(tileCfgBase, (size_t)tileID);
 
+	solidity &= TILESIDE_ALL;
+
 	return INTEGER_VAL(solidity);
 }
 /***
@@ -18888,6 +18890,8 @@ VMValue TileInfo_SetSolidSides(int argCount, VMValue* args, Uint32 threadID) {
 		collisionPlane >= Scene::TileCfg.size()) {
 		return NULL_VAL;
 	}
+
+	sides &= TILESIDE_ALL;
 
 	TileConfig* tileCfgBase = Scene::TileCfg[collisionPlane];
 
