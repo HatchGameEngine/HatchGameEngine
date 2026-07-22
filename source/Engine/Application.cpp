@@ -2674,6 +2674,7 @@ void Application::InitSettings() {
 	Application::Settings->SetInteger("dev", "logLevel", logLevel);
 	Application::Settings->SetBool("dev", "trackMemory", false);
 	Application::Settings->SetBool("dev", "autoPerfSnapshots", false);
+	Application::Settings->SetString("dev", "sceneBrowserMode", "default");
 #endif
 }
 void Application::SaveSettings() {
@@ -3434,6 +3435,9 @@ void Application::DevMenu_SettingsMenu() {
 
 	DrawDevString("Change settings...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 
+	const char* browserMode[] = { "(Default)", "(Resources)", "(Scene List)" };
+	const char* browserModeConfig[] = { "default", "resources", "scenelist" };
+
 	std::string labels[] = {
 		"Video Settings",
 		"Audio Settings",
@@ -3445,6 +3449,7 @@ void Application::DevMenu_SettingsMenu() {
 		std::string("Object Region Viewer ") +
 			(Scene::ShowObjectRegions ? "(On)" : "(Off)"),
 		std::string("Hitbox Viewer ") + (Scene::ShowHitboxes ? "(On)" : "(Off)"),
+		std::string("Scene Browser Mode ") + browserMode[DevMenu.SceneBrowserMode]
 	};
 	for (size_t i = 0, y = 86; i < std::size(labels); i++, y += 14) {
 		DrawDevString(labels[i].c_str(), 160, y, ALIGN_LEFT, DevMenu.SubSelection == i);
@@ -3512,6 +3517,10 @@ void Application::DevMenu_SettingsMenu() {
 			break;
 		case 6: // Hitbox Viewer
 			Scene::ShowHitboxes ^= 1;
+			break;
+		case 7: // Scene Browser Mode
+			DevMenu.SceneBrowserMode = (DevMenu.SceneBrowserMode + 1) % 3;
+			Application::Settings->SetString("dev", "sceneBrowserMode", browserModeConfig[DevMenu.SceneBrowserMode]);
 			break;
 		}
 	}
