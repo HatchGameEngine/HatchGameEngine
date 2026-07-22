@@ -65,7 +65,13 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 
 	texture = Image::LoadTextureFromResource(filename);
 
-	Graphics::AddSpriteSheet(sheetPath, texture);
+	if (texture != nullptr) {
+		Graphics::AddSpriteSheet(sheetPath, texture);
+	}
+	else {
+		Log::Print(Log::LOG_ERROR, "Could not load spritesheet \"%s\"!", filename);
+	}
+
 	Spritesheets.push_back(texture);
 	SpritesheetFilenames.push_back(sheetPath);
 

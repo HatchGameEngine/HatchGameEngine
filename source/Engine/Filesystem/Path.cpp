@@ -193,6 +193,10 @@ bool Path::HasRelativeComponents(const char* path) {
 	return false;
 }
 
+std::string Path::ToAbsolute(std::string path) {
+	return ToString(std::filesystem::absolute(std::filesystem::u8path(path)));
+}
+
 std::string Path::Normalize(std::string path) {
 	std::filesystem::path fsPath = std::filesystem::u8path(path);
 

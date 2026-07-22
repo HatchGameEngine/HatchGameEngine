@@ -30,6 +30,10 @@ struct VFSEnumeration {
 	std::vector<std::string> Entries;
 };
 
+struct VFSEnumerationOptions {
+	bool OnlyCurrentDirectory = false;
+};
+
 class VFSProvider {
 private:
 	std::string MountPoint;
@@ -62,7 +66,7 @@ public:
 	virtual bool ReadFile(const char* filename, Uint8** out, size_t* size);
 	virtual bool PutFile(const char* filename, VFSEntry* entry);
 	virtual bool EraseFile(const char* filename);
-	virtual VFSEnumeration EnumerateFiles(const char* path);
+	virtual VFSEnumeration EnumerateFiles(const char* path, VFSEnumerationOptions options);
 	virtual Stream* OpenReadStream(const char* filename);
 	virtual Stream* OpenWriteStream(const char* filename);
 	virtual Stream* OpenAppendStream(const char* filename);

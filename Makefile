@@ -253,6 +253,7 @@ PUBHFILES := \
 	source/Engine/Bytecode/Value.h \
 	source/Engine/Bytecode/ValuePrinter.h \
 	source/Engine/Data/DefaultFonts.h \
+	source/Engine/DeveloperMenu.h \
 	source/Engine/Diagnostics/Clock.h \
 	source/Engine/Diagnostics/Log.h \
 	source/Engine/Diagnostics/Memory.h \

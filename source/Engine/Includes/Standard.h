@@ -68,24 +68,6 @@ enum class KeyBind {
 	Max
 };
 
-struct DeveloperMenu {
-	void (*State)();
-	int Selection;
-	int SubSelection;
-	int ScrollPos;
-	int SubScrollPos;
-	double Timer;
-	bool Fullscreen;
-	int SceneState;
-	int ListPos;
-	int WindowScale;
-	bool WindowBorderless;
-	int CurrentWindowWidth;
-	int CurrentWindowHeight;
-	int PlayerListPos;
-	bool MusicPausedStore;
-};
-
 #define DEFAULT_TARGET_FRAMERATE 60
 
 #define MAX_TARGET_FRAMERATE 240
@@ -130,6 +112,8 @@ typedef int64_t Sint64;
 #define HITBOX_RIGHT 2
 #define HITBOX_BOTTOM 3
 #define NUM_HITBOX_SIDES 4
+
+#define PARENT_DIRECTORY ".."
 
 #ifdef IOS
 #define NEW_STRUCT_MACRO(n) (n)

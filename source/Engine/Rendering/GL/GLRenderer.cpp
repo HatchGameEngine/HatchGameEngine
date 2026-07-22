@@ -1645,6 +1645,7 @@ void GLRenderer::SetGraphicsFunctions() {
 
 	// Texture batching functions
 	Graphics::Internal.BeginTextureBatching = GLRenderer::BeginTextureBatching;
+	Graphics::Internal.BatchRectangleFill = GLRenderer::BatchRectangleFill;
 	Graphics::Internal.BatchSprite = GLRenderer::BatchSprite;
 	Graphics::Internal.BatchSpritePart = GLRenderer::BatchSpritePart;
 	Graphics::Internal.FinishTextureBatching = GLRenderer::FinishTextureBatching;
@@ -1667,7 +1668,7 @@ void GLRenderer::SetGraphicsFunctions() {
 	Graphics::Internal.DeleteFrameBufferID = GLRenderer::DeleteFrameBufferID;
 
 	// Layer batching functions
-	Graphics::Internal.DrawBufferedSceneLayer = GLRenderer::DrawBufferedSceneLayer;
+	Graphics::Internal.DrawBufferedTileLayer = GLRenderer::DrawBufferedTileLayer;
 	Graphics::Internal.MakeLayerTileBuffers = GLRenderer::MakeLayerTileBuffers;
 	Graphics::Internal.DeleteLayerTileBuffers = GLRenderer::DeleteLayerTileBuffers;
 	Graphics::Internal.RefreshTileBuffersForTileset = GLRenderer::RefreshTileBuffersForTileset;
@@ -3355,6 +3356,43 @@ void GL_BatchTexture(Texture* texture,
 	batch->Data.push_back(GL_AnimFrameVert{x, y + h, ffU0, ffV1});
 	batch->Data.push_back(GL_AnimFrameVert{x + w, y + h, ffU1, ffV1});
 }
+void GLRenderer::BatchRectangleFill(float x, float y, float w, float h, float r, float g, float b, float a) {
+	GL_TextureBatchState* batch = &GL_CurrentTextureBatch;
+
+	bool change = batch->TexturePtr != nullptr;
+	if (r != Graphics::BlendColors[0]) {
+		change = true;
+	}
+	if (g != Graphics::BlendColors[1]) {
+		change = true;
+	}
+	if (b != Graphics::BlendColors[2]) {
+		change = true;
+	}
+	if (a != Graphics::BlendColors[3]) {
+		change = true;
+	}
+
+	if (change) {
+		GL_DrawTextureBatch();
+
+		Graphics::BlendColors[0] = r;
+		Graphics::BlendColors[1] = g;
+		Graphics::BlendColors[2] = b;
+		Graphics::BlendColors[3] = a;
+
+		batch->TexturePtr = nullptr;
+		batch->PaletteID = 0;
+	}
+
+	batch->Data.push_back(GL_AnimFrameVert{x, y, 0.0, 0.0});
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y, 1.0, 0.0});
+	batch->Data.push_back(GL_AnimFrameVert{x, y + h, 0.0, 1.0});
+
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y, 1.0, 0.0});
+	batch->Data.push_back(GL_AnimFrameVert{x, y + h, 0.0, 1.0});
+	batch->Data.push_back(GL_AnimFrameVert{x + w, y + h, 1.0, 1.0});
+}
 void GLRenderer::BatchSprite(ISprite* sprite,
 	int animation,
 	int frame,
@@ -3455,7 +3493,7 @@ void GLRenderer::DrawSceneLayer3D(void* layer,
 	if (renderer != nullptr) {
 		renderer->ModelMatrix = modelMatrix;
 		renderer->NormalMatrix = normalMatrix;
-		renderer->DrawSceneLayer3D((SceneLayer*)layer, sx, sy, sw, sh);
+		renderer->DrawSceneLayer3D((TileLayer*)layer, sx, sy, sw, sh);
 	}
 }
 void GLRenderer::DrawModel(void* inModel,
@@ -3854,13 +3892,20 @@ void GLRenderer::MakeFrameBufferID(ISprite* sprite) {
 				continue;
 			}
 
-			float texWidth = sprite->Spritesheets[frame->SheetNumber]->Width;
-			float texHeight = sprite->Spritesheets[frame->SheetNumber]->Height;
+			float ffU0 = 0.0f;
+			float ffV0 = 0.0f;
+			float ffU1 = 0.0f;
+			float ffV1 = 0.0f;
 
-			float ffU0 = frame->X / texWidth;
-			float ffV0 = frame->Y / texHeight;
-			float ffU1 = (frame->X + frame->Width) / texWidth;
-			float ffV1 = (frame->Y + frame->Height) / texHeight;
+			if (sprite->Spritesheets[frame->SheetNumber] != nullptr) {
+				float texWidth = sprite->Spritesheets[frame->SheetNumber]->Width;
+				float texHeight = sprite->Spritesheets[frame->SheetNumber]->Height;
+
+				ffU0 = frame->X / texWidth;
+				ffV0 = frame->Y / texHeight;
+				ffU1 = (frame->X + frame->Width) / texWidth;
+				ffV1 = (frame->Y + frame->Height) / texHeight;
+			}
 
 			float _fX, _fY, ffX0, ffY0, ffX1, ffY1;
 			for (int f = 0; f < 4; f++) {
@@ -3891,7 +3936,7 @@ void GLRenderer::DeleteFrameBufferID(ISprite* sprite) {
 		sprite->ID = 0;
 	}
 }
-void GLRenderer::DrawBufferedSceneLayer(SceneLayer* layer) {
+void GLRenderer::DrawBufferedTileLayer(TileLayer* layer) {
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
 	if (layer->RemakeTileBuffers) {
@@ -3957,7 +4002,7 @@ static void GL_MakeBatchedTileData(GL_AnimFrameVert* vert, AnimFrame* frame, flo
 	vert[5] = GL_AnimFrameVert{ffX1, ffY1, ffU1, ffV1};
 }
 
-void GLRenderer::MakeLayerTileBuffers(SceneLayer* layer) {
+void GLRenderer::MakeLayerTileBuffers(TileLayer* layer) {
 	DeleteLayerTileBuffers(layer);
 
 	layer->TileBufferIndexes = (size_t*)Memory::Malloc(layer->WidthData * layer->HeightData * sizeof(size_t));
@@ -4085,7 +4130,7 @@ void GLRenderer::MakeLayerTileBuffers(SceneLayer* layer) {
 
 	layer->UsingTileBuffers = true;
 }
-void GLRenderer::DeleteLayerTileBuffers(SceneLayer* layer) {
+void GLRenderer::DeleteLayerTileBuffers(TileLayer* layer) {
 	if (!layer->UsingTileBuffers) {
 		return;
 	}
@@ -4111,7 +4156,7 @@ void GLRenderer::DeleteLayerTileBuffers(SceneLayer* layer) {
 	layer->TileBufferIndexes = nullptr;
 }
 
-void GLRenderer::RefreshTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex) {
+void GLRenderer::RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIndex) {
 	GL_AnimFrameVert vert[6];
 
 	if (!layer->UsingTileBuffers) {
@@ -4213,7 +4258,7 @@ void GLRenderer::RefreshTileBuffersForTileset(SceneLayer* layer, size_t tilesetI
 
 	CHECK_GL();
 }
-void GLRenderer::DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex) {
+void GLRenderer::DeleteTileBuffersForTileset(TileLayer* layer, size_t tilesetIndex) {
 	if (!layer->UsingTileBuffers || tilesetIndex >= layer->TileBuffers.size()) {
 		return;
 	}
@@ -4232,7 +4277,7 @@ void GLRenderer::DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIn
 	layer->TileBuffers[tilesetIndex] = nullptr;
 }
 
-void GLRenderer::UpdateBufferedLayerTile(SceneLayer* layer, int x, int y) {
+void GLRenderer::UpdateBufferedLayerTile(TileLayer* layer, int x, int y) {
 	if (!layer->UsingTileBuffers || layer->RemakeTileBuffers) {
 		return;
 	}
@@ -4275,7 +4320,7 @@ void GLRenderer::UpdateBufferedLayerTile(SceneLayer* layer, int x, int y) {
 
 	CHECK_GL();
 }
-void GLRenderer::RefreshLayerTileAnimations(SceneLayer* layer) {
+void GLRenderer::RefreshLayerTileAnimations(TileLayer* layer) {
 	MakeLayerTileBuffers(layer);
 }
 

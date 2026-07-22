@@ -2473,7 +2473,7 @@ void Graphics::MeasureTextWrappedLegacy(ISprite* sprite,
 	}
 }
 
-Sint64 Graphics::CalcHorizontalParallaxPosition(SceneLayer* layer,
+Sint64 Graphics::CalcHorizontalParallaxPosition(TileLayer* layer,
 	float viewX,
 	float constant,
 	float relative) {
@@ -2491,7 +2491,7 @@ Sint64 Graphics::CalcHorizontalParallaxPosition(SceneLayer* layer,
 
 	return position;
 }
-void Graphics::CalcScanlineDeforms(SceneLayer* layer,
+void Graphics::CalcScanlineDeforms(TileLayer* layer,
 	int start,
 	int end,
 	float viewX,
@@ -2538,7 +2538,7 @@ void Graphics::CalcScanlineDeforms(SceneLayer* layer,
 	}
 }
 
-void Graphics::DrawSceneLayer_InitTileScanLines(SceneLayer* layer, View* currentView) {
+void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentView) {
 	int layerHeight = layer->Height * Scene::TileHeight;
 	int viewHeight = (int)std::ceil(currentView->GetScaledHeight());
 
@@ -2683,7 +2683,7 @@ void Graphics::DrawTilePart(TileSpriteInfo& info,
 		0.0,
 		(int)paletteID);
 }
-void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView, bool onlyAnimated) {
+void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView, bool onlyAnimated, int drawTileCollision) {
 	float viewX = currentView->X;
 	float viewY = currentView->Y;
 
@@ -2739,6 +2739,20 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
+	TileConfig* baseTileCfg = nullptr;
+
+	if (drawTileCollision != 0) {
+		size_t collisionPlane = drawTileCollision - 1;
+		if (collisionPlane < Scene::TileCfg.size()) {
+			baseTileCfg = Scene::TileCfg[collisionPlane];
+		}
+
+		// No tile config?
+		if (baseTileCfg == nullptr) {
+			return;
+		}
+	}
+
 	Graphics::BeginTextureBatching();
 
 	for (int dst_y = startY; dst_y < endY; dst_y += tileHeight, srcY += tileHeight) {
@@ -2782,6 +2796,73 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 				continue;
 			}
 
+			// drawTileCollision != 0 means to exclusively draw tile collision data for this layer
+			if (drawTileCollision != 0) {
+				Uint32 collision = 0;
+
+				if (drawTileCollision == 1) {
+					collision = (tile & TILE_COLLA_MASK) >> 28;
+				}
+				else {
+					collision = (tile & TILE_COLLB_MASK) >> 26;
+				}
+
+				if (collision == 0) {
+					continue;
+				}
+
+				float colorR = 0.0, colorG = 0.0, colorB = 0.0;
+
+				switch (collision) {
+				case 1:
+					colorR = 0.0;
+					colorG = 1.0;
+					colorB = 1.0;
+					break;
+				case 2:
+					colorR = 0.0;
+					colorG = 0.0;
+					colorB = 1.0;
+					break;
+				case 3:
+					colorR = 1.0;
+					colorG = 1.0;
+					colorB = 1.0;
+					break;
+				}
+
+				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
+				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
+				int tileFlipOffset = (((flipY) << 1) | flipX) * Scene::TileCount;
+
+				TileConfig* tileCfg = (&baseTileCfg[tileID] + tileFlipOffset);
+				int xx = viewX + (dst_x - (srcX % tileWidth));
+				int yy = viewY + (dst_y - (srcY % tileHeight));
+
+				if (baseTileCfg[tileID].IsCeiling) {
+					for (int gg = 0; gg < tileWidth; gg++) {
+						int col = tileCfg->CollisionBottom[gg];
+						if (col < 0xF0) {
+							col++;
+							BatchRectangleFill(xx, yy, 1, col, colorR, colorG, colorB, 1.0);
+						}
+						xx++;
+					}
+				}
+				else {
+					for (int gg = 0; gg < tileWidth; gg++) {
+						int col = tileCfg->CollisionTop[gg];
+						if (col < 0xF0) {
+							col = (tileHeight - col) + 1;
+							BatchRectangleFill(xx, yy + (tileHeight - col), 1, col, colorR, colorG, colorB, 1.0);
+						}
+						xx++;
+					}
+				}
+
+				continue;
+			}
+
 			TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
 			if (onlyAnimated && !info.IsAnimated) {
 				continue;
@@ -2801,7 +2882,7 @@ void Graphics::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* curren
 
 	Graphics::FinishTextureBatching();
 }
-void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* currentView) {
+void Graphics::DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* currentView) {
 	int viewWidth = (int)std::ceil(currentView->GetScaledWidth());
 	int max_y = (int)std::ceil(currentView->GetScaledHeight());
 
@@ -2894,8 +2975,8 @@ void Graphics::DrawSceneLayer_HorizontalScrollIndexes(SceneLayer* layer, View* c
 
 	Graphics::FinishTextureBatching();
 }
-bool Graphics::CanDrawBufferedSceneLayer(SceneLayer* layer) {
-	if (!Graphics::GfxFunctions->DrawBufferedSceneLayer) {
+bool Graphics::CanDrawBufferedTileLayer(TileLayer* layer) {
+	if (!Graphics::GfxFunctions->DrawBufferedTileLayer) {
 		return false;
 	}
 
@@ -2909,23 +2990,24 @@ bool Graphics::CanDrawBufferedSceneLayer(SceneLayer* layer) {
 
 	return true;
 }
-void Graphics::DrawBufferedSceneLayer(SceneLayer* layer, View* currentView) {
-	Graphics::GfxFunctions->DrawBufferedSceneLayer(layer);
+void Graphics::DrawBufferedTileLayer(TileLayer* layer, View* currentView) {
+	Graphics::GfxFunctions->DrawBufferedTileLayer(layer);
 
-	Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView, true);
+	Graphics::DrawTileLayer_HorizontalParallax(layer, currentView, true);
 }
 void Graphics::DrawSceneLayer(SceneLayer* layer,
 	View* currentView,
 	int layerIndex,
 	bool useCustomFunction) {
-	// If possible, uses optimized software-renderer call instead.
-	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions) {
-		SoftwareRenderer::DrawSceneLayer(layer, currentView, layerIndex, useCustomFunction);
+	if (layer->UsingCustomRenderFunction && useCustomFunction) {
+		Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
 		return;
 	}
 
-	if (layer->UsingCustomRenderFunction && useCustomFunction) {
-		Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
+	// If possible, uses optimized software-renderer call instead.
+	if (Graphics::GfxFunctions == &SoftwareRenderer::BackendFunctions &&
+		layer->Type == SceneLayer::TYPE_TILE) {
+		SoftwareRenderer::DrawTileLayer((TileLayer*)layer, layerIndex, currentView);
 		return;
 	}
 
@@ -2934,7 +3016,25 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 		Graphics::SetUserShader(shader);
 	}
 
-	if (Graphics::CanDrawBufferedSceneLayer(layer)) {
+	switch (layer->Type) {
+	case SceneLayer::TYPE_TILE:
+		DrawTileLayer((TileLayer*)layer, currentView);
+		break;
+	case SceneLayer::TYPE_IMAGE:
+		DrawImageLayer((ImageLayer*)layer, currentView);
+		break;
+	}
+
+	if (shader) {
+		Graphics::SetUserShader(nullptr);
+	}
+}
+void Graphics::DrawTileLayer(TileLayer* layer, View* currentView) {
+	if (Scene::Tilesets.size() == 0) {
+		return;
+	}
+
+	if (Graphics::CanDrawBufferedTileLayer(layer)) {
 		bool updateViewMatrix = layer->RelativeX != 1.0f || layer->RelativeY != 1.0f ||
 			layer->ConstantX != 0.0f || layer->ConstantX != 0.0f ||
 			layer->OffsetX != 0.0f || layer->OffsetY != 0.0f;
@@ -2951,22 +3051,185 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 			Scene::SetupViewMatrices(currentView, viewX, viewY, currentView->Z);
 		}
 
-		Graphics::DrawBufferedSceneLayer(layer, currentView);
+		Graphics::DrawBufferedTileLayer(layer, currentView);
 
 		if (updateViewMatrix) {
 			Graphics::Restore();
 		}
 	}
 	else if (layer->UsingScrollIndexes) {
-		Graphics::DrawSceneLayer_InitTileScanLines(layer, currentView);
-		Graphics::DrawSceneLayer_HorizontalScrollIndexes(layer, currentView);
+		Graphics::DrawTileLayer_InitTileScanLines(layer, currentView);
+		Graphics::DrawTileLayer_HorizontalScrollIndexes(layer, currentView);
 	}
 	else {
-		Graphics::DrawSceneLayer_HorizontalParallax(layer, currentView, false);
+		Graphics::DrawTileLayer_HorizontalParallax(layer, currentView, false);
 	}
 
-	if (shader) {
-		Graphics::SetUserShader(nullptr);
+	if ((layer->Flags & SceneLayer::FLAGS_COLLIDEABLE) != 0 && Scene::ShowTileCollisionFlag != 0) {
+		DrawTileLayer_HorizontalParallax(layer, currentView, false, Scene::ShowTileCollisionFlag);
+	}
+}
+void Graphics::DrawImageLayer(ImageLayer* layer, View* currentView) {
+	Image* image = layer->ImagePtr;
+	if (!image || !image->TexturePtr) {
+		return;
+	}
+
+	float viewX = currentView->X;
+	float viewY = currentView->Y;
+
+	float constantScrollH = Scene::Frame * layer->ConstantX;
+	float constantScrollV = Scene::Frame * layer->ConstantY;
+
+	float x = -(constantScrollH + (viewX * layer->RelativeX) + layer->OffsetX);
+	float y = -(constantScrollV + (viewY * layer->RelativeY) + layer->OffsetY);
+
+	Uint32 repeatFlags =
+		layer->Flags & (SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y);
+	if (repeatFlags == 0) {
+		Graphics::DrawTexture(image->TexturePtr,
+			0,
+			0,
+			image->TexturePtr->Width,
+			image->TexturePtr->Height,
+			viewX + x,
+			viewY + y,
+			image->TexturePtr->Width,
+			image->TexturePtr->Height,
+			0);
+		return;
+	}
+
+	float viewWidth, viewHeight;
+
+	Translate(viewX, viewY, 0.0f);
+
+	switch (repeatFlags) {
+	case SceneLayer::FLAGS_REPEAT_X:
+		viewWidth = std::ceil(currentView->GetScaledWidth());
+		DrawTextureLoopHorizontal(image->TexturePtr, x, y, viewWidth);
+		break;
+	case SceneLayer::FLAGS_REPEAT_Y:
+		viewHeight = std::ceil(currentView->GetScaledHeight());
+		DrawTextureLoopVertical(image->TexturePtr, x, y, viewHeight);
+		break;
+	case SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y:
+		viewWidth = std::ceil(currentView->GetScaledWidth());
+		viewHeight = std::ceil(currentView->GetScaledHeight());
+		DrawTextureLoopHV(image->TexturePtr, x, y, viewWidth, viewHeight);
+		break;
+	}
+
+	Translate(-viewX, -viewY, 0.0f);
+}
+void Graphics::DrawTextureLoopHorizontal(Texture* texture, float x, float y, float maxWidth) {
+	int max = std::ceil(maxWidth / texture->Width) + 1;
+
+	if (x > 0) {
+		x = fmod(x, texture->Width);
+		x -= texture->Width;
+	}
+	else {
+		x = fmod(x, texture->Width);
+	}
+
+	for (int i = 0; i < max; i++) {
+		if (x > maxWidth) {
+			break;
+		}
+
+		Graphics::DrawTexture(texture,
+			0,
+			0,
+			texture->Width,
+			texture->Height,
+			x,
+			y,
+			texture->Width,
+			texture->Height,
+			0);
+
+		x += texture->Width;
+	}
+}
+void Graphics::DrawTextureLoopVertical(Texture* texture, float x, float y, float maxHeight) {
+	int max = std::ceil(maxHeight / texture->Height) + 1;
+
+	if (y > 0) {
+		y = fmod(y, texture->Height);
+		y -= texture->Height;
+	}
+	else {
+		y = fmod(y, texture->Height);
+	}
+
+	for (int i = 0; i < max; i++) {
+		if (y > maxHeight) {
+			break;
+		}
+
+		Graphics::DrawTexture(texture,
+			0,
+			0,
+			texture->Width,
+			texture->Height,
+			x,
+			y,
+			texture->Width,
+			texture->Height,
+			0);
+
+		y += texture->Height;
+	}
+}
+void Graphics::DrawTextureLoopHV(Texture* texture,
+	float x,
+	float y,
+	float maxWidth,
+	float maxHeight) {
+	int maxW = std::ceil(maxWidth / texture->Width) + 1;
+	int maxH = std::ceil(maxHeight / texture->Height) + 1;
+
+	float xStart = fmod(x, texture->Width);
+	if (x > 0) {
+		xStart -= texture->Width;
+	}
+
+	if (y > 0) {
+		y = fmod(y, texture->Height);
+		y -= texture->Height;
+	}
+	else {
+		y = fmod(y, texture->Height);
+	}
+
+	for (int ly = 0; ly < maxH; ly++) {
+		if (y > maxHeight) {
+			break;
+		}
+
+		float x = xStart;
+
+		for (int lx = 0; lx < maxW; lx++) {
+			if (x > maxWidth) {
+				break;
+			}
+
+			Graphics::DrawTexture(texture,
+				0,
+				0,
+				texture->Width,
+				texture->Height,
+				x,
+				y,
+				texture->Width,
+				texture->Height,
+				0);
+
+			x += texture->Width;
+		}
+
+		y += texture->Height;
 	}
 }
 void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
@@ -2983,6 +3246,16 @@ void Graphics::RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex) {
 void Graphics::BeginTextureBatching() {
 	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BeginTextureBatching) {
 		Graphics::GfxFunctions->BeginTextureBatching();
+	}
+}
+void Graphics::BatchRectangleFill(float x, float y, float w, float h, float r, float g, float b, float a) {
+	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BatchRectangleFill) {
+		Graphics::GfxFunctions->BatchRectangleFill(x, y, w, h, r, g, b, a);
+	}
+	else if (Graphics::GfxFunctions->FillRectangle) {
+		SetBlendColor(r, g, b, a);
+
+		Graphics::GfxFunctions->FillRectangle(x, y, w, h);
 	}
 }
 void Graphics::BatchTile(TileSpriteInfo& info, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
@@ -3342,7 +3615,7 @@ void Graphics::DeleteFrameBufferID(ISprite* sprite) {
 	}
 }
 
-bool Graphics::CanBuildLayerTileBuffers(SceneLayer* layer) {
+bool Graphics::CanBuildLayerTileBuffers(TileLayer* layer) {
 	if (Scene::Tilesets.size() == 0) {
 		return false;
 	}
@@ -3359,39 +3632,77 @@ bool Graphics::CanBuildLayerTileBuffers(SceneLayer* layer) {
 }
 
 void Graphics::MakeLayerTileBuffers(SceneLayer* layer) {
-	if (!Graphics::CanBuildLayerTileBuffers(layer)) {
+	if (!Graphics::GfxFunctions->MakeLayerTileBuffers) {
+		return;
+	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	if (!Graphics::CanBuildLayerTileBuffers((TileLayer*)layer)) {
 		return;
 	}
 
 	if (Graphics::GfxFunctions->MakeLayerTileBuffers) {
-		Graphics::GfxFunctions->MakeLayerTileBuffers(layer);
+		Graphics::GfxFunctions->MakeLayerTileBuffers((TileLayer*)layer);
 	}
 }
 void Graphics::DeleteLayerTileBuffers(SceneLayer* layer) {
-	if (Graphics::GfxFunctions->DeleteLayerTileBuffers) {
-		Graphics::GfxFunctions->DeleteLayerTileBuffers(layer);
+	if (!Graphics::GfxFunctions->DeleteLayerTileBuffers) {
+		return;
 	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	Graphics::GfxFunctions->DeleteLayerTileBuffers((TileLayer*)layer);
 }
 
 void Graphics::RefreshTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex) {
-	if (Graphics::GfxFunctions->RefreshTileBuffersForTileset) {
-		Graphics::GfxFunctions->RefreshTileBuffersForTileset(layer, tilesetIndex);
+	if (!Graphics::GfxFunctions->RefreshTileBuffersForTileset) {
+		return;
 	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	Graphics::GfxFunctions->RefreshTileBuffersForTileset((TileLayer*)layer, tilesetIndex);
 }
 void Graphics::DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex) {
-	if (Graphics::GfxFunctions->DeleteTileBuffersForTileset) {
-		Graphics::GfxFunctions->DeleteTileBuffersForTileset(layer, tilesetIndex);
+	if (!Graphics::GfxFunctions->DeleteTileBuffersForTileset) {
+		return;
 	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	Graphics::GfxFunctions->DeleteTileBuffersForTileset((TileLayer*)layer, tilesetIndex);
 }
 void Graphics::UpdateBufferedLayerTile(SceneLayer* layer, int x, int y) {
-	if (Graphics::GfxFunctions->UpdateBufferedLayerTile) {
-		Graphics::GfxFunctions->UpdateBufferedLayerTile(layer, x, y);
+	if (!Graphics::GfxFunctions->UpdateBufferedLayerTile) {
+		return;
 	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	Graphics::GfxFunctions->UpdateBufferedLayerTile((TileLayer*)layer, x, y);
 }
 void Graphics::RefreshLayerTileAnimations(SceneLayer* layer) {
-	if (Graphics::GfxFunctions->RefreshLayerTileAnimations) {
-		Graphics::GfxFunctions->RefreshLayerTileAnimations(layer);
+	if (!Graphics::GfxFunctions->RefreshLayerTileAnimations) {
+		return;
 	}
+
+	if (layer->Type != SceneLayer::TYPE_TILE) {
+		return;
+	}
+
+	Graphics::GfxFunctions->RefreshLayerTileAnimations((TileLayer*)layer);
 }
 
 void Graphics::SetDepthTesting(bool enabled) {
