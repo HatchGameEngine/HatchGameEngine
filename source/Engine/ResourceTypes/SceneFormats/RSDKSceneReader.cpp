@@ -151,6 +151,10 @@ void RSDKSceneReader::LoadObjectList() {
 	}
 
 	size_t sz = r->Length();
+	if (sz == 0) {
+		return;
+	}
+
 	ObjectNames = (char*)malloc(sz + 1);
 	r->ReadBytes(ObjectNames, sz);
 	ObjectNames[sz] = 0;
@@ -597,7 +601,14 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 		RSDKSceneReader::Initialized = true;
 	}
 
+	if (r->ReadUInt32BE() != 0x53434E00) {
+		Log::Print(Log::LOG_ERROR, "Not an RSDKv5 scene!");
+		r->Close();
+		return false;
+	}
+
 	if (!ObjectNames) {
+		Log::Print(Log::LOG_ERROR, "ObjectList.txt missing or empty!");
 		r->Close();
 		return false;
 	}
@@ -611,69 +622,67 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	Scene::PriorityPerLayer = 16;
 	Scene::InitPriorityLists();
 
-	if (r->ReadUInt32BE() == 0x53434E00) {
-		r->Skip(16); // 16 bytes
-		r->Skip(r->ReadByte()); // RSDKString
+	r->Skip(16); // 16 bytes
+	r->Skip(r->ReadByte()); // RSDKString
 
-		r->ReadByte();
+	r->ReadByte();
 
-		double ticks = Clock::GetTicks();
+	double ticks = Clock::GetTicks();
 
-		// Read layers
-		Uint32 layerCount = r->ReadByte();
-		for (Uint32 i = 0; i < layerCount; i++) {
-			TileLayer* layer = RSDKSceneReader::ReadLayer(r);
+	// Read layers
+	Uint32 layerCount = r->ReadByte();
+	for (Uint32 i = 0; i < layerCount; i++) {
+		TileLayer* layer = RSDKSceneReader::ReadLayer(r);
 
-			Log::Print(Log::LOG_VERBOSE,
-				"Layer %d (%s): Width (%d) Height (%d) DrawGroup (%d)",
-				i,
-				layer->Name,
-				layer->Width,
-				layer->Height,
-				layer->DrawGroup);
+		Log::Print(Log::LOG_VERBOSE,
+			"Layer %d (%s): Width (%d) Height (%d) DrawGroup (%d)",
+			i,
+			layer->Name,
+			layer->Width,
+			layer->Height,
+			layer->DrawGroup);
 
-			Scene::AddLayer(layer);
-		}
+		Scene::AddLayer(layer);
+	}
 
-		ticks = Clock::GetTicks() - ticks;
-		Log::Print(Log::LOG_VERBOSE, "Scene Layer load took %.3f milliseconds.", ticks);
+	ticks = Clock::GetTicks() - ticks;
+	Log::Print(Log::LOG_VERBOSE, "Scene Layer load took %.3f milliseconds.", ticks);
 
-		// Read objects
-		ticks = Clock::GetTicks();
+	// Read objects
+	ticks = Clock::GetTicks();
 
-		int objectDefinitionCount = r->ReadByte();
-		Log::Print(Log::LOG_VERBOSE, "Object Definition Count: %d", objectDefinitionCount);
+	int objectDefinitionCount = r->ReadByte();
+	Log::Print(Log::LOG_VERBOSE, "Object Definition Count: %d", objectDefinitionCount);
 
-		Scene::AddManagers();
+	Scene::AddManagers();
 
-		int maxObjSlots = 0x940;
-		Entity** objSlots = (Entity**)calloc(maxObjSlots, sizeof(Entity*));
-		if (!objSlots) {
-			Log::Print(Log::LOG_ERROR, "Could not allocate memory for object slots!");
-			r->Close();
+	int maxObjSlots = 0x940;
+	Entity** objSlots = (Entity**)calloc(maxObjSlots, sizeof(Entity*));
+	if (!objSlots) {
+		Log::Print(Log::LOG_ERROR, "Could not allocate memory for object slots!");
+		r->Close();
+		return false;
+	}
+
+	// Read each object definition
+	for (int i = 0; i < objectDefinitionCount; i++) {
+		if (!ReadObjectDefinition(r, objSlots, maxObjSlots)) {
+			free(objSlots);
 			return false;
 		}
-
-		// Read each object definition
-		for (int i = 0; i < objectDefinitionCount; i++) {
-			if (!ReadObjectDefinition(r, objSlots, maxObjSlots)) {
-				free(objSlots);
-				return false;
-			}
-		}
-
-		// Add all objects to the static object list
-		for (int i = 0; i < maxObjSlots; i++) {
-			if (objSlots[i]) {
-				Scene::AddStatic(objSlots[i]->List, objSlots[i]);
-			}
-		}
-
-		free(objSlots);
-
-		ticks = Clock::GetTicks() - ticks;
-		Log::Print(Log::LOG_VERBOSE, "Scene Object load took %.3f milliseconds.", ticks);
 	}
+
+	// Add all objects to the static object list
+	for (int i = 0; i < maxObjSlots; i++) {
+		if (objSlots[i]) {
+			Scene::AddStatic(objSlots[i]->List, objSlots[i]);
+		}
+	}
+
+	free(objSlots);
+
+	ticks = Clock::GetTicks() - ticks;
+	Log::Print(Log::LOG_VERBOSE, "Scene Object load took %.3f milliseconds.", ticks);
 
 	r->Close();
 
