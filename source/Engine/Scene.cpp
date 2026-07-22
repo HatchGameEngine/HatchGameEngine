@@ -59,6 +59,7 @@ HashMap<Property>* Scene::Properties = NULL;
 // Object variables
 OrderedHashMap<ObjectList*>* Scene::ObjectLists = NULL;
 HashMap<ObjectRegistry*>* Scene::ObjectRegistries = NULL;
+ObjectRegistry* Scene::OnScreenObjects = NULL;
 
 HashMap<ObjectList*>* Scene::StaticObjectLists = NULL;
 
@@ -180,17 +181,18 @@ void ObjectList_CallGlobalFixedUpdates(Uint32, ObjectList* list) {
 	ObjectList_CallUpdateFunction(list, list->GlobalFixedUpdateFunctionName.c_str());
 }
 bool CanUpdateEntity(Entity* ent) {
-	if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED &&
-		ent->Activity != ACTIVE_ALWAYS) {
+	if (!ent->Active) {
 		return false;
 	}
-	if (!ent->Active) {
+
+	if (Scene::Paused && ent->Pauseable && ent->Activity != ACTIVE_PAUSED &&
+		ent->Activity != ACTIVE_ALWAYS) {
 		return false;
 	}
 
 	return true;
 }
-void DetermineEntityIsOnScreen(Entity* ent) {
+bool Scene::DetermineEntityIsOnScreen(Entity* ent) {
 	bool onScreenX = false;
 	bool onScreenY = false;
 
@@ -217,24 +219,19 @@ void DetermineEntityIsOnScreen(Entity* ent) {
 		entY2 = ent->Y + ent->OnScreenHitboxH * 0.5f;
 	}
 
-	ent->InRange = false;
-
 	switch (ent->Activity) {
-	default:
 	case ACTIVE_DISABLED:
 	case ACTIVE_NEVER:
 	case ACTIVE_PAUSED:
-		break;
+		return false;
 
 	case ACTIVE_ALWAYS:
 	case ACTIVE_NORMAL:
-		ent->InRange = true;
-		break;
+		return true;
 
 	case ACTIVE_BOUNDS:
 		if (onScreenX && onScreenY) {
-			ent->InRange = true;
-			break;
+			return true;
 		}
 
 		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
@@ -254,16 +251,14 @@ void DetermineEntityIsOnScreen(Entity* ent) {
 			}
 
 			if (onScreenX && onScreenY) {
-				ent->InRange = true;
-				break;
+				return true;
 			}
 		}
 		break;
 
 	case ACTIVE_XBOUNDS:
 		if (onScreenX) {
-			ent->InRange = true;
-			break;
+			return true;
 		}
 
 		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
@@ -273,16 +268,14 @@ void DetermineEntityIsOnScreen(Entity* ent) {
 
 			if (entX2 >= Scene::Views[i].X &&
 				entX1 < Scene::Views[i].X + Scene::Views[i].GetScaledWidth()) {
-				ent->InRange = true;
-				break;
+				return true;
 			}
 		}
 		break;
 
 	case ACTIVE_YBOUNDS:
 		if (onScreenY) {
-			ent->InRange = true;
-			break;
+			return true;
 		}
 
 		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
@@ -292,16 +285,14 @@ void DetermineEntityIsOnScreen(Entity* ent) {
 
 			if (entY2 >= Scene::Views[i].Y &&
 				entY1 < Scene::Views[i].Y + Scene::Views[i].GetScaledHeight()) {
-				ent->InRange = true;
-				break;
+				return true;
 			}
 		}
 		break;
 
 	case ACTIVE_RBOUNDS:
 		if (onScreenX || onScreenY) {
-			ent->InRange = true;
-			break;
+			return true;
 		}
 
 		for (int v = 0; v < MAX_SCENE_VIEWS; v++) {
@@ -312,12 +303,13 @@ void DetermineEntityIsOnScreen(Entity* ent) {
 			float sy = abs(ent->Y - Scene::Views[v].Y);
 
 			if (sx * sx + sy * sy <= ent->OnScreenHitboxW) {
-				ent->InRange = true;
-				break;
+				return true;
 			}
 		}
 		break;
 	}
+
+	return false;
 }
 void UpdateObjectEarly(Entity* ent) {
 	if (!CanUpdateEntity(ent)) {
@@ -334,37 +326,39 @@ void UpdateObjectEarly(Entity* ent) {
 		ent->List->Performance.EarlyUpdate.DoAverage(elapsed);
 	}
 }
+void CheckObjectOnScreen(Entity* ent) {
+	if (!CanUpdateEntity(ent)) {
+		return;
+	}
+
+	ent->InRange = Scene::DetermineEntityIsOnScreen(ent);
+
+	if ((ent->OnScreen = ent->InRange)) {
+		Scene::OnScreenObjects->Add(ent);
+	}
+}
 void UpdateObject(Entity* ent) {
 	if (!CanUpdateEntity(ent)) {
 		return;
 	}
 
-	DetermineEntityIsOnScreen(ent);
+	double elapsed = Clock::GetTicks();
 
-	if (ent->InRange) {
-		double elapsed = Clock::GetTicks();
+	ent->Update();
 
-		ent->OnScreen = true;
+	elapsed = Clock::GetTicks() - elapsed;
 
-		ent->Update();
-
-		elapsed = Clock::GetTicks() - elapsed;
-
-		if (ent->List) {
-			ent->List->Performance.Update.DoAverage(elapsed);
-		}
-
-		ent->WasOffScreen = false;
+	if (ent->List) {
+		ent->List->Performance.Update.DoAverage(elapsed);
 	}
-	else {
-		ent->OnScreen = false;
-		ent->WasOffScreen = true;
-	}
+
+	ent->WasOffScreen = !ent->OnScreen;
 
 	ent->CheckDrawGroupChanges();
 	ent->CheckDepthChanges();
 }
 void UpdateObjectLate(Entity* ent) {
+	// Activity can change after Update, so call CanUpdateEntity again.
 	if (!CanUpdateEntity(ent) || !ent->OnScreen) {
 		return;
 	}
@@ -400,32 +394,23 @@ void FixedUpdateObject(Entity* ent) {
 		return;
 	}
 
-	DetermineEntityIsOnScreen(ent);
+	double elapsed = Clock::GetTicks();
 
-	if (ent->InRange) {
-		double elapsed = Clock::GetTicks();
+	ent->FixedUpdate();
 
-		ent->OnScreen = true;
+	elapsed = Clock::GetTicks() - elapsed;
 
-		ent->FixedUpdate();
-
-		elapsed = Clock::GetTicks() - elapsed;
-
-		if (ent->List) {
-			ent->List->Performance.Update.DoAverage(elapsed);
-		}
-
-		ent->WasOffScreen = false;
+	if (ent->List) {
+		ent->List->Performance.Update.DoAverage(elapsed);
 	}
-	else {
-		ent->OnScreen = false;
-		ent->WasOffScreen = true;
-	}
+
+	ent->WasOffScreen = !ent->InRange;
 
 	ent->CheckDrawGroupChanges();
 	ent->CheckDepthChanges();
 }
 void FixedUpdateObjectLate(Entity* ent) {
+	// Activity can change after FixedUpdate, so call CanUpdateEntity again.
 	if (!CanUpdateEntity(ent) || !ent->OnScreen) {
 		return;
 	}
@@ -546,6 +531,14 @@ void Scene::AddToScene(Entity* obj) {
 		obj->PrevSceneEntity = prevObj;
 	}
 
+	if (!Initializing) {
+		obj->InRange = Scene::DetermineEntityIsOnScreen(obj);
+
+		if ((obj->OnScreen = obj->InRange)) {
+			Scene::OnScreenObjects->Add(obj);
+		}
+	}
+
 	Scene::ObjectCount++;
 }
 void Scene::RemoveFromScene(Entity* obj) {
@@ -578,6 +571,11 @@ void Scene::RemoveObject(Entity* obj) {
 		Scene::ObjectRegistries->WithAll([obj](Uint32, ObjectRegistry* registry) -> void {
 			registry->Remove(obj);
 		});
+	}
+
+	// Remove from OnScreenObjects
+	if (obj->OnScreen) {
+		Scene::OnScreenObjects->Remove(obj);
 	}
 
 	// Remove from draw groups
@@ -742,9 +740,14 @@ void Scene::InitObjectListsAndRegistries() {
 		Scene::ObjectRegistries =
 			new HashMap<ObjectRegistry*>(CombinedHash::EncryptData, 16);
 	}
+	if (Scene::OnScreenObjects == NULL) {
+		Scene::OnScreenObjects = new ObjectRegistry();
+	}
 	if (Scene::StaticObjectLists == NULL) {
 		Scene::StaticObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
 	}
+
+	Scene::ObjectRegistries->Put("onscreen", Scene::OnScreenObjects);
 }
 
 void Scene::ResetPerf() {
@@ -762,6 +765,9 @@ void Scene::FrameUpdate() {
 	Scene::SortEntities();
 }
 void Scene::Update() {
+	// Clear OnScreenObjects
+	Scene::OnScreenObjects->Clear();
+
 	// Call Scene.UpdateStart
 	ScriptManager::CallStaticClassFunction("Scene", "UpdateStart");
 
@@ -779,6 +785,11 @@ void Scene::Update() {
 		UpdateObjectEarly(ent);
 	}
 
+	// Check if objects are on screen
+	for (Entity *ent = Scene::ObjectFirst; ent; ent = ent->NextSceneEntity) {
+		CheckObjectOnScreen(ent);
+	}
+
 	// Call Scene.Update
 	ScriptManager::CallStaticClassFunction("Scene", "Update");
 
@@ -788,7 +799,7 @@ void Scene::Update() {
 		// it can still be used to point at the end of the loop.
 		next = ent->NextSceneEntity;
 
-		// Execute whatever on object
+		// Call "Update" on the object
 		UpdateObject(ent);
 	}
 
@@ -805,6 +816,9 @@ void Scene::Update() {
 	ScriptManager::CallStaticClassFunction("Scene", "UpdateFinish");
 }
 void Scene::FixedUpdate() {
+	// Clear OnScreenObjects
+	Scene::OnScreenObjects->Clear();
+
 	// Call Scene.FixedUpdateStart
 	if (!Application::UseFixedTimestep) {
 		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdateStart");
@@ -837,6 +851,11 @@ void Scene::FixedUpdate() {
 		FixedUpdateObjectEarly(ent);
 	}
 
+	// Check if objects are on screen
+	for (Entity *ent = Scene::ObjectFirst; ent; ent = ent->NextSceneEntity) {
+		CheckObjectOnScreen(ent);
+	}
+
 	// Call Scene.FixedUpdate
 	if (!Application::UseFixedTimestep) {
 		ScriptManager::CallStaticClassFunction("Scene", "FixedUpdate");
@@ -851,7 +870,7 @@ void Scene::FixedUpdate() {
 		// it can still be used to point at the end of the loop.
 		next = ent->NextSceneEntity;
 
-		// Execute whatever on object
+		// Call "Update" or "FixedUpdate" on the object
 		FixedUpdateObject(ent);
 	}
 
@@ -1837,6 +1856,9 @@ void Scene::Restart() {
 		});
 	}
 
+	// Clear OnScreenObjects
+	Scene::OnScreenObjects->Clear();
+
 	// Dispose of all dynamic objects
 	Scene::RemoveNonPersistentObjects(
 		&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
@@ -2017,29 +2039,6 @@ void Scene::RemoveNonPersistentObjects(Entity** first, Entity** last, int* count
 		}
 	}
 }
-void Scene::DeleteAllObjects() {
-	// Dispose and clear Static objects
-	Scene::DeleteObjects(
-		&Scene::StaticObjectFirst, &Scene::StaticObjectLast, &Scene::StaticObjectCount);
-
-	// Dispose and clear Dynamic objects
-	Scene::DeleteObjects(
-		&Scene::DynamicObjectFirst, &Scene::DynamicObjectLast, &Scene::DynamicObjectCount);
-
-	// Clear lists
-	if (Scene::ObjectLists) {
-		Scene::ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
-			list->Clear();
-		});
-	}
-
-	// Clear registries
-	if (Scene::ObjectRegistries) {
-		Scene::ObjectRegistries->ForAll([](Uint32, ObjectRegistry* registry) -> void {
-			registry->Clear();
-		});
-	}
-}
 void Scene::Unload() {
 	// Remove non-persistent objects from lists
 	if (Scene::ObjectLists) {
@@ -2061,6 +2060,11 @@ void Scene::Unload() {
 			list->RemoveNonPersistentFromLinkedList(
 				Scene::DynamicObjectFirst, persistencyScope);
 		});
+	}
+
+	// Clear OnScreenObjects
+	if (Scene::OnScreenObjects) {
+		Scene::OnScreenObjects->Clear();
 	}
 
 	// Dispose of resources in SCOPE_SCENE
@@ -3695,12 +3699,19 @@ void Scene::Dispose() {
 	Scene::StaticObjectLists = NULL;
 
 	if (Scene::ObjectRegistries) {
+		Scene::ObjectRegistries->Remove("onscreen");
 		Scene::ObjectRegistries->ForAll([](Uint32, ObjectRegistry* registry) -> void {
 			delete registry;
 		});
 		delete Scene::ObjectRegistries;
 	}
 	Scene::ObjectRegistries = NULL;
+
+	// Clear OnScreenObjects
+	if (Scene::OnScreenObjects) {
+		delete Scene::OnScreenObjects;
+		Scene::OnScreenObjects = NULL;
+	}
 
 	if (StaticObjectList) {
 		delete StaticObjectList;
