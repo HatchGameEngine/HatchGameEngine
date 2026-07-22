@@ -2,6 +2,7 @@
 #define ENGINE_APPLICATION_H
 
 #include <Engine/Audio/AudioManager.h>
+#include <Engine/DeveloperMenu.h>
 #include <Engine/Diagnostics/PerformanceTypes.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/Operation.h>

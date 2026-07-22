@@ -1290,6 +1290,25 @@ void Application::LoadDevSettings() {
 			ResourceManager::SetMainResourceWritable(true);
 		}
 	}
+
+	char str[64];
+	if (Application::Settings->GetString("dev", "sceneBrowserMode", str, sizeof str) && str[0] != '\0') {
+		if (strcmp(str, "resources") == 0) {
+			DevMenu.SceneBrowserMode = SCENEBROWSER_RESOURCES;
+		}
+		else if (strcmp(str, "scenelist") == 0) {
+			DevMenu.SceneBrowserMode = SCENEBROWSER_SCENELIST;
+		}
+		else if (strcmp(str, "default") == 0) {
+			DevMenu.SceneBrowserMode = SCENEBROWSER_DEFAULT;
+		}
+		else {
+			Log::Print(Log::LOG_WARN,
+				"Unrecognized option \"%s\" for \"sceneBrowserMode\"",
+				str);
+			DevMenu.SceneBrowserMode = SCENEBROWSER_DEFAULT;
+		}
+	}
 #endif
 }
 
@@ -2812,7 +2831,12 @@ void Application::OpenDevMenu() {
 	DevMenu.Fullscreen = Application::WindowFullscreen;
 	DevMenu.WindowBorderless = Application::WindowBorderless;
 
-	DevMenu.ResourcesBrowserAvailable = IsResourcesBrowserAvailable();
+	if (DevMenu.SceneBrowserMode != SCENEBROWSER_SCENELIST && IsResourcesBrowserAvailable()) {
+		DevMenu.ResourcesBrowserAvailable = true;
+	}
+	else {
+		DevMenu.ResourcesBrowserAvailable = false;
+	}
 
 	AudioManager::AudioPauseAll();
 	AudioManager::Lock();
@@ -2946,11 +2970,21 @@ void Application::DevMenu_MainMenu() {
 			UpdateWindowTitle();
 			break;
 		case 2:
-			if (SceneInfo::Categories.empty()) {
+			switch (DevMenu.SceneBrowserMode) {
+			case SCENEBROWSER_RESOURCES:
 				DevMenu_OpenResourcesBrowser();
-			}
-			else {
+				break;
+			case SCENEBROWSER_SCENELIST:
 				DevMenu.State = Application::DevMenu_CategorySelectMenu;
+				break;
+			case SCENEBROWSER_DEFAULT:
+				if (SceneInfo::Categories.empty()) {
+					DevMenu_OpenResourcesBrowser();
+				}
+				else {
+					DevMenu.State = Application::DevMenu_CategorySelectMenu;
+				}
+				break;
 			}
 			break;
 		case 3:
