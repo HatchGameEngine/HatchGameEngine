@@ -3112,6 +3112,7 @@ void Application::DevMenu_OpenResourcesBrowser() {
 	}
 
 	paths.push_back("Scenes");
+	paths.push_back("scenes");
 	paths.push_back("Stages");
 	paths.push_back("");
 
