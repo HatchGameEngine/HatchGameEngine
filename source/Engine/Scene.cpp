@@ -681,6 +681,15 @@ void Scene::Init() {
 	Scene::Views[0].Active = true;
 	Scene::ViewsActive = 1;
 }
+Scene* Scene::Create() {
+	Scene* scene = new Scene();
+
+	scene->Index = List.size();
+
+	List.push_back(scene);
+
+	return scene;
+}
 void Scene::InitObjectListsAndRegistries() {
 	if (ObjectLists == NULL) {
 		ObjectLists = new OrderedHashMap<ObjectList*>(CombinedHash::EncryptData, 4);
@@ -908,6 +917,14 @@ void Scene::SetViewPriority(int viewIndex, int priority) {
 }
 
 void Scene::ResetViews() {
+	Scene::ViewCurrent = 0;
+	Graphics::CurrentView = NULL;
+
+	View* currentView = &Scene::Views[Scene::ViewCurrent];
+	currentView->X = 0.0f;
+	currentView->Y = 0.0f;
+	currentView->Z = 0.0f;
+
 	Scene::ViewsActive = 0;
 
 	// Deactivate extra views
@@ -1731,13 +1748,6 @@ int Scene::GetPersistenceScopeForObjectDeletion() {
 }
 
 void Scene::ResetFields() {
-	Scene::ViewCurrent = 0;
-	Graphics::CurrentView = NULL;
-
-	View* currentView = &Scene::Views[Scene::ViewCurrent];
-	currentView->X = 0.0f;
-	currentView->Y = 0.0f;
-	currentView->Z = 0.0f;
 	Frame = 0;
 	Paused = false;
 	Initializing = true;
@@ -1750,13 +1760,15 @@ void Scene::ResetFields() {
 
 	DebugMode = 0;
 
-	Scene::ResetViews();
-
 	ObjectViewRenderFlag = 0xFFFFFFFF;
 	TileViewRenderFlag = 0xFFFFFFFF;
 }
 
 void Scene::Restart() {
+	if (Scene::List.size() == 1) {
+		Scene::ResetViews();
+	}
+
 	ResetFields();
 
 	Graphics::UnloadSceneData();

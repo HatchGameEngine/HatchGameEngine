@@ -12980,7 +12980,32 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 	if (x < 0 || y < 0 || x >= layerPtr->Width || y >= layerPtr->Height) \
 		return NULL_VAL;
 
+/***
+ * Scene.Create
+ * \ns Scene
+ */
+VMValue Scene_Create(int argCount, VMValue* args, Uint32 threadID) {
+	char* filename = GET_ARG_OPT(0, GetString, nullptr);
 
+	Scene* scene = Scene::Create();
+
+	if (filename) {
+		StringUtils::Copy(scene->NextScene, filename, sizeof(scene->NextScene));
+	}
+
+	return INTEGER_VAL((int)scene->Index);
+}
+/***
+ * Scene.GetCurrentIndex
+ * \ns Scene
+ */
+VMValue Scene_GetCurrentIndex(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	Scene* scene = Scene::Current;
+
+	return INTEGER_VAL((int)scene->Index);
+}
 /***
  * Scene.Load
  * \desc Changes the active scene. The active scene is changed to the one in the specified resource file.
@@ -20011,6 +20036,20 @@ VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 		GET_ARG(2, GetDecimal),
 		GET_ARG(3, GetDecimal)));
 }
+/***
+ * View.SetScene
+ * \ns View
+ */
+VMValue View_SetScene(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int view_index = GET_ARG(0, GetInteger);
+	int sceneIndex = GET_ARG(1, GetInteger);
+	CHECK_VIEW_INDEX();
+	if (sceneIndex >= 0 && (size_t)sceneIndex < Scene::List.size()) {
+		Scene::Views[view_index].ScenePtr = Scene::List[sceneIndex];
+	}
+	return NULL_VAL;
+}
 // #endregion
 
 // #region Window
@@ -22165,6 +22204,8 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 Some layer-related functions can only be used with layers of type <ref LAYERTYPE_TILE>. To get the type of a layer, use <ref Scene.GetLayerType>.
     */
 	INIT_CLASS(Scene);
+	DEF_NATIVE(Scene, Create);
+	DEF_NATIVE(Scene, GetCurrentIndex);
 	DEF_NATIVE(Scene, Load);
 	DEF_NATIVE(Scene, Change);
 	DEF_NATIVE(Scene, ChangeFromPath);
@@ -22856,6 +22897,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(View, GetActiveCount);
 	DEF_NATIVE(View, CheckOnScreen);
 	DEF_NATIVE(View, CheckPosOnScreen);
+	DEF_NATIVE(View, SetScene);
 	// #endregion
 
 	// #region Window

@@ -102,6 +102,7 @@ public:
 	static int DebugMode;
 
 	// General
+	size_t Index = 0;
 	int Frame = 0;
 	bool Paused = false;
 	bool Loaded = false;
@@ -174,6 +175,7 @@ public:
 	char CurrentCategory[256];
 	int ActiveCategory = 0;
 
+	static Scene* Create();
 	static void OnEvent(Uint32 event);
 	static void Init();
 	static void SetViewActive(int viewIndex, bool active);
