@@ -64,11 +64,8 @@ void ScriptManager::RequestGarbageCollection() {
 
 		ForceGarbageCollection();
 
-		// startSize = GarbageCollector::GarbageSize -
-		// startSize;
 		Log::Print(Log::LOG_INFO,
-			"%04X: Freed garbage from %u to %u (%d), next GC at %d",
-			Scene::Frame,
+			"Freed garbage from %u to %u (%d), next GC at %d",
 			(Uint32)startSize,
 			(Uint32)GarbageCollector::GarbageSize,
 			GarbageCollector::GarbageSize - startSize,

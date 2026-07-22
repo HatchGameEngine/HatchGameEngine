@@ -83,15 +83,15 @@ void Camera::Initialize() {
 	MaxY = 0.0;
 	MaxZ = 0.0;
 
-	if (Scene::Layers.size() > 0) {
-		SceneLayer* layer = Scene::Layers[0];
+	if (CurrentScene->Layers.size() > 0) {
+		SceneLayer* layer = CurrentScene->Layers[0];
 
 		MaxX = layer->Width;
 		MaxY = layer->Height;
 
 		if (layer->Type == SceneLayer::TYPE_TILE) {
-			MaxX *= Scene::TileWidth;
-			MaxY *= Scene::TileHeight;
+			MaxX *= CurrentScene->TileWidth;
+			MaxY *= CurrentScene->TileHeight;
 		}
 	}
 

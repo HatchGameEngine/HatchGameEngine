@@ -1,6 +1,8 @@
 #ifndef ENGINE_SCENE_SCENELAYER_H
 #define ENGINE_SCENE_SCENELAYER_H
 
+class Scene;
+
 #include <Engine/Bytecode/Types.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Rendering/Enums.h>
@@ -21,6 +23,7 @@ public:
 
 	char* Name;
 	Uint8 Type;
+	Scene* ScenePtr = nullptr;
 	bool Visible = true;
 
 	int Width = 0;

@@ -3815,6 +3815,8 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 
 // Default Tile Display Line setup
 void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView) {
+	Scene* scene = layer->ScenePtr;
+
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -3823,10 +3825,10 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 	tileSources.clear();
 	isPalettedSources.clear();
 	paletteIDs.clear();
-	srcStrides.reserve(Scene::TileSpriteInfos.size());
-	tileSources.reserve(Scene::TileSpriteInfos.size());
-	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
-	paletteIDs.reserve(Scene::TileSpriteInfos.size());
+	srcStrides.reserve(scene->TileSpriteInfos.size());
+	tileSources.reserve(scene->TileSpriteInfos.size());
+	isPalettedSources.reserve(scene->TileSpriteInfos.size());
+	paletteIDs.reserve(scene->TileSpriteInfos.size());
 
 	int dst_x1 = 0;
 	int dst_y1 = 0;
@@ -3865,7 +3867,7 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 	bool canCollide = (layer->Flags & SceneLayer::FLAGS_COLLIDEABLE);
 
 	int layerWidthInBits = layer->WidthInBits;
-	int layerWidthInPixels = layer->Width * Scene::TileWidth;
+	int layerWidthInPixels = layer->Width * scene->TileWidth;
 	int layerWidth = layer->Width;
 	int sourceTileCellX, sourceTileCellY;
 	int tileID;
@@ -3896,10 +3898,10 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 	int dst_strideY = dst_y1 * dstStride;
 
 	int viewWidth = (int)currentView->Width;
-	int maxTileDraw = ((int)currentView->Stride / Scene::TileWidth) - 1;
+	int maxTileDraw = ((int)currentView->Stride / scene->TileWidth) - 1;
 
-	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+	for (size_t i = 0; i < scene->TileSpriteInfos.size(); i++) {
+		TileSpriteInfo& info = scene->TileSpriteInfos[i];
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
@@ -3909,16 +3911,16 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
 		isPalettedSources.push_back(
 			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
-		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
+		paletteIDs.push_back(scene->Tilesets[info.TilesetID].PaletteID);
 	}
 
 	Uint32 DRAW_COLLISION = 0;
 	int c_pixelsOfTileRemaining, tileFlipOffset;
 	TileConfig* baseTileCfg = NULL;
-	if (Scene::TileCfg.size()) {
-		size_t collisionPlane = Scene::ShowTileCollisionFlag - 1;
-		if (collisionPlane < Scene::TileCfg.size()) {
-			baseTileCfg = Scene::TileCfg[collisionPlane];
+	if (scene->TileCfg.size()) {
+		size_t collisionPlane = scene->ShowTileCollisionFlag - 1;
+		if (collisionPlane < scene->TileCfg.size()) {
+			baseTileCfg = scene->TileCfg[collisionPlane];
 		}
 	}
 
@@ -3957,7 +3959,7 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 		pixelsOfTileRemaining = 16 - srcTX;
 		tile = &layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
 
-		if (isInLayer && (*tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
+		if (isInLayer && (*tile & TILE_IDENT_MASK) != scene->EmptyTile) {
 			tileID = *tile & TILE_IDENT_MASK;
 			if (usePaletteIndexLines) {
 				index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]]
@@ -4061,7 +4063,7 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 			if (canCollide && DRAW_COLLISION) {
 				tileFlipOffset = (((!!(*tile & TILE_FLIPY_MASK)) << 1) |
 							 (!!(*tile & TILE_FLIPX_MASK))) *
-					Scene::TileCount;
+					scene->TileCount;
 
 				bool flipY = !!(*tile & TILE_FLIPY_MASK);
 				bool isCeiling = !!baseTileCfg[tileID].IsCeiling;
@@ -4129,7 +4131,7 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 
 			int srcTYb = srcTY;
 			tileID = *tile & TILE_IDENT_MASK;
-			if (tileID != Scene::EmptyTile) {
+			if (tileID != scene->EmptyTile) {
 				if (usePaletteIndexLines) {
 					index = &Graphics::PaletteColors
 							[Graphics::PaletteIndexLines[dst_y]][0];
@@ -4261,7 +4263,7 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 				if (canCollide && DRAW_COLLISION) {
 					tileFlipOffset = (((!!(*tile & TILE_FLIPY_MASK)) << 1) |
 								 (!!(*tile & TILE_FLIPX_MASK))) *
-						Scene::TileCount;
+						scene->TileCount;
 
 					bool flipY = !!(*tile & TILE_FLIPY_MASK);
 					bool isCeiling = !!baseTileCfg[tileID].IsCeiling;
@@ -4291,7 +4293,7 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 		}
 
 		// Draw rightmost tile in scanline
-		srcX += (maxTileDraw + 1) * Scene::TileWidth;
+		srcX += (maxTileDraw + 1) * scene->TileWidth;
 		if (srcX < 0 || srcX >= layerWidthInPixels) {
 			if ((layer->Flags & SceneLayer::FLAGS_REPEAT_X) == 0) {
 				continue;
@@ -4311,7 +4313,7 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 		c_pixelsOfTileRemaining = pixelsOfTileRemaining;
 		tile = &layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
 
-		if ((*tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
+		if ((*tile & TILE_IDENT_MASK) != scene->EmptyTile) {
 			tileID = *tile & TILE_IDENT_MASK;
 			if (usePaletteIndexLines) {
 				index = &Graphics::PaletteColors[Graphics::PaletteIndexLines[dst_y]]
@@ -4415,7 +4417,7 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 			if (canCollide && DRAW_COLLISION) {
 				tileFlipOffset = (((!!(*tile & TILE_FLIPY_MASK)) << 1) |
 							 (!!(*tile & TILE_FLIPX_MASK))) *
-					Scene::TileCount;
+					scene->TileCount;
 
 				bool flipY = !!(*tile & TILE_FLIPY_MASK);
 				bool isCeiling = !!baseTileCfg[tileID].IsCeiling;
@@ -4441,6 +4443,8 @@ void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* 
 }
 void SoftwareRenderer::DrawTileLayer_VerticalParallax(TileLayer* layer, View* currentView) {}
 void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View* currentView) {
+	Scene* scene = layer->ScenePtr;
+
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -4455,7 +4459,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 		return;
 	}
 
-	if (Scene::TileWidth == 16 && Scene::TileHeight == 16) {
+	if (scene->TileWidth == 16 && scene->TileHeight == 16) {
 		if (blendState.Mode == BlendFlag_OPAQUE) {
 			DrawTileLayer_CustomTileScanLines_Opaque_16x16(layer, currentView);
 		}
@@ -4473,10 +4477,10 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 	tileSources.clear();
 	isPalettedSources.clear();
 	paletteIDs.clear();
-	srcStrides.reserve(Scene::TileSpriteInfos.size());
-	tileSources.reserve(Scene::TileSpriteInfos.size());
-	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
-	paletteIDs.reserve(Scene::TileSpriteInfos.size());
+	srcStrides.reserve(scene->TileSpriteInfos.size());
+	tileSources.reserve(scene->TileSpriteInfos.size());
+	isPalettedSources.reserve(scene->TileSpriteInfos.size());
+	paletteIDs.reserve(scene->TileSpriteInfos.size());
 
 	int dst_x1 = 0;
 	int dst_y1 = 0;
@@ -4512,16 +4516,16 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 		return;
 	}
 
-	int layerWidthInPixels = layer->Width * Scene::TileWidth;
-	int layerHeightInPixels = layer->Height * Scene::TileHeight;
+	int layerWidthInPixels = layer->Width * scene->TileWidth;
+	int layerHeightInPixels = layer->Height * scene->TileHeight;
 	int layerWidthInBits = layer->WidthInBits;
 
 	Uint32 color;
 	Uint32* index;
 	int dst_strideY = dst_y1 * dstStride;
 
-	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+	for (size_t i = 0; i < scene->TileSpriteInfos.size(); i++) {
+		TileSpriteInfo& info = scene->TileSpriteInfos[i];
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
@@ -4531,7 +4535,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
 		isPalettedSources.push_back(
 			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
-		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
+		paletteIDs.push_back(scene->Tilesets[info.TilesetID].PaletteID);
 	}
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
@@ -4547,10 +4551,10 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 		int heightMax = layerHeightInPixels;
 
 		if (scanLine->MaxHorzCells != 0) {
-			widthMax = scanLine->MaxHorzCells * Scene::TileWidth;
+			widthMax = scanLine->MaxHorzCells * scene->TileWidth;
 		}
 		if (scanLine->MaxVertCells != 0) {
-			heightMax = scanLine->MaxVertCells * Scene::TileHeight;
+			heightMax = scanLine->MaxVertCells * scene->TileHeight;
 		}
 
 		PixelFunction linePixelFunction = NULL;
@@ -4607,12 +4611,12 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 				srcTY %= heightMax;
 			}
 
-			int sourceTileCellX = srcTX / Scene::TileWidth;
-			int sourceTileCellY = srcTY / Scene::TileHeight;
+			int sourceTileCellX = srcTX / scene->TileWidth;
+			int sourceTileCellY = srcTY / scene->TileHeight;
 
 			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID != Scene::EmptyTile) {
+			if (tileID != scene->EmptyTile) {
 				// If y-flipped
 				if (tile & TILE_FLIPY_MASK) {
 					srcTY ^= 15;
@@ -4659,6 +4663,8 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View*
 	}
 }
 void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer, View* currentView) {
+	Scene* scene = layer->ScenePtr;
+
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -4667,10 +4673,10 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer
 	tileSources.clear();
 	isPalettedSources.clear();
 	paletteIDs.clear();
-	srcStrides.reserve(Scene::TileSpriteInfos.size());
-	tileSources.reserve(Scene::TileSpriteInfos.size());
-	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
-	paletteIDs.reserve(Scene::TileSpriteInfos.size());
+	srcStrides.reserve(scene->TileSpriteInfos.size());
+	tileSources.reserve(scene->TileSpriteInfos.size());
+	isPalettedSources.reserve(scene->TileSpriteInfos.size());
+	paletteIDs.reserve(scene->TileSpriteInfos.size());
 
 	int dst_x1 = 0;
 	int dst_y1 = 0;
@@ -4706,16 +4712,16 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer
 		return;
 	}
 
-	int layerWidthInPixels = layer->Width * Scene::TileWidth;
-	int layerHeightInPixels = layer->Height * Scene::TileHeight;
+	int layerWidthInPixels = layer->Width * scene->TileWidth;
+	int layerHeightInPixels = layer->Height * scene->TileHeight;
 	int layerWidthInBits = layer->WidthInBits;
 
 	Uint32 color;
 	Uint32* index;
 	int dst_strideY = dst_y1 * dstStride;
 
-	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+	for (size_t i = 0; i < scene->TileSpriteInfos.size(); i++) {
+		TileSpriteInfo& info = scene->TileSpriteInfos[i];
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
@@ -4725,7 +4731,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer
 			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
 		isPalettedSources.push_back(
 			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
-		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
+		paletteIDs.push_back(scene->Tilesets[info.TilesetID].PaletteID);
 	}
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
@@ -4741,10 +4747,10 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer
 		int heightMax = layerHeightInPixels;
 
 		if (scanLine->MaxHorzCells != 0) {
-			widthMax = scanLine->MaxHorzCells * Scene::TileWidth;
+			widthMax = scanLine->MaxHorzCells * scene->TileWidth;
 		}
 		if (scanLine->MaxVertCells != 0) {
-			heightMax = scanLine->MaxVertCells * Scene::TileHeight;
+			heightMax = scanLine->MaxVertCells * scene->TileHeight;
 		}
 
 		for (int dst_x = dst_x1; dst_x < dst_x2; dst_x++) {
@@ -4765,12 +4771,12 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer
 				srcTY %= heightMax;
 			}
 
-			int sourceTileCellX = srcTX / Scene::TileWidth;
-			int sourceTileCellY = srcTY / Scene::TileHeight;
+			int sourceTileCellX = srcTX / scene->TileWidth;
+			int sourceTileCellY = srcTY / scene->TileHeight;
 
 			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID != Scene::EmptyTile) {
+			if (tileID != scene->EmptyTile) {
 				// If y-flipped
 				if (tile & TILE_FLIPY_MASK) {
 					srcTY ^= 15;
@@ -4808,6 +4814,8 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer
 	}
 }
 void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer, View* currentView) {
+	Scene* scene = layer->ScenePtr;
+
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -4816,10 +4824,10 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer,
 	tileSources.clear();
 	isPalettedSources.clear();
 	paletteIDs.clear();
-	srcStrides.reserve(Scene::TileSpriteInfos.size());
-	tileSources.reserve(Scene::TileSpriteInfos.size());
-	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
-	paletteIDs.reserve(Scene::TileSpriteInfos.size());
+	srcStrides.reserve(scene->TileSpriteInfos.size());
+	tileSources.reserve(scene->TileSpriteInfos.size());
+	isPalettedSources.reserve(scene->TileSpriteInfos.size());
+	paletteIDs.reserve(scene->TileSpriteInfos.size());
 
 	int dst_x1 = 0;
 	int dst_y1 = 0;
@@ -4863,8 +4871,8 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer,
 	Uint32* index;
 	int dst_strideY = dst_y1 * dstStride;
 
-	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+	for (size_t i = 0; i < scene->TileSpriteInfos.size(); i++) {
+		TileSpriteInfo& info = scene->TileSpriteInfos[i];
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
@@ -4874,7 +4882,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer,
 			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
 		isPalettedSources.push_back(
 			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
-		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
+		paletteIDs.push_back(scene->Tilesets[info.TilesetID].PaletteID);
 	}
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
@@ -4955,7 +4963,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer,
 
 			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID != Scene::EmptyTile) {
+			if (tileID != scene->EmptyTile) {
 				// If y-flipped
 				if (tile & TILE_FLIPY_MASK) {
 					srcTY ^= 15;
@@ -5004,6 +5012,8 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer,
 	}
 }
 void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer* layer, View* currentView) {
+	Scene* scene = layer->ScenePtr;
+
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -5012,10 +5022,10 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer*
 	tileSources.clear();
 	isPalettedSources.clear();
 	paletteIDs.clear();
-	srcStrides.reserve(Scene::TileSpriteInfos.size());
-	tileSources.reserve(Scene::TileSpriteInfos.size());
-	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
-	paletteIDs.reserve(Scene::TileSpriteInfos.size());
+	srcStrides.reserve(scene->TileSpriteInfos.size());
+	tileSources.reserve(scene->TileSpriteInfos.size());
+	isPalettedSources.reserve(scene->TileSpriteInfos.size());
+	paletteIDs.reserve(scene->TileSpriteInfos.size());
 
 	int dst_x1 = 0;
 	int dst_y1 = 0;
@@ -5059,8 +5069,8 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer*
 	Uint32* index;
 	int dst_strideY = dst_y1 * dstStride;
 
-	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+	for (size_t i = 0; i < scene->TileSpriteInfos.size(); i++) {
+		TileSpriteInfo& info = scene->TileSpriteInfos[i];
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
@@ -5070,7 +5080,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer*
 			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
 		isPalettedSources.push_back(
 			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
-		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
+		paletteIDs.push_back(scene->Tilesets[info.TilesetID].PaletteID);
 	}
 
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
@@ -5115,7 +5125,7 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer*
 
 			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID != Scene::EmptyTile) {
+			if (tileID != scene->EmptyTile) {
 				// If y-flipped
 				if (tile & TILE_FLIPY_MASK) {
 					srcTY ^= 15;
@@ -5153,7 +5163,8 @@ void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer*
 	}
 }
 void SoftwareRenderer::DrawTileLayer(TileLayer* layer, int layerIndex, View* currentView) {
-	if (Scene::Tilesets.size() == 0) {
+	Scene* scene = layer->ScenePtr;
+	if (scene->Tilesets.size() == 0) {
 		return;
 	}
 
@@ -5167,8 +5178,8 @@ void SoftwareRenderer::DrawTileLayer(TileLayer* layer, int layerIndex, View* cur
 
 	// TODO: Implement view rotation
 	if (currentView->IsScaled()) {
-		float constantScrollH = Scene::Frame * layer->ConstantX;
-		float constantScrollV = Scene::Frame * layer->ConstantY;
+		float constantScrollH = scene->Frame * layer->ConstantX;
+		float constantScrollV = scene->Frame * layer->ConstantY;
 		Sint64 srcX = FP16_TO(
 			constantScrollH + (currentView->X * layer->RelativeX) + layer->OffsetX);
 		Sint64 srcY = FP16_TO(

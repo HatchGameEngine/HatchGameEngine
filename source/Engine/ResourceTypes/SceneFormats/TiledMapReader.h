@@ -27,20 +27,20 @@ private:
 	static void ParsePropertyNode(XMLNode* node, HashMap<Property>* properties);
 	static PropertyArray ParsePolyPoints(XMLNode* node);
 	static bool GetRelativeResourcePath(Token source, const char* parentFolder, char *resourcePath, size_t length);
-	static Tileset* ParseTilesetImage(XMLNode* node, int firstgid, const char* parentFolder);
+	static Tileset* ParseTilesetImage(Scene* scene, XMLNode* node, int firstgid, const char* parentFolder);
 	static void
-	ParseTileAnimation(int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node);
-	static void ParseTile(Tileset* tilesetPtr, XMLNode* node);
-	static void LoadTileset(XMLNode* tileset, const char* parentFolder);
+	ParseTileAnimation(Scene* scene, int tileID, int firstgid, Tileset* tilesetPtr, XMLNode* node);
+	static void ParseTile(Scene* scene, Tileset* tilesetPtr, XMLNode* node);
+	static void LoadTileset(Scene* scene, XMLNode* tileset, const char* parentFolder);
 	static void ParseSharedLayerFields(TiledLayer* layer, XMLNode* node);
-	static bool ParseTileLayer(XMLNode* mapLayer, LayerGroup* group);
-	static bool ParseImageLayer(XMLNode* mapLayer, LayerGroup* group, const char* parentFolder);
-	static bool ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group);
-	static bool ParseGroupable(XMLNode* node, LayerGroup* group, const char* parentFolder);
-	static bool ParseGroup(XMLNode* node, LayerGroup* parent, const char* parentFolder);
+	static bool ParseTileLayer(Scene* scene, XMLNode* mapLayer, LayerGroup* group);
+	static bool ParseImageLayer(Scene* scene, XMLNode* mapLayer, LayerGroup* group, const char* parentFolder);
+	static bool ParseObjectGroup(Scene* scene, XMLNode* objectgroup, LayerGroup* group);
+	static bool ParseGroupable(Scene* scene, XMLNode* node, LayerGroup* group, const char* parentFolder);
+	static bool ParseGroup(Scene* scene, XMLNode* node, LayerGroup* parent, const char* parentFolder);
 
 public:
-	static void Read(const char* sourceF, const char* parentFolder);
+	static void Read(Scene* scene, const char* sourceF, const char* parentFolder);
 };
 
 #endif /* ENGINE_RESOURCETYPES_SCENEFORMATS_TILEDMAPREADER_H */

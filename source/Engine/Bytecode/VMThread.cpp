@@ -1528,11 +1528,12 @@ int VMThread::RunInstruction() {
 				char* objectNameChar = AS_CSTRING(receiver);
 				ObjectList* objectList = NULL;
 				ObjectRegistry* registry = NULL;
-				if (Scene::ObjectRegistries->Exists(objectNameChar)) {
-					registry = Scene::ObjectRegistries->Get(objectNameChar);
+				Scene* scene = Scene::Current;
+				if (scene->ObjectRegistries->Exists(objectNameChar)) {
+					registry = scene->ObjectRegistries->Get(objectNameChar);
 				}
-				else if (Scene::ObjectLists->Exists(objectNameChar)) {
-					objectList = Scene::ObjectLists->Get(objectNameChar);
+				else if (scene->ObjectLists->Exists(objectNameChar)) {
+					objectList = scene->ObjectLists->Get(objectNameChar);
 				}
 
 				Pop(); // pop receiver

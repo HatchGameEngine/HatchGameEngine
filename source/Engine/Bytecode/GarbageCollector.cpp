@@ -53,9 +53,11 @@ void GarbageCollector::Collect() {
 	GrayHashMap(ScriptManager::Constants);
 
 	// Mark objects
-	for (Entity* ent = Scene::ObjectFirst; ent; ent = ent->NextSceneEntity) {
-		ScriptEntity* scriptEntity = (ScriptEntity*)ent;
-		GrayObject(scriptEntity->Instance);
+	for (Scene* scene : Scene::List) {
+		for (Entity* ent = scene->ObjectFirst; ent; ent = ent->NextSceneEntity) {
+			ScriptEntity* scriptEntity = (ScriptEntity*)ent;
+			GrayObject(scriptEntity->Instance);
+		}
 	}
 
 	// Mark modules

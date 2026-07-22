@@ -28,11 +28,12 @@ public:
 		char* filename);
 	void RunAnimations();
 	void RestartAnimations();
-	void AddTileAnimSequence(int tileID,
+	bool AddTileAnimSequence(int tileID,
 		TileSpriteInfo* tileSpriteInfo,
 		vector<int>& tileIDs,
-		vector<int>& durations);
-	void AddTileAnimSequence(int tileID,
+		vector<int>& durations,
+		Scene* scene);
+	bool AddTileAnimSequence(int tileID,
 		TileSpriteInfo* tileSpriteInfo,
 		ISprite* animSprite,
 		int animID);

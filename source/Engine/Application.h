@@ -27,6 +27,8 @@
 
 #define DEFAULT_SAVES_DIR "saves"
 
+class ObjectList;
+
 class Application {
 private:
 	static char GameIdentifier[256];
@@ -57,6 +59,7 @@ private:
 	ValidateAndSetIdentifier(const char* name, const char* id, char* dest, size_t destSize);
 	static void UnloadDefaultFont();
 	static void GetPerformanceSnapshot();
+	static void GetObjectPerformanceSnapshot(std::vector<ObjectList*> objListPerf);
 	static void CreateWindow();
 	static void EndGame();
 	static void UnloadGame();
@@ -68,13 +71,14 @@ private:
 	static bool ValidateAndSetIdentifier(const char* name, const char* id, char* dest);
 	static void PollEvents();
 	static void RunFrame(int runFrames);
+	static void DoSceneUpdate(int runFrames);
 	static void MainLoop();
 	static void MainLoopCallback(void* p);
 	static void TakeScreenshotCallback(OperationResult result);
 	static void DrawPerformance();
 	static void DelayFrame();
 	static void SetUseFixedTimestep(bool useFixedTimestep);
-	static void StartGame(const char* startingScene);
+	static void StartGame(const char* sceneToLoad);
 	static void LoadGameConfig();
 	static void DisposeGameConfig();
 	static string ParseGameVersion(XMLNode* versionNode);

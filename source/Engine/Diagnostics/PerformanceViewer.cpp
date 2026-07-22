@@ -223,37 +223,43 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 		listY += (maxH * 0.6) * 1.5;
 	}
 
-	vector<ObjectList*> objListPerf = Scene::GetObjectListPerformance();
-	for (size_t i = 0; i < objListPerf.size(); i++) {
-		ObjectList* list = objListPerf[i];
+	for (Scene* scene : Scene::List) {
+		vector<ObjectList*> objListPerf = scene->GetObjectListPerformance();
+		if (objListPerf.size() == 0) {
+			continue;
+		}
 
-		Graphics::Save();
-		Graphics::Translate(infoPadding / 2.0, listY, 0.0);
-		Graphics::Scale(0.6, 0.6, 1.0);
+		for (size_t i = 0; i < objListPerf.size(); i++) {
+			ObjectList* list = objListPerf[i];
 
-		char textBufferXXX[1024];
-		snprintf(textBufferXXX,
-			sizeof textBufferXXX,
-			"Object \"%s\": Avg Update %.1f mcs - Avg Render %.1f mcs (Total %.1f mcs, Count %d)",
-			list->ObjectName,
-			list->Performance.Update.GetAverageTime(),
-			list->Performance.Render.GetAverageTime(),
-			list->Performance.Render.GetTotalAverageTime(),
-			(int)list->Performance.Render.AverageItemCount);
+			Graphics::Save();
+			Graphics::Translate(infoPadding / 2.0, listY, 0.0);
+			Graphics::Scale(0.6, 0.6, 1.0);
 
-		float maxW = 0.0, maxH = 0.0;
-		Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.75);
-		Graphics::MeasureText(font, textBufferXXX, &textParams, maxW, maxH);
-		Graphics::FillRectangle(textX, textY, maxW, maxH);
+			char textBufferXXX[1024];
+			snprintf(textBufferXXX,
+				sizeof textBufferXXX,
+				"Object \"%s\": Avg Update %.1f mcs - Avg Render %.1f mcs (Total %.1f mcs, Count %d)",
+				list->ObjectName,
+				list->Performance.Update.GetAverageTime(),
+				list->Performance.Render.GetAverageTime(),
+				list->Performance.Render.GetTotalAverageTime(),
+				(int)list->Performance.Render.AverageItemCount);
 
-		Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-		Graphics::DrawText(font, textBufferXXX, textX, textY, &textParams);
-		Graphics::Restore();
+			float maxW = 0.0, maxH = 0.0;
+			Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.75);
+			Graphics::MeasureText(font, textBufferXXX, &textParams, maxW, maxH);
+			Graphics::FillRectangle(textX, textY, maxW, maxH);
 
-		listY += maxH * 0.6;
+			Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+			Graphics::DrawText(font, textBufferXXX, textX, textY, &textParams);
+			Graphics::Restore();
 
-		if (listY >= wh) {
-			break;
+			listY += maxH * 0.6;
+
+			if (listY >= wh) {
+				break;
+			}
 		}
 	}
 

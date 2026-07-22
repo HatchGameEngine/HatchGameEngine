@@ -871,7 +871,7 @@ bool ScriptEntity::ChangeClass(const char* className) {
 		return false;
 	}
 
-	ObjectList* objectList = Scene::GetObjectList(className);
+	ObjectList* objectList = CurrentScene->GetObjectList(className);
 	if (!objectList) {
 		return false;
 	}

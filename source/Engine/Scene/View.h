@@ -6,6 +6,8 @@
 #include <Engine/Rendering/Shader.h>
 #include <Engine/Rendering/Texture.h>
 
+class Scene;
+
 #define MIN_VIEW_SCALE 0.01f
 
 class View {
@@ -42,6 +44,7 @@ public:
 	Matrix4x4* ProjectionMatrix = NULL;
 	Matrix4x4* ViewMatrix = NULL;
 	Shader* CurrentShader = NULL;
+	Scene* ScenePtr = NULL;
 
 	bool IsUsingDrawTarget();
 	bool IsScaled();

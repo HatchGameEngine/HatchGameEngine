@@ -3937,6 +3937,8 @@ void GLRenderer::DeleteFrameBufferID(ISprite* sprite) {
 	}
 }
 void GLRenderer::DrawBufferedTileLayer(TileLayer* layer) {
+	Scene* scene = layer->ScenePtr;
+
 	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
 
 	if (layer->RemakeTileBuffers) {
@@ -3952,7 +3954,7 @@ void GLRenderer::DrawBufferedTileLayer(TileLayer* layer) {
 			paletteID = PALETTE_INDEX_TABLE_ID;
 		}
 		else {
-			paletteID = Scene::Tilesets[i].PaletteID;
+			paletteID = scene->Tilesets[i].PaletteID;
 		}
 
 		for (std::unordered_map<Texture*, LayerTextureBatch>::iterator it = batch->TextureBatches.begin();
@@ -4003,6 +4005,8 @@ static void GL_MakeBatchedTileData(GL_AnimFrameVert* vert, AnimFrame* frame, flo
 }
 
 void GLRenderer::MakeLayerTileBuffers(TileLayer* layer) {
+	Scene* scene = layer->ScenePtr;
+
 	DeleteLayerTileBuffers(layer);
 
 	layer->TileBufferIndexes = (size_t*)Memory::Malloc(layer->WidthData * layer->HeightData * sizeof(size_t));
@@ -4010,7 +4014,7 @@ void GLRenderer::MakeLayerTileBuffers(TileLayer* layer) {
 		return;
 	}
 
-	for (size_t i = 0; i < Scene::Tilesets.size(); i++) {
+	for (size_t i = 0; i < scene->Tilesets.size(); i++) {
 		layer->TileBuffers.push_back(new LayerTileBuffers());
 	}
 
@@ -4018,12 +4022,12 @@ void GLRenderer::MakeLayerTileBuffers(TileLayer* layer) {
 		for (int xx = 0; xx < layer->Width; xx++) {
 			size_t tileIndex = xx + (yy << layer->WidthInBits);
 			int tileID = layer->Tiles[tileIndex] & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == scene->EmptyTile) {
 				layer->TileBufferIndexes[tileIndex] = SIZE_MAX;
 				continue;
 			}
 
-			TileSpriteInfo info = Scene::TileSpriteInfos[tileID];
+			TileSpriteInfo info = scene->TileSpriteInfos[tileID];
 			if (info.IsAnimated) {
 				layer->TileBufferIndexes[tileIndex] = SIZE_MAX;
 				continue;
@@ -4072,17 +4076,17 @@ void GLRenderer::MakeLayerTileBuffers(TileLayer* layer) {
 		for (int xx = 0; xx < layer->Width; xx++) {
 			int tile = layer->Tiles[xx + (yy << layer->WidthInBits)];
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == scene->EmptyTile) {
 				continue;
 			}
 
-			float tileX = (xx * Scene::TileWidth) + (Scene::TileWidth / 2);
-			float tileY = (yy * Scene::TileHeight) + (Scene::TileHeight / 2);
+			float tileX = (xx * scene->TileWidth) + (scene->TileWidth / 2);
+			float tileY = (yy * scene->TileHeight) + (scene->TileHeight / 2);
 
 			bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 			bool flipY = (tile & TILE_FLIPY_MASK) != 0;
 
-			TileSpriteInfo info = Scene::TileSpriteInfos[tileID];
+			TileSpriteInfo info = scene->TileSpriteInfos[tileID];
 			if (info.IsAnimated) {
 				continue;
 			}
@@ -4157,6 +4161,8 @@ void GLRenderer::DeleteLayerTileBuffers(TileLayer* layer) {
 }
 
 void GLRenderer::RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIndex) {
+	Scene* scene = layer->ScenePtr;
+
 	GL_AnimFrameVert vert[6];
 
 	if (!layer->UsingTileBuffers) {
@@ -4166,7 +4172,7 @@ void GLRenderer::RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIn
 	LayerTileBuffers* batch = nullptr;
 	if (tilesetIndex >= layer->TileBuffers.size()) {
 		batch = new LayerTileBuffers();
-		layer->TileBuffers.resize(Scene::Tilesets.size(), nullptr);
+		layer->TileBuffers.resize(scene->Tilesets.size(), nullptr);
 		layer->TileBuffers[tilesetIndex] = batch;
 	}
 	else {
@@ -4178,12 +4184,12 @@ void GLRenderer::RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIn
 		for (int xx = 0; xx < layer->Width; xx++) {
 			size_t tileIndex = xx + (yy << layer->WidthInBits);
 			int tileID = layer->Tiles[tileIndex] & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == scene->EmptyTile) {
 				layer->TileBufferIndexes[tileIndex] = SIZE_MAX;
 				continue;
 			}
 
-			TileSpriteInfo info = Scene::TileSpriteInfos[tileID];
+			TileSpriteInfo info = scene->TileSpriteInfos[tileID];
 			if (info.TilesetID != tilesetIndex || info.IsAnimated) {
 				continue;
 			}
@@ -4221,17 +4227,17 @@ void GLRenderer::RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIn
 		for (int xx = 0; xx < layer->Width; xx++) {
 			int tile = layer->Tiles[xx + (yy << layer->WidthInBits)];
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == scene->EmptyTile) {
 				continue;
 			}
 
-			float tileX = (xx * Scene::TileWidth) + (Scene::TileWidth / 2);
-			float tileY = (yy * Scene::TileHeight) + (Scene::TileHeight / 2);
+			float tileX = (xx * scene->TileWidth) + (scene->TileWidth / 2);
+			float tileY = (yy * scene->TileHeight) + (scene->TileHeight / 2);
 
 			bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 			bool flipY = (tile & TILE_FLIPY_MASK) != 0;
 
-			TileSpriteInfo info = Scene::TileSpriteInfos[tileID];
+			TileSpriteInfo info = scene->TileSpriteInfos[tileID];
 			if (info.TilesetID != tilesetIndex || info.IsAnimated) {
 				continue;
 			}
@@ -4282,9 +4288,11 @@ void GLRenderer::UpdateBufferedLayerTile(TileLayer* layer, int x, int y) {
 		return;
 	}
 
+	Scene* scene = layer->ScenePtr;
+
 	size_t tileIndex = x + (y << layer->WidthInBits);
 	int tile = layer->Tiles[tileIndex];
-	TileSpriteInfo info = Scene::TileSpriteInfos[tile & TILE_IDENT_MASK];
+	TileSpriteInfo info = scene->TileSpriteInfos[tile & TILE_IDENT_MASK];
 	if (info.IsAnimated) {
 		return;
 	}
@@ -4304,8 +4312,8 @@ void GLRenderer::UpdateBufferedLayerTile(TileLayer* layer, int x, int y) {
 
 	GL_AnimFrameVert vert[6];
 
-	float tileX = (x * Scene::TileWidth) + (Scene::TileWidth / 2);
-	float tileY = (y * Scene::TileHeight) + (Scene::TileHeight / 2);
+	float tileX = (x * scene->TileWidth) + (scene->TileWidth / 2);
+	float tileY = (y * scene->TileHeight) + (scene->TileHeight / 2);
 
 	bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 	bool flipY = (tile & TILE_FLIPY_MASK) != 0;

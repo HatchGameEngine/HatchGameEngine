@@ -2477,10 +2477,11 @@ Sint64 Graphics::CalcHorizontalParallaxPosition(TileLayer* layer,
 	float viewX,
 	float constant,
 	float relative) {
-	Sint64 position = (Sint64)((Scene::Frame * constant) + (viewX * relative) + layer->OffsetX);
+	Scene* scene = layer->ScenePtr;
+	Sint64 position = (Sint64)((scene->Frame * constant) + (viewX * relative) + layer->OffsetX);
 
 	if (layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
-		int layerWidth = layer->Width * Scene::TileWidth;
+		int layerWidth = layer->Width * scene->TileWidth;
 
 		position %= layerWidth;
 
@@ -2499,7 +2500,8 @@ void Graphics::CalcScanlineDeforms(TileLayer* layer,
 	int* deformValues,
 	int deformOffset,
 	TileScanLine* scanLine) {
-	int layerHeight = layer->Height * Scene::TileHeight;
+	Scene* scene = layer->ScenePtr;
+	int layerHeight = layer->Height * scene->TileHeight;
 
 	if (end > MAX_FRAMEBUFFER_HEIGHT) {
 		end = MAX_FRAMEBUFFER_HEIGHT - 1;
@@ -2539,7 +2541,8 @@ void Graphics::CalcScanlineDeforms(TileLayer* layer,
 }
 
 void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentView) {
-	int layerHeight = layer->Height * Scene::TileHeight;
+	Scene* scene = layer->ScenePtr;
+	int layerHeight = layer->Height * scene->TileHeight;
 	int viewHeight = (int)std::ceil(currentView->GetScaledHeight());
 
 	switch (layer->DrawBehavior) {
@@ -2557,7 +2560,7 @@ void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentVi
 		}
 
 		// Create scanlines
-		int scrollLine = (int)((Scene::Frame * layer->ConstantY) +
+		int scrollLine = (int)((scene->Frame * layer->ConstantY) +
 			(viewY * layer->RelativeY) + layer->OffsetY);
 		scrollLine %= layerHeight;
 		if (scrollLine < 0) {
@@ -2595,10 +2598,10 @@ void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentVi
 	case DrawBehavior_CustomTileScanLines: {
 		Sint64 scrollPositionX = (Sint64)(currentView->X * layer->RelativeX);
 		scrollPositionX += (Sint64)layer->OffsetX;
-		scrollPositionX %= layer->Width * Scene::TileWidth;
+		scrollPositionX %= layer->Width * scene->TileWidth;
 		scrollPositionX <<= 16;
 
-		float scrollOffset = Scene::Frame * layer->ConstantY;
+		float scrollOffset = scene->Frame * layer->ConstantY;
 		Sint64 scrollPositionY =
 			(Sint64)(scrollOffset + (currentView->Y * layer->RelativeY));
 		scrollPositionY += (Sint64)layer->OffsetY;
@@ -2620,76 +2623,15 @@ void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentVi
 	}
 }
 
-void Graphics::DrawTile(TileSpriteInfo& info, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
-	if (!Graphics::GfxFunctions->DrawSprite) {
-		return;
-	}
-
-	int paletteID;
-	if (usePaletteIndexLines) {
-		paletteID = PALETTE_INDEX_TABLE_ID;
-	}
-	else {
-		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
-	}
-
-	Graphics::GfxFunctions->DrawSprite(info.Sprite,
-		info.AnimationIndex,
-		info.FrameIndex,
-		x,
-		y,
-		flipX,
-		flipY,
-		1.0f,
-		1.0f,
-		0.0,
-		(int)paletteID);
-}
-void Graphics::DrawTilePart(TileSpriteInfo& info,
-	int sx,
-	int sy,
-	int sw,
-	int sh,
-	int x,
-	int y,
-	bool flipX,
-	bool flipY,
-	bool usePaletteIndexLines) {
-	if (!Graphics::GfxFunctions->DrawSpritePart) {
-		return;
-	}
-
-	int paletteID;
-	if (usePaletteIndexLines) {
-		paletteID = PALETTE_INDEX_TABLE_ID;
-	}
-	else {
-		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
-	}
-
-	Graphics::GfxFunctions->DrawSpritePart(info.Sprite,
-		info.AnimationIndex,
-		info.FrameIndex,
-		sx,
-		sy,
-		sw,
-		sh,
-		x,
-		y,
-		flipX,
-		flipY,
-		1.0f,
-		1.0f,
-		0.0,
-		(int)paletteID);
-}
 void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView, bool onlyAnimated, int drawTileCollision) {
+	Scene* scene = layer->ScenePtr;
+
 	float viewX = currentView->X;
 	float viewY = currentView->Y;
 
-	int tileWidth = Scene::TileWidth;
+	int tileWidth = scene->TileWidth;
 	int tileWidthHalf = tileWidth >> 1;
-	int tileHeight = Scene::TileHeight;
+	int tileHeight = scene->TileHeight;
 	int tileHeightHalf = tileHeight >> 1;
 
 	int layerWidthInBits = layer->WidthInBits;
@@ -2703,8 +2645,8 @@ void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentV
 	int endX = (int)viewWidth + tileWidth;
 	int endY = (int)viewHeight + tileHeight;
 
-	float constantScrollH = Scene::Frame * layer->ConstantX;
-	float constantScrollV = Scene::Frame * layer->ConstantY;
+	float constantScrollH = scene->Frame * layer->ConstantX;
+	float constantScrollV = scene->Frame * layer->ConstantY;
 
 	int rowStartX = (int)(constantScrollH + (viewX * layer->RelativeX) + layer->OffsetX);
 	int srcY = (int)(constantScrollV + (viewY * layer->RelativeY) + layer->OffsetY);
@@ -2743,8 +2685,8 @@ void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentV
 
 	if (drawTileCollision != 0) {
 		size_t collisionPlane = drawTileCollision - 1;
-		if (collisionPlane < Scene::TileCfg.size()) {
-			baseTileCfg = Scene::TileCfg[collisionPlane];
+		if (collisionPlane < scene->TileCfg.size()) {
+			baseTileCfg = scene->TileCfg[collisionPlane];
 		}
 
 		// No tile config?
@@ -2792,7 +2734,7 @@ void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentV
 				(sourceTileCellY << layerWidthInBits)];
 
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == scene->EmptyTile) {
 				continue;
 			}
 
@@ -2833,7 +2775,7 @@ void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentV
 
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
-				int tileFlipOffset = (((flipY) << 1) | flipX) * Scene::TileCount;
+				int tileFlipOffset = (((flipY) << 1) | flipX) * scene->TileCount;
 
 				TileConfig* tileCfg = (&baseTileCfg[tileID] + tileFlipOffset);
 				int xx = viewX + (dst_x - (srcX % tileWidth));
@@ -2863,7 +2805,7 @@ void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentV
 				continue;
 			}
 
-			TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
+			TileSpriteInfo& info = scene->TileSpriteInfos[tileID];
 			if (onlyAnimated && !info.IsAnimated) {
 				continue;
 			}
@@ -2876,19 +2818,22 @@ void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentV
 				viewY + ((dst_y - srcTY) + tileHeightHalf),
 				(tile & TILE_FLIPX_MASK) != 0,
 				(tile & TILE_FLIPY_MASK) != 0,
-				usePaletteIndexLines);
+				usePaletteIndexLines,
+				scene);
 		}
 	}
 
 	Graphics::FinishTextureBatching();
 }
 void Graphics::DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* currentView) {
+	Scene* scene = layer->ScenePtr;
+
 	int viewWidth = (int)std::ceil(currentView->GetScaledWidth());
 	int max_y = (int)std::ceil(currentView->GetScaledHeight());
 
-	int tileWidth = Scene::TileWidth;
+	int tileWidth = scene->TileWidth;
 	int tileWidthHalf = tileWidth / 2;
-	int tileHeight = Scene::TileHeight;
+	int tileHeight = scene->TileHeight;
 	int tileHeightHalf = tileHeight / 2;
 
 	int layerWidthInBits = layer->WidthInBits;
@@ -2941,9 +2886,9 @@ void Graphics::DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* cur
 			int tile = layer->Tiles[sourceTileCellX +
 				(sourceTileCellY << layerWidthInBits)];
 
-			if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
+			if ((tile & TILE_IDENT_MASK) != scene->EmptyTile) {
 				int tileID = tile & TILE_IDENT_MASK;
-				TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
+				TileSpriteInfo& info = scene->TileSpriteInfos[tileID];
 
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;
 				bool flipY = (tile & TILE_FLIPY_MASK) != 0;
@@ -2965,7 +2910,8 @@ void Graphics::DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* cur
 					currentView->Y + ((dst_y - srcTY) + tileHeightHalf),
 					flipX,
 					flipY,
-					usePaletteIndexLines);
+					usePaletteIndexLines,
+					scene);
 			}
 		}
 
@@ -3030,7 +2976,9 @@ void Graphics::DrawSceneLayer(SceneLayer* layer,
 	}
 }
 void Graphics::DrawTileLayer(TileLayer* layer, View* currentView) {
-	if (Scene::Tilesets.size() == 0) {
+	Scene* scene = layer->ScenePtr;
+
+	if (scene->Tilesets.size() == 0) {
 		return;
 	}
 
@@ -3039,8 +2987,8 @@ void Graphics::DrawTileLayer(TileLayer* layer, View* currentView) {
 			layer->ConstantX != 0.0f || layer->ConstantX != 0.0f ||
 			layer->OffsetX != 0.0f || layer->OffsetY != 0.0f;
 		if (updateViewMatrix) {
-			float constantScrollH = Scene::Frame * layer->ConstantX;
-			float constantScrollV = Scene::Frame * layer->ConstantY;
+			float constantScrollH = scene->Frame * layer->ConstantX;
+			float constantScrollV = scene->Frame * layer->ConstantY;
 
 			float viewX = (int)(constantScrollH + (currentView->X * layer->RelativeX) +
 				layer->OffsetX);
@@ -3075,11 +3023,13 @@ void Graphics::DrawImageLayer(ImageLayer* layer, View* currentView) {
 		return;
 	}
 
+	Scene* scene = layer->ScenePtr;
+
 	float viewX = currentView->X;
 	float viewY = currentView->Y;
 
-	float constantScrollH = Scene::Frame * layer->ConstantX;
-	float constantScrollV = Scene::Frame * layer->ConstantY;
+	float constantScrollH = scene->Frame * layer->ConstantX;
+	float constantScrollV = scene->Frame * layer->ConstantY;
 
 	float x = -(constantScrollH + (viewX * layer->RelativeX) + layer->OffsetX);
 	float y = -(constantScrollV + (viewY * layer->RelativeY) + layer->OffsetY);
@@ -3258,13 +3208,13 @@ void Graphics::BatchRectangleFill(float x, float y, float w, float h, float r, f
 		Graphics::GfxFunctions->FillRectangle(x, y, w, h);
 	}
 }
-void Graphics::BatchTile(TileSpriteInfo& info, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines) {
+void Graphics::BatchTile(TileSpriteInfo& info, int x, int y, bool flipX, bool flipY, bool usePaletteIndexLines, Scene* scene) {
 	int paletteID;
 	if (usePaletteIndexLines) {
 		paletteID = PALETTE_INDEX_TABLE_ID;
 	}
 	else {
-		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+		paletteID = scene->Tilesets[info.TilesetID].PaletteID;
 	}
 
 	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BatchSprite) {
@@ -3302,13 +3252,14 @@ void Graphics::BatchTilePart(TileSpriteInfo& info,
 	int y,
 	bool flipX,
 	bool flipY,
-	bool usePaletteIndexLines) {
+	bool usePaletteIndexLines,
+	Scene* scene) {
 	int paletteID;
 	if (usePaletteIndexLines) {
 		paletteID = PALETTE_INDEX_TABLE_ID;
 	}
 	else {
-		paletteID = Scene::Tilesets[info.TilesetID].PaletteID;
+		paletteID = scene->Tilesets[info.TilesetID].PaletteID;
 	}
 
 	if (Graphics::SupportsBatching && Graphics::GfxFunctions->BatchSpritePart) {
@@ -3616,7 +3567,7 @@ void Graphics::DeleteFrameBufferID(ISprite* sprite) {
 }
 
 bool Graphics::CanBuildLayerTileBuffers(TileLayer* layer) {
-	if (Scene::Tilesets.size() == 0) {
+	if (layer->ScenePtr->Tilesets.size() == 0) {
 		return false;
 	}
 

@@ -159,16 +159,18 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
 	vertexBuffer->FaceCount++;
 }
 void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw, int sh) {
+	Scene* scene = layer->ScenePtr;
+
 	static vector<AnimFrame> animFrames;
 	static vector<Texture*> textureSources;
 	animFrames.clear();
 	textureSources.clear();
-	animFrames.reserve(Scene::TileSpriteInfos.size());
-	textureSources.reserve(Scene::TileSpriteInfos.size());
+	animFrames.reserve(scene->TileSpriteInfos.size());
+	textureSources.reserve(scene->TileSpriteInfos.size());
 
 	int vertexCountPerFace = 4;
-	int tileWidth = Scene::TileWidth;
-	int tileHeight = Scene::TileHeight;
+	int tileWidth = scene->TileWidth;
+	int tileHeight = scene->TileHeight;
 	Uint32 colRGB = CurrentColor;
 
 	Matrix4x4 mvpMatrix;
@@ -183,8 +185,8 @@ void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw,
 	int arrayVertexCount = vertexBuffer->VertexCount;
 	int arrayFaceCount = vertexBuffer->FaceCount;
 
-	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
-		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+	for (size_t i = 0; i < scene->TileSpriteInfos.size(); i++) {
+		TileSpriteInfo& info = scene->TileSpriteInfos[i];
 		animFrames.push_back(
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex]);
 		textureSources.push_back(info.Sprite->Spritesheets[animFrames[i].SheetNumber]);
@@ -195,7 +197,7 @@ void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw,
 		for (int x = sx; x < sw; x++) {
 			Uint32 tileID = (Uint32)(layer->Tiles[x + (y << layer->WidthInBits)] &
 				TILE_IDENT_MASK);
-			if (tileID != Scene::EmptyTile && tileID < Scene::TileSpriteInfos.size()) {
+			if (tileID != scene->EmptyTile && tileID < scene->TileSpriteInfos.size()) {
 				totalVertexCount += vertexCountPerFace;
 			}
 		}
@@ -213,7 +215,7 @@ void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw,
 		for (int x = sx, destX = 0; x < sw; x++, destX++) {
 			Uint32 tileAtPos = layer->Tiles[x + (y << layer->WidthInBits)];
 			Uint32 tileID = tileAtPos & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile || tileID >= Scene::TileSpriteInfos.size()) {
+			if (tileID == scene->EmptyTile || tileID >= scene->TileSpriteInfos.size()) {
 				continue;
 			}
 

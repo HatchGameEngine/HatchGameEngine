@@ -175,8 +175,8 @@ void Entity::SetUpdatePriority(int priority) {
 	// If the scene is loading, NeedEntitySort is set to true,
 	// so that the entities are sorted always and Scene::AddToScene
 	// doesn't have to insert the entities in a sorted manner.
-	if (Scene::Initializing || Created) {
-		Scene::NeedEntitySort = true;
+	if (CurrentScene->Initializing || Created) {
+		CurrentScene->NeedEntitySort = true;
 	}
 }
 bool Entity::BasicCollideWithObject(Entity* other) {
@@ -449,14 +449,14 @@ void Entity::SetDrawGroup(int index) {
 
 	// Remove entry in old list.
 	if (PriorityOld != -1) {
-		DrawGroupList* oldDrawGroupList = Scene::GetDrawGroupNoCheck(PriorityOld);
+		DrawGroupList* oldDrawGroupList = CurrentScene->GetDrawGroupNoCheck(PriorityOld);
 		if (oldDrawGroupList) {
 			oldDrawGroupList->Remove(this);
 		}
 	}
 
 	// Add entry to new list.
-	DrawGroupList* drawGroupList = Scene::GetDrawGroup(index);
+	DrawGroupList* drawGroupList = CurrentScene->GetDrawGroup(index);
 	PriorityListIndex = drawGroupList->GetEntityIndex(this);
 	if (PriorityListIndex == -1) {
 		PriorityListIndex = drawGroupList->Add(this);
@@ -475,7 +475,7 @@ void Entity::CheckDrawGroupChanges() {
 
 	// If hasn't been put in a list yet:
 	if (PriorityListIndex == -1) {
-		DrawGroupList* drawGroupList = Scene::GetDrawGroup(Priority);
+		DrawGroupList* drawGroupList = CurrentScene->GetDrawGroup(Priority);
 		PriorityListIndex = drawGroupList->GetEntityIndex(this);
 		if (PriorityListIndex == -1) {
 			PriorityListIndex = drawGroupList->Add(this);
@@ -491,7 +491,7 @@ void Entity::CheckDrawGroupChanges() {
 void Entity::CheckDepthChanges() {
 	// Sort list if needed
 	if (Depth != OldDepth) {
-		DrawGroupList* drawGroupList = Scene::GetDrawGroup(Priority);
+		DrawGroupList* drawGroupList = CurrentScene->GetDrawGroup(Priority);
 		drawGroupList->NeedsSorting = true;
 	}
 
@@ -509,8 +509,8 @@ void Entity::Copy(Entity* other) {
 		other->List->Add(other);
 	}
 
-	for (int l = 0; l < Scene::PriorityPerLayer; l++) {
-		DrawGroupList* drawGroupList = Scene::PriorityLists[l];
+	for (int l = 0; l < CurrentScene->PriorityPerLayer; l++) {
+		DrawGroupList* drawGroupList = CurrentScene->PriorityLists[l];
 		if (drawGroupList) {
 			if (drawGroupList->Contains(this)) {
 				// If the other object isn't in this priority

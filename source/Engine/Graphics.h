@@ -1,5 +1,6 @@
 #ifndef ENGINE_GRAPHICS_H
 #define ENGINE_GRAPHICS_H
+class Scene;
 class ISprite;
 class IModel;
 
@@ -411,22 +412,6 @@ public:
 		LegacyTextDrawParams* params,
 		float& maxW,
 		float& maxH);
-	static void DrawTile(TileSpriteInfo& info,
-		int x,
-		int y,
-		bool flipX,
-		bool flipY,
-		bool usePaletteIndexLines);
-	static void DrawTilePart(TileSpriteInfo& info,
-		int sx,
-		int sy,
-		int sw,
-		int sh,
-		int x,
-		int y,
-		bool flipX,
-		bool flipY,
-		bool usePaletteIndexLines);
 	static void DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentView);
 	static void DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView, bool onlyAnimated = false, int drawTileCollision = 0);
 	static void DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* currentView);
@@ -449,7 +434,8 @@ public:
 		int y,
 		bool flipX,
 		bool flipY,
-		bool usePaletteIndexLines);
+		bool usePaletteIndexLines,
+		Scene* scene);
 	static void BatchTilePart(TileSpriteInfo& info,
 		int sx,
 		int sy,
@@ -459,7 +445,8 @@ public:
 		int y,
 		bool flipX,
 		bool flipY,
-		bool usePaletteIndexLines);
+		bool usePaletteIndexLines,
+		Scene* scene);
 	static void FinishTextureBatching();
 	static void DrawPolygon3D(void* data,
 		int vertexCount,

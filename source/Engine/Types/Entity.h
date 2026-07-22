@@ -1,5 +1,6 @@
 #ifndef ENGINE_TYPES_ENTITY_H
 #define ENGINE_TYPES_ENTITY_H
+class Scene;
 class Entity;
 class ObjectList;
 
@@ -149,6 +150,7 @@ public:
 	Entity* NextEntityInList = NULL;
 	Entity* PrevSceneEntity = NULL;
 	Entity* NextSceneEntity = NULL;
+	Scene* CurrentScene = NULL;
 
 	HashMap<Property>* Properties = NULL;
 

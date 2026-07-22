@@ -106,6 +106,16 @@ public:
 			}
 		}
 	}
+	void EraseIf(std::function<bool(Uint32, T)> eraseFunc) {
+		for (auto it = Data.begin(); it != Data.end();) {
+			if (eraseFunc(it->first, it->second)) {
+				it = Data.erase(it);
+			}
+			else {
+				it++;
+			}
+		}
+	}
 
 	void GetBytes(Uint8* bytes) {
 		size_t stride = sizeof(Uint32) + sizeof(T);

@@ -315,12 +315,12 @@ VMValue EntityImpl::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadI
 	}
 
 	ObjectRegistry* objectRegistry;
-	if (!Scene::ObjectRegistries->Exists(registry)) {
+	if (!self->CurrentScene->ObjectRegistries->Exists(registry)) {
 		objectRegistry = new ObjectRegistry();
-		Scene::ObjectRegistries->Put(registry, objectRegistry);
+		self->CurrentScene->ObjectRegistries->Put(registry, objectRegistry);
 	}
 	else {
-		objectRegistry = Scene::ObjectRegistries->Get(registry);
+		objectRegistry = self->CurrentScene->ObjectRegistries->Get(registry);
 	}
 
 	objectRegistry->Add(self);
@@ -339,11 +339,11 @@ VMValue EntityImpl::VM_IsInRegistry(int argCount, VMValue* args, Uint32 threadID
 	ScriptEntity* self = GET_ENTITY(0);
 	char* registry = GET_ARG(1, GetString);
 
-	if (!self || !Scene::ObjectRegistries->Exists(registry)) {
+	if (!self || !self->CurrentScene->ObjectRegistries->Exists(registry)) {
 		return NULL_VAL;
 	}
 
-	ObjectRegistry* objectRegistry = Scene::ObjectRegistries->Get(registry);
+	ObjectRegistry* objectRegistry = self->CurrentScene->ObjectRegistries->Get(registry);
 
 	return INTEGER_VAL(objectRegistry->Contains(self));
 }
@@ -358,11 +358,11 @@ VMValue EntityImpl::VM_RemoveFromRegistry(int argCount, VMValue* args, Uint32 th
 	ScriptEntity* self = GET_ENTITY(0);
 	char* registry = GET_ARG(1, GetString);
 
-	if (!self || !Scene::ObjectRegistries->Exists(registry)) {
+	if (!self || !self->CurrentScene->ObjectRegistries->Exists(registry)) {
 		return NULL_VAL;
 	}
 
-	ObjectRegistry* objectRegistry = Scene::ObjectRegistries->Get(registry);
+	ObjectRegistry* objectRegistry = self->CurrentScene->ObjectRegistries->Get(registry);
 
 	objectRegistry->Remove(self);
 
@@ -439,16 +439,16 @@ VMValue EntityImpl::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 th
 		return NULL_VAL;
 	}
 
-	if (!Scene::ObjectLists) {
+	if (!self->CurrentScene->ObjectLists) {
 		return NULL_VAL;
 	}
-	if (!Scene::ObjectRegistries) {
+	if (!self->CurrentScene->ObjectRegistries) {
 		return NULL_VAL;
 	}
 
 	char* object = GET_ARG(1, GetString);
-	if (!Scene::ObjectRegistries->Exists(object)) {
-		if (!Scene::ObjectLists->Exists(object)) {
+	if (!self->CurrentScene->ObjectRegistries->Exists(object)) {
+		if (!self->CurrentScene->ObjectLists->Exists(object)) {
 			return NULL_VAL;
 		}
 	}
@@ -458,7 +458,7 @@ VMValue EntityImpl::VM_CollidedWithObject(int argCount, VMValue* args, Uint32 th
 	}
 
 	ScriptEntity* other = NULL;
-	ObjectList* objectList = Scene::ObjectLists->Get(object);
+	ObjectList* objectList = self->CurrentScene->ObjectLists->Get(object);
 
 	other = (ScriptEntity*)objectList->EntityFirst;
 	for (Entity* next; other; other = (ScriptEntity*)next) {
@@ -824,7 +824,7 @@ VMValue EntityImpl::VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 thread
 			MAX_PRIORITY_PER_LAYER - 1);
 		return NULL_VAL;
 	}
-	DrawGroupList* drawGroupList = Scene::GetDrawGroup(drawGroup);
+	DrawGroupList* drawGroupList = self->CurrentScene->GetDrawGroup(drawGroup);
 	if (!drawGroupList->Contains(self)) {
 		drawGroupList->Add(self);
 	}
@@ -851,7 +851,7 @@ VMValue EntityImpl::VM_IsInDrawGroup(int argCount, VMValue* args, Uint32 threadI
 			MAX_PRIORITY_PER_LAYER - 1);
 		return NULL_VAL;
 	}
-	DrawGroupList* drawGroupList = Scene::GetDrawGroupNoCheck(drawGroup);
+	DrawGroupList* drawGroupList = self->CurrentScene->GetDrawGroupNoCheck(drawGroup);
 	if (drawGroupList) {
 		return INTEGER_VAL(drawGroupList->Contains(self));
 	}
@@ -877,7 +877,7 @@ VMValue EntityImpl::VM_RemoveFromDrawGroup(int argCount, VMValue* args, Uint32 t
 			MAX_PRIORITY_PER_LAYER - 1);
 		return NULL_VAL;
 	}
-	DrawGroupList* drawGroupList = Scene::GetDrawGroupNoCheck(drawGroup);
+	DrawGroupList* drawGroupList = self->CurrentScene->GetDrawGroupNoCheck(drawGroup);
 	if (drawGroupList) {
 		drawGroupList->Remove(self);
 	}

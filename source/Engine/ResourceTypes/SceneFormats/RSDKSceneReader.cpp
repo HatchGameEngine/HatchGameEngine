@@ -227,14 +227,14 @@ void RSDKSceneReader::LoadPropertyList() {
 
 	r->Close();
 }
-bool RSDKSceneReader::Read(const char* filename, const char* parentFolder) {
+bool RSDKSceneReader::Read(Scene* scene, const char* filename, const char* parentFolder) {
 	Stream* r = ResourceStream::New(filename);
 	if (!r) {
 		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 		return false;
 	}
 
-	return RSDKSceneReader::Read(r, parentFolder);
+	return RSDKSceneReader::Read(scene, r, parentFolder);
 }
 TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 	r->ReadByte(); // Ignored Byte
@@ -326,7 +326,7 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 
 	return layer;
 }
-bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const int maxObjSlots) {
+bool RSDKSceneReader::ReadObjectDefinition(Scene* scene, Stream* r, Entity** objSlots, const int maxObjSlots) {
 	Uint8 hashTemp[16];
 	r->ReadBytes(hashTemp, 16);
 
@@ -346,7 +346,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 
 	ObjectList* objectList = nullptr;
 	if (objectName) {
-		objectList = Scene::GetStaticObjectList(objectName);
+		objectList = scene->GetStaticObjectList(objectName);
 	}
 	if (!objectList) {
 		if (objectName != NULL) {
@@ -558,7 +558,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 		}
 
 		// Can't spawn in this scene
-		if (!(filter & Scene::Filter)) {
+		if (!(filter & scene->Filter)) {
 			properties->ForAll([](Uint32, Property property) -> void {
 				Property::Delete(property);
 			});
@@ -567,7 +567,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 		}
 
 		// Spawn the entity
-		Entity* obj = Scene::TrySpawnObject(objectList, posX / 65536.f, posY / 65536.f);
+		Entity* obj = scene->TrySpawnObject(objectList, posX / 65536.f, posY / 65536.f);
 		if (obj != nullptr) {
 			obj->SlotID = slotID + Scene::ReservedSlotIDs;
 			obj->Filter = filter;
@@ -575,7 +575,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 
 			// HACK: This is so Player ends up in the current SlotID, since this currently cannot be changed during runtime.
 			if (objectNameHash2 == HACK_PlayerNameHash) {
-				Scene::AddStatic(obj->List, obj);
+				scene->AddStatic(obj->List, obj);
 			}
 			else {
 				objSlots[slotID] = obj;
@@ -591,7 +591,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 
 	return true;
 }
-bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
+bool RSDKSceneReader::Read(Scene* scene, Stream* r, const char* parentFolder) {
 	// Load PropertyList and ObjectList and others
 	// (use regular malloc and calloc as this is technically a hack
 	// outside the scope of the engine)
@@ -613,14 +613,14 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 		return false;
 	}
 
-	Scene::SceneType = SCENETYPE_RSDK;
+	scene->SceneType = SCENETYPE_RSDK;
 
-	Scene::TileCount = 0x400;
-	Scene::EmptyTile = 0x3FF;
+	scene->TileCount = 0x400;
+	scene->EmptyTile = 0x3FF;
 
-	Scene::FreePriorityLists();
-	Scene::PriorityPerLayer = 16;
-	Scene::InitPriorityLists();
+	scene->FreePriorityLists();
+	scene->PriorityPerLayer = 16;
+	scene->InitPriorityLists();
 
 	r->Skip(16); // 16 bytes
 	r->Skip(r->ReadByte()); // RSDKString
@@ -642,7 +642,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 			layer->Height,
 			layer->DrawGroup);
 
-		Scene::AddLayer(layer);
+		scene->AddLayer(layer);
 	}
 
 	ticks = Clock::GetTicks() - ticks;
@@ -654,7 +654,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	int objectDefinitionCount = r->ReadByte();
 	Log::Print(Log::LOG_VERBOSE, "Object Definition Count: %d", objectDefinitionCount);
 
-	Scene::AddManagers();
+	scene->AddManagers();
 
 	int maxObjSlots = 0x940;
 	Entity** objSlots = (Entity**)calloc(maxObjSlots, sizeof(Entity*));
@@ -666,7 +666,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 
 	// Read each object definition
 	for (int i = 0; i < objectDefinitionCount; i++) {
-		if (!ReadObjectDefinition(r, objSlots, maxObjSlots)) {
+		if (!ReadObjectDefinition(scene, r, objSlots, maxObjSlots)) {
 			free(objSlots);
 			return false;
 		}
@@ -675,7 +675,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	// Add all objects to the static object list
 	for (int i = 0; i < maxObjSlots; i++) {
 		if (objSlots[i]) {
-			Scene::AddStatic(objSlots[i]->List, objSlots[i]);
+			scene->AddStatic(objSlots[i]->List, objSlots[i]);
 		}
 	}
 
@@ -687,7 +687,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	r->Close();
 
 	// Load Tileset and copy palette
-	LoadTileset(parentFolder);
+	LoadTileset(scene, parentFolder);
 
 	const char* gameConfigFilename = "Game/GameConfig.bin";
 	// Load GameConfig palettes
@@ -711,7 +711,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 
 	return true;
 }
-bool RSDKSceneReader::LoadTileset(const char* parentFolder) {
+bool RSDKSceneReader::LoadTileset(Scene* scene, const char* parentFolder) {
 	Graphics::UsePalettes = true;
 
 	char filename16x16Tiles[MAX_RESOURCE_PATH_LENGTH];
@@ -746,41 +746,41 @@ bool RSDKSceneReader::LoadTileset(const char* parentFolder) {
 		return false;
 	}
 
-	int cols = spriteSheet->Width / Scene::TileWidth;
-	int rows = spriteSheet->Height / Scene::TileHeight;
+	int cols = spriteSheet->Width / scene->TileWidth;
+	int rows = spriteSheet->Height / scene->TileHeight;
 
 	tileSprite->ReserveAnimationCount(1);
 	tileSprite->AddAnimation("TileSprite", 0, 0, cols * rows);
 	for (int i = 0; i < cols * rows; i++) {
 		tileSprite->AddFrame(0,
-			(i % cols) * Scene::TileWidth,
-			(i / cols) * Scene::TileHeight,
-			Scene::TileWidth,
-			Scene::TileHeight,
-			-Scene::TileWidth / 2,
-			-Scene::TileHeight / 2);
+			(i % cols) * scene->TileWidth,
+			(i / cols) * scene->TileHeight,
+			scene->TileWidth,
+			scene->TileHeight,
+			-scene->TileWidth / 2,
+			-scene->TileHeight / 2);
 	}
 
 	TileSpriteInfo info;
-	Scene::TileSpriteInfos.clear();
+	scene->TileSpriteInfos.clear();
 	for (int i = 0; i < cols * rows; i++) {
 		info.Sprite = tileSprite;
 		info.AnimationIndex = 0;
 		info.FrameIndex = i;
-		info.TilesetID = Scene::Tilesets.size();
-		Scene::TileSpriteInfos.push_back(info);
+		info.TilesetID = scene->Tilesets.size();
+		scene->TileSpriteInfos.push_back(info);
 	}
 
 	tileSprite->RefreshGraphicsID();
 
 	Tileset sceneTileset(tileSprite,
-		Scene::TileWidth,
-		Scene::TileHeight,
+		scene->TileWidth,
+		scene->TileHeight,
 		0,
 		0,
-		Scene::TileSpriteInfos.size(),
+		scene->TileSpriteInfos.size(),
 		filename16x16Tiles);
-	Scene::Tilesets.push_back(sceneTileset);
+	scene->Tilesets.push_back(sceneTileset);
 
 	return true;
 }

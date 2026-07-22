@@ -745,100 +745,108 @@ void Application::GetPerformanceSnapshot() {
 	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
 		View* currentView = &Scene::Views[i];
 		if (currentView->Active) {
-			layerText[0] = 0;
-			double tilesTotal = 0.0;
-			for (size_t li = 0; li < Scene::Layers.size(); li++) {
-				SceneLayer* layer = Scene::Layers[li];
-				char temp[128];
-				snprintf(temp,
-					sizeof(temp),
-					"     > %24s:   %8.3f ms\n",
-					layer->Name,
-					Scene::PERF_ViewRender[i].LayerTileRenderTime[li]);
-				StringUtils::Concat(layerText, temp, sizeof(layerText));
-				tilesTotal += Scene::PERF_ViewRender[i].LayerTileRenderTime[li];
+			for (Scene* scene : Scene::List) {
+				Perf_ViewRender* viewPerf = &scene->PERF_ViewRender[i];
+				layerText[0] = 0;
+				double tilesTotal = 0.0;
+				for (size_t li = 0; li < scene->Layers.size(); li++) {
+					SceneLayer* layer = scene->Layers[li];
+					char temp[128];
+					snprintf(temp,
+						sizeof(temp),
+						"     > %24s:   %8.3f ms\n",
+						layer->Name,
+						viewPerf->LayerTileRenderTime[li]);
+					StringUtils::Concat(layerText, temp, sizeof(layerText));
+					tilesTotal += viewPerf->LayerTileRenderTime[li];
+				}
+				Log::Print(Log::LOG_INFO,
+					"View %d:\n"
+					"           - Render Setup:        %8.3f ms %s\n"
+					"           - Projection Setup:    %8.3f ms\n"
+					"           - Object RenderEarly:  %8.3f ms\n"
+					"           - Object Render:       %8.3f ms\n"
+					"           - Object RenderLate:   %8.3f ms\n"
+					"           - Layer Tiles Total:   %8.3f ms\n%s"
+					"           - Finish:              %8.3f ms\n"
+					"           - Total:               %8.3f ms",
+					i,
+					viewPerf->RenderSetupTime,
+					viewPerf->RecreatedDrawTarget
+						? "(recreated draw target)"
+						: "",
+					viewPerf->ProjectionSetupTime,
+					viewPerf->ObjectRenderEarlyTime,
+					viewPerf->ObjectRenderTime,
+					viewPerf->ObjectRenderLateTime,
+					tilesTotal,
+					layerText,
+					viewPerf->RenderFinishTime,
+					viewPerf->RenderTime);
 			}
-			Log::Print(Log::LOG_INFO,
-				"View %d:\n"
-				"           - Render Setup:        %8.3f ms %s\n"
-				"           - Projection Setup:    %8.3f ms\n"
-				"           - Object RenderEarly:  %8.3f ms\n"
-				"           - Object Render:       %8.3f ms\n"
-				"           - Object RenderLate:   %8.3f ms\n"
-				"           - Layer Tiles Total:   %8.3f ms\n%s"
-				"           - Finish:              %8.3f ms\n"
-				"           - Total:               %8.3f ms",
-				i,
-				Scene::PERF_ViewRender[i].RenderSetupTime,
-				Scene::PERF_ViewRender[i].RecreatedDrawTarget
-					? "(recreated draw target)"
-					: "",
-				Scene::PERF_ViewRender[i].ProjectionSetupTime,
-				Scene::PERF_ViewRender[i].ObjectRenderEarlyTime,
-				Scene::PERF_ViewRender[i].ObjectRenderTime,
-				Scene::PERF_ViewRender[i].ObjectRenderLateTime,
-				tilesTotal,
-				layerText,
-				Scene::PERF_ViewRender[i].RenderFinishTime,
-				Scene::PERF_ViewRender[i].RenderTime);
 		}
 	}
 
 	// Object Performance Snapshot
-	vector<ObjectList*> objListPerf = Scene::GetObjectListPerformance();
-	if (objListPerf.size() > 0) {
-		double totalUpdateEarly = 0.0;
-		double totalUpdate = 0.0;
-		double totalUpdateLate = 0.0;
-		double totalRender = 0.0;
-		Log::Print(Log::LOG_IMPORTANT, "Object Performance Snapshot:");
-		for (size_t i = 0; i < objListPerf.size(); i++) {
-			ObjectList* list = objListPerf[i];
-			ObjectListPerformance& perf = list->Performance;
-			Log::Print(Log::LOG_INFO,
-				"Object \"%s\":\n"
-				"           - Avg Update Early %6.1f mcs (Total %6.1f mcs, Count %d)\n"
-				"           - Avg Update       %6.1f mcs (Total %6.1f mcs, Count %d)\n"
-				"           - Avg Update Late  %6.1f mcs (Total %6.1f mcs, Count %d)\n"
-				"           - Avg Render       %6.1f mcs (Total %6.1f mcs, Count %d)",
-				list->ObjectName,
-				perf.EarlyUpdate.GetAverageTime(),
-				perf.EarlyUpdate.GetTotalAverageTime(),
-				(int)perf.EarlyUpdate.AverageItemCount,
-				perf.Update.GetAverageTime(),
-				perf.Update.GetTotalAverageTime(),
-				(int)perf.Update.AverageItemCount,
-				perf.LateUpdate.GetAverageTime(),
-				perf.LateUpdate.GetTotalAverageTime(),
-				(int)perf.LateUpdate.AverageItemCount,
-				perf.Render.GetAverageTime(),
-				perf.Render.GetTotalAverageTime(),
-				(int)perf.Render.AverageItemCount);
-
-			totalUpdateEarly += perf.EarlyUpdate.GetTotalAverageTime();
-			totalUpdate += perf.Update.GetTotalAverageTime();
-			totalUpdateLate += perf.LateUpdate.GetTotalAverageTime();
-			totalRender += perf.Render.GetTotalAverageTime();
+	Log::Print(Log::LOG_IMPORTANT, "Object Performance Snapshot:");
+	for (Scene* scene : Scene::List) {
+		vector<ObjectList*> objListPerf = scene->GetObjectListPerformance();
+		if (objListPerf.size() > 0) {
+			GetObjectPerformanceSnapshot(objListPerf);
 		}
-		Log::Print(Log::LOG_WARN,
-			"Total Update Early: %8.3f mcs / %1.3f ms",
-			totalUpdateEarly,
-			totalUpdateEarly / 1000.0);
-		Log::Print(Log::LOG_WARN,
-			"Total Update: %8.3f mcs / %1.3f ms",
-			totalUpdate,
-			totalUpdate / 1000.0);
-		Log::Print(Log::LOG_WARN,
-			"Total Update Late: %8.3f mcs / %1.3f ms",
-			totalUpdateLate,
-			totalUpdateLate / 1000.0);
-		Log::Print(Log::LOG_WARN,
-			"Total Render: %8.3f mcs / %1.3f ms",
-			totalRender,
-			totalRender / 1000.0);
 	}
 
 	Log::Print(Log::LOG_IMPORTANT, "Garbage Size: %u", (Uint32)GarbageCollector::GarbageSize);
+}
+void Application::GetObjectPerformanceSnapshot(std::vector<ObjectList*> objListPerf) {
+	double totalUpdateEarly = 0.0;
+	double totalUpdate = 0.0;
+	double totalUpdateLate = 0.0;
+	double totalRender = 0.0;
+	for (size_t i = 0; i < objListPerf.size(); i++) {
+		ObjectList* list = objListPerf[i];
+		ObjectListPerformance& perf = list->Performance;
+		Log::Print(Log::LOG_INFO,
+			"Object \"%s\":\n"
+			"           - Avg Update Early %6.1f mcs (Total %6.1f mcs, Count %d)\n"
+			"           - Avg Update       %6.1f mcs (Total %6.1f mcs, Count %d)\n"
+			"           - Avg Update Late  %6.1f mcs (Total %6.1f mcs, Count %d)\n"
+			"           - Avg Render       %6.1f mcs (Total %6.1f mcs, Count %d)",
+			list->ObjectName,
+			perf.EarlyUpdate.GetAverageTime(),
+			perf.EarlyUpdate.GetTotalAverageTime(),
+			(int)perf.EarlyUpdate.AverageItemCount,
+			perf.Update.GetAverageTime(),
+			perf.Update.GetTotalAverageTime(),
+			(int)perf.Update.AverageItemCount,
+			perf.LateUpdate.GetAverageTime(),
+			perf.LateUpdate.GetTotalAverageTime(),
+			(int)perf.LateUpdate.AverageItemCount,
+			perf.Render.GetAverageTime(),
+			perf.Render.GetTotalAverageTime(),
+			(int)perf.Render.AverageItemCount);
+
+		totalUpdateEarly += perf.EarlyUpdate.GetTotalAverageTime();
+		totalUpdate += perf.Update.GetTotalAverageTime();
+		totalUpdateLate += perf.LateUpdate.GetTotalAverageTime();
+		totalRender += perf.Render.GetTotalAverageTime();
+	}
+	Log::Print(Log::LOG_WARN,
+		"Total Update Early: %8.3f mcs / %1.3f ms",
+		totalUpdateEarly,
+		totalUpdateEarly / 1000.0);
+	Log::Print(Log::LOG_WARN,
+		"Total Update: %8.3f mcs / %1.3f ms",
+		totalUpdate,
+		totalUpdate / 1000.0);
+	Log::Print(Log::LOG_WARN,
+		"Total Update Late: %8.3f mcs / %1.3f ms",
+		totalUpdateLate,
+		totalUpdateLate / 1000.0);
+	Log::Print(Log::LOG_WARN,
+		"Total Render: %8.3f mcs / %1.3f ms",
+		totalRender,
+		totalRender / 1000.0);
 }
 double Application::GetOverdelay() {
 	return Overdelay;
@@ -913,7 +921,7 @@ void Application::EndGame() {
 
 	InputManager::ControllerStopRumble();
 
-	Scene::Dispose();
+	Scene::StaticDispose();
 	SceneInfo::Dispose();
 	Graphics::UnloadData();
 
@@ -940,6 +948,10 @@ void Application::UnloadGame() {
 }
 
 void Application::Restart(bool keepScene) {
+	Scene* scene = &Scene::Main;
+	int activeCategory = scene->ActiveCategory;
+	int currentSceneInList = scene->CurrentSceneInList;
+
 	Application::EndGame();
 
 	Graphics::Reset();
@@ -951,7 +963,7 @@ void Application::Restart(bool keepScene) {
 	Application::LoadGameInfo();
 	Application::ReloadSettings();
 	if (keepScene) {
-		Application::LoadSceneInfo(Scene::ActiveCategory, Scene::CurrentSceneInList, true);
+		Application::LoadSceneInfo(activeCategory, currentSceneInList, true);
 	}
 	else {
 		Application::LoadSceneInfo(0, 0, false);
@@ -1466,24 +1478,26 @@ void Application::PollEvents() {
 				}
 				// Show layer info (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevLayerInfo]) {
-					for (size_t li = 0; li < Scene::Layers.size(); li++) {
-						SceneLayer* layer = Scene::Layers[li];
-						Log::Print(Log::LOG_IMPORTANT,
-							"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeX: %f, RelativeY: %f, ConstantX: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
-							li,
-							layer->Name,
-							layer->Visible,
-							layer->Width,
-							layer->Height,
-							layer->OffsetX,
-							layer->OffsetY,
-							layer->RelativeX,
-							layer->RelativeY,
-							layer->ConstantX,
-							layer->ConstantY,
-							layer->DrawGroup,
-							layer->DrawBehavior,
-							layer->Flags);
+					for (Scene* scene : Scene::List) {
+						for (size_t li = 0; li < scene->Layers.size(); li++) {
+							SceneLayer* layer = scene->Layers[li];
+							Log::Print(Log::LOG_IMPORTANT,
+								"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeX: %f, RelativeY: %f, ConstantX: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
+								li,
+								layer->Name,
+								layer->Visible,
+								layer->Width,
+								layer->Height,
+								layer->OffsetX,
+								layer->OffsetY,
+								layer->RelativeX,
+								layer->RelativeY,
+								layer->ConstantX,
+								layer->ConstantY,
+								layer->DrawGroup,
+								layer->DrawBehavior,
+								layer->Flags);
+						}
 					}
 					break;
 				}
@@ -1496,7 +1510,7 @@ void Application::PollEvents() {
 				else if (key == KeyBindsSDL[(int)KeyBind::DevRecompile]) {
 					char lastScene[MAX_RESOURCE_PATH_LENGTH];
 					memcpy(lastScene,
-						Scene::CurrentScene,
+						Scene::Main.CurrentScene,
 						MAX_RESOURCE_PATH_LENGTH);
 
 					Application::Restart(true);
@@ -1522,7 +1536,9 @@ void Application::PollEvents() {
 						Application::CloseDevMenu();
 					}
 
-					Scene::DoRestart = true;
+					for (Scene* scene : Scene::List) {
+						scene->DoRestart = true;
+					}
 					break;
 				}
 				// Enable update speedup (dev)
@@ -1625,14 +1641,20 @@ void Application::RunFrame(int runFrames) {
 
 	// BUG: Having Stepper on prevents the first
 	//   frame of a new scene from Updating, but still rendering.
-	if (*Scene::NextScene || Scene::DoRestart) {
-		Step = true;
+	for (Scene* scene : Scene::List) {
+		if (*scene->NextScene || scene->DoRestart) {
+			Step = true;
+		}
 	}
 
 	FirstFrame = false;
 
 	Metrics.AfterScene.Begin();
-	Scene::AfterScene();
+	for (size_t i = 0; i < Scene::List.size(); i++) {
+		Scene* scene = Scene::List[i];
+		Scene::Current = scene;
+		scene->AfterScene();
+	}
 	Metrics.AfterScene.End();
 
 	if (DoNothing) {
@@ -1640,43 +1662,7 @@ void Application::RunFrame(int runFrames) {
 	}
 
 	// Update
-	for (int m = 0; m < runFrames; m++) {
-		Scene::ResetPerf();
-		Metrics.Poll.Reset();
-		Metrics.Update.Reset();
-		if (((Stepper && Step) || !Stepper) && !Application::DevMenuActivated) {
-			// Poll for inputs
-			Metrics.Poll.Begin();
-			InputManager::Poll();
-			Metrics.Poll.Accumulate();
-
-			// Update scene
-			Metrics.Update.Begin();
-			Scene::FrameUpdate();
-			if (Application::UseFixedTimestep) {
-				Scene::FixedUpdate();
-			}
-			else {
-				Scene::Update();
-
-				while (FixedUpdateCounter >= FixedFrameTimeDesired) {
-					Scene::FixedUpdate();
-
-					FixedUpdateCounter -= FixedFrameTimeDesired;
-				}
-			}
-			Metrics.Update.Accumulate();
-		}
-		else if (!Application::UseFixedTimestep) {
-			while (FixedUpdateCounter >= FixedFrameTimeDesired) {
-				FixedUpdateCounter -= FixedFrameTimeDesired;
-			}
-		}
-		Step = false;
-		if (runFrames != 1 && (*Scene::NextScene || Scene::DoRestart)) {
-			break;
-		}
-	}
+	DoSceneUpdate(runFrames);
 
 #ifdef USING_FFMPEG
 	AudioManager::Lock();
@@ -1734,6 +1720,57 @@ DO_NOTHING:
 	Metrics.Present.End();
 
 	Metrics.Frame.End();
+}
+void Application::DoSceneUpdate(int runFrames) {
+	for (int m = 0; m < runFrames; m++) {
+		for (Scene* scene : Scene::List) {
+			scene->ResetPerf();
+		}
+		Metrics.Poll.Reset();
+		Metrics.Update.Reset();
+		if (((Stepper && Step) || !Stepper) && !Application::DevMenuActivated) {
+			// Poll for inputs
+			Metrics.Poll.Begin();
+			InputManager::Poll();
+			Metrics.Poll.Accumulate();
+
+			// Update scene
+			Metrics.Update.Begin();
+			for (size_t i = 0; i < Scene::List.size(); i++) {
+				Scene* scene = Scene::List[i];
+				Scene::Current = scene;
+				scene->FrameUpdate();
+				if (Application::UseFixedTimestep) {
+					scene->FixedUpdate();
+				}
+				else {
+					scene->Update();
+
+					while (FixedUpdateCounter >= FixedFrameTimeDesired) {
+						scene->FixedUpdate();
+
+						FixedUpdateCounter -= FixedFrameTimeDesired;
+					}
+				}
+			}
+			Metrics.Update.Accumulate();
+		}
+		else if (!Application::UseFixedTimestep) {
+			while (FixedUpdateCounter >= FixedFrameTimeDesired) {
+				FixedUpdateCounter -= FixedFrameTimeDesired;
+			}
+		}
+
+		Step = false;
+
+		if (runFrames != 1) {
+			for (Scene* scene : Scene::List) {
+				if (*scene->NextScene || scene->DoRestart) {
+					return;
+				}
+			}
+		}
+	}
 }
 
 void Application::TakeScreenshot(const char* path, Operation operation) {
@@ -1837,15 +1874,17 @@ void Application::SetUseFixedTimestep(bool useFixedTimestep) {
 
 	ScriptEntity::SetUseFixedTimestep(useFixedTimestep);
 }
-void Application::StartGame(const char* startingScene) {
+void Application::StartGame(const char* sceneToLoad) {
 	Application::LoadDefaultFont();
 	Application::InitScripting();
 
 	Entity::InitAll();
 
 	Scene::Init();
-	Scene::Prepare();
-	Scene::Initialize();
+
+	Scene* scene = &Scene::Main;
+	scene->Prepare();
+	scene->ResetFields();
 
 	// Load initial scripts
 	ScriptManager::LoadScript("init.hsl");
@@ -1857,20 +1896,34 @@ void Application::StartGame(const char* startingScene) {
 	// Load Static class
 	Scene::AddStaticClass();
 
+	if (sceneToLoad[0] == '\0' && StartingScene[0] == '\0' &&
+		SceneInfo::CategoryHasEntries(Scene::StartingActiveCategory)) {
+		scene->ActiveCategory = Scene::StartingActiveCategory;
+		scene->CurrentSceneInList = Scene::StartingSceneInList;
+		scene->SetInfoFromCurrentID();
+
+		StringUtils::Copy(StartingScene,
+			SceneInfo::GetFilename(
+				Scene::StartingActiveCategory, Scene::StartingSceneInList)
+				.c_str(),
+			sizeof(StartingScene));
+
+		scene->LoadScene(StartingScene);
+	}
 	// Don't prepare the scene twice if there is no scene to load.
-	if (startingScene[0] != '\0') {
-		Scene::LoadScene(startingScene);
+	else if (sceneToLoad[0] != '\0') {
+		scene->LoadScene(sceneToLoad);
 	}
 
 	// Call Application's OnGameStart here
 	Scene::CallGameStart();
 
 	// Start scene
-	if (Scene::CurrentScene[0] != '\0') {
-		Scene::Restart();
+	if (scene->CurrentScene[0] != '\0') {
+		scene->Restart();
 	}
 	else {
-		Scene::FinishLoad();
+		scene->FinishLoad();
 	}
 }
 void Application::Run(int argc, char* args[]) {
@@ -2421,8 +2474,8 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 	XMLNode* sceneConfig = nullptr;
 	int startSceneNum = currentSceneNum;
 
-	Scene::ActiveCategory = 0;
-	Scene::CurrentSceneInList = 0;
+	Scene::StartingActiveCategory = 0;
+	Scene::StartingSceneInList = 0;
 
 	// Open and read SceneConfig
 	if (ResourceManager::ResourceExists("Game/SceneConfig.xml")) {
@@ -2442,13 +2495,13 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 					// Parse active category
 					if (!ParseGameConfigInt(node,
 						    "activeCategory",
-						    Scene::ActiveCategory)) { // backwards compat
+						    Scene::StartingActiveCategory)) { // backwards compat
 						char* text =
 							ParseGameConfigText(node, "activeCategory");
 						if (text) {
 							int id = SceneInfo::GetCategoryID(text);
 							if (id >= 0) {
-								Scene::ActiveCategory = id;
+								Scene::StartingActiveCategory = id;
 							}
 							Memory::Free(text);
 						}
@@ -2462,7 +2515,7 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 					char* text = ParseGameConfigText(node, "startscene");
 					if (text) {
 						int id = SceneInfo::GetEntryID(
-							Scene::ActiveCategory, text);
+							Scene::StartingActiveCategory, text);
 						if (id >= 0) {
 							startSceneNum = id;
 						}
@@ -2472,23 +2525,12 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 			}
 
 			if (keepScene) {
-				Scene::ActiveCategory = activeCategory;
+				Scene::StartingActiveCategory = activeCategory;
 				startSceneNum = currentSceneNum;
 			}
 
-			if (SceneInfo::IsEntryValid(Scene::ActiveCategory, startSceneNum)) {
-				Scene::CurrentSceneInList = startSceneNum;
-			}
-
-			if (StartingScene[0] == '\0' &&
-				SceneInfo::CategoryHasEntries(Scene::ActiveCategory)) {
-				Scene::SetInfoFromCurrentID();
-
-				StringUtils::Copy(StartingScene,
-					SceneInfo::GetFilename(
-						Scene::ActiveCategory, Scene::CurrentSceneInList)
-						.c_str(),
-					sizeof(StartingScene));
+			if (SceneInfo::IsEntryValid(Scene::StartingActiveCategory, startSceneNum)) {
+				Scene::StartingSceneInList = startSceneNum;
 			}
 
 			Log::Print(Log::LOG_VERBOSE,
@@ -2967,7 +3009,10 @@ void Application::DevMenu_MainMenu() {
 			AudioManager::AudioStopAll();
 			AudioManager::ClearMusic();
 			AudioManager::LowPassFilter = 0.0f;
-			Scene::Restart();
+			for (size_t i = 0; i < Scene::List.size(); i++) {
+				Scene* scene = Scene::List[i];
+				scene->Restart();
+			}
 			UpdateWindowTitle();
 			break;
 		case 2:
@@ -3104,11 +3149,12 @@ void Application::DevMenu_OpenResourcesBrowser() {
 
 	std::vector<std::string> paths;
 
-	if (Scene::CurrentScene[0] != '\0') {
-		const char* sep = strrchr(Scene::CurrentScene, '/');
+	char* currentScene = Scene::Main.CurrentScene;
+	if (currentScene[0] != '\0') {
+		const char* sep = strrchr(currentScene, '/');
 		if (sep) {
-			std::string currentPath = std::string(Scene::CurrentScene);
-			paths.push_back(currentPath.substr(0, sep - Scene::CurrentScene));
+			std::string currentPath = std::string(currentScene);
+			paths.push_back(currentPath.substr(0, sep - currentScene));
 		}
 	}
 
@@ -3306,10 +3352,11 @@ void Application::DevMenu_ResourcesBrowserMenu() {
 				path = ResourcesBrowserPaths.back() + path;
 			}
 
-			Scene::ChangeFromPath(path.c_str(), -1);
-			StringUtils::Copy(Scene::NextScene,
+			Scene* scene = &Scene::Main;
+			scene->ChangeFromPath(path.c_str(), -1);
+			StringUtils::Copy(scene->NextScene,
 				path.c_str(),
-				sizeof(Scene::NextScene));
+				sizeof(scene->NextScene));
 
 			DevMenu_CloseResourcesBrowser();
 			CloseDevMenu();
@@ -3415,10 +3462,11 @@ void Application::DevMenu_SceneSelectMenu() {
 			return;
 		}
 
-		Scene::SetCurrent(categoryName, sceneName);
-		StringUtils::Copy(Scene::NextScene,
+		Scene* scene = &Scene::Main;
+		scene->SetCurrent(categoryName, sceneName);
+		StringUtils::Copy(scene->NextScene,
 			SceneInfo::GetFilename(categoryID, DevMenu.SubSelection).c_str(),
-			sizeof(Scene::NextScene));
+			sizeof(scene->NextScene));
 	}
 	else {
 		int actionB = InputManager::GetActionID("B");
