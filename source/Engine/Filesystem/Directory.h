@@ -5,8 +5,17 @@
 
 class Directory {
 public:
+	struct SearchOptions {
+		bool AllDirs = false;
+		bool ListDirs = false;
+	};
+
 	static bool Exists(const char* path);
 	static bool Create(const char* path);
+	static void GetFiles(std::vector<std::filesystem::path>* files,
+		const char* path,
+		const char* searchPattern,
+		SearchOptions options);
 	static void GetFiles(std::vector<std::filesystem::path>* files,
 		const char* path,
 		const char* searchPattern,

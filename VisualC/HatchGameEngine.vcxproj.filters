@@ -279,9 +279,6 @@
     <ClCompile Include="..\source\engine\rendering\FaceInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\engine\rendering\GameTexture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\source\engine\rendering\gl\GLRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -325,9 +322,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\source\engine\rendering\ViewTexture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\resourcetypes\Font.cpp">
@@ -483,9 +477,6 @@
     <ClCompile Include="..\source\Libraries\linenoise-ng\linenoise.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\source\Libraries\wcwidth.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\EntityImpl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -496,6 +487,24 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\TypeImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\TextureImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\engine\bytecode\BytecodeDebugger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Engine\Utilities\Screenshot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Libraries\linenoise-ng\wcwidth.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Engine\Scene\ImageLayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\source\Engine\Scene\TileLayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

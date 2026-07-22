@@ -13053,33 +13053,22 @@ This does not load the scene. You must call <ref Scene.Load>.
  */
 VMValue Scene_ChangeFromPath(int argCount, VMValue* args, Uint32 threadID) {
     CHECK_AT_LEAST_ARGCOUNT(1);
-	const char* scenePath = GET_ARG(0, GetString);
+	const char* path = GET_ARG(0, GetString);
     int filter = GET_ARG_OPT(1, GetInteger, 0xFF);
 
-	if (filter == 0)
+	if (filter == 0) {
 		filter = 0xFF;
-	if (filter < 0)
+	}
+	if (filter < 0) {
 		return NULL_VAL;
+	}
 
-	bool found = false;
-	for (size_t i = 0; i < SceneInfo::Categories.size(); i++) {
-        SceneListCategory& category = SceneInfo::Categories[i];
+	if (argCount < 2) {
+		filter = -1;
+	}
 
-		for (size_t j = 0; j < category.Entries.size(); j++) {
-			SceneListEntry& scene = category.Entries[j];
+	Scene::ChangeFromPath(path, filter);
 
-			if (!strcmp(scenePath, SceneInfo::GetFilename(i, j).c_str())) {
-				if (argCount == 2 && !(scene.Filter & filter))
-					continue;
-				Scene::SetCurrent(category.Name, scene.Name);
-				found = true;
-				break;
-			}
-		}
-		if (found) {
-			break;
-		}
-    }
 	return NULL_VAL;
 }
 /***

@@ -156,6 +156,7 @@ public:
 	static bool IsInDir(const char* dirPath, const char* path);
 	static bool IsInCurrentDir(const char* path);
 	static bool HasRelativeComponents(const char* path);
+	static std::string ToAbsolute(std::string path);
 	static std::string Normalize(std::string path);
 	static std::string Normalize(const char* path);
 	static std::string

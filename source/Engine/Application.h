@@ -2,6 +2,7 @@
 #define ENGINE_APPLICATION_H
 
 #include <Engine/Audio/AudioManager.h>
+#include <Engine/DeveloperMenu.h>
 #include <Engine/Diagnostics/PerformanceTypes.h>
 #include <Engine/Filesystem/Path.h>
 #include <Engine/Includes/Operation.h>
@@ -81,6 +82,7 @@ private:
 	static void LoadGameInfo();
 	static void DisposeSettings();
 	static int HandleAppEvents(void* data, SDL_Event* event);
+	static bool IsResourcesBrowserAvailable();
 	static void DrawDevString(const char* string, int x, int y, int align, bool isSelected);
 	static void OpenDevMenu();
 	static void CloseDevMenu();
@@ -92,6 +94,12 @@ private:
 	static void DevMenu_DrawTitleBar();
 	static void DevMenu_MainMenu();
 	static void DevMenu_CategorySelectMenu();
+	static void DevMenu_OpenResourcesBrowser();
+	static bool DevMenu_ResourcesBrowserTryGoToPaths(std::vector<std::string> paths);
+	static bool DevMenu_ResourcesBrowserGoToPath(std::string path, std::string parentPath);
+	static bool DevMenu_GetDirectories(const char* path);
+	static void DevMenu_ResourcesBrowserMenu();
+	static void DevMenu_CloseResourcesBrowser();
 	static void DevMenu_SceneSelectMenu();
 	static void DevMenu_SettingsMenu();
 	static void DevMenu_VideoMenu();

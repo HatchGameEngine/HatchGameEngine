@@ -176,6 +176,7 @@ public:
 	static void Unload();
 	static void Prepare();
 	static void LoadScene(const char* filename);
+	static bool ChangeFromPath(const char* path, int filter);
 	static void AddStaticClass();
 	static void CallGameStart();
 	static void ProcessSceneTimer();

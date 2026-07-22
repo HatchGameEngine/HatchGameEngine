@@ -297,8 +297,10 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\resourcetypes\soundformats\SoundFormat.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\soundformats\WAV.cpp" />
     <ClCompile Include="..\source\engine\Scene.cpp" />
+    <ClCompile Include="..\source\Engine\Scene\ImageLayer.cpp" />
     <ClCompile Include="..\source\engine\scene\SceneInfo.cpp" />
     <ClCompile Include="..\source\engine\scene\SceneLayer.cpp" />
+    <ClCompile Include="..\source\Engine\Scene\TileLayer.cpp" />
     <ClCompile Include="..\source\engine\scene\View.cpp" />
     <ClCompile Include="..\source\engine\textformats\ini\INI.cpp" />
     <ClCompile Include="..\source\engine\textformats\xml\XMLParser.cpp" />
