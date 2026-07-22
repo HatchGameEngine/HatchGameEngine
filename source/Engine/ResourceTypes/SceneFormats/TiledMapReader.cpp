@@ -431,6 +431,8 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	XMLNode* tilesetXML = NULL;
 	XMLNode* tilesetNode = NULL;
 
+	char tilesetParentFolder[MAX_RESOURCE_PATH_LENGTH];
+
 	// If this is an external tileset, read the XML from that file.
 	if (tileset->attributes.Exists("source")) {
 		char resourcePath[MAX_RESOURCE_PATH_LENGTH];
@@ -440,6 +442,10 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 			return;
 		}
 
+		// Use the external tileset's location as the parent path for ParseTilesetImage
+		memcpy(tilesetParentFolder, resourcePath, MAX_RESOURCE_PATH_LENGTH);
+		StringUtils::GetPathInPlace(tilesetParentFolder);
+
 		tilesetXML = XMLParser::ParseFromResource(resourcePath);
 		if (!tilesetXML) {
 			return;
@@ -448,6 +454,9 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	}
 	else {
 		tilesetNode = tileset;
+
+		// Use the .tmx's location as the parent path for ParseTilesetImage
+		StringUtils::Copy(tilesetParentFolder, parentFolder, sizeof(tilesetParentFolder));
 	}
 
 	Tileset* tilesetPtr = nullptr;
@@ -455,7 +464,7 @@ void TiledMapReader::LoadTileset(XMLNode* tileset, const char* parentFolder) {
 	for (size_t e = 0; e < tilesetNode->children.size(); e++) {
 		if (XMLParser::MatchToken(tilesetNode->children[e]->name, "image")) {
 			tilesetPtr =
-				ParseTilesetImage(tilesetNode->children[e], firstgid, parentFolder);
+				ParseTilesetImage(tilesetNode->children[e], firstgid, tilesetParentFolder);
 		}
 		else if (XMLParser::MatchToken(tilesetNode->children[e]->name, "tile")) {
 			ParseTile(tilesetPtr, tilesetNode->children[e]);
