@@ -159,7 +159,9 @@ public:
 	static bool HasCmdLineArg(std::string match);
 	static int GetCmdLineArgIndex(std::string match);
 	static std::string GetCmdLineOption(std::string match);
+	static std::string GetCmdLineOption(size_t index);
 	static void ParseCommandLineArgs();
+	static size_t ProcessCommandLineOption(std::string arg, size_t i);
 	static void InitScripting();
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();

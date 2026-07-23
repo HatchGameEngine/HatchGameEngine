@@ -282,27 +282,34 @@ bool Application::HasCmdLineArg(std::string match) {
 	return GetCmdLineArgIndex(match) != -1;
 }
 int Application::GetCmdLineArgIndex(std::string match) {
-	for (size_t i = 0; i < Application::CmdLineArgs.size(); i++) {
-		if (Application::CmdLineArgs[i] == match) {
+	for (size_t i = 0; i < CmdLineArgs.size(); i++) {
+		if (CmdLineArgs[i] == match) {
 			return (int)i;
 		}
 	}
 	return -1;
 }
 std::string Application::GetCmdLineOption(std::string match) {
-	size_t numArgs = Application::CmdLineArgs.size();
+	size_t numArgs = CmdLineArgs.size();
 	for (size_t i = 0; i < numArgs; i++) {
-		if (Application::CmdLineArgs[i] == match && i + 1 < numArgs) {
-			std::string option = Application::CmdLineArgs[i + 1];
-			if (!StringUtils::StartsWith(option.c_str(), "--")) {
-				return option;
-			}
+		if (CmdLineArgs[i] == match) {
+			return GetCmdLineOption(i + 1);
+		}
+	}
+	return "";
+}
+std::string Application::GetCmdLineOption(size_t index) {
+	if (index < CmdLineArgs.size()) {
+		std::string option = CmdLineArgs[index];
+		if (!StringUtils::StartsWith(option.c_str(), "--")) {
+			return option;
 		}
 	}
 	return "";
 }
 void Application::ParseCommandLineArgs() {
-	if (CmdLineArgs.size() == 0) {
+	size_t numArgs = CmdLineArgs.size();
+	if (numArgs == 0) {
 		return;
 	}
 
@@ -310,7 +317,7 @@ void Application::ParseCommandLineArgs() {
 	// for backwards compatibility.
 	const char* firstArg = CmdLineArgs[0].c_str();
 
-	if (CmdLineArgs.size() == 1 && !StringUtils::StartsWith(firstArg, "--")) {
+	if (numArgs == 1 && !StringUtils::StartsWith(firstArg, "--")) {
 		char* pathStart = StringUtils::StrCaseStr(firstArg, "/Resources/");
 		if (pathStart == NULL) {
 			pathStart = StringUtils::StrCaseStr(firstArg, "\\Resources\\");
@@ -335,42 +342,73 @@ void Application::ParseCommandLineArgs() {
 			UseResourceFilename = true;
 		}
 #endif
+
+		return;
 	}
 
+	for (size_t i = 0; i < numArgs; i++) {
+		std::string arg = CmdLineArgs[i];
+		if (!StringUtils::StartsWith(arg.c_str(), "--")) {
+			continue;
+		}
+
+		i = ProcessCommandLineOption(arg, i);
+	}
+}
+size_t Application::ProcessCommandLineOption(std::string arg, size_t i) {
 #ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
 	// Specify the path to both Resources and Scripts directory
-	std::string projectDirPath = GetCmdLineOption("--project-dir");
-	if (projectDirPath.size() > 0) {
+	if (arg == "--project-dir") {
+		std::string projectDirPath = GetCmdLineOption(i + 1);
+		if (projectDirPath.size() == 0) {
+			return i;
+		}
+
 		projectDirPath = Path::Normalize(Path::ToAbsolute(projectDirPath));
 
-		ResourceFilename = projectDirPath + "/Resources";
-		std::string scriptsDirPath = projectDirPath + "/Scripts";
+		ResourceFilename = Path::Concat(projectDirPath, "Resources");
+		std::string scriptsDirPath = Path::Concat(projectDirPath, "Scripts");
 
 		UseResourceFilename = true;
 		StringUtils::Copy(SourceFileMap::Path, scriptsDirPath.c_str(), sizeof(SourceFileMap::Path));
+		return i + 1;
 	}
-
 	// Specify the resource file to load
-	std::string resourceFilePath = GetCmdLineOption("--resource-file");
-	if (resourceFilePath.size() > 0) {
+	else if (arg == "--resource-file") {
+		std::string resourceFilePath = GetCmdLineOption(i + 1);
+		if (resourceFilePath.size() == 0) {
+			return i;
+		}
+
 		ResourceFilename = Path::Normalize(Path::ToAbsolute(resourceFilePath));
 		UseResourceFilename = true;
+		return i + 1;
 	}
+	else
 #endif
-
 	// Specify the path to use for the Scripts directory
-	std::string scriptsDirPath = GetCmdLineOption("--scripts-dir");
-	if (scriptsDirPath.size() > 0) {
+	if (arg == "--scripts-dir") {
+		std::string scriptsDirPath = GetCmdLineOption(i + 1);
+		if (scriptsDirPath.size() == 0) {
+			return i;
+		}
+
 		scriptsDirPath = Path::Normalize(Path::ToAbsolute(scriptsDirPath));
-
 		StringUtils::Copy(SourceFileMap::Path, scriptsDirPath.c_str(), sizeof(SourceFileMap::Path));
+		return i + 1;
+	}
+	// Specify a scene file to load
+	else if (arg == "--scene") {
+		std::string scenePath = GetCmdLineOption(++i);
+		if (scenePath.size() == 0) {
+			return i;
+		}
+
+		SceneToLoad = scenePath;
+		return i + 1;
 	}
 
-	// Specify a scene file to load
-	std::string scenePath = GetCmdLineOption("--scene");
-	if (scenePath.size() > 0) {
-		SceneToLoad = scenePath;
-	}
+	return i;
 }
 
 void Application::InitScripting() {
