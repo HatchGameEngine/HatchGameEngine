@@ -338,6 +338,18 @@ void Application::ParseCommandLineArgs() {
 	}
 
 #ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
+	// Specify the path to both Resources and Scripts directory
+	std::string projectDirPath = GetCmdLineOption("--project-dir");
+	if (projectDirPath.size() > 0) {
+		projectDirPath = Path::Normalize(Path::ToAbsolute(projectDirPath));
+
+		ResourceFilename = projectDirPath + "/Resources";
+		std::string scriptsDirPath = projectDirPath + "/Scripts";
+
+		UseResourceFilename = true;
+		StringUtils::Copy(SourceFileMap::Path, scriptsDirPath.c_str(), sizeof(SourceFileMap::Path));
+	}
+
 	// Specify the resource file to load
 	std::string resourceFilePath = GetCmdLineOption("--resource-file");
 	if (resourceFilePath.size() > 0) {
