@@ -5,6 +5,8 @@
 
 Uint32 Value::Hash(VMValue value) {
 	switch (value.Type) {
+	case VAL_NULL:
+		return 0;
 	case VAL_INTEGER:
 	case VAL_LINKED_INTEGER: {
 		float val = (float)AS_INTEGER(value);

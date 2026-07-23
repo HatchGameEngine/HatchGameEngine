@@ -396,7 +396,6 @@ void Serializer::ReadObject(Obj* obj) {
 				if (stringID >= StringList.size()) {
 					Log::Print(
 						Log::LOG_ERROR, "Attempted to read an invalid string ID!");
-					continue;
 				}
 				else if (StringList[stringID].Chars != nullptr) {
 					Uint32 length = StringList[stringID].Length;
@@ -408,15 +407,9 @@ void Serializer::ReadObject(Obj* obj) {
 				mapKey = ReadValue();
 			}
 
-			keys.push_back(mapKey);
-
-			// Ensure null doesn't get added as a key.
-			if (IS_NULL(mapKey)) {
-				continue;
-			}
-
 			Uint32 keyHash = Value::Hash(mapKey);
 			map->Keys->Put(keyHash, mapKey);
+			keys.push_back(mapKey);
 		}
 
 		// Read the values
@@ -427,14 +420,9 @@ void Serializer::ReadObject(Obj* obj) {
 				StreamPtr->ReadUInt32();
 			}
 
-			VMValue mapKey = keys[i];
 			VMValue value = ReadValue();
-
-			// Don't add values whose keys are null.
-			if (!IS_NULL(mapKey)) {
-				Uint32 keyHash = Value::Hash(mapKey);
-				map->Values->Put(keyHash, value);
-			}
+			Uint32 keyHash = Value::Hash(keys[i]);
+			map->Values->Put(keyHash, value);
 		}
 		return;
 	}

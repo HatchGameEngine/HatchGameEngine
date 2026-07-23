@@ -97,14 +97,7 @@ VMValue MapImpl::VM_Remove(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ObjMap* map = GET_ARG(0, GetMap);
-	VMValue key = args[1];
-	if (IS_NULL(key)) {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
-			"Cannot remove value from map using 'null' as a key.");
-		return NULL_VAL;
-	}
-
-	Uint32 hash = Value::Hash(key);
+	Uint32 hash = Value::Hash(args[1]);
 	map->Keys->Remove(hash);
 	map->Values->Remove(hash);
 
