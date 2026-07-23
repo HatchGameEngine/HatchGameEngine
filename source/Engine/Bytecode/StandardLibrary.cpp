@@ -678,9 +678,9 @@ VMValue ReturnString(std::string str) {
 }
 
 void AddToMap(ObjMap* map, const char* key, VMValue value) {
-	char* keyString = StringUtils::Duplicate(key);
-	Uint32 hash = map->Keys->HashFunction(keyString, strlen(keyString));
-	map->Keys->Put(hash, keyString);
+	VMValue keyValue = OBJECT_VAL(CopyString(key));
+	Uint32 hash = Value::Hash(keyValue);
+	map->Keys->Put(hash, keyValue);
 	map->Values->Put(hash, value);
 }
 
@@ -8817,8 +8817,13 @@ VMValue Input_GetAnalogActionInput(int argCount, VMValue* args, Uint32 threadID)
 static KeyboardBind* GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
 	KeyboardBind* bind = new KeyboardBind();
 
-	map->Keys->WithAllOrdered([bind, map, threadID](Uint32 hash, char* key) -> void {
+	map->Keys->WithAllOrdered([bind, map, threadID](Uint32 hash, VMValue keyValue) -> void {
 		VMValue value;
+		if (!IS_STRING(keyValue)) {
+			return;
+		}
+
+		char* key = AS_CSTRING(keyValue);
 
 		// key: Integer
 		if (strcmp("key", key) == 0) {
@@ -8859,8 +8864,13 @@ static KeyboardBind* GetKeyboardActionBind(ObjMap* map, Uint32 threadID) {
 static ControllerButtonBind* GetControllerButtonActionBind(ObjMap* map, Uint32 threadID) {
 	ControllerButtonBind* bind = new ControllerButtonBind();
 
-	map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, char* key) -> void {
+	map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, VMValue keyValue) -> void {
 		VMValue value;
+		if (!IS_STRING(keyValue)) {
+			return;
+		}
+
+		char* key = AS_CSTRING(keyValue);
 
 		// button: Integer
 		if (strcmp("button", key) == 0) {
@@ -8890,8 +8900,13 @@ static ControllerButtonBind* GetControllerButtonActionBind(ObjMap* map, Uint32 t
 static ControllerAxisBind* GetControllerAxisActionBind(ObjMap* map, Uint32 threadID) {
 	ControllerAxisBind* bind = new ControllerAxisBind();
 
-	map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, char* key) -> void {
+	map->Keys->WithAllOrdered([&bind, map, threadID](Uint32 hash, VMValue keyValue) -> void {
 		VMValue value;
+		if (!IS_STRING(keyValue)) {
+			return;
+		}
+
+		char* key = AS_CSTRING(keyValue);
 
 		// axis: Integer
 		if (strcmp("axis", key) == 0) {
@@ -9938,13 +9953,14 @@ static int JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t coun
 		return 0;
 	}
 
-	Uint32 keyHash;
 	int tokcount = 0;
 	for (int i = 0; i < t->size; i++) {
 		key = t + 1 + tokcount;
-		keyHash = map->Keys->HashFunction(text + key->start, key->end - key->start);
-		map->Keys->Put(
-			keyHash, StringUtils::Duplicate(text + key->start, key->end - key->start));
+
+		VMValue keyValue = OBJECT_VAL(CopyString(text + key->start, key->end - key->start));
+		Uint32 keyHash = Value::Hash(keyValue);
+		map->Keys->Put(keyHash, keyValue);
+
 		tokcount += 1;
 		if (key->size > 0) {
 			VMValue val = NULL_VAL;
@@ -20059,7 +20075,6 @@ VMValue Window_IsResizeable(int argCount, VMValue* args, Uint32 threadID) {
 // #region XML
 static VMValue XML_FillMap(XMLNode* parent) {
 	ObjMap* map = NewMap();
-	Uint32 keyHash;
 
 	XMLAttributes* attributes = &parent->attributes;
 	size_t numAttr = attributes->KeyVector.size();
@@ -20069,10 +20084,8 @@ static VMValue XML_FillMap(XMLNode* parent) {
 		Token text = parent->children[0]->name;
 
 		if (numAttr) {
-			char* textKey = StringUtils::Duplicate("#text");
-			keyHash = map->Keys->HashFunction(textKey, 5);
-			map->Keys->Put(keyHash, textKey);
-			map->Values->Put(keyHash, OBJECT_VAL(CopyString(text.Start, text.Length)));
+			VMValue value = OBJECT_VAL(CopyString(text.Start, text.Length));
+			AddToMap(map, "#text", value);
 		}
 		else {
 			return OBJECT_VAL(CopyString(text.Start, text.Length));
@@ -20083,7 +20096,8 @@ static VMValue XML_FillMap(XMLNode* parent) {
 			XMLNode* node = parent->children[i];
 
 			Token* nodeName = &node->name;
-			keyHash = map->Keys->HashFunction(nodeName->Start, nodeName->Length);
+			VMValue key = OBJECT_VAL(CopyString(nodeName->Start, nodeName->Length));
+			Uint32 keyHash = Value::Hash(key);
 
 			// If the key already exists, push into it
 			if (map->Keys->Exists(keyHash)) {
@@ -20103,8 +20117,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
 				thisArray->Values->push_back(XML_FillMap(node));
 			}
 			else {
-				map->Keys->Put(keyHash,
-					StringUtils::Duplicate(nodeName->Start, nodeName->Length));
+				map->Keys->Put(keyHash, key);
 				map->Values->Put(keyHash, XML_FillMap(node));
 			}
 		}
@@ -20133,8 +20146,9 @@ static VMValue XML_FillMap(XMLNode* parent) {
 
 		snprintf(attrName, attrNameSize, "#%s", key);
 
-		keyHash = map->Keys->HashFunction(attrName, attrNameSize - 1);
-		map->Keys->Put(keyHash, StringUtils::Duplicate(attrName));
+		VMValue keyValue = OBJECT_VAL(CopyString(attrName, attrNameSize - 1));
+		Uint32 keyHash = Value::Hash(keyValue);
+		map->Keys->Put(keyHash, keyValue);
 		map->Values->Put(keyHash, OBJECT_VAL(CopyString(value)));
 
 		Memory::Free(value);

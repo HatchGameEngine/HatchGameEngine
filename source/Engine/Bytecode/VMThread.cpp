@@ -1166,9 +1166,12 @@ int VMThread::RunInstruction() {
 		if (ScriptManager::Lock()) {
 			ObjMap* map = NewMap();
 			for (int i = count - 1; i >= 0; i--) {
-				char* keystr = AS_CSTRING(Peek(i * 2 + 1));
-				map->Values->Put(keystr, Peek(i * 2));
-				map->Keys->Put(keystr, StringUtils::Duplicate(keystr));
+				VMValue key = Peek(i * 2 + 1);
+				if (!IS_NULL(key)) {
+					Uint32 hash = Value::Hash(key);
+					map->Values->Put(hash, Peek(i * 2));
+					map->Keys->Put(hash, key);
+				}
 			}
 			for (int i = count - 1; i >= 0; i--) {
 				Pop();
@@ -2741,23 +2744,18 @@ VMValue VMThread::GetElement(VMValue object, VMValue at) {
 		}
 	}
 	else if (IS_MAP(object)) {
-		if (!IS_STRING(at)) {
+		if (IS_NULL(at)) {
 			ThrowRuntimeError(false,
-				"Cannot get value from map using non-String value as an index.");
+				"Cannot get value from map using 'null' as a key.");
 			return NULL_VAL;
 		}
 
 		if (ScriptManager::Lock()) {
 			ObjMap* map = AS_MAP(object);
-			char* index = AS_CSTRING(at);
-			if (!*index) {
-				ThrowRuntimeError(false, "Cannot find value at empty key.");
-				ScriptManager::Unlock();
-				return NULL_VAL;
-			}
+			Uint32 hash = Value::Hash(at);
 
 			VMValue result;
-			if (!map->Values->GetIfExists(index, &result)) {
+			if (!map->Values->GetIfExists(hash, &result)) {
 				result = NULL_VAL;
 			}
 
@@ -2840,23 +2838,17 @@ VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
 		}
 	}
 	else if (IS_MAP(object)) {
-		if (!IS_STRING(at)) {
+		if (IS_NULL(at)) {
 			ThrowRuntimeError(false,
-				"Cannot get value from map using non-String value as an index.");
+				"Cannot get value from map using 'null' as a key.");
 			return value;
 		}
 
 		if (ScriptManager::Lock()) {
 			ObjMap* map = AS_MAP(object);
-			char* index = AS_CSTRING(at);
-			if (!*index) {
-				ThrowRuntimeError(false, "Cannot find value at empty key.");
-				ScriptManager::Unlock();
-				return value;
-			}
-
-			map->Values->Put(index, value);
-			map->Keys->Put(index, StringUtils::Duplicate(index));
+			Uint32 hash = Value::Hash(at);
+			map->Values->Put(hash, value);
+			map->Keys->Put(hash, at);
 			ScriptManager::Unlock();
 		}
 	}

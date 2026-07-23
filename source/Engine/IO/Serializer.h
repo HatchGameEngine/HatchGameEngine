@@ -23,6 +23,8 @@ private:
 	void ReadObject(Obj* obj);
 	VMValue ReadValue();
 
+	Uint32 CurrentVersion;
+
 public:
 	std::map<Obj*, Uint32> ObjToID;
 	std::vector<Obj*> ObjList;
