@@ -133,12 +133,17 @@ size_t ResourcesBrowserNumEntries = 0;
 std::vector<std::string> ResourcesBrowserEntries;
 std::vector<std::string> ResourcesBrowserPaths;
 
+bool Application::DevMode = false;
 bool Application::DevConvertModels = false;
 
 bool Application::AllowCmdLineSceneLoad = false;
 
 ApplicationMetrics Application::Metrics;
 std::vector<PerformanceMeasure*> Application::AllMetrics;
+
+std::string ResourceFilename;
+bool UseResourceFilename = false;
+std::string SceneToLoad;
 
 char StartingScene[MAX_RESOURCE_PATH_LENGTH];
 char NextGame[MAX_PATH_LENGTH];
@@ -148,7 +153,6 @@ char LogFilename[MAX_PATH_LENGTH];
 
 bool UseMemoryFileCache = false;
 
-bool DevMode = false;
 bool ToggleDebugger = false;
 bool ViewPerformance = false;
 bool TakePerfSnapshot = false;
@@ -220,15 +224,20 @@ void Application::Init(int argc, char* args[]) {
 	// Initialize a few needed subsystems
 	InputManager::Init();
 	Clock::Init();
+	SourceFileMap::Init();
+
+	// Parse command line arguments
+	Application::ParseCommandLineArgs();
 
 	// Load game stuff.
-#ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
-	if (argc > 1 && !!StringUtils::StrCaseStr(args[1], ".hatch")) {
-		ResourceManager::Init(args[1]);
+	if (UseResourceFilename) {
+		Log::Print(Log::LOG_VERBOSE, "Resource file: %s", ResourceFilename.c_str());
+
+		ResourceManager::Init(ResourceFilename.c_str(), true);
 	}
-	else
-#endif
-		ResourceManager::Init(NULL);
+	else {
+		ResourceManager::Init(nullptr, true);
+	}
 
 	Application::LoadGameConfig();
 	Application::InitGameInfo();
@@ -268,6 +277,90 @@ void Application::Init(int argc, char* args[]) {
 
 	Running = true;
 }
+
+bool Application::HasCmdLineArg(std::string match) {
+	return GetCmdLineArgIndex(match) != -1;
+}
+int Application::GetCmdLineArgIndex(std::string match) {
+	for (size_t i = 0; i < Application::CmdLineArgs.size(); i++) {
+		if (Application::CmdLineArgs[i] == match) {
+			return (int)i;
+		}
+	}
+	return -1;
+}
+std::string Application::GetCmdLineOption(std::string match) {
+	size_t numArgs = Application::CmdLineArgs.size();
+	for (size_t i = 0; i < numArgs; i++) {
+		if (Application::CmdLineArgs[i] == match && i + 1 < numArgs) {
+			std::string option = Application::CmdLineArgs[i + 1];
+			if (!StringUtils::StartsWith(option.c_str(), "--")) {
+				return option;
+			}
+		}
+	}
+	return "";
+}
+void Application::ParseCommandLineArgs() {
+	if (CmdLineArgs.size() == 0) {
+		return;
+	}
+
+	// Interpret the first argument as a .hatch to load, or a scene file to load,
+	// for backwards compatibility.
+	const char* firstArg = CmdLineArgs[0].c_str();
+
+	if (CmdLineArgs.size() == 1 && !StringUtils::StartsWith(firstArg, "--")) {
+		char* pathStart = StringUtils::StrCaseStr(firstArg, "/Resources/");
+		if (pathStart == NULL) {
+			pathStart = StringUtils::StrCaseStr(firstArg, "\\Resources\\");
+		}
+
+		if (pathStart) {
+			char scenePath[MAX_RESOURCE_PATH_LENGTH];
+			StringUtils::Copy(
+				scenePath, pathStart + strlen("/Resources/"), sizeof scenePath);
+			StringUtils::ReplacePathSeparatorsInPlace(scenePath);
+			SceneToLoad = std::string(scenePath);
+		}
+		else {
+			Log::Print(Log::LOG_WARN,
+				"Map file \"%s\" not inside Resources folder!",
+				firstArg);
+		}
+
+#ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
+		if (StringUtils::StrCaseStr(CmdLineArgs[0].c_str(), ".hatch")) {
+			ResourceFilename = CmdLineArgs[0];
+			UseResourceFilename = true;
+		}
+#endif
+	}
+
+#ifdef ALLOW_COMMAND_LINE_RESOURCE_LOAD
+	// Specify the resource file to load
+	std::string resourceFilePath = GetCmdLineOption("--resource-file");
+	if (resourceFilePath.size() > 0) {
+		ResourceFilename = Path::Normalize(Path::ToAbsolute(resourceFilePath));
+		UseResourceFilename = true;
+	}
+#endif
+
+	// Specify the path to use for the Scripts directory
+	std::string scriptsDirPath = GetCmdLineOption("--scripts-dir");
+	if (scriptsDirPath.size() > 0) {
+		scriptsDirPath = Path::Normalize(Path::ToAbsolute(scriptsDirPath));
+
+		StringUtils::Copy(SourceFileMap::Path, scriptsDirPath.c_str(), sizeof(SourceFileMap::Path));
+	}
+
+	// Specify a scene file to load
+	std::string scenePath = GetCmdLineOption("--scene");
+	if (scenePath.size() > 0) {
+		SceneToLoad = scenePath;
+	}
+}
+
 void Application::InitScripting() {
 	GarbageCollector::Init();
 
@@ -864,7 +957,7 @@ void Application::UpdateWindowTitle() {
 		titleText += ", "; \
 	titleText += text
 
-	if (DevMode) {
+	if (Application::DevMode) {
 		if (ResourceManager::UsingDataFolder) {
 			ADD_TEXT("using Resources folder");
 		}
@@ -1249,7 +1342,7 @@ void Application::InitPerformanceMetrics() {
 
 void Application::LoadDevSettings() {
 #ifdef DEVELOPER_MODE
-	Application::Settings->GetBool("dev", "devMenu", &DevMode);
+	Application::Settings->GetBool("dev", "devMenu", &Application::DevMode);
 	Application::Settings->GetBool("dev", "viewPerformance", &ViewPerformance);
 	Application::Settings->GetBool("dev", "doNothing", &DoNothing);
 	Application::Settings->GetInteger("dev", "fastForward", &UpdatesPerFastForward);
@@ -1434,7 +1527,7 @@ void Application::PollEvents() {
 				break;
 			}
 
-			if (DevMode) {
+			if (Application::DevMode) {
 				// Quit application (dev)
 				// Unbound by default, must be set in GameConfig
 				if (key == KeyBindsSDL[(int)KeyBind::DevQuit]) {
@@ -1880,25 +1973,11 @@ void Application::Run(int argc, char* args[]) {
 	}
 
 	char scenePath[MAX_RESOURCE_PATH_LENGTH];
-	StringUtils::Copy(scenePath, StartingScene, sizeof scenePath);
-
-	// Run scene from command line argument
-	if (argc > 1 && AllowCmdLineSceneLoad) {
-		char* pathStart = StringUtils::StrCaseStr(args[1], "/Resources/");
-		if (pathStart == NULL) {
-			pathStart = StringUtils::StrCaseStr(args[1], "\\Resources\\");
-		}
-
-		if (pathStart) {
-			StringUtils::Copy(
-				scenePath, pathStart + strlen("/Resources/"), sizeof scenePath);
-			StringUtils::ReplacePathSeparatorsInPlace(scenePath);
-		}
-		else {
-			Log::Print(Log::LOG_WARN,
-				"Map file \"%s\" not inside Resources folder!",
-				args[1]);
-		}
+	if (AllowCmdLineSceneLoad && SceneToLoad.size() > 0) {
+		StringUtils::Copy(scenePath, SceneToLoad.c_str(), sizeof scenePath);
+	}
+	else {
+		StringUtils::Copy(scenePath, StartingScene, sizeof scenePath);
 	}
 
 	Application::StartGame(scenePath);
@@ -2659,7 +2738,7 @@ void Application::InitSettings() {
 	Application::Settings->SetInteger("display", "frameSkip", DEFAULT_MAX_FRAMESKIP);
 
 #ifdef DEVELOPER_MODE
-	DevMode = true;
+	Application::DevMode = true;
 	Application::Settings->SetBool("dev", "devMenu", true);
 	if (!Running) {
 		Application::Settings->SetBool("dev", "writeLogFile", true);
