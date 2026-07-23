@@ -412,6 +412,7 @@ size_t Application::ProcessCommandLineOption(std::string arg, size_t i) {
 }
 
 void Application::InitScripting() {
+	SourceFileMap::Init();
 	GarbageCollector::Init();
 
 	Compiler::Init();
