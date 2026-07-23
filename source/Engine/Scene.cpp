@@ -747,7 +747,7 @@ void Scene::InitObjectListsAndRegistries() {
 		Scene::StaticObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
 	}
 
-	Scene::ObjectRegistries->Put("onscreen", Scene::OnScreenObjects);
+	Scene::ObjectRegistries->Put(ONSCREEN_REGISTRY, Scene::OnScreenObjects);
 }
 
 void Scene::ResetPerf() {
@@ -3699,7 +3699,7 @@ void Scene::Dispose() {
 	Scene::StaticObjectLists = NULL;
 
 	if (Scene::ObjectRegistries) {
-		Scene::ObjectRegistries->Remove("onscreen");
+		Scene::ObjectRegistries->Remove(ONSCREEN_REGISTRY);
 		Scene::ObjectRegistries->ForAll([](Uint32, ObjectRegistry* registry) -> void {
 			delete registry;
 		});
