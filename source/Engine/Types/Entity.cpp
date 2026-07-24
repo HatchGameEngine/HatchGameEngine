@@ -173,7 +173,7 @@ void Entity::SetUpdatePriority(int priority) {
 	UpdatePriority = priority;
 
 	// If the scene is loading, NeedEntitySort is set to true,
-	// so that the entities are sorted always and Scene::AddToScene
+	// so that the entities are sorted always and Scene::AddEntity
 	// doesn't have to insert the entities in a sorted manner.
 	if (CurrentScene->Initializing || Created) {
 		CurrentScene->NeedEntitySort = true;
@@ -437,6 +437,29 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 		}
 	}
 	return true;
+}
+
+void Entity::MoveToScene(Scene* scene) {
+	if (scene == CurrentScene) {
+		return;
+	}
+
+	const char* listName = List->ObjectName;
+
+	// Remove from current scene
+	CurrentScene->RemoveEntity(this);
+
+	// Add to new scene
+	scene->AddEntity(this);
+
+	// Change current list
+	List = scene->GetObjectList(listName);
+	List->Add(this);
+
+	// Add to draw group
+	PriorityOld = -1;
+	PriorityListIndex = -1;
+	SetDrawGroup(Priority);
 }
 
 void Entity::SetDrawGroup(int index) {

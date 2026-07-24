@@ -436,7 +436,7 @@ void Scene::FixedUpdateObjectLate(Entity* ent) {
 }
 
 // Double linked-list functions
-void Scene::Add(Entity** first, Entity** last, int* count, Entity* obj) {
+void Scene::AddToLinkedList(Entity** first, Entity** last, int* count, Entity* obj) {
 	// Set "prev" of obj to last
 	obj->PrevEntity = (*last);
 	obj->NextEntity = NULL;
@@ -454,10 +454,22 @@ void Scene::Add(Entity** first, Entity** last, int* count, Entity* obj) {
 	(*last) = obj;
 
 	(*count)++;
-
-	AddToScene(obj);
 }
-void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
+void Scene::AddToLinkedList(Entity* obj) {
+	if (obj->Dynamic) {
+		AddToLinkedList(&DynamicObjectFirst,
+			&DynamicObjectLast,
+			&DynamicObjectCount,
+			obj);
+	}
+	else {
+		AddToLinkedList(&StaticObjectFirst,
+			&StaticObjectLast,
+			&StaticObjectCount,
+			obj);
+	}
+}
+void Scene::RemoveFromLinkedList(Entity** first, Entity** last, int* count, Entity* obj) {
 	if (obj == NULL) {
 		return;
 	}
@@ -482,10 +494,22 @@ void Scene::Remove(Entity** first, Entity** last, int* count, Entity* obj) {
 	}
 
 	(*count)--;
-
-	RemoveObject(obj);
 }
-void Scene::AddToScene(Entity* obj) {
+void Scene::RemoveFromLinkedList(Entity* obj) {
+	if (obj->Dynamic) {
+		RemoveFromLinkedList(&DynamicObjectFirst,
+			&DynamicObjectLast,
+			&DynamicObjectCount,
+			obj);
+	}
+	else {
+		RemoveFromLinkedList(&StaticObjectFirst,
+			&StaticObjectLast,
+			&StaticObjectCount,
+			obj);
+	}
+}
+void Scene::AddEntity(Entity* obj) {
 	obj->CurrentScene = this;
 
 	// When the scene is loading, all entities are added to the end, because they will be sorted later.
@@ -543,27 +567,10 @@ void Scene::AddToScene(Entity* obj) {
 	}
 
 	ObjectCount++;
+
+	AddToLinkedList(obj);
 }
-void Scene::RemoveFromScene(Entity* obj) {
-	if (ObjectFirst == obj) {
-		ObjectFirst = obj->NextSceneEntity;
-	}
-	if (ObjectLast == obj) {
-		ObjectLast = obj->PrevSceneEntity;
-	}
-
-	if (obj->PrevSceneEntity) {
-		obj->PrevSceneEntity->NextSceneEntity = obj->NextSceneEntity;
-	}
-	if (obj->NextSceneEntity) {
-		obj->NextSceneEntity->PrevSceneEntity = obj->PrevSceneEntity;
-	}
-
-	obj->PrevSceneEntity = obj->NextSceneEntity = NULL;
-
-	ObjectCount--;
-}
-void Scene::RemoveObject(Entity* obj) {
+void Scene::RemoveEntity(Entity* obj) {
 	// Remove from proper list
 	if (obj->List) {
 		obj->List->Remove(obj);
@@ -584,11 +591,33 @@ void Scene::RemoveObject(Entity* obj) {
 		}
 	}
 
+	// Remove from the scene
+	RemoveFromLinkedList(obj);
+
+	if (ObjectFirst == obj) {
+		ObjectFirst = obj->NextSceneEntity;
+	}
+	if (ObjectLast == obj) {
+		ObjectLast = obj->PrevSceneEntity;
+	}
+
+	if (obj->PrevSceneEntity) {
+		obj->PrevSceneEntity->NextSceneEntity = obj->NextSceneEntity;
+	}
+	if (obj->NextSceneEntity) {
+		obj->NextSceneEntity->PrevSceneEntity = obj->PrevSceneEntity;
+	}
+
+	obj->PrevSceneEntity = obj->NextSceneEntity = NULL;
+
+	ObjectCount--;
+}
+void Scene::DeleteEntity(Entity* obj) {
+	// Remove it from the scene
+	RemoveEntity(obj);
+
 	// Stop all sounds
 	AudioManager::StopAllOriginSounds((void*)obj);
-
-	// Remove it from the scene
-	RemoveFromScene(obj);
 
 	// Delete it
 	obj->Dispose();
@@ -602,12 +631,9 @@ void Scene::Clear(Entity** first, Entity** last, int* count) {
 
 // Object management
 bool Scene::AddStatic(ObjectList* objectList, Entity* obj) {
-	Add(&StaticObjectFirst,
-		&StaticObjectLast,
-		&StaticObjectCount,
-		obj);
-
 	obj->Dynamic = false;
+
+	AddEntity(obj);
 
 	// Add to proper list
 	if (obj->List) {
@@ -615,24 +641,16 @@ bool Scene::AddStatic(ObjectList* objectList, Entity* obj) {
 	}
 	else {
 		Log::Print(Log::LOG_ERROR, "Entity %d has no list!", obj->SlotID);
-
-		Remove(&StaticObjectFirst,
-			&StaticObjectLast,
-			&StaticObjectCount,
-			obj);
-
+		DeleteEntity(obj);
 		return false;
 	}
 
 	return true;
 }
-void Scene::AddDynamic(ObjectList* objectList, Entity* obj) {
-	Add(&DynamicObjectFirst,
-		&DynamicObjectLast,
-		&DynamicObjectCount,
-		obj);
-
+void Scene::AddDynamic(Entity* obj) {
 	obj->Dynamic = true;
+
+	AddEntity(obj);
 }
 
 void Scene::OnEvent(Uint32 event) {
@@ -874,10 +892,7 @@ void Scene::FixedUpdate() {
 
 		// Removes the object from the scene, and deletes it.
 		if (ent->Dynamic && !ent->Active) {
-			Remove(&DynamicObjectFirst,
-				&DynamicObjectLast,
-				&DynamicObjectCount,
-				ent);
+			DeleteEntity(ent);
 		}
 	}
 
@@ -1851,7 +1866,7 @@ void Scene::Restart() {
 	}
 
 	// Dispose of all dynamic objects
-	RemoveNonPersistentObjects(
+	RemoveNonPersistentEntities(
 		&DynamicObjectFirst, &DynamicObjectLast, &DynamicObjectCount);
 
 	if (BaseTilesetCount != Tilesets.size()) {
@@ -2017,42 +2032,19 @@ void Scene::ClearPriorityLists() {
 	ResetPriorityListIndex(StaticObjectFirst);
 	ResetPriorityListIndex(DynamicObjectFirst);
 }
-void Scene::DeleteObjects(Entity** first, Entity** last, int* count) {
+void Scene::DeleteEntities(Entity** first, Entity** last, int* count) {
 	Iterate(*first, [this](Entity* ent) -> void {
-		RemoveObject(ent);
+		DeleteEntity(ent);
 	});
 	Clear(first, last, count);
 }
-void Scene::RemoveNonPersistentObjects(Entity** first, Entity** last, int* count) {
+void Scene::RemoveNonPersistentEntities(Entity** first, Entity** last, int* count) {
 	int persistencyScope = GetPersistenceScopeForObjectDeletion();
 	for (Entity *ent = *first, *next; ent; ent = next) {
 		next = ent->NextEntity;
 		if (ent->Persistence <= persistencyScope) {
-			Remove(first, last, count, ent);
+			RemoveFromLinkedList(first, last, count, ent);
 		}
-	}
-}
-void Scene::DeleteAllObjects() {
-	// Dispose and clear Static objects
-	DeleteObjects(
-		&StaticObjectFirst, &StaticObjectLast, &StaticObjectCount);
-
-	// Dispose and clear Dynamic objects
-	DeleteObjects(
-		&DynamicObjectFirst, &DynamicObjectLast, &DynamicObjectCount);
-
-	// Clear lists
-	if (ObjectLists) {
-		ObjectLists->ForAll([](Uint32, ObjectList* list) -> void {
-			list->Clear();
-		});
-	}
-
-	// Clear registries
-	if (ObjectRegistries) {
-		ObjectRegistries->ForAll([](Uint32, ObjectRegistry* registry) -> void {
-			registry->Clear();
-		});
 	}
 }
 void Scene::Unload() {
@@ -2082,9 +2074,9 @@ void Scene::Unload() {
 	DisposeInScope(SCOPE_SCENE);
 
 	// Clear and dispose of non-persistent objects
-	RemoveNonPersistentObjects(
+	RemoveNonPersistentEntities(
 		&StaticObjectFirst, &StaticObjectLast, &StaticObjectCount);
-	RemoveNonPersistentObjects(
+	RemoveNonPersistentEntities(
 		&DynamicObjectFirst, &DynamicObjectLast, &DynamicObjectCount);
 
 	// Clear static object lists (but don't delete them)
@@ -3797,11 +3789,11 @@ void Scene::Dispose() {
 	UsedResources.clear();
 
 	// Dispose and clear Static objects
-	DeleteObjects(
+	DeleteEntities(
 		&StaticObjectFirst, &StaticObjectLast, &StaticObjectCount);
 
 	// Dispose and clear Dynamic objects
-	DeleteObjects(
+	DeleteEntities(
 		&DynamicObjectFirst, &DynamicObjectLast, &DynamicObjectCount);
 
 	// Initialize the list that contains all of the scene's objects

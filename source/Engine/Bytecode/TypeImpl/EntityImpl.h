@@ -25,6 +25,7 @@
 	ENTITY_NATIVE_FN(ApplyPhysics) \
 	ENTITY_NATIVE_FN(PropertyExists) \
 	ENTITY_NATIVE_FN(PropertyGet) \
+	ENTITY_NATIVE_FN(MoveToScene) \
 	ENTITY_NATIVE_FN(SetViewVisibility) \
 	ENTITY_NATIVE_FN(SetViewOverride) \
 	ENTITY_NATIVE_FN(AddToDrawGroup) \
@@ -67,6 +68,7 @@ public:
 	static VMValue VM_ApplyPhysics(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_PropertyExists(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_MoveToScene(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetViewVisibility(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_SetViewOverride(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_AddToDrawGroup(int argCount, VMValue* args, Uint32 threadID);

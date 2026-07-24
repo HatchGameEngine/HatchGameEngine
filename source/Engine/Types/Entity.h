@@ -165,6 +165,7 @@ public:
 	static Entity* SpawnNamed(const char* objectName);
 
 	virtual ~Entity() = default;
+	void MoveToScene(Scene* scene);
 	void SetDrawGroup(int index);
 	void CheckDrawGroupChanges();
 	void CheckDepthChanges();

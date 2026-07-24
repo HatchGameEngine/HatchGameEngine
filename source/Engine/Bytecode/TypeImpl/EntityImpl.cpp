@@ -758,6 +758,39 @@ VMValue EntityImpl::VM_PropertyGet(int argCount, VMValue* args, Uint32 threadID)
 }
 
 /***
+ * \method MoveToScene
+ * \desc Moves the entity to another scene.
+ * \param sceneIndex (integer): Index of the scene to move the entity to.
+ * \ns Entity
+ */
+VMValue EntityImpl::VM_MoveToScene(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+	ScriptEntity* self = GET_ENTITY(0);
+	int index = GET_ARG(1, GetInteger);
+
+	if (index < 0 || index >= (int)Scene::List.size()) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+			"Scene index %d out of range. (0 - %d)",
+			index,
+			(int)Scene::List.size() - 1);
+		return NULL_VAL;
+	}
+
+	if (Scene::List[index] == nullptr) {
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
+			"Scene index %d is no longer valid!",
+			index);
+		return NULL_VAL;
+	}
+
+	if (self) {
+		self->MoveToScene(Scene::List[index]);
+	}
+
+	return NULL_VAL;
+}
+
+/***
  * \method SetViewVisibility
  * \desc Sets whether the entity is visible on a specific view.
  * \param viewIndex (integer): The view index.

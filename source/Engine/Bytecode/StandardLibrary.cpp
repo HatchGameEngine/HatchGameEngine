@@ -9667,7 +9667,7 @@ VMValue Instance_Create(int argCount, VMValue* args, Uint32 threadID) {
 	ObjEntity* instance = obj->Instance;
 
 	// Add it to the scene
-	scene->AddDynamic(obj->List, obj);
+	scene->AddDynamic(obj);
 
 	// Call the initializer
 	obj->Initialize();
