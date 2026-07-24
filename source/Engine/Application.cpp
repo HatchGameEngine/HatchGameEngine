@@ -739,65 +739,66 @@ void Application::GetPerformanceSnapshot() {
 	}
 	Log::Print(Log::LOG_INFO, "FPS: %27.3f", CurrentFPS);
 
-	// View Rendering Performance Snapshot
-	char layerText[2048];
-	Log::Print(Log::LOG_IMPORTANT, "View Rendering Performance Snapshot:");
-	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
-		View* currentView = &Scene::Views[i];
-		if (currentView->Active) {
-			for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
-				Scene* scene = Scene::List[sceneIdx];
-				if (!scene) {
-					continue;
-				}
-				Perf_ViewRender* viewPerf = &scene->PERF_ViewRender[i];
-				layerText[0] = 0;
-				double tilesTotal = 0.0;
-				for (size_t li = 0; li < scene->Layers.size(); li++) {
-					SceneLayer* layer = scene->Layers[li];
-					char temp[128];
-					snprintf(temp,
-						sizeof(temp),
-						"     > %24s:   %8.3f ms\n",
-						layer->Name,
-						viewPerf->LayerTileRenderTime[li]);
-					StringUtils::Concat(layerText, temp, sizeof(layerText));
-					tilesTotal += viewPerf->LayerTileRenderTime[li];
-				}
-				Log::Print(Log::LOG_INFO,
-					"View %d:\n"
-					"           - Render Setup:        %8.3f ms %s\n"
-					"           - Projection Setup:    %8.3f ms\n"
-					"           - Object RenderEarly:  %8.3f ms\n"
-					"           - Object Render:       %8.3f ms\n"
-					"           - Object RenderLate:   %8.3f ms\n"
-					"           - Layer Tiles Total:   %8.3f ms\n%s"
-					"           - Finish:              %8.3f ms\n"
-					"           - Total:               %8.3f ms",
-					i,
-					viewPerf->RenderSetupTime,
-					viewPerf->RecreatedDrawTarget
-						? "(recreated draw target)"
-						: "",
-					viewPerf->ProjectionSetupTime,
-					viewPerf->ObjectRenderEarlyTime,
-					viewPerf->ObjectRenderTime,
-					viewPerf->ObjectRenderLateTime,
-					tilesTotal,
-					layerText,
-					viewPerf->RenderFinishTime,
-					viewPerf->RenderTime);
-			}
-		}
-	}
-
-	// Object Performance Snapshot
-	Log::Print(Log::LOG_IMPORTANT, "Object Performance Snapshot:");
+	// Scene Performance Snapshot
+	Log::Print(Log::LOG_IMPORTANT, "Scene Performance Snapshot:");
 	for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
 		Scene* scene = Scene::List[sceneIdx];
 		if (!scene) {
 			continue;
 		}
+
+		Log::Print(Log::LOG_IMPORTANT, "Scene %u:", sceneIdx);
+
+		// View Rendering Performance Snapshot
+		char layerText[2048];
+		Log::Print(Log::LOG_IMPORTANT, "  View Rendering Performance Snapshot:");
+		for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
+			View* currentView = &Scene::Views[i];
+			if (currentView->SceneIndex != sceneIdx || !currentView->Active) {
+				continue;
+			}
+
+			Perf_ViewRender* viewPerf = &scene->PERF_ViewRender[i];
+			layerText[0] = 0;
+			double tilesTotal = 0.0;
+			for (size_t li = 0; li < scene->Layers.size(); li++) {
+				SceneLayer* layer = scene->Layers[li];
+				char temp[128];
+				snprintf(temp,
+					sizeof(temp),
+					"     > %24s:   %8.3f ms\n",
+					layer->Name,
+					viewPerf->LayerTileRenderTime[li]);
+				StringUtils::Concat(layerText, temp, sizeof(layerText));
+				tilesTotal += viewPerf->LayerTileRenderTime[li];
+			}
+			Log::Print(Log::LOG_INFO,
+				"    View %d:\n"
+				"               - Render Setup:        %8.3f ms %s\n"
+				"               - Projection Setup:    %8.3f ms\n"
+				"               - Object RenderEarly:  %8.3f ms\n"
+				"               - Object Render:       %8.3f ms\n"
+				"               - Object RenderLate:   %8.3f ms\n"
+				"               - Layer Tiles Total:   %8.3f ms\n%s"
+				"               - Finish:              %8.3f ms\n"
+				"               - Total:               %8.3f ms",
+				i,
+				viewPerf->RenderSetupTime,
+				viewPerf->RecreatedDrawTarget
+					? "(recreated draw target)"
+					: "",
+				viewPerf->ProjectionSetupTime,
+				viewPerf->ObjectRenderEarlyTime,
+				viewPerf->ObjectRenderTime,
+				viewPerf->ObjectRenderLateTime,
+				tilesTotal,
+				layerText,
+				viewPerf->RenderFinishTime,
+				viewPerf->RenderTime);
+		}
+
+		// Object Performance Snapshot
+		Log::Print(Log::LOG_IMPORTANT, "  Object Performance Snapshot:");
 		vector<ObjectList*> objListPerf = scene->GetObjectListPerformance();
 		if (objListPerf.size() > 0) {
 			GetObjectPerformanceSnapshot(objListPerf);
@@ -815,11 +816,11 @@ void Application::GetObjectPerformanceSnapshot(std::vector<ObjectList*> objListP
 		ObjectList* list = objListPerf[i];
 		ObjectListPerformance& perf = list->Performance;
 		Log::Print(Log::LOG_INFO,
-			"Object \"%s\":\n"
-			"           - Avg Update Early %6.1f mcs (Total %6.1f mcs, Count %d)\n"
-			"           - Avg Update       %6.1f mcs (Total %6.1f mcs, Count %d)\n"
-			"           - Avg Update Late  %6.1f mcs (Total %6.1f mcs, Count %d)\n"
-			"           - Avg Render       %6.1f mcs (Total %6.1f mcs, Count %d)",
+			"    Object \"%s\":\n"
+			"               - Avg Update Early %6.1f mcs (Total %6.1f mcs, Count %d)\n"
+			"               - Avg Update       %6.1f mcs (Total %6.1f mcs, Count %d)\n"
+			"               - Avg Update Late  %6.1f mcs (Total %6.1f mcs, Count %d)\n"
+			"               - Avg Render       %6.1f mcs (Total %6.1f mcs, Count %d)",
 			list->ObjectName,
 			perf.EarlyUpdate.GetAverageTime(),
 			perf.EarlyUpdate.GetTotalAverageTime(),
@@ -840,19 +841,19 @@ void Application::GetObjectPerformanceSnapshot(std::vector<ObjectList*> objListP
 		totalRender += perf.Render.GetTotalAverageTime();
 	}
 	Log::Print(Log::LOG_WARN,
-		"Total Update Early: %8.3f mcs / %1.3f ms",
+		"  Total Update Early: %8.3f mcs / %1.3f ms",
 		totalUpdateEarly,
 		totalUpdateEarly / 1000.0);
 	Log::Print(Log::LOG_WARN,
-		"Total Update: %8.3f mcs / %1.3f ms",
+		"  Total Update: %8.3f mcs / %1.3f ms",
 		totalUpdate,
 		totalUpdate / 1000.0);
 	Log::Print(Log::LOG_WARN,
-		"Total Update Late: %8.3f mcs / %1.3f ms",
+		"  Total Update Late: %8.3f mcs / %1.3f ms",
 		totalUpdateLate,
 		totalUpdateLate / 1000.0);
 	Log::Print(Log::LOG_WARN,
-		"Total Render: %8.3f mcs / %1.3f ms",
+		"  Total Render: %8.3f mcs / %1.3f ms",
 		totalRender,
 		totalRender / 1000.0);
 }
@@ -1494,10 +1495,10 @@ void Application::PollEvents() {
 						if (!scene) {
 							continue;
 						}
-						Log::Print(Log::LOG_IMPORTANT, "Scene %d Layers:", sceneIdx);
+						Log::Print(Log::LOG_IMPORTANT, "Scene %u Layers:", sceneIdx);
 						for (size_t li = 0; li < scene->Layers.size(); li++) {
 							SceneLayer* layer = scene->Layers[li];
-							Log::Print(Log::LOG_IMPORTANT,
+							Log::Print(Log::LOG_INFO,
 								"  %2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeX: %f, RelativeY: %f, ConstantX: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
 								li,
 								layer->Name,
