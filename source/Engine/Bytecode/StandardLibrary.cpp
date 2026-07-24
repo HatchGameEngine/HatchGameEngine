@@ -710,9 +710,15 @@ float textAdvance;
 #define GET_SCENE() \
 	Scene* scene = Scene::Current
 
-#define CHECK_SCENE_INDEX(index) \
+#define CHECK_SCENE_INDEX(index, retVal) \
 	if (index < 0 || index >= (int)Scene::List.size()) { \
 		OUT_OF_RANGE_ERROR("Scene index", index, 0, (int)Scene::List.size()); \
+		return retVal; \
+	}
+
+#define CHECK_SCENE_IS_VALID(index) \
+	if (Scene::List[index] == nullptr) { \
+		THROW_ERROR("Scene index %d is no longer valid!", index); \
 		return NULL_VAL; \
 	}
 
@@ -13016,7 +13022,8 @@ VMValue Scene_Delete(int argCount, VMValue* args, Uint32 threadID) {
 
 	int index = GET_ARG(0, GetInteger);
 
-	CHECK_SCENE_INDEX(index);
+	CHECK_SCENE_INDEX(index, NULL_VAL);
+	CHECK_SCENE_IS_VALID(index);
 
 	Scene::List[index]->DoDelete = true;
 
@@ -13051,11 +13058,58 @@ VMValue Scene_SetCurrent(int argCount, VMValue* args, Uint32 threadID) {
 
 	int index = GET_ARG(0, GetInteger);
 
-	CHECK_SCENE_INDEX(index);
+	CHECK_SCENE_INDEX(index, NULL_VAL);
+	CHECK_SCENE_IS_VALID(index);
 
 	Scene::Current = Scene::List[index];
 
 	return NULL_VAL;
+}
+/***
+ * Scene.GetCount
+ * \desc Gets the total amount of scenes.
+ * \return integer Returns an integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetCount(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL((int)Scene::List.size());
+}
+/***
+ * Scene.GetActiveCount
+ * \desc Gets the total amount of active scenes.
+ * \return integer Returns an integer value.
+ * \ns Scene
+ */
+VMValue Scene_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	int count = 0;
+	for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+		if (Scene::List[sceneIdx] != nullptr) {
+			count++;
+		}
+	}
+	return INTEGER_VAL(count);
+}
+/***
+ * Scene.IsValid
+ * \desc Checks if the given scene index is valid.
+ * \param sceneIndex (integer): Index of the scene to check.
+ * \return boolean Returns a boolean value.
+ * \ns Scene
+ */
+VMValue Scene_IsValid(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	int index = GET_ARG(0, GetInteger);
+
+	CHECK_SCENE_INDEX(index, INTEGER_VAL(false));
+
+	if (Scene::List[index] != nullptr) {
+		return INTEGER_VAL(true);
+	}
+
+	return INTEGER_VAL(false);
 }
 /***
  * Scene.Load
@@ -20089,6 +20143,9 @@ VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * View.SetScene
+ * \desc Sets the scene index to render for the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \param sceneIndex (integer): Index of the scene.
  * \ns View
  */
 VMValue View_SetScene(int argCount, VMValue* args, Uint32 threadID) {
@@ -20096,7 +20153,8 @@ VMValue View_SetScene(int argCount, VMValue* args, Uint32 threadID) {
 	int view_index = GET_ARG(0, GetInteger);
 	int sceneIndex = GET_ARG(1, GetInteger);
 	CHECK_VIEW_INDEX();
-	CHECK_SCENE_INDEX(sceneIndex);
+	CHECK_SCENE_INDEX(sceneIndex, NULL_VAL);
+	CHECK_SCENE_IS_VALID(sceneIndex);
 	Scene::Views[view_index].SceneIndex = (size_t)sceneIndex;
 	return NULL_VAL;
 }
@@ -22258,6 +22316,9 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, Delete);
 	DEF_NATIVE(Scene, GetCurrent);
 	DEF_NATIVE(Scene, SetCurrent);
+	DEF_NATIVE(Scene, GetCount);
+	DEF_NATIVE(Scene, GetActiveCount);
+	DEF_NATIVE(Scene, IsValid);
 	DEF_NATIVE(Scene, Load);
 	DEF_NATIVE(Scene, Change);
 	DEF_NATIVE(Scene, ChangeFromPath);
