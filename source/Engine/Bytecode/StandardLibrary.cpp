@@ -13093,7 +13093,7 @@ VMValue Scene_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.IsValid
- * \desc Checks if the given scene index is valid.
+ * \desc Checks if the given scene is valid.
  * \param sceneIndex (integer): Index of the scene to check.
  * \return boolean Returns a boolean value.
  * \ns Scene
@@ -20142,8 +20142,20 @@ VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 		GET_ARG(3, GetDecimal)));
 }
 /***
+ * View.GetScene
+ * \desc Gets the scene to render for the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return integer Returns the scene index.
+ * \ns View
+ */
+VMValue View_GetScene(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	return INTEGER_VAL((int)Scene::Views[view_index].SceneIndex);
+}
+/***
  * View.SetScene
- * \desc Sets the scene index to render for the specified view.
+ * \desc Sets the scene to render for the specified view.
  * \param viewIndex (integer): Index of the view.
  * \param sceneIndex (integer): Index of the scene.
  * \ns View
@@ -23010,6 +23022,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(View, GetActiveCount);
 	DEF_NATIVE(View, CheckOnScreen);
 	DEF_NATIVE(View, CheckPosOnScreen);
+	DEF_NATIVE(View, GetScene);
 	DEF_NATIVE(View, SetScene);
 	// #endregion
 
