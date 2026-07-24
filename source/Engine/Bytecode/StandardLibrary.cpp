@@ -13026,7 +13026,7 @@ VMValue Scene_Delete(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetCurrent
- * \desc Gets the currently active scene.
+ * \desc Gets the index of the current scene.
  * \return integer Returns an integer value.
  * \ns Scene
  */
@@ -13039,8 +13039,8 @@ VMValue Scene_GetCurrent(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetCurrent
- * \desc Changes the currently active scene. After calling this, all Scene functions will apply to the new active scene. Pass `null` to reset the active scene.
- * \param sceneIndex (integer): Index of the scene to be set as the active.
+ * \desc Changes the current scene by index. After calling this, all Scene functions will apply to the new scene. Pass `null` to reset the current scene.
+ * \param sceneIndex (integer): Index of the scene to set as the current.
  * \ns Scene
  */
 VMValue Scene_SetCurrent(int argCount, VMValue* args, Uint32 threadID) {
@@ -13061,6 +13061,44 @@ VMValue Scene_SetCurrent(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Scene.IsActive
+ * \desc Checks if the given scene should update or not.
+ * \param sceneIndex (integer): Index of the scene to check.
+ * \return boolean Returns a boolean value.
+ * \ns Scene
+ */
+VMValue Scene_IsActive(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+
+	CHECK_SCENE_INDEX(index, NULL_VAL);
+
+	if (Scene::List[index] == nullptr) {
+		return INTEGER_VAL(false);
+	}
+
+	return INTEGER_VAL(Scene::List[index]->Active);
+}
+/***
+ * Scene.SetActive
+ * \desc Sets whether the given scene should update or not. This takes effect the next frame.
+ * \param sceneIndex (integer): Index of the scene.
+ * \param isActive (boolean): Whether the scene should be active.
+ * \ns Scene
+ */
+VMValue Scene_SetActive(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	bool isActive = GET_ARG(1, GetInteger);
+
+	CHECK_SCENE_INDEX(index, NULL_VAL);
+	CHECK_SCENE_IS_VALID(index);
+
+	Scene::List[index]->Active = isActive;
+
+	return NULL_VAL;
+}
+/***
  * Scene.GetCount
  * \desc Gets the total amount of scenes.
  * \return integer Returns an integer value.
@@ -13071,12 +13109,12 @@ VMValue Scene_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)Scene::List.size());
 }
 /***
- * Scene.GetActiveCount
- * \desc Gets the total amount of active scenes.
+ * Scene.GetValidCount
+ * \desc Gets the total amount of valid scenes.
  * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetActiveCount(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetValidCount(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	int count = 0;
 	for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
@@ -13304,8 +13342,8 @@ VMValue Scene_GetProperty(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetLayerCount
- * \desc Gets the amount of layers in the active scene.
- * \return integer Returns the amount of layers in the active scene.
+ * \desc Gets the amount of layers in the current scene.
+ * \return integer Returns the amount of layers in the current scene.
  * \ns Scene
  */
 VMValue Scene_GetLayerCount(int argCount, VMValue* args, Uint32 threadID) {
@@ -13504,8 +13542,8 @@ VMValue Scene_LayerPropertyExists(int argCount, VMValue* args, Uint32 threadID) 
 }
 /***
  * Scene.GetName
- * \desc Gets the name of the active scene.
- * \return string Returns the name of the active scene.
+ * \desc Gets the name of the current scene.
+ * \return string Returns the name of the current scene.
  * \ns Scene
  */
 VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
@@ -13515,8 +13553,8 @@ VMValue Scene_GetName(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetType
- * \desc Gets the type of the active scene.
- * \return <ref SCENETYPE_*> Returns the type of the active scene.
+ * \desc Gets the type of the current scene.
+ * \return <ref SCENETYPE_*> Returns the type of the current scene.
  * \ns Scene
  */
 VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
@@ -13940,7 +13978,7 @@ VMValue Scene_GetTileFlipY(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.GetDrawGroupCount
- * \desc Gets the amount of draw groups in the active scene.
+ * \desc Gets the amount of draw groups in the current scene.
  * \return integer Returns an integer value.
  * \ns Scene
  */
@@ -14844,7 +14882,7 @@ VMValue Scene_SetLayerVerticalRepeat(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * Scene.SetDrawGroupCount
- * \desc Sets the amount of draw groups in the active scene.
+ * \desc Sets the amount of draw groups in the current scene.
  * \param count (integer): Draw group count.
  * \deprecated
  * \ns Scene
@@ -22323,8 +22361,10 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, Delete);
 	DEF_NATIVE(Scene, GetCurrent);
 	DEF_NATIVE(Scene, SetCurrent);
+	DEF_NATIVE(Scene, IsActive);
+	DEF_NATIVE(Scene, SetActive);
 	DEF_NATIVE(Scene, GetCount);
-	DEF_NATIVE(Scene, GetActiveCount);
+	DEF_NATIVE(Scene, GetValidCount);
 	DEF_NATIVE(Scene, IsValid);
 	DEF_NATIVE(Scene, Load);
 	DEF_NATIVE(Scene, Change);

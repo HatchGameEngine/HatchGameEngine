@@ -98,6 +98,8 @@ Scene::Scene() {
 }
 
 void Scene::Create() {
+	Active = true;
+
 	NextScene[0] = '\0';
 	CurrentScene[0] = '\0';
 	CurrentFolder[0] = '\0';
@@ -114,6 +116,7 @@ void Scene::Delete() {
 
 	if (this == &Scene::Main) {
 		Create();
+		ResetFields();
 	}
 	else {
 		Scene::List[Index] = nullptr;
@@ -140,7 +143,7 @@ Scene* Scene::New() {
 Scene* Scene::GetFirstActive() {
 	for (size_t i = 0; i < Scene::List.size(); i++) {
 		Scene* scene = Scene::List[i];
-		if (scene && !scene->DoDelete) {
+		if (scene && scene->Active && !scene->DoDelete) {
 			return scene;
 		}
 	}

@@ -107,6 +107,7 @@ public:
 	// General
 	size_t Index = 0;
 	int Frame = 0;
+	bool Active = true;
 	bool Paused = false;
 	bool Loaded = false;
 	bool Initializing = false;

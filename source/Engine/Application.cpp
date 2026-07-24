@@ -1779,7 +1779,7 @@ void Application::DoSceneUpdate(int runFrames) {
 			Metrics.Update.Begin();
 			for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
 				Scene* scene = Scene::List[sceneIdx];
-				if (!scene) {
+				if (!scene || !scene->Active) {
 					continue;
 				}
 
