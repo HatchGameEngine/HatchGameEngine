@@ -228,19 +228,46 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 		if (!scene) {
 			continue;
 		}
+
 		vector<ObjectList*> objListPerf = scene->GetObjectListPerformance();
 		if (objListPerf.size() == 0) {
 			continue;
 		}
 
+		float maxW = 0.0, maxH = 0.0;
+		char textBufferXXX[1024];
+
+		Graphics::Save();
+		Graphics::Translate(infoPadding / 2.0, listY, 0.0);
+		Graphics::Scale(0.6, 0.6, 1.0);
+
+		snprintf(textBufferXXX,
+			sizeof textBufferXXX,
+			"Scene %u:",
+			sceneIdx);
+
+		Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.75);
+		Graphics::MeasureText(font, textBufferXXX, &textParams, maxW, maxH);
+		maxH *= 1.25;
+		Graphics::FillRectangle(textX, textY, maxW, maxH);
+
+		Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+		Graphics::DrawText(font, textBufferXXX, textX, textY, &textParams);
+		Graphics::Restore();
+
+		listY += maxH * 0.6;
+
 		for (size_t i = 0; i < objListPerf.size(); i++) {
 			ObjectList* list = objListPerf[i];
+
+			if (listY >= wh) {
+				break;
+			}
 
 			Graphics::Save();
 			Graphics::Translate(infoPadding / 2.0, listY, 0.0);
 			Graphics::Scale(0.6, 0.6, 1.0);
 
-			char textBufferXXX[1024];
 			snprintf(textBufferXXX,
 				sizeof textBufferXXX,
 				"Object \"%s\": Avg Update %.1f mcs - Avg Render %.1f mcs (Total %.1f mcs, Count %d)",
@@ -250,21 +277,18 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 				list->Performance.Render.GetTotalAverageTime(),
 				(int)list->Performance.Render.AverageItemCount);
 
-			float maxW = 0.0, maxH = 0.0;
 			Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.75);
 			Graphics::MeasureText(font, textBufferXXX, &textParams, maxW, maxH);
-			Graphics::FillRectangle(textX, textY, maxW, maxH);
+			Graphics::FillRectangle(textX + 10.0, textY, maxW, maxH);
 
 			Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
-			Graphics::DrawText(font, textBufferXXX, textX, textY, &textParams);
+			Graphics::DrawText(font, textBufferXXX, textX + 10.0, textY, &textParams);
 			Graphics::Restore();
 
 			listY += maxH * 0.6;
-
-			if (listY >= wh) {
-				break;
-			}
 		}
+
+		listY += 10.0;
 	}
 
 	Graphics::Restore();
