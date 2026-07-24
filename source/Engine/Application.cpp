@@ -956,7 +956,10 @@ void Application::UnloadGame() {
 }
 
 void Application::Restart(bool keepScene) {
-	Scene* scene = &Scene::Main;
+	Scene* scene = Scene::GetFirstActive();
+	if (!scene) {
+		scene = &Scene::Main;
+	}
 	int activeCategory = scene->ActiveCategory;
 	int currentSceneInList = scene->CurrentSceneInList;
 
@@ -1521,9 +1524,14 @@ void Application::PollEvents() {
 				}
 				// Recompile and restart scene (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevRecompile]) {
+					Scene* scene = Scene::GetFirstActive();
+					if (!scene) {
+						scene = &Scene::Main;
+					}
+
 					char lastScene[MAX_RESOURCE_PATH_LENGTH];
 					memcpy(lastScene,
-						Scene::Main.CurrentScene,
+						scene->CurrentScene,
 						MAX_RESOURCE_PATH_LENGTH);
 
 					Application::Restart(true);
@@ -1549,10 +1557,17 @@ void Application::PollEvents() {
 						Application::CloseDevMenu();
 					}
 
+					bool found = false;
 					for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
 						Scene* scene = Scene::List[sceneIdx];
 						if (scene) {
-							scene->DoRestart = true;
+							if (found) {
+								scene->DoDelete = true;
+							}
+							else {
+								scene->DoRestart = true;
+								found = true;
+							}
 						}
 					}
 					break;
@@ -1659,7 +1674,7 @@ void Application::RunFrame(int runFrames) {
 	//   frame of a new scene from Updating, but still rendering.
 	for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
 		Scene* scene = Scene::List[sceneIdx];
-		if (scene && (*scene->NextScene || scene->DoRestart)) {
+		if (scene && !scene->DoDelete && (*scene->NextScene || scene->DoRestart)) {
 			Step = true;
 		}
 	}
@@ -1667,10 +1682,13 @@ void Application::RunFrame(int runFrames) {
 	FirstFrame = false;
 
 	Metrics.AfterScene.Begin();
+	Scene::StaticAfterScene();
 	for (size_t i = 0; i < Scene::List.size(); i++) {
 		Scene* scene = Scene::List[i];
-		Scene::Current = scene;
-		scene->AfterScene();
+		if (scene) {
+			Scene::Current = scene;
+			scene->AfterScene();
+		}
 	}
 	Metrics.AfterScene.End();
 
@@ -3178,7 +3196,11 @@ void Application::DevMenu_OpenResourcesBrowser() {
 
 	std::vector<std::string> paths;
 
-	char* currentScene = Scene::Main.CurrentScene;
+	Scene* scene = Scene::GetFirstActive();
+	if (!scene) {
+		scene = &Scene::Main;
+	}
+	char* currentScene = scene->CurrentScene;
 	if (currentScene[0] != '\0') {
 		const char* sep = strrchr(currentScene, '/');
 		if (sep) {
@@ -3381,7 +3403,10 @@ void Application::DevMenu_ResourcesBrowserMenu() {
 				path = ResourcesBrowserPaths.back() + path;
 			}
 
-			Scene* scene = &Scene::Main;
+			Scene* scene = Scene::GetFirstActive();
+			if (!scene) {
+				scene = &Scene::Main;
+			}
 			scene->ChangeFromPath(path.c_str(), -1);
 			StringUtils::Copy(scene->NextScene,
 				path.c_str(),
@@ -3491,7 +3516,10 @@ void Application::DevMenu_SceneSelectMenu() {
 			return;
 		}
 
-		Scene* scene = &Scene::Main;
+		Scene* scene = Scene::GetFirstActive();
+		if (!scene) {
+			scene = &Scene::Main;
+		}
 		scene->SetCurrent(categoryName, sceneName);
 		StringUtils::Copy(scene->NextScene,
 			SceneInfo::GetFilename(categoryID, DevMenu.SubSelection).c_str(),

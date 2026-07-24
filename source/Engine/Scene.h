@@ -157,6 +157,7 @@ public:
 	int SceneType = SCENETYPE_NONE;
 	bool DoRestart = false;
 	bool NoPersistency = false;
+	bool DoDelete = false;
 
 	// Time variables
 	int TimeEnabled = 0;
@@ -176,9 +177,11 @@ public:
 	char CurrentCategory[256];
 	int ActiveCategory = 0;
 
-	static Scene* Create();
+	static Scene* New();
+	static Scene* GetFirstActive();
 	static void OnEvent(Uint32 event);
 	static void Init();
+	static void StaticAfterScene();
 	static void SetViewActive(int viewIndex, bool active);
 	static void SetViewPriority(int viewIndex, int priority);
 	static void SortViews();
@@ -245,6 +248,8 @@ public:
 	static void StaticDispose();
 
 	Scene();
+	void Create();
+	void Delete();
 	void Add(Entity** first, Entity** last, int* count, Entity* obj);
 	void Remove(Entity** first, Entity** last, int* count, Entity* obj);
 	void AddToScene(Entity* obj);

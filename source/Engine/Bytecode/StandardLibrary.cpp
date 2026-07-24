@@ -12996,13 +12996,30 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 VMValue Scene_Create(int argCount, VMValue* args, Uint32 threadID) {
 	char* filename = GET_ARG_OPT(0, GetString, nullptr);
 
-	Scene* scene = Scene::Create();
+	Scene* scene = Scene::New();
 
 	if (filename) {
 		StringUtils::Copy(scene->NextScene, filename, sizeof(scene->NextScene));
 	}
 
 	return INTEGER_VAL((int)scene->Index);
+}
+/***
+ * Scene.Delete
+ * \desc Marks a scene for deletion. This takes effect the next frame.
+ * \param sceneIndex (integer): Index of the scene to delete.
+ * \ns Scene
+ */
+VMValue Scene_Delete(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	int index = GET_ARG(0, GetInteger);
+
+	CHECK_SCENE_INDEX(index);
+
+	Scene::List[index]->DoDelete = true;
+
+	return NULL_VAL;
 }
 /***
  * Scene.GetCurrent
@@ -13020,7 +13037,7 @@ VMValue Scene_GetCurrent(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Scene.SetCurrent
  * \desc Changes the currently active scene. After calling this, all Scene functions will apply to the new active scene. Pass `null` to reset the active scene.
- * \param sceneIndex (integer): The index of the scene to be set as the active.
+ * \param sceneIndex (integer): Index of the scene to be set as the active.
  * \ns Scene
  */
 VMValue Scene_SetCurrent(int argCount, VMValue* args, Uint32 threadID) {
@@ -22237,6 +22254,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
     */
 	INIT_CLASS(Scene);
 	DEF_NATIVE(Scene, Create);
+	DEF_NATIVE(Scene, Delete);
 	DEF_NATIVE(Scene, GetCurrent);
 	DEF_NATIVE(Scene, SetCurrent);
 	DEF_NATIVE(Scene, Load);

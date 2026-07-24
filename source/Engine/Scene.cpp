@@ -94,6 +94,10 @@ std::vector<ViewableHitbox> Scene::ViewableHitboxList;
 int Scene::DebugMode = 0;
 
 Scene::Scene() {
+	Create();
+}
+
+void Scene::Create() {
 	NextScene[0] = '\0';
 	CurrentScene[0] = '\0';
 	CurrentFolder[0] = '\0';
@@ -103,6 +107,45 @@ Scene::Scene() {
 	CurrentCategory[0] = '\0';
 
 	memset(PERF_ViewRender, 0, sizeof(PERF_ViewRender));
+}
+
+void Scene::Delete() {
+	Dispose();
+
+	if (this == &Scene::Main) {
+		Create();
+	}
+	else {
+		Scene::List[Index] = nullptr;
+		delete this;
+	}
+}
+
+Scene* Scene::New() {
+	Scene* scene = new Scene();
+
+	for (size_t i = 0; i < Scene::List.size(); i++) {
+		if (Scene::List[i] == nullptr) {
+			scene->Index = i;
+			Scene::List[i] = scene;
+			return scene;
+		}
+	}
+
+	scene->Index = Scene::List.size();
+	Scene::List.push_back(scene);
+	return scene;
+}
+
+Scene* Scene::GetFirstActive() {
+	for (size_t i = 0; i < Scene::List.size(); i++) {
+		Scene* scene = Scene::List[i];
+		if (scene && !scene->DoDelete) {
+			return scene;
+		}
+	}
+
+	return nullptr;
 }
 
 void ObjectList_CallLoads(Scene* scene, Uint32 key, ObjectList* list) {
@@ -645,9 +688,12 @@ void Scene::SetInfoFromCurrentID() {
 
 // Scene Lifecycle
 void Scene::Init() {
+	Main.Create();
 	List.push_back(&Main);
 
 	Scene::Current = &Main;
+	Scene::CurrentIndex = 0;
+
 	Scene::ReservedSlotIDs = 0;
 	Scene::UseRenderRegions = true;
 
@@ -681,15 +727,6 @@ void Scene::Init() {
 	}
 	Scene::Views[0].Active = true;
 	Scene::ViewsActive = 1;
-}
-Scene* Scene::Create() {
-	Scene* scene = new Scene();
-
-	scene->Index = List.size();
-
-	List.push_back(scene);
-
-	return scene;
 }
 void Scene::InitObjectListsAndRegistries() {
 	if (ObjectLists == NULL) {
@@ -1614,9 +1651,16 @@ void Scene::Render() {
 	Scene::ViewCurrent = 0;
 }
 
-void Scene::AfterScene() {
+void Scene::StaticAfterScene() {
 	ScriptManager::ResetStack();
 	ScriptManager::RequestGarbageCollection();
+}
+
+void Scene::AfterScene() {
+	if (DoDelete) {
+		Delete();
+		return;
+	}
 
 	bool& doRestart = DoRestart;
 
@@ -3604,6 +3648,9 @@ void Scene::DisposeInScope(Uint32 scope) {
 	}
 }
 void Scene::StaticDispose() {
+	Scene::Main.DisposeInScope(SCOPE_GROUP);
+	Scene::Main.DisposeInScope(SCOPE_GAME);
+
 	Graphics::UnloadData();
 
 	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
@@ -3657,9 +3704,7 @@ void Scene::StaticDispose() {
 	Scene::List.clear();
 }
 void Scene::Dispose() {
-	Scene::DisposeInScope(SCOPE_SCENE);
-	Scene::DisposeInScope(SCOPE_GROUP);
-	Scene::DisposeInScope(SCOPE_GAME);
+	DisposeInScope(SCOPE_SCENE);
 
 	// Dispose and clear Static objects
 	DeleteObjects(
@@ -3720,6 +3765,8 @@ void Scene::Dispose() {
 	Properties = NULL;
 
 	Loaded = false;
+	DoRestart = false;
+	DoDelete = false;
 }
 
 void Scene::UnloadTilesets() {
