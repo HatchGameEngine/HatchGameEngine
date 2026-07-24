@@ -707,14 +707,20 @@ float textAdvance;
 #define OUT_OF_RANGE_ERROR(eType, eIdx, eMin, eMax) \
 	THROW_ERROR(eType " %d out of range. (%d - %d)", eIdx, eMin, eMax)
 
+#define GET_SCENE() \
+	Scene* scene = Scene::Current
+
+#define CHECK_SCENE_INDEX(index) \
+	if (index < 0 || index >= (int)Scene::List.size()) { \
+		OUT_OF_RANGE_ERROR("Scene index", index, 0, (int)Scene::List.size()); \
+		return NULL_VAL; \
+	}
+
 #define CHECK_PALETTE_INDEX(index) \
 	if (index < 0 || index >= MAX_PALETTE_COUNT) { \
 		OUT_OF_RANGE_ERROR("Palette index", index, 0, MAX_PALETTE_COUNT - 1); \
 		return NULL_VAL; \
 	}
-
-#define GET_SCENE() \
-	Scene* scene = Scene::Current
 
 #define CHECK_SCENE_LAYER_INDEX(layerIdx) \
 	if (layerIdx < 0 || layerIdx >= (int)scene->Layers.size()) { \
@@ -12982,6 +12988,9 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 
 /***
  * Scene.Create
+ * \desc Creates a new scene, optionally loading a scene file.
+ * \paramOpt filename (string): Filename of scene to load. This takes effect the next frame.
+ * \return integer Returns the index of the newly created scene.
  * \ns Scene
  */
 VMValue Scene_Create(int argCount, VMValue* args, Uint32 threadID) {
@@ -12996,15 +13005,39 @@ VMValue Scene_Create(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL((int)scene->Index);
 }
 /***
- * Scene.GetCurrentIndex
+ * Scene.GetCurrent
+ * \desc Gets the currently active scene.
+ * \return integer Returns an integer value.
  * \ns Scene
  */
-VMValue Scene_GetCurrentIndex(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Scene_GetCurrent(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 
 	Scene* scene = Scene::Current;
 
 	return INTEGER_VAL((int)scene->Index);
+}
+/***
+ * Scene.SetCurrent
+ * \desc Changes the currently active scene. After calling this, all Scene functions will apply to the new active scene. Pass `null` to reset the active scene.
+ * \param sceneIndex (integer): The index of the scene to be set as the active.
+ * \ns Scene
+ */
+VMValue Scene_SetCurrent(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+
+	if (IS_NULL(args[0])) {
+		Scene::Current = Scene::List[Scene::CurrentIndex];
+		return NULL_VAL;
+	}
+
+	int index = GET_ARG(0, GetInteger);
+
+	CHECK_SCENE_INDEX(index);
+
+	Scene::Current = Scene::List[index];
+
+	return NULL_VAL;
 }
 /***
  * Scene.Load
@@ -20045,9 +20078,8 @@ VMValue View_SetScene(int argCount, VMValue* args, Uint32 threadID) {
 	int view_index = GET_ARG(0, GetInteger);
 	int sceneIndex = GET_ARG(1, GetInteger);
 	CHECK_VIEW_INDEX();
-	if (sceneIndex >= 0 && (size_t)sceneIndex < Scene::List.size()) {
-		Scene::Views[view_index].ScenePtr = Scene::List[sceneIndex];
-	}
+	CHECK_SCENE_INDEX(sceneIndex);
+	Scene::Views[view_index].SceneIndex = (size_t)sceneIndex;
 	return NULL_VAL;
 }
 // #endregion
@@ -22200,12 +22232,13 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	// #region Scene
 	/***
     * \class Scene
-    * \desc Functions for manipulating and retrieving information about scenes and layers.<br/>\
+    * \desc Functions for manipulating and retrieving information about scenes, layers, and tilesets.<br/>\
 Some layer-related functions can only be used with layers of type <ref LAYERTYPE_TILE>. To get the type of a layer, use <ref Scene.GetLayerType>.
     */
 	INIT_CLASS(Scene);
 	DEF_NATIVE(Scene, Create);
-	DEF_NATIVE(Scene, GetCurrentIndex);
+	DEF_NATIVE(Scene, GetCurrent);
+	DEF_NATIVE(Scene, SetCurrent);
 	DEF_NATIVE(Scene, Load);
 	DEF_NATIVE(Scene, Change);
 	DEF_NATIVE(Scene, ChangeFromPath);

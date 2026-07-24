@@ -66,6 +66,7 @@ public:
 	static std::vector<Scene*> List;
 	static Scene Main;
 	static Scene* Current;
+	static size_t CurrentIndex;
 	static int StartingActiveCategory;
 	static int StartingSceneInList;
 	static int ShowTileCollisionFlag;

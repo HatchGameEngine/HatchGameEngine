@@ -53,7 +53,11 @@ void GarbageCollector::Collect() {
 	GrayHashMap(ScriptManager::Constants);
 
 	// Mark objects
-	for (Scene* scene : Scene::List) {
+	for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+		Scene* scene = Scene::List[sceneIdx];
+		if (!scene) {
+			continue;
+		}
 		for (Entity* ent = scene->ObjectFirst; ent; ent = ent->NextSceneEntity) {
 			ScriptEntity* scriptEntity = (ScriptEntity*)ent;
 			GrayObject(scriptEntity->Instance);

@@ -745,7 +745,11 @@ void Application::GetPerformanceSnapshot() {
 	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
 		View* currentView = &Scene::Views[i];
 		if (currentView->Active) {
-			for (Scene* scene : Scene::List) {
+			for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+				Scene* scene = Scene::List[sceneIdx];
+				if (!scene) {
+					continue;
+				}
 				Perf_ViewRender* viewPerf = &scene->PERF_ViewRender[i];
 				layerText[0] = 0;
 				double tilesTotal = 0.0;
@@ -789,7 +793,11 @@ void Application::GetPerformanceSnapshot() {
 
 	// Object Performance Snapshot
 	Log::Print(Log::LOG_IMPORTANT, "Object Performance Snapshot:");
-	for (Scene* scene : Scene::List) {
+	for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+		Scene* scene = Scene::List[sceneIdx];
+		if (!scene) {
+			continue;
+		}
 		vector<ObjectList*> objListPerf = scene->GetObjectListPerformance();
 		if (objListPerf.size() > 0) {
 			GetObjectPerformanceSnapshot(objListPerf);
@@ -1478,11 +1486,16 @@ void Application::PollEvents() {
 				}
 				// Show layer info (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevLayerInfo]) {
-					for (Scene* scene : Scene::List) {
+					for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+						Scene* scene = Scene::List[sceneIdx];
+						if (!scene) {
+							continue;
+						}
+						Log::Print(Log::LOG_IMPORTANT, "Scene %d Layers:", sceneIdx);
 						for (size_t li = 0; li < scene->Layers.size(); li++) {
 							SceneLayer* layer = scene->Layers[li];
 							Log::Print(Log::LOG_IMPORTANT,
-								"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeX: %f, RelativeY: %f, ConstantX: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
+								"  %2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeX: %f, RelativeY: %f, ConstantX: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
 								li,
 								layer->Name,
 								layer->Visible,
@@ -1536,8 +1549,11 @@ void Application::PollEvents() {
 						Application::CloseDevMenu();
 					}
 
-					for (Scene* scene : Scene::List) {
-						scene->DoRestart = true;
+					for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+						Scene* scene = Scene::List[sceneIdx];
+						if (scene) {
+							scene->DoRestart = true;
+						}
 					}
 					break;
 				}
@@ -1641,8 +1657,9 @@ void Application::RunFrame(int runFrames) {
 
 	// BUG: Having Stepper on prevents the first
 	//   frame of a new scene from Updating, but still rendering.
-	for (Scene* scene : Scene::List) {
-		if (*scene->NextScene || scene->DoRestart) {
+	for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+		Scene* scene = Scene::List[sceneIdx];
+		if (scene && (*scene->NextScene || scene->DoRestart)) {
 			Step = true;
 		}
 	}
@@ -1723,11 +1740,16 @@ DO_NOTHING:
 }
 void Application::DoSceneUpdate(int runFrames) {
 	for (int m = 0; m < runFrames; m++) {
-		for (Scene* scene : Scene::List) {
-			scene->ResetPerf();
+		for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+			Scene* scene = Scene::List[sceneIdx];
+			if (scene) {
+				scene->ResetPerf();
+			}
 		}
+
 		Metrics.Poll.Reset();
 		Metrics.Update.Reset();
+
 		if (((Stepper && Step) || !Stepper) && !Application::DevMenuActivated) {
 			// Poll for inputs
 			Metrics.Poll.Begin();
@@ -1736,9 +1758,15 @@ void Application::DoSceneUpdate(int runFrames) {
 
 			// Update scene
 			Metrics.Update.Begin();
-			for (size_t i = 0; i < Scene::List.size(); i++) {
-				Scene* scene = Scene::List[i];
+			for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+				Scene* scene = Scene::List[sceneIdx];
+				if (!scene) {
+					continue;
+				}
+
+				Scene::CurrentIndex = sceneIdx;
 				Scene::Current = scene;
+
 				scene->FrameUpdate();
 				if (Application::UseFixedTimestep) {
 					scene->FixedUpdate();
@@ -1764,8 +1792,9 @@ void Application::DoSceneUpdate(int runFrames) {
 		Step = false;
 
 		if (runFrames != 1) {
-			for (Scene* scene : Scene::List) {
-				if (*scene->NextScene || scene->DoRestart) {
+			for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+				Scene* scene = Scene::List[sceneIdx];
+				if (scene && (*scene->NextScene || scene->DoRestart)) {
 					return;
 				}
 			}

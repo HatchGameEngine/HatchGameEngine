@@ -36,6 +36,7 @@
 std::vector<Scene*> Scene::List;
 Scene Scene::Main;
 Scene* Scene::Current = NULL;
+size_t Scene::CurrentIndex = 0;
 
 // Scene list variables
 int Scene::StartingActiveCategory = 0;
@@ -659,7 +660,7 @@ void Scene::Init() {
 	Scene::ViewCurrent = 0;
 	for (int i = 0; i < MAX_SCENE_VIEWS; i++) {
 		Scene::Views[i].Active = false;
-		Scene::Views[i].ScenePtr = &Main;
+		Scene::Views[i].SceneIndex = 0;
 		Scene::Views[i].Software = Graphics::UseSoftwareRenderer;
 		Scene::Views[i].Priority = 0;
 		Scene::Views[i].Width = Application::WindowWidth;
@@ -1499,7 +1500,7 @@ void Scene::Render() {
 	for (int i = 0; i < viewCount; i++) {
 		int viewIndex = ViewRenderList[i];
 		View* currentView = &Scene::Views[viewIndex];
-		Scene* scene = currentView->ScenePtr;
+		Scene* scene = Scene::List[currentView->SceneIndex];
 		if (!scene || !scene->PriorityLists) {
 			continue;
 		}
@@ -3644,10 +3645,13 @@ void Scene::StaticDispose() {
 	}
 
 	// Dispose scenes
-	for (Scene* scene : Scene::List) {
-		scene->Dispose();
-		if (scene != &Scene::Main) {
-			delete scene;
+	for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+		Scene* scene = Scene::List[sceneIdx];
+		if (scene) {
+			scene->Dispose();
+			if (scene != &Scene::Main) {
+				delete scene;
+			}
 		}
 	}
 	Scene::List.clear();

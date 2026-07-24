@@ -223,7 +223,11 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 		listY += (maxH * 0.6) * 1.5;
 	}
 
-	for (Scene* scene : Scene::List) {
+	for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
+		Scene* scene = Scene::List[sceneIdx];
+		if (!scene) {
+			continue;
+		}
 		vector<ObjectList*> objListPerf = scene->GetObjectListPerformance();
 		if (objListPerf.size() == 0) {
 			continue;

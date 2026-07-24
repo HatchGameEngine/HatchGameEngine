@@ -44,7 +44,7 @@ public:
 	Matrix4x4* ProjectionMatrix = NULL;
 	Matrix4x4* ViewMatrix = NULL;
 	Shader* CurrentShader = NULL;
-	Scene* ScenePtr = NULL;
+	size_t SceneIndex = 0;
 
 	bool IsUsingDrawTarget();
 	bool IsScaled();
