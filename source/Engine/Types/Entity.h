@@ -151,6 +151,7 @@ public:
 	Entity* PrevSceneEntity = NULL;
 	Entity* NextSceneEntity = NULL;
 	Scene* CurrentScene = NULL;
+	int CurrentSceneIndex = 0;
 
 	HashMap<Property>* Properties = NULL;
 

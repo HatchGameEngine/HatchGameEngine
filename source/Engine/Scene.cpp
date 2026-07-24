@@ -511,6 +511,7 @@ void Scene::RemoveFromLinkedList(Entity* obj) {
 }
 void Scene::AddEntity(Entity* obj) {
 	obj->CurrentScene = this;
+	obj->CurrentSceneIndex = this->Index;
 
 	// When the scene is loading, all entities are added to the end, because they will be sorted later.
 	// Also added to the end if NeedEntitySort is already set anyway.

@@ -744,6 +744,14 @@ void ScriptEntity::LinkFields() {
     * \desc Whether the entity persists between scenes.
     */
 	LINK_INT(Persistence);
+
+	/***
+    * \field CurrentScene
+    * \type integer
+    * \ns Entity
+    * \desc The index of the scene the entity is in. Changing this field has no effect; use <ref Entity.MoveToScene> instead.
+    */
+	Instance->InstanceObj.Fields->Put("CurrentScene", INTEGER_LINK_VAL(&CurrentSceneIndex));
 }
 
 #undef LINK_INT
