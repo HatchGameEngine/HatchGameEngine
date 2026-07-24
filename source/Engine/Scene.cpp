@@ -3788,10 +3788,7 @@ void Scene::StaticDispose() {
 	for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
 		Scene* scene = Scene::List[sceneIdx];
 		if (scene) {
-			scene->Dispose();
-			if (scene != &Scene::Main) {
-				delete scene;
-			}
+			scene->Delete();
 		}
 	}
 	Scene::List.clear();
