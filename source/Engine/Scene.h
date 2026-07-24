@@ -26,6 +26,8 @@ class DrawGroupList;
 #include <Engine/Types/ObjectRegistry.h>
 #include <Engine/Types/Tileset.h>
 
+#include <set>
+
 class Scene {
 private:
 	static void ResetViews();
@@ -177,6 +179,10 @@ public:
 	char CurrentCategory[256];
 	int ActiveCategory = 0;
 
+	// Resource managing variables
+	std::set<ResourceType*> UsedResources;
+	std::set<Animator*> UsedAnimators;
+
 	static Scene* New();
 	static Scene* GetFirstActive();
 	static void OnEvent(Uint32 event);
@@ -295,6 +301,10 @@ public:
 	bool AddTileset(char* path);
 	void LoadTileCollisions(const char* filename, size_t tilesetID);
 	void UnloadTileCollisions();
+	void MarkResourceAsUsed(ResourceType* resource);
+	bool UnmarkResourceAsUsed(ResourceType* resource);
+	void MarkAnimatorAsUsed(Animator* resource);
+	bool UnmarkAnimatorAsUsed(Animator* resource);
 	void DisposeInScope(Uint32 scope);
 	void Dispose();
 	void UnloadTilesets();

@@ -28,6 +28,7 @@ struct ResourceType {
 		MediaBag* AsMedia;
 	};
 	Uint32 UnloadPolicy;
+	size_t RefCount = 0;
 };
 
 #endif /* ENGINE_RESOURCETYPES_RESOURCETYPE_H */

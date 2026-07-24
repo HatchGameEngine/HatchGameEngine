@@ -818,20 +818,18 @@ VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
 	animator->CurrentFrame = argCount >= 3 ? GET_ARG(2, GetInteger) : -1;
 	animator->UnloadPolicy = argCount >= 4 ? GET_ARG(3, GetInteger) : SCOPE_SCENE;
 
-	size_t index = 0;
-	bool emptySlot = false;
-	vector<Animator*>* list = &Scene::AnimatorList;
-	if (GetAnimatorSpace(list, &index, &emptySlot)) {
-		return INTEGER_VAL((int)index);
-	}
-	else if (emptySlot) {
-		(*list)[index] = animator;
-	}
-	else {
-		list->push_back(animator);
+	for (size_t i = 0, listSz = Scene::AnimatorList.size(); i < listSz; i++) {
+		if (!Scene::AnimatorList[i]) {
+			Scene::Current->MarkAnimatorAsUsed(animator);
+			Scene::AnimatorList[i] = animator;
+			return INTEGER_VAL((int)i);
+		}
 	}
 
-	return INTEGER_VAL((int)index);
+	int index = (int)Scene::AnimatorList.size();
+	Scene::AnimatorList.push_back(animator);
+	Scene::Current->MarkAnimatorAsUsed(animator);
+	return INTEGER_VAL(index);
 }
 /***
  * Animator.Remove
@@ -841,15 +839,18 @@ VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
-	int animator = GET_ARG(0, GetInteger);
-	if (animator < 0 || animator >= (int)Scene::AnimatorList.size()) {
+	int index = GET_ARG(0, GetInteger);
+	if (index < 0 || index >= (int)Scene::AnimatorList.size()) {
 		return NULL_VAL;
 	}
-	if (!Scene::AnimatorList[animator]) {
+	if (!Scene::AnimatorList[index]) {
 		return NULL_VAL;
 	}
-	delete Scene::AnimatorList[animator];
-	Scene::AnimatorList[animator] = NULL;
+	Animator* animator = Scene::AnimatorList[index];
+	if (Scene::Current->UnmarkAnimatorAsUsed(animator)) {
+		delete animator;
+		Scene::AnimatorList[index] = NULL;
+	}
 	return NULL_VAL;
 }
 /***

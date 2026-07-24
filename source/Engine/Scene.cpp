@@ -3306,6 +3306,58 @@ bool Scene::GetResource(vector<ResourceType*>* list, ResourceType* resource, siz
 	return false;
 }
 
+void Scene::MarkResourceAsUsed(ResourceType* resource) {
+	if (resource->UnloadPolicy == SCOPE_GAME) {
+		return;
+	}
+
+	if (!UsedResources.count(resource)) {
+		UsedResources.insert(resource);
+		resource->RefCount++;
+	}
+}
+bool Scene::UnmarkResourceAsUsed(ResourceType* resource) {
+	if (resource->UnloadPolicy == SCOPE_GAME) {
+		return true;
+	}
+	else if (resource->RefCount == 0) {
+		return false;
+	}
+
+	if (UsedResources.count(resource)) {
+		UsedResources.erase(resource);
+		resource->RefCount--;
+	}
+
+	return resource->RefCount == 0;
+}
+
+void Scene::MarkAnimatorAsUsed(Animator* animator) {
+	if (animator->UnloadPolicy == SCOPE_GAME) {
+		return;
+	}
+
+	if (!UsedAnimators.count(animator)) {
+		UsedAnimators.insert(animator);
+		animator->RefCount++;
+	}
+}
+bool Scene::UnmarkAnimatorAsUsed(Animator* animator) {
+	if (animator->UnloadPolicy == SCOPE_GAME) {
+		return true;
+	}
+	else if (animator->RefCount == 0) {
+		return false;
+	}
+
+	if (UsedAnimators.count(animator)) {
+		UsedAnimators.erase(animator);
+		animator->RefCount--;
+	}
+
+	return animator->RefCount == 0;
+}
+
 int Scene::LoadSpriteResource(const char* filename, int unloadPolicy) {
 	ResourceType* resource = new (std::nothrow) ResourceType();
 	resource->FilenameHash = CRC32::EncryptString(filename);
@@ -3314,6 +3366,7 @@ int Scene::LoadSpriteResource(const char* filename, int unloadPolicy) {
 	size_t index = 0;
 	vector<ResourceType*>* list = &Scene::SpriteList;
 	if (Scene::GetResource(list, resource, index)) {
+		Scene::Current->MarkResourceAsUsed((*list)[index]);
 		return (int)index;
 	}
 
@@ -3325,6 +3378,8 @@ int Scene::LoadSpriteResource(const char* filename, int unloadPolicy) {
 		return -1;
 	}
 
+	Scene::Current->MarkResourceAsUsed((*list)[index]);
+
 	return (int)index;
 }
 int Scene::LoadImageResource(const char* filename, int unloadPolicy) {
@@ -3335,6 +3390,7 @@ int Scene::LoadImageResource(const char* filename, int unloadPolicy) {
 	size_t index = 0;
 	vector<ResourceType*>* list = &Scene::ImageList;
 	if (Scene::GetResource(list, resource, index)) {
+		Scene::Current->MarkResourceAsUsed((*list)[index]);
 		return (int)index;
 	}
 
@@ -3346,7 +3402,7 @@ int Scene::LoadImageResource(const char* filename, int unloadPolicy) {
 		return -1;
 	}
 
-	resource->AsImage->ID = (int)index;
+	Scene::Current->MarkResourceAsUsed((*list)[index]);
 
 	return (int)index;
 }
@@ -3358,10 +3414,13 @@ int Scene::AddImageResource(Image* image, const char* filename, int unloadPolicy
 	size_t index = 0;
 	vector<ResourceType*>* list = &Scene::ImageList;
 	if (Scene::GetResource(list, resource, index)) {
+		Scene::Current->MarkResourceAsUsed((*list)[index]);
 		return (int)index;
 	}
 
 	resource->AsImage = image;
+
+	Scene::Current->MarkResourceAsUsed((*list)[index]);
 
 	return (int)index;
 }
@@ -3373,6 +3432,7 @@ int Scene::LoadModelResource(const char* filename, int unloadPolicy) {
 	size_t index = 0;
 	vector<ResourceType*>* list = &Scene::ModelList;
 	if (Scene::GetResource(list, resource, index)) {
+		Scene::Current->MarkResourceAsUsed((*list)[index]);
 		return (int)index;
 	}
 
@@ -3384,6 +3444,8 @@ int Scene::LoadModelResource(const char* filename, int unloadPolicy) {
 		return -1;
 	}
 
+	Scene::Current->MarkResourceAsUsed((*list)[index]);
+
 	return (int)index;
 }
 int Scene::LoadMusicResource(const char* filename, int unloadPolicy) {
@@ -3394,6 +3456,7 @@ int Scene::LoadMusicResource(const char* filename, int unloadPolicy) {
 	size_t index = 0;
 	vector<ResourceType*>* list = &Scene::MusicList;
 	if (Scene::GetResource(list, resource, index)) {
+		Scene::Current->MarkResourceAsUsed((*list)[index]);
 		return (int)index;
 	}
 
@@ -3405,6 +3468,8 @@ int Scene::LoadMusicResource(const char* filename, int unloadPolicy) {
 		return -1;
 	}
 
+	Scene::Current->MarkResourceAsUsed((*list)[index]);
+
 	return (int)index;
 }
 int Scene::LoadSoundResource(const char* filename, int unloadPolicy) {
@@ -3415,6 +3480,7 @@ int Scene::LoadSoundResource(const char* filename, int unloadPolicy) {
 	size_t index = 0;
 	vector<ResourceType*>* list = &Scene::SoundList;
 	if (Scene::GetResource(list, resource, index)) {
+		Scene::Current->MarkResourceAsUsed((*list)[index]);
 		return (int)index;
 	}
 
@@ -3425,6 +3491,8 @@ int Scene::LoadSoundResource(const char* filename, int unloadPolicy) {
 		(*list)[index] = NULL;
 		return -1;
 	}
+
+	Scene::Current->MarkResourceAsUsed((*list)[index]);
 
 	return (int)index;
 }
@@ -3437,6 +3505,7 @@ int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
 	size_t index = 0;
 	vector<ResourceType*>* list = &Scene::MediaList;
 	if (Scene::GetResource(list, resource, index)) {
+		Scene::Current->MarkResourceAsUsed((*list)[index]);
 		return (int)index;
 	}
 
@@ -3510,6 +3579,9 @@ int Scene::LoadVideoResource(const char* filename, int unloadPolicy) {
 	newMediaBag->VideoTexture = VideoTexture;
 
 	resource->AsMedia = newMediaBag;
+
+	Scene::Current->MarkResourceAsUsed((*list)[index]);
+
 	return (int)index;
 #else
 	return -1;
@@ -3548,6 +3620,9 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (Scene::ModelList[i]->UnloadPolicy != scope) {
 			continue;
 		}
+		if (!UnmarkResourceAsUsed(Scene::ModelList[i])) {
+			continue;
+		}
 
 		delete Scene::ModelList[i]->AsModel;
 		delete Scene::ModelList[i];
@@ -3564,6 +3639,9 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (Scene::ImageList[i]->AsImage->References > 1) {
 			continue;
 		}
+		if (!UnmarkResourceAsUsed(Scene::ImageList[i])) {
+			continue;
+		}
 
 		delete Scene::ImageList[i]->AsImage;
 		delete Scene::ImageList[i];
@@ -3577,6 +3655,9 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (Scene::SpriteList[i]->UnloadPolicy != scope) {
 			continue;
 		}
+		if (!UnmarkResourceAsUsed(Scene::SpriteList[i])) {
+			continue;
+		}
 
 		delete Scene::SpriteList[i]->AsSprite;
 		delete Scene::SpriteList[i];
@@ -3588,6 +3669,9 @@ void Scene::DisposeInScope(Uint32 scope) {
 			continue;
 		}
 		if (Scene::SoundList[i]->UnloadPolicy != scope) {
+			continue;
+		}
+		if (!UnmarkResourceAsUsed(Scene::SoundList[i])) {
 			continue;
 		}
 
@@ -3604,6 +3688,9 @@ void Scene::DisposeInScope(Uint32 scope) {
 			continue;
 		}
 		if (Scene::MusicList[i]->UnloadPolicy != scope) {
+			continue;
+		}
+		if (!UnmarkResourceAsUsed(Scene::MusicList[i])) {
 			continue;
 		}
 
@@ -3623,6 +3710,9 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (Scene::MediaList[i]->UnloadPolicy != scope) {
 			continue;
 		}
+		if (!UnmarkResourceAsUsed(Scene::MediaList[i])) {
+			continue;
+		}
 
 #ifdef USING_FFMPEG
 		Scene::MediaList[i]->AsMedia->Player->Close();
@@ -3640,6 +3730,9 @@ void Scene::DisposeInScope(Uint32 scope) {
 			continue;
 		}
 		if (Scene::AnimatorList[i]->UnloadPolicy != scope) {
+			continue;
+		}
+		if (!UnmarkAnimatorAsUsed(Scene::AnimatorList[i])) {
 			continue;
 		}
 
@@ -3705,6 +3798,9 @@ void Scene::StaticDispose() {
 }
 void Scene::Dispose() {
 	DisposeInScope(SCOPE_SCENE);
+
+	UsedResources.clear();
+	UsedAnimators.clear();
 
 	// Dispose and clear Static objects
 	DeleteObjects(
