@@ -282,8 +282,6 @@ void Graphics::Dispose() {
 	delete Graphics::TextureMap;
 }
 void Graphics::UnloadData() {
-	Graphics::UnloadSceneData();
-
 	Graphics::DeleteShaders();
 	Graphics::DeleteVertexBuffers();
 
@@ -643,6 +641,7 @@ Uint32 Graphics::CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy) {
 	}
 
 	vtxbuf->UnloadPolicy = unloadPolicy;
+	vtxbuf->Owner = Scene::Current;
 
 	if (idx == 0xFFFFFFFF) {
 		size_t sz = Graphics::VertexBuffers.size();
@@ -802,26 +801,6 @@ int Graphics::GetPaletteTransparentColor(Uint32* palColors, unsigned numPaletteC
 	}
 
 	return -1;
-}
-
-void Graphics::UnloadSceneData() {
-	for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
-		VertexBuffer* buffer = Graphics::VertexBuffers[i];
-		if (!buffer || buffer->UnloadPolicy > SCOPE_SCENE) {
-			continue;
-		}
-
-		Graphics::DeleteVertexBuffer(i);
-	}
-
-	for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
-		Scene3D* scene = &Graphics::Scene3Ds[i];
-		if (!scene->Initialized || scene->UnloadPolicy > SCOPE_SCENE) {
-			continue;
-		}
-
-		Graphics::DeleteScene3D(i);
-	}
 }
 
 bool Graphics::SetRenderTarget(Texture* texture) {
@@ -3465,7 +3444,9 @@ void Graphics::InitScene3D(Uint32 sceneIndex, Uint32 numVertices) {
 
 	scene->ClipPolygons = true;
 	scene->Initialized = true;
+
 	scene->UnloadPolicy = SCOPE_GAME;
+	scene->Owner = Scene::Current;
 
 	scene->Clear();
 }

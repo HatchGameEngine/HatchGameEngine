@@ -13,7 +13,9 @@ public:
 	Uint32 Capacity = 0;
 	Uint32 VertexCount = 0;
 	Uint32 FaceCount = 0;
+
 	Uint32 UnloadPolicy;
+	void* Owner = nullptr;
 
 	VertexBuffer();
 	VertexBuffer(Uint32 numVertices);

@@ -1757,7 +1757,7 @@ DO_NOTHING:
 	Metrics.Frame.End();
 }
 void Application::DoSceneUpdate(int runFrames) {
-	for (int m = 0; m < runFrames; m++) {
+	for (int frame = 0; frame < runFrames; frame++) {
 		for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
 			Scene* scene = Scene::List[sceneIdx];
 			if (scene) {
@@ -1813,11 +1813,15 @@ void Application::DoSceneUpdate(int runFrames) {
 			for (size_t sceneIdx = 0; sceneIdx < Scene::List.size(); sceneIdx++) {
 				Scene* scene = Scene::List[sceneIdx];
 				if (scene && (*scene->NextScene || scene->DoRestart)) {
-					return;
+					frame = runFrames;
+					break;
 				}
 			}
 		}
 	}
+
+	Scene::CurrentIndex = 0;
+	Scene::Current = &Scene::Main;
 }
 
 void Application::TakeScreenshot(const char* path, Operation operation) {

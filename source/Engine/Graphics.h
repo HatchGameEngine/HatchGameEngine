@@ -186,7 +186,6 @@ public:
 	static void UpdateGlobalPalette();
 	static void UpdatePaletteIndexTable();
 	static int GetPaletteTransparentColor(Uint32* palColors, unsigned numPaletteColors);
-	static void UnloadSceneData();
 	static bool SetRenderTarget(Texture* texture);
 	static bool CreateFramebufferTexture();
 	static bool UpdateFramebufferTexture();

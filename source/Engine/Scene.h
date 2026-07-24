@@ -181,7 +181,6 @@ public:
 
 	// Resource managing variables
 	std::set<ResourceType*> UsedResources;
-	std::set<Animator*> UsedAnimators;
 
 	static Scene* New();
 	static Scene* GetFirstActive();
@@ -303,9 +302,8 @@ public:
 	void UnloadTileCollisions();
 	void MarkResourceAsUsed(ResourceType* resource);
 	bool UnmarkResourceAsUsed(ResourceType* resource);
-	void MarkAnimatorAsUsed(Animator* resource);
-	bool UnmarkAnimatorAsUsed(Animator* resource);
 	void DisposeInScope(Uint32 scope);
+	void UnloadGPUData(Uint32 scope);
 	void Dispose();
 	void UnloadTilesets();
 	void

@@ -1816,8 +1816,6 @@ void Scene::Restart() {
 
 	ResetFields();
 
-	Graphics::UnloadSceneData();
-
 	if (AnyLayerTileChange) {
 		// Copy backup tiles into main tiles
 		for (int l = 0; l < (int)Layers.size(); l++) {
@@ -3332,32 +3330,6 @@ bool Scene::UnmarkResourceAsUsed(ResourceType* resource) {
 	return resource->RefCount == 0;
 }
 
-void Scene::MarkAnimatorAsUsed(Animator* animator) {
-	if (animator->UnloadPolicy == SCOPE_GAME) {
-		return;
-	}
-
-	if (!UsedAnimators.count(animator)) {
-		UsedAnimators.insert(animator);
-		animator->RefCount++;
-	}
-}
-bool Scene::UnmarkAnimatorAsUsed(Animator* animator) {
-	if (animator->UnloadPolicy == SCOPE_GAME) {
-		return true;
-	}
-	else if (animator->RefCount == 0) {
-		return false;
-	}
-
-	if (UsedAnimators.count(animator)) {
-		UsedAnimators.erase(animator);
-		animator->RefCount--;
-	}
-
-	return animator->RefCount == 0;
-}
-
 int Scene::LoadSpriteResource(const char* filename, int unloadPolicy) {
 	ResourceType* resource = new (std::nothrow) ResourceType();
 	resource->FilenameHash = CRC32::EncryptString(filename);
@@ -3732,14 +3704,37 @@ void Scene::DisposeInScope(Uint32 scope) {
 		if (Scene::AnimatorList[i]->UnloadPolicy != scope) {
 			continue;
 		}
-		if (!UnmarkAnimatorAsUsed(Scene::AnimatorList[i])) {
+		if (scope != SCOPE_GAME && Scene::AnimatorList[i]->Owner != this) {
 			continue;
 		}
 
 		delete Scene::AnimatorList[i];
 		Scene::AnimatorList[i] = NULL;
 	}
+
+	UnloadGPUData(scope);
 }
+
+void Scene::UnloadGPUData(Uint32 scope) {
+	for (Uint32 i = 0; i < Graphics::VertexBuffers.size(); i++) {
+		VertexBuffer* buffer = Graphics::VertexBuffers[i];
+		if (!buffer || buffer->UnloadPolicy != SCOPE_SCENE || buffer->Owner != this) {
+			continue;
+		}
+
+		Graphics::DeleteVertexBuffer(i);
+	}
+
+	for (Uint32 i = 0; i < MAX_3D_SCENES; i++) {
+		Scene3D* scene = &Graphics::Scene3Ds[i];
+		if (!scene->Initialized || scene->UnloadPolicy != SCOPE_SCENE || scene->Owner != this) {
+			continue;
+		}
+
+		Graphics::DeleteScene3D(i);
+	}
+}
+
 void Scene::StaticDispose() {
 	Scene::Main.DisposeInScope(SCOPE_GROUP);
 	Scene::Main.DisposeInScope(SCOPE_GAME);
@@ -3797,7 +3792,6 @@ void Scene::Dispose() {
 	DisposeInScope(SCOPE_SCENE);
 
 	UsedResources.clear();
-	UsedAnimators.clear();
 
 	// Dispose and clear Static objects
 	DeleteObjects(

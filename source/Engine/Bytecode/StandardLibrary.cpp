@@ -823,10 +823,10 @@ VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
 	animator->CurrentAnimation = argCount >= 2 ? GET_ARG(1, GetInteger) : -1;
 	animator->CurrentFrame = argCount >= 3 ? GET_ARG(2, GetInteger) : -1;
 	animator->UnloadPolicy = argCount >= 4 ? GET_ARG(3, GetInteger) : SCOPE_SCENE;
+	animator->Owner = Scene::Current;
 
 	for (size_t i = 0, listSz = Scene::AnimatorList.size(); i < listSz; i++) {
 		if (!Scene::AnimatorList[i]) {
-			Scene::Current->MarkAnimatorAsUsed(animator);
 			Scene::AnimatorList[i] = animator;
 			return INTEGER_VAL((int)i);
 		}
@@ -834,7 +834,6 @@ VMValue Animator_Create(int argCount, VMValue* args, Uint32 threadID) {
 
 	int index = (int)Scene::AnimatorList.size();
 	Scene::AnimatorList.push_back(animator);
-	Scene::Current->MarkAnimatorAsUsed(animator);
 	return INTEGER_VAL(index);
 }
 /***
@@ -849,12 +848,8 @@ VMValue Animator_Remove(int argCount, VMValue* args, Uint32 threadID) {
 	if (index < 0 || index >= (int)Scene::AnimatorList.size()) {
 		return NULL_VAL;
 	}
-	if (!Scene::AnimatorList[index]) {
-		return NULL_VAL;
-	}
-	Animator* animator = Scene::AnimatorList[index];
-	if (Scene::Current->UnmarkAnimatorAsUsed(animator)) {
-		delete animator;
+	if (Scene::AnimatorList[index]) {
+		delete Scene::AnimatorList[index];
 		Scene::AnimatorList[index] = NULL;
 	}
 	return NULL_VAL;

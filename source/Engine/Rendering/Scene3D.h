@@ -44,7 +44,9 @@ struct Scene3D {
 	float PointSize = 1.0f;
 	bool ClipPolygons = false;
 	bool Initialized = false;
+
 	int UnloadPolicy;
+	void* Owner = nullptr;
 
 	void Clear() {
 		if (Buffer) {
