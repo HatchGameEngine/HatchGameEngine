@@ -1,6 +1,6 @@
 @page arrays Arrays
 
-As shown in [Variables](@ref variables), **array**s are objects that hold a resizable ordered list of values.
+As shown in [Variables](@ref variables), **arrays** are objects that hold a resizable ordered list of values.
 
 ## Declaring an array
 
