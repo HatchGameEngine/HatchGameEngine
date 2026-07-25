@@ -50,7 +50,7 @@ print(myArray);
 INFO: ["a", "t", "c", "h", " ", "E", "n", "g", "i", "n", "e", "H"]
 ```
 
-In both cases, trying to access values greater than the array's length or below 0 results in an error.
+In both cases, trying to access values greater than or equal to the array's length or below 0 results in an error.
 
 ```java
 print(myArray[4096]);
