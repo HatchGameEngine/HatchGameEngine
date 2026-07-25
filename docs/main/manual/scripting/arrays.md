@@ -128,14 +128,12 @@ As a counterpart, `Erase` removes any value specified in the index argument, shi
 
 
 ```java
-
 encouragement.Erase(0);
 encouragement.Erase(2);
 encouragement.Erase(4);
 encouragement.Erase(6);
 
 print(encouragement);
-```
 ```
 INFO: ["Game", Engine", "Hatch"]
 ```
