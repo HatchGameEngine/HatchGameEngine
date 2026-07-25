@@ -4,7 +4,7 @@ As shown in [Variables](@ref variables), **array**s are objects that hold a resi
 
 ## Declaring an array
 
-Arrays can be declared in 2 ways. One of the ways is by assigning the values of the array separated by commas between the `[]` operator.
+Arrays can be declared in 2 ways. The first, and more straightfoward way, is using the `[]` operator. Then you can optionally - between `[]` - fill the array with the desired values, separating them using a comma.
 
 
 ```java
@@ -15,7 +15,7 @@ print(myArray);
 INFO: ["H", "a", "t", "c", "h", " ", "E", "n", "g", "i", "n", "e"]
 ```
 
-Due to the object nature of arrays, you can also create an array by calling the static `Create` method defined in the `Array` class. The `Create` method takes a size and a initial value as parameters, the array will then be filled with the initial value.
+Due to the object nature of arrays, it's also possible to create one by calling the `Create` method defined inside the `Array` class. The `Create` method takes a length and a initial value as parameters. The initial value gets used to fill the array up to the desired length.
 
 ```java
 print(Array.Create(4, 9 + 10));
@@ -26,7 +26,7 @@ INFO: [19, 19, 19, 19]
 
 ## Reading & writing to individual values
 
-It's possible to read the values of individual items present in an array by typing the array's name followed by the index of the item between `[]`. The first value of an array in HSL will always be 0.
+You can read the value of an item held by an array by typing the array's name then the item's index between `[]`. The first value of an array in HSL will always be 0.
 
 ```java
 print(myArray[2] + myArray[6] + myArray[1] + myArray[3] + myArray[4] + myArray[9] + myArray[7] + myArray[8] + myArray[5] + myArray[0] + myArray[11] + myArray[10]);
@@ -35,21 +35,22 @@ print(myArray[2] + myArray[6] + myArray[1] + myArray[3] + myArray[4] + myArray[9
 INFO: tEaching Hen
 ```
 
-Similarly, you can can set the value by appending the `=` operator to the end of the above syntax followed by the value you want.
+Similarly, you can also set the value by adding the `=` operator to the end of the above syntax followed by the value you want.
 
 ```java
-// Shifts the values by 1.
-// Length() is a method found in the Array object class that returns the number of items present in the array, in this case, 11. Methods will be further explained in namespaces & classes.
+// repeat is a statement that repeats a set of instructions by a specified amount of times. Statements will be explained in the next chapter.
 repeat (myArray.Length(), number) {
-    myArray[number] = myArray[(number + 1) % 11];
+    // Length() is a method found in the Array object class that returns the number of items present in the array, in this case, 11. Methods will be thoroughly explained in further chapters.
+    myArray[number] = myArray[(number + 1) % myArray.Length()];
 }
+
 print(myArray);
 ```
 ```
 INFO: ["a", "t", "c", "h", " ", "E", "n", "g", "i", "n", "e", "H"]
 ```
 
-In both cases, trying to access a index greater than the array's size or below 0 results in your project crashing.
+In both cases, trying to access values greater than the array's length or below 0 results in an error.
 
 ```java
 print(myArray[4096]);
@@ -73,7 +74,7 @@ ERROR: [...]
 
 In this section we'll show a few methods that can be used to insert or remove items inside an array, those being: `Push`, `Pop`, `Insert`, `Erase` and `Clear`. As mentioned previously, methods will be explained in future chapters.
 
-You may find other methods and their explanations in [Array](@ref classArray).
+You may find other methods accompanied by explanations in the [Array](@ref classArray) page.
 
 ### Push & Pop
 
@@ -104,7 +105,7 @@ INFO: [0, 8]
 
 ### Insert & Erase
 
-`Insert` takes an index and a value as arguments, it uses those to add the specified value to the index defined in the first argument. Using `Insert` shifts all the items to the right to accomodate the new value.
+`Insert` takes an index and a value as arguments. The value gets appended at the index defined by first argument. Using `Insert` shifts all the items after the specified index to the right to accomodate the new value.
 
 ```java
 var dayAction = "Game";
@@ -123,7 +124,7 @@ print(encouragement);
 INFO: ["First we ", "Game", ", then we ", "Engine", ". Let's ", "Hatch", "!"]
 ```
 
-As a counterpart, `Erase` removes any value specified in the index argument.
+As a counterpart, `Erase` removes any value specified in the index argument, shifting all the values after index to the left.
 
 
 ```java
@@ -144,7 +145,6 @@ INFO: ["Game", Engine", "Hatch"]
 Finally, `Clear` erases all the elements inside the array.
 
 ```java
-
 var competitors = ["Blender", "Scratch", "Doom Engine"];
 
 competitors.Clear();
