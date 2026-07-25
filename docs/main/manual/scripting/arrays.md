@@ -15,7 +15,7 @@ print(myArray);
 INFO: ["H", "a", "t", "c", "h", " ", "E", "n", "g", "i", "n", "e"]
 ```
 
-Due to the object nature of arrays, it's also possible to create one by calling the `Create` method defined inside the `Array` class. The `Create` method takes a length and a initial value as parameters. The initial value gets used to fill the array up to the desired length.
+Due to the object nature of arrays, it's also possible to create one by calling @ref Array.Create, which takes a length and a initial value as parameters. The initial value gets used to fill the array up to the desired length.
 
 ```java
 print(Array.Create(4, 9 + 10));
