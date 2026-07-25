@@ -134,6 +134,7 @@ encouragement.Erase(6);
 
 print(encouragement);
 ```
+```
 INFO: ["Game", Engine", "Hatch"]
 ```
 
