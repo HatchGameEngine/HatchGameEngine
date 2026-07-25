@@ -74,7 +74,7 @@ ERROR: [...]
 
 In this section we'll show a few methods that can be used to insert or remove items inside an array, those being: @ref Array.Push, @ref Array.Pop, @ref Array.Insert, @ref Array.Erase, and @ref Array.Clear. As mentioned previously, methods will be explained in future chapters.
 
-You may find other methods accompanied by explanations in the [Array](@ref classArray) page.
+You may find other methods accompanied by explanations in the @ref Array page.
 
 ### Push & Pop
 
@@ -133,6 +133,7 @@ encouragement.Erase(4);
 encouragement.Erase(6);
 
 print(encouragement);
+```
 ```
 INFO: ["Game", Engine", "Hatch"]
 ```
