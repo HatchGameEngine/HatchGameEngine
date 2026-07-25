@@ -67,7 +67,7 @@ print(myArray[-32]);
 ```
 ERROR: [...]
 
-    Index -32 is out of bounds of array of size 11.
+    Index -32 is out of bounds of array of size 12.
 ```
 
 ## Inserting & removing items
