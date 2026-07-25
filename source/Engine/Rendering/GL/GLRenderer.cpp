@@ -4018,7 +4018,7 @@ void GLRenderer::MakeLayerTileBuffers(TileLayer* layer) {
 		for (int xx = 0; xx < layer->Width; xx++) {
 			size_t tileIndex = xx + (yy << layer->WidthInBits);
 			int tileID = layer->Tiles[tileIndex] & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
 				layer->TileBufferIndexes[tileIndex] = SIZE_MAX;
 				continue;
 			}
@@ -4072,7 +4072,7 @@ void GLRenderer::MakeLayerTileBuffers(TileLayer* layer) {
 		for (int xx = 0; xx < layer->Width; xx++) {
 			int tile = layer->Tiles[xx + (yy << layer->WidthInBits)];
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
 				continue;
 			}
 
@@ -4178,7 +4178,7 @@ void GLRenderer::RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIn
 		for (int xx = 0; xx < layer->Width; xx++) {
 			size_t tileIndex = xx + (yy << layer->WidthInBits);
 			int tileID = layer->Tiles[tileIndex] & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
 				layer->TileBufferIndexes[tileIndex] = SIZE_MAX;
 				continue;
 			}
@@ -4221,7 +4221,7 @@ void GLRenderer::RefreshTileBuffersForTileset(TileLayer* layer, size_t tilesetIn
 		for (int xx = 0; xx < layer->Width; xx++) {
 			int tile = layer->Tiles[xx + (yy << layer->WidthInBits)];
 			int tileID = tile & TILE_IDENT_MASK;
-			if (tileID == Scene::EmptyTile) {
+			if (tileID == Scene::EmptyTile || (size_t)tileID >= Scene::TileSpriteInfos.size()) {
 				continue;
 			}
 
@@ -4284,6 +4284,10 @@ void GLRenderer::UpdateBufferedLayerTile(TileLayer* layer, int x, int y) {
 
 	size_t tileIndex = x + (y << layer->WidthInBits);
 	int tile = layer->Tiles[tileIndex];
+	if ((size_t)tile >= Scene::TileSpriteInfos.size()) {
+		return;
+	}
+
 	TileSpriteInfo info = Scene::TileSpriteInfos[tile & TILE_IDENT_MASK];
 	if (info.IsAnimated) {
 		return;
