@@ -47,7 +47,7 @@ repeat (myArray.Length(), number) {
 print(myArray);
 ```
 ```
-INFO: ["a", "t", "c", "h", " ", "E", "n", "g", "i", "n", "e", "H"]
+INFO: ["a", "t", "c", "h", " ", "E", "n", "g", "i", "n", "e", "a"]
 ```
 
 In both cases, trying to access values greater than or equal to the array's length or below 0 results in an error.
@@ -90,7 +90,7 @@ print(myFavoriteNumbers);
 INFO: [0, 8, 16, 32]
 ```
 
-`Pop`, on the other hand, can be used to remove the last item inside an array.
+`Pop`, on the other hand, removes the last item inside an array, returning the removed value after.
 
 ```java
 myFavoriteNumbers.Pop();
