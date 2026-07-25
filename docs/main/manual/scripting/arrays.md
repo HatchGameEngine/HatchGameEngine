@@ -122,7 +122,7 @@ print(encouragement);
 INFO: ["First we ", "Game", ", then we ", "Engine", ". Let's ", "Hatch", "!"]
 ```
 
-As a counterpart, `Erase` removes any value specified in the index argument, shifting all the values after index to the left.
+As a counterpart, `Erase` removes any value specified in the index argument, shifting all the values after the index to the left.
 
 
 ```java
