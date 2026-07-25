@@ -2863,6 +2863,10 @@ void Graphics::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentV
 				continue;
 			}
 
+			if ((size_t)tileID >= Scene::TileSpriteInfos.size()) {
+				continue;
+			}
+
 			TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
 			if (onlyAnimated && !info.IsAnimated) {
 				continue;
@@ -2943,6 +2947,10 @@ void Graphics::DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* cur
 
 			if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
 				int tileID = tile & TILE_IDENT_MASK;
+				if ((size_t)tileID >= Scene::TileSpriteInfos.size()) {
+					continue;
+				}
+
 				TileSpriteInfo& info = Scene::TileSpriteInfos[tileID];
 
 				bool flipX = (tile & TILE_FLIPX_MASK) != 0;

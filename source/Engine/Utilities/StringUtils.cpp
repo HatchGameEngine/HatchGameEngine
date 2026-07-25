@@ -286,6 +286,23 @@ char* StringUtils::GetPath(const char* filename) {
 
 	return path;
 }
+bool StringUtils::GetPathInPlace(char* filename) {
+	if (!filename) {
+		return false;
+	}
+
+	char* sep = strrchr(filename, '/');
+	if (!sep) {
+		sep = strrchr(filename, '\\');
+	}
+	if (!sep) {
+		return false;
+	}
+
+	sep[1] = '\0';
+
+	return true;
+}
 const char* StringUtils::GetFilename(const char* filename) {
 	if (!filename) {
 		return nullptr;
