@@ -58,7 +58,7 @@ print(myArray[4096]);
 ```
 ERROR: [...]
 
-    Index 4096 is out of bounds of array of size 11.
+    Index 4096 is out of bounds of array of size 12.
 ```
 
 ```java
