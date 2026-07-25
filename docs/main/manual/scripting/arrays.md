@@ -96,9 +96,7 @@ INFO: [0, 8, 16, 32]
 myFavoriteNumbers.Pop();
 myFavoriteNumbers.Pop();
 
-
 print(myFavoriteNumbers);
-```
 ```
 INFO: [0, 8]
 ```
