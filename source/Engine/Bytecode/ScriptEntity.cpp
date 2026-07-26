@@ -1122,10 +1122,6 @@ void ScriptEntity::Unlink() {
 	}
 }
 void ScriptEntity::Dispose() {
-	if (Instance) {
-		Unlink();
-	}
-
 	Entity::Dispose();
 }
 bool ScriptEntity::IsValid() {
