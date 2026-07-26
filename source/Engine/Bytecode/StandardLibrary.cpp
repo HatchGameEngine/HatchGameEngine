@@ -9761,13 +9761,18 @@ VMValue Instance_GetCount(int argCount, VMValue* args, Uint32 threadID) {
 	if (onScreen) {
 		int count = 0;
 		for (Entity* ent = objectList->EntityFirst; ent != nullptr; ent = ent->NextEntityInList) {
-			if (ent->OnScreen)
+			if (ent->Active && ent->OnScreen)
 				count++;
 		}
 		return INTEGER_VAL(count);
     }
 
-	return INTEGER_VAL(objectList->Count());
+	int count = 0;
+	for (Entity* ent = objectList->EntityFirst; ent != nullptr; ent = ent->NextEntityInList) {
+		if (ent->Active)
+			count++;
+	}
+	return INTEGER_VAL(count);
 }
 /***
  * Instance.GetNextInstance
