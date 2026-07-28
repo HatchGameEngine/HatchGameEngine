@@ -1,13 +1,25 @@
 package vg.aurum.HatchGameEngine;
 
-import android.app.Activity;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
 import org.libsdl.app.SDLActivity;
+import vg.aurum.HatchGameEngine.BuildConfig;
 
 public class HatchActivity extends SDLActivity {
+    static {
+        System.loadLibrary("c++_shared");
+    }
+
+    @Override
+    protected String[] getLibraries() {
+        return new String[] {
+            "SDL2",
+            "HatchGameEngine"
+        };
+    }
+
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);

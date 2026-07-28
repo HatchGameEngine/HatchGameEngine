@@ -18,7 +18,6 @@
 #elif ANDROID
 // SDL2 includes
 #include <SDL.h>
-#include <SDL_opengles2.h>
 #elif LINUX
 // SDL2 includes
 #include <SDL.h>
