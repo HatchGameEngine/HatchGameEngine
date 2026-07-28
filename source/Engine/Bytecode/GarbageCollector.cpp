@@ -246,6 +246,7 @@ void GarbageCollector::BlackenObject(Obj* object) {
 		map->Values->ForAll([](Uint32, VMValue v) -> void {
 			GrayValue(v);
 		});
+		GrayObject((Obj*)map->KeysArray);
 		break;
 	}
 	default:

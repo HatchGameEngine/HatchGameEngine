@@ -1167,9 +1167,8 @@ int VMThread::RunInstruction() {
 			ObjMap* map = NewMap();
 			for (int i = count - 1; i >= 0; i--) {
 				VMValue key = Peek(i * 2 + 1);
-				Uint32 hash = Value::Hash(key);
-				map->Values->Put(hash, Peek(i * 2));
-				map->Keys->Put(hash, key);
+				VMValue value = Peek(i * 2);
+				map->Put(key, value);
 			}
 			for (int i = count - 1; i >= 0; i--) {
 				Pop();
@@ -2832,9 +2831,7 @@ VMValue VMThread::SetElement(VMValue object, VMValue at, VMValue value) {
 	else if (IS_MAP(object)) {
 		if (ScriptManager::Lock()) {
 			ObjMap* map = AS_MAP(object);
-			Uint32 hash = Value::Hash(at);
-			map->Values->Put(hash, value);
-			map->Keys->Put(hash, at);
+			map->Put(at, value);
 			ScriptManager::Unlock();
 		}
 	}

@@ -248,6 +248,36 @@ Obj* NewNativeInstance(size_t size) {
 	return obj;
 }
 
+void ObjMap::Put(VMValue key, VMValue value) {
+	Uint32 hash = Value::Hash(key);
+
+	// KeysArray is created lazily, so this only pushes the value if KeysArray exists.
+	if (KeysArray != nullptr && !Keys->Exists(hash)) {
+		KeysArray->Values->push_back(value);
+	}
+
+	Keys->Put(hash, key);
+	Values->Put(hash, value);
+}
+void ObjMap::Remove(VMValue key) {
+	Uint32 hash = Value::Hash(key);
+
+	// KeysArray is created lazily, so this only erases the value if KeysArray exists.
+	if (KeysArray != nullptr && Keys->Exists(hash)) {
+		std::vector<VMValue>* keys = KeysArray->Values;
+		for (auto it = keys->begin(); it != keys->end(); it++) {
+			Uint32 otherHash = Value::Hash(*it);
+			if (hash == otherHash) {
+				keys->erase(it);
+				break;
+			}
+		}
+	}
+
+	Keys->Remove(hash);
+	Values->Remove(hash);
+}
+
 std::string GetClassName(Uint32 hash) {
 	if (ScriptManager::Tokens && ScriptManager::Tokens->Exists(hash)) {
 		char* t = ScriptManager::Tokens->Get(hash);

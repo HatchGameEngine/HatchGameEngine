@@ -678,10 +678,7 @@ VMValue ReturnString(std::string str) {
 }
 
 void AddToMap(ObjMap* map, const char* key, VMValue value) {
-	VMValue keyValue = OBJECT_VAL(CopyString(key));
-	Uint32 hash = Value::Hash(keyValue);
-	map->Keys->Put(hash, keyValue);
-	map->Values->Put(hash, value);
+	map->Put(OBJECT_VAL(CopyString(key)), value);
 }
 
 float textAlign;
@@ -9958,8 +9955,6 @@ static int JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t coun
 		key = t + 1 + tokcount;
 
 		VMValue keyValue = OBJECT_VAL(CopyString(text + key->start, key->end - key->start));
-		Uint32 keyHash = Value::Hash(keyValue);
-		map->Keys->Put(keyHash, keyValue);
 
 		tokcount += 1;
 		if (key->size > 0) {
@@ -10078,7 +10073,7 @@ static int JSON_FillMap(ObjMap* map, const char* text, jsmntok_t* t, size_t coun
 			default:
 				break;
 			}
-			map->Values->Put(keyHash, val);
+			map->Put(keyValue, val);
 		}
 	}
 	return tokcount + 1;
@@ -20117,8 +20112,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
 				thisArray->Values->push_back(XML_FillMap(node));
 			}
 			else {
-				map->Keys->Put(keyHash, key);
-				map->Values->Put(keyHash, XML_FillMap(node));
+				map->Put(key, XML_FillMap(node));
 			}
 		}
 	}
@@ -20147,9 +20141,7 @@ static VMValue XML_FillMap(XMLNode* parent) {
 		snprintf(attrName, attrNameSize, "#%s", key);
 
 		VMValue keyValue = OBJECT_VAL(CopyString(attrName, attrNameSize - 1));
-		Uint32 keyHash = Value::Hash(keyValue);
-		map->Keys->Put(keyHash, keyValue);
-		map->Values->Put(keyHash, OBJECT_VAL(CopyString(value)));
+		map->Put(keyValue, OBJECT_VAL(CopyString(value)));
 
 		Memory::Free(value);
 	}

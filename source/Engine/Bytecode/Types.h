@@ -416,6 +416,10 @@ struct ObjMap {
 	Obj Object;
 	OrderedHashMap<VMValue>* Values;
 	OrderedHashMap<VMValue>* Keys;
+	ObjArray* KeysArray;
+
+	void Put(VMValue key, VMValue value);
+	void Remove(VMValue key);
 };
 struct ObjNamespace {
 	Obj Object;

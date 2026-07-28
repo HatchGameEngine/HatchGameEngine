@@ -17,7 +17,7 @@ void MapImpl::Init() {
 
 	ScriptManager::DefineNative(Class, "Length", MapImpl::VM_Length);
 	ScriptManager::DefineNative(Class, "GetKeys", MapImpl::VM_GetKeys);
-	ScriptManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
+	ScriptManager::DefineNative(Class, "keys", MapImpl::VM_keys);
 	ScriptManager::DefineNative(Class, "Remove", MapImpl::VM_Remove);
 	ScriptManager::DefineNative(Class, "remove", MapImpl::VM_Remove);
 	ScriptManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);
@@ -69,11 +69,32 @@ VMValue MapImpl::VM_Length(int argCount, VMValue* args, Uint32 threadID) {
 
 /***
  * \method GetKeys
- * \desc Gets a list of all keys in the map.
+ * \desc Gets a list of all keys in the map. This always returns the same array reference.
  * \return array Returns an array of values.
  * \ns Map
  */
 VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjMap* map = GET_ARG(0, GetMap);
+	ObjArray* array = map->KeysArray;
+
+	if (array == nullptr) {
+		array = (ObjArray*)NewArray();
+		map->KeysArray = array;
+	}
+	else {
+		array->Values->clear();
+	}
+
+	map->Keys->WithAllOrdered([array](Uint32, VMValue value) -> void {
+		array->Values->push_back(value);
+	});
+
+	return OBJECT_VAL(array);
+}
+
+VMValue MapImpl::VM_keys(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 
 	ObjMap* map = GET_ARG(0, GetMap);
@@ -97,9 +118,8 @@ VMValue MapImpl::VM_Remove(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ObjMap* map = GET_ARG(0, GetMap);
-	Uint32 hash = Value::Hash(args[1]);
-	map->Keys->Remove(hash);
-	map->Values->Remove(hash);
+
+	map->Remove(args[1]);
 
 	return NULL_VAL;
 }
