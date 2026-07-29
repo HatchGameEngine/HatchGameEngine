@@ -169,6 +169,20 @@ size_t base64_decode_block(const char* code_in, const int length_in, char* plain
 }
 
 Property TiledMapReader::ParseProperty(XMLNode* property) {
+	Token property_type = property->attributes.Get("type");
+	if (XMLParser::MatchToken(property_type, "list")) {
+		PropertyArray array;
+		PropertyArray::Init(&array);
+
+		for (size_t pr = 0; pr < property->children.size(); pr++) {
+			if (XMLParser::MatchToken(property->children[pr]->name, "item")) {
+				AddPropertyToArray(&array, ParseProperty(property->children[pr]));
+			}
+		}
+
+		return Property::MakeArray(array);
+	}
+
 	// If the property has no value (for example, a multiline
 	// string), the value is assumed to be in the content
 	if (!property->attributes.Exists("value")) {
@@ -181,7 +195,6 @@ Property TiledMapReader::ParseProperty(XMLNode* property) {
 		return Property::MakeString(text->name.Start, (int)text->name.Length);
 	}
 
-	Token property_type = property->attributes.Get("type");
 	Token property_value = property->attributes.Get("value");
 
 	float fx, fy;
