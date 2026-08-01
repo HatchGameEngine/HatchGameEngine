@@ -409,6 +409,8 @@ void FixedUpdateObject(Entity* ent) {
 		ent->List->Performance.Update.DoAverage(elapsed);
 	}
 
+	ent->WasOffScreen = false;
+
 	ent->CheckDrawGroupChanges();
 	ent->CheckDepthChanges();
 }
