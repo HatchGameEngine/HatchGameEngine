@@ -327,15 +327,24 @@ void UpdateObjectEarly(Entity* ent) {
 	}
 }
 void CheckObjectOnScreen(Entity* ent) {
-	if (!CanUpdateEntity(ent)) {
+	if (!ent->Active) {
 		return;
 	}
 
-	ent->InRange = Scene::DetermineEntityIsOnScreen(ent);
+	bool onScreen = Scene::DetermineEntityIsOnScreen(ent);
 
-	if ((ent->OnScreen = ent->InRange)) {
+	if (onScreen) {
 		Scene::OnScreenObjects->Add(ent);
+
+		if (!ent->OnScreen) {
+			ent->WasOffScreen = true;
+		}
 	}
+	else {
+		ent->WasOffScreen = false;
+	}
+
+	ent->OnScreen = ent->InRange = onScreen;
 }
 void UpdateObject(Entity* ent) {
 	if (!CanUpdateEntity(ent) || !ent->OnScreen) {
@@ -352,13 +361,11 @@ void UpdateObject(Entity* ent) {
 		ent->List->Performance.Update.DoAverage(elapsed);
 	}
 
-	ent->WasOffScreen = !ent->OnScreen;
-
 	ent->CheckDrawGroupChanges();
 	ent->CheckDepthChanges();
 }
 void UpdateObjectLate(Entity* ent) {
-	// Activity can change after Update, so call CanUpdateEntity again.
+	// Activity can change after Update, so this should call CanUpdateEntity again.
 	if (!CanUpdateEntity(ent) || !ent->OnScreen) {
 		return;
 	}
@@ -404,13 +411,11 @@ void FixedUpdateObject(Entity* ent) {
 		ent->List->Performance.Update.DoAverage(elapsed);
 	}
 
-	ent->WasOffScreen = !ent->InRange;
-
 	ent->CheckDrawGroupChanges();
 	ent->CheckDepthChanges();
 }
 void FixedUpdateObjectLate(Entity* ent) {
-	// Activity can change after FixedUpdate, so call CanUpdateEntity again.
+	// Activity can change after FixedUpdate, so this should call CanUpdateEntity again.
 	if (!CanUpdateEntity(ent) || !ent->OnScreen) {
 		return;
 	}
@@ -532,11 +537,13 @@ void Scene::AddToScene(Entity* obj) {
 	}
 
 	if (!Initializing) {
-		obj->InRange = Scene::DetermineEntityIsOnScreen(obj);
+		obj->OnScreen = Scene::DetermineEntityIsOnScreen(obj);
 
-		if ((obj->OnScreen = obj->InRange)) {
+		if (obj->OnScreen) {
 			Scene::OnScreenObjects->Add(obj);
 		}
+
+		obj->InRange = obj->OnScreen;
 	}
 
 	Scene::ObjectCount++;
