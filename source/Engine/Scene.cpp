@@ -1845,12 +1845,7 @@ void Scene::Restart() {
 		while (Scene::Tilesets.size() > Scene::BaseTilesetCount) {
 			size_t i = Scene::Tilesets.size() - 1;
 
-			if (Scene::Tilesets[i].Sprite) {
-				delete Scene::Tilesets[i].Sprite;
-			}
-			if (Scene::Tilesets[i].Filename) {
-				Memory::Free(Scene::Tilesets[i].Filename);
-			}
+			Scene::Tilesets[i].Dispose();
 
 			Scene::Tilesets.erase(Scene::Tilesets.begin() + i);
 		}
@@ -3740,12 +3735,7 @@ void Scene::Dispose() {
 
 void Scene::UnloadTilesets() {
 	for (size_t i = 0; i < Scene::Tilesets.size(); i++) {
-		if (Scene::Tilesets[i].Sprite) {
-			delete Scene::Tilesets[i].Sprite;
-		}
-		if (Scene::Tilesets[i].Filename) {
-			Memory::Free(Scene::Tilesets[i].Filename);
-		}
+		Scene::Tilesets[i].Dispose();
 	}
 	Scene::Tilesets.clear();
 	Scene::TileSpriteInfos.clear();
