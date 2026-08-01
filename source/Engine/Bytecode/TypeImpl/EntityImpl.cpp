@@ -323,7 +323,9 @@ VMValue EntityImpl::VM_AddToRegistry(int argCount, VMValue* args, Uint32 threadI
 		objectRegistry = Scene::ObjectRegistries->Get(registry);
 	}
 
-	objectRegistry->Add(self);
+	if (!objectRegistry->Contains(self)) {
+		objectRegistry->Add(self);
+	}
 
 	return NULL_VAL;
 }

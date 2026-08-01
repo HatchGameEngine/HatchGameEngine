@@ -369,9 +369,9 @@ void ScriptEntity::LinkFields() {
     * \type boolean
     * \default true
     * \ns Entity
-    * \desc See <ref Entity.InRange>.
+    * \desc Alias for <ref Entity.InRange>.
     */
-	LINK_INT(OnScreen);
+    Instance->InstanceObj.Fields->Put("OnScreen", INTEGER_LINK_VAL(&InRange));
 	/***
     * \field WasOffScreen
     * \type boolean

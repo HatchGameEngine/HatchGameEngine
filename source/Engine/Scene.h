@@ -42,7 +42,6 @@ private:
 	static void ClearPriorityLists();
 	static void DeleteObjects(Entity** first, Entity** last, int* count);
 	static void RemoveNonPersistentObjects(Entity** first, Entity** last, int* count);
-	static void DeleteAllObjects();
 	static void ReadSceneFile(const char* filename);
 	static void SpawnStaticObject(const char* objectName);
 	static void ReadRSDKTile(TileConfig* tile, Uint8* line);
@@ -61,6 +60,7 @@ public:
 	static HashMap<Property>* Properties;
 	static OrderedHashMap<ObjectList*>* ObjectLists;
 	static HashMap<ObjectRegistry*>* ObjectRegistries;
+	static ObjectRegistry* OnScreenObjects;
 	static HashMap<ObjectList*>* StaticObjectLists;
 	static int ReservedSlotIDs;
 	static int StaticObjectCount;
@@ -165,6 +165,7 @@ public:
 	static void SetViewPriority(int viewIndex, int priority);
 	static void SortViews();
 	static bool SetView(int viewIndex);
+	static bool DetermineEntityIsOnScreen(Entity* ent);
 	static bool CheckPosOnScreen(float posX, float posY, float rangeX, float rangeY);
 	static void SetupViewMatrices(View* currentView, float viewX, float viewY, float viewZ);
 	static void RenderView(int viewIndex, bool doPerf);

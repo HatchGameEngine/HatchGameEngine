@@ -63,6 +63,8 @@ typedef Entity* (*NamedEntitySpawnFunction)(const char*);
 #define REGISTER_ENTITY_SETTER(name, entity)
 #endif
 
+#define ONSCREEN_REGISTRY "ONSCREEN"
+
 class Entity {
 public:
 	float InitialX = 0.0f;
