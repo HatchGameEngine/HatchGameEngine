@@ -338,7 +338,7 @@ void CheckObjectOnScreen(Entity* ent) {
 	}
 }
 void UpdateObject(Entity* ent) {
-	if (!CanUpdateEntity(ent)) {
+	if (!CanUpdateEntity(ent) || !ent->OnScreen) {
 		return;
 	}
 
@@ -390,7 +390,7 @@ void FixedUpdateObjectEarly(Entity* ent) {
 	}
 }
 void FixedUpdateObject(Entity* ent) {
-	if (!CanUpdateEntity(ent)) {
+	if (!CanUpdateEntity(ent) || !ent->OnScreen) {
 		return;
 	}
 
