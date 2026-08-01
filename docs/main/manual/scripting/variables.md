@@ -188,7 +188,7 @@ The following are considered **object types** in HSL:
 | ---------------- | ---------------- | ---------------- |
 | String | Text. | `"Hello world"` |
 | Array | A resizable list of values. | `[ 10, 2.0, "omelette" ]` |
-| Map | A collection of key-value pairs. Other languages also call this type a dictionary. Keys must be strings and are stored in order of insertion. | `{"tankCapacity": 60.0, "color": "red"}` |
+| Map | A collection of key-value pairs. Other languages also call this type a dictionary. Keys are stored in order of insertion. | `{"tankCapacity": 60.0, "color": "red"}` |
 | Class | Contains methods and (optionally) a constructor. Typically used to define entities. | `class Car { ... }` |
 | Function | A callable that accepts arguments and optionally returns a value. When defined inside of a class, a function is called a "method". Some functions are defined natively and execute C++ code. | `event IsVehicle() { return true; }` |
 | Bound method | A method with arguments bound to it. | `IsVehicle.bind(car);` |

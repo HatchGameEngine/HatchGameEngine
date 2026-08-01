@@ -1,13 +1,15 @@
-#include <Engine/IO/Serializer.h>
-
+#include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/IO/Serializer.h>
 #include <Engine/Utilities/StringUtils.h>
 
 Uint32 Serializer::Magic = 0x9D939FF0;
-Uint32 Serializer::Version = 0x00000001;
+Uint32 Serializer::Version = 0x00000002;
 
 Serializer::Serializer(Stream* stream) {
 	StreamPtr = stream;
+	CurrentVersion = Serializer::Version;
+
 	ObjToID.clear();
 	ObjList.clear();
 	ChunkList.clear();
@@ -88,23 +90,11 @@ void Serializer::WriteObject(Obj* obj) {
 		WriteObjectPreamble(Serializer::OBJ_TYPE_MAP);
 
 		ObjMap* map = (ObjMap*)obj;
-		Uint32 numKeys = 0;
-		Uint32 numValues = 0;
-		map->Keys->WithAll([&numKeys](Uint32, char*) -> void {
-			numKeys++;
-		});
-		map->Values->WithAll([&numValues](Uint32, VMValue) -> void {
-			numValues++;
-		});
-
-		StreamPtr->WriteUInt32(numKeys);
-		StreamPtr->WriteUInt32(numValues);
-
-		map->Keys->WithAll([this](Uint32, char* ptr) -> void {
-			StreamPtr->WriteUInt32(GetUniqueStringID(ptr, strlen(ptr)));
+		StreamPtr->WriteUInt32(map->Keys->Count());
+		map->Keys->WithAll([this](Uint32 hash, VMValue mapKey) -> void {
+			WriteValue(mapKey);
 		});
 		map->Values->WithAll([this](Uint32 hash, VMValue mapVal) -> void {
-			StreamPtr->WriteUInt32(hash);
 			WriteValue(mapVal);
 		});
 		break;
@@ -243,8 +233,10 @@ void Serializer::AddUniqueObject(Obj* obj) {
 	}
 	case OBJ_MAP: {
 		ObjMap* map = (ObjMap*)obj;
-		map->Keys->WithAll([this](Uint32, char* mapKey) -> void {
-			AddUniqueString(mapKey, strlen(mapKey));
+		map->Keys->WithAll([this](Uint32, VMValue mapKey) -> void {
+			if (IS_OBJECT(mapKey)) {
+				AddUniqueObject(AS_OBJECT(mapKey));
+			}
 		});
 		map->Values->WithAll([this](Uint32, VMValue mapVal) -> void {
 			if (IS_OBJECT(mapVal)) {
@@ -261,7 +253,7 @@ void Serializer::AddUniqueObject(Obj* obj) {
 void Serializer::Store(VMValue val) {
 	// Write header
 	StreamPtr->WriteUInt32(Serializer::Magic);
-	StreamPtr->WriteUInt32(Serializer::Version);
+	StreamPtr->WriteUInt32(CurrentVersion);
 
 	// We're gonna patch this later.
 	size_t chunkAddrPos = StreamPtr->Position();
@@ -382,28 +374,55 @@ void Serializer::ReadObject(Obj* obj) {
 		return;
 	}
 	case Serializer::OBJ_TYPE_MAP: {
-		Uint32 numKeys = StreamPtr->ReadUInt32();
-		Uint32 numValues = StreamPtr->ReadUInt32();
+		std::vector<VMValue> keys;
+
+		Uint32 count = StreamPtr->ReadUInt32();
+
+		if (CurrentVersion == 0x00000001) {
+			// Version 1 writes the amount of values separately from the amount of keys.
+			// Version 2 and newer writes just the amount of keys.
+			StreamPtr->ReadUInt32();
+		}
+
 		ObjMap* map = (ObjMap*)obj;
-		for (Uint32 i = 0; i < numKeys; i++) {
-			Uint32 stringID = StreamPtr->ReadUInt32();
-			if (stringID >= StringList.size()) {
-				Log::Print(
-					Log::LOG_ERROR, "Attempted to read an invalid string ID!");
-				continue;
-			}
-			else if (StringList[stringID].Chars != nullptr) {
-				Uint32 length = StringList[stringID].Length;
-				char* mapKey = StringUtils::Create(
-					(void*)StringList[stringID].Chars, length);
-				if (mapKey) {
-					map->Keys->Put(mapKey, mapKey);
+
+		// Read the keys
+		for (Uint32 i = 0; i < count; i++) {
+			VMValue mapKey = NULL_VAL;
+
+			// Version 1 serializes keys as strings.
+			if (CurrentVersion == 0x00000001) {
+				Uint32 stringID = StreamPtr->ReadUInt32();
+				if (stringID >= StringList.size()) {
+					Log::Print(
+						Log::LOG_ERROR, "Attempted to read an invalid string ID!");
+				}
+				else if (StringList[stringID].Chars != nullptr) {
+					Uint32 length = StringList[stringID].Length;
+					mapKey = OBJECT_VAL(CopyString(StringList[stringID].Chars, length));
 				}
 			}
+			// Version 2 and newer serializes keys as values.
+			else {
+				mapKey = ReadValue();
+			}
+
+			Uint32 keyHash = Value::Hash(mapKey);
+			map->Keys->Put(keyHash, mapKey);
+			keys.push_back(mapKey);
 		}
-		for (Uint32 i = 0; i < numValues; i++) {
-			Uint32 valueHash = StreamPtr->ReadUInt32();
-			map->Values->Put(valueHash, ReadValue());
+
+		// Read the values
+		for (Uint32 i = 0; i < count; i++) {
+			if (CurrentVersion == 0x00000001) {
+				// Version 1 writes the hash this value belongs to.
+				// Not needed anymore because the keys get re-hashed.
+				StreamPtr->ReadUInt32();
+			}
+
+			VMValue value = ReadValue();
+			Uint32 keyHash = Value::Hash(keys[i]);
+			map->Values->Put(keyHash, value);
 		}
 		return;
 	}
@@ -506,8 +525,8 @@ VMValue Serializer::Retrieve() {
 		return NULL_VAL;
 	}
 
-	Uint32 version = StreamPtr->ReadUInt32();
-	if (version != Serializer::Version) {
+	CurrentVersion = StreamPtr->ReadUInt32();
+	if (CurrentVersion > Serializer::Version) {
 		Log::Print(Log::LOG_ERROR, "Invalid version!");
 		return NULL_VAL;
 	}

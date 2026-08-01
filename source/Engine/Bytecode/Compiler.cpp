@@ -1856,10 +1856,11 @@ ExprContext Compiler::GetMap(ExprContext context) {
 	Uint32 count = 0;
 
 	while (!MatchToken(TOKEN_RIGHT_BRACE)) {
-		ConsumeToken(TOKEN_STRING, "Expected string for map key.");
-		GetString(EXPRCONTEXT_VALUE);
+		// Get key
+		GetExpression();
+		ConsumeToken(TOKEN_COLON, "Expected ':' after map key.");
 
-		ConsumeToken(TOKEN_COLON, "Expected ':' after key string.");
+		// Get value
 		GetExpression();
 		count++;
 

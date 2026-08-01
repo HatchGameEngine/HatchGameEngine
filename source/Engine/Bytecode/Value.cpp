@@ -3,6 +3,41 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 
+Uint32 Value::Hash(VMValue value) {
+	switch (value.Type) {
+	case VAL_NULL:
+		return 0;
+	case VAL_INTEGER:
+	case VAL_LINKED_INTEGER: {
+		float val = (float)AS_INTEGER(value);
+		return HashDecimal(val);
+	}
+	case VAL_DECIMAL:
+	case VAL_LINKED_DECIMAL:
+		return HashDecimal(AS_DECIMAL(value));
+	case VAL_HITBOX:
+		return Murmur::EncryptData(AS_HITBOX(value), sizeof(Sint16) * NUM_HITBOX_SIDES);
+	case VAL_OBJECT:
+		switch (OBJECT_TYPE(value)) {
+		case OBJ_STRING: {
+			ObjString* str = AS_STRING(value);
+			return Murmur::EncryptData(str->Chars, str->Length);
+		}
+		default:
+			return (uintptr_t)value.as.Object;
+		}
+		break;
+	default:
+		break;
+	}
+
+	return 0xFFFFFFFF;
+}
+
+Uint32 Value::HashDecimal(float val) {
+	return Murmur::EncryptData(&val, sizeof(float));
+}
+
 const char* Value::GetObjectTypeName(Uint32 type) {
 	switch (type) {
 	case OBJ_FUNCTION:

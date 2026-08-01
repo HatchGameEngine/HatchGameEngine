@@ -415,7 +415,7 @@ struct ObjArray {
 struct ObjMap {
 	Obj Object;
 	OrderedHashMap<VMValue>* Values;
-	OrderedHashMap<char*>* Keys;
+	OrderedHashMap<VMValue>* Keys;
 };
 struct ObjNamespace {
 	Obj Object;
