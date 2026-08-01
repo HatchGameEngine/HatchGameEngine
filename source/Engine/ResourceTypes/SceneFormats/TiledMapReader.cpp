@@ -307,7 +307,7 @@ bool TiledMapReader::GetRelativeResourcePath(Token source, const char* parentFol
 
 	// If it starts with "../"
 	if (StringUtils::StartsWith(resourcePath, "../")) {
-		if (ResourceManager::UsingDataFolder) {
+		if (Application::DevMode) {
 			Log::Print(Log::LOG_WARN, "Path \"%s\" is outside of Resources.", resourcePath);
 		}
 		return false;

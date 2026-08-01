@@ -29,7 +29,6 @@ Stream* File::Open(const char* filename, Uint32 access) {
 	return StandardIOStream::New(filename, streamAccess);
 }
 
-// Do not expose to HSL.
 bool File::Exists(const char* path) {
 	Stream* stream = Open(path, READ_ACCESS);
 	if (stream) {
@@ -40,23 +39,18 @@ bool File::Exists(const char* path) {
 	return false;
 }
 
-bool File::ProtectedExists(const char* path, bool allowURLs) {
-	if (path == nullptr) {
-		return false;
+size_t File::ReadAllBytes(const char* path, char** out) {
+	if (!path || !*path || !out) {
+		return 0;
 	}
 
-	return FileStream::Exists(path, allowURLs);
-}
-
-size_t File::ReadAllBytes(const char* path, char** out, bool allowURLs) {
-	FileStream* stream = FileStream::New(path, FileStream::READ_ACCESS, allowURLs);
+	Stream* stream = File::Open(path, File::READ_ACCESS);
 	if (stream) {
 		size_t size = stream->Length();
-		*out = (char*)Memory::Malloc(size + 1);
+		*out = (char*)Memory::Malloc(size);
 		if (!*out) {
 			return 0;
 		}
-		(*out)[size] = 0;
 		stream->ReadBytes(*out, size);
 		stream->Close();
 		return size;
@@ -64,18 +58,12 @@ size_t File::ReadAllBytes(const char* path, char** out, bool allowURLs) {
 	return 0;
 }
 
-bool File::WriteAllBytes(const char* path, const char* bytes, size_t len, bool allowURLs) {
-	if (!path) {
-		return false;
-	}
-	if (!*path) {
-		return false;
-	}
-	if (!bytes) {
+bool File::WriteAllBytes(const char* path, const char* bytes, size_t len) {
+	if (!path || !*path || !bytes) {
 		return false;
 	}
 
-	FileStream* stream = FileStream::New(path, FileStream::WRITE_ACCESS, allowURLs);
+	Stream* stream = File::Open(path, File::WRITE_ACCESS);
 	if (stream) {
 		stream->WriteBytes((char*)bytes, len);
 		stream->Close();

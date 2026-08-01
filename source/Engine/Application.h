@@ -144,6 +144,7 @@ public:
 	static int MasterVolume;
 	static int MusicVolume;
 	static int SoundVolume;
+	static bool DevMode;
 	static bool DevConvertModels;
 	static bool AllowCmdLineSceneLoad;
 	static bool DisableDefaultActions;
@@ -155,6 +156,12 @@ public:
 	static std::vector<PerformanceMeasure*> AllMetrics;
 
 	static void Init(int argc, char* args[]);
+	static bool HasCmdLineArg(std::string match);
+	static int GetCmdLineArgIndex(std::string match);
+	static std::string GetCmdLineOption(std::string match);
+	static std::string GetCmdLineOption(size_t index);
+	static void ParseCommandLineArgs();
+	static size_t ProcessCommandLineOption(std::string arg, size_t i);
 	static void InitScripting();
 	static void SetTargetFrameRate(int targetFPS);
 	static bool IsPC();

@@ -18,13 +18,15 @@
 #define OBJECTS_HCM_NAME OBJECTS_DIR_NAME "Objects.hcm"
 
 bool SourceFileMap::Initialized = false;
+char SourceFileMap::Path[MAX_PATH_LENGTH];
+bool SourceFileMap::Loaded = false;
 bool SourceFileMap::AllowCompilation = false;
 HashMap<Uint32>* SourceFileMap::Checksums = NULL;
 HashMap<vector<Uint32>*>* SourceFileMap::ClassMap = NULL;
 Uint32 SourceFileMap::DirectoryChecksum = 0;
 Uint32 SourceFileMap::Magic = MAGIC_LE32("HMAP");
 
-void SourceFileMap::CheckInit() {
+void SourceFileMap::Init() {
 	if (SourceFileMap::Initialized) {
 		return;
 	}
@@ -34,6 +36,16 @@ void SourceFileMap::CheckInit() {
 	}
 	if (SourceFileMap::ClassMap == NULL) {
 		SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(Murmur::EncryptData, 16);
+	}
+
+	StringUtils::Copy(SourceFileMap::Path, SCRIPTS_DIRECTORY_NAME, sizeof SourceFileMap::Path);
+
+	SourceFileMap::Initialized = true;
+}
+
+void SourceFileMap::Load() {
+	if (SourceFileMap::Loaded) {
+		return;
 	}
 
 	if (ResourceManager::ResourceExists(OBJECTS_HCM_NAME)) {
@@ -74,26 +86,40 @@ void SourceFileMap::CheckInit() {
 
 #ifndef NO_SCRIPT_COMPILING
 	SourceFileMap::AllowCompilation = true;
-
-	if (File::ProtectedExists(SOURCEFILEMAP_NAME, true)) {
-		char* bytes;
-		size_t len = File::ReadAllBytes(SOURCEFILEMAP_NAME, &bytes, true);
-		if (len >= sizeof(Uint32) * 3) {
-			SourceFileMap::Checksums->FromBytes((Uint8*)bytes,
-				(len - sizeof(Uint32)) / (sizeof(Uint32) + sizeof(Uint32)));
-			SourceFileMap::DirectoryChecksum = *(Uint32*)(bytes + len - sizeof(Uint32));
-		}
-		else {
-			SourceFileMap::DirectoryChecksum = 0;
-		}
-		Memory::Free(bytes);
-	}
+	SourceFileMap::ReadFileMap();
 #endif
 
-	SourceFileMap::Initialized = true;
+	SourceFileMap::Loaded = true;
+}
+void SourceFileMap::ReadFileMap() {
+	Stream* stream = FileStream::New(SOURCEFILEMAP_NAME, FileStream::READ_ACCESS, true);
+	if (!stream) {
+		return;
+	}
+
+	size_t len = stream->Length();
+	char* bytes = (char*)Memory::Malloc(len);
+	if (!bytes) {
+		stream->Close();
+		return;
+	}
+
+	stream->ReadBytes(bytes, len);
+	stream->Close();
+
+	if (len >= sizeof(Uint32) * 3) {
+		SourceFileMap::Checksums->FromBytes((Uint8*)bytes,
+			(len - sizeof(Uint32)) / (sizeof(Uint32) + sizeof(Uint32)));
+		SourceFileMap::DirectoryChecksum = *(Uint32*)(bytes + len - sizeof(Uint32));
+	}
+	else {
+		SourceFileMap::DirectoryChecksum = 0;
+	}
+
+	Memory::Free(bytes);
 }
 bool SourceFileMap::CheckForUpdate() {
-	SourceFileMap::CheckInit();
+	SourceFileMap::Load();
 
 #ifndef NO_SCRIPT_COMPILING
 	if (!SourceFileMap::AllowCompilation) {
@@ -107,12 +133,12 @@ bool SourceFileMap::CheckForUpdate() {
 
 	bool anyChanges = false;
 
-	if (!Directory::Exists(SCRIPTS_DIRECTORY_NAME)) {
+	if (!Directory::Exists(SourceFileMap::Path)) {
 		return false;
 	}
 
 	vector<std::filesystem::path> list;
-	Directory::GetFiles(&list, SCRIPTS_DIRECTORY_NAME, "*.hsl", true);
+	Directory::GetFiles(&list, SourceFileMap::Path, "*.hsl", true);
 
 	if (list.size() == 0) {
 		list.clear();
@@ -126,7 +152,7 @@ bool SourceFileMap::CheckForUpdate() {
 		anyChanges = true;
 	}
 
-	size_t scriptFolderNameLen = strlen(SCRIPTS_DIRECTORY_NAME);
+	size_t scriptFolderNameLen = strlen(SourceFileMap::Path);
 
 	Uint32 oldDirectoryChecksum = SourceFileMap::DirectoryChecksum;
 
@@ -156,7 +182,7 @@ bool SourceFileMap::CheckForUpdate() {
 		SourceFileMap::ClassMap->Clear();
 	}
 
-	std::string scriptFolderPathStr = std::string(SCRIPTS_DIRECTORY_NAME) + "/";
+	std::string scriptFolderPathStr = std::string(SourceFileMap::Path) + "/";
 	const char* scriptFolderPath = scriptFolderPathStr.c_str();
 	size_t scriptFolderPathLen = scriptFolderPathStr.size();
 
@@ -177,11 +203,32 @@ bool SourceFileMap::CheckForUpdate() {
 		Uint32 oldChecksum = 0;
 		bool doRecompile = false;
 
-		char* source;
-		File::ReadAllBytes(listEntry, &source, false);
-		newChecksum = Murmur::EncryptString(source);
+		char* source = nullptr;
 
-		Memory::Track(source, "SourceFileMap::SourceText");
+		// Read the script file
+		Stream* stream = File::Open(listEntry, File::READ_ACCESS);
+		if (stream) {
+			size_t streamSize = stream->Length();
+			if (streamSize > 0) {
+				source = (char*)Memory::TrackedCalloc("SourceFileMap::SourceText", streamSize + 1, sizeof(char));
+				if (source) {
+					stream->ReadBytes(source, streamSize);
+				}
+				else {
+					Log::Print(Log::LOG_ERROR, "Not enough memory for reading \"%s\"!", listEntry);
+				}
+			}
+			stream->Close();
+		}
+		else {
+			Log::Print(Log::LOG_ERROR, "Couldn't open \"%s\"!", listEntry);
+		}
+
+		if (source == nullptr) {
+			continue;
+		}
+
+		newChecksum = Murmur::EncryptString(source);
 
 		if (SourceFileMap::Checksums->Exists(filenameHash)) {
 			oldChecksum = SourceFileMap::Checksums->Get(filenameHash);
@@ -239,9 +286,7 @@ bool SourceFileMap::CheckForUpdate() {
 						mainVfs->CloseStream(stream);
 					}
 					else {
-						Log::Print(Log::LOG_ERROR,
-							"Couldn't open file '%s' for writing compiled script!",
-							outFile);
+						Log::Print(Log::LOG_ERROR, "Couldn't open \"%s\"!", outFile);
 					}
 
 					// Add this file to the list
@@ -256,7 +301,7 @@ bool SourceFileMap::CheckForUpdate() {
 				delete compiler;
 			}
 			else {
-				Log::Print(Log::LOG_ERROR, "Not enough memory for compiling '%s'!", outFile);
+				Log::Print(Log::LOG_ERROR, "Not enough memory for compiling \"%s\"!", outFile);
 			}
 
 			Compiler::FinishCompiling();
@@ -323,7 +368,7 @@ void SourceFileMap::HandleCompileError(const char* error) {
 	const SDL_MessageBoxData messageBoxData = {
 		SDL_MESSAGEBOX_ERROR,
 		NULL,
-		"Syntax Error",
+		"Compile Error",
 		error,
 		SDL_arraysize(buttons),
 		buttons,
