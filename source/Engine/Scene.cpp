@@ -335,13 +335,9 @@ void CheckObjectOnScreen(Entity* ent) {
 
 	if (onScreen) {
 		Scene::OnScreenObjects->Add(ent);
-
-		if (!ent->OnScreen) {
-			ent->WasOffScreen = true;
-		}
 	}
 	else {
-		ent->WasOffScreen = false;
+		ent->WasOffScreen = true;
 	}
 
 	ent->OnScreen = ent->InRange = onScreen;
@@ -360,6 +356,8 @@ void UpdateObject(Entity* ent) {
 	if (ent->List) {
 		ent->List->Performance.Update.DoAverage(elapsed);
 	}
+
+	ent->WasOffScreen = false;
 
 	ent->CheckDrawGroupChanges();
 	ent->CheckDepthChanges();
