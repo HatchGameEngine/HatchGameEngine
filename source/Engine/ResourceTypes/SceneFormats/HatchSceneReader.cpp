@@ -424,8 +424,8 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		classHash.C = r->ReadUInt32();
 		classHash.D = r->ReadUInt32();
 
-		float posX = r->ReadUInt32() / 65536.0;
-		float posY = r->ReadUInt32() / 65536.0;
+		float posX = r->ReadInt32() / 65536.0;
+		float posY = r->ReadInt32() / 65536.0;
 		Uint8 filter = r->ReadByte();
 		Uint8 numProps = r->ReadByte();
 
