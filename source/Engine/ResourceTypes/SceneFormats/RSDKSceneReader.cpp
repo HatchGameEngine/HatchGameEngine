@@ -412,8 +412,8 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 		}
 
 		// Read positions
-		Uint32 posX = r->ReadUInt32();
-		Uint32 posY = r->ReadUInt32();
+		Sint32 posX = r->ReadInt32();
+		Sint32 posY = r->ReadInt32();
 
 		// Read all properties
 		// No need to allocate the HashMap if the entity won't be added.
