@@ -221,6 +221,8 @@ bool Scene::DetermineEntityIsOnScreen(Entity* ent) {
 
 	switch (ent->Activity) {
 	case ACTIVE_DISABLED:
+		return ent->InRange;
+
 	case ACTIVE_NEVER:
 	case ACTIVE_PAUSED:
 		return false;

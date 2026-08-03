@@ -22961,7 +22961,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_ENUM(ACTIVE_RBOUNDS);
 	/***
 	* \enum ACTIVE_DISABLED
-	* \desc Entity will not even reach a point where it would check for an update.
+	* \desc Entity disables automatic bounds checking, retaining its on-screen status and leaving its update eligibility frozen in its last known state.
 	*/
 	DEF_ENUM(ACTIVE_DISABLED);
 	// #endregion
