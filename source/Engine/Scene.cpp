@@ -1185,7 +1185,7 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 				_ox = ent->X - _vx;
 				_oy = ent->Y - _vy;
 
-				if (ent->Activity == ACTIVE_ALWAYS || ent->Activity == ACTIVE_NORMAL)
+				if (ent->Activity == ACTIVE_ALWAYS || ent->Activity == ACTIVE_NORMAL || (Scene::Paused && ent->Activity == ACTIVE_PAUSED))
 					goto DoCheckRender;
 
 				if (Scene::UseRenderRegions) {
