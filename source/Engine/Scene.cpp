@@ -1185,6 +1185,9 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 				_ox = ent->X - _vx;
 				_oy = ent->Y - _vy;
 
+				if (ent->Activity == ACTIVE_ALWAYS || ent->Activity == ACTIVE_NORMAL)
+					goto DoCheckRender;
+
 				if (Scene::UseRenderRegions) {
 					if (ent->RenderRegionLeft || ent->RenderRegionRight) {
 						if (ent->RenderRegionLeft == 0.0f &&
