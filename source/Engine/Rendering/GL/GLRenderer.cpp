@@ -2827,12 +2827,6 @@ void GLRenderer::StrokeEllipse(float x, float y, float w, float h) {
 #endif
 }
 void GLRenderer::StrokeRectangle(float x, float y, float w, float h) {
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothStroke) {
-		glEnable(GL_LINE_SMOOTH);
-	}
-#endif
-
 	GL_Predraw(NULL);
 
 #define MAKE_QUAD_SHAPE_WITH_TRIS(v, x1, y1, x2, y2) { \
@@ -2857,12 +2851,6 @@ void GLRenderer::StrokeRectangle(float x, float y, float w, float h) {
 	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
 	glDrawArrays(GL_TRIANGLES, 0, 24);
 	CHECK_GL();
-
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothStroke) {
-		glDisable(GL_LINE_SMOOTH);
-	}
-#endif
 }
 void GLRenderer::FillCircle(float x, float y, float rad) {
 #ifdef GL_SUPPORTS_SMOOTHING
