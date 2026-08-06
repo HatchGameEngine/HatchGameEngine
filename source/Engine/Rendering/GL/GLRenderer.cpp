@@ -2756,7 +2756,15 @@ void GLRenderer::ClearStencil() {
 }
 
 // Primitive drawing functions
-void GL_StrokeLine(float x1, float y1, float x2, float y2) {
+void GLRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
+#ifdef GL_SUPPORTS_SMOOTHING
+	if (Graphics::SmoothStroke) {
+		glEnable(GL_LINE_SMOOTH);
+	}
+#endif
+
+	GL_Predraw(NULL);
+
 	float v[6];
 	v[0] = x1;
 	v[1] = y1;
@@ -2769,17 +2777,6 @@ void GL_StrokeLine(float x1, float y1, float x2, float y2) {
 	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 3, GL_FLOAT, GL_FALSE, 0, v);
 	glDrawArrays(GL_LINES, 0, 2);
 	CHECK_GL();
-}
-void GLRenderer::StrokeLine(float x1, float y1, float x2, float y2) {
-#ifdef GL_SUPPORTS_SMOOTHING
-	if (Graphics::SmoothStroke) {
-		glEnable(GL_LINE_SMOOTH);
-	}
-#endif
-
-	GL_Predraw(NULL);
-
-	GL_StrokeLine(x1, y1, x2, y2);
 
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothStroke) {
@@ -2838,11 +2835,28 @@ void GLRenderer::StrokeRectangle(float x, float y, float w, float h) {
 
 	GL_Predraw(NULL);
 
-	GL_StrokeLine(x, y, x + w, y);
-	GL_StrokeLine(x, y + h, x + w, y + h);
+#define MAKE_QUAD_SHAPE_WITH_TRIS(v, x1, y1, x2, y2) { \
+	(v)[0] = GL_Vec2{x1, y1}; \
+	(v)[1] = GL_Vec2{x2, y1}; \
+	(v)[2] = GL_Vec2{x1, y2}; \
+	(v)[3] = GL_Vec2{x2, y1}; \
+	(v)[4] = GL_Vec2{x1, y2}; \
+	(v)[5] = GL_Vec2{x2, y2}; \
+}
 
-	GL_StrokeLine(x, y, x, y + h);
-	GL_StrokeLine(x + w, y, x + w, y + h);
+	GL_Vec2 v[24];
+
+	MAKE_QUAD_SHAPE_WITH_TRIS(v, x, y, x + w, y + 1);
+	MAKE_QUAD_SHAPE_WITH_TRIS(v + 6, x + w, y, x + w + 1, y + h + 1); // +1 in the last arg is intentional
+	MAKE_QUAD_SHAPE_WITH_TRIS(v + 12, x, y + h, x + w, y + h + 1);
+	MAKE_QUAD_SHAPE_WITH_TRIS(v + 18, x, y + 1, x + 1, y + h); // +1 in the third arg is intentional
+
+#undef MAKE_QUAD_SHAPE_WITH_TRIS
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glVertexAttribPointer(GLRenderer::CurrentShader->LocPosition, 2, GL_FLOAT, GL_FALSE, 0, v);
+	glDrawArrays(GL_TRIANGLES, 0, 24);
+	CHECK_GL();
 
 #ifdef GL_SUPPORTS_SMOOTHING
 	if (Graphics::SmoothStroke) {
