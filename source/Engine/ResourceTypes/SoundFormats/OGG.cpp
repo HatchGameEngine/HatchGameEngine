@@ -149,8 +149,7 @@ SoundFormat* OGG::Load(Stream* stream) {
 		vorbis->VorbisSTB =
 			stb_vorbis_open_memory((Uint8*)vorbis->FileBlock, fileLength, &error, NULL);
 		if (!vorbis->VorbisSTB) {
-			Log::Print(
-				Log::LOG_ERROR, "Could not open Vorbis stream!");
+			Log::Print(Log::LOG_ERROR, "Could not open Vorbis stream!");
 
 			switch (error) {
 			case VORBIS_need_more_data:

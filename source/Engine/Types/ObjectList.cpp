@@ -80,7 +80,10 @@ void ObjectList::Clear() {
 
 // ObjectList functions
 Entity* ObjectList::Spawn() {
-	return SpawnFunction(this);
+	if (SpawnFunction) {
+		return SpawnFunction(this->ObjectName);
+	}
+	return nullptr;
 }
 void ObjectList::Iterate(std::function<void(Entity* e)> func) {
 	for (Entity* ent = EntityFirst; ent != NULL; ent = ent->NextEntityInList) {

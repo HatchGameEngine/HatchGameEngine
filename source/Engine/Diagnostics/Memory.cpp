@@ -267,7 +267,9 @@ void Memory::PrintLeak() {
 #ifdef DEBUG
 	if (Memory::IsTracking) {
 		size_t total = 0;
-		Log::Print(Log::LOG_VERBOSE, "Printing unfreed memory... (%u count)", TrackedMemory.size());
+		Log::Print(Log::LOG_VERBOSE,
+			"Printing unfreed memory... (%u count)",
+			TrackedMemory.size());
 		for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
 			Log::Print(Log::LOG_VERBOSE,
 				" : %p [%u bytes] (%s)",
@@ -276,7 +278,10 @@ void Memory::PrintLeak() {
 				TrackedMemoryNames[i] ? TrackedMemoryNames[i] : "no name");
 			total += TrackedSizes[i];
 		}
-		Log::Print(Log::LOG_VERBOSE, "Total: %u bytes (%.3f MB)", total, total / 1024 / 1024.0);
+		Log::Print(Log::LOG_VERBOSE,
+			"Total: %u bytes (%.3f MB)",
+			total,
+			total / 1024 / 1024.0);
 	}
 #endif
 }

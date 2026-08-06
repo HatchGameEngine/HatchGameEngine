@@ -1,0 +1,538 @@
+#ifndef ENGINE_GRAPHICS_H
+#define ENGINE_GRAPHICS_H
+class ISprite;
+class IModel;
+
+#include <Engine/Application.h>
+#include <Engine/Includes/HashMap.h>
+#include <Engine/Includes/Standard.h>
+#include <Engine/Includes/StandardSDL2.h>
+#include <Engine/Math/Matrix4x4.h>
+#include <Engine/Rendering/3D.h>
+#include <Engine/Rendering/Enums.h>
+#include <Engine/Rendering/GraphicsFunctions.h>
+#include <Engine/Rendering/Scene3D.h>
+#include <Engine/Rendering/Shader.h>
+#include <Engine/Rendering/TextureReference.h>
+#include <Engine/Rendering/VertexBuffer.h>
+#include <Engine/ResourceTypes/Font.h>
+#include <Engine/ResourceTypes/IModel.h>
+#include <Engine/ResourceTypes/ISprite.h>
+#include <Engine/Scene/ImageLayer.h>
+#include <Engine/Scene/SceneEnums.h>
+#include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileLayer.h>
+#include <Engine/Scene/TileSpriteInfo.h>
+#include <Engine/Scene/View.h>
+#include <Engine/Utilities/ColorUtils.h>
+
+#define PALETTE_INDEX_TEXTURE_SIZE 64
+
+class Graphics {
+private:
+	static void InitCapabilities();
+	static void DeleteSpriteSheetMap();
+	static void DeleteShaders();
+	static void DeleteVertexBuffers();
+	static std::vector<Uint32> GetTextCodepoints(Font* font, const char* text);
+	static Sint64 CalcHorizontalParallaxPosition(TileLayer* layer,
+		float viewX,
+		float constant,
+		float relative);
+	static void CalcScanlineDeforms(TileLayer* layer,
+		int start,
+		int end,
+		float viewX,
+		int scrollLine,
+		int* deformValues,
+		int deformOffset,
+		TileScanLine* scanLine);
+	static bool CanBuildLayerTileBuffers(TileLayer* layer);
+	static bool CanDrawBufferedTileLayer(TileLayer* layer);
+
+public:
+	static bool Initialized;
+	static HashMap<Texture*>* TextureMap;
+	static map<string, TextureReference*> SpriteSheetTextureMap;
+	static bool VsyncEnabled;
+	static bool PrecompileShaders;
+	static int MultisamplingEnabled;
+	static int FontDPI;
+	static bool SupportsShaders;
+	static bool SupportsBatching;
+	static bool LayerTileBufferingEnabled;
+	static bool TextureBlend;
+	static bool TextureInterpolate;
+	static Uint32 PreferredPixelFormat;
+	static Uint32 TextureFormat;
+	static Uint32 MaxTextureWidth;
+	static Uint32 MaxTextureHeight;
+	static Uint32 MaxTextureUnits;
+	static Texture* TextureHead;
+	static std::vector<Shader*> Shaders;
+	static std::vector<VertexBuffer*> VertexBuffers;
+	static Scene3D Scene3Ds[MAX_3D_SCENES];
+	static stack<GraphicsState> StateStack;
+	static Matrix4x4 ViewMatrixStack[MATRIX_STACK_SIZE];
+	static Matrix4x4 ModelMatrixStack[MATRIX_STACK_SIZE];
+	static size_t MatrixStackID;
+	static Matrix4x4* ViewMatrix;
+	static Matrix4x4* ModelMatrix;
+	static Viewport CurrentViewport;
+	static Viewport BackupViewport;
+	static ClipArea CurrentClip;
+	static ClipArea BackupClip;
+	static View* CurrentView;
+	static float BlendColors[4];
+	static float TintColors[4];
+	static int BlendMode;
+	static int TintMode;
+	static bool StencilEnabled;
+	static int StencilTest;
+	static int StencilOpPass;
+	static int StencilOpFail;
+	static Texture* FramebufferTexture;
+	static int FramebufferWidth;
+	static int FramebufferHeight;
+	static TileScanLine TileScanLineBuffer[MAX_FRAMEBUFFER_HEIGHT];
+	static Uint32 PaletteColors[MAX_PALETTE_COUNT][0x100];
+	static Uint8 PaletteIndexLines[MAX_FRAMEBUFFER_HEIGHT];
+	static bool PaletteUpdated;
+	static bool PaletteIndexLinesUpdated;
+	static Texture* PaletteTexture;
+	static Texture* PaletteIndexTexture;
+	static Uint32* PaletteIndexTextureData;
+	static Texture* CurrentRenderTarget;
+	static Sint32 CurrentScene3D;
+	static Sint32 CurrentVertexBuffer;
+	static Shader* CurrentShader;
+	static Shader* PostProcessShader;
+	static bool UsingPostProcessShader;
+	static bool SmoothFill;
+	static bool SmoothStroke;
+	static float PixelOffset;
+	static bool UsePalettes;
+	static bool UsePaletteIndexLines;
+	static bool UseTinting;
+	static bool UseDepthTesting;
+	static bool UseSoftwareRenderer;
+	static bool UseIntegerRotation;
+	static unsigned CurrentFrame;
+	// Rendering functions
+	static GraphicsFunctions Internal;
+	static GraphicsFunctions* GfxFunctions;
+	static const char* Renderer;
+
+	static void Init();
+	static void ChooseBackend();
+	static Uint32 GetWindowFlags();
+	static void SetVSync(bool enabled);
+	static void Reset();
+	static void Dispose();
+	static Point ProjectToScreen(float x, float y, float z);
+	static Texture* CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static Texture* CreateTextureFromPixels(Uint32 format,
+		Uint32 width,
+		Uint32 height,
+		void* pixels,
+		int pitch);
+	static bool
+	ReinitializeTexture(Texture*, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
+	static int LockTexture(Texture* texture, void** pixels, int* pitch);
+	static int UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
+	static int UpdateYUVTexture(Texture* texture,
+		SDL_Rect* src,
+		Uint8* pixelsY,
+		int pitchY,
+		Uint8* pixelsU,
+		int pitchU,
+		Uint8* pixelsV,
+		int pitchV);
+	static void CopyTexturePixels(Texture* dest,
+		int destX,
+		int destY,
+		Texture* src,
+		int srcX,
+		int srcY,
+		int srcWidth,
+		int srcHeight);
+	static bool ResizeTexture(Texture* texture, Uint32 width, Uint32 height);
+	static int SetTexturePalette(Texture* texture, void* palette, unsigned numPaletteColors);
+	static bool ConvertTextureToFormat(Texture* texture,
+		int destFormat,
+		Uint32* palColors,
+		unsigned numPaletteColors,
+		unsigned transparentPixel);
+	static void SetTextureMinFilter(Texture* texture, int filterMode);
+	static void SetTextureMagFilter(Texture* texture, int filterMode);
+	static void UnlockTexture(Texture* texture);
+	static void DisposeTexture(Texture* texture);
+	static TextureReference* GetSpriteSheet(string sheetPath);
+	static TextureReference* AddSpriteSheet(string sheetPath, Texture* texture);
+	static void DisposeSpriteSheet(string sheetPath);
+	static void UnloadData();
+	static Uint32 CreateVertexBuffer(Uint32 maxVertices, int unloadPolicy);
+	static void DeleteVertexBuffer(Uint32 vertexBufferIndex);
+	static Shader* CreateShader();
+	static void DeleteShader(Shader* shader);
+	static void SetUserShader(Shader* shader);
+	static void SetFilter(int filter);
+	static void SetTextureInterpolation(bool interpolate);
+	static void Clear();
+	static void Present();
+	static void SoftwareStart(int viewIndex);
+	static void SoftwareEnd(int viewIndex);
+	static void UpdateGlobalPalette();
+	static void UpdatePaletteIndexTable();
+	static int GetPaletteTransparentColor(Uint32* palColors, unsigned numPaletteColors);
+	static void UnloadSceneData();
+	static bool SetRenderTarget(Texture* texture);
+	static bool CreateFramebufferTexture();
+	static bool UpdateFramebufferTexture();
+	static void SetPostProcessShader(Shader* shader);
+	static void DoScreenPostProcess();
+	static void CopyFramebuffer(int sourceX,
+		int sourceY,
+		int sourceW,
+		int sourceH,
+		int destX,
+		int destY,
+		int destW,
+		int destH,
+		Texture* texture);
+	static void CopyScreen(int sourceX,
+		int sourceY,
+		int sourceW,
+		int sourceH,
+		int destX,
+		int destY,
+		int destW,
+		int destH,
+		Texture* texture);
+	static void UpdateOrtho(float width, float height);
+	static void UpdateOrthoFlipped(float width, float height);
+	static void UpdatePerspective(float fovy, float aspect, float nearv, float farv);
+	static void UpdateProjectionMatrix();
+	static void
+	MakePerspectiveMatrix(Matrix4x4* out, float fov, float near, float far, float aspect);
+	static void CalculateMVPMatrix(Matrix4x4* output,
+		Matrix4x4* modelMatrix,
+		Matrix4x4* viewMatrix,
+		Matrix4x4* projMatrix);
+	static void GetScreenSize(int& outWidth, int& outHeight);
+	static void SetViewport(float x, float y, float w, float h);
+	static void ResetViewport();
+	static void Resize(int width, int height);
+	static void SetClip(int x, int y, int width, int height);
+	static void ClearClip();
+	static void Save();
+	static void Translate(float x, float y, float z);
+	static void Rotate(float x, float y, float z);
+	static void Scale(float x, float y, float z);
+	static void Restore();
+	static BlendState GetBlendState();
+	static void PushState();
+	static void PopState();
+	static void SetBlendColor(float r, float g, float b, float a);
+	static void SetBlendMode(int blendMode);
+	static void SetBlendMode(int srcC, int dstC, int srcA, int dstA);
+	static void SetTintColor(float r, float g, float b, float a);
+	static void SetTintMode(int mode);
+	static void SetTintEnabled(bool enabled);
+	static void SetLineWidth(float n);
+	static void StrokeLine(float x1, float y1, float x2, float y2);
+	static void StrokeCircle(float x, float y, float rad, float thickness);
+	static void StrokeEllipse(float x, float y, float w, float h);
+	static void StrokeTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
+	static void StrokeRectangle(float x, float y, float w, float h);
+	static void FillCircle(float x, float y, float rad);
+	static void FillEllipse(float x, float y, float w, float h);
+	static void FillRectangle(float x, float y, float w, float h);
+	static void FillTriangle(float x1, float y1, float x2, float y2, float x3, float y3);
+	static void FillTriangleBlend(float* xc, float* yc, int* colors);
+	static void FillQuad(float* xc, float* yc);
+	static void FillQuadBlend(float* xc, float* yc, int* colors);
+	static void
+	DrawTriangle(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
+	static void
+	DrawQuad(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
+	static void DrawTexture(Texture* texture,
+		float sx,
+		float sy,
+		float sw,
+		float sh,
+		float x,
+		float y,
+		float w,
+		float h,
+		int paletteID);
+	static void DrawSprite(ISprite* sprite,
+		int animation,
+		int frame,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		float rotation,
+		int paletteID);
+	static void DrawSpritePart(ISprite* sprite,
+		int animation,
+		int frame,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		float rotation,
+		int paletteID);
+	static void DrawTexture(Texture* texture,
+		float sx,
+		float sy,
+		float sw,
+		float sh,
+		float x,
+		float y,
+		float w,
+		float h);
+	static void DrawSprite(ISprite* sprite,
+		int animation,
+		int frame,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		float rotation);
+	static void DrawSpritePart(ISprite* sprite,
+		int animation,
+		int frame,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		float x,
+		float y,
+		bool flipX,
+		bool flipY,
+		float scaleW,
+		float scaleH,
+		float rotation);
+	static void DrawGlyph(Font* font,
+		Uint32 codepoint,
+		float x,
+		float y,
+		float scale,
+		float glyphScale,
+		float ascent,
+		int paletteID = 0);
+	static void DrawEllipsis(Font* font,
+		float x,
+		float y,
+		float scale,
+		float glyphScale,
+		float ascent,
+		int paletteID = 0);
+	static void DrawEllipsisLegacy(ISprite* sprite,
+		float x,
+		float y,
+		float advance,
+		float baseline,
+		int paletteID = 0);
+	static void DrawText(Font* font,
+		const char* text,
+		float x,
+		float y,
+		TextDrawParams* params,
+		int paletteID = 0);
+	static void DrawTextWrapped(Font* font,
+		const char* text,
+		float x,
+		float y,
+		TextDrawParams* params,
+		int paletteID = 0);
+	static void DrawTextEllipsis(Font* font,
+		const char* text,
+		float x,
+		float y,
+		TextDrawParams* params,
+		int paletteID = 0);
+	static void DrawGlyph(Font* font,
+		Uint32 codepoint,
+		float x,
+		float y,
+		TextDrawParams* params,
+		int paletteID = 0);
+	static void
+	MeasureText(Font* font, const char* text, TextDrawParams* params, float& maxW, float& maxH);
+	static void MeasureTextWrapped(Font* font,
+		const char* text,
+		TextDrawParams* params,
+		float& maxW,
+		float& maxH);
+	static void DrawTextLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params,
+		int paletteID = 0);
+	static void DrawTextWrappedLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params,
+		int paletteID = 0);
+	static void DrawTextEllipsisLegacy(ISprite* sprite,
+		const char* text,
+		float x,
+		float y,
+		LegacyTextDrawParams* params,
+		int paletteID = 0);
+	static void DrawGlyphLegacy(ISprite* sprite,
+		Uint32 codepoint,
+		float basex,
+		float basey,
+		LegacyTextDrawParams* params,
+		int paletteID = 0);
+	static void MeasureTextLegacy(ISprite* sprite,
+		const char* text,
+		LegacyTextDrawParams* params,
+		float& maxW,
+		float& maxH);
+	static void MeasureTextWrappedLegacy(ISprite* sprite,
+		const char* text,
+		LegacyTextDrawParams* params,
+		float& maxW,
+		float& maxH);
+	static void DrawTile(TileSpriteInfo& info,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void DrawTilePart(TileSpriteInfo& info,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentView);
+	static void DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView, bool onlyAnimated = false, int drawTileCollision = 0);
+	static void DrawTileLayer_HorizontalScrollIndexes(TileLayer* layer, View* currentView);
+	static void DrawBufferedTileLayer(TileLayer* layer, View* currentView);
+	static void DrawSceneLayer(SceneLayer* layer,
+		View* currentView,
+		int layerIndex,
+		bool useCustomFunction);
+	static void DrawTileLayer(TileLayer* layer, View* currentView);
+	static void DrawImageLayer(ImageLayer* layer, View* currentView);
+	static void DrawTextureLoopHorizontal(Texture* texture, float x, float y, float maxWidth);
+	static void DrawTextureLoopVertical(Texture* texture, float x, float y, float maxHeight);
+	static void
+	DrawTextureLoopHV(Texture* texture, float x, float y, float maxWidth, float maxHeight);
+	static void RunCustomSceneLayerFunction(ObjFunction* func, int layerIndex);
+	static void BeginTextureBatching();
+	static void BatchRectangleFill(float x, float y, float w, float h, float r, float g, float b, float a);
+	static void BatchTile(TileSpriteInfo& info,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void BatchTilePart(TileSpriteInfo& info,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		int x,
+		int y,
+		bool flipX,
+		bool flipY,
+		bool usePaletteIndexLines);
+	static void FinishTextureBatching();
+	static void DrawPolygon3D(void* data,
+		int vertexCount,
+		int vertexFlag,
+		Texture* texture,
+		Matrix4x4* modelMatrix,
+		Matrix4x4* normalMatrix);
+	static void DrawSceneLayer3D(void* layer,
+		int sx,
+		int sy,
+		int sw,
+		int sh,
+		Matrix4x4* modelMatrix,
+		Matrix4x4* normalMatrix);
+	static void DrawModel(void* model,
+		Uint16 animation,
+		Uint32 frame,
+		Matrix4x4* modelMatrix,
+		Matrix4x4* normalMatrix);
+	static void DrawModelSkinned(void* model,
+		Uint16 armature,
+		Matrix4x4* modelMatrix,
+		Matrix4x4* normalMatrix);
+	static void
+	DrawVertexBuffer(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
+	static void BindVertexBuffer(Uint32 vertexBufferIndex);
+	static void UnbindVertexBuffer();
+	static void BindScene3D(Uint32 sceneIndex);
+	static void ClearScene3D(Uint32 sceneIndex);
+	static void DrawScene3D(Uint32 sceneIndex, Uint32 drawMode);
+	static Uint32 CreateScene3D(int unloadPolicy);
+	static void DeleteScene3D(Uint32 sceneIndex);
+	static void InitScene3D(Uint32 sceneIndex, Uint32 numVertices);
+	static void MakeSpritePolygon(VertexAttribute data[4],
+		float x,
+		float y,
+		float z,
+		int flipX,
+		int flipY,
+		float scaleX,
+		float scaleY,
+		Texture* texture,
+		int frameX,
+		int frameY,
+		int frameW,
+		int frameH);
+	static void MakeSpritePolygonUVs(VertexAttribute data[4],
+		int flipX,
+		int flipY,
+		Texture* texture,
+		int frameX,
+		int frameY,
+		int frameW,
+		int frameH);
+	static void MakeFrameBufferID(ISprite* sprite);
+	static void DeleteFrameBufferID(ISprite* sprite);
+	static void MakeLayerTileBuffers(SceneLayer* layer);
+	static void DeleteLayerTileBuffers(SceneLayer* layer);
+	static void RefreshTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
+	static void DeleteTileBuffersForTileset(SceneLayer* layer, size_t tilesetIndex);
+	static void UpdateBufferedLayerTile(SceneLayer* layer, int x, int y);
+	static void RefreshLayerTileAnimations(SceneLayer* layer);
+	static void SetDepthTesting(bool enabled);
+	static bool SpriteRangeCheck(ISprite* sprite, int animation, int frame);
+	static void ConvertFromARGBtoNative(Uint32* argb, int count);
+	static void ConvertFromNativeToARGB(Uint32* argb, int count);
+	static void SetStencilEnabled(bool enabled);
+	static void SetStencilTestFunc(int stencilTest);
+	static void SetStencilPassFunc(int stencilOp);
+	static void SetStencilFailFunc(int stencilOp);
+	static void SetStencilValue(int value);
+	static void SetStencilMask(int mask);
+	static void ClearStencil();
+};
+
+#endif /* ENGINE_GRAPHICS_H */

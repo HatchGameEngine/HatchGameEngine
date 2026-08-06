@@ -1,4 +1,43 @@
+#include <Engine/Scene.h>
 #include <Engine/Types/Entity.h>
+
+#include <Engine/Types/Camera.h>
+
+HashMap<EntitySpawnFunction>* Entity::SpawnFunctions = nullptr;
+bool Entity::DisableAutoAnimate = false;
+bool Entity::UseAnimationFrameSkip = true;
+
+void Entity::InitAll() {
+	SpawnFunctions = new HashMap<EntitySpawnFunction>();
+
+	// Init all C++ side classes here.
+	ENTITY_INIT(Camera);
+}
+void Entity::UnloadAll() {
+	// De-init all C++ side classes here.
+	ENTITY_DEINIT(Camera);
+
+	delete SpawnFunctions;
+
+	SpawnFunctions = nullptr;
+}
+
+Entity* Entity::Spawn() {
+	throw std::runtime_error("Cannot directly spawn Entity!");
+}
+Entity* Entity::SpawnNamed(const char* objectName) {
+	EntitySpawnFunction spawnFunction;
+	if (SpawnFunctions->GetIfExists(objectName, &spawnFunction)) {
+		return spawnFunction();
+	}
+	return nullptr;
+}
+
+void Entity::InitProperties() {
+	if (!Properties) {
+		Properties = new HashMap<Property>(NULL, 4);
+	}
+}
 
 int Entity::GetIDWithinClass() {
 	if (!List) {
@@ -8,9 +47,9 @@ int Entity::GetIDWithinClass() {
 	return List->GetID(this);
 }
 void Entity::ApplyMotion() {
-	YSpeed += Gravity;
-	X += XSpeed;
-	Y += YSpeed;
+	SpeedY += GravitySpeed;
+	X += SpeedX;
+	Y += SpeedY;
 }
 void Entity::Animate() {
 	ResourceType* resource = Scene::GetSpriteResource(Sprite);
@@ -24,62 +63,74 @@ void Entity::Animate() {
 		return;
 	}
 
-#ifdef USE_RSDK_ANIMATE
-	AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
-
-	while (AnimationTimer > AnimationFrameDuration) {
-		CurrentFrame++;
-
-		AnimationTimer -= AnimationFrameDuration;
-		if (CurrentFrame >= CurrentFrameCount) {
-			CurrentFrame = AnimationLoopIndex;
-			OnAnimationFinish();
-		}
-
-		AnimationFrameDuration =
-			sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
-	}
-#else
-	if ((float)AnimationFrameDuration - AnimationTimer > 0.0f) {
+	if (AnimationFrameSkip) {
+		// Skip-capable animation behavior
+		// (supports skipping animation frames if AnimationTimer passes multiples of AnimationFrameDuration)
 		AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
-		if ((float)AnimationFrameDuration - AnimationTimer <= 0.0f) {
+		while (AnimationTimer > AnimationFrameDuration) {
 			CurrentFrame++;
+			AnimationTimer -= AnimationFrameDuration;
+
 			if (CurrentFrame >= CurrentFrameCount) {
 				CurrentFrame = AnimationLoopIndex;
 				OnAnimationFinish();
 
-				// Sprite may have changed after a call
-				// to OnAnimationFinish
+				// Sprite may have changed after a call to OnAnimationFinish
 				ResourceType* resource = Scene::GetSpriteResource(Sprite);
 				if (resource) {
-					sprite = Scene::GetSpriteResource(Sprite)->AsSprite;
+					sprite = resource->AsSprite;
 				}
 				else {
 					sprite = nullptr;
+					break;
 				}
 			}
 
-			// Do a basic range check, for strange loop
-			// points (or just in case CurrentAnimation
-			// happens to be invalid, which is very
-			// possible)
-			if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0 &&
-				CurrentAnimation < sprite->Animations.size()) {
-				AnimationFrameDuration = sprite->Animations[CurrentAnimation]
-								 .Frames[CurrentFrame]
-								 .Duration;
+			// Update duration for the new frame
+			// Check range for strange loop points or if CurrentAnimation is now invalid
+			if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
+				&& CurrentAnimation < sprite->Animations.size()) {
+				AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
 			}
 			else {
-				AnimationFrameDuration = 1.0f;
+				AnimationFrameDuration = 1;
 			}
-
-			AnimationTimer = 0.0f;
 		}
 	}
 	else {
-		AnimationTimer = 0.0f;
+		// Strict animation behavior
+		// (never skips animation frames, and resets AnimationTimer to 0.0 upon any changed frame)
+		if ((float)AnimationFrameDuration - AnimationTimer > 0.0f) {
+			AnimationTimer += (AnimationSpeed * AnimationSpeedMult + AnimationSpeedAdd);
+			if ((float)AnimationFrameDuration - AnimationTimer <= 0.0f) {
+				CurrentFrame++;
+
+				if (CurrentFrame >= CurrentFrameCount) {
+					CurrentFrame = AnimationLoopIndex;
+					OnAnimationFinish();
+
+					// Sprite may have changed after a call to OnAnimationFinish
+					ResourceType* resource = Scene::GetSpriteResource(Sprite);
+					sprite = resource ? resource->AsSprite : nullptr;
+				}
+
+				// Update duration for the new frame
+				// Check range for strange loop points or if CurrentAnimation is now invalid
+				if (sprite && CurrentFrame < CurrentFrameCount && CurrentAnimation >= 0
+					&& CurrentAnimation < sprite->Animations.size()) {
+					AnimationFrameDuration = sprite->Animations[CurrentAnimation].Frames[CurrentFrame].Duration;
+				}
+				else {
+					AnimationFrameDuration = 1;
+				}
+
+				AnimationTimer = 0.0f; // Wipe leftover time
+			}
+		}
+		else {
+			AnimationTimer = 0.0f;
+		}
 	}
-#endif
 }
 void Entity::SetAnimation(int animation, int frame) {
 	if (CurrentAnimation != animation) {
@@ -129,10 +180,13 @@ void Entity::SetUpdatePriority(int priority) {
 	}
 }
 bool Entity::BasicCollideWithObject(Entity* other) {
+	if (Hitbox.Width <= 0.0f || Hitbox.Height <= 0.0f) {
+		return false;
+	}
+
 	float otherHitboxW = other->Hitbox.Width;
 	float otherHitboxH = other->Hitbox.Height;
-
-	if (otherHitboxW == 0.0f || otherHitboxH == 0.0f) {
+	if (otherHitboxW <= 0.0f || otherHitboxH <= 0.0f) {
 		return false;
 	}
 
@@ -142,20 +196,27 @@ bool Entity::BasicCollideWithObject(Entity* other) {
 		other->Y + other->Hitbox.GetBottom() < Y + Hitbox.GetBottom();
 }
 bool Entity::CollideWithObject(Entity* other) {
-	float sourceFlipX = (this->FlipFlag & 1) ? -1.0 : 1.0;
-	float sourceFlipY = (this->FlipFlag & 2) ? -1.0 : 1.0;
-	float otherFlipX = (other->FlipFlag & 1) ? -1.0 : 1.0;
-	float otherFlipY = (other->FlipFlag & 2) ? -1.0 : 1.0;
+	float sourceHitboxW = this->Hitbox.Width * 0.5;
+	float sourceHitboxH = this->Hitbox.Height * 0.5;
+	if (sourceHitboxW <= 0.0f || sourceHitboxH <= 0.0f) {
+		return false;
+	}
+
+	float otherHitboxW = other->Hitbox.Width * 0.5;
+	float otherHitboxH = other->Hitbox.Height * 0.5;
+	if (otherHitboxW <= 0.0f || otherHitboxH <= 0.0f) {
+		return false;
+	}
+
+	float sourceFlipX = (this->Direction & 1) ? -1.0 : 1.0;
+	float sourceFlipY = (this->Direction & 2) ? -1.0 : 1.0;
+	float otherFlipX = (other->Direction & 1) ? -1.0 : 1.0;
+	float otherFlipY = (other->Direction & 2) ? -1.0 : 1.0;
 
 	float sourceX = std::floor(this->X + this->Hitbox.OffsetX * sourceFlipX);
 	float sourceY = std::floor(this->Y + this->Hitbox.OffsetY * sourceFlipY);
 	float otherX = std::floor(other->X + other->Hitbox.OffsetX * otherFlipX);
 	float otherY = std::floor(other->Y + other->Hitbox.OffsetY * otherFlipY);
-
-	float otherHitboxW = other->Hitbox.Width * 0.5;
-	float otherHitboxH = other->Hitbox.Height * 0.5;
-	float sourceHitboxW = this->Hitbox.Width * 0.5;
-	float sourceHitboxH = this->Hitbox.Height * 0.5;
 
 	return !(otherY + otherHitboxH < sourceY - sourceHitboxH ||
 		otherY - otherHitboxH > sourceY + sourceHitboxH ||
@@ -163,9 +224,17 @@ bool Entity::CollideWithObject(Entity* other) {
 		sourceX + sourceHitboxW < otherX - otherHitboxW);
 }
 int Entity::SolidCollideWithObject(Entity* other, int flag) {
+	if (Hitbox.Width <= 0.0f || Hitbox.Height <= 0.0f) {
+		return false;
+	}
+
+	if (other->Hitbox.Width <= 0.0f || other->Hitbox.Height <= 0.0f) {
+		return false;
+	}
+
 	// NOTE: "flag" is setValues
-	float initialOtherX = (other->X);
-	float initialOtherY = (other->Y);
+	float initialOtherX = other->X;
+	float initialOtherY = other->Y;
 	int sourceX = this->X;
 	int sourceY = this->Y;
 	int otherX = initialOtherX;
@@ -174,15 +243,15 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 	int collideSideHori = 0;
 	int collideSideVert = 0;
 
-	int sLeft = this->Hitbox.GetLeft(this->FlipFlag & 1);
-	int sRight = this->Hitbox.GetRight(this->FlipFlag & 1);
-	int sTop = this->Hitbox.GetTop(this->FlipFlag & 2);
-	int sBottom = this->Hitbox.GetBottom(this->FlipFlag & 2);
+	int sLeft = this->Hitbox.GetLeft(this->Direction & 1);
+	int sRight = this->Hitbox.GetRight(this->Direction & 1);
+	int sTop = this->Hitbox.GetTop(this->Direction & 2);
+	int sBottom = this->Hitbox.GetBottom(this->Direction & 2);
 
-	int oLeft = other->Hitbox.GetLeft(other->FlipFlag & 1);
-	int oRight = other->Hitbox.GetRight(other->FlipFlag & 1);
-	int oTop = other->Hitbox.GetTop(other->FlipFlag & 2);
-	int oBottom = other->Hitbox.GetBottom(other->FlipFlag & 2);
+	int oLeft = other->Hitbox.GetLeft(other->Direction & 1);
+	int oRight = other->Hitbox.GetRight(other->Direction & 1);
+	int oTop = other->Hitbox.GetTop(other->Direction & 2);
+	int oBottom = other->Hitbox.GetBottom(other->Direction & 2);
 
 	oTop++;
 	oBottom--;
@@ -246,20 +315,20 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 				other->Y = otherY;
 				if (flag == 1) {
 					if (collideSideVert != 1) {
-						if (collideSideVert == 4 && other->YSpeed < 0.0) {
-							other->YSpeed = 0.0;
+						if (collideSideVert == 4 && other->SpeedY < 0.0) {
+							other->SpeedY = 0.0;
 							return v47;
 						}
 						return v47;
 					}
 
-					if (other->YSpeed > 0.0) {
-						other->YSpeed = 0.0;
+					if (other->SpeedY > 0.0) {
+						other->SpeedY = 0.0;
 					}
-					if (!other->Ground && other->YSpeed >= 0.0) {
-						other->GroundSpeed = other->XSpeed;
+					if (!other->OnGround && other->SpeedY >= 0.0) {
+						other->GroundSpeed = other->SpeedX;
 						other->Angle = 0;
-						other->Ground = true;
+						other->OnGround = true;
 					}
 				}
 				return v47;
@@ -271,20 +340,20 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 				other->Y = otherY;
 				if (flag == 1) {
 					if (collideSideVert != 1) {
-						if (collideSideVert == 4 && other->YSpeed < 0.0) {
-							other->YSpeed = 0.0;
+						if (collideSideVert == 4 && other->SpeedY < 0.0) {
+							other->SpeedY = 0.0;
 							return v47;
 						}
 						return v47;
 					}
 
-					if (other->YSpeed > 0.0) {
-						other->YSpeed = 0.0;
+					if (other->SpeedY > 0.0) {
+						other->SpeedY = 0.0;
 					}
-					if (!other->Ground && other->YSpeed >= 0.0) {
-						other->GroundSpeed = other->XSpeed;
+					if (!other->OnGround && other->SpeedY >= 0.0) {
+						other->GroundSpeed = other->SpeedX;
 						other->Angle = 0;
-						other->Ground = true;
+						other->OnGround = true;
 					}
 				}
 				return v47;
@@ -295,14 +364,14 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 		other->Y = initialOtherY;
 		if (flag == 1) {
 			float v50;
-			if (other->Ground) {
+			if (other->OnGround) {
 				v50 = other->GroundSpeed;
 				if (other->AngleMode == 2) {
 					v50 = -v50;
 				}
 			}
 			else {
-				v50 = other->XSpeed;
+				v50 = other->SpeedX;
 			}
 
 			if (v46 == 2) {
@@ -315,7 +384,7 @@ int Entity::SolidCollideWithObject(Entity* other, int flag) {
 			}
 
 			other->GroundSpeed = 0.0;
-			other->XSpeed = 0.0;
+			other->SpeedX = 0.0;
 		}
 		return v46;
 	}
@@ -329,7 +398,7 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 	float sourceY = std::floor(this->Y);
 	float otherX = std::floor(initialOtherX);
 	float otherY = std::floor(initialOtherY);
-	float otherYMinusYSpeed = std::floor(initialOtherY - other->YSpeed);
+	float otherYMinusYSpeed = std::floor(initialOtherY - other->SpeedY);
 
 	float otherHitboxW = other->Hitbox.Width * 0.5;
 	float otherHitboxH = other->Hitbox.Height * 0.5;
@@ -337,13 +406,13 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 	float sourceHitboxH = this->Hitbox.Height * 0.5;
 
 	float sourceHitboxOffX =
-		(this->FlipFlag & 1) ? -this->Hitbox.OffsetX : this->Hitbox.OffsetX;
+		(this->Direction & 1) ? -this->Hitbox.OffsetX : this->Hitbox.OffsetX;
 	float sourceHitboxOffY =
-		(this->FlipFlag & 2) ? -this->Hitbox.OffsetY : this->Hitbox.OffsetY;
+		(this->Direction & 2) ? -this->Hitbox.OffsetY : this->Hitbox.OffsetY;
 	float otherHitboxOffX =
-		(other->FlipFlag & 1) ? -other->Hitbox.OffsetX : other->Hitbox.OffsetX;
+		(other->Direction & 1) ? -other->Hitbox.OffsetX : other->Hitbox.OffsetX;
 	float otherHitboxOffY =
-		(other->FlipFlag & 2) ? -other->Hitbox.OffsetY : other->Hitbox.OffsetY;
+		(other->Direction & 2) ? -other->Hitbox.OffsetY : other->Hitbox.OffsetY;
 
 	if ((otherHitboxH + otherHitboxOffY) + otherY <
 			sourceY + (-sourceHitboxH + sourceHitboxOffY) ||
@@ -353,18 +422,18 @@ bool Entity::TopSolidCollideWithObject(Entity* other, int flag) {
 			otherX + (otherHitboxW + otherHitboxOffX) ||
 		sourceX + (sourceHitboxW + sourceHitboxOffX) <=
 			otherX + (-otherHitboxW + otherHitboxOffX) ||
-		other->YSpeed < 0.0) {
+		other->SpeedY < 0.0) {
 		return false;
 	}
 
 	other->Y =
 		this->Y + ((-sourceHitboxH + sourceHitboxOffY) - (otherHitboxH + otherHitboxOffY));
 	if (flag) {
-		other->YSpeed = 0.0;
-		if (!other->Ground) {
-			other->GroundSpeed = other->XSpeed;
+		other->SpeedY = 0.0;
+		if (!other->OnGround) {
+			other->GroundSpeed = other->SpeedX;
 			other->Angle = 0;
-			other->Ground = true;
+			other->OnGround = true;
 		}
 	}
 	return true;
@@ -475,11 +544,11 @@ void Entity::CopyFields(Entity* other) {
 	COPY(X);
 	COPY(Y);
 	COPY(Z);
-	COPY(XSpeed);
-	COPY(YSpeed);
+	COPY(SpeedX);
+	COPY(SpeedY);
 	COPY(GroundSpeed);
-	COPY(Gravity);
-	COPY(Ground);
+	COPY(GravitySpeed);
+	COPY(OnGround);
 
 	COPY(WasOffScreen);
 	COPY(OnScreen);
@@ -514,7 +583,6 @@ void Entity::CopyFields(Entity* other) {
 
 	COPY(Depth);
 	COPY(OldDepth);
-	COPY(ZDepth);
 
 	COPY(Sprite);
 	COPY(CurrentAnimation);
@@ -524,6 +592,7 @@ void Entity::CopyFields(Entity* other) {
 	COPY(AnimationSpeedAdd);
 	COPY(PrevAnimation);
 	COPY(AutoAnimate);
+	COPY(AnimationFrameSkip);
 	COPY(AnimationSpeed);
 	COPY(AnimationTimer);
 	COPY(AnimationFrameDuration);
@@ -531,19 +600,14 @@ void Entity::CopyFields(Entity* other) {
 	COPY(RotationStyle);
 
 	COPY(Hitbox);
-	COPY(FlipFlag);
 
 	COPY(SensorX);
 	COPY(SensorY);
 	COPY(SensorCollided);
 	COPY(SensorAngle);
 
-	COPY(VelocityX);
-	COPY(VelocityY);
-	COPY(GroundVel);
-	COPY(GravityStrength);
-	COPY(OnGround);
-
+	COPY(Direction);
+	COPY(TileCollisions);
 	COPY(CollisionLayers);
 	COPY(CollisionPlane);
 	COPY(CollisionMode);
@@ -558,9 +622,82 @@ void Entity::CopyFields(Entity* other) {
 
 void Entity::ApplyPhysics() {}
 
-void Entity::Initialize() {}
-void Entity::Create() {}
-void Entity::PostCreate() {}
+void Entity::Initialize() {
+	// Set defaults
+	Active = true;
+	Pauseable = true;
+	Activity = ACTIVE_BOUNDS;
+	InRange = false;
+
+	SpeedX = 0.0f;
+	SpeedY = 0.0f;
+	GroundSpeed = 0.0f;
+	GravitySpeed = 0.0f;
+	OnGround = false;
+
+	WasOffScreen = false;
+	OnScreen = true;
+	OnScreenHitboxW = 0.0f;
+	OnScreenHitboxH = 0.0f;
+	OnScreenRegionTop = 0.0f;
+	OnScreenRegionLeft = 0.0f;
+	OnScreenRegionRight = 0.0f;
+	OnScreenRegionBottom = 0.0f;
+	Visible = true;
+	ViewRenderFlag = 0xFFFFFFFF;
+	ViewOverrideFlag = 0;
+	RenderRegionW = 0.0f;
+	RenderRegionH = 0.0f;
+	RenderRegionTop = 0.0f;
+	RenderRegionLeft = 0.0f;
+	RenderRegionRight = 0.0f;
+	RenderRegionBottom = 0.0f;
+
+	Angle = 0;
+	AngleMode = 0;
+	Rotation = 0.0;
+	AutoPhysics = false;
+
+	Priority = 0;
+	PriorityListIndex = -1;
+	PriorityOld = -1;
+
+	Sprite = -1;
+	CurrentAnimation = -1;
+	CurrentFrame = -1;
+	CurrentFrameCount = 0;
+	AnimationSpeedMult = 1.0;
+	AnimationSpeedAdd = 0;
+	AutoAnimate = Entity::DisableAutoAnimate ? false : true;
+	AnimationFrameSkip = Entity::UseAnimationFrameSkip;
+	AnimationSpeed = 0;
+	AnimationTimer = 0.0;
+	AnimationFrameDuration = 0;
+	AnimationLoopIndex = 0;
+	RotationStyle = ROTSTYLE_NONE;
+
+	Hitbox.Clear();
+
+	Direction = 0;
+	TileCollisions = TILECOLLISION_NONE;
+	CollisionLayers = 0;
+	CollisionPlane = 0;
+	CollisionMode = CMODE_FLOOR;
+
+	Persistence = Persistence_NONE;
+	Interactable = true;
+
+	SetUpdatePriority(0);
+}
+void Entity::Create() {
+	Created = true;
+	if (Sprite >= 0 && CurrentAnimation < 0) {
+		SetAnimation(0, 0);
+	}
+}
+void Entity::PostCreate() {
+	PostCreated = true;
+}
 
 void Entity::UpdateEarly() {}
 void Entity::Update() {}
@@ -568,7 +705,14 @@ void Entity::UpdateLate() {}
 
 void Entity::FixedUpdateEarly() {}
 void Entity::FixedUpdate() {}
-void Entity::FixedUpdateLate() {}
+void Entity::FixedUpdateLate() {
+	if (AutoAnimate) {
+		Animate();
+	}
+	if (AutoPhysics) {
+		ApplyMotion();
+	}
+}
 
 void Entity::OnAnimationFinish() {}
 
@@ -584,6 +728,24 @@ void Entity::Render() {}
 
 void Entity::RenderLate() {}
 
-void Entity::Remove() {}
+void Entity::Remove() {
+	if (Removed) {
+		return;
+	}
 
-void Entity::Dispose() {}
+	Active = false;
+	Removed = true;
+}
+
+void Entity::Dispose() {
+	if (!Removed) {
+		Remove();
+	}
+
+	if (Properties) {
+		Properties->ForAll([](Uint32, Property property) -> void {
+			Property::Delete(property);
+		});
+		delete Properties;
+	}
+}

@@ -2,6 +2,7 @@
 #define ENGINE_BYTECODE_TYPES_H
 
 #include <Engine/Includes/HashMap.h>
+#include <Engine/Includes/OrderedHashMap.h>
 
 #include <Engine/IO/Stream.h>
 
@@ -27,6 +28,8 @@ typedef enum {
 	VAL_OBJECT,
 	VAL_LINKED_INTEGER,
 	VAL_LINKED_DECIMAL,
+	VAL_HITBOX,
+	VAL_LOCATION,
 	VAL_ERROR
 } ValueType;
 
@@ -34,14 +37,32 @@ enum { CLASS_TYPE_NORMAL, CLASS_TYPE_EXTENDED };
 
 struct Obj;
 
+enum {
+	LOC_STACK,
+	LOC_MODULE,
+	LOC_GLOBAL,
+	LOC_PROPERTY,
+	LOC_ELEMENT
+};
+
+struct VMLocation {
+	Uint8 Type;
+	union {
+		int Slot;
+		Uint32 Hash;
+	} as;
+};
+
 struct VMValue {
-	Uint32 Type;
+	Uint8 Type;
 	union {
 		int Integer;
 		float Decimal;
 		Obj* Object;
 		int* LinkedInteger;
 		float* LinkedDecimal;
+		Sint16 Hitbox[NUM_HITBOX_SIDES];
+		VMLocation Location;
 	} as;
 };
 
@@ -51,13 +72,29 @@ struct CallFrame;
 typedef int (VMThread::*OpcodeFunc)(CallFrame* frame);
 #endif
 
+#define CHUNKLOCAL_FLAG_RESOLVED (1 << 0)
+#define CHUNKLOCAL_FLAG_CONST (1 << 1)
+
+#define MAX_CHUNK_BREAKPOINTS 0xFFFF
+
+struct ChunkLocal {
+	char* Name;
+	bool Constant;
+	bool Resolved;
+	Uint32 Index;
+	Uint32 Position;
+};
+
 struct Chunk {
 	int Count;
 	int Capacity;
 	Uint8* Code;
-	Uint8* Failsafe;
+	Uint32* Breakpoints;
+	Uint16 BreakpointCount;
 	int* Lines;
 	vector<VMValue>* Constants;
+	vector<ChunkLocal>* Locals;
+	vector<ChunkLocal>* ModuleLocals;
 	bool OwnsMemory;
 
 	int OpcodeCount;
@@ -69,17 +106,27 @@ struct Chunk {
 	void Init();
 	void Alloc();
 	void Free();
+	void DeleteLocals(vector<ChunkLocal>* locals);
 #if USING_VM_FUNCPTRS
 	void SetupOpfuncs();
 #endif
 	void Write(Uint8 byte, int line);
 	int AddConstant(VMValue value);
+	bool GetConstant(size_t offset, VMValue* value = NULL, int* index = NULL);
 };
 
 struct BytecodeContainer {
 	Uint8* Data;
 	size_t Size;
 };
+
+#ifdef VM_DEBUG
+struct SourceFile {
+	bool Exists = false;
+	char* Text = nullptr;
+	std::vector<char*> Lines;
+};
+#endif
 
 const char* GetTypeString(Uint32 type);
 const char* GetObjectTypeString(Uint32 type);
@@ -89,12 +136,14 @@ const char* GetValueTypeString(VMValue value);
 #define IS_INTEGER(value) ((value).Type == VAL_INTEGER)
 #define IS_DECIMAL(value) ((value).Type == VAL_DECIMAL)
 #define IS_OBJECT(value) ((value).Type == VAL_OBJECT)
+#define IS_LOCATION(value) ((value).Type == VAL_LOCATION)
 
 #define AS_INTEGER(value) \
 	(value.Type == VAL_INTEGER ? (value).as.Integer : *((value).as.LinkedInteger))
 #define AS_DECIMAL(value) \
 	(value.Type == VAL_DECIMAL ? (value).as.Decimal : *((value).as.LinkedDecimal))
 #define AS_OBJECT(value) ((value).as.Object)
+#define AS_LOCATION(value) ((value).as.Location)
 
 #ifdef WIN32
 #define NULL_VAL (VMValue{})
@@ -116,6 +165,12 @@ static inline VMValue OBJECT_VAL(void* value) {
 	val.as.Object = (Obj*)value;
 	return val;
 }
+static inline VMValue LOCATION_VAL(VMLocation location) {
+	VMValue val;
+	val.Type = VAL_LOCATION;
+	val.as.Location = location;
+	return val;
+}
 static inline VMValue INTEGER_LINK_VAL(int* value) {
 	VMValue val;
 	val.Type = VAL_LINKED_INTEGER;
@@ -133,6 +188,7 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 #define INTEGER_VAL(value) ((VMValue){VAL_INTEGER, {.Integer = value}})
 #define DECIMAL_VAL(value) ((VMValue){VAL_DECIMAL, {.Decimal = value}})
 #define OBJECT_VAL(object) ((VMValue){VAL_OBJECT, {.Object = (Obj*)object}})
+#define LOCATION_VAL(location) ((VMValue){VAL_LOCATION, {.Location = location}})
 #define INTEGER_LINK_VAL(value) ((VMValue){VAL_LINKED_INTEGER, {.LinkedInteger = value}})
 #define DECIMAL_LINK_VAL(value) ((VMValue){VAL_LINKED_DECIMAL, {.LinkedDecimal = value}})
 #endif
@@ -149,9 +205,71 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 	(!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && \
 		!IS_LINKED_INTEGER(value))
 
+static inline VMValue HITBOX_VAL(Sint16 left, Sint16 top, Sint16 right, Sint16 bottom) {
+	VMValue val;
+	val.Type = VAL_HITBOX;
+	val.as.Hitbox[HITBOX_LEFT] = left;
+	val.as.Hitbox[HITBOX_TOP] = top;
+	val.as.Hitbox[HITBOX_RIGHT] = right;
+	val.as.Hitbox[HITBOX_BOTTOM] = bottom;
+	return val;
+}
+
+static inline VMValue HITBOX_VAL(Sint16* values) {
+	VMValue val;
+	val.Type = VAL_HITBOX;
+	val.as.Hitbox[HITBOX_LEFT] = values[HITBOX_LEFT];
+	val.as.Hitbox[HITBOX_TOP] = values[HITBOX_TOP];
+	val.as.Hitbox[HITBOX_RIGHT] = values[HITBOX_RIGHT];
+	val.as.Hitbox[HITBOX_BOTTOM] = values[HITBOX_BOTTOM];
+	return val;
+}
+
+#define IS_HITBOX(value) ((value).Type == VAL_HITBOX)
+#define AS_HITBOX(value) (&((value).as.Hitbox[0]))
+
+#ifdef WIN32
+static inline VMLocation STACK_LOCATION(int index) {
+	VMLocation location;
+	location.Type = LOC_STACK;
+	location.as.Slot = index;
+	return location;
+}
+static inline VMLocation MODULE_LOCATION(int index) {
+	VMLocation location;
+	location.Type = LOC_MODULE;
+	location.as.Slot = index;
+	return location;
+}
+static inline VMLocation GLOBAL_LOCATION(Uint32 hash) {
+	VMLocation location;
+	location.Type = LOC_GLOBAL;
+	location.as.Hash = hash;
+	return location;
+}
+static inline VMLocation PROPERTY_LOCATION(Uint32 hash) {
+	VMLocation location;
+	location.Type = LOC_PROPERTY;
+	location.as.Hash = hash;
+	return location;
+}
+static inline VMLocation ELEMENT_LOCATION() {
+	VMLocation location;
+	location.Type = LOC_ELEMENT;
+	location.as.Slot = 0;
+	return location;
+}
+#else
+#define STACK_LOCATION(index) ((VMLocation){LOC_STACK, {.Slot = index}})
+#define MODULE_LOCATION(index) ((VMLocation){LOC_MODULE, {.Slot = index}})
+#define GLOBAL_LOCATION(hash) ((VMLocation){LOC_GLOBAL, {.Hash = hash}})
+#define PROPERTY_LOCATION(hash) ((VMLocation){LOC_PROPERTY, {.Hash = hash}})
+#define ELEMENT_LOCATION() ((VMLocation){LOC_ELEMENT, {.Slot = 0}})
+#endif
+
 typedef VMValue (*NativeFn)(int argCount, VMValue* args, Uint32 threadID);
 
-typedef Obj* (*ClassNewFn)(void);
+typedef Obj* (*ClassNewFn)();
 typedef void (*ObjectDestructor)(Obj*);
 
 typedef bool (*ValueGetFn)(Obj* object, Uint32 hash, VMValue* value, Uint32 threadID);
@@ -180,17 +298,6 @@ enum ObjType {
 	MAX_OBJ_TYPE
 };
 
-#define CLASS_ARRAY "$$ArrayImpl"
-#define CLASS_ENTITY "$$EntityImpl"
-#define CLASS_FONT "Font"
-#define CLASS_FUNCTION "$$FunctionImpl"
-#define CLASS_INSTANCE "$$InstanceImpl"
-#define CLASS_MAP "$$MapImpl"
-#define CLASS_MATERIAL "Material"
-#define CLASS_SHADER "Shader"
-#define CLASS_STREAM "$$StreamImpl"
-#define CLASS_STRING "$$StringImpl"
-
 #define OBJECT_TYPE(value) (AS_OBJECT(value)->Type)
 #define IS_BOUND_METHOD(value) IsObjectType(value, OBJ_BOUND_METHOD)
 #define IS_CLASS(value) IsObjectType(value, OBJ_CLASS)
@@ -207,7 +314,8 @@ enum ObjType {
 #define IS_NATIVE_INSTANCE(value) IsObjectType(value, OBJ_NATIVE_INSTANCE)
 #define IS_ENTITY(value) IsObjectType(value, OBJ_ENTITY)
 #define IS_INSTANCEABLE(value) (IS_INSTANCE(value) || IS_NATIVE_INSTANCE(value) || IS_ENTITY(value))
-#define IS_CALLABLE(value) (IS_FUNCTION(value) || IS_NATIVE_FUNCTION(value) || IS_BOUND_METHOD(value))
+#define IS_CALLABLE(value) \
+	(IS_FUNCTION(value) || IS_NATIVE_FUNCTION(value) || IS_BOUND_METHOD(value))
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))
@@ -228,21 +336,15 @@ typedef HashMap<VMValue> Table;
 
 struct Obj {
 	ObjType Type;
-	size_t Size;
 	bool IsDark;
+	size_t Size;
 	struct ObjClass* Class;
-	ValueGetFn PropertyGet;
-	ValueSetFn PropertySet;
-	StructGetFn ElementGet;
-	StructSetFn ElementSet;
-	ObjectDestructor Destructor;
 	struct Obj* Next;
 };
 struct ObjString {
 	Obj Object;
 	size_t Length;
 	char* Chars;
-	Uint32 Hash;
 };
 struct ObjModule {
 	Obj Object;
@@ -252,14 +354,13 @@ struct ObjModule {
 };
 struct ObjFunction {
 	Obj Object;
-	int Arity;
-	int MinArity;
-	int UpvalueCount;
+	Uint8 Arity;
+	Uint8 MinArity;
 	struct Chunk Chunk;
 	ObjModule* Module;
 	char* Name;
 	struct ObjClass* Class;
-	Uint32 NameHash;
+	size_t Index;
 };
 struct ObjNative {
 	Obj Object;
@@ -285,17 +386,27 @@ struct ObjClass {
 	Table* Fields;
 	VMValue Initializer;
 	ClassNewFn NewFn;
-	Uint8 Type;
+	ValueGetFn PropertyGet;
+	ValueSetFn PropertySet;
+	StructGetFn ElementGet;
+	StructSetFn ElementSet;
 	ObjClass* Parent;
 };
 struct ObjInstance {
 	Obj Object;
 	Table* Fields;
+	ValueGetFn PropertyGet;
+	ValueSetFn PropertySet;
+	StructGetFn ElementGet;
+	StructSetFn ElementSet;
+	ObjectDestructor Destructor;
 };
 struct ObjBoundMethod {
 	Obj Object;
-	VMValue Receiver;
 	ObjFunction* Method;
+	VMValue* Arguments;
+	Uint8 ArgumentCount;
+	bool HasReceiver;
 };
 struct ObjArray {
 	Obj Object;
@@ -303,20 +414,18 @@ struct ObjArray {
 };
 struct ObjMap {
 	Obj Object;
-	HashMap<VMValue>* Values;
-	HashMap<char*>* Keys;
+	OrderedHashMap<VMValue>* Values;
+	OrderedHashMap<VMValue>* Keys;
 };
 struct ObjNamespace {
 	Obj Object;
 	char* Name;
-	Uint32 Hash;
 	Table* Fields;
 	bool InUse;
 };
 struct ObjEnum {
 	Obj Object;
 	char* Name;
-	Uint32 Hash;
 	Table* Fields;
 };
 
@@ -348,6 +457,10 @@ struct ObjFont {
 	UNION_INSTANCEABLE;
 	Font* FontPtr;
 };
+struct ObjTexture {
+	UNION_INSTANCEABLE;
+	bool IsViewTexture;
+};
 
 #undef UNION_INSTANCEABLE
 
@@ -356,9 +469,8 @@ ObjString* TakeString(char* chars, size_t length);
 ObjString* TakeString(char* chars);
 ObjString* CopyString(const char* chars, size_t length);
 ObjString* CopyString(const char* chars);
+ObjString* CopyString(std::string path);
 ObjString* CopyString(ObjString* string);
-ObjString* CopyString(std::filesystem::path path);
-ObjString* AllocString(size_t length);
 ObjFunction* NewFunction();
 ObjNative* NewNative(NativeFn function);
 ObjUpvalue* NewUpvalue(VMValue* slot);
@@ -367,7 +479,7 @@ ObjClass* NewClass(Uint32 hash);
 ObjClass* NewClass(const char* className);
 ObjInstance* NewInstance(ObjClass* klass);
 ObjEntity* NewEntity(ObjClass* klass);
-ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method);
+ObjBoundMethod* NewBoundMethod(ObjFunction* method, VMValue* args, Uint8 argCount);
 ObjArray* NewArray();
 ObjMap* NewMap();
 ObjNamespace* NewNamespace(Uint32 hash);
@@ -383,6 +495,7 @@ Obj* NewNativeInstance(size_t size);
 
 std::string GetClassName(Uint32 hash);
 Uint32 GetClassHash(const char* name);
+const char* GetModuleName(ObjModule* module);
 
 static inline bool IsObjectType(VMValue value, ObjType type) {
 	return IS_OBJECT(value) && AS_OBJECT(value)->Type == type;
@@ -418,13 +531,36 @@ struct WithIter {
 	Uint8 receiverSlot;
 };
 
+struct VMThreadCallback {
+	Uint32 ThreadID;
+	VMValue Callable;
+};
+
+#ifdef VM_DEBUG
+enum {
+	BREAKPOINT_ONHIT_KEEP,
+	BREAKPOINT_ONHIT_DISABLE,
+	BREAKPOINT_ONHIT_REMOVE
+};
+
+struct VMThreadBreakpoint {
+	ObjFunction* Function = nullptr;
+	Uint32 CodeOffset = 0;
+	bool Enabled = true;
+	int OnHit = BREAKPOINT_ONHIT_KEEP;
+	int Index = 0;
+};
+#endif
+
 struct CallFrame {
 	ObjFunction* Function;
 	Uint8* IP;
 	Uint8* IPLast;
 	Uint8* IPStart;
 	VMValue* Slots;
+	Uint8 ArgCount;
 	ObjModule* Module;
+	std::vector<VMValue>* ModuleLocals;
 
 #ifdef VM_DEBUG
 	Uint32 BranchCount;
@@ -442,7 +578,7 @@ struct CallFrame {
 	WithIter* WithIteratorStackTop = WithIteratorStack;
 };
 enum OpCode : uint8_t {
-	OP_ERROR = 0,
+	OP_NOP = 0, // Formerly OP_ERROR
 	OP_CONSTANT,
 	// Classes and Instances
 	OP_DEFINE_GLOBAL,
@@ -461,7 +597,7 @@ enum OpCode : uint8_t {
 	OP_CLASS,
 	// Function Operations
 	OP_CALL,
-	OP_SUPER,
+	OP_UNUSED_1, // Formerly OP_SUPER
 	OP_INVOKE_V3,
 	// Jumping
 	OP_JUMP,
@@ -514,7 +650,7 @@ enum OpCode : uint8_t {
 	OP_NEW_MAP,
 	//
 	OP_SWITCH_TABLE,
-	OP_FAILSAFE,
+	OP_SET_ARGUMENT_SLOT,
 	OP_EVENT_V4,
 	OP_TYPEOF,
 	OP_NEW,
@@ -537,6 +673,16 @@ enum OpCode : uint8_t {
 	OP_SUPER_INVOKE,
 	OP_EVENT,
 	OP_METHOD,
+	OP_NEW_HITBOX,
+	// Indirect Addressing
+	OP_LOCATION_STACK,
+	OP_LOCATION_MODULE_LOCAL,
+	OP_LOCATION_GLOBAL,
+	OP_LOCATION_PROPERTY,
+	OP_LOCATION_SUPER_PROPERTY,
+	OP_LOCATION_ELEMENT,
+	OP_LOAD_INDIRECT,
+	OP_STORE_INDIRECT,
 
 	OP_LAST
 };

@@ -9,7 +9,7 @@
 
 #define GC_HEAP_GROW_FACTOR 2
 
-vector<Obj*> GarbageCollector::GrayList;
+std::vector<Obj*> GarbageCollector::GrayList;
 Obj* GarbageCollector::RootObject;
 
 size_t GarbageCollector::NextGC = 1024;
@@ -30,8 +30,6 @@ void GarbageCollector::Collect() {
 	if (!RootObject) {
 		return;
 	}
-
-	GrayList.clear();
 
 	double grayElapsed = Clock::GetTicks();
 
@@ -58,18 +56,6 @@ void GarbageCollector::Collect() {
 	for (Entity* ent = Scene::ObjectFirst; ent; ent = ent->NextSceneEntity) {
 		ScriptEntity* scriptEntity = (ScriptEntity*)ent;
 		GrayObject(scriptEntity->Instance);
-	}
-
-	// Mark Scene properties
-	if (Scene::Properties) {
-		GrayHashMap(Scene::Properties);
-	}
-
-	// Mark Layer properties
-	for (size_t i = 0; i < Scene::Layers.size(); i++) {
-		if (Scene::Layers[i].Properties) {
-			GrayHashMap(Scene::Layers[i].Properties);
-		}
 	}
 
 	// Mark modules
@@ -106,19 +92,17 @@ void GarbageCollector::Collect() {
 	while (*object != NULL) {
 		objectTypeCounts[(*object)->Type]++;
 
-		if (!((*object)->IsDark)) {
+		if (!(*object)->IsDark) {
 			objectTypeFreed[(*object)->Type]++;
 
-			// This object wasn't reached, so remove it
-			// from the list and free it.
+			// This object wasn't reached, so remove it from the list and free it.
 			Obj* unreached = *object;
 			*object = unreached->Next;
 
 			GarbageCollector::FreeObject(unreached);
 		}
 		else {
-			// This object was reached, so unmark it (for
-			// the next GC) and move on to the next.
+			// This object was reached, so unmark it (for the next GC) and move on to the next.
 			(*object)->IsDark = false;
 			object = &(*object)->Next;
 		}
@@ -141,6 +125,8 @@ void GarbageCollector::Collect() {
 	}
 
 	GarbageCollector::NextGC = GarbageCollector::GarbageSize + (1024 * 1024);
+
+	GrayList.clear();
 }
 
 void GarbageCollector::CollectResources() {
@@ -189,7 +175,9 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	switch (object->Type) {
 	case OBJ_BOUND_METHOD: {
 		ObjBoundMethod* bound = (ObjBoundMethod*)object;
-		GrayValue(bound->Receiver);
+		for (Uint8 i = 0; i < bound->ArgumentCount; i++) {
+			GrayValue(bound->Arguments[i]);
+		}
 		GrayObject(bound->Method);
 		break;
 	}
@@ -237,9 +225,10 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_ENTITY: {
 		ObjEntity* entity = (ObjEntity*)object;
-		ScriptEntity* scriptEntity = (ScriptEntity*)entity->EntityPtr;
 		GrayHashMap(entity->InstanceObj.Fields);
-		GrayHashMap(scriptEntity->Properties);
+		if (entity->EntityPtr) {
+			((ScriptEntity*)entity->EntityPtr)->MarkForGarbageCollection();
+		}
 		break;
 	}
 	case OBJ_ARRAY: {
@@ -251,6 +240,9 @@ void GarbageCollector::BlackenObject(Obj* object) {
 	}
 	case OBJ_MAP: {
 		ObjMap* map = (ObjMap*)object;
+		map->Keys->ForAll([](Uint32, VMValue v) -> void {
+			GrayValue(v);
+		});
 		map->Values->ForAll([](Uint32, VMValue v) -> void {
 			GrayValue(v);
 		});

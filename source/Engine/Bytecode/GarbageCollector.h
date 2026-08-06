@@ -1,0 +1,32 @@
+#ifndef ENGINE_BYTECODE_GARBAGECOLLECTOR_H
+#define ENGINE_BYTECODE_GARBAGECOLLECTOR_H
+
+#include <Engine/Bytecode/Types.h>
+#include <Engine/Includes/HashMap.h>
+
+class GarbageCollector {
+private:
+	static void FreeObject(Obj* object);
+	static void GrayValue(VMValue value);
+	static void GrayHashMapItem(Uint32, VMValue value);
+	static void BlackenObject(Obj* object);
+	static void CollectResources();
+
+public:
+	static std::vector<Obj*> GrayList;
+	static Obj* RootObject;
+	static size_t NextGC;
+	static size_t GarbageSize;
+	static double MaxTimeAlotted;
+	static bool Print;
+	static bool FilterSweepEnabled;
+	static int FilterSweepType;
+
+	static void Init();
+	static void Collect();
+	static void GrayObject(void* obj);
+	static void GrayHashMap(void* pointer);
+	static void Dispose();
+};
+
+#endif /* ENGINE_BYTECODE_GARBAGECOLLECTOR_H */

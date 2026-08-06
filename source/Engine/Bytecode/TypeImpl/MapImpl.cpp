@@ -2,37 +2,48 @@
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/MapImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/Bytecode/Value.h>
+
+/***
+* \class Map
+* \desc An associative array, also known as a dictionary, or a map.
+*/
 
 ObjClass* MapImpl::Class = nullptr;
 
 void MapImpl::Init() {
-	Class = NewClass(CLASS_MAP);
+	Class = NewClass("Map");
+	Class->NewFn = Constructor;
 
+	ScriptManager::DefineNative(Class, "Length", MapImpl::VM_Length);
+	ScriptManager::DefineNative(Class, "GetKeys", MapImpl::VM_GetKeys);
 	ScriptManager::DefineNative(Class, "keys", MapImpl::VM_GetKeys);
-	ScriptManager::DefineNative(Class, "remove", MapImpl::VM_RemoveKey);
+	ScriptManager::DefineNative(Class, "Remove", MapImpl::VM_Remove);
+	ScriptManager::DefineNative(Class, "remove", MapImpl::VM_Remove);
+	ScriptManager::DefineNative(Class, "Clear", MapImpl::VM_Clear);
 	ScriptManager::DefineNative(Class, "iterate", MapImpl::VM_Iterate);
 	ScriptManager::DefineNative(Class, "iteratorValue", MapImpl::VM_IteratorValue);
 
 	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(Class);
 }
 
-Obj* MapImpl::New() {
+/***
+ * \constructor
+ * \desc Creates a map.
+ * \ns Map
+ */
+Obj* MapImpl::Constructor() {
 	ObjMap* map = (ObjMap*)AllocateObject(sizeof(ObjMap), OBJ_MAP);
 	Memory::Track(map, "NewMap");
 	map->Object.Class = Class;
-	map->Object.Destructor = Dispose;
-	map->Values = new HashMap<VMValue>(NULL, 4);
-	map->Keys = new HashMap<char*>(NULL, 4);
+	map->Values = new OrderedHashMap<VMValue>(NULL, 4);
+	map->Keys = new OrderedHashMap<VMValue>(NULL, 4);
 	return (Obj*)map;
 }
 
 void MapImpl::Dispose(Obj* object) {
 	ObjMap* map = (ObjMap*)object;
-
-	// Free keys
-	map->Keys->WithAll([](Uint32, char* ptr) -> void {
-		Memory::Free(ptr);
-	});
 
 	// Free Keys table
 	delete map->Keys;
@@ -43,6 +54,26 @@ void MapImpl::Dispose(Obj* object) {
 
 #define GET_ARG(argIndex, argFunction) (StandardLibrary::argFunction(args, argIndex, threadID))
 
+/***
+ * \method Length
+ * \desc Get the number of items in the map.
+ * \return integer Returns an integer value.
+ * \ns Map
+ */
+VMValue MapImpl::VM_Length(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjMap* map = GET_ARG(0, GetMap);
+
+	return INTEGER_VAL((int)map->Keys->Count());
+}
+
+/***
+ * \method GetKeys
+ * \desc Gets a list of all keys in the map.
+ * \return array Returns an array of values.
+ * \ns Map
+ */
 VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 
@@ -50,21 +81,42 @@ VMValue MapImpl::VM_GetKeys(int argCount, VMValue* args, Uint32 threadID) {
 
 	ObjArray* array = NewArray();
 
-	map->Keys->WithAllOrdered([array](Uint32, char* key) -> void {
-		array->Values->push_back(OBJECT_VAL(CopyString(key)));
+	map->Keys->WithAllOrdered([array](Uint32, VMValue value) -> void {
+		array->Values->push_back(value);
 	});
 
 	return OBJECT_VAL(array);
 }
 
-VMValue MapImpl::VM_RemoveKey(int argCount, VMValue* args, Uint32 threadID) {
+/***
+ * \method Remove
+ * \desc Removes a key from the map.
+ * \param key (value): The key to remove.
+ * \ns Map
+ */
+VMValue MapImpl::VM_Remove(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 2);
 
 	ObjMap* map = GET_ARG(0, GetMap);
-	const char* key = GET_ARG(1, GetString);
+	Uint32 hash = Value::Hash(args[1]);
+	map->Keys->Remove(hash);
+	map->Values->Remove(hash);
 
-	map->Keys->Remove(key);
-	map->Values->Remove(key);
+	return NULL_VAL;
+}
+
+/***
+ * \method Clear
+ * \desc Clears the map.
+ * \ns Map
+ */
+VMValue MapImpl::VM_Clear(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	ObjMap* map = GET_ARG(0, GetMap);
+
+	map->Keys->Clear();
+	map->Values->Clear();
 
 	return NULL_VAL;
 }
@@ -82,7 +134,7 @@ VMValue MapImpl::VM_Iterate(int argCount, VMValue* args, Uint32 threadID) {
 		key = map->Values->GetNextKey(GET_ARG(1, GetInteger));
 	}
 
-	if (key) {
+	if (key != 0xFFFFFFFF) {
 		return INTEGER_VAL(key);
 	}
 

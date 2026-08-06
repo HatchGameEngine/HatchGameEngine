@@ -7,6 +7,7 @@
 SDL_AudioDeviceID AudioManager::Device;
 SDL_AudioSpec AudioManager::DeviceFormat;
 bool AudioManager::AudioEnabled = false;
+bool AudioManager::Interrupted = false;
 
 Uint8 AudioManager::BytesPerSample;
 Uint8* AudioManager::MixBuffer;
@@ -421,6 +422,18 @@ void AudioManager::AlterMusic(float pan, float speed, float volume) {
 	}
 	AudioManager::Unlock();
 }
+double AudioManager::GetMusicDuration(ISound* music) {
+	AudioManager::Lock();
+	double duration = 0.0;
+	for (size_t i = 0; i < MusicStack.size(); i++) {
+		if (MusicStack[i]->Audio == music) {
+			duration = MusicStack[i]->Playback->SoundData->GetDuration();
+			break;
+		}
+	}
+	AudioManager::Unlock();
+	return duration;
+}
 double AudioManager::GetMusicPosition(ISound* music) {
 	AudioManager::Lock();
 	double position = 0.0;
@@ -588,6 +601,12 @@ void AudioManager::StopAllOriginSounds(void* origin) {
 			SoundArray[i].Stopped = true;
 		}
 	}
+	AudioManager::Unlock();
+}
+
+void AudioManager::SetInterrupted(bool interrupted) {
+	AudioManager::Lock();
+	AudioManager::Interrupted = interrupted;
 	AudioManager::Unlock();
 }
 
@@ -792,6 +811,10 @@ bool AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stream, int len, flo
 void AudioManager::AudioCallback(void* data, Uint8* stream, int len) {
 	memset(stream, 0x00, len);
 
+	if (Interrupted) {
+		return;
+	}
+
 	if (AudioManager::AudioQueueSize >= (size_t)len) {
 		SDL_MixAudioFormat(stream,
 			AudioManager::AudioQueue,
@@ -856,7 +879,9 @@ void AudioManager::AudioCallback(void* data, Uint8* stream, int len) {
 }
 
 void AudioManager::Dispose() {
-	AudioManager::ClearSounds();
+	if (SoundArray) {
+		AudioManager::ClearSounds();
+	}
 
 	Memory::Free(SoundArray);
 	Memory::Free(AudioQueue);

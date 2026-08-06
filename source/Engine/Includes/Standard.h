@@ -47,6 +47,7 @@ enum class Platforms { Windows, MacOS, Linux, Switch, PlayStation, Xbox, Android
 
 enum class KeyBind {
 	Fullscreen,
+	Screenshot,
 	ToggleFPSCounter,
 
 	DevRestartApp,
@@ -59,28 +60,12 @@ enum class KeyBind {
 	DevStepFrame,
 	DevTileCol,
 	DevObjectRegions,
+	DevViewHitboxes,
 	DevMenuToggle,
+	DevScriptDebugger,
 	DevQuit,
 
 	Max
-};
-
-struct DeveloperMenu {
-    void (*State)();
-    int Selection;
-    int SubSelection;
-    int ScrollPos;
-    int SubScrollPos;
-    double Timer;
-    bool Fullscreen;
-    int SceneState;
-    int ListPos;
-    int WindowScale;
-    bool WindowBorderless;
-    int CurrentWindowWidth;
-    int CurrentWindowHeight;
-    int PlayerListPos;
-    bool MusicPausedStore;
 };
 
 #define DEFAULT_TARGET_FRAMERATE 60
@@ -93,11 +78,13 @@ struct DeveloperMenu {
 
 #define MAX_SCENE_VIEWS 8
 #define MAX_PALETTE_COUNT 256
+#define MAX_PALETTE_COLOR_COUNT 256
 #define MAX_DEFORM_LINES 0x400
 #define MAX_FRAMEBUFFER_HEIGHT 4096
 
 #define SCOPE_SCENE 0
 #define SCOPE_GAME 1
+#define SCOPE_GROUP 2 // SCOPE_GROUP is intentionally 2 for Hatch backwards compatibility, but behaves as a midpoint of SCOPE_SCENE and SCOPE_GAME.
 
 #define PALETTE_INDEX_TABLE_ID -1
 
@@ -120,10 +107,22 @@ typedef int64_t Sint64;
 
 #define RSDK_PI 3.1415927
 
+#define HITBOX_LEFT 0
+#define HITBOX_TOP 1
+#define HITBOX_RIGHT 2
+#define HITBOX_BOTTOM 3
+#define NUM_HITBOX_SIDES 4
+
+#define PARENT_DIRECTORY ".."
+
 #ifdef IOS
 #define NEW_STRUCT_MACRO(n) (n)
 #else
 #define NEW_STRUCT_MACRO(n) n
+#endif
+
+#if defined(__unix__) && !defined(UNIX)
+#define UNIX __unix__
 #endif
 
 #endif // STANDARDLIBS_H

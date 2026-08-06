@@ -1,23 +1,16 @@
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneReader.h>
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h>
 
-#include <Engine/Bytecode/Compiler.h>
-#include <Engine/Bytecode/ScriptEntity.h>
-#include <Engine/Bytecode/ScriptManager.h>
-#include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 #include <Engine/Error.h>
 #include <Engine/Hashing/CRC32.h>
-#include <Engine/Hashing/CombinedHash.h>
 #include <Engine/Hashing/MD5.h>
-#include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
-#include <Engine/Includes/HashMap.h>
-#include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
-#include <Engine/Utilities/StringUtils.h>
+#include <Engine/Scene/TileLayer.h>
+#include <Engine/Types/Entity.h>
 
 Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
 
@@ -84,20 +77,19 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 
 	// Read layers
 	Uint8 numLayers = r->ReadByte();
-	Scene::Layers.resize(numLayers);
 	for (Uint32 i = 0; i < numLayers; i++) {
-		SceneLayer layer = HatchSceneReader::ReadLayer(r);
+		TileLayer* layer = HatchSceneReader::ReadLayer(r);
 
 #ifdef HSCN_READER_DEBUG
 		Log::Print(Log::LOG_VERBOSE,
 			"Layer %d (%s): %dx%d",
 			i,
-			layer.Name,
-			layer.Width,
-			layer.Height);
+			layer->Name,
+			layer->Width,
+			layer->Height);
 #endif
 
-		Scene::Layers[i] = layer;
+		Scene::AddLayer(layer);
 	}
 
 	// Read classes and entities
@@ -110,7 +102,7 @@ bool HatchSceneReader::Read(Stream* r, const char* parentFolder) {
 	return true;
 }
 
-SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
+TileLayer* HatchSceneReader::ReadLayer(Stream* r) {
 	char* name = r->ReadHeaderedString();
 	Uint8 drawBehavior = r->ReadByte();
 	Uint8 drawGroup = r->ReadByte();
@@ -119,54 +111,53 @@ SceneLayer HatchSceneReader::ReadLayer(Stream* r) {
 	Uint16 relativeY = r->ReadInt16();
 	Uint16 constantY = r->ReadInt16();
 
-	SceneLayer layer(width, height);
+	TileLayer* layer = new TileLayer(width, height);
+	layer->Name = name;
+	layer->Flags = SceneLayer::FLAGS_COLLIDEABLE;
+	layer->Visible = true;
 
-	layer.Name = name;
-	layer.Flags = SceneLayer::FLAGS_COLLIDEABLE;
-	layer.Visible = true;
-
-	// Set draw group and behavior
+	// Set draw group and draw behavior
 	if (drawGroup & 0x10) {
 		drawGroup &= 0xF;
-		layer.Visible = false;
+		layer->Visible = false;
 	}
 
-	layer.DrawGroup = drawGroup;
-	layer.DrawBehavior = drawBehavior;
+	layer->DrawGroup = drawGroup;
+	layer->DrawBehavior = drawBehavior;
 
-	layer.RelativeY = (float)relativeY / 0x100;
-	layer.ConstantY = (float)constantY / 0x100;
+	layer->RelativeY = (float)relativeY / 0x100;
+	layer->ConstantY = (float)constantY / 0x100;
 
-	layer.ScrollInfoCount = r->ReadUInt16();
+	layer->ScrollInfoCount = r->ReadUInt16();
 
-	if (layer.ScrollInfoCount > 0) {
-		layer.ScrollInfos = (ScrollingInfo*)Memory::Malloc(
-			layer.ScrollInfoCount * sizeof(ScrollingInfo));
+	if (layer->ScrollInfoCount > 0) {
+		layer->ScrollInfos = (ScrollingInfo*)Memory::Malloc(
+			layer->ScrollInfoCount * sizeof(ScrollingInfo));
 
-		if (!layer.ScrollInfos) {
+		if (!layer->ScrollInfos) {
 			Error::Fatal("Out of memory in HatchSceneReader::ReadLayer!");
 		}
 
-		layer.UsingScrollIndexes = true;
+		layer->UsingScrollIndexes = true;
 	}
 	else {
-		layer.ScrollInfos = nullptr;
-		layer.UsingScrollIndexes = false;
+		layer->ScrollInfos = nullptr;
+		layer->UsingScrollIndexes = false;
 	}
 
 	// Read scroll data
-	HatchSceneReader::ReadScrollData(r, &layer);
+	HatchSceneReader::ReadScrollData(r, layer);
 
 	// Read and convert tile data
-	HatchSceneReader::ReadTileData(r, &layer);
-	HatchSceneReader::ConvertTileData(&layer);
+	HatchSceneReader::ReadTileData(r, layer);
+	HatchSceneReader::ConvertTileData(layer);
 
-	memcpy(layer.TilesBackup, layer.Tiles, layer.DataSize);
+	memcpy(layer->TilesBackup, layer->Tiles, layer->DataSize);
 
 	return layer;
 }
 
-void HatchSceneReader::ReadTileData(Stream* r, SceneLayer* layer) {
+void HatchSceneReader::ReadTileData(Stream* r, TileLayer* layer) {
 	size_t streamPos = r->Position();
 
 	r->ReadUInt32(); // compressed size
@@ -185,7 +176,7 @@ void HatchSceneReader::ReadTileData(Stream* r, SceneLayer* layer) {
 	r->ReadCompressed(layer->Tiles, dataSize);
 }
 
-void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
+void HatchSceneReader::ConvertTileData(TileLayer* layer) {
 	for (size_t i = 0; i < (size_t)layer->Width * layer->Height; i++) {
 		if (layer->Tiles[i] == HSCN_EMPTY_TILE) {
 			layer->Tiles[i] = Scene::EmptyTile;
@@ -216,12 +207,12 @@ void HatchSceneReader::ConvertTileData(SceneLayer* layer) {
 	}
 }
 
-void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer* layer) {
-	for (Uint16 i = 0; i < layer->ScrollInfoCount; i++) {
+void HatchSceneReader::ReadScrollData(Stream* r, TileLayer* layer) {
+	for (int i = 0; i < layer->ScrollInfoCount; i++) {
 		ScrollingInfo* info = &layer->ScrollInfos[i];
 
-		Uint16 relativeParallax = r->ReadInt16();
-		Uint16 constantParallax = r->ReadInt16();
+		Sint16 relativeParallax = r->ReadInt16();
+		Sint16 constantParallax = r->ReadInt16();
 
 		info->RelativeParallax = (float)relativeParallax / 0x100;
 		info->ConstantParallax = (float)constantParallax / 0x100;
@@ -245,6 +236,7 @@ void HatchSceneReader::ReadScrollData(Stream* r, SceneLayer* layer) {
 			dataSize);
 	}
 
+	layer->ScrollIndexes = (Uint8*)Memory::Malloc(dataSize);
 	r->ReadCompressed(layer->ScrollIndexes, dataSize);
 }
 
@@ -432,8 +424,8 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 		classHash.C = r->ReadUInt32();
 		classHash.D = r->ReadUInt32();
 
-		float posX = r->ReadUInt32() / 65536.0;
-		float posY = r->ReadUInt32() / 65536.0;
+		float posX = r->ReadInt32() / 65536.0;
+		float posY = r->ReadInt32() / 65536.0;
 		Uint8 filter = r->ReadByte();
 		Uint8 numProps = r->ReadByte();
 
@@ -476,120 +468,122 @@ void HatchSceneReader::ReadEntities(Stream* r) {
 
 		// Spawn the object, if the class exists
 		ObjectList* objectList = Scene::GetStaticObjectList(objectName);
-		if (objectList->SpawnFunction) {
-			ScriptEntity* obj = (ScriptEntity*)objectList->Spawn();
-			if (!obj) {
-				HatchSceneReader::SkipEntityProperties(r, numProps);
+		if (!objectList) {
+			Log::Print(Log::LOG_WARN,
+				"Class \"%s\" does not exist! (ID: %d, X: %f, Y: %f)",
+				objectName,
+				(int)i,
+				posX,
+				posY);
+			continue;
+		}
+
+		Entity* obj = Scene::TrySpawnObject(objectList, posX, posY);
+		if (!obj) {
+			HatchSceneReader::SkipEntityProperties(r, numProps);
+			continue;
+		}
+
+		Scene::AddStatic(objectList, obj);
+
+		obj->SlotID = (int)i + Scene::ReservedSlotIDs;
+		obj->InitProperties();
+
+		// Add "filter" property
+		obj->Filter = filter;
+		obj->Properties->Put("filter", Property::MakeInteger(filter));
+
+		// Add all properties
+		for (Uint8 j = 0; j < numProps; j++) {
+			SceneHash propHash;
+			propHash.A = r->ReadUInt32();
+			propHash.B = r->ReadUInt32();
+			propHash.C = r->ReadUInt32();
+			propHash.D = r->ReadUInt32();
+
+			Uint8 varType = r->ReadByte();
+
+			// Find the class property from the hash
+			SceneClassProperty* classProp =
+				HatchSceneReader::FindProperty(scnClass, propHash);
+			if (!classProp) {
+#ifdef HSCN_READER_DEBUG
+				Log::Print(Log::LOG_WARN,
+					"Could not find any property with hash %08x%08x%08x%08x",
+					propHash.A,
+					propHash.B,
+					propHash.C,
+					propHash.D);
+#endif
+				HatchSceneReader::SkipProperty(r, varType);
 				continue;
 			}
 
-			obj->X = posX;
-			obj->Y = posY;
-			obj->InitialX = posX;
-			obj->InitialY = posY;
-			obj->List = objectList;
-			obj->SlotID = (int)i + Scene::ReservedSlotIDs;
-			Scene::AddStatic(objectList, obj);
+			// Add the property
+			Uint8 u8Var;
+			Uint16 u16Var;
+			Uint32 u32Var;
+			Uint32 vecVar[2];
+			Uint16 strLength;
+			char* strVar;
 
-			// Add "filter" property
-			obj->Filter = filter;
-			obj->Properties->Put("filter", INTEGER_VAL(filter));
+			Property val = Property::MakeNull();
 
-			// Add all properties
-			for (Uint8 j = 0; j < numProps; j++) {
-				SceneHash propHash;
-				propHash.A = r->ReadUInt32();
-				propHash.B = r->ReadUInt32();
-				propHash.C = r->ReadUInt32();
-				propHash.D = r->ReadUInt32();
+			switch (varType) {
+			case HSCN_VAR_INT8:
+			case HSCN_VAR_UINT8:
+				r->ReadBytes(&u8Var, 1);
+				val = Property::MakeInteger(u8Var);
+				break;
+			case HSCN_VAR_INT16:
+			case HSCN_VAR_UINT16:
+				r->ReadBytes(&u16Var, 2);
+				val = Property::MakeInteger(u16Var);
+				break;
+			case HSCN_VAR_ENUM:
+			case HSCN_VAR_COLOR:
+			case HSCN_VAR_INT32:
+			case HSCN_VAR_UINT32:
+			case HSCN_VAR_UNKNOWN:
+				r->ReadBytes(&u32Var, 4);
+				val = Property::MakeInteger((int)u32Var);
+				break;
+			case HSCN_VAR_BOOL:
+				r->ReadBytes(&u32Var, 4);
+				val = Property::MakeBool((bool)u32Var);
+				break;
+			case HSCN_VAR_VECTOR2:
+				r->ReadBytes(vecVar, 8);
+				{
+					float fx = vecVar[0] / 65536.0;
+					float fy = vecVar[1] / 65536.0;
 
-				Uint8 varType = r->ReadByte();
+					PropertyArray array;
+					PropertyArray::Init(&array);
+					AddPropertyToArray(&array, Property::MakeDecimal(fx));
+					AddPropertyToArray(&array, Property::MakeDecimal(fy));
 
-				// Find the class property from the
-				// hash
-				SceneClassProperty* classProp =
-					HatchSceneReader::FindProperty(scnClass, propHash);
-				if (!classProp) {
-#ifdef HSCN_READER_DEBUG
-					Log::Print(Log::LOG_WARN,
-						"Could not find any property with hash %08x%08x%08x%08x",
-						propHash.A,
-						propHash.B,
-						propHash.C,
-						propHash.D);
-#endif
-					HatchSceneReader::SkipProperty(r, varType);
-					continue;
+					val = Property::MakeArray(array);
+				}
+				break;
+			case HSCN_VAR_STRING:
+				strLength = r->ReadUInt16();
+				strVar = (char*)malloc(strLength);
+				if (!strVar) {
+					Error::Fatal(
+						"Out of memory in HatchSceneReader::ReadEntities!");
 				}
 
-				// Add the property
-				Uint8 u8Var;
-				Uint16 u16Var;
-				Uint32 u32Var;
-				Uint32 vecVar[2];
-				Uint16 strLength;
-				char* strVar;
-
-				VMValue val = NULL_VAL;
-
-				switch (varType) {
-				case HSCN_VAR_INT8:
-				case HSCN_VAR_UINT8:
-					r->ReadBytes(&u8Var, 1);
-					val = INTEGER_VAL(u8Var);
-					break;
-				case HSCN_VAR_INT16:
-				case HSCN_VAR_UINT16:
-					r->ReadBytes(&u16Var, 2);
-					val = INTEGER_VAL(u16Var);
-					break;
-				case HSCN_VAR_ENUM:
-				case HSCN_VAR_BOOL:
-				case HSCN_VAR_COLOR:
-				case HSCN_VAR_INT32:
-				case HSCN_VAR_UINT32:
-				case HSCN_VAR_UNKNOWN:
-					r->ReadBytes(&u32Var, 4);
-					val = INTEGER_VAL((int)u32Var);
-					break;
-				case HSCN_VAR_VECTOR2:
-					r->ReadBytes(vecVar, 8);
-					{
-						float fx = vecVar[0] / 65536.0;
-						float fy = vecVar[1] / 65536.0;
-
-						VMValue valX = DECIMAL_VAL(fx);
-						VMValue valY = DECIMAL_VAL(fy);
-
-						ObjArray* array = NewArray();
-						array->Values->push_back(valX);
-						array->Values->push_back(valY);
-
-						val = OBJECT_VAL(array);
-					}
-					break;
-				case HSCN_VAR_STRING:
-					strLength = r->ReadUInt16();
-					strVar = (char*)malloc(strLength);
-					if (!strVar) {
-						Error::Fatal(
-							"Out of memory in HatchSceneReader::ReadEntities!");
-					}
-
-					for (size_t i = 0; i < strLength; i++) {
-						strVar[i] = r->ReadInt16();
-					}
-
-					val = OBJECT_VAL(CopyString(strVar, strLength));
-					free(strVar);
-					break;
+				for (size_t i = 0; i < strLength; i++) {
+					strVar[i] = r->ReadInt16();
 				}
 
-				obj->Properties->Put(classProp->Name, val);
+				val = Property::MakeString(strVar, strLength);
+				free(strVar);
+				break;
 			}
-		}
-		else {
-			HatchSceneReader::SkipEntityProperties(r, numProps);
+
+			obj->Properties->Put(classProp->Name, val);
 		}
 	}
 }

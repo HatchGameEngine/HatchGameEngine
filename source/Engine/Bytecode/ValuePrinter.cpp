@@ -39,8 +39,21 @@ void ValuePrinter::PrintValue(VMValue value, int indent) {
 	case VAL_LINKED_DECIMAL:
 		buffer_printf(Buffer, "%f", AS_DECIMAL(value));
 		break;
+	case VAL_HITBOX: {
+		Sint16* hitbox = AS_HITBOX(value);
+		buffer_printf(Buffer,
+			"[%d, %d, %d, %d]",
+			hitbox[HITBOX_LEFT],
+			hitbox[HITBOX_TOP],
+			hitbox[HITBOX_RIGHT],
+			hitbox[HITBOX_BOTTOM]);
+		break;
+	}
 	case VAL_OBJECT:
 		PrintObject(value, indent);
+		break;
+	case VAL_LOCATION:
+		buffer_printf(Buffer, "location");
 		break;
 	default:
 		buffer_printf(Buffer, "<unknown value type 0x%02X>", value.Type);
@@ -54,6 +67,7 @@ void ValuePrinter::PrintObject(VMValue value, int indent) {
 	case OBJ_FUNCTION:
 	case OBJ_MODULE:
 	case OBJ_NAMESPACE:
+	case OBJ_ENUM:
 		if (IsJSON) {
 			buffer_printf(Buffer,
 				"\"%s %s\"",
@@ -147,32 +161,46 @@ void ValuePrinter::PrintMap(ObjMap* map, int indent) {
 	}
 
 	bool first = false;
-	for (int i = 0; i < map->Values->Capacity; i++) {
-		if (map->Values->Data[i].Used) {
-			if (!first) {
-				first = true;
-			}
-			else {
-				buffer_printf(Buffer, ",");
-				if (PrettyPrint) {
-					buffer_printf(Buffer, "\n");
-				}
-			}
-
-			for (int k = 0; k < indent + 1 && PrettyPrint; k++) {
-				buffer_printf(Buffer, "    ");
-			}
-
-			hash = map->Values->Data[i].Key;
-			value = map->Values->Data[i].Data;
-			if (map->Keys && map->Keys->Exists(hash)) {
-				buffer_printf(Buffer, "\"%s\": ", map->Keys->Get(hash));
-			}
-			else {
-				buffer_printf(Buffer, "0x%08X: ", hash);
-			}
-			PrintValue(value, indent + 1);
+	for (int i = 0; i < map->Values->Count(); i++) {
+		if (!first) {
+			first = true;
 		}
+		else {
+			buffer_printf(Buffer, ",");
+			if (PrettyPrint) {
+				buffer_printf(Buffer, "\n");
+			}
+		}
+
+		for (int k = 0; k < indent + 1 && PrettyPrint; k++) {
+			buffer_printf(Buffer, "    ");
+		}
+
+		hash = map->Values->Keys[i];
+		value = map->Values->Data[hash];
+
+		VMValue keyValue = map->Keys->Get(hash);
+		if (IS_STRING(keyValue)) {
+			buffer_printf(Buffer, "\"%s\": ", AS_CSTRING(keyValue));
+		}
+		else {
+			if (IsJSON) {
+				buffer_printf(Buffer, "\"");
+			}
+			if (IS_OBJECT(keyValue)) {
+				buffer_printf(Buffer, "<%s 0x%x>",
+					Value::GetObjectTypeName(keyValue),
+					AS_OBJECT(keyValue));
+			}
+			else {
+				PrintValue(keyValue, indent + 1);
+			}
+			if (IsJSON) {
+				buffer_printf(Buffer, "\"");
+			}
+			buffer_printf(Buffer, ": ");
+		}
+		PrintValue(value, indent + 1);
 	}
 	if (PrettyPrint) {
 		buffer_printf(Buffer, "\n");

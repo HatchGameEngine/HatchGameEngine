@@ -60,6 +60,8 @@ bool HatchVFS::Open(Stream* stream) {
 		entry->CompressedSize = compressedSize;
 
 		if (!ArchiveVFS::AddEntry(entry)) {
+			delete entry;
+
 			Log::Print(Log::LOG_WARN,
 				"HATCH file has duplicate entry \"%s\", ignoring",
 				entryName);
@@ -236,14 +238,14 @@ bool HatchVFS::EraseFile(const char* filename) {
 	return false;
 }
 
-VFSEnumeration HatchVFS::EnumerateFiles(const char* path) {
+VFSEnumeration HatchVFS::EnumerateFiles(const char* path, VFSEnumerationOptions options) {
 	if (path != nullptr && path[0] != '\0') {
 		VFSEnumeration enumeration;
 		enumeration.Result = VFSEnumerationResult::CANNOT_ENUMERATE_RELATIVELY;
 		return enumeration;
 	}
 
-	return ArchiveVFS::EnumerateFiles(path);
+	return ArchiveVFS::EnumerateFiles(path, options);
 }
 
 Stream* HatchVFS::OpenMemStreamForEntry(VFSEntry* entry) {

@@ -3,23 +3,33 @@
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 
+/***
+* \class String
+* \desc A sequence of characters. All string literals are instances of String.
+*/
+
 ObjClass* StringImpl::Class = nullptr;
 
 void StringImpl::Init() {
-	Class = NewClass(CLASS_STRING);
+	Class = NewClass("String");
+	Class->NewFn = Constructor;
+	Class->ElementGet = VM_ElementGet;
 
 	TypeImpl::RegisterClass(Class);
+	TypeImpl::ExposeClass(Class);
 }
 
-Obj* StringImpl::New(char* chars, size_t length, Uint32 hash) {
+Obj* StringImpl::Constructor() {
+	throw ScriptException("Cannot directly construct String!");
+	return nullptr;
+}
+
+Obj* StringImpl::New(char* chars, size_t length) {
 	ObjString* string = (ObjString*)AllocateObject(sizeof(ObjString), OBJ_STRING);
 	Memory::Track(string, "NewString");
 	string->Object.Class = Class;
-	string->Object.ElementGet = VM_ElementGet;
-	string->Object.Destructor = Dispose;
 	string->Length = length;
 	string->Chars = chars;
-	string->Hash = hash;
 	return (Obj*)string;
 }
 

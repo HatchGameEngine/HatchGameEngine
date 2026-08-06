@@ -1,6 +1,42 @@
+#include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
-#include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+
+Uint32 Value::Hash(VMValue value) {
+	switch (value.Type) {
+	case VAL_NULL:
+		return 0;
+	case VAL_INTEGER:
+	case VAL_LINKED_INTEGER: {
+		float val = (float)AS_INTEGER(value);
+		return HashDecimal(val);
+	}
+	case VAL_DECIMAL:
+	case VAL_LINKED_DECIMAL:
+		return HashDecimal(AS_DECIMAL(value));
+	case VAL_HITBOX:
+		return Murmur::EncryptData(AS_HITBOX(value), sizeof(Sint16) * NUM_HITBOX_SIDES);
+	case VAL_OBJECT:
+		switch (OBJECT_TYPE(value)) {
+		case OBJ_STRING: {
+			ObjString* str = AS_STRING(value);
+			return Murmur::EncryptData(str->Chars, str->Length);
+		}
+		default:
+			return (uintptr_t)value.as.Object;
+		}
+		break;
+	default:
+		break;
+	}
+
+	return 0xFFFFFFFF;
+}
+
+Uint32 Value::HashDecimal(float val) {
+	return Murmur::EncryptData(&val, sizeof(float));
+}
 
 const char* Value::GetObjectTypeName(Uint32 type) {
 	switch (type) {
@@ -36,24 +72,25 @@ const char* Value::GetObjectTypeName(Uint32 type) {
 		return "module";
 	}
 
-	return "unknown object type";
+	return nullptr;
 }
 
 const char* Value::GetObjectTypeName(ObjClass* klass) {
-	const char* printableName = TypeImpl::GetPrintableName(klass);
-	if (printableName != nullptr) {
-		return printableName;
-	}
-	return "unknown";
+	return klass->Name;
 }
 
 const char* Value::GetObjectTypeName(VMValue value) {
-	Obj* object = AS_OBJECT(value);
-	const char* printableName = TypeImpl::GetPrintableName(object->Class);
-	if (printableName != nullptr) {
-		return printableName;
+	const char* typeString = GetObjectTypeName(OBJECT_TYPE(value));
+	if (typeString) {
+		return typeString;
 	}
-	return GetObjectTypeName(OBJECT_TYPE(value));
+
+	Obj* object = AS_OBJECT(value);
+	if (object->Class != nullptr) {
+		return GetObjectTypeName(object->Class);
+	}
+
+	return "object";
 }
 
 const char* Value::GetPrintableObjectName(VMValue value) {
@@ -67,7 +104,7 @@ const char* Value::GetPrintableObjectName(VMValue value) {
 	case OBJ_FUNCTION:
 		return AS_FUNCTION(value)->Name;
 	case OBJ_MODULE:
-		return AS_MODULE(value)->SourceFilename;
+		return GetModuleName(AS_MODULE(value));
 	case OBJ_INSTANCE:
 	case OBJ_NATIVE_INSTANCE:
 	case OBJ_ENTITY:
@@ -152,11 +189,16 @@ VMValue Value::Concatenate(VMValue va, VMValue vb) {
 	ObjString* b = AS_STRING(vb);
 
 	size_t length = a->Length + b->Length;
-	ObjString* result = AllocString(length);
+	char* chars = (char*)Memory::Malloc(length + 1);
+	if (!chars) {
+		return NULL_VAL;
+	}
 
-	memcpy(result->Chars, a->Chars, a->Length);
-	memcpy(result->Chars + a->Length, b->Chars, b->Length);
-	result->Chars[length] = 0;
+	memcpy(chars, a->Chars, a->Length);
+	memcpy(chars + a->Length, b->Chars, b->Length);
+	chars[length] = 0;
+
+	ObjString* result = TakeString(chars, length);
 	return OBJECT_VAL(result);
 }
 
@@ -169,17 +211,25 @@ bool Value::SortaEqual(VMValue a, VMValue b) {
 	}
 
 	if (IS_STRING(a) && IS_STRING(b)) {
-		ObjString* astr = AS_STRING(a);
-		ObjString* bstr = AS_STRING(b);
-		return astr->Length == bstr->Length &&
-			!memcmp(astr->Chars, bstr->Chars, astr->Length);
+		return AS_OBJECT(a) == AS_OBJECT(b);
 	}
 
 	if (IS_BOUND_METHOD(a) && IS_BOUND_METHOD(b)) {
 		ObjBoundMethod* abm = AS_BOUND_METHOD(a);
 		ObjBoundMethod* bbm = AS_BOUND_METHOD(b);
-		return Value::ExactlyEqual(abm->Receiver, bbm->Receiver) &&
-			abm->Method == bbm->Method;
+
+		if (abm->Method != bbm->Method || abm->ArgumentCount != bbm->ArgumentCount ||
+			abm->HasReceiver != bbm->HasReceiver) {
+			return false;
+		}
+
+		for (Uint8 i = 0; i < abm->ArgumentCount; i++) {
+			if (!Value::ExactlyEqual(abm->Arguments[i], bbm->Arguments[i])) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	return Value::Equal(a, b);
@@ -201,6 +251,8 @@ bool Value::Equal(VMValue a, VMValue b) {
 		return AS_DECIMAL(a) == AS_DECIMAL(b);
 	case VAL_OBJECT:
 		return AS_OBJECT(a) == AS_OBJECT(b);
+	case VAL_HITBOX:
+		return memcmp(AS_HITBOX(a), AS_HITBOX(b), sizeof(Sint16) * NUM_HITBOX_SIDES) == 0;
 	case VAL_NULL:
 		return true;
 	}
@@ -219,6 +271,8 @@ bool Value::ExactlyEqual(VMValue a, VMValue b) {
 		return AS_DECIMAL(a) == AS_DECIMAL(b);
 	case VAL_OBJECT:
 		return AS_OBJECT(a) == AS_OBJECT(b);
+	case VAL_HITBOX:
+		return memcmp(AS_HITBOX(a), AS_HITBOX(b), sizeof(Sint16) * NUM_HITBOX_SIDES) == 0;
 	}
 	return false;
 }
@@ -249,4 +303,35 @@ VMValue Value::Delink(VMValue val) {
 	}
 
 	return val;
+}
+
+VMValue Value::FromProperty(Property property) {
+	switch (property.Type) {
+	case PROPERTY_NULL:
+		return NULL_VAL;
+	case PROPERTY_INTEGER:
+		return INTEGER_VAL(property.as.Integer);
+	case PROPERTY_DECIMAL:
+		return DECIMAL_VAL(property.as.Decimal);
+	case PROPERTY_BOOL:
+		return INTEGER_VAL(property.as.Bool ? 1 : 0);
+	case PROPERTY_STRING:
+		return OBJECT_VAL(CopyString(property.as.String));
+	case PROPERTY_ARRAY: {
+		if (ScriptManager::Lock()) {
+			ObjArray* array = NewArray();
+			for (size_t i = 0; i < property.as.Array.Count; i++) {
+				Property* data = (Property*)property.as.Array.Data;
+				array->Values->push_back(Value::FromProperty(data[i]));
+			}
+			ScriptManager::Unlock();
+			return OBJECT_VAL(array);
+		}
+		return NULL_VAL;
+	}
+	default:
+		break;
+	}
+
+	return NULL_VAL;
 }

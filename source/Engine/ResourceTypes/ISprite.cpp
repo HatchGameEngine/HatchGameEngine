@@ -65,7 +65,13 @@ Texture* ISprite::AddSpriteSheet(const char* sheetFilename) {
 
 	texture = Image::LoadTextureFromResource(filename);
 
-	Graphics::AddSpriteSheet(sheetPath, texture);
+	if (texture != nullptr) {
+		Graphics::AddSpriteSheet(sheetPath, texture);
+	}
+	else {
+		Log::Print(Log::LOG_ERROR, "Could not load spritesheet \"%s\"!", filename);
+	}
+
 	Spritesheets.push_back(texture);
 	SpritesheetFilenames.push_back(sheetPath);
 
@@ -157,14 +163,39 @@ void ISprite::RefreshGraphicsID() {
 	Graphics::MakeFrameBufferID(this);
 }
 
-void ISprite::ConvertToRGBA() {
+void ISprite::ConvertToNonIndexed(Uint32* palColors, unsigned numPaletteColors) {
 	for (int a = 0; a < Spritesheets.size(); a++) {
-		Graphics::ConvertTextureToRGBA(Spritesheets[a]);
+		Uint32* palette = palColors;
+		if (!palette) {
+			if (Spritesheets[a]->PaletteColors) {
+				palette = Spritesheets[a]->PaletteColors;
+				numPaletteColors = Spritesheets[a]->NumPaletteColors;
+			}
+			else {
+				palette = Graphics::PaletteColors[0];
+				numPaletteColors = 256;
+			}
+		}
+
+		Graphics::ConvertTextureToFormat(
+			Spritesheets[a], Graphics::TextureFormat, palette, numPaletteColors, 0);
 	}
 }
-void ISprite::ConvertToPalette(unsigned paletteNumber) {
+void ISprite::ConvertToIndexed(Uint32* palColors, unsigned numPaletteColors) {
+	int transparent = 0;
+	if (palColors != nullptr) {
+		transparent = Graphics::GetPaletteTransparentColor(palColors, numPaletteColors);
+		if (transparent == -1) {
+			transparent = 0;
+		}
+	}
+
 	for (int a = 0; a < Spritesheets.size(); a++) {
-		Graphics::ConvertTextureToPalette(Spritesheets[a], paletteNumber);
+		Graphics::ConvertTextureToFormat(Spritesheets[a],
+			TextureFormat_INDEXED,
+			palColors,
+			numPaletteColors,
+			transparent);
 	}
 }
 
@@ -184,10 +215,6 @@ bool ISprite::LoadAnimation(const char* filename) {
 #ifdef ISPRITE_DEBUG
 	Log::Print(Log::LOG_VERBOSE, "\"%s\"", filename);
 #endif
-
-	/// =======================
-	/// RSDKv5 Animation Format
-	/// =======================
 
 	// Check MAGIC
 	if (!IsFile(reader)) {
@@ -374,10 +401,6 @@ bool ISprite::SaveAnimation(const char* filename) {
 		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
 		return false;
 	}
-
-	/// =======================
-	/// RSDKv5 Animation Format
-	/// =======================
 
 	// Check MAGIC
 	stream->WriteUInt32(RSDK_SPRITE_MAGIC);

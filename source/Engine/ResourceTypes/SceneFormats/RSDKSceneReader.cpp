@@ -1,26 +1,21 @@
 #include <Engine/ResourceTypes/SceneFormats/RSDKSceneReader.h>
 
-#include <Engine/Bytecode/Compiler.h>
-#include <Engine/Bytecode/ScriptEntity.h>
-#include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Diagnostics/Clock.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
+#include <Engine/Error.h>
 #include <Engine/Hashing/CRC32.h>
 #include <Engine/Hashing/CombinedHash.h>
-#include <Engine/Hashing/FNV1A.h>
 #include <Engine/IO/Compression/ZLibStream.h>
 #include <Engine/IO/MemoryStream.h>
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/Includes/HashMap.h>
-#include <Engine/Rendering/Software/SoftwareRenderer.h>
 #include <Engine/ResourceTypes/ImageFormats/GIF.h>
 #include <Engine/ResourceTypes/ResourceManager.h>
 #include <Engine/Scene.h>
 #include <Engine/Scene/SceneLayer.h>
-
-#include <Engine/TextFormats/XML/XMLParser.h>
-#include <Engine/Utilities/StringUtils.h>
+#include <Engine/Scene/TileLayer.h>
+#include <Engine/Types/Entity.h>
 
 #define TILE_FLIPX_MASK 0x80000000U
 #define TILE_FLIPY_MASK 0x40000000U
@@ -68,11 +63,7 @@ void RSDKSceneReader::StageConfig_GetColors(const char* filename) {
 						if ((bitmap & (1 << col)) != 0) {
 							for (int d = 0; d < 16; d++) {
 								memoryReader->ReadBytes(Color, 3);
-								Graphics::PaletteColors
-									[i][(col << 4) | d] =
-										0xFF000000U |
-									Color[0] << 16 |
-									Color[1] << 8 | Color[2];
+								Graphics::PaletteColors[i][(col << 4) | d] = 0xFF000000U | Color[0] | Color[1] << 8 | Color[2] << 16;
 							}
 							Graphics::ConvertFromARGBtoNative(
 								&Graphics::PaletteColors[i][(
@@ -129,11 +120,7 @@ void RSDKSceneReader::GameConfig_GetColors(const char* filename) {
 						if ((bitmap & (1 << col)) != 0) {
 							for (int d = 0; d < 16; d++) {
 								memoryReader->ReadBytes(Color, 3);
-								Graphics::PaletteColors
-									[i][(col << 4) | d] =
-										0xFF000000U |
-									Color[0] << 16 |
-									Color[1] << 8 | Color[2];
+								Graphics::PaletteColors[i][(col << 4) | d] = 0xFF000000U | Color[0] | Color[1] << 8 | Color[2] << 16;
 							}
 							Graphics::ConvertFromARGBtoNative(
 								&Graphics::PaletteColors[i][(
@@ -164,6 +151,10 @@ void RSDKSceneReader::LoadObjectList() {
 	}
 
 	size_t sz = r->Length();
+	if (sz == 0) {
+		return;
+	}
+
 	ObjectNames = (char*)malloc(sz + 1);
 	r->ReadBytes(ObjectNames, sz);
 	ObjectNames[sz] = 0;
@@ -245,7 +236,7 @@ bool RSDKSceneReader::Read(const char* filename, const char* parentFolder) {
 
 	return RSDKSceneReader::Read(r, parentFolder);
 }
-SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
+TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 	r->ReadByte(); // Ignored Byte
 
 	char* Name = r->ReadHeaderedString();
@@ -256,55 +247,56 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 	Uint16 relativeY = r->ReadInt16();
 	Uint16 constantY = r->ReadInt16();
 
-	SceneLayer layer(Width, Height);
+	TileLayer* layer = new TileLayer(Width, Height);
 	if (layerDrawBehavior == 3) {
-		layerDrawBehavior = DrawBehavior_HorizontalParallax;
+		layer->DrawBehavior = DrawBehavior_HorizontalParallax;
 	}
-	layer.DrawBehavior = layerDrawBehavior;
-
-	layer.Name = Name;
-
-	layer.RelativeY = (float)relativeY / 0x100;
-	layer.ConstantY = (float)constantY / 0x100;
-
-	layer.Flags = 0;
-
-	if (layer.Name[0] == 'F' && layer.Name[1] == 'G') {
-		layer.Flags |= SceneLayer::FLAGS_COLLIDEABLE;
+	else {
+		layer->DrawBehavior = layerDrawBehavior;
 	}
 
-	if (strcmp(layer.Name, "Move") != 0) {
-		layer.Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
+	layer->Name = Name;
+
+	layer->RelativeY = (float)relativeY / 0x100;
+	layer->ConstantY = (float)constantY / 0x100;
+
+	if (layer->Name[0] == 'F' && layer->Name[1] == 'G') {
+		layer->Flags |= SceneLayer::FLAGS_COLLIDEABLE;
 	}
 
-	layer.DrawGroup = DrawGroup & 0xF;
+	if (strcmp(layer->Name, "Move") != 0) {
+		layer->Flags |= SceneLayer::FLAGS_REPEAT_X | SceneLayer::FLAGS_REPEAT_Y;
+	}
+
+	layer->DrawGroup = DrawGroup & 0xF;
 	if (DrawGroup & 0x10) {
-		layer.Visible = false;
+		layer->Visible = false;
 	}
 
-	layer.UsingScrollIndexes = true;
-	layer.ScrollInfoCount = (int)r->ReadUInt16();
-	layer.ScrollInfos =
-		(ScrollingInfo*)Memory::Malloc(layer.ScrollInfoCount * sizeof(ScrollingInfo));
-	for (int g = 0; g < layer.ScrollInfoCount; g++) {
-		Uint16 relativeParallax = r->ReadInt16();
-		Uint16 constantParallax = r->ReadInt16();
+	layer->UsingScrollIndexes = true;
+	layer->ScrollIndexes = (Uint8*)Memory::Malloc(16 * layer->HeightData);
+	layer->ScrollInfoCount = (int)r->ReadUInt16();
+	layer->ScrollInfos =
+		(ScrollingInfo*)Memory::Malloc(layer->ScrollInfoCount * sizeof(ScrollingInfo));
+	for (int g = 0; g < layer->ScrollInfoCount; g++) {
+		Sint16 relativeParallax = r->ReadInt16();
+		Sint16 constantParallax = r->ReadInt16();
 
-		layer.ScrollInfos[g].RelativeParallax = (float)relativeParallax / 0x100;
-		layer.ScrollInfos[g].ConstantParallax = (float)constantParallax / 0x100;
+		layer->ScrollInfos[g].RelativeParallax = (float)relativeParallax / 0x100;
+		layer->ScrollInfos[g].ConstantParallax = (float)constantParallax / 0x100;
 
-		layer.ScrollInfos[g].CanDeform = (bool)r->ReadByte();
+		layer->ScrollInfos[g].CanDeform = (bool)r->ReadByte();
 		r->ReadByte();
 	}
 
 	Uint16* tileBoys = (Uint16*)malloc(sizeof(Uint16) * Width * Height);
 
-	Uint32 scrollIndexRead = r->ReadCompressed(layer.ScrollIndexes, 16 * layer.HeightData);
-	if (scrollIndexRead > 16 * layer.HeightData) {
+	Uint32 scrollIndexRead = r->ReadCompressed(layer->ScrollIndexes, 16 * layer->HeightData);
+	if (scrollIndexRead > 16 * layer->HeightData) {
 		Log::Print(Log::LOG_ERROR,
 			"Read more parallax indexes (%u) than buffer (%d) allows!",
 			scrollIndexRead,
-			16 * layer.HeightData);
+			16 * layer->HeightData);
 	}
 	Uint32 tileBoysRead = r->ReadCompressed(tileBoys, sizeof(Uint16) * Width * Height);
 	if (tileBoysRead > sizeof(Uint16) * Width * Height) {
@@ -316,9 +308,9 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 
 	// Convert to Hatch tiles
 	int t = 0;
-	Uint32* tileRow = &layer.Tiles[0];
-	for (int y = 0; y < layer.Height; y++) {
-		for (int x = 0; x < layer.Width; x++) {
+	Uint32* tileRow = &layer->Tiles[0];
+	for (int y = 0; y < layer->Height; y++) {
+		for (int x = 0; x < layer->Width; x++) {
 			tileRow[x] = (tileBoys[t] & 0x3FF);
 			tileRow[x] |= (tileBoys[t] & 0x400) << 21; // Flip X
 			tileRow[x] |= (tileBoys[t] & 0x800) << 19; // Flip Y
@@ -326,9 +318,9 @@ SceneLayer RSDKSceneReader::ReadLayer(Stream* r) {
 			tileRow[x] |= (tileBoys[t] & 0x3000) << 16; // Collision A
 			t++;
 		}
-		tileRow += layer.WidthData;
+		tileRow += layer->WidthData;
 	}
-	memcpy(layer.TilesBackup, layer.Tiles, layer.DataSize);
+	memcpy(layer->TilesBackup, layer->Tiles, layer->DataSize);
 
 	free(tileBoys);
 
@@ -352,24 +344,25 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 			objectNameHash);
 	}
 
-	ObjectList* objectList = Scene::GetStaticObjectList(objectName);
+	ObjectList* objectList = nullptr;
+	if (objectName) {
+		objectList = Scene::GetStaticObjectList(objectName);
+	}
 	if (!objectList) {
 		if (objectName != NULL) {
-			Log::Print(Log::LOG_ERROR,
-				"Could not create object list for '%s'!",
-				objectName);
+			Log::Print(Log::LOG_WARN, "Class \"%s\" does not exist!", objectName);
 		}
 		else {
-			Log::Print(Log::LOG_ERROR, "Could not create object list!");
+			Log::Print(Log::LOG_WARN,
+				"Class for hash 0x%08X does not exist!",
+				objectNameHash);
 		}
-		r->Close();
-		return false;
 	}
 
 	// Read arguments
 	int argumentCount = r->ReadByte();
-	int argumentTypes[0x10];
-	Uint32 argumentHashes[0x10];
+	int argumentTypes[0x100];
+	Uint32 argumentHashes[0x100];
 
 	argumentTypes[0] = 8;
 	argumentHashes[0] = 0x00000000U;
@@ -380,7 +373,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 	}
 
 #if 0
-    if (objectList->SpawnFunction) {
+    if (objectList) {
         Log::Print(Log::LOG_VERBOSE, "Object Hash: 0x%08XU (0x%08XU) Count: %d Argument Count: %d (%s)", objectNameHash, 3, entityCount, argumentCount, objectName);
 
         for (int a = 1; a < argumentCount; a++) {
@@ -408,117 +401,97 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 
 	int entityCount = r->ReadUInt16();
 	for (int n = 0; n < entityCount; n++) {
-		bool doAdd = true;
-		int SlotID = r->ReadUInt16();
-		if (SlotID >= maxObjSlots) {
+		bool doAdd = objectList != nullptr;
+		int slotID = r->ReadUInt16();
+		if (doAdd && slotID >= maxObjSlots && objectNameHash2 != HACK_PlayerNameHash) {
 			Log::Print(Log::LOG_ERROR,
-				"Too many objects in scene! (Count: %d, Max: %d)",
-				SlotID + 1,
+				"Too many objects in scene! (ID: %d, Max: %d)",
+				slotID,
 				maxObjSlots);
 			doAdd = false;
 		}
 
-		Entity* obj = nullptr;
-		Uint32 X = r->ReadUInt32();
-		Uint32 Y = r->ReadUInt32();
+		// Read positions
+		Sint32 posX = r->ReadInt32();
+		Sint32 posY = r->ReadInt32();
 
-		if (objectList->SpawnFunction) {
-			obj = objectList->Spawn();
-		}
+		// Read all properties
+		// No need to allocate the HashMap if the entity won't be added.
+		// We still have to keep reading the stream though.
+		HashMap<Property>* properties = nullptr;
 
-		if (obj != nullptr) {
-			Entity* obj = objectList->Spawn();
-			obj->X = (X / 65536.f);
-			obj->Y = (Y / 65536.f);
-			obj->InitialX = obj->X;
-			obj->InitialY = obj->Y;
-			obj->List = objectList;
-			obj->SlotID = SlotID + Scene::ReservedSlotIDs;
+		if (doAdd) {
+			properties = new HashMap<Property>();
 
 			for (int a = 1; a < argumentCount; a++) {
-				VMValue val = NULL_VAL;
+				Property val = Property::MakeNull();
 				switch (argumentTypes[a]) {
 				case 0x0:
-					val = INTEGER_VAL(r->ReadByte());
+					val = Property::MakeInteger(r->ReadByte());
 					break;
 				case 0x1:
-					val = INTEGER_VAL(r->ReadUInt16());
+					val = Property::MakeInteger(r->ReadUInt16());
 					break;
 				case 0x2:
-					val = INTEGER_VAL((int)r->ReadUInt32());
+					val = Property::MakeInteger((int)r->ReadUInt32());
 					break;
 				case 0x3:
-					val = INTEGER_VAL((Sint8)r->ReadByte());
+					val = Property::MakeInteger((Sint8)r->ReadByte());
 					break;
 				case 0x4:
-					val = INTEGER_VAL(r->ReadInt16());
+					val = Property::MakeInteger(r->ReadInt16());
 					break;
 				case 0x5:
-					val = INTEGER_VAL(r->ReadInt32());
+					val = Property::MakeInteger(r->ReadInt32());
 					break;
 				// Var
 				case 0x6:
-					val = INTEGER_VAL(r->ReadInt32());
+					val = Property::MakeInteger(r->ReadInt32());
 					break;
 				// Bool
 				case 0x7:
-					val = INTEGER_VAL((int)r->ReadUInt32());
+					val = Property::MakeBool((bool)r->ReadUInt32());
 					break;
 				// String
 				case 0x8: {
-					ObjString* str = AllocString(r->ReadUInt16());
-					for (size_t c = 0; c < str->Length; c++) {
-						str->Chars[c] = (char)(Uint8)r->ReadUInt16();
+					Uint16 strLength = r->ReadUInt16();
+					char* strVar = (char*)malloc(strLength);
+					if (!strVar) {
+						Error::Fatal(
+							"Out of memory in HatchSceneReader::ReadEntities!");
 					}
-					val = OBJECT_VAL(str);
+
+					for (size_t i = 0; i < strLength; i++) {
+						strVar[i] = r->ReadInt16();
+					}
+
+					val = Property::MakeString(strVar, strLength);
+					free(strVar);
 					break;
 				}
 				// Position
 				case 0x9: {
-					ObjArray* array = NewArray();
-					array->Values->push_back(
-						DECIMAL_VAL(r->ReadInt32() / 65536.f));
-					array->Values->push_back(
-						DECIMAL_VAL(r->ReadInt32() / 65536.f));
-					val = OBJECT_VAL(array);
+					float fx = r->ReadInt32() / 65536.f;
+					float fy = r->ReadInt32() / 65536.f;
+
+					PropertyArray array;
+					PropertyArray::Init(&array);
+					AddPropertyToArray(&array, Property::MakeDecimal(fx));
+					AddPropertyToArray(&array, Property::MakeDecimal(fy));
+
+					val = Property::MakeArray(array);
 					break;
 				}
 				// Color
 				case 0xB:
-					val = INTEGER_VAL((int)r->ReadUInt32());
+					val = Property::MakeInteger((int)r->ReadUInt32());
 					break;
 				}
 
 				if (PropertyHashes->Exists(argumentHashes[a])) {
-					((ScriptEntity*)obj)
-						->Properties->Put(
-							PropertyHashes->Get(argumentHashes[a]),
-							val);
+					properties->Put(
+						PropertyHashes->Get(argumentHashes[a]), val);
 				}
-			}
-
-			if (PropertyHashes->Exists(FilterHash)) {
-				obj->Filter =
-					((ScriptEntity*)obj)->Properties->Get("filter").as.Integer;
-			}
-			else {
-				obj->Filter = 0xFF;
-			}
-
-			if (!obj->Filter) {
-				obj->Filter = 0xFF;
-			}
-
-			if (!(obj->Filter & Scene::Filter)) {
-				doAdd = false;
-			}
-
-			// HACK: This is so Player ends up in the current SlotID, since this currently cannot be changed during runtime.
-			if (objectNameHash2 == HACK_PlayerNameHash) {
-				Scene::AddStatic(obj->List, obj);
-			}
-			else if (doAdd) {
-				objSlots[SlotID] = obj;
 			}
 		}
 		else {
@@ -566,6 +539,53 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 					break;
 				}
 			}
+
+			// Can't add this entity
+			continue;
+		}
+
+		// Determine whether to spawn the entity
+		int filter = 0xFF;
+		if (PropertyHashes->Exists(FilterHash)) {
+			Property prop = properties->Get("filter");
+			if (prop.Type == PROPERTY_INTEGER) {
+				filter = prop.as.Integer;
+			}
+		}
+
+		if (!filter) {
+			filter = 0xFF;
+		}
+
+		// Can't spawn in this scene
+		if (!(filter & Scene::Filter)) {
+			properties->ForAll([](Uint32, Property property) -> void {
+				Property::Delete(property);
+			});
+			delete properties;
+			continue;
+		}
+
+		// Spawn the entity
+		Entity* obj = Scene::TrySpawnObject(objectList, posX / 65536.f, posY / 65536.f);
+		if (obj != nullptr) {
+			obj->SlotID = slotID + Scene::ReservedSlotIDs;
+			obj->Filter = filter;
+			obj->Properties = properties;
+
+			// HACK: This is so Player ends up in the current SlotID, since this currently cannot be changed during runtime.
+			if (objectNameHash2 == HACK_PlayerNameHash) {
+				Scene::AddStatic(obj->List, obj);
+			}
+			else {
+				objSlots[slotID] = obj;
+			}
+		}
+		else {
+			properties->ForAll([](Uint32, Property property) -> void {
+				Property::Delete(property);
+			});
+			delete properties;
 		}
 	}
 
@@ -581,7 +601,14 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 		RSDKSceneReader::Initialized = true;
 	}
 
+	if (r->ReadUInt32BE() != 0x53434E00) {
+		Log::Print(Log::LOG_ERROR, "Not an RSDKv5 scene!");
+		r->Close();
+		return false;
+	}
+
 	if (!ObjectNames) {
+		Log::Print(Log::LOG_ERROR, "ObjectList.txt missing or empty!");
 		r->Close();
 		return false;
 	}
@@ -595,70 +622,67 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	Scene::PriorityPerLayer = 16;
 	Scene::InitPriorityLists();
 
-	if (r->ReadUInt32BE() == 0x53434E00) {
-		r->Skip(16); // 16 bytes
-		r->Skip(r->ReadByte()); // RSDKString
+	r->Skip(16); // 16 bytes
+	r->Skip(r->ReadByte()); // RSDKString
 
-		r->ReadByte();
+	r->ReadByte();
 
-		double ticks = Clock::GetTicks();
+	double ticks = Clock::GetTicks();
 
-		// Read layers
-		Uint32 layerCount = r->ReadByte();
-		Scene::Layers.resize(layerCount);
-		for (Uint32 i = 0; i < layerCount; i++) {
-			SceneLayer layer = RSDKSceneReader::ReadLayer(r);
+	// Read layers
+	Uint32 layerCount = r->ReadByte();
+	for (Uint32 i = 0; i < layerCount; i++) {
+		TileLayer* layer = RSDKSceneReader::ReadLayer(r);
 
-			Log::Print(Log::LOG_VERBOSE,
-				"Layer %d (%s): Width (%d) Height (%d) DrawGroup (%d)",
-				i,
-				layer.Name,
-				layer.Width,
-				layer.Height,
-				layer.DrawGroup);
+		Log::Print(Log::LOG_VERBOSE,
+			"Layer %d (%s): Width (%d) Height (%d) DrawGroup (%d)",
+			i,
+			layer->Name,
+			layer->Width,
+			layer->Height,
+			layer->DrawGroup);
 
-			Scene::Layers[i] = layer;
-		}
+		Scene::AddLayer(layer);
+	}
 
-		ticks = Clock::GetTicks() - ticks;
-		Log::Print(Log::LOG_VERBOSE, "Scene Layer load took %.3f milliseconds.", ticks);
+	ticks = Clock::GetTicks() - ticks;
+	Log::Print(Log::LOG_VERBOSE, "Scene Layer load took %.3f milliseconds.", ticks);
 
-		// Read objects
-		ticks = Clock::GetTicks();
+	// Read objects
+	ticks = Clock::GetTicks();
 
-		int objectDefinitionCount = r->ReadByte();
-		Log::Print(Log::LOG_VERBOSE, "Object Definition Count: %d", objectDefinitionCount);
+	int objectDefinitionCount = r->ReadByte();
+	Log::Print(Log::LOG_VERBOSE, "Object Definition Count: %d", objectDefinitionCount);
 
-		Scene::AddManagers();
+	Scene::AddManagers();
 
-		int maxObjSlots = 0x940;
-		Entity** objSlots = (Entity**)calloc(maxObjSlots, sizeof(Entity*));
-		if (!objSlots) {
-			Log::Print(Log::LOG_ERROR, "Could not allocate memory for object slots!");
-			r->Close();
+	int maxObjSlots = 0x940;
+	Entity** objSlots = (Entity**)calloc(maxObjSlots, sizeof(Entity*));
+	if (!objSlots) {
+		Log::Print(Log::LOG_ERROR, "Could not allocate memory for object slots!");
+		r->Close();
+		return false;
+	}
+
+	// Read each object definition
+	for (int i = 0; i < objectDefinitionCount; i++) {
+		if (!ReadObjectDefinition(r, objSlots, maxObjSlots)) {
+			free(objSlots);
 			return false;
 		}
-
-		// Read each object definition
-		for (int i = 0; i < objectDefinitionCount; i++) {
-			if (!ReadObjectDefinition(r, objSlots, maxObjSlots)) {
-				free(objSlots);
-				return false;
-			}
-		}
-
-		// Add all objects to the static object list
-		for (int i = 0; i < maxObjSlots; i++) {
-			if (objSlots[i]) {
-				Scene::AddStatic(objSlots[i]->List, objSlots[i]);
-			}
-		}
-
-		free(objSlots);
-
-		ticks = Clock::GetTicks() - ticks;
-		Log::Print(Log::LOG_VERBOSE, "Scene Object load took %.3f milliseconds.", ticks);
 	}
+
+	// Add all objects to the static object list
+	for (int i = 0; i < maxObjSlots; i++) {
+		if (objSlots[i]) {
+			Scene::AddStatic(objSlots[i]->List, objSlots[i]);
+		}
+	}
+
+	free(objSlots);
+
+	ticks = Clock::GetTicks() - ticks;
+	Log::Print(Log::LOG_VERBOSE, "Scene Object load took %.3f milliseconds.", ticks);
 
 	r->Close();
 

@@ -430,8 +430,7 @@ XMLNode* XMLParser::Parse() {
 
 	try {
 		DoParsing();
-	}
-	catch (const std::runtime_error& error) {
+	} catch (const std::runtime_error& error) {
 		XMLParser::Free(XMLRoot);
 
 		Log::Print(Log::LOG_ERROR, "Error parsing XML: %s", error.what());
@@ -478,7 +477,9 @@ void XMLParser::DoParsing() {
 			}
 
 			Token data = PeekToken();
-			data.Length = scanner.Current - data.Start;
+			if (data.Type != TOKEN_STRING) {
+				data.Length = scanner.Current - data.Start;
+			}
 			data.Type = TOKEN_CDATA;
 
 			XMLNode* node = new (std::nothrow) XMLNode;

@@ -1,3 +1,4 @@
+#include <Engine/Diagnostics/Log.h>
 #include <Engine/Includes/Standard.h>
 #include <Engine/Math/Matrix4x4.h>
 #include <Engine/Rendering/3D.h>

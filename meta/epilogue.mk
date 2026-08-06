@@ -268,8 +268,12 @@ LDFLAGS   := $(.L_LDFLAGS)
 
 .K_INCLUDES.DARWIN86.AGBHB    := /opt/devkitpro/devkitARM/include
 .K_INCLUDES.DARWIN86.AGBSP    := /opt/devkitpro/devkitARM/include
-.K_INCLUDES.DARWIN86.DARWIN86 := /usr/local/include
-.K_INCLUDES.DARWIN86.DARWINM1 := /usr/local/include
+.K_INCLUDES.DARWIN86.DARWIN86 := \
+	/usr/local/include \
+	/usr/local/opt/llvm/include/c++/v1
+.K_INCLUDES.DARWIN86.DARWINM1 := \
+	/usr/local/include \
+	/usr/local/opt/llvm/include/c++/v1
 .K_INCLUDES.DARWIN86.FREEBSD  :=
 .K_INCLUDES.DARWIN86.IBMPC    := /opt/watcom/h
 .K_INCLUDES.DARWIN86.ILLUMOS  :=
@@ -316,8 +320,12 @@ LDFLAGS   := $(.L_LDFLAGS)
 
 .K_INCLUDES.DARWINM1.AGBHB    := /opt/devkitpro/devkitARM/include
 .K_INCLUDES.DARWINM1.AGBSP    := /opt/devkitpro/devkitARM/include
-.K_INCLUDES.DARWINM1.DARWIN86 := /opt/homebrew/include
-.K_INCLUDES.DARWINM1.DARWINM1 := /opt/homebrew/include
+.K_INCLUDES.DARWINM1.DARWIN86 := \
+	/opt/homebrew/include \
+	/opt/homebrew/opt/llvm/include/c++/v1
+.K_INCLUDES.DARWINM1.DARWINM1 := \
+	/opt/homebrew/include \
+	/opt/homebrew/opt/llvm/include/c++/v1
 .K_INCLUDES.DARWINM1.FREEBSD  :=
 .K_INCLUDES.DARWINM1.IBMPC    := /opt/watcom/h
 .K_INCLUDES.DARWINM1.ILLUMOS  :=
@@ -806,7 +814,7 @@ check: $(.L_OFILES)
 	$(call .FN_FILE,SCH,$<)
 	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
 	@$(ECHO) -n '"command":"' >> compile_commands.json
-	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CXXFLAGS) ' >> compile_commands.json
 	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
 	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
 
@@ -814,7 +822,7 @@ check: $(.L_OFILES)
 	$(call .FN_FILE,SCH,$<)
 	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
 	@$(ECHO) -n '"command":"' >> compile_commands.json
-	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CXXFLAGS) ' >> compile_commands.json
 	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
 	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
 
@@ -822,7 +830,7 @@ check: $(.L_OFILES)
 	$(call .FN_FILE,SCH,$<)
 	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
 	@$(ECHO) -n '"command":"' >> compile_commands.json
-	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CXXFLAGS) ' >> compile_commands.json
 	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
 	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
 
@@ -830,7 +838,7 @@ check: $(.L_OFILES)
 	$(call .FN_FILE,SCH,$<)
 	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
 	@$(ECHO) -n '"command":"' >> compile_commands.json
-	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CXXFLAGS) ' >> compile_commands.json
 	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
 	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
 
@@ -839,7 +847,7 @@ check: $(.L_OFILES)
 	$(call .FN_FILE,SCH,$<)
 	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
 	@$(ECHO) -n '"command":"' >> compile_commands.json
-	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(OBJCFLAGS) ' >> compile_commands.json
 	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
 	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
 
@@ -847,7 +855,7 @@ check: $(.L_OFILES)
 	$(call .FN_FILE,SCH,$<)
 	@$(ECHO) -n '{"directory":"$(shell pwd)",' >> compile_commands.json
 	@$(ECHO) -n '"command":"' >> compile_commands.json
-	@$(ECHO) -n '$(CC) -c -o $@ $(CFLAGS) ' >> compile_commands.json
+	@$(ECHO) -n '$(CC) -c -o $@ $(CXXFLAGS) ' >> compile_commands.json
 	@$(ECHO) -n '$(.K_DEFINE) $(.K_INCLUDE) $<' >> compile_commands.json
 	@$(ECHO) -n '","file":"$<"},' >> compile_commands.json
 

@@ -4,7 +4,12 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/SourceFileMap.h>
 #include <Engine/Bytecode/StandardLibrary.h>
+#include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
+#include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
+#include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
+#include <Engine/Bytecode/TypeImpl/MapImpl.h>
+#include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
@@ -18,24 +23,35 @@
 #include <Engine/Bytecode/Compiler.h>
 
 bool ScriptManager::LoadAllClasses = false;
+#ifdef VM_DEBUG
+bool ScriptManager::BreakpointsEnabled = false;
+#endif
 
 VMThread ScriptManager::Threads[8];
 Uint32 ScriptManager::ThreadCount = 1;
 
 HashMap<VMValue>* ScriptManager::Globals = NULL;
 HashMap<VMValue>* ScriptManager::Constants = NULL;
+ankerl::unordered_dense::map<std::string_view, ObjString*>* ScriptManager::Strings = NULL;
 
 vector<ObjModule*> ScriptManager::ModuleList;
+vector<ObjModule*> ScriptManager::TempModuleList;
 
 HashMap<BytecodeContainer>* ScriptManager::Sources = NULL;
 HashMap<ObjClass*>* ScriptManager::Classes = NULL;
+HashMap<ObjModule*>* ScriptManager::Modules = NULL;
 HashMap<char*>* ScriptManager::Tokens = NULL;
 vector<ObjNamespace*> ScriptManager::AllNamespaces;
 vector<ObjClass*> ScriptManager::ClassImplList;
 
+std::unordered_map<void*, Obj*> ScriptManager::Registry;
+std::unordered_map<Obj*, void*> ScriptManager::UserdataMap;
+
 SDL_mutex* ScriptManager::GlobalLock = NULL;
 
-static Uint32 VMBranchLimit = 0;
+#ifdef VM_DEBUG
+static HashMap<SourceFile*>* SourceFiles = nullptr;
+#endif
 
 // #define DEBUG_STRESS_GC
 
@@ -84,11 +100,17 @@ void ScriptManager::Init() {
 	if (Constants == NULL) {
 		Constants = new HashMap<VMValue>(NULL, 8);
 	}
+	if (Strings == NULL) {
+		Strings = new ankerl::unordered_dense::map<std::string_view, ObjString*>();
+	}
 	if (Sources == NULL) {
 		Sources = new HashMap<BytecodeContainer>(NULL, 8);
 	}
 	if (Classes == NULL) {
 		Classes = new HashMap<ObjClass*>(NULL, 8);
+	}
+	if (Modules == NULL) {
+		Modules = new HashMap<ObjModule*>(NULL, 8);
 	}
 	if (Tokens == NULL) {
 		Tokens = new HashMap<char*>(NULL, 64);
@@ -99,7 +121,8 @@ void ScriptManager::Init() {
 	GlobalLock = SDL_CreateMutex();
 
 #ifdef VM_DEBUG
-	VMBranchLimit = GetBranchLimit();
+	int branchLimit = GetBranchLimit();
+	SourceFiles = new HashMap<SourceFile*>(NULL, 8);
 #endif
 
 	for (Uint32 i = 0; i < sizeof(Threads) / sizeof(VMThread); i++) {
@@ -114,10 +137,21 @@ void ScriptManager::Init() {
 		Threads[i].ID = i;
 		Threads[i].StackTop = Threads[i].Stack;
 
+#ifdef VM_DEBUG
 		Threads[i].DebugInfo = false;
-		Threads[i].BranchLimit = VMBranchLimit;
+		Threads[i].AttachedDebuggerCount = 0;
+		Threads[i].CurrentBreakpointIndex = 0;
+		Threads[i].BranchLimit = branchLimit;
+#endif
 	}
 	ThreadCount = 1;
+
+#if defined(DEVELOPER_MODE) && defined(VM_DEBUG)
+#if defined(WIN32) || defined(LINUX) || defined(MACOSX)
+	BreakpointsEnabled = true;
+#endif
+	Application::Settings->GetBool("dev", "enableScriptBreakpoints", &BreakpointsEnabled);
+#endif
 
 	ScriptEntity::Init();
 
@@ -146,21 +180,35 @@ Uint32 ScriptManager::GetBranchLimit() {
 void ScriptManager::Dispose() {
 	if (Globals) {
 		Globals->Clear();
-		Globals = nullptr;
 		delete Globals;
+		Globals = nullptr;
 	}
 
 	if (Constants) {
 		Constants->Clear();
-		Constants = nullptr;
 		delete Constants;
+		Constants = nullptr;
 	}
 
+	if (Strings) {
+		delete Strings;
+		Strings = nullptr;
+	}
+
+	Registry.clear();
+	UserdataMap.clear();
 	ClassImplList.clear();
 	AllNamespaces.clear();
 	ModuleList.clear();
+	TempModuleList.clear();
 
 	if (ThreadCount) {
+#ifdef VM_DEBUG
+		for (int i = 0; i < ThreadCount; i++) {
+			Threads[i].DisposeBreakpoints();
+		}
+#endif
+
 		Threads[0].FrameCount = 0;
 		Threads[0].ResetStack();
 	}
@@ -181,6 +229,11 @@ void ScriptManager::Dispose() {
 		delete Classes;
 		Classes = NULL;
 	}
+	if (Modules) {
+		Modules->Clear();
+		delete Modules;
+		Modules = NULL;
+	}
 	if (Tokens) {
 		Tokens->WithAll([](Uint32 hash, char* token) -> void {
 			Memory::Free(token);
@@ -189,6 +242,18 @@ void ScriptManager::Dispose() {
 		delete Tokens;
 		Tokens = NULL;
 	}
+
+#ifdef VM_DEBUG
+	if (SourceFiles) {
+		SourceFiles->WithAll([](Uint32, SourceFile* sourceFile) -> void {
+			Memory::Free(sourceFile->Text);
+			delete sourceFile;
+		});
+		SourceFiles->Clear();
+		delete SourceFiles;
+		SourceFiles = NULL;
+	}
+#endif
 
 	if (GlobalLock) {
 		SDL_DestroyMutex(GlobalLock);
@@ -236,6 +301,72 @@ void ScriptManager::FreeNamespace(Obj* object) {
 
 	delete ns->Fields;
 }
+void ScriptManager::FreeBoundMethod(Obj* object) {
+	ObjBoundMethod* boundMethod = (ObjBoundMethod*)object;
+
+	Memory::Free(boundMethod->Arguments);
+}
+void ScriptManager::RemoveTemporaryModules() {
+	for (size_t i = 0; i < TempModuleList.size(); i++) {
+		ObjModule* module = TempModuleList[i];
+
+#ifdef VM_DEBUG
+		for (int i = 0; i < ThreadCount; i++) {
+			Threads[i].RemoveBreakpointsForModule(module);
+		}
+#endif
+
+		auto it = std::find(ModuleList.begin(), ModuleList.end(), module);
+		if (it != ModuleList.end()) {
+			ModuleList.erase(it);
+		}
+	}
+
+	TempModuleList.clear();
+}
+// #endregion
+
+// #region Registry
+Obj* ScriptManager::RegistryAdd(void* ptr, Obj* obj) {
+	if (ptr == nullptr || obj == nullptr) {
+		return nullptr;
+	}
+
+	if (Registry.count(ptr)) {
+		return RegistryGet(ptr);
+	}
+
+	Registry[ptr] = obj;
+	UserdataMap[obj] = ptr;
+
+	return obj;
+}
+Obj* ScriptManager::RegistryGet(void* ptr) {
+	if (ptr == nullptr || Registry.count(ptr) == 0) {
+		return nullptr;
+	}
+
+	return Registry[ptr];
+}
+void* ScriptManager::RegistryGet(Obj* obj) {
+	if (obj == nullptr || UserdataMap.count(obj) == 0) {
+		return nullptr;
+	}
+
+	return UserdataMap[obj];
+}
+void ScriptManager::RegistryRemove(void* ptr) {
+	if (ptr != nullptr && Registry.count(ptr)) {
+		UserdataMap.erase(Registry[ptr]);
+		Registry.erase(ptr);
+	}
+}
+void ScriptManager::RegistryRemove(Obj* obj) {
+	if (obj != nullptr && UserdataMap.count(obj)) {
+		Registry.erase(UserdataMap[obj]);
+		UserdataMap.erase(obj);
+	}
+}
 // #endregion
 
 // #region ValueFuncs
@@ -267,9 +398,52 @@ bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
 }
 
 void ScriptManager::DestroyObject(Obj* object) {
-	if (object->Destructor != nullptr) {
-		object->Destructor(object);
+	switch (object->Type) {
+	case OBJ_STRING:
+		// Remove interned string
+		if (Strings) {
+			ObjString* string = (ObjString*)object;
+			std::string_view view(string->Chars, string->Length);
+			Strings->erase(view);
+		}
+
+		StringImpl::Dispose(object);
+		break;
+	case OBJ_ARRAY:
+		ArrayImpl::Dispose(object);
+		break;
+	case OBJ_MAP:
+		MapImpl::Dispose(object);
+		break;
+	case OBJ_MODULE:
+		FreeModule(object);
+		break;
+	case OBJ_CLASS:
+		FreeClass(object);
+		break;
+	case OBJ_NAMESPACE:
+		FreeNamespace(object);
+		break;
+	case OBJ_ENUM:
+		FreeEnumeration(object);
+		break;
+	case OBJ_BOUND_METHOD:
+		FreeBoundMethod(object);
+		break;
+	case OBJ_INSTANCE:
+	case OBJ_NATIVE_INSTANCE:
+	case OBJ_ENTITY: {
+		ObjInstance* instance = (ObjInstance*)object;
+		if (instance->Destructor != nullptr) {
+			instance->Destructor(object);
+		}
+		break;
 	}
+	default:
+		break;
+	}
+
+	ScriptManager::RegistryRemove(object);
 
 	FREE_OBJ(object);
 }
@@ -308,9 +482,7 @@ void ScriptManager::DefineNative(ObjClass* klass, const char* name, NativeFn fun
 		return;
 	}
 
-	if (!klass->Methods->Exists(name)) {
-		klass->Methods->Put(name, OBJECT_VAL(NewNative(function)));
-	}
+	klass->Methods->Put(name, OBJECT_VAL(NewNative(function)));
 }
 void ScriptManager::GlobalLinkInteger(ObjClass* klass, const char* name, int* value) {
 	if (name == NULL) {
@@ -415,41 +587,38 @@ void ScriptManager::LinkStandardLibrary() {
 void ScriptManager::LinkExtensions() {}
 // #endregion
 
-#define FG_YELLOW ""
-#define FG_RESET ""
-
-#if defined(LINUX)
-#undef FG_YELLOW
-#undef FG_RESET
-#define FG_YELLOW "\x1b[1;93m"
-#define FG_RESET "\x1b[m"
-#endif
-
 // #region ObjectFuncs
-bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+ObjModule* ScriptManager::LoadBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
 	Bytecode* bytecode = new Bytecode();
 	if (!bytecode->Read(bytecodeContainer, Tokens)) {
 		delete bytecode;
-		return false;
+		return nullptr;
 	}
 
 	ObjModule* module = NewModule();
 
 	for (size_t i = 0; i < bytecode->Functions.size(); i++) {
 		ObjFunction* function = bytecode->Functions[i];
+		Chunk* chunk = &function->Chunk;
 
 		module->Functions->push_back(function);
 
 		function->Module = module;
 #if USING_VM_FUNCPTRS
-		function->Chunk.SetupOpfuncs();
+		chunk->SetupOpfuncs();
+#endif
+
+#ifdef VM_DEBUG
+		if (BreakpointsEnabled) {
+			thread->AddFunctionBreakpoints(function);
+		}
 #endif
 	}
 
 	if (bytecode->SourceFilename) {
 		module->SourceFilename = StringUtils::Duplicate(bytecode->SourceFilename);
 	}
-	else {
+	else if (filenameHash) {
 		char fnHash[13];
 		snprintf(fnHash, sizeof(fnHash), "%08X.ibc", filenameHash);
 		module->SourceFilename = StringUtils::Duplicate(fnHash);
@@ -457,38 +626,126 @@ bool ScriptManager::RunBytecode(BytecodeContainer bytecodeContainer, Uint32 file
 
 	ModuleList.push_back(module);
 
+	if (filenameHash) {
+		Modules->Put(filenameHash, module);
+	}
+	else {
+		TempModuleList.push_back(module);
+	}
+
 	delete bytecode;
 
-	Threads[0].RunFunction((*module->Functions)[0], 0);
-
-	return true;
+	return module;
 }
-bool ScriptManager::CallFunction(const char* functionName) {
-	if (!Globals->Exists(functionName)) {
+bool ScriptManager::RunBytecode(VMThread* thread, BytecodeContainer bytecodeContainer, Uint32 filenameHash) {
+	ObjModule* module = LoadBytecode(thread, bytecodeContainer, filenameHash);
+
+	if (!module) {
 		return false;
 	}
 
-	VMValue callable = Globals->Get(functionName);
+	thread->RunFunction((*module->Functions)[0], 0);
+
+	return true;
+}
+bool ScriptManager::CallGlobalFunction(const char* functionName) {
+	VMValue callable;
+	if (!Globals->GetIfExists(functionName, &callable)) {
+		return false;
+	}
+
 	if (!IS_CALLABLE(callable)) {
 		return false;
 	}
 
-	Threads[0].InvokeForEntity(callable, 0);
+	Threads[0].RunValue(callable, 0);
 	return true;
 }
-Entity* ScriptManager::SpawnObject(const char* objectName) {
-	ObjClass* klass = GetObjectClass(objectName);
-	if (!klass) {
-		Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
-		return nullptr;
+bool ScriptManager::CallStaticClassFunction(ObjClass* klass, const char* functionName) {
+	VMValue callable;
+	if (!klass || !klass->Methods->GetIfExists(functionName, &callable)) {
+		return false;
 	}
 
-	ScriptEntity* object = new ScriptEntity;
+	VMThread* thread = &ScriptManager::Threads[0];
+	VMValue* stackTop = thread->StackTop;
+	thread->RunValue(callable, 0);
+	thread->StackTop = stackTop;
 
-	ObjEntity* entity = NewEntity(klass);
-	object->Link(entity);
+	return true;
+}
+bool ScriptManager::CallStaticClassFunction(const char* className, const char* functionName) {
+	return CallStaticClassFunction(GetGlobalClass(className), functionName);
+}
+bool ScriptManager::CallStaticClassFunction(ObjClass* klass, const char* functionName, std::vector<VMValue> args) {
+	VMValue callable;
+	if (!klass || !klass->Methods->GetIfExists(functionName, &callable)) {
+		return false;
+	}
 
-	return object;
+	VMThread* thread = &ScriptManager::Threads[0];
+	VMValue* stackTop = thread->StackTop;
+
+	for (size_t i = 0; i < args.size(); i++) {
+		thread->Push(args[i]);
+	}
+
+	int numArgs = thread->StackTop - stackTop;
+	int minArity, maxArity;
+	if (thread->GetArity(callable, minArity, maxArity) && numArgs > maxArity) {
+		numArgs = maxArity;
+		thread->StackTop = stackTop + numArgs;
+	}
+
+	thread->RunValue(callable, numArgs);
+	thread->StackTop = stackTop;
+
+	return true;
+}
+bool ScriptManager::CallStaticClassFunction(const char* className, const char* functionName, std::vector<VMValue> args) {
+	return CallStaticClassFunction(GetGlobalClass(className), functionName, args);
+}
+VMValue ScriptManager::FindFunction(const char* functionName) {
+	VMValue callable;
+
+	char* methodName = StringUtils::StrCaseStr(functionName, "::");
+	if (methodName) {
+		std::string name = std::string(functionName, methodName - functionName);
+
+		methodName += 2;
+
+		if (*methodName == '\0') {
+			return NULL_VAL;
+		}
+
+		if (!Globals->Exists(name.c_str())) {
+			return NULL_VAL;
+		}
+
+		VMValue value = Globals->Get(name.c_str());
+		if (!IS_CLASS(value)) {
+			return NULL_VAL;
+		}
+
+		ObjClass* klass = AS_CLASS(value);
+		Uint32 hash = Murmur::EncryptString(methodName);
+		if (!GetClassMethod(klass, hash, &callable)) {
+			return NULL_VAL;
+		}
+	}
+	else {
+		if (!Globals->Exists(functionName)) {
+			return NULL_VAL;
+		}
+
+		callable = Globals->Get(functionName);
+	}
+
+	if (!IS_CALLABLE(callable)) {
+		return NULL_VAL;
+	}
+
+	return callable;
 }
 Uint32 ScriptManager::MakeFilenameHash(const char* filename) {
 	size_t length = strlen(filename);
@@ -534,11 +791,35 @@ BytecodeContainer ScriptManager::GetBytecodeFromFilenameHash(Uint32 filenameHash
 
 	return bytecode;
 }
+bool ScriptManager::BytecodeForFilenameHashExists(Uint32 filenameHash) {
+	if (Sources->Exists(filenameHash)) {
+		return true;
+	}
+
+	std::string filenameForHash = GetBytecodeFilenameForHash(filenameHash);
+	const char* filename = filenameForHash.c_str();
+
+	if (!ResourceManager::ResourceExists(filename)) {
+		return false;
+	}
+
+	ResourceStream* stream = ResourceStream::New(filename);
+	if (!stream) {
+		return false;
+	}
+
+	stream->Close();
+
+	return true;
+}
 bool ScriptManager::ClassExists(const char* objectName) {
 	return SourceFileMap::ClassMap->Exists(objectName);
 }
 bool ScriptManager::ClassExists(Uint32 hash) {
 	return SourceFileMap::ClassMap->Exists(hash);
+}
+bool ScriptManager::IsClassLoaded(const char* className) {
+	return ScriptManager::Classes->Exists(className);
 }
 bool ScriptManager::IsStandardLibraryClass(const char* className) {
 	return IS_CLASS(Constants->Get(className));
@@ -561,23 +842,58 @@ bool ScriptManager::LoadScript(Uint32 hash) {
 			return false;
 		}
 
-		return RunBytecode(bytecode, hash);
+		return RunBytecode(&Threads[0], bytecode, hash);
 	}
 
 	return true;
 }
+bool ScriptManager::IsScriptLoaded(const char* filename) {
+	Uint32 hash = MakeFilenameHash(filename);
+	return IsScriptLoaded(hash);
+}
+bool ScriptManager::IsScriptLoaded(Uint32 filenameHash) {
+	return Sources->Exists(filenameHash);
+}
+ObjModule* ScriptManager::GetScriptModule(const char* filename) {
+	Uint32 hash = MakeFilenameHash(filename);
+	return GetScriptModule(hash);
+}
+ObjModule* ScriptManager::GetScriptModule(Uint32 filenameHash) {
+	if (Modules->Exists(filenameHash)) {
+		return Modules->Get(filenameHash);
+	}
+	return nullptr;
+}
+ObjFunction* ScriptManager::GetFunctionAtScriptLine(ObjModule* module, int lineNum) {
+	if (lineNum == 0) {
+		return (*module->Functions)[0];
+	}
+
+	for (size_t i = 0; i < module->Functions->size(); i++) {
+		ObjFunction* function = (*module->Functions)[i];
+		Chunk* chunk = &function->Chunk;
+		if (!chunk->Lines) {
+			continue;
+		}
+
+		for (int offset = 0; offset < chunk->Count;) {
+			int line = chunk->Lines[offset] & 0xFFFF;
+			if (line == lineNum) {
+				return function;
+			}
+
+			offset += Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
+		}
+	}
+
+	return nullptr;
+}
 bool ScriptManager::LoadObjectClass(const char* objectName) {
-	if (!objectName || !*objectName) {
-		return false;
+	if (ScriptManager::IsClassLoaded(objectName)) {
+		return true;
 	}
 
 	if (!ScriptManager::ClassExists(objectName)) {
-		Log::Print(Log::LOG_VERBOSE,
-			"Could not find classmap for %s%s%s! (Hash: 0x%08X)",
-			FG_YELLOW,
-			objectName,
-			FG_RESET,
-			SourceFileMap::ClassMap->HashFunction(objectName, strlen(objectName)));
 		return false;
 	}
 
@@ -604,12 +920,12 @@ bool ScriptManager::LoadObjectClass(const char* objectName) {
 					(int)filenameHashList->size());
 			}
 
-			RunBytecode(bytecode, filenameHash);
+			RunBytecode(&Threads[0], bytecode, filenameHash);
 		}
 	}
 
 	if (!IsStandardLibraryClass(objectName) && !Classes->Exists(objectName)) {
-		ObjClass* klass = GetObjectClass(objectName);
+		ObjClass* klass = GetClass(objectName);
 		if (!klass) {
 			Log::Print(Log::LOG_ERROR, "Could not find class of %s!", objectName);
 			return false;
@@ -619,7 +935,7 @@ bool ScriptManager::LoadObjectClass(const char* objectName) {
 
 	return true;
 }
-ObjClass* ScriptManager::GetObjectClass(const char* className) {
+ObjClass* ScriptManager::GetClass(const char* className) {
 	VMValue value = Globals->Get(className);
 
 	if (IS_CLASS(value)) {
@@ -628,8 +944,18 @@ ObjClass* ScriptManager::GetObjectClass(const char* className) {
 
 	return nullptr;
 }
-Entity* ScriptManager::ObjectSpawnFunction(ObjectList* list) {
-	return ScriptManager::SpawnObject(list->ObjectName);
+ObjClass* ScriptManager::GetGlobalClass(const char* className) {
+	ObjClass* klass = GetClass(className);
+	if (klass) {
+		return klass;
+	}
+
+	VMValue value = Constants->Get(className);
+	if (IS_CLASS(value)) {
+		return AS_CLASS(value);
+	}
+
+	return nullptr;
 }
 void ScriptManager::LoadClasses() {
 	SourceFileMap::ClassMap->ForAll([](Uint32, vector<Uint32>* filenameHashList) -> void {
@@ -644,10 +970,91 @@ void ScriptManager::LoadClasses() {
 				continue;
 			}
 
-			RunBytecode(bytecode, filenameHash);
+			RunBytecode(&Threads[0], bytecode, filenameHash);
 		}
 	});
 
 	ScriptManager::ForceGarbageCollection();
 }
+#ifdef VM_DEBUG
+void ScriptManager::LoadSourceCodeLines(SourceFile* sourceFile, char* text) {
+	char* ptr = text;
+	char* end = text + strlen(text);
+	char* lineStart = ptr;
+
+	while (true) {
+		if (*ptr == '\n' || ptr == end) {
+			sourceFile->Lines.push_back(lineStart);
+
+			if (ptr == end) {
+				break;
+			}
+			else {
+				*ptr = '\0';
+				lineStart = ptr + 1;
+			}
+		}
+
+		ptr++;
+	}
+
+	sourceFile->Text = text;
+	sourceFile->Exists = true;
+}
+void ScriptManager::LoadSourceCodeLines(SourceFile* sourceFile, const char* sourceFilename) {
+	Stream* stream = File::Open(sourceFilename, File::READ_ACCESS);
+	if (!stream) {
+		return;
+	}
+
+	size_t size = stream->Length();
+	char* text = (char*)Memory::Calloc(size + 1, sizeof(char));
+	stream->ReadBytes(text, size);
+	stream->Close();
+
+	LoadSourceCodeLines(sourceFile, text);
+}
+char* ScriptManager::GetSourceCodeLine(const char* sourceFilename, int line) {
+	SourceFile* sourceFile = nullptr;
+
+	if (!SourceFiles->Exists(sourceFilename)) {
+		sourceFile = new SourceFile;
+
+		if (File::Exists(sourceFilename)) {
+			LoadSourceCodeLines(sourceFile, sourceFilename);
+		}
+
+		if (!sourceFile->Exists) {
+			Log::Print(Log::LOG_WARN, "Source file \"%s\" does not exist.", sourceFilename);
+		}
+
+		SourceFiles->Put(sourceFilename, sourceFile);
+	}
+	else {
+		sourceFile = SourceFiles->Get(sourceFilename);
+	}
+
+	if (!sourceFile->Exists || line < 1 || line > sourceFile->Lines.size()) {
+		return nullptr;
+	}
+
+	return sourceFile->Lines[line - 1];
+}
+void ScriptManager::AddSourceFile(const char* sourceFilename, char* text) {
+	SourceFile* sourceFile = new SourceFile;
+	sourceFile->Exists = true;
+
+	LoadSourceCodeLines(sourceFile, text);
+
+	RemoveSourceFile(sourceFilename);
+	SourceFiles->Put(sourceFilename, sourceFile);
+}
+void ScriptManager::RemoveSourceFile(const char* sourceFilename) {
+	if (SourceFiles->Exists(sourceFilename)) {
+		Memory::Free(SourceFiles->Get(sourceFilename));
+
+		SourceFiles->Remove(sourceFilename);
+	}
+}
+#endif
 // #endregion

@@ -1,8 +1,9 @@
 #include <Engine/Bytecode/Types.h>
 
-#include <Engine/Bytecode/Compiler.h>
+#include <Engine/Bytecode/Bytecode.h>
 #include <Engine/Bytecode/GarbageCollector.h>
 #include <Engine/Bytecode/ScriptManager.h>
+#include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/ArrayImpl.h>
 #include <Engine/Bytecode/TypeImpl/EntityImpl.h>
 #include <Engine/Bytecode/TypeImpl/FunctionImpl.h>
@@ -15,7 +16,7 @@
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
-#include <Engine/Hashing/FNV1A.h>
+#include <Engine/Utilities/StringUtils.h>
 
 #define ALLOCATE_OBJ(type, objectType) (type*)AllocateObject(sizeof(type), objectType)
 #define ALLOCATE(type, size) (type*)Memory::TrackedMalloc(#type, sizeof(type) * size)
@@ -35,46 +36,109 @@ Obj* AllocateObject(size_t size, ObjType type) {
 	return object;
 }
 
-static ObjString* AllocateString(char* chars, size_t length, Uint32 hash) {
-	return (ObjString*)StringImpl::New(chars, length, hash);
+static ObjString* GetInternedString(std::string_view view) {
+	if (ScriptManager::Strings->count(view) > 0) {
+		return (*ScriptManager::Strings)[view];
+	}
+
+	return nullptr;
+}
+
+static ObjString* CreateInternedString(std::string_view view) {
+	ObjString* string = (ObjString*)StringImpl::New((char*)view.data(), view.length());
+
+	(*ScriptManager::Strings)[view] = string;
+
+	return string;
+}
+
+static ObjString* AllocateString(char* chars, size_t length) {
+	std::string_view view(chars, length);
+
+	ObjString* string = GetInternedString(view);
+	if (string) {
+		return string;
+	}
+
+	return CreateInternedString(view);
 }
 
 ObjString* TakeString(char* chars, size_t length) {
-	Uint32 hash = FNV1A::EncryptData(chars, length);
-	return AllocateString(chars, length, hash);
+	std::string_view view(chars, length);
+
+	ObjString* string = GetInternedString(view);
+	if (string) {
+		// This string was already interned, so we have to free chars
+		Memory::Free(chars);
+		return string;
+	}
+
+	return CreateInternedString(view);
 }
 ObjString* TakeString(char* chars) {
 	return TakeString(chars, strlen(chars));
 }
 ObjString* CopyString(const char* chars, size_t length) {
-	Uint32 hash = FNV1A::EncryptData(chars, length);
-
 	char* heapChars = ALLOCATE(char, length + 1);
 	memcpy(heapChars, chars, length);
 	heapChars[length] = '\0';
 
-	return AllocateString(heapChars, length, hash);
+	return AllocateString(heapChars, length);
 }
 ObjString* CopyString(const char* chars) {
 	return CopyString(chars, strlen(chars));
+}
+ObjString* CopyString(std::string string) {
+	return CopyString(string.c_str());
 }
 ObjString* CopyString(ObjString* string) {
 	char* heapChars = ALLOCATE(char, string->Length + 1);
 	memcpy(heapChars, string->Chars, string->Length);
 	heapChars[string->Length] = '\0';
 
-	return AllocateString(heapChars, string->Length, string->Hash);
+	return AllocateString(heapChars, string->Length);
 }
-ObjString* CopyString(std::filesystem::path path) {
-	std::string asStr = Path::ToString(path);
-	const char* cStr = asStr.c_str();
-	return CopyString(cStr);
-}
-ObjString* AllocString(size_t length) {
-	char* heapChars = ALLOCATE(char, length + 1);
-	heapChars[length] = '\0';
 
-	return AllocateString(heapChars, length, 0x00000000);
+static VMValue VM_GetClass(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 1);
+
+	if (IS_OBJECT(args[0])) {
+		return OBJECT_VAL(AS_OBJECT(args[0])->Class);
+	}
+
+	return NULL_VAL;
+}
+
+static VMValue VM_HasField(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	const char* name = StandardLibrary::GetString(args, 1, threadID);
+	Uint32 hash = Murmur::EncryptString(name);
+
+	return INTEGER_VAL(ScriptManager::Threads[threadID].HasProperty(args[0], hash));
+}
+
+static VMValue VM_GetField(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	const char* name = StandardLibrary::GetString(args, 1, threadID);
+	Uint32 hash = Murmur::EncryptString(name);
+	VMThread thread = ScriptManager::Threads[threadID];
+
+	if (thread.HasProperty(args[0], hash))
+		return thread.GetProperty(args[0], hash);
+
+	thread.ThrowRuntimeError(false, "Could not find %s in %s!", name, GetValueTypeString(args[0]));
+	return NULL_VAL;
+}
+
+static VMValue VM_SetField(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 3);
+
+	const char* name = StandardLibrary::GetString(args, 1, threadID);
+	Uint32 hash = Murmur::EncryptString(name);
+
+	return ScriptManager::Threads[threadID].SetProperty(args[0], hash, args[2]);;
 }
 
 ObjFunction* NewFunction() {
@@ -93,6 +157,7 @@ ObjUpvalue* NewUpvalue(VMValue* slot) {
 	return upvalue;
 }
 ObjClosure* NewClosure(ObjFunction* function) {
+#if 0
 	ObjUpvalue** upvalues = ALLOCATE(ObjUpvalue*, function->UpvalueCount);
 	for (int i = 0; i < function->UpvalueCount; i++) {
 		upvalues[i] = NULL;
@@ -103,17 +168,22 @@ ObjClosure* NewClosure(ObjFunction* function) {
 	closure->Upvalues = upvalues;
 	closure->UpvalueCount = function->UpvalueCount;
 	return closure;
+#else
+	return nullptr;
+#endif
 }
 ObjClass* NewClass(Uint32 hash) {
 	ObjClass* klass = ALLOCATE_OBJ(ObjClass, OBJ_CLASS);
 	Memory::Track(klass, "NewClass");
 	klass->Hash = hash;
-	klass->Object.Destructor = ScriptManager::FreeClass;
 	klass->Methods = new Table(NULL, 4);
 	klass->Fields = new Table(NULL, 16);
 	klass->Initializer = NULL_VAL;
-	klass->Type = CLASS_TYPE_NORMAL;
 	klass->Name = StringUtils::Create(GetClassName(hash));
+	ScriptManager::DefineNative(klass, "GetClass", VM_GetClass);
+	ScriptManager::DefineNative(klass, "HasField", VM_HasField);
+	ScriptManager::DefineNative(klass, "GetField", VM_GetField);
+	ScriptManager::DefineNative(klass, "SetField", VM_SetField);
 	return klass;
 }
 ObjClass* NewClass(const char* className) {
@@ -130,24 +200,24 @@ ObjInstance* NewInstance(ObjClass* klass) {
 ObjEntity* NewEntity(ObjClass* klass) {
 	return (ObjEntity*)EntityImpl::New(klass);
 }
-ObjBoundMethod* NewBoundMethod(VMValue receiver, ObjFunction* method) {
+ObjBoundMethod* NewBoundMethod(ObjFunction* method, VMValue* args, Uint8 argCount) {
 	ObjBoundMethod* bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
 	Memory::Track(bound, "NewBoundMethod");
-	bound->Receiver = receiver;
 	bound->Method = method;
+	bound->Arguments = (VMValue*)Memory::Malloc(argCount * sizeof(VMValue));
+	bound->ArgumentCount = argCount;
+	memcpy(bound->Arguments, args, argCount * sizeof(VMValue));
 	return bound;
 }
 ObjArray* NewArray() {
-	return (ObjArray*)ArrayImpl::New();
+	return (ObjArray*)ArrayImpl::Constructor();
 }
 ObjMap* NewMap() {
-	return (ObjMap*)MapImpl::New();
+	return (ObjMap*)MapImpl::Constructor();
 }
 ObjNamespace* NewNamespace(Uint32 hash) {
 	ObjNamespace* ns = ALLOCATE_OBJ(ObjNamespace, OBJ_NAMESPACE);
 	Memory::Track(ns, "NewNamespace");
-	ns->Object.Destructor = ScriptManager::FreeNamespace;
-	ns->Hash = hash;
 	ns->Fields = new Table(NULL, 16);
 	ns->Name = StringUtils::Create(GetClassName(hash));
 	return ns;
@@ -161,8 +231,6 @@ ObjNamespace* NewNamespace(const char* nsName) {
 ObjEnum* NewEnum(Uint32 hash) {
 	ObjEnum* enumeration = ALLOCATE_OBJ(ObjEnum, OBJ_ENUM);
 	Memory::Track(enumeration, "NewEnum");
-	enumeration->Object.Destructor = ScriptManager::FreeEnumeration;
-	enumeration->Hash = hash;
 	enumeration->Fields = new Table(NULL, 16);
 	enumeration->Name = StringUtils::Create(GetClassName(hash));
 	return enumeration;
@@ -170,7 +238,6 @@ ObjEnum* NewEnum(Uint32 hash) {
 ObjModule* NewModule() {
 	ObjModule* module = ALLOCATE_OBJ(ObjModule, OBJ_MODULE);
 	Memory::Track(module, "NewModule");
-	module->Object.Destructor = ScriptManager::FreeModule;
 	module->Functions = new vector<ObjFunction*>();
 	module->Locals = new vector<VMValue>();
 	return module;
@@ -196,6 +263,14 @@ Uint32 GetClassHash(const char* name) {
 	return Murmur::EncryptString(name);
 }
 
+const char* GetModuleName(ObjModule* module) {
+	if (module->SourceFilename) {
+		return module->SourceFilename;
+	}
+
+	return "repl";
+}
+
 const char* GetTypeString(Uint32 type) {
 	switch (type) {
 	case VAL_NULL:
@@ -206,13 +281,21 @@ const char* GetTypeString(Uint32 type) {
 	case VAL_DECIMAL:
 	case VAL_LINKED_DECIMAL:
 		return "decimal";
+	case VAL_HITBOX:
+		return "hitbox";
 	case VAL_OBJECT:
 		return "object";
+	case VAL_LOCATION:
+		return "location";
 	}
 	return "unknown type";
 }
 const char* GetObjectTypeString(Uint32 type) {
-	return Value::GetObjectTypeName(type);
+	const char* typeString = Value::GetObjectTypeName(type);
+	if (typeString) {
+		return typeString;
+	}
+	return "unknown object type";
 }
 const char* GetValueTypeString(VMValue value) {
 	if (value.Type == VAL_OBJECT) {
@@ -228,11 +311,15 @@ void Chunk::Init() {
 	Capacity = 0;
 	Code = NULL;
 	Lines = NULL;
+	Breakpoints = NULL;
+	BreakpointCount = 0;
 #if USING_VM_FUNCPTRS
 	OpcodeFuncs = NULL;
 	IPToOpcode = NULL;
 #endif
 	Constants = new vector<VMValue>();
+	Locals = nullptr;
+	ModuleLocals = nullptr;
 }
 void Chunk::Alloc() {
 	if (!Code) {
@@ -271,6 +358,17 @@ void Chunk::Free() {
 		delete Constants;
 	}
 
+	if (Breakpoints) {
+		Memory::Free(Breakpoints);
+	}
+
+	if (Locals) {
+		DeleteLocals(Locals);
+	}
+	if (ModuleLocals) {
+		DeleteLocals(ModuleLocals);
+	}
+
 #if USING_VM_FUNCPTRS
 	if (OpcodeFuncs) {
 		Memory::Free(OpcodeFuncs);
@@ -281,6 +379,14 @@ void Chunk::Free() {
 	}
 #endif
 }
+void Chunk::DeleteLocals(vector<ChunkLocal>* locals) {
+	for (size_t i = 0; i < locals->size(); i++) {
+		Memory::Free((*locals)[i].Name);
+	}
+	locals->clear();
+	locals->shrink_to_fit();
+	delete locals;
+}
 #if USING_VM_FUNCPTRS
 #define OPCASE(op) \
 	case op: \
@@ -288,10 +394,9 @@ void Chunk::Free() {
 		break
 void Chunk::SetupOpfuncs() {
 	if (!OpcodeCount) {
-		// try to get it manually thru iterating it (for
-		// version <= 2 bytecode)
+		// try to get it manually thru iterating it (for version <= 2 bytecode)
 		for (int offset = 0; offset < Count;) {
-			offset += Compiler::GetTotalOpcodeSize(Code + offset);
+			offset += Bytecode::GetTotalOpcodeSize(Code + offset);
 			OpcodeCount++;
 		}
 	}
@@ -303,10 +408,10 @@ void Chunk::SetupOpfuncs() {
 	for (int i = 0; i < OpcodeCount; i++) {
 		Uint8 op = *(Code + offset);
 		IPToOpcode[offset] = i;
-		offset += Compiler::GetTotalOpcodeSize(Code + offset);
+		offset += Bytecode::GetTotalOpcodeSize(Code + offset);
 		OpcodeFunc func = NULL;
 		switch (op) {
-			OPCASE(OP_ERROR);
+			OPCASE(OP_NOP);
 			OPCASE(OP_CONSTANT);
 			OPCASE(OP_DEFINE_GLOBAL);
 			OPCASE(OP_GET_PROPERTY);
@@ -321,7 +426,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_METHOD_V4);
 			OPCASE(OP_CLASS);
 			OPCASE(OP_CALL);
-			OPCASE(OP_SUPER);
+			OPCASE(OP_UNUSED_1);
 			OPCASE(OP_INVOKE_V3);
 			OPCASE(OP_JUMP);
 			OPCASE(OP_JUMP_IF_FALSE);
@@ -364,7 +469,7 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_NEW_ARRAY);
 			OPCASE(OP_NEW_MAP);
 			OPCASE(OP_SWITCH_TABLE);
-			OPCASE(OP_FAILSAFE);
+			OPCASE(OP_SET_ARGUMENT_SLOT);
 			OPCASE(OP_EVENT_V4);
 			OPCASE(OP_TYPEOF);
 			OPCASE(OP_NEW);
@@ -387,6 +492,15 @@ void Chunk::SetupOpfuncs() {
 			OPCASE(OP_SUPER_INVOKE);
 			OPCASE(OP_EVENT);
 			OPCASE(OP_METHOD);
+			OPCASE(OP_NEW_HITBOX);
+			OPCASE(OP_LOCATION_STACK);
+			OPCASE(OP_LOCATION_MODULE_LOCAL);
+			OPCASE(OP_LOCATION_GLOBAL);
+			OPCASE(OP_LOCATION_PROPERTY);
+			OPCASE(OP_LOCATION_SUPER_PROPERTY);
+			OPCASE(OP_LOCATION_ELEMENT);
+			OPCASE(OP_LOAD_INDIRECT);
+			OPCASE(OP_STORE_INDIRECT);
 		}
 		assert((func != NULL));
 		OpcodeFuncs[i] = func;
@@ -407,4 +521,43 @@ void Chunk::Write(Uint8 byte, int line) {
 int Chunk::AddConstant(VMValue value) {
 	Constants->push_back(value);
 	return (int)Constants->size() - 1;
+}
+bool Chunk::GetConstant(size_t offset, VMValue* value, int* index) {
+	Uint8* code = Code + offset;
+	if (index) {
+		*index = -1;
+	}
+	switch (*code) {
+	case OP_CONSTANT:
+		if (value) {
+			*value = (*Constants)[*(Uint32*)(code + 1)];
+		}
+		if (index) {
+			*index = *(Uint32*)(code + 1);
+		}
+		return true;
+	case OP_FALSE:
+	case OP_TRUE:
+		if (value) {
+			*value = INTEGER_VAL(*code == OP_FALSE ? 0 : 1);
+		}
+		return true;
+	case OP_NULL:
+		if (value) {
+			*value = NULL_VAL;
+		}
+		return true;
+	case OP_INTEGER:
+		if (value) {
+			*value = INTEGER_VAL(*(Sint32*)(code + 1));
+		}
+		return true;
+	case OP_DECIMAL:
+		if (value) {
+			*value = DECIMAL_VAL(*(float*)(code + 1));
+		}
+		return true;
+	}
+
+	return false;
 }

@@ -1,0 +1,292 @@
+#ifndef ENGINE_SCENE_H
+#define ENGINE_SCENE_H
+class Entity;
+class ObjectRegistry;
+class DrawGroupList;
+
+#include <Engine/Application.h>
+#include <Engine/Bytecode/Types.h>
+#include <Engine/Diagnostics/PerformanceTypes.h>
+#include <Engine/Graphics.h>
+#include <Engine/Includes/HashMap.h>
+#include <Engine/Includes/Standard.h>
+#include <Engine/Math/Math.h>
+#include <Engine/ResourceTypes/Image.h>
+#include <Engine/ResourceTypes/ResourceType.h>
+#include <Engine/Scene/SceneConfig.h>
+#include <Engine/Scene/SceneEnums.h>
+#include <Engine/Scene/SceneLayer.h>
+#include <Engine/Scene/TileAnimation.h>
+#include <Engine/Scene/TileConfig.h>
+#include <Engine/Scene/TileSpriteInfo.h>
+#include <Engine/Scene/View.h>
+#include <Engine/Types/DrawGroupList.h>
+#include <Engine/Types/EntityTypes.h>
+#include <Engine/Types/ObjectList.h>
+#include <Engine/Types/ObjectRegistry.h>
+#include <Engine/Types/Tileset.h>
+
+class Scene {
+private:
+	static void RemoveObject(Entity* obj);
+	static void RunTileAnimations();
+	static void SortEntities();
+	static void ResetViews();
+	static void Iterate(Entity* first, std::function<void(Entity* e)> func);
+	static void IterateAll(Entity* first, std::function<void(Entity* e)> func);
+	static void ResetPriorityListIndex(Entity* first);
+	static Entity* SortEntityList(Entity* head);
+	static bool SplitEntityList(Entity* head, Entity** left, Entity** right);
+	static Entity* MergeEntityList(Entity* left, Entity* right);
+	static int GetPersistenceScopeForObjectDeletion();
+	static void ClearPriorityLists();
+	static void DeleteObjects(Entity** first, Entity** last, int* count);
+	static void RemoveNonPersistentObjects(Entity** first, Entity** last, int* count);
+	static void ReadSceneFile(const char* filename);
+	static void SpawnStaticObject(const char* objectName);
+	static void ReadRSDKTile(TileConfig* tile, Uint8* line);
+	static void LoadRSDKTileConfig(int tilesetID, Stream* tileColReader);
+	static void LoadHCOLTileConfig(size_t tilesetID, Stream* tileColReader);
+	static void InitTileCollisions();
+	static void ClearTileCollisions(TileConfig* cfg, size_t numTiles);
+	static void SetTileCount(size_t tileCount);
+	static void SetupView2D(View* currentView, float viewX, float viewY, float viewZ);
+	static void SetupView3D(View* currentView, float viewX, float viewY, float viewZ);
+
+public:
+	static int ShowTileCollisionFlag;
+	static int ShowObjectRegions;
+	static bool UseRenderRegions;
+	static HashMap<Property>* Properties;
+	static OrderedHashMap<ObjectList*>* ObjectLists;
+	static HashMap<ObjectRegistry*>* ObjectRegistries;
+	static ObjectRegistry* OnScreenObjects;
+	static HashMap<ObjectList*>* StaticObjectLists;
+	static int ReservedSlotIDs;
+	static int StaticObjectCount;
+	static Entity* StaticObjectFirst;
+	static Entity* StaticObjectLast;
+	static int DynamicObjectCount;
+	static Entity* DynamicObjectFirst;
+	static Entity* DynamicObjectLast;
+	static int ObjectCount;
+	static Entity* ObjectFirst;
+	static Entity* ObjectLast;
+	static int PriorityPerLayer;
+	static DrawGroupList** PriorityLists;
+	static vector<Tileset> Tilesets;
+	static vector<TileSpriteInfo> TileSpriteInfos;
+	static Uint16 EmptyTile;
+	static vector<SceneLayer*> Layers;
+	static bool AnyLayerTileChange;
+	static int TileCount;
+	static int TileWidth;
+	static int TileHeight;
+	static int BaseTileCount;
+	static int BaseTilesetCount;
+	static bool TileCfgLoaded;
+	static vector<TileConfig*> TileCfg;
+	static vector<ResourceType*> SpriteList;
+	static vector<ResourceType*> ImageList;
+	static vector<ResourceType*> SoundList;
+	static vector<ResourceType*> MusicList;
+	static vector<ResourceType*> ModelList;
+	static vector<ResourceType*> MediaList;
+	static vector<Animator*> AnimatorList;
+	static int Frame;
+	static bool Paused;
+	static bool Loaded;
+	static bool Initializing;
+	static bool NeedEntitySort;
+	static int TileAnimationEnabled;
+	static bool RefreshTileAnimations;
+	static View Views[MAX_SCENE_VIEWS];
+	static int ViewCurrent;
+	static int ViewsActive;
+	static int CurrentDrawGroup;
+	static int ObjectViewRenderFlag;
+	static int TileViewRenderFlag;
+	static Perf_ViewRender PERF_ViewRender[MAX_SCENE_VIEWS];
+	static char NextScene[MAX_RESOURCE_PATH_LENGTH];
+	static char CurrentScene[MAX_RESOURCE_PATH_LENGTH];
+	static int SceneType;
+	static bool DoRestart;
+	static bool NoPersistency;
+	static int TimeEnabled;
+	static int TimeCounter;
+	static int Minutes;
+	static int Seconds;
+	static int Milliseconds;
+	static int Filter;
+	static int CurrentSceneInList;
+	static char CurrentFolder[256];
+	static char CurrentID[256];
+	static char CurrentResourceFolder[256];
+	static char PreviousResourceFolder[256];
+	static char CurrentCategory[256];
+	static int ActiveCategory;
+	static int DebugMode;
+	static int CollisionTolerance;
+	static bool UseCollisionOffset;
+	static float CollisionOffset;
+	static CollisionBox CollisionOuter;
+	static CollisionBox CollisionInner;
+	static Entity* CollisionEntity;
+	static CollisionSensor Sensors[6];
+	static float CollisionMinimumDistance;
+	static int LowCollisionTolerance;
+	static int HighCollisionTolerance;
+	static int FloorAngleTolerance;
+	static int WallAngleTolerance;
+	static int RoofAngleTolerance;
+	static bool ShowHitboxes;
+	static int ViewableHitboxCount;
+	static std::vector<ViewableHitbox> ViewableHitboxList;
+
+	static void Add(Entity** first, Entity** last, int* count, Entity* obj);
+	static void Remove(Entity** first, Entity** last, int* count, Entity* obj);
+	static void AddToScene(Entity* obj);
+	static void RemoveFromScene(Entity* obj);
+	static void Clear(Entity** first, Entity** last, int* count);
+	static bool AddStatic(ObjectList* objectList, Entity* obj);
+	static void AddDynamic(ObjectList* objectList, Entity* obj);
+	static void OnEvent(Uint32 event);
+	static void SetCurrent(const char* categoryName, const char* sceneName);
+	static void SetInfoFromCurrentID();
+	static void Init();
+	static void InitObjectListsAndRegistries();
+	static void ResetPerf();
+	static void FrameUpdate();
+	static void Update();
+	static void FixedUpdate();
+	static Tileset* GetTileset(int tileID);
+	static TileAnimator* GetTileAnimator(int tileID);
+	static void SetViewActive(int viewIndex, bool active);
+	static void SetViewPriority(int viewIndex, int priority);
+	static void SortViews();
+	static bool SetView(int viewIndex);
+	static bool DetermineEntityIsOnScreen(Entity* ent);
+	static bool CheckPosOnScreen(float posX, float posY, float rangeX, float rangeY);
+	static void SetupViewMatrices(View* currentView, float viewX, float viewY, float viewZ);
+	static void RenderView(int viewIndex, bool doPerf);
+	static void Render();
+	static void AfterScene();
+	static void Initialize();
+	static void Restart();
+	static void FinishLoad();
+	static void Unload();
+	static void Prepare();
+	static void LoadScene(const char* filename);
+	static bool ChangeFromPath(const char* path, int filter);
+	static void AddStaticClass();
+	static void CallGameStart();
+	static void ProcessSceneTimer();
+	static Entity* SpawnObject(ObjectList* list, float x, float y);
+	static Entity* SpawnObject(const char* objectName, float x, float y);
+	static Entity* TrySpawnObject(ObjectList* list, float x, float y);
+	static Entity* TrySpawnObject(const char* objectName, float x, float y);
+	static ObjectList* NewObjectList(const char* objectName);
+	static ObjectList* GetObjectList(const char* objectName, bool callListLoadFunction);
+	static ObjectList* GetObjectList(const char* objectName);
+	static ObjectList* GetStaticObjectList(const char* objectName);
+	static void AddManagers();
+	static std::vector<ObjectList*> GetObjectListPerformance();
+	static void AddLayer(SceneLayer* layer);
+	static void InitPriorityLists();
+	static void FreePriorityLists();
+	static void SetPriorityPerLayer(int count);
+	static DrawGroupList* GetDrawGroup(int index);
+	static DrawGroupList* GetDrawGroupNoCheck(int index);
+	static bool AddTileset(char* path);
+	static void LoadTileCollisions(const char* filename, size_t tilesetID);
+	static void UnloadTileCollisions();
+	static bool GetResourceListSpace(vector<ResourceType*>* list,
+		ResourceType* resource,
+		size_t& index,
+		bool& foundEmpty);
+	static bool GetResource(vector<ResourceType*>* list, ResourceType* resource, size_t& index);
+	static int LoadSpriteResource(const char* filename, int unloadPolicy);
+	static int LoadImageResource(const char* filename, int unloadPolicy);
+	static int AddImageResource(Image* image, const char* filename, int unloadPolicy);
+	static int LoadModelResource(const char* filename, int unloadPolicy);
+	static int LoadMusicResource(const char* filename, int unloadPolicy);
+	static int LoadSoundResource(const char* filename, int unloadPolicy);
+	static int LoadVideoResource(const char* filename, int unloadPolicy);
+	static ResourceType* GetSpriteResource(int index);
+	static ResourceType* GetImageResource(int index);
+	static void DisposeInScope(Uint32 scope);
+	static void Dispose();
+	static void UnloadTilesets();
+	static void
+	SetTile(int layerIndex, int x, int y, int tileID, int flip_x, int flip_y, int collA, int collB);
+	static int CollisionAt(int x, int y, int collisionField, int collideSide, int* angle);
+	static int CollisionInLine(int x,
+		int y,
+		int angleMode,
+		int checkLen,
+		int collisionField,
+		bool compareAngle,
+		Sensor* sensor);
+	static void OrientHitbox(CollisionBox* source, int direction, CollisionBox* destination) {
+		*destination = *source;
+		if (direction & FLIP_X) {
+			int store = -source->Left;
+			destination->Left = -source->Right;
+			destination->Right = store;
+		}
+		if (direction & FLIP_Y) {
+			int top = -source->Top;
+			destination->Top = -source->Bottom;
+			destination->Bottom = top;
+		}
+	};
+	static int RegisterHitbox(int type, int dir, Entity* entity, CollisionBox* hitbox);
+	static bool CheckEntityTouch(Entity* thisEntity,
+		CollisionBox* thisHitbox,
+		Entity* otherEntity,
+		CollisionBox* otherHitbox);
+	static bool CheckEntityCircle(Entity* thisEntity,
+		float thisRadius,
+		Entity* otherEntity,
+		float otherRadius);
+	static int CheckEntityBox(Entity* thisEntity,
+		CollisionBox* thisHitbox,
+		Entity* otherEntity,
+		CollisionBox* otherHitbox,
+		bool setValues);
+	static bool CheckEntityPlatform(Entity* thisEntity,
+		CollisionBox* thisHitbox,
+		Entity* otherEntity,
+		CollisionBox* otherHitbox,
+		bool setValues);
+	static bool CheckTileCollision(Entity* entity,
+		int cLayers,
+		int cMode,
+		int cPlane,
+		int xOffset,
+		int yOffset,
+		bool setPos);
+	static bool CheckTileGrip(Entity* entity,
+		int cLayers,
+		int cMode,
+		int cPlane,
+		int xOffset,
+		int yOffset,
+		float tolerance);
+	static void SetCollisionVariables(float minDistance,
+		float lowTolerance,
+		float highTolerance,
+		int floorAngleTolerance,
+		int wallAngleTolerance,
+		int roofAngleTolerance);
+	static void
+	ProcessEntityMovement(Entity* entity, CollisionBox* outerBox, CollisionBox* innerBox);
+	static void SetPathGripSensors(CollisionSensor* sensors);
+	static void ProcessPathGrip();
+	static void ProcessAirCollision(bool isUp);
+	static void CheckVerticalPosition(CollisionSensor* sensor, bool isFloor);
+	static void CheckHorizontalPosition(CollisionSensor* sensor, bool isLeft);
+	static void CheckVerticalCollision(CollisionSensor* sensor, bool isFloor);
+	static void CheckHorizontalCollision(CollisionSensor* sensor, bool isLeft);
+};
+#endif /* ENGINE_SCENE_H */

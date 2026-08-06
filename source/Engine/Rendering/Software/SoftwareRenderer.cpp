@@ -13,6 +13,18 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/Types.h>
 
+#if HATCH_BIG_ENDIAN
+#define GET_R(color) ((color >> 24) & 0xFF)
+#define GET_G(color) ((color >> 8) & 0xFF)
+#define GET_B(color) ((color >> 16) & 0xFF)
+#define GET_A(color) ((color) & 0xFF)
+#else
+#define GET_R(color) ((color) & 0xFF)
+#define GET_G(color) ((color >> 8) & 0xFF)
+#define GET_B(color) ((color >> 16) & 0xFF)
+#define GET_A(color) ((color >> 24) & 0xFF)
+#endif
+
 GraphicsFunctions SoftwareRenderer::BackendFunctions;
 Uint32 SoftwareRenderer::CompareColor = 0xFF000000U;
 Sint32 SoftwareRenderer::SpriteDeformBuffer[MAX_FRAMEBUFFER_HEIGHT];
@@ -23,27 +35,6 @@ int SoftwareRenderer::MultTableInv[0x10000];
 int SoftwareRenderer::MultSubTable[0x10000];
 
 BlendState CurrentBlendState;
-
-#if 0
-Uint32 ColorAdd(Uint32 color1, Uint32 color2, int percent) {
-	Uint32 r = (color1 & 0xFF0000U) + (((color2 & 0xFF0000U) * percent) >> 8);
-	Uint32 g = (color1 & 0xFF00U) + (((color2 & 0xFF00U) * percent) >> 8);
-	Uint32 b = (color1 & 0xFFU) + (((color2 & 0xFFU) * percent) >> 8);
-    if (r > 0xFF0000U) r = 0xFF0000U;
-	if (g > 0xFF00U) g = 0xFF00U;
-	if (b > 0xFFU) b = 0xFFU;
-	return r | g | b;
-}
-Uint32 ColorSubtract(Uint32 color1, Uint32 color2, int percent) {
-    Sint32 r = (color1 & 0xFF0000U) - (((color2 & 0xFF0000U) * percent) >> 8);
-	Sint32 g = (color1 & 0xFF00U) - (((color2 & 0xFF00U) * percent) >> 8);
-	Sint32 b = (color1 & 0xFFU) - (((color2 & 0xFFU) * percent) >> 8);
-    if (r < 0) r = 0;
-	if (g < 0) g = 0;
-	if (b < 0) b = 0;
-	return r | g | b;
-}
-#endif
 
 #define CLAMP_VAL(v, a, b) \
 	if (v < a) \
@@ -118,6 +109,8 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 
 	// Texture management functions
 	SoftwareRenderer::BackendFunctions.CreateTexture = SoftwareRenderer::CreateTexture;
+	SoftwareRenderer::BackendFunctions.ReinitializeTexture =
+		SoftwareRenderer::ReinitializeTexture;
 	SoftwareRenderer::BackendFunctions.LockTexture = SoftwareRenderer::LockTexture;
 	SoftwareRenderer::BackendFunctions.UpdateTexture = SoftwareRenderer::UpdateTexture;
 	SoftwareRenderer::BackendFunctions.UnlockTexture = SoftwareRenderer::UnlockTexture;
@@ -170,8 +163,13 @@ void SoftwareRenderer::SetGraphicsFunctions() {
 	SoftwareRenderer::BackendFunctions.StrokeRectangle = SoftwareRenderer::StrokeRectangle;
 	SoftwareRenderer::BackendFunctions.FillCircle = SoftwareRenderer::FillCircle;
 	SoftwareRenderer::BackendFunctions.FillEllipse = SoftwareRenderer::FillEllipse;
-	SoftwareRenderer::BackendFunctions.FillTriangle = SoftwareRenderer::FillTriangle;
 	SoftwareRenderer::BackendFunctions.FillRectangle = SoftwareRenderer::FillRectangle;
+	SoftwareRenderer::BackendFunctions.FillTriangle = SoftwareRenderer::FillTriangle;
+	SoftwareRenderer::BackendFunctions.FillTriangleBlend = SoftwareRenderer::FillTriangleBlend;
+	SoftwareRenderer::BackendFunctions.FillQuad = SoftwareRenderer::FillQuad;
+	SoftwareRenderer::BackendFunctions.FillQuadBlend = SoftwareRenderer::FillQuadBlend;
+	SoftwareRenderer::BackendFunctions.DrawTriangle = SoftwareRenderer::DrawTriangle;
+	SoftwareRenderer::BackendFunctions.DrawQuad = SoftwareRenderer::DrawQuad;
 
 	// Texture drawing functions
 	SoftwareRenderer::BackendFunctions.DrawTexture = SoftwareRenderer::DrawTexture;
@@ -209,26 +207,48 @@ void SoftwareRenderer::RenderEnd(int viewIndex) {}
 // Texture management functions
 Texture*
 SoftwareRenderer::CreateTexture(Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
-	Texture* texture = NULL; // Texture::New(format, access, width, height);
-
-	return texture;
+	if (Graphics::Internal.CreateTexture) {
+		return Graphics::Internal.CreateTexture(format, access, width, height);
+	}
+	return nullptr;
+}
+bool SoftwareRenderer::ReinitializeTexture(Texture* texture,
+	Uint32 format,
+	Uint32 access,
+	Uint32 width,
+	Uint32 height) {
+	return false;
 }
 int SoftwareRenderer::LockTexture(Texture* texture, void** pixels, int* pitch) {
 	return 0;
 }
 int SoftwareRenderer::UpdateTexture(Texture* texture, SDL_Rect* src, void* pixels, int pitch) {
-	return 0;
+	if (Graphics::Internal.UpdateTexture) {
+		return Graphics::Internal.UpdateTexture(texture, src, pixels, pitch);
+	}
+	return 1;
 }
 void SoftwareRenderer::UnlockTexture(Texture* texture) {}
 void SoftwareRenderer::DisposeTexture(Texture* texture) {}
+
+Uint32* SoftwareRenderer::GetTextureData(Texture* texture) {
+	if (texture->DriverPixelData && texture->DriverFormat == TextureFormat_RGBA8888) {
+		return (Uint32*)texture->DriverPixelData;
+	}
+	else if (texture->Format == TextureFormat_RGBA8888) {
+		return (Uint32*)texture->Pixels;
+	}
+
+	return nullptr;
+}
 
 // Viewport and view-related functions
 bool SoftwareRenderer::SetRenderTarget(Texture* texture) {
 	return true;
 }
-void SoftwareRenderer::ReadFramebuffer(void* pixels, int width, int height) {
+void SoftwareRenderer::ReadFramebuffer(void* pixels, int x, int y, int width, int height) {
 	if (Graphics::Internal.ReadFramebuffer) {
-		Graphics::Internal.ReadFramebuffer(pixels, width, height);
+		Graphics::Internal.ReadFramebuffer(pixels, x, y, width, height);
 	}
 }
 void SoftwareRenderer::UpdateWindowSize(int width, int height) {
@@ -320,31 +340,25 @@ void SoftwareRenderer::SetFilter(int filter) {
 // These guys
 void SoftwareRenderer::Clear() {
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
-	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
 
-	memset(dstPx, 0, dstStride * Graphics::CurrentRenderTarget->Height * 4);
+	memset(dstPx, 0, Graphics::CurrentRenderTarget->Pitch * Graphics::CurrentRenderTarget->Height);
 
 	ClearStencil();
 }
 void SoftwareRenderer::Present() {}
 
 // Draw mode setting functions
-#define GET_R(color) ((color >> 16) & 0xFF)
-#define GET_G(color) ((color >> 8) & 0xFF)
-#define GET_B(color) ((color) & 0xFF)
 void SoftwareRenderer::SetColor(Uint32 color) {
 	ColRGB = color;
 	ColR = GET_R(color);
 	ColG = GET_G(color);
 	ColB = GET_B(color);
-	Graphics::ConvertFromARGBtoNative(&ColRGB, 1);
 }
 void SoftwareRenderer::SetBlendColor(float r, float g, float b, float a) {
 	ColR = (Uint8)(r * 0xFF);
 	ColG = (Uint8)(g * 0xFF);
 	ColB = (Uint8)(b * 0xFF);
 	ColRGB = ColorUtils::ToRGB(ColR, ColG, ColB);
-	Graphics::ConvertFromARGBtoNative(&ColRGB, 1);
 
 	int opacity = (int)(a * 0xFF);
 	CLAMP_VAL(opacity, 0x00, 0xFF);
@@ -364,10 +378,8 @@ void SoftwareRenderer::SetTintColor(float r, float g, float b, float a) {
 	CLAMP_VAL(blue, 0x00, 0xFF);
 	CLAMP_VAL(alpha, 0x00, 0x100);
 
-	CurrentBlendState.Tint.Color = red << 16 | green << 8 | blue;
+	CurrentBlendState.Tint.Color = ColorUtils::ToRGB(red, green, blue);
 	CurrentBlendState.Tint.Amount = alpha;
-
-	Graphics::ConvertFromARGBtoNative(&CurrentBlendState.Tint.Color, 1);
 }
 void SoftwareRenderer::SetTintMode(int mode) {
 	CurrentBlendState.Tint.Mode = mode;
@@ -388,7 +400,7 @@ void SoftwareRenderer::Scale(float x, float y, float z) {}
 void SoftwareRenderer::Restore() {}
 
 Uint32 SoftwareRenderer::GetBlendColor() {
-	return ColorUtils::ToRGB(ColR, ColG, ColB);
+	return ColorUtils::ToRGB(ColR, ColG, ColB, CurrentBlendState.Opacity);
 }
 
 int SoftwareRenderer::ConvertBlendMode(int blendMode) {
@@ -453,9 +465,9 @@ void SoftwareRenderer::PixelNoFiltSetTransparent(Uint32* src,
 	int* multTableAt,
 	int* multSubTableAt) {
 	int* multInvTableAt = &MultTableInv[state.Opacity << 8];
-	*dst = 0xFF000000U | (multTableAt[GET_R(*src)] + multInvTableAt[GET_R(*dst)]) << 16 |
+	*dst = 0xFF000000U | (multTableAt[GET_R(*src)] + multInvTableAt[GET_R(*dst)]) |
 		(multTableAt[GET_G(*src)] + multInvTableAt[GET_G(*dst)]) << 8 |
-		(multTableAt[GET_B(*src)] + multInvTableAt[GET_B(*dst)]);
+		(multTableAt[GET_B(*src)] + multInvTableAt[GET_B(*dst)]) << 16;
 }
 void SoftwareRenderer::PixelNoFiltSetAdditive(Uint32* src,
 	Uint32* dst,
@@ -474,7 +486,7 @@ void SoftwareRenderer::PixelNoFiltSetAdditive(Uint32* src,
 	if (B > 0xFF) {
 		B = 0xFF;
 	}
-	*dst = 0xFF000000U | (R << 16) | (G << 8) | B;
+	*dst = 0xFF000000U | (B << 16) | (G << 8) | R;
 }
 void SoftwareRenderer::PixelNoFiltSetSubtract(Uint32* src,
 	Uint32* dst,
@@ -493,7 +505,7 @@ void SoftwareRenderer::PixelNoFiltSetSubtract(Uint32* src,
 	if (B < 0) {
 		B = 0;
 	}
-	*dst = 0xFF000000U | (R << 16) | (G << 8) | B;
+	*dst = 0xFF000000U | (B << 16) | (G << 8) | R;
 }
 void SoftwareRenderer::PixelNoFiltSetMatchEqual(Uint32* src,
 	Uint32* dst,
@@ -584,8 +596,6 @@ static PixelFunction PixelTintFunctions[] = {SoftwareRenderer::PixelTintSetOpaqu
 	SoftwareRenderer::PixelTintSetMatchEqual,
 	SoftwareRenderer::PixelTintSetMatchNotEqual};
 
-#define GET_FILTER_COLOR(col) ((col & 0xF80000) >> 9 | (col & 0xF800) >> 6 | (col & 0xF8) >> 3)
-
 static Uint32 TintNormalSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
 	return ColorUtils::Tint(*src, tintColor, tintAmount);
 }
@@ -599,37 +609,30 @@ static Uint32 TintBlendDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 t
 	return ColorUtils::Blend(*dst, tintColor, tintAmount);
 }
 
-static Uint32 FilterBW(Uint32 color) {
-	Uint8 red = GET_R(color);
-	Uint8 green = GET_G(color);
-	Uint8 blue = GET_B(color);
-
+static Uint32 FilterBW(Uint8 red, Uint8 green, Uint8 blue) {
 	float luminance = ((float)red * 0.2126) + ((float)green * 0.7152) + ((float)blue * 0.0722);
 
 	int bw = (int)luminance;
+	if (bw > 0xFF) {
+		bw = 0xFF;
+	}
+
 	return bw << 16 | bw << 8 | bw | 0xFF000000U;
 }
 
-static Uint32 FilterBWSourceARGB(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
-	return FilterBW(*src);
-}
-static Uint32 FilterBWDestARGB(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
-	return FilterBW(*dst);
-}
-
 static Uint32 FilterBWSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
-	Uint32 color = *src;
+	Uint8 red = GET_R(*src);
+	Uint8 green = GET_G(*src);
+	Uint8 blue = GET_B(*src);
 
-	Graphics::ConvertFromNativeToARGB(&color, 1);
-
-	return FilterBW(color);
+	return FilterBW(red, green, blue);
 }
 static Uint32 FilterBWDest(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
-	Uint32 color = *dst;
+	Uint8 red = GET_R(*dst);
+	Uint8 green = GET_G(*dst);
+	Uint8 blue = GET_B(*dst);
 
-	Graphics::ConvertFromNativeToARGB(&color, 1);
-
-	return FilterBW(color);
+	return FilterBW(red, green, blue);
 }
 
 static Uint32 FilterInvertSource(Uint32* src, Uint32* dst, Uint32 tintColor, Uint32 tintAmount) {
@@ -645,12 +648,7 @@ static TintFunction GetTintFunction(int blendFlags) {
 
 		switch (CurrentBlendState.FilterMode) {
 		case Filter_BLACK_AND_WHITE:
-			if (Graphics::PreferredPixelFormat == SDL_PIXELFORMAT_ARGB8888) {
-				return isDest ? FilterBWDestARGB : FilterBWSourceARGB;
-			}
-			else {
-				return isDest ? FilterBWDest : FilterBWSource;
-			}
+			return isDest ? FilterBWDest : FilterBWSource;
 		case Filter_INVERT:
 			return isDest ? FilterInvertDest : FilterInvertSource;
 		}
@@ -1043,14 +1041,6 @@ void SoftwareRenderer::DrawScene3D(Uint32 sceneIndex, Uint32 drawMode) {
 	bool sortFaces = !doDepthTest && vertexBuffer->FaceCount > 1;
 	if (Graphics::TextureBlend) {
 		sortFaces = true;
-	}
-
-	// Convert vertex colors to native format
-	if (Graphics::PreferredPixelFormat != SDL_PIXELFORMAT_ARGB8888) {
-		VertexAttribute* vertex = vertexAttribsPtr;
-		for (Uint32 i = 0; i < vertexBuffer->VertexCount; i++, vertex++) {
-			Graphics::ConvertFromARGBtoNative(&vertex->Color, 1);
-		}
 	}
 
 	// Get the face depth and vertices' start index
@@ -1580,7 +1570,7 @@ void SoftwareRenderer::DrawSceneLayer3D(void* layer,
 	Matrix4x4* modelMatrix,
 	Matrix4x4* normalMatrix) {
 	if (SetupPolygonRenderer(modelMatrix, normalMatrix)) {
-		polygonRenderer.DrawSceneLayer3D((SceneLayer*)layer, sx, sy, sw, sh);
+		polygonRenderer.DrawSceneLayer3D((TileLayer*)layer, sx, sy, sw, sh);
 	}
 }
 void SoftwareRenderer::DrawModel(void* model,
@@ -2148,7 +2138,8 @@ void SoftwareRenderer::StrokeThickCircle(float x, float y, float rad, float thic
 
 	Uint32 col = ColRGB;
 
-	RasterizeEllipse(x, y, dst_x1, dst_y1, dst_x2, dst_y2, width, height, contourBufferA, nullptr);
+	RasterizeEllipse(
+		x, y, dst_x1, dst_y1, dst_x2, dst_y2, width, height, contourBufferA, nullptr);
 	RasterizeEllipse(x,
 		y,
 		in_dst_x1,
@@ -2446,7 +2437,8 @@ void SoftwareRenderer::FillCircle(float x, float y, float rad) {
 	int opacity = blendState.Opacity;
 
 	InitContour(ContourBuffer, dst_y1, dst_y2 - dst_y1 + 1);
-	RasterizeEllipse(x, y, dst_x1, dst_y1, dst_x2, dst_y2, width, height, ContourBuffer, nullptr);
+	RasterizeEllipse(
+		x, y, dst_x1, dst_y1, dst_x2, dst_y2, width, height, ContourBuffer, nullptr);
 
 	Uint32 col = ColRGB;
 
@@ -2502,7 +2494,9 @@ void SoftwareRenderer::FillCircle(float x, float y, float rad) {
 		}
 	}
 }
-void SoftwareRenderer::FillEllipse(float x, float y, float w, float h) {}
+void SoftwareRenderer::FillEllipse(float x, float y, float w, float h) {
+	// TODO
+}
 void SoftwareRenderer::FillRectangle(float x, float y, float w, float h) {
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
@@ -2635,15 +2629,7 @@ void SoftwareRenderer::FillTriangle(float x1, float y1, float x2, float y2, floa
 	vectors[2].Y = ((int)y3 + y) << 16;
 	PolygonRasterizer::DrawBasic(vectors, ColRGB, 3, blendState);
 }
-void SoftwareRenderer::FillTriangleBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3) {
+void SoftwareRenderer::FillTriangleBlend(float* xc, float* yc, int* colors) {
 	View* currentView = Graphics::CurrentView;
 	if (!currentView) {
 		return;
@@ -2664,6 +2650,13 @@ void SoftwareRenderer::FillTriangleBlend(float x1,
 	y += out->Values[13];
 	x -= cx;
 	y -= cy;
+
+	float x1 = xc[0];
+	float y1 = yc[0];
+	float x2 = xc[1];
+	float y2 = yc[1];
+	float x3 = xc[2];
+	float y3 = yc[2];
 
 	if (currentView->IsScaled()) {
 		x1 *= currentView->ScaleX;
@@ -2674,27 +2667,19 @@ void SoftwareRenderer::FillTriangleBlend(float x1,
 		y3 *= currentView->ScaleY;
 	}
 
-	int colors[3];
 	Vector2 vectors[3];
 	vectors[0].X = ((int)x1 + x) << 16;
 	vectors[0].Y = ((int)y1 + y) << 16;
-	colors[0] = ColorUtils::Multiply(c1, GetBlendColor());
+	colors[0] = ColorUtils::Multiply(colors[0], GetBlendColor());
 	vectors[1].X = ((int)x2 + x) << 16;
 	vectors[1].Y = ((int)y2 + y) << 16;
-	colors[1] = ColorUtils::Multiply(c2, GetBlendColor());
+	colors[1] = ColorUtils::Multiply(colors[1], GetBlendColor());
 	vectors[2].X = ((int)x3 + x) << 16;
 	vectors[2].Y = ((int)y3 + y) << 16;
-	colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
+	colors[2] = ColorUtils::Multiply(colors[2], GetBlendColor());
 	PolygonRasterizer::DrawBasicBlend(vectors, colors, 3, blendState);
 }
-void SoftwareRenderer::FillQuad(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4) {
+void SoftwareRenderer::FillQuad(float* xc, float* yc) {
 	View* currentView = Graphics::CurrentView;
 	if (!currentView) {
 		return;
@@ -2715,6 +2700,15 @@ void SoftwareRenderer::FillQuad(float x1,
 	y += out->Values[13];
 	x -= cx;
 	y -= cy;
+
+	float x1 = xc[0];
+	float y1 = yc[0];
+	float x2 = xc[1];
+	float y2 = yc[1];
+	float x3 = xc[2];
+	float y3 = yc[2];
+	float x4 = xc[3];
+	float y4 = yc[3];
 
 	if (currentView->IsScaled()) {
 		x1 *= currentView->ScaleX;
@@ -2738,18 +2732,7 @@ void SoftwareRenderer::FillQuad(float x1,
 	vectors[3].Y = ((int)y4 + y) << 16;
 	PolygonRasterizer::DrawBasic(vectors, ColRGB, 4, blendState);
 }
-void SoftwareRenderer::FillQuadBlend(float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4) {
+void SoftwareRenderer::FillQuadBlend(float* xc, float* yc, int* colors) {
 	View* currentView = Graphics::CurrentView;
 	if (!currentView) {
 		return;
@@ -2771,6 +2754,15 @@ void SoftwareRenderer::FillQuadBlend(float x1,
 	x -= cx;
 	y -= cy;
 
+	float x1 = xc[0];
+	float y1 = yc[0];
+	float x2 = xc[1];
+	float y2 = yc[1];
+	float x3 = xc[2];
+	float y3 = yc[2];
+	float x4 = xc[3];
+	float y4 = yc[3];
+
 	if (currentView->IsScaled()) {
 		x1 *= currentView->ScaleX;
 		y1 *= currentView->ScaleY;
@@ -2782,22 +2774,38 @@ void SoftwareRenderer::FillQuadBlend(float x1,
 		y4 *= currentView->ScaleY;
 	}
 
-	int colors[4];
 	Vector2 vectors[4];
 	vectors[0].X = ((int)x1 + x) << 16;
 	vectors[0].Y = ((int)y1 + y) << 16;
-	colors[0] = ColorUtils::Multiply(c1, GetBlendColor());
+	colors[0] = ColorUtils::Multiply(colors[0], GetBlendColor());
 	vectors[1].X = ((int)x2 + x) << 16;
 	vectors[1].Y = ((int)y2 + y) << 16;
-	colors[1] = ColorUtils::Multiply(c2, GetBlendColor());
+	colors[1] = ColorUtils::Multiply(colors[1], GetBlendColor());
 	vectors[2].X = ((int)x3 + x) << 16;
 	vectors[2].Y = ((int)y3 + y) << 16;
-	colors[2] = ColorUtils::Multiply(c3, GetBlendColor());
+	colors[2] = ColorUtils::Multiply(colors[2], GetBlendColor());
 	vectors[3].X = ((int)x4 + x) << 16;
 	vectors[3].Y = ((int)y4 + y) << 16;
-	colors[3] = ColorUtils::Multiply(c4, GetBlendColor());
+	colors[3] = ColorUtils::Multiply(colors[3], GetBlendColor());
 	PolygonRasterizer::DrawBasicBlend(vectors, colors, 4, blendState);
 }
+void SoftwareRenderer::DrawTriangle(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {
+	DrawShapeTextured(texture, 3, xc, yc, colors, tu, tv);
+}
+void SoftwareRenderer::DrawQuad(Texture* texture,
+	float* xc,
+	float* yc,
+	float* tu,
+	float* tv,
+	int* colors) {
+	DrawShapeTextured(texture, 4, xc, yc, colors, tu, tv);
+}
+
 void SoftwareRenderer::DrawShapeTextured(Texture* texturePtr,
 	unsigned numPoints,
 	float* px,
@@ -2826,128 +2834,55 @@ void SoftwareRenderer::DrawShapeTextured(Texture* texturePtr,
 	x -= cx;
 	y -= cy;
 
-	int colors[MAX_POLYGON_VERTICES];
-	Vector3 vectors[MAX_POLYGON_VERTICES];
-	Vector2 uv[MAX_POLYGON_VERTICES];
-
 	if (numPoints > MAX_POLYGON_VERTICES) {
 		numPoints = MAX_POLYGON_VERTICES;
 	}
 
-	for (unsigned i = 0; i < numPoints; i++) {
-		float xx = px[i] + x;
-		float yy = py[i] + y;
+	if (texturePtr) {
+		Vector3 vectors[MAX_POLYGON_VERTICES];
+		int colors[MAX_POLYGON_VERTICES];
+		Vector2 uv[MAX_POLYGON_VERTICES];
 
-		if (currentView->IsScaled()) {
-			xx *= currentView->ScaleX;
-			yy *= currentView->ScaleY;
+		for (unsigned i = 0; i < numPoints; i++) {
+			float xx = px[i] + x;
+			float yy = py[i] + y;
+
+			if (currentView->IsScaled()) {
+				xx *= currentView->ScaleX;
+				yy *= currentView->ScaleY;
+			}
+
+			vectors[i].X = FP16_TO(xx);
+			vectors[i].Y = FP16_TO(yy);
+			vectors[i].Z = FP16_TO(1.0f);
+			colors[i] = ColorUtils::Multiply(pc[i], GetBlendColor());
+			uv[i].X = ((int)pu[i]) << 16;
+			uv[i].Y = ((int)pv[i]) << 16;
 		}
 
-		vectors[i].X = FP16_TO(xx);
-		vectors[i].Y = FP16_TO(yy);
-		vectors[i].Z = FP16_TO(1.0f);
-		colors[i] = ColorUtils::Multiply(pc[i], GetBlendColor());
-		uv[i].X = ((int)pu[i]) << 16;
-		uv[i].Y = ((int)pv[i]) << 16;
+		PolygonRasterizer::DrawBlendPerspective(
+			texturePtr, vectors, uv, colors, numPoints, blendState);
 	}
+	else {
+		Vector2 vectors[MAX_POLYGON_VERTICES];
+		int colors[MAX_POLYGON_VERTICES];
 
-	PolygonRasterizer::DrawBlendPerspective(
-		texturePtr, vectors, uv, colors, numPoints, blendState);
-}
-void SoftwareRenderer::DrawTriangleTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	int c1,
-	int c2,
-	int c3,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3) {
-	float px[3];
-	float py[3];
-	float pu[3];
-	float pv[3];
-	int pc[3];
+		for (unsigned i = 0; i < numPoints; i++) {
+			float xx = px[i] + x;
+			float yy = py[i] + y;
 
-	px[0] = x1;
-	py[0] = y1;
-	pu[0] = u1;
-	pv[0] = v1;
-	pc[0] = c1;
+			if (currentView->IsScaled()) {
+				xx *= currentView->ScaleX;
+				yy *= currentView->ScaleY;
+			}
 
-	px[1] = x2;
-	py[1] = y2;
-	pu[1] = u2;
-	pv[1] = v2;
-	pc[1] = c2;
+			vectors[i].X = FP16_TO(xx);
+			vectors[i].Y = FP16_TO(yy);
+			colors[i] = ColorUtils::Multiply(pc[i], GetBlendColor());
+		}
 
-	px[2] = x3;
-	py[2] = y3;
-	pu[2] = u3;
-	pv[2] = v3;
-	pc[2] = c3;
-
-	DrawShapeTextured(texturePtr, 3, px, py, pc, pu, pv);
-}
-void SoftwareRenderer::DrawQuadTextured(Texture* texturePtr,
-	float x1,
-	float y1,
-	float x2,
-	float y2,
-	float x3,
-	float y3,
-	float x4,
-	float y4,
-	int c1,
-	int c2,
-	int c3,
-	int c4,
-	float u1,
-	float v1,
-	float u2,
-	float v2,
-	float u3,
-	float v3,
-	float u4,
-	float v4) {
-	float px[4];
-	float py[4];
-	float pu[4];
-	float pv[4];
-	int pc[4];
-
-	px[0] = x1;
-	py[0] = y1;
-	pu[0] = u1;
-	pv[0] = v1;
-	pc[0] = c1;
-
-	px[1] = x2;
-	py[1] = y2;
-	pu[1] = u2;
-	pv[1] = v2;
-	pc[1] = c2;
-
-	px[2] = x3;
-	py[2] = y3;
-	pu[2] = u3;
-	pv[2] = v3;
-	pc[2] = c3;
-
-	px[3] = x4;
-	py[3] = y4;
-	pu[3] = u4;
-	pv[3] = v4;
-	pc[3] = c4;
-
-	DrawShapeTextured(texturePtr, 4, px, py, pc, pu, pv);
+		PolygonRasterizer::DrawBasicBlend(vectors, colors, numPoints, blendState);
+	}
 }
 
 void DrawSpriteImage(Texture* texture,
@@ -2960,7 +2895,7 @@ void DrawSpriteImage(Texture* texture,
 	int flipFlag,
 	int paletteID,
 	BlendState blendState) {
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = SoftwareRenderer::GetTextureData(texture);
 	Uint32 srcStride = texture->Width;
 	Uint32* srcPxLine;
 
@@ -3141,7 +3076,7 @@ void DrawSpriteImage(Texture* texture,
 	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
 
-	if (Graphics::UsePalettes && texture->Paletted) {
+	if (Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED) {
 		if (paletteID != PALETTE_INDEX_TABLE_ID) {
 			index = &Graphics::PaletteColors[paletteID][0];
 		}
@@ -3216,7 +3151,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 	int rotation,
 	int paletteID,
 	BlendState blendState) {
-	Uint32* srcPx = (Uint32*)texture->Pixels;
+	Uint32* srcPx = SoftwareRenderer::GetTextureData(texture);
 	Uint32 srcStride = texture->Width;
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
@@ -3539,7 +3474,7 @@ void DrawSpriteImageTransformed(Texture* texture,
 	int* multSubTableAt = &SoftwareRenderer::MultSubTable[opacity << 8];
 	Sint32* deformValues = &SoftwareRenderer::SpriteDeformBuffer[dst_y1];
 
-	if (Graphics::UsePalettes && texture->Paletted) {
+	if (Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED) {
 		if (paletteID != PALETTE_INDEX_TABLE_ID) {
 			index = &Graphics::PaletteColors[paletteID][0];
 		}
@@ -3879,7 +3814,7 @@ void SoftwareRenderer::DrawSpritePart(ISprite* sprite,
 }
 
 // Default Tile Display Line setup
-void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_HorizontalParallax(TileLayer* layer, View* currentView) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
@@ -3968,10 +3903,12 @@ void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
+		Uint32* texturePixelData = SoftwareRenderer::GetTextureData(texture);
 		srcStrides.push_back(srcStride = texture->Width);
 		tileSources.push_back(
-			(&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
-		isPalettedSources.push_back(Graphics::UsePalettes && texture->Paletted);
+			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
+		isPalettedSources.push_back(
+			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
 		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
 	}
 
@@ -4502,12 +4439,36 @@ void SoftwareRenderer::DrawSceneLayer_HorizontalParallax(SceneLayer* layer, View
 		}
 	}
 }
-void SoftwareRenderer::DrawSceneLayer_VerticalParallax(SceneLayer* layer, View* currentView) {}
-void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, View* currentView) {
+void SoftwareRenderer::DrawTileLayer_VerticalParallax(TileLayer* layer, View* currentView) {}
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines(TileLayer* layer, View* currentView) {
 	static vector<Uint32> srcStrides;
 	static vector<Uint32*> tileSources;
 	static vector<Uint8> isPalettedSources;
 	static vector<unsigned> paletteIDs;
+
+	BlendState blendState = GetBlendState();
+	if (!Graphics::TextureBlend) {
+		blendState.Mode = BlendFlag_OPAQUE;
+		blendState.Opacity = 0xFF;
+	}
+	if (!AlterBlendState(blendState)) {
+		return;
+	}
+
+	if (Scene::TileWidth == 16 && Scene::TileHeight == 16) {
+		if (blendState.Mode == BlendFlag_OPAQUE) {
+			DrawTileLayer_CustomTileScanLines_Opaque_16x16(layer, currentView);
+		}
+		else {
+			DrawTileLayer_CustomTileScanLines_16x16(layer, currentView);
+		}
+		return;
+	}
+	else if (blendState.Mode == BlendFlag_OPAQUE) {
+		DrawTileLayer_CustomTileScanLines_Opaque(layer, currentView);
+		return;
+	}
+
 	srcStrides.clear();
 	tileSources.clear();
 	isPalettedSources.clear();
@@ -4522,9 +4483,7 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 	int dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
 	int dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
 
-	// Uint32* srcPx = NULL;
 	Uint32 srcStride = 0;
-	// Uint32* srcPxLine;
 
 	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
@@ -4553,10 +4512,9 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 		return;
 	}
 
+	int layerWidthInPixels = layer->Width * Scene::TileWidth;
+	int layerHeightInPixels = layer->Height * Scene::TileHeight;
 	int layerWidthInBits = layer->WidthInBits;
-	int layerWidthTileMask = layer->WidthMask;
-	int layerHeightTileMask = layer->HeightMask;
-	int tile, sourceTileCellX, sourceTileCellY;
 
 	Uint32 color;
 	Uint32* index;
@@ -4567,10 +4525,12 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 		AnimFrame& frameStr =
 			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
 		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
+		Uint32* texturePixelData = SoftwareRenderer::GetTextureData(texture);
 		srcStrides.push_back(srcStride = texture->Width);
 		tileSources.push_back(
-			(&((Uint32*)texture->Pixels)[frameStr.X + frameStr.Y * srcStride]));
-		isPalettedSources.push_back(Graphics::UsePalettes && texture->Paletted);
+			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
+		isPalettedSources.push_back(
+			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
 		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
 	}
 
@@ -4583,8 +4543,358 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 		Sint64 srcX = scanLine->SrcX, srcY = scanLine->SrcY, srcDX = scanLine->DeltaX,
 		       srcDY = scanLine->DeltaY;
 
-		Uint32 maxHorzCells = scanLine->MaxHorzCells;
-		Uint32 maxVertCells = scanLine->MaxVertCells;
+		int widthMax = layerWidthInPixels;
+		int heightMax = layerHeightInPixels;
+
+		if (scanLine->MaxHorzCells != 0) {
+			widthMax = scanLine->MaxHorzCells * Scene::TileWidth;
+		}
+		if (scanLine->MaxVertCells != 0) {
+			heightMax = scanLine->MaxVertCells * Scene::TileHeight;
+		}
+
+		PixelFunction linePixelFunction = NULL;
+
+		blendState = GetBlendState();
+		if (Graphics::TextureBlend) {
+			blendState.Opacity -= 0xFF - scanLine->Opacity;
+			if (blendState.Opacity < 0) {
+				blendState.Opacity = 0;
+			}
+		}
+		else {
+			blendState.Mode = BlendFlag_OPAQUE;
+			blendState.Opacity = 0xFF;
+		}
+
+		int* multTableAt;
+		int* multSubTableAt;
+		int blendFlag;
+
+		if (!AlterBlendState(blendState)) {
+			goto scanlineDone;
+		}
+
+		blendFlag = blendState.Mode;
+		multTableAt = &MultTable[blendState.Opacity << 8];
+		multSubTableAt = &MultSubTable[blendState.Opacity << 8];
+
+		// TODO: Set CurrentPixelFunction instead whenever this
+		// supports the stencil.
+		if (blendFlag & (BlendFlag_TINT_BIT | BlendFlag_FILTER_BIT)) {
+			linePixelFunction = PixelTintFunctions[blendFlag & BlendFlag_MODE_MASK];
+			SetTintFunction(blendFlag);
+		}
+		else {
+			linePixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
+		}
+
+		for (int dst_x = dst_x1; dst_x < dst_x2; dst_x++) {
+			int srcTX = srcX >> 16;
+			int srcTY = srcY >> 16;
+
+			if (srcTX < 0) {
+				srcTX = -(srcTX % widthMax);
+			}
+			else if (srcTX >= widthMax) {
+				srcTX %= widthMax;
+			}
+
+			if (srcTY < 0) {
+				srcTY = -(srcTY % heightMax);
+			}
+			else if (srcTY >= heightMax) {
+				srcTY %= heightMax;
+			}
+
+			int sourceTileCellX = srcTX / Scene::TileWidth;
+			int sourceTileCellY = srcTY / Scene::TileHeight;
+
+			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID != Scene::EmptyTile) {
+				// If y-flipped
+				if (tile & TILE_FLIPY_MASK) {
+					srcTY ^= 15;
+				}
+				// If x-flipped
+				if (tile & TILE_FLIPX_MASK) {
+					srcTX ^= 15;
+				}
+
+				color = tileSources[tileID][(srcTX & 15) +
+					(srcTY & 15) * srcStrides[tileID]];
+				if (isPalettedSources[tileID]) {
+					if (usePaletteIndexLines) {
+						index = &Graphics::PaletteColors
+								[Graphics::PaletteIndexLines[dst_y]][0];
+					}
+					else {
+						index = &Graphics::PaletteColors[paletteIDs[tileID]][0];
+					}
+
+					if (color && (index[color] & 0xFF000000U)) {
+						linePixelFunction(&index[color],
+							&dstPxLine[dst_x],
+							blendState,
+							multTableAt,
+							multSubTableAt);
+					}
+				}
+				else if (color & 0xFF000000U) {
+					linePixelFunction(&color,
+						&dstPxLine[dst_x],
+						blendState,
+						multTableAt,
+						multSubTableAt);
+				}
+			}
+			srcX += srcDX;
+			srcY += srcDY;
+		}
+
+	scanlineDone:
+		scanLine++;
+		dst_strideY += dstStride;
+	}
+}
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque(TileLayer* layer, View* currentView) {
+	static vector<Uint32> srcStrides;
+	static vector<Uint32*> tileSources;
+	static vector<Uint8> isPalettedSources;
+	static vector<unsigned> paletteIDs;
+	srcStrides.clear();
+	tileSources.clear();
+	isPalettedSources.clear();
+	paletteIDs.clear();
+	srcStrides.reserve(Scene::TileSpriteInfos.size());
+	tileSources.reserve(Scene::TileSpriteInfos.size());
+	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
+	paletteIDs.reserve(Scene::TileSpriteInfos.size());
+
+	int dst_x1 = 0;
+	int dst_y1 = 0;
+	int dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
+	int dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+
+	Uint32 srcStride = 0;
+
+	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
+	Uint32* dstPxLine;
+
+	int clip_x1, clip_y1, clip_x2, clip_y2;
+	GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+	if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2)) {
+		return;
+	}
+
+	if (dst_x1 < clip_x1) {
+		dst_x1 = clip_x1;
+	}
+	if (dst_y1 < clip_y1) {
+		dst_y1 = clip_y1;
+	}
+	if (dst_x2 > clip_x2) {
+		dst_x2 = clip_x2;
+	}
+	if (dst_y2 > clip_y2) {
+		dst_y2 = clip_y2;
+	}
+
+	if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2) {
+		return;
+	}
+
+	int layerWidthInPixels = layer->Width * Scene::TileWidth;
+	int layerHeightInPixels = layer->Height * Scene::TileHeight;
+	int layerWidthInBits = layer->WidthInBits;
+
+	Uint32 color;
+	Uint32* index;
+	int dst_strideY = dst_y1 * dstStride;
+
+	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
+		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+		AnimFrame& frameStr =
+			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
+		Uint32* texturePixelData = SoftwareRenderer::GetTextureData(texture);
+		srcStrides.push_back(srcStride = texture->Width);
+		tileSources.push_back(
+			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
+		isPalettedSources.push_back(
+			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
+		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
+	}
+
+	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
+
+	TileScanLine* scanLine = &Graphics::TileScanLineBuffer[dst_y1];
+	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+		dstPxLine = dstPx + dst_strideY;
+
+		Sint64 srcX = scanLine->SrcX, srcY = scanLine->SrcY, srcDX = scanLine->DeltaX,
+		       srcDY = scanLine->DeltaY;
+
+		int widthMax = layerWidthInPixels;
+		int heightMax = layerHeightInPixels;
+
+		if (scanLine->MaxHorzCells != 0) {
+			widthMax = scanLine->MaxHorzCells * Scene::TileWidth;
+		}
+		if (scanLine->MaxVertCells != 0) {
+			heightMax = scanLine->MaxVertCells * Scene::TileHeight;
+		}
+
+		for (int dst_x = dst_x1; dst_x < dst_x2; dst_x++) {
+			int srcTX = srcX >> 16;
+			int srcTY = srcY >> 16;
+
+			if (srcTX < 0) {
+				srcTX = -(srcTX % widthMax);
+			}
+			else if (srcTX >= widthMax) {
+				srcTX %= widthMax;
+			}
+
+			if (srcTY < 0) {
+				srcTY = -(srcTY % heightMax);
+			}
+			else if (srcTY >= heightMax) {
+				srcTY %= heightMax;
+			}
+
+			int sourceTileCellX = srcTX / Scene::TileWidth;
+			int sourceTileCellY = srcTY / Scene::TileHeight;
+
+			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID != Scene::EmptyTile) {
+				// If y-flipped
+				if (tile & TILE_FLIPY_MASK) {
+					srcTY ^= 15;
+				}
+				// If x-flipped
+				if (tile & TILE_FLIPX_MASK) {
+					srcTX ^= 15;
+				}
+
+				color = tileSources[tileID][(srcTX & 15) +
+					(srcTY & 15) * srcStrides[tileID]];
+				if (isPalettedSources[tileID]) {
+					if (usePaletteIndexLines) {
+						index = &Graphics::PaletteColors
+								[Graphics::PaletteIndexLines[dst_y]][0];
+					}
+					else {
+						index = &Graphics::PaletteColors[paletteIDs[tileID]][0];
+					}
+
+					if (color && (index[color] & 0xFF000000U)) {
+						dstPxLine[dst_x] = index[color];
+					}
+				}
+				else if (color & 0xFF000000U) {
+					dstPxLine[dst_x] = color;
+				}
+			}
+			srcX += srcDX;
+			srcY += srcDY;
+		}
+
+		scanLine++;
+		dst_strideY += dstStride;
+	}
+}
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_16x16(TileLayer* layer, View* currentView) {
+	static vector<Uint32> srcStrides;
+	static vector<Uint32*> tileSources;
+	static vector<Uint8> isPalettedSources;
+	static vector<unsigned> paletteIDs;
+	srcStrides.clear();
+	tileSources.clear();
+	isPalettedSources.clear();
+	paletteIDs.clear();
+	srcStrides.reserve(Scene::TileSpriteInfos.size());
+	tileSources.reserve(Scene::TileSpriteInfos.size());
+	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
+	paletteIDs.reserve(Scene::TileSpriteInfos.size());
+
+	int dst_x1 = 0;
+	int dst_y1 = 0;
+	int dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
+	int dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+
+	Uint32 srcStride = 0;
+
+	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
+	Uint32* dstPxLine;
+
+	int clip_x1, clip_y1, clip_x2, clip_y2;
+	GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+	if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2)) {
+		return;
+	}
+
+	if (dst_x1 < clip_x1) {
+		dst_x1 = clip_x1;
+	}
+	if (dst_y1 < clip_y1) {
+		dst_y1 = clip_y1;
+	}
+	if (dst_x2 > clip_x2) {
+		dst_x2 = clip_x2;
+	}
+	if (dst_y2 > clip_y2) {
+		dst_y2 = clip_y2;
+	}
+
+	if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2) {
+		return;
+	}
+
+	int layerWidthInPixels = layer->Width << 4;
+	int layerHeightInPixels = layer->Height << 4;
+	int layerWidthInBits = layer->WidthInBits;
+
+	Uint32 color;
+	Uint32* index;
+	int dst_strideY = dst_y1 * dstStride;
+
+	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
+		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+		AnimFrame& frameStr =
+			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
+		Uint32* texturePixelData = SoftwareRenderer::GetTextureData(texture);
+		srcStrides.push_back(srcStride = texture->Width);
+		tileSources.push_back(
+			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
+		isPalettedSources.push_back(
+			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
+		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
+	}
+
+	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
+
+	TileScanLine* scanLine = &Graphics::TileScanLineBuffer[dst_y1];
+	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+		dstPxLine = dstPx + dst_strideY;
+
+		Sint64 srcX = scanLine->SrcX, srcY = scanLine->SrcY, srcDX = scanLine->DeltaX,
+		       srcDY = scanLine->DeltaY;
+
+		int widthMax = layerWidthInPixels;
+		int heightMax = layerHeightInPixels;
+
+		if (scanLine->MaxHorzCells != 0) {
+			widthMax = scanLine->MaxHorzCells << 4;
+		}
+		if (scanLine->MaxVertCells != 0) {
+			heightMax = scanLine->MaxVertCells << 4;
+		}
 
 		PixelFunction linePixelFunction = NULL;
 
@@ -4626,30 +4936,26 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 			int srcTX = srcX >> 16;
 			int srcTY = srcY >> 16;
 
-			sourceTileCellX = (srcX >> 20) & layerWidthTileMask;
-			sourceTileCellY = (srcY >> 20) & layerHeightTileMask;
-
-			if (maxHorzCells != 0) {
-				sourceTileCellX %= maxHorzCells;
+			if (srcTX < 0) {
+				srcTX = -(srcTX % widthMax);
 			}
-			if (maxVertCells != 0) {
-				sourceTileCellY %= maxVertCells;
+			else if (srcTX >= widthMax) {
+				srcTX %= widthMax;
 			}
 
-			tile = layer->Tiles[sourceTileCellX +
-				(sourceTileCellY << layerWidthInBits)];
+			if (srcTY < 0) {
+				srcTY = -(srcTY % heightMax);
+			}
+			else if (srcTY >= heightMax) {
+				srcTY %= heightMax;
+			}
 
-			if ((tile & TILE_IDENT_MASK) != Scene::EmptyTile) {
-				int tileID = tile & TILE_IDENT_MASK;
+			int sourceTileCellX = srcTX >> 4;
+			int sourceTileCellY = srcTY >> 4;
 
-				if (usePaletteIndexLines) {
-					index = &Graphics::PaletteColors
-							[Graphics::PaletteIndexLines[dst_y]][0];
-				}
-				else {
-					index = &Graphics::PaletteColors[paletteIDs[tileID]][0];
-				}
-
+			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID != Scene::EmptyTile) {
 				// If y-flipped
 				if (tile & TILE_FLIPY_MASK) {
 					srcTY ^= 15;
@@ -4662,6 +4968,14 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 				color = tileSources[tileID][(srcTX & 15) +
 					(srcTY & 15) * srcStrides[tileID]];
 				if (isPalettedSources[tileID]) {
+					if (usePaletteIndexLines) {
+						index = &Graphics::PaletteColors
+								[Graphics::PaletteIndexLines[dst_y]][0];
+					}
+					else {
+						index = &Graphics::PaletteColors[paletteIDs[tileID]][0];
+					}
+
 					if (color && (index[color] & 0xFF000000U)) {
 						linePixelFunction(&index[color],
 							&dstPxLine[dst_x],
@@ -4689,12 +5003,157 @@ void SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(SceneLayer* layer, Vie
 		dst_strideY += dstStride;
 	}
 }
-void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
-	View* currentView,
-	int layerIndex,
-	bool useCustomFunction) {
-	if (layer->UsingCustomRenderFunction && useCustomFunction) {
-		Graphics::RunCustomSceneLayerFunction(&layer->CustomRenderFunction, layerIndex);
+void SoftwareRenderer::DrawTileLayer_CustomTileScanLines_Opaque_16x16(TileLayer* layer, View* currentView) {
+	static vector<Uint32> srcStrides;
+	static vector<Uint32*> tileSources;
+	static vector<Uint8> isPalettedSources;
+	static vector<unsigned> paletteIDs;
+	srcStrides.clear();
+	tileSources.clear();
+	isPalettedSources.clear();
+	paletteIDs.clear();
+	srcStrides.reserve(Scene::TileSpriteInfos.size());
+	tileSources.reserve(Scene::TileSpriteInfos.size());
+	isPalettedSources.reserve(Scene::TileSpriteInfos.size());
+	paletteIDs.reserve(Scene::TileSpriteInfos.size());
+
+	int dst_x1 = 0;
+	int dst_y1 = 0;
+	int dst_x2 = (int)Graphics::CurrentRenderTarget->Width;
+	int dst_y2 = (int)Graphics::CurrentRenderTarget->Height;
+
+	Uint32 srcStride = 0;
+
+	Uint32* dstPx = (Uint32*)Graphics::CurrentRenderTarget->Pixels;
+	Uint32 dstStride = Graphics::CurrentRenderTarget->Width;
+	Uint32* dstPxLine;
+
+	int clip_x1, clip_y1, clip_x2, clip_y2;
+	GetClipRegion(clip_x1, clip_y1, clip_x2, clip_y2);
+	if (!CheckClipRegion(clip_x1, clip_y1, clip_x2, clip_y2)) {
+		return;
+	}
+
+	if (dst_x1 < clip_x1) {
+		dst_x1 = clip_x1;
+	}
+	if (dst_y1 < clip_y1) {
+		dst_y1 = clip_y1;
+	}
+	if (dst_x2 > clip_x2) {
+		dst_x2 = clip_x2;
+	}
+	if (dst_y2 > clip_y2) {
+		dst_y2 = clip_y2;
+	}
+
+	if (dst_x2 < 0 || dst_y2 < 0 || dst_x1 >= dst_x2 || dst_y1 >= dst_y2) {
+		return;
+	}
+
+	int layerWidthInPixels = layer->Width << 4;
+	int layerHeightInPixels = layer->Height << 4;
+	int layerWidthInBits = layer->WidthInBits;
+
+	Uint32 color;
+	Uint32* index;
+	int dst_strideY = dst_y1 * dstStride;
+
+	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
+		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
+		AnimFrame& frameStr =
+			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex];
+		Texture* texture = info.Sprite->Spritesheets[frameStr.SheetNumber];
+		Uint32* texturePixelData = SoftwareRenderer::GetTextureData(texture);
+		srcStrides.push_back(srcStride = texture->Width);
+		tileSources.push_back(
+			(&(texturePixelData)[frameStr.X + frameStr.Y * srcStride]));
+		isPalettedSources.push_back(
+			Graphics::UsePalettes && texture->Format == TextureFormat_INDEXED);
+		paletteIDs.push_back(Scene::Tilesets[info.TilesetID].PaletteID);
+	}
+
+	bool usePaletteIndexLines = Graphics::UsePaletteIndexLines && layer->UsePaletteIndexLines;
+
+	TileScanLine* scanLine = &Graphics::TileScanLineBuffer[dst_y1];
+	for (int dst_y = dst_y1; dst_y < dst_y2; dst_y++) {
+		dstPxLine = dstPx + dst_strideY;
+
+		Sint64 srcX = scanLine->SrcX, srcY = scanLine->SrcY, srcDX = scanLine->DeltaX,
+		       srcDY = scanLine->DeltaY;
+
+		int widthMax = layerWidthInPixels;
+		int heightMax = layerHeightInPixels;
+
+		if (scanLine->MaxHorzCells != 0) {
+			widthMax = scanLine->MaxHorzCells << 4;
+		}
+		if (scanLine->MaxVertCells != 0) {
+			heightMax = scanLine->MaxVertCells << 4;
+		}
+
+		for (int dst_x = dst_x1; dst_x < dst_x2; dst_x++) {
+			int srcTX = srcX >> 16;
+			int srcTY = srcY >> 16;
+
+			if (srcTX < 0) {
+				srcTX = -(srcTX % widthMax);
+			}
+			else if (srcTX >= widthMax) {
+				srcTX %= widthMax;
+			}
+
+			if (srcTY < 0) {
+				srcTY = -(srcTY % heightMax);
+			}
+			else if (srcTY >= heightMax) {
+				srcTY %= heightMax;
+			}
+
+			int sourceTileCellX = srcTX >> 4;
+			int sourceTileCellY = srcTY >> 4;
+
+			int tile = layer->Tiles[sourceTileCellX + (sourceTileCellY << layerWidthInBits)];
+			int tileID = tile & TILE_IDENT_MASK;
+			if (tileID != Scene::EmptyTile) {
+				// If y-flipped
+				if (tile & TILE_FLIPY_MASK) {
+					srcTY ^= 15;
+				}
+				// If x-flipped
+				if (tile & TILE_FLIPX_MASK) {
+					srcTX ^= 15;
+				}
+
+				color = tileSources[tileID][(srcTX & 15) +
+					(srcTY & 15) * srcStrides[tileID]];
+				if (isPalettedSources[tileID]) {
+					if (usePaletteIndexLines) {
+						index = &Graphics::PaletteColors
+								[Graphics::PaletteIndexLines[dst_y]][0];
+					}
+					else {
+						index = &Graphics::PaletteColors[paletteIDs[tileID]][0];
+					}
+
+					if (color && (index[color] & 0xFF000000U)) {
+						dstPxLine[dst_x] = index[color];
+					}
+				}
+				else if (color & 0xFF000000U) {
+					dstPxLine[dst_x] = color;
+				}
+			}
+			srcX += srcDX;
+			srcY += srcDY;
+		}
+
+		scanLine++;
+		dst_strideY += dstStride;
+	}
+}
+void SoftwareRenderer::DrawTileLayer(TileLayer* layer, int layerIndex, View* currentView) {
+	if (Scene::Tilesets.size() == 0) {
 		return;
 	}
 
@@ -4703,15 +5162,17 @@ void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
 		Graphics::RunCustomSceneLayerFunction(&layer->CustomScanlineFunction, layerIndex);
 	}
 	else {
-		Graphics::DrawSceneLayer_InitTileScanLines(layer, currentView);
+		Graphics::DrawTileLayer_InitTileScanLines(layer, currentView);
 	}
 
 	// TODO: Implement view rotation
 	if (currentView->IsScaled()) {
-		float scrollOffset = Scene::Frame * layer->ConstantY;
+		float constantScrollH = Scene::Frame * layer->ConstantX;
+		float constantScrollV = Scene::Frame * layer->ConstantY;
+		Sint64 srcX = FP16_TO(
+			constantScrollH + (currentView->X * layer->RelativeX) + layer->OffsetX);
 		Sint64 srcY = FP16_TO(
-			scrollOffset + ((currentView->Y + layer->OffsetY) * layer->RelativeY));
-		Sint64 rowStartX = FP16_TO(currentView->X + layer->OffsetX);
+			constantScrollV + (currentView->Y * layer->RelativeY) + layer->OffsetY);
 		Sint64 iScaleX, iScaleY;
 
 		float scaleX = currentView->ScaleX;
@@ -4725,26 +5186,26 @@ void SoftwareRenderer::DrawSceneLayer(SceneLayer* layer,
 
 		for (int i = 0; i < currentView->Height; i++) {
 			TileScanLine* scanLine = &Graphics::TileScanLineBuffer[i];
-			scanLine->SrcX = rowStartX;
+			scanLine->SrcX = srcX;
 			scanLine->SrcY = srcY;
 			scanLine->DeltaX = iScaleX;
 			scanLine->DeltaY = 0;
 			srcY += iScaleY;
 		}
 
-		SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(layer, currentView);
+		SoftwareRenderer::DrawTileLayer_CustomTileScanLines(layer, currentView);
 		return;
 	}
 
 	switch (layer->DrawBehavior) {
 	case DrawBehavior_HorizontalParallax:
-		SoftwareRenderer::DrawSceneLayer_HorizontalParallax(layer, currentView);
+		SoftwareRenderer::DrawTileLayer_HorizontalParallax(layer, currentView);
 		break;
 	case DrawBehavior_VerticalParallax:
-		SoftwareRenderer::DrawSceneLayer_VerticalParallax(layer, currentView);
+		SoftwareRenderer::DrawTileLayer_VerticalParallax(layer, currentView);
 		break;
 	case DrawBehavior_CustomTileScanLines:
-		SoftwareRenderer::DrawSceneLayer_CustomTileScanLines(layer, currentView);
+		SoftwareRenderer::DrawTileLayer_CustomTileScanLines(layer, currentView);
 		break;
 	}
 }

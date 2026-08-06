@@ -135,12 +135,12 @@ void Scanline::Process(int color1, int color2, int x1, int y1, int x2, int y2) {
 		yEndBound = maxY;
 	}
 
-	int colorBegRED = (cStart & 0xFF0000);
-	int colorEndRED = (cEnd & 0xFF0000);
+	int colorBegRED = (cStart & 0xFF) << 16;
+	int colorEndRED = (cEnd & 0xFF) << 16;
 	int colorBegGREEN = (cStart & 0xFF00) << 8;
 	int colorEndGREEN = (cEnd & 0xFF00) << 8;
-	int colorBegBLUE = (cStart & 0xFF) << 16;
-	int colorEndBLUE = (cEnd & 0xFF) << 16;
+	int colorBegBLUE = (cStart & 0xFF0000);
+	int colorEndBLUE = (cEnd & 0xFF0000);
 
 	int linePointSubpxX = xStart * 0x10000;
 	int yDiff = (yEnd - yStart);
@@ -343,12 +343,12 @@ void Scanline::ProcessDepth(int color1,
 	float invZStart = 1.0f / zStart; // 1/z
 	float invZEnd = 1.0f / zEnd; // 1/z at end
 
-	int colorBegRED = (cStart & 0xFF0000);
-	int colorEndRED = (cEnd & 0xFF0000);
+	int colorBegRED = (cStart & 0xFF) << 16;
+	int colorEndRED = (cEnd & 0xFF) << 16;
 	int colorBegGREEN = (cStart & 0xFF00) << 8;
 	int colorEndGREEN = (cEnd & 0xFF00) << 8;
-	int colorBegBLUE = (cStart & 0xFF) << 16;
-	int colorEndBLUE = (cEnd & 0xFF) << 16;
+	int colorBegBLUE = (cStart & 0xFF0000);
+	int colorEndBLUE = (cEnd & 0xFF0000);
 
 	int linePointSubpxX = xStart * 0x10000;
 	int yDiff = (yEnd - yStart);
@@ -598,12 +598,12 @@ void Scanline::ProcessUVAffine(int color1,
 		yEndBound = maxY;
 	}
 
-	int colorBegRED = (cStart & 0xFF0000);
-	int colorEndRED = (cEnd & 0xFF0000);
+	int colorBegRED = (cStart & 0xFF) << 16;
+	int colorEndRED = (cEnd & 0xFF) << 16;
 	int colorBegGREEN = (cStart & 0xFF00) << 8;
 	int colorEndGREEN = (cEnd & 0xFF00) << 8;
-	int colorBegBLUE = (cStart & 0xFF) << 16;
-	int colorEndBLUE = (cEnd & 0xFF) << 16;
+	int colorBegBLUE = (cStart & 0xFF0000);
+	int colorEndBLUE = (cEnd & 0xFF0000);
 
 	float invZStart = 1.0f / zStart; // 1/z
 	float invZEnd = 1.0f / zEnd; // 1/z at end
@@ -750,7 +750,7 @@ void Scanline::ProcessUV(Vector2 uv1, Vector2 uv2, int x1, int y1, int z1, int x
 	}
 
 	// We can interpolate 1/z, u/z, v/z because they're linear in
-	// screen space To index the texture, we calculate 1 / (1/z)
+	// screen space. To index the texture, we calculate 1 / (1/z)
 	// and multiply that by u/z and v/z
 	float invZStart = 1.0f / zStart; // 1/z
 	float invZEnd = 1.0f / zEnd; // 1/z at end
@@ -883,12 +883,12 @@ void Scanline::ProcessUV(int color1,
 		yEndBound = maxY;
 	}
 
-	float colorBegRED = (cStart & 0xFF0000) / zStart;
-	float colorEndRED = (cEnd & 0xFF0000) / zEnd;
+	float colorBegRED = ((cStart & 0xFF) * 0x10000) / zStart;
+	float colorEndRED = ((cEnd & 0xFF) * 0x10000) / zEnd;
 	float colorBegGREEN = ((cStart & 0xFF00) << 8) / zStart;
 	float colorEndGREEN = ((cEnd & 0xFF00) << 8) / zEnd;
-	float colorBegBLUE = ((cStart & 0xFF) * 0x10000) / zStart;
-	float colorEndBLUE = ((cEnd & 0xFF) * 0x10000) / zEnd;
+	float colorBegBLUE = (cStart & 0xFF0000) / zStart;
+	float colorEndBLUE = (cEnd & 0xFF0000) / zEnd;
 
 	float invZStart = 1.0f / zStart; // 1/z
 	float invZEnd = 1.0f / zEnd; // 1/z at end

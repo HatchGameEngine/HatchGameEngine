@@ -4,7 +4,7 @@
 
 Multiplatform engine powering projects and making ideas into reality.
 
-[![Lines of code](https://tokei.rs/b1/github/HatchGameEngine/HatchGameEngine?category=code)](https://github.com/XAMPPRocky/tokei)
+[Discord Server](https://discord.gg/ZSw23t2sSd)
 
 ## Building
 ### Microsoft Windows
@@ -28,5 +28,4 @@ Optional:
 - [Open Asset Import Library
   (`assimp`)](https://github.com/assimp/assimp)
 - libpng
-- libjpeg
 - libogg

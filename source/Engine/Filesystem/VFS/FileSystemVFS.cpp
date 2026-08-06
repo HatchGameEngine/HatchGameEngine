@@ -33,10 +33,7 @@ bool FileSystemVFS::GetPath(const char* filename, char* path, size_t pathSize) {
 }
 
 bool FileSystemVFS::IsEmpty() {
-	std::vector<std::filesystem::path> results;
-	Directory::GetFiles(&results, ParentPath.c_str(), "*", true);
-
-	return results.size() == 0;
+	return Directory::IsEmpty(ParentPath.c_str());
 }
 
 bool FileSystemVFS::HasFile(const char* filename) {
@@ -174,7 +171,7 @@ bool FileSystemVFS::EraseFile(const char* filename) {
 	return false;
 }
 
-VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path) {
+VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path, VFSEnumerationOptions options) {
 	VFSEnumeration enumeration;
 
 	std::string fullPath = ParentPath;
@@ -197,8 +194,13 @@ VFSEnumeration FileSystemVFS::EnumerateFiles(const char* path) {
 		fullPathLength++;
 	}
 
+	Directory::SearchOptions searchOptions;
+	searchOptions.AllDirs = !options.OnlyCurrentDirectory;
+	searchOptions.ListDirs = !searchOptions.AllDirs;
+
 	std::vector<std::filesystem::path> results;
-	Directory::GetFiles(&results, fullPath.c_str(), "*", true);
+	Directory::GetFiles(&results, fullPath.c_str(), "*", searchOptions);
+	Directory::SortEntries(&results);
 
 	for (size_t i = 0; i < results.size(); i++) {
 		std::string filename = Path::ToString(results[i]);

@@ -85,7 +85,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;_DEBUG;_WINDOWS;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";DEVELOPER_MODE;GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;VM_DEBUG;USING_LINENOISE_DEBUG;_WINDOWS;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -97,13 +97,16 @@
       <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
+      <Command>if not exist "$(SolutionDir)..\builds\win" (
+    mkdir "$(SolutionDir)..\builds\win"
+)
+copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";DEVELOPER_MODE;GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -117,17 +120,23 @@
       <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Command>
+      <Command>if not exist "$(SolutionDir)..\builds\win" (
+    mkdir "$(SolutionDir)..\builds\win"
+)
+copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;_DEBUG;_WINDOWS;DEBUG;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;TARGET_NAME="$(ProjectName)";DEVELOPER_MODE;GLEW_STATIC;USING_OPENGL;USE_DEFAULT_FONTS;VM_DEBUG;USING_LINENOISE_DEBUG;_WINDOWS;DEBUG;_USE_MATH_DEFINES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
+      <Command>if not exist "$(SolutionDir)..\builds\win" (
+    mkdir "$(SolutionDir)..\builds\win"
+)
+copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Debug.exe"</Command>
     </PostBuildEvent>
     <Link>
       <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -149,7 +158,7 @@
 copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Command>
     </PostBuildEvent>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>Ws2_32.lib;Wldap32.lib;Advapi32.lib;Crypt32.lib;Normaliz.lib;legacy_stdio_definitions.lib;glew32s.lib;opengl32.lib;SDL2.lib;SDL2main.lib;winmm.lib;imm32.lib;version.lib;setupapi.lib;ucrt.lib;vcruntime.lib;msvcrt.lib;assimp.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
@@ -170,8 +179,10 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\ShaderImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StreamImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\StringImpl.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\TypeImpl\TextureImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\TypeImpl\TypeImpl.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Bytecode.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\BytecodeDebugger.cpp" />
     <ClCompile Include="..\source\engine\bytecode\Compiler.cpp" />
     <ClCompile Include="..\source\engine\bytecode\GarbageCollector.cpp" />
     <ClCompile Include="..\source\engine\bytecode\ScriptEntity.cpp" />
@@ -182,6 +193,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\bytecode\Value.cpp" />
     <ClCompile Include="..\source\engine\bytecode\ValuePrinter.cpp" />
     <ClCompile Include="..\source\engine\bytecode\VMThread.cpp" />
+    <ClCompile Include="..\source\engine\bytecode\VMThreadDebugger.cpp" />
     <ClCompile Include="..\source\engine\data\DefaultFonts.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\Clock.cpp" />
     <ClCompile Include="..\source\engine\diagnostics\Log.cpp" />
@@ -249,7 +261,6 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\network\WebSocketClient.cpp" />
     <ClCompile Include="..\source\engine\rendering\d3d\D3DRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\FaceInfo.cpp" />
-    <ClCompile Include="..\source\engine\rendering\GameTexture.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLRenderer.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShader.cpp" />
     <ClCompile Include="..\source\engine\rendering\gl\GLShaderBuilder.cpp" />
@@ -265,7 +276,6 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\rendering\Texture.cpp" />
     <ClCompile Include="..\source\engine\rendering\TextureReference.cpp" />
     <ClCompile Include="..\source\engine\rendering\VertexBuffer.cpp" />
-    <ClCompile Include="..\source\engine\rendering\ViewTexture.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Font.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\Image.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\imageformats\GIF.cpp" />
@@ -287,18 +297,23 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\engine\resourcetypes\soundformats\SoundFormat.cpp" />
     <ClCompile Include="..\source\engine\resourcetypes\soundformats\WAV.cpp" />
     <ClCompile Include="..\source\engine\Scene.cpp" />
+    <ClCompile Include="..\source\Engine\Scene\ImageLayer.cpp" />
     <ClCompile Include="..\source\engine\scene\SceneInfo.cpp" />
     <ClCompile Include="..\source\engine\scene\SceneLayer.cpp" />
+    <ClCompile Include="..\source\Engine\Scene\TileLayer.cpp" />
     <ClCompile Include="..\source\engine\scene\View.cpp" />
     <ClCompile Include="..\source\engine\textformats\ini\INI.cpp" />
     <ClCompile Include="..\source\engine\textformats\xml\XMLParser.cpp" />
+    <ClCompile Include="..\source\engine\types\Camera.cpp" />
     <ClCompile Include="..\source\engine\types\DrawGroupList.cpp" />
     <ClCompile Include="..\source\engine\types\Entity.cpp" />
     <ClCompile Include="..\source\engine\types\ObjectList.cpp" />
     <ClCompile Include="..\source\engine\types\ObjectRegistry.cpp" />
+    <ClCompile Include="..\source\engine\types\Property.cpp" />
     <ClCompile Include="..\source\engine\types\Tileset.cpp" />
     <ClCompile Include="..\source\engine\utilities\ColorUtils.cpp" />
     <ClCompile Include="..\source\engine\utilities\PrintBuffer.cpp" />
+    <ClCompile Include="..\source\Engine\Utilities\Screenshot.cpp" />
     <ClCompile Include="..\source\engine\utilities\StringUtils.cpp" />
     <ClCompile Include="..\source\Libraries\miniz.c" />
     <ClCompile Include="..\source\Libraries\stb_vorbis.c" />
@@ -311,41 +326,43 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\Libraries\clipper2\clipper.engine.cpp" />
     <ClCompile Include="..\source\Libraries\clipper2\clipper.offset.cpp" />
     <ClCompile Include="..\source\Libraries\clipper2\clipper.rectclip.cpp" />
+    <ClCompile Include="..\source\Libraries\linenoise-ng\linenoise.cpp" />
+    <ClCompile Include="..\source\Libraries\linenoise-ng\wcwidth.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\engine\audio\AudioChannel.h" />
-    <ClInclude Include="..\include\engine\bytecode\CompilerEnums.h" />
-    <ClInclude Include="..\include\engine\bytecode\Types.h" />
-    <ClInclude Include="..\include\engine\diagnostics\PerformanceTypes.h" />
-    <ClInclude Include="..\include\engine\includes\BijectiveMap.h" />
-    <ClInclude Include="..\include\engine\includes\HashMap.h" />
-    <ClInclude Include="..\include\engine\includes\Standard.h" />
-    <ClInclude Include="..\include\engine\includes\StandardSDL2.h" />
-    <ClInclude Include="..\include\engine\io\compression\CompressionEnums.h" />
-    <ClInclude Include="..\include\engine\media\includes\AVCodec.h" />
-    <ClInclude Include="..\include\engine\media\includes\AVFormat.h" />
-    <ClInclude Include="..\include\engine\media\includes\AVUtils.h" />
-    <ClInclude Include="..\include\engine\media\includes\SWResample.h" />
-    <ClInclude Include="..\include\engine\media\includes\SWScale.h" />
-    <ClInclude Include="..\include\engine\media\utils\Codec.h" />
-    <ClInclude Include="..\include\engine\network\WebSocketIncludes.h" />
-    <ClInclude Include="..\include\engine\platforms\macos\Filesystem.h" />
-    <ClInclude Include="..\include\engine\rendering\3D.h" />
-    <ClInclude Include="..\include\engine\rendering\Mesh.h" />
-    <ClInclude Include="..\include\engine\rendering\ArrayBuffer.h" />
-    <ClInclude Include="..\include\engine\rendering\Enums.h" />
-    <ClInclude Include="..\include\engine\rendering\gl\Includes.h" />
-    <ClInclude Include="..\include\engine\rendering\metal\Includes.h" />
-    <ClInclude Include="..\include\engine\rendering\metal\MetalFuncs.h" />
-    <ClInclude Include="..\include\engine\rendering\sdl2\SDL2MetalFunc.h" />
-    <ClInclude Include="..\include\engine\resourcetypes\modelformats\Importer.h" />
-    <ClInclude Include="..\include\engine\resourcetypes\ResourceType.h" />
-    <ClInclude Include="..\include\engine\sprites\Animation.h" />
-    <ClInclude Include="..\include\engine\textformats\ini\INIStructs.h" />
-    <ClInclude Include="..\include\engine\textformats\json\jsmn.h" />
-    <ClInclude Include="..\include\engine\textformats\xml\XMLNode.h" />
-    <ClInclude Include="..\include\engine\types\DrawGroupList.h" />
-    <ClInclude Include="..\include\engine\types\EntityTypes.h" />
+    <ClInclude Include="..\source\engine\audio\AudioChannel.h" />
+    <ClInclude Include="..\source\engine\bytecode\CompilerEnums.h" />
+    <ClInclude Include="..\source\engine\bytecode\Types.h" />
+    <ClInclude Include="..\source\engine\diagnostics\PerformanceTypes.h" />
+    <ClInclude Include="..\source\engine\includes\BijectiveMap.h" />
+    <ClInclude Include="..\source\engine\includes\HashMap.h" />
+    <ClInclude Include="..\source\engine\includes\Standard.h" />
+    <ClInclude Include="..\source\engine\includes\StandardSDL2.h" />
+    <ClInclude Include="..\source\engine\io\compression\CompressionEnums.h" />
+    <ClInclude Include="..\source\engine\media\includes\AVCodec.h" />
+    <ClInclude Include="..\source\engine\media\includes\AVFormat.h" />
+    <ClInclude Include="..\source\engine\media\includes\AVUtils.h" />
+    <ClInclude Include="..\source\engine\media\includes\SWResample.h" />
+    <ClInclude Include="..\source\engine\media\includes\SWScale.h" />
+    <ClInclude Include="..\source\engine\media\utils\Codec.h" />
+    <ClInclude Include="..\source\engine\network\WebSocketIncludes.h" />
+    <ClInclude Include="..\source\engine\platforms\macos\Filesystem.h" />
+    <ClInclude Include="..\source\engine\rendering\3D.h" />
+    <ClInclude Include="..\source\engine\rendering\Mesh.h" />
+    <ClInclude Include="..\source\engine\rendering\ArrayBuffer.h" />
+    <ClInclude Include="..\source\engine\rendering\Enums.h" />
+    <ClInclude Include="..\source\engine\rendering\gl\Includes.h" />
+    <ClInclude Include="..\source\engine\rendering\metal\Includes.h" />
+    <ClInclude Include="..\source\engine\rendering\metal\MetalFuncs.h" />
+    <ClInclude Include="..\source\engine\rendering\sdl2\SDL2MetalFunc.h" />
+    <ClInclude Include="..\source\engine\resourcetypes\modelformats\Importer.h" />
+    <ClInclude Include="..\source\engine\resourcetypes\ResourceType.h" />
+    <ClInclude Include="..\source\engine\sprites\Animation.h" />
+    <ClInclude Include="..\source\engine\textformats\ini\INIStructs.h" />
+    <ClInclude Include="..\source\engine\textformats\json\jsmn.h" />
+    <ClInclude Include="..\source\engine\textformats\xml\XMLNode.h" />
+    <ClInclude Include="..\source\engine\types\DrawGroupList.h" />
+    <ClInclude Include="..\source\engine\types\EntityTypes.h" />
     <ClInclude Include="..\source\Libraries\miniz.h" />
     <ClInclude Include="..\source\Libraries\stb_image.h" />
     <ClInclude Include="..\source\Libraries\stb_vorbis.h" />

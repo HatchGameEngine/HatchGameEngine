@@ -1,5 +1,6 @@
 #include <Engine/Application.h>
 #include <Engine/Diagnostics/Log.h>
+#include <Engine/Filesystem/File.h>
 #include <Engine/IO/FileStream.h>
 #include <Engine/TextFormats/INI/INI.h>
 #include <Engine/Utilities/StringUtils.h>

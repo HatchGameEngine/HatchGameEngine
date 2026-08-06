@@ -19,7 +19,7 @@ int hatch_getPaletteLine(int paletteID) {
     if (paletteID == PALETTE_INDEX_TABLE_ID) {
         int screenLine = int(gl_FragCoord.y);
 
-        vec2 coords = vec2(float(screenLine % 64) / 64.0, float(screenLine / 64) / 64.0);
+        vec2 coords = vec2(mod(floor(gl_FragCoord.y), 64.0) / 64.0, float(screenLine / 64) / 64.0);
 
         return int(texture2D(u_paletteIndexTexture, coords).r * 255.0);
     }

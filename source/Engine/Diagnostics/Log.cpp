@@ -23,7 +23,7 @@ extern "C" {
 
 #define DEFAULT_LOG_FILENAME TARGET_NAME ".log"
 
-int Log::LogLevel = -1;
+int Log::LogLevel = -2;
 bool Log::WriteToFile = true;
 FILE* Log::File = nullptr;
 bool Log::Initialized = false;
@@ -51,7 +51,7 @@ void Log::OpenFile(const char* filename) {
 		logFilename = DEFAULT_LOG_FILENAME;
 	}
 
-	pathIsValid = Path::FromLocation(logFilename, PathLocation::LOGFILE, pathToLogFile, true);
+	pathIsValid = Path::FromLocation(logFilename, PathLocation::LOGFILE, pathToLogFile, true, false);
 	if (pathToLogFile.size() > 0) {
 		logFilename = pathToLogFile.c_str();
 	}
@@ -142,6 +142,7 @@ void Log::Print(int sev, const char* format, ...) {
 		return;
 	case LOG_INFO:
 	case LOG_IMPORTANT:
+	case LOG_API:
 		__android_log_print(ANDROID_LOG_INFO, TARGET_NAME, "%s", Buffer);
 		return;
 	case LOG_WARN:
@@ -174,6 +175,9 @@ void Log::Print(int sev, const char* format, ...) {
 	case LOG_IMPORTANT:
 		ColorCode = 0xB;
 		break;
+	case LOG_API:
+		ColorCode = 0x2;
+		break;
 	}
 	CONSOLE_SCREEN_BUFFER_INFO csbi;
 	HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -199,6 +203,9 @@ void Log::Print(int sev, const char* format, ...) {
 	case LOG_IMPORTANT:
 		ColorCode = 96;
 		break;
+	case LOG_API:
+		ColorCode = 92;
+		break;
 	}
 	printf("\x1b[%d;1m", ColorCode);
 #endif
@@ -221,6 +228,9 @@ void Log::Print(int sev, const char* format, ...) {
 		break;
 	case LOG_FATAL:
 		severityText = "    FATAL: ";
+		break;
+	case LOG_API:
+		severityText = "      API: ";
 		break;
 	}
 
