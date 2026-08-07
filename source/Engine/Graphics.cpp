@@ -2552,7 +2552,7 @@ void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentVi
 			ScrollingInfo* info = &layer->ScrollInfos[i];
 			info->Position = Graphics::CalcHorizontalParallaxPosition(layer,
 				viewX,
-				layer->ConstantX * info->ConstantParallax,
+				layer->ConstantX + info->ConstantParallax,
 				layer->RelativeX * info->RelativeParallax);
 		}
 
