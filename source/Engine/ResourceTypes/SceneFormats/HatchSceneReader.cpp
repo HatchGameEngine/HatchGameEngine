@@ -20,7 +20,8 @@ Uint32 HatchSceneReader::Magic = 0x4E435348; // HSCN
 #define HSCN_COLLB_MASK 0x00030000U
 #define HSCN_FLIPX_MASK 0x00001000U
 #define HSCN_FLIPY_MASK 0x00002000U
-#define HSCN_FXYID_MASK 0x00003FFFU // Max. 4096 tiles
+#define HSCN_IDENT_MASK 0x00000FFFU // Max. 4096 tiles
+#define HSCN_FXYID_MASK (HSCN_FLIPY_MASK | HSCN_FLIPY_MASK | HSCN_IDENT_MASK)
 
 bool HatchSceneReader::Read(const char* filename, const char* parentFolder) {
 	Stream* r = ResourceStream::New(filename);
@@ -184,7 +185,7 @@ void HatchSceneReader::ConvertTileData(TileLayer* layer) {
 		}
 
 		Uint32 tileID = (layer->Tiles[i] & HSCN_FXYID_MASK);
-		Uint32 tile = (tileID & TILE_IDENT_MASK);
+		Uint32 tile = tileID & 0xFFF;
 		if (tile >= Scene::TileSpriteInfos.size()) {
 			layer->Tiles[i] = Scene::EmptyTile;
 			continue;
