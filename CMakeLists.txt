@@ -78,19 +78,20 @@ option(USING_OPENGL "Use OpenGL" ON)
 # Set sources
 set(HATCH_SOURCES ${C_SOURCES} ${CPP_SOURCES} ${LIBRARY_SOURCES})
 
-# Find platform cmake file
-find_file(PLATFORM_FILE NAMES "${CMAKE_SYSTEM_NAME}.cmake" PATHS "${CMAKE_SOURCE_DIR}/cmake/Platforms" NO_DEFAULT_PATH)
-if(NOT PLATFORM_FILE)
-  message(FATAL_ERROR "Could not find cmake file for target: '${CMAKE_SYSTEM_NAME}'")
-endif()
-include(${PLATFORM_FILE})
-
 set(OUT_EXEC_NAME ${PROJECT_NAME}-${CMAKE_BUILD_TYPE})
 
 # Change executable name
 if(EXECUTABLE_NAME)
   set(OUT_EXEC_NAME ${EXECUTABLE_NAME})
 endif()
+
+# Find platform cmake file
+find_file(PLATFORM_FILE NAMES "${CMAKE_SYSTEM_NAME}.cmake" PATHS "${CMAKE_SOURCE_DIR}/cmake/Platforms" NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
+if(NOT PLATFORM_FILE)
+  message(FATAL_ERROR "Could not find cmake file for target: '${CMAKE_SYSTEM_NAME}'")
+endif()
+include(${PLATFORM_FILE})
+
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${OUT_EXEC_NAME}")
 
 if(USING_OPENGL)
@@ -138,7 +139,7 @@ if(NOT CONSOLE_BASE_PATH STREQUAL "")
   target_compile_definitions(${PROJECT_NAME} PRIVATE -DCONSOLE_BASE_PATH="${CONSOLE_BASE_PATH}")
 endif()
 
-find_file(REPO_DIR NAMES .git PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH)
+find_file(REPO_DIR NAMES .git PATHS ${CMAKE_SOURCE_DIR} NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
 
 if (REPO_DIR)
   execute_process(

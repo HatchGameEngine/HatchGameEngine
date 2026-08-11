@@ -1,14 +1,22 @@
 include_guard(GLOBAL)
 include(cmake/CPM.cmake)
 
-# SDL2 static build
+if(SDL2_AS_SHARED_LIBRARY)
+  set(SDL2_CPM_LIB_BUILD_OPTION "BUILD_SHARED_LIBS ON" "BUILD_STATIC_LIBS OFF")
+  set(SDL2_CPM_LIB_LINK SDL2::SDL2)
+else()
+  set(SDL2_CPM_LIB_BUILD_OPTION "BUILD_SHARED_LIBS OFF" "BUILD_STATIC_LIBS ON")
+  set(SDL2_CPM_LIB_LINK SDL2::SDL2-static)
+endif()
+
+# SDL2 build
 CPMAddPackage(
   NAME SDL2
   URL https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.32.10.zip
   OPTIONS
-    "BUILD_SHARED_LIBS OFF"
+    ${SDL2_CPM_LIB_BUILD_OPTION}
     "EXCLUDE_FROM_ALL ON"
     "SDL2_DISABLE_SDL2MAIN ON"
     "SDL_TEST OFF"
 )
-set(SDL2_LIBRARIES SDL2::SDL2-static)
+set(SDL2_LIBRARIES ${SDL2_CPM_LIB_LINK})

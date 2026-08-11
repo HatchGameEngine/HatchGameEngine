@@ -1,40 +1,54 @@
 apply plugin: 'com.android.application'
+
 android {
-    signingConfigs {
-        config {
-            keyAlias 'key0'
-            keyPassword 'justin'
-            storeFile file('C:/AndroidPROJ/cert.jks')
-            storePassword 'justin'
+    namespace 'vg.aurum.HatchGameEngine'
+
+    compileSdk {
+        version = release(36)
+    }
+
+    defaultConfig {
+        applicationId "vg.aurum.HatchGameEngine"
+        minSdk 26
+        targetSdk 33
+        versionName "1.4.0"
+        ndk.abiFilters 'arm64-v8a', 'armeabi-v7a'
+        externalNativeBuild {
+            cmake {
+                arguments = ["-DANDROID_STL=c++_shared"]
+            }
         }
     }
-    compileSdkVersion 26
-    buildToolsVersion "27.0.3"
-    defaultConfig {
-        applicationId "org.libsdl.app"
-        minSdkVersion 16
-        targetSdkVersion 26
-    }
+
     buildTypes {
         release {
+            debuggable true
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
-            signingConfig signingConfigs.config
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // TODO: Add release signing key
+            signingConfig signingConfigs.debug
         }
         debug {
-            debuggable false
+            debuggable true
         }
     }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
+
     externalNativeBuild {
-        ndkBuild {
-            path 'src/main/jni/Android.mk'
+        cmake {
+            path file('../../CMakeLists.txt')
         }
+    }
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+    // Prevent compression for .hatch files for faster IO
+    androidResources {
+        noCompress += ["hatch"]
     }
 }
 
 dependencies {
+    implementation 'androidx.core:core:1.17.0'
 }
