@@ -976,6 +976,6 @@ clean:
 
 # Auto-format the sources.
 
-format: $(FMTFILES)
+format: #$(FMTFILES)
 
 # EOF
