@@ -2476,8 +2476,9 @@ void Graphics::MeasureTextWrappedLegacy(ISprite* sprite,
 Sint64 Graphics::CalcHorizontalParallaxPosition(TileLayer* layer,
 	float viewX,
 	float constant,
-	float relative) {
-	Sint64 position = (Sint64)((Scene::Frame * constant) + (viewX * relative) + layer->OffsetX);
+	float relative,
+	float lineOffset) {
+	Sint64 position = (Sint64)((Scene::Frame * constant) + (viewX * relative) + layer->OffsetX + lineOffset);
 
 	if (layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 		int layerWidth = layer->Width * Scene::TileWidth;
@@ -2528,7 +2529,7 @@ void Graphics::CalcScanlineDeforms(TileLayer* layer,
 		}
 		else {
 			scanLine->SrcX = Graphics::CalcHorizontalParallaxPosition(
-				layer, viewX, layer->ConstantX, layer->RelativeX);
+				layer, viewX, layer->ConstantX, layer->RelativeX, 0.0f);
 		}
 		scanLine->SrcX <<= 16;
 		scanLine->SrcY = scrollLine << 16;
@@ -2552,8 +2553,9 @@ void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentVi
 			ScrollingInfo* info = &layer->ScrollInfos[i];
 			info->Position = Graphics::CalcHorizontalParallaxPosition(layer,
 				viewX,
-				layer->ConstantX + info->ConstantParallax,
-				layer->RelativeX * info->RelativeParallax);
+				layer->ConstantX * info->ConstantParallax,
+				layer->RelativeX * info->RelativeParallax,
+				info->Offset);
 		}
 
 		// Create scanlines

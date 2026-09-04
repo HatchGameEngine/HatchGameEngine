@@ -287,6 +287,8 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 
 		layer->ScrollInfos[g].CanDeform = (bool)r->ReadByte();
 		r->ReadByte();
+
+		layer->ScrollInfos[g].Offset = 0.0f;
 	}
 
 	Uint16* tileBoys = (Uint16*)malloc(sizeof(Uint16) * Width * Height);
