@@ -3490,24 +3490,28 @@ void Application::DevMenu_SceneSelectMenu() {
 
 	int actionUp = InputManager::GetActionID("Up");
 	int actionDown = InputManager::GetActionID("Down");
+	int actionLeft = InputManager::GetActionID("Left");
+	int actionRight = InputManager::GetActionID("Right");
 
-	if ((actionUp != -1 &&
-		    (InputManager::IsActionPressedByAny(actionUp) ||
-			    (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
-		(actionDown != -1 &&
-			(InputManager::IsActionPressedByAny(actionDown) ||
-				(InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+	bool moveUp = actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer));
+	bool moveDown = actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer));
+	bool moveLeft = actionLeft != -1 && (InputManager::IsActionPressedByAny(actionLeft) || (InputManager::IsActionHeldByAny(actionLeft) && !DevMenu.Timer));
+	bool moveRight = actionRight != -1 && (InputManager::IsActionPressedByAny(actionRight) || (InputManager::IsActionHeldByAny(actionRight) && !DevMenu.Timer));
 
-		DevMenu.SubSelection =
-			(DevMenu.SubSelection +
-				(((actionUp != -1 &&
-					  InputManager::IsActionPressedByAny(actionUp)) ||
-					 (actionUp != -1 &&
-						 InputManager::IsActionHeldByAny(actionUp)))
-						? -1
-						: 1) +
-				(int)list->Entries.size()) %
-			(int)list->Entries.size();
+	if (moveUp || moveDown || moveLeft || moveRight) {
+		int moveAmount = 0;
+		if (moveUp)
+			moveAmount = -1;
+		else if (moveDown)
+			moveAmount = 1;
+		else if (moveLeft)
+			moveAmount = -10;
+		else if (moveRight)
+			moveAmount = 10;
+
+		int listSize = (int)list->Entries.size();
+
+		DevMenu.SubSelection = ((DevMenu.SubSelection + moveAmount) % listSize + listSize) % listSize;
 
 		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
 			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 7) {
