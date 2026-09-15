@@ -219,6 +219,8 @@ void HatchSceneReader::ReadScrollData(Stream* r, TileLayer* layer) {
 		info->ConstantParallax = (float)constantParallax / 0x100;
 		info->CanDeform = (bool)r->ReadByte();
 
+		info->Offset = 0.0f;
+
 		r->ReadByte(); // ?
 	}
 

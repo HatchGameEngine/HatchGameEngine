@@ -38,7 +38,8 @@ private:
 	static Sint64 CalcHorizontalParallaxPosition(TileLayer* layer,
 		float viewX,
 		float constant,
-		float relative);
+		float relative,
+		float lineOffset);
 	static void CalcScanlineDeforms(TileLayer* layer,
 		int start,
 		int end,
