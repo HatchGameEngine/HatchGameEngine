@@ -70,6 +70,14 @@ void GLShaderBuilder::AddUniformsToShaderText() {
 			AddUniform("u_fogLinearEnd", Shader::DATATYPE_FLOAT);
 		}
 	}
+	if (Options.DotPatternX) {
+		AddUniform(UNIFORM_DOTPATTERNX, Shader::DATATYPE_INT);
+		AddUniform(UNIFORM_DOTPATTERNOFFSETX, Shader::DATATYPE_INT);
+	}
+	if (Options.DotPatternY) {
+		AddUniform(UNIFORM_DOTPATTERNY, Shader::DATATYPE_INT);
+		AddUniform(UNIFORM_DOTPATTERNOFFSETY, Shader::DATATYPE_INT);
+	}
 }
 void GLShaderBuilder::AddInputsToVertexShaderText() {
 	if (Inputs.link_position) {
@@ -131,6 +139,20 @@ void GLShaderBuilder::BuildFragmentShaderMainFunc() {
 
 	if (Uniforms.u_color) {
 		AddText("if (u_color.a == 0.0) discard;\n");
+	}
+
+	// Apply dot pattern
+	if (Options.DotPatternX) {
+		AddText("int pixelX = int(gl_FragCoord.x + " UNIFORM_DOTPATTERNOFFSETX ");\n");
+		AddText("if (mod(floor(pixelX / " UNIFORM_DOTPATTERNX "), 2.0) * " UNIFORM_DOTPATTERNX " != 0) {\n");
+			AddText("discard;\n");
+		AddText("}\n");
+	}
+	if (Options.DotPatternY) {
+		AddText("int pixelY = int(gl_FragCoord.y + " UNIFORM_DOTPATTERNOFFSETY ");\n");
+		AddText("if (mod(floor(pixelY / " UNIFORM_DOTPATTERNY "), 2.0) * " UNIFORM_DOTPATTERNY " != 0) {\n");
+			AddText("discard;\n");
+		AddText("}\n");
 	}
 
 	// Sample screen texture if enabled

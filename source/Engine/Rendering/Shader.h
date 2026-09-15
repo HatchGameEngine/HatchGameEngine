@@ -88,6 +88,7 @@ public:
 	std::vector<std::string> TextureUniformNames;
 	std::unordered_map<int, int> TextureUnitMap;
 
+	// For HSL
 	void* Object = nullptr;
 
 	// Cache stuff
@@ -96,6 +97,10 @@ public:
 	Matrix4x4* CachedProjectionMatrix = nullptr;
 	Matrix4x4* CachedViewMatrix = nullptr;
 	Matrix4x4* CachedModelMatrix = nullptr;
+	int CachedDotPatternX = -1;
+	int CachedDotPatternY = -1;
+	int CachedDotPatternOffsetX = -1;
+	int CachedDotPatternOffsetY = -1;
 };
 
 #endif /* ENGINE_RENDERING_SHADER_H */

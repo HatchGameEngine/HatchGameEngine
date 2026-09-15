@@ -478,6 +478,11 @@ void GLShader::AttachAndLink() {
 	LocFogDensity = AddBuiltinUniform("u_fogDensity");
 	LocFogSmoothness = AddBuiltinUniform("u_fogSmoothness");
 
+	LocDotPatternX = AddBuiltinUniform(UNIFORM_DOTPATTERNX);
+	LocDotPatternY = AddBuiltinUniform(UNIFORM_DOTPATTERNY);
+	LocDotPatternOffsetX = AddBuiltinUniform(UNIFORM_DOTPATTERNOFFSETX);
+	LocDotPatternOffsetY = AddBuiltinUniform(UNIFORM_DOTPATTERNOFFSETY);
+
 	ValidateTextureUniformNames();
 	InitTextureUnitMap();
 

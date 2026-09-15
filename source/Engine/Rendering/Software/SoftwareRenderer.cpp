@@ -55,12 +55,6 @@ Uint8 StencilMask = 0xFF;
 
 size_t StencilBufferSize = 0;
 
-Uint8 DotMaskH = 0;
-Uint8 DotMaskV = 0;
-
-int DotMaskOffsetH = 0;
-int DotMaskOffsetV = 0;
-
 #define TRIG_TABLE_BITS 11
 #define TRIG_TABLE_SIZE (1 << TRIG_TABLE_BITS)
 #define TRIG_TABLE_MASK ((1 << TRIG_TABLE_BITS) - 1)
@@ -76,10 +70,6 @@ void SoftwareRenderer::Init() {
 	SoftwareRenderer::BackendFunctions.Init();
 
 	UseSpriteDeform = false;
-
-	SetDotMask(0);
-	SetDotMaskOffsetH(0);
-	SetDotMaskOffsetV(0);
 }
 Uint32 SoftwareRenderer::GetWindowFlags() {
 	return Graphics::Internal.GetWindowFlags();
@@ -808,46 +798,15 @@ void SoftwareRenderer::PixelStencil(Uint32* src,
 	}
 }
 
-void SoftwareRenderer::SetDotMask(int mask) {
-	SetDotMaskH(mask);
-	SetDotMaskV(mask);
-}
-void SoftwareRenderer::SetDotMaskH(int mask) {
-	if (mask < 0) {
-		mask = 0;
-	}
-	else if (mask > 255) {
-		mask = 255;
-	}
-
-	DotMaskH = mask;
-}
-void SoftwareRenderer::SetDotMaskV(int mask) {
-	if (mask < 0) {
-		mask = 0;
-	}
-	else if (mask > 255) {
-		mask = 255;
-	}
-
-	DotMaskV = mask;
-}
-void SoftwareRenderer::SetDotMaskOffsetH(int offset) {
-	DotMaskOffsetH = offset;
-}
-void SoftwareRenderer::SetDotMaskOffsetV(int offset) {
-	DotMaskOffsetV = offset;
-}
-
-void SoftwareRenderer::PixelDotMaskH(Uint32* src,
+void SoftwareRenderer::PixelDotPatternX(Uint32* src,
 	Uint32* dst,
 	BlendState& state,
 	int* multTableAt,
 	int* multSubTableAt) {
 	size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
-	int x = (pos % Graphics::CurrentRenderTarget->Width) + DotMaskOffsetH;
-	if (x & DotMaskH) {
+	int x = (pos % Graphics::CurrentRenderTarget->Width) + Graphics::DotPatternOffsetX;
+	if (((x / Graphics::DotPatternX) % 2) * Graphics::DotPatternX != 0) {
 		return;
 	}
 
@@ -858,15 +817,15 @@ void SoftwareRenderer::PixelDotMaskH(Uint32* src,
 		CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
 	}
 }
-void SoftwareRenderer::PixelDotMaskV(Uint32* src,
+void SoftwareRenderer::PixelDotPatternY(Uint32* src,
 	Uint32* dst,
 	BlendState& state,
 	int* multTableAt,
 	int* multSubTableAt) {
 	size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
-	int y = (pos / Graphics::CurrentRenderTarget->Width) + DotMaskOffsetV;
-	if (y & DotMaskV) {
+	int y = (pos / Graphics::CurrentRenderTarget->Width) + Graphics::DotPatternOffsetY;
+	if (((y / Graphics::DotPatternY) % 2) * Graphics::DotPatternY != 0) {
 		return;
 	}
 
@@ -877,16 +836,19 @@ void SoftwareRenderer::PixelDotMaskV(Uint32* src,
 		CurrentPixelFunction(src, dst, state, multTableAt, multSubTableAt);
 	}
 }
-void SoftwareRenderer::PixelDotMaskHV(Uint32* src,
+void SoftwareRenderer::PixelDotPatternXY(Uint32* src,
 	Uint32* dst,
 	BlendState& state,
 	int* multTableAt,
 	int* multSubTableAt) {
 	size_t pos = dst - (Uint32*)Graphics::CurrentRenderTarget->Pixels;
 
-	int x = (pos % Graphics::CurrentRenderTarget->Width) + DotMaskOffsetH;
-	int y = (pos / Graphics::CurrentRenderTarget->Width) + DotMaskOffsetV;
-	if (x & DotMaskH || y & DotMaskV) {
+	int x = (pos % Graphics::CurrentRenderTarget->Width) + Graphics::DotPatternOffsetX;
+	int y = (pos / Graphics::CurrentRenderTarget->Width) + Graphics::DotPatternOffsetY;
+	if (((x / Graphics::DotPatternX) % 2) * Graphics::DotPatternX != 0) {
+		return;
+	}
+	if (((y / Graphics::DotPatternY) % 2) * Graphics::DotPatternY != 0) {
 		return;
 	}
 
@@ -1630,15 +1592,15 @@ PixelFunction SoftwareRenderer::GetPixelFunction(int blendFlag) {
 		CurrentPixelFunction = PixelNoFiltFunctions[blendFlag & BlendFlag_MODE_MASK];
 	}
 
-	if (DotMaskH || DotMaskV) {
-		if (DotMaskH && DotMaskV) {
-			return SoftwareRenderer::PixelDotMaskHV;
+	if (Graphics::DotPatternX || Graphics::DotPatternY) {
+		if (Graphics::DotPatternX && Graphics::DotPatternY) {
+			return SoftwareRenderer::PixelDotPatternXY;
 		}
-		else if (DotMaskH) {
-			return SoftwareRenderer::PixelDotMaskH;
+		else if (Graphics::DotPatternX) {
+			return SoftwareRenderer::PixelDotPatternX;
 		}
-		else if (DotMaskV) {
-			return SoftwareRenderer::PixelDotMaskV;
+		else {
+			return SoftwareRenderer::PixelDotPatternY;
 		}
 	}
 	else if (Graphics::StencilEnabled && Graphics::CurrentView->StencilBuffer) {

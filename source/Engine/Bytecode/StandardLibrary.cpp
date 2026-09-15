@@ -5643,57 +5643,83 @@ VMValue Draw_ClearStencil(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetDotMask
- * \desc Sets the dot mask.
- * \param mask (integer): The mask.
+ * \desc Sets both horizontal and vertical dot patterns.<br/>\
+The pattern is defined by the following algorithm: <br/>\
+`((pixel_x / pattern) % 2) * pattern == 0 && ((pixel_y / pattern) % 2) * pattern == 0`<br/>\
+If <param pattern> is zero, this disables the patterns.
+ * \param pattern (integer): The value to use for the pattern.
  * \ns Draw
  */
 VMValue Draw_SetDotMask(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	SoftwareRenderer::SetDotMask(GET_ARG(0, GetInteger));
+	int value = GET_ARG(0, GetInteger);
+	if (value < 0) {
+		THROW_ERROR("Value cannot be lower than 0.");
+		value = 0;
+	}
+	Graphics::SetDotPattern(value);
 	return NULL_VAL;
 }
 /***
  * Draw.SetHorizontalDotMask
- * \desc Sets the horizontal dot mask.
- * \param mask (integer): The mask.
+ * \desc Sets the horizontal dot pattern.<br/>\
+The pattern is defined by the following algorithm: <br/>\
+`((pixel_x / pattern) % 2) * pattern == 0`<br/>\
+If <param pattern> is zero, this disables the horizontal dot pattern.
+ * \param pattern (integer): The value to use for the pattern.
  * \ns Draw
  */
 VMValue Draw_SetHorizontalDotMask(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	SoftwareRenderer::SetDotMaskH(GET_ARG(0, GetInteger));
+	int value = GET_ARG(0, GetInteger);
+	if (value < 0) {
+		THROW_ERROR("Value cannot be lower than 0.");
+		value = 0;
+	}
+	Graphics::SetDotPatternX(value);
 	return NULL_VAL;
 }
 /***
  * Draw.SetVerticalDotMask
- * \desc Sets the vertical dot mask.
- * \param mask (integer): The mask.
+ * \desc Sets the vertical dot pattern.<br/>\
+The pattern is defined by the following algorithm: <br/>\
+`((pixel_y / pattern) % 2) * pattern == 0`<br/>\
+If <param pattern> is zero, this disables the vertical dot pattern.
+ * \param pattern (integer): The value to use for the pattern.
  * \ns Draw
  */
 VMValue Draw_SetVerticalDotMask(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	SoftwareRenderer::SetDotMaskV(GET_ARG(0, GetInteger));
+	int value = GET_ARG(0, GetInteger);
+	if (value < 0) {
+		THROW_ERROR("Value cannot be lower than 0.");
+		value = 0;
+	}
+	Graphics::SetDotPatternY(value);
 	return NULL_VAL;
 }
 /***
  * Draw.SetHorizontalDotMaskOffset
- * \desc Sets the offset of the horizontal dot mask.
- * \param offsetH (integer): The offset.
+ * \desc Sets the offset of the horizontal dot pattern.
+ * \param offsetX (integer): The offset.
  * \ns Draw
  */
 VMValue Draw_SetHorizontalDotMaskOffset(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	SoftwareRenderer::SetDotMaskOffsetH(GET_ARG(0, GetInteger));
+	int offset = GET_ARG(0, GetInteger);
+	Graphics::SetDotPatternOffsetX(offset);
 	return NULL_VAL;
 }
 /***
  * Draw.SetVerticalDotMaskOffset
- * \desc Sets the offset of the vertical dot mask.
- * \param offsetV (integer): The offset.
+ * \desc Sets the offset of the vertical dot pattern.
+ * \param offsetY (integer): The offset.
  * \ns Draw
  */
 VMValue Draw_SetVerticalDotMaskOffset(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	SoftwareRenderer::SetDotMaskOffsetV(GET_ARG(0, GetInteger));
+	int offset = GET_ARG(0, GetInteger);
+	Graphics::SetDotPatternOffsetY(offset);
 	return NULL_VAL;
 }
 /***

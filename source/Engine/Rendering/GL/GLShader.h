@@ -20,6 +20,11 @@ typedef std::unordered_map<std::string, GLint> GLVariableMap;
 #define UNIFORM_TEXTUREV "u_textureV"
 #endif
 
+#define UNIFORM_DOTPATTERNX "u_dotPatternX"
+#define UNIFORM_DOTPATTERNY "u_dotPatternY"
+#define UNIFORM_DOTPATTERNOFFSETX "u_dotPatternOffsetX"
+#define UNIFORM_DOTPATTERNOFFSETY "u_dotPatternOffsetY"
+
 struct GL_ProcessedShader {
 	char* SourceText;
 	std::vector<std::string> Defines;
@@ -118,6 +123,10 @@ public:
 	GLint LocFogLinearEnd;
 	GLint LocFogDensity;
 	GLint LocFogSmoothness;
+	GLint LocDotPatternX;
+	GLint LocDotPatternY;
+	GLint LocDotPatternOffsetX;
+	GLint LocDotPatternOffsetY;
 
 #if GL_USING_ATTRIB_LOCATIONS
 	std::unordered_map<std::string, int> AttribLocationMap;

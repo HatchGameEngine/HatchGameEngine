@@ -471,6 +471,12 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0, bool useVertexColors 
 		}
 	}
 
+#ifdef GL_HAVE_YUV
+	if (isYUV) {
+		return;
+	}
+#endif
+
 	if (Graphics::TextureBlend || !texture) {
 		features |= SHADER_FEATURE_BLENDING;
 	}
@@ -502,16 +508,44 @@ void GL_PrepareShader(Texture* texture, int paletteID = 0, bool useVertexColors 
 		}
 	}
 
-#ifdef GL_HAVE_YUV
-	if (isYUV) {
-		return;
+	if (Graphics::DotPatternX) {
+		features |= SHADER_FEATURE_DOT_PATTERN_X;
 	}
-#endif
+	if (Graphics::DotPatternY) {
+		features |= SHADER_FEATURE_DOT_PATTERN_Y;
+	}
 
 	GL_SetShapeShader(features);
 
+	GLShader* shader = GLRenderer::CurrentShader;
+
 	if (Graphics::UsePalettes) {
-		GL_PreparePaletteShader(GLRenderer::CurrentShader, texture, paletteID);
+		GL_PreparePaletteShader(shader, texture, paletteID);
+	}
+
+	if (shader->LocDotPatternX != -1) {
+		if (shader->CachedDotPatternX != Graphics::DotPatternX) {
+			glUniform1i(shader->LocDotPatternX, Graphics::DotPatternX);
+			shader->CachedDotPatternX = Graphics::DotPatternX;
+		}
+	}
+	if (shader->LocDotPatternOffsetX != -1) {
+		if (shader->CachedDotPatternOffsetX != Graphics::DotPatternOffsetX) {
+			glUniform1i(shader->LocDotPatternOffsetX, Graphics::DotPatternOffsetX);
+			shader->CachedDotPatternOffsetX = Graphics::DotPatternOffsetX;
+		}
+	}
+	if (shader->LocDotPatternY != -1) {
+		if (shader->CachedDotPatternY != Graphics::DotPatternY) {
+			glUniform1i(shader->LocDotPatternY, Graphics::DotPatternY);
+			shader->CachedDotPatternY = Graphics::DotPatternY;
+		}
+	}
+	if (shader->LocDotPatternOffsetY != -1) {
+		if (shader->CachedDotPatternOffsetY != Graphics::DotPatternOffsetY) {
+			glUniform1i(shader->LocDotPatternOffsetY, Graphics::DotPatternOffsetY);
+			shader->CachedDotPatternOffsetY = Graphics::DotPatternOffsetY;
+		}
 	}
 }
 void GL_SetTexture(Texture* texture, int paletteID = 0, bool useVertexColors = false) {
