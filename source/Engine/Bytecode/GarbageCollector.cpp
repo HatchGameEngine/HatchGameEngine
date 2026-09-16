@@ -80,6 +80,19 @@ void GarbageCollector::Collect() {
 		BlackenObject(GrayList[i]);
 	}
 
+	// Remove interned strings that were not marked
+	if (ScriptManager::Strings) {
+		for (auto it = ScriptManager::Strings->begin(); it != ScriptManager::Strings->end();) {
+			ObjString* string = (ObjString*)it->second;
+			if (!string->Object.IsDark) {
+				it = ScriptManager::Strings->erase(it);
+			}
+			else {
+				it++;
+			}
+		}
+	}
+
 	blackenElapsed = Clock::GetTicks() - blackenElapsed;
 
 	double freeElapsed = Clock::GetTicks();

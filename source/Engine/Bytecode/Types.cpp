@@ -57,6 +57,8 @@ static ObjString* AllocateString(char* chars, size_t length) {
 
 	ObjString* string = GetInternedString(view);
 	if (string) {
+		// This string was already interned, so we have to free chars
+		Memory::Free(chars);
 		return string;
 	}
 
