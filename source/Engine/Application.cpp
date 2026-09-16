@@ -1863,12 +1863,12 @@ void Application::RunFrame(int runFrames) {
 	}
 
 DO_NOTHING:
-	RunDevMenu();
-
 	// Show FPS counter
 	Metrics.FPSCounter.Begin();
 	DrawPerformance();
 	Metrics.FPSCounter.End();
+
+	RunDevMenu();
 
 	// Take screenshots
 	if (!Screenshot::IsQueueEmpty()) {
@@ -3156,7 +3156,7 @@ void Application::DevMenu_CategorySelectMenu() {
 	}
 
 	DrawDevString(
-		"Select Scene Category...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+		"Select category...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 
 	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < SceneInfo::Categories.size();
 		i++, y += 14) {
@@ -3475,9 +3475,12 @@ void Application::DevMenu_CloseResourcesBrowser() {
 void Application::DevMenu_SceneSelectMenu() {
 	DevMenu_DrawMainMenu();
 
-	DrawDevString("Select Scene...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
-
 	SceneListCategory* list = &SceneInfo::Categories[DevMenu.ListPos];
+
+	char buffer[256];
+	snprintf(buffer, sizeof(buffer), "Select scene in the %s category...", list->Name);
+	DrawDevString(buffer, Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+	
 
 	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < list->Entries.size();
 		i++, y += 14) {
