@@ -92,6 +92,10 @@ public:
 	static int StencilTest;
 	static int StencilOpPass;
 	static int StencilOpFail;
+	static Uint16 DotPatternX;
+	static Uint16 DotPatternY;
+	static int DotPatternOffsetX;
+	static int DotPatternOffsetY;
 	static Texture* FramebufferTexture;
 	static int FramebufferWidth;
 	static int FramebufferHeight;
@@ -534,6 +538,11 @@ public:
 	static void SetStencilValue(int value);
 	static void SetStencilMask(int mask);
 	static void ClearStencil();
+	static void SetDotPattern(int mask);
+	static void SetDotPatternX(int mask);
+	static void SetDotPatternY(int mask);
+	static void SetDotPatternOffsetX(int offset);
+	static void SetDotPatternOffsetY(int offset);
 };
 
 #endif /* ENGINE_GRAPHICS_H */
