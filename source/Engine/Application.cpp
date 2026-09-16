@@ -3481,7 +3481,6 @@ void Application::DevMenu_SceneSelectMenu() {
 	snprintf(buffer, sizeof(buffer), "Select scene in the %s category...", list->Name);
 	DrawDevString(buffer, Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 	
-
 	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < list->Entries.size();
 		i++, y += 14) {
 		DrawDevString(list->Entries[DevMenu.SubScrollPos + i].Name,
