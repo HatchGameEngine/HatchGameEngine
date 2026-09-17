@@ -1011,7 +1011,7 @@ VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
+	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
