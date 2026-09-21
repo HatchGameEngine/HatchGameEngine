@@ -20591,6 +20591,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, GetDuration);
 	DEF_NATIVE(Animator, GetFrameCount);
 	DEF_NATIVE(Animator, GetLoopIndex);
+	DEF_NATIVE(Animator, GetRotationStyle);
 	DEF_NATIVE(Animator, SetSprite);
 	DEF_NATIVE(Animator, SetCurrentAnimation);
 	DEF_NATIVE(Animator, SetCurrentFrame);
