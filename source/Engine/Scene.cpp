@@ -59,6 +59,7 @@ HashMap<Property>* Scene::Properties = NULL;
 // Object variables
 OrderedHashMap<ObjectList*>* Scene::ObjectLists = NULL;
 HashMap<ObjectRegistry*>* Scene::ObjectRegistries = NULL;
+ObjectRegistry* Scene::AllObjects = NULL;
 ObjectRegistry* Scene::OnScreenObjects = NULL;
 
 HashMap<ObjectList*>* Scene::StaticObjectLists = NULL;
@@ -582,6 +583,11 @@ void Scene::RemoveObject(Entity* obj) {
 		});
 	}
 
+	// Remove from AllObjects
+    if (!obj->Active) {
+        Scene::AllObjects->Remove(obj);
+    }
+
 	// Remove from OnScreenObjects
 	if (obj->OnScreen) {
 		Scene::OnScreenObjects->Remove(obj);
@@ -749,6 +755,9 @@ void Scene::InitObjectListsAndRegistries() {
 		Scene::ObjectRegistries =
 			new HashMap<ObjectRegistry*>(CombinedHash::EncryptData, 16);
 	}
+	if (Scene::AllObjects == NULL) {
+		Scene::AllObjects = new ObjectRegistry();
+	}
 	if (Scene::OnScreenObjects == NULL) {
 		Scene::OnScreenObjects = new ObjectRegistry();
 	}
@@ -756,6 +765,7 @@ void Scene::InitObjectListsAndRegistries() {
 		Scene::StaticObjectLists = new HashMap<ObjectList*>(CombinedHash::EncryptData, 4);
 	}
 
+	Scene::ObjectRegistries->Put(ALL_REGISTRY, Scene::AllObjects);
 	Scene::ObjectRegistries->Put(ONSCREEN_REGISTRY, Scene::OnScreenObjects);
 }
 
@@ -774,6 +784,8 @@ void Scene::FrameUpdate() {
 	Scene::SortEntities();
 }
 void Scene::Update() {
+	// Clear AllObjects
+	Scene::AllObjects->Clear();
 	// Clear OnScreenObjects
 	Scene::OnScreenObjects->Clear();
 
@@ -788,9 +800,12 @@ void Scene::Update() {
 	// Call Scene.UpdateEarly
 	ScriptManager::CallStaticClassFunction("Scene", "UpdateEarly");
 
-	// Early Update
+    // Early Update and populate AllObjects
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
+
+		Scene::AllObjects->Add(ent);
+
 		UpdateObjectEarly(ent);
 	}
 
@@ -825,6 +840,8 @@ void Scene::Update() {
 	ScriptManager::CallStaticClassFunction("Scene", "UpdateFinish");
 }
 void Scene::FixedUpdate() {
+	// Clear AllObjects
+	Scene::AllObjects->Clear();
 	// Clear OnScreenObjects
 	Scene::OnScreenObjects->Clear();
 
@@ -854,9 +871,12 @@ void Scene::FixedUpdate() {
 		ScriptManager::CallStaticClassFunction("Scene", "UpdateEarly");
 	}
 
-	// Early Update
+    // Early Update and populate AllObjects
 	for (Entity *ent = Scene::ObjectFirst, *next; ent; ent = next) {
 		next = ent->NextSceneEntity;
+
+		Scene::AllObjects->Add(ent);
+
 		FixedUpdateObjectEarly(ent);
 	}
 
@@ -1872,6 +1892,9 @@ void Scene::Restart() {
 		});
 	}
 
+	// Clear AllObjects
+	Scene::AllObjects->Clear();
+
 	// Clear OnScreenObjects
 	Scene::OnScreenObjects->Clear();
 
@@ -2071,6 +2094,11 @@ void Scene::Unload() {
 			list->RemoveNonPersistentFromLinkedList(
 				Scene::DynamicObjectFirst, persistencyScope);
 		});
+	}
+
+	// Clear AllObjects
+	if (Scene::AllObjects) {
+		Scene::AllObjects->Clear();
 	}
 
 	// Clear OnScreenObjects
@@ -3731,6 +3759,7 @@ void Scene::Dispose() {
 	Scene::StaticObjectLists = NULL;
 
 	if (Scene::ObjectRegistries) {
+		Scene::ObjectRegistries->Remove(ALL_REGISTRY);
 		Scene::ObjectRegistries->Remove(ONSCREEN_REGISTRY);
 		Scene::ObjectRegistries->ForAll([](Uint32, ObjectRegistry* registry) -> void {
 			delete registry;
@@ -3738,6 +3767,12 @@ void Scene::Dispose() {
 		delete Scene::ObjectRegistries;
 	}
 	Scene::ObjectRegistries = NULL;
+
+	// Clear AllObjects
+	if (Scene::AllObjects) {
+		delete Scene::AllObjects;
+		Scene::AllObjects = NULL;
+	}
 
 	// Clear OnScreenObjects
 	if (Scene::OnScreenObjects) {
