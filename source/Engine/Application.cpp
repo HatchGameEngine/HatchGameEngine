@@ -1343,6 +1343,8 @@ void Application::LoadKeyBinds() {
 	GET_KEY("devShowTileCol", DevTileCol, Key_UNKNOWN);
 	GET_KEY("devShowObjectRegions", DevObjectRegions, Key_UNKNOWN);
 	GET_KEY("devViewHitboxes", DevViewHitboxes, Key_UNKNOWN);
+	GET_KEY("devPreviousScene", DevPreviousScene, Key_PAGEDOWN);
+	GET_KEY("devNextScene", DevNextScene, Key_PAGEUP);
 	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
 	GET_KEY("devScriptDebugger", DevScriptDebugger, Key_UNKNOWN);
 	GET_KEY("devQuit", DevQuit, Key_UNKNOWN);
@@ -1713,6 +1715,16 @@ void Application::PollEvents() {
 					Stepper = true;
 					Step = true;
 					Application::UpdateWindowTitle();
+					break;
+				}
+				// Previous scene in List (dev)
+				else if (key == KeyBindsSDL[(int)KeyBind::DevPreviousScene]) {
+					Application::DevNavigateSceneList(true);
+					break;
+				}
+				// Next scene in List (dev)
+				else if (key == KeyBindsSDL[(int)KeyBind::DevNextScene]) {
+					Application::DevNavigateSceneList(false);
 					break;
 				}
 			}
@@ -2633,6 +2645,57 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 
 		XMLParser::Free(sceneConfig);
 	}
+}
+
+void Application::DevNavigateSceneList(bool previous) {
+	if (SceneInfo::Categories.empty() || SceneInfo::NumTotalScenes == 0) {
+		return;
+	}
+
+	int catID = Scene::ActiveCategory;
+	if (catID < 0 || catID >= (int)SceneInfo::Categories.size()) {
+		catID = 0;
+	}
+
+	int entID = Scene::CurrentSceneInList + (previous ? -1 : 1);
+
+	// Navigate Forward
+	if (!previous) {
+		if (entID >= (int)SceneInfo::Categories[catID].Entries.size()) {
+			entID = 0;
+			do {
+				catID = (catID + 1) % SceneInfo::Categories.size();
+			} while (SceneInfo::Categories[catID].Entries.empty());
+		}
+	}
+	// Navigate Backward
+	else if (previous) {
+		if (entID < 0) {
+			do {
+				catID = (catID - 1 + SceneInfo::Categories.size()) % SceneInfo::Categories.size();
+			} while (SceneInfo::Categories[catID].Entries.empty());
+
+			entID = (int)SceneInfo::Categories[catID].Entries.size() - 1;
+		}
+	}
+
+	Scene::ActiveCategory = catID;
+	Scene::CurrentSceneInList = entID;
+
+	const char* categoryName = SceneInfo::Categories[catID].Name;
+	const char* sceneName = SceneInfo::Categories[catID].Entries[entID].Name;
+
+	BenchmarkFrame = 0;
+	BenchmarkCounter = 0.0f;
+	InputManager::ControllerStopRumble();
+	AudioManager::AudioStopAll();
+	AudioManager::ClearMusic();
+	AudioManager::LowPassFilter = 0.0f;
+
+	Scene::SetCurrent(categoryName, sceneName);
+	StringUtils::Copy(Scene::NextScene,
+		SceneInfo::GetFilename(catID, entID).c_str(),
+		sizeof(Scene::NextScene));
 }
 
 void Application::InitPlayerControls() {

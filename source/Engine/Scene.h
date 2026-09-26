@@ -60,6 +60,7 @@ public:
 	static HashMap<Property>* Properties;
 	static OrderedHashMap<ObjectList*>* ObjectLists;
 	static HashMap<ObjectRegistry*>* ObjectRegistries;
+	static ObjectRegistry* AllObjects;
 	static ObjectRegistry* OnScreenObjects;
 	static HashMap<ObjectList*>* StaticObjectLists;
 	static int ReservedSlotIDs;

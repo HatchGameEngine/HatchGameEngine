@@ -62,6 +62,8 @@ enum class KeyBind {
 	DevTileCol,
 	DevObjectRegions,
 	DevViewHitboxes,
+	DevPreviousScene,
+	DevNextScene,
 	DevMenuToggle,
 	DevScriptDebugger,
 	DevQuit,
