@@ -203,6 +203,7 @@ public:
 	static void Cleanup();
 	static void TerminateScripting();
 	static void LoadSceneInfo(int activeCategory, int currentSceneNum, bool keepScene);
+	static void DevNavigateSceneList(bool previous);
 	static void InitPlayerControls();
 	static bool LoadSettings(const char* filename);
 	static void ReadSettings();

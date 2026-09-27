@@ -100,7 +100,13 @@ bool ResourceManager::Init(const char* dataFilePath, bool useResourcesFolder) {
 
 	// Use Resources folder
 	if (!foundDataFile) {
-		filename = StringUtils::Create(RESOURCES_DIR_PATH);
+		#ifdef __APPLE__
+			std::string resolve = "";
+			Path::FromURL(PATHLOCATION_GAME_URL RESOURCES_DIR_PATH, resolve);
+			filename = StringUtils::Create(resolve);
+		#else
+			filename = StringUtils::Create(RESOURCES_DIR_PATH);
+		#endif
 		isDirectory = true;
 	}
 

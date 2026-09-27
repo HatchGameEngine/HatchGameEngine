@@ -31,6 +31,8 @@ struct GLShaderOptions {
 	Uint8 TintMode;
 	Uint8 Filter;
 	bool FogEnabled;
+	bool DotPatternX;
+	bool DotPatternY;
 #ifdef GL_HAVE_YUV
 	bool IsYUV;
 #endif

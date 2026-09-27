@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <csetjmp>
+#include <cmath>
 #include <deque>
 #include <filesystem>
 #include <map>
@@ -61,6 +62,8 @@ enum class KeyBind {
 	DevTileCol,
 	DevObjectRegions,
 	DevViewHitboxes,
+	DevPreviousScene,
+	DevNextScene,
 	DevMenuToggle,
 	DevScriptDebugger,
 	DevQuit,

@@ -38,7 +38,11 @@ void SourceFileMap::Init() {
 		SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(Murmur::EncryptData, 16);
 	}
 
-	StringUtils::Copy(SourceFileMap::Path, SCRIPTS_DIRECTORY_NAME, sizeof SourceFileMap::Path);
+	#if __APPLE__
+		Path::FromURL(PATHLOCATION_GAME_URL SCRIPTS_DIRECTORY_NAME, SourceFileMap::Path, sizeof SourceFileMap::Path);
+	#else
+		StringUtils::Copy(SourceFileMap::Path, SCRIPTS_DIRECTORY_NAME, sizeof SourceFileMap::Path);
+	#endif
 
 	SourceFileMap::Initialized = true;
 }

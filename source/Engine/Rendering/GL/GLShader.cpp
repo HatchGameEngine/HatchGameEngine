@@ -225,7 +225,11 @@ GL_ProcessedShader GLShader::ProcessFragmentShaderText(char* text) {
 std::vector<char*> GLShader::GetShaderSources(GL_ProcessedShader processed) {
 	std::vector<char*> shaderSources;
 
-	std::string versionString = "#version 130\n";
+	#if __APPLE__
+		std::string versionString = "#version 120\n";
+	#else
+		std::string versionString = "#version 130\n";
+	#endif
 	shaderSources.push_back(StringUtils::Create(versionString));
 
 #if GL_ES_VERSION_2_0 || GL_ES_VERSION_3_0
@@ -473,6 +477,11 @@ void GLShader::AttachAndLink() {
 	LocFogLinearEnd = AddBuiltinUniform("u_fogLinearEnd");
 	LocFogDensity = AddBuiltinUniform("u_fogDensity");
 	LocFogSmoothness = AddBuiltinUniform("u_fogSmoothness");
+
+	LocDotPatternX = AddBuiltinUniform(UNIFORM_DOTPATTERNX);
+	LocDotPatternY = AddBuiltinUniform(UNIFORM_DOTPATTERNY);
+	LocDotPatternOffsetX = AddBuiltinUniform(UNIFORM_DOTPATTERNOFFSETX);
+	LocDotPatternOffsetY = AddBuiltinUniform(UNIFORM_DOTPATTERNOFFSETY);
 
 	ValidateTextureUniformNames();
 	InitTextureUnitMap();

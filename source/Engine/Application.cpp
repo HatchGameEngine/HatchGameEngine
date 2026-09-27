@@ -1343,6 +1343,8 @@ void Application::LoadKeyBinds() {
 	GET_KEY("devShowTileCol", DevTileCol, Key_UNKNOWN);
 	GET_KEY("devShowObjectRegions", DevObjectRegions, Key_UNKNOWN);
 	GET_KEY("devViewHitboxes", DevViewHitboxes, Key_UNKNOWN);
+	GET_KEY("devPreviousScene", DevPreviousScene, Key_PAGEDOWN);
+	GET_KEY("devNextScene", DevNextScene, Key_PAGEUP);
 	GET_KEY("devMenuToggle", DevMenuToggle, Key_ESCAPE);
 	GET_KEY("devScriptDebugger", DevScriptDebugger, Key_UNKNOWN);
 	GET_KEY("devQuit", DevQuit, Key_UNKNOWN);
@@ -1462,6 +1464,10 @@ bool Application::IsWindowResizeable() {
 
 void Application::SetWindowSize(int window_w, int window_h) {
 	if (!Application::IsWindowResizeable()) {
+		return;
+	}
+
+	if (Application::Window == nullptr) {
 		return;
 	}
 
@@ -1711,6 +1717,16 @@ void Application::PollEvents() {
 					Application::UpdateWindowTitle();
 					break;
 				}
+				// Previous scene in List (dev)
+				else if (key == KeyBindsSDL[(int)KeyBind::DevPreviousScene]) {
+					Application::DevNavigateSceneList(true);
+					break;
+				}
+				// Next scene in List (dev)
+				else if (key == KeyBindsSDL[(int)KeyBind::DevNextScene]) {
+					Application::DevNavigateSceneList(false);
+					break;
+				}
 			}
 			break;
 		}
@@ -1859,12 +1875,12 @@ void Application::RunFrame(int runFrames) {
 	}
 
 DO_NOTHING:
-	RunDevMenu();
-
 	// Show FPS counter
 	Metrics.FPSCounter.Begin();
 	DrawPerformance();
 	Metrics.FPSCounter.End();
+
+	RunDevMenu();
 
 	// Take screenshots
 	if (!Screenshot::IsQueueEmpty()) {
@@ -2631,6 +2647,57 @@ void Application::LoadSceneInfo(int activeCategory, int currentSceneNum, bool ke
 	}
 }
 
+void Application::DevNavigateSceneList(bool previous) {
+	if (SceneInfo::Categories.empty() || SceneInfo::NumTotalScenes == 0) {
+		return;
+	}
+
+	int catID = Scene::ActiveCategory;
+	if (catID < 0 || catID >= (int)SceneInfo::Categories.size()) {
+		catID = 0;
+	}
+
+	int entID = Scene::CurrentSceneInList + (previous ? -1 : 1);
+
+	// Navigate Forward
+	if (!previous) {
+		if (entID >= (int)SceneInfo::Categories[catID].Entries.size()) {
+			entID = 0;
+			do {
+				catID = (catID + 1) % SceneInfo::Categories.size();
+			} while (SceneInfo::Categories[catID].Entries.empty());
+		}
+	}
+	// Navigate Backward
+	else if (previous) {
+		if (entID < 0) {
+			do {
+				catID = (catID - 1 + SceneInfo::Categories.size()) % SceneInfo::Categories.size();
+			} while (SceneInfo::Categories[catID].Entries.empty());
+
+			entID = (int)SceneInfo::Categories[catID].Entries.size() - 1;
+		}
+	}
+
+	Scene::ActiveCategory = catID;
+	Scene::CurrentSceneInList = entID;
+
+	const char* categoryName = SceneInfo::Categories[catID].Name;
+	const char* sceneName = SceneInfo::Categories[catID].Entries[entID].Name;
+
+	BenchmarkFrame = 0;
+	BenchmarkCounter = 0.0f;
+	InputManager::ControllerStopRumble();
+	AudioManager::AudioStopAll();
+	AudioManager::ClearMusic();
+	AudioManager::LowPassFilter = 0.0f;
+
+	Scene::SetCurrent(categoryName, sceneName);
+	StringUtils::Copy(Scene::NextScene,
+		SceneInfo::GetFilename(catID, entID).c_str(),
+		sizeof(Scene::NextScene));
+}
+
 void Application::InitPlayerControls() {
 	InputManager::InitPlayerControls();
 
@@ -3152,7 +3219,7 @@ void Application::DevMenu_CategorySelectMenu() {
 	}
 
 	DrawDevString(
-		"Select Scene Category...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+		"Select category...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
 
 	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < SceneInfo::Categories.size();
 		i++, y += 14) {
@@ -3471,10 +3538,12 @@ void Application::DevMenu_CloseResourcesBrowser() {
 void Application::DevMenu_SceneSelectMenu() {
 	DevMenu_DrawMainMenu();
 
-	DrawDevString("Select Scene...", Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
-
 	SceneListCategory* list = &SceneInfo::Categories[DevMenu.ListPos];
 
+	char buffer[256];
+	snprintf(buffer, sizeof(buffer), "Select scene in the %s category...", list->Name);
+	DrawDevString(buffer, Application::WindowWidth / 2, 50, ALIGN_CENTER, true);
+	
 	for (size_t i = 0, y = 86; i < 8 && DevMenu.SubScrollPos + i < list->Entries.size();
 		i++, y += 14) {
 		DrawDevString(list->Entries[DevMenu.SubScrollPos + i].Name,
@@ -3486,24 +3555,28 @@ void Application::DevMenu_SceneSelectMenu() {
 
 	int actionUp = InputManager::GetActionID("Up");
 	int actionDown = InputManager::GetActionID("Down");
+	int actionLeft = InputManager::GetActionID("Left");
+	int actionRight = InputManager::GetActionID("Right");
 
-	if ((actionUp != -1 &&
-		    (InputManager::IsActionPressedByAny(actionUp) ||
-			    (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer))) ||
-		(actionDown != -1 &&
-			(InputManager::IsActionPressedByAny(actionDown) ||
-				(InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer)))) {
+	bool moveUp = actionUp != -1 && (InputManager::IsActionPressedByAny(actionUp) || (InputManager::IsActionHeldByAny(actionUp) && !DevMenu.Timer));
+	bool moveDown = actionDown != -1 && (InputManager::IsActionPressedByAny(actionDown) || (InputManager::IsActionHeldByAny(actionDown) && !DevMenu.Timer));
+	bool moveLeft = actionLeft != -1 && (InputManager::IsActionPressedByAny(actionLeft) || (InputManager::IsActionHeldByAny(actionLeft) && !DevMenu.Timer));
+	bool moveRight = actionRight != -1 && (InputManager::IsActionPressedByAny(actionRight) || (InputManager::IsActionHeldByAny(actionRight) && !DevMenu.Timer));
 
-		DevMenu.SubSelection =
-			(DevMenu.SubSelection +
-				(((actionUp != -1 &&
-					  InputManager::IsActionPressedByAny(actionUp)) ||
-					 (actionUp != -1 &&
-						 InputManager::IsActionHeldByAny(actionUp)))
-						? -1
-						: 1) +
-				(int)list->Entries.size()) %
-			(int)list->Entries.size();
+	if (moveUp || moveDown || moveLeft || moveRight) {
+		int moveAmount = 0;
+		if (moveUp)
+			moveAmount = -1;
+		else if (moveDown)
+			moveAmount = 1;
+		else if (moveLeft)
+			moveAmount = -10;
+		else if (moveRight)
+			moveAmount = 10;
+
+		int listSize = (int)list->Entries.size();
+
+		DevMenu.SubSelection = ((DevMenu.SubSelection + moveAmount) % listSize + listSize) % listSize;
 
 		if (DevMenu.SubSelection >= DevMenu.SubScrollPos) {
 			if (DevMenu.SubSelection > DevMenu.SubScrollPos + 7) {

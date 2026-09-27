@@ -1011,7 +1011,7 @@ VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
  * \ns Sprite
  */
 VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(3);
+	CHECK_ARGCOUNT(1);
 	Animator* animator = GET_ARG(0, GetAnimator);
 	if (animator && animator->Sprite >= 0 && animator->CurrentAnimation >= 0 &&
 		animator->CurrentFrame >= 0) {
@@ -5643,57 +5643,83 @@ VMValue Draw_ClearStencil(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Draw.SetDotMask
- * \desc Sets the dot mask.
- * \param mask (integer): The mask.
+ * \desc Sets both horizontal and vertical dot patterns.<br/>\
+The pattern is defined by the following algorithm: <br/>\
+`((pixel_x / pattern) % 2) * pattern == 0 && ((pixel_y / pattern) % 2) * pattern == 0`<br/>\
+If <param pattern> is zero, this disables the patterns.
+ * \param pattern (integer): The value to use for the pattern.
  * \ns Draw
  */
 VMValue Draw_SetDotMask(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	SoftwareRenderer::SetDotMask(GET_ARG(0, GetInteger));
+	int value = GET_ARG(0, GetInteger);
+	if (value < 0) {
+		THROW_ERROR("Value cannot be lower than 0.");
+		value = 0;
+	}
+	Graphics::SetDotPattern(value);
 	return NULL_VAL;
 }
 /***
  * Draw.SetHorizontalDotMask
- * \desc Sets the horizontal dot mask.
- * \param mask (integer): The mask.
+ * \desc Sets the horizontal dot pattern.<br/>\
+The pattern is defined by the following algorithm: <br/>\
+`((pixel_x / pattern) % 2) * pattern == 0`<br/>\
+If <param pattern> is zero, this disables the horizontal dot pattern.
+ * \param pattern (integer): The value to use for the pattern.
  * \ns Draw
  */
 VMValue Draw_SetHorizontalDotMask(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	SoftwareRenderer::SetDotMaskH(GET_ARG(0, GetInteger));
+	int value = GET_ARG(0, GetInteger);
+	if (value < 0) {
+		THROW_ERROR("Value cannot be lower than 0.");
+		value = 0;
+	}
+	Graphics::SetDotPatternX(value);
 	return NULL_VAL;
 }
 /***
  * Draw.SetVerticalDotMask
- * \desc Sets the vertical dot mask.
- * \param mask (integer): The mask.
+ * \desc Sets the vertical dot pattern.<br/>\
+The pattern is defined by the following algorithm: <br/>\
+`((pixel_y / pattern) % 2) * pattern == 0`<br/>\
+If <param pattern> is zero, this disables the vertical dot pattern.
+ * \param pattern (integer): The value to use for the pattern.
  * \ns Draw
  */
 VMValue Draw_SetVerticalDotMask(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	SoftwareRenderer::SetDotMaskV(GET_ARG(0, GetInteger));
+	int value = GET_ARG(0, GetInteger);
+	if (value < 0) {
+		THROW_ERROR("Value cannot be lower than 0.");
+		value = 0;
+	}
+	Graphics::SetDotPatternY(value);
 	return NULL_VAL;
 }
 /***
  * Draw.SetHorizontalDotMaskOffset
- * \desc Sets the offset of the horizontal dot mask.
- * \param offsetH (integer): The offset.
+ * \desc Sets the offset of the horizontal dot pattern.
+ * \param offsetX (integer): The offset.
  * \ns Draw
  */
 VMValue Draw_SetHorizontalDotMaskOffset(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	SoftwareRenderer::SetDotMaskOffsetH(GET_ARG(0, GetInteger));
+	int offset = GET_ARG(0, GetInteger);
+	Graphics::SetDotPatternOffsetX(offset);
 	return NULL_VAL;
 }
 /***
  * Draw.SetVerticalDotMaskOffset
- * \desc Sets the offset of the vertical dot mask.
- * \param offsetV (integer): The offset.
+ * \desc Sets the offset of the vertical dot pattern.
+ * \param offsetY (integer): The offset.
  * \ns Draw
  */
 VMValue Draw_SetVerticalDotMaskOffset(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(1);
-	SoftwareRenderer::SetDotMaskOffsetV(GET_ARG(0, GetInteger));
+	int offset = GET_ARG(0, GetInteger);
+	Graphics::SetDotPatternOffsetY(offset);
 	return NULL_VAL;
 }
 /***
@@ -13573,6 +13599,88 @@ VMValue Scene_GetLayerVerticalConstantScroll(int argCount, VMValue* args, Uint32
 	return DECIMAL_VAL(Scene::Layers[index]->ConstantY);
 }
 /***
+ * Scene.GetLayerScrollInfoCount
+ * \desc Gets the amount of scroll info groups in the specified layer.
+ * \param layerIndex (integer): Index of the layer.
+ * \return integer Returns the count of scroll info groups.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerScrollInfoCount(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
+
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	return INTEGER_VAL(layer->ScrollInfoCount);
+}
+/***
+ * Scene.GetLayerScrollInfoOffset
+ * \desc Gets the manual offset of an individual scroll info group.
+ * \param layerIndex (integer): Index of the layer.
+ * \param scrollIndex (integer): Index of the scroll info group.
+ * \return number Returns the current offset.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerScrollInfoOffset(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	int scrollIndex = GET_ARG(1, GetInteger);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
+
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	if (scrollIndex < 0 || scrollIndex >= layer->ScrollInfoCount)
+		return NULL_VAL;
+
+	return DECIMAL_VAL(layer->ScrollInfos[scrollIndex].Offset);
+}
+/***
+ * Scene.GetLayerScrollInfoConstantScroll
+ * \desc Gets the constant parallax factor (scroll speed) of an individual scroll info group.
+ * \param layerIndex (integer): Index of the layer.
+ * \param scrollIndex (integer): Index of the scroll info group.
+ * \return number Returns the constant parallax factor.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerScrollInfoConstantScroll(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	int scrollIndex = GET_ARG(1, GetInteger);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
+
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	if (scrollIndex < 0 || scrollIndex >= layer->ScrollInfoCount)
+		return NULL_VAL;
+
+	return DECIMAL_VAL(layer->ScrollInfos[scrollIndex].ConstantParallax);
+}
+/***
+ * Scene.GetLayerScrollInfoParallaxFactor
+ * \desc Gets the relative parallax factor of an individual scroll info group.
+ * \param layerIndex (integer): Index of the layer.
+ * \param scrollIndex (integer): Index of the scroll info group.
+ * \return number Returns the relative parallax factor.
+ * \ns Scene
+ */
+VMValue Scene_GetLayerScrollInfoParallaxFactor(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(2);
+	int index = GET_ARG(0, GetInteger);
+	int scrollIndex = GET_ARG(1, GetInteger);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
+
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	if (scrollIndex < 0 || scrollIndex >= layer->ScrollInfoCount)
+		return NULL_VAL;
+
+	return DECIMAL_VAL(layer->ScrollInfos[scrollIndex].RelativeParallax);
+}
+/***
  * Scene.GetLayerType
  * \desc Gets the type of the layer.
  * \param layerIndex (integer): Index of layer.
@@ -13937,6 +14045,7 @@ VMValue Scene_GetTileAnimSequence(int argCount, VMValue* args, Uint32 threadID) 
 	}
 
 	Tileset* tileset = Scene::GetTileset(tileID);
+
 	TileAnimator* animator = Scene::GetTileAnimator(tileID);
 	if (!tileset || !animator) {
 		return NULL_VAL;
@@ -14228,6 +14337,63 @@ VMValue Scene_SetTileCollisionSides(int argCount, VMValue* args, Uint32 threadID
 VMValue Scene_SetPaused(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	Scene::Paused = GET_ARG(0, GetInteger);
+	return NULL_VAL;
+}
+/***
+ * Scene.CopyTiles
+ * \desc Copies a block of tiles.
+ * \param dstLayerIndex (integer): Index of the destination layer.
+ * \param dstStartX (integer): Destination X start coordinate (in tiles).
+ * \param dstStartY (integer): Destination Y start coordinate (in tiles).
+ * \param srcLayerIndex (integer): Index of the source layer.
+ * \param srcStartX (integer): Source X start coordinate (in tiles).
+ * \param srcStartY (integer): Source Y start coordinate (in tiles).
+ * \param countX (integer): Number of tiles to copy horizontally.
+ * \param countY (integer): Number of tiles to copy vertically.
+ * \ns Scene
+ */
+VMValue Scene_CopyTiles(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(8);
+	int dstLayerID = GET_ARG(0, GetInteger);
+	int dstStartX = GET_ARG(1, GetInteger);
+	int dstStartY = GET_ARG(2, GetInteger);
+	int srcLayerID = GET_ARG(3, GetInteger);
+	int srcStartX = GET_ARG(4, GetInteger);
+	int srcStartY = GET_ARG(5, GetInteger);
+	int countX = GET_ARG(6, GetInteger);
+	int countY = GET_ARG(7, GetInteger);
+
+	CHECK_SCENE_LAYER_INDEX(dstLayerID);
+	CHECK_IS_TILE_LAYER(dstLayerID);
+	CHECK_SCENE_LAYER_INDEX(srcLayerID);
+	CHECK_IS_TILE_LAYER(srcLayerID);
+
+	TileLayer* dstLayer = (TileLayer*)Scene::Layers[dstLayerID];
+	TileLayer* srcLayer = (TileLayer*)Scene::Layers[srcLayerID];
+
+	if (dstStartX >= 0 && dstStartX < (int)dstLayer->Width && dstStartY >= 0 && dstStartY < (int)dstLayer->Height) {
+		if (srcStartX >= 0 && srcStartX < (int)srcLayer->Width && srcStartY >= 0 && srcStartY < (int)srcLayer->Height) {
+			if (dstStartX + countX > (int)dstLayer->Width)
+				countX = (int)dstLayer->Width - dstStartX;
+
+			if (dstStartY + countY > (int)dstLayer->Height)
+				countY = (int)dstLayer->Height - dstStartY;
+
+			if (srcStartX + countX > (int)srcLayer->Width)
+				countX = (int)srcLayer->Width - srcStartX;
+
+			if (srcStartY + countY > (int)srcLayer->Height)
+				countY = (int)srcLayer->Height - srcStartY;
+
+			for (int y = 0; y < countY; ++y) {
+				for (int x = 0; x < countX; ++x) {
+					Uint32 tile = srcLayer->Tiles[(x + srcStartX) + ((y + srcStartY) << srcLayer->WidthInBits)];
+					dstLayer->Tiles[(x + dstStartX) + ((y + dstStartY) << dstLayer->WidthInBits)] = tile;
+				}
+			}
+		}
+	}
+
 	return NULL_VAL;
 }
 /***
@@ -14834,6 +15000,78 @@ VMValue Scene_SetLayerVerticalConstantScroll(int argCount, VMValue* args, Uint32
 	float constant = GET_ARG(1, GetDecimal);
 	CHECK_SCENE_LAYER_INDEX(index);
 	Scene::Layers[index]->ConstantY = constant;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerScrollInfoOffset
+ * \desc Sets the manual offset of an individual scroll info group.
+ * \param layerIndex (integer): Index of thelayer.
+ * \param scrollIndex (integer): Index of the scroll info group.
+ * \param offset (number): The new offset.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerScrollInfoOffset(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	int index = GET_ARG(0, GetInteger);
+	int scrollIndex = GET_ARG(1, GetInteger);
+	float offset = GET_ARG(2, GetDecimal);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
+
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	if (scrollIndex < 0 || scrollIndex >= layer->ScrollInfoCount)
+		return NULL_VAL;
+
+	layer->ScrollInfos[scrollIndex].Offset = offset;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerScrollInfoParallaxFactor
+ * \desc Sets the relative parallax factor of an individual scroll info group.
+ * \param layerIndex (integer): Index of the layer.
+ * \param scrollIndex (integer): Index of the scroll info group.
+ * \param parallax (number): The new relative parallax factor.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerScrollInfoParallaxFactor(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	int index = GET_ARG(0, GetInteger);
+	int scrollIndex = GET_ARG(1, GetInteger);
+	float parallax = GET_ARG(2, GetDecimal);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
+
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	if (scrollIndex < 0 || scrollIndex >= layer->ScrollInfoCount)
+		return NULL_VAL;
+
+	layer->ScrollInfos[scrollIndex].RelativeParallax = parallax;
+	return NULL_VAL;
+}
+/***
+ * Scene.SetLayerScrollInfoConstantScroll
+ * \desc Sets the constant parallax factor of an individual scroll info group.
+ * \param layerIndex (integer): Index of the layer.
+ * \param scrollIndex (integer): Index of the scroll info group.
+ * \param constant (number): The new constant parallax factor.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerScrollInfoConstantScroll(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	int index = GET_ARG(0, GetInteger);
+	int scrollIndex = GET_ARG(1, GetInteger);
+	float constant = GET_ARG(2, GetDecimal);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
+
+	TileLayer* layer = (TileLayer*)Scene::Layers[index];
+	if (scrollIndex < 0 || scrollIndex >= layer->ScrollInfoCount)
+		return NULL_VAL;
+
+	layer->ScrollInfos[scrollIndex].ConstantParallax = constant;
 	return NULL_VAL;
 }
 struct BufferedScrollInfo {
@@ -20385,6 +20623,7 @@ void StandardLibrary::Link() {
 	DEF_NATIVE(Animator, GetDuration);
 	DEF_NATIVE(Animator, GetFrameCount);
 	DEF_NATIVE(Animator, GetLoopIndex);
+	DEF_NATIVE(Animator, GetRotationStyle);
 	DEF_NATIVE(Animator, SetSprite);
 	DEF_NATIVE(Animator, SetCurrentAnimation);
 	DEF_NATIVE(Animator, SetCurrentFrame);
@@ -22166,6 +22405,10 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, GetLayerVerticalParallaxFactor);
 	DEF_NATIVE(Scene, GetLayerHorizontalConstantScroll);
 	DEF_NATIVE(Scene, GetLayerVerticalConstantScroll);
+	DEF_NATIVE(Scene, GetLayerScrollInfoCount);
+	DEF_NATIVE(Scene, GetLayerScrollInfoParallaxFactor);
+	DEF_NATIVE(Scene, GetLayerScrollInfoOffset);
+	DEF_NATIVE(Scene, GetLayerScrollInfoConstantScroll);
 	DEF_NATIVE(Scene, GetLayerType);
 	DEF_NATIVE(Scene, GetTileWidth);
 	DEF_NATIVE(Scene, GetTileHeight);
@@ -22206,6 +22449,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, SetTile);
 	DEF_NATIVE(Scene, SetTileCollisionSides);
 	DEF_NATIVE(Scene, SetPaused);
+	DEF_NATIVE(Scene, CopyTiles);
 	DEF_NATIVE(Scene, SetTileAnimationEnabled);
 	DEF_NATIVE(Scene, SetTileAnimSequence);
 	DEF_NATIVE(Scene, SetTileAnimSequenceFromSprite);
@@ -22235,6 +22479,9 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, SetLayerVerticalParallaxFactor);
 	DEF_NATIVE(Scene, SetLayerHorizontalConstantScroll);
 	DEF_NATIVE(Scene, SetLayerVerticalConstantScroll);
+	DEF_NATIVE(Scene, SetLayerScrollInfoOffset);
+	DEF_NATIVE(Scene, SetLayerScrollInfoConstantScroll);
+	DEF_NATIVE(Scene, SetLayerScrollInfoParallaxFactor);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesBegin);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLines);
 	DEF_NATIVE(Scene, SetLayerSetParallaxLinesEnd);

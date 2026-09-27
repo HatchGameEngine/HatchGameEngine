@@ -1352,9 +1352,13 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 				}
 				else {
 					Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+					Graphics::SetBlendMode(BlendMode_NORMAL);
 				}
 
 				Graphics::DrawSceneLayer(layer, currentView, (int)li, true);
+
+				Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
+				Graphics::SetBlendMode(BlendMode_NORMAL);
 				Graphics::ClearClip();
 
 				PERF_END(LayerTileRenderTime[li]);

@@ -67,6 +67,12 @@ int Graphics::StencilTest = StencilTest_Always;
 int Graphics::StencilOpPass = StencilOp_Keep;
 int Graphics::StencilOpFail = StencilOp_Keep;
 
+Uint16 Graphics::DotPatternX = 0;
+Uint16 Graphics::DotPatternY = 0;
+
+int Graphics::DotPatternOffsetX = 0;
+int Graphics::DotPatternOffsetY = 0;
+
 Texture* Graphics::FramebufferTexture = NULL;
 int Graphics::FramebufferWidth = 0;
 int Graphics::FramebufferHeight = 0;
@@ -257,6 +263,10 @@ void Graphics::Reset() {
 	Graphics::StencilTest = StencilTest_Always;
 	Graphics::StencilOpPass = StencilOp_Keep;
 	Graphics::StencilOpFail = StencilOp_Keep;
+
+	SetDotPattern(0);
+	SetDotPatternOffsetX(0);
+	SetDotPatternOffsetY(0);
 }
 void Graphics::Dispose() {
 	Graphics::UnloadData();
@@ -2476,8 +2486,9 @@ void Graphics::MeasureTextWrappedLegacy(ISprite* sprite,
 Sint64 Graphics::CalcHorizontalParallaxPosition(TileLayer* layer,
 	float viewX,
 	float constant,
-	float relative) {
-	Sint64 position = (Sint64)((Scene::Frame * constant) + (viewX * relative) + layer->OffsetX);
+	float relative,
+	float lineOffset) {
+	Sint64 position = (Sint64)((Scene::Frame * constant) + (viewX * relative) + layer->OffsetX + lineOffset);
 
 	if (layer->Flags & SceneLayer::FLAGS_REPEAT_X) {
 		int layerWidth = layer->Width * Scene::TileWidth;
@@ -2528,7 +2539,7 @@ void Graphics::CalcScanlineDeforms(TileLayer* layer,
 		}
 		else {
 			scanLine->SrcX = Graphics::CalcHorizontalParallaxPosition(
-				layer, viewX, layer->ConstantX, layer->RelativeX);
+				layer, viewX, layer->ConstantX, layer->RelativeX, 0.0f);
 		}
 		scanLine->SrcX <<= 16;
 		scanLine->SrcY = scrollLine << 16;
@@ -2552,8 +2563,9 @@ void Graphics::DrawTileLayer_InitTileScanLines(TileLayer* layer, View* currentVi
 			ScrollingInfo* info = &layer->ScrollInfos[i];
 			info->Position = Graphics::CalcHorizontalParallaxPosition(layer,
 				viewX,
-				layer->ConstantX * info->ConstantParallax,
-				layer->RelativeX * info->RelativeParallax);
+				layer->ConstantX + info->ConstantParallax,
+				layer->RelativeX * info->RelativeParallax,
+				info->Offset);
 		}
 
 		// Create scanlines
@@ -3807,4 +3819,28 @@ void Graphics::ClearStencil() {
 	if (Graphics::GfxFunctions->ClearStencil) {
 		Graphics::GfxFunctions->ClearStencil();
 	}
+}
+void Graphics::SetDotPattern(int mask) {
+	SetDotPatternX(mask);
+	SetDotPatternY(mask);
+}
+void Graphics::SetDotPatternX(int mask) {
+	if (mask < 0) {
+		mask = 0;
+	}
+
+	DotPatternX = mask;
+}
+void Graphics::SetDotPatternY(int mask) {
+	if (mask < 0) {
+		mask = 0;
+	}
+
+	DotPatternY = mask;
+}
+void Graphics::SetDotPatternOffsetX(int offset) {
+	DotPatternOffsetX = offset;
+}
+void Graphics::SetDotPatternOffsetY(int offset) {
+	DotPatternOffsetY = offset;
 }

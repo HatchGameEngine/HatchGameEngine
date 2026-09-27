@@ -175,22 +175,17 @@ public:
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void SetDotMask(int mask);
-	static void SetDotMaskH(int mask);
-	static void SetDotMaskV(int mask);
-	static void SetDotMaskOffsetH(int offset);
-	static void SetDotMaskOffsetV(int offset);
-	static void PixelDotMaskH(Uint32* src,
+	static void PixelDotPatternX(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelDotMaskV(Uint32* src,
+	static void PixelDotPatternY(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,
 		int* multSubTableAt);
-	static void PixelDotMaskHV(Uint32* src,
+	static void PixelDotPatternXY(Uint32* src,
 		Uint32* dst,
 		BlendState& state,
 		int* multTableAt,

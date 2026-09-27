@@ -17,7 +17,9 @@ std::unordered_map<Uint32, std::string> FeatureNames = {{SHADER_FEATURE_BLENDING
 	{SHADER_FEATURE_FILTER_INVERT, "filter_invert"},
 	{SHADER_FEATURE_TINTING, "tinting"},
 	{SHADER_FEATURE_TINT_DEST, "tint_dest"},
-	{SHADER_FEATURE_TINT_BLEND, "tint_blend"}};
+	{SHADER_FEATURE_TINT_BLEND, "tint_blend"},
+	{SHADER_FEATURE_DOT_PATTERN_X, "dot_pattern_x"},
+	{SHADER_FEATURE_DOT_PATTERN_Y, "dot_pattern_y"}};
 
 void GLShaderContainer::Init() {
 	Translation[0] = 0;
@@ -130,6 +132,13 @@ GLShader* GLShaderContainer::Generate(Uint32 features) {
 		}
 	}
 
+	if (features & SHADER_FEATURE_DOT_PATTERN_X) {
+		options.DotPatternX = true;
+	}
+	if (features & SHADER_FEATURE_DOT_PATTERN_Y) {
+		options.DotPatternY = true;
+	}
+
 	GLShaderBuilder vs = GLShaderBuilder::Vertex(vsIn, vsOut, vsUni, options);
 	GLShaderBuilder fs = GLShaderBuilder::Fragment(fsIn, fsUni, options);
 
@@ -171,6 +180,7 @@ GLShader* GLShaderContainer::Compile(Uint32& features) {
 	}
 
 			// Attempt to remove problematic features until the shader compiles.
+			REMOVE(SHADER_FEATURE_DOT_PATTERN_FLAGS)
 			REMOVE(SHADER_FEATURE_TINT_DEST)
 			REMOVE(SHADER_FEATURE_TINT_BLEND)
 			REMOVE(SHADER_FEATURE_TINTING)
