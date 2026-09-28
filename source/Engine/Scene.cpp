@@ -583,6 +583,11 @@ void Scene::RemoveObject(Entity* obj) {
 		});
 	}
 
+	// Remove from AllObjects
+    if (!obj->Active) {
+        Scene::AllObjects->Remove(obj);
+    }
+
 	// Remove from OnScreenObjects
 	if (obj->OnScreen) {
 		Scene::OnScreenObjects->Remove(obj);
