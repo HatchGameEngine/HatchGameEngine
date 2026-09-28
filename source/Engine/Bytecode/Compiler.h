@@ -6,6 +6,7 @@
 
 class Compiler {
 private:
+	int DoBranchPrediction(int codeLocation);
 	void WarnVariablesUnusedUnset();
 	void WriteBytecode(Stream* stream, const char* filename);
 
@@ -25,6 +26,8 @@ public:
 	int Type = FUNCTIONTYPE_TOPLEVEL;
 	bool InREPL = false;
 	bool EmitNullOnReturn = true;
+	int ReturnedAt = -1;
+	int DoNotEmit = 0;
 	string ClassName;
 	Local Locals[0x100];
 	vector<Local> AllLocals;
@@ -183,6 +186,8 @@ public:
 	Uint32 GetHash(Token token);
 	Chunk* CurrentChunk();
 	int CodePointer();
+	void SetCodePointer(int codePointer);
+	void EraseBreakpointsAfterOffset(Uint32 codePointer, std::vector<Uint32>* list);
 	Uint8* GetLastOpcodePtr(Chunk* chunk, int index);
 	void EmitByte(Uint8 byte);
 	void EmitBytes(Uint8 byte1, Uint8 byte2);
@@ -204,7 +209,7 @@ public:
 	void EmitStringHash(Token token);
 	void EmitReturn();
 	void StartBreakJumpList();
-	void EndBreakJumpList();
+	void EndBreakJumpList(bool patchJumps = true);
 	void StartContinueJumpList();
 	void EndContinueJumpList();
 	void StartSwitchJumpList();
@@ -221,6 +226,7 @@ public:
 	int CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn);
 	void AddBreakpoint(Token token);
 	void AddBreakpointsToChunk(Chunk* chunk);
+	void RebuildConstantsList();
 	static void Init();
 	static void GetStandardConstants();
 	static void PrepareCompiling();
