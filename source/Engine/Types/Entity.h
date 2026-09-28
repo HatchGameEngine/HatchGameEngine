@@ -63,6 +63,7 @@ typedef Entity* (*NamedEntitySpawnFunction)(const char*);
 #define REGISTER_ENTITY_SETTER(name, entity)
 #endif
 
+#define ALL_REGISTRY "ALL"
 #define ONSCREEN_REGISTRY "ONSCREEN"
 
 class Entity {
