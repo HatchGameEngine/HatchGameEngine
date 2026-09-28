@@ -802,6 +802,15 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 		offsetY += group->OffsetY;
 	}
 
+	// Entities in the "Classes" group are not instantiated, but are used to load classes into the scene
+	bool isClassRegistry = false;
+	if (objectgroup->attributes.Exists("name")) {
+		Token groupName = objectgroup->attributes.Get("name");
+		if (XMLParser::MatchToken(groupName, "Classes")) {
+			isClassRegistry = true;
+		}
+	}
+
 	for (size_t o = 0; o < objectgroup->children.size(); o++) {
 		XMLNode* object = objectgroup->children[o];
 		if (!XMLParser::MatchToken(object->name, "object")) {
@@ -847,6 +856,10 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 				slotID,
 				object_x,
 				object_y);
+			continue;
+		}
+
+		if (isClassRegistry) {
 			continue;
 		}
 
@@ -904,7 +917,7 @@ bool TiledMapReader::ParseObjectGroup(XMLNode* objectgroup, LayerGroup* group) {
 			if (XMLParser::MatchToken(child->name, "properties")) {
 				for (size_t pr = 0; pr < child->children.size(); pr++) {
 					if (XMLParser::MatchToken(
-						    child->children[pr]->name, "property")) {
+						child->children[pr]->name, "property")) {
 						TiledMapReader::ParsePropertyNode(
 							child->children[pr], obj->Properties);
 					}
