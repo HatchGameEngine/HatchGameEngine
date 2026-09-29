@@ -17590,6 +17590,52 @@ VMValue Sprite_GetTextWidth(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(0);
 }
 /***
+ * Sprite.SetFrameOffsetX
+ * \desc Sets the X pivot point of the specified sprite frame.
+ * \param sprite (integer): The sprite index to modify.
+ * \param animationID (integer): The animation index of the sprite to modify.
+ * \param frame (integer): The frame index of the animation to modify.
+ * \param offsetX (integer): The new X pivot point for the frame.
+ * \ns Sprite
+ */
+VMValue Sprite_SetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(4);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+	int offsetX = GET_ARG(3, GetInteger);
+
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	sprite->Animations[animationID].Frames[frameID].OffsetX = offsetX;
+
+	return NULL_VAL;
+}
+/***
+ * Sprite.SetFrameOffsetY
+ * \desc Sets the Y pivot point of the specified sprite frame.
+ * \param sprite (integer): The sprite index to modify.
+ * \param animationID (integer): The animation index of the sprite to modify.
+ * \param frame (integer): The frame index of the animation to modify.
+ * \param offsetY (integer): The new Y pivot point for the frame.
+ * \ns Sprite
+ */
+VMValue Sprite_SetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(4);
+	ISprite* sprite = GET_ARG(0, GetSprite);
+	int animationID = GET_ARG(1, GetInteger);
+	int frameID = GET_ARG(2, GetInteger);
+	int offsetY = GET_ARG(3, GetInteger);
+
+	CHECK_ANIMATION_INDEX(animationID);
+	CHECK_ANIMFRAME_INDEX(animationID, frameID);
+
+	sprite->Animations[animationID].Frames[frameID].OffsetY = offsetY;
+
+	return NULL_VAL;
+}
+/***
  * Sprite.MakePalettized
  * \desc Converts a sprite's colors to the ones in the specified palette index.
  * \param sprite (integer): The sprite index.
@@ -22793,6 +22839,8 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Sprite, GetHitbox);
 	DEF_NATIVE(Sprite, GetTextArray);
 	DEF_NATIVE(Sprite, GetTextWidth);
+	DEF_NATIVE(Sprite, SetFrameOffsetX);
+	DEF_NATIVE(Sprite, SetFrameOffsetY);
 	DEF_NATIVE(Sprite, MakePalettized);
 	DEF_NATIVE(Sprite, MakeNonPalettized);
 	// #endregion
