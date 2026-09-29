@@ -17615,12 +17615,11 @@ VMValue Sprite_SetFrameOffsetX(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Sprite.SetFrameOffsetY
- * \desc Sets the y pivot point of the specified sprite frame.
- * \param sprite (integer): The sprite index to check.
- * \param animationID (integer): The animation index of the sprite to check.
- * \param frame (integer): The frame index of the animation to check.
- * \param offsetY (integer): The new y pivot point for the frame.
- * \return void Returns nothing.
+ * \desc Sets the Y pivot point of the specified sprite frame.
+ * \param sprite (integer): The sprite index to modify.
+ * \param animationID (integer): The animation index of the sprite to modify.
+ * \param frame (integer): The frame index of the animation to modify.
+ * \param offsetY (integer): The new Y pivot point for the frame.
  * \ns Sprite
  */
 VMValue Sprite_SetFrameOffsetY(int argCount, VMValue* args, Uint32 threadID) {
