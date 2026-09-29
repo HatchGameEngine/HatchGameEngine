@@ -104,20 +104,43 @@ int AudioPlayback::RequestSamples(int samples, bool loop, int sample_to_loop_to)
 	if (Format.freq == AudioManager::DeviceFormat.freq &&
 		Format.format == AudioManager::DeviceFormat.format &&
 		Format.channels == AudioManager::DeviceFormat.channels) {
-		int num_samples = SoundData->GetSamples(Buffer, samples, LoopIndex);
-		if (num_samples == 0 && loop) {
-			SoundData->SeekSample(sample_to_loop_to);
-			num_samples = SoundData->GetSamples(Buffer, samples, LoopIndex);
+		int totalObtained = 0;
+		int num_samples = 0;
+
+		// Fill 'samples' worth of sample data.
+		while (totalObtained < samples) {
+			Uint8* buffer = Buffer + (totalObtained * AudioManager::BytesPerSample);
+			int remaining = samples - totalObtained;
+
+			// If GetSamples returns zero, and this audio is supposed to loop,
+			// then seek to 'sample_to_loop_to' and call GetSamples again.
+			int num_samples = SoundData->GetSamples(buffer, remaining, LoopIndex);
+			if (num_samples == 0 && loop) {
+				SoundData->SeekSample(sample_to_loop_to);
+				num_samples = SoundData->GetSamples(buffer, remaining, LoopIndex);
+			}
+
+			// If GetSamples returns zero again:
+			if (num_samples == 0) {
+				if (totalObtained == 0) {
+					// This 'while' never obtained any sample data.
+					// It can happen if there is no more audio to play, or if
+					// or if the SoundFormat had an error obtaining samples.
+					return AudioManager::REQUEST_EOF;
+				}
+				else {
+					// Some sample data was obtained, so break out and return
+					// the amount.
+					break;
+				}
+			}
+
+			totalObtained += num_samples;
 		}
 
-		if (num_samples == 0) {
-			return AudioManager::REQUEST_EOF;
-		}
+		BufferedSamples = totalObtained;
 
-		BufferedSamples = num_samples;
-
-		num_samples *= SoundData->SampleSize;
-		return num_samples;
+		return totalObtained * SoundData->SampleSize;
 	}
 
 	if (!ConversionStream) {
@@ -127,7 +150,7 @@ int AudioPlayback::RequestSamples(int samples, bool loop, int sample_to_loop_to)
 	int samplesRequestedInBytes = AudioManager::BytesPerSample * samples;
 
 	int availableBytes = SDL_AudioStreamAvailable(ConversionStream);
-	if (availableBytes < samplesRequestedInBytes) {
+	while (availableBytes < samplesRequestedInBytes) {
 		// Load extra samples if we have none
 		int num_samples = SoundData->GetSamples(UnconvertedSampleBuffer,
 			samples * AUDIO_FIRST_LOAD_SAMPLE_BOOST,
@@ -155,6 +178,8 @@ int AudioPlayback::RequestSamples(int samples, bool loop, int sample_to_loop_to)
 				SDL_GetError());
 			return AudioManager::REQUEST_ERROR;
 		}
+
+		availableBytes = SDL_AudioStreamAvailable(ConversionStream);
 	}
 
 CONVERT:
