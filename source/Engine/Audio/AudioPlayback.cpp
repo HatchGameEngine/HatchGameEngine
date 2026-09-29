@@ -112,22 +112,23 @@ int AudioPlayback::RequestSamples(int samples, bool loop, int sample_to_loop_to)
 			Uint8* buffer = Buffer + (totalObtained * AudioManager::BytesPerSample);
 			int remaining = samples - totalObtained;
 
-			// If GetSamples returns zero, usually simply because there are no more samples, then
-			// return REQUEST_EOF if 'loop' is false; otherwise, seek to 'sample_to_loop_to' and
-			// try again. If for some reason GetSamples returns zero again, handle that too.
+			// If GetSamples returns zero, and this audio is supposed to loop,
+			// then seek to 'sample_to_loop_to' and do it again.
 			int num_samples = SoundData->GetSamples(buffer, remaining, LoopIndex);
 			if (num_samples == 0 && loop) {
 				SoundData->SeekSample(sample_to_loop_to);
 				num_samples = SoundData->GetSamples(buffer, remaining, LoopIndex);
 			}
 
+			// If GetSamples returns zero again:
 			if (num_samples == 0) {
 				if (totalObtained == 0) {
-					// This never obtained any sample data, so return REQUEST_EOF.
+					// This loop never obtained any sample data, probably
+					// because there is no more audio to play.
 					return AudioManager::REQUEST_EOF;
 				}
 				else {
-					// If some sample data was obtained, then break.
+					// Some sample data was obtained, so break out of the loop.
 					break;
 				}
 			}
