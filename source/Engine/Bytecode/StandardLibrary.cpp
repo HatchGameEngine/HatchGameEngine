@@ -694,6 +694,10 @@ float textAdvance;
 	if (stream->Closed) { \
 		THROW_ERROR("Cannot read closed stream!"); \
 		return NULL_VAL; \
+	} \
+	if (!stream->StreamPtr->IsReadable()) { \
+		THROW_ERROR("Stream is not readable!"); \
+		return NULL_VAL; \
 	}
 #define CHECK_WRITE_STREAM \
 	if (stream->Closed) { \
@@ -702,6 +706,10 @@ float textAdvance;
 	} \
 	if (!stream->Writable) { \
 		THROW_ERROR("Cannot write to read-only stream!"); \
+		return NULL_VAL; \
+	} \
+	if (!stream->StreamPtr->IsWritable()) { \
+		THROW_ERROR("Stream is not writable!"); \
 		return NULL_VAL; \
 	}
 

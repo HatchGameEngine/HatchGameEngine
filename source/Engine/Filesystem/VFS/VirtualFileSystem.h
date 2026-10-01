@@ -26,6 +26,7 @@ class VirtualFileSystem {
 private:
 	std::deque<VFSMount> LoadedVFS;
 
+	const char* GetFilename(VFSMount mount, const char* filename);
 	void Dispose();
 
 public:
@@ -42,7 +43,6 @@ public:
 	bool IsMounted(const char* name);
 	VFSMountStatus Unmount(const char* name);
 	int NumMounted();
-	const char* GetFilename(VFSMount mount, const char* filename);
 
 	bool LoadFile(const char* filename, Uint8** out, size_t* size);
 	bool FileExists(const char* filename);

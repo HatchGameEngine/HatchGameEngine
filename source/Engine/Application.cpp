@@ -1084,11 +1084,6 @@ void Application::UnloadGame() {
 }
 
 void Application::UnloadResources() {
-	VirtualFileSystem* vfs = ResourceManager::GetVFS();
-	if (vfs != nullptr) {
-		ScriptManager::RegistryRemove((void*)vfs);
-	}
-
 	ResourceManager::Dispose();
 }
 

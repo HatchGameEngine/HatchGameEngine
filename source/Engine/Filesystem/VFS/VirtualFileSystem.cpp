@@ -117,15 +117,17 @@ int VirtualFileSystem::NumMounted() {
 }
 
 const char* VirtualFileSystem::GetFilename(VFSMount mount, const char* filename) {
-	size_t offset = 0;
-
 	std::string mountPoint = mount.MountPoint;
-
-	if (StringUtils::StartsWith(filename, mountPoint.c_str())) {
-		offset = mountPoint.size();
+	size_t length = mountPoint.size();
+	if (length == 0) {
+		return filename;
 	}
 
-	return filename + offset;
+	if (StringUtils::StartsWith(filename, mountPoint.c_str())) {
+		return filename + length;
+	}
+
+	return nullptr;
 }
 
 bool VirtualFileSystem::LoadFile(const char* filename, Uint8** out, size_t* size) {
@@ -133,7 +135,12 @@ bool VirtualFileSystem::LoadFile(const char* filename, Uint8** out, size_t* size
 		VFSMount& mount = LoadedVFS[i];
 		VFSProvider* vfs = mount.VFSPtr;
 
-		if (vfs->ReadFile(GetFilename(mount, filename), out, size)) {
+		const char* realFilename = GetFilename(mount, filename);
+		if (realFilename == nullptr) {
+			continue;
+		}
+
+		if (vfs->ReadFile(realFilename, out, size)) {
 			return true;
 		}
 	}
@@ -145,7 +152,12 @@ bool VirtualFileSystem::FileExists(const char* filename) {
 		VFSMount& mount = LoadedVFS[i];
 		VFSProvider* vfs = mount.VFSPtr;
 
-		if (vfs->HasFile(GetFilename(mount, filename))) {
+		const char* realFilename = GetFilename(mount, filename);
+		if (realFilename == nullptr) {
+			continue;
+		}
+
+		if (vfs->HasFile(realFilename)) {
 			return true;
 		}
 	}
@@ -162,7 +174,12 @@ Stream* VirtualFileSystem::OpenReadStream(const char* filename) {
 			continue;
 		}
 
-		Stream* stream = vfs->OpenReadStream(GetFilename(mount, filename));
+		const char* realFilename = GetFilename(mount, filename);
+		if (realFilename == nullptr) {
+			continue;
+		}
+
+		Stream* stream = vfs->OpenReadStream(realFilename);
 		if (stream) {
 			return stream;
 		}
@@ -179,7 +196,12 @@ Stream* VirtualFileSystem::OpenWriteStream(const char* filename) {
 			continue;
 		}
 
-		Stream* stream = vfs->OpenWriteStream(GetFilename(mount, filename));
+		const char* realFilename = GetFilename(mount, filename);
+		if (realFilename == nullptr) {
+			continue;
+		}
+
+		Stream* stream = vfs->OpenWriteStream(realFilename);
 		if (stream) {
 			return stream;
 		}
@@ -196,7 +218,12 @@ Stream* VirtualFileSystem::OpenAppendStream(const char* filename) {
 			continue;
 		}
 
-		Stream* stream = vfs->OpenAppendStream(GetFilename(mount, filename));
+		const char* realFilename = GetFilename(mount, filename);
+		if (realFilename == nullptr) {
+			continue;
+		}
+
+		Stream* stream = vfs->OpenAppendStream(realFilename);
 		if (stream) {
 			return stream;
 		}

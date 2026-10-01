@@ -25,7 +25,10 @@ public:
 	static VMValue VM_Mount(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Unmount(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_IsMounted(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_Delete(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_FileExists(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_OpenReadStream(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_Dispose(int argCount, VMValue* args, Uint32 threadID);
 };
 
 #endif /* ENGINE_BYTECODE_TYPEIMPL_VFSIMPL_H */

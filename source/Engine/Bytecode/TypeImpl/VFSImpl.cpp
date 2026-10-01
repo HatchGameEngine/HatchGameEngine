@@ -1,11 +1,14 @@
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/StandardLibrary.h>
 #include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
+#include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/VFSImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
+#include <Engine/IO/VirtualFileStream.h>
 #include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
+#include <Engine/ResourceTypes/ResourceManager.h>
 
 /***
 * \class VirtualFileSystem
@@ -24,7 +27,10 @@ void VFSImpl::Init() {
 	ScriptManager::DefineNative(Class, "Mount", VM_Mount);
 	ScriptManager::DefineNative(Class, "Unmount", VM_Unmount);
 	ScriptManager::DefineNative(Class, "IsMounted", VM_IsMounted);
-	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
+	ScriptManager::DefineNative(Class, "FileExists", VM_FileExists);
+	ScriptManager::DefineNative(Class, "OpenReadStream", VM_OpenReadStream);
+	ScriptManager::DefineNative(Class, "OpenWriteStream", VM_OpenWriteStream);
+	ScriptManager::DefineNative(Class, "Dispose", VM_Dispose);
 
 	TypeImpl::RegisterClass(Class);
 	TypeImpl::ExposeClass(Class);
@@ -102,7 +108,10 @@ VMValue VFSImpl::VM_Mount(int argCount, VMValue* args, Uint32 threadID) {
 	ObjInstance* objVfs = AS_VFS(args[0]);
 	char* name = GET_ARG(1, GetString);
 	char* path = GET_ARG(2, GetString);
-	char* mountPointPath = GET_ARG_OPT(3, GetString, nullptr);
+	char* mountPointPath = nullptr;
+	if (argCount >= 4 && !IS_NULL(args[3])) {
+		mountPointPath = GET_ARG(3, GetString);
+	}
 	bool isWritable = GET_ARG_OPT(4, GetInteger, false);
 
 	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
@@ -216,11 +225,81 @@ VMValue VFSImpl::VM_IsMounted(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(false);
 }
 /***
- * \method Delete
- * \desc Deletes the virtual file system. It can no longer be used after this function is called.
+ * \method FileExists
+ * \desc Checks to see if a file exists with the given filename.
+ * \param filename (string): The given filename.
+ * \return boolean Returns whether the file exists.
  * \ns VirtualFileSystem
  */
-VMValue VFSImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {
+VMValue VFSImpl::VM_FileExists(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+	char* filename = GET_ARG(1, GetString);
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	if (vfs->FileExists(filename)) {
+		return INTEGER_VAL(true);
+	}
+
+	return INTEGER_VAL(false);
+}
+/***
+ * \method OpenReadStream
+ * \desc Opens a stream for reading, if the file exists and is readable.
+ * \param filename (string): The given filename.
+ * \return stream Returns the newly opened stream, or `null`.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_OpenReadStream(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+	char* filename = GET_ARG(1, GetString);
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	Stream* stream = VirtualFileStream::New(vfs, filename, VirtualFileStream::READ_ACCESS);
+	if (!stream) {
+		return NULL_VAL;
+	}
+
+	ObjStream* objStream = StreamImpl::New((void*)stream, stream->IsWritable());
+	return OBJECT_VAL(objStream);
+}
+/***
+ * \method OpenWriteStream
+ * \desc Opens a stream for writing, if the file exists and is writable.
+ * \param filename (string): The given filename.
+ * \return stream Returns the newly opened stream, or `null`.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_OpenWriteStream(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckArgCount(argCount, 2);
+
+	ObjInstance* objVfs = AS_VFS(args[0]);
+	char* filename = GET_ARG(1, GetString);
+
+	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
+	CHECK_EXISTS(vfs);
+
+	Stream* stream = VirtualFileStream::New(vfs, filename, VirtualFileStream::WRITE_ACCESS);
+	if (!stream) {
+		return NULL_VAL;
+	}
+
+	ObjStream* objStream = StreamImpl::New((void*)stream, stream->IsWritable());
+	return OBJECT_VAL(objStream);
+}
+/***
+ * \method Dispose
+ * \desc Disposes of the virtual file system. All mounts are flushed (if needed), then all open streams are closed. The VFS can no longer be used after this function is called.
+ * \ns VirtualFileSystem
+ */
+VMValue VFSImpl::VM_Dispose(int argCount, VMValue* args, Uint32 threadID) {
 	StandardLibrary::CheckArgCount(argCount, 1);
 
 	ObjInstance* objVfs = AS_VFS(args[0]);
@@ -228,10 +307,13 @@ VMValue VFSImpl::VM_Delete(int argCount, VMValue* args, Uint32 threadID) {
 	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
 	CHECK_EXISTS(vfs);
 
-	if (vfs) {
-		ScriptManager::RegistryRemove((void*)vfs);
-		delete vfs;
+	// Obviously, we must never let a script delete the main VFS.
+	if (vfs == ResourceManager::GetVFS()) {
+		throw ScriptException("Cannot dispose of the main virtual file system!"); \
 	}
+
+	ScriptManager::RegistryRemove((void*)vfs);
+	delete vfs;
 
 	return NULL_VAL;
 }
