@@ -39,6 +39,7 @@ public:
 		const char* mountPoint,
 		VFSType type,
 		Uint16 flags);
+	bool IsMounted(const char* name);
 	VFSMountStatus Unmount(const char* name);
 	int NumMounted();
 	const char* GetFilename(VFSMount mount, const char* filename);

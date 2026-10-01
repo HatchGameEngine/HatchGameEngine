@@ -89,6 +89,14 @@ VFSMountStatus VirtualFileSystem::Mount(const char* name,
 
 	return VFSMountStatus::MOUNTED;
 }
+bool VirtualFileSystem::IsMounted(const char* name) {
+	size_t index = GetIndex(name);
+	if (index == -1) {
+		return false;
+	}
+
+	return true;
+}
 VFSMountStatus VirtualFileSystem::Unmount(const char* name) {
 	size_t index = GetIndex(name);
 	if (index == -1) {

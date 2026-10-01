@@ -9,6 +9,7 @@
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/TextureImpl.h>
+#include <Engine/Bytecode/TypeImpl/VFSImpl.h>
 #include <Engine/Bytecode/Value.h>
 #include <Engine/Bytecode/ValuePrinter.h>
 #include <Engine/Diagnostics/Clock.h>
@@ -13001,6 +13002,23 @@ VMValue Resources_ReadAllText(int argCount, VMValue* args, Uint32 threadID) {
 	}
 	return NULL_VAL;
 }
+/***
+ * Resources.GetVFS
+ * \desc Returns the main virtual file system used for resources.
+ * \return VirtualFileSystem Returns the virtual file system.
+ * \ns Resources
+ */
+VMValue Resources_GetVFS(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+
+	VirtualFileSystem* vfs = ResourceManager::GetVFS();
+	ObjInstance* vfsObj = VFSImpl::GetVFSObject((void*)vfs);
+	if (vfsObj == nullptr) {
+		return NULL_VAL;
+	}
+
+	return OBJECT_VAL(vfsObj);
+}
 // #endregion
 
 // #region Scene
@@ -22357,6 +22375,7 @@ This is preferred over <ref Math>'s random functions if you require consistency,
 	DEF_NATIVE(Resources, LoadVideo);
 	DEF_NATIVE(Resources, FileExists);
 	DEF_NATIVE(Resources, ReadAllText);
+	DEF_NATIVE(Resources, GetVFS);
 
 	/***
     * \enum SCOPE_SCENE

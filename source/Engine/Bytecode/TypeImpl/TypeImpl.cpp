@@ -12,6 +12,7 @@
 #include <Engine/Bytecode/TypeImpl/StringImpl.h>
 #include <Engine/Bytecode/TypeImpl/TextureImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
+#include <Engine/Bytecode/TypeImpl/VFSImpl.h>
 
 void TypeImpl::Init() {
 	ArrayImpl::Init();
@@ -24,6 +25,7 @@ void TypeImpl::Init() {
 	StreamImpl::Init();
 	StringImpl::Init();
 	TextureImpl::Init();
+	VFSImpl::Init();
 }
 
 void TypeImpl::RegisterClass(ObjClass* klass) {

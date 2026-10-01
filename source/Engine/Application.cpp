@@ -1077,10 +1077,19 @@ void Application::UnloadGame() {
 	Application::EndGame();
 
 	MemoryCache::Dispose();
-	ResourceManager::Dispose();
+	Application::UnloadResources();
 
 	InputManager::ClearPlayers();
 	InputManager::ClearInputs();
+}
+
+void Application::UnloadResources() {
+	VirtualFileSystem* vfs = ResourceManager::GetVFS();
+	if (vfs != nullptr) {
+		ScriptManager::RegistryRemove((void*)vfs);
+	}
+
+	ResourceManager::Dispose();
 }
 
 void Application::Restart(bool keepScene) {
@@ -2186,7 +2195,7 @@ void Application::Cleanup() {
 	Application::DisposeSettings();
 
 	MemoryCache::Dispose();
-	ResourceManager::Dispose();
+	Application::UnloadResources();
 	AudioManager::Dispose();
 	InputManager::Dispose();
 

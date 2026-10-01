@@ -60,6 +60,7 @@ private:
 	static void CreateWindow();
 	static void EndGame();
 	static void UnloadGame();
+	static void UnloadResources();
 	static void Restart(bool keepScene);
 	static void LoadVideoSettings();
 	static void LoadAudioSettings();
