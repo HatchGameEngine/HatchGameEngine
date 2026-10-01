@@ -7,13 +7,13 @@ from parser import Parser
 
 class Writer:
   def can_write_docs(type):
-    if is_descriptive(type):
+    if DefType.is_descriptive(type):
       return False
 
     return doc_globals.lists[type.value].count > 0
 
   def can_write_namespace_link_list(type):
-    if DefType.is_field(type) or type == DefType.CONSTRUCTOR or is_descriptive(type):
+    if DefType.is_field(type) or type == DefType.CONSTRUCTOR or DefType.is_descriptive(type):
       return False
 
     if type == DefType.FUNCTION or type == DefType.METHOD or type == DefType.ENUM:
@@ -26,7 +26,7 @@ class Writer:
     return True
 
   def can_write_namespace_contents_list(type):
-    if type == DefType.CONSTANT or type == DefType.GLOBAL_VAR or is_descriptive(type):
+    if type == DefType.CONSTANT or type == DefType.GLOBAL_VAR or DefType.is_descriptive(type):
       return False
 
     return Writer.can_write_namespace_link_list(type)
