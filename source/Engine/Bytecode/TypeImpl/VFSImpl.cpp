@@ -4,6 +4,7 @@
 #include <Engine/Bytecode/TypeImpl/VFSImpl.h>
 #include <Engine/Bytecode/TypeImpl/TypeImpl.h>
 #include <Engine/Bytecode/Value.h>
+#include <Engine/Filesystem/Directory.h>
 #include <Engine/Filesystem/VFS/VirtualFileSystem.h>
 
 /***
@@ -20,8 +21,7 @@ void VFSImpl::Init() {
 	Class->NewFn = Constructor;
 	Class->Initializer = OBJECT_VAL(NewNative(VM_Initializer));
 
-	ScriptManager::DefineNative(Class, "MountFile", VM_MountFile);
-	ScriptManager::DefineNative(Class, "MountDirectory", VM_MountDirectory);
+	ScriptManager::DefineNative(Class, "Mount", VM_Mount);
 	ScriptManager::DefineNative(Class, "Unmount", VM_Unmount);
 	ScriptManager::DefineNative(Class, "IsMounted", VM_IsMounted);
 	ScriptManager::DefineNative(Class, "Delete", VM_Delete);
@@ -86,78 +86,82 @@ ObjInstance* VFSImpl::GetVFSObject(void* vfs) {
 	}
 
 /***
- * \method MountFile
- * \desc Mounts <param filename> into <param mountPoints>, as <param name>.
- * \param name (string): The name of the mount point.
- * \param mountPoint (string): The path of the mount point.
- * \param filename (string): The file to mount.
- * \param isWritable (boolean): Whether the mount point is writable.
- * \return boolean Returns whether the file was mounted.
+ * \method Mount
+ * \desc Mounts <param path> into <param mountPoint>, as <param name>. <param path> may be an URL.<br/>\
+If <param path> is a file, it will attempt to mount <param path> as an archive. Otherwise, it must be a directory, and it will attempt to mount <param path> as a directory.
+ * \param name (string): The name of the mount.
+ * \param path (string): The file or directory to mount.
+ * \paramOpt mountPoint (string): The mount point. (default: `null`)
+ * \paramOpt isWritable (boolean): Whether the mount is writable. (default: `false`)
+ * \return boolean Returns whether <param path> was mounted.
  * \ns VirtualFileSystem
  */
-VMValue VFSImpl::VM_MountFile(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckAtLeastArgCount(argCount, 4);
+VMValue VFSImpl::VM_Mount(int argCount, VMValue* args, Uint32 threadID) {
+	StandardLibrary::CheckAtLeastArgCount(argCount, 3);
 
 	ObjInstance* objVfs = AS_VFS(args[0]);
 	char* name = GET_ARG(1, GetString);
-	char* mountPoint = GET_ARG(2, GetString);
-	char* filename = GET_ARG(3, GetString);
+	char* path = GET_ARG(2, GetString);
+	char* mountPointPath = GET_ARG_OPT(3, GetString, nullptr);
 	bool isWritable = GET_ARG_OPT(4, GetInteger, false);
-
-	std::string resolved = "";
-	if (!Path::FromURL(filename, resolved)) {
-		return INTEGER_VAL(false);
-	}
 
 	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
 	CHECK_EXISTS(vfs);
+
+	// Check if there is already a mount with the provided name.
+	if (vfs->IsMounted(name)) {
+		std::string errorString;
+
+		size_t bufferSize = strlen(name) + 24 + 1;
+		char* buffer = (char*)Memory::Malloc(bufferSize);
+		if (buffer) {
+			snprintf(buffer, bufferSize, "Mount \"%s\" already exists!", name);
+			errorString = std::string(buffer);
+			Memory::Free(buffer);
+		}
+		else {
+			errorString = "Mount already exists!";
+		}
+
+		throw ScriptException(errorString);
+	}
+
+	const char* realPath = nullptr;
+
+	std::string resolved = "";
+	if (Path::FromURL(path, resolved)) {
+		realPath = resolved.c_str();
+	}
+	else {
+		return INTEGER_VAL(false);
+	}
+
+	// '/' or an empty string is the same as no mount point
+	// (That is, we use DEFAULT_MOUNT_POINT instead)
+	std::string mountPoint;
+	if (mountPointPath == nullptr || strcmp(mountPointPath, "/") == 0 || mountPointPath[0] == '\0') {
+		mountPoint = DEFAULT_MOUNT_POINT;
+	}
+	else {
+		// Add '/' at the end
+		// VirtualFileSystem::Mount normalizes the path already, so this is fine.
+		mountPoint = std::string(mountPointPath) + "/";
+	}
 
 	Uint16 flags = VFS_READABLE;
 	if (isWritable) {
 		flags |= VFS_WRITABLE;
 	}
 
-	VFSMountStatus status = vfs->Mount(name, resolved.c_str(), mountPoint, VFSType::HATCH, flags);
-
-	if (status == VFSMountStatus::MOUNTED) {
-		return INTEGER_VAL(true);
+	VFSType type;
+	if (Directory::Exists(realPath)) {
+		type = VFSType::FILESYSTEM;
+	}
+	else {
+		type = VFSType::HATCH;
 	}
 
-	return INTEGER_VAL(false);
-}
-/***
- * \method MountDirectory
- * \desc Mounts <param directory> into <param mountPoints>, as <param name>.
- * \param name (string): The name of the mount point.
- * \param mountPoint (string): The path of the mount point.
- * \param directory (string): The directory to mount.
- * \param isWritable (boolean): Whether the mount point is writable.
- * \return boolean Returns whether the directory was mounted.
- * \ns VirtualFileSystem
- */
-VMValue VFSImpl::VM_MountDirectory(int argCount, VMValue* args, Uint32 threadID) {
-	StandardLibrary::CheckAtLeastArgCount(argCount, 4);
-
-	ObjInstance* objVfs = AS_VFS(args[0]);
-	char* name = GET_ARG(1, GetString);
-	char* mountPoint = GET_ARG(2, GetString);
-	char* directory = GET_ARG(3, GetString);
-	bool isWritable = GET_ARG_OPT(4, GetInteger, false);
-
-	std::string resolved = "";
-	if (!Path::FromURL(directory, resolved)) {
-		return INTEGER_VAL(false);
-	}
-
-	VirtualFileSystem* vfs = (VirtualFileSystem*)GetVFS(objVfs);
-	CHECK_EXISTS(vfs);
-
-	Uint16 flags = VFS_READABLE;
-	if (isWritable) {
-		flags |= VFS_WRITABLE;
-	}
-
-	VFSMountStatus status = vfs->Mount(name, resolved.c_str(), mountPoint, VFSType::FILESYSTEM, flags);
+	VFSMountStatus status = vfs->Mount(name, realPath, mountPoint.c_str(), type, flags);
 
 	if (status == VFSMountStatus::MOUNTED) {
 		return INTEGER_VAL(true);
@@ -167,9 +171,9 @@ VMValue VFSImpl::VM_MountDirectory(int argCount, VMValue* args, Uint32 threadID)
 }
 /***
  * \method Unmount
- * \desc Unmounts <param name>.
- * \param name (string): The mount point to unmount.
- * \return boolean Returns whether the mount point was unmounted.
+ * \desc Unmounts the mount of the given name.
+ * \param name (string): The mount to unmount.
+ * \return boolean Returns whether <param name> was unmounted.
  * \ns VirtualFileSystem
  */
 VMValue VFSImpl::VM_Unmount(int argCount, VMValue* args, Uint32 threadID) {
@@ -191,9 +195,9 @@ VMValue VFSImpl::VM_Unmount(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * \method IsMounted
- * \desc Checks whether <param name> is mounted.
- * \param name (string): The mount point to check.
- * \return boolean Returns whether the mount point is mounted.
+ * \desc Checks whether the mount of the given name is mounted.
+ * \param name (string): The mount to check.
+ * \return boolean Returns whether <param name> is mounted.
  * \ns VirtualFileSystem
  */
 VMValue VFSImpl::VM_IsMounted(int argCount, VMValue* args, Uint32 threadID) {

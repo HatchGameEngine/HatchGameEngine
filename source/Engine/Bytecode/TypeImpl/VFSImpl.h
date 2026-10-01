@@ -22,8 +22,7 @@ public:
 	static void* GetVFS(ObjInstance* object);
 	static ObjInstance* GetVFSObject(void* texture);
 
-	static VMValue VM_MountFile(int argCount, VMValue* args, Uint32 threadID);
-	static VMValue VM_MountDirectory(int argCount, VMValue* args, Uint32 threadID);
+	static VMValue VM_Mount(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Unmount(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_IsMounted(int argCount, VMValue* args, Uint32 threadID);
 	static VMValue VM_Delete(int argCount, VMValue* args, Uint32 threadID);
