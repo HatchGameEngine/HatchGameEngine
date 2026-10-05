@@ -1719,11 +1719,17 @@ void Application::PollEvents() {
 				}
 				// Previous scene in List (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevPreviousScene]) {
+					if (Application::DevMenuActivated) {
+						Application::CloseDevMenu();
+					}
 					Application::DevNavigateSceneList(true);
 					break;
 				}
 				// Next scene in List (dev)
 				else if (key == KeyBindsSDL[(int)KeyBind::DevNextScene]) {
+					if (Application::DevMenuActivated) {
+						Application::CloseDevMenu();
+					}
 					Application::DevNavigateSceneList(false);
 					break;
 				}
