@@ -1,12 +1,7 @@
 #include <Engine/Math/Clipper.h>
 #include <Engine/Math/Vector.h>
 
-void Clipper::AddPoint(VertexAttribute* buf,
-	VertexAttribute* v1,
-	VertexAttribute* v2,
-	Vector4 p1,
-	Vector4 p2,
-	Sint64 t) {
+void Clipper::AddPoint(VertexAttribute* buf, VertexAttribute* v1, VertexAttribute* v2, Vector4 p1, Vector4 p2, Sint64 t) {
 	Vector4 diff = Vector::Subtract(p2, p1);
 	Vector4 newPosition = Vector::Add(p1, Vector::Multiply(diff, t));
 
@@ -27,10 +22,7 @@ void Clipper::AddPoint(VertexAttribute* buf,
 #undef DO_INTERP
 }
 
-bool Clipper::ClipEdge(Frustum frustum,
-	VertexAttribute* v1,
-	VertexAttribute* v2,
-	PolygonClipBuffer* output) {
+bool Clipper::ClipEdge(Frustum frustum, VertexAttribute* v1, VertexAttribute* v2, PolygonClipBuffer* output) {
 	VertexAttribute* buffer = &output->Buffer[output->NumPoints];
 
 	Vector4 pos1 = v1->Position;
@@ -95,10 +87,7 @@ bool Clipper::ClipEdge(Frustum frustum,
 	return true;
 }
 
-int Clipper::ClipPolygon(Frustum frustum,
-	PolygonClipBuffer* output,
-	VertexAttribute* input,
-	int vertexCount) {
+int Clipper::ClipPolygon(Frustum frustum, PolygonClipBuffer* output, VertexAttribute* input, int vertexCount) {
 	// Not even a triangle?
 	if (vertexCount < 3) {
 		return 0;
@@ -121,11 +110,7 @@ int Clipper::ClipPolygon(Frustum frustum,
 	return output->NumPoints;
 }
 
-int Clipper::FrustumClip(PolygonClipBuffer* output,
-	Frustum* frustum,
-	int num,
-	VertexAttribute* input,
-	int vertexCount) {
+int Clipper::FrustumClip(PolygonClipBuffer* output, Frustum* frustum, int num, VertexAttribute* input, int vertexCount) {
 	PolygonClipBuffer temp[NUM_FRUSTUM_PLANES];
 
 	VertexAttribute* buffer = input;

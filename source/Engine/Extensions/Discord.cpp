@@ -15,9 +15,7 @@ bool Discord::Initialized = false;
 #define DISCORD_LIBRARY_NAME "discord_game_sdk.so"
 #endif
 
-typedef EDiscordResult(DISCORD_API* DiscordCreate_t)(DiscordVersion version,
-	DiscordCreateParams* params,
-	IDiscordCore** result);
+typedef EDiscordResult(DISCORD_API* DiscordCreate_t)(DiscordVersion version, DiscordCreateParams* params, IDiscordCore** result);
 
 void* library = NULL;
 DiscordCreate_t _DiscordCreate = NULL;
@@ -75,8 +73,7 @@ void DISCORD_CALLBACK OnUpdateActivityCallback(void* callback_data, EDiscordResu
 		Log::Print(Log::LOG_API, "Discord: Presence updated successfully.");
 	}
 	else {
-		Log::Print(
-			Log::LOG_API, "Discord: Failed to update presence (Error %d)", (int)result);
+		Log::Print(Log::LOG_API, "Discord: Failed to update presence (Error %d)", (int)result);
 	}
 }
 
@@ -85,11 +82,7 @@ void DISCORD_CALLBACK OnCurrentUserUpdateCallback(void* callback_data) {
 }
 
 int CreateImageResource(DiscordIntegrationUserAvatar* avatar) {
-	Texture* texture = Graphics::CreateTextureFromPixels(TextureFormat_RGBA8888,
-		avatar->Width,
-		avatar->Height,
-		avatar->Data,
-		avatar->Width * sizeof(Uint32));
+	Texture* texture = Graphics::CreateTextureFromPixels(TextureFormat_RGBA8888, avatar->Width, avatar->Height, avatar->Data, avatar->Width * sizeof(Uint32));
 	if (texture == nullptr) {
 		return -1;
 	}
@@ -99,17 +92,14 @@ int CreateImageResource(DiscordIntegrationUserAvatar* avatar) {
 	return Scene::AddImageResource(image, avatar->Identifier, SCOPE_GAME);
 }
 
-void ExecuteImageFetchCallback(DiscordIntegrationCallback* callback,
-	DiscordIntegrationUserAvatar* avatar,
-	EDiscordResult result) {
+void ExecuteImageFetchCallback(DiscordIntegrationCallback* callback, DiscordIntegrationUserAvatar* avatar, EDiscordResult result) {
 	if (!callback) {
 		return;
 	}
 
 	switch (callback->Type) {
 	case DiscordIntegrationCallbackType_FuncPtr: {
-		DiscordIntegrationCallbackFuncPtr funcPtr =
-			(DiscordIntegrationCallbackFuncPtr)callback->Function;
+		DiscordIntegrationCallbackFuncPtr funcPtr = (DiscordIntegrationCallbackFuncPtr)callback->Function;
 		funcPtr(avatar);
 		break;
 	}
@@ -150,9 +140,7 @@ void FreeImageFetchCallbackData(AvatarFetchCallbackData* fetchData) {
 	Memory::Free(fetchData);
 }
 
-void DISCORD_CALLBACK OnImageFetchCallback(void* callback_data,
-	EDiscordResult result,
-	DiscordImageHandle handle_result) {
+void DISCORD_CALLBACK OnImageFetchCallback(void* callback_data, EDiscordResult result, DiscordImageHandle handle_result) {
 	DiscordIntegrationUserAvatar* avatar = nullptr;
 	DiscordImageDimensions dimensions;
 	size_t data_length;
@@ -194,8 +182,7 @@ void DISCORD_CALLBACK OnImageFetchCallback(void* callback_data,
 		avatar->Height = dimensions.height;
 		avatar->Data = data;
 
-		StringUtils::Copy(
-			avatar->Identifier, fetchData->Identifier, sizeof(avatar->Identifier) - 1);
+		StringUtils::Copy(avatar->Identifier, fetchData->Identifier, sizeof(avatar->Identifier) - 1);
 	}
 
 EXECUTE_CALLBACK:
@@ -212,10 +199,7 @@ int Discord::Init(const char* applicationID) {
 	if (!library) {
 		library = SDL_LoadObject(DISCORD_LIBRARY_NAME);
 		if (!library) {
-			Log::Print(Log::LOG_API,
-				"Discord: Failed to load %s! (SDL Error: %s)",
-				DISCORD_LIBRARY_NAME,
-				SDL_GetError());
+			Log::Print(Log::LOG_API, "Discord: Failed to load %s! (SDL Error: %s)", DISCORD_LIBRARY_NAME, SDL_GetError());
 			return DISCORDRESULT_ERROR;
 		}
 	}
@@ -223,9 +207,7 @@ int Discord::Init(const char* applicationID) {
 	if (!_DiscordCreate) {
 		_DiscordCreate = (DiscordCreate_t)SDL_LoadFunction(library, "DiscordCreate");
 		if (!_DiscordCreate) {
-			Log::Print(Log::LOG_API,
-				"Discord: Failed to find function 'DiscordCreate' in %s!",
-				DISCORD_LIBRARY_NAME);
+			Log::Print(Log::LOG_API, "Discord: Failed to find function 'DiscordCreate' in %s!", DISCORD_LIBRARY_NAME);
 			Discord::Unload();
 			return DISCORDRESULT_ERROR;
 		}
@@ -248,13 +230,10 @@ int Discord::Init(const char* applicationID) {
 	EDiscordResult result = _DiscordCreate(DISCORD_VERSION, &params, &Core);
 	if (result != DiscordResult_Ok) {
 		if (result == DiscordResult_InternalError || result == DiscordResult_NotRunning) {
-			Log::Print(Log::LOG_API,
-				"Discord: Integration disabled (Discord client not found).");
+			Log::Print(Log::LOG_API, "Discord: Integration disabled (Discord client not found).");
 		}
 		else {
-			Log::Print(Log::LOG_API,
-				"Discord: Initialization failed with unexpected error code %d",
-				(int)result);
+			Log::Print(Log::LOG_API, "Discord: Initialization failed with unexpected error code %d", (int)result);
 		}
 
 		Discord::Unload();
@@ -268,9 +247,7 @@ int Discord::Init(const char* applicationID) {
 	ImageManager = Core->get_image_manager(Core);
 
 	Discord::Initialized = true;
-	Log::Print(Log::LOG_API,
-		"Discord: SDK initialized successfully for Application ID: %s",
-		applicationID);
+	Log::Print(Log::LOG_API, "Discord: SDK initialized successfully for Application ID: %s", applicationID);
 
 	memset(&CurrentActivity, 0, sizeof(CurrentActivity));
 	memset(&CurrentUser, 0, sizeof(CurrentUser));
@@ -290,8 +267,7 @@ void Discord::Update() {
 
 void Discord::Activity::SetDetails(const char* details) {
 	if (details && strlen(details) > 0) {
-		StringUtils::Copy(
-			CurrentActivity.details, details, sizeof(CurrentActivity.details) - 1);
+		StringUtils::Copy(CurrentActivity.details, details, sizeof(CurrentActivity.details) - 1);
 	}
 	else {
 		memset(CurrentActivity.details, 0, sizeof(CurrentActivity.details) - 1);
@@ -307,26 +283,18 @@ void Discord::Activity::SetState(const char* state) {
 }
 void Discord::Activity::SetLargeImageKey(const char* key) {
 	if (key && strlen(key) > 0) {
-		StringUtils::Copy(CurrentActivity.assets.large_image,
-			key,
-			sizeof(CurrentActivity.assets.large_image) - 1);
+		StringUtils::Copy(CurrentActivity.assets.large_image, key, sizeof(CurrentActivity.assets.large_image) - 1);
 	}
 	else {
-		memset(CurrentActivity.assets.large_image,
-			0,
-			sizeof(CurrentActivity.assets.large_image) - 1);
+		memset(CurrentActivity.assets.large_image, 0, sizeof(CurrentActivity.assets.large_image) - 1);
 	}
 }
 void Discord::Activity::SetLargeImageText(const char* text) {
 	if (text && strlen(text) > 0) {
-		StringUtils::Copy(CurrentActivity.assets.large_text,
-			text,
-			sizeof(CurrentActivity.assets.large_text) - 1);
+		StringUtils::Copy(CurrentActivity.assets.large_text, text, sizeof(CurrentActivity.assets.large_text) - 1);
 	}
 	else {
-		memset(CurrentActivity.assets.large_text,
-			0,
-			sizeof(CurrentActivity.assets.large_text) - 1);
+		memset(CurrentActivity.assets.large_text, 0, sizeof(CurrentActivity.assets.large_text) - 1);
 	}
 }
 void Discord::Activity::SetLargeImage(const char* key, const char* text) {
@@ -335,26 +303,18 @@ void Discord::Activity::SetLargeImage(const char* key, const char* text) {
 }
 void Discord::Activity::SetSmallImageKey(const char* key) {
 	if (key && strlen(key) > 0) {
-		StringUtils::Copy(CurrentActivity.assets.small_image,
-			key,
-			sizeof(CurrentActivity.assets.small_image) - 1);
+		StringUtils::Copy(CurrentActivity.assets.small_image, key, sizeof(CurrentActivity.assets.small_image) - 1);
 	}
 	else {
-		memset(CurrentActivity.assets.small_image,
-			0,
-			sizeof(CurrentActivity.assets.small_image) - 1);
+		memset(CurrentActivity.assets.small_image, 0, sizeof(CurrentActivity.assets.small_image) - 1);
 	}
 }
 void Discord::Activity::SetSmallImageText(const char* text) {
 	if (text && strlen(text) > 0) {
-		StringUtils::Copy(CurrentActivity.assets.small_text,
-			text,
-			sizeof(CurrentActivity.assets.small_text) - 1);
+		StringUtils::Copy(CurrentActivity.assets.small_text, text, sizeof(CurrentActivity.assets.small_text) - 1);
 	}
 	else {
-		memset(CurrentActivity.assets.small_text,
-			0,
-			sizeof(CurrentActivity.assets.small_text) - 1);
+		memset(CurrentActivity.assets.small_text, 0, sizeof(CurrentActivity.assets.small_text) - 1);
 	}
 }
 void Discord::Activity::SetSmallImage(const char* key, const char* text) {
@@ -382,23 +342,19 @@ void Discord::Activity::Update() {
 		return;
 	}
 
-	ActivityManager->update_activity(
-		ActivityManager, &CurrentActivity, NULL, OnUpdateActivityCallback);
+	ActivityManager->update_activity(ActivityManager, &CurrentActivity, NULL, OnUpdateActivityCallback);
 }
 
 int Discord::User::Update() {
 	DiscordUser user;
 	EDiscordResult result = UserManager->get_current_user(UserManager, &user);
 	if (result != DiscordResult_Ok) {
-		Log::Print(Log::LOG_API,
-			"Discord: Failed to update current user (Error %d)",
-			(int)result);
+		Log::Print(Log::LOG_API, "Discord: Failed to update current user (Error %d)", (int)result);
 		return DiscordResultToHatchEnum(result);
 	}
 
 	CurrentUser.IDSnowflake = user.id;
-	snprintf(
-		CurrentUser.ID, sizeof(CurrentUser.ID), "%lld", (long long)CurrentUser.IDSnowflake);
+	snprintf(CurrentUser.ID, sizeof(CurrentUser.ID), "%lld", (long long)CurrentUser.IDSnowflake);
 	StringUtils::Copy(CurrentUser.Username, user.username, sizeof(CurrentUser.Username));
 	CurrentUser.IsBot = user.bot;
 
@@ -416,22 +372,14 @@ DiscordIntegrationUserInfo* Discord::User::GetDetails() {
 
 	return &CurrentUser;
 }
-void Discord::User::GetAvatar(DiscordIntegrationUserAvatar* avatar,
-	int size,
-	DiscordIntegrationCallback* callback) {
-	AvatarFetchCallbackData* fetchData =
-		(AvatarFetchCallbackData*)Memory::Malloc(sizeof(AvatarFetchCallbackData));
+void Discord::User::GetAvatar(DiscordIntegrationUserAvatar* avatar, int size, DiscordIntegrationCallback* callback) {
+	AvatarFetchCallbackData* fetchData = (AvatarFetchCallbackData*)Memory::Malloc(sizeof(AvatarFetchCallbackData));
 	fetchData->Avatar = avatar;
 	fetchData->Callback = callback;
 
 	size = std::clamp(Math::CeilPOT(size), 16, 1024);
 
-	snprintf(fetchData->Identifier,
-		sizeof fetchData->Identifier,
-		"%s-%d-%d",
-		CurrentUser.ID,
-		size,
-		(int)time(NULL));
+	snprintf(fetchData->Identifier, sizeof fetchData->Identifier, "%s-%d-%d", CurrentUser.ID, size, (int)time(NULL));
 
 	DiscordImageHandle imageHandle;
 	imageHandle.type = DiscordImageType_User;
@@ -440,8 +388,7 @@ void Discord::User::GetAvatar(DiscordIntegrationUserAvatar* avatar,
 
 	ImageManager->fetch(ImageManager, imageHandle, true, fetchData, OnImageFetchCallback);
 }
-void Discord::User::GetAvatar(DiscordIntegrationUserAvatar* avatar,
-	DiscordIntegrationCallback* callback) {
+void Discord::User::GetAvatar(DiscordIntegrationUserAvatar* avatar, DiscordIntegrationCallback* callback) {
 	return GetAvatar(avatar, 256, callback);
 }
 void Discord::User::GetAvatar(int size, DiscordIntegrationCallback* callback) {
@@ -521,11 +468,8 @@ bool Discord::User::IsUserPresent() {
 DiscordIntegrationUserInfo* Discord::User::GetDetails() {
 	return nullptr;
 }
-void Discord::User::GetAvatar(DiscordIntegrationUserAvatar* avatar,
-	int size,
-	DiscordIntegrationCallback* callback) {}
-void Discord::User::GetAvatar(DiscordIntegrationUserAvatar* avatar,
-	DiscordIntegrationCallback* callback) {}
+void Discord::User::GetAvatar(DiscordIntegrationUserAvatar* avatar, int size, DiscordIntegrationCallback* callback) {}
+void Discord::User::GetAvatar(DiscordIntegrationUserAvatar* avatar, DiscordIntegrationCallback* callback) {}
 void Discord::User::GetAvatar(int size, DiscordIntegrationCallback* callback) {}
 
 void Discord::UpdatePresence(DiscordIntegrationActivity presence) {}

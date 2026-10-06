@@ -44,12 +44,9 @@ Vector3 Vector::Multiply(Vector3 v, Matrix4x4* m) {
 	Sint64 mat33 = m->Values[10] * 0x10000;
 	Sint64 mat34 = m->Values[11] * 0x10000;
 
-	result.X = FP16_MULTIPLY(mat11, v.X) + FP16_MULTIPLY(mat12, v.Y) +
-		FP16_MULTIPLY(mat13, v.Z) + mat14;
-	result.Y = FP16_MULTIPLY(mat21, v.X) + FP16_MULTIPLY(mat22, v.Y) +
-		FP16_MULTIPLY(mat23, v.Z) + mat24;
-	result.Z = FP16_MULTIPLY(mat31, v.X) + FP16_MULTIPLY(mat32, v.Y) +
-		FP16_MULTIPLY(mat33, v.Z) + mat34;
+	result.X = FP16_MULTIPLY(mat11, v.X) + FP16_MULTIPLY(mat12, v.Y) + FP16_MULTIPLY(mat13, v.Z) + mat14;
+	result.Y = FP16_MULTIPLY(mat21, v.X) + FP16_MULTIPLY(mat22, v.Y) + FP16_MULTIPLY(mat23, v.Z) + mat24;
+	result.Z = FP16_MULTIPLY(mat31, v.X) + FP16_MULTIPLY(mat32, v.Y) + FP16_MULTIPLY(mat33, v.Z) + mat34;
 
 	return result;
 }

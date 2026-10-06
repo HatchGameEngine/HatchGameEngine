@@ -23,35 +23,10 @@ public:
 	void ReserveAnimationCount(int count);
 	void AddAnimation(const char* name, int animationSpeed, int frameToLoop);
 	void AddAnimation(const char* name, int animationSpeed, int frameToLoop, int frmAlloc);
-	void
-	AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY);
-	void AddFrame(int duration,
-		int left,
-		int top,
-		int width,
-		int height,
-		int pivotX,
-		int pivotY,
-		int id);
-	void AddFrame(int animID,
-		int duration,
-		int left,
-		int top,
-		int width,
-		int height,
-		int pivotX,
-		int pivotY,
-		int id);
-	void AddFrame(int animID,
-		int duration,
-		int left,
-		int top,
-		int width,
-		int height,
-		int pivotX,
-		int pivotY,
-		int id,
-		int sheetNumber);
+	void AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY);
+	void AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id);
+	void AddFrame(int animID, int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id);
+	void AddFrame(int animID, int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id, int sheetNumber);
 	void RemoveFrames(int animID);
 	void RefreshGraphicsID();
 	void ConvertToNonIndexed(Uint32* palColors, unsigned numPaletteColors);

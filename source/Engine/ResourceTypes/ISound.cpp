@@ -65,10 +65,7 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 
 		LoopPoint = SoundData->LoopPoint;
 
-		Log::Print(Log::LOG_VERBOSE,
-			"OGG load took %.3f ms (%s)",
-			Clock::GetTicks() - ticks,
-			Filename);
+		Log::Print(Log::LOG_VERBOSE, "OGG load took %.3f ms (%s)", Clock::GetTicks() - ticks, Filename);
 	}
 	// .WAV format
 	else if (format == AUDIO_FORMAT_WAV) {
@@ -81,10 +78,7 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 
 		Format = SoundData->InputFormat;
 
-		Log::Print(Log::LOG_VERBOSE,
-			"WAV load took %.3f ms (%s)",
-			Clock::GetTicks() - ticks,
-			Filename);
+		Log::Print(Log::LOG_VERBOSE, "WAV load took %.3f ms (%s)", Clock::GetTicks() - ticks, Filename);
 	}
 	// Unsupported format
 	else {
@@ -100,9 +94,7 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 		SoundData->LoadSamples(SoundData->TotalPossibleSamples);
 		SoundData->Close();
 
-		Log::Print(Log::LOG_VERBOSE,
-			"Full sample load took %.3f ms",
-			Clock::GetTicks() - ticks);
+		Log::Print(Log::LOG_VERBOSE, "Full sample load took %.3f ms", Clock::GetTicks() - ticks);
 	}
 
 	BytesPerSample = ((Format.format & 0xFF) >> 3) * Format.channels;
@@ -112,8 +104,7 @@ void ISound::Load(const char* filename, bool streamFromFile) {
 AudioPlayback* ISound::CreatePlayer() {
 	int requiredSamples = AudioManager::DeviceFormat.samples * AUDIO_FIRST_LOAD_SAMPLE_BOOST;
 
-	AudioPlayback* playback = new AudioPlayback(
-		Format, requiredSamples, BytesPerSample, AudioManager::BytesPerSample);
+	AudioPlayback* playback = new AudioPlayback(Format, requiredSamples, BytesPerSample, AudioManager::BytesPerSample);
 	playback->SoundData = SoundData;
 	playback->OwnsSoundData = false;
 

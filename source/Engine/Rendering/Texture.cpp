@@ -12,11 +12,7 @@ Texture* Texture::New(Uint32 format, Uint32 access, Uint32 width, Uint32 height)
 	Texture::Initialize(texture, format, access, width, height);
 	return texture;
 }
-bool Texture::Initialize(Texture* texture,
-	Uint32 format,
-	Uint32 access,
-	Uint32 width,
-	Uint32 height) {
+bool Texture::Initialize(Texture* texture, Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
 	if (texture->Pixels) {
 		Memory::Free(texture->Pixels);
 	}
@@ -32,17 +28,11 @@ bool Texture::Initialize(Texture* texture,
 	texture->Height = height;
 	texture->BytesPerPixel = Texture::GetFormatBytesPerPixel(format);
 	texture->Pitch = width * texture->BytesPerPixel;
-	texture->Pixels = Memory::TrackedCalloc("Texture::Pixels",
-		texture->Width * texture->Height,
-		GetFormatBytesPerPixel(format));
+	texture->Pixels = Memory::TrackedCalloc("Texture::Pixels", texture->Width * texture->Height, GetFormatBytesPerPixel(format));
 
 	return texture->Pixels != nullptr;
 }
-bool Texture::Reinitialize(Texture* texture,
-	Uint32 format,
-	Uint32 access,
-	Uint32 width,
-	Uint32 height) {
+bool Texture::Reinitialize(Texture* texture, Uint32 format, Uint32 access, Uint32 width, Uint32 height) {
 	// Free palette if no longer indexed
 	if (format != TextureFormat_INDEXED && texture->Format != format) {
 		Memory::Free(texture->PaletteColors);
@@ -164,10 +154,8 @@ bool Texture::CanConvertBetweenFormats(int sourceFormat, int destFormat) {
 	// But this only copies the color index into the red channel, and vice versa.
 	// No conversion between a palette and RGBA actually takes place.
 	// That is a special case that TextureImpl (HSL's implementation of Texture) handles.
-	if (TEXTUREFORMAT_IS_RGBA(sourceFormat) || TEXTUREFORMAT_IS_RGB(sourceFormat) ||
-		sourceFormat == TextureFormat_INDEXED) {
-		return TEXTUREFORMAT_IS_RGBA(destFormat) || TEXTUREFORMAT_IS_RGB(destFormat) ||
-			destFormat == TextureFormat_INDEXED;
+	if (TEXTUREFORMAT_IS_RGBA(sourceFormat) || TEXTUREFORMAT_IS_RGB(sourceFormat) || sourceFormat == TextureFormat_INDEXED) {
+		return TEXTUREFORMAT_IS_RGBA(destFormat) || TEXTUREFORMAT_IS_RGB(destFormat) || destFormat == TextureFormat_INDEXED;
 	}
 
 	return false;
@@ -181,14 +169,7 @@ bool Texture::KeepDriverPixelsResident() {
 	return Format != DriverFormat;
 }
 
-void Texture::CopyRegionIntoBuffer(void* destPixels,
-	void* srcPixels,
-	int srcFormat,
-	int srcPitch,
-	int srcX,
-	int srcY,
-	int width,
-	int height) {
+void Texture::CopyRegionIntoBuffer(void* destPixels, void* srcPixels, int srcFormat, int srcPitch, int srcX, int srcY, int width, int height) {
 	int srcBytesPerPixel = GetFormatBytesPerPixel(srcFormat);
 
 	Uint8* src = (Uint8*)srcPixels + (srcY * srcPitch) + (srcX * srcBytesPerPixel);
@@ -203,12 +184,7 @@ void Texture::CopyRegionIntoBuffer(void* destPixels,
 	}
 }
 
-void* Texture::GetRegion(int srcX,
-	int srcY,
-	int srcWidth,
-	int srcHeight,
-	int* outWidth,
-	int* outHeight) {
+void* Texture::GetRegion(int srcX, int srcY, int srcWidth, int srcHeight, int* outWidth, int* outHeight) {
 	if (!Pixels) {
 		return nullptr;
 	}
@@ -216,18 +192,7 @@ void* Texture::GetRegion(int srcX,
 	int destX = 0, destY = 0;
 	int destWidth, destHeight;
 
-	if (!Texture::ClipCopyRegion(srcWidth,
-		    srcHeight,
-		    srcX,
-		    srcY,
-		    srcWidth,
-		    srcHeight,
-		    Width,
-		    Height,
-		    destX,
-		    destY,
-		    destWidth,
-		    destHeight)) {
+	if (!Texture::ClipCopyRegion(srcWidth, srcHeight, srcX, srcY, srcWidth, srcHeight, Width, Height, destX, destY, destWidth, destHeight)) {
 		return nullptr;
 	}
 
@@ -236,8 +201,7 @@ void* Texture::GetRegion(int srcX,
 		return nullptr;
 	}
 
-	Texture::CopyRegionIntoBuffer(
-		dest, Pixels, Format, Pitch, destX, destY, destWidth, destHeight);
+	Texture::CopyRegionIntoBuffer(dest, Pixels, Format, Pitch, destX, destY, destWidth, destHeight);
 
 	*outWidth = destWidth;
 	*outHeight = destHeight;
@@ -245,13 +209,7 @@ void* Texture::GetRegion(int srcX,
 	return dest;
 }
 
-void Texture::ConvertPixelsToIndexed(void* destPixels,
-	void* srcPixels,
-	int srcFormat,
-	size_t srcLength,
-	Uint32* palColors,
-	unsigned numPaletteColors,
-	unsigned transparentIndex) {
+void Texture::ConvertPixelsToIndexed(void* destPixels, void* srcPixels, int srcFormat, size_t srcLength, Uint32* palColors, unsigned numPaletteColors, unsigned transparentIndex) {
 	if (!palColors || numPaletteColors == 0 || srcFormat == TextureFormat_INDEXED) {
 		return;
 	}
@@ -264,8 +222,7 @@ void Texture::ConvertPixelsToIndexed(void* destPixels,
 		ConvertPixel(srcPtr, srcFormat, rgba, TextureFormat_RGBA8888);
 
 		if (rgba[3]) {
-			Uint8 nearestColor = ColorUtils::NearestColor(
-				rgba[0], rgba[1], rgba[2], palColors, numPaletteColors);
+			Uint8 nearestColor = ColorUtils::NearestColor(rgba[0], rgba[1], rgba[2], palColors, numPaletteColors);
 			*destPtr = nearestColor;
 		}
 		else {
@@ -291,8 +248,7 @@ void Texture::ConvertPixelsToIndexed(void* destPixels,
 				*destPtr = colorsMap[color];
 			}
 			else {
-				Uint8 nearestColor = ColorUtils::NearestColor(
-					rgba[0], rgba[1], rgba[2], palColors, numPaletteColors);
+				Uint8 nearestColor = ColorUtils::NearestColor(rgba[0], rgba[1], rgba[2], palColors, numPaletteColors);
 				*destPtr = nearestColor;
 				colorsMap[color] = nearestColor;
 			}
@@ -307,12 +263,7 @@ void Texture::ConvertPixelsToIndexed(void* destPixels,
 	}
 }
 
-Uint8* Texture::GetPalettizedPixels(void* srcPixels,
-	int srcFormat,
-	size_t srcLength,
-	Uint32* palColors,
-	unsigned numPaletteColors,
-	unsigned transparentIndex) {
+Uint8* Texture::GetPalettizedPixels(void* srcPixels, int srcFormat, size_t srcLength, Uint32* palColors, unsigned numPaletteColors, unsigned transparentIndex) {
 	if (!palColors || srcFormat == TextureFormat_INDEXED) {
 		return nullptr;
 	}
@@ -322,38 +273,16 @@ Uint8* Texture::GetPalettizedPixels(void* srcPixels,
 		return nullptr;
 	}
 
-	ConvertPixelsToIndexed(destPixels,
-		srcPixels,
-		srcFormat,
-		srcLength,
-		palColors,
-		numPaletteColors,
-		transparentIndex);
+	ConvertPixelsToIndexed(destPixels, srcPixels, srcFormat, srcLength, palColors, numPaletteColors, transparentIndex);
 
 	return destPixels;
 }
 
-Uint8* Texture::GetPalettizedPixels(void* srcPixels,
-	int srcFormat,
-	int srcWidth,
-	int srcHeight,
-	Uint32* palColors,
-	unsigned numPaletteColors,
-	unsigned transparentIndex) {
-	return GetPalettizedPixels(srcPixels,
-		srcFormat,
-		(size_t)(srcWidth * srcHeight),
-		palColors,
-		numPaletteColors,
-		transparentIndex);
+Uint8* Texture::GetPalettizedPixels(void* srcPixels, int srcFormat, int srcWidth, int srcHeight, Uint32* palColors, unsigned numPaletteColors, unsigned transparentIndex) {
+	return GetPalettizedPixels(srcPixels, srcFormat, (size_t)(srcWidth * srcHeight), palColors, numPaletteColors, transparentIndex);
 }
 
-void Texture::ConvertPixelsToNonIndexed(void* destPixels,
-	void* srcPixels,
-	size_t srcLength,
-	int destFormat,
-	Uint32* palColors,
-	unsigned numPaletteColors) {
+void Texture::ConvertPixelsToNonIndexed(void* destPixels, void* srcPixels, size_t srcLength, int destFormat, Uint32* palColors, unsigned numPaletteColors) {
 	if (!palColors || numPaletteColors == 0) {
 		return;
 	}
@@ -371,8 +300,7 @@ void Texture::ConvertPixelsToNonIndexed(void* destPixels,
 			index = numPaletteColors - 1;
 		}
 
-		Uint32 color = ColorUtils::Convert(
-			palColors[index], Graphics::PreferredPixelFormat, destPixelFormat);
+		Uint32 color = ColorUtils::Convert(palColors[index], Graphics::PreferredPixelFormat, destPixelFormat);
 
 		ConvertPixel((Uint8*)&color, srcPixelFormat, destPtr, destFormat);
 
@@ -381,11 +309,7 @@ void Texture::ConvertPixelsToNonIndexed(void* destPixels,
 	}
 }
 
-void* Texture::GetNonIndexedPixels(void* srcPixels,
-	size_t srcLength,
-	int destFormat,
-	Uint32* palColors,
-	unsigned numPaletteColors) {
+void* Texture::GetNonIndexedPixels(void* srcPixels, size_t srcLength, int destFormat, Uint32* palColors, unsigned numPaletteColors) {
 	if (!palColors || numPaletteColors == 0) {
 		return nullptr;
 	}
@@ -396,34 +320,16 @@ void* Texture::GetNonIndexedPixels(void* srcPixels,
 		return nullptr;
 	}
 
-	ConvertPixelsToNonIndexed(
-		destPixels, srcPixels, srcLength, destFormat, palColors, numPaletteColors);
+	ConvertPixelsToNonIndexed(destPixels, srcPixels, srcLength, destFormat, palColors, numPaletteColors);
 
 	return destPixels;
 }
 
-void* Texture::GetNonIndexedPixels(void* srcPixels,
-	int srcWidth,
-	int srcHeight,
-	int destFormat,
-	Uint32* palColors,
-	unsigned numPaletteColors) {
-	return GetNonIndexedPixels(
-		srcPixels, (size_t)(srcWidth * srcHeight), destFormat, palColors, numPaletteColors);
+void* Texture::GetNonIndexedPixels(void* srcPixels, int srcWidth, int srcHeight, int destFormat, Uint32* palColors, unsigned numPaletteColors) {
+	return GetNonIndexedPixels(srcPixels, (size_t)(srcWidth * srcHeight), destFormat, palColors, numPaletteColors);
 }
 
-void Texture::Convert(void* srcPixels,
-	int srcFormat,
-	int srcPitch,
-	int srcX,
-	int srcY,
-	void* destPixels,
-	int destFormat,
-	int destPitch,
-	int destX,
-	int destY,
-	int width,
-	int height) {
+void Texture::Convert(void* srcPixels, int srcFormat, int srcPitch, int srcX, int srcY, void* destPixels, int destFormat, int destPitch, int destX, int destY, int width, int height) {
 	if (!CanConvertBetweenFormats(srcFormat, destFormat)) {
 		return;
 	}
@@ -446,8 +352,7 @@ void Texture::Convert(void* srcPixels,
 	size_t destPos = destPosStart;
 
 	// Handle overlapping regions
-	if (src == dest && srcX < (destX + width) && (srcX + width) > destX &&
-		srcY < (destY + height) && (srcY + height) > destY) {
+	if (src == dest && srcX < (destX + width) && (srcX + width) > destX && srcY < (destY + height) && (srcY + height) > destY) {
 		size_t bufferPitch = width * destBytesPerPixel;
 		size_t bufferSize = bufferPitch * height;
 
@@ -586,105 +491,35 @@ void Texture::ConvertPixel(Uint8* srcPtr, int srcFormat, Uint8* destPtr, int des
 	}
 }
 
-void Texture::CopyPixels(Texture* srcTexture,
-	int srcX,
-	int srcY,
-	int srcWidth,
-	int srcHeight,
-	int destX,
-	int destY) {
+void Texture::CopyPixels(Texture* srcTexture, int srcX, int srcY, int srcWidth, int srcHeight, int destX, int destY) {
 	if (!Pixels || !srcTexture || !srcTexture->Pixels) {
 		return;
 	}
 
 	int destWidth, destHeight;
 
-	if (!Texture::ClipCopyRegion(srcTexture->Width,
-		    srcTexture->Height,
-		    srcX,
-		    srcY,
-		    srcWidth,
-		    srcHeight,
-		    Width,
-		    Height,
-		    destX,
-		    destY,
-		    destWidth,
-		    destHeight)) {
+	if (!Texture::ClipCopyRegion(srcTexture->Width, srcTexture->Height, srcX, srcY, srcWidth, srcHeight, Width, Height, destX, destY, destWidth, destHeight)) {
 		return;
 	}
 
-	Texture::Convert((Uint8*)srcTexture->Pixels,
-		srcTexture->Format,
-		srcTexture->Pitch,
-		srcX,
-		srcY,
-		(Uint8*)Pixels,
-		Format,
-		Pitch,
-		destX,
-		destY,
-		destWidth,
-		destHeight);
+	Texture::Convert((Uint8*)srcTexture->Pixels, srcTexture->Format, srcTexture->Pitch, srcX, srcY, (Uint8*)Pixels, Format, Pitch, destX, destY, destWidth, destHeight);
 }
 
-void Texture::CopyPixels(void* srcPixels,
-	int srcFormat,
-	int srcX,
-	int srcY,
-	int srcWidth,
-	int srcHeight,
-	int destX,
-	int destY,
-	int copyWidth,
-	int copyHeight) {
+void Texture::CopyPixels(void* srcPixels, int srcFormat, int srcX, int srcY, int srcWidth, int srcHeight, int destX, int destY, int copyWidth, int copyHeight) {
 	if (!Pixels || !srcPixels) {
 		return;
 	}
 
 	int destWidth, destHeight;
 
-	if (!Texture::ClipCopyRegion(srcWidth,
-		    srcHeight,
-		    srcX,
-		    srcY,
-		    copyWidth,
-		    copyHeight,
-		    Width,
-		    Height,
-		    destX,
-		    destY,
-		    destWidth,
-		    destHeight)) {
+	if (!Texture::ClipCopyRegion(srcWidth, srcHeight, srcX, srcY, copyWidth, copyHeight, Width, Height, destX, destY, destWidth, destHeight)) {
 		return;
 	}
 
-	Texture::Convert((Uint8*)srcPixels,
-		srcFormat,
-		srcWidth * GetFormatBytesPerPixel(srcFormat),
-		srcX,
-		srcY,
-		(Uint8*)Pixels,
-		Format,
-		Pitch,
-		destX,
-		destY,
-		destWidth,
-		destHeight);
+	Texture::Convert((Uint8*)srcPixels, srcFormat, srcWidth * GetFormatBytesPerPixel(srcFormat), srcX, srcY, (Uint8*)Pixels, Format, Pitch, destX, destY, destWidth, destHeight);
 }
 
-bool Texture::ClipCopyRegion(int srcTextureWidth,
-	int srcTextureHeight,
-	int& srcX,
-	int& srcY,
-	int& srcWidth,
-	int& srcHeight,
-	int destTextureWidth,
-	int destTextureHeight,
-	int& destX,
-	int& destY,
-	int& destWidth,
-	int& destHeight) {
+bool Texture::ClipCopyRegion(int srcTextureWidth, int srcTextureHeight, int& srcX, int& srcY, int& srcWidth, int& srcHeight, int destTextureWidth, int destTextureHeight, int& destX, int& destY, int& destWidth, int& destHeight) {
 	if (srcX < 0) {
 		srcWidth += srcX;
 		if (srcWidth <= 0) {
@@ -774,15 +609,7 @@ void* Texture::Crop(Texture* source, int cropX, int cropY, int cropWidth, int cr
 	return pixels;
 }
 
-void Texture::ScaleIntoBuffer(Texture* source,
-	int srcX,
-	int srcY,
-	int srcWidth,
-	int srcHeight,
-	void* destPixels,
-	int destWidth,
-	int destHeight,
-	int destFormat) {
+void Texture::ScaleIntoBuffer(Texture* source, int srcX, int srcY, int srcWidth, int srcHeight, void* destPixels, int destWidth, int destHeight, int destFormat) {
 	int srcBytesPerPixel = source->BytesPerPixel;
 	int destBytesPerPixel = GetFormatBytesPerPixel(destFormat);
 
@@ -807,53 +634,22 @@ void Texture::ScaleIntoBuffer(Texture* source,
 		Uint8* row = (Uint8*)source->Pixels + ((sy >> 16) * source->Pitch);
 
 		for (Uint32 sx = srcX; sx < srcX + maxWidth; sx += xStep) {
-			ConvertPixel(row + ((sx >> 16) * srcBytesPerPixel),
-				source->Format,
-				dest,
-				destFormat);
+			ConvertPixel(row + ((sx >> 16) * srcBytesPerPixel), source->Format, dest, destFormat);
 
 			dest += destBytesPerPixel;
 		}
 	}
 }
 
-void Texture::ScaleInto(Texture* source,
-	int srcX,
-	int srcY,
-	int srcWidth,
-	int srcHeight,
-	Texture* dest) {
-	Texture::ScaleIntoBuffer(source,
-		srcX,
-		srcY,
-		srcWidth,
-		srcHeight,
-		dest->Pixels,
-		dest->Width,
-		dest->Height,
-		dest->Format);
+void Texture::ScaleInto(Texture* source, int srcX, int srcY, int srcWidth, int srcHeight, Texture* dest) {
+	Texture::ScaleIntoBuffer(source, srcX, srcY, srcWidth, srcHeight, dest->Pixels, dest->Width, dest->Height, dest->Format);
 }
 
-void* Texture::GetScaledPixels(Texture* source,
-	int srcX,
-	int srcY,
-	int srcWidth,
-	int srcHeight,
-	int destWidth,
-	int destHeight,
-	int destFormat) {
+void* Texture::GetScaledPixels(Texture* source, int srcX, int srcY, int srcWidth, int srcHeight, int destWidth, int destHeight, int destFormat) {
 	int destBytesPerPixel = GetFormatBytesPerPixel(destFormat);
 	void* pixels = Memory::Malloc(destWidth * destHeight * destBytesPerPixel);
 	if (pixels) {
-		Texture::ScaleIntoBuffer(source,
-			srcX,
-			srcY,
-			srcWidth,
-			srcHeight,
-			pixels,
-			destWidth,
-			destHeight,
-			destFormat);
+		Texture::ScaleIntoBuffer(source, srcX, srcY, srcWidth, srcHeight, pixels, destWidth, destHeight, destFormat);
 	}
 	return pixels;
 }

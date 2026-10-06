@@ -98,8 +98,7 @@ int BytecodeDebugger::InvokeInstructionV3(uint8_t opcode, Chunk* chunk, int offs
 int BytecodeDebugger::JumpInstruction(uint8_t opcode, int sign, Chunk* chunk, int offset) {
 	uint16_t jump = (uint16_t)(chunk->Code[offset + 1]);
 	jump |= chunk->Code[offset + 2] << 8;
-	DEBUGGER_LOG(
-		"%-16s %9d -> %d\n", Bytecode::OpcodeNames[opcode], offset, offset + 3 + sign * jump);
+	DEBUGGER_LOG("%-16s %9d -> %d\n", Bytecode::OpcodeNames[opcode], offset, offset + 3 + sign * jump);
 	return offset + Bytecode::GetTotalOpcodeSize(chunk->Code + offset);
 }
 int BytecodeDebugger::ClassInstruction(uint8_t opcode, Chunk* chunk, int offset) {
@@ -121,8 +120,7 @@ int BytecodeDebugger::WithInstruction(uint8_t opcode, Chunk* chunk, int offset) 
 		DEBUGGER_LOG("%-16s %1d %7d -> %d\n", Bytecode::OpcodeNames[opcode], type, slot, jump);
 	}
 	else {
-		DEBUGGER_LOG(
-			"%-16s %1d %7d 'this' -> %d\n", Bytecode::OpcodeNames[opcode], type, slot, jump);
+		DEBUGGER_LOG("%-16s %1d %7d 'this' -> %d\n", Bytecode::OpcodeNames[opcode], type, slot, jump);
 	}
 	if (type == 3) {
 		offset--;
@@ -256,8 +254,7 @@ int BytecodeDebugger::DebugInstruction(Chunk* chunk, int offset) {
 void BytecodeDebugger::DebugChunk(Chunk* chunk, const char* name, int minArity, int maxArity) {
 	int optArgCount = maxArity - minArity;
 	if (optArgCount) {
-		DEBUGGER_LOG(
-			"== %s (argCount: %d, optArgCount: %d) ==\n", name, maxArity, optArgCount);
+		DEBUGGER_LOG("== %s (argCount: %d, optArgCount: %d) ==\n", name, maxArity, optArgCount);
 	}
 	else {
 		DEBUGGER_LOG("== %s (argCount: %d) ==\n", name, maxArity);

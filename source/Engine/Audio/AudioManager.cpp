@@ -82,8 +82,7 @@ Sint16 AudioManager::ProcessSample(Sint16 inSample, int channel) {
 	int idx0 = 2 * channel;
 	int idx1 = idx0 + 1;
 
-	outSample = (Sint16)((a0 * inSample) + (a1 * mZx[idx0]) + (a2 * mZx[idx1]) -
-		(b1 * mZy[idx0]) - (b2 * mZy[idx1]));
+	outSample = (Sint16)((a0 * inSample) + (a1 * mZx[idx0]) + (a2 * mZx[idx1]) - (b1 * mZy[idx0]) - (b2 * mZy[idx1]));
 
 	// if (outSample > 0x3FFF)
 	//     outSample = 0x3FFF;
@@ -95,24 +94,21 @@ Sint16 AudioManager::ProcessSample(Sint16 inSample, int channel) {
 	mZy[idx1] = mZy[idx0];
 	mZy[idx0] = outSample;
 
-	return (Sint16)(inSample * (1.0 - AudioManager::LowPassFilter) +
-		outSample * mGain * AudioManager::LowPassFilter);
+	return (Sint16)(inSample * (1.0 - AudioManager::LowPassFilter) + outSample * mGain * AudioManager::LowPassFilter);
 }
 float AudioManager::ProcessSampleFloat(float inSample, int channel) {
 	float outSample;
 	int idx0 = 2 * channel;
 	int idx1 = idx0 + 1;
 
-	outSample = (float)((a0 * inSample) + (a1 * mZxF[idx0]) + (a2 * mZxF[idx1]) -
-		(b1 * mZyF[idx0]) - (b2 * mZyF[idx1]));
+	outSample = (float)((a0 * inSample) + (a1 * mZxF[idx0]) + (a2 * mZxF[idx1]) - (b1 * mZyF[idx0]) - (b2 * mZyF[idx1]));
 
 	mZxF[idx1] = mZxF[idx0];
 	mZxF[idx0] = inSample;
 	mZyF[idx1] = mZyF[idx0];
 	mZyF[idx0] = outSample;
 
-	return (float)(inSample * (1.0 - AudioManager::LowPassFilter) +
-		outSample * mGain * AudioManager::LowPassFilter);
+	return (float)(inSample * (1.0 - AudioManager::LowPassFilter) + outSample * mGain * AudioManager::LowPassFilter);
 }
 
 void AudioManager::Init() {
@@ -152,8 +148,7 @@ void AudioManager::Init() {
 		}
 	}
 	else {
-		if ((Device = SDL_OpenAudioDevice(
-			     NULL, 0, &Want, &DeviceFormat, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE))) {
+		if ((Device = SDL_OpenAudioDevice(NULL, 0, &Want, &DeviceFormat, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE))) {
 			AudioEnabled = true;
 			SDL_PauseAudioDevice(Device, 0);
 		}
@@ -164,14 +159,7 @@ void AudioManager::Init() {
 
 	Log::Print(Log::LOG_VERBOSE, "%s", "Audio Device:");
 	Log::Print(Log::LOG_VERBOSE, "%s = %d", "Freq", DeviceFormat.freq);
-	Log::Print(Log::LOG_VERBOSE,
-		"%s = %s%d-bit%s",
-		"Format",
-		SDL_AUDIO_ISSIGNED(DeviceFormat.format) ? "signed " : "unsigned ",
-		SDL_AUDIO_BITSIZE(DeviceFormat.format),
-		SDL_AUDIO_ISFLOAT(DeviceFormat.format)               ? " (float)"
-			: SDL_AUDIO_ISBIGENDIAN(DeviceFormat.format) ? " BE"
-								     : " LE");
+	Log::Print(Log::LOG_VERBOSE, "%s = %s%d-bit%s", "Format", SDL_AUDIO_ISSIGNED(DeviceFormat.format) ? "signed " : "unsigned ", SDL_AUDIO_BITSIZE(DeviceFormat.format), SDL_AUDIO_ISFLOAT(DeviceFormat.format) ? " (float)" : SDL_AUDIO_ISBIGENDIAN(DeviceFormat.format) ? " BE" : " LE");
 	Log::Print(Log::LOG_VERBOSE, "%s = %X", "Samples", DeviceFormat.samples);
 	Log::Print(Log::LOG_VERBOSE, "%s = %X", "Channels", DeviceFormat.channels);
 
@@ -231,14 +219,7 @@ void AudioManager::UpdateChannelPlayer(AudioPlayback* playback, ISound* sound) {
 void AudioManager::SetSound(int channel, ISound* music) {
 	AudioManager::SetSound(channel, music, false, 0, 0.0f, 1.0f, 1.0f, nullptr);
 }
-void AudioManager::SetSound(int channel,
-	ISound* sound,
-	bool loop,
-	int loopPoint,
-	float pan,
-	float speed,
-	float volume,
-	void* origin) {
+void AudioManager::SetSound(int channel, ISound* sound, bool loop, int loopPoint, float pan, float speed, float volume, void* origin) {
 	AudioManager::Lock();
 
 	AudioChannel* audio = &SoundArray[channel];
@@ -259,17 +240,11 @@ void AudioManager::SetSound(int channel,
 
 	int requiredSamples = AudioManager::DeviceFormat.samples * AUDIO_FIRST_LOAD_SAMPLE_BOOST;
 	if (playback == nullptr) {
-		playback = new AudioPlayback(sound->Format,
-			requiredSamples,
-			sound->BytesPerSample,
-			AudioManager::BytesPerSample);
+		playback = new AudioPlayback(sound->Format, requiredSamples, sound->BytesPerSample, AudioManager::BytesPerSample);
 		audio->Playback = playback;
 	}
 	else {
-		playback->Change(sound->Format,
-			requiredSamples,
-			sound->BytesPerSample,
-			AudioManager::BytesPerSample);
+		playback->Change(sound->Format, requiredSamples, sound->BytesPerSample, AudioManager::BytesPerSample);
 	}
 
 	AudioManager::UpdateChannelPlayer(playback, sound);
@@ -284,18 +259,11 @@ void AudioManager::SetSound(int channel,
 int AudioManager::PlaySound(ISound* music) {
 	return AudioManager::PlaySound(music, false, 0, 0.0f, 1.0f, 1.0f, nullptr);
 }
-int AudioManager::PlaySound(ISound* music,
-	bool loop,
-	int loopPoint,
-	float pan,
-	float speed,
-	float volume,
-	void* origin) {
+int AudioManager::PlaySound(ISound* music, bool loop, int loopPoint, float pan, float speed, float volume, void* origin) {
 	for (int i = 0; i < SoundArrayLength; i++) {
 		AudioChannel* audio = &SoundArray[i];
 		if (!audio->Audio || audio->Stopped) {
-			AudioManager::SetSound(
-				i, music, loop, loopPoint, pan, speed, volume, origin);
+			AudioManager::SetSound(i, music, loop, loopPoint, pan, speed, volume, origin);
 			return i;
 		}
 	}
@@ -303,23 +271,10 @@ int AudioManager::PlaySound(ISound* music,
 	return -1;
 }
 
-void AudioManager::PushMusic(ISound* music,
-	bool loop,
-	Uint32 lp,
-	float pan,
-	float speed,
-	float volume,
-	double fadeInAfterFinished) {
+void AudioManager::PushMusic(ISound* music, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished) {
 	PushMusicAt(music, 0.0, loop, lp, pan, speed, volume, fadeInAfterFinished);
 }
-void AudioManager::PushMusicAt(ISound* music,
-	double at,
-	bool loop,
-	Uint32 lp,
-	float pan,
-	float speed,
-	float volume,
-	double fadeInAfterFinished) {
+void AudioManager::PushMusicAt(ISound* music, double at, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished) {
 	if (music->LoadFailed) {
 		return;
 	}
@@ -577,8 +532,7 @@ bool AudioManager::IsOriginPlaying(void* origin, ISound* audio) {
 	AudioManager::Lock();
 	for (int i = 0; i < SoundArrayLength; i++) {
 		AudioChannel* channel = &SoundArray[i];
-		if (!channel->Stopped && !channel->Paused && channel->Audio == audio &&
-			channel->Origin == origin) {
+		if (!channel->Stopped && !channel->Paused && channel->Audio == audio && channel->Origin == origin) {
 			isPlaying = true;
 		}
 	}
@@ -696,8 +650,7 @@ bool AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stream, int len, flo
 
 	// Read more bytes
 	if (bytes == 0) {
-		bytes = playback->RequestSamples(
-			DeviceFormat.samples, audio->Loop, audio->LoopPoint);
+		bytes = playback->RequestSamples(DeviceFormat.samples, audio->Loop, audio->LoopPoint);
 	}
 	else {
 		advanceReadIndex = len - bytes;
@@ -705,8 +658,7 @@ bool AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stream, int len, flo
 
 	int mixVolume;
 	if (audio->Fading) {
-		mixVolume = (int)(SDL_MIX_MAXVOLUME * MasterVolume * volume *
-			(audio->FadeTimer / audio->FadeTimerMax));
+		mixVolume = (int)(SDL_MIX_MAXVOLUME * MasterVolume * volume * (audio->FadeTimer / audio->FadeTimerMax));
 	}
 	else {
 		mixVolume = (int)(SDL_MIX_MAXVOLUME * MasterVolume * volume);
@@ -739,25 +691,13 @@ bool AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stream, int len, flo
 	default:
 		if (speed == 0x10000) {
 			if (!doPanning) {
-				SDL_MixAudioFormat(stream,
-					playback->Buffer,
-					DeviceFormat.format,
-					(Uint32)bytes,
-					mixVolume);
+				SDL_MixAudioFormat(stream, playback->Buffer, DeviceFormat.format, (Uint32)bytes, mixVolume);
 			}
 			else {
 				Uint32 mixAdvance = MixBufferSize * bytesPerSample;
 				for (Uint32 o = 0; o < (unsigned)len; o += mixAdvance) {
-					AudioManager::MixAudioLR(MixBuffer,
-						playback->Buffer + advanceReadIndex,
-						MixBufferSize,
-						volumeL,
-						volumeR);
-					SDL_MixAudioFormat(stream + o,
-						MixBuffer,
-						DeviceFormat.format,
-						mixAdvance,
-						mixVolume);
+					AudioManager::MixAudioLR(MixBuffer, playback->Buffer + advanceReadIndex, MixBufferSize, volumeL, volumeR);
+					SDL_MixAudioFormat(stream + o, MixBuffer, DeviceFormat.format, mixAdvance, mixVolume);
 					advanceReadIndex += mixAdvance;
 				}
 			}
@@ -771,23 +711,11 @@ bool AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stream, int len, flo
 				advanceAccumulator &= 0xFFFF;
 
 				if (doPanning) {
-					AudioManager::MixAudioLR(MixBuffer,
-						playback->Buffer + advanceReadIndex,
-						1,
-						volumeL,
-						volumeR);
-					SDL_MixAudioFormat(stream + o,
-						MixBuffer,
-						DeviceFormat.format,
-						(Uint32)bytesPerSample,
-						mixVolume);
+					AudioManager::MixAudioLR(MixBuffer, playback->Buffer + advanceReadIndex, 1, volumeL, volumeR);
+					SDL_MixAudioFormat(stream + o, MixBuffer, DeviceFormat.format, (Uint32)bytesPerSample, mixVolume);
 				}
 				else {
-					SDL_MixAudioFormat(stream + o,
-						playback->Buffer + advanceReadIndex,
-						DeviceFormat.format,
-						(Uint32)bytesPerSample,
-						mixVolume);
+					SDL_MixAudioFormat(stream + o, playback->Buffer + advanceReadIndex, DeviceFormat.format, (Uint32)bytesPerSample, mixVolume);
 				}
 
 				advanceReadIndex += advance * bytesPerSample;
@@ -795,9 +723,7 @@ bool AudioManager::AudioPlayMix(AudioChannel* audio, Uint8* stream, int len, flo
 					playback->BufferedSamples = 0;
 					advanceReadIndex = 0;
 
-					bytes = playback->RequestSamples(DeviceFormat.samples,
-						audio->Loop,
-						audio->LoopPoint);
+					bytes = playback->RequestSamples(DeviceFormat.samples, audio->Loop, audio->LoopPoint);
 				}
 				else {
 					playback->BufferedSamples -= advance;
@@ -816,17 +742,11 @@ void AudioManager::AudioCallback(void* data, Uint8* stream, int len) {
 	}
 
 	if (AudioManager::AudioQueueSize >= (size_t)len) {
-		SDL_MixAudioFormat(stream,
-			AudioManager::AudioQueue,
-			DeviceFormat.format,
-			(Uint32)len,
-			(int)(SDL_MIX_MAXVOLUME * MasterVolume));
+		SDL_MixAudioFormat(stream, AudioManager::AudioQueue, DeviceFormat.format, (Uint32)len, (int)(SDL_MIX_MAXVOLUME * MasterVolume));
 
 		AudioManager::AudioQueueSize -= len;
 		if (AudioManager::AudioQueueSize > 0) {
-			memmove(AudioManager::AudioQueue,
-				AudioManager::AudioQueue + len,
-				AudioManager::AudioQueueSize);
+			memmove(AudioManager::AudioQueue, AudioManager::AudioQueue + len, AudioManager::AudioQueueSize);
 		}
 	}
 
@@ -834,8 +754,7 @@ void AudioManager::AudioCallback(void* data, Uint8* stream, int len) {
 	if (MusicStack.size() > 0) {
 		AudioChannel* audio = MusicStack.front();
 		if (!audio->Paused) {
-			if (AudioManager::AudioPlayMix(
-				    audio, stream, len, audio->Volume * MusicVolume)) {
+			if (AudioManager::AudioPlayMix(audio, stream, len, audio->Volume * MusicVolume)) {
 				delete audio;
 				MusicStack.pop_front();
 			}

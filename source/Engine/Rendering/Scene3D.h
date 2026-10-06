@@ -79,10 +79,8 @@ struct Scene3D {
 	void SetClipPolygons(bool clipPolygons) { ClipPolygons = clipPolygons; }
 	void SetProjectionMatrix(Matrix4x4* projMat) { ProjectionMatrix = *projMat; }
 	void SetClippingPlanes() {
-		FarClippingPlane =
-			ProjectionMatrix.Values[14] / (ProjectionMatrix.Values[10] - 1.0f);
-		NearClippingPlane =
-			ProjectionMatrix.Values[14] / (ProjectionMatrix.Values[10] + 1.0f);
+		FarClippingPlane = ProjectionMatrix.Values[14] / (ProjectionMatrix.Values[10] - 1.0f);
+		NearClippingPlane = ProjectionMatrix.Values[14] / (ProjectionMatrix.Values[10] + 1.0f);
 	}
 	void SetCustomProjectionMatrix(Matrix4x4* projMat) {
 		if (projMat) {

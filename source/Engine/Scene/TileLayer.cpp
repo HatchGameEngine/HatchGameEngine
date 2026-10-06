@@ -36,8 +36,7 @@ TileLayer::TileLayer(int w, int h) {
 	memset(DeformSetB, 0, sizeof(DeformSetB));
 
 	Tiles = (Uint32*)Memory::TrackedCalloc("TileLayer::Tiles", w * h, sizeof(Uint32));
-	TilesBackup =
-		(Uint32*)Memory::TrackedCalloc("TileLayer::TilesBackup", w * h, sizeof(Uint32));
+	TilesBackup = (Uint32*)Memory::TrackedCalloc("TileLayer::TilesBackup", w * h, sizeof(Uint32));
 	UsingScrollIndexes = false;
 }
 TileLayer::~TileLayer() {

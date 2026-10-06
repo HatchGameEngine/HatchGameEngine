@@ -371,7 +371,7 @@ void ScriptEntity::LinkFields() {
     * \ns Entity
     * \desc Alias for <ref Entity.InRange>.
     */
-    Instance->InstanceObj.Fields->Put("OnScreen", INTEGER_LINK_VAL(&InRange));
+	Instance->InstanceObj.Fields->Put("OnScreen", INTEGER_LINK_VAL(&InRange));
 	/***
     * \field WasOffScreen
     * \type boolean
@@ -411,8 +411,7 @@ void ScriptEntity::LinkFields() {
 	* \ns Entity
 	* \desc The left on-screen range where the entity can update. If set to `0.0`, the entity will use its <ref Entity.UpdateRegionW> instead.
 	*/
-	Instance->InstanceObj.Fields->Put(
-		"UpdateRegionLeft", DECIMAL_LINK_VAL(&OnScreenRegionLeft));
+	Instance->InstanceObj.Fields->Put("UpdateRegionLeft", DECIMAL_LINK_VAL(&OnScreenRegionLeft));
 	/***
 	* \field UpdateRegionRight
 	* \type decimal
@@ -420,8 +419,7 @@ void ScriptEntity::LinkFields() {
 	* \ns Entity
 	* \desc The left on-screen range where the entity can update. If set to `0.0`, the entity will use its <ref Entity.UpdateRegionW> instead.
 	*/
-	Instance->InstanceObj.Fields->Put(
-		"UpdateRegionRight", DECIMAL_LINK_VAL(&OnScreenRegionRight));
+	Instance->InstanceObj.Fields->Put("UpdateRegionRight", DECIMAL_LINK_VAL(&OnScreenRegionRight));
 	/***
 	* \field UpdateRegionBottom
 	* \type decimal
@@ -429,8 +427,7 @@ void ScriptEntity::LinkFields() {
 	* \ns Entity
 	* \desc The bottom on-screen range where the entity can update. If set to `0.0`, the entity will use its <ref Entity.UpdateRegionH> instead.
 	*/
-	Instance->InstanceObj.Fields->Put(
-		"UpdateRegionBottom", DECIMAL_LINK_VAL(&OnScreenRegionBottom));
+	Instance->InstanceObj.Fields->Put("UpdateRegionBottom", DECIMAL_LINK_VAL(&OnScreenRegionBottom));
 	/***
 	* \field OnScreenHitboxW
 	* \type decimal
@@ -1040,10 +1037,7 @@ void ScriptEntity::RenderLate() {
 
 	RunFunction(Hash_RenderLate);
 }
-#define CAN_CALL_ENTITY_IMPL(fnName) \
-	(!GetCallableValue(Hash_##fnName, callable) || \
-		(IS_NATIVE_FUNCTION(callable) && \
-			AS_NATIVE_FUNCTION(callable) == EntityImpl::VM_##fnName))
+#define CAN_CALL_ENTITY_IMPL(fnName) (!GetCallableValue(Hash_##fnName, callable) || (IS_NATIVE_FUNCTION(callable) && AS_NATIVE_FUNCTION(callable) == EntityImpl::VM_##fnName))
 void ScriptEntity::SetAnimation(int animation, int frame) {
 	if (!Active) {
 		return;

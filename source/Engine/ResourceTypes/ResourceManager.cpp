@@ -18,9 +18,7 @@ VFSProvider* mainResource = nullptr;
 bool ResourceManager::UsingDataFolder = false;
 char ResourceManager::DataFolderPath[MAX_PATH_LENGTH];
 
-const char* data_files[] = {PATHLOCATION_GAME_URL "Data.hatch",
-	PATHLOCATION_GAME_URL "Game.hatch",
-	PATHLOCATION_GAME_URL TARGET_NAME ".hatch"};
+const char* data_files[] = {PATHLOCATION_GAME_URL "Data.hatch", PATHLOCATION_GAME_URL "Game.hatch", PATHLOCATION_GAME_URL TARGET_NAME ".hatch"};
 
 struct DataFileCandidate {
 	std::string Path;
@@ -100,13 +98,13 @@ bool ResourceManager::Init(const char* dataFilePath, bool useResourcesFolder) {
 
 	// Use Resources folder
 	if (!foundDataFile) {
-		#ifdef __APPLE__
-			std::string resolve = "";
-			Path::FromURL(PATHLOCATION_GAME_URL RESOURCES_DIR_PATH, resolve);
-			filename = StringUtils::Create(resolve);
-		#else
-			filename = StringUtils::Create(RESOURCES_DIR_PATH);
-		#endif
+#ifdef __APPLE__
+		std::string resolve = "";
+		Path::FromURL(PATHLOCATION_GAME_URL RESOURCES_DIR_PATH, resolve);
+		filename = StringUtils::Create(resolve);
+#else
+		filename = StringUtils::Create(RESOURCES_DIR_PATH);
+#endif
 		isDirectory = true;
 	}
 
@@ -125,8 +123,7 @@ bool ResourceManager::Init(const char* dataFilePath, bool useResourcesFolder) {
 
 		Log::Print(Log::LOG_VERBOSE, "Loading \"%s\"...", filenameOnly);
 
-		VFSMountStatus status = vfs->Mount(
-			RESOURCES_VFS_NAME, filename, nullptr, VFSType::FILESYSTEM, flags);
+		VFSMountStatus status = vfs->Mount(RESOURCES_VFS_NAME, filename, nullptr, VFSType::FILESYSTEM, flags);
 
 		if (status == VFSMountStatus::MOUNTED) {
 			UsingDataFolder = useResourcesFolder;
@@ -144,8 +141,7 @@ bool ResourceManager::Init(const char* dataFilePath, bool useResourcesFolder) {
 
 		Log::Print(Log::LOG_VERBOSE, "Loading \"%s\"...", filenameOnly);
 
-		ResourceManager::Mount(
-			RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
+		ResourceManager::Mount(RESOURCES_VFS_NAME, filename, nullptr, VFSType::HATCH, VFS_READABLE);
 	}
 
 	Memory::Free(filename);
@@ -169,9 +165,7 @@ bool ResourceManager::Init(const char* dataFilePath, bool useResourcesFolder) {
 		const char* datafilename = StringUtils::GetFilename(data_files[0]);
 
 #if WIN32
-		Error::Fatal(
-			"%s not found! Ensure that it's in the same location as the application.",
-			datafilename);
+		Error::Fatal("%s not found! Ensure that it's in the same location as the application.", datafilename);
 #else
 		std::string additionalError;
 		std::string resolved = "";
@@ -180,8 +174,7 @@ bool ResourceManager::Init(const char* dataFilePath, bool useResourcesFolder) {
 			additionalError += "* " + resolved;
 		}
 		else {
-			additionalError =
-				"Ensure that the application has read access permissions.";
+			additionalError = "Ensure that the application has read access permissions.";
 		}
 
 #if UNIX
@@ -200,11 +193,7 @@ bool ResourceManager::Init(const char* dataFilePath, bool useResourcesFolder) {
 
 	return true;
 }
-bool ResourceManager::Mount(const char* name,
-	const char* filename,
-	const char* mountPoint,
-	VFSType type,
-	Uint16 flags) {
+bool ResourceManager::Mount(const char* name, const char* filename, const char* mountPoint, VFSType type, Uint16 flags) {
 	VFSMountStatus status = vfs->Mount(name, filename, mountPoint, type, flags);
 
 	if (status == VFSMountStatus::NOT_FOUND) {

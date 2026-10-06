@@ -7,10 +7,7 @@ void PerformanceViewer::DrawFramerate(Font* font) {
 	SDL_GetWindowSize(Application::Window, &ww, &wh);
 	Graphics::SetViewport(0.0, 0.0, ww, wh);
 	Graphics::UpdateOrthoFlipped(ww, wh);
-	Graphics::SetBlendMode(BlendFactor_SRC_ALPHA,
-		BlendFactor_INV_SRC_ALPHA,
-		BlendFactor_ONE,
-		BlendFactor_INV_SRC_ALPHA);
+	Graphics::SetBlendMode(BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA, BlendFactor_ONE, BlendFactor_INV_SRC_ALPHA);
 
 	TextDrawParams textParams;
 	textParams.FontSize = font->Size;
@@ -43,10 +40,7 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 	SDL_GetWindowSize(Application::Window, &ww, &wh);
 	Graphics::SetViewport(0.0, 0.0, ww, wh);
 	Graphics::UpdateOrthoFlipped(ww, wh);
-	Graphics::SetBlendMode(BlendFactor_SRC_ALPHA,
-		BlendFactor_INV_SRC_ALPHA,
-		BlendFactor_ONE,
-		BlendFactor_INV_SRC_ALPHA);
+	Graphics::SetBlendMode(BlendFactor_SRC_ALPHA, BlendFactor_INV_SRC_ALPHA, BlendFactor_ONE, BlendFactor_INV_SRC_ALPHA);
 
 	TextDrawParams textParams;
 	textParams.FontSize = font->Size;
@@ -116,10 +110,8 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 			continue;
 		}
 
-		Graphics::SetBlendColor(
-			measure->Colors.R, measure->Colors.G, measure->Colors.B, 0.5);
-		Graphics::FillRectangle(
-			rectx, 0.0, measure->Time / total * (infoW - infoPadding * 2), 30.0);
+		Graphics::SetBlendColor(measure->Colors.R, measure->Colors.G, measure->Colors.B, 0.5);
+		Graphics::FillRectangle(rectx, 0.0, measure->Time / total * (infoW - infoPadding * 2), 30.0);
 
 		rectx += measure->Time / total * (infoW - infoPadding * 2);
 	}
@@ -138,15 +130,10 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 
 		Graphics::Save();
 		Graphics::Translate(infoPadding, listY, 0.0);
-		Graphics::SetBlendColor(
-			measure->Colors.R, measure->Colors.G, measure->Colors.B, 0.5);
+		Graphics::SetBlendColor(measure->Colors.R, measure->Colors.G, measure->Colors.B, 0.5);
 		Graphics::FillRectangle(-infoPadding / 2.0, 0.0, 12.0, 12.0);
 		Graphics::Scale(0.6, 0.6, 1.0);
-		snprintf(textBuffer,
-			sizeof textBuffer,
-			"%s: %3.3f ms",
-			measure->Name,
-			measure->Time);
+		snprintf(textBuffer, sizeof textBuffer, "%s: %3.3f ms", measure->Name, measure->Time);
 		Graphics::SetBlendColor(1.0, 1.0, 1.0, 1.0);
 		Graphics::DrawText(font, textBuffer, textX, textY, &textParams);
 		listY += 20.0;
@@ -232,14 +219,7 @@ void PerformanceViewer::DrawDetailed(Font* font) {
 		Graphics::Scale(0.6, 0.6, 1.0);
 
 		char textBufferXXX[1024];
-		snprintf(textBufferXXX,
-			sizeof textBufferXXX,
-			"Object \"%s\": Avg Update %.1f mcs - Avg Render %.1f mcs (Total %.1f mcs, Count %d)",
-			list->ObjectName,
-			list->Performance.Update.GetAverageTime(),
-			list->Performance.Render.GetAverageTime(),
-			list->Performance.Render.GetTotalAverageTime(),
-			(int)list->Performance.Render.AverageItemCount);
+		snprintf(textBufferXXX, sizeof textBufferXXX, "Object \"%s\": Avg Update %.1f mcs - Avg Render %.1f mcs (Total %.1f mcs, Count %d)", list->ObjectName, list->Performance.Update.GetAverageTime(), list->Performance.Render.GetAverageTime(), list->Performance.Render.GetTotalAverageTime(), (int)list->Performance.Render.AverageItemCount);
 
 		float maxW = 0.0, maxH = 0.0;
 		Graphics::SetBlendColor(0.0, 0.0, 0.0, 0.75);

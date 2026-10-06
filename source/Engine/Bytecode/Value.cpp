@@ -203,8 +203,7 @@ VMValue Value::Concatenate(VMValue va, VMValue vb) {
 }
 
 bool Value::SortaEqual(VMValue a, VMValue b) {
-	if ((a.Type == VAL_DECIMAL && b.Type == VAL_INTEGER) ||
-		(a.Type == VAL_INTEGER && b.Type == VAL_DECIMAL)) {
+	if ((a.Type == VAL_DECIMAL && b.Type == VAL_INTEGER) || (a.Type == VAL_INTEGER && b.Type == VAL_DECIMAL)) {
 		float a_d = AS_DECIMAL(CastAsDecimal(a));
 		float b_d = AS_DECIMAL(CastAsDecimal(b));
 		return (a_d == b_d);
@@ -218,8 +217,7 @@ bool Value::SortaEqual(VMValue a, VMValue b) {
 		ObjBoundMethod* abm = AS_BOUND_METHOD(a);
 		ObjBoundMethod* bbm = AS_BOUND_METHOD(b);
 
-		if (abm->Method != bbm->Method || abm->ArgumentCount != bbm->ArgumentCount ||
-			abm->HasReceiver != bbm->HasReceiver) {
+		if (abm->Method != bbm->Method || abm->ArgumentCount != bbm->ArgumentCount || abm->HasReceiver != bbm->HasReceiver) {
 			return false;
 		}
 
@@ -235,8 +233,7 @@ bool Value::SortaEqual(VMValue a, VMValue b) {
 	return Value::Equal(a, b);
 }
 bool Value::Equal(VMValue a, VMValue b) {
-	if (!(a.Type == VAL_LINKED_INTEGER || a.Type == VAL_LINKED_DECIMAL ||
-		    b.Type == VAL_LINKED_INTEGER || b.Type == VAL_LINKED_DECIMAL)) {
+	if (!(a.Type == VAL_LINKED_INTEGER || a.Type == VAL_LINKED_DECIMAL || b.Type == VAL_LINKED_INTEGER || b.Type == VAL_LINKED_DECIMAL)) {
 		if (a.Type != b.Type) {
 			return false;
 		}

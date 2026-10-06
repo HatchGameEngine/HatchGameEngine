@@ -20,7 +20,10 @@ protected:
 	void ValidateTextureUniformNames();
 
 public:
-	enum { STAGE_VERTEX, STAGE_FRAGMENT };
+	enum {
+		STAGE_VERTEX,
+		STAGE_FRAGMENT
+	};
 
 	enum {
 		DATATYPE_UNKNOWN = -1,

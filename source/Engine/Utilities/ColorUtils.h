@@ -22,12 +22,7 @@ public:
 	static Uint32 Multiply(Uint32 color, Uint32 colorMult);
 	static Uint32 Blend(Uint32 color1, Uint32 color2, int percent);
 	static Uint32 Make(Uint8 red, Uint8 green, Uint8 blue, Uint8 alpha, int pixelFormat);
-	static void GetChannels(Uint32 color,
-		int pixelFormat,
-		Uint8& red,
-		Uint8& green,
-		Uint8& blue,
-		Uint8& alpha);
+	static void GetChannels(Uint32 color, int pixelFormat, Uint8& red, Uint8& green, Uint8& blue, Uint8& alpha);
 	static Uint8 GetAlphaChannel(Uint32 color, int pixelFormat);
 	static Uint32 Convert(Uint32 color, int srcPixelFormat, int destPixelFormat);
 	static void Convert(Uint32* colors, int count, int srcPixelFormat, int destPixelFormat);

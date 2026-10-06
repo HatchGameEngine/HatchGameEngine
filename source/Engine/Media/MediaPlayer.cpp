@@ -10,7 +10,12 @@
 #include <Engine/Diagnostics/Log.h>
 #include <Engine/Diagnostics/Memory.h>
 
-enum DecoderIndex { KIT_VIDEO_DEC = 0, KIT_AUDIO_DEC, KIT_SUBTITLE_DEC, KIT_DEC_COUNT };
+enum DecoderIndex {
+	KIT_VIDEO_DEC = 0,
+	KIT_AUDIO_DEC,
+	KIT_SUBTITLE_DEC,
+	KIT_DEC_COUNT
+};
 enum DecoderRunReturn {
 	DECODER_RUN_OKAY = 0,
 	DECODER_RUN_EOF = 1,
@@ -194,12 +199,7 @@ int MediaPlayer::DecoderThreadFunc(void* ptr) {
 }
 
 // Lifecycle functions
-MediaPlayer* MediaPlayer::Create(MediaSource* src,
-	int video_stream_index,
-	int audio_stream_index,
-	int subtitle_stream_index,
-	int screen_w,
-	int screen_h) {
+MediaPlayer* MediaPlayer::Create(MediaSource* src, int video_stream_index, int audio_stream_index, int subtitle_stream_index, int screen_w, int screen_h) {
 	if (!src) {
 		Log::Print(Log::LOG_ERROR, "MediaPlayer::Create: src == NULL");
 		exit(-1);
@@ -281,9 +281,7 @@ MediaPlayer* MediaPlayer::Create(MediaSource* src,
 	// Decoder thread lock
 	player->DecoderLock = SDL_CreateMutex();
 	if (player->DecoderLock == NULL) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to create a decoder thread lock mutex: %s",
-			SDL_GetError());
+		Log::Print(Log::LOG_ERROR, "Unable to create a decoder thread lock mutex: %s", SDL_GetError());
 		goto exit_2;
 	}
 
@@ -293,8 +291,7 @@ MediaPlayer* MediaPlayer::Create(MediaSource* src,
 	player->SetClockSync();
 
 	// Decoder thread
-	player->DecoderThread = SDL_CreateThread(
-		MediaPlayer::DecoderThreadFunc, "MediaPlayer::DecoderThreadFunc", player);
+	player->DecoderThread = SDL_CreateThread(MediaPlayer::DecoderThreadFunc, "MediaPlayer::DecoderThreadFunc", player);
 	if (player->DecoderThread == NULL) {
 		Log::Print(Log::LOG_ERROR, "Unable to create a decoder thread: %s", SDL_GetError());
 		goto exit_3;
@@ -575,10 +572,7 @@ int MediaPlayer::GetAudioData(unsigned char* buffer, int length) {
 
 	return ((AudioDecoder*)dec)->GetAudioDecoderData(buffer, length);
 }
-int MediaPlayer::GetSubtitleData(Texture* texture,
-	SDL_Rect* sources,
-	SDL_Rect* targets,
-	int limit) {
+int MediaPlayer::GetSubtitleData(Texture* texture, SDL_Rect* sources, SDL_Rect* targets, int limit) {
 	/*
 	// NOTE: All asserts need to be removed/replaced.
 	assert(texture != NULL);
@@ -761,10 +755,7 @@ int MediaPlayer::Seek(double seek_set) {
 			return 1;
 		}
 
-		printf("seeking to: %f; from: %f ---> %f\n",
-			seek_set,
-			position,
-			(double)format_ctx->pb->pos / AV_TIME_BASE);
+		printf("seeking to: %f; from: %f ---> %f\n", seek_set, position, (double)format_ctx->pb->pos / AV_TIME_BASE);
 
 		bool seekTargetWithinOutputFrames = false;
 		if (seekTargetWithinOutputFrames) {
@@ -852,12 +843,7 @@ int MediaPlayer::DecoderThreadFunc(void* ptr) {
 	return 0;
 }
 
-MediaPlayer* MediaPlayer::Create(MediaSource* src,
-	int video_stream_index,
-	int audio_stream_index,
-	int subtitle_stream_index,
-	int screen_w,
-	int screen_h) {
+MediaPlayer* MediaPlayer::Create(MediaSource* src, int video_stream_index, int audio_stream_index, int subtitle_stream_index, int screen_w, int screen_h) {
 	return NULL;
 }
 void MediaPlayer::Close() {}
@@ -895,10 +881,7 @@ int MediaPlayer::GetVideoDataForPaused(Texture* texture) {
 int MediaPlayer::GetAudioData(unsigned char* buffer, int length) {
 	return 0;
 }
-int MediaPlayer::GetSubtitleData(Texture* texture,
-	SDL_Rect* sources,
-	SDL_Rect* targets,
-	int limit) {
+int MediaPlayer::GetSubtitleData(Texture* texture, SDL_Rect* sources, SDL_Rect* targets, int limit) {
 	return 0;
 }
 

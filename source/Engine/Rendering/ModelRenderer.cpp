@@ -24,10 +24,7 @@ ModelRenderer::ModelRenderer(VertexBuffer* buffer) {
 	Init();
 }
 
-void ModelRenderer::SetMatrices(Matrix4x4* model,
-	Matrix4x4* view,
-	Matrix4x4* projection,
-	Matrix4x4* normal) {
+void ModelRenderer::SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal) {
 	ModelMatrix = model;
 	ViewMatrix = view;
 	ProjectionMatrix = projection;
@@ -100,11 +97,7 @@ void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matr
 	DrawMesh(model, mesh, positionBuffer, normalBuffer, uvBuffer, mvpMatrix);
 }
 
-void ModelRenderer::DrawMesh(IModel* model,
-	Mesh* mesh,
-	Uint16 animation,
-	Uint32 frame,
-	Matrix4x4& mvpMatrix) {
+void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Uint16 animation, Uint32 frame, Matrix4x4& mvpMatrix) {
 	Vector3* positionBuffer = mesh->PositionBuffer;
 	Vector3* normalBuffer = mesh->NormalBuffer;
 	Vector2* uvBuffer = mesh->UVBuffer;
@@ -115,19 +108,13 @@ void ModelRenderer::DrawMesh(IModel* model,
 			anim = model->Animations[animation];
 		}
 
-		model->DoVertexFrameInterpolation(
-			mesh, anim, frame, &positionBuffer, &normalBuffer, &uvBuffer);
+		model->DoVertexFrameInterpolation(mesh, anim, frame, &positionBuffer, &normalBuffer, &uvBuffer);
 	}
 
 	DrawMesh(model, mesh, positionBuffer, normalBuffer, uvBuffer, mvpMatrix);
 }
 
-void ModelRenderer::DrawMesh(IModel* model,
-	Mesh* mesh,
-	Vector3* positionBuffer,
-	Vector3* normalBuffer,
-	Vector2* uvBuffer,
-	Matrix4x4& mvpMatrix) {
+void ModelRenderer::DrawMesh(IModel* model, Mesh* mesh, Vector3* positionBuffer, Vector3* normalBuffer, Vector2* uvBuffer, Matrix4x4& mvpMatrix) {
 	Material* material = nullptr;
 
 	if (mesh->MaterialIndex != -1 && mesh->MaterialIndex < model->Materials.size()) {
@@ -136,8 +123,7 @@ void ModelRenderer::DrawMesh(IModel* model,
 
 	Sint32* modelVertexIndexPtr = mesh->VertexIndexBuffer;
 
-	int vertexTypeMask =
-		VertexType_Position | VertexType_Normal | VertexType_Color | VertexType_UV;
+	int vertexTypeMask = VertexType_Position | VertexType_Normal | VertexType_Color | VertexType_UV;
 	int color = CurrentColor;
 
 	Vector3* positionPtr;
@@ -178,11 +164,9 @@ void ModelRenderer::DrawMesh(IModel* model,
 					positionPtr = &positionBuffer[*modelVertexIndexPtr];
 					normalPtr = &normalBuffer[*modelVertexIndexPtr];
 					// Calculate position
-					APPLY_MAT4X4(
-						Vertex->Position, positionPtr[0], mvpMatrix.Values);
+					APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
 					// Calculate normals
-					APPLY_MAT4X4(
-						Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+					APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
 					Vertex->Color = color;
 					modelVertexIndexPtr++;
 					Vertex++;
@@ -204,8 +188,7 @@ void ModelRenderer::DrawMesh(IModel* model,
 					positionPtr = &positionBuffer[*modelVertexIndexPtr];
 					normalPtr = &normalBuffer[*modelVertexIndexPtr];
 					// Calculate position
-					APPLY_MAT4X4(
-						Vertex->Position, positionPtr[0], mvpMatrix.Values);
+					APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
 					COPY_NORMAL(Vertex->Normal, normalPtr[0]);
 					Vertex->Color = color;
 					modelVertexIndexPtr++;
@@ -230,10 +213,8 @@ void ModelRenderer::DrawMesh(IModel* model,
 					positionPtr = &positionBuffer[*modelVertexIndexPtr];
 					normalPtr = &normalBuffer[*modelVertexIndexPtr];
 					colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
-					APPLY_MAT4X4(
-						Vertex->Position, positionPtr[0], mvpMatrix.Values);
-					APPLY_MAT4X4(
-						Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+					APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+					APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
 					Vertex->Color = ColorUtils::Tint(colorPtr[0], color);
 					modelVertexIndexPtr++;
 					Vertex++;
@@ -255,8 +236,7 @@ void ModelRenderer::DrawMesh(IModel* model,
 					positionPtr = &positionBuffer[*modelVertexIndexPtr];
 					normalPtr = &normalBuffer[*modelVertexIndexPtr];
 					colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
-					APPLY_MAT4X4(
-						Vertex->Position, positionPtr[0], mvpMatrix.Values);
+					APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
 					COPY_NORMAL(Vertex->Normal, normalPtr[0]);
 					Vertex->Color = ColorUtils::Tint(colorPtr[0], color);
 					modelVertexIndexPtr++;
@@ -281,10 +261,8 @@ void ModelRenderer::DrawMesh(IModel* model,
 					positionPtr = &positionBuffer[*modelVertexIndexPtr];
 					normalPtr = &normalBuffer[*modelVertexIndexPtr];
 					uvPtr = &uvBuffer[*modelVertexIndexPtr];
-					APPLY_MAT4X4(
-						Vertex->Position, positionPtr[0], mvpMatrix.Values);
-					APPLY_MAT4X4(
-						Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+					APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+					APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
 					Vertex->Color = color;
 					Vertex->UV = uvPtr[0];
 					modelVertexIndexPtr++;
@@ -307,8 +285,7 @@ void ModelRenderer::DrawMesh(IModel* model,
 					positionPtr = &positionBuffer[*modelVertexIndexPtr];
 					normalPtr = &normalBuffer[*modelVertexIndexPtr];
 					uvPtr = &uvBuffer[*modelVertexIndexPtr];
-					APPLY_MAT4X4(
-						Vertex->Position, positionPtr[0], mvpMatrix.Values);
+					APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
 					COPY_NORMAL(Vertex->Normal, normalPtr[0]);
 					Vertex->Color = color;
 					Vertex->UV = uvPtr[0];
@@ -335,10 +312,8 @@ void ModelRenderer::DrawMesh(IModel* model,
 					normalPtr = &normalBuffer[*modelVertexIndexPtr];
 					uvPtr = &uvBuffer[*modelVertexIndexPtr];
 					colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
-					APPLY_MAT4X4(
-						Vertex->Position, positionPtr[0], mvpMatrix.Values);
-					APPLY_MAT4X4(
-						Vertex->Normal, normalPtr[0], NormalMatrix->Values);
+					APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
+					APPLY_MAT4X4(Vertex->Normal, normalPtr[0], NormalMatrix->Values);
 					Vertex->Color = ColorUtils::Tint(colorPtr[0], color);
 					Vertex->UV = uvPtr[0];
 					modelVertexIndexPtr++;
@@ -362,8 +337,7 @@ void ModelRenderer::DrawMesh(IModel* model,
 					normalPtr = &normalBuffer[*modelVertexIndexPtr];
 					uvPtr = &uvBuffer[*modelVertexIndexPtr];
 					colorPtr = &mesh->ColorBuffer[*modelVertexIndexPtr];
-					APPLY_MAT4X4(
-						Vertex->Position, positionPtr[0], mvpMatrix.Values);
+					APPLY_MAT4X4(Vertex->Position, positionPtr[0], mvpMatrix.Values);
 					COPY_NORMAL(Vertex->Normal, normalPtr[0]);
 					Vertex->Color = ColorUtils::Tint(colorPtr[0], color);
 					Vertex->UV = uvPtr[0];
@@ -392,19 +366,14 @@ void ModelRenderer::DrawNode(IModel* model, ModelNode* node, Matrix4x4* world) {
 		Mesh* mesh = node->Meshes[i];
 
 		if (mesh->SkeletonIndex != -1) { // in world space
-			DrawMesh(model,
-				mesh,
-				ArmaturePtr->Skeletons[mesh->SkeletonIndex],
-				MVPMatrix);
+			DrawMesh(model, mesh, ArmaturePtr->Skeletons[mesh->SkeletonIndex], MVPMatrix);
 		}
 		else {
 			if (!madeMatrix) {
 				if (DoProjection) {
 					Matrix4x4::Multiply(&nodeToWorldMat, world, ModelMatrix);
-					Matrix4x4::Multiply(
-						&nodeToWorldMat, &nodeToWorldMat, ViewMatrix);
-					Matrix4x4::Multiply(
-						&nodeToWorldMat, &nodeToWorldMat, ProjectionMatrix);
+					Matrix4x4::Multiply(&nodeToWorldMat, &nodeToWorldMat, ViewMatrix);
+					Matrix4x4::Multiply(&nodeToWorldMat, &nodeToWorldMat, ProjectionMatrix);
 				}
 				else {
 					Matrix4x4::Multiply(&nodeToWorldMat, world, ModelMatrix);

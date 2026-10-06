@@ -63,8 +63,7 @@ void View::ReallocStencil() {
 	size_t bufSize = DrawTarget->Width * DrawTarget->Height;
 	if (StencilBuffer == NULL || bufSize > StencilBufferSize) {
 		StencilBufferSize = bufSize;
-		StencilBuffer = (Uint8*)Memory::Realloc(
-			StencilBuffer, StencilBufferSize * sizeof(*StencilBuffer));
+		StencilBuffer = (Uint8*)Memory::Realloc(StencilBuffer, StencilBufferSize * sizeof(*StencilBuffer));
 		ClearStencil();
 	}
 }

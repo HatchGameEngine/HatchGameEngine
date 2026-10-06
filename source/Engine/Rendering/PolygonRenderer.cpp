@@ -54,10 +54,7 @@ bool PolygonRenderer::SetBuffers() {
 	return true;
 }
 
-void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
-	int vertexCount,
-	int vertexFlag,
-	Texture* texture) {
+void PolygonRenderer::DrawPolygon3D(VertexAttribute* data, int vertexCount, int vertexFlag, Texture* texture) {
 	VertexBuffer* vertexBuffer = VertexBuf;
 	Uint32 colRGB = CurrentColor;
 
@@ -93,8 +90,7 @@ void PolygonRenderer::DrawPolygon3D(VertexAttribute* data,
 			}
 		}
 		else {
-			vertex->Normal.X = vertex->Normal.Y = vertex->Normal.Z = vertex->Normal.W =
-				0;
+			vertex->Normal.X = vertex->Normal.Y = vertex->Normal.Z = vertex->Normal.W = 0;
 		}
 
 		if (vertexFlag & VertexType_Color) {
@@ -185,16 +181,14 @@ void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw,
 
 	for (size_t i = 0; i < Scene::TileSpriteInfos.size(); i++) {
 		TileSpriteInfo& info = Scene::TileSpriteInfos[i];
-		animFrames.push_back(
-			info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex]);
+		animFrames.push_back(info.Sprite->Animations[info.AnimationIndex].Frames[info.FrameIndex]);
 		textureSources.push_back(info.Sprite->Spritesheets[animFrames[i].SheetNumber]);
 	}
 
 	Uint32 totalVertexCount = 0;
 	for (int y = sy; y < sh; y++) {
 		for (int x = sx; x < sw; x++) {
-			Uint32 tileID = (Uint32)(layer->Tiles[x + (y << layer->WidthInBits)] &
-				TILE_IDENT_MASK);
+			Uint32 tileID = (Uint32)(layer->Tiles[x + (y << layer->WidthInBits)] & TILE_IDENT_MASK);
 			if (tileID != Scene::EmptyTile && tileID < Scene::TileSpriteInfos.size()) {
 				totalVertexCount += vertexCountPerFace;
 			}
@@ -259,46 +253,38 @@ void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw,
 			data[0].Position.Y = 0;
 			data[0].UV.X = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
 			data[0].UV.Y = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
-			data[0].Normal.X = data[0].Normal.Y = data[0].Normal.Z = data[0].Normal.W =
-				0;
+			data[0].Normal.X = data[0].Normal.Y = data[0].Normal.Z = data[0].Normal.W = 0;
 
 			data[1].Position.X = data[0].Position.X + FP16_TO(tileWidth);
 			data[1].Position.Z = data[0].Position.Z;
 			data[1].Position.Y = 0;
 			data[1].UV.X = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
 			data[1].UV.Y = FP16_DIVIDE(FP16_TO(top_v), textureHeight);
-			data[1].Normal.X = data[1].Normal.Y = data[1].Normal.Z = data[1].Normal.W =
-				0;
+			data[1].Normal.X = data[1].Normal.Y = data[1].Normal.Z = data[1].Normal.W = 0;
 
 			data[2].Position.X = data[1].Position.X;
 			data[2].Position.Z = data[1].Position.Z + FP16_TO(tileHeight);
 			data[2].Position.Y = 0;
 			data[2].UV.X = FP16_DIVIDE(FP16_TO(right_u), textureWidth);
 			data[2].UV.Y = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
-			data[2].Normal.X = data[2].Normal.Y = data[2].Normal.Z = data[2].Normal.W =
-				0;
+			data[2].Normal.X = data[2].Normal.Y = data[2].Normal.Z = data[2].Normal.W = 0;
 
 			data[3].Position.X = data[0].Position.X;
 			data[3].Position.Z = data[2].Position.Z;
 			data[3].Position.Y = 0;
 			data[3].UV.X = FP16_DIVIDE(FP16_TO(left_u), textureWidth);
 			data[3].UV.Y = FP16_DIVIDE(FP16_TO(bottom_v), textureHeight);
-			data[3].Normal.X = data[3].Normal.Y = data[3].Normal.Z = data[3].Normal.W =
-				0;
+			data[3].Normal.X = data[3].Normal.Y = data[3].Normal.Z = data[3].Normal.W = 0;
 
 			VertexAttribute* vertex = arrayVertexBuffer;
 			int vertexIndex = 0;
 			while (vertexIndex < vertexCountPerFace) {
 				// Calculate position
-				APPLY_MAT4X4(vertex->Position,
-					data[vertexIndex].Position,
-					mvpMatrix.Values);
+				APPLY_MAT4X4(vertex->Position, data[vertexIndex].Position, mvpMatrix.Values);
 
 				// Calculate normals
 				if (NormalMatrix) {
-					APPLY_MAT4X4(vertex->Normal,
-						data[vertexIndex].Normal,
-						NormalMatrix->Values);
+					APPLY_MAT4X4(vertex->Normal, data[vertexIndex].Normal, NormalMatrix->Values);
 				}
 				else {
 					COPY_NORMAL(vertex->Normal, data[vertexIndex].Normal);
@@ -325,8 +311,7 @@ void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw,
 				if (ClipPolygonsByFrustum) {
 					PolygonClipBuffer clipper;
 
-					vertexCount = ClipPolygon(
-						clipper, arrayVertexBuffer, vertexCount);
+					vertexCount = ClipPolygon(clipper, arrayVertexBuffer, vertexCount);
 					if (vertexCount == 0) {
 						continue;
 					}
@@ -334,15 +319,11 @@ void PolygonRenderer::DrawSceneLayer3D(TileLayer* layer, int sx, int sy, int sw,
 					Uint32 maxVertexCount = arrayVertexCount + vertexCount;
 					if (maxVertexCount > vertexBuffer->Capacity) {
 						vertexBuffer->Resize(maxVertexCount);
-						faceInfoItem =
-							&vertexBuffer
-								 ->FaceInfoBuffer[arrayFaceCount];
-						arrayVertexBuffer =
-							&vertexBuffer->Vertices[arrayVertexCount];
+						faceInfoItem = &vertexBuffer->FaceInfoBuffer[arrayFaceCount];
+						arrayVertexBuffer = &vertexBuffer->Vertices[arrayVertexCount];
 					}
 
-					CopyVertices(
-						clipper.Buffer, arrayVertexBuffer, vertexCount);
+					CopyVertices(clipper.Buffer, arrayVertexBuffer, vertexCount);
 				}
 			}
 
@@ -442,14 +423,10 @@ void PolygonRenderer::DrawVertexBuffer() {
 		int vertexCount = srcFaceInfoItem->NumVertices;
 		int vertexCountPerFace = vertexCount;
 		while (vertexCountPerFace--) {
-			APPLY_MAT4X4(arrayVertexItem->Position,
-				srcVertexItem->Position,
-				mvpMatrix.Values);
+			APPLY_MAT4X4(arrayVertexItem->Position, srcVertexItem->Position, mvpMatrix.Values);
 
 			if (NormalMatrix) {
-				APPLY_MAT4X4(arrayVertexItem->Normal,
-					srcVertexItem->Normal,
-					NormalMatrix->Values);
+				APPLY_MAT4X4(arrayVertexItem->Normal, srcVertexItem->Normal, NormalMatrix->Values);
 			}
 			else {
 				COPY_NORMAL(arrayVertexItem->Normal, srcVertexItem->Normal);
@@ -483,10 +460,8 @@ void PolygonRenderer::DrawVertexBuffer() {
 				Uint32 maxVertexCount = arrayVertexCount + vertexCount;
 				if (maxVertexCount > destVertexBuffer->Capacity) {
 					destVertexBuffer->Resize(maxVertexCount + 256);
-					faceInfoItem =
-						&destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
-					arrayVertexBuffer =
-						&destVertexBuffer->Vertices[arrayVertexCount];
+					faceInfoItem = &destVertexBuffer->FaceInfoBuffer[arrayFaceCount];
+					arrayVertexBuffer = &destVertexBuffer->Vertices[arrayVertexCount];
 				}
 
 				CopyVertices(clipper.Buffer, arrayVertexBuffer, vertexCount);
@@ -513,14 +488,11 @@ void PolygonRenderer::DrawVertexBuffer() {
 	destVertexBuffer->VertexCount = arrayVertexCount;
 	destVertexBuffer->FaceCount = arrayFaceCount;
 }
-int PolygonRenderer::ClipPolygon(PolygonClipBuffer& clipper,
-	VertexAttribute* input,
-	int numVertices) {
+int PolygonRenderer::ClipPolygon(PolygonClipBuffer& clipper, VertexAttribute* input, int numVertices) {
 	clipper.NumPoints = 0;
 	clipper.MaxPoints = MAX_POLYGON_VERTICES;
 
-	int numOutVertices =
-		Clipper::FrustumClip(&clipper, ViewFrustum, NumFrustumPlanes, input, numVertices);
+	int numOutVertices = Clipper::FrustumClip(&clipper, ViewFrustum, NumFrustumPlanes, input, numVertices);
 	if (numOutVertices < 3 || numOutVertices >= MAX_POLYGON_VERTICES) {
 		return 0;
 	}
@@ -531,12 +503,10 @@ bool PolygonRenderer::CheckPolygonVisible(VertexAttribute* vertex, int vertexCou
 	int numBehind[3] = {0, 0, 0};
 	int numVertices = vertexCount;
 	while (numVertices--) {
-		if (vertex->Position.X < -vertex->Position.W ||
-			vertex->Position.X > vertex->Position.W) {
+		if (vertex->Position.X < -vertex->Position.W || vertex->Position.X > vertex->Position.W) {
 			numBehind[0]++;
 		}
-		if (vertex->Position.Y < -vertex->Position.W ||
-			vertex->Position.Y > vertex->Position.W) {
+		if (vertex->Position.Y < -vertex->Position.W || vertex->Position.Y > vertex->Position.W) {
 			numBehind[1]++;
 		}
 		if (vertex->Position.Z <= 0) {
@@ -546,16 +516,13 @@ bool PolygonRenderer::CheckPolygonVisible(VertexAttribute* vertex, int vertexCou
 		vertex++;
 	}
 
-	if (numBehind[0] == vertexCount || numBehind[1] == vertexCount ||
-		numBehind[2] == vertexCount) {
+	if (numBehind[0] == vertexCount || numBehind[1] == vertexCount || numBehind[2] == vertexCount) {
 		return false;
 	}
 
 	return true;
 }
-void PolygonRenderer::CopyVertices(VertexAttribute* buffer,
-	VertexAttribute* output,
-	int numVertices) {
+void PolygonRenderer::CopyVertices(VertexAttribute* buffer, VertexAttribute* output, int numVertices) {
 	while (numVertices--) {
 		COPY_VECTOR(output->Position, buffer->Position);
 		COPY_NORMAL(output->Normal, buffer->Normal);

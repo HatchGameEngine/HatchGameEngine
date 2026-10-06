@@ -143,8 +143,7 @@ Uint16* Stream::ReadUnicodeString() {
 
 	size_t size = Position() - start;
 	if (size == 0) {
-		data = (Uint16*)Memory::TrackedCalloc(
-			"Stream::ReadUnicodeString", 1, sizeof(Uint16));
+		data = (Uint16*)Memory::TrackedCalloc("Stream::ReadUnicodeString", 1, sizeof(Uint16));
 	}
 	else {
 		data = (Uint16*)Memory::TrackedMalloc("Stream::ReadUnicodeString", size);

@@ -13,7 +13,7 @@
 #ifdef USING_LINENOISE
 #include <Libraries/linenoise-ng/linenoise.h>
 
-void DebuggerCompletionCallback(const char *buf, linenoiseCompletions *completions);
+void DebuggerCompletionCallback(const char* buf, linenoiseCompletions* completions);
 #endif
 
 #include <iostream>
@@ -44,98 +44,43 @@ std::vector<DebuggerCommand> CommandList;
 	}
 
 void VMThreadDebugger::Initialize() {
-	CMD("continue",
-		&VMThreadDebugger::Cmd_Continue,
-		(std::vector<std::string>{"c", "exit"}),
-		"Exits the debugger and resumes execution");
+	CMD("continue", &VMThreadDebugger::Cmd_Continue, (std::vector<std::string>{"c", "exit"}), "Exits the debugger and resumes execution");
 
-	CMD("backtrace",
-		&VMThreadDebugger::Cmd_Backtrace,
-		(std::vector<std::string>{"bt", "trace"}),
-		"Prints the backtrace");
+	CMD("backtrace", &VMThreadDebugger::Cmd_Backtrace, (std::vector<std::string>{"bt", "trace"}), "Prints the backtrace");
 
-	CMD("stack",
-		&VMThreadDebugger::Cmd_Stack,
-		(std::vector<std::string>{"st", "stk"}),
-		"Prints the stack");
+	CMD("stack", &VMThreadDebugger::Cmd_Stack, (std::vector<std::string>{"st", "stk"}), "Prints the stack");
 
-	CMD("instruction",
-		&VMThreadDebugger::Cmd_Instruction,
-		(std::vector<std::string>{"ins", "inst", "instr", "op", "opcode"}),
-		"Shows the current instruction");
+	CMD("instruction", &VMThreadDebugger::Cmd_Instruction, (std::vector<std::string>{"ins", "inst", "instr", "op", "opcode"}), "Shows the current instruction");
 
-	CMD("frame",
-		&VMThreadDebugger::Cmd_Frame,
-		(std::vector<std::string>{"f"}),
-		"Sets the current frame");
+	CMD("frame", &VMThreadDebugger::Cmd_Frame, (std::vector<std::string>{"f"}), "Sets the current frame");
 
-	CMD("line",
-		&VMThreadDebugger::Cmd_Line,
-		(std::vector<std::string>{"l"}),
-		"Shows the current line");
+	CMD("line", &VMThreadDebugger::Cmd_Line, (std::vector<std::string>{"l"}), "Shows the current line");
 
 #if USING_VM_FUNCPTRS
-	CMD("step",
-		&VMThreadDebugger::Cmd_Step,
-		(std::vector<std::string>{"s"}),
-		"Steps until the next column or line with an instruction");
+	CMD("step", &VMThreadDebugger::Cmd_Step, (std::vector<std::string>{"s"}), "Steps until the next column or line with an instruction");
 
-	CMD("nextinstruction",
-		&VMThreadDebugger::Cmd_NextInstruction,
-		(std::vector<std::string>{
-			"nextins", "nextinst", "nextinstr", "nextop", "nextopcode"}),
-		"Steps one instruction");
+	CMD("nextinstruction", &VMThreadDebugger::Cmd_NextInstruction, (std::vector<std::string>{"nextins", "nextinst", "nextinstr", "nextop", "nextopcode"}), "Steps one instruction");
 #endif
 
-	CMD("chunk",
-		&VMThreadDebugger::Cmd_Chunk,
-		(std::vector<std::string>{"code"}),
-		"Shows the bytecode of the function of the current frame");
+	CMD("chunk", &VMThreadDebugger::Cmd_Chunk, (std::vector<std::string>{"code"}), "Shows the bytecode of the function of the current frame");
 
-	CMD("variable",
-		&VMThreadDebugger::Cmd_Variable,
-		(std::vector<std::string>{"printvar"}),
-		"Prints a local or global variable");
+	CMD("variable", &VMThreadDebugger::Cmd_Variable, (std::vector<std::string>{"printvar"}), "Prints a local or global variable");
 
-	CMD("breakpoint",
-		&VMThreadDebugger::Cmd_Breakpoint,
-		(std::vector<std::string>{"break", "b"}),
-		"Adds a breakpoint");
+	CMD("breakpoint", &VMThreadDebugger::Cmd_Breakpoint, (std::vector<std::string>{"break", "b"}), "Adds a breakpoint");
 
-	CMD("tempbreakpoint",
-		&VMThreadDebugger::Cmd_TempBreakpoint,
-		(std::vector<std::string>{"tbreak", "tb"}),
-		"Adds a temporary breakpoint");
+	CMD("tempbreakpoint", &VMThreadDebugger::Cmd_TempBreakpoint, (std::vector<std::string>{"tbreak", "tb"}), "Adds a temporary breakpoint");
 
-	CMD("disablebreakpoint",
-		&VMThreadDebugger::Cmd_DisableBreakpoint,
-		(std::vector<std::string>{"disablebreak", "db"}),
-		"Removes a breakpoint");
+	CMD("disablebreakpoint", &VMThreadDebugger::Cmd_DisableBreakpoint, (std::vector<std::string>{"disablebreak", "db"}), "Removes a breakpoint");
 
-	CMD("enablebreakpoint",
-		&VMThreadDebugger::Cmd_EnableBreakpoint,
-		(std::vector<std::string>{"enablebreak", "eb"}),
-		"Enables a breakpoint");
+	CMD("enablebreakpoint", &VMThreadDebugger::Cmd_EnableBreakpoint, (std::vector<std::string>{"enablebreak", "eb"}), "Enables a breakpoint");
 
-	CMD("removebreakpoint",
-		&VMThreadDebugger::Cmd_RemoveBreakpoint,
-		(std::vector<std::string>{"removebreak", "rb"}),
-		"Removes a breakpoint");
+	CMD("removebreakpoint", &VMThreadDebugger::Cmd_RemoveBreakpoint, (std::vector<std::string>{"removebreak", "rb"}), "Removes a breakpoint");
 
-	CMD("listbreakpoints",
-		&VMThreadDebugger::Cmd_ListBreakpoints,
-		(std::vector<std::string>{"listbreakpoint", "listbreak", "lb"}),
-		"Lists breakpoints");
+	CMD("listbreakpoints", &VMThreadDebugger::Cmd_ListBreakpoints, (std::vector<std::string>{"listbreakpoint", "listbreak", "lb"}), "Lists breakpoints");
 
-	CMD("clearbreakpoints",
-		&VMThreadDebugger::Cmd_ClearBreakpoints,
-		(std::vector<std::string>{"clearbreakpoint", "clearbreak", "cb"}),
-		"Clears all breakpoints");
+	CMD("clearbreakpoints", &VMThreadDebugger::Cmd_ClearBreakpoints, (std::vector<std::string>{"clearbreakpoint", "clearbreak", "cb"}), "Clears all breakpoints");
 
-	CMD("help",
-		&VMThreadDebugger::Cmd_Help,
-		(std::vector<std::string>{"h"}),
-		"It's this command");
+	CMD("help", &VMThreadDebugger::Cmd_Help, (std::vector<std::string>{"h"}), "It's this command");
 }
 void VMThreadDebugger::Dispose() {
 	CommandMap.clear();
@@ -191,7 +136,7 @@ bool VMThreadDebugger::ReadLine(std::string& line) {
 }
 
 #ifdef USING_LINENOISE
-void DebuggerCompletionCallback(const char *buf, linenoiseCompletions *completions) {
+void DebuggerCompletionCallback(const char* buf, linenoiseCompletions* completions) {
 	if (buf[0] == '\0') {
 		return;
 	}
@@ -300,9 +245,7 @@ bool VMThreadDebugger::InterpretCommand(std::vector<char*> args, const char* ful
 	}
 
 	// Look for aliases
-	for (std::unordered_map<std::string, DebuggerCommand>::iterator it = CommandMap.begin();
-		it != CommandMap.end();
-		it++) {
+	for (std::unordered_map<std::string, DebuggerCommand>::iterator it = CommandMap.begin(); it != CommandMap.end(); it++) {
 		DebuggerCommand& command = it->second;
 		for (size_t i = 0; i < command.Aliases.size(); i++) {
 			if (strcmp(command.Aliases[i].c_str(), args[0]) == 0) {
@@ -511,8 +454,7 @@ bool VMThreadDebugger::Cmd_NextInstruction(std::vector<char*> args, const char* 
 			frame->IPLast = frame->IP;
 
 			printf("byte   ln\n");
-			CodeDebugger->DebugInstruction(
-				&frame->Function->Chunk, frame->IP - frame->IPStart);
+			CodeDebugger->DebugInstruction(&frame->Function->Chunk, frame->IP - frame->IPStart);
 		}
 		else {
 			printf("No code left to step through\n");
@@ -537,10 +479,7 @@ bool VMThreadDebugger::Cmd_Chunk(std::vector<char*> args, const char* fullLine) 
 	CallFrame* frame = GetCallFrame();
 
 	if (frame && frame->Function) {
-		CodeDebugger->DebugChunk(&frame->Function->Chunk,
-			frame->Function->Name,
-			frame->Function->MinArity,
-			frame->Function->Arity);
+		CodeDebugger->DebugChunk(&frame->Function->Chunk, frame->Function->Name, frame->Function->MinArity, frame->Function->Arity);
 	}
 	else {
 		printf("No chunk to debug\n");
@@ -601,12 +540,8 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 		}
 
 		if (printMessage) {
-			printf("Note: More than one variable in this function is named \"%s\" (%d occurrences)\n",
-				varName,
-				(int)matches.size());
-			printf("Use \"variable %s <index>\" to show the n-th occurrence of \"%s\" (starts from 1)\n",
-				varName,
-				varName);
+			printf("Note: More than one variable in this function is named \"%s\" (%d occurrences)\n", varName, (int)matches.size());
+			printf("Use \"variable %s <index>\" to show the n-th occurrence of \"%s\" (starts from 1)\n", varName, varName);
 		}
 	}
 
@@ -623,17 +558,12 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 					}
 				}
 
-				printf("Showing occurrence %d/%d of variable \"%s\"\n",
-					which,
-					(int)matches.size(),
-					varName);
+				printf("Showing occurrence %d/%d of variable \"%s\"\n", which, (int)matches.size(), varName);
 			}
 		}
 		else {
 			if (which > (int)matches.size()) {
-				printf("No occurrence #%d of a variable named \"%s\" in this function\n",
-					which,
-					varName);
+				printf("No occurrence #%d of a variable named \"%s\" in this function\n", which, varName);
 				return false;
 			}
 
@@ -664,9 +594,7 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 		matches.clear();
 	}
 	else if (which != -1) {
-		printf("No occurrence #%d of a variable named \"%s\" in this function\n",
-			which,
-			varName);
+		printf("No occurrence #%d of a variable named \"%s\" in this function\n", which, varName);
 		return false;
 	}
 
@@ -694,8 +622,7 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 					continue;
 				}
 
-				if ((local.Constant && local.Index >= chunk->Constants->size()) ||
-					(local.Index >= frame->Module->Locals->size())) {
+				if ((local.Constant && local.Index >= chunk->Constants->size()) || (local.Index >= frame->Module->Locals->size())) {
 					printf("Invalid module local \"%s\"\n", varName);
 					return false;
 				}
@@ -711,8 +638,7 @@ bool VMThreadDebugger::Cmd_Variable(std::vector<char*> args, const char* fullLin
 		}
 	}
 
-	if (value.Type == VAL_ERROR && !ScriptManager::Constants->GetIfExists(varName, &value) &&
-		!ScriptManager::Globals->GetIfExists(varName, &value)) {
+	if (value.Type == VAL_ERROR && !ScriptManager::Constants->GetIfExists(varName, &value) && !ScriptManager::Globals->GetIfExists(varName, &value)) {
 		printf("No variable named \"%s\"\n", varName);
 		return false;
 	}
@@ -1039,8 +965,7 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 			if (function->Chunk.Lines) {
 				Token* nameToken = &compilerLocal->Name;
 				nameToken->Line = function->Chunk.Lines[local.Position] & 0xFFFF;
-				nameToken->Pos =
-					(function->Chunk.Lines[local.Position] >> 16) & 0xFFFF;
+				nameToken->Pos = (function->Chunk.Lines[local.Position] >> 16) & 0xFFFF;
 			}
 
 			if (local.Constant) {
@@ -1068,8 +993,7 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 				compilerLocal->Constant = true;
 			}
 			else {
-				if (local.Index >= Thread->StackTop - frame->Slots ||
-					compiler->LocalCount == 0xFF) {
+				if (local.Index >= Thread->StackTop - frame->Slots || compiler->LocalCount == 0xFF) {
 					continue;
 				}
 
@@ -1087,8 +1011,7 @@ bool VMThreadDebugger::ExecuteCode(const char* code) {
 			if (function->Chunk.Lines) {
 				Token* nameToken = &compilerLocal->Name;
 				nameToken->Line = function->Chunk.Lines[local.Position] & 0xFFFF;
-				nameToken->Pos =
-					(function->Chunk.Lines[local.Position] >> 16) & 0xFFFF;
+				nameToken->Pos = (function->Chunk.Lines[local.Position] >> 16) & 0xFFFF;
 			}
 
 			if (local.Constant) {
@@ -1268,8 +1191,7 @@ ObjFunction* VMThreadDebugger::GetFunctionForBreakpoint(std::vector<char*> args,
 				return nullptr;
 			}
 			else if (!IS_FUNCTION(callable)) {
-				printf("\"%s\" must be a function, not a bound method or a native\n",
-					arg);
+				printf("\"%s\" must be a function, not a bound method or a native\n", arg);
 				return nullptr;
 			}
 
@@ -1326,10 +1248,7 @@ CallFrame* VMThreadDebugger::GetCallFrame() {
 	return nullptr;
 }
 
-void VMThreadDebugger::PrintCallFrameSourceLine(CallFrame* frame,
-	int line,
-	int pos,
-	bool showFunction) {
+void VMThreadDebugger::PrintCallFrameSourceLine(CallFrame* frame, int line, int pos, bool showFunction) {
 	ObjFunction* function = frame->Function;
 
 	const char* sourceFilename = GetModuleName(function->Module);

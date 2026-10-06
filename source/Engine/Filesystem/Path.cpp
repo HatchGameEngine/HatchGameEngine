@@ -20,14 +20,7 @@
 #define PICTURES_DIR_NAME "pictures"
 #define SCREENSHOTS_DIR_NAME "screenshots"
 
-std::pair<std::string, PathLocation> urlToLocationType[] = {
-	std::make_pair(PATHLOCATION_GAME_URL, PathLocation::GAME),
-	std::make_pair(PATHLOCATION_USER_URL, PathLocation::USER),
-	std::make_pair(PATHLOCATION_SAVEGAME_URL, PathLocation::SAVEGAME),
-	std::make_pair(PATHLOCATION_SCREENSHOTS_URL, PathLocation::SCREENSHOTS),
-	std::make_pair(PATHLOCATION_PICTURES_URL, PathLocation::PICTURES),
-	std::make_pair(PATHLOCATION_PREFERENCES_URL, PathLocation::PREFERENCES),
-	std::make_pair(PATHLOCATION_CACHE_URL, PathLocation::CACHE)};
+std::pair<std::string, PathLocation> urlToLocationType[] = {std::make_pair(PATHLOCATION_GAME_URL, PathLocation::GAME), std::make_pair(PATHLOCATION_USER_URL, PathLocation::USER), std::make_pair(PATHLOCATION_SAVEGAME_URL, PathLocation::SAVEGAME), std::make_pair(PATHLOCATION_SCREENSHOTS_URL, PathLocation::SCREENSHOTS), std::make_pair(PATHLOCATION_PICTURES_URL, PathLocation::PICTURES), std::make_pair(PATHLOCATION_PREFERENCES_URL, PathLocation::PREFERENCES), std::make_pair(PATHLOCATION_CACHE_URL, PathLocation::CACHE)};
 
 #if UNIX
 std::unordered_map<std::string, std::string> XdgUserDirs;
@@ -181,8 +174,7 @@ bool Path::HasRelativeComponents(const char* path) {
 	const char* component = tempPath.c_str();
 	const char* found = strchr(component, '/');
 	while (found != nullptr) {
-		if (component[0] == '.' &&
-			(component[1] == '/' || (component[1] == '.' && component[2] == '/'))) {
+		if (component[0] == '.' && (component[1] == '/' || (component[1] == '.' && component[2] == '/'))) {
 			return true;
 		}
 
@@ -190,8 +182,7 @@ bool Path::HasRelativeComponents(const char* path) {
 		found = strchr(component, '/');
 	}
 
-	if (component[0] == '.' &&
-		(component[1] == '/' || (component[1] == '.' && component[2] == '/'))) {
+	if (component[0] == '.' && (component[1] == '/' || (component[1] == '.' && component[2] == '/'))) {
 		return true;
 	}
 
@@ -716,8 +707,7 @@ std::string Path::GetForLocation(PathLocation location, bool makeDirs, bool allo
 	return finalPath;
 }
 
-std::string
-Path::GetLocationFromRealPath(const char* filename, PathLocation location, bool allowIndirection) {
+std::string Path::GetLocationFromRealPath(const char* filename, PathLocation location, bool allowIndirection) {
 	std::string pathForLocation = GetForLocation(location, false, allowIndirection);
 	if (pathForLocation == "") {
 		return "";
@@ -740,8 +730,7 @@ Path::GetLocationFromRealPath(const char* filename, PathLocation location, bool 
 	return Path::ToString(pathFs).substr(Path::ToString(locFs).size());
 }
 
-std::string
-Path::StripLocationFromURL(const char* filename, PathLocation& location, bool allowIndirection) {
+std::string Path::StripLocationFromURL(const char* filename, PathLocation& location, bool allowIndirection) {
 	std::string startingString = "";
 
 	location = PathLocation::DEFAULT;
@@ -758,8 +747,7 @@ Path::StripLocationFromURL(const char* filename, PathLocation& location, bool al
 
 	if (startingString == "") {
 		for (std::pair<std::string, PathLocation> pair : urlToLocationType) {
-			std::string fromRealPath =
-				GetLocationFromRealPath(filename, pair.second, allowIndirection);
+			std::string fromRealPath = GetLocationFromRealPath(filename, pair.second, allowIndirection);
 
 			if (fromRealPath != "") {
 				location = pair.second;
@@ -782,8 +770,7 @@ bool Path::IsAbsolute(const char* filename) {
 		return true;
 	}
 
-	if (filename[0] != '\0' && (StringUtils::StartsWith(&filename[1], ":\\") ||
-		StringUtils::StartsWith(&filename[1], ":/"))) {
+	if (filename[0] != '\0' && (StringUtils::StartsWith(&filename[1], ":\\") || StringUtils::StartsWith(&filename[1], ":/"))) {
 		return true;
 	}
 
@@ -791,8 +778,7 @@ bool Path::IsAbsolute(const char* filename) {
 }
 
 bool Path::IsValidDefaultLocation(const char* filename) {
-	if (ResourceManager::DataFolderPath[0] != '\0' &&
-		StringUtils::StartsWith(filename, ResourceManager::DataFolderPath)) {
+	if (ResourceManager::DataFolderPath[0] != '\0' && StringUtils::StartsWith(filename, ResourceManager::DataFolderPath)) {
 		// It's allowed to access anything inside of the current Resources directory.
 		return true;
 	}
@@ -831,11 +817,7 @@ bool Path::ValidateForLocation(const char* path) {
 	return true;
 }
 
-bool Path::FromLocation(std::string path,
-	PathLocation location,
-	std::string& result,
-	bool makeDirs,
-	bool allowIndirection) {
+bool Path::FromLocation(std::string path, PathLocation location, std::string& result, bool makeDirs, bool allowIndirection) {
 	if (location == PathLocation::DEFAULT) {
 		// Validate the path
 		if (path.size() == 0) {
@@ -892,11 +874,7 @@ bool Path::FromLocation(std::string path,
 	return ValidateForLocation(finalPath.c_str());
 }
 
-bool Path::FromURL(const char* filename,
-	std::string& result,
-	PathLocation& location,
-	bool makeDirs,
-	bool allowIndirection) {
+bool Path::FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs, bool allowIndirection) {
 	std::string detectedPath = StripLocationFromURL(filename, location, allowIndirection);
 
 	return FromLocation(detectedPath, location, result, makeDirs, allowIndirection);

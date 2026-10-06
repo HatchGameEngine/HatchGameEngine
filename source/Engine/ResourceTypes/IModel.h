@@ -33,20 +33,12 @@ public:
 	size_t AddUniqueMaterial(Material* material);
 	bool HasMaterials();
 	bool HasBones();
-	void AnimateNode(ModelNode* node,
-		SkeletalAnim* animation,
-		Uint32 frame,
-		Matrix4x4* parentMatrix);
+	void AnimateNode(ModelNode* node, SkeletalAnim* animation, Uint32 frame, Matrix4x4* parentMatrix);
 	void Pose();
 	void Pose(Armature* armature, SkeletalAnim* animation, Uint32 frame);
 	Uint32 GetKeyFrame(Uint32 frame);
 	Sint64 GetInBetween(Uint32 frame);
-	void DoVertexFrameInterpolation(Mesh* mesh,
-		ModelAnim* animation,
-		Uint32 frame,
-		Vector3** positionBuffer,
-		Vector3** normalBuffer,
-		Vector2** uvBuffer);
+	void DoVertexFrameInterpolation(Mesh* mesh, ModelAnim* animation, Uint32 frame, Vector3** positionBuffer, Vector3** normalBuffer, Vector2** uvBuffer);
 	void Animate(Armature* armature, ModelAnim* animation, Uint32 frame);
 	void Animate(Uint16 animation, Uint32 frame);
 	int GetAnimationIndex(const char* animationName);

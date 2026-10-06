@@ -305,8 +305,7 @@ int Math::RSDK_RandomInteger(int min, int max) {
 	int seed2 = 1103515245 * seed1 + 12345;
 	randSeed = 1103515245 * seed2 + 12345;
 
-	int result = ((randSeed >> 16) & 0x7FF) ^
-		((((seed1 >> 6) & 0x1FFC00) ^ ((seed2 >> 16) & 0x7FF)) << 10);
+	int result = ((randSeed >> 16) & 0x7FF) ^ ((((seed1 >> 6) & 0x1FFC00) ^ ((seed2 >> 16) & 0x7FF)) << 10);
 	int size = abs(max - min);
 
 	if (min > max) {
@@ -328,8 +327,7 @@ int Math::RSDK_RandomIntegerSeeded(int min, int max, int seed) {
 	int seed2 = 1103515245 * seed1 + 12345;
 	randSeed = 1103515245 * seed2 + 12345;
 
-	int result = ((randSeed >> 16) & 0x7FF) ^
-		((((seed1 >> 6) & 0x1FFC00) ^ ((seed2 >> 16) & 0x7FF)) << 10);
+	int result = ((randSeed >> 16) & 0x7FF) ^ ((((seed1 >> 6) & 0x1FFC00) ^ ((seed2 >> 16) & 0x7FF)) << 10);
 	int size = abs(max - min);
 
 	if (min > max) {

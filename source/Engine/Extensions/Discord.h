@@ -92,11 +92,8 @@ public:
 		static int Update();
 		static bool IsUserPresent();
 		static DiscordIntegrationUserInfo* GetDetails();
-		static void GetAvatar(DiscordIntegrationUserAvatar* avatar,
-			int size,
-			DiscordIntegrationCallback* callback);
-		static void GetAvatar(DiscordIntegrationUserAvatar* avatar,
-			DiscordIntegrationCallback* callback);
+		static void GetAvatar(DiscordIntegrationUserAvatar* avatar, int size, DiscordIntegrationCallback* callback);
+		static void GetAvatar(DiscordIntegrationUserAvatar* avatar, DiscordIntegrationCallback* callback);
 		static void GetAvatar(int size, DiscordIntegrationCallback* callback);
 	};
 };

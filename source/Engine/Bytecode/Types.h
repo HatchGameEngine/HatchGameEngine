@@ -33,7 +33,10 @@ typedef enum {
 	VAL_ERROR
 } ValueType;
 
-enum { CLASS_TYPE_NORMAL, CLASS_TYPE_EXTENDED };
+enum {
+	CLASS_TYPE_NORMAL,
+	CLASS_TYPE_EXTENDED
+};
 
 struct Obj;
 
@@ -138,10 +141,8 @@ const char* GetValueTypeString(VMValue value);
 #define IS_OBJECT(value) ((value).Type == VAL_OBJECT)
 #define IS_LOCATION(value) ((value).Type == VAL_LOCATION)
 
-#define AS_INTEGER(value) \
-	(value.Type == VAL_INTEGER ? (value).as.Integer : *((value).as.LinkedInteger))
-#define AS_DECIMAL(value) \
-	(value.Type == VAL_DECIMAL ? (value).as.Decimal : *((value).as.LinkedDecimal))
+#define AS_INTEGER(value) (value.Type == VAL_INTEGER ? (value).as.Integer : *((value).as.LinkedInteger))
+#define AS_DECIMAL(value) (value.Type == VAL_DECIMAL ? (value).as.Decimal : *((value).as.LinkedDecimal))
 #define AS_OBJECT(value) ((value).as.Object)
 #define AS_LOCATION(value) ((value).as.Location)
 
@@ -198,12 +199,8 @@ static inline VMValue DECIMAL_LINK_VAL(float* value) {
 #define AS_LINKED_INTEGER(value) (*((value).as.LinkedInteger))
 #define AS_LINKED_DECIMAL(value) (*((value).as.LinkedDecimal))
 
-#define IS_NUMBER(value) \
-	(IS_DECIMAL(value) || IS_INTEGER(value) || IS_LINKED_DECIMAL(value) || \
-		IS_LINKED_INTEGER(value))
-#define IS_NOT_NUMBER(value) \
-	(!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && \
-		!IS_LINKED_INTEGER(value))
+#define IS_NUMBER(value) (IS_DECIMAL(value) || IS_INTEGER(value) || IS_LINKED_DECIMAL(value) || IS_LINKED_INTEGER(value))
+#define IS_NOT_NUMBER(value) (!IS_DECIMAL(value) && !IS_INTEGER(value) && !IS_LINKED_DECIMAL(value) && !IS_LINKED_INTEGER(value))
 
 static inline VMValue HITBOX_VAL(Sint16 left, Sint16 top, Sint16 right, Sint16 bottom) {
 	VMValue val;
@@ -314,8 +311,7 @@ enum ObjType {
 #define IS_NATIVE_INSTANCE(value) IsObjectType(value, OBJ_NATIVE_INSTANCE)
 #define IS_ENTITY(value) IsObjectType(value, OBJ_ENTITY)
 #define IS_INSTANCEABLE(value) (IS_INSTANCE(value) || IS_NATIVE_INSTANCE(value) || IS_ENTITY(value))
-#define IS_CALLABLE(value) \
-	(IS_FUNCTION(value) || IS_NATIVE_FUNCTION(value) || IS_BOUND_METHOD(value))
+#define IS_CALLABLE(value) (IS_FUNCTION(value) || IS_NATIVE_FUNCTION(value) || IS_BOUND_METHOD(value))
 
 #define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJECT(value))
 #define AS_CLASS(value) ((ObjClass*)AS_OBJECT(value))

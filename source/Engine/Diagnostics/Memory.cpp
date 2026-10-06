@@ -182,18 +182,14 @@ void Memory::Free(void* pointer) {
 				size_t ptr_size = sizeof(void*);
 				if (ptr_size == 4) {
 					size_t* debug = (size_t*)TrackedMemory[i];
-					for (size_t d = 0, dSz = TrackedSizes[i] / ptr_size;
-						d < dSz;
-						d++) {
+					for (size_t d = 0, dSz = TrackedSizes[i] / ptr_size; d < dSz; d++) {
 						debug[d] = 0xCDCDCDCDU;
 					}
 				}
 				// 64-bit
 				else if (ptr_size == 8) {
 					size_t* debug = (size_t*)TrackedMemory[i];
-					for (size_t d = 0, dSz = TrackedSizes[i] / ptr_size;
-						d < dSz;
-						d++) {
+					for (size_t d = 0, dSz = TrackedSizes[i] / ptr_size; d < dSz; d++) {
 						debug[d] = 0xCDCDCDCDCDCDCDCDU;
 					}
 				}
@@ -267,21 +263,12 @@ void Memory::PrintLeak() {
 #ifdef DEBUG
 	if (Memory::IsTracking) {
 		size_t total = 0;
-		Log::Print(Log::LOG_VERBOSE,
-			"Printing unfreed memory... (%u count)",
-			TrackedMemory.size());
+		Log::Print(Log::LOG_VERBOSE, "Printing unfreed memory... (%u count)", TrackedMemory.size());
 		for (Uint32 i = 0; i < TrackedMemory.size(); i++) {
-			Log::Print(Log::LOG_VERBOSE,
-				" : %p [%u bytes] (%s)",
-				TrackedMemory[i],
-				TrackedSizes[i],
-				TrackedMemoryNames[i] ? TrackedMemoryNames[i] : "no name");
+			Log::Print(Log::LOG_VERBOSE, " : %p [%u bytes] (%s)", TrackedMemory[i], TrackedSizes[i], TrackedMemoryNames[i] ? TrackedMemoryNames[i] : "no name");
 			total += TrackedSizes[i];
 		}
-		Log::Print(Log::LOG_VERBOSE,
-			"Total: %u bytes (%.3f MB)",
-			total,
-			total / 1024 / 1024.0);
+		Log::Print(Log::LOG_VERBOSE, "Total: %u bytes (%.3f MB)", total, total / 1024 / 1024.0);
 	}
 #endif
 }

@@ -55,8 +55,7 @@ bool StringUtils::WildcardMatch(const char* first, const char* second) {
 		return StringUtils::WildcardMatch(first + 1, second + 1);
 	}
 	if (*second == '*') {
-		return StringUtils::WildcardMatch(first, second + 1) ||
-			StringUtils::WildcardMatch(first + 1, second);
+		return StringUtils::WildcardMatch(first, second + 1) || StringUtils::WildcardMatch(first + 1, second);
 	}
 	return false;
 }
@@ -125,8 +124,7 @@ char* StringUtils::StrCaseStr(const char* haystack, const char* needle) {
 
 			/* If there's a character mismatch, the needle
 			 * doesn't fit here. */
-			if (tolower((unsigned char)needle[j]) !=
-				tolower((unsigned char)haystack[i + j])) {
+			if (tolower((unsigned char)needle[j]) != tolower((unsigned char)haystack[i + j])) {
 				matches = false;
 				break;
 			}

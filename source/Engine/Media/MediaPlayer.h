@@ -28,12 +28,7 @@ public:
 	static int DemuxAllStreams(MediaPlayer* player);
 	static int RunAllDecoders(MediaPlayer* player);
 	static int DecoderThreadFunc(void* ptr);
-	static MediaPlayer* Create(MediaSource* src,
-		int video_stream_index,
-		int audio_stream_index,
-		int subtitle_stream_index,
-		int screen_w,
-		int screen_h);
+	static MediaPlayer* Create(MediaSource* src, int video_stream_index, int audio_stream_index, int subtitle_stream_index, int screen_w, int screen_h);
 	void Close();
 	void SetScreenSize(int w, int h);
 	int GetVideoStream();

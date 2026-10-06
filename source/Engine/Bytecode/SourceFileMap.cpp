@@ -38,11 +38,11 @@ void SourceFileMap::Init() {
 		SourceFileMap::ClassMap = new HashMap<vector<Uint32>*>(Murmur::EncryptData, 16);
 	}
 
-	#if __APPLE__
-		Path::FromURL(PATHLOCATION_GAME_URL SCRIPTS_DIRECTORY_NAME, SourceFileMap::Path, sizeof SourceFileMap::Path);
-	#else
-		StringUtils::Copy(SourceFileMap::Path, SCRIPTS_DIRECTORY_NAME, sizeof SourceFileMap::Path);
-	#endif
+#if __APPLE__
+	Path::FromURL(PATHLOCATION_GAME_URL SCRIPTS_DIRECTORY_NAME, SourceFileMap::Path, sizeof SourceFileMap::Path);
+#else
+	StringUtils::Copy(SourceFileMap::Path, SCRIPTS_DIRECTORY_NAME, sizeof SourceFileMap::Path);
+#endif
 
 	SourceFileMap::Initialized = true;
 }
@@ -76,10 +76,7 @@ void SourceFileMap::Load() {
 				}
 			}
 			else {
-				Log::Print(Log::LOG_ERROR,
-					"Invalid ClassMap! (Expected %08X, was %08X)",
-					SourceFileMap::Magic,
-					magic_got);
+				Log::Print(Log::LOG_ERROR, "Invalid ClassMap! (Expected %08X, was %08X)", SourceFileMap::Magic, magic_got);
 			}
 			stream->Close();
 		}
@@ -112,8 +109,7 @@ void SourceFileMap::ReadFileMap() {
 	stream->Close();
 
 	if (len >= sizeof(Uint32) * 3) {
-		SourceFileMap::Checksums->FromBytes((Uint8*)bytes,
-			(len - sizeof(Uint32)) / (sizeof(Uint32) + sizeof(Uint32)));
+		SourceFileMap::Checksums->FromBytes((Uint8*)bytes, (len - sizeof(Uint32)) / (sizeof(Uint32) + sizeof(Uint32)));
 		SourceFileMap::DirectoryChecksum = *(Uint32*)(bytes + len - sizeof(Uint32));
 	}
 	else {
@@ -165,16 +161,11 @@ bool SourceFileMap::CheckForUpdate() {
 		std::string asStr = Path::ToString(list[i]);
 		const char* listEntry = asStr.c_str();
 		const char* filename = listEntry + scriptFolderNameLen;
-		SourceFileMap::DirectoryChecksum = FNV1A::EncryptData(
-			filename, (Uint32)strlen(filename), SourceFileMap::DirectoryChecksum);
+		SourceFileMap::DirectoryChecksum = FNV1A::EncryptData(filename, (Uint32)strlen(filename), SourceFileMap::DirectoryChecksum);
 	}
 
-	if (oldDirectoryChecksum != SourceFileMap::DirectoryChecksum &&
-		SourceFileMap::DirectoryChecksum) {
-		Log::Print(Log::LOG_VERBOSE,
-			"Detected new/deleted file: (%08X -> %08X)",
-			oldDirectoryChecksum,
-			SourceFileMap::DirectoryChecksum);
+	if (oldDirectoryChecksum != SourceFileMap::DirectoryChecksum && SourceFileMap::DirectoryChecksum) {
+		Log::Print(Log::LOG_VERBOSE, "Detected new/deleted file: (%08X -> %08X)", oldDirectoryChecksum, SourceFileMap::DirectoryChecksum);
 		anyChanges = true;
 
 		SourceFileMap::Checksums->Clear();
@@ -196,8 +187,7 @@ bool SourceFileMap::CheckForUpdate() {
 		const char* filename = strrchr(listEntry, '/');
 		Uint32 filenameHash = 0;
 		if (filename) {
-			filenameHash = ScriptManager::MakeFilenameHash(
-				listEntry + scriptFolderNameLen + 1);
+			filenameHash = ScriptManager::MakeFilenameHash(listEntry + scriptFolderNameLen + 1);
 		}
 		if (!filenameHash) {
 			continue;
@@ -240,8 +230,7 @@ bool SourceFileMap::CheckForUpdate() {
 		doRecompile = newChecksum != oldChecksum;
 		anyChanges |= doRecompile;
 
-		std::string filenameForHash =
-			ScriptManager::GetBytecodeFilenameForHash(filenameHash);
+		std::string filenameForHash = ScriptManager::GetBytecodeFilenameForHash(filenameHash);
 		const char* outFile = filenameForHash.c_str();
 
 		// If changed, then compile.
@@ -255,14 +244,10 @@ bool SourceFileMap::CheckForUpdate() {
 
 			if (Compiler::DoLogging) {
 				if (doRecompile) {
-					Log::Print(Log::LOG_VERBOSE,
-						"Recompiling %s...",
-						scriptFilename);
+					Log::Print(Log::LOG_VERBOSE, "Recompiling %s...", scriptFilename);
 				}
 				else {
-					Log::Print(Log::LOG_VERBOSE,
-						"Compiling %s...",
-						scriptFilename);
+					Log::Print(Log::LOG_VERBOSE, "Compiling %s...", scriptFilename);
 				}
 			}
 
@@ -278,8 +263,7 @@ bool SourceFileMap::CheckForUpdate() {
 
 				try {
 					didCompile = compiler->Compile(scriptFilename, source, memStream);
-				}
-				catch (const CompilerErrorException& error) {
+				} catch (const CompilerErrorException& error) {
 					HandleCompileError(error.what());
 				}
 
@@ -315,11 +299,9 @@ bool SourceFileMap::CheckForUpdate() {
 	}
 
 	if (anyChanges) {
-		Stream* stream =
-			FileStream::New(SOURCEFILEMAP_NAME, FileStream::WRITE_ACCESS, true);
+		Stream* stream = FileStream::New(SOURCEFILEMAP_NAME, FileStream::WRITE_ACCESS, true);
 		if (stream) {
-			size_t size = SourceFileMap::Checksums->Count() *
-				(sizeof(Uint32) + sizeof(Uint32));
+			size_t size = SourceFileMap::Checksums->Count() * (sizeof(Uint32) + sizeof(Uint32));
 			Uint8* data = (Uint8*)Memory::Malloc(size);
 			if (data) {
 				SourceFileMap::Checksums->GetBytes(data);
@@ -341,14 +323,13 @@ bool SourceFileMap::CheckForUpdate() {
 			stream->WriteByte(0x03); // Version
 
 			stream->WriteUInt32((Uint32)SourceFileMap::ClassMap->Count()); // Count
-			SourceFileMap::ClassMap->WithAll(
-				[stream](Uint32 hash, vector<Uint32>* list) -> void {
-					stream->WriteUInt32(hash); // ClassHash
-					stream->WriteUInt32((Uint32)list->size()); // Count
-					for (size_t fn = 0; fn < list->size(); fn++) {
-						stream->WriteUInt32((*list)[fn]);
-					}
-				});
+			SourceFileMap::ClassMap->WithAll([stream](Uint32 hash, vector<Uint32>* list) -> void {
+				stream->WriteUInt32(hash); // ClassHash
+				stream->WriteUInt32((Uint32)list->size()); // Count
+				for (size_t fn = 0; fn < list->size(); fn++) {
+					stream->WriteUInt32((*list)[fn]);
+				}
+			});
 
 			mainVfs->CloseStream(stream);
 		}
@@ -370,13 +351,7 @@ void SourceFileMap::HandleCompileError(const char* error) {
 	};
 
 	const SDL_MessageBoxData messageBoxData = {
-		SDL_MESSAGEBOX_ERROR,
-		NULL,
-		"Compile Error",
-		error,
-		SDL_arraysize(buttons),
-		buttons,
-		NULL,
+		SDL_MESSAGEBOX_ERROR, NULL, "Compile Error", error, SDL_arraysize(buttons), buttons, NULL,
 	};
 
 	int buttonClicked;
@@ -391,13 +366,10 @@ void SourceFileMap::AddToList(Compiler* compiler, Uint32 filenameHash) {
 		Uint32 classExtended = compiler->ClassExtendedList[h];
 		if (SourceFileMap::ClassMap->Exists(classHash)) {
 			vector<Uint32>* filenameHashList = SourceFileMap::ClassMap->Get(classHash);
-			if (std::count(filenameHashList->begin(),
-				    filenameHashList->end(),
-				    filenameHash) == 0) {
+			if (std::count(filenameHashList->begin(), filenameHashList->end(), filenameHash) == 0) {
 				// NOTE: We need a better way of sorting
 				if (classExtended == 0) {
-					filenameHashList->insert(
-						filenameHashList->begin(), filenameHash);
+					filenameHashList->insert(filenameHashList->begin(), filenameHash);
 				}
 				else if (classExtended == 1) {
 					filenameHashList->push_back(filenameHash);

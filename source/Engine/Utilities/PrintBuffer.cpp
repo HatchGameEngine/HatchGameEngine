@@ -23,12 +23,9 @@ int buffer_printf(PrintBuffer* printBuffer, const char* format, ...) {
 		printBuffer->BufferSize <<= 1;
 
 		// Reallocate buffer
-		*printBuffer->Buffer =
-			(char*)realloc(*printBuffer->Buffer, printBuffer->BufferSize);
+		*printBuffer->Buffer = (char*)realloc(*printBuffer->Buffer, printBuffer->BufferSize);
 		if (!*printBuffer->Buffer) {
-			Log::Print(Log::LOG_ERROR,
-				"Could not reallocate print buffer of size %d!",
-				printBuffer->BufferSize);
+			Log::Print(Log::LOG_ERROR, "Could not reallocate print buffer of size %d!", printBuffer->BufferSize);
 			va_end(argsCopy);
 			va_end(args);
 			return -1;
@@ -36,10 +33,7 @@ int buffer_printf(PrintBuffer* printBuffer, const char* format, ...) {
 	}
 
 	// Write the characters
-	printBuffer->WriteIndex += vsnprintf(*printBuffer->Buffer + printBuffer->WriteIndex,
-		printBuffer->BufferSize - printBuffer->WriteIndex,
-		format,
-		args);
+	printBuffer->WriteIndex += vsnprintf(*printBuffer->Buffer + printBuffer->WriteIndex, printBuffer->BufferSize - printBuffer->WriteIndex, format, args);
 	va_end(argsCopy);
 	va_end(args);
 	return 0;
@@ -57,12 +51,9 @@ int buffer_write(PrintBuffer* printBuffer, const char* string) {
 		printBuffer->BufferSize <<= 1;
 
 		// Reallocate buffer
-		*printBuffer->Buffer =
-			(char*)realloc(*printBuffer->Buffer, printBuffer->BufferSize);
+		*printBuffer->Buffer = (char*)realloc(*printBuffer->Buffer, printBuffer->BufferSize);
 		if (!*printBuffer->Buffer) {
-			Log::Print(Log::LOG_ERROR,
-				"Could not reallocate print buffer of size %d!",
-				printBuffer->BufferSize);
+			Log::Print(Log::LOG_ERROR, "Could not reallocate print buffer of size %d!", printBuffer->BufferSize);
 			return -1;
 		}
 	}
@@ -84,12 +75,9 @@ int buffer_write(PrintBuffer* printBuffer, char chr) {
 		printBuffer->BufferSize <<= 1;
 
 		// Reallocate buffer
-		*printBuffer->Buffer =
-			(char*)realloc(*printBuffer->Buffer, printBuffer->BufferSize);
+		*printBuffer->Buffer = (char*)realloc(*printBuffer->Buffer, printBuffer->BufferSize);
 		if (!*printBuffer->Buffer) {
-			Log::Print(Log::LOG_ERROR,
-				"Could not reallocate print buffer of size %d!",
-				printBuffer->BufferSize);
+			Log::Print(Log::LOG_ERROR, "Could not reallocate print buffer of size %d!", printBuffer->BufferSize);
 			return -1;
 		}
 	}

@@ -15,7 +15,11 @@ private:
 
 public:
 	SDL_RWops* f;
-	enum { READ_ACCESS, WRITE_ACCESS, APPEND_ACCESS };
+	enum {
+		READ_ACCESS,
+		WRITE_ACCESS,
+		APPEND_ACCESS
+	};
 
 	static SDLStream* New(const char* filename, Uint32 access);
 	bool IsReadable();

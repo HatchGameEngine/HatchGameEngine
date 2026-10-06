@@ -152,10 +152,8 @@ public:
 
 	FontFamily* FindFamilyForCodepoint(Uint32 codepoint);
 
-	static Uint32*
-	GenerateAtlas(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold);
-	static Texture*
-	CreateAtlasTexture(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold);
+	static Uint32* GenerateAtlas(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold);
+	static Texture* CreateAtlasTexture(Uint8* data, unsigned size, bool useAntialias, Uint8 threshold);
 
 	void Dispose();
 	~Font();

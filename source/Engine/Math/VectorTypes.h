@@ -72,11 +72,7 @@ struct FLineSegment {
 		B.Y = y2;
 	}
 
-	static bool DoIntersection(FVector2 line1A,
-		FVector2 line1B,
-		FVector2 line2A,
-		FVector2 line2B,
-		FVector2& result) {
+	static bool DoIntersection(FVector2 line1A, FVector2 line1B, FVector2 line2A, FVector2 line2B, FVector2& result) {
 		float dx1 = line1B.X - line1A.X;
 		float dy1 = line1B.Y - line1A.Y;
 		float dx2 = line2B.X - line2A.X;
@@ -104,9 +100,7 @@ struct FLineSegment {
 		return true;
 	}
 
-	bool DoIntersection(FVector2 lineA, FVector2 lineB, FVector2& result) {
-		return FLineSegment::DoIntersection(A, B, lineA, lineB, result);
-	}
+	bool DoIntersection(FVector2 lineA, FVector2 lineB, FVector2& result) { return FLineSegment::DoIntersection(A, B, lineA, lineB, result); }
 };
 
 #endif /* VECTORTYPES_H */

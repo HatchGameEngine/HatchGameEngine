@@ -71,8 +71,7 @@ void PropertyArray::Init(PropertyArray* array) {
 }
 
 void AddPropertyToArray(PropertyArray* array, Property property) {
-	Property* data =
-		(Property*)Memory::Realloc(array->Data, (array->Count + 1) * sizeof(Property));
+	Property* data = (Property*)Memory::Realloc(array->Data, (array->Count + 1) * sizeof(Property));
 	if (!data) {
 		return;
 	}

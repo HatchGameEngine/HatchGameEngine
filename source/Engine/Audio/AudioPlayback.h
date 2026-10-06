@@ -22,14 +22,8 @@ public:
 	bool OwnsSoundData = false;
 	Sint32 LoopIndex = -1;
 
-	AudioPlayback(SDL_AudioSpec format,
-		size_t requiredSamples,
-		size_t audioBytesPerSample,
-		size_t deviceBytesPerSample);
-	void Change(SDL_AudioSpec format,
-		size_t requiredSamples,
-		size_t audioBytesPerSample,
-		size_t deviceBytesPerSample);
+	AudioPlayback(SDL_AudioSpec format, size_t requiredSamples, size_t audioBytesPerSample, size_t deviceBytesPerSample);
+	void Change(SDL_AudioSpec format, size_t requiredSamples, size_t audioBytesPerSample, size_t deviceBytesPerSample);
 	void Dispose();
 	int RequestSamples(int samples, bool loop, int sample_to_loop_to);
 	void Seek(int samples);

@@ -3,14 +3,17 @@
 
 #include <Engine/Includes/Standard.h>
 
-enum { PixelFormat_RGBA8888, PixelFormat_ABGR8888, PixelFormat_ARGB8888, PixelFormat_RGB888, PixelFormat_BGR888 };
+enum {
+	PixelFormat_RGBA8888,
+	PixelFormat_ABGR8888,
+	PixelFormat_ARGB8888,
+	PixelFormat_RGB888,
+	PixelFormat_BGR888
+};
 
-#define PIXELFORMAT_IS_RGBA(fmt) \
-	((fmt) == PixelFormat_RGBA8888 || (fmt) == PixelFormat_ABGR8888 || \
-		(fmt) == PixelFormat_ARGB8888)
+#define PIXELFORMAT_IS_RGBA(fmt) ((fmt) == PixelFormat_RGBA8888 || (fmt) == PixelFormat_ABGR8888 || (fmt) == PixelFormat_ARGB8888)
 
-#define PIXELFORMAT_IS_RGB(fmt) \
-	((fmt) == PixelFormat_RGB888 || (fmt) == PixelFormat_BGR888)
+#define PIXELFORMAT_IS_RGB(fmt) ((fmt) == PixelFormat_RGB888 || (fmt) == PixelFormat_BGR888)
 
 enum {
 	// The texture is created with the given pixel data and never updated again, or it updates
@@ -49,12 +52,9 @@ enum {
 	TextureFormat_NATIVE
 };
 
-#define TEXTUREFORMAT_IS_RGBA(fmt) \
-	((fmt) == TextureFormat_RGBA8888 || (fmt) == TextureFormat_ABGR8888 || \
-		(fmt) == TextureFormat_ARGB8888)
+#define TEXTUREFORMAT_IS_RGBA(fmt) ((fmt) == TextureFormat_RGBA8888 || (fmt) == TextureFormat_ABGR8888 || (fmt) == TextureFormat_ARGB8888)
 
-#define TEXTUREFORMAT_IS_RGB(fmt) \
-	((fmt) == TextureFormat_RGB888 || (fmt) == TextureFormat_BGR888)
+#define TEXTUREFORMAT_IS_RGB(fmt) ((fmt) == TextureFormat_RGB888 || (fmt) == TextureFormat_BGR888)
 
 #define TEXTUREFORMAT_IS_YUV(fmt) ((fmt) >= TextureFormat_YV12 && (fmt) <= TextureFormat_NV21)
 
@@ -89,9 +89,18 @@ enum {
 	BlendFactor_INV_DST_ALPHA = 9,
 };
 
-enum { TintMode_SRC_NORMAL, TintMode_DST_NORMAL, TintMode_SRC_BLEND, TintMode_DST_BLEND };
+enum {
+	TintMode_SRC_NORMAL,
+	TintMode_DST_NORMAL,
+	TintMode_SRC_BLEND,
+	TintMode_DST_BLEND
+};
 
-enum { Filter_NONE, Filter_BLACK_AND_WHITE, Filter_INVERT };
+enum {
+	Filter_NONE,
+	Filter_BLACK_AND_WHITE,
+	Filter_INVERT
+};
 
 enum {
 	StencilTest_Never,
@@ -115,7 +124,11 @@ enum {
 	StencilOp_DecrWrap
 };
 
-enum { ALIGN_LEFT, ALIGN_CENTER, ALIGN_RIGHT };
+enum {
+	ALIGN_LEFT,
+	ALIGN_CENTER,
+	ALIGN_RIGHT
+};
 
 enum {
 	DrawBehavior_HorizontalParallax = 0,
@@ -149,7 +162,9 @@ enum {
 	DrawMode_FlagsMask = ~0xF
 };
 
-enum { TEXTDRAW_ELLIPSIS = 1 << 0 };
+enum {
+	TEXTDRAW_ELLIPSIS = 1 << 0
+};
 
 struct TileScanLine {
 	Sint64 SrcX;

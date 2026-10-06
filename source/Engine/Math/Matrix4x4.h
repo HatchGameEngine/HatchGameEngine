@@ -8,13 +8,7 @@ public:
 	static Matrix4x4* Create();
 	static void Identity(Matrix4x4* mat4);
 	static void Perspective(Matrix4x4* out, float fovy, float aspect, float near, float far);
-	static void Ortho(Matrix4x4* out,
-		float left,
-		float right,
-		float bottom,
-		float top,
-		float near,
-		float far);
+	static void Ortho(Matrix4x4* out, float left, float right, float bottom, float top, float near, float far);
 	static void Copy(Matrix4x4* out, Matrix4x4* a);
 	static bool Equals(Matrix4x4* a, Matrix4x4* b);
 	static void Multiply(Matrix4x4* out, Matrix4x4* a, Matrix4x4* b);
@@ -28,16 +22,7 @@ public:
 	static void IdentityRotationZ(Matrix4x4* out, float z);
 	static void IdentityRotationXYZ(Matrix4x4* out, float x, float y, float z);
 	static void Transpose(Matrix4x4* out);
-	static void LookAt(Matrix4x4* out,
-		float eyex,
-		float eyey,
-		float eyez,
-		float centerx,
-		float centery,
-		float centerz,
-		float upx,
-		float upy,
-		float upz);
+	static void LookAt(Matrix4x4* out, float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz);
 	static void Invert(Matrix4x4* out, Matrix4x4* in);
 	static void Print(Matrix4x4* out);
 };

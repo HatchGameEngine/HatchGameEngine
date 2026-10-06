@@ -100,9 +100,7 @@ void Serializer::WriteObject(Obj* obj) {
 		break;
 	}
 	default:
-		Log::Print(Log::LOG_WARN,
-			"Cannot serialize an object of type %s; ignoring",
-			GetObjectTypeString(obj->Type));
+		Log::Print(Log::LOG_WARN, "Cannot serialize an object of type %s; ignoring", GetObjectTypeString(obj->Type));
 		WriteObjectPreamble(Serializer::OBJ_TYPE_UNIMPLEMENTED);
 	}
 
@@ -352,8 +350,7 @@ void Serializer::GetObject() {
 			Log::Print(Log::LOG_WARN, "Ignoring unimplemented object type");
 		}
 		else {
-			Log::Print(
-				Log::LOG_ERROR, "Attempted to deserialize an invalid object type!");
+			Log::Print(Log::LOG_ERROR, "Attempted to deserialize an invalid object type!");
 		}
 		ObjList.push_back(nullptr);
 		StreamPtr->Skip(size);
@@ -394,8 +391,7 @@ void Serializer::ReadObject(Obj* obj) {
 			if (CurrentVersion == 0x00000001) {
 				Uint32 stringID = StreamPtr->ReadUInt32();
 				if (stringID >= StringList.size()) {
-					Log::Print(
-						Log::LOG_ERROR, "Attempted to read an invalid string ID!");
+					Log::Print(Log::LOG_ERROR, "Attempted to read an invalid string ID!");
 				}
 				else if (StringList[stringID].Chars != nullptr) {
 					Uint32 length = StringList[stringID].Length;
@@ -568,18 +564,12 @@ VMValue Serializer::Retrieve() {
 			success = Serializer::ReadTextChunk();
 			break;
 		default:
-			Log::Print(Log::LOG_WARN,
-				"Skipping unknown chunk type %c%c%c%c",
-				typeArr[3],
-				typeArr[2],
-				typeArr[1],
-				typeArr[0]);
+			Log::Print(Log::LOG_WARN, "Skipping unknown chunk type %c%c%c%c", typeArr[3], typeArr[2], typeArr[1], typeArr[0]);
 			break;
 		}
 
 		if (!success) {
-			Log::Print(Log::LOG_ERROR,
-				"Did not read end of chunk marker where it was expected to be!");
+			Log::Print(Log::LOG_ERROR, "Did not read end of chunk marker where it was expected to be!");
 		}
 	}
 
@@ -593,8 +583,7 @@ VMValue Serializer::Retrieve() {
 	// (Although it doesn't really matter at this point, but it can
 	// catch a malformed data stream)
 	if (StreamPtr->ReadByte() != Serializer::END) {
-		Log::Print(Log::LOG_ERROR,
-			"Did not read end of file marker where it was expected to be!");
+		Log::Print(Log::LOG_ERROR, "Did not read end of file marker where it was expected to be!");
 	}
 
 	// Free all text strings

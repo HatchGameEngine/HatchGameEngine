@@ -42,10 +42,9 @@ void DrawGroupList::Clear() {
 }
 
 void DrawGroupList::Sort() {
-	std::stable_sort(
-		Entities->begin(), Entities->end(), [](const Entity* entA, const Entity* entB) {
-			return entA->Depth < entB->Depth;
-		});
+	std::stable_sort(Entities->begin(), Entities->end(), [](const Entity* entA, const Entity* entB) {
+		return entA->Depth < entB->Depth;
+	});
 	NeedsSorting = false;
 }
 

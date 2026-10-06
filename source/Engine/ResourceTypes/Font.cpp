@@ -176,9 +176,7 @@ bool FontGlyphRange::Update(Font* font) {
 }
 
 void FontGlyphRange::FreeGlyphMap() {
-	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin();
-		it != GlyphsPerFamily.end();
-		it++) {
+	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin(); it != GlyphsPerFamily.end(); it++) {
 		Memory::Free(GlyphsPerFamily[it->first].PackedChars);
 	}
 
@@ -188,9 +186,7 @@ void FontGlyphRange::FreeGlyphMap() {
 bool FontGlyphRange::InitGlyphMap(Font* font) {
 	FreeGlyphMap();
 
-	for (std::unordered_map<Uint32, FontGlyph>::iterator it = Glyphs.begin();
-		it != Glyphs.end();
-		it++) {
+	for (std::unordered_map<Uint32, FontGlyph>::iterator it = Glyphs.begin(); it != Glyphs.end(); it++) {
 		Uint32 codepoint = it->second.Codepoint;
 
 		FontFamily* family = font->FindFamilyForCodepoint(codepoint);
@@ -198,13 +194,10 @@ bool FontGlyphRange::InitGlyphMap(Font* font) {
 		GlyphsPerFamily[family].Codepoints.push_back(codepoint);
 	}
 
-	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin();
-		it != GlyphsPerFamily.end();
-		it++) {
+	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin(); it != GlyphsPerFamily.end(); it++) {
 		PackedGlyphs& packedGlyphs = GlyphsPerFamily[it->first];
 
-		void* packedChars =
-			Memory::Malloc(packedGlyphs.Codepoints.size() * sizeof(stbtt_packedchar));
+		void* packedChars = Memory::Malloc(packedGlyphs.Codepoints.size() * sizeof(stbtt_packedchar));
 		if (packedChars == nullptr) {
 			return false;
 		}
@@ -236,9 +229,7 @@ bool FontGlyphRange::PackGlyphs(Font* font) {
 
 	bool packedAll = true;
 
-	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin();
-		it != GlyphsPerFamily.end();
-		it++) {
+	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin(); it != GlyphsPerFamily.end(); it++) {
 		FontFamily* family = it->first;
 		PackedGlyphs& packedGlyphs = GlyphsPerFamily[family];
 
@@ -256,8 +247,7 @@ bool FontGlyphRange::PackGlyphs(Font* font) {
 		range.font_size = FontSize;
 
 		if (numCodepoints > lastNumCodepoints) {
-			rects = (stbrp_rect*)Memory::Realloc(
-				rects, sizeof(stbrp_rect) * numCodepoints);
+			rects = (stbrp_rect*)Memory::Realloc(rects, sizeof(stbrp_rect) * numCodepoints);
 			if (rects == nullptr) {
 				packedAll = false;
 				break;
@@ -283,8 +273,7 @@ bool FontGlyphRange::PackGlyphs(Font* font) {
 	Memory::Free(rects);
 
 	if (!packedAll) {
-		int maxTextureSize =
-			std::min(Graphics::MaxTextureWidth, Graphics::MaxTextureHeight);
+		int maxTextureSize = std::min(Graphics::MaxTextureWidth, Graphics::MaxTextureHeight);
 		if (AtlasSize > maxTextureSize) {
 			return false;
 		}
@@ -294,8 +283,7 @@ bool FontGlyphRange::PackGlyphs(Font* font) {
 		return PackGlyphs(font);
 	}
 
-	Texture* atlas = Font::CreateAtlasTexture(
-		Buffer, AtlasSize, UseAntialiasing, PixelCoverageThreshold);
+	Texture* atlas = Font::CreateAtlasTexture(Buffer, AtlasSize, UseAntialiasing, PixelCoverageThreshold);
 	if (!atlas) {
 		return false;
 	}
@@ -315,9 +303,7 @@ bool FontGlyphRange::PackGlyphs(Font* font) {
 }
 
 void FontGlyphRange::LoadGlyphs() {
-	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin();
-		it != GlyphsPerFamily.end();
-		it++) {
+	for (std::unordered_map<FontFamily*, PackedGlyphs>::iterator it = GlyphsPerFamily.begin(); it != GlyphsPerFamily.end(); it++) {
 		PackedGlyphs& packedGlyphs = GlyphsPerFamily[it->first];
 
 		stbtt_packedchar* packedChars = (stbtt_packedchar*)packedGlyphs.PackedChars;
@@ -344,8 +330,7 @@ void FontGlyphRange::LoadGlyphs() {
 }
 
 void FontGlyphRange::ReloadAtlas() {
-	Uint32* dataRgba =
-		Font::GenerateAtlas(Buffer, AtlasSize, UseAntialiasing, PixelCoverageThreshold);
+	Uint32* dataRgba = Font::GenerateAtlas(Buffer, AtlasSize, UseAntialiasing, PixelCoverageThreshold);
 	if (dataRgba) {
 		Graphics::UpdateTexture(Atlas, nullptr, dataRgba, AtlasSize * sizeof(Uint32));
 		Memory::Free(dataRgba);
@@ -436,9 +421,7 @@ bool Font::Reload() {
 }
 
 void Font::LoadGlyphsFromRange(FontGlyphRange* range) {
-	for (std::unordered_map<Uint32, FontGlyph>::iterator it = range->Glyphs.begin();
-		it != range->Glyphs.end();
-		it++) {
+	for (std::unordered_map<Uint32, FontGlyph>::iterator it = range->Glyphs.begin(); it != range->Glyphs.end(); it++) {
 		Glyphs[it->first] = it->second;
 	}
 }
@@ -461,9 +444,7 @@ void Font::UpdateSprite() {
 		Sprite->Spritesheets.push_back(range->Atlas);
 		Sprite->SpritesheetFilenames.push_back("");
 
-		for (std::unordered_map<Uint32, FontGlyph>::iterator it = range->Glyphs.begin();
-			it != range->Glyphs.end();
-			it++) {
+		for (std::unordered_map<Uint32, FontGlyph>::iterator it = range->Glyphs.begin(); it != range->Glyphs.end(); it++) {
 			FontGlyph& glyph = Glyphs[it->first];
 
 			// Skips empty glyphs (like space characters)
@@ -474,16 +455,7 @@ void Font::UpdateSprite() {
 			glyph.FrameID = Sprite->Animations[0].Frames.size();
 
 			// Offsets are handled when rendering
-			Sprite->AddFrame(0,
-				0,
-				glyph.SourceX,
-				glyph.SourceY,
-				glyph.Width,
-				glyph.Height,
-				0,
-				0,
-				0,
-				range->ID);
+			Sprite->AddFrame(0, 0, glyph.SourceX, glyph.SourceY, glyph.Width, glyph.Height, 0, 0, 0, range->ID);
 		}
 	}
 
@@ -577,8 +549,7 @@ Texture* Font::CreateAtlasTexture(Uint8* data, unsigned size, bool useAntialias,
 		return nullptr;
 	}
 
-	Texture* atlas = Graphics::CreateTextureFromPixels(
-		TextureFormat_NATIVE, size, size, dataRgba, size * sizeof(Uint32));
+	Texture* atlas = Graphics::CreateTextureFromPixels(TextureFormat_NATIVE, size, size, dataRgba, size * sizeof(Uint32));
 
 	Memory::Free(dataRgba);
 
@@ -630,8 +601,7 @@ FontGlyphRange* Font::GetRangeForNewGlyph() {
 		FontGlyphRange* range = GlyphRanges[numRanges - 1];
 
 		// Check if the texture is too large already
-		int maxTextureSize =
-			std::min(Graphics::MaxTextureWidth, Graphics::MaxTextureHeight);
+		int maxTextureSize = std::min(Graphics::MaxTextureWidth, Graphics::MaxTextureHeight);
 		maxTextureSize = std::min(maxTextureSize, MAX_FONT_ATLAS_SIZE);
 		if (range->AtlasSize < maxTextureSize) {
 			return range;
@@ -702,10 +672,7 @@ float Font::GetGlyphAdvance(Uint32 codepoint) {
 			stbtt_fontinfo* info = (stbtt_fontinfo*)family->Context;
 
 			int advanceWidth = 0;
-			stbtt_GetGlyphHMetrics(info,
-				stbtt_FindGlyphIndex(info, codepoint),
-				&advanceWidth,
-				nullptr);
+			stbtt_GetGlyphHMetrics(info, stbtt_FindGlyphIndex(info, codepoint), &advanceWidth, nullptr);
 
 			return (float)advanceWidth * stbtt_ScaleForPixelHeight(info, Size);
 		}

@@ -69,10 +69,7 @@ Uint8 Image::DetectFormat(Stream* stream) {
 		return IMAGE_FORMAT_GIF;
 	}
 	// JPEG
-	else if (memcmp(magic, "\xFF\xD8\xFF\xE0", 4) == 0 ||
-		memcmp(magic, "\xFF\xD8\xFF\xDB", 4) == 0 ||
-		memcmp(magic, "\xFF\xD8\xFF\xEE", 4) == 0 ||
-		memcmp(magic, "\xFF\xD8\xFF\xE1", 4) == 0) {
+	else if (memcmp(magic, "\xFF\xD8\xFF\xE0", 4) == 0 || memcmp(magic, "\xFF\xD8\xFF\xDB", 4) == 0 || memcmp(magic, "\xFF\xD8\xFF\xEE", 4) == 0 || memcmp(magic, "\xFF\xD8\xFF\xE1", 4) == 0) {
 		return IMAGE_FORMAT_JPEG;
 	}
 
@@ -103,10 +100,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		Clock::Start();
 		PNG* png = PNG::Load(stream);
 		if (png) {
-			Log::Print(Log::LOG_VERBOSE,
-				"PNG load took %.3f ms (%s)",
-				Clock::End(),
-				filename);
+			Log::Print(Log::LOG_VERBOSE, "PNG load took %.3f ms (%s)", Clock::End(), filename);
 			width = (Uint32)png->Width;
 			height = (Uint32)png->Height;
 
@@ -130,10 +124,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		Clock::Start();
 		JPEG* jpeg = JPEG::Load(stream);
 		if (jpeg) {
-			Log::Print(Log::LOG_VERBOSE,
-				"JPEG load took %.3f ms (%s)",
-				Clock::End(),
-				filename);
+			Log::Print(Log::LOG_VERBOSE, "JPEG load took %.3f ms (%s)", Clock::End(), filename);
 			width = (Uint32)jpeg->Width;
 			height = (Uint32)jpeg->Height;
 
@@ -152,10 +143,7 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 		Clock::Start();
 		GIF* gif = GIF::Load(stream);
 		if (gif) {
-			Log::Print(Log::LOG_VERBOSE,
-				"GIF load took %.3f ms (%s)",
-				Clock::End(),
-				filename);
+			Log::Print(Log::LOG_VERBOSE, "GIF load took %.3f ms (%s)", Clock::End(), filename);
 			width = (Uint32)gif->Width;
 			height = (Uint32)gif->Height;
 
@@ -184,19 +172,12 @@ Texture* Image::LoadTextureFromResource(const char* filename) {
 	stream->Close();
 
 	if (width > Graphics::MaxTextureWidth || height > Graphics::MaxTextureHeight) {
-		Log::Print(Log::LOG_WARN,
-			"Image file \"%s\" of size %d x %d is larger than maximum size of %d x %d!",
-			filename,
-			width,
-			height,
-			Graphics::MaxTextureWidth,
-			Graphics::MaxTextureHeight);
+		Log::Print(Log::LOG_WARN, "Image file \"%s\" of size %d x %d is larger than maximum size of %d x %d!", filename, width, height, Graphics::MaxTextureWidth, Graphics::MaxTextureHeight);
 	}
 
 	Uint32 textureFormat = paletteColors ? TextureFormat_INDEXED : Graphics::TextureFormat;
 	unsigned bpp = Texture::GetFormatBytesPerPixel(textureFormat);
-	Texture* texture = Graphics::CreateTextureFromPixels(
-		textureFormat, width, height, data, width * bpp);
+	Texture* texture = Graphics::CreateTextureFromPixels(textureFormat, width, height, data, width * bpp);
 	Graphics::SetTexturePalette(texture, paletteColors, numPaletteColors);
 
 	Memory::Free(data);

@@ -523,8 +523,7 @@ void InputPlayer::UpdateControllerBind(unsigned num) {
 			ControllerState[num]++;
 		}
 	}
-	else if (ControllerState[num] == INPUT_STATE_PRESSED ||
-		ControllerState[num] == INPUT_STATE_HELD) {
+	else if (ControllerState[num] == INPUT_STATE_PRESSED || ControllerState[num] == INPUT_STATE_HELD) {
 		ControllerState[num] = INPUT_STATE_RELEASED;
 	}
 	else if (ControllerState[num] != INPUT_STATE_UNPUSHED) {

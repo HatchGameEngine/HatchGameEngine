@@ -227,11 +227,7 @@ void Camera_FieldSet_ViewIndex(Camera* camera, VMValue value, Uint32 threadID) {
 		camera->ViewIndex = viewIndex;
 	}
 	else {
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
-			"View index %d out of range. (%d - %d)",
-			viewIndex,
-			0,
-			MAX_SCENE_VIEWS - 1);
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "View index %d out of range. (%d - %d)", viewIndex, 0, MAX_SCENE_VIEWS - 1);
 	}
 }
 

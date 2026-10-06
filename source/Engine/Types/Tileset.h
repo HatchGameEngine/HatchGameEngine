@@ -20,23 +20,11 @@ public:
 	std::map<int, TileAnimator> AnimatorMap;
 	std::vector<HashMap<Property>*> PropertiesPerTile;
 
-	Tileset(ISprite* sprite,
-		int tileWidth,
-		int tileHeight,
-		size_t firstgid,
-		size_t startTile,
-		size_t tileCount,
-		char* filename);
+	Tileset(ISprite* sprite, int tileWidth, int tileHeight, size_t firstgid, size_t startTile, size_t tileCount, char* filename);
 	void RunAnimations();
 	void RestartAnimations();
-	void AddTileAnimSequence(int tileID,
-		TileSpriteInfo* tileSpriteInfo,
-		vector<int>& tileIDs,
-		vector<int>& durations);
-	void AddTileAnimSequence(int tileID,
-		TileSpriteInfo* tileSpriteInfo,
-		ISprite* animSprite,
-		int animID);
+	void AddTileAnimSequence(int tileID, TileSpriteInfo* tileSpriteInfo, vector<int>& tileIDs, vector<int>& durations);
+	void AddTileAnimSequence(int tileID, TileSpriteInfo* tileSpriteInfo, ISprite* animSprite, int animID);
 	TileAnimator* GetTileAnimSequence(int tileID);
 	void Dispose();
 };

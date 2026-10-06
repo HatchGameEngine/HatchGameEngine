@@ -166,13 +166,25 @@ enum class ControllerButton {
 	Max
 };
 
-enum class ControllerAxis { LeftX, LeftY, RightX, RightY, TriggerLeft, TriggerRight, Max };
+enum class ControllerAxis {
+	LeftX,
+	LeftY,
+	RightX,
+	RightY,
+	TriggerLeft,
+	TriggerRight,
+	Max
+};
 
 #define NUM_INPUT_PLAYERS 8
 #define NUM_TOUCH_STATES 8
 #define DEFAULT_DIGITAL_AXIS_THRESHOLD 0.5
 
-enum InputDevice { InputDevice_Keyboard, InputDevice_Controller, InputDevice_MAX };
+enum InputDevice {
+	InputDevice_Keyboard,
+	InputDevice_Controller,
+	InputDevice_MAX
+};
 
 #define KB_MODIFIER_SHIFT 1 // Either Shift key
 #define KB_MODIFIER_CTRL 2 // Either Ctrl key
@@ -191,7 +203,10 @@ enum InputDevice { InputDevice_Keyboard, InputDevice_Controller, InputDevice_MAX
 #define INPUT_BIND_CONTROLLER_AXIS 2
 #define NUM_INPUT_BIND_TYPES 3
 
-enum { MOUSEMODE_DEFAULT, MOUSEMODE_RELATIVE };
+enum {
+	MOUSEMODE_DEFAULT,
+	MOUSEMODE_RELATIVE
+};
 
 class InputBind {
 public:

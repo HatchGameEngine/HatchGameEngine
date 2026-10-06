@@ -28,10 +28,8 @@ void VertexBuffer::Resize(Uint32 numVertices) {
 	}
 
 	Capacity = numVertices;
-	Vertices =
-		(VertexAttribute*)Memory::Realloc(Vertices, numVertices * sizeof(VertexAttribute));
-	FaceInfoBuffer = (FaceInfo*)Memory::Realloc(
-		FaceInfoBuffer, ((numVertices / 3) + 1) * sizeof(FaceInfo));
+	Vertices = (VertexAttribute*)Memory::Realloc(Vertices, numVertices * sizeof(VertexAttribute));
+	FaceInfoBuffer = (FaceInfo*)Memory::Realloc(FaceInfoBuffer, ((numVertices / 3) + 1) * sizeof(FaceInfo));
 }
 VertexBuffer::~VertexBuffer() {
 	Memory::Free(Vertices);

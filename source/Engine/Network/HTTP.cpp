@@ -61,10 +61,7 @@ CurlData* CurlGET(CURL* curl, const char* url) {
 
 	CURLcode res = curl_easy_perform(curl);
 	if (res != 0) {
-		Log::Print(Log::LOG_ERROR,
-			"curl_easy_perform failed with code: %d, on URL: %s",
-			res,
-			url);
+		Log::Print(Log::LOG_ERROR, "curl_easy_perform failed with code: %d, on URL: %s", res, url);
 	}
 
 	return data;

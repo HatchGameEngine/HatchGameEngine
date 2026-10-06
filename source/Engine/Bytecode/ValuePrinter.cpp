@@ -41,12 +41,7 @@ void ValuePrinter::PrintValue(VMValue value, int indent) {
 		break;
 	case VAL_HITBOX: {
 		Sint16* hitbox = AS_HITBOX(value);
-		buffer_printf(Buffer,
-			"[%d, %d, %d, %d]",
-			hitbox[HITBOX_LEFT],
-			hitbox[HITBOX_TOP],
-			hitbox[HITBOX_RIGHT],
-			hitbox[HITBOX_BOTTOM]);
+		buffer_printf(Buffer, "[%d, %d, %d, %d]", hitbox[HITBOX_LEFT], hitbox[HITBOX_TOP], hitbox[HITBOX_RIGHT], hitbox[HITBOX_BOTTOM]);
 		break;
 	}
 	case VAL_OBJECT:
@@ -69,16 +64,10 @@ void ValuePrinter::PrintObject(VMValue value, int indent) {
 	case OBJ_NAMESPACE:
 	case OBJ_ENUM:
 		if (IsJSON) {
-			buffer_printf(Buffer,
-				"\"%s %s\"",
-				Value::GetObjectTypeName(value),
-				Value::GetPrintableObjectName(value));
+			buffer_printf(Buffer, "\"%s %s\"", Value::GetObjectTypeName(value), Value::GetPrintableObjectName(value));
 		}
 		else {
-			buffer_printf(Buffer,
-				"<%s %s>",
-				Value::GetObjectTypeName(value),
-				Value::GetPrintableObjectName(value));
+			buffer_printf(Buffer, "<%s %s>", Value::GetObjectTypeName(value), Value::GetPrintableObjectName(value));
 		}
 		break;
 	case OBJ_NATIVE_FUNCTION:
@@ -94,12 +83,10 @@ void ValuePrinter::PrintObject(VMValue value, int indent) {
 	case OBJ_NATIVE_INSTANCE:
 	case OBJ_ENTITY:
 		if (IsJSON) {
-			buffer_printf(
-				Buffer, "\"%s instance\"", Value::GetPrintableObjectName(value));
+			buffer_printf(Buffer, "\"%s instance\"", Value::GetPrintableObjectName(value));
 		}
 		else {
-			buffer_printf(
-				Buffer, "<%s instance>", Value::GetPrintableObjectName(value));
+			buffer_printf(Buffer, "<%s instance>", Value::GetPrintableObjectName(value));
 		}
 		break;
 	case OBJ_STRING:
@@ -188,9 +175,7 @@ void ValuePrinter::PrintMap(ObjMap* map, int indent) {
 				buffer_printf(Buffer, "\"");
 			}
 			if (IS_OBJECT(keyValue)) {
-				buffer_printf(Buffer, "<%s 0x%x>",
-					Value::GetObjectTypeName(keyValue),
-					AS_OBJECT(keyValue));
+				buffer_printf(Buffer, "<%s 0x%x>", Value::GetObjectTypeName(keyValue), AS_OBJECT(keyValue));
 			}
 			else {
 				PrintValue(keyValue, indent + 1);

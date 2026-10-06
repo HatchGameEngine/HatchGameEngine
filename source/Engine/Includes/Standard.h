@@ -11,8 +11,8 @@
 #include <string.h>
 
 #include <algorithm>
-#include <csetjmp>
 #include <cmath>
+#include <csetjmp>
 #include <deque>
 #include <filesystem>
 #include <map>
@@ -44,7 +44,17 @@ using deque = std::deque<T>;
 
 using string = std::string;
 
-enum class Platforms { Windows, MacOS, Linux, Switch, PlayStation, Xbox, Android, iOS, Unknown };
+enum class Platforms {
+	Windows,
+	MacOS,
+	Linux,
+	Switch,
+	PlayStation,
+	Xbox,
+	Android,
+	iOS,
+	Unknown
+};
 
 enum class KeyBind {
 	Fullscreen,

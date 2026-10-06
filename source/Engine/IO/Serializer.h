@@ -44,7 +44,10 @@ public:
 		char* Chars;
 	};
 	std::vector<Serializer::String> StringList;
-	enum { CHUNK_OBJS = MAGIC_BE32("OBJS"), CHUNK_TEXT = MAGIC_BE32("TEXT") };
+	enum {
+		CHUNK_OBJS = MAGIC_BE32("OBJS"),
+		CHUNK_TEXT = MAGIC_BE32("TEXT")
+	};
 	enum {
 		VAL_TYPE_NULL,
 		VAL_TYPE_INTEGER,
@@ -53,7 +56,12 @@ public:
 		VAL_TYPE_HITBOX,
 		END = 0xFF
 	};
-	enum { OBJ_TYPE_UNIMPLEMENTED, OBJ_TYPE_STRING, OBJ_TYPE_ARRAY, OBJ_TYPE_MAP };
+	enum {
+		OBJ_TYPE_UNIMPLEMENTED,
+		OBJ_TYPE_STRING,
+		OBJ_TYPE_ARRAY,
+		OBJ_TYPE_MAP
+	};
 	static Uint32 Magic;
 	static Uint32 Version;
 

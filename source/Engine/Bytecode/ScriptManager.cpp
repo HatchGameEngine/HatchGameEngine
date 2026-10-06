@@ -66,13 +66,7 @@ void ScriptManager::RequestGarbageCollection() {
 
 		// startSize = GarbageCollector::GarbageSize -
 		// startSize;
-		Log::Print(Log::LOG_INFO,
-			"%04X: Freed garbage from %u to %u (%d), next GC at %d",
-			Scene::Frame,
-			(Uint32)startSize,
-			(Uint32)GarbageCollector::GarbageSize,
-			GarbageCollector::GarbageSize - startSize,
-			GarbageCollector::NextGC);
+		Log::Print(Log::LOG_INFO, "%04X: Freed garbage from %u to %u (%d), next GC at %d", Scene::Frame, (Uint32)startSize, (Uint32)GarbageCollector::GarbageSize, GarbageCollector::GarbageSize - startSize, GarbageCollector::NextGC);
 	}
 }
 void ScriptManager::ForceGarbageCollection() {
@@ -168,8 +162,7 @@ Uint32 ScriptManager::GetBranchLimit() {
 	}
 	else {
 		bool useBranchLimit = false;
-		if (Application::Settings->GetBool("dev", "branchLimit", &useBranchLimit) &&
-			useBranchLimit == true) {
+		if (Application::Settings->GetBool("dev", "branchLimit", &useBranchLimit) && useBranchLimit == true) {
 			branchLimit = DEFAULT_BRANCH_LIMIT;
 		}
 	}
@@ -374,10 +367,7 @@ bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 threadID) {
 	VMValue result = Value::CastAsInteger(value);
 	if (IS_NULL(result)) {
 		// Conversion failed
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
-			"Expected value to be of type %s; value was of type %s.",
-			GetTypeString(VAL_INTEGER),
-			GetValueTypeString(value));
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Expected value to be of type %s; value was of type %s.", GetTypeString(VAL_INTEGER), GetValueTypeString(value));
 		return false;
 	}
 	value = result;
@@ -387,10 +377,7 @@ bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
 	VMValue result = Value::CastAsDecimal(value);
 	if (IS_NULL(result)) {
 		// Conversion failed
-		ScriptManager::Threads[threadID].ThrowRuntimeError(false,
-			"Expected value to be of type %s; value was of type %s.",
-			GetTypeString(VAL_DECIMAL),
-			GetValueTypeString(value));
+		ScriptManager::Threads[threadID].ThrowRuntimeError(false, "Expected value to be of type %s; value was of type %s.", GetTypeString(VAL_DECIMAL), GetValueTypeString(value));
 		return false;
 	}
 	value = result;
@@ -897,20 +884,14 @@ bool ScriptManager::LoadObjectClass(const char* objectName) {
 		Uint32 filenameHash = (*filenameHashList)[fn];
 
 		if (!Sources->Exists(filenameHash)) {
-			BytecodeContainer bytecode =
-				ScriptManager::GetBytecodeFromFilenameHash(filenameHash);
+			BytecodeContainer bytecode = ScriptManager::GetBytecodeFromFilenameHash(filenameHash);
 			if (!bytecode.Data) {
-				Log::Print(Log::LOG_WARN,
-					"Code for the object class \"%s\" does not exist!",
-					objectName);
+				Log::Print(Log::LOG_WARN, "Code for the object class \"%s\" does not exist!", objectName);
 				return false;
 			}
 
 			if (fn == 0) {
-				Log::Print(Log::LOG_VERBOSE,
-					"Loading class %s, %d filename(s)...",
-					objectName,
-					(int)filenameHashList->size());
+				Log::Print(Log::LOG_VERBOSE, "Loading class %s, %d filename(s)...", objectName, (int)filenameHashList->size());
 			}
 
 			RunBytecode(&Threads[0], bytecode, filenameHash);
@@ -955,11 +936,9 @@ void ScriptManager::LoadClasses() {
 		for (size_t fn = 0; fn < filenameHashList->size(); fn++) {
 			Uint32 filenameHash = (*filenameHashList)[fn];
 
-			BytecodeContainer bytecode =
-				ScriptManager::GetBytecodeFromFilenameHash(filenameHash);
+			BytecodeContainer bytecode = ScriptManager::GetBytecodeFromFilenameHash(filenameHash);
 			if (!bytecode.Data) {
-				Log::Print(
-					Log::LOG_WARN, "Class %08X does not exist!", filenameHash);
+				Log::Print(Log::LOG_WARN, "Class %08X does not exist!", filenameHash);
 				continue;
 			}
 

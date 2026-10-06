@@ -17,11 +17,7 @@ std::string Screenshot::GetFilename() {
 	strftime(timeString, sizeof(timeString), "%Y-%m-%d-%H-%M-%S", localtime(&timeInfo));
 
 	char filenameBuffer[MAX_FILENAME_LENGTH];
-	snprintf(filenameBuffer,
-		MAX_FILENAME_LENGTH,
-		"%s-%s",
-		identifier,
-		timeString);
+	snprintf(filenameBuffer, MAX_FILENAME_LENGTH, "%s-%s", identifier, timeString);
 
 	std::string filename = std::string(filenameBuffer);
 
@@ -29,12 +25,7 @@ std::string Screenshot::GetFilename() {
 }
 
 std::vector<ScreenshotMetadata> Screenshot::GetMetadata() {
-	std::vector<ScreenshotMetadata> metadata = {
-		ScreenshotMetadata{"Game", Application::GameTitle},
-		ScreenshotMetadata{"Version", Application::GameVersion},
-		ScreenshotMetadata{"Developer", Application::GameDeveloper},
-		ScreenshotMetadata{"Engine version", Application::EngineVersion},
-		ScreenshotMetadata{"Date and time", GetTimeString()}};
+	std::vector<ScreenshotMetadata> metadata = {ScreenshotMetadata{"Game", Application::GameTitle}, ScreenshotMetadata{"Version", Application::GameVersion}, ScreenshotMetadata{"Developer", Application::GameDeveloper}, ScreenshotMetadata{"Engine version", Application::EngineVersion}, ScreenshotMetadata{"Date and time", GetTimeString()}};
 
 	return metadata;
 }

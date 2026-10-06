@@ -62,8 +62,7 @@ static void getAppName(char* buffer, int maxSize) {
 		return;
 	}
 
-	if (tmp[end - 1] != 'p' || tmp[end - 2] != 'p' || tmp[end - 3] != 'a' ||
-		tmp[end - 4] != '.') {
+	if (tmp[end - 1] != 'p' || tmp[end - 2] != 'p' || tmp[end - 3] != 'a' || tmp[end - 4] != '.') {
 		/* no .app, it's not packaged */
 		memset(buffer, 0, maxSize);
 
@@ -87,8 +86,7 @@ Stream* FileStream::OpenFile(const char* filename, Uint32 access, bool allowURLs
 	PathLocation location = PathLocation::DEFAULT;
 
 	bool isPathValid = true;
-	if (!Path::FromURL(
-		    filename, resolvedPath, location, access != FileStream::READ_ACCESS, true)) {
+	if (!Path::FromURL(filename, resolvedPath, location, access != FileStream::READ_ACCESS, true)) {
 		isPathValid = false;
 	}
 

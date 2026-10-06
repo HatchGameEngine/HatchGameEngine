@@ -36,10 +36,7 @@ struct ControllerRumble {
 		Uint16 largeMotorFrequency = large_frequency * 0xFFFF;
 		Uint16 smallMotorFrequency = small_frequency * 0xFFFF;
 
-		if (SDL_GameControllerRumble((SDL_GameController*)Device,
-			    largeMotorFrequency,
-			    smallMotorFrequency,
-			    0) == -1) {
+		if (SDL_GameControllerRumble((SDL_GameController*)Device, largeMotorFrequency, smallMotorFrequency, 0) == -1) {
 			return false;
 		}
 
@@ -65,10 +62,7 @@ struct ControllerRumble {
 		}
 
 		Uint16 largeMotorFrequency = frequency * 0xFFFF;
-		if (SDL_GameControllerRumble((SDL_GameController*)Device,
-			    largeMotorFrequency,
-			    SmallMotorFrequency * 0xFFFF,
-			    0) == -1) {
+		if (SDL_GameControllerRumble((SDL_GameController*)Device, largeMotorFrequency, SmallMotorFrequency * 0xFFFF, 0) == -1) {
 			return false;
 		}
 
@@ -86,10 +80,7 @@ struct ControllerRumble {
 		}
 
 		Uint16 smallMotorFrequency = frequency * 0xFFFF;
-		if (SDL_GameControllerRumble((SDL_GameController*)Device,
-			    LargeMotorFrequency * 0xFFFF,
-			    smallMotorFrequency,
-			    0) == -1) {
+		if (SDL_GameControllerRumble((SDL_GameController*)Device, LargeMotorFrequency * 0xFFFF, smallMotorFrequency, 0) == -1) {
 			return false;
 		}
 
@@ -131,10 +122,7 @@ struct ControllerRumble {
 		else {
 			Uint16 largeMotorFrequency = LargeMotorFrequency * 0xFFFF;
 			Uint16 smallMotorFrequency = SmallMotorFrequency * 0xFFFF;
-			SDL_GameControllerRumble((SDL_GameController*)Device,
-				largeMotorFrequency,
-				smallMotorFrequency,
-				0);
+			SDL_GameControllerRumble((SDL_GameController*)Device, largeMotorFrequency, smallMotorFrequency, 0);
 
 			if (TicksLeft) {
 				Expiration = SDL_GetTicks() + TicksLeft;

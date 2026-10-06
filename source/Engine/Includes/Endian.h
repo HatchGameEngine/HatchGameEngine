@@ -34,10 +34,7 @@
 
 // C++17 equivalent to std::bit_cast for float conversion
 template<class To, class From>
-constexpr std::enable_if_t<sizeof(To) == sizeof(From) && std::is_trivially_copyable_v<From> &&
-		std::is_trivially_copyable_v<To>,
-	To>
-bit_cast(const From& src) noexcept {
+constexpr std::enable_if_t<sizeof(To) == sizeof(From) && std::is_trivially_copyable_v<From> && std::is_trivially_copyable_v<To>, To> bit_cast(const From& src) noexcept {
 	static_assert(std::is_trivially_constructible_v<To>);
 	To dst;
 	memcpy(&dst, &src, sizeof(To));

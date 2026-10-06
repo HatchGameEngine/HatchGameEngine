@@ -142,10 +142,8 @@ private:
 	static std::string GetCachePath();
 	static std::string GetPicturesPath();
 	static std::string GetScreenshotsPath(bool makeDirs);
-	static std::string
-	GetForLocation(PathLocation location, bool makeDirs, bool allowIndirection);
-	static std::string
-	StripLocationFromURL(const char* filename, PathLocation& location, bool allowIndirection);
+	static std::string GetForLocation(PathLocation location, bool makeDirs, bool allowIndirection);
+	static std::string StripLocationFromURL(const char* filename, PathLocation& location, bool allowIndirection);
 	static bool ValidateForLocation(const char* path);
 
 public:
@@ -160,20 +158,11 @@ public:
 	static std::string ToAbsolute(std::string path);
 	static std::string Normalize(std::string path);
 	static std::string Normalize(const char* path);
-	static std::string
-	GetLocationFromRealPath(const char* filename, PathLocation location, bool allowIndirection);
+	static std::string GetLocationFromRealPath(const char* filename, PathLocation location, bool allowIndirection);
 	static bool IsAbsolute(const char* filename);
 	static bool IsValidDefaultLocation(const char* filename);
-	static bool FromLocation(std::string path,
-		PathLocation location,
-		std::string& result,
-		bool makeDirs,
-		bool allowIndirection);
-	static bool FromURL(const char* filename,
-		std::string& result,
-		PathLocation& location,
-		bool makeDirs,
-		bool allowIndirection);
+	static bool FromLocation(std::string path, PathLocation location, std::string& result, bool makeDirs, bool allowIndirection);
+	static bool FromURL(const char* filename, std::string& result, PathLocation& location, bool makeDirs, bool allowIndirection);
 	static bool FromURL(const char* filename, std::string& result);
 	static void FromURL(const char* filename, char* buf, size_t bufSize);
 	static std::string StripURL(const char* filename);

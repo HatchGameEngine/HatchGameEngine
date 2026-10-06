@@ -24,11 +24,7 @@ public:
 	void (*CloseFunc)(void*);
 
 	static void FreeInVideoPacketFunc(void* packet);
-	void Create(MediaSource* src,
-		int stream_index,
-		int outBufferLength,
-		void (*freeOutFunc)(void*),
-		int thread_count);
+	void Create(MediaSource* src, int stream_index, int outBufferLength, void (*freeOutFunc)(void*), int thread_count);
 	void Close();
 	~Decoder();
 	int Run();

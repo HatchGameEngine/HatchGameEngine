@@ -78,8 +78,7 @@ MediaSource* MediaSource::CreateSourceFromUrl(const char* url) {
 		return NULL;
 	}
 
-	MediaSource* src = (MediaSource*)Memory::TrackedCalloc(
-		"MediaSource::MediaSource", 1, sizeof(MediaSource));
+	MediaSource* src = (MediaSource*)Memory::TrackedCalloc("MediaSource::MediaSource", 1, sizeof(MediaSource));
 	if (!src) {
 		Log::Print(Log::LOG_ERROR, "Unable to allocate MediaSource!");
 		return NULL;
@@ -118,8 +117,7 @@ MediaSource* MediaSource::CreateSourceFromStream(Stream* stream) {
 	av_log_set_level(AV_LOG_ERROR);
 	av_log_set_callback(_AVLogCallback);
 
-	MediaSource* src = (MediaSource*)Memory::TrackedCalloc(
-		"MediaSource::MediaSource", 1, sizeof(MediaSource));
+	MediaSource* src = (MediaSource*)Memory::TrackedCalloc("MediaSource::MediaSource", 1, sizeof(MediaSource));
 	if (!src) {
 		Log::Print(Log::LOG_ERROR, "Unable to allocate MediaSource!");
 		return NULL;
@@ -136,15 +134,14 @@ MediaSource* MediaSource::CreateSourceFromStream(Stream* stream) {
 		Log::Print(Log::LOG_ERROR, "Unable to allocate AVIO context buffer!");
 		goto __CLOSE;
 	}
-	avio_ctx = avio_alloc_context(avio_ctx_buffer,
-		avio_ctx_buffer_size,
-		false, // isWritable
-		stream, // opaque pointer
-		&_ReadPacket, // int(*)(void *opaque, uint8_t *buf, int
-		// buf_size) 	read_packet,
-		NULL, // int(*)(void *opaque, uint8_t *buf, int
-		// buf_size) 	write_packet,
-		&_SeekPacket); // int64_t(*)(void *opaque, int64_t
+	avio_ctx = avio_alloc_context(avio_ctx_buffer, avio_ctx_buffer_size,
+	                              false, // isWritable
+	                              stream, // opaque pointer
+	                              &_ReadPacket, // int(*)(void *opaque, uint8_t *buf, int
+	                              // buf_size) 	read_packet,
+	                              NULL, // int(*)(void *opaque, uint8_t *buf, int
+	                              // buf_size) 	write_packet,
+	                              &_SeekPacket); // int64_t(*)(void *opaque, int64_t
 	// offset, int whence) 	seek
 	if (!avio_ctx) {
 		// ret = AVERROR(ENOMEM);
@@ -262,8 +259,7 @@ int MediaSource::GetBestStream(Uint32 type) {
 	default:
 		return -1;
 	}
-	int ret = av_find_best_stream(
-		(AVFormatContext*)this->FormatCtx, (enum AVMediaType)avmedia_type, -1, -1, NULL, 0);
+	int ret = av_find_best_stream((AVFormatContext*)this->FormatCtx, (enum AVMediaType)avmedia_type, -1, -1, NULL, 0);
 	if (ret == AVERROR_STREAM_NOT_FOUND) {
 		return -1;
 	}

@@ -1,8 +1,8 @@
 #ifndef ENGINE_SCENE_TILELAYER_H
 #define ENGINE_SCENE_TILELAYER_H
 
-#include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/LayerTileBuffers.h>
+#include <Engine/Scene/SceneLayer.h>
 #include <Engine/Scene/ScrollingInfo.h>
 
 class TileLayer : public SceneLayer {

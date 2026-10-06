@@ -20,13 +20,11 @@ private:
 	VMValue SetElement(VMValue object, VMValue at, VMValue value);
 	VMValue GetGlobal(Uint32 hash);
 	void SetGlobal(Uint32 hash, VMValue value);
-	bool
-	GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
+	bool GetProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
 	bool GetProperty(Obj* object, Uint32 hash, ValueGetFn getter);
 	bool GetProperty(ObjClass* klass, Uint32 hash, bool checkFields);
 	bool GetProperty(ObjClass* klass, Uint32 hash);
-	bool
-	HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
+	bool HasProperty(Obj* object, ObjClass* klass, Uint32 hash, bool checkFields, ValueGetFn getter);
 	bool HasProperty(Obj* object, Uint32 hash, ValueGetFn getter);
 	bool HasProperty(ObjClass* klass, Uint32 hash, bool checkFields);
 	bool HasProperty(ObjClass* klass, Uint32 hash);

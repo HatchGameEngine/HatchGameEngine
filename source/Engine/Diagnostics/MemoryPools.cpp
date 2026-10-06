@@ -34,15 +34,7 @@ bool Init() {
 	}
 
 	const char* dataLabels[] = {
-		"B",
-		"KiB",
-		"MiB",
-		"GiB",
-		"Err1",
-		"Err2",
-		"Err3",
-		"Err4",
-		"Err5",
+		"B", "KiB", "MiB", "GiB", "Err1", "Err2", "Err3", "Err4", "Err5",
 	};
 	int dataLabel = 0;
 
@@ -51,9 +43,7 @@ bool Init() {
 		dataLabel++;
 	}
 
-	printf("Successfully allocated %d %s for memory pools.\n",
-		totalPoolSize,
-		dataLabels[dataLabel]);
+	printf("Successfully allocated %d %s for memory pools.\n", totalPoolSize, dataLabels[dataLabel]);
 
 	return true;
 }
@@ -123,12 +113,7 @@ void* Alloc(void** mem, size_t size, int pool, bool clearMem) {
 				memPool->ReferenceCount++;
 			}
 			else {
-				Log::Print(Log::LOG_ERROR,
-					"Not enough space in pool %d for 0x%X bytes (0x%X total, 0x%X remaining)",
-					pool,
-					size,
-					memPool->BlocksDataSize,
-					memPool->BlocksDataSize - blockDataCurrentSize);
+				Log::Print(Log::LOG_ERROR, "Not enough space in pool %d for 0x%X bytes (0x%X total, 0x%X remaining)", pool, size, memPool->BlocksDataSize, memPool->BlocksDataSize - blockDataCurrentSize);
 			}
 		}
 
@@ -210,9 +195,7 @@ void RunGC(int pool) {
 			// If the current block is ahead of the free
 			// block, move current block back to free block
 			if (i > freeBlockIndex) {
-				memcpy(&memPool->Blocks[freeBlockIndex],
-					&memPool->Blocks[i],
-					blockSizeInBytes);
+				memcpy(&memPool->Blocks[freeBlockIndex], &memPool->Blocks[i], blockSizeInBytes);
 			}
 
 			// Move free block index to next block since
@@ -226,10 +209,7 @@ void RunGC(int pool) {
 	}
 
 	if (freedBlocks) {
-		printf("Freed 0x%X blocks out of 0x%X possible (0x%X max)\n",
-			freedBlocks,
-			memPool->BlockCount,
-			(int)(memPool->BlocksDataSize / sizeof(Uint32)));
+		printf("Freed 0x%X blocks out of 0x%X possible (0x%X max)\n", freedBlocks, memPool->BlockCount, (int)(memPool->BlocksDataSize / sizeof(Uint32)));
 	}
 
 	if (freedBlocks) {
@@ -248,14 +228,11 @@ void RunGC(int pool) {
 
 				// For any pointers that point to this
 				// allocblock's data
-				void* oldAllocBlockDataPtr =
-					(void*)&memPool->Blocks[header->dataStartIndex];
+				void* oldAllocBlockDataPtr = (void*)&memPool->Blocks[header->dataStartIndex];
 				void* newAllocBlockDataPtr = (void*)&header[1];
 				for (Uint32 r = 0; r < memPool->ReferenceCount; r++) {
 					if (oldAllocBlockDataPtr == memPool->PointerList[r]) {
-						*memPool->ReferenceList[r] =
-							memPool->PointerList[r] =
-								newAllocBlockDataPtr;
+						*memPool->ReferenceList[r] = memPool->PointerList[r] = newAllocBlockDataPtr;
 					}
 				}
 
@@ -300,10 +277,7 @@ void CleanupReferences(int pool) {
 	}
 
 	if ((memPool->ReferenceCount - v) != 0) {
-		printf("Freed 0x%X refs out of 0x%X possible (0x%X max)\n",
-			memPool->ReferenceCount - v,
-			memPool->ReferenceCount,
-			MAX_REFERENCE_COUNT);
+		printf("Freed 0x%X refs out of 0x%X possible (0x%X max)\n", memPool->ReferenceCount - v, memPool->ReferenceCount, MAX_REFERENCE_COUNT);
 	}
 
 	// Set new reference count

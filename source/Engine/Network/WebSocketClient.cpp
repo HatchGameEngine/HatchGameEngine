@@ -321,8 +321,7 @@ WebSocketClient* WebSocketClient::New(const char* url) {
 	}
 	// TODO: verify response headers,
 	while (true) {
-		for (i = 0; i < 2 || (i < 1023 && line[i - 2] != '\r' && line[i - 1] != '\n');
-			++i) {
+		for (i = 0; i < 2 || (i < 1023 && line[i - 2] != '\r' && line[i - 1] != '\n'); ++i) {
 			if (recv(sockfd, line + i, 1, 0) == 0) {
 				goto FREE;
 			}
@@ -332,11 +331,8 @@ WebSocketClient* WebSocketClient::New(const char* url) {
 		}
 	}
 
-	setsockopt(sockfd,
-		IPPROTO_TCP,
-		TCP_NODELAY,
-		(char*)&flag,
-		sizeof(flag)); // Disable Nagle's algorithm
+	setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, (char*)&flag,
+	           sizeof(flag)); // Disable Nagle's algorithm
 #ifdef _WIN32
 	{
 		u_long on = 1;
@@ -399,9 +395,7 @@ void WebSocketClient::Poll(int timeout) {
 		rxbuf.resize(N + 1500);
 		ret = recv(socket, (char*)&rxbuf[0] + N, 1500, 0);
 		if (false) {}
-		else if (ret < 0 &&
-			(socketerrno == SOCKET_EWOULDBLOCK ||
-				socketerrno == SOCKET_EAGAIN_EINPROGRESS)) {
+		else if (ret < 0 && (socketerrno == SOCKET_EWOULDBLOCK || socketerrno == SOCKET_EAGAIN_EINPROGRESS)) {
 			rxbuf.resize(N);
 			break;
 		}
@@ -420,9 +414,7 @@ void WebSocketClient::Poll(int timeout) {
 	while (txbuf.size()) {
 		int ret = send(socket, (char*)&txbuf[0], txbuf.size(), 0);
 		if (false) {} // ??
-		else if (ret < 0 &&
-			(socketerrno == SOCKET_EWOULDBLOCK ||
-				socketerrno == SOCKET_EAGAIN_EINPROGRESS)) {
+		else if (ret < 0 && (socketerrno == SOCKET_EWOULDBLOCK || socketerrno == SOCKET_EAGAIN_EINPROGRESS)) {
 			break;
 		}
 		else if (ret <= 0) {
@@ -460,8 +452,7 @@ void WebSocketClient::Dispatch(void (*callback)(void* mem, size_t size)) {
 		ws.opcode = (opcode_type)(data[0] & 0x0f);
 		ws.mask = (data[1] & 0x80) == 0x80;
 		ws.N0 = (data[1] & 0x7f);
-		ws.header_size =
-			2 + (ws.N0 == 126 ? 2 : 0) + (ws.N0 == 127 ? 8 : 0) + (ws.mask ? 4 : 0);
+		ws.header_size = 2 + (ws.N0 == 126 ? 2 : 0) + (ws.N0 == 127 ? 8 : 0) + (ws.mask ? 4 : 0);
 
 		if (rxbuf.size() < ws.header_size) {
 			return; /* Need: ws.header_size - rxbuf.size()
@@ -503,8 +494,7 @@ void WebSocketClient::Dispatch(void (*callback)(void* mem, size_t size)) {
 				// it were valid. So just Close() and
 				// return immediately for now.
 				isRxBad = true;
-				fprintf(stderr,
-					"ERROR: Frame has invalid frame length. Closing.\n");
+				fprintf(stderr, "ERROR: Frame has invalid frame length. Closing.\n");
 				Close();
 				return;
 			}
@@ -533,18 +523,15 @@ void WebSocketClient::Dispatch(void (*callback)(void* mem, size_t size)) {
 
 		// We got a whole message, now do something with it:
 
-		if (ws.opcode == opcode_type::TEXT_FRAME ||
-			ws.opcode == opcode_type::BINARY_FRAME ||
-			ws.opcode == opcode_type::CONTINUATION) {
+		if (ws.opcode == opcode_type::TEXT_FRAME || ws.opcode == opcode_type::BINARY_FRAME || ws.opcode == opcode_type::CONTINUATION) {
 			if (ws.mask) {
 				for (size_t i = 0; i != ws.N; i++) {
 					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
 				}
 			}
 
-			receivedData.insert(receivedData.end(),
-				rxbuf.begin() + ws.header_size,
-				rxbuf.begin() + ws.header_size + (size_t)ws.N); // just feed
+			receivedData.insert(receivedData.end(), rxbuf.begin() + ws.header_size,
+			                    rxbuf.begin() + ws.header_size + (size_t)ws.N); // just feed
 
 			if (ws.fin) {
 				if (callback) {
@@ -561,8 +548,7 @@ void WebSocketClient::Dispatch(void (*callback)(void* mem, size_t size)) {
 					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
 				}
 			}
-			std::string data(rxbuf.begin() + ws.header_size,
-				rxbuf.begin() + ws.header_size + (size_t)ws.N);
+			std::string data(rxbuf.begin() + ws.header_size, rxbuf.begin() + ws.header_size + (size_t)ws.N);
 			SendData(opcode_type::PONG, data.data(), data.size());
 		}
 		else if (ws.opcode == opcode_type::PONG) {}
@@ -600,8 +586,7 @@ size_t WebSocketClient::BytesToRead() {
 		ws.opcode = (opcode_type)(data[0] & 0x0f);
 		ws.mask = (data[1] & 0x80) == 0x80;
 		ws.N0 = (data[1] & 0x7f);
-		ws.header_size =
-			2 + (ws.N0 == 126 ? 2 : 0) + (ws.N0 == 127 ? 8 : 0) + (ws.mask ? 4 : 0);
+		ws.header_size = 2 + (ws.N0 == 126 ? 2 : 0) + (ws.N0 == 127 ? 8 : 0) + (ws.mask ? 4 : 0);
 
 		if (rxbuf.size() < ws.header_size) {
 			return 0; /* Need: ws.header_size -
@@ -643,8 +628,7 @@ size_t WebSocketClient::BytesToRead() {
 				// it were valid. So just Close() and
 				// return immediately for now.
 				isRxBad = true;
-				fprintf(stderr,
-					"ERROR: Frame has invalid frame length. Closing.\n");
+				fprintf(stderr, "ERROR: Frame has invalid frame length. Closing.\n");
 				Close();
 				return 0;
 			}
@@ -673,22 +657,18 @@ size_t WebSocketClient::BytesToRead() {
 
 		// We got a whole message, now do something with it:
 
-		if (ws.opcode == opcode_type::TEXT_FRAME ||
-			ws.opcode == opcode_type::BINARY_FRAME ||
-			ws.opcode == opcode_type::CONTINUATION) {
+		if (ws.opcode == opcode_type::TEXT_FRAME || ws.opcode == opcode_type::BINARY_FRAME || ws.opcode == opcode_type::CONTINUATION) {
 			if (ws.mask) {
 				for (size_t i = 0; i != ws.N; i++) {
 					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
 				}
 			}
 
-			receivedData.insert(receivedData.end(),
-				rxbuf.begin() + ws.header_size,
-				rxbuf.begin() + ws.header_size + (size_t)ws.N); // just feed
+			receivedData.insert(receivedData.end(), rxbuf.begin() + ws.header_size,
+			                    rxbuf.begin() + ws.header_size + (size_t)ws.N); // just feed
 
 			if (ws.fin) {
-				rxbuf.erase(rxbuf.begin(),
-					rxbuf.begin() + ws.header_size + (size_t)ws.N);
+				rxbuf.erase(rxbuf.begin(), rxbuf.begin() + ws.header_size + (size_t)ws.N);
 				return receivedData.size();
 
 				// receivedData.erase(receivedData.begin(),
@@ -703,8 +683,7 @@ size_t WebSocketClient::BytesToRead() {
 					rxbuf[i + ws.header_size] ^= ws.masking_key[i & 0x3];
 				}
 			}
-			std::string data(rxbuf.begin() + ws.header_size,
-				rxbuf.begin() + ws.header_size + (size_t)ws.N);
+			std::string data(rxbuf.begin() + ws.header_size, rxbuf.begin() + ws.header_size + (size_t)ws.N);
 			SendData(opcode_type::PONG, data.data(), data.size());
 		}
 		else if (ws.opcode == opcode_type::PONG) {}
@@ -769,9 +748,7 @@ void WebSocketClient::SendData(int type, const void* message, int64_t message_si
 	}
 
 	std::vector<uint8_t> header;
-	header.assign(2 + (message_size >= 126 ? 2 : 0) + (message_size >= 65536 ? 6 : 0) +
-			(useMask ? 4 : 0),
-		0x00);
+	header.assign(2 + (message_size >= 126 ? 2 : 0) + (message_size >= 65536 ? 6 : 0) + (useMask ? 4 : 0), 0x00);
 	header[0] = 0x80 | type;
 
 	if (message_size < 126) {

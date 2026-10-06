@@ -16,7 +16,11 @@ private:
 public:
 	VirtualFileSystem* VFSPtr;
 	Stream* StreamPtr;
-	enum { READ_ACCESS, WRITE_ACCESS, APPEND_ACCESS };
+	enum {
+		READ_ACCESS,
+		WRITE_ACCESS,
+		APPEND_ACCESS
+	};
 
 	static VirtualFileStream* New(VirtualFileSystem* vfs, const char* filename, Uint32 access);
 	bool IsReadable();

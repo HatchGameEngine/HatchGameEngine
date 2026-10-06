@@ -129,11 +129,7 @@ void GarbageCollector::Collect() {
 
 	for (size_t i = 0; i < MAX_OBJ_TYPE; i++) {
 		if (objectTypeFreed[i] && objectTypeCounts[i]) {
-			Log::Print(Log::LOG_VERBOSE,
-				"Freed %d %s objects out of %d.",
-				objectTypeFreed[i],
-				GetObjectTypeString(i),
-				objectTypeCounts[i]);
+			Log::Print(Log::LOG_VERBOSE, "Freed %d %s objects out of %d.", objectTypeFreed[i], GetObjectTypeString(i), objectTypeCounts[i]);
 		}
 	}
 

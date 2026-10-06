@@ -12,11 +12,7 @@ public:
 	static char DataFolderPath[MAX_PATH_LENGTH];
 
 	static bool Init(const char* dataFilePath = nullptr, bool useResourcesFolder = false);
-	static bool Mount(const char* name,
-		const char* filename,
-		const char* mountPoint,
-		VFSType type,
-		Uint16 flags);
+	static bool Mount(const char* name, const char* filename, const char* mountPoint, VFSType type, Uint16 flags);
 	static bool Unmount(const char* name);
 	static VirtualFileSystem* GetVFS();
 	static VFSProvider* GetMainResource();

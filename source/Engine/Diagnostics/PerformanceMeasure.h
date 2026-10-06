@@ -16,8 +16,7 @@ public:
 		float R, G, B;
 	} Colors;
 
-	PerformanceMeasure()
-		: StartTime(0.0), EndTime(0.0), Active(nullptr), Name(nullptr), Time(0.0) {
+	PerformanceMeasure() : StartTime(0.0), EndTime(0.0), Active(nullptr), Name(nullptr), Time(0.0) {
 		Colors.R = 0.0f;
 		Colors.G = 0.0f;
 		Colors.B = 0.0f;

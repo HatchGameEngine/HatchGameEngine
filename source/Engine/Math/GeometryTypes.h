@@ -13,7 +13,12 @@ enum {
 	GeoBooleanOp_ExclusiveOr
 };
 
-enum { GeoFillRule_EvenOdd, GeoFillRule_NonZero, GeoFillRule_Positive, GeoFillRule_Negative };
+enum {
+	GeoFillRule_EvenOdd,
+	GeoFillRule_NonZero,
+	GeoFillRule_Positive,
+	GeoFillRule_Negative
+};
 
 struct Polygon2D {
 	vector<FVector2> Points;
@@ -57,8 +62,7 @@ struct Polygon2D {
 
 	bool IsPointInside(FVector2 point) {
 		// Cannot possibly be inside
-		if (!IsValid() || point.X < MinX || point.X > MaxX || point.Y < MinY ||
-			point.Y > MaxY) {
+		if (!IsValid() || point.X < MinX || point.X > MaxX || point.Y < MinY || point.Y > MaxY) {
 			return false;
 		}
 
@@ -109,9 +113,7 @@ struct Polygon2D {
 		return false;
 	}
 
-	bool IsLineSegmentIntersecting(FLineSegment line) {
-		return IsLineSegmentIntersecting(line.A, line.B);
-	}
+	bool IsLineSegmentIntersecting(FLineSegment line) { return IsLineSegmentIntersecting(line.A, line.B); }
 
 	bool IsLineSegmentIntersecting(float x1, float y1, float x2, float y2) {
 		FLineSegment line(x1, y1, x2, y2);

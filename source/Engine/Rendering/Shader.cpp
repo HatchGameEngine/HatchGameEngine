@@ -183,9 +183,7 @@ void Shader::ValidateTextureUniformNames() {
 		int uniform = GetUniformLocation(uniformName);
 		if (uniform == -1) {
 			if (!IsBuiltinUniform(uniformName)) {
-				Log::Print(Log::LOG_WARN,
-					"No uniform named \"%s\"!",
-					uniformName.c_str());
+				Log::Print(Log::LOG_WARN, "No uniform named \"%s\"!", uniformName.c_str());
 			}
 
 			TextureUniformNames.erase(TextureUniformNames.begin() + i);
@@ -206,8 +204,7 @@ void Shader::InitTextureUnitMap() {
 		int uniform = GetUniformLocation(uniformName);
 		if (uniform == -1) {
 			if (!IsBuiltinUniform(uniformName)) {
-				throw std::runtime_error(
-					"No uniform named \"" + uniformName + "\"!");
+				throw std::runtime_error("No uniform named \"" + uniformName + "\"!");
 			}
 
 			continue;
@@ -215,10 +212,7 @@ void Shader::InitTextureUnitMap() {
 
 		if (unit >= maxTextureUnits) {
 			char buffer[64];
-			snprintf(buffer,
-				sizeof buffer,
-				"Too many texture units in use! (Maximum supported is %d)",
-				maxTextureUnits);
+			snprintf(buffer, sizeof buffer, "Too many texture units in use! (Maximum supported is %d)", maxTextureUnits);
 			throw std::runtime_error(std::string(buffer));
 		}
 

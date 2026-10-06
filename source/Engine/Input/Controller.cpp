@@ -12,39 +12,12 @@ Controller::~Controller() {
 
 #define CONST_BUTTON(x) SDL_CONTROLLER_BUTTON_##x
 
-static SDL_GameControllerButton ButtonEnums[] = {CONST_BUTTON(A),
-	CONST_BUTTON(B),
-	CONST_BUTTON(X),
-	CONST_BUTTON(Y),
-	CONST_BUTTON(BACK),
-	CONST_BUTTON(GUIDE),
-	CONST_BUTTON(START),
-	CONST_BUTTON(LEFTSTICK),
-	CONST_BUTTON(RIGHTSTICK),
-	CONST_BUTTON(LEFTSHOULDER),
-	CONST_BUTTON(RIGHTSHOULDER),
-	CONST_BUTTON(DPAD_UP),
-	CONST_BUTTON(DPAD_DOWN),
-	CONST_BUTTON(DPAD_LEFT),
-	CONST_BUTTON(DPAD_RIGHT),
-	CONST_BUTTON(MISC1),
-	CONST_BUTTON(MISC1),
-	CONST_BUTTON(TOUCHPAD),
-	CONST_BUTTON(PADDLE1),
-	CONST_BUTTON(PADDLE2),
-	CONST_BUTTON(PADDLE3),
-	CONST_BUTTON(PADDLE4),
-	CONST_BUTTON(MISC1)};
+static SDL_GameControllerButton ButtonEnums[] = {CONST_BUTTON(A), CONST_BUTTON(B), CONST_BUTTON(X), CONST_BUTTON(Y), CONST_BUTTON(BACK), CONST_BUTTON(GUIDE), CONST_BUTTON(START), CONST_BUTTON(LEFTSTICK), CONST_BUTTON(RIGHTSTICK), CONST_BUTTON(LEFTSHOULDER), CONST_BUTTON(RIGHTSHOULDER), CONST_BUTTON(DPAD_UP), CONST_BUTTON(DPAD_DOWN), CONST_BUTTON(DPAD_LEFT), CONST_BUTTON(DPAD_RIGHT), CONST_BUTTON(MISC1), CONST_BUTTON(MISC1), CONST_BUTTON(TOUCHPAD), CONST_BUTTON(PADDLE1), CONST_BUTTON(PADDLE2), CONST_BUTTON(PADDLE3), CONST_BUTTON(PADDLE4), CONST_BUTTON(MISC1)};
 
 #undef CONST_BUTTON
 #define CONST_AXIS(x) SDL_CONTROLLER_AXIS_##x
 
-static SDL_GameControllerAxis AxisEnums[] = {CONST_AXIS(LEFTX),
-	CONST_AXIS(LEFTY),
-	CONST_AXIS(RIGHTX),
-	CONST_AXIS(RIGHTY),
-	CONST_AXIS(TRIGGERLEFT),
-	CONST_AXIS(TRIGGERRIGHT)};
+static SDL_GameControllerAxis AxisEnums[] = {CONST_AXIS(LEFTX), CONST_AXIS(LEFTY), CONST_AXIS(RIGHTX), CONST_AXIS(RIGHTY), CONST_AXIS(TRIGGERLEFT), CONST_AXIS(TRIGGERRIGHT)};
 
 #undef CONST_AXIS
 
@@ -193,20 +166,16 @@ void Controller::Update() {
 }
 
 bool Controller::IsXbox() {
-	return Type == ControllerType::Xbox360 || Type == ControllerType::XboxOne ||
-		Type == ControllerType::XboxSeriesXS || Type == ControllerType::XboxElite;
+	return Type == ControllerType::Xbox360 || Type == ControllerType::XboxOne || Type == ControllerType::XboxSeriesXS || Type == ControllerType::XboxElite;
 }
 bool Controller::IsPlayStation() {
-	return Type == ControllerType::PS3 || Type == ControllerType::PS4 ||
-		Type == ControllerType::PS5;
+	return Type == ControllerType::PS3 || Type == ControllerType::PS4 || Type == ControllerType::PS5;
 }
 bool Controller::IsJoyCon() {
-	return Type == ControllerType::SwitchJoyConLeft ||
-		Type == ControllerType::SwitchJoyConRight;
+	return Type == ControllerType::SwitchJoyConLeft || Type == ControllerType::SwitchJoyConRight;
 }
 bool Controller::HasShareButton() {
-	return Type == ControllerType::XboxSeriesXS || Type == ControllerType::SwitchPro ||
-		Type == ControllerType::SwitchJoyConLeft;
+	return Type == ControllerType::XboxSeriesXS || Type == ControllerType::SwitchPro || Type == ControllerType::SwitchJoyConLeft;
 }
 bool Controller::HasMicrophoneButton() {
 	return Type == ControllerType::PS5 || Type == ControllerType::AmazonLuna;

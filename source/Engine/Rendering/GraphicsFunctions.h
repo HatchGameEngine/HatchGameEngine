@@ -14,34 +14,12 @@ struct GraphicsFunctions {
 	void (*Dispose)();
 
 	Texture* (*CreateTexture)(Uint32 format, Uint32 access, Uint32 width, Uint32 height);
-	Texture* (*CreateTextureFromPixels)(Uint32 format,
-		Uint32 width,
-		Uint32 height,
-		void* pixels,
-		int pitch);
-	bool (*ReinitializeTexture)(Texture* texture,
-		Uint32 format,
-		Uint32 access,
-		Uint32 width,
-		Uint32 height);
+	Texture* (*CreateTextureFromPixels)(Uint32 format, Uint32 width, Uint32 height, void* pixels, int pitch);
+	bool (*ReinitializeTexture)(Texture* texture, Uint32 format, Uint32 access, Uint32 width, Uint32 height);
 	int (*LockTexture)(Texture* texture, void** pixels, int* pitch);
 	int (*UpdateTexture)(Texture* texture, SDL_Rect* src, void* pixels, int pitch);
-	int (*UpdateYUVTexture)(Texture* texture,
-		SDL_Rect* src,
-		void* pixelsY,
-		int pitchY,
-		void* pixelsU,
-		int pitchU,
-		void* pixelsV,
-		int pitchV);
-	void (*CopyTexturePixels)(Texture* dest,
-		int destX,
-		int destY,
-		Texture* src,
-		int srcX,
-		int srcY,
-		int srcWidth,
-		int srcHeight);
+	int (*UpdateYUVTexture)(Texture* texture, SDL_Rect* src, void* pixelsY, int pitchY, void* pixelsU, int pitchU, void* pixelsV, int pitchV);
+	void (*CopyTexturePixels)(Texture* dest, int destX, int destY, Texture* src, int srcX, int srcY, int srcWidth, int srcHeight);
 	void (*SetTextureMinFilter)(Texture* texture, int filterMode);
 	void (*SetTextureMagFilter)(Texture* texture, int filterMode);
 	int (*SetTexturePalette)(Texture* texture, void* palette, unsigned numPaletteColors);
@@ -61,11 +39,7 @@ struct GraphicsFunctions {
 	void (*UpdateOrtho)(float left, float top, float right, float bottom);
 	void (*UpdatePerspective)(float fovy, float aspect, float near, float far);
 	void (*UpdateProjectionMatrix)();
-	void (*MakePerspectiveMatrix)(Matrix4x4* out,
-		float fov,
-		float near,
-		float far,
-		float aspect);
+	void (*MakePerspectiveMatrix)(Matrix4x4* out, float fov, float near, float far, float aspect);
 
 	void (*Clear)();
 	void (*Present)();
@@ -91,104 +65,24 @@ struct GraphicsFunctions {
 	void (*FillTriangleBlend)(float* xc, float* yc, int* colors);
 	void (*FillQuad)(float* xc, float* yc);
 	void (*FillQuadBlend)(float* xc, float* yc, int* colors);
-	void (*DrawTriangle)(Texture* texture,
-		float* xc,
-		float* yc,
-		float* tu,
-		float* tv,
-		int* colors);
+	void (*DrawTriangle)(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
 	void (*DrawQuad)(Texture* texture, float* xc, float* yc, float* tu, float* tv, int* colors);
 
-	void (*DrawTexture)(Texture* texture,
-		float sx,
-		float sy,
-		float sw,
-		float sh,
-		float x,
-		float y,
-		float w,
-		float h,
-		int paletteID);
-	void (*DrawSprite)(ISprite* sprite,
-		int animation,
-		int frame,
-		float x,
-		float y,
-		bool flipX,
-		bool flipY,
-		float scaleW,
-		float scaleH,
-		float rotation,
-		int paletteID);
-	void (*DrawSpritePart)(ISprite* sprite,
-		int animation,
-		int frame,
-		int sx,
-		int sy,
-		int sw,
-		int sh,
-		float x,
-		float y,
-		bool flipX,
-		bool flipY,
-		float scaleW,
-		float scaleH,
-		float rotation,
-		int paletteID);
+	void (*DrawTexture)(Texture* texture, float sx, float sy, float sw, float sh, float x, float y, float w, float h, int paletteID);
+	void (*DrawSprite)(ISprite* sprite, int animation, int frame, float x, float y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, int paletteID);
+	void (*DrawSpritePart)(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, float x, float y, bool flipX, bool flipY, float scaleW, float scaleH, float rotation, int paletteID);
 
 	void (*BeginTextureBatching)();
 	void (*BatchRectangleFill)(float x, float y, float w, float h, float r, float g, float b, float a);
-	void (*BatchSprite)(ISprite* sprite,
-		int animation,
-		int frame,
-		float x,
-		float y,
-		bool flipX,
-		bool flipY,
-		float scaleW,
-		float scaleH,
-		int paletteID);
-	void (*BatchSpritePart)(ISprite* sprite,
-		int animation,
-		int frame,
-		int sx,
-		int sy,
-		int sw,
-		int sh,
-		float x,
-		float y,
-		bool flipX,
-		bool flipY,
-		float scaleW,
-		float scaleH,
-		int paletteID);
+	void (*BatchSprite)(ISprite* sprite, int animation, int frame, float x, float y, bool flipX, bool flipY, float scaleW, float scaleH, int paletteID);
+	void (*BatchSpritePart)(ISprite* sprite, int animation, int frame, int sx, int sy, int sw, int sh, float x, float y, bool flipX, bool flipY, float scaleW, float scaleH, int paletteID);
 	void (*FinishTextureBatching)();
 
-	void (*DrawPolygon3D)(void* data,
-		int vertexCount,
-		int vertexFlag,
-		Texture* texture,
-		Matrix4x4* modelMatrix,
-		Matrix4x4* normalMatrix);
-	void (*DrawSceneLayer3D)(void* layer,
-		int sx,
-		int sy,
-		int sw,
-		int sh,
-		Matrix4x4* modelMatrix,
-		Matrix4x4* normalMatrix);
-	void (*DrawModel)(void* model,
-		Uint16 animation,
-		Uint32 frame,
-		Matrix4x4* modelMatrix,
-		Matrix4x4* normalMatrix);
-	void (*DrawModelSkinned)(void* model,
-		Uint16 armature,
-		Matrix4x4* modelMatrix,
-		Matrix4x4* normalMatrix);
-	void (*DrawVertexBuffer)(Uint32 vertexBufferIndex,
-		Matrix4x4* modelMatrix,
-		Matrix4x4* normalMatrix);
+	void (*DrawPolygon3D)(void* data, int vertexCount, int vertexFlag, Texture* texture, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
+	void (*DrawSceneLayer3D)(void* layer, int sx, int sy, int sw, int sh, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
+	void (*DrawModel)(void* model, Uint16 animation, Uint32 frame, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
+	void (*DrawModelSkinned)(void* model, Uint16 armature, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
+	void (*DrawVertexBuffer)(Uint32 vertexBufferIndex, Matrix4x4* modelMatrix, Matrix4x4* normalMatrix);
 	void (*BindVertexBuffer)(Uint32 vertexBufferIndex);
 	void (*UnbindVertexBuffer)();
 	void (*BindScene3D)(Uint32 sceneIndex);
@@ -206,7 +100,7 @@ struct GraphicsFunctions {
 	void (*RefreshTileBuffersForTileset)(TileLayer* layer, size_t tilesetIndex);
 	void (*DeleteTileBuffersForTileset)(TileLayer* layer, size_t tilesetIndex);
 	void (*UpdateBufferedLayerTile)(TileLayer* layer, int x, int y);
-	void (*RefreshLayerTileAnimations)(TileLayer *layer);
+	void (*RefreshLayerTileAnimations)(TileLayer* layer);
 
 	void (*SetStencilEnabled)(bool enabled);
 	void (*SetStencilTestFunc)(int stencilTest);

@@ -21,7 +21,13 @@ public:
 		AsString = value;
 	};
 
-	enum { TYPE_NULL, TYPE_INTEGER, TYPE_DECIMAL, TYPE_BOOL, TYPE_STRING };
+	enum {
+		TYPE_NULL,
+		TYPE_INTEGER,
+		TYPE_DECIMAL,
+		TYPE_BOOL,
+		TYPE_STRING
+	};
 
 	Uint8 Type;
 

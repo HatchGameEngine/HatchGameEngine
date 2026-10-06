@@ -298,8 +298,7 @@ void Compiler::SkipWhitespace() {
 
 // Token functions
 int Compiler::CheckKeyword(int start, int length, const char* rest, int type) {
-	if (scanner.Current - scanner.Start == start + length &&
-		(!rest || memcmp(scanner.Start + start, rest, length) == 0)) {
+	if (scanner.Current - scanner.Start == start + length && (!rest || memcmp(scanner.Start + start, rest, length) == 0)) {
 		return type;
 	}
 
@@ -339,13 +338,9 @@ int Compiler::GetKeywordType() {
 						if (scanner.Current - scanner.Start > 3) {
 							switch (*(scanner.Start + 3)) {
 							case 't':
-								return CheckKeyword(4,
-									4,
-									"inue",
-									TOKEN_CONTINUE);
+								return CheckKeyword(4, 4, "inue", TOKEN_CONTINUE);
 							case 's':
-								return CheckKeyword(
-									4, 1, "t", TOKEN_CONST);
+								return CheckKeyword(4, 1, "t", TOKEN_CONST);
 							}
 						}
 					}
@@ -388,8 +383,7 @@ int Compiler::GetKeywordType() {
 						if (scanner.Current - scanner.Start > 3) {
 							switch (*(scanner.Start + 3)) {
 							case 'e':
-								return CheckKeyword(
-									4, 3, "ach", TOKEN_FOREACH);
+								return CheckKeyword(4, 3, "ach", TOKEN_FOREACH);
 							}
 						}
 						return CheckKeyword(3, 0, NULL, TOKEN_FOR);
@@ -647,31 +641,17 @@ Token Compiler::ScanToken() {
 	case '%':
 		return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_MODULO : TOKEN_MODULO);
 	case '+':
-		return MakeToken(MatchChar('=')  ? TOKEN_ASSIGNMENT_PLUS
-				: MatchChar('+') ? TOKEN_INCREMENT
-						 : TOKEN_PLUS);
+		return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_PLUS : MatchChar('+') ? TOKEN_INCREMENT : TOKEN_PLUS);
 	case '-':
-		return MakeToken(MatchChar('=')  ? TOKEN_ASSIGNMENT_MINUS
-				: MatchChar('-') ? TOKEN_DECREMENT
-						 : TOKEN_MINUS);
+		return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_MINUS : MatchChar('-') ? TOKEN_DECREMENT : TOKEN_MINUS);
 	case '<':
-		return MakeToken(MatchChar('<')  ? MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_LEFT
-								  : TOKEN_BITWISE_LEFT
-				: MatchChar('=') ? TOKEN_LESS_EQUAL
-						 : TOKEN_LESS);
+		return MakeToken(MatchChar('<') ? MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_LEFT : TOKEN_BITWISE_LEFT : MatchChar('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
 	case '>':
-		return MakeToken(MatchChar('>')  ? MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_RIGHT
-								  : TOKEN_BITWISE_RIGHT
-				: MatchChar('=') ? TOKEN_GREATER_EQUAL
-						 : TOKEN_GREATER);
+		return MakeToken(MatchChar('>') ? MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_RIGHT : TOKEN_BITWISE_RIGHT : MatchChar('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
 	case '&':
-		return MakeToken(MatchChar('=')  ? TOKEN_ASSIGNMENT_BITWISE_AND
-				: MatchChar('&') ? TOKEN_LOGICAL_AND
-						 : TOKEN_BITWISE_AND);
+		return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_AND : MatchChar('&') ? TOKEN_LOGICAL_AND : TOKEN_BITWISE_AND);
 	case '|':
-		return MakeToken(MatchChar('=')  ? TOKEN_ASSIGNMENT_BITWISE_OR
-				: MatchChar('|') ? TOKEN_LOGICAL_OR
-						 : TOKEN_BITWISE_OR);
+		return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_OR : MatchChar('|') ? TOKEN_LOGICAL_OR : TOKEN_BITWISE_OR);
 	case '^':
 		return MakeToken(MatchChar('=') ? TOKEN_ASSIGNMENT_BITWISE_XOR : TOKEN_BITWISE_XOR);
 		// String
@@ -775,11 +755,7 @@ bool Compiler::ReportError(int line, int pos, bool fatal, const char* string, ..
 		buffer_printf(&buffer, "On ");
 	}
 
-	buffer_printf(&buffer,
-		"line %d, position %d:\n    %s\n\n",
-		line,
-		pos,
-		message);
+	buffer_printf(&buffer, "line %d, position %d:\n    %s\n\n", line, pos, message);
 
 	if (!fatal) {
 		if (CurrentSettings.PrintToLog) {
@@ -806,13 +782,7 @@ void Compiler::ErrorAt(Token* token, const char* message, bool fatal) {
 		ReportError(token->Line, (int)token->Pos, fatal, "%s", message);
 	}
 	else {
-		ReportError(token->Line,
-			(int)token->Pos,
-			fatal,
-			"At '%.*s': %s",
-			token->Length,
-			token->Start,
-			message);
+		ReportError(token->Line, (int)token->Pos, fatal, "At '%.*s': %s", token->Length, token->Start, message);
 	}
 }
 void Compiler::Error(const char* message) {
@@ -861,7 +831,7 @@ void Compiler::WarningInFunction(const char* format, ...) {
 		buffer_printf(&buffer, " of file '%s'", scanner.SourceFilename);
 	}
 
-	buffer_printf(&buffer, ":\n    %s\n",  message);
+	buffer_printf(&buffer, ":\n    %s\n", message);
 
 	if (CurrentSettings.PrintToLog) {
 		Log::Print(Log::LOG_WARN, textBuffer);
@@ -1003,27 +973,18 @@ void Compiler::WarnVariablesUnusedUnset() {
 		return;
 	}
 
-	std::sort(
-		warningList.begin(), warningList.end(), [](VariableWarning& a, VariableWarning& b) -> bool {
-			return a.Line < b.Line;
-		});
+	std::sort(warningList.begin(), warningList.end(), [](VariableWarning& a, VariableWarning& b) -> bool {
+		return a.Line < b.Line;
+	});
 
 	for (size_t i = 0; i < warningList.size(); i++) {
 		VariableWarning& warning = warningList[i];
 
 		if (warning.IsUnset) {
-			snprintf(temp,
-				sizeof(temp),
-				"Variable '%s' can be const. (Declared on line %d)",
-				warning.VariableName.c_str(),
-				warning.Line);
+			snprintf(temp, sizeof(temp), "Variable '%s' can be const. (Declared on line %d)", warning.VariableName.c_str(), warning.Line);
 		}
 		else if (warning.IsUnused) {
-			snprintf(temp,
-				sizeof(temp),
-				"Variable '%s' is unused. (Declared on line %d)",
-				warning.VariableName.c_str(),
-				warning.Line);
+			snprintf(temp, sizeof(temp), "Variable '%s' is unused. (Declared on line %d)", warning.VariableName.c_str(), warning.Line);
 		}
 
 		message += std::string(temp);
@@ -1210,9 +1171,7 @@ bool Compiler::MakeIndirectPropertyChainDirect(Chunk* chunk, Uint8* op, int inde
 			}
 
 			Uint8 direct = IndirectLoadOpcodeToDirect(*last);
-			if (direct != OP_GET_GLOBAL &&
-				direct != OP_GET_LOCAL &&
-				direct != OP_GET_MODULE_LOCAL) {
+			if (direct != OP_GET_GLOBAL && direct != OP_GET_LOCAL && direct != OP_GET_MODULE_LOCAL) {
 				return false;
 			}
 
@@ -1730,8 +1689,7 @@ int Compiler::ParseHexChars(Uint32* codepoint, char* src, char* srcEnd, int maxC
 		if (count == maxChars) {
 			break;
 		}
-	}
-	while (src < srcEnd);
+	} while (src < srcEnd);
 
 	return count;
 }
@@ -2005,8 +1963,7 @@ ExprContext Compiler::GetHitbox(ExprContext context) {
 		if (allConstants) {
 			VMValue value;
 			uint8_t* codePtr = CurrentChunk()->Code + pre;
-			if (!(pre + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() &&
-				    CurrentChunk()->GetConstant(pre, &value))) {
+			if (!(pre + Bytecode::GetTotalOpcodeSize(codePtr) == CodePointer() && CurrentChunk()->GetConstant(pre, &value))) {
 				allConstants = false;
 			}
 			else {
@@ -2018,8 +1975,7 @@ ExprContext Compiler::GetHitbox(ExprContext context) {
 		}
 
 		if (!MatchToken(TOKEN_COMMA)) {
-			ConsumeToken(
-				TOKEN_RIGHT_BRACE, "Expected '}' at end of hitbox constructor.");
+			ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' at end of hitbox constructor.");
 			break;
 		}
 	}
@@ -2523,15 +2479,11 @@ void Compiler::GetCaseStatement() {
 
 	// Copy code block
 	case_info.CodeBlock = (Uint8*)malloc(code_block_length * sizeof(Uint8));
-	memcpy(case_info.CodeBlock,
-		&chunk->Code[code_block_start],
-		code_block_length * sizeof(Uint8));
+	memcpy(case_info.CodeBlock, &chunk->Code[code_block_start], code_block_length * sizeof(Uint8));
 
 	// Copy line info block
 	case_info.LineBlock = (int*)malloc(code_block_length * sizeof(int));
-	memcpy(case_info.LineBlock,
-		&chunk->Lines[code_block_start],
-		code_block_length * sizeof(int));
+	memcpy(case_info.LineBlock, &chunk->Lines[code_block_start], code_block_length * sizeof(int));
 
 	chunk->Count -= code_block_length;
 
@@ -2620,7 +2572,12 @@ void Compiler::GetBlockStatement() {
 	ConsumeToken(TOKEN_RIGHT_BRACE, "Expected '}' after block.");
 }
 void Compiler::GetWithStatement() {
-	enum { WITH_STATE_INIT, WITH_STATE_ITERATE, WITH_STATE_FINISH, WITH_STATE_INIT_SLOTTED };
+	enum {
+		WITH_STATE_INIT,
+		WITH_STATE_ITERATE,
+		WITH_STATE_FINISH,
+		WITH_STATE_INIT_SLOTTED
+	};
 
 	bool useOther = true;
 	bool useOtherSlot = false;
@@ -3062,8 +3019,7 @@ int Compiler::GetFunction(int type, string className) {
 
 	try {
 		compiler->CompileFunction();
-	}
-	catch (const CompilerErrorException& error) {
+	} catch (const CompilerErrorException& error) {
 		compiler->Cleanup();
 
 		delete compiler;
@@ -3131,8 +3087,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 		}
 		else {
 			if (constant) { // don't play nice
-				ErrorAtCurrent(
-					"'const' variables must have an explicit constant declaration.");
+				ErrorAtCurrent("'const' variables must have an explicit constant declaration.");
 			}
 
 			EmitByte(OP_NULL);
@@ -3141,8 +3096,7 @@ void Compiler::GetVariableDeclaration(bool constant) {
 		VMValue value;
 		Local* locals = constant ? Constants.data() : Locals;
 		int constantIndex = -1;
-		if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() &&
-			CurrentChunk()->GetConstant(pre, &value, &constantIndex)) {
+		if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() && CurrentChunk()->GetConstant(pre, &value, &constantIndex)) {
 			if (variable != -1) {
 				locals[variable].ConstantVal = value;
 				locals[variable].Constant = constant;
@@ -3195,8 +3149,7 @@ void Compiler::GetModuleVariableDeclaration() {
 			}
 			else {
 				if (constant) { // don't play nice
-					ErrorAtCurrent(
-						"'const' variables must have an explicit constant declaration.");
+					ErrorAtCurrent("'const' variables must have an explicit constant declaration.");
 				}
 
 				EmitByte(OP_NULL);
@@ -3205,8 +3158,7 @@ void Compiler::GetModuleVariableDeclaration() {
 			int constantIndex = -1;
 
 			VMValue value;
-			if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() &&
-				CurrentChunk()->GetConstant(pre, &value, &constantIndex)) {
+			if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) == CodePointer() && CurrentChunk()->GetConstant(pre, &value, &constantIndex)) {
 				vec->at(local).ConstantVal = value;
 				if (constant) {
 					CurrentChunk()->Count = pre;
@@ -3214,9 +3166,7 @@ void Compiler::GetModuleVariableDeclaration() {
 				}
 			}
 			else if (constant) {
-				ErrorAt(&token,
-					"'const' variables must be set to a constant.",
-					true);
+				ErrorAt(&token, "'const' variables must be set to a constant.", true);
 			}
 
 			if (!constant) {
@@ -3361,12 +3311,8 @@ void Compiler::GetEnumDeclaration(bool isLocal) {
 			if (MatchToken(TOKEN_ASSIGNMENT)) {
 				int pre = CodePointer();
 				GetValueExpression();
-				if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) !=
-						CodePointer() ||
-					!CurrentChunk()->GetConstant(pre, &current, &constantIndex)) {
-					ErrorAt(&token,
-						"Manual enumeration value must be constant.",
-						true);
+				if (pre + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + pre) != CodePointer() || !CurrentChunk()->GetConstant(pre, &current, &constantIndex)) {
+					ErrorAt(&token, "Manual enumeration value must be constant.", true);
 				}
 				EmitCopy(1);
 				EmitByte(OP_SAVE_VALUE);
@@ -3415,8 +3361,7 @@ void Compiler::GetEnumDeclaration(bool isLocal) {
 				DefineVariableToken(token, true);
 
 				// treat it as a module constant
-				ModuleConstants.push_back(
-					{token, VARTYPE_MODULE_LOCAL, constantIndex, 0, false, false, true, current});
+				ModuleConstants.push_back({token, VARTYPE_MODULE_LOCAL, constantIndex, 0, false, false, true, current});
 			}
 		} while (MatchToken(TOKEN_COMMA));
 
@@ -3516,16 +3461,13 @@ void Compiler::GetDeclaration() {
 }
 
 void Compiler::MakeRules() {
-	Rules = (ParseRule*)Memory::TrackedCalloc(
-		"Compiler::Rules", TOKEN_EOF + 1, sizeof(ParseRule));
+	Rules = (ParseRule*)Memory::TrackedCalloc("Compiler::Rules", TOKEN_EOF + 1, sizeof(ParseRule));
 	// Single-character tokens.
-	Rules[TOKEN_LEFT_PAREN] =
-		ParseRule{&Compiler::GetGrouping, &Compiler::GetCall, PREC_CALL};
+	Rules[TOKEN_LEFT_PAREN] = ParseRule{&Compiler::GetGrouping, &Compiler::GetCall, PREC_CALL};
 	Rules[TOKEN_RIGHT_PAREN] = ParseRule{NULL, NULL, PREC_NONE};
 	Rules[TOKEN_LEFT_BRACE] = ParseRule{&Compiler::GetMap, NULL, PREC_CALL};
 	Rules[TOKEN_RIGHT_BRACE] = ParseRule{NULL, NULL, PREC_NONE};
-	Rules[TOKEN_LEFT_SQUARE_BRACE] =
-		ParseRule{&Compiler::GetArray, &Compiler::GetElement, PREC_CALL};
+	Rules[TOKEN_LEFT_SQUARE_BRACE] = ParseRule{&Compiler::GetArray, &Compiler::GetElement, PREC_CALL};
 	Rules[TOKEN_RIGHT_SQUARE_BRACE] = ParseRule{NULL, NULL, PREC_NONE};
 	Rules[TOKEN_COMMA] = ParseRule{NULL, NULL, PREC_NONE};
 	Rules[TOKEN_DOT] = ParseRule{NULL, &Compiler::GetDot, PREC_CALL};
@@ -3533,10 +3475,8 @@ void Compiler::MakeRules() {
 	// Operators
 	Rules[TOKEN_MINUS] = ParseRule{&Compiler::GetUnary, &Compiler::GetBinary, PREC_TERM};
 	Rules[TOKEN_PLUS] = ParseRule{NULL, &Compiler::GetBinary, PREC_TERM};
-	Rules[TOKEN_DECREMENT] =
-		ParseRule{&Compiler::GetUnary, &Compiler::GetAssignment, PREC_CALL};
-	Rules[TOKEN_INCREMENT] =
-		ParseRule{&Compiler::GetUnary, &Compiler::GetAssignment, PREC_CALL};
+	Rules[TOKEN_DECREMENT] = ParseRule{&Compiler::GetUnary, &Compiler::GetAssignment, PREC_CALL};
+	Rules[TOKEN_INCREMENT] = ParseRule{&Compiler::GetUnary, &Compiler::GetAssignment, PREC_CALL};
 	Rules[TOKEN_DIVISION] = ParseRule{NULL, &Compiler::GetBinary, PREC_FACTOR};
 	Rules[TOKEN_MULTIPLY] = ParseRule{NULL, &Compiler::GetBinary, PREC_FACTOR};
 	Rules[TOKEN_MODULO] = ParseRule{NULL, &Compiler::GetBinary, PREC_FACTOR};
@@ -3544,8 +3484,7 @@ void Compiler::MakeRules() {
 	Rules[TOKEN_BITWISE_AND] = ParseRule{NULL, &Compiler::GetBinary, PREC_BITWISE_AND};
 	Rules[TOKEN_BITWISE_OR] = ParseRule{NULL, &Compiler::GetBinary, PREC_BITWISE_OR};
 	Rules[TOKEN_BITWISE_LEFT] = ParseRule{NULL, &Compiler::GetBinary, PREC_BITWISE_SHIFT};
-	Rules[TOKEN_BITWISE_RIGHT] =
-		ParseRule{NULL, &Compiler::GetBinary, PREC_BITWISE_SHIFT};
+	Rules[TOKEN_BITWISE_RIGHT] = ParseRule{NULL, &Compiler::GetBinary, PREC_BITWISE_SHIFT};
 	Rules[TOKEN_BITWISE_NOT] = ParseRule{&Compiler::GetUnary, NULL, PREC_UNARY};
 	Rules[TOKEN_TERNARY] = ParseRule{NULL, &Compiler::GetConditional, PREC_TERNARY};
 	Rules[TOKEN_COLON] = ParseRule{NULL, NULL, PREC_NONE};
@@ -3672,8 +3611,7 @@ Uint8* Compiler::GetLastOpcodePtr(Chunk* chunk, int n) {
 	return ptr;
 }
 void Compiler::EmitByte(Uint8 byte) {
-	CurrentChunk()->Write(byte,
-		(int)((parser.Previous.Pos & 0xFFFF) << 16 | (parser.Previous.Line & 0xFFFF)));
+	CurrentChunk()->Write(byte, (int)((parser.Previous.Pos & 0xFFFF) << 16 | (parser.Previous.Line & 0xFFFF)));
 }
 void Compiler::EmitBytes(Uint8 byte1, Uint8 byte2) {
 	EmitByte(byte1);
@@ -3917,11 +3855,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 		}
 		Uint8 op = CurrentChunk()->Code[preCount];
 		VMValue constant;
-		if (preCount + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + preCount) !=
-				CodePointer() - 1 ||
-			!CurrentChunk()->GetConstant(preCount,
-				&constant,
-				&checkConstant)) {
+		if (preCount + Bytecode::GetTotalOpcodeSize(CurrentChunk()->Code + preCount) != CodePointer() - 1 || !CurrentChunk()->GetConstant(preCount, &constant, &checkConstant)) {
 			return preConstant;
 		}
 
@@ -4000,8 +3934,7 @@ int Compiler::CheckPrefixOptimize(int preCount, int preConstant, ParseFn fn) {
 		EmitConstant(out);
 		preConstant = CurrentChunk()->Constants->size();
 		if (out.Type == VAL_INTEGER) {
-			preConstant =
-				CheckPrefixOptimize(preCount, preConstant, &Compiler::GetInteger);
+			preConstant = CheckPrefixOptimize(preCount, preConstant, &Compiler::GetInteger);
 		}
 	}
 
@@ -4346,8 +4279,7 @@ int Compiler::CheckInfixOptimize(int preCount, int preConstant, ParseFn fn) {
 		preConstant = CurrentChunk()->Constants->size();
 		EmitConstant(out);
 		if (out.Type == VAL_INTEGER) {
-			preConstant =
-				CheckPrefixOptimize(preCount, preConstant, &Compiler::GetInteger);
+			preConstant = CheckPrefixOptimize(preCount, preConstant, &Compiler::GetInteger);
 		}
 	}
 
@@ -4392,16 +4324,14 @@ void Compiler::Init() {
 	}
 
 	Application::Settings->GetBool("compiler", "writeDebugInfo", &Settings.WriteDebugInfo);
-	Application::Settings->GetBool(
-		"compiler", "writeSourceFilename", &Settings.WriteSourceFilename);
+	Application::Settings->GetBool("compiler", "writeSourceFilename", &Settings.WriteSourceFilename);
 	Application::Settings->GetBool("compiler", "optimizations", &Settings.DoOptimizations);
 
 	Application::Settings->GetBool("dev", "debugCompiler", &Settings.PrintChunks);
 }
 void Compiler::GetStandardConstants() {
 	if (Compiler::StandardConstants == NULL) {
-		Compiler::StandardConstants =
-			new HashMap<VMValue>(NULL, ScriptManager::Constants->Count());
+		Compiler::StandardConstants = new HashMap<VMValue>(NULL, ScriptManager::Constants->Count());
 	}
 	Compiler::StandardConstants->Clear();
 
@@ -4491,8 +4421,7 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 		}
 
 		ConsumeToken(TOKEN_EOF, "Expected end of file.");
-	}
-	catch (const CompilerErrorException& error) {
+	} catch (const CompilerErrorException& error) {
 		Cleanup();
 		DeleteFunctions();
 
@@ -4515,12 +4444,9 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 			Function->Chunk.ModuleLocals->push_back(local);
 
 			if (UnusedVariables && !moduleLocal.Resolved) {
-				UnusedVariables->insert(
-					UnusedVariables->begin(), moduleLocal);
+				UnusedVariables->insert(UnusedVariables->begin(), moduleLocal);
 			}
-			else if (UnsetVariables &&
-				moduleLocal.ConstantVal.Type != VAL_ERROR &&
-				!moduleLocal.WasSet) {
+			else if (UnsetVariables && moduleLocal.ConstantVal.Type != VAL_ERROR && !moduleLocal.WasSet) {
 				UnsetVariables->insert(UnsetVariables->begin(), moduleLocal);
 			}
 		}
@@ -4578,10 +4504,7 @@ bool Compiler::Compile(const char* filename, const char* source, Stream* output)
 		for (size_t c = 0; c < Compiler::Functions.size(); c++) {
 			Chunk* chunk = &Compiler::Functions[c]->Chunk;
 
-			debugger->DebugChunk(chunk,
-				Compiler::Functions[c]->Name,
-				Compiler::Functions[c]->MinArity,
-				Compiler::Functions[c]->Arity);
+			debugger->DebugChunk(chunk, Compiler::Functions[c]->Name, Compiler::Functions[c]->MinArity, Compiler::Functions[c]->Arity);
 
 			if (CurrentSettings.PrintToLog) {
 				Log::PrintSimple("\n");

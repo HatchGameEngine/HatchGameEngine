@@ -99,46 +99,16 @@ void ISprite::AddAnimation(const char* name, int animationSpeed, int frameToLoop
 	AddAnimation(name, animationSpeed, frameToLoop);
 	Animations.back().Frames.reserve(frmAlloc);
 }
-void ISprite::AddFrame(int duration,
-	int left,
-	int top,
-	int width,
-	int height,
-	int pivotX,
-	int pivotY) {
+void ISprite::AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY) {
 	ISprite::AddFrame(duration, left, top, width, height, pivotX, pivotY, 0);
 }
-void ISprite::AddFrame(int duration,
-	int left,
-	int top,
-	int width,
-	int height,
-	int pivotX,
-	int pivotY,
-	int id) {
+void ISprite::AddFrame(int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id) {
 	AddFrame(Animations.size() - 1, duration, left, top, width, height, pivotX, pivotY, id);
 }
-void ISprite::AddFrame(int animID,
-	int duration,
-	int left,
-	int top,
-	int width,
-	int height,
-	int pivotX,
-	int pivotY,
-	int id) {
+void ISprite::AddFrame(int animID, int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id) {
 	AddFrame(animID, duration, left, top, width, height, pivotX, pivotY, id, 0);
 }
-void ISprite::AddFrame(int animID,
-	int duration,
-	int left,
-	int top,
-	int width,
-	int height,
-	int pivotX,
-	int pivotY,
-	int id,
-	int sheetNumber) {
+void ISprite::AddFrame(int animID, int duration, int left, int top, int width, int height, int pivotX, int pivotY, int id, int sheetNumber) {
 	AnimFrame anfrm;
 	anfrm.Advance = id;
 	anfrm.Duration = duration;
@@ -177,8 +147,7 @@ void ISprite::ConvertToNonIndexed(Uint32* palColors, unsigned numPaletteColors) 
 			}
 		}
 
-		Graphics::ConvertTextureToFormat(
-			Spritesheets[a], Graphics::TextureFormat, palette, numPaletteColors, 0);
+		Graphics::ConvertTextureToFormat(Spritesheets[a], Graphics::TextureFormat, palette, numPaletteColors, 0);
 	}
 }
 void ISprite::ConvertToIndexed(Uint32* palColors, unsigned numPaletteColors) {
@@ -191,11 +160,7 @@ void ISprite::ConvertToIndexed(Uint32* palColors, unsigned numPaletteColors) {
 	}
 
 	for (int a = 0; a < Spritesheets.size(); a++) {
-		Graphics::ConvertTextureToFormat(Spritesheets[a],
-			TextureFormat_INDEXED,
-			palColors,
-			numPaletteColors,
-			transparent);
+		Graphics::ConvertTextureToFormat(Spritesheets[a], TextureFormat_INDEXED, palColors, numPaletteColors, transparent);
 	}
 }
 
@@ -262,8 +227,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 #endif
 
 		// If the resource doesn't exist, and the path doesn't begin with 'Sprites/' or 'sprites/'
-		if (!ResourceManager::ResourceExists(sheetName.c_str()) &&
-			!StringUtils::StartsWithCaseInsensitive(sheetName.c_str(), "Sprites/")) {
+		if (!ResourceManager::ResourceExists(sheetName.c_str()) && !StringUtils::StartsWithCaseInsensitive(sheetName.c_str(), "Sprites/")) {
 			std::string altered = Path::Normalize(Path::Concat("Sprites", sheetName));
 
 			// Try with 'sprites/' if the above doesn't exist
@@ -310,14 +274,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 		an.Flags = reader->ReadByte();
 
 #ifdef ISPRITE_DEBUG
-		Log::Print(Log::LOG_VERBOSE,
-			"    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)",
-			an.Name,
-			a,
-			an.Flags,
-			an.FrameToLoop,
-			an.AnimationSpeed,
-			an.FrameCount);
+		Log::Print(Log::LOG_VERBOSE, "    \"%s\" (%d) (Flags: %02X, FtL: %d, Spd: %d, Frames: %d)", an.Name, a, an.Flags, an.FrameToLoop, an.AnimationSpeed, an.FrameCount);
 #endif
 
 		an.Frames.resize(an.FrameCount);
@@ -328,12 +285,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 			frameID++;
 
 			if (anfrm.SheetNumber >= Spritesheets.size()) {
-				Log::Print(Log::LOG_ERROR,
-					"Sheet number %d outside of range of sheet count %d! (Animation %d, Frame %d)",
-					anfrm.SheetNumber,
-					Spritesheets.size(),
-					a,
-					i);
+				Log::Print(Log::LOG_ERROR, "Sheet number %d outside of range of sheet count %d! (Animation %d, Frame %d)", anfrm.SheetNumber, Spritesheets.size(), a, i);
 			}
 
 			anfrm.Duration = reader->ReadInt16();
@@ -351,9 +303,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 				int sheetHeight = (int)sheet->Height;
 
 				if (anfrm.X >= sheetWidth || anfrm.Y >= sheetHeight) {
-					Log::Print(Log::LOG_WARN,
-						"Frame out of sheet bounds! (X:%d, Y:%d vs sheet size: %d, %d) in Animation '%s', Frame %d",
-						anfrm.X, anfrm.Y, sheetWidth, sheetHeight, an.Name, i);
+					Log::Print(Log::LOG_WARN, "Frame out of sheet bounds! (X:%d, Y:%d vs sheet size: %d, %d) in Animation '%s', Frame %d", anfrm.X, anfrm.Y, sheetWidth, sheetHeight, an.Name, i);
 					anfrm.X = 0;
 					anfrm.Y = 0;
 					anfrm.Width = 0;
@@ -380,14 +330,7 @@ bool ISprite::LoadAnimation(const char* filename) {
 			}
 
 #ifdef ISPRITE_DEBUG
-			Log::Print(Log::LOG_VERBOSE,
-				"       (X: %d, Y: %d, W: %d, H: %d, OffX: %d, OffY: %d)",
-				anfrm.X,
-				anfrm.Y,
-				anfrm.Width,
-				anfrm.Height,
-				anfrm.OffsetX,
-				anfrm.OffsetY);
+			Log::Print(Log::LOG_VERBOSE, "       (X: %d, Y: %d, W: %d, H: %d, OffX: %d, OffY: %d)", anfrm.X, anfrm.Y, anfrm.Width, anfrm.Height, anfrm.OffsetX, anfrm.OffsetY);
 #endif
 			an.Frames[i] = anfrm;
 		}

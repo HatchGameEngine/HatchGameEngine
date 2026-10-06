@@ -3,7 +3,11 @@
 
 #include <Engine/Types/Collision.h>
 
-enum { Persistence_NONE, Persistence_SCENE, Persistence_GAME };
+enum {
+	Persistence_NONE,
+	Persistence_SCENE,
+	Persistence_GAME
+};
 
 enum {
 	ACTIVE_NEVER = 0, // Never updates
@@ -17,8 +21,7 @@ enum {
 	ACTIVE_YBOUNDS = 6, // Updates within a y bound (not accounting
 	// for x bound)
 	ACTIVE_RBOUNDS = 7, // Updates within a radius (UpdateRegionW)
-	ACTIVE_DISABLED =
-		0XFF, // Disables automatic bounds checking, leaving
+	ACTIVE_DISABLED = 0XFF, // Disables automatic bounds checking, leaving
 	// update eligibility frozen in its last known state
 };
 
@@ -34,7 +37,7 @@ enum {
 	TOP_SIDES = 11,
 	BOTTOM_SIDES = 14,
 };
-};
+}; // namespace CollideSide
 
 struct Sensor {
 	int X;

@@ -106,10 +106,7 @@ static Clipper2Lib::FillRule GetFillRule(unsigned fillRule) {
 	}
 }
 
-vector<Polygon2D>* Geometry::Intersect(unsigned clipType,
-	unsigned fillRule,
-	vector<Polygon2D> inputSubjects,
-	vector<Polygon2D> inputClips) {
+vector<Polygon2D>* Geometry::Intersect(unsigned clipType, unsigned fillRule, vector<Polygon2D> inputSubjects, vector<Polygon2D> inputClips) {
 	Clipper2Lib::PathsD subjects;
 	Clipper2Lib::PathsD clips;
 

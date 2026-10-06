@@ -8,7 +8,11 @@
 #include <Engine/Includes/StandardSDL2.h>
 #include <Engine/ResourceTypes/SoundFormats/SoundFormat.h>
 
-enum { AUDIO_FORMAT_UNKNOWN, AUDIO_FORMAT_OGG, AUDIO_FORMAT_WAV };
+enum {
+	AUDIO_FORMAT_UNKNOWN,
+	AUDIO_FORMAT_OGG,
+	AUDIO_FORMAT_WAV
+};
 
 #define AUDIO_LOOP_NONE (-2)
 #define AUDIO_LOOP_DEFAULT (-1)

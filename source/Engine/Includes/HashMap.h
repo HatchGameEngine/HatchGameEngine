@@ -29,9 +29,7 @@ public:
 
 	size_t Count() { return Data.size(); }
 
-	void Put(Uint32 hash, T data) {
-		Data[hash] = data;
-	}
+	void Put(Uint32 hash, T data) { Data[hash] = data; }
 	void Put(const char* key, T data) {
 		Uint32 hash = HashFunction(key, strlen(key));
 		Put(hash, data);
@@ -48,9 +46,7 @@ public:
 		return Get(hash);
 	}
 
-	bool Exists(Uint32 hash) {
-		return Data.count(hash) > 0;
-	}
+	bool Exists(Uint32 hash) { return Data.count(hash) > 0; }
 	bool Exists(const char* key) {
 		Uint32 hash = HashFunction(key, strlen(key));
 		return Exists(hash);
@@ -81,9 +77,7 @@ public:
 		return Remove(hash);
 	}
 
-	void Clear() {
-		Data.clear();
-	}
+	void Clear() { Data.clear(); }
 
 	void ForAll(void (*forFunc)(Uint32, T)) {
 		for (auto it = Data.begin(); it != Data.end(); it++) {
@@ -123,9 +117,7 @@ public:
 		}
 	}
 
-	~HashMap<T>() {
-		Clear();
-	}
+	~HashMap<T>() { Clear(); }
 };
 
 #endif

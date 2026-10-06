@@ -22,9 +22,7 @@ public:
 		Put(hash, data);
 	}
 
-	bool Exists(Uint32 hash) {
-		return std::find(Keys.begin(), Keys.end(), hash) != Keys.end();
-	}
+	bool Exists(Uint32 hash) { return std::find(Keys.begin(), Keys.end(), hash) != Keys.end(); }
 	bool Exists(const char* key) {
 		Uint32 hash = HashMap<T>::HashFunction(key, strlen(key));
 		return Exists(hash);
@@ -88,9 +86,7 @@ public:
 		return 0xFFFFFFFF;
 	}
 
-	~OrderedHashMap<T>() {
-		Clear();
-	}
+	~OrderedHashMap<T>() { Clear(); }
 };
 
 #endif

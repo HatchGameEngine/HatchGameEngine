@@ -287,8 +287,7 @@ SceneListEntry SceneInfo::ParseEntry(XMLNode* node, size_t id) {
 
 	// Resource folder
 	if (node->attributes.Exists("resourceFolder")) {
-		entry.ResourceFolder =
-			XMLParser::TokenToString(node->attributes.Get("resourceFolder"));
+		entry.ResourceFolder = XMLParser::TokenToString(node->attributes.Get("resourceFolder"));
 	}
 	else if (entry.Folder) {
 		entry.ResourceFolder = StringUtils::Duplicate(entry.Folder);
@@ -348,8 +347,7 @@ bool SceneInfo::Load(XMLNode* node) {
 
 			std::string categoryName = "";
 			if (listElement->attributes.Exists("name")) {
-				categoryName = XMLParser::TokenToStdString(
-					listElement->attributes.Get("name"));
+				categoryName = XMLParser::TokenToStdString(listElement->attributes.Get("name"));
 			}
 
 			int categoryID = SceneInfo::GetCategoryID(categoryName.c_str());
@@ -371,9 +369,8 @@ bool SceneInfo::Load(XMLNode* node) {
 
 			for (size_t s = 0; s < listElement->children.size(); ++s) {
 				XMLNode* node = listElement->children[s];
-				if (XMLParser::MatchToken(node->name, "scene") ||
-					XMLParser::MatchToken(node->name,
-						"stage")) { // backwards
+				if (XMLParser::MatchToken(node->name, "scene") || XMLParser::MatchToken(node->name,
+				                                                                        "stage")) { // backwards
 					// compat
 					SceneListEntry entry = ParseEntry(node, s);
 

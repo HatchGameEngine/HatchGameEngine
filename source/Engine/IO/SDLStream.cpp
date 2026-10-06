@@ -24,10 +24,7 @@ SDL_RWops* SDLStream::OpenFile(const char* filename, Uint32 access) {
 	if (access == SDLStream::READ_ACCESS) {
 		Sint64 rwSize = SDL_RWsize(rw);
 		if (rwSize < 0) {
-			Log::Print(Log::LOG_ERROR,
-				"Could not get size of file \"%s\": %s",
-				filename,
-				SDL_GetError());
+			Log::Print(Log::LOG_ERROR, "Could not get size of file \"%s\": %s", filename, SDL_GetError());
 			SDL_RWclose(rw);
 			return nullptr;
 		}

@@ -16,14 +16,8 @@ private:
 	void AddFace(int faceVertexCount, Material* material);
 	int ClipFace(int faceVertexCount);
 	void DrawMesh(IModel* model, Mesh* mesh, Skeleton* skeleton, Matrix4x4& mvpMatrix);
-	void
-	DrawMesh(IModel* model, Mesh* mesh, Uint16 animation, Uint32 frame, Matrix4x4& mvpMatrix);
-	void DrawMesh(IModel* model,
-		Mesh* mesh,
-		Vector3* positionBuffer,
-		Vector3* normalBuffer,
-		Vector2* uvBuffer,
-		Matrix4x4& mvpMatrix);
+	void DrawMesh(IModel* model, Mesh* mesh, Uint16 animation, Uint32 frame, Matrix4x4& mvpMatrix);
+	void DrawMesh(IModel* model, Mesh* mesh, Vector3* positionBuffer, Vector3* normalBuffer, Vector2* uvBuffer, Matrix4x4& mvpMatrix);
 	void DrawNode(IModel* model, ModelNode* node, Matrix4x4* world);
 	void DrawModelInternal(IModel* model, Uint16 animation, Uint32 frame);
 
@@ -47,8 +41,7 @@ public:
 
 	ModelRenderer(PolygonRenderer* polyRenderer);
 	ModelRenderer(VertexBuffer* buffer);
-	void
-	SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal);
+	void SetMatrices(Matrix4x4* model, Matrix4x4* view, Matrix4x4* projection, Matrix4x4* normal);
 	void DrawModel(IModel* model, Uint16 animation, Uint32 frame);
 };
 

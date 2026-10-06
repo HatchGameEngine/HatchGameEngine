@@ -69,8 +69,7 @@ struct TileAnimator {
 
 			UpdateTile();
 
-			FrameDuration =
-				Sprite->Animations[AnimationIndex].Frames[FrameIndex].Duration;
+			FrameDuration = Sprite->Animations[AnimationIndex].Frames[FrameIndex].Duration;
 		}
 	}
 };

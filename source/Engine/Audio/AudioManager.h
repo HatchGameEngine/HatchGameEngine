@@ -42,37 +42,11 @@ public:
 	static void Init();
 	static void ClampParams(float& pan, float& speed, float& volume);
 	static void SetSound(int channel, ISound* music);
-	static void SetSound(int channel,
-		ISound* sound,
-		bool loop,
-		int loopPoint,
-		float pan,
-		float speed,
-		float volume,
-		void* origin);
+	static void SetSound(int channel, ISound* sound, bool loop, int loopPoint, float pan, float speed, float volume, void* origin);
 	static int PlaySound(ISound* music);
-	static int PlaySound(ISound* music,
-		bool loop,
-		int loopPoint,
-		float pan,
-		float speed,
-		float volume,
-		void* origin);
-	static void PushMusic(ISound* music,
-		bool loop,
-		Uint32 lp,
-		float pan,
-		float speed,
-		float volume,
-		double fadeInAfterFinished);
-	static void PushMusicAt(ISound* music,
-		double at,
-		bool loop,
-		Uint32 lp,
-		float pan,
-		float speed,
-		float volume,
-		double fadeInAfterFinished);
+	static int PlaySound(ISound* music, bool loop, int loopPoint, float pan, float speed, float volume, void* origin);
+	static void PushMusic(ISound* music, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished);
+	static void PushMusicAt(ISound* music, double at, bool loop, Uint32 lp, float pan, float speed, float volume, double fadeInAfterFinished);
 	static void RemoveMusic(ISound* music);
 	static bool IsPlayingMusic();
 	static bool IsPlayingMusic(ISound* music);

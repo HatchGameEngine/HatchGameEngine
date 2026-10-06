@@ -6,7 +6,11 @@
 
 #ifdef USING_LIBAV
 
-enum { KIT_DEC_BUF_IN = 0, KIT_DEC_BUF_OUT, KIT_DEC_BUF_COUNT };
+enum {
+	KIT_DEC_BUF_IN = 0,
+	KIT_DEC_BUF_OUT,
+	KIT_DEC_BUF_COUNT
+};
 
 typedef void (*FreePacketCallback)(void*);
 
@@ -15,11 +19,7 @@ void Decoder::FreeInVideoPacketFunc(void* packet) {
 	av_packet_free((AVPacket**)&packet);
 }
 
-void Decoder::Create(MediaSource* src,
-	int stream_index,
-	int outBufferLength,
-	void (*freeOutFunc)(void*),
-	int thread_count) {
+void Decoder::Create(MediaSource* src, int stream_index, int outBufferLength, void (*freeOutFunc)(void*), int thread_count) {
 	if (outBufferLength <= 0) {
 		Log::Print(Log::LOG_ERROR, "Decoder::Create: outBufferLength <= 0");
 		exit(-1);
@@ -60,9 +60,7 @@ void Decoder::Create(MediaSource* src,
 	// Allocate a context for the codec
 	codec_ctx = avcodec_alloc_context3(codec);
 	if (codec_ctx == NULL) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to allocate codec context for stream %d",
-			stream_index);
+		Log::Print(Log::LOG_ERROR, "Unable to allocate codec context for stream %d", stream_index);
 		goto exit_1;
 	}
 
@@ -70,12 +68,10 @@ void Decoder::Create(MediaSource* src,
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(57, 48, 101)
 	if (avcodec_copy_context(codec_ctx, format_ctx->streams[stream_index]->codec) != 0)
 #else
-	if (avcodec_parameters_to_context(codec_ctx, format_ctx->streams[stream_index]->codecpar) <
-		0)
+	if (avcodec_parameters_to_context(codec_ctx, format_ctx->streams[stream_index]->codecpar) < 0)
 #endif
 	{
-		Log::Print(
-			Log::LOG_ERROR, "Unable to copy codec context for stream %d", stream_index);
+		Log::Print(Log::LOG_ERROR, "Unable to copy codec context for stream %d", stream_index);
 		goto exit_2;
 	}
 
@@ -108,10 +104,7 @@ void Decoder::Create(MediaSource* src,
 	for (int i = 0; i < KIT_DEC_BUF_COUNT; i++) {
 		Buffer[i] = new PtrBuffer(bsizes[i], free_hooks[i]);
 		if (Buffer[i] == NULL) {
-			Log::Print(Log::LOG_ERROR,
-				"Unable to allocate buffer for stream %d: %s",
-				stream_index,
-				SDL_GetError());
+			Log::Print(Log::LOG_ERROR, "Unable to allocate buffer for stream %d: %s", stream_index, SDL_GetError());
 			goto exit_3;
 		}
 	}
@@ -119,10 +112,7 @@ void Decoder::Create(MediaSource* src,
 	// Create a lock for output buffer synchronization
 	OutputLock = SDL_CreateMutex();
 	if (OutputLock == NULL) {
-		Log::Print(Log::LOG_ERROR,
-			"Unable to allocate mutex for stream %d: %s",
-			stream_index,
-			SDL_GetError());
+		Log::Print(Log::LOG_ERROR, "Unable to allocate mutex for stream %d: %s", stream_index, SDL_GetError());
 		goto exit_3;
 	}
 

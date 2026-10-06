@@ -193,12 +193,7 @@ Uint32 ColorUtils::Make(Uint8 red, Uint8 green, Uint8 blue, Uint8 alpha, int pix
 
 	return color;
 }
-void ColorUtils::GetChannels(Uint32 color,
-	int pixelFormat,
-	Uint8& red,
-	Uint8& green,
-	Uint8& blue,
-	Uint8& alpha) {
+void ColorUtils::GetChannels(Uint32 color, int pixelFormat, Uint8& red, Uint8& green, Uint8& blue, Uint8& alpha) {
 	switch (pixelFormat) {
 	case PixelFormat_RGBA8888:
 #if HATCH_BIG_ENDIAN

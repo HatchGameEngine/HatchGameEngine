@@ -162,10 +162,7 @@ bool IModel::HasBones() {
 	return BaseArmature->NumSkeletons > 0;
 }
 
-void IModel::AnimateNode(ModelNode* node,
-	SkeletalAnim* animation,
-	Uint32 frame,
-	Matrix4x4* parentMatrix) {
+void IModel::AnimateNode(ModelNode* node, SkeletalAnim* animation, Uint32 frame, Matrix4x4* parentMatrix) {
 	NodeAnim* nodeAnim = animation->NodeLookup->Get(node->Name);
 	if (nodeAnim) {
 		UpdateChannel(node->LocalTransform, nodeAnim, frame);
@@ -294,12 +291,7 @@ Sint64 IModel::GetInBetween(Uint32 frame) {
 	return inbetween;
 }
 
-void IModel::DoVertexFrameInterpolation(Mesh* mesh,
-	ModelAnim* animation,
-	Uint32 frame,
-	Vector3** positionBuffer,
-	Vector3** normalBuffer,
-	Vector2** uvBuffer) {
+void IModel::DoVertexFrameInterpolation(Mesh* mesh, ModelAnim* animation, Uint32 frame, Vector3** positionBuffer, Vector3** normalBuffer, Vector2** uvBuffer) {
 	Uint32 startFrame = 0;
 	Uint32 animLength;
 
@@ -332,12 +324,10 @@ void IModel::DoVertexFrameInterpolation(Mesh* mesh,
 	}
 	else {
 		if (mesh->InbetweenPositions == nullptr) {
-			mesh->InbetweenPositions =
-				(Vector3*)Memory::Malloc(mesh->VertexCount * sizeof(Vector3));
+			mesh->InbetweenPositions = (Vector3*)Memory::Malloc(mesh->VertexCount * sizeof(Vector3));
 		}
 		if (mesh->InbetweenNormals == nullptr) {
-			mesh->InbetweenNormals =
-				(Vector3*)Memory::Malloc(mesh->VertexCount * sizeof(Vector3));
+			mesh->InbetweenNormals = (Vector3*)Memory::Malloc(mesh->VertexCount * sizeof(Vector3));
 		}
 
 		Vector3* outPos = mesh->InbetweenPositions;
@@ -376,22 +366,18 @@ void IModel::UpdateChannel(Matrix4x4* out, NodeAnim* channel, Uint32 frame) {
 		MakeChannelMatrix(out, &p1.Value, &r1.Value, &s1.Value);
 	}
 	else if (inbetween == 0x10000) {
-		AnimVectorKey& p2 =
-			channel->PositionKeys[(keyframe + 1) % channel->NumPositionKeys];
-		AnimQuaternionKey& r2 =
-			channel->RotationKeys[(keyframe + 1) % channel->NumRotationKeys];
+		AnimVectorKey& p2 = channel->PositionKeys[(keyframe + 1) % channel->NumPositionKeys];
+		AnimQuaternionKey& r2 = channel->RotationKeys[(keyframe + 1) % channel->NumRotationKeys];
 		AnimVectorKey& s2 = channel->ScalingKeys[(keyframe + 1) % channel->NumScalingKeys];
 
 		MakeChannelMatrix(out, &p2.Value, &r2.Value, &s2.Value);
 	}
 	else {
 		AnimVectorKey& p1 = channel->PositionKeys[keyframe % channel->NumPositionKeys];
-		AnimVectorKey& p2 =
-			channel->PositionKeys[(keyframe + 1) % channel->NumPositionKeys];
+		AnimVectorKey& p2 = channel->PositionKeys[(keyframe + 1) % channel->NumPositionKeys];
 
 		AnimQuaternionKey& r1 = channel->RotationKeys[keyframe % channel->NumRotationKeys];
-		AnimQuaternionKey& r2 =
-			channel->RotationKeys[(keyframe + 1) % channel->NumRotationKeys];
+		AnimQuaternionKey& r2 = channel->RotationKeys[(keyframe + 1) % channel->NumRotationKeys];
 
 		AnimVectorKey& s1 = channel->ScalingKeys[keyframe % channel->NumScalingKeys];
 		AnimVectorKey& s2 = channel->ScalingKeys[(keyframe + 1) % channel->NumScalingKeys];

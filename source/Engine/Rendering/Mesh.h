@@ -183,19 +183,13 @@ struct Skeleton {
 			MeshBone* bone = Bones[i];
 
 			if (bone->GlobalTransform) {
-				Matrix4x4::Multiply(bone->FinalTransform,
-					bone->InverseBindMatrix,
-					bone->GlobalTransform);
-				Matrix4x4::Multiply(bone->FinalTransform,
-					GlobalInverseMatrix,
-					bone->FinalTransform);
+				Matrix4x4::Multiply(bone->FinalTransform, bone->InverseBindMatrix, bone->GlobalTransform);
+				Matrix4x4::Multiply(bone->FinalTransform, GlobalInverseMatrix, bone->FinalTransform);
 			}
 			else {
 				// We don't have a GlobalTransform...
 				// so we just use its InverseBindMatrix
-				Matrix4x4::Multiply(bone->FinalTransform,
-					GlobalInverseMatrix,
-					bone->InverseBindMatrix);
+				Matrix4x4::Multiply(bone->FinalTransform, GlobalInverseMatrix, bone->InverseBindMatrix);
 			}
 		}
 	}
@@ -213,12 +207,9 @@ struct Skeleton {
 		Sint64 mat32 = m->Values[9] * 0x10000;
 		Sint64 mat33 = m->Values[10] * 0x10000;
 
-		result.X = FP16_MULTIPLY(mat11, v->X) + FP16_MULTIPLY(mat12, v->Y) +
-			FP16_MULTIPLY(mat13, v->Z);
-		result.Y = FP16_MULTIPLY(mat21, v->X) + FP16_MULTIPLY(mat22, v->Y) +
-			FP16_MULTIPLY(mat23, v->Z);
-		result.Z = FP16_MULTIPLY(mat31, v->X) + FP16_MULTIPLY(mat32, v->Y) +
-			FP16_MULTIPLY(mat33, v->Z);
+		result.X = FP16_MULTIPLY(mat11, v->X) + FP16_MULTIPLY(mat12, v->Y) + FP16_MULTIPLY(mat13, v->Z);
+		result.Y = FP16_MULTIPLY(mat21, v->X) + FP16_MULTIPLY(mat22, v->Y) + FP16_MULTIPLY(mat23, v->Z);
+		result.Z = FP16_MULTIPLY(mat31, v->X) + FP16_MULTIPLY(mat32, v->Y) + FP16_MULTIPLY(mat33, v->Z);
 
 		return result;
 	}
@@ -239,11 +230,9 @@ struct Skeleton {
 				BoneWeight& boneWeight = bone->Weights[w];
 
 				Uint32 vertexID = boneWeight.VertexID;
-				Sint64 weight =
-					FP16_DIVIDE(boneWeight.Weight, VertexWeights[vertexID]);
+				Sint64 weight = FP16_DIVIDE(boneWeight.Weight, VertexWeights[vertexID]);
 
-				Vector3 temp = Vector::Multiply(
-					PositionBuffer[vertexID], bone->FinalTransform);
+				Vector3 temp = Vector::Multiply(PositionBuffer[vertexID], bone->FinalTransform);
 
 				outPositions[vertexID].X += FP16_MULTIPLY(temp.X, weight);
 				outPositions[vertexID].Y += FP16_MULTIPLY(temp.Y, weight);
@@ -253,8 +242,7 @@ struct Skeleton {
 					continue;
 				}
 
-				temp = Skeleton::MultiplyMatrix3x3(
-					&NormalBuffer[vertexID], bone->FinalTransform);
+				temp = Skeleton::MultiplyMatrix3x3(&NormalBuffer[vertexID], bone->FinalTransform);
 
 				outNormals[vertexID].X += FP16_MULTIPLY(temp.X, weight);
 				outNormals[vertexID].Y += FP16_MULTIPLY(temp.Y, weight);
@@ -267,14 +255,12 @@ struct Skeleton {
 		UseTransforms = true;
 
 		if (TransformedPositions == nullptr) {
-			TransformedPositions =
-				(Vector3*)Memory::Malloc(NumVertices * sizeof(Vector3));
+			TransformedPositions = (Vector3*)Memory::Malloc(NumVertices * sizeof(Vector3));
 		}
 
 		// Only if we have a normal buffer
 		if (TransformedNormals == nullptr && NormalBuffer) {
-			TransformedNormals =
-				(Vector3*)Memory::Malloc(NumVertices * sizeof(Vector3));
+			TransformedNormals = (Vector3*)Memory::Malloc(NumVertices * sizeof(Vector3));
 		}
 	}
 
