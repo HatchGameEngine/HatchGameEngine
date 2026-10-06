@@ -384,7 +384,6 @@ size_t Application::ProcessCommandLineOption(std::string arg, size_t i) {
 		UseResourceFilename = true;
 		return i + 1;
 	}
-	else
 #endif
 	// Specify the path to use for the Scripts directory
 	if (arg == "--scripts-dir") {
