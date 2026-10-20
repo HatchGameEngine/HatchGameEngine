@@ -1008,7 +1008,7 @@ VMValue Animator_GetCurrentFrame(int argCount, VMValue* args, Uint32 threadID) {
  * \desc Gets the frame ID of the current frame of an animator.
  * \param animator (integer): The index of the animator.
  * \return integer Returns the frame ID of the animator's current sprite frame.
- * \ns Sprite
+ * \ns Animator
  */
 VMValue Animator_GetFrameID(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
