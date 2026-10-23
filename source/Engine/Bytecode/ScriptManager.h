@@ -66,6 +66,8 @@ public:
 	static void RegistryRemove(Obj* obj);
 	static bool DoIntegerConversion(VMValue& value, Uint32 threadID);
 	static bool DoDecimalConversion(VMValue& value, Uint32 threadID);
+	static bool DoIntegerConversion(VMValue& value, Uint32 hash, Uint32 threadID);
+	static bool DoDecimalConversion(VMValue& value, Uint32 hash, Uint32 threadID);
 	static bool Lock();
 	static void Unlock();
 	static void DefineMethod(VMThread* thread, ObjFunction* function, Uint32 hash);

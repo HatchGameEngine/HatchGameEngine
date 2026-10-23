@@ -396,6 +396,38 @@ bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 threadID) {
 	value = result;
 	return true;
 }
+bool ScriptManager::DoIntegerConversion(VMValue& value, Uint32 hash, Uint32 threadID) {
+	VMValue result = Value::CastAsInteger(value);
+	if (IS_NULL(result)) {
+		// Conversion failed
+		VMThread* thread = &ScriptManager::Threads[threadID];
+		const char* name = thread->GetVariableOrMethodName(hash);
+		thread->ThrowRuntimeError(false,
+			"Expected %s to be assigned a value of type %s; value was of type %s.",
+			name,
+			GetTypeString(VAL_INTEGER),
+			GetValueTypeString(value));
+		return false;
+	}
+	value = result;
+	return true;
+}
+bool ScriptManager::DoDecimalConversion(VMValue& value, Uint32 hash, Uint32 threadID) {
+	VMValue result = Value::CastAsDecimal(value);
+	if (IS_NULL(result)) {
+		// Conversion failed
+		VMThread* thread = &ScriptManager::Threads[threadID];
+		const char* name = thread->GetVariableOrMethodName(hash);
+		thread->ThrowRuntimeError(false,
+			"Expected %s to be assigned a value of type %s; value was of type %s.",
+			name,
+			GetTypeString(VAL_DECIMAL),
+			GetValueTypeString(value));
+		return false;
+	}
+	value = result;
+	return true;
+}
 
 void ScriptManager::DestroyObject(Obj* object) {
 	switch (object->Type) {

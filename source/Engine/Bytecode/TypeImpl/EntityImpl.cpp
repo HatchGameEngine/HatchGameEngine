@@ -96,7 +96,7 @@ bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 	Entity* entity = (Entity*)objEntity->EntityPtr;
 
 	if (hash == Hash_HitboxLeft) {
-		if (ScriptManager::DoDecimalConversion(value, threadID)) {
+		if (ScriptManager::DoDecimalConversion(value, hash, threadID)) {
 			if (entity) {
 				entity->Hitbox.SetLeft(AS_DECIMAL(value));
 			}
@@ -104,7 +104,7 @@ bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 		return true;
 	}
 	else if (hash == Hash_HitboxTop) {
-		if (ScriptManager::DoDecimalConversion(value, threadID)) {
+		if (ScriptManager::DoDecimalConversion(value, hash, threadID)) {
 			if (entity) {
 				entity->Hitbox.SetTop(AS_DECIMAL(value));
 			}
@@ -112,7 +112,7 @@ bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 		return true;
 	}
 	else if (hash == Hash_HitboxRight) {
-		if (ScriptManager::DoDecimalConversion(value, threadID)) {
+		if (ScriptManager::DoDecimalConversion(value, hash, threadID)) {
 			if (entity) {
 				entity->Hitbox.SetRight(AS_DECIMAL(value));
 			}
@@ -120,7 +120,7 @@ bool EntityImpl::VM_PropertySet(Obj* object, Uint32 hash, VMValue value, Uint32 
 		return true;
 	}
 	else if (hash == Hash_HitboxBottom) {
-		if (ScriptManager::DoDecimalConversion(value, threadID)) {
+		if (ScriptManager::DoDecimalConversion(value, hash, threadID)) {
 			if (entity) {
 				entity->Hitbox.SetBottom(AS_DECIMAL(value));
 			}
