@@ -6,6 +6,7 @@
 #include <Engine/Bytecode/ScriptEntity.h>
 #include <Engine/Bytecode/ScriptManager.h>
 #include <Engine/Bytecode/TypeImpl/FontImpl.h>
+#include <Engine/Bytecode/TypeImpl/InstanceImpl.h>
 #include <Engine/Bytecode/TypeImpl/ShaderImpl.h>
 #include <Engine/Bytecode/TypeImpl/StreamImpl.h>
 #include <Engine/Bytecode/TypeImpl/TextureImpl.h>
@@ -9915,27 +9916,44 @@ VMValue Instance_SetUseRenderRegions(int argCount, VMValue* args, Uint32 threadI
 }
 /***
  * Instance.Copy
- * \desc Copies an instance into another.
- * \param destInstance (Entity): The destination instance.
- * \param srcInstance (Entity): The source instance.
- * \paramOpt copyClass (boolean): Whether to copy the class of the source entity. (default: `true`)
+ * \desc Copies an entity into another, replacing the destination's class, fields, and properties.
+ * \param destInstance (instance): The destination entity or instance.
+ * \param srcInstance (instance): The source entity or instance.
+ * \paramOpt copyClass (boolean): Whether to copy the class of the source entity. Both <param destInstance> and <param srcInstance> must be an <ref Entity> for this parameter to work. (default: `true`)
  * \ns Instance
  */
 VMValue Instance_Copy(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_AT_LEAST_ARGCOUNT(2);
-	ObjEntity* destInstance = GET_ARG(0, GetEntity);
-	ObjEntity* srcInstance = GET_ARG(1, GetEntity);
+	ObjInstance* destInstance = GET_ARG(0, GetInstance);
+	ObjInstance* srcInstance = GET_ARG(1, GetInstance);
 	bool copyClass = !!GET_ARG_OPT(2, GetInteger, true);
 
 	if (!destInstance || !srcInstance) {
-		return INTEGER_VAL(false);
+		return NULL_VAL;
 	}
 
-	ScriptEntity* destEntity = (ScriptEntity*)destInstance->EntityPtr;
-	ScriptEntity* srcEntity = (ScriptEntity*)srcInstance->EntityPtr;
-	if (destEntity && srcEntity) {
-		srcEntity->Copy(destEntity, copyClass);
+	if (IS_ENTITY(args[0])) {
+		ObjEntity* objDestEntity = (ObjEntity*)destInstance;
+		ScriptEntity* destEntity = (ScriptEntity*)objDestEntity->EntityPtr;
+		if (!destEntity) {
+			return NULL_VAL;
+		}
+
+		if (IS_ENTITY(args[1])) {
+			ObjEntity* objSrcEntity = (ObjEntity*)srcInstance;
+			ScriptEntity* srcEntity = (ScriptEntity*)objSrcEntity->EntityPtr;
+			if (srcEntity) {
+				srcEntity->Copy(destEntity, copyClass);
+			}
+		}
+		else {
+			destEntity->CopyFieldsFromInstance(srcInstance, &ScriptManager::Threads[threadID]);
+		}
+
+		return NULL_VAL;
 	}
+
+	InstanceImpl::CopyFields(destInstance, srcInstance);
 
 	return NULL_VAL;
 }
