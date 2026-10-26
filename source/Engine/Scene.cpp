@@ -727,6 +727,7 @@ void Scene::Init() {
 		Scene::Views[i].Height = Application::WindowHeight;
 		Scene::Views[i].OutputWidth = Application::WindowWidth;
 		Scene::Views[i].OutputHeight = Application::WindowHeight;
+		Scene::Views[i].AspectMode = ASPECTMODE_FIT;
 		Scene::Views[i].Stride = Math::CeilPOT(Scene::Views[i].Width);
 		Scene::Views[i].FOV = 45.0f;
 		Scene::Views[i].UsePerspective = false;
