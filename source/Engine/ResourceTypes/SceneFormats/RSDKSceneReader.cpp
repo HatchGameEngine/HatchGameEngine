@@ -484,6 +484,10 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 					val = Property::MakeArray(array);
 					break;
 				}
+				// Float
+				case 0xA:
+					val = Property::MakeDecimal(r->ReadFloat());
+					break;
 				// Color
 				case 0xB:
 					val = Property::MakeInteger((int)r->ReadUInt32());
@@ -534,6 +538,10 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 				// Position
 				case 0x9:
 					r->Skip(8);
+					break;
+				// Float
+				case 0xA:
+					r->Skip(4);
 					break;
 				// Color
 				case 0xB:
