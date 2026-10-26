@@ -152,10 +152,10 @@ enum {
 enum { TEXTDRAW_ELLIPSIS = 1 << 0 };
 
 enum {
-	AspectMode_None,
-	AspectMode_Stretch,
-	AspectMode_Fit,
-	AspectMode_Fill
+	ASPECTMODE_NONE,
+	ASPECTMODE_STRETCH,
+	ASPECTMODE_FIT,
+	ASPECTMODE_FILL
 };
 
 struct TileScanLine {

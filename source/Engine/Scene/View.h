@@ -30,7 +30,7 @@ public:
 	float OutputY = 0.0f;
 	float OutputWidth = 1.0f;
 	float OutputHeight = 1.0f;
-	int AspectMode = AspectMode_Fit;
+	int AspectMode = ASPECTMODE_FIT;
 	int Stride = 1;
 	float FOV = 45.0f;
 	float NearPlane = 0.1f;
