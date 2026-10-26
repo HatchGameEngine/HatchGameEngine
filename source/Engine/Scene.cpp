@@ -1605,20 +1605,20 @@ void Scene::Render() {
 				float out_w = 0.0f, out_h = 0.0f;
 				switch (currentView->AspectMode) {
 				// None
-				case AspectMode_None:
+				case ASPECTMODE_NONE:
 					out_x = currentView->OutputX * (win_w / (float)Application::WindowWidth);
 					out_y = currentView->OutputY * (win_h / (float)Application::WindowHeight);
 					out_w = currentView->OutputWidth * (win_w / (float)Application::WindowWidth);
 					out_h = currentView->OutputHeight * (win_h / (float)Application::WindowHeight);
 					break;
 				// Stretch
-				case AspectMode_Stretch:
+				case ASPECTMODE_STRETCH:
 					out_w = win_w;
 					out_h = win_h;
 					break;
 				// Fit to aspect ratio
 				// This is the default.
-				case AspectMode_Fit:
+				case ASPECTMODE_FIT:
 					if (win_w / currentView->Width <
 						win_h / currentView->Height) {
 						out_w = win_w;
@@ -1634,7 +1634,7 @@ void Scene::Render() {
 					out_y = (win_h - out_h) * 0.5f;
 					break;
 				// Fill to aspect ratio
-				case AspectMode_Fill:
+				case ASPECTMODE_FILL:
 					if (win_w / currentView->Width >
 						win_h / currentView->Height) {
 						out_w = win_w;

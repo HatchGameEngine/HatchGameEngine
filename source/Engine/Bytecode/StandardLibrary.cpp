@@ -19757,8 +19757,8 @@ VMValue View_SetAspectMode(int argCount, VMValue* args, Uint32 threadID) {
 	int view_index = GET_ARG(0, GetInteger);
 	int aspectMode = GET_ARG(1, GetInteger);
 	CHECK_VIEW_INDEX();
-	if (aspectMode < AspectMode_None || aspectMode > AspectMode_Fill) {
-		OUT_OF_RANGE_ERROR("Aspect mode", aspectMode, AspectMode_None, AspectMode_Fill);
+	if (aspectMode < ASPECTMODE_NONE || aspectMode > ASPECTMODE_FILL) {
+		OUT_OF_RANGE_ERROR("Aspect mode", aspectMode, ASPECTMODE_NONE, ASPECTMODE_FILL);
 		return NULL_VAL;
 	}
 	Scene::Views[view_index].AspectMode = aspectMode;
@@ -23323,22 +23323,22 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
     * \enum ASPECTMODE_NONE
     * \desc Content isn't resized.
     */
-	DEF_CONST_INT("ASPECTMODE_NONE", AspectMode_None);
+	DEF_ENUM(ASPECTMODE_NONE);
 	/***
     * \enum ASPECTMODE_STRETCH
     * \desc Stretches the content without preserving the aspect ratio.
     */
-	DEF_CONST_INT("ASPECTMODE_STRETCH", AspectMode_Stretch);
+	DEF_ENUM(ASPECTMODE_STRETCH);
 	/***
     * \enum ASPECTMODE_FIT
     * \desc Resizes the content to fit within its container, preserving the aspect ratio.
     */
-	DEF_CONST_INT("ASPECTMODE_FIT", AspectMode_Fit);
+	DEF_ENUM(ASPECTMODE_FIT);
 	/***
     * \enum ASPECTMODE_FILL
     * \desc Resizes the content to fill its container, preserving the aspect ratio, but potentially cropping it.
     */
-	DEF_CONST_INT("ASPECTMODE_FILL", AspectMode_Fill);
+	DEF_ENUM(ASPECTMODE_FILL);
 	// #endregion
 
 	/***
