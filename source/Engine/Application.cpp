@@ -87,9 +87,9 @@ char Application::WindowTitle[256];
 int Application::WindowWidth = 424;
 int Application::WindowHeight = 240;
 int Application::WindowScale = 2;
+bool Application::WindowResizable = false;
 bool Application::WindowFullscreen = false;
 bool Application::WindowBorderless = false;
-
 int Application::DefaultMonitor = 0;
 
 char Application::EngineVersion[256];
@@ -487,6 +487,9 @@ void Application::CreateWindow() {
 	window_flags |= Graphics::GetWindowFlags();
 	if (allowRetina) {
 		window_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+	}
+	if (Application::WindowResizable) {
+		window_flags |= SDL_WINDOW_RESIZABLE;
 	}
 
 	int scale = 2;
@@ -1458,15 +1461,15 @@ void Application::LoadDevSettings() {
 #endif
 }
 
-bool Application::IsWindowResizeable() {
-	return !Application::IsMobile();
+bool Application::IsWindowResizable() {
+	if (Application::GetWindowFullscreen() || !Application::IsPC()) {
+		return false;
+	}
+
+	return (SDL_GetWindowFlags(Application::Window) & SDL_WINDOW_RESIZABLE) != 0;
 }
 
 void Application::SetWindowSize(int window_w, int window_h) {
-	if (!Application::IsWindowResizeable()) {
-		return;
-	}
-
 	if (Application::Window == nullptr) {
 		return;
 	}
@@ -1516,7 +1519,11 @@ void Application::SetWindowFullscreen(bool isFullscreen) {
 
 	Graphics::Resize(window_w, window_h);
 }
+void Application::SetWindowResizable(bool isResizable) {
+	Application::WindowResizable = isResizable;
 
+	SDL_SetWindowResizable(Application::Window, (SDL_bool)isResizable);
+}
 void Application::SetWindowBorderless(bool isBorderless) {
 	Application::WindowBorderless = isBorderless;
 	Application::Settings->SetBool("display", "borderless", isBorderless);
@@ -2334,6 +2341,7 @@ void Application::LoadGameConfig() {
 	if (node) {
 		ParseGameConfigInt(node, "width", Application::WindowWidth);
 		ParseGameConfigInt(node, "height", Application::WindowHeight);
+		ParseGameConfigBool(node, "resizable", Application::WindowResizable);
 	}
 
 	// Read audio defaults
@@ -3852,7 +3860,7 @@ void Application::DevMenu_VideoMenu() {
 			if (DevMenu.SubSelection == 3) { // Confirm
 				Application::SetWindowFullscreen(DevMenu.Fullscreen);
 				Application::SetWindowBorderless(DevMenu.WindowBorderless);
-				if (Application::IsWindowResizeable()) {
+				if (Application::IsWindowResizable()) {
 					Application::SetWindowScale(DevMenu.WindowScale);
 				}
 			}

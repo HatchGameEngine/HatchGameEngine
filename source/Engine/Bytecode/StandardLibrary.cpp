@@ -20235,18 +20235,26 @@ VMValue View_CheckPosOnScreen(int argCount, VMValue* args, Uint32 threadID) {
 /***
  * Window.SetSize
  * \desc Sets the size of the active window.
- * \param width (number): Window width
- * \param height (number): Window height
+ * \param width (number): The window width.
+ * \param height (number): The window height.
  * \ns Window
  */
 VMValue Window_SetSize(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(2);
-	if (!Application::IsWindowResizeable()) {
-		return NULL_VAL;
-	}
-
 	int window_w = (int)GET_ARG(0, GetDecimal);
 	int window_h = (int)GET_ARG(1, GetDecimal);
+	if (window_w < 1) {
+		if (THROW_ERROR("Window width cannot be lower than 1.") != ERROR_RES_CONTINUE) {
+			return NULL_VAL;
+		}
+		window_w = 1;
+	}
+	if (window_h < 1) {
+		if (THROW_ERROR("Window height cannot be lower than 1.") != ERROR_RES_CONTINUE) {
+			return NULL_VAL;
+		}
+		window_h = 1;
+	}
 	Application::WindowWidth = window_w;
 	Application::WindowHeight = window_h;
 	Application::SetWindowSize(
@@ -20274,6 +20282,21 @@ VMValue Window_SetScale(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	int scale = GET_ARG(0, GetInteger);
 	Application::SetWindowScale(scale);
+	return NULL_VAL;
+}
+/***
+ * Window.SetResizeable
+ * \desc Sets the resizeable state of the active window.
+ * \param isResizeable (boolean): Whether or not the window should be resizeable.
+ * \ns Window
+ */
+VMValue Window_SetResizeable(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	if (Application::GetWindowFullscreen()) {
+		THROW_ERROR("Cannot change the resizeable state of a fullscreen window.");
+		return NULL_VAL;
+	}
+	Application::SetWindowResizable(GET_ARG(0, GetInteger));
 	return NULL_VAL;
 }
 /***
@@ -20409,13 +20432,13 @@ VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Window.IsResizeable
- * \desc Gets whether the active window is resizeable.
- * \return boolean Returns whether the window is resizeable.
+ * \desc Gets whether the active window can be resized by the user.
+ * \return boolean Returns `true` if the window is resizeable, `false` if otherwise.
  * \ns Window
  */
 VMValue Window_IsResizeable(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return INTEGER_VAL(Application::IsWindowResizeable());
+	return INTEGER_VAL(Application::IsWindowResizable());
 }
 // #endregion
 
@@ -23096,6 +23119,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Window, SetSize);
 	DEF_NATIVE(Window, SetFullscreen);
 	DEF_NATIVE(Window, SetScale);
+	DEF_NATIVE(Window, SetResizeable);
 	DEF_NATIVE(Window, SetBorderless);
 	DEF_NATIVE(Window, SetVSync);
 	DEF_NATIVE(Window, SetPosition);
