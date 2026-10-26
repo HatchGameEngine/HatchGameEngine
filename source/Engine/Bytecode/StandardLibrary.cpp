@@ -23336,7 +23336,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_CONST_INT("ASPECTMODE_FIT", AspectMode_Fit);
 	/***
     * \enum ASPECTMODE_FILL
-    * \desc Resizes the content to fill container, preserving the aspect ratio, but potentially cropping it.
+    * \desc Resizes the content to fill its container, preserving the aspect ratio, but potentially cropping it.
     */
 	DEF_CONST_INT("ASPECTMODE_FILL", AspectMode_Fill);
 	// #endregion
