@@ -1582,6 +1582,8 @@ void Scene::Render() {
 	SDL2Renderer::GetMetalSize(&ren_w, &ren_h);
 #endif
 
+	bool isFullscreen = Application::GetWindowFullscreen();
+
 	int viewCount = Scene::ViewsActive;
 	for (int i = 0; i < viewCount; i++) {
 		int viewIndex = ViewRenderList[i];
@@ -1607,10 +1609,18 @@ void Scene::Render() {
 				switch (currentView->AspectMode) {
 				// None
 				case ASPECTMODE_NONE:
-					out_x = currentView->OutputX * (win_w / (float)Application::WindowWidth);
-					out_y = currentView->OutputY * (win_h / (float)Application::WindowHeight);
-					out_w = currentView->OutputWidth * (win_w / (float)Application::WindowWidth);
-					out_h = currentView->OutputHeight * (win_h / (float)Application::WindowHeight);
+					out_x = currentView->OutputX;
+					out_y = currentView->OutputY;
+					out_w = currentView->OutputWidth;
+					out_h = currentView->OutputHeight;
+
+					if (!isFullscreen) {
+						float scale = Application::WindowScale;
+						out_x *= scale;
+						out_y *= scale;
+						out_w *= scale;
+						out_h *= scale;
+					}
 					break;
 				// Stretch
 				case ASPECTMODE_STRETCH:
