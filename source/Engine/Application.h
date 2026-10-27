@@ -122,6 +122,7 @@ public:
 	static int WindowWidth;
 	static int WindowHeight;
 	static int WindowScale;
+	static bool WindowResizable;
 	static bool WindowFullscreen;
 	static bool WindowBorderless;
 	static int DefaultMonitor;
@@ -191,10 +192,11 @@ public:
 	static void SetMasterVolume(int volume);
 	static void SetMusicVolume(int volume);
 	static void SetSoundVolume(int volume);
-	static bool IsWindowResizeable();
+	static bool IsWindowResizable();
 	static void SetWindowSize(int window_w, int window_h);
 	static bool GetWindowFullscreen();
 	static void SetWindowFullscreen(bool isFullscreen);
+	static void SetWindowResizable(bool isResizable);
 	static void SetWindowBorderless(bool isBorderless);
 	static void SetWindowScale(int scale);
 	static int GetKeyBind(int bind);
