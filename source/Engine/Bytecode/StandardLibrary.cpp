@@ -20427,18 +20427,33 @@ VMValue Window_GetScale(int argCount, VMValue* args, Uint32 threadID) {
 	return INTEGER_VAL(Application::WindowScale);
 }
 /***
- * Window.IsResizable
- * \desc Gets whether the active window can be resized by the user.
+ * Window.GetResizable
+ * \desc Gets the resizable state of the active window.
  * \return boolean Returns `true` if the window is resizable, `false` if otherwise.
  * \ns Window
  */
-VMValue Window_IsResizable(int argCount, VMValue* args, Uint32 threadID) {
+VMValue Window_GetResizable(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(0);
+	return INTEGER_VAL(Application::WindowResizable);
+}
+/***
+ * Window.CanBeResized
+ * \desc Gets whether the active window can be resized by the user.
+ * \return boolean Returns `true` if the window can be resized, `false` if otherwise.
+ * \ns Window
+ */
+VMValue Window_CanBeResized(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
 	return INTEGER_VAL(Application::IsWindowResizable());
 }
+/***
+ * Window.IsResizeable
+ * \deprecated Use <ref Window.CanBeResized> instead.
+ * \ns Window
+ */
 VMValue Window_IsResizeable(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
-	return Window_IsResizable(argCount, args, threadID);
+	return Window_CanBeResized(argCount, args, threadID);
 }
 // #endregion
 
@@ -23130,7 +23145,8 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Window, GetHeight);
 	DEF_NATIVE(Window, GetFullscreen);
 	DEF_NATIVE(Window, GetScale);
-	DEF_NATIVE(Window, IsResizable);
+	DEF_NATIVE(Window, GetResizable);
+	DEF_NATIVE(Window, CanBeResized);
 	DEF_NATIVE(Window, IsResizeable);
 	// #endregion
 

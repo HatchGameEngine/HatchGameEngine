@@ -1448,6 +1448,10 @@ bool Application::IsWindowResizable() {
 #ifdef CONSOLE_PLATFORM
 	return false;
 #else
+	if (Application::GetWindowFullscreen()) {
+		return false;
+	}
+
 	return (SDL_GetWindowFlags(Application::Window) & SDL_WINDOW_RESIZABLE) != 0;
 #endif
 }
@@ -3853,9 +3857,7 @@ void Application::DevMenu_VideoMenu() {
 			if (DevMenu.SubSelection == 3) { // Confirm
 				Application::SetWindowFullscreen(DevMenu.Fullscreen);
 				Application::SetWindowBorderless(DevMenu.WindowBorderless);
-				if (Application::IsWindowResizable()) {
-					Application::SetWindowScale(DevMenu.WindowScale);
-				}
+				Application::SetWindowScale(DevMenu.WindowScale);
 			}
 			else { // Cancel
 				DevMenu.WindowScale = Application::WindowScale;
