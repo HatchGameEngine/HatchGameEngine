@@ -19920,6 +19920,58 @@ VMValue View_GetCenterY(int argCount, VMValue* args, Uint32 threadID) {
 	return DECIMAL_VAL(((float)Scene::Views[view_index].Height) / 2.0f);
 }
 /***
+ * View.GetOutputX
+ * \desc Gets the x-axis output position of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputX(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputX);
+}
+/***
+ * View.GetOutputY
+ * \desc Gets the y-axis output position of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputY(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputY);
+}
+/***
+ * View.GetOutputWidth
+ * \desc Gets the output width of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputWidth(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputWidth);
+}
+/***
+ * View.GetOutputHeight
+ * \desc Gets the output height of the specified view.
+ * \param viewIndex (integer): Index of the view.
+ * \return decimal Returns a decimal value.
+ * \ns View
+ */
+VMValue View_GetOutputHeight(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int view_index = GET_ARG(0, GetInteger);
+	CHECK_VIEW_INDEX();
+	return DECIMAL_VAL(Scene::Views[view_index].OutputHeight);
+}
+/***
  * View.GetAspectMode
  * \desc Gets the aspect mode of the specified view.
  * \param viewIndex (integer): Index of the view.
@@ -23098,6 +23150,10 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(View, GetHeight);
 	DEF_NATIVE(View, GetCenterX);
 	DEF_NATIVE(View, GetCenterY);
+	DEF_NATIVE(View, GetOutputX);
+	DEF_NATIVE(View, GetOutputY);
+	DEF_NATIVE(View, GetOutputWidth);
+	DEF_NATIVE(View, GetOutputHeight);
 	DEF_NATIVE(View, GetAspectMode);
 	DEF_NATIVE(View, IsUsingDrawTarget);
 	DEF_NATIVE(View, SetUseDrawTarget);
