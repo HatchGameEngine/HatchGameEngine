@@ -14391,6 +14391,10 @@ VMValue Scene_CopyTiles(int argCount, VMValue* args, Uint32 threadID) {
 					dstLayer->Tiles[(x + dstStartX) + ((y + dstStartY) << dstLayer->WidthInBits)] = tile;
 				}
 			}
+
+			if (dstLayer->UsingTileBuffers) {
+				dstLayer->RemakeTileBuffers = true;
+			}
 		}
 	}
 
