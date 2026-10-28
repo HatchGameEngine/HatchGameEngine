@@ -717,6 +717,10 @@ float textAdvance;
 	if (layerIdx < 0 || layerIdx >= (int)Scene::Layers.size()) { \
 		OUT_OF_RANGE_ERROR("Layer index", layerIdx, 0, (int)Scene::Layers.size() - 1); \
 		return NULL_VAL; \
+	} \
+	if (Scene::Layers[layerIdx] == nullptr) { \
+		THROW_ERROR("Layer index %d is invalid.", layerIdx); \
+		return NULL_VAL; \
 	}
 
 #define CHECK_IS_TILE_LAYER(layerIdx) \
@@ -13215,6 +13219,10 @@ VMValue Scene_GetLayerIndex(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(1);
 	char* layername = GET_ARG(0, GetString);
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
+		if (Scene::Layers[i] == nullptr) {
+			continue;
+		}
+
 		if (strcmp(Scene::Layers[i]->Name, layername) == 0) {
 			return INTEGER_VAL((int)i);
 		}
@@ -13308,18 +13316,30 @@ VMValue Scene_GetLayerProperty(int argCount, VMValue* args, Uint32 threadID) {
 	return Value::FromProperty(Scene::Layers[index]->PropertyGet(property));
 }
 /***
+ * Scene.IsLayerValid
+ * \desc Checks whether the given layer index is a valid layer.
+ * \param layerIndex (integer): Index of layer.
+ * \return boolean Returns a boolean value.
+ * \ns Scene
+ */
+VMValue Scene_IsLayerValid(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+	if (index < 0 || index >= (int)Scene::Layers.size() || Scene::Layers[index] == nullptr) {
+		return INTEGER_VAL(false);
+	}
+	return INTEGER_VAL(true);
+}
+/***
  * Scene.GetLayerExists
  * \desc Gets whether a layer exists.
  * \param layerIndex (integer): Index of layer.
  * \return boolean Returns a boolean value.
- * \deprecated
+ * \deprecated Use <ref Scene.IsLayerValid> instead.
  * \ns Scene
  */
 VMValue Scene_GetLayerExists(int argCount, VMValue* args, Uint32 threadID) {
-	CHECK_ARGCOUNT(1);
-	int index = GET_ARG(0, GetInteger);
-	CHECK_SCENE_LAYER_INDEX(index);
-	return INTEGER_VAL(index < Scene::Layers.size());
+	return Scene_IsLayerValid(argCount, args, threadID);
 }
 /***
  * Scene.GetLayerDeformSplitLine
@@ -13409,12 +13429,21 @@ VMValue Scene_GetType(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
+
+	// TODO: This should get the widest layer
+	SceneLayer* layer = Scene::GetFirstTileLayer();
+
 	int v = 0;
-	if (Scene::Layers.size() > 0) {
-		v = Scene::Layers[0]->Width;
+	if (layer != nullptr) {
+		v = layer->Width;
 	}
 
+	// TODO: Maybe not do this
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
+		if (Scene::Layers[i] == nullptr) {
+			continue;
+		}
+
 		if (strcmp(Scene::Layers[i]->Name, "FG Low") == 0) {
 			return INTEGER_VAL(Scene::Layers[i]->Width);
 		}
@@ -13430,12 +13459,21 @@ VMValue Scene_GetWidth(int argCount, VMValue* args, Uint32 threadID) {
  */
 VMValue Scene_GetHeight(int argCount, VMValue* args, Uint32 threadID) {
 	CHECK_ARGCOUNT(0);
+
+	// TODO: This should get the tallest layer
+	SceneLayer* layer = Scene::GetFirstTileLayer();
+
 	int v = 0;
-	if (Scene::Layers.size() > 0) {
-		v = Scene::Layers[0]->Height;
+	if (layer != nullptr) {
+		v = layer->Height;
 	}
 
+	// TODO: Maybe not do this
 	for (size_t i = 0; i < Scene::Layers.size(); i++) {
+		if (Scene::Layers[i] == nullptr) {
+			continue;
+		}
+
 		if (strcmp(Scene::Layers[i]->Name, "FG Low") == 0) {
 			return INTEGER_VAL(Scene::Layers[i]->Height);
 		}
@@ -14593,6 +14631,64 @@ VMValue Scene_SetTilesetPaletteIndex(int argCount, VMValue* args, Uint32 threadI
 }
 #undef CHECK_TILESET_INDEX
 /***
+ * Scene.AddTileLayer
+ * \desc Adds a tile layer to the scene.<br/>\
+The added layer persists in the scene, even after a scene restart. It can only be removed through <ref Scene.RemoveLayer>, or automatically, when a new scene is loaded.
+ * \param name (integer): Name of the layer.
+ * \param width (integer): Width in tiles.
+ * \param height (integer): Height in tiles.
+ * \return integer Returns the layer index.
+ * \ns Scene
+ */
+VMValue Scene_AddTileLayer(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	char* name = GET_ARG(0, GetString);
+	int w = GET_ARG(1, GetInteger);
+	int h = GET_ARG(2, GetInteger);
+
+	if (w < 1) {
+		THROW_ERROR("Width cannot be lower than 1.");
+		return NULL_VAL;
+	}
+	if (h < 1) {
+		THROW_ERROR("Height cannot be lower than 1.");
+		return NULL_VAL;
+	}
+
+	TileLayer* layer = new TileLayer(w, h);
+	layer->Name = StringUtils::Duplicate(name);
+	layer->Flags = SceneLayer::FLAGS_COLLIDEABLE;
+
+	size_t layerIndex = Scene::AddLayer(layer);
+
+	if (Graphics::LayerTileBufferingEnabled) {
+		Graphics::MakeLayerTileBuffers(layer);
+	}
+
+	return INTEGER_VAL((int)layerIndex);
+}
+/***
+ * Scene.RemoveLayer
+ * \desc Removes a layer from the scene, permanently.
+ * \param layerIndex (integer): Index of layer.
+ * \ns Scene
+ */
+VMValue Scene_RemoveLayer(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(1);
+	int index = GET_ARG(0, GetInteger);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+
+	SceneLayer* layer = Scene::Layers[index];
+
+	Graphics::DeleteLayerTileBuffers(layer);
+	delete layer;
+
+	Scene::Layers[index] = nullptr;
+
+	return NULL_VAL;
+}
+/***
  * Scene.SetLayerVisible
  * \desc Sets the visibility of the specified layer.
  * \param layerIndex (integer): Index of layer.
@@ -14629,7 +14725,7 @@ VMValue Scene_SetLayerCollidable(int argCount, VMValue* args, Uint32 threadID) {
 }
 /***
  * Scene.SetLayerSize
- * \desc Resizes a layer.
+ * \desc Resizes a layer. The change to the layer is permanent.
  * \param layerIndex (integer): Index of layer.
  * \param width (integer): Width in tiles.
  * \param height (integer): Height in tiles.
@@ -22427,6 +22523,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, GetLayerShader);
 	DEF_NATIVE(Scene, GetLayerUsePaletteIndexLines);
 	DEF_NATIVE(Scene, GetLayerProperty);
+	DEF_NATIVE(Scene, IsLayerValid);
 	DEF_NATIVE(Scene, GetLayerExists); // deprecated
 	DEF_NATIVE(Scene, GetLayerDeformSplitLine);
 	DEF_NATIVE(Scene, GetLayerDeformOffsetA);
@@ -22499,6 +22596,8 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, SetTileAnimSequenceSpeed);
 	DEF_NATIVE(Scene, SetTileAnimSequenceFrame);
 	DEF_NATIVE(Scene, SetTilesetPaletteIndex);
+	DEF_NATIVE(Scene, AddTileLayer);
+	DEF_NATIVE(Scene, RemoveLayer);
 	DEF_NATIVE(Scene, SetLayerVisible);
 	DEF_NATIVE(Scene, SetLayerCollidable);
 	DEF_NATIVE(Scene, SetLayerSize);

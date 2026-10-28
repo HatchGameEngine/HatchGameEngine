@@ -893,6 +893,10 @@ void Application::GetPerformanceSnapshot() {
 			double tilesTotal = 0.0;
 			for (size_t li = 0; li < Scene::Layers.size(); li++) {
 				SceneLayer* layer = Scene::Layers[li];
+				if (!layer) {
+					continue;
+				}
+
 				char temp[128];
 				snprintf(temp,
 					sizeof(temp),
@@ -1618,6 +1622,10 @@ void Application::PollEvents() {
 				else if (key == KeyBindsSDL[(int)KeyBind::DevLayerInfo]) {
 					for (size_t li = 0; li < Scene::Layers.size(); li++) {
 						SceneLayer* layer = Scene::Layers[li];
+						if (!layer) {
+							continue;
+						}
+
 						Log::Print(Log::LOG_IMPORTANT,
 							"%2d: %20s (Visible: %d, Width: %d, Height: %d, OffsetX: %f, OffsetY: %f, RelativeX: %f, RelativeY: %f, ConstantX: %f, ConstantY: %f, DrawGroup: %d, ScrollDirection: %d, Flags: %d)",
 							li,

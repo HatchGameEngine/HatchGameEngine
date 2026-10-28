@@ -83,9 +83,8 @@ void Camera::Initialize() {
 	MaxY = 0.0;
 	MaxZ = 0.0;
 
-	if (Scene::Layers.size() > 0) {
-		SceneLayer* layer = Scene::Layers[0];
-
+	SceneLayer* layer = Scene::GetFirstLayer();
+	if (layer != nullptr) {
 		MaxX = layer->Width;
 		MaxY = layer->Height;
 

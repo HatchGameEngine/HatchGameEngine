@@ -945,12 +945,12 @@ void Scene::RunTileAnimations() {
 	}
 
 	if (Scene::RefreshTileAnimations) {
-		for (size_t i = 0; i < Scene::Layers.size(); i++) {
-			if (Scene::Layers[i]->Type != SceneLayer::TYPE_TILE) {
+		for (size_t i = 0; i < Layers.size(); i++) {
+			if (Layers[i] == nullptr || Layers[i]->Type != SceneLayer::TYPE_TILE) {
 				continue;
 			}
 
-			TileLayer* tileLayer = (TileLayer*)Scene::Layers[i];
+			TileLayer* tileLayer = (TileLayer*)Layers[i];
 			if (tileLayer->UsingTileBuffers) {
 				Graphics::RefreshLayerTileAnimations(tileLayer);
 			}
@@ -1354,6 +1354,10 @@ void Scene::RenderView(int viewIndex, bool doPerf) {
 		texBlend = Graphics::TextureBlend;
 		for (size_t li = 0; li < Layers.size(); li++) {
 			SceneLayer* layer = Layers[li];
+			if (layer == nullptr) {
+				continue;
+			}
+
 			// Skip layer tile render if already rendered
 			if (layer->DrawGroup != l) {
 				continue;
@@ -1862,7 +1866,7 @@ void Scene::Restart() {
 	if (Scene::AnyLayerTileChange) {
 		// Copy backup tiles into main tiles
 		for (int l = 0; l < (int)Layers.size(); l++) {
-			if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
+			if (Layers[l] == nullptr || Layers[l]->Type != SceneLayer::TYPE_TILE) {
 				continue;
 			}
 
@@ -1998,7 +2002,9 @@ void Scene::Restart() {
 	// Make layer tile buffers
 	if (Graphics::LayerTileBufferingEnabled) {
 		for (int l = 0; l < (int)Layers.size(); l++) {
-			Graphics::MakeLayerTileBuffers(Layers[l]);
+			if (Layers[l] != nullptr && Layers[l]->Type == SceneLayer::TYPE_TILE) {
+				Graphics::MakeLayerTileBuffers(Layers[l]);
+			}
 		}
 	}
 
@@ -2124,11 +2130,14 @@ void Scene::Unload() {
 	Scene::ClearPriorityLists();
 
 	// Dispose of layers
-	for (size_t i = 0; i < Scene::Layers.size(); i++) {
-		Graphics::DeleteLayerTileBuffers(Scene::Layers[i]);
-		delete Scene::Layers[i];
+	for (size_t i = 0; i < Layers.size(); i++) {
+		SceneLayer* layer = Layers[i];
+		if (layer != nullptr) {
+			Graphics::DeleteLayerTileBuffers(layer);
+			delete layer;
+		}
 	}
-	Scene::Layers.clear();
+	Layers.clear();
 
 	// Dispose of TileConfigs
 	Scene::UnloadTileCollisions();
@@ -2145,11 +2154,14 @@ void Scene::Unload() {
 	Scene::UnloadTilesets();
 	Scene::FreePriorityLists();
 
-	for (size_t i = 0; i < Scene::Layers.size(); i++) {
-		Graphics::DeleteLayerTileBuffers(Scene::Layers[i]);
-		delete Scene::Layers[i];
+	for (size_t i = 0; i < Layers.size(); i++) {
+		SceneLayer* layer = Layers[i];
+		if (layer != nullptr) {
+			Graphics::DeleteLayerTileBuffers(layer);
+			delete layer;
+		}
 	}
-	Scene::Layers.clear();
+	Layers.clear();
 
 	Scene::Loaded = false;
 }
@@ -2544,8 +2556,34 @@ std::vector<ObjectList*> Scene::GetObjectListPerformance() {
 	return ListList;
 }
 
-void Scene::AddLayer(SceneLayer* layer) {
-	Scene::Layers.push_back(layer);
+size_t Scene::AddLayer(SceneLayer* layer) {
+	for (size_t i = 0; i < Layers.size(); i++) {
+		if (Layers[i] == nullptr) {
+			Layers[i] = layer;
+			return i;
+		}
+	}
+
+	Layers.push_back(layer);
+	return Layers.size() - 1;
+}
+SceneLayer* Scene::GetFirstLayer() {
+	for (size_t i = 0; i < Layers.size(); i++) {
+		if (Layers[i] != nullptr) {
+			return Layers[i];
+		}
+	}
+
+	return nullptr;
+}
+SceneLayer* Scene::GetFirstTileLayer() {
+	for (size_t i = 0; i < Layers.size(); i++) {
+		if (Layers[i] != nullptr && Layers[i]->Type == SceneLayer::TYPE_TILE) {
+			return Layers[i];
+		}
+	}
+
+	return nullptr;
 }
 void Scene::SetLayerSize(SceneLayer* layer, int width, int height) {
 	if (layer->Type != SceneLayer::TYPE_TILE || width < 1 || height < 1) {
@@ -3208,7 +3246,7 @@ bool Scene::AddTileset(char* path) {
 	// Remake layer tile buffers
 	if (Graphics::LayerTileBufferingEnabled) {
 		for (int l = 0; l < (int)Layers.size(); l++) {
-			if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
+			if (Layers[l] == nullptr || Layers[l]->Type != SceneLayer::TYPE_TILE) {
 				continue;
 			}
 
@@ -3759,11 +3797,14 @@ void Scene::Dispose() {
 	// Free Priority Lists
 	Scene::FreePriorityLists();
 
-	for (size_t i = 0; i < Scene::Layers.size(); i++) {
-		Graphics::DeleteLayerTileBuffers(Scene::Layers[i]);
-		delete Scene::Layers[i];
+	for (size_t i = 0; i < Layers.size(); i++) {
+		SceneLayer* layer = Layers[i];
+		if (layer != nullptr) {
+			Graphics::DeleteLayerTileBuffers(layer);
+			delete layer;
+		}
 	}
-	Scene::Layers.clear();
+	Layers.clear();
 
 	Scene::UnloadTilesets();
 
@@ -3834,7 +3875,7 @@ void Scene::SetTile(int layerIndex,
 	int flip_y,
 	int collA,
 	int collB) {
-	if (Layers[layerIndex]->Type != SceneLayer::TYPE_TILE) {
+	if (Layers[layerIndex] == nullptr || Layers[layerIndex]->Type != SceneLayer::TYPE_TILE) {
 		return;
 	}
 
@@ -3897,7 +3938,7 @@ int Scene::CollisionAt(int x, int y, int collisionField, int collideSide, int* a
 	}
 
 	for (size_t l = 0, lSz = Layers.size(); l < lSz; l++) {
-		if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
+		if (Layers[l] == nullptr || Layers[l]->Type != SceneLayer::TYPE_TILE) {
 			continue;
 		}
 
@@ -4044,7 +4085,7 @@ int Scene::CollisionInLine(int x,
 
 	sensor->Collided = false;
 	for (size_t l = 0, lSz = Layers.size(); l < lSz; l++) {
-		if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
+		if (Layers[l] == nullptr || Layers[l]->Type != SceneLayer::TYPE_TILE) {
 			continue;
 		}
 
@@ -4520,7 +4561,7 @@ bool Scene::CheckTileCollision(Entity* entity,
 
 	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-		if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
+		if (Layers[l] == nullptr || Layers[l]->Type != SceneLayer::TYPE_TILE) {
 			continue;
 		}
 
@@ -4646,7 +4687,7 @@ bool Scene::CheckTileGrip(Entity* entity,
 
 	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
-		if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
+		if (Layers[l] == nullptr || Layers[l]->Type != SceneLayer::TYPE_TILE) {
 			continue;
 		}
 
@@ -5500,7 +5541,7 @@ void Scene::CheckVerticalPosition(CollisionSensor* sensor, bool isFloor) {
 	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
 		if (CollisionEntity->CollisionLayers & layerID) {
-			if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
+			if (Layers[l] == nullptr || Layers[l]->Type != SceneLayer::TYPE_TILE) {
 				continue;
 			}
 
@@ -5616,7 +5657,7 @@ void Scene::CheckHorizontalPosition(CollisionSensor* sensor, bool isLeft) {
 	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
 		if (CollisionEntity->CollisionLayers & layerID) {
-			if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
+			if (Layers[l] == nullptr || Layers[l]->Type != SceneLayer::TYPE_TILE) {
 				continue;
 			}
 
@@ -5710,7 +5751,7 @@ void Scene::CheckVerticalCollision(CollisionSensor* sensor, bool isFloor) {
 	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
 		if (CollisionEntity->CollisionLayers & layerID) {
-			if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
+			if (Layers[l] == nullptr || Layers[l]->Type != SceneLayer::TYPE_TILE) {
 				continue;
 			}
 
@@ -5798,7 +5839,7 @@ void Scene::CheckHorizontalCollision(CollisionSensor* sensor, bool isLeft) {
 	int layerID = 1;
 	for (size_t l = 0; l < Layers.size(); ++l, layerID <<= 1) {
 		if (CollisionEntity->CollisionLayers & layerID) {
-			if (Layers[l]->Type != SceneLayer::TYPE_TILE) {
+			if (Layers[l] == nullptr || Layers[l]->Type != SceneLayer::TYPE_TILE) {
 				continue;
 			}
 
