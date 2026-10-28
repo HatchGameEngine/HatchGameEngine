@@ -6,6 +6,10 @@
 #include <Engine/Scene/ScrollingInfo.h>
 
 class TileLayer : public SceneLayer {
+private:
+	void SetSize(int w, int h);
+	void AllocTilesBackup();
+
 public:
 	Uint32 WidthMask = 0;
 	Uint32 HeightMask = 0;
@@ -38,7 +42,10 @@ public:
 	bool RemakeTileBuffers = false;
 
 	TileLayer();
-	TileLayer(int w, int h);
+	TileLayer(int w, int h, bool allocTilesBackupData = true);
+
+	void Resize(int w, int h);
+
 	~TileLayer();
 };
 

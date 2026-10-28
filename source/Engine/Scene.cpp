@@ -1867,7 +1867,9 @@ void Scene::Restart() {
 			}
 
 			TileLayer* layer = (TileLayer*)Layers[l];
-			memcpy(layer->Tiles, layer->TilesBackup, layer->DataSize);
+			if (layer->TilesBackup != nullptr) {
+				memcpy(layer->Tiles, layer->TilesBackup, layer->DataSize);
+			}
 		}
 		Scene::AnyLayerTileChange = false;
 	}
@@ -2544,6 +2546,28 @@ std::vector<ObjectList*> Scene::GetObjectListPerformance() {
 
 void Scene::AddLayer(SceneLayer* layer) {
 	Scene::Layers.push_back(layer);
+}
+void Scene::SetLayerSize(SceneLayer* layer, int width, int height) {
+	if (layer->Type != SceneLayer::TYPE_TILE || width < 1 || height < 1) {
+		return;
+	}
+
+	TileLayer* tileLayer = (TileLayer*)layer;
+	if (width == layer->Width && height == layer->Height) {
+		// Nothing to do.
+		return;
+	}
+
+	// Delete buffers if there are any
+	Graphics::DeleteLayerTileBuffers(tileLayer);
+
+	// Resize the layer
+	tileLayer->Resize(width, height);
+
+	// Remake buffers if tile buffering is enabled
+	if (Graphics::LayerTileBufferingEnabled) {
+		Graphics::MakeLayerTileBuffers(tileLayer);
+	}
 }
 
 void Scene::InitPriorityLists() {

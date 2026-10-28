@@ -193,6 +193,7 @@ public:
 	static void AddManagers();
 	static std::vector<ObjectList*> GetObjectListPerformance();
 	static void AddLayer(SceneLayer* layer);
+	static void SetLayerSize(SceneLayer* layer, int width, int height);
 	static void InitPriorityLists();
 	static void FreePriorityLists();
 	static void SetPriorityPerLayer(int count);

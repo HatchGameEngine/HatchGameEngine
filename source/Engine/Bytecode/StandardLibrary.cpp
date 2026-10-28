@@ -14628,6 +14628,34 @@ VMValue Scene_SetLayerCollidable(int argCount, VMValue* args, Uint32 threadID) {
 	return NULL_VAL;
 }
 /***
+ * Scene.SetLayerSize
+ * \desc Resizes a layer.
+ * \param layerIndex (integer): Index of layer.
+ * \param width (integer): Width in tiles.
+ * \param height (integer): Height in tiles.
+ * \ns Scene
+ */
+VMValue Scene_SetLayerSize(int argCount, VMValue* args, Uint32 threadID) {
+	CHECK_ARGCOUNT(3);
+	int index = GET_ARG(0, GetInteger);
+	int w = GET_ARG(1, GetInteger);
+	int h = GET_ARG(2, GetInteger);
+
+	CHECK_SCENE_LAYER_INDEX(index);
+	CHECK_IS_TILE_LAYER(index);
+
+	if (w < 1) {
+		THROW_ERROR("Width cannot be lower than 1.");
+		return NULL_VAL;
+	}
+	if (h < 1) {
+		THROW_ERROR("Height cannot be lower than 1.");
+		return NULL_VAL;
+	}
+	Scene::SetLayerSize(Scene::Layers[index], w, h);
+	return NULL_VAL;
+}
+/***
  * Scene.SetLayerInternalSize
  * \desc Do not use this.
  * \ns Scene
@@ -22473,6 +22501,7 @@ Some layer-related functions can only be used with layers of type <ref LAYERTYPE
 	DEF_NATIVE(Scene, SetTilesetPaletteIndex);
 	DEF_NATIVE(Scene, SetLayerVisible);
 	DEF_NATIVE(Scene, SetLayerCollidable);
+	DEF_NATIVE(Scene, SetLayerSize);
 	DEF_NATIVE(Scene, SetLayerInternalSize);
 	DEF_NATIVE(Scene, SetLayerOffsetPosition);
 	DEF_NATIVE(Scene, SetLayerOffsetX);

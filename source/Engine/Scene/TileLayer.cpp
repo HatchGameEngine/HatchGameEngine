@@ -3,9 +3,23 @@
 #include <Engine/Scene/TileLayer.h>
 
 TileLayer::TileLayer() {}
-TileLayer::TileLayer(int w, int h) {
+TileLayer::TileLayer(int w, int h, bool allocTilesBackupData) {
 	Type = SceneLayer::TYPE_TILE;
 
+	SetSize(w, h);
+
+	memset(DeformSetA, 0, sizeof(DeformSetA));
+	memset(DeformSetB, 0, sizeof(DeformSetB));
+
+	Tiles = (Uint32*)Memory::TrackedCalloc("TileLayer::Tiles", WidthData * HeightData, sizeof(Uint32));
+	if (allocTilesBackupData) {
+		AllocTilesBackup();
+	}
+
+	UsingScrollIndexes = false;
+}
+
+void TileLayer::SetSize(int w, int h) {
 	Width = w;
 	Height = h;
 
@@ -31,15 +45,46 @@ TileLayer::TileLayer(int w, int h) {
 	if (ScrollIndexCount < HeightData) {
 		ScrollIndexCount = HeightData;
 	}
-
-	memset(DeformSetA, 0, sizeof(DeformSetA));
-	memset(DeformSetB, 0, sizeof(DeformSetB));
-
-	Tiles = (Uint32*)Memory::TrackedCalloc("TileLayer::Tiles", w * h, sizeof(Uint32));
-	TilesBackup =
-		(Uint32*)Memory::TrackedCalloc("TileLayer::TilesBackup", w * h, sizeof(Uint32));
-	UsingScrollIndexes = false;
 }
+
+void TileLayer::Resize(int w, int h) {
+	size_t copyWidth = std::min(w, Width) * sizeof(Uint32);
+	size_t copyHeight = std::min(h, Height);
+	size_t oldWidthData = WidthData;
+
+	SetSize(w, h);
+
+	Uint32* newTileData = (Uint32*)Memory::TrackedCalloc("TileLayer::Tiles", WidthData * HeightData, sizeof(Uint32));
+	Uint32* newTileBackupData = nullptr;
+
+	if (TilesBackup) {
+		newTileBackupData = (Uint32*)Memory::TrackedCalloc("TileLayer::TilesBackup", WidthData * HeightData, sizeof(Uint32));
+	}
+
+	for (size_t i = 0, iH = 0; i < copyHeight; i++) {
+		memcpy(&newTileData[iH], &Tiles[i * oldWidthData], copyWidth);
+
+		if (newTileBackupData != nullptr) {
+			memcpy(&newTileBackupData[iH], &TilesBackup[i * oldWidthData], copyWidth);
+		}
+
+		iH += WidthData;
+	}
+
+	Memory::Free(Tiles);
+	Memory::Free(TilesBackup);
+
+	Tiles = newTileData;
+	if (newTileBackupData != nullptr) {
+		TilesBackup = newTileBackupData;
+	}
+}
+
+void TileLayer::AllocTilesBackup() {
+	TilesBackup =
+		(Uint32*)Memory::TrackedCalloc("TileLayer::TilesBackup", WidthData * HeightData, sizeof(Uint32));
+}
+
 TileLayer::~TileLayer() {
 	Memory::Free(Tiles);
 	Memory::Free(TilesBackup);
