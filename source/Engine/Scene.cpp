@@ -2250,31 +2250,41 @@ void Scene::ReadSceneFile(const char* filename) {
 
 	Stream* r = ResourceStream::New(filename);
 	if (r) {
+		SceneReader* reader;
+
 		// Guess from the header first
 		Uint32 magic = r->ReadUInt32();
 
 		if (magic == HatchSceneReader::Magic) {
-			r->Seek(0);
-			HatchSceneReader::Read(r, pathParent);
+			reader = new HatchSceneReader();
 		}
 		else if (magic == RSDKSceneReader::Magic) {
-			r->Seek(0);
-			RSDKSceneReader::Read(r, pathParent);
+			reader = new RSDKSceneReader();
 		}
 		else {
-			r->Close();
-
 			// Guess from the filename
 			if (StringUtils::StrCaseStr(filename, ".bin")) {
-				RSDKSceneReader::Read(filename, pathParent);
+				reader = new RSDKSceneReader();
 			}
 			else if (StringUtils::StrCaseStr(filename, ".hcsn")) {
-				HatchSceneReader::Read(filename, pathParent);
+				reader = new HatchSceneReader();
 			}
 			else {
-				TiledMapReader::Read(filename, pathParent);
+				// Assume it's a Tiled map
+				reader = new TiledMapReader();
 			}
 		}
+
+		// Read the map
+		r->Seek(0);
+
+		if (reader->Read(r)) {
+			reader->LoadIntoScene(pathParent);
+		}
+
+		r->Close();
+
+		delete reader;
 
 		InitTileCollisions();
 		SetInfoFromCurrentID();

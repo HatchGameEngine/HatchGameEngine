@@ -5,6 +5,7 @@
 #include <Engine/Includes/HashMap.h>
 #include <Engine/IO/Stream.h>
 #include <Engine/Scene/LayerGroup.h>
+#include <Engine/Scene/SceneReader.h>
 #include <Engine/TextFormats/XML/XMLNode.h>
 #include <Engine/Types/Property.h>
 #include <Engine/Types/Tileset.h>
@@ -21,8 +22,10 @@ struct TiledLayer {
 	HashMap<Property>* Properties = nullptr;
 };
 
-class TiledMapReader {
+class TiledMapReader : public SceneReader {
 private:
+	XMLNode* Data = nullptr;
+
 	static Property ParseProperty(XMLNode* property);
 	static void ParsePropertyNode(XMLNode* node, HashMap<Property>* properties);
 	static PropertyArray ParsePolyPoints(XMLNode* node);
@@ -41,7 +44,12 @@ private:
 	static bool ParseGroup(XMLNode* node, LayerGroup* parent, const char* parentFolder);
 
 public:
-	static void Read(const char* sourceF, const char* parentFolder);
+	int TileWidth = 0;
+	int TileHeight = 0;
+
+	bool Read(Stream* stream);
+	bool LoadIntoScene(const char* parentFolder);
+	void Dispose();
 };
 
 #endif /* ENGINE_RESOURCETYPES_SCENEFORMATS_TILEDMAPREADER_H */

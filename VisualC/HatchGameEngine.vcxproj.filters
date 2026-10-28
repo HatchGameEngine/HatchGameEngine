@@ -393,6 +393,9 @@
     <ClCompile Include="..\source\engine\scene\SceneLayer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\source\engine\scene\SceneReader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\source\engine\scene\View.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

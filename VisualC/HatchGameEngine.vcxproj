@@ -300,6 +300,7 @@ copy "$(TargetPath)" "$(SolutionDir)..\builds\win\$(TargetName)-Release.exe"</Co
     <ClCompile Include="..\source\Engine\Scene\ImageLayer.cpp" />
     <ClCompile Include="..\source\engine\scene\SceneInfo.cpp" />
     <ClCompile Include="..\source\engine\scene\SceneLayer.cpp" />
+    <ClCompile Include="..\source\engine\scene\SceneReader.cpp" />
     <ClCompile Include="..\source\Engine\Scene\TileLayer.cpp" />
     <ClCompile Include="..\source\engine\scene\View.cpp" />
     <ClCompile Include="..\source\engine\textformats\ini\INI.cpp" />

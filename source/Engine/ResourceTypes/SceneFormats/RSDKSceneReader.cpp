@@ -227,16 +227,9 @@ void RSDKSceneReader::LoadPropertyList() {
 
 	r->Close();
 }
-bool RSDKSceneReader::Read(const char* filename, const char* parentFolder) {
-	Stream* r = ResourceStream::New(filename);
-	if (!r) {
-		Log::Print(Log::LOG_ERROR, "Couldn't open file '%s'!", filename);
-		return false;
-	}
+TileLayer* RSDKSceneReader::ReadLayer() {
+	Stream* r = StreamPtr;
 
-	return RSDKSceneReader::Read(r, parentFolder);
-}
-TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 	r->ReadByte(); // Ignored Byte
 
 	char* Name = r->ReadHeaderedString();
@@ -328,7 +321,9 @@ TileLayer* RSDKSceneReader::ReadLayer(Stream* r) {
 
 	return layer;
 }
-bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const int maxObjSlots) {
+bool RSDKSceneReader::ReadObjectDefinition(Entity** objSlots, const int maxObjSlots) {
+	Stream* r = StreamPtr;
+
 	Uint8 hashTemp[16];
 	r->ReadBytes(hashTemp, 16);
 
@@ -601,7 +596,7 @@ bool RSDKSceneReader::ReadObjectDefinition(Stream* r, Entity** objSlots, const i
 
 	return true;
 }
-bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
+bool RSDKSceneReader::Read(Stream* r) {
 	// Load PropertyList and ObjectList and others
 	// (use regular malloc and calloc as this is technically a hack
 	// outside the scope of the engine)
@@ -613,15 +608,21 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 
 	if (r->ReadUInt32BE() != 0x53434E00) {
 		Log::Print(Log::LOG_ERROR, "Not an RSDKv5 scene!");
-		r->Close();
 		return false;
 	}
 
 	if (!ObjectNames) {
 		Log::Print(Log::LOG_ERROR, "ObjectList.txt missing or empty!");
-		r->Close();
 		return false;
 	}
+
+	StreamPtr = r;
+
+	return true;
+}
+
+bool RSDKSceneReader::LoadIntoScene(const char* parentFolder) {
+	Stream* r = StreamPtr;
 
 	Scene::SceneType = SCENETYPE_RSDK;
 
@@ -642,7 +643,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	// Read layers
 	Uint32 layerCount = r->ReadByte();
 	for (Uint32 i = 0; i < layerCount; i++) {
-		TileLayer* layer = RSDKSceneReader::ReadLayer(r);
+		TileLayer* layer = ReadLayer();
 
 		Log::Print(Log::LOG_VERBOSE,
 			"Layer %d (%s): Width (%d) Height (%d) DrawGroup (%d)",
@@ -670,13 +671,12 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	Entity** objSlots = (Entity**)calloc(maxObjSlots, sizeof(Entity*));
 	if (!objSlots) {
 		Log::Print(Log::LOG_ERROR, "Could not allocate memory for object slots!");
-		r->Close();
 		return false;
 	}
 
 	// Read each object definition
 	for (int i = 0; i < objectDefinitionCount; i++) {
-		if (!ReadObjectDefinition(r, objSlots, maxObjSlots)) {
+		if (!ReadObjectDefinition(objSlots, maxObjSlots)) {
 			free(objSlots);
 			return false;
 		}
@@ -694,15 +694,13 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	ticks = Clock::GetTicks() - ticks;
 	Log::Print(Log::LOG_VERBOSE, "Scene Object load took %.3f milliseconds.", ticks);
 
-	r->Close();
-
 	// Load Tileset and copy palette
 	LoadTileset(parentFolder);
 
 	const char* gameConfigFilename = "Game/GameConfig.bin";
 	// Load GameConfig palettes
 	if (ResourceManager::ResourceExists(gameConfigFilename)) {
-		GameConfig_GetColors(gameConfigFilename);
+		RSDKSceneReader::GameConfig_GetColors(gameConfigFilename);
 	}
 	else {
 		Log::Print(Log::LOG_WARN, "No GameConfig at '%s'!", gameConfigFilename);
@@ -713,7 +711,7 @@ bool RSDKSceneReader::Read(Stream* r, const char* parentFolder) {
 	snprintf(
 		stageConfigFilename, sizeof stageConfigFilename, "%sStageConfig.bin", parentFolder);
 	if (ResourceManager::ResourceExists(stageConfigFilename)) {
-		StageConfig_GetColors(stageConfigFilename);
+		RSDKSceneReader::StageConfig_GetColors(stageConfigFilename);
 	}
 	else {
 		Log::Print(Log::LOG_WARN, "No StageConfig at '%s'!", stageConfigFilename);

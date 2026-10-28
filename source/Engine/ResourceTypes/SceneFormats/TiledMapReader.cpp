@@ -997,28 +997,40 @@ bool TiledMapReader::ParseGroup(XMLNode* node, LayerGroup* parent, const char* p
 	return true;
 }
 
-void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
-	XMLNode* tileMapXML = XMLParser::ParseFromResource(sourceF);
-	if (!tileMapXML) {
-		Log::Print(Log::LOG_ERROR, "Could not parse resource \"%s\"!", sourceF);
-		return;
+bool TiledMapReader::Read(Stream* r) {
+	Data = XMLParser::ParseFromStream(r);
+	if (!Data) {
+		Log::Print(Log::LOG_ERROR, "Could not parse resource!");
+		return false;
 	}
 
-	XMLNode* map = tileMapXML->children[0];
+	XMLNode* map = Data->children[0];
 
 	// 'infinite' maps will not work
 	if (XMLParser::MatchToken(map->attributes.Get("infinite"), "1")) {
 		Log::Print(Log::LOG_ERROR,
 			"Not compatible with infinite maps! (Map > Map Properties > Set \"Infinite\" to unchecked)");
-		XMLParser::Free(tileMapXML);
-		return;
+		XMLParser::Free(Data);
+		return false;
+	}
+
+	TileWidth = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
+	TileHeight = (int)XMLParser::TokenToNumber(map->attributes.Get("tileheight"));
+
+	return true;
+}
+
+bool TiledMapReader::LoadIntoScene(const char* parentFolder) {
+	XMLNode* map = Data->children[0];
+	if (!map) {
+		return false;
 	}
 
 	Scene::SceneType = SCENETYPE_TILED;
 
 	Scene::EmptyTile = 0;
-	Scene::TileWidth = (int)XMLParser::TokenToNumber(map->attributes.Get("tilewidth"));
-	Scene::TileHeight = (int)XMLParser::TokenToNumber(map->attributes.Get("tileheight"));
+	Scene::TileWidth = TileWidth;
+	Scene::TileHeight = TileHeight;
 
 	Scene::FreePriorityLists();
 	Scene::PriorityPerLayer = BASE_PRIORITY_PER_LAYER;
@@ -1052,14 +1064,17 @@ void TiledMapReader::Read(const char* sourceF, const char* parentFolder) {
 		}
 		else if (XMLParser::MatchToken(map->children[i]->name, "group")) {
 			if (!ParseGroup(map->children[i], nullptr, parentFolder)) {
-				goto FREE;
+				return false;
 			}
 		}
 		else if (!ParseGroupable(map->children[i], nullptr, parentFolder)) {
-			goto FREE;
+			return false;
 		}
 	}
 
-FREE:
-	XMLParser::Free(tileMapXML);
+	return true;
+}
+
+void TiledMapReader::Dispose() {
+	XMLParser::Free(Data);
 }

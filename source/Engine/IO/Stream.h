@@ -37,6 +37,7 @@ public:
 	void SkipString();
 	Uint16* ReadUnicodeString();
 	char* ReadHeaderedString();
+	void SkipHeaderedString();
 	virtual Uint32 ReadCompressed(void* out);
 	virtual Uint32 ReadCompressed(void* out, size_t outSz);
 	virtual size_t WriteBytes(void* data, size_t n);

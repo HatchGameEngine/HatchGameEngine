@@ -3,13 +3,16 @@
 
 #include <Engine/IO/Stream.h>
 #include <Engine/Scene/TileLayer.h>
+#include <Engine/Scene/SceneReader.h>
 #include <Engine/Types/Entity.h>
 
-class RSDKSceneReader {
+class RSDKSceneReader : public SceneReader {
 private:
+	Stream* StreamPtr = nullptr;
+
 	static void LoadObjectList();
 	static void LoadPropertyList();
-	static TileLayer* ReadLayer(Stream* r);
+	TileLayer* ReadLayer();
 	static bool LoadTileset(const char* parentFolder);
 
 public:
@@ -18,9 +21,10 @@ public:
 
 	static void StageConfig_GetColors(const char* filename);
 	static void GameConfig_GetColors(const char* filename);
-	static bool Read(const char* filename, const char* parentFolder);
-	static bool ReadObjectDefinition(Stream* r, Entity** objSlots, const int maxObjSlots);
-	static bool Read(Stream* r, const char* parentFolder);
+	bool ReadObjectDefinition(Entity** objSlots, const int maxObjSlots);
+
+	bool Read(Stream* r);
+	bool LoadIntoScene(const char* parentFolder);
 };
 
 #endif /* ENGINE_RESOURCETYPES_SCENEFORMATS_RSDKSCENEREADER_H */

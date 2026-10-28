@@ -3,29 +3,42 @@
 
 #include <Engine/IO/ResourceStream.h>
 #include <Engine/ResourceTypes/SceneFormats/HatchSceneTypes.h>
+#include <Engine/Scene/SceneReader.h>
 #include <Engine/Scene/TileLayer.h>
 
-class HatchSceneReader {
+class HatchSceneReader : public SceneReader {
 private:
-	static TileLayer* ReadLayer(Stream* r);
-	static void ReadTileData(Stream* r, TileLayer* layer);
-	static void ConvertTileData(TileLayer* layer);
-	static void ReadScrollData(Stream* r, TileLayer* layer);
-	static SceneClass* FindClass(SceneHash hash);
-	static SceneClassProperty* FindProperty(SceneClass* scnClass, SceneHash hash);
+	Stream* StreamPtr = nullptr;
+
+	Uint8 NumLayers = 0;
+	Uint16 NumEntities = 0;
+
+	size_t LayerDataStart = 0;
+	size_t EntityDataStart = 0;
+
+	std::vector<SceneClass> SceneClasses;
+
+	TileLayer* ReadLayer();
+	void SkipLayer();
+	void ReadTileData(TileLayer* layer);
+	void ConvertTileData(TileLayer* layer);
+	void ReadScrollData(TileLayer* layer);
+	SceneClass* FindClass(SceneHash hash);
+	SceneClassProperty* FindProperty(SceneClass* scnClass, SceneHash hash);
 	static void HashString(char* string, SceneHash* hash);
-	static void ReadClasses(Stream* r);
-	static void FreeClasses();
+	void ReadClasses();
+	void FreeClasses();
 	static bool LoadTileset(const char* parentFolder);
-	static void ReadEntities(Stream* r);
-	static void SkipEntityProperties(Stream* r, Uint8 numProps);
-	static void SkipProperty(Stream* r, Uint8 varType);
+	void ReadEntities();
+	void SkipEntityProperties(Uint8 numProps);
+	void SkipProperty(Uint8 varType);
 
 public:
 	static Uint32 Magic;
 
-	static bool Read(const char* filename, const char* parentFolder);
-	static bool Read(Stream* r, const char* parentFolder);
+	bool Read(Stream* r);
+	bool LoadIntoScene(const char* parentFolder);
+	void Dispose();
 };
 
 #endif /* ENGINE_RESOURCETYPES_SCENEFORMATS_HATCHSCENEREADER_H */

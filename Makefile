@@ -160,6 +160,7 @@ CPPFILES := \
 	source/Engine/Scene/ImageLayer.cpp \
 	source/Engine/Scene/SceneInfo.cpp \
 	source/Engine/Scene/SceneLayer.cpp \
+	source/Engine/Scene/SceneReader.cpp \
 	source/Engine/Scene/TileLayer.cpp \
 	source/Engine/Scene/View.cpp \
 	source/Engine/TextFormats/INI/INI.cpp \
@@ -404,6 +405,7 @@ PRVHFILES := \
 	source/Engine/Scene/TileConfig.h \
 	source/Engine/Scene/ScrollingInfo.h \
 	source/Engine/Scene/SceneLayer.h \
+	source/Engine/Scene/SceneReader.h \
 	source/Engine/Scene/View.h \
 	source/Engine/Scene/SceneEnums.h \
 	source/Engine/Scene/TileSpriteInfo.h \

@@ -165,6 +165,10 @@ char* Stream::ReadHeaderedString() {
 
 	return data;
 }
+void Stream::SkipHeaderedString() {
+	Uint8 size = ReadByte();
+	Skip(size);
+}
 Uint32 Stream::ReadCompressed(void* out) {
 	Uint32 compressed_size = ReadUInt32() - 4;
 	Uint32 uncompressed_size = ReadUInt32BE();
